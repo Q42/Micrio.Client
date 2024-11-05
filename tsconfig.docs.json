@@ -1,0 +1,29 @@
+{
+	"include": ["src/ts/", "src/types/", "src/docs/"],
+	"exclude": ["node_modules/*", "__sapper__/*", "public/*"],
+	"compilerOptions": {
+		"typeRoots": ["./types"],
+		"downlevelIteration": true,
+		"target": "es2020",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"emitDeclarationOnly": true,
+		"stripInternal": true
+	},
+	"typedocOptions": {
+		"entryPoints": ["./src/docs/micrio.ts", "./src/docs/store.ts"],
+		"includes": ["."],
+		"excludePrivate": true,
+		"excludeInternal": true,
+		"excludeExternals": true,
+		"includeVersion": true,
+		"disableSources": true,
+		"darkHighlightTheme": "monokai",
+		"lightHighlightTheme": "solarized-light",
+		"customCss": "./src/docs/style.css",
+		"readme": "./src/docs/README.md",
+		"defaultCategory": "Micrio",
+		"name": "Micrio Client",
+		"gaID": "G-P1WB0J7VEM",
+	}
+}

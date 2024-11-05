@@ -1,0 +1,4 @@
+.tsd-panel h2 {
+	margin-top: 3em;
+	color: var(--dark-color-ts-interface);
+}

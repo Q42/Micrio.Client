@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>5.1 Micrio dev</title>
+	<meta name="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no">
+	<meta http-equiv="X-UA-Compatible" content="chrome=1">
+	<meta charset="UTF-8">
+	<meta name="google" value="notranslate">
+	<meta name="mobile-web-app-capable" content="yes">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap" rel="stylesheet"> 
+
+	<!-- Use this for local development -->
+	<!-- <script type="module" src="./src/ts/viewer.ts"></script> -->
+	
+	<!-- Use this to test the compiled version -->
+	<script src="./dist/micrio.min.js" defer></script>
+
+	<!-- Use a production version -->
+	<!-- <script src="https://r2.micr.io/micrio-5.1.0.min.js" defer></script> -->
+
+	<style>
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+			background: #222;
+			height: 100%;
+			font-family: Raleway, sans-serif;
+		}
+	</style>
+
+	<script>
+	</script>
+
+</head>
+
+<body>
+	<!-- Basic test image -->
+	<micr-io id="ojLcRTr" data-camspeed="4" lang="nl"></micr-io>
+
+	<script>
+		window.micrio = document.querySelector('micr-io');
+
+		// Override the default settings
+		micrio.defaultSettings = {
+
+		};
+
+		// Listen to opened marker hooks
+		micrio.addEventListener('marker-opened', e => {
+		});
+
+		// Put any pre-info init hooks here
+		micrio.addEventListener('pre-info', e => {
+		});
+
+		// Put any pre-data init hooks here
+		micrio.addEventListener('pre-data', e => {
+		});
+
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,39 @@
+{
+	"name": "@micrio/client-src",
+	"version": "5.1.0",
+	"description": "Micrio client image viewer source repository",
+	"main": "micrio.js",
+	"type": "module",
+	"scripts": {
+		"prebuild": "node -p \"'export const VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/ts/version.ts",
+		"build": "vite build && tsc -d --project tsconfig.docs.json --outFile out.d.ts && node bundle.js",
+		"dev": "vite --port 2000",
+		"asbuild:untouched": "asc src/wasm/exports.ts --target debug --sourceMap \"http://localhost:2000/build/untouched.wasm.map\" --importMemory",
+		"asbuild:optimized": "asc src/wasm/exports.ts --target release -O3s --converge --runtime stub --disable mutable-globals --disable sign-extension --noExportMemory --noAssert --pedantic --importMemory"
+	},
+	"keywords": [
+		"micrio"
+	],
+	"engines": {
+		"node": ">=18.17.0"
+	},
+	"engineStrict": true,
+	"author": "Marcel Duin <marcel@micr.io>",
+	"homepage": "https://micr.io/",
+	"license": "UNLICENSED",
+	"dependencies": {
+		"@tsconfig/svelte": "^4.0.1",
+		"svelte": "^3.59.1",
+		"svelte-preprocess": "^5.0.4",
+		"tslib": "^2.5.3",
+		"typescript": "^5.1.3"
+	},
+	"devDependencies": {
+		"@fortawesome/free-solid-svg-icons": "^6.4.0",
+		"@sveltejs/vite-plugin-svelte": "^2.4.1",
+		"assemblyscript": "0.18.3",
+		"svelte-fa": "^3.0.4",
+		"terser": "^5.18.1",
+		"vite": "^4.3.9"
+	}
+}

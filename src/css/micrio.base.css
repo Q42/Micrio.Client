@@ -1,0 +1,68 @@
+html {
+	--micrio-color: #fff;
+	--micrio-color-hover: #45A4E4;
+	--micrio-border-radius: 4px;
+	--micrio-background: rgba(41,41,41,0.75);
+	--micrio-background-filter: blur(8px);
+	--micrio-popover-background: rgba(41,41,41,0.75);
+
+	--micrio-icon-size: 18px;
+	--micrio-text-align: left;
+	--micrio-line-height: 1.5em;
+
+	--micrio-border-margin: 16px;
+
+	--micrio-button-size: 48px;
+	--micrio-button-shadow: 0 4px 8px rgba(0,0,0,.33);
+
+	--micrio-marker-size: 16px;
+	--micrio-marker-text-color: #fff;
+	--micrio-marker-text-shadow: 0px 2px 4px rgba(0,0,0,0.6);
+	--micrio-marker-highlight: #00d4ee;
+	--micrio-marker-color: #fff;
+	--micrio-marker-border-radius: 100%;
+	--micrio-marker-border-color: rgba(255,255,255,.2);
+	--micrio-marker-border-size: 8px;
+	--micrio-marker-icon: none;
+	--micrio-marker-transition: background-color 0.25s ease, opacity 0.15s ease, border-width .15s ease, width .15s ease, height .15s ease;
+
+	--micrio-popup-shadow: 0 8px 16px rgba(0,0,0,.33);
+	--micrio-popup-padding: 16px;
+
+	--micrio-progress-bar-background: rgba(255,255,255,.25);
+	--micrio-progress-bar-height: 4px;
+
+	--micrio-waypoint-size: 120px;
+}
+micr-io[data-light-mode] {
+	--micrio-color: #000;
+	--micrio-color-hover: #196DA6;
+	--micrio-background: rgba(255,255,255,0.66);
+	--micrio-progress-bar-background: rgba(0,0,0,.25);
+	--micrio-popover-background: rgba(41,41,41,0.75);
+}
+@media (prefers-color-scheme: light) {
+	micr-io[data-auto-scheme] {
+		--micrio-color: #000;
+		--micrio-color-hover: #196DA6;
+		--micrio-background: rgba(255,255,255,0.66);
+		--micrio-progress-bar-background: rgba(0,0,0,.25);
+	}
+}
+@media (max-width: 500px) {
+	html {
+		--micrio-border-margin: 5px;
+		--micrio-button-size: 48px;
+	}
+}
+micr-io { display: block; user-select: none; -webkit-touch-callout: none; overflow: hidden; position: relative; width: 100%; height: 100%; min-height: 200px; backface-visibility: hidden; -webkit-backface-visibility: hidden; background-repeat: no-repeat; background-position: center center; background-size: contain; container-type: size; }
+micr-io, micr-io button { font-family: var(--micrio-font-family, inherit); font-size: var(--micrio-font-size, inherit); background-color: var(--micrio-background-color, transparent); }
+micr-io h3 { font-weight: 600; }
+micr-io[dir="rtl"] { --micrio-text-align: right; }
+canvas.micrio { display: block; position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; backface-visibility: hidden; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none; }
+micr-io:not([static]) { overscroll-behavior: none; }
+micr-io[data-hooked]:not([data-panning]) > canvas.micrio { cursor: move; cursor: -webkit-grab; cursor: -moz-grab; cursor: -ms-grab; cursor: grab; -ms-content-zooming: none; -ms-touch-action: none; touch-action: none; }
+micr-io[data-panning] { cursor: -webkit-grabbing; cursor: -moz-grabbing; cursor: -ms-grabbing; cursor: grabbing; }
+micr-io[data-hooked][data-can-pan] > canvas.micrio { -ms-touch-action: pan-y; touch-action: pan-y; overscroll-behavior: initial; }
+micr-io > .micrio-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-auto-flow: row dense; grid-gap: 0; will-change: transform; transform-origin: left top; --translate: none; --scale: 1; transform: var(--translate) scale3d(var(--scale), var(--scale), 1)}
+micr-io > .micrio-grid > button { background: transparent; border: none; padding: 0; margin: 0; cursor: pointer; grid-area: auto / auto / span 1 / span 1; }

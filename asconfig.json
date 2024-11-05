@@ -1,0 +1,16 @@
+{
+	"targets": {
+		"debug": {
+			"outFile": "./public/build/untouched.wasm",
+			"textFile": "./public/build/untouched.wat",
+			"sourceMap": true,
+			"debug": true
+		},
+		"release": {
+			"outFile": "./public/build/optimized.wasm",
+			"textFile": "./public/build/optimized.wat",
+			"optimize": true
+		}
+	},
+	"options": {}
+}
