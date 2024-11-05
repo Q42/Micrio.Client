@@ -37,7 +37,7 @@ fs.writeFileSync(outFile, Buffer.concat([
 		' */\n\n'
 	].join('\n')),
 	Buffer.from([
-		"((M,I,C,R='O')=>{\n",
+		"if(typeof window !== undefined && typeof window !== 'undefined') ((M,I,C,R='O')=>{\n",
 			`M='${embed(files.css)}O${embed(files.js)}O${embed(files.wasm)}'.split(R),`,
 			"I=window.DecompressionStream,",
 			"C=(b,t,d,a)=>",
@@ -56,7 +56,7 @@ console.info('\x1b[36m%s\x1b[0m', `created ${outFile}`);
 const dFile = outFile.replace('.js','.d.ts');
 fs.writeFileSync(dFile, Buffer.concat([
 	Buffer.from([
-		"declare module 'Micrio' {",
+		"declare module '@micrio/client' {",
 		"\timport type { Readable, Writable } from 'svelte/store';",
 		...fs.readFileSync('./out.d.ts').toString().replace(/    /mg,'\t').split('\n').filter(l => /^\s/.test(l) && !/^\s*import/.test(l)),
 		"}"

@@ -52,9 +52,14 @@ This will bundle all compiled resources and create the final JS lib and TS decla
 * `micrio-{version}.min.js`
 * `micrio-{version}.min.d.ts`
 
-## Deploying the new Micrio version
+## Deploying a new Micrio version
 
-Ask me ;)
+You need to have `wrangler` installed globally, and have a `CLOUDFLARE_API_TOKEN` with write access to the bucket set in `.env`.
+
+
+```sh
+$ npm run publish
+```
 
 
 ## Changelog
