@@ -4,8 +4,6 @@ import type { MicrioImage } from './image';
 /**
  * Swipeable switching image sequence
  * @author Marcel Duin <marcel@micr.io>
- * @copyright Q42 Internet BV, Micrio, 2015 - 2024
- * @link https://micr.io/ , https://q42.nl/en/
  * 
 */
 export class GallerySwiper {

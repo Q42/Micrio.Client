@@ -1,8 +1,6 @@
 /**
  * Micrio grid display controller
  * @author Marcel Duin <marcel@micr.io>
- * @copyright Q42 Internet BV, Micrio, 2015 - 2024
- * @link https://micr.io/ , https://q42.nl/en/
  */
 
 import type { Models } from '../types/models';

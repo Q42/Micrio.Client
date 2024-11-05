@@ -59,9 +59,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	export namespace ImageInfo {
 		/** A Micrio image's main static image data object */
 		export type ImageInfo = {
-			/** The image id
-			 * @required
-			*/
+			/** The image id */
 			id: string;
 			/** The image base path URI, with a trailing `/`
 			 * @default https://b.micr.io/

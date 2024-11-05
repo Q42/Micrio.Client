@@ -67,10 +67,8 @@
  *
  * @category Svelte
  * @module SvelteStore
- * @package svelte
  * @author [These people](https://github.com/sveltejs/svelte/graphs/contributors)
  * @license MIT https://github.com/sveltejs/svelte/blob/master/LICENSE.md
- * @link https://svelte.dev/tutorial/writable-stores
 */
 
 export * from 'svelte/store';

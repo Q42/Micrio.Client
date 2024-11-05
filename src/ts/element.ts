@@ -25,8 +25,6 @@ import { i18n, langs } from './i18n';
 /**
  * [[include:./ts/element.md]]
  * @author Marcel Duin <marcel@micr.io>
- * @copyright Q42 Internet BV, Micrio, 2015 - 2024
- * @link https://micr.io/ , https://q42.nl/en/
 */
 export class HTMLMicrioElement extends HTMLElement {
 	static get observedAttributes() { return ['id', 'muted', 'data-grid', 'data-limited', 'lang']; }
