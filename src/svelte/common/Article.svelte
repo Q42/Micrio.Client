@@ -7,6 +7,7 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <article class={cn} on:click|stopPropagation on:keydown={linkInNewWindow} on:pointerdown={linkInNewWindow}><slot /></article>
 
 <style>

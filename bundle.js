@@ -61,7 +61,7 @@ fs.writeFileSync(dFile, Buffer.concat([
 		...fs.readFileSync('./out.d.ts').toString().replace(/    /mg,'\t').split('\n').filter(l => /^\s/.test(l) && !/^\s*import/.test(l)),
 		"}"
 	].join('\n')),
-	fs.readFileSync('./src/types/store.d.ts')
+	fs.readFileSync('./docs/store.d.ts.txt')
 ]));
 fs.rmSync('./out.d.ts');
 fs.rmSync(files.css);

@@ -48,7 +48,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** All available canvases */
 	readonly canvases: MicrioImage[] = [];
 
-	/** Current main {@link MicrioImage} store {@link SvelteStore.Writable}. Its value can be referred to using the {@link $current} property */
+	/** Current main {@link MicrioImage} store Writable. Its value can be referred to using the {@link $current} property */
 	readonly current:Writable<MicrioImage|undefined> = writable();
 
 	/** Currently visible canvases */
@@ -59,7 +59,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	_current:MicrioImage|undefined;
 
-	/** The current active and shown {@link MicrioImage}, returning the current value of the {@link current} store {@link SvelteStore.Writable}
+	/** The current active and shown {@link MicrioImage}, returning the current value of the {@link current} store Writable
 	 * @readonly
 	*/
 	get $current():MicrioImage|undefined {return this._current}

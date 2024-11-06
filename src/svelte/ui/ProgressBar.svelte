@@ -7,6 +7,7 @@
 
 </script>
 
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="container" on:click|stopPropagation on:keydown|stopPropagation style={`--progress: ${Math.round(((currentTime||0) / duration) * 10000) / 100}%;--time: '${parseTime(currentTime||0)}';`}>
 	<div class="bars"><slot /></div><div class="time">{parseTime(ended || currentTime <= 0 ? duration : (currentTime||0) - duration)}</div>
 </div>

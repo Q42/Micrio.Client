@@ -394,7 +394,7 @@
 		<div class:hidden={loading||($hidden && !dragging && !panning)}>
 			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" on:pointerdown={() => goto(currentPage - 1)} disabled={currentPage==0}></Button>
 			<ul bind:this={_ul}>
-				{#each pages as page, i}<li class:active={i==currentPage} on:click={() => goto(i, true)} on:keypress={e => { if(e.key === 'Enter') goto(i, true)}}>&bull;</li>{/each}
+				{#each pages as page, i}<li class:active={i==currentPage}><button on:click={() => goto(i, true)} on:keypress={e => { if(e.key === 'Enter') goto(i, true)}} class="bullet">&bull;</button></li>{/each}
 				<button style={`left: ${left}px`} class:dragging={dragging}
 					on:pointerdown|capture|preventDefault|stopPropagation={scrubStart}
 					on:touchstart|capture|preventDefault|stopPropagation={scrubStart}></button>
@@ -438,7 +438,6 @@
 	li {
 		flex: 1;
 		transition: none;
-		cursor: pointer;
 		padding: 0;
 		line-height: var(--micrio-button-size);
 		font-size: 32px;
@@ -446,11 +445,20 @@
 		width: 0;
 		transition: opacity .25s ease;
 		opacity: .25;
+		display: flex;
+		height: 48px;
 	}
 	li.active {
 		transition-duration: 0s;
 		opacity: 1;
 	}
+	li > button {
+		border: none;
+		color: inherit;
+		cursor: pointer;
+		flex: 1;
+	}
+
 	@media (hover: hover) {
 		li:hover {
 			transition-duration: 0s;
@@ -458,7 +466,7 @@
 		}
 	}
 
-	button {
+	button:not(.bullet) {
 		position: absolute;
 		width: var(--micrio-button-size);
 		height: var(--micrio-button-size);
@@ -484,10 +492,10 @@
 		padding: 0;
 		cursor: move;
 	}
-	button:hover {
+	button:not(.bullet):hover {
 		background: #eee8;
 	}
-	button.dragging {
+	button:not(.bullet).dragging {
 		transition: none;
 	}
 

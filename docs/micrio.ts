@@ -5,9 +5,13 @@
  *
  * You can fully implement Micrio in your website in just 2 steps:
  *
- * 1. Include the Micrio JS script tag in your HTML `<head>`:
+ * 1. Include Micrio into your project:
+ * 
+ *	1. If you are using NodeJS, you can install the Micrio viewer using `npm i @micrio/client`. After that, on the page or within the component you need it, include `import @micrio/client` at the top of the file. This auto-binds Micrio to any `<micr-io>` elements you create.
  *
- * 		<script src="https://r2.micr.io/micrio-5.1.min.js" defer></script>
+ *	2. If you want to use plain HTML, insert the following statement into your document `<head>`:
+ *
+ * 			<script src="https://r2.micr.io/micrio-5.1.0.min.js" defer></script>
  *
  * 2. Use the special Micrio `<micr-io>` HTML tag inside your document:
  *
@@ -27,7 +31,7 @@
  *
  * yields in a zoomable Micrio image without any HTML controls:
  *
- * <script src="https://r2.micr.io/micrio-5.1.min.js"></script>
+ * <script src="https://r2.micr.io/micrio-5.1.0.min.js"></script>
  * <micr-io id="dzzLm" style="height:500px" data-ui="false"></micr-io>
  *
  * To access this Micrio instance using JS, you can simply query the HTML element:
@@ -71,26 +75,26 @@
 */
 
 /** @internal */
-export * from '../ts/enums';
+export * from '../src/ts/enums';
 /** @internal */
-export * from '../ts/element';
+export * from '../src/ts/element';
 /** @internal */
-export * from '../ts/wasm';
+export * from '../src/ts/wasm';
 /** @internal */
-export * from '../ts/canvas';
+export * from '../src/ts/canvas';
 /** @internal */
-export * from '../ts/events';
+export * from '../src/ts/events';
 /** @internal */
-export * from '../ts/image';
+export * from '../src/ts/image';
 /** @internal */
-export * from '../ts/camera';
+export * from '../src/ts/camera';
 /** @internal */
-export * from '../ts/state';
+export * from '../src/ts/state';
 /** @internal */
-export * from '../ts/grid';
+export * from '../src/ts/grid';
 /** @internal */
-export * from '../ts/swiper';
+export * from '../src/ts/swiper';
 /** @internal */
-export * from '../ts/videotour';
+export * from '../src/ts/videotour';
 /** @internal */
-export * from '../types/models';
+export * from '../src/types/models';

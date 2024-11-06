@@ -282,6 +282,7 @@
 
 {#if hasHtml && (matrix || x || y)}
 <svelte:element this={href ? 'a':'div'} id={embed.id ? 'e-'+embed.id : undefined} {style}
+	role={href ? undefined : 'figure'}
 	class:embed-container={!0} class:embed3d={is360} class:no-events={noEvents}
 	on:click={click} on:keypress={click} on:change={change} {href} target={href && hrefBlankTarget?'_blank':null}>
 	{#if embed.video && !printGL}<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src} width={embed.width} height={embed.height} frameScale={embed.width ? (w * info.width) / embed.width : 1}

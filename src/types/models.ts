@@ -17,9 +17,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
  * 
  * Each Micrio image uses two data sources, which are retrieved from the Micrio servers:
  * 
- * 1. **{@link ImageInfo}**: `info.json`: the base image data such as resolution, image type, and basic image settings. This is accessible in JS as {@link MicrioImage.info} as the {@link SvelteStore.Readable} store, and {@link MicrioImage.$info} for its current value.
+ * 1. **{@link ImageInfo}**: `info.json`: the base image data such as resolution, image type, and basic image settings. This is accessible in JS as {@link MicrioImage.info} as the Readable store, and {@link MicrioImage.$info} for its current value.
  * 
- * 2. **{@link ImageData}**: `pub.json`: all published image content, which is accessible in JS as {@link MicrioImage.data} as the {@link SvelteStore.Writable} store, and {@link MicrioImage.$data} for its current value.
+ * 2. **{@link ImageData}**: `pub.json`: all published image content, which is accessible in JS as {@link MicrioImage.data} as the Writable store, and {@link MicrioImage.$data} for its current value.
  * 
  */
  export namespace Models {
@@ -534,7 +534,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	/**
 	* # Image content data
 	* 
-	* The image content {@link ImageData} JSON object, which is accessible as {@link MicrioImage.data} as the {@link SvelteStore.Writable} store, and {@link MicrioImage.$data} for its current value.
+	* The image content {@link ImageData} JSON object, which is accessible as {@link MicrioImage.data} as the Writable store, and {@link MicrioImage.$data} for its current value.
 	* 
 	* This JSON data includes, for all published languages for this image:
 	* 

@@ -9,7 +9,7 @@ import { once } from './utils';
 /**
  * # Micrio State management
  *
- * Newly introduced in Micrio 4.0 is the replacement of the way you can interact with markers and tours from a classic imperative JavaScript API to a Svelte-inspired, store-based **state** management using {@link SvelteStore}.
+ * Newly introduced in Micrio 4.0 is the replacement of the way you can interact with markers and tours from a classic imperative JavaScript API to a Svelte-inspired, store-based **state** management using SvelteStore.
  *
  * This has greatly simplified the internal workings and has made the HTML interface fully reactive based on the image state instead of being interwoven in the previous JS API itself.
  *
@@ -69,7 +69,7 @@ export namespace State {
 	*
 	*/
 	export class Main {
-		/** The current {@link Models.ImageData.MarkerTour} or {@link Models.ImageData.VideoTour} store {@link SvelteStore.Writable} */
+		/** The current {@link Models.ImageData.MarkerTour} or {@link Models.ImageData.VideoTour} store Writable */
 		public readonly tour: Writable<Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined> = writable();
 
 		/** @internal */
@@ -78,7 +78,7 @@ export namespace State {
 		/** The current active {@link Models.ImageData.MarkerTour} or {@link Models.ImageData.VideoTour} */
 		public get $tour() : Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined {return this._tour}
 
-		/** The current shown image's opened {@link Models.ImageData.Marker} store {@link SvelteStore.Writable} */
+		/** The current shown image's opened {@link Models.ImageData.Marker} store Writable */
 		public readonly marker: Writable<Models.ImageData.Marker|undefined> = writable();
 
 		/** The current hovered marker */
@@ -200,7 +200,7 @@ export namespace State {
 	* * Getting the image's last known viewport, even if it is not active at the moment
 	*/
 	export class Image {
-		/** The current image viewport store {@link SvelteStore.Writable} */
+		/** The current image viewport store Writable */
 		public readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
 		/** @internal */
 		private _view:Models.Camera.View|undefined;
@@ -208,7 +208,7 @@ export namespace State {
 		public get $view() : Models.Camera.View|undefined {return this._view}
 	
 		/**
-		 * The current active marker store {@link SvelteStore.Writable}.
+		 * The current active marker store Writable.
 		 * You can either set this to be a {@link Models.ImageData.Marker} JSON object, or `string`, which is the ID
 		 * of the marker you wish to open.
 		 */

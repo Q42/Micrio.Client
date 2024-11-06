@@ -157,8 +157,9 @@
 </aside>
 
 {#if controls}<ProgressBar duration={totalDuration} bind:currentTime bind:ended>
+	<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 	{#each stepInfo as step, i}{#if step.duration > 0}<div class="bar"
-		title={getTitle(step.marker)} on:click={(e) => goto(i,e)} class:active={i == tour.currentStep}
+		title={getTitle(step.marker)} role="progressbar" on:click={(e) => goto(i,e)} class:active={i == tour.currentStep}
 		on:keypress={e => { if(e.key === 'Enter') goto(i) }}
 		style={`width:${(step.duration/totalDuration)*100}%; --perc: ${$times[i]||0}%`}></div>{/if}{/each}
 </ProgressBar>{/if}
