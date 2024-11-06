@@ -27,11 +27,11 @@ To run the dev env:
 $ npm run dev
 ```
 
-This will start a webserver on `http://localhost:2000/` will auto update to any changes made in the `./ts` and `./svelte` dirs.
+This will start a webserver on `http://localhost:2000/` which will auto reload to any changes made in the `./src` dir.
 
 ## Working in WebAssembly
 
-Since the web client uses a binary `wasm` file for the WebAssembly engine, you need to recompile to it after you've made any changes in the `./src/wasm` dir:
+Since the web client uses a binary `wasm` file for the WebAssembly engine, you need to recompile it after you've made changes in the `./src/wasm` dir:
 
 ```sh
 $ npm run asbuild:optimized
@@ -49,8 +49,10 @@ $ npm run build
 
 This will bundle all compiled resources and create the final JS lib and TS declaration files in `./public/dist`:
 
-* `micrio-{version}.min.js`
-* `micrio-{version}.min.d.ts`
+* `micrio.min.js`
+* `micrio.min.d.ts`
+
+If you want to test out the compiled version, check out `./index.html` and set the JS include to the compiled JS rather than the development version.
 
 ## Deploying a new Micrio version
 
@@ -75,10 +77,14 @@ After this, if everything goes well, the current working version will be automat
 3. Publish the release
 4. Then commit the newly updated version changes
 
-## Changelog
+## Questions
 
-Check out `CHANGELOG.md` for the changelog.
+If you have any questions, do check out https://doc.micr.io/ for all (technical) documentation.
+
+If you have a reproducable issue, please submit a ticket at https://support.micr.io/ .
+
+For any other questions, contact us at support@micr.io.
 
 Good luck!
 
-[Marcel](mailto:marcel@micr.io)
+[Marcel Duin](mailto:support@micr.io)
