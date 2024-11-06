@@ -54,13 +54,26 @@ This will bundle all compiled resources and create the final JS lib and TS decla
 
 ## Deploying a new Micrio version
 
+(For admins only)
+
 You need to have `wrangler` installed globally, and have a `CLOUDFLARE_API_TOKEN` with write access to the bucket set in `.env`.
 
+Secondly, you need to have write access to the npm repository of `@micrio/client`.
+
+To publish, do:
 
 ```sh
 $ npm run publish
 ```
 
+After this, if everything goes well, the current working version will be automatically increased.
+
+**Before you do your next commit**, create a new release based on the current state at https://github.com/Q42/Micrio.Client/releases/new :
+
+1. Create a new tag with the version just published (ie `v5.1.1`)
+2. Auto-generate the release notes
+3. Publish the release
+4. Then commit the newly updated version changes
 
 ## Changelog
 

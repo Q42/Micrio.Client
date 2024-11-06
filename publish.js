@@ -4,7 +4,7 @@ import fs from 'fs';
 import { exec } from 'child_process';
 
 const run = (cmd) => new Promise((ok,error) => exec(cmd, (err, stdout, stderr) => {
-	if(err||stderr) error(err||stderr); else ok(stdout);
+	if(stderr) error(stderr); else ok(stdout||err);
 }));
 const error = (err) => {
 	console.error('\nAn error has occurred: '+err);
@@ -34,9 +34,6 @@ for(const bucket of ['micrio','-J eu micrio-eu']) {
 }
 
 // Publish to NPM registry
-fs.writeFileSync('./public/dist/package.json', fs.readFileSync('./public/dist/package.json', 'utf-8')
-	.replace(/"version": ".*"/m,`"version": "${version}"`));
-
 process.stdout.write('\nPublishing to NPM registry... ');
 await run('npm publish ./public/dist --access public').catch(error);
 console.log('done.\n')
@@ -45,8 +42,9 @@ console.log('done.\n')
 const tv = version.split('.'); tv[2]++;
 const newVersion = tv.join('.');
 
-fs.writeFileSync('package.json', fs.readFileSync('package.json', 'utf-8')
-	.replace(/"version": ".*"/m,`"version": "${newVersion}"`));
+for(const json of ['package.json', './public/dist/package.json'])
+	fs.writeFileSync(json, fs.readFileSync(json, 'utf-8')
+		.replace(/"version": ".*"/m,`"version": "${newVersion}"`));
 
 const tsVersion = './src/ts/version.ts';
 fs.writeFileSync(tsVersion, fs.readFileSync(tsVersion, 'utf-8')
