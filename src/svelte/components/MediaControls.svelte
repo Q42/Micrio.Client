@@ -47,6 +47,7 @@
 
 </script>
 
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <aside on:click|stopPropagation on:keydown|stopPropagation>
 	<Button type={!paused ? 'pause' : 'play'} title={!paused ? $i18n.pause : $i18n.play} on:click={() => dispatch('playpause')}>
 		{#if minimal && currentTime > 0}<svg height="42" width="42">
@@ -65,6 +66,7 @@
 </aside>
 {#if !minimal}
 	<ProgressBar duration={duration} bind:currentTime bind:ended>
+		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div class="bar active" bind:this={_bar} on:mousedown={dStart}
 			style={`--perc:${(currentTime/duration)*100}%;`}></div>
 	</ProgressBar>

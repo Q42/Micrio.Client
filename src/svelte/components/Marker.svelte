@@ -56,6 +56,9 @@
 		marker.noMarker = true;
 	}
 
+	if('embedUrl' in marker && marker.embedUrl && 'embedInPopover' in marker && marker['embedInPopover'])
+		marker.popupType = 'popover';
+
 	const markerSettings:Models.ImageInfo.MarkerSettings = image.$settings._markers ?? {};
 	const doTourJumps:boolean = !!image.$settings.doTourJumps;
 

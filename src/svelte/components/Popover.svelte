@@ -96,8 +96,6 @@
 
 <dialog bind:this={_dialog}
 	on:close={closed}
-	on:keypress|stopPropagation
-	on:click={click}
 	on:outrostart={() => destroying.set(true)}
 	class:page={!!page} class:article={!!page && !pageIsVideo} class:has-media={pageHasVideoOrImage}>
 	{#if hasAside}<aside class:inside={!hasContent}>

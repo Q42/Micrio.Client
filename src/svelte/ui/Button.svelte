@@ -16,7 +16,8 @@
 
 </script>
 
-<svelte:element this={href ? 'a' : 'button'} {href} target={blankTarget ? '_blank' : undefined} disabled={disabled ? true : undefined} {title} aria-label={title}
+<svelte:element this={href ? 'a' : 'button'} {href} target={blankTarget ? '_blank' : undefined} disabled={disabled ? true : undefined} {title}
+	aria-label={title} role={href ? undefined : 'button'} tabindex={href ? undefined : 0}
 	class="micrio-button {type??''} {className}" class:active class:no-click={noClick}
 	on:click on:focus on:pointerdown>{#if type}<Icon name={type} />{:else if icon}<img src={icon.src} alt="Icon" />{/if}<slot/></svelte:element>
 
