@@ -14,7 +14,7 @@ declare module "svelte/store" {
 	 * @internal
 	*/
 	export type StartStopNotifier<T> = (set: Subscriber<T>) => Unsubscriber | void;
-	/** Readable interface for subscribing. See the main {@link SvelteStore} article on how to use it in Micrio. */
+	/** Readable interface for subscribing. See the main SvelteStore article on how to use it in Micrio. */
 	export interface Readable<T> {
 		/**
 		 * Subscribe on value changes.
@@ -23,7 +23,7 @@ declare module "svelte/store" {
 		 */
 		subscribe(this: void, run: Subscriber<T>, invalidate?: Invalidator<T>): Unsubscriber;
 	}
-	/** Writable interface for both updating and subscribing. See the main {@link SvelteStore} article on how to use it in Micrio. */
+	/** Writable interface for both updating and subscribing. See the main SvelteStore article on how to use it in Micrio. */
 	export interface Writable<T> extends Readable<T> {
 		/**
 		 * Set value and inform subscribers.
