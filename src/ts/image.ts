@@ -342,7 +342,6 @@ export class MicrioImage {
 				if(!i.settings.gallery) i.settings.gallery = {};
 				i.settings.gallery.type = 'omni';
 				i.settings.gallery.archive = i.id;
-				if(i.settings.omni.sideLabels === undefined) i.settings.omni.sideLabels = true;
 			}
 		}
 
