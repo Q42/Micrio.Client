@@ -26,17 +26,17 @@ if(!isCurrentVersion) {
 	console.log('done.\n')
 }
 
+// Publish to NPM registry
+process.stdout.write('\nPublishing to NPM registry... ');
+await run('npm publish ./public/dist --access public').catch(error);
+console.log('done.\n')
+
 // Publish JS to Cloudflare R2
 console.warn(`Publishing version ${version} to Micrio CDNs`);
 for(const bucket of ['micrio','-J eu micrio-eu']) {
 	console.log(`https://${bucket=='micrio'?'r2':'eu'}.micr.io/micrio-${version}.min.js`);
 	for(const ext of ['js','d.ts']) await run(`wrangler r2 object put ${bucket}/micrio-${version}.min.${ext} -f ./public/dist/micrio.min.${ext}`);
 }
-
-// Publish to NPM registry
-process.stdout.write('\nPublishing to NPM registry... ');
-await run('npm publish ./public/dist --access public').catch(error);
-console.log('done.\n')
 
 // When all is succesful, bump the current version number
 const tv = version.split('.'); tv[2]++;
