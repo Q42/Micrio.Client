@@ -55,9 +55,11 @@
 
 	const addScrollZoom = el == micrio && !micrio.events.scrollHooked;
 	const onchange = () : void => {
-		if(!addScrollZoom) return;
-		if(isActive = getActiveEl() == el) micrio.events.hookScroll();
-		else micrio.events.unhookScroll();
+		isActive = getActiveEl() == el;
+		if(addScrollZoom) {
+			if(isActive) micrio.events.hookScroll();
+			else micrio.events.unhookScroll();
+		}
 	};
 
 	if(available) onMount(() => {
