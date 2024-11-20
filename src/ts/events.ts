@@ -544,19 +544,21 @@ export const UpdateEvents:string[] = [
 		if(this.controlZoom && !e.ctrlKey) return;
 		if(!force && e.target instanceof Element && e.target != this.el && !e.target.classList.contains('marker') && !e.target.hasAttribute('data-scroll-through')) return;
 
-		e.stopPropagation();
-		e.preventDefault();
 		let delta = e.deltaY;
 
 		if(e.ctrlKey) this.hasUsedCtrl = true;
 
 		const isControlZoomWithMouse = this.controlZoom && (delta*10 % 1 == 0);
 		const isTouchPad = this.hasUsedCtrl && !isControlZoomWithMouse;
+		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
+
+		if(this.micrio.$current?.camera.isZoomedOut()) return;
+
+		e.stopPropagation();
+		e.preventDefault();
 
 		// Trackpad pinch zoom amplify
 		if((Browser.OSX || isTouchPad) && e.ctrlKey) delta *= 10;
-
-		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
 
 		const coo = {x:e.clientX, y:e.clientY};
 		const image = this.getImage(coo);
