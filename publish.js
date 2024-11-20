@@ -4,7 +4,7 @@ import fs from 'fs';
 import { exec } from 'child_process';
 
 const run = (cmd) => new Promise((ok,error) => exec(cmd, (err, stdout, stderr) => {
-	if(stderr) error(stderr); else ok(stdout||err);
+	if(err) error(err); else ok(stdout||stderr);
 }));
 const error = (err) => {
 	console.error('\nAn error has occurred: '+err);
@@ -39,9 +39,11 @@ if(!npmPublish) {
 	console.log('\nPublish completed. To also publish to NPM, include the --npm param (npm run publish -- --npm).');
 }
 else {
+	const otp = Number(args[args?.findIndex(a => a.startsWith('--otp'))+1]);
+	if(!otp) console.log('\nError: enter your one-time-password using --otp to publish to NPM');
 	// Publish to NPM registry
 	process.stdout.write('\nPublishing to NPM registry... ');
-	await run('npm publish ./public/dist --access public').catch(error);
+	await run(`npm publish ./public/dist --access public --otp ${otp}`).catch(error);
 	console.log('done.\n')
 
 	// When all is succesful, bump the current version number
