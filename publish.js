@@ -26,11 +26,6 @@ if(!isCurrentVersion) {
 	console.log('done.\n')
 }
 
-// Publish to NPM registry
-process.stdout.write('\nPublishing to NPM registry... ');
-await run('npm publish ./public/dist --access public').catch(error);
-console.log('done.\n')
-
 // Publish JS to Cloudflare R2
 console.warn(`Publishing version ${version} to Micrio CDNs`);
 for(const bucket of ['micrio','-J eu micrio-eu']) {
@@ -38,16 +33,29 @@ for(const bucket of ['micrio','-J eu micrio-eu']) {
 	for(const ext of ['js','d.ts']) await run(`wrangler r2 object put ${bucket}/micrio-${version}.min.${ext} -f ./public/dist/micrio.min.${ext}`);
 }
 
-// When all is succesful, bump the current version number
-const tv = version.split('.'); tv[2]++;
-const newVersion = tv.join('.');
+const args = process.argv.slice(2);
+const npmPublish = args?.includes('--npm');
+if(!npmPublish) {
+	console.log('\nPublish completed. To also publish to NPM, include the --npm param (npm run publish -- --npm).');
+}
+else {
+	// Publish to NPM registry
+	process.stdout.write('\nPublishing to NPM registry... ');
+	await run('npm publish ./public/dist --access public').catch(error);
+	console.log('done.\n')
 
-for(const json of ['package.json', './public/dist/package.json'])
-	fs.writeFileSync(json, fs.readFileSync(json, 'utf-8')
-		.replace(/"version": ".*"/m,`"version": "${newVersion}"`));
+	// When all is succesful, bump the current version number
+	const tv = version.split('.'); tv[2]++;
+	const newVersion = tv.join('.');
 
-const tsVersion = './src/ts/version.ts';
-fs.writeFileSync(tsVersion, fs.readFileSync(tsVersion, 'utf-8')
-	.replace(/VERSION = '.*'/m,`VERSION = '${newVersion}'`));
+	for(const json of ['package.json', './public/dist/package.json'])
+		fs.writeFileSync(json, fs.readFileSync(json, 'utf-8')
+			.replace(/"version": ".*"/m,`"version": "${newVersion}"`));
 
-console.log('\nPublish completed. New working version: ' + newVersion);
+	const tsVersion = './src/ts/version.ts';
+	fs.writeFileSync(tsVersion, fs.readFileSync(tsVersion, 'utf-8')
+		.replace(/VERSION = '.*'/m,`VERSION = '${newVersion}'`));
+
+	console.log('\nPublish completed. New working version: ' + newVersion);
+}
+
