@@ -37,15 +37,16 @@ fs.writeFileSync(outFile, Buffer.concat([
 		' */\n\n'
 	].join('\n')),
 	Buffer.from([
-		"if(typeof window !== undefined && typeof window !== 'undefined') ((M,I,C,R='O')=>{\n",
-			`M='${embed(files.css)}O${embed(files.js)}O${embed(files.wasm)}'.split(R),`,
+		"((M,I,C,R='O')=>{\n",
+			"if(!(typeof window !== undefined && typeof window !== 'undefined')) return;",
+			`M='${embed(files.wasm)}',`,
 			"I=window.DecompressionStream,",
 			"C=(b,t,d,a)=>",
 				"(a=atob(b.replace(/\\$/g,'/').replace(/#/g,'O')).split('').map(x=>x.charCodeAt(0)),",
 				"d=I?new Response(new Blob([new Uint8Array(a)]).stream().pipeThrough(new I('gzip'))):(new Zlib.Gunzip(a)).decompress())",
 				"&&(I?t?d.arrayBuffer():d.text():t?d:new self.TextDecoder('utf-8').decode(d));",
 			"(I?new Promise(a=>a()):fetch('https://r2.micr.io/gunzip.min.js').then(r=>r.text()).then(js=>Function(js)())).then(()=>",
-			"Promise.all([C(M[0]),C(M[1])]).then(x=>Function(x[1])(x[0],C,M[2])))",
+			`(function(){${fs.readFileSync(files.js)}})(\`${fs.readFileSync(files.css)}\`,C,M))`,
 		"})();",
 	].join(''))
 ]));
