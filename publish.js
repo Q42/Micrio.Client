@@ -30,7 +30,7 @@ if(!isCurrentVersion) {
 console.warn(`Publishing version ${version} to Micrio CDNs`);
 for(const bucket of ['micrio','-J eu micrio-eu']) {
 	console.log(`https://${bucket=='micrio'?'r2':'eu'}.micr.io/micrio-${version}.min.js`);
-	for(const ext of ['js','d.ts']) await run(`wrangler r2 object put ${bucket}/micrio-${version}.min.${ext} -f ./public/dist/micrio.min.${ext}`);
+	for(const [ext, type] of [['js','text/javascript'],['d.ts','text/plain']]) await run(`wrangler r2 object put ${bucket}/micrio-${version}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type}`);
 }
 
 const args = process.argv.slice(2);
