@@ -610,6 +610,10 @@
 		border-radius: 100%;
 		box-sizing: content-box;
 	}
+	div.cluster:hover button {
+		background: var(--micrio-marker-highlight, #fff);
+		border-color: var(--micrio-marker-highlight, #fff);
+	}
 	div.cluster label {
 		pointer-events: none;
 	}
