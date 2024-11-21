@@ -552,7 +552,7 @@ export const UpdateEvents:string[] = [
 		const isTouchPad = this.hasUsedCtrl && !isControlZoomWithMouse;
 		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
 
-		if(this.micrio.$current?.camera.isZoomedOut()) return;
+		if(this.twoFingerPan && this.micrio.$current?.camera.isZoomedOut()) return;
 
 		e.stopPropagation();
 		e.preventDefault();
