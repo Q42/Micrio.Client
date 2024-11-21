@@ -84,7 +84,7 @@
 
 	const calcOverlapped = () : void => {
 		if(!visibleMarkers) { overlapped = clusterMarkers = []; return; }
-		const q=visibleMarkers, S:number[][]=[], l=q.length;
+		const q=visibleMarkers.filter(m => !m.tags?.includes('no-cluster')), S:number[][]=[], l=q.length;
 		let i=0,j=0;
 		for(overlapped=[];i<l;i++) for(j=i+1;j<l;j++) {
 			const c1 = coords.get(q[i].id), c2 = coords.get(q[j].id);
