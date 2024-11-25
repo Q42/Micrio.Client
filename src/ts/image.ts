@@ -270,6 +270,8 @@ export class MicrioImage {
 
 		// Sanitize markers on data set
 		this.data.subscribe(d => {
+			// Ignore unpublished or deleted data languages
+			if(d?.revision) d.revision = Object.fromEntries(Object.entries((d?.revision??{})).filter(r => Number(r[1]) > 0));
 			d?.markers?.forEach(m => sanitizeMarker(m, this.is360, !this.isV5));
 			d?.embeds?.forEach(e => {if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random()});
 		})
