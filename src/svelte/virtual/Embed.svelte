@@ -29,7 +29,8 @@
 	const a = embed.area;
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');
 	const isSmall = embed.width && embed.height ? embed.width * embed.height < 1024 * 1024 : false;
-	const embedImageAsHtml = micrio.hasAttribute('data-embeds-as-html');
+	// 360 video embeds always as <video> HTML element
+	const embedImageAsHtml = (embed.video && $current?.is360) || micrio.hasAttribute('data-embeds-as-html');
 	const printGL = !embedImageAsHtml && ((embed.micrioId && !isSmall) || (embed.video && !embed.video.controls && !embed.video.transparent));
 
 	const noEvents = !embed.clickAction && !embed.frameSrc;
