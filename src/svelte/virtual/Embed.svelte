@@ -285,7 +285,8 @@
 	role={href ? undefined : 'figure'}
 	class:embed-container={!0} class:embed3d={is360} class:no-events={noEvents}
 	on:click={click} on:keypress={click} on:change={change} {href} target={href && hrefBlankTarget?'_blank':null}>
-	{#if embed.video && !printGL}<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src} width={embed.width} height={embed.height} frameScale={embed.width ? (w * info.width) / embed.width : 1}
+	{#if embed.video && !printGL}<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src}
+		{width} {height}
 		controls={embed.video.controls} {destroying} loop={embed.video.loop} loopDelay={embed.video.loopAfter} muted={embed.video.muted} autoplay={!paused && embed.video.autoplay} hasTransparentH265={embed.video.transparent && embed.video.hasH265}
 		bind:_media={_mediaElement} />
 	{:else if embed.frameSrc}<Media src={embed.frameSrc} {width} {height} frameScale={embed.scale} autoplay={embed.autoplayFrame} {destroying} />
