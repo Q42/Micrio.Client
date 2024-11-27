@@ -26,14 +26,17 @@ if(!isCurrentVersion) {
 	console.log('done.\n')
 }
 
+const args = process.argv.slice(2);
+
 // Publish JS to Cloudflare R2
 console.warn(`Publishing version ${version} to Micrio CDNs`);
+const suffix = args?.find(a => a.startsWith('--suffix='))?.split('=')[1] || '';
+
 for(const bucket of ['micrio','-J eu micrio-eu']) {
-	console.log(`https://${bucket=='micrio'?'r2':'eu'}.micr.io/micrio-${version}.min.js`);
-	for(const [ext, type] of [['js','text/javascript'],['d.ts','text/plain']]) await run(`wrangler r2 object put ${bucket}/micrio-${version}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type}`);
+	console.log(`https://${bucket=='micrio'?'r2':'eu'}.micr.io/micrio-${version}${suffix}.min.js`);
+	for(const [ext, type] of [['js','text/javascript'],['d.ts','text/plain']]) await run(`wrangler r2 object put ${bucket}/micrio-${version}${suffix}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type}`);
 }
 
-const args = process.argv.slice(2);
 const npmPublish = args?.includes('--npm');
 if(!npmPublish) {
 	console.log('\nPublish completed. To also publish to NPM, include the --npm param (npm run publish -- --npm).');
