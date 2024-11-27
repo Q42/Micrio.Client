@@ -158,8 +158,8 @@
 		const src = ism3u ? `https://videodelivery.net/${embed.video.streamId}/manifest/video.m3u8` : embed.video.src;
 		_vid = document.createElement('video');
 		_vid.crossOrigin = 'true';
-		_vid.width = Number(width);
-		_vid.height = Number(height);
+		_vid.width = embed.width! * .5;
+		_vid.height = embed.height! * .5;
 		_vid.muted = embed.video.muted;
 		if($current && embed.id) $current.setEmbedMediaElement(embed.id, _vid);
 
