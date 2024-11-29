@@ -6,11 +6,11 @@
 
 	import { onMount, getContext, tick } from 'svelte';
 	import { MicrioImage } from '../../ts/image';
-	import { loadScript, Browser, once, createGUID } from '../../ts/utils';
+	import { loadScript, once, createGUID, hasNativeHLS, Browser } from '../../ts/utils';
 
 	import Media from '../components/Media.svelte';
 
-	const micrio = <HTMLMicrioElement>getContext('micrio');;
+	const micrio = <HTMLMicrioElement>getContext('micrio');
 	const { current, wasm, canvas } = micrio;
 
 	export let embed:Models.ImageData.Embed;
@@ -162,6 +162,7 @@
 		const src = ism3u ? `https://videodelivery.net/${embed.video.streamId}/manifest/video.m3u8` : embed.video.src;
 		_vid = document.createElement('video');
 		_vid.crossOrigin = 'true';
+		_vid.playsInline = true;
 		_vid.width = embed.width! * .5;
 		_vid.height = embed.height! * .5;
 		_vid.muted = embed.video.muted;
@@ -185,8 +186,12 @@
 
 		_vid.addEventListener('play', () => setVideoPlaying(!paused));
 		_vid.addEventListener('pause', () => setVideoPlaying(false));
-		_vid.addEventListener('canplay', () => {
-			image.video.set(_vid);
+
+		// Only on first frame drawn, print the video
+		_vid.addEventListener('playing', () => image.video.set(_vid), {once:true});
+
+		// OF COURSE certain iOS versions (iPhone 13..) don't fire the canplay-event
+		_vid.addEventListener(Browser.iOS ? 'loadedmetadata' : 'canplay', () => {
 			// It could already be paused by scale limiting
 			if(autoplay && !paused) {
 				_vid.play();
@@ -199,9 +204,9 @@
 					setTimeout(() => _vid.remove(),50);
 				})
 			}
-		}, {once: true})
+		}, {once: true});
 
-		if(!ism3u || Browser.iOS) _vid.src = src;
+		if(!ism3u || hasNativeHLS(_vid)) _vid.src = src;
 		else loadScript('https://i.micr.io/hls-1.4.5.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
 			/** @ts-ignore */
 			hlsPlayer = new (window['Hls'] as HlsPlayer)();

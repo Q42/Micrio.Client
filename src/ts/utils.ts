@@ -349,3 +349,8 @@ export function getSpaceVector(micrio:HTMLMicrioElement, targetId: string) : {
 		}
 	}
 }
+
+/** Feature detection for native HLS video support
+ * @private
+ */
+export const hasNativeHLS = (video?:HTMLMediaElement) => !!(video?.canPlayType('application/vnd.apple.mpegurl') || video?.canPlayType('application/x-mpegURL'));

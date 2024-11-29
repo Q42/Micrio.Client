@@ -12,7 +12,7 @@
 	import { onMount, getContext, createEventDispatcher } from 'svelte';
 
 	import { i18n } from '../../ts/i18n';
-	import { loadScript, Browser, notypecheck } from '../../ts/utils';
+	import { loadScript, Browser, notypecheck, hasNativeHLS } from '../../ts/utils';
 	import { VideoTourInstance } from '../../ts/videotour';
 
 	import MediaControls from './MediaControls.svelte';
@@ -489,9 +489,8 @@
 	}
 
 	async function loadPlayer() : Promise<void> {
-		const hasNativeHLS = _media?.canPlayType('application/vnd.apple.mpegurl') || _media?.canPlayType('application/x-mpegURL');
 		// Print cloudflare vid using hls.min.js
-		if(isCFVid && !hasNativeHLS) return loadScript('https://i.micr.io/hls-1.4.5.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
+		if(isCFVid && !hasNativeHLS(_media)) return loadScript('https://i.micr.io/hls-1.4.5.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
 			/** @ts-ignore */
 			hlsPlayer = new (window['Hls'] as HlsPlayer)();
 			hlsPlayer.loadSource(cfVidSrc);
