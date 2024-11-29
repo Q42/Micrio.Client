@@ -592,6 +592,12 @@
 			'pause', 'volumechange', 'timeupdate', 'ended']) vimeoPlayer.off(k);
 	}
 
+	const isVideo = type == Type.Video;
+
+	// On iOS, for <video> <Embed>s, first frame is mysteriously smaller, creating a glitch effect
+	// So hide the video until playing
+	let hideUntilPlaying = isVideo && isCFVid && frameScale != 1 && Browser.iOS;
+
 	onMount(() => {
 		dispatch('id', uuid);
 		if(src && singleAudio) {
@@ -608,6 +614,8 @@
 		startTime = currentTime || 0;
 		hooked = frameType == FrameType.YouTube || frameType == FrameType.Vimeo;
 		loadPlayer().then(() => { if(autoplay) play() }).catch(() => {});
+
+		if(hideUntilPlaying) _media?.addEventListener('playing', () => hideUntilPlaying = false, {once: true});
 
 		// Watch global muted state to mute/unmute this media
 		const unsubscribeChangeGlobalMuted = micrio.isMuted.subscribe(b => setMuted(b));
@@ -631,7 +639,6 @@
 
 	let _cnt:HTMLElement;
 
-	const isVideo = type == Type.Video;
 	const scaleFact = info.is360 ? Math.PI/2 : 1;
 	/** Cap the iframe width and height because nobody wants <iframe width="10000"> */
 	$: relScale = isVideo ? frameScale * scaleFact : type == Type.IFrame ? Math.max(frameScale, Math.min(width / 512, height / 512)) : 1;
@@ -649,7 +656,7 @@
 			frameborder="0" allow="fullscreen *;autoplay *;encrypted-media *"></iframe>
 		{:else if type == Type.Video}
 			<!-- svelte-ignore a11y-media-has-caption -->
-			<video controls={false} loop={loop && (loopDelay == undefined || loopDelay <= 0)} playsinline width={rWidth} height={rHeight} bind:this={_media}
+			<video controls={false} loop={loop && (loopDelay == undefined || loopDelay <= 0)} playsinline {width} {height} bind:this={_media} style={hideUntilPlaying ? 'opacity: 0' : undefined}
 				bind:duration bind:muted autoplay={!!autoplay} bind:currentTime bind:seeking bind:paused on:canplay={canplay} on:ended={ended}>{#if realSrc}
 				{#if hasTransparentH265 && realSrc.endsWith('.webm')}<source src={realSrc.replace('.webm', '.mp4')} type="video/mp4;codecs=hvc1">{/if}
 				<source src={realSrc} type={isCFVid ? 'application/x-mpegURL' : undefined}>{/if}
