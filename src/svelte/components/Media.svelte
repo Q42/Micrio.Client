@@ -490,7 +490,7 @@
 
 	async function loadPlayer() : Promise<void> {
 		// Print cloudflare vid using hls.min.js
-		if(isCFVid && !hasNativeHLS(_media)) return loadScript('https://i.micr.io/hls-1.4.5.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
+		if(isCFVid && !hasNativeHLS(_media)) return loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
 			/** @ts-ignore */
 			hlsPlayer = new (window['Hls'] as HlsPlayer)();
 			hlsPlayer.loadSource(cfVidSrc);

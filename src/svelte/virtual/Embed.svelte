@@ -207,7 +207,7 @@
 		}, {once: true});
 
 		if(!ism3u || hasNativeHLS(_vid)) _vid.src = src;
-		else loadScript('https://i.micr.io/hls-1.4.5.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
+		else loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
 			/** @ts-ignore */
 			hlsPlayer = new (window['Hls'] as HlsPlayer)();
 			hlsPlayer.loadSource(src);
