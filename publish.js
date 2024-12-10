@@ -46,7 +46,7 @@ else {
 	if(!otp) console.log('\nError: enter your one-time-password using --otp to publish to NPM');
 	// Publish to NPM registry
 	process.stdout.write('\nPublishing to NPM registry... ');
-	await run(`npm publish ./public/dist --access public --otp ${otp}`).catch(error);
+	await run(`npm publish ./public/dist --access public --no-git-checks --otp ${otp}`).catch(error);
 	console.log('done.\n')
 
 	// When all is succesful, bump the current version number
