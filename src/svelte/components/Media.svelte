@@ -12,7 +12,7 @@
 	import { onMount, getContext, createEventDispatcher } from 'svelte';
 
 	import { i18n } from '../../ts/i18n';
-	import { loadScript, Browser, notypecheck } from '../../ts/utils';
+	import { loadScript, Browser, notypecheck, hasNativeHLS } from '../../ts/utils';
 	import { VideoTourInstance } from '../../ts/videotour';
 
 	import MediaControls from './MediaControls.svelte';
@@ -237,8 +237,7 @@
 	if(isCFVid && src) {
 		// IOS can straight up play vid IDs
 		cfVidSrc = `https://videodelivery.net/${src.slice(8)}/manifest/video.m3u8`;
-		if(Browser.iOS) realSrc = cfVidSrc;
-		else realSrc = undefined;
+		realSrc = undefined;
 	}
 
 	// Micrio video tour
@@ -491,7 +490,7 @@
 
 	async function loadPlayer() : Promise<void> {
 		// Print cloudflare vid using hls.min.js
-		if(isCFVid && !Browser.iOS) return loadScript('https://i.micr.io/hls-1.4.5.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
+		if(isCFVid && !hasNativeHLS(_media)) return loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
 			/** @ts-ignore */
 			hlsPlayer = new (window['Hls'] as HlsPlayer)();
 			hlsPlayer.loadSource(cfVidSrc);
@@ -501,7 +500,10 @@
 			if(frameType == FrameType.YouTube) return loadYouTube();
 			if(frameType == FrameType.Vimeo) return loadVimeo();
 		}
-		else if(_media) hookMedia();
+		else if(_media) {
+			if(isCFVid) realSrc = cfVidSrc;
+			hookMedia();
+		}
 	}
 
 	// Hook <video> or <audio> events
@@ -589,6 +591,12 @@
 			'pause', 'volumechange', 'timeupdate', 'ended']) vimeoPlayer.off(k);
 	}
 
+	const isVideo = type == Type.Video;
+
+	// On iOS, for <video> <Embed>s, first frame is mysteriously smaller, creating a glitch effect
+	// So hide the video until playing
+	let hideUntilPlaying = isVideo && isCFVid && frameScale != 1 && Browser.iOS;
+
 	onMount(() => {
 		dispatch('id', uuid);
 		if(src && singleAudio) {
@@ -605,6 +613,8 @@
 		startTime = currentTime || 0;
 		hooked = frameType == FrameType.YouTube || frameType == FrameType.Vimeo;
 		loadPlayer().then(() => { if(autoplay) play() }).catch(() => {});
+
+		if(hideUntilPlaying) _media?.addEventListener('playing', () => hideUntilPlaying = false, {once: true});
 
 		// Watch global muted state to mute/unmute this media
 		const unsubscribeChangeGlobalMuted = micrio.isMuted.subscribe(b => setMuted(b));
@@ -628,7 +638,6 @@
 
 	let _cnt:HTMLElement;
 
-	const isVideo = type == Type.Video;
 	const scaleFact = info.is360 ? Math.PI/2 : 1;
 	/** Cap the iframe width and height because nobody wants <iframe width="10000"> */
 	$: relScale = isVideo ? frameScale * scaleFact : type == Type.IFrame ? Math.max(frameScale, Math.min(width / 512, height / 512)) : 1;
@@ -646,10 +655,10 @@
 			frameborder="0" allow="fullscreen *;autoplay *;encrypted-media *"></iframe>
 		{:else if type == Type.Video}
 			<!-- svelte-ignore a11y-media-has-caption -->
-			<video controls={false} loop={loop && (loopDelay == undefined || loopDelay <= 0)} playsinline width={rWidth} height={rHeight} bind:this={_media}
+			<video controls={false} loop={loop && (loopDelay == undefined || loopDelay <= 0)} playsinline {width} {height} bind:this={_media} style={hideUntilPlaying ? 'opacity: 0' : undefined}
 				bind:duration bind:muted autoplay={!!autoplay} bind:currentTime bind:seeking bind:paused on:canplay={canplay} on:ended={ended}>{#if realSrc}
 				{#if hasTransparentH265 && realSrc.endsWith('.webm')}<source src={realSrc.replace('.webm', '.mp4')} type="video/mp4;codecs=hvc1">{/if}
-				<source src={realSrc}>{/if}
+				<source src={realSrc} type={isCFVid ? 'application/x-mpegURL' : undefined}>{/if}
 			</video>
 		{:else if type == Type.Audio && !singleAudio}
 			<audio src={realSrc} controls={false} bind:this={_media} bind:duration bind:muted

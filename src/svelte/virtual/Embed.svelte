@@ -6,11 +6,11 @@
 
 	import { onMount, getContext, tick } from 'svelte';
 	import { MicrioImage } from '../../ts/image';
-	import { loadScript, Browser, once, createGUID } from '../../ts/utils';
+	import { loadScript, once, createGUID, hasNativeHLS, Browser } from '../../ts/utils';
 
 	import Media from '../components/Media.svelte';
 
-	const micrio = <HTMLMicrioElement>getContext('micrio');;
+	const micrio = <HTMLMicrioElement>getContext('micrio');
 	const { current, wasm, canvas } = micrio;
 
 	export let embed:Models.ImageData.Embed;
@@ -26,10 +26,19 @@
 
 	let image:MicrioImage = mainImage.embeds.find(i => i.uuid == uuid || i.$info?.title == uuid) as MicrioImage;
 
+	// MacOS with HDR screens auto-"optimize" non-HDR vids which messes up the colors
+	// Always force inside-GL rendering for HDR screens
+	const screenIsHDR = window.matchMedia('(dynamic-range: high)').matches;
+
 	const a = embed.area;
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');
 	const isSmall = embed.width && embed.height ? embed.width * embed.height < 1024 * 1024 : false;
-	const embedImageAsHtml = micrio.hasAttribute('data-embeds-as-html');
+
+	// iOS14 HLS videos won't work within GL rendering
+	const isIOS14 = /iPhone OS 14_/i.test(navigator.userAgent);
+
+	// Use this option to embed video inside WebGL
+	const embedImageAsHtml = isIOS14 || (!screenIsHDR && !micrio.hasAttribute('data-embeds-inside-gl'));
 	const printGL = !embedImageAsHtml && ((embed.micrioId && !isSmall) || (embed.video && !embed.video.controls && !embed.video.transparent));
 
 	const noEvents = !embed.clickAction && !embed.frameSrc;
@@ -157,8 +166,9 @@
 		const src = ism3u ? `https://videodelivery.net/${embed.video.streamId}/manifest/video.m3u8` : embed.video.src;
 		_vid = document.createElement('video');
 		_vid.crossOrigin = 'true';
-		_vid.width = Number(width);
-		_vid.height = Number(height);
+		_vid.playsInline = true;
+		_vid.width = embed.width! * .5;
+		_vid.height = embed.height! * .5;
 		_vid.muted = embed.video.muted;
 		if($current && embed.id) $current.setEmbedMediaElement(embed.id, _vid);
 
@@ -180,8 +190,12 @@
 
 		_vid.addEventListener('play', () => setVideoPlaying(!paused));
 		_vid.addEventListener('pause', () => setVideoPlaying(false));
-		_vid.addEventListener('canplay', () => {
-			image.video.set(_vid);
+
+		// Only on first frame drawn, print the video
+		_vid.addEventListener('playing', () => image.video.set(_vid), {once:true});
+
+		// OF COURSE certain iOS versions (iPhone 13..) don't fire the canplay-event
+		_vid.addEventListener(Browser.iOS ? 'loadedmetadata' : 'canplay', () => {
 			// It could already be paused by scale limiting
 			if(autoplay && !paused) {
 				_vid.play();
@@ -194,10 +208,10 @@
 					setTimeout(() => _vid.remove(),50);
 				})
 			}
-		}, {once: true})
+		}, {once: true});
 
-		if(!ism3u || Browser.iOS) _vid.src = src;
-		else loadScript('https://i.micr.io/hls-1.4.5.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
+		if(!ism3u || hasNativeHLS(_vid)) _vid.src = src;
+		else loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
 			/** @ts-ignore */
 			hlsPlayer = new (window['Hls'] as HlsPlayer)();
 			hlsPlayer.loadSource(src);
@@ -257,6 +271,11 @@
 		if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id, _mediaElement);
 	}
 
+	// Cap the max <video> element width/height to original video resolution
+	$: widthCapped = embed.video ? Math.min(embed.video.width, width) : width;
+	$: heightCapped = embed.video ? Math.min(embed.video.height, height) : height;
+	$: relScale = width / widthCapped;
+
 	onMount(() => {
 		const us:Unsubscriber[] = [];
 		if(printGL) printInsideGL();
@@ -285,7 +304,8 @@
 	role={href ? undefined : 'figure'}
 	class:embed-container={!0} class:embed3d={is360} class:no-events={noEvents}
 	on:click={click} on:keypress={click} on:change={change} {href} target={href && hrefBlankTarget?'_blank':null}>
-	{#if embed.video && !printGL}<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src} width={embed.width} height={embed.height} frameScale={embed.width ? (w * info.width) / embed.width : 1}
+	{#if embed.video && !printGL}<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src}
+		width={widthCapped} height={heightCapped} frameScale={relScale}
 		controls={embed.video.controls} {destroying} loop={embed.video.loop} loopDelay={embed.video.loopAfter} muted={embed.video.muted} autoplay={!paused && embed.video.autoplay} hasTransparentH265={embed.video.transparent && embed.video.hasH265}
 		bind:_media={_mediaElement} />
 	{:else if embed.frameSrc}<Media src={embed.frameSrc} {width} {height} frameScale={embed.scale} autoplay={embed.autoplayFrame} {destroying} />
