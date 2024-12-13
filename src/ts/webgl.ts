@@ -5,7 +5,6 @@
 
 import type { TextureBitmap } from './textures';
 import type { HTMLMicrioElement } from './element';
-import type { Models } from '../types/models';
 
 import { Wasm } from './wasm';
 import { PostProcessor } from './postprocess';
@@ -89,7 +88,7 @@ export class WebGL {
 	private was360:boolean = false;
 
 	/** For custom postprocessing shader */
-	private postpocessor?:PostProcessor;
+	postpocessor?:PostProcessor;
 
 	/** Create the WebGL instance
 	 * @param micrio The main <micr-io> instance

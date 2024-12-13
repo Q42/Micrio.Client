@@ -56,7 +56,7 @@ export class PostProcessor {
 		// Create texture
 		this.texture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, this.texture);
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, innerWidth, innerHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
 		// Set texture parameters
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -109,5 +109,11 @@ export class PostProcessor {
 		gl.bindTexture(gl.TEXTURE_2D, this.texture);
 		gl.uniform1f(this.ppTimeLoc, performance.now() / 1000);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+	}
+
+	resize() {
+		const gl = this.gl;
+		gl.bindTexture(gl.TEXTURE_2D, this.texture);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 	}
 }

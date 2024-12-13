@@ -122,6 +122,7 @@ export class Canvas {
 		this.element.width = width * ratio;
 		this.element.height = height * ratio;
 		this.micrio.webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
+		this.micrio.webgl.postpocessor?.resize();
 
 		this.micrio.wasm.resize(c);
 		this.resizing = false;
