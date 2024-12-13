@@ -5,8 +5,10 @@
 
 import type { TextureBitmap } from './textures';
 import type { HTMLMicrioElement } from './element';
+import type { Models } from '../types/models';
 
 import { Wasm } from './wasm';
+import { PostProcessor } from './postprocess';
 
 /** Firefox has alternative fragment shader */
 const isFirefox:boolean = /firefox/i.test(navigator.userAgent);
@@ -86,6 +88,9 @@ export class WebGL {
 	/** Previous draw operation was 360 */
 	private was360:boolean = false;
 
+	/** For custom postprocessing shader */
+	private postpocessor?:PostProcessor;
+
 	/** Create the WebGL instance
 	 * @param micrio The main <micr-io> instance
 	*/
@@ -113,6 +118,12 @@ export class WebGL {
 			throw 'Error creating WebGL context. Does your browser support WebGL?';
 
 		this.gl = gl;
+
+		const postprocessing = this.micrio.$current?.$settings.postProcessingFragmentShader;
+		if(postprocessing) {
+			this.postpocessor = new PostProcessor(gl, this.micrio, postprocessing);
+			this.micrio.keepRendering = true;
+		}
 
 		const program = gl.createProgram();
 		if(!(program instanceof WebGLProgram))
@@ -156,26 +167,32 @@ export class WebGL {
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Wasm._textureBuffer, gl.STATIC_DRAW);
 
-		gl.enableVertexAttribArray(this.txtAttr);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
-		gl.vertexAttribPointer(this.txtAttr, 2, gl.FLOAT, false, 0, 0);
-
 		// vertex buffer
 		const geomBuffer = gl.createBuffer();
 		if(geomBuffer) this.geomBuffer = geomBuffer;
 		else throw 'Could not bind geometry buffer';
 
 		this.posAttr = gl.getAttribLocation(this.program, 'pos');
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.wasm._vertexBuffer, gl.STATIC_DRAW);
 
-		gl.enableVertexAttribArray(this.posAttr);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
-		gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0);
+		this.linkBuffers();
 
 		gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
 		//gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+	}
+
+	private linkBuffers() : void {
+		const gl = this.gl;
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.wasm._vertexBuffer, gl.STATIC_DRAW);
+
+		gl.enableVertexAttribArray(this.txtAttr);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
+		gl.vertexAttribPointer(this.txtAttr, 2, gl.FLOAT, false, 0, 0);
+
+		gl.enableVertexAttribArray(this.posAttr);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
+		gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0);
 	}
 
 	/** Dispose the WebGL rendering context
@@ -199,7 +216,7 @@ export class WebGL {
 	 * @param type The GL shader type
 	 * @param source The shader source code
 	*/
-	private getShader(program:WebGLProgram, type:number, source:string) {
+	getShader(program:WebGLProgram, type:number, source:string) {
 		const shader = this.gl.createShader(type);
 		if(!shader) throw 'Could not create shader!';
 		this.gl.shaderSource(shader, source);
@@ -258,7 +275,18 @@ export class WebGL {
 
 	/** Start drawing a frame */
 	drawStart() : void {
+		const gl = this.gl;
+		if(this.postpocessor) gl.bindFramebuffer(gl.FRAMEBUFFER, this.postpocessor.frameBuffer);
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+	}
+
+	/** Done drawing a frame, give options for post processing */
+	drawEnd() : void {
+		if(this.postpocessor) {
+			this.postpocessor.render();
+			this.gl.useProgram(this.program);
+			this.linkBuffers();
+		}
 	}
 
 	/** Draw a tile geometry

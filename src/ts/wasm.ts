@@ -422,6 +422,8 @@ export class Wasm {
 		this.micrio.events.dispatch('draw');
 
 		this.cleanup();
+
+		this.micrio.webgl.drawEnd();
 	}
 
 	/** Cancel the current requestAnimationFrame request */
