@@ -389,6 +389,14 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			gridTransitionDuration?: number;
 			/** Grid: transition duration going back, in seconds */
 			gridTransitionDurationOut?: number;
+
+			/** ADVANCED: A fragment shader for WebGL postprocessing
+			 * This shader MUST have and use:
+			 * uniform sampler2D u_image; // the render buffer texture
+			 * varying vec2 v_texCoord;   // the texture coordinate
+			 * uniform float u_time;      // elapsed time in seconds
+			*/
+			postProcessingFragmentShader?: string;
 		}
 
 		export type GallerySettings = {
