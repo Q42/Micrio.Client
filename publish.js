@@ -28,6 +28,19 @@ if(!isCurrentVersion) {
 
 const args = process.argv.slice(2);
 
+const npmPublish = args?.includes('--npm');
+if(npmPublish) {
+	const otp = Number(args[args?.findIndex(a => a.startsWith('--otp'))+1]);
+	if(!otp) {
+		console.log('\nError: enter your one-time-password using --otp to publish to NPM');
+		process.exit();
+	}
+	// Publish to NPM registry
+	process.stdout.write('\nPublishing to NPM registry... ');
+	await run(`npm publish ./public/dist --access public --no-git-checks --otp ${otp}`).catch(error);
+	console.log('done.\n')
+}
+
 // Publish JS to Cloudflare R2
 console.warn(`Publishing version ${version} to Micrio CDNs`);
 const suffix = args?.find(a => a.startsWith('--suffix='))?.split('=')[1] || '';
@@ -37,18 +50,7 @@ for(const bucket of ['micrio','-J eu micrio-eu']) {
 	for(const [ext, type] of [['js','text/javascript'],['d.ts','text/plain']]) await run(`wrangler r2 object put ${bucket}/micrio-${version}${suffix}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type}`);
 }
 
-const npmPublish = args?.includes('--npm');
-if(!npmPublish) {
-	console.log('\nPublish completed. To also publish to NPM, include the --npm param (npm run publish -- --npm).');
-}
-else {
-	const otp = Number(args[args?.findIndex(a => a.startsWith('--otp'))+1]);
-	if(!otp) console.log('\nError: enter your one-time-password using --otp to publish to NPM');
-	// Publish to NPM registry
-	process.stdout.write('\nPublishing to NPM registry... ');
-	await run(`npm publish ./public/dist --access public --no-git-checks --otp ${otp}`).catch(error);
-	console.log('done.\n')
-
+if(npmPublish) {
 	// When all is succesful, bump the current version number
 	const tv = version.split('.'); tv[2]++;
 	const newVersion = tv.join('.');
@@ -63,4 +65,6 @@ else {
 
 	console.log('\nPublish completed. New working version: ' + newVersion);
 }
-
+else {
+	console.log('\nDone. To also publish to NPM, include the --npm param (npm run publish -- --npm --otp [your one-time password]).');
+}
