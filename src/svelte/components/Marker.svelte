@@ -326,7 +326,6 @@
 			[x, y, scale, w] = image.camera.getXYDirect(marker.x, marker.y, {
 				radius: marker.radius,
 				rotation: marker.rotation,
-				area: image.opts?.area
 			});
 			if(image.is360) behindCam = w > 0;
 			else if(image.isOmni && omni) {

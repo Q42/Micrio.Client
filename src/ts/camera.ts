@@ -127,10 +127,7 @@ export class Camera {
 		radius?:number;
 		rotation?:number;
 		noTrueNorth?:boolean;
-		area?:Models.Camera.View;
 	} = {}) {
-		const a = opts.area;
-		if(a) { const n = this.cooToArea(x, y, a); x = n.x, y = n.y; }
 		const tNDiff = opts.noTrueNorth ? 0 : .5 - (this.image.$settings._360?.trueNorth??.5);
 		this.e._getXY(this.image.ptr, x-tNDiff, y, opts.abs===true, opts.radius, opts.rotation);
 		return this._xy;
