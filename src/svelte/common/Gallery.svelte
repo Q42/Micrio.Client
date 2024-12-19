@@ -103,12 +103,8 @@
 		}
 		const page = i = Math.round(Math.max(0, Math.min(pagesPerLayer-1, i)));
 		const changed = force || page != currentPage;
+		if(changed) frameChanged();
 		currentPage = page;
-		if(changed) {
-			preload(currentPage);
-			events.dispatch('gallery-show', i);
-			if(isOmni) currentRotation = (i - omniFrontIndex) / pagesPerLayer * 360;
-		}
 
 		if(!isSwitch) {
 			const cv = camera.getView() as Models.Camera.View, v = pages[i];
@@ -133,8 +129,22 @@
 		image.album!.hooked = inited = true;
 	}
 
+	function frameChanged(e?:Event) {
+		if(swiper && e) {
+			if(swiper.currentIndex == currentPage) return;
+			currentPage = swiper.currentIndex;
+		}
+		preload(currentPage);
+		events.dispatch('gallery-show', currentPage);
+		if(isOmni) currentRotation = (currentPage - omniFrontIndex) / pagesPerLayer * 360;
+	}
+
+	// Angular single button control
+	const numPerRow:number = images.length;
+	const numRows:number = 1;
+
 	/** @ts-ignore because of safari -- Preload distance */
-	const d = self.requestIdleCallback ? 100 : 50;
+	const d = self.requestIdleCallback ? Math.max(36, images.length/4) : 50;
 	const preloading:Map<string,any> = new Map();
 	// OFCOURSE Safari doesn't have requestIdleCallback
 	const request = self.requestIdleCallback ?? self.requestAnimationFrame;
@@ -236,10 +246,6 @@
 		wasm.setFocus(image.ptr, pages[closestIdx = distances.every(n => !n) ? currentPage : distances.indexOf(Math.max(...distances))], panning);
 		zoomedOut = camera.isZoomedOut();
 	}
-
-	// Angular single button control
-	const numPerRow:number = 36;
-	const numRows:number = Math.ceil(images.length / numPerRow);
 
 	let row:number = 0;
 	let started:number[] = [0,0,0,0];
@@ -373,11 +379,13 @@
 				micrio.removeEventListener('pinchend', pEnd);
 			});
 		}
+		if(isOmni) micrio.addEventListener('move', frameChanged);
 
 		return () => {
 			if(swiper) swiper.destroy();
 			while(unsub.length) unsub.shift()?.();
 			while(unhook.length) unhook.shift()?.();
+			if(isOmni) micrio.removeEventListener('move', frameChanged);
 		}
 	});
 </script>
