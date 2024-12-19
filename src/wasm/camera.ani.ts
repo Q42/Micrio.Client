@@ -166,6 +166,7 @@ export default class Ani {
 		this.omniDelta = 0;
 		if(!isNaN(omniIdx) && omniIdx > 0 && omniIdx != this.omniStartIdx) {
 			this.omniDelta = omniIdx - this.omniStartIdx;
+			if(this.omniDelta < -numPerLayer/2) this.omniDelta += numPerLayer;
 			if(this.omniDelta > numPerLayer / 2) this.omniDelta -= numPerLayer;
 			this.duration += abs(this.omniDelta) / <f64>this.canvas.images.length * 6000;
 		}
@@ -237,7 +238,9 @@ export default class Ani {
 
 				if(this.omniDelta) {
 					let idx = this.omniStartIdx + <i32>(this.omniDelta * this.fn.get(min(1, p*1.5)));
-					if(idx < 0) idx += this.canvas.images.length / this.canvas.numLayers;
+					const numPerLayer = this.canvas.images.length / this.canvas.numLayers;
+					if(idx < 0) idx += numPerLayer;
+					if(idx >= numPerLayer) idx -= numPerLayer;
 					this.canvas.setActiveImage(idx, 0);
 				}
 			}
