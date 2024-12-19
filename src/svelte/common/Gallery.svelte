@@ -103,8 +103,8 @@
 		}
 		const page = i = Math.round(Math.max(0, Math.min(pagesPerLayer-1, i)));
 		const changed = force || page != currentPage;
-		if(changed) frameChanged();
 		currentPage = page;
+		if(changed) frameChanged();
 
 		if(!isSwitch) {
 			const cv = camera.getView() as Models.Camera.View, v = pages[i];
@@ -143,13 +143,14 @@
 	const numPerRow:number = images.length;
 	const numRows:number = 1;
 
-	/** @ts-ignore because of safari -- Preload distance */
-	const d = self.requestIdleCallback ? Math.max(36, images.length/4) : 50;
-	const preloading:Map<string,any> = new Map();
 	// OFCOURSE Safari doesn't have requestIdleCallback
+	/** Preload distance */
+	const d = 'requestIdleCallback' in self ? isOmni ? Math.max(36, images.length/4) : 100 : 50;
+	const preloading:Map<string,any> = new Map();
 	const request = self.requestIdleCallback ?? self.requestAnimationFrame;
 	function preload(c:number){
 		const imgs:number[] = [];
+
 
 		const row = Math.floor(c / numPerRow);
 		for(let x=-d;x<=d;x++) if(x) {
