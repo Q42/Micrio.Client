@@ -26,9 +26,10 @@
 
 	let image:MicrioImage = mainImage.embeds.find(i => i.uuid == uuid || i.$info?.title == uuid) as MicrioImage;
 
-	// MacOS with HDR screens auto-"optimize" non-HDR vids which messes up the colors
+	// MacOS/iOS with HDR screens auto-"optimize" non-HDR vids which messes up the colors
 	// Always force inside-GL rendering for HDR screens
-	const screenIsHDR = window.matchMedia('(dynamic-range: high)').matches;
+	// Mac M2 with HDR screens don't support the CSS query -_- so just enable WebGL rendering for all MacOS
+	const screenIsHDR = window.matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
 	const a = embed.area;
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');
