@@ -447,21 +447,33 @@
 	$: customIcon = (marker.data?.customIconIdx != undefined ? image.$settings._markers?.customIcons?.[marker.data?.customIconIdx] : undefined)
 		?? marker.data?.icon ?? markerSettings.markerIcon ?? undefined;
 
+	// N.B. it seems a custom marker icon from V4 is always a string of its src, not an Image!
+	$: customIconSrc = typeof customIcon == 'string' ? customIcon : customIcon?.src;
+
 	$: hasIcon = !!icon || !!customIcon;
 
-	$: defaultClass = !!hasIcon || marker.type == 'default';
+	// When the 'class' property of a V4 marker is '' that means it's explicitly set to not show the default marker styling.
+	$: defaultClass = marker.class !== '' && (!!hasIcon || marker.type == 'default');
 
 	$: showLabel = content && (!noTitles || ($isMobile && mobileFancyLabels)) && (content.label || content.title);
 
 </script>
 
-{#if !noMarker && image && !hidden}<div bind:this={_container} id={`m-${marker.id}`} on:change={changed}
-	class={classNames} class:overlapped={overlapped && !opened} class:cluster class:behind={behindCam} class:hovered={$hovered == marker.id} class:default={defaultClass} class:mat3d={!!matrix} class:opened={opened}
-	class:micrio-link={!!data.micrioLink} class:has-icon={hasIcon} class:has-custom-icon={!!customIcon}
-	style={matrix ? `--mat:matrix3d(${matrix})` : x ? `--x:${x}px;--y:${y}px${scales ? `;--scale:${scale}` : ''}` : null}
-	>{#if !marker.htmlElement}<button title={noToolTips || cluster ? null : (content ? content.label || content.title : null)} id={marker.id} bind:this={_button}
-	on:click={click} on:focus={focus} on:blur={blur} on:mouseenter={hoverStart} on:mouseleave={hoverEnd} data-scroll-through>{#if customIcon}<img src={customIcon.src} alt="" />{:else if icon}<Icon name={icon} />{/if}{#if showLabel}<label bind:this={_label} class:static={titleNoScales} for={marker.id} data-scroll-through>{content.label||content.title}</label>{/if}</button>{/if}
-</div>{/if}
+{#if !noMarker && image && !hidden}
+	<div bind:this={_container} id={`m-${marker.id}`} on:change={changed}
+		class={classNames} class:overlapped={overlapped && !opened} class:cluster class:behind={behindCam} class:hovered={$hovered == marker.id} class:default={defaultClass} class:mat3d={!!matrix} class:opened={opened}
+		class:micrio-link={!!data.micrioLink} class:has-icon={hasIcon} class:has-custom-icon={!!customIcon}
+		style={matrix ? `--mat:matrix3d(${matrix})` : x ? `--x:${x}px;--y:${y}px${scales ? `;--scale:${scale}` : ''}` : null}
+	>
+		{#if !marker.htmlElement}
+			<button title={noToolTips || cluster ? null : (content ? content.label || content.title : null)} id={marker.id} bind:this={_button}
+				on:click={click} on:focus={focus} on:blur={blur} on:mouseenter={hoverStart} on:mouseleave={hoverEnd} data-scroll-through>
+				{#if customIcon}<img src={customIconSrc} alt="" />{:else if icon}<Icon name={icon} />{/if}
+				{#if showLabel}<label bind:this={_label} class:static={titleNoScales} for={marker.id} data-scroll-through>{content.label||content.title}</label>{/if}
+			</button>
+		{/if}
+	</div>
+{/if}
 
 {#if marker.positionalAudio && $ctx && (!marker.positionalAudio.noMobile || $isMobile) && (marker.positionalAudio.alwaysPlay || opened)}
 	<AudioLocation {marker} ctx={$ctx} is360={image.is360} />
