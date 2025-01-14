@@ -272,7 +272,7 @@ export class MicrioImage {
 		this.data.subscribe(d => {
 			// Ignore unpublished or deleted data languages
 			if(d?.revision) d.revision = Object.fromEntries(Object.entries((d?.revision??{})).filter(r => Number(r[1]) > 0));
-			d?.markers?.forEach(m => sanitizeMarker(m, this.is360, !this.isV5));
+			d?.markers?.forEach(m => sanitizeMarker(m, this.is360, !this.isV5, this.$info));
 			d?.embeds?.forEach(e => {if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random()});
 		})
 	}
@@ -534,7 +534,7 @@ export class MicrioImage {
 		const micIds:string[] = []
 
 		d.markers?.forEach(m => {
-			sanitizeMarker(m, this.is360, !this.isV5);
+			sanitizeMarker(m, this.is360, !this.isV5, this.$info);
 
 			// Also check for markers opening a split screen deeplink
 			if(m.data?.micrioSplitLink) {
@@ -566,7 +566,7 @@ export class MicrioImage {
 		const micData = await Promise.all(micIdsUnique.map(
 			id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
-		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, this.is360, micIdsUnique[i]!.length == 5)));
+		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, this.is360, micIdsUnique[i]!.length == 5, this.$info)));
 
 		const spaceData = this.wasm.micrio.spaceData;
 
