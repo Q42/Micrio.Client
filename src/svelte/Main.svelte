@@ -71,6 +71,7 @@
 	let firstInited:boolean = false;
 	let logoOrg:Models.ImageInfo.Organisation|undefined;
 	const didStart:string[] = [];
+	const hadTours:string[] = [];
 	micrio.current.subscribe(c => { if(!c) return;
 		info = c.info;
 		settings = undefined;
@@ -81,9 +82,15 @@
 			if(!logoOrg && i.organisation?.logo) logoOrg = i.organisation;
 		}});
 
-		// Check for autostart tour
 		if((data = c.data) && didStart.indexOf(c.id) < 0) once(data).then(async d => { if(!d) return;
 			didStart.push(c.id);
+			// Backwards compatibility for Micrio 4: check for autostart tour
+			const auto = d.markerTours?.find(t => t.autostart) || d.tours?.find(t => t.autostart);
+			if(auto && hadTours.indexOf(auto.id) < 0/* && !$tour*/) {
+				hadTours.push(auto.id);
+				tour.set(auto);
+			}
+
 			// Wait for the router to be inited
 			await tick().then(tick);
 			if(get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) return;

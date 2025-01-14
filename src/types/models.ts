@@ -879,6 +879,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			cannotClose?: boolean;
 			/** Exit the tour on finish */
 			closeOnFinish?: boolean;
+			/** @deprecated Autostart this tour on image load */
+			autostart?: boolean;
 		}
 
 		/** A single videotour timeline viewport */
