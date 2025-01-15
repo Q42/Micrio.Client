@@ -8,7 +8,7 @@ import type { PREDEFINED } from '../types/internal';
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeMarker } from './utils';
+import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeAsset, sanitizeImageData, sanitizeMarker } from './utils';
 import { State } from './state';
 import { archive } from './archive';
 
@@ -269,12 +269,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize markers on data set
-		this.data.subscribe(d => {
-			// Ignore unpublished or deleted data languages
-			if(d?.revision) d.revision = Object.fromEntries(Object.entries((d?.revision??{})).filter(r => Number(r[1]) > 0));
-			d?.markers?.forEach(m => sanitizeMarker(m, this.is360, !this.isV5, this.$info));
-			d?.embeds?.forEach(e => {if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random()});
-		})
+		this.data.subscribe(d => sanitizeImageData(d, this.is360, this.isV5));
 	}
 
 	private setError(e:Error, err?:string) {
@@ -534,7 +529,7 @@ export class MicrioImage {
 		const micIds:string[] = []
 
 		d.markers?.forEach(m => {
-			sanitizeMarker(m, this.is360, !this.isV5, this.$info);
+			sanitizeMarker(m, this.is360, !this.isV5);
 
 			// Also check for markers opening a split screen deeplink
 			if(m.data?.micrioSplitLink) {
@@ -566,7 +561,7 @@ export class MicrioImage {
 		const micData = await Promise.all(micIdsUnique.map(
 			id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
-		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, this.is360, micIdsUnique[i]!.length == 5, this.$info)));
+		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, this.is360, micIdsUnique[i]!.length == 5)));
 
 		const spaceData = this.wasm.micrio.spaceData;
 
