@@ -32,13 +32,15 @@
 
 	const a = embed.area;
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');
-	const isSmall = embed.width && embed.height ? embed.width * embed.height < 1024 * 1024 : false;
+	const isSmall = embed.width && embed.height ? embed.width * embed.height < Math.pow(3072,2) : false;
 
 	// iOS14 HLS videos won't work within GL rendering
 	const isIOS14 = /iPhone OS 14_/i.test(navigator.userAgent);
 
 	// Use this option to embed video inside WebGL
-	const embedImageAsHtml = isIOS14 || (!screenIsHDR && !micrio.hasAttribute('data-embeds-inside-gl'));
+	const glAttr = 'data-embeds-inside-gl';
+	const glAttrValue = micrio.getAttribute(glAttr);
+	const embedImageAsHtml = isSVG || isIOS14 || (!screenIsHDR && !micrio.hasAttribute(glAttr)) || glAttrValue == 'false';
 	const printGL = !embedImageAsHtml && ((embed.micrioId && !isSmall) || (embed.video && !embed.video.controls && !embed.video.transparent));
 
 	const noEvents = !embed.clickAction && !embed.frameSrc;
