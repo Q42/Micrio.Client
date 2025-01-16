@@ -8,7 +8,7 @@ import type { PREDEFINED } from '../types/internal';
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeMarker } from './utils';
+import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
 import { State } from './state';
 import { archive } from './archive';
 
@@ -269,12 +269,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize markers on data set
-		this.data.subscribe(d => {
-			// Ignore unpublished or deleted data languages
-			if(d?.revision) d.revision = Object.fromEntries(Object.entries((d?.revision??{})).filter(r => Number(r[1]) > 0));
-			d?.markers?.forEach(m => sanitizeMarker(m, this.is360, !this.isV5));
-			d?.embeds?.forEach(e => {if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random()});
-		})
+		this.data.subscribe(d => sanitizeImageData(d, this.is360, this.isV5));
 	}
 
 	private setError(e:Error, err?:string) {
