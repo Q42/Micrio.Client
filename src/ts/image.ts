@@ -549,6 +549,14 @@ export class MicrioImage {
 			d.markerTours.map(t => t.steps)).map((s:string) => s.split(',')[1]).filter((s:string) => !!s && s != this.id)
 		);
 
+		// Backwards compatibility for v4-type Tour.autostart
+		const hasV4AutoStart = (t:Models.ImageData.MarkerTour|Models.ImageData.Tour) => 'autostart' in t && t.autostart
+		const autostartTour = d.markerTours?.find(hasV4AutoStart) || d.tours?.find(hasV4AutoStart);
+		if(autostartTour) this.$settings.start = {
+			type: 'steps' in autostartTour ? 'markerTour' : 'tour',
+			id: autostartTour.id
+		};
+
 		const micIdsUnique:string[] = micIds.filter((id,i) => micIds.indexOf(id)==i);
 
 		// Preload all info jsons, but don't have to wait for it

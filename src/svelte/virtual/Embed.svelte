@@ -26,19 +26,22 @@
 
 	let image:MicrioImage = mainImage.embeds.find(i => i.uuid == uuid || i.$info?.title == uuid) as MicrioImage;
 
-	// MacOS with HDR screens auto-"optimize" non-HDR vids which messes up the colors
+	// MacOS/iOS with HDR screens auto-"optimize" non-HDR vids which messes up the colors
 	// Always force inside-GL rendering for HDR screens
-	const screenIsHDR = window.matchMedia('(dynamic-range: high)').matches;
+	// Mac M2 with HDR screens don't support the CSS query -_- so just enable WebGL rendering for all MacOS
+	const screenIsHDR = window.matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
 	const a = embed.area;
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');
-	const isSmall = embed.width && embed.height ? embed.width * embed.height < 1024 * 1024 : false;
+	const isSmall = embed.width && embed.height ? embed.width * embed.height < Math.pow(3072,2) : false;
 
 	// iOS14 HLS videos won't work within GL rendering
 	const isIOS14 = /iPhone OS 14_/i.test(navigator.userAgent);
 
 	// Use this option to embed video inside WebGL
-	const embedImageAsHtml = isIOS14 || (!screenIsHDR && !micrio.hasAttribute('data-embeds-inside-gl'));
+	const glAttr = 'data-embeds-inside-gl';
+	const glAttrValue = micrio.getAttribute(glAttr);
+	const embedImageAsHtml = isSVG || isIOS14 || (!screenIsHDR && !micrio.hasAttribute(glAttr)) || glAttrValue == 'false';
 	const printGL = !embedImageAsHtml && ((embed.micrioId && !isSmall) || (embed.video && !embed.video.controls && !embed.video.transparent));
 
 	const noEvents = !embed.clickAction && !embed.frameSrc;
