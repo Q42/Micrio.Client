@@ -696,9 +696,6 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Content type, for displaying */
 			type?: ('default' | 'image' | 'audio' | 'video' | 'media' | 'link' | 'waypoint' | 'cluster');
 
-			/** @deprecated Marker classnames in Micrio V4 */
-			class?: string;
-
 			/** Popup type */
 			popupType: ('popup'|'popover'|'none'|'micrioLink');
 

@@ -241,6 +241,16 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(isOld && 'class' in m) m.tags.push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags.includes(t)))
 	if(m.tags.includes('default')) m.type = 'default';
 
+	// String-based marker icons
+	if(typeof m.data.icon == 'string') m.data.icon = {
+		title: '',
+		size: 0,
+		uploaded: 0,
+		width: -1,
+		height: -1,
+		src: m.data.icon as string
+	}
+
 	// Correct 360 marker view on the X-edge
 	if(is360 && m.view && m.view[2] < m.view[0]) m.view[2]++;
 }
