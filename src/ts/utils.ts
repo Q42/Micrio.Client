@@ -218,6 +218,20 @@ export const fetchInfo = (id:string, path?:string) : Promise<Models.ImageInfo.Im
 		});
 }
 
+/** @internal */
+const ASSET_SRC_REPLACE: Record<string, string> = {
+	'micrio-cdn.azureedge.net': 'micrio.vangoghmuseum.nl/micrio',
+	'micrio-cdn.vangoghmuseum.nl': 'micrio.vangoghmuseum.nl/micrio',
+	'rijks-micrio.azureedge.net': 'micrio.rijksmuseum.nl'
+}
+
+/** @internal */
+export const sanitizeAsset = (a?:Models.Assets.BaseAsset) : void => {
+	if(a?.src) for(let r in ASSET_SRC_REPLACE)
+		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
+}
+
+/** @internal */
 const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	if(!i) return;
 	sanitizeAsset(i.organisation?.logo);
@@ -226,21 +240,25 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	sanitizeAsset(i.settings?._360?.video);
 }
 
+/** @internal */
 export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:boolean, isV5:boolean) => {
 	if (!d) return;
 	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
-	d.embeds?.forEach(e => {if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random()});
-	d.embeds?.forEach(e => sanitizeAsset(e.video));
+	d.embeds?.forEach(e => {
+		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random();
+		sanitizeAsset(e.video);
+	});
 	d.markers?.forEach(m => sanitizeMarker(m, is360, !isV5));
 	d.music?.items?.forEach(sanitizeAsset);
 	d.pages?.forEach(sanitizeMenuPage);
 }
 
+/** @internal */
 export const sanitizeSpaceData = (s:Models.Spaces.Space|undefined) => {
 	s?.icons?.forEach(sanitizeAsset);
-
 }
 
+/** @internal */
 const sanitizeMenuPage = (m:Models.ImageData.Menu) => {
 	sanitizeAsset(m.image);
 	m.children?.forEach(sanitizeMenuPage);
@@ -263,6 +281,16 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(!('type' in m)) m.type = 'default';
 	if(!m.popupType) m.popupType = 'popup';
 
+	// String-based marker icons
+	if(typeof m.data.icon == 'string') m.data.icon = {
+		title: '',
+		size: 0,
+		uploaded: 0,
+		width: -1,
+		height: -1,
+		src: m.data.icon as string
+	}
+
 	m.images?.forEach(sanitizeAsset);
 	sanitizeAsset(m.positionalAudio);
 	sanitizeAsset(m.data?.icon);
@@ -275,29 +303,8 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(isOld && 'class' in m) m.tags.push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags.includes(t)))
 	if(m.tags.includes('default')) m.type = 'default';
 
-	// String-based marker icons
-	if(typeof m.data.icon == 'string') m.data.icon = {
-		title: '',
-		size: 0,
-		uploaded: 0,
-		width: -1,
-		height: -1,
-		src: m.data.icon as string
-	}
-
 	// Correct 360 marker view on the X-edge
 	if(is360 && m.view && m.view[2] < m.view[0]) m.view[2]++;
-}
-
-const ASSET_SRC_REPLACE: Record<string, string> = {
-	'micrio-cdn.azureedge.net': 'cdn.vangoghmuseum.nl/micrio',
-	'rijks-micrio.azureedge.net': 'cdn.rijksmuseum.nl'
-}
-
-export const sanitizeAsset = (a?:Models.Assets.BaseAsset) => {
-	if(!a) return a;
-	for(let r in ASSET_SRC_REPLACE)
-		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
 }
 
 /** Load external data for serial tour
@@ -334,7 +341,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 			notFound.push(i);
 		}
 
-		if (content?.audio) content.audio = sanitizeAsset(content.audio);
+		sanitizeAsset(content?.audio);
 
 		return !m ? undefined : {
 			markerId: id,
