@@ -38,9 +38,10 @@
 		else {
 			// Navigate back if this was the original image opener
 			// This will auto-close a still opened marker
-			if($current && image.opts.secondaryTo && $current.id != image.id && data.micrioLink?.id == $current.id)
+			if($current && !image.opts.secondaryTo && $current.id != image.id && data.micrioLink?.id == $current.id) {
 				micrio.open(image.id);
-			else image.state.marker.set(undefined);
+				image.state.marker.set(undefined);
+			} else image.state.marker.set(undefined);
 		}
 	}
 
