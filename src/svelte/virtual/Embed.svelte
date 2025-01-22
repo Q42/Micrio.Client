@@ -111,7 +111,7 @@
 		if(is360) matrix = mainImage.camera.getMatrix(cX, cY, s, 1, rotX, rotY, rotZ, undefined, scaleX, scaleY).join(',');
 		style = (is360 ? `transform:matrix3d(${matrix});` : `--x:${x}px;--y:${y}px;--s:${scale};`)
 			+ (embed.opacity !== undefined && embed.opacity !== 1 ? `--opacity:${embed.opacity};` : '');
-		if(embed.video?.pauseWhenSmallerThan && width) {
+		if((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && width) {
 			const wasPaused:boolean = paused;
 			paused = shouldPause();
 			if(_vid && printGL && (paused != wasPaused)) {
