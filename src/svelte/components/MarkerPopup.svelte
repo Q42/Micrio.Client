@@ -83,7 +83,20 @@
 	onMount(() => {
 		marker.tags.forEach(c => _cont.classList.add(c));
 		tick().then(() => _cont.querySelector('button')?.focus());
-		return micrio.state.popup.subscribe(m => destroying.set(m != marker));
+		const embeds = 'embedImages' in marker ? marker.embedImages as Models.ImageData.Embed[] : undefined;
+		if(embeds) micrio.$current?.data.update(d => {
+			if(!d) d = {embeds:[]};
+			d.embeds = [...(d.embeds??[]), ...embeds];
+			return d;
+		});
+		return () => {
+			micrio.state.popup.subscribe(m => destroying.set(m != marker));
+			if(embeds) micrio.$current?.data.update(d => {
+				if(!d?.embeds) return;
+				d.embeds = d.embeds.filter(e => !embeds.find(em => em.id == e.id));
+				return d;
+			})
+		}
 	})
 
 </script>
