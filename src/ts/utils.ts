@@ -226,7 +226,8 @@ const ASSET_SRC_REPLACE: Record<string, string> = {
 }
 
 /** @internal */
-export const sanitizeAsset = (a?:Models.Assets.BaseAsset) : void => {
+export const sanitizeAsset = (a?:Models.Assets.BaseAsset|Models.ImageData.Embed) : void => {
+	if(a && 'fileUrl' in a && !a.src) a.src = a.fileUrl as string;
 	if(a?.src) for(let r in ASSET_SRC_REPLACE)
 		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
 }
@@ -247,6 +248,7 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 	d.embeds?.forEach(e => {
 		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random();
 		sanitizeAsset(e.video);
+		sanitizeAsset(e);
 	});
 	d.markers?.forEach(m => sanitizeMarker(m, is360, !isV5));
 	d.music?.items?.forEach(sanitizeAsset);
@@ -295,6 +297,8 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	sanitizeAsset(m.positionalAudio);
 	sanitizeAsset(m.data?.icon);
 	Object.values(m.i18n ?? {}).forEach(d => sanitizeAsset(d.audio))
+	const embeds = 'embedImages' in m ? m.embedImages as Models.ImageData.Embed[] : undefined;
+	if(embeds) embeds.forEach(e => sanitizeAsset(e));
 
 	// Old data model for split screen
 	const oldSplitLink = m.data?._meta?.secondary;
