@@ -457,7 +457,7 @@ export class MicrioImage {
 		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
 		if(this._loadedData || skipMeta) return Promise.resolve();
 		this._loadedData = true;
-		const data = this.preset?.[2] ?? (this.isV5 && await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json').catch(() => {}));
+		const data = this.preset?.[2] ?? (this.isV5 && await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json'+(this.__info.settings?.forceDataRefresh?'?'+Math.random():'')).catch(() => {}));
 		if(data) this.enrichData(data).then(d => this.data.set(d));
 	}
 

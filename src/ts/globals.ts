@@ -155,6 +155,7 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-is360': {r:true},
 		'data-no-externals': {f:'noExternals'},
 		'data-skipmeta': {f:'skipMeta'},
+		'data-force-data-refresh': {f:'forceDataRefresh'},
 		'data-keeprendering': {f:'keepRendering'},
 		'data-coverlimit': {f:'limitToCoverScale'},
 		'data-events': {f:'hookEvents'},
