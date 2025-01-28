@@ -209,6 +209,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 			/** Use a custom uri for the info json file */
 			infoUrl?: string;
+			/** Force refresh for published data JSON file */
+			forceDataRefresh?: boolean;
 			/** Render this image as a static image */
 			static?: boolean;
 			/** Use a custom thumbnail image uri */
