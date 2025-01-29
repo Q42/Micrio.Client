@@ -82,7 +82,7 @@
 
 	onMount(() => {
 		marker.tags.forEach(c => _cont.classList.add(c));
-		tick().then(() => _cont.querySelector('button')?.focus());
+		setTimeout(() => _cont.querySelector('button')?.focus(), 500);
 		const embeds = 'embedImages' in marker ? marker.embedImages as Models.ImageData.Embed[] : undefined;
 		if(embeds) micrio.$current?.data.update(d => {
 			if(!d) d = {embeds:[]};
