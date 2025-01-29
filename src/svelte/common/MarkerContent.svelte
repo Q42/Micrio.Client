@@ -72,12 +72,10 @@
 	{#if !isSerialTour && (((!content || !content.embedUrl) && marker.videoTour) || (content && content.audio))}<Media src={audioSrc} {destroying}
 		noPlayOverlay {image} uuid={marker.id} tour={marker.videoTour} autoplay={marker.audioAutoPlay || (!content.audio && !!marker.videoTour)} controls={!marker.videoTour || (!content || !content.embedUrl)}
 		on:ended={mediaEnded} bind:paused={paused.audio} />{/if}
-	<!-- todo: bij derde image geeft de gallery een 404 somehow... -->
 	{#if !noImages && marker.images}<section>{#each marker.images as image}
 		<button title={getTitle(image)} on:click={galleryEnabled ? () => openGallery(image.micrioId) : undefined}>
 			<figure>
-				<!-- todo: waarom doen ze het alleen maar met ^,150? -->
-				<img alt={getTitle(image)} src={image.micrioId ? `https://iiif.micr.io/${image.micrioId}/full/${singleImage ? '^'+Math.min(image.width, 640)+',' : '^,150'}/0/default.webp` : image.src} />
+				<img alt={getTitle(image)} src={image.micrioId ? `https://iiif.micr.io/${image.micrioId}/full/${singleImage ? '^'+Math.min(image.width, 640)+',' : '^,320'}/0/default.webp` : image.src} />
 				{#if imageCaption}<figcaption>{imageCaption}</figcaption>{/if}
 			</figure>
 		</button>
@@ -190,7 +188,7 @@
 
 	section {
 		display: grid;
-		grid-template-columns: repeat(2, auto);
+		grid-template-columns: repeat(3, auto);
 		column-gap: 5px;
 		row-gap: 5px;
 		justify-items: center;
