@@ -8,7 +8,7 @@ import type { PREDEFINED } from '../types/internal';
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeMarker } from './utils';
+import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
 import { State } from './state';
 import { archive } from './archive';
 
@@ -269,12 +269,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize markers on data set
-		this.data.subscribe(d => {
-			// Ignore unpublished or deleted data languages
-			if(d?.revision) d.revision = Object.fromEntries(Object.entries((d?.revision??{})).filter(r => Number(r[1]) > 0));
-			d?.markers?.forEach(m => sanitizeMarker(m, this.is360, !this.isV5));
-			d?.embeds?.forEach(e => {if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random()});
-		})
+		this.data.subscribe(d => sanitizeImageData(d, this.is360, this.isV5));
 	}
 
 	private setError(e:Error, err?:string) {
@@ -462,7 +457,7 @@ export class MicrioImage {
 		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
 		if(this._loadedData || skipMeta) return Promise.resolve();
 		this._loadedData = true;
-		const data = this.preset?.[2] ?? (this.isV5 && await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json').catch(() => {}));
+		const data = this.preset?.[2] ?? (this.isV5 && await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json'+(this.__info.settings?.forceDataRefresh?'?'+Math.random():'')).catch(() => {}));
 		if(data) this.enrichData(data).then(d => this.data.set(d));
 	}
 
@@ -553,6 +548,14 @@ export class MicrioImage {
 			/** @ts-ignore */
 			d.markerTours.map(t => t.steps)).map((s:string) => s.split(',')[1]).filter((s:string) => !!s && s != this.id)
 		);
+
+		// Backwards compatibility for v4-type Tour.autostart
+		const hasV4AutoStart = (t:Models.ImageData.MarkerTour|Models.ImageData.Tour) => 'autostart' in t && t.autostart
+		const autostartTour = d.markerTours?.find(hasV4AutoStart) || d.tours?.find(hasV4AutoStart);
+		if(autostartTour) this.$settings.start = {
+			type: 'steps' in autostartTour ? 'markerTour' : 'tour',
+			id: autostartTour.id
+		};
 
 		const micIdsUnique:string[] = micIds.filter((id,i) => micIds.indexOf(id)==i);
 

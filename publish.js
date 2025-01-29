@@ -47,7 +47,7 @@ const suffix = args?.find(a => a.startsWith('--suffix='))?.split('=')[1] || '';
 
 for(const bucket of ['micrio','-J eu micrio-eu']) {
 	console.log(`https://${bucket=='micrio'?'r2':'eu'}.micr.io/micrio-${version}${suffix}.min.js`);
-	for(const [ext, type] of [['js','text/javascript'],['d.ts','text/plain']]) await run(`wrangler r2 object put ${bucket}/micrio-${version}${suffix}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type}`);
+	for(const [ext, type] of [['js','text/javascript'],['d.ts','text/plain']]) await run(`npx wrangler r2 object put ${bucket}/micrio-${version}${suffix}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type}`);
 }
 
 if(npmPublish) {

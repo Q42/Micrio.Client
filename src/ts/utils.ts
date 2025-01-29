@@ -206,15 +206,64 @@ export const getLocalData = (id:string) : PREDEFINED|undefined =>
 /** Fetch info.json from i.micr.io (or other forced path)
  * @internal
 */
-export const fetchInfo = (id:string, path?:string) : Promise<Models.ImageInfo.ImageInfo|undefined> => {
+export const fetchInfo = (id:string, path?:string, refresh?:boolean) : Promise<Models.ImageInfo.ImageInfo|undefined> => {
 	const ld = getLocalData(id)?.[1];
-	return ld ? Promise.resolve(ld) : fetchJson(`${path??'https://i.micr.io/'}${id}/info.json`)
+	return ld ? Promise.resolve(ld) : fetchJson(`${path??'https://i.micr.io/'}${id}/info.json${refresh ? `?${Math.random()}`:''}`)
 		.then(r => {
 			// Ancient Micrio support -- this is only the case for ancient static info.json files
 			/** @ts-ignore */
 			if(r) { if('Height' in r) { r.height = r['Height']; r.version = 1.0; r.tileSize = 512; } if('Width' in r) r.width = r['Width'] }
+			sanitizeImageInfo(r as Models.ImageInfo.ImageInfo|undefined);
 			return r as Models.ImageInfo.ImageInfo|undefined;
 		});
+}
+
+/** @internal */
+const ASSET_SRC_REPLACE: Record<string, string> = {
+	'micrio-cdn.azureedge.net': 'micrio.vangoghmuseum.nl/micrio',
+	'micrio-cdn.vangoghmuseum.nl': 'micrio.vangoghmuseum.nl/micrio',
+	'rijks-micrio.azureedge.net': 'micrio.rijksmuseum.nl'
+}
+
+/** @internal */
+export const sanitizeAsset = (a?:Models.Assets.BaseAsset|Models.ImageData.Embed) : void => {
+	if(a && 'fileUrl' in a && !a.src) a.src = a.fileUrl as string;
+	if(a?.src) for(let r in ASSET_SRC_REPLACE)
+		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
+}
+
+/** @internal */
+const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
+	if(!i) return;
+	sanitizeAsset(i.organisation?.logo);
+	sanitizeAsset(i.settings?._markers?.markerIcon);
+	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
+	sanitizeAsset(i.settings?._360?.video);
+}
+
+/** @internal */
+export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:boolean, isV5:boolean) => {
+	if (!d) return;
+	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
+	d.embeds?.forEach(e => {
+		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random();
+		sanitizeAsset(e.video);
+		sanitizeAsset(e);
+	});
+	d.markers?.forEach(m => sanitizeMarker(m, is360, !isV5));
+	d.music?.items?.forEach(sanitizeAsset);
+	d.pages?.forEach(sanitizeMenuPage);
+}
+
+/** @internal */
+export const sanitizeSpaceData = (s:Models.Spaces.Space|undefined) => {
+	s?.icons?.forEach(sanitizeAsset);
+}
+
+/** @internal */
+const sanitizeMenuPage = (m:Models.ImageData.Menu) => {
+	sanitizeAsset(m.image);
+	m.children?.forEach(sanitizeMenuPage);
 }
 
 /** Fetch album/info.json from i.micr.io
@@ -233,6 +282,23 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(!m.tags) m.tags = [];
 	if(!('type' in m)) m.type = 'default';
 	if(!m.popupType) m.popupType = 'popup';
+
+	// String-based marker icons
+	if(typeof m.data.icon == 'string') m.data.icon = {
+		title: '',
+		size: 0,
+		uploaded: 0,
+		width: -1,
+		height: -1,
+		src: m.data.icon as string
+	}
+
+	m.images?.forEach(sanitizeAsset);
+	sanitizeAsset(m.positionalAudio);
+	sanitizeAsset(m.data?.icon);
+	Object.values(m.i18n ?? {}).forEach(d => sanitizeAsset(d.audio))
+	const embeds = 'embedImages' in m ? m.embedImages as Models.ImageData.Embed[] : undefined;
+	if(embeds) embeds.forEach(e => sanitizeAsset(e));
 
 	// Old data model for split screen
 	const oldSplitLink = m.data?._meta?.secondary;
@@ -260,6 +326,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		)));
 
 	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, image.is360, !image.isV5)));
+	sanitizeAsset(tour.image);
 
 	let chapter:number = -1;
 	const notFound:number[] = [];
@@ -271,10 +338,15 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		if(content?.title) chapter = i;
 		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m as Models.ImageData.VideoTourCultureData
 			: m.videoTour.i18n?.[lang] ?? undefined;
+		sanitizeAsset(vTourData?.audio);
+		sanitizeAsset(vTourData?.subtitle);
 		if(!m) {
 			console.warn(`[Micrio] Warning: tour step ${i+1} with id [${id}] not found! Removing it from the tour`);
 			notFound.push(i);
 		}
+
+		sanitizeAsset(content?.audio);
+
 		return !m ? undefined : {
 			markerId: id,
 			marker: m,

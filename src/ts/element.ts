@@ -284,7 +284,8 @@ export class HTMLMicrioElement extends HTMLElement {
 			delete opts.id;
 		}
 		else if(opts.id?.startsWith('album/')) await this.loadV5Album(opts.id.replace('album/', ''), opts);
-		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) await fetchInfo(opts.id, opts.forceInfoPath ? opts.path : undefined).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined);
+		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height'))
+			await fetchInfo(opts.id, opts.forceInfoPath ? opts.path : undefined, opts.settings?.forceDataRefresh).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined);
 
 		this.keepRendering = !!opts.settings.keepRendering;
 		const doOpen = opts.id || opts.gallery || opts.grid;
