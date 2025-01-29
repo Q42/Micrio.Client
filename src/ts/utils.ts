@@ -206,9 +206,9 @@ export const getLocalData = (id:string) : PREDEFINED|undefined =>
 /** Fetch info.json from i.micr.io (or other forced path)
  * @internal
 */
-export const fetchInfo = (id:string, path?:string) : Promise<Models.ImageInfo.ImageInfo|undefined> => {
+export const fetchInfo = (id:string, path?:string, refresh?:boolean) : Promise<Models.ImageInfo.ImageInfo|undefined> => {
 	const ld = getLocalData(id)?.[1];
-	return ld ? Promise.resolve(ld) : fetchJson(`${path??'https://i.micr.io/'}${id}/info.json`)
+	return ld ? Promise.resolve(ld) : fetchJson(`${path??'https://i.micr.io/'}${id}/info.json${refresh ? `?${Math.random()}`:''}`)
 		.then(r => {
 			// Ancient Micrio support -- this is only the case for ancient static info.json files
 			/** @ts-ignore */
