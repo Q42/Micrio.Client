@@ -227,7 +227,7 @@ const ASSET_SRC_REPLACE: Record<string, string> = {
 
 /** @internal */
 export const sanitizeAsset = (a?:Models.Assets.BaseAsset|Models.ImageData.Embed) : void => {
-	if(a && 'fileUrl' in a && !a.src) a.src = a.fileUrl as string;
+	if(a instanceof Object && 'fileUrl' in a && !a.src) a.src = a.fileUrl as string;
 	if(a?.src) for(let r in ASSET_SRC_REPLACE)
 		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
 }
