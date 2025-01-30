@@ -3,7 +3,7 @@
 	import type { Models } from '../../types/models';
 	import type { MicrioImage } from '../../ts/image';
 
-	import { getContext, onMount, tick } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { fly } from 'svelte/transition';
 	import { i18n } from '../../ts/i18n';
@@ -93,7 +93,7 @@
 		return () => {
 			micrio.state.popup.subscribe(m => destroying.set(m != marker));
 			if(embeds) micrio.$current?.data.update(d => {
-				if(!d?.embeds) return;
+				if(!d?.embeds) return d;
 				d.embeds = d.embeds.filter(e => !embeds.find(em => em.id == e.id));
 				return d;
 			})
