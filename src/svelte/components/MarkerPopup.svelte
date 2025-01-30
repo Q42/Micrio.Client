@@ -41,6 +41,7 @@
 			if($current && !image.opts.secondaryTo && $current.id != image.id && data.micrioLink?.id == $current.id) {
 				micrio.open(image.id);
 				image.state.marker.set(undefined);
+				micrio.state.popup.set(undefined);
 			} else image.state.marker.set(undefined);
 		}
 	}
