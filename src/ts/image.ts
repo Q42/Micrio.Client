@@ -298,9 +298,10 @@ export class MicrioImage {
 
 		i.isIIIF = this.id.startsWith('http') || i.format == 'iiif';
 
+		const forceDataRefresh = !!attr.settings?.forceDataRefresh;
 		if(this.id && (!attr.width || !attr.height || iiifManifest)) {
 			const loadError = (e:Error) => this.setError(e, 'Image with id "'+this.id+'" not found, published, or embeddable.');
-			deepCopy(this.preset?.[1] || await (i.isIIIF ? fetchJson(this.id) : fetchInfo(this.id, this.infoBasePath)).catch(loadError), i);
+			deepCopy(this.preset?.[1] || await (i.isIIIF ? fetchJson(this.id) : fetchInfo(this.id, this.infoBasePath, forceDataRefresh)).catch(loadError), i);
 			if(!iiifManifest && i.iiifManifest) iiifManifest = i.iiifManifest;
 			if(!i.isIIIF) i.isIIIF = !!iiifManifest;
 			if(iiifManifest) deepCopy(await fetchJson(iiifManifest).catch(loadError), i);
@@ -457,7 +458,7 @@ export class MicrioImage {
 		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
 		if(this._loadedData || skipMeta) return Promise.resolve();
 		this._loadedData = true;
-		const data = this.preset?.[2] ?? (this.isV5 && await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json'+(this.__info.settings?.forceDataRefresh?'?'+Math.random():'')).catch(() => {}));
+		const data = this.preset?.[2] ?? (this.isV5 && await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json',this.__info.settings?.forceDataRefresh).catch(() => {}));
 		if(data) this.enrichData(data).then(d => this.data.set(d));
 	}
 

@@ -182,10 +182,10 @@ const jsonPromises:Map<string, Promise<Object>> = new Map();
 /** Fetch cached JSON from uris
  * @internal
 */
-export const fetchJson = async <T=Object>(uri:string, init?:RequestInit) : Promise<T|undefined> => {
+export const fetchJson = async <T=Object>(uri:string, noCache?:Boolean) : Promise<T|undefined> => {
 	if(jsonCache.has(uri)) return jsonCache.get(uri) as T;
 	if(jsonPromises.has(uri)) return jsonPromises.get(uri) as T;
-	const promise = fetch(uri, init).then(async r => {
+	const promise = fetch(uri+(noCache ? '?'+Math.random():'')).then(async r => {
 		if(r.status == 200) return r.json()
 		else throw await r.text();
 	}).then(j => {
@@ -208,7 +208,7 @@ export const getLocalData = (id:string) : PREDEFINED|undefined =>
 */
 export const fetchInfo = (id:string, path?:string, refresh?:boolean) : Promise<Models.ImageInfo.ImageInfo|undefined> => {
 	const ld = getLocalData(id)?.[1];
-	return ld ? Promise.resolve(ld) : fetchJson(`${path??'https://i.micr.io/'}${id}/info.json${refresh ? `?${Math.random()}`:''}`)
+	return ld ? Promise.resolve(ld) : fetchJson(`${path??'https://i.micr.io/'}${id}/info.json`, refresh)
 		.then(r => {
 			// Ancient Micrio support -- this is only the case for ancient static info.json files
 			/** @ts-ignore */
