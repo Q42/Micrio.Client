@@ -20,7 +20,7 @@
 </script>
 
 <figure>
-	<micr-io data-gallery={gallery.map(i => `${i.micrioId},${i.width},${i.height},${i.isDeepZoom?'d':''}${i.isPng||i.src?.endsWith('.png')?',p':i.isWebP||i.src?.endsWith('.webp')?',w' : ''}`).join(';')}
+	<micr-io data-gallery={gallery.map(i => `${i.micrioId},${i.width},${i.height},${i.isDeepZoom?'d':''}${i.isWebP?',w':i.isPng||(!$current?.isV5&&i.src?.endsWith('.png'))?',p' : ''}`).join(';')}
 		data-start={startId}
 		data-path={$current && $current.$info && $current.$info.path}
 		data-logo="false"
