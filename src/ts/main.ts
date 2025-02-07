@@ -4,6 +4,8 @@ import { VERSION } from './version';
 
 HTMLMicrioElement.Svelte = Svelte;
 HTMLMicrioElement.VERSION = VERSION;
+
+// The HTMLMicrioElement has its own Svelte invocation
 customElements.define('micr-io', HTMLMicrioElement);
 
 console.log('%c\u25C8' + '%c Micrio' + ' %cv'+VERSION+' - https://micr.io/', 'color: #00d4ee', 'color: #c5ff5b', 'color: inherit');

@@ -8,7 +8,7 @@ export default defineConfig({
 		copyPublicDir: false,
 		minify: 'terser',
 		lib: {
-			entry: `./src/ts/viewer.ts`,
+			entry: `./src/ts/main.ts`,
 			name: 'Micrio',
 			fileName: `micrio.prod`,
 			formats: ['iife']
