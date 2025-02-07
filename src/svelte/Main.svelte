@@ -35,8 +35,8 @@
 	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = new WeakMap();
 	setContext('markerImages', markerImages);
 
-	// Don't render HTML elements
-	export let noHTML:boolean = micrio.getAttribute('data-ui') == 'none';
+	// Don't render HTML elements (is the data-ui="false" attribute)
+	export let noHTML:boolean;
 	const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
 	if(onlyMarkers) noHTML = true;
 
