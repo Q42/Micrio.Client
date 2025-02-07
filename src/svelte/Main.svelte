@@ -145,7 +145,10 @@
 
 </script>
 
+<!-- This is only used for positional audio and audio playlists -->
 {#if hasAudio && $data && $info}<AudioController volume={$volume} data={$data} is360={!!$info.is360} />{/if}
+
+<!-- This is legacy V4 and older for full-image 360 video -->
 {#if videoSrc && $info}<Media src={videoSrc} volume={$volume} is360
 	width={$info.width} height={$info.height} {...video} />{/if}
 
