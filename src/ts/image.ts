@@ -396,7 +396,7 @@ export class MicrioImage {
 				micrio.lang = langs[0];
 		}
 
-		// Custom JS/CSS
+		// Custom JS/CSS -- legacy
 		const s = i.settings;
 		if(s && !s?.noExternals) await Promise.all([
 			s.css ? this.loadStyle(s.css.href) : null,
@@ -409,6 +409,7 @@ export class MicrioImage {
 		if(s?.gallery?.archive) this.levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
 		if(!this.noImage) this.thumbSrc = this.getTileSrc(this.levels, 0, 0);
 
+		// This event allows devs to manipulate the MicrioInfo BEFORE it is processed
 		micrio.events.dispatch('pre-info', i);
 
 		if(this.isV5 && i.revision != undefined && !this.opts.isEmbed)

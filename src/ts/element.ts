@@ -48,7 +48,9 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** All available canvases */
 	readonly canvases: MicrioImage[] = [];
 
-	/** Current main {@link MicrioImage} store Writable. Its value can be referred to using the {@link $current} property */
+	/** Current main {@link MicrioImage} store Writable. Its value can be referred to using the {@link $current} property.
+	 * A lot of the app is reactive to this, so only set this using <micr-io>.open();
+	 */
 	readonly current:Writable<MicrioImage|undefined> = writable();
 
 	/** Currently visible canvases */
@@ -260,7 +262,8 @@ export class HTMLMicrioElement extends HTMLElement {
 			.then(() => this.loadGallery(opts, path, true));
 	}, (e) => this.printError(e?.message || e));
 
-	/** Print/update main image
+	/** Preload actions needed to initialize main image,
+	 * such as archive/omni/grid binary optimized package pre-download
 	 * @internal
 	*/
 	private async print() : Promise<void> {
@@ -272,18 +275,28 @@ export class HTMLMicrioElement extends HTMLElement {
 		if(opts.settings.noControls) this.state.ui.controls.set(false);
 
 		if(opts.settings.gallery?.archive) {
+			// This references the BIN file that has pre-generated thumbnails
+			// for a gallery
 			const gallery = opts.settings.gallery?.archive;
-			const isArchive = /\.\d+$/.test(gallery);
+			// Test whether the archive name is [folderId].[revision], meaning
+			// it has been published from dashboard V3 as an Album
+			const isV5Archive = /\.\d+$/.test(gallery);
 			const path = opts.path||(idIsV5(gallery.replace(/\.\d+$/,'')) ? BASEPATH_V5 : BASEPATH);
-			if(isArchive) await this.loadArchiveBin(path, gallery);
+			if(isV5Archive) await this.loadArchiveBin(path, gallery);
 			opts.settings.gallery.startId = opts.id;
+			// For grid storytelling
 			if(opts.grid) await this.setGrid(opts, path);
-			else await this.loadGallery(opts, path, isArchive);
-			if(!isArchive) delete opts.settings.gallery.archive;
+			// For "old style" multi-image gallery, where the ID is a comma-separated
+			// list of individual Micrio IDs.
+			else await this.loadGallery(opts, path, isV5Archive);
+			if(!isV5Archive) delete opts.settings.gallery.archive;
 			if(!opts.path) opts.path = path;
 			delete opts.id;
 		}
+		// If an album latest revision is not known, preload album info from i.micr.io
+		// containing metadata and the latest BIN file information
 		else if(opts.id?.startsWith('album/')) await this.loadV5Album(opts.id.replace('album/', ''), opts);
+		// If an image ID belonging in an album is given, auto-load the album and start on the relevant page
 		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height'))
 			await fetchInfo(opts.id, opts.forceInfoPath ? opts.path : undefined, opts.settings?.forceDataRefresh).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined);
 
@@ -415,12 +428,16 @@ export class HTMLMicrioElement extends HTMLElement {
 			// Set 360 direction because waypoint was used
 			this.wasm.preventDirectionSet = !opts.vector;
 
+			// In case a grid has a starting image, immediately open that one
 			if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == i.id)))
 				grid?.focus(c, {view: i.settings?.view}).then(() => this.current.set(c));
+			// Otherwise just simply set the opened image as (single) main image
 			else if(!opts.splitScreen) this.current.set(c);
+			// Splitscreen logic
 			else this.wasm.setCanvas(c);
 		}
 
+		// Initialize Wasm if not yet
 		if(!this.wasm.ready) this.wasm.load().then(setImage);
 		else setImage();
 
@@ -486,6 +503,11 @@ export class HTMLMicrioElement extends HTMLElement {
 		return opts;
 	}
 
+	/** Parse a gallery string ([micrioId,width?,height?,type?,format?], ';'-separated)
+	 * and load all relevant image data needed.
+	 * A gallery is basically one giant wide MicrioImage, that has each individual gallery
+	 * image embedded within itself.
+	*/
 	private async loadGallery(opts:Partial<Models.ImageInfo.ImageInfo>, path:string, isArchive:boolean) : Promise<void> {
 		let gallery = opts.settings?.gallery;
 		let archive = gallery?.archive;
@@ -510,6 +532,7 @@ export class HTMLMicrioElement extends HTMLElement {
 				entries[i] = `${d['@id']},${d.width},${d.height}`;
 			}));
 		}
+		// The individual images
 		const pages = entries.map((e:string) : any[] => e.split(',')
 			.map((v:any) => isNaN(v) ? v : Number(v)));
 		pages.forEach((p,i) => { if(i>0&&!p[2]) p.push(...pages[i-1].slice(1)) });
@@ -521,12 +544,15 @@ export class HTMLMicrioElement extends HTMLElement {
 		const coverPages = isSpreads ? gallery.coverPages ?? 0 : 0;
 		const w = opts.width = isSwitch ? Math.max(...pages.map(p => p[1] * (isSpreads ? 2 : 1))) : pages.reduce((w, c) => w + c[1] + marginX, 0);
 		let l=0;
+		// Instantiate individual pages with their own MicrioImage controller/camera.
 		opts.gallery = pages.map((c,i) => new MicrioImage(this.wasm, {id: c[0], path,
 			width: c[1], height: c[2], isDeepZoom: c[3] == 'd', isPng: c[4] == 'p', isWebP: c[4] == 'w', tileSize: c[5]||1024,
 			revision: gallery?.revisions?.[c[0]],
 			settings: { skipMeta: true, gallery }}, {
 				isEmbed: isSwitch,
 				useParentCamera: isSwitch,
+				// This is the actual placement within the main Micrio virtual canvas for this page
+				// For type "switch", they are just placed on top of eachother.
 				area: isSwitch ? !isSpreads ? [0,0,1,1]
 					: i-coverPages < 0 || (i == pages.length-1 && i%2==0) ? [0.25,0,0.75,1] : (i-coverPages)%2==0 ? [0,0,.5,1] : [.5,0,1,1]
 					: [(l+=i>0&&((i<coverPages)||(i-coverPages)%2==0)?marginX:0)/w,(h-c[2])/2/h,(l+=c[1])/w,((h-c[2])/2+c[2])/h]

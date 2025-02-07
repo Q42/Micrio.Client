@@ -7,7 +7,15 @@ type MDPHeader = {
 	size: number; // 12
 }
 
-/** @internal */
+/**
+ * @internal
+ * An MDP (Micrio Data Package) .BIN file is an abstraction of a TAR file
+ * which contains individual thumbnails for each image of a gallery, grid,
+ * or omni (rotatable) object that contains multiple frames.
+ * 
+ * In the case of an Album BIN, this also includes the entire JSON file
+ * containing each image's info.
+ */
 class Archive {
 	private data:Map<string, ArrayBuffer> = new Map;
 	db:Map<string, [string, number, number]> = new Map;
@@ -47,6 +55,7 @@ class Archive {
 		const hSize = 32;
 
 		let i = 0;
+		// Parse the files in the BIN file to an index file (file name, start byte, length)
 		while(i<data.byteLength) {
 			const h = this.parseHeader(new Uint8Array(data, i, hSize));
 			if(h.name && h.size > 0) this.db.set(path+imgPath+h.name.replace('./',''), [id, i+hSize, h.size]);
@@ -61,6 +70,7 @@ class Archive {
 		return { name: g(20), size: parseInt(g(12), 8) }
 	}
 
+	/** Get a file from the BIN file as a text file */
 	get = <T>(u: string) : Promise<T> => new Promise(ok => {
 		const i = this.db.get(u);
 		if(!i || !this.data.has(i[0])) throw new Error('Could no get blob: '+u);
@@ -70,6 +80,7 @@ class Archive {
 		fr.readAsText(new Blob([new Uint8Array(this.data.get(i[0]), i[1], i[2])]));
 	})
 
+	/** Get an image thumbnail from the BIN file as Image Blob */
 	getImage = async (u: string) : Promise<TextureBitmap> => new Promise(ok => {
 		const i = this.db.get(u);
 		if(!i || !this.data.has(i[0])) throw new Error('Could no get blob');
