@@ -292,7 +292,6 @@
 		: vimeoPlayer ? await vimeoPlayer.getPaused()
 		: false;
 
-	let wasPlaying:Function;
 	let frameAutoplayBlocked:boolean = false;
 	let hasInited:boolean = false;
 
@@ -556,7 +555,6 @@
 
 	function stoppedPlaying():void{
 		if(!wasMuted) mainVolume.set(1);
-		if(wasPlaying) wasPlaying();
 	}
 
 	// Called when parent element is starting to be destroyed
