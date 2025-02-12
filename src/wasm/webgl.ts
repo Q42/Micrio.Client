@@ -11,8 +11,6 @@ export default class WebGL {
 	private readonly rMatrix : Mat4 = new Mat4;
 
 	readonly position : Vec4 = new Vec4;
-	private readonly qPos : Vec4 = new Vec4;
-	private readonly quad : Mat4 = new Mat4;
 
 	radius : f64 = 10;
 
@@ -266,51 +264,6 @@ export default class WebGL {
 		if(!abs) this.vec4.transformMat4(this.pMatrix);
 
 		return this.vec4;
-	}
-
-	getQuad(cX:f64, cY:f64, w:f64, h:f64, scaleX:f64=1, scaleY:f64=1, rotX:f64=0, rotY:f64=0, rotZ:f64=0) : Float32Array {
-		const s:f64 = PI * 2 * this.radius, m = this.iMatrix, pm = this.pMatrix;
-		const el = this.canvas.el;
-		const center = this.canvas.webgl.getVec3(cX, cY, true);
-		const r = el.width / el.ratio;
-		const x0 = cX-w/2, x1 = cX+w/2, y0 = cY-h/2, y1 = cY+h/2;
-		const v = this.quad;
-		const a = el.aspect;
-
-		m.identity();
-		m.rotateY(this.baseYaw);
-		m.translate(center.x, center.y, center.z);
-		m.rotateY(atan2(center.x,center.z) + PI + rotY);
-		m.rotateX(-Math.sin((cY-.5)*PI) - rotX);
-		m.rotateZ(-rotZ);
-		m.scaleXY(scaleX, scaleY);
-
-		m.scale(unchecked(this.canvas.images[0].scale));
-
-		const p = this.qPos;
-
-		// left, top
-		let x = (x0-cX)*s, y = -(y0-cY)*.5*s;
-		p.x=0;p.y=0;p.z=0; m.translate(x, y, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		p.transformMat4(pm);
-		v.a0 = ((p.x + 1) / 2) * r; v.a1 = ((-p.y + 1) / 2) * r / a; v.a2 = -p.w;
-
-		// right, top
-		p.x=0;p.y=0;p.z=0; m.translate(x=(x1-cX)*s, y=-(y0-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		p.transformMat4(pm);
-		v.a3 = ((p.x + 1) / 2) * r; v.a4 = ((-p.y + 1) / 2) * r / a; v.a5 = -p.w;
-
-		// right, bottom
-		p.x=0;p.y=0;p.z=0; m.translate(x=(x1-cX)*s, y=-(y1-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		p.transformMat4(pm);
-		v.a6 = ((p.x + 1) / 2) * r; v.a7 = ((-p.y + 1) / 2) * r / a; v.a8 = -p.w;
-
-		// left, bottom
-		p.x=0;p.y=0;p.z=0; m.translate(x=(x0-cX)*s, y=-(y1-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		p.transformMat4(pm);
-		v.a9 = ((p.x + 1) / 2) * r; v.a10 = ((-p.y + 1) / 2) * r / a; v.a11 = -p.w;
-
-		return v.toArray();
 	}
 
 	getMatrix(x: f64, y: f64, scale: f64, radius: f64, rX: f64, rY: f64, rZ: f64, transY: f64, sX: f64=1, sY: f64=1) : Mat4 {

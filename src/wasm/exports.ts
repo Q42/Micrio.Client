@@ -44,8 +44,6 @@ export function _constructor(a: Main, b: f64, c: f64, d: u32, f: bool, h: bool,
 export function _getView(c:Canvas) : Float64Array { return c.getView() };
 export function _getCoo(c:Canvas, x: f64, y: f64, abs: bool, noLimit: bool) : Float64Array {
 	return c.getCoo(x, y, abs, noLimit) };
-export function _getQuad(c:Canvas, cX:f64, cY:f64, w:f64, h:f64, scaleX:f64, scaleY:f64, rotX:f64, rotY:f64, rotZ:f64) : Float32Array {
-	return c.webgl.getQuad(cX, cY, w, h, scaleX, scaleY, rotX, rotY, rotZ) }
 export function _getXY(c:Canvas, x: f64, y: f64, abs: bool, radius:f64, rotation:f64) : Float64Array {
 	return c.getXY(x, y, abs, radius, rotation) };
 export function _getMatrix(c:Canvas, x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64,sY:f64) : Float32Array {

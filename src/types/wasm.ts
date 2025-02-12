@@ -151,8 +151,6 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @returns Memory pointer to the `Uint32Array` containing the coordinates
 	 */
 	_getCoo(ptr:number, x: number, y: number, abs?: boolean, noLimit?: boolean) : number;
-	/** @deprecated */
-	_getQuad(ptr:number, cX: number, cY: number, w: number, h: number,scaleX: number, scaleY: number, rotX?:number,rotY?:number,rotZ?:number) : number;
 	/** Get an image's requested `[x, y]` pixel values for input coordinates `x` and `y`
 	 * @param ptr The image memory pointer in shared Wasm memory
 	 * @param x The requested X coordinate `[0-1]`
