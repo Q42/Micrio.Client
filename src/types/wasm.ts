@@ -45,20 +45,13 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param ptr The Wasm Main instance memory pointer
 	 * @param w The new element width in pixels
 	 * @param h The new element height in pixels
-	 * @param l [DEPRECATED]
-	 * @param t [DEPRECATED]
+	 * @param l The element absolute left position in pixels
+	 * @param t The element absolute top position in pixels
 	 * @param r The Device Pixel Ratio (ie 2 or 3)
 	 * @param s The relative scale to render at
 	 * @param p The current viewport is in portrait mode
 	*/
 	resize(ptr:number, w: number, h: number, l: number, t: number, r: number, s: number, p: boolean) : void;
-	/** @deprecated */
-	setPosition(ptr:number, _l: number, _t: number) : void;
-	/** Set virtual offset margins applied to all viewports
-	 * @param ptr The Wasm Main instance memory pointer
-	 * @param _w Width, in pixels
-	 * @param _h Height, in pixels
-	*/
 	setArea(ptr:number, _w: number, _h: number) : void;
 	/** ONLY draw the target layer, no incremental nice fades. Handy if you want just 1 frame
 	 * drawn with minimal HTTP requests.
@@ -153,7 +146,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param ptr The image memory pointer in shared Wasm memory
 	 * @param x The requested pixel X coordinate `[0-1]`
 	 * @param y The requested pixel Y coordinate `[0-1]`
-	 * @param abs [DEPRECATED]
+	 * @param abs Get absolute screen pixel results
 	 * @param noLimit Return coordinates can be outside `[0,0,1,1]`
 	 * @returns Memory pointer to the `Uint32Array` containing the coordinates
 	 */
@@ -164,7 +157,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param ptr The image memory pointer in shared Wasm memory
 	 * @param x The requested X coordinate `[0-1]`
 	 * @param y The requested Y coordinate `[0-1]`
-	 * @param abs [DEPRECATED]
+	 * @param abs Get absolute screen pixel results
 	 * @param radius In case of a rotatable object, the radius from center in 3d space
 	 * @param rotation In case of a rotatable object, the absolute angle of rotation on the Y axis
 	 * @returns Memory pointer to the `Uint32Array` containing the pixel coordinates

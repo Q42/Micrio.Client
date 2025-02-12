@@ -102,7 +102,6 @@ export class Main {
 		this.el.set(w, h, l, t, r, s, p);
 		this.canvases.forEach(c => { c.resize() });
 	}
-	setPosition(_l: i32, _t: i32) : void { this.el.left = _l; this.el.top = _t; }
 	setArea(_w: i32, _h: i32) : void { this.el.areaWidth = _w; this.el.areaHeight = _h; }
 
 	remove(c:Canvas) : void {

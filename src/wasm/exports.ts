@@ -13,7 +13,6 @@ export function ease(p:f64) : f64 { return easeInOut.get(p) }
 export function constructor() : Main { return new Main(); }
 export function getVertexBuffer(m:Main) : Float32Array { return m.vertexBuffer; }
 export function getVertexBuffer360(m:Main) : Float32Array { return m.vertexBuffer360; }
-export function setPosition(m:Main, _l: i32, _t: i32) : void { m.el.left = _l; m.el.top = _t; }
 export function setArea(m:Main, _w: i32, _h: i32) : void { m.el.areaWidth = _w; m.el.areaHeight = _h; }
 export function setBareBone(m:Main, v:bool) : void { m.bareBone = v; }
 export function set360Orientation(m:Main, d:f64, dX:f64, dY:f64) : void {
