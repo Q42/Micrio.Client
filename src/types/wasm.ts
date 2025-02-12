@@ -183,8 +183,6 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @returns Memory pointer to the `Uint32Array` containing the Matrix4 array
 	 */
 	_getMatrix(ptr:number, x?:number, y?:number, s?:number, r?:number, rX?:number, rY?:number, rZ?:number, t?:number, sX?:number, sY?:number) : number;
-	/** @deprecated */
-	_getOmniXY(ptr:number, x: number, y: number, z: number) : number;
 	/** Set the relative View area of a MicrioImage to render to, animates by default. Used in grids.
 	 * @param ptr The image memory pointer in shared Wasm memory
 	 * @param x0 The viewport X0 coordinate
