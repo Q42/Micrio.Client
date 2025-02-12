@@ -221,6 +221,8 @@ export class Camera {
 	 * @param rotY The object Y rotation in radians
 	 * @param rotZ The object Z rotation in radians
 	 * @param transY Optional Y translation in 3d space
+	 * @param scaleX Optional X scaling
+	 * @param scaleY Optional Y scaling
 	 * @returns The resulting 4x4 matrix
 	 */
 	getMatrix(x:number, y:number, scale?:number, radius?:number, rotX?:number, rotY?:number, rotZ?:number, transY?:number, scaleX?:number, scaleY?:number) : Float32Array {
@@ -507,6 +509,7 @@ export class Camera {
 		return Math.floor((rot / (Math.PI * 2)) * numFrames);
 	}
 
+	/** [Omni] Get pixel coordinates relative to the 3d omni rotation */
 	public getOmniXY(x:number, y:number, z:number) : Float64Array {
 		this.e._getOmniXY(this.image.ptr, x, y, z);
 		return this._xy;
