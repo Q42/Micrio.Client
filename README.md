@@ -37,6 +37,14 @@ Since the web client uses a binary `wasm` file for the WebAssembly engine, you n
 $ pnpm run asbuild:optimized
 ```
 
+If you want more debugging/stack tracing of your compiled wasm, run:
+
+```sh
+$ pnpm run asbuild:untouched
+```
+
+And make sure that `ts/wasm.ts` references `/build/untouched.wasm`.
+
 This will create a new `wasm` binary which will be used the next time you reload.
 
 ## Compilation
