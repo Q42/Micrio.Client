@@ -130,6 +130,25 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	getNumTiles(ptr:number) : number;
 
 	/** Individual canvas Wasm controller constructor for a `MicrioImage` instance
+	 * @param mainPtr The Wasm Main controller memory pointer
+	 * @param width The original image width
+	 * @param height The original image height
+	 * @param tileSize The image tile size in px
+	 * @param is360 The image is a 360&deg; image
+	 * @param noImage Treat this as a virtual empty canvas without
+	 * @param isSingle Only use the main image/video src as full-sized texture, don't use tiles
+	 * @param targetOpacity The initial image opacity
+	 * @param freeMove The user can pan outside the image's boundaries
+	 * @param coverLimit Limit the view to the image covering the viewport
+	 * @param coverStart Start the image covering the view
+	 * @param maxScale The maximum original scale the user can zoom into (1=100%)
+	 * @param camSpeed Camera animation speed multiplier
+	 * @param trueNorth For a 360&deg; image, an image-wide rotation adjustment to align to north
+	 * @param isGallerySwitch This is a virtual canvas for a switching image gallery
+	 * @param pagesHaveBackground Gallery pages always have a white background
+	 * @param isOmni Is a rotatable omni object image
+	 * @param pinchZoomOutLimit User cannot pinch out further than the image boundaries
+	 * @param numLayers For rotatable omni objects, the amount of virtual layers this object has
 	 * @returns The memory pointer in the shared Wasm memory for this Wasm instance.
 	*/
 	_constructor(mainPtr:number, width: number, height: number, tileSize: number, is360: boolean,
