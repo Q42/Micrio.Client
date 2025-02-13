@@ -30,6 +30,11 @@ const args = process.argv.slice(2);
 
 const npmPublish = args?.includes('--npm');
 if(npmPublish) {
+	// Build docs
+	console.log('Building docs...\n');
+	await run('npm run create:client --prefix ../Micrio/server/doc.micr.io')
+	console.log('done!')
+
 	const otp = Number(args[args?.findIndex(a => a.startsWith('--otp'))+1]);
 	if(!otp) {
 		console.log('\nError: enter your one-time-password using --otp to publish to NPM');
