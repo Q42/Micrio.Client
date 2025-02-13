@@ -164,8 +164,9 @@ export const once = <T = any>(s:Readable<T>, opts:{
 		// When value is undefined, only trigger when the current value isn't undefined
 		if(initial && opts.allowUndefined && v === undefined) return;
 		initial = false;
-		if(opts.targetValue !== undefined ? v === opts.targetValue : (opts.allowUndefined || (v !== undefined)))
+		if(opts.targetValue !== undefined ? v === opts.targetValue : (opts.allowUndefined || (v !== undefined))) {
 			if(unsub) unsub(); else tick().then(() => unsub()); ok(v);
+		}
 	})
 });
 
