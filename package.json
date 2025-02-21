@@ -1,6 +1,6 @@
 {
 	"name": "@micrio/client-src",
-	"version": "5.1.21",
+	"version": "5.1.22",
 	"description": "Micrio client image viewer source repository",
 	"main": "micrio.js",
 	"type": "module",
