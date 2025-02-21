@@ -151,6 +151,8 @@
 	function preload(c:number){
 		const imgs:number[] = [];
 
+		// Preload logic for spread pages
+		if(isSpread && c >= coverPages) c=c*2-coverPages;
 
 		const row = Math.floor(c / numPerRow);
 		for(let x=-d;x<=d;x++) if(x) {
