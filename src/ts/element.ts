@@ -554,7 +554,7 @@ export class HTMLMicrioElement extends HTMLElement {
 				// This is the actual placement within the main Micrio virtual canvas for this page
 				// For type "switch", they are just placed on top of eachother.
 				area: isSwitch ? !isSpreads ? [0,0,1,1]
-					: i-coverPages < 0 || (i == pages.length-1 && i%2==0) ? [0.25,0,0.75,1] : (i-coverPages)%2==0 ? [0,0,.5,1] : [.5,0,1,1]
+					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.75,1] : (i-coverPages)%2==0 ? [0,0,.5,1] : [.5,0,1,1]
 					: [(l+=i>0&&((i<coverPages)||(i-coverPages)%2==0)?marginX:0)/w,(h-c[2])/2/h,(l+=c[1])/w,((h-c[2])/2+c[2])/h]
 			})
 		);
