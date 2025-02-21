@@ -354,7 +354,8 @@ export class Wasm {
 			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4),
 			new Float64Array(this.b, this.e._getXY(img.ptr, 0,0) + 32, 5),
 			new Float64Array(this.b, this.e._getCoo(img.ptr, 0,0) + 32, 5),
-			new Float32Array(this.b, this.e._getMatrix(img.ptr) + 32, 16)
+			new Float32Array(this.b, this.e._getMatrix(img.ptr) + 32, 16),
+			new Float32Array(this.b, this.e._getQuad(img.ptr, 0,0,0,0,0,0) + 32, 16)
 		)
 	}
 

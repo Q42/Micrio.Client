@@ -26,6 +26,9 @@ export class Camera {
 	private _coo!: Float64Array;
 
 	/** @internal */
+	private _quad!: Float32Array;
+
+	/** @internal */
 	private _mat!: Float32Array;
 
 	/** For deviating center in 360 images
@@ -76,13 +79,15 @@ export class Camera {
 		view: Float64Array,
 		xy: Float64Array,
 		coo: Float64Array,
-		mat: Float32Array
+		mat: Float32Array,
+		quad: Float32Array
 	) : void {
 		this.e = e;
 		this._view = view;
 		this._xy = xy;
 		this._coo = coo;
 		this._mat = mat;
+		this._quad = quad;
 	}
 
 	/** Called from within Wasm
@@ -200,6 +205,22 @@ export class Camera {
 	/** Get the current image scale */
 	public getScale = () : number => {
 		return this.center[2]??1;
+	}
+
+	/** Get a rectangle in 360 space
+	 * @param cX The quad center X coordinate
+	 * @param cY The quad center Y coordinate
+	 * @param w The quad width
+	 * @param h The quad height
+	 * @param rotX Rotation over X axis
+	 * @param rotY Rotation over Y axis
+	 * @param rotZ Rotation over Z axis
+	 * @param scaleX Horizontal scale
+	 * @param scaleY Vertical scale
+	*/
+	public getQuad(cX:number, cY:number, w:number, h:number,rotX:number=0,rotY:number=0,rotZ:number=0,scaleX:number=1,scaleY:number=1) : Float32Array {
+		this.e._getQuad(this.image.ptr, cX, cY, w, h, scaleX, scaleY, rotX, rotY, rotZ);
+		return this._quad;
 	}
 
 	/** Get a custom matrix for 360 placed embeds
