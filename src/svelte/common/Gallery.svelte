@@ -185,7 +185,7 @@
 
 	function getX(idx:number) : number {
 		const _li = _ul?.childNodes[idx] as HTMLElement;
-		return _li ? _li.offsetLeft + _li.offsetWidth/2 : 0;
+		return _li ? -2 + _li.offsetLeft + _li.offsetWidth/2 : 0;
 	}
 
 	let _ul:HTMLElement;
@@ -199,17 +199,29 @@
 		if(dragging || (dragIsPointer = 'button' in e) && e.button != 0) return;
 		box = _ul.getClientRects()[0];
 		micrio.keepRendering = dragging = true;
+		hoverIdx = -1;
 		window.addEventListener(dragIsPointer ? 'pointermove' : 'touchmove', scrubMove);
 		window.addEventListener(dragIsPointer ? 'pointerup' : 'touchend', scrubStop);
 		scrubMove(e);
 	}
 
-	function scrubMove(e:PointerEvent|TouchEvent) : void {
+	function getScrubXPercIdx(e:PointerEvent|TouchEvent) : [number,number] {
+		const _box = box ?? _ul.getClientRects()[0];
 		const clientX = 'button' in e ? e.clientX : e.touches[0].clientX;
-		const perc = Math.min(1, Math.max(0, (clientX - box.left) / box.width));
-		_left = perc * (box.width);
+		const perc = Math.min(1, Math.max(0, (clientX - _box.left-14) / (_box.width-32)));
 		const idx = Math.max(0, Math.min(pagesPerLayer-1, Math.floor(perc * pagesPerLayer)));
+		return [perc, idx];
+	}
+
+	function scrubMove(e:PointerEvent|TouchEvent) : void {
+		const [perc, idx] = getScrubXPercIdx(e);
+		_left = 16 + perc * (box.width-32);
 		if(idx != currentPage) goto(idx, true);
+	}
+
+	let hoverIdx:number = -1;
+	function scrubPointerMove(e:PointerEvent|TouchEvent) : void {
+		if(!dragging) hoverIdx = getScrubXPercIdx(e)[1];
 	}
 
 	function scrubStop() : void {
@@ -404,8 +416,8 @@
 	{:else if !isFullSwipe && images.length > 1 }
 		<div class:hidden={loading||($hidden && !dragging && !panning)}>
 			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" on:pointerdown={() => goto(currentPage - 1)} disabled={currentPage==0}></Button>
-			<ul bind:this={_ul}>
-				{#each pages as page, i}<li class:active={i==currentPage}><button on:click={() => goto(i, true)} on:keypress={e => { if(e.key === 'Enter') goto(i, true)}} class="bullet">&bull;</button></li>{/each}
+			<ul bind:this={_ul} on:pointermove={scrubPointerMove} on:pointerleave={() => hoverIdx=-1}>
+				{#each pages as page, i}<li class:active={i==currentPage} class:hover={i==hoverIdx}><button on:click={() => goto(i, true)} on:keypress={e => { if(e.key === 'Enter') goto(i, true)}} class="bullet">&bull;</button></li>{/each}
 				<button style={`left: ${left}px`} class:dragging={dragging}
 					on:pointerdown|capture|preventDefault|stopPropagation={scrubStart}
 					on:touchstart|capture|preventDefault|stopPropagation={scrubStart}></button>
@@ -456,8 +468,9 @@
 		width: 0;
 		transition: opacity .25s ease;
 		opacity: .25;
-		display: flex;
+		display: block;
 		height: 48px;
+		position: relative;
 	}
 	li.active {
 		transition-duration: 0s;
@@ -467,11 +480,20 @@
 		border: none;
 		color: inherit;
 		cursor: pointer;
-		flex: 1;
+		position: absolute;
+		left: 50%;
+		transform: translate3d(-50%,0,0);
+		height: 48px;
+		width: 100%;
+		min-width: 48px;
+		pointer-events: none;
+	}
+	li.hover > button {
+		pointer-events: all;
 	}
 
 	@media (hover: hover) {
-		li:hover {
+		li.hover {
 			transition-duration: 0s;
 			opacity: 1;
 		}
