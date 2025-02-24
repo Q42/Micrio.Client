@@ -42,7 +42,14 @@
 	const glAttr = 'data-embeds-inside-gl';
 	const glAttrValue = micrio.getAttribute(glAttr);
 	const embedImageAsHtml = isSVG || isIOS14 || (!screenIsHDR && !micrio.hasAttribute(glAttr)) || glAttrValue == 'false';
-	const printGL = !embedImageAsHtml && ((embed.micrioId && !isSmall) || (embed.video && !embed.video.controls && !embed.video.transparent));
+
+	// Print the image / video inside Micrio's WebGL context
+	const printGL = !embedImageAsHtml && !!(
+		// It has a MicrioId and is big, or doesn't have an original image SRC
+		(embed.micrioId && (!isSmall || !embed.src))
+		// It's a non-transparent video that has controls turned off
+		|| (embed.video && !embed.video.controls && !embed.video.transparent)
+	);
 
 	const noEvents = !embed.clickAction && !embed.frameSrc;
 	const href = embed.clickAction == 'href' ? embed.clickTarget : undefined;
