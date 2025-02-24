@@ -30,7 +30,7 @@ const args = process.argv.slice(2);
 
 const npmPublish = args?.includes('--npm');
 if(npmPublish) {
-	const otp = Number(args[args?.findIndex(a => a.startsWith('--otp'))+1]);
+	const otp = args[args?.findIndex(a => a.startsWith('--otp'))+1];
 	if(!otp) {
 		console.log('\nError: enter your one-time-password using --otp to publish to NPM');
 		process.exit();
