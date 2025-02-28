@@ -33,7 +33,7 @@
 
 	const a = embed.area;
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');
-	const isSmall = embed.width && embed.height ? embed.width * embed.height < Math.pow(3072,2) : false;
+	const isSmall = embed.width && embed.height ? embed.width * embed.height < Math.pow(1024,2) : false;
 
 	// iOS14 HLS videos won't work within GL rendering
 	const isIOS14 = /iPhone OS 14_/i.test(navigator.userAgent);
@@ -87,6 +87,7 @@
 
 		buttonStyle = `--ratio:${w/h * info.width/info.height};--scale:${w * info.width / (embed.width ?? 100) / (!printGL ? s : 1) * (is360 ? Math.PI/2 : 1)};`;
 		if(isSVG) buttonStyle+=`height:${embed.height}px`;
+		if(printGL && embed.micrioId && embed.width) buttonStyle+=`width:${embed.width}px`;
 	}
 
 	readPlacement();
@@ -249,7 +250,12 @@
 	const isRawVideo = printGL && !!embed.video;
 	function printInsideGL() : void {
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity || 1;
-		if(image && image.ptr >= 0) wasm.fadeImage(image.ptr, opacity);
+		if(image && image.ptr >= 0) {
+			// Update placement
+			image.camera.setArea(embed.area);
+			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
+			wasm.fadeImage(image.ptr, opacity);
+		}
 		else {
 			image = mainImage.addEmbed({
 				id: embed.video ? embed.id : embed.micrioId,
@@ -349,6 +355,8 @@
 	.embed-container > :global(*) {
 		position: absolute;
 		transform: translate3d(-50%,-50%,0) scale3d(var(--scale, 1), var(--scale, 1), 1);
+	}
+	.embed-container > :global(*:not(button)) {
 		width: auto !important;
 	}
 	.embed-container:not(.no-events) > :global(*) {
@@ -364,7 +372,7 @@
 		margin: 0;
 		background: transparent;
 		border: none;
-		width: 100px !important;
-		height: calc(100px / var(--ratio));
+		width: 100px;
+		aspect-ratio: var(--ratio);
 	}
 </style>
