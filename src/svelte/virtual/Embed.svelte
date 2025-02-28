@@ -250,7 +250,12 @@
 	const isRawVideo = printGL && !!embed.video;
 	function printInsideGL() : void {
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity || 1;
-		if(image && image.ptr >= 0) wasm.fadeImage(image.ptr, opacity);
+		if(image && image.ptr >= 0) {
+			// Update placement
+			image.camera.setArea(embed.area);
+			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
+			wasm.fadeImage(image.ptr, opacity);
+		}
 		else {
 			image = mainImage.addEmbed({
 				id: embed.video ? embed.id : embed.micrioId,
