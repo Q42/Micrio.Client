@@ -295,7 +295,8 @@
 	onMount(() => {
 		const us:Unsubscriber[] = [];
 		if(printGL) printInsideGL();
-		if(hasHtml || embed.video?.pauseWhenSmallerThan) us.push(mainImage.state.view.subscribe(moved));
+		if(hasHtml || (embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan))
+			us.push(mainImage.state.view.subscribe(moved));
 
 		return () => {
 			if(image) {
