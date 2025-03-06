@@ -145,7 +145,7 @@
 
 	// OFCOURSE Safari doesn't have requestIdleCallback
 	/** Preload distance */
-	const d = 'requestIdleCallback' in self ? isOmni ? Math.max(36, images.length/4) : 100 : 50;
+	const d = 'requestIdleCallback' in self ? isOmni ? Math.max(36, Math.floor(images.length/8)*2) : 100 : 50;
 	const preloading:Map<string,any> = new Map();
 	const request = self.requestIdleCallback ?? self.requestAnimationFrame;
 	function preload(c:number){
