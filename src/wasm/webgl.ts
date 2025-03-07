@@ -209,8 +209,8 @@ export default class WebGL {
 	/** Screen px to image coords [0-1] */
 	getCoo(pxX:f64, pxY:f64) : Coordinates {
 		const el = this.canvas.el;
-		this.vec4.x = (pxX / el.width * el.ratio) * 2 - 1;
-		this.vec4.y = -((pxY / el.height * el.ratio) * 2 - 1);
+		this.vec4.x = (pxX / el.width) * 2 - 1;
+		this.vec4.y = -((pxY / el.height) * 2 - 1);
 		this.vec4.z = 1;
 		this.vec4.w = 1;
 
