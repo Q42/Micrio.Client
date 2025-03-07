@@ -9,7 +9,7 @@ type AllEvents = WheelEvent|MouseEvent|TouchEvent;
 type EventStateVars = {
 	drag: { prev: number[]|undefined, start: number[] },
 	dbltap: { lastTapped: number },
-	pinch: { image:MicrioImage|undefined, sDst: number; },
+	pinch: { image:MicrioImage|undefined, sDst: number; wasPanning: boolean; },
 	updates: { to: number, stack: string[] }
 };
 
@@ -142,7 +142,8 @@ export const UpdateEvents:string[] = [
 		},
 		pinch: {
 			image: undefined,
-			sDst: 0
+			sDst: 0,
+			wasPanning: false
 		},
 		updates: {
 			to: -1,
@@ -399,7 +400,7 @@ export const UpdateEvents:string[] = [
 	 * @param e The mouse/touch event
 	 * @param noKinetic Don't do kinetic after-pan
 	*/
-	private dStop(e?:PointerEvent, noKinetic:boolean=false) : void {
+	private dStop(e?:PointerEvent, noKinetic:boolean=false, noDispatch:boolean=false) : void {
 		if(!this.panning) return;
 
 		this.panning = false;
@@ -420,7 +421,7 @@ export const UpdateEvents:string[] = [
 			}
 		}
 
-		this.dispatch('panend', !e ? undefined : {
+		if(!noDispatch) this.dispatch('panend', !e ? undefined : {
 			'duration': performance.now() - this.vars.drag.start[2],
 			'movedX': e.clientX - this.vars.drag.start[0],
 			'movedY': e.clientY - this.vars.drag.start[1]
@@ -448,7 +449,9 @@ export const UpdateEvents:string[] = [
 		e.stopPropagation();
 		if(!supportsPassive) e.preventDefault();
 
-		this.dStop();
+		// Switch from 1-finger panning to pinch/pan-- don't send `panend` event
+		this.vars.pinch.wasPanning = this.panning;
+		this.dStop(undefined, false, true);
 
 		const t = e.touches;
 
@@ -463,6 +466,9 @@ export const UpdateEvents:string[] = [
 		this.pinchFactor = undefined;
 		if(this.vars.pinch.image) this.micrio.wasm.e._pinchStart(this.vars.pinch.image.ptr);
 		this.micrio.wasm.render();
+
+		this.dispatch('pinchstart');
+		if(this.twoFingerPan) this.dispatch('panstart');
 	}
 
 	/** Touch move handling
@@ -510,6 +516,7 @@ export const UpdateEvents:string[] = [
 		this.pinchFactor = undefined;
 
 		this.dispatch('pinchend');
+		if(this.twoFingerPan || this.vars.pinch.wasPanning) this.dispatch('panend');
 	}
 
 	/** Gesture event handling
