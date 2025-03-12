@@ -310,6 +310,9 @@ export class MicrioImage {
 		}
 		else if(this.preset?.[1]) deepCopy(this.preset[1], i);
 
+		const iiifIdBase = 'https://iiif.micr.io/';
+		if(i.id.startsWith(iiifIdBase)) i.id = i.id.slice(iiifIdBase.length)
+
 		// IDs with length 7 have metadata encoded in them
 		if(this.id?.length == 7) {
 			const b = getIdVal(this.id[1+(getIdVal(this.id)%6)]); i.is360=!!((b>>4)&1); i.isWebP=!(b&3); i.isPng=(b&3)==2;
