@@ -151,24 +151,26 @@
 	// If embed has ID of marker, watch if marker is closed to do media pre-destroy
 	const destroying = writable<boolean>(false);
 
-	// Embedded video
-	let hlsPlayer: HlsPlayer;
-	let usVid:Unsubscriber;
-	let _vid:HTMLVideoElement;
-	let vidRepeatTo:any;
+	// WebGL-embedded video
+	let hlsPlayer: HlsPlayer|undefined = undefined;
+	let usVid:Unsubscriber|undefined = undefined;
+	let _vid:HTMLVideoElement|undefined = image?._video;
+	let vidRepeatTo:any = undefined;
 
 	if(embed.video) {
 		if(!embed.video.controls) embed.video.muted = true;
 	}
 
-	const setVideoPlaying = (playing:boolean) : void => {
+	const setWebGLVideoPlaying = (playing:boolean) : void => {
+		if(!_vid) return;
+		if(!isMounted) paused = !(playing = false);
 		_vid.dataset.playing = playing ? '1' : undefined;
 		wasm.e._setImageVideoPlaying(image.ptr, playing);
 		if(embed.hideWhenPaused) wasm.fadeImage(image.ptr, playing ? 1 : 0);
 		if(playing) wasm.render();
 	}
 
-	function loadVideo() : void {
+	function loadWebGLVideo() : void {
 		if(!embed.video) return;
 
 		// Cloudflare stream doesn't support alpha transparent videos yet,
@@ -186,10 +188,10 @@
 		const loopAfter = embed.video.loopAfter;
 		if(embed.video.loop && loopAfter) {
 			_vid.onended = () => {
-				setVideoPlaying(false);
-				vidRepeatTo = <any>setTimeout(() => _vid.play(), loopAfter * 1000) as number;
+				setWebGLVideoPlaying(false);
+				vidRepeatTo = <any>setTimeout(() => _vid?.play(), loopAfter * 1000) as number;
 			}
-			_vid.onplay = () => setVideoPlaying(true);
+			_vid.onplay = () => setWebGLVideoPlaying(true);
 		}
 		else _vid.loop = embed.video.loop;
 
@@ -199,24 +201,25 @@
 			document.body.appendChild(_vid);
 		}
 
-		_vid.addEventListener('play', () => setVideoPlaying(!paused));
-		_vid.addEventListener('pause', () => setVideoPlaying(false));
+		_vid.addEventListener('play', () => setWebGLVideoPlaying(!paused));
+		_vid.addEventListener('pause', () => setWebGLVideoPlaying(false));
 
 		// Only on first frame drawn, print the video
 		_vid.addEventListener('playing', () => image.video.set(_vid), {once:true});
 
 		// OF COURSE certain iOS versions (iPhone 13..) don't fire the canplay-event
 		_vid.addEventListener(Browser.iOS ? 'loadedmetadata' : 'canplay', () => {
+			if(!_vid || !isMounted) return;
 			// It could already be paused by scale limiting
 			if(autoplay && !paused) {
 				_vid.play();
 				moved();
 			}
 			else if(!embed.hideWhenPaused) { // Show first frame
-				setVideoPlaying(true);
+				setWebGLVideoPlaying(true);
 				tick().then(() => {
-					setVideoPlaying(false);
-					setTimeout(() => _vid.remove(),50);
+					setWebGLVideoPlaying(false);
+					setTimeout(() => _vid?.remove(),50);
 				})
 			}
 		}, {once: true});
@@ -226,20 +229,21 @@
 			/** @ts-ignore */
 			hlsPlayer = new (window['Hls'] as HlsPlayer)();
 			hlsPlayer.loadSource(src);
-			hlsPlayer.attachMedia(_vid);
+			if(_vid) hlsPlayer.attachMedia(_vid);
 		});
 	}
 
 	let inScreen:boolean = false;
 
-	function printVideo() : void {
+	function printWebGLVideo() : void {
 		let to:any;
 		let first:boolean = true;
 		usVid = image.visible.subscribe(v =>  {
 			clearTimeout(to);
 			inScreen = v;
 			if(v) to = setTimeout(() => {
-				if(!_vid) loadVideo();
+				if(!isMounted) return;
+				if(!_vid) loadWebGLVideo();
 				else if(autoplay) _vid.play();
 			}, first ? 0 : 100);
 			else to = setTimeout(() => _vid?.pause(), 0);
@@ -274,7 +278,7 @@
 			}, embed.area, { opacity, asImage: false });
 		}
 
-		if(isRawVideo) once(image.visible, {targetValue: true}).then(() => printVideo());
+		if(isRawVideo) once(image.visible, {targetValue: true}).then(() => printWebGLVideo());
 
 		wasm.render();
 	}
@@ -292,24 +296,23 @@
 	$: heightCapped = embed.video ? Math.min(embed.video.height, height) : height;
 	$: relScale = width / widthCapped;
 
+	let isMounted:boolean = false;
 	onMount(() => {
+		isMounted = true;
 		const us:Unsubscriber[] = [];
 		if(printGL) printInsideGL();
 		if(hasHtml || (embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan))
 			us.push(mainImage.state.view.subscribe(moved));
 
 		return () => {
+			isMounted = false;
 			if(image) {
 				clearTimeout(vidRepeatTo);
 				if(usVid) usVid();
 				wasm.fadeImage(image.ptr, 0);
-				if(image._video) {
-					image._video.pause();
-					if(hlsPlayer) hlsPlayer.destroy();
-					image.video.set(undefined);
-				}
 				wasm.render();
 			}
+			if(_vid) _vid.pause();
 			if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id);
 			while(us.length) us.shift()?.();
 		}
