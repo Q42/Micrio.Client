@@ -520,6 +520,12 @@ export class Camera {
 		return Math.floor((rot / (Math.PI * 2)) * numFrames);
 	}
 
+	/** [Omni] Get the corresponding screen coordinates based on xyz coords */
+	public getOmniXY(x:number, y:number, z:number) : Float64Array {
+		this.e._getOmniXY(this.image.ptr, x, y, z);
+		return this._xy;
+	}
+
 	public setOmniSettings() : void {
 		const i = this.image;
 		const omni = i.$settings.omni;

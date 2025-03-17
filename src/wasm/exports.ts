@@ -50,6 +50,8 @@ export function _getXY(c:Canvas, x: f64, y: f64, abs: bool, radius:f64, rotation
 	return c.getXY(x, y, abs, radius, rotation) };
 export function _getMatrix(c:Canvas, x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64,sY:f64) : Float32Array {
 	return c.getMatrix(x,y,s,r,rX,rY,rZ,t,sX,sY) };
+export function _getOmniXY(c:Canvas, x: f64, y: f64, z:f64) : Float64Array {
+	return c.camera.getXYOmniCoo(x, y, z, 0, false).toArray() };
 export function _setArea(c:Canvas, x0:f64,y0:f64,x1:f64,y1:f64,direct:bool,noDispatch:bool) : void {
 	c.setArea(x0, y0, x1, y1, direct, noDispatch) }
 export function _setImageArea(i:Image, x0:f64,y0:f64,x1:f64,y1:f64) : void {

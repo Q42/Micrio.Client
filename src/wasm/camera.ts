@@ -64,7 +64,7 @@ export default class Camera {
 		return this.getXYOmniCoo(x-.5, y-.5, radius, rotation, abs);
 	}
 
-	private getXYOmniCoo(x: f64, y: f64, z:f64, rotation:f64, abs:bool) : Coordinates {
+	getXYOmniCoo(x: f64, y: f64, z:f64, rotation:f64, abs:bool) : Coordinates {
 		const c = this.canvas;
 		const el = c.el;
 		const mat = c.webgl.pMatrix, vec4 = c.webgl.vec4;
