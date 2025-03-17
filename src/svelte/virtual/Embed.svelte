@@ -163,7 +163,7 @@
 
 	const setWebGLVideoPlaying = (playing:boolean) : void => {
 		if(!_vid) return;
-		if(!isMounted) paused = !(playing = false);
+		if(!isMounted) playing = false;
 		_vid.dataset.playing = playing ? '1' : undefined;
 		wasm.e._setImageVideoPlaying(image.ptr, playing);
 		if(embed.hideWhenPaused) wasm.fadeImage(image.ptr, playing ? 1 : 0);
