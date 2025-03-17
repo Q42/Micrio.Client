@@ -2,11 +2,11 @@
 	import type { Models } from '../../types/models';
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import { writable, type Unsubscriber } from 'svelte/store';
-	import type { HlsPlayer } from '../../types/externals';
 
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { MicrioImage } from '../../ts/image';
-	import { loadScript, once, createGUID, hasNativeHLS, Browser } from '../../ts/utils';
+	import { once, createGUID, Browser } from '../../ts/utils';
+	import { GLEmbedVideo } from '../../ts/embedvideo';
 
 	import Media from '../components/Media.svelte';
 
@@ -122,11 +122,11 @@
 		if((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && width) {
 			const wasPaused:boolean = paused;
 			paused = shouldPause();
-			if(_vid && printGL && (paused != wasPaused)) {
-				if(paused) _vid.pause();
+			if(glVideo?._vid && (paused != wasPaused)) {
+				if(paused) glVideo._vid.pause();
 				else {
-					if(mainImage?.$settings?.embedRestartWhenShown) _vid.currentTime = 0;
-					_vid.play();
+					if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
+					glVideo._vid.play();
 				}
 			}
 		}
@@ -151,135 +151,16 @@
 	// If embed has ID of marker, watch if marker is closed to do media pre-destroy
 	const destroying = writable<boolean>(false);
 
-	// WebGL-embedded video
-	let hlsPlayer: HlsPlayer|undefined = undefined;
-	let usVid:Unsubscriber|undefined = undefined;
-	let _vid:HTMLVideoElement|undefined = image?._video;
-	let vidRepeatTo:any = undefined;
-
 	if(embed.video) {
 		if(!embed.video.controls) embed.video.muted = true;
 	}
 
-	const setWebGLVideoPlaying = (playing:boolean) : void => {
-		if(!_vid) return;
-		if(!isMounted) paused = !(playing=false);
-		_vid.dataset.playing = playing ? '1' : undefined;
-		wasm.e._setImageVideoPlaying(image.ptr, playing);
-		if(embed.hideWhenPaused) wasm.fadeImage(image.ptr, playing ? 1 : 0);
-		if(playing) wasm.render();
-	}
-
-	const ism3u = !!embed.video?.streamId && !embed.video?.transparent;
-
-	function loadWebGLVideo() : void {
-		if(!embed.video) return;
-
-		// Cloudflare stream doesn't support alpha transparent videos yet,
-		// so use the original src if transparency is set to true.
-		const src = ism3u ? `https://videodelivery.net/${embed.video.streamId}/manifest/video.m3u8` : embed.video.src;
-		_vid = document.createElement('video');
-		_vid.crossOrigin = 'true';
-		_vid.playsInline = true;
-		_vid.width = embed.width! * .5;
-		_vid.height = embed.height! * .5;
-		_vid.muted = embed.video.muted;
-		if($current && embed.id) $current.setEmbedMediaElement(embed.id, _vid);
-
-		hookWebGLVideo();
-
-		if(!ism3u || hasNativeHLS(_vid)) _vid.src = src;
-		else loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
-			/** @ts-ignore */
-			hlsPlayer = new (window['Hls'] as HlsPlayer)();
-			hlsPlayer.loadSource(src);
-			if(_vid) hlsPlayer.attachMedia(_vid);
-		});
-	}
-
-	const glVideoHooks = {
-		play: () => setWebGLVideoPlaying(!paused),
-		pause: () => setWebGLVideoPlaying(false),
-		// Only on first frame drawn, print the video
-		playing: () => {if(!image._video) image.video.set(_vid) },
-		// OF COURSE certain iOS versions (iPhone 13..) don't fire the canplay-event
-		canplayEvt: Browser.iOS ? 'loadedmetadata' : 'canplay',
-		canplay:() => {
-			if(!_vid || !isMounted) return;
-			// It could already be paused by scale limiting
-			if(autoplay && !paused) {
-				_vid.play();
-				moved();
-			}
-			else if(!embed.hideWhenPaused) { // Show first frame
-				setWebGLVideoPlaying(true);
-				tick().then(() => {
-					setWebGLVideoPlaying(false);
-					setTimeout(() => _vid?.remove(),50);
-				})
-			}
-		}
-	}
-
-	function hookWebGLVideo() : void {
-		if(!embed.video || !_vid) return;
-		const loopAfter = embed.video.loopAfter;
-		if(embed.video.loop && loopAfter) {
-			_vid.onended = () => {
-				setWebGLVideoPlaying(false);
-				vidRepeatTo = <any>setTimeout(() => _vid?.play(), loopAfter * 1000) as number;
-			}
-			_vid.onplay = () => setWebGLVideoPlaying(true);
-		}
-		else _vid.loop = embed.video.loop;
-
-		// If no autoplay, has to be rendered in DOM for first frame visibility
-		if(!_vid.parentNode && !autoplay && !ism3u) {
-			_vid.setAttribute('style','opacity:0;position:absolute;top:0;left:0;transform-origin:left top;transform:scale(0.1);pointer-events:none;');
-			document.body.appendChild(_vid);
-		}
-
-		_vid.addEventListener('play', glVideoHooks.play);
-		_vid.addEventListener('pause', glVideoHooks.pause);
-		_vid.addEventListener('playing', glVideoHooks.playing, {once:true});
-		_vid.addEventListener(glVideoHooks.canplayEvt, glVideoHooks.canplay, {once: true});
-	}
-
-	function unhookWebGLVideo() : void {
-		console.log('unhook!')
-		_vid?.removeEventListener('play', glVideoHooks.play);
-		_vid?.removeEventListener('pause', glVideoHooks.pause);
-		_vid?.removeEventListener('playing', glVideoHooks.playing);
-		_vid?.removeEventListener(glVideoHooks.canplayEvt, glVideoHooks.canplay);
-	}
-
-	let inScreen:boolean = false;
-
-	function printWebGLVideo() : void {
-		let to:any;
-		let first:boolean = true;
-		usVid = image.visible.subscribe(v =>  {
-			clearTimeout(to);
-			inScreen = v;
-			if(v) to = setTimeout(() => {
-				if(!isMounted) return;
-				if(!_vid) loadWebGLVideo();
-				else {
-					hookWebGLVideo();
-					if(autoplay) _vid.play();
-				}
-			}, first ? 0 : 100);
-			else to = setTimeout(() => _vid?.pause(), 0);
-			first = false;
-		})
-	}
-
 	const isRawVideo = printGL && !!embed.video;
+	let glVideo:GLEmbedVideo|undefined = undefined;
 	function printInsideGL() : void {
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity || 1;
 		if(image && image.ptr >= 0) {
 			// Update placement
-			console.log('update existing vid...', isMounted)
 			image.camera.setArea(embed.area);
 			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
 			wasm.fadeImage(image.ptr, opacity);
@@ -302,7 +183,10 @@
 			}, embed.area, { opacity, asImage: false });
 		}
 
-		if(isRawVideo) once(image.visible, {targetValue: true}).then(() => printWebGLVideo());
+		if(isRawVideo) once(image.visible, {targetValue: true}).then(() => {
+			// This takes care of loading and playing
+			glVideo = new GLEmbedVideo(wasm, image, embed, paused, moved)
+		});
 
 		wasm.render();
 	}
@@ -312,7 +196,7 @@
 
 	// For <Media /> video embeds, set the embed.video.element on availability
 	$: {
-		if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id, _mediaElement);
+		if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id, _mediaElement??glVideo?._vid);
 	}
 
 	// Cap the max <video> element width/height to original video resolution
@@ -324,22 +208,17 @@
 	onMount(() => {
 		isMounted = true;
 		const us:Unsubscriber[] = [];
-		console.log('is mounted?', isMounted)
 		if(printGL) printInsideGL();
 		if(hasHtml || (embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan))
 			us.push(mainImage.state.view.subscribe(moved));
 
 		return () => {
 			isMounted = false;
+			glVideo?.unmount();
 			if(image) {
-				clearTimeout(vidRepeatTo);
-				if(usVid) usVid();
 				wasm.fadeImage(image.ptr, 0);
 				wasm.render();
 			}
-			clearTimeout(vidRepeatTo);
-			if(_vid) _vid.pause();
-			unhookWebGLVideo();
 			if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id);
 			while(us.length) us.shift()?.();
 		}
