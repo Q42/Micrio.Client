@@ -59,6 +59,8 @@
 		micrio.state.popover.set({gallery: marker.images, galleryStart: startId, image});
 	}
 
+	const isDev = image.tileBase?.includes('micrio.dev');
+
 	const getTitle = (image:Models.Assets.Image) => image.i18n?.[$lang]?.title;
 
 	$: audio = marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio;
@@ -75,7 +77,7 @@
 	{#if !noImages && marker.images}<section>{#each marker.images as image}
 		<button title={getTitle(image)} on:click={galleryEnabled ? () => openGallery(image.micrioId) : undefined}>
 			<figure>
-				<img alt={getTitle(image)} src={image.micrioId ? `https://iiif.micr.io/${image.micrioId}/full/${singleImage ? '^'+Math.min(image.width, 640)+',' : '^,320'}/0/default.webp` : image.src} />
+				<img alt={getTitle(image)} src={image.micrioId ? `https://iiif.${isDev ? 'micrio.dev' : 'micr.io'}/${image.micrioId}/full/${singleImage ? '^'+Math.min(image.width, 640)+',' : '^,320'}/0/default.webp` : image.src} />
 				{#if imageCaption}<figcaption>{imageCaption}</figcaption>{/if}
 			</figure>
 		</button>
