@@ -92,7 +92,8 @@ export default class Canvas {
 
 		readonly pinchZoomOutLimit: bool,
 
-		readonly numLayers: i32,
+		readonly omniNumLayers: i32,
+		readonly omniStartLayer: i32,
 
 		readonly hasParent: bool
 	) {
@@ -129,6 +130,7 @@ export default class Canvas {
 			this.bOpacity = 1;
 			this.opacity = 1;
 			this.isReady = true;
+			if(omniStartLayer > 0) this.setActiveLayer(omniStartLayer)
 		}
 	}
 
@@ -166,7 +168,7 @@ export default class Canvas {
 			false, 1, false, // < free move
 			true, // < cover limit
 			true, // < cover start
-			1, this.camSpeed, 0, false, false, false, this.pinchZoomOutLimit, 1,
+			1, this.camSpeed, 0, false, false, false, this.pinchZoomOutLimit, 1, 0,
 			true
 		);
 		c.setParent(this);
@@ -469,7 +471,7 @@ export default class Canvas {
 	}
 
 	setActiveImage(idx:i32, num:i32) : void {
-		const offset = this.layer * (this.images.length / this.numLayers);
+		const offset = this.layer * (this.images.length / this.omniNumLayers);
 		for(let i=0;i<this.images.length;i++) {
 			const im = unchecked(this.images[i]);
 			const diff = i-offset-idx;

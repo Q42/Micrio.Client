@@ -438,6 +438,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			frontIndex?: number;
 			/** Layers */
 			layers?: {i18n: {[key:string]: string|undefined}}[];
+			/** Optional starting layer idx */
+			layerStartIndex?: number;
 			/** Hide the rotation dial */
 			noDial?: boolean;
 			/** Show degrees on dial */

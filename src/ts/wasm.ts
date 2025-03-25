@@ -295,7 +295,8 @@ export class Wasm {
 			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe',
 			c.isOmni,
 			settings.pinchZoomOutLimit ?? false,
-			settings.omni?.layers?.length ?? 1
+			settings.omni?.layers?.length ?? 1,
+			settings.omni?.startIndex ?? 0,
 		);
 
 		this.bindCamera(c);
@@ -374,7 +375,6 @@ export class Wasm {
 		else if(this.c != canvas.ptr) {
 			const yaw = canvas.is360 && this.c >= 0 ? this.e._getYaw(this.c) : 0;
 			const pitch = canvas.is360 && this.c >= 0 ? this.e._getPitch(this.c) : 0
-			const v = canvas.$settings.view;
 			this.c = canvas.ptr;
 			// In case of 360, inherit current camera yaw and reset perspective
 			// but only if no specific start view has been set and not end of tour
@@ -382,6 +382,7 @@ export class Wasm {
 				this.e._setDirection(this.c, yaw, pitch, true);
 			// Was faded out before
 			if(this.e._getTargetOpacity(canvas.ptr) == 0) this.e._fadeIn(canvas.ptr);
+			if(canvas.$settings.omni?.layerStartIndex) canvas.state.layer.set(canvas.$settings.omni.layerStartIndex);
 			this.preventDirectionSet = false;
 			this.ready = true;
 			this.render();

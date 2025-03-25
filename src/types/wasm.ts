@@ -148,14 +148,15 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param pagesHaveBackground Gallery pages always have a white background
 	 * @param isOmni Is a rotatable omni object image
 	 * @param pinchZoomOutLimit User cannot pinch out further than the image boundaries
-	 * @param numLayers For rotatable omni objects, the amount of virtual layers this object has
+	 * @param omniNumLayers For rotatable omni objects, the amount of virtual layers this object has
+	 * @param omniLayerStartIndex The omni object starting layer index
 	 * @returns The memory pointer in the shared Wasm memory for this Wasm instance.
 	*/
 	_constructor(mainPtr:number, width: number, height: number, tileSize: number, is360: boolean,
 		noImage: boolean, isSingle: boolean, targetOpacity: number,
 		freeMove: boolean, coverLimit: boolean, coverStart: boolean, maxScale: number, camSpeed: number,
 		trueNorth: number, isGallerySwitch: boolean, pagesHaveBackground: boolean,
-		isOmni: boolean, pinchZoomOutLimit: boolean, numLayers: number) : number;
+		isOmni: boolean, pinchZoomOutLimit: boolean, omniNumLayers: number, omniLayerStartIndex:number) : number;
 	/** Get the requested image's current view coordinates `[x0, y0, x1, y1]`
 	 * @param ptr The image memory pointer in shared Wasm memory
 	 * @returns Memory pointer to the `Uint32Array` containing the coordinates

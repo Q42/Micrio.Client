@@ -82,7 +82,7 @@ export default class Camera {
 		if(c.omniOffsetX) mat.translate(c.omniOffsetX, 0, 0);
 		if(!abs && c.omniVerticalAngle) mat.rotateX(c.omniVerticalAngle);
 
-		const numPerLayer = c.images.length / c.numLayers;
+		const numPerLayer = c.images.length / c.omniNumLayers;
 		const offset = c.layer * numPerLayer;
 		const currRot = (c.images.length > 0 ? -(<f64>(c.activeImageIdx+1-offset) / (numPerLayer)) * 2 * PI : 0);
 		mat.rotateY(rotation + currRot);

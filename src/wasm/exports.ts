@@ -38,8 +38,8 @@ export function resize(m:Main, w: u16, h: u16, l: i32, t: i32, r: f64, s: f64, p
 
 export function _constructor(a: Main, b: f64, c: f64, d: u32, f: bool, h: bool,
 	i: bool, j: f64, k: bool, l: bool, m: bool, n: f64, o: f64, p: f64, q: bool, r: bool,
-	s: bool, t: bool, u:i32) : Canvas {
-	return new Canvas(a,b,c,d,f,h,i,j,k,l,m,n,o,p,q,r,s,t,u,false);
+	s: bool, t: bool, u:i32, v: i32) : Canvas {
+	return new Canvas(a,b,c,d,f,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,false);
 }
 export function _getView(c:Canvas) : Float64Array { return c.getView() };
 export function _getCoo(c:Canvas, x: f64, y: f64, abs: bool, noLimit: bool) : Float64Array {

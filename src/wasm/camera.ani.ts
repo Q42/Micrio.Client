@@ -161,7 +161,7 @@ export default class Ani {
 		this.mO = max(.05, min(.9, dst - (c.is360 ? .2 : .1)));
 		this.duration = dur < 0 ? (dst * resoFact / c.camSpeed * durFact) / (speed <= 0 ? 1 : speed) : dur;
 
-		const numPerLayer = this.canvas.images.length / this.canvas.numLayers;
+		const numPerLayer = this.canvas.images.length / this.canvas.omniNumLayers;
 		this.omniStartIdx = this.canvas.activeImageIdx;
 		this.omniDelta = 0;
 		if(!isNaN(omniIdx) && omniIdx > 0 && omniIdx != this.omniStartIdx) {
@@ -238,7 +238,7 @@ export default class Ani {
 
 				if(this.omniDelta) {
 					let idx = this.omniStartIdx + <i32>(this.omniDelta * this.fn.get(min(1, p*1.5)));
-					const numPerLayer = this.canvas.images.length / this.canvas.numLayers;
+					const numPerLayer = this.canvas.images.length / this.canvas.omniNumLayers;
 					if(idx < 0) idx += numPerLayer;
 					if(idx >= numPerLayer) idx -= numPerLayer;
 					this.canvas.setActiveImage(idx, 0);
