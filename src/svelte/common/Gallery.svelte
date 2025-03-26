@@ -60,7 +60,6 @@
 
 	const omniFrontIndex:number = omniSettings?.frontIndex ?? 0;
 	const omniNumLayers:number = omniSettings?.layers?.length ?? 1;
-	const omniLayerStart:number = omniSettings?.layerStartIndex ?? 0;
 
 	const startIdxAttr:number|undefined = micrio.hasAttribute('data-gallery-start') ? Number(micrio.getAttribute('data-gallery-start')) : $settings?.omni?.startIndex;
 	let startIdx = startIdxAttr != undefined && !isNaN(startIdxAttr) ? startIdxAttr : startId ? images.findIndex(i => i.id == startId) : 0;

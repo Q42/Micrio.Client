@@ -275,6 +275,9 @@ export class Wasm {
 			|| settings.gallery?.type == 'omni'
 			|| settings.gallery?.type == 'swipe-full');
 
+		const numOmniLayers = settings.omni?.layers?.length ?? 1;
+		if(settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);
+
 		// Initialize Wasm Canvas
 		c.ptr = this.e._constructor(
 			this.i,
@@ -295,8 +298,8 @@ export class Wasm {
 			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe',
 			c.isOmni,
 			settings.pinchZoomOutLimit ?? false,
-			settings.omni?.layers?.length ?? 1,
-			settings.omni?.startIndex ?? 0,
+			numOmniLayers,
+			settings.omni?.layerStartIndex ?? 0,
 		);
 
 		this.bindCamera(c);
