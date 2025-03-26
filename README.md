@@ -7,6 +7,10 @@ searchable Knowledge Base at:
 
 [https://doc.micr.io/](https://doc.micr.io/)
 
+## NPM package
+
+For the npm package `@micrio/client`, see https://www.npmjs.com/package/@micrio/client
+
 ## Getting it running
 
 Make sure you have Node and `pnpm` installed.
