@@ -1,6 +1,6 @@
 {
 	"name": "@micrio/client-src",
-	"version": "5.2.1",
+	"version": "5.2.2",
 	"description": "Micrio client image viewer source repository",
 	"main": "micrio.js",
 	"type": "module",
@@ -21,7 +21,11 @@
 	"engineStrict": true,
 	"author": "Marcel Duin <marcel@micr.io>",
 	"homepage": "https://micr.io/",
-	"license": "UNLICENSED",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Q42/Micrio.Client.git"
+	},
+	"license": "MIT",
 	"dependencies": {
 		"@tsconfig/svelte": "^4.0.1",
 		"svelte": "^4.2.19",
