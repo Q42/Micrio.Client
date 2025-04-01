@@ -1,154 +1,91 @@
-# Micrio Svelte Component Analysis
+# Micrio Client Svelte Application Analysis (Components)
 
-This document analyzes the structure and functionality of the Svelte components used in the Micrio client application (`src/svelte/`), optimized for AI assistant understanding. The components are organized into `common/`, `components/`, `ui/`, and `virtual/` directories.
+This document provides an analysis of the Micrio Client's frontend application, focusing on its Svelte components located within the `src/svelte/` directory. The analysis is based on code comments and component structure observed during the review process.
 
-## Root Component (`Main.svelte`)
+## Overview
 
-*   **Purpose:** The main entry point for the Svelte UI, mounted within the `<micr-io>` custom element. Orchestrates the rendering of all other UI elements.
-*   **Props:**
-    *   `micrio`: The `HTMLMicrioElement` instance.
-    *   `noHTML`: Boolean, if true, suppresses rendering of most UI elements (except markers if `data-ui="markers"`).
-    *   `noLogo`: Boolean, suppresses Micrio logo.
-    *   `loadingProgress`: Number (0-1), displays loading indicator.
-    *   `error`: String, displays error message if present.
-*   **Context:**
-    *   Provides the `micrio` instance via `setContext('micrio', micrio)`.
-    *   Provides a `WeakMap` (`markerImages`) to link markers back to their parent `MicrioImage`.
-    *   Provides global `volume` and `mediaPaused` Svelte stores.
-    *   Provides an `srt` store for subtitle display.
-*   **Functionality:**
-    *   Subscribes to `micrio.current` (the active `MicrioImage`) to access its `info`, `data`, and `settings` stores.
-    *   Conditionally renders sub-components based on application state (`micrio.state`) and image settings (`$settings`).
-    *   Handles auto-starting markers, tours, or pages based on `settings.start`.
-    *   Manages the display of:
-        *   Logos (`ui/Logo.svelte`, `ui/LogoOrg.svelte`)
-        *   Toolbar (`components/Toolbar.svelte`)
-        *   Markers (`virtual/Markers.svelte`)
-        *   Minimap (`components/Minimap.svelte`)
-        *   Main Controls (`common/Controls.svelte`)
-        *   Galleries (`common/Gallery.svelte`)
-        *   Image Details (`common/Details.svelte`)
-        *   Marker Popups (`components/MarkerPopup.svelte`)
-        *   Tours (`virtual/Tour.svelte`)
-        *   Popovers (`components/Popover.svelte`)
-        *   Subtitles (`common/Subtitles.svelte`)
-        *   Embeds (`virtual/Embed.svelte`)
-        *   Audio (`virtual/AudioController.svelte`, `components/Media.svelte`)
-        *   Errors (`common/Error.svelte`)
-        *   Loading Indicator (`ui/ProgressCircle.svelte`)
+The Micrio Client appears to be a sophisticated web application for viewing and interacting with high-resolution images, including standard images, deep zoom images, 360 panoramas, and potentially 3D objects (Omni). It utilizes Svelte (specifically Svelte 5 Runes mode based on the commenting style) for its component architecture and leverages TypeScript for type safety.
 
-## `common/` Components
+The application features interactive elements like markers, tours (video and marker-based), embedded content (videos, iframes, other Micrio images), and UI controls for navigation, zoom, fullscreen, audio, and subtitles. It seems to interact with a WebAssembly (Wasm) backend for core rendering and potentially image processing tasks.
 
-*   **`Controls.svelte`**:
-    *   **Purpose:** Renders the main control buttons (zoom, fullscreen, mute, language, share) typically in the bottom-right.
-    *   **Context:** Uses `micrio` context.
-    *   **State:** Subscribes to `micrio.state.ui` stores (`controls`, `zoom`, `hidden`), `micrio.isMuted`, `micrio.current` (for settings), `micrio._lang`.
-    *   **Functionality:** Shows/hides buttons based on state and settings (`noZoom`, `fullscreen`, `social`, etc.). Handles language switching UI. Renders separate zoom controls for secondary split-screen images. Uses `navigator.share`.
-*   **`Gallery.svelte`**:
-    *   **Purpose:** Displays image galleries (swipe, switch, omni modes). Likely uses `swiper.ts`.
-    *   **Props:** `images`, `omni`.
-    *   **Context:** Uses `micrio` context.
-    *   **Functionality:** Renders gallery UI based on type. Handles navigation between images/frames. Interacts with `Omni` settings for 3D object viewing.
-*   **`MarkerContent.svelte`**:
-    *   **Purpose:** Renders the content *inside* a `MarkerPopup.svelte`.
-    *   **Props:** `marker`, `destroying` (store indicating if popup is closing), `noEmbed`, `noImages`, `noGallery`.
-    *   **Context:** Uses `micrio`, `markerImages`.
-    *   **Functionality:** Displays marker title, body (`Article.svelte`), images (clickable to open gallery popover), audio/video/embeds (`Media.svelte`). Handles media autoplay logic. Dispatches `close` event on media end for tour progression.
-*   **`Details.svelte`**:
-    *   **Purpose:** Displays image title and description, likely in a modal/popover shown via `settings.showInfo`.
-    *   **Props:** `info`, `data`.
-*   **`Error.svelte`**:
-    *   **Purpose:** Displays an error message overlay.
-    *   **Props:** `message`.
-*   **`Subtitles.svelte`**:
-    *   **Purpose:** Displays subtitles provided via the `srt` context store.
-    *   **Props:** `src`, `raised`.
+## Key Architectural Patterns Observed
 
-## `components/` Components
+*   **Component-Based:** The UI is broken down into reusable Svelte components located in `common/`, `components/`, `ui/`, and `virtual/` directories.
+*   **Context API:** Svelte's `getContext` is used extensively to share the main `micrio` element instance (likely `HTMLMicrioElement`) and its associated state stores (`state`, `current`, `_lang`, `events`, etc.) throughout the component tree.
+*   **Svelte Stores:** Svelte stores (`writable`) are used for managing global and local component state (e.g., active tour, active marker, UI visibility, loading state, user interaction flags). Reactive declarations (`$:`) are used frequently to derive state and update the UI automatically.
+*   **Event Dispatching:** Custom events are dispatched from the main `micrio` element (`micrio.events.dispatch`) to signal application-level events (e.g., `tour-start`, `marker-click`, `audio-init`, `lang-switch`). Components also use Svelte's `createEventDispatcher` for local event handling.
+*   **TypeScript:** The `<script lang="ts">` tag indicates the use of TypeScript for strong typing within components.
+*   **CSS Variables:** The application makes heavy use of CSS variables (e.g., `--micrio-color`, `--micrio-button-size`) for theming and consistent styling.
 
-*   **`Toolbar.svelte`**:
-    *   **Purpose:** Renders the top-left menu bar.
-    *   **Context:** Uses `micrio` context.
-    *   **State:** Subscribes to `micrio.current` (for `data`), `micrio.state` (`tour`, `marker`, `popover`).
-    *   **Functionality:** Dynamically builds menu from `data.pages`, `data.markerTours`, `data.tours`. Uses `Menu.svelte` recursively. Hides when tours/markers/popovers are active. Adapts to mobile layout.
-*   **`Menu.svelte`**:
-    *   **Purpose:** Renders a single menu item in the toolbar, potentially with children for submenus.
-    *   **Props:** `menu` (data object), `originalId`, `on:close`.
-    *   **Functionality:** Displays title, handles click actions (open marker, link, run function, toggle submenu). Recursively renders child `Menu.svelte` components.
-*   **`MarkerPopup.svelte`**:
-    *   **Purpose:** Displays the popup window for an opened marker.
-    *   **Props:** `marker`.
-    *   **Context:** Uses `micrio`, `markerImages`.
-    *   **State:** Subscribes to `micrio.state.tour`.
-    *   **Functionality:** Uses `MarkerContent.svelte` to render content. Provides close button (closes marker or advances tour). Conditionally shows tour controls (prev/next). Supports minimization. Manages adding/removing marker-specific embeds.
-*   **`Minimap.svelte`**:
-    *   **Purpose:** Displays a small overview map showing the current viewport location.
-    *   **Props:** `image`.
-    *   **Functionality:** Renders a low-resolution version of the image and draws a rectangle representing the current view. Likely interacts with `image.state.view`.
-*   **`ZoomButtons.svelte`**:
-    *   **Purpose:** Renders zoom-in and zoom-out buttons.
-    *   **Props:** `image` (optional, defaults to `$current`).
-    *   **Functionality:** Calls `image.camera.zoomIn()` or `image.camera.zoomOut()` on click. Disables buttons at zoom limits.
-*   **`Media.svelte`**:
-    *   **Purpose:** A versatile component for rendering media (audio, video, YouTube/Vimeo embeds, video tours).
-    *   **Props:** `src`, `uuid`, `image`, `tour`, `autoplay`, `controls`, `volume`, `destroying`, `bind:paused`, etc.
-    *   **Functionality:** Handles media playback, controls display, autoplay, volume control (via context), synchronization with video tours, subtitle display (`Subtitles.svelte`), and event dispatching (`ended`).
-*   **`MediaControls.svelte`**:
-    *   **Purpose:** Renders playback controls (play/pause, progress bar, volume, subtitles toggle) for the `Media.svelte` component.
-*   **`Popover.svelte`**:
-    *   **Purpose:** A generic popover/modal component used for displaying custom pages (`data.pages`), image galleries, or language selection.
-    *   **Props:** `popover` (state object defining content).
-    *   **Functionality:** Renders content based on the `popover` prop type (e.g., uses `Article.svelte` for pages, `Gallery.svelte` for galleries). Provides a close mechanism.
-*   **`Waypoint.svelte`**:
-    *   **Purpose:** Renders navigation markers used in 360 tours (`spaceData`).
-    *   **Props:** `image`, `targetId`, `settings`.
-    *   **Functionality:** Displays an icon at the calculated 3D position. Clicking it likely triggers `micrio.open()` with the `targetId` and vector information.
+## Component Breakdown
 
-## `ui/` Components
+### `src/svelte/common/`
 
-These are basic, stateless UI elements:
+*   **`Article.svelte`:** A simple wrapper component, likely providing standard styling for article-like content within popovers or markers.
+*   **`MarkerContent.svelte`:** Renders the main content area for a marker popup, including title, body text, and potentially embedded media (delegated to `Media.svelte`). Handles language variations (`i18n`).
+*   **`Subtitles.svelte`:** Manages the display of subtitles for media elements. It fetches and parses VTT files, synchronizes subtitle display with the `currentTime` of a media element (passed via context), and responds to a global `captionsEnabled` store.
 
-*   `Button.svelte`: Renders a styled button with an icon type.
-*   `ButtonGroup.svelte`: Groups buttons together visually.
-*   `Dial.svelte`: Renders a rotational dial, likely used for omni-object controls.
-*   `Fullscreen.svelte`: Button to toggle fullscreen mode for a given element.
-*   `Icon.svelte`: Renders an SVG icon based on a type prop.
-*   `Logo.svelte`: Renders the Micrio logo.
-*   `LogoOrg.svelte`: Renders the organization logo.
-*   `ProgressBar.svelte`: Simple horizontal progress bar.
-*   `ProgressCircle.svelte`: Circular loading/progress indicator.
+### `src/svelte/components/`
 
-## `virtual/` Components
+*   **`Controls.svelte`:** Acts as a container for various UI control elements (ZoomButtons, Fullscreen, potentially others), likely positioning them absolutely on the screen. Hides controls during tours/marker interactions.
+*   **`Main.svelte`:** Appears to be the root Svelte component, orchestrating the overall UI. It initializes core controllers (Wasm, WebGL, Canvas, Events, State), renders main UI elements (Logo, Controls, Popover, Tour container), and manages the lifecycle of the current `MicrioImage`.
+*   **`Marker.svelte`:** Renders an individual marker element on the image. Calculates screen position based on image coordinates and camera view. Handles hover effects, click actions (opening popups, triggering tours, following links), displays titles (conditionally), and interacts with clustering logic in `Markers.svelte`. Exposes an interface for external interaction (e.g., editor).
+*   **`MarkerPopup.svelte`:** Renders the popup container when a marker is clicked. Uses `MarkerContent` to display the marker's details. Handles positioning and closing logic.
+*   **`Media.svelte`:** A versatile component for rendering different media types: HTML5 video/audio, iframes, and potentially Cloudflare video streams (`cfvid://`). Manages playback state (play, pause, mute, time, duration, ended), controls visibility, subtitle display (using `Subtitles.svelte`), and dispatches timeupdate events. Handles autoplay restrictions and interaction requirements.
+*   **`MicrioGallery.svelte`:** Displays a gallery of images or videos, likely using a swiper/carousel mechanism (potentially integrating with `GallerySwiper.ts`). Handles navigation between gallery items.
+*   **`Popover.svelte`:** Renders a modal dialog (`<dialog>`) used for displaying marker content, galleries, or custom pages. Manages opening/closing, focus, and internal navigation/actions.
+*   **`Toolbar.svelte`:** Renders the main top toolbar, dynamically generating menus based on image data (pages, marker tours, video tours). Uses the recursive `Menu.svelte` component. Handles mobile responsiveness with a toggle button.
+*   **`Waypoint.svelte`:** Renders interactive waypoints for navigating between 360 images within a "space". Calculates 3D position/orientation and handles click navigation to the target image.
 
-These components manage complex logic or rendering tied closely to the core engine:
+### `src/svelte/ui/`
 
-*   **`Markers.svelte`**:
-    *   **Purpose:** Manages the rendering and logic for all markers associated with an image. Does *not* render the popups (that's `MarkerPopup.svelte`).
-    *   **Props:** `image`.
-    *   **Functionality:** Subscribes to `image.data` for marker list. Renders individual `Marker.svelte` and `Waypoint.svelte` components. Handles marker clustering, viewport positioning, "fancy labels" for omni-objects, and marker visibility logic (e.g., in grids).
-*   **`Marker.svelte`** (used by `Markers.svelte`):
-    *   **Purpose:** Renders a single marker icon/element on the image surface.
-    *   **Props:** `marker`, `image`, `coords` (Map), `overlapped`.
-    *   **Functionality:** Calculates screen position based on marker coordinates and camera state (subscribes to `image.state.view`). Applies styles (icon, color, size) based on marker data and global settings. Handles click events to set `image.state.marker` (which triggers `MarkerPopup.svelte` via `micrio.state.popup`). Handles hover states (`micrio.state.markerHoverId`).
-*   **`Tour.svelte`**:
-    *   **Purpose:** Manages the UI and playback logic for active tours (both marker and video tours).
-    *   **Props:** `tour` (the active tour object from `micrio.state.tour`), `noHTML`.
-    *   **Functionality:** Renders tour-specific controls (play/pause, progress bar for video tours; prev/next for marker tours). Interacts with `VideoTourInstance` or marker tour state (`$tour.next`, `$tour.prev`) to control playback/navigation. Handles tour start/stop/progress updates.
-*   **`Embed.svelte`**:
-    *   **Purpose:** Manages the rendering and interaction logic for a single embedded element (`data.embeds`).
-    *   **Props:** `embed` (data object).
-    *   **Functionality:** Creates/manages a child `MicrioImage` instance if the embed is another Micrio image. Renders iframes or uses `Media.svelte` for embedded video/audio. Calculates position/size based on `embed.area` and potentially 360 rotation/scale properties. Handles click actions defined in `embed.clickAction`.
-*   **`AudioController.svelte`**:
-    *   **Purpose:** Manages background music playlist (`data.music`) and positional audio sources (`data.markers` with `positionalAudio`).
-    *   **Props:** `volume`, `data`, `is360`.
-    *   **Functionality:** Uses Web Audio API to play/manage audio sources. Adjusts volume based on distance for positional audio. Handles playlist logic (looping, transitions).
-*   **`AudioLocation.svelte`** (likely used by `AudioController.svelte`):
-    *   **Purpose:** Represents a single positional audio source tied to a marker's location.
-*   **`AudioPlaylist.svelte`** (likely used by `AudioController.svelte`):
-    *   **Purpose:** Manages the playback of a sequence of audio tracks (background music).
-*   **`Events.svelte`**:
-    *   **Purpose:** Seems related to handling custom events within video tours (`VideoTourCultureData.events`).
-*   **`SerialTour.svelte`** (likely used by `Tour.svelte`):
-    *   **Purpose:** Handles the specific UI and logic for multi-chapter "Serial Tours".
+*   **`Button.svelte`:** A reusable button component that can render as `<button>` or `<a>`. Displays standard Font Awesome icons (via `Icon.svelte`) or custom image icons. Handles disabled/active states and accessibility attributes.
+*   **`ButtonGroup.svelte`:** A simple container to visually group buttons vertically, applying shared styling (background, shadow, border-radius). Used for controls like zoom.
+*   **`Dial.svelte`:** A horizontal dial control, likely used for rotating Omni (3D object) views. Responds to drag interactions and dispatches 'turn' events with calculated frame index. Optionally displays rotation degrees.
+*   **`Fullscreen.svelte`:** Provides a button to toggle fullscreen mode for a target HTML element. Handles browser API differences (standard vs. webkit).
+*   **`Icon.svelte`:** Renders icons, prioritizing custom HTML from settings over standard Font Awesome icons looked up by name. Uses `svelte-fa` for Font Awesome rendering.
+*   **`Logo.svelte`:** Displays the animated Micrio logo in the top-left corner, linking to micr.io. Hides during tours/markers and shows a loading animation.
+*   **`LogoOrg.svelte`:** Displays the organization logo (if provided in image data) in the top-right corner, linking to the organization's website. Includes logic for potentially using specific resolutions from Micrio's asset system.
+*   **`ProgressBar.svelte`:** A reusable progress bar, typically for media playback (video tours, audio). Displays progress based on `currentTime` and `duration`, shows time remaining/total, and allows seeking via slotted content (likely a draggable handle).
+*   **`ProgressCircle.svelte`:** Displays a circular SVG progress indicator, primarily used for initial loading progress display.
 
-This structure separates concerns well, with `virtual/` handling core logic, `components/` building features, `common/` providing complex reusable parts, and `ui/` offering basic blocks. State flows reactively via Svelte stores and context.
+### `src/svelte/virtual/`
+
+*   **`AudioController.svelte`:** Manages the global Web Audio API context. Initializes the `AudioContext` upon user interaction, handles listener position/orientation updates for positional audio based on camera movement, and renders the `AudioPlaylist` component.
+*   **`AudioPlaylist.svelte`:** Plays a list of audio files sequentially using a single HTMLAudioElement. Handles looping and volume control. Used for background music.
+*   **`Embed.svelte`:** Renders various types of embedded content (Micrio images, videos, iframes, standard images/SVGs) within a parent image. Calculates 2D/3D positioning and handles rendering via WebGL (using `GLEmbedVideo.ts`) or standard HTML elements (`Media.svelte`, `<img>`). Manages video playback state, including pause-on-zoom logic.
+*   **`Events.svelte`:** Manages timed events associated with video tours. Monitors `currentTime` and dispatches `tour-event` when events become active or inactive.
+*   **`Markers.svelte`:** Renders all visible markers and waypoints for a given `MicrioImage`. Instantiates `Marker.svelte` and `Waypoint.svelte` components. Handles marker clustering logic and manages the state for fancy side labels (for Omni objects).
+*   **`SerialTour.svelte`:** Manages the playback and UI specifically for *serial* marker tours (tours spanning multiple markers/images). Handles step navigation, audio/video playback for each step (using `Media.svelte`), overall progress bar display (using `ProgressBar.svelte`), chapter lists, and playback controls.
+*   **`Tour.svelte`:** Acts as the main controller/wrapper for all tour types (Video, standard Marker, Serial Marker, Scrollable Marker). It determines the tour type and renders the appropriate component (`Media.svelte`, `SerialTour.svelte`, or manages state for standard/scrollable tours). Handles tour start/stop, UI state (minimization, controls visibility), and event dispatching.
+
+## Functionality Summary
+
+Based on the Svelte components, the application provides the following core functionalities:
+
+*   **Image Viewing:** Displaying various image types (standard, deep zoom, 360, Omni).
+*   **Navigation:** Panning and zooming within images (likely handled by `Camera.ts` and Wasm).
+*   **Markers:** Displaying interactive points of interest on images, with popups containing text, images, and media.
+*   **Tours:**
+    *   **Video Tours:** Playing synchronized video/audio with timed events.
+    *   **Marker Tours:** Guiding users through a sequence of predefined views or marker locations.
+    *   **Serial Tours:** Complex marker tours potentially spanning multiple images with synchronized audio/video per step.
+    *   **Scrollable Tours:** Presenting marker content sequentially in a scrollable format.
+*   **Embedding:** Displaying external content (videos, iframes, images, other Micrio instances) within an image, positioned in 2D or 3D space.
+*   **UI Controls:** Providing standard controls for zoom, fullscreen, playback (play/pause, volume, subtitles), tour navigation, and menu access.
+*   **Responsiveness:** Adapting layout and controls for different screen sizes (e.g., mobile toolbar toggle).
+*   **Theming/Branding:** Allowing customization via CSS variables and organization logos.
+*   **Internationalization (i18n):** Supporting multiple languages for UI text and potentially marker/tour content.
+*   **State Management:** Maintaining application state (active image, view, marker, tour, UI visibility, etc.) using Svelte stores and context.
+*   **WebGL/Wasm Integration:** Offloading core rendering and potentially complex calculations to WebGL and WebAssembly.
+
+## Further Analysis Needed
+
+A complete understanding requires analyzing:
+
+*   **`src/ts/`:** Core logic for camera control, event handling, state management, WebGL/Wasm interaction, utilities, image class (`MicrioImage`), etc.
+*   **`src/types/`:** Data structures (`Models`) used throughout the application.
+*   **`src/wasm/`:** Understanding the interface and capabilities of the WebAssembly module.
+*   **`index.html` / `main.ts` (or equivalent):** Application entry point and initialization.
+
+This analysis provides a good foundation based on the UI components structure and interactions.
