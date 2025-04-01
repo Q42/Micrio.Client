@@ -1,113 +1,179 @@
 <script lang="ts">
+	/**
+	 * Marker.svelte - Renders a single interactive marker element on the image.
+	 *
+	 * This component is responsible for:
+	 * - Displaying the marker icon and label at the correct screen position.
+	 * - Handling hover and focus states.
+	 * - Triggering actions on click (opening popups, linking, etc.).
+	 * - Calculating its position in 2D, 3D (for 360), or Omni space.
+	 * - Interacting with global state for opened marker, tours, and popups.
+	 */
+
 	import { get, type Writable } from 'svelte/store';
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import type { Models } from '../../types/models';
 	import type { MicrioImage } from '../../ts/image';
 
 	import { getContext, onMount, tick } from 'svelte';
-	import { ctx } from '../virtual/AudioController.svelte';
+	import { ctx } from '../virtual/AudioController.svelte'; // Web Audio context for positional audio
 
-	import { after, getSpaceVector } from '../../ts/utils';
+	import { after, getSpaceVector } from '../../ts/utils'; // Utility functions
 
-	import Icon, { type IconName } from '../ui/Icon.svelte';
-	import AudioLocation from '../virtual/AudioLocation.svelte';
+	import Icon, { type IconName } from '../ui/Icon.svelte'; // Icon component
+	import AudioLocation from '../virtual/AudioLocation.svelte'; // Component for positional audio
 
+	// --- Context & Global State ---
+
+	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
+	/** Destructure needed stores and properties. */
 	const { current, events, state, _lang, spaceData } = micrio;
+	/** Check if the device is mobile (affects hover behavior). */
 	const isMobile = micrio.canvas.isMobile;
-
-	export let marker:Models.ImageData.Marker;
-	export let image:MicrioImage = $current as MicrioImage;
-	export let forceHidden:boolean = false;
-	export let coords:Map<string, [number, number, number?, number?]>|undefined = undefined;
-	export let overlapped:boolean = false;
-
-	if(!marker.tags) marker.tags = [];
-
-	// For Omni image side labels
+	/** Reference to the global marker hover state. */
 	const hovered = state.markerHoverId;
+	/** Writable store tracking markers currently in the viewport (for side labels). */
 	const inView = getContext<Writable<[Models.ImageData.Marker,number,number][]>>('inView');
-
+	/** WeakMap linking marker data to its parent MicrioImage instance. */
 	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = getContext('markerImages');
-	const openedBefore = markerImages.has(marker);
-	if(!openedBefore&&image) markerImages.set(marker, image);
-
+	/** Reference to the global marker popup state. */
 	const currentPopup = micrio.state.popup;
-	const mobileFancyLabels = !!(image.isOmni && image.$settings.omni?.sideLabels && !image.$settings._markers?.noTitles);
-
+	/** Reference to the global active tour state. */
 	const tour = state.tour;
 
+	// --- Props ---
+
+	/** The marker data object. */
+	export let marker:Models.ImageData.Marker;
+	/** The parent MicrioImage instance this marker belongs to. Defaults to the current image. */
+	export let image:MicrioImage = $current as MicrioImage;
+	/** If true, the marker element is hidden regardless of other conditions. */
+	export let forceHidden:boolean = false;
+	/** Optional Map to store calculated screen coordinates (used for clustering). */
+	export let coords:Map<string, [number, number, number?, number?]>|undefined = undefined;
+	/** If true, this marker is currently overlapped by another marker (used for clustering). */
+	export let overlapped:boolean = false;
+
+	// --- Initialization & Data Sanitization ---
+
+	// Ensure marker tags array exists
+	if(!marker.tags) marker.tags = [];
+
+	/** Check if this marker instance was already associated with an image (prevents re-linking). */
+	const openedBefore = markerImages.has(marker);
+	// Associate this marker data with its parent image instance if not already done.
+	if(!openedBefore && image) markerImages.set(marker, image);
+
+	/** Check if side labels are enabled for Omni objects on mobile. */
+	const mobileFancyLabels = !!(image.isOmni && image.$settings.omni?.sideLabels && !image.$settings._markers?.noTitles);
+
+	// --- Marker Configuration & Settings ---
+
+	/** Check if the marker is part of the currently active tour. */
 	const inTour = (t:Models.ImageData.MarkerTour) : boolean => t.steps.findIndex(s => s.startsWith(marker.id)) >= 0;
 
+	/** Marker specific data overrides. */
 	const data:Models.ImageData.MarkerData = marker.data ?? {};
+	/** Custom metadata from the marker editor. */
 	const _meta = data._meta || {};
+	/** Omni settings from the parent image. */
 	const omni = image.$settings.omni;
 
-	// If image previously was layered but layers removed, fix this
+	// Data Correction: If image was layered but layers were removed, clear marker's layer setting.
 	if(marker.imageLayer && marker.imageLayer > (omni?.layers?.length ?? 1) - 1)
 		delete marker.imageLayer;
 
-	// If is secondary, and is linked from marker in main image with popup,
-	// disable popup
+	// Data Correction: If this marker is the target of a split-screen link from the main image, disable its popup.
 	if(!!$current?.$data?.markers?.find(m =>
 		m.data?._micrioSplitLink?.markerId == marker.id && m.popupType != 'none'
 	)) {
 		marker.popupType = 'none';
-		marker.noMarker = true;
+		marker.noMarker = true; // Also hide the marker itself?
 	}
 
+	// Data Correction: Handle legacy 'embedInPopover' property.
 	if('embedUrl' in marker && marker.embedUrl && 'embedInPopover' in marker && marker['embedInPopover'])
 		marker.popupType = 'popover';
 
+	/** Marker settings inherited from the parent image. */
 	const markerSettings:Models.ImageInfo.MarkerSettings = image.$settings._markers ?? {};
+	/** Flag for tour jump animation preference. */
 	const doTourJumps:boolean = !!image.$settings.doTourJumps;
 
+	/** Combined CSS class names from marker tags. */
 	const classNames:string = marker.tags.join(' ');
+	/** Is this a cluster marker? */
 	const cluster:boolean = marker.type == 'cluster';
 
-	// Don't print titles at all, otherwise hover will reveal them
+	// --- Visibility & Style Flags ---
+
+	/** Should titles be completely hidden (overrides showTitle)? */
 	const noTitles:boolean = !!markerSettings.noTitles || !!omni?.sideLabels;
-	const showTitle:boolean = !noTitles && !!markerSettings.showTitles;
+	/** Does the marker scale with zoom? */
 	const scales:boolean = !!data.scales || !!image.$settings.markersScale;
+	/** If marker scales, should the title *not* scale? */
 	const titleNoScales:boolean = scales && !!markerSettings.titlesNoScale;
+	/** Parsed split-screen link data. */
 	const split = data._micrioSplitLink;
+	/** Should the popup remain open during marker tour transitions? */
 	const keepPopup:boolean = !!markerSettings.keepPopupsDuringTourTransitions;
+	/** Disable tooltips on hover? */
 	const noToolTips:boolean = /[?&]micrioNoTooltips/.test(location.search) || !!omni?.sideLabels;
 
-	// Static grid action
+	// --- Tour Integration ---
+
+	/** Static grid action associated with this marker. */
 	const gridAction:string|undefined = _meta.gridAction;
+	/** Find the marker tour associated with this marker, if autoStartTour is enabled. */
 	const autoStartMyTour:Models.ImageData.MarkerTour|undefined = image.$settings?._markers?.autoStartTour
 		? micrio.wasm.images.map(c => 'camera' in c ? c.$data?.markerTours?.find(inTour) : undefined).filter(t => !!t)[0] ?? spaceData?.markerTours?.find(inTour) : undefined;
+	/** Find the step index of this marker within its auto-start tour. */
 	const myTourStep:number|undefined = autoStartMyTour?.steps.findIndex(s => s.startsWith(marker.id));
+	/** Should the auto-start tour always begin from step 0? */
 	const startTourAtBeginning:boolean = !!image.$settings?._markers?.autoStartTourAtBeginning;
 
-	let openOnInit:boolean = (!openedBefore && (!!data.alwaysOpen || (state.$marker == marker))
-		|| (state.$tour?.id == autoStartMyTour?.id && autoStartMyTour?.currentStep == (myTourStep??0)));
+	// --- Initial State ---
 
+	/** Should the marker be opened immediately on mount? */
+	let openOnInit:boolean = (!openedBefore && (!!data.alwaysOpen || (state.$marker == marker)) // Always open, or currently set as active marker
+		|| (state.$tour?.id == autoStartMyTour?.id && autoStartMyTour?.currentStep == (myTourStep??0))); // Or part of active auto-start tour at correct step
+
+	/** Is the marker currently considered "open" (active)? */
 	let opened:boolean = openedBefore && image.state.$marker == marker;
+	/** Has the camera finished flying to the marker's view? */
 	let flownTo:boolean = opened;
+	/** Is the marker currently behind the camera in 360/Omni view? */
 	let behindCam:boolean = false;
+	/** CSS matrix string for 3D positioning (360 embeds). */
 	let matrix:string;
 
-	let x:number;
-	let y:number;
-	let scale:number;
-	let w:number;
+	// --- Screen Position State ---
+	let x:number; // Screen X
+	let y:number; // Screen Y
+	let scale:number; // Current effective scale at marker position
+	let w:number; // Depth component (w) from projection
 
-	let splitImage:MicrioImage|undefined;
-	let splitOpened:boolean = false;
+	// --- Split Screen State ---
+	let splitImage:MicrioImage|undefined; // Reference to the opened split-screen image
+	let splitOpened:boolean = false; // Is the split-screen image currently open?
 
-	// Clicked the marker itself
+	// --- Event Handlers ---
+
+	/** Handles click events on the marker button. */
 	function click() : void {
-		blur();
-		if(marker.onclick) return marker.onclick(marker);
-		if(markerSettings.noMarkerActions) return;
+		blur(); // Clear focus timeout
+		if(marker.onclick) return marker.onclick(marker); // Custom click handler
+		if(markerSettings.noMarkerActions) return; // Global setting to disable actions
+
 		if(marker.type == 'cluster') {
+			// Zoom into the cluster's bounding box
 			if(marker.view && $current?.$info) {
-				const scale = $current.camera.getScale();
+				const currentScale = $current.camera.getScale();
+				// Add margin based on pixel size / image size * scale
 				const margin = [
-					20 / $current.$info.width * scale,
-					20 / $current.$info.height * scale
+					20 / $current.$info.width * currentScale,
+					20 / $current.$info.height * currentScale
 				];
 				image.camera.flyToView([
 					marker.view[0] - margin[0],
@@ -117,361 +183,493 @@
 				], {area: image.opts?.area, limitZoom: true});
 			}
 		}
-		// Just open normally
+		// Standard marker: set as the active marker for the image
 		else image.state.marker.set(marker);
 	}
 
-	// When tabbing through markers
-	let fto:any;
+	/** Handles focus events (e.g., tabbing). */
+	let fto:any; // Focus timeout
 	function focus() : void {
 		if(markerSettings.noMarkerActions) return;
 
-		// This prevents the markers from jumping
+		// Prevent container scroll jump on focus
 		(_container.parentNode as HTMLElement).scrollTo(0,0);
-		blur();
+		blur(); // Clear previous focus timeout
+		// Set timeout to fly to marker if it's off-screen after a short delay
 		fto = setTimeout(() => {
-			const px = image.camera.getXY(marker.x, marker.y);
+			const px = image.camera.getXY(marker.x, marker.y); // Get screen coordinates
+			// If marker is off-screen or behind camera (360) and not already opened
 			if(!opened && (px[0] < 0 || px[0] >= micrio.offsetWidth || px[1] < 0 || px[1] >= micrio.offsetHeight || (image.is360 ? px[3] > 4 : false)))
-				image.camera.flyToCoo([marker.x, marker.y], { speed: 2, limit: true}).catch(() => {});
+				image.camera.flyToCoo([marker.x, marker.y], { speed: 2, limit: true}).catch(() => {}); // Fly to marker center
 		}, 150);
 	}
 
+	/** Handles blur events (clears focus timeout). */
 	function blur() : void {
 		clearTimeout(fto);
 	}
 
+	/** Handles mouse enter event (sets global hover state). */
 	const hoverStart = () : void => hovered.set(marker.id);
+	/** Handles mouse leave event (clears global hover state). */
 	const hoverEnd = () : void => hovered.set(undefined);
 
-	// Became the currently opened marker
+	/** Called when this marker becomes the active marker (`image.state.marker` changes). */
 	async function activated() {
-		if(opened) return;
+		if(opened) return; // Already open
 		opened = true;
-		blur();
+		blur(); // Clear focus timeout
 
-		if(markerSettings.noMarkerActions) return;
+		if(markerSettings.noMarkerActions) return; // Exit if actions disabled
 
+		// Dispatch 'marker-open' event
 		events.dispatch('marker-open', marker);
 
-		// If there is a running tour and it's not the markers', stop it
+		// Stop any non-marker tour if active
 		if($tour && (!('steps' in $tour) || (!inTour($tour) && !$tour.cannotClose))) {
 			tour.set(undefined);
-			await tick();
+			await tick(); // Wait for tour state to update
 		}
 
-		// Close any open other popup
+		// Close any other currently open popup/popover, unless it's part of the same tour and keepPopup is true
 		const currentMarkerTour = $tour && 'steps' in $tour;
 		if(!noPopup && (!currentMarkerTour || !keepPopup)) {
 			currentPopup.set(undefined);
 			micrio.state.popover.set(undefined);
 		}
 
-		hoverEnd();
+		hoverEnd(); // Clear hover state
 
-		// If split image already opened (before), already do the animation
+		// Handle split-screen link activation
 		if(split?.markerId) {
+			// Find the target image instance
 			if(!splitImage) splitImage = micrio.canvases.find(c => c.id == split.micrioId)
 			if(splitImage) {
-				splitOpened = get(splitImage.visible);
+				splitOpened = get(splitImage.visible); // Check if already visible
+				// If visible and a target view is specified, fly the split image's camera
 				if(splitOpened && split?.view) splitImage.camera.flyToView(split.view, {isJump:true}).catch(() => {})
 			}
 		}
 
+		// Handle omni layer switching
 		if(marker.imageLayer !== undefined) image.state.layer.set(marker.imageLayer);
 
-		// When auto starting tour from beginning, temporarily remove any grid action until after opened
+		// Handle grid action delay if starting tour from beginning
 		const immediatelyStartMyTourAtBeginning = autoStartMyTour && startTourAtBeginning && autoStartMyTour != $tour && (myTourStep != undefined && myTourStep > 0);
-		if(immediatelyStartMyTourAtBeginning) delete _meta.gridAction;
+		if(immediatelyStartMyTourAtBeginning) delete _meta.gridAction; // Temporarily remove grid action
 
-		// When there's a marker video tour, disregard the starting viewport, it makes no sense
+		// Fly camera to marker view, unless it's a video tour marker or grid view marker
 		if(!immediatelyStartMyTourAtBeginning && marker.view && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
-			if(openOnInit) { image.camera.setView(marker.view, {area: image.opts?.area}); open(); }
-			else image.camera.flyToView(marker.view, { omniIndex, noTrueNorth: true, area: image.opts?.area, isJump: !!data.doJump || (doTourJumps && !!state.$tour)})
-				.then(open).catch(() => { if(!$tour) image.state.marker.set(undefined) })
+			if(openOnInit) { // If opened on init, set view directly
+				image.camera.setView(marker.view, {area: image.opts?.area});
+				open(); // Proceed to open content
+			} else { // Otherwise, animate
+				image.camera.flyToView(marker.view, {
+					omniIndex, // Pass omni index if applicable
+					noTrueNorth: true, // Don't correct true north during marker fly-to
+					area: image.opts?.area,
+					isJump: !!data.doJump || (doTourJumps && !!state.$tour) // Use jump animation if specified or in a tour
+				})
+				.then(open) // Proceed to open content after animation
+				.catch(() => { if(!$tour) image.state.marker.set(undefined) }); // If animation fails (e.g., interrupted) and not in a tour, close the marker
+			}
 		}
-		else open();
+		else {
+			open(); // Open content immediately if no view animation needed
+		}
 	}
 
+	/** Timeout for delaying split screen opening. */
 	let _splitOpenTo:any;
 
-	// Really open the marker
+	/** Final steps after camera animation (if any) to open marker content. */
 	async function open() : Promise<void> {
-		if(cluster) return;
+		if(cluster) return; // Don't open content for cluster markers
 
-		// If current image marker is not this marker, likely opened on init
-		// from micrio.state.marker. Set directly on image.
+		// Double-check if this marker is still the active one
 		if(image.state.$marker != marker) return image.state.marker.set(marker);
 
 		if(markerSettings.noMarkerActions) return;
 
-		// If marker is part of a marker tour and .autoStartTour, start the marker tour
-		// but only if no current active tour.
+		// Auto-start associated marker tour if configured and no other tour is active
 		if(autoStartMyTour && autoStartMyTour != $tour) {
-
-			// Set opening step
+			// Set initial step based on settings
 			autoStartMyTour.initialStep = startTourAtBeginning ? 0 : myTourStep;
 			const firstStep = autoStartMyTour.stepInfo?.[0];
+			// If starting from beginning and first step is on a different image, switch image first
 			if(startTourAtBeginning && firstStep && firstStep.micrioId != image.id) {
 				const grid = micrio.canvases[0]?.grid;
+				// Check if target image is in the grid
 				if(grid?.images.find(i => i.id == firstStep.micrioId)) micrio.current.set(grid.image);
-				else micrio.open(firstStep.micrioId);
+				else micrio.open(firstStep.micrioId); // Open the target image
 			}
-			tour.set(autoStartMyTour);
+			tour.set(autoStartMyTour); // Set the tour as active
+			// Restore grid action after a delay if it was temporarily removed
 			setTimeout(() => _meta.gridAction = gridAction, 100);
 
-			// End here, if I'm not the first tourstep
+			// If starting from beginning but this isn't the first step, close this marker
 			if(startTourAtBeginning && (myTourStep != undefined && myTourStep > 0)) {
 				image.state.marker.set(undefined);
-				close();
+				// close(); // `close` will be called automatically by the state change
 				return;
 			}
-
-			await tick();
+			await tick(); // Wait for tour state update
 		}
 
-		openOnInit = false;
-		flownTo = true;
-		events.dispatch('marker-opened', marker);
+		openOnInit = false; // Reset init flag
+		flownTo = true; // Mark camera flight as complete
+		events.dispatch('marker-opened', marker); // Dispatch event
 
-		// Open the popup
+		// --- Open Popup/Popover/Tour ---
 
-		// No popup if this is a video tour marker that's inside a serial tour
+		// Check if this marker starts a video tour within a serial tour chapter context
 		const isChapteredSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour && $tour.printChapters && $tour.steps.findIndex(s => s.startsWith(marker.id)) >= 0
 			&& marker.videoTour;
 
-		if(!isChapteredSerialTour) {
-			if(!noPopup) tick().then(() => currentPopup.set(marker));
-			else if(marker.popupType == 'popover') {
-				await tick();
-				micrio.state.popover.set({
-					marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined
-				})
+		if(!isChapteredSerialTour) { // Don't show standard popup for chaptered serial tour video markers
+			if(!noPopup) { // If popupType is 'popup' and content is not empty
+				tick().then(() => currentPopup.set(marker)); // Set global popup state
 			}
-			else if(marker.videoTour && !$tour) {
-				tour.set(marker.videoTour);
+			else if(marker.popupType == 'popover') { // If popupType is 'popover'
+				await tick();
+				micrio.state.popover.set({ // Set global popover state
+					marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined
+				});
+			}
+			else if(marker.videoTour && !$tour) { // If marker has a video tour and no global tour is active
+				tour.set(marker.videoTour); // Start the marker's video tour
+				// Automatically close the marker once the video tour finishes
 				after(tour).then(() => image.state.marker.set(undefined));
 			}
 		}
 
-		// Open a linked image
+		// --- Handle Linked Image ---
 		const linkId = data.micrioLink?.id;
-		if(linkId) tick().then(() => {
-			image.camera.stop();
-			// Check if this image is in a 360 space, and the linked image is also
-			// in the same space
-			const vector = getSpaceVector(micrio, linkId);
-			if(vector) {
-				image.openedView = undefined;
-				image.state.marker.set(undefined);
-			}
-			micrio.open(linkId,{vector: vector?.vector});
-		});
+		if(linkId) {
+			tick().then(() => {
+				image.camera.stop(); // Stop current image animation
+				// Check if moving between images within the same 360 space
+				const vector = getSpaceVector(micrio, linkId);
+				if(vector) { // If in same space, clear marker state before navigating
+					image.openedView = undefined;
+					image.state.marker.set(undefined);
+				}
+				micrio.open(linkId,{vector: vector?.vector}); // Open the linked image
+			});
+		}
 
-		// Open a split screen image
-		if(split && !splitOpened && !image.opts.secondaryTo) {
-			// Check for grid, if there, await any promise
+		// --- Handle Split Screen ---
+		if(split && !splitOpened && !image.opts.secondaryTo) { // If split link exists, not already open, and not secondary
+			// Wait for potential grid animations to finish
 			const grid = micrio.canvases[0]?.grid;
 			if(grid?.lastPromise) await grid.lastPromise;
+			// Open the split screen image after a short delay
 			_splitOpenTo = setTimeout(() => {
 				if(!split) return;
 				splitImage = micrio.open(split.micrioId, {
 					splitScreen: true,
-					splitTo: image,
-					isPassive: !!(split.follows && !micrio.state.$tour),
-					startView: split.view
+					splitTo: image, // Link to this image
+					isPassive: !!(split.follows && !micrio.state.$tour), // Follow if specified and not in a tour
+					startView: split.view // Optional starting view for split image
 				});
 				splitOpened = true;
 			}, 200);
 		}
 	}
 
-	// When the marker is not active anymore
+	/** Called when this marker is deactivated/closed. */
 	function close(){
-		clearTimeout(_splitOpenTo);
-		events.dispatch('marker-closed', marker);
-		// If there is an animation back to the opening view from a marker-own video tour,
-		// wait for the animation to finish before refocussing the marker element.
-		if(marker.videoTour && image.openedView)
-			setTimeout(() => image.camera.aniDoneAdd.push(() => _button?.focus()), 10);
-		// Otherwise immediately focus again
-		else _button?.focus();
+		clearTimeout(_splitOpenTo); // Clear split screen open timeout
+		events.dispatch('marker-closed', marker); // Dispatch event
+
+		// Refocus the marker button after closing, potentially after camera animation
+		if(marker.videoTour && image.openedView) { // If closed after marker video tour with zoom-out
+			setTimeout(() => image.camera.aniDoneAdd.push(() => _button?.focus()), 10); // Focus after animation
+		} else {
+			_button?.focus(); // Focus immediately
+		}
+
+		// Clear global popover/popup state if this marker was showing it
 		micrio.state.popover.set(undefined);
 		if(!noPopup) {
 			const currentMarkerTour = $tour && 'steps' in $tour;
-			if($currentPopup == marker && (!currentMarkerTour || !keepPopup)) currentPopup.set(undefined);
-			// Check any popup from other image that was never closed, and show that one again
+			if($currentPopup == marker && (!currentMarkerTour || !keepPopup)) {
+				currentPopup.set(undefined);
+			}
+			// Check if another image has an open marker popup and restore it
 			const extMarker = micrio.canvases.find(c => c != image && c.state.$marker);
-			if(extMarker) tick().then(() => {
-				const m = extMarker.state.$marker;
-				// If it's still open
-				if(m && m.popupType == 'popup') currentPopup.set(m);
-			});
+			if(extMarker) {
+				tick().then(() => {
+					const m = extMarker.state.$marker;
+					if(m && m.popupType == 'popup') currentPopup.set(m); // Restore other popup
+				});
+			}
 		}
 
-		if(split && splitImage) setTimeout(() => {
-			const curr = get(micrio.state.marker);
-			if(splitImage && split.micrioId != curr?.data?._micrioSplitLink?.micrioId) micrio.close(splitImage);
-		},210);
+		// Close split screen image if it was opened by this marker
+		if(split && splitImage) {
+			setTimeout(() => {
+				const curr = get(micrio.state.marker);
+				// Close only if the currently active marker isn't also linked to the same split image
+				if(splitImage && split.micrioId != curr?.data?._micrioSplitLink?.micrioId) {
+					micrio.close(splitImage);
+				}
+			},210); // Delay slightly
+		}
 	}
 
+	// --- Position Update ---
+
+	/** Flag indicating if the marker is currently within the viewport (for side labels). */
 	let isInView:boolean=false;
+	/** Cached width of the label element. */
 	let prevLabelWidth:number|undefined;
+	/** Cached height of the label element. */
 	let prevLabelHeight:number|undefined;
+
+	/** Updates the marker's screen position based on camera view changes. */
 	function moved(){
-		if(image.is360 && scales) {
+		if(image.is360 && scales) { // 360 scaling (using matrix)
 			matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1,0,0,0).join(',');
-		}
-		else {
-			let pX=x,pY=y;
+		} else { // 2D or Omni positioning
+			let pX=x, pY=y; // Store previous position
+			// Get new screen coordinates [x, y, scale, w(depth)]
 			[x, y, scale, w] = image.camera.getXYDirect(marker.x, marker.y, {
-				radius: marker.radius,
-				rotation: marker.rotation,
+				radius: marker.radius, // For Omni
+				rotation: marker.rotation, // For Omni
 			});
+
+			// Update behindCam flag based on depth (w)
 			if(image.is360) behindCam = w > 0;
 			else if(image.isOmni && omni) {
-				if(omniArc[0] && omniArc[1] && marker.rotation != undefined) {
+				// Check visibility arc for Omni markers
+				if(omniArc[0] != undefined && omniArc[1] != undefined && marker.rotation != undefined) { // Use != undefined for 0 index check
 					const numFrames = omni.frames / (omni.layers?.length ?? 1);
-					let delta = (image.swiper?.currentIndex??0) - (omniIndex??0);
+					let delta = (image.swiper?.currentIndex??0) - (omniIndex??0); // Difference from target frame
+					// Handle wrapping
 					if(delta > numFrames / 2) delta -= numFrames;
 					if(delta < -numFrames / 2) delta += numFrames;
-					behindCam = delta <= omniArc[0] || delta >= omniArc[1];
+					behindCam = delta <= omniArc[0] || delta >= omniArc[1]; // Check if outside visible arc
 				}
+				// Fallback depth check for Omni
 				else if(omni.distance) behindCam = w < 0;
-				if(omni.sideLabels && !markerSettings.noTitles && content?.title && inView && (pX!=x||pY!=y)) setInView(x,y);
+
+				// Update side label position if enabled and position changed
+				if(omni.sideLabels && !markerSettings.noTitles && content?.title && inView && (pX!=x||pY!=y)) {
+					setInView(x,y);
+				}
 			}
-			if(image.$settings.clusterMarkers && coords) coords.set(marker.id, [
-				x,
-				y,
-				!overlapped ? (prevLabelWidth = _label?.offsetWidth) : prevLabelWidth,
-				!overlapped ? (prevLabelHeight = _label?.offsetHeight) : prevLabelHeight
-			]);
+
+			// Update coordinates map used for clustering
+			if(image.$settings.clusterMarkers && coords) {
+				coords.set(marker.id, [
+					x,
+					y,
+					!overlapped ? (prevLabelWidth = _label?.offsetWidth) : prevLabelWidth, // Cache label width if not overlapped
+					!overlapped ? (prevLabelHeight = _label?.offsetHeight) : prevLabelHeight // Cache label height
+				]);
+			}
 		}
 	}
 
-	// For omni markers and labelling
+	/** Updates the `inView` store for Omni side labels. */
 	function setInView(x:number, y:number) {
 		const elW = micrio.canvas.element.offsetWidth, elH = micrio.canvas.element.offsetHeight;
+		// Check if marker is within screen bounds
 		const shown = !(x < 0 || x > elW || y < 0 || y > elH) && !behindCam;
-		if(shown || isInView) inView.update(a => {
-			if(!shown) { if(isInView) a.splice(a.findIndex(([m]) => m == marker), 1); }
-			else if(isInView) a[a.findIndex(([m]) => m == marker)] = [marker, x/elW, y];
-			else a.push([marker,x/elW,y]);
-			isInView = shown;
-			return a;
-		});
+		// Update the shared `inView` store if visibility changed or position changed
+		if(shown || isInView) {
+			inView.update(a => {
+				const existingIndex = a.findIndex(([m]) => m == marker);
+				if(!shown) { // If now hidden
+					if(existingIndex >= 0) a.splice(existingIndex, 1); // Remove from store
+				} else if(existingIndex >= 0) { // If still shown, update position
+					a[existingIndex] = [marker, x/elW, y];
+				} else { // If newly shown
+					a.push([marker,x/elW,y]); // Add to store
+				}
+				isInView = shown; // Update local flag
+				return a;
+			});
+		}
 	}
 
-	// Spaces editor fires a change event on position dragging
+	/** Handles external position changes (e.g., from Spaces editor). */
 	function changed(e:Event) {
 		const m = (e as CustomEvent).detail as typeof marker;
 		marker.x = m.x;
 		marker.y = m.y;
-		moved();
+		moved(); // Recalculate position
 	}
 
-	// HTML Elements
-	let _button:HTMLButtonElement;
-	let _container:HTMLElement;
-	let _label:HTMLElement|undefined;
+	// --- DOM Element References ---
+	let _button:HTMLButtonElement; // The main button element
+	let _container:HTMLElement; // The outer div container
+	let _label:HTMLElement|undefined; // The label element
 
-	// Global paused state
+	// --- Tour State ---
+	/** Reference to the global tour paused state store. */
 	const tourPaused = getContext<Writable<boolean>>('mediaPaused');
 
+	// --- Lifecycle (onMount) ---
 	onMount(() => {
+		// If marker has a video tour, derive its view from the first timeline step
 		if(marker.videoTour) {
 			const timeline = 'timeline' in marker.videoTour ? marker.videoTour.timeline as Models.ImageData.VideoTourView[]
 				: marker.videoTour.i18n?.[$_lang]?.timeline;
-
 			if(timeline?.length) marker.view = timeline[0].rect;
 		}
-		const us = [image.state.marker.subscribe(m => {
-			if(typeof m == 'string' && m == marker.id) image.state.marker.set(marker);
-			else if(m == marker) activated();
-			else if(!data.alwaysOpen) { if(opened) close(); opened = flownTo = false; }
+
+		// Subscribe to this image's active marker state
+		const unsub = [image.state.marker.subscribe(m => {
+			if(typeof m == 'string' && m == marker.id) {
+				// If set by ID, resolve to the actual marker object
+				image.state.marker.set(marker);
+			} else if(m == marker) {
+				// If this marker became active, call activated()
+				activated();
+			} else if(!data.alwaysOpen) {
+				// If another marker became active (or none), call close() if this one was open
+				if(opened) close();
+				opened = flownTo = false; // Reset state
+			}
 		})];
 
+		// Subscribe to view changes if the marker element needs positioning
 		if(!noMarker) {
-			us.push(image.camera.image.state.view.subscribe(moved));
-			moved();
+			unsub.push(image.camera.image.state.view.subscribe(moved));
+			moved(); // Initial position calculation
 		}
 
-		// Do this after a tick, otherwise $currentPopup is not up to date
-		if(!forceHidden) tick().then(() => {
-			// If opened, means it was opened earlier, then close, unless
-			// the current popup is this marker's
-			if(opened && !marker.noMarker && $currentPopup && $currentPopup != marker && !$tour) {
-				image.state.marker.set(undefined);
-			}
-			// Fresh start
-			else if(openOnInit || data.alwaysOpen) open();
-		});
+		// Handle initial opening logic after a tick (allows other state to settle)
+		if(!forceHidden) {
+			tick().then(() => {
+				// If marker was previously opened but is no longer the active popup/tour, close it
+				if(opened && !marker.noMarker && $currentPopup && $currentPopup != marker && !$tour) {
+					image.state.marker.set(undefined);
+				}
+				// Otherwise, if it should open on init or is always open, trigger open()
+				else if(openOnInit || data.alwaysOpen) {
+					open();
+				}
+			});
+		}
 
+		// Append custom HTML element if provided
 		if(marker.htmlElement && _container) _container.appendChild(marker.htmlElement);
 
+		// Cleanup subscriptions on component destroy
 		return () => {
-			clearTimeout(_splitOpenTo);
-			while(us.length) us.shift()?.();
+			clearTimeout(_splitOpenTo); // Clear split screen timeout
+			while(unsub.length) unsub.shift()?.(); // Unsubscribe from stores
 		}
 	});
 
-	// Dynamic culture content
+	// --- Reactive Content & Style Calculations ---
+
+	/** Reactive language-specific content object. */
 	$: content = marker.i18n ? marker.i18n[$_lang] : (<unknown>marker as Models.ImageData.MarkerCultureData);
 
-	// Dynamic culture settings
+	/** Reactive check if marker has any content for the popup. */
 	$: noPopupContent = !content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl
 		&& !(marker.images && marker.images.length);
+	/** Reactive check if the marker element itself should be hidden. */
 	$: noMarker = forceHidden || marker.noMarker;
+	/** Reactive check if the popup should not be shown. */
 	$: noPopup = marker.popupType != 'popup' || noPopupContent;
 
-	// Omni vars
+	// --- Reactive Omni Calculations ---
+
+	/** Calculate the target frame index for this marker based on its rotation. */
 	$: omniIndex = image.camera.getOmniFrame((marker.rotation??0) + (marker.backside ? Math.PI : 0));
+	/** Calculate the start and end frame indices for the marker's visibility arc. */
 	$: omniArc = marker.visibleArc ? [
 		image.camera.getOmniFrame(marker.visibleArc[0]),
 		image.camera.getOmniFrame(marker.visibleArc[1])
 	] : [];
 
+	/** Reactive flag to hide marker during tours based on settings. */
 	$: hidden = $tour && ((!('steps' in $tour) && !$tour.keepMarkers) || (markerSettings.hideMarkersDuringTour && !$tourPaused)) && !opened;
 
-	$: { if(hidden) inView.update(v => {
+	// Update inView store when marker becomes hidden
+	$: { if(hidden && isInView) inView.update(v => { // Check isInView flag before updating
 		const idx = v.findIndex(iv => iv[0] == marker);
 		if(idx >= 0) v.splice(idx, 1);
 		return v;
 	})}
 
+	// --- Icon Determination ---
+
+	/** Determine the standard icon name based on marker type. */
 	$: icon = (marker.type == 'default' ? undefined
 		: marker.type == 'link' ? 'link'
 		: marker.type == 'media' ? 'play'
-		: marker.type == 'cluster' ? undefined
+		: marker.type == 'cluster' ? undefined // Cluster uses text content
 		: marker.type ?? undefined) as (IconName|undefined);
 
+	/** Determine the custom icon asset (from marker data or image settings). */
 	$: customIcon = (marker.data?.customIconIdx != undefined ? image.$settings._markers?.customIcons?.[marker.data?.customIconIdx] : undefined)
 		?? marker.data?.icon ?? markerSettings.markerIcon ?? undefined;
 
+	/** Flag indicating if any icon (standard or custom) should be displayed. */
 	$: hasIcon = !!icon || !!customIcon;
 
-	// When the 'class' property of a V4 marker is '' that means it's explicitly set to not show the default marker styling.
+	/** Flag for applying default marker styling (unless explicitly disabled in V4). */
 	$: defaultClass = (!('class' in marker) || marker.class !== '') && (!!hasIcon || marker.type == 'default');
 
+	/** Flag indicating if the label should be shown (based on settings and content). */
 	$: showLabel = content && (!noTitles || ($isMobile && mobileFancyLabels)) && (content.label || content.title);
 
 </script>
 
+<!-- Render the marker container div if it's not hidden -->
 {#if !noMarker && image && !hidden}
 	<div bind:this={_container} id={`m-${marker.id}`} on:change={changed}
-		class={classNames} class:overlapped={overlapped && !opened} class:cluster class:behind={behindCam} class:hovered={$hovered == marker.id} class:default={defaultClass} class:mat3d={!!matrix} class:opened={opened}
-		class:micrio-link={!!data.micrioLink} class:has-icon={hasIcon} class:has-custom-icon={!!customIcon}
+		class={classNames}
+		class:overlapped={overlapped && !opened}
+		class:cluster
+		class:behind={behindCam}
+		class:hovered={$hovered == marker.id}
+		class:default={defaultClass}
+		class:mat3d={!!matrix}
+		class:opened={opened}
+		class:micrio-link={!!data.micrioLink}
+		class:has-icon={hasIcon}
+		class:has-custom-icon={!!customIcon}
 		style={matrix ? `--mat:matrix3d(${matrix})` : x ? `--x:${x}px;--y:${y}px${scales ? `;--scale:${scale}` : ''}` : null}
 	>
+		<!-- Render button content unless a custom HTML element is provided -->
 		{#if !marker.htmlElement}
-			<button title={noToolTips || cluster ? null : (content ? content.label || content.title : null)} id={marker.id} bind:this={_button}
-				on:click={click} on:focus={focus} on:blur={blur} on:mouseenter={hoverStart} on:mouseleave={hoverEnd} data-scroll-through>
-				{#if customIcon}<img src={customIcon.src} alt="" />{:else if icon}<Icon name={icon} />{/if}
-				{#if showLabel}<label bind:this={_label} class:static={titleNoScales} for={marker.id} data-scroll-through>{content.label||content.title}</label>{/if}
+			<button
+				title={noToolTips || cluster ? null : (content ? content.label || content.title : null)}
+				id={marker.id}
+				bind:this={_button}
+				on:click={click}
+				on:focus={focus}
+				on:blur={blur}
+				on:mouseenter={hoverStart}
+				on:mouseleave={hoverEnd}
+				data-scroll-through
+			>
+				<!-- Display custom icon or standard icon -->
+				{#if customIcon}
+					<img src={customIcon.src} alt="" />
+				{:else if icon}
+					<Icon name={icon} />
+				{/if}
+				<!-- Display label if needed -->
+				{#if showLabel}
+					<label bind:this={_label} class:static={titleNoScales} for={marker.id} data-scroll-through>
+						{content.label||content.title}
+					</label>
+				{/if}
 			</button>
 		{/if}
+		<!-- Note: Custom marker.htmlElement is appended in onMount -->
 	</div>
 {/if}
 
+<!-- Render positional audio component if configured -->
 {#if marker.positionalAudio && $ctx && (!marker.positionalAudio.noMobile || $isMobile) && (marker.positionalAudio.alwaysPlay || opened)}
 	<AudioLocation {marker} ctx={$ctx} is360={image.is360} />
 {/if}
@@ -480,14 +678,18 @@
 	div {
 		position: absolute;
 		display: block;
+		/* Apply 2D transform using CSS variables updated in `moved` function */
 		transform: translate3d(calc(var(--x, 0) - 50%), calc(var(--y, 0) - 50%), 0) scale3d(var(--scale, 1), var(--scale, 1), 1);
 		top: 0;
 		left: 0;
+		will-change: transform; /* Hint browser for optimization */
 	}
+	/* Fade-in animation for non-cluster markers */
 	div:not(.cluster):not(.no-fade) {
 		animation: fadeIn .25s;
 		animation-fill-mode: forwards;
 	}
+	/* Hide overlapped markers (used by clustering) */
 	div.overlapped {
 		display: none;
 	}
@@ -495,10 +697,12 @@
 		from { opacity: 0; }
 		to { opacity: 1; }
 	}
+	/* Hide markers that are behind the camera in 360/Omni */
 	div.behind {
 		pointer-events: none;
 		visibility: hidden;
 	}
+	/* Apply 3D matrix transform for 360 embeds */
 	div.mat3d {
 		transform: var(--mat);
 		top: 50%;
@@ -507,8 +711,10 @@
 	}
 	div.mat3d > button {
 		position: absolute;
-		transform: translate3d(-50%,-50%,0);
+		transform: translate3d(-50%,-50%,0); /* Center button within 3D transformed div */
 	}
+
+	/* Base button styling */
 	button {
 		display: block;
 		width: var(--micrio-marker-size);
@@ -520,46 +726,55 @@
 		padding: 0;
 		margin: 0;
 		background: transparent none center center no-repeat;
-		background-image: var(--micrio-marker-icon);
+		background-image: var(--micrio-marker-icon); /* Default icon from CSS variable */
 		background-size: contain;
 		border: none;
 	}
+
+	/* Label styling (shown on hover or statically) */
 	div:not(.cluster) label {
 		position: absolute;
 		top: 50%;
-		left: 100%;
+		left: 100%; /* Position to the right of the marker */
 		text-align: var(--micrio-text-align);
 		cursor: pointer;
-		transform: translate(0, -50%);
-		padding-left: 10px;
+		transform: translate(0, -50%); /* Center vertically */
+		padding-left: 10px; /* Space from marker */
 		max-width: 170px;
-		width: max-content;
-		white-space: pre-wrap;
+		width: max-content; /* Fit content width */
+		white-space: pre-wrap; /* Allow wrapping */
 		font-size: 90%;
 		font-weight: 600;
 		line-height: 1em;
 		text-shadow: var(--micrio-marker-text-shadow);
-		opacity: 0;
-		pointer-events: none;
+		opacity: 0; /* Hidden by default */
+		pointer-events: none; /* No interaction by default */
 		transition: opacity .1s ease;
 	}
+	/* Ensure hovered marker is on top */
 	div:hover {
 		z-index: 2;
 	}
+	/* Show label on hover or if showTitles is enabled */
 	:global(.show-titles) > div label, div:hover label {
 		opacity: 1;
 	}
+	/* Responsive label font size */
 	@media (max-width: 640px) {
 		div:not(.cluster) label {
 			font-size: 12px;
 		}
 	}
+	/* Enable pointer events for statically shown titles */
 	:global(.show-titles) > div label {
 		pointer-events: all;
 	}
+	/* Apply inverse scaling to label if marker scales but title shouldn't */
 	label.static {
 		transform: translate(-50%, 4px) scale3d(calc(1 / var(--scale, 1)), calc(1 / var(--scale, 1)), 1);
 	}
+
+	/* Default marker appearance (circle with border) */
 	div.default button {
 		box-sizing: content-box;
 		background-clip: content-box;
@@ -568,11 +783,13 @@
 		transition: var(--micrio-marker-transition);
 		background-color: var(--micrio-marker-color);
 	}
+	/* Ensure hovered/opened markers are on top */
 	div.default:hover,
 	div.default.hovered,
 	div.default.opened {
 		z-index: 1;
 	}
+	/* Hover/opened state: change background, remove border, increase size slightly */
 	div.default:hover button,
 	div.default.hovered button,
 	div.default.opened button {
@@ -581,54 +798,64 @@
 		width: calc(var(--micrio-marker-size) + var(--micrio-marker-border-size) * 2);
 		height: calc(var(--micrio-marker-size) + var(--micrio-marker-border-size) * 2);
 	}
+
+	/* Styling when a standard icon is used */
 	div.has-icon button {
-		--micrio-marker-icon: none;
+		--micrio-marker-icon: none; /* Hide default background image */
 	}
 	div.default.has-icon button {
-		color: #fff;
-		width: calc(var(--micrio-marker-size) + 24px);
+		color: #fff; /* Icon color */
+		width: calc(var(--micrio-marker-size) + 24px); /* Slightly larger size for icon */
 		height: calc(var(--micrio-marker-size) + 24px);
-		background-color: var(--micrio-marker-border-color);
+		background-color: var(--micrio-marker-border-color); /* Use border color as background */
 		border: none;
 	}
 	div.default.has-icon button > :global(svg) {
-		margin: 0 auto;
+		margin: 0 auto; /* Center icon */
 	}
+	/* Change icon color on hover/open */
 	div.default.has-icon.opened button > :global(svg),
 	div.default.has-icon.hovered button > :global(svg),
 	div.default.has-icon:hover button > :global(svg) {
 		color: var(--micrio-marker-highlight);
 	}
+
+	/* Styling when a custom image icon is used */
 	div.default.has-custom-icon button {
-		background-color: var(--micrio-marker-color);
+		background-color: var(--micrio-marker-color); /* Use marker color as background */
 	}
+	/* Change background on hover/open */
 	div.default.has-custom-icon.opened button,
 	div.default.has-custom-icon.hovered button,
 	div.default.has-custom-icon:hover button {
 		background-color: var(--micrio-marker-highlight, var(--micrio-marker-color));
 	}
 
-	/** Cluster markers */
+	/** Cluster marker styling */
 	div.cluster button {
 		border: 2px solid var(--micrio-marker-color);
 		background: var(--micrio-cluster-marker-background, #fff);
 		color: var(--micrio-cluster-marker-color, #000);
-		width: calc(var(--micrio-marker-size) + 12px);
+		width: calc(var(--micrio-marker-size) + 12px); /* Larger size for cluster */
 		height: calc(var(--micrio-marker-size) + 12px);
-		border-radius: 100%;
+		border-radius: 100%; /* Circular */
 		box-sizing: content-box;
 	}
 	div.cluster:hover button {
 		background: var(--micrio-marker-highlight, #fff);
 		border-color: var(--micrio-marker-highlight, #fff);
 	}
+	/* Hide label for cluster markers */
 	div.cluster label {
 		pointer-events: none;
+		display: none;
 	}
 
-	/** Custom icons */
+	/** Custom icon image styling */
 	div img {
 		max-width: 100%;
 		max-height: 100%;
+		display: block; /* Remove extra space below image */
+		margin: auto; /* Center image if smaller than button */
 	}
 </style>

@@ -1,15 +1,32 @@
 <script lang="ts">
+	/**
+	 * Main.svelte - Root Svelte UI Component for Micrio
+	 *
+	 * This component acts as the main container and orchestrator for the entire
+	 * Micrio user interface. It receives the core `HTMLMicrioElement` instance
+	 * via props and makes it available to child components through Svelte's context API.
+	 *
+	 * It subscribes to various state stores (current image, settings, data, tours, markers, etc.)
+	 * and conditionally renders the appropriate UI sub-components based on the current
+	 * application state and configuration settings.
+	 */
+
 	import type { HTMLMicrioElement } from '../ts/element';
 	import type { Models } from '../types/models';
 	import type { Readable, Writable } from 'svelte/store';
 	import type { MicrioImage } from '../ts/image';
 
+	// Import base CSS
 	import '../css/micrio.base.css';
 
+	// Svelte imports
 	import { setContext, tick } from 'svelte';
 	import { get, writable } from 'svelte/store';
+
+	// Micrio TS imports
 	import { once } from '../ts/utils';
 
+	// UI Sub-component imports
 	import Logo from './ui/Logo.svelte';
 	import LogoOrg from './ui/LogoOrg.svelte';
 	import Toolbar from './components/Toolbar.svelte';
@@ -28,142 +45,244 @@
 	import Embed from './virtual/Embed.svelte';
 	import ProgressCircle from './ui/ProgressCircle.svelte';
 
+	// --- Props ---
+
+	/** The main HTMLMicrioElement instance. Provided by element.ts */
 	export let micrio:HTMLMicrioElement;
+	/** If true, suppresses rendering of most UI elements (except markers if data-ui="markers"). */
+	export let noHTML:boolean;
+	/** If true, suppresses rendering of the Micrio logo. Defaults to `noHTML`. */
+	export let noLogo:boolean = noHTML;
+	/** Loading progress (0-1), used for the progress indicator. */
+	export let loadingProgress:number = 1;
+	/** Optional error message to display. */
+	export let error:string|undefined = undefined;
+
+	// --- Context Setup ---
+
+	// Provide the main micrio instance to all child components
 	setContext('micrio', micrio);
 
-	// WeakMap for marker linking images
+	/**
+	 * WeakMap to link marker data objects back to the specific MicrioImage instance
+	 * they belong to. This is necessary because marker popups are rendered centrally
+	 * but need access to their parent image's state/methods.
+	 */
 	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = new WeakMap();
 	setContext('markerImages', markerImages);
 
-	// Don't render HTML elements (is the data-ui="false" attribute)
-	export let noHTML:boolean;
+	// --- Initial Setup & Attribute Reading ---
+
+	// Handle data-ui="markers" attribute
 	const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
 	if(onlyMarkers) noHTML = true;
 
-	export let noLogo:boolean = noHTML;
-	export let loadingProgress:number = 1;
-	export let error:string|undefined = undefined;
-
+	// Determine if embeds should be shown based on attribute
 	const showEmbeds = micrio.getAttribute('data-embeds') != 'false';
 
-	// Currently visible images
-	const visible = micrio.visible;
+	// --- State Subscriptions ---
 
-	// Single HTML popup throughout entire <micr-io> app
-	const markerPopup = micrio.state.popup;
+	// References to core state stores from the micrio instance
+	const { visible, state, isMuted } = micrio;
+	const { tour, marker, popup: markerPopup, popover } = state; // Destructure state stores
 
-	// Main popover
-	const popover = micrio.state.popover;
-
-	// Defer the placement of popups so previous ones can fade out
+	/**
+	 * Holds the currently rendered marker popup instance(s).
+	 * Wrapped in a timeout to allow fade-out transitions.
+	 */
 	let markerPopups:Models.ImageData.Marker[] = [];
-	markerPopup.subscribe(p => setTimeout(() => markerPopups = p ? [p] : [], 20));
+	markerPopup.subscribe(p => setTimeout(() => markerPopups = p ? [p] : [], 20)); // Delay allows fade-out
 
+	// Stores for the current image's info, data, and settings
 	let info:Readable<Models.ImageInfo.ImageInfo|undefined>;
 	let data:Writable<Models.ImageData.ImageData|undefined>;
 	let settings:Writable<Models.ImageInfo.Settings>|undefined;
 
-	const { tour, marker } = micrio.state;
+	// --- Helper Functions ---
 
+	/** Recursively finds a menu page by its slug within a nested structure. */
 	function findPage(id:string, p:Models.ImageData.Menu[]|undefined) : Models.ImageData.Menu|undefined {
-		if(p)for(let i=0,t;i<p.length;i++)if(p[i].id==id||(t=findPage(id, p[i].children)))return t??p[i] }
+		if(p) for(let i=0,t;i<p.length;i++) if(p[i].id==id||(t=findPage(id, p[i].children))) return t??p[i];
+		return undefined; // Explicitly return undefined if not found
+	}
 
-	let firstInited:boolean = false;
-	let logoOrg:Models.ImageInfo.Organisation|undefined;
-	const didStart:string[] = [];
-	const hadTours:string[] = [];
-	micrio.current.subscribe(c => { if(!c) return;
+	// --- Reactive Logic for Current Image ---
+
+	let firstInited:boolean = false; // Flag to track if the first image info has been processed
+	let logoOrg:Models.ImageInfo.Organisation|undefined; // Store org logo data once found
+	const didStart:string[] = []; // Track image IDs for which auto-start logic has run
+
+	// Subscribe to changes in the currently active MicrioImage
+	micrio.current.subscribe(c => {
+		if(!c) return; // Exit if no current image
+
+		// Update local store references
 		info = c.info;
-		settings = undefined;
+		settings = undefined; // Reset settings initially
 
-		if(info) once(info).then((i) => { if(i) {
-			firstInited = true;
-			settings = c.settings;
-			if(!logoOrg && i.organisation?.logo) logoOrg = i.organisation;
-		}});
-
-		if((data = c.data) && didStart.indexOf(c.id) < 0) once(data).then(async d => { if(!d) return;
-			didStart.push(c.id);
-			// Wait for the router to be inited
-			await tick().then(tick);
-			if(get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) return;
-			const autoStart = c.$settings.start;
-			if(autoStart) switch(autoStart.type) {
-				case 'marker':
-					c.state.marker.set(autoStart.id);
-				break;
-				case 'markerTour':
-					const markerTour = d.markerTours?.find(t => t.id == autoStart.id);
-					if(markerTour) micrio.state.tour.set(markerTour);
-				break;
-				case 'tour':
-					const tour = d.tours?.find(t => t.id == autoStart.id);
-					if(tour) micrio.state.tour.set(tour);
-				break;
-				case 'page':
-					const page = findPage(autoStart.id, d.pages);
-					if(page) micrio.state.popover.set({contentPage: page, showLangSelect: true});
-				break;
+		// Once image info is loaded
+		if(info) once(info).then((i) => {
+			if(i) {
+				firstInited = true; // Mark that initial info is loaded
+				settings = c.settings; // Get settings store
+				// Store organisation logo data if available and not already stored
+				if(!logoOrg && i.organisation?.logo) logoOrg = i.organisation;
 			}
-		})
+		});
+
+		// Once image data is loaded for the *first time* for this image ID
+		if((data = c.data) && didStart.indexOf(c.id) < 0) {
+			once(data).then(async d => {
+				if(!d) return; // Exit if no data
+				didStart.push(c.id); // Mark this image ID as processed for auto-start
+
+				// Wait for router to potentially initialize state based on URL
+				await tick().then(tick);
+
+				// If no marker, tour, or popover is already active (e.g., from URL routing)
+				if(get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) return;
+
+				// Check for auto-start configuration in settings
+				const autoStart = c.$settings.start;
+				if(autoStart) {
+					switch(autoStart.type) {
+						case 'marker':
+							c.state.marker.set(autoStart.id); // Open marker by ID
+							break;
+						case 'markerTour':
+							const markerTour = d.markerTours?.find(t => t.id == autoStart.id);
+							if(markerTour) micrio.state.tour.set(markerTour); // Start marker tour
+							break;
+						case 'tour': // Video Tour
+							const videoTour = d.tours?.find(t => t.id == autoStart.id);
+							if(videoTour) micrio.state.tour.set(videoTour); // Start video tour
+							break;
+						case 'page':
+							const page = findPage(autoStart.id, d.pages); // Find page by ID (slug?)
+							if(page) micrio.state.popover.set({contentPage: page, showLangSelect: true}); // Open page in popover
+							break;
+					}
+				}
+			});
+		}
 	});
 
-	// Main volume
-	const muted = micrio.isMuted;
-	const volume = writable<number>($muted ? 0 : 1);
-	setContext('volume', volume);
-	micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1));
+	// --- Global Audio State ---
 
-	// Global paused state
+	// Global volume store, linked to the `muted` attribute/property
+	const volume = writable<number>($isMuted ? 0 : 1);
+	setContext('volume', volume); // Provide volume to children
+	isMuted.subscribe(b => volume.set(b ? 0 : 1)); // Update volume store when muted state changes
+
+	// Global media paused state (can be controlled by multiple components)
 	setContext<Writable<boolean>>('mediaPaused', writable<boolean>(false));
 
-	// Subtitles
-	let subsRaised:boolean = false;
-	let srts:string[] = [];
-	const srt = setContext<Writable<string|undefined>>('srt', writable<string>());
+	// --- Subtitles State ---
+
+	let subsRaised:boolean = false; // Flag if subtitles should be raised (e.g., due to tour controls)
+	let srts:string[] = []; // Array holding the current subtitle source(s)
+	const srt = setContext<Writable<string|undefined>>('srt', writable<string>()); // Store for current subtitle src
+	// Update local `srts` array with a delay when `srt` store changes (allows fade transitions)
 	srt.subscribe(s => setTimeout(() => { srts = s ? [s] : [] }, 20));
 
-	// 360 video
+	// --- Reactive Declarations (`$:`) ---
+
+	// Derived state for 360 video
 	$: video = $settings?._360?.video;
 	$: videoSrc = video?.src;
 
+	// Derived state for gallery/omni features
 	$: omni = $settings?.omni;
-	$: gallery = $info?.gallery;
+	$: gallery = $info?.gallery; // Gallery data comes from ImageInfo
 
+	// Derived state for audio presence
 	$: positionalAudio = $data?.markers?.filter(m => !!m.positionalAudio);
 	$: hasAudio = !!$data?.music?.items.length || !!positionalAudio?.length;
+
+	// Flag if a tour or marker is currently active
 	$: hasTourOrMarker = $tour || $marker;
 
+	// --- Conditional Rendering Logic ---
+
+	// Determine visibility of major UI sections based on props, settings, and state
 	$: showMarkers = !noHTML || onlyMarkers;
 	$: showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo;
 	$: showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo ? logoOrg : undefined;
-	$: showMinimap = !noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery;
-	$: showGallery = !!gallery || !!omni;
-	$: showControls = !noHTML && !!$info;
-	$: showDetails = !noHTML && !hasTourOrMarker && $settings?.showInfo;
-	$: showToolbar = !noHTML && firstInited && !$settings?.noToolbar;
+	$: showMinimap = !noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery; // Hide minimap for omni, spaces, tours, galleries
+	$: showGallery = !!gallery || !!omni; // Show gallery UI if gallery data or omni settings exist
+	$: showControls = !noHTML && !!$info; // Show controls if not noHTML and info is loaded
+	$: showDetails = !noHTML && !hasTourOrMarker && $settings?.showInfo; // Show details if enabled and no tour/marker active
+	$: showToolbar = !noHTML && firstInited && !$settings?.noToolbar; // Show toolbar after init if not disabled
 
 </script>
 
-<!-- This is only used for positional audio and audio playlists -->
-{#if hasAudio && $data && $info}<AudioController volume={$volume} data={$data} is360={!!$info.is360} />{/if}
+<!-- Render Audio Controller (manages positional audio and playlists) -->
+{#if hasAudio && $data && $info}
+	<AudioController volume={$volume} data={$data} is360={!!$info.is360} />
+{/if}
 
-<!-- This is legacy V4 and older for full-image 360 video -->
-{#if videoSrc && $info}<Media src={videoSrc} volume={$volume} is360
-	width={$info.width} height={$info.height} {...video} />{/if}
+<!-- Render full-image 360 video (legacy V4 feature) -->
+{#if videoSrc && $info}
+	<Media src={videoSrc} volume={$volume} is360
+		width={$info.width} height={$info.height} {...video} />
+{/if}
 
-{#if showEmbeds && $data && $data.embeds}{#each $data.embeds as embed (embed.uuid)}<Embed {embed} />{/each}{/if}
+<!-- Render all defined embeds -->
+{#if showEmbeds && $data && $data.embeds}
+	{#each $data.embeds as embed (embed.uuid)}
+		<Embed {embed} />
+	{/each}
+{/if}
+
+<!-- Render standard UI elements conditionally -->
 {#if showLogo}<Logo />{/if}
 {#if showToolbar}<Toolbar />{/if}
-{#if showMarkers}{#each $visible as image (image.uuid)}<MicrioMarkers {image} />{/each}{/if}
-{#if showMinimap}{#each $visible.filter(i => i.$settings.minimap) as image (image.uuid)}<Minimap {image} />{/each}{/if}
+
+<!-- Render Markers component for each visible image -->
+{#if showMarkers}
+	{#each $visible as image (image.uuid)}
+		<MicrioMarkers {image} />
+	{/each}
+{/if}
+
+<!-- Render Minimap for each visible image that has it enabled -->
+{#if showMinimap}
+	{#each $visible.filter(i => i.$settings.minimap) as image (image.uuid)}
+		<Minimap {image} />
+	{/each}
+{/if}
+
 {#if showControls}<Controls hasAudio={hasAudio||!!(videoSrc && video && !video.muted)} />{/if}
 {#if showGallery}<Gallery images={gallery} {omni} />{/if}
 {#if showOrgLogo}<LogoOrg organisation={showOrgLogo} />{/if}
 {#if showDetails}<Details {info} {data} />{/if}
-{#each markerPopups as marker (marker.id)}<MarkerPopup {marker} />{/each}
-{#if $tour}<Tour tour={$tour} {noHTML} on:minimize={e => subsRaised=!e.detail} />{/if}
-{#if $popover}<Popover popover={$popover} />{/if}
-{#each srts as src (src)}<Subtitles {src} raised={subsRaised} />{/each}
-{#if error}<Error message={error} />{/if}
-{#if loadingProgress < 1}<ProgressCircle progress={loadingProgress} />{/if}
+
+<!-- Render Marker Popups (managed centrally) -->
+{#each markerPopups as marker (marker.id)}
+	<MarkerPopup {marker} />
+{/each}
+
+<!-- Render active Tour UI -->
+{#if $tour}
+	<Tour tour={$tour} {noHTML} on:minimize={e => subsRaised=!e.detail} />
+{/if}
+
+<!-- Render active Popover (for pages, gallery previews, etc.) -->
+{#if $popover}
+	<Popover popover={$popover} />
+{/if}
+
+<!-- Render Subtitles display -->
+{#each srts as src (src)}
+	<Subtitles {src} raised={subsRaised} />
+{/each}
+
+<!-- Render Error message overlay -->
+{#if error}
+	<Error message={error} />
+{/if}
+
+<!-- Render Loading indicator -->
+{#if loadingProgress < 1}
+	<ProgressCircle progress={loadingProgress} />
+{/if}
