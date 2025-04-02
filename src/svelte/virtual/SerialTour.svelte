@@ -129,8 +129,8 @@
 
 	$: audio = current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined;
 	$: audioSrc = audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined;
-	$: subtitle = current ? 'subtitle' in current ? current.subtitle as Models.Assets.Subtitle : current.i18n?.[$lang]?.subtitle : undefined;
-	$: subtitleSrc = subtitle ? 'fileUrl' in subtitle ? subtitle['fileUrl'] as string : subtitle.src : undefined;
+	$: hasSubtitle = currentStepInfo ? currentStepInfo.hasSubtitle : false;
+	$: serialTourHasSubtitles = stepInfo.some(s => s.hasSubtitle);
 
 </script>
 
@@ -149,7 +149,8 @@
 	{#if controls}
 		<Button type={!paused ? 'pause' : 'play'} title={paused ? $i18n.play : $i18n.pause} on:click={playPause} />
 		<Button type={muted ? 'volume-off' : 'volume-up'} title={muted ? $i18n.audioUnmute : $i18n.audioMute} on:click={toggleMute} />
-		{#if subtitleSrc}<Button
+		{#if serialTourHasSubtitles}<Button
+			disabled={!hasSubtitle}
 			type={$captionsEnabled ? 'subtitles' : 'subtitles-off'} active={$captionsEnabled} title={$i18n.subtitlesToggle}
 			on:click={() => captionsEnabled.set(!$captionsEnabled)} />{/if}
 		<Fullscreen el={micrio} />

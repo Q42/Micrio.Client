@@ -361,7 +361,8 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 			startView: vTourData?.timeline?.length ? vTourData.timeline[0].rect : m?.view,
 			imageHasOtherMarkers: mId ? !!data?.markers?.find(m => m.id != id && !m.noMarker) : false,
 			gridView: !!(m.data?._meta?.gridView || m.data?._meta?.gridAction),
-			chapter
+			chapter,
+			hasSubtitle: !!vTourData?.subtitle
 		}
 		/** @ts-ignore */
 	}).filter<Models.ImageData.MarkerTourStepInfo>(si => typeof si === 'object');
