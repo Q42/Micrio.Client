@@ -1,16 +1,3 @@
-
-# The main Micrio HTML element
-
-The main `<micr-io>` controller instance, which extends a basic `HTMLElement`.
-
-This controls all necessary rendering components and images to display.
-
-Creating a Micrio element is easy:
-
-```html
-<micr-io id="{your image ID}"></micr-io>
-```
-
 ## Attribute settings
 You can customize the Micrio behavior by setting its HTML element attributes.
 These will be parsed to a {@link Models.ImageInfo.ImageInfo} JSON object, and overwrite any values

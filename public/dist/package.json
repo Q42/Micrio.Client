@@ -1,6 +1,6 @@
 {
 	"name": "@micrio/client",
-	"version": "5.1.25",
+	"version": "5.2.3",
 	"description": "Micrio Client image viewer",
 	"main": "micrio.min.js",
 	"types": "micrio.min.d.ts",
@@ -14,5 +14,9 @@
 	"engineStrict": true,
 	"author": "Marcel Duin <marcel@micr.io>",
 	"homepage": "https://micr.io/",
-	"license": "UNLICENSED"
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Q42/Micrio.Client.git"
+	},
+	"license": "MIT"
 }

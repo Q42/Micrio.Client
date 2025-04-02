@@ -1,329 +1,369 @@
 <script lang="ts">
+	/**
+	 * Embed.svelte - Renders embedded content within a Micrio image.
+	 *
+	 * This component handles various types of embeds defined in the image data:
+	 * - Micrio images (rendered via WebGL)
+	 * - Videos (HTML5 <video> or rendered via WebGL using GLEmbedVideo)
+	 * - Iframes (standard HTML <iframe>)
+	 * - SVGs or other images (standard HTML <img>)
+	 *
+	 * It calculates the 2D or 3D position and scale based on the embed data and
+	 * current camera view. It also handles click actions and video playback logic
+	 * (including autoplay restrictions and pause-on-zoom).
+	 */
+
 	import type { Models } from '../../types/models';
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import { writable, type Unsubscriber } from 'svelte/store';
-	import type { HlsPlayer } from '../../types/externals';
 
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { MicrioImage } from '../../ts/image';
-	import { loadScript, once, createGUID, hasNativeHLS, Browser } from '../../ts/utils';
+	import { once, createGUID, Browser } from '../../ts/utils';
+	import { GLEmbedVideo } from '../../ts/embedvideo'; // Handles WebGL video rendering
 
-	import Media from '../components/Media.svelte';
+	import Media from '../components/Media.svelte'; // Reusable media player component
 
+	// --- Context & Props ---
+
+	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
+	/** Destructure needed stores and properties. */
 	const { current, wasm, canvas } = micrio;
 
+	/** The embed data object from the image configuration. */
 	export let embed:Models.ImageData.Embed;
 
+	// --- Initialization & Setup ---
+
+	/** Reference to the main MicrioImage instance this embed belongs to. */
 	const mainImage = $current as MicrioImage;
+	/** Reference to the main image's info data. */
 	const info = mainImage.$info as Models.ImageInfo.ImageInfo;
 
+	// Ensure embed has a unique ID
 	if(!embed.uuid) embed.uuid = createGUID();
-	const uuid = embed.uuid;
+	const uuid = embed.uuid; // Store UUID for state management
 
+	/** Is the parent image a 360 panorama? */
 	const is360 = mainImage.is360;
+	/** Should the embed video attempt to autoplay? */
 	const autoplay = embed.video?.autoplay ?? true;
 
+	/** Find the corresponding MicrioImage instance if this embed represents another Micrio image. */
 	let image:MicrioImage = mainImage.embeds.find(i => i.uuid == uuid || i.$info?.title == uuid) as MicrioImage;
+
+	// --- Rendering Logic ---
 
 	// MacOS/iOS with HDR screens auto-"optimize" non-HDR vids which messes up the colors
 	// Always force inside-GL rendering for HDR screens
 	// Mac M2 with HDR screens don't support the CSS query -_- so just enable WebGL rendering for all MacOS
+	// Determine if WebGL rendering should be forced for videos due to HDR screen issues
 	const screenIsHDR = window.matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
+	/** Embed area coordinates [x0, y0, x1, y1]. */
 	const a = embed.area;
+	/** Is the embed source an SVG image? */
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');
-	const isSmall = embed.width && embed.height ? embed.width * embed.height < Math.pow(3072,2) : false;
+	/** Is the embed relatively small (potentially suitable for HTML rendering)? */
+	const isSmall = embed.width && embed.height ? embed.width * embed.height < Math.pow(1024,2) : false;
 
-	// iOS14 HLS videos won't work within GL rendering
+	// Workaround for iOS 14 HLS video issues in WebGL
 	const isIOS14 = /iPhone OS 14_/i.test(navigator.userAgent);
 
-	// Use this option to embed video inside WebGL
-	const glAttr = 'data-embeds-inside-gl';
+	// Determine if the embed should be rendered as an HTML element instead of WebGL
+	const glAttr = 'data-embeds-inside-gl'; // Attribute to force WebGL rendering
 	const glAttrValue = micrio.getAttribute(glAttr);
 	const embedImageAsHtml = isSVG || isIOS14 || (!screenIsHDR && !micrio.hasAttribute(glAttr)) || glAttrValue == 'false';
 
-	// Print the image / video inside Micrio's WebGL context
+	/** Determine if the embed should be rendered using WebGL. */
 	const printGL = !embedImageAsHtml && !!(
-		// It has a MicrioId and is big, or doesn't have an original image SRC
+		// Render Micrio embeds in GL if large or no separate image src
 		(embed.micrioId && (!isSmall || !embed.src))
-		// It's a non-transparent video that has controls turned off
+		// Render non-transparent videos without native controls in GL
 		|| (embed.video && !embed.video.controls && !embed.video.transparent)
 	);
 
+	// --- Interaction Logic ---
+
+	/** Disable pointer events on the container if no click action or iframe source. */
 	const noEvents = !embed.clickAction && !embed.frameSrc;
+	/** URL for 'href' click action. */
 	const href = embed.clickAction == 'href' ? embed.clickTarget : undefined;
+	/** Open link in new tab? */
 	const hrefBlankTarget = href && embed.clickTargetBlank;
 
-	// Can be updated from Spaces studio
-	let w:number = a[2]-a[0];
-	let h:number = a[3]-a[1];
-	let cX:number = a[0] + w / 2;
-	let cY:number = a[1] + h / 2;
-	let s:number = embed.scale || 1;
-	let rotX:number = embed.rotX??0;
-	let rotY:number = embed.rotY??0;
-	let rotZ:number = embed.rotZ??0;
-	let scaleX:number = embed.scaleX??1;
-	let scaleY:number = embed.scaleY??1;
+	// --- Positioning State (updated by `moved`) ---
+	let w:number = a[2]-a[0]; // Relative width
+	let h:number = a[3]-a[1]; // Relative height
+	let cX:number = a[0] + w / 2; // Center X
+	let cY:number = a[1] + h / 2; // Center Y
+	let s:number = embed.scale || 1; // Embed scale
+	let rotX:number = embed.rotX??0; // X Rotation
+	let rotY:number = embed.rotY??0; // Y Rotation
+	let rotZ:number = embed.rotZ??0; // Z Rotation
+	let scaleX:number = embed.scaleX??1; // Non-uniform X scale
+	let scaleY:number = embed.scaleY??1; // Non-uniform Y scale
 
+	/** CSS style string for the button/image element (used for SVG/IMG embeds). */
 	let buttonStyle:string;
 
+	/** Recalculates positioning variables based on the `embed.area` and other settings. */
 	function readPlacement() : void {
 		const a = embed.area;
+		// Handle 360 wrap-around for area coordinates
 		if(is360 && a[0] > a[2]) a[0]--;
+		// Recalculate dimensions and center
 		w = a[2]-a[0];
 		h = a[3]-a[1];
 		cX = a[0] + w / 2;
 		cY = a[1] + h / 2;
-
+		// Update scale and rotation values from embed data
 		s = embed.scale || 1;
-
 		rotX = embed.rotX??0;
 		rotY = embed.rotY??0;
 		rotZ = embed.rotZ??0;
 		scaleX = embed.scaleX??1;
 		scaleY = embed.scaleY??1;
 
+		// Calculate CSS style string for button/image embeds
 		buttonStyle = `--ratio:${w/h * info.width/info.height};--scale:${w * info.width / (embed.width ?? 100) / (!printGL ? s : 1) * (is360 ? Math.PI/2 : 1)};`;
-		if(isSVG) buttonStyle+=`height:${embed.height}px`;
+		if(isSVG) buttonStyle+=`height:${embed.height}px`; // Set height directly for SVG
+		if(printGL && embed.micrioId && embed.width) buttonStyle+=`width:${embed.width}px`; // Set width for GL Micrio embeds?
 	}
 
+	// Initial calculation
 	readPlacement();
 
-	// Size for video/frame HTML embeds
-	$: width = Math.round(w * info.width);
-	$: height = Math.round(h * info.height);
+	// --- Reactive Calculations for HTML Embeds ---
+	$: width = Math.round(w * info.width); // Calculated pixel width
+	$: height = Math.round(h * info.height); // Calculated pixel height
 
-	let paused:boolean = false;
+	// --- Video Playback State ---
+	/** Local paused state for videos (can be controlled by zoom level). */
+	let paused:boolean = false; // Initial state determined later
 
-	let x:number = 0;
-	let y:number = 0;
-	let scale:number;
-	let matrix:string;
+	// --- Screen Position State (updated by `moved`) ---
+	let x:number = 0; // Screen X
+	let y:number = 0; // Screen Y
+	let scale:number; // Screen scale at embed position
+	let matrix:string; // CSS matrix3d string for 360 positioning
 
+	/** CSS style string for the main container element. */
 	let style = '';
 
+	// --- Pause-on-Zoom Logic ---
+
+	/** Checks if the video should be paused based on its current screen size. */
 	function shouldPause() : boolean {
+		// If no size limits are set, rely on autoplay setting
 		if((!embed.video?.pauseWhenSmallerThan && !embed.video?.pauseWhenLargerThan)) return !autoplay;
+		// Calculate the maximum relative screen size (width or height)
 		const screenSize:number = scale ? Math.max(width * scale / canvas.viewport.width, height * scale / canvas.viewport.height) : 0;
+		// Check against thresholds
 		return !!((embed.video.pauseWhenSmallerThan && (screenSize < embed.video.pauseWhenSmallerThan))
 			|| (embed.video.pauseWhenLargerThan && (screenSize > embed.video.pauseWhenLargerThan)));
 	}
 
+	// --- Position Update ---
+
+	/** Updates the screen position (x, y, scale, matrix) based on camera view. */
 	function moved() : void {
-		// Not yet loaded
+		// Exit if camera is not ready
 		if(!mainImage.camera.e) return;
+		// Get current screen coordinates [x, y, scale, w(depth)]
 		[x, y, scale] = mainImage.camera.getXYDirect(cX, cY);
+		// Calculate 3D matrix for 360 embeds
 		if(is360) matrix = mainImage.camera.getMatrix(cX, cY, s, 1, rotX, rotY, rotZ, undefined, scaleX, scaleY).join(',');
-		style = (is360 ? `transform:matrix3d(${matrix});` : `--x:${x}px;--y:${y}px;--s:${scale};`)
-			+ (embed.opacity !== undefined && embed.opacity !== 1 ? `--opacity:${embed.opacity};` : '');
+		// Update CSS style string
+		style = (is360 ? `transform:matrix3d(${matrix});` : `--x:${x}px;--y:${y}px;--s:${scale};`) // Use matrix or CSS vars
+			+ (embed.opacity !== undefined && embed.opacity !== 1 ? `--opacity:${embed.opacity};` : ''); // Apply opacity if set
+
+		// Handle pause-on-zoom logic for videos
 		if((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && width) {
 			const wasPaused:boolean = paused;
-			paused = shouldPause();
-			if(_vid && printGL && (paused != wasPaused)) {
-				if(paused) _vid.pause();
-				else {
-					if(mainImage?.$settings?.embedRestartWhenShown) _vid.currentTime = 0;
-					_vid.play();
+			paused = shouldPause(); // Check if should be paused now
+			if(glVideo?._vid && (paused != wasPaused)) { // If state changed and using WebGL video
+				if(paused) glVideo._vid.pause(); // Pause
+				else { // Play
+					// Optionally restart video when shown again
+					if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
+					glVideo._vid.play();
 				}
 			}
+			// Note: HTML video pause/play based on `paused` prop is handled by Media.svelte
 		}
 	}
 
+	// --- Click Handler ---
+
+	/** Handles click events on the embed container. */
 	function click() : void {
+		// If action is to open a marker, set the state
 		if($current && embed.clickAction == 'markerId' && embed.clickTarget)
 			$current.state.marker.set(embed.clickTarget);
+		// 'href' action is handled by the `<a>` tag directly
 	}
 
-	/* For use in dash editor */
+	// --- Editor Integration ---
+
+	/** Handles external changes to embed data (e.g., from Spaces editor). */
 	function change(e:Event) : void {
 		if(e && 'detail' in e) {
 			const emb = e.detail as Models.ImageData.Embed;
+			// Update local embed data - This seems potentially problematic if `embed` prop isn't writable
 			/** @ts-ignore */
 			for(const x in emb) embed[x] = emb[x];
 		}
-		readPlacement();
-		moved();
+		readPlacement(); // Recalculate placement variables
+		moved(); // Update position
 	}
 
-	// If embed has ID of marker, watch if marker is closed to do media pre-destroy
+	// --- Media Cleanup ---
+
+	/** Writable store passed to Media component to signal destruction. */
 	const destroying = writable<boolean>(false);
 
-	// Embedded video
-	let hlsPlayer: HlsPlayer;
-	let usVid:Unsubscriber;
-	let _vid:HTMLVideoElement;
-	let vidRepeatTo:any;
+	// --- Initial Video State ---
 
+	// Mute video if controls are hidden (common requirement for autoplay)
 	if(embed.video) {
 		if(!embed.video.controls) embed.video.muted = true;
 	}
 
-	const setVideoPlaying = (playing:boolean) : void => {
-		_vid.dataset.playing = playing ? '1' : undefined;
-		wasm.e._setImageVideoPlaying(image.ptr, playing);
-		if(embed.hideWhenPaused) wasm.fadeImage(image.ptr, playing ? 1 : 0);
-		if(playing) wasm.render();
-	}
+	// --- WebGL Video Handling ---
 
-	function loadVideo() : void {
-		if(!embed.video) return;
-
-		// Cloudflare stream doesn't support alpha transparent videos yet,
-		// so use the original src if transparency is set to true.
-		const ism3u = !!embed.video.streamId && !embed.video.transparent;
-		const src = ism3u ? `https://videodelivery.net/${embed.video.streamId}/manifest/video.m3u8` : embed.video.src;
-		_vid = document.createElement('video');
-		_vid.crossOrigin = 'true';
-		_vid.playsInline = true;
-		_vid.width = embed.width! * .5;
-		_vid.height = embed.height! * .5;
-		_vid.muted = embed.video.muted;
-		if($current && embed.id) $current.setEmbedMediaElement(embed.id, _vid);
-
-		const loopAfter = embed.video.loopAfter;
-		if(embed.video.loop && loopAfter) {
-			_vid.onended = () => {
-				setVideoPlaying(false);
-				vidRepeatTo = <any>setTimeout(() => _vid.play(), loopAfter * 1000) as number;
-			}
-			_vid.onplay = () => setVideoPlaying(true);
-		}
-		else _vid.loop = embed.video.loop;
-
-		// If no autoplay, has to be rendered in DOM for first frame visibility
-		if(!autoplay && !ism3u) {
-			_vid.setAttribute('style','opacity:0;position:absolute;top:0;left:0;transform-origin:left top;transform:scale(0.1);pointer-events:none;');
-			document.body.appendChild(_vid);
-		}
-
-		_vid.addEventListener('play', () => setVideoPlaying(!paused));
-		_vid.addEventListener('pause', () => setVideoPlaying(false));
-
-		// Only on first frame drawn, print the video
-		_vid.addEventListener('playing', () => image.video.set(_vid), {once:true});
-
-		// OF COURSE certain iOS versions (iPhone 13..) don't fire the canplay-event
-		_vid.addEventListener(Browser.iOS ? 'loadedmetadata' : 'canplay', () => {
-			// It could already be paused by scale limiting
-			if(autoplay && !paused) {
-				_vid.play();
-				moved();
-			}
-			else if(!embed.hideWhenPaused) { // Show first frame
-				setVideoPlaying(true);
-				tick().then(() => {
-					setVideoPlaying(false);
-					setTimeout(() => _vid.remove(),50);
-				})
-			}
-		}, {once: true});
-
-		if(!ism3u || hasNativeHLS(_vid)) _vid.src = src;
-		else loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
-			/** @ts-ignore */
-			hlsPlayer = new (window['Hls'] as HlsPlayer)();
-			hlsPlayer.loadSource(src);
-			hlsPlayer.attachMedia(_vid);
-		});
-	}
-
-	let inScreen:boolean = false;
-
-	function printVideo() : void {
-		let to:any;
-		let first:boolean = true;
-		usVid = image.visible.subscribe(v =>  {
-			clearTimeout(to);
-			inScreen = v;
-			if(v) to = setTimeout(() => {
-				if(!_vid) loadVideo();
-				else if(autoplay) _vid.play();
-			}, first ? 0 : 100);
-			else to = setTimeout(() => _vid?.pause(), 0);
-			first = false;
-		})
-	}
-
+	/** Is this embed a video rendered via WebGL? */
 	const isRawVideo = printGL && !!embed.video;
+	/** Instance of the WebGL video handler. */
+	let glVideo:GLEmbedVideo|undefined = undefined;
+
+	/** Initializes the WebGL rendering for the embed (Micrio image or video). */
 	function printInsideGL() : void {
-		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity || 1;
-		if(image && image.ptr >= 0) wasm.fadeImage(image.ptr, opacity);
-		else {
-			image = mainImage.addEmbed({
-				id: embed.video ? embed.id : embed.micrioId,
-				title: uuid,
+		// Determine initial opacity (use 0.01 if hidden when paused to ensure it renders initially)
+		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity ?? 1;
+		if(image && image.ptr >= 0) { // If MicrioImage instance already exists (e.g., from previous state)
+			// Update its placement and fade it in
+			image.camera.setArea(embed.area);
+			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
+			wasm.fadeImage(image.ptr, opacity);
+		}
+		else { // If no instance exists, create it
+			image = mainImage.addEmbed({ // Call parent image's addEmbed method
+				id: embed.video ? embed.id : embed.micrioId, // Use embed ID for video, micrioId otherwise
+				title: uuid, // Use generated UUID as title?
 				width: embed.width,
 				height: embed.height,
 				isPng: embed.isPng,
 				isWebP: embed.isWebP,
 				isDeepZoom: embed.isDeepZoom,
-				path: info.tileBasePath ?? info.path,
-				isSingle: !!embed.video,
+				path: info.tileBasePath ?? info.path, // Inherit path
+				isSingle: !!embed.video, // Single texture for video
 				isVideo: !!embed.video,
 				settings: {
-					_360: { rotX, rotY, rotZ }
+					_360: { rotX, rotY, rotZ } // Pass rotation settings
 				},
-			}, embed.area, { opacity, asImage: false });
+			}, embed.area, { opacity, asImage: false }); // Pass area, initial opacity
 		}
 
-		if(isRawVideo) once(image.visible, {targetValue: true}).then(() => printVideo());
+		// If it's a WebGL video, initialize the GLEmbedVideo handler once visible
+		if(isRawVideo) {
+			once(image.visible, {targetValue: true}).then(() => {
+				// This takes care of loading and playing the video texture
+				glVideo = new GLEmbedVideo(wasm, image, embed, paused, moved);
+			});
+		}
 
-		wasm.render();
+		wasm.render(); // Trigger Wasm render loop
 	}
 
+	// --- HTML Rendering Logic ---
+
+	/** Should an HTML element be rendered for this embed? (Either for direct display or as a click target). */
 	const hasHtml = !printGL || !!embed.clickAction;
+	/** Reference to the HTMLMediaElement if rendered via Media component. */
 	let _mediaElement:HTMLMediaElement|undefined;
 
-	// For <Media /> video embeds, set the embed.video.element on availability
+	// Update the shared media element reference when _mediaElement changes
 	$: {
-		if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id, _mediaElement);
+		if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id, _mediaElement??glVideo?._vid);
 	}
 
-	// Cap the max <video> element width/height to original video resolution
+	// --- Size Calculation for HTML Video ---
+	// Cap the rendered size of HTML video elements to their native resolution
 	$: widthCapped = embed.video ? Math.min(embed.video.width, width) : width;
 	$: heightCapped = embed.video ? Math.min(embed.video.height, height) : height;
+	/** Relative scale factor for HTML video element (used for CSS transform). */
 	$: relScale = width / widthCapped;
 
+	// --- Lifecycle (onMount) ---
+	let isMounted:boolean = false;
 	onMount(() => {
-		const us:Unsubscriber[] = [];
-		if(printGL) printInsideGL();
-		if(hasHtml || embed.video?.pauseWhenSmallerThan) us.push(mainImage.state.view.subscribe(moved));
+		isMounted = true;
+		const us:Unsubscriber[] = []; // Store unsubscribers
 
+		// Initialize WebGL rendering if needed
+		if(printGL) printInsideGL();
+
+		// Subscribe to view changes if HTML element needs positioning or pause-on-zoom logic
+		if(hasHtml || (embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan)) {
+			us.push(mainImage.state.view.subscribe(moved));
+		}
+
+		// Cleanup function
 		return () => {
-			if(image) {
-				clearTimeout(vidRepeatTo);
-				if(usVid) usVid();
-				wasm.fadeImage(image.ptr, 0);
-				if(image._video) {
-					image._video.pause();
-					if(hlsPlayer) hlsPlayer.destroy();
-					image.video.set(undefined);
-				}
+			isMounted = false;
+			glVideo?.unmount(); // Clean up WebGL video handler
+			if(image && image.ptr >= 0) { // If rendered in WebGL
+				wasm.fadeImage(image.ptr, 0); // Fade out
 				wasm.render();
 			}
+			// Clear media element reference
 			if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id);
+			// Unsubscribe from stores
 			while(us.length) us.shift()?.();
 		}
-	})
+	});
 </script>
 
+<!-- Render HTML container only if needed (hasHtml) and position is calculated -->
 {#if hasHtml && (matrix || x || y)}
-<svelte:element this={href ? 'a':'div'} id={embed.id ? 'e-'+embed.id : undefined} {style}
-	role={href ? undefined : 'figure'}
-	class:embed-container={!0} class:embed3d={is360} class:no-events={noEvents}
-	on:click={click} on:keypress={click} on:change={change} {href} target={href && hrefBlankTarget?'_blank':null}>
-	{#if embed.video && !printGL}<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src}
-		width={widthCapped} height={heightCapped} frameScale={relScale}
-		controls={embed.video.controls} {destroying} loop={embed.video.loop} loopDelay={embed.video.loopAfter} muted={embed.video.muted} autoplay={!paused && embed.video.autoplay} hasTransparentH265={embed.video.transparent && embed.video.hasH265}
-		bind:_media={_mediaElement} />
-	{:else if embed.frameSrc}<Media src={embed.frameSrc} {width} {height} frameScale={embed.scale} autoplay={embed.autoplayFrame} {destroying} />
-	{:else if !printGL && embed.src}<img src={embed.src} style={buttonStyle}
-		width={isSVG ? embed.width : undefined} height={isSVG ? embed.height : undefined}
-		alt="Embed" data-scroll-through />
-	{:else}<button style={buttonStyle} title={embed.title} data-scroll-through></button>{/if}
-</svelte:element>
+	<!-- Use <a> tag if it's a link, otherwise use <div> -->
+	<!-- ARIA role -->
+	<!-- Disable pointer events if no action -->
+	<!-- Allow keyboard activation -->
+	<!-- For editor integration -->
+	<svelte:element this={href ? 'a':'div'}
+		id={embed.id ? 'e-'+embed.id : undefined} {style}
+		role={href ? undefined : 'figure'}
+		class:embed-container={!0}
+		class:embed3d={is360}
+		class:no-events={noEvents}
+		on:click={click}
+		on:keypress={click}
+		on:change={change}
+		{href}
+		target={href && hrefBlankTarget?'_blank':null}
+	>
+		{#if embed.video && !printGL}
+			<!-- Render HTML video using Media component -->
+			<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src}
+				width={widthCapped} height={heightCapped} frameScale={relScale}
+				controls={embed.video.controls} {destroying} loop={embed.video.loop} loopDelay={embed.video.loopAfter} muted={embed.video.muted} autoplay={!paused && embed.video.autoplay} hasTransparentH265={embed.video.transparent && embed.video.hasH265}
+				bind:_media={_mediaElement} />
+		{:else if embed.frameSrc}
+			<!-- Render iframe using Media component -->
+			<Media src={embed.frameSrc} {width} {height} frameScale={embed.scale} autoplay={embed.autoplayFrame} {destroying} />
+		{:else if !printGL && embed.src}
+			<!-- Render standard image (or SVG) -->
+			<img src={embed.src} style={buttonStyle}
+				width={isSVG ? embed.width : undefined} height={isSVG ? embed.height : undefined}
+				alt="Embed" data-scroll-through />
+		{:else}
+			<!-- Render empty button as click target if rendered in WebGL but has click action -->
+			<button style={buttonStyle} title={embed.title} data-scroll-through></button>
+		{/if}
+	</svelte:element>
 {/if}
 
 <style>
@@ -332,39 +372,51 @@
 		display: block;
 		top: 0;
 		left: 0;
+		/* Apply 2D transform using CSS variables */
 		transform: translate3d(calc(var(--x, 0) - 50%), calc(var(--y, 0) - 50%), 0) scale3d(var(--s),var(--s),1);
-		opacity: var(--opacity, 1);
-		direction: ltr;
+		opacity: var(--opacity, 1); /* Apply opacity */
+		direction: ltr; /* Ensure LTR for positioning */
+		will-change: transform, opacity; /* Optimize animation */
 	}
+	/* Apply 3D matrix transform for 360 embeds */
 	.embed3d {
 		top: 50%;
 		left: 50%;
 	}
+	/* Disable pointer events if no action */
 	.embed-container.no-events {
 		pointer-events: none;
 	}
+	/* Ensure content within container is clickable */
 	.embed-container > * {
 		cursor: pointer;
 	}
+	/* Center content within the transformed container */
 	.embed-container > :global(*) {
 		position: absolute;
 		transform: translate3d(-50%,-50%,0) scale3d(var(--scale, 1), var(--scale, 1), 1);
+	}
+	/* Ensure non-button content maintains its size */
+	.embed-container > :global(*:not(button)) {
 		width: auto !important;
 	}
+	/* Allow pointer events on content if container is interactive */
 	.embed-container:not(.no-events) > :global(*) {
 		pointer-events: all;
 	}
+	/* Prevent image dragging */
 	.embed-container > img {
-		max-width: none;
+		max-width: none; /* Override potential external styles */
 	}
+	/* Styling for the placeholder button (used when content is in WebGL) */
 	.embed-container > :global(button) {
-		--scale: 1;
-		--ratio: 1;
+		--scale: 1; /* Reset scale variable */
+		--ratio: 1; /* Reset ratio variable */
 		padding: 0;
 		margin: 0;
 		background: transparent;
 		border: none;
-		width: 100px !important;
-		height: calc(100px / var(--ratio));
+		width: 100px; /* Default size */
+		aspect-ratio: var(--ratio); /* Use calculated aspect ratio */
 	}
 </style>

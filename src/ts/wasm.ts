@@ -1,7 +1,8 @@
 /**
- * The WebAssembly module
+ * Manages the WebAssembly module, including loading, communication,
+ * memory management, rendering loop, and tile handling.
  * @author Marcel Duin <marcel@micr.io>
-*/
+ */
 
 import type { TextureBitmap } from './textures';
 import type { HTMLMicrioElement } from './element';
@@ -15,247 +16,288 @@ import { get } from 'svelte/store';
 import { archive } from './archive';
 import { Browser, once } from './utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
-import { WASM } from './globals';
+import { WASM } from './globals'; // Contains WASM binary data (likely base64)
 
-/** The dev loadable binary promise */
-const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz(WASM.b64,!0)
-	: fetch('http://localhost:2000/build/optimized.wasm').then(response => response.arrayBuffer());
+/** Promise for loading the Wasm binary (either from external source or embedded data). @internal */
+const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz(WASM.b64,!0) // Use decompression function if available
+	: fetch('http://localhost:2000/build/optimized.wasm').then(response => response.arrayBuffer()); // Fallback to fetching dev build
 
-/** Every memory page is 64KB and can hold about 8 MicrioImage[] */
-const numPages : number = 100;
+/** Number of memory pages to allocate for Wasm (1 page = 64KB). @internal */
+const numPages : number = 100; // ~6.4MB
 
-/** The WebAssembly class */
+/**
+ * The main WebAssembly controller class. Handles interaction between JavaScript
+ * and the compiled C++ core of Micrio. Accessed via `micrio.wasm`.
+ */
 export class Wasm {
 
-	// GENERAL
+	// --- GENERAL ---
 
-	/** Wasm inited */
+	/** Flag indicating if the Wasm module has been loaded and initialized. */
 	ready:boolean = false;
-	/** Shared WebAssembly memory -- 1 page is 64KB */
+	/** Shared WebAssembly memory instance. */
 	private memory: WebAssembly.Memory = new self.WebAssembly.Memory({'initial': numPages,'maximum': numPages});
-	/** The actual WebAssembly memory buffer -- only call here since memory won't grow */
+	/** Direct reference to the ArrayBuffer of the WebAssembly memory. @internal */
 	private b: ArrayBuffer = this.memory.buffer;
-	/** The WebAssembly exports
-	 * @internal
-	*/
+	/** The exported functions from the loaded Wasm module. @internal */
 	e!: MicrioWasmExports;
-	/** The WebAssembly main instance memory pointer */
+	/** Pointer to the main Micrio instance within Wasm memory. @internal */
 	private i: number = -1;
-	/** The WebAssembly current canvas instance memory pointer */
+	/** Pointer to the currently active canvas/image instance within Wasm memory. @internal */
 	private c: number = -1;
 
-	// RENDERING LOOP
+	// --- RENDERING LOOP ---
 
-	/** The current frame's timestamp */
+	/** Timestamp of the current animation frame. @internal */
 	private now: number = -1;
-	/** RequestAnimationFrame pointer */
+	/** ID returned by `requestAnimationFrame`. @internal */
 	private raf: number = -1;
-	/** Is currently drawing */
+	/** Flag indicating if a draw operation is currently in progress within the animation frame. @internal */
 	private drawing: boolean = false;
 
-	// TILE LOGIC
+	// --- TILE LOGIC ---
 
-	/** Array of images for tile references, including embeds
-	 * @internal
-	*/
-	images: (MicrioImage|Models.Omni.Frame)[] = [];
-	/** Barebone mode, minimal tile downloading */
+	/** Array storing references to all MicrioImage instances (including embeds) managed by Wasm. @internal */
+	images: (MicrioImage|Models.Omni.Frame)[] = []; // TODO: Refine type, Omni Frame seems out of place here?
+	/** Flag indicating if barebone mode (minimal tile loading) is active. @internal */
 	private bareBone: boolean = false;
-	/** Number of tiles per image */
+	/** Array storing the base tile index for each image in the `images` array. @internal */
 	private baseTiles: number[] = [];
-	/** Array of tile indices drawn this frame */
+	/** Array storing the indices of tiles drawn in the current frame. @internal */
 	private drawn: number[] = [];
-	/** Array of tile indices drawn last frame */
+	/** Array storing the indices of tiles drawn in the previous frame. @internal */
 	private prevDrawn: number[] = [];
-	/** Tile indices to be deleted */
+	/** Object tracking tile indices scheduled for deletion (key: tileIndex, value: timestamp). @internal */
 	private toDelete: { [key: number]: number } = {};
-	/** Tile textures */
+	/** Object storing WebGLTexture objects for loaded tiles, keyed by tile index. @internal */
 	private textures: { [key: number]: WebGLTexture } = {};
-	/** Running texture download threads */
+	/** Map tracking ongoing texture download requests (key: worker thread index, value: image src). @internal */
 	private requests: Map<number, string> = new Map;
-	/** Timeout after texture loads */
+	/** Object storing timeout IDs for delayed texture binding. @internal */
 	private timeouts: { [key: number]: number } = {};
-	/** Tile loaded timestamp */
+	/** Object storing timestamps when tiles were fully loaded and bound. @internal */
 	private tileLoaded: { [key: number]: number } = {};
-	/** Tile opacity */
+	/** Object storing the current opacity of each tile (for fading). @internal */
 	private tileOpacity: { [key: number]: number } = {};
-	/** Tile load states */
+	/** Object tracking the loading state of each tile (0: not loaded, 1: loading, 2: loaded). @internal */
 	private loadStates: { [key: number]: number } = {};
 
-	/** Svelte watch subscriptions */
+	/** Array storing Svelte store unsubscriber functions. @internal */
 	private unsubscribe: Unsubscriber[] = [];
 
-	// ANIMATION HOOKS
+	// --- ANIMATION HOOKS ---
+	/** Map storing Camera instances associated with Wasm image pointers. @internal */
 	private cameras: Map<number, Camera> = new Map();
 
-	// Internals
+	// --- Internals ---
 
-	/** @internal */
+	/** Flag to prevent Wasm from automatically setting 360 direction (used during transitions). @internal */
 	preventDirectionSet:boolean = false;
 
-	// RENDER BUFFERS AND ARRAYS
+	// --- RENDER BUFFERS AND ARRAYS ---
 
-	/** The tile vertex buffer */
+	/** Shared Float32Array view into Wasm memory for standard tile vertex data. @internal */
 	_vertexBuffer!: Float32Array;
-	/** The tile texture buffer */
+	/** Static Float32Array holding texture coordinates for a standard quad. @internal */
 	static readonly _textureBuffer: Float32Array = Wasm.getTextureBuffer(1,1);
 
-	// 360
+	// --- 360 ---
 
-	/** Number of X geometry segments per tile */
+	/** Number of horizontal segments used for 360 sphere geometry. @internal */
 	static segsX: number;
-	/** Number of Y geometry segments per tile */
+	/** Number of vertical segments used for 360 sphere geometry. @internal */
 	static segsY: number;
 
-	/** The tile vertex buffer for 360 */
+	/** Shared Float32Array view into Wasm memory for 360 tile vertex data. @internal */
 	_vertexBuffer360!: Float32Array;
-	/** The tile texture buffer for 360 */
+	/** Static Float32Array holding texture coordinates mapped to the 360 sphere geometry. @internal */
 	static _textureBuffer360: Float32Array;
 
-	/** Camera perspective matrix from WebAssembly */
+	/** Object storing Float32Array views into Wasm memory for perspective matrices, keyed by image pointer. @internal */
 	private _pMatrices: { [key: number]: Float32Array } = {};
 
-	/** Is paged */
+	/** Flag indicating if the current context is a gallery. @internal */
 	private isGallery:boolean = false;
 
-	/** Wasm imports */
+	/**
+	 * Wasm import object, providing JavaScript functions callable from Wasm.
+	 * @internal
+	 */
 	private imports:WebAssembly.Imports = {
-		'env': {
-			'memory': this.memory,
-			'abort': console.error
+		'env': { // Standard environment imports
+			'memory': this.memory, // Provide shared memory
+			'abort': console.error // Basic abort handler
 		},
-		'main': {
-			'console.log': console.log,
-			'console.log2': console.log,
+		'main': { // Custom functions exposed to Wasm
+			'console.log': console.log, // Allow Wasm to log messages
+			'console.log2': console.log, // (Multiple log functions likely for debugging different types/arity)
 			'console.log3': console.log,
 			'console.log4': console.log,
-			'drawTile': this.drawTile.bind(this),
-			'drawQuad': (opacity:number) : void => this.micrio.webgl.drawTile(undefined, opacity),
-			'aniAbort': (ptr:number) : void => {
+			'drawTile': this.drawTile.bind(this), // Callback to draw a specific tile
+			'drawQuad': (opacity:number) : void => this.micrio.webgl.drawTile(undefined, opacity), // Callback to draw a simple quad (e.g., background)
+			'aniAbort': (ptr:number) : void => { // Callback when a camera animation is aborted
 				const c = this.cameras.get(ptr);
 				if(!c) return;
-				if(c.aniAbort) c.aniAbort();
-				c.aniDoneAdd.length = 0;
-				c.aniAbort = c.aniDone = undefined;
+				if(c.aniAbort) c.aniAbort(); // Call JS reject function
+				c.aniDoneAdd.length = 0; // Clear queued callbacks
+				c.aniAbort = c.aniDone = undefined; // Clear promise functions
 			},
-			'aniDone': (ptr:number) : void => {
+			'aniDone': (ptr:number) : void => { // Callback when a camera animation completes
 				const c = this.cameras.get(ptr);
 				if(!c) return;
-				if(c.aniDone) c.aniDone();
-				while(c.aniDoneAdd.length) c.aniDoneAdd.shift()?.();
-				c.aniAbort = c.aniDone = undefined;
+				if(c.aniDone) c.aniDone(); // Call JS resolve function
+				while(c.aniDoneAdd.length) c.aniDoneAdd.shift()?.(); // Execute queued callbacks
+				c.aniAbort = c.aniDone = undefined; // Clear promise functions
 			},
-			'getTileOpacity': (i:number) : number => this.tileOpacity[i],
-			'setTileOpacity': (i:number,direct:boolean=false,imageOpacity:number=1) : number => {
+			'getTileOpacity': (i:number) : number => this.tileOpacity[i], // Get current opacity for a tile (for fading)
+			'setTileOpacity': (i:number,direct:boolean=false,imageOpacity:number=1) : number => { // Calculate and set tile opacity during fade-in
 				const o = this.tileOpacity, l = this.tileLoaded;
-				if(!o[i] || o[i] < 1) o[i] = direct ? 1 : l[i] > 0 ? Math.min(1,(this.now - l[i]) / 250) * imageOpacity : 0;
+				if(!o[i] || o[i] < 1) o[i] = direct ? 1 : l[i] > 0 ? Math.min(1,(this.now - l[i]) / 250) * imageOpacity : 0; // Calculate opacity based on time since loaded
 				return o[i] || 0;
 			},
-			'setMatrix': (ptr:number) => this.micrio.webgl.gl.uniformMatrix4fv(
+			'setMatrix': (ptr:number) => this.micrio.webgl.gl.uniformMatrix4fv( // Set the perspective matrix uniform in WebGL
 				this.micrio.webgl.pmLoc, false, this._pMatrices[ptr]),
-			'setViewport': (left:number,bottom:number,w:number,h:number) => this.micrio.webgl.gl
+			'setViewport': (left:number,bottom:number,w:number,h:number) => this.micrio.webgl.gl // Set the WebGL viewport
 				.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h)),
-			'viewSet': (ptr:number) => this.cameras.get(ptr)?.viewChanged(),
-			'viewportSet': (ptr:number,x:number,y:number,w:number,h:number) => {
+			'viewSet': (ptr:number) => this.cameras.get(ptr)?.viewChanged(), // Callback when the view changes in Wasm
+			'viewportSet': (ptr:number,x:number,y:number,w:number,h:number) => { // Callback when the calculated viewport changes in Wasm
 				const img = this.images.find(i => i.ptr == ptr);
-				if(img && 'camera' in img) img.viewport.set([x,y,w,h]);
+				if(img && 'camera' in img) img.viewport.set([x,y,w,h]); // Update the Svelte store
 			},
+			// Callbacks to update the visibility store of an image
 			'setVisible': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1),
-			'setVisible2': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1)
+			'setVisible2': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1) // TODO: Why two identical functions?
 		}
 	}
-	
-	/** Build the static tile texture coord buffer */
+
+	/**
+	 * Generates a Float32Array containing texture coordinates for a quad,
+	 * potentially subdivided for 360 projection.
+	 * @internal
+	 * @param segsX Number of horizontal segments.
+	 * @param segsY Number of vertical segments.
+	 * @returns Float32Array of texture coordinates [u0,v0, u1,v1, ...].
+	 */
 	private static getTextureBuffer(
-		/** The number of horizontal segments */
 		segsX:number,
-		/** The number of vertical segments */
 		segsY:number
 	) : Float32Array {
-		const b = new Float32Array(2 * 6 * segsX * segsY), dX = 1 / segsX, dY = 1 / segsY;
-		for(let i=0,y=0;y<segsY;y++) for(let x=0;x<segsX;x++,i+=12) {
-			b[i+3] = b[i+7] = b[i+9] = (b[i+1] = b[i+5] = b[i+11] = y * dY) + dY;
-			b[i+4] = b[i+8] = b[i+10] = (b[i+0] = b[i+2] = b[i+6] = x * dX) + dX;
+		const b = new Float32Array(2 * 6 * segsX * segsY); // 2 components (u,v) * 6 vertices per quad * segments
+		const dX = 1 / segsX, dY = 1 / segsY; // Size of each segment
+		// Generate coordinates for two triangles per segment
+		for(let i=0,y=0;y<segsY;y++) for(let x=0;x<segsX;x++,i+=12) { // 12 values per quad (2 triangles * 3 vertices * 2 coords)
+			// Triangle 1: (x, y+dY), (x+dX, y), (x, y)
+			// Triangle 2: (x, y+dY), (x+dX, y+dY), (x+dX, y)
+			// Order might be different depending on vertex order in Wasm/WebGL
+			// This specific order seems optimized for TRIANGLE_STRIP or specific vertex ordering.
+			// It generates coordinates for vertices: (x,y+dY), (x+dX,y), (x,y), (x+dX,y+dY) - likely for two triangles forming the quad.
+			// TODO: Clarify the exact vertex order this corresponds to. It seems unusual.
+			b[i+3] = b[i+7] = b[i+9] = (b[i+1] = b[i+5] = b[i+11] = y * dY) + dY; // V coordinates
+			b[i+4] = b[i+8] = b[i+10] = (b[i+0] = b[i+2] = b[i+6] = x * dX) + dX; // U coordinates
 		} return b;
 	}
 
-	/** Create the WebAssembly instance
-	 * @param micrio The main <micr-io> instance
+	/**
+	 * Creates the Wasm controller instance.
+	 * @param micrio The main HTMLMicrioElement instance.
 	*/
 	constructor(
 		public micrio: HTMLMicrioElement
 	) {
+		// Bind methods for use as callbacks
 		this.render = this.render.bind(this);
 		this.draw = this.draw.bind(this);
+		// Subscribe to current image changes to update the active canvas in Wasm
 		this.unsubscribe.push(micrio.current.subscribe(this.setCanvas.bind(this)));
 	}
 
-	/** Load the WebAssembly module
-	 * @returns The promise when loading is complete
+	/**
+	 * Loads and instantiates the WebAssembly module.
+	 * @returns A Promise that resolves when the Wasm module is ready.
 	*/
 	async load():Promise<void> {
-		if(this.i >= 0) return;
-		this.i = 0;
-		const data = await wasmPromise;
+		if(this.i >= 0) return; // Already loaded
+		this.i = 0; // Mark as loading
+		const data = await wasmPromise; // Wait for binary data
 		if(!((data instanceof Uint8Array) || (data instanceof ArrayBuffer)))
 			throw 'Wasm binary is no array buffer!';
 
-		const e = this.e = (await self.WebAssembly.instantiate(data, this.imports)).instance.exports as MicrioWasmExports;
+		// Instantiate the Wasm module with imports
+		const instance = await self.WebAssembly.instantiate(data, this.imports);
+		this.e = instance.instance.exports as MicrioWasmExports; // Store exports
 
-		this.i = e.constructor();
+		// Initialize the main Micrio instance in Wasm
+		this.i = this.e.constructor();
+		// Get static geometry segment counts
 		Wasm.segsX = this.e.segsX.value;
 		Wasm.segsY = this.e.segsY.value;
+		// Generate static 360 texture buffer
 		Wasm._textureBuffer360 = Wasm.getTextureBuffer(Wasm.segsX,Wasm.segsY);
-		this._vertexBuffer = new Float32Array(this.b, e.getVertexBuffer(this.i) + 32, 6 * 3);
-		this._vertexBuffer360 = new Float32Array(this.b, e.getVertexBuffer360(this.i) + 32, 6 * 3 * Wasm.segsX * Wasm.segsY);
-		this.unsubscribe.push(this.micrio.barebone.subscribe(b => e.setBareBone(this.i, this.bareBone = b)));
+		// Create Float32Array views into Wasm memory for vertex buffers
+		this._vertexBuffer = new Float32Array(this.b, this.e.getVertexBuffer(this.i) + 32, 6 * 3); // Standard quad vertices
+		this._vertexBuffer360 = new Float32Array(this.b, this.e.getVertexBuffer360(this.i) + 32, 6 * 3 * Wasm.segsX * Wasm.segsY); // 360 sphere vertices
+		// Subscribe to barebone mode changes
+		this.unsubscribe.push(this.micrio.barebone.subscribe(b => this.e.setBareBone(this.i, this.bareBone = b)));
 	}
 
-	/** Unbind this module */
+	/** Unbinds event listeners, stops rendering, and cleans up resources. */
 	unbind():void{
-		this.stop();
-		while(this.unsubscribe.length) this.unsubscribe.shift()?.();
+		this.stop(); // Stop rendering loop
+		while(this.unsubscribe.length) this.unsubscribe.shift()?.(); // Unsubscribe from stores
+		// Abort any ongoing texture downloads
 		this.requests.forEach(src => abortDownload(src));
 		this.requests.clear();
+		// Clear timeouts
 		for(let key in this.timeouts) clearTimeout(this.timeouts[key]);
 		this.timeouts = {};
+		// Reset internal state
 		this.loadStates = {};
 		this.tileLoaded = {};
 		this.tileOpacity = {};
+		// Request deletion of all loaded tiles in Wasm (might happen asynchronously)
 		for(let i in this.tileLoaded) this.deleteTile(Number(i));
+		// Reset Wasm state if initialized
 		if(this.i > 0) this.e.reset(this.i);
 	}
 
-	/** The the Wasm ptr
-	 * @internal
-	*/
+	/** Gets the pointer to the main Micrio instance in Wasm memory. @internal */
 	getPtr() : number {return this.i}
 
-	/** Add a new rendering canvas */
+	/**
+	 * Adds a new image canvas instance to the Wasm module.
+	 * Initializes the canvas in Wasm with image dimensions, settings, etc.
+	 * @internal
+	 * @param c The MicrioImage instance to add.
+	 */
 	private addCanvas(c:MicrioImage) : void {
 		const i = c.$info;
-		// Not available yet
-		if(!i) return;
-		// Loading error with info.json
-		if(c.error) {
+		if(!i) return; // Info must be loaded
+		if(c.error) { // Handle loading errors
 			this.micrio.loading.set(false);
 			return;
 		}
 
+		// Validate dimensions
 		if(!c.noImage && (!i.width || !i.height)) throw 'Invalid Micrio image size';
 
-		const settings = c.$settings;
+		const settings = c.$settings; // Get current settings
 
+		// Determine if part of a gallery or Omni object
 		this.isGallery = !!i.gallery || c.isOmni;
 
+		// Configure Wasm based on archive settings
 		if(settings.gallery?.archive) this.e.setHasArchive(this.i, true, settings.gallery.archiveLayerOffset ?? 0);
+		// Handle legacy version compatibility
 		if(i.version && Number(i.version) <= 3.1) this.e.setNoUnderzoom(this.i, true);
 
+		// Determine cover limit/start settings
 		const coverLimit = !!settings.limitToCoverScale;
 		const coverStart = coverLimit || settings.initType == 'cover';
 
+		// If it's a virtual canvas, mark loading as complete
 		if(c.noImage) this.micrio.loading.set(false);
 
+		// Determine focus point
 		const focus = [.5,.5];
 		const f = settings.focus;
 		const isSpaces = !!i.spacesId;
@@ -264,236 +306,276 @@ export class Wasm {
 			if(!isNaN(f[1]) && f[1] !== null) focus[1] = f[1];
 		}
 
+		// Set true north for 360 images
 		if(i.is360) c.camera.trueNorth = settings._360?.trueNorth ?? .5;
 
-
+		// Check for 360 video
 		const vid360 = settings._360?.video;
-		const is360Video = i.is360 && vid360 &&
-			(vid360.src || ('video' in vid360 && vid360['video']));
+		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360['video']));
 
+		// Determine if it's a gallery type where images overlap
 		const gallerySwitch = !!this.isGallery && (settings.gallery?.type == 'switch'
 			|| settings.gallery?.type == 'omni'
 			|| settings.gallery?.type == 'swipe-full');
 
-		// Initialize Wasm Canvas
+		// Get Omni layer count and start index
+		const numOmniLayers = settings.omni?.layers?.length ?? 1;
+		if(settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);
+
+		// Call Wasm constructor for the canvas instance
 		c.ptr = this.e._constructor(
-			this.i,
-			i.width,
-			i.height,
-			i.tileSize ?? 1024,
+			this.i, // Main Micrio instance pointer
+			i.width, i.height, i.tileSize ?? 1024,
 			i.is360 ?? false,
-			c.noImage,
-			!!(i.isSingle || is360Video),
-			c.opacity,
-			settings.freeMove ?? false,
-			coverLimit,
-			coverStart,
-			(settings.zoomLimit || 1) * (settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1),
-			settings.camspeed ?? 1,
-			c.camera.trueNorth,
-			gallerySwitch,
-			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe',
-			c.isOmni,
-			settings.pinchZoomOutLimit ?? false,
-			settings.omni?.layers?.length ?? 1
+			c.noImage, // Is it a virtual canvas?
+			!!(i.isSingle || is360Video), // Is it a single texture (video/image)?
+			c.opacity, // Initial opacity
+			settings.freeMove ?? false, // Enable free camera movement?
+			coverLimit, // Limit zoom out to cover?
+			coverStart, // Start zoomed to cover?
+			(settings.zoomLimit || 1) * (settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1), // Max zoom limit (with DPR fix)
+			settings.camspeed ?? 1, // Camera speed
+			c.camera.trueNorth, // 360 true north offset
+			gallerySwitch, // Is it an overlapping gallery type?
+			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe', // Is it a swiping spreads gallery?
+			c.isOmni, // Is it an Omni object?
+			settings.pinchZoomOutLimit ?? false, // Limit pinch zoom out?
+			numOmniLayers, // Number of Omni layers
+			settings.omni?.layerStartIndex ?? 0, // Omni start layer index
 		);
 
+		// Bind camera buffers to Wasm memory
 		this.bindCamera(c);
 
+		// Set initial area if defined
 		if(c.opts.area) c.camera.setArea(c.opts.area, {direct: true, noDispatch:true, noRender:true});
 
+		// Set custom durations if provided
 		if(settings?.crossfadeDuration)
 			this.e.setCrossfadeDuration(this.i, settings.crossfadeDuration);
-
 		if(settings?.embedFadeDuration)
 			this.e.setEmbedFadeDuration(this.i, settings.embedFadeDuration);
-
 		if(settings?.dragElasticity !== undefined)
 			this.e.setDragElasticity(this.i, settings.dragElasticity);
-
 		if(settings?.skipBaseLevels)
 			this.e.setSkipBaseLevels(this.i, settings.skipBaseLevels);
 
+		// Apply Omni-specific settings
 		if(settings?.omni) c.camera.setOmniSettings();
+		// Apply limited rendering mode if attribute set
 		if(this.micrio.hasAttribute('data-limited')) this.e._setLimited(c.ptr, true);
 
+		// Add image to managed list
 		this.images.push(c);
+		// Request initial viewport calculation from Wasm
 		this.e._sendViewport(c.ptr);
 
+		// Track base tile index for this image
 		const numTiles = this.e.getNumTiles(this.i);
 		if(numTiles > 0) {
-			this.tileOpacity[numTiles-1] = 1;
+			this.tileOpacity[numTiles-1] = 1; // Assume base tile is loaded initially?
 			this.baseTiles.push(numTiles-1);
 		}
+		// Create Float32Array view for the perspective matrix
 		const mPtr = this.e._getPMatrix(c.ptr);
 		this._pMatrices[mPtr] = new Float32Array(this.b, mPtr + 32, 16);
 
+		// Set initial view (from state, settings, or focus point)
 		const v = get(c.state.view) || settings.view;
-		if(v && v.toString() != '0,0,1,1') {
+		if(v && v.toString() != '0,0,1,1') { // If specific view is set
 			this.e._setView(c.ptr, v[0], v[1], v[2], v[3], false, false, false);
-		} else if((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') {
-			this.e._setCoo(c.ptr, focus[0], focus[1], 0, 0, performance.now());
-			settings.focus = undefined;
+		} else if((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') { // If focus point is set (and not default 360)
+			this.e._setCoo(c.ptr, focus[0], focus[1], 0, 0, performance.now()); // Set view centered on focus point
+			settings.focus = undefined; // Clear focus setting after applying
 		}
 
-		// When a 360 video starts playing, trigger render
+		// Trigger render loop when 360 video starts playing
 		c.video.subscribe(v => v && v.addEventListener('play', this.render));
 
+		// Mark virtual canvases as visible immediately
 		if(c.noImage) c.visible.set(true);
 
+		// Set this canvas as the active one in Wasm
 		this.setCanvas(c);
 	}
 
-	/** Bind the camera to the individual FloatArrays
+	/**
+	 * Binds a MicrioImage's Camera instance to the corresponding Wasm memory buffers.
 	 * @internal
+	 * @param img The MicrioImage instance.
 	*/
 	private bindCamera(img:MicrioImage) : void {
-		this.cameras.set(img.ptr, img.camera);
+		this.cameras.set(img.ptr, img.camera); // Store camera instance by pointer
+		// Assign FloatArray views into Wasm memory to the camera instance
 		img.camera.assign(
 			this.e,
-			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4),
-			new Float64Array(this.b, this.e._getXY(img.ptr, 0,0) + 32, 5),
-			new Float64Array(this.b, this.e._getCoo(img.ptr, 0,0) + 32, 5),
-			new Float32Array(this.b, this.e._getMatrix(img.ptr) + 32, 16),
-			new Float32Array(this.b, this.e._getQuad(img.ptr, 0,0,0,0,0,0) + 32, 16)
+			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4), // View buffer
+			new Float64Array(this.b, this.e._getXY(img.ptr, 0,0) + 32, 5), // XY buffer
+			new Float64Array(this.b, this.e._getCoo(img.ptr, 0,0) + 32, 5), // Coo buffer
+			new Float32Array(this.b, this.e._getMatrix(img.ptr) + 32, 16), // Matrix buffer
+			new Float32Array(this.b, this.e._getQuad(img.ptr, 0,0,0,0,0,0) + 32, 16) // Quad buffer
 		)
 	}
 
-	/** Set the specified canvas as active
-	 * @param canvas The Image to add
+	/**
+	 * Sets the currently active canvas/image instance in the Wasm module.
+	 * Handles adding the canvas to Wasm if it's not already initialized.
+	 * @param canvas The MicrioImage instance to set as active.
 	*/
 	setCanvas(canvas?:MicrioImage) : void {
+		// Exit if no canvas provided or it's already the active one
 		if(!canvas || (canvas.ptr > 0 && canvas.ptr == this.c)) return;
 
-		// If unknown, subscribe to info set
+		// If canvas hasn't been added to Wasm yet, wait for its info then add it
 		if(canvas.ptr < 0) once(canvas.info).then(info => { if(!info) return;
+			// Ensure this canvas is still the intended target (relevant for async operations)
 			if(!this.micrio.$current || (!info.isIIIF && !canvas.opts.secondaryTo && info.id != this.micrio.$current.id)) return;
-			this.addCanvas(canvas);
+			this.addCanvas(canvas); // Add canvas to Wasm
+			// Add any embeds associated with this canvas
 			if(canvas.embeds.length) canvas.embeds.forEach(e => this.addEmbed(e, canvas));
 		});
+		// If canvas already exists in Wasm, just set it as active
 		else if(this.c != canvas.ptr) {
+			// Preserve orientation when switching between 360 images
 			const yaw = canvas.is360 && this.c >= 0 ? this.e._getYaw(this.c) : 0;
 			const pitch = canvas.is360 && this.c >= 0 ? this.e._getPitch(this.c) : 0
-			const v = canvas.$settings.view;
-			this.c = canvas.ptr;
-			// In case of 360, inherit current camera yaw and reset perspective
-			// but only if no specific start view has been set and not end of tour
+			this.c = canvas.ptr; // Update active canvas pointer
+			// Apply previous orientation if applicable (and not coming from waypoint)
 			if(canvas.is360 && !this.preventDirectionSet && yaw && pitch)
 				this.e._setDirection(this.c, yaw, pitch, true);
-			// Was faded out before
+			// Fade in if it was previously faded out
 			if(this.e._getTargetOpacity(canvas.ptr) == 0) this.e._fadeIn(canvas.ptr);
-			this.preventDirectionSet = false;
-			this.ready = true;
-			this.render();
+			// Set initial Omni layer if applicable
+			if(canvas.$settings.omni?.layerStartIndex) canvas.state.layer.set(canvas.$settings.omni.layerStartIndex);
+			this.preventDirectionSet = false; // Reset flag
+			this.ready = true; // Mark Wasm as ready for rendering this canvas
+			this.render(); // Trigger render loop
 		}
 	}
 
-	/** Remove a canvas */
+	/** Removes a canvas instance from the Wasm module. */
 	removeCanvas(c:MicrioImage) : void {
 		if(c.ptr < 0) throw 'Canvas is not placed yet';
-		this.e._remove(c.ptr);
-		this.render();
+		this.e._remove(c.ptr); // Call Wasm remove function
+		this.render(); // Trigger render to update display
 	}
 
-	/** Request a next frame to draw */
+	/** Requests the next animation frame to trigger the `draw` method. */
 	render() : void {
+		// Request frame only if not already requested
 		if(this.raf < 0) this.raf = this.micrio.webgl.display.requestAnimationFrame(this.draw);
 	}
 
-	/** Draw an actual frame */
+	/**
+	 * The main drawing loop, called by `requestAnimationFrame`.
+	 * Checks if rendering is needed, calls the Wasm draw function,
+	 * dispatches events, and cleans up unused tiles.
+	 * @internal
+	 * @param now Timestamp provided by `requestAnimationFrame`.
+	 */
 	private draw(now:number = performance.now()) : void {
-		if(!this.micrio.isConnected) return;
+		if(!this.micrio.isConnected) return; // Exit if element disconnected
 
-		this.raf = -1;
-		this.drawing = false;
-		this.now = now;
+		this.raf = -1; // Reset RAF ID
+		this.drawing = false; // Reset drawing flag
+		this.now = now; // Store current timestamp
 
-		// If needed, request another frame
+		// Check if Wasm indicates drawing is needed or if forced
 		if(this.e.shouldDraw(this.i, now) == 1
-			|| this.micrio.keepRendering
-			|| this.micrio.events.isNavigating
-			|| this.micrio._current?._video?.paused === false) this.render();
+			|| this.micrio.keepRendering // Forced continuous rendering
+			|| this.micrio.events.isNavigating // User is interacting
+			|| this.micrio._current?._video?.paused === false) // Video is playing
+		{
+			this.render(); // Request the next frame
+		}
 
-		// Draw actual tiles
+		// Prepare for drawing (e.g., clear canvas if gallery)
 		if(this.isGallery) this.drawStart();
-		this.drawn.length = 0;
-		this.e.draw(this.i);
+		this.drawn.length = 0; // Clear list of drawn tiles for this frame
+		this.e.draw(this.i); // Call the main Wasm draw function
 
-		this.micrio.events.dispatch('draw');
+		this.micrio.events.dispatch('draw'); // Dispatch 'draw' event
 
-		this.cleanup();
+		this.cleanup(); // Clean up unused tiles
 
-		this.micrio.webgl.drawEnd();
+		this.micrio.webgl.drawEnd(); // Finalize WebGL drawing state
 	}
 
-	/** Cancel the current requestAnimationFrame request */
+	/** Stops the rendering loop by canceling the animation frame request. @internal */
 	private stop(){
 		if(this.raf < 0) return;
 		this.micrio.webgl.display.cancelAnimationFrame(this.raf);
 		this.raf = -1;
 	}
 
-	/** Tile drawing function called from inside Wasm
-	 * @returns True when the tile is downloaded and ready to drawn
+	/**
+	 * Callback function called from Wasm for each tile that needs to be drawn.
+	 * Handles loading the tile texture if necessary and calls the WebGL draw function.
+	 * @internal
+	 * @returns True if the tile texture is ready and drawn, false otherwise.
 	 */
 	private drawTile(
-		/** The image index */
-		imgIdx: number,
-		/** The tile texture index */
-		i: number,
-		/** The layer index */
-		layer: number,
-		/** The tile X coordinate */
-		x: number,
-		/** The tile Y coordinate */
-		y: number,
-		/** The tile opacity */
-		opacity: number,
-		/** The camera is currently animating */
-		animating: boolean,
-		/** The tile is the current >=100% sharpness target layer */
-		targetLayer: boolean
+		imgIdx: number, // Index of the MicrioImage in the `images` array
+		i: number, // Global tile index
+		layer: number, // Zoom level index
+		x: number, // Tile X coordinate
+		y: number, // Tile Y coordinate
+		opacity: number, // Current opacity (for fading)
+		animating: boolean, // Is the camera currently animating?
+		targetLayer: boolean // Is this tile part of the target resolution layer?
 	) : boolean {
-		this.drawn.push(i);
-		if(i in this.toDelete) delete this.toDelete[i];
+		this.drawn.push(i); // Mark tile as drawn this frame
+		if(i in this.toDelete) delete this.toDelete[i]; // Cancel pending deletion if drawn again
 
-		const numLoading = runningThreads();
-		const c = this.images[imgIdx],
-			isVideo = 'camera' in c && c.isVideo,
-			is360 = 'camera' in c && c.is360,
-			img = 'camera' in c ? c : c.image,
-			frame = 'frame' in c ? c.frame : undefined;
+		const numLoading = runningThreads(); // Get number of active texture downloads
+		const c = this.images[imgIdx]; // Get the image/frame object
+		// Determine if it's a video or 360 image
+		const isVideo = 'camera' in c && c.isVideo;
+		const is360 = 'camera' in c && c.is360;
+		// Get the actual MicrioImage instance (might be the object itself or its parent)
+		const img = 'camera' in c ? c : c.image;
+		// Get frame number if it's an Omni frame object
+		const frame = 'frame' in c ? c.frame : undefined;
 
-		// Only start downloading tiles of active Micrio
+		// --- Texture Loading Logic ---
+		// If tile is not loaded and workers are available
 		if(!this.loadStates[i] && numLoading < numThreads) {
-			// Prioritize lower-level tiles for animating
+			// Prioritization: Delay loading high-res tiles during animation if workers busy,
+			// or if in barebone mode and many workers are busy.
 			if(this.bareBone ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
 
-			// Don't download embedded image video thumb first
-			if(isVideo && !is360) {
-				this.loadStates[i] = 2;
-				this.textures[i] = this.micrio.webgl.getTexture();
+			// Handle video textures (create texture immediately, update later)
+			if(isVideo && !is360) { // Exclude 360 videos (handled differently?)
+				this.loadStates[i] = 2; // Mark as loaded (texture created, content pending)
+				this.textures[i] = this.micrio.webgl.getTexture(); // Create empty WebGL texture
 			}
+			// Handle standard image tiles
 			else {
-				this.loadStates[i] = 1;
-				const src = img.getTileSrc(layer, x, y, frame);
-				if(src) this.getTexture(i, src, animating, {
-					noSmoothing: '$info' in c && c.$settings.noSmoothing
+				this.loadStates[i] = 1; // Mark as loading
+				const src = img.getTileSrc(layer, x, y, frame); // Get tile URL
+				if(src) this.getTexture(i, src, animating, { // Start loading via texture loader
+					noSmoothing: '$info' in c && c.$settings.noSmoothing // Pass smoothing option
 				});
+				else {
+					// TODO: Handle case where getTileSrc returns undefined (e.g., invalid coords)
+					this.loadStates[i] = 0; // Reset state if no src
+					return false;
+				}
 			}
 		}
-
+		// If tile texture is ready (state >= 2)
 		else if(this.loadStates[i]>=2) {
-			// Only clear canvas if there is something to draw
+			// Clear canvas only on the first draw operation of the frame
 			if(!this.drawing) this.drawStart();
 
-			const texture = this.textures[i];
-			if(texture != null) {
-				if(isVideo) {
-					// Video not playable yet
-					if(!img._video || !img._video.dataset.playing) return false;
-					this.micrio.webgl.updateTexture(texture, img._video);
+			const texture = this.textures[i]; // Get the WebGL texture
+			if(texture != null) { // Check if texture exists
+				if(isVideo) { // Handle video texture update
+					// Check if video element exists and is ready to play
+					if(!img._video || !img._video.dataset.playing) return false; // Video not ready
+					this.micrio.webgl.updateTexture(texture, img._video); // Update texture with current video frame
 				}
+				// Draw the tile using WebGL controller
 				this.micrio.webgl.drawTile(texture, opacity, is360);
 			}
 
@@ -501,31 +583,33 @@ export class Wasm {
 			if(this.loadStates[i] == 2) {
 				this.loadStates[i] = 3;
 				this.tileLoaded[i] = this.now;
-				return true;
 			}
-		}
 
-		return false;
+			return true; // Indicate tile was drawn
+		}
+		return false; // Tile not ready or not drawn
 	}
 
-	/** Clear the canvas for drawing */
+	/** Prepares the WebGL context for drawing a new frame (clears canvas). @internal */
 	private drawStart() : void {
 		if(this.drawing) return;
-		this.micrio.webgl.drawStart();
-		this.drawing = true;
+		this.micrio.webgl.drawStart(); // Call WebGL controller's start function
+		this.drawing = true; // Set drawing flag
 	}
 
-	/** Download a texture
+	/**
+	 * Initiates loading of a texture using the texture loader utility.
+	 * Handles queuing and prioritization.
 	 * @internal
-	 * @param i The texture index
-	 * @param src The texture image source url
-	 * @param ani The camera is currently animating
-	 * @param force Even download when thread limit exceeded (for archived)
+	 * @param i Global tile index.
+	 * @param src URL of the texture image.
+	 * @param ani Is the camera currently animating?
+	 * @param opts Texture options (e.g., noSmoothing).
 	 */
-	 getTexture(i:number, src:string, ani:boolean, opts: {
-			force?:boolean;
-			noSmoothing?:boolean
-	 } = {}) : void {
+	getTexture(i:number, src:string, ani:boolean, opts: {
+		force?:boolean;
+		noSmoothing?:boolean
+	} = {}) : void {
 		if(this.textures[i] || this.requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
 		const inArchive = archive.db.has(src);
 		if(!inArchive) this.micrio.loading.set(true);
@@ -535,30 +619,34 @@ export class Wasm {
 			.catch(() => this.deleteRequest(i));
 	}
 
-	/** Received the texture data */
+	/**
+	 * Callback executed when a texture bitmap is successfully loaded.
+	 * Creates/updates the WebGL texture and schedules cleanup.
+	 * @internal
+	 * @param i Global tile index.
+	 * @param img Loaded texture bitmap (ImageBitmap or HTMLImageElement).
+	 * @param ani Was the camera animating when the load was initiated?
+	 * @param noSmoothing Don't smooth the texture on MAG
+	 */
 	private gotTexture(
-		/** The texture image index */
 		i:number,
-		/** The texture image object */
 		img:TextureBitmap,
-		/** The camera is currently animating */
 		ani:boolean,
-		/** Don't smooth the texture on MAG */
 		noSmoothing?:boolean
 	) : void {
-		this.textures[i] = this.micrio.webgl.getTexture(img, noSmoothing);
+		// Create or update WebGL texture
+		this.textures[i] = this.micrio.webgl.getTexture(img, this.textures[i], noSmoothing);
 		if(self.ImageBitmap != undefined && img instanceof ImageBitmap && img['close'] instanceof Function) img['close']();
-		this.loadStates[i] = 2;
-		this.timeouts[i] = <any>(setTimeout(() => {
+		this.loadStates[i] = 2; // Mark as loaded
+
+		// Schedule deletion after a delay if not drawn recently and not animating
+		this.timeouts[i] = setTimeout(() => {
 			this.deleteRequest(i);
-		}, ani ? 150 : 50)) as number;
+		}, ani ? 150 : 50) as unknown as number;
 	}
 
-	/** Delete an ended or cancelled request */
-	private deleteRequest(
-		/** The tile index */
-		i:number
-	) : void {
+	/** Removes a request from the tracking map. @internal */
+	private deleteRequest(i:number) : void {
 		this.requests.delete(i);
 		clearTimeout(this.timeouts[i]);
 		delete this.timeouts[i];
@@ -566,23 +654,27 @@ export class Wasm {
 		if(!this.requests.size) this.micrio.loading.set(false);
 	}
 
-	/** Delete a tile */
-	private deleteTile(
-		/** The tile index */
-		idx: number
-	) : void {
-		const txt = this.textures[idx];
-		if(!txt) return;
-		this.micrio.webgl.gl.deleteTexture(txt);
+	/** Deletes a WebGL texture and associated state. @internal */
+	private deleteTile(idx:number) : void {
+		this.micrio.webgl.gl.deleteTexture(this.textures[idx]); // Delete WebGL texture
+		// Clear associated state
 		delete this.textures[idx];
-		delete this.toDelete[idx]
+		delete this.toDelete[idx];
 		delete this.loadStates[idx];
 		delete this.tileOpacity[idx];
 		delete this.tileLoaded[idx];
+		clearTimeout(this.timeouts[idx]);
+		delete this.timeouts[idx];
 	}
 
-	/** Do a general cleanup */
+	/**
+	 * Performs cleanup after each frame.
+	 * Identifies unused tiles and schedules them for deletion.
+	 * Deletes tiles marked for deletion if they haven't been reused.
+	 * @internal
+	 */
 	private cleanup() : void {
+		// Identify tiles drawn last frame but not this frame
 		const removed = this.prevDrawn.filter(i => this.drawn.indexOf(i) < 0 && this.loadStates[i] > 0 && this.baseTiles.indexOf(i) < 0);
 		const now = performance.now();
 
@@ -613,8 +705,10 @@ export class Wasm {
 
 		}
 
+		// Store currently drawn tiles for the next frame's comparison
 		this.prevDrawn = this.drawn.slice(0);
 
+		// Delete tiles marked for deletion longer than X second ago
 		const deleteAfterSeconds = Browser.iOS ? 5 : 30;
 
 		for(let key in this.toDelete) {
@@ -623,14 +717,15 @@ export class Wasm {
 		}
 	}
 
-	// WASM external functions
-
-	/** Resize the internal canvas
-	 * @param c The viewport rect
-	*/
+	/**
+	 * Resizes the WebGL viewport and updates Wasm dimensions.
+	 * @internal
+	 * @param c The new canvas view rectangle.
+	 */
 	resize(c: Models.Canvas.ViewRect) : void {
+		// Notify Wasm of resize
 		this.e.resize(this.i, c.width, c.height, c.left, c.top, c.ratio, c.scale, c.portrait);
-		if(this.ready) { this.stop(); this.draw(); }
+		if(this.ready) { this.stop(); this.draw(); } // Trigger render
 	}
 
 	/** Add a child image to the current canvas, either embed or independent canvas */
@@ -670,13 +765,14 @@ export class Wasm {
 		this.baseTiles.push(image.baseTileIdx);
 	})
 
-	/** Add a child image to the current canvas
-	 * @param image The image
-	 * @param parent The parent image
-	 * @param opts Embedding options
-	 * @returns Promise when the image is added
+	/**
+	 * Adds an embedded MicrioImage instance to Wasm.
+	 * @internal
+	 * @param img The embed MicrioImage instance.
+	 * @param parent The parent MicrioImage instance.
+	 * @param opts Embedding options.
 	 */
-	addEmbed = (image:MicrioImage|Models.Omni.Frame, parent:MicrioImage, opts: Models.Embeds.EmbedOptions = {}) => {
+	addEmbed(image:MicrioImage|Models.Omni.Frame, parent:MicrioImage, opts:Models.Embeds.EmbedOptions = {}) : Promise<void>|void {
 		if('camera' in image && opts.asImage) return this.addImage(image, parent, true, opts.opacity ?? 1);
 		else {
 			const i = '$info' in image ? image.$info : parent.$info;
@@ -697,29 +793,33 @@ export class Wasm {
 	 */
 	addChild = (image:MicrioImage, parent:MicrioImage) => this.addImage(image, parent);
 
-	/** Set an active gallery image
+	/**
+	 * Sets the active image frame index for an Omni object.
 	 * @internal
-	 * @param ptr The image pointer
-	 * @param idx The sub-image index
-	 * @param num Additional next image to also show
-	*/
+	 * @param ptr Wasm pointer to the Omni image instance.
+	 * @param idx Target frame index.
+	 * @param num Optional number of frames to blend (for smooth transitions).
+	 */
 	setActiveImage(ptr:number, idx:number, num?:number) : void {
 		this.e._setActiveImage(ptr, idx, num ?? 0);
 	}
 
-	/** Set an image layer
+	/**
+	 * Sets the active layer index for an Omni object.
 	 * @internal
-	 * @param ptr The image pointer
-	 * @param idx The layer index
+	 * @param ptr Wasm pointer to the Omni image instance.
+	 * @param idx Target layer index.
 	 */
 	setActiveLayer(ptr:number, idx:number) : void {
 		this.e._setActiveLayer(ptr, idx);
 	}
 
-	/** Simple image fader
-	 * @param ptr The child image mem pointer
-	 * @param opacity The target opacity
-	 * @param direct Set immediately
+	/**
+	 * Fades an image (main or embed) to a target opacity.
+	 * @internal
+	 * @param ptr Wasm pointer to the image instance.
+	 * @param opacity Target opacity (0-1).
+	 * @param direct If true, sets opacity instantly without animation.
 	 */
 	 fadeImage(ptr:number, opacity:number, direct:boolean = false) : void {
 		// Is main canvas image
@@ -729,12 +829,13 @@ export class Wasm {
 		this.render();
 	}
 
-	/** Set an active gallery image
+	/**
+	 * Sets the focus point for zoom operations.
 	 * @internal
-	 * @param ptr The image pointer
-	 * @param view The viewport to be made active
-	 * @param noLimit Don't update zoom limits
-	*/
+	 * @param ptr Wasm pointer to the image instance.
+	 * @param v View rectangle [x0, y0, x1, y1] defining the focus area.
+	 * @param noLimit If true, allows focus outside image bounds.
+	 */
 	setFocus(ptr:number, v:Models.Camera.View, noLimit:boolean=false) : void {
 		this.e._setFocus(ptr, v[0], v[1], v[2], v[3], noLimit);
 	}
