@@ -1,5 +1,9 @@
 import { writable, type Writable } from "svelte/store";
 
+/**
+ * Interface defining the structure for UI button translations.
+ * Each key corresponds to a specific UI element's title or label.
+ */
 interface ButtonTranslations {
 	close: string;
 	zoomIn: string;
@@ -24,9 +28,15 @@ interface ButtonTranslations {
 	waypointFollow: string;
 }
 
+/**
+ * Object containing translations for UI button titles in different languages.
+ * The keys are language codes (e.g., 'en', 'nl'), and the values are objects
+ * conforming to the `ButtonTranslations` interface.
+ */
 export const langs : {
 	[key: string]: ButtonTranslations
 } = {
+	/** English translations */
 	en: {
 		close: 'Close',
 		zoomIn: 'Zoom in',
@@ -50,6 +60,7 @@ export const langs : {
 		menuToggle: 'Toggle menu',
 		waypointFollow: 'Go this way',
 	},
+	/** Dutch translations */
 	nl: {
 		close: 'Sluit',
 		zoomIn: 'Zoom in',
@@ -73,6 +84,14 @@ export const langs : {
 		menuToggle: 'Menu openen / sluiten',
 		waypointFollow: 'Ga deze richting',
 	},
+	// TODO: Add more languages as needed
 };
 
+/**
+ * Writable Svelte store holding the currently active `ButtonTranslations` object.
+ * Defaults to English ('en'). UI components subscribe to this store to display
+ * translated text based on the currently selected language.
+ * The language is typically changed by updating the `micrio._lang` store, which
+ * should then trigger an update to this `i18n` store.
+ */
 export const i18n:Writable<ButtonTranslations> = writable(langs.en);
