@@ -1,32 +1,45 @@
+/**
+ * Defines various enums used throughout the Micrio application,
+ * primarily for standardizing action types and option values.
+ */
 export namespace Enums {
+	/** Enums related to the Grid functionality. */
 	export namespace Grid {
-		/** External grid action types */
+		/**
+		 * Defines the types of actions that can be performed on a Grid instance,
+		 * often triggered by marker data (`gridAction`) or tour events.
+		 */
 		export enum GridActionType {
-			/** Filter the grid display by these IDs, comma separated */
+			/** Focus on specific images within the grid, hiding others. Data: comma-separated image IDs. */
 			focus,
-			/** Fly the camera to the bounding box of these in-grid image IDs */
+			/** Animate the main grid view to fit the bounding box of specified images. Data: comma-separated image IDs. */
 			flyTo,
-			/** Filter the grid to the images containing markers that have this custom class name */
+			/** Focus on images containing markers with a specific tag. Data: tag name. */
 			focusWithTagged,
-			/** Filter the grid to the images containing markers that have this custom class name, and fly to their views */
+			/** Focus on images containing markers with a specific tag and fly to the marker views. Data: tag name. */
 			focusTagged,
-			/** Reset the grid to its inception state */
+			/** Reset the grid to its initial layout and view. */
 			reset,
-			/** Go back one grid history step */
+			/** Navigate back one step in the grid layout history. */
 			back,
-			/** When a grid image is in full-focus, immediately switch to the view as if it were in the initial grid */
+			/** Instantly switch a focused image back to its position within the grid layout (used internally?). */
 			switchToGrid,
-			/** If there is a current MarkerTour going on, filter the grid to all grid images that are part of the tour */
+			/** Filter the grid to show only images that are part of the currently active marker tour. */
 			filterTourImages,
-			/** Single time fade duration for next image that will be navigated to */
+			/** Set a one-time crossfade duration for the *next* grid transition. Data: duration in seconds. */
 			nextFadeDuration,
+			// TODO: Consider adding 'layout' action type if setting layouts via events is intended.
 		}
 	}
 
+	/** Enums related to the Camera functionality. */
 	export namespace Camera {
-		/** Camera animation timing function */
+		/**
+		 * Defines the available timing functions for camera animations (flyToView, flyToCoo).
+		 * These correspond to standard CSS easing functions.
+		 */
 		export enum TimingFunction {
-			'ease',
+			'ease', // Default ease-in-out
 			'ease-in',
 			'ease-out',
 			'linear'
