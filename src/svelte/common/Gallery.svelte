@@ -246,6 +246,9 @@
 	function preload(c:number){ // c = current index
 		const imgs:number[] = []; // Array to store indices to preload
 
+		// Adjust for current viewed layer
+		if(layerNames.length) c += $layer * Math.floor(images.length / layerNames.length);
+
 		// Adjust index for spreads
 		if(isSpread && c >= coverPages) c=c*2-coverPages;
 
@@ -491,7 +494,10 @@
 				children: layerNames.map((title,i) => ({ // Create child items for each layer
 					id: 'omni-layer-'+i,
 					i18n: title.i18n,
-					action: () => image.state.layer.set(i) // Action sets the layer store
+					action: () => {
+						layer.set(i) // Action sets the layer store
+						preload(currentPage);
+					}
 				})).filter(p => p.id != 'omni-layer-'+$layer) // Exclude the current layer
 			};
 			// Replace existing menu or add new one
