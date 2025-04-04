@@ -17,7 +17,7 @@
 	import type { MicrioImage } from '../../ts/image';
 	import { writable, type Unsubscriber } from 'svelte/store';
 
-	import { getContext, onMount, tick, createEventDispatcher } from 'svelte';
+	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { i18n } from '../../ts/i18n';
 	import { loadSerialTour } from '../../ts/utils'; // Utility for loading serial tour step info
@@ -30,19 +30,21 @@
 
 	// --- Props ---
 
-	/** The tour data object (can be MarkerTour or VideoTour). */
-	export let tour:Models.ImageData.MarkerTour|Models.ImageData.VideoTour;
-	/** If true, suppresses rendering of HTML controls (used when UI is handled externally). */
-	export let noHTML:boolean = false;
+	interface Props {
+		/** The tour data object (can be MarkerTour or VideoTour). */
+		tour: Models.ImageData.MarkerTour|Models.ImageData.VideoTour;
+		/** If true, suppresses rendering of HTML controls (used when UI is handled externally). */
+		noHTML?: boolean;
+		onminimize?: (b:boolean) => void;
+	}
+
+	let { tour = $bindable(), noHTML = false, onminimize }: Props = $props();
 
 	// --- Setup & State ---
 
-	/** Svelte event dispatcher. */
-	const dispatch = createEventDispatcher();
-
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio:HTMLMicrioElement = <HTMLMicrioElement>getContext('micrio');
-	const { events, state, _lang } = micrio;
+	const { events, state: micrioState, _lang } = micrio;
 
 	/** Reference to the current image instance. */
 	const image = micrio.$current as MicrioImage;
@@ -183,7 +185,7 @@
 
 	/** Exits the current tour by clearing the global tour state. */
 	function exit(){
-		state.tour.set(undefined);
+		micrioState.tour.set(undefined);
 	}
 
 	/** Handles the 'ended' event from video tours or SerialTour component. */
@@ -194,9 +196,9 @@
 
 	// --- Marker Tour Setup ---
 	/** Current step index for marker tours. */
-	let currentTourStep:number = -1;
+	let currentTourStep:number = $state(-1);
 	/** Flag indicating if a non-tour marker is currently opened. */
-	let isOtherMarkerOpened:boolean = false;
+	let isOtherMarkerOpened:boolean = $state(false);
 	/** Store the initial view when the tour starts. */
 	const startView = image.camera.getView();
 	/** Reference to marker settings. */
@@ -207,11 +209,7 @@
 		tour.prev = prev;
 		tour.next = next;
 		tour.goto = goto;
-		// Define reactive getter for currentStep
-		Object.defineProperty(tour, 'currentStep', {
-			configurable: true,
-			get(){return currentTourStep}
-		});
+		$effect(() => { tour.currentStep = currentTourStep });
 	}
 
 	// --- UI Minimization State ---
@@ -232,13 +230,13 @@
 
 	// --- Scroll Tour State ---
 	/** Reference to the scrollable container element. */
-	let _scroller:HTMLElement;
+	let _scroller:HTMLElement|undefined = $state();
 	/** IntersectionObserver for scroll tour steps. */
 	let observer:IntersectionObserver;
 
 	/** IntersectionObserver callback for scroll tours. */
 	function onintersect(e:IntersectionObserverEntry[]){
-		if(!('steps' in tour)) return;
+		if(!('steps' in tour) || !_scroller) return;
 		// Find the intersecting element
 		const steps = tour.steps;
 		const el = e.filter(e => e.isIntersecting).map(e => e.target)[0];
@@ -288,7 +286,7 @@
 		if('steps' in tour) loadSerialTour(image, tour, $_lang, image.$data!).then(() => startMarkerTour(tour));
 
 		// Subscribe to minimize state if controls are shown
-		if(!noControls) unsub.push(minimized.subscribe(m => dispatch('minimize', m)));
+		if(!noControls) unsub.push(minimized.subscribe(m => onminimize?.(m)));
 
 		// Setup auto-minimize listeners if applicable
 		if(!noHTML && (!('steps' in tour) || isSerialTour) && tour.minimize !== false) {
@@ -347,16 +345,16 @@
 	events.dispatch('tour-start', tour);
 
 	// --- Playback State (Redeclaration - seems redundant) ---
-	let currentTime:number=0;
-	let paused:boolean=false;
+	let currentTime:number=$state(0);
+	let paused:boolean=$state(false);
 
 	// --- Reactive Declarations (`$:`) ---
 	/** Reactive variable for the video tour data (if applicable). */
-	$: videoTour = !('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined;
+	let videoTour = $derived(!('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined);
 	/** Reactive audio asset for the current step/tour. */
-	$: audio = videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined;
+	let audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
 	/** Reactive audio source URL. */
-	$: audioSrc = audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined;
+	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
 
 </script>
 
@@ -367,7 +365,7 @@
 		<article class="scroll-tour" bind:this={_scroller}>{#each tour.steps.map(step => data.markers && data.markers.find(m => m.id==step.split(',')[0])) as marker}{#if marker}
 			<MarkerPopup {marker} /> <!-- Render each marker popup -->
 		{/if}{/each}</article>
-		{#if !tour.cannotClose}<Button type="close" title={$i18n.tourStop} className="scroll-tour-end" on:click={exit} />{/if}
+		{#if !tour.cannotClose}<Button type="close" title={$i18n.tourStop} className="scroll-tour-end" onclick={exit} />{/if}
 
 	<!-- Independent tour controls (Video or Serial) -->
 	{:else if isIndependent}
@@ -375,11 +373,11 @@
 			class:no-controls={noControls} class:minimized={!paused&&($minimized||isOtherMarkerOpened)} in:fade={{duration: 200}}>
 			{#if 'steps' in tour}
 				<!-- Render SerialTour component or standard marker tour controls -->
-				{#if isSerialTour}<SerialTour {tour} on:ended={ended} />
+				{#if isSerialTour}<SerialTour {tour} onended={ended} />
 				{:else}
-					<Button type="arrow-left" title={$i18n.tourStepPrev} disabled={currentTourStep==0} on:click={prev} />
+					<Button type="arrow-left" title={$i18n.tourStepPrev} disabled={currentTourStep==0} onclick={prev} />
 					<Button noClick>{currentTourStep+1} / {tour.steps.length}</Button>
-					<Button type="arrow-right" title={$i18n.tourStepNext} disabled={currentTourStep==tour.steps.length-1} on:click={next} />
+					<Button type="arrow-right" title={$i18n.tourStepNext} disabled={currentTourStep==tour.steps.length-1} onclick={next} />
 				{/if}
 			{:else}
 				<!-- Render Video Tour controls via Media component -->
@@ -391,19 +389,19 @@
 				<!-- Bind step's current time -->
 				<Media {tour} src={audioSrc}
 					fullscreen={micrio} controls autoplay bind:paused={paused}
-					bind:currentTime on:ended={ended} />
+					bind:currentTime onended={ended} />
 			{/if}
 			<!-- Common Close button -->
-			{#if !tour.cannotClose}<Button type="close" title={$i18n.close} on:click={exit} />{/if}
+			{#if !tour.cannotClose}<Button type="close" title={$i18n.close} onclick={exit} />{/if}
 		</div>
 
 	<!-- Video tour embedded within a marker popup -->
 	{:else if videoTour}
-		<Media tour={videoTour} src={audioSrc} bind:currentTime autoplay on:ended={ended} />
+		<Media tour={videoTour} src={audioSrc} bind:currentTime autoplay onended={ended} />
 	{/if}
 <!-- If noHTML is true, but it's a video tour, still render the Media component for playback logic -->
 {:else if videoTour}
-	<Media tour={videoTour} src={audioSrc} autoplay bind:currentTime on:ended={ended} />
+	<Media tour={videoTour} src={audioSrc} autoplay bind:currentTime onended={ended} />
 {/if}
 
 <style>

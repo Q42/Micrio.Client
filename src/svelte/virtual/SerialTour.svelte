@@ -12,7 +12,7 @@
 	import type { Models } from '../../types/models';
 	import type { MicrioImage } from '../../ts/image';
 
-	import { onMount, getContext, tick, createEventDispatcher } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
 	import { get, writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
 	import { i18n } from '../../ts/i18n'; // For button titles
@@ -24,17 +24,18 @@
 	import ProgressBar from '../ui/ProgressBar.svelte'; // Displays overall tour progress
 
 	// --- Props ---
+	interface Props {
+		/** The marker tour data object. Assumes `stepInfo` has been populated. */
+		tour: Models.ImageData.MarkerTour;
+		onended?: Function;
+	}
 
-	/** The marker tour data object. Assumes `stepInfo` has been populated. */
-	export let tour:Models.ImageData.MarkerTour;
+	let { tour, onended }: Props = $props();
 
 	// --- Setup & State ---
 
 	/** Assert that stepInfo exists and is populated (done during data enrichment). */
 	const stepInfo = tour.stepInfo as Models.ImageData.MarkerTourStepInfo[];
-
-	/** Svelte event dispatcher. */
-	const dispatch = createEventDispatcher();
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -53,21 +54,21 @@
 
 	// --- Playback State ---
 	/** Is the tour currently paused? */
-	let paused:boolean = false;
+	let paused:boolean = $state(false);
 	/** Has the tour reached the end? */
-	let ended:boolean = false;
+	let ended:boolean = $state(false);
 	/** Is the main Micrio instance muted? */
-	let muted:boolean = get(micrio.isMuted);
+	let muted:boolean = $state(get(micrio.isMuted));
 
 	/** Reference to the VideoTour instance within the current step's marker (if any). */
-	let current:Models.ImageData.VideoTour|undefined;
+	let current:Models.ImageData.VideoTour|undefined = $state();
 	/** Reference to the current step's info object. */
-	let currentStepInfo:Models.ImageData.MarkerTourStepInfo|undefined;
+	let currentStepInfo:Models.ImageData.MarkerTourStepInfo|undefined = $state();
 	/** Current overall playback time of the tour in seconds. */
-	let currentTime:number = 0;
+	let currentTime:number = $state(0);
 
 	/** Unique ID for the currently playing media (used for state persistence). */
-	let currentMediaUUID:string;
+	let currentMediaUUID:string = $state('');
 
 	// --- Playback Control Functions ---
 
@@ -134,7 +135,7 @@
 		// Otherwise, end the tour
 		else {
 			paused = ended = true;
-			dispatch('ended'); // Dispatch local ended event
+			onended?.(); // Dispatch local ended event
 		}
 		// Reset step times after a tick (allows UI to update first)
 		tick().then(() => {
@@ -189,7 +190,7 @@
 	// --- Utility ---
 
 	/** Helper to get the language-specific title for a marker. */
-	const getTitle = (m:Models.ImageData.Marker) : string|undefined => m.i18n ? m.i18n[$lang]?.title : (<unknown>m as Models.ImageData.MarkerCultureData).title;
+	const getTitle = (m:Models.ImageData.Marker) : string|undefined => m.i18n ? m.i18n[$lang]?.title : (m as unknown as Models.ImageData.MarkerCultureData).title;
 
 	// --- Lifecycle (onMount / onDestroy) ---
 
@@ -212,13 +213,13 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive audio source based on the current video tour step. */
-	$: audio = current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined;
+	let audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
 	/** Reactive audio source URL. */
-	$: audioSrc = audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined;
+	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
 	/** Reactive boolean indicating if the current step has a subtitle. */
-	$: hasSubtitle = currentStepInfo ? currentStepInfo.hasSubtitle : false;
+	let hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */
-	$: serialTourHasSubtitles = stepInfo.some(s => s.hasSubtitle);
+	let serialTourHasSubtitles = $derived(stepInfo.some(s => s.hasSubtitle));
 
 </script>
 
@@ -227,7 +228,7 @@
 	<ol>{#each stepInfo as c,i}
 		{#if getTitle(c.marker)}
 			<li class:active={currentStepInfo && currentStepInfo.chapter == i} class:enriched={c.imageHasOtherMarkers}>
-				<button on:click={() => goto(i)}>{getTitle(c.marker)}</button>
+				<button onclick={() => goto(i)}>{getTitle(c.marker)}</button>
 			</li>
 		{/if}
 	{/each}</ol>
@@ -247,22 +248,22 @@
 			tour={current}
 			src={audioSrc}
 			autoplay={!paused}
-			on:id={(e) => currentMediaUUID = e.detail}
-			on:ended={next}
-			on:play={() => paused=false}
-			on:blocked={() => paused=true}
+			onid={(id) => currentMediaUUID = id}
+			onended={next}
+			onplay={() => paused=false}
+			onblocked={() => paused=true}
 			bind:muted
 			bind:currentTime={currentStepInfo.currentTime}
 		/>
 	{/if}
 	<!-- Render standard playback controls if enabled -->
 	{#if controls}
-		<Button type={!paused ? 'pause' : 'play'} title={paused ? $i18n.play : $i18n.pause} on:click={playPause} />
-		<Button type={muted ? 'volume-off' : 'volume-up'} title={muted ? $i18n.audioUnmute : $i18n.audioMute} on:click={toggleMute} />
+		<Button type={!paused ? 'pause' : 'play'} title={paused ? $i18n.play : $i18n.pause} onclick={playPause} />
+		<Button type={muted ? 'volume-off' : 'volume-up'} title={muted ? $i18n.audioUnmute : $i18n.audioMute} onclick={toggleMute} />
 		{#if serialTourHasSubtitles}<Button
 			disabled={!hasSubtitle}
 			type={$captionsEnabled ? 'subtitles' : 'subtitles-off'} active={$captionsEnabled} title={$i18n.subtitlesToggle}
-			on:click={() => captionsEnabled.set(!$captionsEnabled)} />{/if}
+			onclick={() => captionsEnabled.set(!$captionsEnabled)} />{/if}
 		<Fullscreen el={micrio} />
 	{/if}
 </aside>
@@ -271,7 +272,7 @@
 {#if controls}
 	<ProgressBar duration={totalDuration} bind:currentTime bind:ended>
 		<!-- Render individual progress segments for each step -->
-		<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		{#each stepInfo as step, i}
 			{#if step.duration > 0}
 				<!-- Allow seeking within step -->
@@ -282,8 +283,8 @@
 					class="bar"
 					title={getTitle(step.marker)}
 					role="progressbar"
-					on:click={(e) => goto(i,e)}
-					on:keypress={e => { if(e.key === 'Enter') goto(i) }}
+					onclick={(e) => goto(i,e)}
+					onkeypress={e => { if(e.key === 'Enter') goto(i) }}
 					class:active={i == tour.currentStep}
 					style={`width:${(step.duration/totalDuration)*100}%; --perc: ${$times[i]||0}%`}
 				></div>

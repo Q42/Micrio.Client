@@ -9,30 +9,39 @@
 	import { parseTime } from '../../ts/utils'; // Utility to format time strings
 
 	// --- Props ---
+	interface Props {
+		/** Current playback time in seconds (bindable). */
+		currentTime?: number;
+		/** Total duration of the media in seconds. */
+		duration: number;
+		/** Has the media ended? (bindable). Used for displaying duration vs. remaining time. */
+		ended?: boolean;
+		children?: import('svelte').Snippet;
+	}
 
-	/** Current playback time in seconds (bindable). */
-	export let currentTime:number = 0;
-	/** Total duration of the media in seconds. */
-	export let duration:number;
-	/** Has the media ended? (bindable). Used for displaying duration vs. remaining time. */
-	export let ended:boolean = false;
+	let {
+		currentTime = $bindable(0),
+		duration,
+		ended = $bindable(false),
+		children
+	}: Props = $props();
 
 </script>
 
 <!-- Main container -->
 <!-- Stop propagation of clicks/keydowns to prevent interference -->
 <!-- Set CSS variables for progress percentage and current time display -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="container"
-	on:click|stopPropagation
-	on:keydown|stopPropagation
+	onclick={e => e.stopPropagation()}
+	onkeydown={e => e.stopPropagation()}
 	style={`--progress: ${Math.round(((currentTime||0) / duration) * 10000) / 100}%;--time: '${parseTime(currentTime||0)}';`}
 >
 	<!-- Container for the visual bar elements -->
 	<div class="bars">
 		<!-- Slot for the draggable handle/clickable area -->
-		<slot />
+		{@render children?.()}
 	</div>
 	<!-- Time display: shows remaining time (negative) or total duration if ended/at start -->
 	<div class="time">{parseTime(ended || currentTime <= 0 ? duration : (currentTime||0) - duration)}</div>

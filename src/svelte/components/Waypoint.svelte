@@ -23,15 +23,18 @@
 	import Button from '../ui/Button.svelte';
 
 	// --- Props ---
+	interface Props {
+		/** The ID of the target MicrioImage this waypoint links to. */
+		targetId: string;
+		/** Waypoint settings (icon, title overrides, custom coordinates). */
+		settings?: Models.Spaces.WayPointSettings;
+		/** The parent MicrioImage instance (current 360 image). */
+		image: MicrioImage;
+	}
 
-	/** The ID of the target MicrioImage this waypoint links to. */
-	export let targetId:string;
-	/** Waypoint settings (icon, title overrides, custom coordinates). */
-	export let settings:Models.Spaces.WayPointSettings = {
+	let { targetId, settings = $bindable({
 		i18n: {} // Initialize i18n object
-	};
-	/** The parent MicrioImage instance (current 360 image). */
-	export let image:MicrioImage;
+	}), image = $bindable() }: Props = $props();
 
 	// --- Context & State ---
 
@@ -58,7 +61,7 @@
 	const { directionX, v, vN, vector } = vectorData!; // Use non-null assertion after check or handle error
 
 	/** Reference to the waypoint's container element. */
-	let _element:HTMLElement;
+	let _element:HTMLElement|undefined = $state();
 
 	/** Determine if the waypoint is roughly on the "ground" based on vertical vector component. */
 	const isOnGround = Math.abs(vN[1]) < .3;
@@ -92,7 +95,7 @@
 		if(imgSettings._markers?.noMarkerActions) return; // Respect global setting
 
 		// Prevent container scroll jump on focus
-		(_element.parentNode as HTMLElement).scrollTo(0,0);
+		(_element!.parentNode as HTMLElement).scrollTo(0,0);
 		clearTimeout(fto); // Clear previous timeout
 		// Set timeout to fly camera if waypoint is off-screen after a delay
 		fto = setTimeout(() => {
@@ -104,7 +107,7 @@
 	}
 
 	/** CSS matrix string for 3D positioning. */
-	let matrix:string;
+	let matrix:string = $state('');
 	/** Stores the previous custom icon index to detect changes. */
 	let pIconIdx:number|undefined = settings.customIconIdx;
 
@@ -138,7 +141,7 @@
 	}
 
 	/** Flag to track if the waypoint has been clicked (prevents re-triggering focus animation). */
-	let clicked = false;
+	let clicked = $state(false);
 	/** Handles click events on the waypoint button. */
 	function click() : void {
 		if(imgSettings._markers?.noMarkerActions) return; // Respect global setting
@@ -156,7 +159,7 @@
 	// --- Visibility & Interface ---
 
 	/** Flag to hide the waypoint (e.g., if replaced by a marker). */
-	let hidden:boolean=false;
+	let hidden:boolean=$state(false);
 
 	/** Public interface object exposed for external interaction (e.g., editor). */
 	const iface:Models.Spaces.WaypointInterface = {
@@ -185,9 +188,9 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive title, preferring settings override, then target image title. */
-	$: title = settings.i18n?.[$_lang]?.title || targetImage?.i18n?.[$_lang]?.title;
+	let title = $derived(settings.i18n?.[$_lang]?.title || targetImage?.i18n?.[$_lang]?.title);
 	/** Reactive icon asset based on customIconIdx setting. */
-	$: icon = spaceData?.icons?.[settings.customIconIdx ?? -1];
+	let icon = $derived(spaceData?.icons?.[settings.customIconIdx ?? -1]);
 
 </script>
 
@@ -213,8 +216,8 @@
 		<Button
 			type={icon ? undefined : 'arrow-up'}
 			{icon}
-			on:click={click}
-			on:focus={focus}
+			onclick={click}
+			onfocus={focus}
 			title={title ?? $i18n.waypointFollow}
 		/>
 	</div>

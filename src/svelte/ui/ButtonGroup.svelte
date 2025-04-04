@@ -8,13 +8,18 @@
 	 * the border-radius of the first and last child buttons.
 	 */
 
-	/** Optional additional CSS class name for the container div. */
-	export let className:string = '';
+	interface Props {
+		/** Optional additional CSS class name for the container div. */
+		className?: string;
+		children?: import('svelte').Snippet;
+	}
+
+	let { className = '', children }: Props = $props();
 
 </script>
 
 <!-- Main container div -->
-<div class={className}><slot /></div>
+<div class={className}>{@render children?.()}</div>
 
 <style>
 	div {

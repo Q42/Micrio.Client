@@ -28,16 +28,19 @@
     import { writable } from 'svelte/store';
 
 	// --- Props ---
+	interface Props {
+		/** The data object defining the content and type of the popover. */
+		popover: Models.State.PopoverType;
+	}
 
-	/** The data object defining the content and type of the popover. */
-	export let popover:Models.State.PopoverType;
+	let { popover }: Props = $props();
 
 	// --- Context & State ---
 
 	/** Get the main Micrio element instance from context. */
-	const micrio = <HTMLMicrioElement>getContext('micrio');
+	const micrio = $state(<HTMLMicrioElement>getContext('micrio'));
 	/** Destructure needed stores and properties. */
-	const { events, state, current, _lang } = micrio;
+	const { events, state: micrioState, current, _lang } = micrio;
 
 	/** Get data for the currently active image (used for language list). */
 	const data = $current?.$data;
@@ -48,7 +51,7 @@
 
 	/** Closes the dialog programmatically. */
 	function close() {
-		_dialog.close(); // Use the native <dialog> close method
+		_dialog?.close(); // Use the native <dialog> close method
 	}
 
 	/** Handler for the native 'close' event of the <dialog> element. */
@@ -57,12 +60,12 @@
 		if(popover.contentPage) events.dispatch('page-closed');
 		else {
 			// If closing a marker popover that was part of a tour, stop the tour
-			if(tour) state.tour.set(undefined);
+			if(tour) micrioState.tour.set(undefined);
 			// Otherwise, if it was a marker popover, clear the active marker state
 			else if(popover.marker) popover.image?.state.marker.set(undefined);
 		}
 		// Clear the global popover state to remove the component
-		state.popover.set(undefined);
+		micrioState.popover.set(undefined);
 	}
 
 	/** Handles clicks on buttons defined within a content page. */
@@ -95,19 +98,19 @@
 	// --- Language Switch Workaround ---
 
 	/** Flag to temporarily hide embeds during language switch to prevent Chrome crash. */
-	let showEmbed:boolean = true;
+	let showEmbed:boolean = $state(true);
 	/** Stores the current language to detect changes. */
 	let currLang = $_lang;
 
 	// --- Lifecycle (onMount) ---
 
 	/** Reference to the <dialog> DOM element. */
-	let _dialog:HTMLDialogElement;
+	let _dialog:HTMLDialogElement|undefined = $state();
 	onMount(() => {
-		_dialog.showModal(); // Open the dialog modally
+		_dialog!.showModal(); // Open the dialog modally
 		// Focus the first active button after the dialog opens
 		tick().then(() => {
-			const button:HTMLElement|null = _dialog.querySelector('button.active') ?? _dialog.querySelector('button');
+			const button:HTMLElement|null = _dialog!.querySelector('button.active') ?? _dialog!.querySelector('button');
 			button?.focus();
 		});
 
@@ -129,31 +132,31 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive reference to the marker data from the popover prop. */
-	$: marker = popover.marker;
+	let marker = $derived(popover.marker);
 	/** Reactive language-specific content for the marker. */
-	$: content = marker ? (marker.i18n ? marker.i18n[$_lang] : (<unknown>marker as Models.ImageData.MarkerCultureData)) : undefined;
+	let content = $derived(marker ? (marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData)) : undefined);
 	/** Reactive reference to the marker tour associated with the popover. */
-	$: tour = popover.markerTour;
+	let tour = $derived(popover.markerTour);
 	/** Reactive reference to the content page data from the popover prop. */
-	$: page = popover.contentPage;
+	let page = $derived(popover.contentPage);
 	/** Reactive language-specific content for the page. */
-	$: pageContent = page ? page.i18n?.[$_lang] ?? (<unknown>page as Models.ImageData.MenuCultureData) : undefined;
+	let pageContent = $derived(page ? page.i18n?.[$_lang] ?? (page as unknown as Models.ImageData.MenuCultureData) : undefined);
 	/** Determine if the page content is primarily a video embed. */
-	$: pageIsVideo = page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined;
+	let pageIsVideo = $derived(page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined);
 	/** Get the image source URL for the page content. */
-	$: pageContentImage = page?.image ? typeof page.image == 'string' ? page.image : page.image.src : undefined;
+	let pageContentImage = $derived(page?.image ? typeof page.image == 'string' ? page.image : page.image.src : undefined);
 	/** Flag indicating if the page has a video embed or an image. */
-	$: pageHasVideoOrImage = !!pageContent?.embed || !!pageContentImage;
+	let pageHasVideoOrImage = $derived(!!pageContent?.embed || !!pageContentImage);
 	/** Flag indicating if the page defines its own close button. */
-	$: noCloseButton = !!page?.buttons?.find(b => b.type == 'close');
+	let noCloseButton = $derived(!!page?.buttons?.find(b => b.type == 'close'));
 	/** Flag indicating if the marker has associated images. */
-	$: hasImages = !!popover.marker?.images && popover.marker.images.length > 0;
+	let hasImages = $derived(!!popover.marker?.images && popover.marker.images.length > 0);
 	/** Flag indicating if the marker has body content or images. */
-	$: hasContent = !!(content && content.body) || hasImages;
+	let hasContent = $derived(!!(content && content.body) || hasImages);
 	/** Flag indicating if the marker has body content OR (images AND an embed). Used for layout? */
-	$: hasPopoverContent = (content && content.body) || (hasImages && pageContent?.embed);
+	let hasPopoverContent = $derived((content && content.body) || (hasImages && pageContent?.embed));
 	/** Flag indicating if the aside controls (close, tour nav) should be shown. */
-	$: hasAside = !noCloseButton || (tour && tour.currentStep != undefined);
+	let hasAside = $derived(!noCloseButton || (tour && tour.currentStep != undefined));
 
 </script>
 
@@ -165,8 +168,8 @@
 <!-- Add class if page is article-like -->
 <!-- Add class if page has media -->
 <dialog bind:this={_dialog}
-	on:close={closed}
-	on:outrostart={() => destroying.set(true)}
+	onclose={closed}
+	onoutrostart={() => destroying.set(true)}
 	class:page={!!page}
 	class:article={!!page && !pageIsVideo}
 	class:has-media={pageHasVideoOrImage}
@@ -177,15 +180,15 @@
 		<aside class:inside={page ? !pageIsVideo : !hasContent && !content?.embedUrl}>
 			{#if !noCloseButton}
 				<!-- Standard close button -->
-				<Button type="close" title={$i18n.close} className="close-popover" on:click={close} />
+				<Button type="close" title={$i18n.close} className="close-popover" onclick={close} />
 			{/if}
 			<!-- Tour navigation buttons -->
 			{#if tour && tour.currentStep != undefined}
 				{#if tour.currentStep > 0}
-					<Button type="arrow-left" title={$i18n.tourStepPrev} className="prev-tour-step" on:click={() => tour && tour.prev && tour.prev()} />
+					<Button type="arrow-left" title={$i18n.tourStepPrev} className="prev-tour-step" onclick={() => tour && tour.prev && tour.prev()} />
 				{/if}
 				{#if tour.currentStep < tour.steps.length-1}
-					<Button type="arrow-right" title={$i18n.tourStepNext} className="next-tour-step" on:click={() => tour && tour.next && tour.next()} />
+					<Button type="arrow-right" title={$i18n.tourStepNext} className="next-tour-step" onclick={() => tour && tour.next && tour.next()} />
 				{/if}
 			{/if}
 		</aside>
@@ -196,14 +199,14 @@
 		<!-- Marker Content -->
 		{#if content && content.embedUrl}
 			<!-- Render embed directly if present -->
-			<Media src={content.embedUrl} uuid={marker.id} figcaption={content.embedDescription} controls autoplay={marker.embedAutoPlay} {destroying} />
+			<Media src={content.embedUrl} uuid={marker.id} figcaption={content.embedDescription} controls autoplay={marker.embedAutoPlay} />
 		{:else if marker.images && marker.images.length}
 			<!-- Render gallery if images are present -->
 			<Gallery gallery={marker.images} />
 		{/if}
 		<!-- Render MarkerContent if there's body text OR (images AND an embed) -->
 		{#if hasPopoverContent}
-			<MarkerContent {marker} {destroying} noEmbed noGallery noImages={!content || !content.embedUrl} on:close={close} />
+			<MarkerContent {marker} noEmbed noGallery noImages={!content || !content.embedUrl} onclose={close} />
 		{/if}
 	{:else if popover.gallery}
 		<!-- Gallery Content -->
@@ -213,12 +216,12 @@
 		{#if langs.length > 1}
 			<!-- Language switcher for pages -->
 			<menu>{#each langs as l}
-				<Button on:click={() => micrio.lang = l} title={languageNames?.of(l) ?? l} active={l==$_lang}>{l.toUpperCase()}</Button>
+				<Button onclick={() => micrio.lang = l} title={languageNames?.of(l) ?? l} active={l==$_lang}>{l.toUpperCase()}</Button>
 			{/each}</menu>
 		{/if}
 		{#if pageIsVideo}
 			<!-- Render as full video if pageIsVideo is true -->
-			{#if showEmbed}<Media src={pageContent.embed} figcaption={pageContent.content} controls autoplay {destroying} />{/if}
+			{#if showEmbed}<Media src={pageContent.embed} figcaption={pageContent.content} controls autoplay />{/if}
 		{:else}
 			<!-- Render as article content -->
 			<Article>
@@ -234,7 +237,7 @@
 				<Button
 					href={button.type == 'link' ? button.action : undefined}
 					blankTarget={button.blankTarget}
-					on:click={() => clickPageButton(button)}
+					onclick={() => clickPageButton(button)}
 				>
 					{button.i18nTitle[$_lang]}
 				</Button>

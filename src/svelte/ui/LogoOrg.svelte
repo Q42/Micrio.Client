@@ -16,9 +16,12 @@
 	import { fade } from 'svelte/transition';
 
 	// --- Props ---
+	interface Props {
+		/** The organisation data object containing name, logo, and href. */
+		organisation: Models.ImageInfo.Organisation;
+	}
 
-	/** The organisation data object containing name, logo, and href. */
-	export let organisation:Models.ImageInfo.Organisation;
+	let { organisation }: Props = $props();
 
 	// --- Context & State ---
 
@@ -52,7 +55,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive flag to hide the logo when a tour, marker, or popover is active. */
-	$: hidden = !!$tour || !!$marker || !!$popover;
+	let hidden = $derived(!!$tour || !!$marker || !!$popover);
 
 </script>
 

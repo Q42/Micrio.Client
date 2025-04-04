@@ -6,8 +6,13 @@
 	 * It adds basic styling and ensures external links open in a new tab.
 	 */
 
-	/** Optional additional CSS class name for the article element. */
-	export let cn:string|null=null;
+	interface Props {
+		/** Optional additional CSS class name for the article element. */
+		cn?: string|null;
+		children?: import('svelte').Snippet;
+	}
+
+	let { cn = null, children }: Props = $props();
 
 	/**
 	 * Event handler to force external links within the slotted content to open in a new tab.
@@ -28,8 +33,8 @@
 	- Attaches the linkInNewWindow handler to ensure external links open correctly.
 	- Ignores a11y warning because the click/keydown handlers are specifically for link behavior within the content.
 -->
-<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-<article class={cn} on:click|stopPropagation on:keydown={linkInNewWindow} on:pointerdown={linkInNewWindow}><slot /></article>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<article class={cn} onclick={e => e.stopPropagation()} onkeydown={linkInNewWindow} onpointerdown={linkInNewWindow}>{@render children?.()}</article>
 
 <style>
 	article {
