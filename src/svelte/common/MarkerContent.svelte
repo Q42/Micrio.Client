@@ -20,21 +20,32 @@
 
 	// --- Props ---
 
-	/** The marker data object containing content and configuration. */
-	export let marker:Models.ImageData.Marker;
-	/** Writable store indicating if the parent popup is being destroyed (for media cleanup). */
-	export let destroying:Writable<boolean>;
-	/** If true, disable rendering of iframe/video embeds. */
-	export let noEmbed:boolean = false;
-	/** If true, disable rendering of associated images. */
-	export let noImages:boolean = false;
-	/** If true, disable opening the image gallery popover when clicking images. */
-	export let noGallery:boolean = false;
+	interface Props {
+		/** The marker data object containing content and configuration. */
+		marker: Models.ImageData.Marker;
+		/** Writable store indicating if the parent popup is being destroyed (for media cleanup). */
+		destroying: Writable<boolean>;
+		/** If true, disable rendering of iframe/video embeds. */
+		noEmbed?: boolean;
+		/** If true, disable rendering of associated images. */
+		noImages?: boolean;
+		/** If true, disable opening the image gallery popover when clicking images. */
+		noGallery?: boolean;
+		/** Allows binding to the main content container element. */
+		_content?: HTMLElement|null;
+		/** Allows binding to the title (h1) element. */
+		_title?: HTMLElement|null;
+	}
 
-	/** Allows binding to the main content container element. */
-	export let _content:HTMLElement|null=null;
-	/** Allows binding to the title (h1) element. */
-	export let _title:HTMLElement|null=null;
+	let {
+		marker,
+		destroying,
+		noEmbed = false,
+		noImages = false,
+		noGallery = false,
+		_content = $bindable(null),
+		_title = $bindable(null)
+	}: Props = $props();
 
 	// --- Setup ---
 
@@ -68,14 +79,14 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get the language-specific content object for the marker. */
-	$: content = marker.i18n ? marker.i18n[$lang] : (marker as unknown as Models.ImageData.MarkerCultureData);
+	let content = $derived(marker.i18n ? marker.i18n[$lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
 
 	/** Determine if the marker has any displayable content. */
-	$: empty = !content?.title && !content?.audio
+	let empty = $derived(!content?.title && !content?.audio
 		&& (!marker.images || !marker.images.length)
 		&& !content?.embedUrl
 		&& !marker.videoTour
-		&& !content?.body && !content?.bodySecondary;
+		&& !content?.body && !content?.bodySecondary);
 
 	// --- Event Handlers ---
 
@@ -96,13 +107,13 @@
 	// --- Media Playback State ---
 
 	/** Initial paused state for audio and video based on settings and content presence. */
-	const paused = {
+	const paused = $state({
 		// Pause audio if autoplay is disabled globally or for this specific marker
 		audio: !autoplayMedia || !marker.audioAutoPlay,
 		// Pause video if embed autoplay is explicitly false, or if global autoplay is off,
 		// or if there's also audio set to autoplay (prioritize audio)
 		video: marker.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker.audioAutoPlay))
-	}
+	});
 
 	/** Convenience flag for video autoplay state. */
 	const aplayVideo = !paused.video;
@@ -116,11 +127,11 @@
 	const getTitle = (image:Models.Assets.Image) => image.i18n?.[$lang]?.title;
 
 	/** Determine the primary audio source (from video tour or marker content). */
-	$: audio = marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio;
+	let audio = $derived(marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio);
 	/** Get the source URL for the audio. Handles potential legacy `fileUrl` property. */
-	$: audioSrc = audio ? 'fileUrl' in audio ? audio.fileUrl as string : audio.src : undefined;
+	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio.fileUrl as string : audio.src : undefined);
 	/** Get the caption for the image if there's only one image. */
-	$: imageCaption = singleImage && marker.images?.[0]?.i18n?.[$lang]?.description;
+	let imageCaption = $derived(singleImage && marker.images?.[0]?.i18n?.[$lang]?.description);
 
 </script>
 
@@ -157,7 +168,7 @@
 				{#each marker.images as imageAsset (imageAsset.id ?? imageAsset.src)}
 					<button
 						title={getTitle(imageAsset)}
-						on:click={galleryEnabled ? () => openGallery(imageAsset.micrioId) : undefined}
+						onclick={galleryEnabled ? () => openGallery(imageAsset.micrioId) : undefined}
 						disabled={!galleryEnabled}
 					>
 						<figure>

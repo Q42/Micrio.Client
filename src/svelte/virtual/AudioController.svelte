@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
 	/**
 	 * Module script for AudioController.svelte
 	 *
@@ -98,13 +98,16 @@
 	import AudioPlaylist from './AudioPlaylist.svelte'; // Component for background music
 
 	// --- Props ---
+	interface Props {
+		/** Current global volume level (0-1). */
+		volume?: number;
+		/** Image data containing music and marker information. */
+		data: Models.ImageData.ImageData;
+		/** Is the current image a 360 panorama? */
+		is360: boolean;
+	}
 
-	/** Current global volume level (0-1). */
-	export let volume:number = 1;
-	/** Image data containing music and marker information. */
-	export let data:Models.ImageData.ImageData;
-	/** Is the current image a 360 panorama? */
-	export let is360:boolean;
+	let { volume = 1, data, is360 }: Props = $props();
 
 	// --- Context & State ---
 
@@ -220,7 +223,9 @@
 	// --- Reactive Effects ---
 
 	/** Update the main gain node volume when the `volume` prop changes. */
-	$: if(mainGain) mainGain.gain.value = volume;
+	$effect(() => {
+		if(mainGain) mainGain.gain.value = volume;
+	});
 
 </script>
 

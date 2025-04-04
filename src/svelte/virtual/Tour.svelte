@@ -30,10 +30,14 @@
 
 	// --- Props ---
 
-	/** The tour data object (can be MarkerTour or VideoTour). */
-	export let tour:Models.ImageData.MarkerTour|Models.ImageData.VideoTour;
-	/** If true, suppresses rendering of HTML controls (used when UI is handled externally). */
-	export let noHTML:boolean = false;
+	interface Props {
+		/** The tour data object (can be MarkerTour or VideoTour). */
+		tour: Models.ImageData.MarkerTour|Models.ImageData.VideoTour;
+		/** If true, suppresses rendering of HTML controls (used when UI is handled externally). */
+		noHTML?: boolean;
+	}
+
+	let { tour = $bindable(), noHTML = false }: Props = $props();
 
 	// --- Setup & State ---
 
@@ -194,9 +198,9 @@
 
 	// --- Marker Tour Setup ---
 	/** Current step index for marker tours. */
-	let currentTourStep:number = -1;
+	let currentTourStep:number = $state(-1);
 	/** Flag indicating if a non-tour marker is currently opened. */
-	let isOtherMarkerOpened:boolean = false;
+	let isOtherMarkerOpened:boolean = $state(false);
 	/** Store the initial view when the tour starts. */
 	const startView = image.camera.getView();
 	/** Reference to marker settings. */
@@ -232,13 +236,13 @@
 
 	// --- Scroll Tour State ---
 	/** Reference to the scrollable container element. */
-	let _scroller:HTMLElement;
+	let _scroller:HTMLElement|undefined = $state();
 	/** IntersectionObserver for scroll tour steps. */
 	let observer:IntersectionObserver;
 
 	/** IntersectionObserver callback for scroll tours. */
 	function onintersect(e:IntersectionObserverEntry[]){
-		if(!('steps' in tour)) return;
+		if(!('steps' in tour) || !_scroller) return;
 		// Find the intersecting element
 		const steps = tour.steps;
 		const el = e.filter(e => e.isIntersecting).map(e => e.target)[0];
@@ -347,16 +351,16 @@
 	events.dispatch('tour-start', tour);
 
 	// --- Playback State (Redeclaration - seems redundant) ---
-	let currentTime:number=0;
-	let paused:boolean=false;
+	let currentTime:number=$state(0);
+	let paused:boolean=$state(false);
 
 	// --- Reactive Declarations (`$:`) ---
 	/** Reactive variable for the video tour data (if applicable). */
-	$: videoTour = !('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined;
+	let videoTour = $derived(!('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined);
 	/** Reactive audio asset for the current step/tour. */
-	$: audio = videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined;
+	let audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
 	/** Reactive audio source URL. */
-	$: audioSrc = audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined;
+	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
 
 </script>
 

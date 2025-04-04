@@ -7,11 +7,15 @@
 
 	import { mainGain, buffers } from './AudioController.svelte';
 
-	export let marker:Models.ImageData.Marker;
-	export let ctx:AudioContext;
-	export let is360:boolean;
+	interface Props {
+		marker: Models.ImageData.Marker;
+		ctx: AudioContext;
+		is360: boolean;
+	}
 
-	$: item = marker.positionalAudio as Models.Assets.AudioLocation;
+	let { marker, ctx, is360 }: Props = $props();
+
+	let item = $derived(marker.positionalAudio as Models.Assets.AudioLocation);
 
 	const gain = ctx.createGain();
 	gain.connect(mainGain);
@@ -96,11 +100,11 @@
 	}
 
 	// Also listen to changes in raw json
-	let prev:string = JSON.stringify(item);
-	$: {
+	let prev:string = $state(JSON.stringify(item));
+	$effect(() => {
 		const newItem = JSON.stringify(item);
 		if(prev != newItem && (prev = newItem)) update();
-	}
+	});
 
 	onMount(() => {
 		update();

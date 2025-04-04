@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
 	/**
 	 * Module script for Icon.svelte
 	 *
@@ -42,11 +42,14 @@
 	} from '@fortawesome/free-solid-svg-icons';
 
 	// --- Props ---
+	interface Props {
+		/** Optional inline style string for the icon element. */
+		style?: string|undefined; // Changed from string|null
+		/** The name of the standard icon to display, or used as a key for custom HTML. */
+		name: IconName;
+	}
 
-	/** Optional inline style string for the icon element. */
-	export let style:string|undefined=undefined; // Changed from string|null
-	/** The name of the standard icon to display, or used as a key for custom HTML. */
-	export let name:IconName;
+	let { style = undefined, name }: Props = $props();
 
 	// --- Context & Setup ---
 
@@ -61,7 +64,7 @@
 	/** Get custom icon settings from Micrio default settings. */
 	const i = micrio.defaultSettings?.ui?.icons;
 	/** Reactive variable holding the custom HTML string for the current icon name, if defined. */
-	$: customHTML = i && (
+	let customHTML = $derived(i && (
 		name == 'zoom-in' ? i.zoomIn :
 		name == 'zoom-out' ? i.zoomOut :
 		name == 'maximize' ? i.fullscreenEnter :
@@ -77,7 +80,7 @@
 		name == 'subtitles-off' ? i.subtitlesOff :
 		name == 'volume-off' ? i.muted :
 		name == 'volume-up' ? i.unmuted :
-		null); // Return null if no custom HTML is defined for this name
+		null)); // Return null if no custom HTML is defined for this name
 
 	// --- Font Awesome Icon Mapping ---
 
@@ -112,7 +115,7 @@
 		['ellipsis-vertical', faEllipsisVertical]
 	]);
 
-	$: icon = lib.get(name);
+	let icon = $derived(lib.get(name));
 
 </script>
 

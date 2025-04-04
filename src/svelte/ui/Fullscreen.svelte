@@ -17,9 +17,12 @@
 	import Button from './Button.svelte'; // Reusable button component
 
 	// --- Props ---
+	interface Props {
+		/** The HTML element to make fullscreen. */
+		el: HTMLElement;
+	}
 
-	/** The HTML element to make fullscreen. */
-	export let el:HTMLElement;
+	let { el }: Props = $props();
 
 	// --- Feature Detection & State ---
 
@@ -37,7 +40,7 @@
 		: document['webkitFullscreenElement'] ?? null; // Webkit API
 
 	/** Reactive state tracking if the target element `el` is currently fullscreen. */
-	let isActive: boolean = getActiveEl() === el; // Use strict equality
+	let isActive: boolean = $state(getActiveEl() === el); // Use strict equality
 
 	/**
 	 * Check if fullscreen is available for this element.

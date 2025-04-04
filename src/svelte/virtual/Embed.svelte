@@ -31,8 +31,12 @@
 	/** Destructure needed stores and properties. */
 	const { current, wasm, canvas } = micrio;
 
-	/** The embed data object from the image configuration. */
-	export let embed:Models.ImageData.Embed;
+	interface Props {
+		/** The embed data object from the image configuration. */
+		embed: Models.ImageData.Embed;
+	}
+
+	let { embed = $bindable() }: Props = $props();
 
 	// --- Initialization & Setup ---
 
@@ -106,7 +110,7 @@
 	let scaleY:number = embed.scaleY??1; // Non-uniform Y scale
 
 	/** CSS style string for the button/image element (used for SVG/IMG embeds). */
-	let buttonStyle:string;
+	let buttonStyle:string = $state('');
 
 	/** Recalculates positioning variables based on the `embed.area` and other settings. */
 	function readPlacement() : void {
@@ -136,21 +140,21 @@
 	readPlacement();
 
 	// --- Reactive Calculations for HTML Embeds ---
-	$: width = Math.round(w * info.width); // Calculated pixel width
-	$: height = Math.round(h * info.height); // Calculated pixel height
+	let width = $derived(Math.round(w * info.width)); // Calculated pixel width
+	let height = $derived(Math.round(h * info.height)); // Calculated pixel height
 
 	// --- Video Playback State ---
 	/** Local paused state for videos (can be controlled by zoom level). */
-	let paused:boolean = false; // Initial state determined later
+	let paused:boolean = $state(false); // Initial state determined later
 
 	// --- Screen Position State (updated by `moved`) ---
-	let x:number = 0; // Screen X
-	let y:number = 0; // Screen Y
+	let x:number = $state(0); // Screen X
+	let y:number = $state(0); // Screen Y
 	let scale:number; // Screen scale at embed position
-	let matrix:string; // CSS matrix3d string for 360 positioning
+	let matrix:string = $state(''); // CSS matrix3d string for 360 positioning
 
 	/** CSS style string for the main container element. */
-	let style = '';
+	let style = $state('');
 
 	// --- Pause-on-Zoom Logic ---
 
@@ -236,7 +240,7 @@
 	/** Is this embed a video rendered via WebGL? */
 	const isRawVideo = printGL && !!embed.video;
 	/** Instance of the WebGL video handler. */
-	let glVideo:GLEmbedVideo|undefined = undefined;
+	let glVideo:GLEmbedVideo|undefined = $state(undefined);
 
 	/** Initializes the WebGL rendering for the embed (Micrio image or video). */
 	function printInsideGL() : void {
@@ -282,19 +286,19 @@
 	/** Should an HTML element be rendered for this embed? (Either for direct display or as a click target). */
 	const hasHtml = !printGL || !!embed.clickAction;
 	/** Reference to the HTMLMediaElement if rendered via Media component. */
-	let _mediaElement:HTMLMediaElement|undefined;
+	let _mediaElement:HTMLMediaElement|undefined = $state();
 
 	// Update the shared media element reference when _mediaElement changes
-	$: {
+	$effect(() => {
 		if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id, _mediaElement??glVideo?._vid);
-	}
+	});
 
 	// --- Size Calculation for HTML Video ---
 	// Cap the rendered size of HTML video elements to their native resolution
-	$: widthCapped = embed.video ? Math.min(embed.video.width, width) : width;
-	$: heightCapped = embed.video ? Math.min(embed.video.height, height) : height;
+	let widthCapped = $derived(embed.video ? Math.min(embed.video.width, width) : width);
+	let heightCapped = $derived(embed.video ? Math.min(embed.video.height, height) : height);
 	/** Relative scale factor for HTML video element (used for CSS transform). */
-	$: relScale = width / widthCapped;
+	let relScale = $derived(width / widthCapped);
 
 	// --- Lifecycle (onMount) ---
 	let isMounted:boolean = false;
@@ -339,9 +343,9 @@
 		class:embed-container={!0}
 		class:embed3d={is360}
 		class:no-events={noEvents}
-		on:click={click}
-		on:keypress={click}
-		on:change={change}
+		onclick={click}
+		onkeypress={click}
+		onchange={change}
 		{href}
 		target={href && hrefBlankTarget?'_blank':null}
 	>

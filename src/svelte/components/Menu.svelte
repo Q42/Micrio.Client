@@ -1,4 +1,4 @@
-<script context="module" lang="ts">
+<script module lang="ts">
 	/**
 	 * Module script for Menu.svelte
 	 *
@@ -42,18 +42,23 @@
 	import { createEventDispatcher, getContext, onMount } from 'svelte';
 
 	// UI Components
+	import Menu from './Menu.svelte';
 	import Icon from '../ui/Icon.svelte';
 	import Fa from 'svelte-fa'; // Font Awesome icon component
 
 	// --- Props ---
 
-	/** The data object for this menu item. */
-	export let menu: Models.ImageData.Menu;
-	/**
+	interface Props {
+		/** The data object for this menu item. */
+		menu: Models.ImageData.Menu;
+		/**
 	 * The ID of the original image this menu belongs to.
 	 * Used for actions that need to switch back to the original image (e.g., opening a marker).
 	 */
-	export let originalId:string|null = null;
+		originalId?: string|null;
+	}
+
+	let { menu = $bindable(), originalId = null }: Props = $props();
 
 	// --- Setup ---
 
@@ -65,7 +70,7 @@
 	const { events, state: micrioState, _lang } = micrio;
 
 	/** Reference to the button/link element for this menu item. */
-	let _button:HTMLButtonElement|HTMLAnchorElement;
+	let _button:HTMLButtonElement|HTMLAnchorElement|undefined = $state();
 
 	// --- Helper Functions ---
 
@@ -76,7 +81,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive language-specific content for this menu item. */
-	$: cultureData = getCData(menu, $_lang);
+	let cultureData = $derived(getCData(menu, $_lang));
 
 	// --- Event Handlers ---
 
@@ -124,7 +129,7 @@
 	/** Recursively checks if this menu or any of its children are the currently opened menu. */
 	const o=(m:Models.ImageData.Menu):boolean=>m==$opened||!!m.children?.some(o);
 	/** Reactive flag indicating if this menu item or one of its descendants is currently open. */
-	$: isOpen = $opened && o(menu);
+	let isOpen = $derived($opened && o(menu));
 
 </script>
 
@@ -132,7 +137,7 @@
 <menu class:opened={isOpen} data-title={cultureData?.title?.toLowerCase()}>
 	{#if menu.link}
 		<!-- Render as an anchor tag if it's an external link -->
-		<a class="micrio-menu-action" on:click={click} href={menu.link} target={menu.linkTargetBlank ? '_blank' : undefined}>
+		<a class="micrio-menu-action" onclick={click} href={menu.link} target={menu.linkTargetBlank ? '_blank' : undefined}>
 			<strong>
 				{cultureData?.title ?? '(Unknown)'}
 				<Icon style="opacity:.75" name={menu.linkTargetBlank ? 'link-ext' : 'link'} /> <!-- Link icon -->
@@ -140,7 +145,7 @@
 		</a>
 	{:else}
 		<!-- Render as a button otherwise -->
-		<button class="micrio-menu-action" type="button" on:click={click} bind:this={_button}>
+		<button class="micrio-menu-action" type="button" onclick={click} bind:this={_button}>
 			<!-- Optional Font Awesome icon -->
 			{#if menu.icon}<Fa icon={menu.icon} style="margin-right:10px;" />{/if}
 			<strong>
@@ -151,11 +156,11 @@
 		</button>
 	{/if}
 	<!-- Render child menu items recursively -->
-	{#if menu.children && menu.children.length }
+	{#if menu.children && menu.children.length}
 		<div class="items">
 			{#each menu.children as child,i (i+child.id)}
 				<!-- Pass originalId down for correct image switching -->
-				<svelte:self menu={child} {originalId} on:close />
+				<Menu menu={child} {originalId} on:close />
 			{/each}
 		</div>
 	{/if}

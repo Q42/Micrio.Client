@@ -28,14 +28,17 @@
     import { writable } from 'svelte/store';
 
 	// --- Props ---
+	interface Props {
+		/** The data object defining the content and type of the popover. */
+		popover: Models.State.PopoverType;
+	}
 
-	/** The data object defining the content and type of the popover. */
-	export let popover:Models.State.PopoverType;
+	let { popover }: Props = $props();
 
 	// --- Context & State ---
 
 	/** Get the main Micrio element instance from context. */
-	const micrio = <HTMLMicrioElement>getContext('micrio');
+	const micrio = $state(<HTMLMicrioElement>getContext('micrio'));
 	/** Destructure needed stores and properties. */
 	const { events, state: micrioState, current, _lang } = micrio;
 
@@ -95,14 +98,14 @@
 	// --- Language Switch Workaround ---
 
 	/** Flag to temporarily hide embeds during language switch to prevent Chrome crash. */
-	let showEmbed:boolean = true;
+	let showEmbed:boolean = $state(true);
 	/** Stores the current language to detect changes. */
 	let currLang = $_lang;
 
 	// --- Lifecycle (onMount) ---
 
 	/** Reference to the <dialog> DOM element. */
-	let _dialog:HTMLDialogElement;
+	let _dialog:HTMLDialogElement = $state();
 	onMount(() => {
 		_dialog.showModal(); // Open the dialog modally
 		// Focus the first active button after the dialog opens
@@ -129,31 +132,31 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive reference to the marker data from the popover prop. */
-	$: marker = popover.marker;
+	let marker = $derived(popover.marker);
 	/** Reactive language-specific content for the marker. */
-	$: content = marker ? (marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData)) : undefined;
+	let content = $derived(marker ? (marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData)) : undefined);
 	/** Reactive reference to the marker tour associated with the popover. */
-	$: tour = popover.markerTour;
+	let tour = $derived(popover.markerTour);
 	/** Reactive reference to the content page data from the popover prop. */
-	$: page = popover.contentPage;
+	let page = $derived(popover.contentPage);
 	/** Reactive language-specific content for the page. */
-	$: pageContent = page ? page.i18n?.[$_lang] ?? (page as unknown as Models.ImageData.MenuCultureData) : undefined;
+	let pageContent = $derived(page ? page.i18n?.[$_lang] ?? (page as unknown as Models.ImageData.MenuCultureData) : undefined);
 	/** Determine if the page content is primarily a video embed. */
-	$: pageIsVideo = page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined;
+	let pageIsVideo = $derived(page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined);
 	/** Get the image source URL for the page content. */
-	$: pageContentImage = page?.image ? typeof page.image == 'string' ? page.image : page.image.src : undefined;
+	let pageContentImage = $derived(page?.image ? typeof page.image == 'string' ? page.image : page.image.src : undefined);
 	/** Flag indicating if the page has a video embed or an image. */
-	$: pageHasVideoOrImage = !!pageContent?.embed || !!pageContentImage;
+	let pageHasVideoOrImage = $derived(!!pageContent?.embed || !!pageContentImage);
 	/** Flag indicating if the page defines its own close button. */
-	$: noCloseButton = !!page?.buttons?.find(b => b.type == 'close');
+	let noCloseButton = $derived(!!page?.buttons?.find(b => b.type == 'close'));
 	/** Flag indicating if the marker has associated images. */
-	$: hasImages = !!popover.marker?.images && popover.marker.images.length > 0;
+	let hasImages = $derived(!!popover.marker?.images && popover.marker.images.length > 0);
 	/** Flag indicating if the marker has body content or images. */
-	$: hasContent = !!(content && content.body) || hasImages;
+	let hasContent = $derived(!!(content && content.body) || hasImages);
 	/** Flag indicating if the marker has body content OR (images AND an embed). Used for layout? */
-	$: hasPopoverContent = (content && content.body) || (hasImages && pageContent?.embed);
+	let hasPopoverContent = $derived((content && content.body) || (hasImages && pageContent?.embed));
 	/** Flag indicating if the aside controls (close, tour nav) should be shown. */
-	$: hasAside = !noCloseButton || (tour && tour.currentStep != undefined);
+	let hasAside = $derived(!noCloseButton || (tour && tour.currentStep != undefined));
 
 </script>
 
@@ -165,8 +168,8 @@
 <!-- Add class if page is article-like -->
 <!-- Add class if page has media -->
 <dialog bind:this={_dialog}
-	on:close={closed}
-	on:outrostart={() => destroying.set(true)}
+	onclose={closed}
+	onoutrostart={() => destroying.set(true)}
 	class:page={!!page}
 	class:article={!!page && !pageIsVideo}
 	class:has-media={pageHasVideoOrImage}

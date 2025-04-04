@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault, stopPropagation } from 'svelte/legacy';
+
 	/**
 	 * Dial.svelte - A horizontal dial control for rotating Omni objects.
 	 *
@@ -13,12 +15,16 @@
 
 	// --- Props ---
 
-	/** Current rotation value (0-360 degrees), provided by the parent Gallery component. */
-	export let currentRotation:number;
-	/** Total number of frames in the Omni object rotation. */
-	export let frames:number;
-	/** If true, display the current rotation value in degrees. */
-	export let degrees:boolean|undefined;
+	interface Props {
+		/** Current rotation value (0-360 degrees), provided by the parent Gallery component. */
+		currentRotation: number;
+		/** Total number of frames in the Omni object rotation. */
+		frames: number;
+		/** If true, display the current rotation value in degrees. */
+		degrees: boolean|undefined;
+	}
+
+	let { currentRotation, frames, degrees }: Props = $props();
 
 	// --- Setup ---
 
@@ -33,7 +39,7 @@
 	// --- Drag State ---
 
 	/** Reference to the main div element acting as the dial. */
-	let _dial:HTMLElement;
+	let _dial:HTMLElement|undefined = $state();
 	/** ID of the pointer currently dragging the dial. */
 	let pointerId:number|undefined;
 	/** ClientX position where the drag started. */
@@ -44,7 +50,8 @@
 	// --- Event Handlers ---
 
 	/** Starts the dial drag interaction. */
-	function dStart(e:PointerEvent) {
+	function dStart(_e:Event) {
+		const e = _e as PointerEvent;
 		if(e.button != 0) return; // Ignore non-primary button clicks
 		// Add listeners to the main micrio element to capture movement/release outside the dial
 		micrio.addEventListener('pointermove', dMove);
@@ -61,7 +68,7 @@
 		// Calculate effective scale based on current zoom level (makes dragging less sensitive when zoomed in)
 		const scale = Math.max(1, (camera.getXY(1, .5)[0] - camera.getXY(0, .5)[0]) / micrio.offsetWidth);
 		// Calculate target frame index based on drag distance, dial width, scale, and total frames
-		const targetFrame = (startRot / 360 + ((startX - e.clientX) / (_dial.offsetWidth * scale))) * frames;
+		const targetFrame = (startRot / 360 + ((startX - e.clientX) / (_dial!.offsetWidth * scale))) * frames;
 		// Dispatch 'turn' event with the calculated target frame index
 		dispatch('turn', targetFrame);
 	}
@@ -78,7 +85,7 @@
 	// --- Reactive Calculations ---
 
 	/** Calculate the background offset based on current rotation and dial width for visual feedback. */
-	$: offset = -currentRotation / 360 * (_dial?.offsetWidth ?? 0);
+	let offset = $derived(-currentRotation / 360 * (_dial?.offsetWidth ?? 0));
 
 </script>
 
@@ -87,7 +94,7 @@
 <!-- Allow scrolling over element -->
 <div
 	bind:this={_dial}
-	on:pointerdown|stopPropagation|preventDefault|capture={dStart}
+	onpointerdowncapture={stopPropagation(preventDefault(dStart))}
 	style="--micrio-dial-offset:{offset}px;"
 	data-scroll-through
 >

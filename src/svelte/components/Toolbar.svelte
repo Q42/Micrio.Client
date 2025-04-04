@@ -26,30 +26,29 @@
 	// --- State & Context ---
 
 	/** Reference to the current image's data (reactive). */
-	let data: Models.ImageData.ImageData|undefined;
+	let data: Models.ImageData.ImageData|undefined = $state();
 
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
-	const { state, current, _lang, spaceData } = micrio;
+	const { state: micrioState, current, _lang, spaceData } = micrio;
 	/** References to global state stores. */
-	const { tour, marker, popover } = state;
+	const { tour, marker, popover } = micrioState;
 
 	/** Controls visibility of the menu on mobile. */
-	let shown:boolean=false;
+	let shown:boolean=$state(false);
 	/** If true, indent the toolbar to accommodate the logo. */
-	let indented:boolean=false;
+	let indented:boolean=$state(false);
 	/** Store the ID of the image this toolbar was initially created for (used for menu actions). */
 	const originalId = ($current as MicrioImage).id;
 
 	/** Array to hold the main menu pages defined in the image data. */
-	let mainPages:Models.ImageData.Menu[]|undefined;
+	let mainPages:Models.ImageData.Menu[]|undefined = $state();
 
 	/** Flag indicating if the viewport is currently mobile-sized. */
-	let isMobile:boolean;
+	let isMobile:boolean = $state(window.innerWidth <= 500);
 	/** Updates the `isMobile` flag based on window width. */
 	const resize = ():boolean => isMobile = window.innerWidth <= 500;
-	resize(); // Initial check
 
 	/** Closes the mobile menu overlay. */
 	const close = () => { if(isMobile) shown = false };
@@ -57,18 +56,18 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive flag to hide the toolbar when a tour, marker, or popover is active. */
-	$: hidden = !!$tour || !!$marker || !!$popover;
+	let hidden = $derived(!!$tour || !!$marker || !!$popover);
 	/** Combined list of marker tours from image data and space data. */
-	$: markerTours = (data?.markerTours ?? []).concat(spaceData?.markerTours ?? []);
+	let markerTours = $derived((data?.markerTours ?? []).concat(spaceData?.markerTours ?? []));
 	/** Does the image have any marker tours? */
-	$: hasMarkerTours = markerTours?.length > 0;
+	let hasMarkerTours = $derived(markerTours?.length > 0);
 	/** Does the image have any video tours? */
-	$: hasVideoTours = data?.tours && data?.tours?.length > 0;
+	let hasVideoTours = $derived(data?.tours && data?.tours?.length > 0);
 	/** Does the image have both marker and video tours? */
-	$: hasBothTourTypes = hasMarkerTours && hasVideoTours;
+	let hasBothTourTypes = $derived(hasMarkerTours && hasVideoTours);
 
 	/** Is the toolbar effectively empty (no pages or tours)? */
-	$: empty = !(mainPages?.length || hasMarkerTours || hasVideoTours);
+	let empty = $derived(!(mainPages?.length || hasMarkerTours || hasVideoTours));
 
 	// --- Lifecycle (onMount) ---
 

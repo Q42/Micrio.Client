@@ -24,8 +24,12 @@
 
 	// --- Props ---
 
-	/** The marker data object for which to display the popup. */
-	export let marker:Models.ImageData.Marker;
+	interface Props {
+		/** The marker data object for which to display the popup. */
+		marker: Models.ImageData.Marker;
+	}
+
+	let { marker }: Props = $props();
 
 	// --- Context & State ---
 
@@ -50,7 +54,7 @@
 	const canMinimize = settings.canMinimizePopup;
 
 	/** Reference to the main container div element. */
-	let _cont:HTMLElement;
+	let _cont:HTMLElement|undefined = $state();
 
 	// --- Event Handlers & Functions ---
 
@@ -89,16 +93,16 @@
 	// --- Reactive Declarations (`$:`) for Tour Logic ---
 
 	/** Check if this marker is part of the currently active marker tour. */
-	$: isPartOfTour = $tour && 'steps' in $tour && $tour.steps.findIndex(s => s.startsWith(marker.id)) >= 0;
+	let isPartOfTour = $derived($tour && 'steps' in $tour && $tour.steps.findIndex(s => s.startsWith(marker.id)) >= 0);
 	/** Determine if tour controls should be shown within the popup. */
-	$: showTourControls = $tour && 'steps' in $tour && isPartOfTour && !$tour.isSerialTour && settings.tourControlsInPopup;
+	let showTourControls = $derived($tour && 'steps' in $tour && isPartOfTour && !$tour.isSerialTour && settings.tourControlsInPopup);
 	/** Get the current step index of the active marker tour. */
-	$: currentTourStep = ($tour && 'steps' in $tour ? $tour.currentStep : undefined) ?? -1;
+	let currentTourStep = $derived(($tour && 'steps' in $tour ? $tour.currentStep : undefined) ?? -1);
 	/** Determine if the close button should stop the tour instead of advancing. */
-	$: closeButtonStopsTour = showTourControls || ($tour && 'steps' in $tour && $tour.currentStep == $tour.steps.length-1);
+	let closeButtonStopsTour = $derived(showTourControls || ($tour && 'steps' in $tour && $tour.currentStep == $tour.steps.length-1));
 
 	/** Flag to disable prev/next buttons briefly after click to prevent double clicks. */
-	let clickedPrevNext:boolean = false;
+	let clickedPrevNext:boolean = $state(false);
 
 	/** Go to the previous tour step. */
 	const prev = () => { if($tour && 'steps' in $tour) { $tour.prev?.(); clickedPrevNext = true; setTimeout(() => clickedPrevNext = false, 200); } }
@@ -108,11 +112,11 @@
 	// --- Minimization Logic ---
 
 	/** Local state tracking if the popup is minimized. */
-	let isMinimized:boolean = false;
+	let isMinimized:boolean = $state(false);
 	/** Reference to the MarkerContent's main element. */
-	let _content:HTMLElement;
+	let _content:HTMLElement|undefined = $state();
 	/** Reference to the MarkerContent's title element. */
-	let _title:HTMLElement;
+	let _title:HTMLElement|undefined = $state();
 	/** WeakMap to store original heights of content elements before minimizing. */
 	const originalHeights:WeakMap<HTMLElement, number> = new WeakMap();
 
@@ -120,7 +124,7 @@
 	const toggleMinimize = () => {
 		isMinimized = !isMinimized;
 		// Iterate through direct children of the MarkerContent main element
-		for(let i=0; i<_content.children.length; i++) {
+		if(_content) for(let i=0; i<_content.children.length; i++) {
 			const n = _content.children[i];
 			// Animate height for all children except the title (h1)
 			if(n instanceof HTMLElement && n != _title) {
@@ -147,9 +151,9 @@
 
 	onMount(() => {
 		// Add marker tags as CSS classes to the container for custom styling
-		marker.tags.forEach(c => _cont.classList.add(c));
+		marker.tags.forEach(c => _cont?.classList.add(c));
 		// Attempt to focus the first button inside after a delay
-		setTimeout(() => _cont.querySelector('button')?.focus(), 500);
+		setTimeout(() => _cont?.querySelector('button')?.focus(), 500);
 
 		// Handle marker-specific embeds (defined via 'embedImages' property)
 		const embeds = 'embedImages' in marker ? marker.embedImages as Models.ImageData.Embed[] : undefined;
