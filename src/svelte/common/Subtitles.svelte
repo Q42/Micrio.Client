@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
 	/**
 	 * Module script for Subtitles.svelte
 	 *
@@ -36,11 +36,14 @@
 	import { getContext, onMount } from 'svelte';
 
 	// --- Props ---
+	interface Props {
+		/** The URL of the VTT subtitle file. */
+		src: string;
+		/** If true, raises the position of the subtitles (e.g., to avoid overlapping controls). */
+		raised?: boolean;
+	}
 
-	/** The URL of the VTT subtitle file. */
-	export let src:string;
-	/** If true, raises the position of the subtitles (e.g., to avoid overlapping controls). */
-	export let raised:boolean = false;
+	let { src, raised = false }: Props = $props();
 
 	// --- State ---
 
@@ -85,7 +88,7 @@
 	const micrio = getContext<HTMLMicrioElement>('micrio');
 
 	/** Local state variable to store the current media playback time. */
-	let currentTime:number = 0;
+	let currentTime:number = $state(0);
 	/** Event handler to update `currentTime` based on 'timeupdate' events dispatched by Media.svelte. */
 	const setTime = (e:Event) => currentTime = (e as CustomEvent).detail;
 
@@ -100,7 +103,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Filter the parsed events to find the subtitle cue(s) active at the `currentTime`. */
-	$: current = events.filter(e => e.start <= currentTime && e.end >= currentTime);
+	let current = $derived(events.filter(e => e.start <= currentTime && e.end >= currentTime));
 
 </script>
 

@@ -46,17 +46,26 @@
 	import ProgressCircle from './ui/ProgressCircle.svelte';
 
 	// --- Props ---
+	interface Props {
+		/** The main HTMLMicrioElement instance. Provided by element.ts */
+		micrio: HTMLMicrioElement;
+		/** If true, suppresses rendering of most UI elements (except markers if data-ui="markers"). */
+		noHTML: boolean;
+		/** If true, suppresses rendering of the Micrio logo. Defaults to `noHTML`. */
+		noLogo?: boolean;
+		/** Loading progress (0-1), used for the progress indicator. */
+		loadingProgress?: number;
+		/** Optional error message to display. */
+		error?: string|undefined;
+	}
 
-	/** The main HTMLMicrioElement instance. Provided by element.ts */
-	export let micrio:HTMLMicrioElement;
-	/** If true, suppresses rendering of most UI elements (except markers if data-ui="markers"). */
-	export let noHTML:boolean;
-	/** If true, suppresses rendering of the Micrio logo. Defaults to `noHTML`. */
-	export let noLogo:boolean = noHTML;
-	/** Loading progress (0-1), used for the progress indicator. */
-	export let loadingProgress:number = 1;
-	/** Optional error message to display. */
-	export let error:string|undefined = undefined;
+	let {
+		micrio,
+		noHTML = $bindable(),
+		noLogo = noHTML,
+		loadingProgress = 1,
+		error = undefined
+	}: Props = $props();
 
 	// --- Context Setup ---
 
@@ -83,19 +92,19 @@
 	// --- State Subscriptions ---
 
 	// References to core state stores from the micrio instance
-	const { visible, state, isMuted } = micrio;
-	const { tour, marker, popup: markerPopup, popover } = state; // Destructure state stores
+	const { visible, state: micrioState, isMuted } = micrio;
+	const { tour, marker, popup: markerPopup, popover } = micrioState; // Destructure state stores
 
 	/**
 	 * Holds the currently rendered marker popup instance(s).
 	 * Wrapped in a timeout to allow fade-out transitions.
 	 */
-	let markerPopups:Models.ImageData.Marker[] = [];
+	let markerPopups:Models.ImageData.Marker[] = $state([]);
 	markerPopup.subscribe(p => setTimeout(() => markerPopups = p ? [p] : [], 20)); // Delay allows fade-out
 
 	// Stores for the current image's info, data, and settings
-	let info:Readable<Models.ImageInfo.ImageInfo|undefined>;
-	let data:Writable<Models.ImageData.ImageData|undefined>;
+	let info:Readable<Models.ImageInfo.ImageInfo|undefined>|undefined = $state();
+	let data:Writable<Models.ImageData.ImageData|undefined>|undefined = $state();
 	let settings:Writable<Models.ImageInfo.Settings>|undefined;
 
 	// --- Helper Functions ---
@@ -108,8 +117,8 @@
 
 	// --- Reactive Logic for Current Image ---
 
-	let firstInited:boolean = false; // Flag to track if the first image info has been processed
-	let logoOrg:Models.ImageInfo.Organisation|undefined; // Store org logo data once found
+	let firstInited:boolean = $state(false); // Flag to track if the first image info has been processed
+	let logoOrg:Models.ImageInfo.Organisation|undefined = $state(); // Store org logo data once found
 	const didStart:string[] = []; // Track image IDs for which auto-start logic has run
 
 	// Subscribe to changes in the currently active MicrioImage
@@ -179,8 +188,8 @@
 
 	// --- Subtitles State ---
 
-	let subsRaised:boolean = false; // Flag if subtitles should be raised (e.g., due to tour controls)
-	let srts:string[] = []; // Array holding the current subtitle source(s)
+	let subsRaised:boolean = $state(false); // Flag if subtitles should be raised (e.g., due to tour controls)
+	let srts:string[] = $state([]); // Array holding the current subtitle source(s)
 	const srt = setContext<Writable<string|undefined>>('srt', writable<string>()); // Store for current subtitle src
 	// Update local `srts` array with a delay when `srt` store changes (allows fade transitions)
 	srt.subscribe(s => setTimeout(() => { srts = s ? [s] : [] }, 20));
@@ -188,31 +197,31 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	// Derived state for 360 video
-	$: video = $settings?._360?.video;
-	$: videoSrc = video?.src;
+	let video = $derived($settings?._360?.video);
+	let videoSrc = $derived(video?.src);
 
 	// Derived state for gallery/omni features
-	$: omni = $settings?.omni;
-	$: gallery = $info?.gallery; // Gallery data comes from ImageInfo
+	let omni = $derived($settings?.omni);
+	let gallery = $derived($info?.gallery); // Gallery data comes from ImageInfo
 
 	// Derived state for audio presence
-	$: positionalAudio = $data?.markers?.filter(m => !!m.positionalAudio);
-	$: hasAudio = !!$data?.music?.items.length || !!positionalAudio?.length;
+	let positionalAudio = $derived($data?.markers?.filter(m => !!m.positionalAudio));
+	let hasAudio = $derived(!!$data?.music?.items.length || !!positionalAudio?.length);
 
 	// Flag if a tour or marker is currently active
-	$: hasTourOrMarker = $tour || $marker;
+	let hasTourOrMarker = $derived($tour || $marker);
 
 	// --- Conditional Rendering Logic ---
 
 	// Determine visibility of major UI sections based on props, settings, and state
-	$: showMarkers = !noHTML || onlyMarkers;
-	$: showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo;
-	$: showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo ? logoOrg : undefined;
-	$: showMinimap = !noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery; // Hide minimap for omni, spaces, tours, galleries
-	$: showGallery = !!gallery || !!omni; // Show gallery UI if gallery data or omni settings exist
-	$: showControls = !noHTML && !!$info; // Show controls if not noHTML and info is loaded
-	$: showDetails = !noHTML && !hasTourOrMarker && $settings?.showInfo; // Show details if enabled and no tour/marker active
-	$: showToolbar = !noHTML && firstInited && !$settings?.noToolbar; // Show toolbar after init if not disabled
+	let showMarkers = $derived(!noHTML || onlyMarkers);
+	let showLogo = $derived(!noLogo && (!$info || !noHTML) && !$settings?.noLogo);
+	let showOrgLogo = $derived(!noHTML && showLogo && !$settings?.noOrgLogo ? logoOrg : undefined);
+	let showMinimap = $derived(!noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery); // Hide minimap for omni, spaces, tours, galleries
+	let showGallery = $derived(!!gallery || !!omni); // Show gallery UI if gallery data or omni settings exist
+	let showControls = $derived(!noHTML && !!$info); // Show controls if not noHTML and info is loaded
+	let showDetails = $derived(!noHTML && !hasTourOrMarker && $settings?.showInfo); // Show details if enabled and no tour/marker active
+	let showToolbar = $derived(!noHTML && firstInited && !$settings?.noToolbar); // Show toolbar after init if not disabled
 
 </script>
 
@@ -255,7 +264,7 @@
 {#if showControls}<Controls hasAudio={hasAudio||!!(videoSrc && video && !video.muted)} />{/if}
 {#if showGallery}<Gallery images={gallery} {omni} />{/if}
 {#if showOrgLogo}<LogoOrg organisation={showOrgLogo} />{/if}
-{#if showDetails}<Details {info} {data} />{/if}
+{#if showDetails && info && data}<Details {info} {data} />{/if}
 
 <!-- Render Marker Popups (managed centrally) -->
 {#each markerPopups as marker (marker.id)}

@@ -6,6 +6,9 @@
 	 * and a draggable progress bar.
 	 */
 
+	import { createBubbler, stopPropagation } from 'svelte/legacy';
+
+	const bubble = createBubbler();
 	import { createEventDispatcher } from 'svelte';
 	// Import the global captionsEnabled store defined in the module script
 	import { captionsEnabled } from '../common/Subtitles.svelte';
@@ -17,32 +20,46 @@
 	import ProgressBar from '../ui/ProgressBar.svelte';
 
 	// --- Props ---
+	interface Props {
+		/** Current playback time in seconds (bindable). */
+		currentTime?: number;
+		/** Total duration of the media in seconds (bindable). */
+		duration?: number;
+		/** Is the media currently seeking? (bindable). */
+		seeking?: boolean;
+		/** Is the media currently muted? (bindable). */
+		muted?: boolean;
+		/** If true, display minimal controls (only play/pause button with progress circle). */
+		minimal?: boolean;
+		/** Current volume level (0-1) (bindable). */
+		volume: number;
+		/** Is the media currently paused? (bindable). */
+		paused: boolean;
+		/** Has the media ended? (bindable). */
+		ended: boolean;
+		/** Optional target element for fullscreen requests. */
+		fullscreen?: HTMLElement|undefined;
+		/** Does the media have subtitles available? */
+		subtitles?: boolean;
+	}
 
-	/** Current playback time in seconds (bindable). */
-	export let currentTime:number = 0;
-	/** Total duration of the media in seconds (bindable). */
-	export let duration:number = 0;
-	/** Is the media currently seeking? (bindable). */
-	export let seeking:boolean = true;
-	/** Is the media currently muted? (bindable). */
-	export let muted:boolean = false;
-	/** If true, display minimal controls (only play/pause button with progress circle). */
-	export let minimal:boolean = false;
-	/** Current volume level (0-1) (bindable). */
-	export let volume:number;
-	/** Is the media currently paused? (bindable). */
-	export let paused:boolean;
-	/** Has the media ended? (bindable). */
-	export let ended:boolean;
-	/** Optional target element for fullscreen requests. */
-	export let fullscreen:HTMLElement|undefined = undefined;
-	/** Does the media have subtitles available? */
-	export let subtitles:boolean = false;
+	let {
+		currentTime = $bindable(0),
+		duration = 0,
+		seeking = true,
+		muted = false,
+		minimal = false,
+		volume,
+		paused,
+		ended = $bindable(),
+		fullscreen = undefined,
+		subtitles = false
+	}: Props = $props();
 
 	// --- Reactive Declarations ---
 
 	/** Determine if audio controls (mute button) should be shown. */
-	$: hasAudio = !isNaN(volume);
+	let hasAudio = $derived(!isNaN(volume));
 
 	// --- Event Dispatcher ---
 	const dispatch = createEventDispatcher();
@@ -52,7 +69,7 @@
 	/** Flag indicating if the user is currently dragging the progress bar handle. */
 	let dragging:boolean = false;
 	/** Reference to the progress bar element. */
-	let _bar:HTMLElement;
+	let _bar:HTMLElement = $state();
 
 	/** Starts the drag seeking operation. */
 	function dStart(e:MouseEvent) : void {
@@ -85,8 +102,8 @@
 
 <!-- Main controls container -->
 <!-- Stop propagation of clicks/keydowns to prevent interaction with underlying elements -->
-<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-<aside on:click|stopPropagation on:keydown|stopPropagation>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<aside onclick={stopPropagation(bubble('click'))} onkeydown={stopPropagation(bubble('keydown'))}>
 	<!-- Play/Pause Button -->
 	<Button
 		type={!paused ? 'pause' : 'play'}
@@ -124,8 +141,8 @@
 {#if !minimal}
 	<ProgressBar {duration} bind:currentTime bind:ended>
 		<!-- Draggable area for seeking -->
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<div class="bar active" bind:this={_bar} on:mousedown={dStart}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="bar active" bind:this={_bar} onmousedown={dStart}
 			style={`--perc:${(currentTime/duration)*100}%;`}></div>
 	</ProgressBar>
 {/if}

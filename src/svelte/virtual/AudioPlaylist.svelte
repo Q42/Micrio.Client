@@ -11,18 +11,21 @@
 	import { onMount } from 'svelte';
 
 	// --- Props ---
+	interface Props {
+		/** Array of audio assets to play. */
+		list: Models.Assets.Audio[];
+		/** If true, loop the playlist when it reaches the end. */
+		loop?: boolean;
+		/** Volume level (0-1). */
+		volume?: number;
+	}
 
-	/** Array of audio assets to play. */
-	export let list:Models.Assets.Audio[];
-	/** If true, loop the playlist when it reaches the end. */
-	export let loop:boolean = true;
-	/** Volume level (0-1). */
-	export let volume:number = 1;
+	let { list, loop = true, volume = 1 }: Props = $props();
 
 	// --- Audio Playback ---
 
 	/** Single HTMLAudioElement used for playback. */
-	const audio = new Audio;
+	const audio = $state(new Audio);
 	audio.preload = 'none'; // Don't preload audio files initially
 	audio.loop = false; // Looping is handled manually by the component
 	/** Event listener for when an audio file ends, triggers playing the next one. */
@@ -54,7 +57,7 @@
 	// --- Reactive Effects ---
 
 	/** Update the audio element's volume when the `volume` prop changes. */
-	$: audio.volume = volume;
+	$effect(() => audio.volume = volume);
 
 </script>
 

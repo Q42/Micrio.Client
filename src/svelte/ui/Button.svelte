@@ -7,31 +7,50 @@
 	 * and/or slotted content. Handles disabled and active states.
 	 */
 
+	import { createBubbler } from 'svelte/legacy';
+
+	const bubble = createBubbler();
+
 	import type { IconName } from './Icon.svelte'; // Type for standard icon names
 	import type { Models } from '../../types/models';
 
 	import Icon from './Icon.svelte'; // Icon rendering component
 
 	// --- Props ---
+	interface Props {
+		/** Optional standard icon name to display. */
+		type?: IconName|undefined;
+		/** Optional custom icon image data to display. */
+		icon?: Models.Assets.Image|undefined;
+		/** Text for the title attribute (tooltip) and aria-label. */
+		title?: string|null;
+		/** If true, disable the button/link. */
+		disabled?: boolean;
+		/** If true, apply the 'active' CSS class. */
+		active?: boolean;
+		/** Additional CSS class names to apply. */
+		className?: string;
+		/** If provided, renders an `<a>` tag with this URL instead of a `<button>`. */
+		href?: string|undefined;
+		/** If `href` is provided, sets `target="_blank"` on the `<a>` tag. */
+		blankTarget?: boolean;
+		/** If true, adds the 'no-click' class (disables pointer events via CSS). */
+		noClick?: boolean;
+		children?: import('svelte').Snippet;
+	}
 
-	/** Optional standard icon name to display. */
-	export let type:IconName|undefined = undefined;
-	/** Optional custom icon image data to display. */
-	export let icon:Models.Assets.Image|undefined = undefined;
-	/** Text for the title attribute (tooltip) and aria-label. */
-	export let title:string|null = null;
-	/** If true, disable the button/link. */
-	export let disabled:boolean = false;
-	/** If true, apply the 'active' CSS class. */
-	export let active:boolean = false;
-	/** Additional CSS class names to apply. */
-	export let className:string = '';
-	/** If provided, renders an `<a>` tag with this URL instead of a `<button>`. */
-	export let href:string|undefined = undefined;
-	/** If `href` is provided, sets `target="_blank"` on the `<a>` tag. */
-	export let blankTarget:boolean = false;
-	/** If true, adds the 'no-click' class (disables pointer events via CSS). */
-	export let noClick:boolean = false;
+	let {
+		type = undefined,
+		icon = undefined,
+		title = null,
+		disabled = false,
+		active = false,
+		className = '',
+		href = undefined,
+		blankTarget = false,
+		noClick = false,
+		children
+	}: Props = $props();
 
 </script>
 
@@ -57,12 +76,12 @@
 	class="micrio-button {type??''} {className}"
 	class:active
 	class:no-click={noClick}
-	on:click
-	on:focus
-	on:pointerdown
+	onclick={bubble('click')}
+	onfocus={bubble('focus')}
+	onpointerdown={bubble('pointerdown')}
 >{#if type}<!-- Render standard icon if `type` is provided -->
 <Icon name={type} />{:else if icon}<!-- Render custom icon if `icon` data is provided -->
-<img src={icon.src} alt="Icon" />{/if}<!-- Render any slotted content (e.g., text) --><slot/>
+<img src={icon.src} alt="Icon" />{/if}<!-- Render any slotted content (e.g., text) -->{@render children?.()}
 </svelte:element>
 
 <style>

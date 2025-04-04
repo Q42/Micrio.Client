@@ -9,9 +9,12 @@
 	import { fade } from 'svelte/transition'; // Used for fade in/out animation
 
 	// --- Props ---
+	interface Props {
+		/** The progress value (0 to 1). */
+		progress: number;
+	}
 
-	/** The progress value (0 to 1). */
-	export let progress:number;
+	let { progress }: Props = $props();
 
 	// --- SVG Calculations ---
 
@@ -25,7 +28,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Calculate the stroke-dashoffset based on progress to animate the circle fill. */
-	$: offset = circ * (1-progress);
+	let offset = $derived(circ * (1-progress));
 
 </script>
 
