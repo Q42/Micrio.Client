@@ -42,7 +42,6 @@
 
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
 	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
-	console.log('marker images?', markerImages, marker.id);
 	/** Get the parent MicrioImage instance for this marker. */
 	const image = markerImages.get(marker.id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
@@ -170,7 +169,7 @@
 		// Cleanup function on component destroy
 		return () => {
 			// Update the destroying store when the global popup state no longer matches this marker
-			micrio.state.popup.subscribe(m => destroying.set(m != marker));
+			micrio.state.popup.subscribe(m => destroying.set(!m || m != marker));
 			// Remove marker-specific embeds from the image data store
 			if(embeds) {
 				micrio.$current?.data.update(d => {

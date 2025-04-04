@@ -209,11 +209,7 @@
 		tour.prev = prev;
 		tour.next = next;
 		tour.goto = goto;
-		// Define reactive getter for currentStep
-		Object.defineProperty(tour, 'currentStep', {
-			configurable: true,
-			get(){return currentTourStep}
-		});
+		$effect(() => { tour.currentStep = currentTourStep });
 	}
 
 	// --- UI Minimization State ---
