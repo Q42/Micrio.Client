@@ -1,7 +1,5 @@
 <!-- @migration-task Error while migrating Svelte code: Unexpected token -->
 <script lang="ts">
-	import { preventDefault, stopPropagation } from 'svelte/legacy';
-
 	/**
 	 * Gallery.svelte - Handles different types of image galleries.
 	 *
@@ -313,8 +311,9 @@
 	let dragIsPointer:boolean=false;
 
 	/** Starts the scrubber drag interaction. */
-	function scrubStart(_e:Event) : void {
-		const e = _e as PointerEvent|TouchEvent;
+	function scrubStart(e:PointerEvent|TouchEvent) : void {
+		e.preventDefault();
+		e.stopPropagation();
 		// Ignore if already dragging or not primary button/touch
 		if(dragging || (dragIsPointer = 'button' in e) && e.button != 0 || !_ul) return;
 		box = _ul.getClientRects()[0]; // Cache container bounds
@@ -413,8 +412,9 @@
 	let started:number[] = [0,0,0,0];
 
 	/** Starts the 2-axis rotation drag. */
-	function rotateStart(_e:Event):void {
-		const e = _e as PointerEvent;
+	function rotateStart(e:PointerEvent):void {
+		e.stopPropagation();
+		e.preventDefault();
 		if(e.button != 0) return; // Ignore non-primary buttons
 		dragging = true;
 		started = [e.clientX, e.clientY, currentPage, row];
@@ -625,7 +625,7 @@
 	{#if isOmniTwoAxes}
 		<!-- Simple button for 2-axis omni rotation (could be improved) -->
 		<button class="angular" class:dragging={dragging}
-			onpointerdowncapture={stopPropagation(preventDefault(rotateStart))}>&#10021;</button>
+			onpointerdowncapture={rotateStart}>&#10021;</button>
 	{:else if omniSettings && !omniSettings.noDial && isOmni}
 		<!-- Dial control for standard omni objects -->
 		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
@@ -644,8 +644,8 @@
 				{/each}
 				<!-- Draggable Handle -->
 				<button style={`left: ${left}px`} class:dragging={dragging} aria-label="drag handle"
-					onpointerdowncapture={stopPropagation(preventDefault(scrubStart))}
-					ontouchstartcapture={stopPropagation(preventDefault(scrubStart))}></button>
+					onpointerdowncapture={scrubStart}
+					ontouchstartcapture={scrubStart}></button>
 			</ul>
 			<!-- Next Button -->
 			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={() => goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>

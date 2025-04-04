@@ -6,8 +6,6 @@
 	 * and a draggable progress bar.
 	 */
 
-	import { createBubbler, stopPropagation } from 'svelte/legacy';
-
 	// Import the global captionsEnabled store defined in the module script
 	import { captionsEnabled } from '../common/Subtitles.svelte';
 	import { i18n } from '../../ts/i18n'; // For button titles
@@ -16,8 +14,6 @@
 	import Button from '../ui/Button.svelte';
 	import Fullscreen from '../ui/Fullscreen.svelte';
 	import ProgressBar from '../ui/ProgressBar.svelte';
-
-	const bubble = createBubbler();
 
 	// --- Props ---
 	interface Props {
@@ -106,7 +102,7 @@
 <!-- Main controls container -->
 <!-- Stop propagation of clicks/keydowns to prevent interaction with underlying elements -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<aside onclick={stopPropagation(bubble('click'))} onkeydown={stopPropagation(bubble('keydown'))}>
+<aside onclick={e => e.stopPropagation()} onkeydown={e => e.stopPropagation()}>
 	<!-- Play/Pause Button -->
 	<Button
 		type={!paused ? 'pause' : 'play'}

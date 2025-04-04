@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { preventDefault, stopPropagation } from 'svelte/legacy';
-
 	/**
 	 * Dial.svelte - A horizontal dial control for rotating Omni objects.
 	 *
@@ -48,8 +46,9 @@
 	// --- Event Handlers ---
 
 	/** Starts the dial drag interaction. */
-	function dStart(_e:Event) {
-		const e = _e as PointerEvent;
+	function dStart(e:PointerEvent) {
+		e.stopPropagation();
+		e.preventDefault();
 		if(e.button != 0) return; // Ignore non-primary button clicks
 		// Add listeners to the main micrio element to capture movement/release outside the dial
 		micrio.addEventListener('pointermove', dMove);
@@ -92,7 +91,7 @@
 <!-- Allow scrolling over element -->
 <div
 	bind:this={_dial}
-	onpointerdowncapture={stopPropagation(preventDefault(dStart))}
+	onpointerdowncapture={dStart}
 	style="--micrio-dial-offset:{offset}px;"
 	data-scroll-through
 >

@@ -7,10 +7,6 @@
 	 * and/or slotted content. Handles disabled and active states.
 	 */
 
-	import { createBubbler } from 'svelte/legacy';
-
-	const bubble = createBubbler();
-
 	import type { IconName } from './Icon.svelte'; // Type for standard icon names
 	import type { Models } from '../../types/models';
 

@@ -10,8 +10,6 @@
 </script>
 
 <script lang="ts">
-	import { run, self } from 'svelte/legacy';
-
 	/**
 	 * Media.svelte - Versatile component for rendering various media types.
 	 *
@@ -329,8 +327,7 @@
 	}
 
 	/** Toggles play/pause micrioState. */
-	function playPause(_e?:Event) : void {
-		const e = _e as PointerEvent|CustomEvent|undefined;
+	function playPause(e?:PointerEvent|CustomEvent) : void {
 		// Ignore right-clicks etc.
 		if(e && 'button' in e && e.button != 0) return;
 		if(paused) play();
@@ -737,19 +734,21 @@
 	// --- Reactive Effects ---
 
 	// Update media element muted state when volume or muted props change
-	run(() => {
+	$effect(() => {
 		if(_media && type == MediaType.Video && !muted) _media.muted = volume == 0;
 	});
 	// Update local paused state if forcePause prop changes
-	run(() => { if(forcePause !== undefined) paused = forcePause; });
+	$effect(() => { if(forcePause !== undefined) paused = forcePause; });
 	// Clear loop delay timeout if loop/delay props change
-	run(() => { if(loop && loopDelay !== undefined) cto(); });
+	$effect(() => { if(loop && loopDelay !== undefined) cto(); });
 
 	/** Reactive variable holding timed events for video tours. */
 	let videoTourEvents = $derived(videoTour && tour ? 'events' in tour ? tour.events as Models.ImageData.VideoTourView[] : tour.i18n?.[$_lang]?.events ?? undefined : undefined);
 
 	/** Reference to the main figure container element. */
 	let _cnt:HTMLElement|undefined = $state();
+	/** The media container element */
+	let _container:HTMLElement|undefined = $state();
 
 	/** Scale factor for 360 embeds. */
 	const scaleFact = info.is360 ? Math.PI/2 : 1;
@@ -765,7 +764,7 @@
 {#if !image.$settings.noUI} <!-- Check global UI setting -->
 	<figure bind:this={_cnt} class:paused class:is360 class:media-video={type == MediaType.IFrame || type == MediaType.Video}
 		class:media-micrio={type == MediaType.Micrio} class={className} style={scale!=1?`--scale:${1/scale}`:null}>
-		<div onpointerup={self(playPause)} class:videotour={!!videoTour}
+		<div onpointerup={e => {if(e.target == _container) playPause(e)}} class:videotour={!!videoTour} bind:this={_container}
 			style={relScale != 1 && (type == MediaType.Video || !info.is360) ? `transform:scale(${relScale})`:''}>
 			{#if type == MediaType.IFrame}
 				<iframe {...notypecheck({credentialless:true})} {title} src={realSrc} width={rWidth} height={rHeight} class:hooked={hooked && !frameAutoplayBlocked} bind:this={_frame}

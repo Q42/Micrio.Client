@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { run } from 'svelte/legacy';
-
 	/**
 	 * Marker.svelte - Renders a single interactive marker element on the image.
 	 *
@@ -605,7 +603,7 @@
 	let hidden = $derived($tour && ((!('steps' in $tour) && !$tour.keepMarkers) || (markerSettings.hideMarkersDuringTour && !$tourPaused)) && !opened);
 
 	// Update inView store when marker becomes hidden
-	run(() => { if(hidden && isInView) inView.update(v => { // Check isInView flag before updating
+	$effect(() => { if(hidden && isInView) inView.update(v => { // Check isInView flag before updating
 		const idx = v.findIndex(iv => iv[0] == marker);
 		if(idx >= 0) v.splice(idx, 1);
 		return v;

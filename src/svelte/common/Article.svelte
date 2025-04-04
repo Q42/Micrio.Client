@@ -6,10 +6,6 @@
 	 * It adds basic styling and ensures external links open in a new tab.
 	 */
 
-	import { createBubbler, stopPropagation } from 'svelte/legacy';
-
-	const bubble = createBubbler();
-
 	interface Props {
 		/** Optional additional CSS class name for the article element. */
 		cn?: string|null;
@@ -38,7 +34,7 @@
 	- Ignores a11y warning because the click/keydown handlers are specifically for link behavior within the content.
 -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<article class={cn} onclick={stopPropagation(bubble('click'))} onkeydown={linkInNewWindow} onpointerdown={linkInNewWindow}>{@render children?.()}</article>
+<article class={cn} onclick={e => e.stopPropagation()} onkeydown={linkInNewWindow} onpointerdown={linkInNewWindow}>{@render children?.()}</article>
 
 <style>
 	article {

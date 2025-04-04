@@ -6,9 +6,6 @@
 	 * and shows the current time and remaining/total duration.
 	 */
 
-	import { createBubbler, stopPropagation } from 'svelte/legacy';
-
-	const bubble = createBubbler();
 	import { parseTime } from '../../ts/utils'; // Utility to format time strings
 
 	// --- Props ---
@@ -37,8 +34,8 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="container"
-	onclick={stopPropagation(bubble('click'))}
-	onkeydown={stopPropagation(bubble('keydown'))}
+	onclick={e => e.stopPropagation()}
+	onkeydown={e => e.stopPropagation()}
 	style={`--progress: ${Math.round(((currentTime||0) / duration) * 10000) / 100}%;--time: '${parseTime(currentTime||0)}';`}
 >
 	<!-- Container for the visual bar elements -->

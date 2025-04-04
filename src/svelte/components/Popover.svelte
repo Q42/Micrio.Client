@@ -199,14 +199,14 @@
 		<!-- Marker Content -->
 		{#if content && content.embedUrl}
 			<!-- Render embed directly if present -->
-			<Media src={content.embedUrl} uuid={marker.id} figcaption={content.embedDescription} controls autoplay={marker.embedAutoPlay} {destroying} />
+			<Media src={content.embedUrl} uuid={marker.id} figcaption={content.embedDescription} controls autoplay={marker.embedAutoPlay} />
 		{:else if marker.images && marker.images.length}
 			<!-- Render gallery if images are present -->
 			<Gallery gallery={marker.images} />
 		{/if}
 		<!-- Render MarkerContent if there's body text OR (images AND an embed) -->
 		{#if hasPopoverContent}
-			<MarkerContent {marker} {destroying} noEmbed noGallery noImages={!content || !content.embedUrl} onclose={close} />
+			<MarkerContent {marker} noEmbed noGallery noImages={!content || !content.embedUrl} onclose={close} />
 		{/if}
 	{:else if popover.gallery}
 		<!-- Gallery Content -->
@@ -221,7 +221,7 @@
 		{/if}
 		{#if pageIsVideo}
 			<!-- Render as full video if pageIsVideo is true -->
-			{#if showEmbed}<Media src={pageContent.embed} figcaption={pageContent.content} controls autoplay {destroying} />{/if}
+			{#if showEmbed}<Media src={pageContent.embed} figcaption={pageContent.content} controls autoplay />{/if}
 		{:else}
 			<!-- Render as article content -->
 			<Article>
