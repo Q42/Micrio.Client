@@ -11,7 +11,7 @@
 	 * application state and configuration settings.
 	 */
 
-	import type { HTMLMicrioElement } from '../ts/element';
+	import type { HTMLMicrioElement, MicrioUIProps } from '../ts/element';
 	import type { Models } from '../types/models';
 	import type { Readable, Writable } from 'svelte/store';
 	import type { MicrioImage } from '../ts/image';
@@ -44,20 +44,6 @@
 	import Subtitles from './common/Subtitles.svelte';
 	import Embed from './virtual/Embed.svelte';
 	import ProgressCircle from './ui/ProgressCircle.svelte';
-
-	// --- Props ---
-	export interface MicrioUIProps {
-		/** The main HTMLMicrioElement instance. Provided by element.ts */
-		micrio: HTMLMicrioElement;
-		/** If true, suppresses rendering of most UI elements (except markers if data-ui="markers"). */
-		noHTML: boolean;
-		/** If true, suppresses rendering of the Micrio logo. Defaults to `noHTML`. */
-		noLogo?: boolean;
-		/** Loading progress (0-1), used for the progress indicator. */
-		loadingProgress?: number;
-		/** Optional error message to display. */
-		error?: string|undefined;
-	}
 
 	let {
 		micrio,

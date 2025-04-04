@@ -1,4 +1,4 @@
-import type { Unsubscriber } from 'svelte/motion';
+import type { Unsubscriber } from 'svelte/store';
 import type { HlsPlayer } from '../types/externals'; // Type definition for HLS.js player
 import type { Models } from '../types/models';
 import type { MicrioImage } from './image';

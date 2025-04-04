@@ -374,7 +374,7 @@ export class MicrioImage {
 		if(i.settings?.omni) {
 			this.isOmni = true;
 			if(i.version >= 5) { // V5 Omni requires base archive
-				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps({loadingProgress}))
+				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
 					.catch(e => this.setError(e, 'Could not find object base package.'));
 				// Configure gallery settings for Omni
 				if(!i.settings.gallery) i.settings.gallery = {};
