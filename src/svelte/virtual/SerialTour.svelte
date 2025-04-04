@@ -12,7 +12,7 @@
 	import type { Models } from '../../types/models';
 	import type { MicrioImage } from '../../ts/image';
 
-	import { onMount, getContext, tick, createEventDispatcher } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
 	import { get, writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
 	import { i18n } from '../../ts/i18n'; // For button titles
@@ -27,17 +27,15 @@
 	interface Props {
 		/** The marker tour data object. Assumes `stepInfo` has been populated. */
 		tour: Models.ImageData.MarkerTour;
+		onended?: Function;
 	}
 
-	let { tour }: Props = $props();
+	let { tour, onended }: Props = $props();
 
 	// --- Setup & State ---
 
 	/** Assert that stepInfo exists and is populated (done during data enrichment). */
 	const stepInfo = tour.stepInfo as Models.ImageData.MarkerTourStepInfo[];
-
-	/** Svelte event dispatcher. */
-	const dispatch = createEventDispatcher();
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -137,7 +135,7 @@
 		// Otherwise, end the tour
 		else {
 			paused = ended = true;
-			dispatch('ended'); // Dispatch local ended event
+			onended?.(); // Dispatch local ended event
 		}
 		// Reset step times after a tick (allows UI to update first)
 		tick().then(() => {
@@ -250,21 +248,21 @@
 			tour={current}
 			src={audioSrc}
 			autoplay={!paused}
-			on:id={(e) => currentMediaUUID = e.detail}
-			on:ended={next}
-			on:play={() => paused=false}
-			on:blocked={() => paused=true}
+			onid={(id) => currentMediaUUID = id}
+			onended={next}
+			onplay={() => paused=false}
+			onblocked={() => paused=true}
 			bind:muted
 			bind:currentTime={currentStepInfo.currentTime}
 		/>
 	{/if}
 	<!-- Render standard playback controls if enabled -->
 	{#if controls}
-		<Button type={!paused ? 'pause' : 'play'} title={paused ? $i18n.play : $i18n.pause} on:click={playPause} />
-		<Button type={muted ? 'volume-off' : 'volume-up'} title={muted ? $i18n.audioUnmute : $i18n.audioMute} on:click={toggleMute} />
+		<Button type={!paused ? 'pause' : 'play'} title={paused ? $i18n.play : $i18n.pause} onclick={playPause} />
+		<Button type={muted ? 'volume-off' : 'volume-up'} title={muted ? $i18n.audioUnmute : $i18n.audioMute} onclick={toggleMute} />
 		{#if subtitleSrc}<Button
 			type={$captionsEnabled ? 'subtitles' : 'subtitles-off'} active={$captionsEnabled} title={$i18n.subtitlesToggle}
-			on:click={() => captionsEnabled.set(!$captionsEnabled)} />{/if}
+			onclick={() => captionsEnabled.set(!$captionsEnabled)} />{/if}
 		<Fullscreen el={micrio} />
 	{/if}
 </aside>

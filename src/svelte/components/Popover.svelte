@@ -180,15 +180,15 @@
 		<aside class:inside={page ? !pageIsVideo : !hasContent && !content?.embedUrl}>
 			{#if !noCloseButton}
 				<!-- Standard close button -->
-				<Button type="close" title={$i18n.close} className="close-popover" on:click={close} />
+				<Button type="close" title={$i18n.close} className="close-popover" onclick={close} />
 			{/if}
 			<!-- Tour navigation buttons -->
 			{#if tour && tour.currentStep != undefined}
 				{#if tour.currentStep > 0}
-					<Button type="arrow-left" title={$i18n.tourStepPrev} className="prev-tour-step" on:click={() => tour && tour.prev && tour.prev()} />
+					<Button type="arrow-left" title={$i18n.tourStepPrev} className="prev-tour-step" onclick={() => tour && tour.prev && tour.prev()} />
 				{/if}
 				{#if tour.currentStep < tour.steps.length-1}
-					<Button type="arrow-right" title={$i18n.tourStepNext} className="next-tour-step" on:click={() => tour && tour.next && tour.next()} />
+					<Button type="arrow-right" title={$i18n.tourStepNext} className="next-tour-step" onclick={() => tour && tour.next && tour.next()} />
 				{/if}
 			{/if}
 		</aside>
@@ -206,7 +206,7 @@
 		{/if}
 		<!-- Render MarkerContent if there's body text OR (images AND an embed) -->
 		{#if hasPopoverContent}
-			<MarkerContent {marker} {destroying} noEmbed noGallery noImages={!content || !content.embedUrl} on:close={close} />
+			<MarkerContent {marker} {destroying} noEmbed noGallery noImages={!content || !content.embedUrl} onclose={close} />
 		{/if}
 	{:else if popover.gallery}
 		<!-- Gallery Content -->
@@ -216,7 +216,7 @@
 		{#if langs.length > 1}
 			<!-- Language switcher for pages -->
 			<menu>{#each langs as l}
-				<Button on:click={() => micrio.lang = l} title={languageNames?.of(l) ?? l} active={l==$_lang}>{l.toUpperCase()}</Button>
+				<Button onclick={() => micrio.lang = l} title={languageNames?.of(l) ?? l} active={l==$_lang}>{l.toUpperCase()}</Button>
 			{/each}</menu>
 		{/if}
 		{#if pageIsVideo}
@@ -237,7 +237,7 @@
 				<Button
 					href={button.type == 'link' ? button.action : undefined}
 					blankTarget={button.blankTarget}
-					on:click={() => clickPageButton(button)}
+					onclick={() => clickPageButton(button)}
 				>
 					{button.i18nTitle[$_lang]}
 				</Button>

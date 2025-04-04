@@ -135,7 +135,7 @@
 	<Button
 		type={isActive ? 'minimize' : 'maximize'}
 		title={$i18n.fullscreenToggle}
-		on:click={toggle}
+		onclick={toggle}
 	/>
 {/if}
 

@@ -216,8 +216,8 @@
 		<Button
 			type={icon ? undefined : 'arrow-up'}
 			{icon}
-			on:click={click}
-			on:focus={focus}
+			onclick={click}
+			onfocus={focus}
 			title={title ?? $i18n.waypointFollow}
 		/>
 	</div>

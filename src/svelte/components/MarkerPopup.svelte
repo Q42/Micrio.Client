@@ -196,12 +196,12 @@
 				type={(!isPartOfTour || closeButtonStopsTour) ? 'close' : 'arrow-right'}
 				title={(!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext}
 				disabled={clickedPrevNext}
-				on:click={close}
+				onclick={close}
 			/>
 		{/if}
 		<!-- Minimize Button -->
 		{#if canMinimize}
-			<Button type={isMinimized ? 'arrow-up' : 'arrow-down'} title={$i18n.minimize} on:click={toggleMinimize} />
+			<Button type={isMinimized ? 'arrow-up' : 'arrow-down'} title={$i18n.minimize} onclick={toggleMinimize} />
 		{/if}
 		<!-- Tour Controls -->
 		{#if showTourControls && $tour && 'steps' in $tour}
@@ -209,16 +209,16 @@
 			<progress aria-hidden={true} value={(currentTourStep+1)/$tour.steps.length} class="progress"></progress>
 			<ButtonGroup className="micrio-tour-controls">
 				<!-- Previous Step Button -->
-				<Button type="arrow-left" disabled={clickedPrevNext || currentTourStep==0} title={$i18n.tourStepPrev} on:click={prev} />
+				<Button type="arrow-left" disabled={clickedPrevNext || currentTourStep==0} title={$i18n.tourStepPrev} onclick={prev} />
 				<!-- Step Counter (if enabled in settings) -->
 				{#if settings.tourStepCounterInPopup}<button class="micrio-button tour-step" disabled>{currentTourStep+1} / {$tour.steps.length}</button>{/if}
 				<!-- Next Step Button -->
-				<Button type="arrow-right" disabled={clickedPrevNext || (currentTourStep+1==$tour.steps.length)} title={$i18n.tourStepNext} on:click={next} />
+				<Button type="arrow-right" disabled={clickedPrevNext || (currentTourStep+1==$tour.steps.length)} title={$i18n.tourStepNext} onclick={next} />
 			</ButtonGroup>
 		{/if}
 	</aside>
 	<!-- Render the actual marker content -->
-	<MarkerContent {marker} {destroying} bind:_content bind:_title on:close={close} />
+	<MarkerContent {marker} {destroying} bind:_content bind:_title onclose={close} />
 </div>
 
 <style>

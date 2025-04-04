@@ -11,7 +11,7 @@
 
 	import type { HTMLMicrioElement } from '../../ts/element';
 
-	import { createEventDispatcher, getContext } from 'svelte';
+	import { getContext } from 'svelte';
 
 	// --- Props ---
 
@@ -22,14 +22,12 @@
 		frames: number;
 		/** If true, display the current rotation value in degrees. */
 		degrees: boolean|undefined;
+		onturn?: (frame:number) => void;
 	}
 
-	let { currentRotation, frames, degrees }: Props = $props();
+	let { currentRotation, frames, degrees, onturn }: Props = $props();
 
 	// --- Setup ---
-
-	/** Svelte event dispatcher. */
-	const dispatch = createEventDispatcher();
 
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -70,7 +68,7 @@
 		// Calculate target frame index based on drag distance, dial width, scale, and total frames
 		const targetFrame = (startRot / 360 + ((startX - e.clientX) / (_dial!.offsetWidth * scale))) * frames;
 		// Dispatch 'turn' event with the calculated target frame index
-		dispatch('turn', targetFrame);
+		onturn?.(targetFrame);
 	}
 
 	/** Stops the dial drag interaction. */

@@ -173,7 +173,7 @@
 			<Button
 				type={$isMuted ? 'volume-off' : 'volume-up'}
 				title={$isMuted ? $i18n.audioUnmute : $i18n.audioMute}
-				on:click={() => isMuted.set(!$isMuted)}
+				onclick={() => isMuted.set(!$isMuted)}
 			/>
 		{/if}
 
@@ -183,7 +183,7 @@
 				<Button title={$i18n.switchLanguage} type="a11y" /><!-- Accessibility icon -->
 				{#each cultures as l}
 					<Button
-						on:click={() => micrio.lang = l}
+						onclick={() => micrio.lang = l}
 						title={languageNames?.of(l) ?? l}
 						active={l==$_lang}
 					>
@@ -195,7 +195,7 @@
 
 		<!-- Share Button -->
 		{#if hasSocial}
-			<Button type="share" title={$i18n.share} on:click={share} />
+			<Button type="share" title={$i18n.share} onclick={share} />
 		{/if}
 
 		<!-- Zoom and Fullscreen Buttons -->

@@ -8,8 +8,6 @@
 
 	import { createBubbler, stopPropagation } from 'svelte/legacy';
 
-	const bubble = createBubbler();
-	import { createEventDispatcher } from 'svelte';
 	// Import the global captionsEnabled store defined in the module script
 	import { captionsEnabled } from '../common/Subtitles.svelte';
 	import { i18n } from '../../ts/i18n'; // For button titles
@@ -18,6 +16,8 @@
 	import Button from '../ui/Button.svelte';
 	import Fullscreen from '../ui/Fullscreen.svelte';
 	import ProgressBar from '../ui/ProgressBar.svelte';
+
+	const bubble = createBubbler();
 
 	// --- Props ---
 	interface Props {
@@ -41,6 +41,9 @@
 		fullscreen?: HTMLElement|undefined;
 		/** Does the media have subtitles available? */
 		subtitles?: boolean;
+		onplaypause?: Function;
+		onmute?: Function;
+		onseek?: (n:number) => void;
 	}
 
 	let {
@@ -53,7 +56,10 @@
 		paused,
 		ended = $bindable(),
 		fullscreen = undefined,
-		subtitles = false
+		subtitles = false,
+		onplaypause,
+		onmute,
+		onseek
 	}: Props = $props();
 
 	// --- Reactive Declarations ---
@@ -61,15 +67,12 @@
 	/** Determine if audio controls (mute button) should be shown. */
 	let hasAudio = $derived(!isNaN(volume));
 
-	// --- Event Dispatcher ---
-	const dispatch = createEventDispatcher();
-
 	// --- Progress Bar Dragging Logic ---
 
 	/** Flag indicating if the user is currently dragging the progress bar handle. */
 	let dragging:boolean = false;
 	/** Reference to the progress bar element. */
-	let _bar:HTMLElement = $state();
+	let _bar:HTMLElement|undefined = $state();
 
 	/** Starts the drag seeking operation. */
 	function dStart(e:MouseEvent) : void {
@@ -83,11 +86,11 @@
 
 	/** Handles mouse movement during drag seeking. */
 	function dMove(e:MouseEvent) : void {
-		const rect = _bar.getClientRects()[0]; // Get progress bar dimensions
+		const rect = _bar!.getClientRects()[0]; // Get progress bar dimensions
 		// Calculate percentage based on click position, clamped between 0 and 1
 		const perc = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
 		// Dispatch 'seek' event with the target time
-		dispatch('seek', perc * duration);
+		onseek?.(perc * duration);
 	}
 
 	/** Stops the drag seeking operation. */
@@ -108,7 +111,7 @@
 	<Button
 		type={!paused ? 'pause' : 'play'}
 		title={!paused ? $i18n.pause : $i18n.play}
-		on:click={() => dispatch('playpause')}
+		onclick={onplaypause}
 	>
 		<!-- Optional circular progress indicator within the play/pause button (for minimal mode) -->
 		{#if minimal && currentTime > 0}
@@ -123,14 +126,14 @@
 		{#if hasAudio}
 			<Button disabled={seeking} type={muted?'volume-off':'volume-up'}
 				title={muted?$i18n.audioUnmute:$i18n.audioMute}
-				on:click={() => dispatch('mute')}
+				onclick={onmute}
 			/>
 		{/if}
 		<!-- Subtitles Toggle Button -->
 		{#if subtitles}
 			<Button type={$captionsEnabled ? 'subtitles' : 'subtitles-off'} active={$captionsEnabled}
 				title={$i18n.subtitlesToggle}
-				on:click={() => captionsEnabled.set(!$captionsEnabled)}
+				onclick={() => captionsEnabled.set(!$captionsEnabled)}
 			/>
 		{/if}
 		<!-- Fullscreen Button -->

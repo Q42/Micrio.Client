@@ -109,7 +109,7 @@
 		{/if}
 		<!-- Close button (only shown when details are open) -->
 		{#if opened}
-			<Button type="close" title={$i18n.close} on:click={() => _element!.open = false} />
+			<Button type="close" title={$i18n.close} onclick={() => _element!.open = false} />
 		{/if}
 	</details>
 {/if}

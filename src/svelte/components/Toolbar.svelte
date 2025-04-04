@@ -130,12 +130,12 @@
 		<!-- Render main menu pages -->
 		{#if mainPages}
 			{#each mainPages as menu (menu.id)}
-				<Menu {menu} {originalId} on:close={close} />
+				<Menu {menu} {originalId} onclose={close} />
 			{/each}
 		{/if}
 		<!-- Render Marker Tours menu (if any) -->
 		{#if hasMarkerTours}
-			<Menu on:close={close} menu={{
+			<Menu onclose={close} menu={{
 				id: createGUID(),
 				i18n: {[$_lang]: {title: hasBothTourTypes ? 'Marker tours' : 'Tours'}}, // Dynamic title
 				children: markerTours.map((t) => ({ // Create child items for each tour
@@ -150,7 +150,7 @@
 		{/if}
 		<!-- Render Video Tours menu (if any) -->
 		{#if hasVideoTours}
-			<Menu on:close={close} menu={{
+			<Menu onclose={close} menu={{
 				id: createGUID(),
 				i18n: {[$_lang]: {title: hasBothTourTypes ? 'Video tours' : 'Tours'}}, // Dynamic title
 				children: !data || !data.tours ? [] : data.tours.map((t) => ({ // Create child items
@@ -173,7 +173,7 @@
 			title={$i18n.menuToggle}
 			type={shown ? 'close' : 'ellipsis-vertical'}
 			className={'toggle transparent' + (indented ? ' indent' : '')}
-			on:click={() => shown=!shown}
+			onclick={() => shown=!shown}
 		/>
 	{/if}
 {/if}

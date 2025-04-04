@@ -12,7 +12,7 @@
 	import type { MicrioImage } from '../../ts/image';
 	import type { Writable } from 'svelte/store';
 
-	import { getContext, createEventDispatcher } from 'svelte';
+	import { getContext } from 'svelte';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // Handles media playback (audio, video, embeds)
@@ -35,6 +35,7 @@
 		_content?: HTMLElement|null;
 		/** Allows binding to the title (h1) element. */
 		_title?: HTMLElement|null;
+		onclose?: Function;
 	}
 
 	let {
@@ -44,13 +45,11 @@
 		noImages = false,
 		noGallery = false,
 		_content = $bindable(null),
-		_title = $bindable(null)
+		_title = $bindable(null),
+		onclose
 	}: Props = $props();
 
 	// --- Setup ---
-
-	/** Svelte event dispatcher for emitting events (e.g., 'close'). */
-	const dispatch = createEventDispatcher();
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -93,7 +92,7 @@
 	/** Called when media playback ends. Dispatches 'close' event for tour auto-progression. */
 	const mediaEnded = () : void => {
 		if($tour && 'steps' in $tour && ($tour.isSerialTour || settings.tourAutoProgress)) {
-			dispatch('close'); // Signal parent (MarkerPopup) to close/advance
+			onclose?.(); // Signal parent (MarkerPopup) to close/advance
 		}
 	}
 
@@ -156,7 +155,7 @@
 				tour={marker.videoTour}
 				autoplay={marker.audioAutoPlay || (!content.audio && !!marker.videoTour)}
 				controls={!marker.videoTour || (!content || !content.embedUrl)}
-				on:ended={mediaEnded}
+				onended={mediaEnded}
 				bind:paused={paused.audio}
 			/>
 			<!-- Show controls only if it's just audio -->
@@ -201,7 +200,7 @@
 				figcaption={content.embedDescription}
 				autoplay={aplayVideo}
 				{destroying}
-				on:ended={mediaEnded}
+				onended={mediaEnded}
 				bind:paused={paused.video}
 			/>
 		{/if}

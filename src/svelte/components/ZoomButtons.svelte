@@ -112,9 +112,9 @@
 <!-- Render buttons only if not fully zoomed in OR not fully zoomed out -->
 {#if !isZoomedIn || !isZoomedOut}
 	<!-- Zoom In Button -->
-	<Button type="zoom-in" title={$i18n.zoomIn} disabled={loading||isZoomedIn} on:click={zoomIn} />
+	<Button type="zoom-in" title={$i18n.zoomIn} disabled={loading||isZoomedIn} onclick={zoomIn} />
 	<!-- Zoom Out Button -->
-	<Button type="zoom-out" title={$i18n.zoomOut} disabled={loading||isZoomedOut} on:click={zoomOut} />
+	<Button type="zoom-out" title={$i18n.zoomOut} disabled={loading||isZoomedOut} onclick={zoomOut} />
 {/if}
 
 <!-- No specific styles needed, inherits from ButtonGroup and Button -->

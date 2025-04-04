@@ -622,12 +622,12 @@
 			onpointerdowncapture={stopPropagation(preventDefault(rotateStart))}>&#10021;</button>
 	{:else if omniSettings && !omniSettings.noDial && isOmni}
 		<!-- Dial control for standard omni objects -->
-		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} on:turn={e => goto(e.detail)} />
+		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
 	{:else if !isFullSwipe && images.length > 1}
 		<!-- Scrubber UI for swipe galleries -->
 		<div class:hidden={loading||($hidden && !dragging && !panning)}>
 			<!-- Previous Button -->
-			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" on:pointerdown={() => goto(currentPage - 1)} disabled={currentPage==0}></Button>
+			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" onpointerdown={() => goto(currentPage - 1)} disabled={currentPage==0}></Button>
 			<!-- Scrubber Bar -->
 			<ul bind:this={_ul} onpointermove={scrubPointerMove} onpointerleave={() => hoverIdx=-1}>
 				<!-- Bullets for each page -->
@@ -642,7 +642,7 @@
 					ontouchstartcapture={stopPropagation(preventDefault(scrubStart))}></button>
 			</ul>
 			<!-- Next Button -->
-			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" on:pointerdown={() => goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
+			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={() => goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
 		</div>
 	{/if}
 {/if}

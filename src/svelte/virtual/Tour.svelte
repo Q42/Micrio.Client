@@ -17,7 +17,7 @@
 	import type { MicrioImage } from '../../ts/image';
 	import { writable, type Unsubscriber } from 'svelte/store';
 
-	import { getContext, onMount, tick, createEventDispatcher } from 'svelte';
+	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { i18n } from '../../ts/i18n';
 	import { loadSerialTour } from '../../ts/utils'; // Utility for loading serial tour step info
@@ -35,14 +35,12 @@
 		tour: Models.ImageData.MarkerTour|Models.ImageData.VideoTour;
 		/** If true, suppresses rendering of HTML controls (used when UI is handled externally). */
 		noHTML?: boolean;
+		onminimize?: (b:boolean) => void;
 	}
 
-	let { tour = $bindable(), noHTML = false }: Props = $props();
+	let { tour = $bindable(), noHTML = false, onminimize }: Props = $props();
 
 	// --- Setup & State ---
-
-	/** Svelte event dispatcher. */
-	const dispatch = createEventDispatcher();
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio:HTMLMicrioElement = <HTMLMicrioElement>getContext('micrio');
@@ -292,7 +290,7 @@
 		if('steps' in tour) loadSerialTour(image, tour, $_lang, image.$data!).then(() => startMarkerTour(tour));
 
 		// Subscribe to minimize state if controls are shown
-		if(!noControls) unsub.push(minimized.subscribe(m => dispatch('minimize', m)));
+		if(!noControls) unsub.push(minimized.subscribe(m => onminimize?.(m)));
 
 		// Setup auto-minimize listeners if applicable
 		if(!noHTML && (!('steps' in tour) || isSerialTour) && tour.minimize !== false) {
@@ -371,7 +369,7 @@
 		<article class="scroll-tour" bind:this={_scroller}>{#each tour.steps.map(step => data.markers && data.markers.find(m => m.id==step.split(',')[0])) as marker}{#if marker}
 			<MarkerPopup {marker} /> <!-- Render each marker popup -->
 		{/if}{/each}</article>
-		{#if !tour.cannotClose}<Button type="close" title={$i18n.tourStop} className="scroll-tour-end" on:click={exit} />{/if}
+		{#if !tour.cannotClose}<Button type="close" title={$i18n.tourStop} className="scroll-tour-end" onclick={exit} />{/if}
 
 	<!-- Independent tour controls (Video or Serial) -->
 	{:else if isIndependent}
@@ -379,11 +377,11 @@
 			class:no-controls={noControls} class:minimized={!paused&&($minimized||isOtherMarkerOpened)} in:fade={{duration: 200}}>
 			{#if 'steps' in tour}
 				<!-- Render SerialTour component or standard marker tour controls -->
-				{#if isSerialTour}<SerialTour {tour} on:ended={ended} />
+				{#if isSerialTour}<SerialTour {tour} onended={ended} />
 				{:else}
-					<Button type="arrow-left" title={$i18n.tourStepPrev} disabled={currentTourStep==0} on:click={prev} />
+					<Button type="arrow-left" title={$i18n.tourStepPrev} disabled={currentTourStep==0} onclick={prev} />
 					<Button noClick>{currentTourStep+1} / {tour.steps.length}</Button>
-					<Button type="arrow-right" title={$i18n.tourStepNext} disabled={currentTourStep==tour.steps.length-1} on:click={next} />
+					<Button type="arrow-right" title={$i18n.tourStepNext} disabled={currentTourStep==tour.steps.length-1} onclick={next} />
 				{/if}
 			{:else}
 				<!-- Render Video Tour controls via Media component -->
@@ -395,19 +393,19 @@
 				<!-- Bind step's current time -->
 				<Media {tour} src={audioSrc}
 					fullscreen={micrio} controls autoplay bind:paused={paused}
-					bind:currentTime on:ended={ended} />
+					bind:currentTime onended={ended} />
 			{/if}
 			<!-- Common Close button -->
-			{#if !tour.cannotClose}<Button type="close" title={$i18n.close} on:click={exit} />{/if}
+			{#if !tour.cannotClose}<Button type="close" title={$i18n.close} onclick={exit} />{/if}
 		</div>
 
 	<!-- Video tour embedded within a marker popup -->
 	{:else if videoTour}
-		<Media tour={videoTour} src={audioSrc} bind:currentTime autoplay on:ended={ended} />
+		<Media tour={videoTour} src={audioSrc} bind:currentTime autoplay onended={ended} />
 	{/if}
 <!-- If noHTML is true, but it's a video tour, still render the Media component for playback logic -->
 {:else if videoTour}
-	<Media tour={videoTour} src={audioSrc} autoplay bind:currentTime on:ended={ended} />
+	<Media tour={videoTour} src={audioSrc} autoplay bind:currentTime onended={ended} />
 {/if}
 
 <style>

@@ -34,7 +34,7 @@
 	import type { MicrioImage } from '../../ts/image';
 	import { get, type Writable } from 'svelte/store';
 
-	import { onMount, getContext, createEventDispatcher } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 
 	// Micrio TS imports
 	import { i18n } from '../../ts/i18n';
@@ -108,6 +108,10 @@
 		/** The MicrioImage instance this media belongs to (usually the current image). */
 		image?: MicrioImage;
 		_media?: HTMLMediaElement|undefined; // Reference to the audio/video element
+		onended?: Function;
+		onblocked?: Function;
+		onplay?: Function;
+		onid?: (id:string) => void;
 	}
 
 	let {
@@ -138,7 +142,11 @@
 		noPlayOverlay = false,
 		uuid = $bindable(''),
 		image = get(micrio.current) as MicrioImage,
-		_media = $bindable(undefined)
+		_media = $bindable(undefined),
+		onended,
+		onblocked,
+		onplay,
+		onid
 	}: Props = $props();
 
 	/** Initial muted state before component logic. */
@@ -148,8 +156,6 @@
 	// --- Context & Global State ---
 
 	const info = image.$info as Models.ImageInfo.ImageInfo;
-
-	const dispatch = createEventDispatcher();
 
 	/** Get relevant stores/properties from the Micrio instance. */
 	const {events, state: micrioState, _lang } = micrio;
@@ -384,7 +390,8 @@
 					if(noPlayOverlay) paused = true; // If overlay disabled, just stay paused
 					else if(!/pause\(\)/.test(e.toString())) { // Ignore errors caused by calling pause() immediately after play()
 						showPlayButton = true; // Show manual play button overlay
-						dispatch('blocked'); // Dispatch blocked event
+						micrio.events.dispatch('media-blocked'); // Dispatch blocked event
+						onblocked?.();
 					}
 				});
 			break;
@@ -404,7 +411,7 @@
 		hasInited = true; // Mark as initialized
 		events.dispatch('media-play'); // Dispatch global event
 		mediaPaused.set(false); // Update global paused state
-		dispatch('play'); // Dispatch local event
+		onplay?.(); // Dispatch local event
 
 		// Mute main volume if this media isn't muted and isn't a silent video tour
 		if(!is360 && !wasMuted && !(videoTour && !_media)) mainVolume.set(image.$settings.mutedVolume||0);
@@ -471,7 +478,7 @@
 		else { paused = true; endTick(); } // Set paused state and stop ticker
 		_ended = true;
 		events.dispatch('media-ended'); // Dispatch global event
-		dispatch('ended'); // Dispatch local event
+		onended?.(); // Dispatch local event
 		stoppedPlaying(); // Restore main volume if needed
 	}
 
@@ -696,7 +703,7 @@
 
 	// --- Lifecycle (onMount) ---
 	onMount(() => {
-		dispatch('id', uuid); // Dispatch unique ID
+		onid?.(uuid); // Dispatch unique ID
 		// Handle shared iOS audio element setup
 		if(src && singleAudio) {
 			_media = iOSAudio;
@@ -797,9 +804,9 @@
 						subtitles={!!srt}
 						fullscreen={(!is360 && (type == MediaType.IFrame || type == MediaType.Video)) ? _cnt : fullscreen}
 						bind:paused bind:seeking bind:duration bind:currentTime bind:muted bind:volume bind:ended={_ended}
-						on:playpause={playPause}
-						on:mute={() => micrio.isMuted.set(!muted)}
-						on:seek={e => setCurrentTime(e.detail)}
+						onplaypause={playPause}
+						onmute={() => micrio.isMuted.set(!muted)}
+						onseek={t => setCurrentTime(t)}
 					/>
 				</aside>
 			{/if}

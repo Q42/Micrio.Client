@@ -37,6 +37,9 @@
 		/** If true, adds the 'no-click' class (disables pointer events via CSS). */
 		noClick?: boolean;
 		children?: import('svelte').Snippet;
+		onclick?: Function;
+		onfocus?: Function;
+		onpointerdown?: Function;
 	}
 
 	let {
@@ -49,7 +52,10 @@
 		href = undefined,
 		blankTarget = false,
 		noClick = false,
-		children
+		children,
+		onclick,
+		onfocus,
+		onpointerdown
 	}: Props = $props();
 
 </script>
@@ -62,7 +68,7 @@
 	- `title`, `aria-label`: Set for accessibility.
 	- `role`, `tabindex`: Set appropriately for button/link semantics.
 	- `class`: Combines base class, type class, custom class, and state classes.
-	- Event forwarding: `on:click`, `on:focus`, `on:pointerdown` allow parent components to listen.
+	- Event forwarding: `onclick`, `onfocus`, `onpointerdown` allow parent components to listen.
 -->
 <svelte:element
 	this={href ? 'a' : 'button'}
@@ -76,9 +82,9 @@
 	class="micrio-button {type??''} {className}"
 	class:active
 	class:no-click={noClick}
-	onclick={bubble('click')}
-	onfocus={bubble('focus')}
-	onpointerdown={bubble('pointerdown')}
+	onclick={(e:Event) => onclick?.(e)}
+	onfocus={(e:Event) => onfocus?.(e)}
+	onpointerdown={(e:Event) => onpointerdown?.(e)}
 >{#if type}<!-- Render standard icon if `type` is provided -->
 <Icon name={type} />{:else if icon}<!-- Render custom icon if `icon` data is provided -->
 <img src={icon.src} alt="Icon" />{/if}<!-- Render any slotted content (e.g., text) -->{@render children?.()}

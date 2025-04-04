@@ -39,7 +39,7 @@
 
 	import type { HTMLMicrioElement } from '../../ts/element';
 
-	import { createEventDispatcher, getContext, onMount } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 
 	// UI Components
 	import Menu from './Menu.svelte';
@@ -56,14 +56,12 @@
 	 * Used for actions that need to switch back to the original image (e.g., opening a marker).
 	 */
 		originalId?: string|null;
+		onclose?: Function;
 	}
 
-	let { menu = $bindable(), originalId = null }: Props = $props();
+	let { menu = $bindable(), originalId = null, onclose }: Props = $props();
 
 	// --- Setup ---
-
-	/** Svelte event dispatcher. */
-	const dispatch = createEventDispatcher();
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -93,7 +91,7 @@
 		// Determine if clicking should close the menu system
 		const doClose = !!(isOpen || menu.action || menu.link); // Close if already open, has action, or is a link
 		opened.set(doClose ? undefined : menu); // Set this menu as opened, or close all if doClose is true
-		if(doClose) dispatch('close'); // Dispatch close event for potential parent handling
+		if(doClose) onclose?.(); // Dispatch close event for potential parent handling
 	}
 
 	// --- Lifecycle (onMount) ---
@@ -160,7 +158,7 @@
 		<div class="items">
 			{#each menu.children as child,i (i+child.id)}
 				<!-- Pass originalId down for correct image switching -->
-				<Menu menu={child} {originalId} on:close />
+				<Menu menu={child} {originalId} onclose={close} />
 			{/each}
 		</div>
 	{/if}

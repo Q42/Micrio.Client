@@ -273,7 +273,7 @@
 
 <!-- Render active Tour UI -->
 {#if $tour}
-	<Tour tour={$tour} {noHTML} on:minimize={e => subsRaised=!e.detail} />
+	<Tour tour={$tour} {noHTML} onminimize={b => subsRaised=!b} />
 {/if}
 
 <!-- Render active Popover (for pages, gallery previews, etc.) -->
