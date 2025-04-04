@@ -2,6 +2,7 @@ import type { Writable } from 'svelte/store';
 import type { Models } from '../types/models';
 import type { Camera } from './camera';
 import type Svelte from '../svelte/Main.svelte';
+import type { MicrioUIProps } from '../svelte/Main.svelte';
 
 import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5 } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
@@ -15,7 +16,7 @@ import { Router } from './router';
 import { GoogleTag } from './analytics';
 import { Grid } from './grid';
 import { archive } from './archive';
-import { SvelteComponent, tick } from 'svelte';
+import { mount, tick, unmount } from 'svelte';
 import { Canvas } from './canvas';
 import { rtlLanguageCodes } from './langs';
 import { i18n, langs } from './i18n';
@@ -122,7 +123,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** The Svelte UI component instance.
 	 * @internal
 	*/
-	_ui:Svelte & SvelteComponent|undefined;
+	_ui:{setProps:(p:Partial<MicrioUIProps>) => void}|undefined;
 
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
 	public defaultSettings?:Partial<Models.ImageInfo.Settings> = this.defaultSettings;
@@ -263,7 +264,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		this.canvas.unhook(); // Clean up canvas controller
 		this.analytics.unhook(); // Disconnect analytics
 		this.wasm.unbind(); // Clean up Wasm resources
-		if(this._ui) this._ui?.$destroy(); // Destroy Svelte UI
+		if(this._ui) unmount(this._ui); // Destroy Svelte UI
 		delete this._ui;
 		this.printed = false; // Reset printed flag
 	}
@@ -278,7 +279,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	private loadArchiveBin(path:string, id:string) : Promise<void> {
 		this.printUI(true, true); // Print minimal UI for loading progress
 		// Use the archive utility to load and report progress
-		return archive.load(path, 'g/'+id, p => this._ui?.$set({loadingProgress: p}));
+		return archive.load(path, 'g/'+id, loadingProgress => this._ui?.setProps({loadingProgress}));
 	}
 
 	/**
@@ -370,9 +371,8 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param noLogo If true, hides the Micrio logo.
 	 */
 	private printUI(noHTML:boolean, noLogo:boolean) : void {
-		/* @ts-ignore */
-		if(!this._ui) this._ui = new HTMLMicrioElement.Svelte({target:this, props:{micrio:this,noHTML,noLogo}})
-		else this._ui.$set({noLogo, noHTML});
+		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}})
+		else this._ui.setProps({noHTML, noLogo});
 	}
 
 	/**
@@ -381,7 +381,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param str The error message string.
 	 */
 	printError(str?:string) : void {
-		this._ui?.$set({error: str??'An unknown error has occurred'});
+		this._ui?.setProps({error: str??'An unknown error has occurred'});
 	}
 
 	/**

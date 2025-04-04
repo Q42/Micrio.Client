@@ -46,7 +46,7 @@
 	import ProgressCircle from './ui/ProgressCircle.svelte';
 
 	// --- Props ---
-	interface Props {
+	export interface MicrioUIProps {
 		/** The main HTMLMicrioElement instance. Provided by element.ts */
 		micrio: HTMLMicrioElement;
 		/** If true, suppresses rendering of most UI elements (except markers if data-ui="markers"). */
@@ -65,7 +65,15 @@
 		noLogo = noHTML,
 		loadingProgress = 1,
 		error = undefined
-	}: Props = $props();
+	}: MicrioUIProps = $props();
+
+	// For updating main props from TypeScript
+	export function setProps(p:Partial<MicrioUIProps>) {
+		if('error' in p) error = p.error;
+		if(p.noHTML !== undefined) noHTML = p.noHTML;
+		if(p.noLogo !== undefined) noLogo = p.noLogo;
+		if(p.loadingProgress !== undefined) loadingProgress = p.loadingProgress;
+	}
 
 	// --- Context Setup ---
 

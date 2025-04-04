@@ -12,7 +12,6 @@ import { readable, writable, get } from 'svelte/store';
 import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
 import { State } from './state';
 import { archive } from './archive';
-import { SvelteComponent, tick } from 'svelte'; // Import SvelteComponent
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @private
@@ -375,7 +374,7 @@ export class MicrioImage {
 		if(i.settings?.omni) {
 			this.isOmni = true;
 			if(i.version >= 5) { // V5 Omni requires base archive
-				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', p => micrio._ui?.$set({loadingProgress: p}))
+				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps({loadingProgress}))
 					.catch(e => this.setError(e, 'Could not find object base package.'));
 				// Configure gallery settings for Omni
 				if(!i.settings.gallery) i.settings.gallery = {};
