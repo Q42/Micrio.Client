@@ -109,8 +109,6 @@ export default class Ani {
 		this.isZoom = false;
 		this.correcting = false;
 		this.pausedAt = 0;
-		this.omniDelta = 0;
-		this.omniStartIdx = -1;
 	}
 
 	/** Checks if a view animation is currently running. */

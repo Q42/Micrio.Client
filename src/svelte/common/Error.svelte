@@ -8,8 +8,12 @@
 
 	import Icon from '../ui/Icon.svelte';
 
-	/** The error message string to display. */
-	export let message:string;
+	interface Props {
+		/** The error message string to display. */
+		message: string;
+	}
+
+	let { message }: Props = $props();
 </script>
 
 <!-- Main container for the error message -->

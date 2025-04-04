@@ -19,9 +19,12 @@
 	import Waypoint from '../components/Waypoint.svelte';
 
 	// --- Props ---
+	interface Props {
+		/** The MicrioImage instance whose markers and waypoints should be rendered. */
+		image: MicrioImage;
+	}
 
-	/** The MicrioImage instance whose markers and waypoints should be rendered. */
-	export let image:MicrioImage;
+	let { image = $bindable() }: Props = $props();
 
 	// --- Type Alias ---
 	type MarkerData = Models.ImageData.Marker; // Alias for brevity
@@ -32,7 +35,7 @@
 	const {data, info, settings} = image; // Image-specific stores
 	const currentMarker = image.state.marker; // Image's active marker store
 	const micrio = image.wasm.micrio; // Main Micrio element instance
-	const { switching, _lang, state } = micrio; // Global state stores
+	const { switching, _lang, state: micrioState } = micrio; // Global state stores
 	const isMobile = micrio.canvas.isMobile; // Mobile device flag
 	const grid = micrio.canvases[0]?.grid; // Grid controller (if applicable)
 	const focussed = grid?.focussed; // Focussed grid image store
@@ -43,7 +46,7 @@
 	// --- Side Label State (for Omni objects) ---
 
 	/** Reference to the global marker hover state. */
-	const hoveredId = state.markerHoverId;
+	const hoveredId = micrioState.markerHoverId;
 	/** Writable store tracking markers currently in view [MarkerData, screenX%, screenY%]. */
 	const inView = writable<[MarkerData, number, number][]>([]);
 	/** Provide the inView store to child Marker components via context. */
@@ -93,7 +96,7 @@
 	}
 
 	// Clear stored opened view if a tour starts that keeps the last step active
-	state.tour.subscribe(t => {
+	micrioState.tour.subscribe(t => {
 		if(t && 'steps' in t && t.keepLastStep) image.openedView = undefined;
 	});
 
@@ -102,11 +105,11 @@
 	/** Array to store CSS variable definitions for marker styling. */
 	const cssVars:string[] = [];
 	/** Combined CSS style string applied to the marker container. */
-	let markerStyle:string = '';
+	let markerStyle:string = $state('');
 	/** Is the parent image a 360 panorama? */
-	let is360:boolean = false;
+	let is360:boolean = $state(false);
 	/** Are fancy side labels currently active? */
-	let fancyLabels:boolean = false;
+	let fancyLabels:boolean = $state(false);
 
 	/** Recalculates marker container size/position based on viewport changes (for clustering). */
 	const resize = (v:Models.Camera.View) => (v=v?.map(f => Math.round(f*100)/100)) && (markerStyle = [...cssVars,
@@ -119,11 +122,11 @@
 	// --- Clustering Logic ---
 
 	/** Array storing indices of markers currently overlapped within a cluster. */
-	let overlapped:number[]=[]
+	let overlapped:number[]=$state([])
 	/** Cluster radius. */
 	let r=cR;
 	/** Array holding generated cluster marker data objects. */
-	let clusterMarkers:MarkerData[] = [];
+	let clusterMarkers:MarkerData[] = $state([]);
 
 	/** Type alias for marker coordinate data stored in the map. [x, y, width?, height?] */
 	type MarkerCoords = [number, number, number?, number?];
@@ -258,9 +261,9 @@
 
 	// --- Fancy Side Label Drawing ---
 	/** Reference to the container for side labels. */
-	let _labels:HTMLElement;
+	let _labels:HTMLElement|undefined = $state();
 	/** Array storing line coordinates [x1, y1, x2, y2, isHovered]. */
-	let lines:[number,number,number,number,boolean][] = [];
+	let lines:[number,number,number,number,boolean][] = $state([]);
 	/** Redraws the lines connecting markers to side labels. */
 	function drawLines(){ tick().then(() => { if(!_labels) return; // Wait for DOM update
 		const c = micrio.canvas;
@@ -269,7 +272,7 @@
 		// Iterate through markers currently in view
 		$inView.forEach(([m,x,y]) => { // [MarkerData, screenX%, screenY%]
 			// Find the corresponding label element
-			const box = _labels.querySelector('label[for="'+m.id+'"]')?.getBoundingClientRect();
+			const box = _labels!.querySelector('label[for="'+m.id+'"]')?.getBoundingClientRect();
 			// If label exists, calculate line coordinates and add to array
 			if(box?.width && box.width > 0) {
 				nl.push([
@@ -285,22 +288,22 @@
 	})}
 
 	/** Helper to get the language-specific title for a marker. */
-	const getTitle = (m:Models.ImageData.Marker, lang:string) : string|undefined => m.i18n ? m.i18n[lang]?.title : (<unknown>m as Models.ImageData.MarkerCultureData).title;
+	const getTitle = (m:Models.ImageData.Marker, lang:string) : string|undefined => m.i18n ? m.i18n[lang]?.title : (m as unknown as Models.ImageData.MarkerCultureData).title;
 
 	// --- Reactive Visibility & Data ---
 
 	/** Reactive flag indicating if the parent image is inactive (e.g., hidden in grid). */
-	$: inactive = grid && ($focussed != image && (gridMarkersShown && get(gridMarkersShown).indexOf(image) < 0));
+	let inactive = $derived(grid && ($focussed != image && (gridMarkersShown && get(gridMarkersShown).indexOf(image) < 0)));
 	/** Reactive list of waypoints associated with the current image. */
-	$: waypoints = !$switching && micrio.spaceData ? micrio.spaceData.links.filter(l => l[0] == image.id || l[1] == image.id).map(l => ({targetId: l[0] == image.id ? l[1] : l[0], settings: l[2]?.[image.id]})) : undefined;
+	let waypoints = $derived(!$switching && micrio.spaceData ? micrio.spaceData.links.filter(l => l[0] == image.id || l[1] == image.id).map(l => ({targetId: l[0] == image.id ? l[1] : l[0], settings: l[2]?.[image.id]})) : undefined);
 	/** Reactive list of markers that should be visible (not hidden and passes `isVisible` check). */
-	$: visibleMarkers = inactive ? [] : $data?.markers?.filter(isVisible);
+	let visibleMarkers = $derived(inactive ? [] : $data?.markers?.filter(isVisible));
 	/** Reactive list of markers that are explicitly hidden (`noMarker: true`). */
-	$: invisibleMarkers = inactive ? $data?.markers : $data?.markers?.filter(m => !isVisible(m));
+	let invisibleMarkers = $derived(inactive ? $data?.markers : $data?.markers?.filter(m => !isVisible(m)));
 	/** Reactive flag indicating if there are any visible markers or waypoints. */
-	$: hasMarkersOrWaypoints = !!(visibleMarkers?.length || waypoints?.length);
+	let hasMarkersOrWaypoints = $derived(!!(visibleMarkers?.length || waypoints?.length));
 	/** Reactive sorted list of markers currently in view (for side labels). */
-	$: inViewSorted = $inView.sort(([,,y1],[,,y2]) => y1 > y2 ? 1 : y1 < y2 ? -1 : 0); // Sort by Y position
+	let inViewSorted = $derived($inView.sort(([,,y1],[,,y2]) => y1 > y2 ? 1 : y1 < y2 ? -1 : 0)); // Sort by Y position
 
 </script>
 
@@ -310,11 +313,11 @@
 	<aside bind:this={_labels}>
 		<section>{#each inViewSorted.filter(([,x,]) => x < .5) as me (me[0].id)} <!-- Left side labels -->
 			<article><label for={me[0].id} class:hover={$hoveredId==me[0].id}
-				on:mouseenter={() => hoveredId.set(me[0].id)} on:mouseleave={() => hoveredId.set(undefined)}>{getTitle(me[0],$_lang)}</label></article>
+				onmouseenter={() => hoveredId.set(me[0].id)} onmouseleave={() => hoveredId.set(undefined)}>{getTitle(me[0],$_lang)}</label></article>
 		{/each}</section>
 		<section>{#each inViewSorted.filter(([,x,]) => x >= .5) as me (me[0].id)} <!-- Right side labels -->
 			<article><label for={me[0].id} class:hover={$hoveredId==me[0].id}
-				on:mouseenter={() => hoveredId.set(me[0].id)} on:mouseleave={() => hoveredId.set(undefined)}>{getTitle(me[0],$_lang)}</label></article>
+				onmouseenter={() => hoveredId.set(me[0].id)} onmouseleave={() => hoveredId.set(undefined)}>{getTitle(me[0],$_lang)}</label></article>
 		{/each}</section>
 	</aside>
 {/if}

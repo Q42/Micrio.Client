@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
 	/**
 	 * Module script for Media.svelte
 	 *
@@ -10,6 +10,8 @@
 </script>
 
 <script lang="ts">
+	import { run, self } from 'svelte/legacy';
+
 	/**
 	 * Media.svelte - Versatile component for rendering various media types.
 	 *
@@ -32,88 +34,128 @@
 	import type { MicrioImage } from '../../ts/image';
 	import { get, type Writable } from 'svelte/store';
 
-	import { onMount, getContext, createEventDispatcher } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 
 	// Micrio TS imports
 	import { i18n } from '../../ts/i18n';
 	import { loadScript, Browser, notypecheck, hasNativeHLS } from '../../ts/utils';
 	import { VideoTourInstance } from '../../ts/videotour';
+    import { FrameType, MediaType } from '../../types/internal';
 
 	// UI sub-component imports
 	import MediaControls from './MediaControls.svelte';
 	import Events from '../virtual/Events.svelte'; // For handling timed events within video tours
 	import Button from '../ui/Button.svelte';
 
+	/** Get the main Micrio element instance from context. */
+	const micrio = <HTMLMicrioElement>getContext('micrio');
+
 	// --- Props ---
 
-	/** The source URL (video, audio, YouTube, Vimeo, Micrio embed ID, Cloudflare ID). */
-	export let src:string|undefined = undefined;
-	/** Current volume level (0-1). */
-	export let volume: number = 1;
-	/** Intrinsic width of the media (used for aspect ratio). */
-	export let width: number = 640;
-	/** Intrinsic height of the media. */
-	export let height: number = 380;
-	/** Scale factor for iframe embeds (?). */
-	export let frameScale: number = 1;
-	/** Should the media attempt to autoplay? */
-	export let autoplay: boolean = false;
-	/** Should the media loop? */
-	export let loop: boolean = false;
-	/** Delay in seconds before looping (if `loop` is true). */
-	export let loopDelay: number|undefined = undefined;
-	/** Show native controls (`true`), Micrio controls (`'inside'` or `false`), or no controls (`'none'`). */
-	export let controls: string|boolean = false;
-	/** Title attribute for iframe embeds. */
-	export let title: string|undefined = undefined;
-	/** Caption text to display below the media. */
-	export let figcaption: string|null = null;
-	/** Current paused state (bindable). */
-	export let paused: boolean = true;
-	/** Force the media into a paused state externally. */
-	export let forcePause: boolean|undefined = undefined;
-	/** Current seeking state (bindable). */
-	export let seeking: boolean = true;
-	/** Media duration in seconds (bindable). -1 if unknown. */
-	export let duration: number = -1;
-	/** Current playback time in seconds (bindable). */
-	export let currentTime: number = 0;
-	/** Current muted state (bindable). */
-	export let muted: boolean = volume == 0;
+	interface Props {
+		/** The source URL (video, audio, YouTube, Vimeo, Micrio embed ID, Cloudflare ID). */
+		src?: string|undefined;
+		/** Current volume level (0-1). */
+		volume?: number;
+		/** Intrinsic width of the media (used for aspect ratio). */
+		width?: number;
+		/** Intrinsic height of the media. */
+		height?: number;
+		/** Scale factor for iframe embeds (?). */
+		frameScale?: number;
+		/** Should the media attempt to autoplay? */
+		autoplay?: boolean;
+		/** Should the media loop? */
+		loop?: boolean;
+		/** Delay in seconds before looping (if `loop` is true). */
+		loopDelay?: number|undefined;
+		/** Show native controls (`true`), Micrio controls (`'inside'` or `false`), or no controls (`'none'`). */
+		controls?: string|boolean;
+		/** Title attribute for iframe embeds. */
+		title?: string|undefined;
+		/** Caption text to display below the media. */
+		figcaption?: string|null;
+		/** Current paused state (bindable). */
+		paused?: boolean;
+		/** Force the media into a paused state externally. */
+		forcePause?: boolean|undefined;
+		/** Current seeking state (bindable). */
+		seeking?: boolean;
+		/** Media duration in seconds (bindable). -1 if unknown. */
+		duration?: number;
+		/** Current playback time in seconds (bindable). */
+		currentTime?: number;
+		/** Current muted state (bindable). */
+		muted?: boolean;
+		/** Is this the main 360 video background? */
+		is360?: boolean;
+		/** Optional video tour data object to synchronize playback with. */
+		tour?: Models.ImageData.VideoTour|null;
+		/** Is this media secondary (e.g., hidden audio track for a video tour embed)? */
+		secondary?: boolean;
+		/** Optional target element for fullscreen requests. */
+		fullscreen?: HTMLElement|undefined;
+		/** Optional additional CSS class name for the figure element. */
+		className?: string|null;
+		/** Does the video source have a separate H.265 version for Safari transparency? */
+		hasTransparentH265?: boolean;
+		/** If true, don't show the large play button overlay when autoplay is blocked. */
+		noPlayOverlay?: boolean;
+		/** Unique identifier for this media instance (used for state persistence). */
+		uuid?: string;
+		/** The MicrioImage instance this media belongs to (usually the current image). */
+		image?: MicrioImage;
+		_media?: HTMLMediaElement|undefined; // Reference to the audio/video element
+		onended?: Function;
+		onblocked?: Function;
+		onplay?: Function;
+		onid?: (id:string) => void;
+	}
+
+	let {
+		src = $bindable(undefined),
+		volume = $bindable(1),
+		width = 640,
+		height = 380,
+		frameScale = 1,
+		autoplay = $bindable(false),
+		loop = false,
+		loopDelay = undefined,
+		controls = $bindable(false),
+		title = undefined,
+		figcaption = null,
+		paused = $bindable(true),
+		forcePause = undefined,
+		seeking = $bindable(true),
+		duration = $bindable(-1),
+		currentTime = $bindable(0),
+		muted = $bindable(volume == 0),
+		is360 = false,
+		tour = null,
+		secondary = false,
+		fullscreen = undefined,
+		className = null,
+		hasTransparentH265 = false,
+		noPlayOverlay = false,
+		uuid = $bindable(''),
+		image = get(micrio.current) as MicrioImage,
+		_media = $bindable(undefined),
+		onended,
+		onblocked,
+		onplay,
+		onid
+	}: Props = $props();
+
 	/** Initial muted state before component logic. */
 	const originallyMuted = muted;
-	/** Is this the main 360 video background? */
-	export let is360: boolean = false;
-	/** Optional video tour data object to synchronize playback with. */
-	export let tour: Models.ImageData.VideoTour|null = null;
-	/** Is this media secondary (e.g., hidden audio track for a video tour embed)? */
-	export let secondary: boolean = false;
-	/** Optional target element for fullscreen requests. */
-	export let fullscreen:HTMLElement|undefined = undefined;
-	/** Optional additional CSS class name for the figure element. */
-	export let className:string|null = null;
-	/** Writable store indicating if the parent component is being destroyed. */
-	export let destroying:Writable<boolean>|undefined = undefined;
-	/** Does the video source have a separate H.265 version for Safari transparency? */
-	export let hasTransparentH265:boolean = false;
-	/** If true, don't show the large play button overlay when autoplay is blocked. */
-	export let noPlayOverlay:boolean = false;
-	/** Unique identifier for this media instance (used for state persistence). */
-	export let uuid:string = '';
 	uuid += (src ?? tour?.id); // Append src or tour ID for uniqueness
 
 	// --- Context & Global State ---
 
-	/** Get the main Micrio element instance from context. */
-	const micrio = <HTMLMicrioElement>getContext('micrio');
-	/** The MicrioImage instance this media belongs to (usually the current image). */
-	export let image:MicrioImage = get(micrio.current) as MicrioImage;
 	const info = image.$info as Models.ImageInfo.ImageInfo;
 
-	const dispatch = createEventDispatcher();
-
 	/** Get relevant stores/properties from the Micrio instance. */
-	const {events, state, _lang } = micrio;
+	const {events, state: micrioState, _lang } = micrio;
 	/** Reference to the global volume store. */
 	const mainVolume:Writable<number> = getContext('volume');
 	/** Was the global volume muted when this component mounted? */
@@ -126,14 +168,14 @@
 	/** Stores the initial start time (used if resuming from saved state). */
 	let startTime:number;
 
-	// Check for existing media state (e.g., from previous session via state.set)
-	const existing = state.mediaState.get(uuid);
+	// Check for existing media state (e.g., from previous session via micrioState.set)
+	const existing = micrioState.mediaState.get(uuid);
 	if(existing) {
 		currentTime = existing.currentTime;
 		autoplay = !(paused = existing.paused); // Override autoplay based on saved paused state
 	}
 	// Register this media instance with the global state manager
-	state.mediaState.set(uuid, {
+	micrioState.mediaState.set(uuid, {
 		get currentTime(){return currentTime},
 		set currentTime(v:number){setCurrentTime(v)},
 		get paused(){return paused},
@@ -150,11 +192,6 @@
 	/** YouTube url regex */
 	const ytUrl = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?/;
 
-	/** Enum for identifying media type. */
-	enum Type { None = 0, IFrame = 1, Video = 2, Audio = 3, VideoTour = 4, Micrio = 5 }
-	/** Enum for identifying iframe player type. */
-	enum FrameType { YouTube = 1, Vimeo = 2 }
-
 	/** Use YT nocookies */
 	const ytHost = 'https://www.youtube-nocookie.com';
 
@@ -162,25 +199,25 @@
 	const vimeo = /vimeo\.com/;
 
 	/** The corrected/final source URL for iframes or video elements. */
-	let realSrc: string|undefined = src;
+	let realSrc: string|undefined = $state(src);
 	/** Is the source a Cloudflare Stream video ID? */
 	const isCFVid = src && src.startsWith('cfvid://');
 
 	// Determine the media type based on src or tour prop
 	const srcL = src && src.toLowerCase();
-	const type: Type = srcL ? (
-			srcL.endsWith('mp3') ? Type.Audio
-			: srcL.endsWith('.mp4') || srcL.endsWith('.webm') || isCFVid ? Type.Video
-			: srcL.startsWith('micrio://') ? Type.Micrio
-			: srcL.startsWith('http') ? Type.IFrame // Assume iframe if http(s) and not audio/video
-			: Type.None
-		) : tour ? Type.VideoTour // If no src but tour exists, it's a video tour (audio only)
-		: Type.None;
+	const type: MediaType = srcL ? (
+			srcL.endsWith('mp3') ? MediaType.Audio
+			: srcL.endsWith('.mp4') || srcL.endsWith('.webm') || isCFVid ? MediaType.Video
+			: srcL.startsWith('micrio://') ? MediaType.Micrio
+			: srcL.startsWith('http') ? MediaType.IFrame // Assume iframe if http(s) and not audio/video
+			: MediaType.None
+		) : tour ? MediaType.VideoTour // If no src but tour exists, it's a video tour (audio only)
+		: MediaType.None;
 
 	// --- Specific Player Setup ---
 
 	/** Parsed data for Micrio embeds [id, width?, height?, lang?]. */
-	const mic = type == Type.Micrio ? src?.slice(9).split(',') : null;
+	const mic = type == MediaType.Micrio ? src?.slice(9).split(',') : null;
 	if(mic) paused = false; // Micrio embeds don't have a paused state here
 
 	/** Type of iframe player (YouTube or Vimeo). */
@@ -195,16 +232,16 @@
 	/** Interval timer for manual time updates (for API players). */
 	let _tick: number = -1;
 	/** Flag to prevent pointer events on iframe while interacting with player API. */
-	let hooked:boolean = false;
+	let hooked:boolean = $state(false);
 	/** Use the shared iOS audio element workaround? */
-	const singleAudio:boolean = type == Type.Audio && Browser.iOS;
+	const singleAudio:boolean = type == MediaType.Audio && Browser.iOS;
 
 	/** Calculated scale factor (unused?). */
 	let scale:number = 1;
 
 	// --- DOM Element References ---
-	let _frame:HTMLIFrameElement; // Reference to the iframe element
-	export let _media:HTMLMediaElement|undefined = undefined; // Reference to the audio/video element
+	let _frame:HTMLIFrameElement|undefined = $state(); // Reference to the iframe element
+
 
 	/** Option to disable JS player APIs and use native iframe controls. */
 	const noJSPlayers = micrio.hasAttribute('data-native-frame');
@@ -248,18 +285,19 @@
 	}
 
 	// --- Video Tour Setup ---
-	let videoTour:VideoTourInstance;
+	let videoTour:VideoTourInstance|undefined = $state();
 	if(tour) {
-		videoTour = new VideoTourInstance(image, tour); // Create tour instance
-		if(currentTime > 0) videoTour.currentTime = currentTime; // Set initial time if provided
-		if(type == Type.VideoTour) { // If it's audio-only tour
+		const newTour = new VideoTourInstance(image, tour); // Create tour instance
+		if(currentTime > 0) newTour.currentTime = currentTime; // Set initial time if provided
+		if(type == MediaType.VideoTour) { // If it's audio-only tour
 			duration = 'duration' in tour ? Number(tour.duration) : tour.i18n?.[$_lang]?.duration ?? 0;
 			volume = NaN; // Indicate no volume control needed
 		}
+		videoTour = newTour;
 	}
 
 	// Disable controls for Micrio embeds or non-API iframes
-	if(type == Type.Micrio || (type == Type.IFrame && !frameType)) controls=false;
+	if(type == MediaType.Micrio || (type == MediaType.IFrame && !frameType)) controls=false;
 
 	// --- Subtitle Setup ---
 	/** SRT subtitle file src */
@@ -276,7 +314,7 @@
 	}
 
 	/** Flag to show the manual play button overlay if autoplay is blocked. */
-	let showPlayButton: boolean = false;
+	let showPlayButton: boolean = $state(false);
 
 	/** Called when HTML5 media starts playing. */
 	function mediaPlaying(){
@@ -290,8 +328,9 @@
 		}
 	}
 
-	/** Toggles play/pause state. */
-	function playPause(e?:PointerEvent|CustomEvent) : void {
+	/** Toggles play/pause micrioState. */
+	function playPause(_e?:Event) : void {
+		const e = _e as PointerEvent|CustomEvent|undefined;
 		// Ignore right-clicks etc.
 		if(e && 'button' in e && e.button != 0) return;
 		if(paused) play();
@@ -310,7 +349,7 @@
 		: false; // Default to not paused if no player identified
 
 	/** Flag indicating if iframe autoplay was blocked by the browser. */
-	let frameAutoplayBlocked:boolean = false;
+	let frameAutoplayBlocked:boolean = $state(false);
 	/** Flag indicating if the component has initialized playback attempt. */
 	let hasInited:boolean = false;
 
@@ -336,12 +375,12 @@
 
 		// --- Trigger Playback Based on Type ---
 		switch(type) {
-			case Type.VideoTour:
+			case MediaType.VideoTour:
 				paused = seeking = false;
-				videoTour.play();
+				videoTour?.play();
 				startTick(); // Start manual time update interval
 			break;
-			case Type.Audio: case Type.Video:
+			case MediaType.Audio: case MediaType.Video:
 				// Add listener for 'play' event (fired when playback actually starts)
 				_media?.addEventListener('play', mediaPlaying, {once: true});
 				// Attempt to play, catching potential autoplay errors
@@ -349,11 +388,12 @@
 					if(noPlayOverlay) paused = true; // If overlay disabled, just stay paused
 					else if(!/pause\(\)/.test(e.toString())) { // Ignore errors caused by calling pause() immediately after play()
 						showPlayButton = true; // Show manual play button overlay
-						dispatch('blocked'); // Dispatch blocked event
+						micrio.events.dispatch('media-blocked'); // Dispatch blocked event
+						onblocked?.();
 					}
 				});
 			break;
-			case Type.IFrame: {
+			case MediaType.IFrame: {
 				switch(frameType) {
 					case FrameType.YouTube:
 						if(ytPlayer) ytPlayer.playVideo();
@@ -369,7 +409,7 @@
 		hasInited = true; // Mark as initialized
 		events.dispatch('media-play'); // Dispatch global event
 		mediaPaused.set(false); // Update global paused state
-		dispatch('play'); // Dispatch local event
+		onplay?.(); // Dispatch local event
 
 		// Mute main volume if this media isn't muted and isn't a silent video tour
 		if(!is360 && !wasMuted && !(videoTour && !_media)) mainVolume.set(image.$settings.mutedVolume||0);
@@ -428,7 +468,7 @@
 	}
 
 	/** Flag indicating if the media has ended. */
-	let _ended:boolean = false;
+	let _ended:boolean = $state(false);
 	/** Called when media playback ends. */
 	function ended() : void {
 		if(_ended) return; // Prevent multiple calls
@@ -436,7 +476,7 @@
 		else { paused = true; endTick(); } // Set paused state and stop ticker
 		_ended = true;
 		events.dispatch('media-ended'); // Dispatch global event
-		dispatch('ended'); // Dispatch local event
+		onended?.(); // Dispatch local event
 		stoppedPlaying(); // Restore main volume if needed
 	}
 
@@ -531,7 +571,7 @@
 			if(_media) hlsPlayer.attachMedia(_media);
 		});
 		// Load iframe players
-		else if(type == Type.IFrame) {
+		else if(type == MediaType.IFrame) {
 			if(frameType == FrameType.YouTube) return loadYouTube();
 			if(frameType == FrameType.Vimeo) return loadVimeo();
 		}
@@ -609,10 +649,7 @@
 	}
 
 	/** Flag indicating if the component is destroyed (for cleanup). */
-	let destroyed:boolean = false;
-
-	// Subscribe to the destroying prop to trigger cleanup
-	const unsub = destroying && destroying.subscribe(d => d && preDestroy());
+	let destroyed:boolean = $state(false);
 
 	/** Handler for iOS shared audio element time updates. */
 	const iOSAudioTimeUpdate = () => currentTime = _media?.currentTime ?? 0;
@@ -621,11 +658,10 @@
 	function preDestroy(){
 		if(destroyed) return;
 		destroyed = true;
-		if(unsub) unsub(); // Unsubscribe from destroying prop
 		// Clear video element reference on parent image if this was the 360 video
 		if(is360 && image) image.video.set(undefined);
 		// Remove media state entry
-		state.mediaState.delete(uuid);
+		micrioState.mediaState.delete(uuid);
 		// Stop time update interval
 		endTick();
 		// Pause media
@@ -654,14 +690,14 @@
 	}
 
 	/** Is the media type a standard video element? */
-	const isVideo = type == Type.Video;
+	const isVideo = type == MediaType.Video;
 
 	// Workaround for iOS video rendering glitch on first frame for embeds
-	let hideUntilPlaying = isVideo && isCFVid && frameScale != 1 && Browser.iOS;
+	let hideUntilPlaying = $state(isVideo && isCFVid && frameScale != 1 && Browser.iOS);
 
 	// --- Lifecycle (onMount) ---
 	onMount(() => {
-		dispatch('id', uuid); // Dispatch unique ID
+		onid?.(uuid); // Dispatch unique ID
 		// Handle shared iOS audio element setup
 		if(src && singleAudio) {
 			_media = iOSAudio;
@@ -701,41 +737,43 @@
 	// --- Reactive Effects ---
 
 	// Update media element muted state when volume or muted props change
-	$: if(_media && type == Type.Video && !muted) _media.muted = volume == 0;
+	run(() => {
+		if(_media && type == MediaType.Video && !muted) _media.muted = volume == 0;
+	});
 	// Update local paused state if forcePause prop changes
-	$: { if(forcePause !== undefined) paused = forcePause; }
+	run(() => { if(forcePause !== undefined) paused = forcePause; });
 	// Clear loop delay timeout if loop/delay props change
-	$: { if(loop && loopDelay !== undefined) cto(); }
+	run(() => { if(loop && loopDelay !== undefined) cto(); });
 
 	/** Reactive variable holding timed events for video tours. */
-	$: videoTourEvents = videoTour && tour ? 'events' in tour ? tour.events as Models.ImageData.VideoTourView[] : tour.i18n?.[$_lang]?.events ?? undefined : undefined;
+	let videoTourEvents = $derived(videoTour && tour ? 'events' in tour ? tour.events as Models.ImageData.VideoTourView[] : tour.i18n?.[$_lang]?.events ?? undefined : undefined);
 
 	/** Reference to the main figure container element. */
-	let _cnt:HTMLElement;
+	let _cnt:HTMLElement|undefined = $state();
 
 	/** Scale factor for 360 embeds. */
 	const scaleFact = info.is360 ? Math.PI/2 : 1;
 	/** Calculated relative scale for the media element. */
-	$: relScale = isVideo ? frameScale * scaleFact : type == Type.IFrame ? Math.max(frameScale, Math.min(width / 512, height / 512)) : 1;
+	let relScale = $derived(isVideo ? frameScale * scaleFact : type == MediaType.IFrame ? Math.max(frameScale, Math.min(width / 512, height / 512)) : 1);
 	/** Calculated render width. */
-	$: rWidth = isVideo ? width : Math.round(width / relScale * scaleFact);
+	let rWidth = $derived(isVideo ? width : Math.round(width / relScale * scaleFact));
 	/** Calculated render height. */
-	$: rHeight = isVideo ? height : Math.round(height / relScale * scaleFact);
+	let rHeight = $derived(isVideo ? height : Math.round(height / relScale * scaleFact));
 
 </script>
 
 {#if !image.$settings.noUI} <!-- Check global UI setting -->
-	<figure bind:this={_cnt} class:paused class:is360 class:media-video={type == Type.IFrame || type == Type.Video}
-		class:media-micrio={type == Type.Micrio} class={className} style={scale!=1?`--scale:${1/scale}`:null}>
-		<div on:pointerup|self={playPause} class:videotour={!!videoTour}
-			style={relScale != 1 && (type == Type.Video || !info.is360) ? `transform:scale(${relScale})`:''}>
-			{#if type == Type.IFrame}
+	<figure bind:this={_cnt} class:paused class:is360 class:media-video={type == MediaType.IFrame || type == MediaType.Video}
+		class:media-micrio={type == MediaType.Micrio} class={className} style={scale!=1?`--scale:${1/scale}`:null}>
+		<div onpointerup={self(playPause)} class:videotour={!!videoTour}
+			style={relScale != 1 && (type == MediaType.Video || !info.is360) ? `transform:scale(${relScale})`:''}>
+			{#if type == MediaType.IFrame}
 				<iframe {...notypecheck({credentialless:true})} {title} src={realSrc} width={rWidth} height={rHeight} class:hooked={hooked && !frameAutoplayBlocked} bind:this={_frame}
 					frameborder="0" allow="fullscreen *;autoplay *;encrypted-media *"></iframe>
-			{:else if type == Type.Video}
-				<!-- svelte-ignore a11y-media-has-caption -->
+			{:else if type == MediaType.Video}
+				<!-- svelte-ignore a11y_media_has_caption -->
 				<video controls={false} loop={loop && (loopDelay == undefined || loopDelay <= 0)} playsinline {width} {height} bind:this={_media} style={hideUntilPlaying ? 'opacity: 0' : undefined}
-					bind:duration bind:muted autoplay={!!autoplay} bind:currentTime bind:seeking bind:paused on:canplay={canplay} on:ended={ended}>
+					bind:duration bind:muted autoplay={!!autoplay} bind:currentTime bind:seeking bind:paused oncanplay={canplay} onended={ended}>
 					{#if realSrc}
 						{#if hasTransparentH265 && realSrc.endsWith('.webm')}
 							<source src={realSrc.replace('.webm', '.mp4')} type="video/mp4;codecs=hvc1"> <!-- Safari H.265 with alpha -->
@@ -743,26 +781,26 @@
 						<source src={realSrc} type={isCFVid ? 'application/x-mpegURL' : undefined}> <!-- Main source -->
 					{/if}
 				</video>
-			{:else if type == Type.Audio && !singleAudio}
+			{:else if type == MediaType.Audio && !singleAudio}
 				<!-- Standard audio element (not used on iOS) -->
 				<audio src={realSrc} controls={false} bind:this={_media} bind:duration bind:muted
-					bind:currentTime bind:seeking bind:paused on:canplay={() => seeking = false} on:ended={ended} />
-			{:else if type == Type.Micrio && mic}
+					bind:currentTime bind:seeking bind:paused oncanplay={() => seeking = false} onended={ended}></audio>
+			{:else if type == MediaType.Micrio && mic}
 				<!-- Embedded Micrio instance -->
 				<micr-io data-logo="false" id={mic[0]} width={mic[1]} height={mic[2]} lang={mic[3]} data-path={info.path}></micr-io>
 			{/if}
 			<!-- Render timed events for video tours -->
-			{#if videoTourEvents?.length && duration > 0 && !$destroying}<Events events={videoTourEvents} bind:currentTime bind:duration />{/if}
+			{#if videoTourEvents?.length && duration > 0 && !destroyed}<Events events={videoTourEvents} bind:currentTime bind:duration />{/if}
 			<!-- Render media controls if enabled -->
 			{#if controls}
 				<aside class:inside={controls=='inside'}>
 					<MediaControls
 						subtitles={!!srt}
-						fullscreen={(!is360 && (type == Type.IFrame || type == Type.Video)) ? _cnt : fullscreen}
+						fullscreen={(!is360 && (type == MediaType.IFrame || type == MediaType.Video)) ? _cnt : fullscreen}
 						bind:paused bind:seeking bind:duration bind:currentTime bind:muted bind:volume bind:ended={_ended}
-						on:playpause={playPause}
-						on:mute={() => micrio.isMuted.set(!muted)}
-						on:seek={e => setCurrentTime(e.detail)}
+						onplaypause={playPause}
+						onmute={() => micrio.isMuted.set(!muted)}
+						onseek={t => setCurrentTime(t)}
 					/>
 				</aside>
 			{/if}
@@ -771,7 +809,7 @@
 		{#if figcaption}<figcaption>{@html figcaption}</figcaption>{/if}
 	</figure>
 	<!-- Render play button overlay if autoplay was blocked -->
-	{#if showPlayButton}<div class="show-play" on:pointerup={play}><Button title={$i18n.play} type="play" /></div>{/if}
+	{#if showPlayButton}<div class="show-play" onpointerup={play}><Button title={$i18n.play} type="play" /></div>{/if}
 {/if}
 
 <style>
@@ -850,10 +888,6 @@
 	aside.inside {
 		position: absolute;
 		transform: translateY(-100%);
-	}
-	/* Hide inside controls when paused? Seems counter-intuitive */
-	:global(figure.paused) > aside.inside {
-		display: none;
 	}
 
 	/* Play button overlay styling */

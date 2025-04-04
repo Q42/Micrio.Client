@@ -25,7 +25,7 @@
 		: undefined;
 
 	/** Local state tracking if the main Micrio instance is loading. */
-	let loading:boolean = false;
+	let loading:boolean = $state(false);
 	/** Timeout ID for delaying the loading animation start. */
 	let to:any;
 
@@ -49,7 +49,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive flag to hide the logo when a tour or marker is active. */
-	$: hidden = !!$tour || !!$marker;
+	let hidden = $derived(!!$tour || !!$marker);
 
 </script>
 

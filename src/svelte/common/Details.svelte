@@ -1,3 +1,4 @@
+<!-- @migration-task Error while migrating Svelte code: The keyword 'let' is reserved -->
 <script lang="ts">
 	/**
 	 * Details.svelte - Displays image title, description, size, and source link.
@@ -19,10 +20,14 @@
 
 	// --- Props ---
 
-	/** Readable store containing the ImageInfo object for the current image. */
-	export let info:Readable<Models.ImageInfo.ImageInfo|undefined>;
-	/** Writable store containing the ImageData object for the current image. */
-	export let data:Writable<Models.ImageData.ImageData|undefined>;
+	interface Props {
+		/** Readable store containing the ImageInfo object for the current image. */
+		info: Readable<Models.ImageInfo.ImageInfo|undefined>;
+		/** Writable store containing the ImageData object for the current image. */
+		data: Writable<Models.ImageData.ImageData|undefined>;
+	}
+
+	let { info, data }: Props = $props();
 
 	// --- Context & State ---
 
@@ -30,7 +35,7 @@
 	const { _lang, current } = <HTMLMicrioElement>getContext('micrio');
 
 	/** Local state to track if the details element is open. */
-	let opened = false;
+	let opened = $state(false);
 
 	// --- Helper Functions ---
 
@@ -57,30 +62,30 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get physical dimensions from current image settings. */
-	$: cmWidth = $current?.$settings.cmWidth;
-	$: cmHeight = $current?.$settings.cmHeight;
+	let cmWidth = $derived($current?.$settings.cmWidth);
+	let cmHeight = $derived($current?.$settings.cmHeight);
 
 	/** Get the language-specific content from the ImageData store. */
-	$: cData = !$data ? undefined : $data?.i18n ? $data.i18n[$_lang] : $data as Models.ImageData.ImageDetailsCultureData;
+	let cData = $derived(!$data ? undefined : $data?.i18n ? $data.i18n[$_lang] : $data as Models.ImageData.ImageDetailsCultureData);
 
 	/** Reactive title, preferring language-specific data over base info. */
-	$: title = cData?.title ?? $info?.title ?? '';
+	let title = $derived(cData?.title ?? $info?.title ?? '');
 	/** Reactive description from language-specific data. */
-	$: description = cData?.description;
+	let description = $derived(cData?.description);
 	/** Reactive source link from language-specific data. */
-	$: link = cData?.sourceUrl;
+	let link = $derived(cData?.sourceUrl);
 	/** Reactive copyright text from language-specific data. */
-	$: copyright = cData?.copyright;
+	let copyright = $derived(cData?.copyright);
 
 	/** Reactive formatted size string based on physical dimensions. */
-	$: size = cmWidth && cmHeight ? getLength(cmWidth) + ' x ' + getLength(cmHeight) : null;
+	let size = $derived(cmWidth && cmHeight ? getLength(cmWidth) + ' x ' + getLength(cmHeight) : null);
 
 	// --- Lifecycle ---
 
 	/** Reference to the <details> DOM element. */
-	let _element:HTMLDetailsElement;
+	let _element:HTMLDetailsElement|undefined = $state();
 	/** Update the local `opened` state when the details element is toggled by the user. */
-	onMount(() => { _element.ontoggle = () => { opened = _element.open; } });
+	onMount(() => { _element!.ontoggle = () => { opened = _element!.open; } });
 
 </script>
 
@@ -104,7 +109,7 @@
 		{/if}
 		<!-- Close button (only shown when details are open) -->
 		{#if opened}
-			<Button type="close" title={$i18n.close} on:click={() => _element.open = false} />
+			<Button type="close" title={$i18n.close} onclick={() => _element!.open = false} />
 		{/if}
 	</details>
 {/if}

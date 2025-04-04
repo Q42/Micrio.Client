@@ -1,4 +1,7 @@
+<!-- @migration-task Error while migrating Svelte code: Unexpected token -->
 <script lang="ts">
+	import { preventDefault, stopPropagation } from 'svelte/legacy';
+
 	/**
 	 * Gallery.svelte - Handles different types of image galleries.
 	 *
@@ -27,14 +30,18 @@
 
 	// --- Props ---
 
-	/**
+	interface Props {
+		/**
 	 * Array of MicrioImage or OmniFrame objects representing the items in the gallery.
 	 * For standard galleries, this comes from `image.$info.gallery`.
 	 * For Omni objects, this is generated internally based on `omni` settings.
 	 */
-	export let images:(MicrioImage|Models.Omni.Frame)[] = [];
-	/** Omni object settings, if applicable. Passed from Main.svelte. */
-	export let omni:Models.ImageInfo.OmniSettings|null = null;
+		images?: (MicrioImage|Models.Omni.Frame)[];
+		/** Omni object settings, if applicable. Passed from Main.svelte. */
+		omni?: Models.ImageInfo.OmniSettings|null;
+	}
+
+	let { images = [], omni = null }: Props = $props();
 
 	// --- Context & State ---
 
@@ -145,19 +152,19 @@
 	// --- Component State ---
 
 	/** Current page index being displayed or targeted. */
-	let currentPage:number = -1;
+	let currentPage:number = $state(-1);
 	/** Flag indicating if the view is fully zoomed out (relevant for swipe gestures). */
 	let zoomedOut:boolean = isSwitch; // Assume zoomed out initially for switch/omni
 	/** Flag indicating if the user is currently dragging the gallery/dial. */
-	let dragging:boolean = true; // Start true to prevent initial unwanted transitions?
+	let dragging:boolean = $state(true); // Start true to prevent initial unwanted transitions?
 	/** Flag indicating if the user is panning within a non-zoomed-out page. */
-	let panning:boolean = false;
+	let panning:boolean = $state(false);
 	/** Flag indicating if the component is still loading/initializing. */
-	let loading:boolean = true;
+	let loading:boolean = $state(true);
 	/** Flag indicating if the component has finished its initial setup. */
 	let inited:boolean = false;
 	/** Current rotation value for the omni dial display. */
-	let currentRotation:number = 0;
+	let currentRotation:number = $state(0);
 
 	// --- Navigation Functions ---
 
@@ -239,6 +246,9 @@
 	function preload(c:number){ // c = current index
 		const imgs:number[] = []; // Array to store indices to preload
 
+		// Adjust for current viewed layer
+		if(layerNames.length) c += $layer * Math.floor(images.length / layerNames.length);
+
 		// Adjust index for spreads
 		if(isSpread && c >= coverPages) c=c*2-coverPages;
 
@@ -290,22 +300,23 @@
 	// --- Scrubber UI State & Handlers (for non-switch/non-omni galleries) ---
 
 	/** Reference to the <ul> element containing scrubber bullets. */
-	let _ul:HTMLElement;
+	let _ul:HTMLElement|undefined = $state();
 	/** Current horizontal position of the scrubber handle. */
-	let _left:number = 0;
+	let _left:number = $state(0);
 	/** Cached bounding rect of the scrubber container. */
 	let box:DOMRect;
 
 	/** Reactive calculation for the scrubber handle's left position. */
-	$: left = !_ul || dragging ? _left : getX(currentPage);
+	let left = $derived(!_ul || dragging ? _left : getX(currentPage));
 
 	/** Flag indicating if the current drag interaction is from a pointer event (mouse/pen). */
 	let dragIsPointer:boolean=false;
 
 	/** Starts the scrubber drag interaction. */
-	function scrubStart(e:PointerEvent|TouchEvent) : void {
+	function scrubStart(_e:Event) : void {
+		const e = _e as PointerEvent|TouchEvent;
 		// Ignore if already dragging or not primary button/touch
-		if(dragging || (dragIsPointer = 'button' in e) && e.button != 0) return;
+		if(dragging || (dragIsPointer = 'button' in e) && e.button != 0 || !_ul) return;
 		box = _ul.getClientRects()[0]; // Cache container bounds
 		micrio.keepRendering = dragging = true; // Set dragging state
 		hoverIdx = -1; // Clear hover state
@@ -317,7 +328,7 @@
 
 	/** Calculates the percentage and index based on pointer/touch position within the scrubber. */
 	function getScrubXPercIdx(e:PointerEvent|TouchEvent) : [number,number] {
-		const _box = box ?? _ul.getClientRects()[0];
+		const _box = box ?? _ul!.getClientRects()[0];
 		const clientX = 'button' in e ? e.clientX : e.touches[0].clientX;
 		// Calculate percentage, clamped between 0 and 1
 		const perc = Math.min(1, Math.max(0, (clientX - _box.left-14) / (_box.width-32))); // Adjust for padding/handle size
@@ -336,7 +347,7 @@
 	}
 
 	/** Updates the hover index when pointer moves over the scrubber (but not dragging). */
-	let hoverIdx:number = -1;
+	let hoverIdx:number = $state(-1);
 	function scrubPointerMove(e:PointerEvent|TouchEvent) : void {
 		if(!dragging) hoverIdx = getScrubXPercIdx(e)[1];
 	}
@@ -402,7 +413,8 @@
 	let started:number[] = [0,0,0,0];
 
 	/** Starts the 2-axis rotation drag. */
-	function rotateStart(e:PointerEvent):void {
+	function rotateStart(_e:Event):void {
+		const e = _e as PointerEvent;
 		if(e.button != 0) return; // Ignore non-primary buttons
 		dragging = true;
 		started = [e.clientX, e.clientY, currentPage, row];
@@ -482,7 +494,10 @@
 				children: layerNames.map((title,i) => ({ // Create child items for each layer
 					id: 'omni-layer-'+i,
 					i18n: title.i18n,
-					action: () => image.state.layer.set(i) // Action sets the layer store
+					action: () => {
+						layer.set(i) // Action sets the layer store
+						preload(currentPage);
+					}
 				})).filter(p => p.id != 'omni-layer-'+$layer) // Exclude the current layer
 			};
 			// Replace existing menu or add new one
@@ -603,37 +618,37 @@
 </script>
 
 <!-- Add keyboard listener to the window -->
-<svelte:window on:keydown={keydown} />
+<svelte:window onkeydown={keydown} />
 
 <!-- Render gallery UI elements only if UI is not disabled -->
 {#if !noUI}
 	{#if isOmniTwoAxes}
 		<!-- Simple button for 2-axis omni rotation (could be improved) -->
 		<button class="angular" class:dragging={dragging}
-			on:pointerdown|capture|preventDefault|stopPropagation={rotateStart}>&#10021;</button>
+			onpointerdowncapture={stopPropagation(preventDefault(rotateStart))}>&#10021;</button>
 	{:else if omniSettings && !omniSettings.noDial && isOmni}
 		<!-- Dial control for standard omni objects -->
-		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} on:turn={e => goto(e.detail)} />
-	{:else if !isFullSwipe && images.length > 1 }
+		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
+	{:else if !isFullSwipe && images.length > 1}
 		<!-- Scrubber UI for swipe galleries -->
 		<div class:hidden={loading||($hidden && !dragging && !panning)}>
 			<!-- Previous Button -->
-			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" on:pointerdown={() => goto(currentPage - 1)} disabled={currentPage==0}></Button>
+			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" onpointerdown={() => goto(currentPage - 1)} disabled={currentPage==0}></Button>
 			<!-- Scrubber Bar -->
-			<ul bind:this={_ul} on:pointermove={scrubPointerMove} on:pointerleave={() => hoverIdx=-1}>
+			<ul bind:this={_ul} onpointermove={scrubPointerMove} onpointerleave={() => hoverIdx=-1}>
 				<!-- Bullets for each page -->
 				{#each pages as page, i}
 					<li class:active={i==currentPage} class:hover={i==hoverIdx}>
-						<button on:click={() => goto(i, true)} on:keypress={e => { if(e.key === 'Enter') goto(i, true)}} class="bullet">&bull;</button>
+						<button onclick={() => goto(i, true)} onkeypress={e => { if(e.key === 'Enter') goto(i, true)}} class="bullet">&bull;</button>
 					</li>
 				{/each}
 				<!-- Draggable Handle -->
-				<button style={`left: ${left}px`} class:dragging={dragging}
-					on:pointerdown|capture|preventDefault|stopPropagation={scrubStart}
-					on:touchstart|capture|preventDefault|stopPropagation={scrubStart}></button>
+				<button style={`left: ${left}px`} class:dragging={dragging} aria-label="drag handle"
+					onpointerdowncapture={stopPropagation(preventDefault(scrubStart))}
+					ontouchstartcapture={stopPropagation(preventDefault(scrubStart))}></button>
 			</ul>
 			<!-- Next Button -->
-			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" on:pointerdown={() => goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
+			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={() => goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
 		</div>
 	{/if}
 {/if}

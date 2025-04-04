@@ -13,7 +13,7 @@ The application features interactive elements like markers, tours (video and mar
 *   **Component-Based:** The UI is broken down into reusable Svelte components located in `common/`, `components/`, `ui/`, and `virtual/` directories.
 *   **Context API:** Svelte's `getContext` is used extensively to share the main `micrio` element instance (likely `HTMLMicrioElement`) and its associated state stores (`state`, `current`, `_lang`, `events`, etc.) throughout the component tree.
 *   **Svelte Stores:** Svelte stores (`writable`) are used for managing global and local component state (e.g., active tour, active marker, UI visibility, loading state, user interaction flags). Reactive declarations (`$:`) are used frequently to derive state and update the UI automatically.
-*   **Event Dispatching:** Custom events are dispatched from the main `micrio` element (`micrio.events.dispatch`) to signal application-level events (e.g., `tour-start`, `marker-click`, `audio-init`, `lang-switch`). Components also use Svelte's `createEventDispatcher` for local event handling.
+*   **Event Dispatching:** Custom events are dispatched from the main `micrio` element (`micrio.events.dispatch`) to signal application-level events (e.g., `tour-start`, `marker-click`, `audio-init`, `lang-switch`).
 *   **TypeScript:** The `<script lang="ts">` tag indicates the use of TypeScript for strong typing within components.
 *   **CSS Variables:** The application makes heavy use of CSS variables (e.g., `--micrio-color`, `--micrio-button-size`) for theming and consistent styling.
 

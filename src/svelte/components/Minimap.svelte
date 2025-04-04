@@ -14,9 +14,12 @@
 	import { onMount, getContext, } from 'svelte';
 
 	// --- Props ---
+	interface Props {
+		/** The MicrioImage instance this minimap represents. */
+		image: MicrioImage;
+	}
 
-	/** The MicrioImage instance this minimap represents. */
-	export let image:MicrioImage;
+	let { image }: Props = $props();
 
 	// --- Context & State ---
 
@@ -57,16 +60,16 @@
 	// --- Canvas & Drawing ---
 
 	/** Reference to the minimap's <canvas> element. */
-	let _canvas:HTMLCanvasElement;
+	let _canvas:HTMLCanvasElement|undefined = $state();
 	/** 2D rendering context for the minimap canvas. */
 	let _ctx:CanvasRenderingContext2D|null;
 
 	// --- State ---
 
 	/** Local state tracking if the minimap should be hidden (due to autoHide). */
-	let hidden:boolean = false;
+	let hidden:boolean = $state(false);
 	/** Local state tracking if the main image is fully zoomed out. */
-	let zoomedOut:boolean = !info.is360 && camera.isZoomedOut();
+	let zoomedOut:boolean = $state(!info.is360 && camera.isZoomedOut());
 
 	// --- 360 Viewport Polygon Calculation ---
 
@@ -166,7 +169,7 @@
 	}
 
 	/** Flag indicating if the user is dragging on the minimap. */
-	let dragging:boolean = false;
+	let dragging:boolean = $state(false);
 	/** Cached bounding rect of the minimap canvas. */
 	let mapRect:DOMRect|undefined;
 
@@ -176,7 +179,7 @@
 		// Add listeners to window for dragging outside the element
 		window.addEventListener('mousemove', dDraw);
 		window.addEventListener('mouseup', dStop);
-		mapRect = _canvas.getClientRects()[0]; // Cache minimap bounds
+		mapRect = _canvas!.getClientRects()[0]; // Cache minimap bounds
 		dDraw(e); // Process initial click position
 		dragging = true;
 	}
@@ -218,16 +221,16 @@
 	/** Check if cross-origin isolation is enabled (affects loading thumbnail). */
 	const isolated = self.crossOriginIsolated;
 	/** Store thumbnail source URL. May be updated later if loaded via fetch/blob. */
-	let thumbSrc:string|undefined = isolated ? undefined : image.thumbSrc;
+	let thumbSrc:string|undefined = $state(isolated ? undefined : image.thumbSrc);
 
 	/** Passive event listener options. */
 	const passive:AddEventListenerOptions = {passive: true};
 	/** Flag indicating if the component has mounted. */
-	let mounted = false;
+	let mounted = $state(false);
 
 	onMount(() => {
 		// Get 2D context
-		_ctx = _canvas.getContext('2d');
+		_ctx = _canvas!.getContext('2d');
 		if(_ctx) {
 			_ctx.lineWidth = 1;
 			_ctx.strokeStyle = 'white';
@@ -260,8 +263,8 @@
 	// --- Reactive Styles ---
 
 	/** Reactive style string for setting the background image and position. */
-	$: style = !thumbSrc ? null
-		: `background-image: url('${thumbSrc}')`+(offset != 0 ? `;background-position-x:${width*offset}px` : '' ); // Apply true north offset to background
+	let style = $derived(!thumbSrc ? null
+		: `background-image: url('${thumbSrc}')`+(offset != 0 ? `;background-position-x:${width*offset}px` : '' )); // Apply true north offset to background
 
 </script>
 
@@ -275,9 +278,9 @@
 	class:hidden={!mounted || $current != image || (autoHide && (zoomedOut||hidden))}
 	class:dragging={dragging}
 	class:controls={!noControls}
-	on:wheel={wheel}
-	on:mousedown={dStart}
-/>
+	onwheel={wheel}
+	onmousedown={dStart}
+></canvas>
 
 <style>
 	canvas {

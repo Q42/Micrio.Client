@@ -22,12 +22,15 @@
 	import Button from '../ui/Button.svelte';
 
 	// --- Props ---
-
-	/**
+	interface Props {
+		/**
 	 * Optional target MicrioImage instance. If not provided, defaults to the
 	 * currently active image from the main Micrio context.
 	 */
-	export let image:MicrioImage|undefined=undefined;
+		image?: MicrioImage|undefined;
+	}
+
+	let { image = $bindable(undefined) }: Props = $props();
 
 	// --- Context & State ---
 
@@ -35,11 +38,11 @@
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 
 	/** Local state tracking if the image is fully zoomed in. */
-	let isZoomedIn: boolean = false;
+	let isZoomedIn: boolean = $state(false);
 	/** Local state tracking if the image is fully zoomed out. */
-	let isZoomedOut: boolean = false;
+	let isZoomedOut: boolean = $state(false);
 	/** Local state tracking if the target image info is still loading. */
-	let loading = false;
+	let loading = $state(false);
 
 	// --- Event Handlers & Functions ---
 
@@ -109,9 +112,9 @@
 <!-- Render buttons only if not fully zoomed in OR not fully zoomed out -->
 {#if !isZoomedIn || !isZoomedOut}
 	<!-- Zoom In Button -->
-	<Button type="zoom-in" title={$i18n.zoomIn} disabled={loading||isZoomedIn} on:click={zoomIn} />
+	<Button type="zoom-in" title={$i18n.zoomIn} disabled={loading||isZoomedIn} onclick={zoomIn} />
 	<!-- Zoom Out Button -->
-	<Button type="zoom-out" title={$i18n.zoomOut} disabled={loading||isZoomedOut} on:click={zoomOut} />
+	<Button type="zoom-out" title={$i18n.zoomOut} disabled={loading||isZoomedOut} onclick={zoomOut} />
 {/if}
 
 <!-- No specific styles needed, inherits from ButtonGroup and Button -->

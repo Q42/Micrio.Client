@@ -29,31 +29,35 @@
 
 	// --- Props ---
 
-	/** Indicates if any audio (music, positional, video) is potentially active. */
-	export let hasAudio:boolean = false;
+	interface Props {
+		/** Indicates if any audio (music, positional, video) is potentially active. */
+		hasAudio?: boolean;
+	}
+
+	let { hasAudio = false }: Props = $props();
 
 	// --- Context & State ---
 
 	/** Get the main Micrio element instance from context. */
-	const micrio = <HTMLMicrioElement>getContext('micrio');
+	const micrio = $state(<HTMLMicrioElement>getContext('micrio'));
 	/** Destructure needed stores and properties from the micrio instance. */
-	const { current, state, isMuted, _lang } = micrio;
+	const { current, state: micrioState, isMuted, _lang } = micrio;
 	/** Reference to the active tour store. */
-	const tour = state.tour;
+	const tour = micrioState.tour;
 	/** Destructure UI state stores. */
 	const { controls, zoom, hidden } = micrio.state.ui;
 
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive reference to the current image's info store value. */
-	$: info = $current?.info;
+	let info = $derived($current?.info);
 	/** Reactive array of available language codes for the current image. */
-	$: cultures = $info && $current
+	let cultures = $derived($info && $current
 		? $current.isV5 ? Object.keys($info.revision??{[$_lang]:0}) // V5: Get keys from revision object
 		: ('cultures' in $info ? $info.cultures as string : '')?.split(',') ?? [] // V4: Split 'cultures' string
-		: [];
+		: []);
 	/** Reactive flag indicating if the active tour is a serial tour. */
-	$: isActiveSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour;
+	let isActiveSerialTour = $derived($tour && 'steps' in $tour && $tour.isSerialTour);
 
 	// --- Event Handlers & Functions ---
 
@@ -73,9 +77,9 @@
 	}
 
 	/** Stores the MicrioImage instance for secondary controls in split-screen mode. */
-	let secondaryControls:MicrioImage|null = null;
+	let secondaryControls:MicrioImage|null = $state(null);
 	/** Stores the orientation of the secondary controls container. */
-	let secondaryPortrait:boolean;
+	let secondaryPortrait:boolean = $state(false);
 
 	/** Event handler for 'splitscreen-start'. Sets up secondary controls if needed. */
 	function splitStart(e:Event) {
@@ -93,11 +97,11 @@
 	// --- Local State for Control Visibility ---
 
 	/** Controls whether the language switch button/menu is shown. */
-	let showCultures:boolean = false;
+	let showCultures:boolean = $state(false);
 	/** Controls whether the share button is shown. */
-	let showSocial:boolean = false;
+	let showSocial:boolean = $state(false);
 	/** Controls whether the fullscreen button is shown. */
-	let showFullscreen:boolean = false;
+	let showFullscreen:boolean = $state(false);
 
 	/** Reads relevant settings from the image info and updates local state and UI stores. */
 	function readInfo(s:Models.ImageInfo.Settings) {
@@ -149,15 +153,15 @@
 	// --- Reactive Visibility Calculations ---
 
 	/** Determine if the mute button should be shown (Web Audio available or explicit audio prop). */
-	$: showMute = 'micrioAudioContext' in window || hasAudio;
+	let showMute = $derived('micrioAudioContext' in window || hasAudio);
 	/** Determine if the language switch should be shown (setting enabled and multiple languages exist). */
-	$: hasCultures = showCultures && cultures.length > 1;
+	let hasCultures = $derived(showCultures && cultures.length > 1);
 	/** Determine if the share button should be shown (setting enabled and Web Share API available). */
-	$: hasSocial = showSocial && ('share' in navigator);
+	let hasSocial = $derived(showSocial && ('share' in navigator));
 	/** Determine if the fullscreen button should be shown (setting enabled and not in a serial tour). */
-	$: hasFullscreen = showFullscreen && !isActiveSerialTour;
+	let hasFullscreen = $derived(showFullscreen && !isActiveSerialTour);
 	/** Determine if the entire controls container should be shown. */
-	$: hasControls = $controls && !$hidden && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen);
+	let hasControls = $derived($controls && !$hidden && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
 
 </script>
 
@@ -169,7 +173,7 @@
 			<Button
 				type={$isMuted ? 'volume-off' : 'volume-up'}
 				title={$isMuted ? $i18n.audioUnmute : $i18n.audioMute}
-				on:click={() => isMuted.set(!$isMuted)}
+				onclick={() => isMuted.set(!$isMuted)}
 			/>
 		{/if}
 
@@ -179,7 +183,7 @@
 				<Button title={$i18n.switchLanguage} type="a11y" /><!-- Accessibility icon -->
 				{#each cultures as l}
 					<Button
-						on:click={() => micrio.lang = l}
+						onclick={() => micrio.lang = l}
 						title={languageNames?.of(l) ?? l}
 						active={l==$_lang}
 					>
@@ -191,7 +195,7 @@
 
 		<!-- Share Button -->
 		{#if hasSocial}
-			<Button type="share" title={$i18n.share} on:click={share} />
+			<Button type="share" title={$i18n.share} onclick={share} />
 		{/if}
 
 		<!-- Zoom and Fullscreen Buttons -->
@@ -204,7 +208,7 @@
 					<ZoomButtons />
 				{/if}
 			{/if}
-			{#if hasFullscreen }
+			{#if hasFullscreen}
 				<Fullscreen el={micrio} />
 			{/if}
 		</ButtonGroup>

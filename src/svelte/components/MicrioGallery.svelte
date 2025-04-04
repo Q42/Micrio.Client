@@ -14,11 +14,14 @@
 	import { getContext } from 'svelte';
 
 	// --- Props ---
+	interface Props {
+		/** Array of image assets (usually from `marker.images`). */
+		gallery: Models.Assets.Image[];
+		/** Optional ID of the image to display initially within the gallery. */
+		startId?: string|undefined;
+	}
 
-	/** Array of image assets (usually from `marker.images`). */
-	export let gallery:Models.Assets.Image[];
-	/** Optional ID of the image to display initially within the gallery. */
-	export let startId:string|undefined = undefined;
+	let { gallery, startId = undefined }: Props = $props();
 
 	// --- Context & State ---
 
@@ -28,16 +31,16 @@
 	const { _lang, current } = micrio;
 
 	/** Index of the currently displayed image within the gallery. */
-	let galleryIdx:number = 0; // Initialize to 0
+	let galleryIdx:number = $state(0); // Initialize to 0
 	/** Event handler for the 'gallery-show' event dispatched by the nested <micr-io> element. */
 	const gallerySwitch = (e:CustomEvent) : void => { galleryIdx = e.detail as number; }
 
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive reference to the data of the currently displayed gallery image. */
-	$: gallCurr = gallery[galleryIdx];
+	let gallCurr = $derived(gallery[galleryIdx]);
 	/** Reactive caption text for the current gallery image, based on language. */
-	$: galleryCaption = gallCurr?.i18n?.[$_lang]?.description ?? undefined;
+	let galleryCaption = $derived(gallCurr?.i18n?.[$_lang]?.description ?? undefined);
 
 </script>
 
@@ -56,7 +59,7 @@
 		data-start={startId}
 		data-path={$current && $current.$info && $current.$info.path}
 		data-logo="false"
-		on:gallery-show={gallerySwitch}
+		ongallery-show={gallerySwitch}
 	></micr-io>
 	<!-- Display caption for the current gallery image -->
 	{#if galleryCaption}<figcaption>{@html galleryCaption}</figcaption>{/if}

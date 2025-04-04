@@ -1,3 +1,4 @@
+<!-- @migration-task Error while migrating Svelte code: Unexpected token `>`. Did you mean `&gt;` or `{">"}`? -->
 <script lang="ts">
 	/**
 	 * Events.svelte - Manages timed events within a video tour.
@@ -17,12 +18,20 @@
 
 	// --- Props ---
 
-	/** Array of timed event objects. */
-	export let events:Models.ImageData.Event[];
-	/** Current playback time in seconds (bindable). */
-	export let currentTime:number = 0;
-	/** Total duration of the media in seconds (used to clamp event end times). */
-	export let duration:number;
+	interface Props {
+		/** Array of timed event objects. */
+		events: Models.ImageData.Event[];
+		/** Current playback time in seconds (bindable). */
+		currentTime?: number;
+		/** Total duration of the media in seconds (used to clamp event end times). */
+		duration: number;
+	}
+
+	let {
+		events = $bindable(),
+		currentTime = $bindable(0),
+		duration = $bindable()
+	}: Props = $props();
 
 	// --- Context ---
 
@@ -59,7 +68,9 @@
 	// --- Reactive Update ---
 
 	/** Reactively call the update function whenever currentTime changes. */
-	$: update(currentTime);
+	$effect(() => {
+		update(currentTime);
+	});
 
 	// --- Lifecycle (onDestroy) ---
 

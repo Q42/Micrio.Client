@@ -17,9 +17,12 @@
 	import Button from './Button.svelte'; // Reusable button component
 
 	// --- Props ---
+	interface Props {
+		/** The HTML element to make fullscreen. */
+		el: HTMLElement;
+	}
 
-	/** The HTML element to make fullscreen. */
-	export let el:HTMLElement;
+	let { el }: Props = $props();
 
 	// --- Feature Detection & State ---
 
@@ -37,7 +40,7 @@
 		: document['webkitFullscreenElement'] ?? null; // Webkit API
 
 	/** Reactive state tracking if the target element `el` is currently fullscreen. */
-	let isActive: boolean = getActiveEl() === el; // Use strict equality
+	let isActive: boolean = $state(getActiveEl() === el); // Use strict equality
 
 	/**
 	 * Check if fullscreen is available for this element.
@@ -66,7 +69,7 @@
 		// Safari <16.4 (webkit prefix)
 		else if('webkitRequestFullscreen' in el) {
 			// Type assertion needed as TypeScript doesn't know about prefixed methods
-			(<unknown>el['webkitRequestFullscreen'] as Function)();
+			(el['webkitRequestFullscreen'] as unknown as Function)();
 		}
 	}
 
@@ -81,7 +84,7 @@
 		}
 		// Webkit prefixed API
 		else if('webkitExitFullscreen' in document) {
-			(<unknown>document['webkitExitFullscreen'] as Function)();
+			(document['webkitExitFullscreen'] as unknown as Function)();
 		}
 	}
 
@@ -132,7 +135,7 @@
 	<Button
 		type={isActive ? 'minimize' : 'maximize'}
 		title={$i18n.fullscreenToggle}
-		on:click={toggle}
+		onclick={toggle}
 	/>
 {/if}
 

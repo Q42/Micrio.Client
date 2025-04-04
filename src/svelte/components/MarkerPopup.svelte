@@ -12,7 +12,6 @@
 	import type { MicrioImage } from '../../ts/image';
 
 	import { getContext, onMount } from 'svelte';
-	import { writable } from 'svelte/store';
 	import { fly } from 'svelte/transition'; // Used for popup animation
 	import { i18n } from '../../ts/i18n'; // For button titles
 
@@ -24,8 +23,12 @@
 
 	// --- Props ---
 
-	/** The marker data object for which to display the popup. */
-	export let marker:Models.ImageData.Marker;
+	interface Props {
+		/** The marker data object for which to display the popup. */
+		marker: Models.ImageData.Marker;
+	}
+
+	let { marker }: Props = $props();
 
 	// --- Context & State ---
 
@@ -37,9 +40,9 @@
 	const tour = micrio.state.tour;
 
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
-	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = getContext('markerImages');
+	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Get the parent MicrioImage instance for this marker. */
-	const image = markerImages.get(marker) as MicrioImage;
+	const image = markerImages.get(marker.id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 
@@ -50,7 +53,7 @@
 	const canMinimize = settings.canMinimizePopup;
 
 	/** Reference to the main container div element. */
-	let _cont:HTMLElement;
+	let _cont:HTMLElement|undefined = $state();
 
 	// --- Event Handlers & Functions ---
 
@@ -89,16 +92,16 @@
 	// --- Reactive Declarations (`$:`) for Tour Logic ---
 
 	/** Check if this marker is part of the currently active marker tour. */
-	$: isPartOfTour = $tour && 'steps' in $tour && $tour.steps.findIndex(s => s.startsWith(marker.id)) >= 0;
+	let isPartOfTour = $derived($tour && 'steps' in $tour && $tour.steps.findIndex(s => s.startsWith(marker.id)) >= 0);
 	/** Determine if tour controls should be shown within the popup. */
-	$: showTourControls = $tour && 'steps' in $tour && isPartOfTour && !$tour.isSerialTour && settings.tourControlsInPopup;
+	let showTourControls = $derived($tour && 'steps' in $tour && isPartOfTour && !$tour.isSerialTour && settings.tourControlsInPopup);
 	/** Get the current step index of the active marker tour. */
-	$: currentTourStep = ($tour && 'steps' in $tour ? $tour.currentStep : undefined) ?? -1;
+	let currentTourStep = $derived(($tour && 'steps' in $tour ? $tour.currentStep : undefined) ?? -1);
 	/** Determine if the close button should stop the tour instead of advancing. */
-	$: closeButtonStopsTour = showTourControls || ($tour && 'steps' in $tour && $tour.currentStep == $tour.steps.length-1);
+	let closeButtonStopsTour = $derived(showTourControls || ($tour && 'steps' in $tour && $tour.currentStep == $tour.steps.length-1));
 
 	/** Flag to disable prev/next buttons briefly after click to prevent double clicks. */
-	let clickedPrevNext:boolean = false;
+	let clickedPrevNext:boolean = $state(false);
 
 	/** Go to the previous tour step. */
 	const prev = () => { if($tour && 'steps' in $tour) { $tour.prev?.(); clickedPrevNext = true; setTimeout(() => clickedPrevNext = false, 200); } }
@@ -108,11 +111,11 @@
 	// --- Minimization Logic ---
 
 	/** Local state tracking if the popup is minimized. */
-	let isMinimized:boolean = false;
+	let isMinimized:boolean = $state(false);
 	/** Reference to the MarkerContent's main element. */
-	let _content:HTMLElement;
+	let _content:HTMLElement|undefined = $state();
 	/** Reference to the MarkerContent's title element. */
-	let _title:HTMLElement;
+	let _title:HTMLElement|undefined = $state();
 	/** WeakMap to store original heights of content elements before minimizing. */
 	const originalHeights:WeakMap<HTMLElement, number> = new WeakMap();
 
@@ -120,7 +123,7 @@
 	const toggleMinimize = () => {
 		isMinimized = !isMinimized;
 		// Iterate through direct children of the MarkerContent main element
-		for(let i=0; i<_content.children.length; i++) {
+		if(_content) for(let i=0; i<_content.children.length; i++) {
 			const n = _content.children[i];
 			// Animate height for all children except the title (h1)
 			if(n instanceof HTMLElement && n != _title) {
@@ -141,15 +144,15 @@
 	// --- Media Cleanup ---
 
 	/** Writable store passed to MarkerContent to signal when the popup is closing. */
-	const destroying = writable<boolean>(false);
+	let destroying = $state(false);
 
 	// --- Lifecycle (onMount) ---
 
 	onMount(() => {
 		// Add marker tags as CSS classes to the container for custom styling
-		marker.tags.forEach(c => _cont.classList.add(c));
+		marker.tags.forEach(c => _cont?.classList.add(c));
 		// Attempt to focus the first button inside after a delay
-		setTimeout(() => _cont.querySelector('button')?.focus(), 500);
+		setTimeout(() => _cont?.querySelector('button')?.focus(), 500);
 
 		// Handle marker-specific embeds (defined via 'embedImages' property)
 		const embeds = 'embedImages' in marker ? marker.embedImages as Models.ImageData.Embed[] : undefined;
@@ -162,10 +165,12 @@
 			});
 		}
 
+		const unsub = micrio.state.popup.subscribe(m => destroying = !m || m != marker);
+
 		// Cleanup function on component destroy
 		return () => {
 			// Update the destroying store when the global popup state no longer matches this marker
-			micrio.state.popup.subscribe(m => destroying.set(m != marker));
+			unsub();
 			// Remove marker-specific embeds from the image data store
 			if(embeds) {
 				micrio.$current?.data.update(d => {
@@ -183,7 +188,7 @@
 <!-- Main popup container div -->
 <!-- Apply fly transition based on marker settings -->
 <!-- Add 'destroying' and 'minimized' classes for styling -->
-<div transition:fly={settings.popupAnimation} bind:this={_cont} class:destroying={$destroying} class:minimized={isMinimized}>
+<div transition:fly={settings.popupAnimation} bind:this={_cont} class:destroying class:minimized={isMinimized}>
 	<!-- Sidebar for controls -->
 	<aside>
 		<!-- Close/Next Button -->
@@ -192,12 +197,12 @@
 				type={(!isPartOfTour || closeButtonStopsTour) ? 'close' : 'arrow-right'}
 				title={(!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext}
 				disabled={clickedPrevNext}
-				on:click={close}
+				onclick={close}
 			/>
 		{/if}
 		<!-- Minimize Button -->
 		{#if canMinimize}
-			<Button type={isMinimized ? 'arrow-up' : 'arrow-down'} title={$i18n.minimize} on:click={toggleMinimize} />
+			<Button type={isMinimized ? 'arrow-up' : 'arrow-down'} title={$i18n.minimize} onclick={toggleMinimize} />
 		{/if}
 		<!-- Tour Controls -->
 		{#if showTourControls && $tour && 'steps' in $tour}
@@ -205,16 +210,16 @@
 			<progress aria-hidden={true} value={(currentTourStep+1)/$tour.steps.length} class="progress"></progress>
 			<ButtonGroup className="micrio-tour-controls">
 				<!-- Previous Step Button -->
-				<Button type="arrow-left" disabled={clickedPrevNext || currentTourStep==0} title={$i18n.tourStepPrev} on:click={prev} />
+				<Button type="arrow-left" disabled={clickedPrevNext || currentTourStep==0} title={$i18n.tourStepPrev} onclick={prev} />
 				<!-- Step Counter (if enabled in settings) -->
 				{#if settings.tourStepCounterInPopup}<button class="micrio-button tour-step" disabled>{currentTourStep+1} / {$tour.steps.length}</button>{/if}
 				<!-- Next Step Button -->
-				<Button type="arrow-right" disabled={clickedPrevNext || (currentTourStep+1==$tour.steps.length)} title={$i18n.tourStepNext} on:click={next} />
+				<Button type="arrow-right" disabled={clickedPrevNext || (currentTourStep+1==$tour.steps.length)} title={$i18n.tourStepNext} onclick={next} />
 			</ButtonGroup>
 		{/if}
 	</aside>
 	<!-- Render the actual marker content -->
-	<MarkerContent {marker} {destroying} bind:_content bind:_title on:close={close} />
+	<MarkerContent {marker} bind:_content bind:_title onclose={close} />
 </div>
 
 <style>

@@ -10,9 +10,8 @@
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import type { Models } from '../../types/models';
 	import type { MicrioImage } from '../../ts/image';
-	import type { Writable } from 'svelte/store';
 
-	import { getContext, createEventDispatcher } from 'svelte';
+	import { getContext } from 'svelte';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // Handles media playback (audio, video, embeds)
@@ -20,26 +19,33 @@
 
 	// --- Props ---
 
-	/** The marker data object containing content and configuration. */
-	export let marker:Models.ImageData.Marker;
-	/** Writable store indicating if the parent popup is being destroyed (for media cleanup). */
-	export let destroying:Writable<boolean>;
-	/** If true, disable rendering of iframe/video embeds. */
-	export let noEmbed:boolean = false;
-	/** If true, disable rendering of associated images. */
-	export let noImages:boolean = false;
-	/** If true, disable opening the image gallery popover when clicking images. */
-	export let noGallery:boolean = false;
+	interface Props {
+		/** The marker data object containing content and configuration. */
+		marker: Models.ImageData.Marker;
+		/** If true, disable rendering of iframe/video embeds. */
+		noEmbed?: boolean;
+		/** If true, disable rendering of associated images. */
+		noImages?: boolean;
+		/** If true, disable opening the image gallery popover when clicking images. */
+		noGallery?: boolean;
+		/** Allows binding to the main content container element. */
+		_content?: HTMLElement;
+		/** Allows binding to the title (h1) element. */
+		_title?: HTMLElement;
+		onclose?: Function;
+	}
 
-	/** Allows binding to the main content container element. */
-	export let _content:HTMLElement|null=null;
-	/** Allows binding to the title (h1) element. */
-	export let _title:HTMLElement|null=null;
+	let {
+		marker,
+		noEmbed = false,
+		noImages = false,
+		noGallery = false,
+		_content = $bindable(),
+		_title = $bindable(),
+		onclose
+	}: Props = $props();
 
 	// --- Setup ---
-
-	/** Svelte event dispatcher for emitting events (e.g., 'close'). */
-	const dispatch = createEventDispatcher();
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -50,9 +56,9 @@
 	const isSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour;
 
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
-	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = getContext('markerImages');
+	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Get the parent MicrioImage instance for this marker. */
-	const image = markerImages.get(marker) as MicrioImage;
+	const image = markerImages.get(marker.id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 
@@ -68,21 +74,21 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get the language-specific content object for the marker. */
-	$: content = marker.i18n ? marker.i18n[$lang] : (<unknown>marker as Models.ImageData.MarkerCultureData);
+	let content = $derived(marker.i18n ? marker.i18n[$lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
 
 	/** Determine if the marker has any displayable content. */
-	$: empty = !content?.title && !content?.audio
+	let empty = $derived(!content?.title && !content?.audio
 		&& (!marker.images || !marker.images.length)
 		&& !content?.embedUrl
 		&& !marker.videoTour
-		&& !content?.body && !content?.bodySecondary;
+		&& !content?.body && !content?.bodySecondary);
 
 	// --- Event Handlers ---
 
 	/** Called when media playback ends. Dispatches 'close' event for tour auto-progression. */
 	const mediaEnded = () : void => {
 		if($tour && 'steps' in $tour && ($tour.isSerialTour || settings.tourAutoProgress)) {
-			dispatch('close'); // Signal parent (MarkerPopup) to close/advance
+			onclose?.(); // Signal parent (MarkerPopup) to close/advance
 		}
 	}
 
@@ -96,16 +102,13 @@
 	// --- Media Playback State ---
 
 	/** Initial paused state for audio and video based on settings and content presence. */
-	const paused = {
-		// Pause audio if autoplay is disabled globally or for this specific marker
-		audio: !autoplayMedia || !marker.audioAutoPlay,
-		// Pause video if embed autoplay is explicitly false, or if global autoplay is off,
-		// or if there's also audio set to autoplay (prioritize audio)
-		video: marker.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker.audioAutoPlay))
-	}
 
-	/** Convenience flag for video autoplay state. */
-	const aplayVideo = !paused.video;
+	// Pause audio if autoplay is disabled globally or for this specific marker
+	const pausedAudio = $derived(!autoplayMedia || !marker?.audioAutoPlay);
+
+	// Pause video if embed autoplay is explicitly false, or if global autoplay is off,
+	// or if there's also audio set to autoplay (prioritize audio)
+	const pausedVideo = $derived(marker?.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker?.audioAutoPlay)));
 
 	// --- Utility ---
 
@@ -116,11 +119,11 @@
 	const getTitle = (image:Models.Assets.Image) => image.i18n?.[$lang]?.title;
 
 	/** Determine the primary audio source (from video tour or marker content). */
-	$: audio = marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio;
+	let audio = $derived(marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio);
 	/** Get the source URL for the audio. Handles potential legacy `fileUrl` property. */
-	$: audioSrc = audio ? 'fileUrl' in audio ? audio.fileUrl as string : audio.src : undefined;
+	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio.fileUrl as string : audio.src : undefined);
 	/** Get the caption for the image if there's only one image. */
-	$: imageCaption = singleImage && marker.images?.[0]?.i18n?.[$lang]?.description;
+	let imageCaption = $derived(singleImage && marker.images?.[0]?.i18n?.[$lang]?.description);
 
 </script>
 
@@ -138,15 +141,14 @@
 			<!-- Don't show play overlay for audio/tour -->
 			<Media
 				src={audioSrc}
-				{destroying}
 				noPlayOverlay
 				{image}
 				uuid={marker.id}
 				tour={marker.videoTour}
 				autoplay={marker.audioAutoPlay || (!content.audio && !!marker.videoTour)}
 				controls={!marker.videoTour || (!content || !content.embedUrl)}
-				on:ended={mediaEnded}
-				bind:paused={paused.audio}
+				onended={mediaEnded}
+				paused={pausedAudio}
 			/>
 			<!-- Show controls only if it's just audio -->
 		{/if}
@@ -157,7 +159,7 @@
 				{#each marker.images as imageAsset (imageAsset.id ?? imageAsset.src)}
 					<button
 						title={getTitle(imageAsset)}
-						on:click={galleryEnabled ? () => openGallery(imageAsset.micrioId) : undefined}
+						onclick={galleryEnabled ? () => openGallery(imageAsset.micrioId) : undefined}
 						disabled={!galleryEnabled}
 					>
 						<figure>
@@ -177,7 +179,7 @@
 		{#if content.embedUrl && !noEmbed}
 			<!-- Hidden secondary media player for video tour audio if embed exists -->
 			{#if !content.audio && marker.videoTour}
-				<Media {image} className="hidden" uuid={marker.id} tour={marker.videoTour} autoplay={autoplayMedia} secondary {destroying} />
+				<Media {image} className="hidden" uuid={marker.id} tour={marker.videoTour} autoplay={autoplayMedia} secondary />
 			{/if}
 			<!-- Main embed media player -->
 			<Media
@@ -188,10 +190,9 @@
 				controls
 				title={content.embedTitle}
 				figcaption={content.embedDescription}
-				autoplay={aplayVideo}
-				{destroying}
-				on:ended={mediaEnded}
-				bind:paused={paused.video}
+				autoplay={!pausedVideo}
+				onended={mediaEnded}
+				paused={pausedVideo}
 			/>
 		{/if}
 

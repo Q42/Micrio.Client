@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	/**
 	 * Marker.svelte - Renders a single interactive marker element on the image.
 	 *
@@ -28,32 +30,42 @@
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
-	const { current, events, state, _lang, spaceData } = micrio;
+	const { current, events, state: micrioState, _lang, spaceData } = micrio;
 	/** Check if the device is mobile (affects hover behavior). */
 	const isMobile = micrio.canvas.isMobile;
 	/** Reference to the global marker hover state. */
-	const hovered = state.markerHoverId;
+	const hovered = micrioState.markerHoverId;
 	/** Writable store tracking markers currently in the viewport (for side labels). */
 	const inView = getContext<Writable<[Models.ImageData.Marker,number,number][]>>('inView');
 	/** WeakMap linking marker data to its parent MicrioImage instance. */
-	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = getContext('markerImages');
+	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Reference to the global marker popup state. */
 	const currentPopup = micrio.state.popup;
 	/** Reference to the global active tour state. */
-	const tour = state.tour;
+	const tour = micrioState.tour;
 
 	// --- Props ---
 
-	/** The marker data object. */
-	export let marker:Models.ImageData.Marker;
-	/** The parent MicrioImage instance this marker belongs to. Defaults to the current image. */
-	export let image:MicrioImage = $current as MicrioImage;
-	/** If true, the marker element is hidden regardless of other conditions. */
-	export let forceHidden:boolean = false;
-	/** Optional Map to store calculated screen coordinates (used for clustering). */
-	export let coords:Map<string, [number, number, number?, number?]>|undefined = undefined;
-	/** If true, this marker is currently overlapped by another marker (used for clustering). */
-	export let overlapped:boolean = false;
+	interface Props {
+		/** The marker data object. */
+		marker: Models.ImageData.Marker;
+		/** The parent MicrioImage instance this marker belongs to. Defaults to the current image. */
+		image?: MicrioImage;
+		/** If true, the marker element is hidden regardless of other conditions. */
+		forceHidden?: boolean;
+		/** Optional Map to store calculated screen coordinates (used for clustering). */
+		coords?: Map<string, [number, number, number?, number?]>|undefined;
+		/** If true, this marker is currently overlapped by another marker (used for clustering). */
+		overlapped?: boolean;
+	}
+
+	let {
+		marker = $bindable(),
+		image = $bindable($current as MicrioImage),
+		forceHidden = false,
+		coords = undefined,
+		overlapped = false
+	}: Props = $props();
 
 	// --- Initialization & Data Sanitization ---
 
@@ -61,9 +73,9 @@
 	if(!marker.tags) marker.tags = [];
 
 	/** Check if this marker instance was already associated with an image (prevents re-linking). */
-	const openedBefore = markerImages.has(marker);
+	const openedBefore = markerImages.has(marker.id);
 	// Associate this marker data with its parent image instance if not already done.
-	if(!openedBefore && image) markerImages.set(marker, image);
+	if(!openedBefore && image) markerImages.set(marker.id, image);
 
 	/** Check if side labels are enabled for Omni objects on mobile. */
 	const mobileFancyLabels = !!(image.isOmni && image.$settings.omni?.sideLabels && !image.$settings._markers?.noTitles);
@@ -136,22 +148,23 @@
 	// --- Initial State ---
 
 	/** Should the marker be opened immediately on mount? */
-	let openOnInit:boolean = (!openedBefore && (!!data.alwaysOpen || (state.$marker == marker)) // Always open, or currently set as active marker
-		|| (state.$tour?.id == autoStartMyTour?.id && autoStartMyTour?.currentStep == (myTourStep??0))); // Or part of active auto-start tour at correct step
+	let openOnInit:boolean = (!openedBefore && (!!data.alwaysOpen || (micrioState.$marker == marker)) // Always open, or currently set as active marker
+		|| (micrioState.$tour?.id == autoStartMyTour?.id && autoStartMyTour?.currentStep == (myTourStep??0))); // Or part of active auto-start tour at correct step
 
 	/** Is the marker currently considered "open" (active)? */
-	let opened:boolean = openedBefore && image.state.$marker == marker;
+	const isOpened = openedBefore && image.state.$marker == marker;
+	let opened:boolean = $state(isOpened);
 	/** Has the camera finished flying to the marker's view? */
-	let flownTo:boolean = opened;
+	let flownTo:boolean = $state(isOpened);
 	/** Is the marker currently behind the camera in 360/Omni view? */
-	let behindCam:boolean = false;
+	let behindCam:boolean = $state(false);
 	/** CSS matrix string for 3D positioning (360 embeds). */
-	let matrix:string;
+	let matrix:string = $state('');
 
 	// --- Screen Position State ---
-	let x:number; // Screen X
-	let y:number; // Screen Y
-	let scale:number; // Current effective scale at marker position
+	let x:number = $state(0); // Screen X
+	let y:number = $state(0); // Screen Y
+	let scale:number = $state(1); // Current effective scale at marker position
 	let w:number; // Depth component (w) from projection
 
 	// --- Split Screen State ---
@@ -193,7 +206,7 @@
 		if(markerSettings.noMarkerActions) return;
 
 		// Prevent container scroll jump on focus
-		(_container.parentNode as HTMLElement).scrollTo(0,0);
+		(_container?.parentNode as HTMLElement)?.scrollTo(0,0);
 		blur(); // Clear previous focus timeout
 		// Set timeout to fly to marker if it's off-screen after a short delay
 		fto = setTimeout(() => {
@@ -268,7 +281,7 @@
 					omniIndex, // Pass omni index if applicable
 					noTrueNorth: true, // Don't correct true north during marker fly-to
 					area: image.opts?.area,
-					isJump: !!data.doJump || (doTourJumps && !!state.$tour) // Use jump animation if specified or in a tour
+					isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
 				})
 				.then(open) // Proceed to open content after animation
 				.catch(() => { if(!$tour) image.state.marker.set(undefined) }); // If animation fails (e.g., interrupted) and not in a tour, close the marker
@@ -421,7 +434,7 @@
 	// --- Position Update ---
 
 	/** Flag indicating if the marker is currently within the viewport (for side labels). */
-	let isInView:boolean=false;
+	let isInView:boolean=$state(false);
 	/** Cached width of the label element. */
 	let prevLabelWidth:number|undefined;
 	/** Cached height of the label element. */
@@ -503,9 +516,9 @@
 	}
 
 	// --- DOM Element References ---
-	let _button:HTMLButtonElement; // The main button element
-	let _container:HTMLElement; // The outer div container
-	let _label:HTMLElement|undefined; // The label element
+	let _button:HTMLButtonElement|undefined = $state(); // The main button element
+	let _container:HTMLElement|undefined = $state(); // The outer div container
+	let _label:HTMLElement|undefined = $state(); // The label element
 
 	// --- Tour State ---
 	/** Reference to the global tour paused state store. */
@@ -568,63 +581,63 @@
 	// --- Reactive Content & Style Calculations ---
 
 	/** Reactive language-specific content object. */
-	$: content = marker.i18n ? marker.i18n[$_lang] : (<unknown>marker as Models.ImageData.MarkerCultureData);
+	let content = $derived(marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
 
 	/** Reactive check if marker has any content for the popup. */
-	$: noPopupContent = !content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl
-		&& !(marker.images && marker.images.length);
+	let noPopupContent = $derived(!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl
+		&& !(marker.images && marker.images.length));
 	/** Reactive check if the marker element itself should be hidden. */
-	$: noMarker = forceHidden || marker.noMarker;
+	let noMarker = $derived(forceHidden || marker.noMarker);
 	/** Reactive check if the popup should not be shown. */
-	$: noPopup = marker.popupType != 'popup' || noPopupContent;
+	let noPopup = $derived(marker.popupType != 'popup' || noPopupContent);
 
 	// --- Reactive Omni Calculations ---
 
 	/** Calculate the target frame index for this marker based on its rotation. */
-	$: omniIndex = image.camera.getOmniFrame((marker.rotation??0) + (marker.backside ? Math.PI : 0));
+	let omniIndex = $derived(image.camera.getOmniFrame((marker.rotation??0) + (marker.backside ? Math.PI : 0)));
 	/** Calculate the start and end frame indices for the marker's visibility arc. */
-	$: omniArc = marker.visibleArc ? [
+	let omniArc = $derived(marker.visibleArc ? [
 		image.camera.getOmniFrame(marker.visibleArc[0]),
 		image.camera.getOmniFrame(marker.visibleArc[1])
-	] : [];
+	] : []);
 
 	/** Reactive flag to hide marker during tours based on settings. */
-	$: hidden = $tour && ((!('steps' in $tour) && !$tour.keepMarkers) || (markerSettings.hideMarkersDuringTour && !$tourPaused)) && !opened;
+	let hidden = $derived($tour && ((!('steps' in $tour) && !$tour.keepMarkers) || (markerSettings.hideMarkersDuringTour && !$tourPaused)) && !opened);
 
 	// Update inView store when marker becomes hidden
-	$: { if(hidden && isInView) inView.update(v => { // Check isInView flag before updating
+	run(() => { if(hidden && isInView) inView.update(v => { // Check isInView flag before updating
 		const idx = v.findIndex(iv => iv[0] == marker);
 		if(idx >= 0) v.splice(idx, 1);
 		return v;
-	})}
+	})});
 
 	// --- Icon Determination ---
 
 	/** Determine the standard icon name based on marker type. */
-	$: icon = (marker.type == 'default' ? undefined
+	let icon = $derived((marker.type == 'default' ? undefined
 		: marker.type == 'link' ? 'link'
 		: marker.type == 'media' ? 'play'
 		: marker.type == 'cluster' ? undefined // Cluster uses text content
-		: marker.type ?? undefined) as (IconName|undefined);
+		: marker.type ?? undefined) as (IconName|undefined));
 
 	/** Determine the custom icon asset (from marker data or image settings). */
-	$: customIcon = (marker.data?.customIconIdx != undefined ? image.$settings._markers?.customIcons?.[marker.data?.customIconIdx] : undefined)
-		?? marker.data?.icon ?? markerSettings.markerIcon ?? undefined;
+	let customIcon = $derived((marker.data?.customIconIdx != undefined ? image.$settings._markers?.customIcons?.[marker.data?.customIconIdx] : undefined)
+		?? marker.data?.icon ?? markerSettings.markerIcon ?? undefined);
 
 	/** Flag indicating if any icon (standard or custom) should be displayed. */
-	$: hasIcon = !!icon || !!customIcon;
+	let hasIcon = $derived(!!icon || !!customIcon);
 
 	/** Flag for applying default marker styling (unless explicitly disabled in V4). */
-	$: defaultClass = (!('class' in marker) || marker.class !== '') && (!!hasIcon || marker.type == 'default');
+	let defaultClass = $derived((!('class' in marker) || marker.class !== '') && (!!hasIcon || marker.type == 'default'));
 
 	/** Flag indicating if the label should be shown (based on settings and content). */
-	$: showLabel = content && (!noTitles || ($isMobile && mobileFancyLabels)) && (content.label || content.title);
+	let showLabel = $derived(content && (!noTitles || ($isMobile && mobileFancyLabels)) && (content.label || content.title));
 
 </script>
 
 <!-- Render the marker container div if it's not hidden -->
 {#if !noMarker && image && !hidden}
-	<div bind:this={_container} id={`m-${marker.id}`} on:change={changed}
+	<div bind:this={_container} id={`m-${marker.id}`} onchange={changed}
 		class={classNames}
 		class:overlapped={overlapped && !opened}
 		class:cluster
@@ -644,11 +657,11 @@
 				title={noToolTips || cluster ? null : (content ? content.label || content.title : null)}
 				id={marker.id}
 				bind:this={_button}
-				on:click={click}
-				on:focus={focus}
-				on:blur={blur}
-				on:mouseenter={hoverStart}
-				on:mouseleave={hoverEnd}
+				onclick={click}
+				onfocus={focus}
+				onblur={blur}
+				onmouseenter={hoverStart}
+				onmouseleave={hoverEnd}
 				data-scroll-through
 			>
 				<!-- Display custom icon or standard icon -->
