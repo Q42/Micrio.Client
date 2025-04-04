@@ -152,9 +152,10 @@
 		|| (micrioState.$tour?.id == autoStartMyTour?.id && autoStartMyTour?.currentStep == (myTourStep??0))); // Or part of active auto-start tour at correct step
 
 	/** Is the marker currently considered "open" (active)? */
-	let opened:boolean = $state(openedBefore && image.state.$marker == marker);
+	const isOpened = openedBefore && image.state.$marker == marker;
+	let opened:boolean = $state(isOpened);
 	/** Has the camera finished flying to the marker's view? */
-	let flownTo:boolean = opened;
+	let flownTo:boolean = $state(isOpened);
 	/** Is the marker currently behind the camera in 360/Omni view? */
 	let behindCam:boolean = $state(false);
 	/** CSS matrix string for 3D positioning (360 embeds). */

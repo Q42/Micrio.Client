@@ -102,16 +102,13 @@
 	// --- Media Playback State ---
 
 	/** Initial paused state for audio and video based on settings and content presence. */
-	const paused = $state({
-		// Pause audio if autoplay is disabled globally or for this specific marker
-		audio: !autoplayMedia || !marker.audioAutoPlay,
-		// Pause video if embed autoplay is explicitly false, or if global autoplay is off,
-		// or if there's also audio set to autoplay (prioritize audio)
-		video: marker.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker.audioAutoPlay))
-	});
 
-	/** Convenience flag for video autoplay state. */
-	const aplayVideo = !paused.video;
+	// Pause audio if autoplay is disabled globally or for this specific marker
+	const pausedAudio = $derived(!autoplayMedia || !marker?.audioAutoPlay);
+
+	// Pause video if embed autoplay is explicitly false, or if global autoplay is off,
+	// or if there's also audio set to autoplay (prioritize audio)
+	const pausedVideo = $derived(marker?.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker?.audioAutoPlay)));
 
 	// --- Utility ---
 
@@ -151,7 +148,7 @@
 				autoplay={marker.audioAutoPlay || (!content.audio && !!marker.videoTour)}
 				controls={!marker.videoTour || (!content || !content.embedUrl)}
 				onended={mediaEnded}
-				bind:paused={paused.audio}
+				paused={pausedAudio}
 			/>
 			<!-- Show controls only if it's just audio -->
 		{/if}
@@ -193,9 +190,9 @@
 				controls
 				title={content.embedTitle}
 				figcaption={content.embedDescription}
-				autoplay={aplayVideo}
+				autoplay={!pausedVideo}
 				onended={mediaEnded}
-				bind:paused={paused.video}
+				paused={pausedVideo}
 			/>
 		{/if}
 

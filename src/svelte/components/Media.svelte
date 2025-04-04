@@ -889,10 +889,6 @@
 		position: absolute;
 		transform: translateY(-100%);
 	}
-	/* Hide inside controls when paused? Seems counter-intuitive */
-	:global(figure.paused) > aside.inside {
-		display: none;
-	}
 
 	/* Play button overlay styling */
 	div.show-play {
