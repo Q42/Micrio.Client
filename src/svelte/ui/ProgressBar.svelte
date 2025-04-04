@@ -20,7 +20,7 @@
 	}
 
 	let {
-		currentTime = $bindable(0),
+		currentTime = $bindable(),
 		duration,
 		ended = $bindable(false),
 		children
@@ -36,7 +36,7 @@
 	class="container"
 	onclick={e => e.stopPropagation()}
 	onkeydown={e => e.stopPropagation()}
-	style={`--progress: ${Math.round(((currentTime||0) / duration) * 10000) / 100}%;--time: '${parseTime(currentTime||0)}';`}
+	style={`--progress: ${Math.round(((currentTime??0) / duration) * 10000) / 100}%;--time: '${parseTime(currentTime??0)}';`}
 >
 	<!-- Container for the visual bar elements -->
 	<div class="bars">
@@ -44,7 +44,7 @@
 		{@render children?.()}
 	</div>
 	<!-- Time display: shows remaining time (negative) or total duration if ended/at start -->
-	<div class="time">{parseTime(ended || currentTime <= 0 ? duration : (currentTime||0) - duration)}</div>
+	<div class="time">{parseTime(ended || !currentTime || currentTime <= 0 ? duration : (currentTime??0) - duration)}</div>
 </div>
 
 <style>

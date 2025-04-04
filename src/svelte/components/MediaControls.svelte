@@ -43,7 +43,7 @@
 	}
 
 	let {
-		currentTime = $bindable(0),
+		currentTime = $bindable(),
 		duration = $bindable(0),
 		seeking = $bindable(true),
 		muted = $bindable(false),
@@ -110,7 +110,7 @@
 		onclick={onplaypause}
 	>
 		<!-- Optional circular progress indicator within the play/pause button (for minimal mode) -->
-		{#if minimal && currentTime > 0}
+		{#if minimal && currentTime !== undefined && currentTime > 0}
 			<svg height="42" width="42">
 				<circle r="19" cx="21" cy="21" stroke-dashoffset={(1 - (currentTime / duration)) * 119.4} />
 			</svg>
@@ -142,7 +142,7 @@
 		<!-- Draggable area for seeking -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="bar active" bind:this={_bar} onmousedown={dStart}
-			style={`--progress:${(currentTime/duration)*100}%;`}></div>
+			style={`--progress:${((currentTime??0)/duration)*100}%;`}></div>
 	</ProgressBar>
 {/if}
 
