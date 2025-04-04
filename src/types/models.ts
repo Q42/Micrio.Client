@@ -998,6 +998,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			ended?: boolean
 			/** @internal */
 			micrioImage?: MicrioImage;
+			hasSubtitle?: boolean;
 		}
 
 		export interface MenuPageButton {

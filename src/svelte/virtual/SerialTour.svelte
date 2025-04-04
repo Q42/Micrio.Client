@@ -75,7 +75,7 @@
 	/** Toggles the play/pause state of the current media/tour step. */
 	function playPause() {
 		const media = micrio.state.mediaState.get(currentMediaUUID); // Get state for current media
-		if(media) paused = media.paused = !media.paused; // Toggle paused state
+		if(media) media.paused = paused = !media.paused; // Toggle paused state
 		if(paused) {
 			micrio.events.dispatch('serialtour-pause', tour); // Dispatch pause event
 			micrio.events.enabled.set(true); // Re-enable user interaction
@@ -216,10 +216,10 @@
 	let audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
 	/** Reactive audio source URL. */
 	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
-	/** Reactive subtitle source based on the current video tour step. */
-	let subtitle = $derived(current ? 'subtitle' in current ? current.subtitle as Models.Assets.Subtitle : current.i18n?.[$lang]?.subtitle : undefined);
-	/** Reactive subtitle source URL. */
-	let subtitleSrc = $derived(subtitle ? 'fileUrl' in subtitle ? subtitle['fileUrl'] as string : subtitle.src : undefined);
+	/** Reactive boolean indicating if the current step has a subtitle. */
+	let hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
+	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */
+	let serialTourHasSubtitles = $derived(stepInfo.some(s => s.hasSubtitle));
 
 </script>
 
@@ -260,7 +260,8 @@
 	{#if controls}
 		<Button type={!paused ? 'pause' : 'play'} title={paused ? $i18n.play : $i18n.pause} onclick={playPause} />
 		<Button type={muted ? 'volume-off' : 'volume-up'} title={muted ? $i18n.audioUnmute : $i18n.audioMute} onclick={toggleMute} />
-		{#if subtitleSrc}<Button
+		{#if serialTourHasSubtitles}<Button
+			disabled={!hasSubtitle}
 			type={$captionsEnabled ? 'subtitles' : 'subtitles-off'} active={$captionsEnabled} title={$i18n.subtitlesToggle}
 			onclick={() => captionsEnabled.set(!$captionsEnabled)} />{/if}
 		<Fullscreen el={micrio} />
@@ -285,7 +286,7 @@
 					onclick={(e) => goto(i,e)}
 					onkeypress={e => { if(e.key === 'Enter') goto(i) }}
 					class:active={i == tour.currentStep}
-					style={`width:${(step.duration/totalDuration)*100}%; --perc: ${$times[i]||0}%`}
+					style={`width:${(step.duration/totalDuration)*100}%; --progress: ${$times[i]||0}%`}
 				></div>
 			{/if}
 		{/each}

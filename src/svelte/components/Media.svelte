@@ -126,7 +126,7 @@
 		forcePause = undefined,
 		seeking = $bindable(true),
 		duration = $bindable(-1),
-		currentTime = $bindable(0),
+		currentTime = $bindable(),
 		muted = $bindable(volume == 0),
 		is360 = false,
 		tour = null,
@@ -174,7 +174,7 @@
 	}
 	// Register this media instance with the global state manager
 	micrioState.mediaState.set(uuid, {
-		get currentTime(){return currentTime},
+		get currentTime(){return currentTime??0},
 		set currentTime(v:number){setCurrentTime(v)},
 		get paused(){return paused},
 		set paused(b:boolean){if(b)pause(); else play()}
@@ -269,7 +269,7 @@
 			const token = src.slice(src.indexOf(id[1])+id[1].length+1).replace(/\?.*$/,'');
 			frameType = FrameType.Vimeo;
 			// Construct embed URL with API enabled, controls disabled, and start time
-			realSrc = `https://player.vimeo.com/video/${id[1]}?${token ? `h=${token}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0#t=`+Math.round(currentTime)+'s';
+			realSrc = `https://player.vimeo.com/video/${id[1]}?${token ? `h=${token}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0#t=`+Math.round(currentTime??0)+'s';
 			hooked = true; // Disable pointer events
 		}
 	}
@@ -286,7 +286,7 @@
 	let videoTour:VideoTourInstance|undefined = $state();
 	if(tour) {
 		const newTour = new VideoTourInstance(image, tour); // Create tour instance
-		if(currentTime > 0) newTour.currentTime = currentTime; // Set initial time if provided
+		if(currentTime != undefined && currentTime > 0) newTour.currentTime = currentTime; // Set initial time if provided
 		if(type == MediaType.VideoTour) { // If it's audio-only tour
 			duration = 'duration' in tour ? Number(tour.duration) : tour.i18n?.[$_lang]?.duration ?? 0;
 			volume = NaN; // Indicate no volume control needed
@@ -365,7 +365,7 @@
 		_ended = false; // Reset ended flag
 
 		// If ended previously, reset time to 0
-		if(duration > 0 && currentTime >= duration) currentTime = 0;
+		if(duration > 0 && currentTime != undefined && currentTime >= duration) currentTime = 0;
 
 		// Show subtitles if applicable
 		if(!secondary && srt) subtitle.set(srt);
@@ -604,7 +604,7 @@
 		}
 
 		// Set initial time if needed
-		if(currentTime > 0) {
+		if(currentTime != undefined && currentTime > 0) {
 			// If duration is known, set time directly
 			if(_media.duration > 0) _media.currentTime = currentTime;
 			// Otherwise, wait for 'canplay' event

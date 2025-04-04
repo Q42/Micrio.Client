@@ -519,7 +519,8 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 			imageHasOtherMarkers: mId ? !!data?.markers?.find(m => m.id != id && !m.noMarker) : false,
 			// Check for grid-specific flags
 			gridView: !!(m.data?._meta?.gridView || m.data?._meta?.gridAction),
-			chapter // Store chapter index
+			chapter, // Store chapter index
+			hasSubtitle: !!vTourData?.subtitle
 		}
 		/** @ts-ignore Filter out undefined steps later */
 	}).filter<Models.ImageData.MarkerTourStepInfo>(si => typeof si === 'object');
