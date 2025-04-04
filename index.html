@@ -21,7 +21,7 @@
 	<!-- <script src="./dist/micrio.min.js" defer></script> -->
 
 	<!-- Use a production version -->
-	<!-- <script src="https://r2.micr.io/micrio-5.1.0.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-5.3.0.min.js" defer></script> -->
 
 	<style>
 		html,
@@ -40,8 +40,21 @@
 </head>
 
 <body>
-	<!-- Basic test image -->
+	<!-- DEMO IDs
+		Basic test image: dzzLm
+		Omni image: QgjdoCK
+		Omni image with layers: VVxoPCb / GPjAGL
+		360 tour: ZnaHJK
+		Embedded video: SUeqOX
+		Serial multi-image tour: ojvqWXd
+	-->
 	<micr-io id="dzzLm"></micr-io>
+
+	<!-- Test image with all types of markers -->
+	<!-- <micr-io id="vsmQN" lang="nl" data-camspeed="4" data-path="https://micrio.vangoghmuseum.nl/micrio/"></micr-io> -->
+
+	<!-- Demo swipeable gallery -->
+	<!-- <micr-io data-gallery="xnRwQ,985,1200,,p;esgZB,960,1280,;pRiMP,960,1280," data-path="https://micrio.vangoghmuseum.nl/micrio/"></micr-io> -->
 
 	<script>
 		window.micrio = document.querySelector('micr-io');
@@ -57,6 +70,8 @@
 
 		// Put any pre-info init hooks here
 		micrio.addEventListener('pre-info', e => {
+			//console.log(e.detail.settings)
+			//e.detail.settings.omni.layerStartIndex = 1;
 		});
 
 		// Put any pre-data init hooks here
