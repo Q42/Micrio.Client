@@ -81,11 +81,11 @@
 	setContext('micrio', micrio);
 
 	/**
-	 * WeakMap to link marker data objects back to the specific MicrioImage instance
+	 * Map to link marker data objects back to the specific MicrioImage instance
 	 * they belong to. This is necessary because marker popups are rendered centrally
 	 * but need access to their parent image's state/methods.
 	 */
-	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = new WeakMap();
+	const markerImages : Map<string,MicrioImage> = new Map();
 	setContext('markerImages', markerImages);
 
 	// --- Initial Setup & Attribute Reading ---

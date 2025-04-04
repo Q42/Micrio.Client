@@ -38,7 +38,7 @@
 	/** Writable store tracking markers currently in the viewport (for side labels). */
 	const inView = getContext<Writable<[Models.ImageData.Marker,number,number][]>>('inView');
 	/** WeakMap linking marker data to its parent MicrioImage instance. */
-	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = getContext('markerImages');
+	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Reference to the global marker popup state. */
 	const currentPopup = micrio.state.popup;
 	/** Reference to the global active tour state. */
@@ -73,9 +73,9 @@
 	if(!marker.tags) marker.tags = [];
 
 	/** Check if this marker instance was already associated with an image (prevents re-linking). */
-	const openedBefore = markerImages.has(marker);
+	const openedBefore = markerImages.has(marker.id);
 	// Associate this marker data with its parent image instance if not already done.
-	if(!openedBefore && image) markerImages.set(marker, image);
+	if(!openedBefore && image) markerImages.set(marker.id, image);
 
 	/** Check if side labels are enabled for Omni objects on mobile. */
 	const mobileFancyLabels = !!(image.isOmni && image.$settings.omni?.sideLabels && !image.$settings._markers?.noTitles);

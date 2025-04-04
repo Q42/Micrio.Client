@@ -41,9 +41,10 @@
 	const tour = micrio.state.tour;
 
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
-	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = getContext('markerImages');
+	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
+	console.log('marker images?', markerImages, marker.id);
 	/** Get the parent MicrioImage instance for this marker. */
-	const image = markerImages.get(marker) as MicrioImage;
+	const image = markerImages.get(marker.id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 

@@ -32,9 +32,9 @@
 		/** If true, disable opening the image gallery popover when clicking images. */
 		noGallery?: boolean;
 		/** Allows binding to the main content container element. */
-		_content?: HTMLElement|null;
+		_content?: HTMLElement;
 		/** Allows binding to the title (h1) element. */
-		_title?: HTMLElement|null;
+		_title?: HTMLElement;
 		onclose?: Function;
 	}
 
@@ -44,8 +44,8 @@
 		noEmbed = false,
 		noImages = false,
 		noGallery = false,
-		_content = $bindable(null),
-		_title = $bindable(null),
+		_content = $bindable(),
+		_title = $bindable(),
 		onclose
 	}: Props = $props();
 
@@ -60,9 +60,9 @@
 	const isSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour;
 
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
-	const markerImages : WeakMap<Models.ImageData.Marker,MicrioImage> = getContext('markerImages');
+	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Get the parent MicrioImage instance for this marker. */
-	const image = markerImages.get(marker) as MicrioImage;
+	const image = markerImages.get(marker.id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 
