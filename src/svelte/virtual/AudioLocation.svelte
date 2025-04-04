@@ -100,7 +100,7 @@
 	}
 
 	// Also listen to changes in raw json
-	let prev:string = $state(JSON.stringify(item));
+	let prev:string = $state(JSON.stringify(marker.positionalAudio));
 	$effect(() => {
 		const newItem = JSON.stringify(item);
 		if(prev != newItem && (prev = newItem)) update();

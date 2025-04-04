@@ -365,7 +365,7 @@
 				alt="Embed" data-scroll-through />
 		{:else}
 			<!-- Render empty button as click target if rendered in WebGL but has click action -->
-			<button style={buttonStyle} title={embed.title} data-scroll-through></button>
+			<button style={buttonStyle} title={embed.title} data-scroll-through aria-label="embed-button"></button>
 		{/if}
 	</svelte:element>
 {/if}

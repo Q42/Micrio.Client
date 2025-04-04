@@ -290,12 +290,13 @@
 	// --- Video Tour Setup ---
 	let videoTour:VideoTourInstance|undefined = $state();
 	if(tour) {
-		videoTour = new VideoTourInstance(image, tour); // Create tour instance
-		if(currentTime > 0) videoTour.currentTime = currentTime; // Set initial time if provided
+		const newTour = new VideoTourInstance(image, tour); // Create tour instance
+		if(currentTime > 0) newTour.currentTime = currentTime; // Set initial time if provided
 		if(type == MediaType.VideoTour) { // If it's audio-only tour
 			duration = 'duration' in tour ? Number(tour.duration) : tour.i18n?.[$_lang]?.duration ?? 0;
 			volume = NaN; // Indicate no volume control needed
 		}
+		videoTour = newTour;
 	}
 
 	// Disable controls for Micrio embeds or non-API iframes

@@ -1,4 +1,3 @@
-<!-- @migration-task Error while migrating Svelte code: Unexpected token -->
 <script lang="ts">
 	/**
 	 * LogoOrg.svelte - Displays the organization logo in the top-right corner.

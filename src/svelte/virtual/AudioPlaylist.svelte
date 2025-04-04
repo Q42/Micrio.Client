@@ -57,7 +57,9 @@
 	// --- Reactive Effects ---
 
 	/** Update the audio element's volume when the `volume` prop changes. */
-	$effect(() => audio.volume = volume);
+	$effect(() => {
+		audio.volume = volume;
+	});
 
 </script>
 

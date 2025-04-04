@@ -51,7 +51,7 @@
 
 	/** Closes the dialog programmatically. */
 	function close() {
-		_dialog.close(); // Use the native <dialog> close method
+		_dialog?.close(); // Use the native <dialog> close method
 	}
 
 	/** Handler for the native 'close' event of the <dialog> element. */
@@ -105,12 +105,12 @@
 	// --- Lifecycle (onMount) ---
 
 	/** Reference to the <dialog> DOM element. */
-	let _dialog:HTMLDialogElement = $state();
+	let _dialog:HTMLDialogElement|undefined = $state();
 	onMount(() => {
-		_dialog.showModal(); // Open the dialog modally
+		_dialog!.showModal(); // Open the dialog modally
 		// Focus the first active button after the dialog opens
 		tick().then(() => {
-			const button:HTMLElement|null = _dialog.querySelector('button.active') ?? _dialog.querySelector('button');
+			const button:HTMLElement|null = _dialog!.querySelector('button.active') ?? _dialog!.querySelector('button');
 			button?.focus();
 		});
 
