@@ -89,17 +89,10 @@
 	const { visible, state: micrioState, isMuted } = micrio;
 	const { tour, marker, popup: markerPopup, popover } = micrioState; // Destructure state stores
 
-	/**
-	 * Holds the currently rendered marker popup instance(s).
-	 * Wrapped in a timeout to allow fade-out transitions.
-	 */
-	let markerPopups:Models.ImageData.Marker[] = $state([]);
-	markerPopup.subscribe(p => setTimeout(() => markerPopups = p ? [p] : [], 20)); // Delay allows fade-out
-
 	// Stores for the current image's info, data, and settings
 	let info:Readable<Models.ImageInfo.ImageInfo|undefined>|undefined = $state();
 	let data:Writable<Models.ImageData.ImageData|undefined>|undefined = $state();
-	let settings:Writable<Models.ImageInfo.Settings>|undefined;
+	let settings:Writable<Models.ImageInfo.Settings>|undefined = $state();
 
 	// --- Helper Functions ---
 
@@ -260,10 +253,8 @@
 {#if showOrgLogo}<LogoOrg organisation={showOrgLogo} />{/if}
 {#if showDetails && info && data}<Details {info} {data} />{/if}
 
-<!-- Render Marker Popups (managed centrally) -->
-{#each markerPopups as marker (marker.id)}
-	<MarkerPopup {marker} />
-{/each}
+<!-- Render Marker Popup (managed centrally) -->
+{#if $markerPopup}<MarkerPopup marker={$markerPopup} />{/if}
 
 <!-- Render active Tour UI -->
 {#if $tour}

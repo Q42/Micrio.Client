@@ -10,7 +10,6 @@
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import type { Models } from '../../types/models';
 	import type { MicrioImage } from '../../ts/image';
-	import type { Writable } from 'svelte/store';
 
 	import { getContext } from 'svelte';
 
@@ -23,8 +22,6 @@
 	interface Props {
 		/** The marker data object containing content and configuration. */
 		marker: Models.ImageData.Marker;
-		/** Writable store indicating if the parent popup is being destroyed (for media cleanup). */
-		destroying: Writable<boolean>;
 		/** If true, disable rendering of iframe/video embeds. */
 		noEmbed?: boolean;
 		/** If true, disable rendering of associated images. */
@@ -40,7 +37,6 @@
 
 	let {
 		marker,
-		destroying,
 		noEmbed = false,
 		noImages = false,
 		noGallery = false,
@@ -148,7 +144,6 @@
 			<!-- Don't show play overlay for audio/tour -->
 			<Media
 				src={audioSrc}
-				{destroying}
 				noPlayOverlay
 				{image}
 				uuid={marker.id}
@@ -187,7 +182,7 @@
 		{#if content.embedUrl && !noEmbed}
 			<!-- Hidden secondary media player for video tour audio if embed exists -->
 			{#if !content.audio && marker.videoTour}
-				<Media {image} className="hidden" uuid={marker.id} tour={marker.videoTour} autoplay={autoplayMedia} secondary {destroying} />
+				<Media {image} className="hidden" uuid={marker.id} tour={marker.videoTour} autoplay={autoplayMedia} secondary />
 			{/if}
 			<!-- Main embed media player -->
 			<Media
@@ -199,7 +194,6 @@
 				title={content.embedTitle}
 				figcaption={content.embedDescription}
 				autoplay={aplayVideo}
-				{destroying}
 				onended={mediaEnded}
 				bind:paused={paused.video}
 			/>

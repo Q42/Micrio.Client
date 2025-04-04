@@ -97,8 +97,6 @@
 		fullscreen?: HTMLElement|undefined;
 		/** Optional additional CSS class name for the figure element. */
 		className?: string|null;
-		/** Writable store indicating if the parent component is being destroyed. */
-		destroying?: Writable<boolean>|undefined;
 		/** Does the video source have a separate H.265 version for Safari transparency? */
 		hasTransparentH265?: boolean;
 		/** If true, don't show the large play button overlay when autoplay is blocked. */
@@ -137,7 +135,6 @@
 		secondary = false,
 		fullscreen = undefined,
 		className = null,
-		destroying = undefined,
 		hasTransparentH265 = false,
 		noPlayOverlay = false,
 		uuid = $bindable(''),
@@ -652,10 +649,7 @@
 	}
 
 	/** Flag indicating if the component is destroyed (for cleanup). */
-	let destroyed:boolean = false;
-
-	// Subscribe to the destroying prop to trigger cleanup
-	const unsub = destroying && destroying.subscribe(d => d && preDestroy());
+	let destroyed:boolean = $state(false);
 
 	/** Handler for iOS shared audio element time updates. */
 	const iOSAudioTimeUpdate = () => currentTime = _media?.currentTime ?? 0;
@@ -664,7 +658,6 @@
 	function preDestroy(){
 		if(destroyed) return;
 		destroyed = true;
-		if(unsub) unsub(); // Unsubscribe from destroying prop
 		// Clear video element reference on parent image if this was the 360 video
 		if(is360 && image) image.video.set(undefined);
 		// Remove media state entry
@@ -797,7 +790,7 @@
 				<micr-io data-logo="false" id={mic[0]} width={mic[1]} height={mic[2]} lang={mic[3]} data-path={info.path}></micr-io>
 			{/if}
 			<!-- Render timed events for video tours -->
-			{#if videoTourEvents?.length && duration > 0 && !$destroying}<Events events={videoTourEvents} bind:currentTime bind:duration />{/if}
+			{#if videoTourEvents?.length && duration > 0 && !destroyed}<Events events={videoTourEvents} bind:currentTime bind:duration />{/if}
 			<!-- Render media controls if enabled -->
 			{#if controls}
 				<aside class:inside={controls=='inside'}>

@@ -12,7 +12,6 @@
 	import type { MicrioImage } from '../../ts/image';
 
 	import { getContext, onMount } from 'svelte';
-	import { writable } from 'svelte/store';
 	import { fly } from 'svelte/transition'; // Used for popup animation
 	import { i18n } from '../../ts/i18n'; // For button titles
 
@@ -145,7 +144,7 @@
 	// --- Media Cleanup ---
 
 	/** Writable store passed to MarkerContent to signal when the popup is closing. */
-	const destroying = writable<boolean>(false);
+	let destroying = $state(false);
 
 	// --- Lifecycle (onMount) ---
 
@@ -166,10 +165,12 @@
 			});
 		}
 
+		const unsub = micrio.state.popup.subscribe(m => destroying = !m || m != marker);
+
 		// Cleanup function on component destroy
 		return () => {
 			// Update the destroying store when the global popup state no longer matches this marker
-			micrio.state.popup.subscribe(m => destroying.set(!m || m != marker));
+			unsub();
 			// Remove marker-specific embeds from the image data store
 			if(embeds) {
 				micrio.$current?.data.update(d => {
@@ -187,7 +188,7 @@
 <!-- Main popup container div -->
 <!-- Apply fly transition based on marker settings -->
 <!-- Add 'destroying' and 'minimized' classes for styling -->
-<div transition:fly={settings.popupAnimation} bind:this={_cont} class:destroying={$destroying} class:minimized={isMinimized}>
+<div transition:fly={settings.popupAnimation} bind:this={_cont} class:destroying class:minimized={isMinimized}>
 	<!-- Sidebar for controls -->
 	<aside>
 		<!-- Close/Next Button -->
@@ -218,7 +219,7 @@
 		{/if}
 	</aside>
 	<!-- Render the actual marker content -->
-	<MarkerContent {marker} {destroying} bind:_content bind:_title onclose={close} />
+	<MarkerContent {marker} bind:_content bind:_title onclose={close} />
 </div>
 
 <style>
