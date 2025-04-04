@@ -66,7 +66,7 @@
 		// Safari <16.4 (webkit prefix)
 		else if('webkitRequestFullscreen' in el) {
 			// Type assertion needed as TypeScript doesn't know about prefixed methods
-			(<unknown>el['webkitRequestFullscreen'] as Function)();
+			(el['webkitRequestFullscreen'] as unknown as Function)();
 		}
 	}
 
@@ -81,7 +81,7 @@
 		}
 		// Webkit prefixed API
 		else if('webkitExitFullscreen' in document) {
-			(<unknown>document['webkitExitFullscreen'] as Function)();
+			(document['webkitExitFullscreen'] as unknown as Function)();
 		}
 	}
 

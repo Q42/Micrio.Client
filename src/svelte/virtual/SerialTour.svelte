@@ -189,7 +189,7 @@
 	// --- Utility ---
 
 	/** Helper to get the language-specific title for a marker. */
-	const getTitle = (m:Models.ImageData.Marker) : string|undefined => m.i18n ? m.i18n[$lang]?.title : (<unknown>m as Models.ImageData.MarkerCultureData).title;
+	const getTitle = (m:Models.ImageData.Marker) : string|undefined => m.i18n ? m.i18n[$lang]?.title : (m as unknown as Models.ImageData.MarkerCultureData).title;
 
 	// --- Lifecycle (onMount / onDestroy) ---
 

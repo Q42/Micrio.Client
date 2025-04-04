@@ -131,13 +131,13 @@
 	/** Reactive reference to the marker data from the popover prop. */
 	$: marker = popover.marker;
 	/** Reactive language-specific content for the marker. */
-	$: content = marker ? (marker.i18n ? marker.i18n[$_lang] : (<unknown>marker as Models.ImageData.MarkerCultureData)) : undefined;
+	$: content = marker ? (marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData)) : undefined;
 	/** Reactive reference to the marker tour associated with the popover. */
 	$: tour = popover.markerTour;
 	/** Reactive reference to the content page data from the popover prop. */
 	$: page = popover.contentPage;
 	/** Reactive language-specific content for the page. */
-	$: pageContent = page ? page.i18n?.[$_lang] ?? (<unknown>page as Models.ImageData.MenuCultureData) : undefined;
+	$: pageContent = page ? page.i18n?.[$_lang] ?? (page as unknown as Models.ImageData.MenuCultureData) : undefined;
 	/** Determine if the page content is primarily a video embed. */
 	$: pageIsVideo = page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined;
 	/** Get the image source URL for the page content. */

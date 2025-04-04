@@ -71,7 +71,7 @@
 
 	/** Gets the language-specific culture data for a menu item. */
 	const getCData = (m:Models.ImageData.Menu, lang:string) : Models.ImageData.MenuCultureData|undefined =>
-		m.i18n?.[lang] ?? (<unknown>m as Models.ImageData.MenuCultureData); // Fallback for older data structure
+		m.i18n?.[lang] ?? (m as unknown as Models.ImageData.MenuCultureData); // Fallback for older data structure
 
 	// --- Reactive Declarations (`$:`) ---
 

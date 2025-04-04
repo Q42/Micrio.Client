@@ -68,7 +68,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get the language-specific content object for the marker. */
-	$: content = marker.i18n ? marker.i18n[$lang] : (<unknown>marker as Models.ImageData.MarkerCultureData);
+	$: content = marker.i18n ? marker.i18n[$lang] : (marker as unknown as Models.ImageData.MarkerCultureData);
 
 	/** Determine if the marker has any displayable content. */
 	$: empty = !content?.title && !content?.audio

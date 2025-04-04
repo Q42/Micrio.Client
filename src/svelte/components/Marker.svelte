@@ -568,7 +568,7 @@
 	// --- Reactive Content & Style Calculations ---
 
 	/** Reactive language-specific content object. */
-	$: content = marker.i18n ? marker.i18n[$_lang] : (<unknown>marker as Models.ImageData.MarkerCultureData);
+	$: content = marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData);
 
 	/** Reactive check if marker has any content for the popup. */
 	$: noPopupContent = !content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl
