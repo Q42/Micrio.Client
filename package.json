@@ -28,14 +28,14 @@
 	"license": "MIT",
 	"dependencies": {
 		"@tsconfig/svelte": "^4.0.1",
-		"svelte": "^4.2.19",
+		"svelte": "^5.0.0",
 		"svelte-preprocess": "^6.0.3",
 		"tslib": "^2.5.3",
 		"typescript": "^5.6.3"
 	},
 	"devDependencies": {
 		"@fortawesome/free-solid-svg-icons": "^6.6.0",
-		"@sveltejs/vite-plugin-svelte": "^3.1.2",
+		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"assemblyscript": "0.18.3",
 		"svelte-fa": "^4.0.3",
 		"terser": "^5.36.0",
