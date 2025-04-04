@@ -23,9 +23,9 @@
 	}
 
 	let {
-		currentTime = 0,
+		currentTime = $bindable(0),
 		duration,
-		ended = false,
+		ended = $bindable(false),
 		children
 	}: Props = $props();
 

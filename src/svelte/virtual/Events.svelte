@@ -27,7 +27,11 @@
 		duration: number;
 	}
 
-	let { events, currentTime = 0, duration }: Props = $props();
+	let {
+		events = $bindable(),
+		currentTime = $bindable(0),
+		duration = $bindable()
+	}: Props = $props();
 
 	// --- Context ---
 

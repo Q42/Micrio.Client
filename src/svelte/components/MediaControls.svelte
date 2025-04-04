@@ -48,12 +48,12 @@
 
 	let {
 		currentTime = $bindable(0),
-		duration = 0,
-		seeking = true,
-		muted = false,
+		duration = $bindable(0),
+		seeking = $bindable(true),
+		muted = $bindable(false),
 		minimal = false,
-		volume,
-		paused,
+		volume = $bindable(),
+		paused = $bindable(),
 		ended = $bindable(),
 		fullscreen = undefined,
 		subtitles = false,
