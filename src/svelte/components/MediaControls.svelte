@@ -142,7 +142,7 @@
 		<!-- Draggable area for seeking -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="bar active" bind:this={_bar} onmousedown={dStart}
-			style={`--perc:${(currentTime/duration)*100}%;`}></div>
+			style={`--progress:${(currentTime/duration)*100}%;`}></div>
 	</ProgressBar>
 {/if}
 

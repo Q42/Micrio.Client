@@ -75,7 +75,7 @@
 	/** Toggles the play/pause state of the current media/tour step. */
 	function playPause() {
 		const media = micrio.state.mediaState.get(currentMediaUUID); // Get state for current media
-		if(media) paused = media.paused = !media.paused; // Toggle paused state
+		if(media) media.paused = paused = !media.paused; // Toggle paused state
 		if(paused) {
 			micrio.events.dispatch('serialtour-pause', tour); // Dispatch pause event
 			micrio.events.enabled.set(true); // Re-enable user interaction
@@ -286,7 +286,7 @@
 					onclick={(e) => goto(i,e)}
 					onkeypress={e => { if(e.key === 'Enter') goto(i) }}
 					class:active={i == tour.currentStep}
-					style={`width:${(step.duration/totalDuration)*100}%; --perc: ${$times[i]||0}%`}
+					style={`width:${(step.duration/totalDuration)*100}%; --progress: ${$times[i]||0}%`}
 				></div>
 			{/if}
 		{/each}
