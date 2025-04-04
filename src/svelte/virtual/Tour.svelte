@@ -42,7 +42,7 @@
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio:HTMLMicrioElement = <HTMLMicrioElement>getContext('micrio');
-	const { events, state, _lang } = micrio;
+	const { events, state: micrioState, _lang } = micrio;
 
 	/** Reference to the current image instance. */
 	const image = micrio.$current as MicrioImage;
@@ -183,7 +183,7 @@
 
 	/** Exits the current tour by clearing the global tour state. */
 	function exit(){
-		state.tour.set(undefined);
+		micrioState.tour.set(undefined);
 	}
 
 	/** Handles the 'ended' event from video tours or SerialTour component. */

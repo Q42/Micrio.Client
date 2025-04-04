@@ -37,9 +37,9 @@
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties from the micrio instance. */
-	const { current, state, isMuted, _lang } = micrio;
+	const { current, state: micrioState, isMuted, _lang } = micrio;
 	/** Reference to the active tour store. */
-	const tour = state.tour;
+	const tour = micrioState.tour;
 	/** Destructure UI state stores. */
 	const { controls, zoom, hidden } = micrio.state.ui;
 

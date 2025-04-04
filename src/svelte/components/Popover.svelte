@@ -37,7 +37,7 @@
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
-	const { events, state, current, _lang } = micrio;
+	const { events, state: micrioState, current, _lang } = micrio;
 
 	/** Get data for the currently active image (used for language list). */
 	const data = $current?.$data;
@@ -57,12 +57,12 @@
 		if(popover.contentPage) events.dispatch('page-closed');
 		else {
 			// If closing a marker popover that was part of a tour, stop the tour
-			if(tour) state.tour.set(undefined);
+			if(tour) micrioState.tour.set(undefined);
 			// Otherwise, if it was a marker popover, clear the active marker state
 			else if(popover.marker) popover.image?.state.marker.set(undefined);
 		}
 		// Clear the global popover state to remove the component
-		state.popover.set(undefined);
+		micrioState.popover.set(undefined);
 	}
 
 	/** Handles clicks on buttons defined within a content page. */

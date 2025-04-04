@@ -62,7 +62,7 @@
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
-	const { events, state, _lang } = micrio;
+	const { events, state: micrioState, _lang } = micrio;
 
 	/** Reference to the button/link element for this menu item. */
 	let _button:HTMLButtonElement|HTMLAnchorElement;
@@ -110,7 +110,7 @@
 			} else if(cultureData?.content || cultureData?.embed || menu.image) { // If content/embed/image exists, action opens the popover
 				menu.action = () => {
 					events.dispatch('page-open', menu); // Dispatch page-open event
-					state.popover.set({contentPage:menu}); // Set global popover state
+					micrioState.popover.set({contentPage:menu}); // Set global popover state
 				}
 			}
 		}

@@ -113,7 +113,7 @@
 	const dispatch = createEventDispatcher();
 
 	/** Get relevant stores/properties from the Micrio instance. */
-	const {events, state, _lang } = micrio;
+	const {events, state: micrioState, _lang } = micrio;
 	/** Reference to the global volume store. */
 	const mainVolume:Writable<number> = getContext('volume');
 	/** Was the global volume muted when this component mounted? */
@@ -126,14 +126,14 @@
 	/** Stores the initial start time (used if resuming from saved state). */
 	let startTime:number;
 
-	// Check for existing media state (e.g., from previous session via state.set)
-	const existing = state.mediaState.get(uuid);
+	// Check for existing media state (e.g., from previous session via micrioState.set)
+	const existing = micrioState.mediaState.get(uuid);
 	if(existing) {
 		currentTime = existing.currentTime;
 		autoplay = !(paused = existing.paused); // Override autoplay based on saved paused state
 	}
 	// Register this media instance with the global state manager
-	state.mediaState.set(uuid, {
+	micrioState.mediaState.set(uuid, {
 		get currentTime(){return currentTime},
 		set currentTime(v:number){setCurrentTime(v)},
 		get paused(){return paused},
@@ -290,7 +290,7 @@
 		}
 	}
 
-	/** Toggles play/pause state. */
+	/** Toggles play/pause micrioState. */
 	function playPause(e?:PointerEvent|CustomEvent) : void {
 		// Ignore right-clicks etc.
 		if(e && 'button' in e && e.button != 0) return;
@@ -625,7 +625,7 @@
 		// Clear video element reference on parent image if this was the 360 video
 		if(is360 && image) image.video.set(undefined);
 		// Remove media state entry
-		state.mediaState.delete(uuid);
+		micrioState.mediaState.delete(uuid);
 		// Stop time update interval
 		endTick();
 		// Pause media

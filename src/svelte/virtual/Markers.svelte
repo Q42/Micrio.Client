@@ -32,7 +32,7 @@
 	const {data, info, settings} = image; // Image-specific stores
 	const currentMarker = image.state.marker; // Image's active marker store
 	const micrio = image.wasm.micrio; // Main Micrio element instance
-	const { switching, _lang, state } = micrio; // Global state stores
+	const { switching, _lang, state: micrioState } = micrio; // Global state stores
 	const isMobile = micrio.canvas.isMobile; // Mobile device flag
 	const grid = micrio.canvases[0]?.grid; // Grid controller (if applicable)
 	const focussed = grid?.focussed; // Focussed grid image store
@@ -43,7 +43,7 @@
 	// --- Side Label State (for Omni objects) ---
 
 	/** Reference to the global marker hover state. */
-	const hoveredId = state.markerHoverId;
+	const hoveredId = micrioState.markerHoverId;
 	/** Writable store tracking markers currently in view [MarkerData, screenX%, screenY%]. */
 	const inView = writable<[MarkerData, number, number][]>([]);
 	/** Provide the inView store to child Marker components via context. */
@@ -93,7 +93,7 @@
 	}
 
 	// Clear stored opened view if a tour starts that keeps the last step active
-	state.tour.subscribe(t => {
+	micrioState.tour.subscribe(t => {
 		if(t && 'steps' in t && t.keepLastStep) image.openedView = undefined;
 	});
 

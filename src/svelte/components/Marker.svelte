@@ -28,11 +28,11 @@
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
-	const { current, events, state, _lang, spaceData } = micrio;
+	const { current, events, state: micrioState, _lang, spaceData } = micrio;
 	/** Check if the device is mobile (affects hover behavior). */
 	const isMobile = micrio.canvas.isMobile;
 	/** Reference to the global marker hover state. */
-	const hovered = state.markerHoverId;
+	const hovered = micrioState.markerHoverId;
 	/** Writable store tracking markers currently in the viewport (for side labels). */
 	const inView = getContext<Writable<[Models.ImageData.Marker,number,number][]>>('inView');
 	/** WeakMap linking marker data to its parent MicrioImage instance. */
@@ -40,7 +40,7 @@
 	/** Reference to the global marker popup state. */
 	const currentPopup = micrio.state.popup;
 	/** Reference to the global active tour state. */
-	const tour = state.tour;
+	const tour = micrioState.tour;
 
 	// --- Props ---
 
@@ -136,8 +136,8 @@
 	// --- Initial State ---
 
 	/** Should the marker be opened immediately on mount? */
-	let openOnInit:boolean = (!openedBefore && (!!data.alwaysOpen || (state.$marker == marker)) // Always open, or currently set as active marker
-		|| (state.$tour?.id == autoStartMyTour?.id && autoStartMyTour?.currentStep == (myTourStep??0))); // Or part of active auto-start tour at correct step
+	let openOnInit:boolean = (!openedBefore && (!!data.alwaysOpen || (micrioState.$marker == marker)) // Always open, or currently set as active marker
+		|| (micrioState.$tour?.id == autoStartMyTour?.id && autoStartMyTour?.currentStep == (myTourStep??0))); // Or part of active auto-start tour at correct step
 
 	/** Is the marker currently considered "open" (active)? */
 	let opened:boolean = openedBefore && image.state.$marker == marker;
@@ -268,7 +268,7 @@
 					omniIndex, // Pass omni index if applicable
 					noTrueNorth: true, // Don't correct true north during marker fly-to
 					area: image.opts?.area,
-					isJump: !!data.doJump || (doTourJumps && !!state.$tour) // Use jump animation if specified or in a tour
+					isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
 				})
 				.then(open) // Proceed to open content after animation
 				.catch(() => { if(!$tour) image.state.marker.set(undefined) }); // If animation fails (e.g., interrupted) and not in a tour, close the marker
