@@ -11,6 +11,25 @@ searchable Knowledge Base at:
 
 For the npm package `@micrio/client`, see https://www.npmjs.com/package/@micrio/client
 
+## Using the package from React Typescript
+
+In order to use the `@micrio/client` package in a code base which uses React with Typescript, the following code needs to be added in an additional `micrio.d.ts` file.
+This will allow the use of the `<micr-io>` element in a fully type-safe manner.
+
+```tsx
+import type { Models, HTMLMicrioElement } from '@micrio/client';
+
+/** Specific case to support  */
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      'micr-io': React.DetailedHTMLProps<Models.Attributes.MicrioCustomAttributes & HTMLAttributes<HTMLMicrioElement>, HTMLMicrioElement>;
+    }
+  }
+}
+```
+
+
 ## Getting it running
 
 Make sure you have Node and `pnpm` installed.
