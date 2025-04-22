@@ -155,6 +155,11 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	keepRendering: boolean = false;
 
+	/** An internal lookup for which events have been set through `onmycustomevent` type attributes.
+	 * @internal
+	 */
+	private _eventHandlerProps:Record<string,EventListener|null|undefined> = {}; // Store event handler properties
+
 	/** @internal Initializes the element and subscribes to internal stores. */
 	constructor(){
 		super();
@@ -189,7 +194,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-grid`, `data-limited`, and `lang`.
 	 * @internal
 	*/
-	attributeChangedCallback(attr:string, oldVal:string, newVal:string) {
+	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, oldVal:string, newVal:string) {
 		switch(attr) {
 			case 'id': { // Handle ID change (initial load or subsequent open)
 				if(!this.isConnected || !newVal) return;
@@ -221,6 +226,27 @@ export class HTMLMicrioElement extends HTMLElement {
 				break;
 			}
 		}
+			if (attr.startsWith('on') && newVal) {
+				const eventName = attr.substring(2) as keyof Models.MicrioEventMap; // Remove 'on' prefix
+				
+				// Ignore non-Micrio events
+				if (micrioEventTypes.indexOf(eventName) >= 0) {
+					// Remove old listener if exists
+					if (this._eventHandlerProps[attr]) {
+						this.removeEventListener(eventName, this._eventHandlerProps[attr]);
+					}
+					
+					// Create function from string (use with caution)
+					// Better to use a more secure approach in production
+					try {
+						const handler = new Function('event', newVal) as EventListener;
+						this._eventHandlerProps[attr] = handler;
+						this.addEventListener(eventName, handler);
+					} catch (e) {
+						console.error(`Error creating handler for ${attr}:`, e);
+					}
+				}
+			}
 	}
 
 	/**
@@ -738,11 +764,47 @@ export class HTMLMicrioElement extends HTMLElement {
 		archive.get<{images: Models.ImageInfo.ImageInfo[]}>(`${path}${id}.json`) // Get JSON from archive utility
 			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r }); // Cache individual image infos and return result
 
+	private setupEventPropBinding() {
+		micrioEventTypes.forEach(eventName => {
+			// Watch for property changes like "onchange", "onsubmit", etc.
+			const propName = `on${eventName}`;
+
+			// Define property getter/setter
+			Object.defineProperty(this, propName, {
+				get: () => this._eventHandlerProps[propName],
+				set: (handler) => {
+					// Remove old handler if exists
+					if (this._eventHandlerProps[propName]) {
+						this.removeEventListener(eventName, this._eventHandlerProps[propName]);
+					}
+					
+					// Store and add new handler
+					if (typeof handler === 'function') {
+						this._eventHandlerProps[propName] = handler;
+						this.addEventListener(eventName, handler);
+					} else {
+						this._eventHandlerProps[propName] = null;
+					}
+				}
+			});
+		});
+	}
 	/** Getter for the current language code. */
 	get lang() { return get(this._lang) }
 	/** Setter for the current language code. Triggers language change logic. */
 	set lang(l:string) { this.setAttribute('lang', l) }
 }
+
+const micrioEventTypes = [
+	'show', 'pre-info', 'pre-data', 'print', 'load', 'lang-switch', 'zoom', 'move', 'draw', 'resize', 'panstart',
+	'panend', 'pinchstart', 'pinchend', 'marker-open', 'marker-opened', 'marker-closed', 'tour-start', 'tour-stop',
+	'tour-minimize', 'tour-step', 'serialtour-play', 'serialtour-pause', 'videotour-start', 'videotour-stop', 
+	'videotour-play', 'videotour-pause', 'tour-ended', 'tour-event', 'audio-init', 'audio-mute', 'audio-unmute',
+	'autoplay-blocked', 'media-play', 'media-pause', 'media-ended', 'timeupdate', 'page-open', 'page-closed', 'gallery-show',
+	'grid-init', 'grid-load', 'grid-layout-set', 'grid-focus', 'grid-blur', 'splitscreen-start', 'splitscreen-stop', 'update',
+] as const satisfies (keyof Models.MicrioEventMap)[]; // List of custom event types
+// Type check to ensure all MicrioEventMap events are in the above array:
+const _eventMapCheck: keyof Models.MicrioEventMap extends typeof micrioEventTypes[number] ? true : never = true;
 
 // --- Svelte UI Props ---
 export interface MicrioUIProps {

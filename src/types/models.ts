@@ -1481,7 +1481,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	}
 
 	export namespace Attributes {
-		export interface MicrioCustomAttributes {
+		export type MicrioEventAttributes = { [K in keyof MicrioEventMap as `on${K}`]?: (e: MicrioEventMap[K]) => any };
+
+		export interface MicrioCustomAttributes extends MicrioEventAttributes {
 			// General settings
 			/** The image ID */
 			'id'?: string;
@@ -1571,6 +1573,10 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			'volume'?: number;
 			/** Fade music to this volume while other audio plays (between 0 and 1). Default: 0 */
 			'data-mutedvolume'?: number;
+
+			// Unknown
+			'data-grid'?: Grid;
+			'data-limited'?: boolean;
 		}
 	}
 }
