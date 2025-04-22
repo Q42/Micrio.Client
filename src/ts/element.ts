@@ -160,6 +160,15 @@ export class HTMLMicrioElement extends HTMLElement {
 	 */
 	private _eventHandlerProps:Record<string,EventListener|null|undefined> = {}; // Store event handler properties
 
+	/** Helps with making the web component work well with React.
+	 * @internal
+	 */
+	private _reactEventProps = new Map();
+
+	// Create a MutationObserver to watch for React's data-* attributes
+	private _observer = new MutationObserver(this.checkReactProps.bind(this));
+
+
 	/** @internal Initializes the element and subscribes to internal stores. */
 	constructor(){
 		super();
@@ -279,8 +288,26 @@ export class HTMLMicrioElement extends HTMLElement {
 				}
 			})
 		}
+		// Set up automatic property-to-event binding
+		this.setupEventPropBinding();
+
+		this._observer.observe(this, { 
+      attributes: true,
+      attributeFilter: ['data-reactroot', 'data-reactid'] 
+    });
+
+		// Also check for React's direct property assignments
+		setTimeout(() => this.checkReactDirectProps(), 0);
 	}
 
+	disconnectedCallback() : void {
+		this._observer.disconnect();
+		// Clean up any event listeners
+		this._reactEventProps.forEach((handler, eventName) => {
+			this.removeEventListener(eventName, handler);
+		});
+	}
+	
 	// Custom overloads for addEventListener to support fully typed custom Micrio events
 	addEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
 	addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
@@ -789,6 +816,47 @@ export class HTMLMicrioElement extends HTMLElement {
 			});
 		});
 	}
+
+	private checkReactProps() {
+    // React sometimes uses data attributes
+    this.checkReactDirectProps();
+  }
+
+	// TODO: Find a way to extract this to a separate react-specific package
+	private checkReactDirectProps() {
+    // Check for properties that might have been set by React
+    Object.keys(this).forEach(key => {
+      if (key.startsWith('__reactEventHandlers') || 
+          key.startsWith('__reactProps')) {
+        const reactProps = (this as any)[key];
+        
+        // Look for event handlers in React's internal props
+        Object.keys(reactProps).forEach(propName => {
+          if (propName.startsWith('on') && typeof reactProps[propName] === 'function') {
+            const eventName = propName.substring(2).toLowerCase();
+            const handler = reactProps[propName];
+
+						console.log('React event handler found:', eventName, handler);
+            
+            // Only add if not already added
+            if (!this._reactEventProps.has(eventName) || 
+                this._reactEventProps.get(eventName) !== handler) {
+
+              // Remove old handler if exists
+              if (this._reactEventProps.has(eventName)) {
+                this.removeEventListener(eventName, this._reactEventProps.get(eventName));
+              }
+              
+              // Add new handler
+              this.addEventListener(eventName, handler);
+              this._reactEventProps.set(eventName, handler);
+            }
+          }
+        });
+      }
+    });
+  }
+
 	/** Getter for the current language code. */
 	get lang() { return get(this._lang) }
 	/** Setter for the current language code. Triggers language change logic. */
@@ -819,3 +887,29 @@ export interface MicrioUIProps {
 	/** Optional error message to display. */
 	error?: string|undefined;
 }
+
+/*
+Of doe dit:
+
+// In your web component file
+import { createComponent } from '@lit-labs/react';
+import { MicrIo } from './micr-io.js';
+
+// Create React wrapper
+export const MicrIoReact = createComponent({
+  tagName: 'micr-io',
+  elementClass: MicrIo,
+  react: React,
+  events: {
+    onshow: 'show', // Maps React's onshow prop to the 'show' event
+    // Add other events here
+  }
+});
+
+// In your React file
+import { MicrIoReact } from './micr-io-react.js';
+
+function App() {
+  return <MicrIoReact onshow={e => console.log(e)} />;
+}
+*/
