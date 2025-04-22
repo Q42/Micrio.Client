@@ -674,7 +674,7 @@ export class MicrioImage {
 		// Dispatch pre-data event allowing external modification of all loaded data
 		this.wasm.micrio.events.dispatch('pre-data', {
 			[this.id]: d, // Current image data
-			...Object.fromEntries(micIdsUnique.map((id,i) => [id, micData[i]])) // Preloaded linked data
+			...Object.fromEntries(micIdsUnique.map((id,i) => [id, micData[i]!])) // Preloaded linked data
 		});
 
 		// If linked images were already initialized but lacked data, set it now

@@ -2,6 +2,7 @@
 /// <reference types="svelte" />
 
 import type { HTMLMicrioElement } from '../ts/element';
+import type { Grid } from '../ts/grid';
 import type { MicrioImage } from '../ts/image';
 import type { VideoTourInstance } from '../ts/videotour';
 import type { Writable } from 'svelte/store';
@@ -731,7 +732,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			positionalAudio?: Assets.AudioLocation;
 
 			/** Optional function that overrides all behavior */
-			onclick?: (m:Models.ImageData.Marker) => void;
+			onclick?: (m:ImageData.Marker) => void;
 
 			/** Additional options */
 			data?: MarkerData;
@@ -1171,7 +1172,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Custom icon lib */
 			icons?: Assets.Image[];
 			/** Multi-image marker tours */
-			markerTours?: Models.ImageData.MarkerTour[];
+			markerTours?: ImageData.MarkerTour[];
 		}
 
 		export interface WaypointInterface {
@@ -1254,7 +1255,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		)
 
 		/** Virtual ImageInfo extension to support grid logic */
-		export interface GridImage extends Partial<Models.ImageInfo.ImageInfo> {
+		export interface GridImage extends Partial<ImageInfo.ImageInfo> {
 			size: [number, number?];
 			area?: Camera.View;
 			view?: Camera.View;
@@ -1278,7 +1279,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Transition duration in ms */
 			duration?: number;
 			/** Transition animation, defaults to crossfade */
-			transition?: Models.Grid.MarkerFocusTransition;
+			transition?: Grid.MarkerFocusTransition;
 			/** Set the target viewport immediately */
 			noViewAni?: boolean;
 			/** Animate the previously focussed image to this view during exit transition */
@@ -1375,11 +1376,11 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	export namespace State {
 		/** Popover interface state type */
 		export interface PopoverType {
-			contentPage?: Models.ImageData.Menu;
+			contentPage?: ImageData.Menu;
 			image?: MicrioImage;
-			marker?: Models.ImageData.Marker;
-			markerTour?: Models.ImageData.MarkerTour;
-			gallery?: Models.Assets.Image[];
+			marker?: ImageData.Marker;
+			markerTour?: ImageData.MarkerTour;
+			gallery?: Assets.Image[];
 			galleryStart?: string;
 			showLangSelect?: boolean;
 		}
@@ -1396,5 +1397,86 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			portrait:boolean;
 		}
 	}
+	
+	export type MicrioEvent<T = any> = Event & { detail: T };
 
+	export interface MicrioEventDetails {
+		// General events
+		'show': HTMLMicrioElement; // The main Micrio image is loaded and fully shown
+		'pre-info': ImageInfo.ImageInfo; // Before the ImageInfo settings are read, this event allows you to alter them
+		'pre-data': { [micrioId: string]: ImageData.ImageData }; // Before the ImageData contents are read, this event allows you to alter it
+		'print': ImageInfo.ImageInfo; // The main Micrio element has initialized and is being printed
+		'load': MicrioImage; // Individual image data is loaded and Micrio will start rendering
+		'lang-switch': string; // The user has switched available languages
+
+		// Camera events
+		'zoom': { image: MicrioImage, view: Camera.View }; // The camera has zoomed
+		'move': { image: MicrioImage, view: Camera.View }; // The camera has moved
+		'draw': void; // A frame has been drawn
+		'resize': DOMRect; // The <micr-io> element was resized
+
+		// User input events
+		'panstart': void; // The user has started panning
+		'panend': {duration: number, movedX: number, movedY: number}; // The user has stopped panning
+		'pinchstart': void; // The user has stopped pinching
+		'pinchend': {duration: number, movedX: number, movedY: number}; // The user has stopped pinching
+
+		// Marker events
+		'marker-open': ImageData.Marker; // A marker has been opened and the camera animation is starting
+		'marker-opened': ImageData.Marker; // A marker has been fully opened and the camera is done, and popup shown
+		'marker-closed': ImageData.Marker; // A marker has been successfully closed
+
+		// Marker and video tours
+		'tour-start': ImageData.Tour; // A tour has been successfully started
+		'tour-stop': ImageData.Tour; // A tour has been successfully stopped
+		'tour-minimize': ImageData.Tour; // A tour's UI interface has automatically minimized
+
+		// Marker Tours
+		'tour-step': ImageData.MarkerTour; // Fires for each marker step in a marker tour
+		'serialtour-play': ImageData.MarkerTour; // A multi-image tour is played/resumed
+		'serialtour-pause': ImageData.MarkerTour; // A multi-image tour is paused
+
+		// Video Tours
+		'videotour-start': ImageData.VideoTour; // A video tour has started from the beginning (can be part of a marker tour)
+		'videotour-stop': ImageData.VideoTour; // A video tour has ended or is aborted (can be part of a marker tour)
+		'videotour-play': void; // A video tour is played or resumed
+		'videotour-pause': void; // A video tour is paused
+		'tour-ended': ImageData.VideoTour; // A video tour has ended
+		'tour-event': ImageData.Event; // When a video tour has custom events, they will be fired like this
+
+		// Main media (video, audio, video tours)
+		'audio-init': void; // The audio controller has been successfully initialized and can play audio
+		'audio-mute': void; // The audio has been muted
+		'audio-unmute': void; // The audio has been unmuted
+		'autoplay-blocked': void; // Fires when there is autoplay audio or video which was disallowed by the browser
+		'media-play': void; // Media has started playing
+		'media-pause': void; // Media has stopped playing
+		'media-ended': void; // Media has ended
+		'timeupdate': number; // A media timeupdate tick
+
+		// Custom page popovers
+		'page-open': ImageData.Menu; // A custom popover page was opened
+		'page-closed': ImageData.Menu; // A custom popover page was closed
+
+		// Album viewing
+		'gallery-show': number; // Triggers on album image change
+
+		// Grid views
+		'grid-init': Grid; // The grid controller has initialized
+		'grid-load': void; // All images in the grid have loaded
+		'grid-layout-set': Grid; // The grid layout has changed
+		'grid-focus': MicrioImage; // The main grid view is activated
+		'grid-blur': void; // The main grid has lost focus, i.e., navigated away
+
+		// Splitscreen views
+		'splitscreen-start': MicrioImage; // Split screen mode has started
+		'splitscreen-stop': MicrioImage; // Split screen mode has stopped
+
+		// Special cases
+		'update': Array<string>; // When there is any user action, this event fires. Deferred and fires at a maximum rate of every 500ms
+	}
+	
+	export type MicrioEventMap = {
+		[K in keyof MicrioEventDetails]: MicrioEvent<MicrioEventDetails[K]>;
+	}
 }

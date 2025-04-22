@@ -255,6 +255,18 @@ export class HTMLMicrioElement extends HTMLElement {
 		}
 	}
 
+	// Custom overloads for addEventListener to support fully typed custom Micrio events
+	addEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	addEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | AddEventListenerOptions): void;
+	addEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.addEventListener(type, listener, useCapture); }
+
+	// Custom overloads for removeEventListener to support fully typed custom Micrio events
+	removeEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	removeEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | EventListenerOptions): void;
+	removeEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.removeEventListener(type, listener, useCapture); }
+
 	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */
 	destroy() : void {
 		this.current.set(undefined); // Clear current image
@@ -348,7 +360,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		// --- Final Setup & Open ---
 		this.keepRendering = !!opts.settings.keepRendering; // Set continuous rendering flag
 		const doOpen = opts.id || opts.gallery || opts.grid; // Check if there's something to open
-		this.events.dispatch('print', opts); // Dispatch 'print' event
+		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo); // Dispatch 'print' event
 
 		// Handle lazy loading
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {

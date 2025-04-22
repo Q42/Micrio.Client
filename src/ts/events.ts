@@ -61,7 +61,7 @@ function cancelPrevent(e:AllEvents){
  * @internal
  * @readonly
  */
-export const UpdateEvents:string[] = [
+export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 	'move',
 	'marker-open',
 	'marker-opened',
@@ -237,7 +237,7 @@ export const UpdateEvents:string[] = [
 	 * @param type The event type string.
 	 * @param detail Optional event detail payload.
 	 */
-	dispatch(type:string, detail?:any) : void {
+	dispatch<K extends keyof Models.MicrioEventDetails>(type:K, detail?:Models.MicrioEventDetails[K]) : void {
 		this.micrio.dispatchEvent(new CustomEvent(type, detail !== undefined ? { detail } : undefined))
 	}
 
