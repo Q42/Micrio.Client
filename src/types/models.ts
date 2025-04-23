@@ -1571,6 +1571,12 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			'volume'?: number;
 			/** Fade music to this volume while other audio plays (between 0 and 1). Default: 0 */
 			'data-mutedvolume'?: number;
+
+			// Specific technical settings
+			/** Configuration for the grid which the viewer will use. */
+			'data-grid'?: Grid;
+			/** Toggle limited rendering mode in WebAssembly. */
+			'data-limited'?: boolean;
 		}
 	}
 }
