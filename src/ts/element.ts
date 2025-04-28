@@ -44,7 +44,7 @@ import { i18n, langs } from './i18n';
 */
 export class HTMLMicrioElement extends HTMLElement {
 	/** Observed attributes trigger `attributeChangedCallback` when changed. */
-	static get observedAttributes() { return ['id', 'muted', 'data-grid', 'data-limited', 'lang']; }
+	static get observedAttributes() { return ['id', 'muted', 'data-grid', 'data-limited', 'lang', ...micrioEventTypes.map(e => `on${e}`)]; }
 
 	/** Dynamic Svelte constructor, defaults to the main viewer UI.
 	 * @internal
@@ -155,6 +155,11 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	keepRendering: boolean = false;
 
+	/** An internal lookup for which events have been set through `onmycustomevent` type attributes.
+	 * @internal
+	 */
+	private _eventHandlerProps:Record<string,EventListener|null|undefined> = {}; // Store event handler properties
+
 	/** @internal Initializes the element and subscribes to internal stores. */
 	constructor(){
 		super();
@@ -183,6 +188,8 @@ export class HTMLMicrioElement extends HTMLElement {
 			const img = this.querySelector('img.preview');
 			if(img) setTimeout(() => img.remove(), 500);
 		});
+
+		this.setupEventPropBinding();
 	}
 
 	/**
@@ -219,6 +226,28 @@ export class HTMLMicrioElement extends HTMLElement {
 					if(prevLang) this.events.dispatch('lang-switch', newVal); // Dispatch event
 				}
 				break;
+			}
+		}
+
+		if (attr.startsWith('on') && newVal) {
+			const eventName = attr.substring(2) as keyof Models.MicrioEventMap; // Remove 'on' prefix
+			
+			// Ignore non-Micrio events
+			if (micrioEventTypes.indexOf(eventName) >= 0) {
+				// Remove old listener if exists
+				if (this._eventHandlerProps[attr]) {
+					this.removeEventListener(eventName, this._eventHandlerProps[attr]);
+				}
+				
+				// Create function from string (use with caution)
+				// Better to use a more secure approach in production
+				try {
+					const handler = new Function('event', newVal) as EventListener;
+					this._eventHandlerProps[attr] = handler;
+					this.addEventListener(eventName, handler);
+				} catch (e) {
+					console.error(`Error creating handler for ${attr}:`, e);
+				}
 			}
 		}
 	}
@@ -738,11 +767,57 @@ export class HTMLMicrioElement extends HTMLElement {
 		archive.get<{images: Models.ImageInfo.ImageInfo[]}>(`${path}${id}.json`) // Get JSON from archive utility
 			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r }); // Cache individual image infos and return result
 
+	private setupEventPropBinding() {
+		micrioEventTypes.forEach(eventName => {
+			// Watch for property changes like "onchange", "onsubmit", etc.
+			const propName = `on${eventName}`;
+
+			// Define property getter/setter
+			Object.defineProperty(this, propName, {
+				get: () => this._eventHandlerProps[propName],
+				set: (handler) => {
+					console.log(`Setting event handler for ${propName}`);
+					// Remove old handler if exists
+					if (this._eventHandlerProps[propName]) {
+						this.removeEventListener(eventName, this._eventHandlerProps[propName]);
+					}
+					
+					// Store and add new handler
+					if (typeof handler === 'function') {
+						this._eventHandlerProps[propName] = handler;
+						this.addEventListener(eventName, handler);
+					} else {
+						this._eventHandlerProps[propName] = null;
+					}
+				}
+			});
+		});
+	}
 	/** Getter for the current language code. */
 	get lang() { return get(this._lang) }
 	/** Setter for the current language code. Triggers language change logic. */
 	set lang(l:string) { this.setAttribute('lang', l) }
 }
+
+const micrioEventTypes = [
+	'show', 'pre-info', 'pre-data', 'print','lang-switch', 'zoom', 'move', 'draw', 'panstart',
+	'panend', 'pinchstart', 'pinchend', 'marker-open', 'marker-opened', 'marker-closed', 'tour-start', 'tour-stop',
+	'tour-minimize', 'tour-step', 'serialtour-play', 'serialtour-pause', 'videotour-start', 'videotour-stop', 
+	'videotour-play', 'videotour-pause', 'tour-ended', 'tour-event', 'audio-init', 'audio-mute', 'audio-unmute',
+	'autoplay-blocked', 'media-play', 'media-pause', 'media-ended', 'page-open', 'page-closed', 'gallery-show',
+	'grid-init', 'grid-load', 'grid-layout-set', 'grid-focus', 'grid-blur', 'splitscreen-start', 'splitscreen-stop', 'update',
+	'load', 'resize', 'timeupdate'
+] as const satisfies (keyof Models.MicrioEventMap)[]; // List of custom event types
+// Type check to ensure all MicrioEventMap events are in the above array:
+const _eventMapCheck: keyof Models.MicrioEventMap extends typeof micrioEventTypes[number] ? true : never = true;
+
+type MicrioEventHandlerProps = {
+	[K in keyof Models.MicrioEventMap as `on${K}`]?: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any;
+}
+
+export interface HTMLMicrioElement extends MicrioEventHandlerProps {}
+
+export type IHTMLMicrioElement = HTMLMicrioElement & MicrioEventHandlerProps;
 
 // --- Svelte UI Props ---
 export interface MicrioUIProps {
