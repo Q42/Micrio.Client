@@ -90,7 +90,7 @@
 	/** Local state variable to store the current media playback time. */
 	let currentTime:number = $state(0);
 	/** Event handler to update `currentTime` based on 'timeupdate' events dispatched by Media.svelte. */
-	const setTime = (e:Event) => currentTime = (e as CustomEvent).detail;
+	const setTime = (e:Models.MicrioEventMap['timeupdate']) => currentTime = e.detail;
 
 	// --- Lifecycle ---
 

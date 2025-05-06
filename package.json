@@ -10,7 +10,8 @@
 		"publish": "node publish.js",
 		"docs": "npm run create:client --prefix ../Micrio/server/doc.micr.io",
 		"asbuild:untouched": "asc src/wasm/exports.ts --target debug --sourceMap \"http://localhost:2000/build/untouched.wasm.map\" --importMemory",
-		"asbuild:optimized": "asc src/wasm/exports.ts --target release -O3s --converge --runtime stub --disable mutable-globals --disable sign-extension --noExportMemory --noAssert --pedantic --importMemory"
+		"asbuild:optimized": "asc src/wasm/exports.ts --target release -O3s --converge --runtime stub --disable mutable-globals --disable sign-extension --noExportMemory --noAssert --pedantic --importMemory",
+		"typecheck": "tsc"
 	},
 	"keywords": [
 		"micrio"

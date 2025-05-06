@@ -373,9 +373,9 @@
 	}
 
 	/** Handles the end of a pan gesture (or pinch). */
-	function pEnd(e:Event) : void {
+	function pEnd(e:Models.MicrioEventMap['panend']) : void {
 		// If triggered by 'panend' but detail is missing, it means pinch took over, reset panning
-		const d = (e as CustomEvent).detail;
+		const d = e.detail;
 		if(e.type == 'panend' && !d) {
 			panning = false;
 		}

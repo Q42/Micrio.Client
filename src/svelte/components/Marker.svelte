@@ -505,9 +505,12 @@
 		}
 	}
 
-	/** Handles external position changes (e.g., from Spaces editor). */
+	/**
+	 * Handles external position changes (e.g., from Spaces editor).
+	 * TODO: what event should this be in the MicrioEventMap? It's the 'changed' event of a div!
+	 */
 	function changed(e:Event) {
-		const m = (e as CustomEvent).detail as typeof marker;
+		const m = (e as Models.MicrioEvent<typeof marker>).detail;
 		marker.x = m.x;
 		marker.y = m.y;
 		moved(); // Recalculate position
