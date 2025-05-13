@@ -82,8 +82,8 @@
 	let secondaryPortrait:boolean = $state(false);
 
 	/** Event handler for 'splitscreen-start'. Sets up secondary controls if needed. */
-	function splitStart(e:Event) {
-		const img = (e as CustomEvent).detail as MicrioImage;
+	function splitStart(e:Models.MicrioEventMap['splitscreen-start']) {
+		const img = e.detail;
 		// Only show separate controls for the secondary image if it's interactive (not passive)
 		secondaryPortrait = micrio.canvas.viewport.portrait; // Store orientation for styling
 		if(!img.opts.isPassive) secondaryControls = img;

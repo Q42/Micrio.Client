@@ -283,8 +283,8 @@ export namespace State {
 			this.view.subscribe(view => {
 				this._view = view; // Update internal reference
 				const nV = view?.toString(); // Stringify for simple comparison
-				const detail = {image, view}; // Event detail payload
 				if(view && nV && pV != nV) { // If view changed
+					const detail = {image, view}; // Event detail payload
 					pV = nV;
 					const nW = view[2]-view[0], nH = view[3]-view[1]; // Calculate new width/height
 					// Dispatch 'zoom' event if dimensions changed significantly
