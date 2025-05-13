@@ -1501,7 +1501,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			'data-static'?: boolean;
 			/** Read and write deeplinks to opened tours and markers. Default: null */
 			'data-router'?: string;
-			/** Prevent sending user input as GA Events. Default: true */
+			/** Sending user input as GA Events to any available GTag instance (does nothing if none). Default: true */
 			'data-gtag'?: boolean;
 
 			// Camera controls
@@ -1547,7 +1547,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			'data-fullscreen'?: boolean;
 			/** Show a social sharing link menu. Default: false */
 			'data-social'?: boolean;
-			/** The Micrio logo will be hidden. Default: true */
+			/** The Micrio logo is displayed. Default: true */
 			'data-logo'?: boolean;
 			/** The optional Organisation logo (top right) will be hidden. Default: true */
 			'data-logo-org'?: boolean;
@@ -1574,7 +1574,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 			// Specific technical settings
 			/** Configuration for the grid which the viewer will use. */
-			'data-grid'?: Grid;
+			'data-grid'?: string;
 			/** Toggle limited rendering mode in WebAssembly. */
 			'data-limited'?: boolean;
 		}

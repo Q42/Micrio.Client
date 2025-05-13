@@ -1,6 +1,8 @@
 import type { Writable } from 'svelte/store';
 import type { Models } from '../types/models';
 import type { Camera } from './camera';
+
+/** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
 import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5 } from './utils';

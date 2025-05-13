@@ -419,7 +419,7 @@ export class Grid {
 	/**
 	 * Parses an individual image grid string into a GridImage object.
 	 * @param s The grid string for a single image.
-	 * @returns The parsed {@link Models.Grid.GridImage} object.
+	 * @returns The parsed `Models.Grid.GridImage` object.
 	*/
 	getImage(s:string) : Models.Grid.GridImage {
 		const g = s.split('|'), p = g[0].split(','), // Split main parts and size
