@@ -99,3 +99,33 @@ The Wasm module is primarily responsible for:
     *   Reporting visibility changes (`setVisible`, `setVisible2`).
 
 By offloading these tasks to Wasm, the application achieves higher performance and smoother interactions, especially during complex animations and rendering scenarios.
+
+## JavaScript/WASM Interaction
+
+The interaction between JavaScript and WASM is crucial for the application's performance. Here's how the two layers communicate:
+
+1. **Data Passing**:
+   - Viewports and camera states are passed as simple numeric arrays
+   - Complex structures use shared memory buffers
+   - Strings are passed as pointers to UTF-8 encoded data
+
+2. **Function Calls**:
+```mermaid
+sequenceDiagram
+    JS->>WASM: Call exported function (e.g., flyTo())
+    WASM->>WASM: Perform calculations
+    WASM->>JS: Call imported function (e.g., drawTile())
+    JS->>JS: Execute DOM/WebGL operations
+```
+
+3. **Memory Management**:
+   - WASM manages its own linear memory
+   - JS can access WASM memory via exported functions
+   - Critical data structures are allocated in WASM memory
+   - JS uses views (Uint8Array, Float32Array) to access WASM memory
+
+4. **Performance Considerations**:
+   - Minimize JS/WASM boundary crossings
+   - Batch operations when possible
+   - Use shared memory for large data transfers
+   - Optimize hot paths with WebAssembly SIMD instructions

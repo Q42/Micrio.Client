@@ -79,19 +79,56 @@ The application uses two primary JSON data structures fetched from the Micrio se
 
 ## Key Files & Modules
 
-*   `src/ts/main.ts`: Application entry point, defines `<micr-io>` element.
-*   `src/ts/element.ts`: Core logic for the `<micr-io>` custom element.
-*   `src/ts/image.ts`: Class representing a single Micrio image instance.
-*   `src/types/models.ts`: TypeScript definitions for `ImageInfo` and `ImageData`.
-*   `src/ts/camera.ts`: Camera logic and viewport control.
-*   `src/ts/wasm.ts`: Interface with the WebAssembly module.
-*   `src/ts/webgl.ts`: WebGL rendering logic.
-*   `src/ts/state.ts`: Application and image state management.
-*   `src/ts/events.ts`: User input event handling.
-*   `src/ts/router.ts`: URL hash routing for deep-linking.
-*   `src/svelte/Main.svelte`: Root Svelte UI component.
-*   `src/svelte/components/`: Reusable UI components (Markers, Popups, Minimap, etc.).
-*   `src/svelte/virtual/`: Components managing virtual aspects like Tours, Markers logic, Embeds.
-*   `src/svelte/ui/`: Basic UI building blocks (Button, Icon, Progress, etc.).
-*   `src/ts/utils.ts`: Utility functions (fetching JSON, deep copy, etc.).
-*   `src/ts/globals.ts`: Global constants and default settings.
+*   `src/ts/main.ts`: Application entry point, defines `<micr-io>` element. [View source](src/ts/main.ts)
+*   `src/ts/element.ts`: Core logic for the `<micr-io>` custom element. [View source](src/ts/element.ts)
+*   `src/ts/image.ts`: Class representing a single Micrio image instance. [View source](src/ts/image.ts)
+*   `src/types/models.ts`: TypeScript definitions for `ImageInfo` and `ImageData`. [View source](src/types/models.ts)
+*   `src/ts/camera.ts`: Camera logic and viewport control. [View source](src/ts/camera.ts)
+*   `src/ts/wasm.ts`: Interface with the WebAssembly module. [View source](src/ts/wasm.ts)
+*   `src/ts/webgl.ts`: WebGL rendering logic. [View source](src/ts/webgl.ts)
+*   `src/ts/state.ts`: Application and image state management. [View source](src/ts/state.ts)
+*   `src/ts/events.ts`: User input event handling. [View source](src/ts/events.ts)
+*   `src/ts/router.ts`: URL hash routing for deep-linking. [View source](src/ts/router.ts)
+*   `src/svelte/Main.svelte`: Root Svelte UI component. [View source](src/svelte/Main.svelte)
+*   `src/svelte/components/`: Reusable UI components (Markers, Popups, Minimap, etc.). [View components](src/svelte/components/)
+*   `src/svelte/virtual/`: Components managing virtual aspects like Tours, Markers logic, Embeds. [View components](src/svelte/virtual/)
+*   `src/svelte/ui/`: Basic UI building blocks (Button, Icon, Progress, etc.). [View components](src/svelte/ui/)
+*   `src/ts/utils.ts`: Utility functions (fetching JSON, deep copy, etc.). [View source](src/ts/utils.ts)
+*   `src/ts/globals.ts`: Global constants and default settings. [View source](src/ts/globals.ts)
+
+## Glossary of Key Terms
+
+| Term | Definition | Related Files |
+|------|------------|---------------|
+| **MicrioImage** | Represents a single zoomable image (standard, 360, IIIF, omni-object) | `src/ts/image.ts` |
+| **Viewport** | Current visible area of an image, defined by position and zoom level | `src/ts/camera.ts` |
+| **Marker** | Interactive point on an image that displays content when clicked | `src/svelte/components/Marker.svelte` |
+| **Embed** | External content (image, video, iframe) placed within the image space | `src/svelte/virtual/Embed.svelte` |
+| **Tour** | Guided sequence of views or marker interactions | `src/svelte/virtual/Tour.svelte` |
+| **State Management** | System for tracking application state using Svelte stores | `src/ts/state.ts` |
+| **Camera** | Controls viewport calculations, animations, and coordinate transformations | `src/ts/camera.ts` |
+| **WASM Interface** | Bridge between JavaScript and WebAssembly performance-critical operations | `src/ts/wasm.ts` |
+| **Router** | Handles deep-linking via URL hash parameters | `src/ts/router.ts` |
+| **Omni-object** | 3D object represented as a sequence of images allowing rotation | `src/ts/image.ts` (isOmni flag) |
+
+## Performance Optimizations
+
+The Micrio client employs several performance optimization techniques:
+
+- **WebAssembly**: Offloads computationally intensive tasks (camera math, tile calculations) to WASM
+- **WebGL**: Uses GPU acceleration for rendering image tiles and 360 panoramas
+- **Lazy Loading**: Only loads image tiles that are currently visible in the viewport
+- **Caching**: Implements in-memory and IndexedDB caching for tile images and data
+- **Debouncing**: Throttles high-frequency events like window resizing and mouse movements
+
+## Build Process
+
+The application uses Vite for bundling and development. Key build steps include:
+
+1. **TypeScript Compilation**: Transpiles TS to JS
+2. **Svelte Compilation**: Compiles Svelte components to JS
+3. **WASM Compilation**: Uses AssemblyScript to compile WASM modules
+4. **Asset Optimization**: Minifies and compresses CSS, JS, and images
+5. **Tree Shaking**: Removes unused code to minimize bundle size
+
+The build process can be customized via `vite.config.js`.

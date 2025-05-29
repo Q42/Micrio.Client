@@ -17,6 +17,31 @@ The application features interactive elements like markers, tours (video and mar
 *   **TypeScript:** The `<script lang="ts">` tag indicates the use of TypeScript for strong typing within components.
 *   **CSS Variables:** The application makes heavy use of CSS variables (e.g., `--micrio-color`, `--micrio-button-size`) for theming and consistent styling.
 
+## Component Interaction Diagram
+
+```mermaid
+graph LR
+    Main[Main.svelte] --> Toolbar[Toolbar.svelte]
+    Main --> Controls[Controls.svelte]
+    Main --> Markers[Markers.svelte]
+    Main --> Popup[MarkerPopup.svelte]
+    Main --> Tour[Tour.svelte]
+    
+    Markers --> Marker[Marker.svelte]
+    Markers --> Waypoint[Waypoint.svelte]
+    
+    Popup --> MarkerContent[MarkerContent.svelte]
+    MarkerContent --> Media[Media.svelte]
+    MarkerContent --> Article[Article.svelte]
+    
+    Tour --> SerialTour[SerialTour.svelte]
+    Tour --> MediaControls[MediaControls.svelte]
+    
+    Media --> Subtitles[Subtitles.svelte]
+    
+    Toolbar --> Menu[Menu.svelte]
+```
+
 ## Component Breakdown
 
 ### `src/svelte/common/`
@@ -24,6 +49,14 @@ The application features interactive elements like markers, tours (video and mar
 *   **`Article.svelte`:** A simple wrapper component, likely providing standard styling for article-like content within popovers or markers.
 *   **`MarkerContent.svelte`:** Renders the main content area for a marker popup, including title, body text, and potentially embedded media (delegated to `Media.svelte`). Handles language variations (`i18n`).
 *   **`Subtitles.svelte`:** Manages the display of subtitles for media elements. It fetches and parses VTT files, synchronizes subtitle display with the `currentTime` of a media element (passed via context), and responds to a global `captionsEnabled` store.
+
+### Common Component Props/Events
+
+| Component | Props | Events |
+|-----------|-------|--------|
+| **MarkerContent** | `markerData`, `lang` | `close` |
+| **Subtitles** | `currentTime`, `src` | `cuechange` |
+| **Article** | `content`, `title` | - |
 
 ### `src/svelte/components/`
 
@@ -37,6 +70,17 @@ The application features interactive elements like markers, tours (video and mar
 *   **`Toolbar.svelte`:** Renders the main top toolbar, dynamically generating menus based on image data (pages, marker tours, video tours). Uses the recursive `Menu.svelte` component. Handles mobile responsiveness with a toggle button.
 *   **`Waypoint.svelte`:** Renders interactive waypoints for navigating between 360 images within a "space". Calculates 3D position/orientation and handles click navigation to the target image.
 
+### Component Props/Events
+
+| Component | Props | Events |
+|-----------|-------|--------|
+| **Marker** | `data`, `view`, `active` | `click`, `hover` |
+| **MarkerPopup** | `marker`, `position` | `close` |
+| **Media** | `src`, `type`, `autoplay` | `play`, `pause`, `ended` |
+| **Popover** | `content`, `title` | `close` |
+| **Toolbar** | `items`, `activeTour` | `select` |
+| **Waypoint** | `target`, `position` | `navigate` |
+
 ### `src/svelte/ui/`
 
 *   **`Button.svelte`:** A reusable button component that can render as `<button>` or `<a>`. Displays standard Font Awesome icons (via `Icon.svelte`) or custom image icons. Handles disabled/active states and accessibility attributes.
@@ -49,6 +93,17 @@ The application features interactive elements like markers, tours (video and mar
 *   **`ProgressBar.svelte`:** A reusable progress bar, typically for media playback (video tours, audio). Displays progress based on `currentTime` and `duration`, shows time remaining/total, and allows seeking via slotted content (likely a draggable handle).
 *   **`ProgressCircle.svelte`:** Displays a circular SVG progress indicator, primarily used for initial loading progress display.
 
+### UI Component Props/Events
+
+| Component | Props | Events |
+|-----------|-------|--------|
+| **Button** | `icon`, `label`, `disabled` | `click` |
+| **ButtonGroup** | `vertical` | - |
+| **Dial** | `value`, `min`, `max` | `change` |
+| **Fullscreen** | `target` | `enter`, `exit` |
+| **Icon** | `name`, `size` | - |
+| **ProgressBar** | `current`, `max` | `seek` |
+
 ### `src/svelte/virtual/`
 
 *   **`AudioController.svelte`:** Manages the global Web Audio API context. Initializes the `AudioContext` upon user interaction, handles listener position/orientation updates for positional audio based on camera movement, and renders the `AudioPlaylist` component.
@@ -58,6 +113,16 @@ The application features interactive elements like markers, tours (video and mar
 *   **`Markers.svelte`:** Renders all visible markers and waypoints for a given `MicrioImage`. Instantiates `Marker.svelte` and `Waypoint.svelte` components. Handles marker clustering logic and manages the state for fancy side labels (for Omni objects).
 *   **`SerialTour.svelte`:** Manages the playback and UI specifically for *serial* marker tours (tours spanning multiple markers/images). Handles step navigation, audio/video playback for each step (using `Media.svelte`), overall progress bar display (using `ProgressBar.svelte`), chapter lists, and playback controls.
 *   **`Tour.svelte`:** Acts as the main controller/wrapper for all tour types (Video, standard Marker, Serial Marker, Scrollable Marker). It determines the tour type and renders the appropriate component (`Media.svelte`, `SerialTour.svelte`, or manages state for standard/scrollable tours). Handles tour start/stop, UI state (minimization, controls visibility), and event dispatching.
+
+### Virtual Component Props/Events
+
+| Component | Props | Events |
+|-----------|-------|--------|
+| **Embed** | `data`, `view` | `load`, `error` |
+| **Markers** | `markers`, `view` | `markerClick` |
+| **Tour** | `tourData`, `active` | `start`, `end` |
+| **SerialTour** | `steps`, `currentStep` | `next`, `prev` |
+| **AudioController** | `sources`, `position` | `play`, `pause` |
 
 ## Functionality Summary
 
