@@ -238,7 +238,7 @@ export default class Ani {
 		this.omniStartIdx = this.canvas.activeImageIdx;
 		this.omniDelta = 0;
 		// If a target omni index is provided and different from current
-		if(!isNaN(omniIdx) && omniIdx >= 0 && omniIdx != this.omniStartIdx) {
+		if(!isNaN(omniIdx) && omniIdx > 0 && omniIdx != this.omniStartIdx) {
 			// Calculate shortest rotation delta (wrapping around)
 			this.omniDelta = omniIdx - this.omniStartIdx;
 			if(this.omniDelta < -numPerLayer/2) this.omniDelta += numPerLayer;
