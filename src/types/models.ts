@@ -1450,11 +1450,11 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** A tour has been successfully stopped */
 		'tour-stop': ImageData.Tour; 
 		/** A tour's UI interface has automatically minimized */
-		'tour-minimize': ImageData.Tour; 
+		'tour-minimize': boolean; 
 
 		// Marker Tours
 		/** Fires for each marker step in a marker tour */
-		'tour-step': ImageData.MarkerTour; 
+		'tour-step': ImageData.MarkerTour|ImageData.VideoTour; 
 		/** A multi-image tour is played/resumed */
 		'serialtour-play': ImageData.MarkerTour; 
 		/** A multi-image tour is paused */
@@ -1470,7 +1470,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** A video tour is paused */
 		'videotour-pause': void; 
 		/** A video tour has ended */
-		'tour-ended': ImageData.VideoTour; 
+		'tour-ended': ImageData.MarkerTour|ImageData.VideoTour; 
 		/** When a video tour has custom events, they will be fired like this */
 		'tour-event': ImageData.Event; 
 
@@ -1483,6 +1483,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		'audio-unmute': void; 
 		/** Fires when there is autoplay audio or video which was disallowed by the browser */
 		'autoplay-blocked': void; 
+		/** Media was blocked from autoplaying */
+		'media-blocked': void;
 		/** Media has started playing */
 		'media-play': void; 
 		/** Media has stopped playing */
