@@ -103,6 +103,8 @@
 		uuid?: string;
 		/** The MicrioImage instance this media belongs to (usually the current image). */
 		image?: MicrioImage;
+		/** A destroying writable to indicate media should pause */
+		destroying?:Writable<boolean>;
 		_media?: HTMLMediaElement|undefined; // Reference to the audio/video element
 		onended?: Function;
 		onblocked?: Function;
@@ -137,6 +139,7 @@
 		noPlayOverlay = false,
 		uuid = $bindable(''),
 		image = get(micrio.current) as MicrioImage,
+		destroying = undefined,
 		_media = $bindable(undefined),
 		onended,
 		onblocked,
@@ -648,6 +651,9 @@
 	/** Flag indicating if the component is destroyed (for cleanup). */
 	let destroyed:boolean = $state(false);
 
+	/** When destroying writable, watch this to stop all media */
+	const unsub = destroying && destroying.subscribe(d => d && preDestroy());
+
 	/** Handler for iOS shared audio element time updates. */
 	const iOSAudioTimeUpdate = () => currentTime = _media?.currentTime ?? 0;
 
@@ -655,6 +661,7 @@
 	function preDestroy(){
 		if(destroyed) return;
 		destroyed = true;
+		if(unsub) unsub();
 		// Clear video element reference on parent image if this was the 360 video
 		if(is360 && image) image.video.set(undefined);
 		// Remove media state entry
