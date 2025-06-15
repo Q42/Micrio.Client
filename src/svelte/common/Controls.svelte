@@ -50,14 +50,14 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive reference to the current image's info store value. */
-	let info = $derived($current?.info);
+	const info = $derived($current?.info);
 	/** Reactive array of available language codes for the current image. */
-	let cultures = $derived($info && $current
+	const cultures = $derived($info && $current
 		? $current.isV5 ? Object.keys($info.revision??{[$_lang]:0}) // V5: Get keys from revision object
 		: ('cultures' in $info ? $info.cultures as string : '')?.split(',') ?? [] // V4: Split 'cultures' string
 		: []);
 	/** Reactive flag indicating if the active tour is a serial tour. */
-	let isActiveSerialTour = $derived($tour && 'steps' in $tour && $tour.isSerialTour);
+	const isActiveSerialTour = $derived($tour && 'steps' in $tour && $tour.isSerialTour);
 
 	// --- Event Handlers & Functions ---
 
@@ -153,15 +153,15 @@
 	// --- Reactive Visibility Calculations ---
 
 	/** Determine if the mute button should be shown (Web Audio available or explicit audio prop). */
-	let showMute = $derived('micrioAudioContext' in window || hasAudio);
+	const showMute = $derived('micrioAudioContext' in window || hasAudio);
 	/** Determine if the language switch should be shown (setting enabled and multiple languages exist). */
-	let hasCultures = $derived(showCultures && cultures.length > 1);
+	const hasCultures = $derived(showCultures && cultures.length > 1);
 	/** Determine if the share button should be shown (setting enabled and Web Share API available). */
-	let hasSocial = $derived(showSocial && ('share' in navigator));
+	const hasSocial = $derived(showSocial && ('share' in navigator));
 	/** Determine if the fullscreen button should be shown (setting enabled and not in a serial tour). */
-	let hasFullscreen = $derived(showFullscreen && !isActiveSerialTour);
+	const hasFullscreen = $derived(showFullscreen && !isActiveSerialTour);
 	/** Determine if the entire controls container should be shown. */
-	let hasControls = $derived($controls && !$hidden && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
+	const hasControls = $derived($controls && !$hidden && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
 
 </script>
 

@@ -38,9 +38,9 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive reference to the data of the currently displayed gallery image. */
-	let gallCurr = $derived(gallery[galleryIdx]);
+	const gallCurr = $derived(gallery[galleryIdx]);
 	/** Reactive caption text for the current gallery image, based on language. */
-	let galleryCaption = $derived(gallCurr?.i18n?.[$_lang]?.description ?? undefined);
+	const galleryCaption = $derived(gallCurr?.i18n?.[$_lang]?.description ?? undefined);
 
 </script>
 

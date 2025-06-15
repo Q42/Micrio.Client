@@ -82,7 +82,7 @@
 	// --- Reactive Calculations ---
 
 	/** Calculate the background offset based on current rotation and dial width for visual feedback. */
-	let offset = $derived(-currentRotation / 360 * (_dial?.offsetWidth ?? 0));
+	const offset = $derived(-currentRotation / 360 * (_dial?.offsetWidth ?? 0));
 
 </script>
 

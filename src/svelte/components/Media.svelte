@@ -743,7 +743,7 @@
 	$effect(() => { if(loop && loopDelay !== undefined) cto(); });
 
 	/** Reactive variable holding timed events for video tours. */
-	let videoTourEvents = $derived(videoTour && tour ? 'events' in tour ? tour.events as Models.ImageData.VideoTourView[] : tour.i18n?.[$_lang]?.events ?? undefined : undefined);
+	const videoTourEvents = $derived(videoTour && tour ? 'events' in tour ? tour.events as Models.ImageData.VideoTourView[] : tour.i18n?.[$_lang]?.events ?? undefined : undefined);
 
 	/** Reference to the main figure container element. */
 	let _cnt:HTMLElement|undefined = $state();
@@ -753,11 +753,11 @@
 	/** Scale factor for 360 embeds. */
 	const scaleFact = info.is360 ? Math.PI/2 : 1;
 	/** Calculated relative scale for the media element. */
-	let relScale = $derived(isVideo ? frameScale * scaleFact : type == MediaType.IFrame ? Math.max(frameScale, Math.min(width / 512, height / 512)) : 1);
+	const relScale = $derived(isVideo ? frameScale * scaleFact : type == MediaType.IFrame ? Math.max(frameScale, Math.min(width / 512, height / 512)) : 1);
 	/** Calculated render width. */
-	let rWidth = $derived(isVideo ? width : Math.round(width / relScale * scaleFact));
+	const rWidth = $derived(isVideo ? width : Math.round(width / relScale * scaleFact));
 	/** Calculated render height. */
-	let rHeight = $derived(isVideo ? height : Math.round(height / relScale * scaleFact));
+	const rHeight = $derived(isVideo ? height : Math.round(height / relScale * scaleFact));
 
 </script>
 

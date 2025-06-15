@@ -74,10 +74,10 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get the language-specific content object for the marker. */
-	let content = $derived(marker.i18n ? marker.i18n[$lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
+	const content = $derived(marker.i18n ? marker.i18n[$lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
 
 	/** Determine if the marker has any displayable content. */
-	let empty = $derived(!content?.title && !content?.audio
+	const empty = $derived(!content?.title && !content?.audio
 		&& (!marker.images || !marker.images.length)
 		&& !content?.embedUrl
 		&& !marker.videoTour
@@ -119,11 +119,11 @@
 	const getTitle = (image:Models.Assets.Image) => image.i18n?.[$lang]?.title;
 
 	/** Determine the primary audio source (from video tour or marker content). */
-	let audio = $derived(marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio);
+	const audio = $derived(marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio);
 	/** Get the source URL for the audio. Handles potential legacy `fileUrl` property. */
-	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio.fileUrl as string : audio.src : undefined);
+	const audioSrc = $derived(audio ? 'fileUrl' in audio ? audio.fileUrl as string : audio.src : undefined);
 	/** Get the caption for the image if there's only one image. */
-	let imageCaption = $derived(singleImage && marker.images?.[0]?.i18n?.[$lang]?.description);
+	const imageCaption = $derived(singleImage && marker.images?.[0]?.i18n?.[$lang]?.description);
 
 </script>
 

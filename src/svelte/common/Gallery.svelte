@@ -305,7 +305,7 @@
 	let box:DOMRect;
 
 	/** Reactive calculation for the scrubber handle's left position. */
-	let left = $derived(!_ul || dragging ? _left : getX(currentPage));
+	const left = $derived(!_ul || dragging ? _left : getX(currentPage));
 
 	/** Flag indicating if the current drag interaction is from a pointer event (mouse/pen). */
 	let dragIsPointer:boolean=false;

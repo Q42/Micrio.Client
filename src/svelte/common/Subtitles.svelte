@@ -103,7 +103,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Filter the parsed events to find the subtitle cue(s) active at the `currentTime`. */
-	let current = $derived(events.filter(e => e.start <= currentTime && e.end >= currentTime));
+	const current = $derived(events.filter(e => e.start <= currentTime && e.end >= currentTime));
 
 </script>
 

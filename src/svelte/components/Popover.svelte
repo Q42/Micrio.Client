@@ -132,31 +132,31 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive reference to the marker data from the popover prop. */
-	let marker = $derived(popover.marker);
+	const marker = $derived(popover.marker);
 	/** Reactive language-specific content for the marker. */
-	let content = $derived(marker ? (marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData)) : undefined);
+	const content = $derived(marker ? (marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData)) : undefined);
 	/** Reactive reference to the marker tour associated with the popover. */
-	let tour = $derived(popover.markerTour);
+	const tour = $derived(popover.markerTour);
 	/** Reactive reference to the content page data from the popover prop. */
-	let page = $derived(popover.contentPage);
+	const page = $derived(popover.contentPage);
 	/** Reactive language-specific content for the page. */
-	let pageContent = $derived(page ? page.i18n?.[$_lang] ?? (page as unknown as Models.ImageData.MenuCultureData) : undefined);
+	const pageContent = $derived(page ? page.i18n?.[$_lang] ?? (page as unknown as Models.ImageData.MenuCultureData) : undefined);
 	/** Determine if the page content is primarily a video embed. */
-	let pageIsVideo = $derived(page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined);
+	const pageIsVideo = $derived(page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined);
 	/** Get the image source URL for the page content. */
-	let pageContentImage = $derived(page?.image ? typeof page.image == 'string' ? page.image : page.image.src : undefined);
+	const pageContentImage = $derived(page?.image ? typeof page.image == 'string' ? page.image : page.image.src : undefined);
 	/** Flag indicating if the page has a video embed or an image. */
-	let pageHasVideoOrImage = $derived(!!pageContent?.embed || !!pageContentImage);
+	const pageHasVideoOrImage = $derived(!!pageContent?.embed || !!pageContentImage);
 	/** Flag indicating if the page defines its own close button. */
-	let noCloseButton = $derived(!!page?.buttons?.find(b => b.type == 'close'));
+	const noCloseButton = $derived(!!page?.buttons?.find(b => b.type == 'close'));
 	/** Flag indicating if the marker has associated images. */
-	let hasImages = $derived(!!popover.marker?.images && popover.marker.images.length > 0);
+	const hasImages = $derived(!!popover.marker?.images && popover.marker.images.length > 0);
 	/** Flag indicating if the marker has body content or images. */
-	let hasContent = $derived(!!(content && content.body) || hasImages);
+	const hasContent = $derived(!!(content && content.body) || hasImages);
 	/** Flag indicating if the marker has body content OR (images AND an embed). Used for layout? */
-	let hasPopoverContent = $derived((content && content.body) || (hasImages && pageContent?.embed));
+	const hasPopoverContent = $derived((content && content.body) || (hasImages && pageContent?.embed));
 	/** Flag indicating if the aside controls (close, tour nav) should be shown. */
-	let hasAside = $derived(!noCloseButton || (tour && tour.currentStep != undefined));
+	const hasAside = $derived(!noCloseButton || (tour && tour.currentStep != undefined));
 
 </script>
 

@@ -582,28 +582,28 @@
 	// --- Reactive Content & Style Calculations ---
 
 	/** Reactive language-specific content object. */
-	let content = $derived(marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
+	const content = $derived(marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
 
 	/** Reactive check if marker has any content for the popup. */
-	let noPopupContent = $derived(!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl
+	const noPopupContent = $derived(!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl
 		&& !(marker.images && marker.images.length));
 	/** Reactive check if the marker element itself should be hidden. */
-	let noMarker = $derived(forceHidden || marker.noMarker);
+	const noMarker = $derived(forceHidden || marker.noMarker);
 	/** Reactive check if the popup should not be shown. */
-	let noPopup = $derived(marker.popupType != 'popup' || noPopupContent);
+	const noPopup = $derived(marker.popupType != 'popup' || noPopupContent);
 
 	// --- Reactive Omni Calculations ---
 
 	/** Calculate the target frame index for this marker based on its rotation. */
-	let omniIndex = $derived(image.camera.getOmniFrame((marker.rotation??0) + (marker.backside ? Math.PI : 0)));
+	const omniIndex = $derived(image.camera.getOmniFrame((marker.rotation??0) + (marker.backside ? Math.PI : 0)));
 	/** Calculate the start and end frame indices for the marker's visibility arc. */
-	let omniArc = $derived(marker.visibleArc ? [
+	const omniArc = $derived(marker.visibleArc ? [
 		image.camera.getOmniFrame(marker.visibleArc[0]),
 		image.camera.getOmniFrame(marker.visibleArc[1])
 	] : []);
 
 	/** Reactive flag to hide marker during tours based on settings. */
-	let hidden = $derived($tour && ((!('steps' in $tour) && !$tour.keepMarkers) || (markerSettings.hideMarkersDuringTour && !$tourPaused)) && !opened);
+	const hidden = $derived($tour && ((!('steps' in $tour) && !$tour.keepMarkers) || (markerSettings.hideMarkersDuringTour && !$tourPaused)) && !opened);
 
 	// Update inView store when marker becomes hidden
 	$effect(() => { if(hidden && isInView) inView.update(v => { // Check isInView flag before updating
@@ -615,24 +615,24 @@
 	// --- Icon Determination ---
 
 	/** Determine the standard icon name based on marker type. */
-	let icon = $derived((marker.type == 'default' ? undefined
+	const icon = $derived((marker.type == 'default' ? undefined
 		: marker.type == 'link' ? 'link'
 		: marker.type == 'media' ? 'play'
 		: marker.type == 'cluster' ? undefined // Cluster uses text content
 		: marker.type ?? undefined) as (IconName|undefined));
 
 	/** Determine the custom icon asset (from marker data or image settings). */
-	let customIcon = $derived((marker.data?.customIconIdx != undefined ? image.$settings._markers?.customIcons?.[marker.data?.customIconIdx] : undefined)
+	const customIcon = $derived((marker.data?.customIconIdx != undefined ? image.$settings._markers?.customIcons?.[marker.data?.customIconIdx] : undefined)
 		?? marker.data?.icon ?? markerSettings.markerIcon ?? undefined);
 
 	/** Flag indicating if any icon (standard or custom) should be displayed. */
-	let hasIcon = $derived(!!icon || !!customIcon);
+	const hasIcon = $derived(!!icon || !!customIcon);
 
 	/** Flag for applying default marker styling (unless explicitly disabled in V4). */
-	let defaultClass = $derived((!('class' in marker) || marker.class !== '') && (!!hasIcon || marker.type == 'default'));
+	const defaultClass = $derived((!('class' in marker) || marker.class !== '') && (!!hasIcon || marker.type == 'default'));
 
 	/** Flag indicating if the label should be shown (based on settings and content). */
-	let showLabel = $derived(content && (!noTitles || ($isMobile && mobileFancyLabels)) && (content.label || content.title));
+	const showLabel = $derived(content && (!noTitles || ($isMobile && mobileFancyLabels)) && (content.label || content.title));
 
 </script>
 

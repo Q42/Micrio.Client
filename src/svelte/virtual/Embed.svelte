@@ -140,8 +140,8 @@
 	readPlacement();
 
 	// --- Reactive Calculations for HTML Embeds ---
-	let width = $derived(Math.round(w * info.width)); // Calculated pixel width
-	let height = $derived(Math.round(h * info.height)); // Calculated pixel height
+	const width = $derived(Math.round(w * info.width)); // Calculated pixel width
+	const height = $derived(Math.round(h * info.height)); // Calculated pixel height
 
 	// --- Video Playback State ---
 	/** Local paused state for videos (can be controlled by zoom level). */
@@ -295,10 +295,10 @@
 
 	// --- Size Calculation for HTML Video ---
 	// Cap the rendered size of HTML video elements to their native resolution
-	let widthCapped = $derived(embed.video ? Math.min(embed.video.width, width) : width);
-	let heightCapped = $derived(embed.video ? Math.min(embed.video.height, height) : height);
+	const widthCapped = $derived(embed.video ? Math.min(embed.video.width, width) : width);
+	const heightCapped = $derived(embed.video ? Math.min(embed.video.height, height) : height);
 	/** Relative scale factor for HTML video element (used for CSS transform). */
-	let relScale = $derived(width / widthCapped);
+	const relScale = $derived(width / widthCapped);
 
 	// --- Lifecycle (onMount) ---
 	let isMounted:boolean = false;

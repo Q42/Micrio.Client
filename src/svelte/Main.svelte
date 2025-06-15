@@ -184,31 +184,31 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	// Derived state for 360 video
-	let video = $derived($settings?._360?.video);
-	let videoSrc = $derived(video?.src);
+	const video = $derived($settings?._360?.video);
+	const videoSrc = $derived(video?.src);
 
 	// Derived state for gallery/omni features
-	let omni = $derived($settings?.omni);
-	let gallery = $derived($info?.gallery); // Gallery data comes from ImageInfo
+	const omni = $derived($settings?.omni);
+	const gallery = $derived($info?.gallery); // Gallery data comes from ImageInfo
 
 	// Derived state for audio presence
-	let positionalAudio = $derived($data?.markers?.filter(m => !!m.positionalAudio));
-	let hasAudio = $derived(!!$data?.music?.items.length || !!positionalAudio?.length);
+	const positionalAudio = $derived($data?.markers?.filter(m => !!m.positionalAudio));
+	const hasAudio = $derived(!!$data?.music?.items.length || !!positionalAudio?.length);
 
 	// Flag if a tour or marker is currently active
-	let hasTourOrMarker = $derived($tour || $marker);
+	const hasTourOrMarker = $derived($tour || $marker);
 
 	// --- Conditional Rendering Logic ---
 
 	// Determine visibility of major UI sections based on props, settings, and state
-	let showMarkers = $derived(!noHTML || onlyMarkers);
-	let showLogo = $derived(!noLogo && (!$info || !noHTML) && !$settings?.noLogo);
-	let showOrgLogo = $derived(!noHTML && showLogo && !$settings?.noOrgLogo ? logoOrg : undefined);
-	let showMinimap = $derived(!noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery); // Hide minimap for omni, spaces, tours, galleries
-	let showGallery = $derived(!!gallery || !!omni); // Show gallery UI if gallery data or omni settings exist
-	let showControls = $derived(!noHTML && !!$info); // Show controls if not noHTML and info is loaded
-	let showDetails = $derived(!noHTML && !hasTourOrMarker && $settings?.showInfo); // Show details if enabled and no tour/marker active
-	let showToolbar = $derived(!noHTML && firstInited && !$settings?.noToolbar); // Show toolbar after init if not disabled
+	const showMarkers = $derived(!noHTML || onlyMarkers);
+	const showLogo = $derived(!noLogo && (!$info || !noHTML) && !$settings?.noLogo);
+	const showOrgLogo = $derived(!noHTML && showLogo && !$settings?.noOrgLogo ? logoOrg : undefined);
+	const showMinimap = $derived(!noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery); // Hide minimap for omni, spaces, tours, galleries
+	const showGallery = $derived(!!gallery || !!omni); // Show gallery UI if gallery data or omni settings exist
+	const showControls = $derived(!noHTML && !!$info); // Show controls if not noHTML and info is loaded
+	const showDetails = $derived(!noHTML && !hasTourOrMarker && $settings?.showInfo); // Show details if enabled and no tour/marker active
+	const showToolbar = $derived(!noHTML && firstInited && !$settings?.noToolbar); // Show toolbar after init if not disabled
 
 </script>
 

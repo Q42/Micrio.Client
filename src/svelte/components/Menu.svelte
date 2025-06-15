@@ -79,7 +79,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive language-specific content for this menu item. */
-	let cultureData = $derived(getCData(menu, $_lang));
+	const cultureData = $derived(getCData(menu, $_lang));
 
 	// --- Event Handlers ---
 
@@ -127,7 +127,7 @@
 	/** Recursively checks if this menu or any of its children are the currently opened menu. */
 	const o=(m:Models.ImageData.Menu):boolean=>m==$opened||!!m.children?.some(o);
 	/** Reactive flag indicating if this menu item or one of its descendants is currently open. */
-	let isOpen = $derived($opened && o(menu));
+	const isOpen = $derived($opened && o(menu));
 
 </script>
 

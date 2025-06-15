@@ -49,7 +49,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive flag to hide the logo when a tour or marker is active. */
-	let hidden = $derived(!!$tour || !!$marker);
+	const hidden = $derived(!!$tour || !!$marker);
 
 </script>
 

@@ -61,7 +61,7 @@
 	// --- Reactive Declarations ---
 
 	/** Determine if audio controls (mute button) should be shown. */
-	let hasAudio = $derived(!isNaN(volume));
+	const hasAudio = $derived(!isNaN(volume));
 
 	// --- Progress Bar Dragging Logic ---
 

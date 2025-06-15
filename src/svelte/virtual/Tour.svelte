@@ -350,11 +350,11 @@
 
 	// --- Reactive Declarations (`$:`) ---
 	/** Reactive variable for the video tour data (if applicable). */
-	let videoTour = $derived(!('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined);
+	const videoTour = $derived(!('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined);
 	/** Reactive audio asset for the current step/tour. */
-	let audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
+	const audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
 	/** Reactive audio source URL. */
-	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
+	const audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
 
 </script>
 

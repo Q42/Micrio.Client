@@ -213,13 +213,13 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive audio source based on the current video tour step. */
-	let audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
+	const audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
 	/** Reactive audio source URL. */
-	let audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
+	const audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
 	/** Reactive boolean indicating if the current step has a subtitle. */
-	let hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
+	const hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */
-	let serialTourHasSubtitles = $derived(stepInfo.some(s => s.hasSubtitle));
+	const serialTourHasSubtitles = $derived(stepInfo.some(s => s.hasSubtitle));
 
 </script>
 

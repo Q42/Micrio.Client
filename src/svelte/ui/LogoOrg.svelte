@@ -55,7 +55,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive flag to hide the logo when a tour, marker, or popover is active. */
-	let hidden = $derived(!!$tour || !!$marker || !!$popover);
+	const hidden = $derived(!!$tour || !!$marker || !!$popover);
 
 </script>
 

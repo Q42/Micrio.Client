@@ -15,7 +15,7 @@
 
 	let { marker, ctx, is360 }: Props = $props();
 
-	let item = $derived(marker.positionalAudio as Models.Assets.AudioLocation);
+	const item = $derived(marker.positionalAudio as Models.Assets.AudioLocation);
 
 	const gain = ctx.createGain();
 	gain.connect(mainGain);

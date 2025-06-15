@@ -62,23 +62,23 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get physical dimensions from current image settings. */
-	let cmWidth = $derived($current?.$settings.cmWidth);
-	let cmHeight = $derived($current?.$settings.cmHeight);
+	const cmWidth = $derived($current?.$settings.cmWidth);
+	const cmHeight = $derived($current?.$settings.cmHeight);
 
 	/** Get the language-specific content from the ImageData store. */
-	let cData = $derived(!$data ? undefined : $data?.i18n ? $data.i18n[$_lang] : $data as Models.ImageData.ImageDetailsCultureData);
+	const cData = $derived(!$data ? undefined : $data?.i18n ? $data.i18n[$_lang] : $data as Models.ImageData.ImageDetailsCultureData);
 
 	/** Reactive title, preferring language-specific data over base info. */
-	let title = $derived(cData?.title ?? $info?.title ?? '');
+	const title = $derived(cData?.title ?? $info?.title ?? '');
 	/** Reactive description from language-specific data. */
-	let description = $derived(cData?.description);
+	const description = $derived(cData?.description);
 	/** Reactive source link from language-specific data. */
-	let link = $derived(cData?.sourceUrl);
+	const link = $derived(cData?.sourceUrl);
 	/** Reactive copyright text from language-specific data. */
-	let copyright = $derived(cData?.copyright);
+	const copyright = $derived(cData?.copyright);
 
 	/** Reactive formatted size string based on physical dimensions. */
-	let size = $derived(cmWidth && cmHeight ? getLength(cmWidth) + ' x ' + getLength(cmHeight) : null);
+	const size = $derived(cmWidth && cmHeight ? getLength(cmWidth) + ' x ' + getLength(cmHeight) : null);
 
 	// --- Lifecycle ---
 

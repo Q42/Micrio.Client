@@ -56,18 +56,18 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive flag to hide the toolbar when a tour, marker, or popover is active. */
-	let hidden = $derived(!!$tour || !!$marker || !!$popover);
+	const hidden = $derived(!!$tour || !!$marker || !!$popover);
 	/** Combined list of marker tours from image data and space data. */
-	let markerTours = $derived((data?.markerTours ?? []).concat(spaceData?.markerTours ?? []));
+	const markerTours = $derived((data?.markerTours ?? []).concat(spaceData?.markerTours ?? []));
 	/** Does the image have any marker tours? */
-	let hasMarkerTours = $derived(markerTours?.length > 0);
+	const hasMarkerTours = $derived(markerTours?.length > 0);
 	/** Does the image have any video tours? */
-	let hasVideoTours = $derived(data?.tours && data?.tours?.length > 0);
+	const hasVideoTours = $derived(data?.tours && data?.tours?.length > 0);
 	/** Does the image have both marker and video tours? */
-	let hasBothTourTypes = $derived(hasMarkerTours && hasVideoTours);
+	const hasBothTourTypes = $derived(hasMarkerTours && hasVideoTours);
 
 	/** Is the toolbar effectively empty (no pages or tours)? */
-	let empty = $derived(!(mainPages?.length || hasMarkerTours || hasVideoTours));
+	const empty = $derived(!(mainPages?.length || hasMarkerTours || hasVideoTours));
 
 	// --- Lifecycle (onMount) ---
 

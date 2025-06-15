@@ -188,9 +188,9 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Reactive title, preferring settings override, then target image title. */
-	let title = $derived(settings.i18n?.[$_lang]?.title || targetImage?.i18n?.[$_lang]?.title);
+	const title = $derived(settings.i18n?.[$_lang]?.title || targetImage?.i18n?.[$_lang]?.title);
 	/** Reactive icon asset based on customIconIdx setting. */
-	let icon = $derived(spaceData?.icons?.[settings.customIconIdx ?? -1]);
+	const icon = $derived(spaceData?.icons?.[settings.customIconIdx ?? -1]);
 
 </script>
 

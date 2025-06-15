@@ -28,7 +28,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Calculate the stroke-dashoffset based on progress to animate the circle fill. */
-	let offset = $derived(circ * (1-progress));
+	const offset = $derived(circ * (1-progress));
 
 </script>
 

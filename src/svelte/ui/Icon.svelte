@@ -64,7 +64,7 @@
 	/** Get custom icon settings from Micrio default settings. */
 	const i = micrio.defaultSettings?.ui?.icons;
 	/** Reactive variable holding the custom HTML string for the current icon name, if defined. */
-	let customHTML = $derived(i && (
+	const customHTML = $derived(i && (
 		name == 'zoom-in' ? i.zoomIn :
 		name == 'zoom-out' ? i.zoomOut :
 		name == 'maximize' ? i.fullscreenEnter :
@@ -115,7 +115,7 @@
 		['ellipsis-vertical', faEllipsisVertical]
 	]);
 
-	let icon = $derived(lib.get(name));
+	const icon = $derived(lib.get(name));
 
 </script>
 

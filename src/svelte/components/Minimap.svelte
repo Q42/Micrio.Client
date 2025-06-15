@@ -263,7 +263,7 @@
 	// --- Reactive Styles ---
 
 	/** Reactive style string for setting the background image and position. */
-	let style = $derived(!thumbSrc ? null
+	const style = $derived(!thumbSrc ? null
 		: `background-image: url('${thumbSrc}')`+(offset != 0 ? `;background-position-x:${width*offset}px` : '' )); // Apply true north offset to background
 
 </script>

@@ -293,17 +293,17 @@
 	// --- Reactive Visibility & Data ---
 
 	/** Reactive flag indicating if the parent image is inactive (e.g., hidden in grid). */
-	let inactive = $derived(grid && ($focussed != image && (gridMarkersShown && get(gridMarkersShown).indexOf(image) < 0)));
+	const inactive = $derived(grid && ($focussed != image && (gridMarkersShown && get(gridMarkersShown).indexOf(image) < 0)));
 	/** Reactive list of waypoints associated with the current image. */
-	let waypoints = $derived(!$switching && micrio.spaceData ? micrio.spaceData.links.filter(l => l[0] == image.id || l[1] == image.id).map(l => ({targetId: l[0] == image.id ? l[1] : l[0], settings: l[2]?.[image.id]})) : undefined);
+	const waypoints = $derived(!$switching && micrio.spaceData ? micrio.spaceData.links.filter(l => l[0] == image.id || l[1] == image.id).map(l => ({targetId: l[0] == image.id ? l[1] : l[0], settings: l[2]?.[image.id]})) : undefined);
 	/** Reactive list of markers that should be visible (not hidden and passes `isVisible` check). */
-	let visibleMarkers = $derived(inactive ? [] : $data?.markers?.filter(isVisible));
+	const visibleMarkers = $derived(inactive ? [] : $data?.markers?.filter(isVisible));
 	/** Reactive list of markers that are explicitly hidden (`noMarker: true`). */
-	let invisibleMarkers = $derived(inactive ? $data?.markers : $data?.markers?.filter(m => !isVisible(m)));
+	const invisibleMarkers = $derived(inactive ? $data?.markers : $data?.markers?.filter(m => !isVisible(m)));
 	/** Reactive flag indicating if there are any visible markers or waypoints. */
-	let hasMarkersOrWaypoints = $derived(!!(visibleMarkers?.length || waypoints?.length));
+	const hasMarkersOrWaypoints = $derived(!!(visibleMarkers?.length || waypoints?.length));
 	/** Reactive sorted list of markers currently in view (for side labels). */
-	let inViewSorted = $derived($inView.sort(([,,y1],[,,y2]) => y1 > y2 ? 1 : y1 < y2 ? -1 : 0)); // Sort by Y position
+	const inViewSorted = $derived($inView.sort(([,,y1],[,,y2]) => y1 > y2 ? 1 : y1 < y2 ? -1 : 0)); // Sort by Y position
 
 </script>
 
