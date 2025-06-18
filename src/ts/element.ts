@@ -279,6 +279,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		this.wasm.unbind(); // Clean up Wasm resources
 		if(this._ui) unmount(this._ui); // Destroy Svelte UI
 		delete this._ui;
+		this.webgl.dispose(true); // Dispose WebGL context
 		this.printed = false; // Reset printed flag
 	}
 

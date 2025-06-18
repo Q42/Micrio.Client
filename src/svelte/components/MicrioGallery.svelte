@@ -11,7 +11,7 @@
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import type { Models } from '../../types/models';
 
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 
 	// --- Props ---
 	interface Props {
@@ -30,6 +30,9 @@
 	/** Get language and current image stores from the main instance. */
 	const { _lang, current } = micrio;
 
+	/** Bound <micr-io> gallery instance */
+	let galleryMicrio:HTMLMicrioElement|undefined = $state(undefined);
+
 	/** Index of the currently displayed image within the gallery. */
 	let galleryIdx:number = $state(0); // Initialize to 0
 	/** Event handler for the 'gallery-show' event dispatched by the nested <micr-io> element. */
@@ -42,6 +45,9 @@
 	/** Reactive caption text for the current gallery image, based on language. */
 	const galleryCaption = $derived(gallCurr?.i18n?.[$_lang]?.description ?? undefined);
 
+	/** No reason to keep the gallery <micr-io> alive when closing -- also ditch WebGL context */
+	onDestroy(() => galleryMicrio?.destroy());
+
 </script>
 
 <!-- Main container for the gallery popover -->
@@ -52,7 +58,7 @@
 	<!-- Inherit data path -->
 	<!-- Hide logo in gallery popover -->
 	<!-- Listen for page changes within the gallery -->
-	<micr-io
+	<micr-io bind:this={galleryMicrio}
 		data-gallery={gallery.map(i =>
 			`${i.micrioId},${i.width},${i.height},${i.isDeepZoom?'d':''}${i.isWebP?',w':i.isPng||(!$current?.isV5&&i.src?.endsWith('.png'))?',p' : ''}`
 		).join(';')}
