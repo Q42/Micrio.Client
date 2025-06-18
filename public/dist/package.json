@@ -16,7 +16,7 @@
 	"homepage": "https://micr.io/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Q42/Micrio.Client.git"
+		"url": "git+https://github.com/Q42/Micrio.Client.git"
 	},
 	"license": "MIT"
 }
