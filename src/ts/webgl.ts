@@ -202,7 +202,7 @@ export class WebGL {
 		const gl = this.gl;
 		// Bind and buffer vertex position data (using the view from Wasm memory)
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.wasm._vertexBuffer, gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW if updated often?
+		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.wasm._vertexBuffer, gl.DYNAMIC_DRAW);
 
 		// Enable and configure texture coordinate attribute
 		gl.enableVertexAttribArray(this.txtAttr);
@@ -229,9 +229,10 @@ export class WebGL {
 		// Delete buffers
 		gl.deleteBuffer(this.txtBuffer);
 		gl.deleteBuffer(this.geomBuffer);
-		// TODO: Delete textures stored in wasm.textures map
-		// TODO: Delete shader program (this.program)
-		// TODO: Delete framebuffer/texture from postprocessor if it exists
+		// Delete shader program
+		gl.deleteProgram(this.program);
+		// Delete framebuffer/texture from postprocessor if it exists
+		this.postpocessor?.dispose();
 
 		// Attempt to lose context if requested
 		if(loseContext) {

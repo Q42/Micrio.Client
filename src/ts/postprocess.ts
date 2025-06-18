@@ -186,4 +186,13 @@ export class PostProcessor {
 		// Unbind texture (good practice)
 		gl.bindTexture(gl.TEXTURE_2D, null);
 	}
+
+	/** Disposes WebGL resources used by the PostProcessor. */
+	dispose() : void {
+		const gl = this.gl;
+		gl.deleteFramebuffer(this.frameBuffer);
+		gl.deleteTexture(this.texture);
+		gl.deleteBuffer(this.quad);
+		gl.deleteProgram(this.program);
+	}
 }
