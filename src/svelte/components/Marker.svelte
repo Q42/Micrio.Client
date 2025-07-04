@@ -516,6 +516,11 @@
 		moved(); // Recalculate position
 	}
 
+	function listen(node:HTMLElement, callback:(e:Event)=>void) {
+		node.addEventListener('change', callback);
+		return { destroy: () => node.removeEventListener('change', callback) }
+	}
+
 	// --- DOM Element References ---
 	let _button:HTMLButtonElement|undefined = $state(); // The main button element
 	let _container:HTMLElement|undefined = $state(); // The outer div container
@@ -638,7 +643,8 @@
 
 <!-- Render the marker container div if it's not hidden -->
 {#if !noMarker && image && !hidden}
-	<div bind:this={_container} id={`m-${marker.id}`} onchange={changed}
+	<div bind:this={_container} id={`m-${marker.id}`}
+		use:listen={changed}
 		class={classNames}
 		class:overlapped={overlapped && !opened}
 		class:cluster

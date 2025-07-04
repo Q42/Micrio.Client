@@ -223,6 +223,11 @@
 		moved(); // Update position
 	}
 
+	function listen(node:HTMLElement, callback:(e:Event)=>void) {
+		node.addEventListener('change', callback);
+		return { destroy: () => node.removeEventListener('change', callback) }
+	}
+
 	// --- Media Cleanup ---
 
 	/** Writable store passed to Media component to signal destruction. */
@@ -345,7 +350,7 @@
 		class:no-events={noEvents}
 		onclick={click}
 		onkeypress={click}
-		onchange={change}
+		use:listen={change}
 		{href}
 		target={href && hrefBlankTarget?'_blank':null}
 	>
