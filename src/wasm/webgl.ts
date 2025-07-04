@@ -417,27 +417,28 @@ export default class WebGL {
 		m.scale(unchecked(this.canvas.images[0].scale)); // Assumes quad belongs to first image?
 
 		const p = this.qPos; // Reusable vector for corner points
+		const cosLat = Math.cos((cY - .5) * PI);
 
 		// --- Transform and Project Each Corner ---
 		// left, top
-		let x = (x0-cX)*s, y = -(y0-cY)*.5*s; // Calculate offset from center in 3D space
+		let x = (x0-cX)*s*cosLat, y = -(y0-cY)*.5*s; // Calculate offset from center in 3D space
 		p.x=0;p.y=0;p.z=0; m.translate(x, y, 0); p.transformMat4(m); m.translate(-x, -y, 0); // Transform point
 		p.transformMat4(pm); // Project to screen space
 		// Store screen coordinates in target matrix (v)
 		v.a0 = ((p.x + 1) / 2) * r; v.a1 = ((-p.y + 1) / 2) * r / a; v.a2 = -p.w; // x, y, depth
 
 		// right, top
-		p.x=0;p.y=0;p.z=0; m.translate(x=(x1-cX)*s, y=-(y0-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
+		p.x=0;p.y=0;p.z=0; m.translate(x=(x1-cX)*s*cosLat, y=-(y0-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
 		p.transformMat4(pm);
 		v.a3 = ((p.x + 1) / 2) * r; v.a4 = ((-p.y + 1) / 2) * r / a; v.a5 = -p.w;
 
 		// right, bottom
-		p.x=0;p.y=0;p.z=0; m.translate(x=(x1-cX)*s, y=-(y1-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
+		p.x=0;p.y=0;p.z=0; m.translate(x=(x1-cX)*s*cosLat, y=-(y1-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
 		p.transformMat4(pm);
 		v.a6 = ((p.x + 1) / 2) * r; v.a7 = ((-p.y + 1) / 2) * r / a; v.a8 = -p.w;
 
 		// left, bottom
-		p.x=0;p.y=0;p.z=0; m.translate(x=(x0-cX)*s, y=-(y1-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
+		p.x=0;p.y=0;p.z=0; m.translate(x=(x0-cX)*s*cosLat, y=-(y1-cY)*.5*s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
 		p.transformMat4(pm);
 		v.a9 = ((p.x + 1) / 2) * r; v.a10 = ((-p.y + 1) / 2) * r / a; v.a11 = -p.w;
 
