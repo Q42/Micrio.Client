@@ -208,22 +208,6 @@ export function _constructor(a: Main, b: f64, c: f64, d: u32, f: bool, h: bool,
  */
 export function _getView(c:Canvas) : Float64Array { return c.getView() };
 /**
- * Get a requested rectangle coordinates, used by the dashboard editor.
- * @param c The Canvas memory pointer in shared Wasm memory.
- * @param cX The quad center X coordinate.
- * @param cY The quad center Y coordinate.
- * @param w The quad width.
- * @param h The quad height.
- * @param scaleX Horizontal scale.
- * @param scaleY Vertical scale.
- * @param rotX Rotation over X axis.
- * @param rotY Rotation over Y axis.
- * @param rotZ Rotation over Z axis.
- * @returns Memory pointer to the `Float32Array` containing screen coordinates [x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3].
- */
-export function _getQuad(c:Canvas, cX:f64, cY:f64, w:f64, h:f64, scaleX:f64, scaleY:f64, rotX:f64, rotY:f64, rotZ:f64) : Float32Array {
-	return c.webgl.getQuad(cX, cY, w, h, scaleX, scaleY, rotX, rotY, rotZ) }
-/**
  * Get the requested image's coordinates based on a screen pixel position.
  * @param c The Canvas memory pointer in shared Wasm memory.
  * @param x The requested pixel X coordinate.

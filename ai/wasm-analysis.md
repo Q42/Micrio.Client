@@ -62,7 +62,7 @@ The Wasm module complements the main JavaScript application by handling computat
     *   Controls camera orientation via yaw and pitch (`rotate`, `setDirection`, `limitYaw`, `limitPitch`).
     *   Manages zoom in 360 space by adjusting the perspective (`zoom`, `setPerspective`).
     *   Converts between screen coordinates and spherical coordinates (`getCoo`, `getXYZ`, `getVec3`).
-    *   Calculates transformation matrices (`getMatrix`, `getQuad`) for placing embedded elements (like markers or other images) correctly within the 360 sphere.
+    *   Calculates transformation matrices (`getMatrix`) for placing embedded elements (like markers or other images) correctly within the 360 sphere.
     *   Generates the vertex data for rendering the 360 sphere geometry (`setTile360`).
 
 8.  **Matrix/Vector Math (`webgl.mat.ts`)**:

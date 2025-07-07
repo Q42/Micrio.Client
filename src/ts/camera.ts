@@ -33,11 +33,6 @@ export class Camera {
 	 */
 	private _coo!: Float64Array;
 
-	/** Dynamic Wasm buffer holding the calculated screen quad coordinates for 360 embeds. [x0,y0, x1,y1, x2,y2, x3,y3].
-	 * @internal
-	 */
-	private _quad!: Float32Array;
-
 	/** Dynamic Wasm buffer holding the calculated 4x4 matrix for 360 embeds.
 	 * @internal
 	 */
@@ -94,15 +89,13 @@ export class Camera {
 		view: Float64Array,
 		xy: Float64Array,
 		coo: Float64Array,
-		mat: Float32Array,
-		quad: Float32Array
+		mat: Float32Array
 	) : void {
 		this.e = e;
 		this._view = view;
 		this._xy = xy;
 		this._coo = coo;
 		this._mat = mat;
-		this._quad = quad;
 	}
 
 	/**
@@ -260,26 +253,6 @@ export class Camera {
 	/** Gets the current camera zoom scale. */
 	public getScale = () : number => {
 		return this.center[2]??1; // Return scale from center property
-	}
-
-	/**
-	 * Calculates the screen coordinates of the four corners of a transformed quad in 360 space.
-	 * Used for positioning HTML embeds accurately on the 360 sphere.
-	 * @param cX The quad center X coordinate (0-1).
-	 * @param cY The quad center Y coordinate (0-1).
-	 * @param w The quad relative width (0-1).
-	 * @param h The quad relative height (0-1).
-	 * @param rotX Rotation over X axis (radians).
-	 * @param rotY Rotation over Y axis (radians).
-	 * @param rotZ Rotation over Z axis (radians).
-	 * @param scaleX Horizontal scale multiplier.
-	 * @param scaleY Vertical scale multiplier.
-	 * @returns A Float32Array containing the screen coordinates [x0,y0, x1,y1, x2,y2, x3,y3].
-	*/
-	public getQuad(cX:number, cY:number, w:number, h:number,rotX:number=0,rotY:number=0,rotZ:number=0,scaleX:number=1,scaleY:number=1) : Float32Array {
-		if (!this.e) return new Float32Array(16); // Return empty array if Wasm not ready
-		this.e._getQuad(this.image.ptr, cX, cY, w, h, scaleX, scaleY, rotX, rotY, rotZ);
-		return this._quad; // Return direct buffer reference
 	}
 
 	/**

@@ -162,19 +162,6 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @returns Memory pointer to the `Uint32Array` containing the coordinates
 	 */
 	_getView(ptr:number) : number;
-	/** Get a requested rectangle coordinates, used by the dashboard editor
-	 * @param ptr The image memory pointer in shared Wasm memory
-	 * @param cX The quad center X coordinate
-	 * @param cY The quad center Y coordinate
-	 * @param w The quad width
-	 * @param h The quad height
-	 * @param scaleX Horizontal scale
-	 * @param scaleY Vertical scale
-	 * @param rotX Rotation over X axis
-	 * @param rotY Rotation over Y axis
-	 * @param rotZ Rotation over Z axis
-	*/
-	_getQuad(ptr:number, cX: number, cY: number, w: number, h: number,scaleX: number, scaleY: number, rotX?:number,rotY?:number,rotZ?:number) : number;
 	/** Get the requested image's coordinates based on a screen pixel position
 	 * @param ptr The image memory pointer in shared Wasm memory
 	 * @param x The requested pixel X coordinate `[0-1]`
