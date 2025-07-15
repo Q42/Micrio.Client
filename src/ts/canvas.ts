@@ -163,8 +163,7 @@ export class Canvas {
 		this.micrio.events.dispatch('resize', box);
 
 		// Update mobile flag (debounced slightly)
-		// TODO: Consider if userAgent check is reliable enough or if width check is better.
-		setTimeout(() => this.isMobile.set(/mobile/i.test(navigator.userAgent)), 10);
+		this.isMobile.set(/mobile/i.test(navigator.userAgent));
 	}
 
 	/**
