@@ -824,7 +824,6 @@
 		margin: 0;
 		width: 100%;
 		position: relative; /* Needed for absolute positioning of controls/overlay */
-		overflow: hidden; /* Hide controls overflow if needed */
 	}
 	figure div { /* Inner container for media element */
 		cursor: pointer; /* Indicate click-to-play/pause */
