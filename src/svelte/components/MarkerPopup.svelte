@@ -89,24 +89,31 @@
 		}
 	}
 
-	// --- Reactive Declarations (`$:`) for Tour Logic ---
+	// --- Reactive Declarations for Tour Logic ---
+
+	/** Returns either a Marker Tour object or nothing, disregards video tour */
+	const markerTour = $derived($tour && 'steps' in $tour ? $tour : undefined);
 
 	/** Check if this marker is part of the currently active marker tour. */
-	const isPartOfTour = $derived($tour && 'steps' in $tour && $tour.steps.findIndex(s => s.startsWith(marker.id)) >= 0);
+	const isPartOfTour = $derived(markerTour && markerTour?.steps.findIndex(s => s.startsWith(marker.id)) >= 0);
 	/** Determine if tour controls should be shown within the popup. */
-	const showTourControls = $derived($tour && 'steps' in $tour && isPartOfTour && !$tour.isSerialTour && settings.tourControlsInPopup);
+	const showTourControls = $derived(isPartOfTour && !markerTour?.isSerialTour && settings.tourControlsInPopup);
 	/** Get the current step index of the active marker tour. */
-	const currentTourStep = $derived(($tour && 'steps' in $tour ? $tour.currentStep : undefined) ?? -1);
+	const currentTourStep = $derived(markerTour?.currentStep ?? -1);
 	/** Determine if the close button should stop the tour instead of advancing. */
-	const closeButtonStopsTour = $derived(showTourControls || ($tour && 'steps' in $tour && $tour.currentStep == $tour.steps.length-1));
+	const closeButtonStopsTour = $derived(showTourControls || (markerTour ? markerTour.currentStep == markerTour.steps.length-1 : undefined));
 
 	/** Flag to disable prev/next buttons briefly after click to prevent double clicks. */
 	let clickedPrevNext:boolean = $state(false);
 
-	/** Go to the previous tour step. */
-	const prev = () => { if($tour && 'steps' in $tour) { $tour.prev?.(); clickedPrevNext = true; setTimeout(() => clickedPrevNext = false, 200); } }
-	/** Go to the next tour step. */
-	const next = () => { if($tour && 'steps' in $tour) { $tour.next?.(); clickedPrevNext = true; setTimeout(() => clickedPrevNext = false, 200); } }
+	/** Go to the next or previous tour step. */
+	const markerTourStep = (goPrev:boolean = false) => {
+		if(!markerTour) return;
+		if(goPrev) markerTour.prev?.();
+		else markerTour.next?.();
+		clickedPrevNext = true;
+		setTimeout(() => clickedPrevNext = false, 200);
+	}
 
 	// --- Minimization Logic ---
 
@@ -210,11 +217,11 @@
 			<progress aria-hidden={true} value={(currentTourStep+1)/$tour.steps.length} class="progress"></progress>
 			<ButtonGroup className="micrio-tour-controls">
 				<!-- Previous Step Button -->
-				<Button type="arrow-left" disabled={clickedPrevNext || currentTourStep==0} title={$i18n.tourStepPrev} onclick={prev} />
+				<Button type="arrow-left" disabled={clickedPrevNext || currentTourStep==0} title={$i18n.tourStepPrev} onclick={() => markerTourStep()} />
 				<!-- Step Counter (if enabled in settings) -->
 				{#if settings.tourStepCounterInPopup}<button class="micrio-button tour-step" disabled>{currentTourStep+1} / {$tour.steps.length}</button>{/if}
 				<!-- Next Step Button -->
-				<Button type="arrow-right" disabled={clickedPrevNext || (currentTourStep+1==$tour.steps.length)} title={$i18n.tourStepNext} onclick={next} />
+				<Button type="arrow-right" disabled={clickedPrevNext || (currentTourStep+1==$tour.steps.length)} title={$i18n.tourStepNext} onclick={() => markerTourStep(true)} />
 			</ButtonGroup>
 		{/if}
 	</aside>
