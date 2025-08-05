@@ -303,8 +303,8 @@ export default class WebGL {
 	getCoo(pxX:f64, pxY:f64) : Coordinates {
 		const el = this.canvas.el;
 		// Convert screen pixels to Normalized Device Coordinates (NDC) [-1, 1]
-		this.vec4.x = (pxX / el.width) * 2 - 1;
-		this.vec4.y = -((pxY / el.height) * 2 - 1); // Y is inverted in NDC
+		this.vec4.x = (pxX * el.ratio / el.width) * 2 - 1;
+		this.vec4.y = -((pxY * el.ratio / el.height) * 2 - 1); // Y is inverted in NDC
 		this.vec4.z = 1; // Point on the far plane
 		this.vec4.w = 1;
 
