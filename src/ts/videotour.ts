@@ -301,7 +301,7 @@ export class VideoTourInstance {
 					width: prevView360.width * (1-b) + nextView360.width * b,
 					height: prevView360.height * (1-b) + nextView360.height * b,
 				};
-				this.image.camera.setView360(interpolatedView360, {noLimit: true, area});
+				this.image.camera.setView(interpolatedView360, {noLimit: true, area});
 			} else if(prevView && nextView) {
 				// Fallback to standard view interpolation
 				this.image.camera.setView([
@@ -315,14 +315,7 @@ export class VideoTourInstance {
 		}
 		// Otherwise, start the animation
 		else {
-			const flyPromise = useView360 
-				? this.image.camera.flyToView360(nextView360, {
-					duration: step.duration, // Animation duration
-					progress: perc, // Starting progress
-					prevView360: prevView360, // Previous view360 for interpolation start
-					area // Apply area context if needed
-				})
-				: this.image.camera.flyToView(nextView, {
+			const flyPromise = this.image.camera.flyToView(nextView360 || nextView, {
 					duration: step.duration, // Animation duration
 					progress: perc, // Starting progress
 					prevView: prevView, // Previous view for interpolation start

@@ -275,21 +275,10 @@
 		
 		if(!immediatelyStartMyTourAtBeginning && (hasView360 || hasView) && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
 			if(openOnInit) { // If opened on init, set view directly
-				if(hasView360) {
-					image.camera.setView360(marker.view360!, {area: image.opts?.area});
-				} else {
-					image.camera.setView(marker.view!, {area: image.opts?.area});
-				}
+				image.camera.setView(marker.view360 || marker.view!, {area: image.opts?.area});
 				open(); // Proceed to open content
 			} else { // Otherwise, animate
-				const flyPromise = hasView360 
-					? image.camera.flyToView360(marker.view360!, {
-						omniIndex, // Pass omni index if applicable
-						noTrueNorth: true, // Don't correct true north during marker fly-to
-						area: image.opts?.area,
-						isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
-					})
-					: image.camera.flyToView(marker.view!, {
+					const flyPromise = image.camera.flyToView(marker.view360 || marker.view!, {
 						omniIndex, // Pass omni index if applicable
 						noTrueNorth: true, // Don't correct true north during marker fly-to
 						area: image.opts?.area,
