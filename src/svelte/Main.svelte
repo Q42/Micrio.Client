@@ -277,10 +277,6 @@
 	<Error message={error} />
 {/if}
 
-{#each $visible.filter(i => i.is360) as image (image.uuid)}
-	<ResizableAreaDemo {image} />
-{/each}
-
 <!-- Render Loading indicator -->
 {#if loadingProgress < 1}
 	<ProgressCircle progress={loadingProgress} />
