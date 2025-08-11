@@ -197,6 +197,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		export type Settings = {
 			/** The starting viewport (`[x0,y0,x1,y1]`) */
 			view?: Camera.View;
+			/** The starting 360-degree area (alternative to view for spherical images) */
+			view360?: Camera.View360;
 			/** Restrict navigation to this viewport (`[x0,y0,x1,y1]`) */
 			restrict?: Camera.View;
 			/** Load a cover-initing image focussed on this coordinate (`[x, y]`) */
@@ -694,6 +696,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 			/** The viewport to zoom to when the marker is opened */
 			view?: Camera.View;
+			/** 360-degree area to zoom to when the marker is opened (alternative to view for spherical images) */
+			view360?: Camera.View360;
 
 			/** If an image has multiple layers, switch to this layer */
 			imageLayer?: number;
@@ -803,6 +807,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		 export type Embed = Partial<ImageInfo.ImageInfo> & {
 			/** The area inside the main image to place the embed */
 			area: Camera.View;
+			/** 360-degree area for the embed (alternative to area for spherical images) */
+			area360?: Camera.View360;
 
 			/** Original asset url */
 			src?: string;
@@ -896,6 +902,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			title?: string;
 			/** View rectangle */
 			rect: Camera.View;
+			/** 360-degree area (alternative to rect for spherical images) */
+			view360?: Camera.View360;
 		};
 
 		export interface VideoTourCultureData extends TourCultureData {
@@ -989,6 +997,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			duration: number,
 			imageHasOtherMarkers?: boolean,
 			startView?: Camera.View,
+			startView360?: Camera.View360,
 			chapter?: number,
 			/** For in grid multi-image tour, stay in the grid view */
 			gridView?: boolean,
@@ -1336,6 +1345,18 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** A viewport rectangle */
 		export type View = number[]|Float64Array;
 
+		/** A 360-degree area definition with center point and dimensions */
+		export interface View360 {
+			/** Center X coordinate (0-1 relative to image) */
+			centerX: number;
+			/** Center Y coordinate (0-1 relative to image) */
+			centerY: number;
+			/** Width (0-1 relative to image) */
+			width: number;
+			/** Height (0-1 relative to image) */
+			height: number;
+		}
+
 		/** Coordinate tuple, [x, y, scale] */
 		export type Coords = [number, number, number?]|Float64Array;
 
@@ -1418,9 +1439,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 		// Camera events
 		/** The camera has zoomed */
-		'zoom': { image: MicrioImage, view: Camera.View }; 
+		'zoom': { image: MicrioImage, view: Camera.View, view360?: Camera.View360 }; 
 		/** The camera has moved */
-		'move': { image: MicrioImage, view: Camera.View }; 
+		'move': { image: MicrioImage, view: Camera.View, view360?: Camera.View360 }; 
 		/** A frame has been drawn */
 		'draw': void; 
 		/** The <micr-io> element was resized */
