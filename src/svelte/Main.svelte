@@ -44,6 +44,7 @@
 	import Subtitles from './common/Subtitles.svelte';
 	import Embed from './virtual/Embed.svelte';
 	import ProgressCircle from './ui/ProgressCircle.svelte';
+	import ResizableAreaDemo from './components/ResizableAreaDemo.svelte';
 
 	let {
 		micrio,
@@ -275,6 +276,10 @@
 {#if error}
 	<Error message={error} />
 {/if}
+
+{#each $visible.filter(i => i.is360) as image (image.uuid)}
+	<ResizableAreaDemo {image} />
+{/each}
 
 <!-- Render Loading indicator -->
 {#if loadingProgress < 1}

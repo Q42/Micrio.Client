@@ -637,7 +637,10 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 		if(!(e instanceof WheelEvent)) return; // Ensure WheelEvent
 		// Check if zoom is allowed based on settings and modifier keys
 		if(this.controlZoom && !e.ctrlKey) return;
-		if(!force && e.target instanceof Element && e.target != this.el && !e.target.classList.contains('marker') && !e.target.hasAttribute('data-scroll-through')) return;
+		if(!force && e.target instanceof Element && e.target != this.el && !e.target.classList.contains('marker') && !e.target.hasAttribute('data-scroll-through')) {
+			console.log('cancel?', e.target);
+			return;
+		}
 
 		let delta = e.deltaY;
 
