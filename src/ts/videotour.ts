@@ -23,6 +23,8 @@ type VideoTourSegment = {
 	start: number;
 	/** Target camera view rectangle [x0, y0, x1, y1] for this segment. */
 	view: Models.Camera.View;
+	/** Target camera view360 for this segment. */
+	view360?: Models.Camera.View360;
 }
 
 
@@ -261,6 +263,12 @@ export class VideoTourInstance {
 		else return step.view;
 	}
 
+	private getView360(i:number) : Models.Camera.View360|undefined {
+		const step = this.timeline[i];
+		// Get the view360 from current timeline step
+		return step?.view360;
+	}
+
 	/**
 	 * Starts the camera animation for the current step.
 	 * @internal
@@ -272,30 +280,56 @@ export class VideoTourInstance {
 
 		if(step == undefined) return; // Exit if step data not found
 
+		// Prefer view360 for 360 images, fall back to standard view
+		const nextView360 = this.getView360(this.currentIndex);
 		const nextView = step.view; // Target view for this step
+		const prevView360 = this.getView360(this.currentIndex-1);
 		const prevView = this.getView(this.currentIndex-1); // View from the previous step
 		const area = this.image.opts?.area; // Get current image area (for embeds/split)
 
+		const useView360 = nextView360 && this.image.is360;
+
 		// If resuming from a paused state within an animation, calculate interpolated view and jump there
-		if(this.wasPaused && prevView) {
+		if(this.wasPaused && (prevView360 || prevView)) {
 			const b:number = this.micrio.wasm.e.ease(perc); // Get eased progress value
-			// Interpolate between previous and next view
-			this.image.camera.setView([
-				prevView[0] * (1-b) + nextView[0] * b,
-				prevView[1] * (1-b) + nextView[1] * b,
-				prevView[2] * (1-b) + nextView[2] * b,
-				prevView[3] * (1-b) + nextView[3] * b,
-			], {noLimit: true, area}); // Set view instantly
+			
+			if(useView360 && prevView360) {
+				// Interpolate between previous and next view360
+				const interpolatedView360 = {
+					centerX: prevView360.centerX * (1-b) + nextView360.centerX * b,
+					centerY: prevView360.centerY * (1-b) + nextView360.centerY * b,
+					width: prevView360.width * (1-b) + nextView360.width * b,
+					height: prevView360.height * (1-b) + nextView360.height * b,
+				};
+				this.image.camera.setView360(interpolatedView360, {noLimit: true, area});
+			} else if(prevView && nextView) {
+				// Fallback to standard view interpolation
+				this.image.camera.setView([
+					prevView[0] * (1-b) + nextView[0] * b,
+					prevView[1] * (1-b) + nextView[1] * b,
+					prevView[2] * (1-b) + nextView[2] * b,
+					prevView[3] * (1-b) + nextView[3] * b,
+				], {noLimit: true, area});
+			}
 			this.nextStep(); // Immediately schedule next step (handles pause duration)
 		}
-		// Otherwise, start the flyToView animation
+		// Otherwise, start the animation
 		else {
-			this.image.camera.flyToView(nextView, {
-				duration: step.duration, // Animation duration
-				progress: perc, // Starting progress
-				prevView: prevView, // Previous view for interpolation start
-				area // Apply area context if needed
-			})
+			const flyPromise = useView360 
+				? this.image.camera.flyToView360(nextView360, {
+					duration: step.duration, // Animation duration
+					progress: perc, // Starting progress
+					prevView360: prevView360, // Previous view360 for interpolation start
+					area // Apply area context if needed
+				})
+				: this.image.camera.flyToView(nextView, {
+					duration: step.duration, // Animation duration
+					progress: perc, // Starting progress
+					prevView: prevView, // Previous view for interpolation start
+					area // Apply area context if needed
+				});
+			
+			flyPromise
 				// When animation finishes, schedule the next step (handles pause duration)
 				.then(() => { if(this.currentIndex != undefined && step == this.timeline[this.currentIndex]) this.nextStep() })
 				.catch(() => {}); // Ignore animation abortion errors

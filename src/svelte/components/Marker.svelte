@@ -270,19 +270,35 @@
 		if(immediatelyStartMyTourAtBeginning) delete _meta.gridAction; // Temporarily remove grid action
 
 		// Fly camera to marker view, unless it's a video tour marker or grid view marker
-		if(!immediatelyStartMyTourAtBeginning && marker.view && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
+		const hasView360 = marker.view360 && image.is360;
+		const hasView = marker.view && !hasView360; // view360 takes precedence when both exist
+		
+		if(!immediatelyStartMyTourAtBeginning && (hasView360 || hasView) && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
 			if(openOnInit) { // If opened on init, set view directly
-				image.camera.setView(marker.view, {area: image.opts?.area});
+				if(hasView360) {
+					image.camera.setView360(marker.view360!, {area: image.opts?.area});
+				} else {
+					image.camera.setView(marker.view!, {area: image.opts?.area});
+				}
 				open(); // Proceed to open content
 			} else { // Otherwise, animate
-				image.camera.flyToView(marker.view, {
-					omniIndex, // Pass omni index if applicable
-					noTrueNorth: true, // Don't correct true north during marker fly-to
-					area: image.opts?.area,
-					isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
-				})
-				.then(open) // Proceed to open content after animation
-				.catch(() => { if(!$tour) image.state.marker.set(undefined) }); // If animation fails (e.g., interrupted) and not in a tour, close the marker
+				const flyPromise = hasView360 
+					? image.camera.flyToView360(marker.view360!, {
+						omniIndex, // Pass omni index if applicable
+						noTrueNorth: true, // Don't correct true north during marker fly-to
+						area: image.opts?.area,
+						isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
+					})
+					: image.camera.flyToView(marker.view!, {
+						omniIndex, // Pass omni index if applicable
+						noTrueNorth: true, // Don't correct true north during marker fly-to
+						area: image.opts?.area,
+						isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
+					});
+				
+				flyPromise
+					.then(open) // Proceed to open content after animation
+					.catch(() => { if(!$tour) image.state.marker.set(undefined) }); // If animation fails (e.g., interrupted) and not in a tour, close the marker
 			}
 		}
 		else {
