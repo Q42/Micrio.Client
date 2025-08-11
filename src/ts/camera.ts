@@ -38,6 +38,11 @@ export class Camera {
 	 */
 	private _mat!: Float32Array;
 
+	/** Dynamic Wasm buffer used for getView360 calculations. [centerX, centerY, width, height].
+	 * @internal
+	 */
+	private _view360!: Float64Array;
+
 	/** Offset from true north for 360 images, derived from space data.
 	 * @internal
 	 */
@@ -89,13 +94,15 @@ export class Camera {
 		view: Float64Array,
 		xy: Float64Array,
 		coo: Float64Array,
-		mat: Float32Array
+		mat: Float32Array,
+		view360: Float64Array
 	) : void {
 		this.e = e;
 		this._view = view;
 		this._xy = xy;
 		this._coo = coo;
 		this._mat = mat;
+		this._view360 = view360;
 	}
 
 	/**
@@ -168,27 +175,7 @@ export class Camera {
 		};
 	};
 
-	/** Normalizes longitude coordinate to [0, 1] range, handling wrapping.
-	 * @internal
-	 */
-	private normalizeLongitude = (x: number): number => {
-		return ((x % 1) + 1) % 1;
-	};
 
-	/** Calculates the shortest angular distance between two longitude coordinates.
-	 * Handles wrapping around the 360-degree sphere.
-	 * @internal
-	 */
-	private longitudeDistance = (from: number, to: number): number => {
-		const normalizedFrom = this.normalizeLongitude(from);
-		const normalizedTo = this.normalizeLongitude(to);
-		
-		const directDistance = normalizedTo - normalizedFrom;
-		const wrapDistance = directDistance > 0 ? directDistance - 1 : directDistance + 1;
-		
-		// Choose the shorter path
-		return Math.abs(directDistance) <= Math.abs(wrapDistance) ? directDistance : wrapDistance;
-	};
 
 	/**
 	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls Wasm directly.
@@ -261,8 +248,17 @@ export class Camera {
 	 * @returns A View360 object representing the current viewport, or undefined if not initialized.
 	 */
 	public getView360 = (): Models.Camera.View360|undefined => {
-		const view = this.getView();
-		return view ? this.viewToView360(view) : undefined;
+		if (!this.e) return undefined; // Exit if Wasm not ready
+		
+		// Use native WASM function for optimal performance
+		this.e._getView360(this.image.ptr);
+		
+		return {
+			centerX: this._view360[0],
+			centerY: this._view360[1],
+			width: this._view360[2],
+			height: this._view360[3]
+		};
 	};
 
 	/**

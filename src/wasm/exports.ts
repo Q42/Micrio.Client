@@ -369,6 +369,22 @@ export function _setView360(c:Canvas, centerX: f64, centerY: f64, width: f64, he
 	c.setView(x0, y0, x1, y1, noLimit, noLastView, correctNorth);
 }
 /**
+ * Get the current camera view as a 360-degree area.
+ * @param c The Canvas memory pointer in shared Wasm memory.
+ * @returns Pointer to a Float64Array containing [centerX, centerY, width, height].
+ */
+export function _getView360(c:Canvas) : usize {
+	const view = c.view;
+	// Reuse the same buffer pattern as other getters
+	const ptr = changetype<usize>(new Float64Array(4));
+	const arr = changetype<Float64Array>(ptr);
+	unchecked(arr[0] = view.centerX);
+	unchecked(arr[1] = view.centerY);  
+	unchecked(arr[2] = view.width);
+	unchecked(arr[3] = view.height);
+	return ptr;
+}
+/**
  * Set the current camera coordinates.
  * @param c The Canvas memory pointer in shared Wasm memory.
  * @param x The X coordinate.

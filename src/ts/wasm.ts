@@ -413,6 +413,7 @@ export class Wasm {
 			new Float64Array(this.b, this.e._getXY(img.ptr, 0,0) + 32, 5), // XY buffer
 			new Float64Array(this.b, this.e._getCoo(img.ptr, 0,0) + 32, 5), // Coo buffer
 			new Float32Array(this.b, this.e._getMatrix(img.ptr) + 32, 16), // Matrix buffer
+			new Float64Array(this.b, this.e._getView360(img.ptr) + 32, 4), // View360 buffer
 		)
 	}
 
