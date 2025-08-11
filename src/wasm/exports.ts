@@ -350,6 +350,25 @@ export function _setDirection(c:Canvas, yaw: f64, pitch: f64, resetPersp: bool) 
 export function _setView(c:Canvas, x0: f64, y0: f64, x1: f64, y1: f64, noLimit: bool, noLastView: bool, correctNorth: bool) : void {
 	c.setView(x0, y0, x1, y1, noLimit, noLastView, correctNorth) }
 /**
+ * Set the current camera viewport using 360-degree area format.
+ * @param c The Canvas memory pointer in shared Wasm memory.
+ * @param centerX The center X coordinate (0-1).
+ * @param centerY The center Y coordinate (0-1).
+ * @param width The area width (0-1).
+ * @param height The area height (0-1).
+ * @param noLimit The viewport can be outside of the image's limits.
+ * @param noLastView Don't keep track of the previous viewport.
+ * @param correctNorth Internally adjust relative 360&deg; rotation.
+ */
+export function _setView360(c:Canvas, centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool, noLastView: bool, correctNorth: bool) : void {
+	// Convert View360 to standard View format
+	const x0 = centerX - width / 2;
+	const y0 = centerY - height / 2;
+	const x1 = centerX + width / 2;
+	const y1 = centerY + height / 2;
+	c.setView(x0, y0, x1, y1, noLimit, noLastView, correctNorth);
+}
+/**
  * Set the current camera coordinates.
  * @param c The Canvas memory pointer in shared Wasm memory.
  * @param x The X coordinate.
@@ -527,6 +546,29 @@ export function _setStartView(c:Canvas, p0:f64, p1:f64, p2:f64, p3:f64) : void {
 export function _flyTo(c:Canvas, toX0: f64, toY0: f64, toX1: f64, toY1: f64, dur: f64, speed: f64,
 	perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
 	return c.camera.flyTo(toX0, toY0, toX1, toY1, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, noTrueNorth, fn, time) }
+/**
+ * Fly to a specific 360-degree area with smart longitude wrapping.
+ * @param c The Canvas memory pointer in shared Wasm memory.
+ * @param centerX The target center X coordinate (0-1).
+ * @param centerY The target center Y coordinate (0-1).
+ * @param width The target area width (0-1).
+ * @param height The target area height (0-1).
+ * @param dur The animation duration in ms, use `-1` for `auto`.
+ * @param speed When duration `auto`, a speed modifier (default `1`).
+ * @param perc Start the animation at a certain progress (`0-1`).
+ * @param isJump Make the camera zoom out and in during this animation.
+ * @param limit Limit the animation to the image's boundaries.
+ * @param limitZoom Don't allow the animation to zoom in further than the maximum zoom.
+ * @param toOmniIdx For rotatable omni objects, also animate to this frame.
+ * @param noTrueNorth Internally apply local relative 360&deg; image rotation.
+ * @param fn Animation timing function: `0: ease`, `1: ease-in`, `2: ease-out`, `3: linear`.
+ * @param time The current timestamp (`performance.now()`).
+ * @returns The resulting animation duration in ms.
+ */
+export function _flyToView360(c:Canvas, centerX: f64, centerY: f64, width: f64, height: f64, dur: f64, speed: f64,
+	perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
+	return c.camera.flyToView360(centerX, centerY, width, height, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, noTrueNorth, fn, time);
+}
 /**
  * A zoom in/out animation.
  * @param c The Canvas memory pointer in shared Wasm memory.

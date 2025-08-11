@@ -270,6 +270,17 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param correctNorth Internally adjust relative 360&deg; rotation
 	*/
 	_setView(ptr:number, x0: number, y0: number, x1: number, y1: number, noLimit?: boolean, noLastView?: boolean, correctNorth?: boolean) : void;
+	/** Set the current camera viewport using 360-degree area format
+	 * @param ptr The sub image memory pointer in shared Wasm memory
+	 * @param centerX The center X coordinate (0-1)
+	 * @param centerY The center Y coordinate (0-1)
+	 * @param width The area width (0-1)
+	 * @param height The area height (0-1)
+	 * @param noLimit The viewport can be outside of the image's limits
+	 * @param noLastView Don't keep track of the previous viewport
+	 * @param correctNorth Internally adjust relative 360° rotation
+	 */
+	_setView360(ptr:number, centerX: number, centerY: number, width: number, height: number, noLimit?: boolean, noLastView?: boolean, correctNorth?: boolean) : void;
 	/** Set the current camera coordinates
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param x The X coordinate
@@ -422,6 +433,25 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @returns The resulting animation duration in ms
 	*/
 	_flyTo(ptr:number, toX0: number, toY0: number, toX1: number, toY1: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, noTrueNorth: boolean, fn:number, time: number) : number;
+	/** Fly to a specific 360-degree area with smart longitude wrapping
+	 * @param ptr The sub image memory pointer in shared Wasm memory
+	 * @param centerX The target center X coordinate (0-1)
+	 * @param centerY The target center Y coordinate (0-1)
+	 * @param width The target area width (0-1)
+	 * @param height The target area height (0-1)
+	 * @param dur The animation duration in ms, use `-1` for `auto`
+	 * @param speed When duration `auto`, a speed modifier (default `1`)
+	 * @param perc Start the animation at a certain progress (`0-1`)
+	 * @param isJump Make the camera zoom out and in during this animation
+	 * @param limit Limit the animation to the image's boundaries
+	 * @param limitZoom Don't allow the animation to zoom in further than the maximum zoom
+	 * @param toOmniIdx For rotatable omni objects, also animate to this frame
+	 * @param noTrueNorth Internally apply local relative 360° image rotation
+	 * @param fn Animation timing function: `0: ease`, `1: ease-in`, `2: ease-out`, `3: linear`
+	 * @param time The current timestamp (`performance.now()`)
+	 * @returns The resulting animation duration in ms
+	 */
+	_flyToView360(ptr:number, centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, noTrueNorth: boolean, fn:number, time: number) : number;
 	/** A zoom in/out animation
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param d The amount to zoom

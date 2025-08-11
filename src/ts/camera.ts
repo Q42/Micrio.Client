@@ -280,8 +280,23 @@ export class Camera {
 		/** If provided, interprets `v360` relative to this sub-area instead of the full image. */
 		area?: Models.Camera.View;
 	} = {}): void {
-		const view = this.view360ToView(v360);
-		this.setView(view, opts);
+		if (!this.e) return; // Exit if Wasm not ready
+		
+		// Handle area conversion if needed
+		let { centerX, centerY, width, height } = v360;
+		if (opts.area) {
+			// Convert relative area coordinates to absolute
+			const absCoords = this.cooToArea(centerX, centerY, opts.area);
+			centerX = absCoords.x;
+			centerY = absCoords.y;
+			// Scale width/height by area dimensions
+			width = width * (opts.area[2] - opts.area[0]);
+			height = height * (opts.area[3] - opts.area[1]);
+		}
+		
+		// Use native WASM View360 function
+		this.e._setView360(this.image.ptr, centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
+		if (!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
 	}
 
 	/**
@@ -504,36 +519,53 @@ export class Camera {
 			/** If true, respects the image's maximum zoom limit during animation. */
 			limitZoom?: boolean;
 		} = {}
-	): Promise<void> => {
-		// For 360 images, apply smart longitude wrapping
-		if (this.image.is360) {
-			const currentView360 = this.getView360();
-			if (currentView360) {
-				// Calculate the shortest path for longitude (centerX)
-				const longitudeDistance = this.longitudeDistance(currentView360.centerX, view360.centerX);
-				
-				// Adjust the target centerX to use the shortest path
-				const optimizedView360 = {
-					...view360,
-					centerX: currentView360.centerX + longitudeDistance
-				};
-				
-				// Convert to standard view and animate
-				const view = this.view360ToView(optimizedView360);
-				return this.flyToView(view, {
-					...opts,
-					prevView: opts.prevView360 ? this.view360ToView(opts.prevView360) : opts.prevView
-				});
-			}
+	): Promise<void> => new Promise((ok, abort) => {
+		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
+		
+		// Handle area conversion if needed
+		let { centerX, centerY, width, height } = view360;
+		if (opts.area) {
+			// Convert relative area coordinates to absolute
+			const absCoords = this.cooToArea(centerX, centerY, opts.area);
+			centerX = absCoords.x;
+			centerY = absCoords.y;
+			// Scale width/height by area dimensions
+			width = width * (opts.area[2] - opts.area[0]);
+			height = height * (opts.area[3] - opts.area[1]);
 		}
 		
-		// Fallback to standard conversion for non-360 or when no current view
-		const view = this.view360ToView(view360);
-		return this.flyToView(view, {
-			...opts,
-			prevView: opts.prevView360 ? this.view360ToView(opts.prevView360) : opts.prevView
-		});
-	};
+		// Set starting view for progress calculation if provided
+		if (opts.prevView360) {
+			// Convert View360 to View for setStartView
+			const pv360 = opts.prevView360;
+			const pvConverted = this.view360ToView(pv360);
+			this.e._setStartView(this.image.ptr, pvConverted[0], pvConverted[1], pvConverted[2], pvConverted[3]);
+		}
+		else if (opts.prevView) {
+			const pv = opts.prevView;
+			this.e._setStartView(this.image.ptr, pv[0], pv[1], pv[2], pv[3]);
+		}
+		
+		// Call native WASM function with smart longitude wrapping
+		const duration = this.e._flyToView360(
+			this.image.ptr, 
+			centerX, centerY, width, height,
+			opts.duration ?? -1, 
+			opts.speed ?? -1, 
+			opts.progress ?? 0, 
+			!!opts.isJump, 
+			!!opts.limit, 
+			!!opts.limitZoom, 
+			opts.omniIndex ?? 0, 
+			!!opts.noTrueNorth, 
+			Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], 
+			performance.now()
+		);
+		
+		this.image.wasm.render(); // Trigger render loop
+		if (duration == 0) ok(); // Resolve immediately if duration is 0
+		else this.setAniPromises(ok, abort); // Store promise callbacks
+	});
 
 	/**
 	 * Animates the camera to a view showing the entire image (minimum zoom).

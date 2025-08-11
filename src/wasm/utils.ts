@@ -31,6 +31,23 @@ export function modPI(n:f64): f64 {
 	return (n%PI2+PI2)%PI2;
 }
 
+/** Calculates the shortest angular distance between two longitude coordinates.
+ * Handles wrapping around the 360-degree sphere.
+ * @param from Starting longitude coordinate (0-1).
+ * @param to Target longitude coordinate (0-1).
+ * @returns The shortest signed distance (-0.5 to 0.5).
+ */
+export function longitudeDistance(from: f64, to: f64): f64 {
+	const normalizedFrom = mod1(from);
+	const normalizedTo = mod1(to);
+	
+	const directDistance = normalizedTo - normalizedFrom;
+	const wrapDistance = directDistance > 0 ? directDistance - 1 : directDistance + 1;
+	
+	// Choose the shorter path
+	return Math.abs(directDistance) <= Math.abs(wrapDistance) ? directDistance : wrapDistance;
+}
+
 /**
  * Implements a cubic bezier curve calculation.
  * Used for animation easing functions.

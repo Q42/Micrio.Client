@@ -538,6 +538,37 @@ export default class Camera {
 	}
 
 	/**
+	 * Animates to a 360-degree area with smart longitude wrapping.
+	 * @param centerX Target center X coordinate (0-1).
+	 * @param centerY Target center Y coordinate (0-1).
+	 * @param width Target area width (0-1).
+	 * @param height Target area height (0-1).
+	 * @param dur Animation duration in ms (-1 for auto).
+	 * @param speed Speed factor for auto duration.
+	 * @param perc Starting progress (0-1).
+	 * @param isJump Perform zoom-out-then-in animation.
+	 * @param limit Apply viewport limits.
+	 * @param limitZoom Apply zoom limits.
+	 * @param toOmniIdx Target omni frame index.
+	 * @param noTrueNorth Disable true north correction.
+	 * @param fn Animation timing function.
+	 * @param time Current timestamp.
+	 * @returns Animation duration in ms.
+	 */
+	flyToView360(centerX: f64, centerY: f64, width: f64, height: f64, dur: f64, speed: f64, perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
+		const c = this.canvas;
+		const a = c.ani;
+		c.kinetic.stop(); // Stop kinetic movement
+
+		a.limit = false; // Disable limits during animation calculation
+		// Call the animation controller's toView360 method
+		dur = a.toView360(centerX, centerY, width, height, dur, speed, perc, isJump, limit, toOmniIdx, noTrueNorth, fn, time, limitZoom);
+		a.limit = false; // Ensure limits are off during animation steps
+		a.flying = true; // Set flying flag
+		return dur;
+	}
+
+	/**
 	 * Sets the view center and scale, optionally animating.
 	 * @returns The calculated animation duration.
 	 */

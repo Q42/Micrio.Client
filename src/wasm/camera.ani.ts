@@ -1,4 +1,4 @@
-import { pyth, easeInOut, easeIn, easeOut, linear, Bicubic } from './utils'
+import { pyth, easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from './utils'
 import { View } from './shared'
 import { aniDone, aniAbort } from './main';
 import Canvas from './canvas';
@@ -271,6 +271,60 @@ export default class Ani {
 
 		// Return the remaining duration
 		return this.duration * (1 - perc);
+	}
+
+	/**
+	 * Starts or updates a "fly-to" animation to a target 360-degree area with smart longitude wrapping.
+	 * @param centerX Target center X coordinate (0-1).
+	 * @param centerY Target center Y coordinate (0-1).
+	 * @param width Target area width (0-1).
+	 * @param height Target area height (0-1).
+	 * @param dur Requested duration in ms (-1 for automatic calculation).
+	 * @param speed Speed factor for automatic duration calculation.
+	 * @param perc Starting progress percentage (0-1).
+	 * @param isJump If true, perform a zoom-out-then-in jump animation.
+	 * @param limitViewport If true, limit the target view within boundaries.
+	 * @param omniIdx Target frame index for omni object rotation (if applicable).
+	 * @param noTrueNorth If true, disable 360 true north correction for the target view.
+	 * @param fn Easing function index (0: easeInOut, 1: easeIn, 2: easeOut, 3: linear).
+	 * @param time Current timestamp (performance.now()).
+	 * @param correct If true, this is a correction animation towards limits.
+	 * @returns Calculated or provided animation duration in ms.
+	 */
+	toView360(
+		centerX: f64, centerY: f64, width: f64, height: f64,
+		dur: f64, speed: f64, perc: f64,
+		isJump: bool, limitViewport: bool, omniIdx: i32,
+		noTrueNorth: bool, fn: i16, time: f64, correct: bool = false): f64 {
+
+		// For 360 images, apply smart longitude wrapping
+		if (this.canvas.is360) {
+			const currentView = this.canvas.view;
+			const currentCenterX = currentView.centerX;
+			
+			// Calculate the shortest path for longitude (centerX)
+			const longitudeDist = longitudeDistance(currentCenterX, centerX);
+			
+			// Adjust the target centerX to use the shortest path
+			const optimizedCenterX = currentCenterX + longitudeDist;
+			
+			// Convert optimized View360 to standard View format
+			const toX0 = optimizedCenterX - width / 2;
+			const toY0 = centerY - height / 2;
+			const toX1 = optimizedCenterX + width / 2;
+			const toY1 = centerY + height / 2;
+			
+			// Use the standard toView method with optimized coordinates
+			return this.toView(toX0, toY0, toX1, toY1, dur, speed, perc, isJump, limitViewport, omniIdx, noTrueNorth, fn, time, correct);
+		}
+		
+		// Fallback for non-360 images: convert to standard view and animate
+		const toX0 = centerX - width / 2;
+		const toY0 = centerY - height / 2;
+		const toX1 = centerX + width / 2;
+		const toY1 = centerY + height / 2;
+		
+		return this.toView(toX0, toY0, toX1, toY1, dur, speed, perc, isJump, limitViewport, omniIdx, noTrueNorth, fn, time, correct);
 	}
 
 	/** Updates the target view of a running animation. Used for corrections. */
