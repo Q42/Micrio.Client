@@ -158,30 +158,6 @@ export class View {
 		return (dx0+dy0+dx1+dy1)/4 / (1 + abs(this.size-v.size));
 	}
 
-	/** Updates the view coordinates based on the current 360 camera state (yaw, pitch, perspective). */
-	from360(): void {
-		const c = this.canvas;
-		const webgl = c.webgl;
-		// Calculate view height based on perspective and vertical scaling
-		const height:f64 = webgl.perspective / PI / webgl.scaleY;
-		// Calculate view width based on height and aspect ratios
-		const width:f64 = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
-
-		// Calculate center coordinates based on yaw/pitch and true north offset
-		this._cX360 = mod1(webgl.yaw / (PI * 2) - c.trueNorth); // Center X (longitude)
-		this._cY360 = (webgl.pitch/webgl.scaleY) % (PI * 2) / PI + .5; // Center Y (latitude)
-		// Calculate view boundaries based on center and width/height
-		this.x0 = mod1(this._cX360 - width / 2);
-		this.y0 = this._cY360 - height / 2;
-		this.x1 = mod1(this._cX360 + width / 2);
-		this.y1 = this._cY360 + height / 2;
-
-		// Handle horizontal wrap-around
-		if(this.x0 > this.x1) this.x1++;
-
-		this.changed = true; // Mark view as changed
-	}
-
 	/** Applies navigation limits to the view coordinates. */
 	limit(correctZoom:bool, noLimit:bool = false): void {
 		const c = this.canvas;

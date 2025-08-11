@@ -17,6 +17,8 @@ import WebGL from './webgl'
 export default class Canvas {
 	/** The current logical view rectangle [x0, y0, x1, y1] relative to the image dimensions. */
 	readonly view! : View;
+	/** Float64Array buffer for 360-degree viewport [centerX, centerY, width, height] for efficient JS access. */
+	readonly view360Buffer : Float64Array = new Float64Array(4);
 
 	/** The current focus area within the canvas (used for galleries/grids). */
 	readonly focus! : View;
@@ -728,8 +730,16 @@ export default class Canvas {
 
 		// Update internal camera/WebGL state if canvas is initialized
 		if(this.width > 0) {
-			if(this.is360) this.webgl.setView(); // Update 360 camera orientation/perspective
-			else if(this.camera.setView()) this.webgl.update(); // Update 2D camera scale/position and WebGL matrix
+			if(this.is360) {
+				// For 360 images, convert standard view to View360 and use new system
+				const centerX = x0 + (x1 - x0) / 2;
+				const centerY = y0 + (y1 - y0) / 2;
+				const width = x1 - x0;
+				const height = y1 - y0;
+				this.webgl.setView360(centerX, centerY, width, height, noLimit, correctNorth);
+			} else if(this.camera.setView()) {
+				this.webgl.update(); // Update 2D camera scale/position and WebGL matrix
+			}
 		}
 	}
 
@@ -748,6 +758,28 @@ export default class Canvas {
 	setDirection(yaw: f64, pitch: f64, resetPersp: bool) : void {
 		if(isNaN(pitch)) pitch = this.webgl.pitch; // Use current pitch if not provided
 		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
+	}
+	/** Sets the 360 viewport using center + dimensions format (delegates to WebGL). */
+	setView360(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
+		this.webgl.setView360(centerX, centerY, width, height, noLimit, correctNorth);
+	}
+	/** Gets the current 360 viewport as center + dimensions format (delegates to WebGL). */
+	getView360() : Float64Array {
+		if(this.is360) {
+			// For 360 images, get fresh data from camera state and populate buffer
+			const view360Data = this.webgl.getView360();
+			unchecked(this.view360Buffer[0] = view360Data[0]); // centerX
+			unchecked(this.view360Buffer[1] = view360Data[1]); // centerY
+			unchecked(this.view360Buffer[2] = view360Data[2]); // width
+			unchecked(this.view360Buffer[3] = view360Data[3]); // height
+		} else {
+			// For 2D images, convert standard view to View360 format
+			unchecked(this.view360Buffer[0] = this.view.centerX);
+			unchecked(this.view360Buffer[1] = this.view.centerY);
+			unchecked(this.view360Buffer[2] = this.view.width);
+			unchecked(this.view360Buffer[3] = this.view.height);
+		}
+		return this.view360Buffer;
 	}
 	/** Gets the transformation matrix for a 360 embed (delegates to WebGL). */
 	getMatrix(x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64=1,sY:f64=1) : Float32Array {

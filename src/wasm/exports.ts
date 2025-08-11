@@ -366,23 +366,26 @@ export function _setView360(c:Canvas, centerX: f64, centerY: f64, width: f64, he
 	const y0 = centerY - height / 2;
 	const x1 = centerX + width / 2;
 	const y1 = centerY + height / 2;
-	c.setView(x0, y0, x1, y1, noLimit, noLastView, correctNorth);
+	if(c.is360) {
+		// For 360 images, use direct camera control
+		c.setView360(centerX, centerY, width, height, noLimit, correctNorth);
+		// Note: Limits are automatically applied in WebGL.setView360() -> setPerspective()
+		if(!noLastView) {
+			// Store last view in View format for compatibility
+			c.ani.lastView.set(x0, y0, x1, y1);
+		}
+	} else {
+		// For 2D images, convert to standard View format
+		c.setView(x0, y0, x1, y1, noLimit, noLastView, correctNorth);
+	}
 }
 /**
  * Get the current camera view as a 360-degree area.
  * @param c The Canvas memory pointer in shared Wasm memory.
  * @returns Pointer to a Float64Array containing [centerX, centerY, width, height].
  */
-export function _getView360(c:Canvas) : usize {
-	const view = c.view;
-	// Reuse the same buffer pattern as other getters
-	const ptr = changetype<usize>(new Float64Array(4));
-	const arr = changetype<Float64Array>(ptr);
-	unchecked(arr[0] = view.centerX);
-	unchecked(arr[1] = view.centerY);  
-	unchecked(arr[2] = view.width);
-	unchecked(arr[3] = view.height);
-	return ptr;
+export function _getView360(c:Canvas) : Float64Array {
+	return c.getView360();
 }
 /**
  * Set the current camera coordinates.

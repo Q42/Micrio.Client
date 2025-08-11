@@ -1,4 +1,4 @@
-import { atan2, modPI, pyth } from './utils'
+import { atan2, modPI, pyth, mod1 } from './utils'
 import { Coordinates, PI, PI2, PIh } from './shared'
 import { Vec4, Mat4 } from './webgl.mat'
 import Canvas from './canvas'
@@ -123,8 +123,6 @@ export default class WebGL {
 			// Store current direction in degrees
 			this.coo.direction = (this.yaw / PI * 180) % 360;
 
-			// Update the logical view based on the new 360 camera state
-			c.view.from360();
 
 		} else { // 2D Canvas
 			const v = c.view;
@@ -166,8 +164,11 @@ export default class WebGL {
 		// Add step to kinetic tracker if it's an immediate rotation (not part of animation)
 		if(duration == 0) c.kinetic.addStep(xPx*2, yPx*2, time); // Multiply delta?
 
-		// Update matrices and view
+		// Update matrices
 		this.update();
+		
+		// Sync logical view with new camera state for compatibility
+		this.syncLogicalView();
 	}
 
 	/** Clamps the pitch value based on perspective and vertical limits. */
@@ -234,6 +235,9 @@ export default class WebGL {
 		this.readScale();
 		// Update matrices (without recalculating perspective)
 		this.update(true);
+		
+		// Sync logical view with new perspective for compatibility
+		this.syncLogicalView();
 	}
 
 	/** Recalculates the effective scale based on coordinate conversion. */
@@ -253,9 +257,14 @@ export default class WebGL {
 
 	/* ================== END EVENTS ================== */
 
-	/** Sets the camera orientation based on a target logical view. */
+	/** Sets the camera orientation based on a target logical view (deprecated for 360 images). */
 	setView() : void {
+		// This method is deprecated for 360 images - use setView360() instead
+		// Keep for backward compatibility and 2D image fallback only
 		const c = this.canvas;
+		// This shouldn't be called for 360 images anymore
+		if(c.is360) return;
+		
 		const v = c.view;
 		// Calculate target yaw and pitch from view center
 		this.yaw = ((v.x0 - this.offX + v.width/2) - .5) * PI * 2;
@@ -272,6 +281,72 @@ export default class WebGL {
 		// Set perspective if provided, otherwise just update matrices
 		if(persp != 0) this.setPerspective(persp, false);
 		else this.update();
+		
+		// Sync logical view with new camera state for compatibility
+		this.syncLogicalView();
+	}
+
+	/** Sets the camera orientation using 360-degree viewport format (center + dimensions). */
+	setView360(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
+		// Apply true north correction if requested
+		const adjustedCenterX = correctNorth ? centerX + this.canvas.trueNorth : centerX;
+		
+		// Convert View360 directly to camera parameters
+		this.yaw = (adjustedCenterX - .5) * PI * 2;
+		this.pitch = (centerY - .5) * PI * this.scaleY;
+		// Set perspective based on height, applying limits unless disabled
+		this.setPerspective(min(this.maxPerspective, height * PI * this.scaleY), noLimit);
+		
+		// Update the logical view to match the new camera state (for compatibility)
+		// Convert back to standard view format and store in canvas.view
+		const x0 = centerX - width / 2;
+		const y0 = centerY - height / 2;
+		const x1 = centerX + width / 2;
+		const y1 = centerY + height / 2;
+		this.canvas.view.set(x0, y0, x1, y1);
+		this.canvas.view.changed = true;
+	}
+
+	/** Gets the current camera state as 360-degree viewport format. */
+	getView360() : Float64Array {
+		// Calculate center coordinates from camera orientation
+		const centerX = mod1(this.yaw / (PI * 2) + .5);
+		const centerY = (this.pitch / this.scaleY) / PI + .5;
+		
+		// Calculate dimensions from perspective
+		const height = this.perspective / PI / this.scaleY;
+		const c = this.canvas;
+		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
+		
+		// Return as Float64Array for WASM export compatibility
+		const result = new Float64Array(4);
+		unchecked(result[0] = centerX);
+		unchecked(result[1] = centerY);
+		unchecked(result[2] = width);
+		unchecked(result[3] = height);
+		return result;
+	}
+
+	/** Synchronizes the logical view with the current camera state for 360 images. */
+	private syncLogicalView() : void {
+		const c = this.canvas;
+		if(!c.is360) return; // Only for 360 images
+		
+		// Calculate current View360 from camera state
+		const centerX = mod1(this.yaw / (PI * 2) + .5);
+		const centerY = (this.pitch / this.scaleY) / PI + .5;
+		const height = this.perspective / PI / this.scaleY;
+		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
+		
+		// Convert to standard view format and update logical view
+		const x0 = centerX - width / 2;
+		const y0 = centerY - height / 2;
+		const x1 = centerX + width / 2;
+		const y1 = centerY + height / 2;
+		
+		// Update the logical view
+		c.view.set(x0, y0, x1, y1);
+		c.view.changed = true;
 	}
 
 	/** Applies translation offset for 360 space transitions. */
