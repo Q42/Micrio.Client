@@ -158,7 +158,7 @@ export default class Image {
 		// Don't render if fully transparent (for videos/embeds)
 		if((this.isVideo || this.localIdx > 0) && this.opacity == 0 && this.tOpacity == 0) return false;
 		// Always render if it's the active image in the canvas or the main image in a 360 view
-		if(this.index == this.canvas.activeImageIdx || (this.canvas.is360 && this.index == 0)) return true;
+		if(this.index == this.canvas.activeImageIdx || (this.canvas.is360 && this.localIdx == 0)) return true;
 		// Otherwise, render only if it's within the current view
 		return !this.outsideView();
 	}
@@ -300,9 +300,12 @@ export default class Image {
 		}
 		// If tile is not fully loaded, not single/limited, and not the highest resolution layer:
 		else if(!this.isSingle && !this.canvas.limited && l.index < this.numLayers - 1) {
-			// Recursively find tiles for the next higher resolution layer covering the same area
-			const r=l.getTileRect(idx,this.canvas.rect); // Get the rect for the current tile
-			this.getTilesRect(l.index+1, r.x0, r.y0, r.x1, r.y1); // Request tiles for the parent layer
+			// Calculate parent layer and parent tile coordinates
+			const parentLayer = unchecked(this.layers[l.index + 1]);
+			const parentX = x >> 1; // floor division by 2
+			const parentY = y >> 1; // floor division by 2
+			// Recursively add the covering parent tile
+			this.setToDraw(parentLayer, parentX, parentY);
 		}
 	}
 
@@ -385,7 +388,7 @@ export default class Image {
 	private get360Tiles(l: Layer): void {
 		const c = this.canvas;
 		const el = c.el;
-		const samplesPerEdge: i32 = 30; // Increased to 30 for better density near poles
+		const samplesPerEdge: i32 = 40;
 
 		// Reset arrays
 		this.sampledXs.length = 0;
@@ -459,6 +462,27 @@ export default class Image {
 		this.sampledXs.push(coo.x);
 		this.sampledYs.push(coo.y);
 
+		// Add extra samples near top and bottom for better pole coverage on wide screens
+		for (let i: i32 = 1; i <= 3; i++) {
+			const frac = <f64>i / 4.0;
+			// Near top
+			coo = c.webgl.getCoo(el.width * frac, quarterH / 2);
+			this.sampledXs.push(coo.x);
+			this.sampledYs.push(coo.y);
+			// Near bottom
+			coo = c.webgl.getCoo(el.width * frac, el.height - quarterH / 2);
+			this.sampledXs.push(coo.x);
+			this.sampledYs.push(coo.y);
+		}
+
+		// Add even more samples very close to the bottom for south pole coverage
+		for (let i: i32 = 0; i <= 5; i++) {
+			const frac = <f64>i / 5.0;
+			coo = c.webgl.getCoo(el.width * frac, el.height - 1); // 1 pixel from bottom
+			this.sampledXs.push(coo.x);
+			this.sampledYs.push(coo.y);
+		}
+
 		// Step 2: Compute Y range
 		let minY = Infinity;
 		let maxY = -Infinity;
@@ -473,8 +497,8 @@ export default class Image {
 		maxY = min<f64>(1, maxY);
 
 		// Conservatively expand for floating-point safety
-		minY -= 1e-4;
-		maxY += 1e-4;
+		minY -= 0.001;
+		maxY += 0.05; // Further increased expansion for maxY to ensure south pole inclusion
 		minY = max<f64>(0, minY);
 		maxY = min<f64>(1, maxY);
 
@@ -483,13 +507,14 @@ export default class Image {
 		for (let i: i32 = 0; i < this.sampledXs.length; i++) {
 			unchecked(this.sampledXs[i] = mod1(this.sampledXs[i]));
 		}
-		// Remove duplicates and sort manually
+		// Remove duplicates with tolerance
 		const uniqueXs: f64[] = [];
+		const epsilon: f64 = 1e-8; // Tolerance for considering X values equal
 		for (let i: i32 = 0; i < this.sampledXs.length; i++) {
 			const val = unchecked(this.sampledXs[i]);
 			let exists = false;
 			for (let j: i32 = 0; j < uniqueXs.length; j++) {
-				if (unchecked(uniqueXs[j]) == val) {
+				if (Math.abs(unchecked(uniqueXs[j]) - val) < epsilon) {
 					exists = true;
 					break;
 				}
@@ -563,17 +588,17 @@ export default class Image {
 
 		// After computing isFullArc, force full arc if near poles
 		let isFullArc: bool = unchecked(uniqueXs[1]) - unchecked(uniqueXs[0]) >= 1 - 1e-6;
-		if (minY < 0.01 || maxY > 0.99) {
+		if (minY < 0.05 || maxY > 0.8) { // Lowered threshold for maxY to trigger earlier for south pole
 			isFullArc = true;
 		}
 
 		// Step 4: Compute visible rows and columns
-		let minRow: u32 = max<u32>(0, <u32>floor(minY / l.tileHeight));
-		let maxRow: u32 = min<u32>(l.rows - 1, <u32>ceil(maxY / l.tileHeight) - 1);
+		let minRow: u32 = max<u32>(0, <u32>max<f64>(0, floor((minY - 0.001) / l.tileHeight))); // Ensure non-negative before cast
+		let maxRow: u32 = min<u32>(l.rows - 1, <u32>max<f64>(0, floor((maxY + l.tileHeight - 1e-10) / l.tileHeight))); // Adjusted to include last row if maxY close to boundary
 
 		// Force include edge rows if near 0 or 1
-		if (minY < 1e-6) minRow = 0;
-		if (maxY > 1 - 1e-6) maxRow = l.rows - 1;
+		if (minY < 1e-5) minRow = 0;
+		if (maxY > 1 - 1e-5) maxRow = l.rows - 1;
 
 		const tileWidth = l.tileWidth;
 		const isWrapping: bool = unchecked(uniqueXs[1]) > 1;
@@ -586,21 +611,21 @@ export default class Image {
 					this.setToDraw(l, col, row);
 				}
 			} else if (!isWrapping) {
-				// Single non-wrapping range
-				const minCol: u32 = max<u32>(0, <u32>floor(unchecked(uniqueXs[0]) / tileWidth));
-				const maxCol: u32 = min<u32>(l.cols - 1, <u32>floor((unchecked(uniqueXs[1]) - 1e-10) / tileWidth));
+				// Single non-wrapping range (Ensure non-negative)
+				const minCol: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(uniqueXs[0]) - 0.001) / tileWidth)));
+				const maxCol: u32 = min<u32>(l.cols - 1, <u32>ceil((unchecked(uniqueXs[1]) + 0.001) / tileWidth) - 1);
 				for (let col: u32 = minCol; col <= maxCol; col++) {
 					this.setToDraw(l, col, row);
 				}
 			} else {
-				// Wrapping: two ranges
+				// Wrapping: two ranges (Ensure non-negative)
 				// First range: arcStart to end of image
-				const minCol1: u32 = max<u32>(0, <u32>floor(unchecked(uniqueXs[0]) / tileWidth));
+				const minCol1: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(uniqueXs[0]) - 0.001) / tileWidth)));
 				for (let col: u32 = minCol1; col < l.cols; col++) {
 					this.setToDraw(l, col, row);
 				}
 				// Second range: 0 to mod1(arcEnd)
-				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>floor(mod1(unchecked(uniqueXs[1]) - 1e-10) / tileWidth));
+				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>ceil((mod1(unchecked(uniqueXs[1]) + 0.001)) / tileWidth) - 1);
 				for (let col: u32 = 0; col <= maxCol2; col++) {
 					this.setToDraw(l, col, row);
 				}
