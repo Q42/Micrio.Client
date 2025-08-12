@@ -1,6 +1,6 @@
 import { DrawRect, PI } from './shared';
 import { setTileOpacity } from './main';
-import { atan2, twoNth } from './utils';
+import { atan2, twoNth, mod1 } from './utils';
 import { Vec4, Mat4 } from './webgl.mat';
 import Canvas from './canvas';
 
@@ -57,6 +57,10 @@ export default class Image {
 
 	/** Flag indicating if this image is a video embed and currently playing (controlled by JS). */
 	public isVideoPlaying:bool = true;
+
+	// New properties for sampling reuse
+	private sampledXs: f64[] = [];
+	private sampledYs: f64[] = [];
 
 	constructor(
 		private readonly canvas: Canvas, // Reference to the parent Canvas
@@ -213,14 +217,10 @@ export default class Image {
 		const c = this.canvas;
 		const v = c.view;
 
-		// Special logic for main 360 image: calculate tiles radially from view center
+		// Special logic for main 360 image: calculate tiles using viewport-based ranges
 		if(this.localIdx==0 && c.is360) {
 			const l=unchecked(this.layers[lIdx]);
-			// Get center coordinates in 360 space
-			const m=c.webgl.getCoo(c.el.width/2, c.el.height/2);
-			m.x -= c.webgl.offX; // Apply true north offset
-			// Start recursive column calculation from the center tile
-			this.getColumn(l, 0, <i32>floor(m.x/l.tileWidth), <i32>floor(m.y/l.tileHeight));
+			this.get360Tiles(l);
 		}
 		// Logic for 2D images or 360 embeds
 		else {
@@ -306,47 +306,6 @@ export default class Image {
 		}
 	}
 
-	/** Recursively calculates tiles needed for a 360 view, expanding column by column from the center. */
-	private getColumn(l:Layer,dX:i32, cX:i32, cY:i32) : void {
-		// Calculate wrapped column index
-		let tX = (cX + dX)%l.cols; if(tX < 0) tX+=l.cols;
-
-		const wasDrawn = Image.toDraw.length; // Store current draw list length
-		const c = <i32>ceil(l.cols / 2); // Half the number of columns
-
-		// Add tiles in the current column if they are on screen
-		if(dX == 0) this.setToDraw(l, tX, cY); // Add center tile directly
-		else this.inScreen(l, tX, cY); // Check if center tile of column is on screen
-		// Check tiles above center
-		for(let y=cY-1;y>=0;y--) if(!this.inScreen(l, tX, y)) break; // Stop if tile is off-screen
-		// Check tiles below center
-		for(let y=cY+1;y<l.rows;y++) if(!this.inScreen(l, tX, y)) break; // Stop if tile is off-screen
-
-		// If any tiles were added in this column, recursively check adjacent columns
-		if(Image.toDraw.length != wasDrawn) {
-			if(dX <= 0 && dX >= -c) this.getColumn(l, dX-1, cX, cY); // Check left column
-			if(dX >= 0 && dX <= c) this.getColumn(l, dX+1, cX, cY); // Check right column
-		}
-	}
-
-	/** Checks if any part of a tile is visible on screen in 360 mode. */
-	private inScreen(l:Layer, x:i32, y:i32) : bool {
-		const c = this.canvas, el = c.el, m = el.width * 0.05; // Screen margin
-		// Check multiple points within the tile against screen boundaries
-		for(let dY:f64=0;dY<=1;dY+=0.05) { // Check vertical points
-			for(let dX:f64=0;dX<=1;dX+=0.25) { // Check horizontal points
-				// Get screen coordinates for the point within the tile
-				const px = c.webgl.getXYZ(min(1,(x+dX)*l.tileWidth),min(1,(y+dY)*l.tileHeight));
-				// If the point is within screen bounds (plus margin)
-				if(!(px.x<-m||px.x>el.width+m||px.y<-m||px.y>el.height+m)) {
-					this.setToDraw(l, x, y); // Add the tile to the draw list
-					return true; // Tile is at least partially visible
-				}
-			}
-		}
-		return false; // Tile is completely off-screen
-	}
-
 	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
 	setDrawRect(r: DrawRect) : void {
 		const v = this.canvas.main.vertexBuffer; // Use the standard 2D vertex buffer
@@ -422,6 +381,232 @@ export default class Image {
 		// Return scale based on the maximum projected width relative to image width
 		return min(1, max(wB, wT) / this.width);
 	}
+
+	private get360Tiles(l: Layer): void {
+		const c = this.canvas;
+		const el = c.el;
+		const samplesPerEdge: i32 = 30; // Increased to 30 for better density near poles
+
+		// Reset arrays
+		this.sampledXs.length = 0;
+		this.sampledYs.length = 0;
+
+		// Inline sampling for top edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = 0 + t * (el.width - 0);
+			const pxY = 0 + t * (0 - 0);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			this.sampledXs.push(coo.x);
+			this.sampledYs.push(coo.y);
+		}
+		// Inline sampling for right edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = el.width + t * (el.width - el.width);
+			const pxY = 0 + t * (el.height - 0);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			this.sampledXs.push(coo.x);
+			this.sampledYs.push(coo.y);
+		}
+		// Inline sampling for bottom edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = el.width + t * (0 - el.width);
+			const pxY = el.height + t * (el.height - el.height);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			this.sampledXs.push(coo.x);
+			this.sampledYs.push(coo.y);
+		}
+		// Inline sampling for left edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = 0 + t * (0 - 0);
+			const pxY = el.height + t * (0 - el.height);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			this.sampledXs.push(coo.x);
+			this.sampledYs.push(coo.y);
+		}
+
+		// Add internal samples: center and 4 quadrants
+		const centerX = el.width / 2;
+		const centerY = el.height / 2;
+		const quarterW = el.width / 4;
+		const quarterH = el.height / 4;
+
+		// Center
+		let coo = c.webgl.getCoo(centerX, centerY);
+		this.sampledXs.push(coo.x);
+		this.sampledYs.push(coo.y);
+
+		// Top-left quadrant center
+		coo = c.webgl.getCoo(centerX - quarterW, centerY - quarterH);
+		this.sampledXs.push(coo.x);
+		this.sampledYs.push(coo.y);
+
+		// Top-right
+		coo = c.webgl.getCoo(centerX + quarterW, centerY - quarterH);
+		this.sampledXs.push(coo.x);
+		this.sampledYs.push(coo.y);
+
+		// Bottom-left
+		coo = c.webgl.getCoo(centerX - quarterW, centerY + quarterH);
+		this.sampledXs.push(coo.x);
+		this.sampledYs.push(coo.y);
+
+		// Bottom-right
+		coo = c.webgl.getCoo(centerX + quarterW, centerY + quarterH);
+		this.sampledXs.push(coo.x);
+		this.sampledYs.push(coo.y);
+
+		// Step 2: Compute Y range
+		let minY = Infinity;
+		let maxY = -Infinity;
+		for (let i: i32 = 0; i < this.sampledYs.length; i++) {
+			const val = unchecked(this.sampledYs[i]);
+			if (val < minY) minY = val;
+			if (val > maxY) maxY = val;
+		}
+
+		// Clamp to [0,1]
+		minY = max<f64>(0, minY);
+		maxY = min<f64>(1, maxY);
+
+		// Conservatively expand for floating-point safety
+		minY -= 1e-4;
+		maxY += 1e-4;
+		minY = max<f64>(0, minY);
+		maxY = min<f64>(1, maxY);
+
+		// Step 3: Compute minimal covering arc for X
+		// Normalize all x to [0,1)
+		for (let i: i32 = 0; i < this.sampledXs.length; i++) {
+			unchecked(this.sampledXs[i] = mod1(this.sampledXs[i]));
+		}
+		// Remove duplicates and sort manually
+		const uniqueXs: f64[] = [];
+		for (let i: i32 = 0; i < this.sampledXs.length; i++) {
+			const val = unchecked(this.sampledXs[i]);
+			let exists = false;
+			for (let j: i32 = 0; j < uniqueXs.length; j++) {
+				if (unchecked(uniqueXs[j]) == val) {
+					exists = true;
+					break;
+				}
+			}
+			if (!exists) {
+				uniqueXs.push(val);
+			}
+		}
+		// Manual bubble sort
+		for (let i: i32 = 0; i < uniqueXs.length - 1; i++) {
+			for (let j: i32 = 0; j < uniqueXs.length - i - 1; j++) {
+				if (unchecked(uniqueXs[j]) > unchecked(uniqueXs[j + 1])) {
+					const temp = unchecked(uniqueXs[j]);
+					unchecked(uniqueXs[j] = unchecked(uniqueXs[j + 1]));
+					unchecked(uniqueXs[j + 1] = temp);
+				}
+			}
+		}
+
+		const n: i32 = uniqueXs.length;
+		if (n < 2) {
+			// Fallback: full view if insufficient samples
+			minY = 0; maxY = 1;
+			uniqueXs.length = 0;
+			uniqueXs.push(0); uniqueXs.push(1);
+		} else {
+			// Compute gaps
+			let maxGap: f64 = 0;
+			let maxGapIdx: i32 = -1;
+			for (let i: i32 = 0; i < n - 1; i++) {
+				const gap: f64 = unchecked(uniqueXs[i + 1]) - unchecked(uniqueXs[i]);
+				if (gap > maxGap) {
+					maxGap = gap;
+					maxGapIdx = i;
+				}
+			}
+			// Wrap-around gap
+			const wrapGap: f64 = unchecked(uniqueXs[0]) + 1 - unchecked(uniqueXs[n - 1]);
+			let isWrapMax: bool = wrapGap > maxGap;
+			if (isWrapMax) {
+				maxGap = wrapGap;
+				maxGapIdx = n - 1;
+			}
+
+			// Minimal arc length = 1 - maxGap
+			const arcLength: f64 = 1 - maxGap;
+
+			let arcStart: f64 = 0;
+			let arcEnd: f64 = 0;
+			if (isWrapMax) {
+				// Non-wrapping arc
+				arcStart = unchecked(uniqueXs[0]);
+				arcEnd = unchecked(uniqueXs[n - 1]);
+			} else {
+				// Wrapping arc
+				arcStart = unchecked(uniqueXs[(maxGapIdx + 1) % n]);
+				arcEnd = unchecked(uniqueXs[maxGapIdx]) + 1; // Extend to wrap
+			}
+
+			// If arcLength nearly 1, treat as full
+			if (arcLength >= 1 - 1e-6) {
+				arcStart = 0;
+				arcEnd = 1;
+			}
+
+			// Update uniqueXs to represent the arc for column calculation
+			uniqueXs.length = 0;
+			uniqueXs.push(arcStart);
+			uniqueXs.push(arcEnd);
+		}
+
+		// After computing isFullArc, force full arc if near poles
+		let isFullArc: bool = unchecked(uniqueXs[1]) - unchecked(uniqueXs[0]) >= 1 - 1e-6;
+		if (minY < 0.01 || maxY > 0.99) {
+			isFullArc = true;
+		}
+
+		// Step 4: Compute visible rows and columns
+		let minRow: u32 = max<u32>(0, <u32>floor(minY / l.tileHeight));
+		let maxRow: u32 = min<u32>(l.rows - 1, <u32>ceil(maxY / l.tileHeight) - 1);
+
+		// Force include edge rows if near 0 or 1
+		if (minY < 1e-6) minRow = 0;
+		if (maxY > 1 - 1e-6) maxRow = l.rows - 1;
+
+		const tileWidth = l.tileWidth;
+		const isWrapping: bool = unchecked(uniqueXs[1]) > 1;
+
+		// Step 5: Add tiles in bulk
+		for (let row: u32 = minRow; row <= maxRow; row++) {
+			if (isFullArc) {
+				// All columns
+				for (let col: u32 = 0; col < <u32>l.cols; col++) {
+					this.setToDraw(l, col, row);
+				}
+			} else if (!isWrapping) {
+				// Single non-wrapping range
+				const minCol: u32 = max<u32>(0, <u32>floor(unchecked(uniqueXs[0]) / tileWidth));
+				const maxCol: u32 = min<u32>(l.cols - 1, <u32>floor((unchecked(uniqueXs[1]) - 1e-10) / tileWidth));
+				for (let col: u32 = minCol; col <= maxCol; col++) {
+					this.setToDraw(l, col, row);
+				}
+			} else {
+				// Wrapping: two ranges
+				// First range: arcStart to end of image
+				const minCol1: u32 = max<u32>(0, <u32>floor(unchecked(uniqueXs[0]) / tileWidth));
+				for (let col: u32 = minCol1; col < l.cols; col++) {
+					this.setToDraw(l, col, row);
+				}
+				// Second range: 0 to mod1(arcEnd)
+				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>floor(mod1(unchecked(uniqueXs[1]) - 1e-10) / tileWidth));
+				for (let col: u32 = 0; col <= maxCol2; col++) {
+					this.setToDraw(l, col, row);
+				}
+			}
+		}
+	}
 }
 
 /** Represents a single resolution layer within an Image. */
@@ -437,8 +622,8 @@ class Layer {
 		readonly start: u32,   // Global tile index offset for the start of this layer
 		readonly end: u32,     // Global tile index offset for the end of this layer
 		readonly tileSize: u32,// Tile size in pixels for this layer (e.g., 1024, 2048)
-		readonly cols: i32,    // Number of columns in this layer
-		readonly rows: i32     // Number of rows in this layer
+		readonly cols: u32,    // Number of columns in this layer
+		readonly rows: u32     // Number of rows in this layer
 	) {
 		// Pre-calculate relative tile dimensions
 		this.tileWidth = tileSize / image.width;
