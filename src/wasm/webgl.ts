@@ -17,10 +17,6 @@ export default class WebGL {
 	// --- Vectors ---
 	/** Current camera position offset (used for 360 transitions). */
 	readonly position : Vec4 = new Vec4;
-	/** Reusable vector for quad calculations. */
-	private readonly qPos : Vec4 = new Vec4;
-	/** Reusable matrix for quad calculations. */
-	private readonly quad : Mat4 = new Mat4;
 
 	/** Base radius for 360 sphere calculations. */
 	radius : f64 = 10;
@@ -65,6 +61,9 @@ export default class WebGL {
 	readonly vec4: Vec4 = new Vec4();
 	/** Reusable coordinates object for conversions. */
 	readonly coo: Coordinates = new Coordinates;
+	/** Float64Array buffer for 360-degree viewport [centerX, centerY, width, height] for efficient JS access. */
+	readonly view360Buffer : Float64Array = new Float64Array(4);
+
 
 	/** Horizontal offset based on trueNorth setting. */
 	offX:number = 0;
@@ -319,12 +318,11 @@ export default class WebGL {
 		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
 		
 		// Return as Float64Array for WASM export compatibility
-		const result = new Float64Array(4);
-		unchecked(result[0] = centerX);
-		unchecked(result[1] = centerY);
-		unchecked(result[2] = width);
-		unchecked(result[3] = height);
-		return result;
+		unchecked(this.view360Buffer[0] = centerX);
+		unchecked(this.view360Buffer[1] = centerY);
+		unchecked(this.view360Buffer[2] = width);
+		unchecked(this.view360Buffer[3] = height);
+		return this.view360Buffer;
 	}
 
 	/** Synchronizes the logical view with the current camera state for 360 images. */

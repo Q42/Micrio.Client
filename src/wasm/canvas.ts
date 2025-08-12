@@ -17,8 +17,6 @@ import WebGL from './webgl'
 export default class Canvas {
 	/** The current logical view rectangle [x0, y0, x1, y1] relative to the image dimensions. */
 	readonly view! : View;
-	/** Float64Array buffer for 360-degree viewport [centerX, centerY, width, height] for efficient JS access. */
-	readonly view360Buffer : Float64Array = new Float64Array(4);
 
 	/** The current focus area within the canvas (used for galleries/grids). */
 	readonly focus! : View;
@@ -765,21 +763,7 @@ export default class Canvas {
 	}
 	/** Gets the current 360 viewport as center + dimensions format (delegates to WebGL). */
 	getView360() : Float64Array {
-		if(this.is360) {
-			// For 360 images, get fresh data from camera state and populate buffer
-			const view360Data = this.webgl.getView360();
-			unchecked(this.view360Buffer[0] = view360Data[0]); // centerX
-			unchecked(this.view360Buffer[1] = view360Data[1]); // centerY
-			unchecked(this.view360Buffer[2] = view360Data[2]); // width
-			unchecked(this.view360Buffer[3] = view360Data[3]); // height
-		} else {
-			// For 2D images, convert standard view to View360 format
-			unchecked(this.view360Buffer[0] = this.view.centerX);
-			unchecked(this.view360Buffer[1] = this.view.centerY);
-			unchecked(this.view360Buffer[2] = this.view.width);
-			unchecked(this.view360Buffer[3] = this.view.height);
-		}
-		return this.view360Buffer;
+		return this.webgl.getView360();
 	}
 	/** Gets the transformation matrix for a 360 embed (delegates to WebGL). */
 	getMatrix(x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64=1,sY:f64=1) : Float32Array {
