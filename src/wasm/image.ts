@@ -58,9 +58,12 @@ export default class Image {
 	/** Flag indicating if this image is a video embed and currently playing (controlled by JS). */
 	public isVideoPlaying:bool = true;
 
-	// New properties for sampling reuse
-	private sampledXs: f64[] = [];
-	private sampledYs: f64[] = [];
+	// Properties for sampling reuse for 360 tile calculation
+	private static sampledXs: Float64Array = new Float64Array(200);
+	private static sampledYs: Float64Array = new Float64Array(200);
+	private static uniqueXs: Float64Array = new Float64Array(200);
+	private static sampledLength: i32 = 0;
+	private static uniqueLength: i32 = 0;
 
 	constructor(
 		private readonly canvas: Canvas, // Reference to the parent Canvas
@@ -391,8 +394,9 @@ export default class Image {
 		const samplesPerEdge: i32 = 40;
 
 		// Reset arrays
-		this.sampledXs.length = 0;
-		this.sampledYs.length = 0;
+		Image.sampledLength = 0;
+		Image.uniqueLength = 0;
+		const epsilon: f64 = 1e-8; // Tolerance for considering X values equal
 
 		// Inline sampling for top edge
 		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
@@ -400,8 +404,9 @@ export default class Image {
 			const pxX = 0 + t * (el.width - 0);
 			const pxY = 0 + t * (0 - 0);
 			const coo = c.webgl.getCoo(pxX, pxY);
-			this.sampledXs.push(coo.x);
-			this.sampledYs.push(coo.y);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 		}
 		// Inline sampling for right edge
 		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
@@ -409,8 +414,9 @@ export default class Image {
 			const pxX = el.width + t * (el.width - el.width);
 			const pxY = 0 + t * (el.height - 0);
 			const coo = c.webgl.getCoo(pxX, pxY);
-			this.sampledXs.push(coo.x);
-			this.sampledYs.push(coo.y);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 		}
 		// Inline sampling for bottom edge
 		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
@@ -418,8 +424,9 @@ export default class Image {
 			const pxX = el.width + t * (0 - el.width);
 			const pxY = el.height + t * (el.height - el.height);
 			const coo = c.webgl.getCoo(pxX, pxY);
-			this.sampledXs.push(coo.x);
-			this.sampledYs.push(coo.y);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 		}
 		// Inline sampling for left edge
 		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
@@ -427,8 +434,9 @@ export default class Image {
 			const pxX = 0 + t * (0 - 0);
 			const pxY = el.height + t * (0 - el.height);
 			const coo = c.webgl.getCoo(pxX, pxY);
-			this.sampledXs.push(coo.x);
-			this.sampledYs.push(coo.y);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 		}
 
 		// Add internal samples: center and 4 quadrants
@@ -439,55 +447,63 @@ export default class Image {
 
 		// Center
 		let coo = c.webgl.getCoo(centerX, centerY);
-		this.sampledXs.push(coo.x);
-		this.sampledYs.push(coo.y);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
 
 		// Top-left quadrant center
 		coo = c.webgl.getCoo(centerX - quarterW, centerY - quarterH);
-		this.sampledXs.push(coo.x);
-		this.sampledYs.push(coo.y);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
 
 		// Top-right
 		coo = c.webgl.getCoo(centerX + quarterW, centerY - quarterH);
-		this.sampledXs.push(coo.x);
-		this.sampledYs.push(coo.y);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
 
 		// Bottom-left
 		coo = c.webgl.getCoo(centerX - quarterW, centerY + quarterH);
-		this.sampledXs.push(coo.x);
-		this.sampledYs.push(coo.y);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
 
 		// Bottom-right
 		coo = c.webgl.getCoo(centerX + quarterW, centerY + quarterH);
-		this.sampledXs.push(coo.x);
-		this.sampledYs.push(coo.y);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
 
 		// Add extra samples near top and bottom for better pole coverage on wide screens
 		for (let i: i32 = 1; i <= 3; i++) {
 			const frac = <f64>i / 4.0;
 			// Near top
 			coo = c.webgl.getCoo(el.width * frac, quarterH / 2);
-			this.sampledXs.push(coo.x);
-			this.sampledYs.push(coo.y);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 			// Near bottom
 			coo = c.webgl.getCoo(el.width * frac, el.height - quarterH / 2);
-			this.sampledXs.push(coo.x);
-			this.sampledYs.push(coo.y);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 		}
 
 		// Add even more samples very close to the bottom for south pole coverage
 		for (let i: i32 = 0; i <= 5; i++) {
 			const frac = <f64>i / 5.0;
 			coo = c.webgl.getCoo(el.width * frac, el.height - 1); // 1 pixel from bottom
-			this.sampledXs.push(coo.x);
-			this.sampledYs.push(coo.y);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 		}
 
 		// Step 2: Compute Y range
 		let minY = Infinity;
 		let maxY = -Infinity;
-		for (let i: i32 = 0; i < this.sampledYs.length; i++) {
-			const val = unchecked(this.sampledYs[i]);
+		for (let i: i32 = 0; i < Image.sampledLength; i++) {
+			const val = unchecked(Image.sampledYs[i]);
 			if (val < minY) minY = val;
 			if (val > maxY) maxY = val;
 		}
@@ -504,55 +520,57 @@ export default class Image {
 
 		// Step 3: Compute minimal covering arc for X
 		// Normalize all x to [0,1)
-		for (let i: i32 = 0; i < this.sampledXs.length; i++) {
-			unchecked(this.sampledXs[i] = mod1(this.sampledXs[i]));
+		for (let i: i32 = 0; i < Image.sampledLength; i++) {
+			unchecked(Image.sampledXs[i] = mod1(Image.sampledXs[i]));
 		}
 		// Remove duplicates with tolerance
-		const uniqueXs: f64[] = [];
-		const epsilon: f64 = 1e-8; // Tolerance for considering X values equal
-		for (let i: i32 = 0; i < this.sampledXs.length; i++) {
-			const val = unchecked(this.sampledXs[i]);
+		Image.uniqueLength = 0;
+		for (let i: i32 = 0; i < Image.sampledLength; i++) {
+			const val = unchecked(Image.sampledXs[i]);
 			let exists = false;
-			for (let j: i32 = 0; j < uniqueXs.length; j++) {
-				if (Math.abs(unchecked(uniqueXs[j]) - val) < epsilon) {
+			for (let j: i32 = 0; j < Image.uniqueLength; j++) {
+				if (Math.abs(unchecked(Image.uniqueXs[j]) - val) < epsilon) {
 					exists = true;
 					break;
 				}
 			}
 			if (!exists) {
-				uniqueXs.push(val);
+				unchecked(Image.uniqueXs[Image.uniqueLength] = val);
+				Image.uniqueLength++;
 			}
 		}
 		// Manual bubble sort
-		for (let i: i32 = 0; i < uniqueXs.length - 1; i++) {
-			for (let j: i32 = 0; j < uniqueXs.length - i - 1; j++) {
-				if (unchecked(uniqueXs[j]) > unchecked(uniqueXs[j + 1])) {
-					const temp = unchecked(uniqueXs[j]);
-					unchecked(uniqueXs[j] = unchecked(uniqueXs[j + 1]));
-					unchecked(uniqueXs[j + 1] = temp);
+		for (let i: i32 = 0; i < Image.uniqueLength - 1; i++) {
+			for (let j: i32 = 0; j < Image.uniqueLength - i - 1; j++) {
+				if (unchecked(Image.uniqueXs[j]) > unchecked(Image.uniqueXs[j + 1])) {
+					const temp = unchecked(Image.uniqueXs[j]);
+					unchecked(Image.uniqueXs[j] = unchecked(Image.uniqueXs[j + 1]));
+					unchecked(Image.uniqueXs[j + 1] = temp);
 				}
 			}
 		}
 
-		const n: i32 = uniqueXs.length;
+		const n: i32 = Image.uniqueLength;
 		if (n < 2) {
 			// Fallback: full view if insufficient samples
 			minY = 0; maxY = 1;
-			uniqueXs.length = 0;
-			uniqueXs.push(0); uniqueXs.push(1);
+			Image.uniqueLength = 0;
+			unchecked(Image.uniqueXs[0] = 0);
+			unchecked(Image.uniqueXs[1] = 1);
+			Image.uniqueLength = 2;
 		} else {
 			// Compute gaps
 			let maxGap: f64 = 0;
 			let maxGapIdx: i32 = -1;
 			for (let i: i32 = 0; i < n - 1; i++) {
-				const gap: f64 = unchecked(uniqueXs[i + 1]) - unchecked(uniqueXs[i]);
+				const gap: f64 = unchecked(Image.uniqueXs[i + 1]) - unchecked(Image.uniqueXs[i]);
 				if (gap > maxGap) {
 					maxGap = gap;
 					maxGapIdx = i;
 				}
 			}
 			// Wrap-around gap
-			const wrapGap: f64 = unchecked(uniqueXs[0]) + 1 - unchecked(uniqueXs[n - 1]);
+			const wrapGap: f64 = unchecked(Image.uniqueXs[0]) + 1 - unchecked(Image.uniqueXs[n - 1]);
 			let isWrapMax: bool = wrapGap > maxGap;
 			if (isWrapMax) {
 				maxGap = wrapGap;
@@ -566,12 +584,12 @@ export default class Image {
 			let arcEnd: f64 = 0;
 			if (isWrapMax) {
 				// Non-wrapping arc
-				arcStart = unchecked(uniqueXs[0]);
-				arcEnd = unchecked(uniqueXs[n - 1]);
+				arcStart = unchecked(Image.uniqueXs[0]);
+				arcEnd = unchecked(Image.uniqueXs[n - 1]);
 			} else {
 				// Wrapping arc
-				arcStart = unchecked(uniqueXs[(maxGapIdx + 1) % n]);
-				arcEnd = unchecked(uniqueXs[maxGapIdx]) + 1; // Extend to wrap
+				arcStart = unchecked(Image.uniqueXs[(maxGapIdx + 1) % n]);
+				arcEnd = unchecked(Image.uniqueXs[maxGapIdx]) + 1; // Extend to wrap
 			}
 
 			// If arcLength nearly 1, treat as full
@@ -581,13 +599,14 @@ export default class Image {
 			}
 
 			// Update uniqueXs to represent the arc for column calculation
-			uniqueXs.length = 0;
-			uniqueXs.push(arcStart);
-			uniqueXs.push(arcEnd);
+			Image.uniqueLength = 0;
+			unchecked(Image.uniqueXs[0] = arcStart);
+			unchecked(Image.uniqueXs[1] = arcEnd);
+			Image.uniqueLength = 2;
 		}
 
 		// After computing isFullArc, force full arc if near poles
-		let isFullArc: bool = unchecked(uniqueXs[1]) - unchecked(uniqueXs[0]) >= 1 - 1e-6;
+		let isFullArc: bool = unchecked(Image.uniqueXs[1]) - unchecked(Image.uniqueXs[0]) >= 1 - 1e-6;
 		if (minY < 0.05 || maxY > 0.8) { // Lowered threshold for maxY to trigger earlier for south pole
 			isFullArc = true;
 		}
@@ -601,7 +620,7 @@ export default class Image {
 		if (maxY > 1 - 1e-5) maxRow = l.rows - 1;
 
 		const tileWidth = l.tileWidth;
-		const isWrapping: bool = unchecked(uniqueXs[1]) > 1;
+		const isWrapping: bool = unchecked(Image.uniqueXs[1]) > 1;
 
 		// Step 5: Add tiles in bulk
 		for (let row: u32 = minRow; row <= maxRow; row++) {
@@ -612,20 +631,20 @@ export default class Image {
 				}
 			} else if (!isWrapping) {
 				// Single non-wrapping range (Ensure non-negative)
-				const minCol: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(uniqueXs[0]) - 0.001) / tileWidth)));
-				const maxCol: u32 = min<u32>(l.cols - 1, <u32>ceil((unchecked(uniqueXs[1]) + 0.001) / tileWidth) - 1);
+				const minCol: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth)));
+				const maxCol: u32 = min<u32>(l.cols - 1, <u32>ceil((unchecked(Image.uniqueXs[1]) + 0.001) / tileWidth) - 1);
 				for (let col: u32 = minCol; col <= maxCol; col++) {
 					this.setToDraw(l, col, row);
 				}
 			} else {
 				// Wrapping: two ranges (Ensure non-negative)
 				// First range: arcStart to end of image
-				const minCol1: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(uniqueXs[0]) - 0.001) / tileWidth)));
+				const minCol1: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth)));
 				for (let col: u32 = minCol1; col < l.cols; col++) {
 					this.setToDraw(l, col, row);
 				}
 				// Second range: 0 to mod1(arcEnd)
-				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>ceil((mod1(unchecked(uniqueXs[1]) + 0.001)) / tileWidth) - 1);
+				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>ceil((mod1(unchecked(Image.uniqueXs[1]) + 0.001)) / tileWidth) - 1);
 				for (let col: u32 = 0; col <= maxCol2; col++) {
 					this.setToDraw(l, col, row);
 				}
