@@ -181,17 +181,15 @@
 			// Zoom into the cluster's bounding box
 			if(marker.view && $current?.$info) {
 				const currentScale = $current.camera.getScale();
-				// Add margin based on pixel size / image size * scale
-				const margin = [
-					20 / $current.$info.width * currentScale,
-					20 / $current.$info.height * currentScale
-				];
-				image.camera.flyToView([
-					marker.view[0] - margin[0],
-					marker.view[1] - margin[1],
-					marker.view[2] + margin[0],
-					marker.view[3] + margin[1]
-				], {area: image.opts?.area, limitZoom: true});
+				image.camera.flyToView(marker.view, {
+					area: image.opts?.area,
+					limitZoom: true,
+					// Add margin based on pixel size / image size * scale
+					margin: [
+						20 / $current.$info.width * currentScale,
+						20 / $current.$info.height * currentScale
+					]
+				});
 			}
 		}
 		// Standard marker: set as the active marker for the image
@@ -270,15 +268,14 @@
 		if(immediatelyStartMyTourAtBeginning) delete _meta.gridAction; // Temporarily remove grid action
 
 		// Fly camera to marker view, unless it's a video tour marker or grid view marker
-		const hasView360 = marker.view360 && image.is360;
-		const hasView = marker.view && !hasView360; // view360 takes precedence when both exist
+		const hasView = marker.view;
 		
-		if(!immediatelyStartMyTourAtBeginning && (hasView360 || hasView) && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
+		if(!immediatelyStartMyTourAtBeginning && hasView && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
 			if(openOnInit) { // If opened on init, set view directly
-				image.camera.setView(marker.view360 || marker.view!, {area: image.opts?.area});
+				image.camera.setView(marker.view!, {area: image.opts?.area});
 				open(); // Proceed to open content
 			} else { // Otherwise, animate
-					const flyPromise = image.camera.flyToView(marker.view360 || marker.view!, {
+					const flyPromise = image.camera.flyToView(marker.view!, {
 						omniIndex, // Pass omni index if applicable
 						noTrueNorth: true, // Don't correct true north during marker fly-to
 						area: image.opts?.area,

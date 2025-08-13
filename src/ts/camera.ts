@@ -435,6 +435,8 @@ export class Camera {
 			area?: Models.Camera.View;
 			/** If true, respects the image's maximum zoom limit during animation. */
 			limitZoom?: boolean;
+			/** If provided, adds a margin to the view. */
+			margin?: [number, number];
 		} = {}
 	): Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
@@ -447,6 +449,12 @@ export class Camera {
 			centerY = (view[1] + view[3]) / 2;
 			width = view[2] - view[0];
 			height = view[3] - view[1];
+		}
+		if(opts.margin?.length == 2) {
+			centerX += opts.margin[0];
+			centerY += opts.margin[1];
+			width -= opts.margin[0] * 2;
+			height -= opts.margin[1] * 2;
 		}
 		if (opts.area) {
 			const absCoords = this.cooToArea(centerX, centerY, opts.area);

@@ -270,17 +270,6 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param correctNorth Internally adjust relative 360&deg; rotation
 	*/
 	_setView(ptr:number, centerX: number, centerY: number, width: number, height: number, noLimit?: boolean, noLastView?: boolean, correctNorth?: boolean) : void;
-	/** Set the current camera viewport using 360-degree area format
-	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param centerX The center X coordinate (0-1)
-	 * @param centerY The center Y coordinate (0-1)
-	 * @param width The area width (0-1)
-	 * @param height The area height (0-1)
-	 * @param noLimit The viewport can be outside of the image's limits
-	 * @param noLastView Don't keep track of the previous viewport
-	 * @param correctNorth Internally adjust relative 360° rotation
-	 */
-	_setView360(ptr:number, centerX: number, centerY: number, width: number, height: number, noLimit?: boolean, noLastView?: boolean, correctNorth?: boolean) : void;
 	/** Set the current camera coordinates
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param x The X coordinate
