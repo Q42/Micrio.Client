@@ -355,8 +355,8 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	sanitizeAsset(i.settings?._360?.video);
 	// Sanitize views
 	if (i?.settings) {
-		i.settings.view = sanitizeView(i.settings.view)!;
-		i.settings.restrict = sanitizeView(i.settings.restrict)!;
+		i.settings.view = View.sanitize(i.settings.view)!;
+		i.settings.restrict = View.sanitize(i.settings.restrict)!;
 	}
 }
 
@@ -379,7 +379,7 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 	// Sanitize tours
 	d.tours?.forEach(tour => {
 		Object.values(tour.i18n ?? {}).forEach(c => {
-			c.timeline?.forEach(t => { t.rect = sanitizeView(t.rect)!; });
+			c.timeline?.forEach(t => { t.rect = View.sanitize(t.rect)!; });
 		});
 	});
 	// Sanitize music playlist items
@@ -453,11 +453,11 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	// Ensure 'default' tag sets type correctly
 	if(m.tags.includes('default')) m.type = 'default';
 	// Sanitize view
-	m.view = sanitizeView(m.view)!;
+	m.view = View.sanitize(m.view)!;
 	// Sanitize videoTour timelines
 	if (m.videoTour) {
 		const sanitizeTimeline = (timeline?: Models.ImageData.VideoTourView[]) => {
-			timeline?.forEach(t => { t.rect = sanitizeView(t.rect)!; });
+			timeline?.forEach(t => { t.rect = View.sanitize(t.rect)!; });
 		};
 		if ('timeline' in m.videoTour) {
 			sanitizeTimeline((m.videoTour as unknown as Models.ImageData.VideoTourCultureData).timeline);
@@ -630,29 +630,33 @@ export const hasNativeHLS = (video?:HTMLMediaElement) : boolean => {
 	return !!(vid.canPlayType('application/vnd.apple.mpegurl') || vid.canPlayType('application/x-mpegURL'));
 }
 
-/** Casts a raw view array ([centerX, centerY, width, height]) to a 360 view object. */
-export const viewRawToView360 = (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
-	centerX: v[0],
-	centerY: v[1],
-	width: v[2],
-	height: v[3]
-}) : undefined;
 
-/** Casts a 360 view object to a raw view array ([centerX, centerY, width, height]). */
-export const view360ToViewRaw = (v?:Models.Camera.View360) : Models.Camera.ViewRect|undefined => v ? [
-	v.centerX,
-	v.centerY,
-	v.width,
-	v.height
-] : undefined;
+export const View = {
+	/** Casts a raw view array ([centerX, centerY, width, height]) to a 360 view object. */
+	fromRaw: (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
+		centerX: v[0],
+		centerY: v[1],
+		width: v[2],
+		height: v[3]
+	}) : undefined,
+	
+	/** Casts a 360 view object to a raw view array ([centerX, centerY, width, height]). */
+	toRaw: (v?:Models.Camera.View360) : Models.Camera.ViewRect|undefined => v ? [
+		v.centerX,
+		v.centerY,
+		v.width,
+		v.height
+	] : undefined,
+	
+	/** Casts a legacy view array ([x0, y0, x1, y1]) to a 360 view object. */
+	fromLegacy: (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
+		centerX: (v[0] + v[2]) / 2,
+		centerY: (v[1] + v[3]) / 2,
+		width: v[2] - v[0],
+		height: v[3] - v[1]
+	}) : undefined,
+	
+	/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View360 if necessary. */
+	sanitize: (v?: any) : Models.Camera.View360|undefined => Array.isArray(v) ? View.fromLegacy(v) : v
 
-/** Casts a legacy view array ([x0, y0, x1, y1]) to a 360 view object. */
-export const legacyViewToView360 = (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
-	centerX: (v[0] + v[2]) / 2,
-	centerY: (v[1] + v[3]) / 2,
-	width: v[2] - v[0],
-	height: v[3] - v[1]
-}) : undefined;
-
-/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View360 if necessary. */
-const sanitizeView = (v?: any) : Models.Camera.View360|undefined => Array.isArray(v) ? legacyViewToView360(v) : v;
+}

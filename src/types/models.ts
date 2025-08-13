@@ -1264,7 +1264,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		export interface GridHistory {
 			layout: string;
 			horizontal: boolean;
-			view?: Camera.ViewRect;
+			view?: Camera.View360;
 		}
 	
 		export interface GridImageOptions {

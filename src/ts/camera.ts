@@ -3,7 +3,7 @@ import type { MicrioWasmExports } from '../types/wasm';
 import type { Models } from '../types/models';
 
 import { tick } from 'svelte';
-import { legacyViewToView360, mod } from './utils';
+import { View, mod } from './utils';
 import { Enums } from './enums';
 
 /**
@@ -239,7 +239,7 @@ export class Camera {
 	} = {}): void {
 		if (!this.e) return; // Exit if Wasm not ready
 
-		let { centerX, centerY, width, height } = this.isView360(view) ? view : legacyViewToView360(view)!;
+		let { centerX, centerY, width, height } = this.isView360(view) ? view : View.fromLegacy(view)!;
 
 		if (opts.area) {
 			const absCoords = this.cooToArea(centerX, centerY, opts.area);
@@ -434,7 +434,7 @@ export class Camera {
 	): Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
 
-		let { centerX, centerY, width, height } = this.isView360(view) ? view : legacyViewToView360(view)!;
+		let { centerX, centerY, width, height } = this.isView360(view) ? view : View.fromLegacy(view)!;
 
 		if(opts.margin?.length == 2) {
 			centerX += opts.margin[0];

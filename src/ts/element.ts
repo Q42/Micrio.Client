@@ -5,7 +5,7 @@ import type { Camera } from './camera';
 /** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, legacyViewToView360 } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Wasm } from './wasm';
@@ -699,7 +699,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		);
 		sets.pinchZoomOutLimit = true; // Enable zoom out limit for galleries
 		// Set initial view to the starting page's area
-		if(opts.gallery.length) sets.view = legacyViewToView360(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
+		if(opts.gallery.length) sets.view = View.fromLegacy(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
 	}
 
 	/** Holds loaded grid info data if applicable. */

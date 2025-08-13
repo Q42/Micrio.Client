@@ -8,7 +8,7 @@ import type { HTMLMicrioElement } from './element';
 
 import { MicrioImage } from './image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { deepCopy, legacyViewToView360, once, sleep, view360ToViewRaw, viewRawToView360 } from './utils';
+import { deepCopy, once, sleep, View } from './utils';
 import { tick } from 'svelte';
 import { Enums } from '../ts/enums';
 
@@ -40,7 +40,7 @@ export class Grid {
 		i.height,
 		i.isDeepZoom ? 'd' : '', // 'd' for DeepZoom
 		i.isPng ? 'p':i.isWebP ? 'w' : '', // 'p' for PNG, 'w' for WebP
-		view360ToViewRaw(opts.view)?.map(round).join('/'), // View: cX,cY,w,h
+		View.toRaw(opts.view)?.map(round).join('/'), // View: cX,cY,w,h
 		opts.area?.map(round).join('/'), // Area: x0/y0/x1/y1
 		i.settings?.focus?.map(round).join('-'), // Focus: x-y
 		opts.cultures // Comma-separated cultures
@@ -316,7 +316,7 @@ export class Grid {
 				size: this.cellSizes.get(i.id) as [number,number] // Store current size
 			})).join(';'),
 			horizontal: this.isHorizontal, // Store layout orientation
-			view: this.image.camera.getViewLegacy() // Store main grid view
+			view: this.image.camera.getView() // Store main grid view
 		}));
 
 		this.isHorizontal = !!opts.horizontal; // Update layout orientation
@@ -689,7 +689,7 @@ export class Grid {
 			duration,
 			noHistory: true,
 			horizontal: state.horizontal,
-			view: legacyViewToView360(state.view)
+			view: state.view
 		});
 	}
 
@@ -815,8 +815,8 @@ export class Grid {
 			target.camera.setArea([0,0,1,1]);
 			target.camera.setView([0,0,1,1]);
 			const between = [
-				this.getString(current.$info!, {view: viewRawToView360([.5,.5,1,1])}),
-				this.getString(target.$info!, {view: viewRawToView360([.5,.5,1,1])})
+				this.getString(current.$info!, {view: View.fromRaw([.5,.5,1,1])}),
+				this.getString(target.$info!, {view: View.fromRaw([.5,.5,1,1])})
 			];
 			if(transition == 'behind-left') between.reverse();
 			await this.set(between.join(';'), {
