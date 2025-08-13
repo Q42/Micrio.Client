@@ -135,22 +135,18 @@ export default class Ani {
 	 * @returns Calculated or provided animation duration in ms.
 	 */
 	toView(
-		toX0: f64, toY0: f64, toX1: f64, toY1: f64,
+		toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64,
 		dur: f64, speed: f64, perc: f64,
 		isJump: bool, limitViewport:bool, omniIdx:i32,
 		noTrueNorth: bool, fn: i16, time : f64, correct : bool = false) : f64 {
 
 		// Store the final requested target view
-		const toCenterX = (toX0 + toX1) / 2;
-		const toCenterY = (toY0 + toY1) / 2;
-		const toWidth = toX1 - toX0;
-		const toHeight = toY1 - toY0;
 		this.lastView.setCenter(toCenterX, toCenterY, toWidth, toHeight);
 		this.vTo.setCenter(toCenterX, toCenterY, toWidth, toHeight);
 
 		// If this is a correction animation and one is already running, just update the target
 		if(correct && this.correcting) {
-			this.updateTarget(toX0, toY0, toX1, toY1, true);
+			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
 			return dur; // Return original duration estimate
 		}
 
@@ -171,14 +167,15 @@ export default class Ani {
 
 		// Adjust target view if animating to a partial screen area (from JS setArea)
 		const el = c.main.el;
+		// For margin adjustments, adjust toHeight/toWidth directly instead of toY1/toY0 etc.
 		if(el.areaHeight != 0) {
-			const margin:f64 = (toY1-toY0) / (1-(el.areaHeight / el.height));
-			if(margin > 0) toY1 += margin; else toY0 += margin;
+			const margin:f64 = toHeight / (1-(el.areaHeight / el.height));
+			if(margin > 0) toHeight += margin; else toHeight -= margin; // Simplified, but may need center adjustment if asymmetric
 			el.areaHeight = 0; // Reset area constraint
 		}
 		if(el.areaWidth != 0) {
-			const margin:f64 = (toX1-toX0) * (el.areaWidth / el.width);
-			if(margin > 0) toX1 += margin; else toX0 += margin;
+			const margin:f64 = toWidth * (el.areaWidth / el.width);
+			if(margin > 0) toWidth += margin; else toWidth -= margin;
 			el.areaWidth = 0; // Reset area constraint
 		}
 
@@ -188,16 +185,13 @@ export default class Ani {
 		const fromWidth = v.width;
 		const fromHeight = v.height;
 		f.setCenter(fromCenterX, fromCenterY, fromWidth, fromHeight);
-		t.setCenter(toCenterX, toCenterY, toWidth, toHeight); // Ensure values are numbers
 
 		// Handle 360 wrap-around logic
 		if(c.is360) {
-			isJump = true; // 360 transitions often involve perspective change
-			// If crossing the 0/1 boundary, adjust coordinates to avoid large jumps
-			if(abs(f.centerX - t.centerX) > .5) {
-				if(f.x1 > 1 && t.x1 < 1) { t.setCenter(t.centerX + 1, t.centerY, t.width, t.height); } // Wrap target right
-				if(t.x1 > 1 && f.x1 < 1) { f.setCenter(f.centerX + 1, f.centerY, f.width, f.height); } // Wrap start right
-			}
+			const longitudeDist = longitudeDistance(fromCenterX, toCenterX);
+			const optimizedCenterX = fromCenterX + longitudeDist;
+			toCenterX = optimizedCenterX; // Adjust the target centerX for shortest path
+			t.setCenter(toCenterX, toCenterY, toWidth, toHeight); // Update t with optimized centerX
 		}
 
 		// Apply viewport limits and aspect ratio correction if requested
@@ -223,10 +217,22 @@ export default class Ani {
 				}
 			}
 			// Check which edges are expanding/contracting
-			const el = t.x0 < f.x0, et = t.y0 < f.y0, er = t.x1 > f.x1, eb = t.y1 > f.y1;
+			const fLeft = f.centerX - f.width / 2;
+			const fRight = f.centerX + f.width / 2;
+			const fTop = f.centerY - f.height / 2;
+			const fBottom = f.centerY + f.height / 2;
+			const tLeft = t.centerX - t.width / 2;
+			const tRight = t.centerX + t.width / 2;
+			const tTop = t.centerY - t.height / 2;
+			const tBottom = t.centerY + t.height / 2;
+
+			const el = tLeft < fLeft, et = tTop < fTop, er = tRight > fRight, eb = tBottom > fBottom;
 			// If expanding/contracting on some but not all edges, set jump flags and increase duration
 			if((el || et || er || eb) && !(el && et && er && eb)) {
-				this.fL = el?1:2; this.fR = er?1:2; this.fT = et?1:2; this.fB = eb?1:2;
+				this.fL = el?1: (tLeft > fLeft ? 2 : 0);
+				this.fR = er?1: (tRight < fRight ? 2 : 0);
+				this.fT = et?1: (tTop > fTop ? 2 : 0);
+				this.fB = eb?1: (tBottom < fBottom ? 2 : 0);
 				durFact=1.5;
 			}
 			// Otherwise, reset target view to original requested values (no aspect adjustment needed)
@@ -292,63 +298,9 @@ export default class Ani {
 		return this.duration * (1 - perc);
 	}
 
-	/**
-	 * Starts or updates a "fly-to" animation to a target 360-degree area with smart longitude wrapping.
-	 * @param centerX Target center X coordinate (0-1).
-	 * @param centerY Target center Y coordinate (0-1).
-	 * @param width Target area width (0-1).
-	 * @param height Target area height (0-1).
-	 * @param dur Requested duration in ms (-1 for automatic calculation).
-	 * @param speed Speed factor for automatic duration calculation.
-	 * @param perc Starting progress percentage (0-1).
-	 * @param isJump If true, perform a zoom-out-then-in jump animation.
-	 * @param limitViewport If true, limit the target view within boundaries.
-	 * @param omniIdx Target frame index for omni object rotation (if applicable).
-	 * @param noTrueNorth If true, disable 360 true north correction for the target view.
-	 * @param fn Easing function index (0: easeInOut, 1: easeIn, 2: easeOut, 3: linear).
-	 * @param time Current timestamp (performance.now()).
-	 * @param correct If true, this is a correction animation towards limits.
-	 * @returns Calculated or provided animation duration in ms.
-	 */
-	toView360(
-		centerX: f64, centerY: f64, width: f64, height: f64,
-		dur: f64, speed: f64, perc: f64,
-		isJump: bool, limitViewport: bool, omniIdx: i32,
-		noTrueNorth: bool, fn: i16, time: f64, correct: bool = false): f64 {
-
-		// For 360 images, apply smart longitude wrapping
-		if (this.canvas.is360) {
-			const currentView = this.canvas.view;
-			const currentCenterX = currentView.centerX;
-			
-			// Calculate the shortest path for longitude (centerX)
-			const longitudeDist = longitudeDistance(currentCenterX, centerX);
-			
-			// Adjust the target centerX to use the shortest path
-			const optimizedCenterX = currentCenterX + longitudeDist;
-			
-			// Convert optimized View360 to standard View format
-			const toX0 = optimizedCenterX - width / 2;
-			const toY0 = centerY - height / 2;
-			const toX1 = optimizedCenterX + width / 2;
-			const toY1 = centerY + height / 2;
-			
-			// Use the standard toView method with optimized coordinates
-			return this.toView(toX0, toY0, toX1, toY1, dur, speed, perc, isJump, limitViewport, omniIdx, noTrueNorth, fn, time, correct);
-		}
-		
-		// Fallback for non-360 images: convert to standard view and animate
-		const toX0 = centerX - width / 2;
-		const toY0 = centerY - height / 2;
-		const toX1 = centerX + width / 2;
-		const toY1 = centerY + height / 2;
-		
-		return this.toView(toX0, toY0, toX1, toY1, dur, speed, perc, isJump, limitViewport, omniIdx, noTrueNorth, fn, time, correct);
-	}
-
 	/** Updates the target view of a running animation. Used for corrections. */
-	updateTarget(toX0: f64, toY0: f64, toX1: f64, toY1: f64, limiting : bool = false) : void {
-		this.vTo.set(toX0, toY0, toX1, toY1);
+	updateTarget(toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64, limiting : bool = false) : void {
+		this.vTo.setCenter(toCenterX, toCenterY, toWidth, toHeight);
 		if(limiting) this.vTo.limit(limiting); // Apply limits if requested
 	}
 
@@ -389,10 +341,10 @@ export default class Ani {
 	}
 
 	/** Sets the starting view for progress calculation in flyTo animations. */
-	setStartView(p0:f64, p1:f64, p2: f64, p3: f64, correctRatio: bool) : void {
-		this.vFrom.set(p0, p1, p2, p3, correctRatio);
+	setStartView(centerX: f64, centerY: f64, width: f64, height: f64, correctRatio: bool) : void {
+		this.vFrom.setCenter(centerX, centerY, width, height, correctRatio);
 		// Also set vTo initially to prevent issues if animation is interrupted early
-		this.vTo.set(p0, p1, p2, p3, correctRatio);
+		this.vTo.setCenter(centerX, centerY, width, height, correctRatio);
 	}
 
 	/**

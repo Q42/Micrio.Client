@@ -586,7 +586,7 @@ export function _flyTo(c:Canvas, toX0: f64, toY0: f64, toX1: f64, toY1: f64, dur
  */
 export function _flyToView360(c:Canvas, centerX: f64, centerY: f64, width: f64, height: f64, dur: f64, speed: f64,
 	perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
-	return c.camera.flyToView360(centerX, centerY, width, height, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, noTrueNorth, fn, time);
+	return c.camera.flyTo(centerX, centerY, width, height, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, noTrueNorth, fn, time);
 }
 /**
  * A zoom in/out animation.

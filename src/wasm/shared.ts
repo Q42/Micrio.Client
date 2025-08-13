@@ -215,7 +215,7 @@ export class View {
 	}
 
 	/** Applies navigation limits to the view coordinates. */
-	limit(correctZoom:bool, noLimit:bool = false): void {
+	limit(correctZoom:bool, noLimit:bool = false, freeMove:bool = false): void {
 		const c = this.canvas;
 		const mS = c.camera.minSize; // Minimum screen size factor
 		const s = this.getScale(); // Current effective scale
@@ -263,13 +263,15 @@ export class View {
 		const halfW = this._width / 2;
 		if (this.canvas.is360) {
 			this._centerX = mod1(this._centerX);
-		} else {
+		} else if (!freeMove) {
 			this._centerX = max(this.lX0 + halfW, min(this._centerX, this.lX1 - halfW));
 		}
 
 		// For Y (vertical, no wrap)
 		const halfH = this._height / 2;
-		this._centerY = max(this.lY0 + halfH, min(this._centerY, this.lY1 - halfH));
+		if (!freeMove) {
+			this._centerY = max(this.lY0 + halfH, min(this._centerY, this.lY1 - halfH));
+		}
 
 		this.toArray();
 	}
