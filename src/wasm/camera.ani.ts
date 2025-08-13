@@ -381,8 +381,19 @@ export default class Ani {
 					interpCenterX = f.centerX + deltaX * pE;
 				}
 
-				this.canvas.view.set(interpCenterX, interpCenterY, interpWidth, interpHeight);
-				// Rest of omni logic remains
+				this.canvas.setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true);
+
+				// --- Apply Omni Object Rotation Step ---
+				if(this.omniDelta) {
+					// Interpolate omni frame index based on eased progress
+					let idx = this.omniStartIdx + <i32>(this.omniDelta * this.fn.get(min(1, p*1.5))); // Slightly faster rotation easing
+					const numPerLayer = this.canvas.images.length / this.canvas.omniNumLayers;
+					// Wrap index around
+					if(idx < 0) idx += numPerLayer;
+					if(idx >= numPerLayer) idx -= numPerLayer;
+					// Set the active image in the canvas
+					this.canvas.setActiveImage(idx, 0);
+				}
 			}
 
 			// --- Apply Zoom Animation Step (360 Perspective) ---
