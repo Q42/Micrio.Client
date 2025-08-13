@@ -267,8 +267,8 @@ export function _getOmniXY(c:Canvas, x: f64, y: f64, z:f64) : Float64Array {
  * @param direct Don't animate.
  * @param noDispatch Don't do a frame draw after setting.
  */
-export function _setArea(c:Canvas, centerX:f64, centerY:f64, width:f64, height:f64, direct:bool, noDispatch:bool) : void {
-	c.setArea(centerX, centerY, width, height, direct, noDispatch) }
+export function _setArea(c:Canvas, x0:f64, y0:f64, x1:f64, y1:f64, direct:bool, noDispatch:bool) : void {
+	c.setArea(x0, y0, x1, y1, direct, noDispatch) }
 /**
  * Set the relative View area of an embedded image to render to.
  * @param i The sub image memory pointer in shared Wasm memory.
@@ -277,8 +277,8 @@ export function _setArea(c:Canvas, centerX:f64, centerY:f64, width:f64, height:f
  * @param x1 The viewport X1 coordinate.
  * @param y1 The viewport Y1 coordinate.
  */
-export function _setImageArea(i:Image, centerX:f64, centerY:f64, width:f64, height:f64) : void {
-	i.setArea(centerX, centerY, width, height) }
+export function _setImageArea(i:Image, x0:f64, y0:f64, x1:f64, y1:f64) : void {
+	i.setArea(x0, y0, x1, y1) }
 /**
  * Set an embedded sub-image rotation in 3d space for 360&deg; images.
  * @param i The sub image memory pointer in shared Wasm memory.

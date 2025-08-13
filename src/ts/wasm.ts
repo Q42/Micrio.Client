@@ -14,7 +14,7 @@ import type { MicrioWasmExports } from '../types/wasm';
 import { MicrioImage } from './image';
 import { get } from 'svelte/store';
 import { archive } from './archive';
-import { Browser, once } from './utils';
+import { Browser, once, view360ToViewRaw } from './utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 import { WASM } from './globals'; // Contains WASM binary data (likely base64)
 
@@ -381,13 +381,9 @@ export class Wasm {
 		this._pMatrices[mPtr] = new Float32Array(this.b, mPtr + 32, 16);
 
 		// Set initial view (from state, settings, or focus point)
-		const v = get(c.state.view) || settings.view;
-		if(v && v.toString() != '0,0,1,1') { // If specific view is set
-			const centerX = (v[0] + v[2]) / 2;
-			const centerY = (v[1] + v[3]) / 2;
-			const width = v[2] - v[0];
-			const height = v[3] - v[1];
-			this.e._setView(c.ptr, centerX, centerY, width, height, false, false, false);
+		const v = get(c.state.view) || view360ToViewRaw(settings.view);
+		if(v && v.toString() != '0.5,0.5,1,1') { // If specific view is set
+			this.e._setView(c.ptr, v[0], v[1], v[2], v[3], false, false, false);
 		} else if((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') { // If focus point is set (and not default 360)
 			this.e._setCoo(c.ptr, focus[0], focus[1], 0, 0, performance.now()); // Set view centered on focus point
 			settings.focus = undefined; // Clear focus setting after applying
@@ -839,8 +835,12 @@ export class Wasm {
 	 * @param v View rectangle [x0, y0, x1, y1] defining the focus area.
 	 * @param noLimit If true, allows focus outside image bounds.
 	 */
-	setFocus(ptr:number, v:Models.Camera.View, noLimit:boolean=false) : void {
-		this.e._setFocus(ptr, v[0], v[1], v[2], v[3], noLimit);
+	setFocus(ptr:number, v:Models.Camera.ViewRect, noLimit:boolean=false) : void {
+		const centerX = (v[0] + v[2]) / 2;
+		const centerY = (v[1] + v[3]) / 2;
+		const width = v[2] - v[0];
+		const height = v[3] - v[1];
+		this.e._setFocus(ptr, centerX, centerY, width, height, noLimit);
 	}
 
 }

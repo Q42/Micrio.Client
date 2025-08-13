@@ -112,7 +112,7 @@
 	let fancyLabels:boolean = $state(false);
 
 	/** Recalculates marker container size/position based on viewport changes (for clustering). */
-	const resize = (v:Models.Camera.View) => (v=v?.map(f => Math.round(f*100)/100)) && (markerStyle = [...cssVars,
+	const resize = (v:Models.Camera.ViewRect) => (v=v?.map(f => Math.round(f*100)/100)) && (markerStyle = [...cssVars,
 		v[0] ? `left: ${v[0]}px` : null,
 		v[1] ? `top: ${v[1]}px` : null,
 		`width: ${v[2]}px`,

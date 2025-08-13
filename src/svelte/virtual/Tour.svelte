@@ -245,7 +245,7 @@
 			for(let i=0;i<_scroller.children.length;i++) if(_scroller.children[i] == el) {
 				const m = data.markers?.find(m => m.id == steps[i].split(',')[0]);
 				// Fly to the marker's view
-				if(m) micrio.$current?.camera.flyToView(m.view as Models.Camera.View).catch(() => {});
+				if(m) micrio.$current?.camera.flyToView(m.view as Models.Camera.View360).catch(() => {});
 				return;
 			}
 		}

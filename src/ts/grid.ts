@@ -8,7 +8,7 @@ import type { HTMLMicrioElement } from './element';
 
 import { MicrioImage } from './image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { deepCopy, once, sleep } from './utils';
+import { deepCopy, legacyViewToView360, once, sleep, view360ToViewRaw, viewRawToView360 } from './utils';
 import { tick } from 'svelte';
 import { Enums } from '../ts/enums';
 
@@ -30,8 +30,8 @@ export class Grid {
 	 * @returns The formatted grid string for this image.
 	 */
 	static getString = (i:Models.ImageInfo.ImageInfo, opts: {
-		view?:Models.Camera.View;
-		area?:Models.Camera.View;
+		view?:Models.Camera.View360;
+		area?:Models.Camera.ViewRect;
 		size?:number[];
 		cultures?: string;
 	}) : string => [
@@ -40,7 +40,7 @@ export class Grid {
 		i.height,
 		i.isDeepZoom ? 'd' : '', // 'd' for DeepZoom
 		i.isPng ? 'p':i.isWebP ? 'w' : '', // 'p' for PNG, 'w' for WebP
-		opts.view?.map(round).join('/'), // View: x0/y0/x1/y1
+		view360ToViewRaw(opts.view)?.map(round).join('/'), // View: cX,cY,w,h
 		opts.area?.map(round).join('/'), // Area: x0/y0/x1/y1
 		i.settings?.focus?.map(round).join('-'), // Focus: x-y
 		opts.cultures // Comma-separated cultures
@@ -224,7 +224,7 @@ export class Grid {
 		/** Overrides the default animation duration for the main grid view transition. */
 		duration?:number;
 		/** If provided, animates the main grid view to this viewport rectangle. */
-		view?:Models.Camera.View;
+		view?:Models.Camera.View360;
 		/** If true, skips the main grid camera animation. */
 		noCamAni?: boolean;
 		/** If true, forces area animation even for images not currently visible. */
@@ -312,7 +312,7 @@ export class Grid {
 		// Add previous layout to history if not disabled
 		if(!opts.noHistory && this.current.length) this.depth.set(this.history.push({
 			layout: this.current.map(i => this.getString(i.$info as Models.ImageInfo.ImageInfo, {
-				view: i.state.$view, // Store current view
+				view: viewRawToView360(i.state.$view), // Store current view
 				size: this.cellSizes.get(i.id) as [number,number] // Store current size
 			})).join(';'),
 			horizontal: this.isHorizontal, // Store layout orientation
@@ -435,8 +435,8 @@ export class Grid {
 			isPng: p[4]=='p', // Check format flag
 			isWebP: p[4]=='w', // Check format flag
 			size, // Store parsed size
-			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.View : undefined, // Parse view
-			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.View : undefined, // Parse area
+			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.ViewRect : undefined, // Parse view
+			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.ViewRect : undefined, // Parse area
 			settings: deepCopy(this.image.$settings||{}, { // Copy base settings
 				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : null // Parse focus point
 			}),
@@ -689,7 +689,7 @@ export class Grid {
 			duration,
 			noHistory: true,
 			horizontal: state.horizontal,
-			view: state.view
+			view: legacyViewToView360(state.view)
 		});
 	}
 
@@ -800,7 +800,7 @@ export class Grid {
 				: [1, 0, 2, 1], {noDispatch: true, direct: true});
 			layout = [
 				this.getString(current.$info!, {
-					view: exitView ?? current.camera.getViewLegacy(),
+					view: exitView ?? current.camera.getView(),
 					area: transDir == 0 ? [0, 1, 1, 2]
 						: transDir == 180 ? [0, -1, 1, 0]
 						: transDir == 270 ? [1, 0, 2, 1]
@@ -815,8 +815,8 @@ export class Grid {
 			target.camera.setArea([0,0,1,1]);
 			target.camera.setView([0,0,1,1]);
 			const between = [
-				this.getString(current.$info!, {view: [0,0,1,1]}),
-				this.getString(target.$info!, {view: [0,0,1,1]})
+				this.getString(current.$info!, {view: viewRawToView360([.5,.5,1,1])}),
+				this.getString(target.$info!, {view: viewRawToView360([.5,.5,1,1])})
 			];
 			if(transition == 'behind-left') between.reverse();
 			await this.set(between.join(';'), {
@@ -966,7 +966,7 @@ export class Grid {
 	}
 
 	/** Get the relative in-grid viewport of the image */
-	getRelativeView(image:MicrioImage, view:Models.Camera.View) : Models.Camera.View {
+	getRelativeView(image:MicrioImage, view:Models.Camera.ViewRect) : Models.Camera.ViewRect {
 		const a = image.opts.area ?? [0,0,1,1];
 		const vW = a[2]-a[0], vH = a[3]-a[1];
 		return [

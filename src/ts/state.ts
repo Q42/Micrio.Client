@@ -4,7 +4,7 @@ import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 
 import { writable } from 'svelte/store';
-import { once } from './utils';
+import { once, viewRawToView360 } from './utils';
 
 /**
  * # Micrio State management
@@ -225,7 +225,7 @@ export namespace State {
 				// If no tour, fly to the saved view of the main image (if no marker was opened by state.set)
 				const mainImgState = s.c.find(i => i[0] == s.id);
 				if(mainImgState && !mainImgState[5] && this.micrio.$current) { // Check if marker ID (index 5) is absent
-					this.micrio.$current.camera.flyToView(mainImgState.slice(1,5) as Models.Camera.View, {speed:2}).catch(() => {});
+					this.micrio.$current.camera.flyToView(viewRawToView360(mainImgState.slice(1,5) as Models.Camera.ViewRect)!, {speed:2}).catch(() => {});
 				}
 			}
 		}
@@ -254,12 +254,12 @@ export namespace State {
 	* primarily its viewport and currently opened marker.
 	*/
 	export class Image {
-		/** Writable Svelte store holding the current viewport [x0, y0, x1, y1] of this image. */
-		public readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
+		/** Writable Svelte store holding the current viewport [centerX, centerY, width, height] of this image. */
+		public readonly view: Writable<Models.Camera.ViewRect|undefined> = writable(undefined);
 		/** Internal reference to the current view. @internal */
-		private _view:Models.Camera.View|undefined;
+		private _view:Models.Camera.ViewRect|undefined;
 		/** Getter for the current value of the {@link view} store. */
-		public get $view() : Models.Camera.View|undefined {return this._view}
+		public get $view() : Models.Camera.ViewRect|undefined {return this._view}
 
 		/**
 		 * Writable Svelte store holding the currently active marker within *this specific image*.
@@ -284,7 +284,7 @@ export namespace State {
 				this._view = view; // Update internal reference
 				const nV = view?.toString(); // Stringify for simple comparison
 				if(view && nV && pV != nV) { // If view changed
-					const detail = {image, view}; // Event detail payload with view360
+					const detail = {image, view: {centerX: view[0], centerY: view[1], width: view[2], height: view[3]}}; // Event detail payload with view360
 					pV = nV;
 					const nW = view[2], nH = view[3]; // Calculate new width/height
 					// Dispatch 'zoom' event if dimensions changed significantly

@@ -207,22 +207,22 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	_getOmniXY(ptr:number, x: number, y: number, z: number) : number;
 	/** Set the relative View area of a MicrioImage to render to, animates by default. Used in grids.
 	 * @param ptr The image memory pointer in shared Wasm memory
-	 * @param centerX The viewport X0 coordinate
-	 * @param centerY The viewport Y0 coordinate
-	 * @param width The viewport X1 coordinate
-	 * @param height The viewport Y1 coordinate
+	 * @param X0 The viewport X0 coordinate
+	 * @param Y0 The viewport Y0 coordinate
+	 * @param X1 The viewport X1 coordinate
+	 * @param Y1 The viewport Y1 coordinate
 	 * @param direct Don't animate
 	 * @param noDispatch Don't do a frame draw after setting
 	 */
-	_setArea(ptr:number, centerX:number, centerY:number, width:number, height:number, direct:boolean, noDispatch:boolean) : void;
+	_setArea(ptr:number, X0:number, Y0:number, X1:number, Y1:number, direct:boolean, noDispatch:boolean) : void;
 	/** Set the relative View area of an embedded image to render to.
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param centerX The viewport X0 coordinate
-	 * @param centerY The viewport Y0 coordinate
-	 * @param width The viewport X1 coordinate
-	 * @param height The viewport Y1 coordinate
+	 * @param X0 The viewport X0 coordinate
+	 * @param Y0 The viewport Y0 coordinate
+	 * @param X1 The viewport X1 coordinate
+	 * @param Y1 The viewport Y1 coordinate
 	 */
-	_setImageArea(imgPtr:number, centerX:number, centerY:number, width:number, height:number) : void;
+	_setImageArea(imgPtr:number, X0:number, Y0:number, X1:number, Y1:number) : void;
 	/** Set an embedded sub-image rotation in 3d space for 360&deg; images.
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param rotX The rotation over the X-axis

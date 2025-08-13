@@ -5,7 +5,7 @@ import type { Camera } from './camera';
 /** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5 } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, view360ToViewRaw, legacyViewToView360 } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Wasm } from './wasm';
@@ -416,8 +416,8 @@ export class HTMLMicrioElement extends HTMLElement {
 		splitTo?: MicrioImage,
 		/** If true, opens the split-screen view passively (doesn't take focus). */
 		isPassive?: boolean,
-		/** An optional starting view `[x0, y0, x1, y1]` to apply immediately. */
-		startView?: Models.Camera.View,
+		/** An optional starting view to apply immediately. */
+		startView?: Models.Camera.View360,
 		/** For 360 transitions, provides the direction vector from the previous image. */
 		vector?: Models.Camera.Vector,
 	}={}) : MicrioImage {
@@ -473,7 +473,7 @@ export class HTMLMicrioElement extends HTMLElement {
 
 		// Apply forced start view if provided
 		if(opts.startView) {
-			c.state.view.set(i.settings.view = opts.startView);
+			c.state.view.set(view360ToViewRaw(i.settings.view = opts.startView));
 			if(c.ptr && c.camera.e) c.camera.setView(i.settings.view,{noRender:true}); // Set immediately if camera ready
 		}
 
@@ -699,7 +699,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		);
 		sets.pinchZoomOutLimit = true; // Enable zoom out limit for galleries
 		// Set initial view to the starting page's area
-		if(opts.gallery.length) sets.view = opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area;
+		if(opts.gallery.length) sets.view = legacyViewToView360(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
 	}
 
 	/** Holds loaded grid info data if applicable. */

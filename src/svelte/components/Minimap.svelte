@@ -9,6 +9,7 @@
 
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import type { MicrioImage } from '../../ts/image';
+    import { viewRawToView360 } from '../../ts/utils';
 	import type { Models } from '../../types/models';
 
 	import { onMount, getContext, } from 'svelte';
@@ -110,7 +111,8 @@
 	// --- Drawing Function ---
 
 	/** Draws the minimap content (thumbnail and viewport indicator). */
-	function draw(area:Models.Camera.View|undefined): void{ // `area` is the current view from the image state store
+	function draw(_area:Models.Camera.ViewRect|undefined): void{ // `area` is the current view from the image state store
+		const area = viewRawToView360(_area);
 		if(!area || !_ctx) return; // Exit if no view or context
 		moved(); // Update hidden state based on activity
 
@@ -143,10 +145,10 @@
 		else { // Draw rectangle for 2D view
 			zoomedOut = camera.isZoomedOut(); // Update zoomedOut state
 			_ctx.rect(
-				Math.floor(area[0]*width), // x
-				Math.floor(area[1]*height), // y
-				Math.ceil((area[2]-area[0])*width), // width
-				Math.ceil((area[3]-area[1])*height) // height
+				Math.floor((area.centerX-area.width/2)*width), // x
+				Math.floor((area.centerY-area.height/2)*height), // y
+				Math.ceil(area.width*width), // width
+				Math.ceil(area.height*height) // height
 			);
 		}
 

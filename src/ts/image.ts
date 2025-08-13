@@ -82,7 +82,7 @@ export class MicrioImage {
 	public swiper: GallerySwiper|undefined;
 
 	/** Stores the camera view state when a marker is opened, used to return to the previous view. */
-	openedView: Models.Camera.View|undefined;
+	openedView: Models.Camera.View360|undefined;
 
 	/** Internal reference to the video element.
 	 * @internal
@@ -167,7 +167,7 @@ export class MicrioImage {
 	opacity: number = 1;
 
 	/** Svelte Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
-	public readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
+	public readonly viewport:Writable<Models.Camera.ViewRect> = writable<Models.Camera.ViewRect>();
 
 	/** Predefined local data (info, data) if available.
 	 * @internal
@@ -201,7 +201,7 @@ export class MicrioImage {
 		private attr:Partial<Models.ImageInfo.ImageInfo>,
 		public opts:{
 			/** Optional sub area [x0, y0, x1, y1] defining placement within a parent canvas (for embeds/galleries). */
-			area?: Models.Camera.View;
+			area?: Models.Camera.ViewRect;
 			/** For split screen, the primary image this one is secondary to. */
 			secondaryTo?: MicrioImage;
 			/** If true, passively follows the view changes of the primary split-screen image. */
@@ -734,7 +734,7 @@ export class MicrioImage {
 	 * @param opts Embedding options (opacity, fit, etc.).
 	 * @returns The newly created embedded {@link MicrioImage} instance.
 	 */
-	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
+	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.ViewRect, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
 		const img = new MicrioImage(this.wasm, info, {area:a, isEmbed: true, useParentCamera: opts.asImage});

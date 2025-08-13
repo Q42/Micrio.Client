@@ -441,9 +441,6 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(isOld && 'class' in m) m.tags.push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags.includes(t)))
 	// Ensure 'default' tag sets type correctly
 	if(m.tags.includes('default')) m.type = 'default';
-
-	// Correct 360 marker view coordinates if they wrap around the X-axis edge
-	if(is360 && m.view && m.view[2] < m.view[0]) m.view[2]++;
 }
 
 /**
@@ -543,12 +540,12 @@ export const getIdVal=(a:string):number=>{let c=a.charCodeAt(0),u=c<91;return (c
 export const idIsV5 = (id:string):boolean => id.length == 6 || id.length == 7;
 
 /** Clamps a view rectangle [x0, y0, x1, y1] to the image bounds [0, 0, 1, 1]. */
-export const limitView = (v: Models.Camera.View) : Models.Camera.View => [
-	Math.max(0, v[0]),
-	Math.max(0, v[1]),
-	Math.min(1, v[2]),
-	Math.min(1, v[3])
-];
+export const limitView = (v: Models.Camera.View360) : Models.Camera.View360 => ({
+	centerX: Math.max(0, v.centerX),
+	centerY: Math.max(0, v.centerY),
+	width: Math.min(1, v.centerX + v.width/2),
+	height: Math.min(1, v.centerY + v.height/2)
+});
 
 /**
  * Calculates the 3D vector and navigation parameters between two images in a 360 space.
@@ -608,3 +605,27 @@ export const hasNativeHLS = (video?:HTMLMediaElement) : boolean => {
 	const vid = video ?? document.createElement('video');
 	return !!(vid.canPlayType('application/vnd.apple.mpegurl') || vid.canPlayType('application/x-mpegURL'));
 }
+
+/** Casts a raw view array ([centerX, centerY, width, height]) to a 360 view object. */
+export const viewRawToView360 = (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
+	centerX: v[0],
+	centerY: v[1],
+	width: v[2],
+	height: v[3]
+}) : undefined;
+
+/** Casts a 360 view object to a raw view array ([centerX, centerY, width, height]). */
+export const view360ToViewRaw = (v?:Models.Camera.View360) : Models.Camera.ViewRect|undefined => v ? [
+	v.centerX,
+	v.centerY,
+	v.width,
+	v.height
+] : undefined;
+
+/** Casts a legacy view array ([x0, y0, x1, y1]) to a 360 view object. */
+export const legacyViewToView360 = (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
+	centerX: (v[0] + v[2]) / 2,
+	centerY: (v[1] + v[3]) / 2,
+	width: v[2] - v[0],
+	height: v[3] - v[1]
+}) : undefined;

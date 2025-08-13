@@ -196,9 +196,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** Micrio image settings, which is on load included as {@link ImageInfo}`.settings`. */
 		export type Settings = {
 			/** The starting viewport */
-			view?: Camera.View|Camera.View360;
+			view?: Camera.View360;
 			/** Restrict navigation to this viewport (`[x0,y0,x1,y1]`) */
-			restrict?: Camera.View|Camera.View360;
+			restrict?: Camera.View360;
 			/** Load a cover-initing image focussed on this coordinate (`[x, y]`) */
 			focus?: [number, number];
 
@@ -693,7 +693,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			visibleArc?: [number, number];
 
 			/** The viewport to zoom to when the marker is opened */
-			view?: Camera.View|Camera.View360;
+			view?: Camera.View360;
 
 			/** If an image has multiple layers, switch to this layer */
 			imageLayer?: number;
@@ -790,7 +790,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 				micrioId: string,
 				markerId?: string,
 				follows?: boolean,
-				view?: Camera.View
+				view?: Camera.View360
 			}
 
 		};
@@ -802,7 +802,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		 */
 		 export type Embed = Partial<ImageInfo.ImageInfo> & {
 			/** The area inside the main image to place the embed */
-			area: Camera.View|Camera.View360;
+			area: Camera.View360;
 
 			/** Original asset url */
 			src?: string;
@@ -895,7 +895,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Viewport name */
 			title?: string;
 			/** View rectangle */
-			rect: Camera.View|Camera.View360;
+			rect: Camera.View360;
 		};
 
 		export interface VideoTourCultureData extends TourCultureData {
@@ -988,7 +988,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			micrioId: string,
 			duration: number,
 			imageHasOtherMarkers?: boolean,
-			startView?: Camera.View|Camera.View360,
+			startView?: Camera.View360,
 			chapter?: number,
 			/** For in grid multi-image tour, stay in the grid view */
 			gridView?: boolean,
@@ -1220,7 +1220,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			thumbSrc?: string;
 			baseTileIdx: number;
 			ptr: number;
-			opts: { area: Camera.View; };
+			opts: { area: Camera.ViewRect; };
 		}
 	}
 
@@ -1257,25 +1257,25 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** Virtual ImageInfo extension to support grid logic */
 		export interface GridImage extends Partial<ImageInfo.ImageInfo> {
 			size: [number, number?];
-			area?: Camera.View;
-			view?: Camera.View;
+			area?: Camera.ViewRect;
+			view?: Camera.ViewRect;
 		}
 
 		export interface GridHistory {
 			layout: string;
 			horizontal: boolean;
-			view?: Camera.View;
+			view?: Camera.ViewRect;
 		}
 	
 		export interface GridImageOptions {
-			view?:Camera.View;
-			area?:Camera.View;
+			view?:Camera.View360;
+			area?:Camera.ViewRect;
 			size?:number[];
 		}
 	
 		export interface FocusOptions {
 			/** Optional target image view */
-			view?: Camera.View;
+			view?: Camera.View360;
 			/** Transition duration in ms */
 			duration?: number;
 			/** Transition animation, defaults to crossfade */
@@ -1283,7 +1283,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Set the target viewport immediately */
 			noViewAni?: boolean;
 			/** Animate the previously focussed image to this view during exit transition */
-			exitView?: Camera.View;
+			exitView?: Camera.View360;
 			/** Limit the focussed image to cover view, defaults to false */
 			coverLimit?: boolean;
 			/** Open as cover view, but don't limit it */
@@ -1335,6 +1335,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	export namespace Camera {
 		/** A viewport rectangle */
 		export type View = number[]|Float64Array;
+
+		/** A viewport rectangle */
+		export type ViewRect = number[]|Float64Array;
 
 		/** A 360-degree area definition with center point and dimensions */
 		export interface View360 {
@@ -1430,9 +1433,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 		// Camera events
 		/** The camera has zoomed */
-		'zoom': { image: MicrioImage, view: Camera.View360|Camera.View }; 
+		'zoom': { image: MicrioImage, view: Camera.View360 }; 
 		/** The camera has moved */
-		'move': { image: MicrioImage, view: Camera.View360|Camera.View };
+		'move': { image: MicrioImage, view: Camera.View360 };
 		/** A frame has been drawn */
 		'draw': void; 
 		/** The <micr-io> element was resized */
