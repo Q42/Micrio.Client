@@ -276,11 +276,8 @@ export default class Camera {
 		const overflowX:f64 = (cw / this.scale - vw) / 2;
 		const overflowY:f64 = (ch / this.scale - vh) / 2;
 
-		// Adjust the logical view coordinates to account for the overflow (centering)
-		v.x0 -= overflowX;
-		v.y0 -= overflowY;
-		v.x1 += overflowX;
-		v.y1 += overflowY;
+		// Apply overflow to center the view within the aspect ratio
+		v.setCenter(v.centerX - overflowX, v.centerY - overflowY, v.width, v.height);
 
 		// Store the initial view if coverStart is enabled
 		if(!this.inited && c.coverStart) this.canvas.ani.lastView.copy(v);

@@ -266,8 +266,8 @@ export default class WebGL {
 		
 		const v = c.view;
 		// Calculate target yaw and pitch from view center
-		this.yaw = ((v.x0 - this.offX + v.width/2) - .5) * PI * 2;
-		this.pitch = (((v.y0 + v.height/2) - .5) * PI) * this.scaleY;
+		this.yaw = ((v.centerX - this.offX) - .5) * PI * 2;
+		this.pitch = ((v.centerY - .5) * PI) * this.scaleY;
 		// Set perspective based on view height, applying limits
 		this.setPerspective(min(this.maxPerspective, v.height * PI * this.scaleY), true);
 	}
@@ -296,14 +296,8 @@ export default class WebGL {
 		// Set perspective based on height, applying limits unless disabled
 		this.setPerspective(min(this.maxPerspective, height * PI * this.scaleY), noLimit);
 		
-		// Update the logical view to match the new camera state (for compatibility)
-		// Convert back to standard view format and store in canvas.view
-		const x0 = centerX - width / 2;
-		const y0 = centerY - height / 2;
-		const x1 = centerX + width / 2;
-		const y1 = centerY + height / 2;
-		this.canvas.view.set(x0, y0, x1, y1);
-		this.canvas.view.changed = true;
+		// Sync logical view with new camera state
+		this.syncLogicalView();
 	}
 
 	/** Gets the current camera state as 360-degree viewport format. */
@@ -336,14 +330,8 @@ export default class WebGL {
 		const height = this.perspective / PI / this.scaleY;
 		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
 		
-		// Convert to standard view format and update logical view
-		const x0 = centerX - width / 2;
-		const y0 = centerY - height / 2;
-		const x1 = centerX + width / 2;
-		const y1 = centerY + height / 2;
-		
-		// Update the logical view
-		c.view.set(x0, y0, x1, y1);
+		// Update the logical view using new model
+		c.view.setCenter(centerX, centerY, width, height);
 		c.view.changed = true;
 	}
 

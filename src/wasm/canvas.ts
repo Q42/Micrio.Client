@@ -157,7 +157,7 @@ export default class Canvas {
 		this.full = new View(this);         // Represents the full [0,0,1,1] view
 
 		// Initial view adjustment for 360 (often only shows middle vertically)
-		if(is360) { this.view.y0 = .25; this.view.y1 = .75; }
+		if(is360) { this.view.setCenter(0.5, 0.5, 1, 0.5); }
 
 		// If top-level canvas, initialize viewport and calculate initial camera state
 		if(!hasParent) {
@@ -507,15 +507,16 @@ export default class Canvas {
 		// --- Calculate Visible View Rectangle ---
 		// Determine the intersection of the logical view (v) and the portion of the parent's view (pV)
 		// that corresponds to the current animated area (a) of this canvas.
-		this.visible.x0 = max(v.x0, v.x0 + (pV.x0 - a.x0) / a.width * v.width);
-		this.visible.x1 = min(v.x1, v.x0 + (1 - (a.x1 - min(a.x1, pV.x1)) / a.width) * v.width);
+		let visX0 = max(v.x0, v.x0 + (pV.x0 - a.x0) / a.width * v.width);
+		let visX1 = min(v.x1, v.x0 + (1 - (a.x1 - min(a.x1, pV.x1)) / a.width) * v.width);
 		// Clamp horizontal coordinates for non-360 canvases
 		if(!this.is360) {
-			this.visible.x0 = max(0, this.visible.x0);
-			this.visible.x1 = min(1, this.visible.x1);
+			visX0 = max(0, visX0);
+			visX1 = min(1, visX1);
 		}
-		this.visible.y0 = max(max(0, v.y0), v.y0 + (pV.y0 - a.y0) / a.height * v.height);
-		this.visible.y1 = min(min(1, v.y1), v.y0 + (1 - (a.y1 - min(a.y1, pV.y1)) / a.height) * v.height);
+		let visY0 = max(max(0, v.y0), v.y0 + (pV.y0 - a.y0) / a.height * v.height);
+		let visY1 = min(min(1, v.y1), v.y0 + (1 - (a.y1 - min(a.y1, pV.y1)) / a.height) * v.height);
+		this.visible.set(visX0, visY0, visX1, visY1);
 
 		// --- Update Screen Viewport (el) ---
 		const ratio = hP ? 1 : c.ratio; // Use DPR only for top-level canvas
@@ -735,6 +736,7 @@ export default class Canvas {
 				const width = x1 - x0;
 				const height = y1 - y0;
 				this.webgl.setView360(centerX, centerY, width, height, noLimit, correctNorth);
+				this.view.setCenter(centerX, centerY, width, height); // Sync view to new model
 			} else if(this.camera.setView()) {
 				this.webgl.update(); // Update 2D camera scale/position and WebGL matrix
 			}

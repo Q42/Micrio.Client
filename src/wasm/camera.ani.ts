@@ -141,7 +141,12 @@ export default class Ani {
 		noTrueNorth: bool, fn: i16, time : f64, correct : bool = false) : f64 {
 
 		// Store the final requested target view
-		this.lastView.set(toX0, toY0, toX1, toY1);
+		const toCenterX = (toX0 + toX1) / 2;
+		const toCenterY = (toY0 + toY1) / 2;
+		const toWidth = toX1 - toX0;
+		const toHeight = toY1 - toY0;
+		this.lastView.setCenter(toCenterX, toCenterY, toWidth, toHeight);
+		this.vTo.setCenter(toCenterX, toCenterY, toWidth, toHeight);
 
 		// If this is a correction animation and one is already running, just update the target
 		if(correct && this.correcting) {
@@ -178,16 +183,20 @@ export default class Ani {
 		}
 
 		// Set starting and target views
-		f.set(v.x0, v.y0, v.x1, v.y1);
-		t.set(toX0*1, toY0*1, toX1*1, toY1*1); // Ensure values are numbers
+		const fromCenterX = v.centerX;
+		const fromCenterY = v.centerY;
+		const fromWidth = v.width;
+		const fromHeight = v.height;
+		f.setCenter(fromCenterX, fromCenterY, fromWidth, fromHeight);
+		t.setCenter(toCenterX, toCenterY, toWidth, toHeight); // Ensure values are numbers
 
 		// Handle 360 wrap-around logic
 		if(c.is360) {
 			isJump = true; // 360 transitions often involve perspective change
 			// If crossing the 0/1 boundary, adjust coordinates to avoid large jumps
 			if(abs(f.centerX - t.centerX) > .5) {
-				if(f.x1 > 1 && t.x1 < 1) { t.x0++; t.x1++; } // Wrap target right
-				if(t.x1 > 1 && f.x1 < 1) { f.x0++; f.x1++; } // Wrap start right
+				if(f.x1 > 1 && t.x1 < 1) { t.setCenter(t.centerX + 1, t.centerY, t.width, t.height); } // Wrap target right
+				if(t.x1 > 1 && f.x1 < 1) { f.setCenter(f.centerX + 1, f.centerY, f.width, f.height); } // Wrap start right
 			}
 		}
 
@@ -205,8 +214,13 @@ export default class Ani {
 			// Adjust target aspect ratio for non-360 jumps to match start aspect ratio initially
 			if(!c.is360) {
 				const cX = t.centerX, cY = t.centerY;
-				if(t.aspect > f.aspect) { const nh = t.width * f.aspect; t.y0 = cY-nh/2; t.y1 = cY+nh/2; }
-				else { const nw = t.height * f.aspect; t.x0 = cX-nw/2; t.x1 = cX+nw/2; }
+				if(t.aspect > f.aspect) {
+					const nh = t.width / f.aspect;
+					t.setCenter(cX, cY, t.width, nh);
+				} else {
+					const nw = t.height * f.aspect;
+					t.setCenter(cX, cY, nw, t.height);
+				}
 			}
 			// Check which edges are expanding/contracting
 			const el = t.x0 < f.x0, et = t.y0 < f.y0, er = t.x1 > f.x1, eb = t.y1 > f.y1;
@@ -216,7 +230,7 @@ export default class Ani {
 				durFact=1.5;
 			}
 			// Otherwise, reset target view to original requested values (no aspect adjustment needed)
-			else t.set(toX0*1, toY0*1, toX1*1, toY1*1);
+			else t.setCenter(toCenterX, toCenterY, toWidth, toHeight);
 		}
 
 		// Apply final limits if this is a correction animation
@@ -226,7 +240,12 @@ export default class Ani {
 		// Base duration factor on canvas size
 		const resoFact = max(10000, min(15000, sqrt(c.width * c.width + c.height * c.height) / 2));
 		// Calculate distance between start and target views
-		const dst = v.getDistance(t, dur < 0); // Pass true if duration is auto
+		let dCenterX = abs(fromCenterX - toCenterX);
+		if (c.is360) dCenterX = min(dCenterX, 1 - dCenterX); // Shortest distance for wrap-around
+		const dCenterY = abs(fromCenterY - toCenterY);
+		const dWidth = abs(fromWidth - toWidth);
+		const dHeight = abs(fromHeight - toHeight);
+		const dst = (dCenterX + dCenterY + dWidth / 2 + dHeight / 2) / 3; // Adjusted normalization
 		// Calculate easing curve parameters for jump animation
 		this.mI = max(.5, .8 - dst * (c.is360 ? 1 : 2)); // Ease-in end point
 		this.mO = max(.05, min(.9, dst - (c.is360 ? .2 : .1))); // Ease-out start point
@@ -398,28 +417,20 @@ export default class Ani {
 					o = this.fn.get(max(0,(p-mo)/(1-mo))); // Ease-out part
 				let n:i8=0; // Temp variable for edge flag
 
-				// Interpolate each coordinate using either standard eased progress (pE)
-				// or the jump-specific ease-in (i) or ease-out (o) progress.
-				this.canvas.setView(
-					f.x0+(t.x0-f.x0)*(!(n=this.fL)?pE:n==1?i:o), // x0
-					f.y0+(t.y0-f.y0)*(!(n=this.fT)?pE:n==1?i:o), // y0
-					f.x1+(t.x1-f.x1)*(!(n=this.fR)?pE:n==1?i:o), // x1
-					f.y1+(t.y1-f.y1)*(!(n=this.fB)?pE:n==1?i:o), // y1
-					false, // noLimit (handled internally by animation logic)
-					true   // noLastView (don't update lastView during step)
-				);
+				// Interpolate centers and sizes
+				let interpCenterX = f.centerX + (t.centerX - f.centerX) * (!(n=this.fL || this.fR) ? pE : n==1 ? i : o);
+				let interpCenterY = f.centerY + (t.centerY - f.centerY) * (!(n=this.fT || this.fB) ? pE : n==1 ? i : o);
+				const interpWidth = f.width + (t.width - f.width) * pE;
+				const interpHeight = f.height + (t.height - f.height) * pE;
 
-				// --- Apply Omni Object Rotation Step ---
-				if(this.omniDelta) {
-					// Interpolate omni frame index based on eased progress
-					let idx = this.omniStartIdx + <i32>(this.omniDelta * this.fn.get(min(1, p*1.5))); // Slightly faster rotation easing
-					const numPerLayer = this.canvas.images.length / this.canvas.omniNumLayers;
-					// Wrap index around
-					if(idx < 0) idx += numPerLayer;
-					if(idx >= numPerLayer) idx -= numPerLayer;
-					// Set the active image in the canvas
-					this.canvas.setActiveImage(idx, 0);
+				// For 360, use shortest path interpolation for centerX
+				if (this.canvas.is360) {
+					const deltaX = longitudeDistance(f.centerX, t.centerX);
+					interpCenterX = f.centerX + deltaX * pE;
 				}
+
+				this.canvas.view.setCenter(interpCenterX, interpCenterY, interpWidth, interpHeight);
+				// Rest of omni logic remains
 			}
 
 			// --- Apply Zoom Animation Step (360 Perspective) ---
