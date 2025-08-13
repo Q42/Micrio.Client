@@ -157,13 +157,13 @@ export default class Canvas {
 		this.full = new View(this);         // Represents the full [0,0,1,1] view
 
 		// Initial view adjustment for 360 (often only shows middle vertically)
-		if(is360) { this.view.setCenter(0.5, 0.5, 1, 0.5); }
+		if(is360) { this.view.set(0.5, 0.5, 1, 0.5); }
 
 		// If top-level canvas, initialize viewport and calculate initial camera state
 		if(!hasParent) {
 			this.el.copy(main.el); // Copy main element viewport
 			// Set initial view (might be adjusted by camera.setView later)
-			this.setView(this.view.x0,this.view.y0,this.view.x1,this.view.y1, false, false);
+			this.setView(this.view.centerX,this.view.centerY,this.view.width,this.view.height, false, false);
 			this.resize(); // Trigger initial resize calculation
 		}
 
@@ -490,12 +490,11 @@ export default class Canvas {
 			// Apply easing function
 			const p = this.main.gridTransitionTimingFunction.get(this.areaAniPerc);
 			// Interpolate currentArea between starting (b) and target (t) area
-			a.set(
-				b.x0 + (t.x0 - b.x0) * p,
-				b.y0 + (t.y0 - b.y0) * p,
-				b.x1 + (t.x1 - b.x1) * p,
-				b.y1 + (t.y1 - b.y1) * p,
-			);
+			const interpCenterX = (b.centerX + (t.centerX - b.centerX) * p);
+			const interpCenterY = (b.centerY + (t.centerY - b.centerY) * p);
+			const interpWidth = (b.width + (t.width - b.width) * p);
+			const interpHeight = (b.height + (t.height - b.height) * p);
+			a.set(interpCenterX, interpCenterY, interpWidth, interpHeight);
 			// If animation finished
 			if(this.areaAniPerc == 1) {
 				if(this.zIndex == 1) this.zIndex = 0; // Reset zIndex if it was raised for transition
@@ -516,7 +515,17 @@ export default class Canvas {
 		}
 		let visY0 = max(max(0, v.y0), v.y0 + (pV.y0 - a.y0) / a.height * v.height);
 		let visY1 = min(min(1, v.y1), v.y0 + (1 - (a.y1 - min(a.y1, pV.y1)) / a.height) * v.height);
-		this.visible.set(visX0, visY0, visX1, visY1);
+		visY0 = max(visY0, 0);
+		visY1 = min(visY1, 1);
+
+		// Compute centers and sizes for new model
+		const visCenterX = (visX0 + visX1) / 2;
+		const visCenterY = (visY0 + visY1) / 2;
+		const visWidth = visX1 - visX0;
+		const visHeight = visY1 - visY0;
+
+		// Set visible using new model
+		this.visible.set(visCenterX, visCenterY, visWidth, visHeight);
 
 		// --- Update Screen Viewport (el) ---
 		const ratio = hP ? 1 : c.ratio; // Use DPR only for top-level canvas
@@ -546,11 +555,11 @@ export default class Canvas {
 	}
 
 	/** Sets the target area for this canvas within its parent, optionally animating. */
-	setArea(x0:f64,y0:f64,x1:f64,y1:f64,direct:bool,noDispatch:bool) : void {
+	setArea(centerX: f64, centerY: f64, width: f64, height: f64, direct:bool, noDispatch:bool) : void {
 		this.areaAniPaused = false; // Ensure animation is not paused
 		if(direct) { // Set area immediately
-			this.area.set(x0, y0, x1, y1);
-			this.currentArea.set(x0, y0, x1, y1);
+			this.area.set(centerX, centerY, width, height);
+			this.currentArea.set(centerX, centerY, width, height);
 		}
 		else { // Start animation
 			this.areaAniPerc = 0; // Reset progress
@@ -558,7 +567,7 @@ export default class Canvas {
 			this.ani.limit = false; // Disable view limits during area animation
 		}
 		// Set the target area
-		this.targetArea.set(x0, y0, x1, y1);
+		this.targetArea.set(centerX, centerY, width, height);
 		// Trigger initial calculation/step
 		this.partialView(noDispatch);
 	}
@@ -674,20 +683,21 @@ export default class Canvas {
 	}
 
 	/** Sets the focus area for gallery/grid canvases. */
-	setFocus(x0:f64, y0:f64, x1:f64, y1:f64, noLimit:bool) : void {
-		// Check if focus actually changed
-		if(this.focus.x0 == x0 && this.focus.x1 == x1 && this.focus.y0 == y0 && this.focus.y1 == y1) return;
-		this.activeImageIdx = -1; // Reset active image index
-		// Determine which image(s) are within the new focus area and set their opacity
+	setFocus(centerX: f64, centerY: f64, width: f64, height: f64, noLimit:bool) : void {
+		const x0 = centerX - width / 2;
+		const y0 = centerY - height / 2;
+		const x1 = centerX + width / 2;
+		const y1 = centerY + height / 2;
+
+		if(this.focus.equal(new View(this, centerX, centerY, width, height))) return;
+		this.activeImageIdx = -1;
 		for(let i=0;i<this.images.length;i++) {
 			const im = unchecked(this.images[i]);
-			// Check for overlap between image area and focus area
-			if(im.x1 <= x0 || im.x0 >= x1 || im.y1 <= y0 || im.y0 >= y1) im.tOpacity = 0; // No overlap
-			else { im.tOpacity = 1; this.activeImageIdx = i; } // Overlap, make active
+			if(im.x1 <= x0 || im.x0 >= x1 || im.y1 <= y0 || im.y0 >= y1) im.tOpacity = 0;
+			else { im.tOpacity = 1; this.activeImageIdx = i; }
 		}
-		this.focus.set(x0, y0, x1, y1); // Store new focus area
-		this.camera.correctMinMax(); // Recalculate scale limits
-		// If not limiting, immediately update camera view and WebGL state
+		this.focus.set(centerX, centerY, width, height);
+		this.camera.correctMinMax();
 		if(!noLimit) {
 			this.camera.setView();
 			this.webgl.update();
@@ -707,38 +717,26 @@ export default class Canvas {
 	/** Gets the current logical view array. */
 	getView() : Float64Array { return this.view.arr }
 	/** Sets the logical view directly. */
-	setView(x0: f64, y0: f64, x1: f64, y1: f64, noLimit: bool, noLastView: bool, correctNorth: bool = false, forceLimit: bool = false) : void {
+	setView(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool, noLastView: bool, correctNorth: bool = false, forceLimit: bool = false) : void {
 		const mE = this.main.el;
 
-		// Adjust target view if rendering to a partial area
-		if(mE.areaHeight > 0) { y1 += (y1-y0) / (1-(mE.areaHeight / mE.height)); this.ani.limit = false; mE.areaHeight = 0; };
-		if(mE.areaWidth > 0) { x1 += (x1-x0) * (mE.areaWidth / mE.width); this.ani.limit = false; mE.areaWidth = 0; };
-		// Disable limits if requested
+		// Adjust target if partial area (update to centers)
+		if(mE.areaHeight > 0) { height += height / (1-(mE.areaHeight / mE.height)); this.ani.limit = false; mE.areaHeight = 0; };
+		if(mE.areaWidth > 0) { width += width * (mE.areaWidth / mE.width); this.ani.limit = false; mE.areaWidth = 0; };
 		if(noLimit) this.ani.limit = false;
 
-		// Set true north correction flag for the View object
 		this.view.correct = correctNorth;
-		// Set the view coordinates
-		this.view.set(x0, y0, x1, y1);
-		// Apply limits if forced and not disabled
-		if(forceLimit && !noLimit) this.view.limit(false);
-		// Reset correction flag
+		this.view.set(centerX, centerY, width, height);
+		if(forceLimit && !noLimit) this.view.limit(false, false, this.freeMove);
 		this.view.correct = false;
-		// Store this view as the last known view if requested
 		if(!noLastView) this.ani.lastView.copy(this.view);
 
-		// Update internal camera/WebGL state if canvas is initialized
 		if(this.width > 0) {
 			if(this.is360) {
-				// For 360 images, convert standard view to View360 and use new system
-				const centerX = x0 + (x1 - x0) / 2;
-				const centerY = y0 + (y1 - y0) / 2;
-				const width = x1 - x0;
-				const height = y1 - y0;
 				this.webgl.setView360(centerX, centerY, width, height, noLimit, correctNorth);
-				this.view.setCenter(centerX, centerY, width, height); // Sync view to new model
+				this.view.set(centerX, centerY, width, height); // Sync
 			} else if(this.camera.setView()) {
-				this.webgl.update(); // Update 2D camera scale/position and WebGL matrix
+				this.webgl.update();
 			}
 		}
 	}
@@ -758,10 +756,6 @@ export default class Canvas {
 	setDirection(yaw: f64, pitch: f64, resetPersp: bool) : void {
 		if(isNaN(pitch)) pitch = this.webgl.pitch; // Use current pitch if not provided
 		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
-	}
-	/** Sets the 360 viewport using center + dimensions format (delegates to WebGL). */
-	setView360(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
-		this.webgl.setView360(centerX, centerY, width, height, noLimit, correctNorth);
 	}
 	/** Gets the current 360 viewport as center + dimensions format (delegates to WebGL). */
 	getView360() : Float64Array {

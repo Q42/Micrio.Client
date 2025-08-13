@@ -141,8 +141,8 @@ export default class Ani {
 		noTrueNorth: bool, fn: i16, time : f64, correct : bool = false) : f64 {
 
 		// Store the final requested target view
-		this.lastView.setCenter(toCenterX, toCenterY, toWidth, toHeight);
-		this.vTo.setCenter(toCenterX, toCenterY, toWidth, toHeight);
+		this.lastView.set(toCenterX, toCenterY, toWidth, toHeight);
+		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 
 		// If this is a correction animation and one is already running, just update the target
 		if(correct && this.correcting) {
@@ -184,14 +184,14 @@ export default class Ani {
 		const fromCenterY = v.centerY;
 		const fromWidth = v.width;
 		const fromHeight = v.height;
-		f.setCenter(fromCenterX, fromCenterY, fromWidth, fromHeight);
+		f.set(fromCenterX, fromCenterY, fromWidth, fromHeight);
 
 		// Handle 360 wrap-around logic
 		if(c.is360) {
 			const longitudeDist = longitudeDistance(fromCenterX, toCenterX);
 			const optimizedCenterX = fromCenterX + longitudeDist;
 			toCenterX = optimizedCenterX; // Adjust the target centerX for shortest path
-			t.setCenter(toCenterX, toCenterY, toWidth, toHeight); // Update t with optimized centerX
+			t.set(toCenterX, toCenterY, toWidth, toHeight); // Update t with optimized centerX
 		}
 
 		// Apply viewport limits and aspect ratio correction if requested
@@ -210,10 +210,10 @@ export default class Ani {
 				const cX = t.centerX, cY = t.centerY;
 				if(t.aspect > f.aspect) {
 					const nh = t.width / f.aspect;
-					t.setCenter(cX, cY, t.width, nh);
+					t.set(cX, cY, t.width, nh);
 				} else {
 					const nw = t.height * f.aspect;
-					t.setCenter(cX, cY, nw, t.height);
+					t.set(cX, cY, nw, t.height);
 				}
 			}
 			// Check which edges are expanding/contracting
@@ -236,7 +236,7 @@ export default class Ani {
 				durFact=1.5;
 			}
 			// Otherwise, reset target view to original requested values (no aspect adjustment needed)
-			else t.setCenter(toCenterX, toCenterY, toWidth, toHeight);
+			else t.set(toCenterX, toCenterY, toWidth, toHeight);
 		}
 
 		// Apply final limits if this is a correction animation
@@ -275,7 +275,7 @@ export default class Ani {
 		// --- Start Animation ---
 		// If duration is zero, set view directly and finish
 		if(this.duration == 0) {
-			c.setView(t.x0, t.y0, t.x1, t.y1, false, true); // Set view, don't update lastView
+			c.setView(t.centerX, t.centerY, t.width, t.height, false, true); // Set view, don't update lastView
 			aniDone(this.canvas); // Notify JS host
 			this.stop(); // Reset animation state
 			return this.duration;
@@ -300,7 +300,7 @@ export default class Ani {
 
 	/** Updates the target view of a running animation. Used for corrections. */
 	updateTarget(toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64, limiting : bool = false) : void {
-		this.vTo.setCenter(toCenterX, toCenterY, toWidth, toHeight);
+		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 		if(limiting) this.vTo.limit(limiting); // Apply limits if requested
 	}
 
@@ -342,9 +342,9 @@ export default class Ani {
 
 	/** Sets the starting view for progress calculation in flyTo animations. */
 	setStartView(centerX: f64, centerY: f64, width: f64, height: f64, correctRatio: bool) : void {
-		this.vFrom.setCenter(centerX, centerY, width, height, correctRatio);
+		this.vFrom.set(centerX, centerY, width, height, correctRatio);
 		// Also set vTo initially to prevent issues if animation is interrupted early
-		this.vTo.setCenter(centerX, centerY, width, height, correctRatio);
+		this.vTo.set(centerX, centerY, width, height, correctRatio);
 	}
 
 	/**
@@ -381,7 +381,7 @@ export default class Ani {
 					interpCenterX = f.centerX + deltaX * pE;
 				}
 
-				this.canvas.view.setCenter(interpCenterX, interpCenterY, interpWidth, interpHeight);
+				this.canvas.view.set(interpCenterX, interpCenterY, interpWidth, interpHeight);
 				// Rest of omni logic remains
 			}
 

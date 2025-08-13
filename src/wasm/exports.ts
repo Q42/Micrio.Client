@@ -368,11 +368,11 @@ export function _setView360(c:Canvas, centerX: f64, centerY: f64, width: f64, he
 	const y1 = centerY + height / 2;
 	if(c.is360) {
 		// For 360 images, use direct camera control
-		c.setView360(centerX, centerY, width, height, noLimit, correctNorth);
+		c.setView(centerX, centerY, width, height, noLimit, correctNorth);
 		// Note: Limits are automatically applied in WebGL.setView360() -> setPerspective()
 		if(!noLastView) {
 			// Store last view in View format for compatibility
-			c.ani.lastView.set(x0, y0, x1, y1);
+			c.ani.lastView.set(centerX, centerY, width, height);
 		}
 	} else {
 		// For 2D images, convert to standard View format

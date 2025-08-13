@@ -90,33 +90,8 @@ export class View {
 	get aspect() : f64 { return this.width / this.height }
 	get size() : f64 { return pyth(this.width, this.height) / pyth(1,1) }
 
-	// Update set to modify public props
-	set(x0:f64, y0:f64, x1:f64, y1:f64, preserveAspect: bool = false) : void {
-		let w = x1 - x0;
-		let h = y1 - y0;
-		let cx = x0 + w / 2;
-		let cy = y0 + h / 2;
-
-		if(preserveAspect) {
-			const cAr = min(1, this.width) / min(1, this.height);
-			if(w / h > cAr * 1.5 && w < this.width) { h = w * cAr; cy = y0 + h/2; }
-		}
-
-		const os = this.correct ? this.tnOffset : 0;
-		cx += os;
-
-		this.centerX = cx;
-		this.centerY = cy;
-		this.width = w;
-		this.height = h;
-
-		this.toArray();
-		this.toLegacy();
-		this.changed = true;
-	}
-
 	// Update setCenter to modify public props
-	setCenter(centerX: f64, centerY: f64, width: f64, height: f64, preserveAspect: bool = false): void {
+	set(centerX: f64, centerY: f64, width: f64, height: f64, preserveAspect: bool = false): void {
 		if (preserveAspect) {
 			const cAr = min(1, this.width) / min(1, this.height);
 			if (width / height > cAr * 1.5 && width < this.width) {

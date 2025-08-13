@@ -331,7 +331,7 @@ export default class WebGL {
 		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
 		
 		// Update the logical view using new model
-		c.view.setCenter(centerX, centerY, width, height);
+		c.view.set(centerX, centerY, width, height);
 		c.view.changed = true;
 	}
 

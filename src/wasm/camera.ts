@@ -278,7 +278,7 @@ export default class Camera {
 		const overflowY:f64 = (ch / this.scale - vh) / 2;
 
 		// Apply overflow to center the view within the aspect ratio
-		v.setCenter(v.centerX - overflowX, v.centerY - overflowY, v.width, v.height);
+		v.set(v.centerX - overflowX, v.centerY - overflowY, v.width, v.height);
 
 		// Store the initial view if coverStart is enabled
 		if(!this.inited && c.coverStart) this.canvas.ani.lastView.copy(v);
@@ -345,7 +345,7 @@ export default class Camera {
 
 		if(this.pinching) {
 			// If pinching, apply pan directly without animation or kinetic tracking
-			c.view.setCenter(newCenterX, newCenterY, viewWidth, viewHeight);
+			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 			const legacy = c.view.toLegacy();
 			c.setView(legacy[0], legacy[1], legacy[2], legacy[3], noLimit, false, false, false);
 		} else if(this.isOutsideLimit() && !isKinetic) {
@@ -360,7 +360,7 @@ export default class Camera {
 				// Add step to kinetic tracker if not already kinetic movement
 				if(!isKinetic) c.kinetic.addStep(xPx*4, yPx*4, time); // Multiply delta for more sensitivity?
 				// Set view directly
-				c.view.setCenter(newCenterX, newCenterY, viewWidth, viewHeight);
+				c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 				if (!noLimit) {
 					c.view.limit(false, false, c.freeMove); // Apply limits, passing freeMove
 				}
