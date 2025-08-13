@@ -118,10 +118,10 @@ export default class Ani {
 
 	/**
 	 * Starts or updates a "fly-to" animation to a target view rectangle.
-	 * @param toX0 Target view X0.
-	 * @param toY0 Target view Y0.
-	 * @param toX1 Target view X1.
-	 * @param toY1 Target view Y1.
+	 * @param toCenterX Target view center X.
+	 * @param toCenterY Target view center Y.
+	 * @param toWidth Target view width.
+	 * @param toHeight Target view height.
 	 * @param dur Requested duration in ms (-1 for automatic calculation).
 	 * @param speed Speed factor for automatic duration calculation.
 	 * @param perc Starting progress percentage (0-1).

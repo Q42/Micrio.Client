@@ -109,8 +109,8 @@ export class Camera {
 		const centerCoords = this.getCoo(0,0); // Get image coordinates at screen center
 
 		// Update center property [x, y, scale]
-		this.center[0] = v[0] + (v[2]-v[0]) / 2;
-		this.center[1] = v[1] + (v[3]-v[1]) / 2;
+		this.center[0] = v[0];
+		this.center[1] = v[1];
 		this.center[2] = centerCoords[2]; // Scale
 
 		// Update 360 orientation [yaw, pitch]

@@ -210,7 +210,7 @@ export class View {
 		if(noLimit) return;
 
 		// Limit Boundaries
-		const halfW = this.width / 2;
+		const halfW = min(1, this.width) / 2;
 		const lHalfW = this.lWidth / 2;
 		if (this.canvas.is360) {
 			this.centerX = mod1(this.centerX);
@@ -218,7 +218,7 @@ export class View {
 			this.centerX = max(this.lCenterX - lHalfW + halfW, min(this.centerX, this.lCenterX + lHalfW - halfW));
 		}
 
-		const halfH = this.height / 2;
+		const halfH = min(1, this.height) / 2;
 		const lHalfH = this.lHeight / 2;
 		if (!freeMove) {
 			this.centerY = max(this.lCenterY - lHalfH + halfH, min(this.centerY, this.lCenterY + lHalfH - halfH));
