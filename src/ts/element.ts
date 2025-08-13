@@ -5,7 +5,7 @@ import type { Camera } from './camera';
 /** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, view360ToViewRaw, legacyViewToView360 } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, legacyViewToView360 } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Wasm } from './wasm';
@@ -473,7 +473,7 @@ export class HTMLMicrioElement extends HTMLElement {
 
 		// Apply forced start view if provided
 		if(opts.startView) {
-			c.state.view.set(view360ToViewRaw(i.settings.view = opts.startView));
+			c.state.view.set(i.settings.view = opts.startView);
 			if(c.ptr && c.camera.e) c.camera.setView(i.settings.view,{noRender:true}); // Set immediately if camera ready
 		}
 

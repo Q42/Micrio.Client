@@ -12,7 +12,7 @@
 	import type { Models } from '../../types/models';
 
 	import { onMount, setContext, tick } from 'svelte';
-	import { limitView, once } from '../../ts/utils'; // Import utilities
+	import { clone, limitView, once } from '../../ts/utils'; // Import utilities
 
 	// Component imports
 	import Marker from '../components/Marker.svelte';
@@ -79,7 +79,7 @@
 			// no view is already stored, it's not a hidden marker, and it has a target view.
 			if(typeof marker != 'string' && !image.openedView && !marker.noMarker && marker.view) {
 				// Don't store view if currently in a tour (handled by tour logic)
-				image.openedView = micrio.state.$tour ? undefined : image.state.$view?.slice(0);
+				image.openedView = micrio.state.$tour ? undefined : clone(image.state.$view);
 			}
 		} else if(image.openedView && !micrio.state.$tour) { // Marker is being closed, view was stored, and not in a tour
 			// After a tick (to allow state updates), fly back to the stored view
@@ -173,20 +173,21 @@
 		// Generate cluster marker data objects from the groups
 		clusterMarkers=S.map(c=>c.filter((n,i)=>c.indexOf(n)==i)) // Deduplicate indices within each cluster
 			.map((c,v:any)=>({ // Map cluster indices to a MarkerData object
-			title:c.length+'', // Cluster title is the number of markers
-			type:'cluster',
-			// Calculate bounding box view for the cluster
-			view:v=[0,1,2,3].map(i=>(i<2?Math.min:Math.max)( // 0,1=min(x0,y0); 2,3=max(x1,y1)
-				...c.map(j => q[j].view?.[i] ?? (i%2==0?q[j].x:q[j].y)) // Use marker view if available, else use x/y
-			)),
-			// Calculate cluster center based on bounding box
-			x:v[0]+(v[2]-v[0])/2,
-			y:v[1]+(v[3]-v[1])/2,
-			id:''+c, // Use concatenated indices as ID (might be unstable?)
-			data:{},
-			popupType:'none', // Clusters don't open popups
-			tags:[]
-		}));
+				title:c.length+'', // Cluster title is the number of markers
+				type:'cluster',
+				// Calculate bounding box view for the cluster
+				view:v=[0,1,2,3].map(i=>(i<2?Math.min:Math.max)( // 0,1=min(x0,y0); 2,3=max(x1,y1)
+					...c.map(j => q[j].view?.[i] ?? (i%2==0?q[j].x:q[j].y)) // Use marker view if available, else use x/y
+				)),
+				// Calculate cluster center based on bounding box
+				x:v[0]+(v[2]-v[0])/2,
+				y:v[1]+(v[3]-v[1])/2,
+				id:''+c, // Use concatenated indices as ID (might be unstable?)
+				data:{},
+				popupType:'none', // Clusters don't open popups
+				tags:[]
+			})
+		);
 	};
 
 	// --- Fancy Side Label Logic (Omni) ---

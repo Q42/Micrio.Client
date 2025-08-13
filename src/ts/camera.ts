@@ -3,7 +3,7 @@ import type { MicrioWasmExports } from '../types/wasm';
 import type { Models } from '../types/models';
 
 import { tick } from 'svelte';
-import { legacyViewToView360, mod, viewRawToView360 } from './utils';
+import { legacyViewToView360, mod } from './utils';
 import { Enums } from './enums';
 
 /**
@@ -18,10 +18,17 @@ export class Camera {
 	/** Current center screen coordinates [x, y] and scale [z]. For 360, also includes [yaw, pitch]. For Omni, also includes [frameIndex]. */
 	readonly center: Models.Camera.Coords = [0,0,1];
 
-	/** Dynamic Wasm buffer holding the current view rectangle [x0, y0, x1, y1].
+	/** Dynamic Wasm buffer holding the current view rectangle [centerX, centerY, width, height].
 	 * @internal
 	*/
 	private _view!: Float64Array;
+
+	private readonly view: Models.Camera.View360 = {
+		centerX: .5,
+		centerY: .5,
+		width: 1,
+		height: 1
+	};
 
 	/** Dynamic Wasm buffer used for getXY calculations. [screenX, screenY, scale, depth].
 	 * @internal
@@ -108,6 +115,11 @@ export class Camera {
 		const prevCenterStr = this.center.join(','); // Store previous center for comparison
 		const centerCoords = this.getCoo(0,0); // Get image coordinates at screen center
 
+		this.view.centerX = v[0];
+		this.view.centerY = v[1];
+		this.view.width = v[2];
+		this.view.height = v[3];
+
 		// Update center property [x, y, scale]
 		this.center[0] = v[0];
 		this.center[1] = v[1];
@@ -123,7 +135,7 @@ export class Camera {
 
 		// Update the Svelte stores only if the view actually changed or if resizing/animating
 		if(this.center.join(',') != prevCenterStr || this.image.wasm.micrio.canvas.resizing || this.image.wasm.e._areaAnimating(this.image.ptr)) {
-			this.image.state.view.set(this._view);
+			this.image.state.view.set(this.view);
 			// Note: view360 will be automatically updated via the bidirectional sync in state.ts
 		}
 	}
@@ -187,10 +199,7 @@ export class Camera {
 	 * Gets the current image view rectangle.
 	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
 	 */
-	public getView = () : Models.Camera.View360|undefined => {
-		if (!this.e) return undefined;
-		return viewRawToView360(this._view);
-	};
+	public getView = () : Models.Camera.View360 => this.view;
 
 	/**
 	 * Gets the current image view rectangle [centerX, centerY, width, height] relative to the image (0-1).
@@ -424,7 +433,6 @@ export class Camera {
 		} = {}
 	): Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
-
 
 		let { centerX, centerY, width, height } = this.isView360(view) ? view : legacyViewToView360(view)!;
 
@@ -679,7 +687,7 @@ export class Camera {
 		const omni = i.$settings.omni;
 		if(!omni || !this.e) return; // Exit if not Omni or Wasm not ready
 		i.wasm.e._setOmniSettings(i.ptr, -omni.distance||0, omni.fieldOfView??0, omni.verticalAngle??0, omni.offsetX??0);
-		this.image.state.view.set(this._view); // Update view store after settings change
+		this.image.state.view.set(this.view); // Update view store after settings change
 	}
 
 }

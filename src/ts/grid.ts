@@ -312,7 +312,7 @@ export class Grid {
 		// Add previous layout to history if not disabled
 		if(!opts.noHistory && this.current.length) this.depth.set(this.history.push({
 			layout: this.current.map(i => this.getString(i.$info as Models.ImageInfo.ImageInfo, {
-				view: viewRawToView360(i.state.$view), // Store current view
+				view: i.state.$view, // Store current view
 				size: this.cellSizes.get(i.id) as [number,number] // Store current size
 			})).join(';'),
 			horizontal: this.isHorizontal, // Store layout orientation
