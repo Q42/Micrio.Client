@@ -186,7 +186,7 @@
 		if(changed) frameChanged(); // Trigger actions needed when the frame changes
 
 		if(!isSwitch) { // For swipe galleries (not switch/omni)
-			const cv = camera.getView() as Models.Camera.View; // Current camera view
+			const cv = camera.getViewLegacy() as Models.Camera.View; // Current camera view
 			const v = pages[i]; // Target page view
 			// Determine if animation is needed
 			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < v[0]) !== (cv[2] > v[2]))); // Animate if zoomed out, page changed, or crossing page boundary

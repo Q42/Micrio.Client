@@ -30,8 +30,6 @@ export class DrawRect {
 
 /** Represents the logical view rectangle within an image. */
 export class View {
-	/** Float64Array view of the legacy coordinates [x0, y0, x1, y1] for compatibility. */
-	readonly legacyArr : Float64Array = new Float64Array(4);
 	/** Float64Array view of the new coordinates [centerX, centerY, width, height]. */
 	readonly arr : Float64Array = new Float64Array(4);
 	/** Flag indicating if true north correction should be applied during set(). */
@@ -61,7 +59,6 @@ export class View {
 
 
 		this.toArray();
-		this.toLegacy();
 	}
 
 	// Legacy getters
@@ -106,7 +103,6 @@ export class View {
 		this.height = height;
 
 		this.toArray();
-		this.toLegacy();
 		this.changed = true;
 	}
 
@@ -133,7 +129,6 @@ export class View {
 		this.lHeight = v.lHeight;
 		this.changed = true;
 		this.toArray();
-		this.toLegacy();
 	}
 
 	/** Calculates the perspective value needed to achieve this view height in 360 mode. */
@@ -186,7 +181,6 @@ export class View {
 			this.width = nW;
 			this.height = nH;
 			this.toArray();
-			this.toLegacy();
 			return;
 		}
 
@@ -222,7 +216,6 @@ export class View {
 		}
 
 		this.toArray();
-		this.toLegacy();
 	}
 
 	// Update correctAspectRatio to use public props
@@ -238,7 +231,6 @@ export class View {
 			this.width = this.height * targetAspect;
 		}
 		this.toArray();
-		this.toLegacy();
 	}
 
 	/** Updates the shared Float64Array with the computed legacy view coordinates. */
@@ -248,15 +240,6 @@ export class View {
 		unchecked(this.arr[2] = this.width);
 		unchecked(this.arr[3] = this.height);
 		return this.arr;
-	}
-
-	/** Returns a Float64Array of the legacy [x0, y0, x1, y1]. */
-	toLegacy(): Float64Array {
-		unchecked(this.legacyArr[0] = this.x0);
-		unchecked(this.legacyArr[1] = this.y0);
-		unchecked(this.legacyArr[2] = this.x1);
-		unchecked(this.legacyArr[3] = this.y1);
-		return this.legacyArr;
 	}
 
 	/** Checks if this view is equal to another view. */

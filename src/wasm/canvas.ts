@@ -757,10 +757,6 @@ export default class Canvas {
 		if(isNaN(pitch)) pitch = this.webgl.pitch; // Use current pitch if not provided
 		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
 	}
-	/** Gets the current 360 viewport as center + dimensions format (delegates to WebGL). */
-	getView360() : Float64Array {
-		return this.webgl.getView360();
-	}
 	/** Gets the transformation matrix for a 360 embed (delegates to WebGL). */
 	getMatrix(x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64=1,sY:f64=1) : Float32Array {
 		// Adjust scale factor based on canvas width? Seems odd.

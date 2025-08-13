@@ -261,13 +261,6 @@ export namespace State {
 		/** Getter for the current value of the {@link view} store. */
 		public get $view() : Models.Camera.View|undefined {return this._view}
 
-		/** Writable Svelte store holding the current viewport as a 360-degree area {centerX, centerY, width, height}. */
-		public readonly view360: Writable<Models.Camera.View360|undefined> = writable(undefined);
-		/** Internal reference to the current view360. @internal */
-		private _view360: Models.Camera.View360|undefined;
-		/** Getter for the current value of the {@link view360} store. */
-		public get $view360(): Models.Camera.View360|undefined { return this._view360; }
-
 		/**
 		 * Writable Svelte store holding the currently active marker within *this specific image*.
 		 * Can be set with a marker ID string or a full marker object. Setting to undefined closes the marker.
@@ -291,16 +284,9 @@ export namespace State {
 				this._view = view; // Update internal reference
 				const nV = view?.toString(); // Stringify for simple comparison
 				if(view && nV && pV != nV) { // If view changed
-					// Convert to View360 and update that store too (bidirectional sync)
-					const view360 = image.camera?.viewToView360?.(view);
-					if(view360) {
-						this._view360 = view360;
-						this.view360.set(view360);
-					}
-					
-					const detail = {image, view, view360}; // Event detail payload with view360
+					const detail = {image, view}; // Event detail payload with view360
 					pV = nV;
-					const nW = view[2]-view[0], nH = view[3]-view[1]; // Calculate new width/height
+					const nW = view[2], nH = view[3]; // Calculate new width/height
 					// Dispatch 'zoom' event if dimensions changed significantly
 					if(!pW || !pH || Math.abs((nW-pW)+(nH-pH)) > 1E-5) {
 						m.events.dispatch('zoom', detail)
@@ -308,24 +294,6 @@ export namespace State {
 					}
 					// Dispatch 'move' event
 					m.events.dispatch('move', detail);
-				}
-			});
-
-			// Subscribe to view360 store changes
-			this.view360.subscribe(view360 => {
-				this._view360 = view360; // Update internal reference
-				// Convert to standard View and update that store too (bidirectional sync)
-				// Only update if the view change didn't originate from the standard view subscription above
-				if(view360 && image.camera?.view360ToView) {
-					const view = image.camera.view360ToView(view360);
-					const currentViewStr = this._view?.toString();
-					const newViewStr = view.toString();
-					
-					// Only update if this is actually a different view (prevent infinite loops)
-					if(currentViewStr !== newViewStr) {
-						this._view = view;
-						this.view.set(view);
-					}
 				}
 			});
 

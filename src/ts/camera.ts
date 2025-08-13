@@ -136,14 +136,6 @@ export class Camera {
 		y: a[1] + y * (a[3]-a[1])
 	});
 
-	/** Converts a relative view within an area to an absolute image view.
-	 * @internal
-	 */
-	private viewToArea = (v:Models.Camera.View, a:Models.Camera.View) : Models.Camera.View => [
-		...Object.values(this.cooToArea(v[0], v[1], a)), // Top-left
-		...Object.values(this.cooToArea(v[2],v[3], a))  // Bottom-right
-	];
-
 	/** Type guard to check if a parameter is a View360 object.
 	 * @internal
 	 */
@@ -151,32 +143,6 @@ export class Camera {
 		return typeof view === 'object' && !Array.isArray(view) && 
 			'centerX' in view && 'centerY' in view && 'width' in view && 'height' in view;
 	};
-
-	/** Converts a View360 (center + dimensions) to a standard View (rectangle).
-	 * @internal
-	 */
-	view360ToView = (v360: Models.Camera.View360): Models.Camera.View => [
-		v360.centerX - v360.width / 2,   // x0
-		v360.centerY - v360.height / 2,  // y0
-		v360.centerX + v360.width / 2,   // x1
-		v360.centerY + v360.height / 2   // y1
-	];
-
-	/** Converts a standard View (rectangle) to a View360 (center + dimensions).
-	 * @internal
-	 */
-	viewToView360 = (view: Models.Camera.View): Models.Camera.View360 => {
-		const centerX = view[0] + (view[2] - view[0]) / 2;
-		const centerY = view[1] + (view[3] - view[1]) / 2;
-		return {
-			centerX,
-			centerY,
-			width: view[2] - view[0],
-			height: view[3] - view[1]
-		};
-	};
-
-
 
 	/**
 	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls Wasm directly.
@@ -218,10 +184,41 @@ export class Camera {
 	}
 
 	/**
+	 * Gets the current image view rectangle.
+	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
+	 */
+	public getView = () : Models.Camera.View360|undefined => {
+		if (!this.e) return undefined;
+	
+		// Since _view is now [centerX, centerY, width, height]
+		return {
+			centerX: this._view[0],
+			centerY: this._view[1],
+			width: this._view[2],
+			height: this._view[3]
+		};
+	};
+
+	/**
+	 * Gets the current image view rectangle [centerX, centerY, width, height] relative to the image (0-1).
+	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
+	 */
+	public getViewRaw = () : Float64Array => this._view;
+
+	/**
 	 * Gets the current image view rectangle [x0, y0, x1, y1] relative to the image (0-1).
 	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
 	 */
-	public getView = () : Models.Camera.View|undefined => this._view?.slice(0);
+	public getViewLegacy = () : Models.Camera.View|undefined => {
+		if (!this.e) return undefined;
+
+		return [
+			this._view[0] - this._view[2] / 2,  // x0
+			this._view[1] - this._view[3] / 2,  // y0
+			this._view[0] + this._view[2] / 2,  // x1
+			this._view[1] + this._view[3] / 2   // y1
+		];
+	};
 
 	/**
 	 * Sets the camera view instantly to the specified viewport.
@@ -260,25 +257,6 @@ export class Camera {
 		
 		if (!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
 	}
-
-	/**
-	 * Gets the current image view as a 360-degree area {centerX, centerY, width, height}.
-	 * @returns A View360 object representing the current viewport, or undefined if not initialized.
-	 */
-	public getView360 = (): Models.Camera.View360|undefined => {
-		if (!this.e) return undefined; // Exit if Wasm not ready
-		
-		// Use native WASM function for optimal performance
-		this.e._getView360(this.image.ptr);
-		
-		return {
-			centerX: this._view[0],
-			centerY: this._view[1],
-			width: this._view[2],
-			height: this._view[3]
-		};
-	};
-
 
 
 	/**

@@ -346,8 +346,7 @@ export default class Camera {
 		if(this.pinching) {
 			// If pinching, apply pan directly without animation or kinetic tracking
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
-			const legacy = c.view.toLegacy();
-			c.setView(legacy[0], legacy[1], legacy[2], legacy[3], noLimit, false, false, false);
+			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
 		} else if(this.isOutsideLimit() && !isKinetic) {
 			// If starting drag outside limits, animate back towards the limit
 			c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration || 150, 0, 0, false, false, -1, false, 0, time, !noLimit); // correct=true
@@ -364,8 +363,7 @@ export default class Camera {
 				if (!noLimit) {
 					c.view.limit(false, false, c.freeMove); // Apply limits, passing freeMove
 				}
-				const legacy = c.view.toLegacy();
-				c.setView(legacy[0], legacy[1], legacy[2], legacy[3], noLimit, false, false, isKinetic);
+				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
 				c.view.changed = true; // Mark as changed
 			} else {
 				// Otherwise, start a pan animation

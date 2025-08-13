@@ -83,7 +83,7 @@ export class VideoTourInstance {
 		private data: Models.ImageData.VideoTour
 	) {
 		this.micrio = image.wasm.micrio;
-		this.initialView = image.camera.getView(); // Store initial view
+		this.initialView = image.camera.getViewLegacy(); // Store initial view
 
 		// Get language-specific content or fallback
 		const content = 'timeline' in data ? <unknown>data as Models.ImageData.VideoTourCultureData
@@ -259,7 +259,7 @@ export class VideoTourInstance {
 	/** Gets the target view for a specific step index. @internal */
 	private getView(i:number) : Models.Camera.View|undefined {
 		const step = this.timeline[i];
-		if(step == undefined) return this.initialView ?? this.image.camera.getView(); // Fallback to initial or current view
+		if(step == undefined) return this.initialView ?? this.image.camera.getViewLegacy(); // Fallback to initial or current view
 		else return step.view;
 	}
 

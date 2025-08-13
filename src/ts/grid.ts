@@ -316,7 +316,7 @@ export class Grid {
 				size: this.cellSizes.get(i.id) as [number,number] // Store current size
 			})).join(';'),
 			horizontal: this.isHorizontal, // Store layout orientation
-			view: this.image.camera.getView() // Store main grid view
+			view: this.image.camera.getViewLegacy() // Store main grid view
 		}));
 
 		this.isHorizontal = !!opts.horizontal; // Update layout orientation
@@ -800,7 +800,7 @@ export class Grid {
 				: [1, 0, 2, 1], {noDispatch: true, direct: true});
 			layout = [
 				this.getString(current.$info!, {
-					view: exitView ?? current.camera.getView(),
+					view: exitView ?? current.camera.getViewLegacy(),
 					area: transDir == 0 ? [0, 1, 1, 2]
 						: transDir == 180 ? [0, -1, 1, 0]
 						: transDir == 270 ? [1, 0, 2, 1]
