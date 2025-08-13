@@ -353,6 +353,11 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	sanitizeAsset(i.settings?._markers?.markerIcon);
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
 	sanitizeAsset(i.settings?._360?.video);
+	// Sanitize views
+	if (i?.settings) {
+		i.settings.view = sanitizeView(i.settings.view)!;
+		i.settings.restrict = sanitizeView(i.settings.restrict)!;
+	}
 }
 
 /**
@@ -370,7 +375,13 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 		sanitizeAsset(e);
 	});
 	// Sanitize markers
-	d.markers?.forEach(m => sanitizeMarker(m, is360, !isV5));
+	d.markers?.forEach(m => sanitizeMarker(m, is360, isV5));
+	// Sanitize tours
+	d.tours?.forEach(tour => {
+		Object.values(tour.i18n ?? {}).forEach(c => {
+			c.timeline?.forEach(t => { t.rect = sanitizeView(t.rect)!; });
+		});
+	});
 	// Sanitize music playlist items
 	d.music?.items?.forEach(sanitizeAsset);
 	// Sanitize menu pages recursively
@@ -441,6 +452,19 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(isOld && 'class' in m) m.tags.push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags.includes(t)))
 	// Ensure 'default' tag sets type correctly
 	if(m.tags.includes('default')) m.type = 'default';
+	// Sanitize view
+	m.view = sanitizeView(m.view)!;
+	// Sanitize videoTour timelines
+	if (m.videoTour) {
+		const sanitizeTimeline = (timeline?: Models.ImageData.VideoTourView[]) => {
+			timeline?.forEach(t => { t.rect = sanitizeView(t.rect)!; });
+		};
+		if ('timeline' in m.videoTour) {
+			sanitizeTimeline((m.videoTour as unknown as Models.ImageData.VideoTourCultureData).timeline);
+		} else if ('i18n' in m.videoTour) {
+			Object.values((m.videoTour as unknown as Models.ImageData.VideoTour).i18n ?? {}).forEach(c => sanitizeTimeline(c.timeline));
+		}
+	}
 }
 
 /**
@@ -539,7 +563,7 @@ export const getIdVal=(a:string):number=>{let c=a.charCodeAt(0),u=c<91;return (c
 /** Checks if an ID likely belongs to the V5 format (6 or 7 characters). */
 export const idIsV5 = (id:string):boolean => id.length == 6 || id.length == 7;
 
-/** Clamps a view rectangle [x0, y0, x1, y1] to the image bounds [0, 0, 1, 1]. */
+/** Clamps a view rectangle the image bounds [0, 0, 1, 1]. */
 export const limitView = (v: Models.Camera.View360) : Models.Camera.View360 => ({
 	centerX: Math.max(0, v.centerX),
 	centerY: Math.max(0, v.centerY),
@@ -629,3 +653,6 @@ export const legacyViewToView360 = (v?:Models.Camera.ViewRect) : Models.Camera.V
 	width: v[2] - v[0],
 	height: v[3] - v[1]
 }) : undefined;
+
+/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View360 if necessary. */
+const sanitizeView = (v?: any) : Models.Camera.View360|undefined => Array.isArray(v) ? legacyViewToView360(v) : v;

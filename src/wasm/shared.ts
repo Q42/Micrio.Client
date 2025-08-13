@@ -106,6 +106,15 @@ export class View {
 		this.changed = true;
 	}
 
+	/** Sets the relative View area of a MicrioImage to render to, animates by default. Used in grids. */
+	setArea(x0: f64, y0: f64, x1: f64, y1: f64) : void {
+		this.centerX = (x0 + x1) / 2;
+		this.centerY = (y0 + y1) / 2;
+		this.width = x1 - x0;
+		this.height = y1 - y0;
+		this.toArray();
+	}
+
 	// Update setLimit to set public limit props
 	setLimit(lCenterX: f64, lCenterY: f64, lWidth: f64, lHeight: f64) : void {
 		this.lCenterX = lCenterX;

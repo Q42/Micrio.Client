@@ -802,7 +802,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		 */
 		 export type Embed = Partial<ImageInfo.ImageInfo> & {
 			/** The area inside the main image to place the embed */
-			area: Camera.View360;
+			area: Camera.ViewRect;
 
 			/** Original asset url */
 			src?: string;

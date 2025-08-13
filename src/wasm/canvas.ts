@@ -555,11 +555,11 @@ export default class Canvas {
 	}
 
 	/** Sets the target area for this canvas within its parent, optionally animating. */
-	setArea(centerX: f64, centerY: f64, width: f64, height: f64, direct:bool, noDispatch:bool) : void {
+	setArea(x0: f64, y0: f64, x1: f64, y1: f64, direct:bool, noDispatch:bool) : void {
 		this.areaAniPaused = false; // Ensure animation is not paused
 		if(direct) { // Set area immediately
-			this.area.set(centerX, centerY, width, height);
-			this.currentArea.set(centerX, centerY, width, height);
+			this.area.setArea(x0, y0, x1, y1);
+			this.currentArea.setArea(x0, y0, x1, y1);
 		}
 		else { // Start animation
 			this.areaAniPerc = 0; // Reset progress
@@ -567,7 +567,7 @@ export default class Canvas {
 			this.ani.limit = false; // Disable view limits during area animation
 		}
 		// Set the target area
-		this.targetArea.set(centerX, centerY, width, height);
+		this.targetArea.setArea(x0, y0, x1, y1);
 		// Trigger initial calculation/step
 		this.partialView(noDispatch);
 	}
