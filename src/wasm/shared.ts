@@ -65,13 +65,13 @@ export class View {
 	get x0(): f64 { 
 		let cx = this.centerX;
 		if (this.canvas.is360) cx = mod1(cx);
-		return mod1(cx - this.width / 2); 
+		return this.canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2); 
 	}
 	get y0(): f64 { return this.centerY - this.height / 2; }
 	get x1(): f64 { 
 		let cx = this.centerX;
 		if (this.canvas.is360) cx = mod1(cx);
-		return mod1(cx + this.width / 2); 
+		return this.canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2); 
 	}
 	get y1(): f64 { return this.centerY + this.height / 2; }
 
