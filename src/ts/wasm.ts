@@ -20,7 +20,7 @@ import { WASM } from './globals'; // Contains WASM binary data (likely base64)
 
 /** Promise for loading the Wasm binary (either from external source or embedded data). @internal */
 const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz(WASM.b64,!0) // Use decompression function if available
-	: fetch('http://localhost:2000/build/optimized.wasm').then(response => response.arrayBuffer()); // Fallback to fetching dev build
+	: fetch('http://localhost:2000/build/untouched.wasm').then(response => response.arrayBuffer()); // Fallback to fetching dev build
 
 /** Number of memory pages to allocate for Wasm (1 page = 64KB). @internal */
 const numPages : number = 100; // ~6.4MB
@@ -383,7 +383,11 @@ export class Wasm {
 		// Set initial view (from state, settings, or focus point)
 		const v = get(c.state.view) || settings.view;
 		if(v && v.toString() != '0,0,1,1') { // If specific view is set
-			this.e._setView(c.ptr, v[0], v[1], v[2], v[3], false, false, false);
+			const centerX = (v[0] + v[2]) / 2;
+			const centerY = (v[1] + v[3]) / 2;
+			const width = v[2] - v[0];
+			const height = v[3] - v[1];
+			this.e._setView(c.ptr, centerX, centerY, width, height, false, false, false);
 		} else if((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') { // If focus point is set (and not default 360)
 			this.e._setCoo(c.ptr, focus[0], focus[1], 0, 0, performance.now()); // Set view centered on focus point
 			settings.focus = undefined; // Clear focus setting after applying
@@ -409,11 +413,10 @@ export class Wasm {
 		// Assign FloatArray views into Wasm memory to the camera instance
 		img.camera.assign(
 			this.e,
-			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4), // View buffer
+			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4), // Now center-based view buffer
 			new Float64Array(this.b, this.e._getXY(img.ptr, 0,0) + 32, 5), // XY buffer
 			new Float64Array(this.b, this.e._getCoo(img.ptr, 0,0) + 32, 5), // Coo buffer
 			new Float32Array(this.b, this.e._getMatrix(img.ptr) + 32, 16), // Matrix buffer
-			new Float64Array(this.b, this.e._getView360(img.ptr) + 32, 4), // View360 buffer
 		)
 	}
 

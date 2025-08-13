@@ -38,11 +38,6 @@ export class Camera {
 	 */
 	private _mat!: Float32Array;
 
-	/** Dynamic Wasm buffer used for getView360 calculations. [centerX, centerY, width, height].
-	 * @internal
-	 */
-	private _view360!: Float64Array;
-
 	/** Offset from true north for 360 images, derived from space data.
 	 * @internal
 	 */
@@ -95,14 +90,12 @@ export class Camera {
 		xy: Float64Array,
 		coo: Float64Array,
 		mat: Float32Array,
-		view360: Float64Array
 	) : void {
 		this.e = e;
 		this._view = view;
 		this._xy = xy;
 		this._coo = coo;
 		this._mat = mat;
-		this._view360 = view360;
 	}
 
 	/**
@@ -247,26 +240,23 @@ export class Camera {
 	} = {}): void {
 		if (!this.e) return; // Exit if Wasm not ready
 
+		let centerX, centerY, width, height;
 		if (this.isView360(view)) {
-			// Handle View360 parameter
-			let { centerX, centerY, width, height } = view;
-			if (opts.area) {
-				// Convert relative area coordinates to absolute
-				const absCoords = this.cooToArea(centerX, centerY, opts.area);
-				centerX = absCoords.x;
-				centerY = absCoords.y;
-				// Scale width/height by area dimensions
-				width = width * (opts.area[2] - opts.area[0]);
-				height = height * (opts.area[3] - opts.area[1]);
-			}
-			// Use native WASM View360 function
-			this.e._setView360(this.image.ptr, centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
+			({ centerX, centerY, width, height } = view);
 		} else {
-			// Handle standard View parameter
-			let v = view as Models.Camera.View;
-			if (opts.area) v = this.viewToArea(v, opts.area); // Convert relative area view to absolute
-			this.e._setView(this.image.ptr, v[0], v[1], v[2], v[3], !!opts.noLimit, false, opts.correctNorth);
+			centerX = (view[0] + view[2]) / 2;
+			centerY = (view[1] + view[3]) / 2;
+			width = view[2] - view[0];
+			height = view[3] - view[1];
 		}
+		if (opts.area) {
+			const absCoords = this.cooToArea(centerX, centerY, opts.area);
+			centerX = absCoords.x;
+			centerY = absCoords.y;
+			width *= (opts.area[2] - opts.area[0]);
+			height *= (opts.area[3] - opts.area[1]);
+		}
+		this.e._setView(this.image.ptr, centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
 		
 		if (!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
 	}
@@ -282,10 +272,10 @@ export class Camera {
 		this.e._getView360(this.image.ptr);
 		
 		return {
-			centerX: this._view360[0],
-			centerY: this._view360[1],
-			width: this._view360[2],
-			height: this._view360[3]
+			centerX: this._view[0],
+			centerY: this._view[1],
+			width: this._view[2],
+			height: this._view[3]
 		};
 	};
 
@@ -403,7 +393,11 @@ export class Camera {
 	*/
 	public setLimit(l:Models.Camera.View) : void {
 		if (!this.e) return;
-		this.e._setLimit(this.image.ptr, l[0], l[1], l[2], l[3]);
+		const lCenterX = (l[0] + l[2]) / 2;
+		const lCenterY = (l[1] + l[3]) / 2;
+		const lWidth = l[2] - l[0];
+		const lHeight = l[3] - l[1];
+		this.e._setLimit(this.image.ptr, lCenterX, lCenterY, lWidth, lHeight);
 		this.image.wasm.render();
 	}
 
@@ -467,77 +461,45 @@ export class Camera {
 	): Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
 
+		let centerX, centerY, width, height;
 		if (this.isView360(view)) {
-			// Handle View360 parameter
-			let { centerX, centerY, width, height } = view;
-			if (opts.area) {
-				// Convert relative area coordinates to absolute
-				const absCoords = this.cooToArea(centerX, centerY, opts.area);
-				centerX = absCoords.x;
-				centerY = absCoords.y;
-				// Scale width/height by area dimensions
-				width = width * (opts.area[2] - opts.area[0]);
-				height = height * (opts.area[3] - opts.area[1]);
-			}
-
-			// Set starting view for progress calculation if provided
-			if (opts.prevView360) {
-				// Convert View360 to View for setStartView
-				const pv360 = opts.prevView360;
-				const pvConverted = this.view360ToView(pv360);
-				this.e._setStartView(this.image.ptr, pvConverted[0], pvConverted[1], pvConverted[2], pvConverted[3]);
-			} else if (opts.prevView) {
-				const pv = opts.prevView;
-				this.e._setStartView(this.image.ptr, pv[0], pv[1], pv[2], pv[3]);
-			}
-
-			// Call native WASM function with smart longitude wrapping
-			const duration = this.e._flyToView360(
-				this.image.ptr,
-				centerX, centerY, width, height,
-				opts.duration ?? -1,
-				opts.speed ?? -1,
-				opts.progress ?? 0,
-				!!opts.isJump,
-				!!opts.limit,
-				!!opts.limitZoom,
-				opts.omniIndex ?? 0,
-				!!opts.noTrueNorth,
-				Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'],
-				performance.now()
-			);
-
-			this.image.wasm.render(); // Trigger render loop
-			if (duration == 0) ok(); // Resolve immediately if duration is 0
-			else this.setAniPromises(ok, abort); // Store promise callbacks
+			({ centerX, centerY, width, height } = view);
 		} else {
-			// Handle standard View parameter
-			let v = view as Models.Camera.View;
-			if (opts.area) v = this.viewToArea(v, opts.area); // Convert relative area view
-
-			// Set starting view for progress calculation if provided
-			if (opts.prevView) {
-				const pv = opts.prevView;
-				this.e._setStartView(this.image.ptr, pv[0], pv[1], pv[2], pv[3]);
-			}
-
-			// Calculate target Omni frame index if needed
-			if (this.image.$settings.omni?.frames) {
-				const numLayers = this.image.$settings.omni.layers?.length ?? 1;
-				const numPerLayer = (this.image.$settings.omni.frames / numLayers);
-				// Calculate from target view yaw if not provided directly
-				if (opts.omniIndex == undefined && v[5] !== undefined) {
-					opts.omniIndex = Math.round(mod(v[5] / (Math.PI * 2)) * numPerLayer);
-				}
-				if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer); // Ensure index wraps around
-			}
-
-			// Call Wasm function to start animation
-			const duration = this.e._flyTo(this.image.ptr, v[0], v[1], v[2], v[3], opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, !!opts.noTrueNorth, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
-			this.image.wasm.render(); // Trigger render loop
-			if (duration == 0) ok(); // Resolve immediately if duration is 0
-			else this.setAniPromises(ok, abort); // Store promise callbacks
+			centerX = (view[0] + view[2]) / 2;
+			centerY = (view[1] + view[3]) / 2;
+			width = view[2] - view[0];
+			height = view[3] - view[1];
 		}
+		if (opts.area) {
+			const absCoords = this.cooToArea(centerX, centerY, opts.area);
+			centerX = absCoords.x;
+			centerY = absCoords.y;
+			width *= (opts.area[2] - opts.area[0]);
+			height *= (opts.area[3] - opts.area[1]);
+		}
+		if (opts.prevView) {
+			const pv = opts.prevView;
+			const pvCenterX = (pv[0] + pv[2]) / 2;
+			const pvCenterY = (pv[1] + pv[3]) / 2;
+			const pvWidth = pv[2] - pv[0];
+			const pvHeight = pv[3] - pv[1];
+			this.e._setStartView(this.image.ptr, pvCenterX, pvCenterY, pvWidth, pvHeight);
+		} else if (opts.prevView360) {
+			const pv360 = opts.prevView360;
+			this.e._setStartView(this.image.ptr, pv360.centerX, pv360.centerY, pv360.width, pv360.height);
+		}
+		if (this.image.$settings.omni?.frames) {
+			const numLayers = this.image.$settings.omni.layers?.length ?? 1;
+			const numPerLayer = (this.image.$settings.omni.frames / numLayers);
+			if (opts.omniIndex == undefined && Array.isArray(view) && view[5] !== undefined) {
+				opts.omniIndex = Math.round(mod(view[5] / (Math.PI * 2)) * numPerLayer);
+			}
+			if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer);
+		}
+		const duration = this.e._flyTo(this.image.ptr, centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, !!opts.noTrueNorth, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
+		this.image.wasm.render(); // Trigger render loop
+		if (duration == 0) ok(); // Resolve immediately if duration is 0
+		else this.setAniPromises(ok, abort); // Store promise callbacks
 	});
 
 
@@ -711,15 +673,19 @@ export class Camera {
 	} = {}) : void {
 		if (!this.e) return; // Exit if Wasm not ready
 		const e = this.image.wasm.e;
-		if(this.image.opts.isEmbed) { // If it's an embed, use specific Wasm function
+		const centerX = (v[0] + v[2]) / 2;
+		const centerY = (v[1] + v[3]) / 2;
+		const width = v[2] - v[0];
+		const height = v[3] - v[1];
+		if(this.image.opts.isEmbed) {
 			if(this.image.ptr > 0) {
-				this.image.opts.area = v; // Store the area in options
-				e._setImageArea(this.image.ptr, v[0], v[1], v[2], v[3]);
+				this.image.opts.area = v;
+				e._setImageArea(this.image.ptr, centerX, centerY, width, height);
 			}
 		}
-		else { // For main images/canvases
-			this.image.opts.area = v; // Store the area in options
-			e._setArea(this.image.ptr, v[0], v[1], v[2], v[3], !!opts.direct, !!opts.noDispatch);
+		else {
+			this.image.opts.area = v;
+			e._setArea(this.image.ptr, centerX, centerY, width, height, !!opts.direct, !!opts.noDispatch);
 		}
 		if(!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
 	}
