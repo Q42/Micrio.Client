@@ -274,8 +274,8 @@ export default class Camera {
 		if(!this.inited && c.coverStart) this.scale = this.coverScale;
 
 		// Calculate the overflow needed to center the logical view within the scaled viewport
-		const overflowX:f64 = (cw / this.scale - vw) / 2;
-		const overflowY:f64 = (ch / this.scale - vh) / 2;
+		const overflowX:f64 = (cw / this.scale - vw);
+		const overflowY:f64 = (ch / this.scale - vh);
 
 		// Apply overflow to center the view within the aspect ratio
 		v.set(v.centerX, v.centerY, v.width + overflowX, v.height + overflowY);
