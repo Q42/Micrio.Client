@@ -1334,9 +1334,6 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 	export namespace Camera {
 		/** A viewport rectangle */
-		export type View = number[]|Float64Array;
-
-		/** A viewport rectangle */
 		export type ViewRect = number[]|Float64Array;
 
 		/** A 360-degree area definition with center point and dimensions */
