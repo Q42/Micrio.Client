@@ -31,6 +31,8 @@ export class DrawRect {
 /** Represents the logical view rectangle within an image. */
 export class View {
 	/** Float64Array view of the legacy coordinates [x0, y0, x1, y1] for compatibility. */
+	readonly legacyArr : Float64Array = new Float64Array(4);
+	/** Float64Array view of the new coordinates [centerX, centerY, width, height]. */
 	readonly arr : Float64Array = new Float64Array(4);
 	/** Flag indicating if true north correction should be applied during set(). */
 	public correct : bool = false;
@@ -41,74 +43,54 @@ export class View {
 	/** Cached true north offset (0.5 - trueNorth setting). */
 	public tnOffset:number = 0;
 
-	// New primary storage
-	private _centerX: f64 = 0.5;
-	private _centerY: f64 = 0.5;
-	private _width: f64 = 1;
-	private _height: f64 = 1;
-
-	// Navigation limits remain in legacy format for now
-	public lX0: f64 = 0;
-	public lY0: f64 = 0;
-	public lX1: f64 = 1;
-	public lY1: f64 = 1;
 
 	constructor(
-		private readonly canvas: Canvas, // Reference to the parent Canvas
+		private readonly canvas: Canvas,
 
-		// Accept legacy coordinates and convert
-		x0: f64 = 0,
-		y0: f64 = 0,
-		x1: f64 = 1,
-		y1: f64 = 1,
+		public centerX: f64 = 0.5,
+		public centerY: f64 = 0.5,
+		public width: f64 = 1,
+		public height: f64 = 1,
 
-		// Limits
-		lX0: f64 = 0,
-		lY0: f64 = 0,
-		lX1: f64 = 1,
-		lY1: f64 = 1,
+		public lCenterX: f64 = 0.5,
+		public lCenterY: f64 = 0.5,
+		public lWidth: f64 = 1,
+		public lHeight: f64 = 1,
 	) {
-		// Pre-calculate true north offset
 		this.tnOffset = .5 - canvas.trueNorth;
 
-		// Set initial values using legacy setter logic
-		this.set(x0, y0, x1, y1);
-		this.setLimit(lX0, lY0, lX1, lY1);
+
+		this.toArray();
+		this.toLegacy();
 	}
 
-	// --- Legacy Getters (computed) ---
+	// Legacy getters
 	get x0(): f64 { 
-		let cx = this._centerX;
+		let cx = this.centerX;
 		if (this.canvas.is360) cx = mod1(cx);
-		return mod1(cx - this._width / 2); 
+		return mod1(cx - this.width / 2); 
 	}
-	get y0(): f64 { return this._centerY - this._height / 2; }
+	get y0(): f64 { return this.centerY - this.height / 2; }
 	get x1(): f64 { 
-		let cx = this._centerX;
+		let cx = this.centerX;
 		if (this.canvas.is360) cx = mod1(cx);
-		return mod1(cx + this._width / 2); 
+		return mod1(cx + this.width / 2); 
 	}
-	get y1(): f64 { return this._centerY + this._height / 2; }
+	get y1(): f64 { return this.centerY + this.height / 2; }
 
-	// --- Calculated Properties ---
-	/** Calculated width of the view, handling 360 wrap-around. */
-	get width(): f64 { return this._width; }
-	/** Calculated height of the view. */
-	get height(): f64 { return this._height; }
-	/** Calculated center X coordinate. */
-	get centerX(): f64 { return this.canvas.is360 ? mod1(this._centerX) : this._centerX; }
-	/** Calculated center Y coordinate. */
-	get centerY(): f64 { return this._centerY; }
-	/** Calculated yaw (horizontal angle) in radians for 360 view. */
+	// Add legacy limit getters
+	get lX0(): f64 { return this.lCenterX - this.lWidth / 2; }
+	get lY0(): f64 { return this.lCenterY - this.lHeight / 2; }
+	get lX1(): f64 { return this.lCenterX + this.lWidth / 2; }
+	get lY1(): f64 { return this.lCenterY + this.lHeight / 2; }
+
+	// Calculated properties using public props
 	get yaw(): f64 { return (this.centerX - .5) * PI * 2 }
-	/** Calculated pitch (vertical angle) in radians for 360 view. */
 	get pitch() : f64 { return (this.centerY - .5) * PI }
-	/** Calculated aspect ratio of the view. */
 	get aspect() : f64 { return this.width / this.height }
-	/** Calculated diagonal size of the view relative to a unit square. */
-	get size() : f64 { return pyth(this.width,this.height) / pyth(1,1) }
+	get size() : f64 { return pyth(this.width, this.height) / pyth(1,1) }
 
-	/** Sets the view using legacy coordinates, converting to new model. */
+	// Update set to modify public props
 	set(x0:f64, y0:f64, x1:f64, y1:f64, preserveAspect: bool = false) : void {
 		let w = x1 - x0;
 		let h = y1 - y0;
@@ -116,68 +98,67 @@ export class View {
 		let cy = y0 + h / 2;
 
 		if(preserveAspect) {
-			const cAr = min(1, this.width) / min(1, this.height); // Current aspect ratio
-			// Adjust height if width is limiting and aspect ratio differs significantly
-			if(w / h > cAr * 1.5 && w < this.width) { h = w * cAr; cy = y0 + h/2; } // Adjusted to use y0 + h/2
+			const cAr = min(1, this.width) / min(1, this.height);
+			if(w / h > cAr * 1.5 && w < this.width) { h = w * cAr; cy = y0 + h/2; }
 		}
 
-		// Apply true north offset if correction is enabled
 		const os = this.correct ? this.tnOffset : 0;
 		cx += os;
 
-		// Set new properties
-		this._centerX = cx;
-		this._centerY = cy;
-		this._width = w;
-		this._height = h;
+		this.centerX = cx;
+		this.centerY = cy;
+		this.width = w;
+		this.height = h;
 
-		// Update the shared array and mark as changed
 		this.toArray();
+		this.toLegacy();
 		this.changed = true;
 	}
 
-	/** Sets the view using the new center-based model. */
+	// Update setCenter to modify public props
 	setCenter(centerX: f64, centerY: f64, width: f64, height: f64, preserveAspect: bool = false): void {
 		if (preserveAspect) {
-			// Similar logic as above, adapted for centers
 			const cAr = min(1, this.width) / min(1, this.height);
 			if (width / height > cAr * 1.5 && width < this.width) {
-				height = width / cAr; // Adjust height to match aspect
+				height = width / cAr;
 			}
 		}
 
 		const os = this.correct ? this.tnOffset : 0;
-		this._centerX = centerX + os;
-		this._centerY = centerY;
-		this._width = width;
-		this._height = height;
+		this.centerX = centerX + os;
+		this.centerY = centerY;
+		this.width = width;
+		this.height = height;
 
 		this.toArray();
+		this.toLegacy();
 		this.changed = true;
 	}
 
-	/** Sets the navigation limit boundaries (legacy format). */
-	setLimit(x0: f64, y0: f64, x1: f64, y1: f64) : void {
-		this.lX0 = x0;
-		this.lY0 = y0;
-		this.lX1 = x1;
-		this.lY1 = y1;
-		this.changed = true; // Mark view as potentially changed due to limits
-		this.limitChanged = true; // Mark limits as changed
+	// Update setLimit to set public limit props
+	setLimit(lCenterX: f64, lCenterY: f64, lWidth: f64, lHeight: f64) : void {
+		this.lCenterX = lCenterX;
+		this.lCenterY = lCenterY;
+		this.lWidth = lWidth;
+		this.lHeight = lHeight;
+
+		this.changed = true;
+		this.limitChanged = true;
 	}
 
-	/** Copies coordinates from another View object. */
+	// Update copy to copy public props
 	copy(v:View) : void {
-		this._centerX = v._centerX;
-		this._centerY = v._centerY;
-		this._width = v._width;
-		this._height = v._height;
-		this.lX0 = v.lX0;
-		this.lY0 = v.lY0;
-		this.lX1 = v.lX1;
-		this.lY1 = v.lY1;
+		this.centerX = v.centerX;
+		this.centerY = v.centerY;
+		this.width = v.width;
+		this.height = v.height;
+		this.lCenterX = v.lCenterX;
+		this.lCenterY = v.lCenterY;
+		this.lWidth = v.lWidth;
+		this.lHeight = v.lHeight;
 		this.changed = true;
 		this.toArray();
+		this.toLegacy();
 	}
 
 	/** Calculates the perspective value needed to achieve this view height in 360 mode. */
@@ -214,116 +195,106 @@ export class View {
 		return (dCenterX + dCenterY + dWidth + dHeight) / 4;
 	}
 
-	/** Applies navigation limits to the view coordinates. */
+	// Update limit to use public limit props
 	limit(correctZoom:bool, noLimit:bool = false, freeMove:bool = false): void {
 		const c = this.canvas;
-		const mS = c.camera.minSize; // Minimum screen size factor
-		const s = this.getScale(); // Current effective scale
+		const mS = c.camera.minSize;
+		const s = this.getScale();
 
-		// --- Handle Underzoom ---
-		// If underzoomed (below minScale * minSize) and not explicitly allowed, center the view
+		// Underzoom handling using public width/height
 		if(mS < 1 && s < c.camera.minScale && !noLimit) {
-			const mWH = 1 / mS; // Maximum relative size when underzoomed
-			const nW = min(mWH, this.width); // New width, clamped by max size
-			const nH = min(mWH, this.height); // New height, clamped by max size
-			// Center the view
-			this._centerX = 0.5;
-			this._centerY = 0.5;
-			this._width = nW;
-			this._height = nH;
+			const mWH = 1 / mS;
+			const nW = min(mWH, this.width);
+			const nH = min(mWH, this.height);
+			this.centerX = 0.5;
+			this.centerY = 0.5;
+			this.width = nW;
+			this.height = nH;
 			this.toArray();
-			return; // Exit after centering
+			this.toLegacy();
+			return;
 		}
 
-		// --- Limit Scale ---
-		// Calculate potential overzoom factor relative to max allowed scale
+		// Limit Scale
 		const overZoom:f64 = correctZoom ? max(1, s / max(c.camera.minScale, c.maxScale / c.el.scale)) : 1;
-		// Calculate maximum allowed view width/height based on limits and overzoom
-		const maxVw:f64 = this.lX1 - this.lX0;
-		const maxVh:f64 = this.lY1 - this.lY0;
+		const maxVw:f64 = this.lWidth;
+		const maxVh:f64 = this.lHeight;
 		let vw:f64 = min(maxVw, this.width * overZoom);
 		let vh:f64 = min(maxVh, this.height * overZoom);
 
-		// If zoom needs correction (over max scale or under min scale without noLimit)
 		if(correctZoom && (overZoom > 1 || (noLimit && s < c.camera.minScale))) {
-			// Clamp width and height
-			vw = min(maxVw, vw / overZoom); // Adjust back if overzoomed
+			vw = min(maxVw, vw / overZoom);
 			vh = min(maxVh, vh / overZoom);
-			this._width = vw;
-			this._height = vh;
+			this.width = vw;
+			this.height = vh;
 		}
 
-		// Exit if boundary limits should not be applied
 		if(noLimit) return;
 
-		// --- Limit Boundaries using centers ---
-		// For X (horizontal, with 360 wrap)
-		const lCenterX = (this.lX0 + this.lX1) / 2;
-		const lWidth = this.lX1 - this.lX0;
-		const halfW = this._width / 2;
+		// Limit Boundaries
+		const halfW = this.width / 2;
+		const lHalfW = this.lWidth / 2;
 		if (this.canvas.is360) {
-			this._centerX = mod1(this._centerX);
+			this.centerX = mod1(this.centerX);
 		} else if (!freeMove) {
-			this._centerX = max(this.lX0 + halfW, min(this._centerX, this.lX1 - halfW));
+			this.centerX = max(this.lCenterX - lHalfW + halfW, min(this.centerX, this.lCenterX + lHalfW - halfW));
 		}
 
-		// For Y (vertical, no wrap)
-		const halfH = this._height / 2;
+		const halfH = this.height / 2;
+		const lHalfH = this.lHeight / 2;
 		if (!freeMove) {
-			this._centerY = max(this.lY0 + halfH, min(this._centerY, this.lY1 - halfH));
+			this.centerY = max(this.lCenterY - lHalfH + halfH, min(this.centerY, this.lCenterY + lHalfH - halfH));
 		}
 
 		this.toArray();
+		this.toLegacy();
 	}
 
-	/** Adjusts the view rectangle to match the canvas aspect ratio, preventing stretching. */
+	// Update correctAspectRatio to use public props
 	correctAspectRatio(): void {
 		const c = this.canvas;
-		if(c.is360) return; // Not applicable for 360
+		if(c.is360) return;
 		const s = this.getScale();
-		// Calculate target aspect
-		const targetAspect = c.camera.cpw / c.camera.cph; // Assuming cpw and cph are canvas proportions
+		const targetAspect = c.camera.cpw / c.camera.cph;
 		const currentAspect = this.width / this.height;
 		if (currentAspect > targetAspect) {
-			// Too wide, increase height
-			this._height = this.width / targetAspect;
+			this.height = this.width / targetAspect;
 		} else {
-			// Too tall, increase width
-			this._width = this.height * targetAspect;
+			this.width = this.height * targetAspect;
 		}
 		this.toArray();
+		this.toLegacy();
 	}
 
 	/** Updates the shared Float64Array with the computed legacy view coordinates. */
 	toArray(): Float64Array {
-		unchecked(this.arr[0] = this.x0);
-		unchecked(this.arr[1] = this.y0);
-		unchecked(this.arr[2] = this.x1);
-		unchecked(this.arr[3] = this.y1);
+		unchecked(this.arr[0] = this.centerX);
+		unchecked(this.arr[1] = this.centerY);
+		unchecked(this.arr[2] = this.width);
+		unchecked(this.arr[3] = this.height);
 		return this.arr;
 	}
 
 	/** Returns a Float64Array of the legacy [x0, y0, x1, y1]. */
 	toLegacy(): Float64Array {
-		const arr = new Float64Array(4);
-		unchecked(arr[0] = this.x0);
-		unchecked(arr[1] = this.y0);
-		unchecked(arr[2] = this.x1);
-		unchecked(arr[3] = this.y1);
-		return arr;
+		unchecked(this.legacyArr[0] = this.x0);
+		unchecked(this.legacyArr[1] = this.y0);
+		unchecked(this.legacyArr[2] = this.x1);
+		unchecked(this.legacyArr[3] = this.y1);
+		return this.legacyArr;
 	}
 
 	/** Checks if this view is equal to another view. */
 	equal(v:View) : bool {
-		return this._centerX == v._centerX
-			&& this._centerY == v._centerY
-			&& this._width == v._width
-			&& this._height == v._height;
+		return this.centerX == v.centerX
+			&& this.centerY == v.centerY
+			&& this.width == v.width
+			&& this.height == v.height;
 	}
 
 	/** Checks if this view represents the full image [0,0,1,1]. */
 	isFull() : bool {
-		return this._width == 1 && this._height == 1 && this.centerX == 0.5 && this.centerY == 0.5;
+		return this.width == 1 && this.height == 1 && this.centerX == 0.5 && this.centerY == 0.5;
 	}
 }
 
