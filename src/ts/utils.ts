@@ -366,6 +366,7 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
  */
 export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:boolean, isV5:boolean) => {
 	if (!d) return;
+	console.log('dafuq?', isV5, d.tours)
 	// Filter out unpublished revisions (value <= 0)
 	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
 	// Sanitize embeds
@@ -377,11 +378,7 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 	// Sanitize markers
 	d.markers?.forEach(m => sanitizeMarker(m, is360, isV5));
 	// Sanitize tours
-	d.tours?.forEach(tour => {
-		Object.values(tour.i18n ?? {}).forEach(c => {
-			c.timeline?.forEach(t => { t.rect = View.sanitize(t.rect)!; });
-		});
-	});
+	d.tours?.forEach(sanitizeVideoTour);
 	// Sanitize music playlist items
 	d.music?.items?.forEach(sanitizeAsset);
 	// Sanitize menu pages recursively
@@ -440,6 +437,7 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	m.images?.forEach(sanitizeAsset);
 	sanitizeAsset(m.positionalAudio);
 	sanitizeAsset(m.data?.icon);
+	sanitizeVideoTour(m.videoTour);
 	Object.values(m.i18n ?? {}).forEach(d => sanitizeAsset(d.audio)) // Sanitize audio in i18n
 	const embeds = 'embedImages' in m ? m.embedImages as Models.ImageData.Embed[] : undefined;
 	if(embeds) embeds.forEach(e => sanitizeAsset(e)); // Sanitize legacy embedImages
@@ -465,6 +463,12 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 			Object.values((m.videoTour as unknown as Models.ImageData.VideoTour).i18n ?? {}).forEach(c => sanitizeTimeline(c.timeline));
 		}
 	}
+}
+
+function sanitizeVideoTour(tour?:Models.ImageData.VideoTour|Models.ImageData.VideoTourCultureData) : void {
+	if(!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
+	const i18n = 'i18n' in tour ? tour.i18n : {'en':(<unknown>tour as Models.ImageData.VideoTourCultureData)};
+	for(const lang in i18n) i18n[lang]?.timeline.forEach(s => s.rect = View.sanitize(s.rect)!);
 }
 
 /**
