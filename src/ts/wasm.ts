@@ -20,7 +20,7 @@ import { WASM } from './globals'; // Contains WASM binary data (likely base64)
 
 /** Promise for loading the Wasm binary (either from external source or embedded data). @internal */
 const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz(WASM.b64,!0) // Use decompression function if available
-	: fetch('http://localhost:2000/build/untouched.wasm').then(response => response.arrayBuffer()); // Fallback to fetching dev build
+	: fetch('http://localhost:2000/build/optimized.wasm').then(response => response.arrayBuffer()); // Fallback to fetching dev build
 
 /** Number of memory pages to allocate for Wasm (1 page = 64KB). @internal */
 const numPages : number = 100; // ~6.4MB
