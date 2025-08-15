@@ -102,7 +102,7 @@
 			wasMarkerTour = true;
 			if (t.keepLastStep) image.openedView = undefined;
 		} else {
-			if(!t && !image.openedView) image.camera.stop();
+			if(!t && !image.openedView && wasMarkerTour) image.camera.stop();
 			wasMarkerTour = false;
 		}
 	});
