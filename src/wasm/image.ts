@@ -295,7 +295,9 @@ export default class Image {
 		// Logic for 2D images or 360 embeds
 		else {
 			// Calculate tiles needed for the visible portion of the view
-			if(c.is360) { // For 360 embeds, use the full logical view
+			if(this.is360Embed) { // For 360 embeds, use new viewport-based calculation
+				this.getTilesViewport(lIdx);
+			} else if(c.is360) { // For other 360 images (shouldn't happen with current logic)
 				this.getTilesRect(lIdx,v.x0,v.y0,v.x1,v.y1);
 			} else if(c.visible.x0 < c.visible.x1 && c.visible.y0 < c.visible.y1) { // For 2D, use the calculated visible intersection
 				this.getTilesRect(lIdx,
@@ -327,7 +329,7 @@ export default class Image {
 			}
 		}
 		// Store and return the target layer index (adjusting for 0-based index)
-		return (this.targetLayer = l) - 1;
+		return (this.targetLayer = l - 1);
 	}
 
 	/** Calculates and adds tiles within a given rectangular area for a specific layer. */
@@ -351,6 +353,151 @@ export default class Image {
 			if (y >= <u32>layer.rows) continue;
 			for(let x:u32=l;x<=r;x++) {
 				this.setToDraw(layer, x, y);
+			}
+		}
+	}
+
+	/** 
+	 * Calculates tiles for 360 embeds using viewport-based coordinates.
+	 * Computes the intersection between canvas view and embed area, then converts to tile indices.
+	 */
+	private getTilesViewport(layerIdx: u8): void {
+		// Exit if the image is outside the view
+		if(this.outsideView()) return;
+
+		const layer = unchecked(this.layers[layerIdx]);
+		const c = this.canvas;
+		
+		// Add tolerance margin to avoid edge tile culling (10% buffer)
+		const tolerance = 0.1;
+		
+		// Get canvas viewport (where the user is looking) with tolerance buffer
+		const viewCenterX = c.viewCenterX;
+		const viewCenterY = c.viewCenterY;
+		const viewWidth = c.viewWidth + tolerance;
+		const viewHeight = c.viewHeight + tolerance;
+		
+		// Get embed area viewport 
+		const embedCenterX = this.areaCenterX;
+		const embedCenterY = this.areaCenterY;
+		const embedWidth = this.areaWidth;
+		const embedHeight = this.areaHeight;
+		
+		// Calculate intersection in Y (simpler, no wrap-around)
+		const viewY0 = viewCenterY - viewHeight / 2;
+		const viewY1 = viewCenterY + viewHeight / 2;
+		const embedY0 = embedCenterY - embedHeight / 2;
+		const embedY1 = embedCenterY + embedHeight / 2;
+		
+		const intersectY0 = max(viewY0, embedY0);
+		const intersectY1 = min(viewY1, embedY1);
+		
+		// No Y intersection = no tiles needed
+		if (intersectY0 >= intersectY1) return;
+		
+		// Calculate intersection in X (complex due to 360 wrap-around)
+		let intersectX0: f64 = 0, intersectX1: f64 = 0;
+		let hasIntersection = false;
+		
+		if (c.is360) {
+			// For 360, handle wrap-around using angular distance
+			const viewX0 = mod1(viewCenterX - viewWidth / 2);
+			const viewX1 = mod1(viewCenterX + viewWidth / 2);
+			const embedX0 = mod1(embedCenterX - embedWidth / 2);
+			const embedX1 = mod1(embedCenterX + embedWidth / 2);
+			
+
+			
+			// Check for intersection considering wrap-around
+			// Case 1: Neither view nor embed wraps around
+			if (viewX1 > viewX0 && embedX1 > embedX0) {
+				intersectX0 = max(viewX0, embedX0);
+				intersectX1 = min(viewX1, embedX1);
+				hasIntersection = intersectX0 < intersectX1;
+			}
+			// Case 2: View wraps around (viewX1 < viewX0)
+			else if (viewX1 < viewX0 && embedX1 > embedX0) {
+				// View spans 0, embed doesn't wrap
+				if (embedX0 <= viewX1 || embedX1 >= viewX0) {
+					// Intersection exists, but we need to handle in two parts
+					// For simplicity, calculate the full embed area intersection
+					intersectX0 = embedX0;
+					intersectX1 = embedX1;
+					hasIntersection = true;
+				}
+			}
+			// Case 3: Embed wraps around (embedX1 < embedX0)  
+			else if (viewX1 > viewX0 && embedX1 < embedX0) {
+				// Embed spans 0, view doesn't wrap
+				if (viewX0 <= embedX1 || viewX1 >= embedX0) {
+					// Intersection exists
+					intersectX0 = viewX0;
+					intersectX1 = viewX1;
+					hasIntersection = true;
+				}
+			}
+			// Case 4: Both wrap around
+			else if (viewX1 < viewX0 && embedX1 < embedX0) {
+				// Both span 0 - intersection likely exists
+				intersectX0 = max(viewX0, embedX0);
+				intersectX1 = min(viewX1, embedX1);
+				hasIntersection = true;
+			}
+		} else {
+			// For 2D, simple intersection
+			const viewX0 = viewCenterX - viewWidth / 2;
+			const viewX1 = viewCenterX + viewWidth / 2;
+			const embedX0 = embedCenterX - embedWidth / 2;
+			const embedX1 = embedCenterX + embedWidth / 2;
+			
+			intersectX0 = max(viewX0, embedX0);
+			intersectX1 = min(viewX1, embedX1);
+			hasIntersection = intersectX0 < intersectX1;
+		}
+		
+		// No X intersection = no tiles needed
+		if (!hasIntersection) return;
+		
+		// Convert intersection coordinates to embed-relative coordinates (0-1 within embed)
+		// Handle 360 wrap-around by ensuring consistent coordinate space
+		let embedLeft = embedCenterX - embedWidth / 2;
+		let embedRight = embedCenterX + embedWidth / 2;
+		
+		// For 360, normalize the embed boundaries and intersection to the same coordinate space
+		if (c.is360) {
+			// If embed wraps around (embedRight > 1), normalize intersectX coordinates
+			if (embedRight > 1) {
+				// Embed crosses 0/1 boundary - shift everything to unwrapped space
+				if (intersectX0 < embedLeft) intersectX0 += 1;
+				if (intersectX1 < embedLeft) intersectX1 += 1;
+			}
+			// If intersectX is much larger than embedCenter, it's likely wrapped the wrong way
+			else if (intersectX0 > embedCenterX + 0.5) {
+				intersectX0 -= 1;
+			}
+			else if (intersectX1 > embedCenterX + 0.5) {
+				intersectX1 -= 1;
+			}
+		}
+		
+		const embedRelX0 = (intersectX0 - embedLeft) / embedWidth;
+		const embedRelX1 = (intersectX1 - embedLeft) / embedWidth;
+		const embedRelY0 = (intersectY0 - (embedCenterY - embedHeight / 2)) / embedHeight;
+		const embedRelY1 = (intersectY1 - (embedCenterY - embedHeight / 2)) / embedHeight;
+		
+		// Clamp to [0,1] and convert to tile indices
+		const tW = layer.tileWidth;
+		const tH = layer.tileHeight;
+		
+		const tileLeft = <u32>floor(max(0, min(1, embedRelX0)) / tW);
+		const tileRight = <u32>min(<f64>(layer.cols - 1), floor(max(0, min(1, embedRelX1)) / tW));
+		const tileTop = <u32>floor(max(0, min(1, embedRelY0)) / tH);
+		const tileBottom = <u32>min(<f64>(layer.rows - 1), floor(max(0, min(1, embedRelY1)) / tH));
+		
+		// Add tiles to draw list
+		for (let row = tileTop; row <= tileBottom; row++) {
+			for (let col = tileLeft; col <= tileRight; col++) {
+				this.setToDraw(layer, col, row);
 			}
 		}
 	}
@@ -428,29 +575,47 @@ export default class Image {
 
 	/** Calculates the effective scale of an embedded image based on its projection onto the screen. */
 	private getEmbeddedScale(s:f64) : f64 {
-		// For 360 embeds, scale depends on relative size and canvas/image dimensions
-		if(this.is360Embed) return s * max(this.rWidth * 2, this.rHeight) * (this.canvas.width / this.width);
+		// For 360 embeds, scale depends on area size and canvas/image dimensions
+		if(this.is360Embed) {
+			// Use new viewport-based area properties for more accurate scale calculation
+			const areaFactor = max(this.areaWidth * 2, this.areaHeight);
+			const sizeFactor = this.canvas.width / this.width;
+			return s * areaFactor * sizeFactor;
+		}
 
-		// For 2D embeds (approximation):
-		const h = this.rHeight, cY = this.y0+h/2, pH = h/2.5; // Use a fraction of height for checking
+		// For 2D embeds (approximation using new viewport model):
+		const embedWidth = this.areaWidth;
+		const embedHeight = this.areaHeight;
+		const embedX0 = this.areaCenterX - embedWidth / 2;
+		const embedX1 = this.areaCenterX + embedWidth / 2;
+		const embedY0 = this.areaCenterY - embedHeight / 2;
+		const embedY1 = this.areaCenterY + embedHeight / 2;
+		
+		const cY = this.areaCenterY; // Center Y of embed
+		const pH = embedHeight / 2.5; // Use a fraction of height for checking
 		const el = this.canvas.el, gl = this.canvas.webgl, cW = this.canvas.el.width;
+		
 		// Get screen coords of top-left and check visibility
-		let px = gl.getXYZ(this.x0, cY-pH);
-		let lX=px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Clamp left screen X
+		let px = gl.getXYZ(embedX0, cY - pH);
+		let lX = px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Clamp left screen X
 		let b:u8 = 0; // Count visible corners
 		if(px.inView(el)) b++;
+		
 		// Get screen coords of top-right and check visibility
-		if(gl.getXYZ(this.x1, cY-pH).inView(el)) b++;
+		if(gl.getXYZ(embedX1, cY - pH).inView(el)) b++;
 		// Calculate width based on projected top edge
-		const wT = ((px.w > 0 || px.x > cW ? cW : max(0, px.x))-lX);
+		const wT = ((px.w > 0 || px.x > cW ? cW : max(0, px.x)) - lX);
+		
 		// Check bottom corners
-		if(gl.getXYZ(this.x0, cY+pH).inView(el)) b++;
-		lX=px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Re-clamp left X based on bottom-left
-		if(gl.getXYZ(this.x1, cY+pH).inView(el)) b++;
+		if(gl.getXYZ(embedX0, cY + pH).inView(el)) b++;
+		lX = px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Re-clamp left X based on bottom-left
+		if(gl.getXYZ(embedX1, cY + pH).inView(el)) b++;
+		
 		// If no corners are visible, scale is 0
 		if (b == 0) return 0;
+		
 		// Calculate width based on projected bottom edge
-		const wB = (px.w > 0 || px.x > cW ? cW : max(0, px.x))-lX;
+		const wB = (px.w > 0 || px.x > cW ? cW : max(0, px.x)) - lX;
 		// Return scale based on the maximum projected width relative to image width
 		return min(1, max(wB, wT) / this.width);
 	}
