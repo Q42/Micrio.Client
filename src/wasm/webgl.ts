@@ -283,22 +283,6 @@ export default class WebGL {
 
 	/* ================== END EVENTS ================== */
 
-	/** Sets the camera orientation based on a target logical view (deprecated for 360 images). */
-	setView() : void {
-		// This method is deprecated for 360 images - use setView() instead
-		// Keep for backward compatibility and 2D image fallback only
-		const c = this.canvas;
-		// This shouldn't be called for 360 images anymore
-		if(c.is360) return;
-		
-		const v = c.view;
-		// Calculate target yaw and pitch from view center
-		this.yaw = ((v.centerX - this.offX) - .5) * PI * 2;
-		this.pitch = ((v.centerY - .5) * PI) * this.scaleY;
-		// Set perspective based on view height, applying limits
-		this.setPerspective(min(this.maxPerspective, v.height * PI * this.scaleY), true);
-	}
-
 	/** Sets the camera orientation directly. */
 	setDirection(yaw:f64, pitch:f64, persp:f64) : void {
 		// Apply base yaw (true north offset)
