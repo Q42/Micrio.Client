@@ -56,6 +56,30 @@ export default class WebGL {
 	/** Minimum allowed perspective (narrowest FoV / max zoom). */
 	minPerspective : f64 = PIh;
 
+	// --- 3D Camera Frustum (for accurate 360 embed detection) ---
+	/** Camera forward direction vector X */
+	public cameraForwardX: f64 = 0;
+	/** Camera forward direction vector Y */
+	public cameraForwardY: f64 = 0;
+	/** Camera forward direction vector Z */
+	public cameraForwardZ: f64 = -1;
+	/** Camera up direction vector X */
+	public cameraUpX: f64 = 0;
+	/** Camera up direction vector Y */
+	public cameraUpY: f64 = 1;
+	/** Camera up direction vector Z */
+	public cameraUpZ: f64 = 0;
+	/** Camera right direction vector X */
+	public cameraRightX: f64 = 1;
+	/** Camera right direction vector Y */
+	public cameraRightY: f64 = 0;
+	/** Camera right direction vector Z */
+	public cameraRightZ: f64 = 0;
+	/** Field of view in radians */
+	public fieldOfView: f64 = 0;
+	/** Aspect ratio of viewport */
+	public aspectRatio: f64 = 1;
+
 	// --- Temporary/Reusable Objects ---
 	/** Reusable vector for calculations. */
 	readonly vec4: Vec4 = new Vec4();
@@ -163,6 +187,9 @@ export default class WebGL {
 		// Update matrices
 		this.update();
 		
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
+		
 		// Sync logical view with new camera state for compatibility
 		this.syncLogicalView();
 	}
@@ -232,6 +259,9 @@ export default class WebGL {
 		// Update matrices (without recalculating perspective)
 		this.update(true);
 		
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
+		
 		// Sync logical view with new perspective for compatibility
 		this.syncLogicalView();
 	}
@@ -278,6 +308,9 @@ export default class WebGL {
 		if(persp != 0) this.setPerspective(persp, false);
 		else this.update();
 		
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
+		
 		// Sync logical view with new camera state for compatibility
 		this.syncLogicalView();
 	}
@@ -292,6 +325,9 @@ export default class WebGL {
 		this.pitch = (centerY - .5) * PI * this.scaleY;
 		// Set perspective based on height, applying limits unless disabled
 		this.setPerspective(min(this.maxPerspective, height * PI * this.scaleY), noLimit);
+		
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
 		
 		// Sync logical view with new camera state
 		this.syncLogicalView();
@@ -311,6 +347,39 @@ export default class WebGL {
 		// Update the logical view using new model
 		c.view.set(centerX, centerY, width, height);
 		c.view.changed = true;
+	}
+
+	/** Calculates 3D camera frustum for accurate 360 embed visibility detection */
+	calculate3DFrustum(): void {
+		if (!this.canvas.is360) return;
+		
+		// Use current camera orientation (yaw/pitch are already available)
+		const yaw = this.yaw;
+		const pitch = this.pitch;
+		
+		// Calculate camera direction vectors
+		this.cameraForwardX = Math.cos(pitch) * Math.sin(yaw);
+		this.cameraForwardY = Math.sin(pitch);
+		this.cameraForwardZ = Math.cos(pitch) * Math.cos(yaw);
+		
+		// Calculate up and right vectors (cross products)
+		this.cameraUpX = -Math.sin(pitch) * Math.sin(yaw);
+		this.cameraUpY = Math.cos(pitch);
+		this.cameraUpZ = -Math.sin(pitch) * Math.cos(yaw);
+		
+		this.cameraRightX = Math.cos(yaw);
+		this.cameraRightY = 0;
+		this.cameraRightZ = -Math.sin(yaw);
+		
+		// Calculate field of view from perspective
+		// this.perspective is the vertical FOV, we need horizontal FOV for proper detection
+		const verticalFOV = 2 * Math.atan(1 / this.perspective);
+		this.aspectRatio = this.canvas.el.width / this.canvas.el.height;
+		
+		// Calculate horizontal FOV from vertical FOV and aspect ratio
+		const halfVerticalFOV = verticalFOV / 2;
+		const halfHorizontalFOV = Math.atan(Math.tan(halfVerticalFOV) * this.aspectRatio);
+		this.fieldOfView = halfHorizontalFOV * 2;
 	}
 
 	/** Applies translation offset for 360 space transitions. */

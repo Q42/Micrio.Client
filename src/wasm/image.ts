@@ -191,9 +191,9 @@ export default class Image {
 		if (!this.canvas.is360) return false;
 		
 		// Calculate dot product between camera forward and embed position
-		const dotProduct = this.sphere3DX * this.canvas.cameraForwardX + 
-		                  this.sphere3DY * this.canvas.cameraForwardY + 
-		                  this.sphere3DZ * this.canvas.cameraForwardZ;
+		const dotProduct = this.sphere3DX * this.canvas.webgl.cameraForwardX + 
+		                  this.sphere3DY * this.canvas.webgl.cameraForwardY + 
+		                  this.sphere3DZ * this.canvas.webgl.cameraForwardZ;
 		
 		// If embed is behind camera, it's not visible
 		if (dotProduct < 0) return false;
@@ -201,14 +201,11 @@ export default class Image {
 		// Calculate angular distance from camera center to embed center
 		const angularDistance = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
 		
-		// Calculate maximum angular distance for visibility
-		const halfFOV = this.canvas.fieldOfView / 2;
-		
 		// Use a more generous FOV for embed detection (250% of actual FOV)
-		const expandedHalfFOV = halfFOV * 2.5;
+		const expandedFOV = this.canvas.webgl.fieldOfView * 1.25;		
 		
 		// Embed is visible if it's within the expanded field of view
-		return angularDistance < expandedHalfFOV;
+		return angularDistance < expandedFOV;
 	}
 
 	/** Checks if the image's bounding box is completely outside the current view. */
