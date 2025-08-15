@@ -71,40 +71,91 @@
 	/** Local state tracking if the main image is fully zoomed out. */
 	let zoomedOut:boolean = $state(!info.is360 && camera.isZoomedOut());
 
-	// --- 360 Viewport Polygon Calculation ---
+	// --- 360 Viewport Rectangle Calculation ---
 
-	/** Calculates the polygon representing the current 360 viewport. */
-	function getPoly() : number[] {
-		const ret:number[] = []; // Array to store polygon points [x1, y1, x2, y2, ...]
-		const w:number = viewport.width * viewport.ratio; // Screen width in physical pixels
-		const h:number = viewport.height * viewport.ratio; // Screen height
-		const segments:number = 8; // Number of segments per edge for polygon approximation
-		// Get center coordinates (used for wrap-around logic)
-		const center:Float64Array = camera.getCoo(w/2, h/2).slice(0);
-		const coords:number[] = []; // Temporary array for screen edge coordinates
+	/** Interface for 360 view rectangles that can span boundaries. */
+	interface ViewRect {
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	}
 
-		// Generate coordinates along the edges of the screen viewport
-		// Top edge
-		for(let x=0;x<segments;x++) coords.push(x/segments*w, 0);
-		// Right edge
-		for(let y=0;y<segments;y++) coords.push(w, y/segments*h);
-		// Bottom edge
-		for(let x=0;x<segments;x++) coords.push((1-x/segments)*w,h);
-		// Left edge
-		for(let y=0;y<segments;y++) coords.push(0, (1-y/segments)*h);
-
-		// Convert screen edge coordinates to image coordinates
-		for(let i=0;i<coords.length;i+=2) {
-			const coo = camera.getCoo(coords[i], coords[i+1]); // [x, y, scale, w, direction]
-
-			// Handle horizontal wrap-around: ensure points stay on the correct side relative to the center
-			if((i > 2.5 * segments * 2 || i < segments) && coo[0] > center[0]) coo[0]-=1; // Left side points > center -> wrap left
-			else if((i > segments && i < 2.5 * segments * 2) && coo[0] < center[0]) coo[0]+=1; // Right side points < center -> wrap right
-
-			ret.push(coo[0],coo[1]); // Add image coordinates to the result array
+	/** 
+	 * Calculates rectangles representing the current 360 viewport for minimap display.
+	 * 
+	 * This replaces the previous getPoly() approach that sampled screen edges and tried to handle
+	 * wrapping manually. The new approach directly converts the Models.Camera.View360 to proper
+	 * 2D rectangles, correctly handling:
+	 * 
+	 * - Longitude wrapping (views crossing 180°/-180° boundary)
+	 * - Polar region clamping (preventing coordinates outside 0-1 range)
+	 * - Wide field-of-view scenarios
+	 * 
+	 * @param area The current camera view in the new {centerX, centerY, width, height} format
+	 * @returns Array of rectangles to draw (1 for normal views, 2 for wrapped views)
+	 */
+	function get360ViewRects(area: Models.Camera.View360): ViewRect[] {
+		const rects: ViewRect[] = [];
+		
+		// Get the basic rectangle from the camera view
+		let { centerX, centerY, width, height } = area;
+		
+		// Normalize longitude center to [0, 1] range (handles negative values or values > 1)
+		centerX = ((centerX % 1) + 1) % 1;
+		
+		// Calculate rectangle bounds
+		let x0 = centerX - width / 2;
+		let x1 = centerX + width / 2;
+		
+		// Clamp latitude bounds to valid range [0, 1] (handles polar regions)
+		const y0 = Math.max(0, centerY - height / 2);
+		const y1 = Math.min(1, centerY + height / 2);
+		
+		// Handle longitude wrapping (crossing 0/1 boundary)
+		if (x0 < 0) {
+			// View extends past 0° longitude - split into two rectangles
+			// Left rectangle: wrapped portion (from x0+1 to 1.0)
+			rects.push({
+				x: x0 + 1,
+				y: y0,
+				width: 1 - (x0 + 1),
+				height: y1 - y0
+			});
+			// Right rectangle: main portion (from 0.0 to x1)
+			rects.push({
+				x: 0,
+				y: y0,
+				width: x1,
+				height: y1 - y0
+			});
+		} else if (x1 > 1) {
+			// View extends past 360° longitude - split into two rectangles
+			// Left rectangle: main portion (from x0 to 1.0)
+			rects.push({
+				x: x0,
+				y: y0,
+				width: 1 - x0,
+				height: y1 - y0
+			});
+			// Right rectangle: wrapped portion (from 0.0 to x1-1)
+			rects.push({
+				x: 0,
+				y: y0,
+				width: x1 - 1,
+				height: y1 - y0
+			});
+		} else {
+			// No wrapping needed - single rectangle
+			rects.push({
+				x: x0,
+				y: y0,
+				width: x1 - x0,
+				height: y1 - y0
+			});
 		}
-
-		return ret;
+		
+		return rects;
 	}
 
 	// --- Drawing Function ---
@@ -133,12 +184,16 @@
 		_ctx.beginPath();
 		_ctx.fillStyle = 'white'; // Use white for the viewport indicator fill
 
-		if(info.is360) { // Draw polygon for 360 view
-			const t = getPoly(); // Get viewport polygon points
-			_ctx.moveTo(t[0] * width, t[1] * height); // Move to first point
-			for(let i=2;i<t.length;i+=2)
-				_ctx.lineTo(t[i] * width, t[i+1] * height); // Draw lines to subsequent points
-			_ctx.closePath();
+		if(info.is360) { // Draw rectangles for 360 view
+			const rects = get360ViewRects(area); // Get viewport rectangles
+			for(const rect of rects) {
+				_ctx.rect(
+					Math.floor(rect.x * width), // x
+					Math.floor(rect.y * height), // y
+					Math.ceil(rect.width * width), // width
+					Math.ceil(rect.height * height) // height
+				);
+			}
 		}
 		else { // Draw rectangle for 2D view
 			zoomedOut = camera.isZoomedOut(); // Update zoomedOut state
@@ -180,9 +235,22 @@
 		window.addEventListener('mousemove', dDraw);
 		window.addEventListener('mouseup', dStop);
 		mapRect = _canvas!.getClientRects()[0]; // Cache minimap bounds
+		
+		// Cache current viewport dimensions to preserve them during drag
+		const currentView = camera.getView();
+		if (currentView) {
+			dragViewDimensions = {
+				width: currentView.width,
+				height: currentView.height
+			};
+		}
+		
 		dDraw(e); // Process initial click position
 		dragging = true;
 	}
+
+	/** Current viewport dimensions cached during drag start to preserve them. */
+	let dragViewDimensions: { width: number; height: number } | undefined = $state();
 
 	/** Handles mouse movement during minimap drag navigation. */
 	function dDraw(e:MouseEvent): void {
@@ -190,8 +258,21 @@
 			// Calculate relative coordinates within the minimap, clamped between 0 and 1
 			const x = Math.max(0, Math.min(1, (e.clientX - mapRect.left) / mapRect.width));
 			const y = Math.max(0, Math.min(1, (e.clientY - mapRect.top) / mapRect.height));
-			// Set the camera center to the calculated coordinates
-			camera.setCoo(x, y);
+			
+			if (dragViewDimensions) {
+				// Create new view with updated center but preserved dimensions from drag start
+				const newView: Models.Camera.View360 = {
+					centerX: x,
+					centerY: y,
+					width: dragViewDimensions.width,
+					height: dragViewDimensions.height
+				};
+				// Set the complete view to preserve viewport dimensions
+				camera.setView(newView);
+			} else {
+				// Fallback to setCoo if dragViewDimensions wasn't captured (shouldn't happen)
+				camera.setCoo(x, y);
+			}
 		}
 	}
 
@@ -201,6 +282,8 @@
 		window.removeEventListener('mousemove', dDraw);
 		window.removeEventListener('mouseup', dStop);
 		dragging = false;
+		// Clear cached dimensions
+		dragViewDimensions = undefined;
 	}
 
 	/** Timeout ID for auto-hiding. */
