@@ -452,8 +452,9 @@ export class Camera {
 		if (this.image.$settings.omni?.frames) {
 			const numLayers = this.image.$settings.omni.layers?.length ?? 1;
 			const numPerLayer = (this.image.$settings.omni.frames / numLayers);
-			if (opts.omniIndex == undefined && Array.isArray(view) && view[5] !== undefined) {
-				opts.omniIndex = Math.round(mod(view[5] / (Math.PI * 2)) * numPerLayer);
+			if (opts.omniIndex == undefined) {
+				const idx = 'centerX' in view ? view.omniIndex : Array.isArray(view) && view[5] !== undefined ? view[5] : undefined;
+				if(idx !== undefined)opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * numPerLayer);
 			}
 			if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer);
 		}

@@ -1346,6 +1346,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			width: number;
 			/** Height (0-1 relative to image) */
 			height: number;
+			/** Rotate an omni object to this frame index */
+			omniIndex?: number;
 		}
 
 		/** Coordinate tuple, [x, y, scale] */
