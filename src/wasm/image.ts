@@ -47,6 +47,18 @@ export default class Image {
 	/** Height of the embed area within the parent canvas (0-1). */
 	public areaHeight: f64 = 1;
 
+	// --- 3D Sphere-based Area Properties (for accurate 360 detection) ---
+	/** X coordinate on unit sphere */
+	public sphere3DX: f64 = 0;
+	/** Y coordinate on unit sphere */
+	public sphere3DY: f64 = 0;
+	/** Z coordinate on unit sphere */
+	public sphere3DZ: f64 = -1;
+	/** Angular width on sphere (radians) */
+	public angularWidth: f64 = 0;
+	/** Angular height on sphere (radians) */
+	public angularHeight: f64 = 0;
+
 	/** Timestamp when the base layer (lowest resolution) was first successfully drawn. 0 if not yet drawn. */
 	gotBase: f32 = 0;
 
@@ -146,49 +158,65 @@ export default class Image {
 		this.aspect = <f32>this.width / <f32>this.height;
 		this.rScale = this.aspect > this.canvas.aspect ?
 			this.canvas.width / this.width * this.rWidth : this.canvas.height / this.height * this.rHeight;
+		
+		// Calculate 3D sphere coordinates for accurate 360 detection
+		if(this.canvas.is360) {
+			this.calculate3DSpherePosition();
+		}
 	}
 
-	/** 
-	 * Checks viewport-style overlap between embed area and view bounds.
-	 * Uses centerX/Y + width/height model for cleaner wrap-around logic.
-	 */
-	private viewportOverlap(embedCenterX: f64, embedCenterY: f64, embedWidth: f64, embedHeight: f64,
-	                       viewCenterX: f64, viewCenterY: f64, viewWidth: f64, viewHeight: f64) : bool {
+	/** Converts 2D sphere coordinates (centerX, centerY) to 3D unit sphere position */
+	private calculate3DSpherePosition(): void {
+		// Convert centerX/Y to spherical coordinates
+		const yaw = (this.areaCenterX - 0.5) * 2 * PI;  // -π to π
+		const pitch = (this.areaCenterY - 0.5) * PI;    // -π/2 to π/2
 		
-		// Y-axis overlap (no wrap-around for Y)
-		const yOverlap = Math.abs(embedCenterY - viewCenterY) < (embedHeight + viewHeight) / 2;
-		if (!yOverlap) return false;
+		// Convert to 3D Cartesian coordinates on unit sphere
+		this.sphere3DX = Math.cos(pitch) * Math.sin(yaw);
+		this.sphere3DY = Math.sin(pitch);
+		this.sphere3DZ = Math.cos(pitch) * Math.cos(yaw);
 		
-		// X-axis overlap (handle 360 wrap-around)
-		if (this.canvas.is360) {
-			// Calculate shortest angular distance between centers
-			let deltaX = Math.abs(embedCenterX - viewCenterX);
-			const wrapDeltaX = 1 - deltaX; // Distance across wrap boundary
-			deltaX = Math.min(deltaX, wrapDeltaX); // Use shortest distance
-			
-			const requiredDistance = (embedWidth + viewWidth) / 2;
-			// Add tolerance for edge cases (precision errors, viewport approximation)
-			const tolerance = 0.05; // Increased tolerance for corner cases
-			const xOverlap = deltaX < (requiredDistance + tolerance);
-			
+		// Calculate angular size on sphere
+		this.angularWidth = this.areaWidth * 2 * PI;   // Convert to radians
+		this.angularHeight = this.areaHeight * PI;     // Convert to radians
+	}
 
-			
-			return xOverlap;
-		} else {
-			// Simple 2D overlap for non-360
-			const xOverlap = Math.abs(embedCenterX - viewCenterX) < (embedWidth + viewWidth) / 2;
-			return xOverlap;
-		}
+
+
+	/** 
+	 * Checks if embed's 3D sphere position is within camera's viewing frustum
+	 * Uses 3D geometry for accurate detection at all viewing angles
+	 */
+	private sphere3DOverlap(): bool {
+		if (!this.canvas.is360) return false;
+		
+		// Calculate dot product between camera forward and embed position
+		const dotProduct = this.sphere3DX * this.canvas.cameraForwardX + 
+		                  this.sphere3DY * this.canvas.cameraForwardY + 
+		                  this.sphere3DZ * this.canvas.cameraForwardZ;
+		
+		// If embed is behind camera, it's not visible
+		if (dotProduct < 0) return false;
+		
+		// Calculate angular distance from camera center to embed center
+		const angularDistance = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
+		
+		// Calculate maximum angular distance for visibility
+		const halfFOV = this.canvas.fieldOfView / 2;
+		
+		// Use a more generous FOV for embed detection (250% of actual FOV)
+		const expandedHalfFOV = halfFOV * 2.5;
+		
+		// Embed is visible if it's within the expanded field of view
+		return angularDistance < expandedHalfFOV;
 	}
 
 	/** Checks if the image's bounding box is completely outside the current view. */
 	private outsideView() : bool {
 		if(this.is360Embed) {
-			// Use viewport-style overlap detection for 360 embeds
-			return !this.viewportOverlap(
-				this.areaCenterX, this.areaCenterY, this.areaWidth, this.areaHeight,
-				this.canvas.viewCenterX, this.canvas.viewCenterY, this.canvas.viewWidth, this.canvas.viewHeight
-			);
+			// For 360 embeds, use 3D sphere-based detection for accuracy
+			// This handles floor/ceiling viewing and extreme angles correctly
+			return !this.sphere3DOverlap();
 		} else {
 			// Legacy 2D check for non-360 embeds and main images
 			const v = this.canvas.view;

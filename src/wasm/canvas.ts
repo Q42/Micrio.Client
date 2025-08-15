@@ -89,6 +89,30 @@ export default class Canvas {
 	/** Height of the current view (for viewport-style calculations). */
 	public viewHeight: f64 = 1;
 
+	// --- 3D Camera Frustum (for accurate 360 embed detection) ---
+	/** Camera forward direction vector X */
+	public cameraForwardX: f64 = 0;
+	/** Camera forward direction vector Y */
+	public cameraForwardY: f64 = 0;
+	/** Camera forward direction vector Z */
+	public cameraForwardZ: f64 = -1;
+	/** Camera up direction vector X */
+	public cameraUpX: f64 = 0;
+	/** Camera up direction vector Y */
+	public cameraUpY: f64 = 1;
+	/** Camera up direction vector Z */
+	public cameraUpZ: f64 = 0;
+	/** Camera right direction vector X */
+	public cameraRightX: f64 = 1;
+	/** Camera right direction vector Y */
+	public cameraRightY: f64 = 0;
+	/** Camera right direction vector Z */
+	public cameraRightZ: f64 = 0;
+	/** Field of view in radians */
+	public fieldOfView: f64 = 0;
+	/** Aspect ratio of viewport */
+	public aspectRatio: f64 = 1;
+
 	// --- Opacity/Fading ---
 	/** Current opacity value (linear). */
 	opacity: f64 = 0;
@@ -312,6 +336,39 @@ export default class Canvas {
 			|| (this.currentArea.width == 0 || this.currentArea.height == 0);
 	}
 
+	/** Calculates 3D camera frustum for accurate 360 embed visibility detection */
+	private calculate3DFrustum(): void {
+		if (this.is360) {
+			// Get camera orientation from View (which derives from centerX/Y)
+			const yaw = this.view.yaw;
+			const pitch = this.view.pitch;
+			
+			// Calculate camera direction vectors
+			this.cameraForwardX = Math.cos(pitch) * Math.sin(yaw);
+			this.cameraForwardY = Math.sin(pitch);
+			this.cameraForwardZ = Math.cos(pitch) * Math.cos(yaw);
+			
+			// Calculate up and right vectors (cross products)
+			this.cameraUpX = -Math.sin(pitch) * Math.sin(yaw);
+			this.cameraUpY = Math.cos(pitch);
+			this.cameraUpZ = -Math.sin(pitch) * Math.cos(yaw);
+			
+			this.cameraRightX = Math.cos(yaw);
+			this.cameraRightY = 0;
+			this.cameraRightZ = -Math.sin(yaw);
+			
+			// Calculate field of view from perspective
+			// webgl.perspective is the vertical FOV, we need horizontal FOV for proper detection
+			const verticalFOV = 2 * Math.atan(1 / this.webgl.perspective);
+			this.aspectRatio = this.el.width / this.el.height;
+			
+			// Calculate horizontal FOV from vertical FOV and aspect ratio
+			const halfVerticalFOV = verticalFOV / 2;
+			const halfHorizontalFOV = Math.atan(Math.tan(halfVerticalFOV) * this.aspectRatio);
+			this.fieldOfView = halfHorizontalFOV * 2;
+		}
+	}
+
 	/**
 	 * Calculates the min/max view bounds for 360 canvases.
 	 * This is used by embed visibility detection and should be called once per frame.
@@ -382,6 +439,10 @@ export default class Canvas {
 		// --- Calculate View Bounds ---
 		// Calculate view bounds once per frame for embed visibility detection
 		this.calculateViewBounds();
+		
+		// --- Calculate 3D Frustum ---
+		// Calculate 3D camera frustum for accurate 360 embed detection
+		this.calculate3DFrustum();
 
 		// --- Opacity Animation ---
 		// Step opacity fade animation if needed
