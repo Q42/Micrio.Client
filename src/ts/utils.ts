@@ -568,12 +568,21 @@ export const getIdVal=(a:string):number=>{let c=a.charCodeAt(0),u=c<91;return (c
 export const idIsV5 = (id:string):boolean => id.length == 6 || id.length == 7;
 
 /** Clamps a view rectangle the image bounds [0, 0, 1, 1]. */
-export const limitView = (v: Models.Camera.View360) : Models.Camera.View360 => ({
-	centerX: Math.max(0, v.centerX),
-	centerY: Math.max(0, v.centerY),
-	width: Math.min(1, v.centerX + v.width/2),
-	height: Math.min(1, v.centerY + v.height/2)
-});
+export const limitView = (v: Models.Camera.View360) : Models.Camera.View360 => {
+	// Clamp width and height to maximum of 1
+	const width = Math.min(1, v.width);
+	const height = Math.min(1, v.height);
+	
+	// Calculate half dimensions for boundary checking
+	const halfW = width / 2;
+	const halfH = height / 2;
+	
+	// Clamp center coordinates to keep rectangle within [0,0,1,1] bounds
+	const centerX = Math.max(halfW, Math.min(1 - halfW, v.centerX));
+	const centerY = Math.max(halfH, Math.min(1 - halfH, v.centerY));
+	
+	return { centerX, centerY, width, height };
+};
 
 /**
  * Calculates the 3D vector and navigation parameters between two images in a 360 space.
