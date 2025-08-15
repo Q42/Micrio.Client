@@ -1,6 +1,6 @@
 import { View, DrawRect, Viewport } from './shared';
 import { Main, getTileOpacity, drawTile, drawQuad, setMatrix, setViewport, viewSet, viewportSet, setVisible, setVisible2 } from './main';
-import { easeInOut } from './utils'
+import { easeInOut, mod1 } from './utils'
 import { base360Distance } from './globals';
 
 import Kinetic from './camera.kinetic'
@@ -68,6 +68,26 @@ export default class Canvas {
 
 	/** Flag indicating if this canvas is currently considered visible by the JS host. */
 	private isVisible: bool = false;
+
+	// --- 360 View Bounds (calculated once per frame for embed visibility detection) ---
+	/** Minimum X coordinate of the current 360 view (for embed visibility detection). */
+	public minViewX: f64 = 0;
+	/** Maximum X coordinate of the current 360 view (for embed visibility detection). */
+	public maxViewX: f64 = 1;
+	/** Minimum Y coordinate of the current 360 view (for embed visibility detection). */
+	public minViewY: f64 = 0;
+	/** Maximum Y coordinate of the current 360 view (for embed visibility detection). */
+	public maxViewY: f64 = 1;
+
+	// --- Viewport-style View Bounds (for cleaner overlap detection) ---
+	/** Center X coordinate of the current view (for viewport-style calculations). */
+	public viewCenterX: f64 = 0.5;
+	/** Center Y coordinate of the current view (for viewport-style calculations). */
+	public viewCenterY: f64 = 0.5;
+	/** Width of the current view (for viewport-style calculations). */
+	public viewWidth: f64 = 1;
+	/** Height of the current view (for viewport-style calculations). */
+	public viewHeight: f64 = 1;
 
 	// --- Opacity/Fading ---
 	/** Current opacity value (linear). */
@@ -292,6 +312,45 @@ export default class Canvas {
 			|| (this.currentArea.width == 0 || this.currentArea.height == 0);
 	}
 
+	/**
+	 * Calculates the min/max view bounds for 360 canvases.
+	 * This is used by embed visibility detection and should be called once per frame.
+	 * For non-360 canvases, this sets the bounds to the logical view coordinates.
+	 */
+	private calculateViewBounds() : void {
+		if(this.is360) {
+			// For 360, use logical view bounds directly instead of screen sampling
+			// Screen sampling can give overly wide ranges due to 360 projection
+			const v = this.view;
+			
+			// Store legacy bounds (use logical view)
+			this.minViewX = v.x0;
+			this.maxViewX = v.x1;
+			this.minViewY = v.y0;
+			this.maxViewY = v.y1;
+			
+			// Calculate viewport-style bounds from logical view
+			this.viewCenterX = v.centerX;
+			this.viewCenterY = v.centerY;
+			this.viewWidth = v.width;
+			this.viewHeight = v.height;
+			
+
+		} else {
+			// For 2D canvases, use the logical view coordinates
+			this.minViewX = this.view.x0;
+			this.maxViewX = this.view.x1;
+			this.minViewY = this.view.y0;
+			this.maxViewY = this.view.y1;
+			
+			// Viewport style for 2D
+			this.viewCenterX = this.view.centerX;
+			this.viewCenterY = this.view.centerY;
+			this.viewWidth = this.view.width;
+			this.viewHeight = this.view.height;
+		}
+	}
+
 	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. */
 	shouldDraw() : void {
 		// --- Visibility Check ---
@@ -319,6 +378,10 @@ export default class Canvas {
 		// --- Culling ---
 		// If the calculated visible portion is outside the screen, exit (no need to calculate tiles)
 		if(!this.is360 && (this.visible.width <= 0 || this.visible.height <= 0)) return; // Use <= 0 for safety
+
+		// --- Calculate View Bounds ---
+		// Calculate view bounds once per frame for embed visibility detection
+		this.calculateViewBounds();
 
 		// --- Opacity Animation ---
 		// Step opacity fade animation if needed

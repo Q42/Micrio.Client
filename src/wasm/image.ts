@@ -37,6 +37,16 @@ export default class Image {
 	/** Calculated relative height within the parent canvas. */
 	rHeight: f64 = 1;
 
+	// --- New Viewport-based Area Properties ---
+	/** Center X coordinate of the embed within the parent canvas (0-1, can wrap around for 360). */
+	public areaCenterX: f64 = 0.5;
+	/** Center Y coordinate of the embed within the parent canvas (0-1). */
+	public areaCenterY: f64 = 0.5;
+	/** Width of the embed area within the parent canvas (0-1). */
+	public areaWidth: f64 = 1;
+	/** Height of the embed area within the parent canvas (0-1). */
+	public areaHeight: f64 = 1;
+
 	/** Timestamp when the base layer (lowest resolution) was first successfully drawn. 0 if not yet drawn. */
 	gotBase: f32 = 0;
 
@@ -111,45 +121,77 @@ export default class Image {
 		}
 	}
 
-	/** Sets the relative area this image occupies within its parent canvas. */
+	/** Sets the relative area this image occupies within its parent canvas using viewport model. */
 	setArea(x0:f64, y0:f64, x1:f64, y1:f64) : void {
+		// Store legacy coordinates for backward compatibility
 		this.x0 = x0;
 		this.y0 = y0;
 		this.x1 = x1;
 		this.y1 = y1;
-		// Calculate relative width/height, handling wrap-around for X if needed
-		this.rWidth = x1 + (x1 < x0 ? 1 : 0) - x0;
-		this.rHeight = y1 - y0;
-		// Calculate image aspect ratio
+		
+		// Calculate viewport-style coordinates
+		this.areaWidth = x1 + (x1 < x0 ? 1 : 0) - x0;  // Handle wrap-around
+		this.areaHeight = y1 - y0;
+		this.areaCenterX = x0 + this.areaWidth / 2;      // Center calculation
+		this.areaCenterY = y0 + this.areaHeight / 2;     // Simple for Y
+		
+		// Normalize centerX for 360 wrap-around if needed
+		if(this.canvas.is360) {
+			this.areaCenterX = mod1(this.areaCenterX);
+		}
+		
+		// Keep legacy calculations
+		this.rWidth = this.areaWidth;
+		this.rHeight = this.areaHeight;
 		this.aspect = <f32>this.width / <f32>this.height;
-		// Calculate relative scale factor based on aspect ratios
 		this.rScale = this.aspect > this.canvas.aspect ?
 			this.canvas.width / this.width * this.rWidth : this.canvas.height / this.height * this.rHeight;
 	}
 
+	/** 
+	 * Checks viewport-style overlap between embed area and view bounds.
+	 * Uses centerX/Y + width/height model for cleaner wrap-around logic.
+	 */
+	private viewportOverlap(embedCenterX: f64, embedCenterY: f64, embedWidth: f64, embedHeight: f64,
+	                       viewCenterX: f64, viewCenterY: f64, viewWidth: f64, viewHeight: f64) : bool {
+		
+		// Y-axis overlap (no wrap-around for Y)
+		const yOverlap = Math.abs(embedCenterY - viewCenterY) < (embedHeight + viewHeight) / 2;
+		if (!yOverlap) return false;
+		
+		// X-axis overlap (handle 360 wrap-around)
+		if (this.canvas.is360) {
+			// Calculate shortest angular distance between centers
+			let deltaX = Math.abs(embedCenterX - viewCenterX);
+			const wrapDeltaX = 1 - deltaX; // Distance across wrap boundary
+			deltaX = Math.min(deltaX, wrapDeltaX); // Use shortest distance
+			
+			const requiredDistance = (embedWidth + viewWidth) / 2;
+			// Add tolerance for edge cases (precision errors, viewport approximation)
+			const tolerance = 0.05; // Increased tolerance for corner cases
+			const xOverlap = deltaX < (requiredDistance + tolerance);
+			
+
+			
+			return xOverlap;
+		} else {
+			// Simple 2D overlap for non-360
+			const xOverlap = Math.abs(embedCenterX - viewCenterX) < (embedWidth + viewWidth) / 2;
+			return xOverlap;
+		}
+	}
+
 	/** Checks if the image's bounding box is completely outside the current view. */
 	private outsideView() : bool {
-		const v = this.canvas.view;
 		if(this.is360Embed) {
-			// Special logic for 360 embeds, considering wrap-around and view frustum
-			const cW = this.canvas.el.width, cH = this.canvas.el.height;
-			let mx0 = this.x0, mx1 = this.x1;
-			// Handle horizontal wrap-around for embed coordinates
-			if(mx0 < 0) { mx0++; }
-			if(mx0 > mx1) { // If wrapped (e.g., x0=0.9, x1=0.1)
-				// Adjust based on which side of the seam the center of the view is on
-				if(v.centerX < .5 && v.x1 <= 1) mx0--; else mx1++;
-			}
-			// Get view boundaries in image coordinates (approximated)
-			let lx0 = min(v.x0, this.canvas.webgl.getCoo(0, cH / 2).x),
-				lx1 = max(v.x1, this.canvas.webgl.getCoo(cW, cH / 2).x);
-			// Handle view wrap-around
-			if(lx1 > 1) { lx0--; lx1--; }
-			// Check for non-overlap
-			const outside = mx0>lx1||mx1<lx0||this.y0>v.y1||this.y1<v.y0;
-			return outside;
-		}
-		else { // Standard 2D check
+			// Use viewport-style overlap detection for 360 embeds
+			return !this.viewportOverlap(
+				this.areaCenterX, this.areaCenterY, this.areaWidth, this.areaHeight,
+				this.canvas.viewCenterX, this.canvas.viewCenterY, this.canvas.viewWidth, this.canvas.viewHeight
+			);
+		} else {
+			// Legacy 2D check for non-360 embeds and main images
+			const v = this.canvas.view;
 			return this.x1 <= v.x0 || this.x0 >= v.x1 || this.y1 <= v.y0 || this.y0 >= v.y1;
 		}
 	}
