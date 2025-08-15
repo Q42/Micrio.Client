@@ -514,7 +514,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		// Get language-specific content and video tour data
 		const content = m?.i18n?.[lang] ?? (<unknown>m as Models.ImageData.MarkerCultureData);
 		if(content?.title) chapter = i; // Update chapter index if step has a title
-		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m as Models.ImageData.VideoTourCultureData
+		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m.videoTour as Models.ImageData.VideoTourCultureData
 			: m.videoTour.i18n?.[lang] ?? undefined;
 
 		// Sanitize assets within the step's content
@@ -528,8 +528,9 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 			return undefined; // Skip this step
 		}
 
-		
 		sanitizeAsset(content?.audio);
+		// @ts-ignore
+		if(m.videoTour && content?.audio) m.videoTour['audio'] = content.audio;
 
 		// Create step info object
 		return {
