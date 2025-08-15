@@ -30,7 +30,7 @@ export class Grid {
 	 * @returns The formatted grid string for this image.
 	 */
 	static getString = (i:Models.ImageInfo.ImageInfo, opts: {
-		view?:Models.Camera.View360;
+		view?:Models.Camera.View;
 		area?:Models.Camera.ViewRect;
 		size?:number[];
 		cultures?: string;
@@ -224,7 +224,7 @@ export class Grid {
 		/** Overrides the default animation duration for the main grid view transition. */
 		duration?:number;
 		/** If provided, animates the main grid view to this viewport rectangle. */
-		view?:Models.Camera.View360;
+		view?:Models.Camera.View;
 		/** If true, skips the main grid camera animation. */
 		noCamAni?: boolean;
 		/** If true, forces area animation even for images not currently visible. */

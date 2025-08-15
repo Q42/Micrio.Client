@@ -196,9 +196,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** Micrio image settings, which is on load included as {@link ImageInfo}`.settings`. */
 		export type Settings = {
 			/** The starting viewport */
-			view?: Camera.View360;
+			view?: Camera.View;
 			/** Restrict navigation to this viewport (`[x0,y0,x1,y1]`) */
-			restrict?: Camera.View360;
+			restrict?: Camera.View;
 			/** Load a cover-initing image focussed on this coordinate (`[x, y]`) */
 			focus?: [number, number];
 
@@ -693,7 +693,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			visibleArc?: [number, number];
 
 			/** The viewport to zoom to when the marker is opened */
-			view?: Camera.View360;
+			view?: Camera.View;
 
 			/** If an image has multiple layers, switch to this layer */
 			imageLayer?: number;
@@ -790,7 +790,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 				micrioId: string,
 				markerId?: string,
 				follows?: boolean,
-				view?: Camera.View360
+				view?: Camera.View
 			}
 
 		};
@@ -802,7 +802,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		 */
 		 export type Embed = Partial<ImageInfo.ImageInfo> & {
 			/** The area inside the main image to place the embed */
-			area: Camera.View360;
+			area: Camera.View;
 
 			/** Original asset url */
 			src?: string;
@@ -895,7 +895,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Viewport name */
 			title?: string;
 			/** View rectangle */
-			rect: Camera.View360;
+			rect: Camera.View;
 		};
 
 		export interface VideoTourCultureData extends TourCultureData {
@@ -988,7 +988,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			micrioId: string,
 			duration: number,
 			imageHasOtherMarkers?: boolean,
-			startView?: Camera.View360,
+			startView?: Camera.View,
 			chapter?: number,
 			/** For in grid multi-image tour, stay in the grid view */
 			gridView?: boolean,
@@ -1264,18 +1264,18 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		export interface GridHistory {
 			layout: string;
 			horizontal: boolean;
-			view?: Camera.View360;
+			view?: Camera.View;
 		}
 	
 		export interface GridImageOptions {
-			view?:Camera.View360;
+			view?:Camera.View;
 			area?:Camera.ViewRect;
 			size?:number[];
 		}
 	
 		export interface FocusOptions {
 			/** Optional target image view */
-			view?: Camera.View360;
+			view?: Camera.View;
 			/** Transition duration in ms */
 			duration?: number;
 			/** Transition animation, defaults to crossfade */
@@ -1283,7 +1283,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Set the target viewport immediately */
 			noViewAni?: boolean;
 			/** Animate the previously focussed image to this view during exit transition */
-			exitView?: Camera.View360;
+			exitView?: Camera.View;
 			/** Limit the focussed image to cover view, defaults to false */
 			coverLimit?: boolean;
 			/** Open as cover view, but don't limit it */
@@ -1337,7 +1337,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		export type ViewRect = number[]|Float64Array;
 
 		/** A 360-degree area definition with center point and dimensions */
-		export interface View360 {
+		export interface View {
 			/** Center X coordinate (0-1 relative to image) */
 			centerX: number;
 			/** Center Y coordinate (0-1 relative to image) */
@@ -1432,9 +1432,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 		// Camera events
 		/** The camera has zoomed */
-		'zoom': { image: MicrioImage, view: Camera.View360 }; 
+		'zoom': { image: MicrioImage, view: Camera.View }; 
 		/** The camera has moved */
-		'move': { image: MicrioImage, view: Camera.View360 };
+		'move': { image: MicrioImage, view: Camera.View };
 		/** A frame has been drawn */
 		'draw': void; 
 		/** The <micr-io> element was resized */

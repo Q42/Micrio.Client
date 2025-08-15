@@ -804,7 +804,7 @@ export default class Canvas {
 
 		if(this.width > 0) {
 			if(this.is360) {
-				this.webgl.setView360(centerX, centerY, width, height, noLimit, correctNorth);
+				this.webgl.setView(centerX, centerY, width, height, noLimit, correctNorth);
 				this.view.set(centerX, centerY, width, height); // Sync
 			} else if(this.camera.setView()) {
 				this.webgl.update();

@@ -387,7 +387,7 @@
 	/** Stores the index of the page closest to the current view center during panning. */
 	let closestIdx:number;
 	/** Updates the `closestIdx` based on the current view during panning. */
-	function moved(v:Models.Camera.View360|undefined) : void {
+	function moved(v:Models.Camera.View|undefined) : void {
 		if(!v) return;
 
 		const c = v.centerX; // Current view center X

@@ -82,7 +82,7 @@ export class MicrioImage {
 	public swiper: GallerySwiper|undefined;
 
 	/** Stores the camera view state when a marker is opened, used to return to the previous view. */
-	openedView: Models.Camera.View360|undefined;
+	openedView: Models.Camera.View|undefined;
 
 	/** Internal reference to the video element.
 	 * @internal

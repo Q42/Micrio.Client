@@ -417,7 +417,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		/** If true, opens the split-screen view passively (doesn't take focus). */
 		isPassive?: boolean,
 		/** An optional starting view to apply immediately. */
-		startView?: Models.Camera.View360,
+		startView?: Models.Camera.View,
 		/** For 360 transitions, provides the direction vector from the previous image. */
 		vector?: Models.Camera.Vector,
 	}={}) : MicrioImage {

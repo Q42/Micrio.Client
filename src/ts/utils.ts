@@ -569,7 +569,7 @@ export const getIdVal=(a:string):number=>{let c=a.charCodeAt(0),u=c<91;return (c
 export const idIsV5 = (id:string):boolean => id.length == 6 || id.length == 7;
 
 /** Clamps a view rectangle the image bounds [0, 0, 1, 1]. */
-export const limitView = (v: Models.Camera.View360) : Models.Camera.View360 => {
+export const limitView = (v: Models.Camera.View) : Models.Camera.View => {
 	// Clamp width and height to maximum of 1
 	const width = Math.min(1, v.width);
 	const height = Math.min(1, v.height);
@@ -647,7 +647,7 @@ export const hasNativeHLS = (video?:HTMLMediaElement) : boolean => {
 
 export const View = {
 	/** Casts a raw view array ([centerX, centerY, width, height]) to a 360 view object. */
-	fromRaw: (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
+	fromRaw: (v?:Models.Camera.ViewRect) : Models.Camera.View|undefined => v ? ({
 		centerX: v[0],
 		centerY: v[1],
 		width: v[2],
@@ -655,7 +655,7 @@ export const View = {
 	}) : undefined,
 	
 	/** Casts a 360 view object to a raw view array ([centerX, centerY, width, height]). */
-	toRaw: (v?:Models.Camera.View360) : Models.Camera.ViewRect|undefined => v ? [
+	toRaw: (v?:Models.Camera.View) : Models.Camera.ViewRect|undefined => v ? [
 		v.centerX,
 		v.centerY,
 		v.width,
@@ -663,7 +663,7 @@ export const View = {
 	] : undefined,
 	
 	/** Casts a legacy view array ([x0, y0, x1, y1]) to a 360 view object. */
-	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View360) : Models.Camera.View360|undefined => v && !('centerX' in v) ? ({
+	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View) : Models.Camera.View|undefined => v && !('centerX' in v) ? ({
 		centerX: (v[0] + v[2]) / 2,
 		centerY: (v[1] + v[3]) / 2,
 		width: v[2] - v[0],
@@ -671,14 +671,14 @@ export const View = {
 	}) : v,
 
 	/** Casts a 360 view object to a legacy view array ([x0, y0, x1, y1]). */
-	toLegacy: (v?:Models.Camera.View360) : Models.Camera.ViewRect|undefined => v && 'centerX' in v ? [
+	toLegacy: (v?:Models.Camera.View) : Models.Camera.ViewRect|undefined => v && 'centerX' in v ? [
 		v.centerX - v.width/2,
 		v.centerY - v.height/2,
 		v.centerX + v.width/2,
 		v.centerY + v.height/2
 	] : v,
 	
-	/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View360 if necessary. */
-	sanitize: (v?: any) : Models.Camera.View360|undefined => Array.isArray(v) ? View.fromLegacy(v) : v
+	/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View if necessary. */
+	sanitize: (v?: any) : Models.Camera.View|undefined => Array.isArray(v) ? View.fromLegacy(v) : v
 
 }

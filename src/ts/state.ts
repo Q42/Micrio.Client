@@ -255,11 +255,11 @@ export namespace State {
 	*/
 	export class Image {
 		/** Writable Svelte store holding the current viewport [centerX, centerY, width, height] of this image. */
-		public readonly view: Writable<Models.Camera.View360|undefined> = writable(undefined);
+		public readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
 		/** Internal reference to the current view. @internal */
-		private _view:Models.Camera.View360|undefined;
+		private _view:Models.Camera.View|undefined;
 		/** Getter for the current value of the {@link view} store. */
-		public get $view() : Models.Camera.View360|undefined {return this._view}
+		public get $view() : Models.Camera.View|undefined {return this._view}
 
 		/**
 		 * Writable Svelte store holding the currently active marker within *this specific image*.

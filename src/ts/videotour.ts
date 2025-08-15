@@ -22,7 +22,7 @@ type VideoTourSegment = {
 	/** Start time of this segment's animation (ms). */
 	start: number;
 	/** Target camera view for this segment. */
-	view: Models.Camera.View360;
+	view: Models.Camera.View;
 }
 
 
@@ -69,7 +69,7 @@ export class VideoTourInstance {
 	private micrio: HTMLMicrioElement;
 
 	/** The camera view when the tour started, used for resetting. @internal */
-	private initialView: Models.Camera.View360|undefined;
+	private initialView: Models.Camera.View|undefined;
 
 	/**
 	 * Creates a VideoTourInstance.
@@ -255,7 +255,7 @@ export class VideoTourInstance {
 	}
 
 	/** Gets the target view for a specific step index. @internal */
-	private getView(i:number) : Models.Camera.View360|undefined {
+	private getView(i:number) : Models.Camera.View|undefined {
 		const step = this.timeline[i];
 		return step?.view;
 	}
@@ -275,7 +275,7 @@ export class VideoTourInstance {
 		const prevView = this.getView(this.currentIndex-1);
 		const area = this.image.opts?.area;
 
-		const useView360 = this.image.is360;
+		const useView = this.image.is360;
 
 		if(this.wasPaused && prevView) {
 			const b:number = this.micrio.wasm.e.ease(perc);

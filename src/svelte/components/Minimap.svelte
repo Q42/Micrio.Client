@@ -85,7 +85,7 @@
 	 * Calculates rectangles representing the current 360 viewport for minimap display.
 	 * 
 	 * This replaces the previous getPoly() approach that sampled screen edges and tried to handle
-	 * wrapping manually. The new approach directly converts the Models.Camera.View360 to proper
+	 * wrapping manually. The new approach directly converts the Models.Camera.View to proper
 	 * 2D rectangles, correctly handling:
 	 * 
 	 * - Longitude wrapping (views crossing 180°/-180° boundary)
@@ -95,7 +95,7 @@
 	 * @param area The current camera view in the new {centerX, centerY, width, height} format
 	 * @returns Array of rectangles to draw (1 for normal views, 2 for wrapped views)
 	 */
-	function get360ViewRects(area: Models.Camera.View360): ViewRect[] {
+	function get360ViewRects(area: Models.Camera.View): ViewRect[] {
 		const rects: ViewRect[] = [];
 		
 		// Get the basic rectangle from the camera view
@@ -161,7 +161,7 @@
 	// --- Drawing Function ---
 
 	/** Draws the minimap content (thumbnail and viewport indicator). */
-	function draw(area:Models.Camera.View360|undefined): void{ // `area` is the current view from the image state store
+	function draw(area:Models.Camera.View|undefined): void{ // `area` is the current view from the image state store
 		if(!area||!_ctx) return; // Exit if no view or context
 		moved(); // Update hidden state based on activity
 
@@ -261,7 +261,7 @@
 			
 			if (dragViewDimensions) {
 				// Create new view with updated center but preserved dimensions from drag start
-				const newView: Models.Camera.View360 = {
+				const newView: Models.Camera.View = {
 					centerX: x,
 					centerY: y,
 					width: dragViewDimensions.width,

@@ -285,7 +285,7 @@ export default class WebGL {
 
 	/** Sets the camera orientation based on a target logical view (deprecated for 360 images). */
 	setView() : void {
-		// This method is deprecated for 360 images - use setView360() instead
+		// This method is deprecated for 360 images - use setView() instead
 		// Keep for backward compatibility and 2D image fallback only
 		const c = this.canvas;
 		// This shouldn't be called for 360 images anymore
@@ -316,11 +316,11 @@ export default class WebGL {
 	}
 
 	/** Sets the camera orientation using 360-degree viewport format (center + dimensions). */
-	setView360(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
+	setView(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
 		// Apply true north correction if requested
 		const adjustedCenterX = correctNorth ? centerX + this.canvas.trueNorth : centerX;
 		
-		// Convert View360 directly to camera parameters
+		// Convert View directly to camera parameters
 		this.yaw = (adjustedCenterX - .5) * PI * 2;
 		this.pitch = (centerY - .5) * PI * this.scaleY;
 		// Set perspective based on height, applying limits unless disabled
@@ -338,7 +338,7 @@ export default class WebGL {
 		const c = this.canvas;
 		if(!c.is360) return; // Only for 360 images
 		
-		// Calculate current View360 from camera state
+		// Calculate current View from camera state
 		const centerX = mod1(this.yaw / (PI * 2) + .5);
 		const centerY = (this.pitch / this.scaleY) / PI + .5;
 		const height = this.perspective / PI / this.scaleY;

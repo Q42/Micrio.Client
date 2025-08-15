@@ -23,7 +23,7 @@ export class Camera {
 	*/
 	private _view!: Float64Array;
 
-	private readonly view: Models.Camera.View360 = {
+	private readonly view: Models.Camera.View = {
 		centerX: .5,
 		centerY: .5,
 		width: 1,
@@ -148,10 +148,10 @@ export class Camera {
 		y: a[1] + y * (a[3]-a[1])
 	});
 
-	/** Type guard to check if a parameter is a View360 object.
+	/** Type guard to check if a parameter is a View object.
 	 * @internal
 	 */
-	private isView360 = (view: Models.Camera.ViewRect | Models.Camera.View360): view is Models.Camera.View360 => {
+	private isView = (view: Models.Camera.ViewRect | Models.Camera.View): view is Models.Camera.View => {
 		return typeof view === 'object' && !Array.isArray(view) && 
 			'centerX' in view && 'centerY' in view && 'width' in view && 'height' in view;
 	};
@@ -199,7 +199,7 @@ export class Camera {
 	 * Gets the current image view rectangle.
 	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
 	 */
-	public getView = () : Models.Camera.View360 => this.view;
+	public getView = () : Models.Camera.View => this.view;
 
 	/**
 	 * Gets the current image view rectangle [centerX, centerY, width, height] relative to the image (0-1).
@@ -224,10 +224,10 @@ export class Camera {
 
 	/**
 	 * Sets the camera view instantly to the specified viewport.
-	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View360 {centerX, centerY, width, height}.
+	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View {centerX, centerY, width, height}.
 	 * @param opts Options for setting the view.
 	 */
-	public setView(view: Models.Camera.ViewRect | Models.Camera.View360, opts: {
+	public setView(view: Models.Camera.ViewRect | Models.Camera.View, opts: {
 		/** If true, allows setting a view outside the normal image boundaries. */
 		noLimit?: boolean;
 		/** If true (for 360), corrects the view based on the `trueNorth` setting. */
@@ -239,7 +239,7 @@ export class Camera {
 	} = {}): void {
 		if (!this.e) return; // Exit if Wasm not ready
 
-		let { centerX, centerY, width, height } = this.isView360(view) ? view : View.fromLegacy(view)!;
+		let { centerX, centerY, width, height } = this.isView(view) ? view : View.fromLegacy(view)!;
 
 		if (opts.area) {
 			const absCoords = this.cooToArea(centerX, centerY, opts.area);
@@ -364,7 +364,7 @@ export class Camera {
 	 * Sets a rectangular limit for camera navigation within the image.
 	 * @param l The viewport limit rectangle [x0, y0, x1, y1].
 	*/
-	public setLimit(l:Models.Camera.ViewRect|Models.Camera.View360) : void {
+	public setLimit(l:Models.Camera.ViewRect|Models.Camera.View) : void {
 		if (!this.e) return;
 		l = View.sanitize(l)!;
 		this.e._setLimit(this.image.ptr, l.centerX, l.centerY, l.width, l.height);
@@ -404,17 +404,17 @@ export class Camera {
 
 	/**
 	 * Animates the camera smoothly to a target viewport.
-	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View360 {centerX, centerY, width, height}.
+	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View {centerX, centerY, width, height}.
 	 * @param opts Optional animation settings.
 	 * @returns A Promise that resolves when the animation completes, or rejects if aborted.
 	 */
 	public flyToView = (
-		view: Models.Camera.ViewRect | Models.Camera.View360,
+		view: Models.Camera.ViewRect | Models.Camera.View,
 		opts: Models.Camera.AnimationOptions & {
 			/** Set the starting animation progress percentage (0-1). */
 			progress?: number;
 			/** Base the progress override on this starting view. */
-			prevView?: Models.Camera.View360;
+			prevView?: Models.Camera.View;
 			/** If true, performs a "jump" animation (zooms out then in). */
 			isJump?: boolean;
 			/** For Omni objects: the target image frame index to animate to. */
@@ -431,7 +431,7 @@ export class Camera {
 	): Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
 
-		let { centerX, centerY, width, height } = this.isView360(view) ? view : View.fromLegacy(view)!;
+		let { centerX, centerY, width, height } = this.isView(view) ? view : View.fromLegacy(view)!;
 
 		if(opts.margin?.length == 2) {
 			centerX += opts.margin[0];
