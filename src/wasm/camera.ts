@@ -577,7 +577,7 @@ export default class Camera {
 
 		// Calculate target view width and height based on scale and canvas ratios
 		const w:f64 = isNaN(scale) && is360 ? c.view.width : (1/scale) * this.cpw;
-		const h:f64 = isNaN(scale) && is360 ? c.view.height : (1/scale) * this.cph * (is360 ? .5 : 1); // Height factor for 360?
+		const h:f64 = isNaN(scale) && is360 ? c.view.height : (1/scale) * this.cph; // Fixed: removed incorrect 360° height factor
 
 		// Clamp center coordinates if setting immediately (no animation) in 2D
 		if(dur==0 && !is360) {
