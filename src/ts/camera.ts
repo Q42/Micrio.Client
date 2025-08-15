@@ -364,13 +364,10 @@ export class Camera {
 	 * Sets a rectangular limit for camera navigation within the image.
 	 * @param l The viewport limit rectangle [x0, y0, x1, y1].
 	*/
-	public setLimit(l:Models.Camera.ViewRect) : void {
+	public setLimit(l:Models.Camera.ViewRect|Models.Camera.View360) : void {
 		if (!this.e) return;
-		const lCenterX = (l[0] + l[2]) / 2;
-		const lCenterY = (l[1] + l[3]) / 2;
-		const lWidth = l[2] - l[0];
-		const lHeight = l[3] - l[1];
-		this.e._setLimit(this.image.ptr, lCenterX, lCenterY, lWidth, lHeight);
+		l = View.sanitize(l)!;
+		this.e._setLimit(this.image.ptr, l.centerX, l.centerY, l.width, l.height);
 		this.image.wasm.render();
 	}
 

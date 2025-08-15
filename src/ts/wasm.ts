@@ -350,6 +350,9 @@ export class Wasm {
 		// Set initial area if defined
 		if(c.opts.area) c.camera.setArea(c.opts.area, {direct: true, noDispatch:true, noRender:true});
 
+		// Set initial limit if defined
+		if(settings?.restrict) c.camera.setLimit(settings.restrict);
+
 		// Set custom durations if provided
 		if(settings?.crossfadeDuration)
 			this.e.setCrossfadeDuration(this.i, settings.crossfadeDuration);
@@ -836,11 +839,7 @@ export class Wasm {
 	 * @param noLimit If true, allows focus outside image bounds.
 	 */
 	setFocus(ptr:number, v:Models.Camera.ViewRect, noLimit:boolean=false) : void {
-		const centerX = (v[0] + v[2]) / 2;
-		const centerY = (v[1] + v[3]) / 2;
-		const width = v[2] - v[0];
-		const height = v[3] - v[1];
-		this.e._setFocus(ptr, centerX, centerY, width, height, noLimit);
+		this.e._setFocus(ptr, v[0], v[1], v[2], v[3], noLimit);
 	}
 
 }

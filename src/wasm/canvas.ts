@@ -683,13 +683,13 @@ export default class Canvas {
 	}
 
 	/** Sets the focus area for gallery/grid canvases. */
-	setFocus(centerX: f64, centerY: f64, width: f64, height: f64, noLimit:bool) : void {
-		const x0 = centerX - width / 2;
-		const y0 = centerY - height / 2;
-		const x1 = centerX + width / 2;
-		const y1 = centerY + height / 2;
+	setFocus(x0:f64, y0:f64, x1:f64, y1:f64, noLimit:bool) : void {
+		const centerX = (x0 + x1) / 2;
+		const centerY = (y0 + y1) / 2;
+		const width = x1 - x0;
+		const height = y1 - y0;
 
-		if(this.focus.equal(new View(this, centerX, centerY, width, height))) return;
+		if(this.focus.equals(centerX, centerY, width, height)) return;
 		this.activeImageIdx = -1;
 		for(let i=0;i<this.images.length;i++) {
 			const im = unchecked(this.images[i]);

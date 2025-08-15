@@ -431,10 +431,10 @@ export function _getScale(c:Canvas) : f64 { return c.getScale() }
 /**
  * Limit camera navigation boundaries.
  * @param c The Canvas memory pointer in shared Wasm memory.
- * @param x0 The viewport X0 coordinate.
- * @param y0 The viewport Y0 coordinate.
- * @param x1 The viewport X1 coordinate.
- * @param y1 The viewport Y1 coordinate.
+ * @param lCenterX The viewport center X coordinate.
+ * @param lCenterY The viewport center Y coordinate.
+ * @param lWidth The viewport width.
+ * @param lHeight The viewport height.
  */
 export function _setLimit(c:Canvas, lCenterX: f64, lCenterY: f64, lWidth: f64, lHeight: f64) : void {
 	if(c.view.lCenterX == lCenterX && c.view.lWidth == lWidth && c.view.lCenterY == lCenterY && c.view.lHeight == lHeight) return;
@@ -606,8 +606,8 @@ export function _getActiveImageIdx(c:Canvas) : i32 { return c.activeImageIdx }
  * @param y1 The viewport Y1 coordinate.
  * @param noLimit Don't update the zoom limits.
  */
-export function _setFocus(c:Canvas, centerX:f64, centerY:f64, width:f64, height:f64, noLimit:bool) : void {
-	c.setFocus(centerX, centerY, width, height, noLimit) }
+export function _setFocus(c:Canvas, x0:f64, y0:f64, x1:f64, y1:f64, noLimit:bool) : void {
+	c.setFocus(x0, y0, x1, y1, noLimit) }
 /**
  * Fade a main MicrioImage to a target opacity, including all of its sub-images.
  * @param c The Canvas memory pointer in shared Wasm memory.

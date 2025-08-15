@@ -127,15 +127,17 @@ export class View {
 	}
 
 	// Update copy to copy public props
-	copy(v:View) : void {
+	copy(v:View, excludeLimit:bool = false) : void {
 		this.centerX = v.centerX;
 		this.centerY = v.centerY;
 		this.width = v.width;
 		this.height = v.height;
-		this.lCenterX = v.lCenterX;
-		this.lCenterY = v.lCenterY;
-		this.lWidth = v.lWidth;
-		this.lHeight = v.lHeight;
+		if(!excludeLimit) {
+			this.lCenterX = v.lCenterX;
+			this.lCenterY = v.lCenterY;
+			this.lWidth = v.lWidth;
+			this.lHeight = v.lHeight;
+		}
 		this.changed = true;
 		this.toArray();
 	}
@@ -212,6 +214,7 @@ export class View {
 		// Limit Boundaries
 		const halfW = min(1, this.width) / 2;
 		const lHalfW = this.lWidth / 2;
+
 		if (this.canvas.is360) {
 			this.centerX = mod1(this.centerX);
 		} else if (!freeMove) {
@@ -252,11 +255,11 @@ export class View {
 	}
 
 	/** Checks if this view is equal to another view. */
-	equal(v:View) : bool {
-		return this.centerX == v.centerX
-			&& this.centerY == v.centerY
-			&& this.width == v.width
-			&& this.height == v.height;
+	equals(centerX:f64, centerY:f64, width:f64, height:f64) : bool {
+		return this.centerX == centerX
+			&& this.centerY == centerY
+			&& this.width == width
+			&& this.height == height;
 	}
 
 	/** Checks if this view represents the full image [0,0,1,1]. */

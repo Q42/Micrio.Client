@@ -182,15 +182,13 @@ export default class Camera {
 		this.coverScale = max(cpw, cph);
 
 		// Adjust coverScale if view limits are smaller than the image
-		const limitW = c.view.lX1 - c.view.lX0;
-		const limitH = c.view.lY1 - c.view.lY0;
-		const lRat = limitW / limitH; // Aspect ratio of the limit box
+		const lRat = c.view.lWidth / c.view.lHeight; // Aspect ratio of the limit box
 		c.view.limitChanged = false; // Reset flag
-		if(limitW < 1 || limitH < 1) { // If limits are active
+		if(c.view.lWidth < 1 || c.view.lHeight < 1) { // If limits are active
 			const rat = cpw / cph; // Aspect ratio of the canvas element
 			// Adjust cover scale based on the limiting dimension relative to aspect ratios
-			if(lRat < rat) this.coverScale /= limitW / rat;
-			else this.coverScale /= limitH * rat;
+			if(lRat < rat) this.coverScale /= c.view.lWidth / rat;
+			else this.coverScale /= c.view.lHeight * rat;
 		}
 
 		// Recalculate min/max scales based on new base scales
@@ -198,7 +196,7 @@ export default class Camera {
 
 		// If initialized and not animating, re-apply the last known view to adjust for resize
 		if(el.width && el.height && !this.canvas.ani.isStarted()) {
-			c.view.copy(c.ani.lastView); // Restore last animated view
+			c.view.copy(c.ani.lastView, true); // Restore last animated view
 			if(!c.is360) { // Only apply for 2D
 				const pLimit = c.ani.limit; // Preserve animation limit flag
 				c.ani.limit = false; // Temporarily disable limits for setView

@@ -366,7 +366,6 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
  */
 export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:boolean, isV5:boolean) => {
 	if (!d) return;
-	console.log('dafuq?', isV5, d.tours)
 	// Filter out unpublished revisions (value <= 0)
 	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
 	// Sanitize embeds
@@ -374,6 +373,7 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random(); // Ensure UUID
 		sanitizeAsset(e.video);
 		sanitizeAsset(e);
+		e.area = View.sanitize(e.area)!;
 	});
 	// Sanitize markers
 	d.markers?.forEach(m => sanitizeMarker(m, is360, isV5));
@@ -653,12 +653,20 @@ export const View = {
 	] : undefined,
 	
 	/** Casts a legacy view array ([x0, y0, x1, y1]) to a 360 view object. */
-	fromLegacy: (v?:Models.Camera.ViewRect) : Models.Camera.View360|undefined => v ? ({
+	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View360) : Models.Camera.View360|undefined => v && !('centerX' in v) ? ({
 		centerX: (v[0] + v[2]) / 2,
 		centerY: (v[1] + v[3]) / 2,
 		width: v[2] - v[0],
 		height: v[3] - v[1]
-	}) : undefined,
+	}) : v,
+
+	/** Casts a 360 view object to a legacy view array ([x0, y0, x1, y1]). */
+	toLegacy: (v?:Models.Camera.View360) : Models.Camera.ViewRect|undefined => v && 'centerX' in v ? [
+		v.centerX - v.width/2,
+		v.centerY - v.height/2,
+		v.centerX + v.width/2,
+		v.centerY + v.height/2
+	] : v,
 	
 	/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View360 if necessary. */
 	sanitize: (v?: any) : Models.Camera.View360|undefined => Array.isArray(v) ? View.fromLegacy(v) : v

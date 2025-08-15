@@ -347,10 +347,10 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	_getScale(ptr:number) : number;
 	/** Limit camera navigation boundaries
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param lCenterX The viewport X0 coordinate
-	 * @param lCenterY The viewport Y0 coordinate
-	 * @param lWidth The viewport X1 coordinate
-	 * @param lHeight The viewport Y1 coordinate
+	 * @param lCenterX The viewport center X coordinate
+	 * @param lCenterY The viewport center Y coordinate
+	 * @param lWidth The viewport width
+	 * @param lHeight The viewport height
 	*/
 	_setLimit(ptr:number, lCenterX: number, lCenterY: number, lWidth: number, lHeight: number) : void;
 	/** Limit camera navigation boundaries in 360&deg; images
@@ -480,13 +480,13 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	/** Set an active image in a swipeable gallery, flying to its relative viewport
 	 * inside the containing canvas.
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param centerX The viewport X0 coordinate
-	 * @param centerY The viewport Y0 coordinate
-	 * @param width The viewport X1 coordinate
-	 * @param height The viewport Y1 coordinate
+	 * @param x0 The viewport X0 coordinate
+	 * @param y0 The viewport Y0 coordinate
+	 * @param x1 The viewport X1 coordinate
+	 * @param y1 The viewport Y1 coordinate
 	 * @param noLimit Don't update the zoom limits
 	*/
-	_setFocus(ptr:number, centerX:number, centerY:number, width:number, height:number, noLimit:boolean) : void;
+	_setFocus(ptr:number, x0:number, y0:number, x1:number, y1:number, noLimit:boolean) : void;
 	/** Fade a main MicrioImage to a target opacity, including all of its sub-images
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param o The target opacity (`0-1`)
