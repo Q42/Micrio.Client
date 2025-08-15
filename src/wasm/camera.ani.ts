@@ -251,7 +251,12 @@ export default class Ani {
 		const dCenterY = abs(fromCenterY - toCenterY);
 		const dWidth = abs(fromWidth - toWidth);
 		const dHeight = abs(fromHeight - toHeight);
-		const dst = (dCenterX + dCenterY + dWidth / 2 + dHeight / 2) / 3; // Adjusted normalization
+		
+		// Detect zoom-in operations (target is smaller than current view)
+		const isZoomIn = toWidth < fromWidth && toHeight < fromHeight;
+		// Reduce weight of zoom-in operations for faster transitions (zoom feels faster than panning to users)
+		const zoomWeight = isZoomIn ? 0.125 : 0.25; // 25% weight for zoom-in, 50% for zoom-out/mixed
+		const dst = (dCenterX + dCenterY + dWidth * zoomWeight + dHeight * zoomWeight) / 3;
 		// Calculate easing curve parameters for jump animation
 		this.mI = max(.5, .8 - dst * (c.is360 ? 1 : 2)); // Ease-in end point
 		this.mO = max(.05, min(.9, dst - (c.is360 ? .2 : .1))); // Ease-out start point
