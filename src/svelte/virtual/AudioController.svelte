@@ -189,11 +189,10 @@
 				viewUnsub = image.state.view.subscribe(
 					v => { // View store subscription callback
 						if(!v) return;
-						const w = v[2]-v[0], h = v[3]-v[1]; // Calculate view width/height
 						// Calculate depth factor based on zoom level (closer to 1 when zoomed in)
 						const d = Math.max(0, 1.05 - image.camera.getScale());
 						// Update listener position based on view center and depth
-						moved(v[0]+w/2, v[1]+h/2, d * (is360 ? 1 : 1.5)); // Apply different depth scaling for 2D/360
+						moved(v.centerX, v.centerY, d * (is360 ? 1 : 1.5)); // Apply different depth scaling for 2D/360
 					}
 				);
 			}
