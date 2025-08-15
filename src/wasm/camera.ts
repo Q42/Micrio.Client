@@ -345,7 +345,7 @@ export default class Camera {
 			// If pinching, apply pan directly without animation or kinetic tracking
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
-		} else if(this.isOutsideLimit() && !isKinetic) {
+		} else if(!force && this.isOutsideLimit() && !isKinetic) {
 			// If starting drag outside limits, animate back towards the limit
 			c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration || 150, 0, 0, false, false, -1, false, 0, time, !noLimit); // correct=true
 		} else {

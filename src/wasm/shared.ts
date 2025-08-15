@@ -209,6 +209,12 @@ export class View {
 			this.height = vh;
 		}
 
+		// Force view to fit within limits when they're smaller than full image
+		if(maxVw < 1 || maxVh < 1) {
+			this.width = min(this.width, maxVw);
+			this.height = min(this.height, maxVh);
+		}
+
 		if(noLimit) return;
 
 		// Limit Boundaries
