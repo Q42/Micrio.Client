@@ -154,6 +154,7 @@ export default class Ani {
 
 		// Determine if true north correction should be applied to the target view
 		this.vTo.correct = this.canvas.is360 && !noTrueNorth;
+		this.vFrom.correct = this.canvas.is360 && !!noTrueNorth;
 
 		const c = this.canvas;
 		const v = c.view; // Current view
