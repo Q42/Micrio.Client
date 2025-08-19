@@ -217,7 +217,7 @@ export function _getView(c:Canvas) : Float64Array { return c.view.toArray(); }
  * @returns Memory pointer to the `Float64Array` containing the coordinates [imageX, imageY, scale, w (depth), direction].
  */
 export function _getCoo(c:Canvas, x: f64, y: f64, abs: bool, noLimit: bool) : Float64Array {
-	return c.getCoo(x, y, abs, noLimit) };
+	return c.getCoo(x, y, abs, noLimit, true) };
 /**
  * Get an image's requested `[x, y]` pixel values for input coordinates `x` and `y`.
  * @param c The Canvas memory pointer in shared Wasm memory.

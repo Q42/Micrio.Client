@@ -778,12 +778,14 @@ export default class Canvas {
 	// --- Unified View/Coordinate Accessors ---
 
 	/** Gets image coordinates from screen coordinates (delegates to Camera or WebGL). */
-	getCoo(x: f64, y: f64, abs: bool, noLimit: bool) : Float64Array {
-		return (this.is360 ? this.webgl.getCoo(x,y) : this.camera.getCoo(x, y, abs, noLimit)).toArray()
+	getCoo(x: f64, y: f64, abs: bool, noLimit: bool, correctNorth: bool = false) : Float64Array {
+		return (this.is360 ? this.webgl.getCoo(x,y, correctNorth) : this.camera.getCoo(x, y, abs, noLimit)).toArray()
 	}
 
 	/** Gets screen coordinates from image coordinates (delegates to Camera or WebGL). */
-	getXY(x: f64, y: f64, abs: bool, radius:f64, rotation:f64) : Float64Array { return (this.is360 ? this.webgl.getXYZ(x,y) : !isNaN(radius) ? this.camera.getXYOmni(x, y, radius, isNaN(rotation) ? 0 : rotation, abs) : this.camera.getXY(x, y, abs)).toArray() }
+	getXY(x: f64, y: f64, abs: bool, radius:f64, rotation:f64) : Float64Array {
+		return (this.is360 ? this.webgl.getXYZ(x,y) : !isNaN(radius) ? this.camera.getXYOmni(x, y, radius, isNaN(rotation) ? 0 : rotation, abs) : this.camera.getXY(x, y, abs)).toArray()
+	}
 
 	/** Gets the current logical view array. */
 	getView() : Float64Array { return this.view.arr }

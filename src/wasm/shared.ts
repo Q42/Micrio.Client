@@ -253,7 +253,7 @@ export class View {
 
 	/** Updates the shared Float64Array with the computed legacy view coordinates. */
 	toArray(): Float64Array {
-		unchecked(this.arr[0] = this.centerX);
+		unchecked(this.arr[0] = mod1(this.centerX + this.tnOffset));
 		unchecked(this.arr[1] = this.centerY);
 		unchecked(this.arr[2] = this.width);
 		unchecked(this.arr[3] = this.height);
