@@ -439,12 +439,12 @@ export class Wasm {
 		// If canvas already exists in Wasm, just set it as active
 		else if(this.c != canvas.ptr) {
 			// Preserve orientation when switching between 360 images
-			const yaw = canvas.is360 && this.c >= 0 ? this.e._getYaw(this.c) : 0;
+			const yaw = canvas.is360 && this.c >= 0 ? this.e._getYaw(this.c, true) : 0;
 			const pitch = canvas.is360 && this.c >= 0 ? this.e._getPitch(this.c) : 0
 			this.c = canvas.ptr; // Update active canvas pointer
 			// Apply previous orientation if applicable (and not coming from waypoint)
 			if(canvas.is360 && !this.preventDirectionSet && yaw && pitch)
-				this.e._setDirection(this.c, yaw, pitch, true);
+				this.e._setDirection(this.c, yaw + (.5-(canvas.$settings?._360?.trueNorth||0))*Math.PI*2, pitch, true);
 			// Fade in if it was previously faded out
 			if(this.e._getTargetOpacity(canvas.ptr) == 0) this.e._fadeIn(canvas.ptr);
 			// Set initial Omni layer if applicable

@@ -412,8 +412,9 @@ export class MicrioImage {
 
 		// Set trueNorth for 360 images based on space data rotation
 		if(i.settings?._360) {
-			const rotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY??0;
-			i.settings._360.trueNorth = .5 + rotY / Math.PI / 2;
+			let rotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY??0;
+			while(rotY < 0) rotY += Math.PI * 2;
+			i.settings._360.trueNorth = (.5 + rotY / Math.PI / 2)%1;
 		}
 
 		// Set derived flags and properties

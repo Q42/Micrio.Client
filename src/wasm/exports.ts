@@ -243,10 +243,11 @@ export function _getXY(c:Canvas, x: f64, y: f64, abs: bool, radius:f64, rotation
  * @param t Optional Y translation in 3d space.
  * @param sX Optional X scaling.
  * @param sY Optional Y scaling.
+ * @param noCorrectNorth Don't correct for true north
  * @returns Memory pointer to the `Float32Array` containing the Matrix4 array.
  */
-export function _getMatrix(c:Canvas, x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64,sY:f64) : Float32Array {
-	return c.getMatrix(x,y,s,r,rX,rY,rZ,t,sX,sY) };
+export function _getMatrix(c:Canvas, x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64,sY:f64, noCorrectNorth: bool) : Float32Array {
+	return c.getMatrix(x,y,s,r,rX,rY,rZ,t,sX,sY, noCorrectNorth) };
 /**
  * Get the screen coordinates based on omni object xyz coordinates.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -310,7 +311,7 @@ export function _getPMatrix(c:Canvas) : Float32Array { return c.webgl.pMatrix.ar
  * @param c The Canvas memory pointer in shared Wasm memory.
  * @returns The current yaw in radians.
  */
-export function _getYaw(c:Canvas) : f64 { return c.webgl.yaw + c.webgl.baseYaw }
+export function _getYaw(c:Canvas, noCorrectNorth: bool) : f64 { return c.webgl.yaw + (noCorrectNorth ? 0 : c.webgl.baseYaw) }
 /**
  * Get the current camera pitch (X-axis rotation) for 360&deg; images.
  * @param c The Canvas memory pointer in shared Wasm memory.

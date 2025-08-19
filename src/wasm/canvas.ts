@@ -403,14 +403,11 @@ export default class Canvas {
 			// --- 360 Transition Movement ---
 			// If moving between 360 spaces, apply translation based on opacity
 			if(this.main.distanceX != 0 || this.main.distanceY != 0) {
-				let rot:f64=0;
 				// If fading in, find the fading out canvas to get its yaw for smooth rotation transition
 				if(fadingIn) {
-					rot = -this.webgl.baseYaw; // Start with inverse of own base yaw
 					for(let i=0;i<this.main.canvases.length;i++) {
 						const c = unchecked(this.main.canvases[i]);
 						if(c != this && c.targetOpacity == 0 && c.opacity > 0) { // Find the one fading out
-							rot += c.webgl.baseYaw; // Add its base yaw
 							break;
 						}
 					}
@@ -422,7 +419,7 @@ export default class Canvas {
 					this.main.distanceX * fact * base360Distance,
 					this.main.distanceY * fact * base360Distance,
 					this.main.direction,
-					rot);
+					0);
 			}
 			animating = true; // Mark as animating if fading
 		}
@@ -831,10 +828,10 @@ export default class Canvas {
 		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
 	}
 	/** Gets the transformation matrix for a 360 embed (delegates to WebGL). */
-	getMatrix(x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64=1,sY:f64=1) : Float32Array {
+	getMatrix(x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64=1,sY:f64=1, noCorrectNorth: bool = false) : Float32Array {
 		// Adjust scale factor based on canvas width? Seems odd.
 		const fact:f64 = <f64>20000/this.width;
-		return this.webgl.getMatrix(x,y,s*fact,r,rX,rY,rZ,t,sX,sY).toArray()
+		return this.webgl.getMatrix(x,y,s*fact,r,rX,rY,rZ,t,sX,sY, noCorrectNorth).toArray()
 	}
 
 	// --- Animation Wrappers ---

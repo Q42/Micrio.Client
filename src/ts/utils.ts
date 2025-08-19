@@ -619,14 +619,13 @@ export function getSpaceVector(micrio:HTMLMicrioElement, targetId: string) : {
 	const vN:Models.Spaces.DirectionVector = [v[0]*len, v[1]*len, v[2]*len];
 
 	// Calculate direction angle (yaw) and horizontal distance factor
-	const tNDiff = .5 - (image.$settings?._360?.trueNorth??.5); // True north offset
 	const directionX = mod((Math.atan2(-vN[0], vN[2])) / Math.PI/2); // Calculate yaw (0-1)
 	const distanceX = Math.max(0, Math.min(.4, Math.sqrt(vN[0]*vN[0] + vN[2]*vN[2]))); // Horizontal distance factor (clamped)
 
 	return {
 		v, vN, directionX,
 		vector: { // Vector object for micrio.open
-			direction: directionX%1-tNDiff, // Apply true north correction
+			direction: directionX%1, // Apply true north correction
 			distanceX,
 			distanceY: -v[1] // Vertical distance (inverted?)
 		}

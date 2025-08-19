@@ -485,7 +485,7 @@ export default class WebGL {
 	 * @param sY Additional scaling along the Y-axis.
 	 * @returns The calculated 4x4 transformation matrix.
 	 */
-	getMatrix(x: f64, y: f64, scale: f64, radius: f64, rX: f64, rY: f64, rZ: f64, transY: f64, sX: f64=1, sY: f64=1) : Mat4 {
+	getMatrix(x: f64, y: f64, scale: f64, radius: f64, rX: f64, rY: f64, rZ: f64, transY: f64, sX: f64=1, sY: f64=1, noCorrectNorth: bool = false) : Mat4 {
 		// Use default radius if not provided
 		if(isNaN(radius)) radius = this.radius;
 
@@ -515,7 +515,7 @@ export default class WebGL {
 		);
 
 		// 2. Apply base yaw (true north)
-		this.iMatrix.rotateY(this.baseYaw);
+		if(!noCorrectNorth) this.iMatrix.rotateY(this.baseYaw);
 
 		// 3. Translate to the point on the sphere surface
 		this.iMatrix.translate(

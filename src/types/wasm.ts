@@ -200,9 +200,10 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param t Optional Y translation in 3d space
 	 * @param sX Optional X scaling
 	 * @param sY Optional Y scaling
+	 * @param noCorrectNorth Don't correct for true north
 	 * @returns Memory pointer to the `Uint32Array` containing the Matrix4 array
 	 */
-	_getMatrix(ptr:number, x?:number, y?:number, s?:number, r?:number, rX?:number, rY?:number, rZ?:number, t?:number, sX?:number, sY?:number) : number;
+	_getMatrix(ptr:number, x?:number, y?:number, s?:number, r?:number, rX?:number, rY?:number, rZ?:number, t?:number, sX?:number, sY?:number, noCorrectNorth?: boolean) : number;
 	/** Get the screen coordinates based on omni object xyz coordinates */
 	_getOmniXY(ptr:number, x: number, y: number, z: number) : number;
 	/** Set the relative View area of a MicrioImage to render to, animates by default. Used in grids.
@@ -291,7 +292,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @returns The current yaw in radians
 	*/
-	_getYaw(ptr:number) : number;
+	_getYaw(ptr:number, noCorrectNorth?: boolean) : number;
 	/** Get the current camera pitch (X-axis rotation) for 360&deg; images
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @returns The current pitch in radians
