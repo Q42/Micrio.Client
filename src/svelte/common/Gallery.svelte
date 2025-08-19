@@ -113,7 +113,7 @@
 	// --- Page Layout Calculation ---
 
 	/** Array storing the calculated view rectangle for each page/spread. */
-	const pages:Models.Camera.View[] = [];
+	const pages:Models.Camera.ViewRect[] = [];
 	/** Array mapping page index to the original image index(es) it contains. */
 	const pageIdxes:number[][] = [];
 
@@ -186,7 +186,7 @@
 		if(changed) frameChanged(); // Trigger actions needed when the frame changes
 
 		if(!isSwitch) { // For swipe galleries (not switch/omni)
-			const cv = camera.getView() as Models.Camera.View; // Current camera view
+			const cv = camera.getViewLegacy() as Models.Camera.ViewRect; // Current camera view
 			const v = pages[i]; // Target page view
 			// Determine if animation is needed
 			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < v[0]) !== (cv[2] > v[2]))); // Animate if zoomed out, page changed, or crossing page boundary
@@ -282,7 +282,7 @@
 	// --- Utility Functions ---
 
 	/** Applies view limits, potentially allowing horizontal overflow if zoomed out. */
-	function limit(a:Models.Camera.View, forceArea:boolean) : void {
+	function limit(a:Models.Camera.ViewRect, forceArea:boolean) : void {
 		zoomedOut = camera.isZoomedOut();
 		// If zoomed out and not forcing area, allow horizontal overflow (-1 to 2)
 		camera.setLimit(!forceArea && zoomedOut ? [-1, a[1], 2, a[3]] : a);
@@ -390,11 +390,11 @@
 	function moved(v:Models.Camera.View|undefined) : void {
 		if(!v) return;
 
-		const c = v[0] + (v[2]-v[0]) / 2; // Current view center X
+		const c = v.centerX; // Current view center X
 		// Calculate a score for each page based on distance and visibility
 		const distances = pages.map((a, i) => {
 			const fromCenter = (1 - Math.min(Math.abs(c - a[0]),Math.abs(c - a[2]))); // Proximity to center
-			const inView = Math.max(0, (Math.min(v[2],a[2])-Math.max(v[0],a[0])) / (a[2]-a[0])); // Visibility percentage
+			const inView = Math.max(0, (Math.min(c+v.width/2,a[2])-Math.max(c-v.width/2,a[0])) / (a[2]-a[0])); // Visibility percentage
 			return fromCenter * inView * (1-Math.abs(currentPage-i)*.1); // Combine scores, penalize distance from current
 		});
 

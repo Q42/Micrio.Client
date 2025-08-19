@@ -353,6 +353,11 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	sanitizeAsset(i.settings?._markers?.markerIcon);
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
 	sanitizeAsset(i.settings?._360?.video);
+	// Sanitize views
+	if (i?.settings) {
+		i.settings.view = View.sanitize(i.settings.view)!;
+		i.settings.restrict = View.sanitize(i.settings.restrict)!;
+	}
 }
 
 /**
@@ -368,9 +373,12 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random(); // Ensure UUID
 		sanitizeAsset(e.video);
 		sanitizeAsset(e);
+		e.area = View.sanitize(e.area)!;
 	});
 	// Sanitize markers
-	d.markers?.forEach(m => sanitizeMarker(m, is360, !isV5));
+	d.markers?.forEach(m => sanitizeMarker(m, is360, isV5));
+	// Sanitize tours
+	d.tours?.forEach(sanitizeVideoTour);
 	// Sanitize music playlist items
 	d.music?.items?.forEach(sanitizeAsset);
 	// Sanitize menu pages recursively
@@ -429,6 +437,7 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	m.images?.forEach(sanitizeAsset);
 	sanitizeAsset(m.positionalAudio);
 	sanitizeAsset(m.data?.icon);
+	sanitizeVideoTour(m.videoTour);
 	Object.values(m.i18n ?? {}).forEach(d => sanitizeAsset(d.audio)) // Sanitize audio in i18n
 	const embeds = 'embedImages' in m ? m.embedImages as Models.ImageData.Embed[] : undefined;
 	if(embeds) embeds.forEach(e => sanitizeAsset(e)); // Sanitize legacy embedImages
@@ -441,9 +450,25 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(isOld && 'class' in m) m.tags.push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags.includes(t)))
 	// Ensure 'default' tag sets type correctly
 	if(m.tags.includes('default')) m.type = 'default';
+	// Sanitize view
+	m.view = View.sanitize(m.view)!;
+	// Sanitize videoTour timelines
+	if (m.videoTour) {
+		const sanitizeTimeline = (timeline?: Models.ImageData.VideoTourView[]) => {
+			timeline?.forEach(t => { t.rect = View.sanitize(t.rect)!; });
+		};
+		if ('timeline' in m.videoTour) {
+			sanitizeTimeline((m.videoTour as unknown as Models.ImageData.VideoTourCultureData).timeline);
+		} else if ('i18n' in m.videoTour) {
+			Object.values((m.videoTour as unknown as Models.ImageData.VideoTour).i18n ?? {}).forEach(c => sanitizeTimeline(c.timeline));
+		}
+	}
+}
 
-	// Correct 360 marker view coordinates if they wrap around the X-axis edge
-	if(is360 && m.view && m.view[2] < m.view[0]) m.view[2]++;
+function sanitizeVideoTour(tour?:Models.ImageData.VideoTour|Models.ImageData.VideoTourCultureData) : void {
+	if(!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
+	const i18n = 'i18n' in tour ? tour.i18n : {'en':(<unknown>tour as Models.ImageData.VideoTourCultureData)};
+	for(const lang in i18n) i18n[lang]?.timeline.forEach(s => s.rect = View.sanitize(s.rect)!);
 }
 
 /**
@@ -489,7 +514,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		// Get language-specific content and video tour data
 		const content = m?.i18n?.[lang] ?? (<unknown>m as Models.ImageData.MarkerCultureData);
 		if(content?.title) chapter = i; // Update chapter index if step has a title
-		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m as Models.ImageData.VideoTourCultureData
+		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m.videoTour as Models.ImageData.VideoTourCultureData
 			: m.videoTour.i18n?.[lang] ?? undefined;
 
 		// Sanitize assets within the step's content
@@ -503,8 +528,9 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 			return undefined; // Skip this step
 		}
 
-		
 		sanitizeAsset(content?.audio);
+		// @ts-ignore
+		if(m.videoTour && content?.audio) m.videoTour['audio'] = content.audio;
 
 		// Create step info object
 		return {
@@ -542,13 +568,22 @@ export const getIdVal=(a:string):number=>{let c=a.charCodeAt(0),u=c<91;return (c
 /** Checks if an ID likely belongs to the V5 format (6 or 7 characters). */
 export const idIsV5 = (id:string):boolean => id.length == 6 || id.length == 7;
 
-/** Clamps a view rectangle [x0, y0, x1, y1] to the image bounds [0, 0, 1, 1]. */
-export const limitView = (v: Models.Camera.View) : Models.Camera.View => [
-	Math.max(0, v[0]),
-	Math.max(0, v[1]),
-	Math.min(1, v[2]),
-	Math.min(1, v[3])
-];
+/** Clamps a view rectangle the image bounds [0, 0, 1, 1]. */
+export const limitView = (v: Models.Camera.View) : Models.Camera.View => {
+	// Clamp width and height to maximum of 1
+	const width = Math.min(1, v.width);
+	const height = Math.min(1, v.height);
+	
+	// Calculate half dimensions for boundary checking
+	const halfW = width / 2;
+	const halfH = height / 2;
+	
+	// Clamp center coordinates to keep rectangle within [0,0,1,1] bounds
+	const centerX = Math.max(halfW, Math.min(1 - halfW, v.centerX));
+	const centerY = Math.max(halfH, Math.min(1 - halfH, v.centerY));
+	
+	return { centerX, centerY, width, height };
+};
 
 /**
  * Calculates the 3D vector and navigation parameters between two images in a 360 space.
@@ -584,14 +619,13 @@ export function getSpaceVector(micrio:HTMLMicrioElement, targetId: string) : {
 	const vN:Models.Spaces.DirectionVector = [v[0]*len, v[1]*len, v[2]*len];
 
 	// Calculate direction angle (yaw) and horizontal distance factor
-	const tNDiff = .5 - (image.$settings?._360?.trueNorth??.5); // True north offset
 	const directionX = mod((Math.atan2(-vN[0], vN[2])) / Math.PI/2); // Calculate yaw (0-1)
 	const distanceX = Math.max(0, Math.min(.4, Math.sqrt(vN[0]*vN[0] + vN[2]*vN[2]))); // Horizontal distance factor (clamped)
 
 	return {
 		v, vN, directionX,
 		vector: { // Vector object for micrio.open
-			direction: directionX%1-tNDiff, // Apply true north correction
+			direction: directionX%1, // Apply true north correction
 			distanceX,
 			distanceY: -v[1] // Vertical distance (inverted?)
 		}
@@ -607,4 +641,43 @@ export function getSpaceVector(micrio:HTMLMicrioElement, targetId: string) : {
 export const hasNativeHLS = (video?:HTMLMediaElement) : boolean => {
 	const vid = video ?? document.createElement('video');
 	return !!(vid.canPlayType('application/vnd.apple.mpegurl') || vid.canPlayType('application/x-mpegURL'));
+}
+
+
+export const View = {
+	/** Casts a raw view array ([centerX, centerY, width, height]) to a 360 view object. */
+	fromRaw: (v?:Models.Camera.ViewRect) : Models.Camera.View|undefined => v ? ({
+		centerX: v[0],
+		centerY: v[1],
+		width: v[2],
+		height: v[3]
+	}) : undefined,
+	
+	/** Casts a 360 view object to a raw view array ([centerX, centerY, width, height]). */
+	toRaw: (v?:Models.Camera.View) : Models.Camera.ViewRect|undefined => v ? [
+		v.centerX,
+		v.centerY,
+		v.width,
+		v.height
+	] : undefined,
+	
+	/** Casts a legacy view array ([x0, y0, x1, y1]) to a 360 view object. */
+	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View) : Models.Camera.View|undefined => v && !('centerX' in v) ? ({
+		centerX: (v[0] + v[2]) / 2,
+		centerY: (v[1] + v[3]) / 2,
+		width: v[2] - v[0],
+		height: v[3] - v[1]
+	}) : v,
+
+	/** Casts a 360 view object to a legacy view array ([x0, y0, x1, y1]). */
+	toLegacy: (v?:Models.Camera.View) : Models.Camera.ViewRect|undefined => v && 'centerX' in v ? [
+		v.centerX - v.width/2,
+		v.centerY - v.height/2,
+		v.centerX + v.width/2,
+		v.centerY + v.height/2
+	] : v,
+	
+	/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View if necessary. */
+	sanitize: (v?: any) : Models.Camera.View|undefined => Array.isArray(v) ? View.fromLegacy(v) : v
+
 }

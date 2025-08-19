@@ -30,7 +30,7 @@ export class DrawRect {
 
 /** Represents the logical view rectangle within an image. */
 export class View {
-	/** Float64Array view of the coordinates [x0, y0, x1, y1] for efficient JS access. */
+	/** Float64Array view of the new coordinates [centerX, centerY, width, height]. */
 	readonly arr : Float64Array = new Float64Array(4);
 	/** Flag indicating if true north correction should be applied during set(). */
 	public correct : bool = false;
@@ -38,92 +38,108 @@ export class View {
 	public changed : bool = false;
 	/** Flag indicating if the view limits have changed. */
 	public limitChanged : bool = false;
-	/** Cached center X coordinate (especially for 360 wrap-around). */
-	private _cX360:number = 0.5;
-	/** Cached center Y coordinate. */
-	private _cY360:number = 0.5;
 	/** Cached true north offset (0.5 - trueNorth setting). */
 	public tnOffset:number = 0;
 
+
 	constructor(
-		private readonly canvas: Canvas, // Reference to the parent Canvas
+		private readonly canvas: Canvas,
 
-		// --- Logical View Coordinates (relative to image, 0-1) ---
-		public x0: f64 = 0,
-		public y0: f64 = 0,
-		public x1: f64 = 1,
-		public y1: f64 = 1,
+		public centerX: f64 = 0.5,
+		public centerY: f64 = 0.5,
+		public width: f64 = 1,
+		public height: f64 = 1,
 
-		// --- Navigation Limit Coordinates (relative to image, 0-1) ---
-		public lX0: f64 = 0,
-		public lY0: f64 = 0,
-		public lX1: f64 = 1,
-		public lY1: f64 = 1,
+		public lCenterX: f64 = 0.5,
+		public lCenterY: f64 = 0.5,
+		public lWidth: f64 = 1,
+		public lHeight: f64 = 1,
 	) {
-		// Pre-calculate true north offset
-		this.tnOffset = .5-canvas.trueNorth;
+		this.tnOffset = .5 - canvas.trueNorth;
+
+
+		this.toArray();
 	}
 
-	// --- Calculated Properties ---
-	/** Calculated width of the view, handling 360 wrap-around. */
-	get width(): f64 { return this.x0 > this.x1 ? (1.0 - this.x0) + this.x1 : this.x1-this.x0 } // Handle wrap around
-	/** Calculated height of the view. */
-	get height(): f64 { return this.y1-this.y0 }
-	/** Calculated center X coordinate. */
-	get centerX(): f64 { return this.canvas.is360 ? this._cX360 : this.x0 + this.width/2 }
-	/** Calculated center Y coordinate. */
-	get centerY(): f64 { return this.canvas.is360 ? this._cY360 : this.y0 + this.height/2 }
-	/** Calculated yaw (horizontal angle) in radians for 360 view. */
-	get yaw(): f64 { return (this.centerX - .5) * PI * 2 }
-	/** Calculated pitch (vertical angle) in radians for 360 view. */
-	get pitch() : f64 { return (this.centerY - .5) * PI }
-	/** Calculated aspect ratio of the view. */
-	get aspect() : f64 { return this.width / this.height }
-	/** Calculated diagonal size of the view relative to a unit square. */
-	get size() : f64 { return pyth(this.width,this.height) / pyth(1,1) }
+	// Legacy getters
+	get x0(): f64 { 
+		let cx = this.centerX;
+		if (this.canvas.is360) cx = mod1(cx);
+		return this.canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2); 
+	}
+	get y0(): f64 { return this.centerY - this.height / 2; }
+	get x1(): f64 { 
+		let cx = this.centerX;
+		if (this.canvas.is360) cx = mod1(cx);
+		return this.canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2); 
+	}
+	get y1(): f64 { return this.centerY + this.height / 2; }
 
-	/** Sets the view coordinates, optionally applying true north correction and preserving aspect ratio. */
-	set(x0:f64, y0:f64, x1:f64, y1:f64, preserveAspect: bool = false) : void {
-		// Optional aspect ratio preservation (seems complex and potentially unused)
-		if(preserveAspect) {
-			const w = x1 - x0;
-			let h = y1 - y0;
-			const cY = y0 + h / 2;
-			const cAr = min(1, this.width) / min(1, this.height); // Current aspect ratio
-			// Adjust height if width is limiting and aspect ratio differs significantly
-			if(w / h > cAr * 1.5 && w < this.width) { h = w * cAr; y0 = cY - h/2; y1 = cY + h/2 }
+	// Add legacy limit getters
+	get lX0(): f64 { return this.lCenterX - this.lWidth / 2; }
+	get lY0(): f64 { return this.lCenterY - this.lHeight / 2; }
+	get lX1(): f64 { return this.lCenterX + this.lWidth / 2; }
+	get lY1(): f64 { return this.lCenterY + this.lHeight / 2; }
+
+	// Calculated properties using public props
+	get yaw(): f64 { return (this.centerX - .5) * PI * 2 }
+	get pitch() : f64 { return (this.centerY - .5) * PI }
+	get aspect() : f64 { return this.width / this.height }
+	get size() : f64 { return pyth(this.width, this.height) / pyth(1,1) }
+
+	// Update setCenter to modify public props
+	set(centerX: f64, centerY: f64, width: f64, height: f64, preserveAspect: bool = false): void {
+		if (preserveAspect) {
+			const cAr = min(1, this.width) / min(1, this.height);
+			if (width / height > cAr * 1.5 && width < this.width) {
+				height = width / cAr;
+			}
 		}
 
-		// Apply true north offset if correction is enabled
 		const os = this.correct ? this.tnOffset : 0;
+		this.centerX = centerX + os;
+		this.centerY = centerY;
+		this.width = width;
+		this.height = height;
 
-		// Set coordinates
-		this.x0 = x0 + os;
-		this.y0 = y0;
-		this.x1 = x1 + os;
-		this.y1 = y1;
-		// Update cached center coordinates
-		this._cX360 = this.x0 + this.width/2;
-		this._cY360 = this.y0 + this.height/2;
-
-		// Update the shared array and mark as changed
 		this.toArray();
 		this.changed = true;
 	}
 
-	/** Sets the navigation limit boundaries. */
-	setLimit(x0: f64, y0: f64, x1: f64, y1: f64) : void {
-		this.lX0 = x0;
-		this.lY0 = y0;
-		this.lX1 = x1;
-		this.lY1 = y1;
-		this.changed = true; // Mark view as potentially changed due to limits
-		this.limitChanged = true; // Mark limits as changed
+	/** Sets the relative View area of a MicrioImage to render to, animates by default. Used in grids. */
+	setArea(x0: f64, y0: f64, x1: f64, y1: f64) : void {
+		this.centerX = (x0 + x1) / 2;
+		this.centerY = (y0 + y1) / 2;
+		this.width = x1 - x0;
+		this.height = y1 - y0;
+		this.toArray();
 	}
 
-	/** Copies coordinates from another View object. */
-	copy(v:View) : void {
-		this.set(v.x0, v.y0, v.x1, v.y1);
+	// Update setLimit to set public limit props
+	setLimit(lCenterX: f64, lCenterY: f64, lWidth: f64, lHeight: f64) : void {
+		this.lCenterX = lCenterX;
+		this.lCenterY = lCenterY;
+		this.lWidth = lWidth;
+		this.lHeight = lHeight;
+
+		this.changed = true;
+		this.limitChanged = true;
+	}
+
+	// Update copy to copy public props
+	copy(v:View, excludeLimit:bool = false) : void {
+		this.centerX = v.centerX;
+		this.centerY = v.centerY;
+		this.width = v.width;
+		this.height = v.height;
+		if(!excludeLimit) {
+			this.lCenterX = v.lCenterX;
+			this.lCenterY = v.lCenterY;
+			this.lWidth = v.lWidth;
+			this.lHeight = v.lHeight;
+		}
+		this.changed = true;
+		this.toArray();
 	}
 
 	/** Calculates the perspective value needed to achieve this view height in 360 mode. */
@@ -151,111 +167,110 @@ export class View {
 			v.correctAspectRatio();
 			this.correctAspectRatio();
 		}
-		// Calculate average absolute difference between corresponding corners
-		const dx0 = abs(min(v.x0,v.x1) - min(this.x0,this.x1)), dy0 = abs(v.y0 - this.y0),
-			dx1 = abs(max(v.x0,v.x1) - max(this.x0,this.x1)), dy1 = abs(v.y1 - this.y1);
-		// Normalize by difference in diagonal size to make distance less sensitive to pure zoom changes
-		return (dx0+dy0+dx1+dy1)/4 / (1 + abs(this.size-v.size));
+		// Calculate differences in centers and sizes
+		const dCenterX = abs(this.centerX - v.centerX);
+		const dCenterY = abs(this.centerY - v.centerY);
+		const dWidth = abs(this.width - v.width);
+		const dHeight = abs(this.height - v.height);
+		// Simple average distance
+		return (dCenterX + dCenterY + dWidth + dHeight) / 4;
 	}
 
-	/** Applies navigation limits to the view coordinates. */
-	limit(correctZoom:bool, noLimit:bool = false): void {
+	// Update limit to use public limit props
+	limit(correctZoom:bool, noLimit:bool = false, freeMove:bool = false): void {
 		const c = this.canvas;
-		const mS = c.camera.minSize; // Minimum screen size factor
-		const s = this.getScale(); // Current effective scale
+		const mS = c.camera.minSize;
+		const s = this.getScale();
 
-		// --- Handle Underzoom ---
-		// If underzoomed (below minScale * minSize) and not explicitly allowed, center the view
+		// Underzoom handling using public width/height
 		if(mS < 1 && s < c.camera.minScale && !noLimit) {
-			const mWH = 1 / mS; // Maximum relative size when underzoomed
-			const nW = min(mWH, this.width); // New width, clamped by max size
-			const nH = min(mWH, this.height); // New height, clamped by max size
-			// Center the view
-			this.x1 = (this.x0 = .5 - nW/2) + nW;
-			this.y1 = (this.y0 = .5 - nH/2) + nH;
-			return; // Exit after centering
+			const mWH = 1 / mS;
+			const nW = min(mWH, this.width);
+			const nH = min(mWH, this.height);
+			this.centerX = 0.5;
+			this.centerY = 0.5;
+			this.width = nW;
+			this.height = nH;
+			this.toArray();
+			return;
 		}
 
-		// --- Limit Scale ---
-		// Calculate potential overzoom factor relative to max allowed scale
+		// Limit Scale
 		const overZoom:f64 = correctZoom ? max(1, s / max(c.camera.minScale, c.maxScale / c.el.scale)) : 1;
-		// Calculate maximum allowed view width/height based on limits and overzoom
-		const vw:f64 = min(this.lX1-this.lX0, this.width * overZoom);
-		const vh:f64 = min(this.lY1-this.lY0, this.height * overZoom);
+		const maxVw:f64 = this.lWidth;
+		const maxVh:f64 = this.lHeight;
+		let vw:f64 = min(maxVw, this.width * overZoom);
+		let vh:f64 = min(maxVh, this.height * overZoom);
 
-		// If zoom needs correction (over max scale or under min scale without noLimit)
 		if(correctZoom && (overZoom > 1 || (noLimit && s < c.camera.minScale))) {
-			// Recalculate view boundaries based on clamped width/height centered around current center
-			const cX:f64 = this.centerX;
-			this.x0 = cX-vw/2;
-			this.x1 = cX+vw/2;
-
-			const cY:f64 = this.centerY;
-			this.y0 = cY-vh/2;
-			this.y1 = cY+vh/2;
+			vw = min(maxVw, vw / overZoom);
+			vh = min(maxVh, vh / overZoom);
+			this.width = vw;
+			this.height = vh;
 		}
 
-		// Exit if boundary limits should not be applied
+		// Force view to fit within limits when they're smaller than full image
+		if(maxVw < 1 || maxVh < 1) {
+			this.width = min(this.width, maxVw);
+			this.height = min(this.height, maxVh);
+		}
+
 		if(noLimit) return;
 
-		// --- Limit Boundaries ---
-		// Adjust view position to stay within horizontal limits (lX0, lX1)
-		if(this.x0<this.lX0) { // Past left limit
-			this.x0=this.lX0;
-			this.x1=this.x0+vw;
-		}
-		else if(this.x1>this.lX1) { // Past right limit
-			this.x1=this.lX1;
-			this.x0=this.x1-vw;
+		// Limit Boundaries
+		const halfW = min(1, this.width) / 2;
+		const lHalfW = this.lWidth / 2;
+
+		if (this.canvas.is360) {
+			this.centerX = mod1(this.centerX);
+		} else if (!freeMove) {
+			this.centerX = max(this.lCenterX - lHalfW + halfW, min(this.centerX, this.lCenterX + lHalfW - halfW));
 		}
 
-		// Adjust view position to stay within vertical limits (lY0, lY1)
-		if(this.y0<this.lY0) { // Past top limit
-			this.y0=this.lY0;
-			this.y1=this.y0+vh;
+		const halfH = min(1, this.height) / 2;
+		const lHalfH = this.lHeight / 2;
+		if (!freeMove) {
+			this.centerY = max(this.lCenterY - lHalfH + halfH, min(this.centerY, this.lCenterY + lHalfH - halfH));
 		}
-		else if(this.y1>this.lY1) { // Past bottom limit
-			this.y1=this.lY1;
-			this.y0=this.y1-vh;
-		}
+
+		this.toArray();
 	}
 
-	/** Adjusts the view rectangle to match the canvas aspect ratio, preventing stretching. */
+	// Update correctAspectRatio to use public props
 	correctAspectRatio(): void {
 		const c = this.canvas;
-		if(c.is360) return; // Not applicable for 360
+		if(c.is360) return;
 		const s = this.getScale();
-		// Calculate overflow needed based on canvas/view aspect ratio difference
-		const overflowX:f64 = (c.camera.cpw / s - this.width) / 2;
-		const overflowY:f64 = (c.camera.cph / s - this.height) / 2;
-
-		// Apply overflow to center the view within the aspect ratio
-		this.x0 -= overflowX;
-		this.y0 -= overflowY;
-		this.x1 += overflowX;
-		this.y1 += overflowY;
+		const targetAspect = c.camera.cpw / c.camera.cph;
+		const currentAspect = this.width / this.height;
+		if (currentAspect > targetAspect) {
+			this.height = this.width / targetAspect;
+		} else {
+			this.width = this.height * targetAspect;
+		}
+		this.toArray();
 	}
 
-	/** Updates the shared Float64Array with the current view coordinates. */
+	/** Updates the shared Float64Array with the computed legacy view coordinates. */
 	toArray(): Float64Array {
-		unchecked(this.arr[0] = this.x0);
-		unchecked(this.arr[1] = this.y0);
-		unchecked(this.arr[2] = this.x1);
-		unchecked(this.arr[3] = this.y1);
+		unchecked(this.arr[0] = mod1(this.centerX + this.tnOffset));
+		unchecked(this.arr[1] = this.centerY);
+		unchecked(this.arr[2] = this.width);
+		unchecked(this.arr[3] = this.height);
 		return this.arr;
 	}
 
 	/** Checks if this view is equal to another view. */
-	equal(v:View) : bool {
-		return this.x0 == v.x0
-			&& this.x1 == v.x1
-			&& this.y0 == v.y0
-			&& this.y1 == v.y1
+	equals(centerX:f64, centerY:f64, width:f64, height:f64) : bool {
+		return this.centerX == centerX
+			&& this.centerY == centerY
+			&& this.width == width
+			&& this.height == height;
 	}
 
 	/** Checks if this view represents the full image [0,0,1,1]. */
 	isFull() : bool {
-		return this.x0 == 0 && this.y0 == 0 && this.x1 == 1 && this.y1 == 1;
+		return this.width == 1 && this.height == 1 && this.centerX == 0.5 && this.centerY == 0.5;
 	}
 }
 

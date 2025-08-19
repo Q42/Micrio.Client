@@ -4,7 +4,7 @@ import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 
 import { writable } from 'svelte/store';
-import { once } from './utils';
+import { once, View } from './utils';
 
 /**
  * # Micrio State management
@@ -225,7 +225,7 @@ export namespace State {
 				// If no tour, fly to the saved view of the main image (if no marker was opened by state.set)
 				const mainImgState = s.c.find(i => i[0] == s.id);
 				if(mainImgState && !mainImgState[5] && this.micrio.$current) { // Check if marker ID (index 5) is absent
-					this.micrio.$current.camera.flyToView(mainImgState.slice(1,5) as Models.Camera.View, {speed:2}).catch(() => {});
+					this.micrio.$current.camera.flyToView(View.fromRaw(mainImgState.slice(1,5) as Models.Camera.ViewRect)!, {speed:2}).catch(() => {});
 				}
 			}
 		}
@@ -254,19 +254,12 @@ export namespace State {
 	* primarily its viewport and currently opened marker.
 	*/
 	export class Image {
-		/** Writable Svelte store holding the current viewport [x0, y0, x1, y1] of this image. */
+		/** Writable Svelte store holding the current viewport [centerX, centerY, width, height] of this image. */
 		public readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
 		/** Internal reference to the current view. @internal */
 		private _view:Models.Camera.View|undefined;
 		/** Getter for the current value of the {@link view} store. */
 		public get $view() : Models.Camera.View|undefined {return this._view}
-
-		/** Writable Svelte store holding the current viewport as a 360-degree area {centerX, centerY, width, height}. */
-		public readonly view360: Writable<Models.Camera.View360|undefined> = writable(undefined);
-		/** Internal reference to the current view360. @internal */
-		private _view360: Models.Camera.View360|undefined;
-		/** Getter for the current value of the {@link view360} store. */
-		public get $view360(): Models.Camera.View360|undefined { return this._view360; }
 
 		/**
 		 * Writable Svelte store holding the currently active marker within *this specific image*.
@@ -291,16 +284,9 @@ export namespace State {
 				this._view = view; // Update internal reference
 				const nV = view?.toString(); // Stringify for simple comparison
 				if(view && nV && pV != nV) { // If view changed
-					// Convert to View360 and update that store too (bidirectional sync)
-					const view360 = image.camera?.viewToView360?.(view);
-					if(view360) {
-						this._view360 = view360;
-						this.view360.set(view360);
-					}
-					
-					const detail = {image, view, view360}; // Event detail payload with view360
+					const detail = {image, view}; // Event detail payload with view360
 					pV = nV;
-					const nW = view[2]-view[0], nH = view[3]-view[1]; // Calculate new width/height
+					const nW = view.width, nH = view.height; // Calculate new width/height
 					// Dispatch 'zoom' event if dimensions changed significantly
 					if(!pW || !pH || Math.abs((nW-pW)+(nH-pH)) > 1E-5) {
 						m.events.dispatch('zoom', detail)
@@ -308,24 +294,6 @@ export namespace State {
 					}
 					// Dispatch 'move' event
 					m.events.dispatch('move', detail);
-				}
-			});
-
-			// Subscribe to view360 store changes
-			this.view360.subscribe(view360 => {
-				this._view360 = view360; // Update internal reference
-				// Convert to standard View and update that store too (bidirectional sync)
-				// Only update if the view change didn't originate from the standard view subscription above
-				if(view360 && image.camera?.view360ToView) {
-					const view = image.camera.view360ToView(view360);
-					const currentViewStr = this._view?.toString();
-					const newViewStr = view.toString();
-					
-					// Only update if this is actually a different view (prevent infinite loops)
-					if(currentViewStr !== newViewStr) {
-						this._view = view;
-						this.view.set(view);
-					}
 				}
 			});
 
@@ -369,7 +337,7 @@ export namespace State {
 			// Construct the state array
 			return [
 				this.image.id,
-				...(this._view ? [].slice.call(this._view) : [0,0,1,1]), // Use current view or default
+				...(View.toRaw(this._view) ?? [0.5,0.5,1,1]), // Use current view or default
 				...(m ? [m.id, ...(media ? [media[0], media[1].currentTime, media[1].paused ? 'p' : undefined] : [])] : [undefined]) // Add marker ID and media state if present
 			].filter(v => v !== undefined) as ImageState; // Filter out undefined values
 		}
@@ -383,7 +351,7 @@ export namespace State {
 			if(!o?.length) return; // Exit if no state provided
 			// Set the view store (this will trigger updates)
 			// TODO: Should this flyToView instead of setting directly? Setting directly might cause jumps.
-			this.view.set([o[1],o[2],o[3],o[4]]);
+			this.view.set(View.fromRaw(o as Models.Camera.ViewRect));
 			// Set the marker store if a marker ID is present in the state
 			if(o[5]) {
 				// Only set if different from current marker to avoid loops

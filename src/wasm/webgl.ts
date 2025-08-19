@@ -56,14 +56,35 @@ export default class WebGL {
 	/** Minimum allowed perspective (narrowest FoV / max zoom). */
 	minPerspective : f64 = PIh;
 
+	// --- 3D Camera Frustum (for accurate 360 embed detection) ---
+	/** Camera forward direction vector X */
+	public cameraForwardX: f64 = 0;
+	/** Camera forward direction vector Y */
+	public cameraForwardY: f64 = 0;
+	/** Camera forward direction vector Z */
+	public cameraForwardZ: f64 = -1;
+	/** Camera up direction vector X */
+	public cameraUpX: f64 = 0;
+	/** Camera up direction vector Y */
+	public cameraUpY: f64 = 1;
+	/** Camera up direction vector Z */
+	public cameraUpZ: f64 = 0;
+	/** Camera right direction vector X */
+	public cameraRightX: f64 = 1;
+	/** Camera right direction vector Y */
+	public cameraRightY: f64 = 0;
+	/** Camera right direction vector Z */
+	public cameraRightZ: f64 = 0;
+	/** Field of view in radians */
+	public fieldOfView: f64 = 0;
+	/** Aspect ratio of viewport */
+	public aspectRatio: f64 = 1;
+
 	// --- Temporary/Reusable Objects ---
 	/** Reusable vector for calculations. */
 	readonly vec4: Vec4 = new Vec4();
 	/** Reusable coordinates object for conversions. */
 	readonly coo: Coordinates = new Coordinates;
-	/** Float64Array buffer for 360-degree viewport [centerX, centerY, width, height] for efficient JS access. */
-	readonly view360Buffer : Float64Array = new Float64Array(4);
-
 
 	/** Horizontal offset based on trueNorth setting. */
 	offX:number = 0;
@@ -80,6 +101,8 @@ export default class WebGL {
 			this.scaleY = this.canvas.height / (this.canvas.width / 2); // Ratio relative to 2:1
 			this.offY = (1 - this.scaleY) / 4; // Vertical offset to center the content
 		}
+		this.yaw = this.baseYaw;
+		this.update();
 	}
 
 	/** Sets the horizontal and vertical movement limits. */
@@ -166,6 +189,9 @@ export default class WebGL {
 		// Update matrices
 		this.update();
 		
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
+		
 		// Sync logical view with new camera state for compatibility
 		this.syncLogicalView();
 	}
@@ -235,6 +261,9 @@ export default class WebGL {
 		// Update matrices (without recalculating perspective)
 		this.update(true);
 		
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
+		
 		// Sync logical view with new perspective for compatibility
 		this.syncLogicalView();
 	}
@@ -256,22 +285,6 @@ export default class WebGL {
 
 	/* ================== END EVENTS ================== */
 
-	/** Sets the camera orientation based on a target logical view (deprecated for 360 images). */
-	setView() : void {
-		// This method is deprecated for 360 images - use setView360() instead
-		// Keep for backward compatibility and 2D image fallback only
-		const c = this.canvas;
-		// This shouldn't be called for 360 images anymore
-		if(c.is360) return;
-		
-		const v = c.view;
-		// Calculate target yaw and pitch from view center
-		this.yaw = ((v.x0 - this.offX + v.width/2) - .5) * PI * 2;
-		this.pitch = (((v.y0 + v.height/2) - .5) * PI) * this.scaleY;
-		// Set perspective based on view height, applying limits
-		this.setPerspective(min(this.maxPerspective, v.height * PI * this.scaleY), true);
-	}
-
 	/** Sets the camera orientation directly. */
 	setDirection(yaw:f64, pitch:f64, persp:f64) : void {
 		// Apply base yaw (true north offset)
@@ -281,48 +294,29 @@ export default class WebGL {
 		if(persp != 0) this.setPerspective(persp, false);
 		else this.update();
 		
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
+		
 		// Sync logical view with new camera state for compatibility
 		this.syncLogicalView();
 	}
 
 	/** Sets the camera orientation using 360-degree viewport format (center + dimensions). */
-	setView360(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
+	setView(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
 		// Apply true north correction if requested
-		const adjustedCenterX = correctNorth ? centerX + this.canvas.trueNorth : centerX;
+		const adjustedCenterX = correctNorth ? centerX + this.offX : centerX;
 		
-		// Convert View360 directly to camera parameters
+		// Convert View directly to camera parameters
 		this.yaw = (adjustedCenterX - .5) * PI * 2;
 		this.pitch = (centerY - .5) * PI * this.scaleY;
 		// Set perspective based on height, applying limits unless disabled
 		this.setPerspective(min(this.maxPerspective, height * PI * this.scaleY), noLimit);
 		
-		// Update the logical view to match the new camera state (for compatibility)
-		// Convert back to standard view format and store in canvas.view
-		const x0 = centerX - width / 2;
-		const y0 = centerY - height / 2;
-		const x1 = centerX + width / 2;
-		const y1 = centerY + height / 2;
-		this.canvas.view.set(x0, y0, x1, y1);
-		this.canvas.view.changed = true;
-	}
-
-	/** Gets the current camera state as 360-degree viewport format. */
-	getView360() : Float64Array {
-		// Calculate center coordinates from camera orientation
-		const centerX = mod1(this.yaw / (PI * 2) + .5);
-		const centerY = (this.pitch / this.scaleY) / PI + .5;
+		// Update 3D camera frustum for embed visibility detection
+		this.calculate3DFrustum();
 		
-		// Calculate dimensions from perspective
-		const height = this.perspective / PI / this.scaleY;
-		const c = this.canvas;
-		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
-		
-		// Return as Float64Array for WASM export compatibility
-		unchecked(this.view360Buffer[0] = centerX);
-		unchecked(this.view360Buffer[1] = centerY);
-		unchecked(this.view360Buffer[2] = width);
-		unchecked(this.view360Buffer[3] = height);
-		return this.view360Buffer;
+		// Sync logical view with new camera state
+		this.syncLogicalView();
 	}
 
 	/** Synchronizes the logical view with the current camera state for 360 images. */
@@ -330,21 +324,48 @@ export default class WebGL {
 		const c = this.canvas;
 		if(!c.is360) return; // Only for 360 images
 		
-		// Calculate current View360 from camera state
-		const centerX = mod1(this.yaw / (PI * 2) + .5);
+		// Calculate current View from camera state
+		const centerX = mod1((this.yaw / (PI * 2) + .5) + this.offX);
 		const centerY = (this.pitch / this.scaleY) / PI + .5;
 		const height = this.perspective / PI / this.scaleY;
 		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
 		
-		// Convert to standard view format and update logical view
-		const x0 = centerX - width / 2;
-		const y0 = centerY - height / 2;
-		const x1 = centerX + width / 2;
-		const y1 = centerY + height / 2;
-		
-		// Update the logical view
-		c.view.set(x0, y0, x1, y1);
+		// Update the logical view using new model
+		c.view.set(centerX, centerY, width, height);
 		c.view.changed = true;
+	}
+
+	/** Calculates 3D camera frustum for accurate 360 embed visibility detection */
+	calculate3DFrustum(): void {
+		if (!this.canvas.is360) return;
+		
+		// Use current camera orientation (yaw/pitch are already available)
+		const yaw = this.yaw;
+		const pitch = this.pitch;
+		
+		// Calculate camera direction vectors
+		this.cameraForwardX = Math.cos(pitch) * Math.sin(yaw);
+		this.cameraForwardY = Math.sin(pitch);
+		this.cameraForwardZ = Math.cos(pitch) * Math.cos(yaw);
+		
+		// Calculate up and right vectors (cross products)
+		this.cameraUpX = -Math.sin(pitch) * Math.sin(yaw);
+		this.cameraUpY = Math.cos(pitch);
+		this.cameraUpZ = -Math.sin(pitch) * Math.cos(yaw);
+		
+		this.cameraRightX = Math.cos(yaw);
+		this.cameraRightY = 0;
+		this.cameraRightZ = -Math.sin(yaw);
+		
+		// Calculate field of view from perspective
+		// this.perspective is the vertical FOV, we need horizontal FOV for proper detection
+		const verticalFOV = 2 * Math.atan(1 / this.perspective);
+		this.aspectRatio = this.canvas.el.width / this.canvas.el.height;
+		
+		// Calculate horizontal FOV from vertical FOV and aspect ratio
+		const halfVerticalFOV = verticalFOV / 2;
+		const halfHorizontalFOV = Math.atan(Math.tan(halfVerticalFOV) * this.aspectRatio);
+		this.fieldOfView = halfHorizontalFOV * 2;
 	}
 
 	/** Applies translation offset for 360 space transitions. */
@@ -373,7 +394,7 @@ export default class WebGL {
 	// --- Coordinate Conversion Functions ---
 
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
-	getCoo(pxX:f64, pxY:f64) : Coordinates {
+	getCoo(pxX:f64, pxY:f64, correctNorth: bool = false) : Coordinates {
 		const el = this.canvas.el;
 		// Convert screen pixels to Normalized Device Coordinates (NDC) [-1, 1]
 		this.vec4.x = (pxX * el.ratio / el.width) * 2 - 1;
@@ -393,7 +414,7 @@ export default class WebGL {
 		// Normalize the resulting direction vector
 		this.vec4.normalize();
 		// Calculate longitude (yaw) using atan2, adjust for base yaw offset
-		this.coo.x = atan2(this.vec4.x,-this.vec4.z)/PI/2+.5+this.offX;
+		this.coo.x = atan2(this.vec4.x,-this.vec4.z)/PI/2+.5+(correctNorth ? 0 : this.offX);
 		// Calculate latitude (pitch) using asin, adjust for vertical scaling
 		this.coo.y = .5 - Math.asin(this.vec4.y) / PI / this.scaleY;
 		// Store current scale and depth/direction info
@@ -464,7 +485,7 @@ export default class WebGL {
 	 * @param sY Additional scaling along the Y-axis.
 	 * @returns The calculated 4x4 transformation matrix.
 	 */
-	getMatrix(x: f64, y: f64, scale: f64, radius: f64, rX: f64, rY: f64, rZ: f64, transY: f64, sX: f64=1, sY: f64=1) : Mat4 {
+	getMatrix(x: f64, y: f64, scale: f64, radius: f64, rX: f64, rY: f64, rZ: f64, transY: f64, sX: f64=1, sY: f64=1, noCorrectNorth: bool = false) : Mat4 {
 		// Use default radius if not provided
 		if(isNaN(radius)) radius = this.radius;
 
@@ -494,7 +515,7 @@ export default class WebGL {
 		);
 
 		// 2. Apply base yaw (true north)
-		this.iMatrix.rotateY(this.baseYaw);
+		if(!noCorrectNorth) this.iMatrix.rotateY(this.baseYaw);
 
 		// 3. Translate to the point on the sphere surface
 		this.iMatrix.translate(
@@ -540,13 +561,15 @@ export default class WebGL {
 				// Calculate index in the vertex buffer for the current quad (2 triangles = 6 vertices)
 				const i:u32 = (pY * segsX + pX) * 6 * 3; // 6 vertices * 3 coords (x,y,z)
 				// Calculate angles (in radians) for the four corners of the quad
-				const l = -(x + sW * pX) * pi2; // Left longitude
+				const l = - (mod1(x + sW * pX + this.offX) * pi2); // Left longitude
 				const t = -(y + sH * pY) * pi2; // Top latitude (inverted?)
-				const r = -(x + sW * (pX+1)) * pi2; // Right longitude
+				const r = - (mod1(x + sW * (pX+1) + this.offX) * pi2); // Right longitude
 				const b = -(y + sH * (pY+1)) * pi2; // Bottom latitude (inverted?)
 				// Pre-calculate trig values for efficiency
-				const cL = Math.cos(l) * a, sL = Math.sin(l) * a; // Left cos/sin scaled by radius
-				const cR = Math.cos(r) * a, sR = Math.sin(r) * a; // Right cos/sin scaled by radius
+				let cL = Math.cos(l) * a; if (isNaN(cL)) cL = 0;
+				let sL = Math.sin(l) * a; if (isNaN(sL)) sL = 0;
+				let cR = Math.cos(r) * a; if (isNaN(cR)) cR = 0;
+				let sR = Math.sin(r) * a; if (isNaN(sR)) sR = 0;
 				const cT = Math.cos(t), cB = Math.cos(b); // Top/Bottom cosines (latitude)
 				const sT = Math.sin(t) * a, sB = Math.sin(b) * a; // Top/Bottom sines scaled by radius (Y coord)
 

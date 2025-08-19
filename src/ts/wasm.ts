@@ -350,6 +350,9 @@ export class Wasm {
 		// Set initial area if defined
 		if(c.opts.area) c.camera.setArea(c.opts.area, {direct: true, noDispatch:true, noRender:true});
 
+		// Set initial limit if defined
+		if(settings?.restrict) c.camera.setLimit(settings.restrict);
+
 		// Set custom durations if provided
 		if(settings?.crossfadeDuration)
 			this.e.setCrossfadeDuration(this.i, settings.crossfadeDuration);
@@ -382,8 +385,8 @@ export class Wasm {
 
 		// Set initial view (from state, settings, or focus point)
 		const v = get(c.state.view) || settings.view;
-		if(v && v.toString() != '0,0,1,1') { // If specific view is set
-			this.e._setView(c.ptr, v[0], v[1], v[2], v[3], false, false, false);
+		if(v && !(v.centerX == .5 && v.centerY == .5 && v.width == 1 && v.height == 1)) { // If specific view is set
+			this.e._setView(c.ptr, v.centerX, v.centerY, v.width, v.height, false, false, false);
 		} else if((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') { // If focus point is set (and not default 360)
 			this.e._setCoo(c.ptr, focus[0], focus[1], 0, 0, performance.now()); // Set view centered on focus point
 			settings.focus = undefined; // Clear focus setting after applying
@@ -409,11 +412,10 @@ export class Wasm {
 		// Assign FloatArray views into Wasm memory to the camera instance
 		img.camera.assign(
 			this.e,
-			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4), // View buffer
+			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4), // Now center-based view buffer
 			new Float64Array(this.b, this.e._getXY(img.ptr, 0,0) + 32, 5), // XY buffer
 			new Float64Array(this.b, this.e._getCoo(img.ptr, 0,0) + 32, 5), // Coo buffer
 			new Float32Array(this.b, this.e._getMatrix(img.ptr) + 32, 16), // Matrix buffer
-			new Float64Array(this.b, this.e._getView360(img.ptr) + 32, 4), // View360 buffer
 		)
 	}
 
@@ -437,12 +439,12 @@ export class Wasm {
 		// If canvas already exists in Wasm, just set it as active
 		else if(this.c != canvas.ptr) {
 			// Preserve orientation when switching between 360 images
-			const yaw = canvas.is360 && this.c >= 0 ? this.e._getYaw(this.c) : 0;
+			const yaw = canvas.is360 && this.c >= 0 ? this.e._getYaw(this.c, true) : 0;
 			const pitch = canvas.is360 && this.c >= 0 ? this.e._getPitch(this.c) : 0
 			this.c = canvas.ptr; // Update active canvas pointer
 			// Apply previous orientation if applicable (and not coming from waypoint)
 			if(canvas.is360 && !this.preventDirectionSet && yaw && pitch)
-				this.e._setDirection(this.c, yaw, pitch, true);
+				this.e._setDirection(this.c, yaw + (.5-(canvas.$settings?._360?.trueNorth||0))*Math.PI*2, pitch, true);
 			// Fade in if it was previously faded out
 			if(this.e._getTargetOpacity(canvas.ptr) == 0) this.e._fadeIn(canvas.ptr);
 			// Set initial Omni layer if applicable
@@ -836,7 +838,7 @@ export class Wasm {
 	 * @param v View rectangle [x0, y0, x1, y1] defining the focus area.
 	 * @param noLimit If true, allows focus outside image bounds.
 	 */
-	setFocus(ptr:number, v:Models.Camera.View, noLimit:boolean=false) : void {
+	setFocus(ptr:number, v:Models.Camera.ViewRect, noLimit:boolean=false) : void {
 		this.e._setFocus(ptr, v[0], v[1], v[2], v[3], noLimit);
 	}
 

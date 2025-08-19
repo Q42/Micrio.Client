@@ -136,7 +136,11 @@
 			1, // Radius (seems fixed at 1 here?)
 			coords.rotX,
 			coords.rotY,
-			coords.rotZ
+			coords.rotZ,
+			0,
+			1,
+			1,
+			true
 		).join(',');
 	}
 
