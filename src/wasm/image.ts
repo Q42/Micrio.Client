@@ -168,8 +168,11 @@ export default class Image {
 	/** Converts 2D sphere coordinates (centerX, centerY) to 3D unit sphere position */
 	private calculate3DSpherePosition(): void {
 		// Convert centerX/Y to spherical coordinates
-		const yaw = (this.areaCenterX - 0.5) * 2 * PI;  // -π to π
+		let yaw = (this.areaCenterX - 0.5) * 2 * PI;  // -π to π
 		const pitch = (this.areaCenterY - 0.5) * PI;    // -π/2 to π/2
+
+		// Adjust yaw to match camera's base rotation
+		yaw -= this.canvas.webgl.baseYaw;
 		
 		// Convert to 3D Cartesian coordinates on unit sphere
 		this.sphere3DX = Math.cos(pitch) * Math.sin(yaw);
@@ -623,11 +626,14 @@ export default class Image {
 	private get360Tiles(l: Layer): void {
 		const c = this.canvas;
 		const el = c.el;
-		const samplesPerEdge: i32 = 40;
 
 		// Reset arrays
 		Image.sampledLength = 0;
 		Image.uniqueLength = 0;
+
+		// Adaptive samples
+		const samplesPerEdge: i32 = c.webgl.fieldOfView > PI/2 ? 40 : 20;
+
 		const epsilon: f64 = 1e-8; // Tolerance for considering X values equal
 
 		// Inline sampling for top edge
@@ -731,9 +737,25 @@ export default class Image {
 			Image.sampledLength++;
 		}
 
+		// After existing internal samples (center + quadrants + extras)
+		// Add 3x3 grid of internal samples for better central coverage
+		const gridSize = 3;
+		const stepX = el.width / (gridSize + 1);
+		const stepY = el.height / (gridSize + 1);
+		for (let gy: i32 = 1; gy <= gridSize; gy++) {
+			for (let gx: i32 = 1; gx <= gridSize; gx++) {
+				const sampleX = gx * stepX;
+				const sampleY = gy * stepY;
+				coo = c.webgl.getCoo(sampleX, sampleY);
+				unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+				unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+				Image.sampledLength++;
+			}
+		}
+
 		// Step 2: Compute Y range
-		let minY = Infinity;
-		let maxY = -Infinity;
+		let minY: f64 = Infinity;
+		let maxY: f64 = -Infinity;
 		for (let i: i32 = 0; i < Image.sampledLength; i++) {
 			const val = unchecked(Image.sampledYs[i]);
 			if (val < minY) minY = val;
@@ -839,7 +861,7 @@ export default class Image {
 
 		// After computing isFullArc, force full arc if near poles
 		let isFullArc: bool = unchecked(Image.uniqueXs[1]) - unchecked(Image.uniqueXs[0]) >= 1 - 1e-6;
-		if (minY < 0.05 || maxY > 0.8) { // Lowered threshold for maxY to trigger earlier for south pole
+		if (minY < 0.05 || maxY > 0.95) { // Lowered threshold for maxY to trigger earlier for south pole
 			isFullArc = true;
 		}
 
@@ -863,20 +885,20 @@ export default class Image {
 				}
 			} else if (!isWrapping) {
 				// Single non-wrapping range (Ensure non-negative)
-				const minCol: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth)));
-				const maxCol: u32 = min<u32>(l.cols - 1, <u32>ceil((unchecked(Image.uniqueXs[1]) + 0.001) / tileWidth) - 1);
+				const minCol: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth) - 1));
+				const maxCol: u32 = min<u32>(l.cols - 1, <u32>ceil((unchecked(Image.uniqueXs[1]) + 0.001) / tileWidth));
 				for (let col: u32 = minCol; col <= maxCol; col++) {
 					this.setToDraw(l, col, row);
 				}
 			} else {
 				// Wrapping: two ranges (Ensure non-negative)
 				// First range: arcStart to end of image
-				const minCol1: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth)));
+				const minCol1: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth) - 1));
 				for (let col: u32 = minCol1; col < l.cols; col++) {
 					this.setToDraw(l, col, row);
 				}
 				// Second range: 0 to mod1(arcEnd)
-				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>ceil((mod1(unchecked(Image.uniqueXs[1]) + 0.001)) / tileWidth) - 1);
+				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>ceil((mod1(unchecked(Image.uniqueXs[1]) + 0.001)) / tileWidth));
 				for (let col: u32 = 0; col <= maxCol2; col++) {
 					this.setToDraw(l, col, row);
 				}

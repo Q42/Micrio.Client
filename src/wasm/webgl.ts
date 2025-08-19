@@ -101,6 +101,8 @@ export default class WebGL {
 			this.scaleY = this.canvas.height / (this.canvas.width / 2); // Ratio relative to 2:1
 			this.offY = (1 - this.scaleY) / 4; // Vertical offset to center the content
 		}
+		this.yaw = this.baseYaw;
+		this.update();
 	}
 
 	/** Sets the horizontal and vertical movement limits. */
@@ -302,7 +304,7 @@ export default class WebGL {
 	/** Sets the camera orientation using 360-degree viewport format (center + dimensions). */
 	setView(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
 		// Apply true north correction if requested
-		const adjustedCenterX = correctNorth ? centerX + this.canvas.trueNorth : centerX;
+		const adjustedCenterX = correctNorth ? centerX + this.offX : centerX;
 		
 		// Convert View directly to camera parameters
 		this.yaw = (adjustedCenterX - .5) * PI * 2;
@@ -323,7 +325,7 @@ export default class WebGL {
 		if(!c.is360) return; // Only for 360 images
 		
 		// Calculate current View from camera state
-		const centerX = mod1(this.yaw / (PI * 2) + .5);
+		const centerX = mod1((this.yaw / (PI * 2) + .5) + this.offX);
 		const centerY = (this.pitch / this.scaleY) / PI + .5;
 		const height = this.perspective / PI / this.scaleY;
 		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
@@ -559,13 +561,15 @@ export default class WebGL {
 				// Calculate index in the vertex buffer for the current quad (2 triangles = 6 vertices)
 				const i:u32 = (pY * segsX + pX) * 6 * 3; // 6 vertices * 3 coords (x,y,z)
 				// Calculate angles (in radians) for the four corners of the quad
-				const l = -(x + sW * pX) * pi2; // Left longitude
+				const l = - (mod1(x + sW * pX + this.offX) * pi2); // Left longitude
 				const t = -(y + sH * pY) * pi2; // Top latitude (inverted?)
-				const r = -(x + sW * (pX+1)) * pi2; // Right longitude
+				const r = - (mod1(x + sW * (pX+1) + this.offX) * pi2); // Right longitude
 				const b = -(y + sH * (pY+1)) * pi2; // Bottom latitude (inverted?)
 				// Pre-calculate trig values for efficiency
-				const cL = Math.cos(l) * a, sL = Math.sin(l) * a; // Left cos/sin scaled by radius
-				const cR = Math.cos(r) * a, sR = Math.sin(r) * a; // Right cos/sin scaled by radius
+				let cL = Math.cos(l) * a; if (isNaN(cL)) cL = 0;
+				let sL = Math.sin(l) * a; if (isNaN(sL)) sL = 0;
+				let cR = Math.cos(r) * a; if (isNaN(cR)) cR = 0;
+				let sR = Math.sin(r) * a; if (isNaN(sR)) sR = 0;
 				const cT = Math.cos(t), cB = Math.cos(b); // Top/Bottom cosines (latitude)
 				const sT = Math.sin(t) * a, sB = Math.sin(b) * a; // Top/Bottom sines scaled by radius (Y coord)
 
