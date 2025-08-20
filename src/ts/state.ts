@@ -225,7 +225,7 @@ export namespace State {
 				// If no tour, fly to the saved view of the main image (if no marker was opened by state.set)
 				const mainImgState = s.c.find(i => i[0] == s.id);
 				if(mainImgState && !mainImgState[5] && this.micrio.$current) { // Check if marker ID (index 5) is absent
-					this.micrio.$current.camera.flyToView(View.fromRaw(mainImgState.slice(1,5) as Models.Camera.ViewRect)!, {speed:2}).catch(() => {});
+					this.micrio.$current.camera.flyToView(mainImgState.slice(1,5) as number[], {speed:2}).catch(() => {});
 				}
 			}
 		}
@@ -286,7 +286,7 @@ export namespace State {
 				if(view && nV && pV != nV) { // If view changed
 					const detail = {image, view}; // Event detail payload with view360
 					pV = nV;
-					const nW = view.width, nH = view.height; // Calculate new width/height
+					const nW = view[2], nH = view[3]; // Calculate new width/height
 					// Dispatch 'zoom' event if dimensions changed significantly
 					if(!pW || !pH || Math.abs((nW-pW)+(nH-pH)) > 1E-5) {
 						m.events.dispatch('zoom', detail)
@@ -337,7 +337,7 @@ export namespace State {
 			// Construct the state array
 			return [
 				this.image.id,
-				...(View.toRaw(this._view) ?? [0.5,0.5,1,1]), // Use current view or default
+				...(this._view ? this._view.slice(0,4) : [0,0,1,1]), // Use current view or default
 				...(m ? [m.id, ...(media ? [media[0], media[1].currentTime, media[1].paused ? 'p' : undefined] : [])] : [undefined]) // Add marker ID and media state if present
 			].filter(v => v !== undefined) as ImageState; // Filter out undefined values
 		}
@@ -351,7 +351,7 @@ export namespace State {
 			if(!o?.length) return; // Exit if no state provided
 			// Set the view store (this will trigger updates)
 			// TODO: Should this flyToView instead of setting directly? Setting directly might cause jumps.
-			this.view.set(View.fromRaw(o as Models.Camera.ViewRect));
+			this.view.set(o.slice(1,4) as number[]);
 			// Set the marker store if a marker ID is present in the state
 			if(o[5]) {
 				// Only set if different from current marker to avoid loops

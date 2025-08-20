@@ -288,8 +288,7 @@ export class VideoTourInstance {
 			};
 			this.image.camera.setView([iView.centerX-iView.width/2, iView.centerY-iView.height/2, iView.width, iView.height], {noLimit: true, area});
 			this.nextStep();
-		} else {
-			const flyPromise = this.image.camera.flyToView(step.view, {
+		} else this.image.camera.flyToView(step.view, {
 				duration: step.duration,
 				progress: perc,
 				prevView: prevView ? [
@@ -299,9 +298,9 @@ export class VideoTourInstance {
 					prevView.height
 				] : undefined,
 				area
-			});
-			flyPromise.then(() => { if(this.currentIndex != undefined && step == this.timeline[this.currentIndex]) this.nextStep() }).catch(() => {});
-		}
+			}).then(() => {
+				if(this.currentIndex != undefined && step == this.timeline[this.currentIndex]) this.nextStep() }).catch(() => {}
+			);
 	}
 
 	/** Sets playing state attributes and dispatches events. @internal */

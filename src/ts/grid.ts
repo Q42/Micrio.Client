@@ -40,7 +40,7 @@ export class Grid {
 		i.height,
 		i.isDeepZoom ? 'd' : '', // 'd' for DeepZoom
 		i.isPng ? 'p':i.isWebP ? 'w' : '', // 'p' for PNG, 'w' for WebP
-		View.toRaw(opts.view)?.map(round).join('/'), // View: cX,cY,w,h
+		opts.view?.map(round).join('/'), // View: cX,cY,w,h
 		opts.area?.map(round).join('/'), // Area: x0/y0/x1/y1
 		i.settings?.focus?.map(round).join('-'), // Focus: x-y
 		opts.cultures // Comma-separated cultures
@@ -815,8 +815,8 @@ export class Grid {
 			target.camera.setArea([0,0,1,1]);
 			target.camera.setView([0,0,1,1]);
 			const between = [
-				this.getString(current.$info!, {view: View.fromRaw([.5,.5,1,1])}),
-				this.getString(target.$info!, {view: View.fromRaw([.5,.5,1,1])})
+				this.getString(current.$info!, {view: [0,0,1,1]}),
+				this.getString(target.$info!, {view: [0,0,1,1]})
 			];
 			if(transition == 'behind-left') between.reverse();
 			await this.set(between.join(';'), {

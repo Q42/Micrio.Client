@@ -364,7 +364,7 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
  * Sanitizes URLs and marker data within an ImageData object to the latest data formats.
  * @internal
  */
-export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, isV5:boolean, i?:Models.ImageInfo.ImageInfo) => {
+export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, isV5:boolean, isLegacyViews:boolean) => {
 	if (!d) return;
 	// Filter out unpublished revisions (value <= 0)
 	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
@@ -373,12 +373,12 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, isV5:b
 		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random(); // Ensure UUID
 		sanitizeAsset(e.video);
 		sanitizeAsset(e);
-		if(i?.legacyViews) e.area = View.fromLegacy(e.area)!;
+		if(isLegacyViews) e.area = View.fromLegacy(e.area)!;
 	});
 	// Sanitize markers
-	d.markers?.forEach(m => sanitizeMarker(m, isV5, i?.legacyViews));
-	// Sanitize tours
-	if(i?.legacyViews) d.tours?.forEach(sanitizeVideoTour);
+	d.markers?.forEach(m => sanitizeMarker(m, isV5, isLegacyViews));
+	// Sanitize tours that use legacy viewports
+	if(isLegacyViews) d.tours?.forEach(sanitizeVideoTour);
 	// Sanitize music playlist items
 	d.music?.items?.forEach(sanitizeAsset);
 	// Sanitize menu pages recursively
@@ -412,6 +412,9 @@ const sanitizeMenuPage = (m:Models.ImageData.Menu) => {
 export const fetchAlbumInfo = (id:string) : Promise<Models.AlbumInfo|undefined> =>
 	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`https://i.micr.io/album/${id}.json`);
 
+// Keep track of IDs already sanitized
+const sanitizedIds:string[] = [];
+
 /**
  * Sanitizes marker data, ensuring required properties exist, handling legacy formats,
  * and sanitizing asset URLs. Modifies the marker object in place.
@@ -421,6 +424,8 @@ export const fetchAlbumInfo = (id:string) : Promise<Models.AlbumInfo|undefined> 
  * @param legacyViews It uses the old [x0,y0,x1,y1] viewports
  */
 export const sanitizeMarker = (m:Models.ImageData.Marker, isOld:boolean, legacyViews?:boolean) : void => {
+	if(sanitizedIds.indexOf(m.id) >= 0) return;
+	sanitizedIds.push(m.id);
 	// Ensure basic properties exist
 	if(!m.data) m.data = {};
 	if(!m.id) m.id = createGUID();
@@ -490,7 +495,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
 	// Sanitize markers in the fetched data
-	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, image.is360, !image.isV5)));
+	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, !image.isV5, image.legacyViews)));
 	// Sanitize tour cover image
 	sanitizeAsset(tour.image);
 
@@ -635,15 +640,17 @@ export const hasNativeHLS = (video?:HTMLMediaElement) : boolean => {
 	return !!(vid.canPlayType('application/vnd.apple.mpegurl') || vid.canPlayType('application/x-mpegURL'));
 }
 
-
 export const View = {
 	/** Casts a legacy view array ([x0, y0, x1, y1]) to [x0,y0,width,height]. */
-	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View) : Models.Camera.View|undefined => v ? [
-		v[0],
-		v[1],
-		v[2]-v[0],
-		v[3]-v[1]
-	 ] : v,
+	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View) : Models.Camera.View|undefined => {
+		if(!v) return undefined;
+		return [
+			v[0],
+			v[1],
+			v[2]-v[0],
+			v[3]-v[1]
+		];
+	},
 
 	toCenterJSON: (v:Models.Camera.View) : {centerX:number, centerY:number, width: number, height: number} => ({
 		centerX: v[0]+v[2]/2,

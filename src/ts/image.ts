@@ -189,6 +189,9 @@ export class MicrioImage {
 	/** Base path for fetching image tiles. */
 	tileBase:string|undefined;
 
+	/** Use legacy view model [x0,y0,x1,y1] */
+	public get legacyViews(){return this.__info.legacyViews || !this.isV5}
+
 	/**
 	 * Creates a new MicrioImage instance. Typically called by {@link HTMLMicrioElement.open}.
 	 * @internal
@@ -288,7 +291,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize marker/embed data whenever the data store updates
-		this.data.subscribe(d => sanitizeImageData(d, this.isV5, this.__info));
+		this.data.subscribe(d => sanitizeImageData(d, this.isV5, this.legacyViews));
 	}
 
 	/** Sets the error state and prints it to the UI.
@@ -603,7 +606,7 @@ export class MicrioImage {
 
 		// Process markers
 		d.markers?.forEach(m => {
-			sanitizeMarker(m, this.is360, !this.isV5); // Sanitize marker data
+			sanitizeMarker(m, !this.isV5, this.legacyViews); // Sanitize marker data
 
 			// Check for split-screen links in marker data
 			if(m.data?.micrioSplitLink) {
@@ -644,7 +647,7 @@ export class MicrioImage {
 			id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
 		// Sanitize markers in preloaded data
-		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, this.is360, micIdsUnique[i]!.length == 5)));
+		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, micIdsUnique[i]!.length == 5, this.legacyViews)));
 
 		const spaceData = this.wasm.micrio.spaceData; // Get space data if available
 
