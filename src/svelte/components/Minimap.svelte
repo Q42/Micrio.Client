@@ -9,6 +9,7 @@
 
 	import type { HTMLMicrioElement } from '../../ts/element';
 	import type { MicrioImage } from '../../ts/image';
+    import { View } from '../../ts/utils';
 	import type { Models } from '../../types/models';
 
 	import { onMount, getContext, } from 'svelte';
@@ -99,7 +100,7 @@
 		const rects: ViewRect[] = [];
 		
 		// Get the basic rectangle from the camera view
-		let { centerX, centerY, width, height } = area;
+		let { centerX, centerY, width, height } = View.toCenterJSON(area);
 		
 		// Normalize longitude center to [0, 1] range (handles negative values or values > 1)
 		centerX = ((centerX % 1) + 1) % 1;
@@ -161,9 +162,11 @@
 	// --- Drawing Function ---
 
 	/** Draws the minimap content (thumbnail and viewport indicator). */
-	function draw(area:Models.Camera.View|undefined): void{ // `area` is the current view from the image state store
-		if(!area||!_ctx) return; // Exit if no view or context
+	function draw(_area:Models.Camera.View|undefined): void{ // `area` is the current view from the image state store
+		if(!_area||!_ctx) return; // Exit if no view or context
 		moved(); // Update hidden state based on activity
+
+		const area = View.toCenterJSON(_area);
 
 		_ctx.clearRect(0,0, width, height); // Clear the canvas
 
@@ -185,7 +188,7 @@
 		_ctx.fillStyle = 'white'; // Use white for the viewport indicator fill
 
 		if(info.is360) { // Draw rectangles for 360 view
-			const rects = get360ViewRects(area); // Get viewport rectangles
+			const rects = get360ViewRects(_area); // Get viewport rectangles
 			for(const rect of rects) {
 				_ctx.rect(
 					Math.floor(rect.x * width), // x
@@ -240,8 +243,8 @@
 		const currentView = camera.getView();
 		if (currentView) {
 			dragViewDimensions = {
-				width: currentView.width,
-				height: currentView.height
+				width: currentView[2],
+				height: currentView[3]
 			};
 		}
 		
@@ -261,12 +264,12 @@
 			
 			if (dragViewDimensions) {
 				// Create new view with updated center but preserved dimensions from drag start
-				const newView: Models.Camera.View = {
-					centerX: x,
-					centerY: y,
-					width: dragViewDimensions.width,
-					height: dragViewDimensions.height
-				};
+				const newView: Models.Camera.View = [
+					x - dragViewDimensions.width/2,
+					y - dragViewDimensions.height/2,
+					dragViewDimensions.width,
+					dragViewDimensions.height
+				];
 				// Set the complete view to preserve viewport dimensions
 				camera.setView(newView);
 			} else {

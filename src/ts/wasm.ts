@@ -224,7 +224,7 @@ export class Wasm {
 
 		// Instantiate the Wasm module with imports
 		const instance = await self.WebAssembly.instantiate(data, this.imports);
-		this.e = instance.instance.exports as MicrioWasmExports; // Store exports
+		this.e = ((<any>instance).instance as WebAssembly.Instance).exports as MicrioWasmExports; // Store exports
 
 		// Initialize the main Micrio instance in Wasm
 		this.i = this.e.constructor();
@@ -385,8 +385,8 @@ export class Wasm {
 
 		// Set initial view (from state, settings, or focus point)
 		const v = get(c.state.view) || settings.view;
-		if(v && !(v.centerX == .5 && v.centerY == .5 && v.width == 1 && v.height == 1)) { // If specific view is set
-			this.e._setView(c.ptr, v.centerX, v.centerY, v.width, v.height, false, false, false);
+		if(v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) { // If specific view is set
+			this.e._setView(c.ptr, v[0]+v[2]/2, v[1]+v[3]/2, v[2], v[3], false, false, false);
 		} else if((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') { // If focus point is set (and not default 360)
 			this.e._setCoo(c.ptr, focus[0], focus[1], 0, 0, performance.now()); // Set view centered on focus point
 			settings.focus = undefined; // Clear focus setting after applying

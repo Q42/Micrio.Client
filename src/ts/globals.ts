@@ -60,8 +60,8 @@ const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
 	camspeed: 1, // Camera animation speed multiplier
 
 	// Camera settings
-	view: {centerX: .5, centerY: .5, width: 1, height: 1}, // Initial view full view
-	restrict: {centerX: .5, centerY: .5, width: 1, height: 1}, // View restriction boundaries full image
+	view: [0,0,1,1], // Initial view full view
+	restrict: [0,0,1,1], // View restriction boundaries full image
 	focus: [.5,.5], // Default focus point [x, y] for zoom/cover view
 	zoomLimit: 1, // Maximum zoom factor relative to cover scale (1 = no zoom beyond cover)
 	fullscreen: true, // Enable fullscreen button

@@ -147,14 +147,6 @@ export class Camera {
 		y: a[1] + y * (a[3]-a[1])
 	});
 
-	/** Type guard to check if a parameter is a View object.
-	 * @internal
-	 */
-	private isView = (view: Models.Camera.ViewRect | Models.Camera.View): view is Models.Camera.View => {
-		return typeof view === 'object' && !Array.isArray(view) && 
-			'centerX' in view && 'centerY' in view && 'width' in view && 'height' in view;
-	};
-
 	/**
 	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls Wasm directly.
 	 * @internal

@@ -645,15 +645,14 @@ export const View = {
 		v[3]-v[1]
 	 ] : v,
 
-	toCenterJSON: (v:Models.Camera.View) : {centerX:number, centerY:number, width: number, height: number} =>
-	({
+	toCenterJSON: (v:Models.Camera.View) : {centerX:number, centerY:number, width: number, height: number} => ({
 		centerX: v[0]+v[2]/2,
 		centerY: v[1]+v[3]/2,
 		width: v[2],
 		height: v[3]
 	}),
 
-	rectToCenterJSON: (v:Models.Camera.View) : {centerX:number, centerY:number, width: number, height: number} =>
+	rectToCenterJSON: (v:Models.Camera.View) =>
 		View.toCenterJSON([v[0],v[1],v[2]-v[0],v[3]-v[1]]),
 	
 }

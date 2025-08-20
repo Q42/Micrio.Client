@@ -126,7 +126,7 @@
 
 	// --- Listener Position Update ---
 
-	/** Updates the Web Audio listener position based on camera view. */
+	/** Updates the Web Audio listener position based on camera center view. */
 	function moved(x:number, y:number, z:number) : void {
 		if(is360) {
 			// Convert normalized 2D view center + zoom (z) to 3D coordinates and orientation
@@ -192,7 +192,7 @@
 						// Calculate depth factor based on zoom level (closer to 1 when zoomed in)
 						const d = Math.max(0, 1.05 - image.camera.getScale());
 						// Update listener position based on view center and depth
-						moved(v.centerX, v.centerY, d * (is360 ? 1 : 1.5)); // Apply different depth scaling for 2D/360
+						moved(v[0]+v[2]/2, v[1]+v[3]/2, d * (is360 ? 1 : 1.5)); // Apply different depth scaling for 2D/360
 					}
 				);
 			}

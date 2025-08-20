@@ -9,6 +9,7 @@ import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 
 import { get } from 'svelte/store';
+import { View } from './utils';
 
 /**
  * Internal representation of a segment in a video tour timeline.
@@ -271,28 +272,32 @@ export class VideoTourInstance {
 
 		if(step == undefined) return; // Exit if step data not found
 
-		const nextView = step.view;
-		const prevView = this.getView(this.currentIndex-1);
+		const nextView = View.toCenterJSON(step.view)!;
+		const _prevView = this.getView(this.currentIndex-1);
+		const prevView = _prevView ? View.toCenterJSON(_prevView) : undefined;
 		const area = this.image.opts?.area;
-
-		const useView = this.image.is360;
 
 		if(this.wasPaused && prevView) {
 			const b:number = this.micrio.wasm.e.ease(perc);
 
-			const interpolatedView = {
+			const iView = {
 				centerX: prevView.centerX * (1-b) + nextView.centerX * b,
 				centerY: prevView.centerY * (1-b) + nextView.centerY * b,
 				width: prevView.width * (1-b) + nextView.width * b,
 				height: prevView.height * (1-b) + nextView.height * b,
 			};
-			this.image.camera.setView(interpolatedView, {noLimit: true, area});
+			this.image.camera.setView([iView.centerX-iView.width/2, iView.centerY-iView.height/2, iView.width, iView.height], {noLimit: true, area});
 			this.nextStep();
 		} else {
-			const flyPromise = this.image.camera.flyToView(nextView, {
+			const flyPromise = this.image.camera.flyToView(step.view, {
 				duration: step.duration,
 				progress: perc,
-				prevView: prevView,
+				prevView: prevView ? [
+					prevView.centerX-prevView.width/2,
+					prevView.centerY-prevView.height/2,
+					prevView.width,
+					prevView.height
+				] : undefined,
 				area
 			});
 			flyPromise.then(() => { if(this.currentIndex != undefined && step == this.timeline[this.currentIndex]) this.nextStep() }).catch(() => {});
