@@ -78,6 +78,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** For V5+: published revisions per language */
 			revision?: RevisionType;
 
+			/** Uses the old, pre 5.4 viewport model [x0,y0,x1,y1] instead of [x0,y0,width,height] */
+			legacyViews?: boolean;
+
 			/** The original image width
 			 * @default autoloaded
 			*/
@@ -1333,22 +1336,11 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	}
 
 	export namespace Camera {
-		/** A viewport rectangle */
+		/** A viewport rectangle [x0,y0,x1,y1] */
 		export type ViewRect = number[]|Float64Array;
 
-		/** A 360-degree area definition with center point and dimensions */
-		export interface View {
-			/** Center X coordinate (0-1 relative to image) */
-			centerX: number;
-			/** Center Y coordinate (0-1 relative to image) */
-			centerY: number;
-			/** Width (0-1 relative to image) */
-			width: number;
-			/** Height (0-1 relative to image) */
-			height: number;
-			/** Rotate an omni object to this frame index */
-			omniIndex?: number;
-		}
+		/** An area definition [x0,y0,width,height] */
+		export type View = number[]|Float64Array;
 
 		/** Coordinate tuple, [x, y, scale] */
 		export type Coords = [number, number, number?]|Float64Array;

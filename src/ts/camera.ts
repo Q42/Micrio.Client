@@ -19,16 +19,13 @@ export class Camera {
 	readonly center: Models.Camera.Coords = [0,0,1];
 
 	/** Dynamic Wasm buffer holding the current view rectangle [centerX, centerY, width, height].
+	 * TODO-- fix this, but later.
 	 * @internal
 	*/
 	private _view!: Float64Array;
 
-	private readonly view: Models.Camera.View = {
-		centerX: .5,
-		centerY: .5,
-		width: 1,
-		height: 1
-	};
+	/** CORRECT view: [x0, y0, width, height] */
+	private readonly view: Models.Camera.View = [0,0,1,1];
 
 	/** Dynamic Wasm buffer used for getXY calculations. [screenX, screenY, scale, depth].
 	 * @internal
@@ -115,10 +112,12 @@ export class Camera {
 		const prevCenterStr = this.center.join(','); // Store previous center for comparison
 		const centerCoords = this.getCoo(0,0); // Get image coordinates at screen center
 
-		this.view.centerX = v[0];
-		this.view.centerY = v[1];
-		this.view.width = v[2];
-		this.view.height = v[3];
+		// Convert to [x0,y0,width,height]
+		// TODO FIX THIS
+		this.view[0] = v[0] - v[2]/2;
+		this.view[1] = v[1] - v[3]/2;
+		this.view[2] = v[2];
+		this.view[3] = v[3];
 
 		// Update center property [x, y, scale]
 		this.center[0] = v[0];
@@ -227,7 +226,7 @@ export class Camera {
 	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View {centerX, centerY, width, height}.
 	 * @param opts Options for setting the view.
 	 */
-	public setView(view: Models.Camera.ViewRect | Models.Camera.View, opts: {
+	public setView(view: Models.Camera.View, opts: {
 		/** If true, allows setting a view outside the normal image boundaries. */
 		noLimit?: boolean;
 		/** If true (for 360), corrects the view based on the `trueNorth` setting. */
@@ -239,7 +238,7 @@ export class Camera {
 	} = {}): void {
 		if (!this.e) return; // Exit if Wasm not ready
 
-		let { centerX, centerY, width, height } = this.isView(view) ? view : View.fromLegacy(view)!;
+		let { centerX, centerY, width, height } = View.toCenterJSON(view);
 
 		if (opts.area) {
 			const absCoords = this.cooToArea(centerX, centerY, opts.area);
@@ -364,9 +363,9 @@ export class Camera {
 	 * Sets a rectangular limit for camera navigation within the image.
 	 * @param l The viewport limit rectangle [x0, y0, x1, y1].
 	*/
-	public setLimit(l:Models.Camera.ViewRect|Models.Camera.View) : void {
+	public setLimit(v:Models.Camera.ViewRect) : void {
 		if (!this.e) return;
-		l = View.sanitize(l)!;
+		const l = View.rectToCenterJSON(v)!;
 		this.e._setLimit(this.image.ptr, l.centerX, l.centerY, l.width, l.height);
 		this.image.wasm.render();
 	}
@@ -431,7 +430,7 @@ export class Camera {
 	): Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
 
-		let { centerX, centerY, width, height } = this.isView(view) ? view : View.fromLegacy(view)!;
+		let { centerX, centerY, width, height } = View.toCenterJSON(view);
 
 		if(opts.margin?.length == 2) {
 			centerX += opts.margin[0];
@@ -447,13 +446,14 @@ export class Camera {
 			height *= (opts.area[3] - opts.area[1]);
 		}
 		if (opts.prevView) {
-			this.e._setStartView(this.image.ptr, opts.prevView.centerX, opts.prevView.centerY, opts.prevView.width, opts.prevView.height);
+			const pCV = View.toCenterJSON(opts.prevView);
+			this.e._setStartView(this.image.ptr, pCV.centerX, pCV.centerY, pCV.width, pCV.height);
 		}
 		if (this.image.$settings.omni?.frames) {
 			const numLayers = this.image.$settings.omni.layers?.length ?? 1;
 			const numPerLayer = (this.image.$settings.omni.frames / numLayers);
 			if (opts.omniIndex == undefined) {
-				const idx = 'centerX' in view ? view.omniIndex : Array.isArray(view) && view[5] !== undefined ? view[5] : undefined;
+				const idx = view[4] ? view[4] : Array.isArray(view) && view[5] !== undefined ? view[5] : undefined;
 				if(idx !== undefined)opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * numPerLayer);
 			}
 			if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer);

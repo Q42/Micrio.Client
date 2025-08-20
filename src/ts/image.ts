@@ -288,7 +288,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize marker/embed data whenever the data store updates
-		this.data.subscribe(d => sanitizeImageData(d, this.is360, this.isV5));
+		this.data.subscribe(d => sanitizeImageData(d, this.isV5, this.__info));
 	}
 
 	/** Sets the error state and prints it to the UI.

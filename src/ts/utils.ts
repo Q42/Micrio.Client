@@ -353,18 +353,18 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	sanitizeAsset(i.settings?._markers?.markerIcon);
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
 	sanitizeAsset(i.settings?._360?.video);
-	// Sanitize views
-	if (i?.settings) {
-		i.settings.view = View.sanitize(i.settings.view)!;
-		i.settings.restrict = View.sanitize(i.settings.restrict)!;
+	// Sanitize views for legacy rects
+	if (i?.settings && i.legacyViews) {
+		i.settings.view = View.fromLegacy(i.settings.view)!;
+		i.settings.restrict = View.fromLegacy(i.settings.restrict)!;
 	}
 }
 
 /**
- * Sanitizes URLs and marker data within an ImageData object.
+ * Sanitizes URLs and marker data within an ImageData object to the latest data formats.
  * @internal
  */
-export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:boolean, isV5:boolean) => {
+export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, isV5:boolean, i?:Models.ImageInfo.ImageInfo) => {
 	if (!d) return;
 	// Filter out unpublished revisions (value <= 0)
 	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
@@ -373,12 +373,12 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random(); // Ensure UUID
 		sanitizeAsset(e.video);
 		sanitizeAsset(e);
-		e.area = View.sanitize(e.area)!;
+		if(i?.legacyViews) e.area = View.fromLegacy(e.area)!;
 	});
 	// Sanitize markers
-	d.markers?.forEach(m => sanitizeMarker(m, is360, isV5));
+	d.markers?.forEach(m => sanitizeMarker(m, isV5, i?.legacyViews));
 	// Sanitize tours
-	d.tours?.forEach(sanitizeVideoTour);
+	if(i?.legacyViews) d.tours?.forEach(sanitizeVideoTour);
 	// Sanitize music playlist items
 	d.music?.items?.forEach(sanitizeAsset);
 	// Sanitize menu pages recursively
@@ -417,10 +417,10 @@ export const fetchAlbumInfo = (id:string) : Promise<Models.AlbumInfo|undefined> 
  * and sanitizing asset URLs. Modifies the marker object in place.
  * @internal
  * @param m The marker data object.
- * @param is360 Is the parent image 360?
  * @param isOld Is the data from a pre-V5 image?
+ * @param legacyViews It uses the old [x0,y0,x1,y1] viewports
  */
-export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:boolean) : void => {
+export const sanitizeMarker = (m:Models.ImageData.Marker, isOld:boolean, legacyViews?:boolean) : void => {
 	// Ensure basic properties exist
 	if(!m.data) m.data = {};
 	if(!m.id) m.id = createGUID();
@@ -437,7 +437,6 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	m.images?.forEach(sanitizeAsset);
 	sanitizeAsset(m.positionalAudio);
 	sanitizeAsset(m.data?.icon);
-	sanitizeVideoTour(m.videoTour);
 	Object.values(m.i18n ?? {}).forEach(d => sanitizeAsset(d.audio)) // Sanitize audio in i18n
 	const embeds = 'embedImages' in m ? m.embedImages as Models.ImageData.Embed[] : undefined;
 	if(embeds) embeds.forEach(e => sanitizeAsset(e)); // Sanitize legacy embedImages
@@ -451,24 +450,17 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	// Ensure 'default' tag sets type correctly
 	if(m.tags.includes('default')) m.type = 'default';
 	// Sanitize view
-	m.view = View.sanitize(m.view)!;
-	// Sanitize videoTour timelines
-	if (m.videoTour) {
-		const sanitizeTimeline = (timeline?: Models.ImageData.VideoTourView[]) => {
-			timeline?.forEach(t => { t.rect = View.sanitize(t.rect)!; });
-		};
-		if ('timeline' in m.videoTour) {
-			sanitizeTimeline((m.videoTour as unknown as Models.ImageData.VideoTourCultureData).timeline);
-		} else if ('i18n' in m.videoTour) {
-			Object.values((m.videoTour as unknown as Models.ImageData.VideoTour).i18n ?? {}).forEach(c => sanitizeTimeline(c.timeline));
-		}
+	if(legacyViews) {
+		m.view = View.fromLegacy(m.view)!;
+		// Sanitize videoTour timelines
+		sanitizeVideoTour(m.videoTour);
 	}
 }
 
 function sanitizeVideoTour(tour?:Models.ImageData.VideoTour|Models.ImageData.VideoTourCultureData) : void {
 	if(!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
 	const i18n = 'i18n' in tour ? tour.i18n : {'en':(<unknown>tour as Models.ImageData.VideoTourCultureData)};
-	for(const lang in i18n) i18n[lang]?.timeline.forEach(s => s.rect = View.sanitize(s.rect)!);
+	for(const lang in i18n) i18n[lang]?.timeline.forEach(s => s.rect = View.fromLegacy(s.rect)!);
 }
 
 /**
@@ -571,18 +563,18 @@ export const idIsV5 = (id:string):boolean => id.length == 6 || id.length == 7;
 /** Clamps a view rectangle the image bounds [0, 0, 1, 1]. */
 export const limitView = (v: Models.Camera.View) : Models.Camera.View => {
 	// Clamp width and height to maximum of 1
-	const width = Math.min(1, v.width);
-	const height = Math.min(1, v.height);
+	const width = Math.min(1, v[2]);
+	const height = Math.min(1, v[3]);
 	
 	// Calculate half dimensions for boundary checking
 	const halfW = width / 2;
 	const halfH = height / 2;
 	
 	// Clamp center coordinates to keep rectangle within [0,0,1,1] bounds
-	const centerX = Math.max(halfW, Math.min(1 - halfW, v.centerX));
-	const centerY = Math.max(halfH, Math.min(1 - halfH, v.centerY));
+	const centerX = Math.max(halfW, Math.min(1 - halfW, v[0]+v[2]/2));
+	const centerY = Math.max(halfH, Math.min(1 - halfH, v[1]+v[3]/2));
 	
-	return { centerX, centerY, width, height };
+	return [centerX-halfW, centerY-halfH, width, height];
 };
 
 /**
@@ -645,39 +637,23 @@ export const hasNativeHLS = (video?:HTMLMediaElement) : boolean => {
 
 
 export const View = {
-	/** Casts a raw view array ([centerX, centerY, width, height]) to a 360 view object. */
-	fromRaw: (v?:Models.Camera.ViewRect) : Models.Camera.View|undefined => v ? ({
-		centerX: v[0],
-		centerY: v[1],
+	/** Casts a legacy view array ([x0, y0, x1, y1]) to [x0,y0,width,height]. */
+	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View) : Models.Camera.View|undefined => v ? [
+		v[0],
+		v[1],
+		v[2]-v[0],
+		v[3]-v[1]
+	 ] : v,
+
+	toCenterJSON: (v:Models.Camera.View) : {centerX:number, centerY:number, width: number, height: number} =>
+	({
+		centerX: v[0]+v[2]/2,
+		centerY: v[1]+v[3]/2,
 		width: v[2],
 		height: v[3]
-	}) : undefined,
-	
-	/** Casts a 360 view object to a raw view array ([centerX, centerY, width, height]). */
-	toRaw: (v?:Models.Camera.View) : Models.Camera.ViewRect|undefined => v ? [
-		v.centerX,
-		v.centerY,
-		v.width,
-		v.height
-	] : undefined,
-	
-	/** Casts a legacy view array ([x0, y0, x1, y1]) to a 360 view object. */
-	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View) : Models.Camera.View|undefined => v && !('centerX' in v) ? ({
-		centerX: (v[0] + v[2]) / 2,
-		centerY: (v[1] + v[3]) / 2,
-		width: v[2] - v[0],
-		height: v[3] - v[1]
-	}) : v,
+	}),
 
-	/** Casts a 360 view object to a legacy view array ([x0, y0, x1, y1]). */
-	toLegacy: (v?:Models.Camera.View) : Models.Camera.ViewRect|undefined => v && 'centerX' in v ? [
-		v.centerX - v.width/2,
-		v.centerY - v.height/2,
-		v.centerX + v.width/2,
-		v.centerY + v.height/2
-	] : v,
+	rectToCenterJSON: (v:Models.Camera.View) : {centerX:number, centerY:number, width: number, height: number} =>
+		View.toCenterJSON([v[0],v[1],v[2]-v[0],v[3]-v[1]]),
 	
-	/** Sanitizes a viewport, converting from legacy array [x0,y0,x1,y1] to View if necessary. */
-	sanitize: (v?: any) : Models.Camera.View|undefined => Array.isArray(v) ? View.fromLegacy(v) : v
-
 }

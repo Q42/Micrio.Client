@@ -180,21 +180,21 @@
 		// Generate cluster marker data objects from the groups
 		clusterMarkers = S.map(c => c.filter((n, i) => c.indexOf(n) === i)) // Deduplicate indices within each cluster
 			.map((c) => {
-				const minX = Math.min(...c.map(j => q[j].view ? q[j].view.centerX - q[j].view.width / 2 : q[j].x));
-				const maxX = Math.max(...c.map(j => q[j].view ? q[j].view.centerX + q[j].view.width / 2 : q[j].x));
-				const minY = Math.min(...c.map(j => q[j].view ? q[j].view.centerY - q[j].view.height / 2 : q[j].y));
-				const maxY = Math.max(...c.map(j => q[j].view ? q[j].view.centerY + q[j].view.height / 2 : q[j].y));
+				const minX = Math.min(...c.map(j => q[j].view ? q[j].view[0] : q[j].x));
+				const maxX = Math.max(...c.map(j => q[j].view ? q[j].view[0] + q[j].view[2] : q[j].x));
+				const minY = Math.min(...c.map(j => q[j].view ? q[j].view[1] : q[j].y));
+				const maxY = Math.max(...c.map(j => q[j].view ? q[j].view[1] + q[j].view[3] : q[j].y));
 				const centerX = (minX + maxX) / 2;
 				const centerY = (minY + maxY) / 2;
 				return {
 				title: c.length + '',
 				type: 'cluster',
-				view: {
-					centerX,
-					centerY,
-					width: maxX - minX,
-					height: maxY - minY
-				},
+				view: [
+					minX,
+					minY,
+					maxX - minX,
+					maxY - minY
+				],
 				x: centerX,
 				y: centerY,
 				id: c.sort((a,b) => a - b).join(','),

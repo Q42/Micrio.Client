@@ -25,6 +25,7 @@
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
+    import { View } from '../../ts/utils';
 
 	// --- Props ---
 
@@ -387,8 +388,10 @@
 	/** Stores the index of the page closest to the current view center during panning. */
 	let closestIdx:number;
 	/** Updates the `closestIdx` based on the current view during panning. */
-	function moved(v:Models.Camera.View|undefined) : void {
-		if(!v) return;
+	function moved(_v:Models.Camera.View|undefined) : void {
+		if(!_v) return;
+
+		const v = View.toCenterJSON(_v);
 
 		const c = v.centerX; // Current view center X
 		// Calculate a score for each page based on distance and visibility
