@@ -190,7 +190,7 @@ export class MicrioImage {
 	tileBase:string|undefined;
 
 	/** Use legacy view model [x0,y0,x1,y1] */
-	public get legacyViews(){return this.__info.legacyViews || !this.isV5}
+	public get legacyViews(){return this.__info.legacyViews !== undefined ? this.__info.legacyViews : !this.isV5}
 
 	/**
 	 * Creates a new MicrioImage instance. Typically called by {@link HTMLMicrioElement.open}.

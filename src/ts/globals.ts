@@ -213,7 +213,8 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-grid-clickable': {f: 'gridClickable' }, // Make grid items clickable?
 		'data-gallery-spreads': {f: 'gallery.isSpreads' }, // Display gallery as spreads?
 		'data-freemove': {f: 'freeMove' }, // Enable free camera movement (e.g., beyond limits)?
-		'data-force-path': {f: 'forceInfoPath', r:true} // Force using `data-path` for info.json?
+		'data-force-path': {f: 'forceInfoPath', r:true}, // Force using `data-path` for info.json?
+		'data-legacy': {f: 'legacyViews', r:true}, // Force legacy viewports on the data received
 	},
 
 	NUMBERS: {
