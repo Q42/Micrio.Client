@@ -75,6 +75,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Created date */
 			created?: number;
 
+			/** Has new viewport model, optimized for 360 images */
+			viewsWH?: boolean;
+
 			/** For V5+: published revisions per language */
 			revision?: RevisionType;
 

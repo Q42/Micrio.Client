@@ -343,8 +343,7 @@ export const sanitizeAsset = (a?:Models.Assets.BaseAsset|Models.ImageData.Embed)
 		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
 }
 
-export const isLegacyViews = (i:Models.ImageInfo.ImageInfo) : boolean =>
-	parseFloat(i.version || '1') < 5.4;
+export const isLegacyViews = (i:Models.ImageInfo.ImageInfo) : boolean => !i.viewsWH;
 
 /**
  * Sanitizes URLs within an ImageInfo object.
