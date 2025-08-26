@@ -922,6 +922,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			keepMarkers?: boolean;
 			/** Don't disable user navigation when running */
 			keepInteraction?: boolean;
+			/** The tour is a direct outside instance using legacy [x0,y0,x1,y1] viewports */
+			isLegacy?: boolean;
 
 			/** Current running tour instance */
 			instance?: VideoTourInstance;
