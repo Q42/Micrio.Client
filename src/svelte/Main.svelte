@@ -11,7 +11,7 @@
 	 * application state and configuration settings.
 	 */
 
-	import type { HTMLMicrioElement, MicrioUIProps } from '../ts/element';
+	import type { MicrioUIProps } from '../ts/element';
 	import type { Models } from '../types/models';
 	import type { Readable, Writable } from 'svelte/store';
 	import type { MicrioImage } from '../ts/image';
@@ -44,7 +44,6 @@
 	import Subtitles from './common/Subtitles.svelte';
 	import Embed from './virtual/Embed.svelte';
 	import ProgressCircle from './ui/ProgressCircle.svelte';
-	import ResizableAreaDemo from './components/ResizableAreaDemo.svelte';
 
 	let {
 		micrio,
