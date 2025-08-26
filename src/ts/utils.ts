@@ -343,6 +343,9 @@ export const sanitizeAsset = (a?:Models.Assets.BaseAsset|Models.ImageData.Embed)
 		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
 }
 
+export const isLegacyViews = (i:Models.ImageInfo.ImageInfo) : boolean =>
+	parseFloat(i.version || '1') < 5.4;
+
 /**
  * Sanitizes URLs within an ImageInfo object.
  * @internal
@@ -354,7 +357,7 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
 	sanitizeAsset(i.settings?._360?.video);
 	// Sanitize views for legacy rects
-	if (i?.settings && i.legacyViews) {
+	if (i?.settings && isLegacyViews(i)) {
 		i.settings.view = View.fromLegacy(i.settings.view)!;
 		i.settings.restrict = View.fromLegacy(i.settings.restrict)!;
 	}
@@ -495,7 +498,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
 	// Sanitize markers in the fetched data
-	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, !image.isV5, image.legacyViews)));
+	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, !image.isV5, isLegacyViews(image.$info!))));
 	// Sanitize tour cover image
 	sanitizeAsset(tour.image);
 

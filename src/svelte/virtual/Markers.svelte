@@ -233,7 +233,7 @@
 			if(!ms) return; // Exit if no marker settings
 
 			// Apply custom marker styles from settings
-			const isV4 = Number(i.version) >= 4.2; // Check for legacy version
+			const isV4 = parseFloat(i.version) >= 4.2; // Check for legacy version
 			if(ms.markerIcon) cssVars.push(`--micrio-marker-icon: url("${ms.markerIcon}")`);
 			if(ms.markerColor && ms.markerColor != (isV4 ? '#ffffff' : '#ffbb00')) cssVars.push('--micrio-marker-color: '+ms.markerColor);
 			if(ms.markerSize && ms.markerSize != (isV4 ? '16' : '25')) cssVars.push('--micrio-marker-size: '+(r=Number(ms.markerSize))+'px');

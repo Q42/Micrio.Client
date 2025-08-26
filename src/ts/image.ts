@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
+import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
 import { State } from './state';
 import { archive } from './archive';
 
@@ -189,9 +189,6 @@ export class MicrioImage {
 	/** Base path for fetching image tiles. */
 	tileBase:string|undefined;
 
-	/** Use legacy view model [x0,y0,x1,y1] */
-	public get legacyViews(){return this.__info.legacyViews !== undefined ? this.__info.legacyViews : !this.isV5}
-
 	/**
 	 * Creates a new MicrioImage instance. Typically called by {@link HTMLMicrioElement.open}.
 	 * @internal
@@ -291,7 +288,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize marker/embed data whenever the data store updates
-		this.data.subscribe(d => sanitizeImageData(d, this.isV5, this.legacyViews));
+		this.data.subscribe(d => {if(d)sanitizeImageData(d, this.isV5, isLegacyViews(this.__info))});
 	}
 
 	/** Sets the error state and prints it to the UI.
@@ -376,7 +373,7 @@ export class MicrioImage {
 		// Handle Omni object setup (load base archive, configure gallery settings)
 		if(i.settings?.omni) {
 			this.isOmni = true;
-			if(i.version >= 5) { // V5 Omni requires base archive
+			if(parseFloat(i.version) >= 5) { // V5 Omni requires base archive
 				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
 					.catch(e => this.setError(e, 'Could not find object base package.'));
 				// Configure gallery settings for Omni
@@ -606,7 +603,7 @@ export class MicrioImage {
 
 		// Process markers
 		d.markers?.forEach(m => {
-			sanitizeMarker(m, !this.isV5, this.legacyViews); // Sanitize marker data
+			sanitizeMarker(m, !this.isV5, isLegacyViews(this.__info)); // Sanitize marker data
 
 			// Check for split-screen links in marker data
 			if(m.data?.micrioSplitLink) {
@@ -647,7 +644,7 @@ export class MicrioImage {
 			id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
 		// Sanitize markers in preloaded data
-		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, micIdsUnique[i]!.length == 5, this.legacyViews)));
+		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, micIdsUnique[i]!.length == 5, isLegacyViews(this.__info))));
 
 		const spaceData = this.wasm.micrio.spaceData; // Get space data if available
 

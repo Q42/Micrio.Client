@@ -110,7 +110,7 @@ export const DEFAULT_INFO : Models.ImageInfo.ImageInfo = {
 	id: '', // Placeholder for image ID
 
 	// Image info
-	version: Number(VERSION.replace(/(\d+)\.(\d+).*/,'$1.$2')), // Use major.minor from library version
+	version: VERSION, // Use major.minor from library version
 	path: BASEPATH, // Default asset path
 
 	// Image data
@@ -214,7 +214,6 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-gallery-spreads': {f: 'gallery.isSpreads' }, // Display gallery as spreads?
 		'data-freemove': {f: 'freeMove' }, // Enable free camera movement (e.g., beyond limits)?
 		'data-force-path': {f: 'forceInfoPath', r:true}, // Force using `data-path` for info.json?
-		'data-legacy': {f: 'legacyViews', r:true}, // Force legacy viewports on the data received
 	},
 
 	NUMBERS: {

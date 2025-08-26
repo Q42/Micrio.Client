@@ -70,16 +70,13 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** The Micrio version this image was created in
 			 * @default autoloaded
 			*/
-			version: number;
+			version: string;
 
 			/** Created date */
 			created?: number;
 
 			/** For V5+: published revisions per language */
 			revision?: RevisionType;
-
-			/** Uses the old, pre 5.4 viewport model [x0,y0,x1,y1] instead of [x0,y0,width,height] */
-			legacyViews?: boolean;
 
 			/** The original image width
 			 * @default autoloaded

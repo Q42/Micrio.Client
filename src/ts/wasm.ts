@@ -288,7 +288,7 @@ export class Wasm {
 		// Configure Wasm based on archive settings
 		if(settings.gallery?.archive) this.e.setHasArchive(this.i, true, settings.gallery.archiveLayerOffset ?? 0);
 		// Handle legacy version compatibility
-		if(i.version && Number(i.version) <= 3.1) this.e.setNoUnderzoom(this.i, true);
+		if(i.version && parseFloat(i.version) <= 3.1) this.e.setNoUnderzoom(this.i, true);
 
 		// Determine cover limit/start settings
 		const coverLimit = !!settings.limitToCoverScale;
