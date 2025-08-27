@@ -3,7 +3,7 @@ import type { MicrioWasmExports } from '../types/wasm';
 import type { Models } from '../types/models';
 
 import { tick } from 'svelte';
-import { mod } from './utils';
+import { View, mod } from './utils';
 import { Enums } from './enums';
 
 /**
@@ -18,10 +18,14 @@ export class Camera {
 	/** Current center screen coordinates [x, y] and scale [z]. For 360, also includes [yaw, pitch]. For Omni, also includes [frameIndex]. */
 	readonly center: Models.Camera.Coords = [0,0,1];
 
-	/** Dynamic Wasm buffer holding the current view rectangle [x0, y0, x1, y1].
+	/** Dynamic Wasm buffer holding the current view rectangle [centerX, centerY, width, height].
+	 * TODO-- fix this, but later.
 	 * @internal
 	*/
 	private _view!: Float64Array;
+
+	/** CORRECT view: [x0, y0, width, height] */
+	private readonly view: Models.Camera.View = [0,0,1,1];
 
 	/** Dynamic Wasm buffer used for getXY calculations. [screenX, screenY, scale, depth].
 	 * @internal
@@ -89,7 +93,7 @@ export class Camera {
 		view: Float64Array,
 		xy: Float64Array,
 		coo: Float64Array,
-		mat: Float32Array
+		mat: Float32Array,
 	) : void {
 		this.e = e;
 		this._view = view;
@@ -108,9 +112,16 @@ export class Camera {
 		const prevCenterStr = this.center.join(','); // Store previous center for comparison
 		const centerCoords = this.getCoo(0,0); // Get image coordinates at screen center
 
+		// Convert to [x0,y0,width,height]
+		// TODO FIX THIS
+		this.view[0] = v[0] - v[2]/2;
+		this.view[1] = v[1] - v[3]/2;
+		this.view[2] = v[2];
+		this.view[3] = v[3];
+
 		// Update center property [x, y, scale]
-		this.center[0] = v[0] + (v[2]-v[0]) / 2;
-		this.center[1] = v[1] + (v[3]-v[1]) / 2;
+		this.center[0] = v[0];
+		this.center[1] = v[1];
 		this.center[2] = centerCoords[2]; // Scale
 
 		// Update 360 orientation [yaw, pitch]
@@ -121,26 +132,20 @@ export class Camera {
 		// Update Omni frame index
 		if(this.image.isOmni) this.center[5] = this.image.swiper?.currentIndex;
 
-		// Update the Svelte store only if the view actually changed or if resizing/animating
-		if(this.center.join(',') != prevCenterStr || this.image.wasm.micrio.canvas.resizing || this.image.wasm.e._areaAnimating(this.image.ptr))
-			this.image.state.view.set(this._view);
+		// Update the Svelte stores only if the view actually changed or if resizing/animating
+		if(this.center.join(',') != prevCenterStr || this.image.wasm.micrio.canvas.resizing || this.image.wasm.e._areaAnimating(this.image.ptr)) {
+			this.image.state.view.set(this.view);
+			// Note: view360 will be automatically updated via the bidirectional sync in state.ts
+		}
 	}
 
 	/** Converts relative coordinates within an area to absolute image coordinates.
 	 * @internal
 	 */
-	private cooToArea = (x:number, y:number, a:Models.Camera.View) : {x:number, y:number} => ({
+	private cooToArea = (x:number, y:number, a:Models.Camera.ViewRect) : {x:number, y:number} => ({
 		x: a[0] + x * (a[2]-a[0]),
 		y: a[1] + y * (a[3]-a[1])
 	});
-
-	/** Converts a relative view within an area to an absolute image view.
-	 * @internal
-	 */
-	private viewToArea = (v:Models.Camera.View, a:Models.Camera.View) : Models.Camera.View => [
-		...Object.values(this.cooToArea(v[0], v[1], a)), // Top-left
-		...Object.values(this.cooToArea(v[2],v[3], a))  // Bottom-right
-	];
 
 	/**
 	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls Wasm directly.
@@ -182,31 +187,63 @@ export class Camera {
 	}
 
 	/**
+	 * Gets the current image view rectangle.
+	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
+	 */
+	public getView = () : Models.Camera.View => this.view;
+
+	/**
+	 * Gets the current image view rectangle [centerX, centerY, width, height] relative to the image (0-1).
+	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
+	 */
+	public getViewRaw = () : Float64Array => this._view;
+
+	/**
 	 * Gets the current image view rectangle [x0, y0, x1, y1] relative to the image (0-1).
 	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
 	 */
-	public getView = () : Models.Camera.View|undefined => this._view?.slice(0);
+	public getViewLegacy = () : Models.Camera.ViewRect|undefined => {
+		if (!this.e) return undefined;
+
+		return [
+			this._view[0] - this._view[2] / 2,  // x0
+			this._view[1] - this._view[3] / 2,  // y0
+			this._view[0] + this._view[2] / 2,  // x1
+			this._view[1] + this._view[3] / 2   // y1
+		];
+	};
 
 	/**
-	 * Sets the camera view instantly to the specified rectangle.
-	 * @param v The target viewport rectangle [x0, y0, x1, y1].
+	 * Sets the camera view instantly to the specified viewport.
+	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View {centerX, centerY, width, height}.
 	 * @param opts Options for setting the view.
 	 */
-	public setView(v:Models.Camera.View, opts:{
+	public setView(view: Models.Camera.View, opts: {
 		/** If true, allows setting a view outside the normal image boundaries. */
-		noLimit?:boolean;
+		noLimit?: boolean;
 		/** If true (for 360), corrects the view based on the `trueNorth` setting. */
 		correctNorth?: boolean;
 		/** If true, prevents triggering a Wasm render after setting the view. */
 		noRender?: boolean;
-		/** If provided, interprets `v` relative to this sub-area instead of the full image. */
-		area?:Models.Camera.View;
-	} = {}) : void {
+		/** If provided, interprets `view` relative to this sub-area instead of the full image. */
+		area?: Models.Camera.ViewRect;
+	} = {}): void {
 		if (!this.e) return; // Exit if Wasm not ready
-		if(opts.area) v = this.viewToArea(v, opts.area); // Convert relative area view to absolute
-		this.e._setView(this.image.ptr, v[0], v[1], v[2], v[3], !!opts.noLimit, false, opts.correctNorth);
-		if(!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
+
+		let { centerX, centerY, width, height } = View.toCenterJSON(view);
+
+		if (opts.area) {
+			const absCoords = this.cooToArea(centerX, centerY, opts.area);
+			centerX = absCoords.x;
+			centerY = absCoords.y;
+			width *= (opts.area[2] - opts.area[0]);
+			height *= (opts.area[3] - opts.area[1]);
+		}
+		this.e._setView(this.image.ptr, centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
+		
+		if (!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
 	}
+
 
 	/**
 	 * Gets the relative image coordinates [x, y, scale, depth, yaw?, pitch?] corresponding to a screen coordinate.
@@ -270,9 +307,9 @@ export class Camera {
 	 * @param scaleY Optional non-uniform Y scaling.
 	 * @returns The resulting 4x4 matrix as a Float32Array.
 	 */
-	getMatrix(x:number, y:number, scale?:number, radius?:number, rotX?:number, rotY?:number, rotZ?:number, transY?:number, scaleX?:number, scaleY?:number) : Float32Array {
+	getMatrix(x:number, y:number, scale?:number, radius?:number, rotX?:number, rotY?:number, rotZ?:number, transY?:number, scaleX?:number, scaleY?:number, noCorrectNorth?:boolean) : Float32Array {
 		if (!this.e) return new Float32Array(16); // Return identity matrix if Wasm not ready
-		this.e._getMatrix(this.image.ptr, x, y, scale, radius, rotX||0, rotY||0, rotZ||0, transY||0, scaleX??1, scaleY??1);
+		this.e._getMatrix(this.image.ptr, x, y, scale, radius, rotX||0, rotY||0, rotZ||0, transY||0, scaleX??1, scaleY??1, noCorrectNorth);
 		return this._mat; // Return direct buffer reference
 	}
 
@@ -318,9 +355,10 @@ export class Camera {
 	 * Sets a rectangular limit for camera navigation within the image.
 	 * @param l The viewport limit rectangle [x0, y0, x1, y1].
 	*/
-	public setLimit(l:Models.Camera.View) : void {
+	public setLimit(v:Models.Camera.ViewRect) : void {
 		if (!this.e) return;
-		this.e._setLimit(this.image.ptr, l[0], l[1], l[2], l[3]);
+		const l = View.rectToCenterJSON(v)!;
+		this.e._setLimit(this.image.ptr, l.centerX, l.centerY, l.width, l.height);
 		this.image.wasm.render();
 	}
 
@@ -356,51 +394,69 @@ export class Camera {
 	}
 
 	/**
-	 * Animates the camera smoothly to a target view rectangle.
-	 * @param view The target viewport rectangle [x0, y0, x1, y1].
+	 * Animates the camera smoothly to a target viewport.
+	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View {centerX, centerY, width, height}.
 	 * @param opts Optional animation settings.
 	 * @returns A Promise that resolves when the animation completes, or rejects if aborted.
 	 */
-	 public flyToView = (
-		view:Models.Camera.View,
-		opts:Models.Camera.AnimationOptions & {
+	public flyToView = (
+		view: Models.Camera.ViewRect | Models.Camera.View,
+		opts: Models.Camera.AnimationOptions & {
 			/** Set the starting animation progress percentage (0-1). */
-			progress?:number;
+			progress?: number;
 			/** Base the progress override on this starting view. */
-			prevView?:Models.Camera.View;
+			prevView?: Models.Camera.View;
 			/** If true, performs a "jump" animation (zooms out then in). */
-			isJump?:boolean;
+			isJump?: boolean;
 			/** For Omni objects: the target image frame index to animate to. */
 			omniIndex?: number;
 			/** If true (for 360), ignores the `trueNorth` correction. */
 			noTrueNorth?: boolean;
 			/** If provided, interprets `view` relative to this sub-area. */
-			area?:Models.Camera.View;
+			area?: Models.Camera.ViewRect;
 			/** If true, respects the image's maximum zoom limit during animation. */
 			limitZoom?: boolean;
+			/** If provided, adds a margin to the view. */
+			margin?: [number, number];
 		} = {}
-	) : Promise<void> => new Promise((ok, abort) => {
+	): Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
-		if(opts.area) view = this.viewToArea(view, opts.area); // Convert relative area view
-		// Set starting view for progress calculation if provided
-		if(opts.prevView) {
-			const pv = opts.prevView;
-			this.e._setStartView(this.image.ptr, pv[0], pv[1], pv[2], pv[3]);
+
+		let { centerX, centerY, width, height } = View.toCenterJSON(view);
+
+		if(opts.margin?.length == 2) {
+			centerX += opts.margin[0];
+			centerY += opts.margin[1];
+			width -= opts.margin[0] * 2;
+			height -= opts.margin[1] * 2;
 		}
-		// Calculate target Omni frame index if needed
-		if(this.image.$settings.omni?.frames) {
+		if (opts.area) {
+			const absCoords = this.cooToArea(centerX, centerY, opts.area);
+			centerX = absCoords.x;
+			centerY = absCoords.y;
+			width *= (opts.area[2] - opts.area[0]);
+			height *= (opts.area[3] - opts.area[1]);
+		}
+		if (opts.prevView) {
+			const pCV = View.toCenterJSON(opts.prevView);
+			this.e._setStartView(this.image.ptr, pCV.centerX, pCV.centerY, pCV.width, pCV.height);
+		}
+		if (this.image.$settings.omni?.frames) {
 			const numLayers = this.image.$settings.omni.layers?.length ?? 1;
 			const numPerLayer = (this.image.$settings.omni.frames / numLayers);
-			// Calculate from target view yaw if not provided directly
-			if(opts.omniIndex == undefined && view[5] !== undefined) opts.omniIndex = Math.round(mod(view[5] / (Math.PI * 2)) * numPerLayer);
-			if(opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer); // Ensure index wraps around
+			if (opts.omniIndex == undefined) {
+				const idx = view[4] ? view[4] : Array.isArray(view) && view[5] !== undefined ? view[5] : undefined;
+				if(idx !== undefined)opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * numPerLayer);
+			}
+			if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer);
 		}
-		// Call Wasm function to start animation
-		const duration = this.e._flyTo(this.image.ptr, view[0], view[1], view[2], view[3], opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, !!opts.noTrueNorth, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
+		const duration = this.e._flyTo(this.image.ptr, centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, !opts.noTrueNorth, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
 		this.image.wasm.render(); // Trigger render loop
-		if(duration==0) ok(); // Resolve immediately if duration is 0
+		if (duration == 0) ok(); // Resolve immediately if duration is 0
 		else this.setAniPromises(ok, abort); // Store promise callbacks
 	});
+
+
 
 	/**
 	 * Animates the camera to a view showing the entire image (minimum zoom).
@@ -561,7 +617,7 @@ export class Camera {
 	 * @param v The target area rectangle [x0, y0, x1, y1] relative to the main canvas (0-1).
 	 * @param opts Options for setting the area.
 	 */
-	setArea(v:Models.Camera.View, opts:{
+	setArea(v:Models.Camera.ViewRect, opts:{
 		/** If true, sets the area instantly without animation. */
 		direct?:boolean;
 		/** If true, prevents dispatching view updates during the animation. */
@@ -571,14 +627,14 @@ export class Camera {
 	} = {}) : void {
 		if (!this.e) return; // Exit if Wasm not ready
 		const e = this.image.wasm.e;
-		if(this.image.opts.isEmbed) { // If it's an embed, use specific Wasm function
+		if(this.image.opts.isEmbed) {
 			if(this.image.ptr > 0) {
-				this.image.opts.area = v; // Store the area in options
+				this.image.opts.area = v;
 				e._setImageArea(this.image.ptr, v[0], v[1], v[2], v[3]);
 			}
 		}
-		else { // For main images/canvases
-			this.image.opts.area = v; // Store the area in options
+		else {
+			this.image.opts.area = v;
 			e._setArea(this.image.ptr, v[0], v[1], v[2], v[3], !!opts.direct, !!opts.noDispatch);
 		}
 		if(!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
@@ -621,7 +677,7 @@ export class Camera {
 		const omni = i.$settings.omni;
 		if(!omni || !this.e) return; // Exit if not Omni or Wasm not ready
 		i.wasm.e._setOmniSettings(i.ptr, -omni.distance||0, omni.fieldOfView??0, omni.verticalAngle??0, omni.offsetX??0);
-		this.image.state.view.set(this._view); // Update view store after settings change
+		this.image.state.view.set(this.view); // Update view store after settings change
 	}
 
 }

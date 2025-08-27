@@ -19,10 +19,11 @@
 
 	import { onMount, getContext } from 'svelte';
 	import { MicrioImage } from '../../ts/image';
-	import { once, createGUID, Browser } from '../../ts/utils';
+	import { once, createGUID, Browser, View } from '../../ts/utils';
 	import { GLEmbedVideo } from '../../ts/embedvideo'; // Handles WebGL video rendering
 
 	import Media from '../components/Media.svelte'; // Reusable media player component
+    import type { Camera } from '../../ts/camera';
 
 	// --- Context & Props ---
 
@@ -98,10 +99,10 @@
 	const hrefBlankTarget = href && embed.clickTargetBlank;
 
 	// --- Positioning State (updated by `moved`) ---
-	let w:number = a[2]-a[0]; // Relative width
-	let h:number = a[3]-a[1]; // Relative height
-	let cX:number = a[0] + w / 2; // Center X
-	let cY:number = a[1] + h / 2; // Center Y
+	let w:number = a[2]; // Relative width
+	let h:number = a[3]; // Relative height
+	let cX:number = a[0]+w/2; // Center X
+	let cY:number = a[1]+h/2; // Center Y
 	let s:number = embed.scale || 1; // Embed scale
 	let rotX:number = embed.rotX??0; // X Rotation
 	let rotY:number = embed.rotY??0; // Y Rotation
@@ -116,12 +117,12 @@
 	function readPlacement() : void {
 		const a = embed.area;
 		// Handle 360 wrap-around for area coordinates
-		if(is360 && a[0] > a[2]) a[0]--;
+		//if(is360 && a[0] > a[2]) a[0]--;
 		// Recalculate dimensions and center
-		w = a[2]-a[0];
-		h = a[3]-a[1];
-		cX = a[0] + w / 2;
-		cY = a[1] + h / 2;
+		w = a[2];
+		h = a[3];
+		cX = a[0]+w/2;
+		cY = a[1]+w/2;
 		// Update scale and rotation values from embed data
 		s = embed.scale || 1;
 		rotX = embed.rotX??0;
@@ -251,9 +252,15 @@
 	function printInsideGL() : void {
 		// Determine initial opacity (use 0.01 if hidden when paused to ensure it renders initially)
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity ?? 1;
+		const area:Models.Camera.ViewRect = [
+			embed.area[0],
+			embed.area[1],
+			embed.area[0]+embed.area[2],
+			embed.area[1]+embed.area[3]
+		];
 		if(image && image.ptr >= 0) { // If MicrioImage instance already exists (e.g., from previous state)
 			// Update its placement and fade it in
-			image.camera.setArea(embed.area);
+			image.camera.setArea(area);
 			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
 			wasm.fadeImage(image.ptr, opacity);
 		}
@@ -272,7 +279,7 @@
 				settings: {
 					_360: { rotX, rotY, rotZ } // Pass rotation settings
 				},
-			}, embed.area, { opacity, asImage: false }); // Pass area, initial opacity
+			}, area, { opacity, asImage: false }); // Pass area, initial opacity
 		}
 
 		// If it's a WebGL video, initialize the GLEmbedVideo handler once visible

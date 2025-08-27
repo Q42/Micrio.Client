@@ -1,5 +1,6 @@
 import { Coordinates, PI } from './shared'
 import Canvas from './canvas'
+import { longitudeDistance } from './utils';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. */
 export default class Camera {
@@ -181,15 +182,13 @@ export default class Camera {
 		this.coverScale = max(cpw, cph);
 
 		// Adjust coverScale if view limits are smaller than the image
-		const limitW = c.view.lX1 - c.view.lX0;
-		const limitH = c.view.lY1 - c.view.lY0;
-		const lRat = limitW / limitH; // Aspect ratio of the limit box
+		const lRat = c.view.lWidth / c.view.lHeight; // Aspect ratio of the limit box
 		c.view.limitChanged = false; // Reset flag
-		if(limitW < 1 || limitH < 1) { // If limits are active
+		if(c.view.lWidth < 1 || c.view.lHeight < 1) { // If limits are active
 			const rat = cpw / cph; // Aspect ratio of the canvas element
 			// Adjust cover scale based on the limiting dimension relative to aspect ratios
-			if(lRat < rat) this.coverScale /= limitW / rat;
-			else this.coverScale /= limitH * rat;
+			if(lRat < rat) this.coverScale /= c.view.lWidth / rat;
+			else this.coverScale /= c.view.lHeight * rat;
 		}
 
 		// Recalculate min/max scales based on new base scales
@@ -197,7 +196,7 @@ export default class Camera {
 
 		// If initialized and not animating, re-apply the last known view to adjust for resize
 		if(el.width && el.height && !this.canvas.ani.isStarted()) {
-			c.view.copy(c.ani.lastView); // Restore last animated view
+			c.view.copy(c.ani.lastView, true); // Restore last animated view
 			if(!c.is360) { // Only apply for 2D
 				const pLimit = c.ani.limit; // Preserve animation limit flag
 				c.ani.limit = false; // Temporarily disable limits for setView
@@ -273,14 +272,11 @@ export default class Camera {
 		if(!this.inited && c.coverStart) this.scale = this.coverScale;
 
 		// Calculate the overflow needed to center the logical view within the scaled viewport
-		const overflowX:f64 = (cw / this.scale - vw) / 2;
-		const overflowY:f64 = (ch / this.scale - vh) / 2;
+		const overflowX:f64 = (cw / this.scale - vw);
+		const overflowY:f64 = (ch / this.scale - vh);
 
-		// Adjust the logical view coordinates to account for the overflow (centering)
-		v.x0 -= overflowX;
-		v.y0 -= overflowY;
-		v.x1 += overflowX;
-		v.y1 += overflowY;
+		// Apply overflow to center the view within the aspect ratio
+		v.set(v.centerX, v.centerY, v.width + overflowX, v.height + overflowY);
 
 		// Store the initial view if coverStart is enabled
 		if(!this.inited && c.coverStart) this.canvas.ani.lastView.copy(v);
@@ -340,20 +336,19 @@ export default class Camera {
 		const dY : f64 = yPx / c.height / this.scale * r;
 
 		// Calculate new view coordinates
-		const x0 = v.x0 + dX;
-		const y0 = v.y0 + dY;
-		const x1 = v.x1 + dX;
-		const y1 = v.y1 + dY;
+		const newCenterX = v.centerX + dX;
+		const newCenterY = v.centerY + dY;
+		const viewWidth = v.width;
+		const viewHeight = v.height;
 
 		if(this.pinching) {
 			// If pinching, apply pan directly without animation or kinetic tracking
-			c.setView(x0, y0, x1, y1, noLimit, false);
-		}
-		else if(this.isOutsideLimit() && !isKinetic) {
+			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
+			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
+		} else if(!force && this.isOutsideLimit() && !isKinetic) {
 			// If starting drag outside limits, animate back towards the limit
-			c.ani.toView(x0, y0, x1, y1, duration || 150, 0, 0, false, false, -1, false, 0, time, !noLimit); // `correct=true`
-		}
-		else {
+			c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration || 150, 0, 0, false, false, -1, false, 0, time, !noLimit); // correct=true
+		} else {
 			// Stop any ongoing animation
 			c.ani.stop();
 
@@ -362,10 +357,16 @@ export default class Camera {
 				// Add step to kinetic tracker if not already kinetic movement
 				if(!isKinetic) c.kinetic.addStep(xPx*4, yPx*4, time); // Multiply delta for more sensitivity?
 				// Set view directly
-				c.setView(x0, y0, x1, y1, noLimit, false, false, isKinetic);
+				c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
+				if (!noLimit) {
+					c.view.limit(false, false, c.freeMove); // Apply limits, passing freeMove
+				}
+				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
+				c.view.changed = true; // Mark as changed
+			} else {
+				// Otherwise, start a pan animation
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, false, 0, time);
 			}
-			// Otherwise, start a pan animation
-			else c.ani.toView(x0, y0, x1, y1, duration, 0, 0, false, false, -1, false, 0, time);
 		}
 	}
 
@@ -414,19 +415,16 @@ export default class Camera {
 		const pX : f64 = xPx > 0 && !uZ ? xPx / el.width * r : .5; // Relative X center (0-1)
 		const pY : f64 = yPx > 0 && !uZ ? yPx / el.height * r : .5; // Relative Y center (0-1)
 
-		// Calculate new view coordinates based on zoom factors and center point
-		const targetX0 = v.x0 - fact * pX;
-		const targetY0 = v.y0 - factY * pY;
-		const targetX1 = v.x1 + fact * (1 - pX);
-		const targetY1 = v.y1 + factY * (1 - pY);
+		// Calculate new center and sizes
+		const targetCenterX = v.centerX + fact * (0.5 - pX);
+		const targetCenterY = v.centerY + factY * (0.5 - pY);
+		const targetWidth = v.width + fact;
+		const targetHeight = v.height + factY;
 
 		// Set animation limit flag
 		c.ani.limit = limit;
-		// Start the view animation (flyTo handles the interpolation)
-		duration = c.ani.toView(
-			targetX0, targetY0, targetX1, targetY1,
-			duration, 0, 0, false, !noLimit && !this.pinching, -1, false, 0, time, limit
-		);
+		// Start the view animation
+		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.pinching, -1, false, 0, time, limit);
 		// Store the resulting view as the last view for potential resizing adjustments
 		c.ani.lastView.copy(c.view);
 		// Restore animation limit flag
@@ -502,15 +500,20 @@ export default class Camera {
 	/** Signals the end of a pinch gesture. */
 	pinchStop(time: f64) : void {
 		if(!this.canvas.is360) {
-			// Animate back to limits if the view is outside bounds after pinching
+			// Animate back to limits if the view is outside bounds after pinching and not freeMove
 			const v = this.canvas.view;
 			const freeMove = this.canvas.freeMove;
-			this.canvas.ani.toView(
-				freeMove ? v.x0 : max(v.x0, v.lX0), // Target X0 (limited or current)
-				freeMove ? v.y0 : max(v.y0, v.lY0), // Target Y0 (limited or current)
-				freeMove ? v.x1 : min(v.x1, v.lX1), // Target X1 (limited or current)
-				freeMove ? v.y1 : min(v.y1, v.lY1), // Target Y1 (limited or current)
-				150, 0, 0, false, false, -1, false, 0, time, true); // Short correction animation
+			if (!freeMove) {
+				// Compute clamped centers, keeping width/height the same
+				const halfW = v.width / 2;
+				const halfH = v.height / 2;
+				const targetCenterX = max(v.lX0 + halfW, min(v.centerX, v.lX1 - halfW));
+				const targetCenterY = max(v.lY0 + halfH, min(v.centerY, v.lY1 - halfH));
+				const targetWidth = v.width;
+				const targetHeight = v.height;
+
+				this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, false, 0, time, true); // Short correction animation
+			}
 		}
 
 		// Reset pinch state
@@ -524,14 +527,22 @@ export default class Camera {
 	 * Initiates a fly-to animation to a target view rectangle.
 	 * @returns The calculated animation duration.
 	 */
-	flyTo(x0: f64, y0: f64, x1: f64, y1: f64, dur: f64, speed: f64, perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
+	flyTo(centerX: f64, centerY: f64, width: f64, height: f64, dur: f64, speed: f64, perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
 		const c = this.canvas;
 		const a = c.ani;
 		c.kinetic.stop(); // Stop kinetic movement
 
+		// For 360, apply smart wrapping
+		let adjustedCenterX = centerX;
+		if (c.is360) {
+			const currentCenterX = c.view.centerX;
+			const longitudeDist = longitudeDistance(currentCenterX, centerX);
+			adjustedCenterX = currentCenterX + longitudeDist;
+		}
+
 		a.limit = false; // Disable limits during animation calculation
-		// Call the animation controller's toView method
-		dur = a.toView(x0, y0, x1, y1, dur, speed, perc, isJump, limit, toOmniIdx, noTrueNorth, fn, time, limitZoom);
+		// Call the animation controller's toView method with adjusted center
+		dur = a.toView(adjustedCenterX, centerY, width, height, dur, speed, perc, isJump, limit, toOmniIdx, noTrueNorth, fn, time, limitZoom);
 		a.limit = false; // Ensure limits are off during animation steps
 		a.flying = true; // Set flying flag
 		return dur;
@@ -566,7 +577,7 @@ export default class Camera {
 
 		// Calculate target view width and height based on scale and canvas ratios
 		const w:f64 = isNaN(scale) && is360 ? c.view.width : (1/scale) * this.cpw;
-		const h:f64 = isNaN(scale) && is360 ? c.view.height : (1/scale) * this.cph * (is360 ? .5 : 1); // Height factor for 360?
+		const h:f64 = isNaN(scale) && is360 ? c.view.height : (1/scale) * this.cph; // Fixed: removed incorrect 360° height factor
 
 		// Clamp center coordinates if setting immediately (no animation) in 2D
 		if(dur==0 && !is360) {
@@ -577,7 +588,7 @@ export default class Camera {
 		}
 
 		// Start the fly-to animation using calculated view bounds
-		dur = c.ani.toView(x - w/2, y - h/2, x + w/2, y + h/2, dur, speed, 0, false, false, -1, true, fn, time);
+		dur = c.ani.toView(x, y, w, h, dur, speed, 0, false, false, -1, true, fn, time);
 
 		// Set animation flags
 		c.ani.limit = dur==0 || limit; // Apply limit only if immediate or requested

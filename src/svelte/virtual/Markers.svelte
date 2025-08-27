@@ -12,7 +12,7 @@
 	import type { Models } from '../../types/models';
 
 	import { onMount, setContext, tick } from 'svelte';
-	import { limitView, once } from '../../ts/utils'; // Import utilities
+	import { clone, limitView, once } from '../../ts/utils'; // Import utilities
 
 	// Component imports
 	import Marker from '../components/Marker.svelte';
@@ -79,7 +79,7 @@
 			// no view is already stored, it's not a hidden marker, and it has a target view.
 			if(typeof marker != 'string' && !image.openedView && !marker.noMarker && marker.view) {
 				// Don't store view if currently in a tour (handled by tour logic)
-				image.openedView = micrio.state.$tour ? undefined : image.state.$view?.slice(0);
+				image.openedView = micrio.state.$tour && !('steps' in micrio.state.$tour) ? undefined : clone(image.state.$view);
 			}
 		} else if(image.openedView && !micrio.state.$tour) { // Marker is being closed, view was stored, and not in a tour
 			// After a tick (to allow state updates), fly back to the stored view
@@ -96,8 +96,15 @@
 	}
 
 	// Clear stored opened view if a tour starts that keeps the last step active
+	let wasMarkerTour:boolean = false;
 	micrioState.tour.subscribe(t => {
-		if(t && 'steps' in t && t.keepLastStep) image.openedView = undefined;
+		if(t && 'steps' in t) {
+			wasMarkerTour = true;
+			if (t.keepLastStep) image.openedView = undefined;
+		} else {
+			if(!t && !image.openedView && wasMarkerTour) image.camera.stop();
+			wasMarkerTour = false;
+		}
 	});
 
 	// --- Styling & Positioning ---
@@ -112,7 +119,7 @@
 	let fancyLabels:boolean = $state(false);
 
 	/** Recalculates marker container size/position based on viewport changes (for clustering). */
-	const resize = (v:Models.Camera.View) => (v=v?.map(f => Math.round(f*100)/100)) && (markerStyle = [...cssVars,
+	const resize = (v:Models.Camera.ViewRect) => (v=v?.map(f => Math.round(f*100)/100)) && (markerStyle = [...cssVars,
 		v[0] ? `left: ${v[0]}px` : null,
 		v[1] ? `top: ${v[1]}px` : null,
 		`width: ${v[2]}px`,
@@ -171,22 +178,31 @@
 			}
 		}
 		// Generate cluster marker data objects from the groups
-		clusterMarkers=S.map(c=>c.filter((n,i)=>c.indexOf(n)==i)) // Deduplicate indices within each cluster
-			.map((c,v:any)=>({ // Map cluster indices to a MarkerData object
-			title:c.length+'', // Cluster title is the number of markers
-			type:'cluster',
-			// Calculate bounding box view for the cluster
-			view:v=[0,1,2,3].map(i=>(i<2?Math.min:Math.max)( // 0,1=min(x0,y0); 2,3=max(x1,y1)
-				...c.map(j => q[j].view?.[i] ?? (i%2==0?q[j].x:q[j].y)) // Use marker view if available, else use x/y
-			)),
-			// Calculate cluster center based on bounding box
-			x:v[0]+(v[2]-v[0])/2,
-			y:v[1]+(v[3]-v[1])/2,
-			id:''+c, // Use concatenated indices as ID (might be unstable?)
-			data:{},
-			popupType:'none', // Clusters don't open popups
-			tags:[]
-		}));
+		clusterMarkers = S.map(c => c.filter((n, i) => c.indexOf(n) === i)) // Deduplicate indices within each cluster
+			.map((c) => {
+				const minX = Math.min(...c.map(j => q[j].view ? q[j].view[0] : q[j].x));
+				const maxX = Math.max(...c.map(j => q[j].view ? q[j].view[0] + q[j].view[2] : q[j].x));
+				const minY = Math.min(...c.map(j => q[j].view ? q[j].view[1] : q[j].y));
+				const maxY = Math.max(...c.map(j => q[j].view ? q[j].view[1] + q[j].view[3] : q[j].y));
+				const centerX = (minX + maxX) / 2;
+				const centerY = (minY + maxY) / 2;
+				return {
+				title: c.length + '',
+				type: 'cluster',
+				view: [
+					minX,
+					minY,
+					maxX - minX,
+					maxY - minY
+				],
+				x: centerX,
+				y: centerY,
+				id: c.sort((a,b) => a - b).join(','),
+				data: {},
+				popupType: 'none',
+				tags: []
+				};
+			});
 	};
 
 	// --- Fancy Side Label Logic (Omni) ---
@@ -217,7 +233,7 @@
 			if(!ms) return; // Exit if no marker settings
 
 			// Apply custom marker styles from settings
-			const isV4 = Number(i.version) >= 4.2; // Check for legacy version
+			const isV4 = parseFloat(i.version) >= 4.2; // Check for legacy version
 			if(ms.markerIcon) cssVars.push(`--micrio-marker-icon: url("${ms.markerIcon}")`);
 			if(ms.markerColor && ms.markerColor != (isV4 ? '#ffffff' : '#ffbb00')) cssVars.push('--micrio-marker-color: '+ms.markerColor);
 			if(ms.markerSize && ms.markerSize != (isV4 ? '16' : '25')) cssVars.push('--micrio-marker-size: '+(r=Number(ms.markerSize))+'px');

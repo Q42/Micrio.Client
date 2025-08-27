@@ -70,10 +70,13 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** The Micrio version this image was created in
 			 * @default autoloaded
 			*/
-			version: number;
+			version: string;
 
 			/** Created date */
 			created?: number;
+
+			/** Has new viewport model, optimized for 360 images */
+			viewsWH?: boolean;
 
 			/** For V5+: published revisions per language */
 			revision?: RevisionType;
@@ -195,7 +198,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 		/** Micrio image settings, which is on load included as {@link ImageInfo}`.settings`. */
 		export type Settings = {
-			/** The starting viewport (`[x0,y0,x1,y1]`) */
+			/** The starting viewport */
 			view?: Camera.View;
 			/** Restrict navigation to this viewport (`[x0,y0,x1,y1]`) */
 			restrict?: Camera.View;
@@ -922,6 +925,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			keepMarkers?: boolean;
 			/** Don't disable user navigation when running */
 			keepInteraction?: boolean;
+			/** The tour is a direct outside instance using legacy [x0,y0,x1,y1] viewports */
+			isLegacy?: boolean;
 
 			/** Current running tour instance */
 			instance?: VideoTourInstance;
@@ -1220,7 +1225,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			thumbSrc?: string;
 			baseTileIdx: number;
 			ptr: number;
-			opts: { area: Camera.View; };
+			opts: { area: Camera.ViewRect; };
 		}
 	}
 
@@ -1257,8 +1262,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** Virtual ImageInfo extension to support grid logic */
 		export interface GridImage extends Partial<ImageInfo.ImageInfo> {
 			size: [number, number?];
-			area?: Camera.View;
-			view?: Camera.View;
+			area?: Camera.ViewRect;
+			view?: Camera.ViewRect;
 		}
 
 		export interface GridHistory {
@@ -1269,7 +1274,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	
 		export interface GridImageOptions {
 			view?:Camera.View;
-			area?:Camera.View;
+			area?:Camera.ViewRect;
 			size?:number[];
 		}
 	
@@ -1333,7 +1338,10 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	}
 
 	export namespace Camera {
-		/** A viewport rectangle */
+		/** A viewport rectangle [x0,y0,x1,y1] */
+		export type ViewRect = number[]|Float64Array;
+
+		/** An area definition [x0,y0,width,height] */
 		export type View = number[]|Float64Array;
 
 		/** Coordinate tuple, [x, y, scale] */
@@ -1420,7 +1428,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		/** The camera has zoomed */
 		'zoom': { image: MicrioImage, view: Camera.View }; 
 		/** The camera has moved */
-		'move': { image: MicrioImage, view: Camera.View }; 
+		'move': { image: MicrioImage, view: Camera.View };
 		/** A frame has been drawn */
 		'draw': void; 
 		/** The <micr-io> element was resized */

@@ -11,7 +11,7 @@
 	 * application state and configuration settings.
 	 */
 
-	import type { HTMLMicrioElement, MicrioUIProps } from '../ts/element';
+	import type { MicrioUIProps } from '../ts/element';
 	import type { Models } from '../types/models';
 	import type { Readable, Writable } from 'svelte/store';
 	import type { MicrioImage } from '../ts/image';

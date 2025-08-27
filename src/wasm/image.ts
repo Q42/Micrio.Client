@@ -1,6 +1,6 @@
 import { DrawRect, PI } from './shared';
 import { setTileOpacity } from './main';
-import { atan2, twoNth } from './utils';
+import { atan2, twoNth, mod1 } from './utils';
 import { Vec4, Mat4 } from './webgl.mat';
 import Canvas from './canvas';
 
@@ -37,6 +37,28 @@ export default class Image {
 	/** Calculated relative height within the parent canvas. */
 	rHeight: f64 = 1;
 
+	// --- New Viewport-based Area Properties ---
+	/** Center X coordinate of the embed within the parent canvas (0-1, can wrap around for 360). */
+	public areaCenterX: f64 = 0.5;
+	/** Center Y coordinate of the embed within the parent canvas (0-1). */
+	public areaCenterY: f64 = 0.5;
+	/** Width of the embed area within the parent canvas (0-1). */
+	public areaWidth: f64 = 1;
+	/** Height of the embed area within the parent canvas (0-1). */
+	public areaHeight: f64 = 1;
+
+	// --- 3D Sphere-based Area Properties (for accurate 360 detection) ---
+	/** X coordinate on unit sphere */
+	public sphere3DX: f64 = 0;
+	/** Y coordinate on unit sphere */
+	public sphere3DY: f64 = 0;
+	/** Z coordinate on unit sphere */
+	public sphere3DZ: f64 = -1;
+	/** Angular width on sphere (radians) */
+	public angularWidth: f64 = 0;
+	/** Angular height on sphere (radians) */
+	public angularHeight: f64 = 0;
+
 	/** Timestamp when the base layer (lowest resolution) was first successfully drawn. 0 if not yet drawn. */
 	gotBase: f32 = 0;
 
@@ -57,6 +79,13 @@ export default class Image {
 
 	/** Flag indicating if this image is a video embed and currently playing (controlled by JS). */
 	public isVideoPlaying:bool = true;
+
+	// Properties for sampling reuse for 360 tile calculation
+	private static sampledXs: Float64Array = new Float64Array(200);
+	private static sampledYs: Float64Array = new Float64Array(200);
+	private static uniqueXs: Float64Array = new Float64Array(200);
+	private static sampledLength: i32 = 0;
+	private static uniqueLength: i32 = 0;
 
 	constructor(
 		private readonly canvas: Canvas, // Reference to the parent Canvas
@@ -104,45 +133,93 @@ export default class Image {
 		}
 	}
 
-	/** Sets the relative area this image occupies within its parent canvas. */
+	/** Sets the relative area this image occupies within its parent canvas using viewport model. */
 	setArea(x0:f64, y0:f64, x1:f64, y1:f64) : void {
+		// Store legacy coordinates for backward compatibility
 		this.x0 = x0;
 		this.y0 = y0;
 		this.x1 = x1;
 		this.y1 = y1;
-		// Calculate relative width/height, handling wrap-around for X if needed
-		this.rWidth = x1 + (x1 < x0 ? 1 : 0) - x0;
-		this.rHeight = y1 - y0;
-		// Calculate image aspect ratio
+		
+		// Calculate viewport-style coordinates
+		this.areaWidth = x1 + (x1 < x0 ? 1 : 0) - x0;  // Handle wrap-around
+		this.areaHeight = y1 - y0;
+		this.areaCenterX = x0 + this.areaWidth / 2;      // Center calculation
+		this.areaCenterY = y0 + this.areaHeight / 2;     // Simple for Y
+		
+		// Normalize centerX for 360 wrap-around if needed
+		if(this.canvas.is360) {
+			this.areaCenterX = mod1(this.areaCenterX);
+		}
+		
+		// Keep legacy calculations
+		this.rWidth = this.areaWidth;
+		this.rHeight = this.areaHeight;
 		this.aspect = <f32>this.width / <f32>this.height;
-		// Calculate relative scale factor based on aspect ratios
 		this.rScale = this.aspect > this.canvas.aspect ?
 			this.canvas.width / this.width * this.rWidth : this.canvas.height / this.height * this.rHeight;
+		
+		// Calculate 3D sphere coordinates for accurate 360 detection
+		if(this.canvas.is360) {
+			this.calculate3DSpherePosition();
+		}
+	}
+
+	/** Converts 2D sphere coordinates (centerX, centerY) to 3D unit sphere position */
+	private calculate3DSpherePosition(): void {
+		// Convert centerX/Y to spherical coordinates
+		let yaw = (this.areaCenterX - 0.5) * 2 * PI;  // -π to π
+		const pitch = (this.areaCenterY - 0.5) * PI;    // -π/2 to π/2
+
+		// Adjust yaw to match camera's base rotation
+		yaw -= this.canvas.webgl.baseYaw;
+		
+		// Convert to 3D Cartesian coordinates on unit sphere
+		this.sphere3DX = Math.cos(pitch) * Math.sin(yaw);
+		this.sphere3DY = Math.sin(pitch);
+		this.sphere3DZ = Math.cos(pitch) * Math.cos(yaw);
+		
+		// Calculate angular size on sphere
+		this.angularWidth = this.areaWidth * 2 * PI;   // Convert to radians
+		this.angularHeight = this.areaHeight * PI;     // Convert to radians
+	}
+
+
+
+	/** 
+	 * Checks if embed's 3D sphere position is within camera's viewing frustum
+	 * Uses 3D geometry for accurate detection at all viewing angles
+	 */
+	private sphere3DOverlap(): bool {
+		if (!this.canvas.is360) return false;
+		
+		// Calculate dot product between camera forward and embed position
+		const dotProduct = this.sphere3DX * this.canvas.webgl.cameraForwardX + 
+		                  this.sphere3DY * this.canvas.webgl.cameraForwardY + 
+		                  this.sphere3DZ * this.canvas.webgl.cameraForwardZ;
+		
+		// If embed is behind camera, it's not visible
+		if (dotProduct < 0) return false;
+		
+		// Calculate angular distance from camera center to embed center
+		const angularDistance = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
+		
+		// Use a more generous FOV for embed detection (250% of actual FOV)
+		const expandedFOV = this.canvas.webgl.fieldOfView * 1.25;		
+		
+		// Embed is visible if it's within the expanded field of view
+		return angularDistance < expandedFOV;
 	}
 
 	/** Checks if the image's bounding box is completely outside the current view. */
 	private outsideView() : bool {
-		const v = this.canvas.view;
 		if(this.is360Embed) {
-			// Special logic for 360 embeds, considering wrap-around and view frustum
-			const cW = this.canvas.el.width, cH = this.canvas.el.height;
-			let mx0 = this.x0, mx1 = this.x1;
-			// Handle horizontal wrap-around for embed coordinates
-			if(mx0 < 0) { mx0++; }
-			if(mx0 > mx1) { // If wrapped (e.g., x0=0.9, x1=0.1)
-				// Adjust based on which side of the seam the center of the view is on
-				if(v.centerX < .5 && v.x1 <= 1) mx0--; else mx1++;
-			}
-			// Get view boundaries in image coordinates (approximated)
-			let lx0 = min(v.x0, this.canvas.webgl.getCoo(0, cH / 2).x),
-				lx1 = max(v.x1, this.canvas.webgl.getCoo(cW, cH / 2).x);
-			// Handle view wrap-around
-			if(lx1 > 1) { lx0--; lx1--; }
-			// Check for non-overlap
-			const outside = mx0>lx1||mx1<lx0||this.y0>v.y1||this.y1<v.y0;
-			return outside;
-		}
-		else { // Standard 2D check
+			// For 360 embeds, use 3D sphere-based detection for accuracy
+			// This handles floor/ceiling viewing and extreme angles correctly
+			return !this.sphere3DOverlap();
+		} else {
+			// Legacy 2D check for non-360 embeds and main images
+			const v = this.canvas.view;
 			return this.x1 <= v.x0 || this.x0 >= v.x1 || this.y1 <= v.y0 || this.y0 >= v.y1;
 		}
 	}
@@ -154,7 +231,7 @@ export default class Image {
 		// Don't render if fully transparent (for videos/embeds)
 		if((this.isVideo || this.localIdx > 0) && this.opacity == 0 && this.tOpacity == 0) return false;
 		// Always render if it's the active image in the canvas or the main image in a 360 view
-		if(this.index == this.canvas.activeImageIdx || (this.canvas.is360 && this.index == 0)) return true;
+		if(this.index == this.canvas.activeImageIdx || (this.canvas.is360 && this.localIdx == 0)) return true;
 		// Otherwise, render only if it's within the current view
 		return !this.outsideView();
 	}
@@ -213,19 +290,17 @@ export default class Image {
 		const c = this.canvas;
 		const v = c.view;
 
-		// Special logic for main 360 image: calculate tiles radially from view center
+		// Special logic for main 360 image: calculate tiles using viewport-based ranges
 		if(this.localIdx==0 && c.is360) {
 			const l=unchecked(this.layers[lIdx]);
-			// Get center coordinates in 360 space
-			const m=c.webgl.getCoo(c.el.width/2, c.el.height/2);
-			m.x -= c.webgl.offX; // Apply true north offset
-			// Start recursive column calculation from the center tile
-			this.getColumn(l, 0, <i32>floor(m.x/l.tileWidth), <i32>floor(m.y/l.tileHeight));
+			this.get360Tiles(l);
 		}
 		// Logic for 2D images or 360 embeds
 		else {
 			// Calculate tiles needed for the visible portion of the view
-			if(c.is360) { // For 360 embeds, use the full logical view
+			if(this.is360Embed) { // For 360 embeds, use new viewport-based calculation
+				this.getTilesViewport(lIdx);
+			} else if(c.is360) { // For other 360 images (shouldn't happen with current logic)
 				this.getTilesRect(lIdx,v.x0,v.y0,v.x1,v.y1);
 			} else if(c.visible.x0 < c.visible.x1 && c.visible.y0 < c.visible.y1) { // For 2D, use the calculated visible intersection
 				this.getTilesRect(lIdx,
@@ -257,7 +332,7 @@ export default class Image {
 			}
 		}
 		// Store and return the target layer index (adjusting for 0-based index)
-		return (this.targetLayer = l) - 1;
+		return (this.targetLayer = l - 1);
 	}
 
 	/** Calculates and adds tiles within a given rectangular area for a specific layer. */
@@ -285,6 +360,151 @@ export default class Image {
 		}
 	}
 
+	/** 
+	 * Calculates tiles for 360 embeds using viewport-based coordinates.
+	 * Computes the intersection between canvas view and embed area, then converts to tile indices.
+	 */
+	private getTilesViewport(layerIdx: u8): void {
+		// Exit if the image is outside the view
+		if(this.outsideView()) return;
+
+		const layer = unchecked(this.layers[layerIdx]);
+		const c = this.canvas;
+		
+		// Add tolerance margin to avoid edge tile culling (10% buffer)
+		const tolerance = 0.1;
+		
+		// Get canvas viewport (where the user is looking) with tolerance buffer
+		const viewCenterX = c.viewCenterX;
+		const viewCenterY = c.viewCenterY;
+		const viewWidth = c.viewWidth + tolerance;
+		const viewHeight = c.viewHeight + tolerance;
+		
+		// Get embed area viewport 
+		const embedCenterX = this.areaCenterX;
+		const embedCenterY = this.areaCenterY;
+		const embedWidth = this.areaWidth;
+		const embedHeight = this.areaHeight;
+		
+		// Calculate intersection in Y (simpler, no wrap-around)
+		const viewY0 = viewCenterY - viewHeight / 2;
+		const viewY1 = viewCenterY + viewHeight / 2;
+		const embedY0 = embedCenterY - embedHeight / 2;
+		const embedY1 = embedCenterY + embedHeight / 2;
+		
+		const intersectY0 = max(viewY0, embedY0);
+		const intersectY1 = min(viewY1, embedY1);
+		
+		// No Y intersection = no tiles needed
+		if (intersectY0 >= intersectY1) return;
+		
+		// Calculate intersection in X (complex due to 360 wrap-around)
+		let intersectX0: f64 = 0, intersectX1: f64 = 0;
+		let hasIntersection = false;
+		
+		if (c.is360) {
+			// For 360, handle wrap-around using angular distance
+			const viewX0 = mod1(viewCenterX - viewWidth / 2);
+			const viewX1 = mod1(viewCenterX + viewWidth / 2);
+			const embedX0 = mod1(embedCenterX - embedWidth / 2);
+			const embedX1 = mod1(embedCenterX + embedWidth / 2);
+			
+
+			
+			// Check for intersection considering wrap-around
+			// Case 1: Neither view nor embed wraps around
+			if (viewX1 > viewX0 && embedX1 > embedX0) {
+				intersectX0 = max(viewX0, embedX0);
+				intersectX1 = min(viewX1, embedX1);
+				hasIntersection = intersectX0 < intersectX1;
+			}
+			// Case 2: View wraps around (viewX1 < viewX0)
+			else if (viewX1 < viewX0 && embedX1 > embedX0) {
+				// View spans 0, embed doesn't wrap
+				if (embedX0 <= viewX1 || embedX1 >= viewX0) {
+					// Intersection exists, but we need to handle in two parts
+					// For simplicity, calculate the full embed area intersection
+					intersectX0 = embedX0;
+					intersectX1 = embedX1;
+					hasIntersection = true;
+				}
+			}
+			// Case 3: Embed wraps around (embedX1 < embedX0)  
+			else if (viewX1 > viewX0 && embedX1 < embedX0) {
+				// Embed spans 0, view doesn't wrap
+				if (viewX0 <= embedX1 || viewX1 >= embedX0) {
+					// Intersection exists
+					intersectX0 = viewX0;
+					intersectX1 = viewX1;
+					hasIntersection = true;
+				}
+			}
+			// Case 4: Both wrap around
+			else if (viewX1 < viewX0 && embedX1 < embedX0) {
+				// Both span 0 - intersection likely exists
+				intersectX0 = max(viewX0, embedX0);
+				intersectX1 = min(viewX1, embedX1);
+				hasIntersection = true;
+			}
+		} else {
+			// For 2D, simple intersection
+			const viewX0 = viewCenterX - viewWidth / 2;
+			const viewX1 = viewCenterX + viewWidth / 2;
+			const embedX0 = embedCenterX - embedWidth / 2;
+			const embedX1 = embedCenterX + embedWidth / 2;
+			
+			intersectX0 = max(viewX0, embedX0);
+			intersectX1 = min(viewX1, embedX1);
+			hasIntersection = intersectX0 < intersectX1;
+		}
+		
+		// No X intersection = no tiles needed
+		if (!hasIntersection) return;
+		
+		// Convert intersection coordinates to embed-relative coordinates (0-1 within embed)
+		// Handle 360 wrap-around by ensuring consistent coordinate space
+		let embedLeft = embedCenterX - embedWidth / 2;
+		let embedRight = embedCenterX + embedWidth / 2;
+		
+		// For 360, normalize the embed boundaries and intersection to the same coordinate space
+		if (c.is360) {
+			// If embed wraps around (embedRight > 1), normalize intersectX coordinates
+			if (embedRight > 1) {
+				// Embed crosses 0/1 boundary - shift everything to unwrapped space
+				if (intersectX0 < embedLeft) intersectX0 += 1;
+				if (intersectX1 < embedLeft) intersectX1 += 1;
+			}
+			// If intersectX is much larger than embedCenter, it's likely wrapped the wrong way
+			else if (intersectX0 > embedCenterX + 0.5) {
+				intersectX0 -= 1;
+			}
+			else if (intersectX1 > embedCenterX + 0.5) {
+				intersectX1 -= 1;
+			}
+		}
+		
+		const embedRelX0 = (intersectX0 - embedLeft) / embedWidth;
+		const embedRelX1 = (intersectX1 - embedLeft) / embedWidth;
+		const embedRelY0 = (intersectY0 - (embedCenterY - embedHeight / 2)) / embedHeight;
+		const embedRelY1 = (intersectY1 - (embedCenterY - embedHeight / 2)) / embedHeight;
+		
+		// Clamp to [0,1] and convert to tile indices
+		const tW = layer.tileWidth;
+		const tH = layer.tileHeight;
+		
+		const tileLeft = <u32>floor(max(0, min(1, embedRelX0)) / tW);
+		const tileRight = <u32>min(<f64>(layer.cols - 1), floor(max(0, min(1, embedRelX1)) / tW));
+		const tileTop = <u32>floor(max(0, min(1, embedRelY0)) / tH);
+		const tileBottom = <u32>min(<f64>(layer.rows - 1), floor(max(0, min(1, embedRelY1)) / tH));
+		
+		// Add tiles to draw list
+		for (let row = tileTop; row <= tileBottom; row++) {
+			for (let col = tileLeft; col <= tileRight; col++) {
+				this.setToDraw(layer, col, row);
+			}
+		}
+	}
+
 	/** Adds a tile index to the draw list if not already present, and recursively adds parent tiles if needed. */
 	private setToDraw(l:Layer, x:u32, y:u32): void {
 		// Calculate global tile index, clamping to valid range
@@ -300,51 +520,13 @@ export default class Image {
 		}
 		// If tile is not fully loaded, not single/limited, and not the highest resolution layer:
 		else if(!this.isSingle && !this.canvas.limited && l.index < this.numLayers - 1) {
-			// Recursively find tiles for the next higher resolution layer covering the same area
-			const r=l.getTileRect(idx,this.canvas.rect); // Get the rect for the current tile
-			this.getTilesRect(l.index+1, r.x0, r.y0, r.x1, r.y1); // Request tiles for the parent layer
+			// Calculate parent layer and parent tile coordinates
+			const parentLayer = unchecked(this.layers[l.index + 1]);
+			const parentX = x >> 1; // floor division by 2
+			const parentY = y >> 1; // floor division by 2
+			// Recursively add the covering parent tile
+			this.setToDraw(parentLayer, parentX, parentY);
 		}
-	}
-
-	/** Recursively calculates tiles needed for a 360 view, expanding column by column from the center. */
-	private getColumn(l:Layer,dX:i32, cX:i32, cY:i32) : void {
-		// Calculate wrapped column index
-		let tX = (cX + dX)%l.cols; if(tX < 0) tX+=l.cols;
-
-		const wasDrawn = Image.toDraw.length; // Store current draw list length
-		const c = <i32>ceil(l.cols / 2); // Half the number of columns
-
-		// Add tiles in the current column if they are on screen
-		if(dX == 0) this.setToDraw(l, tX, cY); // Add center tile directly
-		else this.inScreen(l, tX, cY); // Check if center tile of column is on screen
-		// Check tiles above center
-		for(let y=cY-1;y>=0;y--) if(!this.inScreen(l, tX, y)) break; // Stop if tile is off-screen
-		// Check tiles below center
-		for(let y=cY+1;y<l.rows;y++) if(!this.inScreen(l, tX, y)) break; // Stop if tile is off-screen
-
-		// If any tiles were added in this column, recursively check adjacent columns
-		if(Image.toDraw.length != wasDrawn) {
-			if(dX <= 0 && dX >= -c) this.getColumn(l, dX-1, cX, cY); // Check left column
-			if(dX >= 0 && dX <= c) this.getColumn(l, dX+1, cX, cY); // Check right column
-		}
-	}
-
-	/** Checks if any part of a tile is visible on screen in 360 mode. */
-	private inScreen(l:Layer, x:i32, y:i32) : bool {
-		const c = this.canvas, el = c.el, m = el.width * 0.05; // Screen margin
-		// Check multiple points within the tile against screen boundaries
-		for(let dY:f64=0;dY<=1;dY+=0.05) { // Check vertical points
-			for(let dX:f64=0;dX<=1;dX+=0.25) { // Check horizontal points
-				// Get screen coordinates for the point within the tile
-				const px = c.webgl.getXYZ(min(1,(x+dX)*l.tileWidth),min(1,(y+dY)*l.tileHeight));
-				// If the point is within screen bounds (plus margin)
-				if(!(px.x<-m||px.x>el.width+m||px.y<-m||px.y>el.height+m)) {
-					this.setToDraw(l, x, y); // Add the tile to the draw list
-					return true; // Tile is at least partially visible
-				}
-			}
-		}
-		return false; // Tile is completely off-screen
 	}
 
 	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
@@ -396,31 +578,332 @@ export default class Image {
 
 	/** Calculates the effective scale of an embedded image based on its projection onto the screen. */
 	private getEmbeddedScale(s:f64) : f64 {
-		// For 360 embeds, scale depends on relative size and canvas/image dimensions
-		if(this.is360Embed) return s * max(this.rWidth * 2, this.rHeight) * (this.canvas.width / this.width);
+		// For 360 embeds, scale depends on area size and canvas/image dimensions
+		if(this.is360Embed) {
+			// Use new viewport-based area properties for more accurate scale calculation
+			const areaFactor = max(this.areaWidth * 2, this.areaHeight);
+			const sizeFactor = this.canvas.width / this.width;
+			return s * areaFactor * sizeFactor;
+		}
 
-		// For 2D embeds (approximation):
-		const h = this.rHeight, cY = this.y0+h/2, pH = h/2.5; // Use a fraction of height for checking
+		// For 2D embeds (approximation using new viewport model):
+		const embedWidth = this.areaWidth;
+		const embedHeight = this.areaHeight;
+		const embedX0 = this.areaCenterX - embedWidth / 2;
+		const embedX1 = this.areaCenterX + embedWidth / 2;
+		const embedY0 = this.areaCenterY - embedHeight / 2;
+		const embedY1 = this.areaCenterY + embedHeight / 2;
+		
+		const cY = this.areaCenterY; // Center Y of embed
+		const pH = embedHeight / 2.5; // Use a fraction of height for checking
 		const el = this.canvas.el, gl = this.canvas.webgl, cW = this.canvas.el.width;
+		
 		// Get screen coords of top-left and check visibility
-		let px = gl.getXYZ(this.x0, cY-pH);
-		let lX=px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Clamp left screen X
+		let px = gl.getXYZ(embedX0, cY - pH);
+		let lX = px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Clamp left screen X
 		let b:u8 = 0; // Count visible corners
 		if(px.inView(el)) b++;
+		
 		// Get screen coords of top-right and check visibility
-		if(gl.getXYZ(this.x1, cY-pH).inView(el)) b++;
+		if(gl.getXYZ(embedX1, cY - pH).inView(el)) b++;
 		// Calculate width based on projected top edge
-		const wT = ((px.w > 0 || px.x > cW ? cW : max(0, px.x))-lX);
+		const wT = ((px.w > 0 || px.x > cW ? cW : max(0, px.x)) - lX);
+		
 		// Check bottom corners
-		if(gl.getXYZ(this.x0, cY+pH).inView(el)) b++;
-		lX=px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Re-clamp left X based on bottom-left
-		if(gl.getXYZ(this.x1, cY+pH).inView(el)) b++;
+		if(gl.getXYZ(embedX0, cY + pH).inView(el)) b++;
+		lX = px.w > 0 || px.x < 0 ? 0 : min(cW, px.x); // Re-clamp left X based on bottom-left
+		if(gl.getXYZ(embedX1, cY + pH).inView(el)) b++;
+		
 		// If no corners are visible, scale is 0
 		if (b == 0) return 0;
+		
 		// Calculate width based on projected bottom edge
-		const wB = (px.w > 0 || px.x > cW ? cW : max(0, px.x))-lX;
+		const wB = (px.w > 0 || px.x > cW ? cW : max(0, px.x)) - lX;
 		// Return scale based on the maximum projected width relative to image width
 		return min(1, max(wB, wT) / this.width);
+	}
+
+	private get360Tiles(l: Layer): void {
+		const c = this.canvas;
+		const el = c.el;
+
+		// Reset arrays
+		Image.sampledLength = 0;
+		Image.uniqueLength = 0;
+
+		// Adaptive samples
+		const samplesPerEdge: i32 = c.webgl.fieldOfView > PI/2 ? 40 : 20;
+
+		const epsilon: f64 = 1e-8; // Tolerance for considering X values equal
+
+		// Inline sampling for top edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = 0 + t * (el.width - 0);
+			const pxY = 0 + t * (0 - 0);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
+		}
+		// Inline sampling for right edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = el.width + t * (el.width - el.width);
+			const pxY = 0 + t * (el.height - 0);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
+		}
+		// Inline sampling for bottom edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = el.width + t * (0 - el.width);
+			const pxY = el.height + t * (el.height - el.height);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
+		}
+		// Inline sampling for left edge
+		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
+			const t = <f64>i / <f64>samplesPerEdge;
+			const pxX = 0 + t * (0 - 0);
+			const pxY = el.height + t * (0 - el.height);
+			const coo = c.webgl.getCoo(pxX, pxY);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
+		}
+
+		// Add internal samples: center and 4 quadrants
+		const centerX = el.width / 2;
+		const centerY = el.height / 2;
+		const quarterW = el.width / 4;
+		const quarterH = el.height / 4;
+
+		// Center
+		let coo = c.webgl.getCoo(centerX, centerY);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
+
+		// Top-left quadrant center
+		coo = c.webgl.getCoo(centerX - quarterW, centerY - quarterH);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
+
+		// Top-right
+		coo = c.webgl.getCoo(centerX + quarterW, centerY - quarterH);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
+
+		// Bottom-left
+		coo = c.webgl.getCoo(centerX - quarterW, centerY + quarterH);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
+
+		// Bottom-right
+		coo = c.webgl.getCoo(centerX + quarterW, centerY + quarterH);
+		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+		Image.sampledLength++;
+
+		// Add extra samples near top and bottom for better pole coverage on wide screens
+		for (let i: i32 = 1; i <= 3; i++) {
+			const frac = <f64>i / 4.0;
+			// Near top
+			coo = c.webgl.getCoo(el.width * frac, quarterH / 2);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
+			// Near bottom
+			coo = c.webgl.getCoo(el.width * frac, el.height - quarterH / 2);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
+		}
+
+		// Add even more samples very close to the bottom for south pole coverage
+		for (let i: i32 = 0; i <= 5; i++) {
+			const frac = <f64>i / 5.0;
+			coo = c.webgl.getCoo(el.width * frac, el.height - 1); // 1 pixel from bottom
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
+		}
+
+		// After existing internal samples (center + quadrants + extras)
+		// Add 3x3 grid of internal samples for better central coverage
+		const gridSize = 3;
+		const stepX = el.width / (gridSize + 1);
+		const stepY = el.height / (gridSize + 1);
+		for (let gy: i32 = 1; gy <= gridSize; gy++) {
+			for (let gx: i32 = 1; gx <= gridSize; gx++) {
+				const sampleX = gx * stepX;
+				const sampleY = gy * stepY;
+				coo = c.webgl.getCoo(sampleX, sampleY);
+				unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+				unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+				Image.sampledLength++;
+			}
+		}
+
+		// Step 2: Compute Y range
+		let minY: f64 = Infinity;
+		let maxY: f64 = -Infinity;
+		for (let i: i32 = 0; i < Image.sampledLength; i++) {
+			const val = unchecked(Image.sampledYs[i]);
+			if (val < minY) minY = val;
+			if (val > maxY) maxY = val;
+		}
+
+		// Clamp to [0,1]
+		minY = max<f64>(0, minY);
+		maxY = min<f64>(1, maxY);
+
+		// Conservatively expand for floating-point safety
+		minY -= 0.001;
+		maxY += 0.05; // Further increased expansion for maxY to ensure south pole inclusion
+		minY = max<f64>(0, minY);
+		maxY = min<f64>(1, maxY);
+
+		// Step 3: Compute minimal covering arc for X
+		// Normalize all x to [0,1)
+		for (let i: i32 = 0; i < Image.sampledLength; i++) {
+			unchecked(Image.sampledXs[i] = mod1(Image.sampledXs[i]));
+		}
+		// Remove duplicates with tolerance
+		Image.uniqueLength = 0;
+		for (let i: i32 = 0; i < Image.sampledLength; i++) {
+			const val = unchecked(Image.sampledXs[i]);
+			let exists = false;
+			for (let j: i32 = 0; j < Image.uniqueLength; j++) {
+				if (Math.abs(unchecked(Image.uniqueXs[j]) - val) < epsilon) {
+					exists = true;
+					break;
+				}
+			}
+			if (!exists) {
+				unchecked(Image.uniqueXs[Image.uniqueLength] = val);
+				Image.uniqueLength++;
+			}
+		}
+		// Manual bubble sort
+		for (let i: i32 = 0; i < Image.uniqueLength - 1; i++) {
+			for (let j: i32 = 0; j < Image.uniqueLength - i - 1; j++) {
+				if (unchecked(Image.uniqueXs[j]) > unchecked(Image.uniqueXs[j + 1])) {
+					const temp = unchecked(Image.uniqueXs[j]);
+					unchecked(Image.uniqueXs[j] = unchecked(Image.uniqueXs[j + 1]));
+					unchecked(Image.uniqueXs[j + 1] = temp);
+				}
+			}
+		}
+
+		const n: i32 = Image.uniqueLength;
+		if (n < 2) {
+			// Fallback: full view if insufficient samples
+			minY = 0; maxY = 1;
+			Image.uniqueLength = 0;
+			unchecked(Image.uniqueXs[0] = 0);
+			unchecked(Image.uniqueXs[1] = 1);
+			Image.uniqueLength = 2;
+		} else {
+			// Compute gaps
+			let maxGap: f64 = 0;
+			let maxGapIdx: i32 = -1;
+			for (let i: i32 = 0; i < n - 1; i++) {
+				const gap: f64 = unchecked(Image.uniqueXs[i + 1]) - unchecked(Image.uniqueXs[i]);
+				if (gap > maxGap) {
+					maxGap = gap;
+					maxGapIdx = i;
+				}
+			}
+			// Wrap-around gap
+			const wrapGap: f64 = unchecked(Image.uniqueXs[0]) + 1 - unchecked(Image.uniqueXs[n - 1]);
+			let isWrapMax: bool = wrapGap > maxGap;
+			if (isWrapMax) {
+				maxGap = wrapGap;
+				maxGapIdx = n - 1;
+			}
+
+			// Minimal arc length = 1 - maxGap
+			const arcLength: f64 = 1 - maxGap;
+
+			let arcStart: f64 = 0;
+			let arcEnd: f64 = 0;
+			if (isWrapMax) {
+				// Non-wrapping arc
+				arcStart = unchecked(Image.uniqueXs[0]);
+				arcEnd = unchecked(Image.uniqueXs[n - 1]);
+			} else {
+				// Wrapping arc
+				arcStart = unchecked(Image.uniqueXs[(maxGapIdx + 1) % n]);
+				arcEnd = unchecked(Image.uniqueXs[maxGapIdx]) + 1; // Extend to wrap
+			}
+
+			// If arcLength nearly 1, treat as full
+			if (arcLength >= 1 - 1e-6) {
+				arcStart = 0;
+				arcEnd = 1;
+			}
+
+			// Update uniqueXs to represent the arc for column calculation
+			Image.uniqueLength = 0;
+			unchecked(Image.uniqueXs[0] = arcStart);
+			unchecked(Image.uniqueXs[1] = arcEnd);
+			Image.uniqueLength = 2;
+		}
+
+		// After computing isFullArc, force full arc if near poles
+		let isFullArc: bool = unchecked(Image.uniqueXs[1]) - unchecked(Image.uniqueXs[0]) >= 1 - 1e-6;
+		if (minY < 0.05 || maxY > 0.95) { // Lowered threshold for maxY to trigger earlier for south pole
+			isFullArc = true;
+		}
+
+		// Step 4: Compute visible rows and columns
+		let minRow: u32 = max<u32>(0, <u32>max<f64>(0, floor((minY - 0.001) / l.tileHeight))); // Ensure non-negative before cast
+		let maxRow: u32 = min<u32>(l.rows - 1, <u32>max<f64>(0, floor((maxY + l.tileHeight - 1e-10) / l.tileHeight))); // Adjusted to include last row if maxY close to boundary
+
+		// Force include edge rows if near 0 or 1
+		if (minY < 1e-5) minRow = 0;
+		if (maxY > 1 - 1e-5) maxRow = l.rows - 1;
+
+		const tileWidth = l.tileWidth;
+		const isWrapping: bool = unchecked(Image.uniqueXs[1]) > 1;
+
+		// Step 5: Add tiles in bulk
+		for (let row: u32 = minRow; row <= maxRow; row++) {
+			if (isFullArc) {
+				// All columns
+				for (let col: u32 = 0; col < <u32>l.cols; col++) {
+					this.setToDraw(l, col, row);
+				}
+			} else if (!isWrapping) {
+				// Single non-wrapping range (Ensure non-negative)
+				const minCol: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth) - 1));
+				const maxCol: u32 = min<u32>(l.cols - 1, <u32>ceil((unchecked(Image.uniqueXs[1]) + 0.001) / tileWidth));
+				for (let col: u32 = minCol; col <= maxCol; col++) {
+					this.setToDraw(l, col, row);
+				}
+			} else {
+				// Wrapping: two ranges (Ensure non-negative)
+				// First range: arcStart to end of image
+				const minCol1: u32 = max<u32>(0, <u32>max<f64>(0, floor((unchecked(Image.uniqueXs[0]) - 0.001) / tileWidth) - 1));
+				for (let col: u32 = minCol1; col < l.cols; col++) {
+					this.setToDraw(l, col, row);
+				}
+				// Second range: 0 to mod1(arcEnd)
+				const maxCol2: u32 = min<u32>(l.cols - 1, <u32>ceil((mod1(unchecked(Image.uniqueXs[1]) + 0.001)) / tileWidth));
+				for (let col: u32 = 0; col <= maxCol2; col++) {
+					this.setToDraw(l, col, row);
+				}
+			}
+		}
 	}
 }
 
@@ -437,8 +920,8 @@ class Layer {
 		readonly start: u32,   // Global tile index offset for the start of this layer
 		readonly end: u32,     // Global tile index offset for the end of this layer
 		readonly tileSize: u32,// Tile size in pixels for this layer (e.g., 1024, 2048)
-		readonly cols: i32,    // Number of columns in this layer
-		readonly rows: i32     // Number of rows in this layer
+		readonly cols: u32,    // Number of columns in this layer
+		readonly rows: u32     // Number of rows in this layer
 	) {
 		// Pre-calculate relative tile dimensions
 		this.tileWidth = tileSize / image.width;

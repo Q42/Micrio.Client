@@ -1,6 +1,6 @@
 import { View, DrawRect, Viewport } from './shared';
 import { Main, getTileOpacity, drawTile, drawQuad, setMatrix, setViewport, viewSet, viewportSet, setVisible, setVisible2 } from './main';
-import { easeInOut } from './utils'
+import { easeInOut, mod1 } from './utils'
 import { base360Distance } from './globals';
 
 import Kinetic from './camera.kinetic'
@@ -68,6 +68,28 @@ export default class Canvas {
 
 	/** Flag indicating if this canvas is currently considered visible by the JS host. */
 	private isVisible: bool = false;
+
+	// --- 360 View Bounds (calculated once per frame for embed visibility detection) ---
+	/** Minimum X coordinate of the current 360 view (for embed visibility detection). */
+	public minViewX: f64 = 0;
+	/** Maximum X coordinate of the current 360 view (for embed visibility detection). */
+	public maxViewX: f64 = 1;
+	/** Minimum Y coordinate of the current 360 view (for embed visibility detection). */
+	public minViewY: f64 = 0;
+	/** Maximum Y coordinate of the current 360 view (for embed visibility detection). */
+	public maxViewY: f64 = 1;
+
+	// --- Viewport-style View Bounds (for cleaner overlap detection) ---
+	/** Center X coordinate of the current view (for viewport-style calculations). */
+	public viewCenterX: f64 = 0.5;
+	/** Center Y coordinate of the current view (for viewport-style calculations). */
+	public viewCenterY: f64 = 0.5;
+	/** Width of the current view (for viewport-style calculations). */
+	public viewWidth: f64 = 1;
+	/** Height of the current view (for viewport-style calculations). */
+	public viewHeight: f64 = 1;
+
+
 
 	// --- Opacity/Fading ---
 	/** Current opacity value (linear). */
@@ -157,13 +179,13 @@ export default class Canvas {
 		this.full = new View(this);         // Represents the full [0,0,1,1] view
 
 		// Initial view adjustment for 360 (often only shows middle vertically)
-		if(is360) { this.view.y0 = .25; this.view.y1 = .75; }
+		if(is360) { this.view.set(0.5, 0.5, 1, 0.5); }
 
 		// If top-level canvas, initialize viewport and calculate initial camera state
 		if(!hasParent) {
 			this.el.copy(main.el); // Copy main element viewport
 			// Set initial view (might be adjusted by camera.setView later)
-			this.setView(this.view.x0,this.view.y0,this.view.x1,this.view.y1, false, false);
+			this.setView(this.view.centerX,this.view.centerY,this.view.width,this.view.height, false, false);
 			this.resize(); // Trigger initial resize calculation
 		}
 
@@ -292,6 +314,47 @@ export default class Canvas {
 			|| (this.currentArea.width == 0 || this.currentArea.height == 0);
 	}
 
+
+
+	/**
+	 * Calculates the min/max view bounds for 360 canvases.
+	 * This is used by embed visibility detection and should be called once per frame.
+	 * For non-360 canvases, this sets the bounds to the logical view coordinates.
+	 */
+	private calculateViewBounds() : void {
+		if(this.is360) {
+			// For 360, use logical view bounds directly instead of screen sampling
+			// Screen sampling can give overly wide ranges due to 360 projection
+			const v = this.view;
+			
+			// Store legacy bounds (use logical view)
+			this.minViewX = v.x0;
+			this.maxViewX = v.x1;
+			this.minViewY = v.y0;
+			this.maxViewY = v.y1;
+			
+			// Calculate viewport-style bounds from logical view
+			this.viewCenterX = v.centerX;
+			this.viewCenterY = v.centerY;
+			this.viewWidth = v.width;
+			this.viewHeight = v.height;
+			
+
+		} else {
+			// For 2D canvases, use the logical view coordinates
+			this.minViewX = this.view.x0;
+			this.maxViewX = this.view.x1;
+			this.minViewY = this.view.y0;
+			this.maxViewY = this.view.y1;
+			
+			// Viewport style for 2D
+			this.viewCenterX = this.view.centerX;
+			this.viewCenterY = this.view.centerY;
+			this.viewWidth = this.view.width;
+			this.viewHeight = this.view.height;
+		}
+	}
+
 	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. */
 	shouldDraw() : void {
 		// --- Visibility Check ---
@@ -320,6 +383,14 @@ export default class Canvas {
 		// If the calculated visible portion is outside the screen, exit (no need to calculate tiles)
 		if(!this.is360 && (this.visible.width <= 0 || this.visible.height <= 0)) return; // Use <= 0 for safety
 
+		// --- Calculate View Bounds ---
+		// Calculate view bounds once per frame for embed visibility detection
+		this.calculateViewBounds();
+		
+		// --- Calculate 3D Frustum ---
+		// Calculate 3D camera frustum for accurate 360 embed detection
+		this.webgl.calculate3DFrustum();
+
 		// --- Opacity Animation ---
 		// Step opacity fade animation if needed
 		if(this.isReady && this.opacity != this.targetOpacity) {
@@ -332,14 +403,11 @@ export default class Canvas {
 			// --- 360 Transition Movement ---
 			// If moving between 360 spaces, apply translation based on opacity
 			if(this.main.distanceX != 0 || this.main.distanceY != 0) {
-				let rot:f64=0;
 				// If fading in, find the fading out canvas to get its yaw for smooth rotation transition
 				if(fadingIn) {
-					rot = -this.webgl.baseYaw; // Start with inverse of own base yaw
 					for(let i=0;i<this.main.canvases.length;i++) {
 						const c = unchecked(this.main.canvases[i]);
 						if(c != this && c.targetOpacity == 0 && c.opacity > 0) { // Find the one fading out
-							rot += c.webgl.baseYaw; // Add its base yaw
 							break;
 						}
 					}
@@ -351,7 +419,7 @@ export default class Canvas {
 					this.main.distanceX * fact * base360Distance,
 					this.main.distanceY * fact * base360Distance,
 					this.main.direction,
-					rot);
+					0);
 			}
 			animating = true; // Mark as animating if fading
 		}
@@ -490,12 +558,11 @@ export default class Canvas {
 			// Apply easing function
 			const p = this.main.gridTransitionTimingFunction.get(this.areaAniPerc);
 			// Interpolate currentArea between starting (b) and target (t) area
-			a.set(
-				b.x0 + (t.x0 - b.x0) * p,
-				b.y0 + (t.y0 - b.y0) * p,
-				b.x1 + (t.x1 - b.x1) * p,
-				b.y1 + (t.y1 - b.y1) * p,
-			);
+			const interpCenterX = (b.centerX + (t.centerX - b.centerX) * p);
+			const interpCenterY = (b.centerY + (t.centerY - b.centerY) * p);
+			const interpWidth = (b.width + (t.width - b.width) * p);
+			const interpHeight = (b.height + (t.height - b.height) * p);
+			a.set(interpCenterX, interpCenterY, interpWidth, interpHeight);
 			// If animation finished
 			if(this.areaAniPerc == 1) {
 				if(this.zIndex == 1) this.zIndex = 0; // Reset zIndex if it was raised for transition
@@ -507,15 +574,26 @@ export default class Canvas {
 		// --- Calculate Visible View Rectangle ---
 		// Determine the intersection of the logical view (v) and the portion of the parent's view (pV)
 		// that corresponds to the current animated area (a) of this canvas.
-		this.visible.x0 = max(v.x0, v.x0 + (pV.x0 - a.x0) / a.width * v.width);
-		this.visible.x1 = min(v.x1, v.x0 + (1 - (a.x1 - min(a.x1, pV.x1)) / a.width) * v.width);
+		let visX0 = max(v.x0, v.x0 + (pV.x0 - a.x0) / a.width * v.width);
+		let visX1 = min(v.x1, v.x0 + (1 - (a.x1 - min(a.x1, pV.x1)) / a.width) * v.width);
 		// Clamp horizontal coordinates for non-360 canvases
 		if(!this.is360) {
-			this.visible.x0 = max(0, this.visible.x0);
-			this.visible.x1 = min(1, this.visible.x1);
+			visX0 = max(0, visX0);
+			visX1 = min(1, visX1);
 		}
-		this.visible.y0 = max(max(0, v.y0), v.y0 + (pV.y0 - a.y0) / a.height * v.height);
-		this.visible.y1 = min(min(1, v.y1), v.y0 + (1 - (a.y1 - min(a.y1, pV.y1)) / a.height) * v.height);
+		let visY0 = max(max(0, v.y0), v.y0 + (pV.y0 - a.y0) / a.height * v.height);
+		let visY1 = min(min(1, v.y1), v.y0 + (1 - (a.y1 - min(a.y1, pV.y1)) / a.height) * v.height);
+		visY0 = max(visY0, 0);
+		visY1 = min(visY1, 1);
+
+		// Compute centers and sizes for new model
+		const visCenterX = (visX0 + visX1) / 2;
+		const visCenterY = (visY0 + visY1) / 2;
+		const visWidth = visX1 - visX0;
+		const visHeight = visY1 - visY0;
+
+		// Set visible using new model
+		this.visible.set(visCenterX, visCenterY, visWidth, visHeight);
 
 		// --- Update Screen Viewport (el) ---
 		const ratio = hP ? 1 : c.ratio; // Use DPR only for top-level canvas
@@ -545,11 +623,11 @@ export default class Canvas {
 	}
 
 	/** Sets the target area for this canvas within its parent, optionally animating. */
-	setArea(x0:f64,y0:f64,x1:f64,y1:f64,direct:bool,noDispatch:bool) : void {
+	setArea(x0: f64, y0: f64, x1: f64, y1: f64, direct:bool, noDispatch:bool) : void {
 		this.areaAniPaused = false; // Ensure animation is not paused
 		if(direct) { // Set area immediately
-			this.area.set(x0, y0, x1, y1);
-			this.currentArea.set(x0, y0, x1, y1);
+			this.area.setArea(x0, y0, x1, y1);
+			this.currentArea.setArea(x0, y0, x1, y1);
 		}
 		else { // Start animation
 			this.areaAniPerc = 0; // Reset progress
@@ -557,7 +635,7 @@ export default class Canvas {
 			this.ani.limit = false; // Disable view limits during area animation
 		}
 		// Set the target area
-		this.targetArea.set(x0, y0, x1, y1);
+		this.targetArea.setArea(x0, y0, x1, y1);
 		// Trigger initial calculation/step
 		this.partialView(noDispatch);
 	}
@@ -674,19 +752,20 @@ export default class Canvas {
 
 	/** Sets the focus area for gallery/grid canvases. */
 	setFocus(x0:f64, y0:f64, x1:f64, y1:f64, noLimit:bool) : void {
-		// Check if focus actually changed
-		if(this.focus.x0 == x0 && this.focus.x1 == x1 && this.focus.y0 == y0 && this.focus.y1 == y1) return;
-		this.activeImageIdx = -1; // Reset active image index
-		// Determine which image(s) are within the new focus area and set their opacity
+		const centerX = (x0 + x1) / 2;
+		const centerY = (y0 + y1) / 2;
+		const width = x1 - x0;
+		const height = y1 - y0;
+
+		if(this.focus.equals(centerX, centerY, width, height)) return;
+		this.activeImageIdx = -1;
 		for(let i=0;i<this.images.length;i++) {
 			const im = unchecked(this.images[i]);
-			// Check for overlap between image area and focus area
-			if(im.x1 <= x0 || im.x0 >= x1 || im.y1 <= y0 || im.y0 >= y1) im.tOpacity = 0; // No overlap
-			else { im.tOpacity = 1; this.activeImageIdx = i; } // Overlap, make active
+			if(im.x1 <= x0 || im.x0 >= x1 || im.y1 <= y0 || im.y0 >= y1) im.tOpacity = 0;
+			else { im.tOpacity = 1; this.activeImageIdx = i; }
 		}
-		this.focus.set(x0, y0, x1, y1); // Store new focus area
-		this.camera.correctMinMax(); // Recalculate scale limits
-		// If not limiting, immediately update camera view and WebGL state
+		this.focus.set(centerX, centerY, width, height);
+		this.camera.correctMinMax();
 		if(!noLimit) {
 			this.camera.setView();
 			this.webgl.update();
@@ -696,40 +775,39 @@ export default class Canvas {
 	// --- Unified View/Coordinate Accessors ---
 
 	/** Gets image coordinates from screen coordinates (delegates to Camera or WebGL). */
-	getCoo(x: f64, y: f64, abs: bool, noLimit: bool) : Float64Array {
-		return (this.is360 ? this.webgl.getCoo(x,y) : this.camera.getCoo(x, y, abs, noLimit)).toArray()
+	getCoo(x: f64, y: f64, abs: bool, noLimit: bool, correctNorth: bool = false) : Float64Array {
+		return (this.is360 ? this.webgl.getCoo(x,y, correctNorth) : this.camera.getCoo(x, y, abs, noLimit)).toArray()
 	}
 
 	/** Gets screen coordinates from image coordinates (delegates to Camera or WebGL). */
-	getXY(x: f64, y: f64, abs: bool, radius:f64, rotation:f64) : Float64Array { return (this.is360 ? this.webgl.getXYZ(x,y) : !isNaN(radius) ? this.camera.getXYOmni(x, y, radius, isNaN(rotation) ? 0 : rotation, abs) : this.camera.getXY(x, y, abs)).toArray() }
+	getXY(x: f64, y: f64, abs: bool, radius:f64, rotation:f64) : Float64Array {
+		return (this.is360 ? this.webgl.getXYZ(x,y) : !isNaN(radius) ? this.camera.getXYOmni(x, y, radius, isNaN(rotation) ? 0 : rotation, abs) : this.camera.getXY(x, y, abs)).toArray()
+	}
 
 	/** Gets the current logical view array. */
 	getView() : Float64Array { return this.view.arr }
 	/** Sets the logical view directly. */
-	setView(x0: f64, y0: f64, x1: f64, y1: f64, noLimit: bool, noLastView: bool, correctNorth: bool = false, forceLimit: bool = false) : void {
+	setView(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool, noLastView: bool, correctNorth: bool = false, forceLimit: bool = false) : void {
 		const mE = this.main.el;
 
-		// Adjust target view if rendering to a partial area
-		if(mE.areaHeight > 0) { y1 += (y1-y0) / (1-(mE.areaHeight / mE.height)); this.ani.limit = false; mE.areaHeight = 0; };
-		if(mE.areaWidth > 0) { x1 += (x1-x0) * (mE.areaWidth / mE.width); this.ani.limit = false; mE.areaWidth = 0; };
-		// Disable limits if requested
+		// Adjust target if partial area (update to centers)
+		if(mE.areaHeight > 0) { height += height / (1-(mE.areaHeight / mE.height)); this.ani.limit = false; mE.areaHeight = 0; };
+		if(mE.areaWidth > 0) { width += width * (mE.areaWidth / mE.width); this.ani.limit = false; mE.areaWidth = 0; };
 		if(noLimit) this.ani.limit = false;
 
-		// Set true north correction flag for the View object
 		this.view.correct = correctNorth;
-		// Set the view coordinates
-		this.view.set(x0, y0, x1, y1);
-		// Apply limits if forced and not disabled
-		if(forceLimit && !noLimit) this.view.limit(false);
-		// Reset correction flag
+		this.view.set(centerX, centerY, width, height);
+		if(forceLimit && !noLimit) this.view.limit(false, false, this.freeMove);
 		this.view.correct = false;
-		// Store this view as the last known view if requested
 		if(!noLastView) this.ani.lastView.copy(this.view);
 
-		// Update internal camera/WebGL state if canvas is initialized
 		if(this.width > 0) {
-			if(this.is360) this.webgl.setView(); // Update 360 camera orientation/perspective
-			else if(this.camera.setView()) this.webgl.update(); // Update 2D camera scale/position and WebGL matrix
+			if(this.is360) {
+				this.webgl.setView(centerX, centerY, width, height, noLimit, correctNorth);
+				this.view.set(centerX, centerY, width, height); // Sync
+			} else if(this.camera.setView()) {
+				this.webgl.update();
+			}
 		}
 	}
 
@@ -750,10 +828,10 @@ export default class Canvas {
 		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
 	}
 	/** Gets the transformation matrix for a 360 embed (delegates to WebGL). */
-	getMatrix(x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64=1,sY:f64=1) : Float32Array {
+	getMatrix(x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64=1,sY:f64=1, noCorrectNorth: bool = false) : Float32Array {
 		// Adjust scale factor based on canvas width? Seems odd.
 		const fact:f64 = <f64>20000/this.width;
-		return this.webgl.getMatrix(x,y,s*fact,r,rX,rY,rZ,t,sX,sY).toArray()
+		return this.webgl.getMatrix(x,y,s*fact,r,rX,rY,rZ,t,sX,sY, noCorrectNorth).toArray()
 	}
 
 	// --- Animation Wrappers ---

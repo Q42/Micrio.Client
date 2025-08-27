@@ -343,6 +343,8 @@ export const sanitizeAsset = (a?:Models.Assets.BaseAsset|Models.ImageData.Embed)
 		if(a.src.includes(r)) a.src = a.src.replace(r, ASSET_SRC_REPLACE[r]);
 }
 
+export const isLegacyViews = (i:Models.ImageInfo.ImageInfo) : boolean => !i.viewsWH;
+
 /**
  * Sanitizes URLs within an ImageInfo object.
  * @internal
@@ -353,13 +355,18 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	sanitizeAsset(i.settings?._markers?.markerIcon);
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
 	sanitizeAsset(i.settings?._360?.video);
+	// Sanitize views for legacy rects
+	if (i?.settings && isLegacyViews(i)) {
+		i.settings.view = View.fromLegacy(i.settings.view)!;
+		i.settings.restrict = View.fromLegacy(i.settings.restrict)!;
+	}
 }
 
 /**
- * Sanitizes URLs and marker data within an ImageData object.
+ * Sanitizes URLs and marker data within an ImageData object to the latest data formats.
  * @internal
  */
-export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:boolean, isV5:boolean) => {
+export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, isV5:boolean, isLegacyViews:boolean) => {
 	if (!d) return;
 	// Filter out unpublished revisions (value <= 0)
 	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
@@ -368,9 +375,12 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, is360:
 		if(!e.uuid) e.uuid = (e.id ?? e.micrioId)+'-'+Math.random(); // Ensure UUID
 		sanitizeAsset(e.video);
 		sanitizeAsset(e);
+		if(isLegacyViews) e.area = View.fromLegacy(e.area)!;
 	});
 	// Sanitize markers
-	d.markers?.forEach(m => sanitizeMarker(m, is360, !isV5));
+	d.markers?.forEach(m => sanitizeMarker(m, isV5, isLegacyViews));
+	// Sanitize tours that use legacy viewports
+	if(isLegacyViews) d.tours?.forEach(sanitizeVideoTour);
 	// Sanitize music playlist items
 	d.music?.items?.forEach(sanitizeAsset);
 	// Sanitize menu pages recursively
@@ -404,15 +414,20 @@ const sanitizeMenuPage = (m:Models.ImageData.Menu) => {
 export const fetchAlbumInfo = (id:string) : Promise<Models.AlbumInfo|undefined> =>
 	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`https://i.micr.io/album/${id}.json`);
 
+// Keep track of IDs already sanitized
+const sanitizedIds:string[] = [];
+
 /**
  * Sanitizes marker data, ensuring required properties exist, handling legacy formats,
  * and sanitizing asset URLs. Modifies the marker object in place.
  * @internal
  * @param m The marker data object.
- * @param is360 Is the parent image 360?
  * @param isOld Is the data from a pre-V5 image?
+ * @param legacyViews It uses the old [x0,y0,x1,y1] viewports
  */
-export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:boolean) : void => {
+export const sanitizeMarker = (m:Models.ImageData.Marker, isOld:boolean, legacyViews?:boolean) : void => {
+	if(sanitizedIds.indexOf(m.id) >= 0) return;
+	sanitizedIds.push(m.id);
 	// Ensure basic properties exist
 	if(!m.data) m.data = {};
 	if(!m.id) m.id = createGUID();
@@ -441,9 +456,18 @@ export const sanitizeMarker = (m:Models.ImageData.Marker, is360:boolean, isOld:b
 	if(isOld && 'class' in m) m.tags.push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags.includes(t)))
 	// Ensure 'default' tag sets type correctly
 	if(m.tags.includes('default')) m.type = 'default';
+	// Sanitize view
+	if(legacyViews) {
+		m.view = View.fromLegacy(m.view)!;
+		// Sanitize videoTour timelines
+		sanitizeVideoTour(m.videoTour);
+	}
+}
 
-	// Correct 360 marker view coordinates if they wrap around the X-axis edge
-	if(is360 && m.view && m.view[2] < m.view[0]) m.view[2]++;
+function sanitizeVideoTour(tour?:Models.ImageData.VideoTour|Models.ImageData.VideoTourCultureData) : void {
+	if(!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
+	const i18n = 'i18n' in tour ? tour.i18n : {'en':(<unknown>tour as Models.ImageData.VideoTourCultureData)};
+	for(const lang in i18n) i18n[lang]?.timeline.forEach(s => s.rect = View.fromLegacy(s.rect)!);
 }
 
 /**
@@ -473,7 +497,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
 	// Sanitize markers in the fetched data
-	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, image.is360, !image.isV5)));
+	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, !image.isV5, isLegacyViews(image.$info!))));
 	// Sanitize tour cover image
 	sanitizeAsset(tour.image);
 
@@ -489,7 +513,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		// Get language-specific content and video tour data
 		const content = m?.i18n?.[lang] ?? (<unknown>m as Models.ImageData.MarkerCultureData);
 		if(content?.title) chapter = i; // Update chapter index if step has a title
-		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m as Models.ImageData.VideoTourCultureData
+		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m.videoTour as Models.ImageData.VideoTourCultureData
 			: m.videoTour.i18n?.[lang] ?? undefined;
 
 		// Sanitize assets within the step's content
@@ -503,8 +527,9 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 			return undefined; // Skip this step
 		}
 
-		
 		sanitizeAsset(content?.audio);
+		// @ts-ignore
+		if(m.videoTour && content?.audio) m.videoTour['audio'] = content.audio;
 
 		// Create step info object
 		return {
@@ -542,13 +567,22 @@ export const getIdVal=(a:string):number=>{let c=a.charCodeAt(0),u=c<91;return (c
 /** Checks if an ID likely belongs to the V5 format (6 or 7 characters). */
 export const idIsV5 = (id:string):boolean => id.length == 6 || id.length == 7;
 
-/** Clamps a view rectangle [x0, y0, x1, y1] to the image bounds [0, 0, 1, 1]. */
-export const limitView = (v: Models.Camera.View) : Models.Camera.View => [
-	Math.max(0, v[0]),
-	Math.max(0, v[1]),
-	Math.min(1, v[2]),
-	Math.min(1, v[3])
-];
+/** Clamps a view rectangle the image bounds [0, 0, 1, 1]. */
+export const limitView = (v: Models.Camera.View) : Models.Camera.View => {
+	// Clamp width and height to maximum of 1
+	const width = Math.min(1, v[2]);
+	const height = Math.min(1, v[3]);
+	
+	// Calculate half dimensions for boundary checking
+	const halfW = width / 2;
+	const halfH = height / 2;
+	
+	// Clamp center coordinates to keep rectangle within [0,0,1,1] bounds
+	const centerX = Math.max(halfW, Math.min(1 - halfW, v[0]+v[2]/2));
+	const centerY = Math.max(halfH, Math.min(1 - halfH, v[1]+v[3]/2));
+	
+	return [centerX-halfW, centerY-halfH, width, height];
+};
 
 /**
  * Calculates the 3D vector and navigation parameters between two images in a 360 space.
@@ -584,14 +618,13 @@ export function getSpaceVector(micrio:HTMLMicrioElement, targetId: string) : {
 	const vN:Models.Spaces.DirectionVector = [v[0]*len, v[1]*len, v[2]*len];
 
 	// Calculate direction angle (yaw) and horizontal distance factor
-	const tNDiff = .5 - (image.$settings?._360?.trueNorth??.5); // True north offset
 	const directionX = mod((Math.atan2(-vN[0], vN[2])) / Math.PI/2); // Calculate yaw (0-1)
 	const distanceX = Math.max(0, Math.min(.4, Math.sqrt(vN[0]*vN[0] + vN[2]*vN[2]))); // Horizontal distance factor (clamped)
 
 	return {
 		v, vN, directionX,
 		vector: { // Vector object for micrio.open
-			direction: directionX%1-tNDiff, // Apply true north correction
+			direction: directionX%1, // Apply true north correction
 			distanceX,
 			distanceY: -v[1] // Vertical distance (inverted?)
 		}
@@ -607,4 +640,28 @@ export function getSpaceVector(micrio:HTMLMicrioElement, targetId: string) : {
 export const hasNativeHLS = (video?:HTMLMediaElement) : boolean => {
 	const vid = video ?? document.createElement('video');
 	return !!(vid.canPlayType('application/vnd.apple.mpegurl') || vid.canPlayType('application/x-mpegURL'));
+}
+
+export const View = {
+	/** Casts a legacy view array ([x0, y0, x1, y1]) to [x0,y0,width,height]. */
+	fromLegacy: (v?:Models.Camera.ViewRect|Models.Camera.View) : Models.Camera.View|undefined => {
+		if(!v) return undefined;
+		return [
+			v[0],
+			v[1],
+			v[2]-v[0],
+			v[3]-v[1]
+		];
+	},
+
+	toCenterJSON: (v:Models.Camera.View) : {centerX:number, centerY:number, width: number, height: number} => ({
+		centerX: v[0]+v[2]/2,
+		centerY: v[1]+v[3]/2,
+		width: v[2],
+		height: v[3]
+	}),
+
+	rectToCenterJSON: (v:Models.Camera.View) =>
+		View.toCenterJSON([v[0],v[1],v[2]-v[0],v[3]-v[1]]),
+	
 }

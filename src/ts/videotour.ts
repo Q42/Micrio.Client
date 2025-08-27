@@ -9,6 +9,7 @@ import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 
 import { get } from 'svelte/store';
+import { View } from './utils';
 
 /**
  * Internal representation of a segment in a video tour timeline.
@@ -21,7 +22,7 @@ type VideoTourSegment = {
 	pauseDuration: number;
 	/** Start time of this segment's animation (ms). */
 	start: number;
-	/** Target camera view rectangle [x0, y0, x1, y1] for this segment. */
+	/** Target camera view for this segment. */
 	view: Models.Camera.View;
 }
 
@@ -131,7 +132,7 @@ export class VideoTourInstance {
 			const s = timeline[i], p = timeline[i-1]; // Current and previous raw steps
 			const start = p ? p.end * dur : 0; // Calculate animation start time based on previous step's end
 			this.timeline.push({
-				view: s.rect, // Target view rectangle
+				view: this.data.isLegacy ? View.fromLegacy(s.rect)! : s.rect, // Target view rectangle
 				start: start * 1000, // Animation start time (ms)
 				duration: (s.start * dur - start) * 1000, // Animation duration (ms)
 				pauseDuration: (s.end - s.start) * dur * 1000 // Pause duration at the end of animation (ms)
@@ -257,8 +258,7 @@ export class VideoTourInstance {
 	/** Gets the target view for a specific step index. @internal */
 	private getView(i:number) : Models.Camera.View|undefined {
 		const step = this.timeline[i];
-		if(step == undefined) return this.initialView ?? this.image.camera.getView(); // Fallback to initial or current view
-		else return step.view;
+		return step?.view;
 	}
 
 	/**
@@ -272,34 +272,35 @@ export class VideoTourInstance {
 
 		if(step == undefined) return; // Exit if step data not found
 
-		const nextView = step.view; // Target view for this step
-		const prevView = this.getView(this.currentIndex-1); // View from the previous step
-		const area = this.image.opts?.area; // Get current image area (for embeds/split)
+		const nextView = View.toCenterJSON(step.view)!;
+		const _prevView = this.getView(this.currentIndex-1);
+		const prevView = _prevView ? View.toCenterJSON(_prevView) : undefined;
+		const area = this.image.opts?.area;
 
-		// If resuming from a paused state within an animation, calculate interpolated view and jump there
 		if(this.wasPaused && prevView) {
-			const b:number = this.micrio.wasm.e.ease(perc); // Get eased progress value
-			// Interpolate between previous and next view
-			this.image.camera.setView([
-				prevView[0] * (1-b) + nextView[0] * b,
-				prevView[1] * (1-b) + nextView[1] * b,
-				prevView[2] * (1-b) + nextView[2] * b,
-				prevView[3] * (1-b) + nextView[3] * b,
-			], {noLimit: true, area}); // Set view instantly
-			this.nextStep(); // Immediately schedule next step (handles pause duration)
-		}
-		// Otherwise, start the flyToView animation
-		else {
-			this.image.camera.flyToView(nextView, {
-				duration: step.duration, // Animation duration
-				progress: perc, // Starting progress
-				prevView: prevView, // Previous view for interpolation start
-				area // Apply area context if needed
-			})
-				// When animation finishes, schedule the next step (handles pause duration)
-				.then(() => { if(this.currentIndex != undefined && step == this.timeline[this.currentIndex]) this.nextStep() })
-				.catch(() => {}); // Ignore animation abortion errors
-		}
+			const b:number = this.micrio.wasm.e.ease(perc);
+
+			const iView = {
+				centerX: prevView.centerX * (1-b) + nextView.centerX * b,
+				centerY: prevView.centerY * (1-b) + nextView.centerY * b,
+				width: prevView.width * (1-b) + nextView.width * b,
+				height: prevView.height * (1-b) + nextView.height * b,
+			};
+			this.image.camera.setView([iView.centerX-iView.width/2, iView.centerY-iView.height/2, iView.width, iView.height], {noLimit: true, area});
+			this.nextStep();
+		} else this.image.camera.flyToView(step.view, {
+				duration: step.duration,
+				progress: perc,
+				prevView: prevView ? [
+					prevView.centerX-prevView.width/2,
+					prevView.centerY-prevView.height/2,
+					prevView.width,
+					prevView.height
+				] : undefined,
+				area
+			}).then(() => {
+				if(this.currentIndex != undefined && step == this.timeline[this.currentIndex]) this.nextStep() }).catch(() => {}
+			);
 	}
 
 	/** Sets playing state attributes and dispatches events. @internal */

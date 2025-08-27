@@ -2,7 +2,7 @@
 <html>
 
 <head>
-	<title>5.1 Micrio dev</title>
+	<title>5.3 Micrio dev</title>
 	<meta name="Content-Type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no">
 	<meta http-equiv="X-UA-Compatible" content="chrome=1">
@@ -21,7 +21,7 @@
 	<!-- <script src="./dist/micrio.min.js" defer></script> -->
 
 	<!-- Use a production version -->
-	<!-- <script src="https://r2.micr.io/micrio-5.3.0.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-5.3.9.min.js" defer></script> -->
 
 	<style>
 		html,
@@ -31,6 +31,12 @@
 			background: #222;
 			height: 100%;
 			font-family: Raleway, sans-serif;
+		}
+		micr-io .embed-container .media-video {
+			transition: opacity 1s ease;
+		}
+		micr-io .embed-container .media-video.paused {
+			opacity: 0;
 		}
 	</style>
 
@@ -42,13 +48,19 @@
 <body>
 	<!-- DEMO IDs
 		Basic test image: dzzLm
-		Omni image: QgjdoCK
+		Omni image: QgjdoCK / HvoNSNV (has markers)
 		Omni image with layers: VVxoPCb / GPjAGL
-		360 tour: ZnaHJK
+		360 tour: ZnaHJK / WkdtYs / OJqMYL / EaouKa / fmxpBY
 		Embedded video: SUeqOX
-		Serial multi-image tour: ojvqWXd
+		Serial multi-image tour: ojvqWXd / JXflr
+		360 hi-res: mLOarF
 	-->
-	<micr-io id="dzzLm"></micr-io>
+	<micr-io id="dzzLm" data-legacy data-embeds-inside-gl="true" datxa-skipmeta daxta-cluster-markers></micr-io>
+
+	<!-- Grids 
+	 	Vermeer grid PiYMF.1673513256 https://micrio.rijksmuseum.nl/g/PiYMF.1673513256.mdp
+	 -->
+	<!-- <micr-io data-grid="PiYMF.1673513256" data-path="https://micrio.rijksmuseum.nl/"></micr-io> -->
 
 	<!-- Test image with all types of markers -->
 	<!-- <micr-io id="vsmQN" lang="nl" data-camspeed="4" data-path="https://micrio.vangoghmuseum.nl/micrio/"></micr-io> -->
@@ -65,7 +77,9 @@
 		};
 
 		// Listen to opened marker hooks
-		micrio.addEventListener('marker-opened', e => {
+		micrio.addEventListener('click', e => {
+			const coo = micrio.$current.camera.getCoo(e.clientX, e.clientY);
+			//console.log('wut?', e.clientX, e.clientY, coo);
 		});
 
 		// Put any pre-info init hooks here
@@ -77,6 +91,10 @@
 		// Put any pre-data init hooks here
 		micrio.addEventListener('pre-data', e => {
 		});
+
+		function fly() {
+			micrio.$current.camera.flyToView({centerX:.4,centerY:.4,width:.2,height:.2})
+		}
 
 	</script>
 </body>

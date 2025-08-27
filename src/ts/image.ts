@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
+import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
 import { State } from './state';
 import { archive } from './archive';
 
@@ -167,7 +167,7 @@ export class MicrioImage {
 	opacity: number = 1;
 
 	/** Svelte Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
-	public readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
+	public readonly viewport:Writable<Models.Camera.ViewRect> = writable<Models.Camera.ViewRect>();
 
 	/** Predefined local data (info, data) if available.
 	 * @internal
@@ -201,7 +201,7 @@ export class MicrioImage {
 		private attr:Partial<Models.ImageInfo.ImageInfo>,
 		public opts:{
 			/** Optional sub area [x0, y0, x1, y1] defining placement within a parent canvas (for embeds/galleries). */
-			area?: Models.Camera.View;
+			area?: Models.Camera.ViewRect;
 			/** For split screen, the primary image this one is secondary to. */
 			secondaryTo?: MicrioImage;
 			/** If true, passively follows the view changes of the primary split-screen image. */
@@ -288,7 +288,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize marker/embed data whenever the data store updates
-		this.data.subscribe(d => sanitizeImageData(d, this.is360, this.isV5));
+		this.data.subscribe(d => {if(d)sanitizeImageData(d, this.isV5, isLegacyViews(this.__info))});
 	}
 
 	/** Sets the error state and prints it to the UI.
@@ -373,7 +373,7 @@ export class MicrioImage {
 		// Handle Omni object setup (load base archive, configure gallery settings)
 		if(i.settings?.omni) {
 			this.isOmni = true;
-			if(i.version >= 5) { // V5 Omni requires base archive
+			if(parseFloat(i.version) >= 5) { // V5 Omni requires base archive
 				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
 					.catch(e => this.setError(e, 'Could not find object base package.'));
 				// Configure gallery settings for Omni
@@ -412,8 +412,9 @@ export class MicrioImage {
 
 		// Set trueNorth for 360 images based on space data rotation
 		if(i.settings?._360) {
-			const rotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY??0;
-			i.settings._360.trueNorth = .5 + rotY / Math.PI / 2;
+			let rotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY??0;
+			while(rotY < 0) rotY += Math.PI * 2;
+			i.settings._360.trueNorth = (.5 + rotY / Math.PI / 2)%1;
 		}
 
 		// Set derived flags and properties
@@ -602,7 +603,7 @@ export class MicrioImage {
 
 		// Process markers
 		d.markers?.forEach(m => {
-			sanitizeMarker(m, this.is360, !this.isV5); // Sanitize marker data
+			sanitizeMarker(m, !this.isV5, isLegacyViews(this.__info)); // Sanitize marker data
 
 			// Check for split-screen links in marker data
 			if(m.data?.micrioSplitLink) {
@@ -643,7 +644,7 @@ export class MicrioImage {
 			id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
 
 		// Sanitize markers in preloaded data
-		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, this.is360, micIdsUnique[i]!.length == 5)));
+		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, micIdsUnique[i]!.length == 5, isLegacyViews(this.__info))));
 
 		const spaceData = this.wasm.micrio.spaceData; // Get space data if available
 
@@ -734,7 +735,7 @@ export class MicrioImage {
 	 * @param opts Embedding options (opacity, fit, etc.).
 	 * @returns The newly created embedded {@link MicrioImage} instance.
 	 */
-	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
+	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.ViewRect, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
 		const img = new MicrioImage(this.wasm, info, {area:a, isEmbed: true, useParentCamera: opts.asImage});

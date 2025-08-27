@@ -60,8 +60,8 @@ const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
 	camspeed: 1, // Camera animation speed multiplier
 
 	// Camera settings
-	view: [0,0,1,1], // Initial view [x0, y0, x1, y1]
-	restrict: [0,0,1,1], // View restriction boundaries [x0, y0, x1, y1]
+	view: [0,0,1,1], // Initial view full view
+	restrict: [0,0,1,1], // View restriction boundaries full image
 	focus: [.5,.5], // Default focus point [x, y] for zoom/cover view
 	zoomLimit: 1, // Maximum zoom factor relative to cover scale (1 = no zoom beyond cover)
 	fullscreen: true, // Enable fullscreen button
@@ -110,7 +110,7 @@ export const DEFAULT_INFO : Models.ImageInfo.ImageInfo = {
 	id: '', // Placeholder for image ID
 
 	// Image info
-	version: Number(VERSION.replace(/(\d+)\.(\d+).*/,'$1.$2')), // Use major.minor from library version
+	version: VERSION, // Use major.minor from library version
 	path: BASEPATH, // Default asset path
 
 	// Image data
@@ -213,7 +213,7 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-grid-clickable': {f: 'gridClickable' }, // Make grid items clickable?
 		'data-gallery-spreads': {f: 'gallery.isSpreads' }, // Display gallery as spreads?
 		'data-freemove': {f: 'freeMove' }, // Enable free camera movement (e.g., beyond limits)?
-		'data-force-path': {f: 'forceInfoPath', r:true} // Force using `data-path` for info.json?
+		'data-force-path': {f: 'forceInfoPath', r:true}, // Force using `data-path` for info.json?
 	},
 
 	NUMBERS: {

@@ -206,7 +206,7 @@ export function _constructor(a: Main, b: f64, c: f64, d: u32, f: bool, h: bool,
  * @param c The Canvas memory pointer in shared Wasm memory.
  * @returns Memory pointer to the `Float64Array` containing the coordinates.
  */
-export function _getView(c:Canvas) : Float64Array { return c.getView() };
+export function _getView(c:Canvas) : Float64Array { return c.view.toArray(); }
 /**
  * Get the requested image's coordinates based on a screen pixel position.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -217,7 +217,7 @@ export function _getView(c:Canvas) : Float64Array { return c.getView() };
  * @returns Memory pointer to the `Float64Array` containing the coordinates [imageX, imageY, scale, w (depth), direction].
  */
 export function _getCoo(c:Canvas, x: f64, y: f64, abs: bool, noLimit: bool) : Float64Array {
-	return c.getCoo(x, y, abs, noLimit) };
+	return c.getCoo(x, y, abs, noLimit, true) };
 /**
  * Get an image's requested `[x, y]` pixel values for input coordinates `x` and `y`.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -243,10 +243,11 @@ export function _getXY(c:Canvas, x: f64, y: f64, abs: bool, radius:f64, rotation
  * @param t Optional Y translation in 3d space.
  * @param sX Optional X scaling.
  * @param sY Optional Y scaling.
+ * @param noCorrectNorth Don't correct for true north
  * @returns Memory pointer to the `Float32Array` containing the Matrix4 array.
  */
-export function _getMatrix(c:Canvas, x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64,sY:f64) : Float32Array {
-	return c.getMatrix(x,y,s,r,rX,rY,rZ,t,sX,sY) };
+export function _getMatrix(c:Canvas, x:f64,y:f64,s:f64,r:f64,rX:f64,rY:f64, rZ:f64,t:f64,sX:f64,sY:f64, noCorrectNorth: bool) : Float32Array {
+	return c.getMatrix(x,y,s,r,rX,rY,rZ,t,sX,sY, noCorrectNorth) };
 /**
  * Get the screen coordinates based on omni object xyz coordinates.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -267,7 +268,7 @@ export function _getOmniXY(c:Canvas, x: f64, y: f64, z:f64) : Float64Array {
  * @param direct Don't animate.
  * @param noDispatch Don't do a frame draw after setting.
  */
-export function _setArea(c:Canvas, x0:f64,y0:f64,x1:f64,y1:f64,direct:bool,noDispatch:bool) : void {
+export function _setArea(c:Canvas, x0:f64, y0:f64, x1:f64, y1:f64, direct:bool, noDispatch:bool) : void {
 	c.setArea(x0, y0, x1, y1, direct, noDispatch) }
 /**
  * Set the relative View area of an embedded image to render to.
@@ -277,7 +278,7 @@ export function _setArea(c:Canvas, x0:f64,y0:f64,x1:f64,y1:f64,direct:bool,noDis
  * @param x1 The viewport X1 coordinate.
  * @param y1 The viewport Y1 coordinate.
  */
-export function _setImageArea(i:Image, x0:f64,y0:f64,x1:f64,y1:f64) : void {
+export function _setImageArea(i:Image, x0:f64, y0:f64, x1:f64, y1:f64) : void {
 	i.setArea(x0, y0, x1, y1) }
 /**
  * Set an embedded sub-image rotation in 3d space for 360&deg; images.
@@ -310,7 +311,7 @@ export function _getPMatrix(c:Canvas) : Float32Array { return c.webgl.pMatrix.ar
  * @param c The Canvas memory pointer in shared Wasm memory.
  * @returns The current yaw in radians.
  */
-export function _getYaw(c:Canvas) : f64 { return c.webgl.yaw + c.webgl.baseYaw }
+export function _getYaw(c:Canvas, noCorrectNorth: bool) : f64 { return c.webgl.yaw + (noCorrectNorth ? 0 : c.webgl.baseYaw) }
 /**
  * Get the current camera pitch (X-axis rotation) for 360&deg; images.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -347,8 +348,9 @@ export function _setDirection(c:Canvas, yaw: f64, pitch: f64, resetPersp: bool) 
  * @param noLastView Don't keep track of the previous viewport.
  * @param correctNorth Internally adjust relative 360&deg; rotation.
  */
-export function _setView(c:Canvas, x0: f64, y0: f64, x1: f64, y1: f64, noLimit: bool, noLastView: bool, correctNorth: bool) : void {
-	c.setView(x0, y0, x1, y1, noLimit, noLastView, correctNorth) }
+export function _setView(c:Canvas, centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool, noLastView: bool, correctNorth: bool) : void {
+	c.setView(centerX, centerY, width, height, noLimit, noLastView, correctNorth);
+}
 /**
  * Set the current camera coordinates.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -430,14 +432,14 @@ export function _getScale(c:Canvas) : f64 { return c.getScale() }
 /**
  * Limit camera navigation boundaries.
  * @param c The Canvas memory pointer in shared Wasm memory.
- * @param x0 The viewport X0 coordinate.
- * @param y0 The viewport Y0 coordinate.
- * @param x1 The viewport X1 coordinate.
- * @param y1 The viewport Y1 coordinate.
+ * @param lCenterX The viewport center X coordinate.
+ * @param lCenterY The viewport center Y coordinate.
+ * @param lWidth The viewport width.
+ * @param lHeight The viewport height.
  */
-export function _setLimit(c:Canvas, x0: f64, y0: f64, x1: f64, y1: f64) : void {
-	if(c.view.lX0 == x0 && c.view.lX1 == x1 && c.view.lY0 == y0 && c.view.lY1 == y1) return;
-	c.view.setLimit(x0, y0, x1, y1);
+export function _setLimit(c:Canvas, lCenterX: f64, lCenterY: f64, lWidth: f64, lHeight: f64) : void {
+	if(c.view.lCenterX == lCenterX && c.view.lWidth == lWidth && c.view.lCenterY == lCenterY && c.view.lHeight == lHeight) return;
+	c.view.setLimit(lCenterX, lCenterY, lWidth, lHeight);
 	c.camera.setCanvas();
 	c.camera.pan(0,0,0,false,0,true);
 }
@@ -503,8 +505,8 @@ export function _panStop(c:Canvas) : void {
  * @param p2 The viewport X1 coordinate.
  * @param p3 The viewport Y1 coordinate.
  */
-export function _setStartView(c:Canvas, p0:f64, p1:f64, p2:f64, p3:f64) : void {
-	c.ani.setStartView(p0, p1, p2, p3, !c.is360) }
+export function _setStartView(c:Canvas, centerX:f64, centerY:f64, width:f64, height:f64) : void {
+	c.ani.setStartView(centerX, centerY, width, height, !c.is360) }
 /**
  * Fly to a specific viewport.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -524,9 +526,10 @@ export function _setStartView(c:Canvas, p0:f64, p1:f64, p2:f64, p3:f64) : void {
  * @param time The current timestamp (`performance.now()`).
  * @returns The resulting animation duration in ms.
  */
-export function _flyTo(c:Canvas, toX0: f64, toY0: f64, toX1: f64, toY1: f64, dur: f64, speed: f64,
+export function _flyTo(c:Canvas, toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64, dur: f64, speed: f64,
 	perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
-	return c.camera.flyTo(toX0, toY0, toX1, toY1, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, noTrueNorth, fn, time) }
+	return c.camera.flyTo(toCenterX, toCenterY, toWidth, toHeight, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, noTrueNorth, fn, time);
+}
 /**
  * A zoom in/out animation.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -604,7 +607,7 @@ export function _getActiveImageIdx(c:Canvas) : i32 { return c.activeImageIdx }
  * @param y1 The viewport Y1 coordinate.
  * @param noLimit Don't update the zoom limits.
  */
-export function _setFocus(c:Canvas,x0:f64, y0:f64, x1:f64, y1:f64, noLimit:bool) : void {
+export function _setFocus(c:Canvas, x0:f64, y0:f64, x1:f64, y1:f64, noLimit:bool) : void {
 	c.setFocus(x0, y0, x1, y1, noLimit) }
 /**
  * Fade a main MicrioImage to a target opacity, including all of its sub-images.
@@ -676,8 +679,3 @@ export function _addImage(_:Canvas, a:f64,b:f64,c:f64,d:f64,e:f64,f:f64,
  */
 export function _addChild(c:Canvas, x0:f32, y0: f32, x1: f32, y1: f32, w: f32, h: f32) : Canvas {
 	return c.addChild(x0, y0, x1, y1, w, h) }
-/**
- * Remove a main `MicrioImage` from the Main Wasm container.
- * @param c The Canvas memory pointer in shared Wasm memory.
- */
-export function _remove(c:Canvas) : void { c.remove() }

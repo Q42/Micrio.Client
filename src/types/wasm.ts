@@ -157,7 +157,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 		freeMove: boolean, coverLimit: boolean, coverStart: boolean, maxScale: number, camSpeed: number,
 		trueNorth: number, isGallerySwitch: boolean, pagesHaveBackground: boolean,
 		isOmni: boolean, pinchZoomOutLimit: boolean, omniNumLayers: number, omniLayerStartIndex:number) : number;
-	/** Get the requested image's current view coordinates `[x0, y0, x1, y1]`
+	/** Get the requested image's current view coordinates [centerX, centerY, width, height]
 	 * @param ptr The image memory pointer in shared Wasm memory
 	 * @returns Memory pointer to the `Uint32Array` containing the coordinates
 	 */
@@ -200,29 +200,30 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param t Optional Y translation in 3d space
 	 * @param sX Optional X scaling
 	 * @param sY Optional Y scaling
+	 * @param noCorrectNorth Don't correct for true north
 	 * @returns Memory pointer to the `Uint32Array` containing the Matrix4 array
 	 */
-	_getMatrix(ptr:number, x?:number, y?:number, s?:number, r?:number, rX?:number, rY?:number, rZ?:number, t?:number, sX?:number, sY?:number) : number;
+	_getMatrix(ptr:number, x?:number, y?:number, s?:number, r?:number, rX?:number, rY?:number, rZ?:number, t?:number, sX?:number, sY?:number, noCorrectNorth?: boolean) : number;
 	/** Get the screen coordinates based on omni object xyz coordinates */
 	_getOmniXY(ptr:number, x: number, y: number, z: number) : number;
 	/** Set the relative View area of a MicrioImage to render to, animates by default. Used in grids.
 	 * @param ptr The image memory pointer in shared Wasm memory
-	 * @param x0 The viewport X0 coordinate
-	 * @param y0 The viewport Y0 coordinate
-	 * @param x1 The viewport X1 coordinate
-	 * @param y1 The viewport Y1 coordinate
+	 * @param X0 The viewport X0 coordinate
+	 * @param Y0 The viewport Y0 coordinate
+	 * @param X1 The viewport X1 coordinate
+	 * @param Y1 The viewport Y1 coordinate
 	 * @param direct Don't animate
 	 * @param noDispatch Don't do a frame draw after setting
 	 */
-	_setArea(ptr:number, x0:number,y0:number,x1:number,y1:number,direct:boolean,noDispatch:boolean) : void;
+	_setArea(ptr:number, X0:number, Y0:number, X1:number, Y1:number, direct:boolean, noDispatch:boolean) : void;
 	/** Set the relative View area of an embedded image to render to.
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param x0 The viewport X0 coordinate
-	 * @param y0 The viewport Y0 coordinate
-	 * @param x1 The viewport X1 coordinate
-	 * @param y1 The viewport Y1 coordinate
+	 * @param X0 The viewport X0 coordinate
+	 * @param Y0 The viewport Y0 coordinate
+	 * @param X1 The viewport X1 coordinate
+	 * @param Y1 The viewport Y1 coordinate
 	 */
-	_setImageArea(imgPtr:number, x0:number,y0:number,x1:number,y1:number) : void;
+	_setImageArea(imgPtr:number, X0:number, Y0:number, X1:number, Y1:number) : void;
 	/** Set an embedded sub-image rotation in 3d space for 360&deg; images.
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param rotX The rotation over the X-axis
@@ -261,15 +262,15 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	_setDirection(ptr:number, yaw: number, pitch?: number, resetPersp?: boolean) : void;
 	/** Set the current camera viewport
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param x0 The viewport X0 coordinate
-	 * @param y0 The viewport Y0 coordinate
-	 * @param x1 The viewport X1 coordinate
-	 * @param y1 The viewport Y1 coordinate
+	 * @param centerX The viewport X0 coordinate
+	 * @param centerY The viewport Y0 coordinate
+	 * @param width The viewport X1 coordinate
+	 * @param height The viewport Y1 coordinate
 	 * @param noLimit The viewport can be outside of the image's limits
 	 * @param noLastView Don't keep track of the previous viewport
 	 * @param correctNorth Internally adjust relative 360&deg; rotation
 	*/
-	_setView(ptr:number, x0: number, y0: number, x1: number, y1: number, noLimit?: boolean, noLastView?: boolean, correctNorth?: boolean) : void;
+	_setView(ptr:number, centerX: number, centerY: number, width: number, height: number, noLimit?: boolean, noLastView?: boolean, correctNorth?: boolean) : void;
 	/** Set the current camera coordinates
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param x The X coordinate
@@ -291,7 +292,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @returns The current yaw in radians
 	*/
-	_getYaw(ptr:number) : number;
+	_getYaw(ptr:number, noCorrectNorth?: boolean) : number;
 	/** Get the current camera pitch (X-axis rotation) for 360&deg; images
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @returns The current pitch in radians
@@ -347,12 +348,12 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	_getScale(ptr:number) : number;
 	/** Limit camera navigation boundaries
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param x0 The viewport X0 coordinate
-	 * @param y0 The viewport Y0 coordinate
-	 * @param x1 The viewport X1 coordinate
-	 * @param y1 The viewport Y1 coordinate
+	 * @param lCenterX The viewport center X coordinate
+	 * @param lCenterY The viewport center Y coordinate
+	 * @param lWidth The viewport width
+	 * @param lHeight The viewport height
 	*/
-	_setLimit(ptr:number, x0: number, y0: number, x1: number, y1: number) : void;
+	_setLimit(ptr:number, lCenterX: number, lCenterY: number, lWidth: number, lHeight: number) : void;
 	/** Limit camera navigation boundaries in 360&deg; images
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param x The horizontal view limits in radians
@@ -397,18 +398,18 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	_panStop(ptr:number) : void;
 	/** Set an image's opening view
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param x0 The viewport X0 coordinate
-	 * @param y0 The viewport Y0 coordinate
-	 * @param x1 The viewport X1 coordinate
-	 * @param y1 The viewport Y1 coordinate
+	 * @param centerX The viewport X0 coordinate
+	 * @param centerY The viewport Y0 coordinate
+	 * @param width The viewport X1 coordinate
+	 * @param height The viewport Y1 coordinate
 	*/
-	_setStartView(ptr: number, x0:number, y0:number, x1:number, y1:number) : void;
+	_setStartView(ptr: number, centerX:number, centerY:number, width:number, height:number) : void;
 	/** Fly to a specific viewport
 	 * @param ptr The sub image memory pointer in shared Wasm memory
-	 * @param toX0 The viewport X0 coordinate
-	 * @param toY0 The viewport Y0 coordinate
-	 * @param toX1 The viewport X1 coordinate
-	 * @param toY1 The viewport Y1 coordinate
+	 * @param toCenterX The viewport X0 coordinate
+	 * @param toCenterY The viewport Y0 coordinate
+	 * @param toWidth The viewport X1 coordinate
+	 * @param toHeight The viewport Y1 coordinate
 	 * @param dur The animation duration in ms, use `-1` for `auto`
 	 * @param speed When duration `auto`, a speed modifier (default `1`)
 	 * @param perc Start the animation at a certain progress (`0-1`)
@@ -421,7 +422,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param time The current timestamp (`performance.now()`)
 	 * @returns The resulting animation duration in ms
 	*/
-	_flyTo(ptr:number, toX0: number, toY0: number, toX1: number, toY1: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, noTrueNorth: boolean, fn:number, time: number) : number;
+	_flyTo(ptr:number, toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, noTrueNorth: boolean, fn:number, time: number) : number;
 	/** A zoom in/out animation
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param d The amount to zoom

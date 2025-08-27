@@ -5,7 +5,7 @@ import type { Camera } from './camera';
 /** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5 } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Wasm } from './wasm';
@@ -416,7 +416,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		splitTo?: MicrioImage,
 		/** If true, opens the split-screen view passively (doesn't take focus). */
 		isPassive?: boolean,
-		/** An optional starting view `[x0, y0, x1, y1]` to apply immediately. */
+		/** An optional starting view to apply immediately. */
 		startView?: Models.Camera.View,
 		/** For 360 transitions, provides the direction vector from the previous image. */
 		vector?: Models.Camera.Vector,
@@ -699,7 +699,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		);
 		sets.pinchZoomOutLimit = true; // Enable zoom out limit for galleries
 		// Set initial view to the starting page's area
-		if(opts.gallery.length) sets.view = opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area;
+		if(opts.gallery.length) sets.view = View.fromLegacy(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
 	}
 
 	/** Holds loaded grid info data if applicable. */

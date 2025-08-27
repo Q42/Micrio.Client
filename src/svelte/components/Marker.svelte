@@ -181,17 +181,15 @@
 			// Zoom into the cluster's bounding box
 			if(marker.view && $current?.$info) {
 				const currentScale = $current.camera.getScale();
-				// Add margin based on pixel size / image size * scale
-				const margin = [
-					20 / $current.$info.width * currentScale,
-					20 / $current.$info.height * currentScale
-				];
-				image.camera.flyToView([
-					marker.view[0] - margin[0],
-					marker.view[1] - margin[1],
-					marker.view[2] + margin[0],
-					marker.view[3] + margin[1]
-				], {area: image.opts?.area, limitZoom: true});
+				image.camera.flyToView(marker.view, {
+					area: image.opts?.area,
+					limitZoom: true,
+					// Add margin based on pixel size / image size * scale
+					margin: [
+						20 / $current.$info.width * currentScale,
+						20 / $current.$info.height * currentScale
+					]
+				});
 			}
 		}
 		// Standard marker: set as the active marker for the image
@@ -270,19 +268,23 @@
 		if(immediatelyStartMyTourAtBeginning) delete _meta.gridAction; // Temporarily remove grid action
 
 		// Fly camera to marker view, unless it's a video tour marker or grid view marker
-		if(!immediatelyStartMyTourAtBeginning && marker.view && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
+		const hasView = marker.view;
+		
+		if(!immediatelyStartMyTourAtBeginning && hasView && !data.noAnimate && !marker.videoTour && !_meta.gridView) {
 			if(openOnInit) { // If opened on init, set view directly
-				image.camera.setView(marker.view, {area: image.opts?.area});
+				image.camera.setView(marker.view!, {area: image.opts?.area});
 				open(); // Proceed to open content
 			} else { // Otherwise, animate
-				image.camera.flyToView(marker.view, {
-					omniIndex, // Pass omni index if applicable
-					noTrueNorth: true, // Don't correct true north during marker fly-to
-					area: image.opts?.area,
-					isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
-				})
-				.then(open) // Proceed to open content after animation
-				.catch(() => { if(!$tour) image.state.marker.set(undefined) }); // If animation fails (e.g., interrupted) and not in a tour, close the marker
+					const flyPromise = image.camera.flyToView(marker.view!, {
+						omniIndex, // Pass omni index if applicable
+						noTrueNorth: true, // Don't correct true north during marker fly-to
+						area: image.opts?.area,
+						isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
+					});
+				
+				flyPromise
+					.then(open) // Proceed to open content after animation
+					.catch(() => { if(!$tour) image.state.marker.set(undefined) }); // If animation fails (e.g., interrupted) and not in a tour, close the marker
 			}
 		}
 		else {

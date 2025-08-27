@@ -68,7 +68,7 @@ export class GallerySwiper {
 		this.image.state.view.subscribe(v =>
 			// Determine if swiping should be enabled based on zoom level and coverLimit option
 			this.isFullWidth = opts.coverLimit ? this.image.camera.isZoomedOut()
-				: v ? Math.round((v[2]-v[0])*1000)/1000 >= 1 : true // Check if view width is >= 1
+				: v ? Math.round(v[3]*1000)/1000 >= 1 : true // Check if view width is >= 1
 		);
 
 		// Configure Wasm module for swipe interaction

@@ -1,4 +1,4 @@
-import { pyth, easeInOut, easeIn, easeOut, linear, Bicubic } from './utils'
+import { pyth, easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from './utils'
 import { View } from './shared'
 import { aniDone, aniAbort } from './main';
 import Canvas from './canvas';
@@ -118,10 +118,10 @@ export default class Ani {
 
 	/**
 	 * Starts or updates a "fly-to" animation to a target view rectangle.
-	 * @param toX0 Target view X0.
-	 * @param toY0 Target view Y0.
-	 * @param toX1 Target view X1.
-	 * @param toY1 Target view Y1.
+	 * @param toCenterX Target view center X.
+	 * @param toCenterY Target view center Y.
+	 * @param toWidth Target view width.
+	 * @param toHeight Target view height.
 	 * @param dur Requested duration in ms (-1 for automatic calculation).
 	 * @param speed Speed factor for automatic duration calculation.
 	 * @param perc Starting progress percentage (0-1).
@@ -135,17 +135,18 @@ export default class Ani {
 	 * @returns Calculated or provided animation duration in ms.
 	 */
 	toView(
-		toX0: f64, toY0: f64, toX1: f64, toY1: f64,
+		toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64,
 		dur: f64, speed: f64, perc: f64,
 		isJump: bool, limitViewport:bool, omniIdx:i32,
 		noTrueNorth: bool, fn: i16, time : f64, correct : bool = false) : f64 {
 
 		// Store the final requested target view
-		this.lastView.set(toX0, toY0, toX1, toY1);
+		this.lastView.set(toCenterX, toCenterY, toWidth, toHeight);
+		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 
 		// If this is a correction animation and one is already running, just update the target
 		if(correct && this.correcting) {
-			this.updateTarget(toX0, toY0, toX1, toY1, true);
+			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
 			return dur; // Return original duration estimate
 		}
 
@@ -153,6 +154,7 @@ export default class Ani {
 
 		// Determine if true north correction should be applied to the target view
 		this.vTo.correct = this.canvas.is360 && !noTrueNorth;
+		this.vFrom.correct = this.canvas.is360 && !!noTrueNorth;
 
 		const c = this.canvas;
 		const v = c.view; // Current view
@@ -166,29 +168,31 @@ export default class Ani {
 
 		// Adjust target view if animating to a partial screen area (from JS setArea)
 		const el = c.main.el;
+		// For margin adjustments, adjust toHeight/toWidth directly instead of toY1/toY0 etc.
 		if(el.areaHeight != 0) {
-			const margin:f64 = (toY1-toY0) / (1-(el.areaHeight / el.height));
-			if(margin > 0) toY1 += margin; else toY0 += margin;
+			const margin:f64 = toHeight / (1-(el.areaHeight / el.height));
+			if(margin > 0) toHeight += margin; else toHeight -= margin; // Simplified, but may need center adjustment if asymmetric
 			el.areaHeight = 0; // Reset area constraint
 		}
 		if(el.areaWidth != 0) {
-			const margin:f64 = (toX1-toX0) * (el.areaWidth / el.width);
-			if(margin > 0) toX1 += margin; else toX0 += margin;
+			const margin:f64 = toWidth * (el.areaWidth / el.width);
+			if(margin > 0) toWidth += margin; else toWidth -= margin;
 			el.areaWidth = 0; // Reset area constraint
 		}
 
 		// Set starting and target views
-		f.set(v.x0, v.y0, v.x1, v.y1);
-		t.set(toX0*1, toY0*1, toX1*1, toY1*1); // Ensure values are numbers
+		const fromCenterX = v.centerX;
+		const fromCenterY = v.centerY;
+		const fromWidth = v.width;
+		const fromHeight = v.height;
+		f.set(fromCenterX, fromCenterY, fromWidth, fromHeight);
 
 		// Handle 360 wrap-around logic
 		if(c.is360) {
-			isJump = true; // 360 transitions often involve perspective change
-			// If crossing the 0/1 boundary, adjust coordinates to avoid large jumps
-			if(abs(f.centerX - t.centerX) > .5) {
-				if(f.x1 > 1 && t.x1 < 1) { t.x0++; t.x1++; } // Wrap target right
-				if(t.x1 > 1 && f.x1 < 1) { f.x0++; f.x1++; } // Wrap start right
-			}
+			const longitudeDist = longitudeDistance(fromCenterX, toCenterX);
+			const optimizedCenterX = fromCenterX + longitudeDist;
+			toCenterX = optimizedCenterX; // Adjust the target centerX for shortest path
+			t.set(toCenterX, toCenterY, toWidth, toHeight); // Update t with optimized centerX
 		}
 
 		// Apply viewport limits and aspect ratio correction if requested
@@ -205,18 +209,35 @@ export default class Ani {
 			// Adjust target aspect ratio for non-360 jumps to match start aspect ratio initially
 			if(!c.is360) {
 				const cX = t.centerX, cY = t.centerY;
-				if(t.aspect > f.aspect) { const nh = t.width * f.aspect; t.y0 = cY-nh/2; t.y1 = cY+nh/2; }
-				else { const nw = t.height * f.aspect; t.x0 = cX-nw/2; t.x1 = cX+nw/2; }
+				if(t.aspect > f.aspect) {
+					const nh = t.width / f.aspect;
+					t.set(cX, cY, t.width, nh);
+				} else {
+					const nw = t.height * f.aspect;
+					t.set(cX, cY, nw, t.height);
+				}
 			}
 			// Check which edges are expanding/contracting
-			const el = t.x0 < f.x0, et = t.y0 < f.y0, er = t.x1 > f.x1, eb = t.y1 > f.y1;
+			const fLeft = f.centerX - f.width / 2;
+			const fRight = f.centerX + f.width / 2;
+			const fTop = f.centerY - f.height / 2;
+			const fBottom = f.centerY + f.height / 2;
+			const tLeft = t.centerX - t.width / 2;
+			const tRight = t.centerX + t.width / 2;
+			const tTop = t.centerY - t.height / 2;
+			const tBottom = t.centerY + t.height / 2;
+
+			const el = tLeft < fLeft, et = tTop < fTop, er = tRight > fRight, eb = tBottom > fBottom;
 			// If expanding/contracting on some but not all edges, set jump flags and increase duration
 			if((el || et || er || eb) && !(el && et && er && eb)) {
-				this.fL = el?1:2; this.fR = er?1:2; this.fT = et?1:2; this.fB = eb?1:2;
+				this.fL = el?1: (tLeft > fLeft ? 2 : 0);
+				this.fR = er?1: (tRight < fRight ? 2 : 0);
+				this.fT = et?1: (tTop > fTop ? 2 : 0);
+				this.fB = eb?1: (tBottom < fBottom ? 2 : 0);
 				durFact=1.5;
 			}
 			// Otherwise, reset target view to original requested values (no aspect adjustment needed)
-			else t.set(toX0*1, toY0*1, toX1*1, toY1*1);
+			else t.set(toCenterX, toCenterY, toWidth, toHeight);
 		}
 
 		// Apply final limits if this is a correction animation
@@ -226,7 +247,17 @@ export default class Ani {
 		// Base duration factor on canvas size
 		const resoFact = max(10000, min(15000, sqrt(c.width * c.width + c.height * c.height) / 2));
 		// Calculate distance between start and target views
-		const dst = v.getDistance(t, dur < 0); // Pass true if duration is auto
+		let dCenterX = abs(fromCenterX - toCenterX);
+		if (c.is360) dCenterX = min(dCenterX, 1 - dCenterX); // Shortest distance for wrap-around
+		const dCenterY = abs(fromCenterY - toCenterY);
+		const dWidth = abs(fromWidth - toWidth);
+		const dHeight = abs(fromHeight - toHeight);
+		
+		// Detect zoom-in operations (target is smaller than current view)
+		const isZoomIn = toWidth < fromWidth && toHeight < fromHeight;
+		// Reduce weight of zoom-in operations for faster transitions (zoom feels faster than panning to users)
+		const zoomWeight = isZoomIn ? 0.125 : 0.25; // 25% weight for zoom-in, 50% for zoom-out/mixed
+		const dst = (dCenterX + dCenterY + dWidth * zoomWeight + dHeight * zoomWeight) / 3;
 		// Calculate easing curve parameters for jump animation
 		this.mI = max(.5, .8 - dst * (c.is360 ? 1 : 2)); // Ease-in end point
 		this.mO = max(.05, min(.9, dst - (c.is360 ? .2 : .1))); // Ease-out start point
@@ -250,7 +281,7 @@ export default class Ani {
 		// --- Start Animation ---
 		// If duration is zero, set view directly and finish
 		if(this.duration == 0) {
-			c.setView(t.x0, t.y0, t.x1, t.y1, false, true); // Set view, don't update lastView
+			c.setView(t.centerX, t.centerY, t.width, t.height, false, true); // Set view, don't update lastView
 			aniDone(this.canvas); // Notify JS host
 			this.stop(); // Reset animation state
 			return this.duration;
@@ -274,8 +305,8 @@ export default class Ani {
 	}
 
 	/** Updates the target view of a running animation. Used for corrections. */
-	updateTarget(toX0: f64, toY0: f64, toX1: f64, toY1: f64, limiting : bool = false) : void {
-		this.vTo.set(toX0, toY0, toX1, toY1);
+	updateTarget(toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64, limiting : bool = false) : void {
+		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 		if(limiting) this.vTo.limit(limiting); // Apply limits if requested
 	}
 
@@ -316,10 +347,10 @@ export default class Ani {
 	}
 
 	/** Sets the starting view for progress calculation in flyTo animations. */
-	setStartView(p0:f64, p1:f64, p2: f64, p3: f64, correctRatio: bool) : void {
-		this.vFrom.set(p0, p1, p2, p3, correctRatio);
+	setStartView(centerX: f64, centerY: f64, width: f64, height: f64, correctRatio: bool) : void {
+		this.vFrom.set(centerX, centerY, width, height, correctRatio);
 		// Also set vTo initially to prevent issues if animation is interrupted early
-		this.vTo.set(p0, p1, p2, p3, correctRatio);
+		this.vTo.set(centerX, centerY, width, height, correctRatio);
 	}
 
 	/**
@@ -344,16 +375,19 @@ export default class Ani {
 					o = this.fn.get(max(0,(p-mo)/(1-mo))); // Ease-out part
 				let n:i8=0; // Temp variable for edge flag
 
-				// Interpolate each coordinate using either standard eased progress (pE)
-				// or the jump-specific ease-in (i) or ease-out (o) progress.
-				this.canvas.setView(
-					f.x0+(t.x0-f.x0)*(!(n=this.fL)?pE:n==1?i:o), // x0
-					f.y0+(t.y0-f.y0)*(!(n=this.fT)?pE:n==1?i:o), // y0
-					f.x1+(t.x1-f.x1)*(!(n=this.fR)?pE:n==1?i:o), // x1
-					f.y1+(t.y1-f.y1)*(!(n=this.fB)?pE:n==1?i:o), // y1
-					false, // noLimit (handled internally by animation logic)
-					true   // noLastView (don't update lastView during step)
-				);
+				// Interpolate centers and sizes
+				let interpCenterX = f.centerX + (t.centerX - f.centerX) * (!(n=this.fL || this.fR) ? pE : n==1 ? i : o);
+				let interpCenterY = f.centerY + (t.centerY - f.centerY) * (!(n=this.fT || this.fB) ? pE : n==1 ? i : o);
+				const interpWidth = f.width + (t.width - f.width) * pE;
+				const interpHeight = f.height + (t.height - f.height) * pE;
+
+				// For 360, use shortest path interpolation for centerX
+				if (this.canvas.is360) {
+					const deltaX = longitudeDistance(f.centerX, t.centerX);
+					interpCenterX = f.centerX + deltaX * pE;
+				}
+
+				this.canvas.setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true);
 
 				// --- Apply Omni Object Rotation Step ---
 				if(this.omniDelta) {
