@@ -19,11 +19,10 @@
 
 	import { onMount, getContext } from 'svelte';
 	import { MicrioImage } from '../../ts/image';
-	import { once, createGUID, Browser, View } from '../../ts/utils';
+	import { once, createGUID, Browser } from '../../ts/utils';
 	import { GLEmbedVideo } from '../../ts/embedvideo'; // Handles WebGL video rendering
 
 	import Media from '../components/Media.svelte'; // Reusable media player component
-    import type { Camera } from '../../ts/camera';
 
 	// --- Context & Props ---
 
@@ -38,6 +37,8 @@
 	}
 
 	let { embed = $bindable() }: Props = $props();
+
+	if(embed.src?.startsWith('/r2')) embed.src = 'http://localhost:6100'+embed.src;
 
 	// --- Initialization & Setup ---
 
@@ -122,7 +123,7 @@
 		w = a[2];
 		h = a[3];
 		cX = a[0]+w/2;
-		cY = a[1]+w/2;
+		cY = a[1]+h/2;
 		// Update scale and rotation values from embed data
 		s = embed.scale || 1;
 		rotX = embed.rotX??0;
