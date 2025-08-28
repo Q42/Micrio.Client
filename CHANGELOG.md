@@ -11,6 +11,50 @@ Legend:
 |&#x1F53C;|Requires the latest Micrio Dashboard (2024)|
 
 
+* ## &#x1F4AB; 5.4.1 - 2025/08/28
+
+	### Links
+	* [GitHub](https://github.com/Q42/Micrio.Client/)
+	* [NPM repository](https://www.npmjs.com/package/@micrio/client)
+	* [JavaScript library](https://r2.micr.io/micrio-5.4.1.min.js)
+	* [TypeScript declarations include](https://r2.micr.io/micrio-5.4.1.min.d.ts)
+	* [API docs](https://doc.micr.io/client/api/5.4.1/index.html)
+
+	### Changes
+	* A lot of internal rewrites and optimizations
+	* Lots of bugfixes
+	* Improved 360&deg; rendering performance
+	* &#x1F4E2; *IMPORTANT*: Switched viewport models from `[x0,y0,x1,y1]` to `[x0,y0,width,height]` to accommodate for better viewports in 360&deg; images. While the viewer remains backwards compatible for older images, the client API now uses the new model. So if you have custom viewport logic in your app, review it before upgrading to Micrio 5.4!
+
+
+* ## &#x1F4AB; 5.3.2 - 2025/04/04
+
+	### Links
+	* [GitHub](https://github.com/Q42/Micrio.Client/)
+	* [NPM repository](https://www.npmjs.com/package/@micrio/client)
+	* [JavaScript library](https://r2.micr.io/micrio-5.3.2.min.js)
+	* [TypeScript declarations include](https://r2.micr.io/micrio-5.3.2.min.d.ts)
+	* [API docs](https://doc.micr.io/client/api/5.3.2/index.html)
+
+	### Changes
+	* Upgraded from Svelte 4 to Svelte 5
+	* Added AI-generated and assisting documentation
+
+
+* ## &#x1F4AB; 5.2.0 - 2025/03/26
+
+	* Open sourced the client! See it at https://github.com/Q42/Micrio.Client/
+	* There is now a `@micrio/client` NPM package too! See https://www.npmjs.com/package/@micrio/client
+	* Started using `major.minor.patch` semantic versioning
+
+	### Links
+	* [GitHub](https://github.com/Q42/Micrio.Client/)
+	* [NPM repository](https://www.npmjs.com/package/@micrio/client)
+	* [JavaScript library](https://r2.micr.io/micrio-5.2.0.min.js)
+	* [TypeScript declarations include](https://r2.micr.io/micrio-5.2.0.min.d.ts)
+	* [API docs](https://doc.micr.io/client/api/5.2.0/index.html)
+
+
 * ## &#x1F4AB; 5.1 - 2024/08/26
 
 	Under development.
