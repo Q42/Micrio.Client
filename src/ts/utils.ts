@@ -345,12 +345,16 @@ export const sanitizeAsset = (a?:Models.Assets.BaseAsset|Models.ImageData.Embed)
 
 export const isLegacyViews = (i:Models.ImageInfo.ImageInfo) : boolean => !i.viewsWH;
 
+// Keep track of already sanitized image info objects
+const sanitizedInfo:WeakMap<Models.ImageInfo.ImageInfo, boolean> = new WeakMap();
+
 /**
  * Sanitizes URLs within an ImageInfo object.
  * @internal
  */
 const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 	if(!i) return;
+	if(sanitizedInfo.has(i)) return;
 	sanitizeAsset(i.organisation?.logo);
 	sanitizeAsset(i.settings?._markers?.markerIcon);
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
@@ -360,6 +364,7 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
 		i.settings.view = View.fromLegacy(i.settings.view)!;
 		i.settings.restrict = View.fromLegacy(i.settings.restrict)!;
 	}
+	sanitizedInfo.set(i, true);
 }
 
 /**
