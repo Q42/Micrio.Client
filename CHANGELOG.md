@@ -13,7 +13,9 @@ Legend:
 
 * ## &#x1F4AB; 5.4.2 - 2025/08/29
 
-	Latest stable release, most importantly using a new `View` model, see below.
+	Latest stable release, most importantly using a new `View` model, see https://doc.micr.io/client/v5/migrating-to-5_4.html for additional information.
+
+	Upgrading to this version is safe, as it is fully backwards compatible with the previous Viewport model.
 
 	### Links
 	* [GitHub](https://github.com/Q42/Micrio.Client/)
