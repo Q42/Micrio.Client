@@ -11,7 +11,9 @@ Legend:
 |&#x1F53C;|Requires the latest Micrio Dashboard (2024)|
 
 
-* ## &#x1F4AB; 5.4.1 - 2025/08/28
+* ## &#x1F4AB; 5.4.2 - 2025/08/29
+
+	Latest stable release, most importantly using a new `View` model, see below.
 
 	### Links
 	* [GitHub](https://github.com/Q42/Micrio.Client/)
