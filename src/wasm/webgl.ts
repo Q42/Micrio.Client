@@ -325,7 +325,7 @@ export default class WebGL {
 		if(!c.is360) return; // Only for 360 images
 		
 		// Calculate current View from camera state
-		const centerX = mod1((this.yaw / (PI * 2) + .5) + this.offX);
+		const centerX = mod1((this.yaw / (PI * 2) + .5));
 		const centerY = (this.pitch / this.scaleY) / PI + .5;
 		const height = this.perspective / PI / this.scaleY;
 		const width = height * (c.el.width == 0 ? 1 : .5 * sqrt(c.el.aspect)) / (c.aspect/2);
@@ -394,7 +394,7 @@ export default class WebGL {
 	// --- Coordinate Conversion Functions ---
 
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
-	getCoo(pxX:f64, pxY:f64, correctNorth: bool = false) : Coordinates {
+	getCoo(pxX:f64, pxY:f64) : Coordinates {
 		const el = this.canvas.el;
 		// Convert screen pixels to Normalized Device Coordinates (NDC) [-1, 1]
 		this.vec4.x = (pxX * el.ratio / el.width) * 2 - 1;
@@ -414,7 +414,7 @@ export default class WebGL {
 		// Normalize the resulting direction vector
 		this.vec4.normalize();
 		// Calculate longitude (yaw) using atan2, adjust for base yaw offset
-		this.coo.x = atan2(this.vec4.x,-this.vec4.z)/PI/2+.5+(correctNorth ? 0 : this.offX);
+		this.coo.x = atan2(this.vec4.x,-this.vec4.z)/PI/2+.5;
 		// Calculate latitude (pitch) using asin, adjust for vertical scaling
 		this.coo.y = .5 - Math.asin(this.vec4.y) / PI / this.scaleY;
 		// Store current scale and depth/direction info
@@ -429,7 +429,7 @@ export default class WebGL {
 	getXYZ(x: f64, y: f64) : Coordinates {
 		const el = this.canvas.el;
 		// Convert image coordinates to 3D vector on the sphere
-		this.getVec3(x, y); // Populates this.vec4
+		this.getVec3(x + this.offX, y); // Populates this.vec4
 
 		// --- Project 3D Vector to Screen Space ---
 		// Convert NDC (-1 to 1) to screen pixels (0 to width/height)
@@ -513,9 +513,6 @@ export default class WebGL {
 			-this.position.y * radius/this.radius + transY * this.radius, // Apply additional Y translation
 			this.position.z * radius/this.radius
 		);
-
-		// 2. Apply base yaw (true north)
-		if(!noCorrectNorth) this.iMatrix.rotateY(this.baseYaw);
 
 		// 3. Translate to the point on the sphere surface
 		this.iMatrix.translate(

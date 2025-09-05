@@ -32,14 +32,10 @@ export class DrawRect {
 export class View {
 	/** Float64Array view of the new coordinates [centerX, centerY, width, height]. */
 	readonly arr : Float64Array = new Float64Array(4);
-	/** Flag indicating if true north correction should be applied during set(). */
-	public correct : bool = false;
 	/** Flag indicating if the view coordinates have changed since the last frame. */
 	public changed : bool = false;
 	/** Flag indicating if the view limits have changed. */
 	public limitChanged : bool = false;
-	/** Cached true north offset (0.5 - trueNorth setting). */
-	public tnOffset:number = 0;
 
 
 	constructor(
@@ -55,9 +51,6 @@ export class View {
 		public lWidth: f64 = 1,
 		public lHeight: f64 = 1,
 	) {
-		this.tnOffset = .5 - canvas.trueNorth;
-
-
 		this.toArray();
 	}
 
@@ -96,8 +89,7 @@ export class View {
 			}
 		}
 
-		const os = this.correct ? this.tnOffset : 0;
-		this.centerX = centerX + os;
+		this.centerX = centerX;;
 		this.centerY = centerY;
 		this.width = width;
 		this.height = height;
@@ -253,7 +245,7 @@ export class View {
 
 	/** Updates the shared Float64Array with the computed legacy view coordinates. */
 	toArray(): Float64Array {
-		unchecked(this.arr[0] = mod1(this.centerX + this.tnOffset));
+		unchecked(this.arr[0] = this.centerX);
 		unchecked(this.arr[1] = this.centerY);
 		unchecked(this.arr[2] = this.width);
 		unchecked(this.arr[3] = this.height);

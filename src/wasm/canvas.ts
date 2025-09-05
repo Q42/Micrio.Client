@@ -1,6 +1,6 @@
 import { View, DrawRect, Viewport } from './shared';
 import { Main, getTileOpacity, drawTile, drawQuad, setMatrix, setViewport, viewSet, viewportSet, setVisible, setVisible2 } from './main';
-import { easeInOut, mod1 } from './utils'
+import { easeInOut } from './utils'
 import { base360Distance } from './globals';
 
 import Kinetic from './camera.kinetic'
@@ -775,8 +775,8 @@ export default class Canvas {
 	// --- Unified View/Coordinate Accessors ---
 
 	/** Gets image coordinates from screen coordinates (delegates to Camera or WebGL). */
-	getCoo(x: f64, y: f64, abs: bool, noLimit: bool, correctNorth: bool = false) : Float64Array {
-		return (this.is360 ? this.webgl.getCoo(x,y, correctNorth) : this.camera.getCoo(x, y, abs, noLimit)).toArray()
+	getCoo(x: f64, y: f64, abs: bool, noLimit: bool) : Float64Array {
+		return (this.is360 ? this.webgl.getCoo(x,y) : this.camera.getCoo(x, y, abs, noLimit)).toArray()
 	}
 
 	/** Gets screen coordinates from image coordinates (delegates to Camera or WebGL). */
@@ -795,10 +795,8 @@ export default class Canvas {
 		if(mE.areaWidth > 0) { width += width * (mE.areaWidth / mE.width); this.ani.limit = false; mE.areaWidth = 0; };
 		if(noLimit) this.ani.limit = false;
 
-		this.view.correct = correctNorth;
 		this.view.set(centerX, centerY, width, height);
 		if(forceLimit && !noLimit) this.view.limit(false, false, this.freeMove);
-		this.view.correct = false;
 		if(!noLastView) this.ani.lastView.copy(this.view);
 
 		if(this.width > 0) {

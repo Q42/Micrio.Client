@@ -375,7 +375,7 @@ export default class Image {
 		const tolerance = 0.1;
 		
 		// Get canvas viewport (where the user is looking) with tolerance buffer
-		const viewCenterX = c.viewCenterX;
+		const viewCenterX = mod1(c.viewCenterX+(.5-c.trueNorth));
 		const viewCenterY = c.viewCenterY;
 		const viewWidth = c.viewWidth + tolerance;
 		const viewHeight = c.viewHeight + tolerance;

@@ -152,10 +152,6 @@ export default class Ani {
 
 		// --- Setup Animation Parameters ---
 
-		// Determine if true north correction should be applied to the target view
-		this.vTo.correct = this.canvas.is360 && !noTrueNorth;
-		this.vFrom.correct = this.canvas.is360 && !!noTrueNorth;
-
 		const c = this.canvas;
 		const v = c.view; // Current view
 		const t = this.vTo; // Target view object
