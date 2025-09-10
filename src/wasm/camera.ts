@@ -237,7 +237,7 @@ export default class Camera {
 
 	/**
 	 * Calculates and sets the current camera scale and view offsets based on the logical view rectangle.
-	 * This is the core function translating the logical view (x0,y0,x1,y1) into the effective scale and position.
+	 * This is the core function translating the logical view into the effective scale and position.
 	 * @returns True if the view was successfully set, false if initialization is pending.
 	 */
 	setView() : bool {
