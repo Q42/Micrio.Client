@@ -498,11 +498,17 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 		image.dataPath+(!image.isV5 ? id+'/data.'+lang+'.json' : id+'/data/pub.json');
 
 	// Fetch data for all unique linked images concurrently
-	const micData = await Promise.all(micIds.map(
-		id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
+	const [micData, micInfo] = await Promise.all([
+		Promise.all(micIds.map(id => fetchJson<Models.ImageData.ImageData>(getDataPath(id)))),
+		// Fetch all image info.json to find out whether it uses legacyViews
+		Promise.all(micIds.map(id => fetchInfo(id)))
+	]);
 
 	// Sanitize markers in the fetched data
-	micData.forEach(d => d?.markers?.forEach(m => sanitizeMarker(m, !image.isV5, isLegacyViews(image.$info!))));
+	micData.forEach((d,i) => {
+		const isLegacy = isLegacyViews(micInfo[i]!);
+		d?.markers?.forEach(m => sanitizeMarker(m, !image.isV5, isLegacy));
+	});
 	// Sanitize tour cover image
 	sanitizeAsset(tour.image);
 

@@ -633,18 +633,22 @@ export class MicrioImage {
 
 		// Preload info for unique linked IDs (don't wait)
 		const micIdsUnique:string[] = micIds.filter((id,i) => micIds.indexOf(id)==i);
-		Promise.all(micIdsUnique.map(id => fetchInfo(id, this.infoBasePath)));
 
 		// Helper function to get data path for a given ID
 		const getDataPath = (id:string) : string =>
 			this.dataPath+(!this.isV5 ? id+'/data.'+lang+'.json' : id+'/data/pub.json');
 
 		// Preload data for unique linked IDs
-		const micData = await Promise.all(micIdsUnique.map(
-			id => fetchJson<Models.ImageData.ImageData>(getDataPath(id))));
+		const [micData, micInfo] = await Promise.all([
+			Promise.all(micIdsUnique.map(id => fetchJson<Models.ImageData.ImageData>(getDataPath(id)))),
+			Promise.all(micIdsUnique.map(id => fetchInfo(id, this.infoBasePath)))
+		]);
 
 		// Sanitize markers in preloaded data
-		micData.forEach((d,i) => d?.markers?.forEach(m => sanitizeMarker(m, micIdsUnique[i]!.length == 5, isLegacyViews(this.__info))));
+		micData.forEach((d,i) => {
+			const isLegacy = isLegacyViews(micInfo[i]!);
+			d?.markers?.forEach(m => sanitizeMarker(m, micIdsUnique[i]!.length == 5, isLegacy));
+		});
 
 		const spaceData = this.wasm.micrio.spaceData; // Get space data if available
 
