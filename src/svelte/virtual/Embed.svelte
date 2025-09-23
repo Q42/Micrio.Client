@@ -100,21 +100,21 @@
 	const hrefBlankTarget = href && embed.clickTargetBlank;
 
 	// --- Positioning State (updated by `moved`) ---
-	let w:number = a[2]; // Relative width
-	let h:number = a[3]; // Relative height
-	let cX:number = a[0]+w/2; // Center X
-	let cY:number = a[1]+h/2; // Center Y
-	let s:number = embed.scale || 1; // Embed scale
-	let rotX:number = embed.rotX??0; // X Rotation
-	let rotY:number = embed.rotY??0; // Y Rotation
-	let rotZ:number = embed.rotZ??0; // Z Rotation
-	let scaleX:number = embed.scaleX??1; // Non-uniform X scale
-	let scaleY:number = embed.scaleY??1; // Non-uniform Y scale
+	let w:number = $state(a[2]); // Relative width
+	let h:number = $state(a[3]); // Relative height
+	let cX:number = $state(a[0]+a[2]/2); // Center X
+	let cY:number = $state(a[1]+a[3]/2); // Center Y
+	let s:number = $state(embed.scale || 1); // Embed scale
+	let rotX:number = $state(embed.rotX??0); // X Rotation
+	let rotY:number = $state(embed.rotY??0); // Y Rotation
+	let rotZ:number = $state(embed.rotZ??0); // Z Rotation
+	let scaleX:number = $state(embed.scaleX??1); // Non-uniform X scale
+	let scaleY:number = $state(embed.scaleY??1); // Non-uniform Y scale
 
 	/** CSS style string for the button/image element (used for SVG/IMG embeds). */
 	let buttonStyle:string = $state('');
 
-	let _widthCapped:number = 0;
+	let _widthCapped:number = $state(0);
 
 	/** Recalculates positioning variables based on the `embed.area` and other settings. */
 	function readPlacement() : void {
