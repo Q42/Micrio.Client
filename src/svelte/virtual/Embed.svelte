@@ -114,6 +114,8 @@
 	/** CSS style string for the button/image element (used for SVG/IMG embeds). */
 	let buttonStyle:string = $state('');
 
+	let _widthCapped:number = 0;
+
 	/** Recalculates positioning variables based on the `embed.area` and other settings. */
 	function readPlacement() : void {
 		const a = embed.area;
@@ -136,6 +138,11 @@
 		buttonStyle = `--ratio:${w/h * info.width/info.height};--scale:${w * info.width / (embed.width ?? 100) / (!printGL ? s : 1) * (is360 ? Math.PI/2 : 1)};`;
 		if(isSVG) buttonStyle+=`height:${embed.height}px`; // Set height directly for SVG
 		if(printGL && embed.micrioId && embed.width) buttonStyle+=`width:${embed.width}px`; // Set width for GL Micrio embeds?
+
+		if(embed.video) {
+			if(embed.video.width > embed.video.height) _widthCapped = Math.min(embed.video.width, w*info.width, 2048);
+			else _widthCapped = Math.min(embed.video.height, h*info.height, 2048) / (embed.video.height / embed.video.width);
+		}
 	}
 
 	// Initial calculation
@@ -308,8 +315,8 @@
 
 	// --- Size Calculation for HTML Video ---
 	// Cap the rendered size of HTML video elements to their native resolution
-	const widthCapped = $derived(embed.video ? Math.min(embed.video.width, width) : width);
-	const heightCapped = $derived(embed.video ? Math.min(embed.video.height, height) : height);
+	const widthCapped = $derived(embed.video ? _widthCapped : width);
+	const heightCapped = $derived(embed.video ? _widthCapped / (embed.video.width / embed.video.height) : height);
 	/** Relative scale factor for HTML video element (used for CSS transform). */
 	const relScale = $derived(width / widthCapped);
 
