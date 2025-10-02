@@ -68,6 +68,8 @@
 
 	// --- State Management Functions ---
 
+	let wasMarkerVideoTour:boolean = false;
+
 	/**
 	 * Stores the view state before opening a marker (if applicable)
 	 * and restores it when the marker is closed (unless in a tour).
@@ -80,10 +82,11 @@
 			if(typeof marker != 'string' && !image.openedView && !marker.noMarker && marker.view) {
 				// Don't store view if currently in a tour (handled by tour logic)
 				image.openedView = micrio.state.$tour && !('steps' in micrio.state.$tour) ? undefined : clone(image.state.$view);
+				wasMarkerVideoTour = !!marker.videoTour;
 			}
 		} else if(image.openedView && !micrio.state.$tour) { // Marker is being closed, view was stored, and not in a tour
 			// After a tick (to allow state updates), fly back to the stored view
-			tick().then(() => {
+			setTimeout(() => {
 				// Check again if still inactive and animation isn't running
 				if(!inactive && !image.camera.aniDone && image.openedView)
 					image.camera.flyToView(limitView(image.openedView), { // Fly back, limiting view
@@ -91,7 +94,8 @@
 						noTrueNorth: true // Don't adjust for true north
 					}).catch(() => {}); // Ignore errors
 				image.openedView = undefined; // Clear stored view
-			});
+				wasMarkerVideoTour = false;
+			}, wasMarkerVideoTour ? 250 : 10);
 		}
 	}
 
