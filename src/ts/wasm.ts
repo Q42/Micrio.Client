@@ -291,6 +291,7 @@ export class Wasm {
 		if(i.version && parseFloat(i.version) <= 3.1) this.e.setNoUnderzoom(this.i, true);
 
 		// Determine cover limit/start settings
+		if(i.is360) settings.limitToCoverScale = false;
 		const coverLimit = !!settings.limitToCoverScale;
 		const coverStart = coverLimit || settings.initType == 'cover';
 
