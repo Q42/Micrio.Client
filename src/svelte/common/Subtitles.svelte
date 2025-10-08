@@ -48,7 +48,7 @@
 	// --- State ---
 
 	/** Array to store parsed subtitle events { start, end, data }. */
-	const events:Models.ImageData.Event[] = []; // Re-using Event type, might need specific SubtitleCue type
+	const events:Models.ImageData.Event[] = $state([]); // Re-using Event type, might need specific SubtitleCue type
 
 	// --- Fetch and Parse VTT ---
 
@@ -71,7 +71,12 @@
 				// Parse start and end times from the timestamp line
 				const [start,end] = s[l].split(' --> ')
 					.map(t => t.trim().replace(',','.').split(':').map(Number)) // Split h:m:s.ms, convert parts to numbers
-					.map(v => v[0]*3600+v[1]*60+v[2]); // Convert h:m:s.ms to total seconds
+					.map(v => {
+						// Handle different time formats: MM:SS.mmm or HH:MM:SS.mmm
+						if(v.length === 3) return v[0]*3600+v[1]*60+v[2]; // HH:MM:SS.mmm
+						else if(v.length === 2) return v[0]*60+v[1]; // MM:SS.mmm
+						else return 0; // Fallback
+					});
 
 				// Push the parsed cue data to the events array
 				events.push({start, end, data: lines.join('\n')});
@@ -80,7 +85,7 @@
 				l+=lines.length+1;
 			}
 		}
-	});
+	}).catch(err => console.error('Subtitles: fetch error:', err));
 
 	// --- Context & Time Update ---
 
