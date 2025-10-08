@@ -184,15 +184,33 @@
 		// Generate cluster marker data objects from the groups
 		clusterMarkers = S.map(c => c.filter((n, i) => c.indexOf(n) === i)) // Deduplicate indices within each cluster
 			.map((c) => {
-				const minX = Math.min(...c.map(j => q[j].view ? q[j].view[0] : q[j].x));
-				const maxX = Math.max(...c.map(j => q[j].view ? q[j].view[0] + q[j].view[2] : q[j].x));
-				const minY = Math.min(...c.map(j => q[j].view ? q[j].view[1] : q[j].y));
-				const maxY = Math.max(...c.map(j => q[j].view ? q[j].view[1] + q[j].view[3] : q[j].y));
-				const centerX = (minX + maxX) / 2;
-				const centerY = (minY + maxY) / 2;
+				// For Omni objects, markers may be at different rotations, so use a different view calculation
+				const isOmni = image.isOmni;
+
+				let minX, maxX, minY, maxY, centerX, centerY;
+
+				if (isOmni) {
+					// For Omni objects, calculate center as average of marker positions
+					centerX = c.reduce((sum, j) => sum + q[j].x, 0) / c.length;
+					centerY = c.reduce((sum, j) => sum + q[j].y, 0) / c.length;
+
+					// Use a fixed view size around the center, since markers are positioned spherically
+					const viewSize = 0.3; // 30% of image dimensions
+					minX = Math.max(0, centerX - viewSize / 2);
+					minY = Math.max(0, centerY - viewSize / 2);
+					maxX = Math.min(1, centerX + viewSize / 2);
+					maxY = Math.min(1, centerY + viewSize / 2);
+				} else {
+					// Regular 2D calculation
+					minX = Math.min(...c.map(j => q[j].view ? q[j].view[0] : q[j].x));
+					maxX = Math.max(...c.map(j => q[j].view ? q[j].view[0] + q[j].view[2] : q[j].x));
+					minY = Math.min(...c.map(j => q[j].view ? q[j].view[1] : q[j].y));
+					maxY = Math.max(...c.map(j => q[j].view ? q[j].view[1] + q[j].view[3] : q[j].y));
+					centerX = (minX + maxX) / 2;
+					centerY = (minY + maxY) / 2;
+				}
 
 				// For Omni objects, calculate average rotation and radius from clustered markers
-				const isOmni = image.isOmni;
 				const avgRotation = isOmni ? c.reduce((sum, j) => sum + (q[j].rotation ?? 0), 0) / c.length : undefined;
 				const avgRadius = isOmni ? c.reduce((sum, j) => sum + (q[j].radius ?? 1), 0) / c.length : undefined;
 
@@ -202,8 +220,8 @@
 				view: [
 					minX,
 					minY,
-					maxX - minX,
-					maxY - minY
+					Math.max(0.1, maxX - minX), // Ensure minimum width
+					Math.max(0.1, maxY - minY)  // Ensure minimum height
 				],
 				x: centerX,
 				y: centerY,
