@@ -163,7 +163,7 @@ export class Router {
 			// Handle tour/marker state updates
 			if(m && tour && 'steps' in tour) {
 				// If both marker and marker tour found, set initial step for the tour
-				tour.initialStep = tour.steps.findIndex(s => s.startsWith(m.id));
+				tour.initialStep = Math.max(0, tour.steps.findIndex(s => s.startsWith(m.id)));
 			} else {
 				// If no marker found via slug, close any open popups
 				if(!m) this.micrio.state.popup.set(undefined);
@@ -257,8 +257,8 @@ export class Router {
 				id = ownImageStep.micrioId; // Use the original image ID for the route
 				curr = this.micrio.wasm.images.find(i => i.id == id) as MicrioImage; // Get original image instance
 				// If no marker is explicitly open, use the marker of the initial tour step for the URL
-				if(!marker && tour.initialStep !== undefined && tour.initialStep >= 0)
-					marker = tour.stepInfo[tour.initialStep].marker;
+				if(!marker && tour.initialStep !== undefined)
+					marker = tour.stepInfo[Math.max(0, tour.initialStep)].marker;
 			}
 		}
 
