@@ -257,7 +257,8 @@ export class Router {
 				id = ownImageStep.micrioId; // Use the original image ID for the route
 				curr = this.micrio.wasm.images.find(i => i.id == id) as MicrioImage; // Get original image instance
 				// If no marker is explicitly open, use the marker of the initial tour step for the URL
-				if(!marker && tour.initialStep !== undefined) marker = tour.stepInfo[tour.initialStep].marker;
+				if(!marker && tour.initialStep !== undefined && tour.initialStep >= 0)
+					marker = tour.stepInfo[tour.initialStep].marker;
 			}
 		}
 
