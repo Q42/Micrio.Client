@@ -190,6 +190,12 @@
 				const maxY = Math.max(...c.map(j => q[j].view ? q[j].view[1] + q[j].view[3] : q[j].y));
 				const centerX = (minX + maxX) / 2;
 				const centerY = (minY + maxY) / 2;
+
+				// For Omni objects, calculate average rotation and radius from clustered markers
+				const isOmni = image.isOmni;
+				const avgRotation = isOmni ? c.reduce((sum, j) => sum + (q[j].rotation ?? 0), 0) / c.length : undefined;
+				const avgRadius = isOmni ? c.reduce((sum, j) => sum + (q[j].radius ?? 1), 0) / c.length : undefined;
+
 				return {
 				title: c.length + '',
 				type: 'cluster',
@@ -201,6 +207,8 @@
 				],
 				x: centerX,
 				y: centerY,
+				rotation: avgRotation,
+				radius: avgRadius,
 				id: c.sort((a,b) => a - b).join(','),
 				data: {},
 				popupType: 'none',
