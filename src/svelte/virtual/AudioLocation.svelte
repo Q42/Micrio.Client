@@ -43,9 +43,13 @@
 			const xR = marker.x * -Math.PI*2;
 			const yR = (marker.y-.5) * -Math.PI;
 
-			const _x = panner.positionX.value = Math.cos(yR) * Math.sin(xR) * r;
-			const _y = panner.positionY.value = Math.sin(yR) * r;
-			const _z = panner.positionZ.value = Math.cos(yR) * Math.cos(xR) * r;
+			const _x = Math.cos(yR) * Math.sin(xR) * r;
+			const _y = Math.sin(yR) * r;
+			const _z = Math.cos(yR) * Math.cos(xR) * r;
+
+			panner.positionX.value = _x;
+			panner.positionY.value = _y;
+			panner.positionZ.value = _z;
 
 			// normalize vector for direction
 			let len = _x * _x + _y * _y + _z * _z;
