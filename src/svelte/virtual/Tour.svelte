@@ -66,7 +66,7 @@
 	/** Is this a scrollable marker tour (displays marker popups sequentially)? */
 	const isScrollTour = 'scrollable' in tour && tour.scrollable;
 	/** Should controls be shown for this tour? */
-	const noControls = 'steps' in tour ? 'controls' in tour ? tour.controls !== false : !tour.noControls : false;
+	const noControls = 'steps' in tour ? 'controls' in tour ? tour.controls !== false : !!tour.noControls : false;
 
 	// --- UI State ---
 	/** Are the tour controls rendered independently (not inside a marker popup)? */
@@ -191,7 +191,7 @@
 	/** Handles the 'ended' event from video tours or SerialTour component. */
 	function ended(){
 		events.dispatch('tour-ended', tour); // Dispatch global ended event
-		if(tour.closeOnFinish) exit(); // Close tour if configured
+		if(tour.closeOnFinish || (!tour.cannotClose && noControls)) exit(); // Close tour if configured
 	}
 
 	// --- Marker Tour Setup ---
