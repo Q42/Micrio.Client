@@ -323,7 +323,7 @@
 		paused = false; // Update paused state
 		// Synchronize video tour playback if applicable
 		if(videoTour && _media) {
-			videoTour.duration = _media.duration; // Update tour duration from media
+			if(_media.duration > videoTour.duration) videoTour.duration = _media.duration; // Update tour duration from media
 			videoTour.currentTime = _media.currentTime; // Sync time
 			videoTour.play(); // Start tour playback
 		}
@@ -588,6 +588,7 @@
 
 	/** Hooks necessary events for HTML5 media elements. */
 	let pauseAfterSeek:boolean = false; // Flag to pause after seeking (used for initial time set)
+	let mediaWasEnded:boolean = false;
 	function hookMedia(){
 		if(!_media) return;
 
@@ -599,11 +600,12 @@
 			// Pause tour when media pauses
 			_media.onpause = () => {
 				// Only pause videotour when the audio has not already ended (in case of shorter audio than videotour length)
+				mediaWasEnded = !!_media?.ended;
 				if(!_media?.ended) videoTour.pause();
 			}
 			// Sync tour time when media seeks
 			_media.onseeked = () => {
-				if(!_media || _media.ended) return;
+				if(!_media || _media.ended || mediaWasEnded) return;
 				videoTour.currentTime = _media.currentTime;
 				// If seek was triggered to set initial time without autoplay, pause now
 				if(pauseAfterSeek) {
