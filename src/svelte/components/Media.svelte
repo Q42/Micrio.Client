@@ -32,7 +32,7 @@
 	import type { MicrioImage } from '../../ts/image';
 	import { get, type Writable } from 'svelte/store';
 
-	import { onMount, getContext } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
 
 	// Micrio TS imports
 	import { i18n } from '../../ts/i18n';
@@ -382,7 +382,11 @@
 			break;
 			case MediaType.Audio: case MediaType.Video:
 				// Add listener for 'play' event (fired when playback actually starts)
-				_media?.addEventListener('play', mediaPlaying, {once: true});
+				_media?.addEventListener('play', () => {
+					if(!_media) return;
+					if(isNaN(_media.duration)) _media.addEventListener('durationchange', mediaPlaying, {once: true});
+					else mediaPlaying();
+				}, {once: true});
 				// Attempt to play, catching potential autoplay errors
 				_media?.play().catch((e) => {
 					if(noPlayOverlay) paused = true; // If overlay disabled, just stay paused
