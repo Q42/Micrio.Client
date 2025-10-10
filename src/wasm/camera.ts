@@ -262,8 +262,8 @@ export default class Camera {
 		// min = contain (fit entire view), max = cover (fill entire element)
 		this.scale = min(cw / vw, ch / vh);
 
-		// Apply max scale limit if applicable and not pinching
-		if(limited && !this.pinching && this.isZoomedIn()) this.scale = this.maxScale;
+		// Apply max scale limit if applicable and not pinching and during animation
+		if(limited && !this.pinching && this.isZoomedIn() && c.ani.flying) this.scale = this.maxScale;
 
 		// Apply min scale limit if applicable (considering minSize margin) or if coverLimit is on
 		if((!c.ani.correcting && !this.pinching) || c.coverLimit) this.scale = max(this.minScale*this.minSize, this.scale);

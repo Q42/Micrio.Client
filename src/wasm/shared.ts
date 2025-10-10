@@ -207,7 +207,10 @@ export class View {
 			this.height = min(this.height, maxVh);
 		}
 
-		if(noLimit) return;
+		if(noLimit) {
+			this.toArray();
+			return;
+		}
 
 		// Limit Boundaries
 		const halfW = min(1, this.width) / 2;
