@@ -597,7 +597,10 @@
 		// If synchronized with a video tour
 		if(videoTour) {
 			// Pause tour when media pauses
-			_media.onpause = () => videoTour.pause();
+			_media.onpause = () => {
+				// Only pause videotour when the audio has not already ended (in case of shorter audio than videotour length)
+				if(!_media?.ended) videoTour.pause();
+			}
 			// Sync tour time when media seeks
 			_media.onseeked = () => {
 				if(!_media || _media.ended) return;
