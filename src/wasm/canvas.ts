@@ -395,7 +395,11 @@ export default class Canvas {
 		// Step opacity fade animation if needed
 		if(this.isReady && this.opacity != this.targetOpacity) {
 			// Calculate opacity change based on duration and frame time
-			const delta:f64 = (1/(this.main.distanceX != 0 || this.main.distanceY != 0 ? this.main.spacesTransitionDuration: this.main.crossfadeDuration))/this.main.frameTime;
+			const fadeDuration = this.main.distanceX != 0 || this.main.distanceY != 0 ? this.main.spacesTransitionDuration
+				// If first image, always .25s
+				: this.main.canvases.length == 1 ? .25
+				: this.main.crossfadeDuration;
+			const delta:f64 = (1/fadeDuration)/this.main.frameTime;
 			const fadingIn:bool = this.targetOpacity > 0 && this.targetOpacity >= this.opacity;
 			this.opacity = fadingIn ? min(1, this.opacity + delta) : max(0, this.opacity - delta);
 			this.bOpacity = easeInOut.get(this.opacity); // Calculate eased opacity for rendering

@@ -65,7 +65,6 @@ const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
 	focus: [.5,.5], // Default focus point [x, y] for zoom/cover view
 	zoomLimit: 1, // Maximum zoom factor relative to cover scale (1 = no zoom beyond cover)
 	fullscreen: true, // Enable fullscreen button
-	crossfadeDuration: 0.25, // Duration (seconds) for crossfade transitions (unused?)
 
 	// Events
 	hookEvents: true, // Enable standard event listeners (click, drag, etc.)
