@@ -81,6 +81,8 @@ export class Wasm {
 	private tileOpacity: Map<number, number> = new Map();
 	/** Object tracking the loading state of each tile (0: not loaded, 1: loading, 2: loaded). @internal */
 	private loadStates: Map<number, number> = new Map();
+	/** Forget in-memory tiles after X seconds not drawn */
+	private deleteAfterSeconds:number;
 
 	/** Array storing Svelte store unsubscriber functions. @internal */
 	private unsubscribe: Unsubscriber[] = [];
@@ -204,6 +206,8 @@ export class Wasm {
 	constructor(
 		public micrio: HTMLMicrioElement
 	) {
+		// Duration in seconds for removing tiles from memory after they were last in the screen
+		this.deleteAfterSeconds = Browser.iOS ? 5 : get(this.micrio.canvas.isMobile) ? 30 : 90;
 		// Bind methods for use as callbacks
 		this.render = this.render.bind(this);
 		this.draw = this.draw.bind(this);
@@ -712,10 +716,8 @@ export class Wasm {
 		this.prevDrawn = this.drawn.slice(0);
 
 		// Delete tiles marked for deletion longer than X second ago
-		const deleteAfterSeconds = Browser.iOS ? 5 : 30;
-
 		for(let [key, value] of this.toDelete.entries()) {
-			if((now - value) / 1000 > deleteAfterSeconds)
+			if((now - value) / 1000 > this.deleteAfterSeconds)
 				this.deleteTile(key);
 		}
 	}
