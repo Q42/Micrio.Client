@@ -796,14 +796,14 @@
 				<micr-io data-logo="false" id={mic[0]} width={mic[1]} height={mic[2]} lang={mic[3]} data-path={info.path}></micr-io>
 			{/if}
 			<!-- Render timed events for video tours -->
-			{#if videoTourEvents?.length && duration > 0 && !destroyed}<Events events={videoTourEvents} bind:currentTime bind:duration />{/if}
+			{#if videoTourEvents?.length && duration > 0 && !destroyed}<Events events={videoTourEvents} bind:currentTime={currentTime} bind:duration />{/if}
 			<!-- Render media controls if enabled -->
 			{#if controls}
 				<aside class:inside={controls=='inside'}>
 					<MediaControls
 						subtitles={!!srt}
 						fullscreen={(!is360 && (type == MediaType.IFrame || type == MediaType.Video)) ? _cnt : fullscreen}
-						bind:paused bind:seeking bind:duration bind:currentTime bind:muted bind:volume bind:ended={_ended}
+						bind:paused bind:seeking bind:duration bind:currentTime={currentTime} bind:muted bind:volume bind:ended={_ended}
 						onplaypause={playPause}
 						onmute={() => micrio.isMuted.set(!muted)}
 						onseek={t => setCurrentTime(t)}

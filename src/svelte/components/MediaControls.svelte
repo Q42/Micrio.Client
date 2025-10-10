@@ -138,7 +138,7 @@
 </aside>
 <!-- Render progress bar only if not in minimal mode -->
 {#if !minimal}
-	<ProgressBar {duration} bind:currentTime bind:ended>
+	<ProgressBar {duration} bind:currentTime={currentTime} bind:ended>
 		<!-- Draggable area for seeking -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="bar active" bind:this={_bar} onmousedown={dStart}

@@ -389,7 +389,7 @@
 				<!-- Bind step's current time -->
 				<Media {tour} src={audioSrc}
 					fullscreen={micrio} controls autoplay bind:paused={paused}
-					bind:currentTime onended={ended} />
+					bind:currentTime={currentTime} onended={ended} />
 			{/if}
 			<!-- Common Close button -->
 			{#if !tour.cannotClose}<Button type="close" title={$i18n.close} onclick={exit} />{/if}
@@ -397,11 +397,11 @@
 
 	<!-- Video tour embedded within a marker popup -->
 	{:else if videoTour}
-		<Media tour={videoTour} src={audioSrc} bind:currentTime autoplay onended={ended} />
+		<Media tour={videoTour} src={audioSrc} bind:currentTime={currentTime} autoplay onended={ended} />
 	{/if}
 <!-- If noHTML is true, but it's a video tour, still render the Media component for playback logic -->
 {:else if videoTour}
-	<Media tour={videoTour} src={audioSrc} autoplay bind:currentTime onended={ended} />
+	<Media tour={videoTour} src={audioSrc} autoplay bind:currentTime={currentTime} onended={ended} />
 {/if}
 
 <style>
