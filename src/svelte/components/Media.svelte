@@ -83,8 +83,6 @@
 		duration?: number;
 		/** Current playback time in seconds (bindable). */
 		currentTime?: number;
-		/** Current muted state (bindable). */
-		muted?: boolean;
 		/** Is this the main 360 video background? */
 		is360?: boolean;
 		/** Optional video tour data object to synchronize playback with. */
@@ -129,7 +127,6 @@
 		seeking = $bindable(true),
 		duration = $bindable(-1),
 		currentTime = $bindable(),
-		muted = $bindable(volume == 0),
 		is360 = false,
 		tour = null,
 		secondary = false,
@@ -147,8 +144,9 @@
 		onid
 	}: Props = $props();
 
-	/** Initial muted state before component logic. */
-	const originallyMuted = muted;
+	// Derived muted state from global volume
+	const muted = $derived(volume == 0);
+
 	uuid += (src ?? tour?.id); // Append src or tour ID for uniqueness
 
 	// --- Context & Global State ---
@@ -434,15 +432,10 @@
 
 	/** Sets the muted state for the current media type. */
 	function setMuted(b:boolean) : void {
-		if(originallyMuted) return; // Don't override if initially muted by prop
-		muted = b; // Update local state
-
 		if(_media) _media.muted = b; // HTMLMediaElement
 		else if(ytPlayer?.mute) { // YouTube API
 			if(b) ytPlayer.mute();
 			else ytPlayer.unMute();
-			// YT API state update is asynchronous, re-check after delay
-			setTimeout(() => {if(ytPlayer) muted = ytPlayer.isMuted()}, 50);
 		}
 		else if(vimeoPlayer) vimeoPlayer.setVolume(b ? 0 : 1); // Vimeo API (uses volume)
 	}
@@ -516,7 +509,6 @@
 				onReady: () => { // When player is ready
 					if(destroyed) err(); // Check if component was destroyed during load
 					else {
-						muted = (ytPlayer as YouTubePlayer).isMuted(); // Get initial muted state
 						duration = (ytPlayer as YouTubePlayer).getDuration(); // Get duration
 						seeking = false; // Clear seeking state
 						ok(); // Resolve promise
@@ -553,13 +545,13 @@
 			p.on('error', err);
 			p.on('loaded', () => p.getVolume().then(v => { // When loaded, get initial volume
 				if(destroyed) err();
-				else { muted = (volume = v) == 0; ok() } // Update muted state and resolve
+				else { ok() } // Resolve
 			}));
 			p.on('play', () => paused = seeking = false); // Update state on play
 			p.on('bufferstart', () => seeking = true); // Set seeking on buffer start
 			p.on('seeked', () => { seeking = false; }); // Clear seeking on seeked
 			p.on('pause', () => paused = true); // Update state on pause
-			p.on('volumechange', d => {if(d) muted = (volume = d.volume) == 0}); // Update muted state on volume change
+			p.on('volumechange', d => {if(d) {/* Volume change handled by global state */}}); // Volume change handled by global state
 			p.on('timeupdate', d => { if(d) {duration = d.duration; currentTime = d.seconds }}); // Update time/duration
 			p.on('ended', ended); // Handle ended event
 		});
@@ -788,7 +780,7 @@
 			{:else if type == MediaType.Video}
 				<!-- svelte-ignore a11y_media_has_caption -->
 				<video controls={false} loop={loop && (loopDelay == undefined || loopDelay <= 0)} playsinline {width} {height} bind:this={_media} style={hideUntilPlaying ? 'opacity: 0' : undefined}
-					bind:duration bind:muted autoplay={!!autoplay} bind:currentTime bind:seeking bind:paused oncanplay={canplay} onended={ended}>
+					bind:duration {muted} autoplay={!!autoplay} bind:currentTime bind:seeking bind:paused oncanplay={canplay} onended={ended}>
 					{#if realSrc}
 						{#if hasTransparentH265 && realSrc.endsWith('.webm')}
 							<source src={realSrc.replace('.webm', '.mp4')} type="video/mp4;codecs=hvc1"> <!-- Safari H.265 with alpha -->
@@ -798,7 +790,7 @@
 				</video>
 			{:else if type == MediaType.Audio && !singleAudio}
 				<!-- Standard audio element (not used on iOS) -->
-				<audio src={realSrc} controls={false} bind:this={_media} bind:duration bind:muted
+				<audio src={realSrc} controls={false} bind:this={_media} bind:duration {muted}
 					bind:currentTime bind:seeking bind:paused oncanplay={() => seeking = false} onended={ended}></audio>
 			{:else if type == MediaType.Micrio && mic}
 				<!-- Embedded Micrio instance -->
@@ -812,7 +804,7 @@
 					<MediaControls
 						subtitles={!!srt}
 						fullscreen={(!is360 && (type == MediaType.IFrame || type == MediaType.Video)) ? _cnt : fullscreen}
-						bind:paused bind:seeking bind:duration bind:currentTime={currentTime} bind:muted bind:volume bind:ended={_ended}
+						bind:paused bind:seeking bind:duration bind:currentTime={currentTime} bind:ended={_ended}
 						onplaypause={playPause}
 						onmute={() => micrio.isMuted.set(!muted)}
 						onseek={t => setCurrentTime(t)}

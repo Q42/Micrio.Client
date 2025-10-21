@@ -9,6 +9,8 @@
 	// Import the global captionsEnabled store defined in the module script
 	import { captionsEnabled } from '../common/Subtitles.svelte';
 	import { i18n } from '../../ts/i18n'; // For button titles
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
 
 	// UI Components
 	import Button from '../ui/Button.svelte';
@@ -23,12 +25,8 @@
 		duration?: number;
 		/** Is the media currently seeking? (bindable). */
 		seeking?: boolean;
-		/** Is the media currently muted? (bindable). */
-		muted?: boolean;
 		/** If true, display minimal controls (only play/pause button with progress circle). */
 		minimal?: boolean;
-		/** Current volume level (0-1) (bindable). */
-		volume: number;
 		/** Is the media currently paused? (bindable). */
 		paused: boolean;
 		/** Has the media ended? (bindable). */
@@ -46,9 +44,7 @@
 		currentTime = $bindable(),
 		duration = $bindable(0),
 		seeking = $bindable(true),
-		muted = $bindable(false),
 		minimal = false,
-		volume = $bindable(),
 		paused = $bindable(),
 		ended = $bindable(),
 		fullscreen = undefined,
@@ -58,10 +54,17 @@
 		onseek
 	}: Props = $props();
 
+	// Get the micrio instance and volume from context
+	const micrio = getContext('micrio');
+	const globalVolume = getContext<Writable<number>>('volume');
+
+	// Derive muted state from global volume
+	const muted = $derived($globalVolume == 0);
+
 	// --- Reactive Declarations ---
 
 	/** Determine if audio controls (mute button) should be shown. */
-	const hasAudio = $derived(!isNaN(volume));
+	const hasAudio = $derived(!isNaN($globalVolume) || $globalVolume == 0);
 
 	// --- Progress Bar Dragging Logic ---
 

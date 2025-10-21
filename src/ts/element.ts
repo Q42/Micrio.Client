@@ -199,7 +199,7 @@ export class HTMLMicrioElement extends HTMLElement {
 				else this.open(newVal); // Open the new ID if already set up
 			} break;
 			case 'muted': // Sync muted attribute with internal store
-				this.isMuted.set(newVal!==null);
+				this.isMuted.set(this.hasAttribute('muted'));
 				break;
 			case 'data-grid': // Handle grid attribute change
 				if(!this.printed) this.print(); // Initial setup

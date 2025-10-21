@@ -58,7 +58,13 @@
 	/** Has the tour reached the end? */
 	let ended:boolean = $state(false);
 	/** Is the main Micrio instance muted? */
-	let muted:boolean = $state(get(micrio.isMuted));
+	let muted:boolean = $state(false);
+	$effect(() => {
+		const unsubscribe = micrio.isMuted.subscribe(value => {
+			muted = value;
+		});
+		return unsubscribe;
+	});
 
 	/** Reference to the VideoTour instance within the current step's marker (if any). */
 	let current:Models.ImageData.VideoTour|undefined = $state();
@@ -119,7 +125,7 @@
 
 	/** Toggles the main mute state. */
 	function toggleMute() : void {
-		micrio.isMuted.set(muted=!muted);
+		micrio.isMuted.set(!muted);
 	}
 
 	/** Advances to the next step or ends the tour. */
@@ -252,7 +258,6 @@
 			onended={next}
 			onplay={() => paused=false}
 			onblocked={() => paused=true}
-			bind:muted
 			bind:currentTime={currentStepInfo.currentTime}
 		/>
 	{/if}
