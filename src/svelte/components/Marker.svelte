@@ -118,8 +118,8 @@
 
 	// --- Visibility & Style Flags ---
 
-	/** Should titles be completely hidden (overrides showTitle)? */
-	const noTitles:boolean = !!markerSettings.noTitles || !!omni?.sideLabels;
+	/** Should titles be completely hidden */
+	const noTitles:boolean = marker.data?.showTitle === false || !!markerSettings.noTitles || !!omni?.sideLabels;
 	/** Does the marker scale with zoom? */
 	const scales:boolean = !!data.scales || !!image.$settings.markersScale;
 	/** If marker scales, should the title *not* scale? */
