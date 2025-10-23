@@ -63,8 +63,10 @@
 	const omni = $settings.omni;
 	/** Flag indicating if marker titles should be hidden globally. */
 	const noTitles:boolean = !!markerSettings.noTitles || !!omni?.sideLabels;
-	/** Flag indicating if marker titles should be shown statically. */
-	const showTitles:boolean = !noTitles && !!markerSettings.showTitles;
+	/** Flag indicating if marker titles should be shown statically.
+	 * For old IDs (previous dashboard), marker labels are always shown by default.
+	 */
+	const showTitles:boolean = !noTitles && (!!markerSettings.showTitles || image.id.length == 5);
 
 	// --- State Management Functions ---
 
