@@ -675,7 +675,7 @@
 			>
 				<!-- Display custom icon or standard icon -->
 				{#if customIcon}
-					<img src={customIcon.src} alt="" />
+					<img src={typeof customIcon == 'string' ? customIcon : customIcon.src} alt="" />
 				{:else if icon}
 					<Icon name={icon} />
 				{/if}
@@ -824,6 +824,9 @@
 	/* Styling when a standard icon is used */
 	div.has-icon button {
 		--micrio-marker-icon: none; /* Hide default background image */
+	}
+	div.has-custom-icon {
+		--micrio-marker-size: 32px;
 	}
 	div.default.has-icon button {
 		color: #fff; /* Icon color */
