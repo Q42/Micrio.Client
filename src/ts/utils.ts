@@ -250,6 +250,7 @@ export const jsonCache:Map<string, Object> = new Map();
  * @internal
  */
 const jsonPromises:Map<string, Promise<Object>> = new Map();
+const jsonErrors:Map<string, [number, string]> = new Map();
 
 /**
  * Fetches JSON data from a URI, utilizing a cache to avoid redundant requests.
@@ -263,18 +264,23 @@ const jsonPromises:Map<string, Promise<Object>> = new Map();
 export const fetchJson = async <T=Object>(uri:string, noCache?:boolean) : Promise<T|undefined> => {
 	if(!noCache && jsonCache.has(uri)) return jsonCache.get(uri) as T; // Return cached data if available
 	if(jsonPromises.has(uri)) return jsonPromises.get(uri) as Promise<T>; // Return existing promise if fetch is in progress
+	if(jsonErrors.has(uri)) throw jsonErrors.get(uri)![1];
 
 	// Create and store the fetch promise
 	const promise = fetch(uri+(noCache ? '?'+Math.random():'')).then(async r => {
 		if(r.status == 200) return r.json() // Parse JSON on success
-		else throw await r.text(); // Throw error text on failure
+		else {
+			const error = await r.text();
+			jsonErrors.set(uri, [r.status, error]);
+			throw error; // Throw error text on failure
+		}
 	}).then(j => {
 		if(!noCache) jsonCache.set(uri, j); // Store result in cache
 		jsonPromises.delete(uri); // Remove promise from tracking map
 		return j;
 	}).catch(e => { // Handle fetch errors
-		jsonPromises.delete(uri); // Remove promise from tracking map on error
-		return undefined; // Return undefined on error
+		jsonPromises.delete(uri);
+		throw e;
 	});
 	jsonPromises.set(uri, promise); // Track the ongoing promise
 	return promise as Promise<T>;

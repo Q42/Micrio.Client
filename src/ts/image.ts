@@ -326,7 +326,7 @@ export class MicrioImage {
 		const forceDataRefresh = !!attr.settings?.forceDataRefresh;
 		// Fetch info/manifest if ID provided but dimensions missing, or if IIIF
 		if(this.id && (!attr.width || !attr.height || iiifManifest)) {
-			const loadError = (e:Error) => this.setError(e, 'Image with id "'+this.id+'" not found, published, or embeddable.');
+			const loadError = (e:Error) => this.setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
 			// Fetch info (Micrio or IIIF) or use preset data
 			deepCopy(this.preset?.[1] || await (i.isIIIF ? fetchJson(this.id) : fetchInfo(this.id, this.infoBasePath, forceDataRefresh)).catch(loadError), i);
 			// Re-check for manifest URL after fetching info

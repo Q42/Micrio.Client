@@ -357,7 +357,8 @@ export class HTMLMicrioElement extends HTMLElement {
 		}
 		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) { // If ID is V5 and might belong to an album
 			// Fetch image info to check for albumId, then load the album if found
-			await fetchInfo(opts.id, opts.forceInfoPath ? opts.path : undefined, opts.settings?.forceDataRefresh).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined);
+			await fetchInfo(opts.id, opts.forceInfoPath ? opts.path : undefined, opts.settings?.forceDataRefresh).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
+				.catch(() => {});
 		}
 
 		// --- Final Setup & Open ---
