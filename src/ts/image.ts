@@ -30,7 +30,7 @@ const jsCss:string[] = [];
 */
 export class MicrioImage {
 	/** The unique identifier (Micrio ID) for this image. */
-	readonly id: string;
+	id: string;
 
 	/** A unique instance identifier (UUID) generated for this specific instance. */
 	readonly uuid: string = createGUID();
@@ -324,11 +324,22 @@ export class MicrioImage {
 		i.isIIIF = this.id.startsWith('http') || i.format == 'iiif';
 
 		const forceDataRefresh = !!attr.settings?.forceDataRefresh;
+		let idFromCustomId:string|undefined;
 		// Fetch info/manifest if ID provided but dimensions missing, or if IIIF
 		if(this.id && (!attr.width || !attr.height || iiifManifest)) {
 			const loadError = (e:Error) => this.setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
 			// Fetch info (Micrio or IIIF) or use preset data
-			deepCopy(this.preset?.[1] || await (i.isIIIF ? fetchJson(this.id) : fetchInfo(this.id, this.infoBasePath, forceDataRefresh)).catch(loadError), i);
+			deepCopy(this.preset?.[1] || await (i.isIIIF ? fetchJson(this.id) : fetchInfo(this.id, this.infoBasePath, forceDataRefresh)
+				.then(r => {
+					// If custom ID requested (`id="external/{org-slug}/{customId}"`), the returned info is redirected to real image's ID path.
+					// Also correct this internally.
+					if(r?.id && !i.isIIIF && this.id.split('/').length==3 && this.id.startsWith('external/')) {
+						idFromCustomId = r.id.split('/').reverse()[0];
+						if(this.isV5 = idIsV5(idFromCustomId)) this.dataPath = r.path || BASEPATH_V5;
+					}
+					return r;
+				})
+			).catch(loadError), i);
 			// Re-check for manifest URL after fetching info
 			if(!iiifManifest && i.iiifManifest) iiifManifest = i.iiifManifest;
 			if(!i.isIIIF) i.isIIIF = !!iiifManifest;
@@ -358,6 +369,9 @@ export class MicrioImage {
 
 		// Merge attribute settings again (overriding fetched info)
 		deepCopy(attr, i);
+
+		// Overwrite internal Micrio ID with original Micrio ID
+		if(idFromCustomId) this.id = i.id = idFromCustomId;
 
 		// Determine tile base path
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
