@@ -377,7 +377,7 @@ const sanitizeImageInfo = (i:Models.ImageInfo.ImageInfo|undefined) => {
  * Sanitizes URLs and marker data within an ImageData object to the latest data formats.
  * @internal
  */
-export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, isV5:boolean, isLegacyViews:boolean) => {
+export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, lang:string, isV5:boolean, isLegacyViews:boolean) => {
 	if (!d) return;
 	// Filter out unpublished revisions (value <= 0)
 	if(d.revision) d.revision = Object.fromEntries(Object.entries((d.revision??{})).filter(r => Number(r[1]) > 0));
@@ -389,7 +389,7 @@ export const sanitizeImageData = (d:Models.ImageData.ImageData|undefined, isV5:b
 		if(isLegacyViews) e.area = View.fromLegacy(e.area)!;
 	});
 	// Sanitize markers
-	d.markers?.forEach(m => sanitizeMarker(m, isV5, isLegacyViews));
+	d.markers?.forEach(m => sanitizeMarker(m, lang, isV5, isLegacyViews));
 	// Sanitize tours that use legacy viewports
 	if(isLegacyViews) d.tours?.forEach(sanitizeVideoTour);
 	// Sanitize music playlist items
@@ -436,9 +436,10 @@ const sanitizedIds:string[] = [];
  * @param isOld Is the data from a pre-V5 image?
  * @param legacyViews It uses the old [x0,y0,x1,y1] viewports
  */
-export const sanitizeMarker = (m:Models.ImageData.Marker, isOld:boolean, legacyViews?:boolean) : void => {
-	if(sanitizedIds.indexOf(m.id) >= 0) return;
-	sanitizedIds.push(m.id);
+export const sanitizeMarker = (m:Models.ImageData.Marker, lang:string, isOld:boolean, legacyViews?:boolean) : void => {
+	const key = lang+'-'+m.id;
+	if(sanitizedIds.indexOf(key) >= 0) return;
+	sanitizedIds.push(key);
 	// Ensure basic properties exist
 	if(!m.data) m.data = {};
 	if(!m.id) m.id = createGUID();
@@ -513,7 +514,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 	// Sanitize markers in the fetched data
 	micData.forEach((d,i) => {
 		const isLegacy = isLegacyViews(micInfo[i]!);
-		d?.markers?.forEach(m => sanitizeMarker(m, !image.isV5, isLegacy));
+		d?.markers?.forEach(m => sanitizeMarker(m, lang, !image.isV5, isLegacy));
 	});
 	// Sanitize tour cover image
 	sanitizeAsset(tour.image);

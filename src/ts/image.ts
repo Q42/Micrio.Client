@@ -288,7 +288,7 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize marker/embed data whenever the data store updates
-		this.data.subscribe(d => {if(d)sanitizeImageData(d, this.isV5, isLegacyViews(this.__info))});
+		this.data.subscribe(d => {if(d)sanitizeImageData(d, micrio.lang, this.isV5, isLegacyViews(this.__info))});
 	}
 
 	/** Sets the error state and prints it to the UI.
@@ -617,7 +617,7 @@ export class MicrioImage {
 
 		// Process markers
 		d.markers?.forEach(m => {
-			sanitizeMarker(m, !this.isV5, isLegacyViews(this.__info)); // Sanitize marker data
+			sanitizeMarker(m, lang, !this.isV5, isLegacyViews(this.__info)); // Sanitize marker data
 
 			// Check for split-screen links in marker data
 			if(m.data?.micrioSplitLink) {
@@ -661,7 +661,7 @@ export class MicrioImage {
 		// Sanitize markers in preloaded data
 		micData.forEach((d,i) => {
 			const isLegacy = isLegacyViews(micInfo[i]!);
-			d?.markers?.forEach(m => sanitizeMarker(m, micIdsUnique[i]!.length == 5, isLegacy));
+			d?.markers?.forEach(m => sanitizeMarker(m, lang, micIdsUnique[i]!.length == 5, isLegacy));
 		});
 
 		const spaceData = this.wasm.micrio.spaceData; // Get space data if available
