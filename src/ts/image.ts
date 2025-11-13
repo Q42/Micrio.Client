@@ -484,6 +484,11 @@ export class MicrioImage {
 			this.data.set(undefined); // Clear existing data
 			if(!lang && this.preset?.[2]) lang = 'preset'; // Use preset if no valid lang
 			if((lang) && this.id) {
+				// For old data model, close any open tours/popups (no live translations)
+				if(!this.isV5) {
+					micrio.state.tour.set(undefined);
+					this.state.marker.set(undefined);
+				}
 				if(this.preset?.[2]) this.enrichData(this.preset[2]) // Use preset data if available
 					.then(d => { this.data.set(d); if(this.preset?.[2]) this.preset[2] = undefined; }); // Clear preset after use
 				else fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data.'+lang+'.json') // Fetch data for language
