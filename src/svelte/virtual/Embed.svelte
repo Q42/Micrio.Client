@@ -175,6 +175,7 @@
 	let y:number = $state(0); // Screen Y
 	let scale:number; // Screen scale at embed position
 	let matrix:string = $state(''); // CSS matrix3d string for 360 positioning
+	let isBehind:boolean = $state(false); // For 360 image embeds, it's currently behind the camera
 
 	/** CSS style string for the main container element. */
 	let style = $state('');
@@ -199,9 +200,13 @@
 		// Exit if camera is not ready
 		if(!mainImage.camera.e) return;
 		// Get current screen coordinates [x, y, scale, w(depth)]
-		[x, y, scale] = mainImage.camera.getXYDirect(cX, cY);
+		const coo = mainImage.camera.getXYDirect(cX, cY);
+		[x, y, scale] = coo;
 		// Calculate 3D matrix for 360 embeds
-		if(is360) matrix = mainImage.camera.getMatrix(cX, cY, s, 1, rotX, rotY, rotZ, undefined, scaleX, scaleY).join(',');
+		if(is360) {
+			matrix = mainImage.camera.getMatrix(cX, cY, s, 1, rotX, rotY, rotZ, undefined, scaleX, scaleY).join(',');
+			isBehind = coo[3] > 2;
+		}
 		// Update CSS style string
 		style = (is360 ? `transform:matrix3d(${matrix});` : `--x:${x}px;--y:${y}px;--s:${scale};`) // Use matrix or CSS vars
 			+ (embed.opacity !== undefined && embed.opacity !== 1 ? `--opacity:${embed.opacity};` : ''); // Apply opacity if set
@@ -377,6 +382,7 @@
 		class:embed-container={!0}
 		class:embed3d={is360}
 		class:no-events={noEvents}
+		class:behind={is360 && isBehind}
 		onclick={click}
 		onkeypress={click}
 		use:listen={change}
@@ -441,6 +447,10 @@
 	/* Allow pointer events on content if container is interactive */
 	.embed-container:not(.no-events) > :global(*) {
 		pointer-events: all;
+	}
+	/* When in 360 and behind the camera, no pointer events */
+	.embed-container.behind > :global(*) {
+		pointer-events: none;
 	}
 	/* Prevent image dragging */
 	.embed-container > img {
