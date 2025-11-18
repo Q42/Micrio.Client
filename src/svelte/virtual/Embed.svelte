@@ -134,10 +134,24 @@
 		scaleX = embed.scaleX??1;
 		scaleY = embed.scaleY??1;
 
+		const isGLEmbeddedMicrio = printGL && embed.micrioId && embed.width;
+		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
+
+		let scale = w * info.width / (embed.width ?? 100) / (!printGL ? s : embed.width ? w : 1) * (is360 ? Math.PI/2 : 1);
+
+		const buttonStyles:string[] = [];
+
 		// Calculate CSS style string for button/image embeds
-		buttonStyle = `--ratio:${w/h * info.width/info.height};--scale:${w * info.width / (embed.width ?? 100) / (!printGL ? s : 1) * (is360 ? Math.PI/2 : 1)};`;
+		if(isGLEmbeddedMicrio && embed.width) {
+			scale = w/(embed.width / info.width) * htmlButtonEmbedScale * (is360 ? Math.PI/2 : 1);
+			buttonStyles.push(`width:${embed.width/htmlButtonEmbedScale}px`);
+		}
+
+		buttonStyles.push(`--ratio:${w/h * info.width/info.height};--scale:${scale}`);
+
 		if(isSVG) buttonStyle+=`height:${embed.height}px`; // Set height directly for SVG
-		if(printGL && embed.micrioId && embed.width) buttonStyle+=`width:${embed.width}px`; // Set width for GL Micrio embeds?
+
+		buttonStyle = buttonStyles.join(';')
 
 		if(embed.video) {
 			if(embed.video.width > embed.video.height) _widthCapped = Math.min(embed.video.width, w*info.width, 2048);
@@ -315,7 +329,7 @@
 
 	// --- Size Calculation for HTML Video ---
 	// Cap the rendered size of HTML video elements to their native resolution
-	const widthCapped = $derived(embed.video ? _widthCapped : width);
+	const widthCapped = $derived(embed.video || printGL ? _widthCapped : width);
 	const heightCapped = $derived(embed.video ? _widthCapped / (embed.video.width / embed.video.height) : height);
 	/** Relative scale factor for HTML video element (used for CSS transform). */
 	const relScale = $derived(width / widthCapped);
