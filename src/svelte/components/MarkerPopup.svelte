@@ -103,6 +103,8 @@
 	const isPartOfTour = $derived(markerTour && markerTour?.steps.findIndex(s => s.startsWith(marker.id)) >= 0);
 	/** Determine if tour controls should be shown within the popup. */
 	const showTourControls = $derived(isPartOfTour && !markerTour?.isSerialTour && (tourSourceImage?.$settings._markers?.tourControlsInPopup ?? settings.tourControlsInPopup));
+	/** Show the tour step counter in the popup. */
+	const showTourStepCounter = $derived(isPartOfTour && !markerTour?.isSerialTour && (tourSourceImage?.$settings._markers?.tourStepCounterInPopup ?? settings.tourStepCounterInPopup));
 	/** Get the current step index of the active marker tour. */
 	const currentTourStep = $derived(markerTour?.currentStep ?? -1);
 	/** Determine if the close button should stop the tour instead of advancing. */
@@ -224,7 +226,7 @@
 				<!-- Previous Step Button -->
 				<Button type="arrow-left" disabled={clickedPrevNext || currentTourStep==0} title={$i18n.tourStepPrev} onclick={() => markerTourStep(true)} />
 				<!-- Step Counter (if enabled in settings) -->
-				{#if settings.tourStepCounterInPopup}<button class="micrio-button tour-step" disabled>{currentTourStep+1} / {$tour.steps.length}</button>{/if}
+				{#if showTourStepCounter}<button class="micrio-button tour-step" disabled>{currentTourStep+1} / {$tour.steps.length}</button>{/if}
 				<!-- Next Step Button -->
 				<Button type="arrow-right" disabled={clickedPrevNext || (currentTourStep+1==$tour.steps.length)} title={$i18n.tourStepNext} onclick={() => markerTourStep()} />
 			</ButtonGroup>
