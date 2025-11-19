@@ -305,7 +305,7 @@
 		if(markerSettings.noMarkerActions) return;
 
 		// Auto-start associated marker tour if configured and no other tour is active
-		if(autoStartMyTour && autoStartMyTour.id != $tour?.id) {
+		if(autoStartMyTour && autoStartMyTour.id != $tour?.id && !$tour) {
 			// Set initial step based on settings
 			autoStartMyTour.initialStep = startTourAtBeginning ? 0 : myTourStep;
 			const firstStep = autoStartMyTour.stepInfo?.[0];
