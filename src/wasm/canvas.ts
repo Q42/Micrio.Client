@@ -661,6 +661,8 @@ export default class Canvas {
 			unchecked(v[1] = v[7] = v[16] = (.5-<f32>r.y0));      // Top-Left Y, Top-Right Y (Vert 0, 2)
 			unchecked(v[4] = v[10] = v[13] = (.5-<f32>r.y1));     // Bottom-Left Y, Bottom-Right Y (Vert 1, 3)
 			unchecked(v[6] = v[12] = v[15] = (<f32>r.x1-.5) * a); // Top-Right X, Bottom-Right X (Vert 2, 3)
+			// Reset Z component to 0 (crucial when switching from 360 embeds which use Z)
+			unchecked(v[2] = v[5] = v[8] = v[11] = v[14] = v[17] = 0);
 			// Optional Z component for grid transitions (commented out)
 			//if(this.parent && this.main.gridTransitionDuration > 0) unchecked(v[2] = v[5] = v[8] = v[11] = v[14] = v[17] = (<f32>this.bOpacity - 1)*.25);
 		}
