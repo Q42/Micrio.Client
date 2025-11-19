@@ -46,6 +46,11 @@
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 
+	/** Find the image that contains the active tour for tourControlsInPopup setting. */
+	const tourSourceImage = $derived($tour && 'steps' in $tour ? micrio.canvases.find(c =>
+		c.$data?.markerTours?.find(t => t.id === $tour.id)
+	) : undefined);
+
 	/** Marker specific data overrides. */
 	const data = marker.data || {};
 
@@ -97,7 +102,7 @@
 	/** Check if this marker is part of the currently active marker tour. */
 	const isPartOfTour = $derived(markerTour && markerTour?.steps.findIndex(s => s.startsWith(marker.id)) >= 0);
 	/** Determine if tour controls should be shown within the popup. */
-	const showTourControls = $derived(isPartOfTour && !markerTour?.isSerialTour && settings.tourControlsInPopup);
+	const showTourControls = $derived(isPartOfTour && !markerTour?.isSerialTour && (tourSourceImage?.$settings._markers?.tourControlsInPopup ?? settings.tourControlsInPopup));
 	/** Get the current step index of the active marker tour. */
 	const currentTourStep = $derived(markerTour?.currentStep ?? -1);
 	/** Determine if the close button should stop the tour instead of advancing. */

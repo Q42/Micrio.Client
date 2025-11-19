@@ -422,6 +422,8 @@ export class MicrioImage {
 		if(i.spacesId && !micrio.spaceData) {
 			micrio.spaceData = 'MICRIO_SPACE_DATA' in self ? self['MICRIO_SPACE_DATA'] as Models.Spaces.Space // Check for preloaded data
 				: await fetchJson<Models.Spaces.Space>('https://i.micr.io/spaces/'+i.spacesId+'.json'); // Fetch from CDN
+			// When just one image, ignore space data
+			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
 
 		// Set trueNorth for 360 images based on space data rotation
