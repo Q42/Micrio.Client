@@ -6,7 +6,7 @@
  */
 
 /** A type representing an image source acceptable by WebGL `texImage2D`. */
-export type TextureBitmap = ImageBitmap|HTMLImageElement|HTMLVideoElement;
+export type TextureBitmap = ImageBitmap|HTMLImageElement|HTMLVideoElement|HTMLCanvasElement;
 
 /** Flag indicating if the browser is an older Safari version lacking `createImageBitmap`. @internal */
 const isOldSafari:boolean = !self.createImageBitmap;

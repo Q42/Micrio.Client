@@ -55,6 +55,13 @@ void main() {
 	}
 }`;
 
+/** Watermark tile size. @internal */
+const watermarkTileSize = 256;
+
+/** Watermark maximum size. @internal */
+const watermarkMaxSizeW = 128;
+const watermarkMaxSizeH = 64;
+
 /**
  * The WebGL controller class. Manages the WebGL context, shaders, buffers,
  * textures, and drawing operations. Accessed via `micrio.webgl`.
@@ -415,11 +422,26 @@ export class WebGL {
 
 		this.wmUrl = url;
 		const img = new Image();
-		img.crossOrigin = "anonymous";
+		img.crossOrigin = 'anonymous';
 		img.src = url;
 		img.onload = () => {
+			const c = document.createElement('canvas');
+			c.width = watermarkTileSize;
+			c.height = watermarkTileSize;
+			const ctx = c.getContext('2d');
+			if(!ctx) return;
+
+			// Calculate dimensions to fit within bounds while maintaining aspect ratio
+			const ratio = Math.min(watermarkMaxSizeW / img.width, watermarkMaxSizeH / img.height);
+			const w = img.width * ratio;
+			const h = img.height * ratio;
+
+			// Draw centered
+			ctx.drawImage(img, (watermarkTileSize - w) / 2, (watermarkTileSize - h) / 2, w, h);
+
+			// Create texture from canvas
 			if(this.wmTexture) this.gl.deleteTexture(this.wmTexture);
-			this.wmTexture = this.getTexture(img);
+			this.wmTexture = this.getTexture(c); // getTexture supports HTMLCanvasElement
 
 			// Configure repeating texture
 			const gl = this.gl;
@@ -449,11 +471,11 @@ export class WebGL {
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, this.wmTexture);
 		gl.uniform1i(this.noTxtLoc, 0);
-		gl.uniform1f(this.opaLoc, 0.3); // Slight transparency
+		gl.uniform1f(this.opaLoc, 0.2); // Slight transparency
 
 		// UVs (Repeated based on 512px tiling)
-		const w = gl.drawingBufferWidth / 512;
-		const h = gl.drawingBufferHeight / 512;
+		const w = gl.drawingBufferWidth / watermarkTileSize;
+		const h = gl.drawingBufferHeight / watermarkTileSize;
 		
 		// Update UVs directly
 		const u = this.wmUvs;
