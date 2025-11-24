@@ -59,7 +59,7 @@ void main() {
 const watermarkTileSize = 256;
 
 /** Watermark maximum size. @internal */
-const watermarkMaxSizeW = 128;
+const watermarkMaxSizeW = 96;
 const watermarkMaxSizeH = 64;
 
 /**
@@ -456,13 +456,16 @@ export class WebGL {
 	/**
 	 * Draws a watermark on top of the canvas.
 	 */
-	drawWatermark() : void {
+	private drawWatermark() : void {
 		const gl = this.gl;
 
 		if(!this.wmTexture) return;
 
 		// Use program
 		gl.useProgram(this.program);
+
+		// Set blending function for watermark
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 		// Set identity matrix for screen-space rendering
 		gl.uniformMatrix4fv(this.pmLoc, false, this.wmMatrix);
@@ -471,7 +474,7 @@ export class WebGL {
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, this.wmTexture);
 		gl.uniform1i(this.noTxtLoc, 0);
-		gl.uniform1f(this.opaLoc, 0.2); // Slight transparency
+		gl.uniform1f(this.opaLoc, 0.075); // Slight transparency
 
 		// UVs (Repeated based on 512px tiling)
 		const w = gl.drawingBufferWidth / watermarkTileSize;
@@ -498,6 +501,7 @@ export class WebGL {
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
 		// Restore state
+		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // Restore default blending
 		this.linkBuffers(); // Restores Wasm buffer bindings (standard quad)
 		this.was360 = false; // Mark state as standard so next 360 draw triggers rebind
 	}
