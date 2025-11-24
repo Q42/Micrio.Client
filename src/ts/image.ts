@@ -512,9 +512,12 @@ export class MicrioImage {
 			})
 		}
 
-		// Set final settings store value (after merging everything)
+			// Set final settings store value (after merging everything)
 		if(i.settings) this.settings.set(i.settings);
 		delete i.settings; // Remove settings from info object after processing
+
+		// Set watermark if present
+		if(i.watermark) this.wasm.micrio.webgl.loadWatermark(i.watermark);
 
 		// Hook Omni controls if applicable
 		if(this.isOmni) this.state.hookOmni();

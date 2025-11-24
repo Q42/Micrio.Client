@@ -88,6 +88,31 @@ export class WebGL {
 	/** WebGLBuffer for dynamic vertex geometry (positions). @internal */
 	private geomBuffer!:WebGLBuffer;
 
+	/** WebGLBuffer for watermark texture coordinates. @internal */
+	private wmTxtBuffer!:WebGLBuffer;
+
+	/** Watermark texture. @internal */
+	private wmTexture: WebGLTexture | null = null;
+
+	/** Watermark URL. @internal */
+	private wmUrl: string | null = null;
+
+	/** Watermark vertices (static full screen quad). @internal */
+	private wmVerts: Float32Array = new Float32Array([
+		-1, -1, 0,
+		 1, -1, 0,
+		-1,  1, 0,
+		-1,  1, 0,
+		 1, -1, 0,
+		 1,  1, 0
+	]);
+
+	/** Watermark UVs (dynamic). @internal */
+	private wmUvs: Float32Array = new Float32Array([0,0, 0,0, 0,0, 0,0, 0,0, 0,0]);
+
+	/** Identity matrix for watermark rendering. @internal */
+	private wmMatrix: Float32Array = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+
 	/** Attribute location for vertex positions. @internal */
 	private posAttr:number = -1;
 
@@ -181,6 +206,11 @@ export class WebGL {
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Wasm._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Wasm
 
+		// Watermark Texture Coordinates Buffer
+		const wmTxtBuffer = gl.createBuffer();
+		if(wmTxtBuffer) this.wmTxtBuffer = wmTxtBuffer;
+		else throw 'Could not create watermark buffer';
+
 		// Vertex Position Buffer (Dynamic - updated by Wasm)
 		const geomBuffer = gl.createBuffer();
 		if(geomBuffer) this.geomBuffer = geomBuffer;
@@ -229,10 +259,13 @@ export class WebGL {
 		// Delete buffers
 		gl.deleteBuffer(this.txtBuffer);
 		gl.deleteBuffer(this.geomBuffer);
+		gl.deleteBuffer(this.wmTxtBuffer);
 		// Delete shader program
 		gl.deleteProgram(this.program);
 		// Delete framebuffer/texture from postprocessor if it exists
 		this.postpocessor?.dispose();
+		// Delete watermark texture
+		if(this.wmTexture) gl.deleteTexture(this.wmTexture);
 
 		// Attempt to lose context if requested
 		if(loseContext) {
@@ -330,6 +363,7 @@ export class WebGL {
 			this.gl.useProgram(this.program);
 			this.linkBuffers();
 		}
+		if(this.wmTexture) this.drawWatermark();
 	}
 
 	/**
@@ -370,6 +404,80 @@ export class WebGL {
 		// this.gl.drawArrays(this.gl.LINE_STRIP, 0, length);
 		this.gl.drawArrays(this.gl.TRIANGLES, 0, length); // Draw triangles
 
+	}
+
+	/**
+	 * Loads a watermark texture from a URL.
+	 * @param url The watermark image URL.
+	 */
+	loadWatermark(url: string) : void {
+		if(url === this.wmUrl) return; // Already loaded/loading
+
+		this.wmUrl = url;
+		const img = new Image();
+		img.crossOrigin = "anonymous";
+		img.src = url;
+		img.onload = () => {
+			if(this.wmTexture) this.gl.deleteTexture(this.wmTexture);
+			this.wmTexture = this.getTexture(img);
+
+			// Configure repeating texture
+			const gl = this.gl;
+			gl.bindTexture(gl.TEXTURE_2D, this.wmTexture);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+			// Restore to null binding
+			gl.bindTexture(gl.TEXTURE_2D, null);
+		};
+	}
+
+	/**
+	 * Draws a watermark on top of the canvas.
+	 */
+	drawWatermark() : void {
+		const gl = this.gl;
+
+		if(!this.wmTexture) return;
+
+		// Use program
+		gl.useProgram(this.program);
+
+		// Set identity matrix for screen-space rendering
+		gl.uniformMatrix4fv(this.pmLoc, false, this.wmMatrix);
+
+		// Set texture
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.wmTexture);
+		gl.uniform1i(this.noTxtLoc, 0);
+		gl.uniform1f(this.opaLoc, 0.3); // Slight transparency
+
+		// UVs (Repeated based on 512px tiling)
+		const w = gl.drawingBufferWidth / 512;
+		const h = gl.drawingBufferHeight / 512;
+		
+		// Update UVs directly
+		const u = this.wmUvs;
+		u[1] = h;
+		u[2] = w; u[3] = h;
+		u[8] = w; u[9] = h;
+		u[10] = w;
+
+		// Use geomBuffer for vertices
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.wmVerts, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0);
+
+		// Use wmTxtBuffer for UVs
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.wmTxtBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.wmUvs, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.txtAttr, 2, gl.FLOAT, false, 0, 0);
+
+		// Draw
+		gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+		// Restore state
+		this.linkBuffers(); // Restores Wasm buffer bindings (standard quad)
+		this.was360 = false; // Mark state as standard so next 360 draw triggers rebind
 	}
 
 }
