@@ -450,6 +450,8 @@ export class WebGL {
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 			// Restore to null binding
 			gl.bindTexture(gl.TEXTURE_2D, null);
+
+			this.micrio.wasm.render();
 		};
 	}
 
