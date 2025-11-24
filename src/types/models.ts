@@ -103,6 +103,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Optional custom file extension for tiles */
 			tileExtension?: string;
 
+			/** Optional watermark image URI */
+			watermark?: string;
+
 			/** Force the `path` attribute to be used to get the info.json data */
 			forceInfoPath?: boolean;
 
