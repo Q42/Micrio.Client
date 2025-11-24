@@ -18,9 +18,18 @@ import { Browser, once } from './utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 import { WASM } from './globals'; // Contains WASM binary data (likely base64)
 
+/**
+ * In case there is no bundled B64 Wasm (default for published Micrio JS),
+ * check if the script is the ".safe-wasm"-version, and use its co-published .wasm
+ * binary. Otherwise, assume we are in development mode and use the local WASM binary.
+ */
+const selfJSSrc = document.currentScript?.getAttribute('src')?.toString();
+const wasmBin = selfJSSrc?.includes('.safe-wasm.js') ? selfJSSrc.replace('.safe-wasm.js', '.wasm')
+	: 'http://localhost:2000/build/optimized.wasm';
+
 /** Promise for loading the Wasm binary (either from external source or embedded data). @internal */
 const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz(WASM.b64,!0) // Use decompression function if available
-	: fetch('http://localhost:2000/build/optimized.wasm').then(response => response.arrayBuffer()); // Fallback to fetching dev build
+	: fetch(wasmBin).then(response => response.arrayBuffer()); // Fallback to fetching dev build
 
 /** Number of memory pages to allocate for Wasm (1 page = 64KB). @internal */
 const numPages : number = 100; // ~6.4MB

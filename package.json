@@ -5,7 +5,7 @@
 	"main": "micrio.js",
 	"type": "module",
 	"scripts": {
-		"build": "vite build && tsc -d --project tsconfig.docs.json --outFile out.d.ts && node bundle.js",
+		"build": "vite build && tsc -d --project tsconfig.docs.json --outFile out.d.ts && node bundle.js --safe-wasm && node bundle.js",
 		"dev": "vite --port 2000",
 		"publish": "node publish.js",
 		"docs": "npm run create:client --prefix ../Micrio/server/doc.micr.io",
