@@ -397,8 +397,8 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 		// Ignore non-primary buttons or touch events if twoFingerPan is enabled
 		if(e.button != 0 || (e.pointerType == 'touch' && this.twoFingerPan)) return;
 
-		// Ignore if interaction didn't start on the canvas element (unless forced)
-		if(!force && e.target != this.el) return;
+		// Ignore if interaction didn't start on the canvas element (unless forced or target has scroll-through)
+		if(!force && e.target != this.el && !(e.target instanceof Element && e.target.closest('[data-scroll-through]'))) return;
 
 		// Ignore if Omni object and shift key is pressed (likely for multi-select or other interaction)
 		if(this.micrio.$current?.isOmni && e.shiftKey) return;
@@ -637,7 +637,7 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 		if(!(e instanceof WheelEvent)) return; // Ensure WheelEvent
 		// Check if zoom is allowed based on settings and modifier keys
 		if(this.controlZoom && !e.ctrlKey) return;
-		if(!force && e.target instanceof Element && e.target != this.el && !e.target.classList.contains('marker') && !e.target.hasAttribute('data-scroll-through')) return;
+		if(!force && e.target instanceof Element && e.target != this.el && !e.target.classList.contains('marker') && !e.target.closest('[data-scroll-through]')) return;
 
 		let delta = e.deltaY;
 
