@@ -198,17 +198,18 @@ export default class Image {
 		                  this.sphere3DY * this.canvas.webgl.cameraForwardY + 
 		                  this.sphere3DZ * this.canvas.webgl.cameraForwardZ;
 		
-		// If embed is behind camera, it's not visible
-		if (dotProduct < 0) return false;
-		
 		// Calculate angular distance from camera center to embed center
 		const angularDistance = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
 		
-		// Use a more generous FOV for embed detection (250% of actual FOV)
-		const expandedFOV = this.canvas.webgl.fieldOfView * 1.25;		
+		// Calculate the embed's angular radius (use max of width/height for safety)
+		const embedAngularRadius = max(this.angularWidth, this.angularHeight) / 2;
 		
-		// Embed is visible if it's within the expanded field of view
-		return angularDistance < expandedFOV;
+		// Use the camera's field of view plus the embed's angular radius
+		// This ensures the embed is visible if ANY part of it is within the FOV
+		const effectiveFOV = this.canvas.webgl.fieldOfView + embedAngularRadius;
+		
+		// Embed is visible if any part of it could be within the field of view
+		return angularDistance < effectiveFOV;
 	}
 
 	/** Checks if the image's bounding box is completely outside the current view. */
