@@ -507,8 +507,17 @@ export default class Camera {
 				// Compute clamped centers, keeping width/height the same
 				const halfW = v.width / 2;
 				const halfH = v.height / 2;
-				const targetCenterX = max(v.lX0 + halfW, min(v.centerX, v.lX1 - halfW));
-				const targetCenterY = max(v.lY0 + halfH, min(v.centerY, v.lY1 - halfH));
+				const lHalfW = v.lWidth / 2;
+				const lHalfH = v.lHeight / 2;
+				
+				// If view is larger than limits (underzoomed), center it on the limit center
+				// Otherwise, clamp the center so edges stay within limit bounds
+				const targetCenterX = halfW >= lHalfW 
+					? v.lCenterX 
+					: max(v.lX0 + halfW, min(v.centerX, v.lX1 - halfW));
+				const targetCenterY = halfH >= lHalfH 
+					? v.lCenterY 
+					: max(v.lY0 + halfH, min(v.centerY, v.lY1 - halfH));
 				const targetWidth = v.width;
 				const targetHeight = v.height;
 

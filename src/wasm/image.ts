@@ -271,7 +271,12 @@ export default class Image {
 			if(!(this.doRender = (scale > 0))) return 0;
 		}
 		// For standard 2D images/embeds, apply relative scale factor
-		else scale *= this.rScale;
+		else {
+			// Clamp camera scale to minScale for tile layer selection when underzoomed
+			// This ensures we maintain appropriate tile resolution even when zoomed out beyond minScale
+			const cam = this.canvas.camera;
+			scale = max(scale, cam.minScale) * this.rScale;
+		}
 
 		// --- Base Layer Handling ---
 		// If the base layer hasn't been drawn yet, always add it to the draw list
