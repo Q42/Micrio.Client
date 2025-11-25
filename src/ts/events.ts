@@ -180,6 +180,11 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 	/** Current pinch zoom factor relative to the start of the pinch. Undefined when not pinching. */
 	pinchFactor: number|undefined;
 
+	/** Map tracking active pointers for multi-touch pinch detection (pointer ID -> coordinates).
+	 * @internal
+	 */
+	private activePointers: Map<number, {x: number, y: number}> = new Map();
+
 	/**
 	 * The Events constructor.
 	 * @param micrio The main HTMLMicrioElement instance.
@@ -198,6 +203,9 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 		this.pStart = this.pStart.bind(this);
 		this.pMove = this.pMove.bind(this);
 		this.pStop = this.pStop.bind(this);
+		this.pointerPinchStart = this.pointerPinchStart.bind(this);
+		this.pointerPinchMove = this.pointerPinchMove.bind(this);
+		this.pointerPinchEnd = this.pointerPinchEnd.bind(this);
 		this.gesture = this.gesture.bind(this);
 		this.keydown = this.keydown.bind(this);
 		this.wheel = this.wheel.bind(this);
@@ -289,6 +297,9 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 		if(!this.hooked) return; // Already unhooked
 		this.hooked = false;
 
+		// Clear pointer tracking state
+		this.activePointers.clear();
+
 		// Unhook specific event types
 		this.unhookDrag();
 		this.unhookZoom();
@@ -340,8 +351,17 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 
 	/** Hooks touch pinch and macOS gesture event listeners. */
 	public hookPinch() : void {
-		if(this.hasTouch) { // Standard touch events
+		// Use touch events on iOS (most reliable there), pointer events everywhere else
+		// (Android, Windows touchscreens, etc. all support pointer events well)
+		if(Browser.iOS && this.hasTouch) {
 			this.el.addEventListener('touchstart', this.pStart, _eventPassive);
+		}
+		else {
+			// Pointer events for pinch detection (works on Android, Windows touchscreens, etc.)
+			// We ALWAYS listen for pointerdown and pointerup to accurately track active pointers
+			this.el.addEventListener('pointerdown', this.pointerPinchStart, _eventPassive);
+			self.addEventListener('pointerup', this.pointerPinchEnd, _eventPassive);
+			self.addEventListener('pointercancel', this.pointerPinchEnd, _eventPassive);
 		}
 
 		// macOS specific gesture events for trackpad pinch
@@ -354,8 +374,19 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 
 	/** Unhooks touch pinch and macOS gesture event listeners. */
 	public unhookPinch() : void {
-		this.el.removeEventListener('touchstart', this.pStart, _eventPassive);
-		if(Browser.OSX) { // Commented out - handled by wheel event
+		// Match the logic in hookPinch - remove the correct listeners
+		if(Browser.iOS && this.hasTouch) {
+			this.el.removeEventListener('touchstart', this.pStart, _eventPassive);
+		}
+		else {
+			this.el.removeEventListener('pointerdown', this.pointerPinchStart, _eventPassive);
+			self.removeEventListener('pointerup', this.pointerPinchEnd, _eventPassive);
+			self.removeEventListener('pointercancel', this.pointerPinchEnd, _eventPassive);
+			// Clean up pinch move listener if it was active
+			self.removeEventListener('pointermove', this.pointerPinchMove, _eventPassiveCapture);
+			this.activePointers.clear();
+		}
+		if(Browser.OSX) {
 			this.micrio.removeEventListener('gesturestart', this.gesture, _noEventPassive);
 			this.micrio.removeEventListener('gesturechange', this.gesture, _noEventPassive);
 			this.micrio.removeEventListener('gestureend', this.gesture, _noEventPassive);
@@ -402,6 +433,9 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 
 		// Ignore if Omni object and shift key is pressed (likely for multi-select or other interaction)
 		if(this.micrio.$current?.isOmni && e.shiftKey) return;
+
+		// Don't start panning if we're pinching
+		if(this.pinching) return;
 
 		// Handle potential conflicts with pinching
 		if(this.panning) {
@@ -598,6 +632,148 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 
 		// If one finger remains after pinch, potentially restart panning
 		if(e instanceof TouchEvent && e.touches.length == 1) this.dStart(e as unknown as PointerEvent, true);
+	}
+
+	// --- Pointer-based Pinch (for Windows touchscreens and other platforms) ---
+
+	/**
+	 * Handles pointer down for multi-touch pinch detection.
+	 * Uses Pointer Events API which works on Windows touchscreens and Android.
+	 * @internal
+	 * @param e The PointerEvent.
+	 */
+	private pointerPinchStart(e: PointerEvent): void {
+		// Only handle touch pointer events (not mouse)
+		if (e.pointerType !== 'touch') return;
+
+		// Track this pointer
+		this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+		// If we now have exactly 2 pointers and not already pinching, start pinching
+		if (this.activePointers.size === 2 && !this.pinching) {
+			// Stop any panning that was active
+			this.vars.pinch.wasPanning = this.panning;
+			this.dStop(undefined, false, true);
+
+			this.pinching = true;
+
+			// Add move listener only during pinching (for performance)
+			self.addEventListener('pointermove', this.pointerPinchMove, _eventPassiveCapture);
+
+			this.micrio.setAttribute('data-pinching', '');
+
+			// Get the two pointer positions
+			const pointers = Array.from(this.activePointers.values());
+			const p1 = pointers[0];
+			const p2 = pointers[1];
+
+			// Store target image and initial pinch distance
+			this.vars.pinch.image = this.getImage({ x: p1.x, y: p1.y });
+			this.vars.pinch.sDst = pyth(p1.x - p2.x, p1.y - p2.y);
+			this.pinchFactor = undefined;
+
+			// Notify Wasm pinch started
+			if (this.vars.pinch.image) {
+				this.micrio.wasm.e._pinchStart(this.vars.pinch.image.ptr);
+			}
+			this.micrio.wasm.render();
+
+			this.dispatch('pinchstart');
+			if (this.twoFingerPan) this.dispatch('panstart');
+		}
+	}
+
+	/**
+	 * Handles pointer move during a multi-touch pinch gesture.
+	 * @internal
+	 * @param e The PointerEvent.
+	 */
+	private pointerPinchMove(e: PointerEvent): void {
+		// Only handle touch pointer events
+		if (e.pointerType !== 'touch') return;
+
+		// Update this pointer's position (only if we're tracking it)
+		if (!this.activePointers.has(e.pointerId)) return;
+		this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+		// Must be pinching with exactly 2 pointers
+		if (!this.pinching || this.activePointers.size !== 2) return;
+
+		const pointers = Array.from(this.activePointers.values());
+		const p1 = pointers[0];
+		const p2 = pointers[1];
+
+		const v = this.vars.pinch;
+		const i = v.image;
+		if (!i) return;
+
+		// Prepare coordinates
+		const coo = { x: p1.x, y: p1.y };
+		const coo2 = { x: p2.x, y: p2.y };
+
+		// Adjust coordinates if pinching on a passive split-screen image
+		if (i?.opts.secondaryTo && i.opts.isPassive && i.opts.area) {
+			const dX = i.opts.area[0] * this.micrio.offsetWidth;
+			const dY = i.opts.area[1] * this.micrio.offsetHeight;
+			coo.x -= dX; coo2.x -= dX;
+			coo.y -= dY; coo2.y -= dY;
+		}
+
+		// Calculate current pinch factor relative to start distance
+		this.pinchFactor = pyth(p1.x - p2.x, p1.y - p2.y) / v.sDst;
+
+		// Notify Wasm of pinch movement
+		this.micrio.wasm.e._pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+	}
+
+	/**
+	 * Handles pointer up/cancel - always called to track active pointers.
+	 * Also ends pinch gesture when needed.
+	 * @internal
+	 * @param e The PointerEvent.
+	 */
+	private pointerPinchEnd(e: PointerEvent): void {
+		// Only handle touch pointer events
+		if (e.pointerType !== 'touch') return;
+
+		// Always remove this pointer from tracking
+		this.activePointers.delete(e.pointerId);
+
+		// If we were pinching and now have less than 2 pointers, end the pinch
+		if (this.pinching && this.activePointers.size < 2) {
+			this.pinching = false;
+
+			// Remove move listener (we keep up/cancel listeners for tracking)
+			self.removeEventListener('pointermove', this.pointerPinchMove, _eventPassiveCapture);
+
+			this.micrio.removeAttribute('data-pinching');
+
+			// Notify Wasm pinch stopped
+			const i = this.vars.pinch.image;
+			if (i) {
+				this.micrio.wasm.e._pinchStop(i.ptr, performance.now());
+				this.micrio.wasm.render();
+			}
+			this.vars.pinch.image = undefined;
+			this.pinchFactor = undefined;
+
+			this.dispatch('pinchend');
+			if (this.twoFingerPan && !this.vars.pinch.wasPanning) this.dispatch('panend');
+
+			// If one pointer remains, restart panning with that finger
+			if (this.activePointers.size === 1) {
+				const remainingPointer = Array.from(this.activePointers.entries())[0];
+				const syntheticEvent = {
+					button: 0,
+					pointerType: 'touch',
+					target: this.el,
+					clientX: remainingPointer[1].x,
+					clientY: remainingPointer[1].y,
+					pointerId: remainingPointer[0]
+				} as unknown as PointerEvent;
+				this.dStart(syntheticEvent, true);
+			}
+		}
 	}
 
 	// --- macOS Gesture Events ---
