@@ -222,7 +222,7 @@ export default class Camera {
 		}
 
 		// Calculate maxScale based on settings, ensuring it's at least minScale
-		this.maxScale = this.minScale > 1 ? this.minScale : max(this.minScale, c.maxScale / c.el.scale); // c.maxScale is from settings (e.g., 1 for 100%)
+		this.maxScale = this.minScale > 1 && c.maxScale < this.minScale ? this.minScale : max(this.minScale, (c.maxScale * c.scaleMultiplier) / c.el.scale); // c.maxScale is from settings (e.g., 1 for 100%)
 		this.wasCoverLimit = c.coverLimit; // Cache coverLimit state
 	}
 

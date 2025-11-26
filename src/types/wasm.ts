@@ -142,6 +142,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param coverLimit Limit the view to the image covering the viewport
 	 * @param coverStart Start the image covering the view
 	 * @param maxScale The maximum original scale the user can zoom into (1=100%)
+	 * @param scaleMultiplier The maximum original scale the user can zoom into (1=100%)
 	 * @param camSpeed Camera animation speed multiplier
 	 * @param trueNorth For a 360&deg; image, an image-wide rotation adjustment to align to north
 	 * @param isGallerySwitch This is a virtual canvas for a switching image gallery
@@ -154,7 +155,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	*/
 	_constructor(mainPtr:number, width: number, height: number, tileSize: number, is360: boolean,
 		noImage: boolean, isSingle: boolean, targetOpacity: number,
-		freeMove: boolean, coverLimit: boolean, coverStart: boolean, maxScale: number, camSpeed: number,
+		freeMove: boolean, coverLimit: boolean, coverStart: boolean, maxScale: number, scaleMultiplier: number, camSpeed: number,
 		trueNorth: number, isGallerySwitch: boolean, pagesHaveBackground: boolean,
 		isOmni: boolean, pinchZoomOutLimit: boolean, omniNumLayers: number, omniLayerStartIndex:number) : number;
 	/** Get the requested image's current view coordinates [centerX, centerY, width, height]

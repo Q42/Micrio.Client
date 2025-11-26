@@ -347,7 +347,8 @@ export class Wasm {
 			settings.freeMove ?? false, // Enable free camera movement?
 			coverLimit, // Limit zoom out to cover?
 			coverStart, // Start zoomed to cover?
-			(settings.zoomLimit || 1) * (settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1), // Max zoom limit (with DPR fix)
+			(settings.zoomLimit || 1), // Max zoom limit
+			(settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1), // DPR fix multiplier
 			settings.camspeed ?? 1, // Camera speed
 			c.camera.trueNorth, // 360 true north offset
 			gallerySwitch, // Is it an overlapping gallery type?

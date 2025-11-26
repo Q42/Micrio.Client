@@ -186,6 +186,7 @@ export function resize(m:Main, w: u16, h: u16, l: i32, t: i32, r: f64, s: f64, p
  * @param l Limit the view to the image covering the viewport.
  * @param m Start the image covering the view.
  * @param n The maximum original scale the user can zoom into (1=100%).
+ * @param n2 Max scale multiplier for DPR-fix.
  * @param o Camera animation speed multiplier.
  * @param p For a 360&deg; image, an image-wide rotation adjustment to align to north.
  * @param q This is a virtual canvas for a switching image gallery.
@@ -197,9 +198,9 @@ export function resize(m:Main, w: u16, h: u16, l: i32, t: i32, r: f64, s: f64, p
  * @returns The memory pointer in the shared Wasm memory for this Canvas instance.
  */
 export function _constructor(a: Main, b: f64, c: f64, d: u32, f: bool, h: bool,
-	i: bool, j: f64, k: bool, l: bool, m: bool, n: f64, o: f64, p: f64, q: bool, r: bool,
+	i: bool, j: f64, k: bool, l: bool, m: bool, n: f64, n2: f64, o: f64, p: f64, q: bool, r: bool,
 	s: bool, t: bool, u:i32, v: i32) : Canvas {
-	return new Canvas(a,b,c,d,f,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,false);
+	return new Canvas(a,b,c,d,f,h,i,j,k,l,m,n,n2,o,p,q,r,s,t,u,v,false);
 }
 /**
  * Get the requested image's current view coordinates `[x0, y0, x1, y1]`.

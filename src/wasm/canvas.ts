@@ -133,6 +133,7 @@ export default class Canvas {
 		public coverLimit: bool, // Limit zoom out to cover the viewport?
 		readonly coverStart: bool, // Start zoomed to cover the viewport?
 		readonly maxScale: f64,  // Maximum zoom scale allowed (relative to original)
+		readonly scaleMultiplier: f64, // Multiplier for the max scale (DPR-fix for zoomLimit)
 		readonly camSpeed: f64,  // Camera animation speed factor
 
 		// --- 360 Specific ---
@@ -271,7 +272,7 @@ export default class Canvas {
 			false, 1, false, // Not single source, Start opaque, Not freeMove
 			true, // Default to coverLimit
 			true, // Default to coverStart
-			1, this.camSpeed, 0, false, false, false, this.pinchZoomOutLimit, 1, 0, // Default settings, inherit camSpeed
+			1, 1, this.camSpeed, 0, false, false, false, this.pinchZoomOutLimit, 1, 0, // Default settings, inherit camSpeed
 			true // Mark as having a parent
 		);
 		c.setParent(this); // Establish parent-child relationship
