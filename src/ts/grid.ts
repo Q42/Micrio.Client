@@ -438,7 +438,7 @@ export class Grid {
 			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.ViewRect : undefined, // Parse view
 			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.ViewRect : undefined, // Parse area
 			settings: deepCopy(this.image.$settings||{}, { // Copy base settings
-				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : null // Parse focus point
+				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined // Parse focus point
 			}),
 			/** @ts-ignore cultures might not exist on type */
 			cultures: p[8]?.replace(/\-/g,',')||undefined // Parse cultures string

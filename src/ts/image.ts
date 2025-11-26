@@ -291,13 +291,18 @@ export class MicrioImage {
 		this.data.subscribe(d => {if(d)sanitizeImageData(d, micrio.lang, this.isV5, isLegacyViews(this.__info))});
 	}
 
-	/** Sets the error state and prints it to the UI.
+	/**
+	 * Sets the error state and prints it to the UI.
 	 * @internal
+	 * @param e The original error
+	 * @param displayMessage Optional user-friendly message to display
 	 */
-	private setError(e:Error, err?:string) {
-		this.wasm.micrio.printError(this.error = err??e?.message??e?.toString()??'An unknown error has occurred');
+	private setError(e: Error | string, displayMessage?: string): never {
+		const message = displayMessage ?? (e instanceof Error ? e.message : e) ?? 'An unknown error has occurred';
+		this.error = message;
+		this.wasm.micrio.printError(message);
 		this.wasm.micrio.loading.set(false); // Stop loading indicator
-		throw e; // Re-throw error
+		throw e instanceof Error ? e : new Error(message);
 	}
 
 	/**
@@ -365,7 +370,7 @@ export class MicrioImage {
 		// Handle V5 imported images (ID starts with 'i', length 6)
 		const isV5Imported = this.isV5 && this.id.startsWith('i') && !this.id.includes('/');
 		if(isV5Imported && !i.tilesId) i.tilesId = this.id.slice(1); // Use ID without 'i' as tilesId
-		const isDemo = DEMO_IDS.indexOf(i.id) >= 0 || i.tilesId && DEMO_IDS.indexOf(i.tilesId) >= 0;
+		const isDemo = DEMO_IDS.includes(i.id) || (i.tilesId && DEMO_IDS.includes(i.tilesId));
 
 		// Merge attribute settings again (overriding fetched info)
 		deepCopy(attr, i);
@@ -449,13 +454,13 @@ export class MicrioImage {
 				const c = (i.cultures as string || '').split(',');
 				const isChild = this.opts.isEmbed || !!this.opts.area;
 				const forceLang = i.settings?.onlyPreferredLang || isChild;
-				lang = i.lang && c.indexOf(i.lang) >= 0 ? i.lang : forceLang ? undefined : c[0]; // Use specified lang, forced lang, or first available
+				lang = i.lang && c.includes(i.lang) ? i.lang : forceLang ? undefined : c[0]; // Use specified lang, forced lang, or first available
 				if(lang && !isChild) micrio.lang = lang; // Set global language if determined
 			}
 		} else if(i.revision) { // V5 language handling based on revisions
 			const langs = Object.keys(i.revision);
 			// If current global lang isn't available for this image, switch to the first available
-			if(langs.length && langs.indexOf(lang as string) < 0)
+			if(langs.length && !langs.includes(lang as string))
 				micrio.lang = langs[0];
 		}
 
@@ -482,7 +487,7 @@ export class MicrioImage {
 		// Subscribe to language changes for V4 data loading
 		else if(!i.settings?.skipMeta && !this.opts.isEmbed && !this.isV5) micrio._lang.subscribe((lang?:string) => {
 			// Validate language against available cultures
-			if(lang && this.id && (!('cultures' in this.__info) || (this.__info.cultures as string || '').split(',').indexOf(lang) < 0)) lang = undefined;
+			if(lang && this.id && (!('cultures' in this.__info) || !(this.__info.cultures as string || '').split(',').includes(lang))) lang = undefined;
 			this.data.set(undefined); // Clear existing data
 			if(!lang && this.preset?.[2]) lang = 'preset'; // Use preset if no valid lang
 			if((lang) && this.id) {
@@ -585,7 +590,7 @@ export class MicrioImage {
 	 * @internal
 	 */
 	private loadScript(s:string, lang:string='') : Promise<void> { return new Promise((ok:() => void) => {
-		if(jsCss.indexOf(s) >= 0 || document.querySelector('script[src="'+s+'"]')) ok(); // Already loaded
+		if(jsCss.includes(s) || document.querySelector('script[src="'+s+'"]')) ok(); // Already loaded
 		else { jsCss.push(s); // Mark as loading
 			const _el = document.createElement('script'); _el.type = 'text/javascript';
 			_el.async = true; _el.defer = true;
@@ -599,7 +604,7 @@ export class MicrioImage {
 	 * @internal
 	 */
 	private loadStyle(s:string) : Promise<void> { return new Promise((ok:() => void) => {
-		if(jsCss.indexOf(s) >= 0 || document.head.querySelector('link[href="'+s+'"]')) ok(); // Already loaded
+		if(jsCss.includes(s) || document.head.querySelector('link[href="'+s+'"]')) ok(); // Already loaded
 		else { jsCss.push(s); // Mark as loading
 			const _el = document.createElement('link'); _el.setAttribute('type', 'text/css');
 			_el.setAttribute('rel', 'stylesheet'); _el.setAttribute('href', s);
@@ -642,9 +647,10 @@ export class MicrioImage {
 		})
 
 		// Collect linked image IDs from marker tours
-		if(d.markerTours?.length) micIds.push(...[].concat.apply([],
-			/** @ts-ignore */
-			d.markerTours.map(t => t.steps)).map((s:string) => s.split(',')[1]).filter((s:string) => !!s && s != this.id) // Extract linked IDs from steps
+		if(d.markerTours?.length) micIds.push(
+			...d.markerTours.flatMap(t => t.steps)
+				.map((s:string) => s.split(',')[1])
+				.filter((s:string) => !!s && s != this.id) // Extract linked IDs from steps
 		);
 
 		// Handle legacy autostart tours
