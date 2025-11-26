@@ -222,7 +222,7 @@ export default class Camera {
 		}
 
 		// Calculate maxScale based on settings, ensuring it's at least minScale
-		this.maxScale = max(this.minScale, c.maxScale / c.el.scale); // c.maxScale is from settings (e.g., 1 for 100%)
+		this.maxScale = this.minScale > 1 ? this.minScale : max(this.minScale, c.maxScale / c.el.scale); // c.maxScale is from settings (e.g., 1 for 100%)
 		this.wasCoverLimit = c.coverLimit; // Cache coverLimit state
 	}
 
@@ -260,7 +260,12 @@ export default class Camera {
 
 		// Calculate the scale required to fit the logical view into the canvas element
 		// min = contain (fit entire view), max = cover (fill entire element)
-		this.scale = min(min(1, cw / vw), min(1, ch / vh));
+		// During pinching, don't cap at 1 to allow temporary overzooming
+		if (this.pinching || c.ani.correcting) {
+			this.scale = min(cw / vw, ch / vh);
+		} else {
+			this.scale = min(min(1, cw / vw), min(1, ch / vh));
+		}
 
 		// Apply max scale limit if applicable and not pinching and during animation
 		if(limited && !this.pinching && this.isZoomedIn() && c.ani.flying) this.scale = this.maxScale;
@@ -513,9 +518,14 @@ export default class Camera {
 		if (this.canvas.freeMove) return;
 
 		const v = this.canvas.view;
+		const isOverzoomed = this.scale > this.maxScale;
 
-		const halfW = v.width / 2;
-		const halfH = v.height / 2;
+		// Check if overzoomed (beyond maxScale) and calculate corrected dimensions
+		const targetWidth = isOverzoomed ? this.cpw / this.maxScale : v.width;
+		const targetHeight = isOverzoomed ? this.cph / this.maxScale : v.height;
+
+		const halfW = targetWidth / 2;
+		const halfH = targetHeight / 2;
 		const lHalfW = v.lWidth / 2;
 		const lHalfH = v.lHeight / 2;
 		
@@ -527,8 +537,6 @@ export default class Camera {
 		const targetCenterY = halfH >= lHalfH 
 			? v.lCenterY 
 			: max(v.lY0 + halfH, min(v.centerY, v.lY1 - halfH));
-		const targetWidth = v.width;
-		const targetHeight = v.height;
 
 		this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, false, 0, time, true); // Short correction animation
 	}
