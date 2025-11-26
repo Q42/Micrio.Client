@@ -479,7 +479,9 @@ export function _isKinetic(c:Canvas) : bool { return c.kinetic.started }
  * @param c The Canvas memory pointer in shared Wasm memory.
  */
 export function _panStart(c:Canvas) : void {
-	c.kinetic.stop(); if(c.is360 || (c.camera.scale >= c.camera.minScale)) c.ani.stop() }
+	c.kinetic.stop();
+	if(c.is360 || (c.camera.scale >= c.camera.minScale && !c.camera.isOutsideLimit())) c.ani.stop();
+}
 /**
  * Pan operation.
  * @param c The Canvas memory pointer in shared Wasm memory.
@@ -496,7 +498,9 @@ export function _pan(c:Canvas, a:f64,b:f64,x:f64,l:bool,d:f64) : void {
  * @param c The Canvas memory pointer in shared Wasm memory.
  */
 export function _panStop(c:Canvas) : void {
-	if(c.is360 || (c.camera.scale >= c.camera.minScale)) c.ani.stop(); c.kinetic.start() }
+	if(c.is360 || (c.camera.scale >= c.camera.minScale && !c.camera.isOutsideLimit())) c.ani.stop();
+	c.kinetic.start()
+}
 /**
  * Set an image's opening view.
  * @param c The Canvas memory pointer in shared Wasm memory.

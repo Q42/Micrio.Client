@@ -499,37 +499,38 @@ export default class Camera {
 
 	/** Signals the end of a pinch gesture. */
 	pinchStop(time: f64) : void {
-		if(!this.canvas.is360) {
-			// Animate back to limits if the view is outside bounds after pinching and not freeMove
-			const v = this.canvas.view;
-			const freeMove = this.canvas.freeMove;
-			if (!freeMove) {
-				// Compute clamped centers, keeping width/height the same
-				const halfW = v.width / 2;
-				const halfH = v.height / 2;
-				const lHalfW = v.lWidth / 2;
-				const lHalfH = v.lHeight / 2;
-				
-				// If view is larger than limits (underzoomed), center it on the limit center
-				// Otherwise, clamp the center so edges stay within limit bounds
-				const targetCenterX = halfW >= lHalfW 
-					? v.lCenterX 
-					: max(v.lX0 + halfW, min(v.centerX, v.lX1 - halfW));
-				const targetCenterY = halfH >= lHalfH 
-					? v.lCenterY 
-					: max(v.lY0 + halfH, min(v.centerY, v.lY1 - halfH));
-				const targetWidth = v.width;
-				const targetHeight = v.height;
-
-				this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, false, 0, time, true); // Short correction animation
-			}
-		}
+		// Animate back to limits if the view is outside bounds after pinching and not freeMove
+		if(!this.canvas.is360) this.snapToBounds(time);
 
 		// Reset pinch state
 		this.prevSize = -1;
 		this.prevCenterX = -1;
 		this.prevCenterY = -1;
 		this.pinching = false;
+	}
+
+	private snapToBounds(time: f64) : void {
+		if (this.canvas.freeMove) return;
+
+		const v = this.canvas.view;
+
+		const halfW = v.width / 2;
+		const halfH = v.height / 2;
+		const lHalfW = v.lWidth / 2;
+		const lHalfH = v.lHeight / 2;
+		
+		// If view is larger than limits (underzoomed), center it on the limit center
+		// Otherwise, clamp the center so edges stay within limit bounds
+		const targetCenterX = halfW >= lHalfW 
+			? v.lCenterX 
+			: max(v.lX0 + halfW, min(v.centerX, v.lX1 - halfW));
+		const targetCenterY = halfH >= lHalfH 
+			? v.lCenterY 
+			: max(v.lY0 + halfH, min(v.centerY, v.lY1 - halfH));
+		const targetWidth = v.width;
+		const targetHeight = v.height;
+
+		this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, false, 0, time, true); // Short correction animation
 	}
 
 	/**
