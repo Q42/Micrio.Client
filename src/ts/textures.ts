@@ -84,8 +84,6 @@ for(let i=0;i<numThreads;i++) {
  * @returns A Promise resolving to the loaded TextureBitmap.
  */
 export const loadTexture = (src:string) : Promise<TextureBitmap> => new Promise((ok, err) => {
-	// Check cache first (implementation seems missing here)
-	// TODO: Implement a cache check using `jsonCache` or a dedicated texture cache if beneficial.
 	queue.push([src, ok, err]); // Add request to the queue
 	getNext(); // Trigger processing the queue
 });
@@ -99,7 +97,7 @@ function getNext(){
 
 	// Find the index of an available worker thread
 	let i=0;
-	for(;i<numThreads;i++) if(running.indexOf(i) < 0) break;
+	for(;i<numThreads;i++) if(!running.includes(i)) break;
 
 	// If all threads are busy
 	if(i>= numThreads) {

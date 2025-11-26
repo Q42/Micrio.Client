@@ -6,6 +6,32 @@
  */
 
 import type { Readable, Unsubscriber } from 'svelte/store';
+
+/**
+ * Custom error class for Micrio-specific errors.
+ * Provides consistent error handling across the application.
+ * @internal
+ */
+export class MicrioError extends Error {
+	/** Human-readable error message for display */
+	readonly displayMessage: string;
+	/** Original error if this wraps another error */
+	readonly cause?: Error;
+	/** Error code for programmatic handling */
+	readonly code?: string;
+
+	constructor(message: string, options?: { cause?: Error; code?: string; displayMessage?: string }) {
+		super(message);
+		this.name = 'MicrioError';
+		this.displayMessage = options?.displayMessage ?? message;
+		this.cause = options?.cause;
+		this.code = options?.code;
+		// Maintains proper stack trace for where error was thrown (only in V8)
+		if ('captureStackTrace' in Error && typeof Error.captureStackTrace === 'function') {
+			Error.captureStackTrace(this, MicrioError);
+		}
+	}
+}
 import type { Models } from '../types/models';
 import type { MicrioImage } from './image';
 import type { PREDEFINED } from '../types/internal';
@@ -103,20 +129,24 @@ if(Browser.OSX && (Browser.safari && 'TouchEvent' in self)) {
  *   - `noOverwrite`: If true, existing properties in `into` will not be overwritten.
  * @returns The modified `into` object.
  */
-export function deepCopy(from:any, into:any, opts:{
+export function deepCopy<T>(from: T, into: T, opts:{
 	mergeArrays?:boolean;
 	noOverwrite?:boolean;
-}={}) : any {
-	for(let x in from) {
-		// Recursively copy nested objects
-		if(!!from[x] && from[x]['constructor'] != undefined && from[x]['constructor']['name'] == 'Object') {
-			if(!into[x] || typeof into[x] != 'object') into[x] = {}; // Initialize target if needed
-			deepCopy(from[x], into[x],opts);
+}={}) : T {
+	if (!from || typeof from !== 'object') return into;
+	for(const x in from) {
+		const val = (from as Record<string, unknown>)[x];
+		// Recursively copy nested objects (plain objects only, not arrays or class instances)
+		if(val && typeof val === 'object' && (val as object).constructor?.name === 'Object') {
+			const intoObj = into as Record<string, unknown>;
+			if(!intoObj[x] || typeof intoObj[x] != 'object') intoObj[x] = {}; // Initialize target if needed
+			deepCopy(val as Record<string, unknown>, intoObj[x] as Record<string, unknown>, opts);
 		}
 		// Handle other types (primitives, arrays)
 		else {
-			if(opts.mergeArrays && into[x] instanceof Array && from[x] instanceof Array) into[x].push(...from[x]); // Merge arrays
-			else if(!opts.noOverwrite || !(x in into)) into[x] = from[x]; // Copy value if not overwriting or target doesn't exist
+			const intoObj = into as Record<string, unknown>;
+			if(opts.mergeArrays && intoObj[x] instanceof Array && val instanceof Array) (intoObj[x] as unknown[]).push(...val); // Merge arrays
+			else if(!opts.noOverwrite || !(x in (into as object))) intoObj[x] = val; // Copy value if not overwriting or target doesn't exist
 		}
 	}
 	return into;
@@ -137,7 +167,7 @@ export const slugify = (str:string|undefined) : string|undefined => {
 	// remove accents, swap ñ for n, etc
 	const from = "àáäâèéëêìíïîòóöôùúüûñç·/_,:;";
 	const to   = "aaaaeeeeiiiioooouuuunc------";
-	for (var i=0, l=from.length ; i<l ; i++) {
+	for (let i=0, l=from.length ; i<l ; i++) {
 		str = str.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
 	}
 
@@ -152,9 +182,9 @@ export const slugify = (str:string|undefined) : string|undefined => {
  * Svelte hack to disable attribute type checking warnings in the editor/language server.
  * @internal
  * @param x Any value.
- * @returns The same value, but typed as `any`.
+ * @returns The same value, but typed as `unknown`.
  */
-export const notypecheck = (x:any)=>x;
+export const notypecheck = <T>(x: T): T => x;
 
 /** List of script URLs already loaded or currently loading. @private */
 const loaded: string[] = [];
@@ -167,12 +197,11 @@ const loaded: string[] = [];
  * @param targetObj Optional target object (if provided, assumes script is already loaded).
  * @returns A Promise that resolves when the script is loaded, or rejects on error.
  */
-export const loadScript = (src:string, cbFunc?:string, targetObj?:any) => new Promise((ok:Function, err:Function) => {
-	if(targetObj || loaded.indexOf(src) >= 0) return ok(); // Already loaded or target exists
+export const loadScript = (src:string, cbFunc?:string, targetObj?:unknown) => new Promise<void>((ok, err) => {
+	if(targetObj || loaded.includes(src)) return ok(); // Already loaded or target exists
 	const script = document.createElement('script');
 	const onload = () => { loaded.push(src); ok(); } // Mark as loaded and resolve promise
-	/** @ts-ignore Assign global callback if provided */
-	if(cbFunc) self[cbFunc] = onload;
+	if(cbFunc) (self as unknown as Record<string, () => void>)[cbFunc] = onload; // Assign global callback if provided
 	else script.onload = onload; // Use standard onload otherwise
 	script.onerror = () => err && err(); // Reject on error
 	script.async = true;
@@ -287,12 +316,12 @@ export const fetchJson = async <T=Object>(uri:string, noCache?:boolean) : Promis
 };
 
 /**
- * Checks if a JSON resource is currently being fetched (promise exists).
+ * Checks if a JSON resource is cached or currently being fetched.
  * @internal
  * @param uri The URI to check.
- * @returns True if the resource is currently being fetched.
+ * @returns True if the resource is cached or being fetched.
  */
-export const isFetching = (uri:string) : boolean => jsonCache.has(uri);
+export const isFetching = (uri:string) : boolean => jsonCache.has(uri) || jsonPromises.has(uri);
 
 /**
  * Retrieves predefined data (info, data) for a given ID from the global `MICRIO_DATA` variable,
@@ -438,7 +467,7 @@ const sanitizedIds:string[] = [];
  */
 export const sanitizeMarker = (m:Models.ImageData.Marker, lang:string, isOld:boolean, legacyViews?:boolean) : void => {
 	const key = lang+'-'+m.id;
-	if(sanitizedIds.indexOf(key) >= 0) return;
+	if(sanitizedIds.includes(key)) return;
 	sanitizedIds.push(key);
 	// Ensure basic properties exist
 	if(!m.data) m.data = {};
@@ -497,8 +526,9 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 	if(!('steps' in tour) || tour.stepInfo) return;
 
 	// Extract unique IDs of linked images from tour steps
-	let micIds:string[] = tour.steps.map(s => s.split(',')[1]).filter((s:string) => !!s && s != image.id);
-	micIds = micIds.filter((id,i) => micIds.indexOf(id)==i);
+	const micIds = [...new Set(
+		tour.steps.map(s => s.split(',')[1]).filter((s:string) => !!s && s != image.id)
+	)];
 
 	// Helper to get data path for an ID
 	const getDataPath = (id:string) : string =>
@@ -565,8 +595,7 @@ export async function loadSerialTour(image:MicrioImage, tour:Models.ImageData.Ma
 			chapter, // Store chapter index
 			hasSubtitle: !!vTourData?.subtitle
 		}
-		/** @ts-ignore Filter out undefined steps later */
-	}).filter<Models.ImageData.MarkerTourStepInfo>(si => typeof si === 'object');
+	}).filter((si): si is Models.ImageData.MarkerTourStepInfo => si !== undefined);
 
 	// Remove steps where markers were not found
 	notFound.reverse().forEach(i => tour.steps.splice(i, 1));

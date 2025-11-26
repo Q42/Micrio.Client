@@ -215,7 +215,7 @@ export class HTMLMicrioElement extends HTMLElement {
 					this._lang.set(newVal); // Update internal language store
 					i18n.set(langs[newVal] ?? langs.en); // Update i18n translations
 					if(newVal) { // Set text direction based on language
-						if(rtlLanguageCodes.indexOf(newVal) >= 0) this.setAttribute('dir', 'rtl');
+						if(rtlLanguageCodes.includes(newVal)) this.setAttribute('dir', 'rtl');
 						else this.removeAttribute('dir');
 					}
 					if(prevLang) this.events.dispatch('lang-switch', newVal); // Dispatch event

@@ -34,6 +34,17 @@ const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz
 /** Number of memory pages to allocate for Wasm (1 page = 64KB). @internal */
 const numPages : number = 100; // ~6.4MB
 
+/** Unified tile entry storing all state for a single tile. @internal */
+interface TileEntry {
+	texture?: WebGLTexture;
+	/** Loading state: 0 = not loaded, 1 = loading, 2 = loaded, 3 = loaded and drawn */
+	loadState: number;
+	opacity: number;
+	loadedAt?: number;
+	deleteAt?: number;
+	timeoutId?: number;
+}
+
 /**
  * The main WebAssembly controller class. Handles interaction between JavaScript
  * and the compiled C++ core of Micrio. Accessed via `micrio.wasm`.
@@ -67,29 +78,19 @@ export class Wasm {
 	// --- TILE LOGIC ---
 
 	/** Array storing references to all MicrioImage instances (including embeds) managed by Wasm. @internal */
-	images: (MicrioImage|Models.Omni.Frame)[] = []; // TODO: Refine type, Omni Frame seems out of place here?
+	images: Array<MicrioImage | Models.Omni.Frame> = [];
 	/** Flag indicating if barebone mode (minimal tile loading) is active. @internal */
 	private bareBone: boolean = false;
 	/** Array storing the base tile index for each image in the `images` array. @internal */
 	private baseTiles: number[] = [];
-	/** Array storing the indices of tiles drawn in the current frame. @internal */
-	private drawn: number[] = [];
-	/** Array storing the indices of tiles drawn in the previous frame. @internal */
-	private prevDrawn: number[] = [];
-	/** Object tracking tile indices scheduled for deletion (key: tileIndex, value: timestamp). @internal */
-	private toDelete: Map<number, number> = new Map();
-	/** Object storing WebGLTexture objects for loaded tiles, keyed by tile index. @internal */
-	private textures: Map<number, WebGLTexture> = new Map();
-	/** Map tracking ongoing texture download requests (key: worker thread index, value: image src). @internal */
-	private requests: Map<number, string> = new Map;
-	/** Object storing timeout IDs for delayed texture binding. @internal */
-	private timeouts: Map<number, number> = new Map();
-	/** Object storing timestamps when tiles were fully loaded and bound. @internal */
-	private tileLoaded: Map<number, number> = new Map();
-	/** Object storing the current opacity of each tile (for fading). @internal */
-	private tileOpacity: Map<number, number> = new Map();
-	/** Object tracking the loading state of each tile (0: not loaded, 1: loading, 2: loaded). @internal */
-	private loadStates: Map<number, number> = new Map();
+	/** Set storing the indices of tiles drawn in the current frame. @internal */
+	private drawnSet: Set<number> = new Set();
+	/** Set storing the indices of tiles drawn in the previous frame. @internal */
+	private prevDrawnSet: Set<number> = new Set();
+	/** Unified tile state storage. @internal */
+	private tiles: Map<number, TileEntry> = new Map();
+	/** Map tracking ongoing texture download requests (key: tile index, value: image src). @internal */
+	private requests: Map<number, string> = new Map();
 	/** Forget in-memory tiles after X seconds not drawn */
 	private deleteAfterSeconds:number;
 
@@ -160,11 +161,14 @@ export class Wasm {
 				while(c.aniDoneAdd.length) c.aniDoneAdd.shift()?.(); // Execute queued callbacks
 				c.aniAbort = c.aniDone = undefined; // Clear promise functions
 			},
-			'getTileOpacity': (i:number) : number => this.tileOpacity.get(i) || 0, // Get current opacity for a tile (for fading)
+			'getTileOpacity': (i:number) : number => this.tiles.get(i)?.opacity || 0, // Get current opacity for a tile (for fading)
 			'setTileOpacity': (i:number,direct:boolean=false,imageOpacity:number=1) : number => { // Calculate and set tile opacity during fade-in
-				const o = this.tileOpacity, l = this.tileLoaded;
-				if(!o.has(i) || o.get(i)! < 1) o.set(i, direct ? 1 : (l.has(i) && l.get(i)! > 0 ? Math.min(1,(this.now - l.get(i)!) / 250) * imageOpacity : 0)); // Calculate opacity based on time since loaded
-				return o.get(i) || 0;
+				const tile = this.tiles.get(i);
+				if(!tile) return 0;
+				if(tile.opacity < 1) {
+					tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1,(this.now - tile.loadedAt) / 250) * imageOpacity : 0);
+				}
+				return tile.opacity;
 			},
 			'setMatrix': (ptr:number) => this.micrio.webgl.gl.uniformMatrix4fv( // Set the perspective matrix uniform in WebGL
 				this.micrio.webgl.pmLoc, false, this._pMatrices[ptr]),
@@ -177,7 +181,8 @@ export class Wasm {
 			},
 			// Callbacks to update the visibility store of an image
 			'setVisible': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1),
-			'setVisible2': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1) // TODO: Why two identical functions?
+			// setVisible2 kept for Wasm binary compatibility - same implementation as setVisible
+			'setVisible2': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1)
 		}
 	}
 
@@ -227,17 +232,20 @@ export class Wasm {
 	/**
 	 * Loads and instantiates the WebAssembly module.
 	 * @returns A Promise that resolves when the Wasm module is ready.
+	 * @throws Error if WebAssembly binary loading or instantiation fails
 	*/
 	async load():Promise<void> {
 		if(this.i >= 0) return; // Already loaded
 		this.i = 0; // Mark as loading
 		const data = await wasmPromise; // Wait for binary data
-		if(!((data instanceof Uint8Array) || (data instanceof ArrayBuffer)))
-			throw 'Wasm binary is no array buffer!';
+		if(!((data instanceof Uint8Array) || (data instanceof ArrayBuffer))) {
+			throw new Error('WebAssembly binary data is invalid. Expected ArrayBuffer or Uint8Array.');
+		}
 
 		// Instantiate the Wasm module with imports
-		const instance = await self.WebAssembly.instantiate(data, this.imports);
-		this.e = ((<any>instance).instance as WebAssembly.Instance).exports as MicrioWasmExports; // Store exports
+		// WebAssembly.instantiate with BufferSource returns { instance, module }
+		const result = await self.WebAssembly.instantiate(data as BufferSource, this.imports);
+		this.e = result.instance.exports as MicrioWasmExports; // Store exports
 
 		// Initialize the main Micrio instance in Wasm
 		this.i = this.e.constructor();
@@ -260,15 +268,12 @@ export class Wasm {
 		// Abort any ongoing texture downloads
 		this.requests.forEach(src => abortDownload(src));
 		this.requests.clear();
-		// Clear timeouts
-		for(let timeoutId of this.timeouts.values()) clearTimeout(timeoutId);
-		this.timeouts.clear();
-		// Reset internal state
-		this.loadStates.clear();
-		this.tileLoaded.clear();
-		this.tileOpacity.clear();
-		// Request deletion of all loaded tiles in Wasm (might happen asynchronously)
-		for(let i of this.tileLoaded.keys()) this.deleteTile(i);
+		// Clear timeouts and delete all tiles
+		for(const [idx, tile] of this.tiles.entries()) {
+			if(tile.timeoutId) clearTimeout(tile.timeoutId);
+			this.deleteTile(idx);
+		}
+		this.tiles.clear();
 		// Reset Wasm state if initialized
 		if(this.i > 0) this.e.reset(this.i);
 	}
@@ -391,8 +396,9 @@ export class Wasm {
 		// Track base tile index for this image
 		const numTiles = this.e.getNumTiles(this.i);
 		if(numTiles > 0) {
-			this.tileOpacity.set(numTiles-1, 1); // Assume base tile is loaded initially?
-			this.baseTiles.push(numTiles-1);
+			const baseTileIdx = numTiles - 1;
+			this.getTileEntry(baseTileIdx).opacity = 1; // Initialize base tile opacity
+			this.baseTiles.push(baseTileIdx);
 		}
 		// Create Float32Array view for the perspective matrix
 		const mPtr = this.e._getPMatrix(c.ptr);
@@ -508,7 +514,7 @@ export class Wasm {
 
 		// Prepare for drawing (e.g., clear canvas if gallery)
 		if(this.isGallery) this.drawStart();
-		this.drawn.length = 0; // Clear list of drawn tiles for this frame
+		this.drawnSet.clear(); // Clear set of drawn tiles for this frame
 		this.e.draw(this.i); // Call the main Wasm draw function
 
 		this.micrio.events.dispatch('draw'); // Dispatch 'draw' event
@@ -523,6 +529,19 @@ export class Wasm {
 		if(this.raf < 0) return;
 		this.micrio.webgl.display.cancelAnimationFrame(this.raf);
 		this.raf = -1;
+	}
+
+	/**
+	 * Gets or creates a tile entry for the given index.
+	 * @internal
+	 */
+	private getTileEntry(i: number): TileEntry {
+		let tile = this.tiles.get(i);
+		if (!tile) {
+			tile = { loadState: 0, opacity: 0 };
+			this.tiles.set(i, tile);
+		}
+		return tile;
 	}
 
 	/**
@@ -541,8 +560,9 @@ export class Wasm {
 		animating: boolean, // Is the camera currently animating?
 		targetLayer: boolean // Is this tile part of the target resolution layer?
 	) : boolean {
-		this.drawn.push(i); // Mark tile as drawn this frame
-		if(this.toDelete.has(i)) this.toDelete.delete(i); // Cancel pending deletion if drawn again
+		this.drawnSet.add(i); // Mark tile as drawn this frame
+		const tile = this.getTileEntry(i);
+		tile.deleteAt = undefined; // Cancel pending deletion if drawn again
 
 		const numLoading = runningThreads(); // Get number of active texture downloads
 		const c = this.images[imgIdx]; // Get the image/frame object
@@ -556,50 +576,48 @@ export class Wasm {
 
 		// --- Texture Loading Logic ---
 		// If tile is not loaded and workers are available
-		if(!this.loadStates.has(i) && numLoading < numThreads) {
+		if(tile.loadState === 0 && numLoading < numThreads) {
 			// Prioritization: Delay loading high-res tiles during animation if workers busy,
 			// or if in barebone mode and many workers are busy.
 			if(this.bareBone ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
 
 			// Handle video textures (create texture immediately, update later)
 			if(isVideo && !is360) { // Exclude 360 videos (handled differently?)
-				this.loadStates.set(i, 2); // Mark as loaded (texture created, content pending)
-				this.textures.set(i, this.micrio.webgl.getTexture()); // Create empty WebGL texture
+				tile.loadState = 2; // Mark as loaded (texture created, content pending)
+				tile.texture = this.micrio.webgl.getTexture(); // Create empty WebGL texture
 			}
 			// Handle standard image tiles
 			else {
-				this.loadStates.set(i, 1); // Mark as loading
+				tile.loadState = 1; // Mark as loading
 				const src = img.getTileSrc(layer, x, y, frame); // Get tile URL
 				if(src) this.getTexture(i, src, animating, { // Start loading via texture loader
 					noSmoothing: '$info' in c && c.$settings.noSmoothing // Pass smoothing option
 				});
 				else {
-					// TODO: Handle case where getTileSrc returns undefined (e.g., invalid coords)
-					this.loadStates.set(i, 0); // Reset state if no src
+					tile.loadState = 0; // Reset state if no src
 					return false;
 				}
 			}
 		}
 		// If tile texture is ready (state >= 2)
-		else if(this.loadStates.has(i) && this.loadStates.get(i)!>=2) {
+		else if(tile.loadState >= 2) {
 			// Clear canvas only on the first draw operation of the frame
 			if(!this.drawing) this.drawStart();
 
-			const texture = this.textures.get(i); // Get the WebGL texture
-			if(texture != null) { // Check if texture exists
+			if(tile.texture) { // Check if texture exists
 				if(isVideo) { // Handle video texture update
 					// Check if video element exists and is ready to play
 					if(!img._video || !img._video.dataset.playing) return false; // Video not ready
-					this.micrio.webgl.updateTexture(texture, img._video); // Update texture with current video frame
+					this.micrio.webgl.updateTexture(tile.texture, img._video); // Update texture with current video frame
 				}
 				// Draw the tile using WebGL controller
-				this.micrio.webgl.drawTile(texture, opacity, is360);
+				this.micrio.webgl.drawTile(tile.texture, opacity, is360);
 			}
 
 			// Tile is loaded and ready
-			if(this.loadStates.get(i)! == 2) {
-				this.loadStates.set(i, 3);
-				this.tileLoaded.set(i, this.now);
+			if(tile.loadState === 2) {
+				tile.loadState = 3;
+				tile.loadedAt = this.now;
 			}
 
 			return true; // Indicate tile was drawn
@@ -627,7 +645,8 @@ export class Wasm {
 		force?:boolean;
 		noSmoothing?:boolean
 	} = {}) : void {
-		if(this.textures.has(i) || this.requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
+		const tile = this.tiles.get(i);
+		if(tile?.texture || this.requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
 		const inArchive = archive.db.has(src);
 		if(!inArchive) this.micrio.loading.set(true);
 		this.requests.set(i, src);
@@ -651,37 +670,38 @@ export class Wasm {
 		ani:boolean,
 		noSmoothing?:boolean
 	) : void {
+		const tile = this.getTileEntry(i);
 		// Create or update WebGL texture
-		this.textures.set(i, this.micrio.webgl.getTexture(img, this.textures.get(i), noSmoothing));
+		tile.texture = this.micrio.webgl.getTexture(img, tile.texture, noSmoothing);
 		if(self.ImageBitmap != undefined && img instanceof ImageBitmap && img['close'] instanceof Function) img['close']();
-		this.loadStates.set(i, 2); // Mark as loaded
+		tile.loadState = 2; // Mark as loaded
 
 		// Schedule deletion after a delay if not drawn recently and not animating
-		this.timeouts.set(i, setTimeout(() => {
+		tile.timeoutId = setTimeout(() => {
 			this.deleteRequest(i);
-		}, ani ? 150 : 50) as unknown as number);
+		}, ani ? 150 : 50) as unknown as number;
 	}
 
 	/** Removes a request from the tracking map. @internal */
 	private deleteRequest(i:number) : void {
 		this.requests.delete(i);
-		clearTimeout(this.timeouts.get(i)!);
-		this.timeouts.delete(i);
+		const tile = this.tiles.get(i);
+		if(tile?.timeoutId) {
+			clearTimeout(tile.timeoutId);
+			tile.timeoutId = undefined;
+		}
 
 		if(!this.requests.size) this.micrio.loading.set(false);
 	}
 
 	/** Deletes a WebGL texture and associated state. @internal */
 	private deleteTile(idx:number) : void {
-		this.micrio.webgl.gl.deleteTexture(this.textures.get(idx)!); // Delete WebGL texture
-		// Clear associated state
-		this.textures.delete(idx);
-		this.toDelete.delete(idx);
-		this.loadStates.delete(idx);
-		this.tileOpacity.delete(idx);
-		this.tileLoaded.delete(idx);
-		clearTimeout(this.timeouts.get(idx)!);
-		this.timeouts.delete(idx);
+		const tile = this.tiles.get(idx);
+		if(tile) {
+			if(tile.texture) this.micrio.webgl.gl.deleteTexture(tile.texture); // Delete WebGL texture
+			if(tile.timeoutId) clearTimeout(tile.timeoutId);
+			this.tiles.delete(idx);
+		}
 	}
 
 	/**
@@ -691,44 +711,46 @@ export class Wasm {
 	 * @internal
 	 */
 	private cleanup() : void {
-		// Identify tiles drawn last frame but not this frame
-		const removed = this.prevDrawn.filter(i => this.drawn.indexOf(i) < 0 && this.loadStates.has(i) && this.loadStates.get(i)! > 0 && this.baseTiles.indexOf(i) < 0);
 		const now = performance.now();
 
-		for(let i=0;i<removed.length;i++) {
-			const idx = removed[i];
-			this.tileOpacity.set(i, 0);
+		// Identify tiles drawn last frame but not this frame
+		for (const idx of this.prevDrawnSet) {
+			if (this.drawnSet.has(idx)) continue; // Still being drawn
+			if (this.baseTiles.includes(idx)) continue; // Base tile, keep
 
-			switch(this.loadStates.get(idx)!) {
+			const tile = this.tiles.get(idx);
+			if (!tile || tile.loadState === 0) continue;
+
+			tile.opacity = 0;
+
+			switch(tile.loadState) {
 				case 1: // still downloading, abort
 					const request = this.requests.get(idx);
 					if(request) abortDownload(request);
-					this.loadStates.delete(idx);
+					tile.loadState = 0;
 				break;
 
 				case 2: // Loaded, but never drawn
 					if(this.requests.has(idx)) {
 						this.deleteRequest(idx);
 					}
-					this.loadStates.delete(idx);
 					this.deleteTile(idx);
 				break;
 
 				case 3: // Loaded and drawn earlier, but not anymore
-					if(!this.toDelete.has(idx))
-						this.toDelete.set(idx, now);
+					if(!tile.deleteAt) tile.deleteAt = now;
 					break;
 			}
-
 		}
 
 		// Store currently drawn tiles for the next frame's comparison
-		this.prevDrawn = this.drawn.slice(0);
+		this.prevDrawnSet = new Set(this.drawnSet);
 
-		// Delete tiles marked for deletion longer than X second ago
-		for(let [key, value] of this.toDelete.entries()) {
-			if((now - value) / 1000 > this.deleteAfterSeconds)
-				this.deleteTile(key);
+		// Delete tiles marked for deletion longer than X seconds ago
+		for(const [idx, tile] of this.tiles.entries()) {
+			if(tile.deleteAt && (now - tile.deleteAt) / 1000 > this.deleteAfterSeconds) {
+				this.deleteTile(idx);
+			}
 		}
 	}
 
@@ -776,7 +798,8 @@ export class Wasm {
 		}
 
 		// Set opacity of last tile to 1
-		this.tileOpacity.set(image.baseTileIdx = this.e.getNumTiles(this.i) - 1, 1);
+		image.baseTileIdx = this.e.getNumTiles(this.i) - 1;
+		this.getTileEntry(image.baseTileIdx).opacity = 1;
 		this.baseTiles.push(image.baseTileIdx);
 	})
 
@@ -796,7 +819,8 @@ export class Wasm {
 			const a = image.opts.area ?? [0,0,1,1];
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			image.ptr = this.e._addImage(parent.ptr, a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize||1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX??0, _360.rotY??0, _360.rotZ??0, _360.scale??1, opts.fromScale ?? 0);
-			this.tileOpacity.set(image.baseTileIdx = this.e.getNumTiles(this.i) - 1, 1);
+			image.baseTileIdx = this.e.getNumTiles(this.i) - 1;
+			this.getTileEntry(image.baseTileIdx).opacity = 1;
 			this.baseTiles.push(image.baseTileIdx);
 		}
 	}

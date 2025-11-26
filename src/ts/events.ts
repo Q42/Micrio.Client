@@ -778,6 +778,15 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 
 	// --- macOS Gesture Events ---
 
+	/** GestureEvent interface for macOS trackpad gestures */
+	private gestureEvent(e: Event): { scale: number; clientX: number; clientY: number } | null {
+		if ('scale' in e && typeof (e as { scale: unknown }).scale === 'number') {
+			const ge = e as Event & { scale: number; clientX: number; clientY: number };
+			return { scale: ge.scale, clientX: ge.clientX, clientY: ge.clientY };
+		}
+		return null;
+	}
+
 	/**
 	 * Handles macOS trackpad gesture events (gesturestart, gesturechange, gestureend).
 	 * Translates gesture scale/rotation into zoom/pan actions.
@@ -785,18 +794,17 @@ export const UpdateEvents:(keyof Models.MicrioEventMap)[] = [
 	 * @param e The GestureEvent (or generic Event).
 	*/
 	private gesture(e:Event) : void {
-		/** @ts-ignore */
-		const scale:number = e['scale'];
-		if(scale == 1) return;
-		const diff = this.pScale - scale;
-		this.pScale = scale;
+		const gesture = this.gestureEvent(e);
+		if (!gesture || gesture.scale === 1) return;
+		
+		const diff = this.pScale - gesture.scale;
+		this.pScale = gesture.scale;
 
 		e.stopPropagation();
 		e.preventDefault();
 
 		if(e.type=='gesturechange') {
-			const mE = e as MouseEvent;
-			this.getImage({x:mE.clientX, y:mE.clientY})?.camera.zoom(diff*this.micrio.canvas.viewport.height, 0, mE.clientX, mE.clientY);
+			this.getImage({x:gesture.clientX, y:gesture.clientY})?.camera.zoom(diff*this.micrio.canvas.viewport.height, 0, gesture.clientX, gesture.clientY);
 		}
 	}
 

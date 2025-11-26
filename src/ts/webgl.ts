@@ -156,8 +156,9 @@ export class WebGL {
 
 		// Check if context creation was successful
 		if(hasGL2 ? !(gl instanceof window.WebGL2RenderingContext)
-			: !(gl instanceof window.WebGLRenderingContext))
-			throw 'Error creating WebGL context. Does your browser support WebGL?';
+			: !(gl instanceof window.WebGLRenderingContext)) {
+			throw new Error('Error creating WebGL context. Does your browser support WebGL?');
+		}
 
 		this.gl = gl; // Store the context
 
@@ -170,7 +171,7 @@ export class WebGL {
 
 		// --- Shader Program Setup ---
 		const program = gl.createProgram();
-		if(!(program instanceof WebGLProgram)) throw 'Could not create shader program';
+		if(!(program instanceof WebGLProgram)) throw new Error('Could not create WebGL shader program');
 		this.program = program;
 
 		// Compile and attach shaders
@@ -194,34 +195,34 @@ export class WebGL {
 		// --- Get Uniform Locations ---
 		const opaLoc = gl.getUniformLocation(this.program, 'opacity');
 		if(opaLoc) this.opaLoc = opaLoc;
-		else throw 'Could not create opacity WebGL binding!';
+		else throw new Error('Could not bind opacity WebGL uniform');
 
 		const pmLoc = gl.getUniformLocation(this.program, 'GLMatrix');
 		if(pmLoc) this.pmLoc = pmLoc;
-		else throw 'Could not create matrix WebGL binding!';
+		else throw new Error('Could not bind GLMatrix WebGL uniform');
 
 		const noTxtLoc = gl.getUniformLocation(this.program, 'noTexture');
 		if(noTxtLoc) this.noTxtLoc = noTxtLoc;
-		else throw 'Could not bind noTexture uniform';
+		else throw new Error('Could not bind noTexture WebGL uniform');
 
 		// --- Buffer Setup ---
 		// Texture Coordinates Buffer (Static)
 		this.txtAttr = gl.getAttribLocation(this.program, 'aTextureCoord');
 		const txtBuffer = gl.createBuffer();
 		if(txtBuffer) this.txtBuffer = txtBuffer;
-		else throw 'Could not connect texture buffer';
+		else throw new Error('Could not create texture coordinates WebGL buffer');
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Wasm._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Wasm
 
 		// Watermark Texture Coordinates Buffer
 		const wmTxtBuffer = gl.createBuffer();
 		if(wmTxtBuffer) this.wmTxtBuffer = wmTxtBuffer;
-		else throw 'Could not create watermark buffer';
+		else throw new Error('Could not create watermark WebGL buffer');
 
 		// Vertex Position Buffer (Dynamic - updated by Wasm)
 		const geomBuffer = gl.createBuffer();
 		if(geomBuffer) this.geomBuffer = geomBuffer;
-		else throw 'Could not bind geometry buffer';
+		else throw new Error('Could not create geometry WebGL buffer');
 		this.posAttr = gl.getAttribLocation(this.program, 'pos');
 
 		// Link buffers to attributes initially
@@ -293,7 +294,7 @@ export class WebGL {
 	*/
 	getShader(program:WebGLProgram, type:number, source:string) {
 		const shader = this.gl.createShader(type);
-		if(!shader) throw 'Could not create shader!';
+		if(!shader) throw new Error(`Could not create WebGL shader (type: ${type})`);
 		this.gl.shaderSource(shader, source);
 		this.gl.compileShader(shader);
 		// Check compilation status
@@ -317,7 +318,7 @@ export class WebGL {
 	getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean) : WebGLTexture {
 		const gl = this.gl;
 		const t = texture ?? gl.createTexture(); // Use existing or create new
-		if(!t) throw 'Could not create texture!';
+		if(!t) throw new Error('Could not create WebGL texture');
 
 		gl.bindTexture(gl.TEXTURE_2D, t); // Bind the texture
 
