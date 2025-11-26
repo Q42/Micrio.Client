@@ -41,6 +41,8 @@
 	let isZoomedIn: boolean = $state(false);
 	/** Local state tracking if the image is fully zoomed out. */
 	let isZoomedOut: boolean = $state(false);
+	/** State for when an image is upscaled to cover the viewport */
+	let isUpscaled: boolean = $state(false);
 	/** Local state tracking if the target image info is still loading. */
 	let loading = $state(false);
 
@@ -67,6 +69,8 @@
 	function update() {
 		isZoomedIn = image?.camera.isZoomedIn() ?? true; // Default to true if no image/camera
 		isZoomedOut = image?.camera.isZoomedOut(true) ?? true; // Check against full size, default true
+		const minScale = image?.camera.getMinScale() ?? 0;
+		isUpscaled = minScale > 1 && minScale > (image?.$settings.zoomLimit ?? 1);
 	}
 
 	// --- Lifecycle (onMount) ---
@@ -110,7 +114,7 @@
 </script>
 
 <!-- Render buttons only if not fully zoomed in OR not fully zoomed out -->
-{#if !isZoomedIn || !isZoomedOut}
+{#if !isUpscaled && (!isZoomedIn || !isZoomedOut)}
 	<!-- Zoom In Button -->
 	<Button type="zoom-in" title={$i18n.zoomIn} disabled={loading||isZoomedIn} onclick={zoomIn} />
 	<!-- Zoom Out Button -->
