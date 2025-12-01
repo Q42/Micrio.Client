@@ -491,7 +491,7 @@ export class HTMLMicrioElement extends HTMLElement {
 					this.canvas.hook(); // Start canvas resize/event listeners
 
 					// Apply theme setting
-					switch(i.settings?.theme) {
+					switch(this._current?.$settings?.theme) {
 						case 'light': this.setAttribute('data-light-mode',''); break;
 						case 'os': this.setAttribute('data-auto-scheme',''); break;
 					}

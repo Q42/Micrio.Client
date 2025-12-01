@@ -25,7 +25,7 @@ import { WASM } from './globals'; // Contains WASM binary data (likely base64)
  */
 const selfJSSrc = document.currentScript?.getAttribute('src')?.toString();
 const wasmBin = selfJSSrc?.includes('.safe-wasm.js') ? selfJSSrc.replace('.safe-wasm.js', '.wasm')
-	: 'http://192.168.0.78:2000/build/optimized.wasm';
+	: 'http://localhost:2000/build/optimized.wasm';
 
 /** Promise for loading the Wasm binary (either from external source or embedded data). @internal */
 const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz(WASM.b64,!0) // Use decompression function if available
