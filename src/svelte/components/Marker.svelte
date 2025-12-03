@@ -722,7 +722,7 @@
 	/* Hide markers that are behind the camera in 360/Omni */
 	div.behind {
 		pointer-events: none;
-		visibility: hidden;
+		opacity: 0 !important;
 	}
 	/* Apply 3D matrix transform for 360 embeds */
 	div.mat3d {
