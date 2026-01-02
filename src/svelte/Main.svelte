@@ -31,10 +31,10 @@
 	import LogoOrg from './ui/LogoOrg.svelte';
 	import Toolbar from './components/Toolbar.svelte';
 	import Minimap from './components/Minimap.svelte';
-	import Controls from './common/Controls.svelte';
+	import Controls from './components/Controls.svelte';
 	import MarkerPopup from './components/MarkerPopup.svelte';
 	import Tour from './virtual/Tour.svelte';
-	import Gallery from './common/Gallery.svelte';
+	import Gallery from './components/Gallery.svelte';
 	import AudioController from './virtual/AudioController.svelte';
 	import Details from './common/Details.svelte';
 	import Media from './components/Media.svelte';
