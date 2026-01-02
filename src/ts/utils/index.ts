@@ -59,5 +59,6 @@ export { getIdVal, idIsV5 } from './id';
 export { getSpaceVector } from './space';
 
 // Media utilities
-export { hasNativeHLS } from './media';
+export { hasNativeHLS, parseMediaSource, getIOSAudioElement, YOUTUBE_HOST } from './media';
+export type { ParsedMediaSource } from './media';
 
