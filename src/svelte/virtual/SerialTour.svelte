@@ -125,7 +125,7 @@
 
 	/** Toggles the main mute state. */
 	function toggleMute() : void {
-		micrio.isMuted.set(!muted);
+		micrio.isMuted.update(v => !v);
 	}
 
 	/** Advances to the next step or ends the tour. */

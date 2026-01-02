@@ -806,7 +806,7 @@
 						fullscreen={(!is360 && (type == MediaType.IFrame || type == MediaType.Video)) ? _cnt : fullscreen}
 						bind:paused bind:seeking bind:duration bind:currentTime={currentTime} bind:ended={_ended}
 						onplaypause={playPause}
-						onmute={() => micrio.isMuted.set(!muted)}
+						onmute={() => micrio.isMuted.update(v => !v)}
 						onseek={t => setCurrentTime(t)}
 					/>
 				</aside>
