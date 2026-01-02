@@ -143,7 +143,8 @@
 	// Derived State
 	// ============================================================================
 
-	const muted = $derived(volume == 0);
+	// Local muted state for THIS media instance - always starts unmuted
+	let mediaMuted: boolean = $state(false);
 
 	// Unique ID for state persistence
 	uuid += src ?? tour?.id;
@@ -395,12 +396,22 @@
 	// Time & Seeking
 	// ============================================================================
 
-	/** Sets muted state. */
+	/** Sets muted state on the media element. */
 	function setMuted(b: boolean): void {
 		if (_media) {
 			_media.muted = b;
 		} else if (playerAdapter) {
 			playerAdapter.setMuted(b);
+		}
+	}
+
+	/** Toggles mute for THIS media and adjusts background volume accordingly. */
+	function toggleMute(): void {
+		mediaMuted = !mediaMuted;
+		setMuted(mediaMuted);
+		// When media is muted, restore background volume; when unmuted, lower background
+		if (!wasMuted) {
+			mainVolume.set(mediaMuted ? 1 : (image.$settings.mutedVolume || 0));
 		}
 	}
 
@@ -706,7 +717,17 @@
 			_media?.addEventListener('playing', () => (hideUntilPlaying = false), { once: true });
 		}
 
-		const unsubscribeChangeGlobalMuted = micrio.isMuted.subscribe((b) => setMuted(b));
+		// Sync with global mute state (for when Controls.svelte mute button is used)
+		// Skip the initial emission - media always starts unmuted
+		let isMutedInited = false;
+		const unsubscribeChangeGlobalMuted = micrio.isMuted.subscribe((b) => {
+			if (!isMutedInited) {
+				isMutedInited = true;
+				return;
+			}
+			mediaMuted = b;
+			setMuted(b);
+		});
 
 		return () => {
 			preDestroy();
@@ -717,9 +738,6 @@
 	});
 
 	// Reactive effects
-	$effect(() => {
-		if (_media && type == MediaType.Video && !muted) _media.muted = volume == 0;
-	});
 	$effect(() => {
 		if (forcePause !== undefined) paused = forcePause;
 	});
@@ -771,7 +789,7 @@
 					bind:this={_media}
 					style={hideUntilPlaying ? 'opacity: 0' : undefined}
 					bind:duration
-					{muted}
+					muted={mediaMuted}
 					autoplay={!!autoplay}
 					bind:currentTime
 					bind:seeking
@@ -792,7 +810,7 @@
 					controls={false}
 					bind:this={_media}
 					bind:duration
-					{muted}
+					muted={mediaMuted}
 					bind:currentTime
 					bind:seeking
 					bind:paused
@@ -818,6 +836,8 @@
 				<aside class:inside={controls == 'inside'}>
 					<MediaControls
 						subtitles={!!srt}
+						hasAudio={!isNaN(volume)}
+						muted={mediaMuted}
 						fullscreen={!is360 && (type == MediaType.IFrame || type == MediaType.Video)
 							? _cnt
 							: fullscreen}
@@ -827,7 +847,7 @@
 						bind:currentTime
 						bind:ended={_ended}
 						onplaypause={playPause}
-						onmute={() => micrio.isMuted.update((v) => !v)}
+						onmute={toggleMute}
 						onseek={(t) => setCurrentTime(t)}
 					/>
 				</aside>

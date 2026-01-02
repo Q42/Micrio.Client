@@ -9,8 +9,6 @@
 	// Import the global captionsEnabled store defined in the module script
 	import { captionsEnabled } from '../common/Subtitles.svelte';
 	import { i18n } from '../../ts/i18n'; // For button titles
-	import { getContext } from 'svelte';
-	import type { Writable } from 'svelte/store';
 
 	// UI Components
 	import Button from '../ui/Button.svelte';
@@ -35,6 +33,10 @@
 		fullscreen?: HTMLElement|undefined;
 		/** Does the media have subtitles available? */
 		subtitles?: boolean;
+		/** Does this media have audio? If true, shows mute button. */
+		hasAudio?: boolean;
+		/** Is this media currently muted? */
+		muted?: boolean;
 		onplaypause?: Function;
 		onmute?: Function;
 		onseek?: (n:number) => void;
@@ -49,22 +51,12 @@
 		ended = $bindable(),
 		fullscreen = undefined,
 		subtitles = false,
+		hasAudio = true,
+		muted = false,
 		onplaypause,
 		onmute,
 		onseek
 	}: Props = $props();
-
-	// Get the micrio instance and volume from context
-	const micrio = getContext('micrio');
-	const globalVolume = getContext<Writable<number>>('volume');
-
-	// Derive muted state from global volume
-	const muted = $derived($globalVolume == 0);
-
-	// --- Reactive Declarations ---
-
-	/** Determine if audio controls (mute button) should be shown. */
-	const hasAudio = $derived(!isNaN($globalVolume) || $globalVolume == 0);
 
 	// --- Progress Bar Dragging Logic ---
 
