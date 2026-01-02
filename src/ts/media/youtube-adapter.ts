@@ -126,7 +126,7 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 	async isPaused(): Promise<boolean> {
 		if (!this.player) return true;
 		const state = this.player.getPlayerState?.();
-		return state === undefined || [YT_STATE.UNSTARTED, YT_STATE.ENDED, YT_STATE.PAUSED].includes(state);
+		return state === undefined || ([YT_STATE.UNSTARTED, YT_STATE.ENDED, YT_STATE.PAUSED] as number[]).includes(state);
 	}
 
 	setMuted(muted: boolean): void {
