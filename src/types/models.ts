@@ -161,11 +161,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			 * @internal
 			*/
 			tiles?: { [key: string]: number }[];
-			/** Multiple IIIF-spec'd sources
-			 * @internal
-			*/
-			sources?: string;
-			/** Single-canvas sequence
+			/** Single-canvas sequence -- IIIF Presentation API 2
 			 * @internal
 			*/
 			sequences?: {
@@ -183,6 +179,19 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 					}[]
 				}[]
 			}[];
+
+			/** Single-canvas sequence -- IIIF Presentation API 3 */
+			type?: ('Manifest'|'Canvas'|'AnnotationPage'|'Annotation'|'Image');
+			items?: Partial<ImageInfo.ImageInfo>[];
+			body?: Partial<ImageInfo.ImageInfo> & {
+				format: string;
+				width: number;
+				height: number;
+				service: {
+					id: string;
+					type: 'ImageService3';
+				}[];
+			};
 
 			/** The 360 tour space ID */
 			spacesId?: string;

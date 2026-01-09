@@ -415,7 +415,8 @@ export class MicrioImage {
 
 		// Parse IIIF sequence data if present
 		if(i.isIIIF) {
-			if(i.sequences && i.sequences.length) this.parseIIIFSequence(i, !!iiifManifest);
+			if(i.sequences && i.sequences.length) this.parseIIIFSequenceV2(i, !!iiifManifest);
+			else if(i.type == 'Manifest') this.parseIIIFSequenceV3(i);
 			else { // Extract ID/path if not a sequence
 				const id:string = (iiifManifest || ('@id' in i ? i['@id'] : i.id) as string).replace('/info.json', '');
 				i.path = id.replace(/\/[^/]*$/,'');
@@ -723,10 +724,10 @@ export class MicrioImage {
 		return d; // Return the enriched data
 	}
 
-	/** Parses IIIF sequence data to create embedded MicrioImage instances for each canvas.
+	/** Parses IIIF Presentation API V2 sequence data to create embedded MicrioImage instances for each canvas.
 	 * @internal
 	 */
-	private parseIIIFSequence(i:Models.ImageInfo.ImageInfo, isIIIFSequence:boolean=false) : void {
+	private parseIIIFSequenceV2(i:Models.ImageInfo.ImageInfo, isIIIFSequence:boolean=false) : void {
 		const s = i.sequences?.[0]; // Get first sequence
 		if(!s) return;
 		const vertical = s.viewingDirection == 'top-to-bottom'; // Check viewing direction
@@ -753,6 +754,41 @@ export class MicrioImage {
 				id: s.service['@id'], // Use IIIF service ID
 				width: s.width, height: s.height,
 				isPng: s.format == 'image/png',
+				settings: {} // Basic settings
+			}, { // Embed options
+				// Calculate placement area based on direction and offset
+				area: vertical ? [margins[0], offset/i.height, 1-margins[0], (offset+s.height)/i.height]
+					: [offset/i.width, margins[1], (offset+s.width)/i.width, 1-margins[1] ]
+			}));
+			offset+=vertical?s.height:s.width; // Update offset
+		});
+	}
+
+	/** Parses IIIF Presentation API V3 sequence data to create a swipeable gallery.
+	 * @internal
+	 */
+	private parseIIIFSequenceV3(i:Models.ImageInfo.ImageInfo) : void {
+		// Extract image resources from canvases
+		const images = i.items?.flatMap(p => p.items?.[0]?.items?.[0]?.body).filter(p => !!p?.service?.[0]?.id).filter(p => !!p);
+		if(!images?.length) return;
+		this.noImage = true; // Mark main image as virtual
+		const vertical = false;
+		i.width = !vertical ? images.reduce((v, i) => v+i.width, 0) : Math.max(...images.map(i => i.width));
+		i.height = vertical ? images.reduce((v, i) => v+i.height, 0) : Math.max(...images.map(i => i.height));
+		let offset = 0; // Running offset for placement
+		const canvas:MicrioImage[] = i.gallery = []; // Use gallery array
+		if(!i.settings) i.settings = {};
+		if(!i.settings.gallery) i.settings.gallery = {}; // Ensure gallery settings exist
+		// Create MicrioImage instance for each canvas/image
+		images.forEach(s => {
+			// Calculate margins for centering
+			const margins = [ (1 - (s.width / i.width)) / 2, (1 - (s.height / i.height)) / 2 ];
+			// Create new MicrioImage instance
+			canvas.push(new MicrioImage(this.wasm, {
+				id: s.service[0].id, // Use IIIF service ID
+				width: s.width, height: s.height,
+				isPng: s.format == 'image/png',
+				tileSize: i.tileSize,
 				settings: {} // Basic settings
 			}, { // Embed options
 				// Calculate placement area based on direction and offset
