@@ -188,19 +188,20 @@
 
 		if(!isSwitch) { // For swipe galleries (not switch/omni)
 			const cv = camera.getViewLegacy() as Models.Camera.ViewRect; // Current camera view
-			const v = pages[i]; // Target page view
+			const page = pages[i]; // Target page view (legacy format [x0,y0,x1,y1])
+			const v = View.fromLegacy(page)! as Models.Camera.View; // Target page view (modern format [x0,y0,w,h])
 			// Determine if animation is needed
 			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < v[0]) !== (cv[2] > v[2]))); // Animate if zoomed out, page changed, or crossing page boundary
 			panning = false; // Reset panning flag
 			if(animate) {
 				// Fly camera to the target page view
 				camera.flyToView(v, {duration, speed:1, progress:fast ? .5 : 0})
-					.then(() => limit(v, true)) // Apply limits after animation
+					.then(() => limit(page, true)) // Apply limits after animation (uses legacy format)
 					.catch(() => {}); // Ignore animation errors
 			} else {
 				// If no animation, set view directly or apply limits
 				if(v && duration == 0) camera.setView(v);
-				limit(v, true);
+				limit(page, true); // Uses legacy format for setLimit()
 			}
 		}
 		else if(changed) { // For switch/omni galleries
