@@ -406,6 +406,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			 * uniform float u_time;      // elapsed time in seconds
 			*/
 			postProcessingFragmentShader?: string;
+
+			/** Watermark opacity, defaults to 0.075 */
+			watermarkOpacity?: number;
 		}
 
 		export type GallerySettings = {

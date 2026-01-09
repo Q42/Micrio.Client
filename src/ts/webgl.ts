@@ -120,6 +120,9 @@ export class WebGL {
 	/** Identity matrix for watermark rendering. @internal */
 	private wmMatrix: Float32Array = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
 
+	/** Watermark opacity @internal */
+	private wmOpacity: number = 0.075;
+
 	/** Attribute location for vertex positions. @internal */
 	private posAttr:number = -1;
 
@@ -418,11 +421,12 @@ export class WebGL {
 	 * Loads a watermark texture from a URL.
 	 * @param url The watermark image URL.
 	 */
-	loadWatermark(url: string) : void {
+	loadWatermark(url: string, wmOpacity?:number) : void {
 		if(url === this.wmUrl) return; // Already loaded/loading
 
 		this.wmUrl = url;
 		const img = new Image();
+		if(wmOpacity) this.wmOpacity = wmOpacity;
 		img.crossOrigin = 'anonymous';
 		img.src = url;
 		img.onload = () => {
@@ -477,7 +481,7 @@ export class WebGL {
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, this.wmTexture);
 		gl.uniform1i(this.noTxtLoc, 0);
-		gl.uniform1f(this.opaLoc, 0.075); // Slight transparency
+		gl.uniform1f(this.opaLoc, this.wmOpacity); // Slight transparency
 
 		// UVs (Repeated based on 512px tiling)
 		const w = gl.drawingBufferWidth / watermarkTileSize;

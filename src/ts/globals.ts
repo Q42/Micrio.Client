@@ -232,6 +232,7 @@ export const ATTRIBUTE_OPTIONS: {
 		'lazyload': {dN: 0}, // Lazy load threshold (percentage, default 0 = disabled)
 		'data-elasticity': {f: 'dragElasticity'}, // Drag elasticity factor
 		'data-skip-base-levels': {f: 'skipBaseLevels'}, // Number of base zoom levels to skip loading
+		'data-watermark-opacity': {f: 'watermarkOpacity'}, // Watermark opacity, defaults to 0.075
 	},
 
 	ARRAYS : { // Comma-separated numbers
