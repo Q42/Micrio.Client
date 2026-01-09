@@ -187,11 +187,11 @@
 		if(changed) frameChanged(); // Trigger actions needed when the frame changes
 
 		if(!isSwitch) { // For swipe galleries (not switch/omni)
-			const cv = camera.getViewLegacy() as Models.Camera.ViewRect; // Current camera view
+			const cv = camera.getViewLegacy() as Models.Camera.ViewRect; // Current camera view [x0,y0,x1,y1]
 			const page = pages[i]; // Target page view (legacy format [x0,y0,x1,y1])
 			const v = View.fromLegacy(page)! as Models.Camera.View; // Target page view (modern format [x0,y0,w,h])
-			// Determine if animation is needed
-			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < v[0]) !== (cv[2] > v[2]))); // Animate if zoomed out, page changed, or crossing page boundary
+			// Determine if animation is needed (compare cv and page, both legacy format)
+			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < page[0]) !== (cv[2] > page[2]))); // Animate if zoomed out, page changed, or crossing page boundary
 			panning = false; // Reset panning flag
 			if(animate) {
 				// Fly camera to the target page view
