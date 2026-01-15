@@ -5,7 +5,7 @@
 
 import type { Models } from '../../types/models';
 
-const fromLegacyDone:Set<Models.Camera.ViewRect | Models.Camera.View> = new Set();
+const fromLegacyDone:Set<Models.Camera.View> = new Set();
 
 /**
  * View utility object for converting between view formats.
