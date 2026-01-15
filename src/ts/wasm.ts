@@ -497,7 +497,7 @@ export class Wasm {
 	 * @param now Timestamp provided by `requestAnimationFrame`.
 	 */
 	private draw(now:number = performance.now()) : void {
-		if(!this.micrio.isConnected) return; // Exit if element disconnected
+		if(!this.micrio.isConnected || !this.micrio.$current) return; // Exit if element disconnected
 
 		this.raf = -1; // Reset RAF ID
 		this.drawing = false; // Reset drawing flag
