@@ -24,7 +24,7 @@
 	import Media from './Media.svelte';
 	import Article from '../common/Article.svelte';
 	import MarkerContent from '../common/MarkerContent.svelte';
-	import Gallery from './MicrioGallery.svelte';
+	import MicrioGallery from './MicrioGallery.svelte';
     import { writable } from 'svelte/store';
 
 	// --- Props ---
@@ -203,7 +203,7 @@
 			<Media src={content.embedUrl} uuid={marker.id} figcaption={content.embedDescription} controls autoplay={marker.embedAutoPlay} />
 		{:else if marker.images && marker.images.length}
 			<!-- Render gallery if images are present -->
-			<Gallery gallery={marker.images} />
+			<MicrioGallery gallery={marker.images} />
 		{/if}
 		<!-- Render MarkerContent if there's body text OR (images AND an embed) -->
 		{#if hasPopoverContent}
@@ -211,7 +211,7 @@
 		{/if}
 	{:else if popover.gallery}
 		<!-- Gallery Content -->
-		<Gallery gallery={popover.gallery} startId={popover.galleryStart} />
+		<MicrioGallery gallery={popover.gallery} startId={popover.galleryStart} />
 	{:else if page && pageContent}
 		<!-- Page Content -->
 		{#if langs.length > 1}
