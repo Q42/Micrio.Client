@@ -363,7 +363,7 @@ export class MicrioImage {
 
 		// Decode metadata from short V4 IDs (length 7)
 		if(this.id?.length == 7) {
-			const b = getIdVal(this.id[1+(getIdVal(this.id)%6)]); i.is360=!!((b>>4)&1); i.isWebP=!(b&3); i.isPng=(b&3)==2;
+			const b = getIdVal(this.id[1+(getIdVal(this.id)%6)]); i.is360=!!((b>>4)&1)||i.is360; i.isWebP=!(b&3); i.isPng=(b&3)==2;
 			if((b>>3)&1 && idIsV5(i.tilesId??this.id)) i.format='dz'; if(!i.path) i.path = `https://${!((b>>2)&1)?'r2':'eu'}.micr.io/`;
 		}
 
