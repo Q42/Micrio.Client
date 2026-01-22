@@ -50,7 +50,7 @@
 
 	// --- UI Settings ---
 	/** Whether the gallery controls should auto-hide after inactivity. */
-	const autoHide:boolean = true; // Currently hardcoded, could be a prop/setting
+	const autoHide:boolean = !micrio.canvas.isMobile;
 
 	// --- Component Initialization ---
 
