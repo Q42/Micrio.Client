@@ -5,6 +5,7 @@ html {
 	--micrio-background: rgba(41,41,41,0.75);
 	--micrio-background-filter: blur(8px);
 	--micrio-popover-background: rgba(41,41,41,0.75);
+	--micrio-scrubber-background: rgba(255,255,255,.25);
 
 	--micrio-icon-size: 18px;
 	--micrio-text-align: left;
@@ -39,7 +40,8 @@ micr-io[data-light-mode] {
 	--micrio-color-hover: #196DA6;
 	--micrio-background: rgba(255,255,255,0.66);
 	--micrio-progress-bar-background: rgba(0,0,0,.25);
-	--micrio-popover-background: rgba(41,41,41,0.75);
+	--micrio-popover-background: rgba(211,211,211,0.75);
+	--micrio-scrubber-background: rgba(255,255,255,.5);
 }
 @media (prefers-color-scheme: light) {
 	micr-io[data-auto-scheme] {
@@ -47,6 +49,7 @@ micr-io[data-light-mode] {
 		--micrio-color-hover: #196DA6;
 		--micrio-background: rgba(255,255,255,0.66);
 		--micrio-progress-bar-background: rgba(0,0,0,.25);
+		--micrio-popover-background: rgba(211,211,211,0.75);
 	}
 }
 @media (max-width: 500px) {

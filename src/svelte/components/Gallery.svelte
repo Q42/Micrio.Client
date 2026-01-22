@@ -701,7 +701,7 @@
 		text-align: center;
 		width: 0; /* Allow flex to control width */
 		transition: opacity .25s ease;
-		opacity: .25; /* Dim inactive bullets */
+		opacity: .5; /* Dim inactive bullets */
 		display: block;
 		height: 48px; /* Match button height? */
 		position: relative;
@@ -744,7 +744,7 @@
 		width: var(--micrio-button-size);
 		height: var(--micrio-button-size);
 		box-sizing: border-box;
-		background: #eee3; /* Semi-transparent background */
+		background: var(--micrio-scrubber-background); /* Semi-transparent background */
 		border: none;
 		border-radius: var(--micrio-border-radius);
 		touch-action: none; /* Prevent browser gestures */
