@@ -637,7 +637,7 @@
 		<!-- Scrubber UI for swipe galleries -->
 		<div class:hidden={loading||($hidden && !dragging && !panning)}>
 			<!-- Previous Button -->
-			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" onpointerdown={() => goto(currentPage - 1)} disabled={currentPage==0}></Button>
+			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage - 1)} disabled={currentPage==0}></Button>
 			<!-- Scrubber Bar -->
 			<ul bind:this={_ul} onpointermove={scrubPointerMove} onpointerleave={() => hoverIdx=-1}>
 				<!-- Bullets for each page -->
@@ -652,7 +652,7 @@
 					ontouchstartcapture={scrubStart}></button>
 			</ul>
 			<!-- Next Button -->
-			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={() => goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
+			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
 		</div>
 	{/if}
 {/if}
