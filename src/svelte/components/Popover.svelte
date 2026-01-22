@@ -397,19 +397,6 @@
 		margin: 0;
 	}
 
-	/* Styling for figcaption */
-	dialog > :global(figure > figcaption) {
-		position: absolute;
-		width: 100%;
-		bottom: 100%; /* Position above the figure */
-		font-style: italic;
-		text-align: center;
-		font-size: 90%;
-		padding: 0; /* Remove padding */
-		margin: var(--micrio-border-margin);
-		color: var(--micrio-color);
-	}
-
 	/* Ensure media element fills its container, leaving space for controls */
 	dialog > :global(figure > div.micrio-media > *:first-child) {
 		width: 100%;

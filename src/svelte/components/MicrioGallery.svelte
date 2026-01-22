@@ -73,6 +73,9 @@
 
 <style>
 	/** Gallery styling */
+	figure {
+		position: relative;
+	}
 	micr-io {
 		/* Darker background for the gallery popover */
 		background: transparent;
@@ -85,10 +88,30 @@
 		--micrio-border-margin: 16px;
 	}
 
+	/* Caption styling - positioned top left */
+	figcaption {
+		position: absolute;
+		top: var(--micrio-border-margin);
+		left: var(--micrio-border-margin);
+		padding: var(--micrio-popup-padding);
+		max-width: 410px;
+		box-sizing: border-box;
+		color: var(--micrio-color);
+		background: var(--micrio-background);
+		backdrop-filter: var(--micrio-background-filter);
+		box-shadow: var(--micrio-popup-shadow);
+		border-radius: var(--micrio-border-radius);
+	}
+
 	/* Ensure controls stay fixed within the popover on desktop */
 	@media (min-width: 501px) {
 		micr-io:not(:fullscreen) > :global(aside) { /* Target controls container */
 			position: fixed; /* Keep controls fixed relative to the popover */
+		}
+	}
+	@media (max-width: 501px) {
+		figcaption {
+			max-width: calc(100% - 3 * var(--micrio-border-margin) - var(--micrio-button-size));
 		}
 	}
 </style>
