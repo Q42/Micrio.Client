@@ -75,7 +75,7 @@
 	/** Gallery styling */
 	micr-io {
 		/* Darker background for the gallery popover */
-		background: #1118;
+		background: transparent;
 		display: block; /* Ensure it takes block layout */
 		width: 100%;
 		height: 100%;

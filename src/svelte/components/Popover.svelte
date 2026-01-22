@@ -173,6 +173,7 @@
 	class:page={!!page}
 	class:article={!!page && !pageIsVideo}
 	class:has-media={pageHasVideoOrImage}
+	class:gallery={!!popover.gallery}
 >
 	<!-- Aside for controls (close, tour nav) -->
 	{#if hasAside}
@@ -321,6 +322,7 @@
 			left: auto;
 			top: 0; /* Keep at top right */
 			margin-left: 0;
+			margin-top: var(--micrio-border-margin);
 			margin-right: var(--micrio-border-margin);
 		}
 		/* Ensure absolute positioning for external controls */
@@ -494,6 +496,14 @@
 	}
 	menu.right > :global(.micrio-button) {
 		margin: 0 0 0 10px; /* Adjust margin for right alignment */
+	}
+
+	/** Gallery popovers are fullscreen */
+	dialog.gallery {
+		width: 100%;
+		height: 100%;
+		max-width: unset;
+		max-height: unset;
 	}
 
 </style>
