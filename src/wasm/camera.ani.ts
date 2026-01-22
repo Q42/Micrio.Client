@@ -128,7 +128,6 @@ export default class Ani {
 	 * @param isJump If true, perform a zoom-out-then-in jump animation.
 	 * @param limitViewport If true, limit the target view within boundaries.
 	 * @param omniIdx Target frame index for omni object rotation (if applicable).
-	 * @param noTrueNorth If true, disable 360 true north correction for the target view.
 	 * @param fn Easing function index (0: easeInOut, 1: easeIn, 2: easeOut, 3: linear).
 	 * @param time Current timestamp (performance.now()).
 	 * @param correct If true, this is a correction animation towards limits.
@@ -138,7 +137,7 @@ export default class Ani {
 		toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64,
 		dur: f64, speed: f64, perc: f64,
 		isJump: bool, limitViewport:bool, omniIdx:i32,
-		noTrueNorth: bool, fn: i16, time : f64, correct : bool = false) : f64 {
+		fn: i16, time : f64, correct : bool = false) : f64 {
 
 		// If this is a correction animation and one is already running, just update the target
 		if(correct && this.correcting) {

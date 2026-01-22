@@ -336,7 +336,7 @@
 				if('steps' in tour) delete tour.currentStep; // Clear current step property
 				// If independent video tour ended, zoom out if configured
 				if(!('steps' in tour) && markerSettings?.zoomOutAfterClose && !currentMarker && startView)
-					image.camera.flyToView(startView, {speed:markerSettings?.zoomOutAfterCloseSpeed, noTrueNorth: true});
+					image.camera.flyToView(startView, {speed:markerSettings?.zoomOutAfterCloseSpeed});
 			});
 		}
 	});

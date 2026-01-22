@@ -526,14 +526,13 @@ export function _setStartView(c:Canvas, centerX:f64, centerY:f64, width:f64, hei
  * @param limit Limit the animation to the image's boundaries.
  * @param limitZoom Don't allow the animation to zoom in further than the maximum zoom.
  * @param toOmniIdx For rotatable omni objects, also animate to this frame.
- * @param noTrueNorth Internally apply local relative 360&deg; image rotation.
  * @param fn Animation timing function: `0: ease`, `1: ease-in`, `2: ease-out`, `3: linear`.
  * @param time The current timestamp (`performance.now()`).
  * @returns The resulting animation duration in ms.
  */
 export function _flyTo(c:Canvas, toCenterX: f64, toCenterY: f64, toWidth: f64, toHeight: f64, dur: f64, speed: f64,
-	perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
-	return c.camera.flyTo(toCenterX, toCenterY, toWidth, toHeight, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, noTrueNorth, fn, time);
+	perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, fn:i16, time: f64) : f64 {
+	return c.camera.flyTo(toCenterX, toCenterY, toWidth, toHeight, dur, speed, perc, isJump, limit, limitZoom, toOmniIdx, fn, time);
 }
 /**
  * A zoom in/out animation.

@@ -410,8 +410,6 @@ export class Camera {
 			isJump?: boolean;
 			/** For Omni objects: the target image frame index to animate to. */
 			omniIndex?: number;
-			/** If true (for 360), ignores the `trueNorth` correction. */
-			noTrueNorth?: boolean;
 			/** If provided, interprets `view` relative to this sub-area. */
 			area?: Models.Camera.ViewRect;
 			/** If true, respects the image's maximum zoom limit during animation. */
@@ -450,7 +448,7 @@ export class Camera {
 			}
 			if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer);
 		}
-		const duration = this.e._flyTo(this.image.ptr, centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, !opts.noTrueNorth, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
+		const duration = this.e._flyTo(this.image.ptr, centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
 		this.image.wasm.render(); // Trigger render loop
 		if (duration == 0) ok(); // Resolve immediately if duration is 0
 		else this.setAniPromises(ok, abort); // Store promise callbacks

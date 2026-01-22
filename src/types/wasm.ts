@@ -418,12 +418,11 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	 * @param limit Limit the animation to the image's boundaries
 	 * @param limitZoom Don't allow the animation to zoom in further than the maximum zoom
 	 * @param toOmniIdx For rotatable omni objects, also animate to this frame
-	 * @param noTrueNorth Internally apply local relative 360&deg; image rotation
 	 * @param fn Animation timing function: `0: ease`, `1: ease-in`, `2: ease-out`, `3: linear`
 	 * @param time The current timestamp (`performance.now()`)
 	 * @returns The resulting animation duration in ms
 	*/
-	_flyTo(ptr:number, toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, noTrueNorth: boolean, fn:number, time: number) : number;
+	_flyTo(ptr:number, toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn:number, time: number) : number;
 	/** A zoom in/out animation
 	 * @param ptr The sub image memory pointer in shared Wasm memory
 	 * @param d The amount to zoom

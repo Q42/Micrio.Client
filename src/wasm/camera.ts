@@ -347,7 +347,7 @@ export default class Camera {
 			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
 		} else if(!force && this.isOutsideLimit() && !isKinetic) {
 			// If starting drag outside limits, animate back towards the limit
-			c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration || 150, 0, 0, false, false, -1, false, 0, time, !noLimit); // correct=true
+			c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration || 150, 0, 0, false, false, -1, 0, time, !noLimit); // correct=true
 		} else {
 			// Stop any ongoing animation
 			c.ani.stop();
@@ -365,7 +365,7 @@ export default class Camera {
 				c.view.changed = true; // Mark as changed
 			} else {
 				// Otherwise, start a pan animation
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, false, 0, time);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, 0, time);
 			}
 		}
 	}
@@ -424,7 +424,7 @@ export default class Camera {
 		// Set animation limit flag
 		c.ani.limit = limit;
 		// Start the view animation
-		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.pinching, -1, false, 0, time, limit);
+		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.pinching, -1, 0, time, limit);
 		// Store the resulting view as the last view for potential resizing adjustments
 		c.ani.lastView.copy(c.view);
 		// Restore animation limit flag
@@ -533,14 +533,14 @@ export default class Camera {
 			? v.lCenterY 
 			: max(v.lY0 + halfH, min(v.centerY, v.lY1 - halfH));
 
-		this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, false, 0, time, true); // Short correction animation
+		this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, 0, time, true); // Short correction animation
 	}
 
 	/**
 	 * Initiates a fly-to animation to a target view rectangle.
 	 * @returns The calculated animation duration.
 	 */
-	flyTo(centerX: f64, centerY: f64, width: f64, height: f64, dur: f64, speed: f64, perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, noTrueNorth: bool, fn:i16, time: f64) : f64 {
+	flyTo(centerX: f64, centerY: f64, width: f64, height: f64, dur: f64, speed: f64, perc: f64, isJump: bool, limit: bool, limitZoom: bool, toOmniIdx: i32, fn:i16, time: f64) : f64 {
 		const c = this.canvas;
 		const a = c.ani;
 		c.kinetic.stop(); // Stop kinetic movement
@@ -555,7 +555,7 @@ export default class Camera {
 
 		a.limit = false; // Disable limits during animation calculation
 		// Call the animation controller's toView method with adjusted center
-		dur = a.toView(adjustedCenterX, centerY, width, height, dur, speed, perc, isJump, limit, toOmniIdx, noTrueNorth, fn, time, limitZoom);
+		dur = a.toView(adjustedCenterX, centerY, width, height, dur, speed, perc, isJump, limit, toOmniIdx, fn, time, limitZoom);
 		a.limit = false; // Ensure limits are off during animation steps
 		a.flying = true; // Set flying flag
 		return dur;
@@ -601,7 +601,7 @@ export default class Camera {
 		}
 
 		// Start the fly-to animation using calculated view bounds
-		dur = c.ani.toView(x, y, w, h, dur, speed, 0, false, false, -1, true, fn, time);
+		dur = c.ani.toView(x, y, w, h, dur, speed, 0, false, false, -1, fn, time);
 
 		// Set animation flags
 		c.ani.limit = dur==0 || limit; // Apply limit only if immediate or requested

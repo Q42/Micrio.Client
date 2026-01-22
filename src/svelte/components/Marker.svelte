@@ -277,7 +277,6 @@
 			} else { // Otherwise, animate
 					const flyPromise = image.camera.flyToView(marker.view!, {
 						omniIndex, // Pass omni index if applicable
-						noTrueNorth: true, // Don't correct true north during marker fly-to
 						area: image.opts?.area,
 						isJump: !!data.doJump || (doTourJumps && !!micrioState.$tour) // Use jump animation if specified or in a tour
 					});

@@ -93,7 +93,6 @@
 				if(!inactive && !image.camera.aniDone && image.openedView)
 					image.camera.flyToView(limitView(image.openedView), { // Fly back, limiting view
 						speed:$settings._markers?.zoomOutAfterCloseSpeed, // Use configured speed
-						noTrueNorth: true // Don't adjust for true north
 					}).catch(() => {}); // Ignore errors
 				image.openedView = undefined; // Clear stored view
 				wasMarkerVideoTour = false;
