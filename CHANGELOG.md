@@ -11,7 +11,7 @@ Legend:
 |&#x1F53C;|Requires the latest Micrio Dashboard (2024)|
 
 
-* ## &#x1F4AB; 5.4.2 - 2025/08/29
+* ## &#x1F4AB; 5.4.x - 2025/08/29
 
 	Latest stable release, most importantly using a new `View` model, see https://doc.micr.io/client/v5/migrating-to-5_4.html for additional information.
 
@@ -20,9 +20,9 @@ Legend:
 	### Links
 	* [GitHub](https://github.com/Q42/Micrio.Client/)
 	* [NPM repository](https://www.npmjs.com/package/@micrio/client)
-	* [JavaScript library](https://r2.micr.io/micrio-5.4.1.min.js)
-	* [TypeScript declarations include](https://r2.micr.io/micrio-5.4.1.min.d.ts)
-	* [API docs](https://doc.micr.io/client/api/5.4.1/index.html)
+	* [JavaScript library](https://r2.micr.io/micrio-5.4.21.min.js)
+	* [TypeScript declarations include](https://r2.micr.io/micrio-5.4.21.min.d.ts)
+	* [API docs](https://doc.micr.io/client/api/5.4/index.html)
 
 	### Changes
 	* A lot of internal rewrites and optimizations
