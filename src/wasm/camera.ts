@@ -260,12 +260,7 @@ export default class Camera {
 
 		// Calculate the scale required to fit the logical view into the canvas element
 		// min = contain (fit entire view), max = cover (fill entire element)
-		// During pinching, don't cap to allow temporary overzooming
-		if (this.pinching || c.ani.correcting) {
-			this.scale = min(cw / vw, ch / vh);
-		} else {
-			this.scale = min(min(this.maxScale, cw / vw), min(this.maxScale, ch / vh));
-		}
+		this.scale = min(cw / vw, ch / vh);
 
 		// Apply max scale limit if applicable and not pinching and during animation
 		if(limited && !this.pinching && this.isZoomedIn() && c.ani.flying) this.scale = this.maxScale;

@@ -191,12 +191,10 @@ export class View {
 		const overZoom:f64 = correctZoom ? max(1, s / max(c.camera.minScale, c.maxScale / c.el.scale)) : 1;
 		const maxVw:f64 = this.lWidth;
 		const maxVh:f64 = this.lHeight;
-		let vw:f64 = min(maxVw, this.width * overZoom);
-		let vh:f64 = min(maxVh, this.height * overZoom);
+		const vw:f64 = min(maxVw, this.width * overZoom);
+		const vh:f64 = min(maxVh, this.height * overZoom);
 
 		if(correctZoom && (overZoom > 1 || (noLimit && s < c.camera.minScale))) {
-			vw = min(maxVw, vw / overZoom);
-			vh = min(maxVh, vh / overZoom);
 			this.width = vw;
 			this.height = vh;
 		}

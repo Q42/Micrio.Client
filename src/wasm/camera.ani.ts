@@ -140,15 +140,15 @@ export default class Ani {
 		isJump: bool, limitViewport:bool, omniIdx:i32,
 		noTrueNorth: bool, fn: i16, time : f64, correct : bool = false) : f64 {
 
-		// Store the final requested target view
-		this.lastView.set(toCenterX, toCenterY, toWidth, toHeight);
-		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
-
 		// If this is a correction animation and one is already running, just update the target
 		if(correct && this.correcting) {
 			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
 			return dur; // Return original duration estimate
 		}
+
+		// Store the final requested target view
+		this.lastView.set(toCenterX, toCenterY, toWidth, toHeight);
+		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 
 		// --- Setup Animation Parameters ---
 
