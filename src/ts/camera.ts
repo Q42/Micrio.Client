@@ -623,8 +623,8 @@ export class Camera {
 		/** If true, prevents triggering a Wasm render after setting the area. */
 		noRender?:boolean;
 	} = {}) : void {
-		if (!this.e) return; // Exit if Wasm not ready
 		const e = this.image.wasm.e;
+		if (!e) return; // Exit if Wasm not ready
 		if(this.image.opts.isEmbed) {
 			if(this.image.ptr > 0) {
 				this.image.opts.area = v;
@@ -640,7 +640,7 @@ export class Camera {
 
 	/** Sets the 3D rotation for an embedded image (used for placing embeds in 360 space). */
 	setRotation(rotX:number=0, rotY:number=0, rotZ: number=0) : void {
-		if(!this.image.opts.isEmbed || this.image.ptr <= 0 || !this.e) return; // Only applicable to embeds with valid Wasm pointer
+		if(!this.image.opts.isEmbed || this.image.ptr <= 0 || !this.image.wasm.e) return; // Only applicable to embeds with valid Wasm pointer
 		this.image.wasm.e._setImageRotation(this.image.ptr, rotX, rotY, rotZ);
 		this.image.wasm.render();
 	}
