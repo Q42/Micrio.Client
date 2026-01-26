@@ -68,7 +68,7 @@ export const sanitizeImageData = (d: Models.ImageData.ImageData | undefined, lan
 	if (d.revision) d.revision = Object.fromEntries(Object.entries((d.revision ?? {})).filter(r => Number(r[1]) > 0));
 	// Sanitize embeds
 	d.embeds?.forEach(e => {
-		if (!e.uuid) e.uuid = (e.id ?? e.micrioId) + '-' + Math.random(); // Ensure UUID
+		if (!e.uuid) e.uuid = (e.id ?? e.micrioId);
 		sanitizeAsset(e.video);
 		sanitizeAsset(e);
 		if (isLegacyViews) e.area = View.fromLegacy(e.area)!;
