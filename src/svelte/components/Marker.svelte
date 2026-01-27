@@ -395,7 +395,7 @@
 		events.dispatch('marker-closed', marker); // Dispatch event
 
 		// Refocus the marker button after closing, potentially after camera animation
-		if(marker.videoTour && image.openedView) { // If closed after marker video tour with zoom-out
+		if(marker.videoTour || image.openedView) { // If closed after marker video tour with zoom-out
 			setTimeout(() => image.camera.aniDoneAdd.push(() => _button?.focus()), 10); // Focus after animation
 		} else {
 			_button?.focus(); // Focus immediately
