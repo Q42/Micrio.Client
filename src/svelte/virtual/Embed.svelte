@@ -29,14 +29,16 @@
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
-	const { current, wasm, canvas } = micrio;
+	const { current, wasm, canvas, _lang } = micrio;
 
 	interface Props {
 		/** The embed data object from the image configuration. */
 		embed: Models.ImageData.Embed;
+		/** Optional marker to activate when embed is clicked */
+		marker?: Models.ImageData.Marker;
 	}
 
-	let { embed = $bindable() }: Props = $props();
+	let { embed = $bindable(), marker }: Props = $props();
 
 	if(embed.src?.startsWith('/r2')) embed.src = 'http://localhost:6100'+embed.src;
 
@@ -93,7 +95,7 @@
 	// --- Interaction Logic ---
 
 	/** Disable pointer events on the container if no click action or iframe source. */
-	const noEvents = !embed.clickAction && !embed.frameSrc;
+	const noEvents = !embed.clickAction && !embed.frameSrc && !marker;
 	/** URL for 'href' click action. */
 	const href = embed.clickAction == 'href' ? embed.clickTarget : undefined;
 	/** Open link in new tab? */
@@ -232,8 +234,9 @@
 	/** Handles click events on the embed container. */
 	function click() : void {
 		// If action is to open a marker, set the state
-		if($current && embed.clickAction == 'markerId' && embed.clickTarget)
-			$current.state.marker.set(embed.clickTarget);
+		const markerId = embed.clickAction == 'markerId' ? embed.clickTarget : marker?.id;
+		if(!markerId || !$current || href) return;
+		$current.state.marker.set(markerId);
 		// 'href' action is handled by the `<a>` tag directly
 	}
 
@@ -405,7 +408,7 @@
 				alt="Embed" data-scroll-through />
 		{:else}
 			<!-- Render empty button as click target if rendered in WebGL but has click action -->
-			<button style={buttonStyle} title={embed.title} data-scroll-through aria-label="embed-button"></button>
+			<button style={buttonStyle} title={embed.title||marker?.i18n?.[$_lang]?.title} data-scroll-through aria-label="embed-button"></button>
 		{/if}
 	</svelte:element>
 {/if}

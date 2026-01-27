@@ -722,6 +722,9 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Popup type */
 			popupType: ('popup'|'popover'|'none'|'micrioLink');
 
+			/** If type is area, this HTML embed will be used for the marker */
+			clickableArea?: Models.ImageData.Embed;
+
 			/** Custom marker tags which will be also used as classnames on the marker elements */
 			tags: string[];
 

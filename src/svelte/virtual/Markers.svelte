@@ -17,6 +17,7 @@
 	// Component imports
 	import Marker from '../components/Marker.svelte';
 	import Waypoint from '../components/Waypoint.svelte';
+    import Embed from './Embed.svelte';
 
 	// --- Props ---
 	interface Props {
@@ -347,6 +348,8 @@
 	const visibleMarkers = $derived(inactive ? [] : $data?.markers?.filter(isVisible));
 	/** Reactive list of markers that are explicitly hidden (`noMarker: true`). */
 	const invisibleMarkers = $derived(inactive ? $data?.markers : $data?.markers?.filter(m => !isVisible(m)));
+	/** Marker clickable embed areas */
+	const clickableAreas = $derived(inactive ? [] : $data?.markers?.filter(m => m.clickableArea));
 	/** Reactive flag indicating if there are any visible markers or waypoints. */
 	const hasMarkersOrWaypoints = $derived(!!(visibleMarkers?.length || waypoints?.length));
 	/** Reactive sorted list of markers currently in view (for side labels). */
@@ -393,6 +396,12 @@
 {#if invisibleMarkers}
 	{#each invisibleMarkers as marker (marker.id)}
 		<Marker {marker} {image} forceHidden />
+	{/each}
+{/if}
+
+{#if clickableAreas}
+	{#each clickableAreas as marker (marker.id)}
+		{#if marker.clickableArea}<Embed embed={marker.clickableArea} {marker} />{/if}
 	{/each}
 {/if}
 
