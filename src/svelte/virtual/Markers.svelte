@@ -372,6 +372,12 @@
 	</aside>
 {/if}
 
+{#if clickableAreas}
+	{#each clickableAreas as marker (marker.id)}
+		{#if marker.clickableArea}<Embed embed={marker.clickableArea} {marker} />{/if}
+	{/each}
+{/if}
+
 <!-- Main container for markers and waypoints -->
 {#if hasMarkersOrWaypoints}
 	<div style={hasMarkersOrWaypoints ? markerStyle : null} class:show-titles={showTitles} class:is360 class:inactive={inactive||(is360 && $switching)}>
@@ -396,12 +402,6 @@
 {#if invisibleMarkers}
 	{#each invisibleMarkers as marker (marker.id)}
 		<Marker {marker} {image} forceHidden />
-	{/each}
-{/if}
-
-{#if clickableAreas}
-	{#each clickableAreas as marker (marker.id)}
-		{#if marker.clickableArea}<Embed embed={marker.clickableArea} {marker} />{/if}
 	{/each}
 {/if}
 
