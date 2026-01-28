@@ -2,7 +2,7 @@
 <html>
 
 <head>
-	<title>5.3 Micrio dev</title>
+	<title>5.4 Micrio dev</title>
 	<meta name="Content-Type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no">
 	<meta http-equiv="X-UA-Compatible" content="chrome=1">
@@ -18,10 +18,10 @@
 	<script type="module" src="./src/ts/main.ts"></script>
 	
 	<!-- Use this to test the compiled version -->
-	<!-- <script src="./dist/micrio.min.js" defer></script> -->
+	<!-- <script src="./dist/micrio.min.safe-wasm.js" defer></script> -->
 
 	<!-- Use a production version -->
-	<!-- <script src="https://r2.micr.io/micrio-5.3.9.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-5.4.25.min.js" defer></script> -->
 
 	<style>
 		html,
@@ -54,8 +54,21 @@
 		Embedded video: SUeqOX
 		Serial multi-image tour: ojvqWXd / JXflr
 		360 hi-res: mLOarF
+		360 poppenhuis: uLNEVz  / mqmDZU / sXvgoH
 	-->
-	<micr-io id="dzzLm" data-legacy data-embeds-inside-gl="true" datxa-skipmeta daxta-cluster-markers></micr-io>
+	<!-- <micr-io id="evFgTjE" laxng="nl" daxta-zoomlimit="4" daxta-router="hash" data-embexds-inside-gl daxta-path="http://localhost:6100/r2/" daxta-force-path data-embxeds-inside-gl="true" data-sxkipmeta daxta-cluster-markers></micr-io> -->
+	<!-- <micr-io id="jnpEgY" daxta-embeds-inside-gl data-path="http://localhost:6100/r2/" data-force-path daxta-embeds-inside-gl="true" dxata-skipmeta daxta-cluster-markers></micr-io> -->
+	<!-- <micr-io id="cjhjTWD" lang="nl" xid="external/micrio/blabla" data-watermark-opacity="0.2"></micr-io> -->
+	<!-- <micr-io xxid="blabla" id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
+	<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18"></micr-io> -->
+	 <!-- multi image marker CVWjwhk / very small pBjaEqs-->
+	<micr-io id="ojSTHOE" daxta-skipmeta datxa-ui="false"></micr-io>
+
+	<!-- <micr-io id="RKLaNjM"></micr-io> -->
+
+	<!-- Crystal bridges pBErzZO / nGZqTNo -->
+	<!-- OgjEZme -->
+	<!--<micr-io id="https://iiif.micr.io/dzzLm/info.json" daxta-normalize-dpr="false" xid="external/micrio/blabla" data-skipmeta="true"></micr-io>-->
 
 	<!-- Grids 
 	 	Vermeer grid PiYMF.1673513256 https://micrio.rijksmuseum.nl/g/PiYMF.1673513256.mdp
@@ -71,29 +84,32 @@
 	<script>
 		window.micrio = document.querySelector('micr-io');
 
-		// Override the default settings
+		// Override the default settings by setting the `.defaultSettings` property
+		// on a <micr-io> HTML element
 		micrio.defaultSettings = {
 
 		};
 
 		// Listen to opened marker hooks
-		micrio.addEventListener('click', e => {
-			const coo = micrio.$current.camera.getCoo(e.clientX, e.clientY);
-			//console.log('wut?', e.clientX, e.clientY, coo);
+		micrio.addEventListener('marker-opened', e => {
+			console.log('Opened marker', e.detail);
 		});
 
 		// Put any pre-info init hooks here
 		micrio.addEventListener('pre-info', e => {
+			// At this point, you can manipulate the image settings for instance
+			// before it gets picked up by the Micrio initialization process.
 			//console.log(e.detail.settings)
-			//e.detail.settings.omni.layerStartIndex = 1;
 		});
 
 		// Put any pre-data init hooks here
 		micrio.addEventListener('pre-data', e => {
+			// Same as `pre-info` hook, but this is for the image data / content.
 		});
 
 		function fly() {
-			micrio.$current.camera.flyToView({centerX:.4,centerY:.4,width:.2,height:.2})
+			// Viewport format is [left, top, width, height]
+			micrio.$current.camera.flyToView([.4,.4,.2,.2])
 		}
 
 	</script>
