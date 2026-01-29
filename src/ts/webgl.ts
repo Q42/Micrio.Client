@@ -154,7 +154,8 @@ export class WebGL {
 			antialias: false, // Antialiasing not needed (handled by rendering technique?)
 			depth: false, // Depth buffer not needed
 			desynchronized: false, // Performance hint
-			powerPreference: 'high-performance' // Request high performance GPU
+			// This flag breaks WebGL2 when having experimental WebGPU browser flags enabled
+			// powerPreference: 'high-performance' // Request high performance GPU
 		}) as WebGLRenderingContext | WebGL2RenderingContext; // Type assertion
 
 		// Check if context creation was successful
