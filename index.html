@@ -62,7 +62,10 @@
 	<!-- <micr-io xxid="blabla" id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
 	<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18"></micr-io> -->
 	 <!-- multi image marker CVWjwhk / very small pBjaEqs-->
-	<micr-io id="ojSTHOE" daxta-skipmeta datxa-ui="false"></micr-io>
+	  <!-- Staedel-->
+	<!-- <micr-io id="zUtxLtj" lang="de-DE" daxta-skipmeta datxa-ui="false"></micr-io> -->
+
+	<micr-io id="OEjDREG" data-coverlimit></micr-io>
 
 	<!-- <micr-io id="RKLaNjM"></micr-io> -->
 
@@ -90,9 +93,12 @@
 
 		};
 
+		//0.016063, 0.047832, 0.982716, 0.965598
+
 		// Listen to opened marker hooks
-		micrio.addEventListener('marker-opened', e => {
-			console.log('Opened marker', e.detail);
+		micrio.addEventListener('click', e => {
+			//console.log('Opened marker', e.detail);
+			console.log(micrio.$current.camera.getCoo(e.clientX,e.clientY));
 		});
 
 		// Put any pre-info init hooks here
