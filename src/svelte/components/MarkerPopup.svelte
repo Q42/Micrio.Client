@@ -288,6 +288,23 @@
 		}
 	}
 
+	/* Styling for content elements during minimize/maximize transition */
+	div > :global(main > *:not(h3)) { /* Target all direct children except h3 */
+		transition-property: margin-top, margin-bottom, height, opacity;
+		transition-duration: .5s;
+		transition-timing-function: ease;
+		overflow: hidden; /* Hide content smoothly */
+	}
+
+	/* Styles for minimized state */
+	div.minimized > :global(main > *:not(h3)) {
+		margin-top: 0;
+		margin-bottom: 0;
+		opacity: 0;
+		/* Height is set dynamically in toggleMinimize function */
+	}
+
+
 	/* Mobile layout for controls (top) */
 	@media (max-width: 500px) {
 		aside {
@@ -317,33 +334,21 @@
 		}
 		/* Popup takes full width on mobile */
 		div {
-			top: var(--micrio-border-margin);
+			width: auto;
 			right: var(--micrio-border-margin);
-			left: var(--micrio-border-margin);
-			width: auto; /* Allow it to fill width */
+			display: flex;
+			bottom: calc(var(--micrio-button-size) + 2 * var(--micrio-border-margin));
+			flex-direction: column;
+			justify-content: space-between;
 		}
 		/* Adjust max height for mobile */
 		div > :global(main) {
-			max-height: calc(100vh - var(--micrio-button-size) - 3 * var(--micrio-border-margin));
-			max-height: calc(100cqh - var(--micrio-button-size) - 3 * var(--micrio-border-margin));
-			box-sizing: border-box;
+			max-height: 40vh;
 		}
-	}
 
-	/* Styling for content elements during minimize/maximize transition */
-	div > :global(main > *:not(h3)) { /* Target all direct children except h3 */
-		transition-property: margin-top, margin-bottom, height, opacity;
-		transition-duration: .5s;
-		transition-timing-function: ease;
-		overflow: hidden; /* Hide content smoothly */
-	}
-
-	/* Styles for minimized state */
-	div.minimized > :global(main > *:not(h3)) {
-		margin-top: 0;
-		margin-bottom: 0;
-		opacity: 0;
-		/* Height is set dynamically in toggleMinimize function */
+		div > :global(main > *:not(h3)) { /* Target all direct children except h3 */
+			overflow: visible;
+		}
 	}
 
 	/* Styling for tour step counter button */

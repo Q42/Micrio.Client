@@ -344,4 +344,23 @@
 		object-fit: cover; /* Ensure images cover their grid area */
 	}
 
+	/* Mobile layout */
+	@media (max-width: 500px) {
+		/** Images are small thumbs floating right of text */
+		section {
+			display: block;
+			float: right;
+			width: 100px;
+			margin-left: var(--micrio-border-margin)
+		}
+		/** Only show first image of popup */
+		section > button:not(:nth-child(1)) {
+			display: none;
+		}
+		/** Hide in-popup image figcaptions */
+		section figcaption {
+			display: none;
+		}
+	}
+
 </style>
