@@ -82,7 +82,7 @@
 	// Determine if the embed should be rendered as an HTML element instead of WebGL
 	const glAttr = 'data-embeds-inside-gl'; // Attribute to force WebGL rendering
 	const glAttrValue = micrio.getAttribute(glAttr);
-	const embedImageAsHtml = isSVG || isIOS14 || (!screenIsHDR && !micrio.hasAttribute(glAttr)) || glAttrValue == 'false';
+	const embedImageAsHtml = isSVG || isIOS14 || (!screenIsHDR && !micrio.hasAttribute(glAttr) && embed.video) || glAttrValue == 'false';
 
 	/** Determine if the embed should be rendered using WebGL. */
 	const printGL = !embedImageAsHtml && !!(
