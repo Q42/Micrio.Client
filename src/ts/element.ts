@@ -157,6 +157,11 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	keepRendering: boolean = false;
 
+	/** For setting first-time hooks
+	 * @internal
+	 */
+	private initedFirst: boolean = false;
+
 	/** @internal Initializes the element and subscribes to internal stores. */
 	constructor(){
 		super();
@@ -483,11 +488,13 @@ export class HTMLMicrioElement extends HTMLElement {
 
 		// Function to finalize image setup after Wasm/info loaded
 		const setImage = () => { if(!c) return;
+			// Initialize WebGL
+			if(!this.webgl.gl) this.webgl.init();
+
 			// Once image info is loaded
 			once(c.info).then(i => { if(!i || !c) return;
 				// Initialize WebGL context if not already done
-				if(!this.webgl.gl) {
-					this.webgl.init();
+				if(!this.initedFirst) {
 					this.canvas.hook(); // Start canvas resize/event listeners
 
 					// Apply theme setting
@@ -495,6 +502,8 @@ export class HTMLMicrioElement extends HTMLElement {
 						case 'light': this.setAttribute('data-light-mode',''); break;
 						case 'os': this.setAttribute('data-auto-scheme',''); break;
 					}
+
+					this.initedFirst = true;
 				}
 
 				// Initialize grid controller if needed
