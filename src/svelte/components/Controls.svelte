@@ -42,8 +42,8 @@
 	const micrio = $state(<HTMLMicrioElement>getContext('micrio'));
 	/** Destructure needed stores and properties from the micrio instance. */
 	const { current, state: micrioState, isMuted, _lang } = micrio;
-	/** Reference to the active tour store. */
-	const tour = micrioState.tour;
+	/** Reference to the active tour and popup store. */
+	const { tour, popup } = micrioState;
 	/** Destructure UI state stores. */
 	const { controls, zoom, hidden } = micrio.state.ui;
 
@@ -162,45 +162,49 @@
 	const hasFullscreen = $derived(showFullscreen && !isActiveSerialTour);
 	/** Determine if the entire controls container should be shown. */
 	const hasControls = $derived($controls && !$hidden && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
+	/** Show only fullscreen button when having popup on mobile screen */
+	const onlyFullscreen = $derived($popup && micrio.canvas.$isMobile);
 
 </script>
 
 <!-- Render the controls container only if `hasControls` is true -->
 {#if hasControls}
 	<aside>
-		<!-- Mute Button -->
-		{#if showMute}
-			<Button
-				type={$isMuted ? 'volume-off' : 'volume-up'}
-				title={$isMuted ? $i18n.audioUnmute : $i18n.audioMute}
-				onclick={() => isMuted.set(!$isMuted)}
-			/>
-		{/if}
+		{#if !onlyFullscreen}
+			<!-- Mute Button -->
+			{#if showMute}
+				<Button
+					type={$isMuted ? 'volume-off' : 'volume-up'}
+					title={$isMuted ? $i18n.audioUnmute : $i18n.audioMute}
+					onclick={() => isMuted.set(!$isMuted)}
+				/>
+			{/if}
 
-		<!-- Language Switch Menu -->
-		{#if hasCultures}
-			<menu class="popout">
-				<Button title={$i18n.switchLanguage} type="a11y" /><!-- Accessibility icon -->
-				{#each cultures as l}
-					<Button
-						onclick={() => micrio.lang = l}
-						title={languageNames?.of(l) ?? l}
-						active={l==$_lang}
-					>
-						{l.toUpperCase()}
-					</Button>
-				{/each}
-			</menu>
-		{/if}
+			<!-- Language Switch Menu -->
+			{#if hasCultures}
+				<menu class="popout">
+					<Button title={$i18n.switchLanguage} type="a11y" /><!-- Accessibility icon -->
+					{#each cultures as l}
+						<Button
+							onclick={() => micrio.lang = l}
+							title={languageNames?.of(l) ?? l}
+							active={l==$_lang}
+						>
+							{l.toUpperCase()}
+						</Button>
+					{/each}
+				</menu>
+			{/if}
 
-		<!-- Share Button -->
-		{#if hasSocial}
-			<Button type="share" title={$i18n.share} onclick={share} />
+			<!-- Share Button -->
+			{#if hasSocial}
+				<Button type="share" title={$i18n.share} onclick={share} />
+			{/if}
 		{/if}
 
 		<!-- Zoom and Fullscreen Buttons -->
 		<ButtonGroup>
-			{#if $zoom}
+			{#if $zoom && !onlyFullscreen}
 				<!-- Render secondary zoom controls if active, otherwise primary -->
 				{#if secondaryControls}
 					<ZoomButtons image={secondaryControls} />
