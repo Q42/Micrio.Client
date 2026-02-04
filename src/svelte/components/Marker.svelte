@@ -394,17 +394,20 @@
 		clearTimeout(_splitOpenTo); // Clear split screen open timeout
 		events.dispatch('marker-closed', marker); // Dispatch event
 
+		const currentMarkerTour = $tour && 'steps' in $tour;
+
 		// Refocus the marker button after closing, potentially after camera animation
-		if(marker.videoTour || image.openedView) { // If closed after marker video tour with zoom-out
-			setTimeout(() => image.camera.aniDoneAdd.push(() => _button?.focus()), 10); // Focus after animation
-		} else {
-			_button?.focus(); // Focus immediately
+		if(!currentMarkerTour) {
+			if(marker.videoTour || image.openedView) { // If closed after marker video tour with zoom-out
+				setTimeout(() => image.camera.aniDoneAdd.push(() => _button?.focus()), 10); // Focus after animation
+			} else {
+				_button?.focus(); // Focus immediately
+			}
 		}
 
 		// Clear global popover/popup state if this marker was showing it
 		micrio.state.popover.set(undefined);
 		if(!noPopup) {
-			const currentMarkerTour = $tour && 'steps' in $tour;
 			if($currentPopup == marker && (!currentMarkerTour || !keepPopup)) {
 				currentPopup.set(undefined);
 			}
