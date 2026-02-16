@@ -151,7 +151,10 @@ export namespace State {
 						this._tour.instance.paused ? 'p' : undefined // Store 'p' if paused
 					);
 				}
-				// TODO: Add state saving for marker tours (currentStep)?
+				// Store marker tour current step if applicable
+				else if('steps' in this._tour && this._tour.currentStep !== undefined) {
+					this.value.t.push(this._tour.currentStep);
+				}
 			}
 			// TODO: Verify if 'm' property (HTMLMediaElement) is needed/useful here. It's not serializable.
 			return this.value;
@@ -220,7 +223,8 @@ export namespace State {
 			// Re-check tour state after potentially opening a new image
 			if(s.t) {
 				// If tour was set, the marker should be handled by tour logic/marker subscription
-				return this.setTour(s.t[0]);
+				// Pass step/time info for restoration (s.t[1] = step index for marker tours, time for video tours)
+				return this.setTour(s.t[0], s.t[1]);
 			} else {
 				// If no tour, fly to the saved view of the main image (if no marker was opened by state.set)
 				const mainImgState = s.c.find(i => i[0] == s.id);
@@ -235,14 +239,26 @@ export namespace State {
 		 * Waits for the current image data to be available.
 		 * @internal
 		 * @param id The ID of the tour to activate.
+		 * @param stepOrTime Optional step index (for marker tours) or currentTime (for video tours) to restore.
 		 */
-		private async setTour(id:string) {
-			if(!this.micrio.$current || this._tour?.id == id) return; // Exit if no current image or tour already active
+		private async setTour(id:string, stepOrTime?:number) {
+			if(!this.micrio.$current) return; // Exit if no current image
+			
 			// Wait for image data to load (needed to find the tour object)
 			const data = await once(this.micrio.$current.data, {allowUndefined: true});
 			if(data) {
-				// Find tour in markerTours or tours array and set the store
-				this.tour.set(data.markerTours?.find(t => t.id == id) || data.tours?.find(t => t.id == id));
+				// Find tour in markerTours or tours array
+				const tour = data.markerTours?.find(t => t.id == id) || data.tours?.find(t => t.id == id);
+				
+				// Set initial step for marker tours if provided
+				if(tour && 'steps' in tour && stepOrTime !== undefined) {
+					tour.initialStep = stepOrTime;
+				}
+				
+				// Only set tour if it's different from current
+				if(this._tour?.id != id) {
+					this.tour.set(tour);
+				}
 			}
 		}
 	}
