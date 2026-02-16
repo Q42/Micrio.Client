@@ -83,18 +83,15 @@ export class MicrioError extends Error {
 	readonly cause?: Error;
 	/** Error code for programmatic handling */
 	readonly code: ErrorCode;
-	/** Whether this error is retryable */
-	readonly retryable: boolean;
 	/** HTTP status code if applicable */
 	readonly statusCode?: number;
 
 	constructor(
-		message: string, 
-		options?: { 
-			cause?: Error; 
-			code?: ErrorCode; 
+		message: string,
+		options?: {
+			cause?: Error;
+			code?: ErrorCode;
 			displayMessage?: string;
-			retryable?: boolean;
 			statusCode?: number;
 		}
 	) {
@@ -103,9 +100,8 @@ export class MicrioError extends Error {
 		this.code = options?.code ?? ErrorCodes.UNKNOWN;
 		this.displayMessage = options?.displayMessage ?? UserErrorMessages[this.code];
 		this.cause = options?.cause;
-		this.retryable = options?.retryable ?? false;
 		this.statusCode = options?.statusCode;
-		
+
 		// Maintains proper stack trace for where error was thrown (only in V8)
 		if ('captureStackTrace' in Error && typeof Error.captureStackTrace === 'function') {
 			Error.captureStackTrace(this, MicrioError);
@@ -119,23 +115,20 @@ export class MicrioError extends Error {
 	static fromResponse(response: Response, context?: string): MicrioError {
 		const status = response.status;
 		let code: ErrorCode = ErrorCodes.UNKNOWN;
-		let retryable = false;
 
 		if (status === 404) {
 			code = ErrorCodes.NETWORK_NOT_FOUND;
 		} else if (status >= 500 && status < 600) {
 			code = ErrorCodes.NETWORK_SERVER_ERROR;
-			retryable = true;
 		} else if (status === 0) {
 			code = ErrorCodes.NETWORK_OFFLINE;
 		} else if (status === 408 || status === 504) {
 			code = ErrorCodes.NETWORK_TIMEOUT;
-			retryable = true;
 		}
 
 		return new MicrioError(
 			`${context ? context + ': ' : ''}HTTP ${status}`,
-			{ code, retryable, statusCode: status }
+			{ code, statusCode: status }
 		);
 	}
 
@@ -145,14 +138,12 @@ export class MicrioError extends Error {
 	static fromError(error: Error, context?: string): MicrioError {
 		const message = error.message.toLowerCase();
 		let code: ErrorCode = ErrorCodes.UNKNOWN;
-		let retryable = false;
 
 		// Categorize common error messages
 		if (message.includes('network') || message.includes('internet') || message.includes('offline')) {
 			code = ErrorCodes.NETWORK_OFFLINE;
 		} else if (message.includes('timeout')) {
 			code = ErrorCodes.NETWORK_TIMEOUT;
-			retryable = true;
 		} else if (message.includes('cors') || message.includes('cross-origin')) {
 			code = ErrorCodes.NETWORK_CORS;
 		} else if (message.includes('webgl') || message.includes('webglcontext')) {
@@ -165,7 +156,7 @@ export class MicrioError extends Error {
 
 		return new MicrioError(
 			`${context ? context + ': ' : ''}${error.message}`,
-			{ code, cause: error, retryable }
+			{ code, cause: error }
 		);
 	}
 }

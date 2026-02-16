@@ -1,84 +1,113 @@
 # Contributing to Micrio Client
 
-Thank you for considering contributing to Micrio! This document will help you get started.
+First off, thank you for considering contributing to Micrio! It's people like you that make this project better for everyone.
 
-## Quick Start
+## Code of Conduct
+
+This project and everyone participating in it is governed by our commitment to:
+- Being respectful and constructive
+- Focusing on what's best for the community
+- Showing empathy towards others
+
+## How Can I Contribute?
+
+### Reporting Bugs
+
+Before creating bug reports, please check the [existing issues](https://github.com/Q42/Micrio.Client/issues) to avoid duplicates. When you create a bug report, please include as many details as possible:
+
+- **Use a clear and descriptive title**
+- **Describe the exact steps to reproduce the problem**
+- **Provide specific examples** (code snippets, URLs if applicable)
+- **Describe the behavior you observed** and what behavior you expected
+- **Include screenshots or GIFs** if applicable
+
+### Suggesting Enhancements
+
+Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion:
+
+- **Use a clear and descriptive title**
+- **Provide a step-by-step description of the suggested enhancement**
+- **Provide specific examples** to demonstrate the enhancement
+- **Explain why this enhancement would be useful**
+
+### Pull Requests
+
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run the type checker (`pnpm run typecheck`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+## Development Setup
+
+### Prerequisites
+
+- Node.js >= 18.17.0
+- pnpm
+
+### Installation
 
 ```bash
-# Clone and setup
-git clone https://github.com/Q42/Micrio.Client.git
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/Micrio.Client.git
 cd Micrio.Client
+
+# Install dependencies
 pnpm i
+
+# Build the WebAssembly module
 pnpm run asbuild:optimized
+
+# Start development server
 pnpm run dev
 ```
 
-The dev server starts at http://localhost:2000/
+The dev server will start at http://localhost:2000/
 
 ## Project Structure
 
-```
-src/
-├── ts/           # TypeScript core - element, image loading, state, WebGL, Wasm bridge
-├── svelte/       # UI components - markers, tours, controls, popups
-├── wasm/         # AssemblyScript - camera math, tile calculations (compile with pnpm run asbuild)
-├── types/        # TypeScript definitions
-└── css/          # Styles
-```
+- `src/ts/` - TypeScript core logic
+- `src/svelte/` - Svelte UI components
+- `src/wasm/` - AssemblyScript WebAssembly code
+- `src/types/` - TypeScript type definitions
+- `public/` - Static assets and compiled output
 
-**Key files to know:**
-- `src/ts/element.ts` - Main `<micr-io>` custom element (~700 lines)
-- `src/ts/image.ts` - MicrioImage class, handles loading and state
-- `src/ts/state.ts` - State management with Svelte stores
-- `src/ts/webgl.ts` - WebGL rendering
-- `src/ts/wasm.ts` - WebAssembly communication bridge
+## Working with WebAssembly
 
-## Making Changes
+After making changes to `src/wasm/`:
 
-1. **TypeScript changes** - Hot reload automatically
-2. **WebAssembly changes** - Run `pnpm run asbuild:optimized` after editing `src/wasm/`
-3. **Run type checker** - `pnpm run typecheck` before committing
-
-## Error Handling
-
-When adding error handling, use the `MicrioError` class:
-
-```typescript
-import { MicrioError, ErrorCodes } from './utils/error';
-
-// Categorized error with user-friendly message
-throw new MicrioError('Failed to load image', {
-  code: ErrorCodes.NETWORK_TIMEOUT,
-  retryable: true
-});
+```bash
+pnpm run asbuild:optimized
 ```
 
-For network operations, use `withRetry()`:
-
-```typescript
-import { withRetry } from './utils/retry';
-
-const data = await withRetry(
-  () => fetchJson(url),
-  { maxAttempts: 3 }
-);
+For debugging with stack traces:
+```bash
+pnpm run asbuild:untouched
 ```
 
-## Testing Your Changes
+## Style Guidelines
 
-Test with different image types:
-- Standard image: `OEjDREG` (default in index.html)
-- 360° panorama: `ZnaHJK`
-- Gallery: Uncomment gallery example in index.html
+### TypeScript
 
-## Commit Guidelines
+- Use TypeScript for all new code
+- Follow the existing code style
+- Run `pnpm run typecheck` before committing
 
-- Use present tense: "Add feature" not "Added feature"
-- First line under 72 characters
-- Reference issues: "Fix marker tour step persistence (#38)"
+### Git Commit Messages
 
-## Need Help?
+- Use the present tense ("Add feature" not "Added feature")
+- Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
+- Limit the first line to 72 characters or less
+- Reference issues and pull requests liberally after the first line
 
-- Check ARCHITECTURE.md for system overview
-- Open an issue for questions
-- Email: support@micr.io
+## Recognition
+
+Contributors will be recognized in our release notes and documentation.
+
+## Questions?
+
+Feel free to open an issue for any questions, or contact us at support@micr.io
+
+Thank you for contributing! 🎉

@@ -7,7 +7,6 @@ import type { Models } from '../../types/models';
 import type { PREDEFINED } from '../../types/internal';
 import { sanitizeImageInfo, isLegacyViews } from './sanitize';
 import { View } from './view';
-import { withRetry, MicrioError, ErrorCodes } from './index';
 
 /** Global cache for fetched JSON data, keyed by URI.
  * @internal
@@ -23,8 +22,6 @@ const jsonErrors: Map<string, [number, string]> = new Map();
 /**
  * Fetches JSON data from a URI, utilizing a cache to avoid redundant requests.
  * Handles ongoing requests to prevent fetching the same URI multiple times concurrently.
- * Includes automatic retry with exponential backoff for transient failures.
- * 
  * @internal
  * @template T The expected type of the JSON data.
  * @param uri The URI to fetch JSON from.
@@ -34,40 +31,24 @@ const jsonErrors: Map<string, [number, string]> = new Map();
 export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
 	if (!noCache && jsonCache.has(uri)) return jsonCache.get(uri) as T; // Return cached data if available
 	if (jsonPromises.has(uri)) return jsonPromises.get(uri) as Promise<T>; // Return existing promise if fetch is in progress
-	if (jsonErrors.has(uri)) {
-		const [status, error] = jsonErrors.get(uri)!;
-		throw new MicrioError(error, { code: status >= 500 ? ErrorCodes.NETWORK_SERVER_ERROR : ErrorCodes.DATA_NOT_FOUND, statusCode: status });
-	}
+	if (jsonErrors.has(uri)) throw jsonErrors.get(uri)![1];
 
-	// Create and store the fetch promise with retry logic
-	const promise = withRetry(
-		async () => {
-			const response = await fetch(uri + (noCache ? '?' + Math.random() : ''));
-			
-			if (response.status === 200) {
-				return response.json();
-			} else {
-				const errorText = await response.text();
-				jsonErrors.set(uri, [response.status, errorText]);
-				throw MicrioError.fromResponse(response, `Failed to fetch ${uri}`);
-			}
-		},
-		{
-			maxAttempts: 3,
-			onRetry: (attempt, error, delay) => {
-				console.warn(`[Micrio] Fetch retry ${attempt}/3 for ${uri}: ${error.message} (retrying in ${Math.round(delay)}ms)`);
-			}
+	// Create and store the fetch promise
+	const promise = fetch(uri + (noCache ? '?' + Math.random() : '')).then(async r => {
+		if (r.status == 200) return r.json(); // Parse JSON on success
+		else {
+			const error = await r.text();
+			jsonErrors.set(uri, [r.status, error]);
+			throw error; // Throw error text on failure
 		}
-	).then(j => {
+	}).then(j => {
 		if (!noCache) jsonCache.set(uri, j); // Store result in cache
 		jsonPromises.delete(uri); // Remove promise from tracking map
-		jsonErrors.delete(uri); // Clear any previous error
 		return j;
 	}).catch(e => { // Handle fetch errors
 		jsonPromises.delete(uri);
 		throw e;
 	});
-	
 	jsonPromises.set(uri, promise); // Track the ongoing promise
 	return promise as Promise<T>;
 };

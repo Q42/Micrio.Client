@@ -14,7 +14,7 @@ import type { MicrioWasmExports } from '../types/wasm';
 import { MicrioImage } from './image';
 import { get } from 'svelte/store';
 import { archive } from './archive';
-import { Browser, once } from './utils';
+import { Browser, once, MicrioError, ErrorCodes } from './utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 import { WASM } from './globals'; // Contains WASM binary data (likely base64)
 
@@ -239,7 +239,10 @@ export class Wasm {
 		this.i = 0; // Mark as loading
 		const data = await wasmPromise; // Wait for binary data
 		if(!((data instanceof Uint8Array) || (data instanceof ArrayBuffer))) {
-			throw new Error('WebAssembly binary data is invalid. Expected ArrayBuffer or Uint8Array.');
+			throw new MicrioError('Invalid WebAssembly binary data', {
+				code: ErrorCodes.WASM_LOAD_FAILED,
+				displayMessage: 'Failed to load the image viewer engine. Please try refreshing the page.'
+			});
 		}
 
 		// Instantiate the Wasm module with imports
