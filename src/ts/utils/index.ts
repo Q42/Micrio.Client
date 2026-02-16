@@ -5,7 +5,12 @@
  */
 
 // Error handling
-export { MicrioError } from './error';
+export { MicrioError, ErrorCodes, UserErrorMessages } from './error';
+export type { ErrorCode } from './error';
+
+// Retry utilities
+export { withRetry, fetchWithRetry } from './retry';
+export type { RetryOptions } from './retry';
 
 // Mathematical utilities
 export { pyth, mod, limitView } from './math';
