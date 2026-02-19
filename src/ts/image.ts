@@ -217,6 +217,13 @@ export class MicrioImage {
 		if(!opts.useParentCamera) this.camera = new Camera(this);
 
 		this.id = (attr.id??'').replace('https://i.micr.io/',''); // Sanitize ID
+
+		// URL-encode the custom-id part for external IDs (`external/{org-slug}/{custom-id}`)
+		if(this.id.startsWith('external/')) {
+			const secondSlash = this.id.indexOf('/', this.id.indexOf('/') + 1);
+			if(secondSlash !== -1)
+				this.id = this.id.substring(0, secondSlash + 1) + encodeURIComponent(this.id.substring(secondSlash + 1));
+		}
 		this.isV5 = idIsV5(this.id.split('/')[0]); // Check if ID format indicates V5
 		// Determine base paths for info and data JSON
 		this.infoBasePath = attr.path && attr.forceInfoPath ? attr.path : undefined;
@@ -341,7 +348,7 @@ export class MicrioImage {
 				.then(r => {
 					// If custom ID requested (`id="external/{org-slug}/{customId}"`), the returned info is redirected to real image's ID path.
 					// Also correct this internally.
-					if(r?.id && !i.isIIIF && this.id.split('/').length==3 && this.id.startsWith('external/')) {
+					if(r?.id && !i.isIIIF && this.id.split('/').length>=3 && this.id.startsWith('external/')) {
 						idFromCustomId = r.id.split('/').reverse()[0];
 						if(this.isV5 = idIsV5(idFromCustomId)) this.dataPath = r.path || BASEPATH_V5;
 					}
