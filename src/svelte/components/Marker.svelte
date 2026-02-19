@@ -396,12 +396,17 @@
 
 		const currentMarkerTour = $tour && 'steps' in $tour;
 
-		// Refocus the marker button after closing, potentially after camera animation
-		if(!currentMarkerTour) {
-			if(marker.videoTour || image.openedView) { // If closed after marker video tour with zoom-out
-				setTimeout(() => image.camera.aniDoneAdd.push(() => _button?.focus()), 10); // Focus after animation
+		// Only refocus button when the marker was explicitly closed (no other marker
+		// replacing it) and no tour is running -- otherwise the focus handler pans the
+		// camera back to this marker's location, fighting the new navigation target.
+		const shouldRefocus = !$tour && !image.state.$marker;
+		if(shouldRefocus) {
+			if(marker.videoTour || image.openedView) {
+				setTimeout(() => image.camera.aniDoneAdd.push(() => {
+					if(!get(tour) && !image.state.$marker) _button?.focus();
+				}), 10);
 			} else {
-				_button?.focus(); // Focus immediately
+				_button?.focus();
 			}
 		}
 
