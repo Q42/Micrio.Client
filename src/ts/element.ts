@@ -407,6 +407,7 @@ export class HTMLMicrioElement extends HTMLElement {
 			? error.displayMessage 
 			: (error instanceof Error ? error.message : error) 
 			?? 'An unknown error has occurred';
+		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
 		this._ui?.setProps?.({ error: message });
 	}
 
@@ -494,7 +495,12 @@ export class HTMLMicrioElement extends HTMLElement {
 		// Function to finalize image setup after Wasm/info loaded
 		const setImage = () => { if(!c) return;
 			// Initialize WebGL
-			if(!this.webgl.gl) this.webgl.init();
+			if(!this.webgl.gl) try {
+				this.webgl.init();
+			} catch(e) {
+				this.printError(e as Error);
+				return;
+			}
 
 			// Once image info is loaded
 			once(c.info).then(i => { if(!i || !c) return;
@@ -554,7 +560,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		}
 
 		// Load Wasm if needed, then finalize image setup
-		if(!this.wasm.ready) this.wasm.load().then(setImage);
+		if(!this.wasm.ready) this.wasm.load().then(setImage).catch(e => this.printError(e as Error));
 		else setImage();
 
 		// If image has no visual content (e.g., just data), mark loading as finished
