@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker } from './utils';
+import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
 import { State } from './state';
 import { archive } from './archive';
 
@@ -294,13 +294,16 @@ export class MicrioImage {
 	/**
 	 * Sets the error state and prints it to the UI.
 	 * @internal
-	 * @param e The original error
+	 * @param e The original error (MicrioError, Error, or string)
 	 * @param displayMessage Optional user-friendly message to display
 	 */
 	private setError(e: Error | string, displayMessage?: string): never {
-		const message = displayMessage ?? (e instanceof Error ? e.message : e) ?? 'An unknown error has occurred';
+		// Use MicrioError's displayMessage if available, otherwise fall back
+		const message = e instanceof MicrioError 
+			? e.displayMessage 
+			: (displayMessage ?? (e instanceof Error ? e.message : e) ?? 'An unknown error has occurred');
 		this.error = message;
-		this.wasm.micrio.printError(message);
+		this.wasm.micrio.printError(e instanceof MicrioError ? e : message);
 		this.wasm.micrio.loading.set(false); // Stop loading indicator
 		throw e instanceof Error ? e : new Error(message);
 	}

@@ -5,7 +5,8 @@
  */
 
 // Error handling
-export { MicrioError } from './error';
+export { MicrioError, ErrorCodes, UserErrorMessages } from './error';
+export type { ErrorCode } from './error';
 
 // Mathematical utilities
 export { pyth, mod, limitView } from './math';

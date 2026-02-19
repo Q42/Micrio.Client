@@ -9,6 +9,7 @@ import type { HTMLMicrioElement } from './element';
 
 import { Wasm } from './wasm'; // Access Wasm static properties and instance
 import { PostProcessor } from './postprocess'; // Handles post-processing effects
+import { MicrioError, ErrorCodes } from './utils';
 
 /** Flag indicating if the browser is Firefox (requires slightly different shader logic). @internal */
 const isFirefox:boolean = /firefox/i.test(navigator.userAgent);
@@ -161,7 +162,10 @@ export class WebGL {
 		// Check if context creation was successful
 		if(hasGL2 ? !(gl instanceof window.WebGL2RenderingContext)
 			: !(gl instanceof window.WebGLRenderingContext)) {
-			throw new Error('Error creating WebGL context. Does your browser support WebGL?');
+			throw new MicrioError('WebGL context creation failed', {
+				code: ErrorCodes.WEBGL_UNSUPPORTED,
+				displayMessage: 'Your browser does not support WebGL, which is required to view this content. Please try a different browser.'
+			});
 		}
 
 		this.gl = gl; // Store the context
@@ -175,7 +179,12 @@ export class WebGL {
 
 		// --- Shader Program Setup ---
 		const program = gl.createProgram();
-		if(!(program instanceof WebGLProgram)) throw new Error('Could not create WebGL shader program');
+		if(!(program instanceof WebGLProgram)) {
+			throw new MicrioError('Failed to create WebGL program', {
+				code: ErrorCodes.WEBGL_SHADER_COMPILE,
+				displayMessage: 'There was a problem initializing the graphics. Please try refreshing the page.'
+			});
+		}
 		this.program = program;
 
 		// Compile and attach shaders
@@ -199,34 +208,34 @@ export class WebGL {
 		// --- Get Uniform Locations ---
 		const opaLoc = gl.getUniformLocation(this.program, 'opacity');
 		if(opaLoc) this.opaLoc = opaLoc;
-		else throw new Error('Could not bind opacity WebGL uniform');
+		else throw new MicrioError('Failed to bind WebGL opacity uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
 		const pmLoc = gl.getUniformLocation(this.program, 'GLMatrix');
 		if(pmLoc) this.pmLoc = pmLoc;
-		else throw new Error('Could not bind GLMatrix WebGL uniform');
+		else throw new MicrioError('Failed to bind WebGL matrix uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
 		const noTxtLoc = gl.getUniformLocation(this.program, 'noTexture');
 		if(noTxtLoc) this.noTxtLoc = noTxtLoc;
-		else throw new Error('Could not bind noTexture WebGL uniform');
+		else throw new MicrioError('Failed to bind WebGL texture uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
 		// --- Buffer Setup ---
 		// Texture Coordinates Buffer (Static)
 		this.txtAttr = gl.getAttribLocation(this.program, 'aTextureCoord');
 		const txtBuffer = gl.createBuffer();
 		if(txtBuffer) this.txtBuffer = txtBuffer;
-		else throw new Error('Could not create texture coordinates WebGL buffer');
+		else throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Wasm._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Wasm
 
 		// Watermark Texture Coordinates Buffer
 		const wmTxtBuffer = gl.createBuffer();
 		if(wmTxtBuffer) this.wmTxtBuffer = wmTxtBuffer;
-		else throw new Error('Could not create watermark WebGL buffer');
+		else throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
 
 		// Vertex Position Buffer (Dynamic - updated by Wasm)
 		const geomBuffer = gl.createBuffer();
 		if(geomBuffer) this.geomBuffer = geomBuffer;
-		else throw new Error('Could not create geometry WebGL buffer');
+		else throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
 		this.posAttr = gl.getAttribLocation(this.program, 'pos');
 
 		// Link buffers to attributes initially

@@ -5,7 +5,7 @@ import type { Camera } from './camera';
 /** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View, MicrioError } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Wasm } from './wasm';
@@ -399,10 +399,15 @@ export class HTMLMicrioElement extends HTMLElement {
 	/**
 	 * Displays an error message in the UI.
 	 * @internal
-	 * @param str The error message string.
+	 * @param error The error (MicrioError, Error, or string) to display.
 	 */
-	printError(str?:string) : void {
-		this._ui?.setProps?.({error: str??'An unknown error has occurred'});
+	printError(error?: Error | string): void {
+		// Extract user-friendly message from MicrioError, or use generic fallback
+		const message = error instanceof MicrioError 
+			? error.displayMessage 
+			: (error instanceof Error ? error.message : error) 
+			?? 'An unknown error has occurred';
+		this._ui?.setProps?.({ error: message });
 	}
 
 	/**
