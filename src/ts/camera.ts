@@ -559,7 +559,7 @@ export class Camera {
 	} = {}) : void {
 		if (!this.e) return; // Exit if Wasm not ready
 		this.e._pan(this.image.ptr, x, y, duration, !!opts.noLimit, performance.now());
-		if(opts.render) this.image.wasm.render(); // Trigger render if animating or forced
+		if(duration > 0 || opts.render) this.image.wasm.render();
 	}
 
 	/** Stops any currently running camera animation immediately. */

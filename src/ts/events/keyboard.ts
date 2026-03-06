@@ -38,8 +38,8 @@ export class KeyboardHandler {
 			case 'ArrowDown': dY += hHeight; break;
 			case 'ArrowLeft': dX -= hWidth; break;
 			case 'ArrowRight': dX += hWidth; break;
-			case '+': case '=': c.zoom(-200, dur); break; // Zoom in
-			case '-': case '_': c.zoom(200, dur); break; // Zoom out
+			case '+': case '=': c.zoom(-200, dur).catch(() => {}); break;
+			case '-': case '_': c.zoom(200, dur).catch(() => {}); break;
 			default: return; // Ignore other keys
 		}
 
