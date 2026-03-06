@@ -212,36 +212,30 @@
 
 </script>
 
-<!-- Render Audio Controller (manages positional audio and playlists) -->
 {#if hasAudio && $data && $info}
 	<AudioController volume={$volume} data={$data} is360={!!$info.is360} />
 {/if}
 
-<!-- Render full-image 360 video (legacy V4 feature) -->
 {#if videoSrc && $info}
 	<Media src={videoSrc} volume={$volume} is360
 		width={$info.width} height={$info.height} {...video} />
 {/if}
 
-<!-- Render all defined embeds -->
 {#if showEmbeds && $data && $data.embeds}
 	{#each $data.embeds as embed (embed.uuid)}
 		<Embed {embed} />
 	{/each}
 {/if}
 
-<!-- Render standard UI elements conditionally -->
 {#if showLogo}<Logo />{/if}
 {#if showToolbar}<Toolbar />{/if}
 
-<!-- Render Markers component for each visible image -->
 {#if showMarkers}
 	{#each $visible as image (image.uuid)}
 		<MicrioMarkers {image} />
 	{/each}
 {/if}
 
-<!-- Render Minimap for each visible image that has it enabled -->
 {#if showMinimap}
 	{#each $visible.filter(i => i.$settings.minimap) as image (image.uuid)}
 		<Minimap {image} />
@@ -249,34 +243,28 @@
 {/if}
 
 {#if showControls}<Controls hasAudio={hasAudio||!!(videoSrc && video && !video.muted)} />{/if}
-{#if showGallery}<Gallery images={gallery} {omni} />{/if}
-{#if showOrgLogo}<LogoOrg organisation={showOrgLogo} />{/if}
-{#if showDetails && info && data}<Details {info} {data} />{/if}
 
-<!-- Render Marker Popup (managed centrally) -->
-{#if $markerPopup}<MarkerPopup marker={$markerPopup} />{/if}
-
-<!-- Render active Tour UI -->
-{#if $tour}
-	<Tour tour={$tour} {noHTML} onminimize={b => subsRaised=!b} />
+{#if showGallery || showOrgLogo || (showDetails && info && data)}
+	{#if showGallery}<Gallery images={gallery} {omni} />{/if}
+	{#if showOrgLogo}<LogoOrg organisation={showOrgLogo} />{/if}
+	{#if showDetails && info && data}<Details {info} {data} />{/if}
 {/if}
 
-<!-- Render active Popover (for pages, gallery previews, etc.) -->
-{#if $popover}
-	<Popover popover={$popover} />
+{#if $markerPopup || $tour || $popover}
+	{#if $markerPopup}<MarkerPopup marker={$markerPopup} />{/if}
+	{#if $tour}
+		<Tour tour={$tour} {noHTML} onminimize={b => subsRaised=!b} />
+	{/if}
+	{#if $popover}
+		<Popover popover={$popover} />
+	{/if}
 {/if}
 
-<!-- Render Subtitles display -->
 {#each srts as src (src)}
 	<Subtitles {src} raised={subsRaised} />
 {/each}
 
-<!-- Render Error message overlay -->
-{#if error}
-	<Error message={error} />
-{/if}
-
-<!-- Render Loading indicator -->
-{#if loadingProgress < 1}
-	<ProgressCircle progress={loadingProgress} />
+{#if error || loadingProgress < 1}
+	{#if error}<Error message={error} />{/if}
+	{#if loadingProgress < 1}<ProgressCircle progress={loadingProgress} />{/if}
 {/if}
