@@ -4,7 +4,7 @@ import type { Models } from '../types/models';
 import type { MicrioImage } from './image';
 import type { Wasm } from './wasm';
 
-import { Browser, hasNativeHLS, loadScript } from './utils'; // Browser utils and HLS detection
+import { Browser, loadScript } from './utils';
 import { tick } from 'svelte';
 
 /**
@@ -124,21 +124,18 @@ export class GLEmbedVideo {
 		this._vid = document.createElement('video');
 		this._vid.crossOrigin = 'anonymous'; // Needed for WebGL texture usage
 		this._vid.playsInline = true; // Important for mobile playback
-		// Set initial dimensions (can be small, actual rendering uses texture)
-		this._vid.width = this.embed.width! * .5;
-		this._vid.height = this.embed.height! * .5;
+		this._vid.width = this.embed.width!;
+		this._vid.height = this.embed.height!;
 		this._vid.muted = this.embed.video.muted; // Apply muted setting
 
 		this.hook(); // Attach event listeners
 
-		// Load source: Use HLS.js if needed and supported, otherwise set src directly
-		if(!this.ism3u || hasNativeHLS(this._vid)) {
+		if(!this.ism3u || !('MediaSource' in window || 'ManagedMediaSource' in window)) {
 			this._vid.src = src;
 		} else {
-			// Load HLS.js library dynamically if needed
-			loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
+			loadScript('https://r2.micr.io/hls-1.6.15.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
 				/** @ts-ignore Access global Hls constructor */
-				this.hlsPlayer = new (window['Hls'] as HlsPlayer)(); // Create HLS player instance
+				this.hlsPlayer = new (window['Hls'] as HlsPlayer)({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
 				this.hlsPlayer.loadSource(src); // Load HLS manifest
 				if(this._vid) this.hlsPlayer.attachMedia(this._vid); // Attach to video element
 			}).catch(e => console.error("[Micrio GL Embed] Failed to load HLS.js:", e));

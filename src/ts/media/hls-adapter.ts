@@ -32,7 +32,7 @@ export class HLSPlayerAdapter implements MediaPlayerAdapter {
 	async initialize(): Promise<void> {
 		// Load HLS.js if not already present
 		if (!('Hls' in window)) {
-			await loadScript('https://i.micr.io/hls-1.5.17.min.js', undefined, 'Hls' in window ? {} : undefined);
+			await loadScript('https://r2.micr.io/hls-1.6.15.min.js', undefined, 'Hls' in window ? {} : undefined);
 		}
 
 		if (!('Hls' in window)) {
@@ -44,7 +44,7 @@ export class HLSPlayerAdapter implements MediaPlayerAdapter {
 		}
 
 		// @ts-ignore - Hls is loaded dynamically
-		this.hls = new window['Hls']();
+		this.hls = new window['Hls']({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
 		this.hls.loadSource(this.hlsSrc);
 		this.hls.attachMedia(this.element);
 

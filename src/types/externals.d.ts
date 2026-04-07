@@ -54,7 +54,7 @@ export type VimeoPlayer = {
 }
 
 export type HlsPlayer = {
-	new() : HlsPlayer;
+	new(config?: Record<string, unknown>) : HlsPlayer;
 	loadSource: (a:string) => void;
 	attachMedia: (a:HTMLMediaElement) => void;
 	destroy: () => void;

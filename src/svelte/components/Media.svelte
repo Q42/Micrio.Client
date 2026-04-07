@@ -25,7 +25,7 @@
 
 	// Micrio TS imports
 	import { i18n } from '../../ts/i18n';
-	import { Browser, notypecheck, parseMediaSource, getIOSAudioElement, hasNativeHLS } from '../../ts/utils';
+	import { Browser, notypecheck, parseMediaSource, getIOSAudioElement } from '../../ts/utils';
 	import { VideoTourInstance } from '../../ts/videotour';
 	import { FrameType, MediaType } from '../../types/internal';
 
@@ -467,7 +467,7 @@
 
 	async function loadPlayer(): Promise<void> {
 		// Load HLS player if needed
-		if (isCloudflare && cfVidSrc && !hasNativeHLS(_media)) {
+		if (isCloudflare && cfVidSrc && ('MediaSource' in window || 'ManagedMediaSource' in window)) {
 			const adapter = new HLSPlayerAdapter(_media as HTMLVideoElement, cfVidSrc, {
 				onReady: () => (seeking = false),
 				onEnded: ended,
