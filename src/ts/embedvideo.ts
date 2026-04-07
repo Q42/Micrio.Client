@@ -149,8 +149,21 @@ export class GLEmbedVideo {
 	private events = {
 		play: () => this.setPlaying(true),
 		pause: () => this.setPlaying(false),
-		// Set the video element on the parent MicrioImage once playback starts (first frame rendered)
-		playing: () => {if(!this.image._video) this.image.video.set(this._vid) },
+		// Set the video element on the parent MicrioImage once a real frame is available for WebGL texture upload
+		playing: () => {
+			if(!this.image._video && this._vid) {
+				if('requestVideoFrameCallback' in this._vid) {
+					this._vid.requestVideoFrameCallback(() => {
+						if(this._vid && this.isMounted) {
+							this.image.video.set(this._vid);
+							this.wasm.render();
+						}
+					});
+				} else {
+					this.image.video.set(this._vid);
+				}
+			}
+		},
 		// Use 'loadedmetadata' on iOS as 'canplay' might not fire reliably
 		canplayEvt: Browser.iOS ? 'loadedmetadata' : 'canplay',
 		// Handle 'canplay' or 'loadedmetadata' event

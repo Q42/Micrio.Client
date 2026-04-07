@@ -78,7 +78,7 @@ export default class Image {
 	private is360Embed:bool = false;
 
 	/** Flag indicating if this image is a video embed and currently playing (controlled by JS). */
-	public isVideoPlaying:bool = true;
+	public isVideoPlaying:bool = false;
 
 	// Properties for sampling reuse for 360 tile calculation
 	private static sampledXs: Float64Array = new Float64Array(200);
