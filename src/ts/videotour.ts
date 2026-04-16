@@ -69,9 +69,6 @@ export class VideoTourInstance {
 	/** Reference to the main HTMLMicrioElement. @internal */
 	private micrio: HTMLMicrioElement;
 
-	/** The camera view when the tour started, used for resetting. @internal */
-	private initialView: Models.Camera.View|undefined;
-
 	/**
 	 * Creates a VideoTourInstance.
 	 * @param image The parent {@link MicrioImage} instance.
@@ -82,8 +79,6 @@ export class VideoTourInstance {
 		private data: Models.ImageData.VideoTour
 	) {
 		this.micrio = image.wasm.micrio;
-		this.initialView = image.camera.getView(); // Store initial view
-
 		// Get language-specific content or fallback
 		const content = 'timeline' in data ? <unknown>data as Models.ImageData.VideoTourCultureData
 			: data.i18n?.[get(this.micrio._lang)] ?? undefined;

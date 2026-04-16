@@ -119,7 +119,7 @@ export class Router {
 		// Get route string from pathname or hash
 		this.route = (this.isStatic ? location.pathname : location.hash).slice(1);
 		// Split route into segments
-		const [id, lang, slug, markerOrTourOrPage, marker] = this.route.split('/');
+		const [id, lang, _slug, markerOrTourOrPage, marker] = this.route.split('/');
 
 		const main = this.micrio.$current;
 		// Open image if ID in URL is different from current

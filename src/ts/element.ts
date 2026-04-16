@@ -196,7 +196,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-grid`, `data-limited`, and `lang`.
 	 * @internal
 	*/
-	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, oldVal:string, newVal:string) {
+	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, _oldVal:string, newVal:string) {
 		switch(attr) {
 			case 'id': { // Handle ID change (initial load or subsequent open)
 				if(!this.isConnected || !newVal) return;

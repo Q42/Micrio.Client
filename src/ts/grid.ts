@@ -8,7 +8,7 @@ import type { HTMLMicrioElement } from './element';
 
 import { MicrioImage } from './image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { deepCopy, once, sleep, View } from './utils';
+import { deepCopy, once, sleep } from './utils';
 import { tick } from 'svelte';
 import { Enums } from '../ts/enums';
 
@@ -335,8 +335,6 @@ export class Grid {
 		// Reset any pending timeouts
 		this.clearTimeouts();
 
-		let _to:any; // Timeout for overall completion
-		let _fto:any; // Timeout for fade-in start
 		let resolved:boolean = false; // Flag to prevent multiple resolves/rejects
 
 		// Error handler for camera animations
@@ -404,9 +402,8 @@ export class Grid {
 		}
 		// Otherwise, set timeouts for fade-in and completion
 		else {
-			if(!opts.noFade) this._fadeTo = _fto = <unknown>setTimeout(fadeIn, Math.max(0, dur / 2 * 1000)) as number; // Schedule fade-in halfway?
-			// Schedule completion after the longest duration (main animation or crossfade + delays)
-			this._to = _to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0))*1000 );
+			if(!opts.noFade) this._fadeTo = <unknown>setTimeout(fadeIn, Math.max(0, dur / 2 * 1000)) as number;
+			this._to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0))*1000 );
 		}
 	})}
 
