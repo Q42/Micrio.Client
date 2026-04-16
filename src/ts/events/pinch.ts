@@ -1,5 +1,5 @@
-import { Browser, pyth } from '../utils';
-import { eventPassive, eventPassiveCapture, supportsPassive, type EventContext } from './shared';
+import { Browser } from '../utils';
+import { eventPassive, eventPassiveCapture, type EventContext } from './shared';
 import type { DragHandler } from './drag';
 
 /**
@@ -50,7 +50,6 @@ export class PinchHandler {
 		}
 
 		e.stopPropagation();
-		if (!supportsPassive) e.preventDefault();
 
 		// Stop panning if it was active before pinch started
 		this.ctx.vars.pinch.wasPanning = this.ctx.isPanning();
@@ -68,7 +67,7 @@ export class PinchHandler {
 
 		// Store target image and initial pinch distance
 		this.ctx.vars.pinch.image = this.ctx.getImage({ x: t[0].clientX, y: t[0].clientY });
-		this.ctx.vars.pinch.sDst = pyth(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+		this.ctx.vars.pinch.sDst = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 		this.ctx.setPinchFactor(undefined);
 
 		// Notify Wasm pinch started
@@ -106,7 +105,7 @@ export class PinchHandler {
 		}
 
 		// Calculate current pinch factor relative to start distance
-		this.ctx.setPinchFactor(pyth(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) / v.sDst);
+		this.ctx.setPinchFactor(Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) / v.sDst);
 
 		// Notify Wasm of pinch movement
 		this.ctx.micrio.wasm.e._pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);

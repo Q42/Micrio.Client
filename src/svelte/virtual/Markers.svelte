@@ -12,7 +12,7 @@
 	import type { Models } from '../../types/models';
 
 	import { onMount, setContext, tick } from 'svelte';
-	import { clone, limitView, once } from '../../ts/utils'; // Import utilities
+	import { clone, limitView, once, calcClusters, type MarkerCoords } from '../../ts/utils';
 
 	// Component imports
 	import Marker from '../components/Marker.svelte';
@@ -55,8 +55,6 @@
 
 	// --- Component State ---
 
-	/** Flag indicating if the component has mounted. */
-	let mounted:boolean = false;
 
 	/** Marker settings from the parent image. */
 	const markerSettings:Models.ImageInfo.MarkerSettings = $settings._markers ?? {};
@@ -134,107 +132,16 @@
 
 	// --- Clustering Logic ---
 
-	/** Array storing indices of markers currently overlapped within a cluster. */
-	let overlapped:number[]=$state([])
-	/** Cluster radius. */
-	let r=cR;
-	/** Array holding generated cluster marker data objects. */
+	let overlapped:number[] = $state([]);
+	let r = cR;
 	let clusterMarkers:MarkerData[] = $state([]);
 
-	/** Type alias for marker coordinate data stored in the map. [x, y, width?, height?] */
-	type MarkerCoords = [number, number, number?, number?];
-	/** Map storing screen coordinates and dimensions for each visible marker. */
 	const coords = new Map<string,MarkerCoords>();
 
-	/** Checks if two marker coordinate rectangles overlap. */
-	const overlaps = ([x0,y0,w0=0,h0=0]:MarkerCoords,[x1,y1,w1=0,h1=0]:MarkerCoords) => {
-		// Calculate effective radius/half-height for overlap check
-		const rY0 = Math.max(h0/2, r);
-		const rY1 = Math.max(h1/2, r);
-		// Check for non-overlap in either dimension
-		return !(x0+w0+r<x1-r || x0-r>x1+w1+r || y0+rY0<y1-rY1 || y0-rY0>y1+rY1);
-	}
-
-	/** Calculates which markers overlap and generates cluster markers. */
 	const calcOverlapped = () : void => {
-		if(!visibleMarkers) { overlapped = []; clusterMarkers = []; return; } // Exit if no visible markers
-
-		const q=visibleMarkers; // Alias for visible markers array
-		const S:number[][]=[]; // Array to store groups of overlapping indices
-		const l=q.length;
-		let i=0,j=0;
-
-		overlapped=[]; // Reset overlapped indices array
-		// Iterate through pairs of visible markers
-		for(i=0;i<l;i++) for(j=i+1;j<l;j++) {
-			// Skip markers explicitly marked as 'no-cluster'
-			if(q[j].tags?.includes('no-cluster')) continue;
-			// Get coordinates from the map
-			const c1 = coords.get(q[i].id), c2 = coords.get(q[j].id);
-			// If coordinates exist and markers overlap
-			if(c1 && c2 && overlaps(c1, c2)) {
-				overlapped.push(i,j); // Add indices to the overlapped list
-				// Find or create a cluster group (S) containing either marker index
-				const existingCluster = S.find(c=>c.findIndex(n=>n==i||n==j)>-1);
-				if (existingCluster) {
-					existingCluster.push(i,j); // Add both indices to existing cluster
-				} else {
-					S.push([i,j]); // Create a new cluster group
-				}
-			}
-		}
-		// Generate cluster marker data objects from the groups
-		clusterMarkers = S.map(c => c.filter((n, i) => c.indexOf(n) === i)) // Deduplicate indices within each cluster
-			.map((c) => {
-				// For Omni objects, markers may be at different rotations, so use a different view calculation
-				const isOmni = image.isOmni;
-
-				let minX, maxX, minY, maxY, centerX, centerY;
-
-				if (isOmni) {
-					// For Omni objects, calculate center as average of marker positions
-					centerX = c.reduce((sum, j) => sum + q[j].x, 0) / c.length;
-					centerY = c.reduce((sum, j) => sum + q[j].y, 0) / c.length;
-
-					// Use a fixed view size around the center, since markers are positioned spherically
-					const viewSize = 0.3; // 30% of image dimensions
-					minX = Math.max(0, centerX - viewSize / 2);
-					minY = Math.max(0, centerY - viewSize / 2);
-					maxX = Math.min(1, centerX + viewSize / 2);
-					maxY = Math.min(1, centerY + viewSize / 2);
-				} else {
-					// Regular 2D calculation
-					minX = Math.min(...c.map(j => q[j].view ? q[j].view[0] : q[j].x));
-					maxX = Math.max(...c.map(j => q[j].view ? q[j].view[0] + q[j].view[2] : q[j].x));
-					minY = Math.min(...c.map(j => q[j].view ? q[j].view[1] : q[j].y));
-					maxY = Math.max(...c.map(j => q[j].view ? q[j].view[1] + q[j].view[3] : q[j].y));
-					centerX = (minX + maxX) / 2;
-					centerY = (minY + maxY) / 2;
-				}
-
-				// For Omni objects, calculate average rotation and radius from clustered markers
-				const avgRotation = isOmni ? c.reduce((sum, j) => sum + (q[j].rotation ?? 0), 0) / c.length : undefined;
-				const avgRadius = isOmni ? c.reduce((sum, j) => sum + (q[j].radius ?? 1), 0) / c.length : undefined;
-
-				return {
-				title: c.length + '',
-				type: 'cluster',
-				view: [
-					minX,
-					minY,
-					Math.max(0.1, maxX - minX), // Ensure minimum width
-					Math.max(0.1, maxY - minY)  // Ensure minimum height
-				],
-				x: centerX,
-				y: centerY,
-				rotation: avgRotation,
-				radius: avgRadius,
-				id: c.sort((a,b) => a - b).join(','),
-				data: {},
-				popupType: 'none',
-				tags: []
-				};
-			});
+		const result = calcClusters(visibleMarkers, coords, r, image.isOmni);
+		overlapped = result.overlapped;
+		clusterMarkers = result.clusterMarkers;
 	};
 
 	// --- Fancy Side Label Logic (Omni) ---
@@ -292,8 +199,6 @@
 					fancyLabels = !b;
 				}));
 			}
-
-			mounted = true; // Mark component as mounted
 		});
 
 		// Cleanup function
@@ -353,7 +258,7 @@
 	/** Reactive flag indicating if there are any visible markers or waypoints. */
 	const hasMarkersOrWaypoints = $derived(!!(visibleMarkers?.length || waypoints?.length));
 	/** Reactive sorted list of markers currently in view (for side labels). */
-	const inViewSorted = $derived($inView.sort(([,,y1],[,,y2]) => y1 > y2 ? 1 : y1 < y2 ? -1 : 0)); // Sort by Y position
+	const inViewSorted = $derived([...$inView].sort(([,,y1],[,,y2]) => y1 > y2 ? 1 : y1 < y2 ? -1 : 0));
 
 </script>
 

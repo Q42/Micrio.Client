@@ -8,43 +8,37 @@ importers:
 
   .:
     dependencies:
-      '@tsconfig/svelte':
-        specifier: ^5.0.8
-        version: 5.0.8
       svelte:
         specifier: ^5.55.4
         version: 5.55.4
-      svelte-preprocess:
-        specifier: ^6.0.3
-        version: 6.0.3(postcss@8.5.10)(svelte@5.55.4)(typescript@6.0.2)
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
-      typescript:
-        specifier: ^6.0.2
-        version: 6.0.2
-      wrangler:
-        specifier: ^4.83.0
-        version: 4.83.0
     devDependencies:
-      '@fortawesome/free-solid-svg-icons':
-        specifier: ^7.2.0
-        version: 7.2.0
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.0.0
         version: 7.0.0(svelte@5.55.4)(vite@8.0.8(esbuild@0.27.3)(terser@5.46.1))
+      '@tsconfig/svelte':
+        specifier: ^5.0.8
+        version: 5.0.8
       assemblyscript:
         specifier: 0.28.14
         version: 0.28.14
-      svelte-fa:
-        specifier: ^4.0.4
-        version: 4.0.4(svelte@5.55.4)
+      svelte-preprocess:
+        specifier: ^6.0.3
+        version: 6.0.3(postcss@8.5.10)(svelte@5.55.4)(typescript@6.0.2)
       terser:
         specifier: ^5.46.1
         version: 5.46.1
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
       vite:
         specifier: ^8.0.8
         version: 8.0.8(esbuild@0.27.3)(terser@5.46.1)
+      wrangler:
+        specifier: ^4.83.0
+        version: 4.83.0
 
 packages:
 
@@ -262,14 +256,6 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
-
-  '@fortawesome/fontawesome-common-types@7.2.0':
-    resolution: {integrity: sha512-IpR0bER9FY25p+e7BmFH25MZKEwFHTfRAfhOyJubgiDnoJNsSvJ7nigLraHtp4VOG/cy8D7uiV0dLkHOne5Fhw==}
-    engines: {node: '>=6'}
-
-  '@fortawesome/free-solid-svg-icons@7.2.0':
-    resolution: {integrity: sha512-YTVITFGN0/24PxzXrwqCgnyd7njDuzp5ZvaCx5nq/jg55kUYd94Nj8UTchBdBofi/L0nwRfjGOg0E41d2u9T1w==}
-    engines: {node: '>=6'}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -815,11 +801,6 @@ packages:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
 
-  svelte-fa@4.0.4:
-    resolution: {integrity: sha512-85BomCGkTrH8kPDGvb8JrVwq9CqR9foprbKjxemP4Dtg3zPR7OXj5hD0xVYK0C+UCzFI1zooLoK/ndIX6aYXAw==}
-    peerDependencies:
-      svelte: ^4.0.0 || ^5.0.0
-
   svelte-preprocess@6.0.3:
     resolution: {integrity: sha512-PLG2k05qHdhmRG7zR/dyo5qKvakhm8IJ+hD2eFRQmMLHp7X3eJnjeupUtvuRpbNiF31RjVw45W+abDwHEmP5OA==}
     engines: {node: '>= 18.0.0'}
@@ -1099,12 +1080,6 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.3':
     optional: true
-
-  '@fortawesome/fontawesome-common-types@7.2.0': {}
-
-  '@fortawesome/free-solid-svg-icons@7.2.0':
-    dependencies:
-      '@fortawesome/fontawesome-common-types': 7.2.0
 
   '@img/colour@1.1.0': {}
 
@@ -1572,10 +1547,6 @@ snapshots:
   source-map@0.6.1: {}
 
   supports-color@10.2.2: {}
-
-  svelte-fa@4.0.4(svelte@5.55.4):
-    dependencies:
-      svelte: 5.55.4
 
   svelte-preprocess@6.0.3(postcss@8.5.10)(svelte@5.55.4)(typescript@6.0.2):
     dependencies:

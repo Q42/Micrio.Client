@@ -1,4 +1,3 @@
-import { pyth } from '../utils';
 import { eventPassive, eventPassiveCapture, type EventContext } from './shared';
 import type { DragHandler } from './drag';
 
@@ -65,7 +64,7 @@ export class PointerPinchHandler {
 
 			// Store target image and initial pinch distance
 			this.ctx.vars.pinch.image = this.ctx.getImage({ x: p1.x, y: p1.y });
-			this.ctx.vars.pinch.sDst = pyth(p1.x - p2.x, p1.y - p2.y);
+			this.ctx.vars.pinch.sDst = Math.hypot(p1.x - p2.x, p1.y - p2.y);
 			this.ctx.setPinchFactor(undefined);
 
 			// Notify Wasm pinch started
@@ -115,7 +114,7 @@ export class PointerPinchHandler {
 		}
 
 		// Calculate current pinch factor relative to start distance
-		this.ctx.setPinchFactor(pyth(p1.x - p2.x, p1.y - p2.y) / v.sDst);
+		this.ctx.setPinchFactor(Math.hypot(p1.x - p2.x, p1.y - p2.y) / v.sDst);
 
 		// Notify Wasm of pinch movement
 		this.ctx.micrio.wasm.e._pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);

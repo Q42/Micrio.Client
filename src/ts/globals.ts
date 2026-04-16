@@ -165,9 +165,7 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-extension': {r:true, f: 'tileExtension'},
 		'data-tiles': {r:true, f: 'tilesId'},
 		'data-path': {r:true},
-		'data-sources': {r:true}, // Legacy?
 		'data-inittype': {f: 'initType'}, // Initial view type (cover, contain, view)
-		'data-type': {}, // Legacy?
 		'data-start': {f: 'gallery.startId'}, // Starting image ID for gallery
 		'data-gallery': {f: 'gallery.archive'}, // Gallery definition string or archive ID
 		'data-gallery-sort': {f: 'gallery.sort'}, // Gallery sorting ('name', '-created', etc.)
@@ -207,7 +205,6 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-fullscreen': {}, // Enable fullscreen button?
 		'data-minimap': {}, // Enable minimap?
 		'data-minimap-hide': {f:'alwaysShowMinimap',n:true}, // Always show minimap? (Negated)
-		'data-omni-y': {f:'OmniTwoAxes'}, // Enable vertical rotation for Omni?
 		'data-normalize-dpr': {f: 'zoomLimitDPRFix'}, // Apply DPR fix for zoom limit?
 		'data-grid-clickable': {f: 'gridClickable' }, // Make grid items clickable?
 		'data-gallery-spreads': {f: 'gallery.isSpreads' }, // Display gallery as spreads?

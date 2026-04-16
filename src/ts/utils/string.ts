@@ -46,13 +46,15 @@ export const slugify = (str: string | undefined): string | undefined => {
  * @returns Formatted time string (e.g., "1:23", "1:05:09", "-0:15").
  */
 export function parseTime(s: number): string {
-	const neg = s < 0; // Check if negative
-	if (neg) s *= -1; // Work with positive value
-	let r = [0, 0, Math.ceil(s)]; // [hours, minutes, seconds] - ceil seconds
-	// Calculate minutes and hours
-	for (let n of [0, 1]) while (r[2 - n] >= 60 && (r[2 - n] -= 60, ++r[1 - n])) { };
-	// Format parts, add leading zeros for minutes/seconds, join with colons
-	return (neg ? '-' : '') + r.filter((n, i) => i > 0 || n) // Filter out leading zero hours if 0
-		.map((n, i) => (n < 10 && i ? '0' : '') + n).join(':');
+	const neg = s < 0;
+	if (neg) s = -s;
+	const total = Math.ceil(s);
+	const hours = Math.floor(total / 3600);
+	const minutes = Math.floor((total % 3600) / 60);
+	const seconds = total % 60;
+	const pad = (n: number) => n < 10 ? '0' + n : '' + n;
+	return (neg ? '-' : '')
+		+ (hours ? hours + ':' + pad(minutes) : '' + minutes)
+		+ ':' + pad(seconds);
 }
 

@@ -18,7 +18,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { ctx } from '../virtual/AudioController.svelte'; // Web Audio context for positional audio
 
-	import { after, getSpaceVector } from '../../ts/utils'; // Utility functions
+	import { after, getSpaceVector, getMarkerCulture } from '../../ts/utils';
 
 	import Icon, { type IconName } from '../ui/Icon.svelte'; // Icon component
 	import AudioLocation from '../virtual/AudioLocation.svelte'; // Component for positional audio
@@ -596,7 +596,7 @@
 	// --- Reactive Content & Style Calculations ---
 
 	/** Reactive language-specific content object. */
-	const content = $derived(marker.i18n ? marker.i18n[$_lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
+	const content = $derived(getMarkerCulture(marker, $_lang));
 
 	/** Reactive check if marker has any content for the popup. */
 	const noPopupContent = $derived(!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl

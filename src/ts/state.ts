@@ -372,18 +372,6 @@ export namespace State {
 			if(o[5]) {
 				// Only set if different from current marker to avoid loops
 				if(this._marker?.id != o[5]) this.marker.set(o[5]);
-
-				// Restore media state if present (media ID at index 6, time at 7, paused at 8)
-				// Note: This relies on mediaState being populated *before* this set method is called,
-				// which happens in State.Main.set.
-				// if(o[6]) {
-				// 	const state = this.image.wasm.micrio.state.mediaState;
-				// 	const curr = state.get(o[6]);
-				// 	if(o[7] !== undefined) { // Check if time exists
-				// 		if(curr) { curr.currentTime = o[7]; curr.paused = o[8] == 'p'; }
-				// 		else state.set(o[6], { currentTime: o[7], paused: o[8] == 'p' })
-				// 	}
-				// }
 			} else {
 				// If no marker ID in state, ensure local marker store is cleared
 				if (this._marker) this.marker.set(undefined);

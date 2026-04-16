@@ -15,7 +15,8 @@
 	import { onMount, getContext, tick } from 'svelte';
 	import { get, writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
-	import { i18n } from '../../ts/i18n'; // For button titles
+	import { i18n } from '../../ts/i18n';
+	import { getAudioSrc } from '../../ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // Renders the audio/video for the current step
@@ -221,7 +222,7 @@
 	/** Reactive audio source based on the current video tour step. */
 	const audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
 	/** Reactive audio source URL. */
-	const audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
+	const audioSrc = $derived(getAudioSrc(audio));
 	/** Reactive boolean indicating if the current step has a subtitle. */
 	const hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */

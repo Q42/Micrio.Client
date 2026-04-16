@@ -662,9 +662,9 @@ export class Grid {
 	async flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
 		const spl = tag?.split('|').map(s => s.trim());
 		const name = spl?.[0]??'';
-		const images = !name ? this.images : this.images.filter(i => !!i.$data?.markers?.find(m => m.tags.includes(name)));
+		const images = !name ? this.images : this.images.filter(i => !!i.$data?.markers?.find(m => m.tags?.includes(name)));
 		return this.set(images.map(img => {
-			const m = img.$data?.markers?.find(m => m.tags.indexOf(name) >= 0);
+			const m = img.$data?.markers?.find(m => m.tags?.includes(name));
 			return this.getString(img.$info as Models.ImageInfo.ImageInfo, {
 				view: !noZoom ? m?.view : undefined
 			})

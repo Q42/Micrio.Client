@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
+import { clone, createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
 import { State } from './state';
 import { archive } from './archive';
 
@@ -39,7 +39,7 @@ export class MicrioImage {
 	 * @internal
 	 * @readonly
 	*/
-	private __info:Models.ImageInfo.ImageInfo = JSON.parse(JSON.stringify(DEFAULT_INFO));
+	private __info:Models.ImageInfo.ImageInfo = clone(DEFAULT_INFO);
 
 	/** Svelte Readable store holding the image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
 	readonly info: Readable<Models.ImageInfo.ImageInfo|undefined>;

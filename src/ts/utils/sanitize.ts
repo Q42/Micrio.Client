@@ -100,8 +100,8 @@ const sanitizeMenuPage = (m: Models.ImageData.Menu) => {
 	m.children?.forEach(sanitizeMenuPage);
 };
 
-// Keep track of IDs already sanitized
-const sanitizedIds: string[] = [];
+// Keep track of IDs already sanitized (bounded Set instead of unbounded array)
+const sanitizedIds = new Set<string>();
 
 /**
  * Sanitizes marker data, ensuring required properties exist, handling legacy formats,
@@ -114,8 +114,8 @@ const sanitizedIds: string[] = [];
  */
 export const sanitizeMarker = (m: Models.ImageData.Marker, lang: string, isOld: boolean, legacyViews?: boolean): void => {
 	const key = lang + '-' + m.id;
-	if (sanitizedIds.includes(key)) return;
-	sanitizedIds.push(key);
+	if (sanitizedIds.has(key)) return;
+	sanitizedIds.add(key);
 	// Ensure basic properties exist
 	if (!m.data) m.data = {};
 	if (!m.id) m.id = createGUID();
@@ -141,9 +141,8 @@ export const sanitizeMarker = (m: Models.ImageData.Marker, lang: string, isOld: 
 	if (oldSplitLink) m.data.micrioSplitLink = oldSplitLink;
 
 	// Convert legacy 'class' string to tags array
-	if (isOld && 'class' in m) m.tags.push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags.includes(t)));
-	// Ensure 'default' tag sets type correctly
-	if (m.tags.includes('default')) m.type = 'default';
+	if (isOld && 'class' in m) (m.tags ??= []).push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags!.includes(t)));
+	if (m.tags?.includes('default')) m.type = 'default';
 	// Sanitize view
 	if (legacyViews) {
 		m.view = View.fromLegacy(m.view)!;

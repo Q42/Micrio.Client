@@ -1,4 +1,3 @@
-import { pyth } from '../utils';
 import { eventPassive, cancelPrevent, type EventContext } from './shared';
 
 /**
@@ -86,7 +85,7 @@ export class DragHandler {
 		const cX = e.clientX, cY = e.clientY;
 
 		// Capture pointer only after significant movement to allow double-click
-		const moved = pyth(this.ctx.vars.drag.start[0] - e.clientX, this.ctx.vars.drag.start[1] - e.clientY);
+		const moved = Math.hypot(this.ctx.vars.drag.start[0] - e.clientX, this.ctx.vars.drag.start[1] - e.clientY);
 		if (!this.ctx.capturedPointerId && moved > 10) {
 			this.ctx.setCapturedPointerId(e.pointerId);
 			this.ctx.micrio.setPointerCapture(e.pointerId);

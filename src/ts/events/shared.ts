@@ -37,9 +37,6 @@ export type EventStateVars = {
 	}
 };
 
-/** Flag indicating if passive event listeners are supported (assumed true). */
-export const supportsPassive = true; // TODO: Add actual feature detection?
-
 /** Event listener options for passive listeners. */
 export const eventPassive: AddEventListenerOptions = { passive: true };
 

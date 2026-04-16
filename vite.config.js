@@ -13,6 +13,11 @@ export default defineConfig({
 		emptyOutDir: false,
 		copyPublicDir: false,
 		minify: 'terser',
+		terserOptions: {
+			compress: {
+				pure_funcs: ['console.log']
+			}
+		},
 		lib: {
 			entry: `./src/ts/main.ts`,
 			name: 'Micrio',

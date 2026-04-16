@@ -6,7 +6,7 @@ import type { Grid } from '../ts/grid';
 import type { MicrioImage } from '../ts/image';
 import type { VideoTourInstance } from '../ts/videotour';
 import type { Writable } from 'svelte/store';
-import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import type { MicrioIcon } from '../ts/icons';
 
 
 /**
@@ -24,6 +24,8 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
  * 
  */
  export namespace Models {
+	/** Language-keyed localization map. */
+	export type I18n<T> = { [lang: string]: T };
 	export type RevisionType = {[key:string]: number}
 
 	 /**
@@ -635,7 +637,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** V5+: Save revision */
 			revision?: RevisionType;
 			/** Localized image details */
-			i18n?: {[key:string]: ImageDetailsCultureData};
+			i18n?: I18n<ImageDetailsCultureData>;
 			/** Markers */
 			markers?: ImageData.Marker[];
 			/** Marker tours */
@@ -699,7 +701,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** The relative marker Y coordinate [0-1] */
 			y: number;
 
-			i18n?: {[key:string]: MarkerCultureData};
+			i18n?: I18n<MarkerCultureData>;
 
 			/** Omni-objects: radius from center */
 			radius?: number;
@@ -720,13 +722,13 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			type?: ('default' | 'image' | 'audio' | 'video' | 'media' | 'link' | 'waypoint' | 'cluster');
 
 			/** Popup type */
-			popupType: ('popup'|'popover'|'none'|'micrioLink');
+			popupType?: ('popup'|'popover'|'none'|'micrioLink');
 
 			/** If type is area, this HTML embed will be used for the marker */
 			clickableArea?: Models.ImageData.Embed;
 
 			/** Custom marker tags which will be also used as classnames on the marker elements */
-			tags: string[];
+			tags?: string[];
 
 			/** Autoplay the audio asset when the marker is opened */
 			audioAutoPlay?: boolean;
@@ -898,7 +900,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** The tour id */
 			id: string;
 			/** Localized tour culture data */
-			i18n?: {[key:string]: TourCultureData};
+			i18n?: I18n<TourCultureData>;
 			/** Auto-minimize controls while playing and idle */
 			minimize?: boolean;
 			/** Cannot close this tour */
@@ -938,7 +940,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 		 */
 		export type VideoTour = Tour & {
 			/** Localized videotour culture data */
-			i18n?: {[key:string]: VideoTourCultureData};
+			i18n?: I18n<VideoTourCultureData>;
 			/** Don't hide the markers when running */
 			keepMarkers?: boolean;
 			/** Don't disable user navigation when running */
@@ -1054,7 +1056,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** The menu ID */
 			id: string;
 			/** Localized culture data */
-			i18n?: {[key:string]: MenuCultureData};
+			i18n?: I18n<MenuCultureData>;
 			/** Child menu elements */
 			children?: Menu[];
 			/** Open this marker when clicking menu */
@@ -1078,7 +1080,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Optional icon for main toolbar
 			 * @internal
 			*/
-			icon?: IconDefinition
+			icon?: MicrioIcon
 		}
 	}
 
@@ -1134,12 +1136,7 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 			/** Used DeepZoom format */
 			isDeepZoom?: boolean;
 			/** V5+: Translatable description */
-			i18n?: {
-				[key:string]: {
-					title?: string;
-					description?: string;
-				}
-			}
+			i18n?: I18n<{ title?: string; description?: string; }>
 		}
 
 		export type Video = BaseAsset & {
@@ -1356,11 +1353,14 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	}
 
 	export namespace Camera {
-		/** A viewport rectangle [x0,y0,x1,y1] */
-		export type ViewRect = number[]|Float64Array;
+		/** A numeric array or Float64Array used for camera geometry. */
+		type CameraArray = number[] | Float64Array;
 
-		/** An area definition [x0,y0,width,height] */
-		export type View = number[]|Float64Array;
+		/** A viewport rectangle `[x0, y0, x1, y1]` (corners). */
+		export type ViewRect = CameraArray;
+
+		/** An area definition `[x0, y0, width, height]` (origin + size). */
+		export type View = CameraArray;
 
 		/** Coordinate tuple, [x, y, scale] */
 		export type Coords = [number, number, number?]|Float64Array;

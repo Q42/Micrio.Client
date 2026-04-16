@@ -1,4 +1,3 @@
-<!-- @migration-task Error while migrating Svelte code: Unexpected token -->
 <script lang="ts">
 	/**
 	 * Gallery.svelte - Handles different types of image galleries.
@@ -19,7 +18,7 @@
 
 	import { getContext, onMount } from 'svelte';
 	import { writable, type Unsubscriber, type Writable } from 'svelte/store';
-	import { faLayerGroup } from '@fortawesome/free-solid-svg-icons'; // Icon for omni layers
+	import { icons } from '../../ts/icons';
 	import { GallerySwiper } from '../../ts/swiper'; // Handles swipe gestures for full-screen galleries
 	import { i18n } from '../../ts/i18n'; // For UI text translations
 
@@ -494,7 +493,7 @@
 			const menu: Models.ImageData.Menu = {
 				id: '_omni-layers', // Special ID
 				i18n: layerNames[$layer].i18n, // Get current layer name for button title
-				icon: faLayerGroup, // Use layer icon
+				icon: icons.layerGroup,
 				children: layerNames.map((title,i) => ({ // Create child items for each layer
 					id: 'omni-layer-'+i,
 					i18n: title.i18n,

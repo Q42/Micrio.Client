@@ -7,12 +7,11 @@
 import type { TextureBitmap } from './textures';
 import type { HTMLMicrioElement } from './element';
 
-import { Wasm } from './wasm'; // Access Wasm static properties and instance
-import { PostProcessor } from './postprocess'; // Handles post-processing effects
-import { MicrioError, ErrorCodes } from './utils';
+import { Wasm } from './wasm';
+import { PostProcessor } from './postprocess';
+import { Browser, MicrioError, ErrorCodes } from './utils';
 
-/** Flag indicating if the browser is Firefox (requires slightly different shader logic). @internal */
-const isFirefox:boolean = /firefox/i.test(navigator.userAgent);
+const isFirefox:boolean = Browser.firefox;
 
 /** Internal vertex shader source code. @internal */
 const vertexShader:string = `

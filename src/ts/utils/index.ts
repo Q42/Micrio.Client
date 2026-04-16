@@ -59,7 +59,11 @@ export { getIdVal, idIsV5 } from './id';
 // 360° space utilities
 export { getSpaceVector } from './space';
 
+// Marker clustering
+export { calcClusters } from './clustering';
+export type { MarkerCoords, ClusterResult } from './clustering';
+
 // Media utilities
-export { hasNativeHLS, parseMediaSource, getIOSAudioElement, YOUTUBE_HOST } from './media';
+export { hasNativeHLS, parseMediaSource, getIOSAudioElement, getAudioSrc, getMarkerCulture, getMenuCulture, YOUTUBE_HOST } from './media';
 export type { ParsedMediaSource } from './media';
 

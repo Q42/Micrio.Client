@@ -13,7 +13,6 @@ export {
 	type AllEvents,
 	type EventStateVars,
 	type EventContext,
-	supportsPassive,
 	eventPassive,
 	eventPassiveCapture,
 	noEventPassive,
