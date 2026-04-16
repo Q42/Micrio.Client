@@ -1,4 +1,4 @@
-import { pyth, easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from './utils'
+import { easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from './utils'
 import { View } from './shared'
 import { aniDone, aniAbort } from './main';
 import Canvas from './canvas';
@@ -328,7 +328,7 @@ export default class Ani {
 		// Calculate start and target perspective values
 		this.zFrom = webgl.perspective;
 		// Adjust delta based on current scale and canvas size
-		this.zTo = this.zFrom + (to / (webgl.scale * <f64>pyth(c.width, c.height) / 20));
+		this.zTo = this.zFrom + (to / (webgl.scale * <f64>sqrt(c.width * c.width + c.height * c.height) / 20));
 		// Apply limits if not disabled
 		if(!noLimit) this.zTo = min(webgl.maxPerspective, max(webgl.minPerspective, this.zTo));
 

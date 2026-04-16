@@ -1,6 +1,6 @@
 import Image from './image';
 import Canvas from './canvas';
-import { mod1, pyth } from './utils'
+import { mod1 } from './utils'
 
 // --- Math Constants ---
 export const PI:f64 = 3.14159265358979323846;
@@ -78,7 +78,7 @@ export class View {
 	get yaw(): f64 { return (this.centerX - .5) * PI * 2 }
 	get pitch() : f64 { return (this.centerY - .5) * PI }
 	get aspect() : f64 { return this.width / this.height }
-	get size() : f64 { return pyth(this.width, this.height) / pyth(1,1) }
+	get size() : f64 { return sqrt(this.width * this.width + this.height * this.height) * (1 / sqrt(2)) }
 
 	// Update setCenter to modify public props
 	set(centerX: f64, centerY: f64, width: f64, height: f64, preserveAspect: bool = false): void {
@@ -89,7 +89,7 @@ export class View {
 			}
 		}
 
-		this.centerX = centerX;;
+		this.centerX = centerX;
 		this.centerY = centerY;
 		this.width = width;
 		this.height = height;
@@ -353,6 +353,12 @@ export class Viewport {
 
 	/** Copies properties from another Viewport object. */
 	copy(v:Viewport) : void {
-		this.set(v.width, v.height, v.left, v.top, v.ratio, v.scale, v.isPortrait);
+		this.width = v.width;
+		this.height = v.height;
+		this.left = v.left;
+		this.top = v.top;
+		this.ratio = v.ratio;
+		this.scale = v.scale;
+		this.isPortrait = v.isPortrait;
 	}
 }

@@ -143,12 +143,10 @@ export class Mat4 {
 		this.a7 = a13 * c - a03 * s;
 	}
 
-	/** Scales the matrix by the dimensions in the vector (uniform scale). */
-	scale(scale: f64): void {
-		// Apply scale to X, Y components (assuming Z scale is 1)
+	/** Uniform scale applied only to X and Y columns (Z unchanged). */
+	scaleFlat(scale: f64): void {
 		this.a0 *= scale; this.a1 *= scale; this.a2 *= scale; this.a3 *= scale;
 		this.a4 *= scale; this.a5 *= scale; this.a6 *= scale; this.a7 *= scale;
-		// Note: Z scale (a8-a11) is not modified here.
 	}
 
 	/** Translates the matrix by the given vector [x, y, z]. */
@@ -277,24 +275,12 @@ export class Mat4 {
 
 /** Represents a 4D vector (x, y, z, w). */
 export class Vec4 {
-	/** Float64Array view for efficient JS access [x, y, z, w]. */
-	readonly arr : Float64Array = new Float64Array(4);
-
 	constructor(
 		public x: f64 = 0,
 		public y: f64 = 0,
 		public z: f64 = 0,
-		public w: f64 = 1 // Default w to 1 for transformations
+		public w: f64 = 1
 	) {}
-
-	/** Updates the internal Float64Array with the current vector values. */
-	toArray(): Float64Array {
-		unchecked(this.arr[0] = this.x);
-		unchecked(this.arr[1] = this.y);
-		unchecked(this.arr[2] = this.z);
-		unchecked(this.arr[3] = this.w);
-		return this.arr;
-	}
 
 	/** Copies the values from another Vec4 into this one. */
 	copy(v:Vec4) : void {

@@ -1,13 +1,14 @@
-import { DrawRect, PI } from './shared';
+import { DrawRect, PI, Coordinates } from './shared';
 import { setTileOpacity } from './main';
-import { atan2, twoNth, mod1 } from './utils';
+import { twoNth, mod1 } from './utils';
 import { Vec4, Mat4 } from './webgl.mat';
 import Canvas from './canvas';
 
 /** Represents a single image source (tiled or single) within a Canvas. */
 export default class Image {
-	/** Static array to temporarily store tile indices to draw in the current frame for this image. */
 	private static readonly toDraw: u32[] = []
+	private static toDrawSeen: Uint8Array = new Uint8Array(0);
+	private static toDrawSeenBase: u32 = 0;
 
 	/** Reusable vector for 3D calculations (e.g., embed positioning). */
 	readonly vec: Vec4 = new Vec4;
@@ -122,14 +123,14 @@ export default class Image {
 		this.numLayers = max(1, this.numLayers);
 
 		// --- Create Layer Objects ---
-		let o = startOffset, s:u32 = tileSize;
-		for(let l : u8 = 0; l < this.numLayers; s*=2, l++) {
+		let o = startOffset;
+		for(let l : u8 = 0; l < this.numLayers; l++) {
 			// Calculate columns and rows for this layer
 			const s2 = twoNth(l) * this.tileSize; // Size of tiles at this layer
 			const c = <u32>ceil(width / s2);  // Number of columns
 			const r = <u32>ceil(height / s2); // Number of rows
 			// Create Layer instance and update global tile offset
-			this.layers.push(new Layer(this, <u8>this.layers.length, o, this.endOffset=o+=c*r, s,c,r));
+			this.layers.push(new Layer(this, <u8>this.layers.length, o, this.endOffset=o+=c*r, s2,c,r));
 		}
 	}
 
@@ -250,7 +251,7 @@ export default class Image {
 		// Update opacity towards target, clamped between 0 and 1
 		this.opacity = min(1, max(0, !direct ? tOp > this.opacity
 				? min(tOp, this.opacity + delta) : max(tOp, this.opacity - delta) : tOp));
-		return this.opacity >= 0; // Return true if opacity is non-negative (might be redundant)
+		return this.opacity != tOp;
 	}
 
 	/**
@@ -260,71 +261,66 @@ export default class Image {
 	 * @returns The number of tiles from this image that are already loaded/drawn.
 	 */
 	getTiles(scale:f64) : u16 {
-		// Skip if image is fully transparent
 		if(this.opacity <= 0) return 0;
-		this.doneTotal = 0; // Reset count of drawn tiles for this frame
+		this.doneTotal = 0;
 
-		// Adjust scale for 360 embeds based on their projected size
 		if(this.is360Embed) {
 			scale = this.getEmbeddedScale(scale);
-			// If calculated scale is 0 or less, mark as not needing render and exit
 			if(!(this.doRender = (scale > 0))) return 0;
 		}
-		// For standard 2D images/embeds, apply relative scale factor
 		else {
-			// Clamp camera scale to minScale for tile layer selection when underzoomed
-			// This ensures we maintain appropriate tile resolution even when zoomed out beyond minScale
 			const cam = this.canvas.camera;
 			scale = max(scale, cam.minScale) * this.rScale;
 		}
 
-		// --- Base Layer Handling ---
-		// If the base layer hasn't been drawn yet, always add it to the draw list
-		if(this.gotBase == 0) {
-			Image.toDraw.push(this.endOffset - 1); // Add base tile index (last tile)
-			setTileOpacity(this.endOffset-1, true, 1); // Tell JS to set its opacity immediately
+		// Initialize the seen-bitmap for O(1) duplicate detection
+		const tileCount = this.endOffset - this.startOffset;
+		if(<u32>Image.toDrawSeen.length < tileCount) {
+			Image.toDrawSeen = new Uint8Array(tileCount);
+		} else {
+			for(let i:u32=0; i<tileCount; i++) unchecked(Image.toDrawSeen[i] = 0);
 		}
-		// If it's a 360 embed and base is loaded, still add base tile (needed for positioning?) and count as done
+		Image.toDrawSeenBase = this.startOffset;
+
+		if(this.gotBase == 0) {
+			Image.toDraw.push(this.endOffset - 1);
+			unchecked(Image.toDrawSeen[this.endOffset - 1 - this.startOffset] = 1);
+			setTileOpacity(this.endOffset-1, true, 1);
+		}
 		else if(this.is360Embed) {
 			Image.toDraw.push(this.endOffset - 1);
+			unchecked(Image.toDrawSeen[this.endOffset - 1 - this.startOffset] = 1);
 			this.doneTotal++;
 		}
 
-		// --- Target Layer Tile Calculation ---
-		// Determine the ideal layer index based on the current scale
 		const lIdx:u8 = this.getTargetLayer(scale);
 		const c = this.canvas;
 		const v = c.view;
 
-		// Special logic for main 360 image: calculate tiles using viewport-based ranges
 		if(this.localIdx==0 && c.is360) {
-			const l=unchecked(this.layers[lIdx]);
-			this.get360Tiles(l);
+			this.get360Tiles(unchecked(this.layers[lIdx]));
 		}
-		// Logic for 2D images or 360 embeds
 		else {
-			// Calculate tiles needed for the visible portion of the view
-			if(this.is360Embed) { // For 360 embeds, use new viewport-based calculation
+			if(this.is360Embed) {
 				this.getTilesViewport(lIdx);
-			} else if(c.is360) { // For other 360 images (shouldn't happen with current logic)
+			} else if(c.is360) {
 				this.getTilesRect(lIdx,v.x0,v.y0,v.x1,v.y1);
-			} else if(c.visible.x0 < c.visible.x1 && c.visible.y0 < c.visible.y1) { // For 2D, use the calculated visible intersection
+			} else if(c.visible.x0 < c.visible.x1 && c.visible.y0 < c.visible.y1) {
 				this.getTilesRect(lIdx,
-					max(c.visible.x0,v.x0), max(c.visible.y0,v.y0), // Clamp min coords
-					min(c.visible.x1,v.x1), min(c.visible.y1,v.y1)  // Clamp max coords
+					max(c.visible.x0,v.x0), max(c.visible.y0,v.y0),
+					min(c.visible.x1,v.x1), min(c.visible.y1,v.y1)
 				);
 			}
-			// Hack: Increment doneTotal for 360 embeds? Seems incorrect.
 			if(this.is360Embed) this.doneTotal++;
 		}
 
-		// Sort tiles (descending index for potential drawing order optimization?) and add to canvas draw list
+		// Sort descending and transfer to canvas draw list via iteration (not shift)
 		Image.toDraw.sort((a, b) => a>b?-1:a<b?1:0);
-		while(Image.toDraw.length)
-			c.toDraw.push(Image.toDraw.shift());
-		Image.toDraw.length = 0; // Clear static array
+		for(let i:i32=0;i<Image.toDraw.length;i++)
+			c.toDraw.push(unchecked(Image.toDraw[i]));
+		Image.toDraw.length = 0;
 
-		return this.doneTotal; // Return count of already loaded tiles for progress calculation
+		return this.doneTotal;
 	}
 
 	/** Calculates the target layer index based on the current scale. */
@@ -380,11 +376,10 @@ export default class Image {
 		// Add tolerance margin to avoid edge tile culling (10% buffer)
 		const tolerance = 0.1;
 		
-		// Get canvas viewport (where the user is looking) with tolerance buffer
-		const viewCenterX = mod1(c.viewCenterX+(.5-c.trueNorth));
-		const viewCenterY = c.viewCenterY;
-		const viewWidth = c.viewWidth + tolerance;
-		const viewHeight = c.viewHeight + tolerance;
+		const viewCenterX = mod1(c.view.centerX+(.5-c.trueNorth));
+		const viewCenterY = c.view.centerY;
+		const viewWidth = c.view.width + tolerance;
+		const viewHeight = c.view.height + tolerance;
 		
 		// Get embed area viewport 
 		const embedCenterX = this.areaCenterX;
@@ -511,12 +506,11 @@ export default class Image {
 		}
 	}
 
-	/** Adds a tile index to the draw list if not already present, and recursively adds parent tiles if needed. */
 	private setToDraw(l:Layer, x:u32, y:u32): void {
-		// Calculate global tile index, clamping to valid range
 		const idx:u32 = min(this.endOffset-1, l.start + (y * l.cols) + x);
-		// Avoid adding duplicates to the static temporary list
-		if(Image.toDraw.indexOf(idx) >= 0) return;
+		const seenIdx = idx - Image.toDrawSeenBase;
+		if(seenIdx < <u32>Image.toDrawSeen.length && unchecked(Image.toDrawSeen[seenIdx])) return;
+		if(seenIdx < <u32>Image.toDrawSeen.length) unchecked(Image.toDrawSeen[seenIdx] = 1);
 		Image.toDraw.push(idx);
 
 		// Check tile opacity (loading state) via JS call
@@ -554,13 +548,13 @@ export default class Image {
 		// 1. Translate to the center point on the sphere
 		m.translate(center.x, center.y, center.z);
 		// 2. Rotate to face outwards from the sphere center, plus embed's Y rotation
-		m.rotateY(atan2(center.x,center.z) + PI + this.rotY);
+		m.rotateY(Math.atan2(center.x,center.z) + PI + this.rotY);
 		// 3. Apply pitch based on latitude (cY) and embed's X rotation
 		m.rotateX(-Math.sin((cY-.5)*PI) - this.rotX);
 		// 4. Apply embed's Z rotation (roll)
 		m.rotateZ(-this.rotZ);
 		// 5. Apply embed's relative scale
-		m.scale(this.scale*.5); // Halve the scale?
+		m.scaleFlat(this.scale*.5);
 
 		// --- Calculate Vertex Positions ---
 		// Calculate positions relative to the embed's center in 3D space
@@ -632,131 +626,54 @@ export default class Image {
 	private get360Tiles(l: Layer): void {
 		const c = this.canvas;
 		const el = c.el;
+		const w = el.width, h = el.height;
 
-		// Reset arrays
 		Image.sampledLength = 0;
 		Image.uniqueLength = 0;
 
-		// Adaptive samples
-		const samplesPerEdge: i32 = c.webgl.fieldOfView > PI/2 ? 40 : 20;
+		const samplesPerEdge: i32 = c.webgl.fieldOfView > PI/2 ? 20 : 12;
+		const epsilon: f64 = 1e-8;
 
-		const epsilon: f64 = 1e-8; // Tolerance for considering X values equal
-
-		// Inline sampling for top edge
+		// Sample all 4 edges of the viewport
 		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
 			const t = <f64>i / <f64>samplesPerEdge;
-			const pxX = 0 + t * (el.width - 0);
-			const pxY = 0 + t * (0 - 0);
-			const coo = c.webgl.getCoo(pxX, pxY);
+			// Top edge
+			let coo = c.webgl.getCoo(t * w, 0);
 			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
 			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
 			Image.sampledLength++;
-		}
-		// Inline sampling for right edge
-		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
-			const t = <f64>i / <f64>samplesPerEdge;
-			const pxX = el.width + t * (el.width - el.width);
-			const pxY = 0 + t * (el.height - 0);
-			const coo = c.webgl.getCoo(pxX, pxY);
+			// Bottom edge
+			coo = c.webgl.getCoo((1-t) * w, h);
 			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
 			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
 			Image.sampledLength++;
-		}
-		// Inline sampling for bottom edge
-		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
-			const t = <f64>i / <f64>samplesPerEdge;
-			const pxX = el.width + t * (0 - el.width);
-			const pxY = el.height + t * (el.height - el.height);
-			const coo = c.webgl.getCoo(pxX, pxY);
+			// Right edge
+			coo = c.webgl.getCoo(w, t * h);
 			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
 			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
 			Image.sampledLength++;
-		}
-		// Inline sampling for left edge
-		for (let i: i32 = 0; i <= samplesPerEdge; i++) {
-			const t = <f64>i / <f64>samplesPerEdge;
-			const pxX = 0 + t * (0 - 0);
-			const pxY = el.height + t * (0 - el.height);
-			const coo = c.webgl.getCoo(pxX, pxY);
+			// Left edge
+			coo = c.webgl.getCoo(0, (1-t) * h);
 			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
 			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
 			Image.sampledLength++;
 		}
 
-		// Add internal samples: center and 4 quadrants
-		const centerX = el.width / 2;
-		const centerY = el.height / 2;
-		const quarterW = el.width / 4;
-		const quarterH = el.height / 4;
-
-		// Center
-		let coo = c.webgl.getCoo(centerX, centerY);
-		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-		Image.sampledLength++;
-
-		// Top-left quadrant center
-		coo = c.webgl.getCoo(centerX - quarterW, centerY - quarterH);
-		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-		Image.sampledLength++;
-
-		// Top-right
-		coo = c.webgl.getCoo(centerX + quarterW, centerY - quarterH);
-		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-		Image.sampledLength++;
-
-		// Bottom-left
-		coo = c.webgl.getCoo(centerX - quarterW, centerY + quarterH);
-		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-		Image.sampledLength++;
-
-		// Bottom-right
-		coo = c.webgl.getCoo(centerX + quarterW, centerY + quarterH);
-		unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-		unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-		Image.sampledLength++;
-
-		// Add extra samples near top and bottom for better pole coverage on wide screens
-		for (let i: i32 = 1; i <= 3; i++) {
-			const frac = <f64>i / 4.0;
-			// Near top
-			coo = c.webgl.getCoo(el.width * frac, quarterH / 2);
-			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-			Image.sampledLength++;
-			// Near bottom
-			coo = c.webgl.getCoo(el.width * frac, el.height - quarterH / 2);
-			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-			Image.sampledLength++;
-		}
-
-		// Add even more samples very close to the bottom for south pole coverage
-		for (let i: i32 = 0; i <= 5; i++) {
-			const frac = <f64>i / 5.0;
-			coo = c.webgl.getCoo(el.width * frac, el.height - 1); // 1 pixel from bottom
-			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
-			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
-			Image.sampledLength++;
-		}
-
-		// After existing internal samples (center + quadrants + extras)
-		// Add 3x3 grid of internal samples for better central coverage
-		const gridSize = 3;
-		const stepX = el.width / (gridSize + 1);
-		const stepY = el.height / (gridSize + 1);
-		for (let gy: i32 = 1; gy <= gridSize; gy++) {
-			for (let gx: i32 = 1; gx <= gridSize; gx++) {
-				const sampleX = gx * stepX;
-				const sampleY = gy * stepY;
-				coo = c.webgl.getCoo(sampleX, sampleY);
+		// 3x3 interior grid + near-edge samples for pole coverage
+		let coo: Coordinates;
+		for (let gy: i32 = 1; gy <= 3; gy++) {
+			const sy = h * <f64>gy / 4;
+			for (let gx: i32 = 1; gx <= 3; gx++) {
+				coo = c.webgl.getCoo(w * <f64>gx / 4, sy);
 				unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
 				unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
 				Image.sampledLength++;
 			}
+			// Near-bottom for south pole coverage
+			coo = c.webgl.getCoo(w * <f64>gy / 4, h - 1);
+			unchecked(Image.sampledXs[Image.sampledLength] = coo.x);
+			unchecked(Image.sampledYs[Image.sampledLength] = coo.y);
+			Image.sampledLength++;
 		}
 
 		// Step 2: Compute Y range
@@ -799,15 +716,15 @@ export default class Image {
 				Image.uniqueLength++;
 			}
 		}
-		// Manual bubble sort
-		for (let i: i32 = 0; i < Image.uniqueLength - 1; i++) {
-			for (let j: i32 = 0; j < Image.uniqueLength - i - 1; j++) {
-				if (unchecked(Image.uniqueXs[j]) > unchecked(Image.uniqueXs[j + 1])) {
-					const temp = unchecked(Image.uniqueXs[j]);
-					unchecked(Image.uniqueXs[j] = unchecked(Image.uniqueXs[j + 1]));
-					unchecked(Image.uniqueXs[j + 1] = temp);
-				}
+		// Insertion sort (O(n^2) worst case but fast on nearly-sorted data)
+		for (let i: i32 = 1; i < Image.uniqueLength; i++) {
+			const key = unchecked(Image.uniqueXs[i]);
+			let j: i32 = i - 1;
+			while (j >= 0 && unchecked(Image.uniqueXs[j]) > key) {
+				unchecked(Image.uniqueXs[j + 1] = unchecked(Image.uniqueXs[j]));
+				j--;
 			}
+			unchecked(Image.uniqueXs[j + 1] = key);
 		}
 
 		const n: i32 = Image.uniqueLength;
