@@ -10,6 +10,18 @@ received from the server.
 | `id` | The image id, required | |
 | `width` | The image original width, optional when ID is specified | `auto` |
 | `height` | The image original height, optional when ID is specified | `auto` |
+| `data-title` | The image title | |
+| `data-thumb` | Thumbnail source URL | |
+| `data-version` | The image version | `auto` |
+| `data-tilesize` | The image tile size in pixels | `1024` |
+| `data-format` | The image format | `auto` |
+| `data-extension` | The tile file extension | `auto` |
+| `data-tiles` | Alternate tiles ID for loading tile images | |
+| `data-png` | Force PNG tile format | `false` |
+| `data-webp` | Force WebP tile format | `false` |
+| `data-dz` | The image uses DeepZoom tiling | `false` |
+| `data-width-cm` | The physical width of the image in centimeters | |
+| `data-height-cm` | The physical height of the image in centimeters | |
 
 
 ### General options
@@ -18,10 +30,17 @@ received from the server.
 | ----------- | ----------- | ------------- |
 | `lang` | The primary data language code | `en` |
 | `lazyload` | Initialize the image when the element scrolls into the view | `false` |
-| `data-path` | The image bath path URI | depends on image version |
+| `data-path` | The image base path URI | depends on image version |
 | `data-force-path` | Force `info.json` calls to be from the `data-path` parameter | `false` |
 | `data-skipmeta` | Don't download image data (markers, tours, etc) | `false` |
 | `data-gtag` | Uses Google Analytics for sending user events, if available | `true` |
+| `data-static` | Disable all UI, metadata loading, and user events | `false` |
+| `data-keeprendering` | Force the WebGL render loop to run continuously | `false` |
+| `data-force-data-refresh` | Force refresh of cached image data | `false` |
+| `data-no-externals` | Don't load external resources | `false` |
+| `data-router` | Enable URL routing and deep linking | `false` |
+| `data-space` | Load 360&deg; space data, also enables routing | |
+| `data-iiif` | IIIF manifest URL for loading image data | |
 
 
 ### Display options
@@ -35,6 +54,9 @@ received from the server.
 | `data-inittype` | The starting viewport, `cover` filling the screen | The full image |
 | `data-is360` | Render the image as 360&deg; | `auto` |
 | `data-normalize-dpr` | Users with high DPI screens can zoom in as far as regular screens | `true` |
+| `data-limited` | Enable limited rendering mode | `false` |
+| `data-skip-base-levels` | Number of base zoom levels to skip loading | |
+| `data-watermark-opacity` | The watermark opacity | `0.075` |
 
 
 ### User input events and behavior
@@ -68,8 +90,8 @@ received from the server.
 | `data-show-info` | Shows the image info panel if available at the bottom left | `true` |
 | `data-minimap` | Show the minimap | `true` |
 | `data-minimap-hide` | Autohide the minimap when zoomed out fully | `true` |
-| `data-minimap-height` | The maximum minimap width in pixels | `200` |
-| `data-minimap-width` | The maximum minimap height in pixels | `160` |
+| `data-minimap-height` | The maximum minimap height in pixels | `200` |
+| `data-minimap-width` | The maximum minimap width in pixels | `160` |
 
 
 ### Audio options
@@ -78,6 +100,24 @@ received from the server.
 | ----------- | ----------- | ------------- |
 | `muted` | Mute all positional audio and music in the image | `false` |
 | `volume` | The default positional audio and music volume | `1` |
-| `data-musicvolume` | The default music volume | `1` |
 | `data-mutedvolume` | The volume to fade positional audio and music to when muted | `0` |
 
+
+### Gallery options
+
+| Attribute   | Description | Default value |
+| ----------- | ----------- | ------------- |
+| `data-gallery` | Gallery definition string or archive ID | |
+| `data-gallery-type` | The gallery type (`swipe`, `swipe-full`, `switch`, `omni`) | `swipe` |
+| `data-gallery-sort` | Gallery sort order (`name`, `-name`, `created`, `-created`) | `created` |
+| `data-gallery-spreads` | Display gallery pages as spreads | `false` |
+| `data-gallery-cover-pages` | Number of single cover pages in spreads mode | `0` |
+| `data-start` | Starting image ID for the gallery | |
+
+
+### Grid options
+
+| Attribute   | Description | Default value |
+| ----------- | ----------- | ------------- |
+| `data-grid` | Grid definition string or archive ID | |
+| `data-grid-clickable` | Make grid items clickable | `false` |
