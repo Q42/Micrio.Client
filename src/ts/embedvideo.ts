@@ -101,7 +101,7 @@ export class GLEmbedVideo {
 		if (playing) this._vid.dataset.playing = '1';
 		else delete this._vid.dataset.playing;
 		// Notify Wasm about the playback state change
-		this.wasm.e._setImageVideoPlaying(this.image.ptr, playing);
+		this.wasm.setImageVideoPlaying(this.image.ptr, playing);
 		// Handle fade-out/fade-in if hideWhenPaused is enabled
 		if(this.embed.hideWhenPaused) this.wasm.fadeImage(this.image.ptr, playing ? 1 : 0);
 		// Trigger Wasm render if playing (to update texture)

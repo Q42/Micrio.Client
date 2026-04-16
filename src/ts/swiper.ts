@@ -29,7 +29,7 @@ export class GallerySwiper {
 	private image:MicrioImage;
 
 	/** Getter for the current active image/frame index from the Wasm module. */
-	public get currentIndex():number {return this.micrio.wasm.e._getActiveImageIdx(this.image.ptr)}
+	public get currentIndex():number {return this.micrio.wasm.getActiveImageIdx(this.image.ptr)}
 
 	/**
 	 * Creates a GallerySwiper instance.
@@ -71,10 +71,8 @@ export class GallerySwiper {
 				: v ? Math.round(v[3]*1000)/1000 >= 1 : true // Check if view width is >= 1
 		);
 
-		// Configure Wasm module for swipe interaction
-		const ptr = micrio.wasm.getPtr();
-		micrio.wasm.e.setNoPinchPan(ptr, true); // Disable panning during pinch on this image
-		micrio.wasm.e.setIsSwipe(ptr, true); // Indicate this image uses swipe logic
+		micrio.wasm.setNoPinchPan(true);
+		micrio.wasm.setIsSwipe(true);
 
 		// Attach pointerdown listener to start drag
 		this.micrio.canvas.element.addEventListener('pointerdown', this.dStart);
@@ -195,7 +193,7 @@ export class GallerySwiper {
 			const p = Math.min(1, (time - started) / duration); // Calculate progress (0-1)
 			if(p < 1) this.raf = requestAnimationFrame(frame); // Request next frame if not done
 			// Calculate intermediate index using easing function from Wasm
-			const d = startIdx - Math.round(this.micrio.wasm.e.ease(p) * delta);
+			const d = startIdx - Math.round(this.micrio.wasm.ease(p) * delta);
 			// Call goto only if index changed
 			if(d != this.currentIndex) this.goto(d);
 		}

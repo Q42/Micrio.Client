@@ -335,7 +335,7 @@ export namespace State {
 		hookOmni() : void {
 			const image = this.image;
 			this.layer.subscribe(l => {
-				if(image.ptr < 0 || !image.wasm.e) return; // Ensure Wasm is ready
+				if(image.ptr < 0 || !image.wasm.ready) return;
 				image.wasm.setActiveLayer(image.ptr, l); // Call Wasm function
 				image.wasm.render(); // Trigger render
 			});

@@ -200,7 +200,7 @@
 	/** Updates the screen position (x, y, scale, matrix) based on camera view. */
 	function moved() : void {
 		// Exit if camera is not ready
-		if(!mainImage.camera.e) return;
+		if(!mainImage.wasm.ready) return;
 		// Get current screen coordinates [x, y, scale, w(depth)]
 		const coo = mainImage.camera.getXYDirect(cX, cY);
 		[x, y, scale] = coo;

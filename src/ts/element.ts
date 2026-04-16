@@ -212,7 +212,7 @@ export class HTMLMicrioElement extends HTMLElement {
 				break;
 			case 'data-limited': // Toggle limited rendering mode in Wasm
 				if(this.wasm?._vertexBuffer && this.$current?.ptr)
-					this.wasm.e._setLimited(this.$current.ptr, !!newVal);
+					this.wasm.setLimited(this.$current.ptr, !!newVal);
 				break;
 			case 'lang': { // Handle language change
 				let prevLang = get(this._lang);
@@ -486,7 +486,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		// Apply forced start view if provided
 		if(opts.startView) {
 			c.state.view.set(i.settings.view = opts.startView);
-			if(c.ptr && c.camera.e) c.camera.setView(i.settings.view,{noRender:true}); // Set immediately if camera ready
+			if(c.ptr && c.wasm.ready) c.camera.setView(i.settings.view,{noRender:true});
 		}
 
 		// Set default language if not already set
@@ -538,7 +538,7 @@ export class HTMLMicrioElement extends HTMLElement {
 			});
 
 			// Set 360 orientation vector for transitions
-			this.wasm.e.set360Orientation(this.wasm.getPtr(),
+			this.wasm.set360Orientation(
 				opts.vector?.direction ?? 0,
 				opts.vector?.distanceX ?? 0,
 				opts.vector?.distanceY ?? 0);

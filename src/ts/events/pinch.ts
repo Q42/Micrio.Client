@@ -72,7 +72,7 @@ export class PinchHandler {
 
 		// Notify Wasm pinch started
 		if (this.ctx.vars.pinch.image) {
-			this.ctx.micrio.wasm.e._pinchStart(this.ctx.vars.pinch.image.ptr);
+			this.ctx.micrio.wasm.pinchStart(this.ctx.vars.pinch.image.ptr);
 		}
 		this.ctx.micrio.wasm.render();
 
@@ -108,7 +108,7 @@ export class PinchHandler {
 		this.ctx.setPinchFactor(Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) / v.sDst);
 
 		// Notify Wasm of pinch movement
-		this.ctx.micrio.wasm.e._pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+		this.ctx.micrio.wasm.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
 	}
 
 	/**
@@ -128,7 +128,7 @@ export class PinchHandler {
 		// Notify Wasm pinch stopped
 		const i = this.ctx.vars.pinch.image;
 		if (i) {
-			this.ctx.micrio.wasm.e._pinchStop(i.ptr, performance.now());
+			this.ctx.micrio.wasm.pinchStop(i.ptr, performance.now());
 			this.ctx.micrio.wasm.render();
 		}
 		this.ctx.vars.pinch.image = undefined;

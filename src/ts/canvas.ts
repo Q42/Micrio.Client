@@ -183,8 +183,8 @@ export class Canvas {
 	 * @param height The vertical offset margin in pixels.
 	*/
 	public setMargins(width:number, height:number) : void {
-		if (!this.micrio.wasm.e) return; // Ensure Wasm is ready
-		this.micrio.wasm.e.setArea(this.micrio.wasm.getPtr(), width, height);
+		if (!this.micrio.wasm.ready) return;
+		this.micrio.wasm.setCanvasArea(width, height);
 	}
 
 }

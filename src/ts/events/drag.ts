@@ -72,7 +72,7 @@ export class DragHandler {
 		this.ctx.micrio.addEventListener('pointerup', this.stop, eventPassive);
 
 		this.ctx.micrio.setAttribute('data-panning', '');
-		this.ctx.micrio.wasm.e._panStart(img.ptr);
+		this.ctx.micrio.wasm.panStart(img.ptr);
 		this.ctx.micrio.wasm.render();
 		this.ctx.dispatch('panstart');
 	}
@@ -131,7 +131,7 @@ export class DragHandler {
 		if (e && noKinetic == false) {
 			const img = this.ctx.getImage({ x: e.clientX, y: e.clientY });
 			if (img) {
-				this.ctx.micrio.wasm.e._panStop(img.ptr);
+				this.ctx.micrio.wasm.panStop(img.ptr);
 				this.ctx.micrio.wasm.render();
 			}
 		}

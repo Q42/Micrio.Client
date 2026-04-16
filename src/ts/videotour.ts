@@ -278,7 +278,7 @@ export class VideoTourInstance {
 		const area = this.image.opts?.area;
 
 		if(this.wasPaused && prevView) {
-			const b:number = this.micrio.wasm.e.ease(perc);
+			const b:number = this.micrio.wasm.ease(perc);
 
 			const iView = {
 				centerX: prevView.centerX * (1-b) + nextView.centerX * b,
