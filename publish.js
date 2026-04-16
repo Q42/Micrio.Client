@@ -66,10 +66,6 @@ if(npmPublish) {
 		fs.writeFileSync(json, fs.readFileSync(json, 'utf-8')
 			.replace(/"version": ".*"/m,`"version": "${newVersion}"`));
 
-	const tsVersion = './src/ts/version.ts';
-	fs.writeFileSync(tsVersion, fs.readFileSync(tsVersion, 'utf-8')
-		.replace(/VERSION = '.*'/m,`VERSION = '${newVersion}'`));
-
 	console.log('\nPublish completed. New working version: ' + newVersion);
 }
 else {

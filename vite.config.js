@@ -1,7 +1,13 @@
 import { defineConfig } from 'vite';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { readFileSync } from 'fs';
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
+	define: {
+		__VERSION__: JSON.stringify(pkg.version),
+	},
 	build: {
 		outDir: './public/build/',
 		emptyOutDir: false,
