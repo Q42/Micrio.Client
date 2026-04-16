@@ -6,7 +6,7 @@
 import type { Models } from '../../types/models';
 import type { PREDEFINED } from '../../types/internal';
 import { sanitizeImageInfo, isLegacyViews } from './sanitize';
-import { View } from './view';
+import { clone } from './object';
 
 /** Global cache for fetched JSON data, keyed by URI.
  * @internal
@@ -29,7 +29,7 @@ const jsonErrors: Map<string, [number, string]> = new Map();
  * @returns A Promise resolving to the fetched JSON data (type T) or undefined on error.
  */
 export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
-	if (!noCache && jsonCache.has(uri)) return jsonCache.get(uri) as T; // Return cached data if available
+	if (!noCache && jsonCache.has(uri)) return clone<T>(jsonCache.get(uri) as T); // Return cached data if available
 	if (jsonPromises.has(uri)) return jsonPromises.get(uri) as Promise<T>; // Return existing promise if fetch is in progress
 	if (jsonErrors.has(uri)) throw jsonErrors.get(uri)![1];
 
@@ -44,7 +44,7 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
 	}).then(j => {
 		if (!noCache) jsonCache.set(uri, j); // Store result in cache
 		jsonPromises.delete(uri); // Remove promise from tracking map
-		return j;
+		return clone(j);
 	}).catch(e => { // Handle fetch errors
 		jsonPromises.delete(uri);
 		throw e;
