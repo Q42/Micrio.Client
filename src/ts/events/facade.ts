@@ -1,8 +1,8 @@
-import type { HTMLMicrioElement } from './element';
-import type { Models } from '../types/models';
-import type { MicrioImage } from './image';
+import type { HTMLMicrioElement } from '../element';
+import type { Models } from '../../types/models';
+import type { MicrioImage } from '../image';
 
-import { Browser, once } from './utils';
+import { Browser, once } from '../utils';
 import { get, writable, type Writable } from 'svelte/store';
 
 import {
@@ -16,10 +16,10 @@ import {
 	UpdateHandler,
 	type EventContext,
 	type EventStateVars,
-} from './events/index';
+} from './index';
 
 // Re-export UpdateEvents for backwards compatibility
-export { UpdateEvents } from './events/index';
+export { UpdateEvents } from './update';
 
 /**
  * Handles user input events (mouse, touch, keyboard, wheel, gestures) for the Micrio viewer.

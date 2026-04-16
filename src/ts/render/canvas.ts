@@ -1,8 +1,8 @@
 import type { Writable } from 'svelte/store';
-import type { Models } from '../types/models';
-import type { HTMLMicrioElement } from './element';
+import type { Models } from '../../types/models';
+import type { HTMLMicrioElement } from '../element';
 
-import { Browser } from './utils';
+import { Browser } from '../utils';
 import { get, writable } from 'svelte/store';
 
 /**

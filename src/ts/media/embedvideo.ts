@@ -1,10 +1,10 @@
 import type { Unsubscriber } from 'svelte/store';
-import type { HlsPlayer } from '../types/externals'; // Type definition for HLS.js player
-import type { Models } from '../types/models';
-import type { MicrioImage } from './image';
-import type { Wasm } from './wasm';
+import type { HlsPlayer } from '../../types/externals';
+import type { Models } from '../../types/models';
+import type { MicrioImage } from '../image';
+import type { Wasm } from '../render/wasm';
 
-import { Browser, loadScript } from './utils';
+import { Browser, loadScript } from '../utils';
 import { tick } from 'svelte';
 
 /**

@@ -19,7 +19,7 @@
 	// Micrio TS imports
 	import { i18n } from '../../ts/i18n';
 	import { once } from '../../ts/utils';
-	import { languageNames } from '../../ts/langs';
+	import { languageNames } from '../../ts/i18n/locale';
 
 	// UI sub-component imports
 	import Button from '../ui/Button.svelte';

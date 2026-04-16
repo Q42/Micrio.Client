@@ -1,8 +1,8 @@
 import type { Models } from '../types/models';
 import type { Readable, Unsubscriber, Writable } from 'svelte/store';
-import type { Grid } from './grid';
-import type { Wasm } from './wasm';
-import type { GallerySwiper } from './swiper';
+import type { Grid } from './nav/grid';
+import type { Wasm } from './render/wasm';
+import type { GallerySwiper } from './nav/swiper';
 import type { PREDEFINED } from '../types/internal';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
@@ -11,7 +11,7 @@ import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
 import { clone, createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
 import { State } from './state';
-import { archive } from './archive';
+import { archive } from './render/archive';
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @private

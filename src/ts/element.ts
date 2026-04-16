@@ -8,19 +8,19 @@ import type Svelte from '../svelte/Main.svelte';
 import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View, MicrioError } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
-import { Wasm } from './wasm';
-import { WebGL } from './webgl';
+import { Wasm } from './render/wasm';
+import { WebGL } from './render/webgl';
+import { Canvas } from './render/canvas';
+import { archive } from './render/archive';
 import { Events } from './events';
 import { MicrioImage } from './image';
 import { State} from './state';
-import { Router } from './router';
+import { Router } from './nav/router';
 import { GoogleTag } from './analytics';
-import { Grid } from './grid';
-import { archive } from './archive';
+import { Grid } from './nav/grid';
 import { mount, tick, unmount } from 'svelte';
-import { Canvas } from './canvas';
-import { rtlLanguageCodes } from './langs';
-import { i18n, langs } from './i18n';
+import { rtlLanguageCodes } from './i18n/locale';
+import { i18n, langs } from './i18n/strings';
 
 /**
  * The main Micrio custom HTML element `<micr-io>`.

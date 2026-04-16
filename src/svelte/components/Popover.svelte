@@ -16,7 +16,7 @@
     import type { Models } from '../../types/models';
 
 	import { getContext, onMount, tick } from 'svelte';
-	import { languageNames } from '../../ts/langs';
+	import { languageNames } from '../../ts/i18n/locale';
 	import { i18n } from '../../ts/i18n';
 	import { getMarkerCulture, getMenuCulture } from '../../ts/utils';
 

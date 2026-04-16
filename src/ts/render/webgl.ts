@@ -5,11 +5,11 @@
  */
 
 import type { TextureBitmap } from './textures';
-import type { HTMLMicrioElement } from './element';
+import type { HTMLMicrioElement } from '../element';
 
 import { Wasm } from './wasm';
 import { PostProcessor } from './postprocess';
-import { Browser, MicrioError, ErrorCodes } from './utils';
+import { Browser, MicrioError, ErrorCodes } from '../utils';
 
 const isFirefox:boolean = Browser.firefox;
 

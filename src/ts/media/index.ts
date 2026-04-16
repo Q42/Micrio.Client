@@ -9,3 +9,5 @@ export { HTML5PlayerAdapter } from './html5-adapter';
 export { YouTubePlayerAdapter } from './youtube-adapter';
 export { VimeoPlayerAdapter } from './vimeo-adapter';
 export { HLSPlayerAdapter } from './hls-adapter';
+export { GLEmbedVideo } from './embedvideo';
+export { VideoTourInstance } from './videotour';

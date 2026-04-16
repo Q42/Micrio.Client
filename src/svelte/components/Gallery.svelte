@@ -19,7 +19,7 @@
 	import { getContext, onMount } from 'svelte';
 	import { writable, type Unsubscriber, type Writable } from 'svelte/store';
 	import { icons } from '../../ts/icons';
-	import { GallerySwiper } from '../../ts/swiper'; // Handles swipe gestures for full-screen galleries
+	import { GallerySwiper } from '../../ts/nav/swiper';
 	import { i18n } from '../../ts/i18n'; // For UI text translations
 
 	import Button from '../ui/Button.svelte';

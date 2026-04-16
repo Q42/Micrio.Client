@@ -20,7 +20,7 @@
 	import { onMount, getContext } from 'svelte';
 	import { MicrioImage } from '../../ts/image';
 	import { once, createGUID, Browser } from '../../ts/utils';
-	import { GLEmbedVideo } from '../../ts/embedvideo'; // Handles WebGL video rendering
+	import { GLEmbedVideo } from '../../ts/media/embedvideo';
 
 	import Media from '../components/Media.svelte'; // Reusable media player component
 
