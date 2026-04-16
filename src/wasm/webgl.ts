@@ -234,16 +234,46 @@ export default class WebGL {
 	 * @param t Current timestamp (performance.now()).
 	 * @returns Animation duration.
 	 */
-	zoom(factor: f64, dur: f64, speed: f64, noLimit: bool, t: f64) : f64 {
+	zoom(factor: f64, dur: f64, speed: f64, noLimit: bool, t: f64, pxX: f64 = 0, pxY: f64 = 0) : f64 {
 		const c = this.canvas;
-		factor /= 2; // Halve the factor?
-		if(dur != 0) { // If animating
-			dur = c.ani.zoom(factor, dur, speed, noLimit, t); // Delegate to Ani controller
-		} else { // If immediate zoom
-			// Adjust factor based on current scale and canvas size
+		factor /= 2;
+		if(dur != 0) {
+			dur = c.ani.zoom(factor, dur, speed, noLimit, t);
+		} else {
 			factor /= this.scale * sqrt(c.width * c.width + c.height * c.height) / 20;
-			// Apply perspective change directly
+
+			// Record what sphere point the cursor is looking at before the FoV change
+			const hasCursor: bool = pxX > 0 && pxY > 0;
+			let beforeX: f64 = 0, beforeY: f64 = 0;
+			if(hasCursor) {
+				const coo = this.getCoo(pxX, pxY);
+				beforeX = coo.x;
+				beforeY = coo.y;
+			}
+
 			this.setPerspective(this.perspective + factor, noLimit);
+
+			if(hasCursor) {
+				// The same pixel now maps to a different sphere point due to FoV change;
+				// adjust yaw/pitch so the original point stays under the cursor.
+				const after = this.getCoo(pxX, pxY);
+				let dx: f64 = beforeX - after.x;
+				if(dx > .5) dx -= 1;
+				if(dx < -.5) dx += 1;
+				const dy: f64 = beforeY - after.y;
+
+				this.yaw += dx * PI * 2;
+				this.pitch += dy * PI * this.scaleY;
+
+				this.yaw = modPI(this.yaw);
+				if(c.coverLimit || this.limitY > 0) this.limitPitch();
+				if(this.limitX > 0) this.limitYaw();
+
+				this.update();
+				this.readScale();
+				this.calculate3DFrustum();
+				this.syncLogicalView();
+			}
 		}
 		return dur;
 	}
