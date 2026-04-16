@@ -11,10 +11,10 @@
 	 * application state and configuration settings.
 	 */
 
-	import type { MicrioUIProps } from '../ts/element';
-	import type { Models } from '../types/models';
+	import type { MicrioUIProps } from '$ts/element';
+	import type { Models } from '$types/models';
 	import type { Readable, Writable } from 'svelte/store';
-	import type { MicrioImage } from '../ts/image';
+	import type { MicrioImage } from '$ts/image';
 
 	// Import base CSS
 	import '../css/micrio.base.css';
@@ -24,7 +24,7 @@
 	import { get, writable } from 'svelte/store';
 
 	// Micrio TS imports
-	import { once } from '../ts/utils';
+	import { once } from '$ts/utils';
 
 	// UI Sub-component imports
 	import Logo from './ui/Logo.svelte';

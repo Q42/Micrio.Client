@@ -11,20 +11,20 @@
 	 * transitions, and active image management.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
-	import type { Camera } from '../../ts/camera';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
+	import type { Camera } from '$ts/camera';
+	import type { Models } from '$types/models';
 
 	import { getContext, onMount } from 'svelte';
 	import { writable, type Unsubscriber, type Writable } from 'svelte/store';
-	import { icons } from '../../ts/icons';
-	import { GallerySwiper } from '../../ts/nav/swiper';
-	import { i18n } from '../../ts/i18n'; // For UI text translations
+	import { icons } from '$ts/icons';
+	import { GallerySwiper } from '$ts/nav/swiper';
+	import { i18n } from '$ts/i18n'; // For UI text translations
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
-    import { View } from '../../ts/utils';
+    import { View } from '$ts/utils';
 
 	// --- Props ---
 

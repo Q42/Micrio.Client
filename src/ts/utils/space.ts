@@ -3,8 +3,8 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import type { HTMLMicrioElement } from '../element';
+import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$ts/element';
 import { mod } from './math';
 
 /**

@@ -4,9 +4,9 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { HlsPlayer } from '../../types/externals';
+import type { HlsPlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks } from './types';
-import { loadScript } from '../utils';
+import { loadScript } from '$ts/utils';
 import { HTML5PlayerAdapter } from './html5-adapter';
 
 /**

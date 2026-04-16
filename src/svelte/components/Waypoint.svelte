@@ -8,16 +8,16 @@
 	 * of the current and target images.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
 	import { fade } from 'svelte/transition';
 	import { getContext, onMount } from 'svelte';
 
 	// Micrio TS imports
-	import { clone, getLocalData, getSpaceVector } from '../../ts/utils';
-	import { i18n } from '../../ts/i18n';
+	import { clone, getLocalData, getSpaceVector } from '$ts/utils';
+	import { i18n } from '$ts/i18n';
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

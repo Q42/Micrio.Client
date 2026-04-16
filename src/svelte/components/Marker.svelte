@@ -11,14 +11,14 @@
 	 */
 
 	import { get, type Writable } from 'svelte/store';
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
 	import { getContext, onMount, tick } from 'svelte';
 	import { ctx } from '../virtual/AudioController.svelte'; // Web Audio context for positional audio
 
-	import { after, getSpaceVector, getMarkerCulture } from '../../ts/utils';
+	import { after, getSpaceVector, getMarkerCulture } from '$ts/utils';
 
 	import Icon, { type IconName } from '../ui/Icon.svelte'; // Icon component
 	import AudioLocation from '../virtual/AudioLocation.svelte'; // Component for positional audio

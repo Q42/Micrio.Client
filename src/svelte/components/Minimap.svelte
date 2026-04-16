@@ -7,10 +7,10 @@
 	 * Automatically hides when fully zoomed out (if configured).
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
-    import { View } from '../../ts/utils';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
+    import { View } from '$ts/utils';
+	import type { Models } from '$types/models';
 
 	import { onMount, getContext, } from 'svelte';
 

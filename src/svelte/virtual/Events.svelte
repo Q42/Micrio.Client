@@ -11,8 +11,8 @@
 	 * It's typically used internally by the Media component when rendering a video tour.
 	 */
 
-	import type { Models } from "../../types/models";
-	import type { HTMLMicrioElement } from "../../ts/element";
+	import type { Models } from "@types/models";
+	import type { HTMLMicrioElement } from "@ts/element";
 
 	import { getContext, onDestroy } from 'svelte';
 

@@ -1,4 +1,4 @@
-import { Browser } from '../utils';
+import { Browser } from '$ts/utils';
 import { eventPassive, eventPassiveCapture, type EventContext } from './shared';
 import type { DragHandler } from './drag';
 

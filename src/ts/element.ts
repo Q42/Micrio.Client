@@ -1,5 +1,5 @@
 import type { Writable } from 'svelte/store';
-import type { Models } from '../types/models';
+import type { Models } from '$types/models';
 import type { Camera } from './camera';
 
 /** @ts-ignore */

@@ -1,5 +1,5 @@
 import type { MicrioImage } from './image';
-import type { Models } from '../types/models';
+import type { Models } from '$types/models';
 
 import { tick } from 'svelte';
 import { View, mod } from './utils';

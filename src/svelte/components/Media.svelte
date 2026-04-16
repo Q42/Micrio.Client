@@ -15,24 +15,24 @@
 	 * the global volume and subtitle systems.
 	 */
 
-	import type { Models } from '../../types/models';
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
-	import type { MediaPlayerAdapter } from '../../ts/media';
+	import type { Models } from '$types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
+	import type { MediaPlayerAdapter } from '$ts/media';
 	import { get, type Writable } from 'svelte/store';
 
 	import { onMount, getContext } from 'svelte';
 
 	// Micrio TS imports
-	import { i18n } from '../../ts/i18n';
-	import { Browser, notypecheck, parseMediaSource, getIOSAudioElement } from '../../ts/utils';
-	import { VideoTourInstance } from '../../ts/media/videotour';
-	import { FrameType, MediaType } from '../../types/internal';
+	import { i18n } from '$ts/i18n';
+	import { Browser, notypecheck, parseMediaSource, getIOSAudioElement } from '$ts/utils';
+	import { VideoTourInstance } from '$ts/media/videotour';
+	import { FrameType, MediaType } from '$types/internal';
 
 	// Player adapters
-	import { YouTubePlayerAdapter } from '../../ts/media/youtube-adapter';
-	import { VimeoPlayerAdapter } from '../../ts/media/vimeo-adapter';
-	import { HLSPlayerAdapter } from '../../ts/media/hls-adapter';
+	import { YouTubePlayerAdapter } from '$ts/media/youtube-adapter';
+	import { VimeoPlayerAdapter } from '$ts/media/vimeo-adapter';
+	import { HLSPlayerAdapter } from '$ts/media/hls-adapter';
 
 	// UI sub-component imports
 	import MediaControls from './MediaControls.svelte';

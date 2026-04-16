@@ -8,15 +8,15 @@
 	 * chapter lists (if enabled), and provides playback controls.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
 	import { onMount, getContext, tick } from 'svelte';
 	import { get, writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
-	import { i18n } from '../../ts/i18n';
-	import { getAudioSrc } from '../../ts/utils';
+	import { i18n } from '$ts/i18n';
+	import { getAudioSrc } from '$ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // Renders the audio/video for the current step

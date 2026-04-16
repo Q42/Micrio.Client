@@ -5,18 +5,18 @@
  */
 
 import type { TextureBitmap } from './textures';
-import type { HTMLMicrioElement } from '../element';
+import type { HTMLMicrioElement } from '$ts/element';
 import type { Unsubscriber } from 'svelte/store';
-import type { Camera } from '../camera';
-import type { Models } from '../../types/models';
-import type { MicrioWasmExports } from '../../types/wasm';
+import type { Camera } from '$ts/camera';
+import type { Models } from '$types/models';
+import type { MicrioWasmExports } from '$types/wasm';
 
-import { MicrioImage } from '../image';
+import { MicrioImage } from '$ts/image';
 import { get } from 'svelte/store';
 import { archive } from './archive';
-import { Browser, once, MicrioError, ErrorCodes } from '../utils';
+import { Browser, once, MicrioError, ErrorCodes } from '$ts/utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
-import { WASM } from '../globals'; // Contains WASM binary data (likely base64)
+import { WASM } from '$ts/globals'; // Contains WASM binary data (likely base64)
 
 /**
  * In case there is no bundled B64 Wasm (default for published Micrio JS),

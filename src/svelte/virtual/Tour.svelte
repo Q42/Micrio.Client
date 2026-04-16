@@ -12,15 +12,15 @@
 	 * and dispatches relevant tour events.
 	 */
 
-	import type { Models } from '../../types/models';
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
+	import type { Models } from '$types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
 	import { writable, type Unsubscriber } from 'svelte/store';
 
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { i18n } from '../../ts/i18n';
-	import { loadSerialTour, getAudioSrc } from '../../ts/utils';
+	import { i18n } from '$ts/i18n';
+	import { loadSerialTour, getAudioSrc } from '$ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // For video/audio playback

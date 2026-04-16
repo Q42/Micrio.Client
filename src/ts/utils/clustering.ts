@@ -4,7 +4,7 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
+import type { Models } from '$types/models';
 
 type MarkerData = Models.ImageData.Marker;
 export type MarkerCoords = [x: number, y: number, w?: number, h?: number];

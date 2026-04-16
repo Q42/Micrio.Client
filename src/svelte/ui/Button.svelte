@@ -8,7 +8,7 @@
 	 */
 
 	import type { IconName } from './Icon.svelte'; // Type for standard icon names
-	import type { Models } from '../../types/models';
+	import type { Models } from '$types/models';
 
 	import Icon from './Icon.svelte'; // Icon rendering component
 

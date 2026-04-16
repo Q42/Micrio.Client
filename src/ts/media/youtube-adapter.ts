@@ -4,10 +4,10 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { YouTubePlayer } from '../../types/externals';
+import type { YouTubePlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from './types';
-import { loadScript } from '../utils';
-import { YOUTUBE_HOST } from '../utils/media';
+import { loadScript } from '$ts/utils';
+import { YOUTUBE_HOST } from '$ts/utils/media';
 
 /** YouTube player state constants */
 const YT_STATE = {

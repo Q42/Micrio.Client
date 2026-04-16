@@ -1,6 +1,6 @@
-import type { HTMLMicrioElement } from '../element';
-import type { MicrioImage } from '../image';
-import type { Models } from '../../types/models';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { MicrioImage } from '$ts/image';
+import type { Models } from '$types/models';
 
 /** Type alias for common event types handled. */
 export type AllEvents = WheelEvent | MouseEvent | TouchEvent;

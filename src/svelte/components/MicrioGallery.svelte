@@ -8,8 +8,8 @@
 	 * It also displays the caption of the currently viewed gallery image.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
 
 	import { getContext, onDestroy } from 'svelte';
 

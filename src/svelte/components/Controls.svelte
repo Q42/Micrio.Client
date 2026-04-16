@@ -8,18 +8,18 @@
 	 * current image settings and application state.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
+	import type { Models } from '$types/models';
 	import type { Unsubscriber } from 'svelte/store';
 
 	import { fade } from 'svelte/transition';
 	import { getContext, onMount } from 'svelte';
 
 	// Micrio TS imports
-	import { i18n } from '../../ts/i18n';
-	import { once } from '../../ts/utils';
-	import { languageNames } from '../../ts/i18n/locale';
+	import { i18n } from '$ts/i18n';
+	import { once } from '$ts/utils';
+	import { languageNames } from '$ts/i18n/locale';
 
 	// UI sub-component imports
 	import Button from '../ui/Button.svelte';

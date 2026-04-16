@@ -3,14 +3,14 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import type { HTMLMicrioElement } from '../element';
+import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$ts/element';
 
-import { MicrioImage } from '../image';
+import { MicrioImage } from '$ts/image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { deepCopy, once, sleep } from '../utils';
+import { deepCopy, once, sleep } from '$ts/utils';
 import { tick } from 'svelte';
-import { Enums } from '../enums';
+import { Enums } from '$ts/enums';
 
 /** Rounds a number to 5 decimal places. @internal */
 const round = (n:number) => Math.round(n*100000)/100000;

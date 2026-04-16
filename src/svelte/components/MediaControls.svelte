@@ -8,7 +8,7 @@
 
 	// Import the global captionsEnabled store defined in the module script
 	import { captionsEnabled } from '../common/Subtitles.svelte';
-	import { i18n } from '../../ts/i18n'; // For button titles
+	import { i18n } from '$ts/i18n'; // For button titles
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

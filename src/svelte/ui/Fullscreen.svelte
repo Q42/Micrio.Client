@@ -8,11 +8,11 @@
 	 * fullscreen if the target element is the Micrio instance itself.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext, onMount } from 'svelte';
-	import { Browser } from '../../ts/utils'; // Browser detection utilities
-	import { i18n } from '../../ts/i18n'; // For button title translation
+	import { Browser } from '$ts/utils'; // Browser detection utilities
+	import { i18n } from '$ts/i18n'; // For button title translation
 
 	import Button from './Button.svelte'; // Reusable button component
 

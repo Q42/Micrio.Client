@@ -6,10 +6,10 @@
 	 * It uses a single HTMLAudioElement to play the files.
 	 */
 
-	import type { Models } from '../../types/models';
+	import type { Models } from '$types/models';
 
 	import { onMount } from 'svelte';
-	import { getAudioSrc } from '../../ts/utils';
+	import { getAudioSrc } from '$ts/utils';
 
 	// --- Props ---
 	interface Props {

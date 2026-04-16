@@ -7,17 +7,17 @@
 	 * current image's data (pages, marker tours, video tours).
 	 */
 
-	import type { Models } from '../../types/models';
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
+	import type { Models } from '$types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
 	import type { Unsubscriber } from 'svelte/store';
 
 	import { onMount, getContext, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 
 	// Micrio TS imports
-	import { createGUID, once } from '../../ts/utils';
-	import { i18n } from '../../ts/i18n';
+	import { createGUID, once } from '$ts/utils';
+	import { i18n } from '$ts/i18n';
 
 	// UI Components
 	import Menu from './Menu.svelte'; // Recursive menu item component

@@ -6,7 +6,7 @@
 	 * and shows the current time and remaining/total duration.
 	 */
 
-	import { parseTime } from '../../ts/utils'; // Utility to format time strings
+	import { parseTime } from '$ts/utils'; // Utility to format time strings
 
 	// --- Props ---
 	interface Props {

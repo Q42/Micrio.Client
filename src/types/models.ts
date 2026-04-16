@@ -1,12 +1,12 @@
 
 /// <reference types="svelte" />
 
-import type { HTMLMicrioElement } from '../ts/element';
-import type { Grid } from '../ts/nav/grid';
-import type { MicrioImage } from '../ts/image';
-import type { VideoTourInstance } from '../ts/media/videotour';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { Grid } from '$ts/nav/grid';
+import type { MicrioImage } from '$ts/image';
+import type { VideoTourInstance } from '$ts/media/videotour';
 import type { Writable } from 'svelte/store';
-import type { MicrioIcon } from '../ts/icons';
+import type { MicrioIcon } from '$ts/icons';
 
 
 /**

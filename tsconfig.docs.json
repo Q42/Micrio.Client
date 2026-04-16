@@ -9,7 +9,11 @@
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"emitDeclarationOnly": true,
-		"stripInternal": true
+		"stripInternal": true,
+		"paths": {
+			"$ts/*": ["./src/ts/*"],
+			"$types/*": ["./src/types/*"]
+		}
 	},
 	"typedocOptions": {
 		"entryPoints": ["./src/docs/micrio.ts", "./src/docs/store.ts"],

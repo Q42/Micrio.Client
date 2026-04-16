@@ -7,7 +7,7 @@
 	 * Can optionally display the current rotation in degrees.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext } from 'svelte';
 

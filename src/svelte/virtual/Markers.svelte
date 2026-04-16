@@ -8,11 +8,11 @@
 	 */
 
 	import { get, writable, type Unsubscriber } from 'svelte/store';
-	import type { MicrioImage } from '../../ts/image';
-	import type { Models } from '../../types/models';
+	import type { MicrioImage } from '$ts/image';
+	import type { Models } from '$types/models';
 
 	import { onMount, setContext, tick } from 'svelte';
-	import { clone, limitView, once, calcClusters, type MarkerCoords } from '../../ts/utils';
+	import { clone, limitView, once, calcClusters, type MarkerCoords } from '$ts/utils';
 
 	// Component imports
 	import Marker from '../components/Marker.svelte';

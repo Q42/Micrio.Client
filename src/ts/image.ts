@@ -1,9 +1,9 @@
-import type { Models } from '../types/models';
+import type { Models } from '$types/models';
 import type { Readable, Unsubscriber, Writable } from 'svelte/store';
 import type { Grid } from './nav/grid';
 import type { Wasm } from './render/wasm';
 import type { GallerySwiper } from './nav/swiper';
-import type { PREDEFINED } from '../types/internal';
+import type { PREDEFINED } from '$types/internal';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';

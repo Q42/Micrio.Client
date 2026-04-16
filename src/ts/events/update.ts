@@ -1,4 +1,4 @@
-import type { Models } from '../../types/models';
+import type { Models } from '$types/models';
 import type { EventContext } from './shared';
 
 /**

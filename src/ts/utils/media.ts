@@ -3,8 +3,8 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import { MediaType, FrameType } from '../../types/internal';
+import type { Models } from '$types/models';
+import { MediaType, FrameType } from '$types/internal';
 
 // ============================================================================
 // Source Parsing

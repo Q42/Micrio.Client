@@ -1,8 +1,8 @@
-import type { HTMLMicrioElement } from '../element';
-import type { Models } from '../../types/models';
-import type { MicrioImage } from '../image';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { Models } from '$types/models';
+import type { MicrioImage } from '$ts/image';
 
-import { Browser, once } from '../utils';
+import { Browser, once } from '$ts/utils';
 import { get, writable, type Writable } from 'svelte/store';
 
 import {

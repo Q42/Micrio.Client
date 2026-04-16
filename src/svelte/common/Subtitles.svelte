@@ -29,8 +29,8 @@
 	 * Visibility is controlled by the global `captionsEnabled` store.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
 
 	import { fade } from 'svelte/transition';
 	import { getContext, onMount } from 'svelte';

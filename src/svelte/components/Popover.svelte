@@ -12,13 +12,13 @@
 	 * controls like close, tour navigation (if applicable), and language switching.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-    import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+    import type { Models } from '$types/models';
 
 	import { getContext, onMount, tick } from 'svelte';
-	import { languageNames } from '../../ts/i18n/locale';
-	import { i18n } from '../../ts/i18n';
-	import { getMarkerCulture, getMenuCulture } from '../../ts/utils';
+	import { languageNames } from '$ts/i18n/locale';
+	import { i18n } from '$ts/i18n';
+	import { getMarkerCulture, getMenuCulture } from '$ts/utils';
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

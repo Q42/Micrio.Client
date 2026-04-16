@@ -3,8 +3,8 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import type { PREDEFINED } from '../../types/internal';
+import type { Models } from '$types/models';
+import type { PREDEFINED } from '$types/internal';
 import { sanitizeImageInfo, isLegacyViews } from './sanitize';
 import { clone } from './object';
 import { MicrioError } from './error';

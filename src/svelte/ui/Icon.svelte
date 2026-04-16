@@ -27,11 +27,11 @@
 	 * and renders it as an inline SVG.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioIcon } from '../../ts/icons';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioIcon } from '$ts/icons';
 
 	import { getContext } from 'svelte';
-	import { icons } from '../../ts/icons';
+	import { icons } from '$ts/icons';
 
 	interface Props {
 		style?: string|undefined;

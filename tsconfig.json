@@ -5,7 +5,11 @@
 		"target": "ES2020",
 		"noEmit": true,
 		"noUnusedLocals": true,
-		"noUnusedParameters": true
+		"noUnusedParameters": true,
+		"paths": {
+			"$ts/*": ["./src/ts/*"],
+			"$types/*": ["./src/types/*"]
+		}
 	},
 	"include": [
 		"src/svelte/Main.svelte",

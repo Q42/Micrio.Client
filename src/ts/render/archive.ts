@@ -1,5 +1,5 @@
 import type { TextureBitmap } from './textures';
-import { idIsV5 } from '../utils';
+import { idIsV5 } from '$ts/utils';
 
 /**
  * Subset of the Posix USTAR header format relevant for MDP files.

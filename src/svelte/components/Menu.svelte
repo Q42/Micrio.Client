@@ -7,7 +7,7 @@
 	 * Adds a global click listener to close the menu when clicking outside.
 	 */
 	import { writable } from 'svelte/store';
-	import type { Models } from '../../types/models'; // Import Models type
+	import type { Models } from '$types/models'; // Import Models type
 
 	/** Writable store holding the currently opened menu item data, or undefined if none is open. */
 	const opened = writable<Models.ImageData.Menu|undefined>(undefined);
@@ -37,7 +37,7 @@
 	 * toggle the visibility of child items.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext, onMount } from 'svelte';
 

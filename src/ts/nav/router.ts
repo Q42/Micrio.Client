@@ -1,10 +1,10 @@
-import type { HTMLMicrioElement } from '../element';
-import type { Models } from '../../types/models';
-import type { MicrioImage } from '../image';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { Models } from '$types/models';
+import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
 
-import { slugify, once } from '../utils';
+import { slugify, once } from '$ts/utils';
 
 /**
  * Handles URL routing for the Micrio viewer, enabling deep linking to specific images,

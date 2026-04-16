@@ -4,9 +4,9 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { VimeoPlayer } from '../../types/externals';
+import type { VimeoPlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from './types';
-import { loadScript } from '../utils';
+import { loadScript } from '$ts/utils';
 
 /**
  * Adapter for Vimeo Player API.

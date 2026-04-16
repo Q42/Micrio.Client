@@ -3,7 +3,7 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
+import type { Models } from '$types/models';
 import { createGUID } from './string';
 import { View } from './view';
 

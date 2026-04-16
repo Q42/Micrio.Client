@@ -1,5 +1,5 @@
 import type { Writable } from 'svelte/store';
-import type { Models } from '../types/models';
+import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 

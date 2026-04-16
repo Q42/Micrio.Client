@@ -3,7 +3,7 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
+import type { Models } from '$types/models';
 
 /**
  * Calculates the hypotenuse of a right triangle given the lengths of the other two sides.

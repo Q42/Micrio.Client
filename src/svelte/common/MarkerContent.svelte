@@ -7,12 +7,12 @@
 	 * It utilizes the Media and Article sub-components.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
 	import { getContext } from 'svelte';
-	import { getMarkerCulture, getAudioSrc } from '../../ts/utils';
+	import { getMarkerCulture, getAudioSrc } from '$ts/utils';
 
 	import Media from '../components/Media.svelte';
 	import Article from './Article.svelte';

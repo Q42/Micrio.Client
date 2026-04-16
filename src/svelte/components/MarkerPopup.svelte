@@ -7,13 +7,13 @@
 	 * MarkerContent component to display the actual marker details.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
 	import { getContext, onMount } from 'svelte';
 	import { fly } from 'svelte/transition'; // Used for popup animation
-	import { i18n } from '../../ts/i18n'; // For button titles
+	import { i18n } from '$ts/i18n'; // For button titles
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

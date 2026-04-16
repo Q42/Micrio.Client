@@ -4,12 +4,12 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import type { HTMLMicrioElement } from '../element';
-import type { MicrioImage } from '../image';
+import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
-import { View } from '../utils';
+import { View } from '$ts/utils';
 
 /**
  * Internal representation of a segment in a video tour timeline.
