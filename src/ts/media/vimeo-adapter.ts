@@ -45,7 +45,7 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 				autoplay: false,
 			});
 
-			const p = this.player;
+			const p = this.player!;
 
 			p.on('error', () => {
 				this.callbacks.onError?.(new Error('Vimeo player error'));
