@@ -390,7 +390,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param noLogo If true, hides the Micrio logo.
 	 */
 	private printUI(noHTML:boolean, noLogo:boolean) : void {
-		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}});
+		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}}) as NonNullable<typeof this._ui>;
 		else this._ui.setProps?.({noHTML, noLogo});
 	}
 
