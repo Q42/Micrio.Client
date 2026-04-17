@@ -18,14 +18,14 @@ export class PointerPinchHandler {
 
 	/** Hooks pointer pinch event listeners. */
 	hook(): void {
-		this.ctx.el.addEventListener('pointerdown', this.start, eventPassive);
+		this.ctx.micrio.addEventListener('pointerdown', this.start, eventPassive);
 		self.addEventListener('pointerup', this.end, eventPassive);
 		self.addEventListener('pointercancel', this.end, eventPassive);
 	}
 
 	/** Unhooks pointer pinch event listeners. */
 	unhook(): void {
-		this.ctx.el.removeEventListener('pointerdown', this.start, eventPassive);
+		this.ctx.micrio.removeEventListener('pointerdown', this.start, eventPassive);
 		self.removeEventListener('pointerup', this.end, eventPassive);
 		self.removeEventListener('pointercancel', this.end, eventPassive);
 		// Clean up pinch move listener if it was active

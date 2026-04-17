@@ -11,6 +11,7 @@ export class DragHandler {
 		this.start = this.start.bind(this);
 		this.move = this.move.bind(this);
 		this.stop = this.stop.bind(this);
+		this.cancel = this.cancel.bind(this);
 	}
 
 	/** Hooks pointer down/move/up listeners for drag panning. */
@@ -20,6 +21,7 @@ export class DragHandler {
 
 		this.ctx.micrio.addEventListener('dragstart', cancelPrevent as EventListener);
 		this.ctx.micrio.addEventListener('pointerdown', this.start, eventPassive);
+		self.addEventListener('pointercancel', this.cancel, eventPassive);
 		this.ctx.micrio.setAttribute('data-hooked', '');
 	}
 
@@ -30,6 +32,7 @@ export class DragHandler {
 
 		this.ctx.micrio.removeEventListener('pointerdown', this.start, eventPassive);
 		this.ctx.micrio.removeEventListener('dragstart', cancelPrevent as EventListener);
+		self.removeEventListener('pointercancel', this.cancel, eventPassive);
 		this.ctx.micrio.removeAttribute('data-hooked');
 	}
 
@@ -142,6 +145,19 @@ export class DragHandler {
 			'movedX': e.clientX - this.ctx.vars.drag.start[0],
 			'movedY': e.clientY - this.ctx.vars.drag.start[1]
 		});
+	}
+
+	/**
+	 * Handles `pointercancel` (e.g. when the browser hijacks the touch for
+	 * its own scrolling/zooming because the gesture started on an element
+	 * without `touch-action: none`). Cleans up panning state without
+	 * triggering kinetic motion or a regular `panend`.
+	 */
+	private cancel(e: PointerEvent): void {
+		if (!this.ctx.isPanning()) return;
+		// If a different pointer was the captured one, ignore.
+		if (this.ctx.capturedPointerId !== undefined && e.pointerId !== this.ctx.capturedPointerId) return;
+		this.stop(undefined, true, true);
 	}
 }
 

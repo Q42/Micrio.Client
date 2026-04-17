@@ -343,9 +343,7 @@
 	const relScale = $derived(width / widthCapped);
 
 	// --- Lifecycle (onMount) ---
-	let isMounted:boolean = false;
 	onMount(() => {
-		isMounted = true;
 		const us:Unsubscriber[] = []; // Store unsubscribers
 
 		// Initialize WebGL rendering if needed
@@ -358,7 +356,6 @@
 
 		// Cleanup function
 		return () => {
-			isMounted = false;
 			glVideo?.unmount(); // Clean up WebGL video handler
 			if(image && image.ptr >= 0) { // If rendered in WebGL
 				wasm.fadeImage(image.ptr, 0); // Fade out
@@ -469,5 +466,9 @@
 		border: none;
 		width: 100px; /* Default size */
 		aspect-ratio: var(--ratio); /* Use calculated aspect ratio */
+	}
+	.embed-container > :global(button),
+	.embed-container > img {
+		touch-action: none;
 	}
 </style>

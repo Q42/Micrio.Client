@@ -19,14 +19,14 @@ export class PinchHandler {
 	/** Hooks touch pinch event listeners (iOS only). */
 	hook(): void {
 		if (Browser.iOS && this.ctx.hasTouch) {
-			this.ctx.el.addEventListener('touchstart', this.start, eventPassive);
+			this.ctx.micrio.addEventListener('touchstart', this.start, eventPassive);
 		}
 	}
 
 	/** Unhooks touch pinch event listeners. */
 	unhook(): void {
 		if (Browser.iOS && this.ctx.hasTouch) {
-			this.ctx.el.removeEventListener('touchstart', this.start, eventPassive);
+			this.ctx.micrio.removeEventListener('touchstart', this.start, eventPassive);
 		}
 		// Clean up in case we're in the middle of a pinch
 		self.removeEventListener('touchmove', this.move, eventPassiveCapture);
