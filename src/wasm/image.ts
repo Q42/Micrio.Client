@@ -696,9 +696,11 @@ export default class Image {
 		maxY = min<f64>(1, maxY);
 
 		// Step 3: Compute minimal covering arc for X
-		// Normalize all x to [0,1)
+		// Convert samples from camera-local space (as returned by getCoo) to
+		// image-native space by subtracting offX, then normalize to [0,1).
+		const offX = c.webgl.offX;
 		for (let i: i32 = 0; i < Image.sampledLength; i++) {
-			unchecked(Image.sampledXs[i] = mod1(Image.sampledXs[i]));
+			unchecked(Image.sampledXs[i] = mod1(Image.sampledXs[i] - offX));
 		}
 		// Remove duplicates with tolerance
 		Image.uniqueLength = 0;
