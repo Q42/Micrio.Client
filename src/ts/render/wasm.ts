@@ -333,9 +333,6 @@ export class Wasm {
 			if(!isNaN(f[1]) && f[1] !== null) focus[1] = f[1];
 		}
 
-		// Set true north for 360 images
-		if(i.is360) c.camera.trueNorth = settings._360?.trueNorth ?? .5;
-
 		// Check for 360 video
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360['video']));
@@ -363,7 +360,7 @@ export class Wasm {
 			(settings.zoomLimit || 1), // Max zoom limit
 			(settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1), // DPR fix multiplier
 			settings.camspeed ?? 1, // Camera speed
-			c.camera.trueNorth, // 360 true north offset
+			c.camera.rotationY, // 360 Y rotation (radians)
 			gallerySwitch, // Is it an overlapping gallery type?
 			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe', // Is it a swiping spreads gallery?
 			c.isOmni, // Is it an Omni object?
@@ -473,7 +470,7 @@ export class Wasm {
 			this.c = canvas.ptr; // Update active canvas pointer
 			// Apply previous orientation if applicable (and not coming from waypoint)
 			if(canvas.is360 && !this.preventDirectionSet && yaw && pitch)
-				this.e._setDirection(this.c, yaw + (.5-(canvas.$settings?._360?.trueNorth||0))*Math.PI*2, pitch, true);
+				this.e._setDirection(this.c, yaw - canvas.camera.rotationY, pitch, true);
 			// Fade in if it was previously faded out
 			if(this.e._getTargetOpacity(canvas.ptr) == 0) this.e._fadeIn(canvas.ptr);
 			// Set initial Omni layer if applicable

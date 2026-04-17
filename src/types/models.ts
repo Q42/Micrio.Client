@@ -383,7 +383,8 @@ import type { MicrioIcon } from '$ts/icons';
 			_360?: {
 				/** A 360 video object */
 				video?: Assets.Video;
-				/** Y rotation true north correction */
+				/** @deprecated Use `Spaces.SpaceImage.rotationY` (radians). Normalized
+				 *  [0,1] image-X offset, 0.5 = identity. Still honoured for back-compat. */
 				trueNorth?: number;
 				/** 2D embed X rotation in 360 */
 				rotX?: number;
@@ -1178,7 +1179,7 @@ import type { MicrioIcon } from '$ts/icons';
 			y: number;
 			/** Z position of 360 image in zone */
 			z: number;
-			/** RotationY => .trueNorth */
+			/** Y-axis sphere rotation in radians (aligns linked 360 images). */
 			rotationY: number;
 		}
 

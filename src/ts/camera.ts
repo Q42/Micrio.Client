@@ -41,10 +41,8 @@ export class Camera {
 	 */
 	private _mat!: Float32Array;
 
-	/** Offset from true north for 360 images, derived from space data.
-	 * @internal
-	 */
-	trueNorth: number = .5;
+	/** Y-axis sphere rotation in radians for 360 images. @internal */
+	rotationY: number = 0;
 
 	/** Direct access to the WebAssembly exports via the parent Wasm instance. @internal */
 	private get e() { return this.image.wasm['e']; }
@@ -154,10 +152,9 @@ export class Camera {
 		abs?:boolean; // Use absolute screen coordinates?
 		radius?:number; // Offset radius for 360
 		rotation?:number; // Offset rotation for 360
-		noTrueNorth?:boolean; // Ignore true north correction?
+		noTrueNorth?:boolean; // Ignore rotationY correction?
 	} = {}) {
-		// Adjust for true north offset in 360 images
-		const tNDiff = (this.image.is360 && !opts.noTrueNorth) ? .5 - (this.image.$settings._360?.trueNorth??.5) : 0;
+		const tNDiff = (this.image.is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
 		this.e._getXY(this.image.ptr, x-tNDiff, y, opts.abs===true, opts.radius, opts.rotation);
 		return this._xy; // Return direct buffer reference
 	}

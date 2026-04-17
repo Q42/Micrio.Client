@@ -442,11 +442,12 @@ export class MicrioImage {
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
 
-		// Set trueNorth for 360 images based on space data rotation
-		if(i.settings?._360) {
-			let rotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY??0;
-			while(rotY < 0) rotY += Math.PI * 2;
-			i.settings._360.trueNorth = (.5 + rotY / Math.PI / 2)%1;
+		// Resolve 360 Y rotation: prefer space data, fall back to legacy _360.trueNorth
+		if(i.is360 && this.camera) {
+			const spaceRotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY;
+			if(spaceRotY != null) this.camera.rotationY = spaceRotY;
+			else if(i.settings?._360?.trueNorth != null)
+				this.camera.rotationY = (i.settings._360.trueNorth - 0.5) * Math.PI * 2;
 		}
 
 		// Set derived flags and properties

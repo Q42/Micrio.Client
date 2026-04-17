@@ -377,7 +377,7 @@ export default class Image {
 		// Add tolerance margin to avoid edge tile culling (10% buffer)
 		const tolerance = 0.1;
 		
-		const viewCenterX = mod1(c.view.centerX+(.5-c.trueNorth));
+		const viewCenterX = mod1(c.view.centerX + c.webgl.offX);
 		const viewCenterY = c.view.centerY;
 		const viewWidth = c.view.width + tolerance;
 		const viewHeight = c.view.height + tolerance;
@@ -542,7 +542,7 @@ export default class Image {
 		const cX:f64 = this.x0 + this.rWidth/2;
 		const cY:f64 = this.y0 + this.rHeight/2;
 		// Get the 3D position of the center point on the sphere surface
-		const center = this.canvas.webgl.getVec3(cX-(.5 - this.canvas.trueNorth), cY, true, 5); // Apply true north, use smaller radius?
+		const center = this.canvas.webgl.getVec3(cX - this.canvas.webgl.offX, cY, true, 5); // Use smaller radius?
 
 		// --- Build Transformation Matrix ---
 		m.identity();

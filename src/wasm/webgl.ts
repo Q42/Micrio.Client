@@ -43,7 +43,7 @@ export default class WebGL {
 	limitY : f64 = 0;
 
 	// --- 360 Camera Orientation ---
-	/** Base yaw offset (incorporates trueNorth setting). */
+	/** Base yaw offset (absorbs the image's rotationY). */
 	baseYaw: f64 = 0;
 	/** Current yaw (horizontal rotation) in radians. */
 	yaw: f64 = 0;
@@ -90,15 +90,14 @@ export default class WebGL {
 	/** Reusable coordinates object for conversions. */
 	readonly coo: Coordinates = new Coordinates;
 
-	/** Horizontal offset based on trueNorth setting. */
+	/** Horizontal offset (normalized image-X) equivalent to baseYaw. */
 	offX:number = 0;
 
 	constructor(
 		private canvas: Canvas
 	) {
-		// Calculate initial horizontal offset and base yaw based on trueNorth
-		this.offX = .5-this.canvas.trueNorth;
-		this.baseYaw = this.offX * PI * 2;
+		this.baseYaw = -this.canvas.rotationY;
+		this.offX = this.baseYaw / PI2;
 
 		// Calculate vertical scaling and offset if it's a 360 image with non-standard aspect ratio
 		if(this.canvas.is360) {
@@ -322,7 +321,6 @@ export default class WebGL {
 
 	/** Sets the camera orientation directly. */
 	setDirection(yaw:f64, pitch:f64, persp:f64) : void {
-		// Apply base yaw (true north offset)
 		this.yaw = modPI(yaw - this.baseYaw);
 		this.pitch = pitch;
 		// Set perspective if provided, otherwise just update matrices
@@ -338,7 +336,6 @@ export default class WebGL {
 
 	/** Sets the camera orientation using 360-degree viewport format (center + dimensions). */
 	setView(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
-		// Apply true north correction if requested
 		const adjustedCenterX = correctNorth ? centerX + this.offX : centerX;
 		
 		// Convert View directly to camera parameters

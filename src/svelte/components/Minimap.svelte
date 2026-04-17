@@ -298,8 +298,8 @@
 
 	// --- Lifecycle (onMount) ---
 
-	/** Calculate true north offset for background positioning. */
-	const offset = .5 - untrack(() => image).camera.trueNorth;
+	/** Calculate rotationY offset for background positioning. */
+	const offset = -untrack(() => image).camera.rotationY / (Math.PI * 2);
 
 	/** Check if cross-origin isolation is enabled (affects loading thumbnail). */
 	const isolated = self.crossOriginIsolated;

@@ -59,7 +59,7 @@ export interface MicrioWasmExports extends WebAssembly.Exports {
 	_constructor(mainPtr:number, width: number, height: number, tileSize: number, is360: boolean,
 		noImage: boolean, isSingle: boolean, targetOpacity: number,
 		freeMove: boolean, coverLimit: boolean, coverStart: boolean, maxScale: number, scaleMultiplier: number, camSpeed: number,
-		trueNorth: number, isGallerySwitch: boolean, pagesHaveBackground: boolean,
+		rotationY: number, isGallerySwitch: boolean, pagesHaveBackground: boolean,
 		isOmni: boolean, pinchZoomOutLimit: boolean, omniNumLayers: number, omniLayerStartIndex:number) : number;
 	/** Get current view coordinates [centerX, centerY, width, height]. */
 	_getView(ptr:number) : number;

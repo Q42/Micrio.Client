@@ -127,7 +127,7 @@ export default class Canvas {
 		readonly camSpeed: f64,  // Camera animation speed factor
 
 		// --- 360 Specific ---
-		readonly trueNorth: f64, // Rotation offset for true north alignment
+		readonly rotationY: f64, // Y-axis sphere rotation (radians)
 
 		// --- Gallery/Paged Specific ---
 		readonly isGallerySwitch: bool, // Is this a canvas for a switch-style gallery?
