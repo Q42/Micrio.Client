@@ -172,8 +172,9 @@ export default class Image {
 		let yaw = (this.areaCenterX - 0.5) * 2 * PI;  // -π to π
 		const pitch = (this.areaCenterY - 0.5) * PI;    // -π/2 to π/2
 
-		// Adjust yaw to match camera's base rotation
-		yaw -= this.canvas.webgl.baseYaw;
+		// Express position in the same frame as cameraForward (which uses raw
+		// camera yaw, with baseYaw absorbed in setDirection/setView).
+		yaw += this.canvas.webgl.baseYaw;
 		
 		// Convert to 3D Cartesian coordinates on unit sphere
 		this.sphere3DX = Math.cos(pitch) * Math.sin(yaw);
