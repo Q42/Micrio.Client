@@ -292,8 +292,8 @@ export class WebGL {
 			const tryLose = gl.getExtension('WEBGL_lose_context');
 			if(tryLose instanceof Object && tryLose['loseContext'] instanceof Function) tryLose['loseContext']();
 		}
-		// @ts-ignore Allow setting gl to null
-		this.gl = null;
+		// Allow setting gl to null (instance is no longer usable after dispose)
+		this.gl = null as unknown as WebGLRenderingContext;
 	}
 
 	/**

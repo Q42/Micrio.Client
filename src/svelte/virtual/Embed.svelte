@@ -17,7 +17,7 @@
 	import type { HTMLMicrioElement } from '$ts/element';
 	import { writable, type Unsubscriber } from 'svelte/store';
 
-	import { onMount, getContext } from 'svelte';
+	import { onMount, getContext, untrack } from 'svelte';
 	import { MicrioImage } from '$ts/image';
 	import { once, createGUID, Browser } from '$ts/utils';
 	import { GLEmbedVideo } from '$ts/media/embedvideo';
@@ -95,7 +95,7 @@
 	// --- Interaction Logic ---
 
 	/** Disable pointer events on the container if no click action or iframe source. */
-	const noEvents = !embed.clickAction && !embed.frameSrc && !marker;
+	const noEvents = !embed.clickAction && !embed.frameSrc && !untrack(() => marker);
 	/** URL for 'href' click action. */
 	const href = embed.clickAction == 'href' ? embed.clickTarget : undefined;
 	/** Open link in new tab? */

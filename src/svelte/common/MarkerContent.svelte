@@ -11,7 +11,7 @@
 	import type { Models } from '$types/models';
 	import type { MicrioImage } from '$ts/image';
 
-	import { getContext } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import { getMarkerCulture, getAudioSrc } from '$ts/utils';
 
 	import Media from '../components/Media.svelte';
@@ -58,7 +58,7 @@
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
 	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Get the parent MicrioImage instance for this marker. */
-	const image = markerImages.get(marker.id) as MicrioImage;
+	const image = markerImages.get(untrack(() => marker).id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 
@@ -67,9 +67,9 @@
 	/** Determine if media should autoplay based on global and marker settings. */
 	const autoplayMedia = !settings.preventAutoPlay;
 	/** Determine if clicking marker images should open the gallery popover. */
-	const galleryEnabled = !marker.data?.preventImageOpen && !noGallery;
+	const galleryEnabled = untrack(() => !marker.data?.preventImageOpen && !noGallery);
 	/** Check if there's exactly one image associated with the marker. */
-	const singleImage = marker.images?.length == 1;
+	const singleImage = untrack(() => marker.images?.length == 1);
 
 	// --- Reactive Declarations (`$:`) ---
 

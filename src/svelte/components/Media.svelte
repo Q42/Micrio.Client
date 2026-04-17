@@ -21,7 +21,7 @@
 	import type { MediaPlayerAdapter } from '$ts/media';
 	import { get, type Writable } from 'svelte/store';
 
-	import { onMount, getContext } from 'svelte';
+	import { onMount, getContext, untrack } from 'svelte';
 
 	// Micrio TS imports
 	import { i18n } from '$ts/i18n';
@@ -147,13 +147,13 @@
 	let mediaMuted: boolean = $state(false);
 
 	// Unique ID for state persistence
-	uuid += src ?? tour?.id;
+	uuid += src ?? untrack(() => tour)?.id;
 
 	// ============================================================================
 	// Context & Global State
 	// ============================================================================
 
-	const info = image.$info as Models.ImageInfo.ImageInfo;
+	const info = untrack(() => image).$info as Models.ImageInfo.ImageInfo;
 	const { events, state: micrioState, _lang } = micrio;
 	const mainVolume: Writable<number> = getContext('volume');
 	const wasMuted = $mainVolume == 0;
@@ -165,7 +165,7 @@
 	// ============================================================================
 
 	const noJSPlayers = micrio.hasAttribute('data-native-frame');
-	const parsedSource = parseMediaSource(src, tour, noJSPlayers, currentTime ?? 0);
+	const parsedSource = parseMediaSource(src, untrack(() => tour), noJSPlayers, currentTime ?? 0);
 	const { type, frameType, isCloudflare, micrioEmbed: mic, hlsSrc: cfVidSrc } = parsedSource;
 
 	let realSrc: string | undefined = $state(parsedSource.src ?? src);
@@ -233,26 +233,29 @@
 	// ============================================================================
 
 	let videoTour: VideoTourInstance | undefined = $state();
-	if (tour) {
-		const newTour = new VideoTourInstance(image, tour);
-		if (currentTime != undefined && currentTime > 0) newTour.currentTime = currentTime;
-		if (type == MediaType.VideoTour) {
-			duration = 'duration' in tour ? Number(tour.duration) : (tour.i18n?.[$_lang]?.duration ?? 0);
-			volume = NaN; // Indicate no volume control needed
+	{
+		const _tour = untrack(() => tour);
+		if (_tour) {
+			const newTour = new VideoTourInstance(untrack(() => image), _tour);
+			if (currentTime != undefined && currentTime > 0) newTour.currentTime = currentTime;
+			if (type == MediaType.VideoTour) {
+				duration = 'duration' in _tour ? Number(_tour.duration) : (_tour.i18n?.[$_lang]?.duration ?? 0);
+				volume = NaN; // Indicate no volume control needed
+			}
+			videoTour = newTour;
 		}
-		videoTour = newTour;
 	}
 
 	// ============================================================================
 	// Subtitle Setup
 	// ============================================================================
 
-	const sub: Models.Assets.Subtitle | undefined =
+	const sub: Models.Assets.Subtitle | undefined = untrack(() =>
 		tour && !('steps' in tour)
 			? 'subtitle' in tour
 				? (tour['subtitle'] as Models.Assets.Subtitle)
 				: tour.i18n?.[micrio.lang]?.subtitle
-			: undefined;
+			: undefined);
 	const srt = sub && ('fileUrl' in sub ? (sub['fileUrl'] as string) : sub.src);
 
 	// ============================================================================
@@ -613,11 +616,11 @@
 
 	let destroyed: boolean = $state(false);
 
-	const unsub =
+	const unsub = untrack(() =>
 		destroying &&
 		destroying.subscribe((d) => {
 			if (d) preDestroy();
-		});
+		}));
 
 	const iOSAudioTimeUpdate = () => (currentTime = _media?.currentTime ?? 0);
 
@@ -657,7 +660,7 @@
 	// ============================================================================
 
 	const isVideo = type == MediaType.Video;
-	let hideUntilPlaying = $state(isVideo && isCloudflare && frameScale != 1 && Browser.iOS);
+	let hideUntilPlaying = $state(untrack(() => isVideo && isCloudflare && frameScale != 1 && Browser.iOS));
 
 	// Scale calculations
 	const scaleFact = info.is360 ? Math.PI / 2 : 1;
@@ -757,6 +760,8 @@
 		style={scale != 1 ? `--scale:${1 / scale}` : null}
 	>
 		<div
+			role="button"
+			tabindex={-1}
 			onpointerup={(e) => {
 				if (e.target == _container) playPause(e);
 			}}
@@ -860,7 +865,7 @@
 	</figure>
 
 	{#if showPlayButton}
-		<div class="show-play" onpointerup={play}>
+		<div class="show-play" role="button" tabindex={-1} onpointerup={play}>
 			<Button title={$i18n.play} type="play" />
 		</div>
 	{/if}

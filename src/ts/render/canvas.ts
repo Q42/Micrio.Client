@@ -96,10 +96,6 @@ export class Canvas {
 	 * @internal
 	 */
 	onresize() : void {
-		/** @ts-ignore Check if presenting in VR - If in VR, don't resize based on window */
-		// TODO: Re-evaluate if this VR check is still necessary or correctly implemented.
-		// if(this.micrio.webgl.display?.['isPresenting']) return;
-
 		// Get current rendered dimensions and position
 		const box = this.element.getBoundingClientRect();
 

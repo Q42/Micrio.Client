@@ -2,7 +2,6 @@ import type { Writable } from 'svelte/store';
 import type { Models } from '$types/models';
 import type { Camera } from './camera';
 
-/** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
 import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View, MicrioError } from './utils';
@@ -391,8 +390,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param noLogo If true, hides the Micrio logo.
 	 */
 	private printUI(noHTML:boolean, noLogo:boolean) : void {
-		//@ts-ignore
-		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}})
+		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}});
 		else this._ui.setProps?.({noHTML, noLogo});
 	}
 

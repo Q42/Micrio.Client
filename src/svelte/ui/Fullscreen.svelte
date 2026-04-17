@@ -10,7 +10,7 @@
 
 	import type { HTMLMicrioElement } from '$ts/element';
 
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 	import { Browser } from '$ts/utils'; // Browser detection utilities
 	import { i18n } from '$ts/i18n'; // For button title translation
 
@@ -27,9 +27,9 @@
 	// --- Feature Detection & State ---
 
 	/** Check for standard Fullscreen API support. */
-	const isNative: boolean = 'requestFullscreen' in el;
+	const isNative: boolean = 'requestFullscreen' in untrack(() => el);
 	/** Check for webkit prefixed Fullscreen API support (older Safari). */
-	const isWebkit:boolean = 'webkitRequestFullscreen' in el;
+	const isWebkit:boolean = 'webkitRequestFullscreen' in untrack(() => el);
 
 	/** Get the main Micrio element instance from context. */
 	const micrio = getContext<HTMLMicrioElement>('micrio');
@@ -40,7 +40,7 @@
 		: document['webkitFullscreenElement'] ?? null; // Webkit API
 
 	/** Reactive state tracking if the target element `el` is currently fullscreen. */
-	let isActive: boolean = $state(getActiveEl() === el); // Use strict equality
+	let isActive: boolean = $state(getActiveEl() === untrack(() => el)); // Use strict equality
 
 	/**
 	 * Check if fullscreen is available for this element.
@@ -101,7 +101,7 @@
 	 * This is only done if the target element `el` is the main Micrio element
 	 * AND scroll zoom wasn't already hooked by default settings.
 	 */
-	const addScrollZoom = el == micrio && !micrio.events.scrollHooked;
+	const addScrollZoom = untrack(() => el) == micrio && !micrio.events.scrollHooked;
 
 	/** Handles fullscreen change events. Updates `isActive` state and hooks/unhooks scroll zoom if needed. */
 	const onchange = () : void => {

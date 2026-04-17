@@ -12,8 +12,8 @@
 	import type { Models } from '$types/models';
 	import type { MicrioImage } from '$ts/image';
 
-	import { onMount, getContext, tick } from 'svelte';
-	import { get, writable } from 'svelte/store';
+	import { onMount, getContext, tick, untrack } from 'svelte';
+	import { writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
 	import { i18n } from '$ts/i18n';
 	import { getAudioSrc } from '$ts/utils';
@@ -36,7 +36,7 @@
 	// --- Setup & State ---
 
 	/** Assert that stepInfo exists and is populated (done during data enrichment). */
-	const stepInfo = tour.stepInfo as Models.ImageData.MarkerTourStepInfo[];
+	const stepInfo = untrack(() => tour).stepInfo as Models.ImageData.MarkerTourStepInfo[];
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -51,7 +51,7 @@
 	/** Calculate total duration of the tour by summing step durations. */
 	const totalDuration:number = stepInfo.reduce((c, s) => c + s.duration, 0) ?? 0;
 	/** Show playback controls? Defaults to true unless explicitly disabled in tour data. */
-	const controls = 'controls' in tour ? tour.controls !== false : !tour.noControls;
+	const controls = untrack(() => 'controls' in tour ? tour.controls !== false : !tour.noControls);
 
 	// --- Playback State ---
 	/** Is the tour currently paused? */

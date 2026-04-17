@@ -42,7 +42,7 @@
 
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 
-	const small = name == 'chevron-down' || name == 'link-ext';
+	const small = $derived(name == 'chevron-down' || name == 'link-ext');
 
 	const i = micrio.defaultSettings?.ui?.icons;
 	const customHTML = $derived(i && (

@@ -152,8 +152,6 @@
 	/** Is the marker currently considered "open" (active)? */
 	const isOpened = openedBefore && image.state.$marker == marker;
 	let opened:boolean = $state(isOpened);
-	/** Has the camera finished flying to the marker's view? */
-	let flownTo:boolean = $state(isOpened);
 	/** Is the marker currently behind the camera in 360/Omni view? */
 	let behindCam:boolean = $state(false);
 	/** CSS matrix string for 3D positioning (360 embeds). */
@@ -329,7 +327,6 @@
 		}
 
 		openOnInit = false; // Reset init flag
-		flownTo = true; // Mark camera flight as complete
 		events.dispatch('marker-opened', marker); // Dispatch event
 
 		// --- Open Popup/Popover/Tour ---
@@ -559,7 +556,7 @@
 			} else if(!data.alwaysOpen) {
 				// If another marker became active (or none), call close() if this one was open
 				if(opened) close();
-				opened = flownTo = false; // Reset state
+				opened = false; // Reset state
 			}
 		})];
 
@@ -689,7 +686,7 @@
 				<!-- Display label if needed -->
 				{#if showLabel}
 					<label bind:this={_label} class:static={titleNoScales} for={marker.id} data-scroll-through>
-						{content.label||content.title}
+						{content?.label||content?.title}
 					</label>
 				{/if}
 			</button>

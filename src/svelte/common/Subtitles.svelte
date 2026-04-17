@@ -33,7 +33,7 @@
 	import type { Models } from '$types/models';
 
 	import { fade } from 'svelte/transition';
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 
 	// --- Props ---
 	interface Props {
@@ -53,7 +53,7 @@
 	// --- Fetch and Parse VTT ---
 
 	// Fetch the VTT file content as text
-	fetch(src).then(r => r.text()).then(txt => {
+	fetch(untrack(() => src)).then(r => r.text()).then(txt => {
 		const s = txt.split('\n'); // Split into lines
 		// Iterate through lines to parse cues
 		for(let l=0; l<s.length; l++) {
