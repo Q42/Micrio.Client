@@ -437,7 +437,7 @@ export class MicrioImage {
 		// Load 360 space data if linked and not already loaded
 		if(i.spacesId && !micrio.spaceData) {
 			micrio.spaceData = 'MICRIO_SPACE_DATA' in self ? self['MICRIO_SPACE_DATA'] as Models.Spaces.Space // Check for preloaded data
-				: await fetchJson<Models.Spaces.Space>('https://i.micr.io/spaces/'+i.spacesId+'.json'); // Fetch from CDN
+				: await fetchJson<Models.Spaces.Space>((this.infoBasePath ?? 'https://i.micr.io/')+'spaces/'+i.spacesId+'.json'); // Fetch from forced path or CDN
 			// When just one image, ignore space data
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
