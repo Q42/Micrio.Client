@@ -90,11 +90,5 @@ if(!isSafeWasmVersion) {
 	fs.rmSync(files.css);
 	fs.rmSync(files.js);
 
-	fs.writeFileSync('./src/ts/version.ts', `/**
- * Defines the current version of the Micrio library.
- * This constant is used internally and exposed statically via \`HTMLMicrioElement.VERSION\`.
- */
-export const VERSION = '${version}';\n`);
-
 	console.info('\x1b[36m%s\x1b[0m', `created ${dFile}`);
 }
