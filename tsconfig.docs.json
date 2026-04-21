@@ -2,13 +2,18 @@
 	"include": ["src/ts/", "src/types/", "src/docs/"],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"],
 	"compilerOptions": {
+		"ignoreDeprecations": "6.0",
 		"typeRoots": ["./types"],
-		"downlevelIteration": true,
+		"rootDir": "./src",
 		"target": "es2020",
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"emitDeclarationOnly": true,
-		"stripInternal": true
+		"stripInternal": true,
+		"paths": {
+			"$ts/*": ["./src/ts/*"],
+			"$types/*": ["./src/types/*"]
+		}
 	},
 	"typedocOptions": {
 		"entryPoints": ["./src/docs/micrio.ts", "./src/docs/store.ts"],

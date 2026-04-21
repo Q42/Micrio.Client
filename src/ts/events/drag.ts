@@ -1,4 +1,3 @@
-import { pyth } from '../utils';
 import { eventPassive, cancelPrevent, type EventContext } from './shared';
 
 /**
@@ -12,6 +11,7 @@ export class DragHandler {
 		this.start = this.start.bind(this);
 		this.move = this.move.bind(this);
 		this.stop = this.stop.bind(this);
+		this.cancel = this.cancel.bind(this);
 	}
 
 	/** Hooks pointer down/move/up listeners for drag panning. */
@@ -21,6 +21,7 @@ export class DragHandler {
 
 		this.ctx.micrio.addEventListener('dragstart', cancelPrevent as EventListener);
 		this.ctx.micrio.addEventListener('pointerdown', this.start, eventPassive);
+		self.addEventListener('pointercancel', this.cancel, eventPassive);
 		this.ctx.micrio.setAttribute('data-hooked', '');
 	}
 
@@ -31,6 +32,7 @@ export class DragHandler {
 
 		this.ctx.micrio.removeEventListener('pointerdown', this.start, eventPassive);
 		this.ctx.micrio.removeEventListener('dragstart', cancelPrevent as EventListener);
+		self.removeEventListener('pointercancel', this.cancel, eventPassive);
 		this.ctx.micrio.removeAttribute('data-hooked');
 	}
 
@@ -73,7 +75,7 @@ export class DragHandler {
 		this.ctx.micrio.addEventListener('pointerup', this.stop, eventPassive);
 
 		this.ctx.micrio.setAttribute('data-panning', '');
-		this.ctx.micrio.wasm.e._panStart(img.ptr);
+		this.ctx.micrio.wasm.panStart(img.ptr);
 		this.ctx.micrio.wasm.render();
 		this.ctx.dispatch('panstart');
 	}
@@ -86,7 +88,7 @@ export class DragHandler {
 		const cX = e.clientX, cY = e.clientY;
 
 		// Capture pointer only after significant movement to allow double-click
-		const moved = pyth(this.ctx.vars.drag.start[0] - e.clientX, this.ctx.vars.drag.start[1] - e.clientY);
+		const moved = Math.hypot(this.ctx.vars.drag.start[0] - e.clientX, this.ctx.vars.drag.start[1] - e.clientY);
 		if (!this.ctx.capturedPointerId && moved > 10) {
 			this.ctx.setCapturedPointerId(e.pointerId);
 			this.ctx.micrio.setPointerCapture(e.pointerId);
@@ -132,7 +134,7 @@ export class DragHandler {
 		if (e && noKinetic == false) {
 			const img = this.ctx.getImage({ x: e.clientX, y: e.clientY });
 			if (img) {
-				this.ctx.micrio.wasm.e._panStop(img.ptr);
+				this.ctx.micrio.wasm.panStop(img.ptr);
 				this.ctx.micrio.wasm.render();
 			}
 		}
@@ -143,6 +145,19 @@ export class DragHandler {
 			'movedX': e.clientX - this.ctx.vars.drag.start[0],
 			'movedY': e.clientY - this.ctx.vars.drag.start[1]
 		});
+	}
+
+	/**
+	 * Handles `pointercancel` (e.g. when the browser hijacks the touch for
+	 * its own scrolling/zooming because the gesture started on an element
+	 * without `touch-action: none`). Cleans up panning state without
+	 * triggering kinetic motion or a regular `panend`.
+	 */
+	private cancel(e: PointerEvent): void {
+		if (!this.ctx.isPanning()) return;
+		// If a different pointer was the captured one, ignore.
+		if (this.ctx.capturedPointerId !== undefined && e.pointerId !== this.ctx.capturedPointerId) return;
+		this.stop(undefined, true, true);
 	}
 }
 

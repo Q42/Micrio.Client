@@ -8,16 +8,16 @@
 	 * of the current and target images.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
 	import { fade } from 'svelte/transition';
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 
 	// Micrio TS imports
-	import { clone, getLocalData, getSpaceVector } from '../../ts/utils';
-	import { i18n } from '../../ts/i18n';
+	import { clone, getLocalData, getSpaceVector } from '$ts/utils';
+	import { i18n } from '$ts/i18n';
 
 	// UI Components
 	import Button from '../ui/Button.svelte';
@@ -48,14 +48,14 @@
 	const imgSettings = image.$settings;
 
 	/** Attempt to get preloaded data for the target image (used for title fallback). */
-	const targetImage:Models.ImageData.ImageData|undefined = getLocalData(targetId)?.[2];
+	const targetImage:Models.ImageData.ImageData|undefined = getLocalData(untrack(() => targetId))?.[2];
 
 	// --- 3D Position Calculation ---
 
 	/** Calculate the vector and direction between the current and target images. */
-	const vectorData = getSpaceVector(micrio, targetId);
+	const vectorData = getSpaceVector(micrio, untrack(() => targetId));
 	if (!vectorData) {
-		console.error(`[Micrio Waypoint] Could not calculate vector for target ${targetId}`);
+		console.error(`[Micrio Waypoint] Could not calculate vector for target ${untrack(() => targetId)}`);
 		// Handle error state appropriately, maybe hide the waypoint
 	}
 	const { directionX, v, vN, vector } = vectorData!; // Use non-null assertion after check or handle error

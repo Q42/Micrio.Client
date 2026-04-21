@@ -9,12 +9,12 @@
 	 */
 
 	import type { Readable, Writable } from 'svelte/store';
-	import type { Models } from '../../types/models';
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { Models } from '$types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { i18n } from '../../ts/i18n';
+	import { i18n } from '$ts/i18n';
 
 	import Button from '../ui/Button.svelte';
 

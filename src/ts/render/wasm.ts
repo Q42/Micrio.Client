@@ -5,18 +5,18 @@
  */
 
 import type { TextureBitmap } from './textures';
-import type { HTMLMicrioElement } from './element';
+import type { HTMLMicrioElement } from '$ts/element';
 import type { Unsubscriber } from 'svelte/store';
-import type { Camera } from './camera';
-import type { Models } from '../types/models';
-import type { MicrioWasmExports } from '../types/wasm';
+import type { Camera } from '$ts/camera';
+import type { Models } from '$types/models';
+import type { MicrioWasmExports } from '$types/wasm';
 
-import { MicrioImage } from './image';
+import { MicrioImage } from '$ts/image';
 import { get } from 'svelte/store';
 import { archive } from './archive';
-import { Browser, once, MicrioError, ErrorCodes } from './utils';
+import { Browser, once, MicrioError, ErrorCodes } from '$ts/utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
-import { WASM } from './globals'; // Contains WASM binary data (likely base64)
+import { WASM } from '$ts/globals'; // Contains WASM binary data (likely base64)
 
 /**
  * In case there is no bundled B64 Wasm (default for published Micrio JS),
@@ -25,7 +25,7 @@ import { WASM } from './globals'; // Contains WASM binary data (likely base64)
  */
 const selfJSSrc = document.currentScript?.getAttribute('src')?.toString();
 const wasmBin = selfJSSrc?.includes('.safe-wasm.js') ? selfJSSrc.replace('.safe-wasm.js', '.wasm')
-	: 'http://localhost:2000/build/optimized.wasm';
+	: '/build/optimized.wasm';
 
 /** Promise for loading the Wasm binary (either from external source or embedded data). @internal */
 const wasmPromise : Promise<ArrayBuffer|Uint8Array> | null = WASM.ugz ? WASM.ugz(WASM.b64,!0) // Use decompression function if available
@@ -60,7 +60,7 @@ export class Wasm {
 	/** Direct reference to the ArrayBuffer of the WebAssembly memory. @internal */
 	private b: ArrayBuffer = this.memory.buffer;
 	/** The exported functions from the loaded Wasm module. @internal */
-	e!: MicrioWasmExports;
+	private e!: MicrioWasmExports;
 	/** Pointer to the main Micrio instance within Wasm memory. @internal */
 	private i: number = -1;
 	/** Pointer to the currently active canvas/image instance within Wasm memory. @internal */
@@ -100,6 +100,8 @@ export class Wasm {
 	// --- ANIMATION HOOKS ---
 	/** Map storing Camera instances associated with Wasm image pointers. @internal */
 	private cameras: Map<number, Camera> = new Map();
+	/** O(1) pointer-to-image lookup for hot-path Wasm callbacks. @internal */
+	private ptrToImage: Map<number, MicrioImage | Models.Omni.Frame> = new Map();
 
 	// --- Internals ---
 
@@ -125,8 +127,8 @@ export class Wasm {
 	/** Static Float32Array holding texture coordinates mapped to the 360 sphere geometry. @internal */
 	static _textureBuffer360: Float32Array;
 
-	/** Object storing Float32Array views into Wasm memory for perspective matrices, keyed by image pointer. @internal */
-	private _pMatrices: { [key: number]: Float32Array } = {};
+	/** Float32Array views into Wasm memory for perspective matrices, keyed by image pointer. @internal */
+	private _pMatrices: Map<number, Float32Array> = new Map();
 
 	/** Flag indicating if the current context is a gallery. @internal */
 	private isGallery:boolean = false;
@@ -140,11 +142,10 @@ export class Wasm {
 			'memory': this.memory, // Provide shared memory
 			'abort': console.error // Basic abort handler
 		},
-		'main': { // Custom functions exposed to Wasm
-			'console.log': console.log, // Allow Wasm to log messages
-			'console.log2': console.log, // (Multiple log functions likely for debugging different types/arity)
-			'console.log3': console.log,
-			'console.log4': console.log,
+		'main': {
+			// AS debug logging (1-4 arity variants, all map to console.log)
+			'console.log': console.log, 'console.log2': console.log,
+			'console.log3': console.log, 'console.log4': console.log,
 			'drawTile': this.drawTile.bind(this), // Callback to draw a specific tile
 			'drawQuad': (opacity:number) : void => this.micrio.webgl.drawTile(undefined, opacity), // Callback to draw a simple quad (e.g., background)
 			'aniAbort': (ptr:number) : void => { // Callback when a camera animation is aborted
@@ -170,20 +171,24 @@ export class Wasm {
 				}
 				return tile.opacity;
 			},
-			'setMatrix': (ptr:number) => this.micrio.webgl.gl.uniformMatrix4fv( // Set the perspective matrix uniform in WebGL
-				this.micrio.webgl.pmLoc, false, this._pMatrices[ptr]),
+			'setMatrix': (ptr:number) => this.micrio.webgl.gl.uniformMatrix4fv(
+				this.micrio.webgl.pmLoc, false, this._pMatrices.get(ptr)!),
 			'setViewport': (left:number,bottom:number,w:number,h:number) => this.micrio.webgl.gl // Set the WebGL viewport
 				.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h)),
 			'viewSet': (ptr:number) => this.cameras.get(ptr)?.viewChanged(), // Callback when the view changes in Wasm
-			'viewportSet': (ptr:number,x:number,y:number,w:number,h:number) => { // Callback when the calculated viewport changes in Wasm
-				const img = this.images.find(i => i.ptr == ptr);
-				if(img && 'camera' in img) img.viewport.set([x,y,w,h]); // Update the Svelte store
+			'viewportSet': (ptr:number,x:number,y:number,w:number,h:number) => {
+				const img = this.ptrToImage.get(ptr);
+				if(img && 'camera' in img) img.viewport.set([x,y,w,h]);
 			},
-			// Callbacks to update the visibility store of an image
-			'setVisible': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1),
-			// setVisible2 kept for Wasm binary compatibility - same implementation as setVisible
-			'setVisible2': (ptr:number,visible:number) => this.images.find(i => i.ptr == ptr)?.visible.set(visible===1)
+			'setVisible': this.setVisibleCb.bind(this),
+			// setVisible2: same impl, separate AS import due to Canvas vs Image type difference
+			'setVisible2': this.setVisibleCb.bind(this)
 		}
+	}
+
+	/** Shared visibility callback for Wasm `setVisible` / `setVisible2` imports. @internal */
+	private setVisibleCb(ptr:number, visible:number) : void {
+		this.ptrToImage.get(ptr)?.visible.set(visible === 1);
 	}
 
 	/**
@@ -328,9 +333,6 @@ export class Wasm {
 			if(!isNaN(f[1]) && f[1] !== null) focus[1] = f[1];
 		}
 
-		// Set true north for 360 images
-		if(i.is360) c.camera.trueNorth = settings._360?.trueNorth ?? .5;
-
 		// Check for 360 video
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360['video']));
@@ -358,7 +360,7 @@ export class Wasm {
 			(settings.zoomLimit || 1), // Max zoom limit
 			(settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1), // DPR fix multiplier
 			settings.camspeed ?? 1, // Camera speed
-			c.camera.trueNorth, // 360 true north offset
+			c.camera.rotationY, // 360 Y rotation (radians)
 			gallerySwitch, // Is it an overlapping gallery type?
 			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe', // Is it a swiping spreads gallery?
 			c.isOmni, // Is it an Omni object?
@@ -378,7 +380,7 @@ export class Wasm {
 
 		// Set custom durations if provided
 		if(settings?.crossfadeDuration)
-			this.e.setCrossfadeDuration(this.i, settings.crossfadeDuration);
+			this.setCrossfadeDuration(settings.crossfadeDuration);
 		if(settings?.embedFadeDuration)
 			this.e.setEmbedFadeDuration(this.i, settings.embedFadeDuration);
 		if(settings?.dragElasticity !== undefined)
@@ -389,10 +391,11 @@ export class Wasm {
 		// Apply Omni-specific settings
 		if(settings?.omni) c.camera.setOmniSettings();
 		// Apply limited rendering mode if attribute set
-		if(this.micrio.hasAttribute('data-limited')) this.e._setLimited(c.ptr, true);
+		if(this.micrio.hasAttribute('data-limited')) this.setLimited(c.ptr, true);
 
 		// Add image to managed list
 		this.images.push(c);
+		this.ptrToImage.set(c.ptr, c);
 		// Request initial viewport calculation from Wasm
 		this.e._sendViewport(c.ptr);
 
@@ -405,7 +408,7 @@ export class Wasm {
 		}
 		// Create Float32Array view for the perspective matrix
 		const mPtr = this.e._getPMatrix(c.ptr);
-		this._pMatrices[mPtr] = new Float32Array(this.b, mPtr + 32, 16);
+		this._pMatrices.set(mPtr, new Float32Array(this.b, mPtr + 32, 16));
 
 		// Set initial view (from state, settings, or focus point)
 		const v = get(c.state.view) || settings.view;
@@ -435,7 +438,6 @@ export class Wasm {
 		this.cameras.set(img.ptr, img.camera); // Store camera instance by pointer
 		// Assign FloatArray views into Wasm memory to the camera instance
 		img.camera.assign(
-			this.e,
 			new Float64Array(this.b, this.e._getView(img.ptr) + 32, 4), // Now center-based view buffer
 			new Float64Array(this.b, this.e._getXY(img.ptr, 0,0) + 32, 5), // XY buffer
 			new Float64Array(this.b, this.e._getCoo(img.ptr, 0,0) + 32, 5), // Coo buffer
@@ -468,7 +470,7 @@ export class Wasm {
 			this.c = canvas.ptr; // Update active canvas pointer
 			// Apply previous orientation if applicable (and not coming from waypoint)
 			if(canvas.is360 && !this.preventDirectionSet && yaw && pitch)
-				this.e._setDirection(this.c, yaw + (.5-(canvas.$settings?._360?.trueNorth||0))*Math.PI*2, pitch, true);
+				this.e._setDirection(this.c, yaw - canvas.camera.rotationY, pitch, true);
 			// Fade in if it was previously faded out
 			if(this.e._getTargetOpacity(canvas.ptr) == 0) this.e._fadeIn(canvas.ptr);
 			// Set initial Omni layer if applicable
@@ -787,11 +789,13 @@ export class Wasm {
 		image.ptr = !isEmbed ? this.e._addChild(parent.ptr, a[0], a[1], a[2], a[3], i.width, i.height)
 			: this.e._addImage(parent.ptr, a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize||1024, i.isSingle??false, i.isVideo??false, opacity, _360.rotX??0, _360.rotY??0, _360.rotZ??0, _360.scale??1, 0);
 
+		this.ptrToImage.set(image.ptr, image);
+
 		if(!isEmbed) {
 			this.bindCamera(image);
 			if(image.$settings.focus) this.e._setCoo(image.ptr, image.$settings.focus[0], image.$settings.focus[1], 0, 0, performance.now());
 			const mPtr = this.e._getPMatrix(image.ptr);
-			this._pMatrices[mPtr] = new Float32Array(this.b, mPtr + 32, 16);
+			this._pMatrices.set(mPtr, new Float32Array(this.b, mPtr + 32, 16));
 
 			/** @ts-ignore -- Grid starting viewport backwards compatibility */
 			const v = image.$info['view'];
@@ -822,6 +826,7 @@ export class Wasm {
 			const a = image.opts.area ?? [0,0,1,1];
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			image.ptr = this.e._addImage(parent.ptr, a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize||1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX??0, _360.rotY??0, _360.rotZ??0, _360.scale??1, opts.fromScale ?? 0);
+			this.ptrToImage.set(image.ptr, image);
 			image.baseTileIdx = this.e.getNumTiles(this.i) - 1;
 			this.getTileEntry(image.baseTileIdx).opacity = 1;
 			this.baseTiles.push(image.baseTileIdx);
@@ -881,5 +886,54 @@ export class Wasm {
 	setFocus(ptr:number, v:Models.Camera.ViewRect, noLimit:boolean=false) : void {
 		this.e._setFocus(ptr, v[0], v[1], v[2], v[3], noLimit);
 	}
+
+	// --- Wasm export facade methods ---
+
+	/** Set z-index render order for an image. @internal */
+	setZIndex(ptr:number, z:number) : void { this.e._setZIndex(ptr, z); }
+	/** Set grid transition duration in seconds. @internal */
+	setGridTransitionDuration(dur:number) : void { this.e.setGridTransitionDuration(this.i, dur); }
+	/** Set grid transition timing function. @internal */
+	setGridTransitionTimingFunction(fn:number) : void { this.e.setGridTransitionTimingFunction(this.i, fn); }
+	/** Set crossfade duration in seconds. @internal */
+	setCrossfadeDuration(dur:number) : void { this.e.setCrossfadeDuration(this.i, dur); }
+	/** Fade a canvas image to a target opacity. @internal */
+	fadeTo(ptr:number, opacity:number, direct:boolean) : void { this.e._fadeTo(ptr, opacity, direct); }
+	/** Fade a canvas image in. @internal */
+	fadeIn(ptr:number) : void { this.e._fadeIn(ptr); }
+	/** Fade a canvas image out. @internal */
+	fadeOut(ptr:number) : void { this.e._fadeOut(ptr); }
+	/** Check whether an image's area is being animated. @internal */
+	areaAnimating(ptr:number) : boolean { return !!this.e._areaAnimating(ptr); }
+	/** Get the current active embedded image index. @internal */
+	getActiveImageIdx(ptr:number) : number { return this.e._getActiveImageIdx(ptr); }
+	/** Disable panning during pinch gestures. @internal */
+	setNoPinchPan(v:boolean) : void { this.e.setNoPinchPan(this.i, v); }
+	/** Enable swipe gallery mode. @internal */
+	setIsSwipe(v:boolean) : void { this.e.setIsSwipe(this.i, v); }
+	/** Get eased value (easeInOut). @internal */
+	ease(p:number) : number { return this.e.ease(p); }
+	/** Notify Wasm that panning has started. @internal */
+	panStart(ptr:number) : void { this.e._panStart(ptr); }
+	/** Notify Wasm that panning has stopped. @internal */
+	panStop(ptr:number) : void { this.e._panStop(ptr); }
+	/** Notify Wasm that pinch has started. @internal */
+	pinchStart(ptr:number) : void { this.e._pinchStart(ptr); }
+	/** Notify Wasm of a pinch gesture. @internal */
+	pinch(ptr:number, x0:number, y0:number, x1:number, y1:number) : void { this.e._pinch(ptr, x0, y0, x1, y1); }
+	/** Notify Wasm that pinch has stopped. @internal */
+	pinchStop(ptr:number, t:number) : void { this.e._pinchStop(ptr, t); }
+	/** Toggle limited rendering mode for an image. @internal */
+	setLimited(ptr:number, v:boolean) : void { this.e._setLimited(ptr, v); }
+	/** Set 360 orientation vector for transitions. @internal */
+	set360Orientation(d:number, dX:number, dY:number) : void { this.e.set360Orientation(this.i, d, dX, dY); }
+	/** Set virtual offset margins in the Wasm controller. @internal */
+	setCanvasArea(w:number, h:number) : void { this.e.setArea(this.i, w, h); }
+	/** Notify Wasm a video embed is playing/paused. @internal */
+	setImageVideoPlaying(ptr:number, playing:boolean) : void { this.e._setImageVideoPlaying(ptr, playing); }
+	/** Set an embedded sub-image rotation in 3D space. @internal */
+	setImageRotation(ptr:number, rotX:number, rotY:number, rotZ:number) : void { this.e._setImageRotation(ptr, rotX, rotY, rotZ); }
+	/** Set camera settings for viewing rotatable omni objects. @internal */
+	setOmniSettings(ptr:number, d:number, fov:number, vA:number, oX:number) : void { this.e._setOmniSettings(ptr, d, fov, vA, oX); }
 
 }

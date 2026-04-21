@@ -1,8 +1,8 @@
 import type { Writable } from 'svelte/store';
-import type { Models } from '../types/models';
-import type { HTMLMicrioElement } from './element';
+import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$ts/element';
 
-import { Browser } from './utils';
+import { Browser } from '$ts/utils';
 import { get, writable } from 'svelte/store';
 
 /**
@@ -96,10 +96,6 @@ export class Canvas {
 	 * @internal
 	 */
 	onresize() : void {
-		/** @ts-ignore Check if presenting in VR - If in VR, don't resize based on window */
-		// TODO: Re-evaluate if this VR check is still necessary or correctly implemented.
-		// if(this.micrio.webgl.display?.['isPresenting']) return;
-
 		// Get current rendered dimensions and position
 		const box = this.element.getBoundingClientRect();
 
@@ -183,8 +179,8 @@ export class Canvas {
 	 * @param height The vertical offset margin in pixels.
 	*/
 	public setMargins(width:number, height:number) : void {
-		if (!this.micrio.wasm.e) return; // Ensure Wasm is ready
-		this.micrio.wasm.e.setArea(this.micrio.wasm.getPtr(), width, height);
+		if (!this.micrio.wasm.ready) return;
+		this.micrio.wasm.setCanvasArea(width, height);
 	}
 
 }

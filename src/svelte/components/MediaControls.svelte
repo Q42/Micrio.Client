@@ -8,7 +8,7 @@
 
 	// Import the global captionsEnabled store defined in the module script
 	import { captionsEnabled } from '../common/Subtitles.svelte';
-	import { i18n } from '../../ts/i18n'; // For button titles
+	import { i18n } from '$ts/i18n'; // For button titles
 
 	// UI Components
 	import Button from '../ui/Button.svelte';
@@ -60,8 +60,6 @@
 
 	// --- Progress Bar Dragging Logic ---
 
-	/** Flag indicating if the user is currently dragging the progress bar handle. */
-	let dragging:boolean = false;
 	/** Reference to the progress bar element. */
 	let _bar:HTMLElement|undefined = $state();
 
@@ -71,7 +69,6 @@
 		// Add listeners to the window to track movement outside the bar
 		window.addEventListener('mousemove', dMove);
 		window.addEventListener('mouseup', dStop);
-		dragging = true;
 		dMove(e); // Process initial click position immediately
 	}
 
@@ -89,7 +86,6 @@
 		// Remove window listeners
 		window.removeEventListener('mousemove', dMove);
 		window.removeEventListener('mouseup', dStop);
-		dragging = false;
 	}
 
 </script>

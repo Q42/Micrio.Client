@@ -1,10 +1,10 @@
 import type { Unsubscriber } from 'svelte/store';
-import type { HlsPlayer } from '../types/externals'; // Type definition for HLS.js player
-import type { Models } from '../types/models';
-import type { MicrioImage } from './image';
-import type { Wasm } from './wasm';
+import type { HlsPlayer } from '$types/externals';
+import type { Models } from '$types/models';
+import type { MicrioImage } from '$ts/image';
+import type { Wasm } from '$ts/render/wasm';
 
-import { Browser, loadScript } from './utils';
+import { Browser, loadScript } from '$ts/utils';
 import { tick } from 'svelte';
 
 /**
@@ -101,7 +101,7 @@ export class GLEmbedVideo {
 		if (playing) this._vid.dataset.playing = '1';
 		else delete this._vid.dataset.playing;
 		// Notify Wasm about the playback state change
-		this.wasm.e._setImageVideoPlaying(this.image.ptr, playing);
+		this.wasm.setImageVideoPlaying(this.image.ptr, playing);
 		// Handle fade-out/fade-in if hideWhenPaused is enabled
 		if(this.embed.hideWhenPaused) this.wasm.fadeImage(this.image.ptr, playing ? 1 : 0);
 		// Trigger Wasm render if playing (to update texture)

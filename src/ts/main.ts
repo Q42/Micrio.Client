@@ -19,4 +19,4 @@ HTMLMicrioElement.VERSION = VERSION;
 customElements.define('micr-io', HTMLMicrioElement);
 
 // Log a styled message to the console indicating the library version and website.
-console.log('%c\u25C8' + '%c Micrio' + ' %cv'+VERSION+' - https://micr.io/', 'color: #00d4ee', 'color: #c5ff5b', 'color: inherit');
+console.info('%c\u25C8' + '%c Micrio' + ' %cv'+VERSION+' - https://micr.io/', 'color: #00d4ee', 'color: #c5ff5b', 'color: inherit');

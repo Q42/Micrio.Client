@@ -4,9 +4,9 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { HlsPlayer } from '../../types/externals';
+import type { HlsPlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks } from './types';
-import { loadScript } from '../utils';
+import { loadScript } from '$ts/utils';
 import { HTML5PlayerAdapter } from './html5-adapter';
 
 /**
@@ -44,9 +44,10 @@ export class HLSPlayerAdapter implements MediaPlayerAdapter {
 		}
 
 		// @ts-ignore - Hls is loaded dynamically
-		this.hls = new window['Hls']({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
-		this.hls.loadSource(this.hlsSrc);
-		this.hls.attachMedia(this.element);
+		const hls: HlsPlayer = new window['Hls']({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
+		this.hls = hls;
+		hls.loadSource(this.hlsSrc);
+		hls.attachMedia(this.element);
 
 		// Create HTML5 adapter for the underlying video element
 		this.html5Adapter = new HTML5PlayerAdapter(this.element, this.callbacks);

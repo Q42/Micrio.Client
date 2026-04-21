@@ -7,7 +7,7 @@
 	 * animation based on the main `micrio.loading` store.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';

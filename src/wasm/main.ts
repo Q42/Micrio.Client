@@ -99,16 +99,18 @@ export declare function setVisible(c:Canvas,visible:bool) : void;
  */
 export declare function setVisible2(c:Image,visible:bool) : void;
 
-// Debugging functions
+// Uncomment for debugging (requires matching JS host imports)
+/*
 export declare namespace console {
 	export function log(a: f64) : void;
 	export function log2(a: f64, b:f64) : void;
 	export function log3(a: f64, b:f64, c:f64) : void;
 	export function log4(a: f64, b:f64, c:f64, d:f64) : void;
 }
+*/
 
 /**
-	* Main controller class for the Wasm module instance.
+ * Main controller class for the Wasm module instance.
 	* Manages all canvases, global settings, and the render loop.
 	*/
 export class Main {
@@ -209,19 +211,18 @@ export class Main {
 		this.toDrawTotal = 0;
 		this.animating = false;
 		// Call shouldDraw for each managed canvas
-		this.canvases.forEach(c => { c.shouldDraw() });
-		// Return true if any canvas is animating or overall progress is not 1
+		for(let i:i32=0;i<this.canvases.length;i++) unchecked(this.canvases[i]).shouldDraw();
 		return this.animating || this.progress < 1;
 	}
 
 	/** Called each frame by the JS host to execute drawing commands for all canvases. */
-	draw() : void { this.canvases.forEach(c => { c.draw() }); }
+	draw() : void { for(let i:i32=0;i<this.canvases.length;i++) unchecked(this.canvases[i]).draw(); }
 
 	/** Resets the state of all managed canvases. */
-	reset() : void { this.canvases.forEach(c => { c.reset() }); }
+	reset() : void { for(let i:i32=0;i<this.canvases.length;i++) unchecked(this.canvases[i]).reset(); }
 
 	/** Stops animations in all managed canvases. */
-	aniStop() : void { this.canvases.forEach(c => { c.aniStop() }); }
+	aniStop() : void { for(let i:i32=0;i<this.canvases.length;i++) unchecked(this.canvases[i]).aniStop(); }
 
 	/**
 	 * Updates the main element's viewport dimensions and triggers resize on all canvases.
@@ -237,11 +238,8 @@ export class Main {
 		// Update main viewport state
 		this.el.set(w, h, l, t, r, s, p);
 		// Trigger resize on all canvases
-		this.canvases.forEach(c => { c.resize() });
+		for(let i:i32=0;i<this.canvases.length;i++) unchecked(this.canvases[i]).resize();
 	}
-
-	/** Sets a rendering area constraint (used for partial screen rendering). */
-	setArea(_w: i32, _h: i32) : void { this.el.areaWidth = _w; this.el.areaHeight = _h; }
 
 	/** Removes a specific Canvas instance from the managed list. */
 	remove(c:Canvas) : void {

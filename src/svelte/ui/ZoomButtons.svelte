@@ -8,15 +8,15 @@
 	 * the currently active image.
 	 */
 
-	import type { MicrioImage } from '../../ts/image';
+	import type { MicrioImage } from '$ts/image';
 	import type { Unsubscriber } from 'svelte/store';
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext, onMount } from 'svelte';
 
 	// Micrio TS imports
-	import { once } from '../../ts/utils';
-	import { i18n } from '../../ts/i18n'; // For button titles
+	import { once } from '$ts/utils';
+	import { i18n } from '$ts/i18n'; // For button titles
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

@@ -7,12 +7,12 @@
 	 * Automatically hides when fully zoomed out (if configured).
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
-    import { View } from '../../ts/utils';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
+    import { View } from '$ts/utils';
+	import type { Models } from '$types/models';
 
-	import { onMount, getContext, } from 'svelte';
+	import { onMount, getContext, untrack } from 'svelte';
 
 	// --- Props ---
 	interface Props {
@@ -28,15 +28,12 @@
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
 	const { current } = micrio;
-	/** Reference to the main canvas viewport state. */
-	const viewport = micrio.canvas.viewport;
-
 	/** Get the ImageInfo object (assumed to be loaded). */
-	const info = image.$info as Models.ImageInfo.ImageInfo;
+	const info = untrack(() => image).$info as Models.ImageInfo.ImageInfo;
 	/** Reference to the image's camera controller. */
-	const camera = image.camera;
+	const camera = untrack(() => image).camera;
 	/** Reference to the image's settings store value. */
-	const settings = image.$settings;
+	const settings = untrack(() => image).$settings;
 
 	// --- Configuration ---
 
@@ -301,13 +298,13 @@
 
 	// --- Lifecycle (onMount) ---
 
-	/** Calculate true north offset for background positioning. */
-	const offset = .5 - image.camera.trueNorth;
+	/** Calculate rotationY offset for background positioning. */
+	const offset = -untrack(() => image).camera.rotationY / (Math.PI * 2);
 
 	/** Check if cross-origin isolation is enabled (affects loading thumbnail). */
 	const isolated = self.crossOriginIsolated;
 	/** Store thumbnail source URL. May be updated later if loaded via fetch/blob. */
-	let thumbSrc:string|undefined = $state(isolated ? undefined : image.thumbSrc);
+	let thumbSrc:string|undefined = $state(isolated ? undefined : untrack(() => image).thumbSrc);
 
 	/** Passive event listener options. */
 	const passive:AddEventListenerOptions = {passive: true};

@@ -1,26 +1,25 @@
 import type { Writable } from 'svelte/store';
-import type { Models } from '../types/models';
+import type { Models } from '$types/models';
 import type { Camera } from './camera';
 
-/** @ts-ignore */
 import type Svelte from '../svelte/Main.svelte';
 
 import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View, MicrioError } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
-import { Wasm } from './wasm';
-import { WebGL } from './webgl';
+import { Wasm } from './render/wasm';
+import { WebGL } from './render/webgl';
+import { Canvas } from './render/canvas';
+import { archive } from './render/archive';
 import { Events } from './events';
 import { MicrioImage } from './image';
 import { State} from './state';
-import { Router } from './router';
+import { Router } from './nav/router';
 import { GoogleTag } from './analytics';
-import { Grid } from './grid';
-import { archive } from './archive';
+import { Grid } from './nav/grid';
 import { mount, tick, unmount } from 'svelte';
-import { Canvas } from './canvas';
-import { rtlLanguageCodes } from './langs';
-import { i18n, langs } from './i18n';
+import { rtlLanguageCodes } from './i18n/locale';
+import { i18n, langs } from './i18n/strings';
 
 /**
  * The main Micrio custom HTML element `<micr-io>`.
@@ -196,7 +195,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-grid`, `data-limited`, and `lang`.
 	 * @internal
 	*/
-	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, oldVal:string, newVal:string) {
+	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, _oldVal:string, newVal:string) {
 		switch(attr) {
 			case 'id': { // Handle ID change (initial load or subsequent open)
 				if(!this.isConnected || !newVal) return;
@@ -212,7 +211,7 @@ export class HTMLMicrioElement extends HTMLElement {
 				break;
 			case 'data-limited': // Toggle limited rendering mode in Wasm
 				if(this.wasm?._vertexBuffer && this.$current?.ptr)
-					this.wasm.e._setLimited(this.$current.ptr, !!newVal);
+					this.wasm.setLimited(this.$current.ptr, !!newVal);
 				break;
 			case 'lang': { // Handle language change
 				let prevLang = get(this._lang);
@@ -391,8 +390,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param noLogo If true, hides the Micrio logo.
 	 */
 	private printUI(noHTML:boolean, noLogo:boolean) : void {
-		//@ts-ignore
-		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}})
+		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}}) as NonNullable<typeof this._ui>;
 		else this._ui.setProps?.({noHTML, noLogo});
 	}
 
@@ -486,7 +484,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		// Apply forced start view if provided
 		if(opts.startView) {
 			c.state.view.set(i.settings.view = opts.startView);
-			if(c.ptr && c.camera.e) c.camera.setView(i.settings.view,{noRender:true}); // Set immediately if camera ready
+			if(c.ptr && c.wasm.ready) c.camera.setView(i.settings.view,{noRender:true});
 		}
 
 		// Set default language if not already set
@@ -538,7 +536,7 @@ export class HTMLMicrioElement extends HTMLElement {
 			});
 
 			// Set 360 orientation vector for transitions
-			this.wasm.e.set360Orientation(this.wasm.getPtr(),
+			this.wasm.set360Orientation(
 				opts.vector?.direction ?? 0,
 				opts.vector?.distanceX ?? 0,
 				opts.vector?.distanceY ?? 0);

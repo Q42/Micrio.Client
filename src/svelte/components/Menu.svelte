@@ -7,7 +7,7 @@
 	 * Adds a global click listener to close the menu when clicking outside.
 	 */
 	import { writable } from 'svelte/store';
-	import type { Models } from '../../types/models'; // Import Models type
+	import type { Models } from '$types/models'; // Import Models type
 
 	/** Writable store holding the currently opened menu item data, or undefined if none is open. */
 	const opened = writable<Models.ImageData.Menu|undefined>(undefined);
@@ -37,14 +37,13 @@
 	 * toggle the visibility of child items.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext, onMount } from 'svelte';
 
 	// UI Components
 	import Menu from './Menu.svelte';
 	import Icon from '../ui/Icon.svelte';
-	import Fa from 'svelte-fa'; // Font Awesome icon component
 
 	// --- Props ---
 
@@ -145,7 +144,7 @@
 		<!-- Render as a button otherwise -->
 		<button class="micrio-menu-action" type="button" onclick={click} bind:this={_button}>
 			<!-- Optional Font Awesome icon -->
-			{#if menu.icon}<Fa icon={menu.icon} style="margin-right:10px;" />{/if}
+			{#if menu.icon}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {menu.icon[0]} {menu.icon[1]}" fill="currentColor" class="svelte-fa" style="height:1em;vertical-align:-.125em;margin-right:10px;"><path d={menu.icon[2]}/></svg>{/if}
 			<strong>
 				{cultureData?.title ?? '(Unknown)'}
 				<!-- Chevron icon indicates children -->

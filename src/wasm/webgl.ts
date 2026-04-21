@@ -1,4 +1,4 @@
-import { atan2, modPI, pyth, mod1 } from './utils'
+import { modPI, mod1 } from './utils'
 import { Coordinates, PI, PI2, PIh } from './shared'
 import { Vec4, Mat4 } from './webgl.mat'
 import Canvas from './canvas'
@@ -11,6 +11,10 @@ export default class WebGL {
 	readonly pMatrix : Mat4 = new Mat4;
 	/** Inverse projection matrix (used for coordinate conversions). */
 	private readonly iMatrix : Mat4 = new Mat4;
+	/** Cached inverse of pMatrix for batch getCoo calls. */
+	private readonly cachedInverse : Mat4 = new Mat4;
+	/** Whether cachedInverse is valid. */
+	private inverseDirty : bool = true;
 	/** Rotation matrix (used for CSS 3D transforms). */
 	private readonly rMatrix : Mat4 = new Mat4;
 
@@ -39,7 +43,7 @@ export default class WebGL {
 	limitY : f64 = 0;
 
 	// --- 360 Camera Orientation ---
-	/** Base yaw offset (incorporates trueNorth setting). */
+	/** Base yaw offset (absorbs the image's rotationY). */
 	baseYaw: f64 = 0;
 	/** Current yaw (horizontal rotation) in radians. */
 	yaw: f64 = 0;
@@ -86,15 +90,14 @@ export default class WebGL {
 	/** Reusable coordinates object for conversions. */
 	readonly coo: Coordinates = new Coordinates;
 
-	/** Horizontal offset based on trueNorth setting. */
+	/** Horizontal offset (normalized image-X) equivalent to baseYaw. */
 	offX:number = 0;
 
 	constructor(
 		private canvas: Canvas
 	) {
-		// Calculate initial horizontal offset and base yaw based on trueNorth
-		this.offX = .5-this.canvas.trueNorth;
-		this.baseYaw = this.offX * PI * 2;
+		this.baseYaw = -this.canvas.rotationY;
+		this.offX = this.baseYaw / PI2;
 
 		// Calculate vertical scaling and offset if it's a 360 image with non-standard aspect ratio
 		if(this.canvas.is360) {
@@ -119,10 +122,10 @@ export default class WebGL {
 	/** Updates the projection and rotation matrices based on current state. */
 	update(noPersp:bool = false) : void {
 		const c = this.canvas;
-		const el = c.el; // Canvas element viewport
+		const el = c.el;
 
-		// Update perspective matrix unless explicitly skipped
 		if(!noPersp) this.pMatrix.perspective(this.perspective, el.aspect, 0.0001, c.is360 ? 20 : 100);
+		this.inverseDirty = true;
 
 		if(c.is360) {
 			const pM = this.pMatrix;
@@ -171,10 +174,11 @@ export default class WebGL {
 	 */
 	rotate(xPx:f64, yPx:f64, duration: f64, time: f64) : void {
 		const c = this.canvas;
-		// Calculate rotation amount based on pixel delta, canvas size, scale, and perspective
-		const fact = max(1, this.perspective); // Rotation sensitivity decreases as FoV narrows
-		this.yaw += xPx / c.width / this.scale * PI * 2 * fact;
-		this.pitch += yPx / c.height / this.scale * PI * this.scaleY * fact; // Apply vertical aspect correction
+		const el = c.el;
+		// Dragging across the full viewport rotates by the current field of view,
+		// keeping sensitivity constant relative to what's visible at any zoom level.
+		this.yaw += xPx * el.ratio / el.width * this.perspective * el.aspect;
+		this.pitch += yPx * el.ratio / el.height * this.perspective * this.scaleY;
 
 		// Wrap yaw around 2*PI
 		this.yaw = modPI(this.yaw);
@@ -229,16 +233,46 @@ export default class WebGL {
 	 * @param t Current timestamp (performance.now()).
 	 * @returns Animation duration.
 	 */
-	zoom(factor: f64, dur: f64, speed: f64, noLimit: bool, t: f64) : f64 {
+	zoom(factor: f64, dur: f64, speed: f64, noLimit: bool, t: f64, pxX: f64 = 0, pxY: f64 = 0) : f64 {
 		const c = this.canvas;
-		factor /= 2; // Halve the factor?
-		if(dur != 0) { // If animating
-			dur = c.ani.zoom(factor, dur, speed, noLimit, t); // Delegate to Ani controller
-		} else { // If immediate zoom
-			// Adjust factor based on current scale and canvas size
-			factor /= this.scale * pyth(c.width, c.height) / 20;
-			// Apply perspective change directly
+		factor /= 2;
+		if(dur != 0) {
+			dur = c.ani.zoom(factor, dur, speed, noLimit, t);
+		} else {
+			factor /= this.scale * sqrt(c.width * c.width + c.height * c.height) / 20;
+
+			// Record what sphere point the cursor is looking at before the FoV change
+			const hasCursor: bool = pxX > 0 && pxY > 0;
+			let beforeX: f64 = 0, beforeY: f64 = 0;
+			if(hasCursor) {
+				const coo = this.getCoo(pxX, pxY);
+				beforeX = coo.x;
+				beforeY = coo.y;
+			}
+
 			this.setPerspective(this.perspective + factor, noLimit);
+
+			if(hasCursor) {
+				// The same pixel now maps to a different sphere point due to FoV change;
+				// adjust yaw/pitch so the original point stays under the cursor.
+				const after = this.getCoo(pxX, pxY);
+				let dx: f64 = beforeX - after.x;
+				if(dx > .5) dx -= 1;
+				if(dx < -.5) dx += 1;
+				const dy: f64 = beforeY - after.y;
+
+				this.yaw += dx * PI * 2;
+				this.pitch += dy * PI * this.scaleY;
+
+				this.yaw = modPI(this.yaw);
+				if(c.coverLimit || this.limitY > 0) this.limitPitch();
+				if(this.limitX > 0) this.limitYaw();
+
+				this.update();
+				this.readScale();
+				this.calculate3DFrustum();
+				this.syncLogicalView();
+			}
 		}
 		return dur;
 	}
@@ -255,7 +289,7 @@ export default class WebGL {
 		if(c.coverLimit || this.limitY > 0) this.limitPitch();
 		if(this.limitX > 0) this.limitYaw();
 		// Update the projection matrix
-		this.pMatrix.perspective(this.perspective, c.el.aspect, 0.0001, c.is360 ? 12 : 100); // Different far plane for 360?
+		this.pMatrix.perspective(this.perspective, c.el.aspect, 0.0001, c.is360 ? 20 : 100); // Different far plane for 360?
 		// Recalculate effective scale based on new perspective
 		this.readScale();
 		// Update matrices (without recalculating perspective)
@@ -287,7 +321,6 @@ export default class WebGL {
 
 	/** Sets the camera orientation directly. */
 	setDirection(yaw:f64, pitch:f64, persp:f64) : void {
-		// Apply base yaw (true north offset)
 		this.yaw = modPI(yaw - this.baseYaw);
 		this.pitch = pitch;
 		// Set perspective if provided, otherwise just update matrices
@@ -303,7 +336,6 @@ export default class WebGL {
 
 	/** Sets the camera orientation using 360-degree viewport format (center + dimensions). */
 	setView(centerX: f64, centerY: f64, width: f64, height: f64, noLimit: bool = false, correctNorth: bool = false) : void {
-		// Apply true north correction if requested
 		const adjustedCenterX = correctNorth ? centerX + this.offX : centerX;
 		
 		// Convert View directly to camera parameters
@@ -393,34 +425,32 @@ export default class WebGL {
 
 	// --- Coordinate Conversion Functions ---
 
+	/** Ensures the cached inverse projection matrix is up to date. */
+	private ensureInverse(): void {
+		if(this.inverseDirty) {
+			this.cachedInverse.copy(this.pMatrix);
+			this.cachedInverse.invert();
+			this.inverseDirty = false;
+		}
+	}
+
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
 	getCoo(pxX:f64, pxY:f64) : Coordinates {
 		const el = this.canvas.el;
-		// Convert screen pixels to Normalized Device Coordinates (NDC) [-1, 1]
 		this.vec4.x = (pxX * el.ratio / el.width) * 2 - 1;
-		this.vec4.y = -((pxY * el.ratio / el.height) * 2 - 1); // Y is inverted in NDC
-		this.vec4.z = 1; // Point on the far plane
+		this.vec4.y = -((pxY * el.ratio / el.height) * 2 - 1);
+		this.vec4.z = 1;
 		this.vec4.w = 1;
 
-		// --- Unproject NDC to World Space ---
-		// Copy current projection matrix
-		this.iMatrix.copy(this.pMatrix);
-		// Invert the projection matrix
-		this.iMatrix.invert();
-		// Transform NDC vector by inverse matrix
-		this.vec4.transformMat4(this.iMatrix);
+		this.ensureInverse();
+		this.vec4.transformMat4(this.cachedInverse);
 
-		// --- Convert World Space Direction to Spherical Coordinates ---
-		// Normalize the resulting direction vector
 		this.vec4.normalize();
-		// Calculate longitude (yaw) using atan2, adjust for base yaw offset
-		this.coo.x = atan2(this.vec4.x,-this.vec4.z)/PI/2+.5;
-		// Calculate latitude (pitch) using asin, adjust for vertical scaling
+		this.coo.x = Math.atan2(this.vec4.x,-this.vec4.z)/PI/2+.5;
 		this.coo.y = .5 - Math.asin(this.vec4.y) / PI / this.scaleY;
-		// Store current scale and depth/direction info
 		this.coo.scale = this.scale;
-		this.coo.w = this.position.x + this.position.z; // Store combined translation Z?
-		this.coo.direction = this.yaw + this.baseYaw; // Store current absolute yaw
+		this.coo.w = this.position.x + this.position.z;
+		this.coo.direction = this.yaw + this.baseYaw;
 
 		return this.coo;
 	}
@@ -522,7 +552,7 @@ export default class WebGL {
 		);
 
 		// 4. Rotate to align with surface normal + apply element's Y rotation
-		this.iMatrix.rotateY(atan2(this.vec4.x,this.vec4.z) + PI + rY);
+		this.iMatrix.rotateY(Math.atan2(this.vec4.x,this.vec4.z) + PI + rY);
 		// 5. Apply pitch based on latitude + element's X rotation
 		this.iMatrix.rotateX(this.vec4.y + rX); // Should this be -Math.sin(y)?
 		// 6. Apply element's Z rotation (roll)
@@ -532,7 +562,7 @@ export default class WebGL {
 		this.iMatrix.scaleXY(sX, sY);
 
 		// 8. Apply overall element scale relative to base size
-		this.iMatrix.scale(scale/PI/this.radius); // Scaling seems complex, depends on radius?
+		this.iMatrix.scaleFlat(scale/PI/this.radius);
 
 		// 9. Multiply by the CSS rotation matrix (rMatrix) to align with screen view
 		this.iMatrix.multiply(this.rMatrix);

@@ -11,20 +11,20 @@
 	 * application state and configuration settings.
 	 */
 
-	import type { MicrioUIProps } from '../ts/element';
-	import type { Models } from '../types/models';
+	import type { MicrioUIProps } from '$ts/element';
+	import type { Models } from '$types/models';
 	import type { Readable, Writable } from 'svelte/store';
-	import type { MicrioImage } from '../ts/image';
+	import type { MicrioImage } from '$ts/image';
 
 	// Import base CSS
 	import '../css/micrio.base.css';
 
 	// Svelte imports
-	import { setContext, tick } from 'svelte';
+	import { setContext, tick, untrack } from 'svelte';
 	import { get, writable } from 'svelte/store';
 
 	// Micrio TS imports
-	import { once } from '../ts/utils';
+	import { once } from '$ts/utils';
 
 	// UI Sub-component imports
 	import Logo from './ui/Logo.svelte';
@@ -64,7 +64,7 @@
 	// --- Context Setup ---
 
 	// Provide the main micrio instance to all child components
-	setContext('micrio', micrio);
+	setContext('micrio', untrack(() => micrio));
 
 	/**
 	 * Map to link marker data objects back to the specific MicrioImage instance
@@ -77,16 +77,16 @@
 	// --- Initial Setup & Attribute Reading ---
 
 	// Handle data-ui="markers" attribute
-	const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
+	const onlyMarkers = untrack(() => micrio.getAttribute('data-ui') == 'markers');
 	if(onlyMarkers) noHTML = true;
 
 	// Determine if embeds should be shown based on attribute
-	const showEmbeds = micrio.getAttribute('data-embeds') != 'false';
+	const showEmbeds = untrack(() => micrio.getAttribute('data-embeds') != 'false');
 
 	// --- State Subscriptions ---
 
 	// References to core state stores from the micrio instance
-	const { visible, state: micrioState, isMuted } = micrio;
+	const { visible, state: micrioState, isMuted } = untrack(() => micrio);
 	const { tour, marker, popup: markerPopup, popover } = micrioState; // Destructure state stores
 
 	// Stores for the current image's info, data, and settings
@@ -109,7 +109,7 @@
 	const didStart:string[] = []; // Track image IDs for which auto-start logic has run
 
 	// Subscribe to changes in the currently active MicrioImage
-	micrio.current.subscribe(c => {
+	untrack(() => micrio).current.subscribe(c => {
 		if(!c) return; // Exit if no current image
 
 		// Update local store references

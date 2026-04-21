@@ -1,4 +1,3 @@
-<!-- @migration-task Error while migrating Svelte code: Unexpected token -->
 <script lang="ts">
 	/**
 	 * Gallery.svelte - Handles different types of image galleries.
@@ -12,20 +11,20 @@
 	 * transitions, and active image management.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
-	import type { Camera } from '../../ts/camera';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
+	import type { Camera } from '$ts/camera';
+	import type { Models } from '$types/models';
 
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 	import { writable, type Unsubscriber, type Writable } from 'svelte/store';
-	import { faLayerGroup } from '@fortawesome/free-solid-svg-icons'; // Icon for omni layers
-	import { GallerySwiper } from '../../ts/swiper'; // Handles swipe gestures for full-screen galleries
-	import { i18n } from '../../ts/i18n'; // For UI text translations
+	import { icons } from '$ts/icons';
+	import { GallerySwiper } from '$ts/nav/swiper';
+	import { i18n } from '$ts/i18n'; // For UI text translations
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
-    import { View } from '../../ts/utils';
+    import { View } from '$ts/utils';
 
 	// --- Props ---
 
@@ -41,6 +40,10 @@
 	}
 
 	let { images = [], omni = null }: Props = $props();
+
+	// Capture initial prop values; these are stable for this component's lifetime.
+	const _images = untrack(() => images);
+	const _omni = untrack(() => omni);
 
 	// --- Context & State ---
 
@@ -63,9 +66,9 @@
 
 	// --- Omni Object Setup ---
 	// If it's an omni object, generate the frame data internally
-	if(omni) {
-		for(let j=0;j<omni.frames;j++) {
-			images.push({
+	if(_omni) {
+		for(let j=0;j<_omni.frames;j++) {
+			_images.push({
 				id: info.id+'/'+j, // Unique ID for the frame
 				image: image, // Reference to the parent image
 				visible: writable<boolean>(false), // Visibility store for the frame
@@ -108,7 +111,7 @@
 
 	// Calculate initial index based on attribute, startId, or omni settings
 	const startIdxAttr:number|undefined = micrio.hasAttribute('data-gallery-start') ? Number(micrio.getAttribute('data-gallery-start')) : $settings?.omni?.startIndex;
-	let startIdx = startIdxAttr != undefined && !isNaN(startIdxAttr) ? startIdxAttr : startId ? images.findIndex(i => i.id == startId) : 0;
+	let startIdx = startIdxAttr != undefined && !isNaN(startIdxAttr) ? startIdxAttr : startId ? _images.findIndex(i => i.id == startId) : 0;
 	if(startIdx < 0) startIdx = 0; // Default to 0 if not found or invalid
 
 	// --- Page Layout Calculation ---
@@ -119,16 +122,16 @@
 	const pageIdxes:number[][] = [];
 
 	// Calculate page layouts, handling spreads
-	if(images) {
-		for(let i=0; i<images.length; i++) {
-			let area = images[i].opts?.area; // Get area defined in MicrioImage options
+	if(_images) {
+		for(let i=0; i<_images.length; i++) {
+			let area = _images[i].opts?.area; // Get area defined in MicrioImage options
 			if(!area) continue; // Skip if no area defined (shouldn't happen for galleries)
 			const v = area.slice(0); // Copy the area view
 			pageIdxes.push([i]); // Add current image index to mapping
 
 			// If spreads are enabled, and this is an even page after cover pages, combine with the next page
-			if(isSpread && (i-coverPages>=0 && ((i-coverPages)%2==0)) && images[i+1]) {
-				area = images[++i].opts?.area; // Get area of the next image
+			if(isSpread && (i-coverPages>=0 && ((i-coverPages)%2==0)) && _images[i+1]) {
+				area = _images[++i].opts?.area; // Get area of the next image
 				if(!area) continue; // Skip if next image has no area
 				pageIdxes[pageIdxes.length-1].push(i); // Add next image index to the same page mapping
 				// Extend the view rectangle to encompass both pages
@@ -236,7 +239,7 @@
 	// --- Preloading Logic ---
 
 	/** Preload distance (number of items before/after current). Adjusted for performance. */
-	const d = 'requestIdleCallback' in self ? isOmni ? Math.max(36, Math.floor(images.length/8)*2) : 100 : 50;
+	const d = 'requestIdleCallback' in self ? isOmni ? Math.max(36, Math.floor(_images.length/8)*2) : 100 : 50;
 	/** Map to track pending preload requests. */
 	const preloading:Map<string,any> = new Map();
 	/** Use requestIdleCallback if available, otherwise fallback to requestAnimationFrame. */
@@ -428,7 +431,7 @@
 
 
 	// Angular single button control
-	const numPerRow:number = images.length;
+	const numPerRow:number = _images.length;
 	const numRows:number = 1;
 
 	/** Handles movement during 2-axis rotation drag. */
@@ -494,7 +497,7 @@
 			const menu: Models.ImageData.Menu = {
 				id: '_omni-layers', // Special ID
 				i18n: layerNames[$layer].i18n, // Get current layer name for button title
-				icon: faLayerGroup, // Use layer icon
+				icon: icons.layerGroup,
 				children: layerNames.map((title,i) => ({ // Create child items for each layer
 					id: 'omni-layer-'+i,
 					i18n: title.i18n,
@@ -641,7 +644,7 @@
 			<!-- Scrubber Bar -->
 			<ul bind:this={_ul} onpointermove={scrubPointerMove} onpointerleave={() => hoverIdx=-1}>
 				<!-- Bullets for each page -->
-				{#each pages as page, i}
+				{#each pages as _page, i}
 					<li class:active={i==currentPage} class:hover={i==hoverIdx}>
 						<button onclick={() => goto(i, true)} onkeypress={e => { if(e.key === 'Enter') goto(i, true)}} class="bullet">&bull;</button>
 					</li>

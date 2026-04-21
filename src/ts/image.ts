@@ -1,17 +1,17 @@
-import type { Models } from '../types/models';
+import type { Models } from '$types/models';
 import type { Readable, Unsubscriber, Writable } from 'svelte/store';
-import type { Grid } from './grid';
-import type { Wasm } from './wasm';
-import type { GallerySwiper } from './swiper';
-import type { PREDEFINED } from '../types/internal';
+import type { Grid } from './nav/grid';
+import type { Wasm } from './render/wasm';
+import type { GallerySwiper } from './nav/swiper';
+import type { PREDEFINED } from '$types/internal';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
+import { clone, createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
 import { State } from './state';
-import { archive } from './archive';
+import { archive } from './render/archive';
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @private
@@ -39,7 +39,7 @@ export class MicrioImage {
 	 * @internal
 	 * @readonly
 	*/
-	private __info:Models.ImageInfo.ImageInfo = JSON.parse(JSON.stringify(DEFAULT_INFO));
+	private __info:Models.ImageInfo.ImageInfo = clone(DEFAULT_INFO);
 
 	/** Svelte Readable store holding the image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
 	readonly info: Readable<Models.ImageInfo.ImageInfo|undefined>;
@@ -437,16 +437,17 @@ export class MicrioImage {
 		// Load 360 space data if linked and not already loaded
 		if(i.spacesId && !micrio.spaceData) {
 			micrio.spaceData = 'MICRIO_SPACE_DATA' in self ? self['MICRIO_SPACE_DATA'] as Models.Spaces.Space // Check for preloaded data
-				: await fetchJson<Models.Spaces.Space>('https://i.micr.io/spaces/'+i.spacesId+'.json'); // Fetch from CDN
+				: await fetchJson<Models.Spaces.Space>((this.infoBasePath ?? 'https://i.micr.io/')+'spaces/'+i.spacesId+'.json'); // Fetch from forced path or CDN
 			// When just one image, ignore space data
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
 
-		// Set trueNorth for 360 images based on space data rotation
-		if(i.settings?._360) {
-			let rotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY??0;
-			while(rotY < 0) rotY += Math.PI * 2;
-			i.settings._360.trueNorth = (.5 + rotY / Math.PI / 2)%1;
+		// Resolve 360 Y rotation: prefer space data, fall back to legacy _360.trueNorth
+		if(i.is360 && this.camera) {
+			const spaceRotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY;
+			if(spaceRotY != null) this.camera.rotationY = spaceRotY;
+			else if(i.settings?._360?.trueNorth != null)
+				this.camera.rotationY = (i.settings._360.trueNorth - 0.5) * Math.PI * 2;
 		}
 
 		// Set derived flags and properties

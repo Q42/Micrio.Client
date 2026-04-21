@@ -1,5 +1,5 @@
-import { Browser, pyth } from '../utils';
-import { eventPassive, eventPassiveCapture, supportsPassive, type EventContext } from './shared';
+import { Browser } from '$ts/utils';
+import { eventPassive, eventPassiveCapture, type EventContext } from './shared';
 import type { DragHandler } from './drag';
 
 /**
@@ -19,14 +19,14 @@ export class PinchHandler {
 	/** Hooks touch pinch event listeners (iOS only). */
 	hook(): void {
 		if (Browser.iOS && this.ctx.hasTouch) {
-			this.ctx.el.addEventListener('touchstart', this.start, eventPassive);
+			this.ctx.micrio.addEventListener('touchstart', this.start, eventPassive);
 		}
 	}
 
 	/** Unhooks touch pinch event listeners. */
 	unhook(): void {
 		if (Browser.iOS && this.ctx.hasTouch) {
-			this.ctx.el.removeEventListener('touchstart', this.start, eventPassive);
+			this.ctx.micrio.removeEventListener('touchstart', this.start, eventPassive);
 		}
 		// Clean up in case we're in the middle of a pinch
 		self.removeEventListener('touchmove', this.move, eventPassiveCapture);
@@ -50,7 +50,6 @@ export class PinchHandler {
 		}
 
 		e.stopPropagation();
-		if (!supportsPassive) e.preventDefault();
 
 		// Stop panning if it was active before pinch started
 		this.ctx.vars.pinch.wasPanning = this.ctx.isPanning();
@@ -68,12 +67,12 @@ export class PinchHandler {
 
 		// Store target image and initial pinch distance
 		this.ctx.vars.pinch.image = this.ctx.getImage({ x: t[0].clientX, y: t[0].clientY });
-		this.ctx.vars.pinch.sDst = pyth(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+		this.ctx.vars.pinch.sDst = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 		this.ctx.setPinchFactor(undefined);
 
 		// Notify Wasm pinch started
 		if (this.ctx.vars.pinch.image) {
-			this.ctx.micrio.wasm.e._pinchStart(this.ctx.vars.pinch.image.ptr);
+			this.ctx.micrio.wasm.pinchStart(this.ctx.vars.pinch.image.ptr);
 		}
 		this.ctx.micrio.wasm.render();
 
@@ -106,10 +105,10 @@ export class PinchHandler {
 		}
 
 		// Calculate current pinch factor relative to start distance
-		this.ctx.setPinchFactor(pyth(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) / v.sDst);
+		this.ctx.setPinchFactor(Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) / v.sDst);
 
 		// Notify Wasm of pinch movement
-		this.ctx.micrio.wasm.e._pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+		this.ctx.micrio.wasm.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
 	}
 
 	/**
@@ -129,7 +128,7 @@ export class PinchHandler {
 		// Notify Wasm pinch stopped
 		const i = this.ctx.vars.pinch.image;
 		if (i) {
-			this.ctx.micrio.wasm.e._pinchStop(i.ptr, performance.now());
+			this.ctx.micrio.wasm.pinchStop(i.ptr, performance.now());
 			this.ctx.micrio.wasm.render();
 		}
 		this.ctx.vars.pinch.image = undefined;

@@ -1,6 +1,5 @@
 import type { MicrioImage } from './image';
-import type { MicrioWasmExports } from '../types/wasm';
-import type { Models } from '../types/models';
+import type { Models } from '$types/models';
 
 import { tick } from 'svelte';
 import { View, mod } from './utils';
@@ -42,15 +41,11 @@ export class Camera {
 	 */
 	private _mat!: Float32Array;
 
-	/** Offset from true north for 360 images, derived from space data.
-	 * @internal
-	 */
-	trueNorth: number = .5;
+	/** Y-axis sphere rotation in radians for 360 images. @internal */
+	rotationY: number = 0;
 
-	/** Direct access to the WebAssembly exports.
-	 * @internal
-	*/
-	e!: MicrioWasmExports;
+	/** Direct access to the WebAssembly exports via the parent Wasm instance. @internal */
+	private get e() { return this.image.wasm['e']; }
 
 	/** Promise resolve function called when a camera animation completes successfully.
 	 * @internal
@@ -89,13 +84,11 @@ export class Camera {
 	 * @internal
 	*/
 	assign(
-		e:MicrioWasmExports,
 		view: Float64Array,
 		xy: Float64Array,
 		coo: Float64Array,
 		mat: Float32Array,
 	) : void {
-		this.e = e;
 		this._view = view;
 		this._xy = xy;
 		this._coo = coo;
@@ -133,7 +126,7 @@ export class Camera {
 		if(this.image.isOmni) this.center[5] = this.image.swiper?.currentIndex;
 
 		// Update the Svelte stores only if the view actually changed or if resizing/animating
-		if(this.center.join(',') != prevCenterStr || this.image.wasm.micrio.canvas.resizing || this.image.wasm.e._areaAnimating(this.image.ptr)) {
+		if(this.center.join(',') != prevCenterStr || this.image.wasm.micrio.canvas.resizing || this.image.wasm.areaAnimating(this.image.ptr)) {
 			this.image.state.view.set(this.view);
 			// Note: view360 will be automatically updated via the bidirectional sync in state.ts
 		}
@@ -159,10 +152,9 @@ export class Camera {
 		abs?:boolean; // Use absolute screen coordinates?
 		radius?:number; // Offset radius for 360
 		rotation?:number; // Offset rotation for 360
-		noTrueNorth?:boolean; // Ignore true north correction?
+		noTrueNorth?:boolean; // Ignore rotationY correction?
 	} = {}) {
-		// Adjust for true north offset in 360 images
-		const tNDiff = (this.image.is360 && !opts.noTrueNorth) ? .5 - (this.image.$settings._360?.trueNorth??.5) : 0;
+		const tNDiff = (this.image.is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
 		this.e._getXY(this.image.ptr, x-tNDiff, y, opts.abs===true, opts.radius, opts.rotation);
 		return this._xy; // Return direct buffer reference
 	}
@@ -598,9 +590,8 @@ export class Camera {
 	*/
 	setDirection(yaw:number, pitch?:number) : void {
 		if (!this.e) return;
-		const w = this.image.wasm;
-		w.e._setDirection(this.image.ptr, yaw, pitch);
-		w.render();
+		this.e._setDirection(this.image.ptr, yaw, pitch);
+		this.image.wasm.render();
 	}
 
 	/**
@@ -623,25 +614,24 @@ export class Camera {
 		/** If true, prevents triggering a Wasm render after setting the area. */
 		noRender?:boolean;
 	} = {}) : void {
-		const e = this.image.wasm.e;
-		if (!e) return; // Exit if Wasm not ready
+		if (!this.e) return;
 		if(this.image.opts.isEmbed) {
 			if(this.image.ptr > 0) {
 				this.image.opts.area = v;
-				e._setImageArea(this.image.ptr, v[0], v[1], v[2], v[3]);
+				this.e._setImageArea(this.image.ptr, v[0], v[1], v[2], v[3]);
 			}
 		}
 		else {
 			this.image.opts.area = v;
-			e._setArea(this.image.ptr, v[0], v[1], v[2], v[3], !!opts.direct, !!opts.noDispatch);
+			this.e._setArea(this.image.ptr, v[0], v[1], v[2], v[3], !!opts.direct, !!opts.noDispatch);
 		}
-		if(!opts.noRender) this.image.wasm.render(); // Trigger render unless suppressed
+		if(!opts.noRender) this.image.wasm.render();
 	}
 
 	/** Sets the 3D rotation for an embedded image (used for placing embeds in 360 space). */
 	setRotation(rotX:number=0, rotY:number=0, rotZ: number=0) : void {
-		if(!this.image.opts.isEmbed || this.image.ptr <= 0 || !this.image.wasm.e) return; // Only applicable to embeds with valid Wasm pointer
-		this.image.wasm.e._setImageRotation(this.image.ptr, rotX, rotY, rotZ);
+		if(!this.image.opts.isEmbed || this.image.ptr <= 0 || !this.image.wasm.ready) return;
+		this.image.wasm.setImageRotation(this.image.ptr, rotX, rotY, rotZ);
 		this.image.wasm.render();
 	}
 
@@ -673,9 +663,9 @@ export class Camera {
 	public setOmniSettings() : void {
 		const i = this.image;
 		const omni = i.$settings.omni;
-		if(!omni || !this.e) return; // Exit if not Omni or Wasm not ready
-		i.wasm.e._setOmniSettings(i.ptr, -omni.distance||0, omni.fieldOfView??0, omni.verticalAngle??0, omni.offsetX??0);
-		this.image.state.view.set(this.view); // Update view store after settings change
+		if(!omni || !this.e) return;
+		i.wasm.setOmniSettings(i.ptr, -omni.distance||0, omni.fieldOfView??0, omni.verticalAngle??0, omni.offsetX??0);
+		this.image.state.view.set(this.view);
 	}
 
 }

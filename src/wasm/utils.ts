@@ -1,24 +1,10 @@
-import { PI, PI2 } from './shared';
-
-/** Calculates the hypotenuse of a right triangle (Pythagorean theorem). */
-export function pyth( a: f64, b: f64) : f64 {
-	return sqrt(a*a+b*b);
-}
+import { PI2 } from './shared';
 
 /** Calculates 2 to the power of num (2^num). */
+// @ts-ignore: decorator
+@inline
 export function twoNth(num:u32): u32 {
-	let v:u32 = 1; while(num-- > 0) v*=2; return v;
-}
-
-/**
- * Calculates the angle (in radians) from the X axis to a point (y,x).
- * Handles all quadrants correctly.
- */
-export function atan2(x:f64, y:f64): f64 {
-	// Handle origin case to avoid division by zero
-	if (x == 0 && y == 0) return 0;
-	// Calculate angle using Math.atan and adjust based on quadrant
-	return Math.atan(x/y) + (y < 0 ? (x >= 0 ? PI : -PI) : 0); // Corrected condition x >= 0 for quadrant adjustment
+	return 1 << num;
 }
 
 /** Calculates the modulo 1 of a number (keeps the fractional part, positive). */
@@ -53,7 +39,6 @@ export function longitudeDistance(from: f64, to: f64): f64 {
  * Used for animation easing functions.
  */
 export class Bicubic {
-	// Pre-calculated coefficients for the cubic bezier formula
 	private readonly Cx : f64;
 	private readonly Bx : f64;
 	private readonly Ax : f64;
@@ -62,31 +47,20 @@ export class Bicubic {
 	private readonly By : f64;
 	private readonly Ay : f64;
 
-	/** Flag indicating if the control points define a linear curve (optimization). */
 	private readonly isLinear : boolean;
 
-	/**
-	 * Creates a new Bicubic easing function.
-	 * @param p1 Control point 1 X coordinate.
-	 * @param p2 Control point 1 Y coordinate.
-	 * @param p3 Control point 2 X coordinate.
-	 * @param p4 Control point 2 Y coordinate.
-	 */
-	constructor(
-		private readonly p1: f64,
-		private readonly p2: f64,
-		private readonly p3: f64,
-		private readonly p4: f64
-	) {
-		// Check if it's a linear curve (all control points at 0 or 1 equivalent)
-		this.isLinear = p1 == p2 && p3 == p4 && p1 == 0 && p3 == 1; // Simplified check for standard linear
-		// Pre-calculate coefficients based on control points
-		this.Cx = 3 * this.p1;
-		this.Bx = 3 * (this.p3 - this.p1) - this.Cx;
-		this.Ax = 1 - this.Cx - this.Bx;
-		this.Cy = 3 * this.p2;
-		this.By = 3 * (this.p4 - this.p2) - this.Cy;
-		this.Ay = 1 - this.Cy - this.By;
+	constructor(p1: f64, p2: f64, p3: f64, p4: f64) {
+		this.isLinear = p1 == p2 && p3 == p4 && p1 == 0 && p3 == 1;
+		const Cx = 3 * p1;
+		const Bx = 3 * (p3 - p1) - Cx;
+		this.Cx = Cx;
+		this.Bx = Bx;
+		this.Ax = 1 - Cx - Bx;
+		const Cy = 3 * p2;
+		const By = 3 * (p4 - p2) - Cy;
+		this.Cy = Cy;
+		this.By = By;
+		this.Ay = 1 - Cy - By;
 	}
 
 	/** Calculates the X coordinate on the bezier curve for a given parameter t. */

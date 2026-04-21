@@ -5,14 +5,13 @@
  */
 
 import type { TextureBitmap } from './textures';
-import type { HTMLMicrioElement } from './element';
+import type { HTMLMicrioElement } from '$ts/element';
 
-import { Wasm } from './wasm'; // Access Wasm static properties and instance
-import { PostProcessor } from './postprocess'; // Handles post-processing effects
-import { MicrioError, ErrorCodes } from './utils';
+import { Wasm } from './wasm';
+import { PostProcessor } from './postprocess';
+import { Browser, MicrioError, ErrorCodes } from '$ts/utils';
 
-/** Flag indicating if the browser is Firefox (requires slightly different shader logic). @internal */
-const isFirefox:boolean = /firefox/i.test(navigator.userAgent);
+const isFirefox:boolean = Browser.firefox;
 
 /** Internal vertex shader source code. @internal */
 const vertexShader:string = `
@@ -293,8 +292,8 @@ export class WebGL {
 			const tryLose = gl.getExtension('WEBGL_lose_context');
 			if(tryLose instanceof Object && tryLose['loseContext'] instanceof Function) tryLose['loseContext']();
 		}
-		// @ts-ignore Allow setting gl to null
-		this.gl = null;
+		// Allow setting gl to null (instance is no longer usable after dispose)
+		this.gl = null as unknown as WebGLRenderingContext;
 	}
 
 	/**

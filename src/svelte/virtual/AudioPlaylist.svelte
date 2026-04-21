@@ -6,9 +6,10 @@
 	 * It uses a single HTMLAudioElement to play the files.
 	 */
 
-	import type { Models } from '../../types/models';
+	import type { Models } from '$types/models';
 
 	import { onMount } from 'svelte';
+	import { getAudioSrc } from '$ts/utils';
 
 	// --- Props ---
 	interface Props {
@@ -41,7 +42,7 @@
 		// Increment index and wrap around if needed
 		const item = list[(++idx)%list.length];
 		// Set the audio source (handle legacy `fileUrl`)
-		audio.src = 'fileUrl' in item ? item['fileUrl'] as string : item.src;
+		audio.src = getAudioSrc(item) ?? '';
 		// Start playback
 		audio.play();
 	}

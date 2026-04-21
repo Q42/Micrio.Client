@@ -4,12 +4,12 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../types/models';
-import type { HTMLMicrioElement } from './element';
-import type { MicrioImage } from './image';
+import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
-import { View } from './utils';
+import { View } from '$ts/utils';
 
 /**
  * Internal representation of a segment in a video tour timeline.
@@ -69,9 +69,6 @@ export class VideoTourInstance {
 	/** Reference to the main HTMLMicrioElement. @internal */
 	private micrio: HTMLMicrioElement;
 
-	/** The camera view when the tour started, used for resetting. @internal */
-	private initialView: Models.Camera.View|undefined;
-
 	/**
 	 * Creates a VideoTourInstance.
 	 * @param image The parent {@link MicrioImage} instance.
@@ -82,8 +79,6 @@ export class VideoTourInstance {
 		private data: Models.ImageData.VideoTour
 	) {
 		this.micrio = image.wasm.micrio;
-		this.initialView = image.camera.getView(); // Store initial view
-
 		// Get language-specific content or fallback
 		const content = 'timeline' in data ? <unknown>data as Models.ImageData.VideoTourCultureData
 			: data.i18n?.[get(this.micrio._lang)] ?? undefined;
@@ -278,7 +273,7 @@ export class VideoTourInstance {
 		const area = this.image.opts?.area;
 
 		if(this.wasPaused && prevView) {
-			const b:number = this.micrio.wasm.e.ease(perc);
+			const b:number = this.micrio.wasm.ease(perc);
 
 			const iView = {
 				centerX: prevView.centerX * (1-b) + nextView.centerX * b,

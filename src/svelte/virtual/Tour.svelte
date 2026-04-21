@@ -12,15 +12,15 @@
 	 * and dispatches relevant tour events.
 	 */
 
-	import type { Models } from '../../types/models';
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
+	import type { Models } from '$types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
 	import { writable, type Unsubscriber } from 'svelte/store';
 
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { i18n } from '../../ts/i18n';
-	import { loadSerialTour } from '../../ts/utils'; // Utility for loading serial tour step info
+	import { i18n } from '$ts/i18n';
+	import { loadSerialTour, getAudioSrc } from '$ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // For video/audio playback
@@ -354,7 +354,7 @@
 	/** Reactive audio asset for the current step/tour. */
 	const audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
 	/** Reactive audio source URL. */
-	const audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
+	const audioSrc = $derived(getAudioSrc(audio));
 
 </script>
 

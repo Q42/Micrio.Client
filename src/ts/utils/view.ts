@@ -3,9 +3,9 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
+import type { Models } from '$types/models';
 
-const fromLegacyDone:Set<Models.Camera.View> = new Set();
+const fromLegacyDone = new WeakSet<object>();
 
 /**
  * View utility object for converting between view formats.
@@ -22,7 +22,7 @@ export const View = {
 			v[2] - v[0],
 			v[3] - v[1]
 		];
-		fromLegacyDone.add(result);
+		fromLegacyDone.add(v);
 		return result;
 	},
 

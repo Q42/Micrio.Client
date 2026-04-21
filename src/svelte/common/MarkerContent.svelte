@@ -7,15 +7,15 @@
 	 * It utilizes the Media and Article sub-components.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
-	import { getContext } from 'svelte';
+	import { getContext, untrack } from 'svelte';
+	import { getMarkerCulture, getAudioSrc } from '$ts/utils';
 
-	// Component imports
-	import Media from '../components/Media.svelte'; // Handles media playback (audio, video, embeds)
-	import Article from './Article.svelte'; // Renders HTML content
+	import Media from '../components/Media.svelte';
+	import Article from './Article.svelte';
 
 	// --- Props ---
 
@@ -58,7 +58,7 @@
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
 	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Get the parent MicrioImage instance for this marker. */
-	const image = markerImages.get(marker.id) as MicrioImage;
+	const image = markerImages.get(untrack(() => marker).id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 
@@ -67,14 +67,14 @@
 	/** Determine if media should autoplay based on global and marker settings. */
 	const autoplayMedia = !settings.preventAutoPlay;
 	/** Determine if clicking marker images should open the gallery popover. */
-	const galleryEnabled = !marker.data?.preventImageOpen && !noGallery;
+	const galleryEnabled = untrack(() => !marker.data?.preventImageOpen && !noGallery);
 	/** Check if there's exactly one image associated with the marker. */
-	const singleImage = marker.images?.length == 1;
+	const singleImage = untrack(() => marker.images?.length == 1);
 
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get the language-specific content object for the marker. */
-	const content = $derived(marker.i18n ? marker.i18n[$lang] : (marker as unknown as Models.ImageData.MarkerCultureData));
+	const content = $derived(getMarkerCulture(marker, $lang));
 
 	/** Determine if the marker has any displayable content. */
 	const empty = $derived(!content?.title && !content?.audio
@@ -121,7 +121,7 @@
 	/** Determine the primary audio source (from video tour or marker content). */
 	const audio = $derived(marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio);
 	/** Get the source URL for the audio. Handles potential legacy `fileUrl` property. */
-	const audioSrc = $derived(audio ? 'fileUrl' in audio ? audio.fileUrl as string : audio.src : undefined);
+	const audioSrc = $derived(getAudioSrc(audio));
 	/** Get the caption for the image if there's only one image. */
 	const imageCaption = $derived(singleImage && marker.images?.[0]?.i18n?.[$lang]?.description);
 

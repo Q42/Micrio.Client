@@ -7,13 +7,13 @@
 	 * MarkerContent component to display the actual marker details.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 	import { fly } from 'svelte/transition'; // Used for popup animation
-	import { i18n } from '../../ts/i18n'; // For button titles
+	import { i18n } from '$ts/i18n'; // For button titles
 
 	// UI Components
 	import Button from '../ui/Button.svelte';
@@ -42,7 +42,7 @@
 	/** Get the WeakMap linking markers to their parent MicrioImage instance. */
 	const markerImages : Map<string,MicrioImage> = getContext('markerImages');
 	/** Get the parent MicrioImage instance for this marker. */
-	const image = markerImages.get(marker.id) as MicrioImage;
+	const image = markerImages.get(untrack(() => marker).id) as MicrioImage;
 	/** Get marker-specific settings from the parent image's settings. */
 	const settings = image.$settings._markers ?? {};
 
@@ -52,7 +52,7 @@
 	) : undefined);
 
 	/** Marker specific data overrides. */
-	const data = marker.data || {};
+	const data = untrack(() => marker.data || {});
 
 	/** Check if the popup can be minimized based on settings. */
 	const canMinimize = settings.canMinimizePopup;
@@ -164,7 +164,7 @@
 
 	onMount(() => {
 		// Add marker tags as CSS classes to the container for custom styling
-		marker.tags.forEach(c => _cont?.classList.add(c));
+		marker.tags?.forEach(c => _cont?.classList.add(c));
 		// Attempt to focus the first button inside after a delay
 		setTimeout(() => _cont?.querySelector('button')?.focus(), 500);
 

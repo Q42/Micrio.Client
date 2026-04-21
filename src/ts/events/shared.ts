@@ -1,6 +1,6 @@
-import type { HTMLMicrioElement } from '../element';
-import type { MicrioImage } from '../image';
-import type { Models } from '../../types/models';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { MicrioImage } from '$ts/image';
+import type { Models } from '$types/models';
 
 /** Type alias for common event types handled. */
 export type AllEvents = WheelEvent | MouseEvent | TouchEvent;
@@ -36,9 +36,6 @@ export type EventStateVars = {
 		stack: string[]
 	}
 };
-
-/** Flag indicating if passive event listeners are supported (assumed true). */
-export const supportsPassive = true; // TODO: Add actual feature detection?
 
 /** Event listener options for passive listeners. */
 export const eventPassive: AddEventListenerOptions = { passive: true };

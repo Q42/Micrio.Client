@@ -548,7 +548,7 @@ export function _flyTo(c:Canvas, toCenterX: f64, toCenterY: f64, toWidth: f64, t
  */
 export function _zoom(c:Canvas, d:f64,x:f64,y:f64,p:f64,v:f64,l:bool,t:f64) : f64 {
 	c.ani.stop(); c.kinetic.stop(); const s = c.el.scale;
-	return c.is360 ? c.webgl.zoom(d/s,p,v,l,t) : c.camera.zoom(d,x/s,y/s,p,l,t) }
+	return c.is360 ? c.webgl.zoom(d/s,p,v,l,t,x/s,y/s) : c.camera.zoom(d,x/s,y/s,p,l,t) }
 /**
  * User has started 2-finger pinch.
  * @param c The Canvas memory pointer in shared Wasm memory.

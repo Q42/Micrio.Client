@@ -1,5 +1,5 @@
 import type { TextureBitmap } from './textures';
-import { idIsV5 } from './utils';
+import { idIsV5 } from '$ts/utils';
 
 /**
  * Subset of the Posix USTAR header format relevant for MDP files.
@@ -117,8 +117,7 @@ class Archive {
 		const fr = new FileReader();
 		fr.onload = () => ok(JSON.parse(fr.result as string) as T); // Parse JSON and resolve
 		// Create a Blob from the specific byte range in the archive ArrayBuffer
-		/** @ts-ignore */
-		fr.readAsText(new Blob([new Uint8Array(this.data.get(i[0]), i[1], i[2])])); // Read Blob as text
+		fr.readAsText(new Blob([new Uint8Array(this.data.get(i[0])!, i[1], i[2])])); // Read Blob as text
 	})
 
 	/**
@@ -134,8 +133,7 @@ class Archive {
 		if(!i || !this.data.has(i[0])) return err(new Error('Could not get blob: '+u)); // Throw error if not found
 
 		// Create a Blob from the specific byte range
-		/** @ts-ignore */
-		const blob = new Blob([new Uint8Array(this.data.get(i[0]), i[1], i[2])]);
+		const blob = new Blob([new Uint8Array(this.data.get(i[0])!, i[1], i[2])]);
 
 		// Use createImageBitmap if supported (preferred method)
 		if('createImageBitmap' in self) { // Reverted check - logic handled by isOldSafari in textures.ts
@@ -151,8 +149,7 @@ class Archive {
 				requestAnimationFrame(() => {
 					if(!img) return;
 					URL.revokeObjectURL(img.src);
-					/** @ts-ignore */
-					img.src = null; // Clear src to mark as available
+					img.src = ''; // Clear src to mark as available
 				});
 			}
 			img.src = URL.createObjectURL(blob); // Set Object URL as source

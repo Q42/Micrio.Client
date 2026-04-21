@@ -3,8 +3,8 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import { MediaType, FrameType } from '../../types/internal';
+import type { Models } from '$types/models';
+import { MediaType, FrameType } from '$types/internal';
 
 // ============================================================================
 // Source Parsing
@@ -186,6 +186,35 @@ export function parseMediaSource(
 	}
 
 	return result;
+}
+
+// ============================================================================
+// Audio URL helpers
+// ============================================================================
+
+/**
+ * Resolves the source URL from an audio asset, handling legacy `fileUrl` property.
+ * @internal
+ */
+export function getAudioSrc(audio: Models.Assets.Audio | undefined): string | undefined {
+	if (!audio) return;
+	return 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src;
+}
+
+/**
+ * Resolves language-specific culture data for a marker, with fallback to the marker object itself.
+ * @internal
+ */
+export function getMarkerCulture(marker: Models.ImageData.Marker, lang: string): Models.ImageData.MarkerCultureData | undefined {
+	return marker.i18n?.[lang] ?? (marker as unknown as Models.ImageData.MarkerCultureData);
+}
+
+/**
+ * Resolves language-specific culture data for a menu/page, with fallback to the item itself.
+ * @internal
+ */
+export function getMenuCulture(menu: Models.ImageData.Menu, lang: string): Models.ImageData.MenuCultureData | undefined {
+	return menu.i18n?.[lang] ?? (menu as unknown as Models.ImageData.MenuCultureData);
 }
 
 // ============================================================================

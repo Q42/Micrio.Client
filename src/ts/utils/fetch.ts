@@ -3,10 +3,11 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import type { PREDEFINED } from '../../types/internal';
+import type { Models } from '$types/models';
+import type { PREDEFINED } from '$types/internal';
 import { sanitizeImageInfo, isLegacyViews } from './sanitize';
 import { clone } from './object';
+import { MicrioError } from './error';
 
 /** Global cache for fetched JSON data, keyed by URI.
  * @internal
@@ -34,12 +35,12 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
 	if (jsonErrors.has(uri)) throw jsonErrors.get(uri)![1];
 
 	// Create and store the fetch promise
-	const promise = fetch(uri + (noCache ? '?' + Math.random() : '')).then(async r => {
-		if (r.status == 200) return r.json(); // Parse JSON on success
+	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(async r => {
+		if (r.status == 200) return r.json();
 		else {
-			const error = await r.text();
-			jsonErrors.set(uri, [r.status, error]);
-			throw error; // Throw error text on failure
+			const err = MicrioError.fromResponse(r, `fetchJson(${uri})`);
+			jsonErrors.set(uri, [r.status, err.message]);
+			throw err;
 		}
 	}).then(j => {
 		if (!noCache) jsonCache.set(uri, j); // Store result in cache

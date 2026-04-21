@@ -8,14 +8,15 @@
 	 * chapter lists (if enabled), and provides playback controls.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
-	import type { MicrioImage } from '../../ts/image';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
+	import type { MicrioImage } from '$ts/image';
 
-	import { onMount, getContext, tick } from 'svelte';
-	import { get, writable } from 'svelte/store';
+	import { onMount, getContext, tick, untrack } from 'svelte';
+	import { writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
-	import { i18n } from '../../ts/i18n'; // For button titles
+	import { i18n } from '$ts/i18n';
+	import { getAudioSrc } from '$ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // Renders the audio/video for the current step
@@ -35,7 +36,7 @@
 	// --- Setup & State ---
 
 	/** Assert that stepInfo exists and is populated (done during data enrichment). */
-	const stepInfo = tour.stepInfo as Models.ImageData.MarkerTourStepInfo[];
+	const stepInfo = untrack(() => tour).stepInfo as Models.ImageData.MarkerTourStepInfo[];
 
 	/** Get Micrio instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
@@ -50,7 +51,7 @@
 	/** Calculate total duration of the tour by summing step durations. */
 	const totalDuration:number = stepInfo.reduce((c, s) => c + s.duration, 0) ?? 0;
 	/** Show playback controls? Defaults to true unless explicitly disabled in tour data. */
-	const controls = 'controls' in tour ? tour.controls !== false : !tour.noControls;
+	const controls = untrack(() => 'controls' in tour ? tour.controls !== false : !tour.noControls);
 
 	// --- Playback State ---
 	/** Is the tour currently paused? */
@@ -221,7 +222,7 @@
 	/** Reactive audio source based on the current video tour step. */
 	const audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
 	/** Reactive audio source URL. */
-	const audioSrc = $derived(audio ? 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src : undefined);
+	const audioSrc = $derived(getAudioSrc(audio));
 	/** Reactive boolean indicating if the current step has a subtitle. */
 	const hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */

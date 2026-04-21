@@ -9,8 +9,8 @@
 	 * if it's hosted via Micrio's asset system (using micrioId).
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
 
 	import { getContext } from 'svelte';
 	import { fade } from 'svelte/transition';

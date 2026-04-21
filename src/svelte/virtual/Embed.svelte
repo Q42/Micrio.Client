@@ -13,14 +13,14 @@
 	 * (including autoplay restrictions and pause-on-zoom).
 	 */
 
-	import type { Models } from '../../types/models';
-	import type { HTMLMicrioElement } from '../../ts/element';
+	import type { Models } from '$types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
 	import { writable, type Unsubscriber } from 'svelte/store';
 
-	import { onMount, getContext } from 'svelte';
-	import { MicrioImage } from '../../ts/image';
-	import { once, createGUID, Browser } from '../../ts/utils';
-	import { GLEmbedVideo } from '../../ts/embedvideo'; // Handles WebGL video rendering
+	import { onMount, getContext, untrack } from 'svelte';
+	import { MicrioImage } from '$ts/image';
+	import { once, createGUID, Browser } from '$ts/utils';
+	import { GLEmbedVideo } from '$ts/media/embedvideo';
 
 	import Media from '../components/Media.svelte'; // Reusable media player component
 
@@ -95,7 +95,7 @@
 	// --- Interaction Logic ---
 
 	/** Disable pointer events on the container if no click action or iframe source. */
-	const noEvents = !embed.clickAction && !embed.frameSrc && !marker;
+	const noEvents = !embed.clickAction && !embed.frameSrc && !untrack(() => marker);
 	/** URL for 'href' click action. */
 	const href = embed.clickAction == 'href' ? embed.clickTarget : undefined;
 	/** Open link in new tab? */
@@ -200,7 +200,7 @@
 	/** Updates the screen position (x, y, scale, matrix) based on camera view. */
 	function moved() : void {
 		// Exit if camera is not ready
-		if(!mainImage.camera.e) return;
+		if(!mainImage.wasm.ready) return;
 		// Get current screen coordinates [x, y, scale, w(depth)]
 		const coo = mainImage.camera.getXYDirect(cX, cY);
 		[x, y, scale] = coo;
@@ -343,9 +343,7 @@
 	const relScale = $derived(width / widthCapped);
 
 	// --- Lifecycle (onMount) ---
-	let isMounted:boolean = false;
 	onMount(() => {
-		isMounted = true;
 		const us:Unsubscriber[] = []; // Store unsubscribers
 
 		// Initialize WebGL rendering if needed
@@ -358,7 +356,6 @@
 
 		// Cleanup function
 		return () => {
-			isMounted = false;
 			glVideo?.unmount(); // Clean up WebGL video handler
 			if(image && image.ptr >= 0) { // If rendered in WebGL
 				wasm.fadeImage(image.ptr, 0); // Fade out
@@ -469,5 +466,9 @@
 		border: none;
 		width: 100px; /* Default size */
 		aspect-ratio: var(--ratio); /* Use calculated aspect ratio */
+	}
+	.embed-container > :global(button),
+	.embed-container > img {
+		touch-action: none;
 	}
 </style>

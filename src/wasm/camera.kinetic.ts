@@ -1,4 +1,5 @@
-import { pyth } from './utils'
+
+
 import Canvas from './canvas';
 
 /** Handles kinetic scrolling/dragging behavior after user interaction stops. */
@@ -43,7 +44,7 @@ export default class Kinetic {
 		// mitigating issues with high-frequency events (e.g., devtools open).
 		const fact:f64 = this.prevTime > 0 ? 16.67 / (time - this.prevTime) : 1;
 		// Update lastInteraction time if the normalized movement is significant
-		if(pyth(pX,pY) * fact > 20) this.lastInteraction = time;
+		if(sqrt(pX*pX+pY*pY) * fact > 20) this.lastInteraction = time;
 
 		// Get elasticity factor from main settings
 		const elasticity = this.canvas.main.dragElasticity;
@@ -106,7 +107,7 @@ export default class Kinetic {
 		}
 
 		// --- Apply Movement ---
-		let v = pyth(this.velocityX, this.velocityY); // Calculate current speed
+		let v = sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
 		// Apply rotation (360) or pan (2D) based on current velocity
 		if(this.canvas.is360) webgl.rotate(this.velocityX, this.velocityY, 0, time);
 		else cam.pan(this.velocityX, this.velocityY, 0, false, time, false, true); // Pan without duration, mark as kinetic

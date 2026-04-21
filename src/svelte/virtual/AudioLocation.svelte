@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { Models } from '../../types/models';
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { MicrioImage } from '../../ts/image';
+	import type { Models } from '$types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioImage } from '$ts/image';
 
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 
 	import { mainGain, buffers } from './AudioController.svelte';
 
@@ -17,7 +17,7 @@
 
 	const item = $derived(marker.positionalAudio as Models.Assets.AudioLocation);
 
-	const gain = ctx.createGain();
+	const gain = untrack(() => ctx).createGain();
 	gain.connect(mainGain);
 
 	const micrio = getContext<HTMLMicrioElement>('micrio');
@@ -26,7 +26,7 @@
 	const imgWidth = info.width;
 	const imgHeight = info.height;
 
-	const panner = ctx.createPanner();
+	const panner = untrack(() => ctx).createPanner();
 	panner.panningModel = 'equalpower';
 	panner.rolloffFactor = 1;
 	panner.coneOuterGain = 0;
@@ -104,7 +104,7 @@
 	}
 
 	// Also listen to changes in raw json
-	let prev:string = $state(JSON.stringify(marker.positionalAudio));
+	let prev:string = $state(JSON.stringify(untrack(() => marker.positionalAudio)));
 	$effect(() => {
 		const newItem = JSON.stringify(item);
 		if(prev != newItem && (prev = newItem)) update();

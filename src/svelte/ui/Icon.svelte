@@ -18,52 +18,33 @@
 
 <script lang="ts">
 	/**
-	 * Icon.svelte - Renders an icon, either standard Font Awesome or custom HTML.
+	 * Icon.svelte - Renders an icon, either custom HTML or inline SVG.
 	 *
 	 * This component displays an icon based on the provided `name` prop.
 	 * It first checks if custom HTML is defined for that icon name in the
 	 * Micrio settings (`micrio.defaultSettings.ui.icons`). If so, it renders
-	 * the custom HTML. Otherwise, it looks up the corresponding Font Awesome
-	 * icon definition and renders it using the `svelte-fa` component.
+	 * the custom HTML. Otherwise, it looks up the corresponding icon definition
+	 * and renders it as an inline SVG.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import { faImage, type IconDefinition } from '@fortawesome/free-solid-svg-icons'; // Import default image icon
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { MicrioIcon } from '$ts/icons';
 
 	import { getContext } from 'svelte';
+	import { icons } from '$ts/icons';
 
-	import Fa from 'svelte-fa'; // Font Awesome Svelte component
-	// Import specific Font Awesome icons used
-	import {
-		faPlayCircle, faPause, faPlay, faGlobe, faBars, faXmark, faPlus, faMinus,
-		faExpand, faCompress, faVolumeHigh, faVolumeXmark, faClosedCaptioning,
-		faArrowLeft, faArrowUp, faArrowRight, faArrowDown, faVideo, faExternalLink,
-		faShare, faCircleExclamation, faChevronDown, faLink, faEllipsisVertical
-	} from '@fortawesome/free-solid-svg-icons';
-
-	// --- Props ---
 	interface Props {
-		/** Optional inline style string for the icon element. */
-		style?: string|undefined; // Changed from string|null
-		/** The name of the standard icon to display, or used as a key for custom HTML. */
+		style?: string|undefined;
 		name: IconName;
 	}
 
 	let { style = undefined, name }: Props = $props();
 
-	// --- Context & Setup ---
-
-	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 
-	/** Flag for icons that should be rendered smaller. */
-	const small = name == 'chevron-down' || name == 'link-ext';
+	const small = $derived(name == 'chevron-down' || name == 'link-ext');
 
-	// --- Custom HTML Logic ---
-
-	/** Get custom icon settings from Micrio default settings. */
 	const i = micrio.defaultSettings?.ui?.icons;
-	/** Reactive variable holding the custom HTML string for the current icon name, if defined. */
 	const customHTML = $derived(i && (
 		name == 'zoom-in' ? i.zoomIn :
 		name == 'zoom-out' ? i.zoomOut :
@@ -80,52 +61,63 @@
 		name == 'subtitles-off' ? i.subtitlesOff :
 		name == 'volume-off' ? i.muted :
 		name == 'volume-up' ? i.unmuted :
-		null)); // Return null if no custom HTML is defined for this name
+		null));
 
-	// --- Font Awesome Icon Mapping ---
+	const lib: Record<IconName, MicrioIcon> = {
+		'play': icons.play,
+		'pause': icons.pause,
+		'close': icons.xmark,
+		'play-filled': icons.playCircle,
+		'a11y': icons.globe,
+		'menu': icons.bars,
+		'zoom-in': icons.plus,
+		'zoom-out': icons.minus,
+		'maximize': icons.expand,
+		'minimize': icons.compress,
+		'volume-off': icons.volumeXmark,
+		'volume-up': icons.volumeHigh,
+		'subtitles': icons.closedCaptioning,
+		'subtitles-off': icons.closedCaptioning,
+		'arrow-left': icons.arrowLeft,
+		'arrow-up': icons.arrowUp,
+		'arrow-right': icons.arrowRight,
+		'arrow-down': icons.arrowDown,
+		'video': icons.video,
+		'audio': icons.volumeHigh,
+		'image': icons.image,
+		'share': icons.share,
+		'error': icons.circleExclamation,
+		'chevron-down': icons.chevronDown,
+		'link': icons.link,
+		'link-ext': icons.externalLink,
+		'ellipsis-vertical': icons.ellipsisVertical,
+	};
 
-	/** Map associating standard icon names with their Font Awesome icon definitions. */
-	const lib:Map<IconName, IconDefinition> = new Map([
-		['play', faPlay],
-		['pause', faPause],
-		['close', faXmark],
-		['play-filled', faPlayCircle],
-		['a11y', faGlobe], // Accessibility/Language icon
-		['menu', faBars],
-		['zoom-in', faPlus],
-		['zoom-out', faMinus],
-		['maximize', faExpand],
-		['minimize', faCompress],
-		['volume-off', faVolumeXmark],
-		['volume-up', faVolumeHigh],
-		['subtitles', faClosedCaptioning],
-		['subtitles-off', faClosedCaptioning], // Use same icon for off state?
-		['arrow-left', faArrowLeft],
-		['arrow-up', faArrowUp],
-		['arrow-right', faArrowRight],
-		['arrow-down', faArrowDown],
-		['video', faVideo],
-		['audio', faVolumeHigh], // Use volume icon for generic audio
-		['image', faImage],
-		['share', faShare],
-		['error', faCircleExclamation],
-		['chevron-down', faChevronDown],
-		['link', faLink],
-		['link-ext', faExternalLink],
-		['ellipsis-vertical', faEllipsisVertical]
-	]);
-
-	const icon = $derived(lib.get(name));
+	const icon = $derived(lib[name]);
 
 </script>
 
 {#if customHTML}
-	<!-- Render custom HTML if defined -->
 	{@html customHTML}
 {:else if icon}
-	<!-- Otherwise, render Font Awesome icon using svelte-fa -->
-	<!-- Ensure lib.get(name) is not undefined before passing to Fa using ! -->
-	<Fa {icon} size={small ? 'xs' :'sm'} {style} />
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 {icon[0]} {icon[1]}"
+		fill="currentColor"
+		class="svelte-fa"
+		class:small
+		{style}
+	><path d={icon[2]}/></svg>
 {/if}
 
-<!-- No specific styles needed, styling is applied by parent components or globally -->
+<style>
+	svg {
+		display: inline-block;
+		height: 1em;
+		overflow: visible;
+		vertical-align: -.125em;
+	}
+	svg.small {
+		height: .75em;
+	}
+</style>

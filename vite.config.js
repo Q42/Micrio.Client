@@ -1,12 +1,30 @@
 import { defineConfig } from 'vite';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
+	resolve: {
+		alias: {
+			'$ts': resolve('src/ts'),
+			'$types': resolve('src/types'),
+		}
+	},
+	define: {
+		__VERSION__: JSON.stringify(pkg.version),
+	},
 	build: {
 		outDir: './public/build/',
 		emptyOutDir: false,
 		copyPublicDir: false,
 		minify: 'terser',
+		terserOptions: {
+			compress: {
+				pure_funcs: ['console.log']
+			}
+		},
 		lib: {
 			entry: `./src/ts/main.ts`,
 			name: 'Micrio',

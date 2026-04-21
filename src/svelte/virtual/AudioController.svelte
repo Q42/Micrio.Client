@@ -87,13 +87,13 @@
 	 * and renders the AudioPlaylist component if background music is defined.
 	 */
 
-	import type { HTMLMicrioElement } from '../../ts/element';
-	import type { Models } from '../../types/models';
+	import type { HTMLMicrioElement } from '$ts/element';
+	import type { Models } from '$types/models';
 	import type { Unsubscriber } from 'svelte/store';
-	import type { MicrioImage } from '../../ts/image';
+	import type { MicrioImage } from '$ts/image';
 
 	import { getContext, onMount } from 'svelte';
-	import { Browser } from '../../ts/utils'; // Browser detection
+	import { Browser } from '$ts/utils'; // Browser detection
 
 	import AudioPlaylist from './AudioPlaylist.svelte'; // Component for background music
 

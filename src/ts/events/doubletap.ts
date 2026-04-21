@@ -1,4 +1,4 @@
-import { Browser } from '../utils';
+import { Browser } from '$ts/utils';
 import type { EventContext } from './shared';
 
 /**

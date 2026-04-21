@@ -56,7 +56,17 @@ export default class Canvas {
 	private areaAniPaused: bool = false;
 
 	/** Z-index used for ordering canvases during transitions (e.g., grids). */
-	zIndex:u8 = 0;
+	private _zIndex:u8 = 0;
+	/** Whether children need re-sorting by zIndex. */
+	private childrenDirty:bool = false;
+
+	get zIndex(): u8 { return this._zIndex; }
+	set zIndex(v: u8) {
+		if(this._zIndex != v) {
+			this._zIndex = v;
+			if(this.parent) this.parent.childrenDirty = true;
+		}
+	}
 
 	/** Array of global tile indices to be drawn in the current frame. */
 	readonly toDraw : u32[] = [];
@@ -68,26 +78,6 @@ export default class Canvas {
 
 	/** Flag indicating if this canvas is currently considered visible by the JS host. */
 	private isVisible: bool = false;
-
-	// --- 360 View Bounds (calculated once per frame for embed visibility detection) ---
-	/** Minimum X coordinate of the current 360 view (for embed visibility detection). */
-	public minViewX: f64 = 0;
-	/** Maximum X coordinate of the current 360 view (for embed visibility detection). */
-	public maxViewX: f64 = 1;
-	/** Minimum Y coordinate of the current 360 view (for embed visibility detection). */
-	public minViewY: f64 = 0;
-	/** Maximum Y coordinate of the current 360 view (for embed visibility detection). */
-	public maxViewY: f64 = 1;
-
-	// --- Viewport-style View Bounds (for cleaner overlap detection) ---
-	/** Center X coordinate of the current view (for viewport-style calculations). */
-	public viewCenterX: f64 = 0.5;
-	/** Center Y coordinate of the current view (for viewport-style calculations). */
-	public viewCenterY: f64 = 0.5;
-	/** Width of the current view (for viewport-style calculations). */
-	public viewWidth: f64 = 1;
-	/** Height of the current view (for viewport-style calculations). */
-	public viewHeight: f64 = 1;
 
 
 
@@ -137,7 +127,7 @@ export default class Canvas {
 		readonly camSpeed: f64,  // Camera animation speed factor
 
 		// --- 360 Specific ---
-		readonly trueNorth: f64, // Rotation offset for true north alignment
+		readonly rotationY: f64, // Y-axis sphere rotation (radians)
 
 		// --- Gallery/Paged Specific ---
 		readonly isGallerySwitch: bool, // Is this a canvas for a switch-style gallery?
@@ -281,6 +271,26 @@ export default class Canvas {
 		return c;
 	}
 
+	/** Steps the opacity fade animation and applies 360 transition movement. */
+	private stepOpacity(): void {
+		const fadeDuration = this.main.distanceX != 0 || this.main.distanceY != 0
+			? this.main.spacesTransitionDuration
+			: this.main.canvases.length == 1 ? .25 : this.main.crossfadeDuration;
+		const delta:f64 = (1/fadeDuration)/this.main.frameTime;
+		const fadingIn:bool = this.targetOpacity > 0 && this.targetOpacity >= this.opacity;
+		this.opacity = fadingIn ? min(1, this.opacity + delta) : max(0, this.opacity - delta);
+		this.bOpacity = easeInOut.get(this.opacity);
+
+		if(this.main.distanceX != 0 || this.main.distanceY != 0) {
+			const fact:f64 = this.opacity == 0 ? 0 : easeInOut.get(1 - this.opacity) * (fadingIn ? 1 : -1);
+			this.webgl.moveTo(
+				this.main.distanceX * fact * base360Distance,
+				this.main.distanceY * fact * base360Distance,
+				this.main.direction,
+				0);
+		}
+	}
+
 	/** Notifies the JS host about visibility changes. */
 	setVisible(b:bool) : void {
 		setVisible(this, b); // Call imported JS function
@@ -317,45 +327,6 @@ export default class Canvas {
 
 
 
-	/**
-	 * Calculates the min/max view bounds for 360 canvases.
-	 * This is used by embed visibility detection and should be called once per frame.
-	 * For non-360 canvases, this sets the bounds to the logical view coordinates.
-	 */
-	private calculateViewBounds() : void {
-		if(this.is360) {
-			// For 360, use logical view bounds directly instead of screen sampling
-			// Screen sampling can give overly wide ranges due to 360 projection
-			const v = this.view;
-			
-			// Store legacy bounds (use logical view)
-			this.minViewX = v.x0;
-			this.maxViewX = v.x1;
-			this.minViewY = v.y0;
-			this.maxViewY = v.y1;
-			
-			// Calculate viewport-style bounds from logical view
-			this.viewCenterX = v.centerX;
-			this.viewCenterY = v.centerY;
-			this.viewWidth = v.width;
-			this.viewHeight = v.height;
-			
-
-		} else {
-			// For 2D canvases, use the logical view coordinates
-			this.minViewX = this.view.x0;
-			this.maxViewX = this.view.x1;
-			this.minViewY = this.view.y0;
-			this.maxViewY = this.view.y1;
-			
-			// Viewport style for 2D
-			this.viewCenterX = this.view.centerX;
-			this.viewCenterY = this.view.centerY;
-			this.viewWidth = this.view.width;
-			this.viewHeight = this.view.height;
-		}
-	}
-
 	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. */
 	shouldDraw() : void {
 		// --- Visibility Check ---
@@ -384,49 +355,13 @@ export default class Canvas {
 		// If the calculated visible portion is outside the screen, exit (no need to calculate tiles)
 		if(!this.is360 && (this.visible.width <= 0 || this.visible.height <= 0)) return; // Use <= 0 for safety
 
-		// --- Calculate View Bounds ---
-		// Calculate view bounds once per frame for embed visibility detection
-		this.calculateViewBounds();
-		
 		// --- Calculate 3D Frustum ---
 		// Calculate 3D camera frustum for accurate 360 embed detection
 		this.webgl.calculate3DFrustum();
 
-		// --- Opacity Animation ---
-		// Step opacity fade animation if needed
 		if(this.isReady && this.opacity != this.targetOpacity) {
-			// Calculate opacity change based on duration and frame time
-			const fadeDuration = this.main.distanceX != 0 || this.main.distanceY != 0 ? this.main.spacesTransitionDuration
-				// If first image, always .25s
-				: this.main.canvases.length == 1 ? .25
-				: this.main.crossfadeDuration;
-			const delta:f64 = (1/fadeDuration)/this.main.frameTime;
-			const fadingIn:bool = this.targetOpacity > 0 && this.targetOpacity >= this.opacity;
-			this.opacity = fadingIn ? min(1, this.opacity + delta) : max(0, this.opacity - delta);
-			this.bOpacity = easeInOut.get(this.opacity); // Calculate eased opacity for rendering
-
-			// --- 360 Transition Movement ---
-			// If moving between 360 spaces, apply translation based on opacity
-			if(this.main.distanceX != 0 || this.main.distanceY != 0) {
-				// If fading in, find the fading out canvas to get its yaw for smooth rotation transition
-				if(fadingIn) {
-					for(let i=0;i<this.main.canvases.length;i++) {
-						const c = unchecked(this.main.canvases[i]);
-						if(c != this && c.targetOpacity == 0 && c.opacity > 0) { // Find the one fading out
-							break;
-						}
-					}
-				}
-				// Calculate translation factor based on eased opacity
-				const fact:f64 = this.opacity == 0 ? 0 : easeInOut.get(1 - this.opacity) * (fadingIn ? 1 : -1);
-				// Apply translation and rotation offset
-				this.webgl.moveTo(
-					this.main.distanceX * fact * base360Distance,
-					this.main.distanceY * fact * base360Distance,
-					this.main.direction,
-					0);
-			}
-			animating = true; // Mark as animating if fading
+			this.stepOpacity();
+			animating = true;
 		}
 
 		// --- Tile Calculation ---
@@ -520,8 +455,10 @@ export default class Canvas {
 				}
 		}
 
-		// Draw child canvases, sorted by zIndex
-		this.children.sort((a, b) => a.zIndex>b.zIndex?1:a.zIndex<b.zIndex?-1:0);
+		if(this.childrenDirty) {
+			this.children.sort((a, b) => a.zIndex>b.zIndex?1:a.zIndex<b.zIndex?-1:0);
+			this.childrenDirty = false;
+		}
 		for(let i:i32=0;i<this.children.length;i++)
 			unchecked(this.children[i]).draw();
 
@@ -854,6 +791,6 @@ export default class Canvas {
 	/** Stops animations for this canvas and all its children. */
 	aniStop() : void {
 		this.ani.stop();
-		this.children.forEach(c => { c.aniStop() });
+		for(let i:i32=0;i<this.children.length;i++) unchecked(this.children[i]).aniStop();
 	}
 }

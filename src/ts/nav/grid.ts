@@ -3,17 +3,41 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../types/models';
-import type { HTMLMicrioElement } from './element';
+import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$ts/element';
 
-import { MicrioImage } from './image';
+import { MicrioImage } from '$ts/image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { deepCopy, once, sleep, View } from './utils';
+import { deepCopy, once, sleep } from '$ts/utils';
 import { tick } from 'svelte';
-import { Enums } from '../ts/enums';
+import { Enums } from '$ts/enums';
 
 /** Rounds a number to 5 decimal places. @internal */
 const round = (n:number) => Math.round(n*100000)/100000;
+
+/** Slide transition entry areas by direction. @internal */
+const slideAreas: Record<number, Models.Camera.ViewRect> = {
+	0:   [0, -.5, 1, 0],
+	90:  [1, 0, 1.5, 1],
+	180: [0, 1, 1, 1.5],
+	270: [-.5, 0, 0, 1],
+};
+
+/** Swipe transition entry areas by direction. @internal */
+const swipeAreas: Record<number, Models.Camera.ViewRect> = {
+	0:   [0, -1, 1, 0],
+	90:  [1, 0, 2, 1],
+	180: [0, 1, 1, 2],
+	270: [-1, 0, 0, 1],
+};
+
+/** Swipe transition exit areas by direction (inverse of entry). @internal */
+const swipeExitAreas: Record<number, Models.Camera.ViewRect> = {
+	0:   [0, 1, 1, 2],
+	90:  [-1, 0, 0, 1],
+	180: [0, -1, 1, 0],
+	270: [1, 0, 2, 1],
+};
 
 /**
  * Controls the display and interaction logic for grid layouts.
@@ -38,16 +62,19 @@ export class Grid {
 		i.id,
 		i.width,
 		i.height,
-		i.isDeepZoom ? 'd' : '', // 'd' for DeepZoom
-		i.isPng ? 'p':i.isWebP ? 'w' : '', // 'p' for PNG, 'w' for WebP
-		opts.view?.map(round).join('/'), // View: cX,cY,w,h
-		opts.area?.map(round).join('/'), // Area: x0/y0/x1/y1
-		i.settings?.focus?.map(round).join('-'), // Focus: x-y
-		opts.cultures // Comma-separated cultures
-	].join(',').replace(/,+$/,'')+(opts.size? `|${opts.size.join(',')}`:''); // Append size if present: |w,h
+		i.isDeepZoom ? 'd' : '',
+		i.isPng ? 'p':i.isWebP ? 'w' : '',
+		opts.view?.map(round).join('/'),
+		opts.area?.map(round).join('/'),
+		i.settings?.focus?.map(round).join('-'),
+		opts.cultures
+	].join(',').replace(/,+$/,'')+(opts.size? `|${opts.size.join(',')}`:'');
 
 	/** Array of {@link MicrioImage} instances currently part of the grid definition (loaded). */
 	readonly images:MicrioImage[] = [];
+
+	/** O(1) lookup map for images by ID, kept in sync with {@link images}. @internal */
+	private readonly imageMap:Map<string, MicrioImage> = new Map();
 
 	/** Array of {@link MicrioImage} instances currently visible in the grid layout. */
 	current:MicrioImage[] = [];
@@ -104,9 +131,9 @@ export class Grid {
 	private viewUnsub:Unsubscriber|undefined;
 
 	/** Timeout ID for debouncing grid updates or transitions. @internal */
-	private _to:any
+	private _to:ReturnType<typeof setTimeout>|undefined;
 	/** Timeout ID specifically for fade-in animations during transitions. @internal */
-	private _fadeTo:any
+	private _fadeTo:ReturnType<typeof setTimeout>|undefined;
 	/** Default animation timing function for grid transitions. @internal */
 	private timingFunction:Models.Camera.TimingFunction = 'ease';
 
@@ -122,77 +149,64 @@ export class Grid {
 		public micrio:HTMLMicrioElement,
 		public image:MicrioImage
 	) {
-		// Bind event handlers
 		this.tourEvent = this.tourEvent.bind(this);
 		this.updateGrid = this.updateGrid.bind(this);
 
-		// Apply settings from the container image
 		const s = image.$settings;
 		this.clickable = !!s.gridClickable;
 		if(s.gridTransitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = s.gridTransitionDuration;
 		if(s.gridTransitionDurationOut !== undefined) this.aniDurationOut = s.gridTransitionDurationOut;
 
-		// Initialize the HTML grid element
 		this._grid.className = 'micrio-grid';
-		this.set(image.$info?.grid); // Parse initial grid string
+		this.set(image.$info?.grid);
 
-		// Dispatch 'grid-load' event once all necessary image data is loaded
 		const loaded = () => tick().then(() => {
-			this.hook(); // Attach event listeners
+			this.hook();
 			micrio.events.dispatch('grid-load');
 		});
 
-		// For V4 images, wait for language data to load before considering grid loaded
 		if(!image.isV5) micrio._lang.subscribe(l => {
 			if(l) Promise.all(this.images.filter(i => (i.$info && 'cultures' in i.$info && i.$info?.cultures as string || '').indexOf(l) >= 0).map(i => once(i.data))).then(loaded);
-			else loaded(); // Load immediately if no language needed
+			else loaded();
 		});
 		else {
-			// For V5, assume data is loaded via archive or individually, load immediately
 			loaded();
 		}
 
-		micrio.events.dispatch('grid-init', this); // Dispatch grid initialization event
+		micrio.events.dispatch('grid-init', this);
 	}
 
 	/** Hooks necessary event listeners for grid interactions. @internal */
 	private hook() {
-		// Handle custom grid actions triggered by opening markers
 		this.micrio.state.marker.subscribe(m => {
-			if(m && typeof m != 'string') { // If a marker object is opened
-				const d = m.data?._meta; // Check for meta data
-				// Handle custom grid cell size defined in marker
+			if(m && typeof m != 'string') {
+				const d = m.data?._meta;
 				if(d?.gridSize) {
 					const s = (typeof d.gridSize == 'number' ? [d.gridSize, d.gridSize]
-						: d.gridSize.split(',').map(Number)) as [number, number]; // Parse size
-					const micId = this.images.find(i => i.$data?.markers?.find(n => n == m))?.id; // Find image this marker belongs to
-					if(micId) this.nextSize.set(micId, s); // Store size for next layout update
+						: d.gridSize.split(',').map(Number)) as [number, number];
+					const micId = this.images.find(i => i.$data?.markers?.find(n => n == m))?.id;
+					if(micId) this.nextSize.set(micId, s);
 				}
-				// Handle custom grid actions defined in marker
-				tick().then(() => { // Wait a tick to allow potential state changes
-					const a = d?.gridAction?.split('|'); // Split action string
-					if(a?.length && typeof a[0] == 'string') this.action(a.shift() as string, a.join('|')); // Execute action
+				tick().then(() => {
+					const a = d?.gridAction?.split('|');
+					if(a?.length && typeof a[0] == 'string') this.action(a.shift() as string, a.join('|'));
 				})
 			}
 		});
 
-		// Handle clicking on grid items if clickable overlay is enabled
 		if(this.clickable) {
 			this._grid.addEventListener('click', e => {
-				const id = (e.target as HTMLElement).dataset.id; // Get image ID from clicked element
-				if(id) this.focus(this.images.find(i => i.id == id)); // Focus the corresponding image
+				const id = (e.target as HTMLElement).dataset.id;
+				if(id) this.focus(this.imageMap.get(id));
 			});
 
-			// Show/hide the HTML grid overlay based on tour/marker/focus state
-			const placeOrRemove = (t:any) => { if(t) this.removeGrid(); else this.placeGrid(); };
+			const placeOrRemove = (t:unknown) => { if(t) this.removeGrid(); else this.placeGrid(); };
 			this.micrio.state.tour.subscribe(placeOrRemove);
 			this.micrio.state.marker.subscribe(placeOrRemove);
 			this.focussed.subscribe(placeOrRemove);
 		}
 
-		// Handle tour events for grid-specific actions
 		this.micrio.addEventListener('tour-event', this.tourEvent);
-		// Pause/resume individual image animations during serial tours
 		this.micrio.addEventListener('serialtour-pause', () => this.images.forEach(i => i.camera.pause()));
 		this.micrio.addEventListener('serialtour-play', () => this.images.forEach(i => i.camera.resume()));
 	}
@@ -201,6 +215,69 @@ export class Grid {
 	private clearTimeouts() : void {
 		clearTimeout(this._to);
 		clearTimeout(this._fadeTo);
+	}
+
+	/** Adds a MicrioImage to the images array and lookup map. @internal */
+	private trackImage(img: MicrioImage): void {
+		this.images.push(img);
+		this.imageMap.set(img.id, img);
+	}
+
+	/**
+	 * Normalizes the set() input into an array of GridImage definitions.
+	 * @internal
+	 */
+	private parseInput(input: string|MicrioImage[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]): Models.Grid.GridImage[] {
+		if(typeof input != 'string')
+			input = input.map(i => i instanceof MicrioImage ? {image:i} : i)
+			.filter(g => !!g.image.$info).map(g => this.getString(g.image.$info!, g)).join(';');
+
+		return input.split(';').filter(s => !!s).map(s => this.getImage(s));
+	}
+
+	/**
+	 * Applies transition-specific setup for 'behind' and 'behind-delayed' transitions.
+	 * Mutates opts to set forceAni, coverLimit, and forceAreaAni.
+	 * @internal
+	 */
+	private setupBehindTransition(images: Models.Grid.GridImage[], opts: {
+		coverLimit?: boolean;
+		forceAni?: boolean;
+		forceAreaAni?: boolean;
+		transition?: Models.Grid.GridSetTransition;
+	}, focussed: MicrioImage|undefined): void {
+		const isDelayed = opts.transition == 'behind-delayed';
+		const isLim = opts.coverLimit === true;
+		const { wasm } = this.micrio;
+		opts.forceAni = true;
+		opts.coverLimit = isLim;
+		opts.forceAreaAni = true;
+		const vW = isDelayed ? 1/images.length : 1;
+		let c = 0;
+		this.images.forEach(i => {
+			i.camera.setCoverLimit(isLim);
+			if(images.find(e => e.id == i.id)) {
+				i.camera.setArea([0,0,focussed?.id == i.id ? 1 : vW,1], {noDispatch: true, direct: true});
+				if(i != focussed) i.camera.setView([0,0,1,1]);
+				if(isDelayed) wasm.setZIndex(i.ptr, images.length-(c++));
+			}
+		});
+		images.forEach(e => e.view = [0,0,1,1]);
+	}
+
+	/**
+	 * Saves the current layout to the history stack and updates depth.
+	 * @internal
+	 */
+	private savePreviousLayout(): void {
+		this.depth.set(this.history.push({
+			layout: this.current.map(i => this.getString(i.$info as Models.ImageInfo.ImageInfo, {
+				view: i.state.$view,
+				size: this.cellSizes.get(i.id) as [number,number]
+			})).join(';'),
+			horizontal: this.isHorizontal,
+			view: this.image.camera.getView()
+		}));
 	}
 
 	/**
@@ -215,117 +292,55 @@ export class Grid {
 	 * @returns A Promise that resolves with the array of currently displayed {@link MicrioImage} instances when the transition completes.
 	*/
 	set(input:string|MicrioImage[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]='', opts:{
-		/** If true, does not add the previous layout to the history stack. */
 		noHistory?:boolean;
-		/** If true, keeps the HTML grid element in the DOM (used internally). */
 		keepGrid?: boolean;
-		/** If true, arranges images in a single horizontal row. */
 		horizontal?:boolean;
-		/** Overrides the default animation duration for the main grid view transition. */
 		duration?:number;
-		/** If provided, animates the main grid view to this viewport rectangle. */
 		view?:Models.Camera.View;
-		/** If true, skips the main grid camera animation. */
 		noCamAni?: boolean;
-		/** If true, forces area animation even for images not currently visible. */
 		forceAreaAni?: boolean;
-		/** If true, does not unfocus the currently focused image when setting a new layout. */
 		noBlur?: boolean;
-		/** If true, skips the fade-in animation for new images. */
 		noFade?: boolean;
-		/** Specifies the transition animation type (e.g., 'crossfade', 'slide-left', 'behind-delayed'). */
 		transition?: Models.Grid.GridSetTransition;
-		/** If true, forces animation even if duration is 0. */
 		forceAni?: boolean;
-		/** If true, limits individual image views to cover their grid cell. */
 		coverLimit?: boolean;
-		/** If true, sets the initial view of images to cover their grid cell (but doesn't enforce limit). */
 		cover?: boolean;
-		/** Scale factor (0-1) applied to each grid cell (creates margins). */
 		scale?: number;
-		/** Overrides the automatic calculation of grid columns. */
 		columns?: number;
 	}={}) : Promise<MicrioImage[]> { return this.lastPromise = new Promise((ok, err) => {
-		// Reset focus point of the main grid image
 		delete this.image.$info?.settings?.focus;
-		this.lastAction = undefined; // Clear last action
+		this.lastAction = undefined;
 
-		// Ensure coverLimit implies cover
 		if(opts.cover === false && opts.coverLimit) opts.coverLimit = false;
 		if(opts.coverLimit && opts.cover == undefined) opts.cover = opts.coverLimit;
 
-		// Convert input array to grid string format if necessary
-		if(typeof input != 'string')
-			input = input.map(i => i instanceof MicrioImage	? {image:i} : i) // Ensure array of objects
-			.filter(g => !!g.image.$info).map(g => this.getString(g.image.$info!, g)).join(';'); // Convert to string
-
-		// Parse the grid string into image definition objects
-		const images:Models.Grid.GridImage[] = input.split(';').filter(s => !!s).map(s => this.getImage(s));
-		const focussed = this.$focussed; // Get currently focused image
-		const isDelayed = opts.transition?.endsWith('-delayed'); // Check for delayed transition
+		const images = this.parseInput(input);
+		const focussed = this.$focussed;
+		const isDelayed = opts.transition?.endsWith('-delayed');
 		const isBehindDelay = opts.transition == 'behind-delayed';
+		const { wasm } = this.micrio;
 
-		// --- Handle Transition Setup ---
-		switch(opts.transition) {
-			case 'crossfade':
-				opts.duration = 0; // Crossfade implies no main camera animation
-			break;
-			case 'behind':
-			case 'behind-delayed':
-				// Setup for 'behind' transition: force animation, set cover limit,
-				// set initial areas, and set z-index for delayed effect.
-				const isLim = opts.coverLimit === true;
-				opts.forceAni = true;
-				opts.coverLimit = isLim;
-				opts.forceAreaAni = true;
-				const vW = isDelayed ? 1/images.length : 1; // Viewport width per image for delay
-				let c:number = 0;
-				this.images.forEach(i => {
-					i.camera.setCoverLimit(isLim);
-					if(images.find(e => e.id == i.id)) { // If image is in the new layout
-						// Set initial area (full width if focused, partial if delayed)
-						i.camera.setArea([0,0,focussed?.id == i.id ? 1 : vW,1], {noDispatch: true, direct: true});
-						if(i != focussed) i.camera.setView([0,0,1,1]); // Reset view if not focused
-						if(isDelayed) this.micrio.wasm.e._setZIndex(i.ptr, images.length-(c++)); // Set z-index for stacking
-					}
-				});
-				images.forEach(e => e.view = [0,0,1,1]); // Ensure target view is full
-			break;
+		if(opts.transition == 'crossfade') opts.duration = 0;
+		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
+			this.setupBehindTransition(images, opts, focussed);
+
+		const ready = this.image.ptr >= 0;
+		const dur = opts.duration ?? (opts.noHistory ? this.aniDurationOut : this.aniDurationIn);
+		const defaultDur = this.nextCrossFadeDuration ?? this.image.$settings.crossfadeDuration ?? 1;
+		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
+		this.nextCrossFadeDuration = undefined;
+		if(ready) {
+			wasm.setGridTransitionDuration(dur);
+			wasm.setCrossfadeDuration(crossfadeDur);
 		}
 
-		// --- Apply Durations ---
-		const ready = this.image.ptr >= 0; // Is Wasm ready?
-		const dur = opts.duration ?? (opts.noHistory ? this.aniDurationOut : this.aniDurationIn); // Determine main animation duration
-		const defaultDur = this.nextCrossFadeDuration ?? this.image.$settings.crossfadeDuration ?? 1; // Get default crossfade duration
-		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1); // Calculate crossfade duration for this transition
-		this.nextCrossFadeDuration = undefined; // Reset specific duration override
-		if(ready) { // Set durations in Wasm
-			const ptr = this.micrio.wasm.getPtr();
-			this.micrio.wasm.e.setGridTransitionDuration(ptr, dur);
-			this.micrio.wasm.e.setCrossfadeDuration(ptr, crossfadeDur);
-		}
+		const doUnfocus = !opts.noBlur && focussed;
+		if(doUnfocus) this.blur();
 
-		// --- Unfocus & History ---
-		const doUnfocus = !opts.noBlur && focussed; // Should we unfocus the current image?
-		if(doUnfocus) this.blur(); // Trigger blur (animates focused image back to grid)
+		if(!opts.noHistory && this.current.length) this.savePreviousLayout();
+		this.isHorizontal = !!opts.horizontal;
 
-		// Add previous layout to history if not disabled
-		if(!opts.noHistory && this.current.length) this.depth.set(this.history.push({
-			layout: this.current.map(i => this.getString(i.$info as Models.ImageInfo.ImageInfo, {
-				view: i.state.$view, // Store current view
-				size: this.cellSizes.get(i.id) as [number,number] // Store current size
-			})).join(';'),
-			horizontal: this.isHorizontal, // Store layout orientation
-			view: this.image.camera.getView() // Store main grid view
-		}));
-
-		this.isHorizontal = !!opts.horizontal; // Update layout orientation
-
-		// --- Update Images ---
-		// Fade out images that are not in the new layout
 		this.removeImages(this.images.filter(i => !images.find(n => n.id == i.id)));
-
-		// Calculate and print the HTML grid layout (updates CSS grid)
 		this.printGrid(images, {
 			horizontal: opts.horizontal,
 			keepGrid: opts.keepGrid,
@@ -333,87 +348,67 @@ export class Grid {
 			columns: opts.columns
 		});
 
-		// Reset any pending timeouts
 		this.clearTimeouts();
 
-		let _to:any; // Timeout for overall completion
-		let _fto:any; // Timeout for fade-in start
-		let resolved:boolean = false; // Flag to prevent multiple resolves/rejects
-
-		// Error handler for camera animations
+		let resolved = false;
 		const error = () => {
 			this.clearTimeouts();
-			if(!resolved) err(); // Reject the main promise if not already resolved
+			if(!resolved) err();
 		};
 
-		// Animate the main grid camera view if needed
 		if(ready && !opts.noCamAni) {
 			if(opts.view) this.image.camera.flyToView(opts.view, {duration:dur*1000}).catch(error);
 			else this.image.camera.flyToFullView({duration:dur*1000}).catch(error);
 		}
 
-		// Reset temporary size map
 		this.nextSize.clear();
 
-		// Apply cover limit setting
-		if(opts.coverLimit == undefined) opts.coverLimit = true; // Default to true
-		if(!opts.coverLimit) images.forEach(i => this.images.find(img => img.id == i.id)?.camera.setCoverLimit(!!opts.coverLimit));
+		if(opts.coverLimit == undefined) opts.coverLimit = true;
+		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(false));
 
-		// --- Place and Animate Images ---
-		const isAppear = opts.transition == 'appear-delayed'; // Check for appear transition
-		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0); // Calculate delay for staggered transitions
+		const isAppear = opts.transition == 'appear-delayed';
+		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
 
-		// Place each image in the new layout, applying animations/delays
 		this.current = images.map((img,i) => this.placeImage(img, {
-			duration: !opts.forceAni && doUnfocus && img.id != focussed?.id ? 0 : dur, // Use 0 duration if unfocusing non-target image
-			delay: isDelayed ? getDelay(i) : 0, // Apply calculated delay
-			noCamAni: isAppear && i > 0 ? true : !!opts.noCamAni, // Skip camera animation for delayed appear items
-			forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni, // Control area animation forcing
-			cover: opts.cover // Apply cover view setting
+			duration: !opts.forceAni && doUnfocus && img.id != focussed?.id ? 0 : dur,
+			delay: isDelayed ? getDelay(i) : 0,
+			noCamAni: isAppear && i > 0 ? true : !!opts.noCamAni,
+			forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni,
+			cover: opts.cover
 		}));
 
-		// For appear transition, fade in images after the first one
-		if(isAppear) this.current.slice(1).forEach(i => this.micrio.wasm.e._fadeTo(i.ptr, .9999, true)); // Fade almost fully (hack?)
+		if(isAppear) this.current.slice(1).forEach(i => wasm.fadeTo(i.ptr, .9999, true));
 
-		// Function to trigger fade-in for all images (potentially delayed)
 		const fadeIn = () => this.current.forEach((img,i) =>
-			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0) // Apply delay
-				.then(() => this.micrio.wasm.e._fadeIn(img.ptr)) // Trigger fade-in in Wasm
+			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
+				.then(() => wasm.fadeIn(img.ptr))
 		);
 
-		// Function called when all transitions are complete
 		const done = () => {
-			this.clearTimeouts(); // Clear any remaining timeouts
-			// Reset default crossfade duration in Wasm
-			requestAnimationFrame(() => this.micrio.wasm.e.setCrossfadeDuration(this.micrio.wasm.getPtr(), defaultDur));
-			// Reset z-index for delayed transitions
-			if(isDelayed) this.images.forEach(i => this.micrio.wasm.e._setZIndex(i.ptr, 0));
-			// Apply final cover limit state
-			if(opts.coverLimit) images.forEach(i => this.images.find(img => img.id == i.id)?.camera.setCoverLimit(!!opts.coverLimit));
-			// Place the HTML grid overlay if clickable
+			this.clearTimeouts();
+			requestAnimationFrame(() => wasm.setCrossfadeDuration(defaultDur));
+			if(isDelayed) this.images.forEach(i => wasm.setZIndex(i.ptr, 0));
+			if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
 			if(this.clickable) this.placeGrid();
-			this.lastAction = undefined; // Clear last action
-			resolved = true; // Mark as resolved
-			ok(this.current); // Resolve the main promise
+			this.lastAction = undefined;
+			resolved = true;
+			ok(this.current);
 		}
 
-		// --- Schedule Completion ---
-		// If no duration, fade in and complete immediately
 		if(!dur && !crossfadeDur) {
 			if(!opts.noFade) fadeIn();
 			done();
 		}
-		// Otherwise, set timeouts for fade-in and completion
 		else {
-			if(!opts.noFade) this._fadeTo = _fto = <unknown>setTimeout(fadeIn, Math.max(0, dur / 2 * 1000)) as number; // Schedule fade-in halfway?
-			// Schedule completion after the longest duration (main animation or crossfade + delays)
-			this._to = _to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0))*1000 );
+			if(!opts.noFade) this._fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
+			this._to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0))*1000);
 		}
 	})}
 
 	/** Checks if the current grid layout differs from the initial full grid layout. @internal */
 	private hasChanged() : boolean {
-		return this.current.map(i => i.id).join(',') != this.images.map(i => i.id).join(',');
+		if(this.current.length !== this.images.length) return true;
+		return this.current.some((img, i) => img.id !== this.images[i].id);
 	}
 
 	/**
@@ -422,27 +417,26 @@ export class Grid {
 	 * @returns The parsed `Models.Grid.GridImage` object.
 	*/
 	getImage(s:string) : Models.Grid.GridImage {
-		const g = s.split('|'), p = g[0].split(','), // Split main parts and size
-			size = (g[1] ? g[1].split(',').map(Number) : [1])  as [number,number?]; // Parse size [w, h?]
-		let width:number=0,height:number=0; // Placeholders
+		const g = s.split('|'), p = g[0].split(','),
+			size = (g[1] ? g[1].split(',').map(Number) : [1])  as [number,number?];
+		let width:number=0,height:number=0;
 
 		return {
-			path: this.image.$info?.path, // Inherit path
+			path: this.image.$info?.path,
 			id: p[0],
-			width: width=(Number(p[1])||width), // Parse width
-			height: height=(Number(p[2])||height), // Parse height
-			isDeepZoom: p[3]=='d', // Check type flag
-			isPng: p[4]=='p', // Check format flag
-			isWebP: p[4]=='w', // Check format flag
-			size, // Store parsed size
-			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.ViewRect : undefined, // Parse view
-			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.ViewRect : undefined, // Parse area
-			settings: deepCopy(this.image.$settings||{}, { // Copy base settings
-				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined // Parse focus point
+			width: width=(Number(p[1])||width),
+			height: height=(Number(p[2])||height),
+			isDeepZoom: p[3]=='d',
+			isPng: p[4]=='p',
+			isWebP: p[4]=='w',
+			size,
+			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.ViewRect : undefined,
+			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.ViewRect : undefined,
+			settings: deepCopy(this.image.$settings||{}, {
+				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined
 			}),
-			/** @ts-ignore cultures might not exist on type */
-			cultures: p[8]?.replace(/\-/g,',')||undefined // Parse cultures string
-		}
+			cultures: p[8]?.replace(/-/g,',')||undefined
+		} as Models.Grid.GridImage
 	}
 
 	/**
@@ -452,19 +446,17 @@ export class Grid {
 	getString = (i:Models.ImageInfo.ImageInfo, opts:Models.Grid.GridImageOptions = {}) : string => Grid.getString(i, {
 		view: opts.view,
 		area: opts.area,
-		size: opts.size ?? this.nextSize.get(i.id) as [number,number], // Use nextSize if available
-		cultures: ('cultures' in i && i['cultures'] ? i.cultures as string : '')?.replace(/,/g,'-') // Format cultures
+		size: opts.size ?? this.nextSize.get(i.id) as [number,number],
+		cultures: ('cultures' in i && i['cultures'] ? i.cultures as string : '')?.replace(/,/g,'-')
 	});
 
 	/** Calculates the optimal number of columns for the grid layout. @internal */
 	private getCols(images:number, numTiles:number) : number {
-		// Heuristic based on total tiles and number of images
 		let num = Math.ceil(numTiles / Math.ceil(Math.sqrt(numTiles)));
-		// If number of images equals total tiles (all 1x1), find a nice divisor near the square root
 		if(images == numTiles) {
 			const margin = Math.floor(Math.sqrt(images)), cols:number[] = [];
-			for(let n = margin; n < num+margin; n++) if(!(images % n)) cols.push(n); // Find divisors
-			if(cols.length) num = cols[Math.floor(cols.length / 2)]; // Pick middle divisor
+			for(let n = margin; n < num+margin; n++) if(!(images % n)) cols.push(n);
+			if(cols.length) num = cols[Math.floor(cols.length / 2)];
 		}
 		return num;
 	}
@@ -482,75 +474,62 @@ export class Grid {
 		scale?:number;
 		columns?:number;
 	}) : void {
-		if(!opts.keepGrid) this.removeGrid(); // Remove existing grid if not keeping it
-		/** @ts-ignore Calculate total number of grid cells needed */
-		const numTiles = images.reduce((n,i) => n+i.size.reduce((v,n) => n*v, 1), 0);
-		// Determine number of columns
+		if(!opts.keepGrid) this.removeGrid();
+		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0);
 		const cols = opts.columns ?? (opts.horizontal ? images.length : this.getCols(images.length, numTiles));
-		// Apply grid template columns style
 		this._grid.style.gridTemplateColumns = `repeat(${cols}, auto)`;
-		this._grid.textContent = ''; // Clear existing children
-		// Reset transforms
+		this._grid.textContent = '';
 		this._grid.style.removeProperty('--translate');
 		this._grid.style.removeProperty('--scale');
 
-		// Create/update button elements for each image
 		images.forEach(i => { if(!i.id) return;
-			// Get or create button element
 			if(!this._buttons.has(i.id)) this._buttons.set(i.id, document.createElement('button'));
-			const tile = this._buttons.get(i.id) as HTMLButtonElement;
-			// Apply grid area span if size is not 1x1
+			const tile = this._buttons.get(i.id)!;
 			if(i.size.toString() != '1') {
 				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0]||i.size[1]}`;
-				this.cellSizes.set(i.id, i.size) // Store cell size
+				this.cellSizes.set(i.id, i.size)
 			}
-			else { // Reset grid area and remove stored size
+			else {
 				tile.style.removeProperty('grid-area');
 				this.cellSizes.delete(i.id);
 			}
-			tile.dataset.id = i.id; // Set image ID on dataset
-			this._grid.appendChild(tile); // Add button to grid container
+			tile.dataset.id = i.id;
+			this._grid.appendChild(tile);
 		});
 
-		// Add grid container to the DOM if not already present
 		if(!opts.keepGrid || !this._grid.parentNode) this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null);
 
-		// Allow external CSS overrides via event
 		this.micrio.events.dispatch('grid-layout-set', this);
 
-		// Calculate target area for each image based on its rendered position in the grid
 		const w = this.micrio.offsetWidth;
 		const h = this.micrio.offsetHeight;
-		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1))); // Calculate scale factor for margins
-		this._grid.style.transform = ''; // Reset temporary transform
+		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1)));
+		this._grid.style.transform = '';
 		this._grid.childNodes.forEach((n:ChildNode) => { if(!n) return;
 			const e = n as HTMLElement;
 			const id = e.dataset.id;
-			const r = e.getBoundingClientRect(); // Get rendered position/size
+			const r = e.getBoundingClientRect();
 			const img = images.find(i => i.id == id);
-			const o = [(s/2)*r.width, (s/2)*r.height]; // Calculate margin offset based on scale
-			// Calculate and store the target area [x0, y0, x1, y1] relative to the main canvas
+			const o = [(s/2)*r.width, (s/2)*r.height];
 			if(img && !img.area) img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.x+r.width-o[0])/w, (r.y+r.height-o[1])/h]
 		});
 
-		// Remove the grid element from DOM if it wasn't meant to be kept
 		if(!opts.keepGrid) this._grid.remove();
 	}
 
 	/** Places the HTML grid overlay element into the DOM and starts listening for view changes. @internal */
 	private placeGrid() : void {
-		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return; // Conditions to show overlay
-		if(this._grid.parentNode) return; // Already placed
-		this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null); // Insert into DOM
-		// Subscribe to view changes to update overlay transform
+		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return;
+		if(this._grid.parentNode) return;
+		this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null);
 		this.viewUnsub = this.image.state.view.subscribe(this.updateGrid);
 	}
 
 	/** Removes the HTML grid overlay element from the DOM and stops listening for view changes. @internal */
 	private removeGrid() : void {
-		if(!this._grid.parentNode) return; // Already removed
-		if(this.viewUnsub) this.viewUnsub(); // Unsubscribe from view changes
-		this._grid.remove(); // Remove from DOM
+		if(!this._grid.parentNode) return;
+		if(this.viewUnsub) this.viewUnsub();
+		this._grid.remove();
 	}
 
 	/** Updates the CSS transform of the HTML grid overlay based on the main image's camera view. @internal */
@@ -569,24 +548,24 @@ export class Grid {
 	 * @returns The placed MicrioImage instance.
 	 */
 	private placeImage(entry:Models.Grid.GridImage, opts: {
-		duration:number; // Animation duration override
-		delay:number; // Animation delay
-		noCamAni?:boolean; // Skip camera animation?
-		forceAreaAni?:boolean; // Force area animation?
-		cover?:boolean; // Set initial view to cover?
+		duration:number;
+		delay:number;
+		noCamAni?:boolean;
+		forceAreaAni?:boolean;
+		cover?:boolean;
 	}) : MicrioImage {
-		// Find or open the MicrioImage instance
-		let img = this.images.find(i => i.id == entry.id);
+		const { wasm } = this.micrio;
+		let img = this.imageMap.get(entry.id!);
 		if(img && entry.area) sleep(opts.delay*1000).then(() => {
 			img!.camera.setArea(entry.area!, {
 				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img!.visible))
 			});
-			if(opts.delay) this.micrio.wasm.render();
+			if(opts.delay) wasm.render();
 		});
 		else {
 			entry.lang = this.micrio.lang;
-			this.micrio.wasm.addChild(img = new MicrioImage(this.micrio.wasm, entry, {area: entry.area}), this.image);
-			this.images.push(img);
+			wasm.addChild(img = new MicrioImage(wasm, entry, {area: entry.area}), this.image);
+			this.trackImage(img);
 		}
 		const aniOpts = {duration:opts.duration*1000, timingFunction: this.timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera.aniDone && img.ptr > 0) {
@@ -602,19 +581,23 @@ export class Grid {
 		return img;
 	}
 
-	/** Fade out unused images in the grid
+	/** Fade out unused images in the grid and clean up their button references.
 	 * @param images The images to hide
 	*/
 	private removeImages(images:MicrioImage[]) : void {
-		images.forEach(i => { if(i.ptr >= 0) this.micrio.wasm.e._fadeOut(i.ptr) });
-		this.micrio.wasm.render();
+		const { wasm } = this.micrio;
+		images.forEach(i => {
+			if(i.ptr >= 0) wasm.fadeOut(i.ptr);
+			this._buttons.delete(i.id);
+		});
+		wasm.render();
 	}
 
 
 	/** Checks whether current viewed image is (part of) grid */
 	insideGrid() : boolean {
 		const c = this.micrio.$current;
-		return c == this.image || !!this.images.find(i => i == c);
+		return c == this.image || (!!c && this.imageMap.has(c.id));
 	}
 
 	/** Reset the grid to its initial layout
@@ -625,7 +608,6 @@ export class Grid {
 	*/
 	async reset(duration?:number, noCamAni?:boolean, forceAni?:boolean) : Promise<MicrioImage[]> {
 		const state = this.history[0];
-		// Stop any individual running animations
 		this.images.forEach(i => i.camera.stop());
 		this.image.camera.stop();
 		this.markersShown.set([]);
@@ -638,8 +620,8 @@ export class Grid {
 		});
 	}
 
-	/** Immediately switch back to the initial grid view, maintaining the current view
-	 * Usable only if the grid is perfect N x N
+	/** Immediately switch back to the initial grid view, maintaining the current view.
+	 * Usable only if the grid is perfect N x N.
 	 * @internal
 	*/
 	private switchToGrid() {
@@ -662,9 +644,9 @@ export class Grid {
 	async flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
 		const spl = tag?.split('|').map(s => s.trim());
 		const name = spl?.[0]??'';
-		const images = !name ? this.images : this.images.filter(i => !!i.$data?.markers?.find(m => m.tags.includes(name)));
+		const images = !name ? this.images : this.images.filter(i => !!i.$data?.markers?.find(m => m.tags?.includes(name)));
 		return this.set(images.map(img => {
-			const m = img.$data?.markers?.find(m => m.tags.indexOf(name) >= 0);
+			const m = img.$data?.markers?.find(m => m.tags?.includes(name));
 			return this.getString(img.$info as Models.ImageInfo.ImageInfo, {
 				view: !noZoom ? m?.view : undefined
 			})
@@ -695,8 +677,7 @@ export class Grid {
 
 	/** Sets the animation timing function for the next transition. @internal */
 	private setTimingFunction(fn:Models.Camera.TimingFunction) : void {
-		const mainPtr = this.micrio.wasm.getPtr();
-		this.micrio.wasm.e.setGridTransitionTimingFunction(mainPtr, Enums.Camera.TimingFunction[this.timingFunction=fn]);
+		this.micrio.wasm.setGridTransitionTimingFunction(Enums.Camera.TimingFunction[this.timingFunction=fn]);
 	}
 
 	/** Open a grid image full size and set it as the main active image
@@ -712,16 +693,13 @@ export class Grid {
 
 		const m = this.micrio;
 
-		// If the grid is not visible, show it first
 		if(!get(m.visible).find(i => i == this.image)) m.current.set(this.image);
 
-		// Do direct crossfade if there is a currently focussed image and already in full view
 		const focussed = this.$focussed;
 
-		// Already focussed on this image
 		if(focussed == img) return;
 
-		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !m.wasm.e._areaAnimating(focussed.ptr) && !this.current.find(i => i == img)));
+		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !m.wasm.areaAnimating(focussed.ptr) && !this.current.includes(img)));
 		if(direct) img.camera.setArea([0,0,1,1], {noDispatch: true, direct: true});
 		if(focussed) this.blur();
 
@@ -732,10 +710,9 @@ export class Grid {
 			view: opts.view
 		}), opts);
 
-		m.wasm.e._setZIndex(img.ptr, 3);
+		m.wasm.setZIndex(img.ptr, 3);
 		this.focussed.set(img);
 
-		// If target image current invisible, don't animate camera to target view
 		if(!get(img.visible) && (opts.transition == 'crossfade' || !opts.transition))
 			opts.duration = 0;
 
@@ -766,6 +743,8 @@ export class Grid {
 	}:Models.Grid.FocusOptions) : Promise<string> {
 		if(!transition) return layout;
 
+		const { wasm } = this.micrio;
+
 		if(transition == 'crossfade') {
 			target.camera.setArea([0,0,1,1]);
 			noViewAni = true;
@@ -783,28 +762,17 @@ export class Grid {
 			: transition.endsWith('-left') ? 270
 			: 90;
 
-		if(isSlwipe || isBehind) this.micrio.wasm.e._fadeTo(target.ptr, .9999, true);
+		if(isSlwipe || isBehind) wasm.fadeTo(target.ptr, .9999, true);
 
 		if(transition.startsWith('slide')) {
-			target.camera.setArea(
-				transDir == 0 ? [0, -.5, 1, 0]
-				: transDir == 180 ? [0, 1, 1, 1.5]
-				: transDir == 270 ? [-.5,0,0,1]
-				: [1,0,1.5,1], {noDispatch: true, direct: true});
+			target.camera.setArea(slideAreas[transDir!], {noDispatch: true, direct: true});
 		}
 		else if(transition.startsWith('swipe')) {
-			target.camera.setArea(
-				transDir == 0 ? [0, -1, 1, 0]
-				: transDir == 180 ? [0, 1, 1, 2]
-				: transDir == 270 ? [-1, 0, 0, 1]
-				: [1, 0, 2, 1], {noDispatch: true, direct: true});
+			target.camera.setArea(swipeAreas[transDir!], {noDispatch: true, direct: true});
 			layout = [
 				this.getString(current.$info!, {
 					view: exitView ?? current.camera.getView(),
-					area: transDir == 0 ? [0, 1, 1, 2]
-						: transDir == 180 ? [0, -1, 1, 0]
-						: transDir == 270 ? [1, 0, 2, 1]
-						: [-1, 0, 0, 1]
+					area: swipeExitAreas[transDir!]
 				}),
 				this.getString(target.$info!, {
 					view, area: [0, 0, 1, 1]
@@ -845,7 +813,7 @@ export class Grid {
 	blur() : void {
 		const focussed = this.$focussed;
 		if(!focussed) return;
-		this.micrio.wasm.e._setZIndex(focussed.ptr, 2);
+		this.micrio.wasm.setZIndex(focussed.ptr, 2);
 		this.micrio.events.dispatch('grid-blur');
 		this.focussed.set(undefined);
 		this.image.camera.setLimit([0, 0, 1, 1]);
@@ -855,13 +823,75 @@ export class Grid {
 	/** Handles tour events, potentially triggering grid actions. @internal */
 	private tourEvent(e:Event) {
 		const event = (e as CustomEvent).detail as Models.ImageData.Event;
-
-		// Only process grid events
 		if(!event || !event.action?.startsWith('grid:')) return;
-
-		// Only deal with activated events
 		if(event.active) this.action(event.action.slice(5), event.data, event.end - event.start);
 	}
+
+	/** Action handler dispatch map, keyed by {@link Enums.Grid.GridActionType}. @internal */
+	private readonly actionHandlers: Record<number, (data?: string, duration?: number) => void> = {
+		[Enums.Grid.GridActionType.focus]: (data, duration) => {
+			const spl = data?.split('|').map(s => s.trim());
+			const name = spl?.[0]??'';
+			const imgs = name.split(',')
+				.map(i => this.imageMap.get(i.trim()))
+				.filter((i): i is MicrioImage => i !== undefined);
+			if(imgs.length == 1) this.focus(imgs[0], {duration});
+			else if(imgs.length > 0) this.set(imgs.map(i => this.getString(i.$info!)).join(';'), {
+				duration,
+				horizontal: spl?.[1] == 'h'
+			});
+		},
+
+		[Enums.Grid.GridActionType.flyTo]: (data, duration) => {
+			const images = data?.split(',').map(s => this.current.find(i => i.id == s?.trim()));
+			if(images?.length) this.image.camera.flyToView([
+				Math.min(...images.map(i => i?.opts.area?.[0] ?? 0)),
+				Math.min(...images.map(i => i?.opts.area?.[1] ?? 0)),
+				Math.max(...images.map(i => i?.opts.area?.[2] ?? 1)),
+				Math.max(...images.map(i => i?.opts.area?.[3] ?? 1)),
+			], {duration:duration?duration*1000:undefined}).catch(()=>{});
+			else console.warn('Given image IDs gave no current displayed images');
+		},
+
+		[Enums.Grid.GridActionType.focusTagged]: (data, duration) => {
+			this.flyToMarkers(data, duration);
+		},
+
+		[Enums.Grid.GridActionType.focusWithTagged]: (data, duration) => {
+			this.flyToMarkers(data, duration, true);
+		},
+
+		[Enums.Grid.GridActionType.reset]: (_data, duration) => {
+			this.reset(duration);
+		},
+
+		[Enums.Grid.GridActionType.back]: (_data, duration) => {
+			this.back(duration);
+		},
+
+		[Enums.Grid.GridActionType.switchToGrid]: () => {
+			this.switchToGrid();
+		},
+
+		[Enums.Grid.GridActionType.nextFadeDuration]: (data) => {
+			this.nextCrossFadeDuration = Number(data);
+		},
+
+		[Enums.Grid.GridActionType.filterTourImages]: (data, duration) => {
+			once(this.micrio.state.tour).then(t => { if(!t) return;
+				if(!('steps' in t) || !t.stepInfo) return;
+				const ids = t.stepInfo.map(s => s.micrioId);
+				const str = ids.filter((id, i) => ids.indexOf(id) == i)
+					.map(i => this.imageMap.get(i))
+					.filter((i): i is MicrioImage => !!i)
+					.map(i => this.getString(i.$info!)).join(';')
+				if(str) this.set(str, {
+					duration,
+					horizontal: data == 'h'
+				});
+			});
+		},
+	};
 
 	/** Do an (external) action
 	 * @param action The action type enum or string
@@ -869,83 +899,12 @@ export class Grid {
 	 * @param duration Optional action duration
 	*/
 	action(action:Enums.Grid.GridActionType|string, data?:string, duration?:number) : void {
-		/** @ts-ignore */
-		if(typeof action == 'string') action = Enums.Grid.GridActionType[action];
-		// Only do stuff once
+		if(typeof action == 'string') action = Enums.Grid.GridActionType[action as keyof typeof Enums.Grid.GridActionType];
 		const key = action+(data??'');
 		if(this.lastAction == key) return;
-		switch(action) {
-			case Enums.Grid.GridActionType.focus:
-				const spl = data?.split('|').map(s => s.trim());
-				const name = spl?.[0]??'';
-				const imgs:MicrioImage[] = name?.split(',')
-					.map(i => this.images.find(img => img.id == i?.trim()))
-					/** @ts-ignore */
-					.filter<MicrioImage>(i => typeof i !== 'undefined');
-				if(imgs.length == 1) this.focus(imgs[0], {duration});
-				else if(imgs.length > 0) this.set(imgs.map(i => this.getString(i.$info!)).join(';'), {
-					duration,
-					horizontal: spl?.[1] == 'h'
-				});
-			break;
-
-			/** Fly inside the grid to the boundaries of the specified images */
-			case Enums.Grid.GridActionType.flyTo:
-				const images = data?.split(',').map(s => this.current.find(i => i.id == s?.trim()));
-				if(images?.length) this.image.camera.flyToView([
-					Math.min(...images.map(i => i?.opts.area?.[0] ?? 0)),
-					Math.min(...images.map(i => i?.opts.area?.[1] ?? 0)),
-					Math.max(...images.map(i => i?.opts.area?.[2] ?? 1)),
-					Math.max(...images.map(i => i?.opts.area?.[3] ?? 1)),
-				], {duration:duration?duration*1000:undefined}).catch(()=>{});
-				else console.warn('Given image IDs gave no current displayed images', event);
-			break;
-
-			case Enums.Grid.GridActionType.focusTagged:
-				this.flyToMarkers(data, duration);
-			break;
-
-			case Enums.Grid.GridActionType.focusWithTagged:
-				this.flyToMarkers(data, duration, true);
-			break;
-
-			case Enums.Grid.GridActionType.reset:
-				this.reset(duration);
-			break;
-
-			case Enums.Grid.GridActionType.back:
-				this.back(duration);
-			break;
-
-			case Enums.Grid.GridActionType.switchToGrid:
-				this.switchToGrid();
-			break;
-
-			case Enums.Grid.GridActionType.nextFadeDuration:
-				this.nextCrossFadeDuration = Number(data);
-			break;
-
-			case Enums.Grid.GridActionType.filterTourImages:
-				once(this.micrio.state.tour).then(t => { if(!t) return;
-					if(!('steps' in t) || !t.stepInfo) return;
-					const ids = t.stepInfo.map(s => s.micrioId);
-					const str = ids.filter((id, i) => ids.indexOf(id) == i)
-						.map(i => this.images.find(img => img.id == i))
-						.filter(i => !!i)
-						/** @ts-ignore */
-						.map(i => this.getString(i.$info!)).join(';')
-					if(str) this.set(str, {
-						duration,
-						horizontal: data == 'h'
-					});
-				});
-			break;
-
-			default:
-				console.warn('Warning: unknown grid tour event', event);
-			break;
-		}
-
+		const handler = this.actionHandlers[action as number];
+		if(handler) handler(data, duration);
+		else console.warn('Warning: unknown grid tour event', action);
 		this.lastAction = key;
 	}
 
@@ -956,8 +915,7 @@ export class Grid {
 	 * @returns Promise when the transition is completed
 	*/
 	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
-		/** @ts-ignore */
-		return this.set((this.history[this.history.length-1]?.layout || this.image.$info.grid)
+		return this.set((this.history[this.history.length-1]?.layout || this.image.$info!.grid!)
 			.split(';').map((v,i) => `${v}|${i==idx ? `${width},${height}` : 1}`).join(';'), {
 			noHistory: true,
 			keepGrid: true,
@@ -975,4 +933,5 @@ export class Grid {
 			a[0] + vW * view[2],
 			a[1] + vH * view[3]
 		]
-	}}
+	}
+}

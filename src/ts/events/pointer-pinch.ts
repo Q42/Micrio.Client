@@ -1,4 +1,3 @@
-import { pyth } from '../utils';
 import { eventPassive, eventPassiveCapture, type EventContext } from './shared';
 import type { DragHandler } from './drag';
 
@@ -19,14 +18,14 @@ export class PointerPinchHandler {
 
 	/** Hooks pointer pinch event listeners. */
 	hook(): void {
-		this.ctx.el.addEventListener('pointerdown', this.start, eventPassive);
+		this.ctx.micrio.addEventListener('pointerdown', this.start, eventPassive);
 		self.addEventListener('pointerup', this.end, eventPassive);
 		self.addEventListener('pointercancel', this.end, eventPassive);
 	}
 
 	/** Unhooks pointer pinch event listeners. */
 	unhook(): void {
-		this.ctx.el.removeEventListener('pointerdown', this.start, eventPassive);
+		this.ctx.micrio.removeEventListener('pointerdown', this.start, eventPassive);
 		self.removeEventListener('pointerup', this.end, eventPassive);
 		self.removeEventListener('pointercancel', this.end, eventPassive);
 		// Clean up pinch move listener if it was active
@@ -65,12 +64,12 @@ export class PointerPinchHandler {
 
 			// Store target image and initial pinch distance
 			this.ctx.vars.pinch.image = this.ctx.getImage({ x: p1.x, y: p1.y });
-			this.ctx.vars.pinch.sDst = pyth(p1.x - p2.x, p1.y - p2.y);
+			this.ctx.vars.pinch.sDst = Math.hypot(p1.x - p2.x, p1.y - p2.y);
 			this.ctx.setPinchFactor(undefined);
 
 			// Notify Wasm pinch started
 			if (this.ctx.vars.pinch.image) {
-				this.ctx.micrio.wasm.e._pinchStart(this.ctx.vars.pinch.image.ptr);
+				this.ctx.micrio.wasm.pinchStart(this.ctx.vars.pinch.image.ptr);
 			}
 			this.ctx.micrio.wasm.render();
 
@@ -115,10 +114,10 @@ export class PointerPinchHandler {
 		}
 
 		// Calculate current pinch factor relative to start distance
-		this.ctx.setPinchFactor(pyth(p1.x - p2.x, p1.y - p2.y) / v.sDst);
+		this.ctx.setPinchFactor(Math.hypot(p1.x - p2.x, p1.y - p2.y) / v.sDst);
 
 		// Notify Wasm of pinch movement
-		this.ctx.micrio.wasm.e._pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+		this.ctx.micrio.wasm.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
 	}
 
 	/**
@@ -145,7 +144,7 @@ export class PointerPinchHandler {
 			// Notify Wasm pinch stopped
 			const i = this.ctx.vars.pinch.image;
 			if (i) {
-				this.ctx.micrio.wasm.e._pinchStop(i.ptr, performance.now());
+				this.ctx.micrio.wasm.pinchStop(i.ptr, performance.now());
 				this.ctx.micrio.wasm.render();
 			}
 			this.ctx.vars.pinch.image = undefined;

@@ -3,8 +3,8 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '../../types/models';
-import type { MicrioImage } from '../image';
+import type { Models } from '$types/models';
+import type { MicrioImage } from '$ts/image';
 import { fetchJson, fetchInfo, isLegacyViews } from './fetch';
 import { sanitizeMarker, sanitizeAsset } from './sanitize';
 

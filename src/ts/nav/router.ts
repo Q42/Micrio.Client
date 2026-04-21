@@ -1,10 +1,10 @@
-import type { HTMLMicrioElement } from './element';
-import type { Models } from '../types/models';
-import type { MicrioImage } from './image';
+import type { HTMLMicrioElement } from '$ts/element';
+import type { Models } from '$types/models';
+import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
 
-import { slugify, once } from './utils';
+import { slugify, once } from '$ts/utils';
 
 /**
  * Handles URL routing for the Micrio viewer, enabling deep linking to specific images,
@@ -119,7 +119,7 @@ export class Router {
 		// Get route string from pathname or hash
 		this.route = (this.isStatic ? location.pathname : location.hash).slice(1);
 		// Split route into segments
-		const [id, lang, slug, markerOrTourOrPage, marker] = this.route.split('/');
+		const [id, lang, _slug, markerOrTourOrPage, marker] = this.route.split('/');
 
 		const main = this.micrio.$current;
 		// Open image if ID in URL is different from current
