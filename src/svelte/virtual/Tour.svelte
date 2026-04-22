@@ -46,6 +46,12 @@
 	const micrio:HTMLMicrioElement = <HTMLMicrioElement>getContext('micrio');
 	const { events, state: micrioState, _lang } = micrio;
 
+	// Raw, non-proxied reference to the same tour object as the `tour` prop.
+	// Used for attaching navigation methods / currentStep so we don't trip
+	// Svelte 5's ownership_invalid_mutation warning (the `tour` prop is
+	// owned by Main.svelte).
+	const tourRef = micrioState.$tour as typeof tour;
+
 	/** Reference to the current image instance. */
 	const image = micrio.$current as MicrioImage;
 	/** Reference to the current image's data. */
@@ -206,10 +212,11 @@
 
 	// Add navigation methods to the tour object for marker tours
 	if('steps' in tour) {
-		tour.prev = prev;
-		tour.next = next;
-		tour.goto = goto;
-		$effect(() => { tour.currentStep = currentTourStep });
+		const t = tourRef as Models.ImageData.MarkerTour;
+		t.prev = prev;
+		t.next = next;
+		t.goto = goto;
+		$effect(() => { t.currentStep = currentTourStep });
 	}
 
 	// --- UI Minimization State ---
@@ -312,14 +319,15 @@
 			hookCam(); // Ensure interaction is re-enabled
 			if(observer) observer.disconnect(); // Disconnect IntersectionObserver
 
-			// Clean up tour state
+			// Clean up tour state. Use tourRef (stable capture from mount)
+			// because the `tour` prop may already be undefined by now — the
+			// store gets cleared before/while this cleanup runs.
 			const currentMarker = micrio.state.$marker;
-			if('steps' in tour && tour.stepInfo && tour.currentStep != undefined) {
-				const step = tour.stepInfo[tour.currentStep];
-				// Remove navigation methods from tour object
-				delete tour.goto;
-				delete tour.next;
-				delete tour.prev;
+			if('steps' in tourRef && tourRef.stepInfo && tourRef.currentStep != undefined) {
+				const step = tourRef.stepInfo[tourRef.currentStep];
+				delete tourRef.goto;
+				delete tourRef.next;
+				delete tourRef.prev;
 				// Close the marker associated with the last step if it's still open
 				if(currentMarker && step?.markerId == currentMarker.id) {
 					step.micrioImage?.state.marker.set(undefined);
@@ -329,13 +337,13 @@
 			// Abort any running camera animation and potentially fly back
 			image.camera.aniDone = undefined; // Clear animation callback
 			// If tour changed image and shouldn't keep last step, go back to original image
-			if(!grid && !('steps' in tour && tour.keepLastStep) && micrio.$current != image)
+			if(!grid && !('steps' in tourRef && tourRef.keepLastStep) && micrio.$current != image)
 				micrio.open(image.id);
 			tick().then(() => { // After state updates
-				events.dispatch('tour-stop', tour); // Dispatch stop event
-				if('steps' in tour) delete tour.currentStep; // Clear current step property
+				events.dispatch('tour-stop', tourRef); // Dispatch stop event
+				if('steps' in tourRef) delete tourRef.currentStep;
 				// If independent video tour ended, zoom out if configured
-				if(!('steps' in tour) && markerSettings?.zoomOutAfterClose && !currentMarker && startView)
+				if(!('steps' in tourRef) && markerSettings?.zoomOutAfterClose && !currentMarker && startView)
 					image.camera.flyToView(startView, {speed:markerSettings?.zoomOutAfterCloseSpeed});
 			});
 		}
