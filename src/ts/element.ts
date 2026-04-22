@@ -484,7 +484,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		// Apply forced start view if provided
 		if(opts.startView) {
 			c.state.view.set(i.settings.view = opts.startView);
-			if(c.ptr && c.wasm.ready) c.camera.setView(i.settings.view,{noRender:true});
+			if(c.ptr > 0 && c.wasm.ready) c.camera.setView(i.settings.view,{noRender:true});
 		}
 
 		// Set default language if not already set
