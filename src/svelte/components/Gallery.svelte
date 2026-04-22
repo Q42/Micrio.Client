@@ -293,11 +293,15 @@
 		camera.setLimit(!forceArea && zoomedOut ? [-1, a[1], 2, a[3]] : a);
 	}
 
-	/** Calculates the horizontal position for the scrubber handle based on page index. */
+	/** Horizontal padding (px) between the scrubber bar edges and the usable track. */
+	const scrubPad = 16;
+
+	/** Calculates the horizontal position (px from <ul> left) for a given page index. */
 	function getX(idx:number) : number {
-		const _li = _ul?.childNodes[idx] as HTMLElement;
-		// Calculate center position of the list item
-		return _li ? -2 + _li.offsetLeft + _li.offsetWidth/2 : 0;
+		if(!_ul) return 0;
+		const w = _ul.clientWidth;
+		const max = Math.max(1, pagesPerLayer - 1);
+		return scrubPad + (idx / max) * (w - scrubPad * 2);
 	}
 
 	// --- Scrubber UI State & Handlers (for non-switch/non-omni galleries) ---
@@ -334,20 +338,17 @@
 	function getScrubXPercIdx(e:PointerEvent|TouchEvent) : [number,number] {
 		const _box = box ?? _ul!.getClientRects()[0];
 		const clientX = 'button' in e ? e.clientX : e.touches[0].clientX;
-		// Calculate percentage, clamped between 0 and 1
-		const perc = Math.min(1, Math.max(0, (clientX - _box.left-14) / (_box.width-32))); // Adjust for padding/handle size
-		// Calculate corresponding page index
-		const idx = Math.max(0, Math.min(pagesPerLayer-1, Math.floor(perc * pagesPerLayer)));
+		const perc = Math.min(1, Math.max(0, (clientX - _box.left - scrubPad) / (_box.width - scrubPad * 2)));
+		// Snap to the nearest evenly-spaced page index
+		const idx = Math.max(0, Math.min(pagesPerLayer-1, Math.round(perc * Math.max(1, pagesPerLayer-1))));
 		return [perc, idx];
 	}
 
 	/** Handles scrubber movement during drag. */
 	function scrubMove(e:PointerEvent|TouchEvent) : void {
 		const [perc, idx] = getScrubXPercIdx(e);
-		// Update handle position visually
-		_left = 16 + perc * (box.width-32);
-		// Navigate to the corresponding page if it changed
-		if(idx != currentPage) goto(idx, true); // Use fast navigation
+		_left = scrubPad + perc * (box.width - scrubPad * 2);
+		if(idx != currentPage) goto(idx, true);
 	}
 
 	/** Updates the hover index when pointer moves over the scrubber (but not dragging). */
@@ -637,22 +638,49 @@
 		<!-- Dial control for standard omni objects -->
 		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
 	{:else if !isFullSwipe && images.length > 1}
+		{@const total = pagesPerLayer}
+		{@const dense = total > 24}
+		{@const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1}
+		{@const fillPct = total > 1 ? (currentPage / (total - 1)) * 100 : 0}
 		<!-- Scrubber UI for swipe galleries -->
 		<div class:hidden={loading||($hidden && !dragging && !panning)}>
 			<!-- Previous Button -->
 			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage - 1)} disabled={currentPage==0}></Button>
-			<!-- Scrubber Bar -->
-			<ul bind:this={_ul} onpointermove={scrubPointerMove} onpointerleave={() => hoverIdx=-1}>
-				<!-- Bullets for each page -->
-				{#each pages as _page, i}
-					<li class:active={i==currentPage} class:hover={i==hoverIdx}>
-						<button onclick={() => goto(i, true)} onkeypress={e => { if(e.key === 'Enter') goto(i, true)}} class="bullet">&bull;</button>
-					</li>
-				{/each}
-				<!-- Draggable Handle -->
-				<button style={`left: ${left}px`} class:dragging={dragging} aria-label="drag handle"
-					onpointerdowncapture={scrubStart}
-					ontouchstartcapture={scrubStart}></button>
+			<!-- Scrubber Bar: click anywhere to jump, drag to scrub -->
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+			<ul bind:this={_ul} class:dense
+				onpointerdowncapture={scrubStart}
+				ontouchstartcapture={scrubStart}
+				onpointermove={scrubPointerMove}
+				onpointerleave={() => hoverIdx=-1}>
+				<!-- Background track with progress fill -->
+				<span class="track">
+					<span class="track-fill" style={`width:${fillPct}%`}></span>
+				</span>
+				<!-- Tick marks for each page (or every Nth in dense mode) -->
+				<span class="ticks">
+					{#each pages as _page, i}
+						{#if !dense || i % tickStep === 0 || i === total - 1 || i === currentPage}
+							<span class="tick"
+								class:major={dense && i % (tickStep * 5) === 0}
+								class:active={i === currentPage}
+								class:hover={i === hoverIdx}
+								style={`left:${total > 1 ? (i / (total - 1)) * 100 : 50}%`}></span>
+						{/if}
+					{/each}
+				</span>
+				<!-- Hover preview label (only when hovering a different page than current) -->
+				{#if hoverIdx >= 0 && hoverIdx !== currentPage && !dragging}
+					<span class="hover-label" style={`left:${total > 1 ? (hoverIdx / (total - 1)) * 100 : 50}%`}>{hoverIdx + 1}</span>
+				{/if}
+				<!-- Draggable Handle (clean dot) -->
+				<button class="handle" style={`left: ${left}px`} class:dragging={dragging}
+					aria-label="Gallery position"
+					aria-valuemin={1} aria-valuemax={total} aria-valuenow={currentPage + 1}
+					role="slider"
+					tabindex="0"></button>
+				<!-- Floating page-number label that tracks the handle -->
+				<span class="handle-label" style={`left: ${left}px`} class:dragging>{currentPage + 1}{dense ? ` / ${total}` : ''}</span>
 			</ul>
 			<!-- Next Button -->
 			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
@@ -661,26 +689,28 @@
 {/if}
 
 <style>
-	/* Scrubber bar styling — matches the right-side Controls panel */
+	/* Scrubber bar — glassy pill matching the right-side Controls panel */
 	ul {
 		position: absolute;
 		bottom: var(--micrio-border-margin);
 		left: 50%;
 		transform: translateX(-50%);
-		display: flex;
+		display: block;
 		list-style-type: none;
 		background: var(--micrio-button-background, var(--micrio-background, none));
 		box-shadow: var(--micrio-button-shadow);
 		backdrop-filter: var(--micrio-background-filter);
 		border-radius: var(--micrio-border-radius);
-		padding: 0 16px; /* Padding for handle ends */
+		padding: 0 16px;
 		margin: 0;
+		height: var(--micrio-button-size);
 		color: var(--micrio-color);
 		transition: transform .25s ease, opacity .25s ease;
 		max-width: calc(100vw - 50px);
 		max-width: calc(100cqw - 50px);
-		width: 520px; /* Default max width */
-		touch-action: none; /* Prevent browser scrolling */
+		width: 520px;
+		touch-action: none;
+		cursor: pointer;
 	}
 	/* Responsive scrubber bar — leave clearance for the right-side Controls column */
 	@media (max-width: 500px) {
@@ -692,87 +722,182 @@
 		}
 	}
 
-	/* Scrubber list items (bullets) */
-	li {
-		flex: 1; /* Distribute space evenly */
-		transition: none;
-		padding: 0;
-		line-height: var(--micrio-button-size);
-		font-size: 32px;
-		text-align: center;
-		width: 0; /* Allow flex to control width */
-		transition: opacity .25s ease;
-		opacity: .5; /* Dim inactive bullets */
-		display: block;
-		height: 48px; /* Match button height? */
-		position: relative;
-	}
-	li.active {
-		transition-duration: 0s;
-		opacity: 1; /* Highlight active bullet */
-	}
-	/* Bullet button styling */
-	li > button {
-		border: none;
-		color: inherit;
-		cursor: pointer;
+	/* Background track */
+	.track {
 		position: absolute;
-		left: 50%;
-		transform: translate3d(-50%,0,0); /* Center bullet */
-		height: 48px;
-		width: 100%;
-		min-width: 48px;
-		pointer-events: none; /* Only handle clicks via hover state */
-		background: none; /* Transparent background */
-		padding: 0;
+		top: 50%;
+		left: 16px;
+		right: 16px;
+		height: 2px;
+		background: var(--micrio-scrubber-background);
+		border-radius: 2px;
+		transform: translateY(-50%);
+		pointer-events: none;
+		overflow: hidden;
 	}
-	/* Enable pointer events on hover */
-	li.hover > button {
-		pointer-events: all;
+	/* Filled portion of the track up to the current page */
+	.track-fill {
+		display: block;
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 100%;
+		background: var(--micrio-color);
+		border-radius: 2px;
+		opacity: .85;
+		transition: width .15s ease;
 	}
 
-	/* Highlight bullet on hover */
+	/* Tick layer (sits over the track) */
+	.ticks {
+		position: absolute;
+		top: 0;
+		left: 16px;
+		right: 16px;
+		bottom: 0;
+		pointer-events: none;
+	}
+	.tick {
+		position: absolute;
+		top: 50%;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--micrio-color);
+		opacity: .55;
+		transform: translate(-50%, -50%);
+		transition: opacity .2s ease, transform .2s ease, background-color .2s ease;
+	}
+	.tick.active {
+		opacity: 1;
+		transform: translate(-50%, -50%) scale(1.6);
+		background: var(--micrio-color-hover, var(--micrio-color));
+	}
 	@media (hover: hover) {
-		li.hover {
-			transition-duration: 0s;
+		.tick.hover {
 			opacity: 1;
+			transform: translate(-50%, -50%) scale(1.4);
+		}
+	}
+	/* Dense mode: switch dots to subtle ticks */
+	ul.dense .tick {
+		width: 1.5px;
+		height: 8px;
+		border-radius: 1px;
+		opacity: .35;
+		transform: translate(-50%, -50%);
+	}
+	ul.dense .tick.major {
+		height: 12px;
+		opacity: .6;
+	}
+	ul.dense .tick.active {
+		width: 2px;
+		height: 14px;
+		opacity: 1;
+		background: var(--micrio-color-hover, var(--micrio-color));
+		transform: translate(-50%, -50%);
+	}
+	@media (hover: hover) {
+		ul.dense .tick.hover {
+			opacity: .9;
+			transform: translate(-50%, -50%);
 		}
 	}
 
-	/* Scrubber handle button styling */
-	button:not(.bullet) {
+	/* Hover preview label */
+	.hover-label {
 		position: absolute;
-		width: var(--micrio-button-size);
-		height: var(--micrio-button-size);
+		bottom: calc(100% + 6px);
+		transform: translateX(-50%);
+		padding: 2px 8px;
+		font-size: 11px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		line-height: 1.4;
+		color: var(--micrio-color);
+		background: var(--micrio-popover-background);
+		backdrop-filter: var(--micrio-background-filter);
+		border-radius: 999px;
+		box-shadow: var(--micrio-button-shadow);
+		pointer-events: none;
+		white-space: nowrap;
+	}
+
+	/* Pill-shaped draggable handle */
+	.handle {
+		position: absolute;
+		top: 50%;
+		left: 0;
+		height: 28px;
+		min-width: 28px;
+		padding: 0;
 		box-sizing: border-box;
-		background: var(--micrio-scrubber-background); /* Semi-transparent background */
-		border: none;
-		border-radius: var(--micrio-border-radius);
-		touch-action: none; /* Prevent browser gestures */
-		transition: left .15s ease, background-color .2s ease; /* Animate left position */
-		transform: translateX(-50%); /* Center handle */
+		background: var(--micrio-color);
+		border: 2px solid var(--micrio-color);
+		border-radius: 999px;
+		cursor: ew-resize;
+		touch-action: none;
+		transform: translate(-50%, -50%);
+		transition: left .15s ease, height .15s ease, min-width .15s ease, background-color .2s ease, box-shadow .2s ease;
+		box-shadow: 0 2px 8px rgba(0,0,0,.35), 0 0 0 0 var(--micrio-color-hover);
 	}
-	ul > button { /* Scrubber handle specific */
-		top: 0;
-		left: 0; /* Initial position, updated by `left` style */
-		cursor: ew-resize; /* Horizontal resize cursor */
+	.handle:hover {
+		box-shadow: 0 2px 8px rgba(0,0,0,.4), 0 0 0 4px rgba(255,255,255,.12);
 	}
+	.handle.dragging {
+		transition: none;
+		box-shadow: 0 2px 12px rgba(0,0,0,.5), 0 0 0 6px rgba(255,255,255,.15);
+		cursor: grabbing;
+	}
+
+	/* Page-number label that floats above the handle, matching hover-label styling */
+	.handle-label {
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 0;
+		transform: translateX(-50%);
+		padding: 3px 9px;
+		font-size: 12px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		line-height: 1.4;
+		color: var(--micrio-color);
+		background: var(--micrio-popover-background);
+		backdrop-filter: var(--micrio-background-filter);
+		border-radius: 999px;
+		box-shadow: var(--micrio-button-shadow);
+		pointer-events: none;
+		white-space: nowrap;
+		transition: left .15s ease, transform .15s ease;
+	}
+	.handle-label.dragging {
+		transition: none;
+		transform: translateX(-50%) scale(1.05);
+	}
+
 	/* Omni 2-axis control button */
 	button.angular {
-		bottom: 42px; /* Position above scrubber */
+		position: absolute;
+		bottom: 42px;
 		left: 50%;
+		width: var(--micrio-button-size);
+		height: var(--micrio-button-size);
+		background: var(--micrio-scrubber-background);
+		border: none;
+		border-radius: var(--micrio-border-radius);
 		color: #444;
 		font-size: 32px;
 		line-height: 42px;
 		padding: 0;
-		cursor: move; /* Move cursor */
+		cursor: move;
+		transform: translateX(-50%);
+		transition: background-color .2s ease;
 	}
-	/* Handle hover effect */
-	button:not(.bullet):hover {
+	button.angular:hover {
 		background: #eee8;
 	}
-	/* Disable transition while dragging handle */
-	button:not(.bullet).dragging {
+	button.angular.dragging {
 		transition: none;
 	}
 
