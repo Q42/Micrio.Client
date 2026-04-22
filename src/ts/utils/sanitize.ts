@@ -100,8 +100,9 @@ const sanitizeMenuPage = (m: Models.ImageData.Menu) => {
 	m.children?.forEach(sanitizeMenuPage);
 };
 
-// Keep track of IDs already sanitized (bounded Set instead of unbounded array)
-const sanitizedIds = new Set<string>();
+// Keep track of marker objects already sanitized (per-reference, so each clone
+// produced by fetchJson gets its own sanitization pass)
+const sanitizedMarkers = new WeakSet<Models.ImageData.Marker>();
 
 /**
  * Sanitizes marker data, ensuring required properties exist, handling legacy formats,
@@ -113,9 +114,8 @@ const sanitizedIds = new Set<string>();
  * @param legacyViews It uses the old [x0,y0,x1,y1] viewports
  */
 export const sanitizeMarker = (m: Models.ImageData.Marker, lang: string, isOld: boolean, legacyViews?: boolean): void => {
-	const key = lang + '-' + m.id;
-	if (sanitizedIds.has(key)) return;
-	sanitizedIds.add(key);
+	if (sanitizedMarkers.has(m)) return;
+	sanitizedMarkers.add(m);
 	// Ensure basic properties exist
 	if (!m.data) m.data = {};
 	if (!m.id) m.id = createGUID();
