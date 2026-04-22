@@ -735,43 +735,73 @@ export class MicrioImage {
 		return d; // Return the enriched data
 	}
 
-	/** Parses IIIF Presentation API V2 sequence data to create embedded MicrioImage instances for each canvas.
+	/** Configures the info object as a strip-swipe gallery container and sets the
+	 * parent's dimensions to match the element's viewport. Returns the starting
+	 * slot index resolved from `gallery.startId` (or 0).
+	 * @internal
+	 */
+	private setupIIIFGalleryContainer(i:Models.ImageInfo.ImageInfo, ids:string[]) : number {
+		this.noImage = true;
+		// Size the virtual parent to the element's current pixel dimensions so child
+		// strip-swipe slots render at the full viewport aspect (matches loadGallery's
+		// strip-swipe path). Using sum-of-widths × max-of-heights here would letterbox
+		// the parent and squash all children into that strip.
+		const micrio = this.wasm.micrio;
+		const ratio = micrio.canvas.getRatio();
+		i.width = Math.max(1, micrio.offsetWidth * ratio);
+		i.height = Math.max(1, micrio.offsetHeight * ratio);
+		if(!i.settings) i.settings = {};
+		if(!i.settings.gallery) i.settings.gallery = {};
+		i.settings.view = [0, 0, 1, 1];
+		i.gallery = [];
+		const startId = i.settings.gallery.startId;
+		const startIdx = startId ? ids.findIndex(id => id == startId) : -1;
+		return startIdx < 0 ? 0 : startIdx;
+	}
+
+	/** Parses IIIF Presentation API V2 sequence data. For short sequences the canvases
+	 * are treated as positioned embeds in a composite image; long sequences (>10) are
+	 * configured as a swipeable gallery.
 	 * @internal
 	 */
 	private parseIIIFSequenceV2(i:Models.ImageInfo.ImageInfo, isIIIFSequence:boolean=false) : void {
-		const s = i.sequences?.[0]; // Get first sequence
+		const s = i.sequences?.[0];
 		if(!s) return;
-		const vertical = s.viewingDirection == 'top-to-bottom'; // Check viewing direction
-		// Extract image resources from canvases
 		const images = s.canvases.map(c => c.images[0]).map(i => i.resource);
-		this.noImage = true; // Mark main image as virtual
-		// Calculate overall dimensions
-		i.width = !vertical ? images.reduce((v, i) => v+i.width, 0) : Math.max(...images.map(i => i.width));
-		i.height = vertical ? images.reduce((v, i) => v+i.height, 0) : Math.max(...images.map(i => i.height));
-		let offset = 0; // Running offset for placement
-		let canvas = this.embeds; // Target array for image instances
-		// If many images in sequence, treat as gallery instead of embeds
-		if(!i.settings) i.settings = {};
-		if(isIIIFSequence && images.length > 10) {
-			canvas = i.gallery = []; // Use gallery array
-			if(!i.settings.gallery) i.settings.gallery = {}; // Ensure gallery settings exist
-		}
-		// Create MicrioImage instance for each canvas/image
-		images.forEach(s => {
-			// Calculate margins for centering
-			const margins = [ (1 - (s.width / i.width)) / 2, (1 - (s.height / i.height)) / 2 ];
-			// Create new MicrioImage instance
-			canvas.push(new MicrioImage(this.wasm, {
-				id: s.service['@id'], // Use IIIF service ID
+		const isGallery = isIIIFSequence && images.length > 10;
+
+		if(isGallery) {
+			const startIdx = this.setupIIIFGalleryContainer(i, images.map(s => s.service['@id']));
+			images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.wasm, {
+				id: s.service['@id'],
 				width: s.width, height: s.height,
 				isPng: s.format == 'image/png',
-				settings: {} // Basic settings
-			}, { // Embed options
-				// Calculate placement area based on direction and offset
+				settings: {}
+			}, {
+				area: [idx - startIdx, 0, idx - startIdx + 1, 1]
+			})));
+			return;
+		}
+
+		// Composite layout: position each canvas as an embed within a single virtual parent.
+		const vertical = s.viewingDirection == 'top-to-bottom';
+		this.noImage = true;
+		i.width = !vertical ? images.reduce((v, i) => v+i.width, 0) : Math.max(...images.map(i => i.width));
+		i.height = vertical ? images.reduce((v, i) => v+i.height, 0) : Math.max(...images.map(i => i.height));
+		if(!i.settings) i.settings = {};
+		let offset = 0;
+		images.forEach(s => {
+			const margins = [ (1 - (s.width / i.width)) / 2, (1 - (s.height / i.height)) / 2 ];
+			this.embeds.push(new MicrioImage(this.wasm, {
+				id: s.service['@id'],
+				width: s.width, height: s.height,
+				isPng: s.format == 'image/png',
+				settings: {}
+			}, {
 				area: vertical ? [margins[0], offset/i.height, 1-margins[0], (offset+s.height)/i.height]
 					: [offset/i.width, margins[1], (offset+s.width)/i.width, 1-margins[1] ]
 			}));
-			offset+=vertical?s.height:s.width; // Update offset
+			offset += vertical ? s.height : s.width;
 		});
 	}
 
@@ -779,35 +809,18 @@ export class MicrioImage {
 	 * @internal
 	 */
 	private parseIIIFSequenceV3(i:Models.ImageInfo.ImageInfo) : void {
-		// Extract image resources from canvases
 		const images = i.items?.flatMap(p => p.items?.[0]?.items?.[0]?.body).filter(p => !!p?.service?.[0]?.id).filter(p => !!p);
 		if(!images?.length) return;
-		this.noImage = true; // Mark main image as virtual
-		const vertical = false;
-		i.width = !vertical ? images.reduce((v, i) => v+i.width, 0) : Math.max(...images.map(i => i.width));
-		i.height = vertical ? images.reduce((v, i) => v+i.height, 0) : Math.max(...images.map(i => i.height));
-		let offset = 0; // Running offset for placement
-		const canvas:MicrioImage[] = i.gallery = []; // Use gallery array
-		if(!i.settings) i.settings = {};
-		if(!i.settings.gallery) i.settings.gallery = {}; // Ensure gallery settings exist
-		// Create MicrioImage instance for each canvas/image
-		images.forEach(s => {
-			// Calculate margins for centering
-			const margins = [ (1 - (s.width / i.width)) / 2, (1 - (s.height / i.height)) / 2 ];
-			// Create new MicrioImage instance
-			canvas.push(new MicrioImage(this.wasm, {
-				id: s.service[0].id, // Use IIIF service ID
-				width: s.width, height: s.height,
-				isPng: s.format == 'image/png',
-				tileSize: i.tileSize,
-				settings: {} // Basic settings
-			}, { // Embed options
-				// Calculate placement area based on direction and offset
-				area: vertical ? [margins[0], offset/i.height, 1-margins[0], (offset+s.height)/i.height]
-					: [offset/i.width, margins[1], (offset+s.width)/i.width, 1-margins[1] ]
-			}));
-			offset+=vertical?s.height:s.width; // Update offset
-		});
+		const startIdx = this.setupIIIFGalleryContainer(i, images.map(s => s.service[0].id));
+		images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.wasm, {
+			id: s.service[0].id,
+			width: s.width, height: s.height,
+			isPng: s.format == 'image/png',
+			tileSize: i.tileSize,
+			settings: {}
+		}, {
+			area: [idx - startIdx, 0, idx - startIdx + 1, 1]
+		})));
 	}
 
 	/**
