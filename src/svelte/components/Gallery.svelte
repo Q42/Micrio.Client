@@ -53,7 +53,7 @@
 
 	// --- UI Settings ---
 	/** Whether the gallery controls should auto-hide after inactivity. */
-	const autoHide:boolean = !micrio.canvas.isMobile;
+	const autoHide:boolean = true;
 
 	// --- Component Initialization ---
 
@@ -521,11 +521,11 @@
 	let hidden:Writable<boolean> = micrio.state.ui.hidden;
 	/** Timeout ID for auto-hiding controls. */
 	let to:number|undefined;
-	/** Shows controls and sets a timeout to hide them again. */
+	/** Shows controls and (if auto-hide is enabled) sets a timeout to hide them again. */
 	function activity(): void {
 		hidden.set(false); // Show controls
 		clearTimeout(to); // Clear previous timeout
-		to = <any>setTimeout(() => hidden.set(true), 2000) as number; // Set new timeout
+		if(autoHide) to = <any>setTimeout(() => hidden.set(true), 2000) as number;
 	}
 
 	// --- Album Interface Setup ---
@@ -661,7 +661,7 @@
 {/if}
 
 <style>
-	/* Scrubber bar styling */
+	/* Scrubber bar styling — matches the right-side Controls panel */
 	ul {
 		position: absolute;
 		bottom: var(--micrio-border-margin);
@@ -669,28 +669,26 @@
 		transform: translateX(-50%);
 		display: flex;
 		list-style-type: none;
-		background: var(--micrio-background);
+		background: var(--micrio-button-background, var(--micrio-background, none));
+		box-shadow: var(--micrio-button-shadow);
+		backdrop-filter: var(--micrio-background-filter);
 		border-radius: var(--micrio-border-radius);
 		padding: 0 16px; /* Padding for handle ends */
 		margin: 0;
 		color: var(--micrio-color);
-		transition: opacity .25s ease;
+		transition: transform .25s ease, opacity .25s ease;
 		max-width: calc(100vw - 50px);
 		max-width: calc(100cqw - 50px);
 		width: 520px; /* Default max width */
 		touch-action: none; /* Prevent browser scrolling */
 	}
-	/* Responsive scrubber bar */
+	/* Responsive scrubber bar — leave clearance for the right-side Controls column */
 	@media (max-width: 500px) {
 		ul {
-			left: 5px;
-			right: 52px; /* Space for next button */
+			left: var(--micrio-border-margin);
+			right: calc(var(--micrio-button-size) + var(--micrio-border-margin) * 2);
 			width: auto;
 			transform: none;
-		}
-		/* Delay hiding on mobile */
-		div.hidden > ul {
-			transition-delay: .25s;
 		}
 	}
 
@@ -781,14 +779,6 @@
 	/* Main container div for controls */
 	div {
 		display: contents; /* Doesn't affect layout */
-		transition: opacity .5s ease;
-	}
-	/* Hide controls when hidden state is true (and not hovered/dragging) */
-	div.hidden:not(:hover) > :global(*),
-	/* Hide disabled gallery buttons */
-	div > :global(button.gallery-btn:disabled) {
-		opacity: 0;
-		pointer-events: none;
 	}
 
 	/* Gallery prev/next button positioning */
@@ -796,11 +786,40 @@
 		position: absolute;
 		top: 50%;
 		transform: translateY(-50%);
+		transition: transform .25s ease, opacity .25s ease;
 	}
 	div > :global(button.gallery-btn.arrow-left) {
 		left: var(--micrio-border-margin);
 	}
 	div > :global(button.gallery-btn.arrow-right) {
 		right: var(--micrio-border-margin);
+	}
+
+	/* Slide controls off-screen when hidden by inactivity timer */
+	div.hidden:not(:hover) > :global(ul) {
+		transform: translate(-50%, calc(100% + var(--micrio-border-margin)));
+		opacity: 0;
+		pointer-events: none;
+	}
+	@media (max-width: 500px) {
+		div.hidden:not(:hover) > :global(ul) {
+			transform: translateY(calc(100% + var(--micrio-border-margin)));
+		}
+	}
+	div.hidden:not(:hover) > :global(button.gallery-btn.arrow-left) {
+		transform: translate(calc(-100% - var(--micrio-border-margin)), -50%);
+		opacity: 0;
+		pointer-events: none;
+	}
+	div.hidden:not(:hover) > :global(button.gallery-btn.arrow-right) {
+		transform: translate(calc(100% + var(--micrio-border-margin)), -50%);
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	/* Disabled prev/next buttons just fade away in place */
+	div > :global(button.gallery-btn:disabled) {
+		opacity: 0;
+		pointer-events: none;
 	}
 </style>

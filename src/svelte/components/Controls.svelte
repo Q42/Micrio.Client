@@ -161,7 +161,7 @@
 	/** Determine if the fullscreen button should be shown (setting enabled and not in a serial tour). */
 	const hasFullscreen = $derived(showFullscreen && !isActiveSerialTour);
 	/** Determine if the entire controls container should be shown. */
-	const hasControls = $derived($controls && !$hidden && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
+	const hasControls = $derived($controls && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
 	/** Show only fullscreen button when having popup on mobile screen */
 	const onlyFullscreen = $derived($popup && micrio.canvas.$isMobile);
 
@@ -169,7 +169,7 @@
 
 <!-- Render the controls container only if `hasControls` is true -->
 {#if hasControls}
-	<aside>
+	<aside class:hidden={$hidden}>
 		{#if !onlyFullscreen}
 			<!-- Mute Button -->
 			{#if showMute}
@@ -236,7 +236,7 @@
 		bottom: var(--micrio-border-margin);
 		padding: 0;
 		margin: 0;
-		transition: transform .5s ease, opacity .5s ease;
+		transition: transform .25s ease, opacity .25s ease;
 		direction: rtl; /* Right-to-left for button order */
 	}
 
@@ -247,6 +247,13 @@
 	/* Styling for primary controls in split-screen (portrait) */
 	aside.primary.portrait {
 		bottom: calc(50% + var(--micrio-border-margin)); /* Position above center */
+	}
+
+	/* Slide controls off-screen when hidden by inactivity timer */
+	aside.hidden {
+		transform: translateX(calc(100% + var(--micrio-border-margin)));
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	/* Hide controls during image switching or when a tour is active */
