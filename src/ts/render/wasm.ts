@@ -907,9 +907,13 @@ export class Wasm {
 	areaAnimating(ptr:number) : boolean { return !!this.e._areaAnimating(ptr); }
 	/** Get the current active embedded image index. @internal */
 	getActiveImageIdx(ptr:number) : number { return this.e._getActiveImageIdx(ptr); }
-	/** Disable panning during pinch gestures. @internal */
+	/** Disable panning during pinch gestures. Used only by `GallerySwiper` for
+	 * `omni` / `swipe-full` galleries; strip-swipe galleries use independent child
+	 * canvases and do not need this. @internal */
 	setNoPinchPan(v:boolean) : void { this.e.setNoPinchPan(this.i, v); }
-	/** Enable swipe gallery mode. @internal */
+	/** Enable swipe gallery mode (skips per-page minScale clamping in the Wasm camera).
+	 * Used only by `GallerySwiper` for `omni` / `swipe-full`; strip-swipe relies on each
+	 * child canvas's own correct min-scale. @internal */
 	setIsSwipe(v:boolean) : void { this.e.setIsSwipe(this.i, v); }
 	/** Get eased value (easeInOut). @internal */
 	ease(p:number) : number { return this.e.ease(p); }

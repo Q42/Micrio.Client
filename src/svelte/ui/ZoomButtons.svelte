@@ -12,7 +12,7 @@
 	import type { Unsubscriber } from 'svelte/store';
 	import type { HTMLMicrioElement } from '$ts/element';
 
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, tick } from 'svelte';
 
 	// Micrio TS imports
 	import { once } from '$ts/utils';
@@ -79,6 +79,16 @@
 	let unsub:Unsubscriber|undefined;
 	/** Unsubscriber for the current image store subscription (if image prop is not provided). */
 	let currentUnsub:Unsubscriber|undefined;
+	/** Unsubscriber for the album.currentImage store (strip-swipe galleries). */
+	let albumUnsub:Unsubscriber|undefined;
+
+	/** Bind to a specific image's view store, swapping out any previous binding. */
+	const bindTo = (img: MicrioImage|undefined) => {
+		if(unsub) { unsub(); unsub = undefined; }
+		image = img;
+		if(img) unsub = img.state.view.subscribe(update);
+		else update();
+	};
 
 	onMount(() => {
 		if(image) { // If a specific image is provided
@@ -87,28 +97,25 @@
 		} else { // If no specific image, use the currently active one
 			// Subscribe to the main `current` image store
 			currentUnsub = micrio.current.subscribe(c => {
-				// Unsubscribe from previous image's view store if necessary
+				if(albumUnsub) { albumUnsub(); albumUnsub = undefined; }
 				if(unsub) { unsub(); unsub = undefined; }
-				loading = true; // Set loading state
-				if(image = c) { // If a new current image is set
-					// Wait for its info to load
-					once(c.info).then(() => {
-						if(image) { // Ensure image hasn't changed again while waiting
-							// Subscribe to the new image's view store
-							unsub = image.state.view.subscribe(update);
-						}
-						loading = false; // Clear loading state
-					});
-				} else {
-					loading = false; // No current image, clear loading state
-				}
+				loading = true;
+				if(!c) { image = undefined; loading = false; return; }
+				// Wait for info + a tick so Gallery.svelte has mounted and populated
+				// `album.currentImage` (strip-swipe) before we decide what to bind to.
+				once(c.info).then(() => tick()).then(() => {
+					if(c.album?.currentImage) albumUnsub = c.album.currentImage.subscribe(bindTo);
+					else bindTo(c);
+					loading = false;
+				});
 			});
 		}
 
 		// Cleanup function
 		return () => {
-			if(currentUnsub) currentUnsub(); // Unsubscribe from current image store
-			if(unsub) unsub(); // Unsubscribe from view store
+			if(currentUnsub) currentUnsub();
+			if(albumUnsub) albumUnsub();
+			if(unsub) unsub();
 		}
 	});
 </script>

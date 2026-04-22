@@ -1351,6 +1351,10 @@ import type { MicrioIcon } from '$ts/icons';
 		goto: (n:number) => void;
 		/** Album has been initialized and hooked */
 		hooked?: boolean;
+		/** Strip-swipe only: writable store tracking the currently active child
+		 * MicrioImage. Consumers (e.g. ZoomButtons) can subscribe to bind their
+		 * controls to the image under focus instead of the virtual parent. */
+		currentImage?: Writable<import('../ts/image').MicrioImage>;
 	}
 
 	export namespace Camera {

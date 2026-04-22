@@ -11,33 +11,10 @@ import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
 import { deepCopy, once, sleep } from '$ts/utils';
 import { tick } from 'svelte';
 import { Enums } from '$ts/enums';
+import { slideAreas, swipeAreas, swipeExitAreas } from '$ts/nav/transitions';
 
 /** Rounds a number to 5 decimal places. @internal */
 const round = (n:number) => Math.round(n*100000)/100000;
-
-/** Slide transition entry areas by direction. @internal */
-const slideAreas: Record<number, Models.Camera.ViewRect> = {
-	0:   [0, -.5, 1, 0],
-	90:  [1, 0, 1.5, 1],
-	180: [0, 1, 1, 1.5],
-	270: [-.5, 0, 0, 1],
-};
-
-/** Swipe transition entry areas by direction. @internal */
-const swipeAreas: Record<number, Models.Camera.ViewRect> = {
-	0:   [0, -1, 1, 0],
-	90:  [1, 0, 2, 1],
-	180: [0, 1, 1, 2],
-	270: [-1, 0, 0, 1],
-};
-
-/** Swipe transition exit areas by direction (inverse of entry). @internal */
-const swipeExitAreas: Record<number, Models.Camera.ViewRect> = {
-	0:   [0, 1, 1, 2],
-	90:  [-1, 0, 0, 1],
-	180: [0, -1, 1, 0],
-	270: [1, 0, 2, 1],
-};
 
 /**
  * Controls the display and interaction logic for grid layouts.

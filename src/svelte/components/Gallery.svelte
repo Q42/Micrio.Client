@@ -21,6 +21,8 @@
 	import { icons } from '$ts/icons';
 	import { GallerySwiper } from '$ts/nav/swiper';
 	import { i18n } from '$ts/i18n'; // For UI text translations
+	import { horizontalSlot } from '$ts/nav/transitions';
+	import { Enums } from '$ts/enums';
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
@@ -90,6 +92,8 @@
 	const isOmni:boolean = gallery.type == 'omni';
 	const isFullSwipe:boolean = isOmni || gallery.type == 'swipe-full';
 	const isSwitch:boolean = isFullSwipe || gallery.type == 'switch';
+	/** Strip-swipe: independent child canvases sliding via Camera.setArea. */
+	const isStripSwipe:boolean = !isSwitch && _images.length > 1 && !('frame' in (_images[0] ?? {}));
 
 	// Other gallery options
 	const isContinuous:boolean = isOmni; // Omni objects wrap around
@@ -121,24 +125,30 @@
 	/** Array mapping page index to the original image index(es) it contains. */
 	const pageIdxes:number[][] = [];
 
-	// Calculate page layouts, handling spreads
-	if(_images) {
+	if(isStripSwipe) {
+		// Strip swipe: each image is its own canvas, full-screen when active.
+		// pages[] is just a per-image placeholder; the actual transition uses Camera.setArea.
 		for(let i=0; i<_images.length; i++) {
-			let area = _images[i].opts?.area; // Get area defined in MicrioImage options
-			if(!area) continue; // Skip if no area defined (shouldn't happen for galleries)
-			const v = area.slice(0); // Copy the area view
-			pageIdxes.push([i]); // Add current image index to mapping
+			pages.push([0, 0, 1, 1]);
+			pageIdxes.push([i]);
+		}
+	}
+	else if(_images) {
+		// Calculate page layouts within the shared parent canvas, handling spreads
+		for(let i=0; i<_images.length; i++) {
+			let area = _images[i].opts?.area;
+			if(!area) continue;
+			const v = area.slice(0);
+			pageIdxes.push([i]);
 
-			// If spreads are enabled, and this is an even page after cover pages, combine with the next page
 			if(isSpread && (i-coverPages>=0 && ((i-coverPages)%2==0)) && _images[i+1]) {
-				area = _images[++i].opts?.area; // Get area of the next image
-				if(!area) continue; // Skip if next image has no area
-				pageIdxes[pageIdxes.length-1].push(i); // Add next image index to the same page mapping
-				// Extend the view rectangle to encompass both pages
-				v[2] = area[2]; // Use right edge of the second image
+				area = _images[++i].opts?.area;
+				if(!area) continue;
+				pageIdxes[pageIdxes.length-1].push(i);
+				v[2] = area[2];
 				v[3] = area[3];
 			}
-			pages.push(v); // Add the calculated page/spread view to the list
+			pages.push(v);
 		}
 	}
 
@@ -178,49 +188,91 @@
 	 * @param force Force navigation even if index hasn't changed.
 	 */
 	function goto(i:number, fast:boolean=false, duration:number=150, force:boolean=false) : void {
-		// Handle wrapping for continuous galleries (omni)
 		if(isContinuous) {
 			while(i<0)i+=pagesPerLayer;
 			i%=pagesPerLayer;
 		}
-		// Clamp index to valid range
 		const page = i = Math.round(Math.max(0, Math.min(pagesPerLayer-1, i)));
-		const changed = force || page != currentPage; // Check if index actually changed
-		currentPage = page; // Update current page index
-		if(changed) frameChanged(); // Trigger actions needed when the frame changes
+		const changed = force || page != currentPage;
+		currentPage = page;
+		if(changed) frameChanged();
 
-		if(!isSwitch) { // For swipe galleries (not switch/omni)
-			const cv = camera.getViewLegacy() as Models.Camera.ViewRect; // Current camera view [x0,y0,x1,y1]
-			const page = pages[i]; // Target page view (legacy format [x0,y0,x1,y1])
-			const v = View.fromLegacy(page)! as Models.Camera.View; // Target page view (modern format [x0,y0,w,h])
-			// Determine if animation is needed (compare cv and page, both legacy format)
-			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < page[0]) !== (cv[2] > page[2]))); // Animate if zoomed out, page changed, or crossing page boundary
-			panning = false; // Reset panning flag
+		if(isStripSwipe) {
+			stripGoto(currentPage, fast, duration, changed);
+		}
+		else if(!isSwitch) {
+			// (Legacy non-strip swipe path, unused for `swipe` type after refactor.)
+			const cv = camera.getViewLegacy() as Models.Camera.ViewRect;
+			const target = pages[i];
+			const v = View.fromLegacy(target)! as Models.Camera.View;
+			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < target[0]) !== (cv[2] > target[2])));
+			panning = false;
 			if(animate) {
-				// Fly camera to the target page view
 				camera.flyToView(v, {duration, speed:1, progress:fast ? .5 : 0})
-					.then(() => limit(page, true)) // Apply limits after animation (uses legacy format)
-					.catch(() => {}); // Ignore animation errors
+					.then(() => limit(target, true))
+					.catch(() => {});
 			} else {
-				// If no animation, set view directly or apply limits
 				if(v && duration == 0) camera.setView(v);
-				limit(page, true); // Uses legacy format for setLimit()
+				limit(target, true);
 			}
 		}
-		else if(changed) { // For switch/omni galleries
-			// Tell Wasm to set the active image(s) for the new page index
+		else if(changed) { // switch / swipe-full / omni
 			wasm.setActiveImage(image.ptr, pageIdxes[currentPage][0], pageIdxes[currentPage].length-1);
 			if(isOmni) {
-				wasm.render(); // Trigger render for omni objects
-			} else { // For switch galleries, animate camera (though images are layered)
+				wasm.render();
+			} else {
 				camera.flyToView(pages[currentPage],{duration, speed: 2})
 					.then(() => limit(pages[currentPage], true))
 					.catch(() => {});
-				activity(); // Trigger activity to show controls
+				activity();
 			}
 		}
-		// Mark album as hooked/inited after first navigation
 		image.album!.hooked = inited = true;
+	}
+
+	// --- Strip-swipe navigation (independent child canvases) ---
+
+	/** Snap animation duration in seconds. */
+	const stripSnapDuration:number = 0.35;
+
+	/** Programmatically navigate between children with a sliding area animation.
+	 * Parent stays micrio.$current (so this component, mounted off
+	 * Main's gallery=$derived($info?.gallery), stays alive); pointer routing reaches the
+	 * active child via events/facade.getImage() picking the visible image at screen coords. */
+	function stripGoto(nextIdx:number, fast:boolean, duration:number, changed:boolean) : void {
+		if(!_images[nextIdx]) return;
+
+		const snapDur = duration === 0 ? 0 : (fast ? stripSnapDuration / 2 : stripSnapDuration);
+
+		// If the leaving image is zoomed in, fly it back to its cover view first so the
+		// slide carries an entire image, not a tiny zoomed detail.
+		const leaving = _images[currentPage > -1 && currentPage != nextIdx ? currentPage : -1] as MicrioImage|undefined;
+		const needsZoomOut = changed && snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut();
+		const startSlide = () : void => {
+			wasm.setGridTransitionDuration(snapDur);
+			for(let i=0; i<_images.length; i++) {
+				const child = _images[i] as MicrioImage|undefined;
+				if(!child?.camera) continue;
+				const cur = child.opts.area ?? [0, 0, 1, 1];
+				// `cur` is the last-requested target (possibly still mid-animation in wasm).
+				// A child counts as "near visible" if that slot sits within the neighbour
+				// range, so interrupting a transition still animates the children currently
+				// sliding across screen instead of direct-snapping them.
+				const prevSlotLeft = cur[0];
+				const wasNearVisible = prevSlotLeft >= -1 && prevSlotLeft <= 1;
+				const targetSlot = i - nextIdx;
+				const target = horizontalSlot(targetSlot);
+				const willBeVisible = Math.abs(targetSlot) <= 1;
+				const needsMove = Math.abs(cur[0] - target[0]) > 1e-4 || Math.abs(cur[2] - target[2]) > 1e-4;
+				const animate = snapDur > 0 && needsMove && (wasNearVisible || willBeVisible);
+				child.camera.setArea(target, {direct: !animate, noDispatch: true});
+			}
+			wasm.render();
+		};
+
+		if(needsZoomOut) leaving!.camera!.flyToCoverView({duration: snapDur * 1000 * 0.6, speed: 2})
+			.then(startSlide).catch(startSlide);
+		else startSlide();
 	}
 
 	/** Actions to perform when the active frame/page changes. */
@@ -234,6 +286,8 @@
 		events.dispatch('gallery-show', currentPage); // Dispatch event
 		// Update rotation display for omni objects
 		if(isOmni) currentRotation = (currentPage - omniFrontIndex) / pagesPerLayer * 360;
+		// Strip-swipe: publish the active child so consumers (zoom buttons, etc.) rebind
+		if(isStripSwipe) image.album?.currentImage?.set(_images[currentPage] as MicrioImage);
 	}
 
 	// --- Preloading Logic ---
@@ -412,6 +466,106 @@
 		zoomedOut = camera.isZoomedOut();
 	}
 
+	// --- Strip-swipe Live Drag (independent child canvases) ---
+
+	let stripDragId:number|undefined;
+	let stripDragStartX:number = 0;
+	let stripDragLastX:number = 0;
+	let stripDragLastT:number = 0;
+	let stripDragVelocity:number = 0;
+	let stripDragActive:boolean = false;
+	let stripDragHorizontal:boolean = false;
+	let stripDragStartY:number = 0;
+
+	/** Returns true if strip-swipe should intercept: only when the active child is at its base scale. */
+	function stripCanSwipe() : boolean {
+		const active = _images[currentPage] as MicrioImage|undefined;
+		return !!active?.camera?.isZoomedOut();
+	}
+
+	function stripPointerDown(e:PointerEvent) : void {
+		if(!stripCanSwipe() || e.button != 0 || stripDragId !== undefined) return;
+		stripDragId = e.pointerId;
+		stripDragStartX = stripDragLastX = e.clientX;
+		stripDragStartY = e.clientY;
+		stripDragLastT = e.timeStamp;
+		stripDragVelocity = 0;
+		stripDragActive = false;
+		stripDragHorizontal = false;
+		window.addEventListener('pointermove', stripPointerMove);
+		window.addEventListener('pointerup', stripPointerUp);
+		window.addEventListener('pointercancel', stripPointerUp);
+	}
+
+	function stripPointerMove(e:PointerEvent) : void {
+		if(e.pointerId !== stripDragId) return;
+		const dx = e.clientX - stripDragStartX;
+		const dy = e.clientY - stripDragStartY;
+		// Once movement direction is established, only react to predominantly-horizontal drags.
+		if(!stripDragActive) {
+			if(Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+			stripDragHorizontal = Math.abs(dx) > Math.abs(dy);
+			if(!stripDragHorizontal) { stripPointerUp(e); return; }
+			stripDragActive = true;
+			micrio.setAttribute('data-panning','');
+			micrio.keepRendering = true;
+			micrio.canvas.element.setPointerCapture(e.pointerId);
+		}
+		// Track velocity (px/ms, signed) using the most recent move delta.
+		const dt = Math.max(1, e.timeStamp - stripDragLastT);
+		stripDragVelocity = (e.clientX - stripDragLastX) / dt;
+		stripDragLastX = e.clientX;
+		stripDragLastT = e.timeStamp;
+
+		const w = micrio.offsetWidth || 1;
+		const progress = dx / w; // -1..1, positive = drag right (reveals previous)
+		applyDragProgress(progress);
+	}
+
+	function stripPointerUp(e:PointerEvent) : void {
+		if(e.pointerId !== stripDragId) return;
+		window.removeEventListener('pointermove', stripPointerMove);
+		window.removeEventListener('pointerup', stripPointerUp);
+		window.removeEventListener('pointercancel', stripPointerUp);
+		const wasActive = stripDragActive;
+		stripDragId = undefined;
+		stripDragActive = false;
+		micrio.removeAttribute('data-panning');
+		micrio.keepRendering = false;
+		if(!wasActive) return;
+		try { micrio.canvas.element.releasePointerCapture(e.pointerId); } catch(_) {}
+
+		const w = micrio.offsetWidth || 1;
+		const progress = (e.clientX - stripDragStartX) / w;
+		// Snap by progress (>30%) or velocity (>0.5 px/ms in either direction).
+		let target = currentPage;
+		if(progress < -0.3 || stripDragVelocity < -0.5) target = Math.min(_images.length-1, currentPage + 1);
+		else if(progress > 0.3 || stripDragVelocity > 0.5) target = Math.max(0, currentPage - 1);
+		goto(target);
+	}
+
+	/** Applies a live drag progress (-1..1) to the active and adjacent child areas. */
+	function applyDragProgress(progress:number) : void {
+		// Clamp at edges with rubber-banding.
+		const atLeftEdge = currentPage == 0 && progress > 0;
+		const atRightEdge = currentPage == _images.length - 1 && progress < 0;
+		const eased = (atLeftEdge || atRightEdge) ? Math.sign(progress) * Math.sqrt(Math.abs(progress)) * 0.3 : progress;
+
+		const active = _images[currentPage] as MicrioImage|undefined;
+		active?.camera?.setArea(horizontalSlot(eased), {direct: true, noDispatch: true});
+
+		// Reveal the appropriate neighbour (only one side moves at a time).
+		if(eased < 0 && currentPage < _images.length - 1) {
+			const next = _images[currentPage + 1] as MicrioImage|undefined;
+			next?.camera?.setArea(horizontalSlot(1 + eased), {direct: true, noDispatch: true});
+		}
+		else if(eased > 0 && currentPage > 0) {
+			const prev = _images[currentPage - 1] as MicrioImage|undefined;
+			prev?.camera?.setArea(horizontalSlot(-1 + eased), {direct: true, noDispatch: true});
+		}
+		wasm.render();
+	}
+
 	// --- Omni 2-Axis Rotation State & Handlers ---
 
 	/** Current row index for 2-axis omni. */
@@ -538,29 +692,53 @@
 		info: image.$settings.album,
 		prev: () => goto(currentPage - 1),
 		next: () => goto(currentPage + 1),
-		goto
+		goto,
+		// Strip-swipe routes controls (zoom buttons, etc.) to the active child
+		...(isStripSwipe ? { currentImage: writable(_images[startIdx] as MicrioImage) } : {})
 	};
 
 	// --- Lifecycle (onMount) ---
 
 	let swiper:GallerySwiper; // Instance for swipe gestures
 	onMount(() => {
-		// Initialize Wasm representations for all gallery images/frames
-		Promise.all(images.map(d => {
-			// If it's an OmniFrame, share the main image's camera
-			if('state' in d && !('image' in d)) d.camera = image.camera;
-			// Add embed to Wasm (either as Image or Canvas depending on type)
-			return wasm.addEmbed(d, image, {
-				opacity: 0, // Start hidden
-				asImage: 'camera' in d // Use parent camera if it's an OmniFrame
-			})
-		})).then(() => {
-				// Once all Wasm objects are created, set the initial active image
+		// Initialize Wasm representations for all gallery images/frames.
+		// Strip-swipe uses independent child canvases (addChild); switch/swipe-full/omni
+		// share the parent camera and are added as embeds.
+		const added = isStripSwipe
+			? Promise.all(_images.map(d => wasm.addChild(d as MicrioImage, image)))
+			: Promise.all(images.map(d => {
+				if('state' in d && !('image' in d)) d.camera = image.camera;
+				return wasm.addEmbed(d, image, {
+					opacity: 0,
+					asImage: 'camera' in d
+				});
+			}));
+
+		added.then(() => {
+			if(isStripSwipe) {
+				wasm.setGridTransitionTimingFunction(Enums.Camera.TimingFunction['ease-out']);
+				// Position every child relative to startIdx in one frame. Parent stays
+				// micrio.$current; input is routed to the active child by getImage().
+				// Children come out of addChild with coverLimit=true (the grid default,
+				// which crops to fill the viewport). For a swipe gallery each image
+				// should fit (letterboxed if needed) and remain freely zoomable.
+				for(let i=0; i<_images.length; i++) {
+					const child = _images[i] as MicrioImage;
+					if(!child.camera) continue;
+					child.camera.setCoverLimit(false);
+					child.camera.setArea(horizontalSlot(i - startIdx), {direct: true, noDispatch: true});
+					child.camera.setView([0, 0, 1, 1], {noRender: true});
+				}
+				currentPage = startIdx;
+				frameChanged();
+				image.album!.hooked = inited = true;
+				wasm.render();
+			} else {
 				wasm.setActiveImage(image.ptr, startIdx);
-				// Navigate to the starting index immediately
 				goto(startIdx, false, 0);
-				dragging = false; // Allow interactions now
-			});
+			}
+			dragging = false;
+		});
 
 		// If omni with layers, create/update the layer switcher menu
 		if(isOmni && omniNumLayers > 1) printLayerMenu();
@@ -596,21 +774,26 @@
 
 		// Setup pan/swipe listeners for non-switch/non-omni galleries
 		if(!(isSwitch || isFullSwipe || images.length <= 1)) {
-			if(!isOmniTwoAxes) _left = getX(startIdx); // Initialize scrubber position
+			if(!isOmniTwoAxes) _left = getX(startIdx);
 
-			// Subscribe to view changes to update closest page index
-			unsub.push(image.state.view.subscribe(moved));
-			// Add pan/pinch listeners
-			micrio.addEventListener('panstart', pStart);
-			micrio.addEventListener('panend', pEnd);
-			micrio.addEventListener('pinchend', pEnd);
-
-			// Add cleanup functions for listeners
-			unhook.push(() => {
-				micrio.removeEventListener('panstart', pStart);
-				micrio.removeEventListener('panend', pEnd);
-				micrio.removeEventListener('pinchend', pEnd);
-			});
+			if(isStripSwipe) {
+				// Strip-swipe: independent child canvases, area-based slide gestures.
+				const onDown = stripPointerDown;
+				micrio.canvas.element.addEventListener('pointerdown', onDown);
+				unhook.push(() => micrio.canvas.element.removeEventListener('pointerdown', onDown));
+			}
+			else {
+				// Legacy non-strip swipe path, kept for completeness.
+				unsub.push(image.state.view.subscribe(moved));
+				micrio.addEventListener('panstart', pStart);
+				micrio.addEventListener('panend', pEnd);
+				micrio.addEventListener('pinchend', pEnd);
+				unhook.push(() => {
+					micrio.removeEventListener('panstart', pStart);
+					micrio.removeEventListener('panend', pEnd);
+					micrio.removeEventListener('pinchend', pEnd);
+				});
+			}
 		}
 		// Update frame display on camera move for omni objects
 		if(isOmni) micrio.addEventListener('move', frameChanged);

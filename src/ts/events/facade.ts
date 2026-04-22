@@ -218,7 +218,10 @@ export class Events implements EventContext {
 		const w = this.micrio.offsetWidth, h = this.micrio.offsetHeight,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
 		const hasSplitScreen = this.visible?.find(i => !!i.opts.secondaryTo);
-		const t = this.visible.length == 1 ? this.visible[0] : this.visible.find(({ grid, opts: { area } }) =>
+		// Virtual parent canvases (noImage=true, e.g. strip-swipe gallery container) should
+		// not be picked for input routing — they're just containers for real children.
+		const candidates = this.visible.filter(i => !i.noImage);
+		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
 			hasSplitScreen && grid ? false : area ? x >= area[0] && x <= area[2] && y >= area[1] && y <= area[3] : false
 		);
 		if (t && t.opts.secondaryTo && t.opts.isPassive && t.opts.area) {

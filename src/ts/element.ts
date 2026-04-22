@@ -683,41 +683,49 @@ export class HTMLMicrioElement extends HTMLElement {
 		// Fill missing dimensions from previous entry (legacy format quirk)
 		pages.forEach((p,i) => { if(i>0&&!p[2]) p.push(...pages[i-1].slice(1)) });
 
-		// Calculate dimensions for the main gallery canvas
-		const h = opts.height = Math.max(...pages.map(p => p[2])); // Max height of all pages
 		if(!gallery.type) gallery.type = 'swipe'; // Default gallery type
 		const isSwitch = gallery.type == 'switch' || gallery.type == 'swipe-full' || gallery.type == 'omni'; // Types where pages overlap
 		const isSpreads = gallery.isSpreads; // Are pages displayed as spreads?
-		const marginX = isSpreads && !isSwitch ? Math.round(pages[0][1] / 20) : 0; // Margin between pages for non-switch spreads
-		const coverPages = isSpreads ? gallery.coverPages ?? 0 : 0; // Number of initial single cover pages
-		// Calculate total width based on type (sum widths or max width)
-		const w = opts.width = isSwitch ? Math.max(...pages.map(p => p[1] * (isSpreads ? 2 : 1))) : pages.reduce((w, c) => w + c[1] + marginX, 0);
+		const isStripSwipe = !isSwitch; // Strip swipe: independent child canvases per image
 
-		let l=0; // Running left offset for horizontal layout
-		// Create MicrioImage instances for each page
+		if(isStripSwipe) {
+			// Independent child canvases (one per image), positioned via Camera.setArea.
+			// Each image fits its own viewport optimally; no shared parent canvas overflow.
+			// Parent dimensions match the screen so the container itself has a sane aspect.
+			opts.width = this.offsetWidth * this.canvas.getRatio();
+			opts.height = this.offsetHeight * this.canvas.getRatio();
+			const startIdx = Math.max(0, pages.findIndex(p => p[0] == gallery!.startId));
+			opts.gallery = pages.map((c, i) => new MicrioImage(this.wasm, {
+				id: c[0], path, width: c[1], height: c[2], isDeepZoom: c[3] == 'd',
+				isPng: c[4] == 'p', isWebP: c[4] == 'w', tileSize: c[5]||1024,
+				revision: gallery?.revisions?.[c[0]],
+				settings: { skipMeta: true, gallery }
+			}, {
+				area: [i - startIdx, 0, i - startIdx + 1, 1] // Slot offset from active image
+			}));
+			sets.view = [0, 0, 1, 1];
+			return;
+		}
+
+		// --- Switch / swipe-full / omni: single shared canvas with overlapping embeds ---
+		opts.height = Math.max(...pages.map(p => p[2]));
+		const coverPages = isSpreads ? gallery.coverPages ?? 0 : 0;
+		opts.width = Math.max(...pages.map(p => p[1] * (isSpreads ? 2 : 1)));
+
 		opts.gallery = pages.map((c,i) => new MicrioImage(this.wasm, {
 				id: c[0], path, width: c[1], height: c[2], isDeepZoom: c[3] == 'd',
 				isPng: c[4] == 'p', isWebP: c[4] == 'w', tileSize: c[5]||1024,
-				revision: gallery?.revisions?.[c[0]], // Add revision if available
-				settings: { skipMeta: true, gallery } // Basic settings
-			}, { // Embed options
-				isEmbed: isSwitch, // Mark as embed for switch types
-				useParentCamera: isSwitch, // Use main gallery camera for switch types
-				// Calculate placement area within the main gallery canvas
-				area: isSwitch ? !isSpreads ? [0,0,1,1] // Overlap fully
-					// Handle spreads for switch type (cover, left, right)
-					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.75,1] // Single cover/last page
-					: (i-coverPages)%2==0 ? [0,0,.5,1] // Left page
-					: [.5,0,1,1] // Right page
-					// Calculate horizontal placement for non-switch types
-					: [(l+=i>0&&((i<coverPages)||(i-coverPages)%2==0)?marginX:0)/w, // Left edge (add margin)
-						(h-c[2])/2/h, // Top edge (center vertically)
-						(l+=c[1])/w, // Right edge
-						((h-c[2])/2+c[2])/h] // Bottom edge
+				revision: gallery?.revisions?.[c[0]],
+				settings: { skipMeta: true, gallery }
+			}, {
+				isEmbed: true, useParentCamera: true,
+				area: !isSpreads ? [0,0,1,1]
+					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.75,1]
+					: (i-coverPages)%2==0 ? [0,0,.5,1]
+					: [.5,0,1,1]
 			})
 		);
-		sets.pinchZoomOutLimit = true; // Enable zoom out limit for galleries
-		// Set initial view to the starting page's area
+		sets.pinchZoomOutLimit = true;
 		if(opts.gallery.length) sets.view = View.fromLegacy(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
 	}
 

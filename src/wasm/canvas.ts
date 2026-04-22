@@ -572,6 +572,10 @@ export default class Canvas {
 			this.currentArea.setArea(x0, y0, x1, y1);
 		}
 		else { // Start animation
+			// Anchor the new animation at the current (possibly mid-animation) position
+			// so interrupting one transition with another resumes from where we are,
+			// not from the previous animation's origin.
+			this.area.copy(this.currentArea);
 			this.areaAniPerc = 0; // Reset progress
 			if(this.zIndex == 0) this.zIndex = 1; // Raise zIndex for transition if needed
 			this.ani.limit = false; // Disable view limits during area animation
