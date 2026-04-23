@@ -29,7 +29,7 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 	async initialize(): Promise<void> {
 		// Load Vimeo API if not already present
 		if (!('Vimeo' in window)) {
-			await loadScript('https://i.micr.io/vimeo.min.js');
+			await loadScript('https://r2.micr.io/vimeo.min.js');
 		}
 
 		if (!('Vimeo' in window)) {

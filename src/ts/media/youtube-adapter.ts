@@ -41,7 +41,7 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 		// Load YouTube API if not already present
 		if (!('YT' in window)) {
 			await loadScript(
-				'https://i.micr.io/youtube.js',
+				'https://r2.micr.io/youtube.js',
 				'onYouTubeIframeAPIReady'
 			);
 		}
