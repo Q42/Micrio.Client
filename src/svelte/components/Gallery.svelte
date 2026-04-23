@@ -886,7 +886,7 @@
 				<span class="handle-label" style={`left: ${left}px`} class:dragging>{pageLabel(currentPage)}{dense ? ` / ${totalPages}` : ''}</span>
 			</ul>
 			<!-- Next Button -->
-			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
+			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage + 1)} disabled={currentPage>=total-1}></Button>
 		</div>
 	{/if}
 {/if}
