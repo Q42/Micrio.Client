@@ -221,7 +221,8 @@
 			if(isOmni) {
 				wasm.render();
 			} else {
-				camera.flyToView(pages[currentPage],{duration, speed: 2})
+				const p = pages[currentPage];
+				camera.flyToView([p[0], p[1], p[2]-p[0], p[3]-p[1]],{duration, speed: 2})
 					.then(() => limit(pages[currentPage], true))
 					.catch(() => {});
 				activity();
