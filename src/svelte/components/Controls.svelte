@@ -45,7 +45,7 @@
 	/** Reference to the active tour and popup store. */
 	const { tour, popup } = micrioState;
 	/** Destructure UI state stores. */
-	const { controls, zoom, hidden } = micrio.state.ui;
+	const { controls, zoom, hidden, hover } = micrio.state.ui;
 
 	// --- Reactive Declarations (`$:`) ---
 
@@ -169,7 +169,11 @@
 
 <!-- Render the controls container only if `hasControls` is true -->
 {#if hasControls}
-	<aside class:hidden={$hidden}>
+	<aside class:hidden={$hidden && !$hover}
+		onpointerover={() => hover.set(true)}
+		onpointerout={(e) => { if(!e.currentTarget.contains(e.relatedTarget as Node)) hover.set(false); }}
+		onfocusin={() => hover.set(true)}
+		onfocusout={(e) => { if(!e.currentTarget.contains(e.relatedTarget as Node)) hover.set(false); }}>
 		{#if !onlyFullscreen}
 			<!-- Mute Button -->
 			{#if showMute}

@@ -685,6 +685,8 @@
 
 	/** Reference to the UI hidden state store. */
 	let hidden:Writable<boolean> = micrio.state.ui.hidden;
+	/** Shared hover/focus state so Controls follows gallery visibility. */
+	let hover:Writable<boolean> = micrio.state.ui.hover;
 	/** Timeout ID for auto-hiding controls. */
 	let to:number|undefined;
 	/** Shows controls and (if auto-hide is enabled) sets a timeout to hide them again. */
@@ -811,10 +813,11 @@
 
 		// Cleanup function on component destroy
 		return () => {
-			if(swiper) swiper.destroy(); // Destroy swiper instance
-			while(unsub.length) unsub.shift()?.(); // Unsubscribe from stores
-			while(unhook.length) unhook.shift()?.(); // Remove event listeners
-			if(isOmni) micrio.removeEventListener('move', frameChanged); // Remove omni listener
+			if(swiper) swiper.destroy();
+			while(unsub.length) unsub.shift()?.();
+			while(unhook.length) unhook.shift()?.();
+			if(isOmni) micrio.removeEventListener('move', frameChanged);
+			hover.set(false);
 		}
 	});
 </script>
@@ -838,7 +841,12 @@
 		{@const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1}
 		{@const fillPct = total > 1 ? (currentPage / (total - 1)) * 100 : 0}
 		<!-- Scrubber UI for swipe galleries -->
-		<div class:hidden={loading||($hidden && !dragging && !panning)}>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class:hidden={loading||($hidden && !$hover && !dragging && !panning)}
+			onpointerover={() => hover.set(true)}
+			onpointerout={(e) => { if(!e.currentTarget.contains(e.relatedTarget as Node)) hover.set(false); }}
+			onfocusin={() => hover.set(true)}
+			onfocusout={(e) => { if(!e.currentTarget.contains(e.relatedTarget as Node)) hover.set(false); }}>
 			<!-- Previous Button -->
 			<Button type="arrow-left" title={$i18n.galleryPrev} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage - 1)} disabled={currentPage==0}></Button>
 			<!-- Scrubber Bar: click anywhere to jump, drag to scrub -->
@@ -1096,9 +1104,15 @@
 		transition: none;
 	}
 
-	/* Main container div for controls */
+	/* Main container div for controls — full-size overlay so hover/focus
+	   events propagate for the shared ui.hover store. */
 	div {
-		display: contents; /* Doesn't affect layout */
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+	}
+	div > :global(*) {
+		pointer-events: auto;
 	}
 
 	/* Gallery prev/next button positioning */
