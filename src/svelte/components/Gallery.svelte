@@ -358,6 +358,16 @@
 		return scrubPad + (idx / max) * (w - scrubPad * 2);
 	}
 
+	/** Formats a scrubber position as the underlying book page number(s). For
+	 * spread galleries each position can map to 1 or 2 image indexes; show the
+	 * range "n–m" when it's a real spread. */
+	function pageLabel(idx:number) : string {
+		const ids = pageIdxes[idx];
+		if(!ids?.length) return String(idx + 1);
+		if(ids.length === 1) return String(ids[0] + 1);
+		return `${ids[0] + 1}\u2013${ids[ids.length - 1] + 1}`;
+	}
+
 	// --- Scrubber UI State & Handlers (for non-switch/non-omni galleries) ---
 
 	/** Reference to the <ul> element containing scrubber bullets. */
@@ -822,6 +832,7 @@
 		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
 	{:else if !isFullSwipe && images.length > 1}
 		{@const total = pagesPerLayer}
+		{@const totalPages = _images.length}
 		{@const dense = total > 24}
 		{@const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1}
 		{@const fillPct = total > 1 ? (currentPage / (total - 1)) * 100 : 0}
@@ -854,16 +865,16 @@
 				</span>
 				<!-- Hover preview label (only when hovering a different page than current) -->
 				{#if hoverIdx >= 0 && hoverIdx !== currentPage && !dragging}
-					<span class="hover-label" style={`left:${total > 1 ? (hoverIdx / (total - 1)) * 100 : 50}%`}>{hoverIdx + 1}</span>
+					<span class="hover-label" style={`left:${total > 1 ? (hoverIdx / (total - 1)) * 100 : 50}%`}>{pageLabel(hoverIdx)}</span>
 				{/if}
 				<!-- Draggable Handle (clean dot) -->
 				<button class="handle" style={`left: ${left}px`} class:dragging={dragging}
 					aria-label="Gallery position"
-					aria-valuemin={1} aria-valuemax={total} aria-valuenow={currentPage + 1}
+					aria-valuemin={1} aria-valuemax={totalPages} aria-valuenow={(pageIdxes[currentPage]?.[0] ?? currentPage) + 1}
 					role="slider"
 					tabindex="0"></button>
 				<!-- Floating page-number label that tracks the handle -->
-				<span class="handle-label" style={`left: ${left}px`} class:dragging>{currentPage + 1}{dense ? ` / ${total}` : ''}</span>
+				<span class="handle-label" style={`left: ${left}px`} class:dragging>{pageLabel(currentPage)}{dense ? ` / ${totalPages}` : ''}</span>
 			</ul>
 			<!-- Next Button -->
 			<Button type="arrow-right" title={$i18n.galleryNext} className="gallery-btn" onpointerdown={(e: PointerEvent) => e.button === 0 && goto(currentPage + 1)} disabled={currentPage==images.length-1}></Button>
