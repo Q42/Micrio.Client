@@ -5,6 +5,7 @@ import type { MicrioImage } from '$ts/image';
 import { get } from 'svelte/store';
 
 import { slugify, once } from '$ts/utils';
+import { MICRIO_TLD } from '$ts/globals';
 
 /**
  * Handles URL routing for the Micrio viewer, enabling deep linking to specific images,
@@ -74,7 +75,7 @@ export class Router {
 		Router.events.forEach(e => this.micrio.addEventListener(e, this.write));
 
 		// Enable title writing automatically if on the Micrio domain
-		if(location.hostname == 'i.micr.io') this.writeTitle = true;
+		if(location.hostname == `viewer.${MICRIO_TLD}`) this.writeTitle = true;
 
 		// Listen for browser navigation events (back/forward buttons)
 		window.addEventListener(this.isStatic ? 'popstate': 'hashchange', this.read);

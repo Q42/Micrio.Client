@@ -5,6 +5,7 @@
 
 import type { Models } from '$types/models';
 import type { PREDEFINED } from '$types/internal';
+import { VIEWER_BASE } from '../globals';
 import { sanitizeImageInfo, isLegacyViews } from './sanitize';
 import { clone } from './object';
 import { MicrioError } from './error';
@@ -84,7 +85,7 @@ export const getLocalData = (id: string): PREDEFINED | undefined =>
  */
 export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise<Models.ImageInfo.ImageInfo | undefined> => {
 	const ld = getLocalData(id)?.[1]; // Check local predefined data first
-	return ld ? Promise.resolve(ld) : fetchJson(`${path ?? 'https://i.micr.io/'}${id}/info.json`, refresh) // Fetch if not local
+	return ld ? Promise.resolve(ld) : fetchJson(`${path ?? VIEWER_BASE}${id}/info.json`, refresh) // Fetch if not local
 		.then(r => {
 			// Handle ancient Micrio V1 static info.json format
 			/** @ts-ignore */
@@ -102,7 +103,7 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
  * @returns A Promise resolving to the AlbumInfo object or undefined on error.
  */
 export const fetchAlbumInfo = (id: string): Promise<Models.AlbumInfo | undefined> =>
-	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`https://i.micr.io/album/${id}.json`);
+	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`);
 
 // Re-export isLegacyViews for convenience
 export { isLegacyViews };

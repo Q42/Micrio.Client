@@ -19,6 +19,22 @@ export const BASEPATH_V5:string = 'https://r2.micr.io/';
  */
 export const BASEPATH_V5_EU:string = 'https://eu.micr.io/';
 
+/** Detect the active Micrio TLD from the hosting domain. @internal */
+function getMicrioTLD(): string {
+	try {
+		const h = location.hostname;
+		if (h.endsWith('micrio.dev')) return 'micrio.dev';
+		if (h.endsWith('micrio.net')) return 'micrio.net';
+	} catch {}
+	return 'micr.io';
+}
+
+/** The active Micrio top-level domain (`micr.io`, `micrio.net`, or `micrio.dev`). @internal */
+export const MICRIO_TLD: string = getMicrioTLD();
+
+/** Base URL for the viewer data API (info.json, album JSON, spaces JSON). @internal */
+export const VIEWER_BASE: string = `https://viewer.${MICRIO_TLD}/`;
+
 /** List of demo image IDs that might use the default BASEPATH even if they appear to be V5.
  * @internal
  */

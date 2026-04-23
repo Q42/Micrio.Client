@@ -6,7 +6,7 @@ import type { GallerySwiper } from './nav/swiper';
 import type { PREDEFINED } from '$types/internal';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
-import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS } from './globals';
+import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
 import { clone, createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
@@ -216,7 +216,7 @@ export class MicrioImage {
 		// Initialize camera unless using parent's
 		if(!opts.useParentCamera) this.camera = new Camera(this);
 
-		this.id = (attr.id??'').replace('https://i.micr.io/',''); // Sanitize ID
+		this.id = (attr.id??'').replace(VIEWER_BASE,''); // Sanitize ID
 
 		// URL-encode the custom-id part for external IDs (`external/{org-slug}/{custom-id}`)
 		if(this.id.startsWith('external/')) {
@@ -437,7 +437,7 @@ export class MicrioImage {
 		// Load 360 space data if linked and not already loaded
 		if(i.spacesId && !micrio.spaceData) {
 			micrio.spaceData = 'MICRIO_SPACE_DATA' in self ? self['MICRIO_SPACE_DATA'] as Models.Spaces.Space // Check for preloaded data
-				: await fetchJson<Models.Spaces.Space>((this.infoBasePath ?? 'https://i.micr.io/')+'spaces/'+i.spacesId+'.json'); // Fetch from forced path or CDN
+				: await fetchJson<Models.Spaces.Space>((this.infoBasePath ?? VIEWER_BASE)+'spaces/'+i.spacesId+'.json'); // Fetch from forced path or CDN
 			// When just one image, ignore space data
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
