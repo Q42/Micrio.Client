@@ -137,7 +137,52 @@ export class Engine {
 	async load(): Promise<void> {
 		if (this.engine) return;
 
-		const engine = new Main();
+		const engine = new Main({
+			drawTile: this.drawTile.bind(this),
+			drawQuad: (opacity: number): void => { this.micrio.webgl.drawTile(undefined, opacity); },
+			getTileOpacity: (i: number): number => this.tiles.get(i)?.opacity || 0,
+			setTileOpacity: (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
+				const tile = this.tiles.get(i);
+				if (!tile) return 0;
+				if (tile.opacity < 1) {
+					tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1, (this.now - tile.loadedAt) / 250) * imageOpacity : 0);
+				}
+				return tile.opacity;
+			},
+			setMatrix: (arr: Float32Array) => this.micrio.webgl.gl.uniformMatrix4fv(
+				this.micrio.webgl.pmLoc, false, arr),
+			setViewport: (left: number, bottom: number, w: number, h: number) => this.micrio.webgl.gl
+				.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h)),
+			aniDone: (c: TileCanvas): void => {
+				const cam = this.findCamera(c);
+				if (!cam) return;
+				if (cam.aniDone) cam.aniDone();
+				while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
+				cam.aniAbort = cam.aniDone = undefined;
+			},
+			aniAbort: (c: TileCanvas): void => {
+				const cam = this.findCamera(c);
+				if (!cam) return;
+				if (cam.aniAbort) cam.aniAbort();
+				cam.aniDoneAdd.length = 0;
+				cam.aniAbort = cam.aniDone = undefined;
+			},
+			viewSet: (c: TileCanvas): void => {
+				this.findCamera(c)?.viewChanged();
+			},
+			viewportSet: (c: TileCanvas, x: number, y: number, w: number, h: number): void => {
+				const entry = this.findEntry(c);
+				if (entry && 'viewport' in entry.micrioImage) {
+					(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
+				}
+			},
+			setVisible: (c: TileCanvas, visible: boolean): void => {
+				this.findEntry(c)?.micrioImage?.visible?.set(visible);
+			},
+			setVisible2: (img: Image, visible: boolean): void => {
+				this.findEntry(img as unknown as TileCanvas)?.micrioImage?.visible?.set(visible);
+			},
+		});
 
 		this._vertexBuffer = engine.vertexBuffer;
 		this._vertexBuffer360 = engine.vertexBuffer360;
@@ -145,51 +190,6 @@ export class Engine {
 		Engine.segsX = segsX;
 		Engine.segsY = segsY;
 		Engine._textureBuffer360 = Engine.getTextureBuffer(segsX, segsY);
-
-		engine.drawTile = this.drawTile.bind(this);
-		engine.drawQuad = (opacity: number): void => { this.micrio.webgl.drawTile(undefined, opacity); };
-		engine.getTileOpacity = (i: number): number => this.tiles.get(i)?.opacity || 0;
-		engine.setTileOpacity = (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
-			const tile = this.tiles.get(i);
-			if (!tile) return 0;
-			if (tile.opacity < 1) {
-				tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1, (this.now - tile.loadedAt) / 250) * imageOpacity : 0);
-			}
-			return tile.opacity;
-		};
-		engine.setMatrix = (arr: Float32Array) => this.micrio.webgl.gl.uniformMatrix4fv(
-			this.micrio.webgl.pmLoc, false, arr);
-		engine.setViewport = (left: number, bottom: number, w: number, h: number) => this.micrio.webgl.gl
-			.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h));
-		engine.aniDone = (c: TileCanvas): void => {
-			const cam = this.findCamera(c);
-			if (!cam) return;
-			if (cam.aniDone) cam.aniDone();
-			while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
-			cam.aniAbort = cam.aniDone = undefined;
-		};
-		engine.aniAbort = (c: TileCanvas): void => {
-			const cam = this.findCamera(c);
-			if (!cam) return;
-			if (cam.aniAbort) cam.aniAbort();
-			cam.aniDoneAdd.length = 0;
-			cam.aniAbort = cam.aniDone = undefined;
-		};
-		engine.viewSet = (c: TileCanvas): void => {
-			this.findCamera(c)?.viewChanged();
-		};
-		engine.viewportSet = (c: TileCanvas, x: number, y: number, w: number, h: number): void => {
-			const entry = this.findEntry(c);
-			if (entry && 'viewport' in entry.micrioImage) {
-				(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
-			}
-		};
-		engine.setVisible = (c: TileCanvas, visible: boolean): void => {
-			this.findEntry(c)?.micrioImage?.visible?.set(visible);
-		};
-		engine.setVisible2 = (img: Image, visible: boolean): void => {
-			this.findEntry(img as unknown as TileCanvas)?.micrioImage?.visible?.set(visible);
-		};
 
 		this.engine = engine;
 

@@ -24,7 +24,7 @@ import { i18n, langs } from './i18n/strings';
 /**
  * The main Micrio custom HTML element `<micr-io>`.
  * This class acts as the central controller for the Micrio viewer, managing
- * the WebGL canvas, WebAssembly module, Svelte UI, state, events, and image loading.
+ * the WebGL canvas, compute engine, Svelte UI, state, events, and image loading.
  *
  * It orchestrates the interaction between different parts of the library and
  * exposes methods and properties for controlling the viewer.

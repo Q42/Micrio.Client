@@ -7,7 +7,7 @@
 	 * - Switch galleries (images layered on top)
 	 * - Omni-object viewers (rotatable 3D objects)
 	 *
-	 * It interacts heavily with the core MicrioImage and Wasm layers for positioning,
+	 * It interacts heavily with the core MicrioImage and engine layers for positioning,
 	 * transitions, and active image management.
 	 */
 
@@ -76,7 +76,7 @@
 				visible: writable<boolean>(false), // Visibility store for the frame
 				frame: j, // Frame index
 				opts: { area: [0,0,1,1] }, // Frame occupies full area
-				ptr: -1, // Wasm pointer (not applicable here)
+				ptr: -1, // engine pointer (not applicable here)
 				baseTileIdx: -1, // Base tile index (not applicable here)
 				thumbSrc: image.getTileSrc(image.levels, 0, 0, j) // Thumbnail source for the frame
 			});
@@ -714,7 +714,7 @@
 
 	let swiper:GallerySwiper; // Instance for swipe gestures
 	onMount(() => {
-		// Initialize Wasm representations for all gallery images/frames.
+		// Initialize engine representations for all gallery images/frames.
 		// Strip-swipe uses independent child canvases (addChild); switch/swipe-full/omni
 		// share the parent camera and are added as embeds.
 		const added = isStripSwipe

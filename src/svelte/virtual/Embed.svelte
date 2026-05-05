@@ -320,7 +320,7 @@
 			});
 		}
 
-		engine.render(); // Trigger Wasm render loop
+		engine.render(); // Trigger render loop
 	}
 
 	// --- HTML Rendering Logic ---

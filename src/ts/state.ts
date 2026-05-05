@@ -338,7 +338,7 @@ export namespace State {
 			const image = this.image;
 			this.layer.subscribe(l => {
 				if(image.ptr < 0 || !image.engine.ready) return;
-				image.engine.setActiveLayer(image.ptr, l); // Call Wasm function
+				image.engine.setActiveLayer(image.ptr, l); // Call engine
 				image.engine.render(); // Trigger render
 			});
 		}

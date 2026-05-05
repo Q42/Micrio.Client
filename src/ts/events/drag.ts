@@ -130,7 +130,7 @@ export class DragHandler {
 
 		this.ctx.micrio.removeAttribute('data-panning');
 
-		// Notify Wasm pan stopped (triggers kinetic animation if enabled and not suppressed)
+		// Notify engine pan stopped (triggers kinetic animation if enabled and not suppressed)
 		if (e && noKinetic == false) {
 			const img = this.ctx.getImage({ x: e.clientX, y: e.clientY });
 			if (img) {

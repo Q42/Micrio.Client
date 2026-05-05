@@ -21,7 +21,7 @@ const jsCss:string[] = [];
 /**
  * Represents and controls a single Micrio image instance within the viewer.
  * This class manages the image's metadata (info), cultural data (data),
- * settings, camera, state, and interactions with the WebAssembly module
+ * settings, camera, state, and interactions with the compute engine
  * for rendering and processing. It handles loading image tiles, embeds,
  * markers, tours, and galleries associated with the image.
  *
@@ -100,13 +100,13 @@ export class MicrioImage {
 	/** Stores an error message if loading failed. */
 	error: string|undefined;
 
-	/** Pointer to the image instance within the WebAssembly module's memory.
+	/** Pointer to the image instance within the compute engine.
 	 * @readonly
 	 * @internal
 	*/
 	ptr: number = -1;
 
-	/** Base tile index within the WebAssembly texture atlas.
+	/** Base tile index within the engine texture atlas.
 	 * @readonly
 	 * @internal
 	*/
@@ -855,7 +855,7 @@ export class MicrioImage {
 					const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = cX + nW/2;
 				}
 			}
-			// Add the embed to the WebAssembly controller
+			// Add the embed to the engine
 			this.engine.addEmbed(img, this, opts);
 			this.engine.render(); // Trigger render
 		});

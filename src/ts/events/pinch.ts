@@ -70,7 +70,7 @@ export class PinchHandler {
 		this.ctx.vars.pinch.sDst = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 		this.ctx.setPinchFactor(undefined);
 
-		// Notify Wasm pinch started
+		// Notify engine pinch started
 		if (this.ctx.vars.pinch.image) {
 			this.ctx.micrio.engine.pinchStart(this.ctx.vars.pinch.image.ptr);
 		}
@@ -107,7 +107,7 @@ export class PinchHandler {
 		// Calculate current pinch factor relative to start distance
 		this.ctx.setPinchFactor(Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) / v.sDst);
 
-		// Notify Wasm of pinch movement
+		// Notify engine of pinch movement
 		this.ctx.micrio.engine.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
 	}
 
@@ -125,7 +125,7 @@ export class PinchHandler {
 
 		this.ctx.micrio.removeAttribute('data-pinching');
 
-		// Notify Wasm pinch stopped
+		// Notify engine pinch stopped
 		const i = this.ctx.vars.pinch.image;
 		if (i) {
 			this.ctx.micrio.engine.pinchStop(i.ptr, performance.now());

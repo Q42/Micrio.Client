@@ -28,7 +28,7 @@ export class GallerySwiper {
 	/** The MicrioImage instance this swiper is attached to. @internal */
 	private image:MicrioImage;
 
-	/** Getter for the current active image/frame index from the Wasm module. */
+	/** Getter for the current active image/frame index from the engine. */
 	public get currentIndex():number {return this.micrio.engine.getActiveImageIdx(this.image.ptr)}
 
 	/**

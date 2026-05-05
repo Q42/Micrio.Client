@@ -192,7 +192,7 @@ export class Camera {
 	 * @internal
 	 */
 	viewChanged() {
-		const v = this._view; // Current view from Wasm buffer
+		const v = this._view; // Current view from engine buffer
 		const prevCenterStr = this.center.join(','); // Store previous center for comparison
 		const centerCoords = this.getCoo(0,0); // Get image coordinates at screen center
 
@@ -232,7 +232,7 @@ export class Camera {
 	});
 
 	/**
-	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls Wasm directly.
+	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls engine directly.
 	 * @internal
 	 * @param x Image X coordinate (0-1).
 	 * @param y Image Y coordinate (0-1).
@@ -251,7 +251,7 @@ export class Camera {
 	}
 
 	/**
-	 * Gets image coordinates [x, y, scale, depth, yaw?, pitch?] for given screen coordinates. Calls Wasm directly.
+	 * Gets image coordinates [x, y, scale, depth, yaw?, pitch?] for given screen coordinates. Calls engine directly.
 	 * @internal
 	 * @param x Screen X coordinate.
 	 * @param y Screen Y coordinate.
@@ -306,12 +306,12 @@ export class Camera {
 		noLimit?: boolean;
 		/** If true (for 360), corrects the view based on the `trueNorth` setting. */
 		correctNorth?: boolean;
-		/** If true, prevents triggering a Wasm render after setting the view. */
+		/** If true, prevents triggering a render after setting the view. */
 		noRender?: boolean;
 		/** If provided, interprets `view` relative to this sub-area instead of the full image. */
 		area?: Models.Camera.ViewRect;
 	} = {}): void {
-		if (!this._engineCanvas) return; // Exit if Wasm not ready
+		if (!this._engineCanvas) return; // Exit if engine not ready
 
 		let { centerX, centerY, width, height } = View.toCenterJSON(view);
 
@@ -352,8 +352,8 @@ export class Camera {
 	 * @param scale The target scale (optional, defaults to current scale).
 	 */
 	public setCoo(x:number, y:number, scale:number=this.center[2]??1) : void {
-		if (!this._engineCanvas) return; // Exit if Wasm not ready
-		this._setCoo( x, y, scale, 0, 0); // Call Wasm function
+		if (!this._engineCanvas) return; // Exit if engine not ready
+		this._setCoo( x, y, scale, 0, 0); // Call engine
 		this.image.engine.render(); // Trigger render
 	}
 
@@ -501,7 +501,7 @@ export class Camera {
 			margin?: [number, number];
 		} = {}
 	): Promise<void> => new Promise((ok, abort) => {
-		if (!this._engineCanvas) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
+		if (!this._engineCanvas) return abort(new Error("engine not ready")); // Reject if Wasm not ready
 
 		let { centerX, centerY, width, height } = View.toCenterJSON(view);
 
@@ -565,8 +565,8 @@ export class Camera {
 	 * @returns A Promise that resolves when the animation completes.
 	 */
 	 public flyToCoo = (coords:Models.Camera.Coords, opts: Models.Camera.AnimationOptions = {}) : Promise<void> => new Promise((ok, abort) => {
-		if (!this._engineCanvas) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
-		// Call Wasm function to start animation
+		if (!this._engineCanvas) return abort(new Error("engine not ready")); // Reject if Wasm not ready
+		// Call engine to start animation
 		const fn = Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'];
 		opts.duration = this._setCoo( coords[0]!, coords[1]!, (coords[2]||this.center[2])!, (opts.duration ?? -1)!, (opts.speed ?? -1)!, opts.limit ?? false, fn!, performance.now());
 		this.image.engine.render(); // Trigger render loop
@@ -592,14 +592,14 @@ export class Camera {
 		speed:number=1,
 		noLimit:boolean=false
 	) : Promise<void> => new Promise((ok, abort) => {
-		if (!this._engineCanvas) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
+		if (!this._engineCanvas) return abort(new Error("engine not ready")); // Reject if Wasm not ready
 		// Get current center screen coordinates if x/y not provided
 		const coo = this.getXY(this.center[0], this.center[1]);
 		if(x == undefined) x = coo[0];
 		if(y == undefined) y = coo[1];
 		// Prevent zooming if part of an album and not hooked (likely inactive)
 		if(this.image.album && !this.image.album.hooked) return ok(); // Resolve immediately if zoom prevented
-		// Call Wasm function to start zoom animation
+		// Call engine to start zoom animation
 		duration = this._zoom( delta, x,y, duration, speed, noLimit, performance.now());
 		this.image.engine.render(); // Trigger render loop
 		if(duration==0) ok(); // Resolve immediately if duration is 0
@@ -641,7 +641,7 @@ export class Camera {
 		render?: boolean; // Force render even if duration is 0?
 		noLimit?: boolean; // Allow panning outside image bounds?
 	} = {}) : void {
-		if (!this._engineCanvas) return; // Exit if Wasm not ready
+		if (!this._engineCanvas) return; // Exit if engine not ready
 		this._pan( x, y, duration, !!opts.noLimit, performance.now());
 		if(duration > 0 || opts.render) this.image.engine.render();
 	}
@@ -703,7 +703,7 @@ export class Camera {
 		direct?:boolean;
 		/** If true, prevents dispatching view updates during the animation. */
 		noDispatch?:boolean;
-		/** If true, prevents triggering a Wasm render after setting the area. */
+		/** If true, prevents triggering a render after setting the area. */
 		noRender?:boolean;
 	} = {}) : void {
 		if (!this._engineCanvas) return;
@@ -732,7 +732,7 @@ export class Camera {
 	/** [Omni] Gets the current rotation angle in degrees based on the active frame index. */
 	public getOmniRotation() : number {
 		const omni = this.image.$settings.omni;
-		if (!omni || !this._engineCanvas) return 0; // Add check for Wasm readiness
+		if (!omni || !this._engineCanvas) return 0; // Add check for engine readiness
 		// Calculate rotation based on current index, total frames, and layers
 		return (this.image.swiper?.currentIndex ?? 0) / ((omni?.frames ?? 1) / (omni?.layers?.length ?? 1)) * Math.PI * 2
 	}
