@@ -4,16 +4,32 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { Viewport } from './shared';
+import { Viewport } from './shared/shared';
 import { segsX, segsY } from './globals';
-import Canvas from './canvas';
-import type Image from './image';
-import { easeInOut, Bicubic } from './utils'
+import TileCanvas from './canvas/canvas';
+import type Image from './canvas/image';
+import { easeInOut, Bicubic } from './utils/utils'
+
+/** Host interface for callbacks from the engine to the JS host. */
+export interface MainHost {
+	drawTile: (imgIdx: number, idx: number, layer: number, x: number, y: number, opacity: number, animating: boolean, isTargetLayer: boolean) => boolean;
+	drawQuad: (opacity: number) => void;
+	getTileOpacity: (idx: number) => number;
+	setTileOpacity: (idx: number, direct: boolean, imageOpacity: number) => number;
+	setMatrix: (arr: Float32Array) => void;
+	setViewport: (x: number, y: number, width: number, height: number) => void;
+	aniDone: (c: TileCanvas) => void;
+	aniAbort: (c: TileCanvas) => void;
+	viewSet: (c: TileCanvas) => void;
+	viewportSet: (c: TileCanvas, x: number, y: number, w: number, h: number) => void;
+	setVisible: (c: TileCanvas, visible: boolean) => void;
+	setVisible2: (c: Image, visible: boolean) => void;
+}
 
 /**
  * Main controller class for the Micrio engine.
  * Manages all canvases, global settings, and the render loop.
- * Host callbacks are set as assignable properties by the JS host.
+ * Host callbacks are provided at construction via {@link MainHost}.
  */
 export class Main {
 	/** Viewport representing the main HTML element (<micr-io>). */
@@ -24,8 +40,8 @@ export class Main {
 	/** Vertex buffer for rendering 360 sphere geometry. */
 	readonly vertexBuffer360: Float32Array = new Float32Array(6 * 3 * segsX * segsY);
 
-	/** Array holding all active Canvas instances managed by this engine. */
-	readonly canvases: Canvas[] = [];
+	/** Array holding all active TileCanvas instances managed by this engine. */
+	readonly canvases: TileCanvas[] = [];
 
 	/** Total number of tiles across all images in all canvases. */
 	numTiles: number = 0;
@@ -87,19 +103,24 @@ export class Main {
 	/** Estimated time per frame in seconds (used for animation speed normalization). */
 	frameTime: number = 1 / 60;
 
-	// --- Host Callbacks (set by JS host after construction) ---
-	drawTile: (imgIdx: number, idx: number, layer: number, x: number, y: number, opacity: number, animating: boolean, isTargetLayer: boolean) => boolean = () => false;
-	drawQuad: (opacity: number) => void = () => {};
-	getTileOpacity: (idx: number) => number = () => 0;
-	setTileOpacity: (idx: number, direct: boolean, imageOpacity: number) => number = () => 0;
-	setMatrix: (arr: Float32Array) => void = () => {};
-	setViewport: (x: number, y: number, width: number, height: number) => void = () => {};
-	aniDone: (c: Canvas) => void = () => {};
-	aniAbort: (c: Canvas) => void = () => {};
-	viewSet: (c: Canvas) => void = () => {};
-	viewportSet: (c: Canvas, x: number, y: number, w: number, h: number) => void = () => {};
-	setVisible: (c: Canvas, visible: boolean) => void = () => {};
-	setVisible2: (c: Image, visible: boolean) => void = () => {};
+	private readonly _host: MainHost;
+
+	constructor(host: MainHost) {
+		this._host = host;
+	}
+
+	get drawTile() { return this._host.drawTile; }
+	get drawQuad() { return this._host.drawQuad; }
+	get getTileOpacity() { return this._host.getTileOpacity; }
+	get setTileOpacity() { return this._host.setTileOpacity; }
+	get setMatrix() { return this._host.setMatrix; }
+	get setViewport() { return this._host.setViewport; }
+	get aniDone() { return this._host.aniDone; }
+	get aniAbort() { return this._host.aniAbort; }
+	get viewSet() { return this._host.viewSet; }
+	get viewportSet() { return this._host.viewportSet; }
+	get setVisible() { return this._host.setVisible; }
+	get setVisible2() { return this._host.setVisible2; }
 
 	shouldDraw(now: number): boolean {
 		this.frameTime = 1000 / Math.min(33, now - this.now);
@@ -125,8 +146,8 @@ export class Main {
 		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].resize();
 	}
 
-	/** Removes a specific Canvas instance from the managed list. */
-	remove(c: Canvas): void {
+	/** Removes a specific TileCanvas instance from the managed list. */
+	remove(c: TileCanvas): void {
 		for (let i = 0; i < this.canvases.length; i++) if (this.canvases[i] === c) {
 			this.canvases.splice(i, 1);
 			return;

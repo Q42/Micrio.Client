@@ -137,7 +137,7 @@
 	const gridAction:string|undefined = _meta.gridAction;
 	/** Find the marker tour associated with this marker, if autoStartTour is enabled. */
 	const autoStartMyTour:Models.ImageData.MarkerTour|undefined = image.$settings?._markers?.autoStartTour
-		? micrio.wasm.images.map(c => 'camera' in c ? c.$data?.markerTours?.find(inTour) : undefined).filter(t => !!t)[0] ?? spaceData?.markerTours?.find(inTour) : undefined;
+		? micrio.engine.images.map(c => 'camera' in c ? c.$data?.markerTours?.find(inTour) : undefined).filter(t => !!t)[0] ?? spaceData?.markerTours?.find(inTour) : undefined;
 	/** Find the step index of this marker within its auto-start tour. */
 	const myTourStep:number|undefined = autoStartMyTour?.steps.findIndex(s => s.startsWith(marker.id));
 	/** Should the auto-start tour always begin from step 0? */

@@ -4,31 +4,31 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { View, DrawRect, Viewport } from './shared';
-import { Main } from './main';
-import { easeInOut } from './utils'
-import { base360Distance } from './globals';
+import { View, DrawRect, Viewport } from '../shared/shared';
+import { Main } from '../main';
+import { easeInOut } from '../utils/utils'
+import { base360Distance } from '../globals';
 
-import Kinetic from './camera.kinetic'
-import Ani from './camera.ani'
-import Camera from './camera'
+import Kinetic from '../camera/kinetic'
+import Ani from '../camera/ani'
+import Camera from '../camera/camera'
 import Image from './image'
-import WebGL from './webgl'
+import SphericalView from '../webgl/webgl'
 
-export default class Canvas {
+export default class TileCanvas {
 	readonly view!: View;
 
 	readonly focus!: View;
 	readonly ani!: Ani;
 	readonly kinetic!: Kinetic;
 	readonly camera!: Camera;
-	readonly webgl!: WebGL;
+	readonly webgl!: SphericalView;
 	readonly rect: DrawRect = new DrawRect;
 	readonly el: Viewport = new Viewport;
 
 	readonly images: Image[] = [];
 
-	private readonly children: Canvas[] = [];
+	private readonly children: TileCanvas[] = [];
 	readonly area!: View;
 	readonly currentArea!: View;
 	readonly targetArea!: View;
@@ -116,7 +116,7 @@ export default class Canvas {
 		this.ani = new Ani(this);
 		this.kinetic = new Kinetic(this);
 		this.camera = new Camera(this);
-		this.webgl = new WebGL(this);
+		this.webgl = new SphericalView(this);
 		this.area = new View(this);
 		this.currentArea = new View(this);
 		this.targetArea = new View(this);
@@ -142,10 +142,10 @@ export default class Canvas {
 	}
 
 	/** Reference to the parent canvas (if this is a child/grid item). */
-	parent!: Canvas;
+	parent!: TileCanvas;
 
 	/** Sets the parent canvas for a child canvas. */
-	setParent(parent: Canvas): void {
+	setParent(parent: TileCanvas): void {
 		this.parent = parent;
 		this.index += parent.children.length;
 	}
@@ -172,8 +172,8 @@ export default class Canvas {
 	}
 
 	addChild(x0: number, y0: number, x1: number, y1: number,
-		width: number, height: number): Canvas {
-		const c = new Canvas(
+		width: number, height: number): TileCanvas {
+		const c = new TileCanvas(
 			this.main, width, height,
 			this.tileSize, false, false,
 			false, 1, false,

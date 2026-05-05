@@ -3,7 +3,7 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { PI2 } from './globals';
+import { PI2 } from '../globals';
 
 /** Calculates 2 to the power of num (2^num). */
 export function twoNth(num: number): number {

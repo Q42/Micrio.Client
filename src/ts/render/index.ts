@@ -1,4 +1,4 @@
-export { Wasm } from './wasm';
+export { Engine } from './engine';
 export { WebGL } from './webgl';
 export { Canvas } from './canvas';
 export { PostProcessor } from './postprocess';

@@ -78,7 +78,7 @@ export class VideoTourInstance {
 		private image: MicrioImage,
 		private data: Models.ImageData.VideoTour
 	) {
-		this.micrio = image.wasm.micrio;
+		this.micrio = image.engine.micrio;
 		// Get language-specific content or fallback
 		const content = 'timeline' in data ? <unknown>data as Models.ImageData.VideoTourCultureData
 			: data.i18n?.[get(this.micrio._lang)] ?? undefined;
@@ -273,7 +273,7 @@ export class VideoTourInstance {
 		const area = this.image.opts?.area;
 
 		if(this.wasPaused && prevView) {
-			const b:number = this.micrio.wasm.ease(perc);
+			const b:number = this.micrio.engine.ease(perc);
 
 			const iView = {
 				centerX: prevView.centerX * (1-b) + nextView.centerX * b,

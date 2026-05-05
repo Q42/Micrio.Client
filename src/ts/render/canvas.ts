@@ -92,7 +92,7 @@ export class Canvas {
 
 	/**
 	 * Resize event handler. Calculates new viewport dimensions, updates the canvas buffer size,
-	 * notifies WebGL and Wasm controllers, and dispatches a 'resize' event.
+	 * notifies WebGL and engine controllers, and dispatches a 'resize' event.
 	 * @internal
 	 */
 	onresize() : void {
@@ -151,8 +151,8 @@ export class Canvas {
 		// Resize postprocessing framebuffer if active
 		this.micrio.webgl.postpocessor?.resize();
 
-		// Notify Wasm of resize
-		this.micrio.wasm.resize(c);
+		// Notify engine of resize
+		this.micrio.engine.resize(c);
 		this.resizing = false; // Clear resizing flag
 
 		// Dispatch 'resize' event with bounding box info
@@ -173,14 +173,14 @@ export class Canvas {
 		|| 1; // Default to 1
 
 	/**
-	 * Sets virtual offset margins in the Wasm controller.
+	 * Sets virtual offset margins in the engine controller.
 	 * This likely affects how viewports are calculated or limited.
 	 * @param width The horizontal offset margin in pixels.
 	 * @param height The vertical offset margin in pixels.
 	*/
 	public setMargins(width:number, height:number) : void {
-		if (!this.micrio.wasm.ready) return;
-		this.micrio.wasm.setCanvasArea(width, height);
+		if (!this.micrio.engine.ready) return;
+		this.micrio.engine.setCanvasArea(width, height);
 	}
 
 }

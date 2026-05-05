@@ -225,7 +225,7 @@ export class Grid {
 	}, focussed: MicrioImage|undefined): void {
 		const isDelayed = opts.transition == 'behind-delayed';
 		const isLim = opts.coverLimit === true;
-		const { wasm } = this.micrio;
+		const { engine } = this.micrio;
 		opts.forceAni = true;
 		opts.coverLimit = isLim;
 		opts.forceAreaAni = true;
@@ -236,7 +236,7 @@ export class Grid {
 			if(images.find(e => e.id == i.id)) {
 				i.camera.setArea([0,0,focussed?.id == i.id ? 1 : vW,1], {noDispatch: true, direct: true});
 				if(i != focussed) i.camera.setView([0,0,1,1]);
-				if(isDelayed) wasm.setZIndex(i.ptr, images.length-(c++));
+				if(isDelayed) engine.setZIndex(i.ptr, images.length-(c++));
 			}
 		});
 		images.forEach(e => e.view = [0,0,1,1]);
@@ -295,7 +295,7 @@ export class Grid {
 		const focussed = this.$focussed;
 		const isDelayed = opts.transition?.endsWith('-delayed');
 		const isBehindDelay = opts.transition == 'behind-delayed';
-		const { wasm } = this.micrio;
+		const { engine } = this.micrio;
 
 		if(opts.transition == 'crossfade') opts.duration = 0;
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
@@ -307,8 +307,8 @@ export class Grid {
 		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
 		this.nextCrossFadeDuration = undefined;
 		if(ready) {
-			wasm.setGridTransitionDuration(dur);
-			wasm.setCrossfadeDuration(crossfadeDur);
+			engine.setGridTransitionDuration(dur);
+			engine.setCrossfadeDuration(crossfadeDur);
 		}
 
 		const doUnfocus = !opts.noBlur && focussed;
@@ -354,17 +354,17 @@ export class Grid {
 			cover: opts.cover
 		}));
 
-		if(isAppear) this.current.slice(1).forEach(i => wasm.fadeTo(i.ptr, .9999, true));
+		if(isAppear) this.current.slice(1).forEach(i => engine.fadeTo(i.ptr, .9999, true));
 
 		const fadeIn = () => this.current.forEach((img,i) =>
 			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
-				.then(() => wasm.fadeIn(img.ptr))
+				.then(() => engine.fadeIn(img.ptr))
 		);
 
 		const done = () => {
 			this.clearTimeouts();
-			requestAnimationFrame(() => wasm.setCrossfadeDuration(defaultDur));
-			if(isDelayed) this.images.forEach(i => wasm.setZIndex(i.ptr, 0));
+			requestAnimationFrame(() => engine.setCrossfadeDuration(defaultDur));
+			if(isDelayed) this.images.forEach(i => engine.setZIndex(i.ptr, 0));
 			if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
 			if(this.clickable) this.placeGrid();
 			this.lastAction = undefined;
@@ -531,17 +531,17 @@ export class Grid {
 		forceAreaAni?:boolean;
 		cover?:boolean;
 	}) : MicrioImage {
-		const { wasm } = this.micrio;
+		const { engine } = this.micrio;
 		let img = this.imageMap.get(entry.id!);
 		if(img && entry.area) sleep(opts.delay*1000).then(() => {
 			img!.camera.setArea(entry.area!, {
 				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img!.visible))
 			});
-			if(opts.delay) wasm.render();
+			if(opts.delay) engine.render();
 		});
 		else {
 			entry.lang = this.micrio.lang;
-			wasm.addChild(img = new MicrioImage(wasm, entry, {area: entry.area}), this.image);
+			engine.addChild(img = new MicrioImage(engine, entry, {area: entry.area}), this.image);
 			this.trackImage(img);
 		}
 		const aniOpts = {duration:opts.duration*1000, timingFunction: this.timingFunction, limit: false};
@@ -562,12 +562,12 @@ export class Grid {
 	 * @param images The images to hide
 	*/
 	private removeImages(images:MicrioImage[]) : void {
-		const { wasm } = this.micrio;
+		const { engine } = this.micrio;
 		images.forEach(i => {
-			if(i.ptr >= 0) wasm.fadeOut(i.ptr);
+			if(i.ptr >= 0) engine.fadeOut(i.ptr);
 			this._buttons.delete(i.id);
 		});
-		wasm.render();
+		engine.render();
 	}
 
 
@@ -654,7 +654,7 @@ export class Grid {
 
 	/** Sets the animation timing function for the next transition. @internal */
 	private setTimingFunction(fn:Models.Camera.TimingFunction) : void {
-		this.micrio.wasm.setGridTransitionTimingFunction(Enums.Camera.TimingFunction[this.timingFunction=fn]);
+		this.micrio.engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction[this.timingFunction=fn]);
 	}
 
 	/** Open a grid image full size and set it as the main active image
@@ -676,7 +676,7 @@ export class Grid {
 
 		if(focussed == img) return;
 
-		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !m.wasm.areaAnimating(focussed.ptr) && !this.current.includes(img)));
+		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !m.engine.areaAnimating(focussed.ptr) && !this.current.includes(img)));
 		if(direct) img.camera.setArea([0,0,1,1], {noDispatch: true, direct: true});
 		if(focussed) this.blur();
 
@@ -687,7 +687,7 @@ export class Grid {
 			view: opts.view
 		}), opts);
 
-		m.wasm.setZIndex(img.ptr, 3);
+		m.engine.setZIndex(img.ptr, 3);
 		this.focussed.set(img);
 
 		if(!get(img.visible) && (opts.transition == 'crossfade' || !opts.transition))
@@ -720,7 +720,7 @@ export class Grid {
 	}:Models.Grid.FocusOptions) : Promise<string> {
 		if(!transition) return layout;
 
-		const { wasm } = this.micrio;
+		const { engine } = this.micrio;
 
 		if(transition == 'crossfade') {
 			target.camera.setArea([0,0,1,1]);
@@ -739,7 +739,7 @@ export class Grid {
 			: transition.endsWith('-left') ? 270
 			: 90;
 
-		if(isSlwipe || isBehind) wasm.fadeTo(target.ptr, .9999, true);
+		if(isSlwipe || isBehind) engine.fadeTo(target.ptr, .9999, true);
 
 		if(transition.startsWith('slide')) {
 			target.camera.setArea(slideAreas[transDir!], {noDispatch: true, direct: true});
@@ -790,7 +790,7 @@ export class Grid {
 	blur() : void {
 		const focussed = this.$focussed;
 		if(!focussed) return;
-		this.micrio.wasm.setZIndex(focussed.ptr, 2);
+		this.micrio.engine.setZIndex(focussed.ptr, 2);
 		this.micrio.events.dispatch('grid-blur');
 		this.focussed.set(undefined);
 		this.image.camera.setLimit([0, 0, 1, 1]);

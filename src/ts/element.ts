@@ -7,7 +7,7 @@ import type Svelte from '../svelte/Main.svelte';
 import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View, MicrioError } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
-import { Wasm } from './render/wasm';
+import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
 import { Canvas } from './render/canvas';
 import { archive } from './render/archive';
@@ -24,7 +24,7 @@ import { i18n, langs } from './i18n/strings';
 /**
  * The main Micrio custom HTML element `<micr-io>`.
  * This class acts as the central controller for the Micrio viewer, managing
- * the WebGL canvas, WebAssembly module, Svelte UI, state, events, and image loading.
+ * the WebGL canvas, compute engine, Svelte UI, state, events, and image loading.
  *
  * It orchestrates the interaction between different parts of the library and
  * exposes methods and properties for controlling the viewer.
@@ -115,10 +115,10 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	readonly webgl:WebGL = new WebGL(this);
 
-	/** The WebAssembly module controller, handling communication with the C++ core.
+	/** The compute engine controller, managing the render loop and tile drawing.
 	 * @internal
 	*/
-	readonly wasm:Wasm = new Wasm(this);
+	readonly engine:Engine = new Engine(this);
 
 	/** The Svelte UI component instance.
 	 * @internal
@@ -209,9 +209,9 @@ export class HTMLMicrioElement extends HTMLElement {
 				if(!this.printed) this.print(); // Initial setup
 				else this.$current?.grid?.set(newVal); // Update grid state
 				break;
-			case 'data-limited': // Toggle limited rendering mode in Wasm
-				if(this.wasm?._vertexBuffer && this.$current?.ptr)
-					this.wasm.setLimited(this.$current.ptr, !!newVal);
+			case 'data-limited': // Toggle limited rendering mode
+				if(this.engine?._vertexBuffer && this.$current?.ptr)
+					this.engine.setLimited(this.$current.ptr, !!newVal);
 				break;
 			case 'lang': { // Handle language change
 				let prevLang = get(this._lang);
@@ -280,7 +280,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		this.events.enabled.set(false); // Disable events
 		this.canvas.unhook(); // Clean up canvas controller
 		this.analytics.unhook(); // Disconnect analytics
-		this.wasm.unbind(); // Clean up Wasm resources
+		this.engine.unbind(); // Clean up engine resources
 		if(this._ui) unmount(this._ui); // Destroy Svelte UI
 		delete this._ui;
 		this.webgl.dispose(true); // Dispose WebGL context
@@ -474,7 +474,7 @@ export class HTMLMicrioElement extends HTMLElement {
 				i.lang = this.lang;
 			}
 			// Create new instance
-			this.canvases.push(c = new MicrioImage(this.wasm, i, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this._current, isPassive: opts.isPassive } : undefined));
+			this.canvases.push(c = new MicrioImage(this.engine, i, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this._current, isPassive: opts.isPassive } : undefined));
 
 			// Apply saved state if available
 			const stateData = this.state.value && this.state.value.c.find(c => c[0] == i.id);
@@ -484,13 +484,13 @@ export class HTMLMicrioElement extends HTMLElement {
 		// Apply forced start view if provided
 		if(opts.startView) {
 			c.state.view.set(i.settings.view = opts.startView);
-			if(c.ptr > 0 && c.wasm.ready) c.camera.setView(i.settings.view,{noRender:true});
+			if(c.ptr > 0 && c.engine.ready) c.camera.setView(i.settings.view,{noRender:true});
 		}
 
 		// Set default language if not already set
 		if(!this.lang) this.lang = 'en';
 
-		// Function to finalize image setup after Wasm/info loaded
+		// Function to finalize image setup after engine/info loaded
 		const setImage = () => { if(!c) return;
 			// Initialize WebGL
 			if(!this.webgl.gl) try {
@@ -536,13 +536,13 @@ export class HTMLMicrioElement extends HTMLElement {
 			});
 
 			// Set 360 orientation vector for transitions
-			this.wasm.set360Orientation(
+			this.engine.set360Orientation(
 				opts.vector?.direction ?? 0,
 				opts.vector?.distanceX ?? 0,
 				opts.vector?.distanceY ?? 0);
 
-			// Prevent Wasm from auto-setting direction if coming from a waypoint
-			this.wasm.preventDirectionSet = !opts.vector;
+			// Prevent engine from auto-setting direction if coming from a waypoint
+			this.engine.preventDirectionSet = !opts.vector;
 
 			// Handle setting the current image based on context (grid, split, single)
 			if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == i.id))) {
@@ -552,13 +552,13 @@ export class HTMLMicrioElement extends HTMLElement {
 			else if(!opts.splitScreen) { // Set as main current image
 				this.current.set(c);
 			}
-			else { // Set as active canvas in Wasm for split-screen
-				this.wasm.setCanvas(c);
+			else { // Set as active canvas in engine for split-screen
+				this.engine.setCanvas(c);
 			}
 		}
 
-		// Load Wasm if needed, then finalize image setup
-		if(!this.wasm.ready) this.wasm.load().then(setImage).catch(e => this.printError(e as Error));
+		// Load engine if needed, then finalize image setup
+		if(!this.engine.ready) this.engine.load().then(setImage).catch(e => this.printError(e as Error));
 		else setImage();
 
 		// If image has no visual content (e.g., just data), mark loading as finished
@@ -570,12 +570,12 @@ export class HTMLMicrioElement extends HTMLElement {
 	/**
 	 * Closes an opened MicrioImage.
 	 * For split-screen images, it triggers the split-end transition.
-	 * For main images, it removes the canvas from the Wasm controller.
+	 * For main images, it removes the canvas from the engine.
 	 * @param img The {@link MicrioImage} instance to close.
 	*/
 	close(img:MicrioImage) : void {
 		if(img.opts.secondaryTo) img.splitEnd(); // End split-screen
-		else this.wasm.removeCanvas(img); // Remove main canvas
+		else this.engine.removeCanvas(img); // Remove main canvas
 	}
 
 	/**
@@ -695,7 +695,7 @@ export class HTMLMicrioElement extends HTMLElement {
 			opts.width = this.offsetWidth * this.canvas.getRatio();
 			opts.height = this.offsetHeight * this.canvas.getRatio();
 			const startIdx = Math.max(0, pages.findIndex(p => p[0] == gallery!.startId));
-			opts.gallery = pages.map((c, i) => new MicrioImage(this.wasm, {
+			opts.gallery = pages.map((c, i) => new MicrioImage(this.engine, {
 				id: c[0], path, width: c[1], height: c[2], isDeepZoom: c[3] == 'd',
 				isPng: c[4] == 'p', isWebP: c[4] == 'w', tileSize: c[5]||1024,
 				revision: gallery?.revisions?.[c[0]],
@@ -712,7 +712,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		const coverPages = isSpreads ? gallery.coverPages ?? 0 : 0;
 		opts.width = Math.max(...pages.map(p => p[1] * (isSpreads ? 2 : 1)));
 
-		opts.gallery = pages.map((c,i) => new MicrioImage(this.wasm, {
+		opts.gallery = pages.map((c,i) => new MicrioImage(this.engine, {
 				id: c[0], path, width: c[1], height: c[2], isDeepZoom: c[3] == 'd',
 				isPng: c[4] == 'p', isWebP: c[4] == 'w', tileSize: c[5]||1024,
 				revision: gallery?.revisions?.[c[0]],

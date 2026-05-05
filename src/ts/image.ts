@@ -1,7 +1,7 @@
 import type { Models } from '$types/models';
 import type { Readable, Unsubscriber, Writable } from 'svelte/store';
 import type { Grid } from './nav/grid';
-import type { Wasm } from './render/wasm';
+import type { Engine } from './render/engine';
 import type { GallerySwiper } from './nav/swiper';
 import type { PREDEFINED } from '$types/internal';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
@@ -21,7 +21,7 @@ const jsCss:string[] = [];
 /**
  * Represents and controls a single Micrio image instance within the viewer.
  * This class manages the image's metadata (info), cultural data (data),
- * settings, camera, state, and interactions with the WebAssembly module
+ * settings, camera, state, and interactions with the compute engine
  * for rendering and processing. It handles loading image tiles, embeds,
  * markers, tours, and galleries associated with the image.
  *
@@ -100,13 +100,13 @@ export class MicrioImage {
 	/** Stores an error message if loading failed. */
 	error: string|undefined;
 
-	/** Pointer to the image instance within the WebAssembly module's memory.
+	/** Pointer to the image instance within the compute engine.
 	 * @readonly
 	 * @internal
 	*/
 	ptr: number = -1;
 
-	/** Base tile index within the WebAssembly texture atlas.
+	/** Base tile index within the engine texture atlas.
 	 * @readonly
 	 * @internal
 	*/
@@ -192,12 +192,12 @@ export class MicrioImage {
 	/**
 	 * Creates a new MicrioImage instance. Typically called by {@link HTMLMicrioElement.open}.
 	 * @internal
-	 * @param wasm The global Wasm controller instance.
+	 * @param engine The global Engine controller instance.
 	 * @param attr Initial image info/settings, often from HTML attributes or parent data.
 	 * @param opts Options controlling behavior (embedding, split-screen, etc.).
 	 */
 	constructor(
-		public wasm: Wasm,
+		public engine: Engine,
 		private attr:Partial<Models.ImageInfo.ImageInfo>,
 		public opts:{
 			/** Optional sub area [x0, y0, x1, y1] defining placement within a parent canvas (for embeds/galleries). */
@@ -234,7 +234,7 @@ export class MicrioImage {
 		if(opts.secondaryTo) {
 			this.opacity = 0; // Start invisible
 			// Default placement based on orientation
-			opts.area = this.wasm.micrio.canvas.viewport.portrait ? [0,1,1,1] : [1,0,1,1];
+			opts.area = this.engine.micrio.canvas.viewport.portrait ? [0,1,1,1] : [1,0,1,1];
 			if(opts.isPassive === undefined) opts.isPassive = true; // Default to passive following
 		}
 		// Default area if not provided
@@ -249,7 +249,7 @@ export class MicrioImage {
 			infoLoaded ? set(this.__info) : this.load().then(set); infoLoaded=!0;
 		});
 
-		const micrio = this.wasm.micrio; // Reference to main element
+		const micrio = this.engine.micrio; // Reference to main element
 
 		// Check if data was provided directly (e.g., V5 revision data)
 		const hasData = !!this.attr.revision;
@@ -310,8 +310,8 @@ export class MicrioImage {
 			? e.displayMessage 
 			: (displayMessage ?? (e instanceof Error ? e.message : e) ?? 'An unknown error has occurred');
 		this.error = message;
-		this.wasm.micrio.printError(e instanceof MicrioError ? e : message);
-		this.wasm.micrio.loading.set(false); // Stop loading indicator
+		this.engine.micrio.printError(e instanceof MicrioError ? e : message);
+		this.engine.micrio.loading.set(false); // Stop loading indicator
 		throw e instanceof Error ? e : new Error(message);
 	}
 
@@ -325,7 +325,7 @@ export class MicrioImage {
 	private async load() : Promise<Models.ImageInfo.ImageInfo> {
 		let i = this.__info; // Internal info object reference
 		const attr = this.attr; // Initial attributes/info passed to constructor
-		const micrio = this.wasm.micrio;
+		const micrio = this.engine.micrio;
 
 		// Use provided object directly if it seems complete
 		if(attr.id && attr.width) {
@@ -416,7 +416,7 @@ export class MicrioImage {
 		if(i.organisation?.branding && !(i.settings && i.settings.noUI)) {
 			this.loadStyle(this.dataPath+'style/'+i.organisation.slug+'.css').then(() => {
 				// Check if custom font needs loading from Google Fonts
-				const fontFamily = getComputedStyle(this.wasm.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
+				const fontFamily = getComputedStyle(this.engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
 				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
 					this.loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
 				});
@@ -533,7 +533,7 @@ export class MicrioImage {
 		if(i.settings) this.settings.set(i.settings);
 
 		// Set watermark if present
-		if(i.watermark) this.wasm.micrio.webgl.loadWatermark(i.watermark, i.settings?.watermarkOpacity);
+		if(i.watermark) this.engine.micrio.webgl.loadWatermark(i.watermark, i.settings?.watermarkOpacity);
 
 		delete i.settings; // Remove settings from info object after processing
 
@@ -608,7 +608,7 @@ export class MicrioImage {
 			const _el = document.createElement('script'); _el.type = 'text/javascript';
 			_el.async = true; _el.defer = true;
 			/** @ts-ignore -- used for custom JS to have a cool self reference */
-			_el['micrioElement'] = this.wasm.micrio; // Pass Micrio element reference
+			_el['micrioElement'] = this.engine.micrio; // Pass Micrio element reference
 			_el.src = s.replace('$lang', lang); _el.onload = ok; document.head.appendChild(_el);
 		}
 	})}
@@ -639,7 +639,7 @@ export class MicrioImage {
 		/** @ts-ignore Check for error property */
 		if('error' in d) this.__info.error = (d['status'] as string) == '403' ? 'Could not load image data. Are you logged in and do you have the right credentials?' : (d['error'] as string);
 
-		const lang = this.wasm.micrio.lang; // Current language
+		const lang = this.engine.micrio.lang; // Current language
 
 		const micIds:string[] = [] // Array to store IDs of linked Micrio images
 
@@ -693,7 +693,7 @@ export class MicrioImage {
 			d?.markers?.forEach(m => sanitizeMarker(m, lang, micIdsUnique[i]!.length == 5, isLegacy));
 		});
 
-		const spaceData = this.wasm.micrio.spaceData; // Get space data if available
+		const spaceData = this.engine.micrio.spaceData; // Get space data if available
 
 		// Load detailed step info for marker tours
 		if(d.markerTours) {
@@ -720,14 +720,14 @@ export class MicrioImage {
 		});
 
 		// Dispatch pre-data event allowing external modification of all loaded data
-		this.wasm.micrio.events.dispatch('pre-data', {
+		this.engine.micrio.events.dispatch('pre-data', {
 			[this.id]: d, // Current image data
 			...Object.fromEntries(micIdsUnique.map((id,i) => [id, micData[i]!])) // Preloaded linked data
 		});
 
 		// If linked images were already initialized but lacked data, set it now
 		micData.forEach((data,i) => { if(data) {
-			const image = this.wasm.images.find(m => m.id == micIdsUnique[i]);
+			const image = this.engine.images.find(m => m.id == micIdsUnique[i]);
 			if(image && image instanceof MicrioImage && !image.$data && !isFetching(getDataPath(image.id)))
 				image.data.set(data); // Set data store for the linked image
 		}});
@@ -746,7 +746,7 @@ export class MicrioImage {
 		// strip-swipe slots render at the full viewport aspect (matches loadGallery's
 		// strip-swipe path). Using sum-of-widths × max-of-heights here would letterbox
 		// the parent and squash all children into that strip.
-		const micrio = this.wasm.micrio;
+		const micrio = this.engine.micrio;
 		const ratio = micrio.canvas.getRatio();
 		i.width = Math.max(1, micrio.offsetWidth * ratio);
 		i.height = Math.max(1, micrio.offsetHeight * ratio);
@@ -772,7 +772,7 @@ export class MicrioImage {
 
 		if(isGallery) {
 			const startIdx = this.setupIIIFGalleryContainer(i, images.map(s => s.service['@id']));
-			images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.wasm, {
+			images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.engine, {
 				id: s.service['@id'],
 				width: s.width, height: s.height,
 				isPng: s.format == 'image/png',
@@ -792,7 +792,7 @@ export class MicrioImage {
 		let offset = 0;
 		images.forEach(s => {
 			const margins = [ (1 - (s.width / i.width)) / 2, (1 - (s.height / i.height)) / 2 ];
-			this.embeds.push(new MicrioImage(this.wasm, {
+			this.embeds.push(new MicrioImage(this.engine, {
 				id: s.service['@id'],
 				width: s.width, height: s.height,
 				isPng: s.format == 'image/png',
@@ -812,7 +812,7 @@ export class MicrioImage {
 		const images = i.items?.flatMap(p => p.items?.[0]?.items?.[0]?.body).filter(p => !!p?.service?.[0]?.id).filter(p => !!p);
 		if(!images?.length) return;
 		const startIdx = this.setupIIIFGalleryContainer(i, images.map(s => s.service[0].id));
-		images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.wasm, {
+		images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.engine, {
 			id: s.service[0].id,
 			width: s.width, height: s.height,
 			isPng: s.format == 'image/png',
@@ -833,7 +833,7 @@ export class MicrioImage {
 	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.ViewRect, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
-		const img = new MicrioImage(this.wasm, info, {area:a, isEmbed: true, useParentCamera: opts.asImage});
+		const img = new MicrioImage(this.engine, info, {area:a, isEmbed: true, useParentCamera: opts.asImage});
 		// Use parent camera if specified (e.g., for switch galleries)
 		if(!img.camera) img.camera = this.camera;
 		this.embeds.push(img); // Add to embeds list
@@ -855,9 +855,9 @@ export class MicrioImage {
 					const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = cX + nW/2;
 				}
 			}
-			// Add the embed to the WebAssembly controller
-			this.wasm.addEmbed(img, this, opts);
-			this.wasm.render(); // Trigger render
+			// Add the embed to the engine
+			this.engine.addEmbed(img, this, opts);
+			this.engine.render(); // Trigger render
 		});
 		return img; // Return the new embed instance
 	}
@@ -878,14 +878,14 @@ export class MicrioImage {
 
 	/** Starts the split-screen transition animation for this (secondary) image. @internal */
 	splitStart() : void {
-		const p = this.wasm.micrio.canvas.viewport.portrait; // Check orientation
+		const p = this.engine.micrio.canvas.viewport.portrait; // Check orientation
 		// Set area for primary image (left/top half)
 		this.opts.secondaryTo?.camera.setArea(p ? [0,0,1,.5] : [0,0,.5,1], {noRender:true});
 		// Set area for this secondary image (right/bottom half)
 		this.camera.setArea(p ? [0,.5,1,1] : [.5,0,1,1], {noRender:true});
 		// Set initial view for this image
 		this.camera.setView(this.__info?.settings?.view ?? [0,0,1,1])
-		this.wasm.render(); // Trigger render
+		this.engine.render(); // Trigger render
 	}
 
 	/** Ends the split-screen transition animation for this (secondary) image. @internal */
@@ -901,19 +901,19 @@ export class MicrioImage {
 		// If primary image is not animating (or not part of grid), reset its area to full
 		if(!this.opts.secondaryTo?.grid || !this.opts.secondaryTo.camera.aniDone)
 			this.opts.secondaryTo?.camera.setArea([0,0,1,1], {noRender:true});
-		this.wasm.render(); // Trigger render
+		this.engine.render(); // Trigger render
 	}
 
 	/** Fades in the image smoothly or instantly. */
 	fadeIn(direct:boolean=false) : void {
-		this.wasm.fadeImage(this.ptr, 1, direct); // Call Wasm function
-		this.wasm.render();
+		this.engine.fadeImage(this.ptr, 1, direct);
+		this.engine.render();
 	}
 
 	/** Fades out the image smoothly or instantly. */
 	fadeOut(direct:boolean=false) : void {
-		this.wasm.fadeImage(this.ptr, 0, direct); // Call Wasm function
-		this.wasm.render();
+		this.engine.fadeImage(this.ptr, 0, direct);
+		this.engine.render();
 	}
 
 }
