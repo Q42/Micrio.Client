@@ -159,8 +159,8 @@ export class Engine {
 			aniAbort: this._hostAniAbort.bind(this),
 			viewSet: this._hostViewSet.bind(this),
 			viewportSet: this._hostViewportSet.bind(this),
-			setVisible: this._hostSetVisible.bind(this),
-			setVisible2: this._hostSetVisible2.bind(this),
+			setCanvasVisible: this._hostSetCanvasVisible.bind(this),
+			setImageVisible: this._hostSetImageVisible.bind(this),
 		});
 
 		this._vertexBuffer = engine.vertexBuffer;
@@ -224,15 +224,10 @@ export class Engine {
 			(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
 		}
 	}
-	private _hostSetVisible(c: TileCanvas, visible: boolean): void {
+	private _hostSetCanvasVisible(c: TileCanvas, visible: boolean): void {
 		this.findEntry(c)?.micrioImage?.visible?.set(visible);
 	}
-	private _hostSetVisible2(img: Image, visible: boolean): void {
-		const entry = this.findEntry(img);
-		if (entry) {
-			entry.micrioImage?.visible?.set(visible);
-			return;
-		}
+	private _hostSetImageVisible(img: Image, visible: boolean): void {
 		const micrioImage = this.engImageToMicrio.get(img);
 		if (micrioImage && 'visible' in micrioImage) micrioImage.visible.set(visible);
 	}
@@ -856,22 +851,5 @@ export class Engine {
 		for (let i = 0; i < images.length; i++) {
 			if (images[i].isVideo) { images[i].isVideoPlaying = playing; break; }
 		}
-	}
-	setImageRotation(ptr: number, rotX: number, rotY: number, rotZ: number): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
-		if (!c) return;
-		const images = c.images;
-		for (let i = 0; i < images.length; i++) {
-			const im = images[i];
-			if (im.localIdx > 0) { im.rotX = rotX; im.rotY = rotY; im.rotZ = rotZ; break; }
-		}
-	}
-	setOmniSettings(ptr: number, d: number, fov: number, vA: number, oX: number): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
-		if (!c) return;
-		c.omniDistance = d;
-		c.omniFieldOfView = fov;
-		c.omniVerticalAngle = vA;
-		c.omniOffsetX = oX;
 	}
 }

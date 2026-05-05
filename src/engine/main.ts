@@ -22,8 +22,8 @@ export interface MainHost {
 	aniAbort: (c: TileCanvas) => void;
 	viewSet: (c: TileCanvas) => void;
 	viewportSet: (c: TileCanvas, x: number, y: number, w: number, h: number) => void;
-	setVisible: (c: TileCanvas, visible: boolean) => void;
-	setVisible2: (c: Image, visible: boolean) => void;
+	setCanvasVisible: (c: TileCanvas, visible: boolean) => void;
+	setImageVisible: (c: Image, visible: boolean) => void;
 }
 
 /**
@@ -119,8 +119,8 @@ export class Main {
 	get aniAbort() { return this._host.aniAbort; }
 	get viewSet() { return this._host.viewSet; }
 	get viewportSet() { return this._host.viewportSet; }
-	get setVisible() { return this._host.setVisible; }
-	get setVisible2() { return this._host.setVisible2; }
+	get setCanvasVisible() { return this._host.setCanvasVisible; }
+	get setImageVisible() { return this._host.setImageVisible; }
 
 	shouldDraw(now: number): boolean {
 		this.frameTime = 1000 / Math.min(33, now - this.now);

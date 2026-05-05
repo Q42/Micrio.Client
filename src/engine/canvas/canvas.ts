@@ -248,8 +248,8 @@ export default class TileCanvas {
 	}
 
 	/** Notifies the JS host about visibility changes. */
-	setVisible(b: boolean): void {
-		this.main.setVisible(this, b);
+	setCanvasVisible(b: boolean): void {
+		this.main.setCanvasVisible(this, b);
 		this.isVisible = b;
 	}
 
@@ -283,11 +283,11 @@ export default class TileCanvas {
 	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. */
 	shouldDraw(): void {
 		if (!this.areaAnimating() && this.isHidden()) {
-			if (this.isVisible) this.setVisible(false);
+			if (this.isVisible) this.setCanvasVisible(false);
 			return;
 		}
 
-		if (!this.isVisible && this.opacity >= 1) this.setVisible(true);
+		if (!this.isVisible && this.opacity >= 1) this.setCanvasVisible(true);
 
 		let animating: boolean = this.ani.step(this.main.now) < 1
 			|| this.kinetic.step(this.main.now) < 1 || !this.isReady;
@@ -310,10 +310,10 @@ export default class TileCanvas {
 		for (let i = 0; i < this.images.length; i++) {
 			const image = this.images[i];
 			if (!image.shouldRender()) {
-				if (image.doRender) this.main.setVisible2(image, image.doRender = false);
+				if (image.doRender) this.main.setImageVisible(image, image.doRender = false);
 			}
 			else {
-				if (i > 0 && !image.doRender) this.main.setVisible2(image, image.doRender = true);
+				if (i > 0 && !image.doRender) this.main.setImageVisible(image, image.doRender = true);
 				if (image.isVideo && image.isVideoPlaying) animating = true;
 				if (image.opacityTick(this.isGallerySwitch || this.opacity < 1)) animating = true;
 				if (image.opacity > 0) this.main.doneTotal += image.getTiles(scale);
@@ -527,7 +527,7 @@ export default class TileCanvas {
 
 	/** Removes this canvas instance from the main controller. */
 	remove(): void {
-		this.setVisible(false);
+		this.setCanvasVisible(false);
 		this.main.remove(this);
 	}
 

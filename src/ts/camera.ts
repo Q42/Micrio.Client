@@ -119,43 +119,13 @@ export class Camera {
 		if (c.is360) { c.webgl.getCoo(x, y); }
 		else { c.camera.getCoo(x, y, !!abs, !!noLimit); }
 	}
-	private _setView(cx: number, cy: number, w: number, h: number, noLimit: boolean, noLastView: boolean, correctNorth?: boolean): void {
-		this._c.setView(cx, cy, w, h, !!noLimit, !!noLastView, !!correctNorth);
-	}
-	private _setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: number = 0, time: number = 0): number {
-		return this._c.camera.setCoo(x, y, scale, dur, speed, !!limit, fn, time || performance.now());
-	}
-	private _flyTo(cx: number, cy: number, w: number, h: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, omniIdx: number, fn: number, time: number): number {
-		return this._c.camera.flyTo(cx, cy, w, h, dur, speed, perc, !!isJump, !!limit, !!limitZoom, omniIdx, fn, time);
-	}
-	private _zoom(delta: number, x: number, y: number, dur: number, _speed: number, noLimit: boolean, time: number): number {
-		return this._c.camera.zoom(delta, x, y, dur, !!noLimit, time);
-	}
-	private _pan(x: number, y: number, dur: number, noLimit: boolean, time: number): void {
-		this._c.camera.pan(x, y, dur, !!noLimit, time);
-	}
+
 	private _setMinScale(s: number): void {
 		const c = this._c;
 		c.camera.minScale = s;
 		c.camera.correctMinMax();
 		c.camera.setView();
 		c.webgl.update();
-	}
-	private _setMinSize(s: number): void {
-		this._c.camera.minSize = Math.max(0, Math.min(1, s ?? 1));
-	}
-	private _setCoverLimit(b: boolean): void {
-		this._c.coverLimit = !!b;
-		this._c.camera.correctMinMax();
-	}
-	private _setDirection(yaw: number, pitch?: number): void {
-		this._c.setDirection(yaw, pitch ?? this._c.webgl.pitch, false);
-	}
-	private _getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number, sX: number, sY: number, noCorrectNorth: boolean): void {
-		this._c.getMatrix(x, y, scale, radius, rX, rY, rZ, transY, sX, sY, !!noCorrectNorth);
-	}
-	private _getOmniXY(x: number, y: number, z: number): void {
-		this._c.camera.getXYOmniCoo(x, y, z, 0, false);
 	}
 
 	/**
@@ -294,7 +264,7 @@ export class Camera {
 			width *= (opts.area[2] - opts.area[0]);
 			height *= (opts.area[3] - opts.area[1]);
 		}
-		this._setView( centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
+		this._c.setView( centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
 		
 		if (!opts.noRender) this.image.engine.render(); // Trigger render unless suppressed
 	}
@@ -324,9 +294,9 @@ export class Camera {
 	 * @param scale The target scale (optional, defaults to current scale).
 	 */
 	public setCoo(x:number, y:number, scale:number=this.center[2]??1) : void {
-		if (!this._engineCanvas) return; // Exit if engine not ready
-		this._setCoo( x, y, scale, 0, 0); // Call engine
-		this.image.engine.render(); // Trigger render
+		if (!this._engineCanvas) return;
+		this._c.camera.setCoo( x, y, scale, 0, 0, false, 0, performance.now());
+		this.image.engine.render();
 	}
 
 	/**
@@ -363,9 +333,9 @@ export class Camera {
 	 * @returns The resulting 4x4 matrix as a Float32Array.
 	 */
 	getMatrix(x:number, y:number, scale?:number, radius?:number, rotX?:number, rotY?:number, rotZ?:number, transY?:number, scaleX?:number, scaleY?:number, noCorrectNorth?:boolean) : Float32Array {
-		if (!this._engineCanvas) return new Float32Array(16); // Return identity matrix if Wasm not ready
-		this._getMatrix( x, y, scale ?? 1, radius ?? 10, rotX||0, rotY||0, rotZ||0, transY||0, scaleX??1, scaleY??1, !!noCorrectNorth);
-		return this._mat; // Return direct buffer reference
+		if (!this._engineCanvas) return new Float32Array(16);
+		this._c.getMatrix( x, y, scale ?? 1, radius ?? 10, rotX||0, rotY||0, rotZ||0, transY||0, scaleX??1, scaleY??1, !!noCorrectNorth);
+		return this._mat;
 	}
 
 	/**
@@ -381,7 +351,7 @@ export class Camera {
 
 	setMinScale(s:number) : void { if(this._engineCanvas) this._setMinScale(s); }
 
-	setMinScreenSize(s:number) : void { if(!this.image.album && this._engineCanvas) this._setMinSize(Math.max(0, Math.min(1, s??1))); }
+	setMinScreenSize(s:number) : void { if(!this.image.album && this._engineCanvas) this._c.camera.minSize = Math.max(0, Math.min(1, s??1)); }
 
 	public isZoomedIn = () : boolean => !!(this._engineCanvas?.isZoomedIn());
 
@@ -404,7 +374,8 @@ export class Camera {
 	*/
 	public setCoverLimit(b:boolean) : void {
 		if (!this._engineCanvas) return;
-		this._setCoverLimit(!!b);
+		this._c.coverLimit = !!b;
+		this._c.camera.correctMinMax();
 	}
 
 	public getCoverLimit = () : boolean => !!(this._engineCanvas?.coverLimit);
@@ -489,7 +460,7 @@ export class Camera {
 			}
 			if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, numPerLayer);
 		}
-		const duration = this._flyTo( centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
+		const duration = this._c.camera.flyTo( centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
 		this.image.engine.render(); // Trigger render loop
 		if (duration == 0) ok(); // Resolve immediately if duration is 0
 		else this.setAniPromises(ok, abort); // Store promise callbacks
@@ -525,8 +496,8 @@ export class Camera {
 	 public flyToCoo = (coords:Models.Camera.Coords, opts: Models.Camera.AnimationOptions = {}) : Promise<void> => new Promise((ok, abort) => {
 		if (!this._engineCanvas) return abort(new Error("engine not ready")); // Reject if Wasm not ready
 		// Call engine to start animation
-		const fn = Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'];
-		opts.duration = this._setCoo( coords[0]!, coords[1]!, (coords[2]||this.center[2])!, (opts.duration ?? -1)!, (opts.speed ?? -1)!, opts.limit ?? false, fn!, performance.now());
+	 const fn = Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'];
+	 opts.duration = this._c.camera.setCoo( coords[0]!, coords[1]!, (coords[2]||this.center[2])!, (opts.duration ?? -1)!, (opts.speed ?? -1)!, opts.limit ?? false, fn!, performance.now());
 		this.image.engine.render(); // Trigger render loop
 		if(opts.duration==0) ok(); // Resolve immediately if duration is 0
 		else this.setAniPromises(ok, abort); // Store promise callbacks
@@ -547,7 +518,7 @@ export class Camera {
 		duration:number=0,
 		x:number|undefined=undefined,
 		y:number|undefined=undefined,
-		speed:number=1,
+		_speed:number=1,
 		noLimit:boolean=false
 	) : Promise<void> => new Promise((ok, abort) => {
 		if (!this._engineCanvas) return abort(new Error("engine not ready")); // Reject if Wasm not ready
@@ -558,7 +529,7 @@ export class Camera {
 		// Prevent zooming if part of an album and not hooked (likely inactive)
 		if(this.image.album && !this.image.album.hooked) return ok(); // Resolve immediately if zoom prevented
 		// Call engine to start zoom animation
-		duration = this._zoom( delta, x,y, duration, speed, noLimit, performance.now());
+		duration = this._c.camera.zoom( delta, x,y, duration, noLimit, performance.now());
 		this.image.engine.render(); // Trigger render loop
 		if(duration==0) ok(); // Resolve immediately if duration is 0
 		else this.setAniPromises(ok, abort); // Store promise callbacks
@@ -600,7 +571,7 @@ export class Camera {
 		noLimit?: boolean; // Allow panning outside image bounds?
 	} = {}) : void {
 		if (!this._engineCanvas) return; // Exit if engine not ready
-		this._pan( x, y, duration, !!opts.noLimit, performance.now());
+		this._c.camera.pan( x, y, duration, !!opts.noLimit, performance.now());
 		if(duration > 0 || opts.render) this.image.engine.render();
 	}
 
@@ -613,7 +584,7 @@ export class Camera {
 
 	setDirection(yaw:number, pitch?:number) : void {
 		if (!this._engineCanvas) return;
-		this._setDirection(yaw, pitch);
+		this._c.setDirection(yaw, pitch ?? this._c.webgl.pitch, false);
 		this.image.engine.render();
 	}
 
@@ -675,9 +646,9 @@ export class Camera {
 
 	/** [Omni] Gets the screen coordinates [x, y, scale, depth] for given 3D object coordinates. */
 	public getOmniXY(x:number, y:number, z:number) : Float64Array {
-		if (!this._engineCanvas) return new Float64Array(5); // Return empty array if Wasm not ready
-		this._getOmniXY( x, y, z);
-		return this._xy; // Return direct buffer reference
+		if (!this._engineCanvas) return new Float64Array(5);
+		this._c.camera.getXYOmniCoo( x, y, z, 0, false);
+		return this._xy;
 	}
 
 	/** [Omni] Applies Omni-specific camera settings (distance, FoV, angle) to the engine canvas. */
