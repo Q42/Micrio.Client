@@ -5,12 +5,10 @@
 	"main": "micrio.js",
 	"type": "module",
 	"scripts": {
-		"build": "vite build && tsc -d --project tsconfig.docs.json --outFile out.d.ts && node bundle.js --safe-wasm && node bundle.js",
+		"build": "vite build && tsc -d --project tsconfig.docs.json --outFile out.d.ts && node bundle.js",
 		"dev": "vite --port 2000",
 		"publish": "node publish.js",
 		"docs": "npm run create:client --prefix ../Micrio.Server/doc.micr.io",
-		"asbuild:untouched": "asc src/wasm/exports.ts --target debug --sourceMap \"http://localhost:2000/build/untouched.wasm.map\" --importMemory",
-		"asbuild:optimized": "asc src/wasm/exports.ts --target release -O3s --runtime stub --disable mutable-globals --disable sign-extension --noExportMemory --noAssert --pedantic --importMemory",
 		"typecheck": "tsc"
 	},
 	"keywords": [
@@ -34,7 +32,6 @@
 	"devDependencies": {
 		"@tsconfig/svelte": "^5.0.8",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
-		"assemblyscript": "0.28.14",
 		"svelte-preprocess": "^6.0.3",
 		"terser": "^5.46.1",
 		"typescript": "^6.0.2",
