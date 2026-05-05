@@ -237,11 +237,17 @@ export default class Camera {
 	 * Pans the view by a given pixel delta.
 	 */
 	pan(xPx: number, yPx: number, duration: number, noLimit: boolean, time: number, force: boolean = false, isKinetic: boolean = false): void {
+		const c = this.canvas;
+
+		if (c.is360) {
+			c.webgl.rotate(xPx, yPx, duration, time);
+			return;
+		}
+
 		if ((this.isUnderZoom() || this.pinching) && !force) return;
 
 		if (this.canvas.freeMove) noLimit = true;
 
-		const c = this.canvas;
 		const r = c.hasParent ? c.parent.el.ratio : c.el.ratio;
 		const v = c.view;
 
@@ -280,8 +286,13 @@ export default class Camera {
 	 * @returns The calculated animation duration.
 	 */
 	zoom(delta: number, xPx: number, yPx: number, duration: number, noLimit: boolean, time: number): number {
-		if (!this.pinching && this.isZoomedIn() && delta < 0) return 0;
 		const c = this.canvas;
+
+		if (c.is360) {
+			return c.webgl.zoom(delta, duration, 0, noLimit, time, xPx, yPx);
+		}
+
+		if (!this.pinching && this.isZoomedIn() && delta < 0) return 0;
 
 		if (this.canvas.freeMove) noLimit = true;
 
