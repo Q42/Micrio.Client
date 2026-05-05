@@ -152,7 +152,7 @@ export class Canvas {
 		this.micrio.webgl.postpocessor?.resize();
 
 		// Notify Wasm of resize
-		this.micrio.wasm.resize(c);
+		this.micrio.engine.resize(c);
 		this.resizing = false; // Clear resizing flag
 
 		// Dispatch 'resize' event with bounding box info
@@ -179,8 +179,8 @@ export class Canvas {
 	 * @param height The vertical offset margin in pixels.
 	*/
 	public setMargins(width:number, height:number) : void {
-		if (!this.micrio.wasm.ready) return;
-		this.micrio.wasm.setCanvasArea(width, height);
+		if (!this.micrio.engine.ready) return;
+		this.micrio.engine.setCanvasArea(width, height);
 	}
 
 }

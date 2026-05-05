@@ -294,7 +294,7 @@ export namespace State {
 
 		/** @internal */
 		constructor(private image:MicrioImage){
-			const m = image.wasm.micrio; // Reference to main element
+			const m = image.engine.micrio; // Reference to main element
 			let pV:string, pW:number, pH:number; // Previous view state for change detection
 
 			// Subscribe to view store changes
@@ -337,9 +337,9 @@ export namespace State {
 		hookOmni() : void {
 			const image = this.image;
 			this.layer.subscribe(l => {
-				if(image.ptr < 0 || !image.wasm.ready) return;
-				image.wasm.setActiveLayer(image.ptr, l); // Call Wasm function
-				image.wasm.render(); // Trigger render
+				if(image.ptr < 0 || !image.engine.ready) return;
+				image.engine.setActiveLayer(image.ptr, l); // Call Wasm function
+				image.engine.render(); // Trigger render
 			});
 		}
 
@@ -351,7 +351,7 @@ export namespace State {
 		get() : ImageState {
 			const m = this._marker; // Use the internal marker object reference
 			// Find associated media state if a marker is open
-			const media = m ? Array.from(this.image.wasm.micrio.state.mediaState).reverse().find(x => x[0].startsWith(m.id)) : null;
+			const media = m ? Array.from(this.image.engine.micrio.state.mediaState).reverse().find(x => x[0].startsWith(m.id)) : null;
 			// Construct the state array
 			return [
 				this.image.id,

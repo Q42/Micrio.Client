@@ -24,7 +24,7 @@ export * from '../src/ts/enums';
 /** @internal */
 export * from '../src/ts/element';
 /** @internal */
-export * from '../src/ts/wasm';
+export * from '../src/ts/render/engine';
 /** @internal */
 export * from '../src/ts/canvas';
 /** @internal */

@@ -1,6 +1,6 @@
 /**
  * Manages the Micrio compute engine, render loop, tile loading, and WebGL integration.
- * Previously used WebAssembly; now uses the pure TypeScript engine in src/engine/.
+ * Hosts the pure TypeScript engine from src/engine/ and bridges it to the DOM/WebGL layer.
  * @author Marcel Duin <marcel@micr.io>
  */
 
@@ -38,45 +38,12 @@ interface CanvasEntry {
 	micrioImage: MicrioImage;
 }
 
-/** Proxy object that mimics the old Wasm exports API for the Camera class. @internal */
-interface EngineExports {
-	_getXY(ptr: number, x: number, y: number, abs: boolean, radius?: number, rotation?: number): void;
-	_getCoo(ptr: number, x: number, y: number, abs: boolean, noLimit: boolean): void;
-	_setView(ptr: number, cx: number, cy: number, w: number, h: number, noLimit: boolean, noLastView: boolean, correctNorth?: boolean): void;
-	_setCoo(ptr: number, x: number, y: number, scale: number, dur?: number, speed?: number, limit?: boolean, fn?: number, time?: number): number;
-	_setStartView(ptr: number, cx: number, cy: number, w: number, h: number, correctRatio?: boolean): void;
-	_flyTo(ptr: number, cx: number, cy: number, w: number, h: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, omniIdx: number, fn: number, time: number): number;
-	_zoom(ptr: number, delta: number, x: number, y: number, dur: number, speed: number, noLimit: boolean, time: number): number;
-	_pan(ptr: number, x: number, y: number, dur: number, noLimit: boolean, time: number): void;
-	_aniStop(ptr: number): void;
-	_aniPause(ptr: number, time: number): void;
-	_aniResume(ptr: number, time: number): void;
-	_isKinetic(ptr: number): number;
-	_getCoverScale(ptr: number): number;
-	_getMinScale(ptr: number): number;
-	_setMinScale(ptr: number, s: number): void;
-	_setMinSize(ptr: number, s: number): void;
-	_isZoomedIn(ptr: number): number;
-	_isZoomedOut(ptr: number, full: boolean): number;
-	_setLimit(ptr: number, cx: number, cy: number, w: number, h: number): void;
-	_setCoverLimit(ptr: number, b: boolean): void;
-	_getCoverLimit(ptr: number): number;
-	_set360RangeLimit(ptr: number, xPerc: number, yPerc: number): void;
-	_getYaw(ptr: number, abs?: boolean): number;
-	_getPitch(ptr: number): number;
-	_setDirection(ptr: number, yaw: number, pitch?: number): void;
-	_getMatrix(ptr: number, x: number, y: number, scale?: number, radius?: number, rX?: number, rY?: number, rZ?: number, transY?: number, sX?: number, sY?: number, noCorrectNorth?: boolean): void;
-	_setArea(ptr: number, x0: number, y0: number, x1: number, y1: number, direct: boolean, noDispatch: boolean): void;
-	_setImageArea(ptr: number, x0: number, y0: number, x1: number, y1: number): void;
-	_getOmniXY(ptr: number, x: number, y: number, z: number): void;
-}
-
 /**
  * The main Micrio compute controller class. Handles the engine lifecycle,
  * render loop, tile management, and WebGL integration.
- * Accessed via `micrio.wasm`.
+ * Accessed via `micrio.engine`.
  */
-export class Wasm {
+export class Engine {
 
 	ready: boolean = false;
 
@@ -110,7 +77,7 @@ export class Wasm {
 	/** Shared Float32Array for standard tile vertex data. */
 	_vertexBuffer!: Float32Array;
 	/** Static Float32Array holding texture coordinates for a standard quad. */
-	static readonly _textureBuffer: Float32Array = Wasm.getTextureBuffer(1, 1);
+	static readonly _textureBuffer: Float32Array = Engine.getTextureBuffer(1, 1);
 
 	/** Number of horizontal segments used for 360 sphere geometry. */
 	static segsX: number;
@@ -137,9 +104,6 @@ export class Wasm {
 	private canvasById: Map<number, CanvasEntry> = new Map();
 	/** Unique ptr counter. @internal */
 	private nextPtr: number = 1;
-
-	/** Proxy exports object for Camera class compatibility. @internal */
-	e!: EngineExports;
 
 	constructor(
 		public micrio: HTMLMicrioElement
@@ -178,9 +142,9 @@ export class Wasm {
 		this._vertexBuffer = engine.vertexBuffer;
 		this._vertexBuffer360 = engine.vertexBuffer360;
 
-		Wasm.segsX = segsX;
-		Wasm.segsY = segsY;
-		Wasm._textureBuffer360 = Wasm.getTextureBuffer(segsX, segsY);
+		Engine.segsX = segsX;
+		Engine.segsY = segsY;
+		Engine._textureBuffer360 = Engine.getTextureBuffer(segsX, segsY);
 
 		engine.drawTile = this.drawTile.bind(this);
 		engine.drawQuad = (opacity: number): void => { this.micrio.webgl.drawTile(undefined, opacity); };
@@ -229,158 +193,10 @@ export class Wasm {
 
 		this.engine = engine;
 
-		this.buildExportsProxy();
-
 		this.unsubscribe.push(this.micrio.barebone.subscribe(b => {
 			this.bareBone = b;
 			this.engine.bareBone = b;
 		}));
-	}
-
-	/** Builds the proxy object that mimics old Wasm exports for Camera class. @internal */
-	private buildExportsProxy(): void {
-		const self = this;
-		this.e = {
-			_getXY(ptr, x, y, abs, radius, rotation) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				if (c.is360) { c.webgl.getXYZ(x, y); }
-				else if (!isNaN(rotation as number)) { c.camera.getXYOmni(x, y, radius ?? 0, rotation ?? 0, !!abs); }
-				else { c.camera.getXY(x, y, !!abs); }
-			},
-			_getCoo(ptr, x, y, abs, noLimit) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				if (c.is360) { c.webgl.getCoo(x, y); }
-				else { c.camera.getCoo(x, y, !!abs, !!noLimit); }
-			},
-			_setView(ptr, cx, cy, w, h, noLimit, noLastView, correctNorth) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.setView(cx, cy, w, h, !!noLimit, !!noLastView, !!correctNorth);
-			},
-			_setCoo(ptr, x, y, scale, dur = 0, speed = 0, limit = false, fn = 0, time = 0) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.camera.setCoo(x, y, scale, dur, speed, !!limit, fn, time || performance.now());
-			},
-			_setStartView(ptr, cx, cy, w, h, _correctRatio?) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.ani.setStartView(cx, cy, w, h, false);
-			},
-			_flyTo(ptr, cx, cy, w, h, dur, speed, perc, isJump, limit, limitZoom, omniIdx, fn, time) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.camera.flyTo(cx, cy, w, h, dur, speed, perc, !!isJump, !!limit, !!limitZoom, omniIdx, fn, time);
-			},
-			_zoom(ptr, delta, x, y, dur, _speed, noLimit, time) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.camera.zoom(delta, x, y, dur, !!noLimit, time);
-			},
-			_pan(ptr, x, y, dur, noLimit, time) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.camera.pan(x, y, dur, !!noLimit, time);
-			},
-			_aniStop(ptr) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.aniStop();
-			},
-			_aniPause(ptr, time) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.aniPause(time);
-			},
-			_aniResume(ptr, time) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.aniResume(time);
-			},
-			_isKinetic(ptr) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.kinetic.started ? 1 : 0;
-			},
-			_getCoverScale(ptr) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 1;
-				return c.camera.coverScale;
-			},
-			_getMinScale(ptr) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0.1;
-				return c.camera.minScale;
-			},
-			_setMinScale(ptr, s) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.camera.minScale = s;
-				c.camera.correctMinMax();
-				c.camera.setView();
-				c.webgl.update();
-			},
-			_setMinSize(ptr, s) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.camera.minSize = Math.max(0, Math.min(1, s ?? 1));
-			},
-			_isZoomedIn(ptr) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.isZoomedIn() ? 1 : 0;
-			},
-			_isZoomedOut(ptr, full) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.isZoomedOut(!!full) ? 1 : 0;
-			},
-			_setLimit(ptr, cx, cy, w, h) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.view.setLimit(cx, cy, w, h);
-			},
-			_setCoverLimit(ptr, b) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.coverLimit = !!b;
-				c.camera.correctMinMax();
-			},
-			_getCoverLimit(ptr) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.coverLimit ? 1 : 0;
-			},
-			_set360RangeLimit(ptr, xPerc, yPerc) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.webgl.setLimits(xPerc, yPerc);
-			},
-			_getYaw(ptr, abs?) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return abs ? c.webgl.yaw + c.webgl.baseYaw : c.webgl.yaw;
-			},
-			_getPitch(ptr) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return 0;
-				return c.webgl.pitch;
-			},
-			_setDirection(ptr, yaw, pitch?) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.setDirection(yaw, pitch ?? c.webgl.pitch, false);
-			},
-			_getMatrix(ptr, x, y, scale = 1, radius = 10, rX = 0, rY = 0, rZ = 0, transY = 0, sX = 1, sY = 1, noCorrectNorth = false) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.webgl.getMatrix(x, y, scale, radius, rX, rY, rZ, transY, sX, sY, !!noCorrectNorth);
-				c.webgl.iMatrix.toArray();
-			},
-			_setArea(ptr, x0, y0, x1, y1, direct, noDispatch) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.setArea(x0, y0, x1, y1, !!direct, !!noDispatch);
-			},
-			_setImageArea(ptr, x0, y0, x1, y1) {
-				// For embeds: find the Image by ptr and call setArea
-				const entry = self.canvasById.get(ptr);
-				if (!entry) return;
-				// If it's an embed image (not a full Canvas), find it in the parent canvas
-				if (entry.micrioImage.opts.isEmbed) {
-					const parentEntry = self.activeCanvasEntry;
-					if (parentEntry) {
-						const images = parentEntry.canvas.images;
-						for (let i = 0; i < images.length; i++) {
-							const img = images[i];
-							if (img.localIdx > 0 && self.ptrToImage.get(ptr)) {
-								img.setArea(x0, y0, x1, y1);
-								break;
-							}
-						}
-					}
-				}
-			},
-			_getOmniXY(ptr, x, y, z) {
-				const c = self.canvasById.get(ptr)?.canvas; if (!c) return;
-				c.camera.getXYOmniCoo(x, y, z, 0, false);
-			},
-		};
 	}
 
 	/** Finds the public Camera instance associated with an engine Canvas. @internal */
@@ -396,9 +212,6 @@ export class Wasm {
 			if (entry.canvas === c) return entry;
 		}
 	}
-
-	/** Gets the pointer to the engine (for Camera class compatibility). @internal */
-	getPtr(): number { return 0 }
 
 	/** Unbinds event listeners, stops rendering, and cleans up resources. */
 	unbind(): void {
@@ -535,12 +348,13 @@ export class Wasm {
 	}
 
 	/**
-	 * Binds a MicrioImage's Camera instance to the engine's typed arrays.
+	 * Binds a MicrioImage's Camera instance to the engine canvas and typed arrays.
 	 * @internal
 	 */
 	private bindCamera(img: MicrioImage): void {
 		const canvas = this.canvasById.get(img.ptr)!.canvas;
 		this.cameras.set(img.ptr, img.camera);
+		img.camera.bindEngineCanvas(canvas);
 		if (canvas.is360) {
 			img.camera.assign(
 				canvas.view.arr,

@@ -35,7 +35,7 @@
 	/** Get relevant stores and properties from the parent Micrio instance. */
 	const {data, info, settings} = image; // Image-specific stores
 	const currentMarker = image.state.marker; // Image's active marker store
-	const micrio = image.wasm.micrio; // Main Micrio element instance
+	const micrio = image.engine.micrio; // Main Micrio element instance
 	const { switching, _lang, state: micrioState } = micrio; // Global state stores
 	const isMobile = micrio.canvas.isMobile; // Mobile device flag
 	const grid = micrio.canvases[0]?.grid; // Grid controller (if applicable)

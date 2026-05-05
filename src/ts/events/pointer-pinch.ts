@@ -69,9 +69,9 @@ export class PointerPinchHandler {
 
 			// Notify Wasm pinch started
 			if (this.ctx.vars.pinch.image) {
-				this.ctx.micrio.wasm.pinchStart(this.ctx.vars.pinch.image.ptr);
+				this.ctx.micrio.engine.pinchStart(this.ctx.vars.pinch.image.ptr);
 			}
-			this.ctx.micrio.wasm.render();
+			this.ctx.micrio.engine.render();
 
 			this.ctx.dispatch('pinchstart');
 			if (this.ctx.isTwoFingerPan()) this.ctx.dispatch('panstart');
@@ -117,7 +117,7 @@ export class PointerPinchHandler {
 		this.ctx.setPinchFactor(Math.hypot(p1.x - p2.x, p1.y - p2.y) / v.sDst);
 
 		// Notify Wasm of pinch movement
-		this.ctx.micrio.wasm.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+		this.ctx.micrio.engine.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
 	}
 
 	/**
@@ -144,8 +144,8 @@ export class PointerPinchHandler {
 			// Notify Wasm pinch stopped
 			const i = this.ctx.vars.pinch.image;
 			if (i) {
-				this.ctx.micrio.wasm.pinchStop(i.ptr, performance.now());
-				this.ctx.micrio.wasm.render();
+				this.ctx.micrio.engine.pinchStop(i.ptr, performance.now());
+				this.ctx.micrio.engine.render();
 			}
 			this.ctx.vars.pinch.image = undefined;
 			this.ctx.setPinchFactor(undefined);

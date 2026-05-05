@@ -51,7 +51,7 @@
 
 	/** Get the main Micrio element instance and relevant stores/properties from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
-	const { wasm, current, events, _lang } = micrio;
+	const { engine, current, events, _lang } = micrio;
 
 	// --- UI Settings ---
 	/** Whether the gallery controls should auto-hide after inactivity. */
@@ -217,9 +217,9 @@
 			}
 		}
 		else if(changed) { // switch / swipe-full / omni
-			wasm.setActiveImage(image.ptr, pageIdxes[currentPage][0], pageIdxes[currentPage].length-1);
+			engine.setActiveImage(image.ptr, pageIdxes[currentPage][0], pageIdxes[currentPage].length-1);
 			if(isOmni) {
-				wasm.render();
+				engine.render();
 			} else {
 				const p = pages[currentPage];
 				camera.flyToView([p[0], p[1], p[2]-p[0], p[3]-p[1]],{duration, speed: 2})
@@ -250,12 +250,12 @@
 		const leaving = _images[currentPage > -1 && currentPage != nextIdx ? currentPage : -1] as MicrioImage|undefined;
 		const needsZoomOut = changed && snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut();
 		const startSlide = () : void => {
-			wasm.setGridTransitionDuration(snapDur);
+			engine.setGridTransitionDuration(snapDur);
 			for(let i=0; i<_images.length; i++) {
 				const child = _images[i] as MicrioImage|undefined;
 				if(!child?.camera) continue;
 				const cur = child.opts.area ?? [0, 0, 1, 1];
-				// `cur` is the last-requested target (possibly still mid-animation in wasm).
+				// `cur` is the last-requested target (possibly still mid-animation in engine).
 				// A child counts as "near visible" if that slot sits within the neighbour
 				// range, so interrupting a transition still animates the children currently
 				// sliding across screen instead of direct-snapping them.
@@ -268,7 +268,7 @@
 				const animate = snapDur > 0 && needsMove && (wasNearVisible || willBeVisible);
 				child.camera.setArea(target, {direct: !animate, noDispatch: true});
 			}
-			wasm.render();
+			engine.render();
 		};
 
 		if(needsZoomOut) leaving!.camera!.flyToCoverView({duration: snapDur * 1000 * 0.6, speed: 2})
@@ -335,7 +335,7 @@
 		imgs.filter((n:number,i:number) => n >= 0 && n < images.length && imgs.indexOf(n) == i) // Ensure valid index and unique
 			.map(i => images[i]).filter(i => !!i && !preloading.has(i.id)) // Get image object, check if valid and not preloading
 			.forEach(i => preloading.set(i.id, request(() => // Schedule preload via requestIdleCallback/rAF
-				wasm.getTexture(i.baseTileIdx, i.thumbSrc as string, false, {force: !!archiveId}) // Request texture load
+				engine.getTexture(i.baseTileIdx, i.thumbSrc as string, false, {force: !!archiveId}) // Request texture load
 			)));
 	}
 
@@ -472,7 +472,7 @@
 		});
 
 		// Find the index with the highest score
-		wasm.setFocus(image.ptr, pages[closestIdx = distances.every(n => !n) ? currentPage : distances.indexOf(Math.max(...distances))], panning);
+		engine.setFocus(image.ptr, pages[closestIdx = distances.every(n => !n) ? currentPage : distances.indexOf(Math.max(...distances))], panning);
 		// Update zoomedOut state
 		zoomedOut = camera.isZoomedOut();
 	}
@@ -574,7 +574,7 @@
 			const prev = _images[currentPage - 1] as MicrioImage|undefined;
 			prev?.camera?.setArea(horizontalSlot(-1 + eased), {direct: true, noDispatch: true});
 		}
-		wasm.render();
+		engine.render();
 	}
 
 	// --- Omni 2-Axis Rotation State & Handlers ---
@@ -718,10 +718,10 @@
 		// Strip-swipe uses independent child canvases (addChild); switch/swipe-full/omni
 		// share the parent camera and are added as embeds.
 		const added = isStripSwipe
-			? Promise.all(_images.map(d => wasm.addChild(d as MicrioImage, image)))
+			? Promise.all(_images.map(d => engine.addChild(d as MicrioImage, image)))
 			: Promise.all(images.map(d => {
 				if('state' in d && !('image' in d)) d.camera = image.camera;
-				return wasm.addEmbed(d, image, {
+				return engine.addEmbed(d, image, {
 					opacity: 0,
 					asImage: 'camera' in d
 				});
@@ -729,7 +729,7 @@
 
 		added.then(() => {
 			if(isStripSwipe) {
-				wasm.setGridTransitionTimingFunction(Enums.Camera.TimingFunction['ease-out']);
+				engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction['ease-out']);
 				// Position every child relative to startIdx in one frame. Parent stays
 				// micrio.$current; input is routed to the active child by getImage().
 				// Children come out of addChild with coverLimit=true (the grid default,
@@ -745,9 +745,9 @@
 				currentPage = startIdx;
 				frameChanged();
 				image.album!.hooked = inited = true;
-				wasm.render();
+				engine.render();
 			} else {
-				wasm.setActiveImage(image.ptr, startIdx);
+				engine.setActiveImage(image.ptr, startIdx);
 				goto(startIdx, false, 0);
 			}
 			dragging = false;
