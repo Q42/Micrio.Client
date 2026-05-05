@@ -8,13 +8,15 @@
 		"noUnusedParameters": true,
 		"paths": {
 			"$ts/*": ["./src/ts/*"],
-			"$types/*": ["./src/types/*"]
+			"$types/*": ["./src/types/*"],
+			"$engine/*": ["./src/engine/*"]
 		}
 	},
 	"include": [
 		"src/svelte/Main.svelte",
 		"src/types/**/*",
 		"src/ts/**/*",
+		"src/engine/**/*",
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }
