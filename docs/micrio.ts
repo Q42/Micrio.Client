@@ -26,7 +26,7 @@ export * from '../src/ts/element';
 /** @internal */
 export * from '../src/ts/render/engine';
 /** @internal */
-export * from '../src/ts/canvas';
+export * from '../src/ts/render/canvas';
 /** @internal */
 export * from '../src/ts/events';
 /** @internal */
@@ -36,10 +36,10 @@ export * from '../src/ts/camera';
 /** @internal */
 export * from '../src/ts/state';
 /** @internal */
-export * from '../src/ts/grid';
+export * from '../src/ts/nav/grid';
 /** @internal */
-export * from '../src/ts/swiper';
+export * from '../src/ts/nav/swiper';
 /** @internal */
-export * from '../src/ts/videotour';
+export * from '../src/ts/media/videotour';
 /** @internal */
 export * from '../src/types/models';

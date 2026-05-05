@@ -18,11 +18,8 @@ Make sure you have Node and `pnpm` installed.
 Make sure you are in this directory. From there, run:
 
 ```sh
-# This will install all necessary dependencies: Svelte, TypeScript and all WebAssembly stuff
+# This will install all necessary dependencies: Svelte and TypeScript
 $ pnpm i
-
-# Compile the WebAssembly module for first time use
-$ pnpm run asbuild:optimized
 ```
 
 To run the dev env:
@@ -33,23 +30,11 @@ $ pnpm run dev
 
 This will start a webserver on `http://localhost:2000/` which will auto reload to any changes made in the `./src` dir.
 
-## Working in WebAssembly
+## Engine
 
-Since the web client uses a binary `wasm` file for the WebAssembly engine, you need to recompile it after you've made changes in the `./src/wasm` dir:
+The core rendering engine is written in TypeScript and lives in `./src/engine`. This handles all WebGL rendering, camera transforms, and canvas management.
 
-```sh
-$ pnpm run asbuild:optimized
-```
-
-If you want more debugging/stack tracing of your compiled wasm, run:
-
-```sh
-$ pnpm run asbuild:untouched
-```
-
-And make sure that `ts/wasm.ts` references `/build/untouched.wasm`.
-
-This will create a new `wasm` binary which will be used the next time you reload.
+If you make changes to the engine, the dev server (`pnpm run dev`) will automatically pick them up via hot reload.
 
 ## Compilation
 
