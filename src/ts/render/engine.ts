@@ -812,8 +812,14 @@ export class Engine {
 	setNoPinchPan(v: boolean): void { this.engine.noPinchPan = v; }
 	setIsSwipe(v: boolean): void { this.engine.isSwipe = v; }
 	ease(p: number): number { return easeInOut.get(p); }
-	panStart(_ptr: number): void { /* no-op in engine */ }
-	panStop(_ptr: number): void { /* no-op in engine */ }
+	panStart(ptr: number): void {
+		const entry = this.canvasById.get(ptr); if (!entry) return;
+		entry.canvas.kinetic.stop();
+	}
+	panStop(ptr: number): void {
+		const entry = this.canvasById.get(ptr); if (!entry) return;
+		entry.canvas.kinetic.start();
+	}
 	pinchStart(ptr: number): void {
 		const entry = this.canvasById.get(ptr); if (!entry) return;
 		entry.canvas.camera.pinchStart();
