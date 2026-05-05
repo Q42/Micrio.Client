@@ -72,6 +72,9 @@ export class Engine {
 	/** O(1) ptr-to-image lookup for hot-path callbacks. @internal */
 	private ptrToImage: Map<number, MicrioImage | Models.Omni.Frame> = new Map();
 
+	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */
+	private engImageToMicrio: Map<Image, MicrioImage | Models.Omni.Frame> = new Map();
+
 	preventDirectionSet: boolean = false;
 
 	/** Shared Float32Array for standard tile vertex data. */
@@ -225,7 +228,13 @@ export class Engine {
 		this.findEntry(c)?.micrioImage?.visible?.set(visible);
 	}
 	private _hostSetVisible2(img: Image, visible: boolean): void {
-		this.findEntry(img)?.micrioImage?.visible?.set(visible);
+		const entry = this.findEntry(img);
+		if (entry) {
+			entry.micrioImage?.visible?.set(visible);
+			return;
+		}
+		const micrioImage = this.engImageToMicrio.get(img);
+		if (micrioImage && 'visible' in micrioImage) micrioImage.visible.set(visible);
 	}
 
 	/** Unbinds event listeners, stops rendering, and cleans up resources. */
@@ -692,7 +701,8 @@ export class Engine {
 		if (!isEmbed) {
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height);
 		} else {
-			parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
+			this.engImageToMicrio.set(engImage, image);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
 			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image });
@@ -738,7 +748,8 @@ export class Engine {
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			const parentEntry = this.canvasById.get(parent.ptr);
 			if (!parentEntry) return;
-			parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
+			this.engImageToMicrio.set(engImage, image);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
 			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image as MicrioImage });
