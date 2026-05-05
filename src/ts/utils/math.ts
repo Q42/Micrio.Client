@@ -4,6 +4,7 @@
  */
 
 import type { Models } from '$types/models';
+export { mod } from '$engine/utils/utils';
 
 /**
  * Calculates the hypotenuse of a right triangle given the lengths of the other two sides.
@@ -13,15 +14,6 @@ import type { Models } from '$types/models';
  * @returns The length of the hypotenuse.
  */
 export const pyth = (a: number, b: number): number => Math.sqrt(a * a + b * b);
-
-/**
- * Calculates the modulo of n divided by m, ensuring a positive result.
- * @internal
- * @param n The dividend.
- * @param m The divisor (defaults to 1).
- * @returns The positive modulo result.
- */
-export const mod = (n: number, m: number = 1): number => (n % m + m) % m;
 
 /**
  * Clamps a view rectangle to the image bounds [0, 0, 1, 1].

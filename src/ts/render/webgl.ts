@@ -10,6 +10,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import { Engine } from './engine';
 import { PostProcessor } from './postprocess';
 import { Browser, MicrioError, ErrorCodes } from '$ts/utils';
+import { segsX, segsY } from '$engine/globals';
 
 const isFirefox:boolean = Browser.firefox;
 
@@ -405,7 +406,7 @@ export class WebGL {
 		}
 
 		// Determine number of vertices based on 360 or standard quad
-		const length = is360 ? 6 * Engine.segsX * Engine.segsY : 6;
+		const length = is360 ? 6 * segsX * segsY : 6;
 
 		// If switching between 360 and standard rendering, re-buffer static texture coordinates
 		if(is360 != this.was360) {

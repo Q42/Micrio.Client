@@ -1,6 +1,6 @@
 import type { MicrioImage } from './image';
 import type { Models } from '$types/models';
-import type TileCanvas from '$engine/canvas';
+import type TileCanvas from '$engine/canvas/canvas';
 
 import { tick } from 'svelte';
 import { View, mod } from './utils';
@@ -125,9 +125,6 @@ export class Camera {
 	private _setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: number = 0, time: number = 0): number {
 		return this._c.camera.setCoo(x, y, scale, dur, speed, !!limit, fn, time || performance.now());
 	}
-	private _setStartView(cx: number, cy: number, w: number, h: number): void {
-		this._c.ani.setStartView(cx, cy, w, h, false);
-	}
 	private _flyTo(cx: number, cy: number, w: number, h: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, omniIdx: number, fn: number, time: number): number {
 		return this._c.camera.flyTo(cx, cy, w, h, dur, speed, perc, !!isJump, !!limit, !!limitZoom, omniIdx, fn, time);
 	}
@@ -137,12 +134,6 @@ export class Camera {
 	private _pan(x: number, y: number, dur: number, noLimit: boolean, time: number): void {
 		this._c.camera.pan(x, y, dur, !!noLimit, time);
 	}
-	private _aniStop(): void { this._c.aniStop(); }
-	private _aniPause(time: number): void { this._c.aniPause(time); }
-	private _aniResume(time: number): void { this._c.aniResume(time); }
-	private _isKinetic(): number { return this._c.kinetic.started ? 1 : 0; }
-	private _getCoverScale(): number { return this._c.camera.coverScale; }
-	private _getMinScale(): number { return this._c.camera.minScale; }
 	private _setMinScale(s: number): void {
 		const c = this._c;
 		c.camera.minScale = s;
@@ -153,33 +144,15 @@ export class Camera {
 	private _setMinSize(s: number): void {
 		this._c.camera.minSize = Math.max(0, Math.min(1, s ?? 1));
 	}
-	private _isZoomedIn(): number { return this._c.isZoomedIn() ? 1 : 0; }
-	private _isZoomedOut(full: boolean): number { return this._c.isZoomedOut(full) ? 1 : 0; }
-	private _setLimit(cx: number, cy: number, w: number, h: number): void { this._c.view.setLimit(cx, cy, w, h); }
 	private _setCoverLimit(b: boolean): void {
 		this._c.coverLimit = !!b;
 		this._c.camera.correctMinMax();
 	}
-	private _getCoverLimit(): number { return this._c.coverLimit ? 1 : 0; }
-	private _set360RangeLimit(xPerc: number, yPerc: number): void { this._c.webgl.setLimits(xPerc, yPerc); }
-	private _getYaw(abs?: boolean): number {
-		const c = this._c;
-		return abs ? c.webgl.yaw + c.webgl.baseYaw : c.webgl.yaw;
-	}
-	private _getPitch(): number { return this._c.webgl.pitch; }
 	private _setDirection(yaw: number, pitch?: number): void {
 		this._c.setDirection(yaw, pitch ?? this._c.webgl.pitch, false);
 	}
 	private _getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number, sX: number, sY: number, noCorrectNorth: boolean): void {
 		this._c.getMatrix(x, y, scale, radius, rX, rY, rZ, transY, sX, sY, !!noCorrectNorth);
-	}
-	private _setArea(x0: number, y0: number, x1: number, y1: number, direct: boolean, noDispatch: boolean): void {
-		this._c.setArea(x0, y0, x1, y1, !!direct, !!noDispatch);
-	}
-	private _setImageArea(x0: number, y0: number, x1: number, y1: number): void {
-		for (const img of this._c.images) {
-			if (img.localIdx > 0) { img.setArea(x0, y0, x1, y1); return; }
-		}
 	}
 	private _getOmniXY(x: number, y: number, z: number): void {
 		this._c.camera.getXYOmniCoo(x, y, z, 0, false);
@@ -402,36 +375,17 @@ export class Camera {
 	public setScale = (s:number) : void => this.setCoo(this.center[0],this.center[1], s);
 
 	/** Gets the scale at which the image fully covers the viewport. */
-	public getCoverScale = () : number => this._engineCanvas ? this._getCoverScale() : 1;
+	public getCoverScale = () : number => this._engineCanvas?.camera.coverScale ?? 1;
 
-	/**
-	 * Gets the minimum allowed zoom scale for the image.
-	 * @returns The minimum scale.
-	*/
-	public getMinScale = () : number => this._engineCanvas ? this._getMinScale() : 0.1;
+	public getMinScale = () : number => this._engineCanvas?.camera.minScale ?? 0.1;
 
-	/**
-	 * Sets the minimum allowed zoom scale.
-	 * @param s The minimum scale to set.
-	*/
-	public setMinScale(s:number) : void { if(this._engineCanvas) this._setMinScale(s); }
+	setMinScale(s:number) : void { if(this._engineCanvas) this._setMinScale(s); }
 
-	/**
-	 * Sets the minimum screen size the image should occupy when zooming out (0-1).
-	 * Allows zooming out further than the image boundaries, creating margins.
-	 * Note: Does not work with albums.
-	 * @param s The minimum screen size fraction (0-1).
-	*/
-	public setMinScreenSize(s:number) : void { if(!this.image.album && this._engineCanvas) this._setMinSize(Math.max(0, Math.min(1, s??1))); }
+	setMinScreenSize(s:number) : void { if(!this.image.album && this._engineCanvas) this._setMinSize(Math.max(0, Math.min(1, s??1))); }
 
-	/** Returns true if the camera is currently zoomed in to its maximum limit. */
-	public isZoomedIn = () : boolean => !!(this._engineCanvas && this._isZoomedIn());
+	public isZoomedIn = () : boolean => !!(this._engineCanvas?.isZoomedIn());
 
-	/**
-	 * Returns true if the camera is currently zoomed out to its minimum limit.
-	 * @param full If true, checks against the absolute minimum scale (ignoring `setMinScreenSize`).
-	*/
-	public isZoomedOut = (full:boolean = false) : boolean => !!(this._engineCanvas && this._isZoomedOut(full));
+	public isZoomedOut = (full:boolean = false) : boolean => !!(this._engineCanvas?.isZoomedOut(full));
 
 	/**
 	 * Sets a rectangular limit for camera navigation within the image.
@@ -440,7 +394,7 @@ export class Camera {
 	public setLimit(v:Models.Camera.ViewRect) : void {
 		if (!this._engineCanvas) return;
 		const l = View.rectToCenterJSON(v)!;
-		this._setLimit( l.centerX, l.centerY, l.width, l.height);
+		this._c.view.setLimit(l.centerX, l.centerY, l.width, l.height);
 		this.image.engine.render();
 	}
 
@@ -450,21 +404,26 @@ export class Camera {
 	*/
 	public setCoverLimit(b:boolean) : void {
 		if (!this._engineCanvas) return;
-		this._setCoverLimit( !!b);
+		this._setCoverLimit(!!b);
 	}
 
-	/** Gets whether the cover limit is currently enabled. */
-	public getCoverLimit = () : boolean => !!(this._engineCanvas && this._getCoverLimit());
+	public getCoverLimit = () : boolean => !!(this._engineCanvas?.coverLimit);
 
-	/**
-	 * Limits the horizontal and vertical viewing range for 360 images.
-	 * @param xPerc The horizontal arc limit as a percentage (0-1, where 1 = 360°). 0 disables horizontal limit.
-	 * @param yPerc The vertical arc limit as a percentage (0-1, where 1 = 180°). 0 disables vertical limit.
-	*/
+	public stop() : void { this._engineCanvas?.aniStop(); }
+	public pause() : void { this._engineCanvas?.aniPause(performance.now()); }
+	public resume() : void {
+		this._engineCanvas?.aniResume(performance.now());
+		this.image.engine.render();
+	}
+
 	public set360RangeLimit(xPerc:number=0, yPerc:number=0) : void {
 		if (!this._engineCanvas) return;
-		this._set360RangeLimit( xPerc, yPerc);
+		this._c.webgl.setLimits(xPerc, yPerc);
 		this.image.engine.render();
+	}
+
+	public aniIsKinetic() : boolean {
+		return !!(this._engineCanvas?.kinetic.started);
 	}
 
 	/** Sets the internal Promise resolve/reject functions for the current animation.
@@ -519,7 +478,7 @@ export class Camera {
 		}
 		if (opts.prevView) {
 			const pCV = View.toCenterJSON(opts.prevView);
-			this._setStartView( pCV.centerX, pCV.centerY, pCV.width, pCV.height);
+			this._c.ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height, false);
 		}
 		if (this.image.$settings.omni?.frames) {
 			const numLayers = this.image.$settings.omni.layers?.length ?? 1;
@@ -645,51 +604,18 @@ export class Camera {
 		if(duration > 0 || opts.render) this.image.engine.render();
 	}
 
-	/** Stops any currently running camera animation immediately. */
-	public stop() : void {
-		if (!this._engineCanvas) return;
-		this._aniStop();
-	}
-
-	/** Pauses the current camera animation. */
-	public pause() : void {
-		if (!this._engineCanvas) return;
-		this._aniPause( performance.now());
-	}
-
-	/** Resumes a paused camera animation. */
-	public resume() : void {
-		if (!this._engineCanvas) return;
-		this._aniResume( performance.now());
-		this.image.engine.render(); // Trigger render loop
-	}
-
-	/** Returns true if the camera is currently performing a kinetic pan/zoom (coasting). */
-	public aniIsKinetic() : boolean {
-		return !!(this._engineCanvas && this._isKinetic());
-	}
-
 	/** Gets the current viewing direction (yaw) in 360 mode.
 	 * @returns The current yaw in radians.
 	 */
-	getDirection = () : number => this._engineCanvas ? this._getYaw() : 0;
+	getDirection = () : number => this._engineCanvas ? this._c.webgl.yaw : 0;
 
-	/**
-	 * Sets the viewing direction (yaw and optionally pitch) instantly in 360 mode.
-	 * @param yaw The target yaw in radians.
-	 * @param pitch Optional target pitch in radians.
-	*/
+	getPitch = () : number => this._engineCanvas ? this._c.webgl.pitch : 0;
+
 	setDirection(yaw:number, pitch?:number) : void {
 		if (!this._engineCanvas) return;
-		this._setDirection( yaw, pitch);
+		this._setDirection(yaw, pitch);
 		this.image.engine.render();
 	}
-
-	/**
-	 * Gets the current viewing pitch in 360 mode.
-	 * @returns The current pitch in radians.
-	*/
-	getPitch = () : number => this._engineCanvas ? this._getPitch() : 0;
 
 	/**
 	 * Sets the rendering area for this image within the main canvas.
@@ -709,12 +635,14 @@ export class Camera {
 		if(this.image.opts.isEmbed) {
 			if(this.image.ptr > 0) {
 				this.image.opts.area = v;
-				this._setImageArea( v[0], v[1], v[2], v[3]);
+				for (const img of this._c.images) {
+					if (img.localIdx > 0) { img.setArea(v[0], v[1], v[2], v[3]); return; }
+				}
 			}
 		}
 		else {
 			this.image.opts.area = v;
-			this._setArea( v[0], v[1], v[2], v[3], !!opts.direct, !!opts.noDispatch);
+			this._c.setArea(v[0], v[1], v[2], v[3], !!opts.direct, !!opts.noDispatch);
 		}
 		if(!opts.noRender) this.image.engine.render();
 	}

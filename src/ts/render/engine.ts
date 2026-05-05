@@ -17,10 +17,10 @@ import { Browser, once } from '$ts/utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 
 import { Main } from '$engine/main';
-import TileCanvas from '$engine/canvas';
-import type Image from '$engine/image';
+import TileCanvas from '$engine/canvas/canvas';
+import type Image from '$engine/canvas/image';
 import { segsX, segsY } from '$engine/globals';
-import { easeInOut, easeIn, easeOut, linear } from '$engine/utils';
+import { easeInOut, easeIn, easeOut, linear } from '$engine/utils/utils';
 
 /** Unified tile entry storing all state for a single tile. @internal */
 interface TileEntry {
@@ -79,11 +79,6 @@ export class Engine {
 	/** Static Float32Array holding texture coordinates for a standard quad. */
 	static readonly _textureBuffer: Float32Array = Engine.getTextureBuffer(1, 1);
 
-	/** Number of horizontal segments used for 360 sphere geometry. */
-	static segsX: number;
-	/** Number of vertical segments used for 360 sphere geometry. */
-	static segsY: number;
-
 	/** Shared Float32Array for 360 tile vertex data. */
 	_vertexBuffer360!: Float32Array;
 	/** Static Float32Array holding texture coordinates for the 360 sphere. */
@@ -102,8 +97,21 @@ export class Engine {
 	private activeCanvasEntry: CanvasEntry | null = null;
 	/** Map from ptr → canvas entry. @internal */
 	private canvasById: Map<number, CanvasEntry> = new Map();
+	/** Map from TileCanvas → canvas entry (O(1) reverse lookup). @internal */
+	private canvasToEntry: Map<TileCanvas, CanvasEntry> = new Map();
 	/** Unique ptr counter. @internal */
 	private nextPtr: number = 1;
+
+	/** Returns the engine TileCanvas for a MicrioImage, or undefined. */
+	getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
+		return this.canvasById.get(img.ptr)?.canvas;
+	}
+
+	/** Stores a canvas entry in both lookup maps. @internal */
+	private setEntry(ptr: number, entry: CanvasEntry): void {
+		this.canvasById.set(ptr, entry);
+		if (!this.canvasToEntry.has(entry.canvas)) this.canvasToEntry.set(entry.canvas, entry);
+	}
 
 	constructor(
 		public micrio: HTMLMicrioElement
@@ -139,56 +147,21 @@ export class Engine {
 
 		const engine = new Main({
 			drawTile: this.drawTile.bind(this),
-			drawQuad: (opacity: number): void => { this.micrio.webgl.drawTile(undefined, opacity); },
-			getTileOpacity: (i: number): number => this.tiles.get(i)?.opacity || 0,
-			setTileOpacity: (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
-				const tile = this.tiles.get(i);
-				if (!tile) return 0;
-				if (tile.opacity < 1) {
-					tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1, (this.now - tile.loadedAt) / 250) * imageOpacity : 0);
-				}
-				return tile.opacity;
-			},
-			setMatrix: (arr: Float32Array) => this.micrio.webgl.gl.uniformMatrix4fv(
-				this.micrio.webgl.pmLoc, false, arr),
-			setViewport: (left: number, bottom: number, w: number, h: number) => this.micrio.webgl.gl
-				.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h)),
-			aniDone: (c: TileCanvas): void => {
-				const cam = this.findCamera(c);
-				if (!cam) return;
-				if (cam.aniDone) cam.aniDone();
-				while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
-				cam.aniAbort = cam.aniDone = undefined;
-			},
-			aniAbort: (c: TileCanvas): void => {
-				const cam = this.findCamera(c);
-				if (!cam) return;
-				if (cam.aniAbort) cam.aniAbort();
-				cam.aniDoneAdd.length = 0;
-				cam.aniAbort = cam.aniDone = undefined;
-			},
-			viewSet: (c: TileCanvas): void => {
-				this.findCamera(c)?.viewChanged();
-			},
-			viewportSet: (c: TileCanvas, x: number, y: number, w: number, h: number): void => {
-				const entry = this.findEntry(c);
-				if (entry && 'viewport' in entry.micrioImage) {
-					(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
-				}
-			},
-			setVisible: (c: TileCanvas, visible: boolean): void => {
-				this.findEntry(c)?.micrioImage?.visible?.set(visible);
-			},
-			setVisible2: (img: Image, visible: boolean): void => {
-				this.findEntry(img as unknown as TileCanvas)?.micrioImage?.visible?.set(visible);
-			},
+			drawQuad: this._hostDrawQuad.bind(this),
+			getTileOpacity: this._hostGetTileOpacity.bind(this),
+			setTileOpacity: this._hostSetTileOpacity.bind(this),
+			setMatrix: this._hostSetMatrix.bind(this),
+			setViewport: this._hostSetViewport.bind(this),
+			aniDone: this._hostAniDone.bind(this),
+			aniAbort: this._hostAniAbort.bind(this),
+			viewSet: this._hostViewSet.bind(this),
+			viewportSet: this._hostViewportSet.bind(this),
+			setVisible: this._hostSetVisible.bind(this),
+			setVisible2: this._hostSetVisible2.bind(this),
 		});
 
 		this._vertexBuffer = engine.vertexBuffer;
 		this._vertexBuffer360 = engine.vertexBuffer360;
-
-		Engine.segsX = segsX;
-		Engine.segsY = segsY;
 		Engine._textureBuffer360 = Engine.getTextureBuffer(segsX, segsY);
 
 		this.engine = engine;
@@ -201,16 +174,58 @@ export class Engine {
 
 	/** Finds the public Camera instance associated with an engine Canvas. @internal */
 	private findCamera(c: TileCanvas): Camera | undefined {
-		for (const [, entry] of this.canvasById) {
-			if (entry.canvas === c) return this.cameras.get(entry.micrioImage.ptr);
-		}
+		const entry = this.canvasToEntry.get(c);
+		return entry ? this.cameras.get(entry.micrioImage.ptr) : undefined;
 	}
 
 	/** Finds the canvas entry associated with an engine Canvas or Image. @internal */
 	private findEntry(c: TileCanvas | Image): CanvasEntry | undefined {
-		for (const [, entry] of this.canvasById) {
-			if (entry.canvas === c) return entry;
+		if (c instanceof TileCanvas) return this.canvasToEntry.get(c);
+		return undefined;
+	}
+
+	private _hostDrawQuad(opacity: number): void { this.micrio.webgl.drawTile(undefined, opacity); }
+	private _hostGetTileOpacity(i: number): number { return this.tiles.get(i)?.opacity || 0; }
+	private _hostSetTileOpacity(i: number, direct: boolean = false, imageOpacity: number = 1): number {
+		const tile = this.tiles.get(i);
+		if (!tile) return 0;
+		if (tile.opacity < 1) {
+			tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1, (this.now - tile.loadedAt) / 250) * imageOpacity : 0);
 		}
+		return tile.opacity;
+	}
+	private _hostSetMatrix(arr: Float32Array): void {
+		this.micrio.webgl.gl.uniformMatrix4fv(this.micrio.webgl.pmLoc, false, arr);
+	}
+	private _hostSetViewport(left: number, bottom: number, w: number, h: number): void {
+		this.micrio.webgl.gl.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h));
+	}
+	private _hostAniDone(c: TileCanvas): void {
+		const cam = this.findCamera(c);
+		if (!cam) return;
+		if (cam.aniDone) cam.aniDone();
+		while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
+		cam.aniAbort = cam.aniDone = undefined;
+	}
+	private _hostAniAbort(c: TileCanvas): void {
+		const cam = this.findCamera(c);
+		if (!cam) return;
+		if (cam.aniAbort) cam.aniAbort();
+		cam.aniDoneAdd.length = 0;
+		cam.aniAbort = cam.aniDone = undefined;
+	}
+	private _hostViewSet(c: TileCanvas): void { this.findCamera(c)?.viewChanged(); }
+	private _hostViewportSet(c: TileCanvas, x: number, y: number, w: number, h: number): void {
+		const entry = this.findEntry(c);
+		if (entry && 'viewport' in entry.micrioImage) {
+			(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
+		}
+	}
+	private _hostSetVisible(c: TileCanvas, visible: boolean): void {
+		this.findEntry(c)?.micrioImage?.visible?.set(visible);
+	}
+	private _hostSetVisible2(img: Image, visible: boolean): void {
+		this.findEntry(img)?.micrioImage?.visible?.set(visible);
 	}
 
 	/** Unbinds event listeners, stops rendering, and cleans up resources. */
@@ -277,30 +292,33 @@ export class Engine {
 
 		const canvas = new TileCanvas(
 			this.engine,
-			i.width, i.height, i.tileSize ?? 1024,
-			i.is360 ?? false,
-			c.noImage,
-			!!(i.isSingle || is360Video),
+			i.width, i.height,
 			c.opacity,
-			settings.freeMove ?? false,
 			coverLimit,
-			coverStart,
-			(settings.zoomLimit || 1),
-			(settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1),
-			settings.camspeed ?? 1,
-			c.camera.rotationY,
-			gallerySwitch,
-			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe',
-			c.isOmni,
-			settings.pinchZoomOutLimit ?? false,
-			numOmniLayers,
-			settings.omni?.layerStartIndex ?? 0,
+			{
+				tileSize: i.tileSize ?? 1024,
+				is360: i.is360 ?? false,
+				noImage: c.noImage,
+				isSingle: !!(i.isSingle || is360Video),
+				freeMove: settings.freeMove ?? false,
+				coverStart,
+				maxScale: settings.zoomLimit || 1,
+				scaleMultiplier: settings.zoomLimitDPRFix !== false ? this.micrio.canvas.getRatio(c.$settings) : 1,
+				camSpeed: settings.camspeed ?? 1,
+				rotationY: c.camera.rotationY,
+				isGallerySwitch: gallerySwitch,
+				pagesHaveBackground: !!settings.gallery?.isSpreads && settings.gallery.type == 'swipe',
+				isOmni: c.isOmni,
+				pinchZoomOutLimit: settings.pinchZoomOutLimit ?? false,
+				omniNumLayers: numOmniLayers,
+				omniStartLayer: settings.omni?.layerStartIndex ?? 0,
+			},
 			false,
 		);
 
 		const ptr = this.nextPtr++;
 		c.ptr = ptr;
-		this.canvasById.set(ptr, { canvas, micrioImage: c });
+		this.setEntry(ptr, { canvas, micrioImage: c });
 		this.images.push(c);
 		this.ptrToImage.set(c.ptr, c);
 		this.cameras.set(c.ptr, c.camera);
@@ -677,7 +695,7 @@ export class Engine {
 			parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
-			this.canvasById.set(ptr, { canvas: parentEntry.canvas, micrioImage: image });
+			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image });
 			this.ptrToImage.set(ptr, image);
 
 			image.baseTileIdx = this.engine.numTiles - 1;
@@ -688,7 +706,7 @@ export class Engine {
 
 		const ptr = this.nextPtr++;
 		image.ptr = ptr;
-		this.canvasById.set(ptr, { canvas, micrioImage: image });
+		this.setEntry(ptr, { canvas, micrioImage: image });
 		this.ptrToImage.set(ptr, image);
 
 		if (!isEmbed) {
@@ -723,7 +741,7 @@ export class Engine {
 			parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
-			this.canvasById.set(ptr, { canvas: parentEntry.canvas, micrioImage: image as MicrioImage });
+			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image as MicrioImage });
 			this.ptrToImage.set(ptr, image);
 			image.baseTileIdx = this.engine.numTiles - 1;
 			this.getTileEntry(image.baseTileIdx).opacity = 1;
@@ -736,14 +754,12 @@ export class Engine {
 
 	/** Sets the active image frame index for an Omni object. @internal */
 	setActiveImage(ptr: number, idx: number, num?: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.setActiveImage(idx, num ?? 0);
+		this.getCanvas(this.ptrToImage.get(ptr)!)?.setActiveImage(idx, num ?? 0);
 	}
 
 	/** Sets the active layer index for an Omni object. @internal */
 	setActiveLayer(ptr: number, idx: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.setActiveLayer(idx);
+		this.getCanvas(this.ptrToImage.get(ptr)!)?.setActiveLayer(idx);
 	}
 
 	/**
@@ -751,13 +767,12 @@ export class Engine {
 	 * @internal
 	 */
 	fadeImage(ptr: number, opacity: number, direct: boolean = false): void {
-		const entry = this.canvasById.get(ptr);
-		if (!entry) return;
+		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		if (!c) return;
 		if (this.cameras.has(ptr)) {
-			entry.canvas.targetOpacity = opacity;
+			c.targetOpacity = opacity;
 		} else {
-			// Is embed: find the embed Image in the canvas
-			const images = entry.canvas.images;
+			const images = c.images;
 			for (let i = 0; i < images.length; i++) {
 				const img = images[i];
 				if (img.localIdx > 0) {
@@ -774,15 +789,14 @@ export class Engine {
 	 * @internal
 	 */
 	setFocus(ptr: number, v: Models.Camera.ViewRect, noLimit: boolean = false): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.setFocus(v[0], v[1], v[2], v[3], noLimit);
+		this.getCanvas(this.ptrToImage.get(ptr)!)?.setFocus(v[0], v[1], v[2], v[3], noLimit);
 	}
 
 	// --- Facade methods (delegate to engine) ---
 
 	setZIndex(ptr: number, z: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.zIndex = z;
+		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		if (c) c.zIndex = z;
 	}
 	setGridTransitionDuration(dur: number): void { this.engine.gridTransitionDuration = dur; }
 	setGridTransitionTimingFunction(fn: number): void {
@@ -790,52 +804,30 @@ export class Engine {
 	}
 	setCrossfadeDuration(dur: number): void { this.engine.crossfadeDuration = dur; }
 	fadeTo(ptr: number, opacity: number, direct: boolean): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.targetOpacity = opacity;
-		if (direct) entry.canvas.opacity = opacity;
+		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		if (!c) return;
+		c.targetOpacity = opacity;
+		if (direct) c.opacity = opacity;
 	}
-	fadeIn(ptr: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.fadeIn();
-	}
-	fadeOut(ptr: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.fadeOut();
-	}
-	areaAnimating(ptr: number): boolean {
-		const entry = this.canvasById.get(ptr); if (!entry) return false;
-		return entry.canvas.areaAnimating();
-	}
-	getActiveImageIdx(ptr: number): number {
-		const entry = this.canvasById.get(ptr); if (!entry) return -1;
-		return entry.canvas.activeImageIdx;
-	}
+	fadeIn(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.fadeIn(); }
+	fadeOut(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.fadeOut(); }
+	areaAnimating(ptr: number): boolean { return this.getCanvas(this.ptrToImage.get(ptr)!)?.areaAnimating() ?? false; }
+	getActiveImageIdx(ptr: number): number { return this.getCanvas(this.ptrToImage.get(ptr)!)?.activeImageIdx ?? -1; }
 	setNoPinchPan(v: boolean): void { this.engine.noPinchPan = v; }
 	setIsSwipe(v: boolean): void { this.engine.isSwipe = v; }
 	ease(p: number): number { return easeInOut.get(p); }
-	panStart(ptr: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.kinetic.stop();
-	}
-	panStop(ptr: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.kinetic.start();
-	}
-	pinchStart(ptr: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.camera.pinchStart();
-	}
+	panStart(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.kinetic.stop(); }
+	panStop(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.kinetic.start(); }
+	pinchStart(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.camera.pinchStart(); }
 	pinch(ptr: number, x0: number, y0: number, x1: number, y1: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.camera.pinch(x0, y0, x1, y1);
+		this.getCanvas(this.ptrToImage.get(ptr)!)?.camera.pinch(x0, y0, x1, y1);
 	}
 	pinchStop(ptr: number, t: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.camera.pinchStop(t);
+		this.getCanvas(this.ptrToImage.get(ptr)!)?.camera.pinchStop(t);
 	}
 	setLimited(ptr: number, v: boolean): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.limited = v;
+		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		if (c) c.limited = v;
 	}
 	set360Orientation(d: number, dX: number, dY: number): void {
 		this.engine.direction = d;
@@ -847,25 +839,28 @@ export class Engine {
 		this.engine.el.areaHeight = h;
 	}
 	setImageVideoPlaying(ptr: number, playing: boolean): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		const images = entry.canvas.images;
+		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		if (!c) return;
+		const images = c.images;
 		for (let i = 0; i < images.length; i++) {
 			if (images[i].isVideo) { images[i].isVideoPlaying = playing; break; }
 		}
 	}
 	setImageRotation(ptr: number, rotX: number, rotY: number, rotZ: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		const images = entry.canvas.images;
+		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		if (!c) return;
+		const images = c.images;
 		for (let i = 0; i < images.length; i++) {
 			const im = images[i];
 			if (im.localIdx > 0) { im.rotX = rotX; im.rotY = rotY; im.rotZ = rotZ; break; }
 		}
 	}
 	setOmniSettings(ptr: number, d: number, fov: number, vA: number, oX: number): void {
-		const entry = this.canvasById.get(ptr); if (!entry) return;
-		entry.canvas.omniDistance = d;
-		entry.canvas.omniFieldOfView = fov;
-		entry.canvas.omniVerticalAngle = vA;
-		entry.canvas.omniOffsetX = oX;
+		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		if (!c) return;
+		c.omniDistance = d;
+		c.omniFieldOfView = fov;
+		c.omniVerticalAngle = vA;
+		c.omniOffsetX = oX;
 	}
 }

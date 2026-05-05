@@ -15,6 +15,25 @@ import Camera from '../camera/camera'
 import Image from './image'
 import SphericalView from '../webgl/webgl'
 
+export interface TileCanvasConfig {
+	tileSize: number;
+	is360: boolean;
+	noImage: boolean;
+	isSingle: boolean;
+	freeMove: boolean;
+	coverStart: boolean;
+	maxScale: number;
+	scaleMultiplier: number;
+	camSpeed: number;
+	rotationY: number;
+	isGallerySwitch: boolean;
+	pagesHaveBackground: boolean;
+	isOmni: boolean;
+	pinchZoomOutLimit: boolean;
+	omniNumLayers: number;
+	omniStartLayer: number;
+}
+
 export default class TileCanvas {
 	readonly view!: View;
 
@@ -71,43 +90,52 @@ export default class TileCanvas {
 
 	layer: number = 0;
 
+	readonly tileSize: number;
+	readonly is360: boolean;
+	readonly noImage: boolean;
+	readonly isSingle: boolean;
+	readonly freeMove: boolean;
+	readonly coverStart: boolean;
+	readonly maxScale: number;
+	readonly scaleMultiplier: number;
+	readonly camSpeed: number;
+	readonly rotationY: number;
+	readonly isGallerySwitch: boolean;
+	readonly pagesHaveBackground: boolean;
+	readonly isOmni: boolean;
+	readonly pinchZoomOutLimit: boolean;
+	readonly omniNumLayers: number;
+	readonly omniStartLayer: number;
+
 	constructor(
 		readonly main: Main,
 
 		public width: number,
 		public height: number,
-
-		readonly tileSize: number,
-		readonly is360: boolean,
-		readonly noImage: boolean,
-		readonly isSingle: boolean,
 		public targetOpacity: number,
 
-		readonly freeMove: boolean,
 		public coverLimit: boolean,
-		readonly coverStart: boolean,
-		readonly maxScale: number,
-		readonly scaleMultiplier: number,
-		readonly camSpeed: number,
-
-		readonly rotationY: number,
-
-		readonly isGallerySwitch: boolean,
-		readonly pagesHaveBackground: boolean,
-
-		readonly isOmni: boolean,
-
-		readonly pinchZoomOutLimit: boolean,
-
-		readonly omniNumLayers: number,
-		readonly omniStartLayer: number,
-
-		readonly hasParent: boolean
+		cfg: TileCanvasConfig,
+		readonly hasParent: boolean = false
 	) {
+		this.tileSize = cfg.tileSize;
+		this.is360 = cfg.is360;
+		this.noImage = cfg.noImage;
+		this.isSingle = cfg.isSingle;
+		this.freeMove = cfg.freeMove;
+		this.coverStart = coverLimit ? true : cfg.coverStart;
+		this.maxScale = cfg.maxScale;
+		this.scaleMultiplier = cfg.scaleMultiplier;
+		this.camSpeed = cfg.camSpeed;
+		this.rotationY = cfg.rotationY;
+		this.isGallerySwitch = cfg.isGallerySwitch;
+		this.pagesHaveBackground = cfg.pagesHaveBackground;
+		this.isOmni = cfg.isOmni;
+		this.pinchZoomOutLimit = cfg.pinchZoomOutLimit;
+		this.omniNumLayers = cfg.omniNumLayers;
+		this.omniStartLayer = cfg.omniStartLayer;
 		this.index = main.canvases.length;
 		if (!hasParent) main.canvases.push(this);
-
-		if (coverLimit) coverStart = true;
 
 		this.aspect = width / height;
 
@@ -123,7 +151,7 @@ export default class TileCanvas {
 		this.visible = new View(this);
 		this.full = new View(this);
 
-		if (is360) { this.view.set(0.5, 0.5, 1, 0.5); }
+		if (cfg.is360) { this.view.set(0.5, 0.5, 1, 0.5); }
 
 		if (!hasParent) {
 			this.el.copy(main.el);
@@ -131,13 +159,13 @@ export default class TileCanvas {
 			this.resize();
 		}
 
-		if (!noImage) this.addImage(0, 0, 1, 1, width, height, tileSize, isSingle, false, targetOpacity, 0, 0, 0, 1, 0);
+		if (!cfg.noImage) this.addImage(0, 0, 1, 1, width, height, cfg.tileSize, cfg.isSingle, false, targetOpacity, 0, 0, 0, 1, 0);
 		else {
 			this.main.numImages++;
 			this.bOpacity = 1;
 			this.opacity = 1;
 			this.isReady = true;
-			if (omniStartLayer > 0) this.setActiveLayer(omniStartLayer);
+			if (cfg.omniStartLayer > 0) this.setActiveLayer(cfg.omniStartLayer);
 		}
 	}
 
@@ -174,11 +202,24 @@ export default class TileCanvas {
 	addChild(x0: number, y0: number, x1: number, y1: number,
 		width: number, height: number): TileCanvas {
 		const c = new TileCanvas(
-			this.main, width, height,
-			this.tileSize, false, false,
-			false, 1, false,
-			true, true, 1, 1, this.camSpeed, 0, false, false, false, this.pinchZoomOutLimit, 1, 0,
-			true
+			this.main, width, height, 1, true, {
+				tileSize: this.tileSize,
+				is360: false,
+				noImage: false,
+				isSingle: false,
+				freeMove: false,
+				coverStart: true,
+				maxScale: 1,
+				scaleMultiplier: 1,
+				camSpeed: this.camSpeed,
+				rotationY: 0,
+				isGallerySwitch: false,
+				pagesHaveBackground: false,
+				isOmni: false,
+				pinchZoomOutLimit: this.pinchZoomOutLimit,
+				omniNumLayers: 1,
+				omniStartLayer: 0,
+			}, true
 		);
 		c.setParent(this);
 		c.setArea(x0, y0, x1, y1, true, true);
