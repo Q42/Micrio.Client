@@ -13,7 +13,7 @@ import type { default as Canvas } from './canvas';
 /** Handles 360 camera logic, perspective, and related WebGL calculations. */
 export default class WebGL {
 	readonly pMatrix: Mat4 = new Mat4;
-	private readonly iMatrix: Mat4 = new Mat4;
+	readonly iMatrix: Mat4 = new Mat4;
 	private readonly cachedInverse: Mat4 = new Mat4;
 	private inverseDirty: boolean = true;
 	private readonly rMatrix: Mat4 = new Mat4;
@@ -331,6 +331,7 @@ export default class WebGL {
 		this.coo.scale = this.scale;
 		this.coo.w = this.position.x + this.position.z;
 		this.coo.direction = this.yaw + this.baseYaw;
+		this.coo.toArray();
 
 		return this.coo;
 	}
@@ -344,6 +345,7 @@ export default class WebGL {
 		this.coo.y = ((-this.vec4.y + 1) / 2) * el.height / el.ratio;
 		this.coo.scale = this.scale;
 		this.coo.w = -this.vec4.w;
+		this.coo.toArray();
 
 		return this.coo;
 	}

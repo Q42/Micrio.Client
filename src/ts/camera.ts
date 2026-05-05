@@ -476,7 +476,8 @@ export class Camera {
 	 public flyToCoo = (coords:Models.Camera.Coords, opts: Models.Camera.AnimationOptions = {}) : Promise<void> => new Promise((ok, abort) => {
 		if (!this.e) return abort(new Error("Wasm not ready")); // Reject if Wasm not ready
 		// Call Wasm function to start animation
-		opts.duration = this.e._setCoo(this.image.ptr, coords[0], coords[1], coords[2]||this.center[2], opts.duration??-1, opts.speed??-1, opts.limit??false, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
+		const fn = Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'];
+		opts.duration = this.e._setCoo(this.image.ptr, coords[0]!, coords[1]!, (coords[2]||this.center[2])!, (opts.duration ?? -1)!, (opts.speed ?? -1)!, opts.limit ?? false, fn!, performance.now());
 		this.image.wasm.render(); // Trigger render loop
 		if(opts.duration==0) ok(); // Resolve immediately if duration is 0
 		else this.setAniPromises(ok, abort); // Store promise callbacks

@@ -17,8 +17,8 @@ export default class Camera {
 	fullScale: number = 1.0;
 	coverScale: number = 1.0;
 
-	private readonly xy: Coordinates = new Coordinates;
-	private readonly coo: Coordinates = new Coordinates;
+	readonly xy: Coordinates = new Coordinates;
+	readonly coo: Coordinates = new Coordinates;
 	private readonly startCoo: Coordinates = new Coordinates;
 
 	private pinching: boolean = false;
@@ -56,6 +56,7 @@ export default class Camera {
 		this.coo.x = noLimit ? rX : Math.max(c.view.lX0, Math.min(c.view.lX1, rX));
 		this.coo.y = noLimit ? rY : Math.max(c.view.lY0, Math.min(c.view.lY1, rY));
 		this.coo.scale = this.scale;
+		this.coo.toArray();
 
 		return this.coo;
 	}
@@ -70,6 +71,7 @@ export default class Camera {
 		this.xy.x = ((x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
 		this.xy.y = ((y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
 		this.xy.scale = this.scale / rat;
+		this.xy.toArray();
 		return this.xy;
 	}
 
@@ -108,6 +110,7 @@ export default class Camera {
 		this.xy.x = ((.5 + vec4.x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
 		this.xy.y = ((.5 + vec4.y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
 		this.xy.w = -vec4.w - c.omniDistance;
+		this.xy.toArray();
 		return this.xy;
 	}
 
