@@ -388,12 +388,13 @@ export class Engine {
 			const entry = this.canvasById.get(canvas.ptr);
 			if (!entry) return;
 
-			const yaw = canvas.is360 && this.activeCanvasEntry ? entry.canvas.webgl.yaw + entry.canvas.webgl.baseYaw : 0;
-			const pitch = canvas.is360 && this.activeCanvasEntry ? entry.canvas.webgl.pitch : 0;
+			const pitch = canvas.is360 && this.activeCanvasEntry ? this.activeCanvasEntry.canvas.webgl.pitch : 0;
 			this.activeCanvasEntry = entry;
 
-			if (canvas.is360 && !this.preventDirectionSet && yaw && pitch)
-				entry.canvas.setDirection(yaw - canvas.camera.rotationY, pitch, true);
+			if (canvas.is360 && !this.preventDirectionSet) {
+				const reversedYaw = ((this.engine.direction + 0.5) % 1) * Math.PI * 2;
+				entry.canvas.setDirection(reversedYaw - canvas.camera.rotationY, pitch, true);
+			}
 
 			if (entry.canvas.targetOpacity === 0) entry.canvas.fadeIn();
 
