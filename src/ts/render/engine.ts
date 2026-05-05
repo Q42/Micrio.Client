@@ -17,7 +17,7 @@ import { Browser, once } from '$ts/utils';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 
 import { Main } from '$engine/main';
-import Canvas from '$engine/canvas';
+import TileCanvas from '$engine/canvas';
 import type Image from '$engine/image';
 import { segsX, segsY } from '$engine/globals';
 import { easeInOut, easeIn, easeOut, linear } from '$engine/utils';
@@ -34,7 +34,7 @@ interface TileEntry {
 
 /** Engine instance ID → canvas mapping. @internal */
 interface CanvasEntry {
-	canvas: Canvas;
+	canvas: TileCanvas;
 	micrioImage: MicrioImage;
 }
 
@@ -161,34 +161,34 @@ export class Engine {
 			this.micrio.webgl.pmLoc, false, arr);
 		engine.setViewport = (left: number, bottom: number, w: number, h: number) => this.micrio.webgl.gl
 			.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h));
-		engine.aniDone = (c: Canvas): void => {
+		engine.aniDone = (c: TileCanvas): void => {
 			const cam = this.findCamera(c);
 			if (!cam) return;
 			if (cam.aniDone) cam.aniDone();
 			while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
 			cam.aniAbort = cam.aniDone = undefined;
 		};
-		engine.aniAbort = (c: Canvas): void => {
+		engine.aniAbort = (c: TileCanvas): void => {
 			const cam = this.findCamera(c);
 			if (!cam) return;
 			if (cam.aniAbort) cam.aniAbort();
 			cam.aniDoneAdd.length = 0;
 			cam.aniAbort = cam.aniDone = undefined;
 		};
-		engine.viewSet = (c: Canvas): void => {
+		engine.viewSet = (c: TileCanvas): void => {
 			this.findCamera(c)?.viewChanged();
 		};
-		engine.viewportSet = (c: Canvas, x: number, y: number, w: number, h: number): void => {
+		engine.viewportSet = (c: TileCanvas, x: number, y: number, w: number, h: number): void => {
 			const entry = this.findEntry(c);
 			if (entry && 'viewport' in entry.micrioImage) {
 				(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
 			}
 		};
-		engine.setVisible = (c: Canvas, visible: boolean): void => {
+		engine.setVisible = (c: TileCanvas, visible: boolean): void => {
 			this.findEntry(c)?.micrioImage?.visible?.set(visible);
 		};
 		engine.setVisible2 = (img: Image, visible: boolean): void => {
-			this.findEntry(img as unknown as Canvas)?.micrioImage?.visible?.set(visible);
+			this.findEntry(img as unknown as TileCanvas)?.micrioImage?.visible?.set(visible);
 		};
 
 		this.engine = engine;
@@ -200,14 +200,14 @@ export class Engine {
 	}
 
 	/** Finds the public Camera instance associated with an engine Canvas. @internal */
-	private findCamera(c: Canvas): Camera | undefined {
+	private findCamera(c: TileCanvas): Camera | undefined {
 		for (const [, entry] of this.canvasById) {
 			if (entry.canvas === c) return this.cameras.get(entry.micrioImage.ptr);
 		}
 	}
 
 	/** Finds the canvas entry associated with an engine Canvas or Image. @internal */
-	private findEntry(c: Canvas | Image): CanvasEntry | undefined {
+	private findEntry(c: TileCanvas | Image): CanvasEntry | undefined {
 		for (const [, entry] of this.canvasById) {
 			if (entry.canvas === c) return entry;
 		}
@@ -275,7 +275,7 @@ export class Engine {
 		const numOmniLayers = settings.omni?.layers?.length ?? 1;
 		if (settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);
 
-		const canvas = new Canvas(
+		const canvas = new TileCanvas(
 			this.engine,
 			i.width, i.height, i.tileSize ?? 1024,
 			i.is360 ?? false,
@@ -669,7 +669,7 @@ export class Engine {
 		const parentEntry = this.canvasById.get(parent.ptr);
 		if (!parentEntry) return;
 
-		let canvas: Canvas;
+		let canvas: TileCanvas;
 		if (!isEmbed) {
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height);
 		} else {

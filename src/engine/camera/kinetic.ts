@@ -3,7 +3,7 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { default as Canvas } from './canvas';
+import type { default as TileCanvas } from '../canvas/canvas';
 
 /** Handles kinetic scrolling/dragging behavior after user interaction stops. */
 export default class Kinetic {
@@ -27,7 +27,7 @@ export default class Kinetic {
 	started: boolean = false;
 
 	constructor(
-		private canvas: Canvas
+		private canvas: TileCanvas
 	) {}
 
 	/**

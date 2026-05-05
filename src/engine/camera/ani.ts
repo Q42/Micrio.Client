@@ -3,9 +3,9 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from './utils'
-import { View } from './shared'
-import type { default as Canvas } from './canvas';
+import { easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from '../utils/utils'
+import { View } from '../shared/shared'
+import type { default as TileCanvas } from '../canvas/canvas';
 
 /** Manages camera and view animations (fly-to, zoom). */
 export default class Ani {
@@ -67,7 +67,7 @@ export default class Ani {
 	private omniDelta: number = 0;
 
 	constructor(
-		private canvas: Canvas
+		private canvas: TileCanvas
 	) {
 		this.vFrom = new View(canvas);
 		this.vTo = new View(canvas);

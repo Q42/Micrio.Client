@@ -3,10 +3,10 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { Coordinates } from './shared'
-import { PI } from './globals'
-import { longitudeDistance } from './utils';
-import type { default as Canvas } from './canvas';
+import { Coordinates } from '../shared/shared'
+import { PI } from '../globals'
+import { longitudeDistance } from '../utils/utils';
+import type { default as TileCanvas } from '../canvas/canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. */
 export default class Camera {
@@ -29,7 +29,7 @@ export default class Camera {
 	private wasCoverLimit: boolean = true;
 
 	constructor(
-		private canvas: Canvas
+		private canvas: TileCanvas
 	) {
 		if (canvas.is360) this.inited = true;
 	}

@@ -3,10 +3,10 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { default as Canvas } from './canvas';
-import type { default as Image } from './image';
-import { mod1 } from './utils';
-import { PI } from './globals';
+import type { default as TileCanvas } from '../canvas/canvas';
+import type { default as Image } from '../canvas/image';
+import { mod1 } from '../utils/utils';
+import { PI } from '../globals';
 
 /** Structure to hold information about a specific tile to be drawn. */
 export class DrawRect {
@@ -41,7 +41,7 @@ export class View {
 	public limitChanged: boolean = false;
 
 	constructor(
-		private readonly canvas: Canvas,
+		private readonly canvas: TileCanvas,
 
 		public centerX: number = 0.5,
 		public centerY: number = 0.5,
@@ -286,7 +286,7 @@ export class Coordinates {
 	}
 }
 
-/** Represents the screen viewport of a Canvas element. */
+/** Represents the screen viewport of a TileCanvas element. */
 export class Viewport {
 	/** Int32Array view for efficient JS access [width, height, left, top]. */
 	readonly arr: Int32Array = new Int32Array(4);

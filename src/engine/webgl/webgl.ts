@@ -1,17 +1,17 @@
 /**
- * Handles 360 camera logic, perspective, and related WebGL calculations.
+ * Handles 360 camera logic, perspective, and related SphericalView calculations.
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { modPI, mod1 } from './utils'
-import { Coordinates } from './shared'
-import { Vec4, Mat4 } from './webgl.mat'
-import { PI, PI2, PIh } from './globals'
-import { segsX, segsY } from './globals'
-import type { default as Canvas } from './canvas';
+import { modPI, mod1 } from '../utils/utils'
+import { Coordinates } from '../shared/shared'
+import { Vec4, Mat4 } from './mat'
+import { PI, PI2, PIh } from '../globals'
+import { segsX, segsY } from '../globals'
+import type { default as TileCanvas } from '../canvas/canvas';
 
-/** Handles 360 camera logic, perspective, and related WebGL calculations. */
-export default class WebGL {
+/** Handles 360 camera logic, perspective, and related SphericalView calculations. */
+export default class SphericalView {
 	readonly pMatrix: Mat4 = new Mat4;
 	readonly iMatrix: Mat4 = new Mat4;
 	private readonly cachedInverse: Mat4 = new Mat4;
@@ -58,7 +58,7 @@ export default class WebGL {
 	offX: number = 0;
 
 	constructor(
-		private canvas: Canvas
+		private canvas: TileCanvas
 	) {
 		this.baseYaw = -this.canvas.rotationY;
 		this.offX = this.baseYaw / PI2;

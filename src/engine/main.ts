@@ -4,11 +4,11 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { Viewport } from './shared';
+import { Viewport } from './shared/shared';
 import { segsX, segsY } from './globals';
-import Canvas from './canvas';
-import type Image from './image';
-import { easeInOut, Bicubic } from './utils'
+import TileCanvas from './canvas/canvas';
+import type Image from './canvas/image';
+import { easeInOut, Bicubic } from './utils/utils'
 
 /**
  * Main controller class for the Micrio engine.
@@ -24,8 +24,8 @@ export class Main {
 	/** Vertex buffer for rendering 360 sphere geometry. */
 	readonly vertexBuffer360: Float32Array = new Float32Array(6 * 3 * segsX * segsY);
 
-	/** Array holding all active Canvas instances managed by this engine. */
-	readonly canvases: Canvas[] = [];
+	/** Array holding all active TileCanvas instances managed by this engine. */
+	readonly canvases: TileCanvas[] = [];
 
 	/** Total number of tiles across all images in all canvases. */
 	numTiles: number = 0;
@@ -94,11 +94,11 @@ export class Main {
 	setTileOpacity: (idx: number, direct: boolean, imageOpacity: number) => number = () => 0;
 	setMatrix: (arr: Float32Array) => void = () => {};
 	setViewport: (x: number, y: number, width: number, height: number) => void = () => {};
-	aniDone: (c: Canvas) => void = () => {};
-	aniAbort: (c: Canvas) => void = () => {};
-	viewSet: (c: Canvas) => void = () => {};
-	viewportSet: (c: Canvas, x: number, y: number, w: number, h: number) => void = () => {};
-	setVisible: (c: Canvas, visible: boolean) => void = () => {};
+	aniDone: (c: TileCanvas) => void = () => {};
+	aniAbort: (c: TileCanvas) => void = () => {};
+	viewSet: (c: TileCanvas) => void = () => {};
+	viewportSet: (c: TileCanvas, x: number, y: number, w: number, h: number) => void = () => {};
+	setVisible: (c: TileCanvas, visible: boolean) => void = () => {};
 	setVisible2: (c: Image, visible: boolean) => void = () => {};
 
 	shouldDraw(now: number): boolean {
@@ -125,8 +125,8 @@ export class Main {
 		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].resize();
 	}
 
-	/** Removes a specific Canvas instance from the managed list. */
-	remove(c: Canvas): void {
+	/** Removes a specific TileCanvas instance from the managed list. */
+	remove(c: TileCanvas): void {
 		for (let i = 0; i < this.canvases.length; i++) if (this.canvases[i] === c) {
 			this.canvases.splice(i, 1);
 			return;

@@ -1,6 +1,6 @@
 import type { MicrioImage } from './image';
 import type { Models } from '$types/models';
-import type Canvas from '$engine/canvas';
+import type TileCanvas from '$engine/canvas';
 
 import { tick } from 'svelte';
 import { View, mod } from './utils';
@@ -45,8 +45,8 @@ export class Camera {
 	/** Y-axis sphere rotation in radians for 360 images. @internal */
 	rotationY: number = 0;
 
-	/** Direct reference to the engine Canvas for compute operations. @internal */
-	private _engineCanvas?: Canvas;
+	/** Direct reference to the engine TileCanvas for compute operations. @internal */
+	private _engineCanvas?: TileCanvas;
 
 	/** Promise resolve function called when a camera animation completes successfully.
 	 * @internal
@@ -75,16 +75,15 @@ export class Camera {
 		// For non-360 images, set initial view if already available
 		if(!image.is360) {
 			const view = image.state.$view;
-			// Use tick() to ensure Wasm might be ready before setting view
 			if(view && image.$info?.width) tick().then(() => this.setView(view));
 		}
 	}
 
 	/**
-	 * Binds the engine Canvas instance for direct compute operations.
+	 * Binds the engine TileCanvas instance for direct compute operations.
 	 * @internal
 	*/
-	bindEngineCanvas(canvas: Canvas): void {
+	bindEngineCanvas(canvas: TileCanvas): void {
 		this._engineCanvas = canvas;
 	}
 
@@ -104,8 +103,8 @@ export class Camera {
 		this._mat = mat;
 	}
 
-	/** Direct reference to the bound engine Canvas. Throws if not yet bound. @internal */
-	private get _c(): Canvas { return this._engineCanvas!; }
+	/** Direct reference to the bound engine TileCanvas. Throws if not yet bound. @internal */
+	private get _c(): TileCanvas { return this._engineCanvas!; }
 
 	// -- Engine delegation helpers (eliminate the old ptr-based proxy) --
 
