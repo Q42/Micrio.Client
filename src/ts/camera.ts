@@ -171,8 +171,7 @@ export class Camera {
 		this._c.setDirection(yaw, pitch ?? this._c.webgl.pitch, false);
 	}
 	private _getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number, sX: number, sY: number, noCorrectNorth: boolean): void {
-		this._c.webgl.getMatrix(x, y, scale, radius, rX, rY, rZ, transY, sX, sY, !!noCorrectNorth);
-		this._c.webgl.iMatrix.toArray();
+		this._c.getMatrix(x, y, scale, radius, rX, rY, rZ, transY, sX, sY, !!noCorrectNorth);
 	}
 	private _setArea(x0: number, y0: number, x1: number, y1: number, direct: boolean, noDispatch: boolean): void {
 		this._c.setArea(x0, y0, x1, y1, !!direct, !!noDispatch);
