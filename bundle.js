@@ -50,5 +50,6 @@ fs.writeFileSync(dFile, Buffer.concat([
 fs.rmSync('./out.d.ts');
 fs.rmSync(files.css);
 fs.rmSync(files.js);
+fs.rmdirSync(buildDir);
 
 console.info('\x1b[36m%s\x1b[0m', `created ${dFile}`);
