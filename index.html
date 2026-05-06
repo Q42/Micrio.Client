@@ -2,7 +2,7 @@
 <html>
 
 <head>
-	<title>5.4 Micrio dev</title>
+	<title>6.0 Micrio dev</title>
 	<meta name="Content-Type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no">
 	<meta http-equiv="X-UA-Compatible" content="chrome=1">
@@ -18,10 +18,10 @@
 	<script type="module" src="./src/ts/main.ts"></script>
 	
 	<!-- Use this to test the compiled version -->
-	<!-- <script src="./dist/micrio.min.safe-wasm.js" defer></script> -->
+	<!-- <script src="./dist/micrio.min.js" defer></script> -->
 
 	<!-- Use a production version -->
-	<!-- <script src="https://r2.micr.io/micrio-5.4.25.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-5.5.6.min.js" defer></script> -->
 
 	<style>
 		html,
@@ -31,12 +31,6 @@
 			background: #222;
 			height: 100%;
 			font-family: Raleway, sans-serif;
-		}
-		micr-io .embed-container .media-video {
-			transition: opacity 1s ease;
-		}
-		micr-io .embed-container .media-video.paused {
-			opacity: 0;
 		}
 	</style>
 
@@ -65,7 +59,8 @@
 	  <!-- Staedel-->
 	<!-- <micr-io id="zUtxLtj" lang="de-DE" daxta-skipmeta datxa-ui="false"></micr-io> -->
 
-	<micr-io id="OEjDREG" data-coverlimit></micr-io>
+	<micr-io id="dzzLm" daxta-coverlimit daxta-embeds-inside-gl="false"></micr-io>
+	 <!-- <micr-io data-gallery="yOeffA.1777985778" data-path="https://eu.micr.io/" data-fullscreen data-gallery-sort="name"></micr-io> -->
 
 	<!-- <micr-io id="RKLaNjM"></micr-io> -->
 
@@ -98,7 +93,7 @@
 		// Listen to opened marker hooks
 		micrio.addEventListener('click', e => {
 			//console.log('Opened marker', e.detail);
-			console.log(micrio.$current.camera.getCoo(e.clientX,e.clientY));
+			//console.log(micrio.$current.camera.getCoo(e.clientX,e.clientY));
 		});
 
 		// Put any pre-info init hooks here
@@ -112,11 +107,6 @@
 		micrio.addEventListener('pre-data', e => {
 			// Same as `pre-info` hook, but this is for the image data / content.
 		});
-
-		function fly() {
-			// Viewport format is [left, top, width, height]
-			micrio.$current.camera.flyToView([.4,.4,.2,.2])
-		}
 
 	</script>
 </body>
