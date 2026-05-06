@@ -5,8 +5,8 @@
 The Micrio client is a high-performance web component (`<micr-io>`) for displaying deeply zoomable images and interactive content. It's built primarily using:
 
 *   **TypeScript:** For the core application logic, component orchestration, and interactions.
-*   **Svelte 4:** For building the reactive user interface components.
-*   **WebAssembly (Wasm):** Compiled from AssemblyScript (`src/wasm`), used for performance-critical tasks like rendering calculations, camera math, and animations.
+*   **Svelte 5:** For building the reactive user interface components.
+*   **Pure TypeScript Compute Engine (`src/engine/`):** Replaces the previous AssemblyScript/WebAssembly layer. Handles performance-critical tasks like rendering calculations, camera math, tile pyramid management, and animation interpolation.
 *   **WebGL:** For rendering tiled images, 360-degree panoramas, and embedded elements efficiently.
 
 ## 2. Core Layers
@@ -19,8 +19,8 @@ This layer acts as the central orchestrator, managed primarily by the `HTMLMicri
 
 *   Initializing and managing the lifecycle of the web component.
 *   Loading and managing one or more `MicrioImage` instances (`image.ts`), each representing a viewable image and its associated data/state.
-*   Interfacing with the WebAssembly module via the `Wasm` controller (`wasm.ts`).
-*   Managing the WebGL context and rendering pipeline via the `WebGL` controller (`webgl.ts`).
+*   Hosting the compute engine via the `Engine` controller (`render/engine.ts`), which bridges the engine to DOM/WebGL.
+*   Managing the WebGL context and rendering pipeline via the `WebGL` controller (`render/webgl.ts`).
 *   Handling user input events via the `Events` controller (`events.ts`).
 *   Managing global application state (`State.Main` in `state.ts`).
 *   Mounting and providing data to the Svelte UI layer.
@@ -30,26 +30,36 @@ This layer acts as the central orchestrator, managed primarily by the `HTMLMicri
 
 ### Svelte UI Layer (`src/svelte/`)
 
-This layer is responsible for rendering the user interface. It's built with Svelte 4 components organized into `common/`, `components/`, `ui/`, and `virtual/` directories.
+This layer is responsible for rendering the user interface. It's built with Svelte 5 components organized into `common/`, `components/`, `ui/`, and `virtual/` directories.
 
 *   The root component is `Main.svelte`, which orchestrates the display of all other UI elements.
 *   Components react to changes in the application state (managed by `State.Main` and `State.Image` from the TS layer) and image data/settings stores.
 *   It provides UI elements like the toolbar, control buttons, minimap, marker popups, tour controls, galleries, and popovers.
-*   "Virtual" components often handle complex logic tightly coupled with the core TS/Wasm layers (e.g., `virtual/Markers.svelte` manages marker rendering logic, `virtual/Tour.svelte` manages tour playback UI).
+*   "Virtual" components often handle complex logic tightly coupled with the core TS/engine layers (e.g., `virtual/Markers.svelte` manages marker rendering logic, `virtual/Tour.svelte` manages tour playback UI).
 
 *For more details, see [.ai/svelte-analysis.md](.ai/svelte-analysis.md)*
 
-### WebAssembly Layer (`src/wasm/`)
+### Compute Engine Layer (`src/engine/`)
 
-Written in AssemblyScript and compiled to Wasm, this layer handles computationally intensive tasks to ensure smooth performance.
+A pure-TypeScript compute core that replaced the previous WebAssembly/AssemblyScript layer. Organized into logical subdirectories:
 
-*   Managed by the `Main` class (`main.ts`) within Wasm.
-*   Contains classes representing `Canvas`, `Image`, `Camera` (2D), `WebGL` (360), `Ani` (animation), and `Kinetic` (dragging).
+| Directory | Contents | Purpose |
+|-----------|----------|---------|
+| `engine/main.ts` | `Main` class | Root controller: owns canvases, render loop, host callbacks |
+| `engine/globals.ts` | Constants | Shared math constants and segmentation parameters |
+| `engine/camera/` | `Camera`, `Ani`, `Kinetic` | 2D camera math, bezier-curve animations, inertia scrolling |
+| `engine/canvas/` | `TileCanvas`, `Image` | Tile-rendering surface, tile pyramid and layer management |
+| `engine/webgl/` | `SphericalView`, `Mat4`, `Vec4` | 360 spherical camera, 4x4 matrix/4D vector math |
+| `engine/shared/` | `View`, `Coordinates`, `Viewport`, `DrawRect` | Shared data structures with zero-copy Float64Array views |
+| `engine/utils/` | `Bicubic`, easing functions | Cubic bezier easing curves and math utilities |
+
+*   Managed by the `Engine` class (`ts/render/engine.ts`).
 *   Performs camera math, view transformations, coordinate conversions (2D & 360).
 *   Calculates which image tiles are needed for the current view.
 *   Steps through camera animations frame-by-frame.
 *   Handles 360-degree rendering logic and matrix calculations.
-*   Interacts with the JavaScript host via exported functions (`exports.ts`) and imported functions (declared in `main.ts`) for tasks like requesting tile draws or signaling animation completion.
+*   Communicates with the host via callbacks set on `Main` for requesting tile draws or signaling animation completion.
+*   The public `Camera` API (`ts/camera.ts`) holds a direct reference to its engine `TileCanvas` for zero-overhead compute calls.
 
 *For more details, see [.ai/wasm-analysis.md](.ai/wasm-analysis.md)*
 
@@ -75,7 +85,6 @@ graph TD
     subgraph Data
         InfoJSON["info.json<br>(ImageInfo)"]
         DataJSON["pub.json / data.[lang].json<br>(ImageData)"]
-        WasmBinary["micrio.wasm"]
         TileImages["Image Tiles (JPG/WebP/PNG)"]
         ArchiveBin[".bin Archive (Optional)"]
     end
@@ -83,12 +92,12 @@ graph TD
     subgraph "Core TypeScript Layer"
         CustomElement --> Element["ts/element.ts<br>HTMLMicrioElement"]
 
-        Element --> WasmController["ts/wasm.ts<br>Wasm"]
-        Element --> WebGLController["ts/webgl.ts<br>WebGL"]
+        Element --> EngineController["ts/render/engine.ts<br>Engine"]
+        Element --> WebGLController["ts/render/webgl.ts<br>WebGL"]
         Element --> TSEvents
         Element --> StateMain["ts/state.ts<br>State.Main"]
-        Element --> CanvasController["ts/canvas.ts<br>Canvas"]
-        Element --> Router["ts/router.ts<br>Router"]
+        Element --> CanvasController["ts/render/canvas.ts<br>Canvas"]
+        Element --> Router["ts/nav/router.ts<br>Router"]
         Element --> Analytics["ts/analytics.ts<br>GoogleTag"]
         Element --> Utils["ts/utils.ts"]
         Element --> Globals["ts/globals.ts"]
@@ -100,7 +109,7 @@ graph TD
         MicrioImage -- Uses --> SettingsStore["settings Store<br>(Models.ImageInfo.Settings)"]
         MicrioImage -- "Has a" --> TSCamera["ts/camera.ts<br>Camera"]
         MicrioImage -- "Has a" --> StateImage["ts/state.ts<br>State.Image"]
-        MicrioImage -- "Interacts with" --> WasmController
+        MicrioImage -- "Interacts with" --> EngineController
 
         Utils --> InfoJSON
         Utils --> DataJSON
@@ -109,7 +118,7 @@ graph TD
         ImageInfoStore -- "Loaded from" --> InfoJSON
         ImageDataStore -- "Loaded from" --> DataJSON
 
-        WasmController --> WasmBinary
+        EngineController --> EngineCompute["engine/Main + TileCanvas + Camera"]
         WebGLController --> BrowserAPIs
         TSEvents --> Element
         StateMain -- Manages --> StateImage
@@ -164,34 +173,32 @@ graph TD
         SveltePopover -- "Reads/Writes" --> StateMain["popover Store"]
     end
 
-    subgraph "WebAssembly Layer (src/wasm)"
-        WasmController -- "Loads & Interacts" --> WasmMain["main.ts<br>Main"]
+    subgraph "Compute Engine Layer (src/engine)"
+        EngineController -- "Hosts & Bridges" --> EngineMain["main.ts<br>Main"]
 
-        WasmMain -- Manages --> WasmCanvasInstances("Canvas[]")
-        WasmCanvasInstances -- Contains --> WasmCanvas["canvas.ts<br>Canvas"]
-        WasmCanvas -- Manages --> WasmImageInstances("Image[]")
-        WasmCanvas -- "Has a" --> WasmCamera["camera.ts<br>Camera (2D)"]
-        WasmCanvas -- "Has a" --> WasmWebGL["webgl.ts<br>WebGL (360)"]
-        WasmCanvas -- "Has a" --> WasmAni["camera.ani.ts<br>Ani"]
-        WasmCanvas -- "Has a" --> WasmKinetic["camera.kinetic.ts<br>Kinetic"]
-        WasmImageInstances -- Contains --> WasmImage["image.ts<br>Image"]
-        WasmImage -- Manages --> WasmLayer["Layer[]"]
+        EngineMain -- Manages --> EngineCanvases("TileCanvas[]")
+        EngineCanvases -- Contains --> EngineCanvas["canvas/canvas.ts<br>TileCanvas"]
+        EngineCanvas -- Manages --> EngineImages("Image[]")
+        EngineCanvas -- "Has a" --> EngineCamera["camera/camera.ts<br>Camera (2D)"]
+        EngineCanvas -- "Has a" --> EngineWebGL["webgl/webgl.ts<br>SphericalView (360)"]
+        EngineCanvas -- "Has a" --> EngineAni["camera/ani.ts<br>Ani"]
+        EngineCanvas -- "Has a" --> EngineKinetic["camera/kinetic.ts<br>Kinetic"]
+        EngineImages -- Contains --> EngineImage["canvas/image.ts<br>Image"]
+        EngineImage -- Manages --> EngineLayer["Layer[]"]
 
-        WasmWebGL -- Uses --> WasmMat["webgl.mat.ts<br>Mat4, Vec4"]
-        WasmAni -- Uses --> WasmUtils["utils.ts<br>Bicubic"]
+        EngineWebGL -- Uses --> EngineMat["webgl/mat.ts<br>Mat4, Vec4"]
+        EngineAni -- Uses --> EngineUtils["utils/utils.ts<br>Bicubic"]
 
-        WasmMain -- "Calls JS" --> DrawTile["JS: drawTile(...)"]
-        WasmMain -- "Calls JS" --> AniDone["JS: aniDone(...)"]
-        WasmMain -- "Calls JS" --> ViewSet["JS: viewSet(...)"]
-        WasmMain -- "Calls JS" --> ViewportSet["JS: viewportSet(...)"]
+        EngineMain -- "Calls host" --> DrawTile["drawTile(...)"]
+        EngineMain -- "Calls host" --> AniDone["aniDone(...)"]
+        EngineMain -- "Calls host" --> ViewSet["viewSet(...)"]
+        EngineMain -- "Calls host" --> ViewportSet["viewportSet(...)"]
 
-        WasmController -- Calls --> WasmExports["exports.ts<br>Exported Functions"]
-        WasmExports -- Calls --> WasmMain
-        WasmExports -- Calls --> WasmCanvas
-        WasmExports -- Calls --> WasmCamera
-        WasmExports -- Calls --> WasmWebGL
-        WasmExports -- Calls --> WasmAni
-        WasmExports -- Calls --> WasmKinetic
+        TSCamera -- "Direct calls" --> EngineCanvas
+        TSCamera -- "Direct calls" --> EngineCamera
+        TSCamera -- "Direct calls" --> EngineWebGL
+        TSCamera -- "Direct calls" --> EngineAni
+        TSCamera -- "Direct calls" --> EngineKinetic
 
         DrawTile --> TileImages
         DrawTile --> WebGLController["WebGL Rendering"]
@@ -200,5 +207,5 @@ graph TD
 
 ## 5. Key Interactions
 
-*   **JS <-> Wasm:** The Core TypeScript layer interacts with the Wasm module through the `Wasm` controller (`ts/wasm.ts`). It calls exported Wasm functions (`wasm/exports.ts`) to trigger actions (e.g., camera movements, setting state) and provides necessary data. The Wasm module calls back into JavaScript (via imported functions declared in `wasm/main.ts`) to request tile drawing, report animation completion, or update JS-side state like the current view.
+*   **TS Core <-> Compute Engine:** The `Engine` controller (`ts/render/engine.ts`) instantiates the engine's `Main` class, wires up host callbacks (drawTile, drawQuad, setMatrix, etc.), and drives the render loop. The public `Camera` class (`ts/camera.ts`) holds a direct reference to its engine `TileCanvas` for zero-overhead compute calls — there is no intermediate proxy layer. The engine calls back into the host via callbacks to request tile drawing, report animation completion, or update viewport state.
 *   **TS Core <-> Svelte UI:** The `HTMLMicrioElement` mounts the root Svelte component (`Main.svelte`) and passes itself down via Svelte's context API. Svelte components access core functionality and state through this context (e.g., `micrio.state`, `micrio.current`, `micrio.open()`). State changes are propagated reactively using Svelte stores managed within the TS layer (`ts/state.ts`). UI events often trigger methods on the `micrio` instance or update its state stores.

@@ -2,7 +2,7 @@ import type { Unsubscriber } from 'svelte/store';
 import type { HlsPlayer } from '$types/externals';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
-import type { Wasm } from '$ts/render/wasm';
+import type { Engine } from '$ts/render/engine';
 
 import { Browser, loadScript } from '$ts/utils';
 import { tick } from 'svelte';
@@ -35,18 +35,18 @@ export class GLEmbedVideo {
 
 	/**
 	 * Creates a GLEmbedVideo instance.
-	 * @param wasm The Wasm controller instance.
+	 * @param engine The Engine controller instance.
 	 * @param image The parent MicrioImage instance where the video is embedded.
 	 * @param embed The embed data object.
 	 * @param paused Initial paused state (e.g., due to pause-on-zoom).
-	 * @param moved Callback function to notify when position/state changes (triggers Wasm render).
+	 * @param moved Callback function to notify when position/state changes (triggers Engine render).
 	 */
 	constructor(
-		private wasm:Wasm,
+		private engine:Engine,
 		private image:MicrioImage,
 		private embed:Models.ImageData.Embed,
 		private paused:boolean, // Initial paused state
-		private moved:() => void // Callback to trigger Wasm render after state change
+		private moved:() => void // Callback to trigger Engine render after state change
 	) {
 		// Determine if HLS is needed (stream ID present and not transparent video)
 		this.ism3u = !!embed.video?.streamId && !embed.video?.transparent;
@@ -90,7 +90,7 @@ export class GLEmbedVideo {
 	}
 
 	/**
-	 * Updates the internal paused state and related attributes/Wasm state.
+	 * Updates the internal paused state and related attributes/Engine state.
 	 * @internal
 	 * @param playing True if the video is now playing, false if paused.
 	 */
@@ -100,12 +100,12 @@ export class GLEmbedVideo {
 		// Set data attribute for potential external use/styling
 		if (playing) this._vid.dataset.playing = '1';
 		else delete this._vid.dataset.playing;
-		// Notify Wasm about the playback state change
-		this.wasm.setImageVideoPlaying(this.image.ptr, playing);
+		// Notify Engine about the playback state change
+		this.engine.setImageVideoPlaying(this.image.ptr, playing);
 		// Handle fade-out/fade-in if hideWhenPaused is enabled
-		if(this.embed.hideWhenPaused) this.wasm.fadeImage(this.image.ptr, playing ? 1 : 0);
-		// Trigger Wasm render if playing (to update texture)
-		if(playing) this.wasm.render();
+		if(this.embed.hideWhenPaused) this.engine.fadeImage(this.image.ptr, playing ? 1 : 0);
+		// Trigger Engine render if playing (to update texture)
+		if(playing) this.engine.render();
 	}
 
 	/** Loads the video source and sets up the HTMLVideoElement. @internal */
@@ -153,7 +153,7 @@ export class GLEmbedVideo {
 					this._vid.requestVideoFrameCallback(() => {
 						if(this._vid && this.isMounted) {
 							this.image.video.set(this._vid);
-							this.wasm.render();
+							this.engine.render();
 						}
 					});
 				} else {

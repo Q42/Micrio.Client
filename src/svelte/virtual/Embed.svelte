@@ -29,7 +29,7 @@
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
-	const { current, wasm, canvas, _lang } = micrio;
+	const { current, engine, canvas, _lang } = micrio;
 
 	interface Props {
 		/** The embed data object from the image configuration. */
@@ -200,7 +200,7 @@
 	/** Updates the screen position (x, y, scale, matrix) based on camera view. */
 	function moved() : void {
 		// Exit if camera is not ready
-		if(!mainImage.wasm.ready) return;
+		if(!mainImage.engine.ready) return;
 		// Get current screen coordinates [x, y, scale, w(depth)]
 		const coo = mainImage.camera.getXYDirect(cX, cY);
 		[x, y, scale] = coo;
@@ -292,7 +292,7 @@
 			// Update its placement and fade it in
 			image.camera.setArea(area);
 			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
-			wasm.fadeImage(image.ptr, opacity);
+			engine.fadeImage(image.ptr, opacity);
 		}
 		else { // If no instance exists, create it
 			image = mainImage.addEmbed({ // Call parent image's addEmbed method
@@ -316,11 +316,11 @@
 		if(isRawVideo) {
 			once(image.visible, {targetValue: true}).then(() => {
 				// This takes care of loading and playing the video texture
-				glVideo = new GLEmbedVideo(wasm, image, embed, paused, moved);
+				glVideo = new GLEmbedVideo(engine, image, embed, paused, moved);
 			});
 		}
 
-		wasm.render(); // Trigger Wasm render loop
+		engine.render(); // Trigger render loop
 	}
 
 	// --- HTML Rendering Logic ---
@@ -358,8 +358,8 @@
 		return () => {
 			glVideo?.unmount(); // Clean up WebGL video handler
 			if(image && image.ptr >= 0) { // If rendered in WebGL
-				wasm.fadeImage(image.ptr, 0); // Fade out
-				wasm.render();
+				engine.fadeImage(image.ptr, 0); // Fade out
+				engine.render();
 			}
 			// Clear media element reference
 			if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id);

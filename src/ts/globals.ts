@@ -51,16 +51,6 @@ export const DEMO_IDS = [
 	'mvRXc', // ESO 360
 ];
 
-/** Placeholder for external WebAssembly binary data (likely replaced during build).
- * `b64` holds the base64 encoded string.
- * `ugz` might be a function for decompressing (e.g., using uzip-module).
- * @internal
- */
-export const WASM:{
-	'b64': string;
-	'ugz'?: (b:string,t:boolean) => Promise<ArrayBuffer|Uint8Array>
-} = {'b64':'EXTERNAL_WASM'};
-
 /** Keys used for storing Micrio settings in localStorage.
  * @internal
  */

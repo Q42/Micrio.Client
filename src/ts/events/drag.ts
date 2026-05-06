@@ -75,8 +75,8 @@ export class DragHandler {
 		this.ctx.micrio.addEventListener('pointerup', this.stop, eventPassive);
 
 		this.ctx.micrio.setAttribute('data-panning', '');
-		this.ctx.micrio.wasm.panStart(img.ptr);
-		this.ctx.micrio.wasm.render();
+		this.ctx.micrio.engine.panStart(img.ptr);
+		this.ctx.micrio.engine.render();
 		this.ctx.dispatch('panstart');
 	}
 
@@ -130,12 +130,12 @@ export class DragHandler {
 
 		this.ctx.micrio.removeAttribute('data-panning');
 
-		// Notify Wasm pan stopped (triggers kinetic animation if enabled and not suppressed)
+		// Notify engine pan stopped (triggers kinetic animation if enabled and not suppressed)
 		if (e && noKinetic == false) {
 			const img = this.ctx.getImage({ x: e.clientX, y: e.clientY });
 			if (img) {
-				this.ctx.micrio.wasm.panStop(img.ptr);
-				this.ctx.micrio.wasm.render();
+				this.ctx.micrio.engine.panStop(img.ptr);
+				this.ctx.micrio.engine.render();
 			}
 		}
 

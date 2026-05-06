@@ -10,6 +10,7 @@ export default defineConfig({
 		alias: {
 			'$ts': resolve('src/ts'),
 			'$types': resolve('src/types'),
+			'$engine': resolve('src/engine'),
 		}
 	},
 	define: {

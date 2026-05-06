@@ -113,7 +113,7 @@ const sanitizedMarkers = new WeakSet<Models.ImageData.Marker>();
  * @param isOld Is the data from a pre-V5 image?
  * @param legacyViews It uses the old [x0,y0,x1,y1] viewports
  */
-export const sanitizeMarker = (m: Models.ImageData.Marker, lang: string, isOld: boolean, legacyViews?: boolean): void => {
+export const sanitizeMarker = (m: Models.ImageData.Marker, _lang: string, isOld: boolean, legacyViews?: boolean): void => {
 	if (sanitizedMarkers.has(m)) return;
 	sanitizedMarkers.add(m);
 	// Ensure basic properties exist

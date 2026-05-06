@@ -1,23 +1,24 @@
 /**
  * The WebGL rendering module. Handles shader compilation, WebGL context setup,
- * texture management, and drawing operations called by the Wasm module.
+ * texture management, and drawing operations called by the Engine module.
  * @author Marcel Duin <marcel@micr.io>
  */
 
 import type { TextureBitmap } from './textures';
 import type { HTMLMicrioElement } from '$ts/element';
 
-import { Wasm } from './wasm';
+import { Engine } from './engine';
 import { PostProcessor } from './postprocess';
 import { Browser, MicrioError, ErrorCodes } from '$ts/utils';
+import { segsX, segsY } from '$engine/globals';
 
 const isFirefox:boolean = Browser.firefox;
 
 /** Internal vertex shader source code. @internal */
 const vertexShader:string = `
-uniform mat4 GLMatrix; // Combined ModelViewProjection matrix from Wasm
+uniform mat4 GLMatrix; // Combined ModelViewProjection matrix from Engine
 
-attribute vec3 pos; // Vertex position (from Wasm buffer)
+attribute vec3 pos; // Vertex position (from Engine buffer)
 attribute vec2 aTextureCoord; // Texture coordinate (from static buffer)
 
 varying highp vec2 vTextureCoord; // Pass texture coordinate to fragment shader
@@ -224,14 +225,14 @@ export class WebGL {
 		if(txtBuffer) this.txtBuffer = txtBuffer;
 		else throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, Wasm._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Wasm
+		gl.bufferData(gl.ARRAY_BUFFER, Engine._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Engine
 
 		// Watermark Texture Coordinates Buffer
 		const wmTxtBuffer = gl.createBuffer();
 		if(wmTxtBuffer) this.wmTxtBuffer = wmTxtBuffer;
 		else throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
 
-		// Vertex Position Buffer (Dynamic - updated by Wasm)
+		// Vertex Position Buffer (Dynamic - updated by Engine)
 		const geomBuffer = gl.createBuffer();
 		if(geomBuffer) this.geomBuffer = geomBuffer;
 		else throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
@@ -250,9 +251,9 @@ export class WebGL {
 	/** Links the vertex and texture coordinate buffers to the shader attributes. @internal */
 	private linkBuffers() : void {
 		const gl = this.gl;
-		// Bind and buffer vertex position data (using the view from Wasm memory)
+		// Bind and buffer vertex position data (using the view from Engine memory)
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.wasm._vertexBuffer, gl.DYNAMIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.engine._vertexBuffer, gl.DYNAMIC_DRAW);
 
 		// Enable and configure texture coordinate attribute
 		gl.enableVertexAttribArray(this.txtAttr);
@@ -405,19 +406,19 @@ export class WebGL {
 		}
 
 		// Determine number of vertices based on 360 or standard quad
-		const length = is360 ? 6 * Wasm.segsX * Wasm.segsY : 6;
+		const length = is360 ? 6 * segsX * segsY : 6;
 
 		// If switching between 360 and standard rendering, re-buffer static texture coordinates
 		if(is360 != this.was360) {
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.txtBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? Wasm._textureBuffer360 : Wasm._textureBuffer, this.gl.STATIC_DRAW);
+			this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? Engine._textureBuffer360 : Engine._textureBuffer, this.gl.STATIC_DRAW);
 			// Re-bind geometry buffer (might not be strictly necessary but safer)
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.geomBuffer);
 			this.was360 = is360; // Update state
 		}
 
-		// Update dynamic vertex buffer data from Wasm memory view
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? this.micrio.wasm._vertexBuffer360 : this.micrio.wasm._vertexBuffer, this.gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW?
+		// Update dynamic vertex buffer data from Engine memory view
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? this.micrio.engine._vertexBuffer360 : this.micrio.engine._vertexBuffer, this.gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW?
 
 		// Draw the geometry
 		// For wireframe debugging:
@@ -465,7 +466,7 @@ export class WebGL {
 			// Restore to null binding
 			gl.bindTexture(gl.TEXTURE_2D, null);
 
-			this.micrio.wasm.render();
+			this.micrio.engine.render();
 		};
 	}
 
@@ -518,7 +519,7 @@ export class WebGL {
 
 		// Restore state
 		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // Restore default blending
-		this.linkBuffers(); // Restores Wasm buffer bindings (standard quad)
+		this.linkBuffers(); // Restores Engine buffer bindings (standard quad)
 		this.was360 = false; // Mark state as standard so next 360 draw triggers rebind
 	}
 
