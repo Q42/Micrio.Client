@@ -105,7 +105,7 @@ export class Engine {
 	/** Unique ptr counter. @internal */
 	private nextPtr: number = 1;
 
-	/** Returns the engine TileCanvas for a MicrioImage, or undefined. */
+	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
 		return this.canvasById.get(img.ptr)?.canvas;
 	}

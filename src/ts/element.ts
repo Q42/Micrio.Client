@@ -39,7 +39,7 @@ import { i18n, langs } from './i18n/strings';
  * </script>
  * ```
  * 
- * [[include:./ts/element.md]]
+ * {@include ./element.md}
  * 
  * @author Marcel Duin <marcel@micr.io>
 */

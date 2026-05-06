@@ -34,7 +34,7 @@ export interface TileCanvasConfig {
 	omniStartLayer: number;
 }
 
-export default class TileCanvas {
+export class TileCanvas {
 	readonly view!: View;
 
 	readonly focus!: View;
@@ -644,3 +644,5 @@ export default class TileCanvas {
 	aniDone(): void { this.main.aniDone(this); }
 	aniAbort(): void { this.main.aniAbort(this); }
 }
+
+export default TileCanvas;

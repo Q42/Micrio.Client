@@ -8,8 +8,8 @@
  * Visit https://doc.micr.io/client/embedding.html for documentation on how to embed
  * it inside your own website.
  * 
- * See https://doc.micr.io/client/v5/js-api.html for how to use Micrio's internal API, and
- * https://doc.micr.io/client/v5/tutorials/js.html for a tutorial.
+ * See https://doc.micr.io/client/v6/js-api.html for how to use Micrio's internal API, and
+ * https://doc.micr.io/client/v6/tutorials/js.html for a tutorial.
  * 
  * For version change logs, see https://github.com/Q42/Micrio.Client/releases
  *

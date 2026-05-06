@@ -359,7 +359,7 @@ export class Camera {
 
 	/**
 	 * Sets a rectangular limit for camera navigation within the image.
-	 * @param l The viewport limit rectangle [x0, y0, x1, y1].
+	 * @param v The viewport limit rectangle [x0, y0, x1, y1].
 	*/
 	public setLimit(v:Models.Camera.ViewRect) : void {
 		if (!this._engineCanvas) return;
@@ -509,7 +509,7 @@ export class Camera {
 	 * @param duration Forced duration in ms (0 for instant).
 	 * @param x Screen pixel X-coordinate for zoom focus (optional, defaults to center).
 	 * @param y Screen pixel Y-coordinate for zoom focus (optional, defaults to center).
-	 * @param speed Animation speed multiplier (optional).
+	 * @param _speed Animation speed multiplier (optional).
 	 * @param noLimit If true, allows zooming beyond image boundaries.
 	 * @returns A Promise that resolves when the zoom animation completes.
 	 */

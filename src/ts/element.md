@@ -48,7 +48,7 @@ received from the server.
 | Attribute   | Description | Default value |
 | ----------- | ----------- | ------------- |
 | `data-focus` | The image opening focal point coordinates `x, y` | `0.5, 0.5` |
-| `data-view` | The image opening {@link View} | `0, 0, 1, 1` |
+| `data-view` | The image opening {@link Models.Camera.View} | `0, 0, 1, 1` |
 | `data-zoomlimit` | The zoom limit (1=100% of original) | `1` |
 | `data-coverlimit` | Limit the viewport to always fill the screen | `false` |
 | `data-inittype` | The starting viewport, `cover` filling the screen | The full image |

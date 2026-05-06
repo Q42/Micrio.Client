@@ -1359,7 +1359,7 @@ import type { MicrioIcon } from '$ts/icons';
 
 	export namespace Camera {
 		/** A numeric array or Float64Array used for camera geometry. */
-		type CameraArray = number[] | Float64Array;
+		export type CameraArray = number[] | Float64Array;
 
 		/** A viewport rectangle `[x0, y0, x1, y1]` (corners). */
 		export type ViewRect = CameraArray;
