@@ -1,24 +1,25 @@
 /**
  * Mathematical utility functions and easing curve implementation.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import { PI2 } from '../globals';
 
-/** Calculates 2 to the power of num (2^num). */
+/** Calculates 2 to the power of num (2^num). @internal */
 export function twoNth(num: number): number {
 	return 1 << num;
 }
 
-/** Calculates the positive modulo (floored division remainder). */
+/** Calculates the positive modulo (floored division remainder). @internal */
 export function mod(n: number, m: number = 1): number {
 	return (n % m + m) % m;
 }
 
-/** Calculates the modulo 1 of a number (keeps the fractional part, positive). @deprecated Use mod(n, 1) */
+/** Calculates the modulo 1 of a number (keeps the fractional part, positive). @deprecated Use mod(n, 1) @internal */
 export const mod1 = (n: number): number => mod(n, 1);
 
-/** Calculates the modulo 2*PI of a number (wraps angles to the range [0, 2*PI)). */
+/** Calculates the modulo 2*PI of a number (wraps angles to the range [0, 2*PI)). @internal */
 export function modPI(n: number): number {
 	return (n % PI2 + PI2) % PI2;
 }
@@ -29,6 +30,7 @@ export function modPI(n: number): number {
  * @param from Starting longitude coordinate (0-1).
  * @param to Target longitude coordinate (0-1).
  * @returns The shortest signed distance (-0.5 to 0.5).
+ * @internal
  */
 export function longitudeDistance(from: number, to: number): number {
 	const normalizedFrom = mod1(from);
@@ -43,6 +45,7 @@ export function longitudeDistance(from: number, to: number): number {
 /**
  * Implements a cubic bezier curve calculation.
  * Used for animation easing functions.
+ * @internal
  */
 export class Bicubic {
 	private readonly Cx: number;
@@ -115,11 +118,11 @@ export class Bicubic {
 	}
 }
 
-/** Predefined cubic bezier easing: ease-in-out (standard). */
+/** Predefined cubic bezier easing: ease-in-out (standard). @internal */
 export const easeInOut = new Bicubic(0.42, 0, 0.58, 1);
-/** Predefined cubic bezier easing: ease-in. */
+/** Predefined cubic bezier easing: ease-in. @internal */
 export const easeIn = new Bicubic(0.42, 0, 1, 1);
-/** Predefined cubic bezier easing: ease-out. */
+/** Predefined cubic bezier easing: ease-out. @internal */
 export const easeOut = new Bicubic(0, 0, 0.58, 1);
-/** Predefined cubic bezier easing: linear. */
+/** Predefined cubic bezier easing: linear. @internal */
 export const linear = new Bicubic(0, 0, 1, 1);

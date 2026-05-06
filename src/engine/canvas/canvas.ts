@@ -2,6 +2,7 @@
  * Represents a single rendering canvas within the Micrio engine.
  * Orchestrates image loading, tile calculation, camera control, and drawing.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import { View, DrawRect, Viewport } from '../shared/shared';
@@ -15,6 +16,7 @@ import Camera from '../camera/camera'
 import Image from './image'
 import SphericalView from '../webgl/webgl'
 
+/** @internal */
 export interface TileCanvasConfig {
 	tileSize: number;
 	is360: boolean;
@@ -34,6 +36,7 @@ export interface TileCanvasConfig {
 	omniStartLayer: number;
 }
 
+/** @internal */
 export class TileCanvas {
 	readonly view!: View;
 
@@ -645,4 +648,5 @@ export class TileCanvas {
 	aniAbort(): void { this.main.aniAbort(this); }
 }
 
+/** @internal */
 export default TileCanvas;

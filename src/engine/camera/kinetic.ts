@@ -1,11 +1,12 @@
 /**
  * Handles kinetic scrolling/dragging behavior after user interaction stops.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import type { default as TileCanvas } from '../canvas/canvas';
 
-/** Handles kinetic scrolling/dragging behavior after user interaction stops. */
+/** Handles kinetic scrolling/dragging behavior after user interaction stops. @internal */
 export default class Kinetic {
 	/** Accumulated horizontal delta during drag. */
 	private dX: number = 0;

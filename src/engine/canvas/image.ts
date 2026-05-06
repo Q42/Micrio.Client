@@ -2,6 +2,7 @@
  * Represents a single image source (tiled or single) within a TileCanvas.
  * Handles tile pyramid, layer management, and tile culling.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import { DrawRect, Coordinates } from '../shared/shared';
@@ -10,7 +11,7 @@ import { Vec4, Mat4 } from '../webgl/mat';
 import { PI } from '../globals';
 import type { default as TileCanvas } from './canvas';
 
-/** Represents a single resolution layer within an Image. */
+/** Represents a single resolution layer within an Image. @internal */
 class Layer {
 	readonly tileWidth: number;
 	readonly tileHeight: number;
@@ -48,7 +49,7 @@ class Layer {
 	}
 }
 
-/** Represents a single image source (tiled or single) within a TileCanvas. */
+/** Represents a single image source (tiled or single) within a TileCanvas. @internal */
 export default class Image {
 	private static readonly toDraw: number[] = []
 	private static toDrawSeen: Uint8Array = new Uint8Array(0);

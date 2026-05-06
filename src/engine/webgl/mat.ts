@@ -5,9 +5,10 @@
  * Re-ported to TypeScript for the Micrio engine.
  *
  * @license MIT
+ * @internal
  */
 
-/** Represents a 4x4 matrix, tailored for WebGL operations. */
+/** Represents a 4x4 matrix, tailored for WebGL operations. @internal */
 export class Mat4 {
 	/** Float32Array view for direct use with WebGL uniformMatrix4fv. */
 	readonly arr: Float32Array = new Float32Array(16);
@@ -230,7 +231,7 @@ export class Mat4 {
 	}
 }
 
-/** Represents a 4D vector (x, y, z, w). */
+/** Represents a 4D vector (x, y, z, w). @internal */
 export class Vec4 {
 	constructor(
 		public x: number = 0,

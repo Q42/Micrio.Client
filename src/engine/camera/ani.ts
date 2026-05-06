@@ -1,13 +1,14 @@
 /**
  * Manages camera and view animations (fly-to, zoom, jump).
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import { easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from '../utils/utils'
 import { View } from '../shared/shared'
 import type { default as TileCanvas } from '../canvas/canvas';
 
-/** Manages camera and view animations (fly-to, zoom). */
+/** Manages camera and view animations (fly-to, zoom). @internal */
 export default class Ani {
 	/** Flag indicating if a view animation (fly-to) is active. */
 	private isView: boolean = false;

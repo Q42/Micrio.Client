@@ -1,6 +1,7 @@
 /**
  * Shared data structures for the Micrio engine: View, Coordinates, Viewport, DrawRect.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import type { default as TileCanvas } from '../canvas/canvas';
@@ -8,7 +9,7 @@ import type { default as Image } from '../canvas/image';
 import { mod1 } from '../utils/utils';
 import { PI } from '../globals';
 
-/** Structure to hold information about a specific tile to be drawn. */
+/** Structure to hold information about a specific tile to be drawn. @internal */
 export class DrawRect {
 	/** Reference to the Image instance this tile belongs to. */
 	public image!: Image;
@@ -31,7 +32,7 @@ export class DrawRect {
 	) {}
 }
 
-/** Represents the logical view rectangle within an image. */
+/** Represents the logical view rectangle within an image. @internal */
 export class View {
 	/** Float64Array view of [centerX, centerY, width, height] — for efficient JS access. */
 	readonly arr: Float64Array = new Float64Array(4);
@@ -257,7 +258,7 @@ export class View {
 	}
 }
 
-/** Represents coordinates: relative image coordinates or screen pixel coordinates. */
+/** Represents coordinates: relative image coordinates or screen pixel coordinates. @internal */
 export class Coordinates {
 	/** Float64Array view for efficient JS access [x, y, scale, w/depth, direction]. */
 	readonly arr: Float64Array = new Float64Array(5);
@@ -286,7 +287,7 @@ export class Coordinates {
 	}
 }
 
-/** Represents the screen viewport of a TileCanvas element. */
+/** Represents the screen viewport of a TileCanvas element. @internal */
 export class Viewport {
 	/** Int32Array view for efficient JS access [width, height, left, top]. */
 	readonly arr: Int32Array = new Int32Array(4);

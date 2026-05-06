@@ -4,7 +4,11 @@
  */
 
 import type { Models } from '$types/models';
-export { mod } from '$engine/utils/utils';
+
+/**
+ * Calculates the positive modulo (floored division remainder).
+ */
+export const mod = (n: number, m: number = 1): number => (n % m + m) % m;
 
 /**
  * Calculates the hypotenuse of a right triangle given the lengths of the other two sides.

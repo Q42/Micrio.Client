@@ -2,6 +2,7 @@
  * Main controller class for the Micrio engine.
  * Manages all canvases, global settings, and host callbacks.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import { Viewport } from './shared/shared';
@@ -10,7 +11,7 @@ import TileCanvas from './canvas/canvas';
 import type Image from './canvas/image';
 import { easeInOut, Bicubic } from './utils/utils'
 
-/** Host interface for callbacks from the engine to the JS host. */
+/** Host interface for callbacks from the engine to the JS host. @internal */
 export interface MainHost {
 	drawTile: (imgIdx: number, idx: number, layer: number, x: number, y: number, opacity: number, animating: boolean, isTargetLayer: boolean) => boolean;
 	drawQuad: (opacity: number) => void;
@@ -30,6 +31,7 @@ export interface MainHost {
  * Main controller class for the Micrio engine.
  * Manages all canvases, global settings, and the render loop.
  * Host callbacks are provided at construction via {@link MainHost}.
+ * @internal
  */
 export class Main {
 	/** Viewport representing the main HTML element (<micr-io>). */

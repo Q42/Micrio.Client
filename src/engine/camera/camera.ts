@@ -1,6 +1,7 @@
 /**
  * Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import { Coordinates } from '../shared/shared'
@@ -8,7 +9,7 @@ import { PI } from '../globals'
 import { longitudeDistance } from '../utils/utils';
 import type { default as TileCanvas } from '../canvas/canvas';
 
-/** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. */
+/** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
 export default class Camera {
 	scale: number = 1.0;
 	minScale: number = 1.0;

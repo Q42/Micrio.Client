@@ -1,6 +1,7 @@
 /**
  * Handles 360 camera logic, perspective, and related SphericalView calculations.
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 import { modPI, mod1 } from '../utils/utils'
@@ -10,7 +11,7 @@ import { PI, PI2, PIh } from '../globals'
 import { segsX, segsY } from '../globals'
 import type { default as TileCanvas } from '../canvas/canvas';
 
-/** Handles 360 camera logic, perspective, and related SphericalView calculations. */
+/** Handles 360 camera logic, perspective, and related SphericalView calculations. @internal */
 export default class SphericalView {
 	readonly pMatrix: Mat4 = new Mat4;
 	readonly iMatrix: Mat4 = new Mat4;

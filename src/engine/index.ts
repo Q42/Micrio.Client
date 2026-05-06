@@ -6,7 +6,11 @@
  * management, animation engine, 360 sphere geometry, matrix/vector math)
  * as pure TypeScript classes.
  *
+ * **All exports from this module are internal and should not appear
+ * in the public API declarations.**
+ *
  * @author Marcel Duin <marcel@micr.io>
+ * @internal
  */
 
 export { Main } from './main';
