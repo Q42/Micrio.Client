@@ -694,7 +694,10 @@ export class Engine {
 
 		let canvas: TileCanvas;
 		if (!isEmbed) {
-			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height);
+			const isGallery = !!(image.$settings.gallery?.archive || image.$settings.gallery?.type);
+			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height,
+				isGallery ? { coverLimit: false, coverStart: false } : {}
+			);
 		} else {
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.engImageToMicrio.set(engImage, image);

@@ -203,15 +203,19 @@ export class TileCanvas {
 	}
 
 	addChild(x0: number, y0: number, x1: number, y1: number,
-		width: number, height: number): TileCanvas {
+		width: number, height: number,
+		opts: { coverLimit?: boolean; coverStart?: boolean } = {}
+	): TileCanvas {
+		const coverLimit = opts.coverLimit ?? true;
+		const coverStart = opts.coverStart ?? true;
 		const c = new TileCanvas(
-			this.main, width, height, 1, true, {
+			this.main, width, height, 1, coverLimit, {
 				tileSize: this.tileSize,
 				is360: false,
 				noImage: false,
 				isSingle: false,
 				freeMove: false,
-				coverStart: true,
+				coverStart,
 				maxScale: 1,
 				scaleMultiplier: 1,
 				camSpeed: this.camSpeed,

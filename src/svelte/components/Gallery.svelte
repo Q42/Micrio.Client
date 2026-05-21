@@ -93,7 +93,7 @@
 	const isFullSwipe:boolean = isOmni || gallery.type == 'swipe-full';
 	const isSwitch:boolean = isFullSwipe || gallery.type == 'switch';
 	/** Strip-swipe: independent child canvases sliding via Camera.setArea. */
-	const isStripSwipe:boolean = !isSwitch && _images.length > 1 && !('frame' in (_images[0] ?? {}));
+	const isStripSwipe:boolean = !isSwitch && !('frame' in (_images[0] ?? {}));
 
 	// Other gallery options
 	const isContinuous:boolean = isOmni; // Omni objects wrap around
@@ -732,15 +732,18 @@
 				engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction['ease-out']);
 				// Position every child relative to startIdx in one frame. Parent stays
 				// micrio.$current; input is routed to the active child by getImage().
-				// Children come out of addChild with coverLimit=true (the grid default,
-				// which crops to fill the viewport). For a swipe gallery each image
-				// should fit (letterboxed if needed) and remain freely zoomable.
+				// addChild now receives coverLimit=false for gallery children so each image
+				// fits letterboxed and stays freely zoomable without cropping.
 				for(let i=0; i<_images.length; i++) {
 					const child = _images[i] as MicrioImage;
 					if(!child.camera) continue;
 					child.camera.setCoverLimit(false);
 					child.camera.setArea(horizontalSlot(i - startIdx), {direct: true, noDispatch: true});
 					child.camera.setView([0, 0, 1, 1], {noRender: true});
+				}
+				// Ensure children are immediately visible to the event system 
+				for(const child of _images) {
+					(child as MicrioImage).visible.set(true);
 				}
 				currentPage = startIdx;
 				frameChanged();
