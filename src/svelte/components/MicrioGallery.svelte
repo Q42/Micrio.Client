@@ -103,12 +103,6 @@
 		border-radius: var(--micrio-border-radius);
 	}
 
-	/* Ensure controls stay fixed within the popover on desktop */
-	@media (min-width: 501px) {
-		micr-io:not(:fullscreen) > :global(aside) { /* Target controls container */
-			position: fixed; /* Keep controls fixed relative to the popover */
-		}
-	}
 	@media (max-width: 501px) {
 		figcaption {
 			max-width: calc(100% - 3 * var(--micrio-border-margin) - var(--micrio-button-size));
