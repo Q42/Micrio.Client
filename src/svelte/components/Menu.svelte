@@ -66,8 +66,8 @@
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	const { events, state: micrioState, _lang } = micrio;
 
-	/** Reference to the button/link element for this menu item. */
-	let _button:HTMLButtonElement|HTMLAnchorElement|undefined = $state();
+	/** Local action function, set as a default in onMount if not provided. */
+	let action = $state<Function|undefined>(menu.action);
 
 	// --- Helper Functions ---
 
@@ -85,10 +85,10 @@
 	/** Handles click events on the menu item's button or link. */
 	function click(e:MouseEvent){
 		if(!menu.link) e.preventDefault(); // Prevent default if it's not a standard link
-		if(menu.action) menu.action(); // Execute custom action if defined
+		action?.(); // Execute custom action if defined
 
 		// Determine if clicking should close the menu system
-		const doClose = !!(isOpen || menu.action || menu.link); // Close if already open, has action, or is a link
+		const doClose = !!(isOpen || action || menu.link); // Close if already open, has action, or is a link
 		opened.set(doClose ? undefined : menu); // Set this menu as opened, or close all if doClose is true
 		if(doClose) onclose?.(); // Dispatch close event for potential parent handling
 	}
@@ -100,9 +100,9 @@
 		if(!cultureData?.title && menu.children?.length == 1) menu = menu.children[0];
 
 		// Define default actions if not explicitly set
-		if(!menu.action) {
+		if(!action) {
 			if(menu.markerId) { // If markerId is set, action opens the marker
-				menu.action = () => {
+				action = () => {
 					// If the marker belongs to a different image, switch back first
 					if(originalId && micrio.$current?.id != originalId)
 						micrio.open(originalId);
@@ -110,15 +110,12 @@
 					micrio.$current?.state.marker.set(menu.markerId);
 				}
 			} else if(cultureData?.content || cultureData?.embed || menu.image) { // If content/embed/image exists, action opens the popover
-				menu.action = () => {
+				action = () => {
 					events.dispatch('page-open', menu); // Dispatch page-open event
 					micrioState.popover.set({contentPage:menu}); // Set global popover state
 				}
 			}
 		}
-
-		// Store reference to the button element on the menu data object (used internally?)
-		menu._button = _button as HTMLButtonElement; // Cast needed as _button could be anchor
 	});
 
 	// --- Reactive State for Open/Closed ---
@@ -142,7 +139,7 @@
 		</a>
 	{:else}
 		<!-- Render as a button otherwise -->
-		<button class="micrio-menu-action" type="button" onclick={click} bind:this={_button}>
+		<button class="micrio-menu-action" type="button" onclick={click}>
 			<!-- Optional Font Awesome icon -->
 			{#if menu.icon}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {menu.icon[0]} {menu.icon[1]}" fill="currentColor" class="svelte-fa" style="height:1em;vertical-align:-.125em;margin-right:10px;"><path d={menu.icon[2]}/></svg>{/if}
 			<strong>
