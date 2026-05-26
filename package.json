@@ -26,8 +26,7 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"svelte": "^5.55.4",
-		"tslib": "^2.8.1"
+		"svelte": "^5.55.4"
 	},
 	"devDependencies": {
 		"@tsconfig/svelte": "^5.0.8",
