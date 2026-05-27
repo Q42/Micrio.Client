@@ -18,7 +18,7 @@
 	const item = $derived(marker.positionalAudio as Models.Assets.AudioLocation);
 
 	const gain = untrack(() => ctx).createGain();
-	gain.connect(mainGain);
+	if(mainGain) gain.connect(mainGain);
 
 	const micrio = getContext<HTMLMicrioElement>('micrio');
 	const image = micrio.$current as MicrioImage;

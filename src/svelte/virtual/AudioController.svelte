@@ -35,7 +35,7 @@
 
 		// Ensure the context is running (browsers may create it in suspended state even
 		// when autoplay is allowed for HTMLAudioElement — the two policies are separate).
-		if(_ctx.state === 'suspended') _ctx.resume();
+		if(_ctx.state === 'suspended') _ctx.resume().then(() => {}).catch(() => {});
 
 		// Create and connect the main gain node
 		mainGain = _ctx.createGain();
@@ -166,11 +166,23 @@
 	/** Sets the global `interacted` flag to true. */
 	const input = ():void => interacted.set(true);
 
+	/** Attempts to resume a suspended AudioContext, or initializes it if not yet created. */
+	const onUserGesture = () : void => {
+		if(_ctx?.state === 'suspended') {
+			_ctx.resume().then(() => {}).catch(() => {});
+		} else if(!_ctx) {
+			input();
+		}
+	};
+
 	// Create a dummy Audio element to attempt playback, triggering user interaction prompt if needed.
 	// This is required by browsers to allow subsequent audio playback without interaction.
 	const audio = new Audio('data:audio/mpeg;base64,/+MYxAAAAANIAUAAAASEEB/jwOFM/0MM/90b/+RhST//w4NFwOjf///PZu////9lns5GFDv//l9GlUIEEIAAAgIg8Ir/JGq3/+MYxDsLIj5QMYcoAP0dv9HIjUcH//yYSg+CIbkGP//8w0bLVjUP///3Z0x5QCAv/yLjwtGKTEFNRTMuOTeqqqqqqqqqqqqq/+MYxEkNmdJkUYc4AKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
 	// Set volume to 0 on iOS to avoid audible playback of the dummy audio.
 	audio.volume = Browser.iOS ? 0 : 0.0001; // Use very low volume instead of 1
+	// The element must be in the DOM for Chrome to accept play() — otherwise it
+	// rejects with "media was removed from the document".
+	document.body.appendChild(audio);
 
 	// --- Lifecycle (onMount) ---
 
@@ -207,19 +219,17 @@
 
 		// Attempt to play the dummy audio to trigger interaction prompt if needed
 		if(!_ctx) { // Only attempt if context isn't already initialized
-			audio.play().then(input) // If playback succeeds, call input()
-			.catch(() => { // If playback fails (autoplay blocked)
-				events.dispatch('autoplay-blocked'); // Dispatch event
-				// Add a one-time listener for user interaction to call input()
-				addEventListener('pointerup', input, {once: true});
-			});
+			audio.play().then(input)
+			.catch(() => events.dispatch('autoplay-blocked'));
+			addEventListener('pointerup', onUserGesture, { once: true });
 		}
 
 		// Cleanup function
 		return () => {
 			if(viewUnsub) viewUnsub(); // Unsubscribe from view store
 			if(interactedUnsub) interactedUnsub(); // Unsubscribe from interacted store
-			removeEventListener('pointerup', input); // Remove interaction listener
+			removeEventListener('pointerup', onUserGesture); // Remove interaction listener
+			audio.remove(); // Remove dummy audio from DOM
 		}
 	});
 
