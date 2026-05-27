@@ -295,7 +295,7 @@ export default class Camera {
 
 		c.kinetic.stop();
 
-		if (!this.pinching && this.scale >= this.maxScale && delta < 0) return 0;
+		if (!this.pinching && this.isZoomedIn() && delta < 0) return 0;
 
 		if (this.canvas.freeMove) noLimit = true;
 
