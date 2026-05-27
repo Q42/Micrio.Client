@@ -33,6 +33,10 @@
 			: null;
 		if(!_ctx) return console.warn('[Micrio] Your browser does not support the Web Audio API'); // Log warning if unsupported
 
+		// Ensure the context is running (browsers may create it in suspended state even
+		// when autoplay is allowed for HTMLAudioElement — the two policies are separate).
+		if(_ctx.state === 'suspended') _ctx.resume();
+
 		// Create and connect the main gain node
 		mainGain = _ctx.createGain();
 		mainGain.connect(_ctx.destination);
