@@ -223,7 +223,8 @@
 
 	/** Update the main gain node volume when the `volume` prop changes. */
 	$effect(() => {
-		if(mainGain) mainGain.gain.value = volume;
+		const v = volume;
+		if(mainGain) mainGain.gain.value = v;
 	});
 
 </script>
