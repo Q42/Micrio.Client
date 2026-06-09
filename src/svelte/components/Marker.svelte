@@ -696,7 +696,7 @@
 {/if}
 
 <!-- Render positional audio component if configured -->
-{#if marker.positionalAudio && $ctx && (!marker.positionalAudio.noMobile || $isMobile) && (marker.positionalAudio.alwaysPlay || opened)}
+{#if marker.positionalAudio && $ctx && (!marker.positionalAudio.noMobile || $isMobile) && (marker.positionalAudio.alwaysPlay || opened || ($tour && !('steps' in $tour) && $tour.keepMarkers))}
 	<AudioLocation {marker} ctx={$ctx} is360={image.is360} />
 {/if}
 

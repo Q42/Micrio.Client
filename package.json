@@ -1,6 +1,6 @@
 {
 	"name": "@micrio/client-src",
-	"version": "6.0.3",
+	"version": "6.0.7",
 	"description": "Micrio client image viewer source repository",
 	"main": "micrio.js",
 	"type": "module",
@@ -26,8 +26,7 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"svelte": "^5.55.4",
-		"tslib": "^2.8.1"
+		"svelte": "^5.55.4"
 	},
 	"devDependencies": {
 		"@tsconfig/svelte": "^5.0.8",

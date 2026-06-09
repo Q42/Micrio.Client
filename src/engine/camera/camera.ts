@@ -174,8 +174,8 @@ export default class Camera {
 	isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
 	isZoomedOut(b: boolean = false): boolean { return Math.trunc((this.scale - this.minScale * (b ? this.minSize : 1)) * 1e6) / 1e6 <= 0; }
-	/** Checks if the camera is fully zoomed in (at or above maxScale). */
-	isZoomedIn(): boolean { return (this.scale / this.maxScale) >= 1; }
+	/** Checks if the camera is zoomed in to 100% (1:1 pixel ratio) or beyond. */
+	isZoomedIn(): boolean { return this.scale >= 1; }
 
 	/**
 	 * Calculates and sets the current camera scale and view offsets based on the logical view rectangle.
@@ -197,7 +197,7 @@ export default class Camera {
 
 		this.scale = Math.min(cw / vw, ch / vh);
 
-		if (limited && !this.pinching && this.isZoomedIn() && c.ani.flying) this.scale = this.maxScale;
+		if (limited && !this.pinching && this.scale >= this.maxScale && c.ani.flying) this.scale = this.maxScale;
 
 		if ((!c.ani.correcting && !this.pinching) || c.coverLimit) this.scale = Math.max(this.minScale * this.minSize, this.scale);
 
@@ -292,6 +292,8 @@ export default class Camera {
 		if (c.is360) {
 			return c.webgl.zoom(delta, duration, 0, noLimit, time, xPx, yPx);
 		}
+
+		c.kinetic.stop();
 
 		if (!this.pinching && this.isZoomedIn() && delta < 0) return 0;
 
