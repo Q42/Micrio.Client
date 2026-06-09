@@ -851,7 +851,7 @@
 
 	/* Styling when a custom image icon is used */
 	div.default.has-custom-icon button {
-		background-color: var(--micrio-marker-color); /* Use marker color as background */
+		background-color: transparent;
 	}
 	/* Change background on hover/open */
 	div.default.has-custom-icon.opened button,
