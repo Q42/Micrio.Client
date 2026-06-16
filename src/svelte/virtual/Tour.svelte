@@ -20,7 +20,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { i18n } from '$ts/i18n';
-	import { loadSerialTour, Sanitizer } from '$ts/utils';
+	import { loadSerialTour } from '$ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // For video/audio playback
@@ -362,7 +362,7 @@
 	/** Reactive audio asset for the current step/tour. */
 	const audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
 	/** Reactive audio source URL. */
-	const audioSrc = $derived(Sanitizer.audioSrc(audio));
+	const audioSrc = $derived(audio?.src);
 
 </script>
 
