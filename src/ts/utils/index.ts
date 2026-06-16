@@ -36,7 +36,6 @@ export {
 	isFetching,
 	getLocalData,
 	fetchInfo,
-	fetchData,
 	fetchImageData,
 	fetchAlbumInfo
 } from './fetch';

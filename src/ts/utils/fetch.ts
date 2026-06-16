@@ -100,7 +100,7 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
  * The returned data is fully sanitized (markers, embeds, assets, etc.).
  * @internal
  */
-export async function fetchData(
+async function fetchData(
 	id: string,
 	dataPath: string,
 	info: Models.ImageInfo.ImageInfo,
@@ -142,8 +142,9 @@ export async function fetchImageData(
 	dataPath: string,
 	lang: string,
 	refresh?: boolean,
+	infoPath?: string,
 ): Promise<{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined> {
-	const info = await fetchInfo(id);
+	const info = await fetchInfo(id, infoPath);
 	if (!info) return undefined;
 	const data = await fetchData(id, dataPath, info, lang, Sanitizer.isLegacyViews(info), refresh);
 	return data ? { data, info } : undefined;

@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { Sanitizer, clone, createGUID, deepCopy, fetchData, fetchImageData, fetchInfo, fetchJson, getLocalData, loadSerialTour, once, MicrioError } from './utils';
+import { Sanitizer, clone, createGUID, deepCopy, fetchImageData, fetchInfo, fetchJson, getLocalData, loadSerialTour, once, MicrioError } from './utils';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -498,9 +498,7 @@ export class MicrioImage {
 		if(this._loadedData || skipMeta) return Promise.resolve();
 		this._loadedData = true;
 
-		const lang = this.engine.micrio.lang;
-		const v5Legacy = Sanitizer.isLegacyViews(this.__info);
-		const data = this.preset?.[2] ?? await fetchData(this.id, this.dataPath, this.__info, lang, v5Legacy, this.__info.settings?.forceDataRefresh);
+		const data = this.preset?.[2] ?? await fetchImageData(this.id, this.dataPath, this.engine.micrio.lang, this.__info.settings?.forceDataRefresh, this.infoBasePath).then(r => r?.data);
 		if(data) this.enrichData(data).then(d => this.data.set(d));
 	}
 
