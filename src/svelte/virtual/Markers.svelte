@@ -209,8 +209,10 @@
 
 	// --- Helper Functions & Reactive Declarations ---
 
-	/** Checks if a marker should be visible (not explicitly hidden). */
-	const isVisible = (m:Models.ImageData.Marker) => !m.noMarker;
+	/** Checks if a marker has content for the current language. */
+	const hasLang = (m:Models.ImageData.Marker) => !m.i18n || !!m.i18n[$_lang];
+	/** Checks if a marker should be visible (not explicitly hidden, and available in the current language). */
+	const isVisible = (m:Models.ImageData.Marker) => !m.noMarker && hasLang(m);
 
 	// --- Fancy Side Label Drawing ---
 	/** Reference to the container for side labels. */
@@ -253,8 +255,8 @@
 	const visibleMarkers = $derived(inactive ? [] : $data?.markers?.filter(isVisible));
 	/** Reactive list of markers that are explicitly hidden (`noMarker: true`). */
 	const invisibleMarkers = $derived(inactive ? $data?.markers : $data?.markers?.filter(m => !isVisible(m)));
-	/** Marker clickable embed areas */
-	const clickableAreas = $derived(inactive ? [] : $data?.markers?.filter(m => m.clickableArea));
+	/** Marker clickable embed areas (filtered by language) */
+	const clickableAreas = $derived(inactive ? [] : $data?.markers?.filter(m => m.clickableArea && hasLang(m)));
 	/** Reactive flag indicating if there are any visible markers or waypoints. */
 	const hasMarkersOrWaypoints = $derived(!!(visibleMarkers?.length || waypoints?.length));
 	/** Reactive sorted list of markers currently in view (for side labels). */

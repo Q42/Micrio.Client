@@ -209,7 +209,7 @@ export class Sanitizer {
 		if (!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
 		if (Sanitizer._done.videoTours.has(tour)) return;
 		const i18n = 'i18n' in tour ? tour.i18n : { 'en': (<unknown>tour as Models.ImageData.VideoTourCultureData) };
-		for (const lang in i18n) i18n[lang]?.timeline.forEach(s => s.rect = Sanitizer.View.fromLegacy(s.rect)!);
+		for (const lang in i18n) i18n[lang]?.timeline?.forEach(s => s.rect = Sanitizer.View.fromLegacy(s.rect)!);
 		Sanitizer._done.videoTours.add(tour);
 	}
 
@@ -300,6 +300,7 @@ export class Sanitizer {
 	// ─── Private helpers ────────────────────────────────────────────────────────
 
 	private static _menuPage(m: Models.ImageData.Menu): void {
+		if (!m.id) m.id = createGUID();
 		Sanitizer.asset(m.image);
 		m.children?.forEach(Sanitizer._menuPage);
 	}
@@ -345,7 +346,7 @@ export class Sanitizer {
 					byId.set(id, entry);
 				}
 
-				if (lang === langs[0]) {
+				if (lang === langs[0] || !Object.keys(entry.shared).length) {
 					for (const key of Object.keys(raw)) {
 						if (!cultureKeys.has(key) && key !== 'i18n') {
 							entry.shared[key] = raw[key];

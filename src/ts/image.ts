@@ -375,6 +375,8 @@ export class MicrioImage {
 		}
 		// Handle EU path explicitly
 		else if(i.path == BASEPATH_V5_EU) this.dataPath = i.path;
+		// Use path from fetched info as dataPath for all other cases
+		else if(i.path) this.dataPath = i.path;
 
 		// Handle Omni object setup (load base archive, configure gallery settings)
 		if(i.settings?.omni) {
@@ -592,7 +594,7 @@ export class MicrioImage {
 
 		// Linked image IDs from marker tours
 		if (d.markerTours?.length) micIds.push(
-			...d.markerTours.flatMap(t => t.steps).map(s => s.split(',')[1]).filter((s: string) => !!s && s != this.id)
+			...d.markerTours.flatMap(t => t.steps).filter(s => !!s).map(s => s.split(',')[1]).filter((s: string) => !!s && s != this.id)
 		);
 
 		const micIdsUnique = micIds.filter((id, i) => micIds.indexOf(id) == i);
