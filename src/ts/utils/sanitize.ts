@@ -7,7 +7,6 @@
 import type { Models } from '$types/models';
 import { createGUID } from './string';
 import { getIdVal, idIsV5 } from './id';
-import { DEMO_IDS } from '../globals';
 
 /** @internal */
 export class Sanitizer {
@@ -112,7 +111,7 @@ export class Sanitizer {
 	}
 
 	/** Applies ID-level info transforms. Returns derived flags. */
-	static imageId(i: Models.ImageInfo.ImageInfo, id: string): { isV5Imported: boolean; isDemo: boolean } {
+	static imageId(i: Models.ImageInfo.ImageInfo, id: string): { isV5Imported: boolean } {
 		if (i.settings?._meta?.noLogo) i.settings.noLogo = true;
 		if (i.settings?._meta?.noSmoothing) i.settings.noSmoothing = true;
 
@@ -130,8 +129,7 @@ export class Sanitizer {
 
 		const isV5Imported = id.startsWith('i') && !id.includes('/');
 		if (isV5Imported && !i.tilesId) i.tilesId = id.slice(1);
-		const isDemo = DEMO_IDS.includes(i.id) || (!!i.tilesId && DEMO_IDS.includes(i.tilesId));
-		return { isV5Imported, isDemo };
+		return { isV5Imported };
 	}
 
 	// ─── Data-level sanitization ────────────────────────────────────────────────

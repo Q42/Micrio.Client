@@ -357,7 +357,7 @@ export class MicrioImage {
 		// Use preset info if available and not fetched
 		else if(this.preset?.[1]) deepCopy(this.preset[1], i);
 
-		const { isV5Imported, isDemo } = Sanitizer.imageId(i, this.id);
+		const { isV5Imported } = Sanitizer.imageId(i, this.id);
 
 		// Merge attribute settings again (overriding fetched info)
 		deepCopy(attr, i);
@@ -367,11 +367,11 @@ export class MicrioImage {
 
 		// Determine tile base path
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
-		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : (isDemo || isV5Imported) ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
+		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 		// Use organization base URL if provided and path wasn't forced by attribute
 		if(i.organisation?.baseUrl && !attr.path) {
 			this.dataPath = i.path = i.organisation.baseUrl;
-			if(!isV5Imported || isDemo) this.tileBase = this.dataPath;
+			if(!isV5Imported) this.tileBase = this.dataPath;
 		}
 		// Handle EU path explicitly
 		else if(i.path == BASEPATH_V5_EU) this.dataPath = i.path;

@@ -38,19 +38,6 @@ export const VIEWER_BASE: string = `https://viewer.${MICRIO_TLD}/`;
 /** List of demo image IDs that might use the default BASEPATH even if they appear to be V5.
  * @internal
  */
-export const DEMO_IDS = [
-	// PRE 4.3 demos
-	'ttBWO', // Marker types demo
-	'IicaE', // Garden of Earthly with CSS
-	'KLTce', // Garden of Earthly without CSS
-	'xjQrB', // ESO 360
-	// POST 4.3 demos
-	'pfhXT', // Carnival Lent marker / tour demo
-	'rNIPa', // Garden of Earthly with CSS
-	'rdFIY', // Garden of Earthly without CSS
-	'mvRXc', // ESO 360
-];
-
 /** Keys used for storing Micrio settings in localStorage.
  * @internal
  */
