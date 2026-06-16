@@ -391,7 +391,7 @@
 	>
 		{#if embed.video && !printGL}
 			<!-- Render HTML video using Media component -->
-			<Media forcePause={paused} src={embed.video.streamId && !embed.video.transparent ? 'cfvid://'+embed.video.streamId : embed.video.src}
+			<Media forcePause={paused} src={embed.video.src}
 				width={widthCapped} height={heightCapped} frameScale={relScale}
 				controls={embed.video.controls} {destroying} loop={embed.video.loop} loopDelay={embed.video.loopAfter} volume={embed.video.muted ? 0 : 1} autoplay={!paused && embed.video.autoplay} hasTransparentH265={embed.video.transparent && embed.video.hasH265}
 				bind:_media={_mediaElement} />
