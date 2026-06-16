@@ -51,7 +51,7 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 		const m = data?.markers?.find(m => m.id == id);
 
 		// Get language-specific content and video tour data
-		const content = m?.i18n?.[lang] ?? (<unknown>m as Models.ImageData.MarkerCultureData);
+		const content = m?.i18n?.[lang];
 		if (content?.title) chapter = i; // Update chapter index if step has a title
 		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m.videoTour as Models.ImageData.VideoTourCultureData
 			: m.videoTour.i18n?.[lang] ?? undefined;

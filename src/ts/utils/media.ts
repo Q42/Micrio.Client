@@ -171,22 +171,6 @@ export function parseMediaSource(
 // Audio URL helpers
 // ============================================================================
 
-/**
- * Resolves language-specific culture data for a marker, with fallback to the marker object itself.
- * @internal
- */
-export function getMarkerCulture(marker: Models.ImageData.Marker, lang: string): Models.ImageData.MarkerCultureData | undefined {
-	return marker.i18n?.[lang] ?? (marker as unknown as Models.ImageData.MarkerCultureData);
-}
-
-/**
- * Resolves language-specific culture data for a menu/page, with fallback to the item itself.
- * @internal
- */
-export function getMenuCulture(menu: Models.ImageData.Menu, lang: string): Models.ImageData.MenuCultureData | undefined {
-	return menu.i18n?.[lang] ?? (menu as unknown as Models.ImageData.MenuCultureData);
-}
-
 // ============================================================================
 // Native HLS Support Detection
 // ============================================================================

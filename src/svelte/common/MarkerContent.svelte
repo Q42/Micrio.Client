@@ -12,7 +12,7 @@
 	import type { MicrioImage } from '$ts/image';
 
 	import { getContext, untrack } from 'svelte';
-	import { getMarkerCulture } from '$ts/utils';
+
 
 	import Media from '../components/Media.svelte';
 	import Article from './Article.svelte';
@@ -74,7 +74,7 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Get the language-specific content object for the marker. */
-	const content = $derived(getMarkerCulture(marker, $lang));
+	const content = $derived(marker.i18n?.[$lang]);
 
 	/** Determine if the marker has any displayable content. */
 	const empty = $derived(!content?.title && !content?.audio
