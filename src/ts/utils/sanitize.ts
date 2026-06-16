@@ -36,8 +36,12 @@ export const sanitizeAsset = (a?: Models.Assets.BaseAsset | Models.ImageData.Emb
  */
 export const isLegacyViews = (i: Models.ImageInfo.ImageInfo): boolean => !i.viewsWH;
 
-// Keep track of already sanitized image info objects
-const sanitizedInfo: WeakMap<Models.ImageInfo.ImageInfo, boolean> = new WeakMap();
+const sanitized = {
+	info: new WeakMap<Models.ImageInfo.ImageInfo, boolean>(),
+	embeds: new WeakSet<Models.ImageData.Embed>(),
+	markers: new WeakSet<Models.ImageData.Marker>(),
+	videoTours: new WeakSet<object>(),
+};
 
 /**
  * Sanitizes URLs within an ImageInfo object.
@@ -45,7 +49,7 @@ const sanitizedInfo: WeakMap<Models.ImageInfo.ImageInfo, boolean> = new WeakMap(
  */
 export const sanitizeImageInfo = (i: Models.ImageInfo.ImageInfo | undefined) => {
 	if (!i) return;
-	if (sanitizedInfo.has(i)) return;
+	if (sanitized.info.has(i)) return;
 	sanitizeAsset(i.organisation?.logo);
 	sanitizeAsset(i.settings?._markers?.markerIcon);
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
@@ -55,7 +59,7 @@ export const sanitizeImageInfo = (i: Models.ImageInfo.ImageInfo | undefined) => 
 		i.settings.view = View.fromLegacy(i.settings.view)!;
 		i.settings.restrict = View.fromLegacy(i.settings.restrict)!;
 	}
-	sanitizedInfo.set(i, true);
+	sanitized.info.set(i, true);
 };
 
 /**
@@ -68,10 +72,12 @@ export const sanitizeImageData = (d: Models.ImageData.ImageData | undefined, lan
 	if (d.revision) d.revision = Object.fromEntries(Object.entries((d.revision ?? {})).filter(r => Number(r[1]) > 0));
 	// Sanitize embeds
 	d.embeds?.forEach(e => {
+		if (sanitized.embeds.has(e)) return;
 		if (!e.uuid) e.uuid = (e.id ?? e.micrioId);
 		sanitizeAsset(e.video);
 		sanitizeAsset(e);
 		if (isLegacyViews) e.area = View.fromLegacy(e.area)!;
+		sanitized.embeds.add(e);
 	});
 	// Sanitize markers
 	d.markers?.forEach(m => sanitizeMarker(m, lang, isV5, isLegacyViews));
@@ -100,9 +106,7 @@ const sanitizeMenuPage = (m: Models.ImageData.Menu) => {
 	m.children?.forEach(sanitizeMenuPage);
 };
 
-// Keep track of marker objects already sanitized (per-reference, so each clone
-// produced by fetchJson gets its own sanitization pass)
-const sanitizedMarkers = new WeakSet<Models.ImageData.Marker>();
+
 
 /**
  * Sanitizes marker data, ensuring required properties exist, handling legacy formats,
@@ -114,8 +118,8 @@ const sanitizedMarkers = new WeakSet<Models.ImageData.Marker>();
  * @param legacyViews It uses the old [x0,y0,x1,y1] viewports
  */
 export const sanitizeMarker = (m: Models.ImageData.Marker, _lang: string, isOld: boolean, legacyViews?: boolean): void => {
-	if (sanitizedMarkers.has(m)) return;
-	sanitizedMarkers.add(m);
+	if (sanitized.markers.has(m)) return;
+	sanitized.markers.add(m);
 	// Ensure basic properties exist
 	if (!m.data) m.data = {};
 	if (!m.id) m.id = createGUID();
@@ -151,13 +155,17 @@ export const sanitizeMarker = (m: Models.ImageData.Marker, _lang: string, isOld:
 	}
 };
 
+
+
 /**
  * Sanitizes video tour data, converting legacy view formats.
  * @internal
  */
 export function sanitizeVideoTour(tour?: Models.ImageData.VideoTour | Models.ImageData.VideoTourCultureData): void {
 	if (!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
+	if (sanitized.videoTours.has(tour)) return;
 	const i18n = 'i18n' in tour ? tour.i18n : { 'en': (<unknown>tour as Models.ImageData.VideoTourCultureData) };
 	for (const lang in i18n) i18n[lang]?.timeline.forEach(s => s.rect = View.fromLegacy(s.rect)!);
+	sanitized.videoTours.add(tour);
 }
 
