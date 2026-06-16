@@ -10,14 +10,6 @@
  */
 export const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 
-/**
- * Svelte hack to disable attribute type checking warnings in the editor/language server.
- * @internal
- * @param x Any value.
- * @returns The same value, but typed as `unknown`.
- */
-export const notypecheck = <T>(x: T): T => x;
-
 /** List of script URLs already loaded or currently loading. @private */
 const loaded: string[] = [];
 

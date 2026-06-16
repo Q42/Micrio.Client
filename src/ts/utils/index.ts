@@ -21,7 +21,7 @@ export { createGUID, slugify, parseTime } from './string';
 export { Browser } from './browser';
 
 // DOM utilities
-export { sleep, notypecheck, loadScript } from './dom';
+export { sleep, loadScript } from './dom';
 
 // Svelte store helpers
 export { once, after } from './store';
