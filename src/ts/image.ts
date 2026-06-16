@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { clone, createGUID, deepCopy, fetchInfo, fetchJson, getAutostartTour, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeImageId, sanitizeMarker, MicrioError } from './utils';
+	import { Sanitizer, clone, createGUID, deepCopy, fetchInfo, fetchJson, getLocalData, isFetching, loadSerialTour, once, MicrioError } from './utils';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -180,12 +180,6 @@ export class MicrioImage {
 	/** Grid controller instance, if this image is a grid container. */
 	public grid: Grid|undefined;
 
-	/** Flag indicating if the image uses the V5 data model (language handling).
-	 * @internal
-	 * @readonly
-	*/
-	isV5:boolean = false;
-
 	/** Base path for fetching image tiles. */
 	tileBase:string|undefined;
 
@@ -224,11 +218,9 @@ export class MicrioImage {
 			if(secondSlash !== -1)
 				this.id = this.id.substring(0, secondSlash + 1) + encodeURIComponent(this.id.substring(secondSlash + 1));
 		}
-		this.isV5 = idIsV5(this.id.split('/')[0]); // Check if ID format indicates V5
 		// Determine base paths for info and data JSON
 		this.infoBasePath = attr.path && attr.forceInfoPath ? attr.path : undefined;
-		this.dataPath = attr.path||this.__info.path;
-		if(this.isV5 && !attr.path) this.dataPath = BASEPATH_V5; // Default V5 path
+		this.dataPath = attr.path||this.__info.path||BASEPATH_V5;
 
 		// Setup for split-screen secondary image
 		if(opts.secondaryTo) {
@@ -262,11 +254,7 @@ export class MicrioImage {
 
 			// Load cultural data when becoming visible if not already loaded
 			if(v && !this._loadedData) {
-				if(!hasData && this.isV5) { // V5 loads data later based on language
-					this._loadedData = true;
-					this.data.set(undefined);
-				}
-				else this.loadData(); // Load data immediately for V4 or if revision provided
+				this.loadData();
 			}
 
 			// Handle split-screen logic on visibility change
@@ -297,8 +285,8 @@ export class MicrioImage {
 		// Sanitize marker/embed data whenever the data store updates
 		this.data.subscribe(d => {
 			if(!d) return;
-			sanitizeImageData(d, micrio.lang, this.isV5, isLegacyViews(this.__info));
-			const autostart = getAutostartTour(d);
+			Sanitizer.imageData(d, micrio.lang, Sanitizer.isLegacyViews(this.__info));
+			const autostart = Sanitizer.autostartTour(d);
 			if(autostart) this.$settings.start = autostart;
 		});
 	}
@@ -355,7 +343,7 @@ export class MicrioImage {
 					// Also correct this internally.
 					if(r?.id && !i.isIIIF && this.id.split('/').length>=3 && this.id.startsWith('external/')) {
 						idFromCustomId = r.id.split('/').reverse()[0];
-						if(this.isV5 = idIsV5(idFromCustomId)) this.dataPath = r.path || BASEPATH_V5;
+						this.dataPath = r.path || BASEPATH_V5;
 					}
 					return r;
 				})
@@ -369,7 +357,7 @@ export class MicrioImage {
 		// Use preset info if available and not fetched
 		else if(this.preset?.[1]) deepCopy(this.preset[1], i);
 
-		const { isV5Imported, isDemo } = sanitizeImageId(i, this.id, this.isV5);
+		const { isV5Imported, isDemo } = Sanitizer.imageId(i, this.id);
 
 		// Merge attribute settings again (overriding fetched info)
 		deepCopy(attr, i);
@@ -379,7 +367,7 @@ export class MicrioImage {
 
 		// Determine tile base path
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
-		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : (isDemo || isV5Imported) ? BASEPATH : i.tileBasePath ?? i.path ?? (this.isV5 ? BASEPATH_V5 : BASEPATH);
+		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : (isDemo || isV5Imported) ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 		// Use organization base URL if provided and path wasn't forced by attribute
 		if(i.organisation?.baseUrl && !attr.path) {
 			this.dataPath = i.path = i.organisation.baseUrl;
@@ -446,21 +434,10 @@ export class MicrioImage {
 		this.is360 = !!i.is360;
 		this.isVideo = !!i.isVideo;
 
-		// Determine initial language
-		let lang:string|undefined=this.isV5 ? get(micrio._lang) : (!('cultures' in i) ? attr.lang : undefined) ?? undefined;
-
-		// Set available cultures and determine active language for V4
-		if(!this.isV5) {
-			if(!i.settings?.skipMeta && 'cultures' in i) {
-				const c = (i.cultures as string || '').split(',');
-				const isChild = this.opts.isEmbed || !!this.opts.area;
-				const forceLang = i.settings?.onlyPreferredLang || isChild;
-				lang = i.lang && c.includes(i.lang) ? i.lang : forceLang ? undefined : c[0]; // Use specified lang, forced lang, or first available
-				if(lang && !isChild) micrio.lang = lang; // Set global language if determined
-			}
-		} else if(i.revision) { // V5 language handling based on revisions
+		// Determine initial language from revision
+		let lang = get(micrio._lang);
+		if(i.revision) {
 			const langs = Object.keys(i.revision);
-			// If current global lang isn't available for this image, switch to the first available
 			if(langs.length && !langs.includes(lang as string))
 				micrio.lang = langs[0];
 		}
@@ -481,31 +458,9 @@ export class MicrioImage {
 		// Dispatch pre-info event for external manipulation
 		micrio.events.dispatch('pre-info', i);
 
-		// Load V5 data immediately if revision info is present and not an embed
-		if(this.isV5 && i.revision != undefined && !this.opts.isEmbed)
+		// Load image data immediately if revisions are known and not an embed
+		if(i.revision && !this.opts.isEmbed)
 			await this.loadData();
-
-		// Subscribe to language changes for V4 data loading
-		else if(!i.settings?.skipMeta && !this.opts.isEmbed && !this.isV5) micrio._lang.subscribe((lang?:string) => {
-			// Validate language against available cultures
-			if(lang && this.id && (!('cultures' in this.__info) || !(this.__info.cultures as string || '').split(',').includes(lang))) lang = undefined;
-			this.data.set(undefined); // Clear existing data
-			if(!lang && this.preset?.[2]) lang = 'preset'; // Use preset if no valid lang
-			if((lang) && this.id) {
-				// For old data model, close any open tours/popups (no live translations)
-				if(!this.isV5) {
-					micrio.state.tour.set(undefined);
-					this.state.marker.set(undefined);
-				}
-				if(this.preset?.[2]) this.enrichData(this.preset[2]) // Use preset data if available
-					.then(d => { this.data.set(d); if(this.preset?.[2]) this.preset[2] = undefined; }); // Clear preset after use
-				else fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data.'+lang+'.json') // Fetch data for language
-					.catch(() => {}).then((d) => d && this.enrichData(d).then(nd => this.data.update(d => { // Enrich and merge data
-						deepCopy(nd, d ? d : (d={}), {mergeArrays: true});
-						return d;
-					})));
-			}
-		});
 
 		// Handle linked split-screen setup
 		if(i.settings?.micrioSplitLink && !this.opts.secondaryTo) {
@@ -542,9 +497,24 @@ export class MicrioImage {
 		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
 		if(this._loadedData || skipMeta) return Promise.resolve(); // Don't reload if already loaded or skipped
 		this._loadedData = true;
-		// Get data from preset or fetch V5 public data
-		const data = this.preset?.[2] ?? (this.isV5 && await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json',this.__info.settings?.forceDataRefresh).catch(() => {}));
-		if(data) this.enrichData(data).then(d => this.data.set(d)); // Enrich and set data store
+		// Get data from preset or fetch pub.json
+		const data = this.preset?.[2] ?? await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json', this.__info.settings?.forceDataRefresh)
+			.catch(() => undefined);
+		if(data) {
+			this.enrichData(data).then(d => this.data.set(d)); // Enrich and set data store
+		} else if(this.__info.revision && !this.preset?.[2]) {
+			// V4 fallback: no pub.json — fetch per-language data files and merge
+			const langs = Object.keys(this.__info.revision);
+			const allLangData: Record<string, Record<string, unknown>> = {};
+			await Promise.all(langs.map(async lang => {
+				const ld = await fetchJson<Record<string, unknown>>(this.dataPath+this.id+'/data.'+lang+'.json').catch(() => undefined);
+				if(ld) allLangData[lang] = ld;
+			}));
+			if(Object.keys(allLangData).length) {
+				const merged = Sanitizer.v4DataToV5(allLangData);
+				this.enrichData(merged).then(d => this.data.set(d));
+			}
+		}
 	}
 
 	/**
@@ -658,7 +628,7 @@ export class MicrioImage {
 
 		// Helper function to get data path for a given ID
 		const getDataPath = (id:string) : string =>
-			this.dataPath+(!this.isV5 ? id+'/data.'+lang+'.json' : id+'/data/pub.json');
+			this.dataPath+id+'/data/pub.json';
 
 		// Preload data for unique linked IDs
 		const [micData, micInfo] = await Promise.all([
@@ -668,8 +638,8 @@ export class MicrioImage {
 
 		// Sanitize markers in preloaded data
 		micData.forEach((d,i) => {
-			const isLegacy = isLegacyViews(micInfo[i]!);
-			d?.markers?.forEach(m => sanitizeMarker(m, lang, micIdsUnique[i]!.length == 5, isLegacy));
+			const isLegacy = Sanitizer.isLegacyViews(micInfo[i]!);
+			d?.markers?.forEach(m => Sanitizer.marker(m, lang, isLegacy));
 		});
 
 		const spaceData = this.engine.micrio.spaceData; // Get space data if available

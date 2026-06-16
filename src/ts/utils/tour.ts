@@ -6,7 +6,7 @@
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { fetchJson, fetchInfo, isLegacyViews } from './fetch';
-import { sanitizeMarker, sanitizeAsset } from './sanitize';
+import { Sanitizer } from './sanitize';
 
 /**
  * Loads and processes data for a serial marker tour.
@@ -29,7 +29,7 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 
 	// Helper to get data path for an ID
 	const getDataPath = (id: string): string =>
-		image.dataPath + (!image.isV5 ? id + '/data.' + lang + '.json' : id + '/data/pub.json');
+		image.dataPath + id + '/data/pub.json';
 
 	// Fetch data for all unique linked images concurrently
 	const [micData, micInfo] = await Promise.all([
@@ -41,10 +41,10 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 	// Sanitize markers in the fetched data
 	micData.forEach((d, i) => {
 		const isLegacy = isLegacyViews(micInfo[i]!);
-		d?.markers?.forEach(m => sanitizeMarker(m, lang, !image.isV5, isLegacy));
+		d?.markers?.forEach(m => Sanitizer.marker(m, lang, isLegacy));
 	});
 	// Sanitize tour cover image
-	sanitizeAsset(tour.image);
+	Sanitizer.asset(tour.image);
 
 	let chapter: number = -1; // Track current chapter index
 	const notFound: number[] = []; // Track indices of steps where marker wasn't found
@@ -62,8 +62,8 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 			: m.videoTour.i18n?.[lang] ?? undefined;
 
 		// Sanitize assets within the step's content
-		sanitizeAsset(vTourData?.audio);
-		sanitizeAsset(vTourData?.subtitle);
+		Sanitizer.asset(vTourData?.audio);
+		Sanitizer.asset(vTourData?.subtitle);
 
 		// Handle marker not found
 		if (!m) {
@@ -72,7 +72,7 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 			return undefined; // Skip this step
 		}
 
-		sanitizeAsset(content?.audio);
+		Sanitizer.asset(content?.audio);
 		// @ts-ignore
 		if (m.videoTour && content?.audio) m.videoTour['audio'] = content.audio;
 

@@ -26,7 +26,7 @@
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
-    import { View } from '$ts/utils';
+    import { Sanitizer } from '$ts/utils';
 
 	// --- Props ---
 
@@ -204,7 +204,7 @@
 			// (Legacy non-strip swipe path, unused for `swipe` type after refactor.)
 			const cv = camera.getViewLegacy() as Models.Camera.ViewRect;
 			const target = pages[i];
-			const v = View.fromLegacy(target)! as Models.Camera.View;
+			const v = Sanitizer.View.fromLegacy(target)! as Models.Camera.View;
 			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < target[0]) !== (cv[2] > target[2])));
 			panning = false;
 			if(animate) {
@@ -461,7 +461,7 @@
 	function moved(_v:Models.Camera.View|undefined) : void {
 		if(!_v) return;
 
-		const v = View.toCenterJSON(_v);
+		const v = Sanitizer.View.toCenterJSON(_v);
 
 		const c = v.centerX; // Current view center X
 		// Calculate a score for each page based on distance and visibility

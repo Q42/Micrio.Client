@@ -27,22 +27,7 @@ export { sleep, notypecheck, loadScript } from './dom';
 export { once, after } from './store';
 
 // Data sanitization & view conversion
-export { View } from './sanitize';
-
-// Data sanitization
-export {
-	sanitizeAsset,
-	isLegacyViews,
-	sanitizeImageInfo,
-	sanitizeImageData,
-	sanitizeSpaceData,
-	sanitizeMarker,
-	sanitizeVideoTour,
-	sanitizeSource,
-	sanitizeImageId,
-	getAutostartTour,
-	getAudioSrc,
-} from './sanitize';
+export { Sanitizer } from './sanitize';
 
 // Data fetching
 export {

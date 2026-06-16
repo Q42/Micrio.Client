@@ -6,7 +6,7 @@
 import type { Models } from '$types/models';
 import type { PREDEFINED } from '$types/internal';
 import { VIEWER_BASE } from '../globals';
-import { sanitizeImageInfo, isLegacyViews } from './sanitize';
+import { Sanitizer } from './sanitize';
 import { clone } from './object';
 import { MicrioError } from './error';
 
@@ -87,7 +87,7 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
 	const ld = getLocalData(id)?.[1]; // Check local predefined data first
 	return ld ? Promise.resolve(ld) : fetchJson(`${path ?? VIEWER_BASE}${id}/info.json`, refresh) // Fetch if not local
 		.then(r => {
-			sanitizeImageInfo(r as Models.ImageInfo.ImageInfo | undefined); // Sanitize URLs etc.
+			Sanitizer.imageInfo(r as Models.ImageInfo.ImageInfo | undefined); // Sanitize URLs etc.
 			return r as Models.ImageInfo.ImageInfo | undefined;
 		});
 };
@@ -103,5 +103,5 @@ export const fetchAlbumInfo = (id: string): Promise<Models.AlbumInfo | undefined
 	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`);
 
 // Re-export isLegacyViews for convenience
-export { isLegacyViews };
+export const isLegacyViews = Sanitizer.isLegacyViews;
 

@@ -142,13 +142,7 @@ export class Grid {
 			micrio.events.dispatch('grid-load');
 		});
 
-		if(!image.isV5) micrio._lang.subscribe(l => {
-			if(l) Promise.all(this.images.filter(i => (i.$info && 'cultures' in i.$info && i.$info?.cultures as string || '').indexOf(l) >= 0).map(i => once(i.data))).then(loaded);
-			else loaded();
-		});
-		else {
-			loaded();
-		}
+		loaded();
 
 		micrio.events.dispatch('grid-init', this);
 	}

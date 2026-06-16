@@ -4,7 +4,7 @@ import type { Camera } from './camera';
 
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View, MicrioError } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, Sanitizer, MicrioError } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
@@ -726,7 +726,7 @@ export class HTMLMicrioElement extends HTMLElement {
 			})
 		);
 		sets.pinchZoomOutLimit = true;
-		if(opts.gallery.length) sets.view = View.fromLegacy(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
+		if(opts.gallery.length) sets.view = Sanitizer.View.fromLegacy(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
 	}
 
 	/** Holds loaded grid info data if applicable. */

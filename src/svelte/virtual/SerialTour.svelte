@@ -16,7 +16,7 @@
 	import { writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
 	import { i18n } from '$ts/i18n';
-	import { getAudioSrc } from '$ts/utils';
+	import { Sanitizer } from '$ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // Renders the audio/video for the current step
@@ -222,7 +222,7 @@
 	/** Reactive audio source based on the current video tour step. */
 	const audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
 	/** Reactive audio source URL. */
-	const audioSrc = $derived(getAudioSrc(audio));
+	const audioSrc = $derived(Sanitizer.audioSrc(audio));
 	/** Reactive boolean indicating if the current step has a subtitle. */
 	const hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */

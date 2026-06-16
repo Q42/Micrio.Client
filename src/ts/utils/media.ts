@@ -5,7 +5,7 @@
 
 import type { Models } from '$types/models';
 import { MediaType, FrameType } from '$types/internal';
-import { sanitizeSource } from './sanitize';
+import { Sanitizer } from './sanitize';
 
 // ============================================================================
 // Source Parsing
@@ -60,7 +60,7 @@ export function parseMediaSource(
 	useNativeFrames: boolean = false,
 	currentTime: number = 0
 ): ParsedMediaSource {
-	src = sanitizeSource(src);
+	src = Sanitizer.source(src);
 	const srcLower = src?.toLowerCase();
 
 	// Default result

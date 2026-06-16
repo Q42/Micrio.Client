@@ -25,7 +25,7 @@
 
 	// Micrio TS imports
 	import { i18n } from '$ts/i18n';
-	import { Browser, notypecheck, parseMediaSource, getIOSAudioElement, getAudioSrc } from '$ts/utils';
+	import { Browser, notypecheck, parseMediaSource, getIOSAudioElement, Sanitizer } from '$ts/utils';
 	import { VideoTourInstance } from '$ts/media/videotour';
 	import { FrameType, MediaType } from '$types/internal';
 
@@ -256,7 +256,7 @@
 				? (tour['subtitle'] as Models.Assets.Subtitle)
 				: tour.i18n?.[micrio.lang]?.subtitle
 			: undefined);
-	const srt = sub ? getAudioSrc(sub) ?? sub.src : undefined;
+	const srt = sub ? Sanitizer.audioSrc(sub) ?? sub.src : undefined;
 
 	// ============================================================================
 	// Playback Control

@@ -12,7 +12,7 @@
 	import type { MicrioImage } from '$ts/image';
 
 	import { getContext, untrack } from 'svelte';
-	import { getMarkerCulture, getAudioSrc } from '$ts/utils';
+	import { getMarkerCulture, Sanitizer } from '$ts/utils';
 
 	import Media from '../components/Media.svelte';
 	import Article from './Article.svelte';
@@ -121,7 +121,7 @@
 	/** Determine the primary audio source (from video tour or marker content). */
 	const audio = $derived(marker.videoTour?.i18n?.[$lang]?.audio ?? content?.audio);
 	/** Get the source URL for the audio. Handles potential legacy `fileUrl` property. */
-	const audioSrc = $derived(getAudioSrc(audio));
+	const audioSrc = $derived(Sanitizer.audioSrc(audio));
 	/** Get the caption for the image if there's only one image. */
 	const imageCaption = $derived(singleImage && marker.images?.[0]?.i18n?.[$lang]?.description);
 
