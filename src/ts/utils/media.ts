@@ -32,8 +32,6 @@ export interface ParsedMediaSource {
 	frameType?: FrameType;
 	/** The normalized/processed source URL */
 	src?: string;
-	/** Original source URL */
-	originalSrc?: string;
 	/** YouTube video ID (if applicable) */
 	youtubeId?: string;
 	/** Vimeo video ID (if applicable) */
@@ -86,7 +84,6 @@ export function parseMediaSource(
 	// Default result
 	const result: ParsedMediaSource = {
 		type: MediaType.None,
-		originalSrc: src,
 		isCloudflare: false,
 	};
 
