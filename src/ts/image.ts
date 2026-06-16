@@ -498,13 +498,8 @@ export class MicrioImage {
 		if(this._loadedData || skipMeta) return Promise.resolve();
 		this._loadedData = true;
 
-		if (this.preset?.[2]) {
-			this.enrichData(this.preset[2]).then(() => this.data.set(this.preset![2]));
-			return;
-		}
-
-		const data = await fetchImageData(this.id, this.dataPath, this.__info.settings?.forceDataRefresh, this.infoBasePath, d => this.enrichData(d)).then(r => r?.data);
-		if(data) this.data.set(data);
+		const data = this.preset?.[2] ?? await fetchImageData(this.id, this.dataPath, this.__info.settings?.forceDataRefresh, this.infoBasePath).then(r => r?.data);
+		if (data) { await this.enrichData(data); this.data.set(data); }
 	}
 
 	/**
@@ -575,81 +570,65 @@ export class MicrioImage {
 	})}
 
 	/**
-	 * Enriches cultural data after loading.
-	 * Currently focuses on loading and processing serial marker tour data.
-	 * Preloads linked image info and data for smoother tour transitions.
-	 * Dispatches 'pre-data' event allowing external modification.
+	 * Enriches image data with preloaded linked images, serial tour data,
+	 * split-link resolution, and fires the pre-data event.
 	 * @internal
-	 * @param d The raw image data object.
-	 * @returns Promise resolving to the enriched image data object.
-	*/
-	private async enrichData(d:Models.ImageData.ImageData) : Promise<void> {
-		if(!d) return;
-		/** @ts-ignore Check for error property */
-		if('error' in d) this.__info.error = (d['status'] as string) == '403' ? 'Could not load image data. Are you logged in and do you have the right credentials?' : (d['error'] as string);
+	 */
+	private async enrichData(d: Models.ImageData.ImageData) : Promise<void> {
+		if (!d) return;
+		/** @ts-ignore */
+		if ('error' in d) this.__info.error = (d['status'] as string) == '403' ? 'Could not load image data. Are you logged in and do you have the right credentials?' : (d['error'] as string);
 
-		const micIds:string[] = []
+		const micIds: string[] = [];
 
-		// Process markers for split-screen links
+		// Split-screen link parsing
 		d.markers?.forEach(m => {
-			if(m.data?.micrioSplitLink) {
+			if (m.data?.micrioSplitLink) {
 				const split = m.data.micrioSplitLink.split(',').map(s => s.trim());
-				const l = m.data._micrioSplitLink = {
-					micrioId: split[0],
-					markerId: split[1],
-					follows: !!split[2] && split[2] != 'false'
-				};
-				if(l.markerId) micIds.push(l.micrioId);
-			}
-		})
-
-		// Collect linked image IDs from marker tours
-		if(d.markerTours?.length) micIds.push(
-			...d.markerTours.flatMap(t => t.steps)
-				.map((s:string) => s.split(',')[1])
-				.filter((s:string) => !!s && s != this.id)
-		);
-
-		const micIdsUnique:string[] = micIds.filter((id,i) => micIds.indexOf(id)==i);
-
-		// Preload linked image data
-		const micData = await Promise.all(micIdsUnique.map(id =>
-			fetchImageData(id, this.dataPath).then(r => r?.data)
-		));
-
-		const spaceData = this.engine.micrio.spaceData;
-
-		// Load detailed step info for marker tours
-		if(d.markerTours) {
-			await Promise.all(d.markerTours.map(t => loadSerialTour(this, t, d)));
-			if(spaceData) d.markerTours = d.markerTours.filter(t => !t.steps.find(s => s.includes(',')));
-		}
-
-		// Space-defined marker tours
-		if(spaceData?.markerTours) await Promise.all(spaceData.markerTours.filter(t => !t.stepInfo).map(t => loadSerialTour(this, t, d)));
-
-		// Add target marker view data to split link markers
-		d.markers?.forEach(m => {
-			if(!m.data?._micrioSplitLink) return;
-			const targetId = m.data?._micrioSplitLink?.markerId;
-			if(targetId) for(let i=0;i<micData.length;i++) {
-				const target = micData[i]?.markers?.find(sm => sm.id == targetId);
-				if(target) { m.data._micrioSplitLink.view = target.view; return; }
+				m.data._micrioSplitLink = { micrioId: split[0], markerId: split[1], follows: !!split[2] && split[2] != 'false' };
+				if (m.data._micrioSplitLink.markerId) micIds.push(m.data._micrioSplitLink.micrioId);
 			}
 		});
 
-		// Dispatch pre-data event
+		// Linked image IDs from marker tours
+		if (d.markerTours?.length) micIds.push(
+			...d.markerTours.flatMap(t => t.steps).map(s => s.split(',')[1]).filter((s: string) => !!s && s != this.id)
+		);
+
+		const micIdsUnique = micIds.filter((id, i) => micIds.indexOf(id) == i);
+		const micData = await Promise.all(micIdsUnique.map(id => fetchImageData(id, this.dataPath).then(r => r?.data)));
+
+		// Load marker tours
+		if (d.markerTours) {
+			const spaceData = this.engine.micrio.spaceData;
+			const dataTours = d.markerTours.map(t => loadSerialTour(this, t, d));
+			const spaceTours = spaceData?.markerTours?.filter(t => !t.stepInfo).map(t => loadSerialTour(this, t, d)) ?? [];
+			await Promise.all([...dataTours, ...spaceTours]);
+			if (spaceData) d.markerTours = d.markerTours.filter(t => !t.steps.find(s => s.includes(',')));
+		}
+
+		// Resolve split-link target views
+		d.markers?.forEach(m => {
+			if (!m.data?._micrioSplitLink) return;
+			for (let i = 0; i < micData.length; i++) {
+				const target = micData[i]?.markers?.find(sm => sm.id == m.data!._micrioSplitLink!.markerId);
+				if (target) { m.data._micrioSplitLink!.view = target.view; return; }
+			}
+		});
+
+		// Pre-data event
 		this.engine.micrio.events.dispatch('pre-data', {
 			[this.id]: d,
-			...Object.fromEntries(micIdsUnique.map((id,i) => [id, micData[i]!]))
+			...Object.fromEntries(micIdsUnique.map((id, i) => [id, micData[i]!]))
 		});
 
 		// Set data on already-initialized linked images
-		micData.forEach((data,i) => { if(data) {
-			const image = this.engine.images.find(m => m.id == micIdsUnique[i]);
-			if(image && image instanceof MicrioImage && !image.$data)
-				image.data.set(data);
-		}});
+		micData.forEach((data, i) => {
+			if (data) {
+				const img = this.engine.images.find(m => m.id == micIdsUnique[i]);
+				if (img && 'data' in img && !('$data' in img ? img.$data : false)) (img as MicrioImage).data.set(data);
+			}
+		});
 	}
 
 	/** Configures the info object as a strip-swipe gallery container and sets the

@@ -97,8 +97,6 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
  * Fetches both info and image data for a Micrio image, returning fully sanitized V5 data.
  * V5 images load `pub.json`; V4 images load all per-language `data.{lang}.json` files,
  * merge them into V5 format, then sanitize (markers, embeds, assets, legacy views).
- * The optional `enrich` callback runs after sanitization but before returning,
- * allowing image-instance-specific processing (tour loading, linked data, etc.).
  * @internal
  */
 export async function fetchImageData(
@@ -106,7 +104,6 @@ export async function fetchImageData(
 	dataPath: string,
 	refresh?: boolean,
 	infoPath?: string,
-	enrich?: (data: Models.ImageData.ImageData) => Promise<void>,
 ): Promise<{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined> {
 	const info = await fetchInfo(id, infoPath);
 	if (!info) return undefined;
@@ -131,7 +128,6 @@ export async function fetchImageData(
 
 	if (!data) return undefined;
 	Sanitizer.imageData(data, isLegacy);
-	if (enrich) await enrich(data);
 	return { data, info };
 }
 
