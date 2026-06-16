@@ -6,10 +6,10 @@ import type { GallerySwiper } from './nav/swiper';
 import type { PREDEFINED } from '$types/internal';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
-import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEMO_IDS, VIEWER_BASE } from './globals';
+import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { clone, createGUID, deepCopy, fetchInfo, fetchJson, getIdVal, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeMarker, MicrioError } from './utils';
+import { clone, createGUID, deepCopy, fetchInfo, fetchJson, getAutostartTour, getLocalData, idIsV5, isFetching, isLegacyViews, loadSerialTour, once, sanitizeImageData, sanitizeImageId, sanitizeMarker, MicrioError } from './utils';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -295,7 +295,12 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 
 		// Sanitize marker/embed data whenever the data store updates
-		this.data.subscribe(d => {if(d)sanitizeImageData(d, micrio.lang, this.isV5, isLegacyViews(this.__info))});
+		this.data.subscribe(d => {
+			if(!d) return;
+			sanitizeImageData(d, micrio.lang, this.isV5, isLegacyViews(this.__info));
+			const autostart = getAutostartTour(d);
+			if(autostart) this.$settings.start = autostart;
+		});
 	}
 
 	/**
@@ -360,27 +365,11 @@ export class MicrioImage {
 			if(!i.isIIIF) i.isIIIF = !!iiifManifest;
 			// Fetch and merge IIIF manifest if present
 			if(iiifManifest) deepCopy(await fetchJson(iiifManifest).catch(loadError), i);
-			// Apply meta settings
-			if(!!i.settings?._meta?.['noLogo']) i.settings.noLogo = true;
-			if(!!i.settings?._meta?.['noSmoothing']) i.settings.noSmoothing = true;
 		}
 		// Use preset info if available and not fetched
 		else if(this.preset?.[1]) deepCopy(this.preset[1], i);
 
-		// Sanitize IIIF ID prefix
-		const iiifIdBase = 'https://iiif.micr.io/';
-		if(i.id.startsWith(iiifIdBase)) i.id = i.id.slice(iiifIdBase.length)
-
-		// Decode metadata from short V4 IDs (length 7)
-		if(this.id?.length == 7) {
-			const b = getIdVal(this.id[1+(getIdVal(this.id)%6)]); i.is360=!!((b>>4)&1)||i.is360; i.isWebP=!(b&3); i.isPng=(b&3)==2;
-			if((b>>3)&1 && idIsV5(i.tilesId??this.id)) i.format='dz'; if(!i.path) i.path = `https://${!((b>>2)&1)?'r2':'eu'}.micr.io/`;
-		}
-
-		// Handle V5 imported images (ID starts with 'i', length 6)
-		const isV5Imported = this.isV5 && this.id.startsWith('i') && !this.id.includes('/');
-		if(isV5Imported && !i.tilesId) i.tilesId = this.id.slice(1); // Use ID without 'i' as tilesId
-		const isDemo = DEMO_IDS.includes(i.id) || (i.tilesId && DEMO_IDS.includes(i.tilesId));
+		const { isV5Imported, isDemo } = sanitizeImageId(i, this.id, this.isV5);
 
 		// Merge attribute settings again (overriding fetched info)
 		deepCopy(attr, i);
@@ -645,8 +634,6 @@ export class MicrioImage {
 
 		// Process markers
 		d.markers?.forEach(m => {
-			sanitizeMarker(m, lang, !this.isV5, isLegacyViews(this.__info)); // Sanitize marker data
-
 			// Check for split-screen links in marker data
 			if(m.data?.micrioSplitLink) {
 				const split = m.data.micrioSplitLink.split(',').map(s => s.trim());
@@ -665,14 +652,6 @@ export class MicrioImage {
 				.map((s:string) => s.split(',')[1])
 				.filter((s:string) => !!s && s != this.id) // Extract linked IDs from steps
 		);
-
-		// Handle legacy autostart tours
-		const hasV4AutoStart = (t:Models.ImageData.MarkerTour|Models.ImageData.Tour) => 'autostart' in t && t.autostart
-		const autostartTour = d.markerTours?.find(hasV4AutoStart) || d.tours?.find(hasV4AutoStart);
-		if(autostartTour) this.$settings.start = { // Set start setting if autostart found
-			type: 'steps' in autostartTour ? 'markerTour' : 'tour',
-			id: autostartTour.id
-		};
 
 		// Preload info for unique linked IDs (don't wait)
 		const micIdsUnique:string[] = micIds.filter((id,i) => micIds.indexOf(id)==i);

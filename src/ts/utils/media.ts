@@ -5,6 +5,7 @@
 
 import type { Models } from '$types/models';
 import { MediaType, FrameType } from '$types/internal';
+import { sanitizeSource } from './sanitize';
 
 // ============================================================================
 // Source Parsing
@@ -48,25 +49,6 @@ export interface ParsedMediaSource {
 	isCloudflare: boolean;
 	/** M3U8 URL for HLS streams */
 	hlsSrc?: string;
-}
-
-/**
- * Sanitizes and normalizes a media source URL.
- */
-function sanitizeSource(src: string | undefined): string | undefined {
-	if (!src) return undefined;
-
-	// Extract src from iframe tags
-	if (/<iframe /.test(src)) {
-		src = src.replace(/^.* src="([^"]+)".*$/, '$1');
-	}
-
-	// Convert video:// protocol to https://
-	if (src.startsWith('video://')) {
-		src = src.replace('video:', 'https:');
-	}
-
-	return src;
 }
 
 /**
@@ -188,15 +170,6 @@ export function parseMediaSource(
 // ============================================================================
 // Audio URL helpers
 // ============================================================================
-
-/**
- * Resolves the source URL from an audio asset, handling legacy `fileUrl` property.
- * @internal
- */
-export function getAudioSrc(audio: Models.Assets.Audio | undefined): string | undefined {
-	if (!audio) return;
-	return 'fileUrl' in audio ? audio['fileUrl'] as string : audio.src;
-}
 
 /**
  * Resolves language-specific culture data for a marker, with fallback to the marker object itself.

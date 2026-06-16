@@ -87,9 +87,6 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
 	const ld = getLocalData(id)?.[1]; // Check local predefined data first
 	return ld ? Promise.resolve(ld) : fetchJson(`${path ?? VIEWER_BASE}${id}/info.json`, refresh) // Fetch if not local
 		.then(r => {
-			// Handle ancient Micrio V1 static info.json format
-			/** @ts-ignore */
-			if (r) { if ('Height' in r) { r.height = r['Height']; r.version = 1.0; r.tileSize = 512; } if ('Width' in r) r.width = r['Width']; }
 			sanitizeImageInfo(r as Models.ImageInfo.ImageInfo | undefined); // Sanitize URLs etc.
 			return r as Models.ImageInfo.ImageInfo | undefined;
 		});

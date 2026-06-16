@@ -26,8 +26,8 @@ export { sleep, notypecheck, loadScript } from './dom';
 // Svelte store helpers
 export { once, after } from './store';
 
-// View conversion utilities
-export { View } from './view';
+// Data sanitization & view conversion
+export { View } from './sanitize';
 
 // Data sanitization
 export {
@@ -37,7 +37,11 @@ export {
 	sanitizeImageData,
 	sanitizeSpaceData,
 	sanitizeMarker,
-	sanitizeVideoTour
+	sanitizeVideoTour,
+	sanitizeSource,
+	sanitizeImageId,
+	getAutostartTour,
+	getAudioSrc,
 } from './sanitize';
 
 // Data fetching
@@ -64,6 +68,6 @@ export { calcClusters } from './clustering';
 export type { MarkerCoords, ClusterResult } from './clustering';
 
 // Media utilities
-export { hasNativeHLS, parseMediaSource, getIOSAudioElement, getAudioSrc, getMarkerCulture, getMenuCulture, YOUTUBE_HOST } from './media';
+export { hasNativeHLS, parseMediaSource, getIOSAudioElement, getMarkerCulture, getMenuCulture, YOUTUBE_HOST } from './media';
 export type { ParsedMediaSource } from './media';
 
