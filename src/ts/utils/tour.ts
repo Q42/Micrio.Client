@@ -5,8 +5,8 @@
 
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
-import { fetchData, fetchInfo, isLegacyViews } from './fetch';
-import { Sanitizer } from './sanitize';
+import { fetchImageData } from './fetch';
+
 
 /**
  * Loads and processes data for a serial marker tour.
@@ -27,19 +27,9 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 		tour.steps.map(s => s.split(',')[1]).filter((s: string) => !!s && s != image.id)
 	)];
 
-	// Fetch data & info for all unique linked images concurrently
-	const [micData, micInfo] = await Promise.all([
-		Promise.all(micIds.map(id => fetchData(id, image.dataPath, image.$info!))),
-		Promise.all(micIds.map(id => fetchInfo(id)))
-	]);
-
-	// Sanitize markers in the fetched data
-	micData.forEach((d, i) => {
-		const isLegacy = isLegacyViews(micInfo[i]!);
-		d?.markers?.forEach(m => Sanitizer.marker(m, lang, isLegacy));
-	});
-	// Sanitize tour cover image
-	Sanitizer.asset(tour.image);
+	// Fetch & fully sanitize linked image data
+	const loaded = await Promise.all(micIds.map(id => fetchImageData(id, image.dataPath, lang)));
+	const micData = loaded.map(r => r?.data);
 
 	let chapter: number = -1; // Track current chapter index
 	const notFound: number[] = []; // Track indices of steps where marker wasn't found
@@ -56,10 +46,6 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 		const vTourData = !m?.videoTour ? undefined : 'timeline' in m.videoTour ? <unknown>m.videoTour as Models.ImageData.VideoTourCultureData
 			: m.videoTour.i18n?.[lang] ?? undefined;
 
-		// Sanitize assets within the step's content
-		Sanitizer.asset(vTourData?.audio);
-		Sanitizer.asset(vTourData?.subtitle);
-
 		// Handle marker not found
 		if (!m) {
 			console.warn(`[Micrio] Warning: tour step ${i + 1} with id [${id}] not found! Removing it from the tour`);
@@ -67,7 +53,6 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 			return undefined; // Skip this step
 		}
 
-		Sanitizer.asset(content?.audio);
 		// @ts-ignore
 		if (m.videoTour && content?.audio) m.videoTour['audio'] = content.audio;
 

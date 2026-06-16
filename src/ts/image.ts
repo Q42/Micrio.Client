@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { Sanitizer, clone, createGUID, deepCopy, fetchData, fetchInfo, fetchJson, getLocalData, loadSerialTour, once, MicrioError } from './utils';
+import { Sanitizer, clone, createGUID, deepCopy, fetchData, fetchImageData, fetchInfo, fetchJson, getLocalData, loadSerialTour, once, MicrioError } from './utils';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -498,7 +498,9 @@ export class MicrioImage {
 		if(this._loadedData || skipMeta) return Promise.resolve();
 		this._loadedData = true;
 
-		const data = this.preset?.[2] ?? await fetchData(this.id, this.dataPath, this.__info, this.__info.settings?.forceDataRefresh);
+		const lang = this.engine.micrio.lang;
+		const v5Legacy = Sanitizer.isLegacyViews(this.__info);
+		const data = this.preset?.[2] ?? await fetchData(this.id, this.dataPath, this.__info, lang, v5Legacy, this.__info.settings?.forceDataRefresh);
 		if(data) this.enrichData(data).then(d => this.data.set(d));
 	}
 
@@ -611,17 +613,10 @@ export class MicrioImage {
 		// Preload info for unique linked IDs (don't wait)
 		const micIdsUnique:string[] = micIds.filter((id,i) => micIds.indexOf(id)==i);
 
-		// Preload data & info for unique linked IDs
-		const [micData, micInfo] = await Promise.all([
-			Promise.all(micIdsUnique.map(id => fetchData(id, this.dataPath, this.__info))),
-			Promise.all(micIdsUnique.map(id => fetchInfo(id, this.infoBasePath)))
-		]);
-
-		// Sanitize markers in preloaded data
-		micData.forEach((d,i) => {
-			const isLegacy = Sanitizer.isLegacyViews(micInfo[i]!);
-			d?.markers?.forEach(m => Sanitizer.marker(m, lang, isLegacy));
-		});
+		// Preload data & info for unique linked IDs (fully sanitized)
+		const micData = await Promise.all(micIdsUnique.map(id =>
+			fetchImageData(id, this.dataPath, lang).then(r => r?.data)
+		));
 
 		const spaceData = this.engine.micrio.spaceData; // Get space data if available
 

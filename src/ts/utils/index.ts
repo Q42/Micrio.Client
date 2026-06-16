@@ -37,6 +37,7 @@ export {
 	getLocalData,
 	fetchInfo,
 	fetchData,
+	fetchImageData,
 	fetchAlbumInfo
 } from './fetch';
 
