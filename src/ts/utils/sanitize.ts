@@ -31,7 +31,7 @@ export class Sanitizer {
 		marker: new Set(['title', 'slug', 'label', 'body', 'bodySecondary', 'audio', 'embedUrl', 'embedTitle', 'embedDescription']),
 		tour: new Set(['title', 'slug', 'description']),
 		videoTour: new Set(['duration', 'audio', 'subtitle', 'timeline', 'events', 'title', 'slug', 'description']),
-		page: new Set(['title', 'embed', 'content']),
+		page: new Set(['title', 'embed', 'content', 'description']),
 	});
 
 	// ─── View conversions ───────────────────────────────────────────────────────
@@ -156,7 +156,8 @@ export class Sanitizer {
 		});
 		if (isLegacyViews) d.tours?.forEach(Sanitizer.videoTour);
 		d.music?.items?.forEach(Sanitizer.asset);
-		d.pages?.forEach(Sanitizer._menuPage);
+		const langs = Object.keys(d.i18n ?? {});
+		d.pages?.forEach(p => Sanitizer._menuPage(p, langs));
 	}
 
 	/** Detects a legacy V4 autostart tour. */
@@ -299,10 +300,36 @@ export class Sanitizer {
 
 	// ─── Private helpers ────────────────────────────────────────────────────────
 
-	private static _menuPage(m: Models.ImageData.Menu): void {
+	private static _menuPage(m: Models.ImageData.Menu, langs: string[] = []): void {
 		if (!m.id) m.id = createGUID();
 		Sanitizer.asset(m.image);
-		m.children?.forEach(Sanitizer._menuPage);
+		// Normalize flat culture keys into i18n for legacy pages (e.g. V2 children not processed by _buildMerged)
+		if (!m.i18n) {
+			const culture: Record<string, unknown> = {};
+			for (const key of Sanitizer._cultureKeys.page) {
+				if (key === 'description') {
+					if ('description' in m && !('content' in m)) {
+						culture.content = (m as unknown as Record<string, unknown>).description;
+					}
+				} else if (key in m) {
+					culture[key] = (m as unknown as Record<string, unknown>)[key];
+				}
+			}
+			if (Object.keys(culture).length && (culture.content || culture.embed)) {
+				const i18n: Record<string, Record<string, unknown>> = {};
+				const avail = langs.length ? langs : ['en'];
+				for (const l of avail) i18n[l] = { ...culture };
+				m.i18n = i18n as unknown as Record<string, Models.ImageData.MenuCultureData>;
+			}
+		}
+		if (m.i18n) for (const lang in m.i18n) {
+			const c = m.i18n[lang];
+			if (c && !c.content && (c as Record<string, unknown>).description) {
+				(c as Record<string, unknown>).content = (c as Record<string, unknown>).description;
+				delete (c as Record<string, unknown>).description;
+			}
+		}
+		m.children?.forEach(c => Sanitizer._menuPage(c, langs));
 	}
 
 	private static _extractCulture(src: Record<string, unknown>, keys: ReadonlySet<string>): Record<string, unknown> {
