@@ -224,9 +224,9 @@
 	/** Reactive audio source URL. */
 	const audioSrc = $derived(audio?.src);
 	/** Reactive boolean indicating if the current step has a subtitle. */
-	const hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
+	const hasSubtitle = $derived(!!currentStepInfo?.marker?.videoTour?.i18n?.[$lang]?.subtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */
-	const serialTourHasSubtitles = $derived(stepInfo.some(s => s.hasSubtitle));
+	const serialTourHasSubtitles = $derived(stepInfo.some(s => !!s.marker?.videoTour?.i18n?.[$lang]?.subtitle));
 
 </script>
 

@@ -290,7 +290,7 @@
 	let unsub:Unsubscriber[] = [];
 	onMount(() => {
 		// Load serial tour data if necessary, then start the marker tour logic
-		if('steps' in tour) loadSerialTour(image, tour, $_lang, image.$data!).then(() => startMarkerTour(tour));
+		if('steps' in tour) loadSerialTour(image, tour, image.$data!).then(() => startMarkerTour(tour));
 
 		// Subscribe to minimize state if controls are shown
 		if(!noControls) unsub.push(minimized.subscribe(m => onminimize?.(m)));

@@ -94,20 +94,24 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
 };
 
 /**
- * Fetches image data and sanitizes it to V5 format.
- * V5 images load `pub.json`; V4 images load all `data.{lang}.json` files
- * and merge them via {@link Sanitizer.v4DataToV5}.
- * The returned data is fully sanitized (markers, embeds, assets, etc.).
+ * Fetches both info and image data for a Micrio image, returning fully sanitized V5 data.
+ * V5 images load `pub.json`; V4 images load all per-language `data.{lang}.json` files,
+ * merge them into V5 format, then sanitize (markers, embeds, assets, legacy views).
+ * The optional `enrich` callback runs after sanitization but before returning,
+ * allowing image-instance-specific processing (tour loading, linked data, etc.).
  * @internal
  */
-async function fetchData(
+export async function fetchImageData(
 	id: string,
 	dataPath: string,
-	info: Models.ImageInfo.ImageInfo,
-	lang: string,
-	isLegacyViews: boolean,
 	refresh?: boolean,
-): Promise<Models.ImageData.ImageData | undefined> {
+	infoPath?: string,
+	enrich?: (data: Models.ImageData.ImageData) => Promise<void>,
+): Promise<{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined> {
+	const info = await fetchInfo(id, infoPath);
+	if (!info) return undefined;
+
+	const isLegacy = Sanitizer.isLegacyViews(info);
 	let data: Models.ImageData.ImageData | undefined;
 
 	if (idIsV5(id)) {
@@ -115,39 +119,20 @@ async function fetchData(
 	} else {
 		// V4: fetch per-language data files and merge into V5
 		const langs = info.revision ? Object.keys(info.revision) : [];
-		if (!langs.length) return undefined;
-
-		const allLangData: Record<string, Record<string, unknown>> = {};
-		await Promise.all(langs.map(async lang => {
-			const ld = await fetchJson<Record<string, unknown>>(`${dataPath}${id}/data.${lang}.json`).catch(() => undefined);
-			if (ld) allLangData[lang] = ld;
-		}));
-		if (!Object.keys(allLangData).length) return undefined;
-
-		data = Sanitizer.v4DataToV5(allLangData);
+		if (langs.length) {
+			const allLangData: Record<string, Record<string, unknown>> = {};
+			await Promise.all(langs.map(async lang => {
+				const ld = await fetchJson<Record<string, unknown>>(`${dataPath}${id}/data.${lang}.json`).catch(() => undefined);
+				if (ld) allLangData[lang] = ld;
+			}));
+			if (Object.keys(allLangData).length) data = Sanitizer.v4DataToV5(allLangData);
+		}
 	}
 
-	if (data) Sanitizer.imageData(data, lang, isLegacyViews);
-	return data;
-}
-
-/**
- * Fetches both info and image data, sanitizing data with the correct
- * `isLegacyViews` determined from the info. All-in-one convenience for
- * loading external/linked image data (e.g. serial tours).
- * @internal
- */
-export async function fetchImageData(
-	id: string,
-	dataPath: string,
-	lang: string,
-	refresh?: boolean,
-	infoPath?: string,
-): Promise<{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined> {
-	const info = await fetchInfo(id, infoPath);
-	if (!info) return undefined;
-	const data = await fetchData(id, dataPath, info, lang, Sanitizer.isLegacyViews(info), refresh);
-	return data ? { data, info } : undefined;
+	if (!data) return undefined;
+	Sanitizer.imageData(data, isLegacy);
+	if (enrich) await enrich(data);
+	return { data, info };
 }
 
 /**

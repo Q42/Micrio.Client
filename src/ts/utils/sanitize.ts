@@ -135,7 +135,7 @@ export class Sanitizer {
 	// ─── Data-level sanitization ────────────────────────────────────────────────
 
 	/** Sanitizes URLs and marker data within an ImageData object. */
-	static imageData(d: Models.ImageData.ImageData | undefined, lang: string, isLegacyViews: boolean): void {
+	static imageData(d: Models.ImageData.ImageData | undefined, isLegacyViews: boolean): void {
 		if (!d) return;
 		if (d.revision) d.revision = Object.fromEntries(Object.entries((d.revision ?? {})).filter(r => Number(r[1]) > 0));
 		d.embeds?.forEach(e => {
@@ -147,7 +147,7 @@ export class Sanitizer {
 			Sanitizer._done.embeds.add(e);
 		});
 		d.markers?.forEach(m => {
-			Sanitizer.marker(m, lang, isLegacyViews);
+			Sanitizer.marker(m, isLegacyViews);
 			const markerEmbeds = 'embedImages' in m ? (m as unknown as Record<string, unknown>).embedImages as Models.ImageData.Embed[] : undefined;
 			if (markerEmbeds?.length) {
 				d.embeds = [...(d.embeds ?? []), ...markerEmbeds];
@@ -170,7 +170,7 @@ export class Sanitizer {
 	// ─── Marker sanitization ────────────────────────────────────────────────────
 
 	/** Sanitizes marker data, ensuring required properties exist and handling legacy formats. */
-	static marker(m: Models.ImageData.Marker, _lang: string, legacyViews?: boolean): void {
+	static marker(m: Models.ImageData.Marker, legacyViews?: boolean): void {
 		if (Sanitizer._done.markers.has(m)) return;
 		Sanitizer._done.markers.add(m);
 		if (!m.data) m.data = {};
