@@ -160,6 +160,5 @@ export async function fetchImageData(
 export const fetchAlbumInfo = (id: string): Promise<Models.AlbumInfo | undefined> =>
 	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`);
 
-// Re-export isLegacyViews for convenience
-export const isLegacyViews = Sanitizer.isLegacyViews;
+
 
