@@ -220,6 +220,7 @@
 			if(glVideo?._vid && (paused != wasPaused)) { // If state changed and using WebGL video
 				if(paused) glVideo._vid.pause(); // Pause
 				else { // Play
+					glVideo.cancelTimeout(); // Cancel any pending visibility pause to avoid race
 					// Optionally restart video when shown again
 					if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
 					glVideo._vid.play();

@@ -77,6 +77,11 @@ export class GLEmbedVideo {
 		});
 	}
 
+	/** Cancels any pending visibility timeout (e.g. pause scheduled on invisible). */
+	cancelTimeout(): void {
+		clearTimeout(this.placeTo);
+	}
+
 	/** Cleans up resources when the parent Embed component is unmounted. */
 	unmount() : void {
 		this.isMounted = false; // Mark as unmounted
