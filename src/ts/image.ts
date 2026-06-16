@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-	import { Sanitizer, clone, createGUID, deepCopy, fetchInfo, fetchJson, getLocalData, isFetching, loadSerialTour, once, MicrioError } from './utils';
+import { Sanitizer, clone, createGUID, deepCopy, fetchData, fetchInfo, fetchJson, getLocalData, loadSerialTour, once, MicrioError } from './utils';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -495,26 +495,11 @@ export class MicrioImage {
 	*/
 	private async loadData() : Promise<void> {
 		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
-		if(this._loadedData || skipMeta) return Promise.resolve(); // Don't reload if already loaded or skipped
+		if(this._loadedData || skipMeta) return Promise.resolve();
 		this._loadedData = true;
-		// Get data from preset or fetch pub.json
-		const data = this.preset?.[2] ?? await fetchJson<Models.ImageData.ImageData>(this.dataPath+this.id+'/data/pub.json', this.__info.settings?.forceDataRefresh)
-			.catch(() => undefined);
-		if(data) {
-			this.enrichData(data).then(d => this.data.set(d)); // Enrich and set data store
-		} else if(this.__info.revision && !this.preset?.[2]) {
-			// V4 fallback: no pub.json — fetch per-language data files and merge
-			const langs = Object.keys(this.__info.revision);
-			const allLangData: Record<string, Record<string, unknown>> = {};
-			await Promise.all(langs.map(async lang => {
-				const ld = await fetchJson<Record<string, unknown>>(this.dataPath+this.id+'/data.'+lang+'.json').catch(() => undefined);
-				if(ld) allLangData[lang] = ld;
-			}));
-			if(Object.keys(allLangData).length) {
-				const merged = Sanitizer.v4DataToV5(allLangData);
-				this.enrichData(merged).then(d => this.data.set(d));
-			}
-		}
+
+		const data = this.preset?.[2] ?? await fetchData(this.id, this.dataPath, this.__info, this.__info.settings?.forceDataRefresh);
+		if(data) this.enrichData(data).then(d => this.data.set(d));
 	}
 
 	/**
@@ -626,13 +611,9 @@ export class MicrioImage {
 		// Preload info for unique linked IDs (don't wait)
 		const micIdsUnique:string[] = micIds.filter((id,i) => micIds.indexOf(id)==i);
 
-		// Helper function to get data path for a given ID
-		const getDataPath = (id:string) : string =>
-			this.dataPath+id+'/data/pub.json';
-
-		// Preload data for unique linked IDs
+		// Preload data & info for unique linked IDs
 		const [micData, micInfo] = await Promise.all([
-			Promise.all(micIdsUnique.map(id => fetchJson<Models.ImageData.ImageData>(getDataPath(id)))),
+			Promise.all(micIdsUnique.map(id => fetchData(id, this.dataPath, this.__info))),
 			Promise.all(micIdsUnique.map(id => fetchInfo(id, this.infoBasePath)))
 		]);
 
@@ -677,8 +658,8 @@ export class MicrioImage {
 		// If linked images were already initialized but lacked data, set it now
 		micData.forEach((data,i) => { if(data) {
 			const image = this.engine.images.find(m => m.id == micIdsUnique[i]);
-			if(image && image instanceof MicrioImage && !image.$data && !isFetching(getDataPath(image.id)))
-				image.data.set(data); // Set data store for the linked image
+			if(image && image instanceof MicrioImage && !image.$data)
+				image.data.set(data);
 		}});
 
 		return d; // Return the enriched data

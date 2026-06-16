@@ -7,6 +7,7 @@ import type { Models } from '$types/models';
 import type { PREDEFINED } from '$types/internal';
 import { VIEWER_BASE } from '../globals';
 import { Sanitizer } from './sanitize';
+import { idIsV5 } from './id';
 import { clone } from './object';
 import { MicrioError } from './error';
 
@@ -91,6 +92,41 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
 			return r as Models.ImageInfo.ImageInfo | undefined;
 		});
 };
+
+/**
+ * Fetches image data and normalizes it to V5 format.
+ * V5 images load `pub.json`; V4 images load all `data.{lang}.json` files
+ * and merge them via {@link Sanitizer.v4DataToV5}.
+ * @internal
+ * @param id The Micrio image ID.
+ * @param dataPath The base path for data files.
+ * @param info The image info object (used to determine available languages via `revision`).
+ * @param refresh If true, bypasses the cache.
+ * @returns A Promise resolving to the normalized ImageData object or undefined.
+ */
+export async function fetchData(
+	id: string,
+	dataPath: string,
+	info: Models.ImageInfo.ImageInfo,
+	refresh?: boolean,
+): Promise<Models.ImageData.ImageData | undefined> {
+	if (idIsV5(id)) {
+		return fetchJson<Models.ImageData.ImageData>(`${dataPath}${id}/data/pub.json`, refresh);
+	}
+
+	// V4: fetch per-language data files and merge into V5
+	const langs = info.revision ? Object.keys(info.revision) : [];
+	if (!langs.length) return undefined;
+
+	const allLangData: Record<string, Record<string, unknown>> = {};
+	await Promise.all(langs.map(async lang => {
+		const ld = await fetchJson<Record<string, unknown>>(`${dataPath}${id}/data.${lang}.json`).catch(() => undefined);
+		if (ld) allLangData[lang] = ld;
+	}));
+
+	if (!Object.keys(allLangData).length) return undefined;
+	return Sanitizer.v4DataToV5(allLangData);
+}
 
 /**
  * Fetches album info JSON (`album/[id].json`) from the Micrio CDN.

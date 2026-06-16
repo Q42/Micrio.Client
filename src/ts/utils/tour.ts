@@ -5,7 +5,7 @@
 
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
-import { fetchJson, fetchInfo, isLegacyViews } from './fetch';
+import { fetchData, fetchInfo, isLegacyViews } from './fetch';
 import { Sanitizer } from './sanitize';
 
 /**
@@ -27,14 +27,9 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 		tour.steps.map(s => s.split(',')[1]).filter((s: string) => !!s && s != image.id)
 	)];
 
-	// Helper to get data path for an ID
-	const getDataPath = (id: string): string =>
-		image.dataPath + id + '/data/pub.json';
-
-	// Fetch data for all unique linked images concurrently
+	// Fetch data & info for all unique linked images concurrently
 	const [micData, micInfo] = await Promise.all([
-		Promise.all(micIds.map(id => fetchJson<Models.ImageData.ImageData>(getDataPath(id)))),
-		// Fetch all image info.json to find out whether it uses legacyViews
+		Promise.all(micIds.map(id => fetchData(id, image.dataPath, image.$info!))),
 		Promise.all(micIds.map(id => fetchInfo(id)))
 	]);
 
