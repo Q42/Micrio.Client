@@ -209,8 +209,13 @@ export class Sanitizer {
 	static videoTour(tour?: Models.ImageData.VideoTour | Models.ImageData.VideoTourCultureData): void {
 		if (!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
 		if (Sanitizer._done.videoTours.has(tour)) return;
-		const i18n = 'i18n' in tour ? tour.i18n : { 'en': (<unknown>tour as Models.ImageData.VideoTourCultureData) };
-		for (const lang in i18n) i18n[lang]?.timeline?.forEach(s => s.rect = Sanitizer.View.fromLegacy(s.rect)!);
+		const convert = (s: { rect?: Models.Camera.ViewRect | Models.Camera.View }) =>
+			s.rect = Sanitizer.View.fromLegacy(s.rect)!;
+		// Convert rects inside i18n[lang].timeline (V5 structure)
+		if ('i18n' in tour) for (const lang in tour.i18n) tour.i18n[lang]?.timeline?.forEach(convert);
+		// Also convert top-level timeline rects (legacy flat structure not yet normalized)
+		const tl = (tour as unknown as Record<string, unknown>).timeline;
+		if (Array.isArray(tl)) (tl as { rect?: Models.Camera.ViewRect | Models.Camera.View }[]).forEach(convert);
 		Sanitizer._done.videoTours.add(tour);
 	}
 
