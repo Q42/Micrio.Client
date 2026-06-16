@@ -794,7 +794,7 @@
 					bind:this={_media}
 					style={hideUntilPlaying ? 'opacity: 0' : undefined}
 					bind:duration
-					muted={mediaMuted}
+					muted={mediaMuted || volume === 0}
 					autoplay={!!autoplay}
 					bind:currentTime
 					bind:seeking
