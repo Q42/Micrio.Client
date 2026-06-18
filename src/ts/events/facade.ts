@@ -106,7 +106,7 @@ export class Events implements EventContext {
 	 * @internal
 	*/
 	vars: EventStateVars = {
-		drag: { prev: undefined, start: [0, 0, 0] },
+		drag: { prev: undefined, start: [0, 0, 0], image: undefined },
 		dbltap: { lastTapped: 0 },
 		pinch: { image: undefined, sDst: 0, wasPanning: false },
 		updates: { to: -1, stack: [] }
