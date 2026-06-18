@@ -342,6 +342,7 @@ export class Grid {
 
 		if(opts.coverLimit == undefined) opts.coverLimit = true;
 		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(false));
+		else images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
 
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
@@ -409,9 +410,9 @@ export class Grid {
 			size,
 			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.ViewRect : undefined,
 			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.ViewRect : undefined,
-			settings: deepCopy(this.image.$settings||{}, {
+			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings||{}, {
 				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined
-			}),
+			})),
 			cultures: p[8]?.replace(/-/g,',')||undefined
 		} as Models.Grid.GridImage
 	}

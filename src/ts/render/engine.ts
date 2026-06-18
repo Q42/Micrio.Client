@@ -723,6 +723,7 @@ export class Engine {
 			/** @ts-ignore */
 			const v = image.$info['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
+			else if (canvas.hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
 
 			canvas.sendViewport();
 		}
