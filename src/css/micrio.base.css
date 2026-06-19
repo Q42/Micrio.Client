@@ -67,5 +67,5 @@ micr-io:not([static]) { overscroll-behavior: none; }
 micr-io[data-hooked]:not([data-panning]) > canvas.micrio { cursor: move; cursor: -webkit-grab; cursor: -moz-grab; cursor: -ms-grab; cursor: grab; -ms-content-zooming: none; -ms-touch-action: none; touch-action: none; }
 micr-io[data-panning] { cursor: -webkit-grabbing; cursor: -moz-grabbing; cursor: -ms-grabbing; cursor: grabbing; }
 micr-io[data-hooked][data-can-pan] > canvas.micrio { -ms-touch-action: pan-y; touch-action: pan-y; overscroll-behavior: initial; }
-micr-io > .micrio-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-auto-flow: row dense; grid-gap: 0; will-change: transform; transform-origin: left top; --translate: none; --scale: 1; transform: var(--translate) scale3d(var(--scale), var(--scale), 1)}
+micr-io > .micrio-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-auto-flow: row dense; grid-gap: 0; will-change: transform; transform-origin: left top; --translate: none; --scale: 1; transform: var(--translate) scale3d(var(--scale), var(--scale), 1)}
 micr-io > .micrio-grid > button { background: transparent; border: none; padding: 0; margin: 0; cursor: pointer; grid-area: auto / auto / span 1 / span 1; }

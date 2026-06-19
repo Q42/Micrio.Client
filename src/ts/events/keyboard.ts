@@ -1,4 +1,5 @@
 import type { EventContext } from './shared';
+import { Grid } from '$ts/nav/grid';
 
 /**
  * Keyboard event handler module.
@@ -25,6 +26,9 @@ export class KeyboardHandler {
 	 */
 	private handle(e: KeyboardEvent): void {
 		if (this.ctx.isPanning() || this.ctx.isPinching() || !this.ctx.micrio.$current?.camera) return;
+
+		// Bypass arrow handling when a grid is actively handling keys
+		if (Grid.handlingKeys && (e.key.startsWith('Arrow') || e.key == 'Enter' || e.key == ' ' || e.key == 'Escape')) return;
 
 		const c = this.ctx.micrio.$current.camera;
 		const hWidth = this.ctx.micrio.offsetWidth / 2;

@@ -82,7 +82,7 @@ export class Grid {
 	public depth:Writable<number> = writable<number>(0);
 
 	/** Default animation duration (seconds) when transitioning *into* a new layout or focused view. */
-	aniDurationIn:number = 1.5;
+	aniDurationIn:number = 1;
 
 	/** Default animation duration (seconds) when transitioning *out* of a focused view or going back in history. */
 	aniDurationOut:number = 0.5;
@@ -115,6 +115,9 @@ export class Grid {
 	/** Default animation timing function for grid transitions. @internal */
 	private timingFunction:Models.Camera.TimingFunction = 'ease';
 
+	/** If true, keyboard arrow navigation is active and should bypass the default key handler. */
+	static handlingKeys:boolean = false;
+
 	/** Stores the Promise returned by the last `set()` call. @internal */
 	lastPromise:Promise<MicrioImage[]>|undefined;
 
@@ -132,6 +135,7 @@ export class Grid {
 
 		const g = image.$settings?.grid;
 		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
+		if(this.clickable && image.$settings.hookKeys) this.hookGridKeys();
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
@@ -193,6 +197,86 @@ export class Grid {
 		this.micrio.addEventListener('tour-event', this.tourEvent);
 		this.micrio.addEventListener('serialtour-pause', () => this.images.forEach(i => i.camera.pause()));
 		this.micrio.addEventListener('serialtour-play', () => this.images.forEach(i => i.camera.resume()));
+	}
+
+	/** Hooks keyboard navigation for grid cells. @internal */
+	private hookGridKeys() : void {
+		Grid.handlingKeys = true;
+		document.addEventListener('keydown', this.gridKeyHandler = this.gridKeyHandler.bind(this));
+	}
+
+	/** Finds the grid cell adjacent in the given direction and returns its image. @internal */
+	private gridAdjacent(dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
+		const cells = this.current.map((img, i) => ({
+			img, i,
+			cx: (img.opts.area![0] + img.opts.area![2]) / 2,
+			cy: (img.opts.area![1] + img.opts.area![3]) / 2,
+		}));
+		if (!cells.length) return;
+
+		// Find the currently focused button, or default to the first cell
+		let curIdx = cells.findIndex(c => c.img.id == this._grid.querySelector(':focus')?.getAttribute('data-id'));
+		if (curIdx < 0) curIdx = 0;
+
+		const cur = cells[curIdx];
+		const threshold = 0.05;
+		let best:{img:MicrioImage; dist:number}|undefined;
+
+		for (const c of cells) {
+			if (c.i === curIdx) continue;
+			let dx = c.cx - cur.cx, dy = c.cy - cur.cy;
+			let ok = false;
+			switch (dir) {
+				case 'left':  ok = dx < 0 && Math.abs(dy) < threshold; break;
+				case 'right': ok = dx > 0 && Math.abs(dy) < threshold; break;
+				case 'up':    ok = dy < 0 && Math.abs(dx) < threshold; break;
+				case 'down':  ok = dy > 0 && Math.abs(dx) < threshold; break;
+			}
+			if (!ok) continue;
+			const dist = Math.abs(dx) + Math.abs(dy);
+			if (!best || dist < best.dist) best = { img: c.img, dist };
+		}
+
+		if (best) return best.img;
+
+		// No adjacent cell found in that direction — wrap to first/last
+		return cells[dir == 'right' || dir == 'down' ? 0 : cells.length - 1].img;
+	}
+
+	/** Keydown handler for grid keyboard navigation. @internal */
+	private gridKeyHandler(e: KeyboardEvent) : void {
+		if (!this.current.length || !this.clickable) return;
+
+		if (e.key == 'Escape') {
+			if (this.$focussed) { this.back(); e.preventDefault(); e.stopPropagation(); }
+			else if (!this.image.camera.isZoomedOut()) { this.reset(); e.preventDefault(); e.stopPropagation(); }
+			return;
+		}
+
+		// When an image is focused, let default arrow handling take over
+		if (this.$focussed) return;
+		let img:MicrioImage|undefined;
+		switch (e.key) {
+			case 'ArrowLeft':  img = this.gridAdjacent('left'); break;
+			case 'ArrowRight': img = this.gridAdjacent('right'); break;
+			case 'ArrowUp':    img = this.gridAdjacent('up'); break;
+			case 'ArrowDown':  img = this.gridAdjacent('down'); break;
+			default: return;
+		}
+		e.preventDefault();
+		e.stopPropagation();
+		if (!img) return;
+		// Visual focus indicator on the grid overlay button
+		this._buttons.forEach((btn, id) => {
+			if (id === img!.id) btn.focus();
+			else btn.blur();
+		});
+
+		if (!this.image.camera.isZoomedOut() && this.clickable == 'zoom') {
+			// Zoomed in + zoom mode: arrow keys trigger the zoom
+			const a = img.opts.area ?? [0,0,1,1];
+			this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+		}
 	}
 
 	/** Clears any pending timeouts for transitions or fades. @internal */
