@@ -655,12 +655,7 @@ export class HTMLMicrioElement extends HTMLElement {
 			const index = await this.getArchiveIndex(archiveId.split('.')[0], path); // Load index JSON
 			gallery.archiveLayerOffset = index.delta; // Store layer offset if present
 			// Sort images based on gallery settings and format into legacy string format
-			archiveId = index.images.sort(
-				gallery.sort == 'name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0
-				: gallery.sort == '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0
-				: gallery.sort == '-created' ? (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? 1 : a.created > b.created ? -1 : 0
-				: (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? -1 : a.created > b.created ? 1 : 0
-				).map(i => `${i.id},${i.width},${i.height},${i.isDeepZoom?'d':''},${i.isPng ? 'p' : i.isWebP ? 'w' : ''},${i.tileSize || ''}`.replace(/\,+$/,'')) // Format: id,w,h,type,format,tileSize
+			archiveId = index.images.sort(this.sortArchiveImages(gallery.sort)).map(i => `${i.id},${i.width},${i.height},${i.isDeepZoom?'d':''},${i.isPng ? 'p' : i.isWebP ? 'w' : ''},${i.tileSize || ''}`.replace(/\,+$/,'')) // Format: id,w,h,type,format,tileSize
 				.join(';');
 		}
 
@@ -731,6 +726,14 @@ export class HTMLMicrioElement extends HTMLElement {
 
 	/** Holds loaded grid info data if applicable. */
 	gridInfoData:{images: Models.ImageInfo.ImageInfo[]}|undefined;
+	private sortArchiveImages(sort: string | undefined): ((a: Models.ImageInfo.ImageInfo, b: Models.ImageInfo.ImageInfo) => number) {
+		return sort == 'random' ? () => Math.random() - .5
+			: sort == 'name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0
+			: sort == '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0
+			: sort == '-created' ? (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? 1 : a.created > b.created ? -1 : 0
+			: (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
+	}
+
 	/**
 	 * Sets up options for a grid view based on attribute or archive data.
 	 * @internal
@@ -742,6 +745,8 @@ export class HTMLMicrioElement extends HTMLElement {
 		// If grid attribute points to an archive, load index and format grid string
 		if(opts.settings.gallery?.archive == opts.grid) {
 			this.gridInfoData=await this.getArchiveIndex(opts.grid.split('.')[0], path); // Load index
+			const s = opts.settings.gallery?.sort;
+			if (s) this.gridInfoData.images.sort(this.sortArchiveImages(s));
 			// Format grid string from image info
 			opts.grid = this.gridInfoData.images.map(i =>
 				Grid.getString(i, {cultures: 'cultures' in i ? (<unknown>i.cultures as string[]).join('-') : undefined})

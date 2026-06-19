@@ -432,7 +432,7 @@ import type { MicrioIcon } from '$ts/icons';
 			/** Archive layer offset */
 			archiveLayerOffset?: number;
 			/** Gallery sorting */
-			sort?: ('name'|'-name'|'created'|'-created');
+			sort?: ('name'|'-name'|'created'|'-created'|'random');
 			/** Gallery type */
 			type?: ('swipe'|'swipe-full'|'switch'|'omni'|'grid');
 			/** The gallery opening image ID */
@@ -1326,7 +1326,7 @@ import type { MicrioIcon } from '$ts/icons';
 		/** The album UX type */
 		type: ('swipe'|'switch'|'grid');
 		/** The album image sorting */
-		sort?: ('name'|'-name'|'created'|'-created');
+		sort?: ('name'|'-name'|'created'|'-created'|'random');
 		/** Album pages are shown as book spreads */
 		isSpreads?: boolean;
 		/** The number of single cover pages in case of spreads */
