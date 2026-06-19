@@ -181,8 +181,8 @@
 	const hasControls = $derived($controls && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
 	/** Show only fullscreen button when having popup on mobile screen */
 	const onlyFullscreen = $derived($popup && micrio.canvas.$isMobile);
-	/** Grid controller without clickable mode — hide zoom buttons, pan/zoom happens on individual images. */
-	const gridNoClickable = $derived(!!$current?.grid && !$current.grid.clickable);
+	/** Grid panZoom set to 'cells' — hide zoom buttons, pan/zoom happens on individual images. */
+	const gridPanZoomCells = $derived(!!$current?.grid && $current.grid.panZoom == 'cells');
 
 </script>
 
@@ -227,7 +227,7 @@
 
 		<!-- Zoom and Fullscreen Buttons -->
 		<ButtonGroup>
-			{#if $zoom && !onlyFullscreen && !gridNoClickable}
+			{#if $zoom && !onlyFullscreen && !gridPanZoomCells}
 				<!-- Render secondary zoom controls if active, otherwise primary -->
 				{#if secondaryControls}
 					<ZoomButtons image={secondaryControls} />
