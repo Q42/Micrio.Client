@@ -752,7 +752,6 @@ export class HTMLMicrioElement extends HTMLElement {
 		opts.height = this.offsetHeight * this.canvas.getRatio();
 		opts.settings.zoomLimit = 15;
 		opts.settings.minimap = false;
-		opts.settings.initType = 'cover';
 		this.removeAttribute('data-grid'); // Remove attribute after processing
 	}
 
