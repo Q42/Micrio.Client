@@ -695,9 +695,11 @@ export class Engine {
 		let canvas: TileCanvas;
 		if (!isEmbed) {
 			const isGallery = !!(image.$settings.gallery?.archive || image.$settings.gallery?.type);
-			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height,
-				isGallery ? { coverLimit: false, coverStart: false } : {}
-			);
+			const isGridFullView = !isGallery && !image.$settings?.limitToCoverScale;
+			let childOpts: { coverLimit?: boolean; coverStart?: boolean } = {};
+			if (isGallery) childOpts = { coverLimit: false, coverStart: false };
+			else if (isGridFullView) childOpts = { coverLimit: false };
+			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height, childOpts);
 		} else {
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.engImageToMicrio.set(engImage, image);

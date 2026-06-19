@@ -340,7 +340,7 @@ export class Grid {
 
 		this.nextSize.clear();
 
-		if(opts.coverLimit == undefined) opts.coverLimit = true;
+		if(opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
 		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(false));
 		else images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
 
