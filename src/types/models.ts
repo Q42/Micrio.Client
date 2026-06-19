@@ -406,8 +406,8 @@ import type { MicrioIcon } from '$ts/icons';
 
 			/** Grid display and interaction settings */
 			grid?: {
-				/** Can click individual grid images to focus them */
-				clickable?: boolean;
+				/** Click behavior for grid images: `'focus'` expands to full view, `'zoom'` zooms to the image's viewport */
+				clickable?: 'focus' | 'zoom';
 				/** Transition duration for grid animations, in seconds */
 				transitionDuration?: number;
 				/** Transition duration when going back, in seconds */

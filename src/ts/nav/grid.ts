@@ -62,8 +62,9 @@ export class Grid {
 	/** Map storing references to the HTML `<button>` elements representing each grid item in the overlay. Keyed by image ID. @internal */
 	_buttons:Map<string, HTMLButtonElement> = new Map();
 
-	/** If true, the HTML grid overlay remains visible and interactive even when an image is focused. */
-	clickable:boolean = false;
+	/** If truthy, the HTML grid overlay remains visible and interactive when an image is focused.
+	 * `'focus'` expands the image to full view, `'zoom'` zooms the main camera to the image's viewport. */
+	clickable: 'focus'|'zoom'|false = false;
 
 	/** Writable Svelte store holding the currently focused {@link MicrioImage} instance, or undefined if in grid view. */
 	readonly focussed:Writable<MicrioImage|undefined> = writable();
@@ -130,7 +131,7 @@ export class Grid {
 		this.updateGrid = this.updateGrid.bind(this);
 
 		const g = image.$settings?.grid;
-		this.clickable = !!g?.clickable;
+		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
@@ -174,7 +175,13 @@ export class Grid {
 		if(this.clickable) {
 			this._grid.addEventListener('click', e => {
 				const id = (e.target as HTMLElement).dataset.id;
-				if(id) this.focus(this.imageMap.get(id));
+				if(!id) return;
+				const img = this.imageMap.get(id);
+				if(!img) return;
+				if(this.clickable == 'zoom') {
+					const a = img.opts.area ?? [0,0,1,1];
+					this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+				} else this.focus(img);
 			});
 
 			const placeOrRemove = (t:unknown) => { if(t) this.removeGrid(); else this.placeGrid(); };

@@ -108,6 +108,8 @@
 	let grid:Grid|undefined = $state();
 	/** Tracks the auto-subscription to grid.focussed. */
 	let gridFocussed:MicrioImage|undefined = $state();
+	/** The grid's clickable mode, to know if the close button is relevant. */
+	let gridClickable:'focus'|'zoom'|false = $state(false);
 
 	/** Reads relevant settings from the image info and updates local state and UI stores. */
 	function readInfo(s:Models.ImageInfo.Settings) {
@@ -150,7 +152,10 @@
 		// Subscribe to grid focus state for the close button
 		grid = micrio.canvases[0]?.grid;
 		let gridUnsub:Unsubscriber|undefined;
-		if(grid) gridUnsub = grid.focussed.subscribe(v => gridFocussed = v);
+		if(grid) {
+			gridClickable = grid.clickable;
+			gridUnsub = grid.focussed.subscribe(v => gridFocussed = v);
+		}
 
 		// Cleanup function: remove listeners and unsubscribe on component destroy
 		return () => {
@@ -243,8 +248,8 @@
 		</aside>
 	{/if}
 
-	<!-- Grid Close Button (shown when a grid image is expanded to full view) -->
-	{#if gridFocussed}
+	<!-- Grid Close Button (shown when a grid image is expanded to full view in 'focus' mode) -->
+	{#if gridFocussed && gridClickable == 'focus'}
 		<aside class="grid-close">
 			<Button type="close" title={$i18n.close} onclick={() => grid?.back()} />
 		</aside>

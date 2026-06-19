@@ -60,7 +60,7 @@ export const sanitizeImageInfo = (i: Models.ImageInfo.ImageInfo | undefined) => 
 		const g = s.grid ?? {};
 		let migrated = false;
 		if ('gridClickable' in s) {
-			g.clickable = s.gridClickable as boolean;
+			if (s.gridClickable) g.clickable = 'focus';
 			delete s.gridClickable;
 			migrated = true;
 		}
