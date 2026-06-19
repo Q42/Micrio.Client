@@ -218,11 +218,19 @@ export class Events implements EventContext {
 		const w = this.micrio.offsetWidth, h = this.micrio.offsetHeight,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
 		const hasSplitScreen = this.visible?.find(i => !!i.opts.secondaryTo);
-		// Virtual parent canvases (noImage=true, e.g. strip-swipe gallery container) should
-		// not be picked for input routing — they're just containers for real children.
 		const candidates = this.visible.filter(i => !i.noImage);
+		// When the current image is a grid child (focused via clickable:'focus'), route all events to it
+		const current = this.micrio.$current;
+		const gridCtrl = this.micrio.canvases.find(i => i.grid);
+		if (current && gridCtrl?.grid?.images?.some(i => i === current)) return current;
+		// When zoomed into a grid cell (clickable:'zoom'), transform coordinates to the grid controller's view space
+		let vx = x, vy = y;
+		if (gridCtrl?.grid?.clickable == 'zoom') {
+			const gv = gridCtrl.camera.getView();
+			if (gv) { vx = gv[0] + x * gv[2]; vy = gv[1] + y * gv[3]; }
+		}
 		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
-			hasSplitScreen && grid ? false : area ? x >= area[0] && x <= area[2] && y >= area[1] && y <= area[3] : false
+			hasSplitScreen && grid ? false : area ? vx >= area[0] && vx <= area[2] && vy >= area[1] && vy <= area[3] : false
 		);
 		if (t && t.opts.secondaryTo && t.opts.isPassive && t.opts.area) {
 			c.x -= t.opts.area[0] * w;

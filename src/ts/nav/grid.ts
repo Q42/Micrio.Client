@@ -182,6 +182,7 @@ export class Grid {
 				if(!id) return;
 				const img = this.imageMap.get(id);
 				if(!img) return;
+				this._buttons.forEach((btn, bid) => btn.classList.toggle('focussed', bid == id));
 				if(this.clickable == 'zoom') {
 					const a = img.opts.area ?? [0,0,1,1];
 					this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
@@ -248,6 +249,7 @@ export class Grid {
 		if (!this.current.length || !this.clickable) return;
 
 		if (e.key == 'Escape') {
+			this._buttons.forEach(btn => btn.classList.remove('focussed'));
 			if (this.$focussed) { this.back(); e.preventDefault(); e.stopPropagation(); }
 			else if (!this.image.camera.isZoomedOut()) { this.reset(); e.preventDefault(); e.stopPropagation(); }
 			return;
@@ -272,10 +274,13 @@ export class Grid {
 			else btn.blur();
 		});
 
-		if (!this.image.camera.isZoomedOut() && this.clickable == 'zoom') {
-			// Zoomed in + zoom mode: arrow keys trigger the zoom
-			const a = img.opts.area ?? [0,0,1,1];
-			this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+		if (this.clickable == 'zoom') {
+			this._buttons.forEach((btn, bid) => btn.classList.toggle('focussed', bid == img!.id));
+			if (!this.image.camera.isZoomedOut()) {
+				// Zoomed in + zoom mode: arrow keys trigger the zoom
+				const a = img.opts.area ?? [0,0,1,1];
+				this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+			}
 		}
 	}
 
