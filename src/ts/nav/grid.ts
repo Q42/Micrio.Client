@@ -129,10 +129,10 @@ export class Grid {
 		this.tourEvent = this.tourEvent.bind(this);
 		this.updateGrid = this.updateGrid.bind(this);
 
-		const s = image.$settings;
-		this.clickable = !!s.gridClickable;
-		if(s.gridTransitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = s.gridTransitionDuration;
-		if(s.gridTransitionDurationOut !== undefined) this.aniDurationOut = s.gridTransitionDurationOut;
+		const g = image.$settings?.grid;
+		this.clickable = !!g?.clickable;
+		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
+		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
 		this._grid.className = 'micrio-grid';
 		this.set(image.$info?.grid);

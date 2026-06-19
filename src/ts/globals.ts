@@ -212,7 +212,7 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-minimap': {}, // Enable minimap?
 		'data-minimap-hide': {f:'alwaysShowMinimap',n:true}, // Always show minimap? (Negated)
 		'data-normalize-dpr': {f: 'zoomLimitDPRFix'}, // Apply DPR fix for zoom limit?
-		'data-grid-clickable': {f: 'gridClickable' }, // Make grid items clickable?
+		'data-grid-clickable': {f: 'grid.clickable' }, // Make grid items clickable?
 		'data-gallery-spreads': {f: 'gallery.isSpreads' }, // Display gallery as spreads?
 		'data-freemove': {f: 'freeMove' }, // Enable free camera movement (e.g., beyond limits)?
 		'data-force-path': {f: 'forceInfoPath', r:true}, // Force using `data-path` for info.json

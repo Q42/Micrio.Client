@@ -404,12 +404,15 @@ import type { MicrioIcon } from '$ts/icons';
 			/** UI customizations */
 			ui?: Partial<UserInterfaceSettings>;
 
-			/** Grid: can click individual grid images */
-			gridClickable?: boolean;
-			/** Grid: transition duration, in seconds */
-			gridTransitionDuration?: number;
-			/** Grid: transition duration going back, in seconds */
-			gridTransitionDurationOut?: number;
+			/** Grid display and interaction settings */
+			grid?: {
+				/** Can click individual grid images to focus them */
+				clickable?: boolean;
+				/** Transition duration for grid animations, in seconds */
+				transitionDuration?: number;
+				/** Transition duration when going back, in seconds */
+				transitionDurationOut?: number;
+			};
 
 			/** ADVANCED: A fragment shader for WebGL postprocessing
 			 * This shader MUST have and use:

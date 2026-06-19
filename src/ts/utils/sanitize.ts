@@ -54,6 +54,29 @@ export const sanitizeImageInfo = (i: Models.ImageInfo.ImageInfo | undefined) => 
 	sanitizeAsset(i.settings?._markers?.markerIcon);
 	i.settings?._markers?.customIcons?.forEach(sanitizeAsset);
 	sanitizeAsset(i.settings?._360?.video);
+	// Migrate flat grid settings to nested grid object (backwards compat)
+	const s = i?.settings;
+	if (s) {
+		const g = s.grid ?? {};
+		let migrated = false;
+		if ('gridClickable' in s) {
+			g.clickable = s.gridClickable as boolean;
+			delete s.gridClickable;
+			migrated = true;
+		}
+		if ('gridTransitionDuration' in s) {
+			g.transitionDuration = s.gridTransitionDuration as number;
+			delete s.gridTransitionDuration;
+			migrated = true;
+		}
+		if ('gridTransitionDurationOut' in s) {
+			g.transitionDurationOut = s.gridTransitionDurationOut as number;
+			delete s.gridTransitionDurationOut;
+			migrated = true;
+		}
+		if (migrated) s.grid = g;
+	}
+
 	// Sanitize views for legacy rects
 	if (i?.settings && isLegacyViews(i)) {
 		i.settings.view = View.fromLegacy(i.settings.view)!;
