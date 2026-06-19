@@ -208,6 +208,37 @@ export class Grid {
 	private hookGridKeys() : void {
 		Grid.handlingKeys = true;
 		document.addEventListener('keydown', this.gridKeyHandler = this.gridKeyHandler.bind(this));
+		// When panZoom=='grid' and clickable is set, detect clicks on the main canvas
+		if (this.panZoom == 'grid' && this.clickable) {
+			this._clickDown = {x:0,y:0};
+			this.micrio.addEventListener('pointerdown', this._clickStart = this._clickStart.bind(this));
+			this.micrio.addEventListener('pointerup', this._clickEnd = this._clickEnd.bind(this));
+		}
+	}
+
+	private _clickDown:{x:number;y:number}|undefined;
+	private _clickStart(e:PointerEvent) { this._clickDown = {x:e.clientX, y:e.clientY}; }
+	private _clickEnd(e:PointerEvent) {
+		if (!this._clickDown) return;
+		const dist = Math.hypot(e.clientX - this._clickDown.x, e.clientY - this._clickDown.y);
+		this._clickDown = undefined;
+		if (dist > 10) return; // Was a drag/pan, not a click
+		// Detect which cell was clicked using engine coordinates (works even in 'grid' panZoom mode)
+		const coo = this.image.camera.getCoo(e.clientX, e.clientY, true);
+		const vx = coo[0], vy = coo[1];
+		const img = this.current.find(i => {
+			const a = i.opts.area;
+			return a && vx >= a[0] && vx <= a[2] && vy >= a[1] && vy <= a[3];
+		});
+		if (!img) return;
+		this._buttons.forEach((btn, bid) => {
+			btn.classList.toggle('focussed', bid == img!.id);
+			if (bid == img!.id) btn.focus(); else btn.blur();
+		});
+		if (this.clickable == 'zoom') {
+			const a = img.opts.area ?? [0,0,1,1];
+			this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+		} else this.focus(img);
 	}
 
 	/** Finds the grid cell adjacent in the given direction and returns its image. @internal */
