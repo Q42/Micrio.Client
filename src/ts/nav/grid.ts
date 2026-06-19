@@ -997,7 +997,19 @@ export class Grid {
 		})
 	}
 
-	/** Get the relative in-grid viewport of the image */
+	/** Returns the grid image under the given screen coordinates (clientX, clientY).
+	 *  If the current image is a focused grid child, returns it directly. */
+	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
+		const current = this.micrio.$current;
+		if (current && this.images.some(i => i === current)) return current;
+		const coo = this.image.camera.getCoo(clientX, clientY, true);
+		const vx = coo[0], vy = coo[1];
+		return this.current.find(i => {
+			const a = i.opts.area;
+			return a && vx >= a[0] && vx <= a[2] && vy >= a[1] && vy <= a[3];
+		});
+	}
+
 	getRelativeView(image:MicrioImage, view:Models.Camera.ViewRect) : Models.Camera.ViewRect {
 		const a = image.opts.area ?? [0,0,1,1];
 		const vW = a[2]-a[0], vH = a[3]-a[1];
