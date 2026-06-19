@@ -11,6 +11,7 @@
 	import type { HTMLMicrioElement } from '$ts/element';
 	import type { MicrioImage } from '$ts/image';
 	import type { Models } from '$types/models';
+	import type { Grid } from '$ts/nav/grid';
 	import type { Unsubscriber } from 'svelte/store';
 
 	import { fade } from 'svelte/transition';
@@ -103,6 +104,11 @@
 	/** Controls whether the fullscreen button is shown. */
 	let showFullscreen:boolean = $state(false);
 
+	/** Grid focus state: non-null when a grid image is expanded to full view. */
+	let grid:Grid|undefined = $state();
+	/** Tracks the auto-subscription to grid.focussed. */
+	let gridFocussed:MicrioImage|undefined = $state();
+
 	/** Reads relevant settings from the image info and updates local state and UI stores. */
 	function readInfo(s:Models.ImageInfo.Settings) {
 		zoom.set(!s.noZoom); // Update zoom UI store based on setting
@@ -141,12 +147,18 @@
 			}
 		});
 
+		// Subscribe to grid focus state for the close button
+		grid = micrio.canvases[0]?.grid;
+		let gridUnsub:Unsubscriber|undefined;
+		if(grid) gridUnsub = grid.focussed.subscribe(v => gridFocussed = v);
+
 		// Cleanup function: remove listeners and unsubscribe on component destroy
 		return () => {
 			micrio.removeEventListener('splitscreen-start', splitStart);
 			micrio.removeEventListener('splitscreen-stop', splitStop);
 			settingsUnsub?.(); // Unsubscribe from settings
 			currentUnsub(); // Unsubscribe from current image
+			gridUnsub?.(); // Unsubscribe from grid focus
 		}
 	});
 
@@ -230,6 +242,13 @@
 			</ButtonGroup>
 		</aside>
 	{/if}
+
+	<!-- Grid Close Button (shown when a grid image is expanded to full view) -->
+	{#if gridFocussed}
+		<aside class="grid-close">
+			<Button type="close" title={$i18n.close} onclick={() => grid?.back()} />
+		</aside>
+	{/if}
 {/if}
 
 <style>
@@ -258,6 +277,12 @@
 		transform: translateX(calc(100% + var(--micrio-border-margin)));
 		opacity: 0;
 		pointer-events: none;
+	}
+
+	/* Grid close button positioned top-right with same margins */
+	aside.grid-close {
+		top: var(--micrio-border-margin);
+		bottom: auto;
 	}
 
 	/* Hide controls during image switching or when a tour is active */
