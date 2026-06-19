@@ -66,6 +66,9 @@ export class Grid {
 	 * `'focus'` expands the image to full view, `'zoom'` zooms the main camera to the image's viewport. */
 	clickable: 'focus'|'zoom'|false = false;
 
+	/** Pan/zoom behavior: `'cells'` operates on the individual cell under the cursor, `'grid'` on the main container. */
+	panZoom: 'cells'|'grid' = 'grid';
+
 	/** Writable Svelte store holding the currently focused {@link MicrioImage} instance, or undefined if in grid view. */
 	readonly focussed:Writable<MicrioImage|undefined> = writable();
 
@@ -135,6 +138,7 @@ export class Grid {
 
 		const g = image.$settings?.grid;
 		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
+		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
 		if(this.clickable && image.$settings.hookKeys) this.hookGridKeys();
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
@@ -571,6 +575,8 @@ export class Grid {
 			this._grid.appendChild(tile);
 		});
 
+		this._grid.classList.toggle('grid-pan-zoom', this.panZoom == 'grid');
+
 		if(!opts.keepGrid || !this._grid.parentNode) this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null);
 
 		this.micrio.events.dispatch('grid-layout-set', this);
@@ -1002,6 +1008,7 @@ export class Grid {
 	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
 		const current = this.micrio.$current;
 		if (current && this.images.some(i => i === current)) return current;
+		if (this.panZoom == 'grid') return this.image;
 		const coo = this.image.camera.getCoo(clientX, clientY, true);
 		const vx = coo[0], vy = coo[1];
 		return this.current.find(i => {

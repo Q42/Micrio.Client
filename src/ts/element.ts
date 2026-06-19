@@ -341,6 +341,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		await tick(); // Wait for potential attribute updates
 		const opts = this.getOptions(); // Parse attributes into options object
 		if(!opts.settings) opts.settings = {};
+		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
 		if(opts.settings.noControls) this.state.ui.controls.set(false); // Apply noControls setting
 
 		// --- Gallery/Grid/Album Loading ---

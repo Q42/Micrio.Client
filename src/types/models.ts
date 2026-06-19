@@ -408,6 +408,8 @@ import type { MicrioIcon } from '$ts/icons';
 			grid?: {
 				/** Click behavior for grid images: `'focus'` expands to full view, `'zoom'` zooms to the image's viewport */
 				clickable?: 'focus' | 'zoom';
+				/** Pan/zoom behavior: `'cells'` operates on the individual cell under the cursor, `'grid'` operates on the main grid container */
+				panZoom?: 'cells' | 'grid';
 				/** Transition duration for grid animations, in seconds */
 				transitionDuration?: number;
 				/** Transition duration when going back, in seconds */
