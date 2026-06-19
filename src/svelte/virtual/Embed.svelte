@@ -384,6 +384,7 @@
 		class:embed3d={is360}
 		class:no-events={noEvents}
 		class:behind={is360 && isBehind}
+		class:hide-when-paused={embed.hideWhenPaused && !printGL && embed.video}
 		onclick={click}
 		onkeypress={click}
 		use:listen={change}
@@ -471,5 +472,9 @@
 	.embed-container > :global(button),
 	.embed-container > img {
 		touch-action: none;
+	}
+
+	.embed-container.hide-when-paused:has(:global(figure.paused)) {
+		opacity: 0;
 	}
 </style>
