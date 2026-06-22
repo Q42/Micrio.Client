@@ -150,7 +150,7 @@ export class Sanitizer {
 				delete (m as unknown as Record<string, unknown>).embedImages;
 			}
 		});
-		if (isLegacyViews) d.tours?.forEach(Sanitizer.videoTour);
+		d.tours?.forEach(t => Sanitizer.videoTour(t, isLegacyViews));
 		d.music?.items?.forEach(Sanitizer.asset);
 		const langs = Object.keys(d.i18n ?? {});
 		d.pages?.forEach(p => Sanitizer._menuPage(p, langs));
@@ -185,6 +185,8 @@ export class Sanitizer {
 		Sanitizer.asset(m.data?.icon);
 		Object.values(m.i18n ?? {}).forEach(d => Sanitizer.asset(d.audio));
 
+		Sanitizer.videoTour(m.videoTour, legacyViews);
+
 		const embeds = 'embedImages' in m ? m.embedImages as Models.ImageData.Embed[] : undefined;
 		if (embeds) embeds.forEach(e => Sanitizer.asset(e));
 
@@ -193,26 +195,40 @@ export class Sanitizer {
 
 		if ('class' in m) (m.tags ??= []).push(...(m.class as string).split(' ').map(t => t.trim()).filter(t => !!t && !m.tags!.includes(t)));
 		if (m.tags?.includes('default')) m.type = 'default';
-		if (legacyViews) {
-			m.view = Sanitizer.View.fromLegacy(m.view)!;
-			Sanitizer.videoTour(m.videoTour);
-		}
+		if (legacyViews) m.view = Sanitizer.View.fromLegacy(m.view)!;
 	}
 
 	// ─── Video tour sanitization ────────────────────────────────────────────────
 
-	/** Sanitizes video tour data, converting legacy view formats. */
-	static videoTour(tour?: Models.ImageData.VideoTour | Models.ImageData.VideoTourCultureData): void {
+	/** Sanitizes video tour data: normalizes assets and optionally converts legacy view formats. */
+	static videoTour(tour?: Models.ImageData.VideoTour | Models.ImageData.VideoTourCultureData, legacyViews?: boolean): void {
 		if (!tour || (!('i18n' in tour) && !('timeline' in tour))) return;
 		if (Sanitizer._done.videoTours.has(tour)) return;
-		const convert = (s: { rect?: Models.Camera.ViewRect | Models.Camera.View }) =>
-			s.rect = Sanitizer.View.fromLegacy(s.rect)!;
-		// Convert rects inside i18n[lang].timeline (V5 structure)
-		if ('i18n' in tour) for (const lang in tour.i18n) tour.i18n[lang]?.timeline?.forEach(convert);
-		// Also convert top-level timeline rects (legacy flat structure not yet normalized)
-		const tl = (tour as unknown as Record<string, unknown>).timeline;
-		if (Array.isArray(tl)) (tl as { rect?: Models.Camera.ViewRect | Models.Camera.View }[]).forEach(convert);
 		Sanitizer._done.videoTours.add(tour);
+
+		// Always: normalize root-level assets into i18n and sanitize fileUrl → src
+		if('i18n' in tour) {
+			if(tour.i18n) for(const lang in tour.i18n) {
+				Sanitizer.asset(tour.i18n[lang]?.subtitle);
+				Sanitizer.asset(tour.i18n[lang]?.audio);
+			}
+		} else {
+			const culture: Record<string, unknown> = {};
+			for(const k of ['subtitle','audio'] as const) if(k in tour) culture[k] = (tour as Record<string, unknown>)[k];
+			if(Object.keys(culture).length) {
+				(tour as Record<string, unknown>).i18n = { en: culture };
+				for(const k of Object.keys(culture)) delete (tour as Record<string, unknown>)[k];
+			}
+		}
+
+		// Legacy: convert view rects
+		if(legacyViews) {
+			const convert = (s: { rect?: Models.Camera.ViewRect | Models.Camera.View }) =>
+				s.rect = Sanitizer.View.fromLegacy(s.rect)!;
+			if ('i18n' in tour) for (const lang in tour.i18n) tour.i18n[lang]?.timeline?.forEach(convert);
+			const tl = (tour as unknown as Record<string, unknown>).timeline;
+			if (Array.isArray(tl)) (tl as { rect?: Models.Camera.ViewRect | Models.Camera.View }[]).forEach(convert);
+		}
 	}
 
 	// ─── Space data ─────────────────────────────────────────────────────────────

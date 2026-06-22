@@ -252,9 +252,7 @@
 
 	const sub: Models.Assets.Subtitle | undefined = untrack(() =>
 		tour && !('steps' in tour)
-			? 'subtitle' in tour
-				? (tour['subtitle'] as Models.Assets.Subtitle)
-				: tour.i18n?.[micrio.lang]?.subtitle
+			? tour.i18n?.[micrio.lang]?.subtitle
 			: undefined);
 	const srt = sub?.src;
 
