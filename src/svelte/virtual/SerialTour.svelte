@@ -219,8 +219,11 @@
 
 	// --- Reactive Declarations (`$:`) ---
 
-	/** Reactive audio source based on the current video tour step. */
-	const audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
+	/** Reactive audio source based on the current video tour step, falling back to the marker's audio. */
+	const audio = $derived(current ? (
+		current.i18n?.[$lang]?.audio
+		?? currentStepInfo?.marker?.i18n?.[$lang]?.audio
+	) : undefined);
 	/** Reactive audio source URL. */
 	const audioSrc = $derived(audio?.src);
 	/** Reactive boolean indicating if the current step has a subtitle. */
