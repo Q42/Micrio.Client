@@ -53,11 +53,9 @@
 	// --- Reactive Declarations (`$:`) ---
 
 	/** Checks if a tour has content for the current language. */
-	const hasTourLang = (t: Models.ImageData.Tour | Models.ImageData.MarkerTour): boolean =>
-		!('i18n' in t) || !t.i18n || !!t.i18n[$_lang];
+	const hasTourLang = (t: Models.ImageData.Tour | Models.ImageData.MarkerTour): boolean => !!t.i18n?.[$_lang];
 	/** Checks if a page has content for the current language. */
-	const hasPageLang = (p: Models.ImageData.Menu): boolean =>
-		!('i18n' in p) || !p.i18n || !!p.i18n[$_lang];
+	const hasPageLang = (p: Models.ImageData.Menu): boolean => !p.i18n?.[$_lang];
 	/** Reactive flag to hide the toolbar when a tour, marker, or popover is active. */
 	const hidden = $derived(!!$tour || !!$marker || !!$popover);
 	/** Combined list of marker tours from image data and space data (filtered by language). */
@@ -65,7 +63,7 @@
 	/** Does the image have any marker tours? */
 	const hasMarkerTours = $derived(markerTours?.length > 0);
 	/** Video tours filtered by language. */
-	const videoTours = $derived(data?.tours?.filter(hasTourLang));
+	const videoTours = $derived(data?.tours?.filter(hasTourLang) ?? []);
 	/** Does the image have any video tours? */
 	const hasVideoTours = $derived(videoTours?.length > 0);
 	/** Does the image have both marker and video tours? */
