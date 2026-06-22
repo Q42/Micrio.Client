@@ -148,8 +148,14 @@
 			scale = w/(embed.width / info.width) * htmlButtonEmbedScale * (is360 ? Math.PI/2 : 1);
 			buttonStyles.push(`width:${embed.width/htmlButtonEmbedScale}px`);
 		}
+		
+		const ratio = (embed.width ?? info.width) / (embed.height ?? info.height);
+		
+		buttonStyles.push(`--ratio:${ratio};`);
+		buttonStyles.push(`--scale:${scale};`);
 
-		buttonStyles.push(`--ratio:${w/h * info.width/info.height};--scale:${scale}`);
+		// Uncomment for debugging button placement - adds a visible outline to the button/image
+		// buttonStyles.push(`outline: 5px solid rgb(20 200 20 / 60%);`); 
 
 		if(isSVG) buttonStyle+=`height:${embed.height}px`; // Set height directly for SVG
 
