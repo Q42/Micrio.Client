@@ -601,7 +601,7 @@
 	/** Reactive check if the marker element itself should be hidden. */
 	const noMarker = $derived(forceHidden || marker.noMarker);
 	/** Reactive check if the popup should not be shown. Allow popup for video tour markers during marker tours. */
-	const noPopup = $derived(marker.popupType != 'popup' || (noPopupContent && !(marker.videoTour && $tour && 'steps' in $tour)));
+	const noPopup = $derived(marker.popupType != 'popup' || (noPopupContent && !(marker.videoTour && $tour && 'steps' in $tour && !$tour.isSerialTour)));
 
 	// --- Reactive Omni Calculations ---
 
