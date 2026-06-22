@@ -359,8 +359,11 @@
 	// --- Reactive Declarations (`$:`) ---
 	/** Reactive variable for the video tour data (if applicable). */
 	const videoTour = $derived(!('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined);
-	/** Reactive audio asset for the current step/tour. */
-	const audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
+	/** Reactive audio asset for the current step/tour, falling back to the originating marker's audio. */
+	const audio = $derived(videoTour ? (
+		videoTour.i18n?.[$_lang]?.audio
+		?? micrioState.$marker?.i18n?.[$_lang]?.audio
+	) : undefined);
 	/** Reactive audio source URL. */
 	const audioSrc = $derived(audio?.src);
 
