@@ -80,8 +80,7 @@ export class VideoTourInstance {
 	) {
 		this.micrio = image.engine.micrio;
 		// Get language-specific content or fallback
-		const content = 'timeline' in data ? <unknown>data as Models.ImageData.VideoTourCultureData
-			: data.i18n?.[get(this.micrio._lang)] ?? undefined;
+		const content = data.i18n?.[get(this.micrio._lang)] ?? undefined;
 
 		if(!content) throw new Error('No valid content for video tour!'); // Ensure content exists
 

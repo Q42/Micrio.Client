@@ -102,9 +102,6 @@
 		marker.noMarker = true; // Also hide the marker itself?
 	}
 
-	// Data Correction: Handle legacy 'embedInPopover' property.
-	if('embedUrl' in marker && marker.embedUrl && 'embedInPopover' in marker && marker['embedInPopover'])
-		marker.popupType = 'popover';
 
 	/** Marker settings inherited from the parent image. */
 	const markerSettings:Models.ImageInfo.MarkerSettings = image.$settings._markers ?? {};

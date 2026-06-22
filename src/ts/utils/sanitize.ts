@@ -151,6 +151,7 @@ export class Sanitizer {
 			}
 		});
 		d.tours?.forEach(t => Sanitizer.videoTour(t, isLegacyViews));
+		d.markerTours?.forEach(t => Sanitizer.markerTour(t, Object.keys(d.i18n ?? {})[0] || 'en'));
 		d.music?.items?.forEach(Sanitizer.asset);
 		const langs = Object.keys(d.i18n ?? {});
 		d.pages?.forEach(p => Sanitizer._menuPage(p, langs));
@@ -175,6 +176,7 @@ export class Sanitizer {
 		if (!m.tags) m.tags = [];
 		if (!('type' in m)) m.type = 'default';
 		if (!m.popupType) m.popupType = 'popup';
+		if('embedInPopover' in m && m['embedInPopover']) m.popupType = 'popover';
 
 		if (typeof m.data.icon == 'string') m.data.icon = {
 			title: '', size: 0, uploaded: 0, width: -1, height: -1, src: m.data.icon as string
@@ -206,15 +208,16 @@ export class Sanitizer {
 		if (Sanitizer._done.videoTours.has(tour)) return;
 		Sanitizer._done.videoTours.add(tour);
 
-		// Always: normalize root-level assets into i18n and sanitize fileUrl → src
+		// Always: normalize root-level culture properties into i18n and sanitize fileUrl → src
 		if('i18n' in tour) {
 			if(tour.i18n) for(const lang in tour.i18n) {
 				Sanitizer.asset(tour.i18n[lang]?.subtitle);
 				Sanitizer.asset(tour.i18n[lang]?.audio);
 			}
 		} else {
+			const vtKeys = ['duration','timeline','events','title','description','subtitle','audio'] as const;
 			const culture: Record<string, unknown> = {};
-			for(const k of ['subtitle','audio'] as const) if(k in tour) culture[k] = (tour as Record<string, unknown>)[k];
+			for(const k of vtKeys) if(k in tour) culture[k] = (tour as Record<string, unknown>)[k];
 			if(Object.keys(culture).length) {
 				(tour as Record<string, unknown>).i18n = { en: culture };
 				for(const k of Object.keys(culture)) delete (tour as Record<string, unknown>)[k];
@@ -236,6 +239,21 @@ export class Sanitizer {
 	/** Sanitizes URLs within SpaceData (icons). */
 	static spaceData(s: Models.Spaces.Space | undefined): void {
 		s?.icons?.forEach(Sanitizer.asset);
+	}
+
+	// ─── Marker tour normalization ──────────────────────────────────────────────
+
+	/** Normalizes marker tour data: converts legacy `controls` to `noControls`, moves root title to i18n. */
+	static markerTour(t: Models.ImageData.MarkerTour, defaultLang: string): void {
+		if('controls' in t) {
+			t.noControls = !t.controls;
+			delete t.controls;
+		}
+		if('title' in t && !t.i18n) {
+			const title = t.title as string;
+			t.i18n = { [defaultLang]: { title } };
+			delete t.title;
+		}
 	}
 
 	// ─── V4→V5 normalization ───────────────────────────────────────────────────

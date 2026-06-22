@@ -51,7 +51,7 @@
 	/** Calculate total duration of the tour by summing step durations. */
 	const totalDuration:number = stepInfo.reduce((c, s) => c + s.duration, 0) ?? 0;
 	/** Show playback controls? Defaults to true unless explicitly disabled in tour data. */
-	const controls = untrack(() => 'controls' in tour ? tour.controls !== false : !tour.noControls);
+	const controls = untrack(() => !tour.noControls);
 
 	// --- Playback State ---
 	/** Is the tour currently paused? */

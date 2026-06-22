@@ -85,8 +85,7 @@
 	const unsubs:Unsubscriber[] = [];
 
 	/** Helper function to get the language-specific title of a tour. */
-	const getTourTitle = (t:Models.ImageData.Tour, lang:string) : string => ('title' in t ? t['title'] as string
-		: t.i18n?.[lang]?.title) ?? '(Untitled)'; // Fallback title
+	const getTourTitle = (t:Models.ImageData.Tour, lang:string) : string => t.i18n?.[lang]?.title ?? '(Untitled)';
 
 	onMount(() => {
 		// Subscribe to changes in the current MicrioImage
