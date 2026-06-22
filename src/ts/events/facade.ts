@@ -106,7 +106,7 @@ export class Events implements EventContext {
 	 * @internal
 	*/
 	vars: EventStateVars = {
-		drag: { prev: undefined, start: [0, 0, 0] },
+		drag: { prev: undefined, start: [0, 0, 0], image: undefined },
 		dbltap: { lastTapped: 0 },
 		pinch: { image: undefined, sDst: 0, wasPanning: false },
 		updates: { to: -1, stack: [] }
@@ -218,9 +218,11 @@ export class Events implements EventContext {
 		const w = this.micrio.offsetWidth, h = this.micrio.offsetHeight,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
 		const hasSplitScreen = this.visible?.find(i => !!i.opts.secondaryTo);
-		// Virtual parent canvases (noImage=true, e.g. strip-swipe gallery container) should
-		// not be picked for input routing — they're just containers for real children.
 		const candidates = this.visible.filter(i => !i.noImage);
+		// When a grid controller exists, use its own image-under-cursor detection
+		const gridCtrl = this.micrio.canvases.find(i => i.grid);
+		if (gridCtrl) return gridCtrl.grid?.getImageAt(c.x, c.y) ?? this.micrio.$current;
+		// Default: find the visible image under the cursor by area
 		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
 			hasSplitScreen && grid ? false : area ? x >= area[0] && x <= area[2] && y >= area[1] && y <= area[3] : false
 		);

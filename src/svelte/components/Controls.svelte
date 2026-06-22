@@ -11,6 +11,7 @@
 	import type { HTMLMicrioElement } from '$ts/element';
 	import type { MicrioImage } from '$ts/image';
 	import type { Models } from '$types/models';
+	import type { Grid } from '$ts/nav/grid';
 	import type { Unsubscriber } from 'svelte/store';
 
 	import { fade } from 'svelte/transition';
@@ -99,6 +100,13 @@
 	/** Controls whether the fullscreen button is shown. */
 	let showFullscreen:boolean = $state(false);
 
+	/** Grid focus state: non-null when a grid image is expanded to full view. */
+	let grid:Grid|undefined = $state();
+	/** Tracks the auto-subscription to grid.focussed. */
+	let gridFocussed:MicrioImage|undefined = $state();
+	/** The grid's clickable mode, to know if the close button is relevant. */
+	let gridClickable:'focus'|'zoom'|false = $state(false);
+
 	/** Reads relevant settings from the image info and updates local state and UI stores. */
 	function readInfo(s:Models.ImageInfo.Settings) {
 		zoom.set(!s.noZoom); // Update zoom UI store based on setting
@@ -137,12 +145,21 @@
 			}
 		});
 
+		// Subscribe to grid focus state for the close button
+		grid = micrio.canvases[0]?.grid;
+		let gridUnsub:Unsubscriber|undefined;
+		if(grid) {
+			gridClickable = grid.clickable;
+			gridUnsub = grid.focussed.subscribe(v => gridFocussed = v);
+		}
+
 		// Cleanup function: remove listeners and unsubscribe on component destroy
 		return () => {
 			micrio.removeEventListener('splitscreen-start', splitStart);
 			micrio.removeEventListener('splitscreen-stop', splitStop);
 			settingsUnsub?.(); // Unsubscribe from settings
 			currentUnsub(); // Unsubscribe from current image
+			gridUnsub?.(); // Unsubscribe from grid focus
 		}
 	});
 
@@ -160,6 +177,8 @@
 	const hasControls = $derived($controls && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen));
 	/** Show only fullscreen button when having popup on mobile screen */
 	const onlyFullscreen = $derived($popup && micrio.canvas.$isMobile);
+	/** Grid panZoom set to 'cells' — hide zoom buttons, pan/zoom happens on individual images. */
+	const gridPanZoomCells = $derived(!!$current?.grid && $current.grid.panZoom == 'cells');
 
 </script>
 
@@ -204,7 +223,7 @@
 
 		<!-- Zoom and Fullscreen Buttons -->
 		<ButtonGroup>
-			{#if $zoom && !onlyFullscreen}
+			{#if $zoom && !onlyFullscreen && !gridPanZoomCells}
 				<!-- Render secondary zoom controls if active, otherwise primary -->
 				{#if secondaryControls}
 					<ZoomButtons image={secondaryControls} />
@@ -224,6 +243,13 @@
 			<ButtonGroup>
 				<ZoomButtons />
 			</ButtonGroup>
+		</aside>
+	{/if}
+
+	<!-- Grid Close Button (shown when a grid image is expanded to full view in 'focus' mode) -->
+	{#if gridFocussed && gridClickable == 'focus'}
+		<aside class="grid-close">
+			<Button type="close" title={$i18n.close} onclick={() => grid?.back()} />
 		</aside>
 	{/if}
 {/if}
@@ -254,6 +280,12 @@
 		transform: translateX(calc(100% + var(--micrio-border-margin)));
 		opacity: 0;
 		pointer-events: none;
+	}
+
+	/* Grid close button positioned top-right with same margins */
+	aside.grid-close {
+		top: var(--micrio-border-margin);
+		bottom: auto;
 	}
 
 	/* Hide controls during image switching or when a tour is active */

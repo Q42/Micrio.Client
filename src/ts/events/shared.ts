@@ -12,7 +12,9 @@ export type EventStateVars = {
 		/** Previous pointer coordinates [x, y] during drag. */
 		prev: number[] | undefined,
 		/** Start coordinates and timestamp [x, y, time] of the drag. */
-		start: number[]
+		start: number[],
+		/** The image being panned, captured at drag start. */
+		image: MicrioImage | undefined,
 	},
 	/** Double-tap state */
 	dbltap: {

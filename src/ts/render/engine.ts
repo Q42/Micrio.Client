@@ -695,9 +695,16 @@ export class Engine {
 		let canvas: TileCanvas;
 		if (!isEmbed) {
 			const isGallery = !!(image.$settings.gallery?.archive || image.$settings.gallery?.type);
-			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height,
-				isGallery ? { coverLimit: false, coverStart: false } : {}
-			);
+			let childOpts: { coverLimit?: boolean; coverStart?: boolean } = {};
+			if (isGallery) {
+				childOpts = { coverLimit: false, coverStart: false };
+			} else {
+				childOpts = {
+					coverLimit: !!image.$settings?.limitToCoverScale,
+					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover')
+				};
+			}
+			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height, childOpts);
 		} else {
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.engImageToMicrio.set(engImage, image);
@@ -723,6 +730,7 @@ export class Engine {
 			/** @ts-ignore */
 			const v = image.$info['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
+			else if (canvas.hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
 
 			canvas.sendViewport();
 		}

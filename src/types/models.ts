@@ -404,12 +404,17 @@ import type { MicrioIcon } from '$ts/icons';
 			/** UI customizations */
 			ui?: Partial<UserInterfaceSettings>;
 
-			/** Grid: can click individual grid images */
-			gridClickable?: boolean;
-			/** Grid: transition duration, in seconds */
-			gridTransitionDuration?: number;
-			/** Grid: transition duration going back, in seconds */
-			gridTransitionDurationOut?: number;
+			/** Grid display and interaction settings */
+			grid?: {
+				/** Click behavior for grid images: `'focus'` expands to full view, `'zoom'` zooms to the image's viewport */
+				clickable?: 'focus' | 'zoom';
+				/** Pan/zoom behavior: `'cells'` operates on the individual cell under the cursor, `'grid'` operates on the main grid container */
+				panZoom?: 'cells' | 'grid';
+				/** Transition duration for grid animations, in seconds */
+				transitionDuration?: number;
+				/** Transition duration when going back, in seconds */
+				transitionDurationOut?: number;
+			};
 
 			/** ADVANCED: A fragment shader for WebGL postprocessing
 			 * This shader MUST have and use:
@@ -429,7 +434,7 @@ import type { MicrioIcon } from '$ts/icons';
 			/** Archive layer offset */
 			archiveLayerOffset?: number;
 			/** Gallery sorting */
-			sort?: ('name'|'-name'|'created'|'-created');
+			sort?: ('name'|'-name'|'created'|'-created'|'random');
 			/** Gallery type */
 			type?: ('swipe'|'swipe-full'|'switch'|'omni'|'grid');
 			/** The gallery opening image ID */
@@ -1323,7 +1328,7 @@ import type { MicrioIcon } from '$ts/icons';
 		/** The album UX type */
 		type: ('swipe'|'switch'|'grid');
 		/** The album image sorting */
-		sort?: ('name'|'-name'|'created'|'-created');
+		sort?: ('name'|'-name'|'created'|'-created'|'random');
 		/** Album pages are shown as book spreads */
 		isSpreads?: boolean;
 		/** The number of single cover pages in case of spreads */

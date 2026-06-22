@@ -174,8 +174,8 @@ export default class Camera {
 	isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
 	isZoomedOut(b: boolean = false): boolean { return Math.trunc((this.scale - this.minScale * (b ? this.minSize : 1)) * 1e6) / 1e6 <= 0; }
-	/** Checks if the camera is zoomed in to 100% (1:1 pixel ratio) or beyond. */
-	isZoomedIn(): boolean { return this.scale >= 1; }
+	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
+	isZoomedIn(): boolean { return Math.trunc((this.scale - this.maxScale) * 1e6) / 1e6 >= 0; }
 
 	/**
 	 * Calculates and sets the current camera scale and view offsets based on the logical view rectangle.

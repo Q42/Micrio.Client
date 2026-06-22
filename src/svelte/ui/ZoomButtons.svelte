@@ -67,8 +67,8 @@
 
 	/** Updates the `isZoomedIn` and `isZoomedOut` state based on the target image's camera. */
 	function update() {
-		isZoomedIn = image?.camera.isZoomedIn() ?? true; // Default to true if no image/camera
-		isZoomedOut = image?.camera.isZoomedOut(true) ?? true; // Check against full size, default true
+		isZoomedIn = image?.camera.isZoomedIn() ?? true;
+		isZoomedOut = image?.camera.isZoomedOut(true) ?? true;
 		const minScale = image?.camera.getMinScale() ?? 0;
 		isUpscaled = minScale > 1 && minScale > (image?.$settings.zoomLimit ?? 1);
 	}

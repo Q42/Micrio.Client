@@ -62,8 +62,12 @@ export class Grid {
 	/** Map storing references to the HTML `<button>` elements representing each grid item in the overlay. Keyed by image ID. @internal */
 	_buttons:Map<string, HTMLButtonElement> = new Map();
 
-	/** If true, the HTML grid overlay remains visible and interactive even when an image is focused. */
-	clickable:boolean = false;
+	/** If truthy, the HTML grid overlay remains visible and interactive when an image is focused.
+	 * `'focus'` expands the image to full view, `'zoom'` zooms the main camera to the image's viewport. */
+	clickable: 'focus'|'zoom'|false = false;
+
+	/** Pan/zoom behavior: `'cells'` operates on the individual cell under the cursor, `'grid'` on the main container. */
+	panZoom: 'cells'|'grid' = 'grid';
 
 	/** Writable Svelte store holding the currently focused {@link MicrioImage} instance, or undefined if in grid view. */
 	readonly focussed:Writable<MicrioImage|undefined> = writable();
@@ -81,7 +85,7 @@ export class Grid {
 	public depth:Writable<number> = writable<number>(0);
 
 	/** Default animation duration (seconds) when transitioning *into* a new layout or focused view. */
-	aniDurationIn:number = 1.5;
+	aniDurationIn:number = 1;
 
 	/** Default animation duration (seconds) when transitioning *out* of a focused view or going back in history. */
 	aniDurationOut:number = 0.5;
@@ -114,6 +118,9 @@ export class Grid {
 	/** Default animation timing function for grid transitions. @internal */
 	private timingFunction:Models.Camera.TimingFunction = 'ease';
 
+	/** If true, keyboard arrow navigation is active and should bypass the default key handler. */
+	static handlingKeys:boolean = false;
+
 	/** Stores the Promise returned by the last `set()` call. @internal */
 	lastPromise:Promise<MicrioImage[]>|undefined;
 
@@ -129,10 +136,12 @@ export class Grid {
 		this.tourEvent = this.tourEvent.bind(this);
 		this.updateGrid = this.updateGrid.bind(this);
 
-		const s = image.$settings;
-		this.clickable = !!s.gridClickable;
-		if(s.gridTransitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = s.gridTransitionDuration;
-		if(s.gridTransitionDurationOut !== undefined) this.aniDurationOut = s.gridTransitionDurationOut;
+		const g = image.$settings?.grid;
+		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
+		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
+		if(this.clickable && image.$settings.hookKeys) this.hookGridKeys();
+		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
+		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
 		this._grid.className = 'micrio-grid';
 		this.set(image.$info?.grid);
@@ -168,7 +177,14 @@ export class Grid {
 		if(this.clickable) {
 			this._grid.addEventListener('click', e => {
 				const id = (e.target as HTMLElement).dataset.id;
-				if(id) this.focus(this.imageMap.get(id));
+				if(!id) return;
+				const img = this.imageMap.get(id);
+				if(!img) return;
+				this._buttons.forEach((btn, bid) => btn.classList.toggle('focussed', bid == id));
+				if(this.clickable == 'zoom') {
+					const a = img.opts.area ?? [0,0,1,1];
+					this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+				} else this.focus(img);
 			});
 
 			const placeOrRemove = (t:unknown) => { if(t) this.removeGrid(); else this.placeGrid(); };
@@ -180,6 +196,121 @@ export class Grid {
 		this.micrio.addEventListener('tour-event', this.tourEvent);
 		this.micrio.addEventListener('serialtour-pause', () => this.images.forEach(i => i.camera.pause()));
 		this.micrio.addEventListener('serialtour-play', () => this.images.forEach(i => i.camera.resume()));
+	}
+
+	/** Hooks keyboard navigation for grid cells. @internal */
+	private hookGridKeys() : void {
+		Grid.handlingKeys = true;
+		document.addEventListener('keydown', this.gridKeyHandler = this.gridKeyHandler.bind(this));
+		// When panZoom=='grid' and clickable is set, detect clicks on the main canvas
+		if (this.panZoom == 'grid' && this.clickable) {
+			this._clickDown = {x:0,y:0};
+			this.micrio.addEventListener('pointerdown', this._clickStart = this._clickStart.bind(this));
+			this.micrio.addEventListener('pointerup', this._clickEnd = this._clickEnd.bind(this));
+		}
+	}
+
+	private _clickDown:{x:number;y:number}|undefined;
+	private _clickStart(e:PointerEvent) { this._clickDown = {x:e.clientX, y:e.clientY}; }
+	private _clickEnd(e:PointerEvent) {
+		if (!this._clickDown) return;
+		const dist = Math.hypot(e.clientX - this._clickDown.x, e.clientY - this._clickDown.y);
+		this._clickDown = undefined;
+		if (dist > 10) return; // Was a drag/pan, not a click
+		// Detect which cell was clicked using engine coordinates (works even in 'grid' panZoom mode)
+		const coo = this.image.camera.getCoo(e.clientX, e.clientY, true);
+		const vx = coo[0], vy = coo[1];
+		const img = this.current.find(i => {
+			const a = i.opts.area;
+			return a && vx >= a[0] && vx <= a[2] && vy >= a[1] && vy <= a[3];
+		});
+		if (!img) return;
+		this._buttons.forEach((btn, bid) => {
+			btn.classList.toggle('focussed', bid == img!.id);
+			if (bid == img!.id) btn.focus(); else btn.blur();
+		});
+		if (this.clickable == 'zoom') {
+			const a = img.opts.area ?? [0,0,1,1];
+			this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+		} else this.focus(img);
+	}
+
+	/** Finds the grid cell adjacent in the given direction and returns its image. @internal */
+	private gridAdjacent(dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
+		const cells = this.current.map((img, i) => ({
+			img, i,
+			cx: (img.opts.area![0] + img.opts.area![2]) / 2,
+			cy: (img.opts.area![1] + img.opts.area![3]) / 2,
+		}));
+		if (!cells.length) return;
+
+		// Find the currently focused button, or default to the first cell
+		let curIdx = cells.findIndex(c => c.img.id == this._grid.querySelector(':focus')?.getAttribute('data-id'));
+		if (curIdx < 0) curIdx = 0;
+
+		const cur = cells[curIdx];
+		const threshold = 0.05;
+		let best:{img:MicrioImage; dist:number}|undefined;
+
+		for (const c of cells) {
+			if (c.i === curIdx) continue;
+			let dx = c.cx - cur.cx, dy = c.cy - cur.cy;
+			let ok = false;
+			switch (dir) {
+				case 'left':  ok = dx < 0 && Math.abs(dy) < threshold; break;
+				case 'right': ok = dx > 0 && Math.abs(dy) < threshold; break;
+				case 'up':    ok = dy < 0 && Math.abs(dx) < threshold; break;
+				case 'down':  ok = dy > 0 && Math.abs(dx) < threshold; break;
+			}
+			if (!ok) continue;
+			const dist = Math.abs(dx) + Math.abs(dy);
+			if (!best || dist < best.dist) best = { img: c.img, dist };
+		}
+
+		if (best) return best.img;
+
+		// No adjacent cell found in that direction — wrap to first/last
+		return cells[dir == 'right' || dir == 'down' ? 0 : cells.length - 1].img;
+	}
+
+	/** Keydown handler for grid keyboard navigation. @internal */
+	private gridKeyHandler(e: KeyboardEvent) : void {
+		if (!this.current.length || !this.clickable) return;
+
+		if (e.key == 'Escape') {
+			this._buttons.forEach(btn => btn.classList.remove('focussed'));
+			if (this.$focussed) { this.back(); e.preventDefault(); e.stopPropagation(); }
+			else if (!this.image.camera.isZoomedOut()) { this.reset(); e.preventDefault(); e.stopPropagation(); }
+			return;
+		}
+
+		// When an image is focused, let default arrow handling take over
+		if (this.$focussed) return;
+		let img:MicrioImage|undefined;
+		switch (e.key) {
+			case 'ArrowLeft':  img = this.gridAdjacent('left'); break;
+			case 'ArrowRight': img = this.gridAdjacent('right'); break;
+			case 'ArrowUp':    img = this.gridAdjacent('up'); break;
+			case 'ArrowDown':  img = this.gridAdjacent('down'); break;
+			default: return;
+		}
+		e.preventDefault();
+		e.stopPropagation();
+		if (!img) return;
+		// Visual focus indicator on the grid overlay button
+		this._buttons.forEach((btn, id) => {
+			if (id === img!.id) btn.focus();
+			else btn.blur();
+		});
+
+		if (this.clickable == 'zoom') {
+			this._buttons.forEach((btn, bid) => btn.classList.toggle('focussed', bid == img!.id));
+			if (!this.image.camera.isZoomedOut()) {
+				// Zoomed in + zoom mode: arrow keys trigger the zoom
+				const a = img.opts.area ?? [0,0,1,1];
+				this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+			}
+		}
 	}
 
 	/** Clears any pending timeouts for transitions or fades. @internal */
@@ -334,8 +465,9 @@ export class Grid {
 
 		this.nextSize.clear();
 
-		if(opts.coverLimit == undefined) opts.coverLimit = true;
+		if(opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
 		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(false));
+		else images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
 
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
@@ -403,9 +535,9 @@ export class Grid {
 			size,
 			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.ViewRect : undefined,
 			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.ViewRect : undefined,
-			settings: deepCopy(this.image.$settings||{}, {
+			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings||{}, {
 				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined
-			}),
+			})),
 			cultures: p[8]?.replace(/-/g,',')||undefined
 		} as Models.Grid.GridImage
 	}
@@ -467,6 +599,8 @@ export class Grid {
 			tile.dataset.id = i.id;
 			this._grid.appendChild(tile);
 		});
+
+		this._grid.classList.toggle('grid-pan-zoom', this.panZoom == 'grid');
 
 		if(!opts.keepGrid || !this._grid.parentNode) this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null);
 
@@ -894,7 +1028,20 @@ export class Grid {
 		})
 	}
 
-	/** Get the relative in-grid viewport of the image */
+	/** Returns the grid image under the given screen coordinates (clientX, clientY).
+	 *  If the current image is a focused grid child, returns it directly. */
+	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
+		const current = this.micrio.$current;
+		if (current && this.images.some(i => i === current)) return current;
+		if (this.panZoom == 'grid') return this.image;
+		const coo = this.image.camera.getCoo(clientX, clientY, true);
+		const vx = coo[0], vy = coo[1];
+		return this.current.find(i => {
+			const a = i.opts.area;
+			return a && vx >= a[0] && vx <= a[2] && vy >= a[1] && vy <= a[3];
+		});
+	}
+
 	getRelativeView(image:MicrioImage, view:Models.Camera.ViewRect) : Models.Camera.ViewRect {
 		const a = image.opts.area ?? [0,0,1,1];
 		const vW = a[2]-a[0], vH = a[3]-a[1];

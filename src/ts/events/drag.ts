@@ -67,8 +67,9 @@ export class DragHandler {
 
 		this.ctx.setPanning(true);
 
-		// Store start coordinates and time
+		// Store start coordinates and time, and lock to originating image
 		this.ctx.vars.drag.start = [e.clientX, e.clientY, performance.now()];
+		this.ctx.vars.drag.image = img;
 
 		// Add move and up listeners
 		this.ctx.micrio.addEventListener('pointermove', this.move, eventPassive);
@@ -94,9 +95,9 @@ export class DragHandler {
 			this.ctx.micrio.setPointerCapture(e.pointerId);
 		}
 
-		// Calculate delta and call camera pan if previous coordinates exist
+		// Calculate delta and call camera pan on the originating image (not re-hit-testing)
 		if (this.ctx.vars.drag.prev) {
-			this.ctx.getImage({ x: cX, y: cY })?.camera.pan(
+			this.ctx.vars.drag.image?.camera.pan(
 				this.ctx.vars.drag.prev[0] - cX,
 				this.ctx.vars.drag.prev[1] - cY
 			);
@@ -132,12 +133,15 @@ export class DragHandler {
 
 		// Notify engine pan stopped (triggers kinetic animation if enabled and not suppressed)
 		if (e && noKinetic == false) {
-			const img = this.ctx.getImage({ x: e.clientX, y: e.clientY });
+			const img = this.ctx.vars.drag.image ?? this.ctx.getImage({ x: e.clientX, y: e.clientY });
 			if (img) {
 				this.ctx.micrio.engine.panStop(img.ptr);
 				this.ctx.micrio.engine.render();
 			}
 		}
+
+		// Clear the locked image reference
+		this.ctx.vars.drag.image = undefined;
 
 		// Dispatch 'panend' event unless suppressed
 		if (!noDispatch) this.ctx.dispatch('panend', !e ? undefined : {
