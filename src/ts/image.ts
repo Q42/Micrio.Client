@@ -497,7 +497,7 @@ export class MicrioImage {
 	*/
 	private async loadData() : Promise<void> {
 		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
-		if(this._loadedData || skipMeta) return Promise.resolve();
+		if(this._loadedData || skipMeta || this.noImage) return Promise.resolve();
 		this._loadedData = true;
 
 		const data = this.preset?.[2] ?? await fetchImageData(this.id, this.dataPath, this.__info.settings?.forceDataRefresh, this.infoBasePath).then(r => r?.data);
