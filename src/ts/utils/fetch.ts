@@ -106,16 +106,18 @@ export async function fetchImageData(
 	infoPath?: string,
 ): Promise<{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined> {
 	const info = await fetchInfo(id, infoPath);
-	if (!info) return undefined;
+	if (!info) return;
 
 	const isLegacy = Sanitizer.isLegacyViews(info);
 	let data: Models.ImageData.ImageData | undefined;
+
+	const langs = info.revision ? Object.keys(info.revision) : [];
+	if(!langs.length) return;
 
 	if (idIsV5(id)) {
 		data = await fetchJson<Models.ImageData.ImageData>(`${dataPath}${id}/data/pub.json`, refresh);
 	} else {
 		// V4: fetch per-language data files and merge into V5
-		const langs = info.revision ? Object.keys(info.revision) : [];
 		if (langs.length) {
 			const allLangData: Record<string, Record<string, unknown>> = {};
 			await Promise.all(langs.map(async lang => {
@@ -126,7 +128,7 @@ export async function fetchImageData(
 		}
 	}
 
-	if (!data) return undefined;
+	if (!data) return;
 	Sanitizer.imageData(data, isLegacy);
 	return { data, info };
 }
@@ -140,6 +142,3 @@ export async function fetchImageData(
  */
 export const fetchAlbumInfo = (id: string): Promise<Models.AlbumInfo | undefined> =>
 	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`);
-
-
-
