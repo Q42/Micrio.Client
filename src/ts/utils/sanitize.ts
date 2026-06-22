@@ -66,9 +66,11 @@ export class Sanitizer {
 
 	/** Sanitizes asset URLs, replacing legacy hostnames and handling fileUrl. */
 	static asset(a?: Models.Assets.BaseAsset | Models.ImageData.Embed): void {
-		if (a instanceof Object && 'fileUrl' in a && !a.src) a.src = a.fileUrl as string;
+		const hasFileUrl = a instanceof Object && 'fileUrl' in a;
+		if (hasFileUrl && !a.src) a.src = a.fileUrl as string;
 		if (a?.src) for (const r in Sanitizer._assetReplace)
 			if (a.src.includes(r)) a.src = a.src.replace(r, Sanitizer._assetReplace[r]);
+		if(hasFileUrl) delete a.fileUrl;
 	}
 
 	/** Sanitizes and normalizes a media source URL. */
@@ -77,12 +79,6 @@ export class Sanitizer {
 		if (/<iframe /.test(src)) src = src.replace(/^.* src="([^"]+)".*$/, '$1');
 		if (src.startsWith('video://')) src = src.replace('video:', 'https:');
 		return src;
-	}
-
-	/** Resolves the source URL from an asset, handling legacy fileUrl. */
-	static audioSrc(audio: Models.Assets.BaseAsset | undefined): string | undefined {
-		if (!audio) return;
-		return 'fileUrl' in audio ? (audio as unknown as Record<string, unknown>)['fileUrl'] as string : audio.src;
 	}
 
 	// ─── Info-level sanitization ────────────────────────────────────────────────
