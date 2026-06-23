@@ -23,29 +23,20 @@ type BundleImage = Models.ImageBundle.BundleImage;
 // ── Global singleton caches (shared across all <micr-io> elements) ────────────
 
 const bundleCache = new Map<string, BundleImage>();
-const fetchedBundles = new Set<string>();
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 async function ensureBundleFetched(id: string): Promise<void> {
 	if (!id || id.startsWith('http')) return;
-
-	const url = `${VIEWER_BASE}${id}/bundle.json`;
-
-	if (fetchedBundles.has(url)) return;
 	if (bundleCache.has(id)) return;
 
-	try {
-		const bundle = await fetchJson<BundleImage[]>(url);
-		if (bundle && Array.isArray(bundle)) {
-			for (const entry of bundle) {
-				if (entry?.id) {
-					bundleCache.set(entry.id, entry);
-				}
+	const bundle = await fetchJson<BundleImage[]>(`${VIEWER_BASE}${id}/bundle.json`);
+	if (bundle && Array.isArray(bundle)) {
+		for (const entry of bundle) {
+			if (entry?.id) {
+				bundleCache.set(entry.id, entry);
 			}
 		}
-	} catch {
-		fetchedBundles.add(url);
 	}
 }
 
