@@ -3,13 +3,12 @@ import type { Readable, Unsubscriber, Writable } from 'svelte/store';
 import type { Grid } from './nav/grid';
 import type { Engine } from './render/engine';
 import type { GallerySwiper } from './nav/swiper';
-import type { PREDEFINED } from '$types/internal';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { Sanitizer, clone, createGUID, deepCopy, fetchImageData, fetchInfo, fetchJson, getLocalData, loadSerialTour, once, MicrioError } from './utils';
+import { Sanitizer, clone, createGUID, deepCopy, fetchJson, loadSerialTour, once, MicrioError, getInfo, getBundleImage } from './utils';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -169,11 +168,6 @@ export class MicrioImage {
 	/** Svelte Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
 	public readonly viewport:Writable<Models.Camera.ViewRect> = writable<Models.Camera.ViewRect>();
 
-	/** Predefined local data (info, data) if available.
-	 * @internal
-	*/
-	readonly preset: PREDEFINED|undefined;
-
 	/** Array of child {@link MicrioImage} instances embedded within this image. */
 	readonly embeds: MicrioImage[] = [];
 
@@ -231,9 +225,6 @@ export class MicrioImage {
 		}
 		// Default area if not provided
 		else if(!opts.area) opts.area = [0,0,1,1];
-
-		// Check for predefined local data
-		this.preset = getLocalData(this.id);
 
 		// Setup readable store for image info, loading data asynchronously
 		let infoLoaded:boolean = false;
@@ -330,7 +321,7 @@ export class MicrioImage {
 		if(this.id && (!attr.width || !attr.height || iiifManifest)) {
 			const loadError = (e:Error) => this.setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
 			// Fetch info (Micrio or IIIF) or use preset data
-			deepCopy(this.preset?.[1] || await (i.isIIIF ? fetchJson(this.id) : fetchInfo(this.id, this.infoBasePath, forceDataRefresh)
+			deepCopy(await (i.isIIIF ? fetchJson(this.id) : getInfo(this.id, this.infoBasePath, forceDataRefresh)
 				.then(r => {
 					// If custom ID requested (`id="external/{org-slug}/{customId}"`), the returned info is redirected to real image's ID path.
 					// Also correct this internally.
@@ -347,9 +338,6 @@ export class MicrioImage {
 			// Fetch and merge IIIF manifest if present
 			if(iiifManifest) deepCopy(await fetchJson(iiifManifest).catch(loadError), i);
 		}
-		// Use preset info if available and not fetched
-		else if(this.preset?.[1]) deepCopy(this.preset[1], i);
-
 		const { isV5Imported } = Sanitizer.imageId(i, this.id);
 
 		// Merge attribute settings again (overriding fetched info)
@@ -494,7 +482,7 @@ export class MicrioImage {
 		if(this._loadedData || skipMeta || (this.noImage && !this.isOmni)) return Promise.resolve();
 		this._loadedData = true;
 
-		const data = this.preset?.[2] ?? await fetchImageData(this.id, this.__info.settings?.forceDataRefresh, this.infoBasePath).then(r => r?.data);
+		const data = await getBundleImage(this.id, this.infoBasePath, this.__info.settings?.forceDataRefresh).then(r => r?.data);
 		if (data) { await this.enrichData(data); this.data.set(data); }
 	}
 
@@ -592,7 +580,7 @@ export class MicrioImage {
 		);
 
 		const micIdsUnique = micIds.filter((id, i) => micIds.indexOf(id) == i);
-		const micData = await Promise.all(micIdsUnique.map(id => fetchImageData(id).then(r => r?.data)));
+		const micData = await Promise.all(micIdsUnique.map(id => getBundleImage(id).then(r => r?.data)));
 
 		// Load marker tours
 		if (d.markerTours) {

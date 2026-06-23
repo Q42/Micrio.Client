@@ -4,7 +4,7 @@ import type { Camera } from './camera';
 
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, MicrioError } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchAlbumInfo, idIsV5, MicrioError, getInfo } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
@@ -362,7 +362,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		}
 		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) { // If ID is V5 and might belong to an album
 			// Fetch image info to check for albumId, then load the album if found
-			await fetchInfo(opts.id, opts.forceInfoPath ? opts.path : undefined, opts.settings?.forceDataRefresh).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
+			await getInfo(opts.id, opts.forceInfoPath ? opts.path : undefined, opts.settings?.forceDataRefresh).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
 				.catch(() => {});
 		}
 

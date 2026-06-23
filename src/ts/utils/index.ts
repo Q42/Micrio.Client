@@ -34,11 +34,11 @@ export {
 	jsonCache,
 	fetchJson,
 	isFetching,
-	getLocalData,
-	fetchInfo,
-	fetchImageData,
 	fetchAlbumInfo
 } from './fetch';
+
+// DataLoader (bundle.json) — single source for image info + data
+export { getInfo, getData, getBundleImage, getBundleImages } from './dataLoader';
 
 // Tour utilities
 export { loadSerialTour } from './tour';

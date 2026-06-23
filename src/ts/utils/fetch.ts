@@ -4,9 +4,7 @@
  */
 
 import type { Models } from '$types/models';
-import type { PREDEFINED } from '$types/internal';
 import { VIEWER_BASE } from '../globals';
-import { Sanitizer } from './sanitize';
 import { clone } from './object';
 import { MicrioError } from './error';
 
@@ -62,59 +60,6 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
  * @returns True if the resource is cached or being fetched.
  */
 export const isFetching = (uri: string): boolean => jsonCache.has(uri) || jsonPromises.has(uri);
-
-/**
- * Retrieves predefined data (info, data) for a given ID from the global `MICRIO_DATA` variable,
- * which might be populated by server-side rendering or embedding scripts.
- * @internal
- * @param id The Micrio image ID.
- * @returns The predefined data array `[id, info, data]` or undefined if not found.
- */
-export const getLocalData = (id: string): PREDEFINED | undefined =>
-	'MICRIO_DATA' in self ? (<unknown>self?.['MICRIO_DATA'] as PREDEFINED[]).find((p: PREDEFINED) => p[0] == id) : undefined;
-
-/**
- * Fetches the `info.json` file for a given Micrio ID.
- * Uses `getLocalData` first, then falls back to `fetchJson`.
- * Handles legacy V1 info format and sanitizes the result.
- * @internal
- * @param id The Micrio image ID.
- * @param path Optional base path override.
- * @param refresh If true, forces a cache bypass for the fetch.
- * @returns A Promise resolving to the sanitized ImageInfo object or undefined on error.
- */
-export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise<Models.ImageInfo.ImageInfo | undefined> => {
-	const ld = getLocalData(id)?.[1]; // Check local predefined data first
-	return ld ? Promise.resolve(ld) : fetchJson(`${path ?? VIEWER_BASE}${id}/info.json`, refresh) // Fetch if not local
-		.then(r => {
-			Sanitizer.imageInfo(r as Models.ImageInfo.ImageInfo | undefined); // Sanitize URLs etc.
-			return r as Models.ImageInfo.ImageInfo | undefined;
-		});
-};
-
-/**
- * Fetches image data from the unified server endpoint (`viewer.micr.io/{id}/data.json`).
- * Data sanitization (V4→V5 merging, marker/tour normalization, asset cleanup) is
- * handled server-side. Info is fetched separately via {@link fetchInfo}.
- * @internal
- */
-export async function fetchImageData(
-	id: string,
-	refresh?: boolean,
-	infoPath?: string,
-): Promise<{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined> {
-	const info = await fetchInfo(id, infoPath);
-	if (!info) return;
-
-	// No published data for this image
-	const langs = info.revision ? Object.keys(info.revision) : [];
-	if (!langs.length) return;
-
-	const data = await fetchJson<Models.ImageData.ImageData>(`${VIEWER_BASE}${id}/data.json`, refresh);
-	if (!data) return;
-
-	return { data, info };
-}
 
 /**
  * Fetches album info JSON (`album/[id].json`) from the Micrio CDN.

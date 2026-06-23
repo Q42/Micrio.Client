@@ -1090,6 +1090,18 @@ import type { MicrioIcon } from '$ts/icons';
 		}
 	}
 
+	/**
+	 * A bundled image response from the `bundle.json` endpoint.
+	 * Contains both info and data for one or more related images in a single response.
+	 */
+	export namespace ImageBundle {
+		export type BundleImage = {
+			id: string;
+			info: Models.ImageInfo.ImageInfo;
+			data: Models.ImageData.ImageData;
+		};
+	}
+
 	export namespace Assets {
 		export type BaseAsset = {
 			/** The asset title (not filename) */
