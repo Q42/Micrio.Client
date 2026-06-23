@@ -310,13 +310,12 @@ export class MicrioImage {
 		// Determine if IIIF based on URL or format property
 		i.isIIIF = this.id.startsWith('http') || i.format == 'iiif';
 
-		const forceDataRefresh = !!attr.settings?.forceDataRefresh;
 		let idFromCustomId:string|undefined;
 		// Fetch info/manifest if ID provided but dimensions missing, or if IIIF
 		if(this.id && (!attr.width || !attr.height || iiifManifest)) {
 			const loadError = (e:Error) => this.setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
 			// Fetch info (Micrio or IIIF) or use preset data
-			deepCopy(await (i.isIIIF ? fetchJson(this.id) : getInfo(this.id, this.infoBasePath, forceDataRefresh)
+			deepCopy(await (i.isIIIF ? fetchJson(this.id) : getInfo(this.id)
 				.then(r => {
 					// If custom ID requested (`id="external/{org-slug}/{customId}"`), the returned info is redirected to real image's ID path.
 					// Also correct this internally.
@@ -439,7 +438,7 @@ export class MicrioImage {
 
 		// Load image data immediately if revisions are known and not an embed
 		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni)) {
-			const d = await getBundleImage(this.id, this.infoBasePath, i.settings?.forceDataRefresh).then(r => r?.data);
+			const d = await getBundleImage(this.id).then(r => r?.data);
 			if (d) {
 				micrio.events.dispatch('pre-data', { [this.id]: d });
 				this.data.set(d);

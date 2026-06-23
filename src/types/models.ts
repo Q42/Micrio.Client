@@ -227,8 +227,6 @@ import type { MicrioIcon } from '$ts/icons';
 
 			/** Use a custom uri for the info json file */
 			infoUrl?: string;
-			/** Force refresh for published data JSON file */
-			forceDataRefresh?: boolean;
 			/** Render this image as a static image */
 			static?: boolean;
 			/** Use a custom thumbnail image uri */

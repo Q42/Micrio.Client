@@ -176,7 +176,6 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-is360': {r:true}, // Is it a 360 image?
 		'data-no-externals': {f:'noExternals'}, // Disable loading external JS/CSS?
 		'data-skipmeta': {f:'skipMeta'}, // Skip loading metadata (info.json)?
-		'data-force-data-refresh': {f:'forceDataRefresh'}, // Force refresh of cached data?
 		'data-keeprendering': {f:'keepRendering'}, // Force continuous rendering loop?
 		'data-coverlimit': {f:'limitToCoverScale'}, // Limit zoom out to cover scale?
 		'data-events': {f:'hookEvents'}, // Enable/disable event hooks
