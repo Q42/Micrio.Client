@@ -33,7 +33,6 @@ export { Sanitizer } from './sanitize';
 export {
 	jsonCache,
 	fetchJson,
-	isFetching,
 	fetchAlbumInfo
 } from './fetch';
 

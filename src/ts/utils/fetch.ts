@@ -59,7 +59,7 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
  * @param uri The URI to check.
  * @returns True if the resource is cached or being fetched.
  */
-export const isFetching = (uri: string): boolean => jsonCache.has(uri) || jsonPromises.has(uri);
+
 
 /**
  * Fetches album info JSON (`album/[id].json`) from the Micrio CDN.
