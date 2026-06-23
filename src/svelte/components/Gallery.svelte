@@ -145,8 +145,8 @@
 				area = _images[++i].opts?.area;
 				if(!area) continue;
 				pageIdxes[pageIdxes.length-1].push(i);
-				v[2] = area[2];
-				v[3] = area[3];
+				v[2] = v[2] + area[2];
+				v[3] = Math.max(v[3], area[3]);
 			}
 			pages.push(v);
 		}
@@ -345,7 +345,7 @@
 	function limit(a:Models.Camera.ViewRect, forceArea:boolean) : void {
 		zoomedOut = camera.isZoomedOut();
 		// If zoomed out and not forcing area, allow horizontal overflow (-1 to 2)
-		camera.setLimit(!forceArea && zoomedOut ? [-1, a[1], 2, a[3]] : a);
+		camera.setLimit(!forceArea && zoomedOut ? [-1, a[1], 3, a[3]] : a);
 	}
 
 	/** Horizontal padding (px) between the scrubber bar edges and the usable track. */

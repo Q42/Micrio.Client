@@ -7,7 +7,6 @@ import type { Models } from '$types/models';
 import type { PREDEFINED } from '$types/internal';
 import { VIEWER_BASE } from '../globals';
 import { Sanitizer } from './sanitize';
-import { idIsV5 } from './id';
 import { clone } from './object';
 import { MicrioError } from './error';
 
@@ -94,42 +93,26 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
 };
 
 /**
- * Fetches both info and image data for a Micrio image, returning fully sanitized V5 data.
- * V5 images load `pub.json`; V4 images load all per-language `data.{lang}.json` files,
- * merge them into V5 format, then sanitize (markers, embeds, assets, legacy views).
+ * Fetches image data from the unified server endpoint (`viewer.micr.io/{id}/data.json`).
+ * Data sanitization (V4→V5 merging, marker/tour normalization, asset cleanup) is
+ * handled server-side. Info is fetched separately via {@link fetchInfo}.
  * @internal
  */
 export async function fetchImageData(
 	id: string,
-	dataPath: string,
 	refresh?: boolean,
 	infoPath?: string,
 ): Promise<{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined> {
 	const info = await fetchInfo(id, infoPath);
 	if (!info) return;
 
-	const isLegacy = Sanitizer.isLegacyViews(info);
-	let data: Models.ImageData.ImageData | undefined;
-
+	// No published data for this image
 	const langs = info.revision ? Object.keys(info.revision) : [];
-	if(!langs.length) return;
+	if (!langs.length) return;
 
-	if (idIsV5(id)) {
-		data = await fetchJson<Models.ImageData.ImageData>(`${dataPath}${id}/data/pub.json`, refresh);
-	} else {
-		// V4: fetch per-language data files and merge into V5
-		if (langs.length) {
-			const allLangData: Record<string, Record<string, unknown>> = {};
-			await Promise.all(langs.map(async lang => {
-				const ld = await fetchJson<Record<string, unknown>>(`${dataPath}${id}/data.${lang}.json`).catch(() => undefined);
-				if (ld) allLangData[lang] = ld;
-			}));
-			if (Object.keys(allLangData).length) data = Sanitizer.v4DataToV5(allLangData);
-		}
-	}
-
+	const data = await fetchJson<Models.ImageData.ImageData>(`${VIEWER_BASE}${id}/data.json`, refresh);
 	if (!data) return;
-	Sanitizer.imageData(data, isLegacy);
+
 	return { data, info };
 }
 

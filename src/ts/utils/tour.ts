@@ -22,7 +22,7 @@ export async function loadSerialTour(image: MicrioImage, tour: Models.ImageData.
 		tour.steps.map(s => s.split(',')[1]).filter((s: string) => !!s && s != image.id)
 	)];
 
-	const loaded = await Promise.all(micIds.map(id => fetchImageData(id, image.dataPath)));
+	const loaded = await Promise.all(micIds.map(id => fetchImageData(id)));
 	const micData = loaded.map(r => r?.data);
 
 	let chapter: number = -1;

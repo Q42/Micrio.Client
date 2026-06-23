@@ -125,7 +125,7 @@ export class VideoTourInstance {
 			const s = timeline[i], p = timeline[i-1]; // Current and previous raw steps
 			const start = p ? p.end * dur : 0; // Calculate animation start time based on previous step's end
 			this.timeline.push({
-				view: this.data.isLegacy ? Sanitizer.View.fromLegacy(s.rect)! : s.rect, // Target view rectangle
+				view: s.rect, // Target view rectangle
 				start: start * 1000, // Animation start time (ms)
 				duration: (s.start * dur - start) * 1000, // Animation duration (ms)
 				pauseDuration: (s.end - s.start) * dur * 1000 // Pause duration at the end of animation (ms)

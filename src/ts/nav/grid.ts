@@ -835,7 +835,7 @@ export class Grid {
 			const imgRat = m.offsetWidth / m.offsetHeight,
 				rX = (1 - (i.width / i.height) / imgRat) / 2;
 			if(!img.camera.aniDone && noView) img.camera.flyToFullView({duration:this.aniDurationIn*1000}).catch(() => {});
-			this.image.camera.setLimit([rX, 0, 1 - rX, 1]);
+			this.image.camera.setLimit([rX, 0, 1 - 2 * rX, 1]);
 		}).catch(() => {});
 	}
 

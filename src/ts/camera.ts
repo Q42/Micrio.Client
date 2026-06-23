@@ -359,11 +359,11 @@ export class Camera {
 
 	/**
 	 * Sets a rectangular limit for camera navigation within the image.
-	 * @param v The viewport limit rectangle [x0, y0, x1, y1].
+	 * @param v The viewport limit [x, y, width, height] in image-relative coordinates.
 	*/
-	public setLimit(v:Models.Camera.ViewRect) : void {
+	public setLimit(v:Models.Camera.View) : void {
 		if (!this._engineCanvas) return;
-		const l = Sanitizer.View.rectToCenterJSON(v)!;
+		const l = Sanitizer.View.toCenterJSON(v)!;
 		this._c.view.setLimit(l.centerX, l.centerY, l.width, l.height);
 		this.image.engine.render();
 	}

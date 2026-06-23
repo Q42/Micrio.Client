@@ -4,7 +4,7 @@ import type { Camera } from './camera';
 
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, Sanitizer, MicrioError } from './utils';
+import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, MicrioError } from './utils';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
@@ -716,13 +716,13 @@ export class HTMLMicrioElement extends HTMLElement {
 			}, {
 				isEmbed: true, useParentCamera: true,
 				area: !isSpreads ? [0,0,1,1]
-					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.75,1]
+					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.5,1]
 					: (i-coverPages)%2==0 ? [0,0,.5,1]
-					: [.5,0,1,1]
+					: [.5,0,.5,1]
 			})
 		);
 		sets.pinchZoomOutLimit = true;
-		if(opts.gallery.length) sets.view = Sanitizer.View.fromLegacy(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
+		if(opts.gallery.length) sets.view = opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area;
 	}
 
 	/** Holds loaded grid info data if applicable. */

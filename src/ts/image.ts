@@ -282,13 +282,6 @@ export class MicrioImage {
 		// Keep internal video reference synced
 		this.video.subscribe(v => this._video = v);
 
-		// Sanitize marker/embed data whenever the data store updates
-		this.data.subscribe(d => {
-			if(!d) return;
-			Sanitizer.imageData(d, Sanitizer.isLegacyViews(this.__info));
-			const autostart = Sanitizer.autostartTour(d);
-			if(autostart) this.$settings.start = autostart;
-		});
 	}
 
 	/**
@@ -366,6 +359,7 @@ export class MicrioImage {
 		if(idFromCustomId) this.id = i.id = idFromCustomId;
 
 		// Determine tile base path
+		// V5 imported images always tile from the legacy CDN (b.micr.io)
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
 		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 		// Use organization base URL if provided and path wasn't forced by attribute
@@ -497,10 +491,10 @@ export class MicrioImage {
 	*/
 	private async loadData() : Promise<void> {
 		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
-		if(this._loadedData || skipMeta || this.noImage) return Promise.resolve();
+		if(this._loadedData || skipMeta || (this.noImage && !this.isOmni)) return Promise.resolve();
 		this._loadedData = true;
 
-		const data = this.preset?.[2] ?? await fetchImageData(this.id, this.dataPath, this.__info.settings?.forceDataRefresh, this.infoBasePath).then(r => r?.data);
+		const data = this.preset?.[2] ?? await fetchImageData(this.id, this.__info.settings?.forceDataRefresh, this.infoBasePath).then(r => r?.data);
 		if (data) { await this.enrichData(data); this.data.set(data); }
 	}
 
@@ -598,7 +592,7 @@ export class MicrioImage {
 		);
 
 		const micIdsUnique = micIds.filter((id, i) => micIds.indexOf(id) == i);
-		const micData = await Promise.all(micIdsUnique.map(id => fetchImageData(id, this.dataPath).then(r => r?.data)));
+		const micData = await Promise.all(micIdsUnique.map(id => fetchImageData(id).then(r => r?.data)));
 
 		// Load marker tours
 		if (d.markerTours) {
