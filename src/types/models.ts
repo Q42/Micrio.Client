@@ -811,17 +811,6 @@ import type { MicrioIcon } from '$ts/icons';
 				/** Any other value is accepted */
 				[key:string]: any;
 			}
-
-			/** Parsed micrioSplitLink
-			 * @internal
-			*/
-			_micrioSplitLink?: {
-				micrioId: string,
-				markerId?: string,
-				follows?: boolean,
-				view?: Camera.View
-			}
-
 		};
 
 		/**

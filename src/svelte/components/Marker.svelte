@@ -90,13 +90,28 @@
 	/** Omni settings from the parent image. */
 	const omni = image.$settings.omni;
 
+	interface MicrioSplitLink {
+		micrioId: string,
+		markerId?: string,
+		follows?: boolean,
+		view?: Models.Camera.View
+	}
+	const splitSplit = marker.data?.micrioSplitLink?.split(',').map(s => s.trim());
+	/** Parsed split-screen link data. */
+	const split: MicrioSplitLink|undefined = splitSplit ?  {
+		micrioId: splitSplit[0],
+		markerId: splitSplit[1],
+		follows: !!splitSplit[2] && splitSplit[2] != 'false'
+	} : undefined;
+
+
 	// Data Correction: If image was layered but layers were removed, clear marker's layer setting.
 	if(marker.imageLayer && marker.imageLayer > (omni?.layers?.length ?? 1) - 1)
 		delete marker.imageLayer;
 
 	// Data Correction: If this marker is the target of a split-screen link from the main image, disable its popup.
 	if(!!$current?.$data?.markers?.find(m =>
-		m.data?._micrioSplitLink?.markerId == marker.id && m.popupType != 'none'
+		split?.markerId == marker.id && m.popupType != 'none'
 	)) {
 		marker.popupType = 'none';
 		marker.noMarker = true; // Also hide the marker itself?
@@ -121,8 +136,6 @@
 	const scales:boolean = !!data.scales || !!image.$settings.markersScale;
 	/** If marker scales, should the title *not* scale? */
 	const titleNoScales:boolean = scales && !!markerSettings.titlesNoScale;
-	/** Parsed split-screen link data. */
-	const split = data._micrioSplitLink;
 	/** Should the popup remain open during marker tour transitions? */
 	const keepPopup:boolean = !!markerSettings.keepPopupsDuringTourTransitions;
 	/** Disable tooltips on hover? */
@@ -425,7 +438,7 @@
 			setTimeout(() => {
 				const curr = get(micrio.state.marker);
 				// Close only if the currently active marker isn't also linked to the same split image
-				if(splitImage && split.micrioId != curr?.data?._micrioSplitLink?.micrioId) {
+				if(splitImage && split.micrioId != curr?.data?.micrioSplitLink?.split(',')[0]) {
 					micrio.close(splitImage);
 				}
 			},210); // Delay slightly

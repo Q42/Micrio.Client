@@ -440,7 +440,10 @@ export class MicrioImage {
 		// Load image data immediately if revisions are known and not an embed
 		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni)) {
 			const d = await getBundleImage(this.id, this.infoBasePath, i.settings?.forceDataRefresh).then(r => r?.data);
-			if (d) { await this.enrichData(d); this.data.set(d); }
+			if (d) {
+				micrio.events.dispatch('pre-data', { [this.id]: d });
+				this.data.set(d);
+			}
 		}
 
 		// Handle linked split-screen setup
@@ -534,59 +537,6 @@ export class MicrioImage {
 			_el.onload = ok; document.head.appendChild(_el);
 		}
 	})}
-
-	/**
-	 * Enriches image data with preloaded linked images, serial tour data,
-	 * split-link resolution, and fires the pre-data event.
-	 * @internal
-	 */
-	private async enrichData(d: Models.ImageData.ImageData) : Promise<void> {
-		if (!d) return;
-		/** @ts-ignore */
-		if ('error' in d) this.__info.error = (d['status'] as string) == '403' ? 'Could not load image data. Are you logged in and do you have the right credentials?' : (d['error'] as string);
-
-		const micIds: string[] = [];
-
-		// Split-screen link parsing
-		d.markers?.forEach(m => {
-			if (m.data?.micrioSplitLink) {
-				const split = m.data.micrioSplitLink.split(',').map(s => s.trim());
-				m.data._micrioSplitLink = { micrioId: split[0], markerId: split[1], follows: !!split[2] && split[2] != 'false' };
-				if (m.data._micrioSplitLink.markerId) micIds.push(m.data._micrioSplitLink.micrioId);
-			}
-		});
-
-		// Linked image IDs from marker tours
-		if (d.markerTours?.length) micIds.push(
-			...d.markerTours.flatMap(t => t.steps).filter(s => !!s).map(s => s.split(',')[1]).filter((s: string) => !!s && s != this.id)
-		);
-
-		const micIdsUnique = micIds.filter((id, i) => micIds.indexOf(id) == i);
-		const micData = await Promise.all(micIdsUnique.map(id => getBundleImage(id).then(r => r?.data)));
-
-		// Resolve split-link target views
-		d.markers?.forEach(m => {
-			if (!m.data?._micrioSplitLink) return;
-			for (let i = 0; i < micData.length; i++) {
-				const target = micData[i]?.markers?.find(sm => sm.id == m.data!._micrioSplitLink!.markerId);
-				if (target) { m.data._micrioSplitLink!.view = target.view; return; }
-			}
-		});
-
-		// Pre-data event
-		this.engine.micrio.events.dispatch('pre-data', {
-			[this.id]: d,
-			...Object.fromEntries(micIdsUnique.map((id, i) => [id, micData[i]!]))
-		});
-
-		// Set data on already-initialized linked images
-		micData.forEach((data, i) => {
-			if (data) {
-				const img = this.engine.images.find(m => m.id == micIdsUnique[i]);
-				if (img && 'data' in img && !('$data' in img ? img.$data : false)) (img as MicrioImage).data.set(data);
-			}
-		});
-	}
 
 	/** Configures the info object as a strip-swipe gallery container and sets the
 	 * parent's dimensions to match the element's viewport. Returns the starting
