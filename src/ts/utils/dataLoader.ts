@@ -30,9 +30,9 @@ async function ensureBundleFetched(id: string): Promise<void> {
 	if (!id || id.startsWith('http')) return;
 	if (bundleCache.has(id)) return;
 
-	const bundle = await fetchJson<BundleImage[]>(`${VIEWER_BASE}${id}/bundle.json`);
-	if (bundle && Array.isArray(bundle)) {
-		for (const entry of bundle) {
+	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json`);
+	if (bundle?.images) {
+		for (const entry of bundle.images) {
 			if (entry?.id) {
 				bundleCache.set(entry.id, entry);
 			}

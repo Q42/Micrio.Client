@@ -1086,6 +1086,10 @@ import type { MicrioIcon } from '$ts/icons';
 			info: Models.ImageInfo.ImageInfo;
 			data: Models.ImageData.ImageData;
 		};
+
+		export type BundleResponse = {
+			images: BundleImage[];
+		};
 	}
 
 	export namespace Assets {
