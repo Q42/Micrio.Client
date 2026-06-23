@@ -8,7 +8,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { Sanitizer, clone, createGUID, deepCopy, fetchJson, loadSerialTour, once, MicrioError, getInfo, getBundleImage } from './utils';
+import { Sanitizer, clone, createGUID, deepCopy, fetchJson, once, MicrioError, getInfo, getBundleImage } from './utils';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -563,15 +563,6 @@ export class MicrioImage {
 
 		const micIdsUnique = micIds.filter((id, i) => micIds.indexOf(id) == i);
 		const micData = await Promise.all(micIdsUnique.map(id => getBundleImage(id).then(r => r?.data)));
-
-		// Load marker tours
-		if (d.markerTours) {
-			const spaceData = this.engine.micrio.spaceData;
-			const dataTours = d.markerTours.map(t => loadSerialTour(this, t, d));
-			const spaceTours = spaceData?.markerTours?.filter(t => !t.stepInfo).map(t => loadSerialTour(this, t, d)) ?? [];
-			await Promise.all([...dataTours, ...spaceTours]);
-			if (spaceData) d.markerTours = d.markerTours.filter(t => !t.steps.find(s => s.includes(',')));
-		}
 
 		// Resolve split-link target views
 		d.markers?.forEach(m => {

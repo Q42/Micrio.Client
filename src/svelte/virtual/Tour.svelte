@@ -20,7 +20,6 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { i18n } from '$ts/i18n';
-	import { loadSerialTour } from '$ts/utils';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // For video/audio playback
@@ -290,7 +289,7 @@
 	let unsub:Unsubscriber[] = [];
 	onMount(() => {
 		// Load serial tour data if necessary, then start the marker tour logic
-		if('steps' in tour) loadSerialTour(image, tour, image.$data!).then(() => startMarkerTour(tour));
+		if('steps' in tour) tick().then(() => startMarkerTour(tour));
 
 		// Subscribe to minimize state if controls are shown
 		if(!noControls) unsub.push(minimized.subscribe(m => onminimize?.(m)));
