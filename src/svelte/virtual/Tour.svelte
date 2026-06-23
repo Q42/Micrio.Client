@@ -20,6 +20,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { i18n } from '$ts/i18n';
+	import { getStepMarker } from '$ts/utils/dataLoader';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // For video/audio playback
@@ -131,7 +132,8 @@
 		if(grid && !step.gridView && grid.images.find(i => i.id == step.micrioId)) {
 			const isPrevStep = 'steps' in tour && tour.stepInfo && step ? tour.stepInfo?.indexOf(step) < currentTourStep : false;
 			// Determine transition type based on marker data and direction
-			const trans:Models.Grid.MarkerFocusTransition = step.marker.data?.gridTourTransition ?? step.marker.data?._meta?.gridTourTransition;
+			const marker = getStepMarker(step);
+			const trans:Models.Grid.MarkerFocusTransition = marker?.data?.gridTourTransition ?? marker?.data?._meta?.gridTourTransition;
 			const slswipe = trans?.startsWith('slide') ? 'slide' : 'swipe';
 			await tick().then(() => { // Wait for DOM updates
 				const promise = grid.focus(img = grid.images.find(i => i.id == step.micrioId) as MicrioImage, { // Focus the target grid image
@@ -149,10 +151,11 @@
 		// If target image is different from current, open it
 		else if(micrio.$current?.id != step.micrioId) {
 			// Handle grid actions if staying within grid view
-			if(step.gridView && step.marker.data?._meta?.gridAction && grid) {
+			const marker = getStepMarker(step);
+			if(step.gridView && marker?.data?._meta?.gridAction && grid) {
 				if(!step.micrioImage) step.micrioImage = grid.images.find(i => i.id == step.micrioId);
 				img = step.micrioImage as MicrioImage;
-				const a = step.marker.data._meta.gridAction.split('|');
+				const a = marker.data._meta.gridAction.split('|');
 				grid.action(a.shift() as string,a.join('|')); // Execute grid action
 			}
 			// Otherwise, open the target image normally

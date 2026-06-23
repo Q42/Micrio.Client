@@ -1002,7 +1002,6 @@ import type { MicrioIcon } from '$ts/icons';
 		/** Auto generated metadata for marker tours */
 		export type MarkerTourStepInfo = {
 			markerId: string,
-			marker: Marker,
 			micrioId: string,
 			duration: number,
 			imageHasOtherMarkers?: boolean,

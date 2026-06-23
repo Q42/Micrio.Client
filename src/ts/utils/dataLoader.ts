@@ -80,6 +80,20 @@ export async function getData(
 	}
 }
 
+/** Synchronous accessor for already-cached bundle data. */
+export function getDataSync(id: string): Models.ImageData.ImageData | undefined {
+	return bundleCache.get(id)?.data;
+}
+
+/**
+ * Resolves the marker for a tour step from the already-loaded bundle cache.
+ * This replaces the earlier static `.marker` JSON that was inlined in stepInfo.
+ */
+export function getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
+	const data = getDataSync(step.micrioId);
+	return data?.markers?.find(m => m.id === step.markerId);
+}
+
 /**
  * Returns both info + data for a single image ID, or undefined if the image
  * is not present in its bundle.

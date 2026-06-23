@@ -16,6 +16,7 @@
 	import { writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
 	import { i18n } from '$ts/i18n';
+	import { getStepMarker } from '$ts/utils/dataLoader';
 
 
 	// Component imports
@@ -197,7 +198,7 @@
 	// --- Utility ---
 
 	/** Helper to get the language-specific title for a marker. */
-	const getTitle = (m:Models.ImageData.Marker) : string|undefined => m.i18n ? m.i18n[$lang]?.title : (m as unknown as Models.ImageData.MarkerCultureData).title;
+	const getTitle = (m?: Models.ImageData.Marker) : string|undefined => m ? (m.i18n ? m.i18n[$lang]?.title : (m as unknown as Models.ImageData.MarkerCultureData).title) : undefined;
 
 	// --- Lifecycle (onMount / onDestroy) ---
 
@@ -217,28 +218,31 @@
 		}
 	});
 
-	// --- Reactive Declarations (`$:`) ---
+	// --- Reactive Declarations ---
+
+	/** Resolved marker for the current step, dynamically loaded from bundle data. */
+	const currentMarker = $derived(currentStepInfo ? getStepMarker(currentStepInfo) : undefined);
 
 	/** Reactive audio source based on the current video tour step, falling back to the marker's audio. */
 	const audio = $derived(current ? (
 		current.i18n?.[$lang]?.audio
-		?? currentStepInfo?.marker?.i18n?.[$lang]?.audio
+		?? currentMarker?.i18n?.[$lang]?.audio
 	) : undefined);
 	/** Reactive audio source URL. */
 	const audioSrc = $derived(audio?.src);
 	/** Reactive boolean indicating if the current step has a subtitle. */
-	const hasSubtitle = $derived(!!currentStepInfo?.marker?.videoTour?.i18n?.[$lang]?.subtitle);
+	const hasSubtitle = $derived(!!currentMarker?.videoTour?.i18n?.[$lang]?.subtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */
-	const serialTourHasSubtitles = $derived(stepInfo.some(s => !!s.marker?.videoTour?.i18n?.[$lang]?.subtitle));
+	const serialTourHasSubtitles = $derived(stepInfo.some(s => !!getStepMarker(s)?.videoTour?.i18n?.[$lang]?.subtitle));
 
 </script>
 
 <!-- Render chapter list if enabled -->
 {#if tour.printChapters}
 	<ol>{#each stepInfo as c,i}
-		{#if getTitle(c.marker)}
+		{#if getTitle(getStepMarker(c))}
 			<li class:active={currentStepInfo && currentStepInfo.chapter == i} class:enriched={c.imageHasOtherMarkers}>
-				<button onclick={() => goto(i)}>{getTitle(c.marker)}</button>
+				<button onclick={() => goto(i)}>{getTitle(getStepMarker(c))}</button>
 			</li>
 		{/if}
 	{/each}</ol>
@@ -290,7 +294,7 @@
 				<!-- Set width and progress -->
 				<div
 					class="bar"
-					title={getTitle(step.marker)}
+					title={getTitle(getStepMarker(step))}
 					role="progressbar"
 					onclick={(e) => goto(i,e)}
 					onkeypress={e => { if(e.key === 'Enter') goto(i) }}
