@@ -243,11 +243,6 @@ export class MicrioImage {
 		if(!opts.isEmbed || hasData) this.visible.subscribe(v => {
 			if(v==wasVis) return; wasVis=v; // Ignore if visibility hasn't changed
 
-			// Load cultural data when becoming visible if not already loaded
-			if(v && !this._loadedData) {
-				this.loadData();
-			}
-
 			// Handle split-screen logic on visibility change
 			if(opts.secondaryTo) {
 				if(opts.isPassive) { // Manage passive following subscription
@@ -443,8 +438,10 @@ export class MicrioImage {
 		micrio.events.dispatch('pre-info', i);
 
 		// Load image data immediately if revisions are known and not an embed
-		if(i.revision && !this.opts.isEmbed)
-			await this.loadData();
+		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni)) {
+			const d = await getBundleImage(this.id, this.infoBasePath, i.settings?.forceDataRefresh).then(r => r?.data);
+			if (d) { await this.enrichData(d); this.data.set(d); }
+		}
 
 		// Handle linked split-screen setup
 		if(i.settings?.micrioSplitLink && !this.opts.secondaryTo) {
@@ -469,21 +466,6 @@ export class MicrioImage {
 		if(this.isOmni) this.state.hookOmni();
 
 		return i; // Return the processed info object
-	}
-
-	/** Flag indicating if cultural data has been loaded. @internal */
-	_loadedData:boolean = false;
-	/**
-	 * Loads the cultural data (`data.[lang].json` or `pub.json`) for the image.
-	 * @internal
-	*/
-	private async loadData() : Promise<void> {
-		const skipMeta = this.$settings?.skipMeta || this.__info.settings?.skipMeta;
-		if(this._loadedData || skipMeta || (this.noImage && !this.isOmni)) return Promise.resolve();
-		this._loadedData = true;
-
-		const data = await getBundleImage(this.id, this.infoBasePath, this.__info.settings?.forceDataRefresh).then(r => r?.data);
-		if (data) { await this.enrichData(data); this.data.set(data); }
 	}
 
 	/**
