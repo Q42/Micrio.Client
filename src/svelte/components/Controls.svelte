@@ -19,7 +19,7 @@
 
 	// Micrio TS imports
 	import { i18n } from '$ts/i18n';
-	import { once } from '$ts/utils';
+	import { once } from '$ts/utils/store';
 	import { languageNames } from '$ts/i18n/locale';
 
 	// UI sub-component imports

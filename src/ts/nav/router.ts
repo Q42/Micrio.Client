@@ -4,7 +4,8 @@ import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
 
-import { slugify, once } from '$ts/utils';
+import { slugify } from '$ts/utils/string';
+import { once } from '$ts/utils/store';
 import { MICRIO_TLD } from '$ts/globals';
 
 /**

@@ -11,7 +11,7 @@
 	import type { HTMLMicrioElement } from '$ts/element';
 
 	import { getContext, onMount, untrack } from 'svelte';
-	import { Browser } from '$ts/utils'; // Browser detection utilities
+	import { Browser } from '$ts/utils/browser'; // Browser detection utilities
 	import { i18n } from '$ts/i18n'; // For button title translation
 
 	import Button from './Button.svelte'; // Reusable button component

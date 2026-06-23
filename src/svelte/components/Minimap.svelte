@@ -9,7 +9,7 @@
 
 	import type { HTMLMicrioElement } from '$ts/element';
 	import type { MicrioImage } from '$ts/image';
-    import { Sanitizer } from '$ts/utils';
+    import { Sanitizer } from '$ts/utils/sanitize';
 	import type { Models } from '$types/models';
 
 	import { onMount, getContext, untrack } from 'svelte';

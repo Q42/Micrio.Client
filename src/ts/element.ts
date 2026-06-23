@@ -4,7 +4,12 @@ import type { Camera } from './camera';
 
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchAlbumInfo, idIsV5, MicrioError, getInfo } from './utils';
+import { once } from './utils/store';
+import { deepCopy } from './utils/object';
+import { fetchJson, jsonCache, fetchAlbumInfo } from './utils/fetch';
+import { idIsV5 } from './utils/id';
+import { MicrioError } from './utils/error';
+import { getInfo } from './utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';

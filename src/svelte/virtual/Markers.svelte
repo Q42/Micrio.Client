@@ -12,7 +12,10 @@
 	import type { Models } from '$types/models';
 
 	import { onMount, setContext, tick } from 'svelte';
-	import { clone, limitView, once, calcClusters, type MarkerCoords } from '$ts/utils';
+	import { clone } from '$ts/utils/object';
+	import { limitView } from '$ts/utils/math';
+	import { once } from '$ts/utils/store';
+	import { calcClusters, type MarkerCoords } from '$ts/utils/clustering';
 
 	// Component imports
 	import Marker from '../components/Marker.svelte';

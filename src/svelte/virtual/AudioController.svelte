@@ -97,7 +97,7 @@
 	import type { MicrioImage } from '$ts/image';
 
 	import { getContext, onMount } from 'svelte';
-	import { Browser } from '$ts/utils'; // Browser detection
+	import { Browser } from '$ts/utils/browser'; // Browser detection
 
 	import AudioPlaylist from './AudioPlaylist.svelte'; // Component for background music
 

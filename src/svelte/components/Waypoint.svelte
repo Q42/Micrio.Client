@@ -16,7 +16,9 @@
 	import { getContext, onMount, untrack } from 'svelte';
 
 	// Micrio TS imports
-	import { clone, getData, getSpaceVector } from '$ts/utils';
+	import { clone } from '$ts/utils/object';
+	import { getData } from '$ts/utils/dataLoader';
+	import { getSpaceVector } from '$ts/utils/space';
 	import { i18n } from '$ts/i18n';
 
 	// UI Components

@@ -4,7 +4,7 @@ import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 
 import { writable } from 'svelte/store';
-import { once } from './utils';
+import { once } from './utils/store';
 
 /**
  * # Micrio State management

@@ -8,7 +8,13 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { Sanitizer, clone, createGUID, deepCopy, fetchJson, once, MicrioError, getInfo, getBundleImage } from './utils';
+import { Sanitizer } from './utils/sanitize';
+import { clone, deepCopy } from './utils/object';
+import { createGUID } from './utils/string';
+import { fetchJson } from './utils/fetch';
+import { once } from './utils/store';
+import { MicrioError } from './utils/error';
+import { getInfo, getBundleImage } from './utils/dataLoader';
 import { State } from './state';
 import { archive } from './render/archive';
 

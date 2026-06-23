@@ -1,4 +1,4 @@
-import { Browser } from '$ts/utils';
+import { Browser } from '$ts/utils/browser';
 import { noEventPassive, type EventContext } from './shared';
 
 /**

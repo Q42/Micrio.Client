@@ -18,7 +18,8 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { ctx } from '../virtual/AudioController.svelte'; // Web Audio context for positional audio
 
-	import { after, getSpaceVector } from '$ts/utils';
+	import { after } from '$ts/utils/store';
+	import { getSpaceVector } from '$ts/utils/space';
 
 	import Icon, { type IconName } from '../ui/Icon.svelte'; // Icon component
 	import AudioLocation from '../virtual/AudioLocation.svelte'; // Component for positional audio

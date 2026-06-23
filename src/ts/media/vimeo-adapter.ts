@@ -6,7 +6,7 @@
 
 import type { VimeoPlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from './types';
-import { loadScript } from '$ts/utils';
+import { loadScript } from '$ts/utils/dom';
 
 /**
  * Adapter for Vimeo Player API.

@@ -25,7 +25,8 @@
 
 	// Micrio TS imports
 	import { i18n } from '$ts/i18n';
-	import { Browser, parseMediaSource, getIOSAudioElement } from '$ts/utils';
+	import { Browser } from '$ts/utils/browser';
+	import { parseMediaSource, getIOSAudioElement } from '$ts/utils/media';
 	import { VideoTourInstance } from '$ts/media/videotour';
 	import { FrameType, MediaType } from '$types/internal';
 

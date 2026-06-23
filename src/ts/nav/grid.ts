@@ -8,7 +8,9 @@ import type { HTMLMicrioElement } from '$ts/element';
 
 import { MicrioImage } from '$ts/image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { deepCopy, once, sleep } from '$ts/utils';
+import { deepCopy } from '$ts/utils/object';
+import { once } from '$ts/utils/store';
+import { sleep } from '$ts/utils/dom';
 import { tick } from 'svelte';
 import { Enums } from '$ts/enums';
 import { slideAreas, swipeAreas, swipeExitAreas } from '$ts/nav/transitions';

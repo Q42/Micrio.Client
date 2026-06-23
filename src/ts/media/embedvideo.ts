@@ -4,7 +4,8 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import type { Engine } from '$ts/render/engine';
 
-import { Browser, loadScript } from '$ts/utils';
+import { Browser } from '$ts/utils/browser';
+import { loadScript } from '$ts/utils/dom';
 import { tick } from 'svelte';
 
 /**

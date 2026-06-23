@@ -3,7 +3,8 @@ import type { Models } from '$types/models';
 import type TileCanvas from '$engine/canvas/canvas';
 
 import { tick } from 'svelte';
-import { Sanitizer, mod } from './utils';
+import { Sanitizer } from './utils/sanitize';
+import { mod } from './utils/math';
 import { Enums } from './enums';
 
 /**

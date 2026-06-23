@@ -24,7 +24,7 @@
 	import { get, writable } from 'svelte/store';
 
 	// Micrio TS imports
-	import { once } from '$ts/utils';
+	import { once } from '$ts/utils/store';
 
 	// UI Sub-component imports
 	import Logo from './ui/Logo.svelte';

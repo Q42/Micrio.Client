@@ -6,7 +6,7 @@
 
 import type { HlsPlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks } from './types';
-import { loadScript } from '$ts/utils';
+import { loadScript } from '$ts/utils/dom';
 import { HTML5PlayerAdapter } from './html5-adapter';
 
 /**

@@ -16,7 +16,8 @@
 	import { fade } from 'svelte/transition';
 
 	// Micrio TS imports
-	import { createGUID, once } from '$ts/utils';
+	import { createGUID } from '$ts/utils/string';
+	import { once } from '$ts/utils/store';
 	import { i18n } from '$ts/i18n';
 
 	// UI Components

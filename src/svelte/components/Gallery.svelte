@@ -26,7 +26,7 @@
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
-    import { Sanitizer } from '$ts/utils';
+    import { Sanitizer } from '$ts/utils/sanitize';
 
 	// --- Props ---
 

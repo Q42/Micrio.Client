@@ -13,7 +13,8 @@ import type { Models } from '$types/models';
 import { MicrioImage } from '$ts/image';
 import { get } from 'svelte/store';
 import { archive } from './archive';
-import { Browser, once } from '$ts/utils';
+import { Browser } from '$ts/utils/browser';
+import { once } from '$ts/utils/store';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 
 import { Main } from '$engine/main';

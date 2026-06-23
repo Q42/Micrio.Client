@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
-import { Sanitizer } from '$ts/utils';
+import { Sanitizer } from '$ts/utils/sanitize';
 
 /**
  * Internal representation of a segment in a video tour timeline.
