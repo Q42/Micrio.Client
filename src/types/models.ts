@@ -255,8 +255,6 @@ import type { MicrioIcon } from '$ts/icons';
 			keepRendering?: boolean;
 			/** Don't load GTM module */
 			noGTag?: boolean;
-			/** With routing enabled, enable marker/tour deeplinks */
-			routerMarkerTours?: boolean;
 			/** Skip the deepest zoom levels */
 			skipBaseLevels?: number;
 
@@ -1593,8 +1591,6 @@ import type { MicrioIcon } from '$ts/icons';
 			'data-skipmeta'?: boolean;
 			/** Simulate an <img/> element. No logo, loader bar, and no event listeners. Default: false */
 			'data-static'?: boolean;
-			/** Read and write deeplinks to opened tours and markers. Default: null */
-			'data-router'?: string;
 			/** Sending user input as GA Events to any available GTag instance (does nothing if none). Default: true */
 			'data-gtag'?: boolean;
 

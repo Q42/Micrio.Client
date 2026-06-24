@@ -19,7 +19,6 @@ import { archive } from './render/archive';
 import { Events } from './events';
 import { MicrioImage } from './image';
 import { State} from './state';
-import { Router } from './nav/router';
 import { GoogleTag } from './analytics';
 import { Grid } from './nav/grid';
 import { mount, tick, unmount } from 'svelte';
@@ -108,9 +107,6 @@ export class HTMLMicrioElement extends HTMLElement {
 
 	/** The Google Analytics integration controller. */
 	private readonly analytics:GoogleTag = new GoogleTag(this);
-
-	/** The URL router, handling deep linking and history management. */
-	private readonly _router:Router = new Router(this);
 
 	/** Writable Svelte store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);
@@ -235,14 +231,11 @@ export class HTMLMicrioElement extends HTMLElement {
 	}
 
 	/**
-	 * Called when the element is added to the DOM. Sets up canvas, router, and initial print/open.
+	 * Called when the element is added to the DOM. Sets up canvas and initial print/open.
 	 * @internal
 	*/
 	connectedCallback() : void {
 		this.canvas.place(); // Position the canvas element
-		// Hook up router if enabled
-		if((this.hasAttribute('data-router') || this.hasAttribute('data-space'))
-			&& this.getAttribute('data-router') != 'false') this._router.hook();
 		// Trigger initial print/load if ID or gallery attribute is present
 		if((this.id || this.hasAttribute('data-gallery')) && !this.printed) this.print();
 		// Define the 'muted' property and sync it with the store and attribute
@@ -281,7 +274,6 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */
 	destroy() : void {
 		this.current.set(undefined); // Clear current image
-		this._router.unhook(); // Disconnect router
 		this.events.enabled.set(false); // Disable events
 		this.canvas.unhook(); // Clean up canvas controller
 		this.analytics.unhook(); // Disconnect analytics

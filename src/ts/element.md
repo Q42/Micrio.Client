@@ -38,8 +38,7 @@ received from the server.
 | `data-keeprendering` | Force the WebGL render loop to run continuously | `false` |
 | `data-force-data-refresh` | Force refresh of cached image data | `false` |
 | `data-no-externals` | Don't load external resources | `false` |
-| `data-router` | Enable URL routing and deep linking | `false` |
-| `data-space` | Load 360&deg; space data, also enables routing | |
+| `data-space` | Load 360&deg; space data | |
 | `data-iiif` | IIIF manifest URL for loading image data | |
 
 

@@ -87,7 +87,6 @@ export class GoogleTag {
 		if(value != null) detail['event_value'] = value;
 
 		// Construct event label (Micrio element ID + optional title from detail or image info)
-		// TODO: Consider using slugs from router for more consistent labeling if available
 		const title:string = d && !!d['title'] ? d['title'] // Use title from event detail if present
 			: $curr && $curr.$info && $curr.$info.title; // Fallback to current image title
 		detail['event_label'] = this.micrio.id + (title ? ' - ' + title : ''); // Combine ID and title
