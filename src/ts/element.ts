@@ -232,8 +232,8 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	connectedCallback() : void {
 		this.canvas.place(); // Position the canvas element
-		// Trigger initial print/load if ID or gallery attribute is present
-		if((this.id || this.hasAttribute('data-gallery')) && !this.printed) this.print();
+		// Trigger initial print/load if ID is present
+		if(this.id && !this.printed) this.print();
 		// Define the 'muted' property and sync it with the store and attribute
 		if(!('muted' in this)) {
 			Object.defineProperty(this, 'muted', {
@@ -331,23 +331,8 @@ export class HTMLMicrioElement extends HTMLElement {
 		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
 		if(opts.settings.noControls) this.state.ui.controls.set(false); // Apply noControls setting
 
-		// --- Gallery/Grid/Album Loading ---
-		if(opts.settings.gallery?.archive) { // If gallery archive is specified
-			const galleryArchive = opts.settings.gallery?.archive;
-			const isV5Archive = /\.\d+$/.test(galleryArchive); // Check if it's a V5 revisioned archive
-			const path = opts.path||(idIsV5(galleryArchive.replace(/\.\d+$/,'')) ? BASEPATH_V5 : BASEPATH); // Determine path
-			if(isV5Archive) await this.loadArchiveBin(path, galleryArchive); // Load V5 archive binary
-			opts.settings.gallery.startId = opts.id; // Store original ID
-			if(opts.grid) await this.setGrid(opts, path); // Handle grid setup
-			else await this.loadGallery(opts, path, isV5Archive); // Handle gallery setup
-			if(!isV5Archive) delete opts.settings.gallery.archive; // Remove archive if not V5 (legacy gallery string)
-			if(!opts.path) opts.path = path; // Store determined path
-			delete opts.id; // Remove original ID
-		}
-		else if(opts.id?.startsWith('album/')) { // If ID is an album ID
-			await this.loadV5Album(opts.id.replace('album/', ''), opts);
-		}
-		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) { // If ID is V5 and might belong to an album
+		// --- Album Loading ---
+		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) { // If ID is V5 and might belong to an album
 			// Fetch image info to check for albumId, then load the album if found
 			await DataLoader.getInfo(opts.id).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
 				.catch(() => {});
@@ -565,6 +550,40 @@ export class HTMLMicrioElement extends HTMLElement {
 	}
 
 	/**
+	 * Opens a swipeable gallery from image assets (e.g., marker images).
+	 * Creates MicrioImage instances from the provided assets and opens them as a strip-swipe gallery.
+	 * @internal
+	 * @param images Array of image assets to display in the gallery.
+	 * @param startId Optional ID of the image to show first.
+	 * @param basePath Optional CDN base path; defaults to the current image's path or BASEPATH.
+	 */
+	async openGallery(images: Models.Assets.Image[], startId?: string, basePath?: string) : Promise<void> {
+		this.printUI(false, true);
+		if (!this.engine.ready) await this.engine.load();
+		if (!this.webgl.gl) this.webgl.init();
+
+		const path = basePath ?? this._current?.dataPath ?? BASEPATH;
+		const startIdx = Math.max(0, images.findIndex(i => (i.micrioId ?? i.id) == startId));
+		const gallery = images.map((c, i) => new MicrioImage(this.engine, {
+			id: c.micrioId ?? c.id!,
+			path, width: c.width, height: c.height,
+			isDeepZoom: c.isDeepZoom,
+			isPng: c.isPng, isWebP: c.isWebP,
+			tileSize: 1024,
+			settings: { skipMeta: true, gallery: { type: 'swipe', startId } }
+		}, {
+			area: [i - startIdx, 0, i - startIdx + 1, 1]
+		}));
+
+		this.open({
+			width: this.offsetWidth * this.canvas.getRatio(),
+			height: this.offsetHeight * this.canvas.getRatio(),
+			gallery,
+			settings: { view: [0, 0, 1, 1], gallery: { type: 'swipe', startId } }
+		});
+	}
+
+	/**
 	 * Parses HTML attributes of the `<micr-io>` element into a partial ImageInfo object.
 	 * @internal
 	 * @returns A partial {@link Models.ImageInfo.ImageInfo} object containing options derived from attributes.
@@ -615,9 +634,6 @@ export class HTMLMicrioElement extends HTMLElement {
 			sets.noUI = sets.skipMeta = true;
 			sets.hookEvents = false;
 		}
-
-		// If grid attribute points to an archive, use it for gallery settings too
-		if(opts.settings && opts.grid && opts.grid.indexOf('.') > 0) opts.settings.gallery!.archive = opts.grid;
 
 		return opts;
 	}

@@ -3,15 +3,15 @@
 	 * MicrioGallery.svelte - Renders a gallery popover using a nested <micr-io> element.
 	 *
 	 * This component is typically used when clicking on an image within a marker popup.
-	 * It takes an array of image assets, constructs the `data-gallery` attribute string,
-	 * and initializes a new, embedded <micr-io> instance configured as a gallery.
+	 * It takes an array of image assets and opens them as a swipeable gallery
+	 * in an embedded <micr-io> instance.
 	 * It also displays the caption of the currently viewed gallery image.
 	 */
 
 	import type { HTMLMicrioElement } from '$ts/element';
 	import type { Models } from '$types/models';
 
-	import { getContext, onDestroy } from 'svelte';
+	import { getContext, onDestroy, onMount, tick } from 'svelte';
 
 	// --- Props ---
 	interface Props {
@@ -45,6 +45,13 @@
 	/** Reactive caption text for the current gallery image, based on language. */
 	const galleryCaption = $derived(gallCurr?.i18n?.[$_lang]?.description ?? undefined);
 
+	/** Initialize the gallery when the nested <micr-io> is mounted */
+	onMount(async () => {
+		await tick();
+		const path = $current?.$info?.path;
+		await galleryMicrio?.openGallery(gallery, startId, path);
+	});
+
 	/** No reason to keep the gallery <micr-io> alive when closing -- also ditch WebGL context */
 	onDestroy(() => galleryMicrio?.destroy());
 
@@ -53,17 +60,9 @@
 <!-- Main container for the gallery popover -->
 <figure>
 	<!-- Nested <micr-io> element configured as a gallery -->
-	<!-- Construct the data-gallery attribute string -->
-	<!-- Pass the starting image ID -->
-	<!-- Inherit data path -->
 	<!-- Hide logo in gallery popover -->
 	<!-- Listen for page changes within the gallery -->
 	<micr-io bind:this={galleryMicrio}
-		data-gallery={gallery.map(i =>
-			`${i.micrioId},${i.width},${i.height},${i.isDeepZoom?'d':''}${i.isWebP?',w':i.isPng?',p':''}`
-		).join(';')}
-		data-start={startId}
-		data-path={$current && $current.$info && $current.$info.path}
 		data-logo="false"
 		ongallery-show={gallerySwitch}
 	></micr-io>
