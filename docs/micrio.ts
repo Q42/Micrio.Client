@@ -28,7 +28,7 @@ export * from '../src/ts/render/engine';
 /** @internal */
 export * from '../src/ts/render/canvas';
 /** @internal */
-export * from '../src/ts/events';
+export * from '../src/ts/events/facade';
 /** @internal */
 export * from '../src/ts/image';
 /** @internal */
