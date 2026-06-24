@@ -3,8 +3,6 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '$types/models';
-import { VIEWER_BASE } from '../globals';
 import { clone } from './object';
 import { MicrioError } from './error';
 
@@ -61,12 +59,4 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
  */
 
 
-/**
- * Fetches album info JSON (`album/[id].json`) from the Micrio CDN.
- * Uses predefined data if available (`MICRIO_ALBUM`).
- * @internal
- * @param id The album ID.
- * @returns A Promise resolving to the AlbumInfo object or undefined on error.
- */
-export const fetchAlbumInfo = (id: string): Promise<Models.AlbumInfo | undefined> =>
-	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`);
+

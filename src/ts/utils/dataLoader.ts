@@ -23,6 +23,7 @@ type BundleImage = Models.ImageBundle.BundleImage;
 
 const bundleCache = new Map<string, BundleImage>();
 const spaceCache = new Map<string, Models.Spaces.Space>();
+const albumCache = new Map<string, Models.AlbumInfo>();
 const inflightFetches = new Map<string, Promise<void>>();
 let orgCache: Models.ImageInfo.Organisation | undefined;
 
@@ -59,6 +60,9 @@ async function doFetchBundle(id: string): Promise<void> {
 				spaceCache.set(space.id, space.data);
 			}
 		}
+	}
+	if (bundle?.album) {
+		albumCache.set(bundle.album.id, bundle.album);
 	}
 }
 
@@ -98,6 +102,11 @@ export const DataLoader = {
 	/** Returns the organisation data from the bundle, or undefined. */
 	getOrganisation(): Models.ImageInfo.Organisation | undefined {
 		return orgCache;
+	},
+
+	/** Returns the album info for an album ID from the bundle cache. */
+	getAlbum(id: string): Models.AlbumInfo | undefined {
+		return albumCache.get(id);
 	},
 
 	/**

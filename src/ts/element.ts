@@ -10,7 +10,7 @@ import { fetchJson, jsonCache } from './utils/fetch';
 import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, VIEWER_BASE, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
@@ -304,27 +304,23 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param opts Partial image info options to merge.
 	 * @returns Promise that resolves when the album and gallery are loaded.
 	 */
-	private loadV5Album = (id:string, opts:Partial<Models.ImageInfo.ImageInfo>) : Promise<void> => ('MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`)).then((aInfo) => {
-		if(!aInfo) return; // Exit if album info not found
-		const archiveId = aInfo.id+'.'+aInfo.revision; // Construct archive ID
-		const path = opts.path = aInfo.organisation?.baseUrl ?? BASEPATH_V5; // Determine base path
-		// Merge album info into options
-		opts.organisation = aInfo.organisation;
+	private loadV5Album = async (id:string, opts:Partial<Models.ImageInfo.ImageInfo>) : Promise<void> => {
+		const aInfo = DataLoader.getAlbum(id);
+		if(!aInfo) return;
+		const path = opts.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
 		opts.settings!.album = aInfo;
 		opts.settings!.gallery = {
-			archive: archiveId,
+			archive: aInfo.archive,
 			sort: aInfo.sort,
 			type: aInfo.type,
-			startId: opts.id, // Store original ID as startId
+			startId: opts.id,
 			isSpreads: aInfo.isSpreads,
 			coverPages: aInfo.coverPages,
-			revisions: aInfo.published
 		};
-		delete opts.id; // Remove original ID, gallery logic will handle it
-		// Load the archive binary, then load the gallery data
-		return this.loadArchiveBin(path, archiveId)
+		delete opts.id;
+		return this.loadArchiveBin(path, aInfo.archive)
 			.then(() => this.loadGallery(opts, path, true));
-	}, (e) => this.printError(e?.message || e)); // Handle fetch errors
+	};
 
 	/**
 	 * Performs initial setup based on element attributes.

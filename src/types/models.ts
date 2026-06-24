@@ -1090,6 +1090,7 @@ import type { MicrioIcon } from '$ts/icons';
 				id: string;
 				data: Models.Spaces.Space;
 			}[];
+			album?: AlbumInfo;
 		};
 	}
 
@@ -1336,12 +1337,8 @@ import type { MicrioIcon } from '$ts/icons';
 		isSpreads?: boolean;
 		/** The number of single cover pages in case of spreads */
 		coverPages?: number;
-		/** Published revision number */
-		revision: number;
-		/** Available page data (markers, etc) */
-		published: {[key:string]: RevisionType};
-		/** Album organisation */
-		organisation?: ImageInfo.Organisation;
+		/** The archive ID for the binary blob */
+		archive: string;
 	}
 
 	export interface Album {
