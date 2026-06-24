@@ -3,8 +3,7 @@ import type { Models } from '$types/models';
 import type TileCanvas from '$engine/canvas/canvas';
 
 import { tick } from 'svelte';
-import { Sanitizer } from './utils/sanitize';
-import { mod } from './utils/math';
+import { mod, toCenterJSON } from './utils/math';
 import { Enums } from './enums';
 
 /**
@@ -241,7 +240,7 @@ export class Camera {
 	} = {}): void {
 		if (!this._engineCanvas) return; // Exit if engine not ready
 
-		let { centerX, centerY, width, height } = Sanitizer.View.toCenterJSON(view);
+		let { centerX, centerY, width, height } = toCenterJSON(view);
 
 		if (opts.area) {
 			const absCoords = this.cooToArea(centerX, centerY, opts.area);
@@ -349,7 +348,7 @@ export class Camera {
 	*/
 	public setLimit(v:Models.Camera.View) : void {
 		if (!this._engineCanvas) return;
-		const l = Sanitizer.View.toCenterJSON(v)!;
+		const l = toCenterJSON(v)!;
 		this._c.view.setLimit(l.centerX, l.centerY, l.width, l.height);
 		this.image.engine.render();
 	}
@@ -418,7 +417,7 @@ export class Camera {
 	): Promise<void> => new Promise((ok, abort) => {
 		if (!this._engineCanvas) return abort(new Error("engine not ready")); // Reject if Wasm not ready
 
-		let { centerX, centerY, width, height } = Sanitizer.View.toCenterJSON(view);
+		let { centerX, centerY, width, height } = toCenterJSON(view);
 
 		if(opts.margin?.length == 2) {
 			centerX += opts.margin[0];
@@ -434,7 +433,7 @@ export class Camera {
 			height *= (opts.area[3] - opts.area[1]);
 		}
 		if (opts.prevView) {
-			const pCV = Sanitizer.View.toCenterJSON(opts.prevView);
+			const pCV = toCenterJSON(opts.prevView);
 			this._c.ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height, false);
 		}
 		if (this.image.$settings.omni?.frames) {

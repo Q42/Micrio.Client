@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
-import { Sanitizer } from '$ts/utils/sanitize';
+import { toCenterJSON } from '$ts/utils/math';
 
 /**
  * Internal representation of a segment in a video tour timeline.
@@ -265,9 +265,9 @@ export class VideoTourInstance {
 
 		if(step == undefined) return; // Exit if step data not found
 
-		const nextView = Sanitizer.View.toCenterJSON(step.view)!;
+		const nextView = toCenterJSON(step.view)!;
 		const _prevView = this.getView(this.currentIndex-1);
-		const prevView = _prevView ? Sanitizer.View.toCenterJSON(_prevView) : undefined;
+		const prevView = _prevView ? toCenterJSON(_prevView) : undefined;
 		const area = this.image.opts?.area;
 
 		if(this.wasPaused && prevView) {

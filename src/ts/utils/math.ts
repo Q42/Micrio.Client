@@ -11,22 +11,12 @@ import type { Models } from '$types/models';
 export const mod = (n: number, m: number = 1): number => (n % m + m) % m;
 
 /**
- * Clamps a view rectangle to the image bounds [0, 0, 1, 1].
- * @internal
+ * Converts a Camera.View tuple `[x, y, w, h]` to a center-based JSON object.
  */
-export const limitView = (v: Models.Camera.View): Models.Camera.View => {
-	// Clamp width and height to maximum of 1
-	const width = Math.min(1, v[2]);
-	const height = Math.min(1, v[3]);
-
-	// Calculate half dimensions for boundary checking
-	const halfW = width / 2;
-	const halfH = height / 2;
-
-	// Clamp center coordinates to keep rectangle within [0,0,1,1] bounds
-	const centerX = Math.max(halfW, Math.min(1 - halfW, v[0] + v[2] / 2));
-	const centerY = Math.max(halfH, Math.min(1 - halfH, v[1] + v[3] / 2));
-
-	return [centerX - halfW, centerY - halfH, width, height];
-};
+export const toCenterJSON = (v: Models.Camera.View): { centerX: number; centerY: number; width: number; height: number } => ({
+	centerX: v[0] + v[2] / 2,
+	centerY: v[1] + v[3] / 2,
+	width: v[2],
+	height: v[3]
+});
 

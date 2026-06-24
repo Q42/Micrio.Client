@@ -8,9 +8,9 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
-import { Sanitizer } from './utils/sanitize';
 import { clone, deepCopy } from './utils/object';
 import { fetchJson } from './utils/fetch';
+import { getIdVal, idIsV5 } from './utils/id';
 import { once } from './utils/store';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
@@ -331,7 +331,26 @@ export class MicrioImage {
 			// Fetch and merge IIIF manifest if present
 			if(iiifManifest) deepCopy(await fetchJson(iiifManifest).catch(loadError), i);
 		}
-		const { isV5Imported } = Sanitizer.imageId(i, this.id);
+		const { isV5Imported } = ((i: Models.ImageInfo.ImageInfo, id: string): { isV5Imported: boolean } => {
+			if (i.settings?._meta?.noLogo) i.settings.noLogo = true;
+			if (i.settings?._meta?.noSmoothing) i.settings.noSmoothing = true;
+
+			const iiifIdBase = 'https://iiif.micr.io/';
+			if (i.id.startsWith(iiifIdBase)) i.id = i.id.slice(iiifIdBase.length);
+
+			if (id.length == 7) {
+				const b = getIdVal(id[1 + (getIdVal(id) % 6)]);
+				i.is360 = !!((b >> 4) & 1) || !!i.is360;
+				i.isWebP = !(b & 3);
+				i.isPng = (b & 3) == 2;
+				if ((b >> 3) & 1 && idIsV5(i.tilesId ?? id)) i.format = 'dz';
+				if (!i.path) i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;
+			}
+
+			const isV5Imported = id.startsWith('i') && !id.includes('/');
+			if (isV5Imported && !i.tilesId) i.tilesId = id.slice(1);
+			return { isV5Imported };
+		})(i, this.id);
 
 		// Merge attribute settings again (overriding fetched info)
 		deepCopy(attr, i);

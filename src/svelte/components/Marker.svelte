@@ -18,11 +18,22 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { ctx } from '../virtual/AudioController.svelte'; // Web Audio context for positional audio
 
-	import { after } from '$ts/utils/store';
 	import { getSpaceVector } from '$ts/utils/space';
 
 	import Icon, { type IconName } from '../ui/Icon.svelte'; // Icon component
 	import AudioLocation from '../virtual/AudioLocation.svelte'; // Component for positional audio
+
+	// --- Inlined utilities ---
+
+	import type { Readable, Unsubscriber } from 'svelte/store';
+
+	const after = <T = any>(s: Readable<T>): Promise<T> => new Promise(ok => {
+		let unsub: Unsubscriber; unsub = s.subscribe(v => {
+			if (v == undefined) {
+				if (unsub) unsub(); else tick().then(() => unsub()); ok(v);
+			}
+		});
+	});
 
 	// --- Context & Global State ---
 

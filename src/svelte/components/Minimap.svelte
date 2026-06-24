@@ -9,7 +9,7 @@
 
 	import type { HTMLMicrioElement } from '$ts/element';
 	import type { MicrioImage } from '$ts/image';
-    import { Sanitizer } from '$ts/utils/sanitize';
+    import { toCenterJSON } from '$ts/utils/math';
 	import type { Models } from '$types/models';
 
 	import { onMount, getContext, untrack } from 'svelte';
@@ -97,7 +97,7 @@
 		const rects: ViewRect[] = [];
 		
 		// Get the basic rectangle from the camera view
-		let { centerX, centerY, width, height } = Sanitizer.View.toCenterJSON(area);
+		let { centerX, centerY, width, height } = toCenterJSON(area);
 		
 		// Normalize longitude center to [0, 1] range (handles negative values or values > 1)
 		centerX = ((centerX % 1) + 1) % 1;
@@ -163,7 +163,7 @@
 		if(!_area||!_ctx) return; // Exit if no view or context
 		moved(); // Update hidden state based on activity
 
-		const area = Sanitizer.View.toCenterJSON(_area);
+		const area = toCenterJSON(_area);
 
 		_ctx.clearRect(0,0, width, height); // Clear the canvas
 

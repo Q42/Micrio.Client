@@ -6,11 +6,11 @@ import type Svelte from '../svelte/Main.svelte';
 
 import { once } from './utils/store';
 import { deepCopy } from './utils/object';
-import { fetchJson, jsonCache, fetchAlbumInfo } from './utils/fetch';
+import { fetchJson, jsonCache } from './utils/fetch';
 import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, VIEWER_BASE, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
@@ -304,7 +304,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param opts Partial image info options to merge.
 	 * @returns Promise that resolves when the album and gallery are loaded.
 	 */
-	private loadV5Album = (id:string, opts:Partial<Models.ImageInfo.ImageInfo>) : Promise<void> => fetchAlbumInfo(id).then((aInfo) => {
+	private loadV5Album = (id:string, opts:Partial<Models.ImageInfo.ImageInfo>) : Promise<void> => ('MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`)).then((aInfo) => {
 		if(!aInfo) return; // Exit if album info not found
 		const archiveId = aInfo.id+'.'+aInfo.revision; // Construct archive ID
 		const path = opts.path = aInfo.organisation?.baseUrl ?? BASEPATH_V5; // Determine base path

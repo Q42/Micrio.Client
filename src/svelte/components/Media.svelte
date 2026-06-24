@@ -26,7 +26,6 @@
 	// Micrio TS imports
 	import { i18n } from '$ts/i18n';
 	import { Browser } from '$ts/utils/browser';
-	import { parseMediaSource, getIOSAudioElement } from '$ts/utils/media';
 	import { VideoTourInstance } from '$ts/media/videotour';
 	import { FrameType, MediaType } from '$types/internal';
 
@@ -39,6 +38,137 @@
 	import MediaControls from './MediaControls.svelte';
 	import Events from '../virtual/Events.svelte';
 	import Button from '../ui/Button.svelte';
+
+	// ============================================================================
+	// Inlined utilities (from former utils/media.ts)
+	// ============================================================================
+
+	const YOUTUBE_URL_PATTERN = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?/;
+	const VIMEO_URL_PATTERN = /vimeo\.com/;
+	const TIME_PARAM_PATTERN = /^.*t=(\d+).*$/;
+	const YOUTUBE_HOST = 'https://www.youtube-nocookie.com';
+
+	interface ParsedMediaSource {
+		type: MediaType;
+		frameType?: FrameType;
+		src?: string;
+		youtubeId?: string;
+		vimeoId?: string;
+		vimeoToken?: string;
+		cloudflareId?: string;
+		micrioEmbed?: string[];
+		startTime?: number;
+		isCloudflare: boolean;
+		hlsSrc?: string;
+	}
+
+	function parseMediaSource(
+		src: string | undefined,
+		tour: Models.ImageData.VideoTour | null,
+		useNativeFrames: boolean = false,
+		currentTime: number = 0
+	): ParsedMediaSource {
+		const srcLower = src?.toLowerCase();
+
+		const result: ParsedMediaSource = {
+			type: MediaType.None,
+			isCloudflare: false,
+		};
+
+		if (!src && tour) {
+			result.type = MediaType.VideoTour;
+			return result;
+		}
+
+		if (!src || !srcLower) return result;
+
+		if (src.startsWith('cfvid://')) {
+			result.isCloudflare = true;
+			result.cloudflareId = src.slice(8);
+			result.hlsSrc = `https://videodelivery.net/${result.cloudflareId}/manifest/video.m3u8`;
+			result.type = MediaType.Video;
+			return result;
+		}
+
+		if (srcLower.endsWith('.mp3')) {
+			result.type = MediaType.Audio;
+			result.src = src;
+			return result;
+		}
+
+		if (srcLower.endsWith('.mp4') || srcLower.endsWith('.webm')) {
+			result.type = MediaType.Video;
+			result.src = src;
+			return result;
+		}
+
+		if (srcLower.startsWith('micrio://')) {
+			result.type = MediaType.Micrio;
+			result.micrioEmbed = src.slice(9).split(',');
+			return result;
+		}
+
+		if (!useNativeFrames) {
+			const ytMatch = YOUTUBE_URL_PATTERN.exec(src);
+			if (ytMatch?.[5]) {
+				if (ytMatch[5] === 'playlist') {
+					const listId = /list=([^&]+)/.exec(src);
+					if (listId?.[1]) {
+						result.type = MediaType.IFrame;
+						result.src = `${YOUTUBE_HOST}/embed/videoseries?list=${listId[1]}`;
+						return result;
+					}
+				} else {
+					result.type = MediaType.IFrame;
+					result.frameType = FrameType.YouTube;
+					result.youtubeId = ytMatch[5];
+
+					const startTime = TIME_PARAM_PATTERN.test(src)
+						? Number(src.replace(TIME_PARAM_PATTERN, '$1'))
+						: currentTime;
+					result.startTime = Math.round(startTime);
+
+					result.src = `${YOUTUBE_HOST}/embed/${ytMatch[5]}?autoplay=0&enablejsapi=1&controls=0&start=${result.startTime}`;
+					return result;
+				}
+			}
+
+			if (VIMEO_URL_PATTERN.test(src)) {
+				const idMatch = src.match(/\/(\d+)/);
+				if (idMatch?.[1]) {
+					result.type = MediaType.IFrame;
+					result.frameType = FrameType.Vimeo;
+					result.vimeoId = idMatch[1];
+
+					const tokenPart = src.slice(src.indexOf(idMatch[1]) + idMatch[1].length + 1);
+					result.vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined;
+
+					const startTime = Math.round(currentTime);
+					result.src = `https://player.vimeo.com/video/${idMatch[1]}?${
+						result.vimeoToken ? `h=${result.vimeoToken}&` : ''
+					}title=0&portrait=0&sidedock=0&byline=0&controls=0#t=${startTime}s`;
+					return result;
+				}
+			}
+		}
+
+		if (srcLower.startsWith('http')) {
+			result.type = MediaType.IFrame;
+			result.src = src;
+			return result;
+		}
+
+		return result;
+	}
+
+	let _iOSAudioElement: HTMLAudioElement | undefined;
+
+	function getIOSAudioElement(): HTMLAudioElement {
+		if (!_iOSAudioElement) {
+			_iOSAudioElement = new Audio();
+		}
+		return _iOSAudioElement;
+	}
 
 	// ============================================================================
 	// Context & Props

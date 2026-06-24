@@ -6,8 +6,6 @@
 	 * and shows the current time and remaining/total duration.
 	 */
 
-	import { parseTime } from '$ts/utils/string'; // Utility to format time strings
-
 	// --- Props ---
 	interface Props {
 		/** Current playback time in seconds (bindable). */
@@ -25,6 +23,20 @@
 		ended = $bindable(false),
 		children
 	}: Props = $props();
+
+	function parseTime(s: number): string {
+		if (isNaN(s)) return '0:00';
+		const neg = s < 0;
+		if (neg) s = -s;
+		const total = Math.ceil(s);
+		const hours = Math.floor(total / 3600);
+		const minutes = Math.floor((total % 3600) / 60);
+		const seconds = total % 60;
+		const pad = (n: number) => n < 10 ? '0' + n : '' + n;
+		return (neg ? '-' : '')
+			+ (hours ? hours + ':' + pad(minutes) : '' + minutes)
+			+ ':' + pad(seconds);
+	}
 
 </script>
 

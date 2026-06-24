@@ -10,10 +10,11 @@ import { MicrioImage } from '$ts/image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
 import { deepCopy } from '$ts/utils/object';
 import { once } from '$ts/utils/store';
-import { sleep } from '$ts/utils/dom';
 import { tick } from 'svelte';
 import { Enums } from '$ts/enums';
 import { slideAreas, swipeAreas, swipeExitAreas } from '$ts/nav/transitions';
+
+const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 
 /** Rounds a number to 5 decimal places. @internal */
 const round = (n:number) => Math.round(n*100000)/100000;
