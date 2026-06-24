@@ -214,7 +214,7 @@ import type { MicrioIcon } from '$ts/icons';
 		export type Settings = {
 			/** The starting viewport */
 			view?: Camera.View;
-			/** Restrict navigation to this viewport (`[x0,y0,x1,y1]`) */
+			/** Restrict navigation to this viewport (`[x0, y0, width, height]`) */
 			restrict?: Camera.View;
 			/** Load a cover-initing image focussed on this coordinate (`[x, y]`) */
 			focus?: [number, number];

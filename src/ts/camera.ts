@@ -241,7 +241,7 @@ export class Camera {
 
 	/**
 	 * Sets the camera view instantly to the specified viewport.
-	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View {centerX, centerY, width, height}.
+	 * @param view The target viewport as a View [x0, y0, width, height].
 	 * @param opts Options for setting the view.
 	 */
 	public setView(view: Models.Camera.View, opts: {
@@ -408,7 +408,7 @@ export class Camera {
 
 	/**
 	 * Animates the camera smoothly to a target viewport.
-	 * @param view The target viewport as either a View [x0, y0, x1, y1] or View {centerX, centerY, width, height}.
+	 * @param view The target viewport as a View [x0, y0, width, height].
 	 * @param opts Optional animation settings.
 	 * @returns A Promise that resolves when the animation completes, or rejects if aborted.
 	 */

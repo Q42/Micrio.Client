@@ -71,7 +71,7 @@
 	// Determine if WebGL rendering should be forced for videos due to HDR screen issues
 	const screenIsHDR = window.matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
-	/** Embed area coordinates [x0, y0, x1, y1]. */
+	/** Embed area coordinates [x0, y0, width, height]. */
 	const a = embed.area;
 	/** Is the embed source an SVG image? */
 	const isSVG = embed.src?.toLowerCase().endsWith('.svg');

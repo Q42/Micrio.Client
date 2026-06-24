@@ -226,6 +226,6 @@ export const ATTRIBUTE_OPTIONS: {
 
 	ARRAYS : { // Comma-separated numbers
 		'data-focus': {}, // Default focus point [x, y]
-		'data-view': {}, // Initial view [x0, y0, x1, y1]
+		'data-view': {}, // Initial view [x0, y0, width, height]
 	}
 };
