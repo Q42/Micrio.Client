@@ -15,32 +15,6 @@ const s4 = (): string => Math.floor((1 + Math.random()) * 0x10000).toString(16).
 export const createGUID = (): string => s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 
 /**
- * Converts a string into a URL-friendly slug.
- * Removes accents, converts to lowercase, replaces spaces with hyphens, and removes invalid characters.
- * @internal
- * @param str The input string.
- * @returns The slugified string, or undefined if the input was undefined.
- */
-export const slugify = (str: string | undefined): string | undefined => {
-	if (str === undefined) return str;
-	str = str.replace(/^\s+|\s+$/g, ''); // trim
-	str = str.toLowerCase();
-
-	// remove accents, swap ñ for n, etc
-	const from = "àáäâèéëêìíïîòóöôùúüûñç·/_,:;";
-	const to = "aaaaeeeeiiiioooouuuunc------";
-	for (let i = 0, l = from.length; i < l; i++) {
-		str = str.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
-	}
-
-	str = str.replace(/[^a-z0-9 -]/g, '') // remove invalid chars
-		.replace(/\s+/g, '-') // collapse whitespace and replace by -
-		.replace(/-+/g, '-'); // collapse dashes
-
-	return str;
-};
-
-/**
  * Converts seconds into a human-readable time string (hh?:mm:ss).
  * @param s Time in seconds. Can be negative for remaining time display.
  * @returns Formatted time string (e.g., "1:23", "1:05:09", "-0:15").

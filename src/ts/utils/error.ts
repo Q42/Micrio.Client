@@ -39,14 +39,14 @@ export const ErrorCodes = {
 } as const;
 
 /** Type for error codes */
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
 
 /**
  * User-friendly error messages for display to end users.
  * These should be clear, actionable, and non-technical.
  * @internal
  */
-export const UserErrorMessages: Record<ErrorCode, string> = {
+const UserErrorMessages: Record<ErrorCode, string> = {
 	[ErrorCodes.NETWORK_OFFLINE]: 'You appear to be offline. Please check your internet connection and try again.',
 	[ErrorCodes.NETWORK_TIMEOUT]: 'The connection timed out. Please try again.',
 	[ErrorCodes.NETWORK_CORS]: 'Unable to load content due to security restrictions.',

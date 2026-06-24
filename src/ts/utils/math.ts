@@ -11,15 +11,6 @@ import type { Models } from '$types/models';
 export const mod = (n: number, m: number = 1): number => (n % m + m) % m;
 
 /**
- * Calculates the hypotenuse of a right triangle given the lengths of the other two sides.
- * @internal
- * @param a Length of side a.
- * @param b Length of side b.
- * @returns The length of the hypotenuse.
- */
-export const pyth = (a: number, b: number): number => Math.sqrt(a * a + b * b);
-
-/**
  * Clamps a view rectangle to the image bounds [0, 0, 1, 1].
  * @internal
  */

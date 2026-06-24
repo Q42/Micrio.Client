@@ -25,7 +25,7 @@ export const YOUTUBE_HOST = 'https://www.youtube-nocookie.com';
 /**
  * Parsed media source information.
  */
-export interface ParsedMediaSource {
+interface ParsedMediaSource {
 	/** The detected media type */
 	type: MediaType;
 	/** The frame type for iframe embeds (YouTube/Vimeo) */
@@ -168,18 +168,6 @@ export function parseMediaSource(
 // ============================================================================
 // Audio URL helpers
 // ============================================================================
-
-// ============================================================================
-// Native HLS Support Detection
-// ============================================================================
-
-/**
- * Checks if the browser natively supports HLS playback.
- */
-export function hasNativeHLS(el?: HTMLMediaElement): boolean {
-	const video = el ?? document.createElement('video');
-	return video.canPlayType('application/vnd.apple.mpegurl') !== '';
-}
 
 // ============================================================================
 // iOS Shared Audio Element

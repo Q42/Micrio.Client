@@ -15,7 +15,7 @@ function overlaps([x0,y0,w0=0,h0=0]: MarkerCoords, [x1,y1,w1=0,h1=0]: MarkerCoor
 	return !(x0+w0+r<x1-r || x0-r>x1+w1+r || y0+rY0<y1-rY1 || y0-rY0>y1+rY1);
 }
 
-export interface ClusterResult {
+interface ClusterResult {
 	overlapped: number[];
 	clusterMarkers: MarkerData[];
 }
