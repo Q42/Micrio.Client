@@ -127,6 +127,7 @@
 		micrio.addEventListener('splitscreen-stop', splitStop);
 
 		let settingsUnsub:Unsubscriber|undefined; // To store the settings subscription
+		let gridUnsub:Unsubscriber|undefined; // To store the grid focus subscription
 
 		// Subscribe to the current image store
 		const currentUnsub = micrio.current.subscribe(c => {
@@ -143,15 +144,17 @@
 					settingsUnsub = c.settings.subscribe(readInfo);
 				});
 			}
+			// Re-evaluate grid availability whenever the current image changes
+			const g = micrio.canvases[0]?.grid;
+			if(g !== grid) {
+				gridUnsub?.();
+				grid = g;
+				if(grid) {
+					gridClickable = grid.clickable;
+					gridUnsub = grid.focussed.subscribe(v => gridFocussed = v);
+				}
+			}
 		});
-
-		// Subscribe to grid focus state for the close button
-		grid = micrio.canvases[0]?.grid;
-		let gridUnsub:Unsubscriber|undefined;
-		if(grid) {
-			gridClickable = grid.clickable;
-			gridUnsub = grid.focussed.subscribe(v => gridFocussed = v);
-		}
 
 		// Cleanup function: remove listeners and unsubscribe on component destroy
 		return () => {
