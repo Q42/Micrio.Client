@@ -12,9 +12,29 @@ import { deepCopy } from '$ts/utils/object';
 import { once } from '$ts/utils/store';
 import { tick } from 'svelte';
 import { Enums } from '$ts/enums';
-import { slideAreas, swipeAreas, swipeExitAreas } from '$ts/nav/transitions';
 
 const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
+
+const slideAreas: Record<number, Models.Camera.ViewRect> = {
+	0:   [0, -.5, 1, 0],
+	90:  [1, 0, 1.5, 1],
+	180: [0, 1, 1, 1.5],
+	270: [-.5, 0, 0, 1],
+};
+
+const swipeAreas: Record<number, Models.Camera.ViewRect> = {
+	0:   [0, -1, 1, 0],
+	90:  [1, 0, 2, 1],
+	180: [0, 1, 1, 2],
+	270: [-1, 0, 0, 1],
+};
+
+const swipeExitAreas: Record<number, Models.Camera.ViewRect> = {
+	0:   [0, 1, 1, 2],
+	90:  [-1, 0, 0, 1],
+	180: [0, -1, 1, 0],
+	270: [1, 0, 2, 1],
+};
 
 /** Rounds a number to 5 decimal places. @internal */
 const round = (n:number) => Math.round(n*100000)/100000;

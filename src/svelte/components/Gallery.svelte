@@ -21,11 +21,12 @@
 	import { icons } from '$ts/icons';
 	import { GallerySwiper } from '$ts/nav/swiper';
 	import { i18n } from '$ts/i18n'; // For UI text translations
-	import { horizontalSlot } from '$ts/nav/transitions';
 	import { Enums } from '$ts/enums';
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
+
+	const horizontalSlot = (offset: number): Models.Camera.ViewRect => [offset, 0, offset + 1, 1];
 
 	// --- Props ---
 
@@ -171,8 +172,6 @@
 
 	/** Flag indicating if the component is still loading/initializing. */
 	let loading:boolean = $state(true);
-	/** Flag indicating if the component has finished its initial setup. */
-	let inited:boolean = false;
 	/** Current rotation value for the omni dial display. */
 	let currentRotation:number = $state(0);
 
@@ -209,7 +208,7 @@
 				activity();
 			}
 		}
-		image.album!.hooked = inited = true;
+		image.album!.hooked = true;
 	}
 
 	// --- Strip-swipe navigation (independent child canvases) ---
@@ -682,7 +681,7 @@
 				}
 				currentPage = startIdx;
 				frameChanged();
-				image.album!.hooked = inited = true;
+				image.album!.hooked = true;
 				engine.render();
 			} else {
 				engine.setActiveImage(image.ptr, startIdx);
