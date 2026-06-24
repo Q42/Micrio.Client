@@ -20,7 +20,6 @@
 	import { onMount, getContext, untrack } from 'svelte';
 	import { MicrioImage } from '$ts/image';
 	import { once } from '$ts/utils/store';
-	import { createGUID } from '$ts/utils/string';
 	import { Browser } from '$ts/utils/browser';
 	import { GLEmbedVideo } from '$ts/media/embedvideo';
 
@@ -52,7 +51,7 @@
 	const info = mainImage.$info as Models.ImageInfo.ImageInfo;
 
 	// Ensure embed has a unique ID
-	if(!embed.uuid) embed.uuid = createGUID();
+	if(!embed.uuid) embed.uuid = crypto.randomUUID();
 	const uuid = embed.uuid; // Store UUID for state management
 
 	/** Is the parent image a 360 panorama? */

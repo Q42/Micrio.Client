@@ -16,7 +16,6 @@
 	import { fade } from 'svelte/transition';
 
 	// Micrio TS imports
-	import { createGUID } from '$ts/utils/string';
 	import { once } from '$ts/utils/store';
 	import { i18n } from '$ts/i18n';
 
@@ -130,10 +129,10 @@
 		<!-- Render Marker Tours menu (if any) -->
 		{#if hasMarkerTours}
 			<Menu onclose={close} menu={{
-				id: createGUID(),
+				id: crypto.randomUUID(),
 				i18n: {[$_lang]: {title: hasBothTourTypes ? 'Marker tours' : 'Tours'}}, // Dynamic title
 				children: markerTours.map((t) => ({ // Create child items for each tour
-					id: createGUID(),
+					id: crypto.randomUUID(),
 					i18n: {[$_lang]: {title: getTourTitle(t,$_lang)}},
 					action:()=>{ // Action starts the tour
 						t.initialStep = 0; // Start from the beginning
@@ -145,10 +144,10 @@
 		<!-- Render Video Tours menu (if any) -->
 		{#if hasVideoTours}
 			<Menu onclose={close} menu={{
-				id: createGUID(),
+				id: crypto.randomUUID(),
 				i18n: {[$_lang]: {title: hasBothTourTypes ? 'Video tours' : 'Tours'}}, // Dynamic title
 				children: videoTours.map((t) => ({ // Create child items
-					id: createGUID(),
+					id: crypto.randomUUID(),
 					i18n: {[$_lang]: {title: getTourTitle(t,$_lang)}},
 					action:()=>{ // Action starts the tour
 						// Switch back to original image if necessary

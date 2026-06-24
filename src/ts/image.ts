@@ -10,7 +10,6 @@ import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
 import { Sanitizer } from './utils/sanitize';
 import { clone, deepCopy } from './utils/object';
-import { createGUID } from './utils/string';
 import { fetchJson } from './utils/fetch';
 import { once } from './utils/store';
 import { MicrioError } from './utils/error';
@@ -38,7 +37,7 @@ export class MicrioImage {
 	id: string;
 
 	/** A unique instance identifier (UUID) generated for this specific instance. */
-	readonly uuid: string = createGUID();
+	readonly uuid: string = crypto.randomUUID();
 
 	/** Internal storage for the image info data.
 	 * @internal
