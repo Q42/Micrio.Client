@@ -14,8 +14,6 @@
 import type { Models } from '$types/models';
 import { VIEWER_BASE } from '../globals';
 import { fetchJson } from './fetch';
-import { Sanitizer } from './sanitize';
-
 // ── Internal types ────────────────────────────────────────────────────────────
 
 type BundleImage = Models.ImageBundle.BundleImage;
@@ -61,17 +59,13 @@ export const DataLoader = {
 		if (!id) return;
 
 		if (bundleCache.has(id)) {
-			const info = bundleCache.get(id)!.info;
-			Sanitizer.imageInfo(info);
-			return info;
+			return bundleCache.get(id)!.info;
 		}
 
 		await ensureBundleFetched(id);
 
 		if (bundleCache.has(id)) {
-			const info = bundleCache.get(id)!.info;
-			Sanitizer.imageInfo(info);
-			return info;
+			return bundleCache.get(id)!.info;
 		}
 	},
 

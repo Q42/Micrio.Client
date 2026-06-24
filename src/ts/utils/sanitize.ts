@@ -1,7 +1,7 @@
 /**
- * Info-level sanitization utilities for normalizing Micrio image info.
- * Data-level sanitization (markers, tours, V4→V5 merging) is now handled
- * server-side by the `viewer.micr.io/{id}/data.json` endpoint.
+ * Utility functions for normalizing Micrio image info.
+ * Info-level normalization (V1 format, V4 cultures, etc.) is handled
+ * server-side by the viewer API. Only ID-level transforms remain client-side.
  * @author Marcel Duin <marcel@micr.io>
  */
 
@@ -10,10 +10,6 @@ import { getIdVal, idIsV5 } from './id';
 
 /** @internal */
 export class Sanitizer {
-	private static readonly _done = {
-		info: new WeakMap<Models.ImageInfo.ImageInfo, boolean>(),
-	};
-
 	// ─── View conversions ───────────────────────────────────────────────────────
 
 	/** View conversion utilities for transforming between view formats. */
@@ -25,23 +21,6 @@ export class Sanitizer {
 			height: v[3]
 		}),
 	};
-
-	// ─── Info-level sanitization ────────────────────────────────────────────────
-
-	/** Sanitizes URLs within an ImageInfo object. */
-	static imageInfo(i: Models.ImageInfo.ImageInfo | undefined): void {
-		if (!i) return;
-		if (Sanitizer._done.info.has(i)) return;
-		// Handle ancient Micrio V1 static info.json format
-		if ('Height' in i) { i.height = (i as unknown as Record<string, unknown>)['Height'] as number; i.version = '1.0'; i.tileSize = 512; }
-		if ('Width' in i) i.width = (i as unknown as Record<string, unknown>)['Width'] as number;
-		// Normalize V4 cultures string to V5 revision object
-		if ('cultures' in i && !i.revision) {
-			const c = (i as unknown as Record<string, unknown>).cultures as string || '';
-			i.revision = Object.fromEntries(c.split(',').filter(Boolean).map(lang => [lang, 0]));
-		}
-		Sanitizer._done.info.set(i, true);
-	}
 
 	/** Applies ID-level info transforms. Returns derived flags. */
 	static imageId(i: Models.ImageInfo.ImageInfo, id: string): { isV5Imported: boolean } {
