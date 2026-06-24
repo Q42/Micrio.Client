@@ -56,7 +56,7 @@
 	/** Checks if a tour has content for the current language. */
 	const hasTourLang = (t: Models.ImageData.Tour | Models.ImageData.MarkerTour): boolean => !!t.i18n?.[$_lang];
 	/** Checks if a page has content for the current language. */
-	const hasPageLang = (p: Models.ImageData.Menu): boolean => !p.i18n?.[$_lang];
+	const hasPageLang = (p: Models.ImageData.Menu): boolean => !!p.i18n?.[$_lang];
 	/** Reactive flag to hide the toolbar when a tour, marker, or popover is active. */
 	const hidden = $derived(!!$tour || !!$marker || !!$popover);
 	/** Combined list of marker tours from image data and space data (filtered by language). */
