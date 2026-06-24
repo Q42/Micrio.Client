@@ -105,7 +105,7 @@
 	const isOmniTwoAxes:boolean = isOmni && !!omniSettings?.twoAxes; // Is it a 2-axis omni object?
 
 	// Determine starting index
-	const startId:string|null = gallery.startId || micrio.getAttribute('data-gallery-start-id'); // ID from settings or attribute
+	const startId:string|undefined = gallery.startId;
 	const archiveId:string|undefined = gallery.archive; // Archive ID if used
 	const coverLimit:boolean = !!$settings.limitToCoverScale; // Inherit cover limit setting
 	const noUI:boolean = !!$settings.noUI; // Inherit noUI setting
@@ -114,7 +114,7 @@
 	const omniNumLayers:number = omniSettings?.layers?.length ?? 1; // Number of layers in omni object
 
 	// Calculate initial index based on attribute, startId, or omni settings
-	const startIdxAttr:number|undefined = micrio.hasAttribute('data-gallery-start') ? Number(micrio.getAttribute('data-gallery-start')) : $settings?.omni?.startIndex;
+	const startIdxAttr:number|undefined = $settings?.omni?.startIndex;
 	let startIdx = startIdxAttr != undefined && !isNaN(startIdxAttr) ? startIdxAttr : startId ? _images.findIndex(i => i.id == startId) : 0;
 	if(startIdx < 0) startIdx = 0; // Default to 0 if not found or invalid
 

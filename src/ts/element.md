@@ -100,23 +100,3 @@ received from the server.
 | `muted` | Mute all positional audio and music in the image | `false` |
 | `volume` | The default positional audio and music volume | `1` |
 | `data-mutedvolume` | The volume to fade positional audio and music to when muted | `0` |
-
-
-### Gallery options
-
-| Attribute   | Description | Default value |
-| ----------- | ----------- | ------------- |
-| `data-gallery` | Gallery definition string or archive ID | |
-| `data-gallery-type` | The gallery type (`swipe`, `swipe-full`, `switch`, `omni`) | `swipe` |
-| `data-gallery-sort` | Gallery sort order (`name`, `-name`, `created`, `-created`) | `created` |
-| `data-gallery-spreads` | Display gallery pages as spreads | `false` |
-| `data-gallery-cover-pages` | Number of single cover pages in spreads mode | `0` |
-| `data-start` | Starting image ID for the gallery | |
-
-
-### Grid options
-
-| Attribute   | Description | Default value |
-| ----------- | ----------- | ------------- |
-| `data-grid` | Grid definition string or archive ID | |
-| `data-grid-clickable` | Make grid items clickable | `false` |
