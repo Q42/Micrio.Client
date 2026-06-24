@@ -225,21 +225,6 @@ export class Camera {
 	public getViewRaw = () : Float64Array => this._view;
 
 	/**
-	 * Gets the current image view rectangle [x0, y0, x1, y1] relative to the image (0-1).
-	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
-	 */
-	public getViewLegacy = () : Models.Camera.ViewRect|undefined => {
-		if (!this._engineCanvas) return undefined;
-
-		return [
-			this._view[0] - this._view[2] / 2,  // x0
-			this._view[1] - this._view[3] / 2,  // y0
-			this._view[0] + this._view[2] / 2,  // x1
-			this._view[1] + this._view[3] / 2   // y1
-		];
-	};
-
-	/**
 	 * Sets the camera view instantly to the specified viewport.
 	 * @param view The target viewport as a View [x0, y0, width, height].
 	 * @param opts Options for setting the view.
