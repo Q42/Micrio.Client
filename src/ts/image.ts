@@ -94,11 +94,6 @@ export class MicrioImage {
 	*/
 	_video:HTMLVideoElement|undefined;
 
-	/** Base path URI for fetching the `info.json` file. Undefined defaults to Micrio's CDN.
-	 * @internal
-	*/
-	private infoBasePath: string|undefined;
-
 	/** Base path URI for fetching `data.[lang].json` files. */
 	dataPath: string;
 
@@ -218,8 +213,7 @@ export class MicrioImage {
 			if(secondSlash !== -1)
 				this.id = this.id.substring(0, secondSlash + 1) + encodeURIComponent(this.id.substring(secondSlash + 1));
 		}
-		// Determine base paths for info and data JSON
-		this.infoBasePath = attr.path && attr.forceInfoPath ? attr.path : undefined;
+		// Determine base path for data JSON
 		this.dataPath = attr.path||this.__info.path||BASEPATH_V5;
 
 		// Setup for split-screen secondary image
