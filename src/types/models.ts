@@ -367,7 +367,6 @@ import type { MicrioIcon } from '$ts/icons';
 
 			/** Albums */
 			gallery?: GallerySettings;
-			album?: AlbumInfo; /** V5 only */
 
 			/** FOR OMNI OBJECTS */
 			omni?: OmniSettings;
@@ -425,6 +424,10 @@ import type { MicrioIcon } from '$ts/icons';
 		}
 
 		export type GallerySettings = {
+			/** Album/image ID for the gallery */
+			id?: string;
+			/** Gallery name */
+			name?: string;
 			/** Gallery has an associated .bin archive with thumbnails */
 			archive?: string;
 			/** Archive layer offset */
@@ -1090,7 +1093,7 @@ import type { MicrioIcon } from '$ts/icons';
 				id: string;
 				data: Models.Spaces.Space;
 			}[];
-			album?: AlbumInfo;
+			album?: ImageInfo.GallerySettings;
 		};
 	}
 
@@ -1323,23 +1326,6 @@ import type { MicrioIcon } from '$ts/icons';
 		}
 	}
 
-	/** Albums */
-	export interface AlbumInfo {
-		/** The album ID */
-		id: string;
-		/** The album name */
-		name: string;
-		/** The album UX type */
-		type: ('swipe'|'switch'|'grid');
-		/** The album image sorting */
-		sort?: ('name'|'-name'|'created'|'-created'|'random');
-		/** Album pages are shown as book spreads */
-		isSpreads?: boolean;
-		/** The number of single cover pages in case of spreads */
-		coverPages?: number;
-		/** The archive ID for the binary blob */
-		archive: string;
-	}
 
 	export interface Album {
 		/** The number of pages in this album */
@@ -1347,7 +1333,7 @@ import type { MicrioIcon } from '$ts/icons';
 		/** The current page index */
 		currentIndex: number;
 		/** The album info */
-		info?: AlbumInfo;
+		info?: ImageInfo.GallerySettings;
 		/** Go to previous page */
 		prev: () => void;
 		/** Go to next page */

@@ -636,7 +636,7 @@
 	image.album = {
 		numPages: pages.length,
 		get currentIndex() { return currentPage},
-		info: image.$settings.album,
+		info: image.$settings.gallery,
 		prev: () => goto(currentPage - 1),
 		next: () => goto(currentPage + 1),
 		goto,

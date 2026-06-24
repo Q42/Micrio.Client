@@ -308,17 +308,9 @@ export class HTMLMicrioElement extends HTMLElement {
 		const aInfo = DataLoader.getAlbum(id);
 		if(!aInfo) return;
 		const path = opts.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
-		opts.settings!.album = aInfo;
-		opts.settings!.gallery = {
-			archive: aInfo.archive,
-			sort: aInfo.sort,
-			type: aInfo.type,
-			startId: opts.id,
-			isSpreads: aInfo.isSpreads,
-			coverPages: aInfo.coverPages,
-		};
+		opts.settings!.gallery = { ...aInfo, startId: opts.id };
 		delete opts.id;
-		return this.loadArchiveBin(path, aInfo.archive)
+		return this.loadArchiveBin(path, aInfo.archive!)
 			.then(() => this.loadGallery(opts, path, true));
 	};
 
