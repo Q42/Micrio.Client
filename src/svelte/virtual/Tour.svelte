@@ -20,7 +20,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { i18n } from '$ts/i18n';
-	import { loadSerialTour, getAudioSrc } from '$ts/utils';
+	import { DataLoader } from '$ts/utils/dataLoader';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // For video/audio playback
@@ -132,7 +132,8 @@
 		if(grid && !step.gridView && grid.images.find(i => i.id == step.micrioId)) {
 			const isPrevStep = 'steps' in tour && tour.stepInfo && step ? tour.stepInfo?.indexOf(step) < currentTourStep : false;
 			// Determine transition type based on marker data and direction
-			const trans:Models.Grid.MarkerFocusTransition = step.marker.data?.gridTourTransition ?? step.marker.data?._meta?.gridTourTransition;
+			const marker = DataLoader.getStepMarker(step);
+			const trans:Models.Grid.MarkerFocusTransition = marker?.data?.gridTourTransition ?? marker?.data?._meta?.gridTourTransition;
 			const slswipe = trans?.startsWith('slide') ? 'slide' : 'swipe';
 			await tick().then(() => { // Wait for DOM updates
 				const promise = grid.focus(img = grid.images.find(i => i.id == step.micrioId) as MicrioImage, { // Focus the target grid image
@@ -150,10 +151,11 @@
 		// If target image is different from current, open it
 		else if(micrio.$current?.id != step.micrioId) {
 			// Handle grid actions if staying within grid view
-			if(step.gridView && step.marker.data?._meta?.gridAction && grid) {
+			const marker = DataLoader.getStepMarker(step);
+			if(step.gridView && marker?.data?._meta?.gridAction && grid) {
 				if(!step.micrioImage) step.micrioImage = grid.images.find(i => i.id == step.micrioId);
 				img = step.micrioImage as MicrioImage;
-				const a = step.marker.data._meta.gridAction.split('|');
+				const a = marker.data._meta.gridAction.split('|');
 				grid.action(a.shift() as string,a.join('|')); // Execute grid action
 			}
 			// Otherwise, open the target image normally
@@ -290,7 +292,7 @@
 	let unsub:Unsubscriber[] = [];
 	onMount(() => {
 		// Load serial tour data if necessary, then start the marker tour logic
-		if('steps' in tour) loadSerialTour(image, tour, $_lang, image.$data!).then(() => startMarkerTour(tour));
+		if('steps' in tour) tick().then(() => startMarkerTour(tour));
 
 		// Subscribe to minimize state if controls are shown
 		if(!noControls) unsub.push(minimized.subscribe(m => onminimize?.(m)));
@@ -359,10 +361,13 @@
 	// --- Reactive Declarations (`$:`) ---
 	/** Reactive variable for the video tour data (if applicable). */
 	const videoTour = $derived(!('steps' in tour) ? tour as Models.ImageData.VideoTour : undefined);
-	/** Reactive audio asset for the current step/tour. */
-	const audio = $derived(videoTour ? ('audio' in tour ? tour.audio as Models.Assets.Audio : videoTour.i18n?.[$_lang]?.audio) : undefined);
+	/** Reactive audio asset for the current step/tour, falling back to the originating marker's audio. */
+	const audio = $derived(videoTour ? (
+		videoTour.i18n?.[$_lang]?.audio
+		?? micrioState.$marker?.i18n?.[$_lang]?.audio
+	) : undefined);
 	/** Reactive audio source URL. */
-	const audioSrc = $derived(getAudioSrc(audio));
+	const audioSrc = $derived(audio?.src);
 
 </script>
 

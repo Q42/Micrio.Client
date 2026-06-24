@@ -4,7 +4,12 @@ import type { Camera } from './camera';
 
 import type Svelte from '../svelte/Main.svelte';
 
-import { once, deepCopy, fetchJson, jsonCache, fetchInfo, fetchAlbumInfo, idIsV5, View, MicrioError } from './utils';
+import { once } from './utils/store';
+import { deepCopy } from './utils/object';
+import { fetchJson, jsonCache, fetchAlbumInfo } from './utils/fetch';
+import { idIsV5 } from './utils/id';
+import { MicrioError } from './utils/error';
+import { DataLoader } from './utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
@@ -362,7 +367,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		}
 		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) { // If ID is V5 and might belong to an album
 			// Fetch image info to check for albumId, then load the album if found
-			await fetchInfo(opts.id, opts.forceInfoPath ? opts.path : undefined, opts.settings?.forceDataRefresh).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
+			await DataLoader.getInfo(opts.id).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
 				.catch(() => {});
 		}
 
@@ -716,13 +721,13 @@ export class HTMLMicrioElement extends HTMLElement {
 			}, {
 				isEmbed: true, useParentCamera: true,
 				area: !isSpreads ? [0,0,1,1]
-					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.75,1]
+					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.5,1]
 					: (i-coverPages)%2==0 ? [0,0,.5,1]
-					: [.5,0,1,1]
+					: [.5,0,.5,1]
 			})
 		);
 		sets.pinchZoomOutLimit = true;
-		if(opts.gallery.length) sets.view = View.fromLegacy(opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area);
+		if(opts.gallery.length) sets.view = opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area;
 	}
 
 	/** Holds loaded grid info data if applicable. */

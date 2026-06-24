@@ -12,11 +12,12 @@
 	import type { MicrioImage } from '$ts/image';
 	import type { Unsubscriber } from 'svelte/store';
 
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { fade } from 'svelte/transition';
 
 	// Micrio TS imports
-	import { createGUID, once } from '$ts/utils';
+	import { createGUID } from '$ts/utils/string';
+	import { once } from '$ts/utils/store';
 	import { i18n } from '$ts/i18n';
 
 	// UI Components
@@ -42,9 +43,6 @@
 	/** Store the ID of the image this toolbar was initially created for (used for menu actions). */
 	const originalId = ($current as MicrioImage).id;
 
-	/** Array to hold the main menu pages defined in the image data. */
-	let mainPages:Models.ImageData.Menu[]|undefined = $state();
-
 	/** Flag indicating if the viewport is currently mobile-sized. */
 	let isMobile:boolean = $state(window.innerWidth <= 500);
 	/** Updates the `isMobile` flag based on window width. */
@@ -55,16 +53,27 @@
 
 	// --- Reactive Declarations (`$:`) ---
 
+	/** Checks if a tour has content for the current language. */
+	const hasTourLang = (t: Models.ImageData.Tour | Models.ImageData.MarkerTour): boolean => !!t.i18n?.[$_lang];
+	/** Checks if a page has content for the current language. */
+	const hasPageLang = (p: Models.ImageData.Menu): boolean => !p.i18n?.[$_lang];
 	/** Reactive flag to hide the toolbar when a tour, marker, or popover is active. */
 	const hidden = $derived(!!$tour || !!$marker || !!$popover);
-	/** Combined list of marker tours from image data and space data. */
-	const markerTours = $derived((data?.markerTours ?? []).concat(spaceData?.markerTours ?? []));
+	/** Combined list of marker tours from image data and space data (filtered by language). */
+	const markerTours = $derived((data?.markerTours ?? []).concat(spaceData?.markerTours ?? []).filter(hasTourLang));
 	/** Does the image have any marker tours? */
 	const hasMarkerTours = $derived(markerTours?.length > 0);
+	/** Video tours filtered by language. */
+	const videoTours = $derived(data?.tours?.filter(hasTourLang) ?? []);
 	/** Does the image have any video tours? */
-	const hasVideoTours = $derived(data?.tours && data?.tours?.length > 0);
+	const hasVideoTours = $derived(videoTours?.length > 0);
 	/** Does the image have both marker and video tours? */
 	const hasBothTourTypes = $derived(hasMarkerTours && hasVideoTours);
+	/** Main menu pages (filtered by language, internal pages always shown). */
+	const mainPages = $derived(data?.pages
+		? data.pages.filter(p => !p.id?.startsWith('_') && hasPageLang(p))
+			.concat(data.pages.filter(p => p.id?.startsWith('_')))
+		: undefined);
 
 	/** Is the toolbar effectively empty (no pages or tours)? */
 	const empty = $derived(!(mainPages?.length || hasMarkerTours || hasVideoTours));
@@ -75,8 +84,7 @@
 	const unsubs:Unsubscriber[] = [];
 
 	/** Helper function to get the language-specific title of a tour. */
-	const getTourTitle = (t:Models.ImageData.Tour, lang:string) : string => ('title' in t ? t['title'] as string
-		: t.i18n?.[lang]?.title) ?? '(Untitled)'; // Fallback title
+	const getTourTitle = (t:Models.ImageData.Tour, lang:string) : string => t.i18n?.[lang]?.title ?? '(Untitled)';
 
 	onMount(() => {
 		// Subscribe to changes in the current MicrioImage
@@ -89,20 +97,6 @@
 			// Subscribe to the image's data store
 			unsubs.push(c.data.subscribe(d => {
 				data = d; // Update local data reference
-				// Process menu pages after a tick to ensure data is settled
-				tick().then(() => {
-					if(!d?.pages) return;
-					// If mainPages hasn't been set yet, store the initial pages (excluding internal ones)
-					if(!mainPages) mainPages = d.pages?.filter(p => !p.id?.startsWith('_'));
-					// Find any image-specific generated menus (e.g., omni layer switcher)
-					const imageSpecific = d.pages?.filter(p => p.id?.startsWith('_'));
-					// If specific menus exist, merge them with the main pages
-					if(imageSpecific.length) mainPages = [
-						...(mainPages?.filter(p => !p.id?.startsWith('_')) ?? []), // Keep original main pages
-						...imageSpecific // Add image-specific pages
-					];
-				});
-
 			}));
 		});
 
@@ -153,7 +147,7 @@
 			<Menu onclose={close} menu={{
 				id: createGUID(),
 				i18n: {[$_lang]: {title: hasBothTourTypes ? 'Video tours' : 'Tours'}}, // Dynamic title
-				children: !data || !data.tours ? [] : data.tours.map((t) => ({ // Create child items
+				children: videoTours.map((t) => ({ // Create child items
 					id: createGUID(),
 					i18n: {[$_lang]: {title: getTourTitle(t,$_lang)}},
 					action:()=>{ // Action starts the tour

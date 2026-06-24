@@ -4,9 +4,7 @@
  */
 
 import type { Models } from '$types/models';
-import type { PREDEFINED } from '$types/internal';
 import { VIEWER_BASE } from '../globals';
-import { sanitizeImageInfo, isLegacyViews } from './sanitize';
 import { clone } from './object';
 import { MicrioError } from './error';
 
@@ -61,39 +59,7 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
  * @param uri The URI to check.
  * @returns True if the resource is cached or being fetched.
  */
-export const isFetching = (uri: string): boolean => jsonCache.has(uri) || jsonPromises.has(uri);
 
-/**
- * Retrieves predefined data (info, data) for a given ID from the global `MICRIO_DATA` variable,
- * which might be populated by server-side rendering or embedding scripts.
- * @internal
- * @param id The Micrio image ID.
- * @returns The predefined data array `[id, info, data]` or undefined if not found.
- */
-export const getLocalData = (id: string): PREDEFINED | undefined =>
-	'MICRIO_DATA' in self ? (<unknown>self?.['MICRIO_DATA'] as PREDEFINED[]).find((p: PREDEFINED) => p[0] == id) : undefined;
-
-/**
- * Fetches the `info.json` file for a given Micrio ID.
- * Uses `getLocalData` first, then falls back to `fetchJson`.
- * Handles legacy V1 info format and sanitizes the result.
- * @internal
- * @param id The Micrio image ID.
- * @param path Optional base path override.
- * @param refresh If true, forces a cache bypass for the fetch.
- * @returns A Promise resolving to the sanitized ImageInfo object or undefined on error.
- */
-export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise<Models.ImageInfo.ImageInfo | undefined> => {
-	const ld = getLocalData(id)?.[1]; // Check local predefined data first
-	return ld ? Promise.resolve(ld) : fetchJson(`${path ?? VIEWER_BASE}${id}/info.json`, refresh) // Fetch if not local
-		.then(r => {
-			// Handle ancient Micrio V1 static info.json format
-			/** @ts-ignore */
-			if (r) { if ('Height' in r) { r.height = r['Height']; r.version = 1.0; r.tileSize = 512; } if ('Width' in r) r.width = r['Width']; }
-			sanitizeImageInfo(r as Models.ImageInfo.ImageInfo | undefined); // Sanitize URLs etc.
-			return r as Models.ImageInfo.ImageInfo | undefined;
-		});
-};
 
 /**
  * Fetches album info JSON (`album/[id].json`) from the Micrio CDN.
@@ -104,7 +70,3 @@ export const fetchInfo = (id: string, path?: string, refresh?: boolean): Promise
  */
 export const fetchAlbumInfo = (id: string): Promise<Models.AlbumInfo | undefined> =>
 	'MICRIO_ALBUM' in self ? Promise.resolve(self['MICRIO_ALBUM'] as Models.AlbumInfo) : fetchJson<Models.AlbumInfo>(`${VIEWER_BASE}album/${id}.json`);
-
-// Re-export isLegacyViews for convenience
-export { isLegacyViews };
-

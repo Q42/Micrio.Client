@@ -16,7 +16,8 @@
 	import { writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
 	import { i18n } from '$ts/i18n';
-	import { getAudioSrc } from '$ts/utils';
+	import { DataLoader } from '$ts/utils/dataLoader';
+
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // Renders the audio/video for the current step
@@ -51,7 +52,7 @@
 	/** Calculate total duration of the tour by summing step durations. */
 	const totalDuration:number = stepInfo.reduce((c, s) => c + s.duration, 0) ?? 0;
 	/** Show playback controls? Defaults to true unless explicitly disabled in tour data. */
-	const controls = untrack(() => 'controls' in tour ? tour.controls !== false : !tour.noControls);
+	const controls = untrack(() => !tour.noControls);
 
 	// --- Playback State ---
 	/** Is the tour currently paused? */
@@ -197,7 +198,7 @@
 	// --- Utility ---
 
 	/** Helper to get the language-specific title for a marker. */
-	const getTitle = (m:Models.ImageData.Marker) : string|undefined => m.i18n ? m.i18n[$lang]?.title : (m as unknown as Models.ImageData.MarkerCultureData).title;
+	const getTitle = (m?: Models.ImageData.Marker) : string|undefined => m ? (m.i18n ? m.i18n[$lang]?.title : (m as unknown as Models.ImageData.MarkerCultureData).title) : undefined;
 
 	// --- Lifecycle (onMount / onDestroy) ---
 
@@ -217,25 +218,31 @@
 		}
 	});
 
-	// --- Reactive Declarations (`$:`) ---
+	// --- Reactive Declarations ---
 
-	/** Reactive audio source based on the current video tour step. */
-	const audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
+	/** Resolved marker for the current step, dynamically loaded from bundle data. */
+	const currentMarker = $derived(currentStepInfo ? DataLoader.getStepMarker(currentStepInfo) : undefined);
+
+	/** Reactive audio source based on the current video tour step, falling back to the marker's audio. */
+	const audio = $derived(current ? (
+		current.i18n?.[$lang]?.audio
+		?? currentMarker?.i18n?.[$lang]?.audio
+	) : undefined);
 	/** Reactive audio source URL. */
-	const audioSrc = $derived(getAudioSrc(audio));
+	const audioSrc = $derived(audio?.src);
 	/** Reactive boolean indicating if the current step has a subtitle. */
-	const hasSubtitle = $derived(!!currentStepInfo?.hasSubtitle);
+	const hasSubtitle = $derived(!!currentMarker?.videoTour?.i18n?.[$lang]?.subtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */
-	const serialTourHasSubtitles = $derived(stepInfo.some(s => s.hasSubtitle));
+	const serialTourHasSubtitles = $derived(stepInfo.some(s => !!DataLoader.getStepMarker(s)?.videoTour?.i18n?.[$lang]?.subtitle));
 
 </script>
 
 <!-- Render chapter list if enabled -->
 {#if tour.printChapters}
 	<ol>{#each stepInfo as c,i}
-		{#if getTitle(c.marker)}
+		{#if getTitle(DataLoader.getStepMarker(c))}
 			<li class:active={currentStepInfo && currentStepInfo.chapter == i} class:enriched={c.imageHasOtherMarkers}>
-				<button onclick={() => goto(i)}>{getTitle(c.marker)}</button>
+				<button onclick={() => goto(i)}>{getTitle(DataLoader.getStepMarker(c))}</button>
 			</li>
 		{/if}
 	{/each}</ol>
@@ -287,7 +294,7 @@
 				<!-- Set width and progress -->
 				<div
 					class="bar"
-					title={getTitle(step.marker)}
+					title={getTitle(DataLoader.getStepMarker(step))}
 					role="progressbar"
 					onclick={(e) => goto(i,e)}
 					onkeypress={e => { if(e.key === 'Enter') goto(i) }}

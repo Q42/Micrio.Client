@@ -26,7 +26,7 @@
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
-    import { View } from '$ts/utils';
+    import { Sanitizer } from '$ts/utils/sanitize';
 
 	// --- Props ---
 
@@ -145,8 +145,8 @@
 				area = _images[++i].opts?.area;
 				if(!area) continue;
 				pageIdxes[pageIdxes.length-1].push(i);
-				v[2] = area[2];
-				v[3] = area[3];
+				v[2] = v[2] + area[2];
+				v[3] = Math.max(v[3], area[3]);
 			}
 			pages.push(v);
 		}
@@ -204,7 +204,7 @@
 			// (Legacy non-strip swipe path, unused for `swipe` type after refactor.)
 			const cv = camera.getViewLegacy() as Models.Camera.ViewRect;
 			const target = pages[i];
-			const v = View.fromLegacy(target)! as Models.Camera.View;
+			const v = Sanitizer.View.fromLegacy(target)! as Models.Camera.View;
 			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < target[0]) !== (cv[2] > target[2])));
 			panning = false;
 			if(animate) {
@@ -345,7 +345,7 @@
 	function limit(a:Models.Camera.ViewRect, forceArea:boolean) : void {
 		zoomedOut = camera.isZoomedOut();
 		// If zoomed out and not forcing area, allow horizontal overflow (-1 to 2)
-		camera.setLimit(!forceArea && zoomedOut ? [-1, a[1], 2, a[3]] : a);
+		camera.setLimit(!forceArea && zoomedOut ? [-1, a[1], 3, a[3]] : a);
 	}
 
 	/** Horizontal padding (px) between the scrubber bar edges and the usable track. */
@@ -461,7 +461,7 @@
 	function moved(_v:Models.Camera.View|undefined) : void {
 		if(!_v) return;
 
-		const v = View.toCenterJSON(_v);
+		const v = Sanitizer.View.toCenterJSON(_v);
 
 		const c = v.centerX; // Current view center X
 		// Calculate a score for each page based on distance and visibility

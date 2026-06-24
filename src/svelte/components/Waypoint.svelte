@@ -16,7 +16,9 @@
 	import { getContext, onMount, untrack } from 'svelte';
 
 	// Micrio TS imports
-	import { clone, getLocalData, getSpaceVector } from '$ts/utils';
+	import { clone } from '$ts/utils/object';
+	import { DataLoader } from '$ts/utils/dataLoader';
+	import { getSpaceVector } from '$ts/utils/space';
 	import { i18n } from '$ts/i18n';
 
 	// UI Components
@@ -47,8 +49,8 @@
 	const info = image.$info as Models.ImageInfo.ImageInfo;
 	const imgSettings = image.$settings;
 
-	/** Attempt to get preloaded data for the target image (used for title fallback). */
-	const targetImage:Models.ImageData.ImageData|undefined = getLocalData(untrack(() => targetId))?.[2];
+	/** Data for the target image (used for title fallback). Loaded asynchronously. */
+	let targetImage:Models.ImageData.ImageData|undefined = $state();
 
 	// --- 3D Position Calculation ---
 
@@ -180,6 +182,9 @@
 
 		/** @ts-ignore Add interface to DOM element for external access */
 		_element['_iface'] = iface;
+
+		// Fetch target image data for title fallback
+		DataLoader.getData(untrack(() => targetId)).then(d => { if (d) targetImage = d; });
 
 		// Dispatch event indicating the waypoint has been printed
 		micrio.dispatchEvent(new CustomEvent<Models.Spaces.WaypointInterface>('wp-print', {detail: iface}));

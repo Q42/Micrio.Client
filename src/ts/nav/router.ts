@@ -4,8 +4,10 @@ import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
 
-import { slugify, once } from '$ts/utils';
+import { slugify } from '$ts/utils/string';
+import { once } from '$ts/utils/store';
 import { MICRIO_TLD } from '$ts/globals';
+import { DataLoader } from '$ts/utils/dataLoader';
 
 /**
  * Handles URL routing for the Micrio viewer, enabling deep linking to specific images,
@@ -158,7 +160,7 @@ export class Router {
 			const m = markerSlug ? (d2[1]??d2[0]).markers?.find(m => // Use new image data if available, else current
 				(m.i18n?.[lang]?.slug ?? slugify((<unknown>m as Models.ImageData.MarkerCultureData).title)) == markerSlug // Check slug first, then title slug
 				// Special check for finding marker within a tour's steps (if marker slug matches a step marker slug)
-				|| (tour && ('steps' in tour) && tour.stepInfo?.map(m => m.marker).find(m => m.i18n?.[lang]?.slug == markerSlug))
+				|| (tour && ('steps' in tour) && tour.stepInfo?.map(m => DataLoader.getStepMarker(m)).find(m => m?.i18n?.[lang]?.slug == markerSlug))
 			) : undefined;
 
 			// Handle tour/marker state updates
@@ -259,7 +261,7 @@ export class Router {
 				curr = this.micrio.engine.images.find(i => i.id == id) as MicrioImage; // Get original image instance
 				// If no marker is explicitly open, use the marker of the initial tour step for the URL
 				if(!marker && tour.initialStep !== undefined)
-					marker = tour.stepInfo[Math.max(0, tour.initialStep)].marker;
+					marker = DataLoader.getStepMarker(tour.stepInfo[Math.max(0, tour.initialStep)]);
 			}
 		}
 

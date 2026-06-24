@@ -2,7 +2,7 @@ import type { Writable } from 'svelte/store';
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$ts/element';
 
-import { Browser } from '$ts/utils';
+import { Browser } from '$ts/utils/browser';
 import { get, writable } from 'svelte/store';
 
 /**

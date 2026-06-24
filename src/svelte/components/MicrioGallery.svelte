@@ -60,7 +60,7 @@
 	<!-- Listen for page changes within the gallery -->
 	<micr-io bind:this={galleryMicrio}
 		data-gallery={gallery.map(i =>
-			`${i.micrioId},${i.width},${i.height},${i.isDeepZoom?'d':''}${i.isWebP?',w':i.isPng||(!$current?.isV5&&i.src?.endsWith('.png'))?',p' : ''}`
+			`${i.micrioId},${i.width},${i.height},${i.isDeepZoom?'d':''}${i.isWebP?',w':i.isPng?',p':''}`
 		).join(';')}
 		data-start={startId}
 		data-path={$current && $current.$info && $current.$info.path}

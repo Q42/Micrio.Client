@@ -168,33 +168,9 @@
 		// Attempt to focus the first button inside after a delay
 		setTimeout(() => _cont?.querySelector('button')?.focus(), 500);
 
-		// Handle marker-specific embeds (defined via 'embedImages' property)
-		const embeds = 'embedImages' in marker ? marker.embedImages as Models.ImageData.Embed[] : undefined;
-		if(embeds) {
-			// Add these embeds to the *currently displayed* image's data store
-			micrio.$current?.data.update(d => {
-				if(!d) d = {embeds:[]};
-				d.embeds = [...(d.embeds??[]), ...embeds];
-				return d;
-			});
-		}
-
 		const unsub = micrio.state.popup.subscribe(m => destroying = !m || m != marker);
 
-		// Cleanup function on component destroy
-		return () => {
-			// Update the destroying store when the global popup state no longer matches this marker
-			unsub();
-			// Remove marker-specific embeds from the image data store
-			if(embeds) {
-				micrio.$current?.data.update(d => {
-					if(!d?.embeds) return d;
-					// Filter out embeds that were added by this marker instance
-					d.embeds = d.embeds.filter(e => !embeds.find(em => em.id == e.id));
-					return d;
-				});
-			}
-		}
+		return () => unsub();
 	});
 
 </script>

@@ -38,19 +38,6 @@ export const VIEWER_BASE: string = `https://viewer.${MICRIO_TLD}/`;
 /** List of demo image IDs that might use the default BASEPATH even if they appear to be V5.
  * @internal
  */
-export const DEMO_IDS = [
-	// PRE 4.3 demos
-	'ttBWO', // Marker types demo
-	'IicaE', // Garden of Earthly with CSS
-	'KLTce', // Garden of Earthly without CSS
-	'xjQrB', // ESO 360
-	// POST 4.3 demos
-	'pfhXT', // Carnival Lent marker / tour demo
-	'rNIPa', // Garden of Earthly with CSS
-	'rdFIY', // Garden of Earthly without CSS
-	'mvRXc', // ESO 360
-];
-
 /** Keys used for storing Micrio settings in localStorage.
  * @internal
  */
@@ -189,7 +176,6 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-is360': {r:true}, // Is it a 360 image?
 		'data-no-externals': {f:'noExternals'}, // Disable loading external JS/CSS?
 		'data-skipmeta': {f:'skipMeta'}, // Skip loading metadata (info.json)?
-		'data-force-data-refresh': {f:'forceDataRefresh'}, // Force refresh of cached data?
 		'data-keeprendering': {f:'keepRendering'}, // Force continuous rendering loop?
 		'data-coverlimit': {f:'limitToCoverScale'}, // Limit zoom out to cover scale?
 		'data-events': {f:'hookEvents'}, // Enable/disable event hooks

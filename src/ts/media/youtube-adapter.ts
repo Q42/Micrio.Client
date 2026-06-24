@@ -6,7 +6,7 @@
 
 import type { YouTubePlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from './types';
-import { loadScript } from '$ts/utils';
+import { loadScript } from '$ts/utils/dom';
 import { YOUTUBE_HOST } from '$ts/utils/media';
 
 /** YouTube player state constants */

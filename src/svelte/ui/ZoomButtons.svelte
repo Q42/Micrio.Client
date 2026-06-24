@@ -15,7 +15,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 
 	// Micrio TS imports
-	import { once } from '$ts/utils';
+	import { once } from '$ts/utils/store';
 	import { i18n } from '$ts/i18n'; // For button titles
 
 	// UI Components

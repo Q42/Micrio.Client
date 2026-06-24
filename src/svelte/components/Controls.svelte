@@ -19,7 +19,7 @@
 
 	// Micrio TS imports
 	import { i18n } from '$ts/i18n';
-	import { once } from '$ts/utils';
+	import { once } from '$ts/utils/store';
 	import { languageNames } from '$ts/i18n/locale';
 
 	// UI sub-component imports
@@ -53,10 +53,7 @@
 	/** Reactive reference to the current image's info store value. */
 	const info = $derived($current?.info);
 	/** Reactive array of available language codes for the current image. */
-	const cultures = $derived($info && $current
-		? $current.isV5 ? Object.keys($info.revision??{[$_lang]:0}) // V5: Get keys from revision object
-		: ('cultures' in $info ? $info.cultures as string : '')?.split(',') ?? [] // V4: Split 'cultures' string
-		: []);
+	const cultures = $derived($info?.revision ? Object.keys($info.revision) : []);
 	/** Reactive flag indicating if the active tour is a serial tour. */
 	const isActiveSerialTour = $derived($tour && 'steps' in $tour && $tour.isSerialTour);
 
@@ -66,8 +63,7 @@
 	function share(){
 		if(navigator.share && $current?.$info) {
 			// Get language-specific data if available
-			const cData = !$current.$data ? undefined : $current.$data?.i18n ? $current.$data.i18n[$_lang]
-				: $current.$data as Models.ImageData.ImageDetailsCultureData;
+			const cData = $current.$data?.i18n?.[$_lang];
 			// Prepare share data
 			navigator.share({
 				title: $current.$info?.title,

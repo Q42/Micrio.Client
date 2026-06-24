@@ -9,7 +9,7 @@
 	import type { Models } from '$types/models';
 
 	import { onMount } from 'svelte';
-	import { getAudioSrc } from '$ts/utils';
+
 
 	// --- Props ---
 	interface Props {
@@ -42,7 +42,7 @@
 		// Increment index and wrap around if needed
 		const item = list[(++idx)%list.length];
 		// Set the audio source (handle legacy `fileUrl`)
-		audio.src = getAudioSrc(item) ?? '';
+		audio.src = item.src ?? '';
 		// Start playback
 		audio.play();
 	}

@@ -8,7 +8,9 @@ import type { HTMLMicrioElement } from '$ts/element';
 
 import { MicrioImage } from '$ts/image';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { deepCopy, once, sleep } from '$ts/utils';
+import { deepCopy } from '$ts/utils/object';
+import { once } from '$ts/utils/store';
+import { sleep } from '$ts/utils/dom';
 import { tick } from 'svelte';
 import { Enums } from '$ts/enums';
 import { slideAreas, swipeAreas, swipeExitAreas } from '$ts/nav/transitions';
@@ -151,13 +153,7 @@ export class Grid {
 			micrio.events.dispatch('grid-load');
 		});
 
-		if(!image.isV5) micrio._lang.subscribe(l => {
-			if(l) Promise.all(this.images.filter(i => (i.$info && 'cultures' in i.$info && i.$info?.cultures as string || '').indexOf(l) >= 0).map(i => once(i.data))).then(loaded);
-			else loaded();
-		});
-		else {
-			loaded();
-		}
+		loaded();
 
 		micrio.events.dispatch('grid-init', this);
 	}
@@ -841,7 +837,7 @@ export class Grid {
 			const imgRat = m.offsetWidth / m.offsetHeight,
 				rX = (1 - (i.width / i.height) / imgRat) / 2;
 			if(!img.camera.aniDone && noView) img.camera.flyToFullView({duration:this.aniDurationIn*1000}).catch(() => {});
-			this.image.camera.setLimit([rX, 0, 1 - rX, 1]);
+			this.image.camera.setLimit([rX, 0, 1 - 2 * rX, 1]);
 		}).catch(() => {});
 	}
 

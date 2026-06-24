@@ -19,7 +19,9 @@
 
 	import { onMount, getContext, untrack } from 'svelte';
 	import { MicrioImage } from '$ts/image';
-	import { once, createGUID, Browser } from '$ts/utils';
+	import { once } from '$ts/utils/store';
+	import { createGUID } from '$ts/utils/string';
+	import { Browser } from '$ts/utils/browser';
 	import { GLEmbedVideo } from '$ts/media/embedvideo';
 
 	import Media from '../components/Media.svelte'; // Reusable media player component

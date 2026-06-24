@@ -18,7 +18,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { languageNames } from '$ts/i18n/locale';
 	import { i18n } from '$ts/i18n';
-	import { getMarkerCulture, getMenuCulture } from '$ts/utils';
+
 
 	// UI Components
 	import Button from '../ui/Button.svelte';
@@ -135,13 +135,13 @@
 	/** Reactive reference to the marker data from the popover prop. */
 	const marker = $derived(popover.marker);
 	/** Reactive language-specific content for the marker. */
-	const content = $derived(marker ? getMarkerCulture(marker, $_lang) : undefined);
+	const content = $derived(marker?.i18n?.[$_lang]);
 	/** Reactive reference to the marker tour associated with the popover. */
 	const tour = $derived(popover.markerTour);
 	/** Reactive reference to the content page data from the popover prop. */
 	const page = $derived(popover.contentPage);
 	/** Reactive language-specific content for the page. */
-	const pageContent = $derived(page ? getMenuCulture(page, $_lang) : undefined);
+	const pageContent = $derived(page?.i18n?.[$_lang]);
 	/** Determine if the page content is primarily a video embed. */
 	const pageIsVideo = $derived(page && pageContent && !page?.buttons?.length ? !!(pageContent.embed && (!pageContent.content || pageContent.content.length < 250) && !page.image) : undefined);
 	/** Get the image source URL for the page content. */

@@ -25,7 +25,8 @@
 
 	// Micrio TS imports
 	import { i18n } from '$ts/i18n';
-	import { Browser, notypecheck, parseMediaSource, getIOSAudioElement } from '$ts/utils';
+	import { Browser } from '$ts/utils/browser';
+	import { parseMediaSource, getIOSAudioElement } from '$ts/utils/media';
 	import { VideoTourInstance } from '$ts/media/videotour';
 	import { FrameType, MediaType } from '$types/internal';
 
@@ -252,11 +253,9 @@
 
 	const sub: Models.Assets.Subtitle | undefined = untrack(() =>
 		tour && !('steps' in tour)
-			? 'subtitle' in tour
-				? (tour['subtitle'] as Models.Assets.Subtitle)
-				: tour.i18n?.[micrio.lang]?.subtitle
+			? tour.i18n?.[micrio.lang]?.subtitle
 			: undefined);
-	const srt = sub && ('fileUrl' in sub ? (sub['fileUrl'] as string) : sub.src);
+	const srt = sub?.src;
 
 	// ============================================================================
 	// Playback Control
@@ -773,7 +772,7 @@
 		>
 			{#if type == MediaType.IFrame}
 				<iframe
-					{...notypecheck({ credentialless: true })}
+					{...{ credentialless: true } as any}
 					{title}
 					src={realSrc}
 					width={rWidth}

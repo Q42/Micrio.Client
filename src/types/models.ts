@@ -116,11 +116,11 @@ import type { MicrioIcon } from '$ts/icons';
 			*/
 			settings?: Partial<ImageInfo.Settings>;
 
-			/** Optional organisation data */
-			organisation?: ImageInfo.Organisation;
-
 			/** The image title (default: autoloaded) */
 			title?: string;
+
+			/** @deprecated Moved to `bundle.json` top-level `organisation` */
+			organisation?: ImageInfo.Organisation;
 			/** The initial data language */
 			lang?: string;
 			/** The image is 360 degrees */
@@ -227,8 +227,6 @@ import type { MicrioIcon } from '$ts/icons';
 
 			/** Use a custom uri for the info json file */
 			infoUrl?: string;
-			/** Force refresh for published data JSON file */
-			forceDataRefresh?: boolean;
 			/** Render this image as a static image */
 			static?: boolean;
 			/** Use a custom thumbnail image uri */
@@ -811,17 +809,6 @@ import type { MicrioIcon } from '$ts/icons';
 				/** Any other value is accepted */
 				[key:string]: any;
 			}
-
-			/** Parsed micrioSplitLink
-			 * @internal
-			*/
-			_micrioSplitLink?: {
-				micrioId: string,
-				markerId?: string,
-				follows?: boolean,
-				view?: Camera.View
-			}
-
 		};
 
 		/**
@@ -1015,7 +1002,6 @@ import type { MicrioIcon } from '$ts/icons';
 		/** Auto generated metadata for marker tours */
 		export type MarkerTourStepInfo = {
 			markerId: string,
-			marker: Marker,
 			micrioId: string,
 			duration: number,
 			imageHasOtherMarkers?: boolean,
@@ -1088,6 +1074,27 @@ import type { MicrioIcon } from '$ts/icons';
 			*/
 			icon?: MicrioIcon
 		}
+	}
+
+	/**
+	 * A bundled image response from the `bundle.json` endpoint.
+	 * Contains both info and data for one or more related images in a single response.
+	 */
+	export namespace ImageBundle {
+		export type BundleImage = {
+			id: string;
+			info: Models.ImageInfo.ImageInfo;
+			data: Models.ImageData.ImageData;
+		};
+
+		export type BundleResponse = {
+			images: BundleImage[];
+			organisation?: ImageInfo.Organisation;
+			spaces?: {
+				id: string;
+				data: Models.Spaces.Space;
+			}[];
+		};
 	}
 
 	export namespace Assets {

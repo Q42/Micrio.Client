@@ -24,7 +24,8 @@
 	import { get, writable } from 'svelte/store';
 
 	// Micrio TS imports
-	import { once } from '$ts/utils';
+	import { once } from '$ts/utils/store';
+	import { DataLoader } from '$ts/utils/dataLoader';
 
 	// UI Sub-component imports
 	import Logo from './ui/Logo.svelte';
@@ -122,7 +123,7 @@
 				firstInited = true; // Mark that initial info is loaded
 				settings = c.settings; // Get settings store
 				// Store organisation logo data if available and not already stored
-				if(!logoOrg && i.organisation?.logo) logoOrg = i.organisation;
+				if(!logoOrg && DataLoader.getOrganisation()?.logo) logoOrg = DataLoader.getOrganisation();
 			}
 		});
 

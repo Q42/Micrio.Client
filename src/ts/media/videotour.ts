@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 
 import { get } from 'svelte/store';
-import { View } from '$ts/utils';
+import { Sanitizer } from '$ts/utils/sanitize';
 
 /**
  * Internal representation of a segment in a video tour timeline.
@@ -80,8 +80,7 @@ export class VideoTourInstance {
 	) {
 		this.micrio = image.engine.micrio;
 		// Get language-specific content or fallback
-		const content = 'timeline' in data ? <unknown>data as Models.ImageData.VideoTourCultureData
-			: data.i18n?.[get(this.micrio._lang)] ?? undefined;
+		const content = data.i18n?.[get(this.micrio._lang)] ?? undefined;
 
 		if(!content) throw new Error('No valid content for video tour!'); // Ensure content exists
 
@@ -116,8 +115,7 @@ export class VideoTourInstance {
 
 	/** Parses the raw timeline data from the tour content into the internal `timeline` array. */
 	public read() : void {
-		const isV5 = !!this.data.i18n; // Check if using V5 data format
-		const dur = isV5 ? 1 : this.content.duration; // Duration multiplier (V5 times are relative 0-1)
+		const dur = 1; // Timeline values are absolute seconds (normalized to V5)
 		const timeline = this.content.timeline;
 
 		this.timeline.length = 0; // Clear existing timeline
@@ -127,7 +125,7 @@ export class VideoTourInstance {
 			const s = timeline[i], p = timeline[i-1]; // Current and previous raw steps
 			const start = p ? p.end * dur : 0; // Calculate animation start time based on previous step's end
 			this.timeline.push({
-				view: this.data.isLegacy ? View.fromLegacy(s.rect)! : s.rect, // Target view rectangle
+				view: s.rect, // Target view rectangle
 				start: start * 1000, // Animation start time (ms)
 				duration: (s.start * dur - start) * 1000, // Animation duration (ms)
 				pauseDuration: (s.end - s.start) * dur * 1000 // Pause duration at the end of animation (ms)
@@ -267,9 +265,9 @@ export class VideoTourInstance {
 
 		if(step == undefined) return; // Exit if step data not found
 
-		const nextView = View.toCenterJSON(step.view)!;
+		const nextView = Sanitizer.View.toCenterJSON(step.view)!;
 		const _prevView = this.getView(this.currentIndex-1);
-		const prevView = _prevView ? View.toCenterJSON(_prevView) : undefined;
+		const prevView = _prevView ? Sanitizer.View.toCenterJSON(_prevView) : undefined;
 		const area = this.image.opts?.area;
 
 		if(this.wasPaused && prevView) {

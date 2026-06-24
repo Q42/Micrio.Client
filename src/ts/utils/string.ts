@@ -46,6 +46,7 @@ export const slugify = (str: string | undefined): string | undefined => {
  * @returns Formatted time string (e.g., "1:23", "1:05:09", "-0:15").
  */
 export function parseTime(s: number): string {
+	if (isNaN(s)) return '0:00';
 	const neg = s < 0;
 	if (neg) s = -s;
 	const total = Math.ceil(s);
