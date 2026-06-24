@@ -16,7 +16,7 @@
 	import { writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
 	import { i18n } from '$ts/i18n';
-	import { getStepMarker } from '$ts/utils/dataLoader';
+	import { DataLoader } from '$ts/utils/dataLoader';
 
 
 	// Component imports
@@ -221,7 +221,7 @@
 	// --- Reactive Declarations ---
 
 	/** Resolved marker for the current step, dynamically loaded from bundle data. */
-	const currentMarker = $derived(currentStepInfo ? getStepMarker(currentStepInfo) : undefined);
+	const currentMarker = $derived(currentStepInfo ? DataLoader.getStepMarker(currentStepInfo) : undefined);
 
 	/** Reactive audio source based on the current video tour step, falling back to the marker's audio. */
 	const audio = $derived(current ? (
@@ -233,16 +233,16 @@
 	/** Reactive boolean indicating if the current step has a subtitle. */
 	const hasSubtitle = $derived(!!currentMarker?.videoTour?.i18n?.[$lang]?.subtitle);
 	/** Reactive boolean indicating if any step of this serial tour has a subtitle. */
-	const serialTourHasSubtitles = $derived(stepInfo.some(s => !!getStepMarker(s)?.videoTour?.i18n?.[$lang]?.subtitle));
+	const serialTourHasSubtitles = $derived(stepInfo.some(s => !!DataLoader.getStepMarker(s)?.videoTour?.i18n?.[$lang]?.subtitle));
 
 </script>
 
 <!-- Render chapter list if enabled -->
 {#if tour.printChapters}
 	<ol>{#each stepInfo as c,i}
-		{#if getTitle(getStepMarker(c))}
+		{#if getTitle(DataLoader.getStepMarker(c))}
 			<li class:active={currentStepInfo && currentStepInfo.chapter == i} class:enriched={c.imageHasOtherMarkers}>
-				<button onclick={() => goto(i)}>{getTitle(getStepMarker(c))}</button>
+				<button onclick={() => goto(i)}>{getTitle(DataLoader.getStepMarker(c))}</button>
 			</li>
 		{/if}
 	{/each}</ol>
@@ -294,7 +294,7 @@
 				<!-- Set width and progress -->
 				<div
 					class="bar"
-					title={getTitle(getStepMarker(step))}
+					title={getTitle(DataLoader.getStepMarker(step))}
 					role="progressbar"
 					onclick={(e) => goto(i,e)}
 					onkeypress={e => { if(e.key === 'Enter') goto(i) }}

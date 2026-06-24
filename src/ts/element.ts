@@ -9,7 +9,7 @@ import { deepCopy } from './utils/object';
 import { fetchJson, jsonCache, fetchAlbumInfo } from './utils/fetch';
 import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
-import { getInfo } from './utils/dataLoader';
+import { DataLoader } from './utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
@@ -367,7 +367,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		}
 		else if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) { // If ID is V5 and might belong to an album
 			// Fetch image info to check for albumId, then load the album if found
-			await getInfo(opts.id).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
+			await DataLoader.getInfo(opts.id).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
 				.catch(() => {});
 		}
 

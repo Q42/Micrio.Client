@@ -50,113 +50,110 @@ async function ensureBundleFetched(id: string): Promise<void> {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/** Returns the info for an image ID, or undefined if not found in its bundle. */
-export async function getInfo(
-	id: string,
-): Promise<Models.ImageInfo.ImageInfo | undefined> {
-	if (!id) return;
+export const DataLoader = {
 
-	if (bundleCache.has(id)) {
-		const info = bundleCache.get(id)!.info;
-		Sanitizer.imageInfo(info);
-		return info;
-	}
+	/** Returns the info for an image ID, or undefined if not found in its bundle. */
+	async getInfo(id: string): Promise<Models.ImageInfo.ImageInfo | undefined> {
+		if (!id) return;
 
-	await ensureBundleFetched(id);
+		if (bundleCache.has(id)) {
+			const info = bundleCache.get(id)!.info;
+			Sanitizer.imageInfo(info);
+			return info;
+		}
 
-	if (bundleCache.has(id)) {
-		const info = bundleCache.get(id)!.info;
-		Sanitizer.imageInfo(info);
-		return info;
-	}
-}
+		await ensureBundleFetched(id);
 
-/** Returns the data for an image ID, or undefined if not found in its bundle. */
-export async function getData(
-	id: string,
-): Promise<Models.ImageData.ImageData | undefined> {
-	if (!id) return;
+		if (bundleCache.has(id)) {
+			const info = bundleCache.get(id)!.info;
+			Sanitizer.imageInfo(info);
+			return info;
+		}
+	},
 
-	if (bundleCache.has(id)) {
-		return bundleCache.get(id)!.data;
-	}
+	/** Returns the data for an image ID, or undefined if not found in its bundle. */
+	async getData(id: string): Promise<Models.ImageData.ImageData | undefined> {
+		if (!id) return;
 
-	await ensureBundleFetched(id);
+		if (bundleCache.has(id)) {
+			return bundleCache.get(id)!.data;
+		}
 
-	if (bundleCache.has(id)) {
-		return bundleCache.get(id)!.data;
-	}
-}
+		await ensureBundleFetched(id);
 
-/** Synchronous accessor for already-cached bundle data. */
-export function getDataSync(id: string): Models.ImageData.ImageData | undefined {
-	return bundleCache.get(id)?.data;
-}
+		if (bundleCache.has(id)) {
+			return bundleCache.get(id)!.data;
+		}
+	},
 
-/**
- * Resolves the marker for a tour step from the already-loaded bundle cache.
- * This replaces the earlier static `.marker` JSON that was inlined in stepInfo.
- */
-export function getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
-	const data = getDataSync(step.micrioId);
-	return data?.markers?.find(m => m.id === step.markerId);
-}
+	/** Synchronous accessor for already-cached bundle data. */
+	getDataSync(id: string): Models.ImageData.ImageData | undefined {
+		return bundleCache.get(id)?.data;
+	},
 
-/** Returns the space data for a space ID, or undefined if not found in its bundle. */
-export function getSpaceData(id: string): Models.Spaces.Space | undefined {
-	return spaceCache.get(id);
-}
+	/**
+	 * Resolves the marker for a tour step from the already-loaded bundle cache.
+	 * This replaces the earlier static `.marker` JSON that was inlined in stepInfo.
+	 */
+	getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
+		const data = this.getDataSync(step.micrioId);
+		return data?.markers?.find(m => m.id === step.markerId);
+	},
 
-/**
- * Returns both info + data for a single image ID, or undefined if the image
- * is not present in its bundle.
- */
-export async function getBundleImage(
-	id: string,
-): Promise<
-	{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined
-> {
-	const info = await getInfo(id);
-	if (!info) return;
+	/** Returns the space data for a space ID, or undefined if not found in its bundle. */
+	getSpaceData(id: string): Models.Spaces.Space | undefined {
+		return spaceCache.get(id);
+	},
 
-	const data = await getData(id);
-	if (!data) return;
+	/**
+	 * Returns both info + data for a single image ID, or undefined if the image
+	 * is not present in its bundle.
+	 */
+	async getBundleImage(
+		id: string,
+	): Promise<
+		{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined
+	> {
+		const info = await this.getInfo(id);
+		if (!info) return;
 
-	return { data, info };
-}
+		const data = await this.getData(id);
+		if (!data) return;
 
-/**
- * Bulk variant of {@link getBundleImage}.
- *
- * Fetches the bundle for the first non‑IIIF ID, then resolves every requested
- * image from the cached bundle results.
- */
-export async function getBundleImages(
-	ids: string[],
-): Promise<
-	Map<string, { info: Models.ImageInfo.ImageInfo; data: Models.ImageData.ImageData }>
-> {
-	const result = new Map<
-		string,
-		{ info: Models.ImageInfo.ImageInfo; data: Models.ImageData.ImageData }
-	>();
-	if (!ids.length) return result;
+		return { data, info };
+	},
 
-	const primaryId = ids.find((id) => !id?.startsWith('http'));
-	if (primaryId) await ensureBundleFetched(primaryId);
+	/**
+	 * Bulk variant of {@link getBundleImage}.
+	 *
+	 * Fetches the bundle for the first non‑IIIF ID, then resolves every requested
+	 * image from the cached bundle results.
+	 */
+	async getBundleImages(
+		ids: string[],
+	): Promise<
+		Map<string, { info: Models.ImageInfo.ImageInfo; data: Models.ImageData.ImageData }>
+	> {
+		const result = new Map<
+			string,
+			{ info: Models.ImageInfo.ImageInfo; data: Models.ImageData.ImageData }
+		>();
+		if (!ids.length) return result;
 
-	const entries = await Promise.all(
-		ids.map(async (id) => {
-			const entry = await getBundleImage(id);
-			return { id, entry };
-		}),
-	);
+		const primaryId = ids.find((id) => !id?.startsWith('http'));
+		if (primaryId) await ensureBundleFetched(primaryId);
 
-	for (const { id, entry } of entries) {
-		if (entry) result.set(id, entry);
-	}
+		const entries = await Promise.all(
+			ids.map(async (id) => {
+				const entry = await this.getBundleImage(id);
+				return { id, entry };
+			}),
+		);
 
-	return result;
-}
+		for (const { id, entry } of entries) {
+			if (entry) result.set(id, entry);
+		}
 
-
+		return result;
+	},
+};

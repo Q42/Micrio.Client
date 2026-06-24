@@ -20,7 +20,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { i18n } from '$ts/i18n';
-	import { getStepMarker } from '$ts/utils/dataLoader';
+	import { DataLoader } from '$ts/utils/dataLoader';
 
 	// Component imports
 	import Media from '../components/Media.svelte'; // For video/audio playback
@@ -132,7 +132,7 @@
 		if(grid && !step.gridView && grid.images.find(i => i.id == step.micrioId)) {
 			const isPrevStep = 'steps' in tour && tour.stepInfo && step ? tour.stepInfo?.indexOf(step) < currentTourStep : false;
 			// Determine transition type based on marker data and direction
-			const marker = getStepMarker(step);
+			const marker = DataLoader.getStepMarker(step);
 			const trans:Models.Grid.MarkerFocusTransition = marker?.data?.gridTourTransition ?? marker?.data?._meta?.gridTourTransition;
 			const slswipe = trans?.startsWith('slide') ? 'slide' : 'swipe';
 			await tick().then(() => { // Wait for DOM updates
@@ -151,7 +151,7 @@
 		// If target image is different from current, open it
 		else if(micrio.$current?.id != step.micrioId) {
 			// Handle grid actions if staying within grid view
-			const marker = getStepMarker(step);
+			const marker = DataLoader.getStepMarker(step);
 			if(step.gridView && marker?.data?._meta?.gridAction && grid) {
 				if(!step.micrioImage) step.micrioImage = grid.images.find(i => i.id == step.micrioId);
 				img = step.micrioImage as MicrioImage;

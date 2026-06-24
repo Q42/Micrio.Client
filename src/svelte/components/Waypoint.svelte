@@ -17,7 +17,7 @@
 
 	// Micrio TS imports
 	import { clone } from '$ts/utils/object';
-	import { getData } from '$ts/utils/dataLoader';
+	import { DataLoader } from '$ts/utils/dataLoader';
 	import { getSpaceVector } from '$ts/utils/space';
 	import { i18n } from '$ts/i18n';
 
@@ -184,7 +184,7 @@
 		_element['_iface'] = iface;
 
 		// Fetch target image data for title fallback
-		getData(untrack(() => targetId)).then(d => { if (d) targetImage = d; });
+		DataLoader.getData(untrack(() => targetId)).then(d => { if (d) targetImage = d; });
 
 		// Dispatch event indicating the waypoint has been printed
 		micrio.dispatchEvent(new CustomEvent<Models.Spaces.WaypointInterface>('wp-print', {detail: iface}));

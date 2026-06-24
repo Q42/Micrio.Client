@@ -14,7 +14,7 @@ import { createGUID } from './utils/string';
 import { fetchJson } from './utils/fetch';
 import { once } from './utils/store';
 import { MicrioError } from './utils/error';
-import { getInfo, getBundleImage, getSpaceData } from './utils/dataLoader';
+import { DataLoader } from './utils/dataLoader';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -321,7 +321,7 @@ export class MicrioImage {
 		if(this.id && (!attr.width || !attr.height || iiifManifest)) {
 			const loadError = (e:Error) => this.setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
 			// Fetch info (Micrio or IIIF) or use preset data
-			deepCopy(await (i.isIIIF ? fetchJson(this.id) : getInfo(this.id)
+			deepCopy(await (i.isIIIF ? fetchJson(this.id) : DataLoader.getInfo(this.id)
 				.then(r => {
 					// If custom ID requested (`id="external/{org-slug}/{customId}"`), the returned info is redirected to real image's ID path.
 					// Also correct this internally.
@@ -397,7 +397,7 @@ export class MicrioImage {
 
 		// Load 360 space data from bundle if linked and not already loaded
 		if(i.spacesId && !micrio.spaceData) {
-			micrio.spaceData = getSpaceData(i.spacesId);
+			micrio.spaceData = DataLoader.getSpaceData(i.spacesId);
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
 
@@ -442,7 +442,7 @@ export class MicrioImage {
 
 		// Load image data immediately if revisions are known and not an embed
 		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni)) {
-			const d = await getBundleImage(this.id).then(r => r?.data);
+			const d = await DataLoader.getBundleImage(this.id).then(r => r?.data);
 			if (d) {
 				micrio.events.dispatch('pre-data', { [this.id]: d });
 				this.data.set(d);
