@@ -26,7 +26,6 @@
 
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
-    import { Sanitizer } from '$ts/utils/sanitize';
 
 	// --- Props ---
 
@@ -120,8 +119,8 @@
 
 	// --- Page Layout Calculation ---
 
-	/** Array storing the calculated view rectangle for each page/spread. */
-	const pages:Models.Camera.ViewRect[] = [];
+	/** Array storing the calculated view for each page/spread. */
+	const pages:Models.Camera.View[] = [];
 	/** Array mapping page index to the original image index(es) it contains. */
 	const pageIdxes:number[][] = [];
 
@@ -169,8 +168,7 @@
 	let zoomedOut:boolean = isSwitch; // Assume zoomed out initially for switch/omni
 	/** Flag indicating if the user is currently dragging the gallery/dial. */
 	let dragging:boolean = $state(true); // Start true to prevent initial unwanted transitions?
-	/** Flag indicating if the user is panning within a non-zoomed-out page. */
-	let panning:boolean = $state(false);
+
 	/** Flag indicating if the component is still loading/initializing. */
 	let loading:boolean = $state(true);
 	/** Flag indicating if the component has finished its initial setup. */
@@ -200,29 +198,12 @@
 		if(isStripSwipe) {
 			stripGoto(currentPage, fast, duration, changed);
 		}
-		else if(!isSwitch) {
-			// (Legacy non-strip swipe path, unused for `swipe` type after refactor.)
-			const cv = camera.getViewLegacy() as Models.Camera.ViewRect;
-			const target = pages[i];
-			const v = Sanitizer.View.fromLegacy(target)! as Models.Camera.View;
-			const animate = inited && ((zoomedOut && !panning) || changed || ((cv[0] < target[0]) !== (cv[2] > target[2])));
-			panning = false;
-			if(animate) {
-				camera.flyToView(v, {duration, speed:1, progress:fast ? .5 : 0})
-					.then(() => limit(target, true))
-					.catch(() => {});
-			} else {
-				if(v && duration == 0) camera.setView(v);
-				limit(target, true);
-			}
-		}
 		else if(changed) { // switch / swipe-full / omni
 			engine.setActiveImage(image.ptr, pageIdxes[currentPage][0], pageIdxes[currentPage].length-1);
 			if(isOmni) {
 				engine.render();
 			} else {
-				const p = pages[currentPage];
-				camera.flyToView([p[0], p[1], p[2]-p[0], p[3]-p[1]],{duration, speed: 2})
+				camera.flyToView(pages[currentPage], {duration, speed: 2})
 					.then(() => limit(pages[currentPage], true))
 					.catch(() => {});
 				activity();
@@ -342,7 +323,7 @@
 	// --- Utility Functions ---
 
 	/** Applies view limits, potentially allowing horizontal overflow if zoomed out. */
-	function limit(a:Models.Camera.ViewRect, forceArea:boolean) : void {
+	function limit(a:Models.Camera.View, forceArea:boolean) : void {
 		zoomedOut = camera.isZoomedOut();
 		// If zoomed out and not forcing area, allow horizontal overflow (-1 to 2)
 		camera.setLimit(!forceArea && zoomedOut ? [-1, a[1], 3, a[3]] : a);
@@ -429,52 +410,6 @@
 		window.removeEventListener(dragIsPointer ? 'pointerup' : 'touchend', scrubStop);
 		dragging = micrio.keepRendering = false; // Reset dragging state
 		goto(currentPage); // Snap to the final page index
-	}
-
-	// --- Swipe Gesture State & Handlers (for non-switch/non-omni galleries) ---
-
-	/** Stores the page index when a pan starts. */
-	let pStartIdx:number;
-	/** Handles the start of a pan gesture. */
-	function pStart() : void {
-		if(!zoomedOut) return; // Only allow swiping if zoomed out
-		closestIdx = pStartIdx = currentPage; // Store starting index
-		panning = zoomedOut; // Set panning flag
-		limit(pages[currentPage], false); // Apply limits, allowing horizontal overflow
-	}
-
-	/** Handles the end of a pan gesture (or pinch). */
-	function pEnd(e:Models.MicrioEventMap['panend']) : void {
-		// If triggered by 'panend' but detail is missing, it means pinch took over, reset panning
-		const d = e.detail;
-		if(e.type == 'panend' && !d) {
-			panning = false;
-		}
-		// Determine target page: snap to closest if changed, otherwise flick based on velocity/duration
-		else goto(closestIdx != currentPage ? closestIdx : currentPage + (pStartIdx != currentPage || !panning || !d ? 0
-			: Math.round(Math.min(1, Math.max(-1, -d.movedX / d.duration))))); // Flick calculation
-	}
-
-	/** Stores the index of the page closest to the current view center during panning. */
-	let closestIdx:number;
-	/** Updates the `closestIdx` based on the current view during panning. */
-	function moved(_v:Models.Camera.View|undefined) : void {
-		if(!_v) return;
-
-		const v = Sanitizer.View.toCenterJSON(_v);
-
-		const c = v.centerX; // Current view center X
-		// Calculate a score for each page based on distance and visibility
-		const distances = pages.map((a, i) => {
-			const fromCenter = (1 - Math.min(Math.abs(c - a[0]),Math.abs(c - a[2]))); // Proximity to center
-			const inView = Math.max(0, (Math.min(c+v.width/2,a[2])-Math.max(c-v.width/2,a[0])) / (a[2]-a[0])); // Visibility percentage
-			return fromCenter * inView * (1-Math.abs(currentPage-i)*.1); // Combine scores, penalize distance from current
-		});
-
-		// Find the index with the highest score
-		engine.setFocus(image.ptr, pages[closestIdx = distances.every(n => !n) ? currentPage : distances.indexOf(Math.max(...distances))], panning);
-		// Update zoomedOut state
-		zoomedOut = camera.isZoomedOut();
 	}
 
 	// --- Strip-swipe Live Drag (independent child canvases) ---
@@ -798,18 +733,7 @@
 				micrio.canvas.element.addEventListener('pointerdown', onDown);
 				unhook.push(() => micrio.canvas.element.removeEventListener('pointerdown', onDown));
 			}
-			else {
-				// Legacy non-strip swipe path, kept for completeness.
-				unsub.push(image.state.view.subscribe(moved));
-				micrio.addEventListener('panstart', pStart);
-				micrio.addEventListener('panend', pEnd);
-				micrio.addEventListener('pinchend', pEnd);
-				unhook.push(() => {
-					micrio.removeEventListener('panstart', pStart);
-					micrio.removeEventListener('panend', pEnd);
-					micrio.removeEventListener('pinchend', pEnd);
-				});
-			}
+	
 		}
 		// Update frame display on camera move for omni objects
 		if(isOmni) micrio.addEventListener('move', frameChanged);
@@ -845,7 +769,7 @@
 		{@const fillPct = total > 1 ? (currentPage / (total - 1)) * 100 : 0}
 		<!-- Scrubber UI for swipe galleries -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class:hidden={loading||($hidden && !$hover && !dragging && !panning)}
+		<div class:hidden={loading||($hidden && !$hover && !dragging)}
 			onpointerover={() => hover.set(true)}
 			onpointerout={(e) => { if(!e.currentTarget.contains(e.relatedTarget as Node)) hover.set(false); }}
 			onfocusin={() => hover.set(true)}
