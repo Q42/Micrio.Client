@@ -24,6 +24,7 @@ type BundleImage = Models.ImageBundle.BundleImage;
 
 const bundleCache = new Map<string, BundleImage>();
 const spaceCache = new Map<string, Models.Spaces.Space>();
+let orgCache: Models.ImageInfo.Organisation | undefined;
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -38,6 +39,9 @@ async function ensureBundleFetched(id: string): Promise<void> {
 				bundleCache.set(entry.id, entry);
 			}
 		}
+	}
+	if (bundle?.organisation) {
+		orgCache = bundle.organisation;
 	}
 	if (bundle?.spaces) {
 		for (const space of bundle.spaces) {
@@ -103,6 +107,11 @@ export const DataLoader = {
 	/** Returns the space data for a space ID, or undefined if not found in its bundle. */
 	getSpaceData(id: string): Models.Spaces.Space | undefined {
 		return spaceCache.get(id);
+	},
+
+	/** Returns the organisation data from the bundle, or undefined. */
+	getOrganisation(): Models.ImageInfo.Organisation | undefined {
+		return orgCache;
 	},
 
 	/**

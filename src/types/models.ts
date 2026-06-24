@@ -116,11 +116,11 @@ import type { MicrioIcon } from '$ts/icons';
 			*/
 			settings?: Partial<ImageInfo.Settings>;
 
-			/** Optional organisation data */
-			organisation?: ImageInfo.Organisation;
-
 			/** The image title (default: autoloaded) */
 			title?: string;
+
+			/** @deprecated Moved to `bundle.json` top-level `organisation` */
+			organisation?: ImageInfo.Organisation;
 			/** The initial data language */
 			lang?: string;
 			/** The image is 360 degrees */
@@ -1089,6 +1089,7 @@ import type { MicrioIcon } from '$ts/icons';
 
 		export type BundleResponse = {
 			images: BundleImage[];
+			organisation?: ImageInfo.Organisation;
 			spaces?: {
 				id: string;
 				data: Models.Spaces.Space;

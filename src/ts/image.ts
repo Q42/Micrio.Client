@@ -351,8 +351,9 @@ export class MicrioImage {
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
 		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 		// Use organization base URL if provided and path wasn't forced by attribute
-		if(i.organisation?.baseUrl && !attr.path) {
-			this.dataPath = i.path = i.organisation.baseUrl;
+		const org = DataLoader.getOrganisation();
+		if(org?.baseUrl && !attr.path) {
+			this.dataPath = i.path = org.baseUrl;
 			if(!isV5Imported) this.tileBase = this.dataPath;
 		}
 		// Handle EU path explicitly
@@ -374,8 +375,8 @@ export class MicrioImage {
 		}
 
 		// Load organization branding CSS if present
-		if(i.organisation?.branding && !(i.settings && i.settings.noUI)) {
-			this.loadStyle(this.dataPath+'style/'+i.organisation.slug+'.css').then(() => {
+		if(org?.branding && !(i.settings && i.settings.noUI)) {
+			this.loadStyle(this.dataPath+'style/'+org.slug+'.css').then(() => {
 				// Check if custom font needs loading from Google Fonts
 				const fontFamily = getComputedStyle(this.engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
 				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
