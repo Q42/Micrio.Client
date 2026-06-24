@@ -49,7 +49,7 @@ import { i18n, langs } from './i18n/strings';
 */
 export class HTMLMicrioElement extends HTMLElement {
 	/** Observed attributes trigger `attributeChangedCallback` when changed. */
-	static get observedAttributes() { return ['id', 'muted', 'data-grid', 'data-limited', 'lang']; }
+	static get observedAttributes() { return ['id', 'muted', 'data-limited', 'lang']; }
 
 	/** Dynamic Svelte constructor, defaults to the main viewer UI.
 	 * @internal
@@ -193,7 +193,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	}
 
 	/**
-	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-grid`, `data-limited`, and `lang`.
+	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-limited`, and `lang`.
 	 * @internal
 	*/
 	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, _oldVal:string, newVal:string) {
@@ -205,10 +205,6 @@ export class HTMLMicrioElement extends HTMLElement {
 			} break;
 			case 'muted': // Sync muted attribute with internal store
 				this.isMuted.set(this.hasAttribute('muted'));
-				break;
-			case 'data-grid': // Handle grid attribute change
-				if(!this.printed) this.print(); // Initial setup
-				else this.$current?.grid?.set(newVal); // Update grid state
 				break;
 			case 'data-limited': // Toggle limited rendering mode
 				if(this.engine?._vertexBuffer && this.$current?.ptr)
@@ -309,9 +305,15 @@ export class HTMLMicrioElement extends HTMLElement {
 		if(!aInfo) return;
 		const path = opts.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
 		opts.settings!.gallery = { ...aInfo, startId: opts.id };
+		if (aInfo.settings) deepCopy(aInfo.settings, opts.settings!);
 		delete opts.id;
-		return this.loadArchiveBin(path, aInfo.archive!)
-			.then(() => this.loadGallery(opts, path, true));
+		await this.loadArchiveBin(path, aInfo.archive!);
+		if (aInfo.type === 'grid') {
+			opts.grid = aInfo.archive!;
+			await this.setGrid(opts, path);
+		} else {
+			await this.loadGallery(opts, path, true);
+		}
 	};
 
 	/**
@@ -430,6 +432,8 @@ export class HTMLMicrioElement extends HTMLElement {
 		if(!isId) deepCopy(attrOpts.settings, i.settings);
 		// Merge default settings (programmatically set)
 		if(this.defaultSettings) deepCopy(this.defaultSettings, i.settings);
+		// Album settings from bundle override defaults
+		if(i.settings?.gallery?.settings) deepCopy(i.settings.gallery.settings, i.settings);
 
 		// Check if already opening the current image
 		if(this.$current && i.id == this.$current?.id) return this.$current;
@@ -740,7 +744,6 @@ export class HTMLMicrioElement extends HTMLElement {
 		opts.settings.zoomLimit = 15;
 		opts.settings.minimap = false;
 		if (opts.settings.hookKeys === undefined && opts.settings.grid?.clickable) opts.settings.hookKeys = true;
-		this.removeAttribute('data-grid'); // Remove attribute after processing
 	}
 
 	/**

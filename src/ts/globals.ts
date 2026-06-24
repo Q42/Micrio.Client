@@ -163,7 +163,6 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-gallery': {f: 'gallery.archive'}, // Gallery definition string or archive ID
 		'data-gallery-sort': {f: 'gallery.sort'}, // Gallery sorting ('name', '-created', etc.)
 		'data-iiif': {r: true, f: 'iiifManifest'}, // IIIF Manifest URL
-		'data-grid': {r:true}, // Grid definition string or archive ID
 		'data-gallery-type': {f:'gallery.type'}, // Gallery type ('swipe', 'switch', 'omni', etc.)
 	},
 

@@ -442,6 +442,8 @@ import type { MicrioIcon } from '$ts/icons';
 			isSpreads?: boolean;
 			/** For spreads, number of cover pages to show as single page */
 			coverPages?: number;
+			/** Optional viewer settings that override/merge with defaults */
+			settings?: Partial<ImageInfo.Settings>;
 			revisions?: {[key:string]: RevisionType};
 		}
 
@@ -1644,8 +1646,6 @@ import type { MicrioIcon } from '$ts/icons';
 			'data-mutedvolume'?: number;
 
 			// Specific technical settings
-			/** Configuration for the grid which the viewer will use. */
-			'data-grid'?: string;
 			/** Toggle limited rendering mode in WebAssembly. */
 			'data-limited'?: boolean;
 		}
