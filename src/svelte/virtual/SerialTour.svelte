@@ -15,7 +15,7 @@
 	import { onMount, getContext, tick, untrack } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { captionsEnabled } from '../common/Subtitles.svelte'; // Global subtitle state
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 	import { DataLoader } from '$ts/utils/dataLoader';
 
 

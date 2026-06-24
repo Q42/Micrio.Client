@@ -19,7 +19,7 @@
 
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 	import { DataLoader } from '$ts/utils/dataLoader';
 
 	// Component imports

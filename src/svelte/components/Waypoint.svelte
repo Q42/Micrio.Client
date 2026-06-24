@@ -19,7 +19,7 @@
 	import { clone } from '$ts/utils/object';
 	import { DataLoader } from '$ts/utils/dataLoader';
 	import { getSpaceVector } from '$ts/utils/space';
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

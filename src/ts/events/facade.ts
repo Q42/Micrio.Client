@@ -6,21 +6,18 @@ import { Browser } from '$ts/utils/browser';
 import { once } from '$ts/utils/store';
 import { get, writable, type Writable } from 'svelte/store';
 
+import { DragHandler } from './drag';
+import { PinchHandler } from './pinch';
+import { PointerPinchHandler } from './pointer-pinch';
+import { GestureHandler } from './gesture';
+import { WheelHandler } from './wheel';
+import { KeyboardHandler } from './keyboard';
+import { DoubleTapHandler } from './doubletap';
+import { UpdateHandler } from './update';
 import {
-	DragHandler,
-	PinchHandler,
-	PointerPinchHandler,
-	GestureHandler,
-	WheelHandler,
-	KeyboardHandler,
-	DoubleTapHandler,
-	UpdateHandler,
 	type EventContext,
 	type EventStateVars,
-} from './index';
-
-// Re-export UpdateEvents for backwards compatibility
-export { UpdateEvents } from './update';
+} from './shared';
 
 /**
  * Handles user input events (mouse, touch, keyboard, wheel, gestures) for the Micrio viewer.

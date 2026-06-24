@@ -18,7 +18,7 @@
 	import { getContext, onMount } from 'svelte';
 
 	// Micrio TS imports
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 	import { once } from '$ts/utils/store';
 	import { languageNames } from '$ts/i18n/locale';
 

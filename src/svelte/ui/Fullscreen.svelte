@@ -12,7 +12,7 @@
 
 	import { getContext, onMount, untrack } from 'svelte';
 	import { Browser } from '$ts/utils/browser'; // Browser detection utilities
-	import { i18n } from '$ts/i18n'; // For button title translation
+	import { i18n } from '$ts/i18n/strings'; // For button title translation
 
 	import Button from './Button.svelte'; // Reusable button component
 

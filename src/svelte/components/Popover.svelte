@@ -17,7 +17,7 @@
 
 	import { getContext, onMount, tick } from 'svelte';
 	import { languageNames } from '$ts/i18n/locale';
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 
 
 	// UI Components

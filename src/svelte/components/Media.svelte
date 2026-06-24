@@ -18,13 +18,13 @@
 	import type { Models } from '$types/models';
 	import type { HTMLMicrioElement } from '$ts/element';
 	import type { MicrioImage } from '$ts/image';
-	import type { MediaPlayerAdapter } from '$ts/media';
+	import type { MediaPlayerAdapter } from '$ts/media/types';
 	import { get, type Writable } from 'svelte/store';
 
 	import { onMount, getContext, untrack } from 'svelte';
 
 	// Micrio TS imports
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 	import { Browser } from '$ts/utils/browser';
 	import { VideoTourInstance } from '$ts/media/videotour';
 	import { FrameType, MediaType } from '$types/internal';

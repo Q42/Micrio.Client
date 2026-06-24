@@ -16,7 +16,7 @@ import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
 import { Canvas } from './render/canvas';
 import { archive } from './render/archive';
-import { Events } from './events';
+import { Events } from './events/facade';
 import { MicrioImage } from './image';
 import { State} from './state';
 import { GoogleTag } from './analytics';

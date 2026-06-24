@@ -13,7 +13,7 @@
 
 	import { getContext, onMount, untrack } from 'svelte';
 	import { fly } from 'svelte/transition'; // Used for popup animation
-	import { i18n } from '$ts/i18n'; // For button titles
+	import { i18n } from '$ts/i18n/strings'; // For button titles
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

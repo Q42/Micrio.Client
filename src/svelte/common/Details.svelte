@@ -14,7 +14,7 @@
 
 	import { getContext, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 
 	import Button from '../ui/Button.svelte';
 

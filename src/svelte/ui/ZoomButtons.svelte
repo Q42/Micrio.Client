@@ -16,7 +16,7 @@
 
 	// Micrio TS imports
 	import { once } from '$ts/utils/store';
-	import { i18n } from '$ts/i18n'; // For button titles
+	import { i18n } from '$ts/i18n/strings'; // For button titles
 
 	// UI Components
 	import Button from '../ui/Button.svelte';

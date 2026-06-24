@@ -17,7 +17,7 @@
 
 	// Micrio TS imports
 	import { once } from '$ts/utils/store';
-	import { i18n } from '$ts/i18n';
+	import { i18n } from '$ts/i18n/strings';
 
 	// UI Components
 	import Menu from './Menu.svelte'; // Recursive menu item component
