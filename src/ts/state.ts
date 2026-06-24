@@ -1,16 +1,14 @@
 import type { Writable } from 'svelte/store';
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 
 import { writable } from 'svelte/store';
-import { once } from './utils/store';
 
 /**
  * # Micrio State management
  *
  * Manages the application state using Svelte stores, allowing reactive updates
- * throughout the UI and providing methods to get/set the overall state.
+ * throughout the UI.
  * Replaces the imperative API of Micrio 3.x.
  *
  * Consists of two main state controllers:
@@ -21,47 +19,12 @@ import { once } from './utils/store';
  * @author Marcel Duin <marcel@micr.io>
  */
 export namespace State {
-	/** Represents the entire serializable state of a Micrio instance. */
-	export type MicrioStateJSON = {
-		/** The ID of the currently active main image. */
-		id: string,
-		/** Array containing the state of each individual image canvas. */
-		c: ImageState[],
-		/** Optional information about the currently active tour [tourId, currentTime?, pausedState?]. */
-		t?: [string,number?,string?],
-		/** Reference to the currently active HTMLMediaElement (unused?). */
-		// TODO: Verify if 'm' property is actually used or needed for state restoration.
-		m?: HTMLMediaElement
-	}
-
-	/** Represents the serializable state of a single MicrioImage instance. */
-	export type ImageState = [
-		/** The image ID. */
-		string,
-		/** The current viewport x0. */
-		number,
-		/** The current viewport y0. */
-		number,
-		/** The current viewport x1. */
-		number,
-		/** The current viewport y1. */
-		number,
-		/** The ID of the currently opened marker within this image (optional). */
-		string?,
-		/** The UUID of the media element associated with the opened marker (optional). */
-		string?,
-		/** The currentTime of the marker's media element (optional). */
-		number?,
-		/** The paused state ('p') of the marker's media element (optional). */
-		string?
-	];
-
 
 	/**
 	* # HTMLMicrioElement state controller (`micrio.state`)
 	*
 	* Manages the global application state associated with the main `<micr-io>` element.
-	* Provides Svelte stores for reactive UI updates and methods for state serialization.
+	* Provides Svelte stores for reactive UI updates.
 	*/
 	export class Main {
 		/** Writable Svelte store holding the currently active tour object (VideoTour or MarkerTour), or undefined if no tour is active. */
@@ -91,9 +54,6 @@ export namespace State {
 		/** Writable Svelte store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
 		public readonly popover:Writable<Models.State.PopoverType|undefined> = writable();
 
-		/** Stores the last retrieved state JSON object. @internal */
-		public value: MicrioStateJSON|undefined;
-
 		/** UI state stores. */
 		public ui = {
 			/** Writable store controlling the visibility of the main UI controls (bottom right). */
@@ -118,150 +78,10 @@ export namespace State {
 
 
 		/** @internal */
-		constructor(private micrio:HTMLMicrioElement){
+		constructor(){
 			// Keep internal properties synced with stores
 			this.tour.subscribe(t => { if(typeof t == 'string') return; this._tour = t });
 			this.marker.subscribe(m => { if(typeof m == 'string') return; this._marker = m });
-		}
-
-		/**
-		 * Gets the current state of the Micrio viewer as a serializable JSON object.
-		 * This object captures the active image(s), viewports, open markers, active tour,
-		 * and media playback states, allowing the exact state to be restored later or elsewhere.
-		 *
-		 * @example
-		 * ```javascript
-		 * const currentState = micrio.state.get();
-		 * // Store or transmit `currentState`
-		 * ```
-		 * @returns The current state as a {@link MicrioStateJSON} object, or undefined if no image is loaded.
-		 */
-		get() : MicrioStateJSON|undefined {
-			if(!this.micrio.$current) return; // Cannot get state if no image is loaded
-			// Construct the state object
-			this.value = {
-				id: this.micrio.$current.id, // ID of the main active image
-				c: this.micrio.canvases.map(c => c.state.get()) // Get state for each image canvas
-			};
-			// Add tour state if a tour is active
-			if(this._tour) {
-				this.value.t = [this._tour.id]; // Store tour ID
-				// Store video tour playback state if applicable
-				if('instance' in this._tour && this._tour.instance) {
-					this.value.t.push(
-						this._tour.instance.currentTime,
-						this._tour.instance.paused ? 'p' : undefined // Store 'p' if paused
-					);
-				}
-				// Store marker tour current step if applicable
-				else if('steps' in this._tour && this._tour.currentStep !== undefined) {
-					this.value.t.push(this._tour.currentStep);
-				}
-			}
-			// TODO: Verify if 'm' property (HTMLMediaElement) is needed/useful here. It's not serializable.
-			return this.value;
-		}
-
-		/**
-		 * Sets the Micrio viewer state from a previously saved {@link MicrioStateJSON} object.
-		 * This will attempt to restore the active image, viewports, open markers, active tour,
-		 * and media playback states.
-		 *
-		 * @example
-		 * ```javascript
-		 * const savedState = // ... load state object ...
-		 * micrio.state.set(savedState);
-		 * ```
-		 * @param s The state object to load.
-		 */
-		async set(s: MicrioStateJSON) {
-			if(!(this.value = s)) return; // Store the state object and exit if null/undefined
-
-			// Restore media playback states first
-			if(s.t?.[1] !== undefined) { // If tour state includes time/paused info
-				const mediaId = s.t[0]; // Assume tour ID is the media ID for video tours
-				const curr = this.mediaState.get(mediaId);
-				if(curr) { // Update existing state
-					curr.currentTime = s.t[1];
-					curr.paused = s.t[2] == 'p';
-				} else { // Create new state entry
-					this.mediaState.set(mediaId, {currentTime:s.t[1], paused: s.t[2] == 'p'});
-				}
-			}
-			// Restore media state for individual image markers
-			s.c?.forEach(imgState => {
-				if (imgState[6] !== undefined && imgState[7] !== undefined) { // If media ID and time exist
-					const mediaId = imgState[6];
-					const curr = this.mediaState.get(mediaId);
-					if (curr) {
-						curr.currentTime = imgState[7];
-						curr.paused = imgState[8] == 'p';
-					} else {
-						this.mediaState.set(mediaId, { currentTime: imgState[7], paused: imgState[8] == 'p' });
-					}
-				}
-			});
-
-
-			// Set active tour if specified in state
-			if(s.t) {
-				await this.setTour(s.t[0]); // Wait for tour to be potentially set
-			}
-
-			// Open the main image specified in the state if it's not already current
-			if(this.micrio.$current?.id != s.id) {
-				this.micrio.open(s.id);
-				// Wait for the image to potentially load its data before setting individual states
-				if (this.micrio.$current) { // Add check for current image existence
-					await once(this.micrio.$current.data, { allowUndefined: true });
-				}
-			}
-
-			// Set state for each individual image canvas
-			this.micrio.canvases.forEach(imgInstance => {
-				imgInstance.state.set(s.c.find(c => c[0] == imgInstance.id));
-			});
-
-			// Re-check tour state after potentially opening a new image
-			if(s.t) {
-				// If tour was set, the marker should be handled by tour logic/marker subscription
-				// Pass step/time info for restoration (s.t[1] = step index for marker tours, time for video tours)
-				return this.setTour(s.t[0], s.t[1]);
-			} else {
-				// If no tour, fly to the saved view of the main image (if no marker was opened by state.set)
-				const mainImgState = s.c.find(i => i[0] == s.id);
-				if(mainImgState && !mainImgState[5] && this.micrio.$current) { // Check if marker ID (index 5) is absent
-					this.micrio.$current.camera.flyToView(mainImgState.slice(1,5) as number[], {speed:2}).catch(() => {});
-				}
-			}
-		}
-
-		/**
-		 * Finds and sets the active tour based on its ID.
-		 * Waits for the current image data to be available.
-		 * @internal
-		 * @param id The ID of the tour to activate.
-		 * @param stepOrTime Optional step index (for marker tours) or currentTime (for video tours) to restore.
-		 */
-		private async setTour(id:string, stepOrTime?:number) {
-			if(!this.micrio.$current) return; // Exit if no current image
-			
-			// Wait for image data to load (needed to find the tour object)
-			const data = await once(this.micrio.$current.data, {allowUndefined: true});
-			if(data) {
-				// Find tour in markerTours or tours array
-				const tour = data.markerTours?.find(t => t.id == id) || data.tours?.find(t => t.id == id);
-				
-				// Set initial step for marker tours if provided
-				if(tour && 'steps' in tour && stepOrTime !== undefined) {
-					tour.initialStep = stepOrTime;
-				}
-				
-				// Only set tour if it's different from current
-				if(this._tour?.id != id) {
-					this.tour.set(tour);
-				}
-			}
 		}
 	}
 
@@ -341,43 +161,6 @@ export namespace State {
 				image.engine.setActiveLayer(image.ptr, l); // Call engine
 				image.engine.render(); // Trigger render
 			});
-		}
-
-		/**
-		 * Gets the current state of this specific image instance as a serializable array.
-		 * @internal
-		 * @returns The image state as an {@link ImageState} array.
-		*/
-		get() : ImageState {
-			const m = this._marker; // Use the internal marker object reference
-			// Find associated media state if a marker is open
-			const media = m ? Array.from(this.image.engine.micrio.state.mediaState).reverse().find(x => x[0].startsWith(m.id)) : null;
-			// Construct the state array
-			return [
-				this.image.id,
-				...(this._view ? this._view.slice(0,4) : [0,0,1,1]), // Use current view or default
-				...(m ? [m.id, ...(media ? [media[0], media[1].currentTime, media[1].paused ? 'p' : undefined] : [])] : [undefined]) // Add marker ID and media state if present
-			].filter(v => v !== undefined) as ImageState; // Filter out undefined values
-		}
-
-		/**
-		 * Sets the state of this image instance from a serialized state array.
-		 * @internal
-		 * @param o The {@link ImageState} array.
-		*/
-		set(o?: ImageState) {
-			if(!o?.length) return; // Exit if no state provided
-			// Set the view store (this will trigger updates)
-			// TODO: Should this flyToView instead of setting directly? Setting directly might cause jumps.
-			this.view.set(o.slice(1,4) as number[]);
-			// Set the marker store if a marker ID is present in the state
-			if(o[5]) {
-				// Only set if different from current marker to avoid loops
-				if(this._marker?.id != o[5]) this.marker.set(o[5]);
-			} else {
-				// If no marker ID in state, ensure local marker store is cleared
-				if (this._marker) this.marker.set(undefined);
-			}
 		}
 	}
 

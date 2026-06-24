@@ -103,7 +103,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	public readonly events:Events = new Events(this);
 
 	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
-	public readonly state:State.Main = new State.Main(this);
+	public readonly state:State.Main = new State.Main();
 
 	/** The Google Analytics integration controller. */
 	private readonly analytics:GoogleTag = new GoogleTag(this);
@@ -473,10 +473,6 @@ export class HTMLMicrioElement extends HTMLElement {
 			}
 			// Create new instance
 			this.canvases.push(c = new MicrioImage(this.engine, i, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this._current, isPassive: opts.isPassive } : undefined));
-
-			// Apply saved state if available
-			const stateData = this.state.value && this.state.value.c.find(c => c[0] == i.id);
-			if(stateData) c.state.set(stateData);
 		}
 
 		// Apply forced start view if provided
