@@ -1089,6 +1089,10 @@ import type { MicrioIcon } from '$ts/icons';
 
 		export type BundleResponse = {
 			images: BundleImage[];
+			spaces?: {
+				id: string;
+				data: Models.Spaces.Space;
+			}[];
 		};
 	}
 

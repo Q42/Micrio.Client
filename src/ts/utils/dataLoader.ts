@@ -23,6 +23,7 @@ type BundleImage = Models.ImageBundle.BundleImage;
 // ── Global singleton caches (shared across all <micr-io> elements) ────────────
 
 const bundleCache = new Map<string, BundleImage>();
+const spaceCache = new Map<string, Models.Spaces.Space>();
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -35,6 +36,13 @@ async function ensureBundleFetched(id: string): Promise<void> {
 		for (const entry of bundle.images) {
 			if (entry?.id) {
 				bundleCache.set(entry.id, entry);
+			}
+		}
+	}
+	if (bundle?.spaces) {
+		for (const space of bundle.spaces) {
+			if (space?.id && space?.data) {
+				spaceCache.set(space.id, space.data);
 			}
 		}
 	}
@@ -92,6 +100,11 @@ export function getDataSync(id: string): Models.ImageData.ImageData | undefined 
 export function getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
 	const data = getDataSync(step.micrioId);
 	return data?.markers?.find(m => m.id === step.markerId);
+}
+
+/** Returns the space data for a space ID, or undefined if not found in its bundle. */
+export function getSpaceData(id: string): Models.Spaces.Space | undefined {
+	return spaceCache.get(id);
 }
 
 /**

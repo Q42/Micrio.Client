@@ -14,7 +14,7 @@ import { createGUID } from './utils/string';
 import { fetchJson } from './utils/fetch';
 import { once } from './utils/store';
 import { MicrioError } from './utils/error';
-import { getInfo, getBundleImage } from './utils/dataLoader';
+import { getInfo, getBundleImage, getSpaceData } from './utils/dataLoader';
 import { State } from './state';
 import { archive } from './render/archive';
 
@@ -395,11 +395,9 @@ export class MicrioImage {
 			}
 		}
 
-		// Load 360 space data if linked and not already loaded
+		// Load 360 space data from bundle if linked and not already loaded
 		if(i.spacesId && !micrio.spaceData) {
-			micrio.spaceData = 'MICRIO_SPACE_DATA' in self ? self['MICRIO_SPACE_DATA'] as Models.Spaces.Space // Check for preloaded data
-				: await fetchJson<Models.Spaces.Space>((this.infoBasePath ?? VIEWER_BASE)+'spaces/'+i.spacesId+'.json'); // Fetch from forced path or CDN
-			// When just one image, ignore space data
+			micrio.spaceData = getSpaceData(i.spacesId);
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
 
