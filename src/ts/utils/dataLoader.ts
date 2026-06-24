@@ -14,6 +14,7 @@
 import type { Models } from '$types/models';
 import { VIEWER_BASE } from '../globals';
 import { fetchJson } from './fetch';
+
 // ── Internal types ────────────────────────────────────────────────────────────
 
 type BundleImage = Models.ImageBundle.BundleImage;
@@ -22,14 +23,25 @@ type BundleImage = Models.ImageBundle.BundleImage;
 
 const bundleCache = new Map<string, BundleImage>();
 const spaceCache = new Map<string, Models.Spaces.Space>();
+const inflightFetches = new Map<string, Promise<void>>();
 let orgCache: Models.ImageInfo.Organisation | undefined;
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-async function ensureBundleFetched(id: string): Promise<void> {
-	if (!id || id.startsWith('http')) return;
-	if (bundleCache.has(id)) return;
+async function fetchBundleOnce(id: string): Promise<void> {
+	if (!id || id.startsWith('http') || bundleCache.has(id)) return;
+	if (inflightFetches.has(id)) return inflightFetches.get(id)!;
 
+	const promise = doFetchBundle(id);
+	inflightFetches.set(id, promise);
+	try {
+		await promise;
+	} finally {
+		inflightFetches.delete(id);
+	}
+}
+
+async function doFetchBundle(id: string): Promise<void> {
 	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json`);
 	if (bundle?.images) {
 		for (const entry of bundle.images) {
@@ -56,32 +68,12 @@ export const DataLoader = {
 
 	/** Returns the info for an image ID, or undefined if not found in its bundle. */
 	async getInfo(id: string): Promise<Models.ImageInfo.ImageInfo | undefined> {
-		if (!id) return;
-
-		if (bundleCache.has(id)) {
-			return bundleCache.get(id)!.info;
-		}
-
-		await ensureBundleFetched(id);
-
-		if (bundleCache.has(id)) {
-			return bundleCache.get(id)!.info;
-		}
+		return (await this.getBundleImage(id))?.info;
 	},
 
 	/** Returns the data for an image ID, or undefined if not found in its bundle. */
 	async getData(id: string): Promise<Models.ImageData.ImageData | undefined> {
-		if (!id) return;
-
-		if (bundleCache.has(id)) {
-			return bundleCache.get(id)!.data;
-		}
-
-		await ensureBundleFetched(id);
-
-		if (bundleCache.has(id)) {
-			return bundleCache.get(id)!.data;
-		}
+		return (await this.getBundleImage(id))?.data;
 	},
 
 	/** Synchronous accessor for already-cached bundle data. */
@@ -109,54 +101,12 @@ export const DataLoader = {
 	},
 
 	/**
-	 * Returns both info + data for a single image ID, or undefined if the image
-	 * is not present in its bundle.
+	 * Returns the full bundle entry (info + data) for a single image ID,
+	 * fetching the bundle once if not cached.
 	 */
-	async getBundleImage(
-		id: string,
-	): Promise<
-		{ data: Models.ImageData.ImageData; info: Models.ImageInfo.ImageInfo } | undefined
-	> {
-		const info = await this.getInfo(id);
-		if (!info) return;
-
-		const data = await this.getData(id);
-		if (!data) return;
-
-		return { data, info };
-	},
-
-	/**
-	 * Bulk variant of {@link getBundleImage}.
-	 *
-	 * Fetches the bundle for the first non‑IIIF ID, then resolves every requested
-	 * image from the cached bundle results.
-	 */
-	async getBundleImages(
-		ids: string[],
-	): Promise<
-		Map<string, { info: Models.ImageInfo.ImageInfo; data: Models.ImageData.ImageData }>
-	> {
-		const result = new Map<
-			string,
-			{ info: Models.ImageInfo.ImageInfo; data: Models.ImageData.ImageData }
-		>();
-		if (!ids.length) return result;
-
-		const primaryId = ids.find((id) => !id?.startsWith('http'));
-		if (primaryId) await ensureBundleFetched(primaryId);
-
-		const entries = await Promise.all(
-			ids.map(async (id) => {
-				const entry = await this.getBundleImage(id);
-				return { id, entry };
-			}),
-		);
-
-		for (const { id, entry } of entries) {
-			if (entry) result.set(id, entry);
-		}
-
-		return result;
+	async getBundleImage(id: string): Promise<BundleImage | undefined> {
+		if (!id) return;
+		await fetchBundleOnce(id);
+		return bundleCache.get(id);
 	},
 };
