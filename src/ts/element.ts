@@ -461,76 +461,71 @@ export class HTMLMicrioElement extends HTMLElement {
 		// Set default language if not already set
 		if(!this.lang) this.lang = 'en';
 
-		// Function to finalize image setup after engine/info loaded
-		const setImage = () => { if(!c) return;
-			// Initialize WebGL
-			if(!this.webgl.gl) try {
-				this.webgl.init();
-			} catch(e) {
-				this.printError(e as Error);
-				return;
-			}
-
-			// Once image info is loaded
-			once(c.info).then(i => { if(!i || !c) return;
-				// Initialize WebGL context if not already done
-				if(!this.initedFirst) {
-					this.canvas.hook(); // Start canvas resize/event listeners
-
-					// Apply theme setting
-					switch(this._current?.$settings?.theme) {
-						case 'light': this.setAttribute('data-light-mode',''); break;
-						case 'os': this.setAttribute('data-auto-scheme',''); break;
-					}
-
-					this.initedFirst = true;
-				}
-
-				// Initialize grid controller if needed
-				if(i.grid && !c.grid) c.grid = new Grid(this, c);
-
-				// Dispatch 'load' event after a tick
-				tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
-
-				// Start split-screen transition if applicable
-				if(opts.splitScreen) tick().then(() => { if(!c) return;
-					// If in grid and an animation might be running (check aniDoneAdd queue)
-					if(grid?.image.camera.aniDoneAdd && grid.image.camera.aniDoneAdd.length > 0) {
-						// Add splitStart to the queue to run after animation finishes
-						grid.image.camera.aniDoneAdd.push(() => c?.splitStart());
-					} else {
-						// Otherwise, start the split screen immediately
-						c.splitStart();
-					}
-				});
-
-			});
-
-			// Set 360 orientation vector for transitions
-			this.engine.set360Orientation(
-				opts.vector?.direction ?? 0,
-				opts.vector?.distanceX ?? 0,
-				opts.vector?.distanceY ?? 0);
-
-			// Prevent engine from auto-setting direction if coming from a waypoint
-			this.engine.preventDirectionSet = !opts.vector;
-
-			// Handle setting the current image based on context (grid, split, single)
-			if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == i.id))) {
-				// Focus the image within the grid, then set as current
-				grid?.focus(c, {view: i.settings?.view}).then(() => this.current.set(c));
-			}
-			else if(!opts.splitScreen) { // Set as main current image
-				this.current.set(c);
-			}
-			else { // Set as active canvas in engine for split-screen
-				this.engine.setCanvas(c);
-			}
+		// Load engine then finalize image setup
+		this.engine.load();
+		// Initialize WebGL
+		if(!this.webgl.gl) try {
+			this.webgl.init();
+		} catch(e) {
+			this.printError(e as Error);
+			return c;
 		}
 
-		// Load engine if needed, then finalize image setup
-		if(!this.engine.ready) this.engine.load().then(setImage).catch(e => this.printError(e as Error));
-		else setImage();
+		// Once image info is loaded
+		once(c.info).then(i => { if(!i || !c) return;
+			// Initialize WebGL context if not already done
+			if(!this.initedFirst) {
+				this.canvas.hook(); // Start canvas resize/event listeners
+
+				// Apply theme setting
+				switch(this._current?.$settings?.theme) {
+					case 'light': this.setAttribute('data-light-mode',''); break;
+					case 'os': this.setAttribute('data-auto-scheme',''); break;
+				}
+
+				this.initedFirst = true;
+			}
+
+			// Initialize grid controller if needed
+			if(i.grid && !c.grid) c.grid = new Grid(this, c);
+
+			// Dispatch 'load' event after a tick
+			tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
+
+			// Start split-screen transition if applicable
+			if(opts.splitScreen) tick().then(() => { if(!c) return;
+				// If in grid and an animation might be running (check aniDoneAdd queue)
+				if(grid?.image.camera.aniDoneAdd && grid.image.camera.aniDoneAdd.length > 0) {
+					// Add splitStart to the queue to run after animation finishes
+					grid.image.camera.aniDoneAdd.push(() => c?.splitStart());
+				} else {
+					// Otherwise, start the split screen immediately
+					c.splitStart();
+				}
+			});
+
+		});
+
+		// Set 360 orientation vector for transitions
+		this.engine.set360Orientation(
+			opts.vector?.direction ?? 0,
+			opts.vector?.distanceX ?? 0,
+			opts.vector?.distanceY ?? 0);
+
+		// Prevent engine from auto-setting direction if coming from a waypoint
+		this.engine.preventDirectionSet = !opts.vector;
+
+		// Handle setting the current image based on context (grid, split, single)
+		if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == i.id))) {
+			// Focus the image within the grid, then set as current
+			grid?.focus(c, {view: i.settings?.view}).then(() => this.current.set(c));
+		}
+		else if(!opts.splitScreen) { // Set as main current image
+			this.current.set(c);
+		}
+		else { // Set as active canvas in engine for split-screen
+			this.engine.setCanvas(c);
+		}
 
 		// If image has no visual content (e.g., just data), mark loading as finished
 		if(c.noImage) this.loading.set(false);
@@ -557,9 +552,9 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param startId Optional ID of the image to show first.
 	 * @param basePath Optional CDN base path; defaults to the current image's path or BASEPATH.
 	 */
-	async openGallery(images: Models.Assets.Image[], startId?: string, basePath?: string) : Promise<void> {
+	openGallery(images: Models.Assets.Image[], startId?: string, basePath?: string) : void {
 		this.printUI(false, true);
-		if (!this.engine.ready) await this.engine.load();
+		if (!this.engine.ready) this.engine.load();
 		if (!this.webgl.gl) this.webgl.init();
 
 		const path = basePath ?? this._current?.dataPath ?? BASEPATH;

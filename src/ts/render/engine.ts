@@ -146,7 +146,7 @@ export class Engine {
 	 * Initializes the engine (replaces WebAssembly loading).
 	 * @throws Error if engine initialization fails
 	 */
-	async load(): Promise<void> {
+	load(): void {
 		if (this.engine) return;
 
 		const engine = new Main({

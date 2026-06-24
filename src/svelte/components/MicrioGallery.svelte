@@ -49,7 +49,7 @@
 	onMount(async () => {
 		await tick();
 		const path = $current?.$info?.path;
-		await galleryMicrio?.openGallery(gallery, startId, path);
+		galleryMicrio?.openGallery(gallery, startId, path);
 	});
 
 	/** No reason to keep the gallery <micr-io> alive when closing -- also ditch WebGL context */
