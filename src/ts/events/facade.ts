@@ -13,7 +13,6 @@ import { GestureHandler } from './gesture';
 import { WheelHandler } from './wheel';
 import { KeyboardHandler } from './keyboard';
 import { DoubleTapHandler } from './doubletap';
-import { UpdateHandler } from './update';
 import {
 	type EventContext,
 	type EventStateVars,
@@ -107,7 +106,6 @@ export class Events implements EventContext {
 		drag: { prev: undefined, start: [0, 0, 0], image: undefined },
 		dbltap: { lastTapped: 0 },
 		pinch: { image: undefined, sDst: 0, wasPanning: false },
-		updates: { to: -1, stack: [] }
 	};
 
 	/** Current pinch zoom factor relative to the start of the pinch. Undefined when not pinching. */
@@ -129,7 +127,6 @@ export class Events implements EventContext {
 	private wheelHandler: WheelHandler;
 	private keyboardHandler: KeyboardHandler;
 	private doubleTapHandler: DoubleTapHandler;
-	private updateHandler: UpdateHandler;
 
 	/**
 	 * The Events constructor.
@@ -150,7 +147,6 @@ export class Events implements EventContext {
 		this.wheelHandler = new WheelHandler(this);
 		this.keyboardHandler = new KeyboardHandler(this);
 		this.doubleTapHandler = new DoubleTapHandler(this);
-		this.updateHandler = new UpdateHandler(this);
 
 		// Subscribe to the enabled store to automatically hook/unhook listeners
 		this.enabled.subscribe(v => {
@@ -248,8 +244,6 @@ export class Events implements EventContext {
 		if (s?.hookKeys) this.hookKeys();
 		if (s.hookDrag) this.hookDrag();
 		if (!s.noZoom) this.hookZoom();
-
-		this.hookUpdate();
 	}
 
 	/** Unhooks all attached event listeners. */
@@ -264,7 +258,6 @@ export class Events implements EventContext {
 		this.unhookDrag();
 		this.unhookZoom();
 		this.unhookKeys();
-		this.unhookUpdate();
 	}
 
 	/** Hooks keyboard event listeners. */
@@ -328,9 +321,4 @@ export class Events implements EventContext {
 	/** Unhooks pointer listeners for drag panning. */
 	public unhookDrag(): void { this.dragHandler.unhook(); }
 
-	/** Hooks listeners for events that should trigger a debounced 'update' event. @internal */
-	private hookUpdate(): void { this.updateHandler.hook(); }
-
-	/** Unhooks listeners for the debounced 'update' event. @internal */
-	private unhookUpdate(): void { this.updateHandler.unhook(); }
 }

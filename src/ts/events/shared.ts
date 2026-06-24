@@ -30,13 +30,6 @@ export type EventStateVars = {
 		/** Was panning active before pinching started? */
 		wasPanning: boolean;
 	},
-	/** State for debouncing 'update' events. */
-	updates: {
-		/** Timeout ID for the debounced update. */
-		to: number,
-		/** Stack of event types that triggered the update. */
-		stack: string[]
-	}
 };
 
 /** Event listener options for passive listeners. */
