@@ -410,6 +410,9 @@ export class Engine {
 		else if (canvas.ptr !== this.activeCanvasEntry?.micrioImage.ptr) {
 			const entry = this.canvasById.get(canvas.ptr);
 			if (!entry) return;
+			// Don't switch to child canvases (grid cells, embeds) — they inherit the parent's render
+			if (entry.canvas.hasParent) return;
+
 
 			const pitch = canvas.is360 && this.activeCanvasEntry ? this.activeCanvasEntry.canvas.webgl.pitch : 0;
 			this.activeCanvasEntry = entry;

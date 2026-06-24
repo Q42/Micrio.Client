@@ -817,7 +817,6 @@ export class Grid {
 		if(!img) return this.back();
 
 		if(opts.coverLimit) opts.cover = true;
-		const noView = !opts.view && !opts.cover;
 
 		const m = this.micrio;
 
@@ -852,13 +851,9 @@ export class Grid {
 			coverLimit: !!opts.coverLimit
 		}).then(() => {
 			m.events.dispatch('grid-focus', img);
-			const i = img.$info!;
 			this.removeGrid();
 			if(m.$current != img) m.current.set(img);
-			const imgRat = m.offsetWidth / m.offsetHeight,
-				rX = (1 - (i.width / i.height) / imgRat) / 2;
-			if(!img.camera.aniDone && noView) img.camera.flyToFullView({duration:this.aniDurationIn*1000}).catch(() => {});
-			this.image.camera.setLimit([rX, 0, 1 - 2 * rX, 1]);
+			this.image.camera.setLimit([0, 0, 1, 1]);
 		}).catch(() => {});
 	}
 
