@@ -77,7 +77,7 @@ import type { MicrioIcon } from '$ts/icons';
 			/** Created date */
 			created?: number;
 
-			/** Has new viewport model, optimized for 360 images */
+			/** Has new viewport model, optimized for 360 images. Server-side only, not read client-side. */
 			viewsWH?: boolean;
 
 			/** For V5+: published revisions per language */
@@ -936,8 +936,6 @@ import type { MicrioIcon } from '$ts/icons';
 			keepMarkers?: boolean;
 			/** Don't disable user navigation when running */
 			keepInteraction?: boolean;
-			/** The tour is a direct outside instance using legacy [x0,y0,x1,y1] viewports */
-			isLegacy?: boolean;
 
 			/** Current running tour instance */
 			instance?: VideoTourInstance;

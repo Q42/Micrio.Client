@@ -18,26 +18,13 @@ export class Sanitizer {
 
 	/** View conversion utilities for transforming between view formats. */
 	static View = {
-		fromLegacy: (v?: Models.Camera.ViewRect | Models.Camera.View): Models.Camera.View | undefined => {
-			if (!v) return undefined;
-			return [v[0], v[1], v[2] - v[0], v[3] - v[1]];
-		},
 		toCenterJSON: (v: Models.Camera.View): { centerX: number; centerY: number; width: number; height: number } => ({
 			centerX: v[0] + v[2] / 2,
 			centerY: v[1] + v[3] / 2,
 			width: v[2],
 			height: v[3]
 		}),
-		rectToCenterJSON: (v: Models.Camera.View) =>
-			Sanitizer.View.toCenterJSON([v[0], v[1], v[2] - v[0], v[3] - v[1]]),
 	};
-
-	// ─── Checks ─────────────────────────────────────────────────────────────────
-
-	/** Checks if an ImageInfo uses legacy view format. */
-	static isLegacyViews(i: Models.ImageInfo.ImageInfo): boolean {
-		return !i.viewsWH;
-	}
 
 	// ─── Info-level sanitization ────────────────────────────────────────────────
 
@@ -52,10 +39,6 @@ export class Sanitizer {
 		if ('cultures' in i && !i.revision) {
 			const c = (i as unknown as Record<string, unknown>).cultures as string || '';
 			i.revision = Object.fromEntries(c.split(',').filter(Boolean).map(lang => [lang, 0]));
-		}
-		if (i?.settings && Sanitizer.isLegacyViews(i)) {
-			i.settings.view = Sanitizer.View.fromLegacy(i.settings.view)!;
-			i.settings.restrict = Sanitizer.View.fromLegacy(i.settings.restrict)!;
 		}
 		Sanitizer._done.info.set(i, true);
 	}
