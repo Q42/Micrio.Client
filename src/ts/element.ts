@@ -315,14 +315,13 @@ export class HTMLMicrioElement extends HTMLElement {
 
 		// --- IIIF Manifest URL as ID ---
 		if(opts.id && opts.id.startsWith('http')) {
-			const iiifResult = await Gallery.fromIIIF(opts.id, this.engine, this).catch(e => { this.printError(e); return null; });
-			if(!iiifResult) return;
-			if(iiifResult.gallery) {
-				this._openGalleryFromController(iiifResult.gallery, opts);
+			const gallery = await Gallery.fromIIIF(opts.id, this.engine, this).catch(e => { this.printError(e); return null; });
+			if(gallery) {
+				this._openGalleryFromController(gallery, opts);
 				return;
 			}
-			// Single image IIIF — extract info from the manifest/API response
-			const galleryItem = Gallery.singleIIIFInfo(iiifResult.response, opts.id);
+			// Single image IIIF — fetch info from the URL
+			const galleryItem = await Gallery.singleIIIFInfo(opts.id);
 			opts.id = galleryItem.id;
 			opts.width = galleryItem.width;
 			opts.height = galleryItem.height;
@@ -567,7 +566,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @internal
 	 */
 	private _openGalleryFromController(galleryCtrl: Gallery, baseOpts: Record<string, any>): void {
-		const isSwitch = galleryCtrl.type == 'switch' || galleryCtrl.type == 'omni';
+		const isSwitch = galleryCtrl.type == 'switch';
 		const galleryInfo: Partial<Models.ImageInfo.ImageInfo> = {};
 
 		if(!isSwitch) {
@@ -578,47 +577,29 @@ export class HTMLMicrioElement extends HTMLElement {
 			galleryInfo.height = galleryCtrl.containerHeight;
 		}
 
-		// Apply config settings to the parent image's settings store
-		if(galleryCtrl.config.settings) {
-			if(!galleryInfo.settings) galleryInfo.settings = {};
-			deepCopy(galleryCtrl.config.settings, galleryInfo.settings as any);
-		}
-
-		const gallerySettings: Models.ImageInfo.GallerySettings = {
-			type: galleryCtrl.type as any,
-			startId: galleryCtrl.config.startId,
-			archive: galleryCtrl.config.archive,
-			archiveLayerOffset: galleryCtrl.config.archiveLayerOffset,
-			isSpreads: galleryCtrl.config.isSpreads,
-			coverPages: galleryCtrl.config.coverPages,
-			sort: galleryCtrl.config.sort,
-			revisions: galleryCtrl.config.revisions
-		};
-
 		galleryInfo.settings = {
-			...(galleryInfo.settings as any),
 			view: [0, 0, 1, 1],
-			gallery: gallerySettings,
+			gallery: { ...galleryCtrl.config },
 			pinchZoomOutLimit: isSwitch ? true : undefined
 		} as unknown as Models.ImageInfo.Settings;
+
+		// Apply config settings to the parent image's settings store
+		if(galleryCtrl.config.settings) {
+			Object.assign(galleryInfo.settings, galleryCtrl.config.settings);
+		}
 
 		if(galleryCtrl.type == 'grid') {
 			(galleryInfo.settings as any).zoomLimit = 15;
 			(galleryInfo.settings as any).minimap = false;
-			// Enable keyboard nav by default when grid is clickable
 			if((galleryInfo.settings as any)?.grid?.clickable && (galleryInfo.settings as any)?.hookKeys === undefined) {
 				(galleryInfo.settings as any).hookKeys = true;
 			}
 			galleryInfo.grid = galleryCtrl._gridString;
-			// Set the V5 CDN path so Grid children inherit the correct tile base
 			galleryInfo.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
-			// Grid type: no gallery children (Grid controller manages its own),
-			// and don't pass the Gallery controller to open() — Gallery.svelte must not render.
 			this.open(galleryInfo, { ...baseOpts });
 			return;
 		}
 
-		// Non-grid: pass controller so Gallery.svelte renders
 		this.open(galleryInfo, { ...baseOpts, gallery: galleryCtrl });
 	}
 
@@ -629,7 +610,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	private getOptions(): Partial<Models.ImageInfo.ImageInfo> {
 		const sets:Partial<Models.ImageInfo.Settings> = {
-			gallery: {} // Initialize gallery settings object
+			gallery: {} as any // Initialize gallery settings object
 		};
 
 		const opts:Partial<Models.ImageInfo.ImageInfo> = {

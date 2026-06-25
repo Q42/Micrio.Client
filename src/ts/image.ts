@@ -372,9 +372,9 @@ export class MicrioImage {
 				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
 					.catch(e => this.setError(e, 'Could not find object base package.'));
 				// Configure gallery settings for Omni
-				if(!i.settings.gallery) i.settings.gallery = {};
-				i.settings.gallery.type = 'omni';
-				i.settings.gallery.archive = i.id; // Use image ID as archive key for gallery logic
+				const gal = i.settings.gallery = (i.settings.gallery ?? {}) as any;
+				gal.type = 'switch';
+				gal.archive = i.id; // Use image ID as archive key for gallery logic
 			}
 		}
 

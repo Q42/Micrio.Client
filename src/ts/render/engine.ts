@@ -290,8 +290,7 @@ export class Engine {
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360.video));
 
-		const gallerySwitch = !!this.isGallery && (settings.gallery?.type == 'switch'
-			|| settings.gallery?.type == 'omni');
+		const gallerySwitch = !!this.isGallery && settings.gallery?.type == 'switch';
 
 		const numOmniLayers = settings.omni?.layers?.length ?? 1;
 		if (settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);

@@ -327,7 +327,7 @@ import type { MicrioIcon } from '$ts/icons';
 			markersScale?: boolean;
 
 			/** Albums */
-			gallery?: GallerySettings;
+			gallery?: GalleryConfig;
 
 			/** FOR OMNI OBJECTS */
 			omni?: OmniSettings;
@@ -382,30 +382,6 @@ import type { MicrioIcon } from '$ts/icons';
 
 			/** Watermark opacity, defaults to 0.075 */
 			watermarkOpacity?: number;
-		}
-
-		export type GallerySettings = {
-			/** Album/image ID for the gallery */
-			id?: string;
-			/** Gallery name */
-			name?: string;
-			/** Gallery has an associated .bin archive with thumbnails */
-			archive?: string;
-			/** Archive layer offset */
-			archiveLayerOffset?: number;
-			/** Gallery sorting */
-			sort?: ('name'|'-name'|'created'|'-created'|'random');
-			/** Gallery type */
-			type?: ('swipe'|'switch'|'omni'|'grid');
-			/** The gallery opening image ID */
-			startId? :string;
-			/** Pages are combined to 2x1 spreads */
-			isSpreads?: boolean;
-			/** For spreads, number of cover pages to show as single page */
-			coverPages?: number;
-			/** Optional viewer settings that override/merge with defaults */
-			settings?: Partial<ImageInfo.Settings>;
-			revisions?: {[key:string]: RevisionType};
 		}
 
 		export type OmniSettings = {
@@ -1056,7 +1032,7 @@ import type { MicrioIcon } from '$ts/icons';
 				id: string;
 				data: Models.Spaces.Space;
 			}[];
-			album?: ImageInfo.GallerySettings;
+			album?: GalleryConfig;
 		};
 	}
 
@@ -1296,7 +1272,7 @@ import type { MicrioIcon } from '$ts/icons';
 		/** The current page index */
 		currentIndex: number;
 		/** The album info */
-		info?: ImageInfo.GallerySettings;
+		info?: GalleryConfig;
 		/** Go to previous page */
 		prev: () => void;
 		/** Go to next page */
@@ -1316,18 +1292,16 @@ import type { MicrioIcon } from '$ts/icons';
 		id: string;
 		width: number;
 		height: number;
+		path?: string;
+		tileSize?: number;
 		isDeepZoom?: boolean;
 		isPng?: boolean;
 		isWebP?: boolean;
-		tileSize?: number;
-		format?: string;
-		revision?: Record<string, any>;
-		path?: string;
 	};
 
 	/** Gallery configuration */
 	export type GalleryConfig = {
-		type: 'swipe' | 'switch' | 'omni' | 'grid';
+		type: 'swipe' | 'switch' | 'grid';
 		startId?: string;
 		sort?: 'name' | '-name' | 'created' | '-created' | 'random';
 		isSpreads?: boolean;
@@ -1336,11 +1310,12 @@ import type { MicrioIcon } from '$ts/icons';
 		archiveLayerOffset?: number;
 		revisions?: Record<string, Record<string, any>>;
 		settings?: Partial<ImageInfo.Settings>;
+		id?: string;
+		name?: string;
 		grid?: {
 			clickable?: 'focus' | 'zoom' | false;
 			panZoom?: 'cells' | 'grid';
 		};
-		omni?: ImageInfo.OmniSettings;
 	};
 
 	export namespace Camera {

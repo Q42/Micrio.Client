@@ -61,11 +61,7 @@ export class Gallery {
 		this.micrio = micrio;
 		this.config = config;
 
-		const path = config.settings?.gallery && 'path' in config.settings.gallery
-			? (config.settings.gallery as any).path
-			: undefined;
-
-		const isSwitch = config.type == 'switch' || config.type == 'omni';
+		const isSwitch = config.type == 'switch';
 		const isSpreads = config.isSpreads;
 		const coverPages = isSpreads ? (config.coverPages ?? 0) : 0;
 
@@ -75,11 +71,7 @@ export class Gallery {
 		}
 
 		this.images = items.map((c, i) => {
-			// Check config.revisions for per-image revision data
-			const revision = config.revisions?.[c.id] ?? c.revision;
-			// Check config.settings?.gallery?.revisions as fallback
-			const galleryRevisions = (config.settings?.gallery as any)?.revisions;
-			const rev = revision ?? galleryRevisions?.[c.id];
+			const rev = config.revisions?.[c.id];
 
 			const imageSettings: Record<string, any> = { skipMeta: true, ...config.settings };
 
@@ -132,7 +124,7 @@ export class Gallery {
 
 			return new MicrioImage(engine, {
 				id: c.id,
-				path: c.path ?? path as string,
+				path: c.path,
 				width: c.width,
 				height: c.height,
 				isDeepZoom: c.isDeepZoom,
@@ -147,8 +139,8 @@ export class Gallery {
 
 	// --- Factory Methods ---
 
-	/** Result from fromIIIF: gallery + the raw response for single-image fallback */
-	static async fromIIIF(url: string, engine: Engine, micrio: HTMLMicrioElement): Promise<{ gallery: Gallery | null; response: any }> {
+	/** Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image manifests and raw Image API responses. */
+	static async fromIIIF(url: string, engine: Engine, micrio: HTMLMicrioElement): Promise<Gallery | null> {
 		const resp = await fetchJson<any>(url);
 
 		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
@@ -171,21 +163,17 @@ export class Gallery {
 				tileSize: DEFAULT_INFO.tileSize
 			}));
 
-			if (images.length === 1)
-				return { gallery: null, response: resp };
+			if (images.length === 1) return null;
 
-			return {
-				gallery: new Gallery(images, engine, micrio, { type: 'swipe', settings: {} }),
-				response: resp
-			};
+			return new Gallery(images, engine, micrio, { type: 'swipe', settings: {} });
 		}
 
-		// Raw IIIF Image API response — single image, not a gallery
-		return { gallery: null, response: resp };
+		return null;
 	}
 
-	/** Extract single-image info from a raw IIIF Image API JSON response */
-	static singleIIIFInfo(resp: any, url: string): Models.GalleryItem {
+	/** Extract single-image gallery item from a IIIF response URL */
+	static async singleIIIFInfo(url: string): Promise<Models.GalleryItem> {
+		const resp = await fetchJson<any>(url);
 		const baseId = (resp['@id'] || resp.id || url).replace('/info.json', '');
 		return {
 			id: baseId.replace(/^.*\//, ''),
@@ -217,72 +205,40 @@ export class Gallery {
 		});
 	}
 
-	static async fromArchive(archiveId: string, path: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig> & { isArchive?: boolean }): Promise<Gallery> {
-		const galleryConfig: Models.GalleryConfig = {
-			type: 'swipe',
-			...config
-		};
+	static async fromArchive(archiveId: string, path: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig>): Promise<Gallery> {
+		const galleryConfig: Models.GalleryConfig = { type: 'swipe', ...config };
 
-		const useArchiveIndex = config?.isArchive ?? false;
-		let entries: string[];
+		const index = await Gallery.getArchiveIndex(archiveId.split('.')[0], path, engine, micrio);
+		galleryConfig.archiveLayerOffset = index.delta;
+		const sorted = index.images.sort(Gallery.sortArchiveImages(galleryConfig.sort));
 
-		if (useArchiveIndex) {
-			const index = await Gallery.getArchiveIndex(archiveId.split('.')[0], path, engine, micrio);
-			galleryConfig.archiveLayerOffset = index.delta;
-			const sorted = index.images.sort(Gallery.sortArchiveImages(galleryConfig.sort));
-			entries = sorted.map(i =>
-				`${i.id},${i.width},${i.height},${i.isDeepZoom ? 'd' : ''},${i.isPng ? 'p' : i.isWebP ? 'w' : ''},${i.tileSize || ''}`.replace(/\,+$/, '')
-			);
-		} else {
-			entries = archiveId.split(';').map(t => t.trim());
-			const promises = entries.filter(t => t.startsWith('http')).map(u => fetchJson<Partial<Models.ImageInfo.ImageInfo>>(u));
-			if (promises.length) {
-				await Promise.all(promises).then(r => r.forEach((d, i: number) => {
-					if (!d) return;
-					entries[i] = `${(d as any)['@id'] || d.id},${d.width},${d.height}`;
-				}));
-			}
-		}
-
-		const pages = entries.map((e: string): any[] =>
-			e.split(',').map((v: any) => isNaN(v) ? v : Number(v))
-		);
-		pages.forEach((p, i) => { if (i > 0 && !p[2]) p.push(...pages[i - 1].slice(1)); });
-
-		if (!galleryConfig.type) galleryConfig.type = 'swipe';
-
-		const items: Models.GalleryItem[] = pages.map(c => ({
-			id: c[0],
+		const items: Models.GalleryItem[] = sorted.map(i => ({
+			id: i.id,
 			path,
-			width: c[1],
-			height: c[2],
-			isDeepZoom: c[3] == 'd',
-			isPng: c[4] == 'p',
-			isWebP: c[4] == 'w',
-			tileSize: c[5] || 1024,
-			revision: galleryConfig.revisions?.[c[0]]
+			width: i.width,
+			height: i.height,
+			isDeepZoom: i.isDeepZoom,
+			isPng: i.isPng,
+			isWebP: i.isWebP,
+			tileSize: i.tileSize || 1024,
 		}));
 
 		return new Gallery(items, engine, micrio, galleryConfig);
 	}
 
-	static async fromGrid(gridData: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<{ gallery: Gallery; gridInfo?: { images: Models.ImageInfo.ImageInfo[] }; gridString?: string } | null> {
-		const galleryConfig: Models.GalleryConfig = {
-			type: 'grid',
-			...config
-		};
+	static async fromGrid(gridData: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<Gallery | null> {
+		const galleryConfig: Models.GalleryConfig = { type: 'grid', ...config };
 
 		if (!galleryConfig.settings) galleryConfig.settings = {};
 		galleryConfig.settings.zoomLimit = 15;
 		galleryConfig.settings.minimap = false;
 		const path = config?.path ?? BASEPATH_V5;
 
-		let gridInfo: { images: Models.ImageInfo.ImageInfo[] } | undefined;
 		if (galleryConfig.archive && galleryConfig.archive == gridData) {
-			gridInfo = await Gallery.getArchiveIndex(gridData.split('.')[0], path, engine, micrio);
+			const index = await Gallery.getArchiveIndex(gridData.split('.')[0], path, engine, micrio);
 			const s = galleryConfig.sort;
-			if (s && gridInfo?.images) gridInfo.images.sort(Gallery.sortArchiveImages(s));
-			gridData = gridInfo.images.map(i =>
+			if (s && index?.images) index.images.sort(Gallery.sortArchiveImages(s));
+			gridData = index.images.map(i =>
 				Grid.getString(i, { cultures: 'cultures' in i ? (i.cultures as string[]).join('-') : undefined })
 			).join(';');
 		}
@@ -295,7 +251,7 @@ export class Gallery {
 
 		const gallery = new Gallery(items, engine, micrio, galleryConfig);
 		gallery._gridString = gridData;
-		return { gallery, gridInfo };
+		return gallery;
 	}
 
 	static async fromAlbum(albumId: string, engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
@@ -317,11 +273,10 @@ export class Gallery {
 		}
 
 		if (aInfo.type === 'grid') {
-			const result = await Gallery.fromGrid(aInfo.archive!, engine, micrio, { ...config, path });
-			return result?.gallery ?? null;
+			return Gallery.fromGrid(aInfo.archive!, engine, micrio, { ...config, path });
 		}
 
-		return Gallery.fromArchive(aInfo.archive!, path, engine, micrio, { ...config, isArchive: true });
+		return Gallery.fromArchive(aInfo.archive!, path, engine, micrio, config);
 	}
 
 	// --- Static Helpers ---
@@ -337,6 +292,46 @@ export class Gallery {
 				: sort == '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0
 					: sort == '-created' ? (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? 1 : a.created > b.created ? -1 : 0
 						: (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
+	}
+
+	// --- Page Layout ---
+
+	/** Compute the page layout for Gallery.svelte. Returns pages (camera views) and
+	 *  the mapping from page index to image index(es). For strip-swipe galleries each
+	 *  image fills the full viewport; for switch/grid the per-image `opts.area` is used
+	 *  and spreads are merged into single pages. */
+	getPageLayout(): { pages: Models.Camera.View[]; pageIdxes: number[][] } {
+		const isSwitch = this.config.type == 'switch';
+		const isSpread = !!this.config.isSpreads;
+		const coverPages = this.config.coverPages ?? 0;
+		const pages: Models.Camera.View[] = [];
+		const pageIdxes: number[][] = [];
+
+		if (!isSwitch) {
+			for (let i = 0; i < this.images.length; i++) {
+				pages.push([0, 0, 1, 1]);
+				pageIdxes.push([i]);
+			}
+		} else {
+			for (let i = 0; i < this.images.length; i++) {
+				const area = this.images[i].opts?.area;
+				if (!area) continue;
+				const v: Models.Camera.View = [area[0], area[1], area[2], area[3]];
+				pageIdxes.push([i]);
+
+				if (isSpread && (i - coverPages >= 0 && ((i - coverPages) % 2 == 0)) && this.images[i + 1]) {
+					const next = this.images[i + 1].opts?.area;
+					if (!next) continue;
+					i++;
+					pageIdxes[pageIdxes.length - 1].push(i);
+					v[2] = v[2] + next[2];
+					v[3] = Math.max(v[3], next[3]);
+				}
+				pages.push(v);
+			}
+		}
+
+		return { pages, pageIdxes };
 	}
 
 	// --- Instance Methods ---

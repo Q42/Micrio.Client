@@ -32,17 +32,14 @@
 	// --- Props ---
 
 	interface Props {
-		/** Omni object settings, if applicable. Passed from Main.svelte. */
-		omni?: Models.ImageInfo.OmniSettings|null;
-		/** Gallery controller. Required for non-omni galleries. */
+		/** Gallery controller. Required for all gallery types. */
 		controller?: Gallery|null;
 	}
 
-	let { omni = null, controller = null }: Props = $props();
+	let { controller = null }: Props = $props();
 
 	// Capture initial prop values; these are stable for this component's lifetime.
 	const _images = untrack(() => controller ? (controller.images as any) : []);
-	const _omni = untrack(() => controller?.config.omni ?? omni);
 
 	// --- Context & State ---
 
@@ -64,9 +61,10 @@
 	const camera = image.camera as Camera; // Camera instance
 
 	// --- Omni Object Setup ---
-	// If it's an omni object, generate the frame data internally
-	if(_omni) {
-		for(let j=0;j<_omni.frames;j++) {
+	// If settings include omni config, generate frame data internally
+	if($settings.omni) {
+		const o = $settings.omni;
+		for(let j=0;j<o.frames;j++) {
 			_images.push({
 				id: info.id+'/'+j, // Unique ID for the frame
 				image: image, // Reference to the parent image
@@ -75,7 +73,7 @@
 				opts: { area: [0,0,1,1] }, // Frame occupies full area
 				ptr: -1, // engine pointer (not applicable here)
 				baseTileIdx: -1, // Base tile index (not applicable here)
-				thumbSrc: image.getTileSrc(image.levels, 0, 0, j) // Thumbnail source for the frame
+				thumbSrc: image.getTileSrc(image.levels, 0, 0, j)
 			});
 		}
 	}
@@ -86,19 +84,18 @@
 	const gallery = untrack(() => controller?.config ?? $settings.gallery!);
 
 	// Determine gallery type flags
-	const isOmni:boolean = gallery.type == 'omni';
-	const isSwitch:boolean = isOmni || gallery.type == 'switch';
+	const isSwitch:boolean = gallery.type == 'switch';
 	/** Strip-swipe: independent child canvases sliding via Camera.setArea. */
 	const isStripSwipe:boolean = !isSwitch && !('frame' in (_images[0] ?? {}));
 
+	// Omni-specific settings (presence of omni settings = omni behavior)
+	const omniSettings = $settings.omni;
+	const isOmni:boolean = !!omniSettings;
 	// Other gallery options
-	const isContinuous:boolean = isOmni; // Omni objects wrap around
+	const isContinuous:boolean = !!omniSettings; // Omni objects wrap around
 	const isSpread:boolean = !!gallery.isSpreads; // Display pages as spreads
 	const coverPages:number = gallery.coverPages ?? 0; // Number of single cover pages in spreads
-
-	// Omni-specific settings
-	const omniSettings = $settings.omni;
-	const isOmniTwoAxes:boolean = isOmni && !!omniSettings?.twoAxes; // Is it a 2-axis omni object?
+	const isOmniTwoAxes:boolean = !!omniSettings?.twoAxes; // Is it a 2-axis omni object?
 
 	// Determine starting index
 	const startId:string|undefined = gallery.startId;
