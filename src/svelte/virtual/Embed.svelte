@@ -284,7 +284,7 @@
 	function printInsideGL() : void {
 		// Determine initial opacity (use 0.01 if hidden when paused to ensure it renders initially)
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity ?? 1;
-		if(image && image.ptr >= 0) { // If MicrioImage instance already exists (e.g., from previous state)
+		if(image && (image.ptr >= 0 || mainImage.embeds.includes(image))) { // If MicrioImage instance already exists (e.g., from previous state)
 			// Update its placement and fade it in
 			image.camera.setArea(embed.area as Models.Camera.View);
 			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);

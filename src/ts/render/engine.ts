@@ -752,6 +752,7 @@ export class Engine {
 		else {
 			const i = '$info' in image ? image.$info : parent.$info;
 			if (!i) return;
+			if ((image as any).ptr >= 0) return;
 			this.images.push(image);
 			const a = image.opts.area ?? [0, 0, 1, 1];
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
