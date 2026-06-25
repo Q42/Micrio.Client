@@ -441,8 +441,8 @@ export class MicrioImage {
 		// Dispatch pre-info event for external manipulation
 		micrio.events.dispatch('pre-info', i);
 
-		// Load image data immediately if revisions are known and not an embed
-		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni)) {
+		// Load image data immediately if revisions are known, not an embed, and not skipped
+		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni) && !i.settings?.skipMeta) {
 			const d = await DataLoader.getBundleImage(this.id).then(r => r?.data);
 			if (d) {
 				micrio.events.dispatch('pre-data', { [this.id]: d });
