@@ -15,6 +15,7 @@
 	import type { Models } from '$types/models';
 	import type { Readable, Writable } from 'svelte/store';
 	import type { MicrioImage } from '$ts/image';
+	import type { Gallery as GalleryController } from '$ts/gallery';
 
 	// Import base CSS
 	import '../css/micrio.base.css';
@@ -190,7 +191,9 @@
 
 	// Derived state for gallery/omni features
 	const omni = $derived($settings?.omni);
-	const gallery = $derived($info?.gallery); // Gallery data comes from ImageInfo
+	const gallery = $derived($info?.gallery); // Legacy: Gallery data from ImageInfo
+	const galleryStore = untrack(() => micrio.gallery); // Get the Writable store ref
+	const galleryController = $derived($galleryStore as GalleryController|undefined); // New: Gallery controller
 
 	// Derived state for audio presence
 	const positionalAudio = $derived($data?.markers?.filter(m => !!m.positionalAudio));
@@ -205,8 +208,8 @@
 	const showMarkers = $derived(!noHTML || onlyMarkers);
 	const showLogo = $derived(!noLogo && (!$info || !noHTML) && !$settings?.noLogo);
 	const showOrgLogo = $derived(!noHTML && showLogo && !$settings?.noOrgLogo ? logoOrg : undefined);
-	const showMinimap = $derived(!noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery); // Hide minimap for omni, spaces, tours, galleries
-	const showGallery = $derived(!!gallery || !!omni); // Show gallery UI if gallery data or omni settings exist
+	const showMinimap = $derived(!noHTML && !omni && !micrio.spaceData && !$tour && !$info?.gallery && !galleryController); // Hide minimap for omni, spaces, tours, galleries
+	const showGallery = $derived(!!gallery || !!omni || !!galleryController); // Show gallery UI if gallery data, omni settings, or controller exist
 	const showControls = $derived(!noHTML && !!$info); // Show controls if not noHTML and info is loaded
 	const showDetails = $derived(!noHTML && !hasTourOrMarker && $settings?.showInfo); // Show details if enabled and no tour/marker active
 	const showToolbar = $derived(!noHTML && firstInited && !$settings?.noToolbar); // Show toolbar after init if not disabled
@@ -246,7 +249,7 @@
 {#if showControls}<Controls hasAudio={hasAudio||!!(videoSrc && video && !video.muted)} />{/if}
 
 {#if showGallery || showOrgLogo || (showDetails && info && data)}
-	{#if showGallery}<Gallery images={gallery} {omni} />{/if}
+	{#if showGallery}<Gallery images={gallery} {omni} controller={galleryController} />{/if}
 	{#if showOrgLogo}<LogoOrg organisation={showOrgLogo} />{/if}
 	{#if showDetails && info && data}<Details {info} {data} />{/if}
 {/if}

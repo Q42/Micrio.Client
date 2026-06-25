@@ -15,6 +15,7 @@
 	import type { MicrioImage } from '$ts/image';
 	import type { Camera } from '$ts/camera';
 	import type { Models } from '$types/models';
+	import type { Gallery } from '$ts/gallery';
 
 	import { getContext, onMount, untrack } from 'svelte';
 	import { writable, type Unsubscriber, type Writable } from 'svelte/store';
@@ -39,13 +40,15 @@
 		images?: (MicrioImage|Models.Omni.Frame)[];
 		/** Omni object settings, if applicable. Passed from Main.svelte. */
 		omni?: Models.ImageInfo.OmniSettings|null;
+		/** New: Gallery controller, preferred over images/omni when available. */
+		controller?: Gallery|null;
 	}
 
-	let { images = [], omni = null }: Props = $props();
+	let { images = [], omni = null, controller = null }: Props = $props();
 
 	// Capture initial prop values; these are stable for this component's lifetime.
-	const _images = untrack(() => images);
-	const _omni = untrack(() => omni);
+	const _images = untrack(() => controller ? (controller.images as any) : images);
+	const _omni = untrack(() => controller?.config.omni ?? omni);
 
 	// --- Context & State ---
 
@@ -85,8 +88,8 @@
 
 	// --- Gallery Configuration ---
 
-	/** Gallery settings from the main image's settings store. */
-	const gallery = $settings.gallery!; // Assumes gallery settings exist
+	/** Gallery settings from the main image's settings store or controller config. */
+	const gallery = untrack(() => controller?.config ?? $settings.gallery!);
 
 	// Determine gallery type flags
 	const isOmni:boolean = gallery.type == 'omni';

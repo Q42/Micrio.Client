@@ -1316,6 +1316,38 @@ import type { MicrioIcon } from '$ts/icons';
 		currentImage?: Writable<import('../ts/image').MicrioImage>;
 	}
 
+	/** Gallery item representing a single image within a gallery or grid */
+	export type GalleryItem = {
+		id: string;
+		width: number;
+		height: number;
+		isDeepZoom?: boolean;
+		isPng?: boolean;
+		isWebP?: boolean;
+		tileSize?: number;
+		format?: string;
+		revision?: Record<string, any>;
+		path?: string;
+	};
+
+	/** Gallery configuration */
+	export type GalleryConfig = {
+		type: 'swipe' | 'swipe-full' | 'switch' | 'omni' | 'grid';
+		startId?: string;
+		sort?: 'name' | '-name' | 'created' | '-created' | 'random';
+		isSpreads?: boolean;
+		coverPages?: number;
+		archive?: string;
+		archiveLayerOffset?: number;
+		revisions?: Record<string, Record<string, any>>;
+		settings?: Partial<ImageInfo.Settings>;
+		grid?: {
+			clickable?: 'focus' | 'zoom' | false;
+			panZoom?: 'cells' | 'grid';
+		};
+		omni?: ImageInfo.OmniSettings;
+	};
+
 	export namespace Camera {
 		/** A numeric array or Float64Array used for camera geometry. */
 		export type CameraArray = number[] | Float64Array;

@@ -6,21 +6,21 @@ import type Svelte from '../svelte/Main.svelte';
 
 import { once } from './utils/store';
 import { deepCopy } from './utils/object';
-import { fetchJson, jsonCache } from './utils/fetch';
+import { jsonCache } from './utils/fetch';
 import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, DEFAULT_INFO, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
 import { Canvas } from './render/canvas';
-import { archive } from './render/archive';
 import { Events } from './events/facade';
 import { MicrioImage } from './image';
 import { State} from './state';
 import { GoogleTag } from './analytics';
 import { Grid } from './nav/grid';
+import { Gallery } from './gallery';
 import { mount, tick, unmount } from 'svelte';
 import { rtlLanguageCodes } from './i18n/locale';
 import { i18n, langs } from './i18n/strings';
@@ -152,6 +152,9 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** Holds data for the current 360 space, if applicable (loaded via `data-space` attribute or API). */
 	spaceData:Models.Spaces.Space|undefined;
 
+	/** The current active gallery controller, if any. */
+	readonly gallery: Writable<Gallery|undefined> = writable();
+
 	/** If true, forces the WebGL render loop to run continuously, even when idle.
 	 * @internal
 	*/
@@ -281,42 +284,6 @@ export class HTMLMicrioElement extends HTMLElement {
 	}
 
 	/**
-	 * Loads a binary archive file (.bin) containing gallery/album data.
-	 * @internal
-	 * @param path Base path for the archive file.
-	 * @param id Archive ID (e.g., 'g/[folderId].[revision]').
-	 * @returns Promise that resolves when the archive is loaded.
-	 */
-	private loadArchiveBin(path:string, id:string) : Promise<void> {
-		this.printUI(true, true); // Print minimal UI for loading progress
-		// Use the archive utility to load and report progress
-		return archive.load(path, 'g/'+id, loadingProgress => this._ui?.setProps?.({loadingProgress}));
-	}
-
-	/**
-	 * Loads album information for a V5 album ID, then loads the associated archive and gallery.
-	 * @internal
-	 * @param id V5 Album ID (e.g., 'aBcDeF123').
-	 * @param opts Partial image info options to merge.
-	 * @returns Promise that resolves when the album and gallery are loaded.
-	 */
-	private loadV5Album = async (id:string, opts:Partial<Models.ImageInfo.ImageInfo>) : Promise<void> => {
-		const aInfo = DataLoader.getAlbum(id);
-		if(!aInfo) return;
-		const path = opts.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
-		opts.settings!.gallery = { ...aInfo, startId: opts.id };
-		if (aInfo.settings) deepCopy(aInfo.settings, opts.settings!);
-		delete opts.id;
-		await this.loadArchiveBin(path, aInfo.archive!);
-		if (aInfo.type === 'grid') {
-			opts.grid = aInfo.archive!;
-			await this.setGrid(opts, path);
-		} else {
-			await this.loadGallery(opts, path, true);
-		}
-	};
-
-	/**
 	 * Performs initial setup based on element attributes.
 	 * Loads necessary data like galleries, grids, or archives before opening the first image.
 	 * Handles lazy loading logic.
@@ -332,16 +299,36 @@ export class HTMLMicrioElement extends HTMLElement {
 		if(opts.settings.noControls) this.state.ui.controls.set(false); // Apply noControls setting
 
 		// --- Album Loading ---
-		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) { // If ID is V5 and might belong to an album
-			// Fetch image info to check for albumId, then load the album if found
-			await DataLoader.getInfo(opts.id).then(i => i?.albumId ? this.loadV5Album(i.albumId, opts) : undefined)
-				.catch(() => {});
+		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
+			const info = await DataLoader.getInfo(opts.id).catch(() => undefined);
+			if(info?.albumId) {
+				const galleryCtrl = await Gallery.fromAlbum(info.albumId, this.engine, this, {
+					startId: opts.id,
+					onProgress: (n: number) => this._ui?.setProps?.({loadingProgress: n})
+				}).catch(() => null);
+				if(galleryCtrl) {
+					this._openGalleryFromController(galleryCtrl, opts);
+					return;
+				}
+			}
 		}
 
 		// --- IIIF Manifest URL as ID ---
 		if(opts.id && opts.id.startsWith('http')) {
-			await this._openIIIF(opts.id, {}).catch(e => this.printError(e));
-			return; // _openIIIF handles the full flow (single image or gallery) via open()
+			const iiifResult = await Gallery.fromIIIF(opts.id, this.engine, this).catch(e => { this.printError(e); return null; });
+			if(!iiifResult) return;
+			if(iiifResult.gallery) {
+				this._openGalleryFromController(iiifResult.gallery, opts);
+				return;
+			}
+			// Single image IIIF — extract info from the manifest/API response
+			const galleryItem = Gallery.singleIIIFInfo(iiifResult.response, opts.id);
+			opts.id = galleryItem.id;
+			opts.width = galleryItem.width;
+			opts.height = galleryItem.height;
+			opts.isIIIF = true;
+			opts.path = galleryItem.path;
+			opts.tileSize = galleryItem.tileSize;
 		}
 
 		// --- Final Setup & Open ---
@@ -409,6 +396,8 @@ export class HTMLMicrioElement extends HTMLElement {
 		startView?: Models.Camera.View,
 		/** For 360 transitions, provides the direction vector from the previous image. */
 		vector?: Models.Camera.Vector,
+		/** Optional Gallery controller, used for gallery/grid views. */
+		gallery?: Gallery,
 	}={}) : MicrioImage {
 		if(!this.printed) this.print(); // Ensure initial setup is done
 		const isId = typeof idOrInfo == 'string';
@@ -456,6 +445,12 @@ export class HTMLMicrioElement extends HTMLElement {
 			}
 			// Create new instance
 			this.canvases.push(c = new MicrioImage(this.engine, i, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this._current, isPassive: opts.isPassive } : undefined));
+		}
+
+		// Attach gallery controller if provided
+		if(opts.gallery) {
+			opts.gallery.attach(c);
+			this.gallery.set(opts.gallery);
 		}
 
 		// Apply forced start view if provided
@@ -563,109 +558,57 @@ export class HTMLMicrioElement extends HTMLElement {
 		if (!this.engine.ready) this.engine.load();
 		if (!this.webgl.gl) this.webgl.init();
 
-		const path = basePath ?? this._current?.dataPath ?? BASEPATH;
-		const startIdx = Math.max(0, images.findIndex(i => (i.micrioId ?? i.id) == startId));
-		const gallery = images.map((c, i) => new MicrioImage(this.engine, {
-			id: c.micrioId ?? c.id!,
-			path, width: c.width, height: c.height,
-			isDeepZoom: c.isDeepZoom,
-			isPng: c.isPng, isWebP: c.isWebP,
-			tileSize: 1024,
-			settings: { skipMeta: true, gallery: { type: 'swipe', startId } }
-		}, {
-			area: [i - startIdx, 0, i - startIdx + 1, 1]
-		}));
-
-		this.open({
-			width: this.offsetWidth * this.canvas.getRatio(),
-			height: this.offsetHeight * this.canvas.getRatio(),
-			gallery,
-			settings: { view: [0, 0, 1, 1], gallery: { type: 'swipe', startId } }
-		});
+		const galleryCtrl = Gallery.fromAssets(images, this.engine, this, { startId, basePath });
+		this._openGalleryFromController(galleryCtrl, {});
 	}
 
 	/**
-	 * Fetches and processes an IIIF resource (manifest or Image API response).
-	 * Routes multi-canvas manifests to gallery construction and single images to normal open.
+	 * Opens a Gallery controller, setting up the parent image and engine state.
 	 * @internal
 	 */
-	private async _openIIIF(url: string, opts: {splitScreen?: boolean; splitTo?: MicrioImage; isPassive?: boolean; startView?: Models.Camera.View; vector?: Models.Camera.Vector} = {}): Promise<MicrioImage> {
-		const resp = await fetchJson<any>(url);
+	private _openGalleryFromController(galleryCtrl: Gallery, baseOpts: Record<string, any>): void {
+		const isSwitch = galleryCtrl.type == 'switch' || galleryCtrl.type == 'swipe-full' || galleryCtrl.type == 'omni';
+		const galleryInfo: Partial<Models.ImageInfo.ImageInfo> = {};
 
-		// Reject V2 manifests
-		if(resp['@type'] === 'sc:Manifest' || resp.sequences)
-			throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });
-
-		// --- V3 Manifest ---
-		if(resp.type === 'Manifest') {
-			const canvases = (resp.items as any[])
-				?.flatMap((p: any) => p.items?.[0]?.items?.[0]?.body)
-				?.filter((b: any) => b?.service?.[0]?.id) ?? [];
-
-			if(!canvases.length)
-				throw new MicrioError('NO_CANVASES', { displayMessage: 'No valid IIIF canvases found in the manifest' });
-
-			const images = canvases.map((b: any): { id: string; width: number; height: number; isPng: boolean } => ({
-				id: b.service[0].id,
-				width: b.width,
-				height: b.height,
-				isPng: b.format === 'image/png'
-			}));
-
-			// Single canvas — treat as a normal IIIF image
-			if(images.length === 1) {
-				const img = images[0];
-				return this.open({
-					id: img.id,
-					width: img.width,
-					height: img.height,
-					isIIIF: true,
-					isPng: img.isPng,
-					path: img.id.replace(/\/[^/]*$/, ''),
-					tileSize: DEFAULT_INFO.tileSize
-				}, opts);
-			}
-
-			// Multi-canvas — strip-swipe gallery
-			return this._openIIIFGallery(images, opts);
+		if(!isSwitch) {
+			galleryInfo.width = this.offsetWidth * this.canvas.getRatio();
+			galleryInfo.height = this.offsetHeight * this.canvas.getRatio();
+		} else {
+			galleryInfo.height = Math.max(...galleryCtrl.images.map(i => i.$info?.height ?? 0));
+			galleryInfo.width = Math.max(...galleryCtrl.images.map(i => i.$info?.width ?? 0));
 		}
 
-		// --- Raw IIIF Image API response (no manifest) → single image ---
-		const baseId = (resp['@id'] || resp.id || url).replace('/info.json', '');
-		return this.open({
-			id: baseId.replace(/^.*\//, ''),
-			path: baseId.replace(/\/[^/]*$/, ''),
-			width: resp.width,
-			height: resp.height,
-			isIIIF: true,
-			tileSize: resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize
-		}, opts);
-	}
+		// Set gallery children for engine compatibility
+		galleryInfo.gallery = galleryCtrl.images;
 
-	/**
-	 * Constructs a strip-swipe gallery from IIIF canvas data.
-	 * @internal
-	 */
-	private _openIIIFGallery(images: { id: string; width: number; height: number; isPng: boolean }[], opts: {splitScreen?: boolean; splitTo?: MicrioImage; isPassive?: boolean; startView?: Models.Camera.View; vector?: Models.Camera.Vector} = {}): MicrioImage {
-		const gallery = images.map((c, i) => new MicrioImage(this.engine, {
-			id: c.id,
-			width: c.width,
-			height: c.height,
-			isIIIF: true,
-			isPng: c.isPng,
-			path: c.id.replace(/\/[^/]*$/, ''),
-			tileSize: DEFAULT_INFO.tileSize,
-			settings: {}
-		}, {
-			area: [i, 0, i + 1, 1]
-		}));
+		// Apply config settings
+		if(galleryCtrl.config.settings) deepCopy(galleryCtrl.config.settings, galleryInfo as any);
 
-		return this.open({
-			width: this.offsetWidth * this.canvas.getRatio(),
-			height: this.offsetHeight * this.canvas.getRatio(),
-			gallery,
-			settings: { view: [0, 0, 1, 1], gallery: { type: 'swipe' } }
-		}, opts);
+		const gallerySettings: Models.ImageInfo.GallerySettings = {
+			type: galleryCtrl.type as any,
+			startId: galleryCtrl.config.startId,
+			archive: galleryCtrl.config.archive,
+			archiveLayerOffset: galleryCtrl.config.archiveLayerOffset,
+			isSpreads: galleryCtrl.config.isSpreads,
+			coverPages: galleryCtrl.config.coverPages,
+			sort: galleryCtrl.config.sort,
+			revisions: galleryCtrl.config.revisions
+		};
+
+		galleryInfo.settings = {
+			...(galleryInfo.settings as any),
+			view: [0, 0, 1, 1],
+			gallery: gallerySettings,
+			pinchZoomOutLimit: isSwitch ? true : undefined
+		} as unknown as Models.ImageInfo.Settings;
+
+		if(galleryCtrl.type == 'grid') {
+			(galleryInfo.settings as any).zoomLimit = 15;
+			(galleryInfo.settings as any).minimap = false;
+			galleryInfo.grid = galleryCtrl.config.archive;
+		}
+
+		this.open(galleryInfo, { ...baseOpts, gallery: galleryCtrl });
 	}
 
 	/**
@@ -722,142 +665,6 @@ export class HTMLMicrioElement extends HTMLElement {
 
 		return opts;
 	}
-
-	/**
-	 * Parses a gallery string or archive data to load image information and create MicrioImage instances for each page.
-	 * Sets up the main options object (`opts`) for a gallery view.
-	 * @internal
-	 * @param opts The partial ImageInfo object to populate.
-	 * @param path The base path for image assets.
-	 * @param isArchive Indicates if the gallery data comes from a loaded archive index.
-	*/
-	private async loadGallery(opts:Partial<Models.ImageInfo.ImageInfo>, path:string, isArchive:boolean) : Promise<void> {
-		let gallery = opts.settings?.gallery;
-		let archiveId = gallery?.archive; // Can be archive ID or legacy gallery string
-		if(!gallery || !archiveId) return; // Exit if no gallery info
-		const sets = opts.settings!;
-
-		// If it's an archive, load the index and sort/format the image list
-		if(isArchive) {
-			const index = await this.getArchiveIndex(archiveId.split('.')[0], path); // Load index JSON
-			gallery.archiveLayerOffset = index.delta; // Store layer offset if present
-			// Sort images based on gallery settings and format into legacy string format
-			archiveId = index.images.sort(this.sortArchiveImages(gallery.sort)).map(i => `${i.id},${i.width},${i.height},${i.isDeepZoom?'d':''},${i.isPng ? 'p' : i.isWebP ? 'w' : ''},${i.tileSize || ''}`.replace(/\,+$/,'')) // Format: id,w,h,type,format,tileSize
-				.join(';');
-		}
-
-		// Parse the gallery string (either original or formatted from archive)
-		const entries = archiveId.split(';').map(t => t.trim());
-
-		// Fetch info for legacy galleries using full URLs (if not from archive)
-		if(!isArchive) {
-			const promises = entries.filter(t => t.startsWith('http')).map(u => fetchJson<Partial<Models.ImageInfo.ImageInfo>>(u));
-			if(promises.length) await Promise.all(promises).then(r => r.forEach((d, i:number) => { if(!d) return;
-				// Replace URL entry with formatted string
-				/** @ts-ignore */
-				entries[i] = `${d['@id']},${d.width},${d.height}`;
-			}));
-		}
-
-		// Parse entries into structured page data
-		const pages = entries.map((e:string) : any[] => e.split(',')
-			.map((v:any) => isNaN(v) ? v : Number(v))); // [id, w, h, type?, format?, tileSize?]
-		// Fill missing dimensions from previous entry (legacy format quirk)
-		pages.forEach((p,i) => { if(i>0&&!p[2]) p.push(...pages[i-1].slice(1)) });
-
-		if(!gallery.type) gallery.type = 'swipe'; // Default gallery type
-		const isSwitch = gallery.type == 'switch' || gallery.type == 'swipe-full' || gallery.type == 'omni'; // Types where pages overlap
-		const isSpreads = gallery.isSpreads; // Are pages displayed as spreads?
-		const isStripSwipe = !isSwitch; // Strip swipe: independent child canvases per image
-
-		if(isStripSwipe) {
-			// Independent child canvases (one per image), positioned via Camera.setArea.
-			// Each image fits its own viewport optimally; no shared parent canvas overflow.
-			// Parent dimensions match the screen so the container itself has a sane aspect.
-			opts.width = this.offsetWidth * this.canvas.getRatio();
-			opts.height = this.offsetHeight * this.canvas.getRatio();
-			const startIdx = Math.max(0, pages.findIndex(p => p[0] == gallery!.startId));
-			opts.gallery = pages.map((c, i) => new MicrioImage(this.engine, {
-				id: c[0], path, width: c[1], height: c[2], isDeepZoom: c[3] == 'd',
-				isPng: c[4] == 'p', isWebP: c[4] == 'w', tileSize: c[5]||1024,
-				revision: gallery?.revisions?.[c[0]],
-				settings: { skipMeta: true, gallery }
-			}, {
-				area: [i - startIdx, 0, i - startIdx + 1, 1] // Slot offset from active image
-			}));
-			sets.view = [0, 0, 1, 1];
-			return;
-		}
-
-		// --- Switch / swipe-full / omni: single shared canvas with overlapping embeds ---
-		opts.height = Math.max(...pages.map(p => p[2]));
-		const coverPages = isSpreads ? gallery.coverPages ?? 0 : 0;
-		opts.width = Math.max(...pages.map(p => p[1] * (isSpreads ? 2 : 1)));
-
-		opts.gallery = pages.map((c,i) => new MicrioImage(this.engine, {
-				id: c[0], path, width: c[1], height: c[2], isDeepZoom: c[3] == 'd',
-				isPng: c[4] == 'p', isWebP: c[4] == 'w', tileSize: c[5]||1024,
-				revision: gallery?.revisions?.[c[0]],
-				settings: { skipMeta: true, gallery }
-			}, {
-				isEmbed: true, useParentCamera: true,
-				area: !isSpreads ? [0,0,1,1]
-					: i-coverPages < 0 || (i == pages.length-1 && (i-coverPages)%2==0) ? [0.25,0,0.5,1]
-					: (i-coverPages)%2==0 ? [0,0,.5,1]
-					: [.5,0,.5,1]
-			})
-		);
-		sets.pinchZoomOutLimit = true;
-		if(opts.gallery.length) sets.view = opts.gallery[Math.max(0, opts.gallery.findIndex(i => i.id == gallery!.startId))].opts.area;
-	}
-
-	/** Holds loaded grid info data if applicable. */
-	gridInfoData:{images: Models.ImageInfo.ImageInfo[]}|undefined;
-	private sortArchiveImages(sort: string | undefined): ((a: Models.ImageInfo.ImageInfo, b: Models.ImageInfo.ImageInfo) => number) {
-		return sort == 'random' ? () => Math.random() - .5
-			: sort == 'name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0
-			: sort == '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0
-			: sort == '-created' ? (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? 1 : a.created > b.created ? -1 : 0
-			: (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
-	}
-
-	/**
-	 * Sets up options for a grid view based on attribute or archive data.
-	 * @internal
-	 * @param opts The partial ImageInfo object to populate.
-	 * @param path The base path for image assets.
-	 */
-	private async setGrid(opts:Partial<Models.ImageInfo.ImageInfo>, path:string) : Promise<void> {
-		if(!opts.settings || !opts.grid) return; // Exit if no grid info
-		// If grid attribute points to an archive, load index and format grid string
-		if(opts.settings.gallery?.archive == opts.grid) {
-			this.gridInfoData=await this.getArchiveIndex(opts.grid.split('.')[0], path); // Load index
-			const s = opts.settings.gallery?.sort;
-			if (s) this.gridInfoData.images.sort(this.sortArchiveImages(s));
-			// Format grid string from image info
-			opts.grid = this.gridInfoData.images.map(i =>
-				Grid.getString(i, {cultures: 'cultures' in i ? (<unknown>i.cultures as string[]).join('-') : undefined})
-			).join(';');
-		}
-		// Set default dimensions and settings for grid view
-		opts.width = this.offsetWidth * this.canvas.getRatio();
-		opts.height = this.offsetHeight * this.canvas.getRatio();
-		opts.settings.zoomLimit = 15;
-		opts.settings.minimap = false;
-		if (opts.settings.hookKeys === undefined && opts.settings.grid?.clickable) opts.settings.hookKeys = true;
-	}
-
-	/**
-	 * Retrieves the index JSON file for a given archive ID.
-	 * Uses the archive utility which handles caching.
-	 * @internal
-	 * @param id Archive ID (folder ID).
-	 * @param path Base path for the archive.
-	 * @returns Promise resolving to the archive index data.
-	 */
-	private getArchiveIndex = async (id:string,path:string=BASEPATH) : Promise<{delta?:number; images: Models.ImageInfo.ImageInfo[]}> =>
-		archive.get<{images: Models.ImageInfo.ImageInfo[]}>(`${path}${id}.json`) // Get JSON from archive utility
-			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r }); // Cache individual image infos and return result
 
 	/** Getter for the current language code. */
 	get lang() { return get(this._lang) }
