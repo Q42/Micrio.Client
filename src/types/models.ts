@@ -396,7 +396,7 @@ import type { MicrioIcon } from '$ts/icons';
 			/** Gallery sorting */
 			sort?: ('name'|'-name'|'created'|'-created'|'random');
 			/** Gallery type */
-			type?: ('swipe'|'swipe-full'|'switch'|'omni'|'grid');
+			type?: ('swipe'|'switch'|'omni'|'grid');
 			/** The gallery opening image ID */
 			startId? :string;
 			/** Pages are combined to 2x1 spreads */
@@ -1327,7 +1327,7 @@ import type { MicrioIcon } from '$ts/icons';
 
 	/** Gallery configuration */
 	export type GalleryConfig = {
-		type: 'swipe' | 'swipe-full' | 'switch' | 'omni' | 'grid';
+		type: 'swipe' | 'switch' | 'omni' | 'grid';
 		startId?: string;
 		sort?: 'name' | '-name' | 'created' | '-created' | 'random';
 		isSpreads?: boolean;

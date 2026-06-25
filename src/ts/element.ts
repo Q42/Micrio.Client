@@ -567,7 +567,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @internal
 	 */
 	private _openGalleryFromController(galleryCtrl: Gallery, baseOpts: Record<string, any>): void {
-		const isSwitch = galleryCtrl.type == 'switch' || galleryCtrl.type == 'swipe-full' || galleryCtrl.type == 'omni';
+		const isSwitch = galleryCtrl.type == 'switch' || galleryCtrl.type == 'omni';
 		const galleryInfo: Partial<Models.ImageInfo.ImageInfo> = {};
 
 		if(!isSwitch) {

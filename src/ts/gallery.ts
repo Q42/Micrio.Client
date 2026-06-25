@@ -49,9 +49,9 @@ export class Gallery {
 	/** For grid-type galleries, the processed grid string for Grid controller. */
 	_gridString: string | undefined;
 
-	/** Max width for the virtual container canvas (switch/swipe-full/omni galleries). */
+	/** Max width for the virtual container canvas (switch/omni galleries). */
 	containerWidth: number = 0;
-	/** Max height for the virtual container canvas (switch/swipe-full/omni galleries). */
+	/** Max height for the virtual container canvas (switch/omni galleries). */
 	containerHeight: number = 0;
 
 	get type(): Models.GalleryConfig['type'] { return this.config.type; }
@@ -65,7 +65,7 @@ export class Gallery {
 			? (config.settings.gallery as any).path
 			: undefined;
 
-		const isSwitch = config.type == 'switch' || config.type == 'swipe-full' || config.type == 'omni';
+		const isSwitch = config.type == 'switch' || config.type == 'omni';
 		const isSpreads = config.isSpreads;
 		const coverPages = isSpreads ? (config.coverPages ?? 0) : 0;
 

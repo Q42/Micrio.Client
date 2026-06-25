@@ -87,8 +87,7 @@
 
 	// Determine gallery type flags
 	const isOmni:boolean = gallery.type == 'omni';
-	const isFullSwipe:boolean = isOmni || gallery.type == 'swipe-full';
-	const isSwitch:boolean = isFullSwipe || gallery.type == 'switch';
+	const isSwitch:boolean = isOmni || gallery.type == 'switch';
 	/** Strip-swipe: independent child canvases sliding via Camera.setArea. */
 	const isStripSwipe:boolean = !isSwitch && !('frame' in (_images[0] ?? {}));
 
@@ -196,7 +195,7 @@
 		if(isStripSwipe) {
 			stripGoto(currentPage, fast, duration, changed);
 		}
-		else if(changed) { // switch / swipe-full / omni
+		else if(changed) { // switch / omni
 			engine.setActiveImage(image.ptr, pageIdxes[currentPage][0], pageIdxes[currentPage].length-1);
 			if(isOmni) {
 				engine.render();
@@ -647,7 +646,7 @@
 	let swiper:GallerySwiper; // Instance for swipe gestures
 	onMount(() => {
 		// Initialize engine representations for all gallery images/frames.
-		// Strip-swipe uses independent child canvases (addChild); switch/swipe-full/omni
+		// Strip-swipe uses independent child canvases (addChild); switch/omni
 		// share the parent camera and are added as embeds.
 		const added = isStripSwipe
 			? Promise.all(_images.map(d => engine.addChild(d as MicrioImage, image)))
@@ -702,14 +701,14 @@
 		// Update layer menu when omni layer changes
 		if(isOmni) unsub.push(image.state.layer.subscribe(printLayerMenu));
 		// Initialize swiper for full-screen swipe galleries
-		if(isFullSwipe) swiper = image.swiper = new GallerySwiper(micrio, pagesPerLayer, goto, {continuous:isContinuous, coverLimit});
+		if(isOmni) swiper = image.swiper = new GallerySwiper(micrio, pagesPerLayer, goto, {continuous:isContinuous, coverLimit});
 
 		// Setup auto-hide listeners if applicable
 		unhook.push(() => {
 			micrio.canvas.element.removeEventListener('pointermove', activity);
 			micrio.canvas.element.removeEventListener('pointerdown', activity);
 		});
-		if(autoHide && !isOmni && !isOmniTwoAxes && !isFullSwipe) {
+		if(autoHide && !isOmni && !isOmniTwoAxes) {
 			micrio.canvas.element.addEventListener('pointermove', activity);
 			micrio.canvas.element.addEventListener('pointerdown', activity);
 			activity(); // Initial call to set timeout
@@ -721,7 +720,7 @@
 		}));
 
 		// Setup pan/swipe listeners for non-switch/non-omni galleries
-		if(!(isSwitch || isFullSwipe || _images.length <= 1)) {
+		if(!(isSwitch || _images.length <= 1)) {
 			if(!isOmniTwoAxes) _left = getX(startIdx);
 
 			if(isStripSwipe) {
@@ -758,7 +757,7 @@
 	{:else if omniSettings && !omniSettings.noDial && isOmni}
 		<!-- Dial control for standard omni objects -->
 		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
-	{:else if !isFullSwipe && _images.length > 1}
+	{:else if !isOmni && _images.length > 1}
 		{@const total = pagesPerLayer}
 		{@const totalPages = _images.length}
 		{@const dense = total > 24}
