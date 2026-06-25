@@ -232,13 +232,10 @@ export class MicrioImage {
 
 		const micrio = this.engine.micrio; // Reference to main element
 
-		// Check if data was provided directly (e.g., V5 revision data)
-		const hasData = !!this.attr.revision;
-
 		// Subscribe to visibility changes
 		let wasVis:boolean=get(this.visible);
 		let followUnsub:Unsubscriber|null;
-		if(!opts.isEmbed || hasData) this.visible.subscribe(v => {
+		this.visible.subscribe(v => {
 			if(v==wasVis) return; wasVis=v; // Ignore if visibility hasn't changed
 
 			// Handle split-screen logic on visibility change
@@ -441,13 +438,9 @@ export class MicrioImage {
 		// Dispatch pre-info event for external manipulation
 		micrio.events.dispatch('pre-info', i);
 
-		// Load image data immediately if revisions are known, not an embed, and not skipped
-		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni) && !i.settings?.skipMeta) {
-			const d = await DataLoader.getBundleImage(this.id).then(r => r?.data);
-			if (d) {
-				micrio.events.dispatch('pre-data', { [this.id]: d });
-				this.data.set(d);
-			}
+		// Load image-specific data (markers, tours, etc.) from the bundle cache
+		if(!this.noImage || this.isOmni) {
+			this.loadBundleData();
 		}
 
 		// Handle linked split-screen setup
@@ -633,6 +626,20 @@ export class MicrioImage {
 	fadeOut(direct:boolean=false) : void {
 		this.engine.fadeImage(this.ptr, 0, direct);
 		this.engine.render();
+	}
+
+	/** Loads image-specific data (markers, tours, etc.) from the bundle cache.
+	 *  Safe to call on gallery children and other non-current images —
+	 *  does not trigger auto-start or other main-image side effects.
+	 *  The bundle is typically already cached from the parent image's load. */
+	loadBundleData(): void {
+		const entry = DataLoader.getBundleImageSync(this.id);
+		if(entry?.data) {
+			if(entry.info?.revision && !this.__info.revision)
+				this.__info.revision = entry.info.revision;
+			this.engine.micrio.events.dispatch('pre-data', { [this.id]: entry.data });
+			this.data.set(entry.data);
+		}
 	}
 
 }

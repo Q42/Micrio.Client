@@ -29,6 +29,8 @@
 
 	const horizontalSlot = (offset: number): Models.Camera.View => [offset, 0, 1, 1];
 
+	type _GalleryChild = MicrioImage | Models.Omni.Frame;
+
 	// --- Props ---
 
 	interface Props {
@@ -39,7 +41,7 @@
 	let { controller = null }: Props = $props();
 
 	// Capture initial prop values; these are stable for this component's lifetime.
-	const _images = untrack(() => controller ? (controller.images as any) : []);
+	const _images: _GalleryChild[] = untrack(() => controller ? [...controller.images] : []);
 
 	// --- Context & State ---
 
@@ -192,10 +194,16 @@
 			stripGoto(currentPage, fast, duration, changed);
 		}
 		else if(changed) { // switch / omni
-			engine.setActiveImage(image.ptr, pageIdxes[currentPage][0], pageIdxes[currentPage].length-1);
+			const activeIdxes = pageIdxes[currentPage];
+			engine.setActiveImage(image.ptr, activeIdxes[0], activeIdxes.length-1);
 			if(isOmni) {
 				engine.render();
 			} else {
+				// Toggle child visible stores so only the active page's markers/data render
+				_images.forEach((child, i) => {
+					if('state' in child)
+						(child as MicrioImage).visible.set(activeIdxes.includes(i));
+				});
 				limit(pages[currentPage], true);
 				camera.setView(pages[currentPage]);
 				activity();

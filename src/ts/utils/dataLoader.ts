@@ -85,6 +85,11 @@ export const DataLoader = {
 		return bundleCache.get(id)?.data;
 	},
 
+	/** Synchronous accessor for the full bundle entry (info + data) when it is already cached. */
+	getBundleImageSync(id: string): Models.ImageBundle.BundleImage | undefined {
+		return bundleCache.get(id);
+	},
+
 	/**
 	 * Resolves the marker for a tour step from the already-loaded bundle cache.
 	 * This replaces the earlier static `.marker` JSON that was inlined in stepInfo.
