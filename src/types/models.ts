@@ -137,8 +137,6 @@ import type { MicrioIcon } from '$ts/icons';
 			isSingle?: boolean;
 			/** A custom format (`dz` for DeepZoom, `iiif` for IIIF) */
 			format?: string;
-			/** Optional IIIF source for tiles */
-			iiifManifest?: string;
 
 			/** The album (V5+) ID */
 			albumId?: string;
@@ -158,42 +156,10 @@ import type { MicrioIcon } from '$ts/icons';
 			*/
 			isVideo?: boolean;
 
-			// IIIF
 			/** The IIIF spec'd `tiles` object
 			 * @internal
 			*/
 			tiles?: { [key: string]: number }[];
-			/** Single-canvas sequence -- IIIF Presentation API 2
-			 * @internal
-			*/
-			sequences?: {
-				viewingDirection?: string;
-				canvases: {
-					images: {
-						resource: {
-							width: number,
-							height: number,
-							format: string,
-							service: {
-								'@id': string
-							}
-						}
-					}[]
-				}[]
-			}[];
-
-			/** Single-canvas sequence -- IIIF Presentation API 3 */
-			type?: ('Manifest'|'Canvas'|'AnnotationPage'|'Annotation'|'Image');
-			items?: Partial<ImageInfo.ImageInfo>[];
-			body?: Partial<ImageInfo.ImageInfo> & {
-				format: string;
-				width: number;
-				height: number;
-				service: {
-					id: string;
-					type: 'ImageService3';
-				}[];
-			};
 
 			/** The 360 tour space ID */
 			spacesId?: string;

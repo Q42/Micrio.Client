@@ -10,7 +10,7 @@ import { fetchJson, jsonCache } from './utils/fetch';
 import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, BASEPATH, BASEPATH_V5, DEFAULT_INFO, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
@@ -338,6 +338,12 @@ export class HTMLMicrioElement extends HTMLElement {
 				.catch(() => {});
 		}
 
+		// --- IIIF Manifest URL as ID ---
+		if(opts.id && opts.id.startsWith('http')) {
+			await this._openIIIF(opts.id, {}).catch(e => this.printError(e));
+			return; // _openIIIF handles the full flow (single image or gallery) via open()
+		}
+
 		// --- Final Setup & Open ---
 		this.keepRendering = !!opts.settings.keepRendering; // Set continuous rendering flag
 		const doOpen = opts.id || opts.gallery || opts.grid; // Check if there's something to open
@@ -576,6 +582,90 @@ export class HTMLMicrioElement extends HTMLElement {
 			gallery,
 			settings: { view: [0, 0, 1, 1], gallery: { type: 'swipe', startId } }
 		});
+	}
+
+	/**
+	 * Fetches and processes an IIIF resource (manifest or Image API response).
+	 * Routes multi-canvas manifests to gallery construction and single images to normal open.
+	 * @internal
+	 */
+	private async _openIIIF(url: string, opts: {splitScreen?: boolean; splitTo?: MicrioImage; isPassive?: boolean; startView?: Models.Camera.View; vector?: Models.Camera.Vector} = {}): Promise<MicrioImage> {
+		const resp = await fetchJson<any>(url);
+
+		// Reject V2 manifests
+		if(resp['@type'] === 'sc:Manifest' || resp.sequences)
+			throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });
+
+		// --- V3 Manifest ---
+		if(resp.type === 'Manifest') {
+			const canvases = (resp.items as any[])
+				?.flatMap((p: any) => p.items?.[0]?.items?.[0]?.body)
+				?.filter((b: any) => b?.service?.[0]?.id) ?? [];
+
+			if(!canvases.length)
+				throw new MicrioError('NO_CANVASES', { displayMessage: 'No valid IIIF canvases found in the manifest' });
+
+			const images = canvases.map((b: any): { id: string; width: number; height: number; isPng: boolean } => ({
+				id: b.service[0].id,
+				width: b.width,
+				height: b.height,
+				isPng: b.format === 'image/png'
+			}));
+
+			// Single canvas — treat as a normal IIIF image
+			if(images.length === 1) {
+				const img = images[0];
+				return this.open({
+					id: img.id,
+					width: img.width,
+					height: img.height,
+					isIIIF: true,
+					isPng: img.isPng,
+					path: img.id.replace(/\/[^/]*$/, ''),
+					tileSize: DEFAULT_INFO.tileSize
+				}, opts);
+			}
+
+			// Multi-canvas — strip-swipe gallery
+			return this._openIIIFGallery(images, opts);
+		}
+
+		// --- Raw IIIF Image API response (no manifest) → single image ---
+		const baseId = (resp['@id'] || resp.id || url).replace('/info.json', '');
+		return this.open({
+			id: baseId.replace(/^.*\//, ''),
+			path: baseId.replace(/\/[^/]*$/, ''),
+			width: resp.width,
+			height: resp.height,
+			isIIIF: true,
+			tileSize: resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize
+		}, opts);
+	}
+
+	/**
+	 * Constructs a strip-swipe gallery from IIIF canvas data.
+	 * @internal
+	 */
+	private _openIIIFGallery(images: { id: string; width: number; height: number; isPng: boolean }[], opts: {splitScreen?: boolean; splitTo?: MicrioImage; isPassive?: boolean; startView?: Models.Camera.View; vector?: Models.Camera.Vector} = {}): MicrioImage {
+		const gallery = images.map((c, i) => new MicrioImage(this.engine, {
+			id: c.id,
+			width: c.width,
+			height: c.height,
+			isIIIF: true,
+			isPng: c.isPng,
+			path: c.id.replace(/\/[^/]*$/, ''),
+			tileSize: DEFAULT_INFO.tileSize,
+			settings: {}
+		}, {
+			area: [i, 0, i + 1, 1]
+		}));
+
+		return this.open({
+			width: this.offsetWidth * this.canvas.getRatio(),
+			height: this.offsetHeight * this.canvas.getRatio(),
+			gallery,
+			settings: { view: [0, 0, 1, 1], gallery: { type: 'swipe' } }
+		}, opts);
 	}
 
 	/**

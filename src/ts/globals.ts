@@ -161,7 +161,6 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-inittype': {f: 'initType'}, // Initial view type (cover, contain, view)
 		'data-start': {f: 'gallery.startId'}, // Starting image ID for gallery
 		'data-gallery-sort': {f: 'gallery.sort'}, // Gallery sorting ('name', '-created', etc.)
-		'data-iiif': {r: true, f: 'iiifManifest'}, // IIIF Manifest URL
 		'data-gallery-type': {f:'gallery.type'}, // Gallery type ('swipe', 'switch', 'omni', etc.)
 	},
 
