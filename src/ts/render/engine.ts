@@ -75,6 +75,8 @@ export class Engine {
 
 	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */
 	private engImageToMicrio: Map<Image, MicrioImage | Models.Omni.Frame> = new Map();
+	/** Reverse map: MicrioImage → engine Image for O(1) lookup in video callbacks. @internal */
+	private micrioToEngImage: Map<MicrioImage | Models.Omni.Frame, Image> = new Map();
 
 	preventDirectionSet: boolean = false;
 
@@ -711,6 +713,7 @@ export class Engine {
 		} else {
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.engImageToMicrio.set(engImage, image);
+			this.micrioToEngImage.set(image, engImage);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
 			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image });
@@ -760,6 +763,7 @@ export class Engine {
 			if (!parentEntry) return;
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
 			this.engImageToMicrio.set(engImage, image);
+			this.micrioToEngImage.set(image, engImage);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
 			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image as MicrioImage });
@@ -860,11 +864,9 @@ export class Engine {
 		this.engine.el.areaHeight = h;
 	}
 	setImageVideoPlaying(ptr: number, playing: boolean): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
-		if (!c) return;
-		const images = c.images;
-		for (let i = 0; i < images.length; i++) {
-			if (images[i].isVideo) { images[i].isVideoPlaying = playing; break; }
-		}
+		const micrioImage = this.ptrToImage.get(ptr);
+		if (!micrioImage) return;
+		const engImage = this.micrioToEngImage.get(micrioImage);
+		if (engImage) engImage.isVideoPlaying = playing;
 	}
 }
