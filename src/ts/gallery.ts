@@ -111,7 +111,24 @@ export class Gallery {
 							: [0.5, 0, 1, 1];
 				}
 
-				opts.area = fitArea(slot, this.containerWidth, this.containerHeight, c.width, c.height);
+				let area = fitArea(slot, this.containerWidth, this.containerHeight, c.width, c.height);
+
+				if (isSpreads) {
+					if (slot[0] === 0.5) {
+						// Right page: left-align to the spread center
+						const w = area[2] - area[0];
+						area[0] = 0.5;
+						area[2] = area[0] + w;
+					} else if (slot[2] === 0.5) {
+						// Left page: right-align to the spread center
+						const w = area[2] - area[0];
+						area[2] = 0.5;
+						area[0] = area[2] - w;
+					}
+					// Cover pages (slot [0.25, 0, 0.75, 1]) stay centered
+				}
+
+				opts.area = area;
 			} else {
 				opts.area = [i, 0, i + 1, 1];
 			}
