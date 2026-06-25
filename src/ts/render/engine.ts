@@ -263,7 +263,7 @@ export class Engine {
 
 		const settings = c.$settings;
 
-		this.isGallery = !!i.gallery || c.isOmni;
+		this.isGallery = !!get(this.micrio.gallery) || c.isOmni;
 
 		if (settings.gallery?.archive) {
 			this.engine.hasArchive = true;

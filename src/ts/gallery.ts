@@ -8,7 +8,7 @@ import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
 import { archive } from './render/archive';
 import { Grid } from './nav/grid';
-import { writable, type Writable } from 'svelte/store';
+import { writable, get, type Writable } from 'svelte/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from './globals';
 
 export class Gallery {
@@ -276,5 +276,29 @@ export class Gallery {
 			this.swiper = null;
 		}
 		this.grid = null;
+	}
+
+	// --- Navigation ---
+
+	/** Go to a specific page index. */
+	goto(index: number): void {
+		this.currentIndex.set(index);
+		const parent = this.parent;
+		// Dispatch gallery-show event so Gallery.svelte and album interface respond
+		if (parent) {
+			this.engine.micrio.events.dispatch('gallery-show', index);
+		}
+	}
+
+	/** Go to the next page. */
+	next(): void {
+		const current = get(this.currentIndex);
+		this.goto(Math.min(this.images.length - 1, current + 1));
+	}
+
+	/** Go to the previous page. */
+	prev(): void {
+		const current = get(this.currentIndex);
+		this.goto(Math.max(0, current - 1));
 	}
 }

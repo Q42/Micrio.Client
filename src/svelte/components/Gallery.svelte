@@ -32,22 +32,16 @@
 	// --- Props ---
 
 	interface Props {
-		/**
-	 * Array of MicrioImage or OmniFrame objects representing the items in the gallery.
-	 * For standard galleries, this comes from `image.$info.gallery`.
-	 * For Omni objects, this is generated internally based on `omni` settings.
-	 */
-		images?: (MicrioImage|Models.Omni.Frame)[];
 		/** Omni object settings, if applicable. Passed from Main.svelte. */
 		omni?: Models.ImageInfo.OmniSettings|null;
-		/** New: Gallery controller, preferred over images/omni when available. */
+		/** Gallery controller. Required for non-omni galleries. */
 		controller?: Gallery|null;
 	}
 
-	let { images = [], omni = null, controller = null }: Props = $props();
+	let { omni = null, controller = null }: Props = $props();
 
 	// Capture initial prop values; these are stable for this component's lifetime.
-	const _images = untrack(() => controller ? (controller.images as any) : images);
+	const _images = untrack(() => controller ? (controller.images as any) : []);
 	const _omni = untrack(() => controller?.config.omni ?? omni);
 
 	// --- Context & State ---
@@ -288,7 +282,7 @@
 		const imgs:number[] = []; // Array to store indices to preload
 
 		// Adjust for current viewed layer
-		if(layerNames.length) c += $layer * Math.floor(images.length / layerNames.length);
+		if(layerNames.length) c += $layer * Math.floor(_images.length / layerNames.length);
 
 		// Adjust index for spreads
 		if(isSpread && c >= coverPages) c=c*2-coverPages;
@@ -305,8 +299,8 @@
 			}
 			// Handle continuous wrapping (omni)
 			if(isContinuous) {
-				while(rX < 0) rX += images.length;
-				while(rX >= images.length) rX -= images.length;
+				while(rX < 0) rX += _images.length;
+				while(rX >= _images.length) rX -= _images.length;
 			}
 			imgs.push(rX); // Add index to preload list
 		};
@@ -315,8 +309,8 @@
 		if(isOmniTwoAxes) for(let y=-d;y<=d;y++) if(y) imgs.push(c+y*numPerRow);
 
 		// Filter unique, valid indices that are not already preloading
-		imgs.filter((n:number,i:number) => n >= 0 && n < images.length && imgs.indexOf(n) == i) // Ensure valid index and unique
-			.map(i => images[i]).filter(i => !!i && !preloading.has(i.id)) // Get image object, check if valid and not preloading
+		imgs.filter((n:number,i:number) => n >= 0 && n < _images.length && imgs.indexOf(n) == i) // Ensure valid index and unique
+			.map(i => _images[i]).filter(i => !!i && !preloading.has(i.id)) // Get image object, check if valid and not preloading
 			.forEach(i => preloading.set(i.id, request(() => // Schedule preload via requestIdleCallback/rAF
 				engine.getTexture(i.baseTileIdx, i.thumbSrc as string, false, {force: !!archiveId}) // Request texture load
 			)));
@@ -656,7 +650,7 @@
 		// share the parent camera and are added as embeds.
 		const added = isStripSwipe
 			? Promise.all(_images.map(d => engine.addChild(d as MicrioImage, image)))
-			: Promise.all(images.map(d => {
+			: Promise.all(_images.map(d => {
 				if('state' in d && !('image' in d)) d.camera = image.camera;
 				return engine.addEmbed(d, image, {
 					opacity: 0,
@@ -726,7 +720,7 @@
 		}));
 
 		// Setup pan/swipe listeners for non-switch/non-omni galleries
-		if(!(isSwitch || isFullSwipe || images.length <= 1)) {
+		if(!(isSwitch || isFullSwipe || _images.length <= 1)) {
 			if(!isOmniTwoAxes) _left = getX(startIdx);
 
 			if(isStripSwipe) {
@@ -763,7 +757,7 @@
 	{:else if omniSettings && !omniSettings.noDial && isOmni}
 		<!-- Dial control for standard omni objects -->
 		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
-	{:else if !isFullSwipe && images.length > 1}
+	{:else if !isFullSwipe && _images.length > 1}
 		{@const total = pagesPerLayer}
 		{@const totalPages = _images.length}
 		{@const dense = total > 24}

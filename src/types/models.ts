@@ -141,11 +141,6 @@ import type { MicrioIcon } from '$ts/icons';
 			/** The album (V5+) ID */
 			albumId?: string;
 
-			/** Create a gallery with these images (parsed from html attr `gallery`)
-			 * @internal
-			*/
-			gallery?: MicrioImage[];
-
 			/** Image is a grid controller
 			 * @internal
 			*/

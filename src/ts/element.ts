@@ -333,7 +333,7 @@ export class HTMLMicrioElement extends HTMLElement {
 
 		// --- Final Setup & Open ---
 		this.keepRendering = !!opts.settings.keepRendering; // Set continuous rendering flag
-		const doOpen = opts.id || opts.gallery || opts.grid; // Check if there's something to open
+		const doOpen = opts.id || opts.grid; // Check if there's something to open
 		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo); // Dispatch 'print' event
 
 		// Handle lazy loading
@@ -618,8 +618,7 @@ export class HTMLMicrioElement extends HTMLElement {
 			return;
 		}
 
-		// Non-grid: set gallery children for engine compatibility, pass controller
-		galleryInfo.gallery = galleryCtrl.images;
+		// Non-grid: pass controller so Gallery.svelte renders
 		this.open(galleryInfo, { ...baseOpts, gallery: galleryCtrl });
 	}
 
