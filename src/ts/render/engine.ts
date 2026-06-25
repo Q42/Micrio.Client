@@ -707,9 +707,9 @@ export class Engine {
 					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover')
 				};
 			}
-			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height, childOpts);
+			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 		} else {
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.engImageToMicrio.set(engImage, image);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
@@ -808,7 +808,7 @@ export class Engine {
 	 * Sets the focus point for zoom operations.
 	 * @internal
 	 */
-	setFocus(ptr: number, v: Models.Camera.ViewRect, noLimit: boolean = false): void {
+	setFocus(ptr: number, v: Models.Camera.View, noLimit: boolean = false): void {
 		this.getCanvas(this.ptrToImage.get(ptr)!)?.setFocus(v[0], v[1], v[2], v[3], noLimit);
 	}
 

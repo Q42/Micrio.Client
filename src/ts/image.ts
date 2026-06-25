@@ -165,7 +165,7 @@ export class MicrioImage {
 	opacity: number = 1;
 
 	/** Svelte Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
-	public readonly viewport:Writable<Models.Camera.ViewRect> = writable<Models.Camera.ViewRect>();
+	public readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
 
 	/** Array of child {@link MicrioImage} instances embedded within this image. */
 	readonly embeds: MicrioImage[] = [];
@@ -187,8 +187,8 @@ export class MicrioImage {
 		public engine: Engine,
 		private attr:Partial<Models.ImageInfo.ImageInfo>,
 		public opts:{
-			/** Optional sub area [x0, y0, x1, y1] defining placement within a parent canvas (for embeds/galleries). */
-			area?: Models.Camera.ViewRect;
+			/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
+			area?: Models.Camera.View;
 			/** For split screen, the primary image this one is secondary to. */
 			secondaryTo?: MicrioImage;
 			/** If true, passively follows the view changes of the primary split-screen image. */
@@ -218,7 +218,7 @@ export class MicrioImage {
 		if(opts.secondaryTo) {
 			this.opacity = 0; // Start invisible
 			// Default placement based on orientation
-			opts.area = this.engine.micrio.canvas.viewport.portrait ? [0,1,1,1] : [1,0,1,1];
+			opts.area = this.engine.micrio.canvas.viewport.portrait ? [0,1,1,0] : [1,0,0,1];
 			if(opts.isPassive === undefined) opts.isPassive = true; // Default to passive following
 		}
 		// Default area if not provided
@@ -545,11 +545,11 @@ export class MicrioImage {
 	/**
 	 * Adds an embedded MicrioImage (representing another Micrio image or video) within this image.
 	 * @param info Partial info data for the embed.
-	 * @param area The placement area `[x0, y0, x1, y1]` within the parent image.
+	 * @param area The placement area `[x, y, width, height]` within the parent image.
 	 * @param opts Embedding options (opacity, fit, etc.).
 	 * @returns The newly created embedded {@link MicrioImage} instance.
 	 */
-	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.ViewRect, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
+	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
 		const img = new MicrioImage(this.engine, info, {area:a, isEmbed: true, useParentCamera: opts.asImage});
@@ -564,14 +564,14 @@ export class MicrioImage {
 			if(opts.fit == 'cover' || opts.fit == 'contain') {
 				const yS = this.is360 ? 2 : 1; // Y-scale factor for 360
 				const isCover = opts.fit == 'cover';
-				const aW = a[2]-a[0], aH = a[3] - a[1], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
+				const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
 				const aAr = aW / aH * yS; // Area aspect ratio
 				const imgAr = i.width / i.height; // Image aspect ratio
 				// Adjust area dimensions based on aspect ratios and fit mode
 				if((isCover && imgAr < aAr) || (!isCover && imgAr >= aAr)) { // Adjust height
-					const nH = aW / imgAr * yS; a[1] = cY - nH/2; a[3] = cY + nH/2;
+					const nH = aW / imgAr * yS; a[1] = cY - nH/2; a[3] = nH;
 				} else { // Adjust width
-					const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = cX + nW/2;
+					const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = nW;
 				}
 			}
 			// Add the embed to the engine
@@ -601,7 +601,7 @@ export class MicrioImage {
 		// Set area for primary image (left/top half)
 		this.opts.secondaryTo?.camera.setArea(p ? [0,0,1,.5] : [0,0,.5,1], {noRender:true});
 		// Set area for this secondary image (right/bottom half)
-		this.camera.setArea(p ? [0,.5,1,1] : [.5,0,1,1], {noRender:true});
+		this.camera.setArea(p ? [0,.5,1,.5] : [.5,0,.5,1], {noRender:true});
 		// Set initial view for this image
 		this.camera.setView(this.__info?.settings?.view ?? [0,0,1,1])
 		this.engine.render(); // Trigger render
@@ -611,12 +611,12 @@ export class MicrioImage {
 	splitEnd() : void {
 		const a = this.opts.area; // Get current area
 		if(!a) return;
-		const w = a[2]-a[0], h = a[3]-a[1];
+		const w = a[2], h = a[3];
 		// Exit if area is already collapsed (prevent multiple calls)
 		if(Math.round(w * 1000)/1000 == 0 || Math.round(h * 1000)/1000 == 0) return;
 		const p = w > h; // Determine direction to collapse based on aspect ratio
 		// Animate this image's area to collapse off-screen
-		this.camera.setArea(p ? [0,1,1,1] : [1,0,1,1], {noRender:true});
+		this.camera.setArea(p ? [0,1,1,0] : [1,0,0,1], {noRender:true});
 		// If primary image is not animating (or not part of grid), reset its area to full
 		if(!this.opts.secondaryTo?.grid || !this.opts.secondaryTo.camera.aniDone)
 			this.opts.secondaryTo?.camera.setArea([0,0,1,1], {noRender:true});

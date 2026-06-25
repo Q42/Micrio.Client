@@ -12,26 +12,26 @@ import { writable, get, type Writable } from 'svelte/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from './globals';
 
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).
- *  The slot is defined in normalized coordinates [x0,y0,x1,y1] within a virtual container
- *  of `containerWidth`×`containerHeight` pixels. Returns a centered sub-area that contains
- *  the image without stretching.
+ *  The slot is defined in normalized coordinates [x, y, width, height] within a virtual container
+ *  of `containerWidth`×`containerHeight` pixels. Returns a centered sub-area `[x, y, width, height]`
+ *  that contains the image without stretching.
  */
 function fitArea(
-	slot: Models.Camera.ViewRect,
+	slot: Models.Camera.View,
 	containerWidth: number,
 	containerHeight: number,
 	imageWidth: number,
 	imageHeight: number
-): Models.Camera.ViewRect {
-	const [x0, y0, x1, y1] = slot;
-	const slotW = (x1 - x0) * containerWidth;
-	const slotH = (y1 - y0) * containerHeight;
+): Models.Camera.View {
+	const [x, y, w, h] = slot;
+	const slotW = w * containerWidth;
+	const slotH = h * containerHeight;
 	const scale = Math.min(slotW / imageWidth, slotH / imageHeight);
 	const renderW = (imageWidth * scale) / containerWidth;
 	const renderH = (imageHeight * scale) / containerHeight;
-	const cx = (x0 + x1) / 2;
-	const cy = (y0 + y1) / 2;
-	return [cx - renderW / 2, cy - renderH / 2, cx + renderW / 2, cy + renderH / 2];
+	const cx = x + w / 2;
+	const cy = y + h / 2;
+	return [cx - renderW / 2, cy - renderH / 2, renderW, renderH];
 }
 
 export class Gallery {
@@ -99,16 +99,16 @@ export class Gallery {
 				opts.isEmbed = true;
 				opts.useParentCamera = true;
 
-				let slot: Models.Camera.ViewRect;
+				let slot: Models.Camera.View;
 
 				if (!isSpreads) {
 					slot = [0, 0, 1, 1];
 				} else {
 					slot = i - coverPages < 0 || (i == items.length - 1 && (i - coverPages) % 2 == 0)
-						? [0.25, 0, 0.75, 1]
+						? [0.25, 0, 0.5, 1]
 						: (i - coverPages) % 2 == 0
 							? [0, 0, 0.5, 1]
-							: [0.5, 0, 1, 1];
+							: [0.5, 0, 0.5, 1];
 				}
 
 				let area = fitArea(slot, this.containerWidth, this.containerHeight, c.width, c.height);
@@ -116,21 +116,18 @@ export class Gallery {
 				if (isSpreads) {
 					if (slot[0] === 0.5) {
 						// Right page: left-align to the spread center
-						const w = area[2] - area[0];
 						area[0] = 0.5;
-						area[2] = area[0] + w;
-					} else if (slot[2] === 0.5) {
+					} else if (slot[0] === 0) {
 						// Left page: right-align to the spread center
-						const w = area[2] - area[0];
-						area[2] = 0.5;
-						area[0] = area[2] - w;
+						const w = area[2];
+						area[0] = 0.5 - w;
 					}
-					// Cover pages (slot [0.25, 0, 0.75, 1]) stay centered
+					// Cover pages (slot [0.25, 0, 0.5, 1]) stay centered
 				}
 
 				opts.area = area;
 			} else {
-				opts.area = [i, 0, i + 1, 1];
+				opts.area = [i, 0, 1, 1];
 			}
 
 			return new MicrioImage(engine, {

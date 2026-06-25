@@ -27,7 +27,7 @@
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
 
-	const horizontalSlot = (offset: number): Models.Camera.ViewRect => [offset, 0, offset + 1, 1];
+	const horizontalSlot = (offset: number): Models.Camera.View => [offset, 0, 1, 1];
 
 	// --- Props ---
 
@@ -131,20 +131,19 @@
 	}
 	else if(_images) {
 		// Calculate page layouts within the shared parent canvas, handling spreads.
-		// opts.area is ViewRect [x0,y0,x1,y1]; convert to View [x0,y0,width,height]
-		// because flyToView → toCenterJSON expects that format.
+		// opts.area is View [x,y,width,height]; used directly for flyToView → toCenterJSON.
 		for(let i=0; i<_images.length; i++) {
-			let area = _images[i].opts?.area;
+			const area = _images[i].opts?.area;
 			if(!area) continue;
-			const v: Models.Camera.View = [area[0], area[1], area[2] - area[0], area[3] - area[1]];
+			const v: Models.Camera.View = [area[0], area[1], area[2], area[3]];
 			pageIdxes.push([i]);
 
 			if(isSpread && (i-coverPages>=0 && ((i-coverPages)%2==0)) && _images[i+1]) {
-				area = _images[++i].opts?.area;
-				if(!area) continue;
+				const next = _images[++i].opts?.area;
+				if(!next) continue;
 				pageIdxes[pageIdxes.length-1].push(i);
-				v[2] = v[2] + (area[2] - area[0]);
-				v[3] = Math.max(v[3], area[3] - area[1]);
+				v[2] = v[2] + next[2];
+				v[3] = Math.max(v[3], next[3]);
 			}
 			pages.push(v);
 		}

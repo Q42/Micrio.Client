@@ -1216,7 +1216,7 @@ import type { MicrioIcon } from '$ts/icons';
 			thumbSrc?: string;
 			baseTileIdx: number;
 			ptr: number;
-			opts: { area: Camera.ViewRect; };
+			opts: { area: Camera.View; };
 		}
 	}
 
@@ -1253,8 +1253,8 @@ import type { MicrioIcon } from '$ts/icons';
 		/** Virtual ImageInfo extension to support grid logic */
 		export interface GridImage extends Partial<ImageInfo.ImageInfo> {
 			size: [number, number?];
-			area?: Camera.ViewRect;
-			view?: Camera.ViewRect;
+			area?: Camera.View;
+			view?: Camera.View;
 		}
 
 		export interface GridHistory {
@@ -1265,7 +1265,7 @@ import type { MicrioIcon } from '$ts/icons';
 	
 		export interface GridImageOptions {
 			view?:Camera.View;
-			area?:Camera.ViewRect;
+			area?:Camera.View;
 			size?:number[];
 		}
 	
@@ -1347,10 +1347,7 @@ import type { MicrioIcon } from '$ts/icons';
 		/** A numeric array or Float64Array used for camera geometry. */
 		export type CameraArray = number[] | Float64Array;
 
-		/** A viewport rectangle `[x0, y0, x1, y1]` (corners). */
-		export type ViewRect = CameraArray;
-
-		/** An area definition `[x0, y0, width, height]` (origin + size). */
+		/** A viewport/area definition `[x, y, width, height]` (origin + size). */
 		export type View = CameraArray;
 
 		/** Coordinate tuple, [x, y, scale] */

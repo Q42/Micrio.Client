@@ -284,15 +284,9 @@
 	function printInsideGL() : void {
 		// Determine initial opacity (use 0.01 if hidden when paused to ensure it renders initially)
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity ?? 1;
-		const area:Models.Camera.ViewRect = [
-			embed.area[0],
-			embed.area[1],
-			embed.area[0]+embed.area[2],
-			embed.area[1]+embed.area[3]
-		];
 		if(image && image.ptr >= 0) { // If MicrioImage instance already exists (e.g., from previous state)
 			// Update its placement and fade it in
-			image.camera.setArea(area);
+			image.camera.setArea(embed.area as Models.Camera.View);
 			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
 			engine.fadeImage(image.ptr, opacity);
 		}
@@ -311,7 +305,7 @@
 				settings: {
 					_360: { rotX, rotY, rotZ } // Pass rotation settings
 				},
-			}, area, { opacity, asImage: false }); // Pass area, initial opacity
+			}, embed.area as Models.Camera.View, { opacity, asImage: false }); // Pass area, initial opacity
 		}
 
 		// If it's a WebGL video, initialize the GLEmbedVideo handler once visible

@@ -15,25 +15,25 @@ import { Enums } from '$ts/enums';
 
 const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 
-const slideAreas: Record<number, Models.Camera.ViewRect> = {
-	0:   [0, -.5, 1, 0],
-	90:  [1, 0, 1.5, 1],
-	180: [0, 1, 1, 1.5],
-	270: [-.5, 0, 0, 1],
+const slideAreas: Record<number, Models.Camera.View> = {
+	0:   [0, -.5, 1, .5],
+	90:  [1, 0, .5, 1],
+	180: [0, 1, 1, .5],
+	270: [-.5, 0, .5, 1],
 };
 
-const swipeAreas: Record<number, Models.Camera.ViewRect> = {
-	0:   [0, -1, 1, 0],
-	90:  [1, 0, 2, 1],
-	180: [0, 1, 1, 2],
-	270: [-1, 0, 0, 1],
+const swipeAreas: Record<number, Models.Camera.View> = {
+	0:   [0, -1, 1, 1],
+	90:  [1, 0, 1, 1],
+	180: [0, 1, 1, 1],
+	270: [-1, 0, 1, 1],
 };
 
-const swipeExitAreas: Record<number, Models.Camera.ViewRect> = {
-	0:   [0, 1, 1, 2],
-	90:  [-1, 0, 0, 1],
-	180: [0, -1, 1, 0],
-	270: [1, 0, 2, 1],
+const swipeExitAreas: Record<number, Models.Camera.View> = {
+	0:   [0, 1, 1, 1],
+	90:  [-1, 0, 1, 1],
+	180: [0, -1, 1, 1],
+	270: [1, 0, 1, 1],
 };
 
 /** Rounds a number to 5 decimal places. @internal */
@@ -55,7 +55,7 @@ export class Grid {
 	 */
 	static getString = (i:Models.ImageInfo.ImageInfo, opts: {
 		view?:Models.Camera.View;
-		area?:Models.Camera.ViewRect;
+		area?:Models.Camera.View;
 		size?:number[];
 		cultures?: string;
 	}) : string => [
@@ -556,8 +556,8 @@ export class Grid {
 			isPng: p[4]=='p',
 			isWebP: p[4]=='w',
 			size,
-			view: p[5] ? p[5].split('/').map(Number) as Models.Camera.ViewRect : undefined,
-			area: p[6] ? p[6].split('/').map(Number) as Models.Camera.ViewRect : undefined,
+		view: p[5] ? p[5].split('/').map(Number) as Models.Camera.View : undefined,
+		area: p[6] ? p[6].split('/').map(Number) as Models.Camera.View : undefined,
 			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings||{}, {
 				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined
 			})),
@@ -639,7 +639,7 @@ export class Grid {
 			const r = e.getBoundingClientRect();
 			const img = images.find(i => i.id == id);
 			const o = [(s/2)*r.width, (s/2)*r.height];
-			if(img && !img.area) img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.x+r.width-o[0])/w, (r.y+r.height-o[1])/h]
+			if(img && !img.area) img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.width-o[0]*2)/w, (r.height-o[1]*2)/h]
 		});
 
 		if(!opts.keepGrid) this._grid.remove();
@@ -967,12 +967,20 @@ export class Grid {
 
 		[Enums.Grid.GridActionType.flyTo]: (data, duration) => {
 			const images = data?.split(',').map(s => this.current.find(i => i.id == s?.trim()));
-			if(images?.length) this.image.camera.flyToView([
-				Math.min(...images.map(i => i?.opts.area?.[0] ?? 0)),
-				Math.min(...images.map(i => i?.opts.area?.[1] ?? 0)),
-				Math.max(...images.map(i => i?.opts.area?.[2] ?? 1)),
-				Math.max(...images.map(i => i?.opts.area?.[3] ?? 1)),
-			], {duration:duration?duration*1000:undefined}).catch(()=>{});
+			if(images?.length) {
+				const xs = images.map(i => i?.opts.area?.[0] ?? 0);
+				const ys = images.map(i => i?.opts.area?.[1] ?? 0);
+				const right = Math.max(...images.map(i => (i?.opts.area?.[0] ?? 0) + (i?.opts.area?.[2] ?? 1)));
+				const bottom = Math.max(...images.map(i => (i?.opts.area?.[1] ?? 0) + (i?.opts.area?.[3] ?? 1)));
+				const minX = Math.min(...xs);
+				const minY = Math.min(...ys);
+				this.image.camera.flyToView([
+					minX,
+					minY,
+					right - minX,
+					bottom - minY,
+				], {duration:duration?duration*1000:undefined}).catch(()=>{});
+			}
 			else console.warn('Given image IDs gave no current displayed images');
 		},
 
@@ -1056,18 +1064,17 @@ export class Grid {
 		const vx = coo[0], vy = coo[1];
 		return this.current.find(i => {
 			const a = i.opts.area;
-			return a && vx >= a[0] && vx <= a[2] && vy >= a[1] && vy <= a[3];
+			return a && vx >= a[0] && vx <= a[0] + a[2] && vy >= a[1] && vy <= a[1] + a[3];
 		});
 	}
 
-	getRelativeView(image:MicrioImage, view:Models.Camera.ViewRect) : Models.Camera.ViewRect {
+	getRelativeView(image:MicrioImage, view:Models.Camera.View) : Models.Camera.View {
 		const a = image.opts.area ?? [0,0,1,1];
-		const vW = a[2]-a[0], vH = a[3]-a[1];
 		return [
-			a[0] + vW * view[0],
-			a[1] + vH * view[1],
-			a[0] + vW * view[2],
-			a[1] + vH * view[3]
+			a[0] + a[2] * view[0],
+			a[1] + a[3] * view[1],
+			a[2] * view[2],
+			a[3] * view[3]
 		]
 	}
 }
