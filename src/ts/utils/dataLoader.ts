@@ -23,7 +23,7 @@ type BundleImage = Models.ImageBundle.BundleImage;
 
 const bundleCache = new Map<string, BundleImage>();
 const spaceCache = new Map<string, Models.Spaces.Space>();
-const albumCache = new Map<string, Models.ImageInfo.GallerySettings>();
+const albumCache = new Map<string, Models.GalleryConfig>();
 const inflightFetches = new Map<string, Promise<void>>();
 let orgCache: Models.ImageInfo.Organisation | undefined;
 
@@ -105,7 +105,7 @@ export const DataLoader = {
 	},
 
 	/** Returns the album info for an album ID from the bundle cache. */
-	getAlbum(id: string): Models.ImageInfo.GallerySettings | undefined {
+	getAlbum(id: string): Models.GalleryConfig | undefined {
 		return albumCache.get(id);
 	},
 

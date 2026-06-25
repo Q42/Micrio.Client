@@ -15,6 +15,7 @@
 	import type { MicrioImage } from '$ts/image';
 	import type { Camera } from '$ts/camera';
 	import type { Models } from '$types/models';
+	import type { Gallery } from '$ts/gallery';
 
 	import { getContext, onMount, untrack } from 'svelte';
 	import { writable, type Unsubscriber, type Writable } from 'svelte/store';
@@ -26,26 +27,19 @@
 	import Button from '../ui/Button.svelte';
 	import Dial from '../ui/Dial.svelte'; // Used for omni object rotation control
 
-	const horizontalSlot = (offset: number): Models.Camera.ViewRect => [offset, 0, offset + 1, 1];
+	const horizontalSlot = (offset: number): Models.Camera.View => [offset, 0, 1, 1];
 
 	// --- Props ---
 
 	interface Props {
-		/**
-	 * Array of MicrioImage or OmniFrame objects representing the items in the gallery.
-	 * For standard galleries, this comes from `image.$info.gallery`.
-	 * For Omni objects, this is generated internally based on `omni` settings.
-	 */
-		images?: (MicrioImage|Models.Omni.Frame)[];
-		/** Omni object settings, if applicable. Passed from Main.svelte. */
-		omni?: Models.ImageInfo.OmniSettings|null;
+		/** Gallery controller. Required for all gallery types. */
+		controller?: Gallery|null;
 	}
 
-	let { images = [], omni = null }: Props = $props();
+	let { controller = null }: Props = $props();
 
 	// Capture initial prop values; these are stable for this component's lifetime.
-	const _images = untrack(() => images);
-	const _omni = untrack(() => omni);
+	const _images = untrack(() => controller ? (controller.images as any) : []);
 
 	// --- Context & State ---
 
@@ -67,9 +61,10 @@
 	const camera = image.camera as Camera; // Camera instance
 
 	// --- Omni Object Setup ---
-	// If it's an omni object, generate the frame data internally
-	if(_omni) {
-		for(let j=0;j<_omni.frames;j++) {
+	// If settings include omni config, generate frame data internally
+	if($settings.omni) {
+		const o = $settings.omni;
+		for(let j=0;j<o.frames;j++) {
 			_images.push({
 				id: info.id+'/'+j, // Unique ID for the frame
 				image: image, // Reference to the parent image
@@ -78,31 +73,29 @@
 				opts: { area: [0,0,1,1] }, // Frame occupies full area
 				ptr: -1, // engine pointer (not applicable here)
 				baseTileIdx: -1, // Base tile index (not applicable here)
-				thumbSrc: image.getTileSrc(image.levels, 0, 0, j) // Thumbnail source for the frame
+				thumbSrc: image.getTileSrc(image.levels, 0, 0, j)
 			});
 		}
 	}
 
 	// --- Gallery Configuration ---
 
-	/** Gallery settings from the main image's settings store. */
-	const gallery = $settings.gallery!; // Assumes gallery settings exist
+	/** Gallery settings from the main image's settings store or controller config. */
+	const gallery = untrack(() => controller?.config ?? $settings.gallery!);
 
 	// Determine gallery type flags
-	const isOmni:boolean = gallery.type == 'omni';
-	const isFullSwipe:boolean = isOmni || gallery.type == 'swipe-full';
-	const isSwitch:boolean = isFullSwipe || gallery.type == 'switch';
+	const isSwitch:boolean = gallery.type == 'switch';
 	/** Strip-swipe: independent child canvases sliding via Camera.setArea. */
 	const isStripSwipe:boolean = !isSwitch && !('frame' in (_images[0] ?? {}));
 
+	// Omni-specific settings (presence of omni settings = omni behavior)
+	const omniSettings = $settings.omni;
+	const isOmni:boolean = !!omniSettings;
 	// Other gallery options
-	const isContinuous:boolean = isOmni; // Omni objects wrap around
+	const isContinuous:boolean = !!omniSettings; // Omni objects wrap around
 	const isSpread:boolean = !!gallery.isSpreads; // Display pages as spreads
 	const coverPages:number = gallery.coverPages ?? 0; // Number of single cover pages in spreads
-
-	// Omni-specific settings
-	const omniSettings = $settings.omni;
-	const isOmniTwoAxes:boolean = isOmni && !!omniSettings?.twoAxes; // Is it a 2-axis omni object?
+	const isOmniTwoAxes:boolean = !!omniSettings?.twoAxes; // Is it a 2-axis omni object?
 
 	// Determine starting index
 	const startId:string|undefined = gallery.startId;
@@ -134,19 +127,20 @@
 		}
 	}
 	else if(_images) {
-		// Calculate page layouts within the shared parent canvas, handling spreads
+		// Calculate page layouts within the shared parent canvas, handling spreads.
+		// opts.area is View [x,y,width,height]; used directly for flyToView → toCenterJSON.
 		for(let i=0; i<_images.length; i++) {
-			let area = _images[i].opts?.area;
+			const area = _images[i].opts?.area;
 			if(!area) continue;
-			const v = area.slice(0);
+			const v: Models.Camera.View = [area[0], area[1], area[2], area[3]];
 			pageIdxes.push([i]);
 
 			if(isSpread && (i-coverPages>=0 && ((i-coverPages)%2==0)) && _images[i+1]) {
-				area = _images[++i].opts?.area;
-				if(!area) continue;
+				const next = _images[++i].opts?.area;
+				if(!next) continue;
 				pageIdxes[pageIdxes.length-1].push(i);
-				v[2] = v[2] + area[2];
-				v[3] = Math.max(v[3], area[3]);
+				v[2] = v[2] + next[2];
+				v[3] = Math.max(v[3], next[3]);
 			}
 			pages.push(v);
 		}
@@ -197,14 +191,13 @@
 		if(isStripSwipe) {
 			stripGoto(currentPage, fast, duration, changed);
 		}
-		else if(changed) { // switch / swipe-full / omni
+		else if(changed) { // switch / omni
 			engine.setActiveImage(image.ptr, pageIdxes[currentPage][0], pageIdxes[currentPage].length-1);
 			if(isOmni) {
 				engine.render();
 			} else {
-				camera.flyToView(pages[currentPage], {duration, speed: 2})
-					.then(() => limit(pages[currentPage], true))
-					.catch(() => {});
+				limit(pages[currentPage], true);
+				camera.setView(pages[currentPage]);
 				activity();
 			}
 		}
@@ -285,7 +278,7 @@
 		const imgs:number[] = []; // Array to store indices to preload
 
 		// Adjust for current viewed layer
-		if(layerNames.length) c += $layer * Math.floor(images.length / layerNames.length);
+		if(layerNames.length) c += $layer * Math.floor(_images.length / layerNames.length);
 
 		// Adjust index for spreads
 		if(isSpread && c >= coverPages) c=c*2-coverPages;
@@ -302,8 +295,8 @@
 			}
 			// Handle continuous wrapping (omni)
 			if(isContinuous) {
-				while(rX < 0) rX += images.length;
-				while(rX >= images.length) rX -= images.length;
+				while(rX < 0) rX += _images.length;
+				while(rX >= _images.length) rX -= _images.length;
 			}
 			imgs.push(rX); // Add index to preload list
 		};
@@ -312,8 +305,8 @@
 		if(isOmniTwoAxes) for(let y=-d;y<=d;y++) if(y) imgs.push(c+y*numPerRow);
 
 		// Filter unique, valid indices that are not already preloading
-		imgs.filter((n:number,i:number) => n >= 0 && n < images.length && imgs.indexOf(n) == i) // Ensure valid index and unique
-			.map(i => images[i]).filter(i => !!i && !preloading.has(i.id)) // Get image object, check if valid and not preloading
+		imgs.filter((n:number,i:number) => n >= 0 && n < _images.length && imgs.indexOf(n) == i) // Ensure valid index and unique
+			.map(i => _images[i]).filter(i => !!i && !preloading.has(i.id)) // Get image object, check if valid and not preloading
 			.forEach(i => preloading.set(i.id, request(() => // Schedule preload via requestIdleCallback/rAF
 				engine.getTexture(i.baseTileIdx, i.thumbSrc as string, false, {force: !!archiveId}) // Request texture load
 			)));
@@ -649,11 +642,11 @@
 	let swiper:GallerySwiper; // Instance for swipe gestures
 	onMount(() => {
 		// Initialize engine representations for all gallery images/frames.
-		// Strip-swipe uses independent child canvases (addChild); switch/swipe-full/omni
+		// Strip-swipe uses independent child canvases (addChild); switch/omni
 		// share the parent camera and are added as embeds.
 		const added = isStripSwipe
 			? Promise.all(_images.map(d => engine.addChild(d as MicrioImage, image)))
-			: Promise.all(images.map(d => {
+			: Promise.all(_images.map(d => {
 				if('state' in d && !('image' in d)) d.camera = image.camera;
 				return engine.addEmbed(d, image, {
 					opacity: 0,
@@ -704,14 +697,14 @@
 		// Update layer menu when omni layer changes
 		if(isOmni) unsub.push(image.state.layer.subscribe(printLayerMenu));
 		// Initialize swiper for full-screen swipe galleries
-		if(isFullSwipe) swiper = image.swiper = new GallerySwiper(micrio, pagesPerLayer, goto, {continuous:isContinuous, coverLimit});
+		if(isOmni) swiper = image.swiper = new GallerySwiper(micrio, pagesPerLayer, goto, {continuous:isContinuous, coverLimit});
 
 		// Setup auto-hide listeners if applicable
 		unhook.push(() => {
 			micrio.canvas.element.removeEventListener('pointermove', activity);
 			micrio.canvas.element.removeEventListener('pointerdown', activity);
 		});
-		if(autoHide && !isOmni && !isOmniTwoAxes && !isFullSwipe) {
+		if(autoHide && !isOmni && !isOmniTwoAxes) {
 			micrio.canvas.element.addEventListener('pointermove', activity);
 			micrio.canvas.element.addEventListener('pointerdown', activity);
 			activity(); // Initial call to set timeout
@@ -723,7 +716,7 @@
 		}));
 
 		// Setup pan/swipe listeners for non-switch/non-omni galleries
-		if(!(isSwitch || isFullSwipe || images.length <= 1)) {
+		if(!(isSwitch || _images.length <= 1)) {
 			if(!isOmniTwoAxes) _left = getX(startIdx);
 
 			if(isStripSwipe) {
@@ -760,7 +753,7 @@
 	{:else if omniSettings && !omniSettings.noDial && isOmni}
 		<!-- Dial control for standard omni objects -->
 		<Dial {currentRotation} frames={pagesPerLayer} degrees={$settings.omni?.showDegrees} onturn={n => goto(n)} />
-	{:else if !isFullSwipe && images.length > 1}
+	{:else if !isOmni && _images.length > 1}
 		{@const total = pagesPerLayer}
 		{@const totalPages = _images.length}
 		{@const dense = total > 24}

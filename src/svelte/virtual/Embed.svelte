@@ -216,18 +216,22 @@
 
 		// Handle pause-on-zoom logic for videos
 		if((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && width) {
-			const wasPaused:boolean = paused;
 			paused = shouldPause(); // Check if should be paused now
-			if(glVideo?._vid && (paused != wasPaused)) { // If state changed and using WebGL video
-				if(paused) glVideo._vid.pause(); // Pause
-				else { // Play
-					glVideo.cancelTimeout(); // Cancel any pending visibility pause to avoid race
-					// Optionally restart video when shown again
-					if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
-					glVideo._vid.play();
+			// Always sync actual video playback with the paused state, regardless of whether
+			// the paused *value* changed. This handles the case where visibility-based pause
+			// (GLEmbedVideo visible=false subscription) paused the video externally while
+			// the zoom-based paused state stayed the same, causing them to de-sync.
+			if(glVideo?._vid) {
+				if(paused) {
+					if(!glVideo._vid.paused) glVideo._vid.pause();
+				} else {
+					if(glVideo._vid.paused) {
+						glVideo.cancelTimeout(); // Cancel any pending visibility pause to avoid race
+						if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
+						glVideo._vid.play();
+					}
 				}
 			}
-			// Note: HTML video pause/play based on `paused` prop is handled by Media.svelte
 		}
 	}
 
@@ -284,15 +288,9 @@
 	function printInsideGL() : void {
 		// Determine initial opacity (use 0.01 if hidden when paused to ensure it renders initially)
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity ?? 1;
-		const area:Models.Camera.ViewRect = [
-			embed.area[0],
-			embed.area[1],
-			embed.area[0]+embed.area[2],
-			embed.area[1]+embed.area[3]
-		];
-		if(image && image.ptr >= 0) { // If MicrioImage instance already exists (e.g., from previous state)
+		if(image && (image.ptr >= 0 || mainImage.embeds.includes(image))) { // If MicrioImage instance already exists (e.g., from previous state)
 			// Update its placement and fade it in
-			image.camera.setArea(area);
+			image.camera.setArea(embed.area as Models.Camera.View);
 			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
 			engine.fadeImage(image.ptr, opacity);
 		}
@@ -311,7 +309,7 @@
 				settings: {
 					_360: { rotX, rotY, rotZ } // Pass rotation settings
 				},
-			}, area, { opacity, asImage: false }); // Pass area, initial opacity
+			}, embed.area as Models.Camera.View, { opacity, asImage: false }); // Pass area, initial opacity
 		}
 
 		// If it's a WebGL video, initialize the GLEmbedVideo handler once visible

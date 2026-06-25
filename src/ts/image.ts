@@ -9,7 +9,6 @@ import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from
 import { Camera } from './camera';
 import { readable, writable, get } from 'svelte/store';
 import { clone, deepCopy } from './utils/object';
-import { fetchJson } from './utils/fetch';
 import { getIdVal, idIsV5 } from './utils/id';
 import { once } from './utils/store';
 import { MicrioError } from './utils/error';
@@ -166,7 +165,7 @@ export class MicrioImage {
 	opacity: number = 1;
 
 	/** Svelte Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
-	public readonly viewport:Writable<Models.Camera.ViewRect> = writable<Models.Camera.ViewRect>();
+	public readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
 
 	/** Array of child {@link MicrioImage} instances embedded within this image. */
 	readonly embeds: MicrioImage[] = [];
@@ -188,8 +187,8 @@ export class MicrioImage {
 		public engine: Engine,
 		private attr:Partial<Models.ImageInfo.ImageInfo>,
 		public opts:{
-			/** Optional sub area [x0, y0, x1, y1] defining placement within a parent canvas (for embeds/galleries). */
-			area?: Models.Camera.ViewRect;
+			/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
+			area?: Models.Camera.View;
 			/** For split screen, the primary image this one is secondary to. */
 			secondaryTo?: MicrioImage;
 			/** If true, passively follows the view changes of the primary split-screen image. */
@@ -219,7 +218,7 @@ export class MicrioImage {
 		if(opts.secondaryTo) {
 			this.opacity = 0; // Start invisible
 			// Default placement based on orientation
-			opts.area = this.engine.micrio.canvas.viewport.portrait ? [0,1,1,1] : [1,0,1,1];
+			opts.area = this.engine.micrio.canvas.viewport.portrait ? [0,1,1,0] : [1,0,0,1];
 			if(opts.isPassive === undefined) opts.isPassive = true; // Default to passive following
 		}
 		// Default area if not provided
@@ -304,17 +303,15 @@ export class MicrioImage {
 			this.__info = i = attr as Models.ImageInfo.ImageInfo;
 		}
 
-		let iiifManifest = i.iiifManifest||attr.iiifManifest; // Check for IIIF manifest URL
-
 		// Determine if IIIF based on URL or format property
 		i.isIIIF = this.id.startsWith('http') || i.format == 'iiif';
 
 		let idFromCustomId:string|undefined;
-		// Fetch info/manifest if ID provided but dimensions missing, or if IIIF
-		if(this.id && (!attr.width || !attr.height || iiifManifest)) {
+		// Fetch info if ID provided but dimensions missing
+		if(this.id && (!attr.width || !attr.height)) {
 			const loadError = (e:Error) => this.setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
-			// Fetch info (Micrio or IIIF) or use preset data
-			deepCopy(await (i.isIIIF ? fetchJson(this.id) : DataLoader.getInfo(this.id)
+			// Fetch info (Micrio) or use preset data
+			deepCopy(await DataLoader.getInfo(this.id)
 				.then(r => {
 					// If custom ID requested (`id="external/{org-slug}/{customId}"`), the returned info is redirected to real image's ID path.
 					// Also correct this internally.
@@ -324,12 +321,7 @@ export class MicrioImage {
 					}
 					return r;
 				})
-			).catch(loadError), i);
-			// Re-check for manifest URL after fetching info
-			if(!iiifManifest && i.iiifManifest) iiifManifest = i.iiifManifest;
-			if(!i.isIIIF) i.isIIIF = !!iiifManifest;
-			// Fetch and merge IIIF manifest if present
-			if(iiifManifest) deepCopy(await fetchJson(iiifManifest).catch(loadError), i);
+				.catch(loadError), i);
 		}
 		const { isV5Imported } = ((i: Models.ImageInfo.ImageInfo, id: string): { isV5Imported: boolean } => {
 			if (i.settings?._meta?.noLogo) i.settings.noLogo = true;
@@ -380,9 +372,9 @@ export class MicrioImage {
 				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
 					.catch(e => this.setError(e, 'Could not find object base package.'));
 				// Configure gallery settings for Omni
-				if(!i.settings.gallery) i.settings.gallery = {};
-				i.settings.gallery.type = 'omni';
-				i.settings.gallery.archive = i.id; // Use image ID as archive key for gallery logic
+				const gal = i.settings.gallery = (i.settings.gallery ?? {}) as any;
+				gal.type = 'switch';
+				gal.archive = i.id; // Use image ID as archive key for gallery logic
 			}
 		}
 
@@ -397,15 +389,11 @@ export class MicrioImage {
 			});
 		}
 
-		// Parse IIIF sequence data if present
+		// For IIIF single images, extract ID and path from the Image API URL
 		if(i.isIIIF) {
-			if(i.sequences && i.sequences.length) this.parseIIIFSequenceV2(i, !!iiifManifest);
-			else if(i.type == 'Manifest') this.parseIIIFSequenceV3(i);
-			else { // Extract ID/path if not a sequence
-				const id:string = (iiifManifest || ('@id' in i ? i['@id'] : i.id) as string).replace('/info.json', '');
-				i.path = id.replace(/\/[^/]*$/,'');
-				i.id = id.replace(/^.*\/([^/]*)$/,'$1');
-			}
+			const id = (('@id' in i ? i['@id'] : i.id) as string).replace('/info.json', '');
+			i.path = id.replace(/\/[^/]*$/, '');
+			i.id = id.replace(/^.*\//, '');
 		}
 
 		// Load 360 space data from bundle if linked and not already loaded
@@ -453,8 +441,8 @@ export class MicrioImage {
 		// Dispatch pre-info event for external manipulation
 		micrio.events.dispatch('pre-info', i);
 
-		// Load image data immediately if revisions are known and not an embed
-		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni)) {
+		// Load image data immediately if revisions are known, not an embed, and not skipped
+		if(i.revision && !this.opts.isEmbed && !(this.noImage && !this.isOmni) && !i.settings?.skipMeta) {
 			const d = await DataLoader.getBundleImage(this.id).then(r => r?.data);
 			if (d) {
 				micrio.events.dispatch('pre-data', { [this.id]: d });
@@ -554,102 +542,14 @@ export class MicrioImage {
 		}
 	})}
 
-	/** Configures the info object as a strip-swipe gallery container and sets the
-	 * parent's dimensions to match the element's viewport. Returns the starting
-	 * slot index resolved from `gallery.startId` (or 0).
-	 * @internal
-	 */
-	private setupIIIFGalleryContainer(i:Models.ImageInfo.ImageInfo, ids:string[]) : number {
-		this.noImage = true;
-		// Size the virtual parent to the element's current pixel dimensions so child
-		// strip-swipe slots render at the full viewport aspect (matches loadGallery's
-		// strip-swipe path). Using sum-of-widths × max-of-heights here would letterbox
-		// the parent and squash all children into that strip.
-		const micrio = this.engine.micrio;
-		const ratio = micrio.canvas.getRatio();
-		i.width = Math.max(1, micrio.offsetWidth * ratio);
-		i.height = Math.max(1, micrio.offsetHeight * ratio);
-		if(!i.settings) i.settings = {};
-		if(!i.settings.gallery) i.settings.gallery = {};
-		i.settings.view = [0, 0, 1, 1];
-		i.gallery = [];
-		const startId = i.settings.gallery.startId;
-		const startIdx = startId ? ids.findIndex(id => id == startId) : -1;
-		return startIdx < 0 ? 0 : startIdx;
-	}
-
-	/** Parses IIIF Presentation API V2 sequence data. For short sequences the canvases
-	 * are treated as positioned embeds in a composite image; long sequences (>10) are
-	 * configured as a swipeable gallery.
-	 * @internal
-	 */
-	private parseIIIFSequenceV2(i:Models.ImageInfo.ImageInfo, isIIIFSequence:boolean=false) : void {
-		const s = i.sequences?.[0];
-		if(!s) return;
-		const images = s.canvases.map(c => c.images[0]).map(i => i.resource);
-		const isGallery = isIIIFSequence && images.length > 10;
-
-		if(isGallery) {
-			const startIdx = this.setupIIIFGalleryContainer(i, images.map(s => s.service['@id']));
-			images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.engine, {
-				id: s.service['@id'],
-				width: s.width, height: s.height,
-				isPng: s.format == 'image/png',
-				settings: {}
-			}, {
-				area: [idx - startIdx, 0, idx - startIdx + 1, 1]
-			})));
-			return;
-		}
-
-		// Composite layout: position each canvas as an embed within a single virtual parent.
-		const vertical = s.viewingDirection == 'top-to-bottom';
-		this.noImage = true;
-		i.width = !vertical ? images.reduce((v, i) => v+i.width, 0) : Math.max(...images.map(i => i.width));
-		i.height = vertical ? images.reduce((v, i) => v+i.height, 0) : Math.max(...images.map(i => i.height));
-		if(!i.settings) i.settings = {};
-		let offset = 0;
-		images.forEach(s => {
-			const margins = [ (1 - (s.width / i.width)) / 2, (1 - (s.height / i.height)) / 2 ];
-			this.embeds.push(new MicrioImage(this.engine, {
-				id: s.service['@id'],
-				width: s.width, height: s.height,
-				isPng: s.format == 'image/png',
-				settings: {}
-			}, {
-				area: vertical ? [margins[0], offset/i.height, 1-margins[0], (offset+s.height)/i.height]
-					: [offset/i.width, margins[1], (offset+s.width)/i.width, 1-margins[1] ]
-			}));
-			offset += vertical ? s.height : s.width;
-		});
-	}
-
-	/** Parses IIIF Presentation API V3 sequence data to create a swipeable gallery.
-	 * @internal
-	 */
-	private parseIIIFSequenceV3(i:Models.ImageInfo.ImageInfo) : void {
-		const images = i.items?.flatMap(p => p.items?.[0]?.items?.[0]?.body).filter(p => !!p?.service?.[0]?.id).filter(p => !!p);
-		if(!images?.length) return;
-		const startIdx = this.setupIIIFGalleryContainer(i, images.map(s => s.service[0].id));
-		images.forEach((s, idx) => i.gallery!.push(new MicrioImage(this.engine, {
-			id: s.service[0].id,
-			width: s.width, height: s.height,
-			isPng: s.format == 'image/png',
-			tileSize: i.tileSize,
-			settings: {}
-		}, {
-			area: [idx - startIdx, 0, idx - startIdx + 1, 1]
-		})));
-	}
-
 	/**
 	 * Adds an embedded MicrioImage (representing another Micrio image or video) within this image.
 	 * @param info Partial info data for the embed.
-	 * @param area The placement area `[x0, y0, x1, y1]` within the parent image.
+	 * @param area The placement area `[x, y, width, height]` within the parent image.
 	 * @param opts Embedding options (opacity, fit, etc.).
 	 * @returns The newly created embedded {@link MicrioImage} instance.
 	 */
-	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.ViewRect, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
+	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
 		const img = new MicrioImage(this.engine, info, {area:a, isEmbed: true, useParentCamera: opts.asImage});
@@ -664,14 +564,14 @@ export class MicrioImage {
 			if(opts.fit == 'cover' || opts.fit == 'contain') {
 				const yS = this.is360 ? 2 : 1; // Y-scale factor for 360
 				const isCover = opts.fit == 'cover';
-				const aW = a[2]-a[0], aH = a[3] - a[1], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
+				const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
 				const aAr = aW / aH * yS; // Area aspect ratio
 				const imgAr = i.width / i.height; // Image aspect ratio
 				// Adjust area dimensions based on aspect ratios and fit mode
 				if((isCover && imgAr < aAr) || (!isCover && imgAr >= aAr)) { // Adjust height
-					const nH = aW / imgAr * yS; a[1] = cY - nH/2; a[3] = cY + nH/2;
+					const nH = aW / imgAr * yS; a[1] = cY - nH/2; a[3] = nH;
 				} else { // Adjust width
-					const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = cX + nW/2;
+					const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = nW;
 				}
 			}
 			// Add the embed to the engine
@@ -701,7 +601,7 @@ export class MicrioImage {
 		// Set area for primary image (left/top half)
 		this.opts.secondaryTo?.camera.setArea(p ? [0,0,1,.5] : [0,0,.5,1], {noRender:true});
 		// Set area for this secondary image (right/bottom half)
-		this.camera.setArea(p ? [0,.5,1,1] : [.5,0,1,1], {noRender:true});
+		this.camera.setArea(p ? [0,.5,1,.5] : [.5,0,.5,1], {noRender:true});
 		// Set initial view for this image
 		this.camera.setView(this.__info?.settings?.view ?? [0,0,1,1])
 		this.engine.render(); // Trigger render
@@ -711,12 +611,12 @@ export class MicrioImage {
 	splitEnd() : void {
 		const a = this.opts.area; // Get current area
 		if(!a) return;
-		const w = a[2]-a[0], h = a[3]-a[1];
+		const w = a[2], h = a[3];
 		// Exit if area is already collapsed (prevent multiple calls)
 		if(Math.round(w * 1000)/1000 == 0 || Math.round(h * 1000)/1000 == 0) return;
 		const p = w > h; // Determine direction to collapse based on aspect ratio
 		// Animate this image's area to collapse off-screen
-		this.camera.setArea(p ? [0,1,1,1] : [1,0,1,1], {noRender:true});
+		this.camera.setArea(p ? [0,1,1,0] : [1,0,0,1], {noRender:true});
 		// If primary image is not animating (or not part of grid), reset its area to full
 		if(!this.opts.secondaryTo?.grid || !this.opts.secondaryTo.camera.aniDone)
 			this.opts.secondaryTo?.camera.setArea([0,0,1,1], {noRender:true});

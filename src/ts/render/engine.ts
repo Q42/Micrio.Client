@@ -75,6 +75,8 @@ export class Engine {
 
 	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */
 	private engImageToMicrio: Map<Image, MicrioImage | Models.Omni.Frame> = new Map();
+	/** Reverse map: MicrioImage → engine Image for O(1) lookup in video callbacks. @internal */
+	private micrioToEngImage: Map<MicrioImage | Models.Omni.Frame, Image> = new Map();
 
 	preventDirectionSet: boolean = false;
 
@@ -263,7 +265,7 @@ export class Engine {
 
 		const settings = c.$settings;
 
-		this.isGallery = !!i.gallery || c.isOmni;
+		this.isGallery = !!get(this.micrio.gallery) || c.isOmni;
 
 		if (settings.gallery?.archive) {
 			this.engine.hasArchive = true;
@@ -288,9 +290,7 @@ export class Engine {
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360.video));
 
-		const gallerySwitch = !!this.isGallery && (settings.gallery?.type == 'switch'
-			|| settings.gallery?.type == 'omni'
-			|| settings.gallery?.type == 'swipe-full');
+		const gallerySwitch = !!this.isGallery && settings.gallery?.type == 'switch';
 
 		const numOmniLayers = settings.omni?.layers?.length ?? 1;
 		if (settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);
@@ -708,10 +708,11 @@ export class Engine {
 					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover')
 				};
 			}
-			canvas = parentEntry.canvas.addChild(a[0], a[1], a[2], a[3], i.width, i.height, childOpts);
+			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 		} else {
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.engImageToMicrio.set(engImage, image);
+			this.micrioToEngImage.set(image, engImage);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
 			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image });
@@ -753,13 +754,15 @@ export class Engine {
 		else {
 			const i = '$info' in image ? image.$info : parent.$info;
 			if (!i) return;
+			if ((image as any).ptr >= 0) return;
 			this.images.push(image);
 			const a = image.opts.area ?? [0, 0, 1, 1];
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			const parentEntry = this.canvasById.get(parent.ptr);
 			if (!parentEntry) return;
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
 			this.engImageToMicrio.set(engImage, image);
+			this.micrioToEngImage.set(image, engImage);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
 			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image as MicrioImage });
@@ -809,7 +812,7 @@ export class Engine {
 	 * Sets the focus point for zoom operations.
 	 * @internal
 	 */
-	setFocus(ptr: number, v: Models.Camera.ViewRect, noLimit: boolean = false): void {
+	setFocus(ptr: number, v: Models.Camera.View, noLimit: boolean = false): void {
 		this.getCanvas(this.ptrToImage.get(ptr)!)?.setFocus(v[0], v[1], v[2], v[3], noLimit);
 	}
 
@@ -860,11 +863,9 @@ export class Engine {
 		this.engine.el.areaHeight = h;
 	}
 	setImageVideoPlaying(ptr: number, playing: boolean): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
-		if (!c) return;
-		const images = c.images;
-		for (let i = 0; i < images.length; i++) {
-			if (images[i].isVideo) { images[i].isVideoPlaying = playing; break; }
-		}
+		const micrioImage = this.ptrToImage.get(ptr);
+		if (!micrioImage) return;
+		const engImage = this.micrioToEngImage.get(micrioImage);
+		if (engImage) engImage.isVideoPlaying = playing;
 	}
 }

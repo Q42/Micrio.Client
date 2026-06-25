@@ -168,9 +168,9 @@ export class Camera {
 	/** Converts relative coordinates within an area to absolute image coordinates.
 	 * @internal
 	 */
-	private cooToArea = (x:number, y:number, a:Models.Camera.ViewRect) : {x:number, y:number} => ({
-		x: a[0] + x * (a[2]-a[0]),
-		y: a[1] + y * (a[3]-a[1])
+	private cooToArea = (x:number, y:number, a:Models.Camera.View) : {x:number, y:number} => ({
+		x: a[0] + x * a[2],
+		y: a[1] + y * a[3]
 	});
 
 	/**
@@ -218,7 +218,7 @@ export class Camera {
 	public getView = () : Models.Camera.View => this.view;
 
 	/**
-	 * Gets the current image view rectangle [centerX, centerY, width, height] relative to the image (0-1).
+	 * Gets the current image view rectangle [x0, y0, width, height] relative to the image (0-1).
 	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
 	 */
 	public getViewRaw = () : Float64Array => this._view;
@@ -236,7 +236,7 @@ export class Camera {
 		/** If true, prevents triggering a render after setting the view. */
 		noRender?: boolean;
 		/** If provided, interprets `view` relative to this sub-area instead of the full image. */
-		area?: Models.Camera.ViewRect;
+		area?: Models.Camera.View;
 	} = {}): void {
 		if (!this._engineCanvas) return; // Exit if engine not ready
 
@@ -246,8 +246,8 @@ export class Camera {
 			const absCoords = this.cooToArea(centerX, centerY, opts.area);
 			centerX = absCoords.x;
 			centerY = absCoords.y;
-			width *= (opts.area[2] - opts.area[0]);
-			height *= (opts.area[3] - opts.area[1]);
+			width *= opts.area[2];
+			height *= opts.area[3];
 		}
 		this._c.setView( centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
 		
@@ -397,7 +397,7 @@ export class Camera {
 	 * @returns A Promise that resolves when the animation completes, or rejects if aborted.
 	 */
 	public flyToView = (
-		view: Models.Camera.ViewRect | Models.Camera.View,
+		view: Models.Camera.View,
 		opts: Models.Camera.AnimationOptions & {
 			/** Set the starting animation progress percentage (0-1). */
 			progress?: number;
@@ -408,7 +408,7 @@ export class Camera {
 			/** For Omni objects: the target image frame index to animate to. */
 			omniIndex?: number;
 			/** If provided, interprets `view` relative to this sub-area. */
-			area?: Models.Camera.ViewRect;
+			area?: Models.Camera.View;
 			/** If true, respects the image's maximum zoom limit during animation. */
 			limitZoom?: boolean;
 			/** If provided, adds a margin to the view. */
@@ -429,8 +429,8 @@ export class Camera {
 			const absCoords = this.cooToArea(centerX, centerY, opts.area);
 			centerX = absCoords.x;
 			centerY = absCoords.y;
-			width *= (opts.area[2] - opts.area[0]);
-			height *= (opts.area[3] - opts.area[1]);
+			width *= opts.area[2];
+			height *= opts.area[3];
 		}
 		if (opts.prevView) {
 			const pCV = toCenterJSON(opts.prevView);
@@ -576,10 +576,10 @@ export class Camera {
 	/**
 	 * Sets the rendering area for this image within the main canvas.
 	 * Used for split-screen and potentially other layout effects. Animates by default.
-	 * @param v The target area rectangle [x0, y0, x1, y1] relative to the main canvas (0-1).
+	 * @param v The target area rectangle [x0, y0, width, height] relative to the main canvas (0-1).
 	 * @param opts Options for setting the area.
 	 */
-	setArea(v:Models.Camera.ViewRect, opts:{
+	setArea(v:Models.Camera.View, opts:{
 		/** If true, sets the area instantly without animation. */
 		direct?:boolean;
 		/** If true, prevents dispatching view updates during the animation. */
@@ -588,17 +588,16 @@ export class Camera {
 		noRender?:boolean;
 	} = {}) : void {
 		if (!this._engineCanvas) return;
+		this.image.opts.area = v;
 		if(this.image.opts.isEmbed) {
 			if(this.image.ptr > 0) {
-				this.image.opts.area = v;
 				for (const img of this._c.images) {
-					if (img.localIdx > 0) { img.setArea(v[0], v[1], v[2], v[3]); return; }
+					if (img.localIdx > 0) { img.setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
 				}
 			}
 		}
 		else {
-			this.image.opts.area = v;
-			this._c.setArea(v[0], v[1], v[2], v[3], !!opts.direct, !!opts.noDispatch);
+			this._c.setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], !!opts.direct, !!opts.noDispatch);
 		}
 		if(!opts.noRender) this.image.engine.render();
 	}

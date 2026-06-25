@@ -137,16 +137,9 @@ import type { MicrioIcon } from '$ts/icons';
 			isSingle?: boolean;
 			/** A custom format (`dz` for DeepZoom, `iiif` for IIIF) */
 			format?: string;
-			/** Optional IIIF source for tiles */
-			iiifManifest?: string;
 
 			/** The album (V5+) ID */
 			albumId?: string;
-
-			/** Create a gallery with these images (parsed from html attr `gallery`)
-			 * @internal
-			*/
-			gallery?: MicrioImage[];
 
 			/** Image is a grid controller
 			 * @internal
@@ -158,42 +151,10 @@ import type { MicrioIcon } from '$ts/icons';
 			*/
 			isVideo?: boolean;
 
-			// IIIF
 			/** The IIIF spec'd `tiles` object
 			 * @internal
 			*/
 			tiles?: { [key: string]: number }[];
-			/** Single-canvas sequence -- IIIF Presentation API 2
-			 * @internal
-			*/
-			sequences?: {
-				viewingDirection?: string;
-				canvases: {
-					images: {
-						resource: {
-							width: number,
-							height: number,
-							format: string,
-							service: {
-								'@id': string
-							}
-						}
-					}[]
-				}[]
-			}[];
-
-			/** Single-canvas sequence -- IIIF Presentation API 3 */
-			type?: ('Manifest'|'Canvas'|'AnnotationPage'|'Annotation'|'Image');
-			items?: Partial<ImageInfo.ImageInfo>[];
-			body?: Partial<ImageInfo.ImageInfo> & {
-				format: string;
-				width: number;
-				height: number;
-				service: {
-					id: string;
-					type: 'ImageService3';
-				}[];
-			};
 
 			/** The 360 tour space ID */
 			spacesId?: string;
@@ -366,7 +327,7 @@ import type { MicrioIcon } from '$ts/icons';
 			markersScale?: boolean;
 
 			/** Albums */
-			gallery?: GallerySettings;
+			gallery?: GalleryConfig;
 
 			/** FOR OMNI OBJECTS */
 			omni?: OmniSettings;
@@ -421,30 +382,6 @@ import type { MicrioIcon } from '$ts/icons';
 
 			/** Watermark opacity, defaults to 0.075 */
 			watermarkOpacity?: number;
-		}
-
-		export type GallerySettings = {
-			/** Album/image ID for the gallery */
-			id?: string;
-			/** Gallery name */
-			name?: string;
-			/** Gallery has an associated .bin archive with thumbnails */
-			archive?: string;
-			/** Archive layer offset */
-			archiveLayerOffset?: number;
-			/** Gallery sorting */
-			sort?: ('name'|'-name'|'created'|'-created'|'random');
-			/** Gallery type */
-			type?: ('swipe'|'swipe-full'|'switch'|'omni'|'grid');
-			/** The gallery opening image ID */
-			startId? :string;
-			/** Pages are combined to 2x1 spreads */
-			isSpreads?: boolean;
-			/** For spreads, number of cover pages to show as single page */
-			coverPages?: number;
-			/** Optional viewer settings that override/merge with defaults */
-			settings?: Partial<ImageInfo.Settings>;
-			revisions?: {[key:string]: RevisionType};
 		}
 
 		export type OmniSettings = {
@@ -1095,7 +1032,7 @@ import type { MicrioIcon } from '$ts/icons';
 				id: string;
 				data: Models.Spaces.Space;
 			}[];
-			album?: ImageInfo.GallerySettings;
+			album?: GalleryConfig;
 		};
 	}
 
@@ -1255,7 +1192,7 @@ import type { MicrioIcon } from '$ts/icons';
 			thumbSrc?: string;
 			baseTileIdx: number;
 			ptr: number;
-			opts: { area: Camera.ViewRect; };
+			opts: { area: Camera.View; };
 		}
 	}
 
@@ -1292,8 +1229,8 @@ import type { MicrioIcon } from '$ts/icons';
 		/** Virtual ImageInfo extension to support grid logic */
 		export interface GridImage extends Partial<ImageInfo.ImageInfo> {
 			size: [number, number?];
-			area?: Camera.ViewRect;
-			view?: Camera.ViewRect;
+			area?: Camera.View;
+			view?: Camera.View;
 		}
 
 		export interface GridHistory {
@@ -1304,7 +1241,7 @@ import type { MicrioIcon } from '$ts/icons';
 	
 		export interface GridImageOptions {
 			view?:Camera.View;
-			area?:Camera.ViewRect;
+			area?:Camera.View;
 			size?:number[];
 		}
 	
@@ -1335,7 +1272,7 @@ import type { MicrioIcon } from '$ts/icons';
 		/** The current page index */
 		currentIndex: number;
 		/** The album info */
-		info?: ImageInfo.GallerySettings;
+		info?: GalleryConfig;
 		/** Go to previous page */
 		prev: () => void;
 		/** Go to next page */
@@ -1350,14 +1287,42 @@ import type { MicrioIcon } from '$ts/icons';
 		currentImage?: Writable<import('../ts/image').MicrioImage>;
 	}
 
+	/** Gallery item representing a single image within a gallery or grid */
+	export type GalleryItem = {
+		id: string;
+		width: number;
+		height: number;
+		path?: string;
+		tileSize?: number;
+		isDeepZoom?: boolean;
+		isPng?: boolean;
+		isWebP?: boolean;
+	};
+
+	/** Gallery configuration */
+	export type GalleryConfig = {
+		type: 'swipe' | 'switch' | 'grid';
+		startId?: string;
+		sort?: 'name' | '-name' | 'created' | '-created' | 'random';
+		isSpreads?: boolean;
+		coverPages?: number;
+		archive?: string;
+		archiveLayerOffset?: number;
+		revisions?: Record<string, Record<string, any>>;
+		settings?: Partial<ImageInfo.Settings>;
+		id?: string;
+		name?: string;
+		grid?: {
+			clickable?: 'focus' | 'zoom' | false;
+			panZoom?: 'cells' | 'grid';
+		};
+	};
+
 	export namespace Camera {
 		/** A numeric array or Float64Array used for camera geometry. */
 		export type CameraArray = number[] | Float64Array;
 
-		/** A viewport rectangle `[x0, y0, x1, y1]` (corners). */
-		export type ViewRect = CameraArray;
-
-		/** An area definition `[x0, y0, width, height]` (origin + size). */
+		/** A viewport/area definition `[x, y, width, height]` (origin + size). */
 		export type View = CameraArray;
 
 		/** Coordinate tuple, [x, y, scale] */

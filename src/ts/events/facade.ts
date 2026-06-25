@@ -218,7 +218,7 @@ export class Events implements EventContext {
 		if (gridCtrl) return gridCtrl.grid?.getImageAt(c.x, c.y) ?? this.micrio.$current;
 		// Default: find the visible image under the cursor by area
 		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
-			hasSplitScreen && grid ? false : area ? x >= area[0] && x <= area[2] && y >= area[1] && y <= area[3] : false
+			hasSplitScreen && grid ? false : area ? x >= area[0] && x <= area[0] + area[2] && y >= area[1] && y <= area[1] + area[3] : false
 		);
 		if (t && t.opts.secondaryTo && t.opts.isPassive && t.opts.area) {
 			c.x -= t.opts.area[0] * w;
