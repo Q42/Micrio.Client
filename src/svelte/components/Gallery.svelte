@@ -131,19 +131,21 @@
 		}
 	}
 	else if(_images) {
-		// Calculate page layouts within the shared parent canvas, handling spreads
+		// Calculate page layouts within the shared parent canvas, handling spreads.
+		// opts.area is ViewRect [x0,y0,x1,y1]; convert to View [x0,y0,width,height]
+		// because flyToView → toCenterJSON expects that format.
 		for(let i=0; i<_images.length; i++) {
 			let area = _images[i].opts?.area;
 			if(!area) continue;
-			const v = area.slice(0);
+			const v: Models.Camera.View = [area[0], area[1], area[2] - area[0], area[3] - area[1]];
 			pageIdxes.push([i]);
 
 			if(isSpread && (i-coverPages>=0 && ((i-coverPages)%2==0)) && _images[i+1]) {
 				area = _images[++i].opts?.area;
 				if(!area) continue;
 				pageIdxes[pageIdxes.length-1].push(i);
-				v[2] = v[2] + area[2];
-				v[3] = Math.max(v[3], area[3]);
+				v[2] = v[2] + (area[2] - area[0]);
+				v[3] = Math.max(v[3], area[3] - area[1]);
 			}
 			pages.push(v);
 		}
@@ -199,9 +201,8 @@
 			if(isOmni) {
 				engine.render();
 			} else {
-				camera.flyToView(pages[currentPage], {duration, speed: 2})
-					.then(() => limit(pages[currentPage], true))
-					.catch(() => {});
+				limit(pages[currentPage], true);
+				camera.setView(pages[currentPage]);
 				activity();
 			}
 		}

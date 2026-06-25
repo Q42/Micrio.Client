@@ -574,8 +574,8 @@ export class HTMLMicrioElement extends HTMLElement {
 			galleryInfo.width = this.offsetWidth * this.canvas.getRatio();
 			galleryInfo.height = this.offsetHeight * this.canvas.getRatio();
 		} else {
-			galleryInfo.height = Math.max(...galleryCtrl.images.map(i => i.$info?.height ?? 0));
-			galleryInfo.width = Math.max(...galleryCtrl.images.map(i => i.$info?.width ?? 0));
+			galleryInfo.width = galleryCtrl.containerWidth;
+			galleryInfo.height = galleryCtrl.containerHeight;
 		}
 
 		// Apply config settings to the parent image's settings store

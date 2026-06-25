@@ -11,6 +11,29 @@ import { Grid } from './nav/grid';
 import { writable, get, type Writable } from 'svelte/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from './globals';
 
+/** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).
+ *  The slot is defined in normalized coordinates [x0,y0,x1,y1] within a virtual container
+ *  of `containerWidth`×`containerHeight` pixels. Returns a centered sub-area that contains
+ *  the image without stretching.
+ */
+function fitArea(
+	slot: Models.Camera.ViewRect,
+	containerWidth: number,
+	containerHeight: number,
+	imageWidth: number,
+	imageHeight: number
+): Models.Camera.ViewRect {
+	const [x0, y0, x1, y1] = slot;
+	const slotW = (x1 - x0) * containerWidth;
+	const slotH = (y1 - y0) * containerHeight;
+	const scale = Math.min(slotW / imageWidth, slotH / imageHeight);
+	const renderW = (imageWidth * scale) / containerWidth;
+	const renderH = (imageHeight * scale) / containerHeight;
+	const cx = (x0 + x1) / 2;
+	const cy = (y0 + y1) / 2;
+	return [cx - renderW / 2, cy - renderH / 2, cx + renderW / 2, cy + renderH / 2];
+}
+
 export class Gallery {
 	readonly config: Models.GalleryConfig;
 	readonly images: MicrioImage[];
@@ -26,6 +49,11 @@ export class Gallery {
 	/** For grid-type galleries, the processed grid string for Grid controller. */
 	_gridString: string | undefined;
 
+	/** Max width for the virtual container canvas (switch/swipe-full/omni galleries). */
+	containerWidth: number = 0;
+	/** Max height for the virtual container canvas (switch/swipe-full/omni galleries). */
+	containerHeight: number = 0;
+
 	get type(): Models.GalleryConfig['type'] { return this.config.type; }
 
 	constructor(items: Models.GalleryItem[], engine: Engine, micrio: HTMLMicrioElement, config: Models.GalleryConfig) {
@@ -36,6 +64,15 @@ export class Gallery {
 		const path = config.settings?.gallery && 'path' in config.settings.gallery
 			? (config.settings.gallery as any).path
 			: undefined;
+
+		const isSwitch = config.type == 'switch' || config.type == 'swipe-full' || config.type == 'omni';
+		const isSpreads = config.isSpreads;
+		const coverPages = isSpreads ? (config.coverPages ?? 0) : 0;
+
+		if (isSwitch) {
+			this.containerHeight = Math.max(...items.map(p => p.height));
+			this.containerWidth = Math.max(...items.map(p => p.width * (isSpreads ? 2 : 1)));
+		}
 
 		this.images = items.map((c, i) => {
 			// Check config.revisions for per-image revision data
@@ -56,6 +93,29 @@ export class Gallery {
 				};
 			}
 
+			const opts: Partial<MicrioImage['opts']> = {};
+
+			if (isSwitch) {
+				opts.isEmbed = true;
+				opts.useParentCamera = true;
+
+				let slot: Models.Camera.ViewRect;
+
+				if (!isSpreads) {
+					slot = [0, 0, 1, 1];
+				} else {
+					slot = i - coverPages < 0 || (i == items.length - 1 && (i - coverPages) % 2 == 0)
+						? [0.25, 0, 0.75, 1]
+						: (i - coverPages) % 2 == 0
+							? [0, 0, 0.5, 1]
+							: [0.5, 0, 1, 1];
+				}
+
+				opts.area = fitArea(slot, this.containerWidth, this.containerHeight, c.width, c.height);
+			} else {
+				opts.area = [i, 0, i + 1, 1];
+			}
+
 			return new MicrioImage(engine, {
 				id: c.id,
 				path: c.path ?? path as string,
@@ -67,9 +127,7 @@ export class Gallery {
 				tileSize: c.tileSize ?? DEFAULT_INFO.tileSize,
 				revision: rev,
 				settings: imageSettings as any
-			}, {
-				area: [i, 0, i + 1, 1]
-			});
+			}, opts);
 		});
 	}
 
