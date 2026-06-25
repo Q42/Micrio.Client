@@ -757,7 +757,7 @@ export class Engine {
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			const parentEntry = this.canvasById.get(parent.ptr);
 			if (!parentEntry) return;
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[2], a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
 			this.engImageToMicrio.set(engImage, image);
 			const ptr = this.nextPtr++;
 			image.ptr = ptr;
