@@ -44,6 +44,18 @@ export class Gallery {
 			const galleryRevisions = (config.settings?.gallery as any)?.revisions;
 			const rev = revision ?? galleryRevisions?.[c.id];
 
+			const imageSettings: Record<string, any> = { skipMeta: true, ...config.settings };
+
+			// Propagate archive layer offset so child images adjust their level count
+			// and generate thumbSrc URLs that match what the archive stores.
+			if (config.archiveLayerOffset !== undefined) {
+				imageSettings.gallery = {
+					...(imageSettings.gallery || {}),
+					archive: true,
+					archiveLayerOffset: config.archiveLayerOffset
+				};
+			}
+
 			return new MicrioImage(engine, {
 				id: c.id,
 				path: c.path ?? path as string,
@@ -54,7 +66,7 @@ export class Gallery {
 				isWebP: c.isWebP,
 				tileSize: c.tileSize ?? DEFAULT_INFO.tileSize,
 				revision: rev,
-				settings: { skipMeta: true, ...config.settings }
+				settings: imageSettings as any
 			}, {
 				area: [i, 0, i + 1, 1]
 			});
