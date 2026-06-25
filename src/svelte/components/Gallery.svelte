@@ -676,10 +676,10 @@
 					child.camera.setArea(horizontalSlot(i - startIdx), {direct: true, noDispatch: true});
 					child.camera.setView([0, 0, 1, 1], {noRender: true});
 				}
-				// Ensure children are immediately visible to the event system 
-				for(const child of _images) {
-					(child as MicrioImage).visible.set(true);
-				}
+				// Only the current page is on-screen at init; the engine's
+				// shouldDraw() will mark children visible when they enter
+				// the viewport during/after a swipe transition.
+				(_images[startIdx] as MicrioImage)?.visible.set(true);
 				currentPage = startIdx;
 				frameChanged();
 				image.album!.hooked = true;
