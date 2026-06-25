@@ -562,7 +562,7 @@ export class Grid {
 				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined
 			})),
 			cultures: p[8]?.replace(/-/g,',')||undefined
-		} as Models.Grid.GridImage
+		} as Models.Grid.GridImage;
 	}
 
 	/**

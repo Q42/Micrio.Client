@@ -23,6 +23,9 @@ export class Gallery {
 
 	readonly currentIndex: Writable<number> = writable(0);
 
+	/** For grid-type galleries, the processed grid string for Grid controller. */
+	_gridString: string | undefined;
+
 	get type(): Models.GalleryConfig['type'] { return this.config.type; }
 
 	constructor(items: Models.GalleryItem[], engine: Engine, micrio: HTMLMicrioElement, config: Models.GalleryConfig) {
@@ -179,7 +182,7 @@ export class Gallery {
 		return new Gallery(items, engine, micrio, galleryConfig);
 	}
 
-	static async fromGrid(gridData: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<{ gallery: Gallery; gridInfo?: { images: Models.ImageInfo.ImageInfo[] } } | null> {
+	static async fromGrid(gridData: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<{ gallery: Gallery; gridInfo?: { images: Models.ImageInfo.ImageInfo[] }; gridString?: string } | null> {
 		const galleryConfig: Models.GalleryConfig = {
 			type: 'grid',
 			...config
@@ -192,9 +195,9 @@ export class Gallery {
 
 		let gridInfo: { images: Models.ImageInfo.ImageInfo[] } | undefined;
 		if (galleryConfig.archive && galleryConfig.archive == gridData) {
-			gridInfo = await Gallery.getArchiveIndex(gridData, path, engine, micrio);
+			gridInfo = await Gallery.getArchiveIndex(gridData.split('.')[0], path, engine, micrio);
 			const s = galleryConfig.sort;
-			if (s) gridInfo.images.sort(Gallery.sortArchiveImages(s));
+			if (s && gridInfo?.images) gridInfo.images.sort(Gallery.sortArchiveImages(s));
 			gridData = gridInfo.images.map(i =>
 				Grid.getString(i, { cultures: 'cultures' in i ? (i.cultures as string[]).join('-') : undefined })
 			).join(';');
@@ -207,6 +210,7 @@ export class Gallery {
 		});
 
 		const gallery = new Gallery(items, engine, micrio, galleryConfig);
+		gallery._gridString = gridData;
 		return { gallery, gridInfo };
 	}
 

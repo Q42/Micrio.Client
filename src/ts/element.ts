@@ -10,7 +10,7 @@ import { jsonCache } from './utils/fetch';
 import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, BASEPATH_V5, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
@@ -578,11 +578,11 @@ export class HTMLMicrioElement extends HTMLElement {
 			galleryInfo.width = Math.max(...galleryCtrl.images.map(i => i.$info?.width ?? 0));
 		}
 
-		// Set gallery children for engine compatibility
-		galleryInfo.gallery = galleryCtrl.images;
-
-		// Apply config settings
-		if(galleryCtrl.config.settings) deepCopy(galleryCtrl.config.settings, galleryInfo as any);
+		// Apply config settings to the parent image's settings store
+		if(galleryCtrl.config.settings) {
+			if(!galleryInfo.settings) galleryInfo.settings = {};
+			deepCopy(galleryCtrl.config.settings, galleryInfo.settings as any);
+		}
 
 		const gallerySettings: Models.ImageInfo.GallerySettings = {
 			type: galleryCtrl.type as any,
@@ -605,9 +605,21 @@ export class HTMLMicrioElement extends HTMLElement {
 		if(galleryCtrl.type == 'grid') {
 			(galleryInfo.settings as any).zoomLimit = 15;
 			(galleryInfo.settings as any).minimap = false;
-			galleryInfo.grid = galleryCtrl.config.archive;
+			// Enable keyboard nav by default when grid is clickable
+			if((galleryInfo.settings as any)?.grid?.clickable && (galleryInfo.settings as any)?.hookKeys === undefined) {
+				(galleryInfo.settings as any).hookKeys = true;
+			}
+			galleryInfo.grid = galleryCtrl._gridString;
+			// Set the V5 CDN path so Grid children inherit the correct tile base
+			galleryInfo.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
+			// Grid type: no gallery children (Grid controller manages its own),
+			// and don't pass the Gallery controller to open() — Gallery.svelte must not render.
+			this.open(galleryInfo, { ...baseOpts });
+			return;
 		}
 
+		// Non-grid: set gallery children for engine compatibility, pass controller
+		galleryInfo.gallery = galleryCtrl.images;
 		this.open(galleryInfo, { ...baseOpts, gallery: galleryCtrl });
 	}
 
