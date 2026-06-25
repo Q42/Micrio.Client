@@ -264,7 +264,11 @@ export default class Camera {
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
 		} else if (!force && this.isOutsideLimit() && !isKinetic) {
-			c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration || 150, 0, 0, false, false, -1, 0, time, !noLimit);
+			if (c.ani.isStarted()) {
+				c.ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
+			} else {
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.pinching, -1, 0, time, !noLimit);
+			}
 		} else {
 			c.ani.stop();
 
