@@ -206,7 +206,7 @@ export class Grid {
 				this._buttons.forEach((btn, bid) => btn.classList.toggle('focussed', bid == id));
 				if(this.clickable == 'zoom') {
 					const a = img.opts.area ?? [0,0,1,1];
-					this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+					this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
 				} else this.focus(img);
 			});
 
@@ -245,7 +245,7 @@ export class Grid {
 		const vx = coo[0], vy = coo[1];
 		const img = this.current.find(i => {
 			const a = i.opts.area;
-			return a && vx >= a[0] && vx <= a[2] && vy >= a[1] && vy <= a[3];
+			return a && vx >= a[0] && vx <= a[0] + a[2] && vy >= a[1] && vy <= a[1] + a[3];
 		});
 		if (!img) return;
 		this._buttons.forEach((btn, bid) => {
@@ -254,7 +254,7 @@ export class Grid {
 		});
 		if (this.clickable == 'zoom') {
 			const a = img.opts.area ?? [0,0,1,1];
-			this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+			this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
 		} else this.focus(img);
 	}
 
@@ -262,8 +262,8 @@ export class Grid {
 	private gridAdjacent(dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
 		const cells = this.current.map((img, i) => ({
 			img, i,
-			cx: (img.opts.area![0] + img.opts.area![2]) / 2,
-			cy: (img.opts.area![1] + img.opts.area![3]) / 2,
+			cx: img.opts.area![0] + img.opts.area![2] / 2,
+			cy: img.opts.area![1] + img.opts.area![3] / 2,
 		}));
 		if (!cells.length) return;
 
@@ -331,7 +331,7 @@ export class Grid {
 			if (!this.image.camera.isZoomedOut()) {
 				// Zoomed in + zoom mode: arrow keys trigger the zoom
 				const a = img.opts.area ?? [0,0,1,1];
-				this.image.camera.flyToView([a[0], a[1], a[2] - a[0], a[3] - a[1]], {duration: this.aniDurationIn * 1000, limit: false});
+				this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
 			}
 		}
 	}
@@ -700,7 +700,7 @@ export class Grid {
 			const isCover = !!opts.cover || img.camera.getCoverLimit();
 			if(entry.view || !isCover) img.camera.flyToView(entry.view ?? [0,0,1,1], aniOpts).catch(() => {})
 			else if(entry.area && entry.width && entry.height) {
-				const targetRatio = ((entry.area[2] - entry.area[0]) * this.micrio.offsetWidth) / ((entry.area[3] - entry.area[1]) * this.micrio.offsetHeight);
+				const targetRatio = (entry.area[2] * this.micrio.offsetWidth) / (entry.area[3] * this.micrio.offsetHeight);
 				img.camera.flyToView(targetRatio < (entry.width / entry.height) ? [.5,0,.5,1] : [0,.5,1,.5], aniOpts).catch(() => {});
 			}
 			else img.camera.flyToCoverView(aniOpts).catch(() => {});
