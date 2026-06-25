@@ -218,7 +218,7 @@ export class Camera {
 	public getView = () : Models.Camera.View => this.view;
 
 	/**
-	 * Gets the current image view rectangle [centerX, centerY, width, height] relative to the image (0-1).
+	 * Gets the current image view rectangle [x0, y0, width, height] relative to the image (0-1).
 	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
 	 */
 	public getViewRaw = () : Float64Array => this._view;
@@ -576,7 +576,7 @@ export class Camera {
 	/**
 	 * Sets the rendering area for this image within the main canvas.
 	 * Used for split-screen and potentially other layout effects. Animates by default.
-	 * @param v The target area rectangle [x0, y0, x1, y1] relative to the main canvas (0-1).
+	 * @param v The target area rectangle [x0, y0, width, height] relative to the main canvas (0-1).
 	 * @param opts Options for setting the area.
 	 */
 	setArea(v:Models.Camera.View, opts:{

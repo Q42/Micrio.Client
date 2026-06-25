@@ -92,7 +92,7 @@ export namespace State {
 	* primarily its viewport and currently opened marker.
 	*/
 	export class Image {
-		/** Writable Svelte store holding the current viewport [centerX, centerY, width, height] of this image. */
+		/** Writable Svelte store holding the current viewport [x0, y0, width, height] of this image. */
 		public readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
 		/** Internal reference to the current view. @internal */
 		private _view:Models.Camera.View|undefined;
