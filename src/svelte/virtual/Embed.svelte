@@ -216,18 +216,22 @@
 
 		// Handle pause-on-zoom logic for videos
 		if((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && width) {
-			const wasPaused:boolean = paused;
 			paused = shouldPause(); // Check if should be paused now
-			if(glVideo?._vid && (paused != wasPaused)) { // If state changed and using WebGL video
-				if(paused) glVideo._vid.pause(); // Pause
-				else { // Play
-					glVideo.cancelTimeout(); // Cancel any pending visibility pause to avoid race
-					// Optionally restart video when shown again
-					if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
-					glVideo._vid.play();
+			// Always sync actual video playback with the paused state, regardless of whether
+			// the paused *value* changed. This handles the case where visibility-based pause
+			// (GLEmbedVideo visible=false subscription) paused the video externally while
+			// the zoom-based paused state stayed the same, causing them to de-sync.
+			if(glVideo?._vid) {
+				if(paused) {
+					if(!glVideo._vid.paused) glVideo._vid.pause();
+				} else {
+					if(glVideo._vid.paused) {
+						glVideo.cancelTimeout(); // Cancel any pending visibility pause to avoid race
+						if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
+						glVideo._vid.play();
+					}
 				}
 			}
-			// Note: HTML video pause/play based on `paused` prop is handled by Media.svelte
 		}
 	}
 

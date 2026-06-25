@@ -67,7 +67,7 @@ export class GLEmbedVideo {
 					if(!this._vid) this.load(); // Load video if not already loaded
 					else { // If already loaded
 						this.hook(); // Ensure event listeners are attached
-						if(this.autoplay && !this.paused) this._vid.play().catch(e => console.warn("WebGL Embed video play() failed", e)); // Attempt autoplay if enabled and not paused
+						if(this.autoplay && !this.paused) this._vid.play().catch(e => console.warn("WebGL Embed video play() failed", e));
 					}
 				}, first ? 0 : 100); // No delay on first visibility
 			} else { // If image becomes hidden
