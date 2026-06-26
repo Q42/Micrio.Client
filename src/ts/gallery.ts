@@ -135,6 +135,9 @@ export class Gallery {
 				settings: imageSettings as any
 			}, opts);
 		});
+
+		// Load per-image data (markers, tours, etc.) from the bundle cache
+		queueMicrotask(() => this.images.forEach(c => c.loadBundleData()));
 	}
 
 	// --- Factory Methods ---

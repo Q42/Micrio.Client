@@ -178,7 +178,7 @@
 			// no view is already stored, it's not a hidden marker, and it has a target view.
 			if(typeof marker != 'string' && !image.openedView && !marker.noMarker && marker.view) {
 				// Don't store view if currently in a tour (handled by tour logic)
-				image.openedView = micrio.state.$tour && !('steps' in micrio.state.$tour) ? undefined : clone(image.state.$view);
+				image.openedView = micrio.state.$tour && !('steps' in micrio.state.$tour) ? undefined : clone(image.state.$view ?? image.camera?.getView());
 				wasMarkerVideoTour = !!marker.videoTour;
 			}
 		} else if(image.openedView && !micrio.state.$tour) { // Marker is being closed, view was stored, and not in a tour

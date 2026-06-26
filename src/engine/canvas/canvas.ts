@@ -294,8 +294,6 @@ export class TileCanvas {
 			return;
 		}
 
-		if (!this.isVisible && this.opacity >= 1) this.setCanvasVisible(true);
-
 		let animating: boolean = this.ani.step(this.main.now) < 1
 			|| this.kinetic.step(this.main.now) < 1 || !this.isReady;
 
@@ -303,7 +301,12 @@ export class TileCanvas {
 
 		if (this.partialView(false)) animating = true;
 
-		if (!this.is360 && (this.visible.width <= 0 || this.visible.height <= 0)) return;
+		if (!this.is360 && !this.areaAnimating() && (this.visible.width <= 0 || this.visible.height <= 0)) {
+			if (this.isVisible) this.setCanvasVisible(false);
+			return;
+		}
+
+		if (!this.isVisible && this.opacity >= 1) this.setCanvasVisible(true);
 
 		this.webgl.calculate3DFrustum();
 
@@ -469,6 +472,7 @@ export class TileCanvas {
 		}
 		this.targetArea.setArea(x0, y0, x1, y1);
 		this.partialView(noDispatch);
+		this.sendViewport();
 	}
 
 	/** Calculates the vertex positions for a given tile index and updates the vertex buffer. */
