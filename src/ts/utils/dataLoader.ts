@@ -47,6 +47,11 @@ async function doFetchBundle(id: string): Promise<void> {
 	if (bundle?.images) {
 		for (const entry of bundle.images) {
 			if (entry?.id) {
+				// Migrate top-level settings → info.settings (new API shape)
+				if (entry.settings) {
+					entry.info.settings = entry.settings;
+					delete (entry as any).settings;
+				}
 				bundleCache.set(entry.id, entry);
 			}
 		}

@@ -1023,6 +1023,7 @@ import type { MicrioIcon } from '$ts/icons';
 			id: string;
 			info: Models.ImageInfo.ImageInfo;
 			data: Models.ImageData.ImageData;
+			settings?: Partial<ImageInfo.Settings>;
 		};
 
 		export type BundleResponse = {
