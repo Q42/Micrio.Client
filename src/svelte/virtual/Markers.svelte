@@ -377,7 +377,7 @@
 
 {#if clickableAreas}
 	{#each clickableAreas as marker (marker.id)}
-		{#if marker.clickableArea}<Embed embed={marker.clickableArea} {marker} />{/if}
+		{#if marker.clickableArea}<Embed embed={marker.clickableArea} {marker} {image} />{/if}
 	{/each}
 {/if}
 

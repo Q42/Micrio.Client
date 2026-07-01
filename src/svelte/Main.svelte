@@ -44,7 +44,7 @@
 	import Popover from './components/Popover.svelte';
 	import MicrioMarkers from './virtual/Markers.svelte';
 	import Subtitles from './common/Subtitles.svelte';
-	import Embed from './virtual/Embed.svelte';
+	import ImageEmbeds from './virtual/ImageEmbeds.svelte';
 	import ProgressCircle from './ui/ProgressCircle.svelte';
 
 	let {
@@ -223,9 +223,9 @@
 		width={$info.width} height={$info.height} {...video} />
 {/if}
 
-{#if showEmbeds && $data && $data.embeds}
-	{#each $data.embeds as embed (embed.uuid)}
-		<Embed {embed} />
+{#if showEmbeds}
+	{#each $visible as image (image.uuid)}
+		<ImageEmbeds {image} />
 	{/each}
 {/if}
 
@@ -239,7 +239,7 @@
 {/if}
 
 {#if showMinimap}
-	{#each $visible.filter(i => i.$settings.minimap) as image (image.uuid)}
+	{#each $visible.filter(i => i.$settings.minimap && !i.opts.isEmbed) as image (image.uuid)}
 		<Minimap {image} />
 	{/each}
 {/if}

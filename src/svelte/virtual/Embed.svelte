@@ -15,7 +15,7 @@
 
 	import type { Models } from '$types/models';
 	import type { HTMLMicrioElement } from '$ts/element';
-	import { writable, type Unsubscriber } from 'svelte/store';
+	import { get, writable, type Unsubscriber } from 'svelte/store';
 
 	import { onMount, getContext, untrack } from 'svelte';
 	import { MicrioImage } from '$ts/image';
@@ -30,37 +30,43 @@
 	/** Get the main Micrio element instance from context. */
 	const micrio = <HTMLMicrioElement>getContext('micrio');
 	/** Destructure needed stores and properties. */
-	const { current, engine, canvas, _lang } = micrio;
+	const { engine, canvas, _lang } = micrio;
+	const grid = micrio.canvases[0]?.grid;
+	const focussed = grid?.focussed;
+	const gridMarkersShown = grid?.markersShown;
 
 	interface Props {
 		/** The embed data object from the image configuration. */
 		embed: Models.ImageData.Embed;
 		/** Optional marker to activate when embed is clicked */
 		marker?: Models.ImageData.Marker;
+		/** The MicrioImage this embed belongs to. */
+		image: MicrioImage;
 	}
 
-	let { embed = $bindable(), marker }: Props = $props();
+	let { embed = $bindable(), marker, image = $bindable() }: Props = $props();
 
 	if(embed.src?.startsWith('/r2')) embed.src = 'http://localhost:6100'+embed.src;
 
 	// --- Initialization & Setup ---
 
-	/** Reference to the main MicrioImage instance this embed belongs to. */
-	const mainImage = $current as MicrioImage;
 	/** Reference to the main image's info data. */
-	const info = mainImage.$info as Models.ImageInfo.ImageInfo;
+	const info = image.$info as Models.ImageInfo.ImageInfo;
 
 	// Ensure embed has a unique ID
 	if(!embed.uuid) embed.uuid = crypto.randomUUID();
 	const uuid = embed.uuid; // Store UUID for state management
 
 	/** Is the parent image a 360 panorama? */
-	const is360 = mainImage.is360;
+	const is360 = image.is360;
 	/** Should the embed video attempt to autoplay? */
 	const autoplay = embed.video?.autoplay ?? true;
 
+	/** Check if the parent image is inactive (e.g., hidden in grid). */
+	const inactive = $derived(grid && ($focussed != image && (gridMarkersShown && get(gridMarkersShown).indexOf(image) < 0)));
+
 	/** Find the corresponding MicrioImage instance if this embed represents another Micrio image. */
-	let image:MicrioImage = mainImage.embeds.find(i => i.uuid == uuid || i.$info?.title == uuid) as MicrioImage;
+	let glImage:MicrioImage = image.embeds.find(i => i.uuid == uuid || i.$info?.title == uuid) as MicrioImage;
 
 	// --- Rendering Logic ---
 
@@ -198,41 +204,52 @@
 
 	// --- Position Update ---
 
-	/** Updates the screen position (x, y, scale, matrix) based on camera view. */
-	function moved() : void {
-		// Exit if camera is not ready
-		if(!mainImage.engine.ready) return;
-		// Get current screen coordinates [x, y, scale, w(depth)]
-		const coo = mainImage.camera.getXYDirect(cX, cY);
-		[x, y, scale] = coo;
-		// Calculate 3D matrix for 360 embeds
-		if(is360) {
-			matrix = mainImage.camera.getMatrix(cX, cY, s, 1, rotX, rotY, rotZ, undefined, scaleX, scaleY).join(',');
-			isBehind = coo[3] > 2;
-		}
-		// Update CSS style string
-		style = (is360 ? `transform:matrix3d(${matrix});` : `--x:${x}px;--y:${y}px;--s:${scale};`) // Use matrix or CSS vars
-			+ (embed.opacity !== undefined && embed.opacity !== 1 ? `--opacity:${embed.opacity};` : ''); // Apply opacity if set
+	/** Coalesces rapid `moved()` calls to one per frame. */
+	let _moveRaf: number|undefined;
 
-		// Handle pause-on-zoom logic for videos
+	/** Reads camera state and applies position/style. Runs inside rAF. */
+	function _applyPosition() : void {
+		if(!image.engine.ready) return;
+		const vp = get(image.viewport);
+		const view = image.state.$view;
+		if(view && vp?.[2] > 0 && vp?.[3] > 0 && view[2] > 0 && view[3] > 0) {
+			x = vp[0] + (cX - view[0]) / view[2] * vp[2];
+			y = vp[1] + (cY - view[1]) / view[3] * vp[3];
+			scale = vp[2] / (view[2] * info.width);
+		} else {
+			const coo = image.camera.getXYDirect(cX, cY);
+			[x, y, scale] = coo;
+		}
+		if(is360) {
+			matrix = image.camera.getMatrix(cX, cY, s, 1, rotX, rotY, rotZ, undefined, scaleX, scaleY).join(',');
+			isBehind = false;
+		}
+		style = (is360 ? `transform:matrix3d(${matrix});` : `--x:${x}px;--y:${y}px;--s:${scale};`)
+			+ (embed.opacity !== undefined && embed.opacity !== 1 ? `--opacity:${embed.opacity};` : '');
+
 		if((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && width) {
-			paused = shouldPause(); // Check if should be paused now
-			// Always sync actual video playback with the paused state, regardless of whether
-			// the paused *value* changed. This handles the case where visibility-based pause
-			// (GLEmbedVideo visible=false subscription) paused the video externally while
-			// the zoom-based paused state stayed the same, causing them to de-sync.
+			paused = shouldPause();
 			if(glVideo?._vid) {
 				if(paused) {
 					if(!glVideo._vid.paused) glVideo._vid.pause();
 				} else {
 					if(glVideo._vid.paused) {
-						glVideo.cancelTimeout(); // Cancel any pending visibility pause to avoid race
-						if(mainImage?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
+						glVideo.cancelTimeout();
+						if(image?.$settings?.embedRestartWhenShown) glVideo._vid.currentTime = 0;
 						glVideo._vid.play();
 					}
 				}
 			}
 		}
+	}
+
+	/** Updates the screen position based on camera view/viewport. */
+	function moved() : void {
+		if(_moveRaf !== undefined) return;
+		_moveRaf = requestAnimationFrame(() => {
+			_moveRaf = undefined;
+			_applyPosition();
+		});
 	}
 
 	// --- Click Handler ---
@@ -241,8 +258,8 @@
 	function click() : void {
 		// If action is to open a marker, set the state
 		const markerId = embed.clickAction == 'markerId' ? embed.clickTarget : marker?.id;
-		if(!markerId || !$current || href) return;
-		$current.state.marker.set(markerId);
+		if(!markerId || !image || href) return;
+		image.state.marker.set(markerId);
 		// 'href' action is handled by the `<a>` tag directly
 	}
 
@@ -288,14 +305,14 @@
 	function printInsideGL() : void {
 		// Determine initial opacity (use 0.01 if hidden when paused to ensure it renders initially)
 		const opacity = embed.hideWhenPaused ? 0.01 : embed.opacity ?? 1;
-		if(image && (image.ptr >= 0 || mainImage.embeds.includes(image))) { // If MicrioImage instance already exists (e.g., from previous state)
+		if(glImage && (glImage.ptr >= 0 || image.embeds.includes(glImage))) { // If MicrioImage instance already exists (e.g., from previous state)
 			// Update its placement and fade it in
-			image.camera.setArea(embed.area as Models.Camera.View);
-			image.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
-			engine.fadeImage(image.ptr, opacity);
+			glImage.camera.setArea(embed.area as Models.Camera.View);
+			glImage.camera.setRotation(embed.rotX, embed.rotY, embed.rotZ);
+			engine.fadeImage(glImage.ptr, opacity);
 		}
 		else { // If no instance exists, create it
-			image = mainImage.addEmbed({ // Call parent image's addEmbed method
+			glImage = image.addEmbed({ // Call parent image's addEmbed method
 				id: embed.video ? embed.id : embed.micrioId, // Use embed ID for video, micrioId otherwise
 				title: uuid, // Use generated UUID as title?
 				width: embed.width,
@@ -314,9 +331,9 @@
 
 		// If it's a WebGL video, initialize the GLEmbedVideo handler once visible
 		if(isRawVideo) {
-			once(image.visible, {targetValue: true}).then(() => {
+			once(glImage.visible, {targetValue: true}).then(() => {
 				// This takes care of loading and playing the video texture
-				glVideo = new GLEmbedVideo(engine, image, embed, paused, moved);
+				glVideo = new GLEmbedVideo(engine, glImage, embed, paused, moved);
 			});
 		}
 
@@ -332,7 +349,7 @@
 
 	// Update the shared media element reference when _mediaElement changes
 	$effect(() => {
-		if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id, _mediaElement??glVideo?._vid);
+		if(embed.video && embed.id && image) image.setEmbedMediaElement(embed.id, _mediaElement??glVideo?._vid);
 	});
 
 	// --- Size Calculation for HTML Video ---
@@ -349,20 +366,26 @@
 		// Initialize WebGL rendering if needed
 		if(printGL) printInsideGL();
 
-		// Subscribe to view changes if HTML element needs positioning or pause-on-zoom logic
+		// For images that borrow a parent camera (switch gallery children), subscribe to the
+		// camera owner's stores — the child's own state.view/viewport never update.
+		const camOwner = image.camera?.image;
+		const moveSrc = camOwner && camOwner !== image ? camOwner : image;
+
+		// Subscribe to view and viewport changes if HTML element needs positioning or pause-on-zoom logic
 		if(hasHtml || (embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan)) {
-			us.push(mainImage.state.view.subscribe(moved));
+			us.push(moveSrc.state.view.subscribe(moved));
+			us.push(moveSrc.viewport.subscribe(moved));
 		}
 
 		// Cleanup function
 		return () => {
 			glVideo?.unmount(); // Clean up WebGL video handler
-			if(image && image.ptr >= 0) { // If rendered in WebGL
-				engine.fadeImage(image.ptr, 0); // Fade out
+			if(glImage && glImage.ptr >= 0) { // If rendered in WebGL
+				engine.fadeImage(glImage.ptr, 0); // Fade out
 				engine.render();
 			}
 			// Clear media element reference
-			if(embed.video && embed.id && $current) $current.setEmbedMediaElement(embed.id);
+			if(embed.video && embed.id && image) image.setEmbedMediaElement(embed.id);
 			// Unsubscribe from stores
 			while(us.length) us.shift()?.();
 		}
@@ -383,6 +406,7 @@
 		class:embed3d={is360}
 		class:no-events={noEvents}
 		class:behind={is360 && isBehind}
+		class:inactive
 		class:hide-when-paused={embed.hideWhenPaused && !printGL && embed.video}
 		onclick={click}
 		onkeypress={click}
@@ -475,5 +499,10 @@
 
 	.embed-container.hide-when-paused:has(:global(figure.paused)) {
 		opacity: 0;
+	}
+
+	.embed-container.inactive {
+		opacity: 0;
+		pointer-events: none;
 	}
 </style>
