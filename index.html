@@ -22,7 +22,7 @@
 
 	<!-- Use a production version -->
 	<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
-	<!-- <script src="https://r2.micr.io/micrio-6.1.4.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-6.1.9.min.js" defer></script> -->
 
 	<style>
 		html,
@@ -59,7 +59,7 @@
 
 
 	<!-- general test image - https://dash.micr.io/micrio/2026/@CVWjwhk -->
-	<!-- <micr-io id="CVWjwhk"></micr-io> -->
+	<micr-io id="CVWjwhk"></micr-io>
 
 	<!-- <micr-io data-grid="SBzCMk.1781809787" data-coxverlimit data-initxtype="cover" data-fullscreen daxta-gallery-sort="random" data-xkeys="false"></micr-io> -->
 	<!-- <micr-io id="dfhgojZ" daxta-embeds-inside-gl data-path="http://localhost:6100/r2/" datxa-force-path data-embeds-inside-gl="false" dxata-skipmeta daxta-cluster-markers></micr-io> -->
@@ -67,7 +67,8 @@
 	<!-- <micr-io xxid="blabla" id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
 	<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18"></micr-io> -->
 	 <!-- multi image marker CVWjwhk / very small pBjaEqs-->
-	  <!-- Staedel-->
+
+	<!-- Staedel-->
 	<!-- <micr-io id="zUtxLtj" lang="de-DE" daxta-skipmeta datxa-ui="false"></micr-io> -->
 
 	<!-- <micr-io data-gallery="yOeffA.1780389977" data-fullscreen data-gallery-sort="name" data-path="https://eu.micr.io/"></micr-io> -->
@@ -78,22 +79,29 @@
 	<!-- ALBUMS AND GALLERIES -->
 
 	<!-- IIIF Presentation API V3 -->
-	<micr-io id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io>
+	<!-- <micr-io id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
+
+	<!-- IIIF Image API manifest, direct `info.json` single images -->
+	<!-- <micr-io id="https://viewer.micr.io/sSoykjv/info.json"></micr-io> -->
+	<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18/"></micr-io> -->
 
 	<!-- Book / swipeable gallery with pages: mfcDxoh , jcrosPa - Bibliotheek Erfgoed -->
 	<!-- <micr-io id="jcrosPa"></micr-io> -->
 
-	<!-- Book / switching view, cover XoSoqjL , page 4 CvAjsYe - Watchmen -->
-	<!-- <micr-io id="XoSoqjL"></micr-io> -->
+	<!-- Swipeable gallery with data, first image exXfojW , 7th WcOSjxV (marker), 9th sSoykjv (embed) - https://dash.micr.io/micrio/2026-albums/test-album-met-metadata -->
+	<!-- <micr-io id="WcOSjxV" daxta-embeds-inside-gl="false"></micr-io> -->
 
-	<!-- Grid demo -->
-	<!-- <micr-io id="pRjbAsb"></micr-io> -->
+	<!-- Book / switching view, cover XoSoqjL , page 9 CvAjsYe - Watchmen -->
+	<!-- <micr-io id="CvAjsYe"></micr-io> -->
+
+	<!-- Grid demo ojLvYTE - https://dash.micr.io/q42-shared/test/grid-test -->
+	<!-- <micr-io id="ojLvYTE" daxta-embeds-inside-gl="false"></micr-io> -->
 
 	<!-- Omni 360 object - Modemuze -->
 	<!-- <micr-io id="HvoNSNV"></micr-io> -->
 
-	<!-- Embedded videos -->
-	<!-- <micr-io id="dfhgojZ" daxta-skipmeta="true" dxata-embeds-inside-gl="false"></micr-io> -->
+	<!-- Embedded videos, Imaginarium -->
+	<!-- <micr-io id="dfhgojZ" daxta-skipmeta="true" daxta-embeds-inside-gl="false"></micr-io> -->
 
 
 	<!-- <micr-io id="EaouKa" data-skipxmeta="true" daxta-coverlimit data-xembeds-inside-gl="false"></micr-io> -->
@@ -136,10 +144,8 @@
 		micrio.defaultSettings = {
 		};
 
-		//0.016063, 0.047832, 0.982716, 0.965598
-
 		// Listen to opened marker hooks
-		micrio.addEventListener('click', e => {
+		micrio.addEventListener('marker-opened', e => {
 			//console.log('Opened marker', e.detail);
 			//console.log(micrio.$current.camera.getCoo(e.clientX,e.clientY));
 		});
