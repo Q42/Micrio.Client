@@ -9,7 +9,7 @@
 
 	let { image }: Props = $props();
 
-	const { data } = image;
+	const data = $derived.by(() => image.data);
 </script>
 
 {#if $data?.embeds}
