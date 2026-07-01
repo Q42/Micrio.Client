@@ -250,7 +250,7 @@
 	{/if}
 
 	<!-- Grid Close Button (shown when a grid image is expanded to full view in 'focus' mode) -->
-	{#if gridFocussed && gridClickable == 'focus'}
+	{#if gridFocussed && gridClickable == 'focus' && !$popup && !$tour}
 		<aside class="grid-close">
 			<Button type="close" title={$i18n.close} onclick={() => grid?.back()} />
 		</aside>
