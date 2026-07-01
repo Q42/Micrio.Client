@@ -167,14 +167,10 @@ export class Grid {
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
 		this._grid.className = 'micrio-grid';
-		this.set(image.$info?.grid);
-
-		const loaded = () => tick().then(() => {
+		this.set(image.$info?.grid).then(() => {
 			this.hook();
 			micrio.events.dispatch('grid-load');
 		});
-
-		loaded();
 
 		micrio.events.dispatch('grid-init', this);
 	}
