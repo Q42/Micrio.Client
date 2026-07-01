@@ -792,7 +792,7 @@ export class Grid {
 	/** Simulates a click on a grid cell, applying the configured `clickable` effect (zoom or focus). */
 	clickCell(_img?:MicrioImage|string) : void {
 		const img = typeof _img == 'string' ? this.images.find(i => i.id == this.micrio.id) : _img;
-		if(!img) return;
+		if(!this.clickable || !img) return;
 		this._buttons.forEach(b => b.classList.remove('focussed'));
 		this._buttons.get(img.id)?.classList.add('focussed');
 		if(this.clickable == 'zoom') {
