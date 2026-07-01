@@ -320,7 +320,7 @@ export class HTMLMicrioElement extends HTMLElement {
 
 			let gallery: Gallery | null;
 			try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
-			catch(e) { this.printError(e as Error); gallery = null; }
+			catch(e) { this.printError(e as Error); return; }
 			if(gallery) {
 				this._openGalleryFromController(gallery, opts);
 				return;
@@ -376,7 +376,9 @@ export class HTMLMicrioElement extends HTMLElement {
 			: (error instanceof Error ? error.message : error) 
 			?? 'An unknown error has occurred';
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
+		if(!this._ui) this.printUI(false, false);
 		this._ui?.setProps?.({ error: message });
+		this.loading.set(false);
 	}
 
 	/**
