@@ -55,6 +55,13 @@ async function doFetchBundle(id: string): Promise<void> {
 				bundleCache.set(entry.id, entry);
 			}
 		}
+		// When the bundle was fetched via an external/… alias, also cache
+		// the primary image under that alias so subsequent lookups (e.g.
+		// DataLoader.getInfo, getBundleImage) find it by the same key
+		// the caller originally used.
+		if (id.startsWith('external/') && bundle.images[0]?.id) {
+			bundleCache.set(id, bundle.images[0]);
+		}
 	}
 	if (bundle?.organisation) {
 		orgCache = bundle.organisation;
