@@ -301,7 +301,7 @@ export class MicrioImage {
 		}
 
 		// Determine if IIIF based on URL or format property
-		i.isIIIF = this.id.startsWith('http') || i.format == 'iiif';
+		i.isIIIF = i.isIIIF || this.id.startsWith('http') || i.format == 'iiif';
 
 		let idFromCustomId:string|undefined;
 		// Fetch info if ID provided but dimensions missing
@@ -324,10 +324,7 @@ export class MicrioImage {
 			if (i.settings?._meta?.noLogo) i.settings.noLogo = true;
 			if (i.settings?._meta?.noSmoothing) i.settings.noSmoothing = true;
 
-			const iiifIdBase = 'https://iiif.micr.io/';
-			if (i.id.startsWith(iiifIdBase)) i.id = i.id.slice(iiifIdBase.length);
-
-			if (id.length == 7) {
+			if (!i.isIIIF && id.length == 7) {
 				const b = getIdVal(id[1 + (getIdVal(id) % 6)]);
 				i.is360 = !!((b >> 4) & 1) || !!i.is360;
 				i.isWebP = !(b & 3);
@@ -386,11 +383,9 @@ export class MicrioImage {
 			});
 		}
 
-		// For IIIF single images, extract ID and path from the Image API URL
-		if(i.isIIIF) {
-			const id = (('@id' in i ? i['@id'] : i.id) as string).replace('/info.json', '');
-			i.path = id.replace(/\/[^/]*$/, '');
-			i.id = id.replace(/^.*\//, '');
+		// For IIIF images with full URL IDs, extract short identifier
+		if(i.isIIIF && i.id.includes('/')) {
+			i.id = (('@id' in i ? i['@id'] : i.id) as string).replace(/^.*\//, '');
 		}
 
 		// Load 360 space data from bundle if linked and not already loaded

@@ -6,11 +6,11 @@ import type Svelte from '../svelte/Main.svelte';
 
 import { once } from './utils/store';
 import { deepCopy } from './utils/object';
-import { jsonCache } from './utils/fetch';
+import { fetchJson, jsonCache } from './utils/fetch';
 import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, BASEPATH_V5, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, BASEPATH_V5, DEFAULT_INFO, localStorageKeys } from './globals';
 import { writable, get } from 'svelte/store';
 import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
@@ -313,21 +313,26 @@ export class HTMLMicrioElement extends HTMLElement {
 			}
 		}
 
-		// --- IIIF Manifest URL as ID ---
+		// --- IIIF URL as ID (Manifest or single image info.json) ---
 		if(opts.id && opts.id.startsWith('http')) {
-			const gallery = await Gallery.fromIIIF(opts.id, this.engine, this).catch(e => { this.printError(e); return null; });
+			const resp = await fetchJson<Record<string, any>>(opts.id).catch(e => { this.printError(e); return undefined; });
+			if(!resp) return;
+
+			let gallery: Gallery | null;
+			try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
+			catch(e) { this.printError(e as Error); gallery = null; }
 			if(gallery) {
 				this._openGalleryFromController(gallery, opts);
 				return;
 			}
-			// Single image IIIF — fetch info from the URL
-			const galleryItem = await Gallery.singleIIIFInfo(opts.id);
-			opts.id = galleryItem.id;
-			opts.width = galleryItem.width;
-			opts.height = galleryItem.height;
+			// Single image IIIF — use the fetched info.json directly
+			const baseId = resp['@id'] || resp.id || opts.id.replace(/info.json$/, '');
+			opts.id = baseId;
+			opts.width = resp.width;
+			opts.height = resp.height;
 			opts.isIIIF = true;
-			opts.path = galleryItem.path;
-			opts.tileSize = galleryItem.tileSize;
+			opts.path = baseId.replace(/\/[^/]*$/, '');
+			opts.tileSize = resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize;
 		}
 
 		// --- Final Setup & Open ---

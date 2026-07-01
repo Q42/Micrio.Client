@@ -3,7 +3,7 @@ import type { Engine } from './render/engine';
 import type { HTMLMicrioElement } from './element';
 
 import { MicrioImage } from './image';
-import { fetchJson, jsonCache } from './utils/fetch';
+import { jsonCache } from './utils/fetch';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
 import { archive } from './render/archive';
@@ -143,9 +143,7 @@ export class Gallery {
 	// --- Factory Methods ---
 
 	/** Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image manifests and raw Image API responses. */
-	static async fromIIIF(url: string, engine: Engine, micrio: HTMLMicrioElement): Promise<Gallery | null> {
-		const resp = await fetchJson<any>(url);
-
+	static fromIIIF(resp: any, engine: Engine, micrio: HTMLMicrioElement): Gallery | null {
 		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
 			throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });
 
@@ -172,19 +170,6 @@ export class Gallery {
 		}
 
 		return null;
-	}
-
-	/** Extract single-image gallery item from a IIIF response URL */
-	static async singleIIIFInfo(url: string): Promise<Models.GalleryItem> {
-		const resp = await fetchJson<any>(url);
-		const baseId = (resp['@id'] || resp.id || url).replace('/info.json', '');
-		return {
-			id: baseId.replace(/^.*\//, ''),
-			width: resp.width,
-			height: resp.height,
-			tileSize: resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize,
-			path: baseId.replace(/\/[^/]*$/, '')
-		};
 	}
 
 	static fromAssets(assets: Models.Assets.Image[], engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; basePath?: string }): Gallery {
