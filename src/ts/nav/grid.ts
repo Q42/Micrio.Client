@@ -199,15 +199,7 @@ export class Grid {
 
 		if(this.clickable) {
 			this._grid.addEventListener('click', e => {
-				const id = (e.target as HTMLElement).dataset.id;
-				if(!id) return;
-				const img = this.imageMap.get(id);
-				if(!img) return;
-				this._buttons.forEach((btn, bid) => btn.classList.toggle('focussed', bid == id));
-				if(this.clickable == 'zoom') {
-					const a = img.opts.area ?? [0,0,1,1];
-					this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
-				} else this.focus(img);
+				this.clickCell((e.target as HTMLElement)?.dataset.id);
 			});
 
 			const placeOrRemove = (t:unknown) => { if(t) this.removeGrid(); else this.placeGrid(); };
@@ -248,14 +240,7 @@ export class Grid {
 			return a && vx >= a[0] && vx <= a[0] + a[2] && vy >= a[1] && vy <= a[1] + a[3];
 		});
 		if (!img) return;
-		this._buttons.forEach((btn, bid) => {
-			btn.classList.toggle('focussed', bid == img!.id);
-			if (bid == img!.id) btn.focus(); else btn.blur();
-		});
-		if (this.clickable == 'zoom') {
-			const a = img.opts.area ?? [0,0,1,1];
-			this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
-		} else this.focus(img);
+		this.clickCell(img);
 	}
 
 	/** Finds the grid cell adjacent in the given direction and returns its image. @internal */
@@ -806,6 +791,18 @@ export class Grid {
 	/** Sets the animation timing function for the next transition. @internal */
 	private setTimingFunction(fn:Models.Camera.TimingFunction) : void {
 		this.micrio.engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction[this.timingFunction=fn]);
+	}
+
+	/** Simulates a click on a grid cell, applying the configured `clickable` effect (zoom or focus). */
+	clickCell(_img?:MicrioImage|string) : void {
+		const img = typeof _img == 'string' ? this.images.find(i => i.id == this.micrio.id) : _img;
+		if(!img) return;
+		this._buttons.forEach(b => b.classList.remove('focussed'));
+		this._buttons.get(img.id)?.classList.add('focussed');
+		if(this.clickable == 'zoom') {
+			const a = img.opts.area ?? [0,0,1,1];
+			this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
+		} else this.focus(img);
 	}
 
 	/** Open a grid image full size and set it as the main active image
