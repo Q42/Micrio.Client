@@ -622,6 +622,8 @@
 	let hidden:Writable<boolean> = micrio.state.ui.hidden;
 	/** Shared hover/focus state so Controls follows gallery visibility. */
 	let hover:Writable<boolean> = micrio.state.ui.hover;
+
+	const { popup, tour } = micrio.state;
 	/** Timeout ID for auto-hiding controls. */
 	let to:number|undefined;
 	/** Shows controls and (if auto-hide is enabled) sets a timeout to hide them again. */
@@ -769,7 +771,7 @@
 		{@const fillPct = total > 1 ? (currentPage / (total - 1)) * 100 : 0}
 		<!-- Scrubber UI for swipe galleries -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class:hidden={loading||($hidden && !$hover && !dragging)}
+		<div class:hidden={loading||($hidden && !$hover && !dragging)} class:force-hidden={$popup || $tour}
 			onpointerover={() => hover.set(true)}
 			onpointerout={(e) => { if(!e.currentTarget.contains(e.relatedTarget as Node)) hover.set(false); }}
 			onfocusin={() => hover.set(true)}
@@ -1076,6 +1078,22 @@
 		transform: translate(calc(100% + var(--micrio-border-margin)), -50%);
 		opacity: 0;
 		pointer-events: none;
+	}
+
+	/* Force-hide gallery controls when a marker/tour is open — same animation as auto-hide */
+	div.force-hidden > :global(ul),
+	div.force-hidden > :global(button.gallery-btn) {
+		opacity: 0;
+		pointer-events: none;
+	}
+	div.force-hidden > :global(ul) {
+		transform: translate(-50%, calc(100% + var(--micrio-border-margin)));
+	}
+	div.force-hidden > :global(button.gallery-btn.arrow-left) {
+		transform: translate(calc(-100% - var(--micrio-border-margin)), -50%);
+	}
+	div.force-hidden > :global(button.gallery-btn.arrow-right) {
+		transform: translate(calc(100% + var(--micrio-border-margin)), -50%);
 	}
 
 	/* Disabled prev/next buttons just fade away in place */
