@@ -51,7 +51,7 @@ for(const bucket of ['micrio','-J eu micrio-eu']) {
 		['js','text/javascript'],
 		['d.ts','text/plain']
 	]) {
-		await run(`npx wrangler r2 object put ${bucket}/micrio-${version}${suffix}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type} --remote`);
+		await run(`npx wrangler r2 object put ${bucket}/micrio-${version}${suffix}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type} --cache-control "public, max-age=31536000" --remote`);
 	}
 }
 
