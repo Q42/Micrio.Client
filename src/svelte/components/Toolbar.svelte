@@ -130,7 +130,7 @@
 		{#if hasMarkerTours}
 			<Menu onclose={close} menu={{
 				id: crypto.randomUUID(),
-				i18n: {[$_lang]: {title: hasBothTourTypes ? 'Marker tours' : 'Tours'}}, // Dynamic title
+				i18n: {[$_lang]: {title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours}}, // Dynamic title
 				children: markerTours.map((t) => ({ // Create child items for each tour
 					id: crypto.randomUUID(),
 					i18n: {[$_lang]: {title: getTourTitle(t,$_lang)}},
@@ -145,7 +145,7 @@
 		{#if hasVideoTours}
 			<Menu onclose={close} menu={{
 				id: crypto.randomUUID(),
-				i18n: {[$_lang]: {title: hasBothTourTypes ? 'Video tours' : 'Tours'}}, // Dynamic title
+				i18n: {[$_lang]: {title: hasBothTourTypes ? $i18n.videoTours : $i18n.tours}}, // Dynamic title
 				children: videoTours.map((t) => ({ // Create child items
 					id: crypto.randomUUID(),
 					i18n: {[$_lang]: {title: getTourTitle(t,$_lang)}},

@@ -26,6 +26,9 @@ interface ButtonTranslations {
 	galleryNext: string;
 	menuToggle: string;
 	waypointFollow: string;
+	tours: string;
+	markerTours: string;
+	videoTours: string;
 }
 
 /**
@@ -59,6 +62,9 @@ export const langs : {
 		galleryNext: 'Next image',
 		menuToggle: 'Toggle menu',
 		waypointFollow: 'Go this way',
+		tours: 'Tours',
+		markerTours: 'Marker tours',
+		videoTours: 'Video tours',
 	},
 	/** Dutch translations */
 	nl: {
@@ -83,6 +89,36 @@ export const langs : {
 		galleryNext: 'Volgende afbeelding',
 		menuToggle: 'Menu openen / sluiten',
 		waypointFollow: 'Ga deze richting',
+		tours: 'Tours',
+		markerTours: 'Marker tours',
+		videoTours: 'Video tours',
+	},
+	/** German translations */
+	de: {
+		close: 'Schließen',
+		zoomIn: 'Vergrößern',
+		zoomOut: 'Verkleinern',
+		fullscreenToggle: 'Vollbild umschalten',
+		switchLanguage: 'Sprache wechseln',
+		share: 'Teilen',
+		audioMute: 'Ton stummschalten',
+		audioUnmute: 'Ton einschalten',
+		closeMarker: 'Diesen Marker schließen',
+		tourStepNext: 'Nächster Schritt',
+		tourStepPrev: 'Vorheriger Schritt',
+		tourStop: 'Tour beenden',
+		minimize: 'Minimieren',
+		play: 'Abspielen',
+		pause: 'Pause',
+		stop: 'Stopp',
+		subtitlesToggle: 'Untertitel umschalten',
+		galleryPrev: 'Vorheriges Bild',
+		galleryNext: 'Nächstes Bild',
+		menuToggle: 'Menü umschalten',
+		waypointFollow: 'Diesen Weg gehen',
+		tours: 'Touren',
+		markerTours: 'Marker-Touren',
+		videoTours: 'Video-Touren',
 	},
 	// TODO: Add more languages as needed
 };

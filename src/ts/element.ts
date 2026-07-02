@@ -217,7 +217,8 @@ export class HTMLMicrioElement extends HTMLElement {
 				let prevLang = get(this._lang);
 				if(prevLang != newVal) {
 					this._lang.set(newVal); // Update internal language store
-					i18n.set(langs[newVal] ?? langs.en); // Update i18n translations
+					let baseLang = newVal.split('-')[0];
+					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en); // Update i18n translations
 					if(newVal) { // Set text direction based on language
 						if(rtlLanguageCodes.includes(newVal)) this.setAttribute('dir', 'rtl');
 						else this.removeAttribute('dir');
