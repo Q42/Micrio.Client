@@ -22,6 +22,7 @@ export interface TileCanvasConfig {
 	is360: boolean;
 	noImage: boolean;
 	isSingle: boolean;
+	isDeepZoom: boolean;
 	freeMove: boolean;
 	coverStart: boolean;
 	maxScale: number;
@@ -162,7 +163,7 @@ export class TileCanvas {
 			this.resize();
 		}
 
-		if (!cfg.noImage) this.addImage(0, 0, 1, 1, width, height, cfg.tileSize, cfg.isSingle, false, targetOpacity, 0, 0, 0, 1, 0);
+		if (!cfg.noImage) this.addImage(0, 0, 1, 1, width, height, cfg.tileSize, cfg.isSingle, cfg.isDeepZoom, false, targetOpacity, 0, 0, 0, 1, 0);
 		else {
 			this.main.numImages++;
 			this.bOpacity = 1;
@@ -185,14 +186,14 @@ export class TileCanvas {
 	 * Adds an image source (usually tiled) to this canvas.
 	 */
 	addImage(x0: number, y0: number, x1: number, y1: number, w: number, h: number,
-		tileSize: number, isSingle: boolean, isVideo: boolean,
+		tileSize: number, isSingle: boolean, isDeepZoom: boolean, isVideo: boolean,
 		opa: number, rotX: number, rotY: number, rotZ: number, scale: number, fromScale: number): Image {
 		const image = new Image(
 			this,
 			this.main.numImages++,
 			this.images.length,
 			w, h, tileSize,
-			isSingle, isVideo,
+			isSingle, isDeepZoom, isVideo,
 			this.main.numTiles,
 			opa, opa, rotX, rotY, rotZ, scale, fromScale);
 		image.setArea(x0, y0, x1, y1);
@@ -214,6 +215,7 @@ export class TileCanvas {
 				is360: false,
 				noImage: false,
 				isSingle: false,
+				isDeepZoom: false,
 				freeMove: false,
 				coverStart,
 				maxScale: 1,

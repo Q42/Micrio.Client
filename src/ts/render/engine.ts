@@ -305,6 +305,7 @@ export class Engine {
 				is360: i.is360 ?? false,
 				noImage: c.noImage,
 				isSingle: !!(i.isSingle || is360Video),
+				isDeepZoom: !!i.isDeepZoom,
 				freeMove: settings.freeMove ?? false,
 				coverStart,
 				maxScale: settings.zoomLimit || 1,
@@ -710,7 +711,7 @@ export class Engine {
 			}
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 		} else {
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.engImageToMicrio.set(engImage, image);
 			this.micrioToEngImage.set(image, engImage);
 			const ptr = this.nextPtr++;
@@ -760,7 +761,7 @@ export class Engine {
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			const parentEntry = this.canvasById.get(parent.ptr);
 			if (!parentEntry) return;
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
 			this.engImageToMicrio.set(engImage, image);
 			this.micrioToEngImage.set(image, engImage);
 			const ptr = this.nextPtr++;

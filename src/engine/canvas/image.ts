@@ -108,6 +108,7 @@ export default class Image {
 		readonly height: number,
 		readonly tileSize: number,
 		readonly isSingle: boolean,
+		readonly isDeepZoom: boolean,
 		readonly isVideo: boolean,
 		readonly startOffset: number,
 		public opacity: number,
@@ -121,7 +122,7 @@ export default class Image {
 		const maxi = (width > height ? width : height);
 		this.is360Embed = this.canvas.is360 && this.localIdx > 0;
 
-		this.numLayers = 2;
+		this.numLayers = isDeepZoom && !isSingle ? 2 : 1;
 		for (let s = tileSize; s < maxi * canvas.main.underzoomLevels; s *= 2) this.numLayers++;
 		if (canvas.main.hasArchive || this.fromScale > 0) this.numLayers -= 3 - canvas.main.archiveLayerOffset;
 		if (this.fromScale > 0) this.numLayers--;
