@@ -8,7 +8,7 @@ import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
 import { archive } from './render/archive';
 import { Grid } from './nav/grid';
-import { writable, get, type Writable } from 'svelte/store';
+import { writable, get, type Writable } from '$ts/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from './globals';
 
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).

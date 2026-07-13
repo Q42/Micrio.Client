@@ -1,5 +1,5 @@
 import type { Models } from '$types/models';
-import type { Readable, Unsubscriber, Writable } from 'svelte/store';
+import type { Readable, Unsubscriber, Writable } from '$ts/store';
 import type { Grid } from './nav/grid';
 import type { Engine } from './render/engine';
 import type { GallerySwiper } from './nav/swiper';
@@ -7,7 +7,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
-import { readable, writable, get } from 'svelte/store';
+import { readable, writable, get } from '$ts/store';
 import { clone, deepCopy } from './utils/object';
 import { getIdVal, idIsV5 } from './utils/id';
 import { once } from './utils/store';

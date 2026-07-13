@@ -1,4 +1,4 @@
-import type { Unsubscriber } from 'svelte/store';
+import type { Unsubscriber } from '$ts/store';
 import type { HlsPlayer } from '$types/externals';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
@@ -6,7 +6,7 @@ import type { Engine } from '$ts/render/engine';
 
 import { Browser } from '$ts/utils/browser';
 import { loadScript } from '$ts/utils/dom';
-import { tick } from 'svelte';
+import { tick } from '$ts/store';
 
 /**
  * Manages the loading, playback, and WebGL integration of embedded videos

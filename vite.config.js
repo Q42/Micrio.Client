@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -42,16 +41,5 @@ export default defineConfig({
 				assetFileNames: () => `micrio.prod[extname]`
 			}
 		}
-	},
-	plugins: [
-		svelte({
-			preprocess: vitePreprocess(),
-			compilerOptions: {
-				// Kebabcase classnames
-				cssHash: ({name}) => 'micrio-'+name.split('').map((letter, idx) =>
-					letter.toUpperCase() === letter ? `${idx !== 0 ? '-' : ''}${letter.toLowerCase()}` : letter
-				).join('')
-			}
-		})
-	]
+	}
 });

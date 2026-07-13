@@ -1,8 +1,9 @@
 {
-	"extends": "@tsconfig/svelte/tsconfig.json",
 	"compilerOptions": {
 		"strict": true,
 		"target": "ES2020",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
 		"noEmit": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
@@ -13,10 +14,10 @@
 		}
 	},
 	"include": [
-		"src/svelte/Main.svelte",
 		"src/types/**/*",
 		"src/ts/**/*",
 		"src/engine/**/*",
+		"src/components/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }

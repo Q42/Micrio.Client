@@ -1,4 +1,4 @@
-import { writable, type Writable } from "svelte/store";
+import { writable, type Writable } from '$ts/store';
 
 /**
  * Interface defining the structure for UI button translations.

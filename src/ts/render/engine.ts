@@ -6,12 +6,12 @@
 
 import type { TextureBitmap } from './textures';
 import type { HTMLMicrioElement } from '$ts/element';
-import type { Unsubscriber } from 'svelte/store';
+import type { Unsubscriber } from '$ts/store';
 import type { Camera } from '$ts/camera';
 import type { Models } from '$types/models';
 
 import { MicrioImage } from '$ts/image';
-import { get } from 'svelte/store';
+import { get } from '$ts/store';
 import { archive } from './archive';
 import { Browser } from '$ts/utils/browser';
 import { once } from '$ts/utils/store';

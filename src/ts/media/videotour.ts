@@ -8,7 +8,7 @@ import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 
-import { get } from 'svelte/store';
+import { get } from '$ts/store';
 import { toCenterJSON } from '$ts/utils/math';
 
 /**

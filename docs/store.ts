@@ -71,4 +71,4 @@
  * @license MIT https://github.com/sveltejs/svelte/blob/master/LICENSE.md
 */
 
-export * from 'svelte/store';
+export * from '../src/ts/store';

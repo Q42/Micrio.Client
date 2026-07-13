@@ -1,8 +1,6 @@
-import type { Writable } from 'svelte/store';
+import type { Writable } from '$ts/store';
 import type { Models } from '$types/models';
 import type { Camera } from './camera';
-
-import type Svelte from '../svelte/Main.svelte';
 
 import { once } from './utils/store';
 import { deepCopy } from './utils/object';
@@ -11,7 +9,7 @@ import { idIsV5 } from './utils/id';
 import { MicrioError } from './utils/error';
 import { DataLoader } from './utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH_V5, DEFAULT_INFO, localStorageKeys } from './globals';
-import { writable, get } from 'svelte/store';
+import { writable, get } from '$ts/store';
 import { Engine } from './render/engine';
 import { WebGL } from './render/webgl';
 import { Canvas } from './render/canvas';
@@ -21,7 +19,7 @@ import { State} from './state';
 import { GoogleTag } from './analytics';
 import { Grid } from './nav/grid';
 import { Gallery } from './gallery';
-import { mount, tick, unmount } from 'svelte';
+import { tick } from '$ts/store';
 import { rtlLanguageCodes } from './i18n/locale';
 import { i18n, langs } from './i18n/strings';
 
@@ -50,11 +48,6 @@ import { i18n, langs } from './i18n/strings';
 export class HTMLMicrioElement extends HTMLElement {
 	/** Observed attributes trigger `attributeChangedCallback` when changed. */
 	static get observedAttributes() { return ['id', 'muted', 'data-limited', 'lang']; }
-
-	/** Dynamic Svelte constructor, defaults to the main viewer UI.
-	 * @internal
-	*/
-	static Svelte:typeof Svelte;
 
 	/** The Micrio library version number. */
 	static VERSION:string;
@@ -121,10 +114,10 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	readonly engine:Engine = new Engine(this);
 
-	/** The Svelte UI component instance.
+	/** The root MicrioMain UI component instance.
 	 * @internal
 	*/
-	_ui:{setProps?:(p:Partial<MicrioUIProps>) => void}|undefined;
+	_ui:any;
 
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
 	public defaultSettings?:Partial<Models.ImageInfo.Settings> = this.defaultSettings;
@@ -278,7 +271,7 @@ export class HTMLMicrioElement extends HTMLElement {
 		this.canvas.unhook(); // Clean up canvas controller
 		this.analytics.unhook(); // Disconnect analytics
 		this.engine.unbind(); // Clean up engine resources
-		if(this._ui) unmount(this._ui); // Destroy Svelte UI
+		if(this._ui) this._ui.remove();
 		delete this._ui;
 		this.webgl.dispose(true); // Dispose WebGL context
 		this.printed = false; // Reset printed flag
@@ -355,14 +348,21 @@ export class HTMLMicrioElement extends HTMLElement {
 	}
 
 	/**
-	 * Initializes or updates the Svelte UI component.
+	 * Initializes or updates the MicrioMain UI component.
 	 * @internal
 	 * @param noHTML If true, renders a minimal UI without HTML overlays.
 	 * @param noLogo If true, hides the Micrio logo.
 	 */
 	private printUI(noHTML:boolean, noLogo:boolean) : void {
-		if(!this._ui) this._ui = mount(HTMLMicrioElement.Svelte, {target:this, props:{micrio:this,noHTML,noLogo}}) as NonNullable<typeof this._ui>;
-		else this._ui.setProps?.({noHTML, noLogo});
+		if(!this._ui) {
+			const el = document.createElement('micrio-main') as any;
+			(this._ui as any) = el;
+			// Set props BEFORE appendChild so onMount has micrio available
+			el.setProps({micrio: this, noHTML, noLogo});
+			this.appendChild(el);
+		} else {
+			this._ui.setProps?.({noHTML, noLogo});
+		}
 	}
 
 	/**
@@ -672,16 +672,4 @@ export class HTMLMicrioElement extends HTMLElement {
 	set lang(l:string) { this.setAttribute('lang', l) }
 }
 
-// --- Svelte UI Props ---
-export interface MicrioUIProps {
-	/** The main HTMLMicrioElement instance. Provided by element.ts */
-	micrio: HTMLMicrioElement;
-	/** If true, suppresses rendering of most UI elements (except markers if data-ui="markers"). */
-	noHTML: boolean;
-	/** If true, suppresses rendering of the Micrio logo. Defaults to `noHTML`. */
-	noLogo?: boolean;
-	/** Loading progress (0-1), used for the progress indicator. */
-	loadingProgress?: number;
-	/** Optional error message to display. */
-	error?: string|undefined;
-}
+

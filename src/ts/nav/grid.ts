@@ -7,10 +7,10 @@ import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$ts/element';
 
 import { MicrioImage } from '$ts/image';
-import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
+import { get, writable, type Unsubscriber, type Writable } from '$ts/store';
 import { deepCopy } from '$ts/utils/object';
 import { once } from '$ts/utils/store';
-import { tick } from 'svelte';
+import { tick } from '$ts/store';
 import { Enums } from '$ts/enums';
 
 const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());

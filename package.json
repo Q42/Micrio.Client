@@ -25,13 +25,7 @@
 		"url": "https://github.com/Q42/Micrio.Client.git"
 	},
 	"license": "MIT",
-	"dependencies": {
-		"svelte": "^5.55.4"
-	},
 	"devDependencies": {
-		"@tsconfig/svelte": "^5.0.8",
-		"@sveltejs/vite-plugin-svelte": "^7.0.0",
-		"svelte-preprocess": "^6.0.3",
 		"terser": "^5.46.1",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.8",

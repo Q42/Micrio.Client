@@ -1,8 +1,8 @@
-import type { Writable } from 'svelte/store';
+import type { Writable } from '$ts/store';
 import type { Models } from '$types/models';
 import type { MicrioImage } from './image';
 
-import { writable } from 'svelte/store';
+import { writable } from '$ts/store';
 
 /**
  * # Micrio State management

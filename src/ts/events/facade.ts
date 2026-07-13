@@ -4,7 +4,7 @@ import type { MicrioImage } from '$ts/image';
 
 import { Browser } from '$ts/utils/browser';
 import { once } from '$ts/utils/store';
-import { get, writable, type Writable } from 'svelte/store';
+import { get, writable, type Writable } from '$ts/store';
 
 import { DragHandler } from './drag';
 import { PinchHandler } from './pinch';

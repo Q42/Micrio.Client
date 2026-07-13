@@ -2,7 +2,7 @@ import type { MicrioImage } from './image';
 import type { Models } from '$types/models';
 import type TileCanvas from '$engine/canvas/canvas';
 
-import { tick } from 'svelte';
+import { tick } from '$ts/store';
 import { mod, toCenterJSON } from './utils/math';
 import { Enums } from './enums';
 

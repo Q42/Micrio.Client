@@ -1,16 +1,13 @@
 /**
  * Main entry point for the Micrio library.
- * Imports the root Svelte component and the main custom element class,
- * links them, defines the custom element, and logs the version to the console.
+ * Imports the root micrio-main custom element and the main custom element class,
+ * defines the custom element, and logs the version to the console.
  */
 
-import Svelte from '../svelte/Main.svelte'; // Import the root Svelte UI component
+import '../components/micrio-main'; // Import and register the root UI custom element
 import { HTMLMicrioElement } from './element'; // Import the main custom element class
 import { VERSION } from './version'; // Import the library version string
 
-// Assign the Svelte component constructor to the custom element class
-// This allows the custom element to instantiate the Svelte UI internally.
-HTMLMicrioElement.Svelte = Svelte;
 // Assign the version string to the custom element class for static access.
 HTMLMicrioElement.VERSION = VERSION;
 
