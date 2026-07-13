@@ -25,6 +25,13 @@ import './micrio-marker-content';
 import './micrio-menu';
 import './micrio-toolbar';
 import './micrio-audio-controller';
+import './micrio-media';
+import './micrio-media-controls';
+import './micrio-marker-popup';
+import './micrio-marker';
+import './micrio-markers';
+import './micrio-dial';
+import './micrio-minimap';
 
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
 	if (p) for (let i = 0, t; i < p.length; i++)
@@ -215,7 +222,12 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		}
 
 		if (showMarkers) {
-			// TODO: micrio-markers
+			const $visible = get(micrio.visible) as MicrioImage[];
+			for (const image of $visible) {
+				const markers = document.createElement('micrio-markers') as any;
+				markers.setProps({ image });
+				this.appendChild(markers);
+			}
 		}
 
 		if (showControls) {

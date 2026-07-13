@@ -466,17 +466,23 @@ pnpm vite --port 2000
 
 ## Lessons Learned (from migrating 22 components)
 
-### 1. Stores: skip subscribers when value doesn't change
+### 1. Stores: never skip subscribers on `set()`
 
-Svelte stores skip subscribers if `set()` is called with the same value.
-Our initial store implementation fired unconditionally, causing infinite re-render
-loops whenever a component set a store to its current value (e.g. `zoom.set(true)`
-when already `true`). **Fix**: add `Object.is(value, next)` guard in both `set` and `update`.
+Svelte 5 fires subscribers unconditionally on `set()`. Our early implementation
+added an `Object.is` guard to prevent infinite re-render loops, but this broke
+the common pattern of mutating an array/object in-place and then calling
+`.set(sameReference)`. The camera does exactly this — it mutates `this.view` in
+place and calls `this.image.state.view.set(this.view)`. The guard saw the same
+reference and skipped subscribers, so markers (and other view subscribers)
+never updated during pan/zoom.
+
+**Fix**: remove the guard entirely. The real cause of infinite loops was
+`this.replaceChildren()` in components, not the store itself. With the
+`#build`/`#sync` pattern (see lesson 2), re-renders are cheap.
 
 ```typescript
-// src/ts/store.ts
+// src/ts/store.ts — set always fires (Svelte 5 behavior)
 set(v: T) {
-    if (Object.is(value, v)) return;  // ← critical guard
     value = v;
     subs.forEach(fn => fn(v));
 }
