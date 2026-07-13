@@ -1,7 +1,8 @@
-/**
- * # Svelte stores in Micrio
- * 
- * Micrio uses [Svelte Stores](https://svelte.dev/tutorial/writable-stores) for its internal state management.
+ /**
+  * # Store API in Micrio
+  * 
+  * Micrio uses a custom store implementation (`$ts/store`) for its internal state management.
+  * The API is compatible with Svelte stores (writable, readable, get, subscribe).
  * 
  * This means that changes in values can passively trigger state updates.
  * 
@@ -65,10 +66,8 @@
  * | .{@link Micrio.State.Main.marker} | {@link Micrio.State.Main.$marker} | {@link Writable}&lt;{@link Micrio.Models.ImageData.Marker}&gt; | The current opened marker of this image |
  *
  *
- * @category Svelte
- * @module SvelteStore
- * @author [These people](https://github.com/sveltejs/svelte/graphs/contributors)
- * @license MIT https://github.com/sveltejs/svelte/blob/master/LICENSE.md
+ * @category Stores
+ * @module Store
 */
 
 export * from '../src/ts/store';

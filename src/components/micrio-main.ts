@@ -39,6 +39,8 @@ import './micrio-image-embeds';
 import './micrio-tour';
 import './micrio-popover';
 import './micrio-gallery';
+import './micrio-serial-tour';
+import './micrio-gallery-item';
 
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
 	if (p) for (let i = 0, t; i < p.length; i++)

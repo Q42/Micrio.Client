@@ -181,7 +181,7 @@ Layer 6 (root):    Main
 
 Migration order: Layer 1 → Layer 6. Each layer depends only on layers below it.
 
-### Components Migrated (33 of ~39)
+### Components Migrated (All 39, Svelte fully removed)
 
 | # | Component | Svelte file | Custom element | Status |
 |---|-----------|-------------|----------------|--------|
@@ -228,14 +228,20 @@ Migration order: Layer 1 → Layer 6. Each layer depends only on layers below it
 | 41 | Popover | `src/svelte/components/Popover.svelte` | `micrio-popover` | ✅ |
 | 42 | Gallery | `src/svelte/components/Gallery.svelte` | `micrio-gallery` | ✅ |
 
-### Not yet migrated
+### Status: Complete
+
+The entire Svelte dependency has been removed from the project. All 39 Svelte
+components have been replaced with native `HTMLElement` custom elements. The
+`src/svelte/` directory has been deleted.
+
+### Previously open items (now completed)
 
 | # | Component | Svelte file | Notes |
 |---|-----------|-------------|-------|
-| 1 | SerialTour | `src/svelte/virtual/SerialTour.svelte` | Complex serial tour logic |
-| 2 | MicrioGallery | `src/svelte/components/MicrioGallery.svelte` | Gallery within popover |
-| 3 | Subtitles (full) | `src/svelte/common/Subtitles.svelte` | VTT subtitle rendering |
-| 4 | AudioPlaylist | `src/svelte/virtual/AudioPlaylist.svelte` | Inlined in AudioController |
+| 1 | SerialTour | `micrio-serial-tour` | ✅ |
+| 2 | MicrioGallery | `micrio-gallery-item` | ✅ |
+| 3 | Subtitles (full) | `micrio-subtitles` | ✅ (basic) |
+| 4 | AudioPlaylist | inlined in AudioController | ✅ |
 
 ---
 
@@ -307,8 +313,9 @@ customElements.define('micr-io', HTMLMicrioElement);
 
 ### Current build stats
 - **Modules:** 65
-- **Output:** 271.52 kB (80.27 kB gzipped)
-- **Components:** 34 custom elements in `src/components/`
+- **Output:** 275.88 kB (81.32 kB gzipped)
+- **Modules:** 90 (up from 65 with Svelte)
+- **Components:** All 39 custom elements in `src/components/`
 - **Build time:** ~530ms
 
 ---
@@ -452,7 +459,7 @@ package.json             — Removed Svelte deps
 
 ### Dead code (retained for reference)
 ```
-src/svelte/              — All 39 original Svelte components
+src/svelte/              — Deleted after all components migrated
 ```
 
 ---
