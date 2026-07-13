@@ -22,7 +22,12 @@
 
 	<!-- Use a production version -->
 	<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
-	<!-- <script src="https://r2.micr.io/micrio-6.1.9.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-6.0.7.min.js" defer></script> -->
+	<!-- <script src="https://b.micr.io/micrio-5.0.min.js" defer></script> -->
+	<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
+	<!-- <script src="https://b.micr.io/micrio-2.9.min.js"></script> -->
+	<!-- <script src="https://b.micr.io/micrio-3.3.min.js"></script> -->
+	<!-- <script src="https://b.micr.io/micrio-1.9.min.js"></script> -->
 
 	<style>
 		html,
@@ -40,11 +45,20 @@
 </head>
 
 <body>
+	<!-- <micr-io id="zcucg" path="https://micrio.s3.eu-north-1.amazonaws.com/"></micr-io> -->
+
+	<!-- <micr-io id="zcucg" width="3418" height="4096" path="https://micrio.s3.eu-north-1.amazonaws.com/" tilesize="1024" format="dz" webp xextension="webp" skipmeta="" xui="false"></micr-io> -->
+
+<!-- <micr-io id="vwUJF"></micr-io> -->
+	<!-- <micr-io id="mfcDxoh" datxa-path="https://r2.micr.io/"></micr-io> -->
+	<!-- <micr-io id="PWaWcw" path="https://r2.micr.io/"></micr-io> -->
+	<!-- <micr-io id="HSucu" path="https://micrio.s3.eu-north-1.amazonaws.com/"></micr-io> -->
+
 	<!-- DEMO IDs
 		Basic test image: dzzLm
 		Omni image: QgjdoCK / HvoNSNV (has markers) / iEvpRg (markers)
 		Omni image with layers: VVxoPCb / GPjAGL
-		360 tour: ZnaHJK / WkdtYs / OJqMYL / EaouKa / fmxpBY
+		360 tour: ZnaHJK / WkdtYs / OJqMYL / EaouKa / fmxpBY - https://dash.micr.io/micrio/danique-demotest/sdfsdf/demo-360-tour
 		Embedded video: SUeqOX / HAotXhO / dfhgojZ (National Gallery Imaginarium)
 		Serial multi-image tour: ojvqWXd / JXflr (Rijksmuseum Joao story)
 		360 hi-res: mLOarF
@@ -60,6 +74,12 @@
 
 	<!-- general test image - https://dash.micr.io/micrio/2026/@CVWjwhk -->
 	<micr-io id="CVWjwhk"></micr-io>
+
+	<!-- Staedel Museum Frankfurt: German content -->
+	<!-- <micr-io id="StLvjXj" lang="de-DE"></micr-io> -->
+
+	<!-- 360 tour 2026 -->
+	<!-- <micr-io id="gAqGDMz"></micr-io> -->
 
 	<!-- <micr-io data-grid="SBzCMk.1781809787" data-coxverlimit data-initxtype="cover" data-fullscreen daxta-gallery-sort="random" data-xkeys="false"></micr-io> -->
 	<!-- <micr-io id="dfhgojZ" daxta-embeds-inside-gl data-path="http://localhost:6100/r2/" datxa-force-path data-embeds-inside-gl="false" dxata-skipmeta daxta-cluster-markers></micr-io> -->
@@ -145,7 +165,8 @@
 		};
 
 		// Listen to opened marker hooks
-		micrio.addEventListener('marker-opened', e => {
+		micrio.addEventListener('pre-data', e => {
+			console.log('show', e.detail);
 			//console.log('Opened marker', e.detail);
 			//console.log(micrio.$current.camera.getCoo(e.clientX,e.clientY));
 		});
@@ -154,7 +175,7 @@
 		micrio.addEventListener('pre-info', e => {
 			// At this point, you can manipulate the image settings for instance
 			// before it gets picked up by the Micrio initialization process.
-			//console.log(e.detail.settings)
+			//console.log(e.detail)
 		});
 
 		// Put any pre-data init hooks here
