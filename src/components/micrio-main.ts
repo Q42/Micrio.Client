@@ -32,6 +32,13 @@ import './micrio-marker';
 import './micrio-markers';
 import './micrio-dial';
 import './micrio-minimap';
+import './micrio-audio-location';
+import './micrio-events';
+import './micrio-embed';
+import './micrio-image-embeds';
+import './micrio-tour';
+import './micrio-popover';
+import './micrio-gallery';
 
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
 	if (p) for (let i = 0, t; i < p.length; i++)
@@ -246,6 +253,27 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			const details = document.createElement('micrio-details') as any;
 			details.setProps({ info: get(this.#info), data: get(this.#data) });
 			this.appendChild(details);
+		}
+
+		const $markerPopup = get(micrio.state.popup);
+		const $popover = get(micrio.state.popover);
+
+		if ($markerPopup || $tour || $popover) {
+			if ($markerPopup) {
+				const popup = document.createElement('micrio-marker-popup') as any;
+				popup.setProps({ marker: $markerPopup });
+				this.appendChild(popup);
+			}
+			if ($tour) {
+				const tour = document.createElement('micrio-tour') as any;
+				tour.setProps({ tour: $tour, noHTML });
+				this.appendChild(tour);
+			}
+			if ($popover) {
+				const pop = document.createElement('micrio-popover') as any;
+				pop.setProps({ popover: $popover });
+				this.appendChild(pop);
+			}
 		}
 
 		const subsSection = this.#ensureSection('subtitles');
