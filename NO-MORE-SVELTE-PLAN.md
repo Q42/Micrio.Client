@@ -181,7 +181,7 @@ Layer 6 (root):    Main
 
 Migration order: Layer 1 → Layer 6. Each layer depends only on layers below it.
 
-### Components Migrated (14 of ~39)
+### Components Migrated (22 of ~39)
 
 | # | Component | Svelte file | Custom element | Status |
 |---|-----------|-------------|----------------|--------|
@@ -198,33 +198,37 @@ Migration order: Layer 1 → Layer 6. Each layer depends only on layers below it
 | 11 | Details | `src/svelte/common/Details.svelte` | `micrio-details` | ✅ |
 | 12 | Subtitles | `src/svelte/common/Subtitles.svelte` | `micrio-subtitles` | ✅ |
 | 13 | Controls | `src/svelte/components/Controls.svelte` | `micrio-controls` | ✅ |
-| 14 | **Main (root)** | `src/svelte/Main.svelte` | `micrio-main` | ✅ |
+| 14 | LogoOrg | `src/svelte/ui/LogoOrg.svelte` | `micrio-logo-org` | ✅ |
+| 15 | MarkerContent | `src/svelte/common/MarkerContent.svelte` | `micrio-marker-content` | ✅ |
+| 16 | Waypoint | `src/svelte/components/Waypoint.svelte` | `micrio-waypoint` | ✅ |
+| 17 | Menu | `src/svelte/components/Menu.svelte` | `micrio-menu` | ✅ |
+| 18 | Toolbar | `src/svelte/components/Toolbar.svelte` | `micrio-toolbar` | ✅ |
+| 19 | AudioController | `src/svelte/virtual/AudioController.svelte` | `micrio-audio-controller` | ✅ |
+| 20 | MediaControls | `src/svelte/components/MediaControls.svelte` | `micrio-media-controls` | ✅ |
+| 21 | Media | `src/svelte/components/Media.svelte` | `micrio-media` | ✅ |
+| 22 | **Main (root)** | `src/svelte/Main.svelte` | `micrio-main` | ✅ |
 
-### Components Remaining (21)
+### Components Remaining (17)
 
 | # | Component | Svelte file | Priority |
 |---|-----------|-------------|----------|
-| 1 | Media | `src/svelte/components/Media.svelte` | Medium |
-| 2 | MediaControls | `src/svelte/components/MediaControls.svelte` | Medium |
-| 3 | Marker | `src/svelte/components/Marker.svelte` | Medium |
-| 4 | MarkerPopup | `src/svelte/components/MarkerPopup.svelte` | Medium |
-| 5 | MarkerContent | `src/svelte/common/MarkerContent.svelte` | Medium |
-| 6 | Menu | `src/svelte/components/Menu.svelte` | Medium |
-| 7 | Toolbar | `src/svelte/components/Toolbar.svelte` | Medium |
-| 8 | Gallery | `src/svelte/components/Gallery.svelte` | Medium |
-| 9 | Minimap | `src/svelte/components/Minimap.svelte` | Medium |
-| 10 | Waypoint | `src/svelte/components/Waypoint.svelte` | Low |
-| 11 | Tour | `src/svelte/virtual/Tour.svelte` | Low |
-| 12 | SerialTour | `src/svelte/virtual/SerialTour.svelte` | Low |
-| 13 | Popover | `src/svelte/components/Popover.svelte` | Low |
-| 14 | MicrioGallery | `src/svelte/components/MicrioGallery.svelte` | Low |
-| 15 | Embed | `src/svelte/virtual/Embed.svelte` | Low |
-| 16 | ImageEmbeds | `src/svelte/virtual/ImageEmbeds.svelte` | Low |
-| 17 | AudioController | `src/svelte/virtual/AudioController.svelte` | Low |
-| 18 | AudioPlaylist | `src/svelte/virtual/AudioPlaylist.svelte` | Low |
-| 19 | AudioLocation | `src/svelte/virtual/AudioLocation.svelte` | Low |
-| 20 | Events | `src/svelte/virtual/Events.svelte` | Low |
-| 21 | LogoOrg | `src/svelte/ui/LogoOrg.svelte` | Low |
+| 1 | Marker | `src/svelte/components/Marker.svelte` | Medium |
+| 2 | MarkerPopup | `src/svelte/components/MarkerPopup.svelte` | Medium |
+| 3 | Gallery | `src/svelte/components/Gallery.svelte` | Medium |
+| 4 | Minimap | `src/svelte/components/Minimap.svelte` | Medium |
+| 5 | Dial | `src/svelte/ui/Dial.svelte` | Low |
+| 6 | Tour | `src/svelte/virtual/Tour.svelte` | Low |
+| 7 | SerialTour | `src/svelte/virtual/SerialTour.svelte` | Low |
+| 8 | Popover | `src/svelte/components/Popover.svelte` | Low |
+| 9 | MicrioGallery | `src/svelte/components/MicrioGallery.svelte` | Low |
+| 10 | Embed | `src/svelte/virtual/Embed.svelte` | Low |
+| 11 | ImageEmbeds | `src/svelte/virtual/ImageEmbeds.svelte` | Low |
+| 12 | AudioPlaylist | `src/svelte/virtual/AudioPlaylist.svelte` | Low |
+| 13 | AudioLocation | `src/svelte/virtual/AudioLocation.svelte` | Low |
+| 14 | Events | `src/svelte/virtual/Events.svelte` | Low |
+| 15 | Markers | `src/svelte/virtual/Markers.svelte` | Low |
+| 16 | Embed | `src/svelte/virtual/Embed.svelte` | Low |
+| 17 | Subtitles (full) | `src/svelte/common/Subtitles.svelte` | Low |
 
 ---
 
@@ -296,7 +300,7 @@ customElements.define('micr-io', HTMLMicrioElement);
 
 ### Current build stats
 - **Modules:** 65
-- **Output:** 205.44 kB (62.70 kB gzipped)
+- **Output:** 226.28 kB (68.19 kB gzipped)
 - **Build time:** ~530ms
 
 ---
@@ -396,6 +400,7 @@ src/components/
 ├── micrio-progress-circle.ts
 ├── micrio-progress-bar.ts
 ├── micrio-logo.ts
+├── micrio-logo-org.ts
 ├── micrio-error.ts
 ├── micrio-fullscreen.ts
 ├── micrio-zoom-buttons.ts
@@ -403,7 +408,16 @@ src/components/
 ├── micrio-details.ts
 ├── micrio-subtitles.ts
 ├── micrio-controls.ts
-└── micrio-main.ts
+├── micrio-menu.ts
+├── micrio-toolbar.ts
+├── micrio-waypoint.ts
+├── micrio-marker-content.ts
+├── micrio-audio-controller.ts
+├── micrio-media-controls.ts
+├── micrio-media.ts
+├── micrio-main.ts
+src/ts/
+├── captions.ts
 ```
 
 ### Files modified
@@ -454,29 +468,31 @@ pnpm vite --port 2000
 
 - [x] **Phase 1**: Store framework (`src/ts/store.ts`)
 - [x] **Phase 2**: Component base class (`src/ts/component.ts`)
-- [x] **Phase 3**: 14 of 39 components migrated
+- [x] **Phase 3**: 22 of ~39 components migrated
 - [x] **Phase 4**: Root mounting changed (element.ts + main.ts)
 - [x] **Phase 5**: Build system cleaned (vite, tsconfig, package.json)
-- [ ] Migrate `Media.svelte` → `micrio-media`
-- [ ] Migrate `MediaControls.svelte` → `micrio-media-controls`
+- [x] Migrate `Media.svelte` → `micrio-media`
+- [x] Migrate `MediaControls.svelte` → `micrio-media-controls`
+- [x] Migrate `MarkerContent.svelte` → `micrio-marker-content`
+- [x] Migrate `Menu.svelte` → `micrio-menu`
+- [x] Migrate `Toolbar.svelte` → `micrio-toolbar`
+- [x] Migrate `Waypoint.svelte` → `micrio-waypoint`
+- [x] Migrate `AudioController.svelte` → `micrio-audio-controller`
+- [x] Migrate `LogoOrg.svelte` → `micrio-logo-org`
 - [ ] Migrate `Marker.svelte` → `micrio-marker`
 - [ ] Migrate `MarkerPopup.svelte` → `micrio-marker-popup`
-- [ ] Migrate `MarkerContent.svelte` → `micrio-marker-content`
-- [ ] Migrate `Menu.svelte` → `micrio-menu`
-- [ ] Migrate `Toolbar.svelte` → `micrio-toolbar`
 - [ ] Migrate `Gallery.svelte` → `micrio-gallery`
 - [ ] Migrate `Minimap.svelte` → `micrio-minimap`
-- [ ] Migrate `Waypoint.svelte` → `micrio-waypoint`
+- [ ] Migrate `Dial.svelte` → `micrio-dial`
 - [ ] Migrate `Tour.svelte` → `micrio-tour`
 - [ ] Migrate `SerialTour.svelte` → `micrio-serial-tour`
 - [ ] Migrate `Popover.svelte` → `micrio-popover`
 - [ ] Migrate `MicrioGallery.svelte` → `micrio-gallery-item`
 - [ ] Migrate `Embed.svelte` → `micrio-embed`
 - [ ] Migrate `ImageEmbeds.svelte` → `micrio-image-embeds`
-- [ ] Migrate `AudioController.svelte` → `micrio-audio-controller`
-- [ ] Migrate `AudioPlaylist.svelte` → `micrio-audio-playlist`
+- [ ] Migrate `AudioPlaylist.svelte` → `micrio-audio-playlist` (inlined in AudioController)
 - [ ] Migrate `AudioLocation.svelte` → `micrio-audio-location`
 - [ ] Migrate `Events.svelte` → `micrio-events`
-- [ ] Migrate `LogoOrg.svelte` → `micrio-logo-org`
+- [ ] Migrate `Markers.svelte` → `micrio-markers`
 - [ ] Delete `src/svelte/` directory (after all components migrated)
 - [ ] Extract all CSS into production bundle

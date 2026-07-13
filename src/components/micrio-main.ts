@@ -19,6 +19,12 @@ import './micrio-error';
 import './micrio-controls';
 import './micrio-fullscreen';
 import './micrio-zoom-buttons';
+import './micrio-logo-org';
+import './micrio-waypoint';
+import './micrio-marker-content';
+import './micrio-menu';
+import './micrio-toolbar';
+import './micrio-audio-controller';
 
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
 	if (p) for (let i = 0, t; i < p.length; i++)
@@ -41,6 +47,11 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#props: MainProps = { micrio: null! };
 	#unsubs: (() => void)[] = [];
 	#sections: Map<string, HTMLElement> = new Map();
+	#info: Readable<Models.ImageInfo.ImageInfo | undefined> | undefined;
+	#data: Writable<Models.ImageData.ImageData | undefined> | undefined;
+	#settings: Writable<Models.ImageInfo.Settings> | undefined;
+	#firstInited = false;
+	#logoOrg: Models.ImageInfo.Organisation | undefined;
 
 	onMount() {
 		const micrio = this.#props.micrio;
@@ -65,26 +76,34 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		const showEmbeds = micrio.getAttribute('data-embeds') != 'false';
 
-		let info: Readable<Models.ImageInfo.ImageInfo | undefined> | undefined;
-		let data: Writable<Models.ImageData.ImageData | undefined> | undefined;
-		let settings: Writable<Models.ImageInfo.Settings> | undefined;
-		let firstInited = false;
-		let logoOrg: Models.ImageInfo.Organisation | undefined;
+		this.#info = undefined;
+		this.#data = undefined;
+		this.#settings = undefined;
+		this.#firstInited = false;
+		this.#logoOrg = undefined;
 		const didStart: string[] = [];
 
 		this.#unsubs.push(micrio.current.subscribe(c => {
 			if (!c) return;
-			info = c.info;
-			settings = undefined;
-			if (info) once(info).then(i => {
-				if (i) {
-					firstInited = true;
-					settings = c.settings;
-					if (!logoOrg && DataLoader.getOrganisation()?.logo) logoOrg = DataLoader.getOrganisation();
-				}
-			});
-			if ((data = c.data) && didStart.indexOf(c.id) < 0) {
-				once(data).then(async d => {
+			this.#info = c.info;
+			this.#settings = undefined;
+
+			// Re-render when the current image's info/data/settings stores change
+			if (this.#info) {
+				this.#unsubs.push(this.#info.subscribe(() => this.#scheduleRender()));
+				once(this.#info).then(i => {
+					if (i) {
+						this.#firstInited = true;
+						this.#settings = c.settings;
+						if (this.#settings) this.#unsubs.push(this.#settings.subscribe(() => this.#scheduleRender()));
+						if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
+						this.#scheduleRender();
+					}
+				});
+			}
+			if ((this.#data = c.data) && didStart.indexOf(c.id) < 0) {
+				this.#unsubs.push(this.#data.subscribe(() => this.#scheduleRender()));
+				once(this.#data).then(async d => {
 					if (!d) return;
 					didStart.push(c.id);
 					await tick().then(tick);
@@ -127,7 +146,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#unsubs.push(micrio._lang.subscribe(() => this.#scheduleRender()));
 
 		(this as any).__c = { micrio, onlyMarkers, showEmbeds };
-		(this as any).__state = { info, data, settings, firstInited, logoOrg, subsRaised };
 		(this as any).__stores = { srt, volume };
 		(this as any).__markerImages = markerImages;
 
@@ -150,14 +168,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 	#render() {
 		const c = (this as any).__c as { micrio: HTMLMicrioElement; onlyMarkers: boolean; showEmbeds: boolean };
-		const s = (this as any).__state as any;
 		const { micrio, onlyMarkers } = c;
 
 		const $tour = get(micrio.state.tour);
 		const $marker = get(micrio.state.marker);
-		const $info = s.info ? get(s.info) : undefined;
-		const $settings = (s.settings ? get(s.settings) : undefined) as Models.ImageInfo.Settings | undefined;
-		const $data = s.data ? get(s.data) : undefined;
+		const $info = this.#info ? get(this.#info) : undefined;
+		const $settings = (this.#settings ? get(this.#settings) : undefined) as Models.ImageInfo.Settings | undefined;
+		const $data = this.#data ? get(this.#data) : undefined;
 		const error = this.#props.error;
 		const loadingProgress = this.#props.loadingProgress ?? 1;
 		const noHTML = this.#props.noHTML ?? false;
@@ -171,14 +188,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		const showMarkers = !noHTML || onlyMarkers;
 		const showLogo = !noLogo && (!$info || !noHTML) && !($settings as any)?.noLogo;
+		const showOrgLogo = !noHTML && showLogo && !($settings as any)?.noOrgLogo && this.#logoOrg;
 		const showControls = !noHTML && !!$info;
 		const showDetails = !noHTML && !hasTourOrMarker && ($settings as any)?.showInfo;
-		const showToolbar = !noHTML && s.firstInited && !($settings as any)?.noToolbar;
+		const showToolbar = !noHTML && this.#firstInited && !($settings as any)?.noToolbar;
 
 		this.replaceChildren();
 
 		if (hasAudio && $data && $info) {
-			// TODO: micrio-audio-controller
+			const audioCtrl = document.createElement('micrio-audio-controller');
+			this.appendChild(audioCtrl);
 		}
 
 		if (videoSrc && $info) {
@@ -191,7 +210,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		}
 
 		if (showToolbar) {
-			// TODO: micrio-toolbar
+			const toolbar = document.createElement('micrio-toolbar');
+			this.appendChild(toolbar);
 		}
 
 		if (showMarkers) {
@@ -204,9 +224,15 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.appendChild(controls);
 		}
 
-		if (showDetails && s.info && s.data) {
+		if (showOrgLogo && this.#logoOrg) {
+			const org = document.createElement('micrio-logo-org') as any;
+			org.setProps({ organisation: this.#logoOrg });
+			this.appendChild(org);
+		}
+
+		if (showDetails && this.#info && this.#data) {
 			const details = document.createElement('micrio-details') as any;
-			details.setProps({ info: get(s.info), data: get(s.data) });
+			details.setProps({ info: get(this.#info), data: get(this.#data) });
 			this.appendChild(details);
 		}
 
