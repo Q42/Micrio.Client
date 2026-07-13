@@ -37,6 +37,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 
 	#rootEl!: HTMLElement;
 	#listeners: (() => void)[] = [];
+	#clickHandler: ((e: Event) => void) | null = null;
 
 	onMount() {
 		this.#render();
@@ -91,9 +92,12 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		for (const unsub of this.#listeners) unsub();
 		this.#listeners = [];
 
-		if (p.onclick) {
-			el.addEventListener('click', p.onclick);
-			this.#listeners.push(() => el!.removeEventListener('click', p.onclick!));
+		if (!this.#clickHandler) {
+			this.#clickHandler = (e: Event) => {
+				const fn = (this._props as any).onclick;
+				if (fn) fn(e);
+			};
+			el.addEventListener('click', this.#clickHandler);
 		}
 		if (p.onfocus) {
 			el.addEventListener('focus', p.onfocus);

@@ -21,11 +21,15 @@ export function writable<T>(value?: T): Writable<T> {
 			return () => subs.delete(run);
 		},
 		set(v: T) {
+			if (Object.is(value, v)) return;
 			value = v;
 			subs.forEach(fn => fn(v));
 		},
 		update(fn: Updater<T>) {
-			this.set(fn(value as T));
+			const next = fn(value as T);
+			if (Object.is(value, next)) return;
+			value = next;
+			subs.forEach(fn => fn(next));
 		}
 	};
 }

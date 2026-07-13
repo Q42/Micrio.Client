@@ -464,6 +464,131 @@ pnpm vite --port 2000
 
 ---
 
+## Lessons Learned (from migrating 22 components)
+
+### 1. Stores: skip subscribers when value doesn't change
+
+Svelte stores skip subscribers if `set()` is called with the same value.
+Our initial store implementation fired unconditionally, causing infinite re-render
+loops whenever a component set a store to its current value (e.g. `zoom.set(true)`
+when already `true`). **Fix**: add `Object.is(value, next)` guard in both `set` and `update`.
+
+```typescript
+// src/ts/store.ts
+set(v: T) {
+    if (Object.is(value, v)) return;  // ← critical guard
+    value = v;
+    subs.forEach(fn => fn(v));
+}
+```
+
+### 2. Build DOM once, sync in place
+
+The naive pattern of `this.replaceChildren()` + full rebuild on every store
+change causes massive flickering and destroys hover/active states. Instead:
+
+- **`#build()`** — called once from `onMount()`, creates the full DOM structure
+  with placeholder elements for every section
+- **`#sync()`** — called from store subscriptions, toggles `display` on sections
+  and updates `setProps`/classes on existing elements
+- Never destroy what you can hide (`el.style.display = 'none'`)
+
+See `micrio-controls.ts` for a reference implementation.
+
+### 3. Set props before appending to DOM
+
+`appendChild()` triggers `connectedCallback` → `onMount()` synchronously.
+If `onMount` reads `this.#props.foo`, that prop must be set **before** the
+`appendChild` call.
+
+```typescript
+// ❌ Wrong: onMount fires before setProps
+const el = document.createElement('micrio-fullscreen');
+this.appendChild(el);     // onMount → crash: #props.el is null
+el.setProps({ el: micrio });
+
+// ✅ Correct: setProps before appendChild
+const el = document.createElement('micrio-fullscreen') as any;
+el.setProps({ el: micrio });  // store for onMount
+this.appendChild(el);         // onMount → #props.el is set
+```
+
+### 4. Assign handlers before rendering
+
+If `#render()` reads `(this as any).__foo` to pass as `onclick`, the
+assignment must happen **before** `#render()`, not after:
+
+```typescript
+// ❌ Wrong: button captures onclick: undefined
+this.#renderButton();           // reads __toggle → undefined
+(this as any).__toggle = toggle;
+
+// ✅ Correct: assign first, then render
+(this as any).__toggle = toggle;
+this.#renderButton();           // reads __toggle → toggle function
+```
+
+### 5. No `null!` initializers for private props
+
+```typescript
+// ❌ Crash: this.#props is null, so this.#props.el throws
+#props: FullscreenProps = null!;
+onMount() { const el = this.#props.el; }
+
+// ✅ Safe: this.#props is always an object, .el is undefined until set
+#props: Partial<FullscreenProps> = {};
+onMount() { if (!this.#props.el) return; }
+```
+
+### 6. Guard `onMount` against late props
+
+When a parent creates child elements in `#build()` before calling `setProps`,
+the child's `onMount` fires without props. Guard:
+
+```typescript
+onMount() {
+    if (!this.#props.el) return;  // setProps not called yet
+    this.#init();
+}
+setProps(props) {
+    if (props.el !== undefined) {
+        this.#props.el = props.el;
+        if (this.isConnected && !this.#inited) this.#init();
+    }
+}
+```
+
+### 7. Debounce re-renders with rAF
+
+Multiple store changes within the same frame should coalesce into a single render:
+
+```typescript
+#renderQueued = false;
+#queueRender() {
+    if (this.#renderQueued) return;
+    this.#renderQueued = true;
+    requestAnimationFrame(() => {
+        this.#renderQueued = false;
+        if (this.isConnected) this.#render();
+    });
+}
+```
+
+### 8. Clean up old subscriptions when re-subscribing
+
+When a subscription callback re-subscribes (e.g. switching to a new image's view
+store), keep track of the old unsubscriber and call it first:
+
+```typescript
+let viewUnsub: (() => void) | undefined;
+this.#unsubs.push(micrio.current.subscribe(c => {
+    viewUnsub?.();                       // ← clean up old subscription
+    viewUnsub = c.state.view.subscribe(update);
+}));
+```
+
+---
+
 ## Complete Component Migration Checklist
 
 - [x] **Phase 1**: Store framework (`src/ts/store.ts`)

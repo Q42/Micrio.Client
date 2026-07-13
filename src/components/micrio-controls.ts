@@ -3,7 +3,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import type { Unsubscriber } from '$ts/store';
-import { get, tick } from '$ts/store';
+import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
 import { once } from '$ts/utils/store';
 import { languageNames } from '$ts/i18n/locale';
@@ -31,7 +31,7 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 
 	#props: ControlsProps = {};
 	#unsubs: (() => void)[] = [];
-
+	#built = false;
 	#showCultures = false;
 	#showSocial = false;
 	#showFullscreen = false;
@@ -40,6 +40,16 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 	#gridFocussed: MicrioImage | undefined;
 	#gridClickable: 'focus' | 'zoom' | false = false;
 	#grid: any = undefined;
+
+	#aside1!: HTMLElement;
+	#muteBtn: any;
+	#shareBtn: any;
+	#langMenu: HTMLElement | undefined;
+	#group1!: HTMLElement;
+	#zoomGroup: any;
+	#fsGroup: any;
+	#aside2!: HTMLElement;
+	#aside3!: HTMLElement;
 
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
@@ -64,12 +74,12 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 			const img = e.detail as MicrioImage;
 			this.#secondaryPortrait = micrio.canvas.viewport.portrait;
 			if (!img.opts.isPassive) this.#secondaryControls = img;
-			this.#renderAll();
+			this.#sync();
 		};
 
 		const splitStop = () => {
 			this.#secondaryControls = null;
-			this.#renderAll();
+			this.#sync();
 		};
 
 		micrio.addEventListener('splitscreen-start', splitStart);
@@ -85,7 +95,7 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 			this.#showCultures = !!s.ui?.controls?.cultureSwitch;
 			this.#showSocial = !!s.social;
 			this.#showFullscreen = !!s.fullscreen;
-			this.#renderAll();
+			this.#sync();
 		};
 
 		if (micrio.$current) readInfo(micrio.$current.$settings);
@@ -109,38 +119,106 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 					this.#gridClickable = g.clickable;
 					gridUnsub = g.focussed.subscribe(v => {
 						this.#gridFocussed = v;
-						this.#renderAll();
+						this.#sync();
 					});
 				}
 			}
 		}));
 
-		this.#unsubs.push(hover.subscribe(() => this.#renderAll()));
-		this.#unsubs.push(hidden.subscribe(() => this.#renderAll()));
-		this.#unsubs.push(controls.subscribe(() => this.#renderAll()));
-		this.#unsubs.push(zoom.subscribe(() => this.#renderAll()));
-		this.#unsubs.push(tour.subscribe(() => this.#renderAll()));
-		this.#unsubs.push(popup.subscribe(() => this.#renderAll()));
+		this.#unsubs.push(hover.subscribe(() => this.#sync()));
+		this.#unsubs.push(hidden.subscribe(() => this.#sync()));
+		this.#unsubs.push(controls.subscribe(() => this.#sync()));
+		this.#unsubs.push(zoom.subscribe(() => this.#sync()));
+		this.#unsubs.push(tour.subscribe(() => this.#sync()));
+		this.#unsubs.push(popup.subscribe(() => this.#sync()));
 
-		// Store event handlers for rendering
+		(this as any).__toggleMute = () => { isMuted.set(!get(isMuted)); };
 		(this as any).__share = share;
-		(this as any).__toggleMute = () => isMuted.set(!get(isMuted));
 		(this as any).__setLang = (l: string) => { micrio.lang = l; };
 		(this as any).__gridBack = () => this.#grid?.back();
 
-		tick().then(() => this.#renderAll());
+		this.#build();
+		this.#sync();
 	}
 
 	setProps(props: Partial<ControlsProps>) {
 		Object.assign(this.#props, props);
 	}
 
-	#renderAll() {
-		this.#render();
+	// ── Build DOM once ──
+
+	#build() {
+		if (this.#built) return;
+
+		// Main aside
+		this.#aside1 = document.createElement('aside');
+		this.#aside1.addEventListener('pointerover', () => {
+			(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(true);
+		});
+		this.#aside1.addEventListener('pointerout', (e) => {
+			if (!e.currentTarget || !(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
+				(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(false);
+		});
+		this.#aside1.addEventListener('focusin', () => {
+			(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(true);
+		});
+		this.#aside1.addEventListener('focusout', (e) => {
+			if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
+				(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(false);
+		});
+		this.appendChild(this.#aside1);
+
+		// Mute button placeholder
+		this.#muteBtn = document.createElement('micrio-button');
+		this.#muteBtn.className = 'ctrl-mute';
+		this.#aside1.appendChild(this.#muteBtn);
+
+		// Language menu placeholder
+		this.#langMenu = document.createElement('menu');
+		this.#langMenu.className = 'popout ctrl-lang';
+		this.#langMenu.setAttribute('tabindex', '0');
+		const langBtn = document.createElement('micrio-button');
+		langBtn.className = 'ctrl-lang-trigger';
+		this.#langMenu.appendChild(langBtn);
+		this.#aside1.appendChild(this.#langMenu);
+
+		// Share button placeholder
+		this.#shareBtn = document.createElement('micrio-button');
+		this.#shareBtn.className = 'ctrl-share';
+		this.#aside1.appendChild(this.#shareBtn);
+
+		// ButtonGroup for zoom + fullscreen
+		this.#group1 = document.createElement('micrio-button-group');
+		this.#zoomGroup = document.createElement('micrio-zoom-buttons');
+		this.#zoomGroup.className = 'ctrl-zoom';
+		this.#group1.appendChild(this.#zoomGroup);
+		this.#fsGroup = document.createElement('micrio-fullscreen');
+		this.#fsGroup.className = 'ctrl-fs';
+		this.#group1.appendChild(this.#fsGroup);
+		this.#aside1.appendChild(this.#group1);
+
+		// Secondary controls placeholder (split screen)
+		this.#aside2 = document.createElement('aside');
+		this.#aside2.className = 'primary';
+		const group2 = document.createElement('micrio-button-group');
+		const zoom2 = document.createElement('micrio-zoom-buttons');
+		group2.appendChild(zoom2);
+		this.#aside2.appendChild(group2);
+		this.appendChild(this.#aside2);
+
+		// Grid close placeholder
+		this.#aside3 = document.createElement('aside');
+		this.#aside3.className = 'grid-close';
+		this.appendChild(this.#aside3);
+
+		this.#built = true;
 	}
 
-	#render() {
-		if (!this.isConnected) return;
+	// ── Sync state to existing DOM (no rebuild) ──
+
+	#sync() {
+		if (!this.#built || !this.isConnected) return;
+
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio) return;
 
@@ -158,7 +236,7 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 		const cultures = info?.revision ? Object.keys(info.revision) : [];
 		const isMobile = micrio.canvas.$isMobile;
 
-		const showMute = 'micrioAudioContext' in window || this.#props.hasAudio;
+		const showMute = !!('micrioAudioContext' in window || this.#props.hasAudio);
 		const hasCultures = this.#showCultures && cultures.length > 1;
 		const hasSocial = this.#showSocial && ('share' in navigator);
 		const hasFullscreen = this.#showFullscreen && !($tour && 'steps' in $tour && ($tour as any).isSerialTour);
@@ -166,114 +244,81 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 		const onlyFullscreen = hasFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current.grid.panZoom == 'cells';
 
-		if (!hasControls) { this.innerHTML = ''; return; }
+		this.classList.toggle('hidden', $hidden && !$hover);
 
-		// Build the controls HTML structure imperatively
-		this.replaceChildren();
+		if (!hasControls) { this.style.display = 'none'; return; }
+		this.style.display = '';
 
-		const aside = document.createElement('aside');
-		aside.className = '';
-		aside.classList.toggle('hidden', $hidden && !$hover);
-		aside.addEventListener('pointerover', () => micrio.state.ui.hover.set(true));
-		aside.addEventListener('pointerout', (e) => {
-			if (!e.currentTarget || !(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
-				micrio.state.ui.hover.set(false);
-		});
-		aside.addEventListener('focusin', () => micrio.state.ui.hover.set(true));
-		aside.addEventListener('focusout', (e) => {
-			if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
-				micrio.state.ui.hover.set(false);
+		// Mute button
+		this.#showEl(this.#muteBtn, showMute);
+		this.#muteBtn.setProps({
+			type: $isMuted ? 'volume-off' : 'volume-up',
+			title: $isMuted ? $i18n.audioUnmute : $i18n.audioMute,
+			onclick: (this as any).__toggleMute
 		});
 
-		if (!onlyFullscreen) {
-			// Mute button
-			if (showMute) {
-				const btn = document.createElement('micrio-button') as any;
-				btn.setProps({
-					type: $isMuted ? 'volume-off' : 'volume-up',
-					title: $isMuted ? $i18n.audioUnmute : $i18n.audioMute,
-					onclick: (this as any).__toggleMute
+		// Language menu
+		this.#showEl(this.#langMenu!, hasCultures && !onlyFullscreen);
+		if (hasCultures) {
+			const trigger = this.#langMenu!.querySelector('.ctrl-lang-trigger') as any;
+			if (trigger) trigger.setProps({ type: 'a11y', title: $i18n.switchLanguage });
+
+			// Add/remove language buttons
+			const existing = this.#langMenu!.querySelectorAll(':scope > micrio-button:not(.ctrl-lang-trigger)');
+			existing.forEach(el => el.remove());
+
+			for (const l of cultures) {
+				const b = document.createElement('micrio-button') as any;
+				b.setProps({
+					title: languageNames?.of(l) ?? l,
+					active: l === $_lang,
+					onclick: () => { (this as any).__setLang(l); }
 				});
-				aside.appendChild(btn);
-			}
-
-			// Language switch
-			if (hasCultures) {
-				const menu = document.createElement('menu');
-				menu.className = 'popout';
-				menu.setAttribute('tabindex', '0');
-
-				const langBtn = document.createElement('micrio-button') as any;
-				langBtn.setProps({ type: 'a11y', title: $i18n.switchLanguage });
-				menu.appendChild(langBtn);
-
-				for (const l of cultures) {
-					const b = document.createElement('micrio-button') as any;
-					b.setProps({
-						title: languageNames?.of(l) ?? l,
-						active: l === $_lang,
-						onclick: () => { (this as any).__setLang(l); }
-					});
-					// Add text content
-					b.appendChild(document.createTextNode(l.toUpperCase()));
-					menu.appendChild(b);
-				}
-				aside.appendChild(menu);
-			}
-
-			// Share button
-			if (hasSocial) {
-				const btn = document.createElement('micrio-button') as any;
-				btn.setProps({ type: 'share', title: $i18n.share, onclick: (this as any).__share });
-				aside.appendChild(btn);
+				b.appendChild(document.createTextNode(l.toUpperCase()));
+				this.#langMenu!.appendChild(b);
 			}
 		}
 
-		// ButtonGroup with zoom and fullscreen
-		const group = document.createElement('micrio-button-group') as any;
-
-		if ($zoom && !onlyFullscreen && !gridPanZoomCells) {
-			if (this.#secondaryControls) {
-				const zoom = document.createElement('micrio-zoom-buttons') as any;
-				zoom.setProps({ image: this.#secondaryControls });
-				group.appendChild(zoom);
-			} else {
-				const zoom = document.createElement('micrio-zoom-buttons') as any;
-				group.appendChild(zoom);
-			}
+		// Share button
+		this.#showEl(this.#shareBtn, hasSocial && !onlyFullscreen);
+		if (hasSocial) {
+			this.#shareBtn.setProps({ type: 'share', title: $i18n.share, onclick: (this as any).__share });
 		}
 
+		// Zoom buttons
+		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
+		this.#showEl(this.#zoomGroup.closest('micrio-button-group') || this.#group1, true);
+		this.#showEl(this.#zoomGroup, zoomVisible);
+		this.#showEl(this.#group1, true);
+
+		// Fullscreen
+		this.#showEl(this.#fsGroup, hasFullscreen);
 		if (hasFullscreen) {
-			const fs = document.createElement('micrio-fullscreen') as any;
-			fs.setProps({ el: micrio });
-			group.appendChild(fs);
+			this.#fsGroup.setProps({ el: micrio });
 		}
-		aside.appendChild(group);
 
-		this.appendChild(aside);
-
-		// Secondary zoom controls for split-screen
-		if ($zoom && this.#secondaryControls) {
-			const aside2 = document.createElement('aside');
-			aside2.className = 'primary';
-			aside2.classList.toggle('portrait', this.#secondaryPortrait);
-
-			const group2 = document.createElement('micrio-button-group') as any;
-			const zoom2 = document.createElement('micrio-zoom-buttons') as any;
-			group2.appendChild(zoom2);
-			aside2.appendChild(group2);
-			this.appendChild(aside2);
+		// Split-screen secondary controls
+		const hasSecondary = $zoom && !!this.#secondaryControls;
+		this.#showEl(this.#aside2, hasSecondary);
+		if (hasSecondary) {
+			this.#aside2.classList.toggle('portrait', this.#secondaryPortrait);
 		}
 
 		// Grid close button
-		if (this.#gridFocussed && this.#gridClickable == 'focus' && !$popup && !$tour) {
-			const aside3 = document.createElement('aside');
-			aside3.className = 'grid-close';
-			const closeBtn = document.createElement('micrio-button') as any;
-			closeBtn.setProps({ type: 'close', title: $i18n.close, onclick: (this as any).__gridBack });
-			aside3.appendChild(closeBtn);
-			this.appendChild(aside3);
+		const showGridClose = !!this.#gridFocussed && this.#gridClickable == 'focus' && !$popup && !$tour;
+		this.#showEl(this.#aside3, showGridClose);
+		if (showGridClose) {
+			const existingBtn = this.#aside3.querySelector('micrio-button');
+			if (!existingBtn) {
+				const btn = document.createElement('micrio-button') as any;
+				btn.setProps({ type: 'close', title: $i18n.close, onclick: (this as any).__gridBack });
+				this.#aside3.appendChild(btn);
+			}
 		}
+	}
+
+	#showEl(el: HTMLElement, show: boolean) {
+		el.style.display = show ? '' : 'none';
 	}
 
 	onDestroy() {

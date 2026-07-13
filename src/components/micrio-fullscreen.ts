@@ -11,12 +11,27 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	static tag = 'micrio-fullscreen';
 	static styles = '';
 
-	#props: FullscreenProps = null!;
+	#props: Partial<FullscreenProps> = {};
 	#unsubs: (() => void)[] = [];
 	#isActive = false;
+	#inited = false;
 
 	onMount() {
-		const el = this.#props.el;
+		if (!this.#props?.el) return; // setProps not called yet
+		this.#init();
+	}
+
+	setProps(props: Partial<FullscreenProps>) {
+		if (props.el !== undefined) {
+			this.#props.el = props.el;
+			if (this.isConnected && !this.#inited) this.#init();
+		}
+	}
+
+	#init() {
+		if (this.#inited) return;
+		this.#inited = true;
+		const el = this.#props.el!;
 		const isNative = 'requestFullscreen' in el;
 		const isWebkit = 'webkitRequestFullscreen' in el;
 		const getActiveEl = () => isNative ? document.fullscreenElement
@@ -46,17 +61,13 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		};
 
 		const evt = isNative ? 'fullscreenchange' : 'webkitfullscreenchange';
-		document.addEventListener(evt, onchange);
-		this.#unsubs.push(() => document.removeEventListener(evt, onchange));
+    document.addEventListener(evt, onchange);
+    this.#unsubs.push(() => document.removeEventListener(evt, onchange));
 
-		this.#renderButton();
+    (this as any).__toggle = toggle;
 
-		(this as any).__toggle = toggle;
-	}
-
-	setProps(props: Partial<FullscreenProps>) {
-		if (props.el !== undefined) this.#props = props as FullscreenProps;
-	}
+    this.#renderButton();
+}
 
 	#enter(_el: HTMLElement, isNative: boolean, _isWebkit: boolean) {
 		if (isNative) {
