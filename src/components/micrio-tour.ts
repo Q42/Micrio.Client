@@ -13,7 +13,7 @@ export interface TourProps {
 
 export class MicrioTour extends MicrioElement<TourProps> {
 	static tag = 'micrio-tour';
-	static styles = '';
+	static styles = `micrio-tour{display:contents}`;
 
 	#props: TourProps = { tour: null! };
 	#unsubs: (() => void)[] = [];

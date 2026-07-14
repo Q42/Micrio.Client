@@ -10,7 +10,8 @@ import './micrio-button';
 
 export class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';
-	static styles = `micrio-toolbar menu.micrio-toolbar{position:absolute;top:calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));left:var(--micrio-border-margin);margin:0;padding:0;color:#fff;text-shadow:1px 1px 2px #000;transition:transform .25s ease;z-index:1}
+	static styles = `micrio-toolbar{display:contents}
+micrio-toolbar menu.micrio-toolbar{position:absolute;top:calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));left:var(--micrio-border-margin);margin:0;padding:0;color:#fff;text-shadow:1px 1px 2px #000;transition:transform .25s ease;z-index:1}
 @media(max-width:500px){micrio-toolbar .micrio-button.toggle{position:absolute;top:var(--micrio-border-margin);left:0;height:34px;width:34px;box-shadow:none;z-index:2}
 micrio-toolbar .micrio-button.toggle.indent{left:35px}
 micrio-toolbar menu.micrio-toolbar{transform:translate3d(0,0,0);width:100%;height:100%;background:rgba(0,0,0,0.75);top:0;left:0;padding:32px 0;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;backdrop-filter:var(--micrio-background-filter);z-index:1}

@@ -3,7 +3,8 @@ import type { HTMLMicrioElement } from '$ts/element';
 
 export class MicrioLogo extends MicrioElement {
 	static tag = 'micrio-logo';
-	static styles = `micrio-logo a{position:absolute;top:calc(var(--micrio-border-margin) * 2);left:calc(var(--micrio-border-margin) * 2);z-index:2;width:22px;height:22px;transition:transform .25s ease;display:block;cursor:pointer}
+	static styles = `micrio-logo{display:contents}
+micrio-logo a{position:absolute;top:calc(var(--micrio-border-margin) * 2);left:calc(var(--micrio-border-margin) * 2);z-index:2;width:22px;height:22px;transition:transform .25s ease;display:block;cursor:pointer}
 micrio-logo a:hover{transform:rotate3d(0,0,1,-90deg)}
 micrio-logo a::before,micrio-logo a::after{display:block;content:'';position:absolute;transform:rotate3d(0,0,1,45deg);will-change:transform;box-sizing:unset}
 micrio-logo a::before{border:3px solid #00d4ee;width:16px;height:16px}

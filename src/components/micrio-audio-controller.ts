@@ -79,7 +79,7 @@ class AudioPlaylist {
 
 export class MicrioAudioController extends MicrioElement {
 	static tag = 'micrio-audio-controller';
-	static styles = '';
+	static styles = `micrio-audio-controller{display:contents}`;
 
 	#unsubs: (() => void)[] = [];
 	#playlist: AudioPlaylist | undefined;
