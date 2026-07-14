@@ -79,13 +79,31 @@ dialog.article h2{text-align:center}`;
 		this.#dialog.replaceChildren();
 		this.#dialog.classList.remove('article', 'page', 'has-media', 'gallery');
 
+		const marker = 'marker' in p ? p.marker : undefined;
+		const markerTour = 'markerTour' in p ? p.markerTour : undefined;
+		const isPartOfTour = !!(marker && markerTour && 'steps' in markerTour &&
+			(markerTour as Models.ImageData.MarkerTour).steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0);
+		const isLastStep = isPartOfTour ? (markerTour as Models.ImageData.MarkerTour).currentStep == (markerTour as Models.ImageData.MarkerTour).steps.length - 1 : true;
+
+		const advanceOrClose = (e?: Event) => {
+			if (isPartOfTour && markerTour && 'steps' in markerTour) {
+				const mt = markerTour as Models.ImageData.MarkerTour & { next?(): void };
+				if (e instanceof Event && isLastStep) {
+					micrio.state.tour.set(undefined);
+				} else {
+					mt.next?.();
+				}
+			}
+			if (this.#dialog?.open) this.#dialog.close();
+		};
+
 		const aside = document.createElement('aside');
 		const closeBtn = document.createElement('micrio-button') as MicrioElement;
 		closeBtn.setProps({
-			type: 'close', title: $i18n.close, className: 'close-popover',
-			onclick: () => {
-				if (this.#dialog?.open) this.#dialog.close();
-			}
+			type: (!isPartOfTour || isLastStep) ? 'close' : 'arrow-right',
+			title: (!isPartOfTour || isLastStep) ? $i18n.closeMarker : $i18n.tourStepNext,
+			className: 'close-popover',
+			onclick: advanceOrClose
 		});
 		aside.appendChild(closeBtn);
 		this.#dialog.appendChild(aside);
@@ -153,7 +171,7 @@ dialog.article h2{text-align:center}`;
 					noEmbed: true,
 					noGallery: true,
 					noImages: !content || !content.embedUrl,
-					onclose: () => { if (this.#dialog?.open) this.#dialog.close(); }
+					onclose: advanceOrClose
 				});
 				this.#dialog.appendChild(mc);
 			}

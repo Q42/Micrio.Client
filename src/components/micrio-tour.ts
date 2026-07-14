@@ -57,6 +57,24 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				if (img) img.state.marker.set(stepId);
 			};
 
+			(mt as any).next = () => {
+				if (this.#currentStep < mt.steps.length - 1) {
+					this.#currentStep++;
+					mt.currentStep = this.#currentStep;
+					openStep(this.#currentStep);
+					renderControls();
+				}
+			};
+
+			(mt as any).prev = () => {
+				if (this.#currentStep > 0) {
+					this.#currentStep--;
+					mt.currentStep = this.#currentStep;
+					openStep(this.#currentStep);
+					renderControls();
+				}
+			};
+
 			const renderControls = () => {
 				this.replaceChildren();
 
