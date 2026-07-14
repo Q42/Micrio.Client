@@ -41,7 +41,9 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 		}
 
 		if (!this.#action) {
-			if (menu.markerId) {
+			if ((menu as any).action) {
+				this.#action = (menu as any).action;
+			} else if (menu.markerId) {
 				this.#action = () => {
 					if (originalId && micrio.$current?.id != originalId) micrio.open(originalId);
 					micrio.$current?.state.marker.set(menu.markerId);
