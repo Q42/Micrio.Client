@@ -3,7 +3,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 import type { Gallery as GalleryController } from '$ts/gallery';
 import { i18n } from '$ts/i18n/strings';
-import { get, writable, type Writable } from '$ts/store';
+import { get, writable } from '$ts/store';
 import { once } from '$ts/utils/store';
 import { Enums } from '$ts/enums';
 import './micrio-button';
@@ -57,9 +57,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#images: MicrioImage[] = [];
 	#parentImage!: MicrioImage;
 	#isStripSwipe = false;
-	#loading = true;
-	#hidden: Writable<boolean> = null!;
-	#hover: Writable<boolean> = null!;
 	#_ul: HTMLElement | null = null;
 	#prevBtn: MicrioElement | null = null;
 	#nextBtn: MicrioElement | null = null;
@@ -116,9 +113,17 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	}
 
 	#activity = () => {
-		this.#hidden.set(false);
+		if (this.classList.contains('hidden')) {
+			this.classList.remove('hidden');
+			this.#updateScrubber();
+		}
 		clearTimeout(this.#to);
-		if (this.#autoHide) this.#to = window.setTimeout(() => this.#hidden.set(true), 2000);
+		if (this.#autoHide) this.#to = window.setTimeout(() => {
+			if (!this.classList.contains('hidden')) {
+				this.classList.add('hidden');
+				this.#updateScrubber();
+			}
+		}, 2000);
 	}
 
 	#goto(i: number, fast = false, duration = 150, force = false) {
@@ -360,9 +365,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 		this.#preloadD = 'requestIdleCallback' in self ? 100 : 50;
 
-		this.#hidden = writable(false);
-		this.#hover = writable(false);
-
 		const engine = micrio.engine;
 		const parent = image;
 
@@ -406,7 +408,8 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			this.#goto(idx, false, 0);
 		}
 
-		this.#loading = false;
+		// Auto-hide after a moment
+		this.#activity();
 
 		// Strip-swipe pointer events on the canvas element
 		if (this.#isStripSwipe && images.length > 1) {
@@ -431,9 +434,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		window.addEventListener('keydown', this.#keydown);
 		this.#unsubs.push(() => window.removeEventListener('keydown', this.#keydown));
 
-		// Subscriptions
-		this.#unsubs.push(this.#hidden.subscribe(() => this.#updateScrubber()));
-		this.#unsubs.push(this.#hover.subscribe(() => this.#updateScrubber()));
+		// Subscriptions — force-hidden on popup/tour
 		this.#unsubs.push(micrio.state.popup.subscribe(() => this.#updateScrubber()));
 		this.#unsubs.push(micrio.state.tour.subscribe(() => this.#updateScrubber()));
 	}
@@ -576,12 +577,9 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		if (this.#prevBtn) this.#prevBtn.setProps({ disabled: curr <= 0 });
 		if (this.#nextBtn) this.#nextBtn.setProps({ disabled: curr >= total - 1 });
 
-		// Hidden/force-hidden classes
-		const $hidden = this.#hidden ? get(this.#hidden) : false;
-		const $hover = this.#hover ? get(this.#hover) : false;
+		// Force-hidden when popup/tour is open
 		const hasPopup = this.inject<HTMLMicrioElement>('micrio')?.state.popup ? get(this.inject<HTMLMicrioElement>('micrio')!.state.popup) : undefined;
 		const hasTour = this.inject<HTMLMicrioElement>('micrio')?.state.tour ? get(this.inject<HTMLMicrioElement>('micrio')!.state.tour) : undefined;
-		this.classList.toggle('hidden', this.#loading || ($hidden && !$hover && !this.#dragging));
 		this.classList.toggle('force-hidden', !!hasPopup || !!hasTour);
 	}
 
