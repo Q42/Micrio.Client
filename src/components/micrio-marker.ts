@@ -139,7 +139,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			if (markerSettings.noMarkerActions) return;
 			events.dispatch('marker-open', marker);
 			const $tour = get(micrio.state.tour);
-			if ($tour && (!('steps' in $tour) || (!$tour.cannotClose))) micrio.state.tour.set(undefined);
+			if ($tour && (!('steps' in $tour) || !($tour as any).steps?.includes?.(marker.id))) micrio.state.tour.set(undefined);
 			await tick();
 			if (marker.view && !data.noAnimate && !(marker as any).videoTour) {
 				image.camera.flyToView(marker.view, { area: image.opts?.area }).then(openContent).catch(() => { });
