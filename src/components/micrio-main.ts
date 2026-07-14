@@ -69,8 +69,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
 
 	#layers = [
-		'audio', 'media', 'logo', 'toolbar', 'markers', 'controls',
-		'orgLogo', 'details', 'popup', 'tour', 'popover', 'subtitles',
+		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'markers', 'controls',
+		'details', 'popup', 'tour', 'popover', 'subtitles',
 		'error', 'progress'
 	];
 
