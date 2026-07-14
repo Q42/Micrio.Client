@@ -227,14 +227,13 @@ export default class Ani {
 			this.duration += Math.abs(this.omniDelta) / this.canvas.images.length * 6000;
 		}
 
+		this.stop();
+
 		if (this.duration === 0) {
 			c.setView(t.centerX, t.centerY, t.width, t.height, false, true);
 			this.canvas.aniDone();
-			this.stop();
 			return this.duration;
 		}
-
-		this.stop();
 
 		this.isView = true;
 		this.limit = false;
