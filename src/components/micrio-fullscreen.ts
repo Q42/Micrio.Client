@@ -15,6 +15,14 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	#unsubs: (() => void)[] = [];
 	#isActive = false;
 	#inited = false;
+	#toggle = () => {
+		const el = this.#props.el;
+		if (!el) return;
+		const isNative = 'requestFullscreen' in el;
+		const isWebkit = 'webkitRequestFullscreen' in el;
+		if (this.#isActive) this.#exit(el, isNative);
+		else this.#enter(el, isNative, isWebkit);
+	};
 
 	onMount() {
 		if (!this.#props?.el) return; // setProps not called yet
@@ -44,11 +52,6 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 
-		const toggle = () => {
-			if (this.#isActive) this.#exit(el, isNative);
-			else this.#enter(el, isNative, isWebkit);
-		};
-
 		const addScrollZoom = micrio && el == micrio && !micrio.events.scrollHooked;
 
 		const onchange = () => {
@@ -63,8 +66,6 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		const evt = isNative ? 'fullscreenchange' : 'webkitfullscreenchange';
     document.addEventListener(evt, onchange);
     this.#unsubs.push(() => document.removeEventListener(evt, onchange));
-
-    (this as any).__toggle = toggle;
 
     this.#renderButton();
 }
@@ -92,7 +93,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		btn.setProps({
 			type: this.#isActive ? 'minimize' : 'maximize',
 			title: $i18n.fullscreenToggle,
-			onclick: (this as any).__toggle
+			onclick: this.#toggle
 		});
 		this.appendChild(btn);
 	}

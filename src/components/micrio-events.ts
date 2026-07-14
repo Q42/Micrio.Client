@@ -14,6 +14,9 @@ export class MicrioEvents extends MicrioElement<EventsProps> {
 
 	#props: EventsProps = { events: [], duration: 0 };
 
+	/** Called externally from Media to check/send event triggers at currentTime */
+	update: ((time: number) => void) | undefined;
+
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio) return;
@@ -25,16 +28,15 @@ export class MicrioEvents extends MicrioElement<EventsProps> {
 			e.end = Math.min(Number(e.end || 0), duration);
 		});
 
-		const update = (time: number) => events.forEach(e => {
-			const active = e.start <= time && e.end >= time;
-			if (active != !!e.active) {
-				e.active = active;
-				micrio.events.dispatch('tour-event', { ...e });
+		this.update = (time: number) => {
+			for (const e of this.#props.events) {
+				const active = e.start <= time && e.end >= time;
+				if (active != !!e.active) {
+					e.active = active;
+					micrio.events.dispatch('tour-event', { ...e });
+				}
 			}
-		});
-
-		// Subscribe to currentTime changes — called from Media
-		(this as any).update = update;
+		};
 	}
 
 	setProps(props: Partial<EventsProps>) {

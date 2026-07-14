@@ -27,6 +27,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 	#data: Models.ImageData.ImageData | undefined;
 	#shown = false;
 	#isMobile = false;
+	#toggle = () => this.#shown = !this.#shown;
 
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
@@ -55,8 +56,6 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 
 		window.addEventListener('resize', resize);
 		this.#unsubs.push(() => window.removeEventListener('resize', resize));
-
-		(this as any).__toggle = () => this.#shown = !this.#shown;
 	}
 
 	#render() {
@@ -152,7 +151,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 				title: $i18n.menuToggle,
 				type: this.#shown ? 'close' : 'ellipsis-vertical',
 				className: 'toggle transparent' + (this.querySelector('.micrio-toolbar.indent') ? ' indent' : ''),
-				onclick: (this as any).__toggle
+				onclick: this.#toggle
 			});
 			this.appendChild(btn);
 		}
@@ -162,7 +161,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		const menuEl = this.querySelector('.micrio-toolbar');
 		if (menuEl) {
 			const micrio = this.inject<HTMLMicrioElement>('micrio');
-			const indent = !((micrio?.$current?.$settings as any)?.noLogo ?? false);
+			const indent = !(micrio?.$current?.$settings?.noLogo ?? false);
 			menuEl.classList.toggle('indent', indent);
 		}
 	}

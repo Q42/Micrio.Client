@@ -38,14 +38,14 @@ micrio-gallery-item .counter{position:absolute;bottom:8px;right:8px;background:r
 		if (!gallery?.length) { this.innerHTML = ''; return; }
 
 		const item = gallery[this.#index];
-		const caption = (item as any).i18n?.description || '';
+		const caption = item.i18n?.[Object.keys(item.i18n)[0]]?.description || '';
 
 		this.replaceChildren();
 
 		const img = document.createElement('img');
-		img.src = (item as any).micrioId
-			? `https://iiif.micr.io/${(item as any).micrioId}/full/^,640/0/default.webp`
-			: (item as any).src || '';
+		img.src = item.micrioId
+			? `https://iiif.micr.io/${item.micrioId}/full/^,640/0/default.webp`
+			: item.src || '';
 		img.alt = caption || '';
 
 		if (this.#index > 0) {

@@ -54,8 +54,8 @@ dialog.article h2{text-align:center}`;
 		const $_lang = get(micrio._lang);
 		const $i18n = get(i18n);
 
-		const pageId = 'contentPage' in p ? (p.contentPage as any)?.id : '';
-		const markerId = 'marker' in p ? (p.marker as any)?.id : '';
+		const pageId = 'contentPage' in p ? p.contentPage?.id : '';
+		const markerId = 'marker' in p ? p.marker?.id : '';
 		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${$_lang}`;
 		if (!this.checkRenderKey(key)) return;
 
@@ -73,7 +73,7 @@ dialog.article h2{text-align:center}`;
 
 		if ('contentPage' in p && p.contentPage) {
 			const page = p.contentPage;
-			const cd = (page as any).i18n?.[$_lang];
+			const cd = page.i18n?.[$_lang];
 			this.#dialog.classList.add('article');
 
 			const article = document.createElement('article');

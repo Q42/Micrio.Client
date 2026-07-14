@@ -55,14 +55,14 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 
 		this.#action = undefined;
 
-		if ((menu as any).action) {
-			this.#action = (menu as any).action;
+		if (menu.action) {
+			this.#action = menu.action as () => void;
 		} else if (menu.markerId) {
 			this.#action = () => {
 				if (originalId && micrio.$current?.id != originalId) micrio.open(originalId);
 				micrio.$current?.state.marker.set(menu.markerId);
 			};
-		} else if (cultureData?.content || cultureData?.embed || (menu as any).image || (menu as any).content || (menu as any).embedUrl) {
+		} else if (cultureData?.content || cultureData?.embed || menu.image || (menu as any).content || (menu as any).embedUrl) {
 			this.#action = () => {
 				events.dispatch('page-open', menu as any);
 				micrioState.popover.set({ contentPage: menu } as any);

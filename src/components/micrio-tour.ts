@@ -36,7 +36,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			const vt = tour as Models.ImageData.VideoTour;
 			const image = micrio.$current;
 			if (image) {
-				const audio = (vt as any).i18n?.[get(micrio._lang)]?.audio;
+				const audio = vt.i18n?.[get(micrio._lang)]?.audio;
 				const media = document.createElement('micrio-media') as any;
 				media.setProps({ src: audio?.src, image, tour: vt, controls: true, autoplay: true, onclose: () => micrio.state.tour.set(undefined) });
 				this.appendChild(media);
@@ -98,7 +98,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				});
 				div.appendChild(nextBtn);
 
-				if (!(mt as any).cannotClose) {
+				if (!mt.cannotClose) {
 					const closeBtn = document.createElement('micrio-button') as any;
 					closeBtn.setProps({
 						type: 'close', title: get(i18n).close,

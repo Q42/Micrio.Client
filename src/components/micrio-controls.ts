@@ -42,6 +42,31 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#grid: any = undefined;
 	#lastCultures = '';
 
+	#toggleMute = () => {
+		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		if (!micrio) return;
+		micrio.isMuted.set(!get(micrio.isMuted));
+	};
+
+	#share = () => {
+		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		if (!micrio || !navigator.share) return;
+		if (micrio.$current?.$info) {
+			const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
+			navigator.share({
+				title: micrio.$current.$info?.title,
+				text: cData?.description || `${micrio.$current.$info.width} x ${micrio.$current.$info.height} | Micrio`,
+				url: location.href
+			});
+		}
+	};
+
+	#setLang = (l: string) => {
+		this.inject<HTMLMicrioElement>('micrio')!.lang = l;
+	};
+
+	#gridBack = () => this.#grid?.back();
+
 	#aside1!: HTMLElement;
 	#muteBtn: any;
 	#shareBtn: any;
@@ -56,20 +81,9 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio) return;
 
-		const { state: micrioState, isMuted, _lang } = micrio;
+		const { state: micrioState, _lang } = micrio;
 		const { tour, popup } = micrioState;
 		const { controls, zoom, hidden } = micrio.state.ui;
-
-		const share = () => {
-			if (navigator.share && micrio.$current?.$info) {
-				const cData = micrio.$current.$data?.i18n?.[get(_lang)];
-				navigator.share({
-					title: micrio.$current.$info?.title,
-					text: cData?.description || `${micrio.$current.$info.width} x ${micrio.$current.$info.height} | Micrio`,
-					url: location.href
-				});
-			}
-		};
 
 		const splitStart = (e: any) => {
 			const img = e.detail as MicrioImage;
@@ -132,11 +146,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		this.watchLater(tour, () => this.#sync());
 		this.watchLater(popup, () => this.#sync());
 		this.watchLater(_lang, () => this.#sync());
-
-		(this as any).__toggleMute = () => { isMuted.set(!get(isMuted)); };
-		(this as any).__share = share;
-		(this as any).__setLang = (l: string) => { micrio.lang = l; };
-		(this as any).__gridBack = () => this.#grid?.back();
 
 		this.#build();
 		this.#sync();
@@ -203,7 +212,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		const showMute = !!('micrioAudioContext' in window || this.#props.hasAudio);
 		const hasCultures = this.#showCultures && cultures.length > 1;
 		const hasSocial = this.#showSocial && ('share' in navigator);
-		const hasFullscreen = this.#showFullscreen && !($tour && 'steps' in $tour && ($tour as any).isSerialTour);
+		const hasFullscreen = this.#showFullscreen && !($tour && 'steps' in $tour && $tour.isSerialTour);
 		const hasControls = $controls && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen);
 		const onlyFullscreen = hasFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current.grid.panZoom == 'cells';
@@ -228,7 +237,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			this.#muteBtn.setProps({
 				type: $isMuted ? 'volume-off' : 'volume-up',
 				title: $isMuted ? $i18n.audioUnmute : $i18n.audioMute,
-				onclick: (this as any).__toggleMute
+				onclick: this.#toggleMute
 			});
 		} else if (this.#muteBtn?.isConnected) {
 			this.#muteBtn.remove();
@@ -262,7 +271,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 					const b = document.createElement('micrio-button') as any;
 					b.setProps({
 						title: languageNames?.of(l) ?? l,
-						onclick: () => { (this as any).__setLang(l); }
+						onclick: () => { this.#setLang(l); }
 					});
 					b.appendChild(document.createTextNode(l.toUpperCase()));
 					items.appendChild(b);
@@ -286,7 +295,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 				this.#shareBtn.className = 'ctrl-share';
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
-			this.#shareBtn.setProps({ type: 'share', title: $i18n.share, onclick: (this as any).__share });
+			this.#shareBtn.setProps({ type: 'share', title: $i18n.share, onclick: this.#share });
 		} else if (this.#shareBtn?.isConnected) {
 			this.#shareBtn.remove();
 		}
@@ -353,7 +362,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 				this.#aside3 = document.createElement('aside');
 				this.#aside3.className = 'grid-close';
 				const btn = document.createElement('micrio-button') as any;
-				btn.setProps({ type: 'close', title: $i18n.close, onclick: (this as any).__gridBack });
+				btn.setProps({ type: 'close', title: $i18n.close, onclick: this.#gridBack });
 				this.#aside3.appendChild(btn);
 				this.appendChild(this.#aside3);
 			}

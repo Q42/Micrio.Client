@@ -66,9 +66,9 @@ micrio-marker-content section figcaption{display:none}
 		if (!this.checkRenderKey(key)) return;
 
 		const $tour = get(micrio.state.tour);
-		const isSerialTour = $tour && 'steps' in $tour && ($tour as any).isSerialTour;
+		const isSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour;
 		const settings = image.$settings._markers ?? {};
-		const content = (marker as any).i18n?.[$_lang];
+		const content = marker.i18n?.[$_lang];
 		const singleImage = marker.images?.length == 1;
 		const galleryEnabled = !marker.data?.preventImageOpen && !noGallery;
 		void onclose; // used by micrio-media (TODO)
@@ -81,7 +81,7 @@ micrio-marker-content section figcaption{display:none}
 			micrio.state.popover.set({ gallery: marker.images, galleryStart: startId, image } as any);
 		};
 
-		const getTitle = (asset: Models.Assets.Image) => (asset as any).i18n?.[$_lang]?.title;
+		const getTitle = (asset: Models.Assets.Image) => asset.i18n?.[$_lang]?.title;
 
 		if (!content) { this.innerHTML = ''; return; }
 
@@ -107,7 +107,7 @@ micrio-marker-content section figcaption{display:none}
 		}
 
 		// Audio/Video Tour media
-		if (!isSerialTour && (((!content || !content.embedUrl) && (marker as any).videoTour) || (content && content.audio))) {
+		if (!isSerialTour && (((!content || !content.embedUrl) && marker.videoTour) || (content && content.audio))) {
 			// TODO: Render <micrio-media> when migrated
 			// const media = document.createElement('micrio-media') as any;
 			// media.setProps({ src: audioSrc, noPlayOverlay: true, image, uuid: marker.id,
@@ -147,7 +147,7 @@ micrio-marker-content section figcaption{display:none}
 
 		// Embed
 		if (content.embedUrl && !noEmbed) {
-			if (!content.audio && (marker as any).videoTour) {
+			if (!content.audio && marker.videoTour) {
 				// TODO: hidden secondary Media for video tour audio
 			}
 			// TODO: main embed Media

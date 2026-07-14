@@ -50,14 +50,14 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 	}
 
 	setProps(props: Partial<DetailsProps>) {
-		if (props.info !== undefined) (this._props as any).info = props.info;
-		if (props.data !== undefined) (this._props as any).data = props.data;
+		if (props.info !== undefined) this._props.info = props.info;
+		if (props.data !== undefined) this._props.data = props.data;
 		if (this.isConnected) this.#render();
 	}
 
 	#render() {
-		const info = (this._props as any).info as Models.ImageInfo.ImageInfo | undefined;
-		const data = (this._props as any).data as Models.ImageData.ImageData | undefined;
+		const info = this._props.info;
+		const data = this._props.data;
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		const $_lang = micrio ? get(micrio._lang) : undefined;
 		const $current = micrio ? get(micrio.current) : undefined;
@@ -68,8 +68,8 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		const description = cData?.description;
 		const link = cData?.sourceUrl;
 		const copyright = cData?.copyright;
-		const cmWidth = ($current.$settings as any)?.cmWidth;
-		const cmHeight = ($current.$settings as any)?.cmHeight;
+		const cmWidth = $current.$settings?.cmWidth;
+		const cmHeight = $current.$settings?.cmHeight;
 		const size = cmWidth && cmHeight ? getLength(cmWidth) + ' x ' + getLength(cmHeight) : null;
 
 		if (!title && !description && !link) return;

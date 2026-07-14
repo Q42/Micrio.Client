@@ -20,6 +20,13 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 	#source!: AudioBufferSourceNode;
 	#to: any;
 
+	#end() {
+		if (this.#source) this.#source.disconnect();
+		clearTimeout(this.#to);
+		this.#panner.disconnect();
+		this.#gain.disconnect();
+	}
+
 	onMount() {
 		const { marker, ctx, is360 } = this.#props;
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
@@ -100,21 +107,12 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 			else play();
 		};
 
-		const end = () => {
-			if (this.#source) this.#source.disconnect();
-			clearTimeout(this.#to);
-			this.#panner.disconnect();
-			this.#gain.disconnect();
-		};
-
 		update();
 		this.#panner.connect(this.#gain);
 		start();
 
 		micrio.addEventListener('audio-update', update as any);
 		this.#unsubs.push(() => micrio.removeEventListener('audio-update', update as any));
-		// end is called in onDestroy
-		(this as any).__end = end;
 	}
 
 	setProps(props: Partial<AudioLocationProps>) {
@@ -122,7 +120,7 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 	}
 
 	onDestroy() {
-		(this as any).__end?.();
+		this.#end();
 		for (const fn of this.#unsubs) fn();
 		this.#unsubs = [];
 	}

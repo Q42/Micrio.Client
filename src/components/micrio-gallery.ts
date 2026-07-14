@@ -24,7 +24,7 @@ micrio-gallery>*{pointer-events:all}`;
 		const controller = this.#props.controller;
 		if (!controller) return;
 
-		if ((micrio.$current?.$settings as any)?.omni) {
+		if (micrio.$current?.$settings?.omni) {
 			this.#renderOmni(micrio);
 		}
 	}
@@ -38,7 +38,7 @@ micrio-gallery>*{pointer-events:all}`;
 		if (!image) return;
 
 		const settings = image.$settings;
-		const omni = (settings as any).omni;
+		const omni = settings.omni;
 		if (!omni) return;
 
 		const frames = omni.frames;

@@ -235,18 +235,18 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const noHTML = this.#props.noHTML ?? false;
 		const noLogo = this.#props.noLogo ?? noHTML;
 
-		const video = ($settings as any)?._360?.video;
+		const video = $settings?._360?.video;
 		const videoSrc = video?.src;
-		const positionalAudio = ($data as any)?.markers?.filter((m: any) => !!m.positionalAudio);
-		const hasAudio = !!($data as any)?.music?.items.length || !!positionalAudio?.length;
+		const positionalAudio = $data?.markers?.filter((m: any) => !!m.positionalAudio);
+		const hasAudio = !!$data?.music?.items.length || !!positionalAudio?.length;
 		const hasTourOrMarker = $tour || $marker;
 
 		const showMarkers = !noHTML || (micrio.getAttribute('data-ui') == 'markers');
-		const showLogo = !noLogo && (!$info || !noHTML) && !($settings as any)?.noLogo && !$tour && !$marker && !$markerPopup;
-		const showOrgLogo = !noHTML && showLogo && !($settings as any)?.noOrgLogo && !!this.#logoOrg && !$popover;
+		const showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo && !$tour && !$marker && !$markerPopup;
+		const showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo && !!this.#logoOrg && !$popover;
 		const showControls = !noHTML && !!$info;
-		const showDetails = !noHTML && !hasTourOrMarker && ($settings as any)?.showInfo;
-		const showToolbar = !noHTML && this.#firstInited && !($settings as any)?.noToolbar;
+		const showDetails = !noHTML && !hasTourOrMarker && !!$settings?.showInfo;
+		const showToolbar = !noHTML && this.#firstInited && !$settings?.noToolbar;
 
 		this.#show('audio', hasAudio && !!$data && !!$info, () =>
 			document.createElement('micrio-audio-controller')

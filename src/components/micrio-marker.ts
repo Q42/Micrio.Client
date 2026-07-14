@@ -67,15 +67,15 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		const events = micrio.events;
 		const $_lang = get(micrio._lang);
 		const markerSettings = image.$settings._markers ?? {};
-		const content = (marker as any).i18n?.[$_lang];
+		const content = marker.i18n?.[$_lang];
 		const data = marker.data ?? {};
 		const noTitles = marker.data?.showTitle === false || !!markerSettings.noTitles || !!image.$settings.omni?.sideLabels;
 		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || !!image.$settings.omni?.sideLabels;
 
 		// Derive marker view from video tour
-		if ((marker as any).videoTour) {
-			const vt = (marker as any).videoTour;
-			const timeline = 'timeline' in vt ? vt.timeline : vt.i18n?.[$_lang]?.timeline;
+		if (marker.videoTour) {
+			const vt = marker.videoTour;
+			const timeline = 'timeline' in vt ? (vt as any).timeline : vt.i18n?.[$_lang]?.timeline;
 			if (timeline?.length) marker.view = timeline[0].rect;
 		}
 
@@ -102,7 +102,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 				if (image.is360) this.#behindCam = this.#w > 0;
 				this.style.setProperty('--x', `${this.#x}px`);
 				this.style.setProperty('--y', `${this.#y}px`);
-				if ((markerSettings as any).markersScale || (marker as any).data?.scales) {
+				if (image.$settings.markersScale || marker.data?.scales) {
 					this.style.setProperty('--scale', `${this.#scaleVal}`);
 				}
 				this.classList.toggle('behind', this.#behindCam);
@@ -110,7 +110,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		};
 
 		const click = () => {
-			if ((marker as any).onclick) return (marker as any).onclick(marker);
+			if (marker.onclick) return marker.onclick(marker);
 			if (markerSettings.noMarkerActions) return;
 			if (marker.type == 'cluster') {
 				if (marker.view && micrio.$current?.$info) {
@@ -139,9 +139,9 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			if (markerSettings.noMarkerActions) return;
 			events.dispatch('marker-open', marker);
 			const $tour = get(micrio.state.tour);
-			if ($tour && (!('steps' in $tour) || !($tour as any).steps?.includes?.(marker.id))) micrio.state.tour.set(undefined);
+			if ($tour && (!('steps' in $tour) || !$tour.steps?.includes?.(marker.id))) micrio.state.tour.set(undefined);
 			await tick();
-			if (marker.view && !data.noAnimate && !(marker as any).videoTour) {
+			if (marker.view && !data.noAnimate && !marker.videoTour) {
 				image.camera.flyToView(marker.view, { area: image.opts?.area }).then(openContent).catch(() => { });
 			} else {
 				openContent();
@@ -155,12 +155,12 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 			const $tour = get(micrio.state.tour);
 			events.dispatch('marker-opened', marker);
-			if (marker.popupType != 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !(marker as any).videoTour)) {
+			if (marker.popupType != 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
 				// no popup - handle popover or video tour
 				if (marker.popupType == 'popover') {
 					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined } as any);
-				} else if ((marker as any).videoTour && !$tour) {
-					micrio.state.tour.set((marker as any).videoTour);
+				} else if (marker.videoTour && !$tour) {
+					micrio.state.tour.set(marker.videoTour);
 					after(micrio.state.tour as any).then(() => image.state.marker.set(undefined));
 				}
 			} else {
@@ -192,7 +192,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			}
 		}));
 
-		if (!(marker as any).noMarker) {
+		if (!marker.noMarker) {
 			this.#unsubs.push(image.state.view.subscribe(() => {
 				moved();
 			}));
@@ -217,7 +217,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		this.classList.toggle('has-custom-icon', !!customIcon);
 		if (this.#matrix) this.classList.add('mat3d');
 
-		if (!(marker as any).htmlElement) {
+		if (!marker.htmlElement) {
 			const btn = document.createElement('button');
 			if (!noToolTips && !cluster) btn.title = content?.label || content?.title || '';
 			btn.id = marker.id;
@@ -250,7 +250,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		}
 
 		// Initial position
-		if (!(marker as any).noMarker) moved();
+		if (!marker.noMarker) moved();
 
 		// Marker tags as classes
 		if (marker.tags) marker.tags.forEach(c => this.classList.add(c));

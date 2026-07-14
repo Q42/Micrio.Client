@@ -73,8 +73,8 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		const $current = get(micrio.current);
 		const $i18n = get(i18n);
 		const settings = image.$settings._markers ?? {};
-		const data = (marker as any).data || {};
-		const canMinimize = (settings as any).canMinimizePopup;
+		const data = marker.data || {};
+		const canMinimize = settings.canMinimizePopup;
 
 		const markerTour = $tour && 'steps' in $tour ? $tour as any : undefined;
 		const tourSourceImage = markerTour ? micrio.canvases.find((c: MicrioImage) =>
@@ -166,7 +166,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		if (showTourControls && $tour && 'steps' in $tour) {
 			const prog = document.createElement('progress');
 			prog.setAttribute('aria-hidden', 'true');
-			prog.value = (currentTourStep + 1) / ($tour as any).steps.length;
+			prog.value = (currentTourStep + 1) / $tour.steps.length;
 			prog.className = 'progress';
 			aside.appendChild(prog);
 
@@ -186,7 +186,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 				const stepBtn = document.createElement('button');
 				stepBtn.className = 'micrio-button tour-step';
 				stepBtn.disabled = true;
-				stepBtn.textContent = `${currentTourStep + 1} / ${($tour as any).steps.length}`;
+				stepBtn.textContent = `${currentTourStep + 1} / ${$tour.steps.length}`;
 				group.appendChild(stepBtn);
 			}
 

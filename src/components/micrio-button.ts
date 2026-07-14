@@ -95,7 +95,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 
 		if (!this.#clickHandler) {
 			this.#clickHandler = (e: Event) => {
-				const fn = (this._props as any).onclick;
+				const fn = this._props.onclick;
 				if (fn) fn(e);
 			};
 			el.addEventListener('click', this.#clickHandler);

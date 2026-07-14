@@ -29,36 +29,41 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 	#built = false;
 	#playBtn: any;
 	#progressBar: any;
+	#stepInfo: any[] = [];
+
+	async #nextStep() {
+		if (this.#paused) return;
+		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		if (!micrio) return;
+		const si = this.#stepInfo[this.#stepIndex];
+		if (!si) { this.#ended = true; this.#sync(); return; }
+		if (typeof si.micrioId == 'string' && micrio.$current?.id != si.micrioId) {
+			await micrio.open(si.micrioId);
+		}
+		if (si.markerId) {
+			micrio.$current?.state.marker.set(si.markerId);
+		}
+		this.#stepIndex++;
+		this.#sync();
+	}
+
+	#playPause = () => { this.#paused = !this.#paused; this.#sync(); };
+	#toggleMute = () => { this.#muted = !this.#muted; this.#sync(); };
 
 	onMount() {
 		const { tour } = this.#props;
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio || !tour) return;
 
-		const stepInfo = (tour as any).stepInfo as any[] || [];
-		const totalDuration: number = stepInfo.reduce((c: number, s: any) => c + (s.duration || 0), 0);
+		this.#stepInfo = (tour.stepInfo as any[]) || [];
+		const totalDuration: number = this.#stepInfo.reduce((c: number, s: any) => c + (s.duration || 0), 0);
 
 		this.#build();
 		this.#sync();
 
-		const nextStep = async () => {
-			if (this.#paused) return;
-			const si = stepInfo[this.#stepIndex];
-			if (!si) { this.#ended = true; this.#sync(); return; }
-
-			if (typeof si.micrioId == 'string' && micrio.$current?.id != si.micrioId) {
-				await micrio.open(si.micrioId);
-			}
-			if (si.markerId) {
-				micrio.$current?.state.marker.set(si.markerId);
-			}
-			this.#stepIndex++;
-			this.#sync();
-		};
-
 		this.#progressInterval = setInterval(() => {
 			if (!this.#paused && !this.#ended) {
-				const elapsed = stepInfo.slice(0, this.#stepIndex).reduce((c: number, s: any) => c + (s.duration || 0), 0);
+				const elapsed = this.#stepInfo.slice(0, this.#stepIndex).reduce((c: number, s: any) => c + (s.duration || 0), 0);
 				this.#currentTime = elapsed;
 				this.#duration = totalDuration;
 				if (this.#currentTime >= this.#duration) {
@@ -70,19 +75,7 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 			}
 		}, 250);
 
-		const playPause = () => { this.#paused = !this.#paused; this.#sync(); };
-		const toggleMute = () => { this.#muted = !this.#muted; this.#sync(); };
-
-		(this as any).__playPause = playPause;
-		(this as any).__toggleMute = toggleMute;
-		(this as any).__next = nextStep;
-		(this as any).__prev = () => {
-			if (this.#stepIndex > 1) this.#stepIndex -= 2;
-			else this.#stepIndex = 0;
-			nextStep();
-		};
-
-		nextStep();
+		this.#nextStep();
 	}
 
 	#build() {
@@ -98,7 +91,7 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 		const muteBtn = document.createElement('micrio-button') as any;
 		muteBtn.setProps({
 			type: 'volume-up', title: get(i18n).audioMute,
-			onclick: (this as any).__toggleMute
+			onclick: this.#toggleMute
 		});
 		container.appendChild(muteBtn);
 
@@ -120,7 +113,7 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 		this.#playBtn.setProps({
 			type: this.#paused ? 'play' : 'pause',
 			title: this.#paused ? $i18n.play : $i18n.pause,
-			onclick: (this as any).__playPause
+			onclick: this.#playPause
 		});
 
 		this.#progressBar.setProps({

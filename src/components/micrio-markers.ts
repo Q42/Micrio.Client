@@ -51,7 +51,7 @@ micrio-markers.is360.inactive{opacity:0}`;
 			const $focussed = focussed ? get(focussed) : undefined;
 			const $gridMarkersShown = gridMarkersShown ? get(gridMarkersShown) : undefined;
 			const inactive = grid && ($focussed != image && ($gridMarkersShown && $gridMarkersShown.indexOf(image) < 0));
-			const showTitles = !!(image.$settings._markers as any)?.showTitles;
+			const showTitles = !!(image.$settings._markers?.showTitles);
 
 			this.classList.toggle('inactive', !!inactive);
 			this.classList.toggle('show-titles', showTitles);
@@ -114,7 +114,7 @@ micrio-markers.is360.inactive{opacity:0}`;
 		if (image.is360) this.classList.add('is360');
 
 		// Fly back to previous view when a marker closes
-		if (!image.grid && (image.$settings._markers as any)?.zoomOutAfterClose) {
+		if (!image.grid && image.$settings._markers?.zoomOutAfterClose) {
 			let wasVideoTour = false;
 			this.#unsubs.push(image.state.marker.subscribe(m => {
 				if (m && typeof m != 'string' && !image.openedView && !m.noMarker && m.view) {
@@ -131,7 +131,7 @@ micrio-markers.is360.inactive{opacity:0}`;
 							const cx = Math.max(hw, Math.min(1 - hw, v[0] + hw));
 							const cy = Math.max(hh, Math.min(1 - hh, v[1] + hh));
 							image.camera.flyToView([cx - hw, cy - hh, w, h] as Models.Camera.View, {
-								speed: (image.$settings._markers as any)?.zoomOutAfterCloseSpeed,
+								speed: image.$settings._markers?.zoomOutAfterCloseSpeed,
 							}).catch(() => {});
 						}
 						image.openedView = undefined;
