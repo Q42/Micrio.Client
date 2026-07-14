@@ -9,7 +9,7 @@ export interface FullscreenProps {
 
 export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	static tag = 'micrio-fullscreen';
-	static styles = '';
+	static styles = `micrio-fullscreen{display:contents}`;
 
 	#props: Partial<FullscreenProps> = {};
 	#unsubs: (() => void)[] = [];
