@@ -37,12 +37,12 @@ export class MicrioMedia extends MicrioElement<MediaProps> {
 	static tag = 'micrio-media';
 	static styles = `micrio-media{display:block}
 micrio-media figure{position:relative;margin:0;padding:0}
-micrio-media figure.hidden{display:none}
 micrio-media figure video,micrio-media figure audio{width:100%;display:block}
 micrio-media figure figcaption{padding:5px 10px;font-size:.85em;opacity:.7;text-align:center;background:var(--micrio-background)}
 micrio-media figure iframe{width:100%;border:none;display:block}
 micrio-media figure:has(video){width:auto}
 micrio-media figure.videotour{position:fixed;bottom:var(--micrio-border-margin);left:50%;transform:translateX(-50%);width:500px;max-width:90vw;display:flex;flex-direction:column;background:var(--micrio-button-background,var(--micrio-background,none));border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);margin:0;padding:0;z-index:5}
+micrio-media figure.hidden{display:none!important}
 micrio-media figure .overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1;background:rgba(0,0,0,.3);transition:opacity .3s ease}
 micrio-media figure .overlay.hidden{opacity:0;pointer-events:none}
 micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-icon-size:40px;--micrio-border-radius:100%;--micrio-button-background:rgba(0,0,0,.6);--micrio-button-shadow:none;--micrio-background-filter:none;pointer-events:none}`;
@@ -104,14 +104,21 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				this.#frame = iframe;
 			}
 		} else if (isVimeo) {
-			const iframe = document.createElement('iframe');
-			iframe.src = `${src}?autoplay=${p.autoplay ? 1 : 0}&title=0&byline=0&portrait=0`;
-			iframe.width = String(p.width ?? 400);
-			iframe.height = String(p.height ?? 240);
-			iframe.setAttribute('allow', 'autoplay; fullscreen');
-			iframe.setAttribute('allowfullscreen', '');
-			figure.appendChild(iframe);
-			this.#frame = iframe;
+			const idMatch = src!.match(/\/(\d+)/);
+			if (idMatch?.[1]) {
+				const vimeoId = idMatch[1];
+				const tokenPart = src!.slice(src!.indexOf(vimeoId) + vimeoId.length + 1);
+				const vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined;
+				const embedSrc = `https://player.vimeo.com/video/${vimeoId}?${vimeoToken ? `h=${vimeoToken}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0`;
+				const iframe = document.createElement('iframe');
+				iframe.src = embedSrc;
+				iframe.width = String(p.width ?? 400);
+				iframe.height = String(p.height ?? 240);
+				iframe.setAttribute('allow', 'autoplay; fullscreen');
+				iframe.setAttribute('allowfullscreen', '');
+				figure.appendChild(iframe);
+				this.#frame = iframe;
+			}
 		} else if (isCloudflare) {
 			const cfId = src!.slice(8);
 			const hlsSrc = `https://videodelivery.net/${cfId}/manifest/video.m3u8`;
@@ -177,7 +184,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					onSeeking: () => { this.#seeking = true; },
 					onSeeked: () => { this.#seeking = false; this.#updateControls(); },
 				});
-				(this.#adapter as YouTubePlayerAdapter).initialize().catch(() => {});
+				(this.#adapter as YouTubePlayerAdapter).initialize().then(() => { if (p.autoplay) this.#adapter!.play(); }).catch(() => {});
 			} else if (isVimeo) {
 				this.#adapter = new VimeoPlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
 					onPlay: () => { this.#paused = false; this.#updateControls(); },
@@ -186,7 +193,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					onTimeUpdate: (t) => { this.#currentTime = t; this.#updateControls(); },
 					onDurationChange: (d) => { this.#duration = d; },
 				});
-				(this.#adapter as VimeoPlayerAdapter).initialize().catch(() => {});
+				(this.#adapter as VimeoPlayerAdapter).initialize().then(() => { if (p.autoplay) this.#adapter!.play(); }).catch(() => {});
 			}
 		}
 
