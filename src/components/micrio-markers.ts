@@ -56,33 +56,53 @@ micrio-markers.is360.inactive{opacity:0}`;
 			this.classList.toggle('inactive', !!inactive);
 			this.classList.toggle('show-titles', showTitles);
 
-			// Remove all existing child markers/waypoints
-			this.innerHTML = '';
-
-			if (inactive) return;
-
 			// Waypoints
 			const $switching = get(switching);
 			if (!$switching && micrio.spaceData) {
-				const waypoints = micrio.spaceData.links
-					.filter((l: any) => l[0] == image.id || l[1] == image.id)
-					.map((l: any) => ({ targetId: l[0] == image.id ? l[1] : l[0], settings: l[2]?.[image.id] }));
-				for (const wp of waypoints) {
-					const el = document.createElement('micrio-waypoint') as any;
-					el.setProps({ ...wp, image });
-					this.appendChild(el);
+				const links = micrio.spaceData.links.filter((l: any) => l[0] == image.id || l[1] == image.id);
+				const linkIds = new Set(links.map((l: any) => l[0] == image.id ? l[1] : l[0]));
+				for (const el of this.querySelectorAll(':scope > micrio-waypoint')) {
+					if (!linkIds.has(el.getAttribute('data-target-id'))) el.remove();
 				}
+				for (const l of links) {
+					const id = l[0] == image.id ? l[1] : l[0];
+					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${id}"]`) as any;
+					if (!el) {
+						el = document.createElement('micrio-waypoint');
+						el.setAttribute('data-target-id', id);
+						el.setProps({ targetId: id, settings: l[2]?.[image.id], image });
+						this.appendChild(el);
+					}
+				}
+			} else {
+				for (const el of this.querySelectorAll(':scope > micrio-waypoint')) el.remove();
 			}
 
-			// Visible markers
+			// Markers — diff-based: keep existing, only add/remove what changed
 			if ($visible) {
 				const $_lang = get(micrio._lang);
 				const visibleMarkers = $visible.filter(m => !m.noMarker && (!m.i18n || !!m.i18n[$_lang]));
-				for (const m of visibleMarkers) {
-					const el = document.createElement('micrio-marker') as any;
-					el.setProps({ marker: m, image });
-					this.appendChild(el);
+				const expected = new Set(visibleMarkers.map(m => m.id));
+
+				for (const el of this.querySelectorAll(':scope > micrio-marker')) {
+					if (!expected.has(el.getAttribute('data-marker-id') ?? '')) el.remove();
 				}
+
+				for (const m of visibleMarkers) {
+					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${m.id}"]`) as any;
+					if (!el) {
+						el = document.createElement('micrio-marker');
+						el.setAttribute('data-marker-id', m.id);
+						el.setProps({ marker: m, image });
+						this.appendChild(el);
+					}
+				}
+			} else {
+				for (const el of this.querySelectorAll(':scope > micrio-marker')) el.remove();
+			}
+
+			if (inactive) {
+				for (const el of this.querySelectorAll(':scope > micrio-marker, :scope > micrio-waypoint')) el.remove();
 			}
 		};
 
