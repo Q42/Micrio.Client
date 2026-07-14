@@ -1,7 +1,8 @@
 import { MicrioElement } from '$ts/component';
 import type { MicrioImage } from '$ts/image';
 import type { HTMLMicrioElement } from '$ts/element';
-import { get } from '$ts/store';
+import { get, tick } from '$ts/store';
+import { once } from '$ts/utils/store';
 import { i18n } from '$ts/i18n/strings';
 
 export interface ZoomButtonsProps {
@@ -14,13 +15,16 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 
 	#props: ZoomButtonsProps = {};
 	#unsubs: (() => void)[] = [];
+	#target: MicrioImage | undefined;
+	#viewUnsub: (() => void) | undefined;
+	#albumUnsub: (() => void) | undefined;
 
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio) return;
 
 		const update = () => {
-			const img = this.#props.image || micrio.$current;
+			const img = this.#target;
 			const zoomedIn = img?.camera.isZoomedIn() ?? true;
 			const zoomedOut = img?.camera.isZoomedOut(true) ?? true;
 			const minScale = img?.camera.getMinScale() ?? 0;
@@ -33,7 +37,6 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 
 			const $i18n = get(i18n);
 
-			// Update or create zoom-in button
 			let btnIn = this.querySelector(':scope > .zb-zoom-in') as MicrioElement;
 			if (!btnIn) {
 				btnIn = document.createElement('micrio-button') as MicrioElement;
@@ -50,7 +53,6 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 				}
 			});
 
-			// Update or create zoom-out button
 			let btnOut = this.querySelector(':scope > .zb-zoom-out') as MicrioElement;
 			if (!btnOut) {
 				btnOut = document.createElement('micrio-button') as MicrioElement;
@@ -68,22 +70,30 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 			});
 		};
 
+		const bindTo = (img: MicrioImage | undefined) => {
+			if (this.#viewUnsub) { this.#viewUnsub(); this.#viewUnsub = undefined; }
+			this.#target = img;
+			if (img) this.#viewUnsub = img.state.view.subscribe(() => update());
+			else update();
+		};
+
 		if (this.#props.image) {
-			this.watchLater(this.#props.image.state.view, () => update());
+			bindTo(this.#props.image);
 		} else {
-			let viewUnsub: (() => void) | undefined;
 			this.#unsubs.push(micrio.current.subscribe(c => {
 				if (!c) return;
-				viewUnsub?.();
-				let first = true;
-				viewUnsub = c.state.view.subscribe(() => {
-					if (first) { first = false; return; }
+				if (this.#albumUnsub) { this.#albumUnsub(); this.#albumUnsub = undefined; }
+				if (this.#viewUnsub) { this.#viewUnsub(); this.#viewUnsub = undefined; }
+				once(c.info).then(() => tick()).then(() => {
+					if (c.album?.currentImage) {
+						this.#albumUnsub = c.album.currentImage.subscribe(bindTo);
+					} else {
+						bindTo(c);
+					}
 					update();
 				});
 			}));
 		}
-
-		update();
 	}
 
 	setProps(props: Partial<ZoomButtonsProps>) {
@@ -91,6 +101,8 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 	}
 
 	onDestroy() {
+		if (this.#albumUnsub) this.#albumUnsub();
+		if (this.#viewUnsub) this.#viewUnsub();
 		for (const fn of this.#unsubs) fn();
 		this.#unsubs = [];
 	}

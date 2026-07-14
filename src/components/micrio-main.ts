@@ -70,7 +70,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#lastMarkerIds = '';
 
 	#layers = [
-		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'controls', 'markers',
+		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'gallery', 'controls', 'markers',
 		'details', 'popup', 'tour', 'popover', 'subtitles',
 		'error', 'progress'
 	];
@@ -295,6 +295,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#show('orgLogo', showOrgLogo && !!this.#logoOrg, () => {
 			const el = document.createElement('micrio-logo-org') as MicrioElement;
 			el.setProps({ organisation: this.#logoOrg! });
+			return el;
+		});
+
+		const $gallery = get(micrio.gallery);
+		this.#show('gallery', !!$settings?.omni || !!$gallery, () => {
+			const el = document.createElement('micrio-gallery') as MicrioElement;
+			el.setProps({ controller: $gallery ?? undefined });
 			return el;
 		});
 

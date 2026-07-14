@@ -7,6 +7,7 @@ import './micrio-button';
 import './micrio-article';
 import './micrio-media';
 import './micrio-marker-content';
+import './micrio-gallery-item';
 
 export interface PopoverProps {
 	popover: Models.State.PopoverType;
@@ -144,6 +145,13 @@ dialog.article h2{text-align:center}`;
 				}
 				this.#dialog.appendChild(article);
 			}
+		}
+
+		if ('gallery' in p && p.gallery) {
+			this.#dialog.classList.add('gallery');
+			const el = document.createElement('micrio-gallery-item') as MicrioElement;
+			el.setProps({ gallery: p.gallery, startId: (p as any).galleryStart });
+			this.#dialog.appendChild(el);
 		}
 
 		if ('marker' in p && p.marker) {
