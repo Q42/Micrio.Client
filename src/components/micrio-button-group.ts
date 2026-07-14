@@ -8,7 +8,7 @@ micrio-button-group>.micrio-button{display:block;box-shadow:none;--micrio-backgr
 micrio-button-group .micrio-button{border-radius:0}
 micrio-button-group .micrio-button:first-child{border-radius:var(--micrio-border-radius) var(--micrio-border-radius) 0 0}
 micrio-button-group .micrio-button:last-child{border-radius:0 0 var(--micrio-border-radius) var(--micrio-border-radius)}
-@media(max-width:500px){micrio-button-group>:global(*){height:calc(var(--micrio-button-size) - 4px)}
+@media(max-width:500px){micrio-button-group>*{height:calc(var(--micrio-button-size) - 4px)}
 micrio-button-group .micrio-button:first-child{padding-top:0}
 micrio-button-group .micrio-button:last-child{padding-bottom:0}
 }`;

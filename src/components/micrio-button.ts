@@ -22,16 +22,16 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 	static styles = `.micrio-button{margin:0;padding:0 8px;cursor:pointer;box-sizing:border-box;display:inline-block;vertical-align:bottom;transition:opacity .25s ease;font:inherit;font-size:90%;position:relative;touch-action:none;color:var(--micrio-color);background:var(--micrio-button-background,var(--micrio-background,none)) center center no-repeat;background-size:24px;min-width:var(--micrio-button-size);height:var(--micrio-button-size);line-height:var(--micrio-button-size);border:none;border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);text-decoration:none}
 .micrio-button:hover{outline:none}
 .micrio-button.transparent,.micrio-button.transparent:hover{background-color:transparent;backdrop-filter:none}
-.micrio-button>:global(*){transition:opacity .25s ease}
+.micrio-button>*{transition:opacity .25s ease}
 .micrio-button:disabled{pointer-events:none;cursor:default}
-.micrio-button:disabled>:global(*){opacity:.4}
+.micrio-button:disabled>*{opacity:.4}
 .micrio-button.no-click{pointer-events:none}
 .micrio-button img{display:block;margin:0 auto;pointer-events:none;max-width:100%;max-height:100%}
-.micrio-button>:global(*){height:var(--micrio-icon-size)!important;width:var(--micrio-icon-size);font-size:var(--micrio-icon-size);fill:var(--micrio-color);display:block;margin:0 auto}
+.micrio-button>*{height:var(--micrio-icon-size)!important;width:var(--micrio-icon-size);font-size:var(--micrio-icon-size);fill:var(--micrio-color);display:block;margin:0 auto}
 .micrio-button.active{color:var(--micrio-color-hover)}
-.micrio-button.active :global(svg){fill:var(--micrio-color-hover)}
+.micrio-button.active svg{fill:var(--micrio-color-hover)}
 @media(hover:hover){.micrio-button:hover{background-color:var(--micrio-button-background-hover,var(--micrio-button-background,var(--micrio-background)));color:var(--micrio-color-hover)}
-.micrio-button:hover :global(svg){fill:var(--micrio-color-hover);stroke:var(--micrio-color-hover)}
+.micrio-button:hover svg{fill:var(--micrio-color-hover);stroke:var(--micrio-color-hover)}
 .micrio-button:focus{outline:1px solid var(--micrio-color-hover)}
 }`;
 

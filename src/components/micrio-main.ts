@@ -62,16 +62,47 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 	#props: MainProps = { micrio: null! };
 	#unsubs: (() => void)[] = [];
-	#sections: Map<string, HTMLElement> = new Map();
 	#info: Readable<Models.ImageInfo.ImageInfo | undefined> | undefined;
 	#data: Writable<Models.ImageData.ImageData | undefined> | undefined;
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
 
+	// Section containers — built once, toggled via display
+	#sec = {
+		audio: this.#makeSec('audio'),
+		media: this.#makeSec('media'),
+		logo: this.#makeSec('logo'),
+		toolbar: this.#makeSec('toolbar'),
+		markers: this.#makeSec('markers'),
+		controls: this.#makeSec('controls'),
+		orgLogo: this.#makeSec('orgLogo'),
+		details: this.#makeSec('details'),
+		popup: this.#makeSec('popup'),
+		tour: this.#makeSec('tour'),
+		popover: this.#makeSec('popover'),
+		subtitles: this.#makeSec('subtitles'),
+		error: this.#makeSec('error'),
+		progress: this.#makeSec('progress'),
+	};
+
+	#makeSec(id: string): HTMLElement {
+		const el = document.createElement('section');
+		el.id = `ms-${id}`;
+		el.style.display = 'none';
+		return el;
+	}
+
 	onMount() {
 		const micrio = this.#props.micrio;
-		if (!micrio) return; // Props not yet set — setProps will be called
+		if (!micrio) return;
+
+		// Append all section containers once
+		const secMap = this.#sec as Record<string, HTMLElement>;
+		for (const key of Object.keys(secMap)) {
+			this.appendChild(secMap[key]);
+		}
+
 		this.provide('micrio', micrio);
 		this.provide('markerImages', new Map<string, MicrioImage>());
 
@@ -90,13 +121,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
 		if (onlyMarkers) this.#props.noHTML = true;
 
-		const showEmbeds = micrio.getAttribute('data-embeds') != 'false';
-
-		this.#info = undefined;
-		this.#data = undefined;
-		this.#settings = undefined;
-		this.#firstInited = false;
-		this.#logoOrg = undefined;
 		const didStart: string[] = [];
 
 		this.#unsubs.push(micrio.current.subscribe(c => {
@@ -104,21 +128,20 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#info = c.info;
 			this.#settings = undefined;
 
-			// Re-render when the current image's info/data/settings stores change
 			if (this.#info) {
-				this.#unsubs.push(this.#info.subscribe(() => this.#scheduleRender()));
+				this.#unsubs.push(this.#info.subscribe(() => this.#queueSync()));
 				once(this.#info).then(i => {
 					if (i) {
 						this.#firstInited = true;
 						this.#settings = c.settings;
-						if (this.#settings) this.#unsubs.push(this.#settings.subscribe(() => this.#scheduleRender()));
+						if (this.#settings) this.#unsubs.push(this.#settings.subscribe(() => this.#queueSync()));
 						if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
-						this.#scheduleRender();
+						this.#queueSync();
 					}
 				});
 			}
 			if ((this.#data = c.data) && didStart.indexOf(c.id) < 0) {
-				this.#unsubs.push(this.#data.subscribe(() => this.#scheduleRender()));
+				this.#unsubs.push(this.#data.subscribe(() => this.#queueSync()));
 				once(this.#data).then(async d => {
 					if (!d) return;
 					didStart.push(c.id);
@@ -128,63 +151,65 @@ export class MicrioMain extends MicrioElement<MainProps> {
 					if (autoStart) {
 						switch (autoStart.type) {
 							case 'marker': c.state.marker.set(autoStart.id); break;
-							case 'markerTour':
+							case 'markerTour': {
 								const mt = d.markerTours?.find((t: any) => t.id == autoStart.id);
 								if (mt) micrio.state.tour.set(mt); break;
-							case 'tour':
+							}
+							case 'tour': {
 								const vt = d.tours?.find((t: any) => t.id == autoStart.id);
 								if (vt) micrio.state.tour.set(vt); break;
-							case 'page':
+							}
+							case 'page': {
 								const page = findPage(autoStart.id, d.pages);
 								if (page) micrio.state.popover.set({ contentPage: page, showLangSelect: true } as any); break;
+							}
 						}
 					}
 				});
 			}
-			this.#scheduleRender();
+			this.#queueSync();
 		}));
 
 		let subsRaised = false;
 		srt.subscribe(s => setTimeout(() => {
-			const el = this.#sections.get('subtitles');
-			if (el) el.innerHTML = '';
+			const el = this.#sec.subtitles;
+			el.innerHTML = '';
 			if (s) {
 				const sub = document.createElement('micrio-subtitles') as any;
 				sub.setProps({ src: s, raised: subsRaised });
-				(this.#sections.get('subtitles') || this).appendChild(sub);
+				el.appendChild(sub);
+				el.style.display = '';
+			} else {
+				el.style.display = 'none';
 			}
 		}, 20));
 
 		for (const store of [micrio.visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
 		micrio.state.tour, micrio.state.marker, micrio.loading, micrio.switching]) {
-			this.#unsubs.push(store.subscribe(() => this.#scheduleRender()));
+			this.#unsubs.push(store.subscribe(() => this.#queueSync()));
 		}
-		this.#unsubs.push(micrio._lang.subscribe(() => this.#scheduleRender()));
+		this.#unsubs.push(micrio._lang.subscribe(() => this.#queueSync()));
 
-		(this as any).__c = { micrio, onlyMarkers, showEmbeds };
-		(this as any).__stores = { srt, volume };
-		(this as any).__markerImages = markerImages;
-
-		this.#scheduleRender();
+		this.#queueSync();
 	}
 
 	setProps(props: Partial<MainProps>) {
 		Object.assign(this.#props, props);
 	}
 
-	#renderQueued = false;
-	#scheduleRender() {
-		if (this.#renderQueued) return;
-		this.#renderQueued = true;
+	#syncQueued = false;
+	#queueSync() {
+		if (this.#syncQueued) return;
+		this.#syncQueued = true;
 		requestAnimationFrame(() => {
-			this.#renderQueued = false;
-			if (this.isConnected) this.#render();
+			this.#syncQueued = false;
+			if (this.isConnected) this.#sync();
 		});
 	}
 
-	#render() {
-		const c = (this as any).__c as { micrio: HTMLMicrioElement; onlyMarkers: boolean; showEmbeds: boolean };
-		const { micrio, onlyMarkers } = c;
+	#sync() {
+		const micrio = this.#props.micrio;
+		if (!micrio) return;
 
 		const $tour = get(micrio.state.tour);
 		const $marker = get(micrio.state.marker);
@@ -202,107 +227,109 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const hasAudio = !!($data as any)?.music?.items.length || !!positionalAudio?.length;
 		const hasTourOrMarker = $tour || $marker;
 
-		const showMarkers = !noHTML || onlyMarkers;
+		const showMarkers = !noHTML || (micrio.getAttribute('data-ui') == 'markers');
 		const showLogo = !noLogo && (!$info || !noHTML) && !($settings as any)?.noLogo;
-		const showOrgLogo = !noHTML && showLogo && !($settings as any)?.noOrgLogo && this.#logoOrg;
+		const showOrgLogo = !noHTML && showLogo && !($settings as any)?.noOrgLogo && !!this.#logoOrg;
 		const showControls = !noHTML && !!$info;
 		const showDetails = !noHTML && !hasTourOrMarker && ($settings as any)?.showInfo;
 		const showToolbar = !noHTML && this.#firstInited && !($settings as any)?.noToolbar;
 
-		this.replaceChildren();
+		this.#show('audio', hasAudio && !!$data && !!$info, () => {
+			this.#sec.audio.appendChild(document.createElement('micrio-audio-controller'));
+		});
 
-		if (hasAudio && $data && $info) {
-			const audioCtrl = document.createElement('micrio-audio-controller');
-			this.appendChild(audioCtrl);
-		}
+		this.#show('media', !!videoSrc && !!$info, () => {
+			// TODO: micrio-media for 360 video
+		});
 
-		if (videoSrc && $info) {
-			// TODO: micrio-media
-		}
+		this.#show('logo', showLogo, () => {
+			this.#sec.logo.appendChild(document.createElement('micrio-logo'));
+		});
 
-		if (showLogo) {
-			const logo = document.createElement('micrio-logo');
-			this.appendChild(logo);
-		}
-
-		if (showToolbar) {
-			const toolbar = document.createElement('micrio-toolbar');
-			this.appendChild(toolbar);
-		}
+		this.#show('toolbar', showToolbar, () => {
+			this.#sec.toolbar.appendChild(document.createElement('micrio-toolbar'));
+		});
 
 		if (showMarkers) {
-			const $visible = get(micrio.visible) as MicrioImage[];
-			for (const image of $visible) {
-				const markers = document.createElement('micrio-markers') as any;
-				markers.setProps({ image });
-				this.appendChild(markers);
+			const hasChildren = !!this.#sec.markers.children.length;
+			if (!hasChildren) {
+				const $visible = get(micrio.visible) as MicrioImage[];
+				for (const img of $visible) {
+					const el = document.createElement('micrio-markers') as any;
+					el.setProps({ image: img });
+					this.#sec.markers.appendChild(el);
+				}
 			}
+			this.#sec.markers.style.display = '';
+		} else {
+			this.#sec.markers.innerHTML = '';
+			this.#sec.markers.style.display = 'none';
 		}
 
-		if (showControls) {
-			const controls = document.createElement('micrio-controls') as any;
-			controls.setProps({ hasAudio: hasAudio || !!(videoSrc && video && !video.muted) });
-			this.appendChild(controls);
-		}
+		this.#show('controls', showControls, () => {
+			const el = document.createElement('micrio-controls') as any;
+			el.setProps({ hasAudio: hasAudio || !!(videoSrc && video && !video.muted) });
+			this.#sec.controls.appendChild(el);
+		});
 
-		if (showOrgLogo && this.#logoOrg) {
-			const org = document.createElement('micrio-logo-org') as any;
-			org.setProps({ organisation: this.#logoOrg });
-			this.appendChild(org);
-		}
+		this.#show('orgLogo', showOrgLogo && !!this.#logoOrg, () => {
+			const el = document.createElement('micrio-logo-org') as any;
+			el.setProps({ organisation: this.#logoOrg! });
+			this.#sec.orgLogo.appendChild(el);
+		});
 
-		if (showDetails && this.#info && this.#data) {
-			const details = document.createElement('micrio-details') as any;
-			details.setProps({ info: get(this.#info), data: get(this.#data) });
-			this.appendChild(details);
-		}
+		this.#show('details', showDetails && !!this.#info && !!this.#data, () => {
+			const el = document.createElement('micrio-details') as any;
+			el.setProps({ info: get(this.#info!), data: get(this.#data!) });
+			this.#sec.details.appendChild(el);
+		});
 
 		const $markerPopup = get(micrio.state.popup);
 		const $popover = get(micrio.state.popover);
 
-		if ($markerPopup || $tour || $popover) {
-			if ($markerPopup) {
-				const popup = document.createElement('micrio-marker-popup') as any;
-				popup.setProps({ marker: $markerPopup });
-				this.appendChild(popup);
-			}
-			if ($tour) {
-				const tour = document.createElement('micrio-tour') as any;
-				tour.setProps({ tour: $tour, noHTML });
-				this.appendChild(tour);
-			}
-			if ($popover) {
-				const pop = document.createElement('micrio-popover') as any;
-				pop.setProps({ popover: $popover });
-				this.appendChild(pop);
-			}
-		}
+		this.#show('popup', !!$markerPopup, () => {
+			const el = document.createElement('micrio-marker-popup') as any;
+			el.setProps({ marker: $markerPopup! });
+			this.#sec.popup.appendChild(el);
+		});
 
-		const subsSection = this.#ensureSection('subtitles');
-		if (subsSection.children.length > 0) this.appendChild(subsSection);
+		this.#show('tour', !!$tour, () => {
+			const el = document.createElement('micrio-tour') as any;
+			el.setProps({ tour: $tour!, noHTML });
+			this.#sec.tour.appendChild(el);
+		});
 
-		if (error || loadingProgress < 1) {
-			if (error) {
-				const err = document.createElement('micrio-error') as any;
-				err.setProps({ message: error });
-				this.appendChild(err);
-			}
-			if (loadingProgress < 1) {
-				const circle = document.createElement('micrio-progress-circle') as any;
-				circle.setProgress(loadingProgress);
-				this.appendChild(circle);
-			}
-		}
+		this.#show('popover', !!$popover, () => {
+			const el = document.createElement('micrio-popover') as any;
+			el.setProps({ popover: $popover! });
+			this.#sec.popover.appendChild(el);
+		});
+
+		this.#show('error', !!error, () => {
+			const el = document.createElement('micrio-error') as any;
+			el.setProps({ message: error! });
+			this.#sec.error.appendChild(el);
+		});
+
+		this.#show('progress', loadingProgress < 1, () => {
+			const el = document.createElement('micrio-progress-circle') as any;
+			el.setProgress(loadingProgress);
+			this.#sec.progress.appendChild(el);
+		});
 	}
 
-	#ensureSection(id: string): HTMLElement {
-		let el = this.#sections.get(id);
-		if (!el) {
-			el = document.createElement('section');
+	#show(key: string, condition: boolean, build: () => void) {
+		const sec = this.#sec as Record<string, HTMLElement>;
+		const el = sec[key];
+		if (condition) {
+			if (el.style.display === 'none' || el.children.length === 0) {
+				el.innerHTML = '';
+				build();
+				el.style.display = '';
+			}
+		} else {
 			el.style.display = 'none';
-			this.#sections.set(id, el);
 		}
-		return el;
 	}
 
 	onDestroy() {

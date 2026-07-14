@@ -15,8 +15,8 @@ export interface MarkerContentProps {
 export class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	static tag = 'micrio-marker-content';
 	static styles = `micrio-marker-content main{position:relative;padding:var(--micrio-popup-padding);padding-bottom:0;overflow-y:auto;user-select:text;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);box-sizing:border-box;text-align:var(--micrio-text-align)}
-micrio-marker-content main>:global(*){--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
-micrio-marker-content main :global(.micrio-progress-bar.container){background:transparent;backdrop-filter:none}
+micrio-marker-content main>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
+micrio-marker-content main .micrio-progress-bar.container{background:transparent;backdrop-filter:none}
 micrio-marker-content main h1{font-size:1.5em;font-weight:600;margin:0 0 1.25em 0}
 micrio-marker-content main p{white-space:pre-line}
 micrio-marker-content main figure.hidden{display:none}

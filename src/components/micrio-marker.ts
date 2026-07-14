@@ -26,13 +26,13 @@ micrio-marker.mat3d button{position:absolute;transform:translate3d(-50%,-50%,0)}
 micrio-marker button{display:block;width:var(--micrio-marker-size);height:var(--micrio-marker-size);color:var(--micrio-marker-text-color);position:relative;cursor:pointer;font:inherit;padding:0;margin:0;background:transparent none center center no-repeat;background-image:var(--micrio-marker-icon);background-size:contain;border:none}
 micrio-marker label{position:absolute;top:50%;left:100%;text-align:var(--micrio-text-align);cursor:pointer;transform:translate(0,-50%);padding-left:10px;max-width:170px;width:max-content;white-space:pre-wrap;font-size:90%;font-weight:600;line-height:1em;text-shadow:var(--micrio-marker-text-shadow);opacity:0;pointer-events:none;transition:opacity .1s ease}
 micrio-marker:hover{z-index:2}
-micrio-marker:hover label,:global(.show-titles) micrio-marker label{opacity:1}
+micrio-marker:hover label,.show-titles micrio-marker label{opacity:1}
 @media(max-width:640px){micrio-marker label{font-size:12px}}
-:global(.show-titles) micrio-marker label{pointer-events:all}
+.show-titles micrio-marker label{pointer-events:all}
 micrio-marker label.static{transform:translate(-50%,4px) scale3d(calc(1/var(--scale,1)),calc(1/var(--scale,1)),1)}
 micrio-marker.default button{box-sizing:content-box;background-clip:content-box;border-radius:var(--micrio-marker-border-radius);border:var(--micrio-marker-border-size) solid var(--micrio-marker-border-color);transition:var(--micrio-marker-transition);background-color:var(--micrio-marker-color)}
 micrio-marker.default:hover,micrio-marker.default.hovered,micrio-marker.default.opened{z-index:1}
-micrio-marker.default:hover button,micrio-marker.default.hovered button,micrio-marker.default.opened button{background-color:var(--micrio-marker-highlight);border-width:0;width:calc(var(--micrio-marker-size)+var(--micrio-marker-border-size)*2);height:calc(var(--micrio-marker-size)+var(--micrio-marker-border-size)*2)}
+micrio-marker.default:hover button,micrio-marker.default.hovered button,micrio-marker.default.opened button{background-color:var(--micrio-marker-highlight);border-width:0;width:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2);height:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2)}
 micrio-marker.has-icon{--micrio-marker-icon:none}
 micrio-marker.has-custom-icon{--micrio-marker-size:32px}
 micrio-marker.default.has-icon button{color:#fff;width:calc(var(--micrio-marker-size)+24px);height:calc(var(--micrio-marker-size)+24px);background-color:var(--micrio-marker-border-color);border:none}
@@ -88,18 +88,23 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		const hasIcon = !!icon || !!customIcon;
 		const defaultClass = (!('class' in marker) || (marker as any).class !== '') && (hasIcon || marker.type == 'default');
 
-		const moved = () => {
+		let moveCount = 0;
+	const moved = () => {
+			moveCount++;
 			if (image.is360) {
 				this.#matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1, 0, 0, 0).join(',');
 				this.style.setProperty('--mat', `matrix3d(${this.#matrix})`);
 			} else {
-				[this.#x, this.#y, this.#scaleVal, this.#w] = image.camera.getXYDirect(marker.x, marker.y, {
+				const xy = image.camera.getXYDirect(marker.x, marker.y, {
 					radius: marker.radius, rotation: marker.rotation
 				});
+				[this.#x, this.#y, this.#scaleVal, this.#w] = xy;
 				if (image.is360) this.#behindCam = this.#w > 0;
 				this.style.setProperty('--x', `${this.#x}px`);
 				this.style.setProperty('--y', `${this.#y}px`);
-				this.style.setProperty('--scale', `${this.#scaleVal}`);
+				if ((markerSettings as any).markersScale || (marker as any).data?.scales) {
+					this.style.setProperty('--scale', `${this.#scaleVal}`);
+				}
 				this.classList.toggle('behind', this.#behindCam);
 			}
 		};
@@ -188,7 +193,9 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		}));
 
 		if (!(marker as any).noMarker) {
-			this.#unsubs.push(image.state.view.subscribe(() => moved()));
+			this.#unsubs.push(image.state.view.subscribe(() => {
+				moved();
+			}));
 		}
 
 		if (!forceHidden) {

@@ -19,7 +19,7 @@ micrio-controls.hidden{transform:translateX(calc(100% + var(--micrio-border-marg
 micrio-controls .primary:not(.portrait){right:calc(50% + var(--micrio-border-margin))}
 micrio-controls .primary.portrait{bottom:calc(50% + var(--micrio-border-margin))}
 micrio-controls .grid-close{top:var(--micrio-border-margin);bottom:auto;position:absolute;right:0}
-:global(micr-io[data-switching])>micrio-controls,:global(micr-io[data-tour-active])>micrio-controls{opacity:0;pointer-events:none}
+micr-io[data-switching]>micrio-controls,micr-io[data-tour-active]>micrio-controls{opacity:0;pointer-events:none}
 micrio-controls>micrio-button,micrio-controls>menu{padding:0;margin:8px 0;display:block;width:var(--micrio-button-size)}
 micrio-controls menu.popout{padding:0;width:var(--micrio-button-size);height:var(--micrio-button-size);white-space:pre;direction:rtl;pointer-events:none;box-shadow:var(--micrio-button-shadow);border-radius:var(--micrio-border-radius);backdrop-filter:var(--micrio-background-filter)}
 micrio-controls menu.popout:focus-within{pointer-events:all}

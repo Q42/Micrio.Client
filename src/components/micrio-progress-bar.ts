@@ -22,8 +22,8 @@ export class MicrioProgressBar extends MicrioElement<ProgressBarProps> {
 	static tag = 'micrio-progress-bar';
 	static styles = `micrio-progress-bar{display:flex;width:auto;color:var(--micrio-color);background:var(--micrio-background);line-height:8px;flex:1;align-items:center;cursor:default}
 micrio-progress-bar .bars{flex:1;display:flex;height:var(--micrio-progress-bar-height);background:var(--micrio-progress-bar-background);position:relative}
-micrio-progress-bar .bars>:global(*){height:100%;width:100%;display:block;box-sizing:border-box;position:relative;cursor:pointer;overflow:hidden}
-micrio-progress-bar .bars>:global(*::before){display:block;position:absolute;content:' ';background:var(--micrio-color);height:100%;pointer-events:none;width:var(--progress,0%);will-change:width}
+micrio-progress-bar .bars>*{height:100%;width:100%;display:block;box-sizing:border-box;position:relative;cursor:pointer;overflow:hidden}
+micrio-progress-bar .bars>*::before{display:block;position:absolute;content:' ';background:var(--micrio-color);height:100%;pointer-events:none;width:var(--progress,0%);will-change:width}
 micrio-progress-bar .bars::after{content:'';position:absolute;display:block;width:16px;height:16px;left:var(--progress);top:50%;transform:translate3d(-50%,-50%,0);background-color:var(--micrio-color);pointer-events:none;border-radius:8px}
 micrio-progress-bar .time{display:block;font-size:90%;min-width:50px;text-align:center;padding:0 10px;font-variant-numeric:tabular-nums}`;
 

@@ -27,7 +27,7 @@ export class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 micrio-media-controls micrio-button{border-radius:0;margin:0;border:none}
 micrio-media-controls micrio-button:last-child{margin-right:16px}
 micrio-media-controls>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
-:global(:fullscreen) micrio-media-controls{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:430px;max-width:90vw;max-width:90cqw;border-radius:var(--micrio-border-radius)}
+:fullscreen micrio-media-controls{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:430px;max-width:90vw;max-width:90cqw;border-radius:var(--micrio-border-radius)}
 micrio-media-controls svg{pointer-events:none;position:absolute;left:-1px;top:-1px;width:42px;height:42px;transform:rotateZ(-90deg)}
 micrio-media-controls circle{stroke-width:2;stroke:#fff;fill:transparent;stroke-dasharray:119.4 119.4;transition:stroke-dashoffset .25s linear;transform-origin:center center}`;
 
