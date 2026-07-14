@@ -260,25 +260,19 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		{
-			let markersEl = this.#elements.get('markers');
+			// Remove all existing marker elements
+			for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
+			this.#elements.set('markers', null);
 			if (showMarkers) {
-				if (!markersEl?.isConnected) {
-					markersEl?.remove();
-					markersEl = document.createElement('div');
-					this.#elements.set('markers', markersEl);
-					this.#place('markers', markersEl);
+				const $visible = get(micrio.visible) as MicrioImage[];
+				for (const img of $visible) {
+					const el = document.createElement('micrio-markers') as any;
+					el.setProps({ image: img });
+					const before = this.#getBefore('markers');
+					if (before) this.insertBefore(el, before);
+					else this.appendChild(el);
+					if (!this.#elements.get('markers')) this.#elements.set('markers', el);
 				}
-				if (!markersEl.children.length) {
-					const $visible = get(micrio.visible) as MicrioImage[];
-					for (const img of $visible) {
-						const el = document.createElement('micrio-markers') as any;
-						el.setProps({ image: img });
-						markersEl.appendChild(el);
-					}
-				}
-			} else if (markersEl?.isConnected) {
-				markersEl.remove();
-				this.#elements.set('markers', null);
 			}
 		}
 
