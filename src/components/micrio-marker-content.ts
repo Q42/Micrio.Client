@@ -14,17 +14,16 @@ export interface MarkerContentProps {
 
 export class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	static tag = 'micrio-marker-content';
-	static styles = `micrio-marker-content main{position:relative;padding:var(--micrio-popup-padding);padding-bottom:0;overflow-y:auto;user-select:text;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);box-sizing:border-box;text-align:var(--micrio-text-align)}
+	static styles = `micrio-marker-content{display:block}
+micrio-marker-content main{position:relative;padding:var(--micrio-popup-padding);overflow-y:auto;user-select:text;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);box-sizing:border-box;text-align:var(--micrio-text-align)}
 micrio-marker-content main>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
 micrio-marker-content main .micrio-progress-bar.container{background:transparent;backdrop-filter:none}
 micrio-marker-content main h1{font-size:1.5em;font-weight:600;margin:0 0 1.25em 0}
 micrio-marker-content main p{white-space:pre-line}
 micrio-marker-content main figure.hidden{display:none}
 micrio-marker-content main figure>div.micrio-media>*:first-child{width:100%}
-micrio-marker-content main figure.micrio-media{margin:calc(-1 * var(--micrio-popup-padding));margin-bottom:0;width:auto;--micrio-background:transparent}
-micrio-marker-content main figure.micrio-media:not(.media-video):not(:last-child)>*:last-child:not(figcaption){margin-bottom:var(--micrio-popup-padding);background:var(--micrio-background);padding:0 var(--micrio-popup-padding)}
-micrio-marker-content main figure.micrio-media.media-video{margin-bottom:var(--micrio-popup-padding)}
-micrio-marker-content main figure.micrio-media>div>aside.micrio-media{--micrio-background:transparent}
+micrio-marker-content main micrio-media{margin:calc(-1 * var(--micrio-popup-padding));margin-bottom:0;width:auto;--micrio-background:transparent}
+micrio-marker-content main micrio-media:not(:last-child){margin-bottom:var(--micrio-popup-padding)}
 micrio-marker-content main article:last-child{margin-bottom:var(--micrio-popup-padding)}
 micrio-marker-content button{padding:0;margin:0 calc(-1 * var(--micrio-popup-padding)) var(--micrio-popup-padding) calc(-1 * var(--micrio-popup-padding))}
 micrio-marker-content button:disabled{cursor:default}
@@ -68,10 +67,10 @@ micrio-marker-content section figcaption{display:none}
 		const $tour = get(micrio.state.tour);
 		const isSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour;
 		const settings = image.$settings._markers ?? {};
+		const autoplayMedia = !settings.preventAutoPlay;
 		const content = marker.i18n?.[$_lang];
 		const singleImage = marker.images?.length == 1;
 		const galleryEnabled = !marker.data?.preventImageOpen && !noGallery;
-		void onclose; // used by micrio-media (TODO)
 		const isDev = image.tileBase?.includes('micrio.dev');
 
 		const imageCaption = singleImage && marker.images?.[0]?.i18n?.[$_lang]?.description;
@@ -82,6 +81,12 @@ micrio-marker-content section figcaption{display:none}
 		};
 
 		const getTitle = (asset: Models.Assets.Image) => asset.i18n?.[$_lang]?.title;
+
+		const mediaEnded = () => {
+			if ($tour && 'steps' in $tour && ($tour.isSerialTour || settings.tourAutoProgress)) {
+				onclose?.();
+			}
+		};
 
 		if (!content) { this.innerHTML = ''; return; }
 
@@ -107,14 +112,19 @@ micrio-marker-content section figcaption{display:none}
 		}
 
 		// Audio/Video Tour media
-		if (!isSerialTour && (((!content || !content.embedUrl) && marker.videoTour) || (content && content.audio))) {
-			// TODO: Render <micrio-media> when migrated
-			// const media = document.createElement('micrio-media') as MicrioElement;
-			// media.setProps({ src: audioSrc, noPlayOverlay: true, image, uuid: marker.id,
-			//   tour: marker.videoTour, autoplay: marker.audioAutoPlay || (!content.audio && !!marker.videoTour),
-			//   controls: !marker.videoTour || (!content || !content.embedUrl),
-			//   onended: mediaEnded, paused: pausedAudio });
-			// main.appendChild(media);
+		if (!isSerialTour && (((!content.embedUrl) && marker.videoTour) || content.audio)) {
+			const audio = marker.videoTour?.i18n?.[$_lang]?.audio ?? content?.audio;
+			const audioSrc = audio?.src;
+			const pausedAudio = !autoplayMedia || !marker?.audioAutoPlay;
+			const media = document.createElement('micrio-media') as MicrioElement;
+			media.setProps({
+				src: audioSrc, noPlayOverlay: true, image, uuid: marker.id,
+				tour: marker.videoTour,
+				autoplay: marker.audioAutoPlay || (!content.audio && !!marker.videoTour),
+				controls: !marker.videoTour || !content.embedUrl,
+				onended: mediaEnded, paused: pausedAudio
+			});
+			main.appendChild(media);
 		}
 
 		// Marker Images
@@ -148,9 +158,23 @@ micrio-marker-content section figcaption{display:none}
 		// Embed
 		if (content.embedUrl && !noEmbed) {
 			if (!content.audio && marker.videoTour) {
-				// TODO: hidden secondary Media for video tour audio
+				const hiddenMedia = document.createElement('micrio-media') as MicrioElement;
+				hiddenMedia.setProps({
+					image, className: 'hidden', uuid: marker.id,
+					tour: marker.videoTour, autoplay: autoplayMedia, secondary: true
+				});
+				main.appendChild(hiddenMedia);
 			}
-			// TODO: main embed Media
+
+			const pausedVideo = marker?.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker?.audioAutoPlay));
+			const media = document.createElement('micrio-media') as MicrioElement;
+			media.setProps({
+				image, src: content.embedUrl, uuid: marker.id,
+				width: 400, height: 240, controls: true,
+				title: content.embedTitle, figcaption: content.embedDescription,
+				autoplay: !pausedVideo, onended: mediaEnded, paused: pausedVideo
+			});
+			main.appendChild(media);
 		}
 
 		// Primary Body (not first)

@@ -17,15 +17,15 @@ export class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	static styles = `micrio-marker-popup{display:block;cursor:auto;pointer-events:all;position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin)}
 micrio-marker-popup.destroying{pointer-events:none}
 micrio-marker-popup>main{max-height:80vh;max-height:80cqh}
-micrio-marker-popup aside{padding:var(--micrio-border-margin)}
-micrio-marker-popup aside progress{display:none}
-@media(min-width:501px){micrio-marker-popup{width:440px;min-width:20%}micrio-marker-popup aside{position:absolute;left:100%;top:0;padding-top:0}
-micrio-marker-popup aside>.micrio-button{padding:0;margin:0 0 8px 0;display:block}
+micrio-marker-popup>aside{padding:var(--micrio-border-margin)}
+micrio-marker-popup>aside progress{display:none}
+@media(min-width:501px){micrio-marker-popup{width:440px;min-width:20%}micrio-marker-popup>aside{position:absolute;left:100%;top:0;padding-top:0}
+micrio-marker-popup>aside>.micrio-button{padding:0;margin:0 0 8px 0;display:block}
 }
-@media(max-width:500px){micrio-marker-popup aside{position:relative;padding:0;display:flex;flex-direction:row-reverse;margin-bottom:var(--micrio-border-margin);align-items:center}
-micrio-marker-popup aside progress{display:block;flex:1;opacity:0;pointer-events:none}
-micrio-marker-popup aside .micrio-tour-controls{margin-bottom:0!important;display:flex}
-micrio-marker-popup aside .micrio-button{display:block!important;height:var(--micrio-button-size);padding:0!important;margin:0 0 0 8px}
+@media(max-width:500px){micrio-marker-popup>aside{position:relative;padding:0;display:flex;flex-direction:row-reverse;margin-bottom:var(--micrio-border-margin);align-items:center}
+micrio-marker-popup>aside progress{display:block;flex:1;opacity:0;pointer-events:none}
+micrio-marker-popup>aside .micrio-tour-controls{margin-bottom:0!important;display:flex}
+micrio-marker-popup>aside .micrio-button{display:block!important;height:var(--micrio-button-size);padding:0!important;margin:0 0 0 8px}
 micrio-marker-popup{width:auto;right:var(--micrio-border-margin);display:flex;bottom:calc(var(--micrio-button-size) + 2 * var(--micrio-border-margin));flex-direction:column;justify-content:space-between}
 micrio-marker-popup>main{max-height:40vh}
 }
@@ -136,10 +136,6 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 
 		this.replaceChildren();
 
-		const div = document.createElement('div');
-		div.classList.toggle('destroying', this.#destroying);
-		div.classList.toggle('minimized', this.#isMinimized);
-
 		const aside = document.createElement('aside');
 
 		if (!data.alwaysOpen) {
@@ -201,13 +197,11 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 			aside.appendChild(group);
 		}
 
-		div.appendChild(aside);
+		this.appendChild(aside);
 
 		const content = document.createElement('micrio-marker-content') as MicrioElement;
 		content.setProps({ marker, onclose: close });
-		div.appendChild(content);
-
-		this.appendChild(div);
+		this.appendChild(content);
 	}
 
 	onDestroy() {

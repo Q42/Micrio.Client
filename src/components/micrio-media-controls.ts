@@ -30,7 +30,8 @@ function fmt(t: number): string {
 
 export class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	static tag = 'micrio-media-controls';
-	static styles = `micrio-media-controls aside.controls-wrapper{display:flex;align-items:center;width:100%;--micrio-background:var(--micrio-background,#000)}
+	static styles = `micrio-media-controls{display:block}
+micrio-media-controls aside.controls-wrapper{display:flex;align-items:center;width:100%;--micrio-background:var(--micrio-background,#000)}
 micrio-media-controls micrio-button{border-radius:0;margin:0;border:none}
 micrio-media-controls micrio-button:last-child{margin-right:16px}
 micrio-media-controls>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
@@ -46,7 +47,8 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 	#barEl!: HTMLElement;
 	#timeEl!: HTMLElement;
 	#built = false;
-	#prevPaused = true;
+	#prevPaused: boolean | undefined;
+	#prevSeeking = false;
 	#prevMuted = false;
 	#prevProgress = -1;
 	#prevTime = '';
@@ -143,11 +145,13 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 		const $i18n = get(i18n);
 		const $captionsEnabled = get(captionsEnabled);
 
-		if (p.paused !== this.#prevPaused) {
+		if (p.paused !== this.#prevPaused || p.seeking !== this.#prevSeeking || this.#prevPaused === undefined) {
 			this.#prevPaused = p.paused;
+			this.#prevSeeking = !!p.seeking;
 			this.#playBtn.setProps({
 				type: !p.paused ? 'pause' : 'play',
 				title: !p.paused ? $i18n.pause : $i18n.play,
+				disabled: !!p.seeking,
 				onclick: p.onplaypause
 			});
 		}
@@ -176,7 +180,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 		const fsBtn = this.#wrapperEl.querySelector('.ctrl-fullscreen') as MicrioElement;
 		if (fsBtn) fsBtn.setProps({ el: p.fullscreenEl });
 
-		if (p.duration) {
+		if (p.duration && !isNaN(p.duration)) {
 			const progress = ((p.currentTime ?? 0) / p.duration) * 100;
 			if (Math.abs(progress - this.#prevProgress) > 0.5 || progress === 0) {
 				this.#prevProgress = progress;
@@ -188,6 +192,11 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 				this.#prevTime = t;
 				this.#timeEl.textContent = t;
 			}
+		} else if (this.#prevTime !== '0:00' || this.#prevProgress !== 0) {
+			this.#prevTime = '0:00';
+			this.#prevProgress = 0;
+			this.#timeEl.textContent = '0:00';
+			this.#barEl.style.width = '0%';
 		}
 	}
 }
