@@ -101,7 +101,7 @@ micrio-marker-content section figcaption{display:none}
 
 		// Primary Body (first)
 		if (content.body && settings.primaryBodyFirst) {
-			const article = document.createElement('micrio-article') as any;
+			const article = document.createElement('micrio-article') as MicrioElement;
 			article.setProps({ html: content.body });
 			main.appendChild(article);
 		}
@@ -109,7 +109,7 @@ micrio-marker-content section figcaption{display:none}
 		// Audio/Video Tour media
 		if (!isSerialTour && (((!content || !content.embedUrl) && marker.videoTour) || (content && content.audio))) {
 			// TODO: Render <micrio-media> when migrated
-			// const media = document.createElement('micrio-media') as any;
+			// const media = document.createElement('micrio-media') as MicrioElement;
 			// media.setProps({ src: audioSrc, noPlayOverlay: true, image, uuid: marker.id,
 			//   tour: marker.videoTour, autoplay: marker.audioAutoPlay || (!content.audio && !!marker.videoTour),
 			//   controls: !marker.videoTour || (!content || !content.embedUrl),
@@ -155,14 +155,14 @@ micrio-marker-content section figcaption{display:none}
 
 		// Primary Body (not first)
 		if (content.body && !settings.primaryBodyFirst) {
-			const article = document.createElement('micrio-article') as any;
+			const article = document.createElement('micrio-article') as MicrioElement;
 			article.setProps({ html: content.body });
 			main.appendChild(article);
 		}
 
 		// Secondary Body
 		if (content.bodySecondary) {
-			const article = document.createElement('micrio-article') as any;
+			const article = document.createElement('micrio-article') as MicrioElement;
 			article.setProps({ html: content.bodySecondary });
 			(main as any).appendChild(article);
 		}

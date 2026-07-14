@@ -99,14 +99,14 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 
 		if (mainPages) {
 			for (const page of mainPages) {
-				const child = document.createElement('micrio-menu') as any;
+				const child = document.createElement('micrio-menu') as MicrioElement;
 				child.setProps({ menu: page, originalId, onclose: () => { if (this.#isMobile) this.#shown = false; } });
 				menu.appendChild(child);
 			}
 		}
 
 		if (hasMarkerTours) {
-			const child = document.createElement('micrio-menu') as any;
+			const child = document.createElement('micrio-menu') as MicrioElement;
 			child.setProps({
 				onclose: () => { if (this.#isMobile) this.#shown = false; },
 				menu: {
@@ -123,7 +123,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		}
 
 		if (hasVideoTours) {
-			const child = document.createElement('micrio-menu') as any;
+			const child = document.createElement('micrio-menu') as MicrioElement;
 			child.setProps({
 				onclose: () => { if (this.#isMobile) this.#shown = false; },
 				menu: {
@@ -146,7 +146,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		this.syncDisplay?.();
 
 		if (this.#isMobile) {
-			const btn = document.createElement('micrio-button') as any;
+			const btn = document.createElement('micrio-button') as MicrioElement;
 			btn.setProps({
 				title: $i18n.menuToggle,
 				type: this.#shown ? 'close' : 'ellipsis-vertical',

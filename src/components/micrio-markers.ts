@@ -66,9 +66,9 @@ micrio-markers.is360.inactive{opacity:0}`;
 				}
 				for (const l of links) {
 					const id = l[0] == image.id ? l[1] : l[0];
-					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${id}"]`) as any;
+					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${id}"]`) as MicrioElement;
 					if (!el) {
-						el = document.createElement('micrio-waypoint');
+						el = document.createElement('micrio-waypoint') as MicrioElement;
 						el.setAttribute('data-target-id', id);
 						el.setProps({ targetId: id, settings: l[2]?.[image.id], image });
 						this.appendChild(el);
@@ -89,9 +89,9 @@ micrio-markers.is360.inactive{opacity:0}`;
 				}
 
 				for (const m of visibleMarkers) {
-					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${m.id}"]`) as any;
+					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${m.id}"]`) as MicrioElement;
 					if (!el) {
-						el = document.createElement('micrio-marker');
+						el = document.createElement('micrio-marker') as MicrioElement;
 						el.setAttribute('data-marker-id', m.id);
 						el.setProps({ marker: m, image });
 						this.appendChild(el);

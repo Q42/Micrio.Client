@@ -37,7 +37,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			const image = micrio.$current;
 			if (image) {
 				const audio = vt.i18n?.[get(micrio._lang)]?.audio;
-				const media = document.createElement('micrio-media') as any;
+				const media = document.createElement('micrio-media') as MicrioElement;
 				media.setProps({ src: audio?.src, image, tour: vt, controls: true, autoplay: true, onclose: () => micrio.state.tour.set(undefined) });
 				this.appendChild(media);
 			}
@@ -63,7 +63,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				const div = document.createElement('div');
 				div.className = 'controls';
 
-				const prevBtn = document.createElement('micrio-button') as any;
+				const prevBtn = document.createElement('micrio-button') as MicrioElement;
 				prevBtn.setProps({
 					type: 'arrow-left', title: get(i18n).tourStepPrev,
 					disabled: this.#currentStep === 0,
@@ -83,7 +83,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				counter.textContent = `${this.#currentStep + 1} / ${mt.steps.length}`;
 				div.appendChild(counter);
 
-				const nextBtn = document.createElement('micrio-button') as any;
+				const nextBtn = document.createElement('micrio-button') as MicrioElement;
 				nextBtn.setProps({
 					type: 'arrow-right', title: get(i18n).tourStepNext,
 					disabled: this.#currentStep >= mt.steps.length - 1,
@@ -99,7 +99,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				div.appendChild(nextBtn);
 
 				if (!mt.cannotClose) {
-					const closeBtn = document.createElement('micrio-button') as any;
+					const closeBtn = document.createElement('micrio-button') as MicrioElement;
 					closeBtn.setProps({
 						type: 'close', title: get(i18n).close,
 						onclick: () => micrio.state.tour.set(undefined)

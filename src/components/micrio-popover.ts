@@ -62,7 +62,7 @@ dialog.article h2{text-align:center}`;
 		this.#dialog.replaceChildren();
 		this.#dialog.classList.remove('article');
 
-		const closeBtn = document.createElement('micrio-button') as any;
+		const closeBtn = document.createElement('micrio-button') as MicrioElement;
 		closeBtn.setProps({
 			type: 'close', title: $i18n.close, className: 'close',
 			onclick: () => {
@@ -91,7 +91,7 @@ dialog.article h2{text-align:center}`;
 		}
 
 		if ('marker' in p && p.marker) {
-			const mc = document.createElement('micrio-marker-content') as any;
+			const mc = document.createElement('micrio-marker-content') as MicrioElement;
 			mc.setProps({ marker: p.marker });
 			this.#dialog.appendChild(mc);
 		}

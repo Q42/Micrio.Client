@@ -114,7 +114,7 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		const existing = this.#detailsEl.querySelector(':scope > micrio-button');
 		if (this.#detailsEl.open) {
 			if (existing) return;
-			const closeBtn = document.createElement('micrio-button') as any;
+			const closeBtn = document.createElement('micrio-button') as MicrioElement;
 			closeBtn.setProps({
 				type: 'close', title: get(i18n).close, className: 'close',
 				onclick: () => { this.#detailsEl.open = false; }

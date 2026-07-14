@@ -152,7 +152,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 
 		// Controls
 		if (p.controls !== false && !isYoutube && !isVimeo) {
-			const ctrlEl = document.createElement('micrio-media-controls') as any;
+			const ctrlEl = document.createElement('micrio-media-controls') as MicrioElement;
 
 			const onplaypause = () => {
 				const el = this.#videoEl;
@@ -239,7 +239,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			const overlay = document.createElement('div');
 			overlay.className = 'overlay';
 			if (!p.autoplay || p.paused) overlay.classList.add('hidden');
-			const playBtn = document.createElement('micrio-button') as any;
+			const playBtn = document.createElement('micrio-button') as MicrioElement;
 			playBtn.setProps({ type: 'play', noClick: true });
 			overlay.appendChild(playBtn);
 			overlay.addEventListener('click', () => {
@@ -258,7 +258,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 	}
 
 	#updateControls() {
-		const controlsEl = this.querySelector('micrio-media-controls') as any;
+		const controlsEl = this.querySelector('micrio-media-controls') as MicrioElement;
 		if (controlsEl) {
 			controlsEl.setProps({
 				currentTime: this.#currentTime,

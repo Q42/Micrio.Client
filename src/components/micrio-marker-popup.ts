@@ -143,7 +143,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		const aside = document.createElement('aside');
 
 		if (!data.alwaysOpen) {
-			const btn = document.createElement('micrio-button') as any;
+			const btn = document.createElement('micrio-button') as MicrioElement;
 			btn.setProps({
 				type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'arrow-right',
 				title: (!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext,
@@ -154,7 +154,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		}
 
 		if (canMinimize) {
-			const btn = document.createElement('micrio-button') as any;
+			const btn = document.createElement('micrio-button') as MicrioElement;
 			btn.setProps({
 				type: this.#isMinimized ? 'arrow-up' : 'arrow-down',
 				title: $i18n.minimize,
@@ -170,10 +170,10 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 			prog.className = 'progress';
 			aside.appendChild(prog);
 
-			const group = document.createElement('micrio-button-group') as any;
+			const group = document.createElement('micrio-button-group') as MicrioElement;
 			group.setProps?.({ className: 'micrio-tour-controls' });
 
-			const prevBtn = document.createElement('micrio-button') as any;
+			const prevBtn = document.createElement('micrio-button') as MicrioElement;
 			prevBtn.setProps({
 				type: 'arrow-left',
 				disabled: this.#clickedPrevNext || currentTourStep == 0,
@@ -190,7 +190,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 				group.appendChild(stepBtn);
 			}
 
-			const nextBtn = document.createElement('micrio-button') as any;
+			const nextBtn = document.createElement('micrio-button') as MicrioElement;
 			nextBtn.setProps({
 				type: 'arrow-right',
 				disabled: this.#clickedPrevNext || isLastStep,
@@ -203,7 +203,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 
 		div.appendChild(aside);
 
-		const content = document.createElement('micrio-marker-content') as any;
+		const content = document.createElement('micrio-marker-content') as MicrioElement;
 		content.setProps({ marker, onclose: close });
 		div.appendChild(content);
 

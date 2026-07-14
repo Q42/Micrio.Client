@@ -9,7 +9,7 @@ import { DataLoader } from '$ts/utils/dataLoader';
 import './micrio-icon';
 import './micrio-button';
 import './micrio-button-group';
-import './micrio-progress-circle';
+import { MicrioProgressCircle } from './micrio-progress-circle';
 import './micrio-progress-bar';
 import './micrio-logo';
 import './micrio-article';
@@ -186,7 +186,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			const existing = this.#elements.get('subtitles');
 			if (s) {
 				existing?.remove();
-				const sub = document.createElement('micrio-subtitles') as any;
+				const sub = document.createElement('micrio-subtitles') as MicrioElement;
 				sub.setProps({ src: s, raised: false });
 				this.#elements.set('subtitles', sub);
 				this.#place('subtitles', sub);
@@ -272,7 +272,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				this.#elements.set('markers', null);
 				this.#lastMarkerIds = ids;
 				for (const img of $visible) {
-					const el = document.createElement('micrio-markers') as any;
+					const el = document.createElement('micrio-markers') as MicrioElement;
 					el.setProps({ image: img });
 					const before = this.#getBefore('markers');
 					if (before) this.insertBefore(el, before);
@@ -287,49 +287,49 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		}
 
 		this.#show('controls', showControls, () => {
-			const el = document.createElement('micrio-controls') as any;
+			const el = document.createElement('micrio-controls') as MicrioElement;
 			el.setProps({ hasAudio: hasAudio || !!(videoSrc && video && !video.muted) });
 			return el;
 		});
 
 		this.#show('orgLogo', showOrgLogo && !!this.#logoOrg, () => {
-			const el = document.createElement('micrio-logo-org') as any;
+			const el = document.createElement('micrio-logo-org') as MicrioElement;
 			el.setProps({ organisation: this.#logoOrg! });
 			return el;
 		});
 
 		this.#show('details', showDetails && !!this.#info && !!this.#data, () => {
-			const el = document.createElement('micrio-details') as any;
+			const el = document.createElement('micrio-details') as MicrioElement;
 			el.setProps({ info: get(this.#info!), data: get(this.#data!) });
 			return el;
 		});
 
 		this.#show('popup', !!$markerPopup, () => {
-			const el = document.createElement('micrio-marker-popup') as any;
+			const el = document.createElement('micrio-marker-popup') as MicrioElement;
 			el.setProps({ marker: $markerPopup! });
 			return el;
 		});
 
 		this.#show('tour', !!$tour, () => {
-			const el = document.createElement('micrio-tour') as any;
+			const el = document.createElement('micrio-tour') as MicrioElement;
 			el.setProps({ tour: $tour!, noHTML });
 			return el;
 		});
 
 		this.#show('popover', !!$popover, () => {
-			const el = document.createElement('micrio-popover') as any;
+			const el = document.createElement('micrio-popover') as MicrioElement;
 			el.setProps({ popover: $popover! });
 			return el;
 		});
 
 		this.#show('error', !!error, () => {
-			const el = document.createElement('micrio-error') as any;
+			const el = document.createElement('micrio-error') as MicrioElement;
 			el.setProps({ message: error! });
 			return el;
 		});
 
 		this.#show('progress', loadingProgress < 1, () => {
-			const el = document.createElement('micrio-progress-circle') as any;
+			const el = document.createElement('micrio-progress-circle') as MicrioProgressCircle;
 			el.setProgress(loadingProgress);
 			return el;
 		});

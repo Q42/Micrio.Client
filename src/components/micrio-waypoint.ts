@@ -141,7 +141,7 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 		this.classList.toggle('clicked', this.#clicked);
 
 		this.replaceChildren();
-		const btn = document.createElement('micrio-button') as any;
+		const btn = document.createElement('micrio-button') as MicrioElement;
 		btn.setProps({
 			type: icon ? undefined : 'arrow-up',
 			icon: icon || undefined,

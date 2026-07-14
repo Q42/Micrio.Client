@@ -85,17 +85,17 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 		const container = document.createElement('div');
 		container.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%';
 
-		this.#playBtn = document.createElement('micrio-button') as any;
+		this.#playBtn = document.createElement('micrio-button') as MicrioElement;
 		container.appendChild(this.#playBtn);
 
-		const muteBtn = document.createElement('micrio-button') as any;
+		const muteBtn = document.createElement('micrio-button') as MicrioElement;
 		muteBtn.setProps({
 			type: 'volume-up', title: get(i18n).audioMute,
 			onclick: this.#toggleMute
 		});
 		container.appendChild(muteBtn);
 
-		this.#progressBar = document.createElement('micrio-progress-bar') as any;
+		this.#progressBar = document.createElement('micrio-progress-bar') as MicrioElement;
 		container.appendChild(this.#progressBar);
 
 		this.appendChild(container);

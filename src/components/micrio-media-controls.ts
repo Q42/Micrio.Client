@@ -128,7 +128,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 			this.#wrapperEl.appendChild(container);
 
 			if (p.onclose) {
-				const closeBtn = document.createElement('micrio-button') as any;
+				const closeBtn = document.createElement('micrio-button') as MicrioElement;
 				closeBtn.className = 'ctrl-close';
 				closeBtn.setProps({ type: 'close', title: get(i18n).close, onclick: p.onclose });
 				this.#wrapperEl.appendChild(closeBtn);
@@ -152,7 +152,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 			});
 		}
 
-		const muteBtn = this.#wrapperEl.querySelector('.ctrl-mute') as any;
+		const muteBtn = this.#wrapperEl.querySelector('.ctrl-mute') as MicrioElement;
 		if (muteBtn && p.muted !== this.#prevMuted) {
 			this.#prevMuted = !!p.muted;
 			muteBtn.setProps({
@@ -163,7 +163,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 			});
 		}
 
-		const subBtn = this.#wrapperEl.querySelector('.ctrl-subtitles') as any;
+		const subBtn = this.#wrapperEl.querySelector('.ctrl-subtitles') as MicrioElement;
 		if (subBtn) {
 			subBtn.setProps({
 				type: $captionsEnabled ? 'subtitles' : 'subtitles-off',
@@ -173,7 +173,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 			});
 		}
 
-		const fsBtn = this.#wrapperEl.querySelector('.ctrl-fullscreen') as any;
+		const fsBtn = this.#wrapperEl.querySelector('.ctrl-fullscreen') as MicrioElement;
 		if (fsBtn) fsBtn.setProps({ el: p.fullscreenEl });
 
 		if (p.duration) {

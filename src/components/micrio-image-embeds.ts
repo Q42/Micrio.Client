@@ -19,7 +19,7 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 		const data = get(image.data);
 		if (data?.embeds) {
 			for (const embed of data.embeds) {
-				const el = document.createElement('micrio-embed') as any;
+				const el = document.createElement('micrio-embed') as MicrioElement;
 				el.setProps({ embed, image });
 				this.appendChild(el);
 			}
@@ -29,7 +29,7 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 			this.innerHTML = '';
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
-					const el = document.createElement('micrio-embed') as any;
+					const el = document.createElement('micrio-embed') as MicrioElement;
 					el.setProps({ embed, image });
 					this.appendChild(el);
 				}

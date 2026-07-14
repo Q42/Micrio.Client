@@ -230,7 +230,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (showMute) {
 			if (!this.#muteBtn?.isConnected) {
 				this.#muteBtn?.remove();
-				(this.#muteBtn as any) = document.createElement('micrio-button');
+				this.#muteBtn = document.createElement('micrio-button');
 				this.#muteBtn.className = 'ctrl-mute';
 				this.#aside1.prepend(this.#muteBtn);
 			}
@@ -258,7 +258,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 				this.#langMenu.appendChild(items);
 				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
 			}
-			const trigger = this.#langMenu.querySelector('.ctrl-lang-trigger') as any;
+			const trigger = this.#langMenu.querySelector('.ctrl-lang-trigger') as MicrioElement;
 			trigger?.setProps({ type: 'a11y', title: $i18n.switchLanguage });
 
 			const items = this.#langMenu.querySelector('.lang-items')!;
@@ -268,7 +268,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 				items.innerHTML = '';
 
 				for (const l of cultures) {
-					const b = document.createElement('micrio-button') as any;
+					const b = document.createElement('micrio-button') as MicrioElement;
 					b.setProps({
 						title: languageNames?.of(l) ?? l,
 						onclick: () => { this.#setLang(l); }
@@ -291,7 +291,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (hasSocial && !onlyFullscreen) {
 			if (!this.#shareBtn?.isConnected) {
 				this.#shareBtn?.remove();
-				(this.#shareBtn as any) = document.createElement('micrio-button');
+				this.#shareBtn = document.createElement('micrio-button');
 				this.#shareBtn.className = 'ctrl-share';
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
@@ -313,7 +313,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			if (zoomVisible) {
 				if (!this.#zoomGroup?.isConnected) {
 					this.#zoomGroup?.remove();
-					(this.#zoomGroup as any) = document.createElement('micrio-zoom-buttons');
+					this.#zoomGroup = document.createElement('micrio-zoom-buttons');
 					this.#zoomGroup.className = 'ctrl-zoom';
 					if (this.#fsGroup?.isConnected) this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);
 					else this.#group1.appendChild(this.#zoomGroup);
@@ -324,7 +324,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			if (hasFullscreen) {
 				if (!this.#fsGroup?.isConnected) {
 					this.#fsGroup?.remove();
-					(this.#fsGroup as any) = document.createElement('micrio-fullscreen');
+					this.#fsGroup = document.createElement('micrio-fullscreen');
 					this.#fsGroup.className = 'ctrl-fs';
 					this.#group1.appendChild(this.#fsGroup);
 				}
@@ -361,7 +361,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 				this.#aside3?.remove();
 				this.#aside3 = document.createElement('aside');
 				this.#aside3.className = 'grid-close';
-				const btn = document.createElement('micrio-button') as any;
+				const btn = document.createElement('micrio-button') as MicrioElement;
 				btn.setProps({ type: 'close', title: $i18n.close, onclick: this.#gridBack });
 				this.#aside3.appendChild(btn);
 				this.appendChild(this.#aside3);

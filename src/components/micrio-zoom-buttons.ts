@@ -34,9 +34,9 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 			const $i18n = get(i18n);
 
 			// Update or create zoom-in button
-			let btnIn = this.querySelector(':scope > .zb-zoom-in') as any;
+			let btnIn = this.querySelector(':scope > .zb-zoom-in') as MicrioElement;
 			if (!btnIn) {
-				btnIn = document.createElement('micrio-button');
+				btnIn = document.createElement('micrio-button') as MicrioElement;
 				btnIn.className = 'zb-zoom-in';
 				this.appendChild(btnIn);
 			}
@@ -51,9 +51,9 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 			});
 
 			// Update or create zoom-out button
-			let btnOut = this.querySelector(':scope > .zb-zoom-out') as any;
+			let btnOut = this.querySelector(':scope > .zb-zoom-out') as MicrioElement;
 			if (!btnOut) {
-				btnOut = document.createElement('micrio-button');
+				btnOut = document.createElement('micrio-button') as MicrioElement;
 				btnOut.className = 'zb-zoom-out';
 				this.appendChild(btnOut);
 			}

@@ -44,7 +44,7 @@ micrio-gallery>*{pointer-events:all}`;
 		const frames = omni.frames;
 
 		// Dial for rotation
-		const dial = document.createElement('micrio-dial') as any;
+		const dial = document.createElement('micrio-dial') as MicrioElement;
 		const onturn = (frame: number) => {
 			const idx = Math.round(frame) % frames;
 			if (image.swiper) (image.swiper as any).slideTo?.(idx);

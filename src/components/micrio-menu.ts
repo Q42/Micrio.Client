@@ -119,7 +119,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 			strong.textContent = cultureData?.title ?? '(Unknown)';
 			const icon = document.createElement('micrio-icon');
 			icon.setAttribute('name', menu.linkTargetBlank ? 'link-ext' : 'link');
-			(icon as any).style = 'opacity:.75';
+			icon.style.opacity = '.75';
 			strong.appendChild(icon);
 			a.appendChild(strong);
 			this.appendChild(a);

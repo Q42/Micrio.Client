@@ -88,7 +88,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 
 	#renderButton() {
 		this.replaceChildren();
-		const btn = document.createElement('micrio-button') as any;
+		const btn = document.createElement('micrio-button') as MicrioElement;
 		const $i18n = get(i18n);
 		btn.setProps({
 			type: this.#isActive ? 'minimize' : 'maximize',
