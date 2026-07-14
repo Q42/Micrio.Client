@@ -67,6 +67,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
+	#lastMarkerIds = '';
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'markers', 'controls',
@@ -264,11 +265,12 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		{
-			// Remove all existing marker elements
-			for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
-			this.#elements.set('markers', null);
-			if (showMarkers) {
-				const $visible = get(micrio.visible) as MicrioImage[];
+			const $visible = get(micrio.visible) as MicrioImage[];
+			const ids = $visible.map(i => i.id).join(',');
+			if (showMarkers && ids !== this.#lastMarkerIds) {
+				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
+				this.#elements.set('markers', null);
+				this.#lastMarkerIds = ids;
 				for (const img of $visible) {
 					const el = document.createElement('micrio-markers') as any;
 					el.setProps({ image: img });
@@ -277,6 +279,10 @@ export class MicrioMain extends MicrioElement<MainProps> {
 					else this.appendChild(el);
 					if (!this.#elements.get('markers')) this.#elements.set('markers', el);
 				}
+			} else if (!showMarkers) {
+				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
+				this.#elements.set('markers', null);
+				this.#lastMarkerIds = '';
 			}
 		}
 
