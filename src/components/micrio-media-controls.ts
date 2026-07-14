@@ -23,95 +23,70 @@ export interface MediaControlsProps {
 
 export class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	static tag = 'micrio-media-controls';
-	static styles = `micrio-media-controls{cursor:default;position:relative;display:flex;align-items:center;margin:0;background:var(--micrio-background)}
+	static styles = `micrio-media-controls{cursor:default;position:relative;margin:0;background:var(--micrio-background)}
+micrio-media-controls aside{display:flex;align-items:center}
 micrio-media-controls micrio-button{border-radius:0;margin:0;border:none}
 micrio-media-controls micrio-button:last-child{margin-right:16px}
 micrio-media-controls>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
 :fullscreen micrio-media-controls{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:430px;max-width:90vw;max-width:90cqw;border-radius:var(--micrio-border-radius)}
-micrio-media-controls svg{pointer-events:none;position:absolute;left:-1px;top:-1px;width:42px;height:42px;transform:rotateZ(-90deg)}
-micrio-media-controls circle{stroke-width:2;stroke:#fff;fill:transparent;stroke-dasharray:119.4 119.4;transition:stroke-dashoffset .25s linear;transform-origin:center center}`;
+micrio-media-controls circle{stroke-width:2;stroke:#fff;fill:transparent;stroke-dasharray:119.4 119.4;transition:stroke-dashoffset .25s linear;transform-origin:center center}
+micrio-media-controls svg.circle-progress{pointer-events:none;position:absolute;left:-1px;top:-1px;width:42px;height:42px;transform:rotateZ(-90deg)}
+micrio-media-controls .bar{height:4px;background:var(--micrio-color-hover);width:100%;cursor:pointer;position:relative}
+micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;height:100%;width:var(--progress,0%);background:var(--micrio-color)}`;
 
 	#props: MediaControlsProps = { paused: true, ended: false };
+	#asideEl!: HTMLElement;
+	#playBtn: any;
+	#progressEl!: HTMLElement;
+	#built = false;
+	#prevPaused = true;
+	#prevMuted = false;
+	#prevProgress = 0;
 
 	onMount() {
-		this.#render();
+		this.#build();
 	}
 
 	setProps(props: Partial<MediaControlsProps>) {
 		Object.assign(this.#props, props);
-		if (this.isConnected) this.#render();
+		if (this.isConnected) this.#build();
 	}
 
-	#render() {
+	#build() {
 		const p = this.#props;
-		const { currentTime = 0, duration = 0, minimal = false, paused, ended } = p;
-		const $i18n = get(i18n);
-		const $captionsEnabled = get(captionsEnabled);
+		if (!this.#built) {
+			this.#built = true;
 
-		this.replaceChildren();
+			this.#asideEl = document.createElement('aside');
+			this.#asideEl.addEventListener('click', e => e.stopPropagation());
+			this.#asideEl.addEventListener('keydown', e => e.stopPropagation());
+			this.appendChild(this.#asideEl);
 
-		const aside = document.createElement('aside');
-		aside.addEventListener('click', e => e.stopPropagation());
-		aside.addEventListener('keydown', e => e.stopPropagation());
+			this.#playBtn = document.createElement('micrio-button');
+			this.#asideEl.appendChild(this.#playBtn);
 
-		const playBtn = document.createElement('micrio-button') as any;
-		playBtn.setProps({
-			type: !paused ? 'pause' : 'play',
-			title: !paused ? $i18n.pause : $i18n.play,
-			onclick: p.onplaypause
-		});
-
-		if (minimal && currentTime !== undefined && currentTime > 0) {
-			const ns = 'http://www.w3.org/2000/svg';
-			const svg = document.createElementNS(ns, 'svg');
-			svg.setAttribute('height', '42');
-			svg.setAttribute('width', '42');
-			const circle = document.createElementNS(ns, 'circle');
-			circle.setAttribute('r', '19');
-			circle.setAttribute('cx', '21');
-			circle.setAttribute('cy', '21');
-			circle.setAttribute('stroke-dashoffset', String((1 - (currentTime / duration)) * 119.4));
-			svg.appendChild(circle);
-			playBtn.appendChild(svg);
-		}
-		aside.appendChild(playBtn);
-
-		if (!minimal) {
 			if (p.hasAudio) {
-				const muteBtn = document.createElement('micrio-button') as any;
-				muteBtn.setProps({
-					type: p.muted ? 'volume-off' : 'volume-up',
-					title: p.muted ? $i18n.audioUnmute : $i18n.audioMute,
-					disabled: p.seeking,
-					onclick: p.onmute
-				});
-				aside.appendChild(muteBtn);
+				const muteBtn = document.createElement('micrio-button');
+				muteBtn.className = 'ctrl-mute';
+				this.#asideEl.appendChild(muteBtn);
 			}
 
 			if (p.subtitles) {
-				const subBtn = document.createElement('micrio-button') as any;
-				subBtn.setProps({
-					type: $captionsEnabled ? 'subtitles' : 'subtitles-off',
-					active: $captionsEnabled,
-					title: $i18n.subtitlesToggle,
-					onclick: () => captionsEnabled.set(!$captionsEnabled)
-				});
-				aside.appendChild(subBtn);
+				const subBtn = document.createElement('micrio-button');
+				subBtn.className = 'ctrl-subtitles';
+				this.#asideEl.appendChild(subBtn);
 			}
 
 			if (p.fullscreenEl) {
-				const fs = document.createElement('micrio-fullscreen') as any;
-				fs.setProps({ el: p.fullscreenEl });
-				aside.appendChild(fs);
+				const fs = document.createElement('micrio-fullscreen');
+				fs.className = 'ctrl-fullscreen';
+				this.#asideEl.appendChild(fs);
 			}
-		}
 
-		this.appendChild(aside);
-
-		if (!minimal) {
 			const bar = document.createElement('div');
 			bar.className = 'bar active';
-			bar.style.setProperty('--progress', `${((currentTime ?? 0) / duration) * 100}%`);
+			this.#progressEl = bar;
+
 			const dStart = (e: MouseEvent) => {
 				if (e.button != 0) return;
 				window.addEventListener('mousemove', dMove);
@@ -119,21 +94,66 @@ micrio-media-controls circle{stroke-width:2;stroke:#fff;fill:transparent;stroke-
 				dMove(e);
 			};
 			const dMove = (e: MouseEvent) => {
-				const rect = bar.getClientRects()[0];
+				const rect = this.#progressEl.getClientRects()[0];
 				if (!rect) return;
 				const perc = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-				p.onseek?.(perc * duration);
+				this.#props.onseek?.(perc * this.#props.duration!);
 			};
 			const dStop = () => {
 				window.removeEventListener('mousemove', dMove);
 				window.removeEventListener('mouseup', dStop);
 			};
 			bar.addEventListener('mousedown', dStart);
+			this.appendChild(bar);
+		}
 
-			const progressBar = document.createElement('micrio-progress-bar') as any;
-			progressBar.setProps({ currentTime, duration, ended });
-			progressBar.appendChild(bar);
-			this.appendChild(progressBar);
+		this.#sync();
+	}
+
+	#sync() {
+		const p = this.#props;
+		const $i18n = get(i18n);
+		const $captionsEnabled = get(captionsEnabled);
+
+		if (p.paused !== this.#prevPaused) {
+			this.#prevPaused = p.paused;
+			this.#playBtn.setProps({
+				type: !p.paused ? 'pause' : 'play',
+				title: !p.paused ? $i18n.pause : $i18n.play,
+				onclick: p.onplaypause
+			});
+		}
+
+		const muteBtn = this.#asideEl.querySelector('.ctrl-mute') as any;
+		if (muteBtn && p.muted !== this.#prevMuted) {
+			this.#prevMuted = !!p.muted;
+			muteBtn.setProps({
+				type: p.muted ? 'volume-off' : 'volume-up',
+				title: p.muted ? $i18n.audioUnmute : $i18n.audioMute,
+				disabled: p.seeking,
+				onclick: p.onmute
+			});
+		}
+
+		const subBtn = this.#asideEl.querySelector('.ctrl-subtitles') as any;
+		if (subBtn) {
+			subBtn.setProps({
+				type: $captionsEnabled ? 'subtitles' : 'subtitles-off',
+				active: $captionsEnabled,
+				title: $i18n.subtitlesToggle,
+				onclick: () => captionsEnabled.set(!$captionsEnabled)
+			});
+		}
+
+		const fsBtn = this.#asideEl.querySelector('.ctrl-fullscreen') as any;
+		if (fsBtn) fsBtn.setProps({ el: p.fullscreenEl });
+
+		if (p.duration) {
+			const progress = ((p.currentTime ?? 0) / p.duration) * 100;
+			if (Math.abs(progress - this.#prevProgress) > 0.5) {
+				this.#prevProgress = progress;
+				this.#progressEl.style.setProperty('--progress', `${progress}%`);
+			}
 		}
 	}
 }

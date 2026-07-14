@@ -1,7 +1,6 @@
 import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
-import type { HTMLMicrioElement } from '$ts/element';
 import { VideoTourInstance } from '$ts/media/videotour';
 import './micrio-button';
 import './micrio-media-controls';
@@ -36,6 +35,7 @@ micrio-media figure.hidden{display:none}
 micrio-media figure video,micrio-media figure audio{width:100%;display:block}
 micrio-media figure figcaption{padding:5px 10px;font-size:.85em;opacity:.7;text-align:center;background:var(--micrio-background)}
 micrio-media figure iframe{width:100%;height:100%;border:none;display:block}
+micrio-media figure.videotour{position:fixed;bottom:var(--micrio-border-margin);left:50%;transform:translateX(-50%);width:500px;max-width:90vw;display:flex;flex-direction:column;background:var(--micrio-button-background,var(--micrio-background,none));border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);margin:0;padding:0;z-index:5}
 micrio-media figure .overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1;background:rgba(0,0,0,.3);transition:opacity .3s ease}
 micrio-media figure .overlay.hidden{opacity:0;pointer-events:none}
 micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-icon-size:40px;--micrio-border-radius:100%;--micrio-button-background:rgba(0,0,0,.6);--micrio-button-shadow:none;--micrio-background-filter:none;pointer-events:none}`;
@@ -68,11 +68,13 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		const isYoutube = src ? YOUTUBE_RE.test(src) : false;
 		const isVimeo = src ? VIMEO_RE.test(src) : false;
 		const isAudio = src ? src.includes('.mp3') || src.includes('.ogg') || src.includes('.wav') || src.includes('audio/') : false;
+		const isTourOnly = !src && !!p.tour && !!p.image;
 		this.replaceChildren();
 
 		const figure = document.createElement('figure');
 		figure.className = p.className ?? '';
 		if (p.className?.includes('hidden')) figure.classList.add('hidden');
+		if (isTourOnly) figure.classList.add('videotour');
 
 		if (p.is360) figure.style.setProperty('--micrio-background', 'transparent');
 
@@ -92,7 +94,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			iframe.setAttribute('allow', 'autoplay; fullscreen');
 			iframe.setAttribute('allowfullscreen', '');
 			figure.appendChild(iframe);
-		} else if (isAudio) {
+		} else if (!isTourOnly && isAudio) {
 			const audio = document.createElement('audio');
 			audio.src = src!;
 			audio.controls = !!p.controls;
@@ -102,7 +104,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			figure.appendChild(audio);
 			this.#videoEl = audio;
 			this.#wireEvents(audio);
-		} else {
+		} else if (!isTourOnly) {
 			const video = document.createElement('video');
 			video.src = src!;
 			video.controls = !!p.controls;
@@ -125,17 +127,41 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 
 		this.appendChild(figure);
 
+		// Tour instance
+		if (p.tour && p.image && (this.#videoEl || isTourOnly)) {
+			this.#tourInstance = new VideoTourInstance(p.image, p.tour);
+			if (isTourOnly) {
+				this.#duration = this.#tourInstance.duration;
+				const ival = setInterval(() => {
+					this.#currentTime = this.#tourInstance!.currentTime;
+					this.#duration = this.#tourInstance!.duration;
+					this.#paused = this.#tourInstance!.paused;
+					this.#ended = this.#tourInstance!.ended;
+					this.#updateControls();
+					if (this.#ended) p.onended?.();
+				}, 250);
+				this.#unsubs.push(() => clearInterval(ival));
+				if (p.autoplay) this.#tourInstance.play();
+			} else {
+				const start = () => this.#tourInstance?.play();
+				this.#videoEl?.addEventListener('play', start, { once: true });
+				if (!this.#videoEl?.paused) start();
+			}
+		}
+
 		// Controls
 		if (p.controls !== false && !isYoutube && !isVimeo) {
 			const ctrlEl = document.createElement('micrio-media-controls') as any;
-			const micrio = this.inject<HTMLMicrioElement>('micrio');
-			void micrio;
 
 			const onplaypause = () => {
 				const el = this.#videoEl;
-				if (!el) return;
-				if (el.paused) el.play().catch(() => { });
-				else el.pause();
+				if (el) {
+					if (el.paused) el.play().catch(() => { });
+					else el.pause();
+				} else if (this.#tourInstance) {
+					if (this.#tourInstance.paused) this.#tourInstance.play();
+					else this.#tourInstance.pause();
+				}
 			};
 
 			const onmute = () => {
@@ -148,19 +174,25 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 
 			const onseek = (n: number) => {
 				const el = this.#videoEl;
-				if (!el) return;
-				el.currentTime = n;
+				if (el) {
+					el.currentTime = n;
+				} else if (this.#tourInstance) {
+					this.#tourInstance.currentTime = n;
+				}
 			};
 
 			const update = () => {
 				const el = this.#videoEl;
-				if (!el) return;
-				this.#currentTime = el.currentTime;
-				this.#duration = el.duration || 0;
-				this.#paused = el.paused;
-				this.#ended = el.ended || false;
-				this.#seeking = el.seeking;
-				this.#muted = el.muted;
+				if (el) {
+					this.#currentTime = el.currentTime;
+					this.#duration = el.duration || 0;
+					this.#paused = el.paused;
+					this.#ended = el.ended || false;
+					this.#seeking = el.seeking;
+					this.#muted = el.muted;
+				} else if (this.#tourInstance) {
+					return; // tour-only uses its own interval
+				} else return;
 				ctrlEl.setProps({
 					currentTime: this.#currentTime,
 					duration: this.#duration,
@@ -199,8 +231,8 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			}
 		}
 
-		// Play overlay
-		if (!p.noPlayOverlay && !isYoutube && !isVimeo) {
+		// Play overlay (not for tour-only)
+		if (!p.noPlayOverlay && !isYoutube && !isVimeo && !isTourOnly) {
 			const overlay = document.createElement('div');
 			overlay.className = 'overlay';
 			if (!p.autoplay || p.paused) overlay.classList.add('hidden');
@@ -212,11 +244,6 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				if (el) { el.play().catch(() => { }); overlay.classList.add('hidden'); }
 			});
 			figure.appendChild(overlay);
-		}
-
-		// Tour instance
-		if (p.tour && this.#videoEl) {
-			this.#tourInstance = new VideoTourInstance(p.image!, p.tour);
 		}
 	}
 

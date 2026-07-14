@@ -34,10 +34,11 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 
 		if (isVideoTour) {
 			const vt = tour as Models.ImageData.VideoTour;
-			const src = (vt as any).i18n?.[get(micrio._lang)]?.src;
-			if (src) {
+			const image = micrio.$current;
+			if (image) {
+				const audio = (vt as any).i18n?.[get(micrio._lang)]?.audio;
 				const media = document.createElement('micrio-media') as any;
-				media.setProps({ src, tour: vt, controls: true, autoplay: true });
+				media.setProps({ src: audio?.src, image, tour: vt, controls: true, autoplay: true });
 				this.appendChild(media);
 			}
 			micrio.setAttribute('data-tour-active', '');
@@ -109,7 +110,6 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				this.appendChild(div);
 			};
 
-			// Track marker state to update step counter
 			this.#unsubs.push(micrio.state.marker.subscribe(m => {
 				if (!m) return;
 				const id = typeof m == 'string' ? m : m.id;
