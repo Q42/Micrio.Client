@@ -68,40 +68,49 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
 
-	// Section containers — built once, toggled via display
-	#sec = {
-		audio: this.#makeSec('audio'),
-		media: this.#makeSec('media'),
-		logo: this.#makeSec('logo'),
-		toolbar: this.#makeSec('toolbar'),
-		markers: this.#makeSec('markers'),
-		controls: this.#makeSec('controls'),
-		orgLogo: this.#makeSec('orgLogo'),
-		details: this.#makeSec('details'),
-		popup: this.#makeSec('popup'),
-		tour: this.#makeSec('tour'),
-		popover: this.#makeSec('popover'),
-		subtitles: this.#makeSec('subtitles'),
-		error: this.#makeSec('error'),
-		progress: this.#makeSec('progress'),
-	};
+	#layers = [
+		'audio', 'media', 'logo', 'toolbar', 'markers', 'controls',
+		'orgLogo', 'details', 'popup', 'tour', 'popover', 'subtitles',
+		'error', 'progress'
+	];
 
-	#makeSec(id: string): HTMLElement {
-		const el = document.createElement('section');
-		el.id = `ms-${id}`;
-		el.style.display = 'none';
-		return el;
+	#elements = new Map<string, HTMLElement | null>();
+
+	#getBefore(key: string): Node | null {
+		const idx = this.#layers.indexOf(key);
+		for (let i = idx + 1; i < this.#layers.length; i++) {
+			const el = this.#elements.get(this.#layers[i]);
+			if (el?.isConnected) return el;
+		}
+		return null;
+	}
+
+	#place(key: string, el: HTMLElement) {
+		if (el.isConnected) return;
+		const before = this.#getBefore(key);
+		if (before) this.insertBefore(el, before);
+		else this.appendChild(el);
+	}
+
+	#show(key: string, condition: boolean, build: () => HTMLElement) {
+		const existing = this.#elements.get(key);
+		if (condition) {
+			if (existing?.isConnected) {
+				existing.style.display = '';
+				return;
+			}
+			existing?.remove();
+			const el = build();
+			this.#elements.set(key, el);
+			this.#place(key, el);
+		} else if (existing?.isConnected) {
+			existing.style.display = 'none';
+		}
 	}
 
 	onMount() {
 		const micrio = this.#props.micrio;
 		if (!micrio) return;
-
-		// Append all section containers once
-		const secMap = this.#sec as Record<string, HTMLElement>;
-		for (const key of Object.keys(secMap)) {
-			this.appendChild(secMap[key]);
-		}
 
 		this.provide('micrio', micrio);
 		this.provide('markerImages', new Map<string, MicrioImage>());
@@ -170,17 +179,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#queueSync();
 		}));
 
-		let subsRaised = false;
 		srt.subscribe(s => setTimeout(() => {
-			const el = this.#sec.subtitles;
-			el.innerHTML = '';
+			const existing = this.#elements.get('subtitles');
 			if (s) {
+				existing?.remove();
 				const sub = document.createElement('micrio-subtitles') as any;
-				sub.setProps({ src: s, raised: subsRaised });
-				el.appendChild(sub);
-				el.style.display = '';
-			} else {
-				el.style.display = 'none';
+				sub.setProps({ src: s, raised: false });
+				this.#elements.set('subtitles', sub);
+				this.#place('subtitles', sub);
+			} else if (existing?.isConnected) {
+				existing.style.display = 'none';
 			}
 		}, 20));
 
@@ -234,54 +242,62 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const showDetails = !noHTML && !hasTourOrMarker && ($settings as any)?.showInfo;
 		const showToolbar = !noHTML && this.#firstInited && !($settings as any)?.noToolbar;
 
-		this.#show('audio', hasAudio && !!$data && !!$info, () => {
-			this.#sec.audio.appendChild(document.createElement('micrio-audio-controller'));
-		});
+		this.#show('audio', hasAudio && !!$data && !!$info, () =>
+			document.createElement('micrio-audio-controller')
+		);
 
 		this.#show('media', !!videoSrc && !!$info, () => {
-			// TODO: micrio-media for 360 video
+			return document.createElement('div');
 		});
 
-		this.#show('logo', showLogo, () => {
-			this.#sec.logo.appendChild(document.createElement('micrio-logo'));
-		});
+		this.#show('logo', showLogo, () =>
+			document.createElement('micrio-logo')
+		);
 
-		this.#show('toolbar', showToolbar, () => {
-			this.#sec.toolbar.appendChild(document.createElement('micrio-toolbar'));
-		});
+		this.#show('toolbar', showToolbar, () =>
+			document.createElement('micrio-toolbar')
+		);
 
-		if (showMarkers) {
-			const hasChildren = !!this.#sec.markers.children.length;
-			if (!hasChildren) {
-				const $visible = get(micrio.visible) as MicrioImage[];
-				for (const img of $visible) {
-					const el = document.createElement('micrio-markers') as any;
-					el.setProps({ image: img });
-					this.#sec.markers.appendChild(el);
+		{
+			let markersEl = this.#elements.get('markers');
+			if (showMarkers) {
+				if (!markersEl?.isConnected) {
+					markersEl?.remove();
+					markersEl = document.createElement('div');
+					this.#elements.set('markers', markersEl);
+					this.#place('markers', markersEl);
 				}
+				if (!markersEl.children.length) {
+					const $visible = get(micrio.visible) as MicrioImage[];
+					for (const img of $visible) {
+						const el = document.createElement('micrio-markers') as any;
+						el.setProps({ image: img });
+						markersEl.appendChild(el);
+					}
+				}
+				markersEl.style.display = '';
+			} else if (markersEl?.isConnected) {
+				markersEl.innerHTML = '';
+				markersEl.style.display = 'none';
 			}
-			this.#sec.markers.style.display = '';
-		} else {
-			this.#sec.markers.innerHTML = '';
-			this.#sec.markers.style.display = 'none';
 		}
 
 		this.#show('controls', showControls, () => {
 			const el = document.createElement('micrio-controls') as any;
 			el.setProps({ hasAudio: hasAudio || !!(videoSrc && video && !video.muted) });
-			this.#sec.controls.appendChild(el);
+			return el;
 		});
 
 		this.#show('orgLogo', showOrgLogo && !!this.#logoOrg, () => {
 			const el = document.createElement('micrio-logo-org') as any;
 			el.setProps({ organisation: this.#logoOrg! });
-			this.#sec.orgLogo.appendChild(el);
+			return el;
 		});
 
 		this.#show('details', showDetails && !!this.#info && !!this.#data, () => {
 			const el = document.createElement('micrio-details') as any;
 			el.setProps({ info: get(this.#info!), data: get(this.#data!) });
-			this.#sec.details.appendChild(el);
+			return el;
 		});
 
 		const $markerPopup = get(micrio.state.popup);
@@ -290,46 +306,32 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#show('popup', !!$markerPopup, () => {
 			const el = document.createElement('micrio-marker-popup') as any;
 			el.setProps({ marker: $markerPopup! });
-			this.#sec.popup.appendChild(el);
+			return el;
 		});
 
 		this.#show('tour', !!$tour, () => {
 			const el = document.createElement('micrio-tour') as any;
 			el.setProps({ tour: $tour!, noHTML });
-			this.#sec.tour.appendChild(el);
+			return el;
 		});
 
 		this.#show('popover', !!$popover, () => {
 			const el = document.createElement('micrio-popover') as any;
 			el.setProps({ popover: $popover! });
-			this.#sec.popover.appendChild(el);
+			return el;
 		});
 
 		this.#show('error', !!error, () => {
 			const el = document.createElement('micrio-error') as any;
 			el.setProps({ message: error! });
-			this.#sec.error.appendChild(el);
+			return el;
 		});
 
 		this.#show('progress', loadingProgress < 1, () => {
 			const el = document.createElement('micrio-progress-circle') as any;
 			el.setProgress(loadingProgress);
-			this.#sec.progress.appendChild(el);
+			return el;
 		});
-	}
-
-	#show(key: string, condition: boolean, build: () => void) {
-		const sec = this.#sec as Record<string, HTMLElement>;
-		const el = sec[key];
-		if (condition) {
-			if (el.style.display === 'none' || el.children.length === 0) {
-				el.innerHTML = '';
-				build();
-				el.style.display = '';
-			}
-		} else {
-			el.style.display = 'none';
-		}
 	}
 
 	onDestroy() {
