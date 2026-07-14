@@ -15,19 +15,18 @@ export interface ControlsProps {
 export class MicrioControls extends MicrioElement<ControlsProps> {
 	static tag = 'micrio-controls';
 	static styles = `micrio-controls{position:absolute;right:var(--micrio-border-margin);bottom:var(--micrio-border-margin);padding:0;margin:0;transition:transform .25s ease,opacity .25s ease;direction:rtl;z-index:2}
-micrio-controls.hidden{transform:translateX(calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
+micrio-controls.hidden:not(:hover){transform:translateX(calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
 micrio-controls .primary:not(.portrait){right:calc(50% + var(--micrio-border-margin))}
 micrio-controls .primary.portrait{bottom:calc(50% + var(--micrio-border-margin))}
 micrio-controls .grid-close{top:var(--micrio-border-margin);bottom:auto;position:absolute;right:0}
 micr-io[data-switching]>micrio-controls,micr-io[data-tour-active]>micrio-controls{opacity:0;pointer-events:none}
 micrio-controls>micrio-button,micrio-controls>menu{padding:0;margin:8px 0;display:block;width:var(--micrio-button-size)}
-micrio-controls menu.popout{padding:0;width:var(--micrio-button-size);height:var(--micrio-button-size);white-space:pre;direction:rtl;pointer-events:none;box-shadow:var(--micrio-button-shadow);border-radius:var(--micrio-border-radius);backdrop-filter:var(--micrio-background-filter)}
-micrio-controls menu.popout:focus-within{pointer-events:all}
-micrio-controls menu.popout micrio-button{pointer-events:all;transition:border-radius .2s ease,opacity .2s ease;--micrio-button-shadow:none;--micrio-background-filter:none}
-micrio-controls menu.popout:hover>micrio-button:first-child{border-radius:0 var(--micrio-border-radius) var(--micrio-border-radius) 0}
-micrio-controls menu.popout>micrio-button:not(:first-child){display:inline-block;padding:0;transition:opacity .2s ease;border-radius:0}
-micrio-controls menu.popout>micrio-button:last-child{border-radius:var(--micrio-border-radius) 0 0 var(--micrio-border-radius)}
-micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){pointer-events:none;opacity:0}`;
+micrio-controls menu.ctrl-lang{position:relative;padding:0;margin:8px 0;width:var(--micrio-button-size);min-height:var(--micrio-button-size)}
+micrio-controls .lang-items{position:absolute;right:100%;top:0;display:none;flex-direction:row;background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);overflow:hidden;white-space:nowrap}
+micrio-controls menu.ctrl-lang:hover .lang-items,micrio-controls menu.ctrl-lang:focus-within .lang-items{display:flex}
+micrio-controls .lang-items micrio-button{--micrio-button-shadow:none;--micrio-background-filter:none}
+micrio-controls .lang-items .micrio-button{padding:0}
+micrio-controls .lang-items .micrio-button>span{width:var(--micrio-button-size)}`;
 
 	#props: ControlsProps = {};
 	#unsubs: (() => void)[] = [];
@@ -40,6 +39,7 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 	#gridFocussed: MicrioImage | undefined;
 	#gridClickable: 'focus' | 'zoom' | false = false;
 	#grid: any = undefined;
+	#lastCultures = '';
 
 	#aside1!: HTMLElement;
 	#muteBtn: any;
@@ -57,7 +57,7 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 
 		const { state: micrioState, isMuted, _lang } = micrio;
 		const { tour, popup } = micrioState;
-		const { controls, zoom, hidden, hover } = micrio.state.ui;
+		const { controls, zoom, hidden } = micrio.state.ui;
 
 		const share = () => {
 			if (navigator.share && micrio.$current?.$info) {
@@ -125,7 +125,6 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 			}
 		}));
 
-		this.#unsubs.push(hover.subscribe(() => this.#sync()));
 		this.#unsubs.push(hidden.subscribe(() => this.#sync()));
 		this.#unsubs.push(controls.subscribe(() => this.#sync()));
 		this.#unsubs.push(zoom.subscribe(() => this.#sync()));
@@ -191,7 +190,6 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 		const $_lang = get(micrio._lang);
 		const $controls = get(micrio.state.ui.controls);
 		const $hidden = get(micrio.state.ui.hidden);
-		const $hover = get(micrio.state.ui.hover);
 		const $zoom = get(micrio.state.ui.zoom);
 		const $popup = get(micrio.state.popup);
 		const $tour = get(micrio.state.tour);
@@ -208,7 +206,7 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 		const onlyFullscreen = hasFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current.grid.panZoom == 'cells';
 
-		this.classList.toggle('hidden', $hidden && !$hover);
+		this.classList.toggle('hidden', !!$hidden);
 
 		if (!hasControls) {
 			this.#aside1.replaceChildren();
@@ -239,28 +237,35 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 			if (!this.#langMenu?.isConnected) {
 				this.#langMenu?.remove();
 				this.#langMenu = document.createElement('menu');
-				this.#langMenu.className = 'popout ctrl-lang';
+				this.#langMenu.className = 'ctrl-lang';
 				this.#langMenu.setAttribute('tabindex', '0');
 				const trigger = document.createElement('micrio-button');
 				trigger.className = 'ctrl-lang-trigger';
 				this.#langMenu.appendChild(trigger);
+				const items = document.createElement('div');
+				items.className = 'lang-items';
+				this.#langMenu.appendChild(items);
 				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
 			}
 			const trigger = this.#langMenu.querySelector('.ctrl-lang-trigger') as any;
 			trigger?.setProps({ type: 'a11y', title: $i18n.switchLanguage });
 
-			const existing = this.#langMenu.querySelectorAll(':scope > micrio-button:not(.ctrl-lang-trigger)');
-			existing.forEach(el => el.remove());
+			const items = this.#langMenu.querySelector('.lang-items')!;
+			const culturesKey = cultures.join(',');
+			if (culturesKey !== this.#lastCultures) {
+				this.#lastCultures = culturesKey;
+				items.innerHTML = '';
 
-			for (const l of cultures) {
-				const b = document.createElement('micrio-button') as any;
-				b.setProps({
-					title: languageNames?.of(l) ?? l,
-					active: l === $_lang,
-					onclick: () => { (this as any).__setLang(l); }
-				});
-				b.appendChild(document.createTextNode(l.toUpperCase()));
-				this.#langMenu.appendChild(b);
+				for (const l of cultures) {
+					const b = document.createElement('micrio-button') as any;
+					b.setProps({
+						title: languageNames?.of(l) ?? l,
+						active: l === $_lang,
+						onclick: () => { (this as any).__setLang(l); }
+					});
+					b.appendChild(document.createTextNode(l.toUpperCase()));
+					items.appendChild(b);
+				}
 			}
 		} else if (this.#langMenu?.isConnected) {
 			this.#langMenu.remove();
