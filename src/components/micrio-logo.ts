@@ -43,9 +43,6 @@ micrio-logo a.loading::after{animation:micrio-logo-spin .5s infinite ease-out}
 				}, 750);
 			}
 		}));
-
-		this.#unsubs.push(micrio.state.tour.subscribe(() => this.#updateVisibility()));
-		this.#unsubs.push(micrio.state.marker.subscribe(() => this.#updateVisibility()));
 	}
 
 	onDestroy() {
@@ -56,13 +53,6 @@ micrio-logo a.loading::after{animation:micrio-logo-spin .5s infinite ease-out}
 
 	#updateClass() {
 		if (this.#a) this.#a.classList.toggle('loading', this.#loading);
-	}
-
-	#updateVisibility() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
-		if (!micrio) return;
-		const hidden = !!micrio.state.$tour || !!micrio.state.$marker;
-		this.style.display = hidden ? 'none' : '';
 	}
 }
 

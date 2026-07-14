@@ -1,7 +1,6 @@
 import { MicrioElement } from '$ts/component';
 import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
-import { get } from '$ts/store';
 
 function getLogoSrc(img: Models.Assets.Image | string): string {
 	if (typeof img == 'string') return img;
@@ -28,22 +27,12 @@ micrio-logo-org img{max-height:64px;display:block}`;
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio) return;
-		this.#unsubs.push(micrio.state.tour.subscribe(() => this.#update()));
-		this.#unsubs.push(micrio.state.marker.subscribe(() => this.#update()));
-		this.#unsubs.push(micrio.state.popover.subscribe(() => this.#update()));
 		this.#render();
 	}
 
 	setProps(props: Partial<LogoOrgProps>) {
 		if (props.organisation !== undefined) this.#props.organisation = props.organisation;
 		if (this.isConnected) this.#render();
-	}
-
-	#update() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
-		if (!micrio) return;
-		const hidden = !!get(micrio.state.tour) || !!get(micrio.state.marker) || !!get(micrio.state.popover);
-		this.style.display = hidden ? 'none' : '';
 	}
 
 	#render() {

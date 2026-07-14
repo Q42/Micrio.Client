@@ -221,6 +221,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		const $tour = get(micrio.state.tour);
 		const $marker = get(micrio.state.marker);
+		const $markerPopup = get(micrio.state.popup);
+		const $popover = get(micrio.state.popover);
 		const $info = this.#info ? get(this.#info) : undefined;
 		const $settings = (this.#settings ? get(this.#settings) : undefined) as Models.ImageInfo.Settings | undefined;
 		const $data = this.#data ? get(this.#data) : undefined;
@@ -236,8 +238,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const hasTourOrMarker = $tour || $marker;
 
 		const showMarkers = !noHTML || (micrio.getAttribute('data-ui') == 'markers');
-		const showLogo = !noLogo && (!$info || !noHTML) && !($settings as any)?.noLogo;
-		const showOrgLogo = !noHTML && showLogo && !($settings as any)?.noOrgLogo && !!this.#logoOrg;
+		const showLogo = !noLogo && (!$info || !noHTML) && !($settings as any)?.noLogo && !$tour && !$marker && !$markerPopup;
+		const showOrgLogo = !noHTML && showLogo && !($settings as any)?.noOrgLogo && !!this.#logoOrg && !$popover;
 		const showControls = !noHTML && !!$info;
 		const showDetails = !noHTML && !hasTourOrMarker && ($settings as any)?.showInfo;
 		const showToolbar = !noHTML && this.#firstInited && !($settings as any)?.noToolbar;
@@ -299,9 +301,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			el.setProps({ info: get(this.#info!), data: get(this.#data!) });
 			return el;
 		});
-
-		const $markerPopup = get(micrio.state.popup);
-		const $popover = get(micrio.state.popover);
 
 		this.#show('popup', !!$markerPopup, () => {
 			const el = document.createElement('micrio-marker-popup') as any;
