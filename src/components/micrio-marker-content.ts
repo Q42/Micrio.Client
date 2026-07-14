@@ -62,6 +62,9 @@ micrio-marker-content section figcaption{display:none}
 		if (!micrio || !image) return;
 
 		const $_lang = get(micrio._lang);
+		const key = `${marker.id}::${$_lang}::${noEmbed}::${noImages}::${noGallery}`;
+		if (!this.checkRenderKey(key)) return;
+
 		const $tour = get(micrio.state.tour);
 		const isSerialTour = $tour && 'steps' in $tour && ($tour as any).isSerialTour;
 		const settings = image.$settings._markers ?? {};

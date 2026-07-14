@@ -1,4 +1,5 @@
-import type { Readable } from './store';
+import type { Readable, Subscriber } from './store';
+import { lazy } from './store';
 
 const PROVIDES = Symbol('micrio-provides');
 
@@ -13,6 +14,7 @@ export abstract class MicrioElement<P = {}> extends HTMLElement {
 	_props: Partial<P> = {};
 
 	#_unsubs: (() => void)[] = [];
+	#_renderKey: string | null = null;
 
 	connectedCallback(): void {
 		this._injectStyles();
@@ -36,11 +38,47 @@ export abstract class MicrioElement<P = {}> extends HTMLElement {
 		this.onPropsChange?.();
 	}
 
+	/**
+	 * Call at the start of render(). If `key` matches the last render,
+	 * the render is skipped and `syncDisplay()` is called instead.
+	 * Returns `true` if the render should proceed, `false` if skipped.
+	 */
+	protected checkRenderKey(key: string): boolean {
+		if (key === this.#_renderKey) {
+			this.syncDisplay?.();
+			return false;
+		}
+		this.#_renderKey = key;
+		return true;
+	}
+
+	/**
+	 * Called when a render was skipped due to unchanged key.
+	 * Use for lightweight CSS-only updates (toggling classes, CSS vars)
+	 * that should still apply even when the DOM structure doesn't change.
+	 */
+	protected syncDisplay?(): void;
+
 	// ─── Store helpers ────────────────────────────────────────────
 
 	protected watch<T>(store: Readable<T>, fn: (value: T) => void): void {
 		const unsub = store.subscribe(fn);
 		this.#_unsubs.push(unsub);
+	}
+
+	/** Subscribe but skip the very first emission (useful when onMount already sets initial state) */
+	protected watchLater<T>(store: Readable<T>, fn: (value: T) => void): void {
+		let first = true;
+		const unsub = store.subscribe(v => {
+			if (first) { first = false; return; }
+			fn(v);
+		});
+		this.#_unsubs.push(unsub);
+	}
+
+	/** Subscribe with microtask-level coalescing, skipping the initial emission */
+	protected watchLazy<T>(store: Readable<T>, fn: (value: T) => void): void {
+		this.watchWith(store, lazy(fn));
 	}
 
 	protected watchOnce<T>(store: Readable<T>, fn: (value: T) => void): void {
@@ -49,6 +87,12 @@ export abstract class MicrioElement<P = {}> extends HTMLElement {
 			fn(v);
 			unsub?.();
 		});
+		this.#_unsubs.push(unsub);
+	}
+
+	/** Subscribe with a pre-built subscriber wrapper (for use with defer, skipFirst, etc.) */
+	protected watchWith<T>(store: Readable<T>, fn: Subscriber<T>): void {
+		const unsub = store.subscribe(fn);
 		this.#_unsubs.push(unsub);
 	}
 

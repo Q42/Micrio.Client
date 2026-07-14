@@ -106,10 +106,10 @@ micrio-markers.is360.inactive{opacity:0}`;
 			}
 		};
 
-		this.#unsubs.push(image.data.subscribe(rebuild));
-		this.#unsubs.push(switching.subscribe(rebuild));
-		if (micrioState.tour) this.#unsubs.push(micrioState.tour.subscribe(rebuild));
-		this.#unsubs.push(micrio._lang.subscribe(rebuild));
+		this.watchLater(image.data, rebuild);
+		this.watchLater(switching, rebuild);
+		if (micrioState.tour) this.watchLater(micrioState.tour, rebuild);
+		this.watchLazy(micrio._lang, rebuild);
 
 		if (image.is360) this.classList.add('is360');
 

@@ -54,6 +54,11 @@ dialog.article h2{text-align:center}`;
 		const $_lang = get(micrio._lang);
 		const $i18n = get(i18n);
 
+		const pageId = 'contentPage' in p ? (p.contentPage as any)?.id : '';
+		const markerId = 'marker' in p ? (p.marker as any)?.id : '';
+		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${$_lang}`;
+		if (!this.checkRenderKey(key)) return;
+
 		this.#dialog.replaceChildren();
 		this.#dialog.classList.remove('article');
 

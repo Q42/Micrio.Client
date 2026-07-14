@@ -1,7 +1,7 @@
 import { MicrioElement } from '$ts/component';
 import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
-import { writable, get } from '$ts/store';
+import { writable, get, lazy } from '$ts/store';
 import './micrio-icon';
 
 const opened = writable<Models.ImageData.Menu | undefined>(undefined);
@@ -30,37 +30,49 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 	#action: (() => void) | undefined;
 
 	onMount() {
+		const { menu } = this.#props;
+		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		if (!micrio) return;
+		const { _lang } = micrio;
+
+		if (menu.children?.length === 1 && !this.#getCData(menu, get(_lang))?.title) {
+			this.#props.menu = menu.children[0];
+		}
+
+		this.#evalAction();
+		this.#render();
+
+		this.watch(opened, () => this.classList.toggle('opened', this.#isOpen(this.#props.menu)));
+		this.watchWith(_lang as any, lazy(() => { this.#evalAction(); this.#render(); }));
+	}
+
+	#evalAction() {
 		const { menu, originalId } = this.#props;
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio) return;
 		const { events, state: micrioState, _lang } = micrio;
 		const cultureData = this.#getCData(menu, get(_lang));
 
-		if (!cultureData?.title && menu.children?.length == 1) {
-			this.#props.menu = menu.children[0];
+		this.#action = undefined;
+
+		if ((menu as any).action) {
+			this.#action = (menu as any).action;
+		} else if (menu.markerId) {
+			this.#action = () => {
+				if (originalId && micrio.$current?.id != originalId) micrio.open(originalId);
+				micrio.$current?.state.marker.set(menu.markerId);
+			};
+		} else if (cultureData?.content || cultureData?.embed || (menu as any).image || (menu as any).content || (menu as any).embedUrl) {
+			this.#action = () => {
+				events.dispatch('page-open', menu as any);
+				micrioState.popover.set({ contentPage: menu } as any);
+			};
+		} else if (cultureData?.title && !menu.children?.length && !menu.link && !menu.markerId) {
+			this.#action = () => {
+				events.dispatch('page-open', menu as any);
+				micrioState.popover.set({ contentPage: menu } as any);
+			};
 		}
-
-		if (!this.#action) {
-			if ((menu as any).action) {
-				this.#action = (menu as any).action;
-			} else if (menu.markerId) {
-				this.#action = () => {
-					if (originalId && micrio.$current?.id != originalId) micrio.open(originalId);
-					micrio.$current?.state.marker.set(menu.markerId);
-				};
-			} else if (cultureData?.content || cultureData?.embed || (menu as any).image) {
-				this.#action = () => {
-					events.dispatch('page-open', menu as any);
-					micrioState.popover.set({ contentPage: menu } as any);
-				};
-			}
-		}
-
-		// Re-render when opened store changes (to update isOpen state)
-		this.watch(opened, () => this.#render());
-		this.watch(_lang, () => this.#render());
-
-		this.#render();
 	}
 
 	setProps(props: Partial<MenuProps>) {
@@ -84,16 +96,15 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 		if (!micrio) return;
 		const $_lang = get(micrio._lang);
 		const cultureData = this.#getCData(menu, $_lang);
-		const isOpen = this.#isOpen(menu);
 
 		this.replaceChildren();
-		this.classList.toggle('opened', isOpen);
+		this.classList.toggle('opened', this.#isOpen(menu));
 		this.setAttribute('data-title', cultureData?.title?.toLowerCase() ?? '');
 
 		const click = (e: MouseEvent) => {
 			if (!menu.link) e.preventDefault();
 			this.#action?.();
-			const doClose = !!(isOpen || this.#action || menu.link);
+			const doClose = !!(this.#isOpen(menu) || this.#action || menu.link);
 			opened.set(doClose ? undefined : menu);
 			if (doClose) onclose?.();
 		};

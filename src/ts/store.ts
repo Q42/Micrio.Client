@@ -69,4 +69,33 @@ export function tick(): Promise<void> {
 	return Promise.resolve();
 }
 
+/** Wraps a subscriber so rapid successive calls coalesce into one via microtask */
+export function defer<T>(fn: Subscriber<T>): Subscriber<T> {
+	let pending = false;
+	let last: T;
+	return (v: T) => {
+		last = v;
+		if (pending) return;
+		pending = true;
+		Promise.resolve().then(() => {
+			pending = false;
+			fn(last);
+		});
+	};
+}
+
+/** Wraps a subscriber to skip the very first emission (for onMount where initial state is handled manually) */
+export function skipFirst<T>(fn: Subscriber<T>): Subscriber<T> {
+	let first = true;
+	return (v: T) => {
+		if (first) { first = false; return; }
+		fn(v);
+	};
+}
+
+/** Combines skipFirst + defer: skip initial emission, then coalesce rapid subsequent calls */
+export function lazy<T>(fn: Subscriber<T>): Subscriber<T> {
+	return defer(skipFirst(fn));
+}
+
 export type { Subscriber, Unsubscriber, Updater };

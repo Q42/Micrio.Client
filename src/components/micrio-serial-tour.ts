@@ -26,6 +26,9 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 	#muted = false;
 	#stepIndex = 0;
 	#progressInterval: any;
+	#built = false;
+	#playBtn: any;
+	#progressBar: any;
 
 	onMount() {
 		const { tour } = this.#props;
@@ -34,11 +37,14 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 
 		const stepInfo = (tour as any).stepInfo as any[] || [];
 		const totalDuration: number = stepInfo.reduce((c: number, s: any) => c + (s.duration || 0), 0);
-		// Auto-play through steps
+
+		this.#build();
+		this.#sync();
+
 		const nextStep = async () => {
 			if (this.#paused) return;
 			const si = stepInfo[this.#stepIndex];
-			if (!si) { this.#ended = true; this.#updateUI(); return; }
+			if (!si) { this.#ended = true; this.#sync(); return; }
 
 			if (typeof si.micrioId == 'string' && micrio.$current?.id != si.micrioId) {
 				await micrio.open(si.micrioId);
@@ -47,10 +53,9 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 				micrio.$current?.state.marker.set(si.markerId);
 			}
 			this.#stepIndex++;
-			this.#updateUI();
+			this.#sync();
 		};
 
-		// Start auto-advance
 		this.#progressInterval = setInterval(() => {
 			if (!this.#paused && !this.#ended) {
 				const elapsed = stepInfo.slice(0, this.#stepIndex).reduce((c: number, s: any) => c + (s.duration || 0), 0);
@@ -61,12 +66,12 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 					clearInterval(this.#progressInterval);
 					this.#props.onended?.();
 				}
-				this.#updateUI();
+				this.#sync();
 			}
 		}, 250);
 
-		const playPause = () => { this.#paused = !this.#paused; this.#updateUI(); };
-		const toggleMute = () => { this.#muted = !this.#muted; this.#updateUI(); };
+		const playPause = () => { this.#paused = !this.#paused; this.#sync(); };
+		const toggleMute = () => { this.#muted = !this.#muted; this.#sync(); };
 
 		(this as any).__playPause = playPause;
 		(this as any).__toggleMute = toggleMute;
@@ -78,46 +83,51 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 		};
 
 		nextStep();
-		this.#updateUI();
 	}
 
-	#updateUI() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
-		if (!micrio) return;
-
-		const $i18n = get(i18n);
-		this.innerHTML = '';
-
-		if (this.#ended) return;
+	#build() {
+		if (this.#built) return;
+		this.#built = true;
 
 		const container = document.createElement('div');
 		container.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%';
 
-		const playBtn = document.createElement('micrio-button') as any;
-		playBtn.setProps({
-			type: this.#paused ? 'play' : 'pause',
-			title: this.#paused ? $i18n.play : $i18n.pause,
-			onclick: (this as any).__playPause
-		});
-		container.appendChild(playBtn);
+		this.#playBtn = document.createElement('micrio-button') as any;
+		container.appendChild(this.#playBtn);
 
 		const muteBtn = document.createElement('micrio-button') as any;
 		muteBtn.setProps({
-			type: this.#muted ? 'volume-off' : 'volume-up',
-			title: this.#muted ? $i18n.audioUnmute : $i18n.audioMute,
+			type: 'volume-up', title: get(i18n).audioMute,
 			onclick: (this as any).__toggleMute
 		});
 		container.appendChild(muteBtn);
 
-		const progressBar = document.createElement('micrio-progress-bar') as any;
-		progressBar.setProps({
+		this.#progressBar = document.createElement('micrio-progress-bar') as any;
+		container.appendChild(this.#progressBar);
+
+		this.appendChild(container);
+	}
+
+	#sync() {
+		if (this.#ended) {
+			if (this.innerHTML) this.innerHTML = '';
+			return;
+		}
+		if (!this.#built) return;
+
+		const $i18n = get(i18n);
+
+		this.#playBtn.setProps({
+			type: this.#paused ? 'play' : 'pause',
+			title: this.#paused ? $i18n.play : $i18n.pause,
+			onclick: (this as any).__playPause
+		});
+
+		this.#progressBar.setProps({
 			currentTime: this.#currentTime,
 			duration: this.#duration || 1,
 			ended: this.#ended
 		});
-		container.appendChild(progressBar);
-
-		this.appendChild(container);
 	}
 
 	setProps(props: Partial<SerialTourProps>) {

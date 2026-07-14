@@ -26,7 +26,6 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 	#unsubs: (() => void)[] = [];
 	#data: Models.ImageData.ImageData | undefined;
 	#shown = false;
-	#indented = false;
 	#isMobile = false;
 
 	onMount() {
@@ -38,10 +37,15 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		this.#isMobile = window.innerWidth <= 500;
 		const resize = () => { this.#isMobile = window.innerWidth <= 500; this.#render(); };
 
+		this.#render();
+
 		this.#unsubs.push(micrio.current.subscribe(c => {
 			if (!c) return;
-			once(c.info).then(() => { this.#indented = !c.$settings.noLogo; this.#render(); });
-			this.#unsubs.push(c.data.subscribe(d => { this.#data = d; this.#render(); }));
+			this.#unsubs.push(c.data.subscribe(d => {
+				this.#data = d;
+				this.#render();
+			}));
+			once(c.info).then(() => this.#unsubs.push(c.settings.subscribe(() => this.syncDisplay?.())));
 		}));
 
 		this.#unsubs.push(micrio.state.tour.subscribe(() => this.#render()));
@@ -53,11 +57,10 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		this.#unsubs.push(() => window.removeEventListener('resize', resize));
 
 		(this as any).__toggle = () => this.#shown = !this.#shown;
-
-		this.#render();
 	}
 
 	#render() {
+		if (!this.#data) return;
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio) return;
 		const { _lang, spaceData, state: micrioState } = micrio;
@@ -82,6 +85,10 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 				.concat(this.#data.pages.filter(p => p.id?.startsWith('_')))
 			: undefined;
 		const empty = !(mainPages?.length || hasMarkerTours || hasVideoTours);
+		const pageIds = (mainPages || []).map((p: any) => p.id).join(',');
+		const tourIds = markerTours.map((t: any) => t.id).join(',') + '|' + videoTours.map((t: any) => t.id).join(',');
+		const key = [pageIds, tourIds, hidden, $_lang, this.#isMobile, this.#shown].join('::');
+		if (!this.checkRenderKey(key)) return;
 
 		if (empty || hidden) { this.innerHTML = ''; return; }
 
@@ -90,7 +97,6 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		const menu = document.createElement('menu');
 		menu.className = 'micrio-toolbar';
 		menu.classList.toggle('shown', !hidden && this.#shown);
-		menu.classList.toggle('indent', this.#indented);
 
 		if (mainPages) {
 			for (const page of mainPages) {
@@ -105,10 +111,10 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 			child.setProps({
 				onclose: () => { if (this.#isMobile) this.#shown = false; },
 				menu: {
-					id: crypto.randomUUID(),
+					id: 'marker-tours',
 					i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours } },
 					children: markerTours.map((t: any) => ({
-						id: crypto.randomUUID(),
+						id: t.id ?? crypto.randomUUID(),
 						i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 						action: () => { t.initialStep = 0; micrioState.tour.set(t); }
 					}))
@@ -122,10 +128,10 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 			child.setProps({
 				onclose: () => { if (this.#isMobile) this.#shown = false; },
 				menu: {
-					id: crypto.randomUUID(),
+					id: 'video-tours',
 					i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.videoTours : $i18n.tours } },
 					children: videoTours.map((t: any) => ({
-						id: crypto.randomUUID(),
+						id: t.id ?? crypto.randomUUID(),
 						i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 						action: () => {
 							if (micrio.$current && micrio.$current.id != originalId) micrio.open(originalId);
@@ -138,16 +144,26 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		}
 
 		this.appendChild(menu);
+		this.syncDisplay?.();
 
 		if (this.#isMobile) {
 			const btn = document.createElement('micrio-button') as any;
 			btn.setProps({
 				title: $i18n.menuToggle,
 				type: this.#shown ? 'close' : 'ellipsis-vertical',
-				className: 'toggle transparent' + (this.#indented ? ' indent' : ''),
+				className: 'toggle transparent' + (this.querySelector('.micrio-toolbar.indent') ? ' indent' : ''),
 				onclick: (this as any).__toggle
 			});
 			this.appendChild(btn);
+		}
+	}
+
+	protected syncDisplay() {
+		const menuEl = this.querySelector('.micrio-toolbar');
+		if (menuEl) {
+			const micrio = this.inject<HTMLMicrioElement>('micrio');
+			const indent = !((micrio?.$current?.$settings as any)?.noLogo ?? false);
+			menuEl.classList.toggle('indent', indent);
 		}
 	}
 

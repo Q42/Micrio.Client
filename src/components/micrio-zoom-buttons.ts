@@ -69,13 +69,17 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 		};
 
 		if (this.#props.image) {
-			this.#unsubs.push(this.#props.image.state.view.subscribe(update));
+			this.watchLater(this.#props.image.state.view, () => update());
 		} else {
 			let viewUnsub: (() => void) | undefined;
 			this.#unsubs.push(micrio.current.subscribe(c => {
 				if (!c) return;
 				viewUnsub?.();
-				viewUnsub = c.state.view.subscribe(update);
+				let first = true;
+				viewUnsub = c.state.view.subscribe(() => {
+					if (first) { first = false; return; }
+					update();
+				});
 			}));
 		}
 

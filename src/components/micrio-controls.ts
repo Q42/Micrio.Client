@@ -126,12 +126,12 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			}
 		}));
 
-		this.#unsubs.push(hidden.subscribe(() => this.#sync()));
-		this.#unsubs.push(controls.subscribe(() => this.#sync()));
-		this.#unsubs.push(zoom.subscribe(() => this.#sync()));
-		this.#unsubs.push(tour.subscribe(() => this.#sync()));
-		this.#unsubs.push(popup.subscribe(() => this.#sync()));
-		this.#unsubs.push(_lang.subscribe(() => this.#sync()));
+		this.watchLater(hidden, () => this.#sync());
+		this.watchLater(controls, () => this.#sync());
+		this.watchLater(zoom, () => this.#sync());
+		this.watchLater(tour, () => this.#sync());
+		this.watchLater(popup, () => this.#sync());
+		this.watchLater(_lang, () => this.#sync());
 
 		(this as any).__toggleMute = () => { isMuted.set(!get(isMuted)); };
 		(this as any).__share = share;
