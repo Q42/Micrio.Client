@@ -54,7 +54,10 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			const openStep = (idx: number) => {
 				const stepId = mt.steps[idx];
 				const img = markerImages.get(stepId);
-				if (img) img.state.marker.set(stepId);
+				if (img) {
+					const marker = img.$data?.markers?.find((m: Models.ImageData.Marker) => stepId.startsWith(m.id));
+					if (marker) img.state.marker.set(marker);
+				}
 			};
 
 			(mt as any).next = () => {

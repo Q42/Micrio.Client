@@ -220,7 +220,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		this.classList.toggle('has-custom-icon', !!customIcon);
 		if (this.#matrix) this.classList.add('mat3d');
 
-		if (!marker.htmlElement) {
+		if (!marker.htmlElement && !marker.noMarker) {
 			const btn = document.createElement('button');
 			if (!noToolTips && !cluster) btn.title = content?.label || content?.title || '';
 			btn.id = marker.id;
