@@ -75,7 +75,8 @@ micrio-markers.is360.inactive{opacity:0}`;
 
 			// Visible markers
 			if ($visible) {
-				const visibleMarkers = $visible.filter(m => !m.noMarker);
+				const $_lang = get(micrio._lang);
+				const visibleMarkers = $visible.filter(m => !m.noMarker && (!m.i18n || !!m.i18n[$_lang]));
 				for (const m of visibleMarkers) {
 					const el = document.createElement('micrio-marker') as any;
 					el.setProps({ marker: m, image });
