@@ -95,16 +95,14 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#show(key: string, condition: boolean, build: () => HTMLElement) {
 		const existing = this.#elements.get(key);
 		if (condition) {
-			if (existing?.isConnected) {
-				existing.style.display = '';
-				return;
-			}
+			if (existing?.isConnected) return;
 			existing?.remove();
 			const el = build();
 			this.#elements.set(key, el);
 			this.#place(key, el);
 		} else if (existing?.isConnected) {
-			existing.style.display = 'none';
+			existing.remove();
+			this.#elements.set(key, null);
 		}
 	}
 
@@ -187,8 +185,9 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				sub.setProps({ src: s, raised: false });
 				this.#elements.set('subtitles', sub);
 				this.#place('subtitles', sub);
-			} else if (existing?.isConnected) {
-				existing.style.display = 'none';
+			} else {
+				existing?.remove();
+				this.#elements.set('subtitles', null);
 			}
 		}, 20));
 
@@ -277,10 +276,9 @@ export class MicrioMain extends MicrioElement<MainProps> {
 						markersEl.appendChild(el);
 					}
 				}
-				markersEl.style.display = '';
 			} else if (markersEl?.isConnected) {
-				markersEl.innerHTML = '';
-				markersEl.style.display = 'none';
+				markersEl.remove();
+				this.#elements.set('markers', null);
 			}
 		}
 
