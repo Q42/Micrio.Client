@@ -50,8 +50,10 @@ micrio-markers.is360.inactive{opacity:0}`;
 			const $focussed = focussed ? get(focussed) : undefined;
 			const $gridMarkersShown = gridMarkersShown ? get(gridMarkersShown) : undefined;
 			const inactive = grid && ($focussed != image && ($gridMarkersShown && $gridMarkersShown.indexOf(image) < 0));
+			const showTitles = !!(image.$settings._markers as any)?.showTitles;
 
 			this.classList.toggle('inactive', !!inactive);
+			this.classList.toggle('show-titles', showTitles);
 
 			// Remove all existing child markers/waypoints
 			this.innerHTML = '';
