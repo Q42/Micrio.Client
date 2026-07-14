@@ -26,11 +26,12 @@ export interface MediaProps {
 	figcaption?: string;
 	className?: string;
 	onended?: () => void;
+	onclose?: () => void;
 }
 
 export class MicrioMedia extends MicrioElement<MediaProps> {
 	static tag = 'micrio-media';
-	static styles = `micrio-media figure{position:relative;margin:0;padding:0;--micrio-background:#000}
+	static styles = `micrio-media figure{position:relative;margin:0;padding:0}
 micrio-media figure.hidden{display:none}
 micrio-media figure video,micrio-media figure audio{width:100%;display:block}
 micrio-media figure figcaption{padding:5px 10px;font-size:.85em;opacity:.7;text-align:center;background:var(--micrio-background)}
@@ -200,10 +201,11 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					ended: this.#ended,
 					seeking: this.#seeking,
 					muted: this.#muted,
-					hasAudio: !isAudio,
+					hasAudio: !!p.src && !isAudio,
 					minimal: false,
 					fullscreenEl: figure,
-					onplaypause, onmute, onseek
+					onplaypause, onmute, onseek,
+					onclose: p.onclose
 				});
 			};
 
@@ -211,9 +213,10 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				minimal: false,
 				paused: true,
 				ended: false,
-				hasAudio: !isAudio,
+				hasAudio: !!p.src && !isAudio,
 				fullscreenEl: figure,
-				onplaypause, onmute, onseek
+				onplaypause, onmute, onseek,
+				onclose: p.onclose
 			});
 			figure.appendChild(ctrlEl);
 

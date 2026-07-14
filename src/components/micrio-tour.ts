@@ -38,7 +38,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			if (image) {
 				const audio = (vt as any).i18n?.[get(micrio._lang)]?.audio;
 				const media = document.createElement('micrio-media') as any;
-				media.setProps({ src: audio?.src, image, tour: vt, controls: true, autoplay: true });
+				media.setProps({ src: audio?.src, image, tour: vt, controls: true, autoplay: true, onclose: () => micrio.state.tour.set(undefined) });
 				this.appendChild(media);
 			}
 			micrio.setAttribute('data-tour-active', '');

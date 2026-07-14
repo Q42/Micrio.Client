@@ -19,29 +19,37 @@ export interface MediaControlsProps {
 	onplaypause?: () => void;
 	onmute?: () => void;
 	onseek?: (n: number) => void;
+	onclose?: () => void;
+}
+
+function fmt(t: number): string {
+	const m = Math.floor(t / 60);
+	const s = Math.floor(t % 60);
+	return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	static tag = 'micrio-media-controls';
-	static styles = `micrio-media-controls{cursor:default;position:relative;margin:0;background:var(--micrio-background)}
-micrio-media-controls aside{display:flex;align-items:center}
+	static styles = `micrio-media-controls aside.controls-wrapper{display:flex;align-items:center;width:100%;--micrio-background:var(--micrio-background,#000)}
 micrio-media-controls micrio-button{border-radius:0;margin:0;border:none}
 micrio-media-controls micrio-button:last-child{margin-right:16px}
 micrio-media-controls>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
 :fullscreen micrio-media-controls{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:430px;max-width:90vw;max-width:90cqw;border-radius:var(--micrio-border-radius)}
-micrio-media-controls circle{stroke-width:2;stroke:#fff;fill:transparent;stroke-dasharray:119.4 119.4;transition:stroke-dashoffset .25s linear;transform-origin:center center}
-micrio-media-controls svg.circle-progress{pointer-events:none;position:absolute;left:-1px;top:-1px;width:42px;height:42px;transform:rotateZ(-90deg)}
-micrio-media-controls .bar{height:4px;background:var(--micrio-color-hover);width:100%;cursor:pointer;position:relative}
-micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;height:100%;width:var(--progress,0%);background:var(--micrio-color)}`;
+micrio-media-controls .container{flex:1;display:flex;align-items:center;gap:8px;padding:0 8px}
+micrio-media-controls .bars{flex:1;height:4px;background:var(--micrio-progress-bar-background,var(--micrio-color-hover));cursor:pointer;position:relative;border-radius:2px}
+micrio-media-controls .bar{position:absolute;top:0;left:0;height:100%;border-radius:2px;background:var(--micrio-color)}
+micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--micrio-color);text-align:center;min-width:50px;padding:0;display:block}`;
 
 	#props: MediaControlsProps = { paused: true, ended: false };
-	#asideEl!: HTMLElement;
+	#wrapperEl!: HTMLElement;
 	#playBtn: any;
-	#progressEl!: HTMLElement;
+	#barEl!: HTMLElement;
+	#timeEl!: HTMLElement;
 	#built = false;
 	#prevPaused = true;
 	#prevMuted = false;
-	#prevProgress = 0;
+	#prevProgress = -1;
+	#prevTime = '';
 
 	onMount() {
 		this.#build();
@@ -57,35 +65,42 @@ micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;hei
 		if (!this.#built) {
 			this.#built = true;
 
-			this.#asideEl = document.createElement('aside');
-			this.#asideEl.addEventListener('click', e => e.stopPropagation());
-			this.#asideEl.addEventListener('keydown', e => e.stopPropagation());
-			this.appendChild(this.#asideEl);
+			this.#wrapperEl = document.createElement('aside');
+			this.#wrapperEl.className = 'controls-wrapper';
+			this.#wrapperEl.addEventListener('click', e => e.stopPropagation());
+			this.#wrapperEl.addEventListener('keydown', e => e.stopPropagation());
+			this.appendChild(this.#wrapperEl);
 
 			this.#playBtn = document.createElement('micrio-button');
-			this.#asideEl.appendChild(this.#playBtn);
+			this.#wrapperEl.appendChild(this.#playBtn);
 
 			if (p.hasAudio) {
 				const muteBtn = document.createElement('micrio-button');
 				muteBtn.className = 'ctrl-mute';
-				this.#asideEl.appendChild(muteBtn);
+				this.#wrapperEl.appendChild(muteBtn);
 			}
 
 			if (p.subtitles) {
 				const subBtn = document.createElement('micrio-button');
 				subBtn.className = 'ctrl-subtitles';
-				this.#asideEl.appendChild(subBtn);
+				this.#wrapperEl.appendChild(subBtn);
 			}
 
 			if (p.fullscreenEl) {
 				const fs = document.createElement('micrio-fullscreen');
 				fs.className = 'ctrl-fullscreen';
-				this.#asideEl.appendChild(fs);
+				this.#wrapperEl.appendChild(fs);
 			}
 
-			const bar = document.createElement('div');
-			bar.className = 'bar active';
-			this.#progressEl = bar;
+			const container = document.createElement('div');
+			container.className = 'container';
+
+			const bars = document.createElement('div');
+			bars.className = 'bars';
+
+			this.#barEl = document.createElement('div');
+			this.#barEl.className = 'bar';
+			bars.appendChild(this.#barEl);
 
 			const dStart = (e: MouseEvent) => {
 				if (e.button != 0) return;
@@ -94,7 +109,7 @@ micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;hei
 				dMove(e);
 			};
 			const dMove = (e: MouseEvent) => {
-				const rect = this.#progressEl.getClientRects()[0];
+				const rect = bars.getClientRects()[0];
 				if (!rect) return;
 				const perc = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
 				this.#props.onseek?.(perc * this.#props.duration!);
@@ -103,8 +118,21 @@ micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;hei
 				window.removeEventListener('mousemove', dMove);
 				window.removeEventListener('mouseup', dStop);
 			};
-			bar.addEventListener('mousedown', dStart);
-			this.appendChild(bar);
+			bars.addEventListener('mousedown', dStart);
+			container.appendChild(bars);
+
+			this.#timeEl = document.createElement('span');
+			this.#timeEl.className = 'time';
+			container.appendChild(this.#timeEl);
+
+			this.#wrapperEl.appendChild(container);
+
+			if (p.onclose) {
+				const closeBtn = document.createElement('micrio-button') as any;
+				closeBtn.className = 'ctrl-close';
+				closeBtn.setProps({ type: 'close', title: get(i18n).close, onclick: p.onclose });
+				this.#wrapperEl.appendChild(closeBtn);
+			}
 		}
 
 		this.#sync();
@@ -124,7 +152,7 @@ micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;hei
 			});
 		}
 
-		const muteBtn = this.#asideEl.querySelector('.ctrl-mute') as any;
+		const muteBtn = this.#wrapperEl.querySelector('.ctrl-mute') as any;
 		if (muteBtn && p.muted !== this.#prevMuted) {
 			this.#prevMuted = !!p.muted;
 			muteBtn.setProps({
@@ -135,7 +163,7 @@ micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;hei
 			});
 		}
 
-		const subBtn = this.#asideEl.querySelector('.ctrl-subtitles') as any;
+		const subBtn = this.#wrapperEl.querySelector('.ctrl-subtitles') as any;
 		if (subBtn) {
 			subBtn.setProps({
 				type: $captionsEnabled ? 'subtitles' : 'subtitles-off',
@@ -145,14 +173,20 @@ micrio-media-controls .bar::before{content:'';position:absolute;top:0;left:0;hei
 			});
 		}
 
-		const fsBtn = this.#asideEl.querySelector('.ctrl-fullscreen') as any;
+		const fsBtn = this.#wrapperEl.querySelector('.ctrl-fullscreen') as any;
 		if (fsBtn) fsBtn.setProps({ el: p.fullscreenEl });
 
 		if (p.duration) {
 			const progress = ((p.currentTime ?? 0) / p.duration) * 100;
-			if (Math.abs(progress - this.#prevProgress) > 0.5) {
+			if (Math.abs(progress - this.#prevProgress) > 0.5 || progress === 0) {
 				this.#prevProgress = progress;
-				this.#progressEl.style.setProperty('--progress', `${progress}%`);
+				this.#barEl.style.width = `${progress}%`;
+			}
+			const remaining = p.duration - (p.currentTime ?? 0);
+			const t = (remaining >= 0 ? '-' : '') + fmt(Math.abs(remaining));
+			if (t !== this.#prevTime) {
+				this.#prevTime = t;
+				this.#timeEl.textContent = t;
 			}
 		}
 	}
