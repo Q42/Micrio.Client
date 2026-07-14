@@ -215,7 +215,7 @@ export class TileCanvas {
 				is360: false,
 				noImage: false,
 				isSingle: false,
-				isDeepZoom: false,
+				isDeepZoom: this.main.hasArchive,
 				freeMove: false,
 				coverStart,
 				maxScale: 1,
