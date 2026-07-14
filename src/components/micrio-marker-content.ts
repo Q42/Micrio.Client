@@ -14,17 +14,16 @@ export interface MarkerContentProps {
 
 export class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	static tag = 'micrio-marker-content';
-	static styles = `micrio-marker-content{display:block}
-micrio-marker-content main{position:relative;padding:var(--micrio-popup-padding);overflow-y:auto;user-select:text;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);box-sizing:border-box;text-align:var(--micrio-text-align)}
-micrio-marker-content main>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
-micrio-marker-content main .micrio-progress-bar.container{background:transparent;backdrop-filter:none}
-micrio-marker-content main h1{font-size:1.5em;font-weight:600;margin:0 0 1.25em 0}
-micrio-marker-content main p{white-space:pre-line}
-micrio-marker-content main figure.hidden{display:none}
-micrio-marker-content main figure>div.micrio-media>*:first-child{width:100%}
-micrio-marker-content main micrio-media{margin:calc(-1 * var(--micrio-popup-padding));margin-bottom:0;width:auto;--micrio-background:transparent}
-micrio-marker-content main micrio-media:not(:last-child){margin-bottom:var(--micrio-popup-padding)}
-micrio-marker-content main article:last-child{margin-bottom:var(--micrio-popup-padding)}
+	static styles = `micrio-marker-content{display:block;position:relative;padding:var(--micrio-popup-padding);overflow-y:auto;user-select:text;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);box-sizing:border-box;text-align:var(--micrio-text-align)}
+micrio-marker-content>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
+micrio-marker-content .micrio-progress-bar.container{background:transparent;backdrop-filter:none}
+micrio-marker-content h1{font-size:1.5em;font-weight:600;margin:0 0 1.25em 0}
+micrio-marker-content p{white-space:pre-line}
+micrio-marker-content figure.hidden{display:none}
+micrio-marker-content figure>div.micrio-media>*:first-child{width:100%}
+micrio-marker-content micrio-media{margin:calc(-1 * var(--micrio-popup-padding));margin-bottom:0;width:auto;--micrio-background:transparent}
+micrio-marker-content micrio-media:not(:last-child){margin-bottom:var(--micrio-popup-padding)}
+micrio-marker-content article:last-child{margin-bottom:var(--micrio-popup-padding)}
 micrio-marker-content button{padding:0;margin:0 calc(-1 * var(--micrio-popup-padding)) var(--micrio-popup-padding) calc(-1 * var(--micrio-popup-padding))}
 micrio-marker-content button:disabled{cursor:default}
 micrio-marker-content figcaption{padding:10px;font-style:italic;font-size:.9em;margin-bottom:var(--micrio-popup-padding);text-align:center}
@@ -39,7 +38,6 @@ micrio-marker-content section figcaption{display:none}
 
 	#props: MarkerContentProps = { marker: null! };
 	#unsubs: (() => void)[] = [];
-	_content: HTMLElement | undefined;
 	_title: HTMLElement | undefined;
 
 	onMount() {
@@ -92,23 +90,19 @@ micrio-marker-content section figcaption{display:none}
 
 		this.replaceChildren();
 
-		const main = document.createElement('main');
-		main.className = '';
-		this._content = main;
-
 		// Title
 		if (content.title) {
 			const h1 = document.createElement('h1');
 			h1.textContent = content.title;
 			this._title = h1;
-			main.appendChild(h1);
+			this.appendChild(h1);
 		}
 
 		// Primary Body (first)
 		if (content.body && settings.primaryBodyFirst) {
 			const article = document.createElement('micrio-article') as MicrioElement;
 			article.setProps({ html: content.body });
-			main.appendChild(article);
+			this.appendChild(article);
 		}
 
 		// Audio/Video Tour media
@@ -124,7 +118,7 @@ micrio-marker-content section figcaption{display:none}
 				controls: !marker.videoTour || !content.embedUrl,
 				onended: mediaEnded, paused: pausedAudio
 			});
-			main.appendChild(media);
+			this.appendChild(media);
 		}
 
 		// Marker Images
@@ -152,7 +146,7 @@ micrio-marker-content section figcaption{display:none}
 				btn.appendChild(figure);
 				section.appendChild(btn);
 			}
-			main.appendChild(section);
+			this.appendChild(section);
 		}
 
 		// Embed
@@ -163,7 +157,7 @@ micrio-marker-content section figcaption{display:none}
 					image, className: 'hidden', uuid: marker.id,
 					tour: marker.videoTour, autoplay: autoplayMedia, secondary: true
 				});
-				main.appendChild(hiddenMedia);
+				this.appendChild(hiddenMedia);
 			}
 
 			const pausedVideo = marker?.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker?.audioAutoPlay));
@@ -174,24 +168,22 @@ micrio-marker-content section figcaption{display:none}
 				title: content.embedTitle, figcaption: content.embedDescription,
 				autoplay: !pausedVideo, onended: mediaEnded, paused: pausedVideo
 			});
-			main.appendChild(media);
+			this.appendChild(media);
 		}
 
 		// Primary Body (not first)
 		if (content.body && !settings.primaryBodyFirst) {
 			const article = document.createElement('micrio-article') as MicrioElement;
 			article.setProps({ html: content.body });
-			main.appendChild(article);
+			this.appendChild(article);
 		}
 
 		// Secondary Body
 		if (content.bodySecondary) {
 			const article = document.createElement('micrio-article') as MicrioElement;
 			article.setProps({ html: content.bodySecondary });
-			main.appendChild(article);
+			this.appendChild(article);
 		}
-
-		this.appendChild(main);
 	}
 
 	onDestroy() {

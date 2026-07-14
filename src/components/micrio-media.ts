@@ -287,9 +287,9 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					ended: this.#ended,
 					seeking: this.#seeking,
 					muted: this.#muted,
-					hasAudio: !!p.src,
+					hasAudio: !!p.src && !isAudio,
 					minimal: false,
-					fullscreenEl: figure,
+					fullscreenEl: isAudio ? undefined : figure,
 					onplaypause, onmute, onseek,
 					onclose: p.onclose
 				});
@@ -299,8 +299,8 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				minimal: false,
 				paused: true,
 				ended: false,
-				hasAudio: !!p.src,
-				fullscreenEl: figure,
+				hasAudio: !!p.src && !isAudio,
+				fullscreenEl: isAudio ? undefined : figure,
 				onplaypause, onmute, onseek,
 				onclose: p.onclose
 			});

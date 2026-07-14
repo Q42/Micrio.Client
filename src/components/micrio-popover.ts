@@ -20,21 +20,22 @@ dialog::backdrop{color:#fff;animation:micrio-popover-bg .2s forwards;backdrop-fi
 dialog{position:relative;animation:micrio-popover-fade .5s forwards;background:transparent;border:none;overflow:visible;padding:0;pointer-events:all;max-width:90vw;max-height:90vh}
 @keyframes micrio-popover-fade{from{opacity:0}to{opacity:1}}
 dialog>aside{--micrio-background-filter:none;position:absolute;z-index:1}
-dialog.page:not(.article){display:flex}
+dialog:not(.article){display:flex}
 @media(min-width:640px){
-dialog.page:not(.article){width:calc(85vw - 56px);height:calc(9/16*85vw);width:calc(85cqw - 56px);height:calc(9/16*85cqw)}
+dialog:not(.article){width:calc(85vw - 56px);height:calc(9/16*85vw);width:calc(85cqw - 56px);height:calc(9/16*85cqw)}
 dialog>aside{display:block;left:100%;margin-left:var(--micrio-border-margin);top:0}
 }
 @media(max-width:639px){
-dialog.page:not(.article){width:100%;height:100%;flex-direction:column}
+dialog:not(.article){width:100%;height:100%;flex-direction:column}
 dialog>aside{position:fixed;top:var(--micrio-border-margin);right:var(--micrio-border-margin)}
 dialog :global(div.micrio-media>*:first-child){border-radius:0}
 }
-@media(min-aspect-ratio:16/9){dialog.page:not(.article){height:75vh;width:calc(16/9*75vh);height:75cqh;width:calc(16/9*75cqh)}}
-dialog.page:not(.article)>micrio-media{flex:1}
-dialog.page:not(.article)>micrio-media>figure{height:100%}
-dialog.page:not(.article)>micrio-media>figure iframe,
-dialog.page:not(.article)>micrio-media>figure video{height:calc(100% - var(--micrio-button-size))}
+@media(min-aspect-ratio:16/9){dialog:not(.article){height:75vh;width:calc(16/9*75vh);height:75cqh;width:calc(16/9*75cqh)}}
+dialog:not(.article)>micrio-media{flex:1}
+dialog:not(.article)>micrio-media>figure{height:100%}
+dialog:not(.article)>micrio-media>figure iframe,
+dialog:not(.article)>micrio-media>figure video{height:calc(100% - var(--micrio-button-size))}
+dialog>micrio-marker-content{width:25vw;width:25cqw;min-width:unset;max-width:320px}
 dialog.article{width:540px}
 dialog.article article{text-shadow:none;color:var(--micrio-color);background:var(--micrio-background);padding:20px;box-sizing:border-box;max-height:calc(90cqh - 48px);max-height:calc(90vh - 48px);overflow-x:hidden;overflow-y:auto;border-radius:var(--micrio-border-radius)}
 dialog.article h2{text-align:center}`;
@@ -76,7 +77,7 @@ dialog.article h2{text-align:center}`;
 		if (!this.checkRenderKey(key)) return;
 
 		this.#dialog.replaceChildren();
-		this.#dialog.classList.remove('article', 'page', 'has-media');
+		this.#dialog.classList.remove('article', 'page', 'has-media', 'gallery');
 
 		const aside = document.createElement('aside');
 		const closeBtn = document.createElement('micrio-button') as MicrioElement;
@@ -128,9 +129,34 @@ dialog.article h2{text-align:center}`;
 		}
 
 		if ('marker' in p && p.marker) {
-			const mc = document.createElement('micrio-marker-content') as MicrioElement;
-			mc.setProps({ marker: p.marker });
-			this.#dialog.appendChild(mc);
+			const marker = p.marker;
+			const content = marker.i18n?.[$_lang];
+			const hasImages = !!marker.images?.length;
+			const hasPopoverContent = !!(content && content.body) || (hasImages && !!(p as any).contentPage?.i18n?.[$_lang]?.embed);
+
+			if (content?.embedUrl) {
+				const media = document.createElement('micrio-media') as MicrioElement;
+				media.setProps({
+					src: content.embedUrl, uuid: marker.id,
+					figcaption: content.embedDescription,
+					controls: true, autoplay: marker.embedAutoPlay
+				});
+				this.#dialog.appendChild(media);
+			} else if (hasImages) {
+				// TODO: render gallery when ported
+			}
+
+			if (hasPopoverContent) {
+				const mc = document.createElement('micrio-marker-content') as MicrioElement;
+				mc.setProps({
+					marker,
+					noEmbed: true,
+					noGallery: true,
+					noImages: !content || !content.embedUrl,
+					onclose: () => { if (this.#dialog?.open) this.#dialog.close(); }
+				});
+				this.#dialog.appendChild(mc);
+			}
 		}
 
 		if (!this.#dialog.open) this.#dialog.showModal();
