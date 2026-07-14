@@ -109,6 +109,7 @@ micrio-markers.is360.inactive{opacity:0}`;
 		this.#unsubs.push(image.data.subscribe(rebuild));
 		this.#unsubs.push(switching.subscribe(rebuild));
 		if (micrioState.tour) this.#unsubs.push(micrioState.tour.subscribe(rebuild));
+		this.#unsubs.push(micrio._lang.subscribe(rebuild));
 
 		if (image.is360) this.classList.add('is360');
 

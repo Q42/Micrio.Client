@@ -26,7 +26,8 @@ micrio-controls .lang-items{position:absolute;right:100%;top:0;display:none;flex
 micrio-controls menu.ctrl-lang:hover .lang-items,micrio-controls menu.ctrl-lang:focus-within .lang-items{display:flex}
 micrio-controls .lang-items micrio-button{--micrio-button-shadow:none;--micrio-background-filter:none}
 micrio-controls .lang-items .micrio-button{padding:0}
-micrio-controls .lang-items .micrio-button>span{width:var(--micrio-button-size)}`;
+micrio-controls .lang-items .micrio-button>span{width:var(--micrio-button-size)}
+micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-hover);color:var(--micrio-button-background,var(--micrio-background))}`;
 
 	#props: ControlsProps = {};
 	#unsubs: (() => void)[] = [];
@@ -130,6 +131,7 @@ micrio-controls .lang-items .micrio-button>span{width:var(--micrio-button-size)}
 		this.#unsubs.push(zoom.subscribe(() => this.#sync()));
 		this.#unsubs.push(tour.subscribe(() => this.#sync()));
 		this.#unsubs.push(popup.subscribe(() => this.#sync()));
+		this.#unsubs.push(_lang.subscribe(() => this.#sync()));
 
 		(this as any).__toggleMute = () => { isMuted.set(!get(isMuted)); };
 		(this as any).__share = share;
@@ -260,12 +262,17 @@ micrio-controls .lang-items .micrio-button>span{width:var(--micrio-button-size)}
 					const b = document.createElement('micrio-button') as any;
 					b.setProps({
 						title: languageNames?.of(l) ?? l,
-						active: l === $_lang,
 						onclick: () => { (this as any).__setLang(l); }
 					});
 					b.appendChild(document.createTextNode(l.toUpperCase()));
 					items.appendChild(b);
 				}
+			}
+			// Update active state on all language buttons
+			const langBtns = items.querySelectorAll(':scope > micrio-button');
+			for (let i = 0; i < langBtns.length; i++) {
+				const inner = langBtns[i].querySelector('.micrio-button');
+				if (inner) inner.classList.toggle('active', cultures[i].toLowerCase() === $_lang.toLowerCase());
 			}
 		} else if (this.#langMenu?.isConnected) {
 			this.#langMenu.remove();
