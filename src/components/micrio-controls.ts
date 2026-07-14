@@ -145,12 +145,11 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 		Object.assign(this.#props, props);
 	}
 
-	// ── Build DOM once ──
+	// ── Build structural DOM once ──
 
 	#build() {
 		if (this.#built) return;
 
-		// Main aside
 		this.#aside1 = document.createElement('aside');
 		this.#aside1.addEventListener('pointerover', () => {
 			(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(true);
@@ -168,45 +167,10 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 		});
 		this.appendChild(this.#aside1);
 
-		// Mute button placeholder
-		this.#muteBtn = document.createElement('micrio-button');
-		this.#muteBtn.className = 'ctrl-mute';
-		this.#aside1.appendChild(this.#muteBtn);
-
-		// Language menu placeholder
-		this.#langMenu = document.createElement('menu');
-		this.#langMenu.className = 'popout ctrl-lang';
-		this.#langMenu.setAttribute('tabindex', '0');
-		const langBtn = document.createElement('micrio-button');
-		langBtn.className = 'ctrl-lang-trigger';
-		this.#langMenu.appendChild(langBtn);
-		this.#aside1.appendChild(this.#langMenu);
-
-		// Share button placeholder
-		this.#shareBtn = document.createElement('micrio-button');
-		this.#shareBtn.className = 'ctrl-share';
-		this.#aside1.appendChild(this.#shareBtn);
-
-		// ButtonGroup for zoom + fullscreen
-		this.#group1 = document.createElement('micrio-button-group');
-		this.#zoomGroup = document.createElement('micrio-zoom-buttons');
-		this.#zoomGroup.className = 'ctrl-zoom';
-		this.#group1.appendChild(this.#zoomGroup);
-		this.#fsGroup = document.createElement('micrio-fullscreen');
-		this.#fsGroup.className = 'ctrl-fs';
-		this.#group1.appendChild(this.#fsGroup);
-		this.#aside1.appendChild(this.#group1);
-
-		// Secondary controls placeholder (split screen)
 		this.#aside2 = document.createElement('aside');
 		this.#aside2.className = 'primary';
-		const group2 = document.createElement('micrio-button-group');
-		const zoom2 = document.createElement('micrio-zoom-buttons');
-		group2.appendChild(zoom2);
-		this.#aside2.appendChild(group2);
 		this.appendChild(this.#aside2);
 
-		// Grid close placeholder
 		this.#aside3 = document.createElement('aside');
 		this.#aside3.className = 'grid-close';
 		this.appendChild(this.#aside3);
@@ -214,7 +178,7 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 		this.#built = true;
 	}
 
-	// ── Sync state to existing DOM (no rebuild) ──
+	// ── Sync state — create/remove elements on demand ──
 
 	#sync() {
 		if (!this.#built || !this.isConnected) return;
@@ -246,25 +210,46 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 
 		this.classList.toggle('hidden', $hidden && !$hover);
 
-		if (!hasControls) { this.style.display = 'none'; return; }
-		this.style.display = '';
+		if (!hasControls) {
+			this.#aside1.replaceChildren();
+			this.#aside2.replaceChildren();
+			this.#aside3.replaceChildren();
+			return;
+		}
 
 		// Mute button
-		this.#showEl(this.#muteBtn, showMute);
-		this.#muteBtn.setProps({
-			type: $isMuted ? 'volume-off' : 'volume-up',
-			title: $isMuted ? $i18n.audioUnmute : $i18n.audioMute,
-			onclick: (this as any).__toggleMute
-		});
+		if (showMute) {
+			if (!this.#muteBtn?.isConnected) {
+				this.#muteBtn?.remove();
+				(this.#muteBtn as any) = document.createElement('micrio-button');
+				this.#muteBtn.className = 'ctrl-mute';
+				this.#aside1.prepend(this.#muteBtn);
+			}
+			this.#muteBtn.setProps({
+				type: $isMuted ? 'volume-off' : 'volume-up',
+				title: $isMuted ? $i18n.audioUnmute : $i18n.audioMute,
+				onclick: (this as any).__toggleMute
+			});
+		} else if (this.#muteBtn?.isConnected) {
+			this.#muteBtn.remove();
+		}
 
 		// Language menu
-		this.#showEl(this.#langMenu!, hasCultures && !onlyFullscreen);
-		if (hasCultures) {
-			const trigger = this.#langMenu!.querySelector('.ctrl-lang-trigger') as any;
-			if (trigger) trigger.setProps({ type: 'a11y', title: $i18n.switchLanguage });
+		if (hasCultures && !onlyFullscreen) {
+			if (!this.#langMenu?.isConnected) {
+				this.#langMenu?.remove();
+				this.#langMenu = document.createElement('menu');
+				this.#langMenu.className = 'popout ctrl-lang';
+				this.#langMenu.setAttribute('tabindex', '0');
+				const trigger = document.createElement('micrio-button');
+				trigger.className = 'ctrl-lang-trigger';
+				this.#langMenu.appendChild(trigger);
+				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
+			}
+			const trigger = this.#langMenu.querySelector('.ctrl-lang-trigger') as any;
+			trigger?.setProps({ type: 'a11y', title: $i18n.switchLanguage });
 
-			// Add/remove language buttons
-			const existing = this.#langMenu!.querySelectorAll(':scope > micrio-button:not(.ctrl-lang-trigger)');
+			const existing = this.#langMenu.querySelectorAll(':scope > micrio-button:not(.ctrl-lang-trigger)');
 			existing.forEach(el => el.remove());
 
 			for (const l of cultures) {
@@ -275,50 +260,94 @@ micrio-controls menu.popout:not(:focus-within)>micrio-button:not(:first-child){p
 					onclick: () => { (this as any).__setLang(l); }
 				});
 				b.appendChild(document.createTextNode(l.toUpperCase()));
-				this.#langMenu!.appendChild(b);
+				this.#langMenu.appendChild(b);
 			}
+		} else if (this.#langMenu?.isConnected) {
+			this.#langMenu.remove();
 		}
 
 		// Share button
-		this.#showEl(this.#shareBtn, hasSocial && !onlyFullscreen);
-		if (hasSocial) {
+		if (hasSocial && !onlyFullscreen) {
+			if (!this.#shareBtn?.isConnected) {
+				this.#shareBtn?.remove();
+				(this.#shareBtn as any) = document.createElement('micrio-button');
+				this.#shareBtn.className = 'ctrl-share';
+				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
+			}
 			this.#shareBtn.setProps({ type: 'share', title: $i18n.share, onclick: (this as any).__share });
+		} else if (this.#shareBtn?.isConnected) {
+			this.#shareBtn.remove();
 		}
 
-		// Zoom buttons
+		// Zoom + fullscreen button group
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
-		this.#showEl(this.#zoomGroup.closest('micrio-button-group') || this.#group1, true);
-		this.#showEl(this.#zoomGroup, zoomVisible);
-		this.#showEl(this.#group1, true);
+		const showGroup = zoomVisible || hasFullscreen;
 
-		// Fullscreen
-		this.#showEl(this.#fsGroup, hasFullscreen);
-		if (hasFullscreen) {
-			this.#fsGroup.setProps({ el: micrio });
+		if (showGroup) {
+			if (!this.#group1?.isConnected) {
+				this.#group1?.remove();
+				this.#group1 = document.createElement('micrio-button-group');
+				this.#aside1.appendChild(this.#group1);
+			}
+			if (zoomVisible) {
+				if (!this.#zoomGroup?.isConnected) {
+					this.#zoomGroup?.remove();
+					(this.#zoomGroup as any) = document.createElement('micrio-zoom-buttons');
+					this.#zoomGroup.className = 'ctrl-zoom';
+					if (this.#fsGroup?.isConnected) this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);
+					else this.#group1.appendChild(this.#zoomGroup);
+				}
+			} else if (this.#zoomGroup?.isConnected) {
+				this.#zoomGroup.remove();
+			}
+			if (hasFullscreen) {
+				if (!this.#fsGroup?.isConnected) {
+					this.#fsGroup?.remove();
+					(this.#fsGroup as any) = document.createElement('micrio-fullscreen');
+					this.#fsGroup.className = 'ctrl-fs';
+					this.#group1.appendChild(this.#fsGroup);
+				}
+				this.#fsGroup.setProps({ el: micrio });
+			} else if (this.#fsGroup?.isConnected) {
+				this.#fsGroup.remove();
+			}
+		} else if (this.#group1?.isConnected) {
+			this.#group1.remove();
 		}
 
 		// Split-screen secondary controls
 		const hasSecondary = $zoom && !!this.#secondaryControls;
-		this.#showEl(this.#aside2, hasSecondary);
 		if (hasSecondary) {
+			if (!this.#aside2?.isConnected) {
+				this.#aside2?.remove();
+				this.#aside2 = document.createElement('aside');
+				this.#aside2.className = 'primary';
+				const group2 = document.createElement('micrio-button-group');
+				const zoom2 = document.createElement('micrio-zoom-buttons');
+				group2.appendChild(zoom2);
+				this.#aside2.appendChild(group2);
+				this.appendChild(this.#aside2);
+			}
 			this.#aside2.classList.toggle('portrait', this.#secondaryPortrait);
+		} else if (this.#aside2?.isConnected) {
+			this.#aside2.remove();
 		}
 
 		// Grid close button
 		const showGridClose = !!this.#gridFocussed && this.#gridClickable == 'focus' && !$popup && !$tour;
-		this.#showEl(this.#aside3, showGridClose);
 		if (showGridClose) {
-			const existingBtn = this.#aside3.querySelector('micrio-button');
-			if (!existingBtn) {
+			if (!this.#aside3?.isConnected) {
+				this.#aside3?.remove();
+				this.#aside3 = document.createElement('aside');
+				this.#aside3.className = 'grid-close';
 				const btn = document.createElement('micrio-button') as any;
 				btn.setProps({ type: 'close', title: $i18n.close, onclick: (this as any).__gridBack });
 				this.#aside3.appendChild(btn);
+				this.appendChild(this.#aside3);
 			}
+		} else if (this.#aside3?.isConnected) {
+			this.#aside3.remove();
 		}
-	}
-
-	#showEl(el: HTMLElement, show: boolean) {
-		el.style.display = show ? '' : 'none';
 	}
 
 	onDestroy() {
