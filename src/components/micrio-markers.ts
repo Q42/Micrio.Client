@@ -3,6 +3,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
+import { clone } from '$ts/utils/object';
 import './micrio-marker';
 import './micrio-waypoint';
 
@@ -90,6 +91,34 @@ micrio-markers.is360.inactive{opacity:0}`;
 		if (micrioState.tour) this.#unsubs.push(micrioState.tour.subscribe(rebuild));
 
 		if (image.is360) this.classList.add('is360');
+
+		// Fly back to previous view when a marker closes
+		if (!image.grid && (image.$settings._markers as any)?.zoomOutAfterClose) {
+			let wasVideoTour = false;
+			this.#unsubs.push(image.state.marker.subscribe(m => {
+				if (m && typeof m != 'string' && !image.openedView && !m.noMarker && m.view) {
+					image.openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
+						: clone(image.state.$view ?? image.camera?.getView());
+					wasVideoTour = !!m.videoTour;
+				} else if (!m && image.openedView && !get(micrio.state.tour)) {
+					setTimeout(() => {
+						if (image.openedView) {
+							const v = image.openedView;
+							const w = Math.min(1, v[2]);
+							const h = Math.min(1, v[3]);
+							const hw = w / 2, hh = h / 2;
+							const cx = Math.max(hw, Math.min(1 - hw, v[0] + hw));
+							const cy = Math.max(hh, Math.min(1 - hh, v[1] + hh));
+							image.camera.flyToView([cx - hw, cy - hh, w, h] as Models.Camera.View, {
+								speed: (image.$settings._markers as any)?.zoomOutAfterCloseSpeed,
+							}).catch(() => {});
+						}
+						image.openedView = undefined;
+						wasVideoTour = false;
+					}, wasVideoTour ? 250 : 10);
+				}
+			}));
+		}
 
 		rebuild();
 	}
