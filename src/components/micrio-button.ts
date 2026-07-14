@@ -31,8 +31,8 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 .micrio-button>*{height:var(--micrio-icon-size)!important;width:var(--micrio-icon-size);font-size:var(--micrio-icon-size);fill:var(--micrio-color)}
 .micrio-button.active{color:var(--micrio-color-hover)}
 .micrio-button.active svg{fill:var(--micrio-color-hover)}
-@media(hover:hover){.micrio-button:hover{background-color:var(--micrio-button-background-hover,var(--micrio-button-background,var(--micrio-background)));color:var(--micrio-color-hover)}
-.micrio-button:hover svg{fill:var(--micrio-color-hover);stroke:var(--micrio-color-hover)}
+@media(hover:hover){.micrio-button:hover,.micrio-button:focus{background-color:var(--micrio-button-background-hover,var(--micrio-button-background,var(--micrio-background)));color:var(--micrio-color-hover);position:relative;z-index:1}
+.micrio-button:hover svg,.micrio-button:focus svg{fill:var(--micrio-color-hover);stroke:var(--micrio-color-hover)}
 .micrio-button:focus{outline:1px solid var(--micrio-color-hover)}
 }`;
 

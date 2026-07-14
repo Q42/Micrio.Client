@@ -70,7 +70,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#lastMarkerIds = '';
 
 	#layers = [
-		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'markers', 'controls',
+		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'controls', 'markers',
 		'details', 'popup', 'tour', 'popover', 'subtitles',
 		'error', 'progress'
 	];

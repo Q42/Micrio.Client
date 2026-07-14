@@ -22,7 +22,7 @@ micrio-controls .grid-close{top:var(--micrio-border-margin);bottom:auto;position
 micr-io[data-switching]>micrio-controls,micr-io[data-tour-active]>micrio-controls{opacity:0;pointer-events:none}
 micrio-controls>micrio-button,micrio-controls>menu{padding:0;margin:8px 0;display:block;width:var(--micrio-button-size)}
 micrio-controls menu.ctrl-lang{position:relative;padding:0;margin:8px 0;width:var(--micrio-button-size);min-height:var(--micrio-button-size)}
-micrio-controls .lang-items{position:absolute;right:100%;top:0;display:none;flex-direction:row;background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);overflow:hidden;white-space:nowrap}
+micrio-controls .lang-items{position:absolute;right:100%;top:0;display:none;flex-direction:row;background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);white-space:nowrap}
 micrio-controls menu.ctrl-lang:hover .lang-items,micrio-controls menu.ctrl-lang:focus-within .lang-items{display:flex}
 micrio-controls .lang-items micrio-button{--micrio-button-shadow:none;--micrio-background-filter:none}
 micrio-controls .lang-items .micrio-button{padding:0}
