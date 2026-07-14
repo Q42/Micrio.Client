@@ -63,7 +63,7 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		const $current = micrio ? get(micrio.current) : undefined;
 		if (!info || !$_lang || !$current) return;
 
-		const cData = data?.i18n ? (data.i18n as any)[$_lang] : data as any;
+		const cData = data?.i18n ? data.i18n[$_lang] : data as unknown as Models.ImageData.ImageDetailsCultureData;
 		const title = cData?.title ?? info.title ?? '';
 		const description = cData?.description;
 		const link = cData?.sourceUrl;

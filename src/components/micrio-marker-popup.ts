@@ -76,7 +76,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		const data = marker.data || {};
 		const canMinimize = settings.canMinimizePopup;
 
-		const markerTour = $tour && 'steps' in $tour ? $tour as any : undefined;
+		const markerTour = $tour && 'steps' in $tour ? $tour as Models.ImageData.MarkerTour & { next?(): void; prev?(): void } : undefined;
 		const tourSourceImage = markerTour ? micrio.canvases.find((c: MicrioImage) =>
 			c.$data?.markerTours?.find((t: any) => t.id === markerTour.id)
 		) : undefined;
@@ -94,7 +94,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 				if (e instanceof Event && closeButtonStopsTour) {
 					micrio.state.tour.set(undefined);
 				} else {
-					($tour as any).next?.();
+					($tour as Models.ImageData.MarkerTour & { next?(): void }).next?.();
 				}
 			} else {
 				if ($current && !image.opts.secondaryTo && $current.id != image.id && data.micrioLink?.id == $current.id) {

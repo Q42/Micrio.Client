@@ -75,7 +75,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		// Derive marker view from video tour
 		if (marker.videoTour) {
 			const vt = marker.videoTour;
-			const timeline = 'timeline' in vt ? (vt as any).timeline : vt.i18n?.[$_lang]?.timeline;
+			const timeline = vt.i18n?.[$_lang]?.timeline;
 			if (timeline?.length) marker.view = timeline[0].rect;
 		}
 
@@ -86,7 +86,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
 			: marker.data?.icon || markerSettings.markerIcon;
 		const hasIcon = !!icon || !!customIcon;
-		const defaultClass = (!('class' in marker) || (marker as any).class !== '') && (hasIcon || marker.type == 'default');
+		const defaultClass = hasIcon || marker.type == 'default';
 
 		let moveCount = 0;
 	const moved = () => {
@@ -158,10 +158,10 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			if (marker.popupType != 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
 				// no popup - handle popover or video tour
 				if (marker.popupType == 'popover') {
-					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined } as any);
+					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined });
 				} else if (marker.videoTour && !$tour) {
 					micrio.state.tour.set(marker.videoTour);
-					after(micrio.state.tour as any).then(() => image.state.marker.set(undefined));
+					after(micrio.state.tour).then(() => image.state.marker.set(undefined));
 				}
 			} else {
 				tick().then(() => micrio.state.popup.set(marker));

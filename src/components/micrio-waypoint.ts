@@ -34,6 +34,9 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 	#coords!: Models.Spaces.WaypointCoords;
 	#iface!: Models.Spaces.WaypointInterface;
 	#fto: any;
+	#vector!: Models.Camera.Vector;
+	#click: (() => void) | undefined;
+	#focus: (() => void) | undefined;
 
 	onMount() {
 		this.#setup();
@@ -48,7 +51,7 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 	}
 
 	#setup() {
-		const { targetId, image, settings = {} } = this.#props;
+		const { targetId, image, settings } = this.#props;
 		if (!image || !targetId) return;
 
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
@@ -59,6 +62,7 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 		if (!vectorData) { console.error(`[Micrio] Could not calculate vector for target ${targetId}`); return; }
 
 		const { directionX, v, vN, vector } = vectorData;
+		this.#vector = vector;
 		const isOnGround = Math.abs(vN[1]) < .3;
 		const defaultY = isOnGround ? .65 : .5 + vN[1] / 10;
 
@@ -69,7 +73,7 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 			rotY: 0, rotZ: 0
 		};
 
-		const customCoords = (settings as any)?.coords ?? clone(autoCoords);
+		const customCoords = settings?.coords ?? clone(autoCoords);
 		const isCustom = customCoords.custom;
 		this.#coords = isCustom ? customCoords : autoCoords;
 
@@ -78,13 +82,12 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 			this.#clicked = true;
 			image.openedView = undefined;
 			image.state.marker.set(undefined);
-			micrio.open(targetId, { vector });
+			micrio.open(targetId, { vector: this.#vector });
 		};
 
 		const focus = () => {
 			if (image.$settings._markers?.noMarkerActions) return;
-			const parent = (this as any)['_element']?.parentNode as HTMLElement;
-			if (parent) parent.scrollTo(0, 0);
+			(this.parentNode as HTMLElement)?.scrollTo(0, 0);
 			clearTimeout(this.#fto);
 			this.#fto = setTimeout(() => {
 				const px = image.camera.getXY(this.#coords.x, this.#coords.y);
@@ -106,13 +109,14 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 			this.classList.toggle('direction-down', v[1] > 0);
 		};
 
+		const self = this;
 		this.#iface = {
 			coords: customCoords,
-			settings,
+			settings: settings ?? {} as Models.Spaces.WayPointSettings,
 			click: () => { },
 			get deleted() { return false; },
-			set deleted(v: boolean) { if (v) this.#hidden = true; }
-		} as any;
+			set deleted(v: boolean) { if (v) self.#hidden = true; }
+		} as Models.Spaces.WaypointInterface & { click: () => void };
 
 		onmove();
 
@@ -122,21 +126,21 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 		micrio.dispatchEvent(new CustomEvent('wp-print', { detail: this.#iface }));
 
 		// Store handlers
-		(this as any).__click = click;
-		(this as any).__focus = focus;
+		this.#click = click;
+		this.#focus = focus;
 	}
 
 	#render() {
 		if (this.#hidden) { this.style.display = 'none'; return; }
 
-		const { settings = {} } = this.#props;
+		const { settings } = this.#props;
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		const $_lang = micrio ? get(micrio._lang) : 'en';
 		const $i18n = get(i18n);
 		const spaceData = micrio?.spaceData;
 
-		const title = (settings as any)?.i18n?.[$_lang]?.title || this.#targetImage?.i18n?.[$_lang]?.title;
-		const icon = spaceData?.icons?.[(settings as any)?.customIconIdx ?? -1];
+		const title = settings?.i18n?.[$_lang]?.title || this.#targetImage?.i18n?.[$_lang]?.title;
+		const icon = spaceData?.icons?.[settings?.customIconIdx ?? -1];
 
 		this.classList.toggle('clicked', this.#clicked);
 
@@ -146,8 +150,8 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 			type: icon ? undefined : 'arrow-up',
 			icon: icon || undefined,
 			title: title ?? $i18n.waypointFollow,
-			onclick: (this as any).__click,
-			onfocus: (this as any).__focus,
+			onclick: this.#click,
+			onfocus: this.#focus,
 		});
 		this.appendChild(btn);
 	}

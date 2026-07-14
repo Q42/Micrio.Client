@@ -47,7 +47,7 @@ micrio-gallery>*{pointer-events:all}`;
 		const dial = document.createElement('micrio-dial') as MicrioElement;
 		const onturn = (frame: number) => {
 			const idx = Math.round(frame) % frames;
-			if (image.swiper) (image.swiper as any).slideTo?.(idx);
+			if (image.swiper) image.swiper.goto(idx);
 		};
 		dial.setProps({
 			currentRotation: 0,

@@ -78,7 +78,7 @@ micrio-marker-content section figcaption{display:none}
 
 		const openGallery = (startId: string | undefined) => {
 			if (!galleryEnabled) return;
-			micrio.state.popover.set({ gallery: marker.images, galleryStart: startId, image } as any);
+			micrio.state.popover.set({ gallery: marker.images, galleryStart: startId, image });
 		};
 
 		const getTitle = (asset: Models.Assets.Image) => asset.i18n?.[$_lang]?.title;
@@ -164,7 +164,7 @@ micrio-marker-content section figcaption{display:none}
 		if (content.bodySecondary) {
 			const article = document.createElement('micrio-article') as MicrioElement;
 			article.setProps({ html: content.bodySecondary });
-			(main as any).appendChild(article);
+			main.appendChild(article);
 		}
 
 		this.appendChild(main);

@@ -71,16 +71,16 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		const originalId = (micrio.$current as MicrioImage)?.id;
 
 		const hasTourLang = (t: any): boolean => !!t.i18n?.[$_lang];
-		const hasPageLang = (p: Models.ImageData.Menu): boolean => !!(p as any).i18n?.[$_lang];
+		const hasPageLang = (p: Models.ImageData.Menu): boolean => !!p.i18n?.[$_lang];
 		const hidden = !!$tour || !!$marker || !!$popover;
 
-		const markerTours = ((this.#data?.markerTours ?? []).concat((spaceData as any)?.markerTours ?? [])).filter(hasTourLang);
+		const markerTours = ((this.#data?.markerTours ?? []).concat(spaceData?.markerTours ?? [])).filter(hasTourLang);
 		const hasMarkerTours = markerTours.length > 0;
-		const videoTours = (this.#data?.tours?.filter(hasTourLang) ?? []) as any[];
+		const videoTours = this.#data?.tours?.filter(hasTourLang) ?? [];
 		const hasVideoTours = videoTours.length > 0;
 		const hasBothTourTypes = hasMarkerTours && hasVideoTours;
 		const mainPages = this.#data?.pages
-			? (this.#data.pages.filter(p => !p.id?.startsWith('_') && hasPageLang(p)) as any[])
+			? this.#data.pages.filter(p => !p.id?.startsWith('_') && hasPageLang(p))
 				.concat(this.#data.pages.filter(p => p.id?.startsWith('_')))
 			: undefined;
 		const empty = !(mainPages?.length || hasMarkerTours || hasVideoTours);

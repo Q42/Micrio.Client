@@ -43,7 +43,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 		this.#render();
 
 		this.watch(opened, () => this.classList.toggle('opened', this.#isOpen(this.#props.menu)));
-		this.watchWith(_lang as any, lazy(() => { this.#evalAction(); this.#render(); }));
+		this.watchWith<string>(_lang, lazy<string>(() => { this.#evalAction(); this.#render(); }));
 	}
 
 	#evalAction() {
@@ -52,6 +52,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 		if (!micrio) return;
 		const { events, state: micrioState, _lang } = micrio;
 		const cultureData = this.#getCData(menu, get(_lang));
+		const menuWithExtras = menu as Models.ImageData.Menu & { content?: string; embedUrl?: string };
 
 		this.#action = undefined;
 
@@ -62,15 +63,11 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 				if (originalId && micrio.$current?.id != originalId) micrio.open(originalId);
 				micrio.$current?.state.marker.set(menu.markerId);
 			};
-		} else if (cultureData?.content || cultureData?.embed || menu.image || (menu as any).content || (menu as any).embedUrl) {
+		} else if ((cultureData?.content || cultureData?.embed || menu.image || menuWithExtras.content || menuWithExtras.embedUrl) ||
+			(cultureData?.title && !menu.children?.length && !menu.link && !menu.markerId)) {
 			this.#action = () => {
-				events.dispatch('page-open', menu as any);
-				micrioState.popover.set({ contentPage: menu } as any);
-			};
-		} else if (cultureData?.title && !menu.children?.length && !menu.link && !menu.markerId) {
-			this.#action = () => {
-				events.dispatch('page-open', menu as any);
-				micrioState.popover.set({ contentPage: menu } as any);
+				events.dispatch('page-open', menu);
+				micrioState.popover.set({ contentPage: menu });
 			};
 		}
 	}
@@ -80,7 +77,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 	}
 
 	#getCData(m: Models.ImageData.Menu, lang: string): Models.ImageData.MenuCultureData | undefined {
-		return (m as any).i18n?.[lang] ?? (m as any);
+		return m.i18n?.[lang] ?? (m as unknown as Models.ImageData.MenuCultureData);
 	}
 
 	#isOpen(menu: Models.ImageData.Menu): boolean {

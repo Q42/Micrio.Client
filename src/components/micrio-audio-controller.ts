@@ -167,13 +167,15 @@ export class MicrioAudioController extends MicrioElement {
 		}));
 
 		// Expose for renderless operation
-		(this as any).__destroy = () => {
+		this.destroy = () => {
 			if (_ctx) {
 				audio.remove();
 				removeEventListener('pointerup', onUserGesture);
 			}
 		};
 	}
+
+	destroy: (() => void) | undefined;
 
 	onDestroy() {
 		this.#playlist?.destroy();

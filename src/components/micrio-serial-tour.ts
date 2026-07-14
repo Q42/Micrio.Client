@@ -29,7 +29,7 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 	#built = false;
 	#playBtn: any;
 	#progressBar: any;
-	#stepInfo: any[] = [];
+	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];
 
 	async #nextStep() {
 		if (this.#paused) return;
@@ -55,7 +55,7 @@ micrio-serial-tour micrio-button{--micrio-button-shadow:none;--micrio-background
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		if (!micrio || !tour) return;
 
-		this.#stepInfo = (tour.stepInfo as any[]) || [];
+		this.#stepInfo = (tour.stepInfo as Models.ImageData.MarkerTourStepInfo[]) || [];
 		const totalDuration: number = this.#stepInfo.reduce((c: number, s: any) => c + (s.duration || 0), 0);
 
 		this.#build();

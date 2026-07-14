@@ -1,5 +1,6 @@
 import { MicrioElement } from '$ts/component';
 import type { HTMLMicrioElement } from '$ts/element';
+import type { Writable } from '$ts/store';
 
 export interface SubtitlesProps {
 	src?: string;
@@ -16,9 +17,8 @@ micrio-subtitles p{display:inline;background:var(--micrio-background);color:var(
 	#unsubs: (() => void)[] = [];
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
-		// Subscribe to volume store to determine if subtitles can be shown
-		this.#unsubs.push((micrio as any)?.volume?.subscribe?.(() => this.#update()));
+		const unsub = this.inject<Writable<number>>('volume')?.subscribe(() => this.#update());
+		if (unsub) this.#unsubs.push(unsub);
 		this.#update();
 	}
 

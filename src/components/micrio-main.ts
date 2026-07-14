@@ -173,7 +173,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 							}
 							case 'page': {
 								const page = findPage(autoStart.id, d.pages);
-								if (page) micrio.state.popover.set({ contentPage: page, showLangSelect: true } as any); break;
+								if (page) micrio.state.popover.set({ contentPage: page, showLangSelect: true }); break;
 							}
 						}
 					}
