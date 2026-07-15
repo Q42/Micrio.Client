@@ -1,58 +1,59 @@
 import { MicrioElement } from '$ts/component';
-import type { Writable } from '$ts/store';
 import { get } from '$ts/store';
 import { captionsEnabled } from '$ts/captions';
 import type { Models } from '$types/models';
 
 export interface SubtitlesProps {
 	src?: string;
-	raised?: boolean;
+	mediaEl?: HTMLElement;
 }
 
 export class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	static tag = 'micrio-subtitles';
-	static styles = `micrio-subtitles{position:absolute;bottom:50px;left:50vw;left:50cqw;transform:translate3d(-50%,0,0);text-align:center;color:#fff;width:100vw;width:100cqw;pointer-events:none;transition:transform .2s ease}
+	static styles = `micrio-subtitles{position:fixed;bottom:50px;left:50vw;transform:translate3d(-50%,0,0);text-align:center;color:#fff;width:100vw;pointer-events:none;z-index:6;transition:transform .2s ease}
 micrio-subtitles.raised{transform:translate3d(-50%,calc(-1 * var(--micrio-button-size)),0)}
 micrio-subtitles p{margin:.5em 0;background-color:rgba(0,0,0,.6);padding:0 14px;-webkit-box-decoration-break:clone;box-decoration-break:clone;white-space:pre-wrap;display:inline;text-shadow:2px 2px 1px #0005;font-size:2.5em;line-height:inherit}
-@media(max-width:640px){micrio-subtitles{width:95vw;width:95cqw;font-size:.7em}}`;
+@media(max-width:640px){micrio-subtitles{width:95vw;font-size:.7em}}`;
 
 	#props: SubtitlesProps = {};
-	#unsubs: (() => void)[] = [];
 	#cues: Models.ImageData.Event[] = [];
+	#currentTime = 0;
+	#cleanup: (() => void) | undefined;
 
 	onMount() {
-		const unsub = this.inject<Writable<number>>('volume')?.subscribe(() => this.#renderCue());
-		if (unsub) this.#unsubs.push(unsub);
-
-		this.#unsubs.push(captionsEnabled.subscribe(() => this.#renderCue()));
+		this.#cleanup = captionsEnabled.subscribe(() => this.#renderCue());
 
 		const micrio = this.inject<any>('micrio');
 		if (micrio) {
-			const onTime = (e: Event) => {
-				this.#currentTime = (e as CustomEvent).detail ?? 0;
-				this.#renderCue();
-			};
-			micrio.addEventListener('timeupdate', onTime);
-			this.#unsubs.push(() => micrio.removeEventListener('timeupdate', onTime));
+			const updateRaised = () => this.classList.toggle('raised', !!get(micrio.state.tour));
+			updateRaised();
+			const unsub = micrio.state.tour.subscribe(updateRaised);
+			const prev = this.#cleanup;
+			this.#cleanup = () => { prev?.(); unsub(); };
 		}
 
-		this.classList.toggle('raised', !!this.#props.raised);
-		this.#update();
+		const el = this.#props.mediaEl?.querySelector('video,audio') as HTMLMediaElement;
+		if (el) {
+			const onTime = () => { this.#currentTime = el.currentTime; this.#renderCue(); };
+			el.addEventListener('timeupdate', onTime);
+			const prev = this.#cleanup;
+			this.#cleanup = () => { prev?.(); el.removeEventListener('timeupdate', onTime); };
+		}
+
+		if (this.#props.src) this.#update();
 	}
 
-	#currentTime = 0;
-
 	setProps(props: Partial<SubtitlesProps>) {
+		const srcChanged = props.src !== undefined && props.src !== this.#props.src;
 		Object.assign(this.#props, props);
-		if (this.isConnected) { this.classList.toggle('raised', !!this.#props.raised); this.#update(); }
+		if (srcChanged && this.isConnected) this.#update();
 	}
 
 	#update() {
 		if (!this.#props.src) { this.innerHTML = ''; return; }
 
 		this.#cues = [];
-		const src = this.#props.src;
-		fetch(src).then(r => r.text()).then(txt => {
+		fetch(this.#props.src).then(r => r.text()).then(txt => {
 			const s = txt.split('\n');
 			const cues: Models.ImageData.Event[] = [];
 			for(let l=0; l<s.length; l++) {
@@ -84,8 +85,7 @@ micrio-subtitles p{margin:.5em 0;background-color:rgba(0,0,0,.6);padding:0 14px;
 	}
 
 	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
+		this.#cleanup?.();
 	}
 }
 

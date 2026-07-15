@@ -72,7 +72,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'gallery', 'controls', 'embeds', 'markers',
-		'details', 'popup', 'tour', 'popover', 'subtitles',
+		'details', 'popup', 'tour', 'popover',
 		'error', 'progress'
 	];
 
@@ -124,9 +124,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#unsubs.push(micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1)));
 
 		this.provide('mediaPaused', writable<boolean>(false));
-
-		const srt = writable<string>('');
-		this.provide('srt', srt);
 
 		const markerImages = new Map<string, MicrioImage>();
 		this.provide('markerImages', markerImages);
@@ -183,27 +180,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#queueSync();
 		}));
 
-		srt.subscribe(s => setTimeout(() => {
-			const existing = this.#elements.get('subtitles');
-			if (s) {
-				existing?.remove();
-				const sub = document.createElement('micrio-subtitles') as MicrioElement;
-				sub.setProps({ src: s, raised: !!get(micrio.state.tour) });
-				this.#elements.set('subtitles', sub);
-				this.#place('subtitles', sub);
-			} else {
-				existing?.remove();
-				this.#elements.set('subtitles', null);
-			}
-		}, 20));
-
 		this.#unsubs.push(micrio.state.tour.subscribe(() => {
 			const sub = this.#elements.get('subtitles') as MicrioElement;
 			if (sub) sub.setProps?.({ raised: !!get(micrio.state.tour) });
 		}));
 
 		for (const store of [micrio.visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
-		micrio.state.tour, micrio.state.marker, micrio.loading, micrio.switching]) {
+		micrio.state.tour, micrio.state.marker, micrio.switching]) {
 			this.#unsubs.push(store.subscribe(() => this.#queueSync()));
 		}
 		this.#unsubs.push(micrio._lang.subscribe(() => this.#queueSync()));
@@ -285,7 +268,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 					else this.appendChild(el);
 					if (!this.#elements.get('markers')) this.#elements.set('markers', el);
 				}
-			} else if (!showMarkers) {
+				} else if (!showMarkers) {
 				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
 				this.#elements.set('markers', null);
 				this.#lastMarkerIds = '';
@@ -339,11 +322,35 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			return el;
 		});
 
-		this.#show('popup', !!$markerPopup, () => {
-			const el = document.createElement('micrio-marker-popup') as MicrioElement;
-			el.setProps({ marker: $markerPopup! });
-			return el;
-		});
+		// Per-image marker popups — each image's open marker gets its own popup
+		{
+			const visible = (get(micrio.visible) as MicrioImage[]).filter(i => !i.opts?.isEmbed);
+			const currentPopupIds = new Set<string>();
+			for (const img of visible) {
+				const m = get(img.state.marker);
+				if (m && typeof m != 'string') {
+					const key = 'popup-' + img.id;
+					currentPopupIds.add(key);
+					const existing = this.#elements.get(key) as MicrioElement | undefined;
+					if (existing?.isConnected) {
+						existing.setProps?.({ marker: m });
+					} else {
+						existing?.remove();
+						const el = document.createElement('micrio-marker-popup') as MicrioElement;
+						el.setProps({ marker: m });
+						this.#elements.set(key, el);
+						this.appendChild(el);
+					}
+				}
+			}
+			// Remove popups for images that no longer have a marker set
+			for (const [key, el] of this.#elements) {
+				if (key.startsWith('popup-') && !currentPopupIds.has(key) && el?.isConnected) {
+					el.remove();
+					this.#elements.set(key, null);
+				}
+			}
+		}
 
 		this.#show('tour', !!$tour, () => {
 			const isSerial = $tour && 'steps' in $tour && $tour.isSerialTour;

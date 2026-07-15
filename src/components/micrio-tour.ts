@@ -4,6 +4,7 @@ import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
+import { DataLoader } from '$ts/utils/dataLoader';
 import './micrio-button';
 import './micrio-media';
 
@@ -48,32 +49,51 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			const mt = tour as Models.ImageData.MarkerTour;
 			mt.currentStep ??= mt.initialStep ?? 0;
 			this.#currentStep = mt.currentStep;
+			const stepInfo = mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined;
 
-			const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;
+			const openStep = async (prevIdx: number, newIdx: number) => {
+				const si = stepInfo?.[newIdx];
+				if (!si) return;
 
-			const openStep = (idx: number) => {
-				const stepId = mt.steps[idx];
-				const img = markerImages.get(stepId);
-				if (img) {
-					const marker = img.$data?.markers?.find((m: Models.ImageData.Marker) => stepId.startsWith(m.id));
-					if (marker) img.state.marker.set(marker);
+				// Clear previous step's marker before navigating
+				const prevSi = stepInfo?.[prevIdx];
+				if (prevSi?.micrioId) {
+					const prevImg = micrio.canvases?.find((c: MicrioImage) => c.id === prevSi.micrioId);
+					if (prevImg && get(prevImg.state.marker)) prevImg.state.marker.set(undefined);
 				}
+
+				// If the new step has a video tour, use its first timeline viewport as the start view
+				let startView: Models.Camera.View | undefined;
+				const marker = DataLoader.getStepMarker(si);
+				if (marker?.videoTour) {
+					const lang = micrio.lang;
+					const vt = marker.videoTour;
+					const timeline = 'timeline' in vt ? vt.timeline : (vt as any).i18n?.[lang]?.timeline;
+					if (timeline?.length) startView = timeline[0].rect;
+				}
+
+				const img = si.micrioId && micrio.$current?.id !== si.micrioId
+					? await micrio.open(si.micrioId, { startView })
+					: micrio.$current;
+				if (img) img.state.marker.set(si.markerId);
 			};
 
 			(mt as any).next = () => {
 				if (this.#currentStep < mt.steps.length - 1) {
+					const prev = this.#currentStep;
 					this.#currentStep++;
 					mt.currentStep = this.#currentStep;
-					openStep(this.#currentStep);
+					openStep(prev, this.#currentStep);
 					renderControls();
 				}
 			};
 
 			(mt as any).prev = () => {
 				if (this.#currentStep > 0) {
+					const prev = this.#currentStep;
 					this.#currentStep--;
 					mt.currentStep = this.#currentStep;
-					openStep(this.#currentStep);
+					openStep(prev, this.#currentStep);
 					renderControls();
 				}
 			};
@@ -88,14 +108,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				prevBtn.setProps({
 					type: 'arrow-left', title: get(i18n).tourStepPrev,
 					disabled: this.#currentStep === 0,
-					onclick: () => {
-						if (this.#currentStep > 0) {
-							this.#currentStep--;
-							mt.currentStep = this.#currentStep;
-							openStep(this.#currentStep);
-							renderControls();
-						}
-					}
+					onclick: () => (mt as any).prev?.()
 				});
 				div.appendChild(prevBtn);
 
@@ -108,14 +121,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				nextBtn.setProps({
 					type: 'arrow-right', title: get(i18n).tourStepNext,
 					disabled: this.#currentStep >= mt.steps.length - 1,
-					onclick: () => {
-						if (this.#currentStep < mt.steps.length - 1) {
-							this.#currentStep++;
-							mt.currentStep = this.#currentStep;
-							openStep(this.#currentStep);
-							renderControls();
-						}
-					}
+					onclick: () => (mt as any).next?.()
 				});
 				div.appendChild(nextBtn);
 
@@ -142,7 +148,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				}
 			}));
 
-			openStep(this.#currentStep);
+			openStep(-1, this.#currentStep);
 			renderControls();
 		}
 
@@ -151,10 +157,11 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				micrio.removeAttribute('data-tour-active');
 				if (isMarkerTour) {
 					const mt = tour as Models.ImageData.MarkerTour;
-					const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;
-					const stepId = mt.steps[this.#currentStep];
-					const img = markerImages.get(stepId);
-					if (img) img.state.marker.set(undefined);
+					const si = (mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined)?.[this.#currentStep];
+					if (si) {
+						const img = micrio.canvases?.find((c: MicrioImage) => c.id === si.micrioId);
+						if (img) img.state.marker.set(undefined);
+					}
 				}
 			}
 		}));

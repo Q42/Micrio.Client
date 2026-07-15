@@ -57,7 +57,10 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 	}
 
 	setProps(props: Partial<MarkerPopupProps>) {
-		if (props.marker !== undefined) this.#props.marker = props.marker;
+		if (props.marker !== undefined && props.marker.id !== this.#props.marker?.id) {
+			this.#props.marker = props.marker;
+			if (this.isConnected) this.#render();
+		}
 	}
 
 	#render() {

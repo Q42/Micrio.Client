@@ -166,7 +166,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			if (markerSettings.noMarkerActions) return;
 			events.dispatch('marker-open', marker);
 			const $tour = get(micrio.state.tour);
-			if ($tour && (!('steps' in $tour) || !$tour.steps?.includes?.(marker.id))) micrio.state.tour.set(undefined);
+			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) micrio.state.tour.set(undefined);
 			await tick();
 			if (marker.view && !data.noAnimate && !marker.videoTour) {
 				const opts: any = { area: image.opts?.area };
@@ -218,7 +218,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		this.#unsubs.push(image.state.marker.subscribe(m => {
 			if (typeof m == 'string' && m == marker.id) image.state.marker.set(marker);
 			else if (m == marker) activated();
-			else if (!data.alwaysOpen) {
+			else if (!m && !data.alwaysOpen) {
 				if (this.#opened) close();
 				this.#opened = false;
 			}
