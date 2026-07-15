@@ -7,6 +7,7 @@ import { get, writable } from '$ts/store';
 import { once } from '$ts/utils/store';
 import { Enums } from '$ts/enums';
 import { GallerySwiper } from '$ts/nav/swiper';
+import { icons } from '$ts/icons';
 import './micrio-button';
 import './micrio-dial';
 
@@ -683,6 +684,56 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#unsubs.push(image.state.layer.subscribe((idx: number) => {
 			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
 		}));
+
+		// Omni layer menu: inject a layer-switcher into the image data's pages
+		const omniCfg = image.$settings.omni;
+		const omniNumLayers = omniCfg?.layers?.length ?? 1;
+		if (omniNumLayers > 1) {
+			const layerNames = omniCfg!.layers!.map((l: any, idx: number) => ({
+				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, any]) => [lang, { title: name ?? 'Layer ' + (idx + 1) }]))
+			}));
+			// Fill in missing language translations with default names
+			const langs = Object.keys(info.revision ?? {}) as string[];
+			if (!langs.length) {
+				const ml = get(micrio._lang);
+				if (ml) langs.push(ml);
+			}
+			if (langs.length) {
+				for (const lang of langs) {
+					for (let i = 0; i < layerNames.length; i++) {
+						if (!layerNames[i].i18n[lang]) {
+							layerNames[i].i18n[lang] = { title: 'Layer ' + (i + 1) };
+						}
+					}
+				}
+			}
+			const printLayerMenu = () => {
+				const currentLayer = get(image.state.layer);
+				image.data.update((d: any) => {
+					if (!d) d = {};
+					if (!d.pages) d.pages = [];
+					// Remove stale _omni-layers entry so the page ID changes
+					// and the toolbar's checkRenderKey sees a new key
+					d.pages = d.pages.filter((p: any) => !p.id?.startsWith('_omni-layers'));
+					d.pages.push({
+						id: '_omni-layers-' + currentLayer,
+						i18n: layerNames[currentLayer].i18n,
+						icon: icons.layerGroup,
+						children: layerNames.map((title: any, i: number) => ({
+							id: 'omni-layer-' + i,
+							i18n: title.i18n,
+							action: () => {
+								image.state.layer.set(i);
+								preload(get(image.state.layer) * Math.floor(totalFrames / omniNumLayers));
+							}
+						})).filter((p: any) => p.id != 'omni-layer-' + currentLayer)
+					});
+					return d;
+				});
+			};
+			printLayerMenu();
+			this.#unsubs.push(image.state.layer.subscribe(printLayerMenu));
+		}
 	}
 
 	onDestroy() {

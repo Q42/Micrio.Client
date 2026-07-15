@@ -126,6 +126,17 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 			btn.type = 'button';
 			btn.addEventListener('click', click);
 			const strong = document.createElement('strong');
+			// Render menu icon if provided (tuple [width, height, svgPath])
+			if (menu.icon) {
+				const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+				svg.setAttribute('viewBox', `0 0 ${menu.icon[0]} ${menu.icon[1]}`);
+				svg.setAttribute('fill', 'currentColor');
+				svg.style.cssText = 'height:1em;vertical-align:-.125em;margin-right:10px';
+				const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+				path.setAttribute('d', menu.icon[2]);
+				svg.appendChild(path);
+				btn.appendChild(svg);
+			}
 			strong.textContent = cultureData?.title ?? '(Unknown)';
 			if (menu.children?.length) {
 				const icon = document.createElement('micrio-icon');
