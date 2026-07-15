@@ -21,9 +21,10 @@ micrio-embed>.embed-container{position:absolute;display:block;top:0;left:0;trans
 micrio-embed>.embed-container.embed3d{top:50%;left:50%}
 micrio-embed>.embed-container.embed3d.behind{pointer-events:none;opacity:0!important}
 micrio-embed>.embed-container.no-events{pointer-events:none}
+micrio-embed>.embed-container.hide-when-paused{transition:opacity .25s}
 micrio-embed>.embed-container.hide-when-paused:has(figure.paused){opacity:0}
 micrio-embed>.embed-container.inactive{opacity:0;pointer-events:none}
-micrio-embed>.embed-container>*{position:absolute;transform:translate3d(-50%,-50%,0) scale3d(var(--scale,1),var(--scale,1),1);cursor:pointer}
+micrio-embed>.embed-container>*{position:absolute;margin:0;transform:translate3d(-50%,-50%,0) scale3d(var(--scale,1),var(--scale,1),1);cursor:pointer}
 micrio-embed>.embed-container>:global(*:not(button)){width:auto!important}
 micrio-embed>.embed-container>img{max-width:none}
 micrio-embed>.embed-container>button{--scale:1;--ratio:1;padding:0;margin:0;background:transparent;border:none;width:100px;aspect-ratio:var(--ratio)}
@@ -38,6 +39,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 	#glVideo?: GLEmbedVideo;
 	#container?: HTMLElement;
 	#videoEl?: HTMLVideoElement;
+	#figureEl?: HTMLElement;
 	#moveRaf: number | undefined;
 	#loopDelayTo: any;
 
@@ -239,7 +241,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		const wCalc = this.#w * this.#info.width;
 		const relScale = wCalc / width;
 
-		const figure = document.createElement('figure');
+		this.#figureEl = document.createElement('figure');
 
 		const vid = document.createElement('video');
 		vid.src = video.src!;
@@ -263,8 +265,8 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 			vid.appendChild(source);
 		}
 
-		figure.appendChild(vid);
-		this.#container!.appendChild(figure);
+		this.#figureEl.appendChild(vid);
+		this.#container!.appendChild(this.#figureEl);
 		this.#videoEl = vid;
 
 		if (embed.id && this.#props.image) {
@@ -398,6 +400,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 	#syncVideoPause(image: MicrioImage) {
 		if (!this.#videoEl) return;
+		if (this.#figureEl) this.#figureEl.classList.toggle('paused', this.#paused);
 		if (this.#paused) {
 			if (!this.#videoEl.paused) this.#videoEl.pause();
 		} else {
