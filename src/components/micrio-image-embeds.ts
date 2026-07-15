@@ -12,16 +12,11 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 	static styles = 'micrio-image-embeds{display:contents}';
 
 	#props: ImageEmbedsProps = { image: null! };
-	#unsubs: (() => void)[] = [];
 
 	onMount() {
 		const { image } = this.#props;
 
-		// Re-render when data changes — skip the initial emission
-		// so we don't double-create: onMount already reads synchronously below.
-		let first = true;
-		this.#unsubs.push(image.data.subscribe(d => {
-			if (first) { first = false; return; }
+		this.watchLater(image.data, d => {
 			this.innerHTML = '';
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
@@ -30,9 +25,8 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 					this.appendChild(el);
 				}
 			}
-		}));
+		});
 
-		// Synchronous initial render — data may already be loaded
 		const data = get(image.data);
 		if (data?.embeds) {
 			for (const embed of data.embeds) {
@@ -45,11 +39,6 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 
 	setProps(props: Partial<ImageEmbedsProps>) {
 		if (props.image !== undefined) this.#props.image = props.image;
-	}
-
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

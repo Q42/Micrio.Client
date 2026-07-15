@@ -9,7 +9,7 @@ import { DataLoader } from '$ts/utils/dataLoader';
 import './micrio-icon';
 import './micrio-button';
 import './micrio-button-group';
-import { MicrioProgressCircle } from './micrio-progress-circle';
+import type { ProgressCircleProps } from './micrio-progress-circle';
 import './micrio-progress-bar';
 import './micrio-logo';
 import './micrio-article';
@@ -117,16 +117,12 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		if (!micrio) return;
 
 		this.provide('micrio', micrio);
-		this.provide('markerImages', new Map<string, MicrioImage>());
 
 		const volume = writable<number>(get(micrio.isMuted) ? 0 : 1);
 		this.provide('volume', volume);
 		this.#unsubs.push(micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1)));
 
 		this.provide('mediaPaused', writable<boolean>(false));
-
-		const markerImages = new Map<string, MicrioImage>();
-		this.provide('markerImages', markerImages);
 
 		const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
 		if (onlyMarkers) this.#props.noHTML = true;
@@ -373,8 +369,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		});
 
 		this.#show('progress', loadingProgress < 1, () => {
-			const el = document.createElement('micrio-progress-circle') as MicrioProgressCircle;
-			el.setProgress(loadingProgress);
+			const el = document.createElement('micrio-progress-circle') as MicrioElement<ProgressCircleProps>;
+			el.setProps({ progress: loadingProgress });
 			return el;
 		});
 	}

@@ -35,8 +35,8 @@ micrio-details details:not([open]) summary::marker,micrio-details details:not([o
 micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(100% + 8px)}
 }`;
 
+	#props: Partial<DetailsProps> = {};
 	#detailsEl!: HTMLDetailsElement;
-	#unsubs: (() => void)[] = [];
 
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
@@ -50,14 +50,14 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 	}
 
 	setProps(props: Partial<DetailsProps>) {
-		if (props.info !== undefined) this._props.info = props.info;
-		if (props.data !== undefined) this._props.data = props.data;
+		if (props.info !== undefined) this.#props.info = props.info;
+		if (props.data !== undefined) this.#props.data = props.data;
 		if (this.isConnected) this.#render();
 	}
 
 	#render() {
-		const info = this._props.info;
-		const data = this._props.data;
+		const info = this.#props.info;
+		const data = this.#props.data;
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
 		const $_lang = micrio ? get(micrio._lang) : undefined;
 		const $current = micrio ? get(micrio.current) : undefined;
@@ -125,10 +125,6 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		}
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioDetails.tag, MicrioDetails);

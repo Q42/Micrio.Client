@@ -23,7 +23,6 @@ micrio-logo-org a{position:absolute;top:calc(var(--micrio-border-margin) * 2);ri
 micrio-logo-org img{max-height:64px;display:block}`;
 
 	#props: LogoOrgProps = { organisation: null! };
-	#unsubs: (() => void)[] = [];
 
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
@@ -53,11 +52,6 @@ micrio-logo-org img{max-height:64px;display:block}`;
 		img.alt = 'Logo';
 		a.appendChild(img);
 		this.appendChild(a);
-	}
-
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

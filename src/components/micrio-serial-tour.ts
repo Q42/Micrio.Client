@@ -2,6 +2,7 @@ import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$ts/element';
 import { DataLoader } from '$ts/utils/dataLoader';
+import { parseTime } from '$ts/utils/time';
 import './micrio-media';
 
 export interface SerialTourProps {
@@ -139,7 +140,7 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 				onclose: close,
 				hasAudio: this.#stepInfo.some(s => s.duration > 0),
 				fullscreenEl: micrio,
-				getTimeDisplay: () => `${this.#parseTime(this.#calcTime())} / ${this.#parseTime(this.#duration)}`
+				getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`
 			});
 			this.append(media);
 			this.#mediaEl = media;
@@ -214,18 +215,6 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 			else break;
 		}
 		return total;
-	}
-
-	#parseTime(s: number): string {
-		if (isNaN(s)) return '0:00';
-		const neg = s < 0;
-		if (neg) s = -s;
-		const total = Math.ceil(s);
-		const hours = Math.floor(total / 3600);
-		const minutes = Math.floor((total % 3600) / 60);
-		const secs = total % 60;
-		const pad = (n: number) => n < 10 ? '0' + n : '' + n;
-		return (neg ? '-' : '') + (hours ? hours + ':' + pad(minutes) : '' + minutes) + ':' + pad(secs);
 	}
 
 	#updateBars() {

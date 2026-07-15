@@ -16,7 +16,6 @@ micrio-logo a.loading::after{animation:micrio-logo-spin .5s infinite ease-out}
 	#a!: HTMLAnchorElement;
 	#loadingTimer: any;
 	#loading = false;
-	#unsubs: (() => void)[] = [];
 
 	onMount() {
 		const micrio = this.inject<HTMLMicrioElement>('micrio');
@@ -32,7 +31,7 @@ micrio-logo a.loading::after{animation:micrio-logo-spin .5s infinite ease-out}
 		if (target) this.#a.target = target;
 		this.appendChild(this.#a);
 
-		this.#unsubs.push(micrio.loading.subscribe(l => {
+		this.addCleanup(micrio.loading.subscribe(l => {
 			clearTimeout(this.#loadingTimer);
 			if (!l) {
 				this.#loading = false;
@@ -44,12 +43,12 @@ micrio-logo a.loading::after{animation:micrio-logo-spin .5s infinite ease-out}
 				}, 750);
 			}
 		}));
+
+		this.addCleanup(() => clearTimeout(this.#loadingTimer));
 	}
 
 	onDestroy() {
 		clearTimeout(this.#loadingTimer);
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 
 	#updateClass() {

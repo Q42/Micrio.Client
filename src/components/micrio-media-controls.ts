@@ -2,6 +2,7 @@ import { MicrioElement } from '$ts/component';
 import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
 import { captionsEnabled } from '$ts/captions';
+import { fmt } from '$ts/utils/time';
 import './micrio-button';
 import './micrio-fullscreen';
 
@@ -21,12 +22,6 @@ export interface MediaControlsProps {
 	onseek?: (n: number) => void;
 	onclose?: () => void;
 	getTimeDisplay?: (currentTime: number, duration: number) => string;
-}
-
-function fmt(t: number): string {
-	const m = Math.floor(t / 60);
-	const s = Math.floor(t % 60);
-	return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export class MicrioMediaControls extends MicrioElement<MediaControlsProps> {

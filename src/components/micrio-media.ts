@@ -75,6 +75,85 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		if (this.isConnected) this.#render();
 	}
 
+	#createYoutubeIframe(src: string, p: MediaProps, figure: HTMLElement) {
+		const match = src.match(YOUTUBE_RE);
+		const videoId = match?.[5];
+		if (!videoId) return;
+		const iframe = document.createElement('iframe');
+		iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&playsinline=1&enablejsapi=1`;
+		iframe.width = String(p.width ?? 400);
+		iframe.height = String(p.height ?? 240);
+		iframe.setAttribute('allow', 'autoplay; encrypted-media');
+		iframe.setAttribute('allowfullscreen', '');
+		figure.appendChild(iframe);
+		this.#frame = iframe;
+	}
+
+	#createVimeoIframe(src: string, p: MediaProps, figure: HTMLElement) {
+		const idMatch = src.match(/\/(\d+)/);
+		if (!idMatch?.[1]) return;
+		const vimeoId = idMatch[1];
+		const tokenPart = src.slice(src.indexOf(vimeoId) + vimeoId.length + 1);
+		const vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined;
+		const embedSrc = `https://player.vimeo.com/video/${vimeoId}?${vimeoToken ? `h=${vimeoToken}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0`;
+		const iframe = document.createElement('iframe');
+		iframe.src = embedSrc;
+		iframe.width = String(p.width ?? 400);
+		iframe.height = String(p.height ?? 240);
+		iframe.setAttribute('allow', 'autoplay; fullscreen');
+		iframe.setAttribute('allowfullscreen', '');
+		figure.appendChild(iframe);
+		this.#frame = iframe;
+	}
+
+	#createCloudflareVideo(src: string, p: MediaProps, figure: HTMLElement) {
+		const cfId = src.slice(8);
+		const hlsSrc = `https://videodelivery.net/${cfId}/manifest/video.m3u8`;
+		const video = document.createElement('video');
+		video.src = hlsSrc;
+		video.width = p.width ?? 400;
+		video.height = p.height ?? 240;
+		video.controls = false;
+		video.preload = 'metadata';
+		video.playsInline = true;
+		video.crossOrigin = 'anonymous';
+		if (p.autoplay) video.autoplay = true;
+		if (p.muted) video.muted = true;
+		figure.appendChild(video);
+		this.#videoEl = video;
+		this.#wireEvents(video);
+		this.#hlsSrc = hlsSrc;
+	}
+
+	#createAudioElement(src: string, p: MediaProps, figure: HTMLElement) {
+		const audio = document.createElement('audio');
+		audio.src = src;
+		audio.controls = false;
+		audio.preload = 'metadata';
+		audio.style.display = 'none';
+		if (p.autoplay) audio.autoplay = true;
+		if (p.muted) audio.muted = true;
+		figure.appendChild(audio);
+		this.#videoEl = audio;
+		this.#wireEvents(audio);
+	}
+
+	#createNativeVideo(src: string, p: MediaProps, figure: HTMLElement) {
+		const video = document.createElement('video');
+		video.src = src;
+		video.width = p.width ?? 400;
+		video.height = p.height ?? 240;
+		video.controls = false;
+		video.preload = 'metadata';
+		video.playsInline = true;
+		video.crossOrigin = 'anonymous';
+		if (p.autoplay) video.autoplay = true;
+		if (p.muted) video.muted = true;
+		figure.appendChild(video);
+		this.#videoEl = video;
+		this.#wireEvents(video);
+	}
+
 	#render() {
 		const p = this.#props;
 		const src = p.src;
@@ -95,79 +174,17 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		if (p.is360) figure.style.setProperty('--micrio-background', 'transparent');
 
 		if (isYoutube) {
-			const match = src!.match(YOUTUBE_RE);
-			const videoId = match?.[5];
-			if (videoId) {
-				const iframe = document.createElement('iframe');
-				iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&playsinline=1&enablejsapi=1`;
-				iframe.width = String(p.width ?? 400);
-				iframe.height = String(p.height ?? 240);
-				iframe.setAttribute('allow', 'autoplay; encrypted-media');
-				iframe.setAttribute('allowfullscreen', '');
-				figure.appendChild(iframe);
-				this.#frame = iframe;
-			}
+			this.#createYoutubeIframe(src!, p, figure);
 		} else if (isVimeo) {
-			const idMatch = src!.match(/\/(\d+)/);
-			if (idMatch?.[1]) {
-				const vimeoId = idMatch[1];
-				const tokenPart = src!.slice(src!.indexOf(vimeoId) + vimeoId.length + 1);
-				const vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined;
-				const embedSrc = `https://player.vimeo.com/video/${vimeoId}?${vimeoToken ? `h=${vimeoToken}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0`;
-				const iframe = document.createElement('iframe');
-				iframe.src = embedSrc;
-				iframe.width = String(p.width ?? 400);
-				iframe.height = String(p.height ?? 240);
-				iframe.setAttribute('allow', 'autoplay; fullscreen');
-				iframe.setAttribute('allowfullscreen', '');
-				figure.appendChild(iframe);
-				this.#frame = iframe;
-			}
+			this.#createVimeoIframe(src!, p, figure);
 		} else if (isCloudflare) {
-			const cfId = src!.slice(8);
-			const hlsSrc = `https://videodelivery.net/${cfId}/manifest/video.m3u8`;
-			const video = document.createElement('video');
-			video.src = hlsSrc;
-			video.width = p.width ?? 400;
-			video.height = p.height ?? 240;
-			video.controls = false;
-			video.preload = 'metadata';
-			video.playsInline = true;
-			video.crossOrigin = 'anonymous';
-			if (p.autoplay) video.autoplay = true;
-			if (p.muted) video.muted = true;
-			figure.appendChild(video);
-			this.#videoEl = video;
-			this.#wireEvents(video);
-			this.#hlsSrc = hlsSrc;
+			this.#createCloudflareVideo(src!, p, figure);
 		} else if (!isTourOnly && isAudio) {
-			const audio = document.createElement('audio');
-			audio.src = src!;
-			audio.controls = false;
-			audio.preload = 'metadata';
-			audio.style.display = 'none';
-			if (p.autoplay) audio.autoplay = true;
-			if (p.muted) audio.muted = true;
-			figure.appendChild(audio);
-			this.#videoEl = audio;
-			this.#wireEvents(audio);
+			this.#createAudioElement(src!, p, figure);
 		} else if (!isTourOnly) {
-			const video = document.createElement('video');
-			video.src = src!;
-			video.width = p.width ?? 400;
-			video.height = p.height ?? 240;
-			video.controls = false;
-			video.preload = 'metadata';
-			video.playsInline = true;
-			video.crossOrigin = 'anonymous';
-			if (p.autoplay) video.autoplay = true;
-			if (p.muted) video.muted = true;
-			figure.appendChild(video);
-			this.#videoEl = video;
-			this.#wireEvents(video);
+			this.#createNativeVideo(src!, p, figure);
 		}
 
-		// Title/figcaption
 		if (p.figcaption) {
 			const cap = document.createElement('figcaption');
 			cap.textContent = p.figcaption;

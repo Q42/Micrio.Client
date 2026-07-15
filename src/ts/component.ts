@@ -5,13 +5,10 @@ const PROVIDES = Symbol('micrio-provides');
 
 let _injectedStyles = new Set<string>();
 
-export abstract class MicrioElement<P = {}> extends HTMLElement {
+export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	static tag: string;
 	static styles: string;
 	static markerImages: Map<string, any> = new Map();
-
-	/** Merged props object. Subclasses read from this in render(). */
-	_props: Partial<P> = {};
 
 	#_unsubs: (() => void)[] = [];
 	#_renderKey: string | null = null;
@@ -29,13 +26,20 @@ export abstract class MicrioElement<P = {}> extends HTMLElement {
 	onMount?(): void;
 	onDestroy?(): void;
 
-	/** Override to react to prop changes (called after props are merged). */
-	onPropsChange?(): void;
+	/**
+	 * Override in subclasses to receive props.
+	 * The base implementation is a no-op.
+	 */
+	setProps(_props: Record<string, any>): void {
+		// Override in subclass
+	}
 
-	/** Merge partial props and trigger onPropsChange. */
-	setProps(props: Partial<P>): void {
-		Object.assign(this._props, props);
-		this.onPropsChange?.();
+	/**
+	 * Register a cleanup function to be called automatically on disconnect.
+	 * Every component should use this instead of maintaining private cleanup arrays.
+	 */
+	protected addCleanup(fn: () => void): void {
+		this.#_unsubs.push(fn);
 	}
 
 	/**
@@ -62,18 +66,16 @@ export abstract class MicrioElement<P = {}> extends HTMLElement {
 	// ─── Store helpers ────────────────────────────────────────────
 
 	protected watch<T>(store: Readable<T>, fn: (value: T) => void): void {
-		const unsub = store.subscribe(fn);
-		this.#_unsubs.push(unsub);
+		this.addCleanup(store.subscribe(fn));
 	}
 
 	/** Subscribe but skip the very first emission (useful when onMount already sets initial state) */
 	protected watchLater<T>(store: Readable<T>, fn: (value: T) => void): void {
 		let first = true;
-		const unsub = store.subscribe(v => {
+		this.addCleanup(store.subscribe(v => {
 			if (first) { first = false; return; }
 			fn(v);
-		});
-		this.#_unsubs.push(unsub);
+		}));
 	}
 
 	/** Subscribe with microtask-level coalescing, skipping the initial emission */
@@ -87,13 +89,12 @@ export abstract class MicrioElement<P = {}> extends HTMLElement {
 			fn(v);
 			unsub?.();
 		});
-		this.#_unsubs.push(unsub);
+		this.addCleanup(unsub);
 	}
 
 	/** Subscribe with a pre-built subscriber wrapper (for use with defer, skipFirst, etc.) */
 	protected watchWith<T>(store: Readable<T>, fn: Subscriber<T>): void {
-		const unsub = store.subscribe(fn);
-		this.#_unsubs.push(unsub);
+		this.addCleanup(store.subscribe(fn));
 	}
 
 	// ─── Context (provide / inject) ───────────────────────────────
