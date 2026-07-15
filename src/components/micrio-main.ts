@@ -68,6 +68,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
 	#lastMarkerIds = '';
+	#lastEmbedIds = '';
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'gallery', 'controls', 'markers',
@@ -283,6 +284,25 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
 				this.#elements.set('markers', null);
 				this.#lastMarkerIds = '';
+			}
+		}
+
+		// Embeds
+		{
+			const showEmbeds = micrio.getAttribute('data-embeds') != 'false';
+			const $visible = get(micrio.visible) as MicrioImage[];
+			const ids = $visible.map(i => i.id).join(',');
+			if (showEmbeds && ids !== this.#lastEmbedIds) {
+				for (const el of this.querySelectorAll(':scope > micrio-image-embeds')) el.remove();
+				this.#lastEmbedIds = ids;
+				for (const img of $visible) {
+					const el = document.createElement('micrio-image-embeds') as MicrioElement;
+					el.setProps({ image: img });
+					this.insertBefore(el, this.querySelector(':scope > micrio-markers') ?? null);
+				}
+			} else if (!showEmbeds) {
+				for (const el of this.querySelectorAll(':scope > micrio-image-embeds')) el.remove();
+				this.#lastEmbedIds = '';
 			}
 		}
 

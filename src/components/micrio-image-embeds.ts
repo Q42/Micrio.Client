@@ -16,16 +16,12 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 
 	onMount() {
 		const { image } = this.#props;
-		const data = get(image.data);
-		if (data?.embeds) {
-			for (const embed of data.embeds) {
-				const el = document.createElement('micrio-embed') as MicrioElement;
-				el.setProps({ embed, image });
-				this.appendChild(el);
-			}
-		}
-		// Re-render when data changes
+
+		// Re-render when data changes — skip the initial emission
+		// so we don't double-create: onMount already reads synchronously below.
+		let first = true;
 		this.#unsubs.push(image.data.subscribe(d => {
+			if (first) { first = false; return; }
 			this.innerHTML = '';
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
@@ -35,6 +31,16 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 				}
 			}
 		}));
+
+		// Synchronous initial render — data may already be loaded
+		const data = get(image.data);
+		if (data?.embeds) {
+			for (const embed of data.embeds) {
+				const el = document.createElement('micrio-embed') as MicrioElement;
+				el.setProps({ embed, image });
+				this.appendChild(el);
+			}
+		}
 	}
 
 	setProps(props: Partial<ImageEmbedsProps>) {

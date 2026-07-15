@@ -35,7 +35,8 @@ micrio-markers.is360.inactive{opacity:0}`;
 
 		// Resize markers container to viewport
 		const resize = (v: Models.Camera.View) => {
-			v = v?.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
+			if (!v || v.length < 4) return;
+			v = v.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
 			this.style.cssText = [
 				...(!v[0] ? [] : [`left: ${v[0]}px`]),
 				...(!v[1] ? [] : [`top: ${v[1]}px`]),
