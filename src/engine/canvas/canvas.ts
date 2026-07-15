@@ -97,6 +97,7 @@ export class TileCanvas {
 	readonly tileSize: number;
 	readonly is360: boolean;
 	readonly noImage: boolean;
+	readonly isDeepZoom: boolean;
 	readonly isSingle: boolean;
 	readonly freeMove: boolean;
 	readonly coverStart: boolean;
@@ -125,6 +126,7 @@ export class TileCanvas {
 		this.tileSize = cfg.tileSize;
 		this.is360 = cfg.is360;
 		this.noImage = cfg.noImage;
+		this.isDeepZoom = cfg.isDeepZoom;
 		this.isSingle = cfg.isSingle;
 		this.freeMove = cfg.freeMove;
 		this.coverStart = coverLimit ? true : cfg.coverStart;
@@ -215,7 +217,7 @@ export class TileCanvas {
 				is360: false,
 				noImage: false,
 				isSingle: false,
-				isDeepZoom: this.main.hasArchive,
+				isDeepZoom: this.main.hasArchive || this.isDeepZoom,
 				freeMove: false,
 				coverStart,
 				maxScale: 1,
