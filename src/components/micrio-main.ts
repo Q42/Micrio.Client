@@ -9,6 +9,7 @@ import { DataLoader } from '$ts/utils/dataLoader';
 import './micrio-icon';
 import './micrio-button';
 import './micrio-button-group';
+import './micrio-progress-circle';
 import type { ProgressCircleProps } from './micrio-progress-circle';
 import './micrio-progress-bar';
 import './micrio-logo';
