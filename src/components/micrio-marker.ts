@@ -55,6 +55,9 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 	#matrix = '';
 	#fto: any;
 	#splitOpenTo: any;
+	// Omni arc visibility: target frame index and [start, end] frame range
+	#omniIndex = 0;
+	#omniArc: [number, number] | undefined;
 
 	onMount() {
 		const { marker, image, forceHidden = false } = this.#props;
@@ -88,6 +91,18 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		const hasIcon = !!icon || !!customIcon;
 		const defaultClass = hasIcon || marker.type == 'default';
 
+		// Omni arc: precompute target frame and visible range from marker rotation/visibleArc
+		const omni = image.$settings.omni;
+		if (image.isOmni && omni) {
+			const rot = (marker.rotation ?? 0) + (marker.backside ? Math.PI : 0);
+			this.#omniIndex = image.camera.getOmniFrame(rot) ?? 0;
+			if (marker.visibleArc) {
+				const a0 = image.camera.getOmniFrame(marker.visibleArc[0]);
+				const a1 = image.camera.getOmniFrame(marker.visibleArc[1]);
+				if (a0 != null && a1 != null) this.#omniArc = [a0, a1];
+			}
+		}
+
 		let moveCount = 0;
 	const moved = () => {
 			moveCount++;
@@ -100,6 +115,17 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 				});
 				[this.#x, this.#y, this.#scaleVal, this.#w] = xy;
 				if (image.is360) this.#behindCam = this.#w > 0;
+				else if (image.isOmni && omni) {
+					if (this.#omniArc && marker.rotation != null) {
+						const numFrames = omni.frames / (omni.layers?.length ?? 1);
+						let delta = (image.swiper?.currentIndex ?? 0) - this.#omniIndex;
+						if (delta > numFrames / 2) delta -= numFrames;
+						if (delta < -numFrames / 2) delta += numFrames;
+						this.#behindCam = delta <= this.#omniArc[0] || delta >= this.#omniArc[1];
+					} else if (omni.distance) {
+						this.#behindCam = this.#w < 0;
+					}
+				}
 				this.style.setProperty('--x', `${this.#x}px`);
 				this.style.setProperty('--y', `${this.#y}px`);
 				if (image.$settings.markersScale || marker.data?.scales) {
@@ -142,7 +168,9 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			if ($tour && (!('steps' in $tour) || !$tour.steps?.includes?.(marker.id))) micrio.state.tour.set(undefined);
 			await tick();
 			if (marker.view && !data.noAnimate && !marker.videoTour) {
-				image.camera.flyToView(marker.view, { area: image.opts?.area }).then(openContent).catch(() => {
+				const opts: any = { area: image.opts?.area };
+				if (image.isOmni) opts.omniIndex = this.#omniIndex;
+				image.camera.flyToView(marker.view, opts).then(openContent).catch(() => {
 					image.openedView = undefined;
 					image.state.marker.set(undefined);
 				});

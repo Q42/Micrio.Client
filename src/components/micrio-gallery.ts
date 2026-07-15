@@ -6,6 +6,7 @@ import { i18n } from '$ts/i18n/strings';
 import { get, writable } from '$ts/store';
 import { once } from '$ts/utils/store';
 import { Enums } from '$ts/enums';
+import { GallerySwiper } from '$ts/nav/swiper';
 import './micrio-button';
 import './micrio-dial';
 
@@ -584,25 +585,113 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	}
 
 	#renderOmni(image: MicrioImage) {
+		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		if (!micrio) return;
 		const settings = image.$settings;
 		const omni = settings.omni;
 		if (!omni) return;
-		const frames = omni.frames;
+		const engine = micrio.engine;
+		const info = image.$info;
+		if (!info) return;
+		const totalFrames = omni.frames;
+		const numLayers = omni.layers?.length ?? 1;
+		const pagesPerLayer = totalFrames / numLayers;
+
+		// Ensure image is registered with the engine
+		if (image.ptr < 0) {
+			once(image.info).then(() => {
+				if (image.ptr >= 0) this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
+			});
+			return;
+		}
+
+		this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
+	}
+
+	#initOmniFrames(image: MicrioImage, engine: any, info: any, totalFrames: number, pagesPerLayer: number) {
+		const micrio = this.inject<HTMLMicrioElement>('micrio')!;
+
+		const hasArchive = !!image.$settings.gallery?.archive;
+		const preloadD = 'requestIdleCallback' in self
+			? Math.max(36, Math.floor(totalFrames / 8) * 2)
+			: 50;
+		const preloading = this.#preloading;
+		const request: any = (self as any).requestIdleCallback ?? self.requestAnimationFrame;
+		const preload = (c: number) => {
+			for (let x = -preloadD; x <= preloadD; x++) {
+				if (!x) continue;
+				let rX = c + x;
+				while (rX < 0) rX += totalFrames;
+				while (rX >= totalFrames) rX -= totalFrames;
+				if (!preloading.has(frames[rX].id)) {
+					preloading.set(frames[rX].id, request(() =>
+						engine.getTexture(frames[rX].baseTileIdx, frames[rX].thumbSrc, false, { force: hasArchive })
+					));
+				}
+			}
+		};
+
+		// Register all frames with the engine
+		const frames: any[] = [];
+		for (let j = 0; j < totalFrames; j++) {
+			const frame: any = {
+				id: info.id + '/' + j,
+				image,
+				visible: writable(false),
+				frame: j,
+				opts: { area: [0, 0, 1, 1] },
+				ptr: -1,
+				baseTileIdx: -1,
+				thumbSrc: image.getTileSrc(image.levels, 0, 0, j),
+			};
+			engine.addEmbed(frame, image, { opacity: 0, asImage: false });
+			frames.push(frame);
+		}
+
+		// Show the first frame
+		engine.setActiveImage(image.ptr, 0);
+		engine.render();
+
+		// Create the dial before the swiper so gotoFn can reference it
 		const dial = document.createElement('micrio-dial') as MicrioElement;
 		dial.setProps({
-			currentRotation: 0, frames, degrees: true,
+			currentRotation: 0, frames: pagesPerLayer, degrees: true,
 			onturn: (frame: number) => {
-				const idx = Math.round(frame) % frames;
-				if (image.swiper) image.swiper.goto(idx);
+				const idx = Math.round(frame) % pagesPerLayer;
+				image.swiper?.goto(idx);
 			}
 		});
 		this.appendChild(dial);
+
+		// Navigation function shared by swiper and dial
+		const gotoFn = (idx: number) => {
+			while (idx < 0) idx += pagesPerLayer;
+			idx %= pagesPerLayer;
+			engine.setActiveImage(image.ptr, idx);
+			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
+			preload(idx);
+			engine.render();
+		};
+
+		// Create swiper for gesture-based rotation
+		image.swiper = new GallerySwiper(micrio, pagesPerLayer, gotoFn, { continuous: true });
+
+		// Preload initial frames
+		preload(0);
+
+		// Sync dial rotation when layer changes
 		this.#unsubs.push(image.state.layer.subscribe((idx: number) => {
-			dial.setProps({ currentRotation: (idx / frames) * 360 });
+			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
 		}));
 	}
 
 	onDestroy() {
+		// Destroy GallerySwiper if we set it on the image
+		const image = this.inject<HTMLMicrioElement>('micrio')?.$current;
+		if (image?.swiper) {
+			image.swiper.destroy();
+			image.swiper = undefined;
+		}
 		for (const fn of this.#unsubs) fn();
 		this.#unsubs = [];
 	}
