@@ -59,7 +59,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 
 	setProps(props: Partial<MediaControlsProps>) {
 		Object.assign(this.#props, props);
-		if (this.isConnected) this.#build();
+		if (this.isConnected) { this.#build(); if (this.#built) this.#sync(); }
 	}
 
 	#build() {
@@ -173,7 +173,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 				type: $captionsEnabled ? 'subtitles' : 'subtitles-off',
 				active: $captionsEnabled,
 				title: $i18n.subtitlesToggle,
-				onclick: () => captionsEnabled.set(!$captionsEnabled)
+				onclick: () => captionsEnabled.set(!get(captionsEnabled))
 			});
 		}
 

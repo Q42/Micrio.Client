@@ -188,7 +188,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			if (s) {
 				existing?.remove();
 				const sub = document.createElement('micrio-subtitles') as MicrioElement;
-				sub.setProps({ src: s, raised: false });
+				sub.setProps({ src: s, raised: !!get(micrio.state.tour) });
 				this.#elements.set('subtitles', sub);
 				this.#place('subtitles', sub);
 			} else {
@@ -196,6 +196,11 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				this.#elements.set('subtitles', null);
 			}
 		}, 20));
+
+		this.#unsubs.push(micrio.state.tour.subscribe(() => {
+			const sub = this.#elements.get('subtitles') as MicrioElement;
+			if (sub) sub.setProps?.({ raised: !!get(micrio.state.tour) });
+		}));
 
 		for (const store of [micrio.visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
 		micrio.state.tour, micrio.state.marker, micrio.loading, micrio.switching]) {

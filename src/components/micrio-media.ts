@@ -61,6 +61,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 	#currentTime = 0;
 	#seeking = false;
 	#muted = false;
+	#srtStore: any;
 
 	onMount() {
 		this.#render();
@@ -230,6 +231,17 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			}
 		}
 
+		// Subtitle extraction from tour
+		let srtSrc: string | undefined;
+		if (!p.secondary && p.tour && !('steps' in p.tour)) {
+			const micrio = this.inject<any>('micrio');
+			const lang = micrio?.lang || 'en';
+			const sub = (p.tour as any).i18n?.[lang]?.subtitle;
+			srtSrc = sub?.src;
+		}
+		if (!this.#srtStore) this.#srtStore = this.inject<any>('srt');
+		if (this.#srtStore) this.#srtStore.set(srtSrc || '');
+
 		// Controls
 		if (p.controls !== false) {
 			const ctrlEl = document.createElement('micrio-media-controls') as MicrioElement;
@@ -297,6 +309,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					seeking: this.#seeking,
 					muted: this.#muted,
 					hasAudio: !!p.src && !isAudio,
+					subtitles: !!srtSrc,
 					minimal: false,
 					fullscreenEl: isAudio ? undefined : figure,
 					onplaypause, onmute, onseek,
@@ -309,6 +322,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				paused: true,
 				ended: false,
 				hasAudio: !!p.src && !isAudio,
+				subtitles: !!srtSrc,
 				fullscreenEl: isAudio ? undefined : figure,
 				onplaypause, onmute, onseek,
 				onclose: p.onclose
@@ -316,7 +330,10 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			figure.appendChild(ctrlEl);
 
 			if (this.#videoEl && (this.#videoEl instanceof HTMLVideoElement || this.#videoEl instanceof HTMLAudioElement)) {
-				this.#videoEl.addEventListener('timeupdate', update);
+				this.#videoEl.addEventListener('timeupdate', () => {
+					update();
+					if (!p.secondary) this.inject<any>('micrio')?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+				});
 				this.#videoEl.addEventListener('loadedmetadata', update);
 				this.#videoEl.addEventListener('play', update);
 				this.#videoEl.addEventListener('pause', update);
@@ -388,6 +405,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		this.#tourInstance?.destroy();
 		this.#adapter?.destroy();
 		this.#stopAdapterTick();
+		if (this.#srtStore) this.#srtStore.set('');
 		for (const fn of this.#unsubs) fn();
 		this.#unsubs = [];
 	}
