@@ -346,7 +346,9 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		});
 
 		this.#show('tour', !!$tour, () => {
-			const el = document.createElement('micrio-tour') as MicrioElement;
+			const isSerial = $tour && 'steps' in $tour && $tour.isSerialTour;
+			const tag = isSerial ? 'micrio-serial-tour' : 'micrio-tour';
+			const el = document.createElement(tag) as MicrioElement;
 			el.setProps({ tour: $tour!, noHTML });
 			return el;
 		});

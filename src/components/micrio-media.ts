@@ -31,6 +31,9 @@ export interface MediaProps {
 	className?: string;
 	onended?: () => void;
 	onclose?: () => void;
+	getTimeDisplay?: (currentTime: number, duration: number) => string;
+	hasAudio?: boolean;
+	fullscreenEl?: HTMLElement;
 }
 
 export class MicrioMedia extends MicrioElement<MediaProps> {
@@ -218,6 +221,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					this.#paused = this.#tourInstance!.paused;
 					this.#ended = this.#tourInstance!.ended;
 					this.#updateControls();
+					if (!p.secondary) this.inject<any>('micrio')?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 					if (this.#ended) p.onended?.();
 				}, 250);
 				this.#unsubs.push(() => clearInterval(ival));
@@ -308,10 +312,11 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					ended: this.#ended,
 					seeking: this.#seeking,
 					muted: this.#muted,
-					hasAudio: !!p.src && !isAudio,
+					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
 					subtitles: !!srtSrc,
+					getTimeDisplay: p.getTimeDisplay,
 					minimal: false,
-					fullscreenEl: isAudio ? undefined : figure,
+					fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
 					onplaypause, onmute, onseek,
 					onclose: p.onclose
 				});
@@ -321,9 +326,10 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				minimal: false,
 				paused: true,
 				ended: false,
-				hasAudio: !!p.src && !isAudio,
+				hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
 				subtitles: !!srtSrc,
-				fullscreenEl: isAudio ? undefined : figure,
+				getTimeDisplay: p.getTimeDisplay,
+				fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
 				onplaypause, onmute, onseek,
 				onclose: p.onclose
 			});
