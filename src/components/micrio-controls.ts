@@ -14,11 +14,12 @@ export interface ControlsProps {
 
 export class MicrioControls extends MicrioElement<ControlsProps> {
 	static tag = 'micrio-controls';
-	static styles = `micrio-controls{position:absolute;right:var(--micrio-border-margin);bottom:var(--micrio-border-margin);padding:0;margin:0;transition:transform .25s ease,opacity .25s ease;direction:rtl;z-index:2}
-micrio-controls.hidden:not(:hover){transform:translateX(calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
-micrio-controls .primary:not(.portrait){right:calc(50% + var(--micrio-border-margin))}
-micrio-controls .primary.portrait{bottom:calc(50% + var(--micrio-border-margin))}
-micrio-controls .grid-close{top:var(--micrio-border-margin);bottom:auto;position:absolute;right:0}
+	static styles = `micrio-controls{display:contents}
+micrio-controls aside:not(.grid-close){position:absolute;right:var(--micrio-border-margin);bottom:var(--micrio-border-margin);padding:0;margin:0;direction:rtl;z-index:2;transition:transform .25s ease,opacity .25s ease}
+micrio-controls aside:not(.grid-close).hidden:not(:hover){transform:translateX(calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
+micrio-controls aside.primary:not(.portrait){right:calc(50% + var(--micrio-border-margin))}
+micrio-controls aside.primary.portrait{bottom:calc(50% + var(--micrio-border-margin))}
+micrio-controls aside.grid-close{top:var(--micrio-border-margin);bottom:auto;position:absolute;right:var(--micrio-border-margin);max-width:calc(100% - var(--micrio-border-margin) * 2);z-index:2}
 micr-io[data-switching]>micrio-controls,micr-io[data-tour-active]>micrio-controls{opacity:0;pointer-events:none}
 micrio-controls>micrio-button,micrio-controls>menu{padding:0;margin:8px 0;display:block;width:var(--micrio-button-size)}
 micrio-controls menu.ctrl-lang{position:relative;padding:0;margin:8px 0;width:var(--micrio-button-size);min-height:var(--micrio-button-size)}
@@ -217,7 +218,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		const onlyFullscreen = hasFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current.grid.panZoom == 'cells';
 
-		this.classList.toggle('hidden', !!$hidden);
+		this.#aside1?.classList.toggle('hidden', !!$hidden);
 
 		if (!hasControls) {
 			this.#aside1.replaceChildren();
