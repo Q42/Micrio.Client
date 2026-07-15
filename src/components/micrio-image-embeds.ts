@@ -9,7 +9,7 @@ export interface ImageEmbedsProps {
 
 export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 	static tag = 'micrio-image-embeds';
-	static styles = '';
+	static styles = 'micrio-image-embeds{display:contents}';
 
 	#props: ImageEmbedsProps = { image: null! };
 	#unsubs: (() => void)[] = [];

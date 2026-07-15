@@ -42,6 +42,7 @@ micrio-marker.default.has-custom-icon.opened button,micrio-marker.default.has-cu
 micrio-marker.cluster button{border:2px solid var(--micrio-marker-color);background:var(--micrio-cluster-marker-background,#fff);color:var(--micrio-cluster-marker-color,#000);width:calc(var(--micrio-marker-size)+12px);height:calc(var(--micrio-marker-size)+12px);border-radius:100%;box-sizing:content-box}
 micrio-marker.cluster:hover button{background:var(--micrio-marker-highlight,#fff);border-color:var(--micrio-marker-highlight,#fff)}
 micrio-marker.cluster label{pointer-events:none;display:none}
+micrio-marker:empty{display:none}
 micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 	#props: MarkerProps = { marker: null! };

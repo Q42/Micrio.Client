@@ -16,7 +16,7 @@ export interface EmbedProps {
 export class MicrioEmbed extends MicrioElement<EmbedProps> {
 	static tag = 'micrio-embed';
 	static styles = `
-micrio-embed{display:block;position:relative}
+micrio-embed{display:contents}
 micrio-embed>.embed-container{position:absolute;display:block;top:0;left:0;transform:translate3d(calc(var(--x,0) - 50%),calc(var(--y,0) - 50%),0) scale3d(var(--s),var(--s),1);opacity:var(--opacity,1);direction:ltr;will-change:transform,opacity}
 micrio-embed>.embed-container.embed3d{top:50%;left:50%}
 micrio-embed>.embed-container.embed3d.behind{pointer-events:none;opacity:0!important}

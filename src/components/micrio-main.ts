@@ -71,7 +71,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#lastEmbedIds = '';
 
 	#layers = [
-		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'gallery', 'controls', 'markers',
+		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'gallery', 'controls', 'embeds', 'markers',
 		'details', 'popup', 'tour', 'popover', 'subtitles',
 		'error', 'progress'
 	];
@@ -266,7 +266,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		{
-			const $visible = get(micrio.visible) as MicrioImage[];
+			const $visible = (get(micrio.visible) as MicrioImage[]).filter(i => !i.opts?.isEmbed);
 			const ids = $visible.map(i => i.id).join(',');
 			if (showMarkers && ids !== this.#lastMarkerIds) {
 				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
@@ -287,18 +287,21 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}
 		}
 
-		// Embeds
+		// Embeds — only for images whose data has embeds
 		{
 			const showEmbeds = micrio.getAttribute('data-embeds') != 'false';
 			const $visible = get(micrio.visible) as MicrioImage[];
-			const ids = $visible.map(i => i.id).join(',');
+			const withEmbeds = $visible.filter(i => i.$data?.embeds?.length);
+			const ids = withEmbeds.map(i => i.id).join(',');
 			if (showEmbeds && ids !== this.#lastEmbedIds) {
 				for (const el of this.querySelectorAll(':scope > micrio-image-embeds')) el.remove();
 				this.#lastEmbedIds = ids;
-				for (const img of $visible) {
+				for (const img of withEmbeds) {
 					const el = document.createElement('micrio-image-embeds') as MicrioElement;
 					el.setProps({ image: img });
-					this.insertBefore(el, this.querySelector(':scope > micrio-markers') ?? null);
+					const before = this.#getBefore('embeds');
+					if (before) this.insertBefore(el, before);
+					else this.appendChild(el);
 				}
 			} else if (!showEmbeds) {
 				for (const el of this.querySelectorAll(':scope > micrio-image-embeds')) el.remove();
