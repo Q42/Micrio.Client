@@ -183,7 +183,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		}));
 
 		for (const store of [micrio.visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
-		micrio.state.tour, micrio.state.marker, micrio.switching]) {
+		micrio.state.tour, micrio.state.marker]) {
 			this.#unsubs.push(store.subscribe(() => this.#queueSync()));
 		}
 		this.#unsubs.push(micrio._lang.subscribe(() => this.#queueSync()));

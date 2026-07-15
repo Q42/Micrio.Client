@@ -137,6 +137,10 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		if (changed) this.#frameChanged();
 		if (this.#isStripSwipe) {
 			this.#stripGoto(page, fast, duration, changed);
+		} else if (changed) {
+			this.#parentImage.engine.setActiveImage(this.#parentImage.ptr, page, 0);
+			const area = this.#images[page]?.opts?.area;
+			if (area) this.#parentImage.camera.setView(area);
 		}
 		this.#parentImage.album!.hooked = true;
 	}
@@ -405,7 +409,10 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			parent.album!.hooked = true;
 			engine.render();
 		} else {
-			await Promise.allSettled(images.map(d => engine.addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d })));
+			await Promise.allSettled(images.map(d => {
+				if ('state' in d && !('image' in d)) d.camera = parent.camera;
+				return engine.addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d });
+			}));
 			engine.setActiveImage(parent.ptr, idx);
 			this.#goto(idx, false, 0);
 		}
