@@ -223,7 +223,9 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				if (p.autoplay) this.#tourInstance.play();
 			} else {
 				const start = () => this.#tourInstance?.play();
-				this.#videoEl?.addEventListener('play', start, { once: true });
+				this.#videoEl?.addEventListener('play', start);
+				this.#videoEl?.addEventListener('pause', () => this.#tourInstance?.pause());
+				this.#videoEl?.addEventListener('ended', () => this.#tourInstance?.pause());
 				if (!this.#videoEl?.paused) start();
 			}
 		}
