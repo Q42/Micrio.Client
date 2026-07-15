@@ -601,6 +601,7 @@ export class Grid {
 				this.cellSizes.delete(i.id);
 			}
 			tile.dataset.id = i.id;
+			tile.setAttribute('data-scroll-through', '');
 			this._grid.appendChild(tile);
 		});
 
@@ -791,7 +792,7 @@ export class Grid {
 
 	/** Simulates a click on a grid cell, applying the configured `clickable` effect (zoom or focus). */
 	clickCell(_img?:MicrioImage|string) : void {
-		const img = typeof _img == 'string' ? this.images.find(i => i.id == this.micrio.id) : _img;
+		const img = typeof _img == 'string' ? this.images.find(i => i.id == _img) : _img;
 		if(!this.clickable || !img) return;
 		this._buttons.forEach(b => b.classList.remove('focussed'));
 		this._buttons.get(img.id)?.classList.add('focussed');
@@ -929,6 +930,7 @@ export class Grid {
 	blur() : void {
 		const focussed = this.$focussed;
 		if(!focussed) return;
+		this._buttons.forEach(b => b.classList.remove('focussed'));
 		this.micrio.engine.setZIndex(focussed.ptr, 2);
 		this.micrio.events.dispatch('grid-blur');
 		this.focussed.set(undefined);
