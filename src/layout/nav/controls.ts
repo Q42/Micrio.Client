@@ -15,7 +15,7 @@ export class MicrioControls extends MicrioElement<ControlsProps> {
 	static tag = 'micrio-controls';
 	static styles = `micrio-controls{display:contents}
 micrio-controls aside:not(.grid-close){position:absolute;right:var(--micrio-border-margin);bottom:var(--micrio-border-margin);padding:0;margin:0;direction:rtl;z-index:2;transition:transform .25s ease,opacity .25s ease}
-micrio-controls aside:not(.grid-close).hidden:not(:hover){transform:translateX(calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
+micr-io.hide-ui micrio-controls aside:not(.grid-close):not(:hover){transform:translateX(calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
 micrio-controls aside.primary:not(.portrait){right:calc(50% + var(--micrio-border-margin))}
 micrio-controls aside.primary.portrait{bottom:calc(50% + var(--micrio-border-margin))}
 micrio-controls aside.grid-close{top:var(--micrio-border-margin);bottom:auto;position:absolute;right:var(--micrio-border-margin);max-width:calc(100% - var(--micrio-border-margin) * 2);z-index:2}
@@ -83,7 +83,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 
 		const { state: micrioState, _lang } = micrio;
 		const { tour, popup } = micrioState;
-		const { controls, zoom, hidden } = micrio.state.ui;
+		const { controls, zoom } = micrio.state.ui;
 
 		const splitStart = (e: any) => {
 			const img = e.detail as MicrioImage;
@@ -140,12 +140,15 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			}
 		}));
 
-		this.watchLater(hidden, () => this.#sync());
 		this.watchLater(controls, () => this.#sync());
 		this.watchLater(zoom, () => this.#sync());
 		this.watchLater(tour, () => this.#sync());
 		this.watchLater(popup, () => this.#sync());
 		this.watchLater(_lang, () => this.#sync());
+
+		const observer = new MutationObserver(() => this.#sync());
+		observer.observe(micrio, { attributes: true, attributeFilter: ['class'] });
+		this.#unsubs.push(() => observer.disconnect());
 
 		this.#build();
 		this.#sync();
@@ -200,7 +203,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		const $isMuted = get(micrio.isMuted);
 		const $_lang = get(micrio._lang);
 		const $controls = get(micrio.state.ui.controls);
-		const $hidden = get(micrio.state.ui.hidden);
 		const $zoom = get(micrio.state.ui.zoom);
 		const $popup = get(micrio.state.popup);
 		const $tour = get(micrio.state.tour);
@@ -216,8 +218,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		const hasControls = $controls && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen);
 		const onlyFullscreen = hasFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current.grid.panZoom == 'cells';
-
-		this.#aside1?.classList.toggle('hidden', !!$hidden);
 
 		if (!hasControls) {
 			this.#aside1.replaceChildren();

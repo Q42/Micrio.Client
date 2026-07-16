@@ -42,10 +42,10 @@ micrio-gallery .handle:hover{box-shadow:0 2px 8px rgba(0,0,0,.4),0 0 0 4px rgba(
 micrio-gallery .handle.dragging{transition:none;box-shadow:0 2px 12px rgba(0,0,0,.5),0 0 0 6px rgba(255,255,255,.15);cursor:grabbing}
 micrio-gallery .handle-label{position:absolute;bottom:calc(100% + 8px);left:0;transform:translateX(-50%);padding:3px 9px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.4;color:var(--micrio-color);background:var(--micrio-popover-background);backdrop-filter:var(--micrio-background-filter);border-radius:999px;box-shadow:var(--micrio-button-shadow);pointer-events:none;white-space:nowrap;transition:left .15s ease,transform .15s ease}
 micrio-gallery .handle-label.dragging{transition:none;transform:translateX(-50%) scale(1.05)}
-micrio-gallery.hidden:not(:hover) ul{transform:translate(-50%,calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
-@media(max-width:500px){micrio-gallery.hidden:not(:hover) ul{transform:translateY(calc(100% + var(--micrio-border-margin)))}}
-micrio-gallery.hidden:not(:hover) .gallery-btn.arrow-left{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
-micrio-gallery.hidden:not(:hover) .gallery-btn.arrow-right{transform:translate(calc(100% + var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
+micr-io.hide-ui micrio-gallery:not(:hover) ul{transform:translate(-50%,calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
+@media(max-width:500px){micr-io.hide-ui micrio-gallery:not(:hover) ul{transform:translateY(calc(100% + var(--micrio-border-margin)))}}
+micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-left{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
+micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-right{transform:translate(calc(100% + var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
 micrio-gallery.force-hidden ul,micrio-gallery.force-hidden .gallery-btn{opacity:0;pointer-events:none}
 micrio-gallery.force-hidden ul{transform:translate(-50%,calc(100% + var(--micrio-border-margin)))}
 micrio-gallery.force-hidden .gallery-btn.arrow-left{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%)}
@@ -115,14 +115,16 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	}
 
 	#activity = () => {
-		if (this.classList.contains('hidden')) {
-			this.classList.remove('hidden');
+		const parent = this.getMicrio();
+		if (!parent) return;
+		if (parent.classList.contains('hide-ui')) {
+			parent.classList.remove('hide-ui');
 			this.#updateScrubber();
 		}
 		clearTimeout(this.#to);
 		if (this.#autoHide) this.#to = window.setTimeout(() => {
-			if (!this.classList.contains('hidden')) {
-				this.classList.add('hidden');
+			if (!parent.classList.contains('hide-ui')) {
+				parent.classList.add('hide-ui');
 				this.#updateScrubber();
 			}
 		}, 2000);

@@ -60,8 +60,6 @@ export namespace State {
 			controls: writable<boolean>(true),
 			/** Writable store controlling the visibility of zoom buttons. */
 			zoom: writable<boolean>(true),
-			/** Writable store controlling the visibility of all UI elements (e.g., for fullscreen or specific modes). */
-			hidden: writable<boolean>(false),
 			/** Writable store: true when gallery controls are hovered or focused, keeping all UI visible. */
 			hover: writable<boolean>(false)
 		}
