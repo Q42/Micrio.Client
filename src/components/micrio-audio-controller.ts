@@ -13,9 +13,9 @@ const interacted = writable<boolean>(false);
 function init(volume: number) {
 	if (mainGain) return;
 	if (!_ctx) _ctx = 'micrioAudioContext' in window
-		? (window as any)['micrioAudioContext'] as AudioContext
+		? (window as Record<string, any>)['micrioAudioContext'] as AudioContext
 		: 'AudioContext' in window ? new AudioContext()
-		: 'webkitAudioContext' in window ? new (window as any)['webkitAudioContext']() as AudioContext
+		: 'webkitAudioContext' in window ? new (window as Record<string, any>).webkitAudioContext() as AudioContext
 		: null;
 	if (!_ctx) return console.warn('[Micrio] Your browser does not support the Web Audio API');
 	if (_ctx.state === 'suspended') _ctx.resume().then(() => { }).catch(() => { });
@@ -30,9 +30,9 @@ function setPosition(x: number, y: number, z: number) {
 	if (!l) return;
 	if (l.setPosition) l.setPosition(x, y, z);
 	else if ('positionX' in l) {
-		(l as any).positionX.value = x;
-		(l as any).positionY.value = y;
-		(l as any).positionZ.value = z;
+		l.positionX.value = x;
+		l.positionY.value = y;
+		l.positionZ.value = z;
 	}
 }
 
@@ -40,9 +40,9 @@ function setOrientation(x: number, y: number, z: number) {
 	if (!l) return;
 	if (l.setOrientation) l.setOrientation(x, y, z, 0, 1, 0);
 	else if ('forwardX' in l) {
-		(l as any).forwardX.value = x;
-		(l as any).forwardY.value = y;
-		(l as any).forwardZ.value = z;
+		l.forwardX.value = x;
+		l.forwardY.value = y;
+		l.forwardZ.value = z;
 	}
 }
 
@@ -148,7 +148,7 @@ export class MicrioAudioController extends MicrioElement {
 			}));
 
 			if (!_ctx) {
-				audio.play().then(input).catch(() => events.dispatch('autoplay-blocked' as any));
+				audio.play().then(input).catch(() => events.dispatch('autoplay-blocked'));
 				addEventListener('pointerup', onUserGesture, { once: true });
 			}
 

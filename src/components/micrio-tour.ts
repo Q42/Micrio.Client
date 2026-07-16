@@ -67,7 +67,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				if (marker?.videoTour) {
 					const lang = micrio.lang;
 					const vt = marker.videoTour;
-					const timeline = 'timeline' in vt ? vt.timeline : (vt as any).i18n?.[lang]?.timeline;
+					const timeline = vt.i18n?.[lang]?.timeline;
 					if (timeline?.length) startView = timeline[0].rect;
 				}
 
@@ -77,7 +77,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				if (img) img.state.marker.set(si.markerId);
 			};
 
-			(mt as any).next = () => {
+			mt.next = () => {
 				if (this.#currentStep < mt.steps.length - 1) {
 					const prev = this.#currentStep;
 					this.#currentStep++;
@@ -87,7 +87,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				}
 			};
 
-			(mt as any).prev = () => {
+			mt.prev = () => {
 				if (this.#currentStep > 0) {
 					const prev = this.#currentStep;
 					this.#currentStep--;
@@ -107,7 +107,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				prevBtn.setProps({
 					type: 'arrow-left', title: get(i18n).tourStepPrev,
 					disabled: this.#currentStep === 0,
-					onclick: () => (mt as any).prev?.()
+					onclick: () => mt.prev?.()
 				});
 				div.appendChild(prevBtn);
 
@@ -120,7 +120,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				nextBtn.setProps({
 					type: 'arrow-right', title: get(i18n).tourStepNext,
 					disabled: this.#currentStep >= mt.steps.length - 1,
-					onclick: () => (mt as any).next?.()
+					onclick: () => mt.next?.()
 				});
 				div.appendChild(nextBtn);
 

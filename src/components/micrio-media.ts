@@ -256,10 +256,10 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		if (!p.secondary && p.tour && !('steps' in p.tour)) {
 			const micrio = this.getMicrio();
 			const lang = micrio?.lang || 'en';
-			const sub = (p.tour as any).i18n?.[lang]?.subtitle;
+			const sub = p.tour.i18n?.[lang]?.subtitle;
 			if (sub?.src) {
 				this.#subEl = document.createElement('micrio-subtitles') as MicrioElement;
-				this.#subEl.setProps({ src: sub.src, mediaEl: this as any });
+				this.#subEl.setProps({ src: sub.src, mediaEl: this });
 				(this.closest('micrio-main') || this.parentNode)?.appendChild(this.#subEl);
 			}
 		}
@@ -267,7 +267,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		// Controls
 		if (p.controls !== false) {
 			const ctrlEl = document.createElement('micrio-media-controls') as MicrioElement;
-			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour as any).i18n?.[(this.getMicrio()?.lang || 'en')]?.subtitle;
+			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this.getMicrio()?.lang || 'en')]?.subtitle);
 
 			const onplaypause = () => {
 				const el = this.#videoEl;

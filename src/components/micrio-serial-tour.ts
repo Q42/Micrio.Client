@@ -31,7 +31,7 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];
 	#currentStep = 0;
 	#built = false;
-	#mediaEl!: MicrioElement;
+	#mediaEl: MicrioElement | undefined = undefined;
 	#duration = 0;
 	#noTimeScrub = false;
 
@@ -44,7 +44,7 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0);
 		this.#noTimeScrub = !!(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
 
-		const mt = tour as any;
+		const mt = tour;
 		mt.next = () => this.#nextStep();
 		mt.prev = () => { if (this.#currentStep > 0) this.#openStep(this.#currentStep - 1); };
 
@@ -111,14 +111,14 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 
 		if (this.#mediaEl) {
 			this.#mediaEl.remove();
-			this.#mediaEl = undefined as any;
+			this.#mediaEl = undefined;
 		}
 
 		if (marker?.videoTour) {
 			const lang = micrio.lang;
-			const audio = marker.videoTour.i18n?.[lang]?.audio ?? (marker as any).i18n?.[lang]?.audio;
+			const audio = marker.videoTour.i18n?.[lang]?.audio ?? marker.i18n?.[lang]?.audio;
 
-			const prevPaused = this.#mediaEl ? (this.#mediaEl.querySelector('video,audio') as HTMLMediaElement)?.paused ?? true : false;
+			const prevPaused = false;
 			const media = document.createElement('micrio-media') as MicrioElement;
 			media.setProps({
 				tour: marker.videoTour,
@@ -135,10 +135,10 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 			this.append(media);
 			this.#mediaEl = media;
 			await new Promise(r => setTimeout(r, 10));
-			this.#mediaEl.querySelector('figure')?.classList.add('videotour');
+			this.#mediaEl!.querySelector('figure')?.classList.add('videotour');
 			this.#injectBars();
 
-			const videoEl = this.#mediaEl.querySelector('video,audio') as HTMLMediaElement;
+			const videoEl = this.#mediaEl!.querySelector('video,audio') as HTMLMediaElement;
 			if (videoEl) {
 				videoEl.addEventListener('timeupdate', () => {
 					const si = this.#stepInfo[this.#currentStep];
@@ -170,9 +170,7 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 	}
 
 	#getTitle(m: Models.ImageData.Marker | undefined): string | undefined {
-		if (!m) return;
-		const lang = this.getMicrio()?.lang;
-		return m.i18n ? m.i18n[lang!]?.title : (m as any).title;
+		return m?.i18n?.[this.getMicrio()?.lang || 'en']?.title;
 	}
 
 	#injectBars() {

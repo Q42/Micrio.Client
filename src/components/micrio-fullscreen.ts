@@ -42,7 +42,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		const isNative = 'requestFullscreen' in el;
 		const isWebkit = 'webkitRequestFullscreen' in el;
 		const getActiveEl = () => isNative ? document.fullscreenElement
-			: (document as any)['webkitFullscreenElement'] ?? null;
+			: (document as Record<string, any>).webkitFullscreenElement ?? null;
 
 		this.#isActive = getActiveEl() === el;
 		const available = isNative || (isWebkit && !getActiveEl());
@@ -73,7 +73,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		if (isNative) {
 			_el.requestFullscreen();
 		} else if ('webkitRequestFullscreen' in _el) {
-			((_el as any)['webkitRequestFullscreen'] as Function)();
+			(_el as Record<string, any>).webkitRequestFullscreen();
 		}
 	}
 
@@ -81,7 +81,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		if (isNative) {
 			document.exitFullscreen();
 		} else if ('webkitExitFullscreen' in document) {
-			((document as any)['webkitExitFullscreen'] as Function)();
+			(document as Record<string, any>).webkitExitFullscreen();
 		}
 	}
 

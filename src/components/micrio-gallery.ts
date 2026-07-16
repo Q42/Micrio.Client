@@ -220,7 +220,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			const micrio = this.getMicrio();
 			if (!micrio) return;
 			micrio.setAttribute('data-panning', '');
-			(micrio as any).keepRendering = true;
+			micrio.keepRendering = true;
 			micrio.canvas.element.setPointerCapture(e.pointerId);
 		}
 		const dt = Math.max(1, e.timeStamp - this.#stripDragLastT);
@@ -245,7 +245,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const micrio = this.getMicrio();
 		if (!micrio) return;
 		micrio.removeAttribute('data-panning');
-		(micrio as any).keepRendering = false;
+		micrio.keepRendering = false;
 		if (!wasActive) return;
 		try { micrio.canvas.element.releasePointerCapture(e.pointerId); } catch (_) { }
 		const w = micrio.offsetWidth || 1;
@@ -285,7 +285,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#box = this.#_ul.getClientRects()[0];
 		const micrio = this.getMicrio();
 		if (!micrio) return;
-		(micrio as any).keepRendering = this.#dragging = true;
+		micrio.keepRendering = this.#dragging = true;
 		this.#hoverIdx = -1;
 		window.addEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
 		window.addEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
@@ -316,7 +316,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		window.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
 		const micrio = this.getMicrio();
 		if (!micrio) return;
-		this.#dragging = (micrio as any).keepRendering = false;
+		this.#dragging = micrio.keepRendering = false;
 		this.#goto(this.#currentPage);
 	};
 
@@ -328,15 +328,15 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const d = this.#preloadD;
 		const imgs: number[] = [];
 		for (let x = -d; x <= d; x++) if (x) imgs.push(c + x);
-		const request: any = (self as any).requestIdleCallback ?? self.requestAnimationFrame;
+		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
 		const engine = images[0]?.engine;
 		if (!engine) return;
-		const hasArchive = !!(images[0] as any)?.$settings?.gallery?.archive;
+		const hasArchive = !!(images[0]?.$settings?.gallery?.archive);
 		imgs.filter((n, i) => n >= 0 && n < images.length && imgs.indexOf(n) === i)
 			.map(i => images[i])
 			.filter(i => !!i && !this.#preloading.has(i.id))
 			.forEach(i => this.#preloading.set(i.id, request(() =>
-				engine.getTexture(i.baseTileIdx, (i as any).thumbSrc as string, false, { force: hasArchive })
+				engine.getTexture(i.baseTileIdx, i.thumbSrc!, false, { force: hasArchive })
 			)));
 	}
 
@@ -624,7 +624,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			? Math.max(36, Math.floor(totalFrames / 8) * 2)
 			: 50;
 		const preloading = this.#preloading;
-		const request: any = (self as any).requestIdleCallback ?? self.requestAnimationFrame;
+		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
 		const preload = (c: number) => {
 			for (let x = -preloadD; x <= preloadD; x++) {
 				if (!x) continue;

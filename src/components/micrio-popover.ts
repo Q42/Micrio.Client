@@ -149,7 +149,7 @@ dialog.article h2{text-align:center}`;
 		if ('gallery' in p && p.gallery) {
 			this.#dialog.classList.add('gallery');
 			const el = document.createElement('micrio-gallery-item') as MicrioElement;
-			el.setProps({ gallery: p.gallery, startId: (p as any).galleryStart });
+			el.setProps({ gallery: p.gallery, startId: p.galleryStart });
 			this.#dialog.appendChild(el);
 		}
 
@@ -157,7 +157,7 @@ dialog.article h2{text-align:center}`;
 			const marker = p.marker;
 			const content = marker.i18n?.[$_lang];
 			const hasImages = !!marker.images?.length;
-			const hasPopoverContent = !!(content && content.body) || (hasImages && !!(p as any).contentPage?.i18n?.[$_lang]?.embed);
+			const hasPopoverContent = !!(content && content.body) || (hasImages && !!(p.contentPage?.i18n?.[$_lang]?.embed));
 
 			if (content?.embedUrl) {
 				const media = document.createElement('micrio-media') as MicrioElement;

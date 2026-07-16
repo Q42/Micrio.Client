@@ -86,7 +86,7 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 			}
 			this.#gain.gain.value = item.volume ?? 1;
 			// buffers come from AudioController module
-			this.#source.buffer = (window as any)['__micrioAudioBuffers']?.[item.src];
+			this.#source.buffer = (window as Record<string, any>).__micrioAudioBuffers?.[item.src] ?? null;
 			if (this.#source.buffer) {
 				this.#source.connect(this.#panner);
 				this.#source.start();
@@ -95,12 +95,12 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 
 		const start = async () => {
 			if (!item.src) return;
-			const buffers = (window as any)['__micrioAudioBuffers'] || {};
+			const buffers = (window as Record<string, any>).__micrioAudioBuffers || {};
 			if (!buffers[item.src]) {
 				buffers[item.src] = await fetch(item.src)
 					.then(r => r.arrayBuffer())
 					.then(b => ctx.decodeAudioData(b));
-				(window as any)['__micrioAudioBuffers'] = buffers;
+				(window as Record<string, any>).__micrioAudioBuffers = buffers;
 			}
 			if (item.alwaysPlay && item.repeatAfter > 0) this.#to = setTimeout(play, item.repeatAfter * 1000);
 			else play();
@@ -110,8 +110,8 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 		this.#panner.connect(this.#gain);
 		start();
 
-		micrio.addEventListener('audio-update', update as any);
-		this.#unsubs.push(() => micrio.removeEventListener('audio-update', update as any));
+		micrio.addEventListener('audio-update', update);
+		this.#unsubs.push(() => micrio.removeEventListener('audio-update', update));
 	}
 
 	setProps(props: Partial<AudioLocationProps>) {

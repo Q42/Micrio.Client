@@ -323,7 +323,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 				isVideo: !!embed.video,
 				settings: {
 					_360: { rotX: this.#rotX, rotY: this.#rotY, rotZ: this.#rotZ }
-				} as any,
+				},
 			}, embed.area as Models.Camera.View, { opacity, asImage: false });
 		}
 
@@ -436,8 +436,9 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 	#onChange(e: Event) {
 		if (e && 'detail' in e) {
 			const emb = e.detail as Models.ImageData.Embed;
+			const target = this.#props.embed as Record<string, any>;
 			for (const x in emb) {
-				(this.#props.embed as any)[x] = (emb as any)[x];
+				target[x] = (emb as Record<string, any>)[x];
 			}
 		}
 		this.#readPlacement();
