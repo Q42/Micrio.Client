@@ -10,6 +10,9 @@
  */
 export const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 
+/** Returns a Promise that resolves after the next browser paint (two animation frames). */
+export const afterFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
 /** List of script URLs already loaded or currently loading. @private */
 const loaded: string[] = [];
 

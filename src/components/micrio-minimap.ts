@@ -3,6 +3,7 @@ import type { MicrioImage } from '$ts/image';
 import type { Models } from '$types/models';
 import { get } from '$ts/store';
 import { toCenterJSON } from '$ts/utils/math';
+import { afterFrame } from '$ts/utils/dom';
 
 export interface MinimapProps {
 	image: MicrioImage;
@@ -149,11 +150,11 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 		micrio.canvas.element.addEventListener('mousemove', () => this.#moved(), passive);
 		this.#unsubs.push(() => micrio.canvas.element.removeEventListener('mousemove', () => this.#moved(), passive));
 
-		setTimeout(() => {
+		afterFrame().then(() => {
 			const isSame = get(micrio.current) == image;
 			const zoomedOut = !info.is360 && camera.isZoomedOut();
 			this.#_canvas.classList.toggle('hidden', !isSame || (autoHide && (zoomedOut || this.#hidden)));
-		}, 10);
+		});
 	}
 
 	#moved() {

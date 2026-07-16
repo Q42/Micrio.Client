@@ -3,6 +3,7 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
+import { afterFrame } from '$ts/utils/dom';
 import './micrio-button';
 import './micrio-button-group';
 import './micrio-marker-content';
@@ -45,7 +46,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		if (!micrio || !marker) return;
 
 		marker.tags?.forEach(c => this.classList.add(c));
-		setTimeout(() => this.querySelector('button')?.focus(), 500);
+		afterFrame().then(() => this.querySelector('button')?.focus());
 
 		this.#unsubs.push(micrio.state.popup.subscribe(m => {
 			this.#destroying = !m || m != marker;

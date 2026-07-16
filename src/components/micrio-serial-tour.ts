@@ -2,6 +2,7 @@ import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
 import { DataLoader } from '$ts/utils/dataLoader';
 import { parseTime } from '$ts/utils/time';
+import { afterFrame } from '$ts/utils/dom';
 import './micrio-media';
 
 export interface SerialTourProps {
@@ -134,7 +135,7 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 			});
 			this.append(media);
 			this.#mediaEl = media;
-			await new Promise(r => setTimeout(r, 10));
+			await afterFrame();
 			this.#mediaEl!.querySelector('figure')?.classList.add('videotour');
 			this.#injectBars();
 
