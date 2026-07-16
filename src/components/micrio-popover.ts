@@ -4,7 +4,7 @@ import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
 import './micrio-button';
 import './micrio-article';
-import './micrio-media';
+import '$media/media';
 import './micrio-marker-content';
 import './micrio-gallery-item';
 

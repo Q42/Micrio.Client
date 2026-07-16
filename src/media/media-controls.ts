@@ -3,8 +3,8 @@ import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
 import { captionsEnabled } from '$ts/captions';
 import { fmt } from '$ts/utils/time';
-import './micrio-button';
-import './micrio-fullscreen';
+import '../components/micrio-button';
+import './fullscreen';
 
 export interface MediaControlsProps {
 	currentTime?: number;

@@ -10,6 +10,7 @@ export default defineConfig({
 			'$ts': resolve('src/ts'),
 			'$types': resolve('src/types'),
 			'$engine': resolve('src/engine'),
+			'$media': resolve('src/media'),
 		}
 	},
 	define: {

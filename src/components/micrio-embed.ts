@@ -5,7 +5,7 @@ import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
 import { once } from '$ts/utils/store';
 import { Browser } from '$ts/utils/browser';
-import { GLEmbedVideo } from '$ts/media/embedvideo';
+import { GLEmbedVideo } from '$media/embedvideo';
 
 export interface EmbedProps {
 	embed: Models.ImageData.Embed;

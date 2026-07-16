@@ -10,14 +10,16 @@
 		"paths": {
 			"$ts/*": ["./src/ts/*"],
 			"$types/*": ["./src/types/*"],
-			"$engine/*": ["./src/engine/*"]
+			"$engine/*": ["./src/engine/*"],
+			"$media/*": ["./src/media/*"]
 		}
 	},
 	"include": [
 		"src/types/**/*",
 		"src/ts/**/*",
 		"src/engine/**/*",
-		"src/components/**/*"
+		"src/components/**/*",
+		"src/media/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }

@@ -1,13 +1,13 @@
 import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
-import { VideoTourInstance } from '$ts/media/videotour';
-import { YouTubePlayerAdapter } from '$ts/media/youtube-adapter';
-import { VimeoPlayerAdapter } from '$ts/media/vimeo-adapter';
-import { HLSPlayerAdapter } from '$ts/media/hls-adapter';
-import type { MediaPlayerAdapter } from '$ts/media/types';
-import './micrio-button';
-import './micrio-media-controls';
+import { VideoTourInstance } from './videotour';
+import { YouTubePlayerAdapter } from './youtube-adapter';
+import { VimeoPlayerAdapter } from './vimeo-adapter';
+import { HLSPlayerAdapter } from './hls-adapter';
+import type { MediaPlayerAdapter } from './types';
+import '../components/micrio-button';
+import './media-controls';
 
 const YOUTUBE_RE = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?/;
 const VIMEO_RE = /vimeo\.com/;

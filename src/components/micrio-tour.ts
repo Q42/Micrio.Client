@@ -5,7 +5,7 @@ import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
 import { DataLoader } from '$ts/utils/dataLoader';
 import './micrio-button';
-import './micrio-media';
+import '$media/media';
 
 export interface TourProps {
 	tour: Models.ImageData.MarkerTour | Models.ImageData.VideoTour;

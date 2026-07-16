@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import { DataLoader } from '$ts/utils/dataLoader';
 import { parseTime } from '$ts/utils/time';
 import { afterFrame } from '$ts/utils/dom';
-import './micrio-media';
+import '$media/media';
 
 export interface SerialTourProps {
 	tour: Models.ImageData.MarkerTour;
