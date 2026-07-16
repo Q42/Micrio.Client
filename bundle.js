@@ -79,11 +79,9 @@ const dFile = outFile.replace('.js', '.d.ts');
 fs.writeFileSync(dFile, Buffer.concat([
 	Buffer.from([
 		"declare module '@micrio/client' {",
-		"\timport type { Readable, Writable } from 'svelte/store';",
 		...fs.readFileSync('./out.d.ts').toString().replace(/    /mg, '\t').split('\n').filter(l => /^\s/.test(l) && !/^\s*import/.test(l)),
 		"}"
-	].join('\n')),
-	fs.readFileSync('./docs/store.d.ts.txt')
+	].join('\n'))
 ]));
 fs.rmSync('./out.d.ts');
 fs.rmSync(files.css);
