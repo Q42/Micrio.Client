@@ -54,7 +54,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 	#scaleVal = 1;
 	#w = 0;
 	#matrix = '';
-	#coords?: Map<string, [number, number, number?, number?]>;
 	#fto: any;
 	#splitOpenTo: any;
 	// Omni arc visibility: target frame index and [start, end] frame range
@@ -135,7 +134,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 				}
 				this.classList.remove('mat3d');
 				this.classList.toggle('behind', this.#behindCam);
-				if (this.#coords) this.#coords.set(marker.id, [this.#x, this.#y, 0, 0]);
 			}
 		};
 
@@ -307,8 +305,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 	setProps(props: Partial<MarkerProps>) {
 		Object.assign(this.#props, props);
-		if (props.coords !== undefined) this.#coords = props.coords;
-		if (props.overlapped !== undefined) this.classList.toggle('overlapped', props.overlapped);
 	}
 
 	onDestroy() {
