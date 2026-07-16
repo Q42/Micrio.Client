@@ -6,9 +6,7 @@ import { noEventPassive, type EventContext } from './shared';
  * Handles gesturestart/gesturechange/gestureend events for trackpad pinch-to-zoom.
  */
 export class GestureHandler {
-	constructor(private ctx: EventContext) {
-		this.handle = this.handle.bind(this);
-	}
+	constructor(private ctx: EventContext) {}
 
 	/** Hooks macOS gesture event listeners. */
 	hook(): void {
@@ -46,7 +44,7 @@ export class GestureHandler {
 	 * Translates gesture scale into zoom actions.
 	 * @param e The GestureEvent.
 	 */
-	private handle(e: Event): void {
+	private handle = (e: Event): void => {
 		const gesture = this.getGestureEvent(e);
 		if (!gesture || gesture.scale === 1) return;
 

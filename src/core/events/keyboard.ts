@@ -6,9 +6,7 @@ import { Grid } from '$core/grid';
  * Handles keydown events for keyboard navigation (arrows, +/-).
  */
 export class KeyboardHandler {
-	constructor(private ctx: EventContext) {
-		this.handle = this.handle.bind(this);
-	}
+	constructor(private ctx: EventContext) {}
 
 	/** Hooks keyboard event listeners. */
 	hook(): void {
@@ -24,7 +22,7 @@ export class KeyboardHandler {
 	 * Handles keydown events for keyboard navigation.
 	 * @param e The KeyboardEvent.
 	 */
-	private handle(e: KeyboardEvent): void {
+	private handle = (e: KeyboardEvent): void => {
 		if (this.ctx.isPanning() || this.ctx.isPinching() || !this.ctx.micrio.$current?.camera) return;
 
 		// Bypass arrow handling when a grid is actively handling keys

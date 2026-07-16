@@ -54,11 +54,10 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 	#prevMuted = false;
 	#prevProgress = -1;
 	#prevTime = '';
-	#unsubs: (() => void)[] = [];
 
 	onMount() {
 		this.#build();
-		this.#unsubs.push(captionsEnabled.subscribe(() => this.#sync()));
+		this.addCleanup(captionsEnabled.subscribe(() => this.#sync()));
 	}
 
 	setProps(props: Partial<MediaControlsProps>) {
@@ -215,10 +214,6 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 		}
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioMediaControls.tag, MicrioMediaControls);

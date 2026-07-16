@@ -13,7 +13,6 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 	static styles = '';
 
 	#props: AudioLocationProps = { marker: null!, ctx: null!, is360: false };
-	#unsubs: (() => void)[] = [];
 	#gain!: GainNode;
 	#panner!: PannerNode;
 	#source!: AudioBufferSourceNode;
@@ -111,7 +110,7 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 		start();
 
 		micrio.addEventListener('audio-update', update);
-		this.#unsubs.push(() => micrio.removeEventListener('audio-update', update));
+		this.addCleanup(() => micrio.removeEventListener('audio-update', update));
 	}
 
 	setProps(props: Partial<AudioLocationProps>) {
@@ -120,8 +119,6 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 
 	onDestroy() {
 		this.#end();
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

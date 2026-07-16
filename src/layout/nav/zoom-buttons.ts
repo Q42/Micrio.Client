@@ -14,7 +14,6 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 	static styles = `micrio-zoom-buttons{display:contents}`;
 
 	#props: ZoomButtonsProps = {};
-	#unsubs: (() => void)[] = [];
 	#target: MicrioImage | undefined;
 	#viewUnsub: (() => void) | undefined;
 	#albumUnsub: (() => void) | undefined;
@@ -76,7 +75,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 		if (this.#props.image) {
 			bindTo(this.#props.image);
 		} else {
-			this.#unsubs.push(micrio.current.subscribe(c => {
+			this.addCleanup(micrio.current.subscribe(c => {
 				if (!c) return;
 				if (this.#albumUnsub) { this.#albumUnsub(); this.#albumUnsub = undefined; }
 				if (this.#viewUnsub) { this.#viewUnsub(); this.#viewUnsub = undefined; }
@@ -99,8 +98,6 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 	onDestroy() {
 		if (this.#albumUnsub) this.#albumUnsub();
 		if (this.#viewUnsub) this.#viewUnsub();
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

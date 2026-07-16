@@ -44,7 +44,6 @@ dialog.gallery>aside{left:auto;right:var(--micrio-border-margin);top:var(--micri
 dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 
 	#props: PopoverProps = { popover: null! };
-	#unsubs: (() => void)[] = [];
 	#dialog!: HTMLDialogElement;
 
 	onMount() {
@@ -199,8 +198,6 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 
 	onDestroy() {
 		if (this.#dialog?.open) this.#dialog.close();
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

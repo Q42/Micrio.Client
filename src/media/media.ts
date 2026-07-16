@@ -52,7 +52,6 @@ micrio-media figure .overlay.hidden{opacity:0;pointer-events:none}
 micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-icon-size:40px;--micrio-border-radius:100%;--micrio-button-background:rgba(0,0,0,.6);--micrio-button-shadow:none;--micrio-background-filter:none;pointer-events:none}`;
 
 	#props: MediaProps = {};
-	#unsubs: (() => void)[] = [];
 	#videoEl: HTMLVideoElement | HTMLAudioElement | undefined;
 	#tourInstance: VideoTourInstance | undefined;
 	#frame: HTMLIFrameElement | undefined;
@@ -263,7 +262,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					if (!p.secondary) this.getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 					if (this.#ended) p.onended?.();
 				}, 250);
-				this.#unsubs.push(() => clearInterval(ival));
+				this.addCleanup(() => clearInterval(ival));
 				if (p.autoplay) this.#tourInstance.play();
 			} else {
 				const start = () => this.#tourInstance?.play();
@@ -419,7 +418,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 	#wireEvents(el: HTMLVideoElement | HTMLAudioElement) {
 		const volumeStore = this.inject<any>('volume');
 		if (volumeStore) {
-			this.#unsubs.push(volumeStore.subscribe((v: number) => { el.volume = v; }));
+			this.addCleanup(volumeStore.subscribe((v: number) => { el.volume = v; }));
 		}
 	}
 
@@ -459,8 +458,6 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		this.#adapter?.destroy();
 		this.#stopAdapterTick();
 		this.#subEl?.remove();
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

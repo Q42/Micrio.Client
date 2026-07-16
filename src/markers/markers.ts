@@ -21,7 +21,6 @@ micrio-markers.is360{transition:opacity .25s}
 micrio-markers.is360.inactive{opacity:0}`;
 
 	#props: MarkersProps = { image: null! };
-	#unsubs: (() => void)[] = [];
 	#clusterRaf: number | undefined;
 
 	onMount() {
@@ -34,7 +33,7 @@ micrio-markers.is360.inactive{opacity:0}`;
 		const focussed = grid?.focussed;
 		const gridMarkersShown = grid?.markersShown;
 
-		this.#unsubs.push(image.viewport.subscribe((v: Models.Camera.View) => {
+		this.addCleanup(image.viewport.subscribe((v: Models.Camera.View) => {
 			if (!v || v.length < 4) return;
 			v = v.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
 			this.style.cssText = [
@@ -179,14 +178,14 @@ micrio-markers.is360.inactive{opacity:0}`;
 		this.watchLazy(micrio._lang, rebuild);
 
 		if (image.$settings.clusterMarkers) {
-			this.#unsubs.push(image.state.view.subscribe(updateOverlapped));
+			this.addCleanup(image.state.view.subscribe(updateOverlapped));
 		}
 
 		if (image.is360) this.classList.add('is360');
 
 		if (!image.grid && image.$settings._markers?.zoomOutAfterClose) {
 			let wasVideoTour = false;
-			this.#unsubs.push(image.state.marker.subscribe(m => {
+			this.addCleanup(image.state.marker.subscribe(m => {
 				if (m && typeof m != 'string' && !image.openedView && !m.noMarker && m.view) {
 					image.openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
 						: clone(image.state.$view ?? image.camera?.getView());
@@ -220,8 +219,6 @@ micrio-markers.is360.inactive{opacity:0}`;
 
 	onDestroy() {
 		if (this.#clusterRaf !== undefined) cancelAnimationFrame(this.#clusterRaf);
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

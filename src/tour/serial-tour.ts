@@ -28,7 +28,6 @@ micrio-serial-tour ol.chapters button{font:inherit;background:none;border:none;d
 micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 
 	#props: SerialTourProps = { tour: null! };
-	#unsubs: (() => void)[] = [];
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];
 	#currentStep = 0;
 	#built = false;
@@ -49,7 +48,7 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 		mt.next = () => this.#nextStep();
 		mt.prev = () => { if (this.#currentStep > 0) this.#openStep(this.#currentStep - 1); };
 
-		this.#unsubs.push(micrio.state.marker.subscribe(m => {
+		this.addCleanup(micrio.state.marker.subscribe(m => {
 			if (!m || !this.#stepInfo.length) return;
 			const id = typeof m == 'string' ? m : m.id;
 			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
@@ -242,10 +241,6 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 		if (props.onended !== undefined) this.#props.onended = props.onended;
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioSerialTour.tag, MicrioSerialTour);

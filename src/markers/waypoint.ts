@@ -26,7 +26,6 @@ micrio-waypoint.direction-up .micrio-button{/* up */}
 micrio-waypoint.direction-down .micrio-button{/* down */}`;
 
 	#props: WaypointProps = { targetId: '', image: null! };
-	#unsubs: (() => void)[] = [];
 
 	#clicked = false;
 	#hidden = false;
@@ -120,7 +119,7 @@ micrio-waypoint.direction-down .micrio-button{/* down */}`;
 
 		onmove();
 
-		this.#unsubs.push(image.state.view.subscribe(onmove));
+		this.addCleanup(image.state.view.subscribe(onmove));
 		DataLoader.getData(targetId).then(d => { if (d) this.#targetImage = d; this.#render(); });
 
 		micrio.dispatchEvent(new CustomEvent('wp-print', { detail: this.#iface }));
@@ -159,8 +158,6 @@ micrio-waypoint.direction-down .micrio-button{/* down */}`;
 
 	onDestroy() {
 		clearTimeout(this.#fto);
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

@@ -36,7 +36,6 @@ micrio-marker-content section figcaption{display:none}
 }`;
 
 	#props: MarkerContentProps = { marker: null! };
-	#unsubs: (() => void)[] = [];
 	_title: HTMLElement | undefined;
 
 	onMount() {
@@ -199,10 +198,6 @@ micrio-marker-content section figcaption{display:none}
 		}
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioMarkerContent.tag, MicrioMarkerContent);

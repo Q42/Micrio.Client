@@ -5,7 +5,7 @@ import type { MicrioImage } from '$core/image';
 import type { Engine } from '$render/engine';
 
 import { Browser } from '$utils/browser';
-import { createElement, loadScript } from '$utils/dom';
+import { createElement, loadExternalAPI } from '$utils/dom';
 import { tick } from '$core/store';
 
 /**
@@ -142,7 +142,7 @@ export class GLEmbedVideo {
 		if(!this.ism3u || !('MediaSource' in window || 'ManagedMediaSource' in window)) {
 			this._vid.src = src;
 		} else {
-			loadScript('https://r2.micr.io/hls-1.6.15.min.js', undefined, 'Hls' in window ? {} : undefined).then(() => {
+			loadExternalAPI('Hls', 'https://r2.micr.io/hls-1.6.15.min.js').then(() => {
 				/** @ts-ignore Access global Hls constructor */
 				this.hlsPlayer = new (window['Hls'] as HlsPlayer)({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
 				this.hlsPlayer.loadSource(src); // Load HLS manifest

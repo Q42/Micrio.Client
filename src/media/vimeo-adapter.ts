@@ -6,7 +6,7 @@
 
 import type { VimeoPlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from './types';
-import { loadScript } from '$utils/dom';
+import { loadExternalAPI } from '$utils/dom';
 
 /**
  * Adapter for Vimeo Player API.
@@ -27,14 +27,7 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 	 * Loads the Vimeo API and initializes the player.
 	 */
 	async initialize(): Promise<void> {
-		// Load Vimeo API if not already present
-		if (!('Vimeo' in window)) {
-			await loadScript('https://r2.micr.io/vimeo.min.js');
-		}
-
-		if (!('Vimeo' in window)) {
-			throw new Error('Failed to load Vimeo API');
-		}
+		await loadExternalAPI('Vimeo', 'https://r2.micr.io/vimeo.min.js');
 
 		return new Promise((resolve, reject) => {
 			// @ts-ignore - Vimeo is loaded dynamically

@@ -46,7 +46,6 @@ micrio-marker:empty{display:none}
 micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 	#props: MarkerProps = { marker: null! };
-	#unsubs: (() => void)[] = [];
 	#opened = false;
 	#behindCam = false;
 	#x = 0;
@@ -218,7 +217,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			micrio.state.popup.set(undefined);
 		};
 
-		this.#unsubs.push(image.state.marker.subscribe(m => {
+		this.addCleanup(image.state.marker.subscribe(m => {
 			if (typeof m == 'string' && m == marker.id) image.state.marker.set(marker);
 			else if (m == marker) activated();
 			else if (!m && !data.alwaysOpen) {
@@ -229,7 +228,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		}));
 
 		if (!marker.noMarker) {
-			this.#unsubs.push(image.state.view.subscribe(() => {
+			this.addCleanup(image.state.view.subscribe(() => {
 				moved();
 			}));
 		}
@@ -310,8 +309,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 	onDestroy() {
 		clearTimeout(this.#fto);
 		clearTimeout(this.#splitOpenTo);
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

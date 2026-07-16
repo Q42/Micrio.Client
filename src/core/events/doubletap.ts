@@ -6,10 +6,7 @@ import type { EventContext } from './shared';
  * Handles double-tap (touch) and double-click (mouse) events for zooming.
  */
 export class DoubleTapHandler {
-	constructor(private ctx: EventContext) {
-		this.tap = this.tap.bind(this);
-		this.click = this.click.bind(this);
-	}
+	constructor(private ctx: EventContext) {}
 
 	/** Hooks double-tap event listener (mobile). */
 	hookTap(): void {
@@ -35,7 +32,7 @@ export class DoubleTapHandler {
 	 * Handles double-tap detection on touch devices.
 	 * @param e The TouchEvent.
 	 */
-	private tap(e: TouchEvent | Event): void {
+	private tap = (e: TouchEvent | Event): void => {
 		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
 		const now = performance.now();
 
@@ -53,7 +50,7 @@ export class DoubleTapHandler {
 	 * Zooms in if zoomed out, zooms out fully otherwise.
 	 * @param e The MouseEvent or TouchEvent.
 	 */
-	private click(e: MouseEvent | TouchEvent): void {
+	private click = (e: MouseEvent | TouchEvent): void => {
 		const t = e instanceof TouchEvent ? e.touches[0] : e;
 		const img = this.ctx.getImage({ x: t.clientX, y: t.clientY });
 		// Use zoom method with negative delta to zoom in, providing click coordinates

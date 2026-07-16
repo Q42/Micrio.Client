@@ -23,7 +23,6 @@ micrio-toolbar .micrio-toolbar>micrio-menu{color:#fff;margin-right:var(--micrio-
 micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>micrio-menu:focus-within{backdrop-filter:var(--micrio-background-filter);background:var(--micrio-background);box-shadow:var(--micrio-button-shadow)}
 }`;
 
-	#unsubs: (() => void)[] = [];
 	#data: Models.ImageData.ImageData | undefined;
 	#shown = false;
 	#isMobile = false;
@@ -40,22 +39,22 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 
 		this.#render();
 
-		this.#unsubs.push(micrio.current.subscribe(c => {
+		this.addCleanup(micrio.current.subscribe(c => {
 			if (!c) return;
-			this.#unsubs.push(c.data.subscribe(d => {
+			this.addCleanup(c.data.subscribe(d => {
 				this.#data = d;
 				this.#render();
 			}));
-			once(c.info).then(() => this.#unsubs.push(c.settings.subscribe(() => this.syncDisplay?.())));
+			once(c.info).then(() => this.addCleanup(c.settings.subscribe(() => this.syncDisplay?.())));
 		}));
 
-		this.#unsubs.push(micrio.state.tour.subscribe(() => this.#render()));
-		this.#unsubs.push(micrio.state.marker.subscribe(() => this.#render()));
-		this.#unsubs.push(micrio.state.popover.subscribe(() => this.#render()));
-		this.#unsubs.push(_lang.subscribe(() => this.#render()));
+		this.addCleanup(micrio.state.tour.subscribe(() => this.#render()));
+		this.addCleanup(micrio.state.marker.subscribe(() => this.#render()));
+		this.addCleanup(micrio.state.popover.subscribe(() => this.#render()));
+		this.addCleanup(_lang.subscribe(() => this.#render()));
 
 		window.addEventListener('resize', resize);
-		this.#unsubs.push(() => window.removeEventListener('resize', resize));
+		this.addCleanup(() => window.removeEventListener('resize', resize));
 	}
 
 	#render() {
@@ -170,10 +169,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		}
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
+
 }
 
 customElements.define(MicrioToolbar.tag, MicrioToolbar);

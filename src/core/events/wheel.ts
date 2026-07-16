@@ -11,10 +11,7 @@ export class WheelHandler {
 	/** Timeout ID for debouncing the 'wheelend' event. */
 	private wheelEndTo = -1;
 
-	constructor(private ctx: EventContext) {
-		this.handle = this.handle.bind(this);
-		this.end = this.end.bind(this);
-	}
+	constructor(private ctx: EventContext) {}
 
 	/** Hooks mouse wheel/scroll event listeners. */
 	hook(): void {
@@ -35,7 +32,7 @@ export class WheelHandler {
 	 * @param force Force handling even if conditions normally prevent it.
 	 * @param offX Optional X offset for zoom focus.
 	 */
-	handle(e: WheelEvent | Event, force = false, offX = 0): void {
+	handle = (e: WheelEvent | Event, force = false, offX = 0): void => {
 		if (!(e instanceof WheelEvent)) return;
 
 		// Check if zoom is allowed based on settings and modifier keys
@@ -84,7 +81,7 @@ export class WheelHandler {
 	}
 
 	/** Clears the wheeling state after a short delay. */
-	private end(): void {
+	private end = (): void => {
 		this.ctx.setWheeling(false);
 	}
 }

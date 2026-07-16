@@ -55,7 +55,6 @@ micrio-gallery .gallery-btn:disabled{opacity:0;pointer-events:none}
 micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micrio-button:focus{position:absolute!important}`;
 
 	#props: GalleryProps = {};
-	#unsubs: (() => void)[] = [];
 	#currentPage = -1;
 	#images: MicrioImage[] = [];
 	#parentImage!: MicrioImage;
@@ -427,7 +426,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		if (this.#isStripSwipe && images.length > 1) {
 			const onDown = this.#stripPointerDown;
 			micrio.canvas.element.addEventListener('pointerdown', onDown);
-			this.#unsubs.push(() => micrio.canvas.element.removeEventListener('pointerdown', onDown));
+			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', onDown));
 		}
 
 		// Auto-hide listeners
@@ -440,15 +439,15 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			micrio.canvas.element.addEventListener('pointerdown', this.#activity);
 			this.#activity();
 		}
-		this.#unsubs.push(unhookActivity);
+		this.addCleanup(unhookActivity);
 
 		// Keyboard
 		window.addEventListener('keydown', this.#keydown);
-		this.#unsubs.push(() => window.removeEventListener('keydown', this.#keydown));
+		this.addCleanup(() => window.removeEventListener('keydown', this.#keydown));
 
 		// Subscriptions — force-hidden on popup/tour
-		this.#unsubs.push(micrio.state.popup.subscribe(() => this.#updateScrubber()));
-		this.#unsubs.push(micrio.state.tour.subscribe(() => this.#updateScrubber()));
+		this.addCleanup(micrio.state.popup.subscribe(() => this.#updateScrubber()));
+		this.addCleanup(micrio.state.tour.subscribe(() => this.#updateScrubber()));
 	}
 
 	#buildScrubber() {
@@ -685,7 +684,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		preload(0);
 
 		// Sync dial rotation when layer changes
-		this.#unsubs.push(image.state.layer.subscribe((idx: number) => {
+		this.addCleanup(image.state.layer.subscribe((idx: number) => {
 			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
 		}));
 
@@ -736,19 +735,16 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 				});
 			};
 			printLayerMenu();
-			this.#unsubs.push(image.state.layer.subscribe(printLayerMenu));
+			this.addCleanup(image.state.layer.subscribe(printLayerMenu));
 		}
 	}
 
 	onDestroy() {
-		// Destroy GallerySwiper if we set it on the image
 		const image = this.getMicrio()?.$current;
 		if (image?.swiper) {
 			image.swiper.destroy();
 			image.swiper = undefined;
 		}
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

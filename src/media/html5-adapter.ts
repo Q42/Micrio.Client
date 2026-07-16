@@ -13,8 +13,8 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 	readonly requiresTimeTick = false;
 
 	constructor(
-		private element: HTMLMediaElement,
-		private callbacks: PlayerEventCallbacks = {}
+		protected element: HTMLMediaElement,
+		protected callbacks: PlayerEventCallbacks = {}
 	) {
 		this.attachEventListeners();
 	}

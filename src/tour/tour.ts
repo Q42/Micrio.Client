@@ -22,7 +22,6 @@ micrio-tour .controls>micrio-button{--micrio-button-background:none;--micrio-bac
 micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height:var(--micrio-button-size);padding:0 12px;font-size:90%;cursor:default;font-family:inherit;background:transparent;border:none;color:var(--micrio-color);display:flex;align-items:center}`;
 
 	#props: TourProps = { tour: null! };
-	#unsubs: (() => void)[] = [];
 	#currentStep = 0;
 
 	onMount() {
@@ -141,7 +140,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			this.appendChild(div);
 		};
 
-			this.#unsubs.push(micrio.state.marker.subscribe(m => {
+			this.addCleanup(micrio.state.marker.subscribe(m => {
 				if (!m) return;
 				const id = typeof m == 'string' ? m : m.id;
 				const idx = mt.steps.findIndex(s => s.startsWith(id));
@@ -156,7 +155,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			renderControls();
 		}
 
-		this.#unsubs.push(micrio.state.tour.subscribe(t => {
+		this.addCleanup(micrio.state.tour.subscribe(t => {
 			if (!t) {
 				micrio.removeAttribute('data-tour-active');
 				if (isMarkerTour) {
@@ -175,10 +174,6 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 		Object.assign(this.#props, props);
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioTour.tag, MicrioTour);

@@ -18,7 +18,6 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 @media(max-width:800px){micrio-minimap canvas{transform:scale3d(.5,.5,1);pointer-events:none;right:65px}}`;
 
 	#props: MinimapProps = { image: null! };
-	#unsubs: (() => void)[] = [];
 	#_canvas!: HTMLCanvasElement;
 	#_ctx: CanvasRenderingContext2D | null = null;
 	#hidden = false;
@@ -144,11 +143,11 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 		}
 
 		// Subscribe to view changes
-		this.#unsubs.push(image.state.view.subscribe(draw));
+		this.addCleanup(image.state.view.subscribe(draw));
 		// Auto-hide on mouse move over main canvas
 		const passive: AddEventListenerOptions = { passive: true };
 		micrio.canvas.element.addEventListener('mousemove', () => this.#moved(), passive);
-		this.#unsubs.push(() => micrio.canvas.element.removeEventListener('mousemove', () => this.#moved(), passive));
+		this.addCleanup(() => micrio.canvas.element.removeEventListener('mousemove', () => this.#moved(), passive));
 
 		afterFrame().then(() => {
 			const isSame = get(micrio.current) == image;
@@ -187,8 +186,6 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 
 	onDestroy() {
 		clearTimeout(this.#to);
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

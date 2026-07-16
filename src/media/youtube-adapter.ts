@@ -6,7 +6,7 @@
 
 import type { YouTubePlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from './types';
-import { loadScript } from '$utils/dom';
+import { loadExternalAPI } from '$utils/dom';
 
 const YOUTUBE_HOST = 'https://www.youtube-nocookie.com';
 
@@ -39,17 +39,7 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 	 * Loads the YouTube API and initializes the player.
 	 */
 	async initialize(): Promise<void> {
-		// Load YouTube API if not already present
-		if (!('YT' in window)) {
-			await loadScript(
-				'https://r2.micr.io/youtube.js',
-				'onYouTubeIframeAPIReady'
-			);
-		}
-
-		if (!('YT' in window)) {
-			throw new Error('Failed to load YouTube API');
-		}
+		await loadExternalAPI('YT', 'https://r2.micr.io/youtube.js', 'onYouTubeIframeAPIReady');
 
 		return new Promise((resolve, reject) => {
 			// @ts-ignore - YT is loaded dynamically

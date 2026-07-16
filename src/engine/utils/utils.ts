@@ -11,13 +11,8 @@ export function twoNth(num: number): number {
 	return 1 << num;
 }
 
-/** Calculates the positive modulo (floored division remainder). @internal */
-export function mod(n: number, m: number = 1): number {
-	return (n % m + m) % m;
-}
-
-/** Calculates the modulo 1 of a number (keeps the fractional part, positive). @deprecated Use mod(n, 1) @internal */
-export const mod1 = (n: number): number => mod(n, 1);
+/** Calculates the modulo 1 of a number (keeps the fractional part, positive). @internal */
+export const mod1 = (n: number): number => ((n % 1) + 1) % 1;
 
 /** Calculates the modulo 2*PI of a number (wraps angles to the range [0, 2*PI)). @internal */
 export function modPI(n: number): number {

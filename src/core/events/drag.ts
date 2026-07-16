@@ -7,12 +7,7 @@ import { eventPassive, cancelPrevent, type EventContext } from './shared';
 export class DragHandler {
 	private hooked = false;
 
-	constructor(private ctx: EventContext) {
-		this.start = this.start.bind(this);
-		this.move = this.move.bind(this);
-		this.stop = this.stop.bind(this);
-		this.cancel = this.cancel.bind(this);
-	}
+	constructor(private ctx: EventContext) {}
 
 	/** Hooks pointer down/move/up listeners for drag panning. */
 	hook(): void {
@@ -41,7 +36,7 @@ export class DragHandler {
 	 * @param e The PointerEvent.
 	 * @param force If true, forces drag start even if target isn't the canvas.
 	 */
-	start(e: PointerEvent, force = false): void {
+	start = (e: PointerEvent, force = false): void => {
 		// Ignore non-primary buttons or touch events if twoFingerPan is enabled
 		if (e.button != 0 || (e.pointerType == 'touch' && this.ctx.isTwoFingerPan())) return;
 
@@ -85,7 +80,7 @@ export class DragHandler {
 	 * Handles pointer movement during a drag/pan operation.
 	 * @param e The PointerEvent.
 	 */
-	private move(e: PointerEvent): void {
+	private move = (e: PointerEvent): void => {
 		const cX = e.clientX, cY = e.clientY;
 
 		// Capture pointer only after significant movement to allow double-click
@@ -113,7 +108,7 @@ export class DragHandler {
 	 * @param noKinetic If true, prevents kinetic coasting animation.
 	 * @param noDispatch If true, suppresses the 'panend' event.
 	 */
-	stop(e?: PointerEvent, noKinetic = false, noDispatch = false): void {
+	stop = (e?: PointerEvent, noKinetic = false, noDispatch = false): void => {
 		if (!this.ctx.isPanning()) return;
 
 		this.ctx.setPanning(false);
@@ -157,7 +152,7 @@ export class DragHandler {
 	 * without `touch-action: none`). Cleans up panning state without
 	 * triggering kinetic motion or a regular `panend`.
 	 */
-	private cancel(e: PointerEvent): void {
+	private cancel = (e: PointerEvent): void => {
 		if (!this.ctx.isPanning()) return;
 		// If a different pointer was the captured one, ignore.
 		if (this.ctx.capturedPointerId !== undefined && e.pointerId !== this.ctx.capturedPointerId) return;

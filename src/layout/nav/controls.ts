@@ -31,7 +31,6 @@ micrio-controls .lang-items .micrio-button>span{width:var(--micrio-button-size)}
 micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-hover);color:var(--micrio-button-background,var(--micrio-background))}`;
 
 	#props: ControlsProps = {};
-	#unsubs: (() => void)[] = [];
 	#built = false;
 	#showCultures = false;
 	#showSocial = false;
@@ -100,7 +99,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 
 		micrio.addEventListener('splitscreen-start', splitStart);
 		micrio.addEventListener('splitscreen-stop', splitStop);
-		this.#unsubs.push(() => {
+		this.addCleanup(() => {
 			micrio.removeEventListener('splitscreen-start', splitStart);
 			micrio.removeEventListener('splitscreen-stop', splitStop);
 		});
@@ -119,7 +118,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		let settingsUnsub: Unsubscriber | undefined;
 		let gridUnsub: Unsubscriber | undefined;
 
-		this.#unsubs.push(micrio.current.subscribe(c => {
+		this.addCleanup(micrio.current.subscribe(c => {
 			if (c) {
 				once(c.info).then(i => {
 					if (!i || (get(tour) && 'steps' in get(tour)!)) return;
@@ -149,7 +148,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 
 		const observer = new MutationObserver(() => this.#sync());
 		observer.observe(micrio, { attributes: true, attributeFilter: ['class'] });
-		this.#unsubs.push(() => observer.disconnect());
+		this.addCleanup(() => observer.disconnect());
 
 		this.#build();
 		this.#sync();
@@ -367,10 +366,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		}
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioControls.tag, MicrioControls);

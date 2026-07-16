@@ -80,7 +80,6 @@ export class MicrioAudioController extends MicrioElement {
 	static tag = 'micrio-audio-controller';
 	static styles = `micrio-audio-controller{display:contents}`;
 
-	#unsubs: (() => void)[] = [];
 	#playlist: AudioPlaylist | undefined;
 
 	onMount() {
@@ -130,7 +129,7 @@ export class MicrioAudioController extends MicrioElement {
 		document.body.appendChild(audio);
 
 		if (supported) {
-			this.#unsubs.push(interacted.subscribe(b => {
+			this.addCleanup(interacted.subscribe(b => {
 				if (!b) return;
 				const volumeStore = this.inject<any>('volume');
 				const vol = volumeStore ? get(volumeStore) : 1;
@@ -138,7 +137,7 @@ export class MicrioAudioController extends MicrioElement {
 				if (_ctx) {
 					const data = image.$data;
 					if (data?.markers?.filter((m: any) => !!m.positionalAudio).length) {
-						this.#unsubs.push(image.state.view.subscribe(v => {
+						this.addCleanup(image.state.view.subscribe(v => {
 							if (!v) return;
 							const d = Math.max(0, 1.05 - image.camera.getScale());
 							moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5));
@@ -161,7 +160,7 @@ export class MicrioAudioController extends MicrioElement {
 			}
 		}
 
-		this.#unsubs.push(micrio.isMuted.subscribe(muted => {
+		this.addCleanup(micrio.isMuted.subscribe(muted => {
 			if (mainGain) mainGain.gain.value = muted ? 0 : 1;
 		}));
 
@@ -178,8 +177,6 @@ export class MicrioAudioController extends MicrioElement {
 
 	onDestroy() {
 		this.#playlist?.destroy();
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
 	}
 }
 

@@ -61,7 +61,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	static styles = `micrio-main{display:contents}`;
 
 	#props: MainProps = {};
-	#unsubs: (() => void)[] = [];
 	#info: Readable<Models.ImageInfo.ImageInfo | undefined> | undefined;
 	#data: Writable<Models.ImageData.ImageData | undefined> | undefined;
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
@@ -118,7 +117,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		const volume = writable<number>(get(micrio.isMuted) ? 0 : 1);
 		this.provide('volume', volume);
-		this.#unsubs.push(micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1)));
+		this.addCleanup(micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1)));
 
 		this.provide('mediaPaused', writable<boolean>(false));
 
@@ -127,25 +126,25 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		const didStart: string[] = [];
 
-		this.#unsubs.push(micrio.current.subscribe(c => {
+		this.addCleanup(micrio.current.subscribe(c => {
 			if (!c) return;
 			this.#info = c.info;
 			this.#settings = undefined;
 
 			if (this.#info) {
-				this.#unsubs.push(this.#info.subscribe(() => this.#queueSync()));
+				this.addCleanup(this.#info.subscribe(() => this.#queueSync()));
 				once(this.#info).then(i => {
 					if (i) {
 						this.#firstInited = true;
 						this.#settings = c.settings;
-						if (this.#settings) this.#unsubs.push(this.#settings.subscribe(() => this.#queueSync()));
+						if (this.#settings) this.addCleanup(this.#settings.subscribe(() => this.#queueSync()));
 						if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
 						this.#queueSync();
 					}
 				});
 			}
 			if ((this.#data = c.data) && didStart.indexOf(c.id) < 0) {
-				this.#unsubs.push(this.#data.subscribe(() => this.#queueSync()));
+				this.addCleanup(this.#data.subscribe(() => this.#queueSync()));
 				once(this.#data).then(async d => {
 					if (!d) return;
 					didStart.push(c.id);
@@ -174,16 +173,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#queueSync();
 		}));
 
-		this.#unsubs.push(micrio.state.tour.subscribe(() => {
+		this.addCleanup(micrio.state.tour.subscribe(() => {
 			const sub = this.#elements.get('subtitles') as MicrioElement;
 			if (sub) sub.setProps?.({ raised: !!get(micrio.state.tour) });
 		}));
 
 		for (const store of [micrio.visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
 		micrio.state.tour, micrio.state.marker]) {
-			this.#unsubs.push(store.subscribe(() => this.#queueSync()));
+			this.addCleanup(store.subscribe(() => this.#queueSync()));
 		}
-		this.#unsubs.push(micrio._lang.subscribe(() => this.#queueSync()));
+		this.addCleanup(micrio._lang.subscribe(() => this.#queueSync()));
 
 		this.#queueSync();
 	}
@@ -354,10 +353,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
+
 }
 
 customElements.define(MicrioMain.tag, MicrioMain);

@@ -12,7 +12,6 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	static styles = `micrio-fullscreen{display:contents}`;
 
 	#props: Partial<FullscreenProps> = {};
-	#unsubs: (() => void)[] = [];
 	#isActive = false;
 	#inited = false;
 	#toggle = () => {
@@ -65,7 +64,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 
 		const evt = isNative ? 'fullscreenchange' : 'webkitfullscreenchange';
     document.addEventListener(evt, onchange);
-    this.#unsubs.push(() => document.removeEventListener(evt, onchange));
+    this.addCleanup(() => document.removeEventListener(evt, onchange));
 
     this.#renderButton();
 }
@@ -99,10 +98,6 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		});
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioFullscreen.tag, MicrioFullscreen);

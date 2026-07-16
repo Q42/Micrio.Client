@@ -84,6 +84,24 @@ const loaded: string[] = [];
  * @param targetObj Optional target object (if provided, assumes script is already loaded).
  * @returns A Promise that resolves when the script is loaded, or rejects on error.
  */
+/**
+ * Loads an external JavaScript API dynamically if not already present.
+ * Checks for the API on `self` (window), loads the script if missing,
+ * then verifies the API was loaded successfully.
+ * @internal
+ * @param windowKey The key on `window` to check (e.g., `'YT'`, `'Vimeo'`, `'Hls'`).
+ * @param url The script URL to load.
+ * @param cbFunc Optional global callback function name for script load.
+ */
+export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: string): Promise<void> {
+	if (!(windowKey in self)) {
+		await loadScript(url, cbFunc);
+	}
+	if (!(windowKey in self)) {
+		throw new Error(`Failed to load ${windowKey} API from ${url}`);
+	}
+}
+
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) => new Promise<void>((ok, err) => {
 	if (targetObj || loaded.includes(src)) return ok();
 	const script = document.createElement('script');

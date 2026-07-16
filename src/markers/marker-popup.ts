@@ -32,7 +32,6 @@ micrio-marker-popup>main{max-height:40vh}
 button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:default}`;
 
 	#props: MarkerPopupProps = { marker: null! };
-	#unsubs: (() => void)[] = [];
 	#content!: HTMLElement;
 	#title!: HTMLElement;
 	#isMinimized = false;
@@ -48,7 +47,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		marker.tags?.forEach(c => this.classList.add(c));
 		afterFrame().then(() => this.querySelector('button')?.focus());
 
-		this.#unsubs.push(micrio.state.popup.subscribe(m => {
+		this.addCleanup(micrio.state.popup.subscribe(m => {
 			this.#destroying = !m || m != marker;
 			this.classList.toggle('destroying', this.#destroying);
 		}));
@@ -215,10 +214,6 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		});
 	}
 
-	onDestroy() {
-		for (const fn of this.#unsubs) fn();
-		this.#unsubs = [];
-	}
 }
 
 customElements.define(MicrioMarkerPopup.tag, MicrioMarkerPopup);

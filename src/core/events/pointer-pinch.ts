@@ -10,11 +10,7 @@ export class PointerPinchHandler {
 	constructor(
 		private ctx: EventContext,
 		private dragHandler: DragHandler
-	) {
-		this.start = this.start.bind(this);
-		this.move = this.move.bind(this);
-		this.end = this.end.bind(this);
-	}
+	) {}
 
 	/** Hooks pointer pinch event listeners. */
 	hook(): void {
@@ -37,7 +33,7 @@ export class PointerPinchHandler {
 	 * Handles pointer down for multi-touch pinch detection.
 	 * @param e The PointerEvent.
 	 */
-	start(e: PointerEvent): void {
+	start = (e: PointerEvent): void => {
 		// Only handle touch pointer events (not mouse)
 		if (e.pointerType !== 'touch') return;
 
@@ -82,7 +78,7 @@ export class PointerPinchHandler {
 	 * Handles pointer move during a multi-touch pinch gesture.
 	 * @param e The PointerEvent.
 	 */
-	private move(e: PointerEvent): void {
+	private move = (e: PointerEvent): void => {
 		// Only handle touch pointer events
 		if (e.pointerType !== 'touch') return;
 
@@ -125,7 +121,7 @@ export class PointerPinchHandler {
 	 * Also ends pinch gesture when needed.
 	 * @param e The PointerEvent.
 	 */
-	end(e: PointerEvent): void {
+	end = (e: PointerEvent): void => {
 		// Only handle touch pointer events
 		if (e.pointerType !== 'touch') return;
 

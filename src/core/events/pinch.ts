@@ -10,11 +10,7 @@ export class PinchHandler {
 	constructor(
 		private ctx: EventContext,
 		private dragHandler: DragHandler
-	) {
-		this.start = this.start.bind(this);
-		this.move = this.move.bind(this);
-		this.stop = this.stop.bind(this);
-	}
+	) {}
 
 	/** Hooks touch pinch event listeners (iOS only). */
 	hook(): void {
@@ -37,7 +33,7 @@ export class PinchHandler {
 	 * Handles the start of a touch pinch gesture (touchstart with two fingers).
 	 * @param e The TouchEvent.
 	 */
-	start(e: TouchEvent | Event): void {
+	start = (e: TouchEvent | Event): void => {
 		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
 
 		// Ignore if twoFingerPan is enabled and less than two touches
@@ -84,7 +80,7 @@ export class PinchHandler {
 	 * Handles touch movement during a pinch gesture.
 	 * @param e The TouchEvent.
 	 */
-	private move(e: TouchEvent | Event): void {
+	private move = (e: TouchEvent | Event): void => {
 		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
 		const t = e.touches;
 		if (t?.length < 2) return;
@@ -115,7 +111,7 @@ export class PinchHandler {
 	 * Handles the end of a touch pinch gesture (touchend).
 	 * @param e The TouchEvent or MouseEvent.
 	 */
-	stop(e: MouseEvent | TouchEvent): void {
+	stop = (e: MouseEvent | TouchEvent): void => {
 		if (!this.ctx.isPinching()) return;
 		this.ctx.setPinching(false);
 
