@@ -1283,7 +1283,7 @@ import type { MicrioIcon } from '$ts/icons';
 		/** Strip-swipe only: writable store tracking the currently active child
 		 * MicrioImage. Consumers (e.g. ZoomButtons) can subscribe to bind their
 		 * controls to the image under focus instead of the virtual parent. */
-		currentImage?: Writable<import('../ts/image').MicrioImage>;
+		currentImage?: Writable<MicrioImage>;
 	}
 
 	/** Gallery item representing a single image within a gallery or grid */

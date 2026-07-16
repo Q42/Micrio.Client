@@ -1,5 +1,6 @@
 import type { Readable, Subscriber } from './store';
 import { lazy } from './store';
+import type { HTMLMicrioElement } from './element';
 
 const PROVIDES = Symbol('micrio-provides');
 
@@ -115,7 +116,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		return undefined;
 	}
 
-	protected getMicrio(): import('./element').HTMLMicrioElement | undefined {
+	protected getMicrio(): HTMLMicrioElement | undefined {
 		return this.inject<any>('micrio');
 	}
 
