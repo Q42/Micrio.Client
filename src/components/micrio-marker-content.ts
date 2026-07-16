@@ -21,7 +21,7 @@ micrio-marker-content p{white-space:pre-line}
 micrio-marker-content figure.hidden{display:none}
 micrio-marker-content figure>div.micrio-media>*:first-child{width:100%}
 micrio-marker-content micrio-media{margin:calc(-1 * var(--micrio-popup-padding));width:auto;--micrio-background:transparent}
-micrio-marker-content micrio-media:not(:only-child){margin-bottom:0}
+micrio-marker-content micrio-media:not(:only-child):not(:last-child){margin-bottom:0}
 micrio-marker-content article:last-child{margin-bottom:var(--micrio-popup-padding)}
 micrio-marker-content button{padding:0;margin:0 calc(-1 * var(--micrio-popup-padding)) var(--micrio-popup-padding) calc(-1 * var(--micrio-popup-padding))}
 micrio-marker-content button:disabled{cursor:default}
