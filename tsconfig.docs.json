@@ -13,7 +13,18 @@
 		"paths": {
 			"$ts/*": ["./src/ts/*"],
 			"$types/*": ["./src/types/*"],
-			"$engine/*": ["./src/engine/*"]
+			"$engine/*": ["./src/engine/*"],
+			"$core/*": ["./src/core/*"],
+			"$media/*": ["./src/media/*"],
+			"$ui/*": ["./src/ui/*"],
+			"$markers/*": ["./src/markers/*"],
+			"$tour/*": ["./src/tour/*"],
+			"$gallery/*": ["./src/gallery/*"],
+			"$render/*": ["./src/render/*"],
+			"$utils/*": ["./src/utils/*"],
+			"$audio/*": ["./src/audio/*"],
+			"$embed/*": ["./src/embed/*"],
+			"$layout/*": ["./src/layout/*"]
 		}
 	},
 	"typedocOptions": {
