@@ -35,11 +35,11 @@ micrio-marker.default:hover,micrio-marker.default.hovered,micrio-marker.default.
 micrio-marker.default:hover button,micrio-marker.default.hovered button,micrio-marker.default.opened button{background-color:var(--micrio-marker-highlight);border-width:0;width:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2);height:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2)}
 micrio-marker.has-icon{--micrio-marker-icon:none}
 micrio-marker.has-custom-icon{--micrio-marker-size:32px}
-micrio-marker.default.has-icon button{color:#fff;width:calc(var(--micrio-marker-size)+24px);height:calc(var(--micrio-marker-size)+24px);background-color:var(--micrio-marker-border-color);border:none}
+micrio-marker.default.has-icon button{color:#fff;width:calc(var(--micrio-marker-size) + 24px);height:calc(var(--micrio-marker-size) + 24px);background-color:var(--micrio-marker-border-color);border:none}
 micrio-marker.default.has-icon.opened button svg,micrio-marker.default.has-icon.hovered button svg,micrio-marker.default.has-icon:hover button svg{color:var(--micrio-marker-highlight)}
 micrio-marker.default.has-custom-icon button{background-color:transparent}
 micrio-marker.default.has-custom-icon.opened button,micrio-marker.default.has-custom-icon.hovered button,micrio-marker.default.has-custom-icon:hover button{background-color:var(--micrio-marker-highlight,var(--micrio-marker-color))}
-micrio-marker.cluster button{border:2px solid var(--micrio-marker-color);background:var(--micrio-cluster-marker-background,#fff);color:var(--micrio-cluster-marker-color,#000);width:calc(var(--micrio-marker-size)+12px);height:calc(var(--micrio-marker-size)+12px);border-radius:100%;box-sizing:content-box}
+micrio-marker.cluster button{border:2px solid var(--micrio-marker-color);background:var(--micrio-cluster-marker-background,#fff);color:var(--micrio-cluster-marker-color,#000);width:calc(var(--micrio-marker-size) + 12px);height:calc(var(--micrio-marker-size) + 12px);border-radius:100%;box-sizing:content-box}
 micrio-marker.cluster:hover button{background:var(--micrio-marker-highlight,#fff);border-color:var(--micrio-marker-highlight,#fff)}
 micrio-marker.cluster label{pointer-events:none;display:none}
 micrio-marker:empty{display:none}
@@ -54,6 +54,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 	#scaleVal = 1;
 	#w = 0;
 	#matrix = '';
+	#coords?: Map<string, [number, number, number?, number?]>;
 	#fto: any;
 	#splitOpenTo: any;
 	// Omni arc visibility: target frame index and [start, end] frame range
@@ -134,6 +135,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 				}
 				this.classList.remove('mat3d');
 				this.classList.toggle('behind', this.#behindCam);
+				if (this.#coords) this.#coords.set(marker.id, [this.#x, this.#y, 0, 0]);
 			}
 		};
 
@@ -305,6 +307,8 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 	setProps(props: Partial<MarkerProps>) {
 		Object.assign(this.#props, props);
+		if (props.coords !== undefined) this.#coords = props.coords;
+		if (props.overlapped !== undefined) this.classList.toggle('overlapped', props.overlapped);
 	}
 
 	onDestroy() {
