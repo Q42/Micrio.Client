@@ -40,7 +40,7 @@ import '$tour/tour';
 import './popover';
 import '$gallery/gallery';
 import '$tour/serial-tour';
-import '$gallery/gallery-item';
+
 
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
 	if (p) for (let i = 0, t; i < p.length; i++)

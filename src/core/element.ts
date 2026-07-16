@@ -537,23 +537,6 @@ ${cssVars}`;
 	}
 
 	/**
-	 * Opens a swipeable gallery from image assets (e.g., marker images).
-	 * Creates MicrioImage instances from the provided assets and opens them as a strip-swipe gallery.
-	 * @internal
-	 * @param images Array of image assets to display in the gallery.
-	 * @param startId Optional ID of the image to show first.
-	 * @param basePath Optional CDN base path; defaults to the current image's path or BASEPATH.
-	 */
-	openGallery(images: Models.Assets.Image[], startId?: string, basePath?: string) : void {
-		this.#printUI(false, true);
-		if (!this.engine.ready) this.engine.load();
-		if (!this.webgl.gl) this.webgl.init();
-
-		const galleryCtrl = Gallery.fromAssets(images, this.engine, this, { startId, basePath });
-		galleryCtrl.openOn(this);
-	}
-
-	/**
 	 * Parses HTML attributes of the `<micr-io>` element into a partial ImageInfo object.
 	 * @internal
 	 * @returns A partial {@link Models.ImageInfo.ImageInfo} object containing options derived from attributes.
