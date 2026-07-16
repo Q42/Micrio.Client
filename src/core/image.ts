@@ -375,7 +375,8 @@ export class MicrioImage {
 
 		// Load organization branding CSS if present
 		if(org?.branding && !(i.settings && i.settings.noUI)) {
-			this.loadStyle(this.dataPath+'style/'+org.slug+'.css').then(() => {
+			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
+			this.loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
 				// Check if custom font needs loading from Google Fonts
 				const fontFamily = getComputedStyle(this.engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
 				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
