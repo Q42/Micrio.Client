@@ -7,7 +7,7 @@ import { jsonCache } from '$utils/fetch';
 import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { archive } from '$utils/archive';
-import { Grid } from '$core/grid';
+import { Grid } from '$grid/grid';
 import { writable, get, type Writable } from '$core/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from '$core/globals';
 

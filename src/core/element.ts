@@ -17,7 +17,7 @@ import { Events } from '$core/events/facade';
 import { MicrioImage } from './image';
 import { State} from './state';
 import { GoogleTag } from '$utils/analytics';
-import { Grid } from '$core/grid';
+import { Grid } from '$grid/grid';
 import { Gallery } from '$gallery/controller';
 import { tick } from '$core/store';
 import { rtlLanguageCodes } from '$core/i18n/locale';

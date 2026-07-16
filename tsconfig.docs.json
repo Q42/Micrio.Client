@@ -24,7 +24,8 @@
 			"$utils/*": ["./src/utils/*"],
 			"$audio/*": ["./src/audio/*"],
 			"$embed/*": ["./src/embed/*"],
-			"$layout/*": ["./src/layout/*"]
+			"$layout/*": ["./src/layout/*"],
+			"$grid/*": ["./src/grid/*"]
 		}
 	},
 	"typedocOptions": {

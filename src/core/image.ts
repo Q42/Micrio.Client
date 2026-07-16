@@ -1,6 +1,6 @@
 import type { Models } from '$types/models';
 import type { Readable, Unsubscriber, Writable } from '$core/store';
-import type { Grid } from '$core/grid';
+import type { Grid } from '$grid/grid';
 import type { Engine } from '$render/engine';
 import type { GallerySwiper } from '$gallery/swiper';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type

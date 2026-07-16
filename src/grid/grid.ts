@@ -14,31 +14,9 @@ import { tick } from '$core/store';
 import { Enums } from '$core/enums';
 import { createElement } from '$utils/dom';
 
+import { gridString, parseGridString, getCols as calcCols, slideAreas, swipeAreas, swipeExitAreas } from './format';
+
 const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
-
-const slideAreas: Record<number, Models.Camera.View> = {
-	0:   [0, -.5, 1, .5],
-	90:  [1, 0, .5, 1],
-	180: [0, 1, 1, .5],
-	270: [-.5, 0, .5, 1],
-};
-
-const swipeAreas: Record<number, Models.Camera.View> = {
-	0:   [0, -1, 1, 1],
-	90:  [1, 0, 1, 1],
-	180: [0, 1, 1, 1],
-	270: [-1, 0, 1, 1],
-};
-
-const swipeExitAreas: Record<number, Models.Camera.View> = {
-	0:   [0, 1, 1, 1],
-	90:  [-1, 0, 1, 1],
-	180: [0, -1, 1, 1],
-	270: [1, 0, 1, 1],
-};
-
-/** Rounds a number to 5 decimal places. @internal */
-const round = (n:number) => Math.round(n*100000)/100000;
 
 /**
  * Controls the display and interaction logic for grid layouts.
@@ -46,30 +24,7 @@ const round = (n:number) => Math.round(n*100000)/100000;
  * Accessed via `micrioImage.grid`.
  */
 export class Grid {
-	/**
-	 * Converts an ImageInfo object and options into the grid string format.
-	 * Format: `id,width,height,type?,format?,view?,area?,focus?,cultures?|sizeX,sizeY?`
-	 * @internal
-	 * @param i The ImageInfo object.
-	 * @param opts Options including view, area, size, and cultures.
-	 * @returns The formatted grid string for this image.
-	 */
-	static getString = (i:Models.ImageInfo.ImageInfo, opts: {
-		view?:Models.Camera.View;
-		area?:Models.Camera.View;
-		size?:number[];
-		cultures?: string;
-	}) : string => [
-		i.id,
-		i.width,
-		i.height,
-		i.isDeepZoom ? 'd' : '',
-		i.isPng ? 'p':i.isWebP ? 'w' : '',
-		opts.view?.map(round).join('/'),
-		opts.area?.map(round).join('/'),
-		i.settings?.focus?.map(round).join('-'),
-		opts.cultures
-	].join(',').replace(/,+$/,'')+(opts.size? `|${opts.size.join(',')}`:'');
+	static getString = gridString;
 
 	/** Array of {@link MicrioImage} instances currently part of the grid definition (loaded). */
 	readonly images:MicrioImage[] = [];
@@ -518,31 +473,25 @@ export class Grid {
 		return this.current.some((img, i) => img.id !== this.images[i].id);
 	}
 
-	/**
-	 * Parses an individual image grid string into a GridImage object.
-	 * @param s The grid string for a single image.
-	 * @returns The parsed `Models.Grid.GridImage` object.
-	*/
-	getImage(s:string) : Models.Grid.GridImage {
-		const g = s.split('|'), p = g[0].split(','),
-			size = (g[1] ? g[1].split(',').map(Number) : [1])  as [number,number?];
-		let width:number=0,height:number=0;
-
+	/** Parses an individual image grid string into a GridImage object. */
+	getImage(s: string): Models.Grid.GridImage {
+		const { parts, size } = parseGridString(s);
+		let width = 0, height = 0;
 		return {
 			path: this.image.$info?.path,
-			id: p[0],
-			width: width=(Number(p[1])||width),
-			height: height=(Number(p[2])||height),
-			isDeepZoom: p[3]=='d',
-			isPng: p[4]=='p',
-			isWebP: p[4]=='w',
-			size,
-		view: p[5] ? p[5].split('/').map(Number) as Models.Camera.View : undefined,
-		area: p[6] ? p[6].split('/').map(Number) as Models.Camera.View : undefined,
-			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings||{}, {
-				focus: p[7] ? p[7].split('-').map(Number) as [number, number] : undefined
+			id: parts[0],
+			width: width = (Number(parts[1]) || width),
+			height: height = (Number(parts[2]) || height),
+			isDeepZoom: parts[3] == 'd',
+			isPng: parts[4] == 'p',
+			isWebP: parts[4] == 'w',
+			size: size ?? [1],
+			view: parts[5] ? parts[5].split('/').map(Number) as Models.Camera.View : undefined,
+			area: parts[6] ? parts[6].split('/').map(Number) as Models.Camera.View : undefined,
+			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings || {}, {
+				focus: parts[7] ? parts[7].split('-').map(Number) as [number, number] : undefined
 			})),
-			cultures: p[8]?.replace(/-/g,',')||undefined
+			cultures: parts[8]?.replace(/-/g, ',') || undefined
 		} as Models.Grid.GridImage;
 	}
 
@@ -557,16 +506,7 @@ export class Grid {
 		cultures: ('cultures' in i && i['cultures'] ? i.cultures as string : '')?.replace(/,/g,'-')
 	});
 
-	/** Calculates the optimal number of columns for the grid layout. @internal */
-	private getCols(images:number, numTiles:number) : number {
-		let num = Math.ceil(numTiles / Math.ceil(Math.sqrt(numTiles)));
-		if(images == numTiles) {
-			const margin = Math.floor(Math.sqrt(images)), cols:number[] = [];
-			for(let n = margin; n < num+margin; n++) if(!(images % n)) cols.push(n);
-			if(cols.length) num = cols[Math.floor(cols.length / 2)];
-		}
-		return num;
-	}
+	private getCols = calcCols;
 
 	/**
 	 * Creates or updates the HTML grid element (`_grid`) based on the provided image definitions.

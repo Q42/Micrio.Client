@@ -20,7 +20,8 @@
 			"$utils/*": ["./src/utils/*"],
 			"$audio/*": ["./src/audio/*"],
 			"$embed/*": ["./src/embed/*"],
-			"$layout/*": ["./src/layout/*"]
+			"$layout/*": ["./src/layout/*"],
+			"$grid/*": ["./src/grid/*"]
 		}
 	},
 	"include": [
@@ -37,7 +38,8 @@
 		"src/embed/**/*",
 		"src/layout/**/*",
 		"src/render/**/*",
-		"src/utils/**/*"
+		"src/utils/**/*",
+		"src/grid/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }

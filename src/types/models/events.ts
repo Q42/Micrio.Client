@@ -1,5 +1,5 @@
 import type { HTMLMicrioElement } from '$core/element';
-import type { Grid } from '$core/grid';
+import type { Grid } from '$grid/grid';
 import type { MicrioImage } from '$core/image';
 import type { ImageInfo } from './info';
 import type { ImageData } from './data';
