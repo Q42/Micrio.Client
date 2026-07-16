@@ -5,8 +5,8 @@
  */
 
 import '../components/micrio-main'; // Import and register the root UI custom element
-import { HTMLMicrioElement } from './element'; // Import the main custom element class
-import { VERSION } from './version'; // Import the library version string
+import { HTMLMicrioElement } from '$core/element'; // Import the main custom element class
+import { VERSION } from '$core/version'; // Import the library version string
 
 // Assign the version string to the custom element class for static access.
 HTMLMicrioElement.VERSION = VERSION;

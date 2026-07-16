@@ -1,4 +1,4 @@
-import { writable, type Writable } from '$ts/store';
+import { writable, type Writable } from '$core/store';
 
 /**
  * Interface defining the structure for UI button translations.

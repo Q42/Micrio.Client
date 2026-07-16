@@ -1,6 +1,6 @@
-import { MicrioElement } from '$ts/component';
-import { get } from '$ts/store';
-import { captionsEnabled } from '$ts/captions';
+import { MicrioElement } from '$core/component';
+import { get } from '$core/store';
+import { captionsEnabled } from '$core/captions';
 import type { Models } from '$types/models';
 
 export interface SubtitlesProps {

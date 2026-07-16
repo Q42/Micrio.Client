@@ -1,4 +1,4 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 
 const SIZE = 100;
 const RADIUS = 40;

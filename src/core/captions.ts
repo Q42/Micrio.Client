@@ -1,4 +1,4 @@
-import { writable } from '$ts/store';
+import { writable } from '$core/store';
 
 const CAPTIONS_KEY = 'micrio-captions-disable';
 

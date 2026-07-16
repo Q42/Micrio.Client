@@ -4,14 +4,14 @@
  */
 
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
+import type { HTMLMicrioElement } from '$core/element';
 
-import { MicrioImage } from '$ts/image';
-import { get, writable, type Unsubscriber, type Writable } from '$ts/store';
+import { MicrioImage } from '$core/image';
+import { get, writable, type Unsubscriber, type Writable } from '$core/store';
 import { deepCopy } from '$ts/utils/object';
 import { once } from '$ts/utils/store';
-import { tick } from '$ts/store';
-import { Enums } from '$ts/enums';
+import { tick } from '$core/store';
+import { Enums } from '$core/enums';
 
 const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 

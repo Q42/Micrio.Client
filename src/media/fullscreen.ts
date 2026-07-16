@@ -1,5 +1,5 @@
-import { MicrioElement } from '$ts/component';
-import { get } from '$ts/store';
+import { MicrioElement } from '$core/component';
+import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
 
 export interface FullscreenProps {

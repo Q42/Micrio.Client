@@ -5,13 +5,13 @@
  */
 
 import type { TextureBitmap } from './textures';
-import type { HTMLMicrioElement } from '$ts/element';
-import type { Unsubscriber } from '$ts/store';
-import type { Camera } from '$ts/camera';
+import type { HTMLMicrioElement } from '$core/element';
+import type { Unsubscriber } from '$core/store';
+import type { Camera } from '$core/camera';
 import type { Models } from '$types/models';
 
-import { MicrioImage } from '$ts/image';
-import { get } from '$ts/store';
+import { MicrioImage } from '$core/image';
+import { get } from '$core/store';
 import { archive } from './archive';
 import { Browser } from '$ts/utils/browser';
 import { once } from '$ts/utils/store';

@@ -1,9 +1,9 @@
-import type { Writable } from '$ts/store';
+import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
+import type { HTMLMicrioElement } from '$core/element';
 
 import { Browser } from '$ts/utils/browser';
-import { get, writable } from '$ts/store';
+import { get, writable } from '$core/store';
 
 /**
  * Manages the HTML `<canvas>` element used for WebGL rendering,

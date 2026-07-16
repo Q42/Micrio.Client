@@ -12,7 +12,8 @@
 			"$types/*": ["./src/types/*"],
 			"$engine/*": ["./src/engine/*"],
 			"$media/*": ["./src/media/*"],
-			"$error/*": ["./src/error/*"]
+			"$error/*": ["./src/error/*"],
+			"$core/*": ["./src/core/*"]
 		}
 	},
 	"include": [
@@ -21,7 +22,8 @@
 		"src/engine/**/*",
 		"src/components/**/*",
 		"src/media/**/*",
-		"src/error/**/*"
+		"src/error/**/*",
+		"src/core/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }

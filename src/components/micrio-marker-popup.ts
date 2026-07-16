@@ -1,7 +1,7 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$ts/image';
-import { get } from '$ts/store';
+import type { MicrioImage } from '$core/image';
+import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
 import { afterFrame } from '$ts/utils/dom';
 import './micrio-button';

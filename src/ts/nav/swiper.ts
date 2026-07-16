@@ -1,5 +1,5 @@
-import type { HTMLMicrioElement } from '$ts/element';
-import type { MicrioImage } from '$ts/image';
+import type { HTMLMicrioElement } from '$core/element';
+import type { MicrioImage } from '$core/image';
 
 /**
  * Handles swipe gestures for navigating image sequences, particularly for

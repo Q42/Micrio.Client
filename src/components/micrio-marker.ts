@@ -1,7 +1,7 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$ts/image';
-import { get, tick } from '$ts/store';
+import type { MicrioImage } from '$core/image';
+import { get, tick } from '$core/store';
 import { getSpaceVector } from '$ts/utils/space';
 import { after } from '$ts/utils/store';
 

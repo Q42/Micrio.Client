@@ -1,5 +1,5 @@
-import type { HTMLMicrioElement } from '$ts/element';
-import type { MicrioImage } from '$ts/image';
+import type { HTMLMicrioElement } from '$core/element';
+import type { MicrioImage } from '$core/image';
 import type { Models } from '$types/models';
 
 /** Type alias for common event types handled. */

@@ -1,6 +1,6 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$ts/image';
+import type { MicrioImage } from '$core/image';
 import { VideoTourInstance } from './videotour';
 import { YouTubePlayerAdapter } from './youtube-adapter';
 import { VimeoPlayerAdapter } from './vimeo-adapter';

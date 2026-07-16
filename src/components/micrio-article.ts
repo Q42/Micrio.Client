@@ -1,4 +1,4 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 
 export interface ArticleProps {
 	html?: string;

@@ -1,6 +1,6 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import { get } from '$ts/store';
+import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
 import './micrio-button';
 import './micrio-article';

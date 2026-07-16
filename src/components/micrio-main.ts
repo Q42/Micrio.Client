@@ -1,9 +1,9 @@
-import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
+import { MicrioElement } from '$core/component';
+import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
-import type { Readable, Writable } from '$ts/store';
-import type { MicrioImage } from '$ts/image';
-import { get, tick, writable } from '$ts/store';
+import type { Readable, Writable } from '$core/store';
+import type { MicrioImage } from '$core/image';
+import { get, tick, writable } from '$core/store';
 import { once } from '$ts/utils/store';
 import { DataLoader } from '$ts/utils/dataLoader';
 import './micrio-icon';

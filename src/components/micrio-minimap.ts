@@ -1,7 +1,7 @@
-import { MicrioElement } from '$ts/component';
-import type { MicrioImage } from '$ts/image';
+import { MicrioElement } from '$core/component';
+import type { MicrioImage } from '$core/image';
 import type { Models } from '$types/models';
-import { get } from '$ts/store';
+import { get } from '$core/store';
 import { toCenterJSON } from '$ts/utils/math';
 import { afterFrame } from '$ts/utils/dom';
 

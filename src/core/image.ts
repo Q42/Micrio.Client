@@ -1,20 +1,20 @@
 import type { Models } from '$types/models';
-import type { Readable, Unsubscriber, Writable } from '$ts/store';
-import type { Grid } from './nav/grid';
-import type { Engine } from './render/engine';
-import type { GallerySwiper } from './nav/swiper';
+import type { Readable, Unsubscriber, Writable } from '$core/store';
+import type { Grid } from '../ts/nav/grid';
+import type { Engine } from '../ts/render/engine';
+import type { GallerySwiper } from '../ts/nav/swiper';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
-import { readable, writable, get } from '$ts/store';
-import { clone, deepCopy } from './utils/object';
-import { getIdVal, idIsV5 } from './utils/id';
-import { once } from './utils/store';
+import { readable, writable, get } from '$core/store';
+import { clone, deepCopy } from '../ts/utils/object';
+import { getIdVal, idIsV5 } from '../ts/utils/id';
+import { once } from '../ts/utils/store';
 import { MicrioError } from '$error/error';
-import { DataLoader } from './utils/dataLoader';
+import { DataLoader } from '../ts/utils/dataLoader';
 import { State } from './state';
-import { archive } from './render/archive';
+import { archive } from '../ts/render/archive';
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @private

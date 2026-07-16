@@ -1,10 +1,10 @@
 
-import type { HTMLMicrioElement } from '$ts/element';
+import type { HTMLMicrioElement } from '$core/element';
 import type { Grid } from '$ts/nav/grid';
-import type { MicrioImage } from '$ts/image';
+import type { MicrioImage } from '$core/image';
 import type { VideoTourInstance } from '$media/videotour';
-import type { Writable } from '$ts/store';
-import type { MicrioIcon } from '$ts/icons';
+import type { Writable } from '$core/store';
+import type { MicrioIcon } from '$core/icons';
 
 
 /**

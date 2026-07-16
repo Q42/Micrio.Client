@@ -1,13 +1,13 @@
-import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
-import type { MicrioImage } from '$ts/image';
-import type { Gallery as GalleryController } from '$ts/gallery';
+import { MicrioElement } from '$core/component';
+import type { HTMLMicrioElement } from '$core/element';
+import type { MicrioImage } from '$core/image';
+import type { Gallery as GalleryController } from '$core/gallery';
 import { i18n } from '$ts/i18n/strings';
-import { get, writable } from '$ts/store';
+import { get, writable } from '$core/store';
 import { once } from '$ts/utils/store';
-import { Enums } from '$ts/enums';
+import { Enums } from '$core/enums';
 import { GallerySwiper } from '$ts/nav/swiper';
-import { icons } from '$ts/icons';
+import { icons } from '$core/icons';
 import './micrio-button';
 import './micrio-dial';
 

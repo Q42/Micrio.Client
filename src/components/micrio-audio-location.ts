@@ -1,6 +1,6 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$ts/image';
+import type { MicrioImage } from '$core/image';
 
 export interface AudioLocationProps {
 	marker: Models.ImageData.Marker;

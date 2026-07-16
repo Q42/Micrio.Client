@@ -1,4 +1,4 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import { parseTime } from '$ts/utils/time';
 
 export interface ProgressBarProps {

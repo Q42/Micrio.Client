@@ -1,10 +1,10 @@
-import type { HTMLMicrioElement } from '$ts/element';
+import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$ts/image';
+import type { MicrioImage } from '$core/image';
 
 import { Browser } from '$ts/utils/browser';
 import { once } from '$ts/utils/store';
-import { get, writable, type Writable } from '$ts/store';
+import { get, writable, type Writable } from '$core/store';
 
 import { DragHandler } from './drag';
 import { PinchHandler } from './pinch';

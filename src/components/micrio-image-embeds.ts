@@ -1,6 +1,6 @@
-import { MicrioElement } from '$ts/component';
-import type { MicrioImage } from '$ts/image';
-import { get } from '$ts/store';
+import { MicrioElement } from '$core/component';
+import type { MicrioImage } from '$core/image';
+import { get } from '$core/store';
 import './micrio-embed';
 
 export interface ImageEmbedsProps {

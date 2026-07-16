@@ -5,7 +5,7 @@
  */
 
 import type { TextureBitmap } from './textures';
-import type { HTMLMicrioElement } from '$ts/element';
+import type { HTMLMicrioElement } from '$core/element';
 
 import { Engine } from './engine';
 import { PostProcessor } from './postprocess';

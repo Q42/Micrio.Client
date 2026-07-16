@@ -1,4 +1,4 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 
 export interface MicrioGalleryItemProps {

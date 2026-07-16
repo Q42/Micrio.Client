@@ -1,4 +1,4 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { DataLoader } from '$ts/utils/dataLoader';
 import { parseTime } from '$ts/utils/time';

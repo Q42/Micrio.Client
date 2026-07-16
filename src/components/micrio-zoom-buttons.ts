@@ -1,6 +1,6 @@
-import { MicrioElement } from '$ts/component';
-import type { MicrioImage } from '$ts/image';
-import { get, tick } from '$ts/store';
+import { MicrioElement } from '$core/component';
+import type { MicrioImage } from '$core/image';
+import { get, tick } from '$core/store';
 import { once } from '$ts/utils/store';
 import { i18n } from '$ts/i18n/strings';
 

@@ -1,8 +1,8 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$ts/image';
-import type { Unsubscriber } from '$ts/store';
-import { get } from '$ts/store';
+import type { MicrioImage } from '$core/image';
+import type { Unsubscriber } from '$core/store';
+import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
 import { once } from '$ts/utils/store';
 import { languageNames } from '$ts/i18n/locale';

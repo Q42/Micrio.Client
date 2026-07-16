@@ -1,14 +1,14 @@
 import type { Models } from '$types/models';
-import type { Engine } from './render/engine';
+import type { Engine } from '../ts/render/engine';
 import type { HTMLMicrioElement } from './element';
 
 import { MicrioImage } from './image';
-import { jsonCache } from './utils/fetch';
+import { jsonCache } from '../ts/utils/fetch';
 import { MicrioError } from '$error/error';
-import { DataLoader } from './utils/dataLoader';
-import { archive } from './render/archive';
-import { Grid } from './nav/grid';
-import { writable, get, type Writable } from '$ts/store';
+import { DataLoader } from '../ts/utils/dataLoader';
+import { archive } from '../ts/render/archive';
+import { Grid } from '../ts/nav/grid';
+import { writable, get, type Writable } from '$core/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from './globals';
 
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).

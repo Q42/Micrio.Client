@@ -1,4 +1,4 @@
-import { MicrioElement } from '$ts/component';
+import { MicrioElement } from '$core/component';
 
 export class MicrioLogo extends MicrioElement {
 	static tag = 'micrio-logo';

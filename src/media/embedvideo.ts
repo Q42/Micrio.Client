@@ -1,12 +1,12 @@
-import type { Unsubscriber } from '$ts/store';
+import type { Unsubscriber } from '$core/store';
 import type { HlsPlayer } from '$types/externals';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$ts/image';
+import type { MicrioImage } from '$core/image';
 import type { Engine } from '$ts/render/engine';
 
 import { Browser } from '$ts/utils/browser';
 import { loadScript } from '$ts/utils/dom';
-import { tick } from '$ts/store';
+import { tick } from '$core/store';
 
 /**
  * Manages the loading, playback, and WebGL integration of embedded videos

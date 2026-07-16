@@ -12,6 +12,7 @@ export default defineConfig({
 			'$engine': resolve('src/engine'),
 			'$media': resolve('src/media'),
 			'$error': resolve('src/error'),
+			'$core': resolve('src/core'),
 		}
 	},
 	define: {

@@ -12,7 +12,7 @@
  */
 
 import type { Models } from '$types/models';
-import { VIEWER_BASE } from '../globals';
+import { VIEWER_BASE } from '$core/globals';
 import { fetchJson } from './fetch';
 
 // ── Internal types ────────────────────────────────────────────────────────────

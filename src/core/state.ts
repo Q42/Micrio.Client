@@ -1,8 +1,8 @@
-import type { Writable } from '$ts/store';
+import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
 import type { MicrioImage } from './image';
 
-import { writable } from '$ts/store';
+import { writable } from '$core/store';
 
 /**
  * # Micrio State management

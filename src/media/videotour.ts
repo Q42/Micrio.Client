@@ -5,10 +5,10 @@
  */
 
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
-import type { MicrioImage } from '$ts/image';
+import type { HTMLMicrioElement } from '$core/element';
+import type { MicrioImage } from '$core/image';
 
-import { get } from '$ts/store';
+import { get } from '$core/store';
 import { toCenterJSON } from '$ts/utils/math';
 
 /**

@@ -4,7 +4,7 @@
  */
 
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
+import type { HTMLMicrioElement } from '$core/element';
 import { mod } from './math';
 
 /**

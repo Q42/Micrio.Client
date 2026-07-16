@@ -3,8 +3,8 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Readable, Unsubscriber } from '$ts/store';
-import { tick } from '$ts/store';
+import type { Readable, Unsubscriber } from '$core/store';
+import { tick } from '$core/store';
 
 /**
  * Returns a Promise that resolves once a Svelte store's value meets certain criteria.

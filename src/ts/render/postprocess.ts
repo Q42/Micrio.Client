@@ -1,4 +1,4 @@
-import type { HTMLMicrioElement } from '$ts/element';
+import type { HTMLMicrioElement } from '$core/element';
 
 /**
  * Vertex data for a fullscreen quad used in postprocessing.
