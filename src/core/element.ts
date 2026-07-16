@@ -8,7 +8,7 @@ import { fetchJson, jsonCache } from '$utils/fetch';
 import { idIsV5 } from '$utils/id';
 import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, BASEPATH_V5, DEFAULT_INFO, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, DEFAULT_INFO, localStorageKeys } from './globals';
 import { writable, get } from '$core/store';
 import { Engine } from '$render/engine';
 import { WebGL } from '$render/webgl';
@@ -313,7 +313,7 @@ ${cssVars}`;
 					onProgress: (n: number) => this._ui?.setProps?.({loadingProgress: n})
 				}).catch(() => null);
 				if(galleryCtrl) {
-					this.#openGalleryFromController(galleryCtrl, opts);
+					galleryCtrl.openOn(this);
 					return;
 				}
 			}
@@ -327,7 +327,7 @@ ${cssVars}`;
 			try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
 			catch(e) { this.printError(e as Error); return; }
 			if(gallery) {
-				this.#openGalleryFromController(gallery, opts);
+				gallery.openOn(this);
 				return;
 			}
 			const baseId = resp['@id'] || resp.id || opts.id.replace(/info.json$/, '');
@@ -550,48 +550,7 @@ ${cssVars}`;
 		if (!this.webgl.gl) this.webgl.init();
 
 		const galleryCtrl = Gallery.fromAssets(images, this.engine, this, { startId, basePath });
-		this.#openGalleryFromController(galleryCtrl, {});
-	}
-
-	/**
-	 * Opens a Gallery controller, setting up the parent image and engine state.
-	 * @internal
-	 */
-	#openGalleryFromController(galleryCtrl: Gallery, baseOpts: Record<string, any>): void {
-		const isSwitch = galleryCtrl.type == 'switch';
-		const galleryInfo: Partial<Models.ImageInfo.ImageInfo> = {};
-
-		if(!isSwitch) {
-			galleryInfo.width = this.offsetWidth * this.canvas.getRatio();
-			galleryInfo.height = this.offsetHeight * this.canvas.getRatio();
-		} else {
-			galleryInfo.width = galleryCtrl.containerWidth;
-			galleryInfo.height = galleryCtrl.containerHeight;
-		}
-
-		galleryInfo.settings = {
-			view: [0, 0, 1, 1],
-			gallery: { ...galleryCtrl.config },
-			pinchZoomOutLimit: isSwitch ? true : undefined
-		} as unknown as Models.ImageInfo.Settings;
-
-		// Apply config settings to the parent image's settings store
-		if(galleryCtrl.config.settings) {
-			Object.assign(galleryInfo.settings, galleryCtrl.config.settings);
-		}
-
-		galleryInfo.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
-
-		if(galleryCtrl.type == 'grid') {
-			galleryInfo.settings.zoomLimit = 15;
-			galleryInfo.settings.minimap = false;
-			if(galleryInfo.settings.grid?.clickable && galleryInfo.settings.hookKeys === undefined) {
-				galleryInfo.settings.hookKeys = true;
-			}
-			galleryInfo.grid = galleryCtrl._gridString;
-		}
-
-		this.open(galleryInfo, { ...baseOpts, ...(galleryCtrl.type !== 'grid' ? { gallery: galleryCtrl } : {}) });
+		galleryCtrl.openOn(this);
 	}
 
 	/**

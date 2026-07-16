@@ -345,6 +345,47 @@ export class Gallery {
 		this.grid = null;
 	}
 
+	// --- Element Opening ---
+
+	/** Build gallery ImageInfo and open the parent gallery image on the `<micr-io>` element. */
+	openOn(micrio: HTMLMicrioElement): void {
+		const isSwitch = this.type == 'switch';
+		const galleryInfo: Partial<Models.ImageInfo.ImageInfo> = {};
+
+		if(!isSwitch) {
+			galleryInfo.width = micrio.offsetWidth * micrio.canvas.getRatio();
+			galleryInfo.height = micrio.offsetHeight * micrio.canvas.getRatio();
+		} else {
+			galleryInfo.width = this.containerWidth;
+			galleryInfo.height = this.containerHeight;
+		}
+
+		galleryInfo.settings = {
+			view: [0, 0, 1, 1],
+			gallery: { ...this.config },
+			pinchZoomOutLimit: isSwitch ? true : undefined
+		} as unknown as Models.ImageInfo.Settings;
+
+		if(this.config.settings) {
+			Object.assign(galleryInfo.settings, this.config.settings);
+		}
+
+		galleryInfo.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
+
+		if(this.type == 'grid') {
+			galleryInfo.settings.zoomLimit = 15;
+			galleryInfo.settings.minimap = false;
+			if(galleryInfo.settings.grid?.clickable && galleryInfo.settings.hookKeys === undefined) {
+				galleryInfo.settings.hookKeys = true;
+			}
+			galleryInfo.grid = this._gridString;
+		}
+
+		micrio.open(galleryInfo, {
+			...(this.type !== 'grid' ? { gallery: this } : {})
+		});
+	}
+
 	// --- Navigation ---
 
 	/** Go to a specific page index. */
