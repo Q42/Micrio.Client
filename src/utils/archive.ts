@@ -1,4 +1,4 @@
-import type { TextureBitmap } from './textures';
+import type { TextureBitmap } from '$render/textures';
 import { idIsV5 } from '$utils/id';
 
 /**

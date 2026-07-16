@@ -4,7 +4,7 @@ import type { Grid } from '$core/grid';
 import type { MicrioImage } from '$core/image';
 import type { VideoTourInstance } from '$media/videotour';
 import type { Writable } from '$core/store';
-import type { MicrioIcon } from '$core/icons';
+import type { MicrioIcon } from '$ui/icons';
 
 
 /**

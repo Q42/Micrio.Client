@@ -11,10 +11,10 @@ import { readable, writable, get } from '$core/store';
 import { clone, deepCopy } from '$utils/object';
 import { getIdVal, idIsV5 } from '$utils/id';
 import { once } from '$utils/store';
-import { MicrioError } from '$error/error';
+import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
-import { archive } from '$render/archive';
+import { archive } from '$utils/archive';
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @private

@@ -1,5 +1,5 @@
-import { VERSION } from './version';
-import type { HTMLMicrioElement } from './element';
+import { VERSION } from '$core/version';
+import type { HTMLMicrioElement } from '$core/element';
 
 /**
  * Handles integration with Google Tag Manager (gtag.js) for tracking Micrio events.

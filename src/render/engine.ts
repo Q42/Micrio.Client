@@ -12,7 +12,7 @@ import type { Models } from '$types/models';
 
 import { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { archive } from './archive';
+import { archive } from '$utils/archive';
 import { Browser } from '$utils/browser';
 import { once } from '$utils/store';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';

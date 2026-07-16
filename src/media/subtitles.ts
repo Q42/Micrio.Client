@@ -1,7 +1,15 @@
 import { MicrioElement } from '$core/component';
-import { get } from '$core/store';
-import { captionsEnabled } from '$core/captions';
+import { get, writable } from '$core/store';
 import type { Models } from '$types/models';
+
+const CAPTIONS_KEY = 'micrio-captions-disable';
+
+export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) != '1');
+
+captionsEnabled.subscribe(b => {
+	if (b) localStorage.removeItem(CAPTIONS_KEY);
+	else localStorage.setItem(CAPTIONS_KEY, '1');
+});
 
 export interface SubtitlesProps {
 	src?: string;

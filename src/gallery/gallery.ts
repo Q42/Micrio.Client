@@ -1,15 +1,15 @@
 import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
-import type { Gallery as GalleryController } from '$core/gallery';
+import type { Gallery as GalleryController } from '$gallery/controller';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { once } from '$utils/store';
 import { Enums } from '$core/enums';
 import { GallerySwiper } from '$gallery/swiper';
-import { icons } from '$core/icons';
+import { icons } from '$ui/icons';
 import '$ui/button';
-import '$nav-ui/dial';
+import '$ui/dial';
 
 const horizontalSlot = (offset: number): [number, number, number, number] => [offset, 0, 1, 1];
 const scrubPad = 16;

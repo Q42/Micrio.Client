@@ -1,7 +1,7 @@
 import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
-import { captionsEnabled } from '$core/captions';
+import { captionsEnabled } from '$media/subtitles';
 import { fmt } from '$utils/time';
 import '$ui/button';
 import './fullscreen';

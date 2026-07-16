@@ -20,26 +20,26 @@
 */
 
 /** @internal */
-export * from '../src/ts/enums';
+export * from '../src/core/enums';
 /** @internal */
-export * from '../src/ts/element';
+export * from '../src/core/element';
 /** @internal */
-export * from '../src/ts/render/engine';
+export * from '../src/render/engine';
 /** @internal */
-export * from '../src/ts/render/canvas';
+export * from '../src/render/canvas';
 /** @internal */
-export * from '../src/ts/events/facade';
+export * from '../src/core/events/facade';
 /** @internal */
-export * from '../src/ts/image';
+export * from '../src/core/image';
 /** @internal */
-export * from '../src/ts/camera';
+export * from '../src/core/camera';
 /** @internal */
-export * from '../src/ts/state';
+export * from '../src/core/state';
 /** @internal */
-export * from '../src/ts/nav/grid';
+export * from '../src/core/grid';
 /** @internal */
-export * from '../src/ts/nav/swiper';
+export * from '../src/gallery/swiper';
 /** @internal */
-export * from '../src/ts/media/videotour';
+export * from '../src/media/videotour';
 /** @internal */
 export * from '../src/types/models';

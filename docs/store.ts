@@ -70,4 +70,4 @@
  * @module Store
 */
 
-export * from '../src/ts/store';
+export * from '../src/core/store';

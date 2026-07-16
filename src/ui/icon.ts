@@ -1,5 +1,5 @@
 import { MicrioElement } from '$core/component';
-import { icons, type MicrioIcon } from '$core/icons';
+import { icons, type MicrioIcon } from '$ui/icons';
 
 export type IconName = (
 	'zoom-in'|'zoom-out'|'maximize'|'minimize'|'close'|

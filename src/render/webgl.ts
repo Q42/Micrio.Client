@@ -10,7 +10,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import { Engine } from './engine';
 import { PostProcessor } from './postprocess';
 import { Browser } from '$utils/browser';
-import { MicrioError, ErrorCodes } from '$error/error';
+import { MicrioError, ErrorCodes } from '$core/error';
 import { segsX, segsY } from '$engine/globals';
 
 const isFirefox:boolean = Browser.firefox;

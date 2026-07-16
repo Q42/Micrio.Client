@@ -1,15 +1,15 @@
 import type { Models } from '$types/models';
 import type { Engine } from '$render/engine';
-import type { HTMLMicrioElement } from './element';
+import type { HTMLMicrioElement } from '$core/element';
 
-import { MicrioImage } from './image';
+import { MicrioImage } from '$core/image';
 import { jsonCache } from '$utils/fetch';
-import { MicrioError } from '$error/error';
+import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
-import { archive } from '$render/archive';
+import { archive } from '$utils/archive';
 import { Grid } from '$core/grid';
 import { writable, get, type Writable } from '$core/store';
-import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from './globals';
+import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from '$core/globals';
 
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).
  *  The slot is defined in normalized coordinates [x, y, width, height] within a virtual container
