@@ -1,5 +1,4 @@
 import { MicrioElement } from '$core/component';
-import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import type { Readable, Writable } from '$core/store';
 import type { MicrioImage } from '$core/image';
@@ -50,7 +49,6 @@ function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.Im
 }
 
 export interface MainProps {
-	micrio: HTMLMicrioElement;
 	noHTML?: boolean;
 	noLogo?: boolean;
 	loadingProgress?: number;
@@ -61,7 +59,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	static tag = 'micrio-main';
 	static styles = `micrio-main{display:contents}`;
 
-	#props: MainProps = { micrio: null! };
+	#props: MainProps = {};
 	#unsubs: (() => void)[] = [];
 	#info: Readable<Models.ImageInfo.ImageInfo | undefined> | undefined;
 	#data: Writable<Models.ImageData.ImageData | undefined> | undefined;
@@ -114,10 +112,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	}
 
 	onMount() {
-		const micrio = this.#props.micrio;
+		const micrio = this.getMicrio();
 		if (!micrio) return;
-
-		this.provide('micrio', micrio);
 
 		const volume = writable<number>(get(micrio.isMuted) ? 0 : 1);
 		this.provide('volume', volume);
@@ -206,7 +202,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	}
 
 	#sync() {
-		const micrio = this.#props.micrio;
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const $tour = get(micrio.state.tour);

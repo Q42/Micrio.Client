@@ -22,6 +22,8 @@ import { Gallery } from '$gallery/controller';
 import { tick } from '$core/store';
 import { rtlLanguageCodes } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
+import { MicrioElement } from '$core/component';
+import { cssVars } from './css-vars';
 
 /**
  * The main Micrio custom HTML element `<micr-io>`.
@@ -45,7 +47,7 @@ import { i18n, langs } from '$core/i18n/strings';
  * 
  * @author Marcel Duin <marcel@micr.io>
 */
-export class HTMLMicrioElement extends HTMLElement {
+export class HTMLMicrioElement extends MicrioElement {
 	/** Observed attributes trigger `attributeChangedCallback` when changed. */
 	static get observedAttributes() { return ['id', 'muted', 'data-limited', 'lang']; }
 
@@ -55,10 +57,28 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** Static cache store for downloaded JSON files (like image info). */
 	static jsonCache = jsonCache;
 
+	/** The custom element tag name registered via `customElements.define`. */
+	static tag = 'micr-io';
+
+	/** CSS injected into `<head>` when the first `<micr-io>` is connected. */
+	static styles = `micr-io{display:block;user-select:none;-webkit-touch-callout:none;overflow:hidden;position:relative;width:100%;height:100%;min-height:200px;backface-visibility:hidden;-webkit-backface-visibility:hidden;background-repeat:no-repeat;background-position:center center;background-size:contain;container-type:size}
+micr-io,micr-io button{font-family:var(--micrio-font-family,inherit);font-size:var(--micrio-font-size,inherit);background-color:var(--micrio-background-color,transparent)}
+micr-io h3{font-weight:600}
+micr-io[dir="rtl"]{--micrio-text-align:right}
+canvas.micrio{display:block;position:absolute;top:0;left:0;width:100%!important;height:100%!important;backface-visibility:hidden;user-select:none;-webkit-touch-callout:none;-webkit-user-select:none}
+micr-io:not([static]){overscroll-behavior:none}
+micr-io[data-hooked]:not([data-panning])>canvas.micrio{cursor:move;cursor:-webkit-grab;cursor:-moz-grab;cursor:-ms-grab;cursor:grab;-ms-content-zooming:none;-ms-touch-action:none;touch-action:none}
+micr-io[data-panning]{cursor:-webkit-grabbing;cursor:-moz-grabbing;cursor:-ms-grabbing;cursor:grabbing}
+micr-io[data-hooked][data-can-pan]>canvas.micrio{-ms-touch-action:pan-y;touch-action:pan-y;overscroll-behavior:initial}
+micr-io>.micrio-grid{position:fixed;top:0;left:0;width:100%;height:100%;display:grid;grid-auto-flow:row dense;grid-gap:0;will-change:transform;transform-origin:left top;--translate:none;--scale:1;transform:var(--translate) scale3d(var(--scale),var(--scale),1)}
+micr-io>.micrio-grid>button{background:transparent;border:none;padding:0;margin:0;cursor:pointer;pointer-events:auto;grid-area:auto / auto / span 1 / span 1;pointer-events:auto}
+micr-io>.micrio-grid>button.focussed,micr-io>.micrio-grid.grid-pan-zoom,micr-io>.micrio-grid.grid-pan-zoom>button{pointer-events:none}
+${cssVars}`;
+
 	/** Flag indicating if the initial print/setup has occurred.
 	 * @internal
 	*/
-	private printed:boolean = false;
+	#printed: boolean = false;
 
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element. */
 	readonly canvases: MicrioImage[] = [];
@@ -77,17 +97,17 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** Internal reference to the current image instance.
 	 * @internal
 	*/
-	_current:MicrioImage|undefined;
+	#current: MicrioImage|undefined;
 
 	/**
 	 * Getter for the current value of the {@link current} store.
 	 * Provides direct access to the active {@link MicrioImage} instance.
 	 * @readonly
 	*/
-	get $current():MicrioImage|undefined {return this._current}
+	get $current():MicrioImage|undefined {return this.#current}
 
 	/** Getter for the virtual {@link Camera} instance of the currently active image. */
-	get camera():Camera|undefined {return this._current?.camera}
+	get camera():Camera|undefined {return this.#current?.camera}
 
 	/** The controller managing the HTML `<canvas>` element, resizing, and viewport. */
 	public readonly canvas:Canvas = new Canvas(this);
@@ -99,7 +119,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	public readonly state:State.Main = new State.Main();
 
 	/** The Google Analytics integration controller. */
-	private readonly analytics:GoogleTag = new GoogleTag(this);
+	readonly #analytics: GoogleTag = new GoogleTag(this);
 
 	/** Writable Svelte store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);
@@ -156,37 +176,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	/** For setting first-time hooks
 	 * @internal
 	 */
-	private initedFirst: boolean = false;
-
-	/** @internal Initializes the element and subscribes to internal stores. */
-	constructor(){
-		super();
-
-		// Keep internal _current property synced with the store
-		this.current.subscribe(c => this._current = c);
-
-		let shown = false; // Flag to track if 'show' event was dispatched
-
-		// Once initial loading is complete
-		once<boolean>(this.loading, {targetValue: false}).then(() => {
-			this.setAttribute('data-loaded',''); // Add attribute indicating loaded state
-
-			// Manage switching state attribute and dispatch 'show' event
-			this.switching.subscribe(s => {
-				if(s) this.setAttribute('data-switching','');
-				else {
-					// Dispatch 'show' event only once after loading and switching finishes
-					if(!shown) tick().then(() => this.events.dispatch('show', this));
-					shown = true;
-					this.removeAttribute('data-switching');
-				}
-			});
-
-			// Remove preview image after a delay
-			const img = this.querySelector('img.preview');
-			if(img) setTimeout(() => img.remove(), 500);
-		});
-	}
+	#initedFirst: boolean = false;
 
 	/**
 	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-limited`, and `lang`.
@@ -194,29 +184,29 @@ export class HTMLMicrioElement extends HTMLElement {
 	*/
 	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, _oldVal:string, newVal:string) {
 		switch(attr) {
-			case 'id': { // Handle ID change (initial load or subsequent open)
+			case 'id': {
 				if(!this.isConnected || !newVal) return;
-				if(!this.printed) this.print(); // Initial setup if not done yet
-				else this.open(newVal); // Open the new ID if already set up
+				if(!this.#printed) this.#print();
+				else this.open(newVal);
 			} break;
-			case 'muted': // Sync muted attribute with internal store
+			case 'muted':
 				this.isMuted.set(this.hasAttribute('muted'));
 				break;
-			case 'data-limited': // Toggle limited rendering mode
+			case 'data-limited':
 				if(this.engine?._vertexBuffer && this.$current?.ptr)
 					this.engine.setLimited(this.$current.ptr, !!newVal);
 				break;
-			case 'lang': { // Handle language change
+			case 'lang': {
 				let prevLang = get(this._lang);
 				if(prevLang != newVal) {
-					this._lang.set(newVal); // Update internal language store
+					this._lang.set(newVal);
 					let baseLang = newVal.split('-')[0];
-					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en); // Update i18n translations
-					if(newVal) { // Set text direction based on language
+					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en);
+					if(newVal) {
 						if(rtlLanguageCodes.includes(newVal)) this.setAttribute('dir', 'rtl');
 						else this.removeAttribute('dir');
 					}
-					if(prevLang) this.events.dispatch('lang-switch', newVal); // Dispatch event
+					if(prevLang) this.events.dispatch('lang-switch', newVal);
 				}
 				break;
 			}
@@ -224,32 +214,55 @@ export class HTMLMicrioElement extends HTMLElement {
 	}
 
 	/**
-	 * Called when the element is added to the DOM. Sets up canvas and initial print/open.
+	 * Lifecycle hook called when the element is connected to the DOM.
+	 * Provides itself as 'micrio' to descendants, positions the canvas,
+	 * sets up the muted property, syncs the internal current reference,
+	 * and kicks off initial loading.
 	 * @internal
 	*/
-	connectedCallback() : void {
-		this.canvas.place(); // Position the canvas element
-		// Trigger initial print/load if ID is present
-		if(this.id && !this.printed) this.print();
-		// Define the 'muted' property and sync it with the store and attribute
+	onMount() : void {
+		this.provide('micrio', this);
+
+		this.canvas.place();
+		if(this.id && !this.#printed) this.#print();
+
 		if(!('muted' in this)) {
 			Object.defineProperty(this, 'muted', {
 				get() { return get(this.isMuted) },
 				set(b:boolean) { if(b) this.setAttribute('muted',''); else this.removeAttribute('muted'); }
 			});
-			this.isMuted.subscribe(b => {
+			this.watch(this.isMuted, b => {
 				/** @ts-ignore */
-				this['muted'] = b; // Update property
+				this['muted'] = b;
 				if(b) {
-					localStorage.setItem(localStorageKeys.globalMuted, '1'); // Persist to localStorage
-					this.events.dispatch('audio-mute'); // Dispatch event
+					localStorage.setItem(localStorageKeys.globalMuted, '1');
+					this.events.dispatch('audio-mute');
 				}
 				else {
 					localStorage.removeItem(localStorageKeys.globalMuted);
 					this.events.dispatch('audio-unmute');
 				}
-			})
+			});
 		}
+
+		this.watch(this.current, c => this.#current = c);
+
+		let shown = false;
+		once<boolean>(this.loading, {targetValue: false}).then(() => {
+			this.setAttribute('data-loaded','');
+
+			this.watch(this.switching, s => {
+				if(s) this.setAttribute('data-switching','');
+				else {
+					if(!shown) tick().then(() => this.events.dispatch('show', this));
+					shown = true;
+					this.removeAttribute('data-switching');
+				}
+			});
+
+			const img = this.querySelector('img.preview');
+			if(img) setTimeout(() => img.remove(), 500);
+		});
 	}
 
 	// Custom overloads for addEventListener to support fully typed custom Micrio events
@@ -266,15 +279,15 @@ export class HTMLMicrioElement extends HTMLElement {
 
 	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */
 	destroy() : void {
-		this.current.set(undefined); // Clear current image
-		this.events.enabled.set(false); // Disable events
-		this.canvas.unhook(); // Clean up canvas controller
-		this.analytics.unhook(); // Disconnect analytics
-		this.engine.unbind(); // Clean up engine resources
+		this.current.set(undefined);
+		this.events.enabled.set(false);
+		this.canvas.unhook();
+		this.#analytics.unhook();
+		this.engine.unbind();
 		if(this._ui) this._ui.remove();
 		delete this._ui;
-		this.webgl.dispose(true); // Dispose WebGL context
-		this.printed = false; // Reset printed flag
+		this.webgl.dispose(true);
+		this.#printed = false;
 	}
 
 	/**
@@ -283,16 +296,15 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * Handles lazy loading logic.
 	 * @internal
 	*/
-	private async print() : Promise<void> {
-		if(this.printed) return; // Prevent multiple initializations
-		this.printed = true;
-		await tick(); // Wait for potential attribute updates
-		const opts = this.getOptions(); // Parse attributes into options object
+	async #print() : Promise<void> {
+		if(this.#printed) return;
+		this.#printed = true;
+		await tick();
+		const opts = this.#getOptions();
 		if(!opts.settings) opts.settings = {};
 		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
-		if(opts.settings.noControls) this.state.ui.controls.set(false); // Apply noControls setting
+		if(opts.settings.noControls) this.state.ui.controls.set(false);
 
-		// --- Album Loading ---
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const info = await DataLoader.getInfo(opts.id).catch(() => undefined);
 			if(info?.albumId) {
@@ -301,13 +313,12 @@ export class HTMLMicrioElement extends HTMLElement {
 					onProgress: (n: number) => this._ui?.setProps?.({loadingProgress: n})
 				}).catch(() => null);
 				if(galleryCtrl) {
-					this._openGalleryFromController(galleryCtrl, opts);
+					this.#openGalleryFromController(galleryCtrl, opts);
 					return;
 				}
 			}
 		}
 
-		// --- IIIF URL as ID (Manifest or single image info.json) ---
 		if(opts.id && opts.id.startsWith('http')) {
 			const resp = await fetchJson<Record<string, any>>(opts.id).catch(e => { this.printError(e); return undefined; });
 			if(!resp) return;
@@ -316,10 +327,9 @@ export class HTMLMicrioElement extends HTMLElement {
 			try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
 			catch(e) { this.printError(e as Error); return; }
 			if(gallery) {
-				this._openGalleryFromController(gallery, opts);
+				this.#openGalleryFromController(gallery, opts);
 				return;
 			}
-			// Single image IIIF — use the fetched info.json directly
 			const baseId = resp['@id'] || resp.id || opts.id.replace(/info.json$/, '');
 			opts.id = baseId;
 			opts.width = resp.width;
@@ -329,21 +339,18 @@ export class HTMLMicrioElement extends HTMLElement {
 			opts.tileSize = resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize;
 		}
 
-		// --- Final Setup & Open ---
-		this.keepRendering = !!opts.settings.keepRendering; // Set continuous rendering flag
-		const doOpen = opts.id || opts.grid; // Check if there's something to open
-		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo); // Dispatch 'print' event
+		this.keepRendering = !!opts.settings.keepRendering;
+		const doOpen = opts.id || opts.grid;
+		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
-		// Handle lazy loading
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {
 			const observer = new IntersectionObserver(e => {
-				if(!e[0] || !e[0].isIntersecting) return; // Ignore if not intersecting
-				observer.unobserve(this); // Stop observing
-				if(doOpen) this.open(opts); // Open the image/gallery/grid
-			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`}); // Configure margin for intersection
-			observer.observe(this); // Start observing
+				if(!e[0] || !e[0].isIntersecting) return;
+				observer.unobserve(this);
+				if(doOpen) this.open(opts);
+			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`});
+			observer.observe(this);
 		}
-		// If not lazy loading, open immediately
 		else if(doOpen) requestAnimationFrame(() => this.open(opts));
 	}
 
@@ -353,12 +360,11 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param noHTML If true, renders a minimal UI without HTML overlays.
 	 * @param noLogo If true, hides the Micrio logo.
 	 */
-	private printUI(noHTML:boolean, noLogo:boolean) : void {
+	#printUI(noHTML:boolean, noLogo:boolean) : void {
 		if(!this._ui) {
 			const el = document.createElement('micrio-main') as any;
-			(this._ui as any) = el;
-			// Set props BEFORE appendChild so onMount has micrio available
-			el.setProps({micrio: this, noHTML, noLogo});
+			this._ui = el;
+			el.setProps({noHTML, noLogo});
 			this.appendChild(el);
 		} else {
 			this._ui.setProps?.({noHTML, noLogo});
@@ -371,13 +377,12 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param error The error (MicrioError, Error, or string) to display.
 	 */
 	printError(error?: Error | string): void {
-		// Extract user-friendly message from MicrioError, or use generic fallback
 		const message = error instanceof MicrioError 
 			? error.displayMessage 
 			: (error instanceof Error ? error.message : error) 
 			?? 'An unknown error has occurred';
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
-		if(!this._ui) this.printUI(false, false);
+		if(!this._ui) this.#printUI(false, false);
 		this._ui?.setProps?.({ error: message });
 		this.loading.set(false);
 	}
@@ -406,72 +411,54 @@ export class HTMLMicrioElement extends HTMLElement {
 		/** Optional Gallery controller, used for gallery/grid views. */
 		gallery?: Gallery,
 	}={}) : MicrioImage {
-		if(!this.printed) this.print(); // Ensure initial setup is done
+		if(!this.#printed) this.#print();
 		const isId = typeof idOrInfo == 'string';
-		const attrOpts = this.getOptions(); // Get options from attributes
-		// Merge provided info/ID with attribute options
+		const attrOpts = this.#getOptions();
 		let i:Partial<Models.ImageInfo.ImageInfo> = isId ? {...attrOpts, id:idOrInfo} : idOrInfo;
-		// Ensure settings object exists
 		if(!i.settings) i.settings = {};
-		// Clean up legacy gallery archive setting if needed
 		if(attrOpts.settings?.gallery?.archive) if(!/\.\d+$/.test(attrOpts.settings.gallery.archive)) delete attrOpts.settings.gallery.archive;
-		// Merge attribute settings into provided info object
 		if(!isId) deepCopy(attrOpts.settings, i.settings);
-		// Merge default settings (programmatically set)
 		if(this.defaultSettings) deepCopy(this.defaultSettings, i.settings);
-		// Album settings from bundle override defaults
 		if(i.settings?.gallery?.settings) deepCopy(i.settings.gallery.settings, i.settings);
 
-		// Check if already opening the current image
 		if(this.$current && i.id == this.$current?.id) return this.$current;
 
-		// Set switching state if changing the main image
 		if(!opts.splitScreen && !opts.gridView && this.$current) this.switching.set(true);
-		// Hook analytics if not disabled
-		if(!i.settings.noGTag) this.analytics.hook();
-		this.printed = true; // Mark as printed
-		// Initialize or update UI
-		this.printUI(!!i.settings.noUI, !!i.settings.noLogo);
+		if(!i.settings.noGTag) this.#analytics.hook();
+		this.#printed = true;
+		this.#printUI(!!i.settings.noUI, !!i.settings.noLogo);
 
-		// Find or create MicrioImage instance
-		let c:MicrioImage|undefined = this.canvases.find(c => i.id && c.id == i.id); // Check existing canvases
+		let c:MicrioImage|undefined = this.canvases.find(c => i.id && c.id == i.id);
 		let isInGrid:boolean = false;
-		const grid = this.canvases[0]?.grid; // Check if grid exists
-		if(!c && grid) { // If not found directly, check if it's part of the grid
+		const grid = this.canvases[0]?.grid;
+		if(!c && grid) {
 			const gridImage = i.id ? grid.images.find(img => img.id == i.id) : undefined;
 			isInGrid = !!gridImage;
-			c = i.id ? gridImage : this.canvases[0]; // Use grid image or fallback to main grid canvas
-			// If opening a grid image but grid isn't focused, set main canvas first
+			c = i.id ? gridImage : this.canvases[0];
 			if(isInGrid && !grid.insideGrid()) this.current.set(this.canvases[0]);
 		}
-		if(!c) { // If still not found, create a new MicrioImage instance
-			if(this.canvases.length) { // Inherit path/lang from existing main image if possible
+		if(!c) {
+			if(this.canvases.length) {
 				const main = this.canvases[0];
 				i.path = main.dataPath;
 				i.lang = this.lang;
 			}
-			// Create new instance
-			this.canvases.push(c = new MicrioImage(this.engine, i, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this._current, isPassive: opts.isPassive } : undefined));
+			this.canvases.push(c = new MicrioImage(this.engine, i, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this.#current, isPassive: opts.isPassive } : undefined));
 		}
 
-		// Attach gallery controller if provided
 		if(opts.gallery) {
 			opts.gallery.attach(c);
 			this.gallery.set(opts.gallery);
 		}
 
-		// Apply forced start view if provided
 		if(opts.startView) {
 			c.state.view.set(i.settings.view = opts.startView);
 			if(c.ptr > 0 && c.engine.ready) c.camera.setView(i.settings.view,{noRender:true});
 		}
 
-		// Set default language if not already set
 		if(!this.lang) this.lang = 'en';
 
-		// Load engine then finalize image setup
 		this.engine.load();
-		// Initialize WebGL
 		if(!this.webgl.gl) try {
 			this.webgl.init();
 		} catch(e) {
@@ -479,19 +466,16 @@ export class HTMLMicrioElement extends HTMLElement {
 			return c;
 		}
 
-		// Once image info is loaded
 		once(c.info).then(i => { if(!i || !c) return;
-			// Initialize WebGL context if not already done
-			if(!this.initedFirst) {
-				this.canvas.hook(); // Start canvas resize/event listeners
+			if(!this.#initedFirst) {
+				this.canvas.hook();
 
-				// Apply theme setting
-				switch(this._current?.$settings?.theme) {
+				switch(this.#current?.$settings?.theme) {
 					case 'light': this.setAttribute('data-light-mode',''); break;
 					case 'os': this.setAttribute('data-auto-scheme',''); break;
 				}
 
-				this.initedFirst = true;
+				this.#initedFirst = true;
 			}
 
 			// Initialize grid controller if needed
@@ -561,19 +545,19 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @param basePath Optional CDN base path; defaults to the current image's path or BASEPATH.
 	 */
 	openGallery(images: Models.Assets.Image[], startId?: string, basePath?: string) : void {
-		this.printUI(false, true);
+		this.#printUI(false, true);
 		if (!this.engine.ready) this.engine.load();
 		if (!this.webgl.gl) this.webgl.init();
 
 		const galleryCtrl = Gallery.fromAssets(images, this.engine, this, { startId, basePath });
-		this._openGalleryFromController(galleryCtrl, {});
+		this.#openGalleryFromController(galleryCtrl, {});
 	}
 
 	/**
 	 * Opens a Gallery controller, setting up the parent image and engine state.
 	 * @internal
 	 */
-	private _openGalleryFromController(galleryCtrl: Gallery, baseOpts: Record<string, any>): void {
+	#openGalleryFromController(galleryCtrl: Gallery, baseOpts: Record<string, any>): void {
 		const isSwitch = galleryCtrl.type == 'switch';
 		const galleryInfo: Partial<Models.ImageInfo.ImageInfo> = {};
 
@@ -616,7 +600,7 @@ export class HTMLMicrioElement extends HTMLElement {
 	 * @internal
 	 * @returns A partial {@link Models.ImageInfo.ImageInfo} object containing options derived from attributes.
 	*/
-	private getOptions(): Partial<Models.ImageInfo.ImageInfo> {
+	#getOptions(): Partial<Models.ImageInfo.ImageInfo> {
 		const sets:Partial<Models.ImageInfo.Settings> = {
 			gallery: {} as any // Initialize gallery settings object
 		};

@@ -461,7 +461,7 @@ export class Engine {
 		if (this.engine.shouldDraw(now)
 			|| this.micrio.keepRendering
 			|| this.micrio.events.isNavigating
-			|| this.micrio._current?._video?.paused === false) {
+			|| this.micrio.$current?._video?.paused === false) {
 			this.render();
 		}
 
