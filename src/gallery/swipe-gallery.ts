@@ -35,11 +35,13 @@ micrio-swipe-gallery ul.micrio-gallery{--micrio-border-margin:16px}`;
 		const parent = this.getMicrio();
 		const basePath = parent?.$current?.$info?.path;
 
-		const galleryCtrl = Gallery.fromAssets(this.#props.gallery, el.engine, el, {
-			startId: this.#props.galleryStart,
-			basePath
+		requestAnimationFrame(() => {
+			const galleryCtrl = Gallery.fromAssets(this.#props.gallery, el.engine, el, {
+				startId: this.#props.galleryStart,
+				basePath
+			});
+			galleryCtrl.openOn(el);
 		});
-		galleryCtrl.openOn(el);
 
 		let currentIdx = 0;
 		const updateCaption = () => {
