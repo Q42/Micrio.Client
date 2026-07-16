@@ -161,6 +161,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		const activated = async () => {
 			if (this.#opened) return;
 			this.#opened = true;
+			this.classList.add('opened');
 			clearTimeout(this.#fto);
 			if (markerSettings.noMarkerActions) return;
 			events.dispatch('marker-open', marker);
@@ -209,6 +210,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 		const close = () => {
 			clearTimeout(this.#splitOpenTo);
+			this.classList.remove('opened');
 			events.dispatch('marker-closed', marker);
 			micrio.state.popover.set(undefined);
 			micrio.state.popup.set(undefined);
@@ -219,6 +221,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			else if (m == marker) activated();
 			else if (!m && !data.alwaysOpen) {
 				if (this.#opened) close();
+				else this.classList.remove('opened');
 				this.#opened = false;
 			}
 		}));
