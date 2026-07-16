@@ -3,10 +3,10 @@ import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
 import '$ui/button';
-import './micrio-article';
+import './article';
 import '$media/media';
-import './micrio-marker-content';
-import './micrio-gallery-item';
+import '$markers/marker-content';
+import '$gallery/gallery-item';
 
 export interface PopoverProps {
 	popover: Models.State.PopoverType;

@@ -3,8 +3,8 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { clone } from '$ts/utils/object';
-import './micrio-marker';
-import './micrio-waypoint';
+import './marker';
+import './waypoint';
 
 export interface MarkersProps {
 	image: MicrioImage;

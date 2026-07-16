@@ -1,7 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import './micrio-embed';
+import './embed';
 
 export interface ImageEmbedsProps {
 	image: MicrioImage;

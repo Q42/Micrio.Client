@@ -6,7 +6,7 @@ import { i18n } from '$ts/i18n/strings';
 import { afterFrame } from '$ts/utils/dom';
 import '$ui/button';
 import '$ui/button-group';
-import './micrio-marker-content';
+import './marker-content';
 
 export interface MarkerPopupProps {
 	marker: Models.ImageData.Marker;

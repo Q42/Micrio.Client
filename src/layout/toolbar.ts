@@ -4,7 +4,7 @@ import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { once } from '$ts/utils/store';
 import { i18n } from '$ts/i18n/strings';
-import './micrio-menu';
+import './menu';
 import '$ui/button';
 
 export class MicrioToolbar extends MicrioElement {

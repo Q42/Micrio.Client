@@ -14,6 +14,13 @@ export default defineConfig({
 			'$error': resolve('src/error'),
 			'$core': resolve('src/core'),
 			'$ui': resolve('src/ui'),
+			'$markers': resolve('src/markers'),
+			'$tour': resolve('src/tour'),
+			'$gallery': resolve('src/gallery'),
+			'$nav-ui': resolve('src/nav-ui'),
+			'$audio': resolve('src/audio'),
+			'$embed': resolve('src/embed'),
+			'$layout': resolve('src/layout'),
 		}
 	},
 	define: {

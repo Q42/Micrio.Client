@@ -9,7 +9,7 @@ import { Enums } from '$core/enums';
 import { GallerySwiper } from '$ts/nav/swiper';
 import { icons } from '$core/icons';
 import '$ui/button';
-import './micrio-dial';
+import '$nav-ui/dial';
 
 const horizontalSlot = (offset: number): [number, number, number, number] => [offset, 0, 1, 1];
 const scrubPad = 16;

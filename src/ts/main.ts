@@ -4,7 +4,7 @@
  * defines the custom element, and logs the version to the console.
  */
 
-import '../components/micrio-main'; // Import and register the root UI custom element
+import '$layout/main'; // Import and register the root UI custom element
 import { HTMLMicrioElement } from '$core/element'; // Import the main custom element class
 import { VERSION } from '$core/version'; // Import the library version string
 
