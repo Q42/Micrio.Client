@@ -19,6 +19,7 @@ export default defineConfig({
 			'$embed': resolve('src/embed'),
 			'$layout': resolve('src/layout'),
 			'$render': resolve('src/render'),
+			'$grid': resolve('src/grid'),
 			'$utils': resolve('src/utils'),
 		}
 	},
