@@ -6,9 +6,10 @@ export interface ErrorProps {
 
 export class MicrioError extends MicrioElement<ErrorProps> {
 	static tag = 'micrio-error';
-	static styles = `micrio-error{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:20;max-width:80%}
-micrio-error>micrio-icon{font-size:3em;opacity:.5;margin-bottom:8px}
-micrio-error>p{margin:0;font-size:.9em;opacity:.7;line-height:1.4}`;
+	static styles = `micrio-error{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10}
+micrio-error>div{background:rgba(0,0,0,.75);color:#fff;border:1px solid white;border-radius:5px;padding:10px;text-align:center;white-space:pre-wrap;user-select:text;line-height:24px}
+micrio-error svg.micrio-icon{vertical-align:middle;height:24px;width:24px;fill:var(--micrio-color);margin-right:10px}
+@media(max-width:520px){micrio-error>div{box-sizing:border-box;width:90%}}`;
 
 	#props: ErrorProps = {};
 
@@ -23,13 +24,17 @@ micrio-error>p{margin:0;font-size:.9em;opacity:.7;line-height:1.4}`;
 
 	#render() {
 		this.replaceChildren();
+		const div = document.createElement('div');
+
 		const icon = document.createElement('micrio-icon');
 		icon.setAttribute('name', 'error');
-		this.appendChild(icon);
+		div.appendChild(icon);
 
-		const p = document.createElement('p');
-		p.textContent = this.#props.message ?? 'An unknown error has occurred';
-		this.appendChild(p);
+		const span = document.createElement('span');
+		span.textContent = this.#props.message ?? 'An unknown error has occurred';
+		div.appendChild(span);
+
+		this.appendChild(div);
 	}
 }
 
