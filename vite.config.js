@@ -11,6 +11,7 @@ export default defineConfig({
 			'$types': resolve('src/types'),
 			'$engine': resolve('src/engine'),
 			'$media': resolve('src/media'),
+			'$error': resolve('src/error'),
 		}
 	},
 	define: {

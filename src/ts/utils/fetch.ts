@@ -4,7 +4,7 @@
  */
 
 import { clone } from './object';
-import { MicrioError } from './error';
+import { MicrioError } from '$error/error';
 
 /** Global cache for fetched JSON data, keyed by URI.
  * @internal

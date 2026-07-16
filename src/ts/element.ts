@@ -6,7 +6,7 @@ import { once } from './utils/store';
 import { deepCopy } from './utils/object';
 import { fetchJson, jsonCache } from './utils/fetch';
 import { idIsV5 } from './utils/id';
-import { MicrioError } from './utils/error';
+import { MicrioError } from '$error/error';
 import { DataLoader } from './utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH_V5, DEFAULT_INFO, localStorageKeys } from './globals';
 import { writable, get } from '$ts/store';

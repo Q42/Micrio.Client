@@ -4,7 +4,7 @@ import type { HTMLMicrioElement } from './element';
 
 import { MicrioImage } from './image';
 import { jsonCache } from './utils/fetch';
-import { MicrioError } from './utils/error';
+import { MicrioError } from '$error/error';
 import { DataLoader } from './utils/dataLoader';
 import { archive } from './render/archive';
 import { Grid } from './nav/grid';
