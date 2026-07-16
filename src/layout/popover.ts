@@ -1,13 +1,12 @@
 import { MicrioElement } from '$core/component';
-import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
-import { Gallery } from '$gallery/controller';
 import '$ui/button';
 import './article';
 import '$media/media';
 import '$markers/marker-content';
+import '$gallery/swipe-gallery';
 
 export interface PopoverProps {
 	popover: Models.State.PopoverType;
@@ -40,17 +39,12 @@ dialog>micrio-marker-content{width:25vw;width:25cqw;min-width:unset;max-width:32
 dialog.article{width:540px}
 dialog.article article{text-shadow:none;color:var(--micrio-color);background:var(--micrio-background);padding:20px;box-sizing:border-box;max-height:calc(90cqh - 48px);max-height:calc(90vh - 48px);overflow-x:hidden;overflow-y:auto;border-radius:var(--micrio-border-radius)}
 dialog.article h2{text-align:center}
-dialog.gallery>micr-io{background:transparent;display:block;width:100%;height:100%;flex:1}
-dialog.gallery>figcaption{position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin);padding:var(--micrio-popup-padding);max-width:410px;box-sizing:border-box;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
-@media(max-width:501px){dialog.gallery>figcaption{max-width:calc(100% - 3*var(--micrio-border-margin) - var(--micrio-button-size))}}
-dialog.gallery ul.micrio-gallery{--micrio-border-margin:16px}
 dialog.gallery>aside{left:auto;right:var(--micrio-border-margin);top:var(--micrio-border-margin);margin-left:0}
 dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 
 	#props: PopoverProps = { popover: null! };
 	#unsubs: (() => void)[] = [];
 	#dialog!: HTMLDialogElement;
-	#galleryMicrio: HTMLMicrioElement | null = null;
 
 	onMount() {
 		const micrio = this.getMicrio();
@@ -83,11 +77,6 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 		const markerId = 'marker' in p ? p.marker?.id : '';
 		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${$_lang}`;
 		if (!this.checkRenderKey(key)) return;
-
-		if (this.#galleryMicrio) {
-			this.#galleryMicrio.destroy();
-			this.#galleryMicrio = null;
-		}
 
 		this.#dialog.replaceChildren();
 		this.#dialog.classList.remove('article', 'page', 'has-media', 'gallery');
@@ -161,36 +150,9 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 
 		if ('gallery' in p && p.gallery?.length) {
 			this.#dialog.classList.add('gallery');
-
-			const galleryEl = document.createElement('micr-io') as HTMLMicrioElement;
-			galleryEl.dataset.logo = 'false';
-			this.#dialog.appendChild(galleryEl);
-
-			const caption = document.createElement('figcaption');
-			let currentIdx = 0;
-
-			const updateCaption = () => {
-				const item = p.gallery![currentIdx];
-				const text = item?.i18n?.[$_lang]?.description;
-				caption.innerHTML = text ?? '';
-				caption.style.display = text ? '' : 'none';
-			};
-
-			galleryEl.addEventListener('gallery-show', ((e: Event) => {
-				currentIdx = (e as CustomEvent).detail as number;
-				updateCaption();
-			}) as EventListener);
-
-			this.#dialog.appendChild(caption);
-
-			const basePath = micrio.$current?.$info?.path;
-
-			const galleryCtrl = Gallery.fromAssets(p.gallery, galleryEl.engine, galleryEl, { startId: p.galleryStart, basePath });
-			galleryCtrl.openOn(galleryEl);
-
-			updateCaption();
-
-			this.#galleryMicrio = galleryEl;
+			const el = document.createElement('micrio-swipe-gallery') as MicrioElement;
+			el.setProps({ gallery: p.gallery, galleryStart: p.galleryStart, lang: $_lang });
+			this.#dialog.appendChild(el);
 		}
 
 		if ('marker' in p && p.marker) {
@@ -228,10 +190,6 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 	}
 
 	onDestroy() {
-		if (this.#galleryMicrio) {
-			this.#galleryMicrio.destroy();
-			this.#galleryMicrio = null;
-		}
 		if (this.#dialog?.open) this.#dialog.close();
 		for (const fn of this.#unsubs) fn();
 		this.#unsubs = [];
