@@ -333,7 +333,7 @@ export class MicrioImage {
 				if (!i.path) i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;
 			}
 
-			const isV5Imported = id.startsWith('i') && !id.includes('/');
+			const isV5Imported = id.length == 6 && id.startsWith('i') && !id.includes('/');
 			if (isV5Imported && !i.tilesId) i.tilesId = id.slice(1);
 			return { isV5Imported };
 		})(i, this.id);
