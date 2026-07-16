@@ -1,3 +1,4 @@
+import { createElement, type ElementOptions } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
@@ -192,45 +193,53 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
 		const tag = this.#href ? 'a' : 'div';
-		this.#container = document.createElement(tag);
-		this.#container.className = 'embed-container';
 
-		if (embed.id) this.#container.id = 'e-' + embed.id;
-		if (!this.#href) this.#container.setAttribute('role', 'figure');
+		const opts: ElementOptions = {
+			className: 'embed-container',
+			events: {
+				click: () => this.#click(),
+				keypress: () => this.#click()
+			},
+			parent: this
+		};
+		if (embed.id) opts.id = 'e-' + embed.id;
 		if (this.#href) {
-			(this.#container as HTMLAnchorElement).href = this.#href;
-			if (this.#hrefBlankTarget) this.#container.setAttribute('target', '_blank');
+			opts.props = { href: this.#href };
+			if (this.#hrefBlankTarget) opts.attrs = { target: '_blank' };
+		} else {
+			opts.props = { role: 'figure' };
 		}
+
+		this.#container = createElement(tag, opts);
+
 		this.#container.classList.toggle('no-events', this.#noEvents);
 		this.#container.classList.toggle('hide-when-paused', this.#hideWhenPaused && !this.#printGL && !!embed.video);
-
-		this.#container.addEventListener('click', () => this.#click());
-		this.#container.addEventListener('keypress', () => this.#click());
-
-		this.appendChild(this.#container);
 
 		if (embed.video && !this.#printGL) {
 			this.#buildVideoContent(embed);
 		} else if (embed.frameSrc) {
 			this.#buildIframeContent(embed);
 		} else if (!this.#printGL && embed.src) {
-			const img = document.createElement('img');
-			img.src = embed.src;
-			img.style.cssText = this.#buttonStyle;
-			if (this.#isSVG && embed.width) img.width = embed.width;
-			if (this.#isSVG && embed.height) img.height = embed.height;
-			img.alt = 'Embed';
-			img.setAttribute('data-scroll-through', '');
-			this.#container.appendChild(img);
+			const imgProps: Record<string, unknown> = { src: embed.src, alt: 'Embed' };
+			if (this.#isSVG && embed.width) imgProps.width = embed.width;
+			if (this.#isSVG && embed.height) imgProps.height = embed.height;
+			createElement('img', {
+				props: imgProps,
+				style: this.#buttonStyle,
+				attrs: { 'data-scroll-through': '' },
+				parent: this.#container
+			});
 		} else {
-			const btn = document.createElement('button');
-			btn.style.cssText = this.#buttonStyle;
+			const btnProps: Record<string, unknown> = {};
 			const $_lang = get(this.#micrio._lang);
 			const title = embed.title || (marker?.i18n?.[$_lang]?.title);
-			if (title) btn.title = title;
-			btn.setAttribute('data-scroll-through', '');
-			btn.setAttribute('aria-label', 'embed-button');
-			this.#container.appendChild(btn);
+			if (title) btnProps.title = title;
+			createElement('button', {
+				props: Object.keys(btnProps).length ? btnProps : undefined,
+				style: this.#buttonStyle,
+				attrs: { 'data-scroll-through': '', 'aria-label': 'embed-button' },
+				parent: this.#container
+			});
 		}
 	}
 
@@ -241,28 +250,34 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		const wCalc = this.#w * this.#info.width;
 		const relScale = wCalc / width;
 
-		this.#figureEl = document.createElement('figure');
+		this.#figureEl = createElement('figure');
 
-		const vid = document.createElement('video');
-		vid.src = video.src!;
-		vid.width = Math.round(width);
-		vid.height = Math.round(height);
-		vid.controls = !!video.controls;
-		vid.loop = !!video.loop && (!video.loopAfter || video.loopAfter <= 0);
-		vid.muted = !!video.muted;
-		vid.playsInline = true;
-		vid.crossOrigin = 'anonymous';
-		vid.preload = 'metadata';
+		const vid = createElement('video', {
+			props: {
+				src: video.src!,
+				width: Math.round(width),
+				height: Math.round(height),
+				controls: !!video.controls,
+				loop: !!video.loop && (!video.loopAfter || video.loopAfter <= 0),
+				muted: !!video.muted,
+				playsInline: true,
+				crossOrigin: 'anonymous',
+				preload: 'metadata'
+			}
+		});
 
 		if (relScale !== 1) {
 			vid.style.transform = `scale(${relScale})`;
 		}
 
 		if (video.transparent && video.hasH265 && video.src?.endsWith('.webm')) {
-			const source = document.createElement('source');
-			source.src = video.src.replace('.webm', '.mp4');
-			source.type = 'video/mp4;codecs=hvc1';
-			vid.appendChild(source);
+			createElement('source', {
+				props: {
+					src: video.src.replace('.webm', '.mp4'),
+					type: 'video/mp4;codecs=hvc1'
+				},
+				parent: vid
+			});
 		}
 
 		this.#figureEl.appendChild(vid);
@@ -289,14 +304,19 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 	}
 
 	#buildIframeContent(embed: Models.ImageData.Embed) {
-		const frame = document.createElement('iframe');
-		frame.src = embed.frameSrc!;
-		frame.width = String(Math.round(this.#w * this.#info.width));
-		frame.height = String(Math.round(this.#h * this.#info.height));
-		frame.setAttribute('frameborder', '0');
-		frame.setAttribute('allow', 'autoplay; encrypted-media');
-		frame.setAttribute('allowfullscreen', '');
-		this.#container!.appendChild(frame);
+		createElement('iframe', {
+			parent: this.#container,
+			props: {
+				src: embed.frameSrc!,
+				width: String(Math.round(this.#w * this.#info.width)),
+				height: String(Math.round(this.#h * this.#info.height))
+			},
+			attrs: {
+				frameborder: '0',
+				allow: 'autoplay; encrypted-media',
+				allowfullscreen: ''
+			}
+		});
 	}
 
 	#printInsideGL() {

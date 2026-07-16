@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
@@ -79,13 +80,18 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		const match = src.match(YOUTUBE_RE);
 		const videoId = match?.[5];
 		if (!videoId) return;
-		const iframe = document.createElement('iframe');
-		iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&playsinline=1&enablejsapi=1`;
-		iframe.width = String(p.width ?? 400);
-		iframe.height = String(p.height ?? 240);
-		iframe.setAttribute('allow', 'autoplay; encrypted-media');
-		iframe.setAttribute('allowfullscreen', '');
-		figure.appendChild(iframe);
+		const iframe = createElement('iframe', {
+			props: {
+				src: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&playsinline=1&enablejsapi=1`,
+				width: String(p.width ?? 400),
+				height: String(p.height ?? 240),
+			},
+			attrs: {
+				allow: 'autoplay; encrypted-media',
+				allowfullscreen: '',
+			},
+			parent: figure,
+		});
 		this.#frame = iframe;
 	}
 
@@ -96,60 +102,74 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		const tokenPart = src.slice(src.indexOf(vimeoId) + vimeoId.length + 1);
 		const vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined;
 		const embedSrc = `https://player.vimeo.com/video/${vimeoId}?${vimeoToken ? `h=${vimeoToken}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0`;
-		const iframe = document.createElement('iframe');
-		iframe.src = embedSrc;
-		iframe.width = String(p.width ?? 400);
-		iframe.height = String(p.height ?? 240);
-		iframe.setAttribute('allow', 'autoplay; fullscreen');
-		iframe.setAttribute('allowfullscreen', '');
-		figure.appendChild(iframe);
+		const iframe = createElement('iframe', {
+			props: {
+				src: embedSrc,
+				width: String(p.width ?? 400),
+				height: String(p.height ?? 240),
+			},
+			attrs: {
+				allow: 'autoplay; fullscreen',
+				allowfullscreen: '',
+			},
+			parent: figure,
+		});
 		this.#frame = iframe;
 	}
 
 	#createCloudflareVideo(src: string, p: MediaProps, figure: HTMLElement) {
 		const cfId = src.slice(8);
 		const hlsSrc = `https://videodelivery.net/${cfId}/manifest/video.m3u8`;
-		const video = document.createElement('video');
-		video.src = hlsSrc;
-		video.width = p.width ?? 400;
-		video.height = p.height ?? 240;
-		video.controls = false;
-		video.preload = 'metadata';
-		video.playsInline = true;
-		video.crossOrigin = 'anonymous';
-		if (p.autoplay) video.autoplay = true;
-		if (p.muted) video.muted = true;
-		figure.appendChild(video);
+		const video = createElement('video', {
+			props: {
+				src: hlsSrc,
+				width: p.width ?? 400,
+				height: p.height ?? 240,
+				controls: false,
+				preload: 'metadata',
+				playsInline: true,
+				crossOrigin: 'anonymous',
+				...(p.autoplay ? { autoplay: true } : {}),
+				...(p.muted ? { muted: true } : {}),
+			},
+			parent: figure,
+		});
 		this.#videoEl = video;
 		this.#wireEvents(video);
 		this.#hlsSrc = hlsSrc;
 	}
 
 	#createAudioElement(src: string, p: MediaProps, figure: HTMLElement) {
-		const audio = document.createElement('audio');
-		audio.src = src;
-		audio.controls = false;
-		audio.preload = 'metadata';
-		audio.style.display = 'none';
-		if (p.autoplay) audio.autoplay = true;
-		if (p.muted) audio.muted = true;
-		figure.appendChild(audio);
+		const audio = createElement('audio', {
+			props: {
+				src,
+				controls: false,
+				preload: 'metadata',
+				...(p.autoplay ? { autoplay: true } : {}),
+				...(p.muted ? { muted: true } : {}),
+			},
+			style: { display: 'none' },
+			parent: figure,
+		});
 		this.#videoEl = audio;
 		this.#wireEvents(audio);
 	}
 
 	#createNativeVideo(src: string, p: MediaProps, figure: HTMLElement) {
-		const video = document.createElement('video');
-		video.src = src;
-		video.width = p.width ?? 400;
-		video.height = p.height ?? 240;
-		video.controls = false;
-		video.preload = 'metadata';
-		video.playsInline = true;
-		video.crossOrigin = 'anonymous';
-		if (p.autoplay) video.autoplay = true;
-		if (p.muted) video.muted = true;
-		figure.appendChild(video);
+		const video = createElement('video', {
+			props: {
+				src,
+				width: p.width ?? 400,
+				height: p.height ?? 240,
+				controls: false,
+				preload: 'metadata',
+				playsInline: true,
+				crossOrigin: 'anonymous',
+				...(p.autoplay ? { autoplay: true } : {}),
+				...(p.muted ? { muted: true } : {}),
+			},
+			parent: figure,
+		});
 		this.#videoEl = video;
 		this.#wireEvents(video);
 	}
@@ -166,8 +186,9 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		const isTourOnly = !src && !!p.tour && !!p.image;
 		this.replaceChildren();
 
-		const figure = document.createElement('figure');
-		figure.className = p.className ?? '';
+		const figure = createElement('figure', {
+			className: p.className ?? undefined,
+		});
 		if (p.className?.includes('hidden')) figure.classList.add('hidden');
 		if (isTourOnly) figure.classList.add('videotour');
 
@@ -186,9 +207,10 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		}
 
 		if (p.figcaption) {
-			const cap = document.createElement('figcaption');
-			cap.textContent = p.figcaption;
-			figure.appendChild(cap);
+			createElement('figcaption', {
+				textContent: p.figcaption,
+				parent: figure,
+			});
 		}
 
 		this.appendChild(figure);
@@ -258,15 +280,15 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			const lang = micrio?.lang || 'en';
 			const sub = p.tour.i18n?.[lang]?.subtitle;
 			if (sub?.src) {
-				this.#subEl = document.createElement('micrio-subtitles') as MicrioElement;
-				this.#subEl.setProps({ src: sub.src, mediaEl: this });
-				(this.closest('micrio-main') || this.parentNode)?.appendChild(this.#subEl);
+				this.#subEl = createElement('micrio-subtitles', {
+					setProps: { src: sub.src, mediaEl: this },
+					parent: (this.closest('micrio-main') || this.parentNode) as HTMLElement | undefined,
+				}) as MicrioElement;
 			}
 		}
 
 		// Controls
 		if (p.controls !== false) {
-			const ctrlEl = document.createElement('micrio-media-controls') as MicrioElement;
 			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this.getMicrio()?.lang || 'en')]?.subtitle);
 
 			const onplaypause = () => {
@@ -341,18 +363,20 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 				});
 			};
 
-			ctrlEl.setProps({
-				minimal: false,
-				paused: true,
-				ended: false,
-				hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
-				subtitles: hasSub,
-				getTimeDisplay: p.getTimeDisplay,
-				fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
-				onplaypause, onmute, onseek,
-				onclose: p.onclose
-			});
-			figure.appendChild(ctrlEl);
+			const ctrlEl = createElement('micrio-media-controls', {
+				setProps: {
+					minimal: false,
+					paused: true,
+					ended: false,
+					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
+					subtitles: hasSub,
+					getTimeDisplay: p.getTimeDisplay,
+					fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
+					onplaypause, onmute, onseek,
+					onclose: p.onclose
+				},
+				parent: figure,
+			}) as MicrioElement;
 
 			if (this.#videoEl && (this.#videoEl instanceof HTMLVideoElement || this.#videoEl instanceof HTMLAudioElement)) {
 				this.#videoEl.addEventListener('timeupdate', () => {
@@ -373,18 +397,22 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 
 		// Play overlay (360 full-window video only)
 		if (p.is360 && !p.noPlayOverlay && !isTourOnly) {
-			const overlay = document.createElement('div');
-			overlay.className = 'overlay';
-			if (!p.autoplay || p.paused) overlay.classList.add('hidden');
-			const playBtn = document.createElement('micrio-button') as MicrioElement;
-			playBtn.setProps({ type: 'play', noClick: true });
-			overlay.appendChild(playBtn);
-			overlay.addEventListener('click', () => {
-				const el = this.#videoEl;
-				if (el) { el.play().catch(() => { }); overlay.classList.add('hidden'); }
-				else if (this.#adapter) { this.#adapter.play(); overlay.classList.add('hidden'); }
+			const overlay = createElement('div', {
+				className: 'overlay' + (!p.autoplay || p.paused ? ' hidden' : ''),
+				children: [
+					createElement('micrio-button', {
+						setProps: { type: 'play', noClick: true },
+					}) as Node,
+				],
+				events: {
+					click: () => {
+						const el = this.#videoEl;
+						if (el) { el.play().catch(() => { }); overlay.classList.add('hidden'); }
+						else if (this.#adapter) { this.#adapter.play(); overlay.classList.add('hidden'); }
+					},
+				},
+				parent: figure,
 			});
-			figure.appendChild(overlay);
 		}
 	}
 

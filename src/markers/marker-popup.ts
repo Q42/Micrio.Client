@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
-import { afterFrame } from '$utils/dom';
+import { afterFrame, createElement } from '$utils/dom';
 import '$ui/button';
 import '$ui/button-group';
 import './marker-content';
@@ -139,72 +139,80 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 
 		this.replaceChildren();
 
-		const aside = document.createElement('aside');
+		const aside = createElement('aside');
 
 		if (!data.alwaysOpen) {
-			const btn = document.createElement('micrio-button') as MicrioElement;
-			btn.setProps({
-				type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'arrow-right',
-				title: (!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext,
-				disabled: this.#clickedPrevNext,
-				onclick: close
+			createElement('micrio-button', {
+				setProps: {
+					type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'arrow-right',
+					title: (!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext,
+					disabled: this.#clickedPrevNext,
+					onclick: close
+				},
+				parent: aside
 			});
-			aside.appendChild(btn);
 		}
 
 		if (canMinimize) {
-			const btn = document.createElement('micrio-button') as MicrioElement;
-			btn.setProps({
-				type: this.#isMinimized ? 'arrow-up' : 'arrow-down',
-				title: $i18n.minimize,
-				onclick: toggleMinimize
+			createElement('micrio-button', {
+				setProps: {
+					type: this.#isMinimized ? 'arrow-up' : 'arrow-down',
+					title: $i18n.minimize,
+					onclick: toggleMinimize
+				},
+				parent: aside
 			});
-			aside.appendChild(btn);
 		}
 
 		if (showTourControls && $tour && 'steps' in $tour) {
-			const prog = document.createElement('progress');
-			prog.setAttribute('aria-hidden', 'true');
-			prog.value = (currentTourStep + 1) / $tour.steps.length;
-			prog.className = 'progress';
-			aside.appendChild(prog);
-
-			const group = document.createElement('micrio-button-group') as MicrioElement;
-			group.setProps?.({ className: 'micrio-tour-controls' });
-
-			const prevBtn = document.createElement('micrio-button') as MicrioElement;
-			prevBtn.setProps({
-				type: 'arrow-left',
-				disabled: this.#clickedPrevNext || currentTourStep == 0,
-				title: $i18n.tourStepPrev,
-				onclick: () => markerTourStep(true)
+			createElement('progress', {
+				attrs: { 'aria-hidden': 'true' },
+				props: { value: (currentTourStep + 1) / $tour.steps.length },
+				className: 'progress',
+				parent: aside
 			});
-			group.appendChild(prevBtn);
+
+			const group = createElement('micrio-button-group', {
+				setProps: { className: 'micrio-tour-controls' }
+			});
+
+			createElement('micrio-button', {
+				setProps: {
+					type: 'arrow-left',
+					disabled: this.#clickedPrevNext || currentTourStep == 0,
+					title: $i18n.tourStepPrev,
+					onclick: () => markerTourStep(true)
+				},
+				parent: group
+			});
 
 			if (showTourStepCounter) {
-				const stepBtn = document.createElement('button');
-				stepBtn.className = 'micrio-button tour-step';
-				stepBtn.disabled = true;
-				stepBtn.textContent = `${currentTourStep + 1} / ${$tour.steps.length}`;
-				group.appendChild(stepBtn);
+				createElement('button', {
+					className: 'micrio-button tour-step',
+					props: { disabled: true },
+					textContent: `${currentTourStep + 1} / ${$tour.steps.length}`,
+					parent: group
+				});
 			}
 
-			const nextBtn = document.createElement('micrio-button') as MicrioElement;
-			nextBtn.setProps({
-				type: 'arrow-right',
-				disabled: this.#clickedPrevNext || isLastStep,
-				title: $i18n.tourStepNext,
-				onclick: () => markerTourStep()
+			createElement('micrio-button', {
+				setProps: {
+					type: 'arrow-right',
+					disabled: this.#clickedPrevNext || isLastStep,
+					title: $i18n.tourStepNext,
+					onclick: () => markerTourStep()
+				},
+				parent: group
 			});
-			group.appendChild(nextBtn);
 			aside.appendChild(group);
 		}
 
 		this.appendChild(aside);
 
-		const content = document.createElement('micrio-marker-content') as MicrioElement;
-		content.setProps({ marker, onclose: close });
-		this.appendChild(content);
+		this.#content = createElement('micrio-marker-content', {
+			setProps: { marker, onclose: close },
+			parent: this
+		});
 	}
 
 	onDestroy() {

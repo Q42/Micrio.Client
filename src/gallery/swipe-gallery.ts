@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
@@ -25,12 +26,9 @@ micrio-swipe-gallery ul.micrio-gallery{--micrio-border-margin:16px}`;
 	}
 
 	onMount() {
-		const el = document.createElement('micr-io') as HTMLMicrioElement;
-		el.dataset.logo = 'false';
-		this.appendChild(el);
+		const el = createElement('micr-io', { dataset: { logo: 'false' }, parent: this }) as HTMLMicrioElement;
 
-		const caption = document.createElement('figcaption');
-		this.appendChild(caption);
+		const caption = createElement('figcaption', { parent: this });
 
 		const parent = this.getMicrio();
 		const basePath = parent?.$current?.$info?.path;

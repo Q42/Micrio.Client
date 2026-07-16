@@ -12,6 +12,7 @@ import { PostProcessor } from './postprocess';
 import { Browser } from '$utils/browser';
 import { MicrioError, ErrorCodes } from '$core/error';
 import { segsX, segsY } from '$engine/globals';
+import { createElement } from '$utils/dom';
 
 const isFirefox:boolean = Browser.firefox;
 
@@ -441,9 +442,9 @@ export class WebGL {
 		img.crossOrigin = 'anonymous';
 		img.src = url;
 		img.onload = () => {
-			const c = document.createElement('canvas');
-			c.width = watermarkTileSize;
-			c.height = watermarkTileSize;
+			const c = createElement('canvas', {
+				props: { width: watermarkTileSize, height: watermarkTileSize }
+			});
 			const ctx = c.getContext('2d');
 			if(!ctx) return;
 

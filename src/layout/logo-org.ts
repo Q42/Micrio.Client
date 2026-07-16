@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 
@@ -39,18 +40,14 @@ micrio-logo-org img{max-height:64px;display:block}`;
 		if (!org?.logo) { this.innerHTML = ''; return; }
 
 		this.replaceChildren();
-		const a = document.createElement('a');
-		a.rel = 'noopener';
-		a.href = org.href ?? '#';
-		a.title = org.name ?? '';
-		a.setAttribute('aria-label', `${org.name} homepage`);
-		a.target = '_blank';
-
-		const img = document.createElement('img');
-		img.src = getLogoSrc(org.logo);
-		img.alt = 'Logo';
-		a.appendChild(img);
-		this.appendChild(a);
+		createElement('a', {
+			props: { rel: 'noopener', href: org.href ?? '#', title: org.name ?? '', target: '_blank' },
+			attrs: { 'aria-label': `${org.name} homepage` },
+			children: [
+				createElement('img', { props: { src: getLogoSrc(org.logo), alt: 'Logo' } })
+			],
+			parent: this
+		});
 	}
 }
 

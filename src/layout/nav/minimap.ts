@@ -3,7 +3,7 @@ import type { MicrioImage } from '$core/image';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { toCenterJSON } from '$utils/math';
-import { afterFrame } from '$utils/dom';
+import { createElement, afterFrame } from '$utils/dom';
 
 export interface MinimapProps {
 	image: MicrioImage;
@@ -116,17 +116,17 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 		};
 
 		// Create canvas
-		this.#_canvas = document.createElement('canvas');
-		this.#_canvas.width = width;
-		this.#_canvas.height = height;
-		this.#_canvas.className = noControls ? '' : 'controls';
+		this.#_canvas = createElement('canvas', {
+			props: { width, height },
+			className: noControls ? '' : 'controls',
+			events: { mousedown: dStart as EventListener },
+			parent: this
+		});
 		if (thumbSrc) {
 			this.#_canvas.style.backgroundImage = `url('${thumbSrc}')`;
 			if (offset != 0) this.#_canvas.style.backgroundPositionX = `${width * offset}px`;
 		}
 		this.#_canvas.addEventListener('wheel', wheel, { passive: true });
-		this.#_canvas.addEventListener('mousedown', dStart);
-		this.appendChild(this.#_canvas);
 
 		this.#_ctx = this.#_canvas.getContext('2d');
 		if (this.#_ctx) {

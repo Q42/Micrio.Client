@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
@@ -37,9 +38,10 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			const image = micrio.$current;
 			if (image) {
 				const audio = vt.i18n?.[get(micrio._lang)]?.audio;
-				const media = document.createElement('micrio-media') as MicrioElement;
-				media.setProps({ src: audio?.src, image, tour: vt, controls: true, autoplay: true, onclose: () => micrio.state.tour.set(undefined) });
-				this.appendChild(media);
+				createElement('micrio-media', {
+					parent: this,
+					setProps: { src: audio?.src, image, tour: vt, controls: true, autoplay: true, onclose: () => micrio.state.tour.set(undefined) }
+				});
 			}
 			micrio.setAttribute('data-tour-active', '');
 		}
@@ -97,44 +99,47 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 				}
 			};
 
-			const renderControls = () => {
-				this.replaceChildren();
+		const renderControls = () => {
+			this.replaceChildren();
 
-				const div = document.createElement('div');
-				div.className = 'controls';
+			const div = createElement('div', { className: 'controls' });
 
-				const prevBtn = document.createElement('micrio-button') as MicrioElement;
-				prevBtn.setProps({
+			createElement('micrio-button', {
+				parent: div,
+				setProps: {
 					type: 'arrow-left', title: get(i18n).tourStepPrev,
 					disabled: this.#currentStep === 0,
 					onclick: () => mt.prev?.()
-				});
-				div.appendChild(prevBtn);
+				}
+			});
 
-				const counter = document.createElement('span');
-				counter.className = 'step-counter';
-				counter.textContent = `${this.#currentStep + 1} / ${mt.steps.length}`;
-				div.appendChild(counter);
+			createElement('span', {
+				className: 'step-counter',
+				textContent: `${this.#currentStep + 1} / ${mt.steps.length}`,
+				parent: div
+			});
 
-				const nextBtn = document.createElement('micrio-button') as MicrioElement;
-				nextBtn.setProps({
+			createElement('micrio-button', {
+				parent: div,
+				setProps: {
 					type: 'arrow-right', title: get(i18n).tourStepNext,
 					disabled: this.#currentStep >= mt.steps.length - 1,
 					onclick: () => mt.next?.()
-				});
-				div.appendChild(nextBtn);
+				}
+			});
 
-				if (!mt.cannotClose) {
-					const closeBtn = document.createElement('micrio-button') as MicrioElement;
-					closeBtn.setProps({
+			if (!mt.cannotClose) {
+				createElement('micrio-button', {
+					parent: div,
+					setProps: {
 						type: 'close', title: get(i18n).close,
 						onclick: () => micrio.state.tour.set(undefined)
-					});
-					div.appendChild(closeBtn);
-				}
+					}
+				});
+			}
 
-				this.appendChild(div);
-			};
+			this.appendChild(div);
+		};
 
 			this.#unsubs.push(micrio.state.marker.subscribe(m => {
 				if (!m) return;

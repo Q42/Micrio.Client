@@ -1,6 +1,7 @@
 import type { Readable, Subscriber } from './store';
 import { lazy } from './store';
 import type { HTMLMicrioElement } from './element';
+import { createElement } from '$utils/dom';
 
 const PROVIDES = Symbol('micrio-provides');
 
@@ -126,10 +127,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		const ctor = this.constructor as typeof MicrioElement;
 		if (ctor.styles && !_injectedStyles.has(ctor.tag)) {
 			_injectedStyles.add(ctor.tag);
-			const el = document.createElement('style');
-			el.textContent = ctor.styles;
-			el.setAttribute('data-micrio', ctor.tag);
-			document.head.appendChild(el);
+			createElement('style', { textContent: ctor.styles, attrs: { 'data-micrio': ctor.tag }, parent: document.head });
 		}
 	}
 

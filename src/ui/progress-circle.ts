@@ -1,4 +1,5 @@
 import { MicrioElement } from '$core/component';
+import { createSvgElement } from '$utils/dom';
 
 const SIZE = 100;
 const RADIUS = 40;
@@ -18,30 +19,38 @@ micrio-progress-circle circle{transition:stroke-dashoffset .25s ease}`;
 	#progressCircle!: SVGCircleElement;
 
 	onMount() {
-		const ns = 'http://www.w3.org/2000/svg';
-		const svg = document.createElementNS(ns, 'svg');
-		svg.setAttribute('width', String(SIZE));
-		svg.setAttribute('height', String(SIZE));
-		svg.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
+		const svg = createSvgElement('svg', {
+			attrs: {
+				width: String(SIZE),
+				height: String(SIZE),
+				viewBox: `0 0 ${SIZE} ${SIZE}`,
+			},
+		});
 
-		const bg = document.createElementNS(ns, 'circle');
-		bg.setAttribute('r', String(RADIUS));
-		bg.setAttribute('cx', String(SIZE / 2));
-		bg.setAttribute('cy', String(SIZE / 2));
-		bg.setAttribute('fill', 'transparent');
-		bg.setAttribute('stroke', '#e0e0e0');
-		bg.setAttribute('stroke-width', '8px');
-		svg.appendChild(bg);
+		createSvgElement('circle', {
+			attrs: {
+				r: String(RADIUS),
+				cx: String(SIZE / 2),
+				cy: String(SIZE / 2),
+				fill: 'transparent',
+				stroke: '#e0e0e0',
+				'stroke-width': '8px',
+			},
+			parent: svg as unknown as HTMLElement,
+		});
 
-		const pc = document.createElementNS(ns, 'circle');
-		pc.setAttribute('r', String(RADIUS));
-		pc.setAttribute('cx', String(SIZE / 2));
-		pc.setAttribute('cy', String(SIZE / 2));
-		pc.setAttribute('fill', 'transparent');
-		pc.setAttribute('stroke', '#00d4ee');
-		pc.setAttribute('stroke-width', '8px');
-		pc.setAttribute('stroke-dasharray', `${CIRC}px`);
-		svg.appendChild(pc);
+		const pc = createSvgElement('circle', {
+			attrs: {
+				r: String(RADIUS),
+				cx: String(SIZE / 2),
+				cy: String(SIZE / 2),
+				fill: 'transparent',
+				stroke: '#00d4ee',
+				'stroke-width': '8px',
+				'stroke-dasharray': `${CIRC}px`,
+			},
+			parent: svg as unknown as HTMLElement,
+		});
 
 		this.appendChild(svg);
 		this.#progressCircle = pc;

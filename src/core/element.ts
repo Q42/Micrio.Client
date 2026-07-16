@@ -24,6 +24,7 @@ import { rtlLanguageCodes } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
 import { cssVars } from './css-vars';
+import { createElement } from '$utils/dom';
 
 /**
  * The main Micrio custom HTML element `<micr-io>`.
@@ -362,10 +363,8 @@ ${cssVars}`;
 	 */
 	#printUI(noHTML:boolean, noLogo:boolean) : void {
 		if(!this._ui) {
-			const el = document.createElement('micrio-main') as any;
+			const el = createElement('micrio-main', { setProps: {noHTML, noLogo}, parent: this });
 			this._ui = el;
-			el.setProps({noHTML, noLogo});
-			this.appendChild(el);
 		} else {
 			this._ui.setProps?.({noHTML, noLogo});
 		}

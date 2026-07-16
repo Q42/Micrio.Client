@@ -1,6 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
+import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 
 function getLength(length: number): string {
@@ -41,9 +42,10 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		const micrio = this.getMicrio();
 		if (!micrio) return;
 
-		this.#detailsEl = document.createElement('details');
-		this.#detailsEl.ontoggle = () => this.#toggleClose();
-		this.appendChild(this.#detailsEl);
+		this.#detailsEl = createElement('details', {
+			events: { toggle: () => this.#toggleClose() },
+			parent: this
+		});
 
 		this.#render();
 	}
@@ -76,35 +78,26 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		this.#detailsEl.replaceChildren();
 
 		if (title || size) {
-			const summary = document.createElement('summary');
-			if (title) {
-				const cite = document.createElement('cite');
-				cite.textContent = title;
-				summary.appendChild(cite);
-			}
-			if (size) {
-				const small = document.createElement('small');
-				small.textContent = size;
-				summary.appendChild(small);
-			}
-			this.#detailsEl.appendChild(summary);
+			const summaryChildren: (Node | string | number | false | null | undefined)[] = [];
+			if (title) summaryChildren.push(createElement('cite', { textContent: title }));
+			if (size) summaryChildren.push(createElement('small', { textContent: size }));
+			createElement('summary', { children: summaryChildren, parent: this.#detailsEl });
 		}
 
 		if (description) {
-			const div = document.createElement('div');
-			div.innerHTML = description;
-			this.#detailsEl.appendChild(div);
+			createElement('div', { innerHTML: description, parent: this.#detailsEl });
 		}
 
 		if (link) {
-			const p = document.createElement('p');
-			const a = document.createElement('a');
-			a.href = link;
-			a.target = '_blank';
-			a.rel = 'noopener noreferrer';
-			a.textContent = copyright || link;
-			p.appendChild(a);
-			this.#detailsEl.appendChild(p);
+			createElement('p', {
+				parent: this.#detailsEl,
+				children: [
+					createElement('a', {
+						props: { href: link, target: '_blank', rel: 'noopener noreferrer' },
+						textContent: copyright || link
+					})
+				]
+			});
 		}
 
 	}
@@ -113,12 +106,13 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		const existing = this.#detailsEl.querySelector(':scope > micrio-button');
 		if (this.#detailsEl.open) {
 			if (existing) return;
-			const closeBtn = document.createElement('micrio-button') as MicrioElement;
-			closeBtn.setProps({
-				type: 'close', title: get(i18n).close, className: 'close',
-				onclick: () => { this.#detailsEl.open = false; }
+			createElement('micrio-button', {
+				setProps: {
+					type: 'close', title: get(i18n).close, className: 'close',
+					onclick: () => { this.#detailsEl.open = false; }
+				},
+				parent: this.#detailsEl
 			});
-			this.#detailsEl.appendChild(closeBtn);
 		} else {
 			existing?.remove();
 		}

@@ -7,6 +7,7 @@ import { get, writable } from '$core/store';
 import { once } from '$utils/store';
 import { Enums } from '$core/enums';
 import { GallerySwiper } from '$gallery/swiper';
+import { createElement } from '$utils/dom';
 import { icons } from '$ui/icons';
 import '$ui/button';
 import '$ui/dial';
@@ -461,70 +462,65 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const curr = this.#currentPage;
 
 		// Prev button
-		this.#prevBtn = document.createElement('micrio-button') as MicrioElement;
-		this.#prevBtn.setProps({
-			type: 'arrow-left', title: $i18n.galleryPrev, className: 'gallery-btn',
-			disabled: curr <= 0,
-			onclick: () => this.#goto(this.#currentPage - 1)
-		});
-		this.appendChild(this.#prevBtn);
+		this.#prevBtn = createElement('micrio-button', {
+			parent: this,
+			setProps: {
+				type: 'arrow-left', title: $i18n.galleryPrev, className: 'gallery-btn',
+				disabled: curr <= 0,
+				onclick: () => this.#goto(this.#currentPage - 1)
+			}
+		}) as MicrioElement;
 
 		// Scrubber bar
-		const ul = document.createElement('ul');
-		ul.className = dense ? 'dense' : '';
+		const ul = createElement('ul', {
+			className: dense ? 'dense' : '',
+			parent: this,
+			events: {
+				pointerdown: this.#scrubStart as EventListener,
+				pointermove: this.#scrubPointerMove as EventListener,
+				pointerleave: () => { this.#hoverIdx = -1; this.#updateScrubber(); }
+			}
+		});
 		this.#_ul = ul;
+		ul.addEventListener('touchstart', this.#scrubStart, { passive: false });
 
 		// Track
-		const track = document.createElement('span');
-		track.className = 'track';
-		const trackFill = document.createElement('span');
-		trackFill.className = 'track-fill';
-		track.appendChild(trackFill);
-		ul.appendChild(track);
+		const trackFill = createElement('span', { className: 'track-fill' });
+		createElement('span', { className: 'track', parent: ul, children: [trackFill] });
 
 		// Ticks
-		const ticks = document.createElement('span');
-		ticks.className = 'ticks';
-		for (let i = 0; i < total; i++) {
-			if (dense && i % tickStep !== 0 && i !== total - 1) continue;
-			const tick = document.createElement('span');
-			tick.className = 'tick' + (dense && i % (tickStep * 5) === 0 ? ' major' : '');
-			tick.style.left = `${total > 1 ? (i / (total - 1)) * 100 : 50}%`;
-			ticks.appendChild(tick);
-		}
-		ul.appendChild(ticks);
+		createElement('span', {
+			className: 'ticks',
+			parent: ul,
+			children: Array.from({ length: total }, (_, i) => {
+				if (dense && i % tickStep !== 0 && i !== total - 1) return null;
+				return createElement('span', {
+					className: 'tick' + (dense && i % (tickStep * 5) === 0 ? ' major' : ''),
+					style: { left: `${total > 1 ? (i / (total - 1)) * 100 : 50}%` }
+				});
+			})
+		});
 
 		// Handle
-		const handle = document.createElement('button');
-		handle.className = 'handle';
-		handle.role = 'slider';
-		handle.tabIndex = 0;
-		handle.setAttribute('aria-label', 'Gallery position');
-		handle.setAttribute('aria-valuemin', '1');
-		handle.setAttribute('aria-valuemax', String(total));
-		ul.appendChild(handle);
+		createElement('button', {
+			className: 'handle',
+			parent: ul,
+			props: { role: 'slider', tabIndex: 0 },
+			attrs: { 'aria-label': 'Gallery position', 'aria-valuemin': '1', 'aria-valuemax': String(total) }
+		});
 
 		// Handle label
-		const hl2 = document.createElement('span');
-		hl2.className = 'handle-label';
-		ul.appendChild(hl2);
-
-		// Scrubber events
-		ul.addEventListener('pointerdown', this.#scrubStart);
-		ul.addEventListener('touchstart', this.#scrubStart, { passive: false });
-		ul.addEventListener('pointermove', this.#scrubPointerMove);
-		ul.addEventListener('pointerleave', () => { this.#hoverIdx = -1; this.#updateScrubber(); });
-
-		this.appendChild(ul);
+		createElement('span', { className: 'handle-label', parent: ul });
 
 		// Next button
-		this.#nextBtn = document.createElement('micrio-button') as MicrioElement;
-		this.#nextBtn.setProps({
-			type: 'arrow-right', title: $i18n.galleryNext, className: 'gallery-btn',
-			disabled: curr >= total - 1,
-			onclick: () => this.#goto(this.#currentPage + 1)
-		});
-		this.appendChild(this.#nextBtn);
+		this.#nextBtn = createElement('micrio-button', {
+			parent: this,
+			setProps: {
+				type: 'arrow-right', title: $i18n.galleryNext, className: 'gallery-btn',
+				disabled: curr >= total - 1,
+				onclick: () => this.#goto(this.#currentPage + 1)
+			}
+		}) as MicrioElement;
 	}
 
 	#updateScrubber() {
@@ -574,9 +570,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		let hoverLabel = this.querySelector('.hover-label') as HTMLElement;
 		if (this.#hoverIdx >= 0 && this.#hoverIdx !== curr && !this.#dragging) {
 			if (!hoverLabel) {
-				hoverLabel = document.createElement('span');
-				hoverLabel.className = 'hover-label';
-				this.querySelector('ul')?.appendChild(hoverLabel);
+				hoverLabel = createElement('span', { className: 'hover-label', parent: this.querySelector('ul') ?? undefined });
 			}
 			hoverLabel.style.left = `${total > 1 ? (this.#hoverIdx / (total - 1)) * 100 : 50}%`;
 			hoverLabel.textContent = this.#pageLabel(this.#hoverIdx);
@@ -663,15 +657,16 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		engine.render();
 
 		// Create the dial before the swiper so gotoFn can reference it
-		const dial = document.createElement('micrio-dial') as MicrioElement;
-		dial.setProps({
-			currentRotation: 0, frames: pagesPerLayer, degrees: true,
-			onturn: (frame: number) => {
-				const idx = Math.round(frame) % pagesPerLayer;
-				image.swiper?.goto(idx);
+		const dial = createElement('micrio-dial', {
+			parent: this,
+			setProps: {
+				currentRotation: 0, frames: pagesPerLayer, degrees: true,
+				onturn: (frame: number) => {
+					const idx = Math.round(frame) % pagesPerLayer;
+					image.swiper?.goto(idx);
+				}
 			}
-		});
-		this.appendChild(dial);
+		}) as MicrioElement;
 
 		// Navigation function shared by swiper and dial
 		const gotoFn = (idx: number) => {

@@ -2,6 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
+import { createElement } from '$utils/dom';
 
 export interface MarkerContentProps {
 	marker: Models.ImageData.Marker;
@@ -90,17 +91,19 @@ micrio-marker-content section figcaption{display:none}
 
 		// Title
 		if (content.title) {
-			const h1 = document.createElement('h1');
-			h1.textContent = content.title;
+			const h1 = createElement('h1', {
+				textContent: content.title,
+				parent: this
+			});
 			this._title = h1;
-			this.appendChild(h1);
 		}
 
 		// Primary Body (first)
 		if (content.body && settings.primaryBodyFirst) {
-			const article = document.createElement('micrio-article') as MicrioElement;
-			article.setProps({ html: content.body });
-			this.appendChild(article);
+			createElement('micrio-article', {
+				setProps: { html: content.body },
+				parent: this
+			});
 		}
 
 		// Audio/Video Tour media
@@ -108,38 +111,46 @@ micrio-marker-content section figcaption{display:none}
 			const audio = marker.videoTour?.i18n?.[$_lang]?.audio ?? content?.audio;
 			const audioSrc = audio?.src;
 			const pausedAudio = !autoplayMedia || !marker?.audioAutoPlay;
-			const media = document.createElement('micrio-media') as MicrioElement;
-			media.setProps({
-				src: audioSrc, noPlayOverlay: true, image, uuid: marker.id,
-				tour: marker.videoTour,
-				autoplay: marker.audioAutoPlay || (!content.audio && !!marker.videoTour),
-				controls: !marker.videoTour || !content.embedUrl,
-				onended: mediaEnded, paused: pausedAudio
+			createElement('micrio-media', {
+				setProps: {
+					src: audioSrc, noPlayOverlay: true, image, uuid: marker.id,
+					tour: marker.videoTour,
+					autoplay: marker.audioAutoPlay || (!content.audio && !!marker.videoTour),
+					controls: !marker.videoTour || !content.embedUrl,
+					onended: mediaEnded, paused: pausedAudio
+				},
+				parent: this
 			});
-			this.appendChild(media);
 		}
 
 		// Marker Images
 		if (!noImages && !!marker.images?.length) {
-			const section = document.createElement('section');
+			const section = createElement('section');
 			for (const asset of marker.images) {
-				const btn = document.createElement('button');
-				btn.title = getTitle(asset) ?? '';
-				if (galleryEnabled) btn.addEventListener('click', () => openGallery(asset.micrioId));
-				btn.disabled = !galleryEnabled;
+				const btn = createElement('button', {
+					props: {
+						title: getTitle(asset) ?? '',
+						disabled: !galleryEnabled
+					},
+					events: galleryEnabled ? { click: () => openGallery(asset.micrioId) } : undefined
+				});
 
-				const figure = document.createElement('figure');
-				const img = document.createElement('img');
-				img.alt = getTitle(asset) ?? '';
-				img.src = asset.micrioId
-					? `https://iiif.${isDev ? 'micrio.dev' : 'micr.io'}/${asset.micrioId}/full/${singleImage ? '^' + Math.min(asset.width, 640) + ',' : '^,320'}/0/default.webp`
-					: asset.src;
-				figure.appendChild(img);
+				const figure = createElement('figure');
+				createElement('img', {
+					props: {
+						alt: getTitle(asset) ?? '',
+						src: asset.micrioId
+							? `https://iiif.${isDev ? 'micrio.dev' : 'micr.io'}/${asset.micrioId}/full/${singleImage ? '^' + Math.min(asset.width, 640) + ',' : '^,320'}/0/default.webp`
+							: asset.src
+					},
+					parent: figure
+				});
 
 				if (imageCaption) {
-					const figcap = document.createElement('figcaption');
-					figcap.textContent = imageCaption;
-					figure.appendChild(figcap);
+					createElement('figcaption', {
+						textContent: imageCaption,
+						parent: figure
+					});
 				}
 				btn.appendChild(figure);
 				section.appendChild(btn);
@@ -150,37 +161,41 @@ micrio-marker-content section figcaption{display:none}
 		// Embed
 		if (content.embedUrl && !noEmbed) {
 			if (!content.audio && marker.videoTour) {
-				const hiddenMedia = document.createElement('micrio-media') as MicrioElement;
-				hiddenMedia.setProps({
-					image, className: 'hidden', uuid: marker.id,
-					tour: marker.videoTour, autoplay: autoplayMedia, secondary: true
+				createElement('micrio-media', {
+					setProps: {
+						image, className: 'hidden', uuid: marker.id,
+						tour: marker.videoTour, autoplay: autoplayMedia, secondary: true
+					},
+					parent: this
 				});
-				this.appendChild(hiddenMedia);
 			}
 
 			const pausedVideo = marker?.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker?.audioAutoPlay));
-			const media = document.createElement('micrio-media') as MicrioElement;
-			media.setProps({
-				image, src: content.embedUrl, uuid: marker.id,
-				width: 400, height: 240, controls: true,
-				title: content.embedTitle, figcaption: content.embedDescription,
-				autoplay: !pausedVideo, onended: mediaEnded, paused: pausedVideo
+			createElement('micrio-media', {
+				setProps: {
+					image, src: content.embedUrl, uuid: marker.id,
+					width: 400, height: 240, controls: true,
+					title: content.embedTitle, figcaption: content.embedDescription,
+					autoplay: !pausedVideo, onended: mediaEnded, paused: pausedVideo
+				},
+				parent: this
 			});
-			this.appendChild(media);
 		}
 
 		// Primary Body (not first)
 		if (content.body && !settings.primaryBodyFirst) {
-			const article = document.createElement('micrio-article') as MicrioElement;
-			article.setProps({ html: content.body });
-			this.appendChild(article);
+			createElement('micrio-article', {
+				setProps: { html: content.body },
+				parent: this
+			});
 		}
 
 		// Secondary Body
 		if (content.bodySecondary) {
-			const article = document.createElement('micrio-article') as MicrioElement;
-			article.setProps({ html: content.bodySecondary });
-			this.appendChild(article);
+			createElement('micrio-article', {
+				setProps: { html: content.bodySecondary },
+				parent: this
+			});
 		}
 	}
 

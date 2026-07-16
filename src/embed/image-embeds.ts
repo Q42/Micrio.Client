@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
@@ -20,9 +21,7 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 			this.innerHTML = '';
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
-					const el = document.createElement('micrio-embed') as MicrioElement;
-					el.setProps({ embed, image });
-					this.appendChild(el);
+					createElement('micrio-embed', { parent: this, setProps: { embed, image } });
 				}
 			}
 		});
@@ -30,9 +29,7 @@ export class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 		const data = get(image.data);
 		if (data?.embeds) {
 			for (const embed of data.embeds) {
-				const el = document.createElement('micrio-embed') as MicrioElement;
-				el.setProps({ embed, image });
-				this.appendChild(el);
+				createElement('micrio-embed', { parent: this, setProps: { embed, image } });
 			}
 		}
 	}

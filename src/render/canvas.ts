@@ -4,6 +4,7 @@ import type { HTMLMicrioElement } from '$core/element';
 
 import { Browser } from '$utils/browser';
 import { get, writable } from '$core/store';
+import { createElement } from '$utils/dom';
 
 /**
  * Manages the HTML `<canvas>` element used for WebGL rendering,
@@ -12,7 +13,7 @@ import { get, writable } from '$core/store';
  */
 export class Canvas {
 	/** The main WebGL rendering `<canvas>` element. */
-	readonly element:HTMLCanvasElement = document.createElement('canvas');
+	readonly element:HTMLCanvasElement = createElement('canvas');
 
 	/** ResizeObserver instance for detecting element resize events.
 	 * @internal

@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
@@ -70,42 +71,50 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 		if (!this.#built) {
 			this.#built = true;
 
-			this.#wrapperEl = document.createElement('aside');
-			this.#wrapperEl.className = 'controls-wrapper';
-			this.#wrapperEl.addEventListener('click', e => e.stopPropagation());
-			this.#wrapperEl.addEventListener('keydown', e => e.stopPropagation());
-			this.appendChild(this.#wrapperEl);
+			this.#wrapperEl = createElement('aside', {
+				className: 'controls-wrapper',
+				events: {
+					click: e => e.stopPropagation(),
+					keydown: e => e.stopPropagation(),
+				},
+				parent: this,
+			});
 
-			this.#playBtn = document.createElement('micrio-button');
-			this.#wrapperEl.appendChild(this.#playBtn);
+			this.#playBtn = createElement('micrio-button', {
+				parent: this.#wrapperEl,
+			});
 
 			if (p.hasAudio) {
-				const muteBtn = document.createElement('micrio-button');
-				muteBtn.className = 'ctrl-mute';
-				this.#wrapperEl.appendChild(muteBtn);
+				createElement('micrio-button', {
+					className: 'ctrl-mute',
+					parent: this.#wrapperEl,
+				});
 			}
 
 			if (p.subtitles) {
-				const subBtn = document.createElement('micrio-button');
-				subBtn.className = 'ctrl-subtitles';
-				this.#wrapperEl.appendChild(subBtn);
+				createElement('micrio-button', {
+					className: 'ctrl-subtitles',
+					parent: this.#wrapperEl,
+				});
 			}
 
 			if (p.fullscreenEl) {
-				const fs = document.createElement('micrio-fullscreen');
-				fs.className = 'ctrl-fullscreen';
-				this.#wrapperEl.appendChild(fs);
+				createElement('micrio-fullscreen', {
+					className: 'ctrl-fullscreen',
+					parent: this.#wrapperEl,
+				});
 			}
 
-			const container = document.createElement('div');
-			container.className = 'container';
+			const container = createElement('div', {
+				className: 'container',
+			});
 
-			const bars = document.createElement('div');
-			bars.className = 'bars';
-
-			this.#barEl = document.createElement('div');
-			this.#barEl.className = 'bar';
-			bars.appendChild(this.#barEl);
+			const bars = createElement('div', {
+				className: 'bars',
+				children: [
+					this.#barEl = createElement('div', { className: 'bar' }),
+				],
+			});
 
 			const dStart = (e: MouseEvent) => {
 				if (e.button != 0) return;
@@ -126,17 +135,19 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 			bars.addEventListener('mousedown', dStart);
 			container.appendChild(bars);
 
-			this.#timeEl = document.createElement('span');
-			this.#timeEl.className = 'time';
-			container.appendChild(this.#timeEl);
+			this.#timeEl = createElement('span', {
+				className: 'time',
+				parent: container,
+			});
 
 			this.#wrapperEl.appendChild(container);
 
 			if (p.onclose) {
-				const closeBtn = document.createElement('micrio-button') as MicrioElement;
-				closeBtn.className = 'ctrl-close';
-				closeBtn.setProps({ type: 'close', title: get(i18n).close, onclick: p.onclose });
-				this.#wrapperEl.appendChild(closeBtn);
+				createElement('micrio-button', {
+					className: 'ctrl-close',
+					setProps: { type: 'close', title: get(i18n).close, onclick: p.onclose },
+					parent: this.#wrapperEl,
+				});
 			}
 		}
 

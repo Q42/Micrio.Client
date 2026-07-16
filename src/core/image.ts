@@ -15,6 +15,7 @@ import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
 import { archive } from '$utils/archive';
+import { createElement } from '$utils/dom';
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @private
@@ -510,11 +511,13 @@ export class MicrioImage {
 	private loadScript(s:string, lang:string='') : Promise<void> { return new Promise((ok:() => void) => {
 		if(jsCss.includes(s) || document.querySelector('script[src="'+s+'"]')) ok(); // Already loaded
 		else { jsCss.push(s); // Mark as loading
-			const _el = document.createElement('script'); _el.type = 'text/javascript';
-			_el.async = true; _el.defer = true;
+			const _el = createElement('script', {
+				props: { type: 'text/javascript', async: true, defer: true, src: s.replace('$lang', lang) },
+				events: { load: ok as EventListener },
+				parent: document.head
+			});
 			/** @ts-ignore -- used for custom JS to have a cool self reference */
 			_el['micrioElement'] = this.engine.micrio; // Pass Micrio element reference
-			_el.src = s.replace('$lang', lang); _el.onload = ok; document.head.appendChild(_el);
 		}
 	})}
 
@@ -524,9 +527,11 @@ export class MicrioImage {
 	private loadStyle(s:string) : Promise<void> { return new Promise((ok:() => void) => {
 		if(jsCss.includes(s) || document.head.querySelector('link[href="'+s+'"]')) ok(); // Already loaded
 		else { jsCss.push(s); // Mark as loading
-			const _el = document.createElement('link'); _el.setAttribute('type', 'text/css');
-			_el.setAttribute('rel', 'stylesheet'); _el.setAttribute('href', s);
-			_el.onload = ok; document.head.appendChild(_el);
+			createElement('link', {
+				attrs: { type: 'text/css', rel: 'stylesheet', href: s },
+				events: { load: ok as EventListener },
+				parent: document.head
+			});
 		}
 	})}
 

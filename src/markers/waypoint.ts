@@ -6,6 +6,7 @@ import { clone } from '$utils/object';
 import { DataLoader } from '$utils/dataLoader';
 import { getSpaceVector } from '$utils/space';
 import { i18n } from '$core/i18n/strings';
+import { createElement } from '$utils/dom';
 
 export interface WaypointProps {
 	targetId: string;
@@ -144,15 +145,16 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 		this.classList.toggle('clicked', this.#clicked);
 
 		this.replaceChildren();
-		const btn = document.createElement('micrio-button') as MicrioElement;
-		btn.setProps({
-			type: icon ? undefined : 'arrow-up',
-			icon: icon || undefined,
-			title: title ?? $i18n.waypointFollow,
-			onclick: this.#click,
-			onfocus: this.#focus,
+		createElement('micrio-button', {
+			setProps: {
+				type: icon ? undefined : 'arrow-up',
+				icon: icon || undefined,
+				title: title ?? $i18n.waypointFollow,
+				onclick: this.#click,
+				onfocus: this.#focus,
+			},
+			parent: this
 		});
-		this.appendChild(btn);
 	}
 
 	onDestroy() {

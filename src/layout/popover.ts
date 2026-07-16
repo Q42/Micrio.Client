@@ -1,6 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
+import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 import '$ui/button';
 import './article';
@@ -50,18 +51,21 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 		const micrio = this.getMicrio();
 		if (!micrio) return;
 
-		this.#dialog = document.createElement('dialog');
-		this.#dialog.addEventListener('close', () => {
-			const p = this.#props.popover;
-			if (p && 'marker' in p && p.marker && p.image?.state?.marker) {
-				p.image.state.marker.set(undefined);
-			}
-			micrio.state.popover.set(undefined);
+		this.#dialog = createElement('dialog', {
+			events: {
+				close: () => {
+					const p = this.#props.popover;
+					if (p && 'marker' in p && p.marker && p.image?.state?.marker) {
+						p.image.state.marker.set(undefined);
+					}
+					micrio.state.popover.set(undefined);
+				},
+				click: (e) => {
+					if (e.target === this.#dialog) micrio.state.popover.set(undefined);
+				}
+			},
+			parent: this
 		});
-		this.#dialog.addEventListener('click', (e) => {
-			if (e.target === this.#dialog) micrio.state.popover.set(undefined);
-		});
-		this.appendChild(this.#dialog);
 
 		this.#render();
 	}
@@ -105,16 +109,19 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 			if (this.#dialog?.open) this.#dialog.close();
 		};
 
-		const aside = document.createElement('aside');
-		const closeBtn = document.createElement('micrio-button') as MicrioElement;
-		closeBtn.setProps({
-			type: (!isPartOfTour || isLastStep) ? 'close' : 'arrow-right',
-			title: (!isPartOfTour || isLastStep) ? $i18n.closeMarker : $i18n.tourStepNext,
-			className: 'close-popover',
-			onclick: advanceOrClose
+		createElement('aside', {
+			parent: this.#dialog,
+			children: [
+				createElement('micrio-button', {
+					setProps: {
+						type: (!isPartOfTour || isLastStep) ? 'close' : 'arrow-right',
+						title: (!isPartOfTour || isLastStep) ? $i18n.closeMarker : $i18n.tourStepNext,
+						className: 'close-popover',
+						onclick: advanceOrClose
+					}
+				})
+			]
 		});
-		aside.appendChild(closeBtn);
-		this.#dialog.appendChild(aside);
 
 		if ('contentPage' in p && p.contentPage) {
 			const page = p.contentPage;
@@ -128,37 +135,27 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 
 			if (isVideoPage) {
 				if (cd.embed) {
-					const media = document.createElement('micrio-media') as MicrioElement;
-					media.setProps({ src: cd.embed, figcaption: cd.content, controls: true, autoplay: true });
-					this.#dialog.appendChild(media);
+					createElement('micrio-media', {
+						setProps: { src: cd.embed, figcaption: cd.content, controls: true, autoplay: true },
+						parent: this.#dialog
+					});
 				}
 			} else {
 				this.#dialog.classList.add('article');
-				const article = document.createElement('article');
-				if (cd?.title) {
-					const h2 = document.createElement('h2');
-					h2.textContent = cd.title;
-					article.appendChild(h2);
-				}
-				if (cd?.embed) {
-					const media = document.createElement('micrio-media') as MicrioElement;
-					media.setProps({ src: cd.embed, controls: true });
-					article.appendChild(media);
-				}
-				if (cd?.content) {
-					const div = document.createElement('div');
-					div.innerHTML = cd.content;
-					article.appendChild(div);
-				}
-				this.#dialog.appendChild(article);
+				const articleChildren: (Node | string | number | false | null | undefined)[] = [];
+				if (cd?.title) articleChildren.push(createElement('h2', { textContent: cd.title }));
+				if (cd?.embed) articleChildren.push(createElement('micrio-media', { setProps: { src: cd.embed, controls: true } }));
+				if (cd?.content) articleChildren.push(createElement('div', { innerHTML: cd.content }));
+				createElement('article', { children: articleChildren, parent: this.#dialog });
 			}
 		}
 
 		if ('gallery' in p && p.gallery?.length) {
 			this.#dialog.classList.add('gallery');
-			const el = document.createElement('micrio-swipe-gallery') as MicrioElement;
-			el.setProps({ gallery: p.gallery, galleryStart: p.galleryStart, lang: $_lang });
-			this.#dialog.appendChild(el);
+			createElement('micrio-swipe-gallery', {
+				setProps: { gallery: p.gallery, galleryStart: p.galleryStart, lang: $_lang },
+				parent: this.#dialog
+			});
 		}
 
 		if ('marker' in p && p.marker) {
@@ -168,29 +165,32 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 			const hasPopoverContent = !!(content && content.body) || (hasImages && !!(p.contentPage?.i18n?.[$_lang]?.embed));
 
 			if (content?.embedUrl) {
-				const media = document.createElement('micrio-media') as MicrioElement;
-				media.setProps({
-					src: content.embedUrl, uuid: marker.id,
-					figcaption: content.embedDescription,
-					controls: true, autoplay: marker.embedAutoPlay
+				createElement('micrio-media', {
+					setProps: {
+						src: content.embedUrl, uuid: marker.id,
+						figcaption: content.embedDescription,
+						controls: true, autoplay: marker.embedAutoPlay
+					},
+					parent: this.#dialog
 				});
-				this.#dialog.appendChild(media);
 			} else if (hasImages) {
-				const el = document.createElement('micrio-swipe-gallery') as MicrioElement;
-				el.setProps({ gallery: marker.images, lang: $_lang });
-				this.#dialog.appendChild(el);
+				createElement('micrio-swipe-gallery', {
+					setProps: { gallery: marker.images, lang: $_lang },
+					parent: this.#dialog
+				});
 			}
 
 			if (hasPopoverContent) {
-				const mc = document.createElement('micrio-marker-content') as MicrioElement;
-				mc.setProps({
-					marker,
-					noEmbed: true,
-					noGallery: true,
-					noImages: !content || !content.embedUrl,
-					onclose: advanceOrClose
+				createElement('micrio-marker-content', {
+					setProps: {
+						marker,
+						noEmbed: true,
+						noGallery: true,
+						noImages: !content || !content.embedUrl,
+						onclose: advanceOrClose
+					},
+					parent: this.#dialog
 				});
-				this.#dialog.appendChild(mc);
 			}
 		}
 

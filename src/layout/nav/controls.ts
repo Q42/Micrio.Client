@@ -5,6 +5,7 @@ import type { Unsubscriber } from '$core/store';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
 import { once } from '$utils/store';
+import { createElement } from '$utils/dom';
 import { languageNames } from '$core/i18n/locale';
 
 export interface ControlsProps {
@@ -163,30 +164,26 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#build() {
 		if (this.#built) return;
 
-		this.#aside1 = document.createElement('aside');
-		this.#aside1.addEventListener('pointerover', () => {
-			(this.getMicrio())?.state.ui.hover.set(true);
+		this.#aside1 = createElement('aside', {
+			events: {
+				pointerover: () => { (this.getMicrio())?.state.ui.hover.set(true); },
+				pointerout: (e: Event) => {
+					const pe = e as PointerEvent;
+					if (!pe.currentTarget || !(pe.currentTarget as HTMLElement).contains(pe.relatedTarget as Node))
+						(this.getMicrio())?.state.ui.hover.set(false);
+				},
+				focusin: () => { (this.getMicrio())?.state.ui.hover.set(true); },
+				focusout: (e: Event) => {
+					const fe = e as FocusEvent;
+					if (!(fe.currentTarget as HTMLElement).contains(fe.relatedTarget as Node))
+						(this.getMicrio())?.state.ui.hover.set(false);
+				}
+			},
+			parent: this
 		});
-		this.#aside1.addEventListener('pointerout', (e) => {
-			if (!e.currentTarget || !(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
-				(this.getMicrio())?.state.ui.hover.set(false);
-		});
-		this.#aside1.addEventListener('focusin', () => {
-			(this.getMicrio())?.state.ui.hover.set(true);
-		});
-		this.#aside1.addEventListener('focusout', (e) => {
-			if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
-				(this.getMicrio())?.state.ui.hover.set(false);
-		});
-		this.appendChild(this.#aside1);
 
-		this.#aside2 = document.createElement('aside');
-		this.#aside2.className = 'primary';
-		this.appendChild(this.#aside2);
-
-		this.#aside3 = document.createElement('aside');
-		this.#aside3.className = 'grid-close';
-		this.appendChild(this.#aside3);
+		this.#aside2 = createElement('aside', { className: 'primary', parent: this });
+		this.#aside3 = createElement('aside', { className: 'grid-close', parent: this });
 
 		this.#built = true;
 	}
@@ -230,8 +227,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (showMute) {
 			if (!this.#muteBtn?.isConnected) {
 				this.#muteBtn?.remove();
-				this.#muteBtn = document.createElement('micrio-button');
-				this.#muteBtn.className = 'ctrl-mute';
+				this.#muteBtn = createElement('micrio-button', { className: 'ctrl-mute' });
 				this.#aside1.prepend(this.#muteBtn);
 			}
 			this.#muteBtn.setProps({
@@ -247,15 +243,14 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (hasCultures && !onlyFullscreen) {
 			if (!this.#langMenu?.isConnected) {
 				this.#langMenu?.remove();
-				this.#langMenu = document.createElement('menu');
-				this.#langMenu.className = 'ctrl-lang';
-				this.#langMenu.setAttribute('tabindex', '0');
-				const trigger = document.createElement('micrio-button');
-				trigger.className = 'ctrl-lang-trigger';
-				this.#langMenu.appendChild(trigger);
-				const items = document.createElement('div');
-				items.className = 'lang-items';
-				this.#langMenu.appendChild(items);
+				this.#langMenu = createElement('menu', {
+					className: 'ctrl-lang',
+					attrs: { tabindex: '0' },
+					children: [
+						createElement('micrio-button', { className: 'ctrl-lang-trigger' }),
+						createElement('div', { className: 'lang-items' })
+					]
+				});
 				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
 			}
 			const trigger = this.#langMenu.querySelector('.ctrl-lang-trigger') as MicrioElement;
@@ -268,13 +263,14 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 				items.innerHTML = '';
 
 				for (const l of cultures) {
-					const b = document.createElement('micrio-button') as MicrioElement;
-					b.setProps({
-						title: languageNames?.of(l) ?? l,
-						onclick: () => { this.#setLang(l); }
+					createElement('micrio-button', {
+						setProps: {
+							title: languageNames?.of(l) ?? l,
+							onclick: () => { this.#setLang(l); }
+						},
+						children: [l.toUpperCase()],
+						parent: items as HTMLElement
 					});
-					b.appendChild(document.createTextNode(l.toUpperCase()));
-					items.appendChild(b);
 				}
 			}
 			// Update active state on all language buttons
@@ -291,8 +287,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (hasSocial && !onlyFullscreen) {
 			if (!this.#shareBtn?.isConnected) {
 				this.#shareBtn?.remove();
-				this.#shareBtn = document.createElement('micrio-button');
-				this.#shareBtn.className = 'ctrl-share';
+				this.#shareBtn = createElement('micrio-button', { className: 'ctrl-share' });
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
 			this.#shareBtn.setProps({ type: 'share', title: $i18n.share, onclick: this.#share });
@@ -307,14 +302,12 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (showGroup) {
 			if (!this.#group1?.isConnected) {
 				this.#group1?.remove();
-				this.#group1 = document.createElement('micrio-button-group');
-				this.#aside1.appendChild(this.#group1);
+				this.#group1 = createElement('micrio-button-group', { parent: this.#aside1 });
 			}
 			if (zoomVisible) {
 				if (!this.#zoomGroup?.isConnected) {
 					this.#zoomGroup?.remove();
-					this.#zoomGroup = document.createElement('micrio-zoom-buttons');
-					this.#zoomGroup.className = 'ctrl-zoom';
+					this.#zoomGroup = createElement('micrio-zoom-buttons', { className: 'ctrl-zoom' });
 					if (this.#fsGroup?.isConnected) this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);
 					else this.#group1.appendChild(this.#zoomGroup);
 				}
@@ -324,9 +317,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			if (hasFullscreen) {
 				if (!this.#fsGroup?.isConnected) {
 					this.#fsGroup?.remove();
-					this.#fsGroup = document.createElement('micrio-fullscreen');
-					this.#fsGroup.className = 'ctrl-fs';
-					this.#group1.appendChild(this.#fsGroup);
+					this.#fsGroup = createElement('micrio-fullscreen', { className: 'ctrl-fs', parent: this.#group1 });
 				}
 				this.#fsGroup.setProps({ el: micrio });
 			} else if (this.#fsGroup?.isConnected) {
@@ -341,13 +332,15 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (hasSecondary) {
 			if (!this.#aside2?.isConnected) {
 				this.#aside2?.remove();
-				this.#aside2 = document.createElement('aside');
-				this.#aside2.className = 'primary';
-				const group2 = document.createElement('micrio-button-group');
-				const zoom2 = document.createElement('micrio-zoom-buttons');
-				group2.appendChild(zoom2);
-				this.#aside2.appendChild(group2);
-				this.appendChild(this.#aside2);
+				this.#aside2 = createElement('aside', {
+					className: 'primary',
+					children: [
+						createElement('micrio-button-group', {
+							children: [createElement('micrio-zoom-buttons')]
+						})
+					],
+					parent: this
+				});
 			}
 			this.#aside2.classList.toggle('portrait', this.#secondaryPortrait);
 		} else if (this.#aside2?.isConnected) {
@@ -359,12 +352,15 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (showGridClose) {
 			if (!this.#aside3?.isConnected) {
 				this.#aside3?.remove();
-				this.#aside3 = document.createElement('aside');
-				this.#aside3.className = 'grid-close';
-				const btn = document.createElement('micrio-button') as MicrioElement;
-				btn.setProps({ type: 'close', title: $i18n.close, onclick: this.#gridBack });
-				this.#aside3.appendChild(btn);
-				this.appendChild(this.#aside3);
+				this.#aside3 = createElement('aside', {
+					className: 'grid-close',
+					children: [
+						createElement('micrio-button', {
+							setProps: { type: 'close', title: $i18n.close, onclick: this.#gridBack }
+						})
+					],
+					parent: this
+				});
 			}
 		} else if (this.#aside3?.isConnected) {
 			this.#aside3.remove();

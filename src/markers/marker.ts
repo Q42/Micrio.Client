@@ -4,6 +4,7 @@ import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
 import { getSpaceVector } from '$utils/space';
 import { after } from '$utils/store';
+import { createElement } from '$utils/dom';
 
 export interface MarkerProps {
 	marker: Models.ImageData.Marker;
@@ -252,35 +253,47 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		if (this.#matrix) this.classList.add('mat3d');
 
 		if (!marker.htmlElement && !marker.noMarker) {
-			const btn = document.createElement('button');
-			if (!noToolTips && !cluster) btn.title = content?.label || content?.title || '';
-			btn.id = marker.id;
-			btn.addEventListener('click', click);
-			btn.addEventListener('focus', focus);
-			btn.addEventListener('blur', () => clearTimeout(this.#fto));
-			btn.addEventListener('mouseenter', () => micrio.state.markerHoverId.set(marker.id));
-			btn.addEventListener('mouseleave', () => micrio.state.markerHoverId.set(undefined));
-			btn.setAttribute('data-scroll-through', '');
+			const btn = createElement('button', {
+				props: {
+					...(noToolTips || cluster ? {} : { title: content?.label || content?.title || '' }),
+					id: marker.id
+				},
+				attrs: { 'data-scroll-through': '' },
+				events: {
+					click,
+					focus,
+					blur: () => clearTimeout(this.#fto),
+					mouseenter: () => micrio.state.markerHoverId.set(marker.id),
+					mouseleave: () => micrio.state.markerHoverId.set(undefined)
+				},
+				parent: this
+			});
 
 			if (customIcon) {
-				const img = document.createElement('img');
-				img.src = typeof customIcon == 'string' ? customIcon : customIcon.src;
-				img.alt = '';
-				btn.appendChild(img);
+				createElement('img', {
+					props: {
+						src: typeof customIcon == 'string' ? customIcon : customIcon.src,
+						alt: ''
+					},
+					parent: btn
+				});
 			} else if (icon) {
-				const iconEl = document.createElement('micrio-icon');
-				iconEl.setAttribute('name', icon);
-				btn.appendChild(iconEl);
+				createElement('micrio-icon', {
+					attrs: { name: icon },
+					parent: btn
+				});
 			}
 
 			if (showLabel) {
-				const label = document.createElement('label');
-				label.textContent = content?.label || content?.title || '';
-				label.setAttribute('for', marker.id);
-				label.setAttribute('data-scroll-through', '');
-				btn.appendChild(label);
+				createElement('label', {
+					textContent: content?.label || content?.title || '',
+					attrs: {
+						for: marker.id,
+						'data-scroll-through': ''
+					},
+					parent: btn
+				});
 			}
-			this.appendChild(btn);
 		}
 
 		// Initial position

@@ -1,6 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { IconName } from './icon';
 import type { Models } from '$types/models';
+import { createElement } from '$utils/dom';
 
 export interface ButtonProps {
 	type?: IconName;
@@ -63,9 +64,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		const tag = isAnchor ? 'a' : 'button';
 		if (!el || el.tagName.toLowerCase() !== tag) {
 			if (el) el.remove();
-			el = document.createElement(tag) as HTMLElement;
-			el.className = 'micrio-button';
-			this.appendChild(el);
+			el = createElement(tag, { className: 'micrio-button', parent: this });
 			this.#rootEl = el;
 		}
 
@@ -116,14 +115,9 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		if (existingIcon) existingIcon.remove();
 
 		if (p.type) {
-			const icon = document.createElement('micrio-icon');
-			icon.setAttribute('name', p.type);
-			el.appendChild(icon);
+			createElement('micrio-icon', { attrs: { name: p.type }, parent: el });
 		} else if (p.icon) {
-			const img = document.createElement('img');
-			img.src = p.icon.src;
-			img.alt = 'Icon';
-			el.appendChild(img);
+			createElement('img', { props: { src: p.icon.src, alt: 'Icon' }, parent: el });
 		}
 
 		// Move light-DOM children into the button as text
@@ -138,10 +132,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		const existingText = el.querySelector(':scope > .micrio-button-text');
 		if (text) {
 			if (!existingText) {
-				const span = document.createElement('span');
-				span.className = 'micrio-button-text';
-				span.textContent = text;
-				el.appendChild(span);
+				createElement('span', { className: 'micrio-button-text', textContent: text, parent: el });
 			} else {
 				existingText.textContent = text;
 			}

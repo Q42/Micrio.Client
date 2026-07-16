@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
@@ -87,14 +88,15 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 
 	#renderButton() {
 		this.replaceChildren();
-		const btn = document.createElement('micrio-button') as MicrioElement;
 		const $i18n = get(i18n);
-		btn.setProps({
-			type: this.#isActive ? 'minimize' : 'maximize',
-			title: $i18n.fullscreenToggle,
-			onclick: this.#toggle
+		createElement('micrio-button', {
+			setProps: {
+				type: this.#isActive ? 'minimize' : 'maximize',
+				title: $i18n.fullscreenToggle,
+				onclick: this.#toggle
+			},
+			parent: this,
 		});
-		this.appendChild(btn);
 	}
 
 	onDestroy() {

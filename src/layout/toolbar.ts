@@ -3,6 +3,7 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { once } from '$utils/store';
+import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 import './menu';
 import '$ui/button';
@@ -92,67 +93,71 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 
 		this.replaceChildren();
 
-		const menu = document.createElement('menu');
-		menu.className = 'micrio-toolbar';
-		menu.classList.toggle('shown', !hidden && this.#shown);
+		const menu = createElement('menu', {
+			className: 'micrio-toolbar' + (!hidden && this.#shown ? ' shown' : '')
+		});
 
 		if (mainPages) {
 			for (const page of mainPages) {
-				const child = document.createElement('micrio-menu') as MicrioElement;
-				child.setProps({ menu: page, originalId, onclose: () => { if (this.#isMobile) this.#shown = false; } });
-				menu.appendChild(child);
+				createElement('micrio-menu', {
+					setProps: { menu: page, originalId, onclose: () => { if (this.#isMobile) this.#shown = false; } },
+					parent: menu
+				});
 			}
 		}
 
 		if (hasMarkerTours) {
-			const child = document.createElement('micrio-menu') as MicrioElement;
-			child.setProps({
-				onclose: () => { if (this.#isMobile) this.#shown = false; },
-				menu: {
-					id: 'marker-tours',
-					i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours } },
-					children: markerTours.map((t) => ({
-						id: t.id ?? crypto.randomUUID(),
-						i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
-						action: () => { t.initialStep = 0; micrioState.tour.set(t); }
-					}))
-				}
+			createElement('micrio-menu', {
+				setProps: {
+					onclose: () => { if (this.#isMobile) this.#shown = false; },
+					menu: {
+						id: 'marker-tours',
+						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours } },
+						children: markerTours.map((t) => ({
+							id: t.id ?? crypto.randomUUID(),
+							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
+							action: () => { t.initialStep = 0; micrioState.tour.set(t); }
+						}))
+					}
+				},
+				parent: menu
 			});
-			menu.appendChild(child);
 		}
 
 		if (hasVideoTours) {
-			const child = document.createElement('micrio-menu') as MicrioElement;
-			child.setProps({
-				onclose: () => { if (this.#isMobile) this.#shown = false; },
-				menu: {
-					id: 'video-tours',
-					i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.videoTours : $i18n.tours } },
-					children: videoTours.map((t: any) => ({
-						id: t.id ?? crypto.randomUUID(),
-						i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
-						action: () => {
-							if (micrio.$current && micrio.$current.id != originalId) micrio.open(originalId);
-							micrioState.tour.set(t);
-						}
-					}))
-				}
+			createElement('micrio-menu', {
+				setProps: {
+					onclose: () => { if (this.#isMobile) this.#shown = false; },
+					menu: {
+						id: 'video-tours',
+						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.videoTours : $i18n.tours } },
+						children: videoTours.map((t: any) => ({
+							id: t.id ?? crypto.randomUUID(),
+							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
+							action: () => {
+								if (micrio.$current && micrio.$current.id != originalId) micrio.open(originalId);
+								micrioState.tour.set(t);
+							}
+						}))
+					}
+				},
+				parent: menu
 			});
-			menu.appendChild(child);
 		}
 
 		this.appendChild(menu);
 		this.syncDisplay?.();
 
 		if (this.#isMobile) {
-			const btn = document.createElement('micrio-button') as MicrioElement;
-			btn.setProps({
-				title: $i18n.menuToggle,
-				type: this.#shown ? 'close' : 'ellipsis-vertical',
-				className: 'toggle transparent' + (this.querySelector('.micrio-toolbar.indent') ? ' indent' : ''),
-				onclick: this.#toggle
+			createElement('micrio-button', {
+				setProps: {
+					title: $i18n.menuToggle,
+					type: this.#shown ? 'close' : 'ellipsis-vertical',
+					className: 'toggle transparent' + (this.querySelector('.micrio-toolbar.indent') ? ' indent' : ''),
+					onclick: this.#toggle
+				},
+				parent: this
 			});
-			this.appendChild(btn);
 		}
 	}
 

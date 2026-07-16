@@ -12,6 +12,7 @@ import { deepCopy } from '$utils/object';
 import { once } from '$utils/store';
 import { tick } from '$core/store';
 import { Enums } from '$core/enums';
+import { createElement } from '$utils/dom';
 
 const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 
@@ -80,7 +81,7 @@ export class Grid {
 	current:MicrioImage[] = [];
 
 	/** The main HTML `<div>` element used to render the CSS grid layout for the clickable overlay. @internal */
-	_grid = document.createElement('div');
+	_grid = createElement('div', { className: 'micrio-grid' });
 
 	/** Map storing references to the HTML `<button>` elements representing each grid item in the overlay. Keyed by image ID. @internal */
 	_buttons:Map<string, HTMLButtonElement> = new Map();
@@ -166,7 +167,6 @@ export class Grid {
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
-		this._grid.className = 'micrio-grid';
 		this.set(image.$info?.grid).then(() => {
 			this.hook();
 			micrio.events.dispatch('grid-load');
@@ -590,7 +590,7 @@ export class Grid {
 		this._grid.style.removeProperty('--scale');
 
 		images.forEach(i => { if(!i.id) return;
-			if(!this._buttons.has(i.id)) this._buttons.set(i.id, document.createElement('button'));
+			if(!this._buttons.has(i.id)) this._buttons.set(i.id, createElement('button'));
 			const tile = this._buttons.get(i.id)!;
 			if(i.size.toString() != '1') {
 				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0]||i.size[1]}`;

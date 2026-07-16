@@ -2,6 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
 import { once } from '$utils/store';
+import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 
 export interface ZoomButtonsProps {
@@ -38,9 +39,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 
 			let btnIn = this.querySelector(':scope > .zb-zoom-in') as MicrioElement;
 			if (!btnIn) {
-				btnIn = document.createElement('micrio-button') as MicrioElement;
-				btnIn.className = 'zb-zoom-in';
-				this.appendChild(btnIn);
+				btnIn = createElement('micrio-button', { className: 'zb-zoom-in', parent: this }) as MicrioElement;
 			}
 			btnIn.setProps({
 				type: 'zoom-in',
@@ -54,9 +53,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 
 			let btnOut = this.querySelector(':scope > .zb-zoom-out') as MicrioElement;
 			if (!btnOut) {
-				btnOut = document.createElement('micrio-button') as MicrioElement;
-				btnOut.className = 'zb-zoom-out';
-				this.appendChild(btnOut);
+				btnOut = createElement('micrio-button', { className: 'zb-zoom-out', parent: this }) as MicrioElement;
 			}
 			btnOut.setProps({
 				type: 'zoom-out',

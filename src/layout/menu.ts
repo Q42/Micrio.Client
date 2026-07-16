@@ -1,5 +1,6 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
+import { createElement, createSvgElement } from '$utils/dom';
 import { writable, get, lazy } from '$core/store';
 import '$ui/icon';
 
@@ -97,7 +98,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 		this.classList.toggle('opened', this.#isOpen(menu));
 		this.setAttribute('data-title', cultureData?.title?.toLowerCase() ?? '');
 
-		const click = (e: MouseEvent) => {
+		const click = (e: Event) => {
 			if (!menu.link) e.preventDefault();
 			this.#action?.();
 			const doClose = !!(this.#isOpen(menu) || this.#action || menu.link);
@@ -106,55 +107,72 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 		};
 
 		if (menu.link) {
-			const a = document.createElement('a');
-			a.className = 'micrio-menu-action';
-			a.href = menu.link;
+			const a = createElement('a', {
+				className: 'micrio-menu-action',
+				props: { href: menu.link },
+				events: { click },
+				children: [
+					createElement('strong', {
+						textContent: cultureData?.title ?? '(Unknown)',
+						children: [
+							createElement('micrio-icon', {
+								attrs: { name: menu.linkTargetBlank ? 'link-ext' : 'link' },
+								style: { opacity: '.75' }
+							})
+						]
+					})
+				],
+				parent: this
+			});
 			if (menu.linkTargetBlank) a.target = '_blank';
-			a.addEventListener('click', click);
-			const strong = document.createElement('strong');
-			strong.textContent = cultureData?.title ?? '(Unknown)';
-			const icon = document.createElement('micrio-icon');
-			icon.setAttribute('name', menu.linkTargetBlank ? 'link-ext' : 'link');
-			icon.style.opacity = '.75';
-			strong.appendChild(icon);
-			a.appendChild(strong);
-			this.appendChild(a);
 		} else {
-			const btn = document.createElement('button');
-			btn.className = 'micrio-menu-action';
-			btn.type = 'button';
-			btn.addEventListener('click', click);
-			const strong = document.createElement('strong');
-			// Render menu icon if provided (tuple [width, height, svgPath])
-			if (menu.icon) {
-				const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-				svg.setAttribute('viewBox', `0 0 ${menu.icon[0]} ${menu.icon[1]}`);
-				svg.setAttribute('fill', 'currentColor');
-				svg.style.cssText = 'height:1em;vertical-align:-.125em;margin-right:10px';
-				const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-				path.setAttribute('d', menu.icon[2]);
-				svg.appendChild(path);
-				btn.appendChild(svg);
-			}
-			strong.textContent = cultureData?.title ?? '(Unknown)';
+			const strongChildren: (Node | string | number | false | null | undefined)[] = [
+				cultureData?.title ?? '(Unknown)'
+			];
 			if (menu.children?.length) {
-				const icon = document.createElement('micrio-icon');
-				icon.setAttribute('name', 'chevron-down');
-				strong.appendChild(icon);
+				strongChildren.push(
+					createElement('micrio-icon', { attrs: { name: 'chevron-down' } })
+				);
 			}
-			btn.appendChild(strong);
-			this.appendChild(btn);
+
+			const btnChildren: (Node | string | number | false | null | undefined)[] = [
+				createElement('strong', { children: strongChildren })
+			];
+
+			if (menu.icon) {
+				btnChildren.unshift(
+					createSvgElement('svg', {
+						attrs: {
+							viewBox: `0 0 ${menu.icon[0]} ${menu.icon[1]}`,
+							fill: 'currentColor'
+						},
+						style: 'height:1em;vertical-align:-.125em;margin-right:10px',
+						children: [
+							createSvgElement('path', { attrs: { d: menu.icon[2] } })
+						]
+					})
+				);
+			}
+
+			createElement('button', {
+				className: 'micrio-menu-action',
+				props: { type: 'button' },
+				events: { click },
+				children: btnChildren,
+				parent: this
+			});
 		}
 
 		if (menu.children?.length) {
-			const div = document.createElement('div');
-			div.className = 'items';
-			for (const child of menu.children) {
-				const childEl = document.createElement('micrio-menu') as MicrioMenu;
-				childEl.setProps({ menu: child, originalId, onclose: close });
-				div.appendChild(childEl);
-			}
-			this.appendChild(div);
+			createElement('div', {
+				className: 'items',
+				parent: this,
+				children: menu.children.map(child =>
+					createElement('micrio-menu', {
+						setProps: { menu: child, originalId, onclose: close }
+					})
+				)
+			});
 		}
 	}
 }

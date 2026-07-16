@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 
 export interface ErrorProps {
@@ -24,17 +25,13 @@ micrio-error svg.micrio-icon{vertical-align:middle;height:24px;width:24px;fill:v
 
 	#render() {
 		this.replaceChildren();
-		const div = document.createElement('div');
-
-		const icon = document.createElement('micrio-icon');
-		icon.setAttribute('name', 'error');
-		div.appendChild(icon);
-
-		const span = document.createElement('span');
-		span.textContent = this.#props.message ?? 'An unknown error has occurred';
-		div.appendChild(span);
-
-		this.appendChild(div);
+		createElement('div', {
+			parent: this,
+			children: [
+				createElement('micrio-icon', { attrs: { name: 'error' } }),
+				createElement('span', { textContent: this.#props.message ?? 'An unknown error has occurred' })
+			]
+		});
 	}
 }
 

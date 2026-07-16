@@ -1,3 +1,4 @@
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 
 export class MicrioLogo extends MicrioElement {
@@ -22,13 +23,12 @@ micrio-logo a.loading::after{animation:micrio-logo-spin .5s infinite ease-out}
 
 		const target = !/micr\.io/.test(location.origin) || self.parent != self ? '_blank' : undefined;
 
-		this.#a = document.createElement('a');
-		this.#a.rel = 'noopener';
-		this.#a.href = 'https://micr.io/';
-		this.#a.title = 'Powered by Micrio';
-		this.#a.setAttribute('aria-label', 'Micrio homepage');
+		this.#a = createElement('a', {
+			props: { rel: 'noopener', href: 'https://micr.io/', title: 'Powered by Micrio' },
+			attrs: { 'aria-label': 'Micrio homepage' },
+			parent: this
+		});
 		if (target) this.#a.target = target;
-		this.appendChild(this.#a);
 
 		this.addCleanup(micrio.loading.subscribe(l => {
 			clearTimeout(this.#loadingTimer);

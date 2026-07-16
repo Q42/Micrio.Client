@@ -2,7 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { DataLoader } from '$utils/dataLoader';
 import { parseTime } from '$utils/time';
-import { afterFrame } from '$utils/dom';
+import { afterFrame, createElement } from '$utils/dom';
 import '$media/media';
 
 export interface SerialTourProps {
@@ -69,19 +69,21 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 		this.#built = true;
 
 		if (this.#props.tour.printChapters) {
-			const ol = document.createElement('ol');
-			ol.className = 'chapters';
+			const ol = createElement('ol', { className: 'chapters' });
 			this.#stepInfo.forEach((si, i) => {
 				const marker = DataLoader.getStepMarker(si);
 				const title = this.#getTitle(marker);
 				if (title) {
-					const li = document.createElement('li');
-					li.dataset.idx = String(i);
-					const btn = document.createElement('button');
-					btn.textContent = title;
-					btn.addEventListener('click', () => this.#goto(i));
-					li.appendChild(btn);
-					ol.appendChild(li);
+					createElement('li', {
+						dataset: { idx: String(i) },
+						parent: ol,
+						children: [
+							createElement('button', {
+								textContent: title,
+								events: { click: () => this.#goto(i) }
+							})
+						]
+					});
 				}
 			});
 			if (ol.children.length) this.appendChild(ol);
@@ -120,20 +122,21 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 			const audio = marker.videoTour.i18n?.[lang]?.audio ?? marker.i18n?.[lang]?.audio;
 
 			const prevPaused = false;
-			const media = document.createElement('micrio-media') as MicrioElement;
-			media.setProps({
-				tour: marker.videoTour,
-				src: audio?.src,
-				image: micrio.$current,
-				controls: true,
-				autoplay: !prevPaused,
-				onended: () => this.#nextStep(),
-				onclose: close,
-				hasAudio: this.#stepInfo.some(s => s.duration > 0),
-				fullscreenEl: micrio,
-				getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`
-			});
-			this.append(media);
+			const media = createElement('micrio-media', {
+				parent: this,
+				setProps: {
+					tour: marker.videoTour,
+					src: audio?.src,
+					image: micrio.$current,
+					controls: true,
+					autoplay: !prevPaused,
+					onended: () => this.#nextStep(),
+					onclose: close,
+					hasAudio: this.#stepInfo.some(s => s.duration > 0),
+					fullscreenEl: micrio,
+					getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`
+				}
+			}) as MicrioElement;
 			this.#mediaEl = media;
 			await afterFrame();
 			this.#mediaEl!.querySelector('figure')?.classList.add('videotour');
@@ -183,19 +186,18 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 
 		holder.querySelector('.bars')?.remove();
 
-		const barsDiv = document.createElement('div');
-		barsDiv.className = 'bars';
+		const barsDiv = createElement('div', { className: 'bars' });
 		this.#stepInfo.forEach((si, i) => {
-			const bar = document.createElement('div');
-			bar.className = 'bar';
-			bar.dataset.idx = String(i);
 			const marker = DataLoader.getStepMarker(si);
-			bar.title = this.#getTitle(marker) ?? '';
-			bar.style.width = `${(si.duration / (this.#duration || 1)) * 100}%`;
-			bar.addEventListener('click', () => this.#goto(i));
-			bar.setAttribute('role', 'progressbar');
-			bar.setAttribute('tabindex', '0');
-			barsDiv.appendChild(bar);
+			createElement('div', {
+				className: 'bar',
+				dataset: { idx: String(i) },
+				props: { title: this.#getTitle(marker) ?? '' },
+				style: { width: `${(si.duration / (this.#duration || 1)) * 100}%` },
+				events: { click: () => this.#goto(i) },
+				attrs: { role: 'progressbar', tabindex: '0' },
+				parent: barsDiv
+			});
 		});
 		holder.prepend(barsDiv);
 	}

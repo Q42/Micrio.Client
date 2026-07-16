@@ -1,5 +1,6 @@
 import { MicrioElement } from '$core/component';
 import { parseTime } from '$utils/time';
+import { createElement } from '$utils/dom';
 
 export interface ProgressBarProps {
 	currentTime?: number;
@@ -43,21 +44,18 @@ micrio-progress-bar .time{display:block;font-size:90%;min-width:50px;text-align:
 			return;
 		}
 
-		const container = document.createElement('div');
-		container.className = 'container';
-		container.style.setProperty('--progress', `${percent}%`);
-		container.style.setProperty('--time', `'${timeText}'`);
-		container.addEventListener('click', e => e.stopPropagation());
-		container.addEventListener('keydown', e => e.stopPropagation());
+		const container = createElement('div', {
+			className: 'container',
+			style: `--progress:${percent}%;--time:'${timeText}'`,
+			events: {
+				click: e => e.stopPropagation(),
+				keydown: e => e.stopPropagation(),
+			},
+		});
 
-		const bars = document.createElement('div');
-		bars.className = 'bars';
-		container.appendChild(bars);
+		createElement('div', { className: 'bars', parent: container });
 
-		const time = document.createElement('div');
-		time.className = 'time';
-		time.textContent = timeText;
-		container.appendChild(time);
+		createElement('div', { className: 'time', textContent: timeText, parent: container });
 
 		this.appendChild(container);
 	}

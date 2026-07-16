@@ -5,7 +5,7 @@ import type { MicrioImage } from '$core/image';
 import type { Engine } from '$render/engine';
 
 import { Browser } from '$utils/browser';
-import { loadScript } from '$utils/dom';
+import { createElement, loadScript } from '$utils/dom';
 import { tick } from '$core/store';
 
 /**
@@ -127,12 +127,15 @@ export class GLEmbedVideo {
 		}
 
 		// Create video element
-		this._vid = document.createElement('video');
-		this._vid.crossOrigin = 'anonymous'; // Needed for WebGL texture usage
-		this._vid.playsInline = true; // Important for mobile playback
-		this._vid.width = this.embed.width!;
-		this._vid.height = this.embed.height!;
-		this._vid.muted = this.embed.video.muted; // Apply muted setting
+		this._vid = createElement('video', {
+			props: {
+				crossOrigin: 'anonymous', // Needed for WebGL texture usage
+				playsInline: true, // Important for mobile playback
+				width: this.embed.width!,
+				height: this.embed.height!,
+				muted: this.embed.video.muted, // Apply muted setting
+			},
+		});
 
 		this.hook(); // Attach event listeners
 

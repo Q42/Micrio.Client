@@ -3,6 +3,7 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { clone } from '$utils/object';
+import { createElement } from '$utils/dom';
 import './marker';
 import './waypoint';
 
@@ -68,10 +69,11 @@ micrio-markers.is360.inactive{opacity:0}`;
 					const id = l[0] == image.id ? l[1] : l[0];
 					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${id}"]`) as MicrioElement;
 					if (!el) {
-						el = document.createElement('micrio-waypoint') as MicrioElement;
-						el.setAttribute('data-target-id', id);
-						el.setProps({ targetId: id, settings: l[2]?.[image.id], image });
-						this.appendChild(el);
+						el = createElement('micrio-waypoint', {
+							attrs: { 'data-target-id': id },
+							setProps: { targetId: id, settings: l[2]?.[image.id], image },
+							parent: this
+						}) as unknown as MicrioElement;
 					}
 				}
 			} else {
@@ -91,10 +93,11 @@ micrio-markers.is360.inactive{opacity:0}`;
 				for (const m of filtered) {
 					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${m.id}"]`) as MicrioElement;
 					if (!el) {
-						el = document.createElement('micrio-marker') as MicrioElement;
-						el.setAttribute('data-marker-id', m.id);
-						el.setProps({ marker: m, image, ...(m.noMarker ? { forceHidden: true } : {}) });
-						this.appendChild(el);
+						el = createElement('micrio-marker', {
+							attrs: { 'data-marker-id': m.id },
+							setProps: { marker: m, image, ...(m.noMarker ? { forceHidden: true } : {}) },
+							parent: this
+						}) as unknown as MicrioElement;
 					}
 				}
 			} else {
