@@ -81,14 +81,14 @@ micrio-markers.is360.inactive{opacity:0}`;
 			// Markers — diff-based: keep existing, only add/remove what changed
 			if ($visible) {
 				const $_lang = get(micrio._lang);
-				const expected = new Set($visible.map(m => m.id));
+				const filtered = $visible.filter(m => !m.i18n || m.i18n[$_lang]);
+				const expected = new Set(filtered.map(m => m.id));
 
 				for (const el of this.querySelectorAll(':scope > micrio-marker')) {
 					if (!expected.has(el.getAttribute('data-marker-id') ?? '')) el.remove();
 				}
 
-				for (const m of $visible) {
-					if (m.i18n && !m.i18n[$_lang]) continue;
+				for (const m of filtered) {
 					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${m.id}"]`) as MicrioElement;
 					if (!el) {
 						el = document.createElement('micrio-marker') as MicrioElement;
