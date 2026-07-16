@@ -132,7 +132,7 @@ export class Canvas {
 		if(c.width == width && c.height == height && c.ratio == ratio && c.scale == scale) return;
 
 		// Apply perspective CSS if 360 content has been shown
-		if(this.hasPerspective) this.micrio.style.perspective = height / 2 + 'px';
+		if(this.hasPerspective && this.micrio._ui) this.micrio._ui.style.perspective = height / 2 + 'px';
 
 		// Update viewport state object
 		c.width = width;
