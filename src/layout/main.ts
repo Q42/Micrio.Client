@@ -322,7 +322,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			const currentPopupIds = new Set<string>();
 			for (const img of visible) {
 				const m = get(img.state.marker);
-				if (m && typeof m != 'string') {
+				if (m && typeof m != 'string' && m.popupType !== 'popover') {
 					const key = 'popup-' + img.id;
 					currentPopupIds.add(key);
 					const existing = this.#elements.get(key) as MicrioElement | undefined;

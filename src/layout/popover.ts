@@ -51,7 +51,13 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 		if (!micrio) return;
 
 		this.#dialog = document.createElement('dialog');
-		this.#dialog.addEventListener('close', () => micrio.state.popover.set(undefined));
+		this.#dialog.addEventListener('close', () => {
+			const p = this.#props.popover;
+			if (p && 'marker' in p && p.marker && p.image?.state?.marker) {
+				p.image.state.marker.set(undefined);
+			}
+			micrio.state.popover.set(undefined);
+		});
 		this.#dialog.addEventListener('click', (e) => {
 			if (e.target === this.#dialog) micrio.state.popover.set(undefined);
 		});
@@ -170,7 +176,9 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 				});
 				this.#dialog.appendChild(media);
 			} else if (hasImages) {
-				// TODO: render gallery when ported
+				const el = document.createElement('micrio-swipe-gallery') as MicrioElement;
+				el.setProps({ gallery: marker.images, lang: $_lang });
+				this.#dialog.appendChild(el);
 			}
 
 			if (hasPopoverContent) {
