@@ -1,6 +1,7 @@
 import { Browser } from '$utils/browser';
 import { eventPassive, eventPassiveCapture, type EventContext } from './shared';
 import type { DragHandler } from './drag';
+import { pinchStart, pinchMove, pinchStop, restartPanning } from './pinch-shared';
 
 /**
  * Touch pinch event handler module (iOS).
@@ -36,10 +37,8 @@ export class PinchHandler {
 	start = (e: TouchEvent | Event): void => {
 		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
 
-		// Ignore if twoFingerPan is enabled and less than two touches
 		if (this.ctx.isTwoFingerPan() && e.touches.length < 2) return;
 
-		// If already pinching or not exactly two touches, stop any existing pinch
 		if (this.ctx.isPinching() || e.touches.length != 2) {
 			this.stop(e as TouchEvent);
 			return;
@@ -47,33 +46,15 @@ export class PinchHandler {
 
 		e.stopPropagation();
 
-		// Stop panning if it was active before pinch started
-		this.ctx.vars.pinch.wasPanning = this.ctx.isPanning();
-		this.dragHandler.stop(undefined, false, true);
-
 		const t = e.touches;
 
-		this.ctx.setPinching(true);
+		this.ctx.vars.pinch.image = this.ctx.getImage({ x: t[0].clientX, y: t[0].clientY });
+		this.ctx.vars.pinch.sDst = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 
-		// Add move/end listeners to the window
 		self.addEventListener('touchmove', this.move, eventPassiveCapture);
 		self.addEventListener('touchend', this.stop, eventPassiveCapture);
 
-		this.ctx.micrio.setAttribute('data-pinching', '');
-
-		// Store target image and initial pinch distance
-		this.ctx.vars.pinch.image = this.ctx.getImage({ x: t[0].clientX, y: t[0].clientY });
-		this.ctx.vars.pinch.sDst = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-		this.ctx.setPinchFactor(undefined);
-
-		// Notify engine pinch started
-		if (this.ctx.vars.pinch.image) {
-			this.ctx.micrio.engine.pinchStart(this.ctx.vars.pinch.image.ptr);
-		}
-		this.ctx.micrio.engine.render();
-
-		this.ctx.dispatch('pinchstart');
-		if (this.ctx.isTwoFingerPan()) this.ctx.dispatch('panstart');
+		pinchStart(this.ctx, this.dragHandler);
 	}
 
 	/**
@@ -85,26 +66,10 @@ export class PinchHandler {
 		const t = e.touches;
 		if (t?.length < 2) return;
 
-		// Get coordinates of the two touch points
 		const coo = { x: t[0].clientX, y: t[0].clientY };
 		const coo2 = { x: t[1].clientX, y: t[1].clientY };
-		const v = this.ctx.vars.pinch;
-		const i = v.image;
-		if (!i) return;
 
-		// Adjust coordinates if pinching on a passive split-screen image
-		if (i?.opts.secondaryTo && i.opts.isPassive && i.opts.area) {
-			const dX = i.opts.area[0] * this.ctx.micrio.offsetWidth;
-			const dY = i.opts.area[1] * this.ctx.micrio.offsetHeight;
-			coo.x -= dX; coo2.x -= dX;
-			coo.y -= dY; coo2.y -= dY;
-		}
-
-		// Calculate current pinch factor relative to start distance
-		this.ctx.setPinchFactor(Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) / v.sDst);
-
-		// Notify engine of pinch movement
-		this.ctx.micrio.engine.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+		pinchMove(this.ctx, coo, coo2);
 	}
 
 	/**
@@ -112,32 +77,10 @@ export class PinchHandler {
 	 * @param e The TouchEvent or MouseEvent.
 	 */
 	stop = (e: MouseEvent | TouchEvent): void => {
-		if (!this.ctx.isPinching()) return;
-		this.ctx.setPinching(false);
+		pinchStop(this.ctx, e, this.move);
 
-		// Remove listeners
-		self.removeEventListener('touchmove', this.move, eventPassiveCapture);
-		self.removeEventListener('touchend', this.stop, eventPassiveCapture);
-
-		this.ctx.micrio.removeAttribute('data-pinching');
-
-		// Notify engine pinch stopped
-		const i = this.ctx.vars.pinch.image;
-		if (i) {
-			this.ctx.micrio.engine.pinchStop(i.ptr, performance.now());
-			this.ctx.micrio.engine.render();
-		}
-		this.ctx.vars.pinch.image = undefined;
-		this.ctx.setPinchFactor(undefined);
-
-		this.ctx.dispatch('pinchend');
-		if (this.ctx.isTwoFingerPan() && !this.ctx.vars.pinch.wasPanning) {
-			this.ctx.dispatch('panend');
-		}
-
-		// If one finger remains after pinch, potentially restart panning
-		if (e instanceof TouchEvent && e.touches.length == 1) {
-			this.dragHandler.start(e as unknown as PointerEvent, true);
+		if (e instanceof TouchEvent) {
+			restartPanning(this.ctx, this.dragHandler, e.touches);
 		}
 	}
 }

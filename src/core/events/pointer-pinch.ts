@@ -1,5 +1,6 @@
 import { eventPassive, eventPassiveCapture, type EventContext } from './shared';
 import type { DragHandler } from './drag';
+import { pinchStart, pinchMove, pinchStop, restartPanning } from './pinch-shared';
 
 /**
  * Pointer-based pinch event handler module.
@@ -34,43 +35,19 @@ export class PointerPinchHandler {
 	 * @param e The PointerEvent.
 	 */
 	start = (e: PointerEvent): void => {
-		// Only handle touch pointer events (not mouse)
 		if (e.pointerType !== 'touch') return;
 
-		// Track this pointer
 		this.ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-		// If we now have exactly 2 pointers and not already pinching, start pinching
 		if (this.ctx.activePointers.size === 2 && !this.ctx.isPinching()) {
-			// Stop any panning that was active
-			this.ctx.vars.pinch.wasPanning = this.ctx.isPanning();
-			this.dragHandler.stop(undefined, false, true);
-
-			this.ctx.setPinching(true);
-
-			// Add move listener only during pinching (for performance)
-			self.addEventListener('pointermove', this.move, eventPassiveCapture);
-
-			this.ctx.micrio.setAttribute('data-pinching', '');
-
-			// Get the two pointer positions
 			const pointers = Array.from(this.ctx.activePointers.values());
-			const p1 = pointers[0];
-			const p2 = pointers[1];
+			const p1 = pointers[0], p2 = pointers[1];
 
-			// Store target image and initial pinch distance
 			this.ctx.vars.pinch.image = this.ctx.getImage({ x: p1.x, y: p1.y });
 			this.ctx.vars.pinch.sDst = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-			this.ctx.setPinchFactor(undefined);
 
-			// Notify engine pinch started
-			if (this.ctx.vars.pinch.image) {
-				this.ctx.micrio.engine.pinchStart(this.ctx.vars.pinch.image.ptr);
-			}
-			this.ctx.micrio.engine.render();
-
-			this.ctx.dispatch('pinchstart');
-			if (this.ctx.isTwoFingerPan()) this.ctx.dispatch('panstart');
+			self.addEventListener('pointermove', this.move, eventPassiveCapture);
+			pinchStart(this.ctx, this.dragHandler);
 		}
 	}
 
@@ -79,41 +56,17 @@ export class PointerPinchHandler {
 	 * @param e The PointerEvent.
 	 */
 	private move = (e: PointerEvent): void => {
-		// Only handle touch pointer events
 		if (e.pointerType !== 'touch') return;
-
-		// Update this pointer's position (only if we're tracking it)
 		if (!this.ctx.activePointers.has(e.pointerId)) return;
 		this.ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-		// Must be pinching with exactly 2 pointers
 		if (!this.ctx.isPinching() || this.ctx.activePointers.size !== 2) return;
 
 		const pointers = Array.from(this.ctx.activePointers.values());
-		const p1 = pointers[0];
-		const p2 = pointers[1];
+		const coo = { x: pointers[0].x, y: pointers[0].y };
+		const coo2 = { x: pointers[1].x, y: pointers[1].y };
 
-		const v = this.ctx.vars.pinch;
-		const i = v.image;
-		if (!i) return;
-
-		// Prepare coordinates
-		const coo = { x: p1.x, y: p1.y };
-		const coo2 = { x: p2.x, y: p2.y };
-
-		// Adjust coordinates if pinching on a passive split-screen image
-		if (i?.opts.secondaryTo && i.opts.isPassive && i.opts.area) {
-			const dX = i.opts.area[0] * this.ctx.micrio.offsetWidth;
-			const dY = i.opts.area[1] * this.ctx.micrio.offsetHeight;
-			coo.x -= dX; coo2.x -= dX;
-			coo.y -= dY; coo2.y -= dY;
-		}
-
-		// Calculate current pinch factor relative to start distance
-		this.ctx.setPinchFactor(Math.hypot(p1.x - p2.x, p1.y - p2.y) / v.sDst);
-
-		// Notify engine of pinch movement
-		this.ctx.micrio.engine.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+		pinchMove(this.ctx, coo, coo2);
 	}
 
 	/**
@@ -122,48 +75,15 @@ export class PointerPinchHandler {
 	 * @param e The PointerEvent.
 	 */
 	end = (e: PointerEvent): void => {
-		// Only handle touch pointer events
 		if (e.pointerType !== 'touch') return;
 
-		// Always remove this pointer from tracking
 		this.ctx.activePointers.delete(e.pointerId);
 
-		// If we were pinching and now have less than 2 pointers, end the pinch
 		if (this.ctx.isPinching() && this.ctx.activePointers.size < 2) {
-			this.ctx.setPinching(false);
-
-			// Remove move listener (we keep up/cancel listeners for tracking)
 			self.removeEventListener('pointermove', this.move, eventPassiveCapture);
+			pinchStop(this.ctx, e, this.move);
 
-			this.ctx.micrio.removeAttribute('data-pinching');
-
-			// Notify engine pinch stopped
-			const i = this.ctx.vars.pinch.image;
-			if (i) {
-				this.ctx.micrio.engine.pinchStop(i.ptr, performance.now());
-				this.ctx.micrio.engine.render();
-			}
-			this.ctx.vars.pinch.image = undefined;
-			this.ctx.setPinchFactor(undefined);
-
-			this.ctx.dispatch('pinchend');
-			if (this.ctx.isTwoFingerPan() && !this.ctx.vars.pinch.wasPanning) {
-				this.ctx.dispatch('panend');
-			}
-
-			// If one pointer remains, restart panning with that finger
-			if (this.ctx.activePointers.size === 1) {
-				const remainingPointer = Array.from(this.ctx.activePointers.entries())[0];
-				const syntheticEvent = {
-					button: 0,
-					pointerType: 'touch',
-					target: this.ctx.el,
-					clientX: remainingPointer[1].x,
-					clientY: remainingPointer[1].y,
-					pointerId: remainingPointer[0]
-				} as unknown as PointerEvent;
-				this.dragHandler.start(syntheticEvent, true);
-			}
+			restartPanning(this.ctx, this.dragHandler, this.ctx.activePointers);
 		}
 	}
 }
