@@ -1,9 +1,8 @@
 import type { ImageData } from './data';
 import type { Assets } from './assets';
 import type { MicrioImage } from '$core/image';
-
-/** State types */
 export namespace State {
+	/** Popover interface state type */
 	export interface PopoverType {
 		contentPage?: ImageData.Menu;
 		image?: MicrioImage;
@@ -15,7 +14,7 @@ export namespace State {
 	}
 }
 
-/** Canvas types */
+
 export namespace Canvas {
 	export interface ViewRect {
 		width:number;

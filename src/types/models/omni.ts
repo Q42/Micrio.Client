@@ -1,8 +1,7 @@
 import type { Camera } from './camera';
 import type { MicrioImage } from '$core/image';
 import type { Writable } from '$core/store';
-
-/** OmniImage types */
+/** OmniImages */
 export namespace Omni {
 	export interface Frame {
 		id: string;
