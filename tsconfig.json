@@ -24,6 +24,7 @@
 		}
 	},
 	"include": [
+		"src/*.ts",
 		"src/types/**/*",
 		"src/engine/**/*",
 		"src/media/**/*",
