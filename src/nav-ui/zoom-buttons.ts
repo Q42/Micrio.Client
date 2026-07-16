@@ -1,8 +1,8 @@
 import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
-import { once } from '$ts/utils/store';
-import { i18n } from '$ts/i18n/strings';
+import { once } from '$utils/store';
+import { i18n } from '$core/i18n/strings';
 
 export interface ZoomButtonsProps {
 	image?: MicrioImage;

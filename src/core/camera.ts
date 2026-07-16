@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import type TileCanvas from '$engine/canvas/canvas';
 
 import { tick } from '$core/store';
-import { mod, toCenterJSON } from '../ts/utils/math';
+import { mod, toCenterJSON } from '$utils/math';
 import { Enums } from './enums';
 
 /**

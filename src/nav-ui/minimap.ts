@@ -2,8 +2,8 @@ import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
-import { toCenterJSON } from '$ts/utils/math';
-import { afterFrame } from '$ts/utils/dom';
+import { toCenterJSON } from '$utils/math';
+import { afterFrame } from '$utils/dom';
 
 export interface MinimapProps {
 	image: MicrioImage;

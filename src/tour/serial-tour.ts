@@ -1,8 +1,8 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import { DataLoader } from '$ts/utils/dataLoader';
-import { parseTime } from '$ts/utils/time';
-import { afterFrame } from '$ts/utils/dom';
+import { DataLoader } from '$utils/dataLoader';
+import { parseTime } from '$utils/time';
+import { afterFrame } from '$utils/dom';
 import '$media/media';
 
 export interface SerialTourProps {

@@ -2,7 +2,7 @@ import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$core/element';
 
-import { Browser } from '$ts/utils/browser';
+import { Browser } from '$utils/browser';
 import { get, writable } from '$core/store';
 
 /**

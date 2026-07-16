@@ -1,13 +1,13 @@
 import type { Models } from '$types/models';
-import type { Engine } from '../ts/render/engine';
+import type { Engine } from '$render/engine';
 import type { HTMLMicrioElement } from './element';
 
 import { MicrioImage } from './image';
-import { jsonCache } from '../ts/utils/fetch';
+import { jsonCache } from '$utils/fetch';
 import { MicrioError } from '$error/error';
-import { DataLoader } from '../ts/utils/dataLoader';
-import { archive } from '../ts/render/archive';
-import { Grid } from '../ts/nav/grid';
+import { DataLoader } from '$utils/dataLoader';
+import { archive } from '$render/archive';
+import { Grid } from '$core/grid';
 import { writable, get, type Writable } from '$core/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from './globals';
 

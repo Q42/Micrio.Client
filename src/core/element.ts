@@ -2,26 +2,26 @@ import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
 import type { Camera } from './camera';
 
-import { once } from '../ts/utils/store';
-import { deepCopy } from '../ts/utils/object';
-import { fetchJson, jsonCache } from '../ts/utils/fetch';
-import { idIsV5 } from '../ts/utils/id';
+import { once } from '$utils/store';
+import { deepCopy } from '$utils/object';
+import { fetchJson, jsonCache } from '$utils/fetch';
+import { idIsV5 } from '$utils/id';
 import { MicrioError } from '$error/error';
-import { DataLoader } from '../ts/utils/dataLoader';
+import { DataLoader } from '$utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, BASEPATH_V5, DEFAULT_INFO, localStorageKeys } from './globals';
 import { writable, get } from '$core/store';
-import { Engine } from '../ts/render/engine';
-import { WebGL } from '../ts/render/webgl';
-import { Canvas } from '../ts/render/canvas';
-import { Events } from '../ts/events/facade';
+import { Engine } from '$render/engine';
+import { WebGL } from '$render/webgl';
+import { Canvas } from '$render/canvas';
+import { Events } from '$core/events/facade';
 import { MicrioImage } from './image';
 import { State} from './state';
 import { GoogleTag } from './analytics';
-import { Grid } from '../ts/nav/grid';
+import { Grid } from '$core/grid';
 import { Gallery } from './gallery';
 import { tick } from '$core/store';
-import { rtlLanguageCodes } from '../ts/i18n/locale';
-import { i18n, langs } from '../ts/i18n/strings';
+import { rtlLanguageCodes } from '$core/i18n/locale';
+import { i18n, langs } from '$core/i18n/strings';
 
 /**
  * The main Micrio custom HTML element `<micr-io>`.

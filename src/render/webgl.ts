@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from '$core/element';
 
 import { Engine } from './engine';
 import { PostProcessor } from './postprocess';
-import { Browser } from '$ts/utils/browser';
+import { Browser } from '$utils/browser';
 import { MicrioError, ErrorCodes } from '$error/error';
 import { segsX, segsY } from '$engine/globals';
 

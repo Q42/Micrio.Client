@@ -3,8 +3,8 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { once } from '$ts/utils/store';
-import { Browser } from '$ts/utils/browser';
+import { once } from '$utils/store';
+import { Browser } from '$utils/browser';
 import { GLEmbedVideo } from '$media/embedvideo';
 
 export interface EmbedProps {

@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 
 import { get } from '$core/store';
-import { toCenterJSON } from '$ts/utils/math';
+import { toCenterJSON } from '$utils/math';
 
 /**
  * Internal representation of a segment in a video tour timeline.

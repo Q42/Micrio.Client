@@ -1,6 +1,6 @@
 import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
-import { i18n } from '$ts/i18n/strings';
+import { i18n } from '$core/i18n/strings';
 
 export interface FullscreenProps {
 	el: HTMLElement;

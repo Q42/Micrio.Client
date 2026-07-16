@@ -7,7 +7,6 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 export default defineConfig({
 	resolve: {
 		alias: {
-			'$ts': resolve('src/ts'),
 			'$types': resolve('src/types'),
 			'$engine': resolve('src/engine'),
 			'$media': resolve('src/media'),
@@ -21,6 +20,8 @@ export default defineConfig({
 			'$audio': resolve('src/audio'),
 			'$embed': resolve('src/embed'),
 			'$layout': resolve('src/layout'),
+			'$render': resolve('src/render'),
+			'$utils': resolve('src/utils'),
 		}
 	},
 	define: {
@@ -37,7 +38,7 @@ export default defineConfig({
 			}
 		},
 		lib: {
-			entry: `./src/ts/main.ts`,
+			entry: `./src/main.ts`,
 			name: 'Micrio',
 			fileName: `micrio.prod`,
 			formats: ['iife']

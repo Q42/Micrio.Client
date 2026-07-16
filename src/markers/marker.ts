@@ -2,8 +2,8 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
-import { getSpaceVector } from '$ts/utils/space';
-import { after } from '$ts/utils/store';
+import { getSpaceVector } from '$utils/space';
+import { after } from '$utils/store';
 
 export interface MarkerProps {
 	marker: Models.ImageData.Marker;

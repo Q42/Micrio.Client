@@ -1,7 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
-import { i18n } from '$ts/i18n/strings';
+import { i18n } from '$core/i18n/strings';
 
 function getLength(length: number): string {
 	let unit = 'cm';

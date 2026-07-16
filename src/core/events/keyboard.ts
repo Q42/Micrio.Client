@@ -1,5 +1,5 @@
 import type { EventContext } from './shared';
-import { Grid } from '$ts/nav/grid';
+import { Grid } from '$core/grid';
 
 /**
  * Keyboard event handler module.

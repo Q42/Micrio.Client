@@ -2,10 +2,10 @@ import type { Unsubscriber } from '$core/store';
 import type { HlsPlayer } from '$types/externals';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
-import type { Engine } from '$ts/render/engine';
+import type { Engine } from '$render/engine';
 
-import { Browser } from '$ts/utils/browser';
-import { loadScript } from '$ts/utils/dom';
+import { Browser } from '$utils/browser';
+import { loadScript } from '$utils/dom';
 import { tick } from '$core/store';
 
 /**

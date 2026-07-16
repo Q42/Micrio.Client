@@ -6,7 +6,7 @@
 
 import type { YouTubePlayer } from '$types/externals';
 import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from './types';
-import { loadScript } from '$ts/utils/dom';
+import { loadScript } from '$utils/dom';
 
 const YOUTUBE_HOST = 'https://www.youtube-nocookie.com';
 

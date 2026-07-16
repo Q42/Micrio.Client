@@ -8,8 +8,8 @@ import type { HTMLMicrioElement } from '$core/element';
 
 import { MicrioImage } from '$core/image';
 import { get, writable, type Unsubscriber, type Writable } from '$core/store';
-import { deepCopy } from '$ts/utils/object';
-import { once } from '$ts/utils/store';
+import { deepCopy } from '$utils/object';
+import { once } from '$utils/store';
 import { tick } from '$core/store';
 import { Enums } from '$core/enums';
 

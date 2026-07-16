@@ -1,6 +1,6 @@
 
 import type { HTMLMicrioElement } from '$core/element';
-import type { Grid } from '$ts/nav/grid';
+import type { Grid } from '$core/grid';
 import type { MicrioImage } from '$core/image';
 import type { VideoTourInstance } from '$media/videotour';
 import type { Writable } from '$core/store';

@@ -3,9 +3,9 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import type { Unsubscriber } from '$core/store';
 import { get } from '$core/store';
-import { i18n } from '$ts/i18n/strings';
-import { once } from '$ts/utils/store';
-import { languageNames } from '$ts/i18n/locale';
+import { i18n } from '$core/i18n/strings';
+import { once } from '$utils/store';
+import { languageNames } from '$core/i18n/locale';
 
 export interface ControlsProps {
 	hasAudio?: boolean;

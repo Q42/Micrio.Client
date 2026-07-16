@@ -8,7 +8,6 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"paths": {
-			"$ts/*": ["./src/ts/*"],
 			"$types/*": ["./src/types/*"],
 			"$engine/*": ["./src/engine/*"],
 			"$media/*": ["./src/media/*"],
@@ -18,6 +17,8 @@
 			"$markers/*": ["./src/markers/*"],
 			"$tour/*": ["./src/tour/*"],
 			"$gallery/*": ["./src/gallery/*"],
+			"$render/*": ["./src/render/*"],
+			"$utils/*": ["./src/utils/*"],
 			"$nav-ui/*": ["./src/nav-ui/*"],
 			"$audio/*": ["./src/audio/*"],
 			"$embed/*": ["./src/embed/*"],
@@ -26,9 +27,7 @@
 	},
 	"include": [
 		"src/types/**/*",
-		"src/ts/**/*",
 		"src/engine/**/*",
-		"src/components/**/*",
 		"src/media/**/*",
 		"src/error/**/*",
 		"src/core/**/*",
@@ -39,7 +38,9 @@
 		"src/nav-ui/**/*",
 		"src/audio/**/*",
 		"src/embed/**/*",
-		"src/layout/**/*"
+		"src/layout/**/*",
+		"src/render/**/*",
+		"src/utils/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }

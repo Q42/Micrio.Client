@@ -1,8 +1,8 @@
 import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
-import { i18n } from '$ts/i18n/strings';
+import { i18n } from '$core/i18n/strings';
 import { captionsEnabled } from '$core/captions';
-import { fmt } from '$ts/utils/time';
+import { fmt } from '$utils/time';
 import '$ui/button';
 import './fullscreen';
 

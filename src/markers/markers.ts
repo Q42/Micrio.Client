@@ -2,7 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { clone } from '$ts/utils/object';
+import { clone } from '$utils/object';
 import './marker';
 import './waypoint';
 

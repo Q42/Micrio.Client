@@ -1,7 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { writable, get } from '$core/store';
-import { Browser } from '$ts/utils/browser';
+import { Browser } from '$utils/browser';
 
 // ── Module-level AudioContext state ──
 

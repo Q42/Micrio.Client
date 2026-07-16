@@ -2,8 +2,8 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 
-import { Browser } from '$ts/utils/browser';
-import { once } from '$ts/utils/store';
+import { Browser } from '$utils/browser';
+import { once } from '$utils/store';
 import { get, writable, type Writable } from '$core/store';
 
 import { DragHandler } from './drag';

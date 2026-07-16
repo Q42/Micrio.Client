@@ -2,8 +2,8 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { i18n } from '$ts/i18n/strings';
-import { DataLoader } from '$ts/utils/dataLoader';
+import { i18n } from '$core/i18n/strings';
+import { DataLoader } from '$utils/dataLoader';
 import '$ui/button';
 import '$media/media';
 

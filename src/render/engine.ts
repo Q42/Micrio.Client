@@ -13,8 +13,8 @@ import type { Models } from '$types/models';
 import { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { archive } from './archive';
-import { Browser } from '$ts/utils/browser';
-import { once } from '$ts/utils/store';
+import { Browser } from '$utils/browser';
+import { once } from '$utils/store';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 
 import { Main } from '$engine/main';

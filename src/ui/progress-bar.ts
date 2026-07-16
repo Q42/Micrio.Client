@@ -1,5 +1,5 @@
 import { MicrioElement } from '$core/component';
-import { parseTime } from '$ts/utils/time';
+import { parseTime } from '$utils/time';
 
 export interface ProgressBarProps {
 	currentTime?: number;
