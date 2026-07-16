@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 
 function getLogoSrc(img: Models.Assets.Image | string): string {
@@ -25,7 +24,7 @@ micrio-logo-org img{max-height:64px;display:block}`;
 	#props: LogoOrgProps = { organisation: null! };
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		this.#render();
 	}

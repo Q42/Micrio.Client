@@ -78,7 +78,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 	onMount() {
 		const { embed, image, marker } = this.#props;
-		this.#micrio = this.inject<HTMLMicrioElement>('micrio')!;
+		this.#micrio = this.getMicrio()!;
 		if (!this.#micrio || !embed || !image) return;
 
 		if (embed.src?.startsWith('/r2')) embed.src = 'http://localhost:6100' + embed.src;

@@ -64,7 +64,7 @@ export class MicrioIconElement extends MicrioElement {
 	}
 
 	#readCustomHTML() {
-		const micrio = this.inject<any>('micrio');
+		const micrio = this.getMicrio();
 		const ui = micrio?.defaultSettings?.ui?.icons;
 		if (!ui) { this.#customHTML = undefined; return; }
 		switch (this.#name) {

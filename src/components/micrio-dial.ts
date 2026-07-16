@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 
 export interface DialProps {
 	currentRotation: number;
@@ -20,7 +19,7 @@ micrio-dial span{position:absolute;display:block;bottom:0;line-height:calc(var(-
 	#_dial!: HTMLElement;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		const camera = micrio.$current?.camera;
 		if (!camera) return;

@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
@@ -30,7 +29,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 	#toggle = () => this.#shown = !this.#shown;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const { _lang } = micrio;
@@ -60,7 +59,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 
 	#render() {
 		if (!this.#data) return;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		const { _lang, spaceData, state: micrioState } = micrio;
 		const $_lang = get(_lang);
@@ -112,7 +111,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 				menu: {
 					id: 'marker-tours',
 					i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours } },
-					children: markerTours.map((t: any) => ({
+					children: markerTours.map((t) => ({
 						id: t.id ?? crypto.randomUUID(),
 						i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 						action: () => { t.initialStep = 0; micrioState.tour.set(t); }
@@ -160,7 +159,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 	protected syncDisplay() {
 		const menuEl = this.querySelector('.micrio-toolbar');
 		if (menuEl) {
-			const micrio = this.inject<HTMLMicrioElement>('micrio');
+			const micrio = this.getMicrio();
 			const indent = !(micrio?.$current?.$settings?.noLogo ?? false);
 			menuEl.classList.toggle('indent', indent);
 		}

@@ -1,7 +1,6 @@
 import { MicrioElement } from '$ts/component';
 import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
-import type { HTMLMicrioElement } from '$ts/element';
 
 export interface FullscreenProps {
 	el: HTMLElement;
@@ -50,7 +49,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 
 		if (!available) return;
 
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 
 		const addScrollZoom = micrio && el == micrio && !micrio.events.scrollHooked;
 

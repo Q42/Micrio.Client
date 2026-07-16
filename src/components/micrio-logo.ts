@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 
 export class MicrioLogo extends MicrioElement {
 	static tag = 'micrio-logo';
@@ -18,7 +17,7 @@ micrio-logo a.loading::after{animation:micrio-logo-spin .5s infinite ease-out}
 	#loading = false;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const target = !/micr\.io/.test(location.origin) || self.parent != self ? '_blank' : undefined;

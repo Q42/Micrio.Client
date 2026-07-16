@@ -115,6 +115,10 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		return undefined;
 	}
 
+	protected getMicrio(): import('./element').HTMLMicrioElement | undefined {
+		return this.inject<any>('micrio');
+	}
+
 	// ─── CSS injection ────────────────────────────────────────────
 
 	private _injectStyles(): void {

@@ -1,6 +1,5 @@
 import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
 import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
 import './micrio-button';
@@ -46,7 +45,7 @@ dialog.article h2{text-align:center}`;
 	#dialog!: HTMLDialogElement;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		this.#dialog = document.createElement('dialog');
@@ -66,7 +65,7 @@ dialog.article h2{text-align:center}`;
 
 	#render() {
 		const p = this.#props.popover;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !p) return;
 
 		const $_lang = get(micrio._lang);

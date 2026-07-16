@@ -238,7 +238,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					this.#paused = this.#tourInstance!.paused;
 					this.#ended = this.#tourInstance!.ended;
 					this.#updateControls();
-					if (!p.secondary) this.inject<any>('micrio')?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+					if (!p.secondary) this.getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 					if (this.#ended) p.onended?.();
 				}, 250);
 				this.#unsubs.push(() => clearInterval(ival));
@@ -254,7 +254,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 
 		// Create subtitles element as a child (auto-destroyed when media is removed)
 		if (!p.secondary && p.tour && !('steps' in p.tour)) {
-			const micrio = this.inject<any>('micrio');
+			const micrio = this.getMicrio();
 			const lang = micrio?.lang || 'en';
 			const sub = (p.tour as any).i18n?.[lang]?.subtitle;
 			if (sub?.src) {
@@ -267,7 +267,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		// Controls
 		if (p.controls !== false) {
 			const ctrlEl = document.createElement('micrio-media-controls') as MicrioElement;
-			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour as any).i18n?.[(this.inject<any>('micrio')?.lang || 'en')]?.subtitle;
+			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour as any).i18n?.[(this.getMicrio()?.lang || 'en')]?.subtitle;
 
 			const onplaypause = () => {
 				const el = this.#videoEl;
@@ -357,7 +357,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			if (this.#videoEl && (this.#videoEl instanceof HTMLVideoElement || this.#videoEl instanceof HTMLAudioElement)) {
 				this.#videoEl.addEventListener('timeupdate', () => {
 					update();
-					if (!p.secondary) this.inject<any>('micrio')?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+					if (!p.secondary) this.getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 				});
 				this.#videoEl.addEventListener('loadedmetadata', update);
 				this.#videoEl.addEventListener('play', update);

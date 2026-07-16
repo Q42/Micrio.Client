@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import type { Unsubscriber } from '$ts/store';
@@ -44,13 +43,13 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#lastCultures = '';
 
 	#toggleMute = () => {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		micrio.isMuted.set(!get(micrio.isMuted));
 	};
 
 	#share = () => {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !navigator.share) return;
 		if (micrio.$current?.$info) {
 			const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
@@ -63,7 +62,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	};
 
 	#setLang = (l: string) => {
-		this.inject<HTMLMicrioElement>('micrio')!.lang = l;
+		this.getMicrio()!.lang = l;
 	};
 
 	#gridBack = () => this.#grid?.back();
@@ -79,7 +78,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#aside3!: HTMLElement;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const { state: micrioState, _lang } = micrio;
@@ -163,18 +162,18 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 
 		this.#aside1 = document.createElement('aside');
 		this.#aside1.addEventListener('pointerover', () => {
-			(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(true);
+			(this.getMicrio())?.state.ui.hover.set(true);
 		});
 		this.#aside1.addEventListener('pointerout', (e) => {
 			if (!e.currentTarget || !(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
-				(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(false);
+				(this.getMicrio())?.state.ui.hover.set(false);
 		});
 		this.#aside1.addEventListener('focusin', () => {
-			(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(true);
+			(this.getMicrio())?.state.ui.hover.set(true);
 		});
 		this.#aside1.addEventListener('focusout', (e) => {
 			if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node))
-				(this.inject<HTMLMicrioElement>('micrio'))?.state.ui.hover.set(false);
+				(this.getMicrio())?.state.ui.hover.set(false);
 		});
 		this.appendChild(this.#aside1);
 
@@ -194,7 +193,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#sync() {
 		if (!this.#built || !this.isConnected) return;
 
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const $i18n = get(i18n);

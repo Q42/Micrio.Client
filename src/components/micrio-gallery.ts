@@ -81,7 +81,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#preloadD = 0;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const image = micrio.$current as MicrioImage;
@@ -147,7 +147,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 	#frameChanged() {
 		this.#preload(this.#currentPage);
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		micrio?.events.dispatch('gallery-show', this.#currentPage);
 		if (this.#isStripSwipe) {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentPage] as MicrioImage);
@@ -217,7 +217,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			this.#stripDragHorizontal = Math.abs(dx) > Math.abs(dy);
 			if (!this.#stripDragHorizontal) { this.#stripPointerUp(e); return; }
 			this.#stripDragActive = true;
-			const micrio = this.inject<HTMLMicrioElement>('micrio');
+			const micrio = this.getMicrio();
 			if (!micrio) return;
 			micrio.setAttribute('data-panning', '');
 			(micrio as any).keepRendering = true;
@@ -227,7 +227,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#stripDragVelocity = (e.clientX - this.#stripDragLastX) / dt;
 		this.#stripDragLastX = e.clientX;
 		this.#stripDragLastT = e.timeStamp;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		const w = micrio.offsetWidth || 1;
 		const progress = dx / w;
@@ -242,7 +242,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const wasActive = this.#stripDragActive;
 		this.#stripDragId = undefined;
 		this.#stripDragActive = false;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		micrio.removeAttribute('data-panning');
 		(micrio as any).keepRendering = false;
@@ -283,7 +283,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		e.stopPropagation();
 		if (this.#dragging || (this.#dragIsPointer = 'button' in e) && e.button !== 0 || !this.#_ul) return;
 		this.#box = this.#_ul.getClientRects()[0];
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		(micrio as any).keepRendering = this.#dragging = true;
 		this.#hoverIdx = -1;
@@ -314,7 +314,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#scrubStop = () => {
 		window.removeEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
 		window.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		this.#dragging = (micrio as any).keepRendering = false;
 		this.#goto(this.#currentPage);
@@ -587,13 +587,13 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		if (this.#nextBtn) this.#nextBtn.setProps({ disabled: curr >= total - 1 });
 
 		// Force-hidden when popup/tour is open
-		const hasPopup = this.inject<HTMLMicrioElement>('micrio')?.state.popup ? get(this.inject<HTMLMicrioElement>('micrio')!.state.popup) : undefined;
-		const hasTour = this.inject<HTMLMicrioElement>('micrio')?.state.tour ? get(this.inject<HTMLMicrioElement>('micrio')!.state.tour) : undefined;
+		const hasPopup = this.getMicrio()?.state.popup ? get(this.getMicrio()!.state.popup) : undefined;
+		const hasTour = this.getMicrio()?.state.tour ? get(this.getMicrio()!.state.tour) : undefined;
 		this.classList.toggle('force-hidden', !!hasPopup || !!hasTour);
 	}
 
 	#renderOmni(image: MicrioImage) {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		const settings = image.$settings;
 		const omni = settings.omni;
@@ -617,7 +617,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	}
 
 	#initOmniFrames(image: MicrioImage, engine: any, info: any, totalFrames: number, pagesPerLayer: number) {
-		const micrio = this.inject<HTMLMicrioElement>('micrio')!;
+		const micrio = this.getMicrio()!;
 
 		const hasArchive = !!image.$settings.gallery?.archive;
 		const preloadD = 'requestIdleCallback' in self
@@ -745,7 +745,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 	onDestroy() {
 		// Destroy GallerySwiper if we set it on the image
-		const image = this.inject<HTMLMicrioElement>('micrio')?.$current;
+		const image = this.getMicrio()?.$current;
 		if (image?.swiper) {
 			image.swiper.destroy();
 			image.swiper = undefined;

@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
@@ -42,7 +41,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 
 	onMount() {
 		const { marker } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !marker) return;
 
 		marker.tags?.forEach(c => this.classList.add(c));
@@ -65,7 +64,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 
 	#render() {
 		const { marker } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !marker) return;
 
 		const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;

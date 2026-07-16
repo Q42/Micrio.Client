@@ -1,6 +1,5 @@
 import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
 
 export interface EventsProps {
 	events: Models.ImageData.Event[];
@@ -18,7 +17,7 @@ export class MicrioEvents extends MicrioElement<EventsProps> {
 	update: ((time: number) => void) | undefined;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const events = this.#props.events;
@@ -44,7 +43,7 @@ export class MicrioEvents extends MicrioElement<EventsProps> {
 	}
 
 	onDestroy() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (micrio) {
 			const events = this.#props.events;
 			events.forEach(e => {

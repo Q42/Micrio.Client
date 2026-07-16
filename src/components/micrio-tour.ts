@@ -1,6 +1,5 @@
 import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
@@ -27,7 +26,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 
 	onMount() {
 		const { tour } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !tour) return;
 
 		const isVideoTour = !('steps' in tour);

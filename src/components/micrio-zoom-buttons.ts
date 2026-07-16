@@ -1,6 +1,5 @@
 import { MicrioElement } from '$ts/component';
 import type { MicrioImage } from '$ts/image';
-import type { HTMLMicrioElement } from '$ts/element';
 import { get, tick } from '$ts/store';
 import { once } from '$ts/utils/store';
 import { i18n } from '$ts/i18n/strings';
@@ -20,7 +19,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 	#albumUnsub: (() => void) | undefined;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const update = () => {

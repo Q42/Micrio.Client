@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get, tick } from '$ts/store';
@@ -62,7 +61,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 	onMount() {
 		const { marker, image, forceHidden = false } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !image || !marker) return;
 
 		const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;

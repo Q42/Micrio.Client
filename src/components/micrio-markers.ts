@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
@@ -25,7 +24,7 @@ micrio-markers.is360.inactive{opacity:0}`;
 
 	onMount() {
 		const { image } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !image) return;
 
 		const { switching, state: micrioState } = micrio;

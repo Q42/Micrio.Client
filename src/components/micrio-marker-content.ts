@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
@@ -53,7 +52,7 @@ micrio-marker-content section figcaption{display:none}
 		const { marker, noEmbed = false, noImages = false, noGallery = false, onclose } = this.#props;
 		if (!marker) return;
 
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;
 		const image = marker.id ? markerImages.get(marker.id) as MicrioImage : undefined;
 		if (!micrio || !image) return;

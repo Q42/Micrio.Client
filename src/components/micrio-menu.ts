@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import { writable, get, lazy } from '$ts/store';
 import './micrio-icon';
@@ -31,7 +30,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 
 	onMount() {
 		const { menu } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		const { _lang } = micrio;
 
@@ -48,7 +47,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 
 	#evalAction() {
 		const { menu, originalId } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		const { events, state: micrioState, _lang } = micrio;
 		const cultureData = this.#getCData(menu, get(_lang));
@@ -89,7 +88,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 
 	#render() {
 		const { menu, originalId, onclose } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 		const $_lang = get(micrio._lang);
 		const cultureData = this.#getCData(menu, $_lang);

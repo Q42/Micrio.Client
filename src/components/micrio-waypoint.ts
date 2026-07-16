@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 import { get } from '$ts/store';
@@ -54,7 +53,7 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 		const { targetId, image, settings } = this.#props;
 		if (!image || !targetId) return;
 
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const info = image.$info as Models.ImageInfo.ImageInfo;
@@ -134,7 +133,7 @@ micrio-waypoint.direction-down micrio-button{/* down */}`;
 		if (this.#hidden) { this.style.display = 'none'; return; }
 
 		const { settings } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		const $_lang = micrio ? get(micrio._lang) : 'en';
 		const $i18n = get(i18n);
 		const spaceData = micrio?.spaceData;

@@ -23,7 +23,7 @@ micrio-subtitles p{margin:.5em 0;background-color:rgba(0,0,0,.6);padding:0 14px;
 	onMount() {
 		this.#cleanup = captionsEnabled.subscribe(() => this.#renderCue());
 
-		const micrio = this.inject<any>('micrio');
+		const micrio = this.getMicrio();
 		if (micrio) {
 			const updateRaised = () => this.classList.toggle('raised', !!get(micrio.state.tour));
 			updateRaised();

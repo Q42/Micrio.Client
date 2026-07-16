@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { MicrioImage } from '$ts/image';
 import type { Models } from '$types/models';
 import { get } from '$ts/store';
@@ -28,7 +27,7 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 
 	onMount() {
 		const { image } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !image) return;
 
 		const info = image.$info;

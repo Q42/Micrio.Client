@@ -1,6 +1,5 @@
 import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
 import { DataLoader } from '$ts/utils/dataLoader';
 import { parseTime } from '$ts/utils/time';
 import './micrio-media';
@@ -31,16 +30,14 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 	#unsubs: (() => void)[] = [];
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];
 	#currentStep = 0;
-	#ended = false;
 	#built = false;
 	#mediaEl!: MicrioElement;
-	#progressInterval: any;
 	#duration = 0;
 	#noTimeScrub = false;
 
 	onMount() {
 		const { tour } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !tour) return;
 
 		this.#stepInfo = (tour.stepInfo as Models.ImageData.MarkerTourStepInfo[]) || [];
@@ -62,17 +59,6 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 		}));
 
 		this.#build();
-
-		this.#progressInterval = setInterval(() => {
-			if (this.#ended || !this.#mediaEl) return;
-			const si = this.#stepInfo[this.#currentStep];
-			if (si) {
-				const el = this.#mediaEl.querySelector('video,audio') as HTMLMediaElement;
-				si.currentTime = el?.currentTime ?? si.currentTime;
-				if (el?.ended) { this.#nextStep(); return; }
-			}
-			this.#updateBars();
-		}, 250);
 
 		this.#openStep(0);
 	}
@@ -102,10 +88,14 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 	}
 
 	async #openStep(idx: number) {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
-		const close = () => micrio.state.tour.set(undefined);
+		const close = () => {
+			micrio.state.tour.set(undefined);
+			this.#props.onended?.();
+			this.remove();
+		};
 
 		const si = this.#stepInfo[idx];
 		if (!si) return;
@@ -147,10 +137,23 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 			await new Promise(r => setTimeout(r, 10));
 			this.#mediaEl.querySelector('figure')?.classList.add('videotour');
 			this.#injectBars();
+
+			const videoEl = this.#mediaEl.querySelector('video,audio') as HTMLMediaElement;
+			if (videoEl) {
+				videoEl.addEventListener('timeupdate', () => {
+					const si = this.#stepInfo[this.#currentStep];
+					if (si) si.currentTime = videoEl.currentTime;
+					this.#updateBars();
+				});
+			}
 		}
 
 		this.#currentStep = idx;
 		this.#updateBars();
+
+		if (!marker?.videoTour && idx === this.#stepInfo.length - 1) {
+			this.#nextStep();
+		}
 	}
 
 	#nextStep() {
@@ -160,16 +163,15 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 		if (this.#currentStep < this.#stepInfo.length - 1) {
 			this.#openStep(this.#currentStep + 1);
 		} else {
-			this.#ended = true;
-			clearInterval(this.#progressInterval);
 			this.#props.onended?.();
+			this.getMicrio()?.state.tour.set(undefined);
 			this.remove();
 		}
 	}
 
 	#getTitle(m: Models.ImageData.Marker | undefined): string | undefined {
 		if (!m) return;
-		const lang = this.inject<HTMLMicrioElement>('micrio')?.lang;
+		const lang = this.getMicrio()?.lang;
 		return m.i18n ? m.i18n[lang!]?.title : (m as any).title;
 	}
 
@@ -240,7 +242,6 @@ micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 	}
 
 	onDestroy() {
-		clearInterval(this.#progressInterval);
 		for (const fn of this.#unsubs) fn();
 		this.#unsubs = [];
 	}

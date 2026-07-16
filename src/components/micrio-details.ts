@@ -1,6 +1,5 @@
 import { MicrioElement } from '$ts/component';
 import type { Models } from '$types/models';
-import type { HTMLMicrioElement } from '$ts/element';
 import { get } from '$ts/store';
 import { i18n } from '$ts/i18n/strings';
 
@@ -39,7 +38,7 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 	#detailsEl!: HTMLDetailsElement;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		this.#detailsEl = document.createElement('details');
@@ -58,7 +57,7 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 	#render() {
 		const info = this.#props.info;
 		const data = this.#props.data;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		const $_lang = micrio ? get(micrio._lang) : undefined;
 		const $current = micrio ? get(micrio.current) : undefined;
 		if (!info || !$_lang || !$current) return;

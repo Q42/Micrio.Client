@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import { writable, get } from '$ts/store';
 import { Browser } from '$ts/utils/browser';
@@ -85,7 +84,7 @@ export class MicrioAudioController extends MicrioElement {
 	#playlist: AudioPlaylist | undefined;
 
 	onMount() {
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio) return;
 
 		const { events } = micrio;

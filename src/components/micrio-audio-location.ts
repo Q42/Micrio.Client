@@ -1,5 +1,4 @@
 import { MicrioElement } from '$ts/component';
-import type { HTMLMicrioElement } from '$ts/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$ts/image';
 
@@ -29,7 +28,7 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 
 	onMount() {
 		const { marker, ctx, is360 } = this.#props;
-		const micrio = this.inject<HTMLMicrioElement>('micrio');
+		const micrio = this.getMicrio();
 		if (!micrio || !marker || !ctx) return;
 
 		const image = micrio.$current as MicrioImage;
