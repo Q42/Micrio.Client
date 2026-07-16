@@ -580,19 +580,18 @@ ${cssVars}`;
 			Object.assign(galleryInfo.settings, galleryCtrl.config.settings);
 		}
 
+		galleryInfo.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
+
 		if(galleryCtrl.type == 'grid') {
-			(galleryInfo.settings as any).zoomLimit = 15;
-			(galleryInfo.settings as any).minimap = false;
-			if((galleryInfo.settings as any)?.grid?.clickable && (galleryInfo.settings as any)?.hookKeys === undefined) {
-				(galleryInfo.settings as any).hookKeys = true;
+			galleryInfo.settings.zoomLimit = 15;
+			galleryInfo.settings.minimap = false;
+			if(galleryInfo.settings.grid?.clickable && galleryInfo.settings.hookKeys === undefined) {
+				galleryInfo.settings.hookKeys = true;
 			}
 			galleryInfo.grid = galleryCtrl._gridString;
-			galleryInfo.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
-			this.open(galleryInfo, { ...baseOpts });
-			return;
 		}
 
-		this.open(galleryInfo, { ...baseOpts, gallery: galleryCtrl });
+		this.open(galleryInfo, { ...baseOpts, ...(galleryCtrl.type !== 'grid' ? { gallery: galleryCtrl } : {}) });
 	}
 
 	/**
