@@ -73,7 +73,7 @@ export class Gallery {
 		this.images = items.map((c, i) => {
 			const rev = config.revisions?.[c.id];
 
-			const imageSettings: Record<string, any> = { skipMeta: true, ...config.settings };
+			const imageSettings: Record<string, any> = { ...config.settings };
 
 			// Propagate archive layer offset so child images adjust their level count
 			// and generate thumbSrc URLs that match what the archive stores.
@@ -189,7 +189,7 @@ export class Gallery {
 		return new Gallery(items, engine, micrio, {
 			type: 'swipe',
 			startId: opts?.startId,
-			settings: {}
+			settings: { skipMeta: true }
 		});
 	}
 
