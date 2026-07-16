@@ -5,7 +5,7 @@ import { get } from '$core/store';
 import { once } from '$ts/utils/store';
 import { i18n } from '$ts/i18n/strings';
 import './micrio-menu';
-import './micrio-button';
+import '$ui/button';
 
 export class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';

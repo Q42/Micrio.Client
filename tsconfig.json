@@ -13,7 +13,8 @@
 			"$engine/*": ["./src/engine/*"],
 			"$media/*": ["./src/media/*"],
 			"$error/*": ["./src/error/*"],
-			"$core/*": ["./src/core/*"]
+			"$core/*": ["./src/core/*"],
+			"$ui/*": ["./src/ui/*"]
 		}
 	},
 	"include": [
@@ -23,7 +24,8 @@
 		"src/components/**/*",
 		"src/media/**/*",
 		"src/error/**/*",
-		"src/core/**/*"
+		"src/core/**/*",
+		"src/ui/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }

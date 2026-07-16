@@ -4,8 +4,8 @@ import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
 import { afterFrame } from '$ts/utils/dom';
-import './micrio-button';
-import './micrio-button-group';
+import '$ui/button';
+import '$ui/button-group';
 import './micrio-marker-content';
 
 export interface MarkerPopupProps {

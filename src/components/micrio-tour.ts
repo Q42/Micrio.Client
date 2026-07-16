@@ -4,7 +4,7 @@ import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
 import { DataLoader } from '$ts/utils/dataLoader';
-import './micrio-button';
+import '$ui/button';
 import '$media/media';
 
 export interface TourProps {

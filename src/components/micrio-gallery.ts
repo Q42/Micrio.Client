@@ -8,7 +8,7 @@ import { once } from '$ts/utils/store';
 import { Enums } from '$core/enums';
 import { GallerySwiper } from '$ts/nav/swiper';
 import { icons } from '$core/icons';
-import './micrio-button';
+import '$ui/button';
 import './micrio-dial';
 
 const horizontalSlot = (offset: number): [number, number, number, number] => [offset, 0, 1, 1];

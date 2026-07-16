@@ -1,5 +1,5 @@
 import { MicrioElement } from '$core/component';
-import type { IconName } from './micrio-icon';
+import type { IconName } from './icon';
 import type { Models } from '$types/models';
 
 export interface ButtonProps {

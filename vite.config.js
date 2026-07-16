@@ -13,6 +13,7 @@ export default defineConfig({
 			'$media': resolve('src/media'),
 			'$error': resolve('src/error'),
 			'$core': resolve('src/core'),
+			'$ui': resolve('src/ui'),
 		}
 	},
 	define: {

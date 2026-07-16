@@ -1,7 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { writable, get, lazy } from '$core/store';
-import './micrio-icon';
+import '$ui/icon';
 
 const opened = writable<Models.ImageData.Menu | undefined>(undefined);
 let hooked = false;

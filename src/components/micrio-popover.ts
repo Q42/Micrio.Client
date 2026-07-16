@@ -2,7 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { i18n } from '$ts/i18n/strings';
-import './micrio-button';
+import '$ui/button';
 import './micrio-article';
 import '$media/media';
 import './micrio-marker-content';

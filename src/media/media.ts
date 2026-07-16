@@ -6,7 +6,7 @@ import { YouTubePlayerAdapter } from './youtube-adapter';
 import { VimeoPlayerAdapter } from './vimeo-adapter';
 import { HLSPlayerAdapter } from './hls-adapter';
 import type { MediaPlayerAdapter } from './types';
-import '../components/micrio-button';
+import '$ui/button';
 import './media-controls';
 
 const YOUTUBE_RE = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?/;
