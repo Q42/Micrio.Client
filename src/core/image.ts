@@ -434,7 +434,7 @@ export class MicrioImage {
 		micrio.events.dispatch('pre-info', i);
 
 		// Load image-specific data (markers, tours, etc.) from the bundle cache
-		if(!this.noImage || this.isOmni) {
+		if((!this.noImage || this.isOmni) && !attr.settings?.skipMeta) {
 			this.loadBundleData();
 		}
 

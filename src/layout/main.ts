@@ -248,12 +248,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		{
 			const $visible = (get(micrio.visible) as MicrioImage[]).filter(i => !i.opts?.isEmbed);
-			const ids = $visible.map(i => i.id).join(',');
+			const markerImages = $visible.filter(i => !i.$settings?.skipMeta);
+			const ids = markerImages.map(i => i.id).join(',');
 			if (showMarkers && ids !== this.#lastMarkerIds) {
 				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
 				this.#elements.set('markers', null);
 				this.#lastMarkerIds = ids;
-				for (const img of $visible) {
+				for (const img of markerImages) {
 					const el = document.createElement('micrio-markers') as MicrioElement;
 					el.setProps({ image: img });
 					const before = this.#getBefore('markers');
