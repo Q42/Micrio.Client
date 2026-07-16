@@ -169,13 +169,16 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		const isGLEmbeddedMicrio = this.#printGL && embed.micrioId && embed.width;
 		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
 
+		let scale = this.#w * this.#info.width / (embed.width ?? 100) / (!this.#printGL ? this.#s : embed.width ? this.#w : 1) * (this.#is360 ? Math.PI / 2 : 1);
+
 		const styles: string[] = [];
 
 		if (isGLEmbeddedMicrio && embed.width) {
+			scale = this.#w / (embed.width / this.#info.width) * htmlButtonEmbedScale * (this.#is360 ? Math.PI / 2 : 1);
 			styles.push(`width:${embed.width / htmlButtonEmbedScale}px`);
 		}
 
-		styles.push(`--ratio:${this.#w / this.#h * this.#info.width / this.#info.height};--scale:${1}`);
+		styles.push(`--ratio:${this.#w / this.#h * this.#info.width / this.#info.height};--scale:${scale}`);
 
 		if (this.#isSVG && embed.height) {
 			styles.push(`height:${embed.height}px`);
