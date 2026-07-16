@@ -104,12 +104,12 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 			}
 		}
 
-		let moveCount = 0;
-	const moved = () => {
-			moveCount++;
-			if (image.is360) {
+		const scales = !!marker.data?.scales || !!image.$settings.markersScale;
+		const moved = () => {
+			if (image.is360 && scales) {
 				this.#matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1, 0, 0, 0).join(',');
 				this.style.setProperty('--mat', `matrix3d(${this.#matrix})`);
+				this.classList.add('mat3d');
 			} else {
 				const xy = image.camera.getXYDirect(marker.x, marker.y, {
 					radius: marker.radius, rotation: marker.rotation
@@ -129,9 +129,10 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 				}
 				this.style.setProperty('--x', `${this.#x}px`);
 				this.style.setProperty('--y', `${this.#y}px`);
-				if (image.$settings.markersScale || marker.data?.scales) {
+				if (scales) {
 					this.style.setProperty('--scale', `${this.#scaleVal}`);
 				}
+				this.classList.remove('mat3d');
 				this.classList.toggle('behind', this.#behindCam);
 			}
 		};
@@ -250,7 +251,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		this.classList.toggle('default', !!defaultClass);
 		this.classList.toggle('has-icon', hasIcon);
 		this.classList.toggle('has-custom-icon', !!customIcon);
-		if (this.#matrix) this.classList.add('mat3d');
 
 		if (!marker.htmlElement && !marker.noMarker) {
 			const btn = createElement('button', {
