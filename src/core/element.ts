@@ -306,6 +306,9 @@ ${cssVars}`;
 		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
 		if(opts.settings.noControls) this.state.ui.controls.set(false);
 
+		// Show UI as early as possible so the logo appears during loading
+		if (!opts.settings.noLogo) this.#printUI(!!opts.settings.noUI, false);
+
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const info = await DataLoader.getInfo(opts.id).catch(() => undefined);
 			if(info?.albumId) {
