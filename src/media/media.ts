@@ -5,7 +5,7 @@ import type { MicrioImage } from '$core/image';
 import { VideoTourInstance } from './videotour';
 import { YouTubePlayerAdapter } from './youtube-adapter';
 import { VimeoPlayerAdapter } from './vimeo-adapter';
-import { HLSPlayerAdapter } from './hls-adapter';
+import { HLSPlayerAdapter, cloudflareStreamUrl, mediaSourceSupported } from './hls-adapter';
 import type { MediaPlayerAdapter } from './types';
 import '$ui/button';
 import './media-controls';
@@ -106,7 +106,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 
 	#createCloudflareVideo(src: string, p: MediaProps, figure: HTMLElement) {
 		const cfId = src.slice(8);
-		const hlsSrc = `https://videodelivery.net/${cfId}/manifest/video.m3u8`;
+		const hlsSrc = cloudflareStreamUrl(cfId);
 		const video = createElement('video', {
 			props: {
 				src: hlsSrc,
@@ -228,7 +228,7 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		}
 
 		// Initialize HLS adapter for Cloudflare video
-		if (isCloudflare && this.#hlsSrc && this.#videoEl && ('MediaSource' in window || 'ManagedMediaSource' in window)) {
+		if (isCloudflare && this.#hlsSrc && this.#videoEl && mediaSourceSupported()) {
 			this.#adapter = new HLSPlayerAdapter(this.#videoEl as HTMLVideoElement, this.#hlsSrc, {
 				onReady: () => { this.#updateControls(); },
 				onEnded: () => { this.#ended = true; this.#paused = true; this.#updateControls(); p.onended?.(); },

@@ -7,6 +7,7 @@ import type { Engine } from '$render/engine';
 import { Browser } from '$utils/browser';
 import { createElement, loadExternalAPI } from '$utils/dom';
 import { tick } from '$core/store';
+import { HLS_SCRIPT_URL, HLS_PLAYER_CONFIG, mediaSourceSupported, cloudflareStreamUrl } from './hls-adapter';
 
 /**
  * Manages the loading, playback, and WebGL integration of embedded videos
@@ -131,7 +132,7 @@ export class GLEmbedVideo {
 
 		// Determine video source URL (Cloudflare stream or direct src)
 		// Note: Cloudflare stream doesn't support alpha transparency, fallback to src if needed.
-		const src = this.#ism3u ? `https://videodelivery.net/${this.#embed.video.streamId}/manifest/video.m3u8` : this.#embed.video.src;
+		const src = this.#ism3u ? cloudflareStreamUrl(this.#embed.video.streamId!) : this.#embed.video.src;
 		if (!src) {
 			console.error("[Micrio GL Embed] No video source found for embed:", this.#embed.id);
 			return;
@@ -150,12 +151,11 @@ export class GLEmbedVideo {
 
 		this.#hook(); // Attach event listeners
 
-		if(!this.#ism3u || !('MediaSource' in window || 'ManagedMediaSource' in window)) {
+		if(!this.#ism3u || !mediaSourceSupported()) {
 			this._vid.src = src;
 		} else {
-			loadExternalAPI('Hls', 'https://r2.micr.io/hls-1.6.15.min.js').then(() => {
-				/** @ts-ignore Access global Hls constructor */
-				this.#hlsPlayer = new (window['Hls'] as HlsPlayer)({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
+			loadExternalAPI('Hls', HLS_SCRIPT_URL).then(() => {
+				this.#hlsPlayer = new ((window as Record<string, any>)['Hls'] as HlsPlayer)(HLS_PLAYER_CONFIG);
 				this.#hlsPlayer.loadSource(src); // Load HLS manifest
 				if(this._vid) this.#hlsPlayer.attachMedia(this._vid); // Attach to video element
 			}).catch(e => console.error("[Micrio GL Embed] Failed to load HLS.js:", e));
