@@ -194,7 +194,7 @@ ${cssVars}`;
 				this.isMuted.set(this.hasAttribute('muted'));
 				break;
 			case 'data-limited':
-				if(this.engine?._vertexBuffer && this.$current?.ptr)
+				if(this.engine?.vertexBuffer && this.$current?.ptr)
 					this.engine.setLimited(this.$current.ptr, !!newVal);
 				break;
 			case 'lang': {

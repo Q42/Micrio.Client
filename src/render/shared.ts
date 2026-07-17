@@ -4,10 +4,9 @@
  * @internal
  */
 
-import type { default as TileCanvas } from '../canvas/canvas';
-import type { default as Image } from '../canvas/image';
-import { mod1 } from '../utils/utils';
-import { PI } from '../globals';
+import type { default as TileCanvas } from './tile-canvas';
+import type { default as Image } from './tile-image';
+import { mod1 } from './easing';
 
 /** Structure to hold information about a specific tile to be drawn. @internal */
 export class DrawRect {
@@ -57,32 +56,26 @@ export class View {
 		this.toArray();
 	}
 
-	// Left edge of the view (relative, 0-1), wrapping for 360.
 	get x0(): number {
 		let cx = this.centerX;
 		if (this.canvas.is360) cx = mod1(cx);
 		return this.canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2);
 	}
-	// Top edge of the view.
 	get y0(): number { return this.centerY - this.height / 2; }
-	// Right edge of the view, wrapping for 360.
 	get x1(): number {
 		let cx = this.centerX;
 		if (this.canvas.is360) cx = mod1(cx);
 		return this.canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2);
 	}
-	// Bottom edge of the view.
 	get y1(): number { return this.centerY + this.height / 2; }
 
-	// Limit box edges
 	get lX0(): number { return this.lCenterX - this.lWidth / 2; }
 	get lY0(): number { return this.lCenterY - this.lHeight / 2; }
 	get lX1(): number { return this.lCenterX + this.lWidth / 2; }
 	get lY1(): number { return this.lCenterY + this.lHeight / 2; }
 
-	// Calculated 360 properties
-	get yaw(): number { return (this.centerX - .5) * PI * 2 }
-	get pitch(): number { return (this.centerY - .5) * PI }
+	get yaw(): number { return (this.centerX - .5) * Math.PI * 2 }
+	get pitch(): number { return (this.centerY - .5) * Math.PI }
 	get aspect(): number { return this.width / this.height }
 	get size(): number { return Math.sqrt(this.width * this.width + this.height * this.height) * (1 / Math.sqrt(2)) }
 
@@ -141,7 +134,7 @@ export class View {
 	getPerspective(): number {
 		const c = this.canvas;
 		const webgl = c.webgl;
-		return webgl.maxPerspective - (.5 / (this.height * c.height / c.el.height)) * PI / webgl.scaleY
+		return webgl.maxPerspective - (.5 / (this.height * c.height / c.el.height)) * Math.PI / webgl.scaleY
 	}
 
 	/** Calculates the effective scale factor represented by this view. */

@@ -4,9 +4,9 @@
  * @internal
  */
 
-import { easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from '../utils/utils'
-import { View } from '../shared/shared'
-import type { default as TileCanvas } from '../canvas/canvas';
+import { easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from './easing'
+import { View } from './shared'
+import type { default as TileCanvas } from './tile-canvas';
 
 /** Manages camera and view animations (fly-to, zoom). @internal */
 export default class Ani {

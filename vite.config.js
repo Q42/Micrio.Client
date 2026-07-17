@@ -8,7 +8,6 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'$types': resolve('src/types'),
-			'$engine': resolve('src/engine'),
 			'$media': resolve('src/media'),
 			'$core': resolve('src/core'),
 			'$ui': resolve('src/ui'),

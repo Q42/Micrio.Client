@@ -1,20 +1,20 @@
+import { View, DrawRect, Viewport } from './shared';
+import type { Engine } from './engine';
+import { easeInOut } from './easing'
+import { base360Distance } from './constants';
+
+import Kinetic from './kinetic'
+import Ani from './ani'
+import Camera from './engine-camera'
+import Image from './tile-image'
+import SphericalView from './spherical'
+
 /**
  * Represents a single rendering canvas within the Micrio engine.
  * Orchestrates image loading, tile calculation, camera control, and drawing.
  * @author Marcel Duin <marcel@micr.io>
  * @internal
  */
-
-import { View, DrawRect, Viewport } from '../shared/shared';
-import { Main } from '../main';
-import { easeInOut } from '../utils/utils'
-import { base360Distance } from '../globals';
-
-import Kinetic from '../camera/kinetic'
-import Ani from '../camera/ani'
-import Camera from '../camera/camera'
-import Image from './image'
-import SphericalView from '../webgl/webgl'
 
 /** @internal */
 export interface TileCanvasConfig {
@@ -113,7 +113,7 @@ export class TileCanvas {
 	readonly omniStartLayer: number;
 
 	constructor(
-		readonly main: Main,
+		readonly main: Engine,
 
 		public width: number,
 		public height: number,

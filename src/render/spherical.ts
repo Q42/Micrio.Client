@@ -4,12 +4,11 @@
  * @internal
  */
 
-import { modPI, mod1 } from '../utils/utils'
-import { Coordinates } from '../shared/shared'
+import { modPI, mod1 } from './easing'
+import { Coordinates } from './shared'
 import { Vec4, Mat4 } from './mat'
-import { PI, PI2, PIh } from '../globals'
-import { segsX, segsY } from '../globals'
-import type { default as TileCanvas } from '../canvas/canvas';
+import { segsX, segsY } from './constants'
+import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 360 camera logic, perspective, and related SphericalView calculations. @internal */
 export default class SphericalView {
@@ -36,10 +35,10 @@ export default class SphericalView {
 	yaw: number = 0;
 	pitch: number = 0;
 
-	defaultPerspective: number = PIh;
-	perspective: number = PIh;
-	maxPerspective: number = PIh;
-	minPerspective: number = PIh;
+	defaultPerspective: number = Math.PI / 2;
+	perspective: number = Math.PI / 2;
+	maxPerspective: number = Math.PI / 2;
+	minPerspective: number = Math.PI / 2;
 
 	public cameraForwardX: number = 0;
 	public cameraForwardY: number = 0;
@@ -62,7 +61,7 @@ export default class SphericalView {
 		private canvas: TileCanvas
 	) {
 		this.baseYaw = -this.canvas.rotationY;
-		this.offX = this.baseYaw / PI2;
+		this.offX = this.baseYaw / (Math.PI * 2);
 
 		if (this.canvas.is360) {
 			this.scaleY = this.canvas.height / (this.canvas.width / 2);
@@ -76,7 +75,7 @@ export default class SphericalView {
 	setLimits(x: number, y: number): void {
 		this.limitX = x;
 		this.limitY = y;
-		this.maxPerspective = PIh;
+		this.maxPerspective = Math.PI / 2;
 		if (y > 0) this.maxPerspective = Math.min(this.maxPerspective, this.maxPerspective * y * 1.5);
 		this.setPerspective(this.perspective, true);
 	}
@@ -91,7 +90,7 @@ export default class SphericalView {
 
 		if (c.is360) {
 			const pM = this.pMatrix;
-			this.pitch = Math.min(PI / 2, Math.max(-PI / 2, this.pitch));
+			this.pitch = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, this.pitch));
 			pM.rotateX(this.pitch);
 			pM.rotateY(this.yaw);
 			pM.translate(this.position.x, this.position.y, this.position.z);
@@ -102,7 +101,7 @@ export default class SphericalView {
 			rM.rotateX(-this.pitch);
 			rM.rotateY(this.yaw);
 
-			this.coo.direction = (this.yaw / PI * 180) % 360;
+			this.coo.direction = (this.yaw / Math.PI * 180) % 360;
 		} else {
 			const v = c.view;
 			this.pMatrix.translate(
@@ -139,7 +138,7 @@ export default class SphericalView {
 	/** Clamps the pitch value based on perspective and vertical limits. */
 	private limitPitch(): void {
 		const halfPerspective = this.perspective / 2;
-		const maxPitch = PI * this.scaleY / 2 * (this.limitY > 0 ? this.limitY : 1);
+		const maxPitch = Math.PI * this.scaleY / 2 * (this.limitY > 0 ? this.limitY : 1);
 
 		this.pitch = this.pitch > 0 ? Math.min(maxPitch, this.pitch + halfPerspective) - halfPerspective
 			: Math.max(-maxPitch, this.pitch - halfPerspective) + halfPerspective;
@@ -148,9 +147,9 @@ export default class SphericalView {
 	/** Clamps the yaw value based on horizontal limits. */
 	private limitYaw(): void {
 		const halfHorizontalFov = this.perspective / 2 * this.canvas.el.aspect;
-		const maxYaw = PI * (this.limitX > 0 ? this.limitX : 1);
+		const maxYaw = Math.PI * (this.limitX > 0 ? this.limitX : 1);
 
-		let y = this.yaw; while (y >= PI) y -= PI * 2; while (y < -PI) y += PI * 2;
+		let y = this.yaw; while (y >= Math.PI) y -= Math.PI * 2; while (y < -Math.PI) y += Math.PI * 2;
 		this.yaw = modPI(Math.min(Math.max(maxYaw, halfHorizontalFov) - halfHorizontalFov, Math.max(Math.min(-maxYaw, -halfHorizontalFov) + halfHorizontalFov, y)));
 	}
 
@@ -182,8 +181,8 @@ export default class SphericalView {
 				if (dx < -.5) dx += 1;
 				const dy: number = beforeY - after.y;
 
-				this.yaw += dx * PI * 2;
-				this.pitch += dy * PI * this.scaleY;
+				this.yaw += dx * Math.PI * 2;
+				this.pitch += dy * Math.PI * this.scaleY;
 
 				this.yaw = modPI(this.yaw);
 				if (c.coverLimit || this.limitY > 0) this.limitPitch();
@@ -239,9 +238,9 @@ export default class SphericalView {
 	setView(centerX: number, centerY: number, _width: number, height: number, noLimit: boolean = false, correctNorth: boolean = false): void {
 		const adjustedCenterX = correctNorth ? centerX + this.offX : centerX;
 
-		this.yaw = (adjustedCenterX - .5) * PI * 2;
-		this.pitch = (centerY - .5) * PI * this.scaleY;
-		this.setPerspective(Math.min(this.maxPerspective, height * PI * this.scaleY), noLimit);
+		this.yaw = (adjustedCenterX - .5) * Math.PI * 2;
+		this.pitch = (centerY - .5) * Math.PI * this.scaleY;
+		this.setPerspective(Math.min(this.maxPerspective, height * Math.PI * this.scaleY), noLimit);
 		this.calculate3DFrustum();
 		this.syncLogicalView();
 	}
@@ -251,9 +250,9 @@ export default class SphericalView {
 		const c = this.canvas;
 		if (!c.is360) return;
 
-		const centerX = mod1((this.yaw / (PI * 2) + .5));
-		const centerY = (this.pitch / this.scaleY) / PI + .5;
-		const height = this.perspective / PI / this.scaleY;
+		const centerX = mod1((this.yaw / (Math.PI * 2) + .5));
+		const centerY = (this.pitch / this.scaleY) / Math.PI + .5;
+		const height = this.perspective / Math.PI / this.scaleY;
 		const width = height * (c.el.width === 0 ? 1 : .5 * Math.sqrt(c.el.aspect)) / (c.aspect / 2);
 
 		c.view.set(centerX, centerY, width, height);
@@ -289,7 +288,7 @@ export default class SphericalView {
 
 	/** Applies translation offset for 360 space transitions. */
 	moveTo(distance: number, distanceY: number, direction: number, addYaw: number): void {
-		const dir: number = direction * PI * 2 + addYaw;
+		const dir: number = direction * Math.PI * 2 + addYaw;
 		this.position.x = -distance * Math.sin(dir);
 		this.position.y = distanceY;
 		this.position.z = distance * Math.cos(dir);
@@ -302,7 +301,7 @@ export default class SphericalView {
 		const c = this.canvas;
 		const el = c.el;
 		c.camera.setCanvas();
-		this.minPerspective = Math.min(.5, el.height / c.height) / c.maxScale * this.scaleY * PI / el.ratio * el.scale;
+		this.minPerspective = Math.min(.5, el.height / c.height) / c.maxScale * this.scaleY * Math.PI / el.ratio * el.scale;
 		this.setPerspective(this.perspective, true);
 	}
 
@@ -327,8 +326,8 @@ export default class SphericalView {
 		this.vec4.transformMat4(this.cachedInverse);
 
 		this.vec4.normalize();
-		this.coo.x = Math.atan2(this.vec4.x, -this.vec4.z) / PI / 2 + .5;
-		this.coo.y = .5 - Math.asin(this.vec4.y) / PI / this.scaleY;
+		this.coo.x = Math.atan2(this.vec4.x, -this.vec4.z) / Math.PI / 2 + .5;
+		this.coo.y = .5 - Math.asin(this.vec4.y) / Math.PI / this.scaleY;
 		this.coo.scale = this.scale;
 		this.coo.w = this.position.x + this.position.z;
 		this.coo.direction = this.yaw + this.baseYaw;
@@ -355,9 +354,9 @@ export default class SphericalView {
 	 * Calculates the 3D vector corresponding to a point on the 360 sphere.
 	 */
 	getVec3(x: number, y: number, abs: boolean = false, rad: number = this.radius): Vec4 {
-		x *= -PI * 2;
+		x *= -Math.PI * 2;
 		y -= .5;
-		y *= -PI;
+		y *= -Math.PI;
 		y *= this.scaleY;
 
 		const cY = Math.cos(y);
@@ -380,11 +379,11 @@ export default class SphericalView {
 
 		this.iMatrix.identity();
 
-		radius *= this.radius * (100 / PI2);
+		radius *= this.radius * (100 / (Math.PI * 2));
 
-		x *= -PI * 2;
+		x *= -Math.PI * 2;
 		y -= .5;
-		y *= PI * this.scaleY;
+		y *= Math.PI * this.scaleY;
 
 		const cY = Math.cos(y);
 		this.vec4.x = cY * Math.sin(x);
@@ -403,13 +402,13 @@ export default class SphericalView {
 			this.vec4.z * radius
 		);
 
-		this.iMatrix.rotateY(Math.atan2(this.vec4.x, this.vec4.z) + PI + rY);
+		this.iMatrix.rotateY(Math.atan2(this.vec4.x, this.vec4.z) + Math.PI + rY);
 		this.iMatrix.rotateX(this.vec4.y + rX);
 		this.iMatrix.rotateZ(rZ);
 
 		this.iMatrix.scaleXY(sX, sY);
 
-		this.iMatrix.scaleFlat(scale / PI / this.radius);
+		this.iMatrix.scaleFlat(scale / Math.PI / this.radius);
 
 		this.iMatrix.multiply(this.rMatrix);
 
@@ -425,7 +424,7 @@ export default class SphericalView {
 		const a = this.radius;
 		const sW = w / segsX;
 		const sH = h / segsY;
-		const pi2 = PI * 2;
+		const pi2 = Math.PI * 2;
 
 		for (let pY = 0; pY < segsY; pY++) {
 			for (let pX = 0; pX < segsX; pX++) {

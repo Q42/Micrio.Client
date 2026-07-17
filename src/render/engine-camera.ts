@@ -4,10 +4,9 @@
  * @internal
  */
 
-import { Coordinates } from '../shared/shared'
-import { PI } from '../globals'
-import { longitudeDistance } from '../utils/utils';
-import type { default as TileCanvas } from '../canvas/canvas';
+import { Coordinates } from './shared'
+import { longitudeDistance } from './easing';
+import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
 export default class Camera {
@@ -103,7 +102,7 @@ export default class Camera {
 
 		const numPerLayer = c.images.length / c.omniNumLayers;
 		const offset = c.layer * numPerLayer;
-		const currRot = (c.images.length > 0 ? -(c.activeImageIdx + 1 - offset) / (numPerLayer) * 2 * PI : 0);
+		const currRot = (c.images.length > 0 ? -(c.activeImageIdx + 1 - offset) / (numPerLayer) * 2 * Math.PI : 0);
 		mat.rotateY(rotation + currRot);
 
 		vec4.transformMat4(mat);

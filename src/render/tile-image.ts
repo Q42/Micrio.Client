@@ -5,11 +5,10 @@
  * @internal
  */
 
-import { DrawRect, Coordinates } from '../shared/shared';
-import { twoNth, mod1 } from '../utils/utils';
-import { Vec4, Mat4 } from '../webgl/mat';
-import { PI } from '../globals';
-import type { default as TileCanvas } from './canvas';
+import { DrawRect, Coordinates } from './shared';
+import { twoNth, mod1 } from './easing';
+import { Vec4, Mat4 } from './mat';
+import type { default as TileCanvas } from './tile-canvas';
 
 /** Represents a single resolution layer within an Image. @internal */
 class Layer {
@@ -166,8 +165,8 @@ export default class Image {
 
 	/** Converts 2D sphere coordinates to 3D unit sphere position */
 	private calculate3DSpherePosition(): void {
-		let yaw = (this.areaCenterX - 0.5) * 2 * PI;
-		const pitch = (this.areaCenterY - 0.5) * PI;
+		let yaw = (this.areaCenterX - 0.5) * 2 * Math.PI;
+		const pitch = (this.areaCenterY - 0.5) * Math.PI;
 
 		yaw += this.canvas.webgl.baseYaw;
 
@@ -175,8 +174,8 @@ export default class Image {
 		this.sphere3DY = Math.sin(pitch);
 		this.sphere3DZ = Math.cos(pitch) * Math.cos(yaw);
 
-		this.angularWidth = this.areaWidth * 2 * PI;
-		this.angularHeight = this.areaHeight * PI;
+		this.angularWidth = this.areaWidth * 2 * Math.PI;
+		this.angularHeight = this.areaHeight * Math.PI;
 	}
 
 	/**
@@ -461,7 +460,7 @@ export default class Image {
 	setDrawRect(r: DrawRect): void {
 		const v = this.canvas.main.vertexBuffer;
 		const d = this.canvas.webgl.radius;
-		const s: number = PI * 2 * d;
+		const s: number = Math.PI * 2 * d;
 		const p = this.vec;
 		const m = this.mat;
 
@@ -471,8 +470,8 @@ export default class Image {
 
 		m.identity();
 		m.translate(center.x, center.y, center.z);
-		m.rotateY(Math.atan2(center.x, center.z) + PI + this.rotY);
-		m.rotateX(-Math.sin((cY - .5) * PI) - this.rotX);
+		m.rotateY(Math.atan2(center.x, center.z) + Math.PI + this.rotY);
+		m.rotateX(-Math.sin((cY - .5) * Math.PI) - this.rotX);
 		m.rotateZ(-this.rotZ);
 		m.scaleFlat(this.scale * .5);
 
@@ -532,7 +531,7 @@ export default class Image {
 		Image.sampledLength = 0;
 		Image.uniqueLength = 0;
 
-		const samplesPerEdge: number = c.webgl.fieldOfView > PI / 2 ? 20 : 12;
+		const samplesPerEdge: number = c.webgl.fieldOfView > Math.PI / 2 ? 20 : 12;
 		const epsilon: number = 1e-8;
 
 		for (let i = 0; i <= samplesPerEdge; i++) {

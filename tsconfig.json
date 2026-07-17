@@ -9,7 +9,6 @@
 		"noUnusedParameters": true,
 		"paths": {
 			"$types/*": ["./src/types/*"],
-			"$engine/*": ["./src/engine/*"],
 			"$media/*": ["./src/media/*"],
 			"$core/*": ["./src/core/*"],
 			"$ui/*": ["./src/ui/*"],
@@ -27,7 +26,7 @@
 	"include": [
 		"src/*.ts",
 		"src/types/**/*",
-		"src/engine/**/*",
+
 		"src/media/**/*",
 		"src/core/**/*",
 		"src/ui/**/*",

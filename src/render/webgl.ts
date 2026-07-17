@@ -11,7 +11,7 @@ import { Engine } from './engine';
 import { PostProcessor } from './postprocess';
 import { Browser } from '$utils/browser';
 import { MicrioError, ErrorCodes } from '$core/error';
-import { segsX, segsY } from '$engine/globals';
+import { segsX, segsY } from './constants';
 import { createElement } from '$utils/dom';
 
 const isFirefox:boolean = Browser.firefox;
@@ -255,7 +255,7 @@ export class WebGL {
 		const gl = this.gl;
 		// Bind and buffer vertex position data (using the view from Engine memory)
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.engine._vertexBuffer, gl.DYNAMIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.engine.vertexBuffer, gl.DYNAMIC_DRAW);
 
 		// Enable and configure texture coordinate attribute
 		gl.enableVertexAttribArray(this.txtAttr);
@@ -420,7 +420,7 @@ export class WebGL {
 		}
 
 		// Update dynamic vertex buffer data from Engine memory view
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? this.micrio.engine._vertexBuffer360 : this.micrio.engine._vertexBuffer, this.gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW?
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? this.micrio.engine.vertexBuffer360 : this.micrio.engine.vertexBuffer, this.gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW?
 
 		// Draw the geometry
 		// For wireframe debugging:

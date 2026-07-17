@@ -1,6 +1,6 @@
 import type { MicrioImage } from './image';
 import type { Models } from '$types/models';
-import type TileCanvas from '$engine/canvas/canvas';
+import type TileCanvas from '$render/tile-canvas';
 
 import { tick } from '$core/store';
 import { mod, toCenterJSON } from '$utils/math';

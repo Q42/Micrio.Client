@@ -4,7 +4,7 @@
  * @internal
  */
 
-import type { default as TileCanvas } from '../canvas/canvas';
+import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles kinetic scrolling/dragging behavior after user interaction stops. @internal */
 export default class Kinetic {
