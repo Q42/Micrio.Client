@@ -360,15 +360,15 @@ export class TileCanvas {
 
 		const animating = this.ani.isStarted();
 
-		this.main.setViewport(this.el.left, this.main.el.height - this.el.height - this.el.top, this.el.width, this.el.height);
+		this.main.micrio.webgl.gl.viewport(this.el.left, this.main.el.height - this.el.height - this.el.top, this.el.width, this.el.height);
 
-		this.main.setMatrix(this.webgl.pMatrix.arr);
+		this.main.micrio.webgl.gl.uniformMatrix4fv(this.main.micrio.webgl.pmLoc, false, this.webgl.pMatrix.arr);
 
 		if (this.pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
 			if (!(im.x1 <= this.view.x0 || im.x0 >= this.view.x1 || im.y1 <= this.view.y0 || im.y0 >= this.view.y1)) {
 				this.#setTile(im.endOffset - 1);
-				this.main.drawQuad(im.tOpacity);
+				this.main.micrio.webgl.drawTile(undefined, im.tOpacity);
 			}
 		}
 

@@ -270,9 +270,6 @@ export class Engine {
 	}
 
 	/** @internal */
-	drawQuad = (opacity: number): void => { this.micrio.webgl.drawTile(undefined, opacity); }
-
-	/** @internal */
 	getTileOpacity = (i: number): number => { return this.#tiles.get(i)?.opacity || 0; }
 
 	/** @internal */
@@ -283,16 +280,6 @@ export class Engine {
 			tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1, (this.now - tile.loadedAt) / 250) * imageOpacity : 0);
 		}
 		return tile.opacity;
-	}
-
-	/** @internal */
-	setMatrix = (arr: Float32Array): void => {
-		this.micrio.webgl.gl.uniformMatrix4fv(this.micrio.webgl.pmLoc, false, arr);
-	}
-
-	/** @internal */
-	setViewport = (left: number, bottom: number, w: number, h: number): void => {
-		this.micrio.webgl.gl.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h));
 	}
 
 	/** @internal */
