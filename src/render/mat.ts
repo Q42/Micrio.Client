@@ -8,156 +8,155 @@
  * @internal
  */
 
-/** Represents a 4x4 matrix, tailored for WebGL operations. @internal */
+/**
+ * Represents a 4x4 matrix, tailored for WebGL operations.
+ *
+ * The matrix is stored as a single `Float32Array(16)` in column-major order,
+ * directly usable with WebGL `uniformMatrix4fv` (via {@link Mat4.arr}):
+ * ```
+ * arr[0] arr[4] arr[8]  arr[12]
+ * arr[1] arr[5] arr[9]  arr[13]
+ * arr[2] arr[6] arr[10] arr[14]
+ * arr[3] arr[7] arr[11] arr[15]
+ * ```
+ * @internal
+ */
 export class Mat4 {
-	/** Float32Array view for direct use with WebGL uniformMatrix4fv. */
-	readonly arr: Float32Array = new Float32Array(16);
+	/** Float32Array holding the matrix, for direct use with WebGL uniformMatrix4fv. */
+	readonly arr: Float32Array;
 
 	/**
-	 * Creates a new identity Mat4.
-	 * Matrix layout (column-major):
-	 * a0 a4 a8 a12
-	 * a1 a5 a9 a13
-	 * a2 a6 a10 a14
-	 * a3 a7 a11 a15
+	 * Creates a new Mat4 (defaults to the identity matrix).
 	 */
 	constructor(
-		public a0: number = 1, public a1: number = 0, public a2: number = 0, public a3: number = 0,
-		public a4: number = 0, public a5: number = 1, public a6: number = 0, public a7: number = 0,
-		public a8: number = 0, public a9: number = 0, public a10: number = 1, public a11: number = 0,
-		public a12: number = 0, public a13: number = 0, public a14: number = 0, public a15: number = 1
-	) {}
-
-	/** Updates the internal Float32Array with the current matrix values. */
-	toArray(): Float32Array {
-		this.arr[0] = this.a0;
-		this.arr[1] = this.a1;
-		this.arr[2] = this.a2;
-		this.arr[3] = this.a3;
-		this.arr[4] = this.a4;
-		this.arr[5] = this.a5;
-		this.arr[6] = this.a6;
-		this.arr[7] = this.a7;
-		this.arr[8] = this.a8;
-		this.arr[9] = this.a9;
-		this.arr[10] = this.a10;
-		this.arr[11] = this.a11;
-		this.arr[12] = this.a12;
-		this.arr[13] = this.a13;
-		this.arr[14] = this.a14;
-		this.arr[15] = this.a15;
-		return this.arr;
+		a0: number = 1, a1: number = 0, a2: number = 0, a3: number = 0,
+		a4: number = 0, a5: number = 1, a6: number = 0, a7: number = 0,
+		a8: number = 0, a9: number = 0, a10: number = 1, a11: number = 0,
+		a12: number = 0, a13: number = 0, a14: number = 0, a15: number = 1
+	) {
+		this.arr = new Float32Array([
+			a0, a1, a2, a3,
+			a4, a5, a6, a7,
+			a8, a9, a10, a11,
+			a12, a13, a14, a15
+		]);
 	}
 
 	/** Resets the matrix to the identity matrix. */
 	identity(): void {
-		this.a0 = 1; this.a1 = 0; this.a2 = 0; this.a3 = 0;
-		this.a4 = 0; this.a5 = 1; this.a6 = 0; this.a7 = 0;
-		this.a8 = 0; this.a9 = 0; this.a10 = 1; this.a11 = 0;
-		this.a12 = 0; this.a13 = 0; this.a14 = 0; this.a15 = 1;
+		const a = this.arr;
+		a[0] = 1; a[1] = 0; a[2] = 0; a[3] = 0;
+		a[4] = 0; a[5] = 1; a[6] = 0; a[7] = 0;
+		a[8] = 0; a[9] = 0; a[10] = 1; a[11] = 0;
+		a[12] = 0; a[13] = 0; a[14] = 0; a[15] = 1;
 	}
 
 	/** Copies the values from another Mat4 into this one. */
 	copy(s: Mat4): void {
-		this.a0 = s.a0; this.a1 = s.a1; this.a2 = s.a2; this.a3 = s.a3;
-		this.a4 = s.a4; this.a5 = s.a5; this.a6 = s.a6; this.a7 = s.a7;
-		this.a8 = s.a8; this.a9 = s.a9; this.a10 = s.a10; this.a11 = s.a11;
-		this.a12 = s.a12; this.a13 = s.a13; this.a14 = s.a14; this.a15 = s.a15;
+		this.arr.set(s.arr);
 	}
 
 	/** Multiplies this matrix by a rotation matrix created from the given angle around the X axis. */
 	rotateX(rad: number): void {
+		const a = this.arr;
 		const s = Math.sin(rad);
 		const c = Math.cos(rad);
-		const a10 = this.a4, a11 = this.a5, a12 = this.a6, a13 = this.a7;
-		const a20 = this.a8, a21 = this.a9, a22 = this.a10, a23 = this.a11;
+		const a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+		const a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
 
-		this.a4 = a10 * c + a20 * s;
-		this.a5 = a11 * c + a21 * s;
-		this.a6 = a12 * c + a22 * s;
-		this.a7 = a13 * c + a23 * s;
-		this.a8 = a20 * c - a10 * s;
-		this.a9 = a21 * c - a11 * s;
-		this.a10 = a22 * c - a12 * s;
-		this.a11 = a23 * c - a13 * s;
+		a[4] = a10 * c + a20 * s;
+		a[5] = a11 * c + a21 * s;
+		a[6] = a12 * c + a22 * s;
+		a[7] = a13 * c + a23 * s;
+		a[8] = a20 * c - a10 * s;
+		a[9] = a21 * c - a11 * s;
+		a[10] = a22 * c - a12 * s;
+		a[11] = a23 * c - a13 * s;
 	}
 
 	/** Multiplies this matrix by a rotation matrix created from the given angle around the Y axis. */
 	rotateY(rad: number): void {
+		const a = this.arr;
 		const s = Math.sin(rad);
 		const c = Math.cos(rad);
-		const a00 = this.a0, a01 = this.a1, a02 = this.a2, a03 = this.a3;
-		const a20 = this.a8, a21 = this.a9, a22 = this.a10, a23 = this.a11;
+		const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+		const a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
 
-		this.a0 = a00 * c - a20 * s;
-		this.a1 = a01 * c - a21 * s;
-		this.a2 = a02 * c - a22 * s;
-		this.a3 = a03 * c - a23 * s;
-		this.a8 = a00 * s + a20 * c;
-		this.a9 = a01 * s + a21 * c;
-		this.a10 = a02 * s + a22 * c;
-		this.a11 = a03 * s + a23 * c;
+		a[0] = a00 * c - a20 * s;
+		a[1] = a01 * c - a21 * s;
+		a[2] = a02 * c - a22 * s;
+		a[3] = a03 * c - a23 * s;
+		a[8] = a00 * s + a20 * c;
+		a[9] = a01 * s + a21 * c;
+		a[10] = a02 * s + a22 * c;
+		a[11] = a03 * s + a23 * c;
 	}
 
 	/** Multiplies this matrix by a rotation matrix created from the given angle around the Z axis. */
 	rotateZ(rad: number): void {
+		const a = this.arr;
 		const s = Math.sin(rad);
 		const c = Math.cos(rad);
-		const a00 = this.a0, a01 = this.a1, a02 = this.a2, a03 = this.a3;
-		const a10 = this.a4, a11 = this.a5, a12 = this.a6, a13 = this.a7;
+		const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+		const a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
 
-		this.a0 = a00 * c + a10 * s;
-		this.a1 = a01 * c + a11 * s;
-		this.a2 = a02 * c + a12 * s;
-		this.a3 = a03 * c + a13 * s;
-		this.a4 = a10 * c - a00 * s;
-		this.a5 = a11 * c - a01 * s;
-		this.a6 = a12 * c - a02 * s;
-		this.a7 = a13 * c - a03 * s;
+		a[0] = a00 * c + a10 * s;
+		a[1] = a01 * c + a11 * s;
+		a[2] = a02 * c + a12 * s;
+		a[3] = a03 * c + a13 * s;
+		a[4] = a10 * c - a00 * s;
+		a[5] = a11 * c - a01 * s;
+		a[6] = a12 * c - a02 * s;
+		a[7] = a13 * c - a03 * s;
 	}
 
 	/** Uniform scale applied only to X and Y columns (Z unchanged). */
 	scaleFlat(scale: number): void {
-		this.a0 *= scale; this.a1 *= scale; this.a2 *= scale; this.a3 *= scale;
-		this.a4 *= scale; this.a5 *= scale; this.a6 *= scale; this.a7 *= scale;
+		const a = this.arr;
+		a[0] *= scale; a[1] *= scale; a[2] *= scale; a[3] *= scale;
+		a[4] *= scale; a[5] *= scale; a[6] *= scale; a[7] *= scale;
 	}
 
 	/** Translates the matrix by the given vector [x, y, z]. */
 	translate(x: number, y: number, z: number): void {
-		this.a12 += this.a0 * x + this.a4 * y + this.a8 * z;
-		this.a13 += this.a1 * x + this.a5 * y + this.a9 * z;
-		this.a14 += this.a2 * x + this.a6 * y + this.a10 * z;
-		this.a15 += this.a3 * x + this.a7 * y + this.a11 * z;
+		const a = this.arr;
+		a[12] += a[0] * x + a[4] * y + a[8] * z;
+		a[13] += a[1] * x + a[5] * y + a[9] * z;
+		a[14] += a[2] * x + a[6] * y + a[10] * z;
+		a[15] += a[3] * x + a[7] * y + a[11] * z;
 	}
 
 	/** Generates a perspective projection matrix with the given bounds. */
 	perspective(fovy: number, aspect: number, near: number, far: number): void {
 		this.identity();
+		const a = this.arr;
 		const f = 1.0 / Math.tan(fovy / 2);
 		const nf = 1 / (near - far);
 
-		this.a0 = (f / aspect);
-		this.a5 = f;
-		this.a10 = (far + near) * nf;
-		this.a11 = -1;
-		this.a14 = 2 * far * near * nf;
-		this.a15 = 0;
+		a[0] = (f / aspect);
+		a[5] = f;
+		a[10] = (far + near) * nf;
+		a[11] = -1;
+		a[14] = 2 * far * near * nf;
+		a[15] = 0;
 	}
 
 	/** Generates a simplified perspective matrix suitable for CSS 3D transforms (no near/far clipping). */
 	perspectiveCss(fovy: number): void {
 		this.identity();
+		const a = this.arr;
 		const f = 1.0 / Math.tan(fovy / 2);
-		this.a0 = f;
-		this.a5 = f;
+		a[0] = f;
+		a[5] = f;
 	}
 
 	/** Inverts the matrix. */
 	invert(): void {
-		const a00 = this.a0, a01 = this.a1, a02 = this.a2, a03 = this.a3;
-		const a10 = this.a4, a11 = this.a5, a12 = this.a6, a13 = this.a7;
-		const a20 = this.a8, a21 = this.a9, a22 = this.a10, a23 = this.a11;
-		const a30 = this.a12, a31 = this.a13, a32 = this.a14, a33 = this.a15;
+		const m = this.arr;
+		const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
+		const a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7];
+		const a20 = m[8], a21 = m[9], a22 = m[10], a23 = m[11];
+		const a30 = m[12], a31 = m[13], a32 = m[14], a33 = m[15];
 
 		const b00 = a00 * a11 - a01 * a10;
 		const b01 = a00 * a12 - a02 * a10;
@@ -178,56 +177,59 @@ export class Mat4 {
 
 		det = 1.0 / det;
 
-		this.a0 = (a11 * b11 - a12 * b10 + a13 * b09) * det;
-		this.a1 = (a02 * b10 - a01 * b11 - a03 * b09) * det;
-		this.a2 = (a31 * b05 - a32 * b04 + a33 * b03) * det;
-		this.a3 = (a22 * b04 - a21 * b05 - a23 * b03) * det;
-		this.a4 = (a12 * b08 - a10 * b11 - a13 * b07) * det;
-		this.a5 = (a00 * b11 - a02 * b08 + a03 * b07) * det;
-		this.a6 = (a32 * b02 - a30 * b05 - a33 * b01) * det;
-		this.a7 = (a20 * b05 - a22 * b02 + a23 * b01) * det;
-		this.a8 = (a10 * b10 - a11 * b08 + a13 * b06) * det;
-		this.a9 = (a01 * b08 - a00 * b10 - a03 * b06) * det;
-		this.a10 = (a30 * b04 - a31 * b02 + a33 * b00) * det;
-		this.a11 = (a21 * b02 - a20 * b04 - a23 * b00) * det;
-		this.a12 = (a11 * b07 - a10 * b09 - a12 * b06) * det;
-		this.a13 = (a00 * b09 - a01 * b07 + a02 * b06) * det;
-		this.a14 = (a31 * b01 - a30 * b03 - a32 * b00) * det;
-		this.a15 = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+		m[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+		m[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+		m[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+		m[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+		m[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+		m[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+		m[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+		m[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+		m[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+		m[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+		m[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+		m[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+		m[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+		m[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+		m[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+		m[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
 	}
 
 	/** Multiplies this matrix by another matrix `a` (this = this * a). */
-	multiply(a: Mat4): void {
-		let b0 = this.a0, b1 = this.a1, b2 = this.a2, b3 = this.a3;
-		this.a0 = b0 * a.a0 + b1 * a.a4 + b2 * a.a8 + b3 * a.a12;
-		this.a1 = b0 * a.a1 + b1 * a.a5 + b2 * a.a9 + b3 * a.a13;
-		this.a2 = b0 * a.a2 + b1 * a.a6 + b2 * a.a10 + b3 * a.a14;
-		this.a3 = b0 * a.a3 + b1 * a.a7 + b2 * a.a11 + b3 * a.a15;
+	multiply(o: Mat4): void {
+		const t = this.arr;
+		const a = o.arr;
+		let b0 = t[0], b1 = t[1], b2 = t[2], b3 = t[3];
+		t[0] = b0 * a[0] + b1 * a[4] + b2 * a[8] + b3 * a[12];
+		t[1] = b0 * a[1] + b1 * a[5] + b2 * a[9] + b3 * a[13];
+		t[2] = b0 * a[2] + b1 * a[6] + b2 * a[10] + b3 * a[14];
+		t[3] = b0 * a[3] + b1 * a[7] + b2 * a[11] + b3 * a[15];
 
-		b0 = this.a4; b1 = this.a5; b2 = this.a6; b3 = this.a7;
-		this.a4 = b0 * a.a0 + b1 * a.a4 + b2 * a.a8 + b3 * a.a12;
-		this.a5 = b0 * a.a1 + b1 * a.a5 + b2 * a.a9 + b3 * a.a13;
-		this.a6 = b0 * a.a2 + b1 * a.a6 + b2 * a.a10 + b3 * a.a14;
-		this.a7 = b0 * a.a3 + b1 * a.a7 + b2 * a.a11 + b3 * a.a15;
+		b0 = t[4]; b1 = t[5]; b2 = t[6]; b3 = t[7];
+		t[4] = b0 * a[0] + b1 * a[4] + b2 * a[8] + b3 * a[12];
+		t[5] = b0 * a[1] + b1 * a[5] + b2 * a[9] + b3 * a[13];
+		t[6] = b0 * a[2] + b1 * a[6] + b2 * a[10] + b3 * a[14];
+		t[7] = b0 * a[3] + b1 * a[7] + b2 * a[11] + b3 * a[15];
 
-		b0 = this.a8; b1 = this.a9; b2 = this.a10; b3 = this.a11;
-		this.a8 = b0 * a.a0 + b1 * a.a4 + b2 * a.a8 + b3 * a.a12;
-		this.a9 = b0 * a.a1 + b1 * a.a5 + b2 * a.a9 + b3 * a.a13;
-		this.a10 = b0 * a.a2 + b1 * a.a6 + b2 * a.a10 + b3 * a.a14;
-		this.a11 = b0 * a.a3 + b1 * a.a7 + b2 * a.a11 + b3 * a.a15;
+		b0 = t[8]; b1 = t[9]; b2 = t[10]; b3 = t[11];
+		t[8] = b0 * a[0] + b1 * a[4] + b2 * a[8] + b3 * a[12];
+		t[9] = b0 * a[1] + b1 * a[5] + b2 * a[9] + b3 * a[13];
+		t[10] = b0 * a[2] + b1 * a[6] + b2 * a[10] + b3 * a[14];
+		t[11] = b0 * a[3] + b1 * a[7] + b2 * a[11] + b3 * a[15];
 
-		b0 = this.a12; b1 = this.a13; b2 = this.a14; b3 = this.a15;
-		this.a12 = b0 * a.a0 + b1 * a.a4 + b2 * a.a8 + b3 * a.a12;
-		this.a13 = b0 * a.a1 + b1 * a.a5 + b2 * a.a9 + b3 * a.a13;
-		this.a14 = b0 * a.a2 + b1 * a.a6 + b2 * a.a10 + b3 * a.a14;
-		this.a15 = b0 * a.a3 + b1 * a.a7 + b2 * a.a11 + b3 * a.a15;
+		b0 = t[12]; b1 = t[13]; b2 = t[14]; b3 = t[15];
+		t[12] = b0 * a[0] + b1 * a[4] + b2 * a[8] + b3 * a[12];
+		t[13] = b0 * a[1] + b1 * a[5] + b2 * a[9] + b3 * a[13];
+		t[14] = b0 * a[2] + b1 * a[6] + b2 * a[10] + b3 * a[14];
+		t[15] = b0 * a[3] + b1 * a[7] + b2 * a[11] + b3 * a[15];
 	}
 
-	/** Scales the matrix by the given vector [x, y, z]. */
-	scaleXY(x: number, y: number, z: number = 1): void {
-		this.a0 *= x; this.a1 *= x; this.a2 *= x; this.a3 *= x;
-		this.a4 *= y; this.a5 *= y; this.a6 *= y; this.a7 *= y;
-		this.a8 *= z; this.a9 *= z; this.a10 *= z; this.a11 *= z;
+	/** Scales the matrix by the given vector [x, y, z] (z defaults to 1). */
+	scale(x: number, y: number, z: number = 1): void {
+		const a = this.arr;
+		a[0] *= x; a[1] *= x; a[2] *= x; a[3] *= x;
+		a[4] *= y; a[5] *= y; a[6] *= y; a[7] *= y;
+		a[8] *= z; a[9] *= z; a[10] *= z; a[11] *= z;
 	}
 }
 
@@ -250,13 +252,14 @@ export class Vec4 {
 
 	/** Transforms the vector by the given Mat4. */
 	transformMat4(m: Mat4): void {
+		const a = m.arr;
 		const x = this.x, y = this.y, z = this.z;
 
-		const w = m.a3 * x + m.a7 * y + m.a11 * z + m.a15 || 1.0;
+		const w = a[3] * x + a[7] * y + a[11] * z + a[15] || 1.0;
 
-		this.x = (m.a0 * x + m.a4 * y + m.a8 * z + m.a12) / w;
-		this.y = (m.a1 * x + m.a5 * y + m.a9 * z + m.a13) / w;
-		this.z = (m.a2 * x + m.a6 * y + m.a10 * z + m.a14) / w;
+		this.x = (a[0] * x + a[4] * y + a[8] * z + a[12]) / w;
+		this.y = (a[1] * x + a[5] * y + a[9] * z + a[13]) / w;
+		this.z = (a[2] * x + a[6] * y + a[10] * z + a[14]) / w;
 		this.w = w;
 	}
 

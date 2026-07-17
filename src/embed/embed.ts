@@ -327,10 +327,10 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 		const opacity = embed.hideWhenPaused ? 0.01 : (embed.opacity ?? 1);
 
-		if (this.#glImage && (this.#glImage.ptr >= 0 || image.embeds.includes(this.#glImage))) {
+		if (this.#glImage && (this.#glImage.placed || image.embeds.includes(this.#glImage))) {
 			this.#glImage.camera.setArea(embed.area as Models.Camera.View);
 			this.#glImage.camera.setRotation(this.#rotX, this.#rotY, this.#rotZ);
-			if (this.#glImage.ptr >= 0) image.engine.fadeImage(this.#glImage.ptr, opacity);
+			if (this.#glImage.placed) image.engine.fadeImage(this.#glImage, opacity);
 		} else {
 			this.#glImage = image.addEmbed({
 				id: embed.video ? embed.id : embed.micrioId,
@@ -473,8 +473,8 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		this.#glVideo?.unmount();
 
 		const { embed, image } = this.#props;
-		if (this.#glImage && this.#glImage.ptr >= 0 && image) {
-			image.engine.fadeImage(this.#glImage.ptr, 0);
+		if (this.#glImage && this.#glImage.placed && image) {
+			image.engine.fadeImage(this.#glImage, 0);
 			image.engine.render();
 		}
 

@@ -99,11 +99,11 @@ export class MicrioImage {
 	/** Stores an error message if loading failed. */
 	error: string|undefined;
 
-	/** Pointer to the image instance within the compute engine.
+	/** Whether this image has been placed on the compute engine.
 	 * @readonly
 	 * @internal
 	*/
-	ptr: number = -1;
+	placed: boolean = false;
 
 	/** Base tile index within the engine texture atlas.
 	 * @readonly
@@ -623,13 +623,13 @@ export class MicrioImage {
 
 	/** Fades in the image smoothly or instantly. */
 	fadeIn(direct:boolean=false) : void {
-		this.engine.fadeImage(this.ptr, 1, direct);
+		this.engine.fadeImage(this, 1, direct);
 		this.engine.render();
 	}
 
 	/** Fades out the image smoothly or instantly. */
 	fadeOut(direct:boolean=false) : void {
-		this.engine.fadeImage(this.ptr, 0, direct);
+		this.engine.fadeImage(this, 0, direct);
 		this.engine.render();
 	}
 

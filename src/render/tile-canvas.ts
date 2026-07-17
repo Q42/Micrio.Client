@@ -645,7 +645,7 @@ export class TileCanvas {
 	}
 	getMatrix(x: number, y: number, s: number, r: number, rX: number, rY: number, rZ: number, t: number, sX: number = 1, sY: number = 1, noCorrectNorth: boolean = false): Float32Array {
 		const fact: number = 20000 / this.width;
-		return this.webgl.getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).toArray()
+		return this.webgl.getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).arr
 	}
 
 	aniPause(time: number): void {

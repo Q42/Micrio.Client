@@ -315,7 +315,7 @@ export class Grid {
 			if(images.find(e => e.id == i.id)) {
 				i.camera.setArea([0,0,focussed?.id == i.id ? 1 : vW,1], {noDispatch: true, direct: true});
 				if(i != focussed) i.camera.setView([0,0,1,1]);
-				if(isDelayed) engine.setZIndex(i.ptr, images.length-(c++));
+				if(isDelayed) engine.setZIndex(i, images.length-(c++));
 			}
 		});
 		images.forEach(e => e.view = [0,0,1,1]);
@@ -380,7 +380,7 @@ export class Grid {
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
 			this.#setupBehindTransition(images, opts, focussed);
 
-		const ready = this.image.ptr >= 0;
+		const ready = this.image.placed;
 		const dur = opts.duration ?? (opts.noHistory ? this.aniDurationOut : this.aniDurationIn);
 		const defaultDur = this.#nextCrossFadeDuration ?? this.image.$settings.crossfadeDuration ?? 1;
 		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
@@ -434,17 +434,17 @@ export class Grid {
 			cover: opts.cover
 		}));
 
-		if(isAppear) this.current.slice(1).forEach(i => engine.fadeTo(i.ptr, .9999, true));
+		if(isAppear) this.current.slice(1).forEach(i => engine.fadeTo(i, .9999, true));
 
 		const fadeIn = () => this.current.forEach((img,i) =>
 			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
-				.then(() => engine.fadeIn(img.ptr))
+				.then(() => engine.fadeIn(img))
 		);
 
 		const done = () => {
 			this.#clearTimeouts();
 			requestAnimationFrame(() => engine.setCrossfadeDuration(defaultDur));
-			if(isDelayed) this.images.forEach(i => engine.setZIndex(i.ptr, 0));
+			if(isDelayed) this.images.forEach(i => engine.setZIndex(i, 0));
 			if(opts.coverLimit) images.forEach(i => this.#imageMap.get(i.id!)?.camera.setCoverLimit(true));
 			if(this.clickable) this.#placeGrid();
 			this.#lastAction = undefined;
@@ -613,7 +613,7 @@ export class Grid {
 			this.#trackImage(img);
 		}
 		const aniOpts = {duration:opts.duration*1000, timingFunction: this.#timingFunction, limit: false};
-		if(!opts.noCamAni && !img.camera.aniDone && img.ptr > 0) {
+		if(!opts.noCamAni && !img.camera.aniDone && img.placed) {
 			const isCover = !!opts.cover || img.camera.getCoverLimit();
 			if(entry.view || !isCover) img.camera.flyToView(entry.view ?? [0,0,1,1], aniOpts).catch(() => {})
 			else if(entry.area && entry.width && entry.height) {
@@ -632,7 +632,7 @@ export class Grid {
 	#removeImages(images:MicrioImage[]) : void {
 		const { engine } = this.micrio;
 		images.forEach(i => {
-			if(i.ptr >= 0) engine.fadeOut(i.ptr);
+			if(i.placed) engine.fadeOut(i);
 			this._buttons.delete(i.id);
 		});
 		engine.render();
@@ -755,7 +755,7 @@ export class Grid {
 
 		if(focussed == img) return;
 
-		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !m.engine.areaAnimating(focussed.ptr) && !this.current.includes(img)));
+		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !m.engine.areaAnimating(focussed) && !this.current.includes(img)));
 		if(direct) img.camera.setArea([0,0,1,1], {noDispatch: true, direct: true});
 		if(focussed) this.blur();
 
@@ -766,7 +766,7 @@ export class Grid {
 			view: opts.view
 		}), opts);
 
-		m.engine.setZIndex(img.ptr, 3);
+		m.engine.setZIndex(img, 3);
 		this.focussed.set(img);
 
 		if(!get(img.visible) && (opts.transition == 'crossfade' || !opts.transition))
@@ -814,7 +814,7 @@ export class Grid {
 			: transition.endsWith('-left') ? 270
 			: 90;
 
-		if(isSlwipe || isBehind) engine.fadeTo(target.ptr, .9999, true);
+		if(isSlwipe || isBehind) engine.fadeTo(target, .9999, true);
 
 		if(transition.startsWith('slide')) {
 			target.camera.setArea(slideAreas[transDir!], {noDispatch: true, direct: true});
@@ -866,7 +866,7 @@ export class Grid {
 		const focussed = this.$focussed;
 		if(!focussed) return;
 		this._buttons.forEach(b => b.classList.remove('focussed'));
-		this.micrio.engine.setZIndex(focussed.ptr, 2);
+		this.micrio.engine.setZIndex(focussed, 2);
 		this.micrio.events.dispatch('grid-blur');
 		this.focussed.set(undefined);
 		this.image.camera.setLimit([0, 0, 1, 1]);

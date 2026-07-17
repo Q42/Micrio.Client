@@ -158,8 +158,8 @@ export namespace State {
 		hookOmni() : void {
 			const image = this.#image;
 			this.layer.subscribe(l => {
-				if(image.ptr < 0 || !image.engine.ready) return;
-				image.engine.setActiveLayer(image.ptr, l); // Call engine
+				if(!image.placed || !image.engine.ready) return;
+				image.engine.setActiveLayer(image, l); // Call engine
 				image.engine.render(); // Trigger render
 			});
 		}

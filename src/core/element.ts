@@ -194,8 +194,8 @@ ${cssVars}`;
 				this.isMuted.set(this.hasAttribute('muted'));
 				break;
 			case 'data-limited':
-				if(this.engine?.vertexBuffer && this.$current?.ptr)
-					this.engine.setLimited(this.$current.ptr, !!newVal);
+				if(this.engine?.vertexBuffer && this.$current?.placed)
+					this.engine.setLimited(this.$current, !!newVal);
 				break;
 			case 'lang': {
 				let prevLang = get(this._lang);
@@ -452,7 +452,7 @@ ${cssVars}`;
 
 		if(opts.startView) {
 			c.state.view.set(i.settings.view = opts.startView);
-			if(c.ptr > 0 && c.engine.ready) c.camera.setView(i.settings.view,{noRender:true});
+			if(c.placed && c.engine.ready) c.camera.setView(i.settings.view,{noRender:true});
 		}
 
 		if(!this.lang) this.lang = 'en';

@@ -10,7 +10,7 @@ export namespace Omni {
 		frame: number;
 		thumbSrc?: string;
 		baseTileIdx: number;
-		ptr: number;
+		placed: boolean;
 		opts: { area: Camera.View; };
 	}
 }

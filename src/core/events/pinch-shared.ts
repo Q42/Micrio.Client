@@ -10,7 +10,7 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	ctx.setPinchFactor(undefined);
 
 	if (ctx.vars.pinch.image) {
-		ctx.micrio.engine.pinchStart(ctx.vars.pinch.image.ptr);
+		ctx.micrio.engine.pinchStart(ctx.vars.pinch.image);
 	}
 	ctx.micrio.engine.render();
 	ctx.dispatch('pinchstart');
@@ -35,7 +35,7 @@ export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2
 	adjustSplitScreen(ctx, coo, coo2);
 
 	ctx.setPinchFactor(Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v.sDst);
-	ctx.micrio.engine.pinch(i.ptr, coo.x, coo.y, coo2.x, coo2.y);
+	ctx.micrio.engine.pinch(i, coo.x, coo.y, coo2.x, coo2.y);
 }
 
 export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: any[]) => void): void {
@@ -49,7 +49,7 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 
 	const i = ctx.vars.pinch.image;
 	if (i) {
-		ctx.micrio.engine.pinchStop(i.ptr, performance.now());
+		ctx.micrio.engine.pinchStop(i, performance.now());
 		ctx.micrio.engine.render();
 	}
 	ctx.vars.pinch.image = undefined;

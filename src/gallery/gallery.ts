@@ -149,7 +149,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
-			this.#parentImage.engine.setActiveImage(this.#parentImage.ptr, imgIdx, num);
+			this.#parentImage.engine.setActiveImage(this.#parentImage, imgIdx, num);
 			if (num > 0) {
 				this.#parentImage.camera.setView([0, 0, 1, 1]);
 			} else {
@@ -452,7 +452,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			}));
 			const pageImages = this.#pageToImages[pageIdx];
 			const num = (pageImages?.length ?? 1) - 1;
-			engine.setActiveImage(parent.ptr, startImageIdx, num);
+			engine.setActiveImage(parent, startImageIdx, num);
 			if (num > 0) {
 				parent.camera.setView([0, 0, 1, 1]);
 			} else {
@@ -644,9 +644,9 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const pagesPerLayer = totalFrames / numLayers;
 
 		// Ensure image is registered with the engine
-		if (image.ptr < 0) {
+		if (!image.placed) {
 			once(image.info).then(() => {
-				if (image.ptr >= 0) this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
+				if (image.placed) this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
 			});
 			return;
 		}
@@ -686,7 +686,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 				visible: writable(false),
 				frame: j,
 				opts: { area: [0, 0, 1, 1] },
-				ptr: -1,
+				placed: false,
 				baseTileIdx: -1,
 				thumbSrc: image.getTileSrc(image.levels, 0, 0, j),
 			};
@@ -695,7 +695,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		}
 
 		// Show the first frame
-		engine.setActiveImage(image.ptr, 0);
+		engine.setActiveImage(image, 0);
 		engine.render();
 
 		// Create the dial before the swiper so gotoFn can reference it
@@ -714,7 +714,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const gotoFn = (idx: number) => {
 			while (idx < 0) idx += pagesPerLayer;
 			idx %= pagesPerLayer;
-			engine.setActiveImage(image.ptr, idx);
+			engine.setActiveImage(image, idx);
 			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
 			preload(idx);
 			engine.render();

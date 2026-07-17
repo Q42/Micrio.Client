@@ -26,7 +26,6 @@ export default class SphericalView {
 
 	scaleY: number = 1;
 	offY: number = 0;
-	dofY: number = 1;
 
 	limitX: number = 0;
 	limitY: number = 0;
@@ -43,14 +42,7 @@ export default class SphericalView {
 	public cameraForwardX: number = 0;
 	public cameraForwardY: number = 0;
 	public cameraForwardZ: number = -1;
-	public cameraUpX: number = 0;
-	public cameraUpY: number = 1;
-	public cameraUpZ: number = 0;
-	public cameraRightX: number = 1;
-	public cameraRightY: number = 0;
-	public cameraRightZ: number = 0;
 	public fieldOfView: number = 0;
-	public aspectRatio: number = 1;
 
 	readonly vec4: Vec4 = new Vec4();
 	readonly coo: Coordinates = new Coordinates;
@@ -113,8 +105,6 @@ export default class SphericalView {
 				-v.height / 2
 			);
 		}
-
-		this.pMatrix.toArray();
 	}
 
 	/**
@@ -273,19 +263,11 @@ export default class SphericalView {
 		this.cameraForwardY = Math.sin(pitch);
 		this.cameraForwardZ = Math.cos(pitch) * Math.cos(yaw);
 
-		this.cameraUpX = -Math.sin(pitch) * Math.sin(yaw);
-		this.cameraUpY = Math.cos(pitch);
-		this.cameraUpZ = -Math.sin(pitch) * Math.cos(yaw);
-
-		this.cameraRightX = Math.cos(yaw);
-		this.cameraRightY = 0;
-		this.cameraRightZ = -Math.sin(yaw);
-
 		const verticalFOV = 2 * Math.atan(1 / this.perspective);
-		this.aspectRatio = this.#canvas.el.width / this.#canvas.el.height;
+		const aspectRatio = this.#canvas.el.width / this.#canvas.el.height;
 
 		const halfVerticalFOV = verticalFOV / 2;
-		const halfHorizontalFOV = Math.atan(Math.tan(halfVerticalFOV) * this.aspectRatio);
+		const halfHorizontalFOV = Math.atan(Math.tan(halfVerticalFOV) * aspectRatio);
 		this.fieldOfView = halfHorizontalFOV * 2;
 	}
 
@@ -409,7 +391,7 @@ export default class SphericalView {
 		this.iMatrix.rotateX(this.vec4.y + rX);
 		this.iMatrix.rotateZ(rZ);
 
-		this.iMatrix.scaleXY(sX, sY);
+		this.iMatrix.scale(sX, sY);
 
 		this.iMatrix.scaleFlat(scale / Math.PI / this.radius);
 

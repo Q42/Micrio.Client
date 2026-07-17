@@ -18,29 +18,8 @@ export class Camera {
 	/** Current center screen coordinates [x, y] and scale [z]. For 360, also includes [yaw, pitch]. For Omni, also includes [frameIndex]. */
 	readonly center: Models.Camera.Coords = [0,0,1];
 
-	/** Shared buffer holding the current view rectangle [centerX, centerY, width, height].
-	 * TODO-- fix this, but later.
-	 * @internal
-	*/
-	#_view!: Float64Array;
-
 	/** CORRECT view: [x0, y0, width, height] */
 	readonly #view: Models.Camera.View = [0,0,1,1];
-
-	/** Shared buffer used for getXY calculations. [screenX, screenY, scale, depth].
-	 * @internal
-	 */
-	#_xy!: Float64Array;
-
-	/** Shared buffer used for getCoo calculations. [imageX, imageY, scale, depth, yaw?, pitch?].
-	 * @internal
-	 */
-	#_coo!: Float64Array;
-
-	/** Shared buffer holding the calculated 4x4 matrix for 360 embeds.
-	 * @internal
-	 */
-	#_mat!: Float32Array;
 
 	/** Y-axis sphere rotation in radians for 360 images. @internal */
 	rotationY: number = 0;
@@ -87,37 +66,23 @@ export class Camera {
 		this.#_engineCanvas = canvas;
 	}
 
-	/**
-	 * Assigns the shared memory buffers to the camera instance. Called by Engine controller.
-	 * @internal
-	*/
-	assign(
-		view: Float64Array,
-		xy: Float64Array,
-		coo: Float64Array,
-		mat: Float32Array,
-	) : void {
-		this.#_view = view;
-		this.#_xy = xy;
-		this.#_coo = coo;
-		this.#_mat = mat;
-	}
-
 	/** Direct reference to the bound engine TileCanvas. Throws if not yet bound. @internal */
 	get #_c(): TileCanvas { return this.#_engineCanvas!; }
 
-	// -- Engine delegation helpers (eliminate the old ptr-based proxy) --
+	// -- Engine delegation helpers (read live engine state directly) --
 
-	#_getXY(x: number, y: number, abs: boolean, radius?: number, rotation?: number): void {
+	/** Returns the live screen-coordinate buffer [screenX, screenY, scale, depth] from the engine. */
+	#_getXY(x: number, y: number, abs: boolean, radius?: number, rotation?: number): Float64Array {
 		const c = this.#_c;
-		if (c.is360) { c.webgl.getXYZ(x, y); }
-		else if (rotation !== undefined && !isNaN(rotation)) { c.camera.getXYOmni(x, y, radius ?? 0, rotation, !!abs); }
-		else { c.camera.getXY(x, y, !!abs); }
+		if (c.is360) return c.webgl.getXYZ(x, y).arr;
+		if (rotation !== undefined && !isNaN(rotation)) return c.camera.getXYOmni(x, y, radius ?? 0, rotation, !!abs).arr;
+		return c.camera.getXY(x, y, !!abs).arr;
 	}
-	#_getCoo(x: number, y: number, abs: boolean, noLimit: boolean): void {
+	/** Returns the live image-coordinate buffer [imageX, imageY, scale, depth, yaw?, pitch?] from the engine. */
+	#_getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Float64Array {
 		const c = this.#_c;
-		if (c.is360) { c.webgl.getCoo(x, y); }
-		else { c.camera.getCoo(x, y, !!abs, !!noLimit); }
+		if (c.is360) return c.webgl.getCoo(x, y).arr;
+		return c.camera.getCoo(x, y, !!abs, !!noLimit).arr;
 	}
 
 	#_setMinScale(s: number): void {
@@ -134,7 +99,7 @@ export class Camera {
 	 * @internal
 	 */
 	viewChanged() {
-		const v = this.#_view; // Current view from engine buffer
+		const v = this.#_c.view.arr; // Current view from live engine buffer
 		const prevCenterStr = this.center.join(','); // Store previous center for comparison
 		const centerCoords = this.getCoo(0,0); // Get image coordinates at screen center
 
@@ -188,8 +153,7 @@ export class Camera {
 		noTrueNorth?:boolean; // Ignore rotationY correction?
 	} = {}) {
 		const tNDiff = (this.image.is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
-		this.#_getXY( x-tNDiff, y, opts.abs===true, opts.radius, opts.rotation);
-		return this.#_xy; // Return direct buffer reference
+		return this.#_getXY( x-tNDiff, y, opts.abs===true, opts.radius, opts.rotation); // Live buffer reference
 	}
 
 	/**
@@ -207,8 +171,7 @@ export class Camera {
 			x-=box.left;
 			y-=box.top;
 		}
-		this.#_getCoo( x, y, abs===true, noLimit===true);
-		return this.#_coo; // Return direct buffer reference
+		return this.#_getCoo( x, y, abs===true, noLimit===true); // Live buffer reference
 	}
 
 	/**
@@ -221,7 +184,7 @@ export class Camera {
 	 * Gets the current image view rectangle [x0, y0, width, height] relative to the image (0-1).
 	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
 	 */
-	public getViewRaw = () : Float64Array => this.#_view;
+	public getViewRaw = () : Float64Array => this.#_c.view.arr;
 
 	/**
 	 * Sets the camera view instantly to the specified viewport.
@@ -319,8 +282,7 @@ export class Camera {
 	 */
 	getMatrix(x:number, y:number, scale?:number, radius?:number, rotX?:number, rotY?:number, rotZ?:number, transY?:number, scaleX?:number, scaleY?:number, noCorrectNorth?:boolean) : Float32Array {
 		if (!this.#_engineCanvas) return new Float32Array(16);
-		this.#_c.getMatrix( x, y, scale ?? 1, radius ?? 10, rotX||0, rotY||0, rotZ||0, transY||0, scaleX??1, scaleY??1, !!noCorrectNorth);
-		return this.#_mat;
+		return this.#_c.getMatrix( x, y, scale ?? 1, radius ?? 10, rotX||0, rotY||0, rotZ||0, transY||0, scaleX??1, scaleY??1, !!noCorrectNorth);
 	}
 
 	/**
@@ -590,7 +552,7 @@ export class Camera {
 		if (!this.#_engineCanvas) return;
 		this.image.opts.area = v;
 		if(this.image.opts.isEmbed) {
-			if(this.image.ptr > 0) {
+			if(this.image.placed) {
 				for (const img of this.#_c.images) {
 					if (img.localIdx > 0) { img.setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
 				}
@@ -631,8 +593,7 @@ export class Camera {
 	/** [Omni] Gets the screen coordinates [x, y, scale, depth] for given 3D object coordinates. */
 	public getOmniXY(x:number, y:number, z:number) : Float64Array {
 		if (!this.#_engineCanvas) return new Float64Array(5);
-		this.#_c.camera.getXYOmniCoo( x, y, z, 0, false);
-		return this.#_xy;
+		return this.#_c.camera.getXYOmniCoo( x, y, z, 0, false).arr;
 	}
 
 	/** [Omni] Applies Omni-specific camera settings (distance, FoV, angle) to the engine canvas. */
