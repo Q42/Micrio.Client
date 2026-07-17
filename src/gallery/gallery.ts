@@ -18,10 +18,15 @@ export interface GalleryProps {
 	controller?: GalleryController;
 }
 
+/**
+ * Handles gallery navigation UI (scrubber, prev/next, strip-swipe) and omni 3D object rotation.
+ * Two modes: standard gallery (scrubber + arrow buttons, with optional strip-swipe)
+ * and omni (dial + swipe gesture + layer menu).
+ */
 export class MicrioGallery extends MicrioElement<GalleryProps> {
 	static tag = 'micrio-gallery';
 	static styles = `micrio-gallery{display:contents}
-micrio-gallery .gallery-btn{position:absolute;top:50%;transform:translateY(-50%);transition:transform .25s ease,opacity .25s ease}
+micrio-gallery .gallery-btn{position:absolute;top:50%;transform:translate(0,-50%);transition:transform .25s ease,opacity .25s ease}
 micrio-gallery .gallery-btn.arrow-left{left:var(--micrio-border-margin)}
 micrio-gallery .gallery-btn.arrow-right{right:var(--micrio-border-margin)}
 micrio-gallery ul{position:absolute;bottom:var(--micrio-border-margin);left:50%;transform:translateX(-50%);display:block;list-style-type:none;background:var(--micrio-button-background,var(--micrio-background,none));box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);border-radius:var(--micrio-border-radius);padding:0 16px;margin:0;height:var(--micrio-button-size);color:var(--micrio-color);transition:transform .25s ease,opacity .25s ease;max-width:calc(100vw - 50px);max-width:calc(100cqw - 50px);width:520px;touch-action:none;cursor:pointer}
@@ -42,25 +47,29 @@ micrio-gallery .handle:hover{box-shadow:0 2px 8px rgba(0,0,0,.4),0 0 0 4px rgba(
 micrio-gallery .handle.dragging{transition:none;box-shadow:0 2px 12px rgba(0,0,0,.5),0 0 0 6px rgba(255,255,255,.15);cursor:grabbing}
 micrio-gallery .handle-label{position:absolute;bottom:calc(100% + 8px);left:0;transform:translateX(-50%);padding:3px 9px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.4;color:var(--micrio-color);background:var(--micrio-popover-background);backdrop-filter:var(--micrio-background-filter);border-radius:999px;box-shadow:var(--micrio-button-shadow);pointer-events:none;white-space:nowrap;transition:left .15s ease,transform .15s ease}
 micrio-gallery .handle-label.dragging{transition:none;transform:translateX(-50%) scale(1.05)}
-micr-io.hide-ui micrio-gallery:not(:hover) ul{transform:translate(-50%,calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
-@media(max-width:500px){micr-io.hide-ui micrio-gallery:not(:hover) ul{transform:translateY(calc(100% + var(--micrio-border-margin)))}}
-micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-left{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
-micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-right{transform:translate(calc(100% + var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
-micrio-gallery.force-hidden ul,micrio-gallery.force-hidden .gallery-btn{opacity:0;pointer-events:none}
-micrio-gallery.force-hidden ul{transform:translate(-50%,calc(100% + var(--micrio-border-margin)))}
-micrio-gallery.force-hidden .gallery-btn.arrow-left{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%)}
-micrio-gallery.force-hidden .gallery-btn.arrow-right{transform:translate(calc(100% + var(--micrio-border-margin)),-50%)}
+micr-io.hide-ui micrio-gallery:not(:hover) ul,micrio-gallery.force-hidden ul{transform:translate(-50%,calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
+@media(max-width:500px){micr-io.hide-ui micrio-gallery:not(:hover) ul,micrio-gallery.force-hidden ul{transform:translateY(calc(100% + var(--micrio-border-margin)))}}
+micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-left,micrio-gallery.force-hidden .gallery-btn.arrow-left{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
+micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-right,micrio-gallery.force-hidden .gallery-btn.arrow-right{transform:translate(calc(100% + var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
 micrio-gallery .gallery-btn:disabled{opacity:0;pointer-events:none}
 micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micrio-button:focus{position:absolute!important}`;
 
 	#props: GalleryProps = {};
+	/** Current page index (0-based) in the gallery timeline. */
 	#currentPage = -1;
+	/** Index of the first image in the current page. */
 	#currentImageIdx = 0;
+	/** All MicrioImage instances in this gallery. */
 	#images: MicrioImage[] = [];
+	/** Logical page layout: array of image index arrays per page (for spreads). */
 	#pageToImages: number[][] = [];
+	/** Pre-computed X position per image slot for strip-layout. */
 	#imageSlotPos: number[] = [];
+	/** Pre-computed width per image slot for strip-layout. */
 	#imageSlotWidth: number[] = [];
+	/** The parent MicrioImage hosting this gallery (switch/omni). */
 	#parentImage!: MicrioImage;
+	/** True if this is a strip-swipe gallery (not switch). */
 	#isStripSwipe = false;
 	#_ul: HTMLElement | null = null;
 	#prevBtn: MicrioElement | null = null;
@@ -70,8 +79,11 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#dragging = false;
 	#dragIsPointer = false;
 	#box: DOMRect | null = null;
+	/** Auto-hide enabled (UI hides after 2s of inactivity). */
 	#autoHide = true;
+	/** Timeout ID for auto-hide. */
 	#to: number | undefined;
+	// Strip-swipe drag state
 	#stripDragId: number | undefined;
 	#stripDragStartX = 0;
 	#stripDragLastX = 0;
@@ -80,6 +92,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#stripDragActive = false;
 	#stripDragHorizontal = false;
 	#stripDragStartY = 0;
+	/** Map tracking in-flight preload requests (keyed by thumbSrc). */
 	#preloading = new Map<string, any>();
 	#preloadD = 0;
 
@@ -106,6 +119,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		if (props.controller !== undefined) this.#props.controller = props.controller;
 	}
 
+	/** Returns the X pixel position of a page in the scrubber bar. */
 	#getX(idx: number): number {
 		if (!this.#_ul) return 0;
 		const w = this.#_ul.clientWidth;
@@ -113,12 +127,14 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		return scrubPad + (idx / max) * (w - scrubPad * 2);
 	}
 
+	/** Returns a human-readable page label (e.g. "3" or "5-6" for spreads). */
 	#pageLabel(idx: number): string {
 		const imgs = this.#pageToImages[idx];
 		if (!imgs || imgs.length <= 1) return String(idx + 1);
 		return `${imgs[0] + 1}-${imgs[imgs.length - 1] + 1}`;
 	}
 
+	/** Resets auto-hide timer on user activity. */
 	#activity = () => {
 		const parent = this.getMicrio();
 		if (!parent) return;
@@ -135,6 +151,13 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		}, 2000);
 	}
 
+	/**
+	 * Navigates to a specific page in the gallery.
+	 * @param i Target page index.
+	 * @param fast If true, uses a faster transition.
+	 * @param duration Transition duration in ms.
+	 * @param force Force navigation even if page hasn't changed.
+	 */
 	#goto(i: number, fast = false, duration = 150, force = false) {
 		const images = this.#images;
 		if (!images.length) return;
@@ -160,6 +183,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#parentImage.album!.hooked = true;
 	}
 
+	/** Called when the current page changes: dispatches event, preloads images, updates UI. */
 	#frameChanged() {
 		this.#preload(this.#currentImageIdx);
 		const micrio = this.getMicrio();
@@ -170,8 +194,12 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#updateScrubber();
 	}
 
-	// --- Strip-swipe ---
+	// ─── Strip-swipe (touch/pointer swipe gallery) ─────────────────
 
+	/**
+	 * Slides images into position for strip-swipe navigation.
+	 * Optionally zooms out the current image first before sliding.
+	 */
 	#stripGoto(nextIdx: number, fast: boolean, duration: number, _changed: boolean) {
 		const images = this.#images;
 		if (!images[nextIdx]) return;
@@ -197,7 +225,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 				const animate = snapDur > 0 && needsMove && (wasNearVisible || willBeVisible);
 				child.camera.setArea([targetSlot, 0, width, 1], { direct: !animate, noDispatch: true });
 			}
-			// Re-set the arriving child's view to trigger tile loading at full zoom
 			images[nextIdx]?.camera?.setView([0, 0, 1, 1]);
 			engine.render();
 		};
@@ -273,6 +300,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#goto(target);
 	};
 
+	/** Applies the current drag progress to all image slot positions during strip-swipe. */
 	#applyDragProgress(progress: number) {
 		const images = this.#images;
 		const curr = this.#currentPage;
@@ -295,13 +323,14 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		engine.render();
 	}
 
-	// --- Scrubber ---
+	// ─── Scrubber (clickable timeline bar) ─────────────────────────
 
+	/** Initiates a scrub drag (pointer or touch). */
 	#scrubStart = (e: PointerEvent | TouchEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 		if (this.#dragging || (this.#dragIsPointer = 'button' in e) && e.button !== 0 || !this.#_ul) return;
-		this.#box = this.#_ul.getClientRects()[0];
+		this.#box = this.#_ul.getBoundingClientRect();
 		const micrio = this.getMicrio();
 		if (!micrio) return;
 		micrio.keepRendering = this.#dragging = true;
@@ -311,8 +340,9 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#scrubMove(e);
 	};
 
+	/** Returns [0-1 progress, page index] for a pointer/touch event on the scrubber. */
 	#getScrubXPercIdx(e: PointerEvent | TouchEvent): [number, number] {
-		const _box = this.#box ?? this.#_ul!.getClientRects()[0];
+		const _box = this.#box ?? this.#_ul!.getBoundingClientRect();
 		const total = this.#pageToImages.length;
 		const clientX = 'button' in e ? e.clientX : (e as TouchEvent).touches[0].clientX;
 		const perc = Math.min(1, Math.max(0, (clientX - _box.left - scrubPad) / (_box.width - scrubPad * 2)));
@@ -320,17 +350,20 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		return [perc, idx];
 	}
 
+	/** Updates scrubber position during drag. */
 	#scrubMove = (e: PointerEvent | TouchEvent) => {
 		const [perc, idx] = this.#getScrubXPercIdx(e);
 		this.#_left = scrubPad + perc * (this.#box!.width - scrubPad * 2);
 		if (idx !== this.#currentPage) this.#goto(idx, true);
 	};
 
+	/** Tracks hover position on scrubber (when not dragging). */
 	#scrubPointerMove = (e: PointerEvent | TouchEvent) => {
 		if (!this.#dragging) this.#hoverIdx = this.#getScrubXPercIdx(e)[1];
 		this.#updateScrubber();
 	};
 
+	/** Ends scrub drag. */
 	#scrubStop = () => {
 		window.removeEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
 		window.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
@@ -340,27 +373,41 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#goto(this.#currentPage);
 	};
 
-	// --- Preloading ---
+	// ─── Preloading (eager thumbnail loading for nearby pages) ─────
 
-	#preload(c: number) {
-		const images = this.#images;
-		if (!images.length) return;
-		const d = this.#preloadD;
-		const imgs: number[] = [];
-		for (let x = -d; x <= d; x++) if (x) imgs.push(c + x);
+	/**
+	 * Preloads thumbnail textures within a range around a center index.
+	 * Uses requestIdleCallback for low-priority texture loading.
+	 */
+	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: any, hasArchive: boolean) {
+		if (!total || !engine) return;
 		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
-		const engine = images[0]?.engine;
-		if (!engine) return;
-		const hasArchive = !!(images[0]?.$settings?.gallery?.archive);
-		imgs.filter((n, i) => n >= 0 && n < images.length && imgs.indexOf(n) === i)
-			.map(i => images[i])
-			.filter(i => !!i && !this.#preloading.has(i.id))
-			.forEach(i => this.#preloading.set(i.id, request(() =>
-				engine.getTexture(i.baseTileIdx, i.thumbSrc!, false, { force: hasArchive })
-			)));
+		for (let x = -d; x <= d; x++) {
+			if (!x) continue;
+			let rX = center + x;
+			while (rX < 0) rX += total;
+			while (rX >= total) rX -= total;
+			const tile = getTile(rX);
+			if (tile?.thumbSrc && !this.#preloading.has(tile.thumbSrc)) {
+				this.#preloading.set(tile.thumbSrc, request(() =>
+					engine.getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive })
+				));
+			}
+		}
 	}
 
-	// --- Keyboard ---
+	/** Preloads gallery thumbnails around a given page index (used by standard gallery nav). */
+	#preload(c: number) {
+		const images = this.#images;
+		if (!images.length || images.length <= 1) return;
+		const engine = images[0].engine;
+		const hasArchive = !!(images[0]?.$settings?.gallery?.archive);
+		this.#preloadRange(c, images.length, this.#preloadD,
+			idx => images[idx] ? { baseTileIdx: images[idx].baseTileIdx, thumbSrc: images[idx].thumbSrc } : undefined,
+			engine, hasArchive);
+	}
+
+	// ─── Keyboard ──────────────────────────────────────────────────
 
 	#keydown = (e: KeyboardEvent) => {
 		switch (e.key) {
@@ -375,8 +422,12 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#activity();
 	};
 
-	// --- Render ---
+	// ─── Standard gallery render (scrubber + strip-swipe) ──────────
 
+	/**
+	 * Renders the standard gallery UI: scrubber bar, prev/next buttons,
+	 * registers images with the engine, and sets up input handlers.
+	 */
 	async #renderGallery(micrio: HTMLMicrioElement, image: MicrioImage, controller: GalleryController) {
 		const images: MicrioImage[] = [...controller.images];
 		if (!images.length) return;
@@ -414,7 +465,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#buildScrubber();
 		this.#updateScrubber();
 
-		// Set up album before async work so it's available immediately
+		// Set up album object for external API access
 		const _self = this;
 		parent.album = {
 			numPages: layout.numPages,
@@ -446,6 +497,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			parent.album!.hooked = true;
 			engine.render();
 		} else {
+			// Switch gallery: embed all images on the parent canvas
 			await Promise.allSettled(images.map(d => {
 				if ('state' in d && !('image' in d)) d.camera = parent.camera;
 				return engine.addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d });
@@ -486,15 +538,15 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		}
 		this.addCleanup(unhookActivity);
 
-		// Keyboard
 		window.addEventListener('keydown', this.#keydown);
 		this.addCleanup(() => window.removeEventListener('keydown', this.#keydown));
 
-		// Subscriptions — force-hidden on popup/tour
+		// Hide when popup/tour is open
 		this.addCleanup(micrio.state.popup.subscribe(() => this.#updateScrubber()));
 		this.addCleanup(micrio.state.tour.subscribe(() => this.#updateScrubber()));
 	}
 
+	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
 	#buildScrubber() {
 		if (!this.#images.length || this.querySelector('ul')) return;
 
@@ -504,7 +556,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1;
 		const curr = this.#currentPage;
 
-		// Prev button
 		this.#prevBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
@@ -514,7 +565,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			}
 		}) as MicrioElement;
 
-		// Scrubber bar
 		const ul = createElement('ul', {
 			className: dense ? 'dense' : '',
 			parent: this,
@@ -527,11 +577,9 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#_ul = ul;
 		ul.addEventListener('touchstart', this.#scrubStart, { passive: false });
 
-		// Track
 		const trackFill = createElement('span', { className: 'track-fill' });
 		createElement('span', { className: 'track', parent: ul, children: [trackFill] });
 
-		// Ticks
 		createElement('span', {
 			className: 'ticks',
 			parent: ul,
@@ -544,7 +592,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			})
 		});
 
-		// Handle
 		createElement('button', {
 			className: 'handle',
 			parent: ul,
@@ -552,10 +599,8 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			attrs: { 'aria-label': 'Gallery position', 'aria-valuemin': '1', 'aria-valuemax': String(total) }
 		});
 
-		// Handle label
 		createElement('span', { className: 'handle-label', parent: ul });
 
-		// Next button
 		this.#nextBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
@@ -566,6 +611,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		}) as MicrioElement;
 	}
 
+	/** Updates scrubber bar state: track fill, ticks, handle position, labels. */
 	#updateScrubber() {
 		const total = this.#pageToImages.length;
 		if (!total) return;
@@ -575,11 +621,9 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const fillPct = total > 1 ? (curr / (total - 1)) * 100 : 0;
 		const left = this.#_ul && !this.#dragging ? this.#getX(curr) : this.#_left;
 
-		// Track fill
 		const trackFill = this.querySelector('.track-fill') as HTMLElement;
 		if (trackFill) trackFill.style.width = `${fillPct}%`;
 
-		// Ticks active/hover state
 		const allTicks = this.querySelectorAll('.tick');
 		const visibleTicks: number[] = [];
 		for (let i = 0; i < total; i++) {
@@ -592,7 +636,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			tick.classList.toggle('hover', i === this.#hoverIdx);
 		});
 
-		// Handle
 		const handle = this.querySelector('.handle') as HTMLElement;
 		if (handle) {
 			handle.style.left = `${left}px`;
@@ -600,7 +643,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			handle.setAttribute('aria-valuenow', String(curr + 1));
 		}
 
-		// Handle label
 		const hl = this.querySelector('.handle-label') as HTMLElement;
 		if (hl) {
 			hl.style.left = `${left}px`;
@@ -608,7 +650,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			hl.textContent = this.#pageLabel(curr) + (dense ? ` / ${total}` : '');
 		}
 
-		// Hover label
 		let hoverLabel = this.querySelector('.hover-label') as HTMLElement;
 		if (this.#hoverIdx >= 0 && this.#hoverIdx !== curr && !this.#dragging) {
 			if (!hoverLabel) {
@@ -620,16 +661,17 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			hoverLabel?.remove();
 		}
 
-		// Prev/next disabled state
-		if (this.#prevBtn) this.#prevBtn.setProps({ disabled: curr <= 0 });
-		if (this.#nextBtn) this.#nextBtn.setProps({ disabled: curr >= total - 1 });
+		if (this.#prevBtn) (this.#prevBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr <= 0);
+		if (this.#nextBtn) (this.#nextBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr >= total - 1);
 
-		// Force-hidden when popup/tour is open
 		const hasPopup = this.getMicrio()?.state.popup ? get(this.getMicrio()!.state.popup) : undefined;
 		const hasTour = this.getMicrio()?.state.tour ? get(this.getMicrio()!.state.tour) : undefined;
 		this.classList.toggle('force-hidden', !!hasPopup || !!hasTour);
 	}
 
+	// ─── Omni 3D object rotation ───────────────────────────────────
+
+	/** Renders the omni rotation UI (dial + swipe + layer menu). */
 	#renderOmni(image: MicrioImage) {
 		const micrio = this.getMicrio();
 		if (!micrio) return;
@@ -643,7 +685,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const numLayers = omni.layers?.length ?? 1;
 		const pagesPerLayer = totalFrames / numLayers;
 
-		// Ensure image is registered with the engine
+		// Wait for image to be placed before registering frames
 		if (!image.placed) {
 			once(image.info).then(() => {
 				if (image.placed) this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
@@ -654,30 +696,14 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
 	}
 
+	/**
+	 * Registers all omni frames with the engine, sets up the dial control,
+	 * swipe gesture, layer switching, and thumbnail preloading.
+	 */
 	#initOmniFrames(image: MicrioImage, engine: any, info: any, totalFrames: number, pagesPerLayer: number) {
 		const micrio = this.getMicrio()!;
 
-		const hasArchive = !!image.$settings.gallery?.archive;
-		const preloadD = 'requestIdleCallback' in self
-			? Math.max(36, Math.floor(totalFrames / 8) * 2)
-			: 50;
-		const preloading = this.#preloading;
-		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
-		const preload = (c: number) => {
-			for (let x = -preloadD; x <= preloadD; x++) {
-				if (!x) continue;
-				let rX = c + x;
-				while (rX < 0) rX += totalFrames;
-				while (rX >= totalFrames) rX -= totalFrames;
-				if (!preloading.has(frames[rX].id)) {
-					preloading.set(frames[rX].id, request(() =>
-						engine.getTexture(frames[rX].baseTileIdx, frames[rX].thumbSrc, false, { force: hasArchive })
-					));
-				}
-			}
-		};
-
-		// Register all frames with the engine
+		// Register all frames as embeds on the parent canvas
 		const frames: any[] = [];
 		for (let j = 0; j < totalFrames; j++) {
 			const frame: any = {
@@ -698,7 +724,19 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		image.canvas?.setActiveImage(0, 0);
 		engine.render();
 
-		// Create the dial before the swiper so gotoFn can reference it
+		const hasArchive = !!image.$settings.gallery?.archive;
+		const preloadD = 'requestIdleCallback' in self
+			? Math.max(36, Math.floor(totalFrames / 8) * 2)
+			: 50;
+
+		// Preload helper: loads thumbnails around the current frame
+		const preload = (c: number) => {
+			this.#preloadRange(c, totalFrames, preloadD,
+				idx => frames[idx] ? { baseTileIdx: frames[idx].baseTileIdx, thumbSrc: frames[idx].thumbSrc } : undefined,
+				engine, hasArchive);
+		};
+
+		// Create the dial for mouse/touch rotation
 		const dial = createElement('micrio-dial', {
 			parent: this,
 			setProps: {
@@ -720,10 +758,8 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			engine.render();
 		};
 
-		// Create swiper for gesture-based rotation
+		// Swiper for gesture-based rotation
 		image.swiper = new GallerySwiper(micrio, pagesPerLayer, gotoFn, { continuous: true });
-
-		// Preload initial frames
 		preload(0);
 
 		// Sync dial rotation when layer changes
@@ -735,10 +771,9 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const omniCfg = image.$settings.omni;
 		const omniNumLayers = omniCfg?.layers?.length ?? 1;
 		if (omniNumLayers > 1) {
-			const layerNames = omniCfg!.layers!.map((l: any, idx: number) => ({
-				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, any]) => [lang, { title: name ?? 'Layer ' + (idx + 1) }]))
+			const layerNames = omniCfg!.layers!.map((l: any, i: number) => ({
+				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, any]) => [lang, { title: name ?? 'Layer ' + (i + 1) }]))
 			}));
-			// Fill in missing language translations with default names
 			const langs = Object.keys(info.revision ?? {}) as string[];
 			if (!langs.length) {
 				const ml = get(micrio._lang);
@@ -747,9 +782,8 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			if (langs.length) {
 				for (const lang of langs) {
 					for (let i = 0; i < layerNames.length; i++) {
-						if (!layerNames[i].i18n[lang]) {
+						if (!layerNames[i].i18n[lang])
 							layerNames[i].i18n[lang] = { title: 'Layer ' + (i + 1) };
-						}
 					}
 				}
 			}
@@ -758,8 +792,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 				image.data.update((d: any) => {
 					if (!d) d = {};
 					if (!d.pages) d.pages = [];
-					// Remove stale _omni-layers entry so the page ID changes
-					// and the toolbar's checkRenderKey sees a new key
 					d.pages = d.pages.filter((p: any) => !p.id?.startsWith('_omni-layers'));
 					d.pages.push({
 						id: '_omni-layers-' + currentLayer,
