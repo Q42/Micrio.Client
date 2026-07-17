@@ -38,79 +38,42 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 }`;
 
 	#rootEl!: HTMLElement;
-	#listeners: (() => void)[] = [];
-	#clickHandler: ((e: Event) => void) | null = null;
-
-	onDestroy() {
-		for (const unsub of this.#listeners) unsub();
-		this.#listeners = [];
-	}
 
 	protected _render() {
 		const p = this._props;
 		const isAnchor = !!p.href;
-
-		let el = this.#rootEl;
 		const tag = isAnchor ? 'a' : 'button';
-		if (!el || el.tagName.toLowerCase() !== tag) {
-			if (el) el.remove();
-			el = createElement(tag, { className: 'micrio-button', parent: this });
-			this.#rootEl = el;
-		}
+		const classes = `micrio-button${p.type ? ' ' + p.type : ''}${p.className ? ' ' + p.className : ''}${p.active ? ' active' : ''}${p.noClick ? ' no-click' : ''}`;
 
-		el.className = `micrio-button ${p.type ?? ''} ${p.className ?? ''}`;
-		el.classList.toggle('active', !!p.active);
-		el.classList.toggle('no-click', !!p.noClick);
+		if (this.#rootEl) this.#rootEl.remove();
 
+		const attrs: Record<string, string | null> = {
+			title: p.title ?? '',
+			'aria-label': p.title ?? '',
+		};
 		if (isAnchor) {
-			(el as HTMLAnchorElement).href = p.href!;
-			(el as HTMLAnchorElement).target = p.blankTarget ? '_blank' : '';
-		} else {
-			(el as HTMLButtonElement).disabled = !!p.disabled;
+			attrs.href = p.href!;
+			if (p.blankTarget) attrs.target = '_blank';
 		}
 
-		el.setAttribute('title', p.title ?? '');
-		el.setAttribute('aria-label', p.title ?? '');
+		const el = createElement(tag, {
+			className: classes,
+			attrs,
+			props: { disabled: isAnchor ? undefined : !!p.disabled },
+			events: {
+				...(p.onclick && { click: p.onclick }),
+				...(p.onfocus && { focus: p.onfocus }),
+				...(p.onpointerdown && { pointerdown: p.onpointerdown as EventListener }),
+			},
+			parent: this,
+		});
+		this.#rootEl = el;
 
-		if (!isAnchor) {
-			el.setAttribute('role', 'button');
-			el.setAttribute('tabindex', '0');
-		} else {
-			el.removeAttribute('role');
-			el.removeAttribute('tabindex');
-		}
-
-		// Re-bind events
-		for (const unsub of this.#listeners) unsub();
-		this.#listeners = [];
-
-		if (!this.#clickHandler) {
-			this.#clickHandler = (e: Event) => {
-				const fn = this._props.onclick;
-				if (fn) fn(e);
-			};
-			el.addEventListener('click', this.#clickHandler);
-		}
-		if (p.onfocus) {
-			el.addEventListener('focus', p.onfocus);
-			this.#listeners.push(() => el!.removeEventListener('focus', p.onfocus!));
-		}
-		if (p.onpointerdown) {
-			el.addEventListener('pointerdown', p.onpointerdown as EventListener);
-			this.#listeners.push(() => el!.removeEventListener('pointerdown', p.onpointerdown! as EventListener));
-		}
-
-		// Render icon
-		const existingIcon = el.querySelector(':scope > micrio-icon, :scope > img');
-		if (existingIcon) existingIcon.remove();
-
-		if (p.type) {
+		if (p.type)
 			createElement('micrio-icon', { attrs: { name: p.type }, parent: el });
-		} else if (p.icon) {
+		else if (p.icon)
 			createElement('img', { props: { src: p.icon.src, alt: 'Icon' }, parent: el });
-		}
 
-		// Move light-DOM children into the button as text
 		const textNodes: string[] = [];
 		for (const child of this.childNodes) {
 			if (child !== el && (child.nodeType === Node.TEXT_NODE || child.nodeType === Node.ELEMENT_NODE)) {
@@ -119,16 +82,8 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 			}
 		}
 		const text = textNodes.join('').trim();
-		const existingText = el.querySelector(':scope > .micrio-button-text');
-		if (text) {
-			if (!existingText) {
-				createElement('span', { className: 'micrio-button-text', textContent: text, parent: el });
-			} else {
-				existingText.textContent = text;
-			}
-		} else if (existingText) {
-			existingText.remove();
-		}
+		if (text)
+			createElement('span', { className: 'micrio-button-text', textContent: text, parent: el });
 	}
 }
 
