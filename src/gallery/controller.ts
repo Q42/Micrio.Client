@@ -196,9 +196,9 @@ export class Gallery {
 	static async fromArchive(archiveId: string, path: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig>): Promise<Gallery> {
 		const galleryConfig: Models.GalleryConfig = { type: 'swipe', ...config };
 
-		const index = await Gallery.getArchiveIndex(archiveId.split('.')[0], path, engine, micrio);
+		const index = await Gallery.#getArchiveIndex(archiveId.split('.')[0], path, engine, micrio);
 		galleryConfig.archiveLayerOffset = index.delta;
-		const sorted = index.images.sort(Gallery.sortArchiveImages(galleryConfig.sort));
+		const sorted = index.images.sort(Gallery.#sortArchiveImages(galleryConfig.sort));
 
 		const items: Models.GalleryItem[] = sorted.map(i => ({
 			id: i.id,
@@ -223,9 +223,9 @@ export class Gallery {
 		const path = config?.path ?? BASEPATH_V5;
 
 		if (galleryConfig.archive && galleryConfig.archive == gridData) {
-			const index = await Gallery.getArchiveIndex(gridData.split('.')[0], path, engine, micrio);
+			const index = await Gallery.#getArchiveIndex(gridData.split('.')[0], path, engine, micrio);
 			const s = galleryConfig.sort;
-			if (s && index?.images) index.images.sort(Gallery.sortArchiveImages(s));
+			if (s && index?.images) index.images.sort(Gallery.#sortArchiveImages(s));
 			gridData = index.images.map(i =>
 				Grid.getString(i, { cultures: 'cultures' in i ? (i.cultures as string[]).join('-') : undefined })
 			).join(';');
@@ -269,12 +269,12 @@ export class Gallery {
 
 	// --- Static Helpers ---
 
-	private static getArchiveIndex = async (id: string, path: string, _engine: Engine, _micrio: HTMLMicrioElement):
+	static #getArchiveIndex = async (id: string, path: string, _engine: Engine, _micrio: HTMLMicrioElement):
 		Promise<{ delta?: number; images: Models.ImageInfo.ImageInfo[] }> =>
 		archive.get<{ images: Models.ImageInfo.ImageInfo[] }>(`${path}${id}.json`)
 			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r; });
 
-	private static sortArchiveImages(sort: string | undefined): (a: Models.ImageInfo.ImageInfo, b: Models.ImageInfo.ImageInfo) => number {
+	static #sortArchiveImages(sort: string | undefined): (a: Models.ImageInfo.ImageInfo, b: Models.ImageInfo.ImageInfo) => number {
 		return sort == 'random' ? () => Math.random() - .5
 			: sort == 'name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0
 				: sort == '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0

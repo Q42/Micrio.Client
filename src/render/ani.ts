@@ -11,34 +11,34 @@ import type { default as TileCanvas } from './tile-canvas';
 /** Manages camera and view animations (fly-to, zoom). @internal */
 export default class Ani {
 	/** Flag indicating if a view animation (fly-to) is active. */
-	private isView: boolean = false;
+	#isView: boolean = false;
 	/** Starting view state for the animation. */
-	private readonly vFrom: View;
+	readonly #vFrom: View;
 	/** Target view state for the animation. */
-	private readonly vTo: View;
+	readonly #vTo: View;
 	/** Stores the final target view requested (might differ from vTo during corrections). */
 	readonly lastView: View;
 
 	/** Flag indicating if a zoom animation (perspective change in 360) is active. */
-	private isZoom: boolean = false;
+	#isZoom: boolean = false;
 	/** Flag indicating if the animation is a "jump" (zooms out then in). */
-	private isJump: boolean = false;
+	#isJump: boolean = false;
 	/** Starting perspective value for zoom animation. */
-	private zFrom: number = 0;
+	#zFrom: number = 0;
 	/** Target perspective value for zoom animation. */
-	private zTo: number = 0;
+	#zTo: number = 0;
 	/** Flag to disable perspective limits during zoom animation. */
-	private zNoLimit: boolean = false;
+	#zNoLimit: boolean = false;
 	/** Easing function used for the current animation. */
-	private fn: Bicubic = easeInOut;
+	#fn: Bicubic = easeInOut;
 
 	/** Timestamp when the animation started. */
-	private started: number = 0;
+	#started: number = 0;
 	/** Total duration of the animation in milliseconds. */
-	private duration: number = 0;
+	#duration: number = 0;
 
 	/** Flag indicating if the animation is currently running (not paused). */
-	private isRunning: boolean = false;
+	#isRunning: boolean = false;
 
 	/** Flag indicating if the view should be limited during animation (usually false during animation). */
 	limit: boolean = true;
@@ -50,64 +50,67 @@ export default class Ani {
 	correcting: boolean = false;
 
 	/** Timestamp when the animation was paused. 0 if not paused. */
-	private pausedAt: number = 0;
+	#pausedAt: number = 0;
 
 	// Jump animation edge direction flags: 0=none, 1=expanding, 2=contracting
-	private fL: number = 0;
-	private fT: number = 0;
-	private fR: number = 0;
-	private fB: number = 0;
+	#fL: number = 0;
+	#fT: number = 0;
+	#fR: number = 0;
+	#fB: number = 0;
 	/** Start point for the ease-in part of the jump animation curve. */
-	private mI: number = 0;
+	#mI: number = 0;
 	/** Start point for the ease-out part of the jump animation curve. */
-	private mO: number = 0;
+	#mO: number = 0;
 
 	/** Starting frame index for omni object rotation animation. */
-	private omniStartIdx: number = -1;
+	#omniStartIdx: number = -1;
 	/** Delta (number of frames) to rotate during omni animation. */
-	private omniDelta: number = 0;
+	#omniDelta: number = 0;
+
+	#canvas: TileCanvas;
 
 	constructor(
-		private canvas: TileCanvas
+		canvas: TileCanvas
 	) {
-		this.vFrom = new View(canvas);
-		this.vTo = new View(canvas);
+		this.#canvas = canvas;
+		this.#vFrom = new View(canvas);
+		this.#vTo = new View(canvas);
 		this.lastView = new View(canvas);
 	}
 
 	/** Pauses the current animation. */
 	pause(time: number): void {
-		if (this.pausedAt > 0) return;
-		this.isRunning = false;
-		this.pausedAt = time;
+		if (this.#pausedAt > 0) return;
+		this.#isRunning = false;
+		this.#pausedAt = time;
 	}
 
 	/** Resumes a paused animation. */
 	resume(time: number): void {
-		if (this.pausedAt === 0 || this.started === 0) return;
-		this.started += time - this.pausedAt;
-		this.pausedAt = 0;
-		this.isRunning = true;
+		if (this.#pausedAt === 0 || this.#started === 0) return;
+		this.#started += time - this.#pausedAt;
+		this.#pausedAt = 0;
+		this.#isRunning = true;
 	}
 
 	/** Stops the current animation completely and resets state. */
 	stop(): void {
-		if (this.isRunning) {
-			this.canvas.aniAbort();
+		if (this.#isRunning) {
+			this.#canvas.aniAbort();
 		}
-		this.started = 0;
+		this.#started = 0;
 		this.limit = true;
 		this.flying = false;
-		this.isRunning = false;
-		this.isView = false;
-		this.isZoom = false;
+		this.#isRunning = false;
+		this.#isView = false;
+		this.#isZoom = false;
 		this.correcting = false;
-		this.pausedAt = 0;
+		this.#pausedAt = 0;
 	}
 
 	/** Checks if a view animation is currently running. */
 	isStarted(): boolean {
-		return this.isRunning && this.isView;
+		return this.#isRunning && this.#isView;
 	}
 
 	/**
@@ -126,16 +129,16 @@ export default class Ani {
 		}
 
 		this.lastView.set(toCenterX, toCenterY, toWidth, toHeight);
-		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
+		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 
-		const c = this.canvas;
+		const c = this.#canvas;
 		const v = c.view;
-		const t = this.vTo;
-		const f = this.vFrom;
+		const t = this.#vTo;
+		const f = this.#vFrom;
 
-		this.isJump = isJump;
+		this.#isJump = isJump;
 
-		this.fn = fn === 3 ? linear : fn === 2 ? easeOut : fn === 1 ? easeIn : easeInOut;
+		this.#fn = fn === 3 ? linear : fn === 2 ? easeOut : fn === 1 ? easeIn : easeInOut;
 
 		const el = c.main.el;
 		if (el.areaHeight !== 0) {
@@ -167,10 +170,10 @@ export default class Ani {
 			t.limit(false);
 		}
 
-		this.fL = 0; this.fR = 0; this.fT = 0; this.fB = 0;
+		this.#fL = 0; this.#fR = 0; this.#fT = 0; this.#fB = 0;
 		let durFact: number = 1;
 
-		if (this.isJump) {
+		if (this.#isJump) {
 			if (!c.is360) {
 				const cX = t.centerX, cY = t.centerY;
 				if (t.aspect > f.aspect) {
@@ -192,10 +195,10 @@ export default class Ani {
 
 			const el = tLeft < fLeft, et = tTop < fTop, er = tRight > fRight, eb = tBottom > fBottom;
 			if ((el || et || er || eb) && !(el && et && er && eb)) {
-				this.fL = el ? 1 : (tLeft > fLeft ? 2 : 0);
-				this.fR = er ? 1 : (tRight < fRight ? 2 : 0);
-				this.fT = et ? 1 : (tTop > fTop ? 2 : 0);
-				this.fB = eb ? 1 : (tBottom < fBottom ? 2 : 0);
+				this.#fL = el ? 1 : (tLeft > fLeft ? 2 : 0);
+				this.#fR = er ? 1 : (tRight < fRight ? 2 : 0);
+				this.#fT = et ? 1 : (tTop > fTop ? 2 : 0);
+				this.#fB = eb ? 1 : (tBottom < fBottom ? 2 : 0);
 				durFact = 1.5;
 			}
 			else t.set(toCenterX, toCenterY, toWidth, toHeight);
@@ -213,44 +216,44 @@ export default class Ani {
 		const isZoomIn = toWidth < fromWidth && toHeight < fromHeight;
 		const zoomWeight = isZoomIn ? 0.125 : 0.25;
 		const dst = (dCenterX + dCenterY + dWidth * zoomWeight + dHeight * zoomWeight) / 3;
-		this.mI = Math.max(.5, .8 - dst * (c.is360 ? 1 : 2));
-		this.mO = Math.max(.05, Math.min(.9, dst - (c.is360 ? .2 : .1)));
-		this.duration = dur < 0 ? (dst * resoFact / c.camSpeed * durFact) / (speed <= 0 ? 1 : speed) : dur;
+		this.#mI = Math.max(.5, .8 - dst * (c.is360 ? 1 : 2));
+		this.#mO = Math.max(.05, Math.min(.9, dst - (c.is360 ? .2 : .1)));
+		this.#duration = dur < 0 ? (dst * resoFact / c.camSpeed * durFact) / (speed <= 0 ? 1 : speed) : dur;
 
-		const numPerLayer = this.canvas.images.length / this.canvas.omniNumLayers;
-		this.omniStartIdx = this.canvas.activeImageIdx;
-		this.omniDelta = 0;
-		if (!isNaN(omniIdx) && omniIdx > 0 && omniIdx !== this.omniStartIdx) {
-			this.omniDelta = omniIdx - this.omniStartIdx;
-			if (this.omniDelta < -numPerLayer / 2) this.omniDelta += numPerLayer;
-			if (this.omniDelta > numPerLayer / 2) this.omniDelta -= numPerLayer;
-			this.duration += Math.abs(this.omniDelta) / this.canvas.images.length * 6000;
+		const numPerLayer = this.#canvas.images.length / this.#canvas.omniNumLayers;
+		this.#omniStartIdx = this.#canvas.activeImageIdx;
+		this.#omniDelta = 0;
+		if (!isNaN(omniIdx) && omniIdx > 0 && omniIdx !== this.#omniStartIdx) {
+			this.#omniDelta = omniIdx - this.#omniStartIdx;
+			if (this.#omniDelta < -numPerLayer / 2) this.#omniDelta += numPerLayer;
+			if (this.#omniDelta > numPerLayer / 2) this.#omniDelta -= numPerLayer;
+			this.#duration += Math.abs(this.#omniDelta) / this.#canvas.images.length * 6000;
 		}
 
 		this.stop();
 
-		if (this.duration === 0) {
+		if (this.#duration === 0) {
 			c.setView(t.centerX, t.centerY, t.width, t.height, false, true);
-			this.canvas.aniDone();
-			return this.duration;
+			this.#canvas.aniDone();
+			return this.#duration;
 		}
 
-		this.isView = true;
+		this.#isView = true;
 		this.limit = false;
 		this.flying = true;
-		this.isZoom = false;
+		this.#isZoom = false;
 		if (correct) this.correcting = true;
 
-		this.started = time - (perc * this.duration);
-		this.isRunning = true;
+		this.#started = time - (perc * this.#duration);
+		this.#isRunning = true;
 
-		return this.duration * (1 - perc);
+		return this.#duration * (1 - perc);
 	}
 
 	/** Updates the target view of a running animation. Used for corrections. */
 	updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting: boolean = false): void {
-		this.vTo.set(toCenterX, toCenterY, toWidth, toHeight);
-		if (limiting) this.vTo.limit(true);
+		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
+		if (limiting) this.#vTo.limit(true);
 	}
 
 	/**
@@ -259,29 +262,29 @@ export default class Ani {
 	 */
 	zoom(to: number, dur: number, speed: number, noLimit: boolean, time: number): number {
 		this.stop();
-		this.isView = false;
+		this.#isView = false;
 		this.flying = false;
-		this.isZoom = true;
-		this.zNoLimit = noLimit;
+		this.#isZoom = true;
+		this.#zNoLimit = noLimit;
 
-		const c = this.canvas;
+		const c = this.#canvas;
 		const webgl = c.webgl;
 
-		this.zFrom = webgl.perspective;
-		this.zTo = this.zFrom + (to / (webgl.scale * Math.sqrt(c.width * c.width + c.height * c.height) / 20));
-		if (!noLimit) this.zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.zTo));
+		this.#zFrom = webgl.perspective;
+		this.#zTo = this.#zFrom + (to / (webgl.scale * Math.sqrt(c.width * c.width + c.height * c.height) / 20));
+		if (!noLimit) this.#zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.#zTo));
 
-		this.started = time;
-		this.isRunning = true;
+		this.#started = time;
+		this.#isRunning = true;
 
-		this.duration = dur >= 0 ? dur : Math.abs(this.zFrom - this.zTo) * 1000 / speed;
+		this.#duration = dur >= 0 ? dur : Math.abs(this.#zFrom - this.#zTo) * 1000 / speed;
 		return dur;
 	}
 
 	/** Sets the starting view for progress calculation in flyTo animations. */
 	setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio: boolean): void {
-		this.vFrom.set(centerX, centerY, width, height, correctRatio);
-		this.vTo.set(centerX, centerY, width, height, correctRatio);
+		this.#vFrom.set(centerX, centerY, width, height, correctRatio);
+		this.#vTo.set(centerX, centerY, width, height, correctRatio);
 	}
 
 	/**
@@ -289,50 +292,50 @@ export default class Ani {
 	 * @returns Current animation progress (0-1).
 	 */
 	step(time: number): number {
-		const p: number = this.started === 0 ? 1 : Math.min(1, Math.max(0, (time - this.started) / this.duration));
-		const pE = this.fn.get(p);
-		const scale = this.canvas.getScale();
+		const p: number = this.#started === 0 ? 1 : Math.min(1, Math.max(0, (time - this.#started) / this.#duration));
+		const pE = this.#fn.get(p);
+		const scale = this.#canvas.getScale();
 
-		if (this.isRunning) {
-			if (this.isView) {
-				const f = this.vFrom, t = this.vTo;
-				const mo = this.mO, i = this.fn.get(Math.min(1, p / this.mI)),
-					o = this.fn.get(Math.max(0, (p - mo) / (1 - mo)));
+		if (this.#isRunning) {
+			if (this.#isView) {
+				const f = this.#vFrom, t = this.#vTo;
+				const mo = this.#mO, i = this.#fn.get(Math.min(1, p / this.#mI)),
+					o = this.#fn.get(Math.max(0, (p - mo) / (1 - mo)));
 				let n: number = 0;
 
-				let interpCenterX = f.centerX + (t.centerX - f.centerX) * (!(n = this.fL || this.fR) ? pE : n === 1 ? i : o);
-				let interpCenterY = f.centerY + (t.centerY - f.centerY) * (!(n = this.fT || this.fB) ? pE : n === 1 ? i : o);
+				let interpCenterX = f.centerX + (t.centerX - f.centerX) * (!(n = this.#fL || this.#fR) ? pE : n === 1 ? i : o);
+				let interpCenterY = f.centerY + (t.centerY - f.centerY) * (!(n = this.#fT || this.#fB) ? pE : n === 1 ? i : o);
 				const interpWidth = f.width + (t.width - f.width) * pE;
 				const interpHeight = f.height + (t.height - f.height) * pE;
 
-				if (this.canvas.is360) {
+				if (this.#canvas.is360) {
 					const deltaX = longitudeDistance(f.centerX, t.centerX);
 					interpCenterX = f.centerX + deltaX * pE;
 				}
 
-				this.canvas.setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true);
+				this.#canvas.setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true);
 
-				if (this.omniDelta) {
-					let idx = this.omniStartIdx + Math.trunc(this.omniDelta * this.fn.get(Math.min(1, p * 1.5)));
-					const numPerLayer = this.canvas.images.length / this.canvas.omniNumLayers;
+				if (this.#omniDelta) {
+					let idx = this.#omniStartIdx + Math.trunc(this.#omniDelta * this.#fn.get(Math.min(1, p * 1.5)));
+					const numPerLayer = this.#canvas.images.length / this.#canvas.omniNumLayers;
 					if (idx < 0) idx += numPerLayer;
 					if (idx >= numPerLayer) idx -= numPerLayer;
-					this.canvas.setActiveImage(idx, 0);
+					this.#canvas.setActiveImage(idx, 0);
 				}
 			}
 
-			if (this.isZoom) {
-				this.canvas.webgl.setPerspective(this.zFrom * (1 - pE) + this.zTo * pE, this.zNoLimit);
+			if (this.#isZoom) {
+				this.#canvas.webgl.setPerspective(this.#zFrom * (1 - pE) + this.#zTo * pE, this.#zNoLimit);
 			}
 
 			if (p >= 1) {
-				this.lastView.copy(this.canvas.view);
-				this.canvas.aniDone();
+				this.lastView.copy(this.#canvas.view);
+				this.#canvas.aniDone();
 				this.stop();
 			}
 		}
 
-		this.zoomingOut = this.isRunning && this.canvas.getScale() < scale;
+		this.zoomingOut = this.#isRunning && this.#canvas.getScale() < scale;
 
 		return p;
 	}

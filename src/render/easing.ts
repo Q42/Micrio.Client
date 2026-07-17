@@ -41,43 +41,43 @@ export function longitudeDistance(from: number, to: number): number {
  * @internal
  */
 export class Bicubic {
-	private readonly Cx: number;
-	private readonly Bx: number;
-	private readonly Ax: number;
+	readonly #Cx: number;
+	readonly #Bx: number;
+	readonly #Ax: number;
 
-	private readonly Cy: number;
-	private readonly By: number;
-	private readonly Ay: number;
+	readonly #Cy: number;
+	readonly #By: number;
+	readonly #Ay: number;
 
-	private readonly isLinear: boolean;
+	readonly #isLinear: boolean;
 
 	constructor(p1: number, p2: number, p3: number, p4: number) {
-		this.isLinear = p1 === p2 && p3 === p4 && p1 === 0 && p3 === 1;
+		this.#isLinear = p1 === p2 && p3 === p4 && p1 === 0 && p3 === 1;
 		const Cx = 3 * p1;
 		const Bx = 3 * (p3 - p1) - Cx;
-		this.Cx = Cx;
-		this.Bx = Bx;
-		this.Ax = 1 - Cx - Bx;
+		this.#Cx = Cx;
+		this.#Bx = Bx;
+		this.#Ax = 1 - Cx - Bx;
 		const Cy = 3 * p2;
 		const By = 3 * (p4 - p2) - Cy;
-		this.Cy = Cy;
-		this.By = By;
-		this.Ay = 1 - Cy - By;
+		this.#Cy = Cy;
+		this.#By = By;
+		this.#Ay = 1 - Cy - By;
 	}
 
 	/** Calculates the X coordinate on the bezier curve for a given parameter t. */
-	private bezier_x(t: number): number {
-		return t * (this.Cx + t * (this.Bx + t * this.Ax));
+	#bezier_x(t: number): number {
+		return t * (this.#Cx + t * (this.#Bx + t * this.#Ax));
 	}
 
 	/** Calculates the Y coordinate on the bezier curve for a given parameter t. */
-	private bezier_y(t: number): number {
-		return t * (this.Cy + t * (this.By + t * this.Ay));
+	#bezier_y(t: number): number {
+		return t * (this.#Cy + t * (this.#By + t * this.#Ay));
 	}
 
 	/** Calculates the derivative of the bezier curve's X component with respect to t. */
-	private bezier_x_der(t: number): number {
-		return this.Cx + t * (2 * this.Bx + 3 * this.Ax * t);
+	#bezier_x_der(t: number): number {
+		return this.#Cx + t * (2 * this.#Bx + 3 * this.#Ax * t);
 	}
 
 	/**
@@ -86,14 +86,14 @@ export class Bicubic {
 	 * @param x The target X coordinate.
 	 * @returns The approximated parameter t for the given x.
 	 */
-	private find_x_for(x: number): number {
+	#find_x_for(x: number): number {
 		let t: number = x;
 		let i: number = 0;
 		let current_x: number = 0;
 		let derivative_x: number = 0;
 		while (i < 5) {
-			current_x = this.bezier_x(t) - x;
-			derivative_x = this.bezier_x_der(t);
+			current_x = this.#bezier_x(t) - x;
+			derivative_x = this.#bezier_x_der(t);
 			if (derivative_x === 0) break;
 			t = t - current_x / derivative_x;
 			i++;
@@ -107,7 +107,7 @@ export class Bicubic {
 	 * @returns The eased Y value.
 	 */
 	get(t: number): number {
-		return this.isLinear ? t : this.bezier_y(this.find_x_for(t));
+		return this.#isLinear ? t : this.#bezier_y(this.#find_x_for(t));
 	}
 }
 

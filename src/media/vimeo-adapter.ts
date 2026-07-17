@@ -14,14 +14,22 @@ import { loadExternalAPI } from '$utils/dom';
 export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 	readonly requiresTimeTick = false;
 
-	private player: VimeoPlayer | undefined;
-	private destroyed = false;
+	#player: VimeoPlayer | undefined;
+	#destroyed = false;
+
+	#frame: HTMLIFrameElement;
+	#config: PlayerConfig;
+	#callbacks: PlayerEventCallbacks;
 
 	constructor(
-		private frame: HTMLIFrameElement,
-		private config: PlayerConfig,
-		private callbacks: PlayerEventCallbacks = {}
-	) {}
+		frame: HTMLIFrameElement,
+		config: PlayerConfig,
+		callbacks: PlayerEventCallbacks = {}
+	) {
+		this.#frame = frame;
+		this.#config = config;
+		this.#callbacks = callbacks;
+	}
 
 	/**
 	 * Loads the Vimeo API and initializes the player.
@@ -31,105 +39,105 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 
 		return new Promise((resolve, reject) => {
 			// @ts-ignore - Vimeo is loaded dynamically
-			this.player = new window['Vimeo']['Player'](this.frame, {
-				width: this.config.width.toString(),
-				height: this.config.height.toString(),
+			this.#player = new window['Vimeo']['Player'](this.#frame, {
+				width: this.#config.width.toString(),
+				height: this.#config.height.toString(),
 				title: false,
 				autoplay: false,
 			});
 
-			const p = this.player!;
+			const p = this.#player!;
 
 			p.on('error', () => {
-				this.callbacks.onError?.(new Error('Vimeo player error'));
+				this.#callbacks.onError?.(new Error('Vimeo player error'));
 				reject(new Error('Vimeo player error'));
 			});
 
 			p.on('loaded', () => {
-				if (this.destroyed) {
+				if (this.#destroyed) {
 					reject(new Error('Player destroyed during initialization'));
 					return;
 				}
 				p.getVolume().then(() => {
-					this.callbacks.onReady?.();
+					this.#callbacks.onReady?.();
 					resolve();
 				});
 			});
 
 			// Set up event listeners
 			p.on('play', () => {
-				this.callbacks.onPlay?.();
-				this.callbacks.onSeeked?.();
+				this.#callbacks.onPlay?.();
+				this.#callbacks.onSeeked?.();
 			});
 
 			p.on('bufferstart', () => {
-				this.callbacks.onBuffering?.();
-				this.callbacks.onSeeking?.();
+				this.#callbacks.onBuffering?.();
+				this.#callbacks.onSeeking?.();
 			});
 
 			p.on('seeked', () => {
-				this.callbacks.onSeeked?.();
+				this.#callbacks.onSeeked?.();
 			});
 
 			p.on('pause', () => {
-				this.callbacks.onPause?.();
+				this.#callbacks.onPause?.();
 			});
 
 			p.on('timeupdate', (data) => {
 				if (data) {
-					this.callbacks.onDurationChange?.(data.duration);
-					this.callbacks.onTimeUpdate?.(data.seconds);
+					this.#callbacks.onDurationChange?.(data.duration);
+					this.#callbacks.onTimeUpdate?.(data.seconds);
 				}
 			});
 
 			p.on('ended', () => {
-				this.callbacks.onEnded?.();
+				this.#callbacks.onEnded?.();
 			});
 		});
 	}
 
 	async play(): Promise<void> {
-		this.player?.play();
+		this.#player?.play();
 	}
 
 	pause(): void {
-		this.player?.pause();
+		this.#player?.pause();
 	}
 
 	async getCurrentTime(): Promise<number> {
-		return (await this.player?.getCurrentTime?.()) ?? 0;
+		return (await this.#player?.getCurrentTime?.()) ?? 0;
 	}
 
 	setCurrentTime(time: number): void {
-		this.player?.setCurrentTime?.(time);
+		this.#player?.setCurrentTime?.(time);
 	}
 
 	async getDuration(): Promise<number> {
-		return (await this.player?.getDuration?.()) ?? 0;
+		return (await this.#player?.getDuration?.()) ?? 0;
 	}
 
 	async isPaused(): Promise<boolean> {
-		return (await this.player?.getPaused?.()) ?? true;
+		return (await this.#player?.getPaused?.()) ?? true;
 	}
 
 	setMuted(muted: boolean): void {
-		this.player?.setVolume?.(muted ? 0 : 1);
+		this.#player?.setVolume?.(muted ? 0 : 1);
 	}
 
 	setVolume(volume: number): void {
-		this.player?.setVolume?.(Math.max(0, Math.min(1, volume)));
+		this.#player?.setVolume?.(Math.max(0, Math.min(1, volume)));
 	}
 
 	destroy(): void {
-		this.destroyed = true;
-		if (this.player) {
+		this.#destroyed = true;
+		if (this.#player) {
 			// Remove all event listeners
 			const events = ['error', 'loaded', 'play', 'bufferstart', 'seeked', 'pause', 'volumechange', 'timeupdate', 'ended'];
 			for (const event of events) {
-				this.player.off(event);
+				this.#player.off(event);
 			}
-			this.player.destroy();
-			this.player = undefined;
+			this.#player.destroy();
+			this.#player = undefined;
 		}
 	}
 }

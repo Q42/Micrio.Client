@@ -16,15 +16,18 @@ import { HTML5PlayerAdapter } from './html5-adapter';
 export class HLSPlayerAdapter extends HTML5PlayerAdapter {
 	readonly requiresTimeTick = false;
 
-	private hls: HlsPlayer | undefined;
-	private destroyed = false;
+	#hls: HlsPlayer | undefined;
+	#destroyed = false;
+
+	#hlsSrc: string;
 
 	constructor(
 		element: HTMLVideoElement,
-		private hlsSrc: string,
+		hlsSrc: string,
 		callbacks: PlayerEventCallbacks = {}
 	) {
 		super(element, callbacks);
+		this.#hlsSrc = hlsSrc;
 	}
 
 	/**
@@ -33,23 +36,23 @@ export class HLSPlayerAdapter extends HTML5PlayerAdapter {
 	async initialize(): Promise<void> {
 		await loadExternalAPI('Hls', 'https://r2.micr.io/hls-1.6.15.min.js');
 
-		if (this.destroyed) {
+		if (this.#destroyed) {
 			throw new Error('Adapter destroyed during initialization');
 		}
 
 		// @ts-ignore - Hls is loaded dynamically
 		const hls: HlsPlayer = new window['Hls']({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
-		this.hls = hls;
-		hls.loadSource(this.hlsSrc);
+		this.#hls = hls;
+		hls.loadSource(this.#hlsSrc);
 		hls.attachMedia(this.element);
 
 		this.callbacks.onReady?.();
 	}
 
 	destroy(): void {
-		this.destroyed = true;
+		this.#destroyed = true;
 		super.destroy();
-		this.hls?.destroy();
-		this.hls = undefined;
+		this.#hls?.destroy();
+		this.#hls = undefined;
 	}
 }

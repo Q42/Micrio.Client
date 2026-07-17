@@ -26,14 +26,22 @@ const YT_STATE = {
 export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 	readonly requiresTimeTick = true;
 
-	private player: YouTubePlayer | undefined;
-	private destroyed = false;
+	#player: YouTubePlayer | undefined;
+	#destroyed = false;
+
+	#frame: HTMLIFrameElement;
+	#config: PlayerConfig;
+	#callbacks: PlayerEventCallbacks;
 
 	constructor(
-		private frame: HTMLIFrameElement,
-		private config: PlayerConfig,
-		private callbacks: PlayerEventCallbacks = {}
-	) {}
+		frame: HTMLIFrameElement,
+		config: PlayerConfig,
+		callbacks: PlayerEventCallbacks = {}
+	) {
+		this.#frame = frame;
+		this.#config = config;
+		this.#callbacks = callbacks;
+	}
 
 	/**
 	 * Loads the YouTube API and initializes the player.
@@ -43,88 +51,88 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 
 		return new Promise((resolve, reject) => {
 			// @ts-ignore - YT is loaded dynamically
-			this.player = new window['YT']['Player'](this.frame, {
+			this.#player = new window['YT']['Player'](this.#frame, {
 				host: YOUTUBE_HOST,
-				width: this.config.width.toString(),
-				height: this.config.height.toString(),
+				width: this.#config.width.toString(),
+				height: this.#config.height.toString(),
 				playerVars: { controls: 0 },
 				events: {
 					onError: () => {
-						this.callbacks.onError?.(new Error('YouTube player error'));
+						this.#callbacks.onError?.(new Error('YouTube player error'));
 						reject(new Error('YouTube player error'));
 					},
 					onReady: () => {
-						if (this.destroyed) {
+						if (this.#destroyed) {
 							reject(new Error('Player destroyed during initialization'));
 							return;
 						}
-						this.callbacks.onReady?.();
-						this.callbacks.onDurationChange?.(this.player!.getDuration());
+						this.#callbacks.onReady?.();
+						this.#callbacks.onDurationChange?.(this.#player!.getDuration());
 						resolve();
 					},
-					onStateChange: (e: {data: number}) => this.handleStateChange(e.data),
+					onStateChange: (e: {data: number}) => this.#handleStateChange(e.data),
 				},
 			});
 		});
 	}
 
-	private handleStateChange(state: number): void {
+	#handleStateChange(state: number): void {
 		switch (state) {
 			case YT_STATE.UNSTARTED:
-				this.callbacks.onBlocked?.();
-				this.callbacks.onPause?.();
+				this.#callbacks.onBlocked?.();
+				this.#callbacks.onPause?.();
 				break;
 			case YT_STATE.ENDED:
-				this.callbacks.onEnded?.();
+				this.#callbacks.onEnded?.();
 				break;
 			case YT_STATE.PLAYING:
-				this.callbacks.onPlay?.();
-				this.callbacks.onSeeked?.();
+				this.#callbacks.onPlay?.();
+				this.#callbacks.onSeeked?.();
 				break;
 			case YT_STATE.PAUSED:
-				this.callbacks.onPause?.();
+				this.#callbacks.onPause?.();
 				break;
 			case YT_STATE.BUFFERING:
-				this.callbacks.onBuffering?.();
-				this.callbacks.onSeeking?.();
+				this.#callbacks.onBuffering?.();
+				this.#callbacks.onSeeking?.();
 				break;
 		}
 	}
 
 	async play(): Promise<void> {
-		this.player?.playVideo();
+		this.#player?.playVideo();
 	}
 
 	pause(): void {
-		if (!this.destroyed) {
-			this.player?.pauseVideo?.();
+		if (!this.#destroyed) {
+			this.#player?.pauseVideo?.();
 		}
 	}
 
 	async getCurrentTime(): Promise<number> {
-		return this.player?.getCurrentTime?.() ?? 0;
+		return this.#player?.getCurrentTime?.() ?? 0;
 	}
 
 	setCurrentTime(time: number): void {
-		this.callbacks.onSeeking?.();
-		this.player?.seekTo?.(time);
+		this.#callbacks.onSeeking?.();
+		this.#player?.seekTo?.(time);
 	}
 
 	async getDuration(): Promise<number> {
-		return this.player?.getDuration?.() ?? 0;
+		return this.#player?.getDuration?.() ?? 0;
 	}
 
 	async isPaused(): Promise<boolean> {
-		if (!this.player) return true;
-		const state = this.player.getPlayerState?.();
+		if (!this.#player) return true;
+		const state = this.#player.getPlayerState?.();
 		return state === undefined || ([YT_STATE.UNSTARTED, YT_STATE.ENDED, YT_STATE.PAUSED, YT_STATE.CUED] as number[]).includes(state);
 	}
 
 	setMuted(muted: boolean): void {
 		if (muted) {
-			this.player?.mute?.();
+			this.#player?.mute?.();
 		} else {
-			this.player?.unMute?.();
+			this.#player?.unMute?.();
 		}
 	}
 
@@ -134,8 +142,8 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 	}
 
 	destroy(): void {
-		this.destroyed = true;
-		this.player?.destroy?.();
-		this.player = undefined;
+		this.#destroyed = true;
+		this.#player?.destroy?.();
+		this.#player = undefined;
 	}
 }

@@ -118,81 +118,80 @@ export class Engine {
 	/** Array storing references to all MicrioImage instances managed by the engine. @internal */
 	images: Array<MicrioImage | Models.Omni.Frame> = [];
 	/** Flag indicating if barebone mode is active. @internal */
-	private bareBoneSetting: boolean = false;
+	#bareBoneSetting: boolean = false;
 	/** Array storing the base tile index for each image. @internal */
-	private baseTiles: number[] = [];
+	#baseTiles: number[] = [];
 	/** Set storing the indices of tiles drawn in the current frame. @internal */
-	private drawnSet: Set<number> = new Set();
+	#drawnSet: Set<number> = new Set();
 	/** Set storing the indices of tiles drawn in the previous frame. @internal */
-	private prevDrawnSet: Set<number> = new Set();
+	#prevDrawnSet: Set<number> = new Set();
 	/** Unified tile state storage. @internal */
-	private tiles: Map<number, TileEntry> = new Map();
+	#tiles: Map<number, TileEntry> = new Map();
 	/** Map tracking ongoing texture download requests. @internal */
-	private requests: Map<number, string> = new Map();
+	#requests: Map<number, string> = new Map();
 	/** Forget in-memory tiles after X seconds not drawn. */
-	private deleteAfterSeconds: number;
+	#deleteAfterSeconds: number;
 
 	/** Array storing Svelte store unsubscriber functions. @internal */
-	private unsubscribe: Unsubscriber[] = [];
+	#unsubscribe: Unsubscriber[] = [];
 
 	/** Map storing Camera instances associated with ptr. @internal */
-	private cameras: Map<number, Camera> = new Map();
+	#cameras: Map<number, Camera> = new Map();
 	/** O(1) ptr-to-image lookup for hot-path callbacks. @internal */
-	private ptrToImage: Map<number, MicrioImage | Models.Omni.Frame> = new Map();
+	#ptrToImage: Map<number, MicrioImage | Models.Omni.Frame> = new Map();
 
 	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */
-	private engImageToMicrio: Map<Image, MicrioImage | Models.Omni.Frame> = new Map();
+	#engImageToMicrio: Map<Image, MicrioImage | Models.Omni.Frame> = new Map();
 	/** Reverse map: MicrioImage → engine Image for O(1) lookup in video callbacks. @internal */
-	private micrioToEngImage: Map<MicrioImage | Models.Omni.Frame, Image> = new Map();
+	#micrioToEngImage: Map<MicrioImage | Models.Omni.Frame, Image> = new Map();
 
 	/** If true, prevents the engine from auto-setting direction during 360 transitions. */
 	preventDirectionSet: boolean = false;
 
 	/** Static Float32Array holding texture coordinates for a standard quad. */
-	static readonly _textureBuffer: Float32Array = Engine.getTextureBuffer(1, 1);
+	static readonly _textureBuffer: Float32Array = Engine.#getTextureBuffer(1, 1);
 	/** Static Float32Array holding texture coordinates for the 360 sphere. */
 	static _textureBuffer360: Float32Array;
 
 	/** Flag indicating if the current context is a gallery. @internal */
-	private isGallery: boolean = false;
+	#isGallery: boolean = false;
 
-	private raf: number = -1;
-	private drawing: boolean = false;
+	#raf: number = -1;
+	#drawing: boolean = false;
 
 	/** The currently active canvas entry. @internal */
-	private activeCanvasEntry: CanvasEntry | null = null;
+	#activeCanvasEntry: CanvasEntry | null = null;
 	/** Map from ptr → canvas entry. @internal */
-	private canvasById: Map<number, CanvasEntry> = new Map();
+	#canvasById: Map<number, CanvasEntry> = new Map();
 	/** Map from TileCanvas → canvas entry (O(1) reverse lookup). @internal */
-	private canvasToEntry: Map<TileCanvas, CanvasEntry> = new Map();
+	#canvasToEntry: Map<TileCanvas, CanvasEntry> = new Map();
 	/** Unique ptr counter. @internal */
-	private nextPtr: number = 1;
+	#nextPtr: number = 1;
 
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
-		return this.canvasById.get(img.ptr)?.canvas;
+		return this.#canvasById.get(img.ptr)?.canvas;
 	}
 
 	/** Stores a canvas entry in both lookup maps. @internal */
-	private setEntry(ptr: number, entry: CanvasEntry): void {
-		this.canvasById.set(ptr, entry);
-		if (!this.canvasToEntry.has(entry.canvas)) this.canvasToEntry.set(entry.canvas, entry);
+	#setEntry(ptr: number, entry: CanvasEntry): void {
+		this.#canvasById.set(ptr, entry);
+		if (!this.#canvasToEntry.has(entry.canvas)) this.#canvasToEntry.set(entry.canvas, entry);
 	}
 
 	constructor(
 		public micrio: HTMLMicrioElement
 	) {
-		this.deleteAfterSeconds = Browser.iOS ? 5 : get(this.micrio.canvas.isMobile) ? 30 : 90;
+		this.#deleteAfterSeconds = Browser.iOS ? 5 : get(this.micrio.canvas.isMobile) ? 30 : 90;
 		this.render = this.render.bind(this);
-		this.draw = this.draw.bind(this);
-		this.unsubscribe.push(micrio.current.subscribe(this.setCanvas.bind(this)));
+		this.#unsubscribe.push(micrio.current.subscribe(this.setCanvas.bind(this)));
 	}
 
 	/**
 	 * Generates a Float32Array containing texture coordinates for a quad.
 	 * @internal
 	 */
-	private static getTextureBuffer(
+	static #getTextureBuffer(
 		segsX: number,
 		segsY: number
 	): Float32Array {
@@ -210,25 +209,25 @@ export class Engine {
 	load(): void {
 		if (this.ready) return;
 
-		Engine._textureBuffer360 = Engine.getTextureBuffer(segsX, segsY);
+		Engine._textureBuffer360 = Engine.#getTextureBuffer(segsX, segsY);
 
 		this.ready = true;
 
-		this.unsubscribe.push(this.micrio.barebone.subscribe(b => {
+		this.#unsubscribe.push(this.micrio.barebone.subscribe(b => {
 			this.bareBone = b;
-			this.bareBoneSetting = b;
+			this.#bareBoneSetting = b;
 		}));
 	}
 
 	/** Finds the public Camera instance associated with an engine Canvas. @internal */
-	private findCamera(c: TileCanvas): Camera | undefined {
-		const entry = this.canvasToEntry.get(c);
-		return entry ? this.cameras.get(entry.micrioImage.ptr) : undefined;
+	#findCamera(c: TileCanvas): Camera | undefined {
+		const entry = this.#canvasToEntry.get(c);
+		return entry ? this.#cameras.get(entry.micrioImage.ptr) : undefined;
 	}
 
 	/** Finds the canvas entry associated with an engine Canvas or Image. @internal */
-	private findEntry(c: TileCanvas | Image): CanvasEntry | undefined {
-		if (c instanceof TileCanvas) return this.canvasToEntry.get(c);
+	#findEntry(c: TileCanvas | Image): CanvasEntry | undefined {
+		if (c instanceof TileCanvas) return this.#canvasToEntry.get(c);
 		return undefined;
 	}
 
@@ -237,8 +236,8 @@ export class Engine {
 	 * @returns True if the tile texture is ready and drawn, false otherwise.
 	 */
 	drawTile = (imgIdx: number, i: number, layer: number, x: number, y: number, opacity: number, animating: boolean, targetLayer: boolean): boolean => {
-		this.drawnSet.add(i);
-		const tile = this.getTileEntry(i);
+		this.#drawnSet.add(i);
+		const tile = this.#getTileEntry(i);
 		tile.deleteAt = undefined;
 
 		const numLoading = runningThreads();
@@ -249,7 +248,7 @@ export class Engine {
 		const frame = 'frame' in c ? c.frame : undefined;
 
 		if (tile.loadState === 0 && numLoading < numThreads) {
-			if (this.bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
+			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
 
 			if (isVideo && !is360) {
 				tile.loadState = 2;
@@ -268,7 +267,7 @@ export class Engine {
 			}
 		}
 		else if (tile.loadState >= 2) {
-			if (!this.drawing) this.drawStart();
+			if (!this.#drawing) this.#drawStart();
 
 			if (tile.texture) {
 				if (isVideo) {
@@ -292,11 +291,11 @@ export class Engine {
 	drawQuad = (opacity: number): void => { this.micrio.webgl.drawTile(undefined, opacity); }
 
 	/** @internal */
-	getTileOpacity = (i: number): number => { return this.tiles.get(i)?.opacity || 0; }
+	getTileOpacity = (i: number): number => { return this.#tiles.get(i)?.opacity || 0; }
 
 	/** @internal */
 	setTileOpacity = (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
-		const tile = this.tiles.get(i);
+		const tile = this.#tiles.get(i);
 		if (!tile) return 0;
 		if (tile.opacity < 1) {
 			tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1, (this.now - tile.loadedAt) / 250) * imageOpacity : 0);
@@ -316,7 +315,7 @@ export class Engine {
 
 	/** @internal */
 	aniDone = (c: TileCanvas): void => {
-		const cam = this.findCamera(c);
+		const cam = this.#findCamera(c);
 		if (!cam) return;
 		if (cam.aniDone) cam.aniDone();
 		while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
@@ -325,7 +324,7 @@ export class Engine {
 
 	/** @internal */
 	aniAbort = (c: TileCanvas): void => {
-		const cam = this.findCamera(c);
+		const cam = this.#findCamera(c);
 		if (!cam) return;
 		if (cam.aniAbort) cam.aniAbort();
 		cam.aniDoneAdd.length = 0;
@@ -333,11 +332,11 @@ export class Engine {
 	}
 
 	/** @internal */
-	viewSet = (c: TileCanvas): void => { this.findCamera(c)?.viewChanged(); }
+	viewSet = (c: TileCanvas): void => { this.#findCamera(c)?.viewChanged(); }
 
 	/** @internal */
 	viewportSet = (c: TileCanvas, x: number, y: number, w: number, h: number): void => {
-		const entry = this.findEntry(c);
+		const entry = this.#findEntry(c);
 		if (entry && 'viewport' in entry.micrioImage) {
 			(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
 		}
@@ -345,26 +344,26 @@ export class Engine {
 
 	/** @internal */
 	setCanvasVisible = (c: TileCanvas, visible: boolean): void => {
-		this.findEntry(c)?.micrioImage?.visible?.set(visible);
+		this.#findEntry(c)?.micrioImage?.visible?.set(visible);
 	}
 
 	/** @internal */
 	setImageVisible = (img: Image, visible: boolean): void => {
-		const micrioImage = this.engImageToMicrio.get(img);
+		const micrioImage = this.#engImageToMicrio.get(img);
 		if (micrioImage && 'visible' in micrioImage) micrioImage.visible.set(visible);
 	}
 
 	/** Unbinds event listeners, stops rendering, and cleans up resources. */
 	unbind(): void {
-		this.stop();
-		while (this.unsubscribe.length) this.unsubscribe.shift()?.();
-		this.requests.forEach(src => abortDownload(src));
-		this.requests.clear();
-		for (const [idx, tile] of this.tiles.entries()) {
+		this.#stop();
+		while (this.#unsubscribe.length) this.#unsubscribe.shift()?.();
+		this.#requests.forEach(src => abortDownload(src));
+		this.#requests.clear();
+		for (const [idx, tile] of this.#tiles.entries()) {
 			if (tile.timeoutId) clearTimeout(tile.timeoutId);
-			this.deleteTile(idx);
+			this.#deleteTile(idx);
 		}
-		this.tiles.clear();
+		this.#tiles.clear();
 		this.reset();
 	}
 
@@ -372,7 +371,7 @@ export class Engine {
 	 * Adds a new image canvas instance to the engine.
 	 * @internal
 	 */
-	private addCanvas(c: MicrioImage): void {
+	#addCanvas(c: MicrioImage): void {
 		const i = c.$info;
 		if (!i) return;
 		if (c.error) {
@@ -384,7 +383,7 @@ export class Engine {
 
 		const settings = c.$settings;
 
-		this.isGallery = !!get(this.micrio.gallery) || c.isOmni;
+		this.#isGallery = !!get(this.micrio.gallery) || c.isOmni;
 
 		if (settings.gallery?.archive) {
 			this.hasArchive = true;
@@ -409,7 +408,7 @@ export class Engine {
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360.video));
 
-		const gallerySwitch = !!this.isGallery && settings.gallery?.type == 'switch';
+		const gallerySwitch = !!this.#isGallery && settings.gallery?.type == 'switch';
 
 		const numOmniLayers = settings.omni?.layers?.length ?? 1;
 		if (settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);
@@ -441,14 +440,14 @@ export class Engine {
 			false,
 		);
 
-		const ptr = this.nextPtr++;
+		const ptr = this.#nextPtr++;
 		c.ptr = ptr;
-		this.setEntry(ptr, { canvas, micrioImage: c });
+		this.#setEntry(ptr, { canvas, micrioImage: c });
 		this.images.push(c);
-		this.ptrToImage.set(c.ptr, c);
-		this.cameras.set(c.ptr, c.camera);
+		this.#ptrToImage.set(c.ptr, c);
+		this.#cameras.set(c.ptr, c.camera);
 
-		this.bindCamera(c);
+		this.#bindCamera(c);
 
 		if (c.opts.area) c.camera.setArea(c.opts.area, { direct: true, noDispatch: true, noRender: true });
 
@@ -471,8 +470,8 @@ export class Engine {
 		const numTiles = this.numTiles;
 		if (numTiles > 0) {
 			const baseTileIdx = numTiles - 1;
-			this.getTileEntry(baseTileIdx).opacity = 1;
-			this.baseTiles.push(baseTileIdx);
+			this.#getTileEntry(baseTileIdx).opacity = 1;
+			this.#baseTiles.push(baseTileIdx);
 		}
 
 		const v = get(c.state.view) || settings.view;
@@ -494,9 +493,9 @@ export class Engine {
 	 * Binds a MicrioImage's Camera instance to the engine canvas and typed arrays.
 	 * @internal
 	 */
-	private bindCamera(img: MicrioImage): void {
-		const canvas = this.canvasById.get(img.ptr)!.canvas;
-		this.cameras.set(img.ptr, img.camera);
+	#bindCamera(img: MicrioImage): void {
+		const canvas = this.#canvasById.get(img.ptr)!.canvas;
+		this.#cameras.set(img.ptr, img.camera);
 		img.camera.bindEngineCanvas(canvas);
 		if (canvas.is360) {
 			img.camera.assign(
@@ -516,22 +515,22 @@ export class Engine {
 	}
 
 	setCanvas(canvas?: MicrioImage): void {
-		if (!canvas || (canvas.ptr > 0 && canvas.ptr === this.activeCanvasEntry?.micrioImage.ptr)) return;
+		if (!canvas || (canvas.ptr > 0 && canvas.ptr === this.#activeCanvasEntry?.micrioImage.ptr)) return;
 
 		if (canvas.ptr < 0) once(canvas.info).then(info => {
 			if (!info) return;
 			if (!this.micrio.$current || (!info.isIIIF && !canvas.opts.secondaryTo && info.id != this.micrio.$current.id)) return;
-			this.addCanvas(canvas);
+			this.#addCanvas(canvas);
 			if (canvas.embeds.length) canvas.embeds.forEach(e => this.addEmbed(e, canvas));
 		});
-		else if (canvas.ptr !== this.activeCanvasEntry?.micrioImage.ptr) {
-			const entry = this.canvasById.get(canvas.ptr);
+		else if (canvas.ptr !== this.#activeCanvasEntry?.micrioImage.ptr) {
+			const entry = this.#canvasById.get(canvas.ptr);
 			if (!entry) return;
 			if (entry.canvas.hasParent) return;
 
 
-			const pitch = canvas.is360 && this.activeCanvasEntry ? this.activeCanvasEntry.canvas.webgl.pitch : 0;
-			this.activeCanvasEntry = entry;
+			const pitch = canvas.is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas.webgl.pitch : 0;
+			this.#activeCanvasEntry = entry;
 
 			if (canvas.is360 && !this.preventDirectionSet) {
 				const reversedYaw = ((this.direction + 0.5) % 1) * Math.PI * 2;
@@ -550,23 +549,23 @@ export class Engine {
 	/** Removes a canvas instance from the engine. @internal */
 	removeCanvas(c: MicrioImage): void {
 		if (c.ptr < 0) throw 'Canvas is not placed yet';
-		const entry = this.canvasById.get(c.ptr);
+		const entry = this.#canvasById.get(c.ptr);
 		if (!entry) return;
 		entry.canvas.remove();
-		this.canvasById.delete(c.ptr);
+		this.#canvasById.delete(c.ptr);
 		this.render();
 	}
 
 	/** Requests the next animation frame. */
 	render(): void {
-		if (this.raf < 0) this.raf = this.micrio.webgl.display.requestAnimationFrame(this.draw);
+		if (this.#raf < 0) this.#raf = this.micrio.webgl.display.requestAnimationFrame(this.#draw);
 	}
 
-	private draw(now: number = performance.now()): void {
+	#draw = (now: number = performance.now()): void => {
 		if (!this.micrio.isConnected || !this.micrio.$current) return;
 
-		this.raf = -1;
-		this.drawing = false;
+		this.#raf = -1;
+		this.#drawing = false;
 
 		if (this.shouldDraw(now)
 			|| this.micrio.keepRendering
@@ -575,13 +574,13 @@ export class Engine {
 			this.render();
 		}
 
-		if (this.isGallery) this.drawStart();
-		this.drawnSet.clear();
+		if (this.#isGallery) this.#drawStart();
+		this.#drawnSet.clear();
 		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].draw();
 
 		this.micrio.events.dispatch('draw');
 
-		this.cleanup();
+		this.#cleanup();
 
 		this.micrio.webgl.drawEnd();
 	}
@@ -596,27 +595,27 @@ export class Engine {
 		return this.animating || this.progress < 1;
 	}
 
-	private stop(): void {
-		if (this.raf < 0) return;
-		this.micrio.webgl.display.cancelAnimationFrame(this.raf);
-		this.raf = -1;
+	#stop(): void {
+		if (this.#raf < 0) return;
+		this.micrio.webgl.display.cancelAnimationFrame(this.#raf);
+		this.#raf = -1;
 	}
 
 	/** Gets or creates a tile entry for the given index. @internal */
-	private getTileEntry(i: number): TileEntry {
-		let tile = this.tiles.get(i);
+	#getTileEntry(i: number): TileEntry {
+		let tile = this.#tiles.get(i);
 		if (!tile) {
 			tile = { loadState: 0, opacity: 0 };
-			this.tiles.set(i, tile);
+			this.#tiles.set(i, tile);
 		}
 		return tile;
 	}
 
 	/** Prepares the WebGL context for drawing a new frame. @internal */
-	private drawStart(): void {
-		if (this.drawing) return;
+	#drawStart(): void {
+		if (this.#drawing) return;
 		this.micrio.webgl.drawStart();
-		this.drawing = true;
+		this.#drawing = true;
 	}
 
 	/**
@@ -627,52 +626,52 @@ export class Engine {
 		force?: boolean;
 		noSmoothing?: boolean
 	} = {}): void {
-		const tile = this.tiles.get(i);
-		if (tile?.texture || this.requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
+		const tile = this.#tiles.get(i);
+		if (tile?.texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
 		const inArchive = archive.db.has(src);
 		if (!inArchive) this.micrio.loading.set(true);
-		this.requests.set(i, src);
+		this.#requests.set(i, src);
 		(inArchive ? archive.getImage(src) : loadTexture(src))
-			.then((img) => this.gotTexture(i, img, ani, opts.noSmoothing))
-			.catch(() => this.deleteRequest(i));
+			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
+			.catch(() => this.#deleteRequest(i));
 	}
 
 	/** @internal */
-	private gotTexture(
+	#gotTexture(
 		i: number,
 		img: TextureBitmap,
 		ani: boolean,
 		noSmoothing?: boolean
 	): void {
-		const tile = this.getTileEntry(i);
+		const tile = this.#getTileEntry(i);
 		tile.texture = this.micrio.webgl.getTexture(img, tile.texture, noSmoothing);
 		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) img.close();
 		tile.loadState = 2;
 
 		tile.timeoutId = setTimeout(() => {
-			this.deleteRequest(i);
+			this.#deleteRequest(i);
 		}, ani ? 150 : 50) as unknown as number;
 	}
 
 	/** @internal */
-	private deleteRequest(i: number): void {
-		this.requests.delete(i);
-		const tile = this.tiles.get(i);
+	#deleteRequest(i: number): void {
+		this.#requests.delete(i);
+		const tile = this.#tiles.get(i);
 		if (tile?.timeoutId) {
 			clearTimeout(tile.timeoutId);
 			tile.timeoutId = undefined;
 		}
 
-		if (!this.requests.size) this.micrio.loading.set(false);
+		if (!this.#requests.size) this.micrio.loading.set(false);
 	}
 
 	/** @internal */
-	private deleteTile(idx: number): void {
-		const tile = this.tiles.get(idx);
+	#deleteTile(idx: number): void {
+		const tile = this.#tiles.get(idx);
 		if (tile) {
 			if (tile.texture) this.micrio.webgl.gl.deleteTexture(tile.texture);
 			if (tile.timeoutId) clearTimeout(tile.timeoutId);
-			this.tiles.delete(idx);
+			this.#tiles.delete(idx);
 		}
 	}
 
@@ -680,30 +679,30 @@ export class Engine {
 	 * Performs cleanup after each frame.
 	 * @internal
 	 */
-	private cleanup(): void {
+	#cleanup(): void {
 		const now = performance.now();
 
-		for (const idx of this.prevDrawnSet) {
-			if (this.drawnSet.has(idx)) continue;
-			if (this.baseTiles.includes(idx)) continue;
+		for (const idx of this.#prevDrawnSet) {
+			if (this.#drawnSet.has(idx)) continue;
+			if (this.#baseTiles.includes(idx)) continue;
 
-			const tile = this.tiles.get(idx);
+			const tile = this.#tiles.get(idx);
 			if (!tile || tile.loadState === 0) continue;
 
 			tile.opacity = 0;
 
 			switch (tile.loadState) {
 				case 1:
-					const request = this.requests.get(idx);
+					const request = this.#requests.get(idx);
 					if (request) abortDownload(request);
 					tile.loadState = 0;
 					break;
 
 				case 2:
-					if (this.requests.has(idx)) {
-						this.deleteRequest(idx);
+					if (this.#requests.has(idx)) {
+						this.#deleteRequest(idx);
 					}
-					this.deleteTile(idx);
+					this.#deleteTile(idx);
 					break;
 
 				case 3:
@@ -712,11 +711,11 @@ export class Engine {
 			}
 		}
 
-		this.prevDrawnSet = new Set(this.drawnSet);
+		this.#prevDrawnSet = new Set(this.#drawnSet);
 
-		for (const [idx, tile] of this.tiles.entries()) {
-			if (tile.deleteAt && (now - tile.deleteAt) / 1000 > this.deleteAfterSeconds) {
-				this.deleteTile(idx);
+		for (const [idx, tile] of this.#tiles.entries()) {
+			if (tile.deleteAt && (now - tile.deleteAt) / 1000 > this.#deleteAfterSeconds) {
+				this.#deleteTile(idx);
 			}
 		}
 	}
@@ -728,11 +727,11 @@ export class Engine {
 	resize(c: Models.Canvas.ViewRect): void {
 		this.el.set(c.width, c.height, c.left, c.top, c.ratio, c.scale, c.portrait);
 		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].resize();
-		if (this.ready) { this.stop(); this.draw(); }
+		if (this.ready) { this.#stop(); this.#draw(); }
 	}
 
 	/** Add a child image to the current canvas, either embed or independent canvas. @internal */
-	private addImage = async (
+	#addImage = async (
 		image: MicrioImage,
 		parent: MicrioImage,
 		isEmbed: boolean = false,
@@ -743,7 +742,7 @@ export class Engine {
 
 		const a = image.opts.area ?? [0, 0, 1, 1];
 		const _360 = image.$settings._360 ?? {};
-		const parentEntry = this.canvasById.get(parent.ptr);
+		const parentEntry = this.#canvasById.get(parent.ptr);
 		if (!parentEntry) return;
 
 		let canvas: TileCanvas;
@@ -761,26 +760,26 @@ export class Engine {
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 		} else {
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
-			this.engImageToMicrio.set(engImage, image);
-			this.micrioToEngImage.set(image, engImage);
-			const ptr = this.nextPtr++;
+			this.#engImageToMicrio.set(engImage, image);
+			this.#micrioToEngImage.set(image, engImage);
+			const ptr = this.#nextPtr++;
 			image.ptr = ptr;
-			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image });
-			this.ptrToImage.set(ptr, image);
+			this.#setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image });
+			this.#ptrToImage.set(ptr, image);
 
 			image.baseTileIdx = this.numTiles - 1;
-			this.getTileEntry(image.baseTileIdx).opacity = 1;
-			this.baseTiles.push(image.baseTileIdx);
+			this.#getTileEntry(image.baseTileIdx).opacity = 1;
+			this.#baseTiles.push(image.baseTileIdx);
 			return;
 		}
 
-		const ptr = this.nextPtr++;
+		const ptr = this.#nextPtr++;
 		image.ptr = ptr;
-		this.setEntry(ptr, { canvas, micrioImage: image });
-		this.ptrToImage.set(ptr, image);
+		this.#setEntry(ptr, { canvas, micrioImage: image });
+		this.#ptrToImage.set(ptr, image);
 
 		if (!isEmbed) {
-			this.bindCamera(image);
+			this.#bindCamera(image);
 			if (image.$settings.focus) canvas.camera.setCoo(image.$settings.focus[0], image.$settings.focus[1], 0, 0, 0, false, 0, performance.now());
 			const v = (image.$info as any)['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
@@ -790,13 +789,13 @@ export class Engine {
 		}
 
 		image.baseTileIdx = this.numTiles - 1;
-		this.getTileEntry(image.baseTileIdx).opacity = 1;
-		this.baseTiles.push(image.baseTileIdx);
+		this.#getTileEntry(image.baseTileIdx).opacity = 1;
+		this.#baseTiles.push(image.baseTileIdx);
 	})
 
 	/** Adds an embedded MicrioImage instance. @internal */
 	addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {
-		if ('camera' in image && opts.asImage) return this.addImage(image, parent, true, opts.opacity ?? 1);
+		if ('camera' in image && opts.asImage) return this.#addImage(image, parent, true, opts.opacity ?? 1);
 		else {
 			const i = '$info' in image ? image.$info : parent.$info;
 			if (!i) return;
@@ -804,39 +803,39 @@ export class Engine {
 			this.images.push(image);
 			const a = image.opts.area ?? [0, 0, 1, 1];
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
-			const parentEntry = this.canvasById.get(parent.ptr);
+			const parentEntry = this.#canvasById.get(parent.ptr);
 			if (!parentEntry) return;
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
-			this.engImageToMicrio.set(engImage, image);
-			this.micrioToEngImage.set(image, engImage);
-			const ptr = this.nextPtr++;
+			this.#engImageToMicrio.set(engImage, image);
+			this.#micrioToEngImage.set(image, engImage);
+			const ptr = this.#nextPtr++;
 			image.ptr = ptr;
-			this.setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image as MicrioImage });
-			this.ptrToImage.set(ptr, image);
+			this.#setEntry(ptr, { canvas: parentEntry.canvas, micrioImage: image as MicrioImage });
+			this.#ptrToImage.set(ptr, image);
 			image.baseTileIdx = this.numTiles - 1;
-			this.getTileEntry(image.baseTileIdx).opacity = 1;
-			this.baseTiles.push(image.baseTileIdx);
+			this.#getTileEntry(image.baseTileIdx).opacity = 1;
+			this.#baseTiles.push(image.baseTileIdx);
 		}
 	}
 
 	/** Add a child independent canvas to the current canvas. @internal */
-	addChild = (image: MicrioImage, parent: MicrioImage) => this.addImage(image, parent);
+	addChild = (image: MicrioImage, parent: MicrioImage) => this.#addImage(image, parent);
 
 	/** Sets the active image frame index for an Omni object. @internal */
 	setActiveImage(ptr: number, idx: number, num?: number): void {
-		this.getCanvas(this.ptrToImage.get(ptr)!)?.setActiveImage(idx, num ?? 0);
+		this.getCanvas(this.#ptrToImage.get(ptr)!)?.setActiveImage(idx, num ?? 0);
 	}
 
 	/** Sets the active layer index for an Omni object. @internal */
 	setActiveLayer(ptr: number, idx: number): void {
-		this.getCanvas(this.ptrToImage.get(ptr)!)?.setActiveLayer(idx);
+		this.getCanvas(this.#ptrToImage.get(ptr)!)?.setActiveLayer(idx);
 	}
 
 	/** Fades an image (main or embed) to a target opacity. @internal */
 	fadeImage(ptr: number, opacity: number, direct: boolean = false): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		const c = this.getCanvas(this.#ptrToImage.get(ptr)!);
 		if (!c) return;
-		if (this.cameras.has(ptr)) {
+		if (this.#cameras.has(ptr)) {
 			c.targetOpacity = opacity;
 		} else {
 			const images = c.images;
@@ -853,13 +852,13 @@ export class Engine {
 
 	/** Sets the focus point for zoom operations. @internal */
 	setFocus(ptr: number, v: Models.Camera.View, noLimit: boolean = false): void {
-		this.getCanvas(this.ptrToImage.get(ptr)!)?.setFocus(v[0], v[1], v[2], v[3], noLimit);
+		this.getCanvas(this.#ptrToImage.get(ptr)!)?.setFocus(v[0], v[1], v[2], v[3], noLimit);
 	}
 
 	// --- Facade methods (delegate to engine) ---
 
 	setZIndex(ptr: number, z: number): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		const c = this.getCanvas(this.#ptrToImage.get(ptr)!);
 		if (c) c.zIndex = z;
 	}
 	setGridTransitionDuration(dur: number): void { this.gridTransitionDuration = dur; }
@@ -868,29 +867,29 @@ export class Engine {
 	}
 	setCrossfadeDuration(dur: number): void { this.crossfadeDuration = dur; }
 	fadeTo(ptr: number, opacity: number, direct: boolean): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		const c = this.getCanvas(this.#ptrToImage.get(ptr)!);
 		if (!c) return;
 		c.targetOpacity = opacity;
 		if (direct) c.opacity = opacity;
 	}
-	fadeIn(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.fadeIn(); }
-	fadeOut(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.fadeOut(); }
-	areaAnimating(ptr: number): boolean { return this.getCanvas(this.ptrToImage.get(ptr)!)?.areaAnimating() ?? false; }
-	getActiveImageIdx(ptr: number): number { return this.getCanvas(this.ptrToImage.get(ptr)!)?.activeImageIdx ?? -1; }
+	fadeIn(ptr: number): void { this.getCanvas(this.#ptrToImage.get(ptr)!)?.fadeIn(); }
+	fadeOut(ptr: number): void { this.getCanvas(this.#ptrToImage.get(ptr)!)?.fadeOut(); }
+	areaAnimating(ptr: number): boolean { return this.getCanvas(this.#ptrToImage.get(ptr)!)?.areaAnimating() ?? false; }
+	getActiveImageIdx(ptr: number): number { return this.getCanvas(this.#ptrToImage.get(ptr)!)?.activeImageIdx ?? -1; }
 	setNoPinchPan(v: boolean): void { this.noPinchPan = v; }
 	setIsSwipe(v: boolean): void { this.isSwipe = v; }
 	ease(p: number): number { return easeInOut.get(p); }
-	panStart(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.kinetic.stop(); }
-	panStop(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.kinetic.start(); }
-	pinchStart(ptr: number): void { this.getCanvas(this.ptrToImage.get(ptr)!)?.camera.pinchStart(); }
+	panStart(ptr: number): void { this.getCanvas(this.#ptrToImage.get(ptr)!)?.kinetic.stop(); }
+	panStop(ptr: number): void { this.getCanvas(this.#ptrToImage.get(ptr)!)?.kinetic.start(); }
+	pinchStart(ptr: number): void { this.getCanvas(this.#ptrToImage.get(ptr)!)?.camera.pinchStart(); }
 	pinch(ptr: number, x0: number, y0: number, x1: number, y1: number): void {
-		this.getCanvas(this.ptrToImage.get(ptr)!)?.camera.pinch(x0, y0, x1, y1);
+		this.getCanvas(this.#ptrToImage.get(ptr)!)?.camera.pinch(x0, y0, x1, y1);
 	}
 	pinchStop(ptr: number, t: number): void {
-		this.getCanvas(this.ptrToImage.get(ptr)!)?.camera.pinchStop(t);
+		this.getCanvas(this.#ptrToImage.get(ptr)!)?.camera.pinchStop(t);
 	}
 	setLimited(ptr: number, v: boolean): void {
-		const c = this.getCanvas(this.ptrToImage.get(ptr)!);
+		const c = this.getCanvas(this.#ptrToImage.get(ptr)!);
 		if (c) c.limited = v;
 	}
 	set360Orientation(d: number, dX: number, dY: number): void {
@@ -903,9 +902,9 @@ export class Engine {
 		this.el.areaHeight = h;
 	}
 	setImageVideoPlaying(ptr: number, playing: boolean): void {
-		const micrioImage = this.ptrToImage.get(ptr);
+		const micrioImage = this.#ptrToImage.get(ptr);
 		if (!micrioImage) return;
-		const engImage = this.micrioToEngImage.get(micrioImage);
+		const engImage = this.#micrioToEngImage.get(micrioImage);
 		if (engImage) engImage.isVideoPlaying = playing;
 	}
 

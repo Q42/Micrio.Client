@@ -30,7 +30,7 @@ export class Grid {
 	readonly images:MicrioImage[] = [];
 
 	/** O(1) lookup map for images by ID, kept in sync with {@link images}. @internal */
-	private readonly imageMap:Map<string, MicrioImage> = new Map();
+	readonly #imageMap:Map<string, MicrioImage> = new Map();
 
 	/** Array of {@link MicrioImage} instances currently visible in the grid layout. */
 	current:MicrioImage[] = [];
@@ -73,29 +73,29 @@ export class Grid {
 	transitionDelay:number = .5;
 
 	/** Stores a specific crossfade duration for the *next* transition only. @internal */
-	private nextCrossFadeDuration:number|undefined;
+	#nextCrossFadeDuration:number|undefined;
 
 	/** Flag indicating if the current grid layout is a single horizontal row. @internal */
-	private isHorizontal:boolean = false;
+	#isHorizontal:boolean = false;
 
 	/** Map storing the current cell size [widthSpan, heightSpan?] for each image ID in the grid. @internal */
 	readonly cellSizes:Map<string, [number,number?]> = new Map();
 
 	/** Temporary map storing cell sizes for the *next* layout transition, often set by marker actions. @internal */
-	private readonly nextSize:Map<string, [number,number?]> = new Map();
+	readonly #nextSize:Map<string, [number,number?]> = new Map();
 
 	/** Stores the name and data of the last custom grid action executed to prevent duplicates. @internal */
-	private lastAction:string|undefined;
+	#lastAction:string|undefined;
 
 	/** Unsubscriber function for the main image view subscription used by the HTML grid overlay. @internal */
-	private viewUnsub:Unsubscriber|undefined;
+	#viewUnsub:Unsubscriber|undefined;
 
 	/** Timeout ID for debouncing grid updates or transitions. @internal */
-	private _to:ReturnType<typeof setTimeout>|undefined;
+	#_to:ReturnType<typeof setTimeout>|undefined;
 	/** Timeout ID specifically for fade-in animations during transitions. @internal */
-	private _fadeTo:ReturnType<typeof setTimeout>|undefined;
+	#_fadeTo:ReturnType<typeof setTimeout>|undefined;
 	/** Default animation timing function for grid transitions. @internal */
-	private timingFunction:Models.Camera.TimingFunction = 'ease';
+	#timingFunction:Models.Camera.TimingFunction = 'ease';
 
 	/** If true, keyboard arrow navigation is active and should bypass the default key handler. */
 	static handlingKeys:boolean = false;
@@ -112,18 +112,15 @@ export class Grid {
 		public micrio:HTMLMicrioElement,
 		public image:MicrioImage
 	) {
-		this.tourEvent = this.tourEvent.bind(this);
-		this.updateGrid = this.updateGrid.bind(this);
-
 		const g = image.$settings?.grid;
 		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
 		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
-		if(this.clickable && image.$settings.hookKeys) this.hookGridKeys();
+		if(this.clickable && image.$settings.hookKeys) this.#hookGridKeys();
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
 		this.set(image.$info?.grid).then(() => {
-			this.hook();
+			this.#hook();
 			micrio.events.dispatch('grid-load');
 		});
 
@@ -131,7 +128,7 @@ export class Grid {
 	}
 
 	/** Hooks necessary event listeners for grid interactions. @internal */
-	private hook() {
+	#hook() {
 		this.micrio.state.marker.subscribe(m => {
 			if(m && typeof m != 'string') {
 				const d = m.data?._meta;
@@ -139,7 +136,7 @@ export class Grid {
 					const s = (typeof d.gridSize == 'number' ? [d.gridSize, d.gridSize]
 						: d.gridSize.split(',').map(Number)) as [number, number];
 					const micId = this.images.find(i => i.$data?.markers?.find(n => n == m))?.id;
-					if(micId) this.nextSize.set(micId, s);
+					if(micId) this.#nextSize.set(micId, s);
 				}
 				tick().then(() => {
 					const a = d?.gridAction?.split('|');
@@ -153,35 +150,35 @@ export class Grid {
 				this.clickCell((e.target as HTMLElement)?.dataset.id);
 			});
 
-			const placeOrRemove = (t:unknown) => { if(t) this.removeGrid(); else this.placeGrid(); };
+			const placeOrRemove = (t:unknown) => { if(t) this.#removeGrid(); else this.#placeGrid(); };
 			this.micrio.state.tour.subscribe(placeOrRemove);
 			this.micrio.state.marker.subscribe(placeOrRemove);
 			this.focussed.subscribe(placeOrRemove);
 		}
 
-		this.micrio.addEventListener('tour-event', this.tourEvent);
+		this.micrio.addEventListener('tour-event', this.#tourEvent);
 		this.micrio.addEventListener('serialtour-pause', () => this.images.forEach(i => i.camera.pause()));
 		this.micrio.addEventListener('serialtour-play', () => this.images.forEach(i => i.camera.resume()));
 	}
 
 	/** Hooks keyboard navigation for grid cells. @internal */
-	private hookGridKeys() : void {
+	#hookGridKeys() : void {
 		Grid.handlingKeys = true;
-		document.addEventListener('keydown', this.gridKeyHandler = this.gridKeyHandler.bind(this));
+		document.addEventListener('keydown', this.#gridKeyHandler);
 		// When panZoom=='grid' and clickable is set, detect clicks on the main canvas
 		if (this.panZoom == 'grid' && this.clickable) {
-			this._clickDown = {x:0,y:0};
-			this.micrio.addEventListener('pointerdown', this._clickStart = this._clickStart.bind(this));
-			this.micrio.addEventListener('pointerup', this._clickEnd = this._clickEnd.bind(this));
+			this.#_clickDown = {x:0,y:0};
+			this.micrio.addEventListener('pointerdown', this.#_clickStart);
+			this.micrio.addEventListener('pointerup', this.#_clickEnd);
 		}
 	}
 
-	private _clickDown:{x:number;y:number}|undefined;
-	private _clickStart(e:PointerEvent) { this._clickDown = {x:e.clientX, y:e.clientY}; }
-	private _clickEnd(e:PointerEvent) {
-		if (!this._clickDown) return;
-		const dist = Math.hypot(e.clientX - this._clickDown.x, e.clientY - this._clickDown.y);
-		this._clickDown = undefined;
+	#_clickDown:{x:number;y:number}|undefined;
+	#_clickStart = (e:PointerEvent):void => { this.#_clickDown = {x:e.clientX, y:e.clientY}; }
+	#_clickEnd = (e:PointerEvent):void => {
+		if (!this.#_clickDown) return;
+		const dist = Math.hypot(e.clientX - this.#_clickDown.x, e.clientY - this.#_clickDown.y);
+		this.#_clickDown = undefined;
 		if (dist > 10) return; // Was a drag/pan, not a click
 		// Detect which cell was clicked using engine coordinates (works even in 'grid' panZoom mode)
 		const coo = this.image.camera.getCoo(e.clientX, e.clientY, true);
@@ -195,7 +192,7 @@ export class Grid {
 	}
 
 	/** Finds the grid cell adjacent in the given direction and returns its image. @internal */
-	private gridAdjacent(dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
+	#gridAdjacent(dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
 		const cells = this.current.map((img, i) => ({
 			img, i,
 			cx: img.opts.area![0] + img.opts.area![2] / 2,
@@ -233,7 +230,7 @@ export class Grid {
 	}
 
 	/** Keydown handler for grid keyboard navigation. @internal */
-	private gridKeyHandler(e: KeyboardEvent) : void {
+	#gridKeyHandler = (e: KeyboardEvent) : void => {
 		if (!this.current.length || !this.clickable) return;
 
 		if (e.key == 'Escape') {
@@ -247,10 +244,10 @@ export class Grid {
 		if (this.$focussed) return;
 		let img:MicrioImage|undefined;
 		switch (e.key) {
-			case 'ArrowLeft':  img = this.gridAdjacent('left'); break;
-			case 'ArrowRight': img = this.gridAdjacent('right'); break;
-			case 'ArrowUp':    img = this.gridAdjacent('up'); break;
-			case 'ArrowDown':  img = this.gridAdjacent('down'); break;
+			case 'ArrowLeft':  img = this.#gridAdjacent('left'); break;
+			case 'ArrowRight': img = this.#gridAdjacent('right'); break;
+			case 'ArrowUp':    img = this.#gridAdjacent('up'); break;
+			case 'ArrowDown':  img = this.#gridAdjacent('down'); break;
 			default: return;
 		}
 		e.preventDefault();
@@ -273,22 +270,22 @@ export class Grid {
 	}
 
 	/** Clears any pending timeouts for transitions or fades. @internal */
-	private clearTimeouts() : void {
-		clearTimeout(this._to);
-		clearTimeout(this._fadeTo);
+	#clearTimeouts() : void {
+		clearTimeout(this.#_to);
+		clearTimeout(this.#_fadeTo);
 	}
 
 	/** Adds a MicrioImage to the images array and lookup map. @internal */
-	private trackImage(img: MicrioImage): void {
+	#trackImage(img: MicrioImage): void {
 		this.images.push(img);
-		this.imageMap.set(img.id, img);
+		this.#imageMap.set(img.id, img);
 	}
 
 	/**
 	 * Normalizes the set() input into an array of GridImage definitions.
 	 * @internal
 	 */
-	private parseInput(input: string|MicrioImage[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]): Models.Grid.GridImage[] {
+	#parseInput(input: string|MicrioImage[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]): Models.Grid.GridImage[] {
 		if(typeof input != 'string')
 			input = input.map(i => i instanceof MicrioImage ? {image:i} : i)
 			.filter(g => !!g.image.$info).map(g => this.getString(g.image.$info!, g)).join(';');
@@ -301,7 +298,7 @@ export class Grid {
 	 * Mutates opts to set forceAni, coverLimit, and forceAreaAni.
 	 * @internal
 	 */
-	private setupBehindTransition(images: Models.Grid.GridImage[], opts: {
+	#setupBehindTransition(images: Models.Grid.GridImage[], opts: {
 		coverLimit?: boolean;
 		forceAni?: boolean;
 		forceAreaAni?: boolean;
@@ -330,13 +327,13 @@ export class Grid {
 	 * Saves the current layout to the history stack and updates depth.
 	 * @internal
 	 */
-	private savePreviousLayout(): void {
+	#savePreviousLayout(): void {
 		this.depth.set(this.history.push({
 			layout: this.current.map(i => this.getString(i.$info as Models.ImageInfo.ImageInfo, {
 				view: i.state.$view,
 				size: this.cellSizes.get(i.id) as [number,number]
 			})).join(';'),
-			horizontal: this.isHorizontal,
+			horizontal: this.#isHorizontal,
 			view: this.image.camera.getView()
 		}));
 	}
@@ -370,12 +367,12 @@ export class Grid {
 		columns?: number;
 	}={}) : Promise<MicrioImage[]> { return this.lastPromise = new Promise((ok, err) => {
 		delete this.image.$info?.settings?.focus;
-		this.lastAction = undefined;
+		this.#lastAction = undefined;
 
 		if(opts.cover === false && opts.coverLimit) opts.coverLimit = false;
 		if(opts.coverLimit && opts.cover == undefined) opts.cover = opts.coverLimit;
 
-		const images = this.parseInput(input);
+		const images = this.#parseInput(input);
 		const focussed = this.$focussed;
 		const isDelayed = opts.transition?.endsWith('-delayed');
 		const isBehindDelay = opts.transition == 'behind-delayed';
@@ -383,13 +380,13 @@ export class Grid {
 
 		if(opts.transition == 'crossfade') opts.duration = 0;
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
-			this.setupBehindTransition(images, opts, focussed);
+			this.#setupBehindTransition(images, opts, focussed);
 
 		const ready = this.image.ptr >= 0;
 		const dur = opts.duration ?? (opts.noHistory ? this.aniDurationOut : this.aniDurationIn);
-		const defaultDur = this.nextCrossFadeDuration ?? this.image.$settings.crossfadeDuration ?? 1;
+		const defaultDur = this.#nextCrossFadeDuration ?? this.image.$settings.crossfadeDuration ?? 1;
 		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
-		this.nextCrossFadeDuration = undefined;
+		this.#nextCrossFadeDuration = undefined;
 		if(ready) {
 			engine.setGridTransitionDuration(dur);
 			engine.setCrossfadeDuration(crossfadeDur);
@@ -398,22 +395,22 @@ export class Grid {
 		const doUnfocus = !opts.noBlur && focussed;
 		if(doUnfocus) this.blur();
 
-		if(!opts.noHistory && this.current.length) this.savePreviousLayout();
-		this.isHorizontal = !!opts.horizontal;
+		if(!opts.noHistory && this.current.length) this.#savePreviousLayout();
+		this.#isHorizontal = !!opts.horizontal;
 
-		this.removeImages(this.images.filter(i => !images.find(n => n.id == i.id)));
-		this.printGrid(images, {
+		this.#removeImages(this.images.filter(i => !images.find(n => n.id == i.id)));
+		this.#printGrid(images, {
 			horizontal: opts.horizontal,
 			keepGrid: opts.keepGrid,
 			scale: opts.scale,
 			columns: opts.columns
 		});
 
-		this.clearTimeouts();
+		this.#clearTimeouts();
 
 		let resolved = false;
 		const error = () => {
-			this.clearTimeouts();
+			this.#clearTimeouts();
 			if(!resolved) err();
 		};
 
@@ -422,16 +419,16 @@ export class Grid {
 			else this.image.camera.flyToFullView({duration:dur*1000}).catch(error);
 		}
 
-		this.nextSize.clear();
+		this.#nextSize.clear();
 
 		if(opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
-		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(false));
-		else images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
+		if(!opts.coverLimit) images.forEach(i => this.#imageMap.get(i.id!)?.camera.setCoverLimit(false));
+		else images.forEach(i => this.#imageMap.get(i.id!)?.camera.setCoverLimit(true));
 
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
 
-		this.current = images.map((img,i) => this.placeImage(img, {
+		this.current = images.map((img,i) => this.#placeImage(img, {
 			duration: !opts.forceAni && doUnfocus && img.id != focussed?.id ? 0 : dur,
 			delay: isDelayed ? getDelay(i) : 0,
 			noCamAni: isAppear && i > 0 ? true : !!opts.noCamAni,
@@ -447,12 +444,12 @@ export class Grid {
 		);
 
 		const done = () => {
-			this.clearTimeouts();
+			this.#clearTimeouts();
 			requestAnimationFrame(() => engine.setCrossfadeDuration(defaultDur));
 			if(isDelayed) this.images.forEach(i => engine.setZIndex(i.ptr, 0));
-			if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
-			if(this.clickable) this.placeGrid();
-			this.lastAction = undefined;
+			if(opts.coverLimit) images.forEach(i => this.#imageMap.get(i.id!)?.camera.setCoverLimit(true));
+			if(this.clickable) this.#placeGrid();
+			this.#lastAction = undefined;
 			resolved = true;
 			ok(this.current);
 		}
@@ -462,13 +459,13 @@ export class Grid {
 			done();
 		}
 		else {
-			if(!opts.noFade) this._fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
-			this._to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0))*1000);
+			if(!opts.noFade) this.#_fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
+			this.#_to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0))*1000);
 		}
 	})}
 
 	/** Checks if the current grid layout differs from the initial full grid layout. @internal */
-	private hasChanged() : boolean {
+	#hasChanged() : boolean {
 		if(this.current.length !== this.images.length) return true;
 		return this.current.some((img, i) => img.id !== this.images[i].id);
 	}
@@ -502,11 +499,11 @@ export class Grid {
 	getString = (i:Models.ImageInfo.ImageInfo, opts:Models.Grid.GridImageOptions = {}) : string => Grid.getString(i, {
 		view: opts.view,
 		area: opts.area,
-		size: opts.size ?? this.nextSize.get(i.id) as [number,number],
+		size: opts.size ?? this.#nextSize.get(i.id) as [number,number],
 		cultures: ('cultures' in i && i['cultures'] ? i.cultures as string : '')?.replace(/,/g,'-')
 	});
 
-	private getCols = calcCols;
+	#getCols = calcCols;
 
 	/**
 	 * Creates or updates the HTML grid element (`_grid`) based on the provided image definitions.
@@ -515,15 +512,15 @@ export class Grid {
 	 * @param images Array of GridImage definitions for the layout.
 	 * @param opts Layout options (horizontal, keepGrid, scale, columns).
 	*/
-	private printGrid(images:Models.Grid.GridImage[], opts:{
+	#printGrid(images:Models.Grid.GridImage[], opts:{
 		horizontal?:boolean;
 		keepGrid?:boolean;
 		scale?:number;
 		columns?:number;
 	}) : void {
-		if(!opts.keepGrid) this.removeGrid();
+		if(!opts.keepGrid) this.#removeGrid();
 		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0);
-		const cols = opts.columns ?? (opts.horizontal ? images.length : this.getCols(images.length, numTiles));
+		const cols = opts.columns ?? (opts.horizontal ? images.length : this.#getCols(images.length, numTiles));
 		this._grid.style.gridTemplateColumns = `repeat(${cols}, auto)`;
 		this._grid.textContent = '';
 		this._grid.style.removeProperty('--translate');
@@ -568,22 +565,22 @@ export class Grid {
 	}
 
 	/** Places the HTML grid overlay element into the DOM and starts listening for view changes. @internal */
-	private placeGrid() : void {
+	#placeGrid() : void {
 		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return;
 		if(this._grid.parentNode) return;
 		this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null);
-		this.viewUnsub = this.image.state.view.subscribe(this.updateGrid);
+		this.#viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
 	}
 
 	/** Removes the HTML grid overlay element from the DOM and stops listening for view changes. @internal */
-	private removeGrid() : void {
+	#removeGrid() : void {
 		if(!this._grid.parentNode) return;
-		if(this.viewUnsub) this.viewUnsub();
+		if(this.#viewUnsub) this.#viewUnsub();
 		this._grid.remove();
 	}
 
 	/** Updates the CSS transform of the HTML grid overlay based on the main image's camera view. @internal */
-	private updateGrid() : void {
+	#updateGrid = () : void => {
 		const xy = this.image.camera.getXY(0,0, true);
 		this._grid.style.setProperty('--translate', `translate3d(${xy[0]}px, ${xy[1]}px, 0)`);
 		this._grid.style.setProperty('--scale', this.image.camera.getScale().toString());
@@ -597,7 +594,7 @@ export class Grid {
 	 * @param opts Options controlling the placement animation.
 	 * @returns The placed MicrioImage instance.
 	 */
-	private placeImage(entry:Models.Grid.GridImage, opts: {
+	#placeImage(entry:Models.Grid.GridImage, opts: {
 		duration:number;
 		delay:number;
 		noCamAni?:boolean;
@@ -605,7 +602,7 @@ export class Grid {
 		cover?:boolean;
 	}) : MicrioImage {
 		const { engine } = this.micrio;
-		let img = this.imageMap.get(entry.id!);
+		let img = this.#imageMap.get(entry.id!);
 		if(img && entry.area) sleep(opts.delay*1000).then(() => {
 			img!.camera.setArea(entry.area!, {
 				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img!.visible))
@@ -615,9 +612,9 @@ export class Grid {
 		else {
 			entry.lang = this.micrio.lang;
 			engine.addChild(img = new MicrioImage(engine, entry, {area: entry.area}), this.image);
-			this.trackImage(img);
+			this.#trackImage(img);
 		}
-		const aniOpts = {duration:opts.duration*1000, timingFunction: this.timingFunction, limit: false};
+		const aniOpts = {duration:opts.duration*1000, timingFunction: this.#timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera.aniDone && img.ptr > 0) {
 			const isCover = !!opts.cover || img.camera.getCoverLimit();
 			if(entry.view || !isCover) img.camera.flyToView(entry.view ?? [0,0,1,1], aniOpts).catch(() => {})
@@ -634,7 +631,7 @@ export class Grid {
 	/** Fade out unused images in the grid and clean up their button references.
 	 * @param images The images to hide
 	*/
-	private removeImages(images:MicrioImage[]) : void {
+	#removeImages(images:MicrioImage[]) : void {
 		const { engine } = this.micrio;
 		images.forEach(i => {
 			if(i.ptr >= 0) engine.fadeOut(i.ptr);
@@ -647,7 +644,7 @@ export class Grid {
 	/** Checks whether current viewed image is (part of) grid */
 	insideGrid() : boolean {
 		const c = this.micrio.$current;
-		return c == this.image || (!!c && this.imageMap.has(c.id));
+		return c == this.image || (!!c && this.#imageMap.has(c.id));
 	}
 
 	/** Reset the grid to its initial layout
@@ -662,7 +659,7 @@ export class Grid {
 		this.image.camera.stop();
 		this.markersShown.set([]);
 		await tick();
-		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.hasChanged()) duration = 0;
+		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.#hasChanged()) duration = 0;
 		return this.set(state?.layout || this.image.$info?.grid, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
 			this.depth.set(this.history.length = 0);
 			this.micrio.current.set(this.image);
@@ -674,7 +671,7 @@ export class Grid {
 	 * Usable only if the grid is perfect N x N.
 	 * @internal
 	*/
-	private switchToGrid() {
+	#switchToGrid() {
 		const focus = this.$focussed;
 		if(!focus) return;
 		const v = focus.camera.getView();
@@ -726,8 +723,8 @@ export class Grid {
 	}
 
 	/** Sets the animation timing function for the next transition. @internal */
-	private setTimingFunction(fn:Models.Camera.TimingFunction) : void {
-		this.micrio.engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction[this.timingFunction=fn]);
+	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
+		this.micrio.engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction[this.#timingFunction=fn]);
 	}
 
 	/** Simulates a click on a grid cell, applying the configured `clickable` effect (zoom or focus). */
@@ -765,9 +762,9 @@ export class Grid {
 		if(focussed) this.blur();
 
 		img.camera.setCoverLimit(!!opts.cover);
-		this.setTimingFunction('ease');
+		this.#setTimingFunction('ease');
 
-		const target:string = await this.transition(img, focussed, this.getString(img.$info!, {
+		const target:string = await this.#transition(img, focussed, this.getString(img.$info!, {
 			view: opts.view
 		}), opts);
 
@@ -785,7 +782,7 @@ export class Grid {
 			coverLimit: !!opts.coverLimit
 		}).then(() => {
 			m.events.dispatch('grid-focus', img);
-			this.removeGrid();
+			this.#removeGrid();
 			if(m.$current != img) m.current.set(img);
 			this.image.camera.setLimit([0, 0, 1, 1]);
 		}).catch(() => {});
@@ -795,7 +792,7 @@ export class Grid {
 	 * Handles the animation logic for transitioning between grid view and focused view, or between focused images.
 	 * @internal
 	 */
-	private async transition(target:MicrioImage, current:MicrioImage|undefined, layout:string, {
+	async #transition(target:MicrioImage, current:MicrioImage|undefined, layout:string, {
 		duration, view, transition, noViewAni, exitView, blur, cover
 	}:Models.Grid.FocusOptions) : Promise<string> {
 		if(!transition) return layout;
@@ -852,7 +849,7 @@ export class Grid {
 		}
 
 		if(blur && !isNaN(blur) && blur > 0) {
-			duration = duration ?? this.nextCrossFadeDuration ?? this.aniDurationIn;
+			duration = duration ?? this.#nextCrossFadeDuration ?? this.aniDurationIn;
 			const blurSpeed = duration/2;
 			const style = this.micrio.canvas.element.style;
 			style.transition = `filter ${blurSpeed}s ease`;
@@ -879,19 +876,19 @@ export class Grid {
 	}
 
 	/** Handles tour events, potentially triggering grid actions. @internal */
-	private tourEvent(e:Event) {
+	#tourEvent = (e:Event):void => {
 		const event = (e as CustomEvent).detail as Models.ImageData.Event;
 		if(!event || !event.action?.startsWith('grid:')) return;
 		if(event.active) this.action(event.action.slice(5), event.data, event.end - event.start);
 	}
 
 	/** Action handler dispatch map, keyed by {@link Enums.Grid.GridActionType}. @internal */
-	private readonly actionHandlers: Record<number, (data?: string, duration?: number) => void> = {
+	readonly #actionHandlers: Record<number, (data?: string, duration?: number) => void> = {
 		[Enums.Grid.GridActionType.focus]: (data, duration) => {
 			const spl = data?.split('|').map(s => s.trim());
 			const name = spl?.[0]??'';
 			const imgs = name.split(',')
-				.map(i => this.imageMap.get(i.trim()))
+				.map(i => this.#imageMap.get(i.trim()))
 				.filter((i): i is MicrioImage => i !== undefined);
 			if(imgs.length == 1) this.focus(imgs[0], {duration});
 			else if(imgs.length > 0) this.set(imgs.map(i => this.getString(i.$info!)).join(';'), {
@@ -936,11 +933,11 @@ export class Grid {
 		},
 
 		[Enums.Grid.GridActionType.switchToGrid]: () => {
-			this.switchToGrid();
+			this.#switchToGrid();
 		},
 
 		[Enums.Grid.GridActionType.nextFadeDuration]: (data) => {
-			this.nextCrossFadeDuration = Number(data);
+			this.#nextCrossFadeDuration = Number(data);
 		},
 
 		[Enums.Grid.GridActionType.filterTourImages]: (data, duration) => {
@@ -948,7 +945,7 @@ export class Grid {
 				if(!('steps' in t) || !t.stepInfo) return;
 				const ids = t.stepInfo.map(s => s.micrioId);
 				const str = ids.filter((id, i) => ids.indexOf(id) == i)
-					.map(i => this.imageMap.get(i))
+					.map(i => this.#imageMap.get(i))
 					.filter((i): i is MicrioImage => !!i)
 					.map(i => this.getString(i.$info!)).join(';')
 				if(str) this.set(str, {
@@ -967,11 +964,11 @@ export class Grid {
 	action(action:Enums.Grid.GridActionType|string, data?:string, duration?:number) : void {
 		if(typeof action == 'string') action = Enums.Grid.GridActionType[action as keyof typeof Enums.Grid.GridActionType];
 		const key = action+(data??'');
-		if(this.lastAction == key) return;
-		const handler = this.actionHandlers[action as number];
+		if(this.#lastAction == key) return;
+		const handler = this.#actionHandlers[action as number];
 		if(handler) handler(data, duration);
 		else console.warn('Warning: unknown grid tour event', action);
-		this.lastAction = key;
+		this.#lastAction = key;
 	}
 
 	/** Enlarge a specific image idx of the currently shown grid

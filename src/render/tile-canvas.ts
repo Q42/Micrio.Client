@@ -51,33 +51,33 @@ export class TileCanvas {
 
 	readonly images: Image[] = [];
 
-	private readonly children: TileCanvas[] = [];
+	readonly #children: TileCanvas[] = [];
 	readonly area!: View;
 	readonly currentArea!: View;
 	readonly targetArea!: View;
 	readonly visible!: View;
 	readonly full!: View;
 
-	private areaAniPerc: number = 1;
-	private areaAniPaused: boolean = false;
+	#areaAniPerc: number = 1;
+	#areaAniPaused: boolean = false;
 
-	private _zIndex: number = 0;
-	private childrenDirty: boolean = false;
+	#_zIndex: number = 0;
+	#childrenDirty: boolean = false;
 
-	get zIndex(): number { return this._zIndex; }
+	get zIndex(): number { return this.#_zIndex; }
 	set zIndex(v: number) {
-		if (this._zIndex !== v) {
-			this._zIndex = v;
-			if (this.parent) this.parent.childrenDirty = true;
+		if (this.#_zIndex !== v) {
+			this.#_zIndex = v;
+			if (this.parent) this.parent.#childrenDirty = true;
 		}
 	}
 
 	readonly toDraw: number[] = [];
 
 	readonly aspect: number;
-	private index: number = 0;
+	#index: number = 0;
 
-	private isVisible: boolean = false;
+	#isVisible: boolean = false;
 
 	opacity: number = 0;
 	bOpacity: number = 0;
@@ -140,7 +140,7 @@ export class TileCanvas {
 		this.pinchZoomOutLimit = cfg.pinchZoomOutLimit;
 		this.omniNumLayers = cfg.omniNumLayers;
 		this.omniStartLayer = cfg.omniStartLayer;
-		this.index = main.canvases.length;
+		this.#index = main.canvases.length;
 		if (!hasParent) main.canvases.push(this);
 
 		this.aspect = width / height;
@@ -181,7 +181,7 @@ export class TileCanvas {
 	/** Sets the parent canvas for a child canvas. */
 	setParent(parent: TileCanvas): void {
 		this.parent = parent;
-		this.index += parent.children.length;
+		this.#index += parent.#children.length;
 	}
 
 	/**
@@ -234,12 +234,12 @@ export class TileCanvas {
 		);
 		c.setParent(this);
 		c.setArea(x0, y0, x1, y1, true, true);
-		this.children.push(c);
+		this.#children.push(c);
 		return c;
 	}
 
 	/** Steps the opacity fade animation and applies 360 transition movement. */
-	private stepOpacity(): void {
+	#stepOpacity(): void {
 		const fadeDuration = this.main.distanceX !== 0 || this.main.distanceY !== 0
 			? this.main.spacesTransitionDuration
 			: this.main.canvases.length === 1 ? .25 : this.main.crossfadeDuration;
@@ -261,7 +261,7 @@ export class TileCanvas {
 	/** Notifies the JS host about visibility changes. */
 	setCanvasVisible(b: boolean): void {
 		this.main.setCanvasVisible(this, b);
-		this.isVisible = b;
+		this.#isVisible = b;
 	}
 
 	/** Initiates a fade-out animation. */
@@ -282,7 +282,7 @@ export class TileCanvas {
 
 	/** Checks if the canvas area is currently animating. */
 	areaAnimating(): boolean {
-		return !this.areaAniPaused && this.areaAniPerc < 1;
+		return !this.#areaAniPaused && this.#areaAniPerc < 1;
 	}
 
 	/** Checks if the canvas is effectively hidden. */
@@ -294,7 +294,7 @@ export class TileCanvas {
 	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. */
 	shouldDraw(): void {
 		if (!this.areaAnimating() && this.isHidden()) {
-			if (this.isVisible) this.setCanvasVisible(false);
+			if (this.#isVisible) this.setCanvasVisible(false);
 			return;
 		}
 
@@ -303,19 +303,19 @@ export class TileCanvas {
 
 		this.toDraw.length = 0;
 
-		if (this.partialView(false)) animating = true;
+		if (this.#partialView(false)) animating = true;
 
 		if (!this.is360 && !this.areaAnimating() && (this.visible.width <= 0 || this.visible.height <= 0)) {
-			if (this.isVisible) this.setCanvasVisible(false);
+			if (this.#isVisible) this.setCanvasVisible(false);
 			return;
 		}
 
-		if (!this.isVisible && this.opacity >= 1) this.setCanvasVisible(true);
+		if (!this.#isVisible && this.opacity >= 1) this.setCanvasVisible(true);
 
 		this.webgl.calculate3DFrustum();
 
 		if (this.isReady && this.opacity !== this.targetOpacity) {
-			this.stepOpacity();
+			this.#stepOpacity();
 			animating = true;
 		}
 
@@ -340,8 +340,8 @@ export class TileCanvas {
 
 		this.view.toArray();
 
-		for (let i = 0; i < this.children.length; i++)
-			this.children[i].shouldDraw();
+		for (let i = 0; i < this.#children.length; i++)
+			this.#children[i].shouldDraw();
 
 		if (animating) this.main.animating = true;
 	}
@@ -359,7 +359,7 @@ export class TileCanvas {
 		if (this.pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
 			if (!(im.x1 <= this.view.x0 || im.x0 >= this.view.x1 || im.y1 <= this.view.y0 || im.y0 >= this.view.y1)) {
-				this.setTile(im.endOffset - 1);
+				this.#setTile(im.endOffset - 1);
 				this.main.drawQuad(im.tOpacity);
 			}
 		}
@@ -367,7 +367,7 @@ export class TileCanvas {
 		const r = this.rect;
 		for (let j = 0; j < this.toDraw.length; j++) {
 			const i: number = this.toDraw[j];
-			this.setTile(i);
+			this.#setTile(i);
 
 			const isTargetLayer = r.layer === r.image.targetLayer - 1 || (!this.main.bareBone && r.layer === r.image.targetLayer);
 			const isBaseTile = i === r.image.endOffset - 1;
@@ -381,18 +381,18 @@ export class TileCanvas {
 			}
 		}
 
-		if (this.childrenDirty) {
-			this.children.sort((a, b) => a.zIndex > b.zIndex ? 1 : a.zIndex < b.zIndex ? -1 : 0);
-			this.childrenDirty = false;
+		if (this.#childrenDirty) {
+			this.#children.sort((a, b) => a.zIndex > b.zIndex ? 1 : a.zIndex < b.zIndex ? -1 : 0);
+			this.#childrenDirty = false;
 		}
-		for (let i = 0; i < this.children.length; i++)
-			this.children[i].draw();
+		for (let i = 0; i < this.#children.length; i++)
+			this.#children[i].draw();
 
 		if (this.view.changed) this.main.viewSet(this);
 		this.view.changed = false;
 	}
 
-	private partialView(noDispatch: boolean): boolean {
+	#partialView(noDispatch: boolean): boolean {
 		const c = this.main.el;
 		const hP = this.hasParent;
 		const s = hP ? this.parent.getScale() : 1 / c.ratio;
@@ -408,14 +408,14 @@ export class TileCanvas {
 
 		if (animating) {
 			const delta: number = (1 / this.main.gridTransitionDuration) / this.main.frameTime;
-			this.areaAniPerc = Math.min(1, this.areaAniPerc + delta);
-			const p = this.main.gridTransitionTimingFunction.get(this.areaAniPerc);
+			this.#areaAniPerc = Math.min(1, this.#areaAniPerc + delta);
+			const p = this.main.gridTransitionTimingFunction.get(this.#areaAniPerc);
 			const interpCenterX = (b.centerX + (t.centerX - b.centerX) * p);
 			const interpCenterY = (b.centerY + (t.centerY - b.centerY) * p);
 			const interpWidth = (b.width + (t.width - b.width) * p);
 			const interpHeight = (b.height + (t.height - b.height) * p);
 			a.set(interpCenterX, interpCenterY, interpWidth, interpHeight);
-			if (this.areaAniPerc === 1) {
+			if (this.#areaAniPerc === 1) {
 				if (this.zIndex === 1) this.zIndex = 0;
 				b.copy(t);
 			}
@@ -463,25 +463,25 @@ export class TileCanvas {
 
 	/** Sets the target area for this canvas within its parent, optionally animating. */
 	setArea(x0: number, y0: number, x1: number, y1: number, direct: boolean, noDispatch: boolean): void {
-		this.areaAniPaused = false;
+		this.#areaAniPaused = false;
 		if (direct) {
 			this.area.setArea(x0, y0, x1, y1);
 			this.currentArea.setArea(x0, y0, x1, y1);
 		}
 		else {
 			this.area.copy(this.currentArea);
-			this.areaAniPerc = 0;
+			this.#areaAniPerc = 0;
 			if (this.zIndex === 0) this.zIndex = 1;
 			this.ani.limit = false;
 		}
 		this.targetArea.setArea(x0, y0, x1, y1);
-		this.partialView(noDispatch);
+		this.#partialView(noDispatch);
 		this.sendViewport();
 	}
 
 	/** Calculates the vertex positions for a given tile index and updates the vertex buffer. */
-	private setTile(i: number): void {
-		const r = this.rect; this.findTileRect(i);
+	#setTile(i: number): void {
+		const r = this.rect; this.#findTileRect(i);
 		if (this.is360) {
 			if (r.image.localIdx === 0) this.webgl.setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
 			else r.image.setDrawRect(r);
@@ -503,7 +503,7 @@ export class TileCanvas {
 	}
 
 	/** Finds the Image, Layer, and calculates the DrawRect for a given global tile index. */
-	private findTileRect(i: number): void {
+	#findTileRect(i: number): void {
 		let img = 0; while (i >= this.images[img].endOffset) img++;
 		const image = this.images[img];
 
@@ -515,7 +515,7 @@ export class TileCanvas {
 
 	/** Handles resizing of the canvas element. */
 	resize(): void {
-		if (this.children.length) {
+		if (this.#children.length) {
 			const c = this.main.el;
 			this.width = c.width;
 			this.height = c.height;
@@ -644,16 +644,16 @@ export class TileCanvas {
 	}
 
 	aniPause(time: number): void {
-		this.areaAniPaused = true;
+		this.#areaAniPaused = true;
 		this.ani.pause(time);
 	};
 	aniResume(time: number): void {
-		this.areaAniPaused = false;
+		this.#areaAniPaused = false;
 		this.ani.resume(time);
 	};
 	aniStop(): void {
 		this.ani.stop();
-		for (let i = 0; i < this.children.length; i++) this.children[i].aniStop();
+		for (let i = 0; i < this.#children.length; i++) this.#children[i].aniStop();
 	}
 
 	aniDone(): void { this.main.aniDone(this); }

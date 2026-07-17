@@ -19,7 +19,7 @@ export class Canvas {
 	 * @internal
 	 * @readonly
 	*/
-	private resizeObserver?:ResizeObserver;
+	#resizeObserver?:ResizeObserver;
 
 	/** Flag indicating if a resize operation is currently in progress.
 	 * @internal
@@ -29,7 +29,7 @@ export class Canvas {
 	/** Flag indicating if 360 content has been displayed, requiring perspective CSS.
 	 * @internal
 	*/
-	private hasPerspective:boolean = false;
+	#hasPerspective:boolean = false;
 
 	/** Object containing current viewport dimensions, position, and ratios. */
 	readonly viewport:Models.Canvas.ViewRect = {
@@ -52,10 +52,13 @@ export class Canvas {
 	 * Creates a Canvas controller instance.
 	 * @param micrio The main HTMLMicrioElement instance.
 	 */
-	constructor(private micrio:HTMLMicrioElement) {
+	#micrio:HTMLMicrioElement;
+
+	constructor(micrio:HTMLMicrioElement) {
+		this.#micrio = micrio;
 		this.onresize = this.onresize.bind(this); // Bind resize handler
 		// Use ResizeObserver if available for more reliable resize detection
-		if(self.ResizeObserver) this.resizeObserver = new self.ResizeObserver(this.onresize);
+		if(self.ResizeObserver) this.#resizeObserver = new self.ResizeObserver(this.onresize);
 		this.element.className = 'micrio'; // Add class for potential styling
 	}
 
@@ -66,8 +69,8 @@ export class Canvas {
 	place(){
 		if(this.element.parentNode) return; // Already placed
 		// Insert after the preview image if it exists, otherwise as the first child
-		const img = this.micrio.querySelector('img.preview');
-		this.micrio.insertBefore(this.element,img ? img.nextSibling : this.micrio.firstChild);
+		const img = this.#micrio.querySelector('img.preview');
+		this.#micrio.insertBefore(this.element,img ? img.nextSibling : this.#micrio.firstChild);
 	}
 
 	/**
@@ -78,7 +81,7 @@ export class Canvas {
 		this.onresize(); // Initial resize calculation
 
 		// Attach appropriate listener
-		if(this.resizeObserver) this.resizeObserver.observe(this.element);
+		if(this.#resizeObserver) this.#resizeObserver.observe(this.element);
 		else window.addEventListener('resize', this.onresize);
 	}
 
@@ -87,7 +90,7 @@ export class Canvas {
 	 * @internal
 	*/
 	unhook() : void {
-		if(this.resizeObserver) this.resizeObserver.unobserve(this.element);
+		if(this.#resizeObserver) this.#resizeObserver.unobserve(this.element);
 		else window.removeEventListener('resize', this.onresize);
 	}
 
@@ -101,7 +104,7 @@ export class Canvas {
 		const box = this.element.getBoundingClientRect();
 
 		// Track if 360 content has ever been loaded to apply perspective CSS
-		if(this.micrio.$current?.is360) this.hasPerspective = true;
+		if(this.#micrio.$current?.is360) this.#hasPerspective = true;
 
 		let width = box.width;
 		let height = box.height;
@@ -119,7 +122,7 @@ export class Canvas {
 
 		// Calculate CSS scale factor (relevant if micr-io element itself is scaled)
 		// Assume scale 1 for static images to avoid issues?
-		const scale = this.micrio.hasAttribute('data-static') ? 1 : Math.floor(width) / this.micrio.offsetWidth;
+		const scale = this.#micrio.hasAttribute('data-static') ? 1 : Math.floor(width) / this.#micrio.offsetWidth;
 		// Adjust dimensions based on scale
 		width /= scale;
 		height /= scale;
@@ -132,7 +135,7 @@ export class Canvas {
 		if(c.width == width && c.height == height && c.ratio == ratio && c.scale == scale) return;
 
 		// Apply perspective CSS if 360 content has been shown
-		if(this.hasPerspective && this.micrio._ui) this.micrio._ui.style.perspective = height / 2 + 'px';
+		if(this.#hasPerspective && this.#micrio._ui) this.#micrio._ui.style.perspective = height / 2 + 'px';
 
 		// Update viewport state object
 		c.width = width;
@@ -148,16 +151,16 @@ export class Canvas {
 		this.element.width = width * ratio;
 		this.element.height = height * ratio;
 		// Update WebGL viewport
-		this.micrio.webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
+		this.#micrio.webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
 		// Resize postprocessing framebuffer if active
-		this.micrio.webgl.postpocessor?.resize();
+		this.#micrio.webgl.postpocessor?.resize();
 
 		// Notify engine of resize
-		this.micrio.engine.resize(c);
+		this.#micrio.engine.resize(c);
 		this.resizing = false; // Clear resizing flag
 
 		// Dispatch 'resize' event with bounding box info
-		this.micrio.events.dispatch('resize', box);
+		this.#micrio.events.dispatch('resize', box);
 
 		// Update mobile flag (debounced slightly)
 		this.isMobile.set(/mobile/i.test(navigator.userAgent));
@@ -169,7 +172,7 @@ export class Canvas {
 	 * @param s Optional image settings object to check for `noRetina`.
 	 * @returns The calculated device pixel ratio.
 	 */
-	public getRatio = (s:Partial<Models.ImageInfo.Settings> = this.micrio.$current?.$settings ?? {}) : number => !Browser.iOS && !s?.noRetina // Check conditions
+	public getRatio = (s:Partial<Models.ImageInfo.Settings> = this.#micrio.$current?.$settings ?? {}) : number => !Browser.iOS && !s?.noRetina // Check conditions
 		&& self.devicePixelRatio && Math.max(1, Math.min(2, self.devicePixelRatio)) // Get ratio and clamp
 		|| 1; // Default to 1
 
@@ -180,8 +183,8 @@ export class Canvas {
 	 * @param height The vertical offset margin in pixels.
 	*/
 	public setMargins(width:number, height:number) : void {
-		if (!this.micrio.engine.ready) return;
-		this.micrio.engine.setCanvasArea(width, height);
+		if (!this.#micrio.engine.ready) return;
+		this.#micrio.engine.setCanvasArea(width, height);
 	}
 
 }

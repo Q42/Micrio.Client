@@ -19,26 +19,29 @@ export default class Camera {
 
 	readonly xy: Coordinates = new Coordinates;
 	readonly coo: Coordinates = new Coordinates;
-	private readonly startCoo: Coordinates = new Coordinates;
+	readonly #startCoo: Coordinates = new Coordinates;
 
-	private pinching: boolean = false;
-	private inited: boolean = false;
-	private hasStartCoo: boolean = false;
+	#pinching: boolean = false;
+	#inited: boolean = false;
+	#hasStartCoo: boolean = false;
 	cpw: number = -1;
 	cph: number = -1;
-	private wasCoverLimit: boolean = true;
+	#wasCoverLimit: boolean = true;
+
+	#canvas: TileCanvas;
 
 	constructor(
-		private canvas: TileCanvas
+		canvas: TileCanvas
 	) {
-		if (canvas.is360) this.inited = true;
+		this.#canvas = canvas;
+		if (canvas.is360) this.#inited = true;
 	}
 
 	/**
 	 * Converts screen pixel coordinates to relative image coordinates [0-1].
 	 */
 	getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Coordinates {
-		const c = this.canvas;
+		const c = this.#canvas;
 		if (c.noImage || c.freeMove)
 			noLimit = true;
 
@@ -65,7 +68,7 @@ export default class Camera {
 	 * Converts relative image coordinates [0-1] to screen pixel coordinates.
 	 */
 	getXY(x: number, y: number, abs: boolean): Coordinates {
-		const c = this.canvas;
+		const c = this.#canvas;
 		const el = c.el;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
 		this.xy.x = ((x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
@@ -83,7 +86,7 @@ export default class Camera {
 	 * Converts 3D coordinates relative to an omni object's center to screen pixel coordinates.
 	 */
 	getXYOmniCoo(x: number, y: number, z: number, rotation: number, abs: boolean): Coordinates {
-		const c = this.canvas;
+		const c = this.#canvas;
 		const el = c.el;
 		const mat = c.webgl.pMatrix, vec4 = c.webgl.vec4;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
@@ -116,14 +119,14 @@ export default class Camera {
 
 	/** Recalculates scale limits (minScale, maxScale, coverScale, fullScale) based on current canvas and image dimensions. */
 	setCanvas(): void {
-		const c = this.canvas;
+		const c = this.#canvas;
 		const el = c.el;
 
 		const cpw = el.width / c.width;
 		const cph = el.height / c.height;
 
 		if (!c.view.limitChanged && this.cpw === cpw && this.cph === cph) {
-			if (c.coverLimit !== this.wasCoverLimit) this.correctMinMax();
+			if (c.coverLimit !== this.#wasCoverLimit) this.correctMinMax();
 			return;
 		}
 
@@ -143,7 +146,7 @@ export default class Camera {
 
 		this.correctMinMax();
 
-		if (el.width && el.height && !this.canvas.ani.isStarted()) {
+		if (el.width && el.height && !this.#canvas.ani.isStarted()) {
 			c.view.copy(c.ani.lastView, true);
 			if (!c.is360) {
 				const pLimit = c.ani.limit;
@@ -156,7 +159,7 @@ export default class Camera {
 
 	/** Corrects minScale and maxScale based on coverLimit and focus area. */
 	correctMinMax(noLimit: boolean = false): void {
-		const c = this.canvas;
+		const c = this.#canvas;
 		this.minScale = c.coverLimit ? this.coverScale : this.fullScale;
 
 		if (!noLimit && !c.main.isSwipe && (c.activeImageIdx === 0 && !c.coverLimit || c.activeImageIdx > 0)) {
@@ -166,7 +169,7 @@ export default class Camera {
 		}
 
 		this.maxScale = this.minScale > 1 && c.maxScale < this.minScale ? this.minScale : Math.max(this.minScale, (c.maxScale * c.scaleMultiplier) / c.el.scale);
-		this.wasCoverLimit = c.coverLimit;
+		this.#wasCoverLimit = c.coverLimit;
 	}
 
 	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). */
@@ -182,8 +185,8 @@ export default class Camera {
 	 */
 	setView(): boolean {
 		if (this.cpw === -1) return false;
-		const c = this.canvas;
-		const v = this.canvas.view;
+		const c = this.#canvas;
+		const v = this.#canvas.view;
 
 		const limited = !c.freeMove && c.ani.limit;
 
@@ -196,28 +199,28 @@ export default class Camera {
 
 		this.scale = Math.min(cw / vw, ch / vh);
 
-		if (limited && !this.pinching && this.scale >= this.maxScale && c.ani.flying) this.scale = this.maxScale;
+		if (limited && !this.#pinching && this.scale >= this.maxScale && c.ani.flying) this.scale = this.maxScale;
 
-		if ((!c.ani.correcting && !this.pinching) || c.coverLimit) this.scale = Math.max(this.minScale * this.minSize, this.scale);
+		if ((!c.ani.correcting && !this.#pinching) || c.coverLimit) this.scale = Math.max(this.minScale * this.minSize, this.scale);
 
-		if (!this.inited && c.coverStart) this.scale = this.coverScale;
+		if (!this.#inited && c.coverStart) this.scale = this.coverScale;
 
 		const overflowX: number = (cw / this.scale - vw);
 		const overflowY: number = (ch / this.scale - vh);
 
 		v.set(v.centerX, v.centerY, v.width + overflowX, v.height + overflowY);
 
-		if (!this.inited && c.coverStart) this.canvas.ani.lastView.copy(v);
+		if (!this.#inited && c.coverStart) this.#canvas.ani.lastView.copy(v);
 
 		if (!c.ani.correcting && c.coverLimit) v.limit(false);
 
-		this.inited = this.cpw > 0;
+		this.#inited = this.cpw > 0;
 
 		v.toArray();
 
-		if (this.hasStartCoo) {
-			this.hasStartCoo = false;
-			this.setCoo(this.startCoo.x, this.startCoo.y, this.startCoo.scale, 0, 0, false, 0, 0);
+		if (this.#hasStartCoo) {
+			this.#hasStartCoo = false;
+			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale, 0, 0, false, 0, 0);
 			return false;
 		}
 		return true;
@@ -225,8 +228,8 @@ export default class Camera {
 
 	/** Checks if the current view extends beyond the defined limits or max scale. */
 	isOutsideLimit(): boolean {
-		const v = this.canvas.view;
-		return !this.canvas.freeMove && (
+		const v = this.#canvas.view;
+		return !this.#canvas.freeMove && (
 			(Math.trunc((v.x0 - v.lX0) * 1e6) / 1e6 < 0) !== (Math.trunc((v.x1 - v.lX1) * 1e6) / 1e6 > 0)
 			|| (Math.trunc((v.y0 - v.lY0) * 1e6) / 1e6 < 0) !== (Math.trunc((v.y1 - v.lY1) * 1e6) / 1e6 > 0)
 			|| Math.trunc((this.scale - this.maxScale) * 1e6) / 1e6 > 0
@@ -237,16 +240,16 @@ export default class Camera {
 	 * Pans the view by a given pixel delta.
 	 */
 	pan(xPx: number, yPx: number, duration: number, noLimit: boolean, time: number, force: boolean = false, isKinetic: boolean = false): void {
-		const c = this.canvas;
+		const c = this.#canvas;
 
 		if (c.is360) {
 			c.webgl.rotate(xPx, yPx, duration, time);
 			return;
 		}
 
-		if ((this.isUnderZoom() || this.pinching) && !force) return;
+		if ((this.isUnderZoom() || this.#pinching) && !force) return;
 
-		if (this.canvas.freeMove) noLimit = true;
+		if (this.#canvas.freeMove) noLimit = true;
 
 		const r = c.hasParent ? c.parent.el.ratio : c.el.ratio;
 		const v = c.view;
@@ -259,14 +262,14 @@ export default class Camera {
 		const viewWidth = v.width;
 		const viewHeight = v.height;
 
-		if (this.pinching) {
+		if (this.#pinching) {
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
 		} else if (!force && this.isOutsideLimit() && !isKinetic) {
 			if (c.ani.isStarted()) {
 				c.ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.pinching, -1, 0, time, !noLimit);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.#pinching, -1, 0, time, !noLimit);
 			}
 		} else {
 			c.ani.stop();
@@ -290,7 +293,7 @@ export default class Camera {
 	 * @returns The calculated animation duration.
 	 */
 	zoom(delta: number, xPx: number, yPx: number, duration: number, noLimit: boolean, time: number): number {
-		const c = this.canvas;
+		const c = this.#canvas;
 
 		if (c.is360) {
 			return c.webgl.zoom(delta, duration, 0, noLimit, time, xPx, yPx);
@@ -298,11 +301,11 @@ export default class Camera {
 
 		c.kinetic.stop();
 
-		if (!this.pinching && this.isZoomedIn() && delta < 0) return 0;
+		if (!this.#pinching && this.isZoomedIn() && delta < 0) return 0;
 
-		if (this.canvas.freeMove) noLimit = true;
+		if (this.#canvas.freeMove) noLimit = true;
 
-		if (delta > 0 && this.isZoomedOut() && this.minSize >= 1 && (!this.pinching || c.coverLimit)) return 0;
+		if (delta > 0 && this.isZoomedOut() && this.minSize >= 1 && (!this.#pinching || c.coverLimit)) return 0;
 
 		const el = c.el;
 		const v = c.view;
@@ -329,7 +332,7 @@ export default class Camera {
 		const targetHeight = v.height + factY;
 
 		c.ani.limit = limit;
-		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.pinching, -1, 0, time, limit);
+		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.#pinching, -1, 0, time, limit);
 		c.ani.lastView.copy(c.view);
 		c.ani.limit = !noLimit;
 
@@ -342,7 +345,7 @@ export default class Camera {
 
 	/** Handles pinch gesture updates. */
 	pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
-		const c = this.canvas;
+		const c = this.#canvas;
 		const el = c.main.el;
 
 		const left = (Math.min(xPx1, xPx2) - el.left) / el.scale;
@@ -367,9 +370,9 @@ export default class Camera {
 				c.webgl.rotate(dX, dY, 0, 0);
 			}
 			else {
-				if (!this.canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, 0, true);
-				this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas.pinchZoomOutLimit, 0);
-				c.ani.limit = !!this.canvas.pinchZoomOutLimit;
+				if (!this.#canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, 0, true);
+				this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.#canvas.pinchZoomOutLimit, 0);
+				c.ani.limit = !!this.#canvas.pinchZoomOutLimit;
 			}
 		}
 		else c.ani.stop();
@@ -381,23 +384,23 @@ export default class Camera {
 
 	/** Signals the start of a pinch gesture. */
 	pinchStart(): void {
-		this.pinching = true;
+		this.#pinching = true;
 	}
 
 	/** Signals the end of a pinch gesture. */
 	pinchStop(time: number): void {
-		if (!this.canvas.is360) this.snapToBounds(time);
+		if (!this.#canvas.is360) this.#snapToBounds(time);
 
 		this.prevSize = -1;
 		this.prevCenterX = -1;
 		this.prevCenterY = -1;
-		this.pinching = false;
+		this.#pinching = false;
 	}
 
-	private snapToBounds(time: number): void {
-		if (this.canvas.freeMove) return;
+	#snapToBounds(time: number): void {
+		if (this.#canvas.freeMove) return;
 
-		const v = this.canvas.view;
+		const v = this.#canvas.view;
 		const isOverzoomed = this.scale > this.maxScale;
 
 		const targetWidth = isOverzoomed ? this.cpw / this.maxScale : v.width;
@@ -415,7 +418,7 @@ export default class Camera {
 			? v.lCenterY
 			: Math.max(v.lY0 + halfH, Math.min(v.centerY, v.lY1 - halfH));
 
-		this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, 0, time, true);
+		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, 0, time, true);
 	}
 
 	/**
@@ -423,7 +426,7 @@ export default class Camera {
 	 * @returns The calculated animation duration.
 	 */
 	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: number, time: number): number {
-		const c = this.canvas;
+		const c = this.#canvas;
 		const a = c.ani;
 		c.kinetic.stop();
 
@@ -446,16 +449,16 @@ export default class Camera {
 	 * @returns The calculated animation duration.
 	 */
 	setCoo(x: number, y: number, scale: number, dur: number, speed: number, limit: boolean, fn: number, time: number): number {
-		if (!this.inited) {
-			this.hasStartCoo = true;
-			this.startCoo.x = x;
-			this.startCoo.y = y;
-			this.startCoo.scale = scale;
+		if (!this.#inited) {
+			this.#hasStartCoo = true;
+			this.#startCoo.x = x;
+			this.#startCoo.y = y;
+			this.#startCoo.scale = scale;
 			this.setView();
 			return 0;
 		}
 
-		const c = this.canvas;
+		const c = this.#canvas;
 		const is360 = c.is360;
 
 		if (scale === 0 || (!is360 && isNaN(scale))) scale = c.getScale();

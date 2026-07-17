@@ -6,31 +6,35 @@ import { Grid } from '$grid/grid';
  * Handles keydown events for keyboard navigation (arrows, +/-).
  */
 export class KeyboardHandler {
-	constructor(private ctx: EventContext) {}
+	#ctx: EventContext;
+
+	constructor(ctx: EventContext) {
+		this.#ctx = ctx;
+	}
 
 	/** Hooks keyboard event listeners. */
 	hook(): void {
-		document.addEventListener('keydown', this.handle);
+		document.addEventListener('keydown', this.#handle);
 	}
 
 	/** Unhooks keyboard event listeners. */
 	unhook(): void {
-		document.removeEventListener('keydown', this.handle);
+		document.removeEventListener('keydown', this.#handle);
 	}
 
 	/**
 	 * Handles keydown events for keyboard navigation.
 	 * @param e The KeyboardEvent.
 	 */
-	private handle = (e: KeyboardEvent): void => {
-		if (this.ctx.isPanning() || this.ctx.isPinching() || !this.ctx.micrio.$current?.camera) return;
+	#handle = (e: KeyboardEvent): void => {
+		if (this.#ctx.isPanning() || this.#ctx.isPinching() || !this.#ctx.micrio.$current?.camera) return;
 
 		// Bypass arrow handling when a grid is actively handling keys
 		if (Grid.handlingKeys && (e.key.startsWith('Arrow') || e.key == 'Enter' || e.key == ' ' || e.key == 'Escape')) return;
 
-		const c = this.ctx.micrio.$current.camera;
-		const hWidth = this.ctx.micrio.offsetWidth / 2;
-		const hHeight = this.ctx.micrio.offsetHeight / 2;
+		const c = this.#ctx.micrio.$current.camera;
+		const hWidth = this.#ctx.micrio.offsetWidth / 2;
+		const hHeight = this.#ctx.micrio.offsetHeight / 2;
 		const dur = 150;
 		let dX = 0;
 		let dY = 0;

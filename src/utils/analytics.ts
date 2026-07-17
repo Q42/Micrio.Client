@@ -20,18 +20,22 @@ export class GoogleTag {
 	 * Uses the globally declared type from `declare global`.
 	 * @internal
 	 */
-	private gtag = 'gtag' in window ? window['gtag'] : undefined; // Use the typed global gtag
+	#gtag = 'gtag' in window ? window['gtag'] : undefined; // Use the typed global gtag
 
 	/** Flag indicating if event listeners are currently attached. @internal */
-	private hooked:boolean = false;
+	#hooked:boolean = false;
 
 	/**
 	 * Creates a GoogleTag instance.
 	 * @param micrio The main HTMLMicrioElement instance.
 	*/
+	#micrio:HTMLMicrioElement;
+
 	constructor(
-		private micrio:HTMLMicrioElement
-	) { this.tag = this.tag.bind(this) } // Bind the tag method
+		micrio:HTMLMicrioElement
+	) {
+		this.#micrio = micrio;
+	}
 
 	/**
 	 * Hooks up event listeners to track Micrio events if gtag is available.
@@ -39,11 +43,11 @@ export class GoogleTag {
 	 * @internal
 	 */
 	hook() : void {
-		if(this.hooked || !this.gtag) return; // Exit if already hooked or gtag function not found
-		this.hooked = true;
-		this.tag(new CustomEvent('init')); // Send initial event
+		if(this.#hooked || !this.#gtag) return; // Exit if already hooked or gtag function not found
+		this.#hooked = true;
+		this.#tag(new CustomEvent('init')); // Send initial event
 		// Add listeners for tracked Micrio events
-		GoogleTag.events.forEach(e => this.micrio.addEventListener(e, this.tag));
+		GoogleTag.events.forEach(e => this.#micrio.addEventListener(e, this.#tag));
 	}
 
 	/**
@@ -51,11 +55,11 @@ export class GoogleTag {
 	 * @internal
 	 */
 	unhook() : void {
-		if(!this.hooked) return; // Exit if not hooked
-		this.hooked = false;
-		this.tag(new CustomEvent('hide')); // Send final event before unhooking
+		if(!this.#hooked) return; // Exit if not hooked
+		this.#hooked = false;
+		this.#tag(new CustomEvent('hide')); // Send final event before unhooking
 		// Remove listeners
-		GoogleTag.events.forEach(e => this.micrio.removeEventListener(e, this.tag));
+		GoogleTag.events.forEach(e => this.#micrio.removeEventListener(e, this.#tag));
 	}
 
 	/**
@@ -63,11 +67,11 @@ export class GoogleTag {
 	 * @internal
 	 * @param e The Micrio CustomEvent object.
 	*/
-	private tag(e:Event) : void {
-		if (!this.gtag) return; // Ensure gtag exists before sending
+	#tag = (e:Event) : void => {
+		if (!this.#gtag) return; // Ensure gtag exists before sending
 
 		const d = (e as CustomEvent).detail; // Get event detail
-		const $curr = this.micrio.$current; // Get current image instance
+		const $curr = this.#micrio.$current; // Get current image instance
 
 		// Construct the gtag event parameters object
 		const detail:any = {
@@ -76,7 +80,7 @@ export class GoogleTag {
 		};
 
 		// Add current language if available
-		if(this.micrio.lang) detail['culture'] = this.micrio.lang;
+		if(this.#micrio.lang) detail['culture'] = this.#micrio.lang;
 
 		// Add version information for specific events
 		if(e.type == 'init') detail['micrio_version'] = VERSION; // Use imported VERSION
@@ -89,10 +93,10 @@ export class GoogleTag {
 		// Construct event label (Micrio element ID + optional title from detail or image info)
 		const title:string = d && !!d['title'] ? d['title'] // Use title from event detail if present
 			: $curr && $curr.$info && $curr.$info.title; // Fallback to current image title
-		detail['event_label'] = this.micrio.id + (title ? ' - ' + title : ''); // Combine ID and title
+		detail['event_label'] = this.#micrio.id + (title ? ' - ' + title : ''); // Combine ID and title
 
 		// Send the event to Google Tag Manager
 		// @ts-ignore
-		this.gtag('event', e.type, detail);
+		this.#gtag('event', e.type, detail);
 	}
 }

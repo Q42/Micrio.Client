@@ -31,10 +31,10 @@ export namespace State {
 		public readonly tour: Writable<Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined> = writable();
 
 		/** Internal reference to the current tour object. @internal */
-		private _tour:Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined;
+		#_tour:Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined;
 
 		/** Getter for the current value of the {@link tour} store. */
-		public get $tour() : Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined {return this._tour}
+		public get $tour() : Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined {return this.#_tour}
 
 		/** Writable Svelte store holding the marker object currently opened in the *main* active image, or undefined if none is open. */
 		public readonly marker: Writable<Models.ImageData.Marker|undefined> = writable();
@@ -43,10 +43,10 @@ export namespace State {
 		public readonly markerHoverId: Writable<string|undefined> = writable();
 
 		/** Internal reference to the currently opened marker object. @internal */
-		private _marker: Models.ImageData.Marker|undefined;
+		#_marker: Models.ImageData.Marker|undefined;
 
 		/** Getter for the current value of the {@link marker} store. */
-		public get $marker() : Models.ImageData.Marker|undefined { return this._marker }
+		public get $marker() : Models.ImageData.Marker|undefined { return this.#_marker }
 
 		/** Writable Svelte store holding the marker object whose popup is currently displayed. */
 		public readonly popup: Writable<Models.ImageData.Marker|undefined> = writable<Models.ImageData.Marker>();
@@ -78,8 +78,8 @@ export namespace State {
 		/** @internal */
 		constructor(){
 			// Keep internal properties synced with stores
-			this.tour.subscribe(t => { if(typeof t == 'string') return; this._tour = t });
-			this.marker.subscribe(m => { if(typeof m == 'string') return; this._marker = m });
+			this.tour.subscribe(t => { if(typeof t == 'string') return; this.#_tour = t });
+			this.marker.subscribe(m => { if(typeof m == 'string') return; this.#_marker = m });
 		}
 	}
 
@@ -93,9 +93,9 @@ export namespace State {
 		/** Writable Svelte store holding the current viewport [x0, y0, width, height] of this image. */
 		public readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
 		/** Internal reference to the current view. @internal */
-		private _view:Models.Camera.View|undefined;
+		#_view:Models.Camera.View|undefined;
 		/** Getter for the current value of the {@link view} store. */
-		public get $view() : Models.Camera.View|undefined {return this._view}
+		public get $view() : Models.Camera.View|undefined {return this.#_view}
 
 		/**
 		 * Writable Svelte store holding the currently active marker within *this specific image*.
@@ -103,21 +103,24 @@ export namespace State {
 		 */
 		public readonly marker: Writable<Models.ImageData.Marker|string|undefined> = writable(undefined);
 		/** Internal reference to the active marker object. @internal */
-		private _marker:Models.ImageData.Marker|undefined;
+		#_marker:Models.ImageData.Marker|undefined;
 		/** Getter for the current value of the {@link marker} store. */
-		public get $marker() : Models.ImageData.Marker|undefined {return this._marker}
+		public get $marker() : Models.ImageData.Marker|undefined {return this.#_marker}
 
 		/** Writable Svelte store holding the currently displayed layer index (for Omni objects). */
 		public readonly layer: Writable<number> = writable(0);
 
 		/** @internal */
-		constructor(private image:MicrioImage){
+		#image: MicrioImage;
+
+		constructor(image:MicrioImage){
+			this.#image = image;
 			const m = image.engine.micrio; // Reference to main element
 			let pV:string, pW:number, pH:number; // Previous view state for change detection
 
 			// Subscribe to view store changes
 			this.view.subscribe(view => {
-				this._view = view; // Update internal reference
+				this.#_view = view; // Update internal reference
 				const nV = view?.toString(); // Stringify for simple comparison
 				if(view && nV && pV != nV) { // If view changed
 					const detail = {image, view}; // Event detail payload with view360
@@ -135,13 +138,13 @@ export namespace State {
 
 			// Subscribe to local marker store changes
 			this.marker.subscribe(marker => {
-				const curr = this._marker; // Store previous marker
+				const curr = this.#_marker; // Store previous marker
 				// Update internal marker reference (only store the object, not the ID string)
-				this._marker = (marker && typeof marker != 'string' ? marker : undefined);
+				this.#_marker = (marker && typeof marker != 'string' ? marker : undefined);
 				// If this marker change resulted in a new marker object being set,
 				// update the global marker state as well.
-				if(this._marker) {
-					m.state.marker.set(this._marker);
+				if(this.#_marker) {
+					m.state.marker.set(this.#_marker);
 				}
 				// If the marker was cleared locally AND it was the globally active marker,
 				// clear the global marker state too.
@@ -153,7 +156,7 @@ export namespace State {
 
 		/** Hooks up the layer store subscription for Omni objects. @internal */
 		hookOmni() : void {
-			const image = this.image;
+			const image = this.#image;
 			this.layer.subscribe(l => {
 				if(image.ptr < 0 || !image.engine.ready) return;
 				image.engine.setActiveLayer(image.ptr, l); // Call engine

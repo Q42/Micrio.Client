@@ -16,17 +16,17 @@ import { tick } from '$core/store';
  */
 export class GLEmbedVideo {
 	/** Is the video source an HLS stream (.m3u8)? @internal */
-	private ism3u:boolean = false;
+	#ism3u:boolean = false;
 	/** HLS.js player instance, if used. @internal */
-	private hlsPlayer: HlsPlayer|undefined = undefined;
+	#hlsPlayer: HlsPlayer|undefined = undefined;
 	/** Svelte store unsubscriber for the image visibility store. @internal */
-	private usVid:Unsubscriber|undefined = undefined;
+	#usVid:Unsubscriber|undefined = undefined;
 	/** Timeout ID for delayed video looping. @internal */
-	private vidRepeatTo:any = undefined;
+	#vidRepeatTo:any = undefined;
 	/** Timeout ID for delaying video loading/playback on visibility change. @internal */
-	private placeTo:any = undefined;
+	#placeTo:any = undefined;
 	/** Should the video autoplay when visible? @internal */
-	private autoplay:boolean = true;
+	#autoplay:boolean = true;
 
 	/** The underlying HTMLVideoElement used for decoding. @internal */
 	_vid:HTMLVideoElement|undefined = undefined;
@@ -42,37 +42,48 @@ export class GLEmbedVideo {
 	 * @param paused Initial paused state (e.g., due to pause-on-zoom).
 	 * @param moved Callback function to notify when position/state changes (triggers Engine render).
 	 */
+	#engine: Engine;
+	#image: MicrioImage;
+	#embed: Models.ImageData.Embed;
+	#paused: boolean;
+	#moved: () => void;
+
 	constructor(
-		private engine:Engine,
-		private image:MicrioImage,
-		private embed:Models.ImageData.Embed,
-		private paused:boolean, // Initial paused state
-		private moved:() => void // Callback to trigger Engine render after state change
+		engine:Engine,
+		image:MicrioImage,
+		embed:Models.ImageData.Embed,
+		paused:boolean, // Initial paused state
+		moved:() => void // Callback to trigger Engine render after state change
 	) {
+		this.#engine = engine;
+		this.#image = image;
+		this.#embed = embed;
+		this.#paused = paused;
+		this.#moved = moved;
 		// Determine if HLS is needed (stream ID present and not transparent video)
-		this.ism3u = !!embed.video?.streamId && !embed.video?.transparent;
+		this.#ism3u = !!embed.video?.streamId && !embed.video?.transparent;
 		// Get existing video element if already created (e.g., by previous instance)
 		this._vid = image._video;
 		// Set autoplay flag from embed data
-		this.autoplay = embed.video?.autoplay ?? true;
+		this.#autoplay = embed.video?.autoplay ?? true;
 
 		let first:boolean = true; // Flag for initial visibility check
 		// Subscribe to image visibility changes
-		this.usVid = this.image.visible.subscribe(v =>  {
-			clearTimeout(this.placeTo); // Clear any pending timeout
+		this.#usVid = this.#image.visible.subscribe(v =>  {
+			clearTimeout(this.#placeTo); // Clear any pending timeout
 			if(v) { // If image becomes visible
 				// Schedule loading/playback after a short delay (or immediately first time)
-				this.placeTo = setTimeout(() => {
+				this.#placeTo = setTimeout(() => {
 					if(!this.isMounted) return; // Exit if component unmounted
-					if(!this._vid) this.load(); // Load video if not already loaded
+					if(!this._vid) this.#load(); // Load video if not already loaded
 					else { // If already loaded
-						this.hook(); // Ensure event listeners are attached
-						if(this.autoplay && !this.paused) this._vid.play().catch(e => console.warn("WebGL Embed video play() failed", e));
+						this.#hook(); // Ensure event listeners are attached
+						if(this.#autoplay && !this.#paused) this._vid.play().catch(e => console.warn("WebGL Embed video play() failed", e));
 					}
 				}, first ? 0 : 100); // No delay on first visibility
 			} else { // If image becomes hidden
 				// Pause video immediately
-				this.placeTo = setTimeout(() => this._vid?.pause(), 0);
+				this.#placeTo = setTimeout(() => this._vid?.pause(), 0);
 			}
 			first = false;
 		});
@@ -80,19 +91,19 @@ export class GLEmbedVideo {
 
 	/** Cancels any pending visibility timeout (e.g. pause scheduled on invisible). */
 	cancelTimeout(): void {
-		clearTimeout(this.placeTo);
+		clearTimeout(this.#placeTo);
 	}
 
 	/** Cleans up resources when the parent Embed component is unmounted. */
 	unmount() : void {
 		this.isMounted = false; // Mark as unmounted
 		// Clear timeouts
-		clearTimeout(this.placeTo);
-		clearTimeout(this.vidRepeatTo);
+		clearTimeout(this.#placeTo);
+		clearTimeout(this.#vidRepeatTo);
 		this._vid?.pause(); // Pause video
-		this.unhook(); // Remove event listeners
-		this.usVid?.(); // Unsubscribe from visibility store
-		// TODO: Consider destroying HLS player instance if created (this.hlsPlayer?.destroy())
+		this.#unhook(); // Remove event listeners
+		this.#usVid?.(); // Unsubscribe from visibility store
+		// TODO: Consider destroying HLS player instance if created (this.#hlsPlayer?.destroy())
 	}
 
 	/**
@@ -100,29 +111,29 @@ export class GLEmbedVideo {
 	 * @internal
 	 * @param playing True if the video is now playing, false if paused.
 	 */
-	private setPlaying(playing:boolean) : void {
+	#setPlaying(playing:boolean) : void {
 		if(!this._vid) return;
-		this.paused = !playing; // Update internal state
+		this.#paused = !playing; // Update internal state
 		// Set data attribute for potential external use/styling
 		if (playing) this._vid.dataset.playing = '1';
 		else delete this._vid.dataset.playing;
 		// Notify Engine about the playback state change
-		this.engine.setImageVideoPlaying(this.image.ptr, playing);
+		this.#engine.setImageVideoPlaying(this.#image.ptr, playing);
 		// Handle fade-out/fade-in if hideWhenPaused is enabled
-		if(this.embed.hideWhenPaused) this.engine.fadeImage(this.image.ptr, playing ? 1 : 0);
+		if(this.#embed.hideWhenPaused) this.#engine.fadeImage(this.#image.ptr, playing ? 1 : 0);
 		// Trigger Engine render if playing (to update texture)
-		if(playing) this.engine.render();
+		if(playing) this.#engine.render();
 	}
 
 	/** Loads the video source and sets up the HTMLVideoElement. @internal */
-	private load() : void {
-		if(!this.embed.video || this._vid) return; // Exit if no video data or already loaded
+	#load() : void {
+		if(!this.#embed.video || this._vid) return; // Exit if no video data or already loaded
 
 		// Determine video source URL (Cloudflare stream or direct src)
 		// Note: Cloudflare stream doesn't support alpha transparency, fallback to src if needed.
-		const src = this.ism3u ? `https://videodelivery.net/${this.embed.video.streamId}/manifest/video.m3u8` : this.embed.video.src;
+		const src = this.#ism3u ? `https://videodelivery.net/${this.#embed.video.streamId}/manifest/video.m3u8` : this.#embed.video.src;
 		if (!src) {
-			console.error("[Micrio GL Embed] No video source found for embed:", this.embed.id);
+			console.error("[Micrio GL Embed] No video source found for embed:", this.#embed.id);
 			return;
 		}
 
@@ -131,42 +142,42 @@ export class GLEmbedVideo {
 			props: {
 				crossOrigin: 'anonymous', // Needed for WebGL texture usage
 				playsInline: true, // Important for mobile playback
-				width: this.embed.width!,
-				height: this.embed.height!,
-				muted: this.embed.video.muted, // Apply muted setting
+				width: this.#embed.width!,
+				height: this.#embed.height!,
+				muted: this.#embed.video.muted, // Apply muted setting
 			},
 		});
 
-		this.hook(); // Attach event listeners
+		this.#hook(); // Attach event listeners
 
-		if(!this.ism3u || !('MediaSource' in window || 'ManagedMediaSource' in window)) {
+		if(!this.#ism3u || !('MediaSource' in window || 'ManagedMediaSource' in window)) {
 			this._vid.src = src;
 		} else {
 			loadExternalAPI('Hls', 'https://r2.micr.io/hls-1.6.15.min.js').then(() => {
 				/** @ts-ignore Access global Hls constructor */
-				this.hlsPlayer = new (window['Hls'] as HlsPlayer)({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
-				this.hlsPlayer.loadSource(src); // Load HLS manifest
-				if(this._vid) this.hlsPlayer.attachMedia(this._vid); // Attach to video element
+				this.#hlsPlayer = new (window['Hls'] as HlsPlayer)({ abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 });
+				this.#hlsPlayer.loadSource(src); // Load HLS manifest
+				if(this._vid) this.#hlsPlayer.attachMedia(this._vid); // Attach to video element
 			}).catch(e => console.error("[Micrio GL Embed] Failed to load HLS.js:", e));
 		}
 	}
 
 	/** Event listener callbacks. @internal */
-	private events = {
-		play: () => this.setPlaying(true),
-		pause: () => this.setPlaying(false),
+	#events = {
+		play: () => this.#setPlaying(true),
+		pause: () => this.#setPlaying(false),
 		// Set the video element on the parent MicrioImage once a real frame is available for WebGL texture upload
 		playing: () => {
-			if(!this.image._video && this._vid) {
+			if(!this.#image._video && this._vid) {
 				if('requestVideoFrameCallback' in this._vid) {
 					this._vid.requestVideoFrameCallback(() => {
 						if(this._vid && this.isMounted) {
-							this.image.video.set(this._vid);
-							this.engine.render();
+							this.#image.video.set(this._vid);
+							this.#engine.render();
 						}
 					});
 				} else {
-					this.image.video.set(this._vid);
+					this.#image.video.set(this._vid);
 				}
 			}
 		},
@@ -176,15 +187,15 @@ export class GLEmbedVideo {
 		canplay:() => {
 			if(!this._vid || !this.isMounted) return; // Exit if unmounted or video element lost
 			// Attempt autoplay if enabled and not paused by external logic (e.g., zoom)
-			if(this.autoplay && !this.paused) {
+			if(this.#autoplay && !this.#paused) {
 				this._vid.play().catch(e => console.warn("WebGL Embed video play() failed on canplay:", e));
-				this.moved(); // Trigger render after potential state change
+				this.#moved(); // Trigger render after potential state change
 			}
 			// If autoplay disabled but not hiding when paused, render the first frame
-			else if(!this.embed.hideWhenPaused) {
-				this.setPlaying(true); // Temporarily set playing to render frame
+			else if(!this.#embed.hideWhenPaused) {
+				this.#setPlaying(true); // Temporarily set playing to render frame
 				tick().then(() => { // After render
-					this.setPlaying(false); // Set back to paused
+					this.#setPlaying(false); // Set back to paused
 					// Remove temporary DOM element if added for first frame visibility
 					// TODO: Check if this removal logic is still necessary/correct.
 					setTimeout(() => this._vid?.remove(),50);
@@ -194,50 +205,50 @@ export class GLEmbedVideo {
 	}
 
 	/** Attaches event listeners to the video element. @internal */
-	private hook() {
-		if(!this.embed.video || !this._vid) return;
-		const loopAfter = this.embed.video.loopAfter; // Delay before looping (seconds)
+	#hook() {
+		if(!this.#embed.video || !this._vid) return;
+		const loopAfter = this.#embed.video.loopAfter; // Delay before looping (seconds)
 		// Handle looping with delay
-		if(this.embed.video.loop && loopAfter) {
+		if(this.#embed.video.loop && loopAfter) {
 			this._vid.loop = false; // Disable native loop
 			this._vid.onended = () => { // When video ends
-				this.setPlaying(false); // Set state to paused
+				this.#setPlaying(false); // Set state to paused
 				// Schedule restart after delay
-				this.vidRepeatTo = <any>setTimeout(() => this._vid?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000) as number;
+				this.#vidRepeatTo = <any>setTimeout(() => this._vid?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000) as number;
 			}
 			// Ensure playing state is set correctly when play starts after loop delay
-			this._vid.onplay = () => this.setPlaying(true);
+			this._vid.onplay = () => this.#setPlaying(true);
 		}
 		// Handle simple looping
 		else {
-			this._vid.loop = this.embed.video.loop;
+			this._vid.loop = this.#embed.video.loop;
 			this._vid.onended = null; // Remove potential previous listener
 			this._vid.onplay = null; // Remove potential previous listener
 		}
 
 		// Workaround: If no autoplay and not HLS, temporarily add video to DOM
 		// to ensure the first frame becomes visible/available for the texture.
-		if(!this._vid.parentNode && !this.autoplay && !this.ism3u) {
+		if(!this._vid.parentNode && !this.#autoplay && !this.#ism3u) {
 			this._vid.setAttribute('style','opacity:0;position:absolute;top:0;left:0;transform-origin:left top;transform:scale(0.1);pointer-events:none;');
 			document.body.appendChild(this._vid);
 			// TODO: Ensure this temporary element is reliably removed later.
 		}
 
 		// Add core event listeners
-		this._vid.addEventListener('play', this.events.play);
-		this._vid.addEventListener('pause', this.events.pause);
-		this._vid.addEventListener('playing', this.events.playing, {once:true}); // Only need first 'playing' event
-		this._vid.addEventListener(this.events.canplayEvt, this.events.canplay, {once: true}); // Listen for 'canplay' or 'loadedmetadata' once
+		this._vid.addEventListener('play', this.#events.play);
+		this._vid.addEventListener('pause', this.#events.pause);
+		this._vid.addEventListener('playing', this.#events.playing, {once:true}); // Only need first 'playing' event
+		this._vid.addEventListener(this.#events.canplayEvt, this.#events.canplay, {once: true}); // Listen for 'canplay' or 'loadedmetadata' once
 	}
 
 	/** Removes event listeners from the video element. @internal */
-	private unhook() : void {
+	#unhook() : void {
 		if(!this._vid) return;
 		// Remove core event listeners
-		this._vid.removeEventListener('play', this.events.play);
-		this._vid.removeEventListener('pause', this.events.pause);
-		this._vid.removeEventListener('playing', this.events.playing);
-		this._vid.removeEventListener(this.events.canplayEvt, this.events.canplay);
+		this._vid.removeEventListener('play', this.#events.play);
+		this._vid.removeEventListener('pause', this.#events.pause);
+		this._vid.removeEventListener('playing', this.#events.playing);
+		this._vid.removeEventListener(this.#events.canplayEvt, this.#events.canplay);
 		// Remove potential loop listeners
 		this._vid.onended = null;
 		this._vid.onplay = null;

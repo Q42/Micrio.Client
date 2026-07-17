@@ -78,37 +78,37 @@ export class WebGL {
 	display:Window = self;
 
 	/** The main WebGL shader program for rendering tiles. @internal */
-	private program!:WebGLProgram;
+	#program!:WebGLProgram;
 
 	/** Uniform location for tile opacity. @internal */
-	private opaLoc!:WebGLUniformLocation;
+	#opaLoc!:WebGLUniformLocation;
 
 	/** Uniform location for the 'noTexture' flag. @internal */
-	private noTxtLoc!:WebGLUniformLocation;
+	#noTxtLoc!:WebGLUniformLocation;
 
 	/** Uniform location for the combined ModelViewProjection matrix (GLMatrix). */
 	pmLoc!:WebGLUniformLocation;
 
 	/** Attribute location for texture coordinates. @internal */
-	private txtAttr:number = -1;
+	#txtAttr:number = -1;
 
 	/** WebGLBuffer for static texture coordinates. @internal */
-	private txtBuffer!:WebGLBuffer;
+	#txtBuffer!:WebGLBuffer;
 
 	/** WebGLBuffer for dynamic vertex geometry (positions). @internal */
-	private geomBuffer!:WebGLBuffer;
+	#geomBuffer!:WebGLBuffer;
 
 	/** WebGLBuffer for watermark texture coordinates. @internal */
-	private wmTxtBuffer!:WebGLBuffer;
+	#wmTxtBuffer!:WebGLBuffer;
 
 	/** Watermark texture. @internal */
-	private wmTexture: WebGLTexture | null = null;
+	#wmTexture: WebGLTexture | null = null;
 
 	/** Watermark URL. @internal */
-	private wmUrl: string | null = null;
+	#wmUrl: string | null = null;
 
 	/** Watermark vertices (static full screen quad). @internal */
-	private wmVerts: Float32Array = new Float32Array([
+	#wmVerts: Float32Array = new Float32Array([
 		-1, -1, 0,
 		 1, -1, 0,
 		-1,  1, 0,
@@ -118,19 +118,19 @@ export class WebGL {
 	]);
 
 	/** Watermark UVs (dynamic). @internal */
-	private wmUvs: Float32Array = new Float32Array([0,0, 0,0, 0,0, 0,0, 0,0, 0,0]);
+	#wmUvs: Float32Array = new Float32Array([0,0, 0,0, 0,0, 0,0, 0,0, 0,0]);
 
 	/** Identity matrix for watermark rendering. @internal */
-	private wmMatrix: Float32Array = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+	#wmMatrix: Float32Array = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
 
 	/** Watermark opacity @internal */
-	private wmOpacity: number = 0.075;
+	#wmOpacity: number = 0.075;
 
 	/** Attribute location for vertex positions. @internal */
-	private posAttr:number = -1;
+	#posAttr:number = -1;
 
 	/** Flag indicating if the previous draw call was for a 360 tile. @internal */
-	private was360:boolean = false;
+	#was360:boolean = false;
 
 	/** Optional PostProcessor instance for applying fullscreen effects. */
 	postpocessor?:PostProcessor;
@@ -139,20 +139,24 @@ export class WebGL {
 	 * Creates the WebGL instance.
 	 * @param micrio The main HTMLMicrioElement instance.
 	*/
+	readonly #micrio:HTMLMicrioElement;
+
 	constructor(
-		private micrio:HTMLMicrioElement
-	){ }
+		micrio:HTMLMicrioElement
+	){
+		this.#micrio = micrio;
+	}
 
 	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. */
 	init() : void {
 		// Check for WebGL2 support
 		const hasGL2 = 'WebGL2RenderingContext' in window;
 		// Get WebGL context from the canvas
-		const gl = this.micrio.canvas.element.getContext(hasGL2 ? 'webgl2' : 'webgl', {
+		const gl = this.#micrio.canvas.element.getContext(hasGL2 ? 'webgl2' : 'webgl', {
 			alpha: true, // Request alpha channel
 			// premultipliedAlpha: false, // Default is true, might affect blending
 			// preserveDrawingBuffer: true, // Needed for fadeBetween setting (legacy?) or explicit attribute
-			preserveDrawingBuffer: this.micrio.hasAttribute('data-preserve-drawing-buffer'),
+			preserveDrawingBuffer: this.#micrio.hasAttribute('data-preserve-drawing-buffer'),
 			stencil: false, // Stencil buffer not needed
 			antialias: false, // Antialiasing not needed (handled by rendering technique?)
 			depth: false, // Depth buffer not needed
@@ -173,10 +177,10 @@ export class WebGL {
 		this.gl = gl; // Store the context
 
 		// Initialize post-processor if a fragment shader is provided in settings
-		const postprocessing = this.micrio.$current?.$settings.postProcessingFragmentShader;
+		const postprocessing = this.#micrio.$current?.$settings.postProcessingFragmentShader;
 		if(postprocessing) {
-			this.postpocessor = new PostProcessor(gl, this.micrio, postprocessing);
-			this.micrio.keepRendering = true; // Force continuous rendering if postprocessing
+			this.postpocessor = new PostProcessor(gl, this.#micrio, postprocessing);
+			this.#micrio.keepRendering = true; // Force continuous rendering if postprocessing
 		}
 
 		// --- Shader Program Setup ---
@@ -187,18 +191,18 @@ export class WebGL {
 				displayMessage: 'There was a problem initializing the graphics. Please try refreshing the page.'
 			});
 		}
-		this.program = program;
+		this.#program = program;
 
 		// Compile and attach shaders
-		this.getShader(this.program, gl.VERTEX_SHADER, vertexShader);
-		this.getShader(this.program, gl.FRAGMENT_SHADER, fragmentShader);
+		this.getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
+		this.getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
 		// Link program
-		gl.linkProgram(this.program);
-		if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-			console.error("Main shader link error:", gl.getProgramInfoLog(this.program));
+		gl.linkProgram(this.#program);
+		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
+			console.error("Main shader link error:", gl.getProgramInfoLog(this.#program));
 			// TODO: Handle link error more gracefully
 		}
-		gl.useProgram(this.program); // Use the program
+		gl.useProgram(this.#program); // Use the program
 
 		// --- WebGL State Setup ---
 		// Configure alpha blending (standard alpha blending with premultiplied alpha)
@@ -208,40 +212,40 @@ export class WebGL {
 		gl.clearColor(0, 0, 0, 0); // Set clear color to transparent black
 
 		// --- Get Uniform Locations ---
-		const opaLoc = gl.getUniformLocation(this.program, 'opacity');
-		if(opaLoc) this.opaLoc = opaLoc;
+		const opaLoc = gl.getUniformLocation(this.#program, 'opacity');
+		if(opaLoc) this.#opaLoc = opaLoc;
 		else throw new MicrioError('Failed to bind WebGL opacity uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
-		const pmLoc = gl.getUniformLocation(this.program, 'GLMatrix');
+		const pmLoc = gl.getUniformLocation(this.#program, 'GLMatrix');
 		if(pmLoc) this.pmLoc = pmLoc;
 		else throw new MicrioError('Failed to bind WebGL matrix uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
-		const noTxtLoc = gl.getUniformLocation(this.program, 'noTexture');
-		if(noTxtLoc) this.noTxtLoc = noTxtLoc;
+		const noTxtLoc = gl.getUniformLocation(this.#program, 'noTexture');
+		if(noTxtLoc) this.#noTxtLoc = noTxtLoc;
 		else throw new MicrioError('Failed to bind WebGL texture uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
 		// --- Buffer Setup ---
 		// Texture Coordinates Buffer (Static)
-		this.txtAttr = gl.getAttribLocation(this.program, 'aTextureCoord');
+		this.#txtAttr = gl.getAttribLocation(this.#program, 'aTextureCoord');
 		const txtBuffer = gl.createBuffer();
-		if(txtBuffer) this.txtBuffer = txtBuffer;
+		if(txtBuffer) this.#txtBuffer = txtBuffer;
 		else throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Engine._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Engine
 
 		// Watermark Texture Coordinates Buffer
 		const wmTxtBuffer = gl.createBuffer();
-		if(wmTxtBuffer) this.wmTxtBuffer = wmTxtBuffer;
+		if(wmTxtBuffer) this.#wmTxtBuffer = wmTxtBuffer;
 		else throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
 
 		// Vertex Position Buffer (Dynamic - updated by Engine)
 		const geomBuffer = gl.createBuffer();
-		if(geomBuffer) this.geomBuffer = geomBuffer;
+		if(geomBuffer) this.#geomBuffer = geomBuffer;
 		else throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
-		this.posAttr = gl.getAttribLocation(this.program, 'pos');
+		this.#posAttr = gl.getAttribLocation(this.#program, 'pos');
 
 		// Link buffers to attributes initially
-		this.linkBuffers();
+		this.#linkBuffers();
 
 		// Set initial viewport
 		gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
@@ -251,21 +255,21 @@ export class WebGL {
 	}
 
 	/** Links the vertex and texture coordinate buffers to the shader attributes. @internal */
-	private linkBuffers() : void {
+	#linkBuffers() : void {
 		const gl = this.gl;
 		// Bind and buffer vertex position data (using the view from Engine memory)
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.micrio.engine.vertexBuffer, gl.DYNAMIC_DRAW);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio.engine.vertexBuffer, gl.DYNAMIC_DRAW);
 
 		// Enable and configure texture coordinate attribute
-		gl.enableVertexAttribArray(this.txtAttr);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.txtBuffer); // Bind static tex coord buffer
-		gl.vertexAttribPointer(this.txtAttr, 2, gl.FLOAT, false, 0, 0); // 2 floats per vertex
+		gl.enableVertexAttribArray(this.#txtAttr);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#txtBuffer); // Bind static tex coord buffer
+		gl.vertexAttribPointer(this.#txtAttr, 2, gl.FLOAT, false, 0, 0); // 2 floats per vertex
 
 		// Enable and configure vertex position attribute
-		gl.enableVertexAttribArray(this.posAttr);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer); // Bind dynamic position buffer
-		gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0); // 3 floats per vertex
+		gl.enableVertexAttribArray(this.#posAttr);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer); // Bind dynamic position buffer
+		gl.vertexAttribPointer(this.#posAttr, 3, gl.FLOAT, false, 0, 0); // 3 floats per vertex
 	}
 
 	/**
@@ -280,15 +284,15 @@ export class WebGL {
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindTexture(gl.TEXTURE_2D, null);
 		// Delete buffers
-		gl.deleteBuffer(this.txtBuffer);
-		gl.deleteBuffer(this.geomBuffer);
-		gl.deleteBuffer(this.wmTxtBuffer);
+		gl.deleteBuffer(this.#txtBuffer);
+		gl.deleteBuffer(this.#geomBuffer);
+		gl.deleteBuffer(this.#wmTxtBuffer);
 		// Delete shader program
-		gl.deleteProgram(this.program);
+		gl.deleteProgram(this.#program);
 		// Delete framebuffer/texture from postprocessor if it exists
 		this.postpocessor?.dispose();
 		// Delete watermark texture
-		if(this.wmTexture) gl.deleteTexture(this.wmTexture);
+		if(this.#wmTexture) gl.deleteTexture(this.#wmTexture);
 
 		// Attempt to lose context if requested
 		if(loseContext) {
@@ -383,10 +387,10 @@ export class WebGL {
 		if(this.postpocessor) {
 			this.postpocessor.render();
 			// Re-bind the main program and buffers for subsequent Micrio rendering if needed
-			this.gl.useProgram(this.program);
-			this.linkBuffers();
+			this.gl.useProgram(this.#program);
+			this.#linkBuffers();
 		}
-		if(this.wmTexture) this.drawWatermark();
+		if(this.#wmTexture) this.#drawWatermark();
 	}
 
 	/**
@@ -398,8 +402,8 @@ export class WebGL {
 	*/
 	drawTile(texture?:WebGLTexture, opacity:number=1, is360:boolean=false) : void {
 		// Set uniforms: noTexture flag and opacity
-		this.gl.uniform1i(this.noTxtLoc, texture ? 0 : 1);
-		this.gl.uniform1f(this.opaLoc, opacity);
+		this.gl.uniform1i(this.#noTxtLoc, texture ? 0 : 1);
+		this.gl.uniform1f(this.#opaLoc, opacity);
 		// Bind the texture if provided
 		if(texture) {
 			this.gl.activeTexture(this.gl.TEXTURE0); // Ensure texture unit 0 is active
@@ -411,16 +415,16 @@ export class WebGL {
 		const length = is360 ? 6 * segsX * segsY : 6;
 
 		// If switching between 360 and standard rendering, re-buffer static texture coordinates
-		if(is360 != this.was360) {
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.txtBuffer);
+		if(is360 != this.#was360) {
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#txtBuffer);
 			this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? Engine._textureBuffer360 : Engine._textureBuffer, this.gl.STATIC_DRAW);
 			// Re-bind geometry buffer (might not be strictly necessary but safer)
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.geomBuffer);
-			this.was360 = is360; // Update state
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#geomBuffer);
+			this.#was360 = is360; // Update state
 		}
 
 		// Update dynamic vertex buffer data from Engine memory view
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? this.micrio.engine.vertexBuffer360 : this.micrio.engine.vertexBuffer, this.gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW?
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? this.#micrio.engine.vertexBuffer360 : this.#micrio.engine.vertexBuffer, this.gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW?
 
 		// Draw the geometry
 		// For wireframe debugging:
@@ -434,11 +438,11 @@ export class WebGL {
 	 * @param url The watermark image URL.
 	 */
 	loadWatermark(url: string, wmOpacity?:number) : void {
-		if(url === this.wmUrl) return; // Already loaded/loading
+		if(url === this.#wmUrl) return; // Already loaded/loading
 
-		this.wmUrl = url;
+		this.#wmUrl = url;
 		const img = new Image();
-		if(wmOpacity) this.wmOpacity = wmOpacity;
+		if(wmOpacity) this.#wmOpacity = wmOpacity;
 		img.crossOrigin = 'anonymous';
 		img.src = url;
 		img.onload = () => {
@@ -457,72 +461,72 @@ export class WebGL {
 			ctx.drawImage(img, (watermarkTileSize - w) / 2, (watermarkTileSize - h) / 2, w, h);
 
 			// Create texture from canvas
-			if(this.wmTexture) this.gl.deleteTexture(this.wmTexture);
-			this.wmTexture = this.getTexture(c); // getTexture supports HTMLCanvasElement
+			if(this.#wmTexture) this.gl.deleteTexture(this.#wmTexture);
+			this.#wmTexture = this.getTexture(c); // getTexture supports HTMLCanvasElement
 
 			// Configure repeating texture
 			const gl = this.gl;
-			gl.bindTexture(gl.TEXTURE_2D, this.wmTexture);
+			gl.bindTexture(gl.TEXTURE_2D, this.#wmTexture);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 			// Restore to null binding
 			gl.bindTexture(gl.TEXTURE_2D, null);
 
-			this.micrio.engine.render();
+			this.#micrio.engine.render();
 		};
 	}
 
 	/**
 	 * Draws a watermark on top of the canvas.
 	 */
-	private drawWatermark() : void {
+	#drawWatermark() : void {
 		const gl = this.gl;
 
-		if(!this.wmTexture) return;
+		if(!this.#wmTexture) return;
 
 		// Use program
-		gl.useProgram(this.program);
+		gl.useProgram(this.#program);
 
 		// Set blending function for watermark
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 		// Set identity matrix for screen-space rendering
-		gl.uniformMatrix4fv(this.pmLoc, false, this.wmMatrix);
+		gl.uniformMatrix4fv(this.pmLoc, false, this.#wmMatrix);
 
 		// Set texture
 		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, this.wmTexture);
-		gl.uniform1i(this.noTxtLoc, 0);
-		gl.uniform1f(this.opaLoc, this.wmOpacity); // Slight transparency
+		gl.bindTexture(gl.TEXTURE_2D, this.#wmTexture);
+		gl.uniform1i(this.#noTxtLoc, 0);
+		gl.uniform1f(this.#opaLoc, this.#wmOpacity); // Slight transparency
 
 		// UVs (Repeated based on 512px tiling)
 		const w = gl.drawingBufferWidth / watermarkTileSize;
 		const h = gl.drawingBufferHeight / watermarkTileSize;
 		
 		// Update UVs directly
-		const u = this.wmUvs;
+		const u = this.#wmUvs;
 		u[1] = h;
 		u[2] = w; u[3] = h;
 		u[8] = w; u[9] = h;
 		u[10] = w;
 
 		// Use geomBuffer for vertices
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.wmVerts, gl.DYNAMIC_DRAW);
-		gl.vertexAttribPointer(this.posAttr, 3, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.#wmVerts, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.#posAttr, 3, gl.FLOAT, false, 0, 0);
 
 		// Use wmTxtBuffer for UVs
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.wmTxtBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.wmUvs, gl.DYNAMIC_DRAW);
-		gl.vertexAttribPointer(this.txtAttr, 2, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#wmTxtBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.#wmUvs, gl.DYNAMIC_DRAW);
+		gl.vertexAttribPointer(this.#txtAttr, 2, gl.FLOAT, false, 0, 0);
 
 		// Draw
 		gl.drawArrays(gl.TRIANGLES, 0, 6);
 
 		// Restore state
 		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // Restore default blending
-		this.linkBuffers(); // Restores Engine buffer bindings (standard quad)
-		this.was360 = false; // Mark state as standard so next 360 draw triggers rebind
+		this.#linkBuffers(); // Restores Engine buffer bindings (standard quad)
+		this.#was360 = false; // Mark state as standard so next 360 draw triggers rebind
 	}
 
 }

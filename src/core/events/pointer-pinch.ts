@@ -8,26 +8,32 @@ import { pinchStart, pinchMove, pinchStop, restartPanning } from './pinch-shared
  * Works on Windows touchscreens, Android, and other platforms supporting Pointer Events.
  */
 export class PointerPinchHandler {
+	#ctx: EventContext;
+	#dragHandler: DragHandler;
+
 	constructor(
-		private ctx: EventContext,
-		private dragHandler: DragHandler
-	) {}
+		ctx: EventContext,
+		dragHandler: DragHandler
+	) {
+		this.#ctx = ctx;
+		this.#dragHandler = dragHandler;
+	}
 
 	/** Hooks pointer pinch event listeners. */
 	hook(): void {
-		this.ctx.micrio.addEventListener('pointerdown', this.start, eventPassive);
+		this.#ctx.micrio.addEventListener('pointerdown', this.start, eventPassive);
 		self.addEventListener('pointerup', this.end, eventPassive);
 		self.addEventListener('pointercancel', this.end, eventPassive);
 	}
 
 	/** Unhooks pointer pinch event listeners. */
 	unhook(): void {
-		this.ctx.micrio.removeEventListener('pointerdown', this.start, eventPassive);
+		this.#ctx.micrio.removeEventListener('pointerdown', this.start, eventPassive);
 		self.removeEventListener('pointerup', this.end, eventPassive);
 		self.removeEventListener('pointercancel', this.end, eventPassive);
 		// Clean up pinch move listener if it was active
-		self.removeEventListener('pointermove', this.move, eventPassiveCapture);
-		this.ctx.activePointers.clear();
+		self.removeEventListener('pointermove', this.#move, eventPassiveCapture);
+		this.#ctx.activePointers.clear();
 	}
 
 	/**
@@ -37,17 +43,17 @@ export class PointerPinchHandler {
 	start = (e: PointerEvent): void => {
 		if (e.pointerType !== 'touch') return;
 
-		this.ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+		this.#ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-		if (this.ctx.activePointers.size === 2 && !this.ctx.isPinching()) {
-			const pointers = Array.from(this.ctx.activePointers.values());
+		if (this.#ctx.activePointers.size === 2 && !this.#ctx.isPinching()) {
+			const pointers = Array.from(this.#ctx.activePointers.values());
 			const p1 = pointers[0], p2 = pointers[1];
 
-			this.ctx.vars.pinch.image = this.ctx.getImage({ x: p1.x, y: p1.y });
-			this.ctx.vars.pinch.sDst = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+			this.#ctx.vars.pinch.image = this.#ctx.getImage({ x: p1.x, y: p1.y });
+			this.#ctx.vars.pinch.sDst = Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
-			self.addEventListener('pointermove', this.move, eventPassiveCapture);
-			pinchStart(this.ctx, this.dragHandler);
+			self.addEventListener('pointermove', this.#move, eventPassiveCapture);
+			pinchStart(this.#ctx, this.#dragHandler);
 		}
 	}
 
@@ -55,18 +61,18 @@ export class PointerPinchHandler {
 	 * Handles pointer move during a multi-touch pinch gesture.
 	 * @param e The PointerEvent.
 	 */
-	private move = (e: PointerEvent): void => {
+	#move = (e: PointerEvent): void => {
 		if (e.pointerType !== 'touch') return;
-		if (!this.ctx.activePointers.has(e.pointerId)) return;
-		this.ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+		if (!this.#ctx.activePointers.has(e.pointerId)) return;
+		this.#ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-		if (!this.ctx.isPinching() || this.ctx.activePointers.size !== 2) return;
+		if (!this.#ctx.isPinching() || this.#ctx.activePointers.size !== 2) return;
 
-		const pointers = Array.from(this.ctx.activePointers.values());
+		const pointers = Array.from(this.#ctx.activePointers.values());
 		const coo = { x: pointers[0].x, y: pointers[0].y };
 		const coo2 = { x: pointers[1].x, y: pointers[1].y };
 
-		pinchMove(this.ctx, coo, coo2);
+		pinchMove(this.#ctx, coo, coo2);
 	}
 
 	/**
@@ -77,13 +83,13 @@ export class PointerPinchHandler {
 	end = (e: PointerEvent): void => {
 		if (e.pointerType !== 'touch') return;
 
-		this.ctx.activePointers.delete(e.pointerId);
+		this.#ctx.activePointers.delete(e.pointerId);
 
-		if (this.ctx.isPinching() && this.ctx.activePointers.size < 2) {
-			self.removeEventListener('pointermove', this.move, eventPassiveCapture);
-			pinchStop(this.ctx, e, this.move);
+		if (this.#ctx.isPinching() && this.#ctx.activePointers.size < 2) {
+			self.removeEventListener('pointermove', this.#move, eventPassiveCapture);
+			pinchStop(this.#ctx, e, this.#move);
 
-			restartPanning(this.ctx, this.dragHandler, this.ctx.activePointers);
+			restartPanning(this.#ctx, this.#dragHandler, this.#ctx.activePointers);
 		}
 	}
 }

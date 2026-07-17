@@ -43,7 +43,7 @@ export class MicrioImage {
 	 * @internal
 	 * @readonly
 	*/
-	private __info:Models.ImageInfo.ImageInfo = clone(DEFAULT_INFO);
+	#__info:Models.ImageInfo.ImageInfo = clone(DEFAULT_INFO);
 
 	/** Svelte Readable store holding the image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
 	readonly info: Readable<Models.ImageInfo.ImageInfo|undefined>;
@@ -51,7 +51,7 @@ export class MicrioImage {
 	/** Getter for the current value of the {@link info} store.
 	 * @readonly
 	*/
-	get $info():Models.ImageInfo.ImageInfo|undefined { return this.__info }
+	get $info():Models.ImageInfo.ImageInfo|undefined { return this.#__info }
 
 	/** Svelte Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
 	readonly settings: Writable<Models.ImageInfo.Settings> = writable({});
@@ -177,6 +177,9 @@ export class MicrioImage {
 	/** Base path for fetching image tiles. */
 	tileBase:string|undefined;
 
+	/** @internal */
+	#attr: Partial<Models.ImageInfo.ImageInfo>;
+
 	/**
 	 * Creates a new MicrioImage instance. Typically called by {@link HTMLMicrioElement.open}.
 	 * @internal
@@ -186,7 +189,7 @@ export class MicrioImage {
 	 */
 	constructor(
 		public engine: Engine,
-		private attr:Partial<Models.ImageInfo.ImageInfo>,
+		attr:Partial<Models.ImageInfo.ImageInfo>,
 		public opts:{
 			/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
 			area?: Models.Camera.View;
@@ -200,6 +203,7 @@ export class MicrioImage {
 			useParentCamera?: boolean;
 		} = {}
 	) {
+		this.#attr = attr;
 		this.state = new State.Image(this); // Initialize state manager
 		// Initialize camera unless using parent's
 		if(!opts.useParentCamera) this.camera = new Camera(this);
@@ -213,7 +217,7 @@ export class MicrioImage {
 				this.id = this.id.substring(0, secondSlash + 1) + encodeURIComponent(this.id.substring(secondSlash + 1));
 		}
 		// Determine base path for data JSON
-		this.dataPath = attr.path||this.__info.path||BASEPATH_V5;
+		this.dataPath = attr.path||this.#__info.path||BASEPATH_V5;
 
 		// Setup for split-screen secondary image
 		if(opts.secondaryTo) {
@@ -228,7 +232,7 @@ export class MicrioImage {
 		// Setup readable store for image info, loading data asynchronously
 		let infoLoaded:boolean = false;
 		this.info = readable<Models.ImageInfo.ImageInfo|undefined>(undefined, set => {
-			infoLoaded ? set(this.__info) : this.load().then(set); infoLoaded=!0;
+			infoLoaded ? set(this.#__info) : this.#load().then(set); infoLoaded=!0;
 		});
 
 		const micrio = this.engine.micrio; // Reference to main element
@@ -272,7 +276,7 @@ export class MicrioImage {
 	 * @param e The original error (MicrioError, Error, or string)
 	 * @param displayMessage Optional user-friendly message to display
 	 */
-	private setError(e: Error | string, displayMessage?: string): never {
+	#setError(e: Error | string, displayMessage?: string): never {
 		// Use MicrioError's displayMessage if available, otherwise fall back
 		const message = e instanceof MicrioError 
 			? e.displayMessage 
@@ -290,15 +294,15 @@ export class MicrioImage {
 	 * @internal
 	 * @returns Promise resolving to the loaded and processed ImageInfo object.
 	*/
-	private async load() : Promise<Models.ImageInfo.ImageInfo> {
-		let i = this.__info; // Internal info object reference
-		const attr = this.attr; // Initial attributes/info passed to constructor
+	async #load() : Promise<Models.ImageInfo.ImageInfo> {
+		let i = this.#__info; // Internal info object reference
+		const attr = this.#attr; // Initial attributes/info passed to constructor
 		const micrio = this.engine.micrio;
 
 		// Use provided object directly if it seems complete
 		if(attr.id && attr.width) {
 			if(attr.settings) deepCopy(DEFAULT_INFO.settings, attr.settings, {noOverwrite: true}); // Merge default settings
-			this.__info = i = attr as Models.ImageInfo.ImageInfo;
+			this.#__info = i = attr as Models.ImageInfo.ImageInfo;
 		}
 
 		// Determine if IIIF based on URL or format property
@@ -307,7 +311,7 @@ export class MicrioImage {
 		let idFromCustomId:string|undefined;
 		// Fetch info if ID provided but dimensions missing
 		if(this.id && (!attr.width || !attr.height)) {
-			const loadError = (e:Error) => this.setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
+			const loadError = (e:Error) => this.#setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
 			// Fetch info (Micrio) or use preset data
 			deepCopy(await DataLoader.getInfo(this.id)
 				.then(r => {
@@ -365,7 +369,7 @@ export class MicrioImage {
 			this.isOmni = true;
 			if(parseFloat(i.version) >= 5) { // V5 Omni requires base archive
 				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
-					.catch(e => this.setError(e, 'Could not find object base package.'));
+					.catch(e => this.#setError(e, 'Could not find object base package.'));
 				// Configure gallery settings for Omni
 				const gal = i.settings.gallery = (i.settings.gallery ?? {}) as any;
 				gal.type = 'switch';
@@ -376,11 +380,11 @@ export class MicrioImage {
 		// Load organization branding CSS if present
 		if(org?.branding && !(i.settings && i.settings.noUI)) {
 			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
-			this.loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
+			this.#loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
 				// Check if custom font needs loading from Google Fonts
 				const fontFamily = getComputedStyle(this.engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
 				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
-					this.loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
+					this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
 				});
 			});
 		}
@@ -422,8 +426,8 @@ export class MicrioImage {
 		// Load custom JS/CSS (legacy)
 		const s = i.settings;
 		if(s && !s?.noExternals) await Promise.all([
-			s.css ? this.loadStyle(s.css.href) : null,
-			s.js ? this.loadScript(s.js.href, lang) : null
+			s.css ? this.#loadStyle(s.css.href) : null,
+			s.js ? this.#loadScript(s.js.href, lang) : null
 		].filter(p=>!!p));
 
 		// Calculate zoom levels
@@ -476,7 +480,7 @@ export class MicrioImage {
 	 * @returns The calculated tile image source URL string, or undefined if info not loaded.
 	 */
 	getTileSrc(layer:number, x:number, y:number, frame?:number) : string|undefined {
-		const i = this.__info;
+		const i = this.#__info;
 		if(!i) return; // Exit if info not loaded
 
 		// Adjust layer index for DeepZoom format
@@ -509,7 +513,7 @@ export class MicrioImage {
 	/** Loads an external script dynamically. Ensures scripts are loaded only once.
 	 * @internal
 	 */
-	private loadScript(s:string, lang:string='') : Promise<void> { return new Promise((ok:() => void) => {
+	#loadScript(s:string, lang:string='') : Promise<void> { return new Promise((ok:() => void) => {
 		if(jsCss.includes(s) || document.querySelector('script[src="'+s+'"]')) ok(); // Already loaded
 		else { jsCss.push(s); // Mark as loading
 			const _el = createElement('script', {
@@ -525,7 +529,7 @@ export class MicrioImage {
 	/** Loads an external stylesheet dynamically. Ensures stylesheets are loaded only once.
 	 * @internal
 	 */
-	private loadStyle(s:string) : Promise<void> { return new Promise((ok:() => void) => {
+	#loadStyle(s:string) : Promise<void> { return new Promise((ok:() => void) => {
 		if(jsCss.includes(s) || document.head.querySelector('link[href="'+s+'"]')) ok(); // Already loaded
 		else { jsCss.push(s); // Mark as loading
 			createElement('link', {
@@ -576,17 +580,17 @@ export class MicrioImage {
 	}
 
 	/** Map storing references to HTMLMediaElements associated with video embeds. @internal */
-	private embedElements:Map<string, HTMLMediaElement> = new Map();
+	#embedElements:Map<string, HTMLMediaElement> = new Map();
 
 	/** Sets the HTMLMediaElement reference for a given embed ID. @internal */
 	setEmbedMediaElement(id:string, el?:HTMLMediaElement) : void {
-		if(el) this.embedElements.set(id, el);
-		else this.embedElements.delete(id);
+		if(el) this.#embedElements.set(id, el);
+		else this.#embedElements.delete(id);
 	}
 
 	/** Gets the HTMLMediaElement associated with a video embed ID. */
 	getEmbedMediaElement(id:string) : HTMLMediaElement|undefined {
-		return this.embedElements.get(id);
+		return this.#embedElements.get(id);
 	}
 
 	/** Starts the split-screen transition animation for this (secondary) image. @internal */
@@ -597,7 +601,7 @@ export class MicrioImage {
 		// Set area for this secondary image (right/bottom half)
 		this.camera.setArea(p ? [0,.5,1,.5] : [.5,0,.5,1], {noRender:true});
 		// Set initial view for this image
-		this.camera.setView(this.__info?.settings?.view ?? [0,0,1,1])
+		this.camera.setView(this.#__info?.settings?.view ?? [0,0,1,1])
 		this.engine.render(); // Trigger render
 	}
 
@@ -636,8 +640,8 @@ export class MicrioImage {
 	loadBundleData(): void {
 		const entry = DataLoader.getBundleImageSync(this.id);
 		if(entry?.data) {
-			if(entry.info?.revision && !this.__info.revision)
-				this.__info.revision = entry.info.revision;
+			if(entry.info?.revision && !this.#__info.revision)
+				this.#__info.revision = entry.info.revision;
 			this.engine.micrio.events.dispatch('pre-data', { [this.id]: entry.data });
 			this.data.set(entry.data);
 		}

@@ -9,27 +9,31 @@ import type { default as TileCanvas } from './tile-canvas';
 /** Handles kinetic scrolling/dragging behavior after user interaction stops. @internal */
 export default class Kinetic {
 	/** Accumulated horizontal delta during drag. */
-	private dX: number = 0;
+	#dX: number = 0;
 	/** Accumulated vertical delta during drag. */
-	private dY: number = 0;
+	#dY: number = 0;
 	/** Timestamp when the drag interaction started. */
-	private startTime: number = 0;
+	#startTime: number = 0;
 	/** Timestamp of the previous step added. */
-	private prevTime: number = 0;
+	#prevTime: number = 0;
 	/** Timestamp when the drag interaction ended (kinetic phase started). */
-	private endTime: number = 0;
+	#endTime: number = 0;
 	/** Timestamp of the last significant interaction step. */
-	private lastInteraction: number = 0;
+	#lastInteraction: number = 0;
 	/** Current horizontal velocity for kinetic movement. */
-	private velocityX: number = 0;
+	#velocityX: number = 0;
 	/** Current vertical velocity for kinetic movement. */
-	private velocityY: number = 0;
+	#velocityY: number = 0;
 	/** Flag indicating if kinetic movement is currently active. */
 	started: boolean = false;
 
+	#canvas: TileCanvas;
+
 	constructor(
-		private canvas: TileCanvas
-	) {}
+		canvas: TileCanvas
+	) {
+		this.#canvas = canvas;
+	}
 
 	/**
 	 * Adds a step (delta) from the user's drag interaction.
@@ -38,36 +42,36 @@ export default class Kinetic {
 	 * @param time Current timestamp (performance.now()).
 	 */
 	addStep(pX: number, pY: number, time: number): void {
-		if (this.endTime) return;
-		if (this.startTime === 0) this.startTime = time;
+		if (this.#endTime) return;
+		if (this.#startTime === 0) this.#startTime = time;
 
-		const fact: number = this.prevTime > 0 ? 16.67 / (time - this.prevTime) : 1;
-		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) this.lastInteraction = time;
+		const fact: number = this.#prevTime > 0 ? 16.67 / (time - this.#prevTime) : 1;
+		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) this.#lastInteraction = time;
 
-		const elasticity = this.canvas.main.dragElasticity;
+		const elasticity = this.#canvas.main.dragElasticity;
 
-		this.dX += pX * elasticity;
-		this.dY += pY * elasticity;
-		this.prevTime = time;
+		this.#dX += pX * elasticity;
+		this.#dY += pY * elasticity;
+		this.#prevTime = time;
 	}
 
 	/** Starts the kinetic movement phase (called when user stops dragging). */
 	start(): void {
-		if (this.canvas.camera.isUnderZoom()) return;
+		if (this.#canvas.camera.isUnderZoom()) return;
 		this.started = true;
 	}
 
 	/** Stops the kinetic movement and resets state. */
 	stop(): void {
 		this.started = false;
-		this.endTime = 0;
-		this.startTime = 0;
-		this.prevTime = 0;
-		this.lastInteraction = 0;
-		this.dX = 0;
-		this.dY = 0;
-		this.velocityX = 0;
-		this.velocityY = 0;
+		this.#endTime = 0;
+		this.#startTime = 0;
+		this.#prevTime = 0;
+		this.#lastInteraction = 0;
+		this.#dX = 0;
+		this.#dY = 0;
+		this.#velocityX = 0;
+		this.#velocityY = 0;
 	}
 
 	/**
@@ -75,26 +79,26 @@ export default class Kinetic {
 	 * @returns Progress towards stopping (0 = max velocity, 1 = stopped).
 	 */
 	step(time: number): number {
-		const webgl = this.canvas.webgl;
-		const cam = this.canvas.camera;
-		if (!this.started || this.startTime === 0) return 1;
+		const webgl = this.#canvas.webgl;
+		const cam = this.#canvas.camera;
+		if (!this.started || this.#startTime === 0) return 1;
 
-		if (this.endTime === 0) {
-			this.endTime = time;
-			const factor = 1 - Math.min(1, (this.endTime - this.lastInteraction) / 250);
-			const deltaTime = this.endTime - this.startTime;
+		if (this.#endTime === 0) {
+			this.#endTime = time;
+			const factor = 1 - Math.min(1, (this.#endTime - this.#lastInteraction) / 250);
+			const deltaTime = this.#endTime - this.#startTime;
 
-			this.velocityX = this.dX / (deltaTime / 4) * factor;
-			this.velocityY = this.dY / (deltaTime / 4) * factor;
+			this.#velocityX = this.#dX / (deltaTime / 4) * factor;
+			this.#velocityY = this.#dY / (deltaTime / 4) * factor;
 		}
 		else {
-			this.velocityX *= .94;
-			this.velocityY *= .94;
+			this.#velocityX *= .94;
+			this.#velocityY *= .94;
 		}
 
-		let v = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
-		if (this.canvas.is360) webgl.rotate(this.velocityX, this.velocityY, 0, time);
-		else cam.pan(this.velocityX, this.velocityY, 0, false, time, false, true);
+		let v = Math.sqrt(this.#velocityX * this.#velocityX + this.#velocityY * this.#velocityY);
+		if (this.#canvas.is360) webgl.rotate(this.#velocityX, this.#velocityY, 0, time);
+		else cam.pan(this.#velocityX, this.#velocityY, 0, false, time, false, true);
 
 		if (v <= 0.01) {
 			v = 0;

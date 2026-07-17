@@ -21,12 +21,12 @@ type MDPHeader = {
  */
 class Archive {
 	/** Map storing loaded archive data ArrayBuffers, keyed by archive ID (e.g., 'g/folderId.revision' or 'imageId/base'). */
-	private data:Map<string, ArrayBuffer> = new Map;
+	#data:Map<string, ArrayBuffer> = new Map;
 	/** Map storing the index of files within loaded archives. Key: full file path, Value: [archiveId, byteOffset, byteLength]. */
 	db:Map<string, [string, number, number]> = new Map;
 
 	/** Pool of reusable HTMLImageElement objects for the old Safari fallback in `getImage`. */
-	private images:HTMLImageElement[] = [];
+	#images:HTMLImageElement[] = [];
 
 	/**
 	 * Loads an archive file (.bin or .mdp) via XMLHttpRequest.
@@ -37,7 +37,7 @@ class Archive {
 	 * @returns Promise that resolves when the archive is loaded and parsed.
 	 */
 	async load(path:string, id: string, p?:(n:number)=>void) : Promise<void> {
-		if(this.data.has(id)) return; // Already loaded
+		if(this.#data.has(id)) return; // Already loaded
 
 		const baseId = id.replace(/^.*\//,'').split('.')[0]; // Extract base ID (folder or image)
 		const isOmni = /\/base$/.test(id); // Is it an Omni base package?
@@ -64,7 +64,7 @@ class Archive {
 
 		if(!data) return; // Exit if load failed
 
-		this.data.set(id, data); // Store loaded ArrayBuffer
+		this.#data.set(id, data); // Store loaded ArrayBuffer
 
 		// Determine image path prefix for Omni objects
 		const imgPath = isOmni ? id.split('/')[0]+'/' : '';
@@ -76,7 +76,7 @@ class Archive {
 		while(i<data.byteLength) {
 			// Ensure there's enough data left for a header
 			if (i + hSize > data.byteLength) break;
-			const h = this.parseHeader(new Uint8Array(data, i, hSize)); // Parse header
+			const h = this.#parseHeader(new Uint8Array(data, i, hSize)); // Parse header
 			// If header is valid (name and size > 0), add entry to the database
 			if(h.name && h.size > 0) {
 				this.db.set(path+imgPath+h.name.replace('./',''), [id, i+hSize, h.size]); // Key: full path, Value: [archiveId, offset, size]
@@ -96,7 +96,7 @@ class Archive {
 	 * @param d Uint8Array containing the header data.
 	 * @returns Parsed header object {name, size}.
 	 */
-	private parseHeader(d: Uint8Array) : MDPHeader {
+	#parseHeader(d: Uint8Array) : MDPHeader {
 		const s = new TextDecoder().decode(d); // Decode bytes to string
 		// Helper to slice and trim null characters
 		const g = (l:number) => s.slice(i, i+=l).replace(/\x00/g,'').trim();
@@ -113,11 +113,11 @@ class Archive {
 	 */
 	get = <T>(u: string) : Promise<T> => new Promise((ok, err) => { // Added err callback
 		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
-		if(!i || !this.data.has(i[0])) return err(new Error('Could not get blob: '+u)); // Throw error if not found
+		if(!i || !this.#data.has(i[0])) return err(new Error('Could not get blob: '+u)); // Throw error if not found
 		const fr = new FileReader();
 		fr.onload = () => ok(JSON.parse(fr.result as string) as T); // Parse JSON and resolve
 		// Create a Blob from the specific byte range in the archive ArrayBuffer
-		fr.readAsText(new Blob([new Uint8Array(this.data.get(i[0])!, i[1], i[2])])); // Read Blob as text
+		fr.readAsText(new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])])); // Read Blob as text
 	})
 
 	/**
@@ -130,10 +130,10 @@ class Archive {
 	 */
 	getImage = async (u: string) : Promise<TextureBitmap> => new Promise((ok, err) => { // Added err callback
 		const i = this.db.get(u); // Look up file index
-		if(!i || !this.data.has(i[0])) return err(new Error('Could not get blob: '+u)); // Throw error if not found
+		if(!i || !this.#data.has(i[0])) return err(new Error('Could not get blob: '+u)); // Throw error if not found
 
 		// Create a Blob from the specific byte range
-		const blob = new Blob([new Uint8Array(this.data.get(i[0])!, i[1], i[2])]);
+		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
 
 		// Use createImageBitmap if supported (preferred method)
 		if('createImageBitmap' in self) { // Reverted check - logic handled by isOldSafari in textures.ts
@@ -141,8 +141,8 @@ class Archive {
 		}
 		// Fallback for older Safari using Object URLs and pooled Image elements
 		else {
-			let img = this.images.find(i => !i.src); // Find an unused Image element from the pool
-			if(!img) this.images.push(img = new Image); // Create a new one if pool is empty
+			let img = this.#images.find(i => !i.src); // Find an unused Image element from the pool
+			if(!img) this.#images.push(img = new Image); // Create a new one if pool is empty
 			img.onload = () => { if(!img) return;
 				ok(img); // Resolve with the loaded HTMLImageElement
 				// Clean up Object URL after a short delay to allow rendering

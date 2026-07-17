@@ -16,10 +16,10 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 		protected element: HTMLMediaElement,
 		protected callbacks: PlayerEventCallbacks = {}
 	) {
-		this.attachEventListeners();
+		this.#attachEventListeners();
 	}
 
-	private attachEventListeners(): void {
+	#attachEventListeners(): void {
 		const el = this.element;
 		const cb = this.callbacks;
 

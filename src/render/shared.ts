@@ -40,8 +40,10 @@ export class View {
 	/** Flag indicating if the view limits have changed. */
 	public limitChanged: boolean = false;
 
+	readonly #canvas: TileCanvas;
+
 	constructor(
-		private readonly canvas: TileCanvas,
+		canvas: TileCanvas,
 
 		public centerX: number = 0.5,
 		public centerY: number = 0.5,
@@ -53,19 +55,20 @@ export class View {
 		public lWidth: number = 1,
 		public lHeight: number = 1,
 	) {
+		this.#canvas = canvas;
 		this.toArray();
 	}
 
 	get x0(): number {
 		let cx = this.centerX;
-		if (this.canvas.is360) cx = mod1(cx);
-		return this.canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2);
+		if (this.#canvas.is360) cx = mod1(cx);
+		return this.#canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2);
 	}
 	get y0(): number { return this.centerY - this.height / 2; }
 	get x1(): number {
 		let cx = this.centerX;
-		if (this.canvas.is360) cx = mod1(cx);
-		return this.canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2);
+		if (this.#canvas.is360) cx = mod1(cx);
+		return this.#canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2);
 	}
 	get y1(): number { return this.centerY + this.height / 2; }
 
@@ -132,14 +135,14 @@ export class View {
 
 	/** Calculates the perspective value needed to achieve this view height in 360 mode. */
 	getPerspective(): number {
-		const c = this.canvas;
+		const c = this.#canvas;
 		const webgl = c.webgl;
 		return webgl.maxPerspective - (.5 / (this.height * c.height / c.el.height)) * Math.PI / webgl.scaleY
 	}
 
 	/** Calculates the effective scale factor represented by this view. */
 	getScale(): number {
-		const c = this.canvas;
+		const c = this.#canvas;
 		return 1 / Math.max(
 			this.width * c.width / c.el.width,
 			this.height * c.height / c.el.height
@@ -148,7 +151,7 @@ export class View {
 
 	/** Calculates a distance metric between this view and another view, used for animation duration. */
 	getDistance(v: View, correctAspect: boolean): number {
-		if (correctAspect && this.canvas.currentArea.isFull()) {
+		if (correctAspect && this.#canvas.currentArea.isFull()) {
 			v.correctAspectRatio();
 			this.correctAspectRatio();
 		}
@@ -160,7 +163,7 @@ export class View {
 	}
 
 	limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
-		const c = this.canvas;
+		const c = this.#canvas;
 		const mS = c.camera.minSize;
 		const s = this.getScale();
 
@@ -200,7 +203,7 @@ export class View {
 		const halfW = Math.min(1, this.width) / 2;
 		const lHalfW = this.lWidth / 2;
 
-		if (this.canvas.is360) {
+		if (this.#canvas.is360) {
 			this.centerX = mod1(this.centerX);
 		} else if (!freeMove) {
 			this.centerX = Math.max(this.lCenterX - lHalfW + halfW, Math.min(this.centerX, this.lCenterX + lHalfW - halfW));
@@ -216,7 +219,7 @@ export class View {
 	}
 
 	correctAspectRatio(): void {
-		const c = this.canvas;
+		const c = this.#canvas;
 		if (c.is360) return;
 		const targetAspect = c.camera.cpw / c.camera.cph;
 		const currentAspect = this.width / this.height;
