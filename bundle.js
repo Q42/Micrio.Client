@@ -31,7 +31,7 @@ for (const file of cssFiles) {
 	if (match && match[1]) cssParts.push(match[1]);
 }
 
-fs.writeFileSync(buildDir + 'micrio.prod.css', cssParts.join('\n\n'));
+fs.writeFileSync(buildDir + 'micrio.prod.css', cssParts.join('\n\n').replace(/\$\{cssVars\}/g, ''));
 
 // ── Bundle ──
 const files = {
@@ -52,7 +52,7 @@ if (matches) {
 
 // Strip `static{this.styles="..."}` from compiled JS (CSS is already in the blob above)
 let jsRaw = fs.readFileSync(files.js).toString();
-jsRaw = jsRaw.replace(/static\{this\.styles="[^"]*"\}/g, '');
+jsRaw = jsRaw.replace(/static\{this\.styles=(['"`])(?:(?!\1)[\s\S])*\1\}/g, '');
 fs.writeFileSync(files.js, jsRaw);
 
 // Prepend CSS style injection to the JS bundle
