@@ -2,7 +2,8 @@ import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
-import { toCenterJSON } from '$utils/math';
+import { mod1 } from '$utils/math';
+import { Browser } from '$utils/browser';
 import { createElement, afterFrame } from '$utils/dom';
 
 export interface MinimapProps {
@@ -52,52 +53,72 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 		const isolated = self.crossOriginIsolated;
 		let thumbSrc: string | undefined = isolated ? undefined : image.thumbSrc;
 
-		const draw = (_area: Models.Camera.View | undefined) => {
-			if (!_area || !this.#_ctx) return;
+		const draw = (area: Models.Camera.View | undefined) => {
+			if (!area || !this.#_ctx) return;
 			this.#moved();
-			const area = toCenterJSON(_area);
-			this.#_ctx.clearRect(0, 0, width, height);
-			if (image.thumbSrc || thumbSrc) {
-				this.#_ctx.globalCompositeOperation = 'source-over';
-				this.#_ctx.fillStyle = 'rgba(0,0,0,.5)';
-				this.#_ctx.fillRect(0, 0, width, height);
-				this.#_ctx.globalAlpha = 1;
-				this.#_ctx.globalCompositeOperation = 'destination-out';
-			} else {
-				this.#_ctx.fillStyle = 'rgba(0,0,0,.5)';
-				this.#_ctx.fillRect(0, 0, width, height);
-			}
-			this.#_ctx.beginPath();
-			this.#_ctx.fillStyle = 'white';
+			const ctx = this.#_ctx;
+			ctx.clearRect(0, 0, width, height);
+
+			const hasThumb = !!(image.thumbSrc || thumbSrc);
 			if (info.is360) {
-				const rects = this.#get360Rects(_area, width, height);
-				for (const r of rects) {
-					this.#_ctx.rect(Math.floor(r.x), Math.floor(r.y), Math.ceil(r.w), Math.ceil(r.h));
+				// Crosshair indicator: hairline at yaw + pitch, avoids equirectangular distortion
+				if (hasThumb) {
+					ctx.globalCompositeOperation = 'source-over';
+					ctx.fillStyle = 'rgba(0,0,0,.45)';
+					ctx.fillRect(0, 0, width, height);
+					ctx.globalCompositeOperation = 'destination-out';
 				}
+				const cx = mod1(area[0] + area[2] / 2);
+				const cy = Math.max(0, Math.min(1, area[1] + area[3] / 2));
+				const px = Math.round(cx * width);
+				const py = Math.round(cy * height);
+				// Vertical hairline (yaw) — narrower than full FOV, but indicates direction
+				const hw = Math.max(1, Math.round(area[2] * width / 2));
+				ctx.fillStyle = hasThumb ? 'white' : 'rgba(255,255,255,.8)';
+				ctx.fillRect(Math.round(px - hw), 0, hw * 2, height);
+				// Horizontal hairline (pitch)
+				const hh = Math.max(1, Math.round(area[3] * height / 2));
+				ctx.fillRect(0, Math.round(py - hh), width, hh * 2);
+				// Center dot
+				ctx.beginPath();
+				ctx.arc(px, py, 3, 0, Math.PI * 2);
+				ctx.fill();
+				if (hasThumb) ctx.globalCompositeOperation = 'source-over';
 			} else {
-				this.#_ctx.rect(
-					Math.floor((area.centerX - area.width / 2) * width),
-					Math.floor((area.centerY - area.height / 2) * height),
-					Math.ceil(area.width * width), Math.ceil(area.height * height)
+				if (hasThumb) {
+					ctx.globalCompositeOperation = 'source-over';
+					ctx.fillStyle = 'rgba(0,0,0,.5)';
+					ctx.fillRect(0, 0, width, height);
+					ctx.globalCompositeOperation = 'destination-out';
+				} else {
+					ctx.fillStyle = 'rgba(0,0,0,.5)';
+					ctx.fillRect(0, 0, width, height);
+				}
+				ctx.beginPath();
+				ctx.fillStyle = 'white';
+				ctx.rect(
+					Math.floor(area[0] * width),
+					Math.floor(area[1] * height),
+					Math.ceil(area[2] * width),
+					Math.ceil(area[3] * height)
 				);
+				if (hasThumb) {
+					ctx.fill();
+					ctx.globalCompositeOperation = 'source-over';
+				}
+				ctx.stroke();
 			}
-			if (image.thumbSrc || thumbSrc) {
-				this.#_ctx.fill();
-				this.#_ctx.globalCompositeOperation = 'source-over';
-			}
-			this.#_ctx.stroke();
 		};
 
 		const wheel = (e: WheelEvent) => {
-			const isFF = navigator.userAgent.indexOf('Firefox') != -1;
-			camera.zoom(e.deltaY * (isFF ? 50 : 1));
+			camera.zoom(e.deltaY * (Browser.firefox ? 50 : 1));
 		};
 
 		const dStart = (e: MouseEvent) => {
 			if (e.button != 0) return;
 			window.addEventListener('mousemove', dDraw);
 			window.addEventListener('mouseup', dStop);
-			this.#mapRect = this.#_canvas.getClientRects()[0];
+			this.#mapRect = this.#_canvas.getBoundingClientRect();
 			const cv = camera.getView();
 			if (cv) this.#dragViewDims = { width: cv[2], height: cv[3] };
 			dDraw(e);
@@ -176,24 +197,6 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 			this.#_canvas.classList.add('hidden');
 		else
 			this.#_canvas.classList.remove('hidden');
-	}
-
-	#get360Rects(_area: Models.Camera.View, w: number, h: number): { x: number; y: number; w: number; h: number }[] {
-		const rects: { x: number; y: number; w: number; h: number }[] = [];
-		const { centerX: cx, centerY: cy, width, height } = toCenterJSON(_area);
-		const ncx = ((cx % 1) + 1) % 1;
-		let x0 = ncx - width / 2, x1 = ncx + width / 2;
-		const y0 = Math.max(0, cy - height / 2), y1 = Math.min(1, cy + height / 2);
-		if (x0 < 0) {
-			rects.push({ x: Math.floor((x0 + 1) * w), y: Math.floor(y0 * h), w: Math.ceil((1 - (x0 + 1)) * w), h: Math.ceil((y1 - y0) * h) });
-			rects.push({ x: Math.floor(0), y: Math.floor(y0 * h), w: Math.ceil(x1 * w), h: Math.ceil((y1 - y0) * h) });
-		} else if (x1 > 1) {
-			rects.push({ x: Math.floor(x0 * w), y: Math.floor(y0 * h), w: Math.ceil((1 - x0) * w), h: Math.ceil((y1 - y0) * h) });
-			rects.push({ x: Math.floor(0), y: Math.floor(y0 * h), w: Math.ceil((x1 - 1) * w), h: Math.ceil((y1 - y0) * h) });
-		} else {
-			rects.push({ x: Math.floor(x0 * w), y: Math.floor(y0 * h), w: Math.ceil((x1 - x0) * w), h: Math.ceil((y1 - y0) * h) });
-		}
-		return rects;
 	}
 
 	setProps(props: Partial<MinimapProps>) {
