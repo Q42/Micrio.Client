@@ -457,7 +457,7 @@ export class Engine {
 			this.skipBaseLevels = settings.skipBaseLevels;
 
 		if (settings?.omni) c.camera.setOmniSettings();
-		if (this.micrio.hasAttribute('data-limited')) this.setLimited(c, true);
+		if (this.micrio.hasAttribute('data-limited') && c.canvas) c.canvas.limited = true;
 
 		canvas.sendViewport();
 
@@ -798,16 +798,6 @@ export class Engine {
 	/** Add a child independent canvas to the current canvas. @internal */
 	addChild = (image: MicrioImage, parent: MicrioImage) => this.#addImage(image, parent);
 
-	/** Sets the active image frame index for an Omni object. @internal */
-	setActiveImage(img: MicrioImage | Models.Omni.Frame, idx: number, num?: number): void {
-		this.getCanvas(img)?.setActiveImage(idx, num ?? 0);
-	}
-
-	/** Sets the active layer index for an Omni object. @internal */
-	setActiveLayer(img: MicrioImage | Models.Omni.Frame, idx: number): void {
-		this.getCanvas(img)?.setActiveLayer(idx);
-	}
-
 	/** Fades an image (main or embed) to a target opacity. @internal */
 	fadeImage(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean = false): void {
 		const entry = this.#entryByImage.get(img);
@@ -828,38 +818,16 @@ export class Engine {
 		this.render();
 	}
 
-	// --- Facade methods (delegates to TileCanvas via getCanvas) ---
-
-	setZIndex(img: MicrioImage | Models.Omni.Frame, z: number): void {
-		const c = this.getCanvas(img);
-		if (c) c.zIndex = z;
-	}
 	setGridTransitionTimingFunction(fn: number): void {
 		this.gridTransitionTimingFunction = getTimingFunction(fn);
 	}
-	fadeTo(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean): void {
-		const c = this.getCanvas(img);
-		if (!c) return;
-		c.targetOpacity = opacity;
-		if (direct) c.opacity = opacity;
-	}
-	fadeIn(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.fadeIn(); }
-	fadeOut(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.fadeOut(); }
-	areaAnimating(img: MicrioImage | Models.Omni.Frame): boolean { return this.getCanvas(img)?.areaAnimating() ?? false; }
-	getActiveImageIdx(img: MicrioImage | Models.Omni.Frame): number { return this.getCanvas(img)?.activeImageIdx ?? -1; }
-	panStart(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.kinetic.stop(); }
-	panStop(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.kinetic.start(); }
-	pinchStart(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.camera.pinchStart(); }
-	pinch(img: MicrioImage | Models.Omni.Frame, x0: number, y0: number, x1: number, y1: number): void {
-		this.getCanvas(img)?.camera.pinch(x0, y0, x1, y1);
-	}
-	pinchStop(img: MicrioImage | Models.Omni.Frame, t: number): void {
-		this.getCanvas(img)?.camera.pinchStop(t);
-	}
-	setLimited(img: MicrioImage | Models.Omni.Frame, v: boolean): void {
-		const c = this.getCanvas(img);
-		if (c) c.limited = v;
-	}
+
+	// --- Facade methods (delegates to TileCanvas via getCanvas) ---
+	// Most facade methods have been replaced by MicrioImage.canvas getter.
+	// Kept: setGridTransitionTimingFunction (engine-level property),
+	//       setImageVideoPlaying (uses #micrioToEngImage),
+	//       fadeImage (complex embed logic).
+
 	setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
 		const engImage = this.#micrioToEngImage.get(img);
 		if (engImage) engImage.isVideoPlaying = playing;

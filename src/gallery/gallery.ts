@@ -149,7 +149,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
-			this.#parentImage.engine.setActiveImage(this.#parentImage, imgIdx, num);
+			this.#parentImage.canvas?.setActiveImage(imgIdx, num);
 			if (num > 0) {
 				this.#parentImage.camera.setView([0, 0, 1, 1]);
 			} else {
@@ -452,7 +452,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			}));
 			const pageImages = this.#pageToImages[pageIdx];
 			const num = (pageImages?.length ?? 1) - 1;
-			engine.setActiveImage(parent, startImageIdx, num);
+			parent.canvas?.setActiveImage(startImageIdx, num);
 			if (num > 0) {
 				parent.camera.setView([0, 0, 1, 1]);
 			} else {
@@ -695,7 +695,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		}
 
 		// Show the first frame
-		engine.setActiveImage(image, 0);
+		image.canvas?.setActiveImage(0, 0);
 		engine.render();
 
 		// Create the dial before the swiper so gotoFn can reference it
@@ -714,7 +714,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const gotoFn = (idx: number) => {
 			while (idx < 0) idx += pagesPerLayer;
 			idx %= pagesPerLayer;
-			engine.setActiveImage(image, idx);
+			image.canvas?.setActiveImage(idx, 0);
 			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
 			preload(idx);
 			engine.render();

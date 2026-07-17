@@ -304,7 +304,6 @@ export class Grid {
 	}, focussed: MicrioImage|undefined): void {
 		const isDelayed = opts.transition == 'behind-delayed';
 		const isLim = opts.coverLimit === true;
-		const { engine } = this.micrio;
 		opts.forceAni = true;
 		opts.coverLimit = isLim;
 		opts.forceAreaAni = true;
@@ -315,7 +314,7 @@ export class Grid {
 			if(images.find(e => e.id == i.id)) {
 				i.camera.setArea([0,0,focussed?.id == i.id ? 1 : vW,1], {noDispatch: true, direct: true});
 				if(i != focussed) i.camera.setView([0,0,1,1]);
-				if(isDelayed) engine.setZIndex(i, images.length-(c++));
+				if(isDelayed && i.canvas) i.canvas.zIndex = images.length-(c++);
 			}
 		});
 		images.forEach(e => e.view = [0,0,1,1]);
@@ -434,17 +433,17 @@ export class Grid {
 			cover: opts.cover
 		}));
 
-		if(isAppear) this.current.slice(1).forEach(i => engine.fadeTo(i, .9999, true));
+		if(isAppear) this.current.slice(1).forEach(i => { const c = i.canvas; if (c) c.targetOpacity = .9999; if (c) c.opacity = .9999; });
 
 		const fadeIn = () => this.current.forEach((img,i) =>
 			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
-				.then(() => engine.fadeIn(img))
+				.then(() => img.canvas?.fadeIn())
 		);
 
 		const done = () => {
 			this.#clearTimeouts();
 			requestAnimationFrame(() => engine.crossfadeDuration = defaultDur);
-			if(isDelayed) this.images.forEach(i => engine.setZIndex(i, 0));
+			if(isDelayed) this.images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
 			if(opts.coverLimit) images.forEach(i => this.#imageMap.get(i.id!)?.camera.setCoverLimit(true));
 			if(this.clickable) this.#placeGrid();
 			this.#lastAction = undefined;
@@ -632,7 +631,7 @@ export class Grid {
 	#removeImages(images:MicrioImage[]) : void {
 		const { engine } = this.micrio;
 		images.forEach(i => {
-			if(i.placed) engine.fadeOut(i);
+			if(i.placed) i.canvas?.fadeOut();
 			this._buttons.delete(i.id);
 		});
 		engine.render();
@@ -755,7 +754,7 @@ export class Grid {
 
 		if(focussed == img) return;
 
-		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !m.engine.areaAnimating(focussed) && !this.current.includes(img)));
+		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !(focussed.canvas?.areaAnimating() ?? false) && !this.current.includes(img)));
 		if(direct) img.camera.setArea([0,0,1,1], {noDispatch: true, direct: true});
 		if(focussed) this.blur();
 
@@ -766,7 +765,7 @@ export class Grid {
 			view: opts.view
 		}), opts);
 
-		m.engine.setZIndex(img, 3);
+		if (img.canvas) img.canvas.zIndex = 3;
 		this.focussed.set(img);
 
 		if(!get(img.visible) && (opts.transition == 'crossfade' || !opts.transition))
@@ -795,8 +794,6 @@ export class Grid {
 	}:Models.Grid.FocusOptions) : Promise<string> {
 		if(!transition) return layout;
 
-		const { engine } = this.micrio;
-
 		if(transition == 'crossfade') {
 			target.camera.setArea([0,0,1,1]);
 			noViewAni = true;
@@ -814,7 +811,7 @@ export class Grid {
 			: transition.endsWith('-left') ? 270
 			: 90;
 
-		if(isSlwipe || isBehind) engine.fadeTo(target, .9999, true);
+		if(isSlwipe || isBehind) { const c = target.canvas; if (c) { c.targetOpacity = .9999; c.opacity = .9999; } }
 
 		if(transition.startsWith('slide')) {
 			target.camera.setArea(slideAreas[transDir!], {noDispatch: true, direct: true});
@@ -866,7 +863,7 @@ export class Grid {
 		const focussed = this.$focussed;
 		if(!focussed) return;
 		this._buttons.forEach(b => b.classList.remove('focussed'));
-		this.micrio.engine.setZIndex(focussed, 2);
+		if (focussed.canvas) focussed.canvas.zIndex = 2;
 		this.micrio.events.dispatch('grid-blur');
 		this.focussed.set(undefined);
 		this.image.camera.setLimit([0, 0, 1, 1]);

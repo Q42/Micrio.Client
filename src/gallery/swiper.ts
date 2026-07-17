@@ -36,7 +36,7 @@ export class GallerySwiper {
 	goto(i:number):void { this.#goto(i); }
 
 	/** Getter for the current active image/frame index from the engine. */
-	public get currentIndex():number {return this.#micrio.engine.getActiveImageIdx(this.#image)}
+	public get currentIndex():number { return this.#image.canvas?.activeImageIdx ?? -1; }
 
 	/** Swiper options. @internal */
 	#opts:{

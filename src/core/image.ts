@@ -2,6 +2,7 @@ import type { Models } from '$types/models';
 import type { Readable, Unsubscriber, Writable } from '$core/store';
 import type { Grid } from '$grid/grid';
 import type { Engine } from '$render/engine';
+import type TileCanvas from '$render/tile-canvas';
 import type { GallerySwiper } from '$gallery/swiper';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
@@ -176,6 +177,9 @@ export class MicrioImage {
 
 	/** Base path for fetching image tiles. */
 	tileBase:string|undefined;
+
+	/** The engine TileCanvas for this image, if placed. */
+	get canvas(): TileCanvas | undefined { return this.engine.getCanvas(this); }
 
 	/** @internal */
 	#attr: Partial<Models.ImageInfo.ImageInfo>;
@@ -620,13 +624,15 @@ export class MicrioImage {
 
 	/** Fades in the image smoothly or instantly. */
 	fadeIn(direct:boolean=false) : void {
-		this.engine.fadeImage(this, 1, direct);
+		const c = this.canvas;
+		if (c) { c.targetOpacity = 1; if (direct) c.opacity = 1; }
 		this.engine.render();
 	}
 
 	/** Fades out the image smoothly or instantly. */
 	fadeOut(direct:boolean=false) : void {
-		this.engine.fadeImage(this, 0, direct);
+		const c = this.canvas;
+		if (c) { c.targetOpacity = 0; if (direct) c.opacity = 0; }
 		this.engine.render();
 	}
 

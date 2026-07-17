@@ -159,7 +159,7 @@ export namespace State {
 			const image = this.#image;
 			this.layer.subscribe(l => {
 				if(!image.placed || !image.engine.ready) return;
-				image.engine.setActiveLayer(image, l); // Call engine
+				image.canvas?.setActiveLayer(l);
 				image.engine.render(); // Trigger render
 			});
 		}
