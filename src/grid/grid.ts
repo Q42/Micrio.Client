@@ -386,8 +386,8 @@ export class Grid {
 		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
 		this.#nextCrossFadeDuration = undefined;
 		if(ready) {
-			engine.setGridTransitionDuration(dur);
-			engine.setCrossfadeDuration(crossfadeDur);
+			engine.gridTransitionDuration = dur;
+			engine.crossfadeDuration = crossfadeDur;
 		}
 
 		const doUnfocus = !opts.noBlur && focussed;
@@ -443,7 +443,7 @@ export class Grid {
 
 		const done = () => {
 			this.#clearTimeouts();
-			requestAnimationFrame(() => engine.setCrossfadeDuration(defaultDur));
+			requestAnimationFrame(() => engine.crossfadeDuration = defaultDur);
 			if(isDelayed) this.images.forEach(i => engine.setZIndex(i, 0));
 			if(opts.coverLimit) images.forEach(i => this.#imageMap.get(i.id!)?.camera.setCoverLimit(true));
 			if(this.clickable) this.#placeGrid();

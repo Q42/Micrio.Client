@@ -1,5 +1,6 @@
 import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
+import { easeInOut } from '$render/easing';
 
 /**
  * Handles swipe gestures for navigating image sequences, particularly for
@@ -85,8 +86,8 @@ export class GallerySwiper {
 				: v ? Math.round(v[3]*1000)/1000 >= 1 : true // Check if view width is >= 1
 		);
 
-		micrio.engine.setNoPinchPan(true);
-		micrio.engine.setIsSwipe(true);
+		micrio.engine.noPinchPan = true;
+		micrio.engine.isSwipe = true;
 
 		// Attach pointerdown listener to start drag
 		this.#micrio.canvas.element.addEventListener('pointerdown', this.#dStart);
@@ -207,7 +208,7 @@ export class GallerySwiper {
 			const p = Math.min(1, (time - started) / duration); // Calculate progress (0-1)
 			if(p < 1) this.#raf = requestAnimationFrame(frame); // Request next frame if not done
 			// Calculate intermediate index using easing function from Wasm
-			const d = startIdx - Math.round(this.#micrio.engine.ease(p) * delta);
+			const d = startIdx - Math.round(easeInOut.get(p) * delta);
 			// Call goto only if index changed
 			if(d != this.currentIndex) this.#goto(d);
 		}

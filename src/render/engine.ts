@@ -173,6 +173,7 @@ export class Engine {
 	/** Stores a canvas entry in the lookup maps. @internal */
 	#setEntry(entry: CanvasEntry): void {
 		this.#entryByImage.set(entry.micrioImage, entry);
+		// Only store the first (parent) entry per canvas — embeds share the parent canvas
 		if (!this.#canvasToEntry.has(entry.canvas)) this.#canvasToEntry.set(entry.canvas, entry);
 	}
 
@@ -447,7 +448,7 @@ export class Engine {
 		if (settings?.restrict) c.camera.setLimit(settings.restrict);
 
 		if (settings?.crossfadeDuration)
-			this.setCrossfadeDuration(settings.crossfadeDuration);
+			this.crossfadeDuration = settings.crossfadeDuration;
 		if (settings?.embedFadeDuration)
 			this.embedFadeDuration = settings.embedFadeDuration;
 		if (settings?.dragElasticity !== undefined)
@@ -827,22 +828,15 @@ export class Engine {
 		this.render();
 	}
 
-	/** Sets the focus point for zoom operations. @internal */
-	setFocus(img: MicrioImage | Models.Omni.Frame, v: Models.Camera.View, noLimit: boolean = false): void {
-		this.getCanvas(img)?.setFocus(v[0], v[1], v[2], v[3], noLimit);
-	}
-
-	// --- Facade methods (delegate to engine) ---
+	// --- Facade methods (delegates to TileCanvas via getCanvas) ---
 
 	setZIndex(img: MicrioImage | Models.Omni.Frame, z: number): void {
 		const c = this.getCanvas(img);
 		if (c) c.zIndex = z;
 	}
-	setGridTransitionDuration(dur: number): void { this.gridTransitionDuration = dur; }
 	setGridTransitionTimingFunction(fn: number): void {
 		this.gridTransitionTimingFunction = fn === 0 ? easeInOut : fn === 1 ? easeIn : fn === 2 ? easeOut : fn === 3 ? linear : easeInOut;
 	}
-	setCrossfadeDuration(dur: number): void { this.crossfadeDuration = dur; }
 	fadeTo(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean): void {
 		const c = this.getCanvas(img);
 		if (!c) return;
@@ -853,9 +847,6 @@ export class Engine {
 	fadeOut(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.fadeOut(); }
 	areaAnimating(img: MicrioImage | Models.Omni.Frame): boolean { return this.getCanvas(img)?.areaAnimating() ?? false; }
 	getActiveImageIdx(img: MicrioImage | Models.Omni.Frame): number { return this.getCanvas(img)?.activeImageIdx ?? -1; }
-	setNoPinchPan(v: boolean): void { this.noPinchPan = v; }
-	setIsSwipe(v: boolean): void { this.isSwipe = v; }
-	ease(p: number): number { return easeInOut.get(p); }
 	panStart(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.kinetic.stop(); }
 	panStop(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.kinetic.start(); }
 	pinchStart(img: MicrioImage | Models.Omni.Frame): void { this.getCanvas(img)?.camera.pinchStart(); }
@@ -868,15 +859,6 @@ export class Engine {
 	setLimited(img: MicrioImage | Models.Omni.Frame, v: boolean): void {
 		const c = this.getCanvas(img);
 		if (c) c.limited = v;
-	}
-	set360Orientation(d: number, dX: number, dY: number): void {
-		this.direction = d;
-		this.distanceX = dX;
-		this.distanceY = dY;
-	}
-	setCanvasArea(w: number, h: number): void {
-		this.el.areaWidth = w;
-		this.el.areaHeight = h;
 	}
 	setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
 		const engImage = this.#micrioToEngImage.get(img);

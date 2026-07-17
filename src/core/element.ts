@@ -498,10 +498,9 @@ ${cssVars}`;
 		});
 
 		// Set 360 orientation vector for transitions
-		this.engine.set360Orientation(
-			opts.vector?.direction ?? 0,
-			opts.vector?.distanceX ?? 0,
-			opts.vector?.distanceY ?? 0);
+		this.engine.direction = opts.vector?.direction ?? 0;
+		this.engine.distanceX = opts.vector?.distanceX ?? 0;
+		this.engine.distanceY = opts.vector?.distanceY ?? 0;
 
 		// Prevent engine from auto-setting direction if coming from a waypoint
 		this.engine.preventDirectionSet = !opts.vector;

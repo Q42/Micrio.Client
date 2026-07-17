@@ -10,6 +10,7 @@ import type { MicrioImage } from '$core/image';
 
 import { get } from '$core/store';
 import { toCenterJSON } from '$utils/math';
+import { easeInOut } from '$render/easing';
 
 /**
  * Internal representation of a segment in a video tour timeline.
@@ -276,7 +277,7 @@ export class VideoTourInstance {
 		const area = this.#image.opts?.area;
 
 		if(this.#wasPaused && prevView) {
-			const b:number = this.#micrio.engine.ease(perc);
+			const b:number = easeInOut.get(perc);
 
 			const iView = {
 				centerX: prevView.centerX * (1-b) + nextView.centerX * b,

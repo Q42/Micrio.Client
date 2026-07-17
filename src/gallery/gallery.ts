@@ -182,7 +182,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		if (!engine) return;
 		const baseSlot = this.#imageSlotPos[nextIdx];
 		const startSlide = () => {
-			engine.setGridTransitionDuration(snapDur);
+			engine.gridTransitionDuration = snapDur;
 			for (let i = 0; i < images.length; i++) {
 				const child = images[i] as MicrioImage | undefined;
 				if (!child?.camera) continue;
