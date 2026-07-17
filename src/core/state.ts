@@ -110,11 +110,7 @@ export namespace State {
 		/** Writable Svelte store holding the currently displayed layer index (for Omni objects). */
 		public readonly layer: Writable<number> = writable(0);
 
-		/** @internal */
-		#image: MicrioImage;
-
 		constructor(image:MicrioImage){
-			this.#image = image;
 			const m = image.engine.micrio; // Reference to main element
 			let pV:string, pW:number, pH:number; // Previous view state for change detection
 
@@ -153,16 +149,5 @@ export namespace State {
 				}
 			});
 		}
-
-		/** Hooks up the layer store subscription for Omni objects. @internal */
-		hookOmni() : void {
-			const image = this.#image;
-			this.layer.subscribe(l => {
-				if(!image.placed || !image.engine.ready) return;
-				image.canvas?.setActiveLayer(l);
-				image.engine.render(); // Trigger render
-			});
-		}
 	}
-
 }

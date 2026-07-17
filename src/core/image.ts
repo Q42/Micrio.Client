@@ -465,7 +465,13 @@ export class MicrioImage {
 		delete i.settings; // Remove settings from info object after processing
 
 		// Hook Omni controls if applicable
-		if(this.isOmni) this.state.hookOmni();
+		if(this.isOmni) {
+			this.state.layer.subscribe(l => {
+				if(!this.placed || !this.engine.ready) return;
+				this.canvas?.setActiveLayer(l);
+				this.engine.render();
+			});
+		}
 
 		return i; // Return the processed info object
 	}
