@@ -5,7 +5,7 @@ import type { Gallery as GalleryController } from '$gallery/controller';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { once } from '$utils/store';
-import { Enums } from '$core/enums';
+import { getEasing } from '$render/easing';
 import { GallerySwiper } from '$gallery/swiper';
 import { createElement } from '$utils/dom';
 import { icons } from '$ui/icons';
@@ -480,7 +480,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		await once(parent.info);
 
 		if (this.#isStripSwipe) {
-			engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction['ease-out']);
+			engine.gridTransitionTimingFunction = getEasing('ease-out');
 			await Promise.allSettled(images.map(d => engine.addChild(d as MicrioImage, parent)));
 			const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
 			for (let i = 0; i < images.length; i++) {

@@ -19,7 +19,7 @@ import { loadTexture, runningThreads, numThreads, abortDownload } from './textur
 import TileCanvas from './tile-canvas';
 import type Image from './tile-image';
 import { segsX, segsY } from './constants';
-import { type Bicubic, easeInOut, getTimingFunction } from './easing';
+import { type Bicubic, easeInOut } from './easing';
 import { Viewport } from './shared';
 
 interface TileEntry {
@@ -417,7 +417,7 @@ export class Engine {
 		if (v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) {
 			canvas.setView(v[0] + v[2] / 2, v[1] + v[3] / 2, v[2], v[3], false, false, false, false);
 		} else if ((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') {
-			canvas.camera.setCoo(focus[0], focus[1], 0, 0, 0, false, 0, performance.now());
+			canvas.camera.setCoo(focus[0], focus[1], 0, 0, 0, false, easeInOut, performance.now());
 			settings.focus = undefined;
 		}
 
@@ -705,7 +705,7 @@ export class Engine {
 
 		if (!isEmbed) {
 			this.#bindCamera(image);
-			if (image.$settings.focus) canvas.camera.setCoo(image.$settings.focus[0], image.$settings.focus[1], 0, 0, 0, false, 0, performance.now());
+			if (image.$settings.focus) canvas.camera.setCoo(image.$settings.focus[0], image.$settings.focus[1], 0, 0, 0, false, easeInOut, performance.now());
 			const v = (image.$info as any)['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
 			else if (canvas.hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
@@ -764,15 +764,9 @@ export class Engine {
 		this.render();
 	}
 
-	setGridTransitionTimingFunction(fn: number): void {
-		this.gridTransitionTimingFunction = getTimingFunction(fn);
-	}
 
 	// --- Facade methods (delegates to TileCanvas via getCanvas) ---
 	// Most facade methods have been replaced by MicrioImage.canvas getter.
-	// Kept: setGridTransitionTimingFunction (engine-level property),
-	//       setImageVideoPlaying (uses #micrioToEngImage),
-	//       fadeImage (complex embed logic).
 
 	setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
 		const engImage = this.#micrioToEngImage.get(img);

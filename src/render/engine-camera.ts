@@ -5,7 +5,7 @@
  */
 
 import { Coordinates } from './shared'
-import { longitudeDistance } from './easing';
+import { longitudeDistance, Bicubic, easeInOut } from './easing';
 import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
@@ -223,7 +223,7 @@ export default class EngineCamera {
 
 		if (this.#hasStartCoo) {
 			this.#hasStartCoo = false;
-			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale, 0, 0, false, 0, 0);
+			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale, 0, 0, false, easeInOut, 0);
 			return false;
 		}
 		return true;
@@ -272,7 +272,7 @@ export default class EngineCamera {
 			if (c.ani.isStarted()) {
 				c.ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.#pinching, -1, 0, time, !noLimit);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, time, !noLimit);
 			}
 		} else {
 			c.ani.stop();
@@ -286,7 +286,7 @@ export default class EngineCamera {
 				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
 				c.view.changed = true;
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, 0, time);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, easeInOut, time);
 			}
 		}
 	}
@@ -335,7 +335,7 @@ export default class EngineCamera {
 		const targetHeight = v.height + factY;
 
 		c.ani.limit = limit;
-		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.#pinching, -1, 0, time, limit);
+		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, time, limit);
 		c.ani.lastView.copy(c.view);
 		c.ani.limit = !noLimit;
 
@@ -421,14 +421,14 @@ export default class EngineCamera {
 			? v.lCenterY
 			: Math.max(v.lY0 + halfH, Math.min(v.centerY, v.lY1 - halfH));
 
-		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, 0, time, true);
+		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, easeInOut, time, true);
 	}
 
 	/**
 	 * Initiates a fly-to animation to a target view rectangle.
 	 * @returns The calculated animation duration.
 	 */
-	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: number, time: number): number {
+	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic, time: number): number {
 		const c = this.#canvas;
 		const a = c.ani;
 		c.kinetic.stop();
@@ -451,7 +451,7 @@ export default class EngineCamera {
 	 * Sets the view center and scale, optionally animating.
 	 * @returns The calculated animation duration.
 	 */
-	setCoo(x: number, y: number, scale: number, dur: number, speed: number, limit: boolean, fn: number, time: number): number {
+	setCoo(x: number, y: number, scale: number, dur: number, speed: number, limit: boolean, fn: Bicubic, time: number): number {
 		if (!this.#inited) {
 			this.#hasStartCoo = true;
 			this.#startCoo.x = x;

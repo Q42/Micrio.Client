@@ -4,7 +4,7 @@ import type TileCanvas from '$render/tile-canvas';
 
 import { tick } from '$core/store';
 import { mod, toCenterJSON } from '$utils/math';
-import { Enums } from './enums';
+import { getEasing, easeInOut } from '$render/easing';
 
 /**
  * Represents the virtual camera used to view a {@link MicrioImage}.
@@ -167,7 +167,7 @@ export class Camera {
 	 */
 	setCoo(x: number, y: number, scale = this.center[2] ?? 1): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera.setCoo(x, y, scale, 0, 0, false, 0, performance.now());
+		this.#canvas.camera.setCoo(x, y, scale, 0, 0, false, easeInOut, performance.now());
 		this.image.engine.render();
 	}
 
@@ -401,7 +401,7 @@ export class Camera {
 				}
 				if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, npl);
 			}
-			const duration = this.#canvas.camera.flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'], performance.now());
+			const duration = this.#canvas.camera.flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, getEasing(opts.timingFunction), performance.now());
 			this.image.engine.render();
 			if (duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
@@ -437,7 +437,7 @@ export class Camera {
 	flyToCoo(coords: Models.Camera.Coords, opts: Models.Camera.AnimationOptions = {}): Promise<void> {
 		return new Promise((ok, abort) => {
 			if (!this.#canvas) return abort(new Error("engine not ready"));
-			const fn = Enums.Camera.TimingFunction[opts.timingFunction ?? 'ease'];
+			const fn = getEasing(opts.timingFunction);
 			opts.duration = this.#canvas.camera.setCoo(coords[0]!, coords[1]!, coords[2] ?? this.center[2] ?? 1, opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn, performance.now());
 			this.image.engine.render();
 			if (opts.duration == 0) ok();

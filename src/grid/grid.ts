@@ -11,7 +11,8 @@ import { get, writable, type Unsubscriber, type Writable } from '$core/store';
 import { deepCopy } from '$utils/object';
 import { once } from '$utils/store';
 import { tick } from '$core/store';
-import { Enums } from '$core/enums';
+import { GridActionType } from './actions';
+import { getEasing } from '$render/easing';
 import { createElement, sleep } from '$utils/dom';
 import { pointInArea } from '$utils/math';
 
@@ -721,7 +722,7 @@ export class Grid {
 
 	/** Sets the animation timing function for the next transition. @internal */
 	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
-		this.micrio.engine.setGridTransitionTimingFunction(Enums.Camera.TimingFunction[this.#timingFunction=fn]);
+		this.micrio.engine.gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
 	}
 
 	/** Simulates a click on a grid cell, applying the configured `clickable` effect (zoom or focus). */
@@ -877,9 +878,9 @@ export class Grid {
 		if(event.active) this.action(event.action.slice(5), event.data, event.end - event.start);
 	}
 
-	/** Action handler dispatch map, keyed by {@link Enums.Grid.GridActionType}. @internal */
+	/** Action handler dispatch map, keyed by {@link GridActionType}. @internal */
 	readonly #actionHandlers: Record<number, (data?: string, duration?: number) => void> = {
-		[Enums.Grid.GridActionType.focus]: (data, duration) => {
+		[GridActionType.focus]: (data, duration) => {
 			const spl = data?.split('|').map(s => s.trim());
 			const name = spl?.[0]??'';
 			const imgs = name.split(',')
@@ -892,7 +893,7 @@ export class Grid {
 			});
 		},
 
-		[Enums.Grid.GridActionType.flyTo]: (data, duration) => {
+		[GridActionType.flyTo]: (data, duration) => {
 			const images = data?.split(',').map(s => this.current.find(i => i.id == s?.trim()));
 			if(images?.length) {
 				const xs = images.map(i => i?.opts.area?.[0] ?? 0);
@@ -911,31 +912,31 @@ export class Grid {
 			else console.warn('Given image IDs gave no current displayed images');
 		},
 
-		[Enums.Grid.GridActionType.focusTagged]: (data, duration) => {
+		[GridActionType.focusTagged]: (data, duration) => {
 			this.flyToMarkers(data, duration);
 		},
 
-		[Enums.Grid.GridActionType.focusWithTagged]: (data, duration) => {
+		[GridActionType.focusWithTagged]: (data, duration) => {
 			this.flyToMarkers(data, duration, true);
 		},
 
-		[Enums.Grid.GridActionType.reset]: (_data, duration) => {
+		[GridActionType.reset]: (_data, duration) => {
 			this.reset(duration);
 		},
 
-		[Enums.Grid.GridActionType.back]: (_data, duration) => {
+		[GridActionType.back]: (_data, duration) => {
 			this.back(duration);
 		},
 
-		[Enums.Grid.GridActionType.switchToGrid]: () => {
+		[GridActionType.switchToGrid]: () => {
 			this.#switchToGrid();
 		},
 
-		[Enums.Grid.GridActionType.nextFadeDuration]: (data) => {
+		[GridActionType.nextFadeDuration]: (data) => {
 			this.#nextCrossFadeDuration = Number(data);
 		},
 
-		[Enums.Grid.GridActionType.filterTourImages]: (data, duration) => {
+		[GridActionType.filterTourImages]: (data, duration) => {
 			once(this.micrio.state.tour).then(t => { if(!t) return;
 				if(!('steps' in t) || !t.stepInfo) return;
 				const ids = t.stepInfo.map(s => s.micrioId);
@@ -956,8 +957,8 @@ export class Grid {
 	 * @param data Optional action data
 	 * @param duration Optional action duration
 	*/
-	action(action:Enums.Grid.GridActionType|string, data?:string, duration?:number) : void {
-		if(typeof action == 'string') action = Enums.Grid.GridActionType[action as keyof typeof Enums.Grid.GridActionType];
+	action(action:GridActionType|string, data?:string, duration?:number) : void {
+		if(typeof action == 'string') action = GridActionType[action as keyof typeof GridActionType];
 		const key = action+(data??'');
 		if(this.#lastAction == key) return;
 		const handler = this.#actionHandlers[action as number];

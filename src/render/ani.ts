@@ -4,7 +4,7 @@
  * @internal
  */
 
-import { Bicubic, easeInOut, getTimingFunction, longitudeDistance } from './easing'
+import { Bicubic, easeInOut, longitudeDistance } from './easing'
 import { View } from './shared'
 import type { default as TileCanvas } from './tile-canvas';
 
@@ -121,7 +121,7 @@ export default class Ani {
 		toCenterX: number, toCenterY: number, toWidth: number, toHeight: number,
 		dur: number, speed: number, perc: number,
 		isJump: boolean, limitViewport: boolean, omniIdx: number,
-		fn: number, time: number, correct: boolean = false): number {
+		fn: Bicubic, time: number, correct: boolean = false): number {
 
 		if (correct && this.correcting) {
 			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
@@ -138,7 +138,7 @@ export default class Ani {
 
 		this.#isJump = isJump;
 
-		this.#fn = getTimingFunction(fn);
+		this.#fn = fn;
 
 		const el = c.main.el;
 		if (el.areaHeight !== 0) {
