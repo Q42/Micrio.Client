@@ -35,8 +35,6 @@ export interface MediaPlayerAdapter {
 	/** Clean up resources */
 	destroy(): void;
 
-	/** Whether this adapter requires manual time updates via interval */
-	readonly requiresTimeTick: boolean;
 }
 
 /**

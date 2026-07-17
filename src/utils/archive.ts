@@ -25,8 +25,7 @@ class Archive {
 	/** Map storing the index of files within loaded archives. Key: full file path, Value: [archiveId, byteOffset, byteLength]. */
 	db:Map<string, [string, number, number]> = new Map;
 
-	/** Pool of reusable HTMLImageElement objects for the old Safari fallback in `getImage`. */
-	#images:HTMLImageElement[] = [];
+
 
 	/**
 	 * Loads an archive file (.bin or .mdp) via XMLHttpRequest.
@@ -135,25 +134,7 @@ class Archive {
 		// Create a Blob from the specific byte range
 		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
 
-		// Use createImageBitmap if supported (preferred method)
-		if('createImageBitmap' in self) { // Reverted check - logic handled by isOldSafari in textures.ts
-			ok(self.createImageBitmap(blob)); // Resolve with ImageBitmap
-		}
-		// Fallback for older Safari using Object URLs and pooled Image elements
-		else {
-			let img = this.#images.find(i => !i.src); // Find an unused Image element from the pool
-			if(!img) this.#images.push(img = new Image); // Create a new one if pool is empty
-			img.onload = () => { if(!img) return;
-				ok(img); // Resolve with the loaded HTMLImageElement
-				// Clean up Object URL after a short delay to allow rendering
-				requestAnimationFrame(() => {
-					if(!img) return;
-					URL.revokeObjectURL(img.src);
-					img.src = ''; // Clear src to mark as available
-				});
-			}
-			img.src = URL.createObjectURL(blob); // Set Object URL as source
-		}
+		ok(self.createImageBitmap(blob));
 	})
 }
 

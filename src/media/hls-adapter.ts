@@ -14,8 +14,6 @@ import { HTML5PlayerAdapter } from './html5-adapter';
  * Attaches HLS.js to a video element and delegates standard operations to HTML5PlayerAdapter.
  */
 export class HLSPlayerAdapter extends HTML5PlayerAdapter {
-	readonly requiresTimeTick = false;
-
 	#hls: HlsPlayer | undefined;
 	#destroyed = false;
 

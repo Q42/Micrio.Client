@@ -11,7 +11,6 @@ export interface MediaControlsProps {
 	currentTime?: number;
 	duration?: number;
 	seeking?: boolean;
-	minimal?: boolean;
 	paused: boolean;
 	ended: boolean;
 	fullscreenEl?: HTMLElement | undefined;

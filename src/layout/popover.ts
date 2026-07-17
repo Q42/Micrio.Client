@@ -29,7 +29,7 @@ dialog>aside{display:block;left:100%;margin-left:var(--micrio-border-margin);top
 @media(max-width:639px){
 dialog:not(.article){width:100%;height:100%;flex-direction:column}
 dialog>aside{position:fixed;top:var(--micrio-border-margin);right:var(--micrio-border-margin)}
-dialog :global(div.micrio-media>*:first-child){border-radius:0}
+dialog div.micrio-media>*:first-child{border-radius:0}
 }
 @media(min-aspect-ratio:16/9){dialog:not(.article){height:75vh;width:calc(16/9*75vh);height:75cqh;width:calc(16/9*75cqh)}}
 dialog:not(.article)>micrio-media{flex:1}

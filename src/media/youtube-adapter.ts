@@ -24,8 +24,6 @@ const YT_STATE = {
  * Adapter for YouTube IFrame Player API.
  */
 export class YouTubePlayerAdapter implements MediaPlayerAdapter {
-	readonly requiresTimeTick = true;
-
 	#player: YouTubePlayer | undefined;
 	#destroyed = false;
 

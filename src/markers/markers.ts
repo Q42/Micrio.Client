@@ -21,7 +21,6 @@ micrio-markers.is360{transition:opacity .25s}
 micrio-markers.is360.inactive{opacity:0}`;
 
 	#props: MarkersProps = { image: null! };
-	#clusterRaf: number | undefined;
 
 	onMount() {
 		const { image } = this.#props;
@@ -218,7 +217,6 @@ micrio-markers.is360.inactive{opacity:0}`;
 	}
 
 	onDestroy() {
-		if (this.#clusterRaf !== undefined) cancelAnimationFrame(this.#clusterRaf);
 	}
 }
 

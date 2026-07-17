@@ -12,8 +12,6 @@ import { loadExternalAPI } from '$utils/dom';
  * Adapter for Vimeo Player API.
  */
 export class VimeoPlayerAdapter implements MediaPlayerAdapter {
-	readonly requiresTimeTick = false;
-
 	#player: VimeoPlayer | undefined;
 	#destroyed = false;
 

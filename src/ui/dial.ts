@@ -16,7 +16,6 @@ micrio-dial::after{height:100%;background-image:repeating-linear-gradient(to rig
 micrio-dial span{position:absolute;display:block;bottom:0;line-height:calc(var(--micrio-button-size)*0.6);left:50%;transform:translateX(calc(-50% + 5px));color:var(--micrio-color);opacity:.85;pointer-events:none;text-shadow:1px 1px 3px #000,-1px -1px 3px #000;font-size:smaller}`;
 
 	#props: DialProps = { currentRotation: 0, frames: 1 };
-	#_dial!: HTMLElement;
 
 	onMount() {
 		const micrio = this.getMicrio();
@@ -42,7 +41,7 @@ micrio-dial span{position:absolute;display:block;bottom:0;line-height:calc(var(-
 
 		const dMove = (e: PointerEvent) => {
 			const scale = Math.max(1, (camera.getXY(1, .5)[0] - camera.getXY(0, .5)[0]) / micrio.offsetWidth);
-			const targetFrame = (startRot / 360 + ((startX - e.clientX) / (this.#_dial!.offsetWidth * scale))) * this.#props.frames;
+			const targetFrame = (startRot / 360 + ((startX - e.clientX) / (this.offsetWidth * scale))) * this.#props.frames;
 			this.#props.onturn?.(targetFrame);
 		};
 
@@ -52,15 +51,13 @@ micrio-dial span{position:absolute;display:block;bottom:0;line-height:calc(var(-
 			micrio.removeEventListener('pointermove', dMove);
 			micrio.removeEventListener('pointerup', dStop);
 		};
-
-		this.#_dial = this;
 		this.addEventListener('pointerdown', dStart);
 	}
 
 	setProps(props: Partial<DialProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) {
-			const offset = -this.#props.currentRotation / 360 * (this.#_dial?.offsetWidth ?? 0);
+			const offset = -this.#props.currentRotation / 360 * (this.offsetWidth ?? 0);
 			this.style.setProperty('--micrio-dial-offset', `${offset}px`);
 		}
 	}

@@ -26,7 +26,7 @@ micrio-embed>.embed-container.hide-when-paused{transition:opacity .25s}
 micrio-embed>.embed-container.hide-when-paused:has(figure.paused){opacity:0}
 micrio-embed>.embed-container.inactive{opacity:0;pointer-events:none}
 micrio-embed>.embed-container>*{position:absolute;margin:0;transform:translate3d(-50%,-50%,0) scale3d(var(--scale,1),var(--scale,1),1);cursor:pointer}
-micrio-embed>.embed-container>:global(*:not(button)){width:auto!important}
+micrio-embed>.embed-container>*:not(button){width:auto!important}
 micrio-embed>.embed-container>img{max-width:none}
 micrio-embed>.embed-container>button{--scale:1;--ratio:1;padding:0;margin:0;background:transparent;border:none;width:100px;aspect-ratio:var(--ratio)}
 micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-action:none}
@@ -74,7 +74,6 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 	#y = 0;
 	#scaleVal = 0;
 	#matrix = '';
-	#isBehind = false;
 	#buttonStyle = '';
 
 	onMount() {
@@ -399,9 +398,6 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 			this.#container.style.cssText = style + opStyle;
 			this.#container.classList.toggle('embed3d', this.#is360);
-			if (this.#is360) {
-				this.#container.classList.toggle('behind', this.#isBehind);
-			}
 		}
 
 		if ((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && this.#w) {

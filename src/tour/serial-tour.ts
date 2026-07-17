@@ -23,7 +23,7 @@ micrio-serial-tour .bars>.bar.active::before{background:var(--micrio-active-colo
 micrio-serial-tour ol.chapters{position:absolute;left:var(--micrio-border-margin);bottom:calc(2 * var(--micrio-border-margin) + var(--micrio-button-size));color:var(--micrio-color);text-shadow:var(--micrio-marker-text-shadow);list-style-type:decimal-leading-zero;margin:0}
 micrio-serial-tour ol.chapters>li{padding:.15em;white-space:pre;transition:height .25s ease,opacity .25s .25s ease}
 micrio-serial-tour ol.chapters>li.active{font-weight:bold}
-:global(.minimized) > micrio-serial-tour ol.chapters>li:not(.active){height:0;opacity:0;transition:height .25s .25s ease,opacity .25s ease}
+.minimized > micrio-serial-tour ol.chapters>li:not(.active){height:0;opacity:0;transition:height .25s .25s ease,opacity .25s ease}
 micrio-serial-tour ol.chapters button{font:inherit;background:none;border:none;display:inline;color:inherit;text-shadow:inherit;cursor:pointer}
 micrio-serial-tour ol.chapters button:hover{text-decoration:underline}`;
 

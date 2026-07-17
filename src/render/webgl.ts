@@ -133,7 +133,7 @@ export class WebGL {
 	#was360:boolean = false;
 
 	/** Optional PostProcessor instance for applying fullscreen effects. */
-	postpocessor?:PostProcessor;
+	postprocessor?:PostProcessor;
 
 	/**
 	 * Creates the WebGL instance.
@@ -179,7 +179,7 @@ export class WebGL {
 		// Initialize post-processor if a fragment shader is provided in settings
 		const postprocessing = this.#micrio.$current?.$settings.postProcessingFragmentShader;
 		if(postprocessing) {
-			this.postpocessor = new PostProcessor(gl, this.#micrio, postprocessing);
+			this.postprocessor = new PostProcessor(gl, this.#micrio, postprocessing);
 			this.#micrio.keepRendering = true; // Force continuous rendering if postprocessing
 		}
 
@@ -199,8 +199,10 @@ export class WebGL {
 		// Link program
 		gl.linkProgram(this.#program);
 		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
-			console.error("Main shader link error:", gl.getProgramInfoLog(this.#program));
-			// TODO: Handle link error more gracefully
+			throw new MicrioError('Shader link error: ' + gl.getProgramInfoLog(this.#program), {
+				code: ErrorCodes.WEBGL_SHADER_COMPILE,
+				displayMessage: 'There was a problem initializing the graphics. Please try refreshing the page.'
+			});
 		}
 		gl.useProgram(this.#program); // Use the program
 
@@ -290,7 +292,7 @@ export class WebGL {
 		// Delete shader program
 		gl.deleteProgram(this.#program);
 		// Delete framebuffer/texture from postprocessor if it exists
-		this.postpocessor?.dispose();
+		this.postprocessor?.dispose();
 		// Delete watermark texture
 		if(this.#wmTexture) gl.deleteTexture(this.#wmTexture);
 
@@ -318,9 +320,11 @@ export class WebGL {
 		this.gl.compileShader(shader);
 		// Check compilation status
 		if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-			console.error('Error compiling shader', this.gl.getShaderInfoLog(shader));
-			this.gl.deleteProgram(program); // Clean up program if shader fails
-			throw new Error(`Shader compilation failed: ${this.gl.getShaderInfoLog(shader)}`);
+			this.gl.deleteProgram(program);
+			throw new MicrioError('Shader compilation failed: ' + this.gl.getShaderInfoLog(shader), {
+				code: ErrorCodes.WEBGL_SHADER_COMPILE,
+				displayMessage: 'There was a problem initializing the graphics. Please try refreshing the page.'
+			});
 		}
 		this.gl.attachShader(program, shader); // Attach compiled shader
 		this.gl.deleteShader(shader); // Delete shader object after attaching
@@ -376,7 +380,7 @@ export class WebGL {
 	drawStart() : void {
 		const gl = this.gl;
 		// Bind framebuffer if postprocessing is active
-		if(this.postpocessor) gl.bindFramebuffer(gl.FRAMEBUFFER, this.postpocessor.frameBuffer);
+		if(this.postprocessor) gl.bindFramebuffer(gl.FRAMEBUFFER, this.postprocessor.frameBuffer);
 		// Clear the drawing buffer
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 	}
@@ -384,8 +388,8 @@ export class WebGL {
 	/** Finalizes frame drawing (renders postprocessing effect if active). @internal */
 	drawEnd() : void {
 		// If postprocessor exists, render its effect to the screen
-		if(this.postpocessor) {
-			this.postpocessor.render();
+		if(this.postprocessor) {
+			this.postprocessor.render();
 			// Re-bind the main program and buffers for subsequent Micrio rendering if needed
 			this.gl.useProgram(this.#program);
 			this.#linkBuffers();

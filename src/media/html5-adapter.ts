@@ -10,8 +10,6 @@ import type { MediaPlayerAdapter, PlayerEventCallbacks } from './types';
  * Adapter for native HTML5 audio/video elements.
  */
 export class HTML5PlayerAdapter implements MediaPlayerAdapter {
-	readonly requiresTimeTick = false;
-
 	constructor(
 		protected element: HTMLMediaElement,
 		protected callbacks: PlayerEventCallbacks = {}

@@ -85,15 +85,6 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		this.watchWith(store, lazy(fn));
 	}
 
-	protected watchOnce<T>(store: Readable<T>, fn: (value: T) => void): void {
-		let unsub: (() => void) | undefined;
-		unsub = store.subscribe(v => {
-			fn(v);
-			unsub?.();
-		});
-		this.addCleanup(unsub);
-	}
-
 	/** Subscribe with a pre-built subscriber wrapper (for use with defer, skipFirst, etc.) */
 	protected watchWith<T>(store: Readable<T>, fn: Subscriber<T>): void {
 		this.addCleanup(store.subscribe(fn));

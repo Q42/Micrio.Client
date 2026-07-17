@@ -69,8 +69,6 @@ class AudioPlaylist {
 		this.#audio.play();
 	}
 
-	setVolume(v: number) { this.#audio.volume = v; }
-
 	destroy() { this.#audio.pause(); }
 }
 

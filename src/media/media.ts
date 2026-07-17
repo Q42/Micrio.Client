@@ -16,7 +16,6 @@ const VIMEO_RE = /vimeo\.com/;
 export interface MediaProps {
 	src?: string;
 	image?: MicrioImage;
-	uuid?: string;
 	tour?: Models.ImageData.VideoTour | null;
 	autoplay?: boolean;
 	controls?: boolean;
@@ -27,7 +26,6 @@ export interface MediaProps {
 	height?: number;
 	muted?: boolean;
 	secondary?: boolean;
-	title?: string;
 	figcaption?: string;
 	className?: string;
 	onended?: () => void;
@@ -355,7 +353,6 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
 					subtitles: hasSub,
 					getTimeDisplay: p.getTimeDisplay,
-					minimal: false,
 					fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
 					onplaypause, onmute, onseek,
 					onclose: p.onclose
@@ -364,7 +361,6 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 
 			const ctrlEl = createElement('micrio-media-controls', {
 				setProps: {
-					minimal: false,
 					paused: true,
 					ended: false,
 					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
