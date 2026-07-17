@@ -1,5 +1,6 @@
 import { View, DrawRect, Viewport } from './shared';
 import type { Engine } from './engine';
+import type { MicrioImage } from '$core/image';
 import { easeInOut } from './easing'
 import { base360Distance } from './constants';
 
@@ -96,6 +97,9 @@ export class TileCanvas {
 	limited: boolean = false;
 
 	layer: number = 0;
+
+	/** The MicrioImage that owns this canvas, if placed. Set by Engine. */
+	micrioImage?: MicrioImage;
 
 	readonly tileSize: number;
 	readonly is360: boolean;
@@ -264,7 +268,7 @@ export class TileCanvas {
 
 	/** Notifies the JS host about visibility changes. */
 	setCanvasVisible(b: boolean): void {
-		this.main.setCanvasVisible(this, b);
+		this.micrioImage?.visible?.set(b);
 		this.#isVisible = b;
 	}
 
@@ -392,7 +396,7 @@ export class TileCanvas {
 		for (let i = 0; i < this.#children.length; i++)
 			this.#children[i].draw();
 
-		if (this.view.changed) this.main.viewSet(this);
+		if (this.view.changed) this.micrioImage?.camera?.viewChanged();
 		this.view.changed = false;
 	}
 
@@ -503,7 +507,7 @@ export class TileCanvas {
 	/** Notifies JS host about the current screen viewport details. */
 	sendViewport(): void {
 		const c = this.main.el;
-		this.main.viewportSet(this, this.el.left / c.ratio, this.el.top / c.ratio, this.el.width / c.ratio, this.el.height / c.ratio);
+		this.micrioImage?.viewport?.set([this.el.left / c.ratio, this.el.top / c.ratio, this.el.width / c.ratio, this.el.height / c.ratio]);
 	}
 
 	/** Finds the Image, Layer, and calculates the DrawRect for a given global tile index. */
@@ -661,8 +665,20 @@ export class TileCanvas {
 		for (let i = 0; i < this.#children.length; i++) this.#children[i].aniStop();
 	}
 
-	aniDone(): void { this.main.aniDone(this); }
-	aniAbort(): void { this.main.aniAbort(this); }
+	aniDone(): void {
+		const cam = this.micrioImage?.camera;
+		if (!cam) return;
+		if (cam.aniDone) cam.aniDone();
+		while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
+		cam.aniAbort = cam.aniDone = undefined;
+	}
+	aniAbort(): void {
+		const cam = this.micrioImage?.camera;
+		if (!cam) return;
+		if (cam.aniAbort) cam.aniAbort();
+		cam.aniDoneAdd.length = 0;
+		cam.aniAbort = cam.aniDone = undefined;
+	}
 }
 
 /** @internal */

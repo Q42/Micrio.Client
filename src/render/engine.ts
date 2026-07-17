@@ -162,8 +162,6 @@ export class Engine {
 	#activeCanvasEntry: CanvasEntry | null = null;
 	/** Map from MicrioImage/Frame → canvas entry (O(1) direct lookup). @internal */
 	#entryByImage: Map<MicrioImage | Models.Omni.Frame, CanvasEntry> = new Map();
-	/** Map from TileCanvas → canvas entry (O(1) reverse lookup). @internal */
-	#canvasToEntry: Map<TileCanvas, CanvasEntry> = new Map();
 
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
@@ -173,8 +171,6 @@ export class Engine {
 	/** Stores a canvas entry in the lookup maps. @internal */
 	#setEntry(entry: CanvasEntry): void {
 		this.#entryByImage.set(entry.micrioImage, entry);
-		// Only store the first (parent) entry per canvas — embeds share the parent canvas
-		if (!this.#canvasToEntry.has(entry.canvas)) this.#canvasToEntry.set(entry.canvas, entry);
 	}
 
 	constructor(
@@ -215,17 +211,6 @@ export class Engine {
 			this.bareBone = b;
 			this.#bareBoneSetting = b;
 		}));
-	}
-
-	/** Finds the public Camera instance associated with an engine Canvas. @internal */
-	#findCamera(c: TileCanvas): Camera | undefined {
-		return this.#canvasToEntry.get(c)?.camera;
-	}
-
-	/** Finds the canvas entry associated with an engine Canvas or Image. @internal */
-	#findEntry(c: TileCanvas | Image): CanvasEntry | undefined {
-		if (c instanceof TileCanvas) return this.#canvasToEntry.get(c);
-		return undefined;
 	}
 
 	/**
@@ -308,40 +293,6 @@ export class Engine {
 	/** @internal */
 	setViewport = (left: number, bottom: number, w: number, h: number): void => {
 		this.micrio.webgl.gl.viewport(Math.floor(left), Math.floor(bottom), Math.ceil(w), Math.ceil(h));
-	}
-
-	/** @internal */
-	aniDone = (c: TileCanvas): void => {
-		const cam = this.#findCamera(c);
-		if (!cam) return;
-		if (cam.aniDone) cam.aniDone();
-		while (cam.aniDoneAdd.length) cam.aniDoneAdd.shift()?.();
-		cam.aniAbort = cam.aniDone = undefined;
-	}
-
-	/** @internal */
-	aniAbort = (c: TileCanvas): void => {
-		const cam = this.#findCamera(c);
-		if (!cam) return;
-		if (cam.aniAbort) cam.aniAbort();
-		cam.aniDoneAdd.length = 0;
-		cam.aniAbort = cam.aniDone = undefined;
-	}
-
-	/** @internal */
-	viewSet = (c: TileCanvas): void => { this.#findCamera(c)?.viewChanged(); }
-
-	/** @internal */
-	viewportSet = (c: TileCanvas, x: number, y: number, w: number, h: number): void => {
-		const entry = this.#findEntry(c);
-		if (entry && 'viewport' in entry.micrioImage) {
-			(entry.micrioImage as MicrioImage).viewport.set([x, y, w, h]);
-		}
-	}
-
-	/** @internal */
-	setCanvasVisible = (c: TileCanvas, visible: boolean): void => {
-		this.#findEntry(c)?.micrioImage?.visible?.set(visible);
 	}
 
 	/** @internal */
@@ -438,6 +389,7 @@ export class Engine {
 		);
 
 		c.placed = true;
+		canvas.micrioImage = c;
 		this.#setEntry({ canvas, micrioImage: c, camera: c.camera });
 		this.images.push(c);
 
@@ -741,6 +693,7 @@ export class Engine {
 				};
 			}
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
+			canvas.micrioImage = image;
 		} else {
 			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
 			this.#engImageToMicrio.set(engImage, image);
