@@ -132,6 +132,11 @@ export class WebGL {
 	/** Flag indicating if the previous draw call was for a 360 tile. @internal */
 	#was360:boolean = false;
 
+	/** Tracks last-set noTexture uniform value to avoid redundant GL calls. */
+	#lastNoTexture: number = -1;
+	/** Tracks last-set opacity uniform value to avoid redundant GL calls. */
+	#lastOpacity: number = -1;
+
 	/** Optional PostProcessor instance for applying fullscreen effects. */
 	postprocessor?:PostProcessor;
 
@@ -249,19 +254,19 @@ export class WebGL {
 		// Link buffers to attributes initially
 		this.#linkBuffers();
 
+		// Ensure texture unit 0 is active (hoisted from per-tile path)
+		gl.activeTexture(gl.TEXTURE0);
+
 		// Set initial viewport
 		gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-
-		// Optional pixel store settings (commented out - defaults usually fine)
-		// gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
 	}
 
 	/** Links the vertex and texture coordinate buffers to the shader attributes. @internal */
 	#linkBuffers() : void {
 		const gl = this.gl;
-		// Bind and buffer vertex position data (using the view from Engine memory)
+		// Bind and buffer vertex position data (allocate to max size for bufferSubData compatibility)
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio.engine.vertexBuffer, gl.DYNAMIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio.engine.vertexBuffer360.byteLength, gl.DYNAMIC_DRAW);
 
 		// Enable and configure texture coordinate attribute
 		gl.enableVertexAttribArray(this.#txtAttr);
@@ -405,14 +410,20 @@ export class WebGL {
 	 * @param is360 True if rendering a 360 tile.
 	*/
 	drawTile(texture?:WebGLTexture, opacity:number=1, is360:boolean=false) : void {
-		// Set uniforms: noTexture flag and opacity
-		this.gl.uniform1i(this.#noTxtLoc, texture ? 0 : 1);
-		this.gl.uniform1f(this.#opaLoc, opacity);
-		// Bind the texture if provided
+		const gl = this.gl;
+		// Set uniforms only when values change
+		const noTexture = texture ? 0 : 1;
+		if (noTexture !== this.#lastNoTexture) {
+			gl.uniform1i(this.#noTxtLoc, noTexture);
+			this.#lastNoTexture = noTexture;
+		}
+		if (opacity !== this.#lastOpacity) {
+			gl.uniform1f(this.#opaLoc, opacity);
+			this.#lastOpacity = opacity;
+		}
+		// Bind the texture if provided (texture unit 0 is already active from init)
 		if(texture) {
-			this.gl.activeTexture(this.gl.TEXTURE0); // Ensure texture unit 0 is active
-			this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-			// TODO: Set sampler uniform (e.g., gl.uniform1i(samplerLoc, 0)) if not implicitly unit 0.
+			gl.bindTexture(gl.TEXTURE_2D, texture);
 		}
 
 		// Determine number of vertices based on 360 or standard quad
@@ -420,20 +431,20 @@ export class WebGL {
 
 		// If switching between 360 and standard rendering, re-buffer static texture coordinates
 		if(is360 != this.#was360) {
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#txtBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? Engine._textureBuffer360 : Engine._textureBuffer, this.gl.STATIC_DRAW);
-			// Re-bind geometry buffer (might not be strictly necessary but safer)
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#geomBuffer);
-			this.#was360 = is360; // Update state
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.#txtBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, is360 ? Engine._textureBuffer360 : Engine._textureBuffer, gl.STATIC_DRAW);
+			// Re-bind geometry buffer
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer);
+			this.#was360 = is360;
 		}
 
-		// Update dynamic vertex buffer data from Engine memory view
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, is360 ? this.#micrio.engine.vertexBuffer360 : this.#micrio.engine.vertexBuffer, this.gl.STATIC_DRAW); // TODO: Should this be DYNAMIC_DRAW?
+		// Update dynamic vertex buffer via bufferSubData (buffer already allocated with DYNAMIC_DRAW)
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, is360 ? this.#micrio.engine.vertexBuffer360 : this.#micrio.engine.vertexBuffer);
 
 		// Draw the geometry
 		// For wireframe debugging:
-		// this.gl.drawArrays(this.gl.LINE_STRIP, 0, length);
-		this.gl.drawArrays(this.gl.TRIANGLES, 0, length); // Draw triangles
+		// gl.drawArrays(this.gl.LINE_STRIP, 0, length);
+		gl.drawArrays(gl.TRIANGLES, 0, length);
 
 	}
 

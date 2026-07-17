@@ -206,7 +206,7 @@ export default class Ani {
 
 		if (correct) t.limit(true, !limitViewport);
 
-		const resoFact = Math.max(10000, Math.min(15000, Math.sqrt(c.width * c.width + c.height * c.height) / 2));
+		const resoFact = Math.max(10000, Math.min(15000, c.diagonal / 2));
 		let dCenterX = Math.abs(fromCenterX - toCenterX);
 		if (c.is360) dCenterX = Math.min(dCenterX, 1 - dCenterX);
 		const dCenterY = Math.abs(fromCenterY - toCenterY);
@@ -271,7 +271,7 @@ export default class Ani {
 		const webgl = c.webgl;
 
 		this.#zFrom = webgl.perspective;
-		this.#zTo = this.#zFrom + (to / (webgl.scale * Math.sqrt(c.width * c.width + c.height * c.height) / 20));
+		this.#zTo = this.#zFrom + (to / (webgl.scale * c.diagonal / 20));
 		if (!noLimit) this.#zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.#zTo));
 
 		this.#started = time;

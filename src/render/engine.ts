@@ -125,6 +125,8 @@ export class Engine {
 	#drawnSet: Set<number> = new Set();
 	/** Set storing the indices of tiles drawn in the previous frame. @internal */
 	#prevDrawnSet: Set<number> = new Set();
+	/** Double-buffer peer for prevDrawnSet to avoid per-frame allocation. @internal */
+	#prevDrawnSetSwap: Set<number> = new Set();
 	/** Unified tile state storage. @internal */
 	#tiles: Map<number, TileEntry> = new Map();
 	/** Map tracking ongoing texture download requests. @internal */
@@ -711,7 +713,12 @@ export class Engine {
 			}
 		}
 
-		this.#prevDrawnSet = new Set(this.#drawnSet);
+		// Swap double-buffered sets to avoid per-frame Set allocation
+		const tmp = this.#prevDrawnSet;
+		this.#prevDrawnSet = this.#prevDrawnSetSwap;
+		this.#prevDrawnSetSwap = tmp;
+		this.#prevDrawnSetSwap.clear();
+		for (const idx of this.#drawnSet) this.#prevDrawnSet.add(idx);
 
 		for (const [idx, tile] of this.#tiles.entries()) {
 			if (tile.deleteAt && (now - tile.deleteAt) / 1000 > this.#deleteAfterSeconds) {

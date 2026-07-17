@@ -51,6 +51,9 @@ export class TileCanvas {
 
 	readonly images: Image[] = [];
 
+	/** Cached diagonal (sqrt(w² + h²)), updated on resize. */
+	diagonal: number = 0;
+
 	readonly #children: TileCanvas[] = [];
 	readonly area!: View;
 	readonly currentArea!: View;
@@ -144,6 +147,7 @@ export class TileCanvas {
 		if (!hasParent) main.canvases.push(this);
 
 		this.aspect = width / height;
+		this.diagonal = Math.sqrt(width * width + height * height);
 
 		this.view = new View(this);
 		this.focus = new View(this);
@@ -519,6 +523,7 @@ export class TileCanvas {
 			const c = this.main.el;
 			this.width = c.width;
 			this.height = c.height;
+			this.diagonal = Math.sqrt(c.width * c.width + c.height * c.height);
 		}
 		if (!this.hasParent) {
 			if (this.is360) this.webgl.resize();

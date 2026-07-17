@@ -172,12 +172,15 @@ export default class Camera {
 		this.#wasCoverLimit = c.coverLimit;
 	}
 
+	/** Compare two numbers within 1e-6 epsilon. */
+	static epsEq(a: number, b: number): boolean { return Math.abs(a - b) < 1e-6; }
+
 	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). */
 	isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
-	isZoomedOut(b: boolean = false): boolean { return Math.trunc((this.scale - this.minScale * (b ? this.minSize : 1)) * 1e6) / 1e6 <= 0; }
+	isZoomedOut(b: boolean = false): boolean { return Camera.epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn(): boolean { return Math.trunc((this.scale - this.maxScale) * 1e6) / 1e6 >= 0; }
+	isZoomedIn(): boolean { return Camera.epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
 
 	/**
 	 * Calculates and sets the current camera scale and view offsets based on the logical view rectangle.
@@ -230,9 +233,9 @@ export default class Camera {
 	isOutsideLimit(): boolean {
 		const v = this.#canvas.view;
 		return !this.#canvas.freeMove && (
-			(Math.trunc((v.x0 - v.lX0) * 1e6) / 1e6 < 0) !== (Math.trunc((v.x1 - v.lX1) * 1e6) / 1e6 > 0)
-			|| (Math.trunc((v.y0 - v.lY0) * 1e6) / 1e6 < 0) !== (Math.trunc((v.y1 - v.lY1) * 1e6) / 1e6 > 0)
-			|| Math.trunc((this.scale - this.maxScale) * 1e6) / 1e6 > 0
+			(!Camera.epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!Camera.epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
+			|| (!Camera.epsEq(v.y0, v.lY0) && v.y0 < v.lY0) !== (!Camera.epsEq(v.y1, v.lY1) && v.y1 > v.lY1)
+			|| (!Camera.epsEq(this.scale, this.maxScale) && this.scale > this.maxScale)
 		);
 	}
 

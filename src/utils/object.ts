@@ -4,14 +4,14 @@
  */
 
 /**
- * Creates a deep clone of an object using JSON stringify/parse.
- * Note: This will lose functions, Date objects, undefined values, etc.
+ * Creates a deep clone of an object using structuredClone.
+ * Falls back to JSON round-trip for environments that don't support it.
  * @internal
  * @template T The type of the object being cloned.
  * @param o The object to clone.
  * @returns A deep clone of the object.
  */
-export const clone = <T>(o: T): T => JSON.parse(JSON.stringify(o)) as T;
+export const clone = <T>(o: T): T => 'structuredClone' in self ? structuredClone(o) : JSON.parse(JSON.stringify(o)) as T;
 
 /**
  * Performs a deep copy from one object to another, merging properties.

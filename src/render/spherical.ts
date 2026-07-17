@@ -165,7 +165,7 @@ export default class SphericalView {
 		if (dur !== 0) {
 			dur = c.ani.zoom(factor, dur, speed, noLimit, t);
 		} else {
-			factor /= this.scale * Math.sqrt(c.width * c.width + c.height * c.height) / 20;
+			factor /= this.scale * c.diagonal / 20;
 
 			const hasCursor: boolean = pxX > 0 && pxY > 0;
 			let beforeX: number = 0, beforeY: number = 0;
