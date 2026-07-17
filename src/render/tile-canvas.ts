@@ -6,7 +6,7 @@ import { base360Distance } from './constants';
 
 import Kinetic from './kinetic'
 import Ani from './ani'
-import Camera from './engine-camera'
+import EngineCamera from './engine-camera'
 import Image from './tile-image'
 import SphericalView from './spherical'
 
@@ -45,7 +45,7 @@ export class TileCanvas {
 	readonly focus!: View;
 	readonly ani!: Ani;
 	readonly kinetic!: Kinetic;
-	readonly camera!: Camera;
+	readonly camera!: EngineCamera;
 	readonly webgl!: SphericalView;
 	readonly rect: DrawRect = new DrawRect;
 	readonly el: Viewport = new Viewport;
@@ -157,7 +157,7 @@ export class TileCanvas {
 		this.focus = new View(this);
 		this.ani = new Ani(this);
 		this.kinetic = new Kinetic(this);
-		this.camera = new Camera(this);
+		this.camera = new EngineCamera(this);
 		this.webgl = new SphericalView(this);
 		this.area = new View(this);
 		this.currentArea = new View(this);

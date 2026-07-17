@@ -9,7 +9,7 @@ import { longitudeDistance } from './easing';
 import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
-export default class Camera {
+export default class EngineCamera {
 	scale: number = 1.0;
 	minScale: number = 1.0;
 	minSize: number = 1.0;
@@ -178,9 +178,9 @@ export default class Camera {
 	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). */
 	isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
-	isZoomedOut(b: boolean = false): boolean { return Camera.epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
+	isZoomedOut(b: boolean = false): boolean { return EngineCamera.epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn(): boolean { return Camera.epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
+	isZoomedIn(): boolean { return EngineCamera.epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
 
 	/**
 	 * Calculates and sets the current camera scale and view offsets based on the logical view rectangle.
@@ -233,9 +233,9 @@ export default class Camera {
 	isOutsideLimit(): boolean {
 		const v = this.#canvas.view;
 		return !this.#canvas.freeMove && (
-			(!Camera.epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!Camera.epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
-			|| (!Camera.epsEq(v.y0, v.lY0) && v.y0 < v.lY0) !== (!Camera.epsEq(v.y1, v.lY1) && v.y1 > v.lY1)
-			|| (!Camera.epsEq(this.scale, this.maxScale) && this.scale > this.maxScale)
+			(!EngineCamera.epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!EngineCamera.epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
+			|| (!EngineCamera.epsEq(v.y0, v.lY0) && v.y0 < v.lY0) !== (!EngineCamera.epsEq(v.y1, v.lY1) && v.y1 > v.lY1)
+			|| (!EngineCamera.epsEq(this.scale, this.maxScale) && this.scale > this.maxScale)
 		);
 	}
 
