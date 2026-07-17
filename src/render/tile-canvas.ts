@@ -643,6 +643,8 @@ export class TileCanvas {
 	isZoomedIn(): boolean { return this.is360 ? this.webgl.perspective <= this.webgl.minPerspective : this.camera.isZoomedIn() }
 	isZoomedOut(b: boolean = false): boolean { return this.is360 ? this.webgl.perspective >= this.webgl.maxPerspective : this.camera.isZoomedOut(b) }
 
+	correctMinMax(noLimit?: boolean): void { this.camera.correctMinMax(noLimit); }
+
 	setDirection(yaw: number, pitch: number, resetPersp: boolean): void {
 		if (isNaN(pitch)) pitch = this.webgl.pitch;
 		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
