@@ -127,15 +127,12 @@ class Archive {
 	 * @returns A Promise resolving to the loaded TextureBitmap.
 	 * @throws If the file or its archive is not found.
 	 */
-	getImage = async (u: string) : Promise<TextureBitmap> => new Promise((ok, err) => { // Added err callback
-		const i = this.db.get(u); // Look up file index
-		if(!i || !this.#data.has(i[0])) return err(new Error('Could not get blob: '+u)); // Throw error if not found
-
-		// Create a Blob from the specific byte range
+	getImage = async (u: string) : Promise<TextureBitmap> => {
+		const i = this.db.get(u);
+		if(!i || !this.#data.has(i[0])) throw new Error('Could not get blob: '+u);
 		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
-
-		ok(self.createImageBitmap(blob));
-	})
+		return self.createImageBitmap(blob);
+	}
 }
 
 /**
