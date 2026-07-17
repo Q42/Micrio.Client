@@ -20,3 +20,14 @@ export const toCenterJSON = (v: Models.Camera.View): { centerX: number; centerY:
 	height: v[3]
 });
 
+/** Check if point (x,y) falls inside AABB [ax, ay, aw, ah]. */
+export const pointInArea = (x: number, y: number, a: [number, number, number, number]): boolean =>
+	x >= a[0] && x <= a[0] + a[2] && y >= a[1] && y <= a[1] + a[3];
+
+/** Normalize a 3D vector in-place. Returns the squared length (0 if zero-length). */
+export const normalize3 = (x: number, y: number, z: number): [number, number, number] => {
+	let len = x * x + y * y + z * z;
+	if (len > 0) { len = 1 / Math.sqrt(len); return [x * len, y * len, z * len]; }
+	return [0, 0, 0];
+};
+

@@ -1,6 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import { createElement, createSvgElement } from '$utils/dom';
+import { createElement } from '$utils/dom';
+import { svgIcon } from '$ui/icons';
 import { writable, get, lazy } from '$core/store';
 import '$ui/icon';
 
@@ -141,16 +142,7 @@ export class MicrioMenu extends MicrioElement<MenuProps> {
 
 			if (menu.icon) {
 				btnChildren.unshift(
-					createSvgElement('svg', {
-						attrs: {
-							viewBox: `0 0 ${menu.icon[0]} ${menu.icon[1]}`,
-							fill: 'currentColor'
-						},
-						style: 'height:1em;vertical-align:-.125em;margin-right:10px',
-						children: [
-							createSvgElement('path', { attrs: { d: menu.icon[2] } })
-						]
-					})
+					svgIcon(menu.icon, { style: 'height:1em;vertical-align:-.125em;margin-right:10px' })
 				);
 			}
 

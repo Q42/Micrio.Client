@@ -13,6 +13,7 @@ import { once } from '$utils/store';
 import { tick } from '$core/store';
 import { Enums } from '$core/enums';
 import { createElement, sleep } from '$utils/dom';
+import { pointInArea } from '$utils/math';
 
 import { gridString, parseGridString, getCols as calcCols, slideAreas, swipeAreas, swipeExitAreas } from './format';
 
@@ -183,10 +184,7 @@ export class Grid {
 		// Detect which cell was clicked using engine coordinates (works even in 'grid' panZoom mode)
 		const coo = this.image.camera.getCoo(e.clientX, e.clientY, true);
 		const vx = coo[0], vy = coo[1];
-		const img = this.current.find(i => {
-			const a = i.opts.area;
-			return a && vx >= a[0] && vx <= a[0] + a[2] && vy >= a[1] && vy <= a[1] + a[3];
-		});
+		const img = this.current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 		if (!img) return;
 		this.clickCell(img);
 	}
@@ -994,10 +992,7 @@ export class Grid {
 		if (this.panZoom == 'grid') return this.image;
 		const coo = this.image.camera.getCoo(clientX, clientY, true);
 		const vx = coo[0], vy = coo[1];
-		return this.current.find(i => {
-			const a = i.opts.area;
-			return a && vx >= a[0] && vx <= a[0] + a[2] && vy >= a[1] && vy <= a[1] + a[3];
-		});
+		return this.current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 	}
 
 	getRelativeView(image:MicrioImage, view:Models.Camera.View) : Models.Camera.View {

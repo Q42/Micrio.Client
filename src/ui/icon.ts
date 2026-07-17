@@ -1,6 +1,5 @@
 import { MicrioElement } from '$core/component';
-import { icons, type MicrioIcon } from '$ui/icons';
-import { createSvgElement, SVG_NS } from '$utils/dom';
+import { icons, svgIcon, type MicrioIcon } from '$ui/icons';
 
 export type IconName = (
 	'zoom-in'|'zoom-out'|'maximize'|'minimize'|'close'|
@@ -98,18 +97,8 @@ export class MicrioIconElement extends MicrioElement {
 		const icon = ICON_LIB[this.#name];
 		if (!icon) { this.replaceChildren(); return; }
 
-		const svg = createSvgElement('svg', {
-			attrs: {
-				xmlns: SVG_NS,
-				viewBox: `0 0 ${icon[0]} ${icon[1]}`,
-				fill: 'currentColor',
-			},
-			className: 'micrio-icon',
-		});
+		const svg = svgIcon(icon, { className: 'micrio-icon' });
 		if (SMALL_NAMES.has(this.#name)) svg.classList.add('small');
-
-		createSvgElement('path', { attrs: { d: icon[2] }, parent: svg });
-
 		this.replaceChildren(svg);
 	}
 }

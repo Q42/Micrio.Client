@@ -1,6 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
+import { normalize3 } from '$utils/math';
 
 export interface AudioLocationProps {
 	marker: Models.ImageData.Marker;
@@ -59,11 +60,10 @@ export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 				this.#panner.positionX.value = _x;
 				this.#panner.positionY.value = _y;
 				this.#panner.positionZ.value = _z;
-				let len = _x * _x + _y * _y + _z * _z;
-				if (len > 0) len = 1.0 / Math.sqrt(len);
-				this.#panner.orientationX.value = _x * len;
-				this.#panner.orientationY.value = _y * len;
-				this.#panner.orientationZ.value = _z * len;
+				const [nx, ny, nz] = normalize3(_x, _y, _z);
+				this.#panner.orientationX.value = nx;
+				this.#panner.orientationY.value = ny;
+				this.#panner.orientationZ.value = nz;
 			} else {
 				this.#panner.distanceModel = 'linear';
 				this.#panner.positionX.value = (marker.x - 0.5) * 2;

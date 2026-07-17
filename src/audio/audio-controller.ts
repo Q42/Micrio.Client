@@ -2,6 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { writable, get } from '$core/store';
 import { Browser } from '$utils/browser';
+import { normalize3 } from '$utils/math';
 
 // ── Module-level AudioContext state ──
 
@@ -106,9 +107,8 @@ export class MicrioAudioController extends MicrioElement {
 				const _y = Math.sin(y) * r;
 				const _z = Math.cos(y) * Math.cos(x) * r;
 				setPosition(_x, _y, _z);
-				let len = _x * _x + _y * _y + _z * _z;
-				if (len > 0) len = 1.0 / Math.sqrt(len);
-				setOrientation(_x * len, _y * len, _z * len);
+				const [nx, ny, nz] = normalize3(_x, _y, _z);
+				setOrientation(nx, ny, nz);
 			} else {
 				setPosition((x - 0.5) * 2, (0.5 - y) * 2 * ar, z);
 				setOrientation(0, 0, -1);
