@@ -81,8 +81,6 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		this.#micrio = this.getMicrio()!;
 		if (!this.#micrio || !embed || !image) return;
 
-		if (embed.src?.startsWith('/r2')) embed.src = 'http://localhost:6100' + embed.src;
-
 		this.#info = image.$info!;
 		if (!this.#info) return;
 
@@ -107,15 +105,14 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 		this.#glImage = image.embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid) as MicrioImage | undefined;
 
-		this.#screenIsHDR = window.matchMedia('(dynamic-range: high)').matches || Browser.OSX;
+		this.#screenIsHDR = matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
 		this.#isSVG = embed.src?.toLowerCase().endsWith('.svg') ?? false;
 		this.#isSmall = embed.width && embed.height ? embed.width * embed.height < 1048576 : false;
 
 		const isIOS14 = /iPhone OS 14_/i.test(navigator.userAgent);
-		const glAttr = 'data-embeds-inside-gl';
-		const glAttrValue = this.#micrio.getAttribute(glAttr);
-		this.#embedImageAsHtml = this.#isSVG || isIOS14 || (!this.#screenIsHDR && !this.#micrio.hasAttribute(glAttr) && !!embed.video) || glAttrValue == 'false';
+		const glAttrValue = this.#micrio.getAttribute('data-embeds-inside-gl');
+		this.#embedImageAsHtml = this.#isSVG || isIOS14 || (!this.#screenIsHDR && !this.#micrio.hasAttribute('data-embeds-inside-gl') && !!embed.video) || glAttrValue == 'false';
 
 		this.#printGL = !this.#embedImageAsHtml && !!(
 			(embed.micrioId && (!this.#isSmall || !embed.src))
@@ -200,7 +197,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 			className: 'embed-container',
 			events: {
 				click: () => this.#click(),
-				keypress: () => this.#click()
+				keydown: () => this.#click()
 			},
 			parent: this
 		};
@@ -456,7 +453,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		if (e && 'detail' in e) {
 			const emb = e.detail as Models.ImageData.Embed;
 			const target = this.#props.embed as Record<string, any>;
-			for (const x in emb) {
+			for (const x of Object.keys(emb as Record<string, unknown>)) {
 				target[x] = (emb as Record<string, any>)[x];
 			}
 		}
@@ -485,7 +482,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		this.removeEventListener('change', this.#onChange);
 		if (this.#container) {
 			this.#container.removeEventListener('click', this.#click);
-			this.#container.removeEventListener('keypress', this.#click);
+			this.#container.removeEventListener('keydown', this.#click);
 		}
 	}
 }
