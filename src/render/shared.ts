@@ -6,7 +6,7 @@
 
 import type { default as TileCanvas } from './tile-canvas';
 import type { default as Image } from './tile-image';
-import { mod1 } from './easing';
+import { mod1 } from '$utils/math';
 
 /** Structure to hold information about a specific tile to be drawn. @internal */
 export class DrawRect {

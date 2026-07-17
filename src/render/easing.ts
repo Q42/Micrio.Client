@@ -4,18 +4,7 @@
  * @internal
  */
 
-/** Calculates 2 to the power of num (2^num). @internal */
-export function twoNth(num: number): number {
-	return 1 << num;
-}
-
-/** Calculates the modulo 1 of a number (keeps the fractional part, positive). @internal */
-export const mod1 = (n: number): number => ((n % 1) + 1) % 1;
-
-/** Calculates the modulo 2*PI of a number (wraps angles to the range [0, 2*PI)). @internal */
-export function modPI(n: number): number {
-	return (n % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-}
+import { mod1 } from '$utils/math';
 
 /**
  * Calculates the shortest angular distance between two longitude coordinates.

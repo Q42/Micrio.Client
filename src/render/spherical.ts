@@ -4,7 +4,7 @@
  * @internal
  */
 
-import { modPI, mod1 } from './easing'
+import { modPI, mod1 } from '$utils/math'
 import { Coordinates } from './shared'
 import { Vec4, Mat4 } from './mat'
 import { segsX, segsY } from './constants'

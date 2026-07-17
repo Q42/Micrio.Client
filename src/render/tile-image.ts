@@ -6,7 +6,7 @@
  */
 
 import { DrawRect, Coordinates } from './shared';
-import { twoNth, mod1 } from './easing';
+import { twoNth, mod1 } from '$utils/math';
 import { Vec4, Mat4 } from './mat';
 import type { default as TileCanvas } from './tile-canvas';
 
