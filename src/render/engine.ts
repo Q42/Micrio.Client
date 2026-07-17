@@ -395,7 +395,13 @@ export class Engine {
 		if (settings?.skipBaseLevels)
 			this.skipBaseLevels = settings.skipBaseLevels;
 
-		if (settings?.omni) c.camera.setOmniSettings();
+		if (settings?.omni) {
+			canvas.omniDistance = -(settings.omni.distance ?? 0);
+			canvas.omniFieldOfView = settings.omni.fieldOfView ?? 0;
+			canvas.omniVerticalAngle = settings.omni.verticalAngle ?? 0;
+			canvas.omniOffsetX = settings.omni.offsetX ?? 0;
+			c.state.view.set([0, 0, 1, 1]);
+		}
 		if (this.micrio.hasAttribute('data-limited') && c.canvas) c.canvas.limited = true;
 
 		canvas.sendViewport();

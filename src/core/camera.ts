@@ -313,18 +313,6 @@ export class Camera {
 		return this.#canvas?.camera.getXYOmniCoo(x, y, z, 0, false).arr ?? new Float64Array(5);
 	}
 
-	/** [Omni] Applies Omni-specific camera settings (distance, FoV, angle) to the engine canvas. */
-	setOmniSettings(): void {
-		const omni = this.image.$settings.omni;
-		if (!omni || !this.#canvas) return;
-		const c = this.#canvas;
-		c.omniDistance = -omni.distance || 0;
-		c.omniFieldOfView = omni.fieldOfView ?? 0;
-		c.omniVerticalAngle = omni.verticalAngle ?? 0;
-		c.omniOffsetX = omni.offsetX ?? 0;
-		this.image.state.view.set(this.#view);
-	}
-
 	// ─── Animation lifecycle (called by TileCanvas) ────────────────
 
 	/**
