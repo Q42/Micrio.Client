@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"strict": true,
-		"target": "ES2020",
+		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"noEmit": true,
@@ -26,7 +26,6 @@
 	"include": [
 		"src/*.ts",
 		"src/types/**/*",
-
 		"src/media/**/*",
 		"src/core/**/*",
 		"src/ui/**/*",

@@ -32,8 +32,28 @@ export default defineConfig({
 		minify: 'terser',
 		terserOptions: {
 			compress: {
-				pure_funcs: ['console.log']
-			}
+				pure_funcs: ['console.log'],
+				booleans_as_integers: true,
+				passes: 6,
+				unsafe_arrows: true,
+				unsafe_comps: true,
+				unsafe_math: true,
+				unsafe_methods: true,
+				unsafe_proto: true,
+				unsafe_regexp: true,
+				unsafe_undefined: true,
+				drop_debugger: true,
+				ecma: 2022,
+			},
+			mangle: {
+				toplevel: false,
+				keep_classnames: false,
+				keep_fnames: false,
+				properties: false,
+			},
+			format: {
+				comments: false,
+			},
 		},
 		lib: {
 			entry: `./src/main.ts`,
