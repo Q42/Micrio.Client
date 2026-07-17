@@ -8,7 +8,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from '$core/store';
-import { clone, deepCopy } from '$utils/object';
+import { deepCopy } from '$utils/object';
 import { getIdVal, idIsV5 } from '$utils/id';
 import { once } from '$utils/store';
 import { MicrioError, getErrorMessage } from '$core/error';
@@ -43,7 +43,7 @@ export class MicrioImage {
 	 * @internal
 	 * @readonly
 	*/
-	#__info:Models.ImageInfo.ImageInfo = clone(DEFAULT_INFO);
+	#__info:Models.ImageInfo.ImageInfo = structuredClone(DEFAULT_INFO);
 
 	/** Svelte Readable store holding the image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
 	readonly info: Readable<Models.ImageInfo.ImageInfo|undefined>;

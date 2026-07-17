@@ -2,7 +2,6 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { clone } from '$utils/object';
 import { createElement } from '$utils/dom';
 import './marker';
 import './waypoint';
@@ -186,8 +185,8 @@ micrio-markers.is360.inactive{opacity:0}`;
 			let wasVideoTour = false;
 			this.addCleanup(image.state.marker.subscribe(m => {
 				if (m && typeof m != 'string' && !image.openedView && !m.noMarker && m.view) {
-					image.openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
-						: clone(image.state.$view ?? image.camera?.getView());
+			image.openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
+				: structuredClone(image.state.$view ?? image.camera?.getView());
 					wasVideoTour = !!m.videoTour;
 				} else if (!m && image.openedView && !get(micrio.state.tour)) {
 					setTimeout(() => {

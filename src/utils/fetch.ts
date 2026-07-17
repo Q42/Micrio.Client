@@ -3,7 +3,6 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import { clone } from './object';
 import { MicrioError } from '$core/error';
 
 /** Global cache for fetched JSON data, keyed by URI.
@@ -27,7 +26,7 @@ const jsonErrors: Map<string, MicrioError> = new Map();
  * @returns A Promise resolving to the fetched JSON data (type T) or undefined on error.
  */
 export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
-	if (!noCache && jsonCache.has(uri)) return clone<T>(jsonCache.get(uri) as T); // Return cached data if available
+	if (!noCache && jsonCache.has(uri)) return structuredClone(jsonCache.get(uri) as T);
 	if (jsonPromises.has(uri)) return jsonPromises.get(uri) as Promise<T>; // Return existing promise if fetch is in progress
 	if (jsonErrors.has(uri)) throw jsonErrors.get(uri)!;
 
@@ -42,7 +41,7 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
 	}).then(j => {
 		if (!noCache) jsonCache.set(uri, j); // Store result in cache
 		jsonPromises.delete(uri); // Remove promise from tracking map
-		return clone(j);
+		return structuredClone(j);
 	}).catch(e => { // Handle fetch errors
 		jsonPromises.delete(uri);
 		throw e;

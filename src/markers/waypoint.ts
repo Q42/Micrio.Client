@@ -2,7 +2,6 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { clone } from '$utils/object';
 import { DataLoader } from '$utils/dataLoader';
 import { getSpaceVector } from '$utils/space';
 import { i18n } from '$core/i18n/strings';
@@ -72,7 +71,7 @@ micrio-waypoint.direction-down .micrio-button{/* down */}`;
 			rotY: 0, rotZ: 0
 		};
 
-		const customCoords = settings?.coords ?? clone(autoCoords);
+		const customCoords = settings?.coords ?? structuredClone(autoCoords);
 		const isCustom = customCoords.custom;
 		this.#coords = isCustom ? customCoords : autoCoords;
 
