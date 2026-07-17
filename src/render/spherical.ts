@@ -433,10 +433,10 @@ export default class SphericalView {
 				const t = -(y + sH * pY) * pi2;
 				const r = -(mod1(x + sW * (pX + 1) + this.offX) * pi2);
 				const b = -(y + sH * (pY + 1)) * pi2;
-				let cL = Math.cos(l) * a; if (isNaN(cL)) cL = 0;
-				let sL = Math.sin(l) * a; if (isNaN(sL)) sL = 0;
-				let cR = Math.cos(r) * a; if (isNaN(cR)) cR = 0;
-				let sR = Math.sin(r) * a; if (isNaN(sR)) sR = 0;
+				const cL = Math.cos(l) * a || 0;
+				const sL = Math.sin(l) * a || 0;
+				const cR = Math.cos(r) * a || 0;
+				const sR = Math.sin(r) * a || 0;
 				const cT = Math.cos(t), cB = Math.cos(b);
 				const sT = Math.sin(t) * a, sB = Math.sin(b) * a;
 
