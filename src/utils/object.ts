@@ -13,16 +13,14 @@ export function deepCopy<T>(from: T, into: T, opts: {
 	noOverwrite?: boolean;
 } = {}): T {
 	if (!from || typeof from !== 'object') return into;
-	for (const x in from) {
-		const val = (from as Record<string, unknown>)[x];
+	const target = into as Record<string, unknown>;
+	for (const key of Object.keys(from as Record<string, unknown>)) {
+		const val = (from as Record<string, unknown>)[key];
 		if (val && typeof val === 'object' && Object.getPrototypeOf(val) === Object.prototype) {
-			const intoObj = into as Record<string, unknown>;
-			if (!intoObj[x] || typeof intoObj[x] != 'object') intoObj[x] = {};
-			deepCopy(val as Record<string, unknown>, intoObj[x] as Record<string, unknown>, opts);
-		}
-		else {
-			const intoObj = into as Record<string, unknown>;
-			if (!opts.noOverwrite || !(x in (into as object))) intoObj[x] = val;
+			if (!target[key] || typeof target[key] !== 'object') target[key] = {};
+			deepCopy(val, target[key] as Record<string, unknown>, opts);
+		} else if (!opts.noOverwrite || !(key in target)) {
+			target[key] = val;
 		}
 	}
 	return into;
