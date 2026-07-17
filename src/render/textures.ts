@@ -54,8 +54,6 @@ function onmessage(idx: number, buffer?: ImageBitmap, error?: string, errorType?
 	const item = promises.get(idx);
 	if (!item) return;
 	promises.delete(idx);
-	running[idx] = false;
-	busyCount--;
 
 	if (error) {
 		item[2](error);
@@ -66,6 +64,12 @@ function onmessage(idx: number, buffer?: ImageBitmap, error?: string, errorType?
 		item[2](`Worker ${idx} sent invalid message.`);
 		console.error(`[Micrio Texture] Worker ${idx} sent invalid message for ${item[0]}`);
 	}
+
+	setTimeout(() => {
+		running[idx] = false;
+		busyCount--;
+		getNext();
+	}, 50);
 }
 
 export function runningThreads(): number {
