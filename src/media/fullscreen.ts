@@ -17,14 +17,12 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	#toggle = () => {
 		const el = this.#props.el;
 		if (!el) return;
-		const isNative = 'requestFullscreen' in el;
-		const isWebkit = 'webkitRequestFullscreen' in el;
-		if (this.#isActive) this.#exit(el, isNative);
-		else this.#enter(el, isNative, isWebkit);
+		if (this.#isActive) document.exitFullscreen();
+		else el.requestFullscreen();
 	};
 
 	onMount() {
-		if (!this.#props?.el) return; // setProps not called yet
+		if (!this.#props?.el) return;
 		this.#init();
 	}
 
@@ -39,22 +37,15 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		if (this.#inited) return;
 		this.#inited = true;
 		const el = this.#props.el!;
-		const isNative = 'requestFullscreen' in el;
-		const isWebkit = 'webkitRequestFullscreen' in el;
-		const getActiveEl = () => isNative ? document.fullscreenElement
-			: (document as Record<string, any>).webkitFullscreenElement ?? null;
+		if (!('requestFullscreen' in el)) return;
 
-		this.#isActive = getActiveEl() === el;
-		const available = isNative || (isWebkit && !getActiveEl());
-
-		if (!available) return;
+		this.#isActive = document.fullscreenElement === el;
 
 		const micrio = this.getMicrio();
-
 		const addScrollZoom = micrio && el == micrio && !micrio.events.scrollHooked;
 
 		const onchange = () => {
-			this.#isActive = getActiveEl() === el;
+			this.#isActive = document.fullscreenElement === el;
 			if (addScrollZoom) {
 				if (this.#isActive) micrio!.events.hookScroll();
 				else micrio!.events.unhookScroll();
@@ -62,27 +53,10 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 			this.#renderButton();
 		};
 
-		const evt = isNative ? 'fullscreenchange' : 'webkitfullscreenchange';
-    document.addEventListener(evt, onchange);
-    this.addCleanup(() => document.removeEventListener(evt, onchange));
+		document.addEventListener('fullscreenchange', onchange);
+		this.addCleanup(() => document.removeEventListener('fullscreenchange', onchange));
 
-    this.#renderButton();
-}
-
-	#enter(_el: HTMLElement, isNative: boolean, _isWebkit: boolean) {
-		if (isNative) {
-			_el.requestFullscreen();
-		} else if ('webkitRequestFullscreen' in _el) {
-			(_el as Record<string, any>).webkitRequestFullscreen();
-		}
-	}
-
-	#exit(_el: HTMLElement, isNative: boolean) {
-		if (isNative) {
-			document.exitFullscreen();
-		} else if ('webkitExitFullscreen' in document) {
-			(document as Record<string, any>).webkitExitFullscreen();
-		}
+		this.#renderButton();
 	}
 
 	#renderButton() {
@@ -97,7 +71,6 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 			parent: this,
 		});
 	}
-
 }
 
 customElements.define(MicrioFullscreen.tag, MicrioFullscreen);

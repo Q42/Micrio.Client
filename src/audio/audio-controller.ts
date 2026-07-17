@@ -15,9 +15,7 @@ function init(volume: number) {
 	if (mainGain) return;
 	if (!_ctx) _ctx = 'micrioAudioContext' in window
 		? (window as Record<string, any>)['micrioAudioContext'] as AudioContext
-		: 'AudioContext' in window ? new AudioContext()
-		: 'webkitAudioContext' in window ? new (window as Record<string, any>).webkitAudioContext() as AudioContext
-		: null;
+		: new AudioContext();
 	if (!_ctx) return console.warn('[Micrio] Your browser does not support the Web Audio API');
 	if (_ctx.state === 'suspended') _ctx.resume().then(() => { }).catch(() => { });
 	mainGain = _ctx.createGain();
@@ -94,8 +92,7 @@ export class MicrioAudioController extends MicrioElement {
 		const is360 = !!info.is360;
 		const ar = info.height / info.width;
 
-		const supported = 'AudioContext' in window || 'webkitAudioContext' in window;
-		if (!supported) return;
+		if (!('AudioContext' in window)) return;
 
 		const moved = (x: number, y: number, z: number) => {
 			if (is360) {
@@ -126,36 +123,34 @@ export class MicrioAudioController extends MicrioElement {
 		audio.volume = Browser.iOS ? 0 : 0.0001;
 		document.body.appendChild(audio);
 
-		if (supported) {
-			this.addCleanup(interacted.subscribe(b => {
-				if (!b) return;
-				const volumeStore = this.inject<any>('volume');
-				const vol = volumeStore ? get(volumeStore) : 1;
-				if (!_ctx) init(typeof vol === 'number' ? vol : 1);
-				if (_ctx) {
-					const data = image.$data;
-					if (data?.markers?.filter((m: any) => !!m.positionalAudio).length) {
-						this.addCleanup(image.state.view.subscribe(v => {
-							if (!v) return;
-							const d = Math.max(0, 1.05 - image.camera.getScale());
-							moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5));
-						}));
-					}
+		this.addCleanup(interacted.subscribe(b => {
+			if (!b) return;
+			const volumeStore = this.inject<any>('volume');
+			const vol = volumeStore ? get(volumeStore) : 1;
+			if (!_ctx) init(typeof vol === 'number' ? vol : 1);
+			if (_ctx) {
+				const data = image.$data;
+				if (data?.markers?.filter((m: any) => !!m.positionalAudio).length) {
+					this.addCleanup(image.state.view.subscribe(v => {
+						if (!v) return;
+						const d = Math.max(0, 1.05 - image.camera.getScale());
+						moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5));
+					}));
 				}
-			}));
-
-			if (!_ctx) {
-				audio.play().then(input).catch(() => events.dispatch('autoplay-blocked'));
-				addEventListener('pointerup', onUserGesture, { once: true });
 			}
+		}));
 
-			// Render playlist if music data exists
-			const data = image.$data;
-			if (data?.music?.items.length) {
-				const vol = this.inject<any>('volume');
-				const volVal: number = vol ? get(vol) : 1;
-				this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, (volVal as number) * (data.music.volume ?? 1));
-			}
+		if (!_ctx) {
+			audio.play().then(input).catch(() => events.dispatch('autoplay-blocked'));
+			addEventListener('pointerup', onUserGesture, { once: true });
+		}
+
+		// Render playlist if music data exists
+		const data = image.$data;
+		if (data?.music?.items.length) {
+			const vol = this.inject<any>('volume');
+			const volVal: number = vol ? get(vol) : 1;
+			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, (volVal as number) * (data.music.volume ?? 1));
 		}
 
 		this.addCleanup(micrio.isMuted.subscribe(muted => {
