@@ -9,7 +9,7 @@ import { idIsV5 } from '$utils/id';
 import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, DEFAULT_INFO, localStorageKeys } from './globals';
-import { writable, get } from '$core/store';
+import { writable, get, tick } from '$core/store';
 import { Engine } from '$render/engine';
 import { WebGL } from '$render/webgl';
 import { Canvas } from '$render/canvas';
@@ -19,7 +19,6 @@ import { State} from './state';
 import { GoogleTag } from '$utils/analytics';
 import { Grid } from '$grid/grid';
 import { Gallery } from '$gallery/controller';
-import { tick } from '$core/store';
 import { rtlLanguageCodes } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
@@ -141,7 +140,7 @@ ${cssVars}`;
 	_ui:any;
 
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
-	public defaultSettings?:Partial<Models.ImageInfo.Settings> = this.defaultSettings;
+	public defaultSettings?: Partial<Models.ImageInfo.Settings>;
 
 	/** Writable Svelte store indicating the overall loading state of the viewer.
 	 * @internal
@@ -198,10 +197,10 @@ ${cssVars}`;
 					this.$current.canvas.limited = !!newVal;
 				break;
 			case 'lang': {
-				let prevLang = get(this._lang);
-				if(prevLang != newVal) {
-					this._lang.set(newVal);
-					let baseLang = newVal.split('-')[0];
+			let prevLang = get(this._lang);
+			if(prevLang != newVal) {
+				this._lang.set(newVal);
+				const baseLang = newVal.split('-')[0];
 					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en);
 					if(newVal) {
 						if(rtlLanguageCodes.includes(newVal)) this.setAttribute('dir', 'rtl');
@@ -424,7 +423,6 @@ ${cssVars}`;
 
 		if(!opts.splitScreen && !opts.gridView && this.$current) this.switching.set(true);
 		if(!i.settings.noGTag) this.#analytics.hook();
-		this.#printed = true;
 		this.#printUI(!!i.settings.noUI, !!i.settings.noLogo);
 
 		let c:MicrioImage|undefined = this.canvases.find(c => i.id && c.id == i.id);
@@ -556,7 +554,7 @@ ${cssVars}`;
 		}
 
 		const process = (category: Record<string, any>, convert: (val: string | null, def: any) => any): void => {
-			for (const a in category) {
+			for (const a of Object.keys(category)) {
 				const d = category[a], val = this.getAttribute(a);
 				const f = d.f || a.replace('data-', '');
 				const v = convert(val, d);
