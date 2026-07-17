@@ -75,6 +75,9 @@ micrio-waypoint.direction-down .micrio-button{/* down */}`;
 		const isCustom = customCoords.custom;
 		this.#coords = isCustom ? customCoords : autoCoords;
 
+		this.classList.toggle('direction-up', v[1] < 0);
+		this.classList.toggle('direction-down', v[1] > 0);
+
 		const click = () => {
 			if (image.$settings._markers?.noMarkerActions) return;
 			this.#clicked = true;
@@ -96,15 +99,12 @@ micrio-waypoint.direction-down .micrio-button{/* down */}`;
 
 		const onmove = () => {
 			if (this.#hidden) return;
-			const matrix = image.camera.getMatrix(
+			this.style.transform = `matrix3d(${image.camera.getMatrix(
 				this.#coords.x, this.#coords.y,
 				this.#coords.baseScale * this.#coords.scale,
 				1, this.#coords.rotX, this.#coords.rotY, this.#coords.rotZ,
 				0, 1, 1, true
-			).join(',');
-			this.style.transform = `matrix3d(${matrix})`;
-			this.classList.toggle('direction-up', v[1] < 0);
-			this.classList.toggle('direction-down', v[1] > 0);
+			).join(',')})`;
 		};
 
 		const self = this;
