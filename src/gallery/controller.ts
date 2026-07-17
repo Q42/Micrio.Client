@@ -41,8 +41,6 @@ export class Gallery {
 	readonly micrio: HTMLMicrioElement;
 
 	parent: MicrioImage | null = null;
-	swiper: any = null;
-	grid: Grid | null = null;
 
 	readonly currentIndex: Writable<number> = writable(0);
 
@@ -282,44 +280,33 @@ export class Gallery {
 						: (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
 	}
 
-	// --- Page Layout ---
+	// --- Page Layout (spread-aware) ---
 
-	/** Compute the page layout for Gallery.svelte. Returns pages (camera views) and
-	 *  the mapping from page index to image index(es). For strip-swipe galleries each
-	 *  image fills the full viewport; for switch/grid the per-image `opts.area` is used
-	 *  and spreads are merged into single pages. */
-	getPageLayout(): { pages: Models.Camera.View[]; pageIdxes: number[][] } {
-		const isSwitch = this.config.type == 'switch';
+	/** Compute which image indices belong to each logical page.
+	 *  For spread albums, cover pages are single-image pages and remaining images
+	 *  are paired into spreads. For regular albums each image is its own page. */
+	getPageLayout(): { pages: number[][]; numPages: number } {
 		const isSpread = !!this.config.isSpreads;
 		const coverPages = this.config.coverPages ?? 0;
-		const pages: Models.Camera.View[] = [];
-		const pageIdxes: number[][] = [];
+		const pages: number[][] = [];
 
-		if (!isSwitch) {
-			for (let i = 0; i < this.images.length; i++) {
-				pages.push([0, 0, 1, 1]);
-				pageIdxes.push([i]);
+		if (isSpread) {
+			let i = 0;
+			for (; i < Math.min(coverPages, this.images.length); i++) {
+				pages.push([i]);
+			}
+			for (; i < this.images.length; i += 2) {
+				const page = [i];
+				if (i + 1 < this.images.length) page.push(i + 1);
+				pages.push(page);
 			}
 		} else {
 			for (let i = 0; i < this.images.length; i++) {
-				const area = this.images[i].opts?.area;
-				if (!area) continue;
-				const v: Models.Camera.View = [area[0], area[1], area[2], area[3]];
-				pageIdxes.push([i]);
-
-				if (isSpread && (i - coverPages >= 0 && ((i - coverPages) % 2 == 0)) && this.images[i + 1]) {
-					const next = this.images[i + 1].opts?.area;
-					if (!next) continue;
-					i++;
-					pageIdxes[pageIdxes.length - 1].push(i);
-					v[2] = v[2] + next[2];
-					v[3] = Math.max(v[3], next[3]);
-				}
-				pages.push(v);
+				pages.push([i]);
 			}
 		}
 
-		return { pages, pageIdxes };
+		return { pages, numPages: pages.length };
 	}
 
 	// --- Instance Methods ---
@@ -327,22 +314,6 @@ export class Gallery {
 	attach(parent: MicrioImage): void {
 		this.parent = parent;
 		(parent as any).__gallery = this;
-	}
-
-	detach(): void {
-		if (this.parent) {
-			delete (this.parent as any).__gallery;
-			this.parent = null;
-		}
-	}
-
-	destroy(): void {
-		this.detach();
-		if (this.swiper) {
-			this.swiper.destroy();
-			this.swiper = null;
-		}
-		this.grid = null;
 	}
 
 	// --- Element Opening ---
