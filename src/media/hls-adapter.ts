@@ -5,7 +5,7 @@
  */
 
 import type { HlsPlayer } from '$types/externals';
-import type { PlayerEventCallbacks } from './types';
+import type { PlayerEventCallbacks } from '$types/media';
 import { loadExternalAPI } from '$utils/dom';
 import { HTML5PlayerAdapter } from './html5-adapter';
 

@@ -6,7 +6,7 @@ import { VideoTourInstance } from './videotour';
 import { YouTubePlayerAdapter } from './youtube-adapter';
 import { VimeoPlayerAdapter } from './vimeo-adapter';
 import { HLSPlayerAdapter, cloudflareStreamUrl, mediaSourceSupported } from './hls-adapter';
-import type { MediaPlayerAdapter } from './types';
+import type { MediaPlayerAdapter } from '$types/media';
 import '$ui/button';
 import './media-controls';
 

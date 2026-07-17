@@ -4,7 +4,7 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { MediaPlayerAdapter, PlayerEventCallbacks } from './types';
+import type { MediaPlayerAdapter, PlayerEventCallbacks } from '$types/media';
 
 /**
  * Adapter for native HTML5 audio/video elements.
