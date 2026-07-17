@@ -12,11 +12,11 @@ import { deepCopy } from '$utils/object';
 import { once } from '$utils/store';
 import { tick } from '$core/store';
 import { Enums } from '$core/enums';
-import { createElement } from '$utils/dom';
+import { createElement, sleep } from '$utils/dom';
 
 import { gridString, parseGridString, getCols as calcCols, slideAreas, swipeAreas, swipeExitAreas } from './format';
 
-const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
+
 
 /**
  * Controls the display and interaction logic for grid layouts.

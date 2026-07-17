@@ -30,7 +30,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 			const upscaled = minScale > 1 && minScale > (img?.$settings.zoomLimit ?? 1);
 
 			if (upscaled) {
-				this.innerHTML = '';
+				this.replaceChildren();
 				return;
 			}
 

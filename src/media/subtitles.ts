@@ -58,7 +58,7 @@ micrio-subtitles p{margin:.5em 0;background-color:rgba(0,0,0,.6);padding:0 14px;
 	}
 
 	#update() {
-		if (!this.#props.src) { this.innerHTML = ''; return; }
+		if (!this.#props.src) { this.replaceChildren(); return; }
 
 		this.#cues = [];
 		fetch(this.#props.src).then(r => r.text()).then(txt => {
@@ -87,7 +87,7 @@ micrio-subtitles p{margin:.5em 0;background-color:rgba(0,0,0,.6);padding:0 14px;
 	}
 
 	#renderCue() {
-		if (!get(captionsEnabled) || !this.#cues.length) { this.innerHTML = ''; return; }
+		if (!get(captionsEnabled) || !this.#cues.length) { this.replaceChildren(); return; }
 		const cue = this.#cues.find(e => e.start <= this.#currentTime && e.end >= this.#currentTime);
 		this.innerHTML = cue ? `<p>${cue.data}</p>` : '';
 	}

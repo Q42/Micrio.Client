@@ -37,7 +37,7 @@ micrio-logo-org img{max-height:64px;display:block}`;
 
 	#render() {
 		const org = this.#props.organisation;
-		if (!org?.logo) { this.innerHTML = ''; return; }
+		if (!org?.logo) { this.replaceChildren(); return; }
 
 		this.replaceChildren();
 		createElement('a', {

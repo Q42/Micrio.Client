@@ -36,20 +36,10 @@ micrio-marker-content section>button:not(:nth-child(1)){display:none}
 micrio-marker-content section figcaption{display:none}
 }`;
 
-	#props: MarkerContentProps = { marker: null! };
 	_title: HTMLElement | undefined;
 
-	onMount() {
-		this.#render();
-	}
-
-	setProps(props: Partial<MarkerContentProps>) {
-		Object.assign(this.#props, props);
-		if (this.isConnected) this.#render();
-	}
-
-	#render() {
-		const { marker, noEmbed = false, noImages = false, noGallery = false, onclose } = this.#props;
+	protected _render() {
+		const { marker, noEmbed = false, noImages = false, noGallery = false, onclose } = this._props;
 		if (!marker) return;
 
 		const micrio = this.getMicrio();
@@ -85,7 +75,7 @@ micrio-marker-content section figcaption{display:none}
 			}
 		};
 
-		if (!content) { this.innerHTML = ''; return; }
+		if (!content) { this.replaceChildren(); return; }
 
 		this.replaceChildren();
 

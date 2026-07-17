@@ -12,24 +12,13 @@ micrio-error>div{background:rgba(0,0,0,.75);color:#fff;border:1px solid white;bo
 micrio-error svg.micrio-icon{vertical-align:middle;height:24px;width:24px;fill:var(--micrio-color);margin-right:10px}
 @media(max-width:520px){micrio-error>div{box-sizing:border-box;width:90%}}`;
 
-	#props: ErrorProps = {};
-
-	onMount() {
-		this.#render();
-	}
-
-	setProps(props: Partial<ErrorProps>) {
-		Object.assign(this.#props, props);
-		if (this.isConnected) this.#render();
-	}
-
-	#render() {
+	protected _render() {
 		this.replaceChildren();
 		createElement('div', {
 			parent: this,
 			children: [
 				createElement('micrio-icon', { attrs: { name: 'error' } }),
-				createElement('span', { textContent: this.#props.message ?? 'An unknown error has occurred' })
+				createElement('span', { textContent: this._props.message ?? 'An unknown error has occurred' })
 			]
 		});
 	}

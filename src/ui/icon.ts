@@ -96,7 +96,7 @@ export class MicrioIconElement extends MicrioElement {
 		}
 
 		const icon = ICON_LIB[this.#name];
-		if (!icon) { this.innerHTML = ''; return; }
+		if (!icon) { this.replaceChildren(); return; }
 
 		const svg = createSvgElement('svg', {
 			attrs: {

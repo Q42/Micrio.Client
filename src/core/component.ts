@@ -15,9 +15,13 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	#_unsubs: (() => void)[] = [];
 	#_renderKey: string | null = null;
 
+	/** Protected props storage for use with the standard setProps/render pattern. */
+	protected _props: Record<string, any> = {};
+
 	connectedCallback(): void {
 		this._injectStyles();
 		this.onMount?.();
+		this._render?.();
 	}
 
 	disconnectedCallback(): void {
@@ -30,11 +34,24 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 
 	/**
 	 * Override in subclasses to receive props.
-	 * The base implementation is a no-op.
+	 * The base implementation merges into `_props` and calls `_render()` when connected.
 	 */
-	setProps(_props: Record<string, any>): void {
-		// Override in subclass
+	setProps(props: Record<string, any>): void {
+		Object.assign(this._props, props);
+		if (this.isConnected) this._render();
 	}
+
+	/**
+	 * Merge props and auto-render when connected. For use in subclasses that need
+	 * custom setProps logic (e.g. per-prop guards) but still want the auto-render.
+	 */
+	protected _setProps(p: Record<string, any>): void {
+		Object.assign(this._props, p);
+		if (this.isConnected) this._render();
+	}
+
+	/** Override in subclasses for render logic. Called on mount and after setProps. */
+	protected _render(): void {}
 
 	/**
 	 * Register a cleanup function to be called automatically on disconnect.

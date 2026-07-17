@@ -37,27 +37,17 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 .micrio-button:focus{outline:1px solid var(--micrio-color-hover)}
 }`;
 
-	#props: ButtonProps = {};
 	#rootEl!: HTMLElement;
 	#listeners: (() => void)[] = [];
 	#clickHandler: ((e: Event) => void) | null = null;
-
-	onMount() {
-		this.#render();
-	}
-
-	setProps(props: Partial<ButtonProps>) {
-		Object.assign(this.#props, props);
-		if (this.isConnected) this.#render();
-	}
 
 	onDestroy() {
 		for (const unsub of this.#listeners) unsub();
 		this.#listeners = [];
 	}
 
-	#render() {
-		const p = this.#props;
+	protected _render() {
+		const p = this._props;
 		const isAnchor = !!p.href;
 
 		let el = this.#rootEl;
@@ -96,7 +86,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 
 		if (!this.#clickHandler) {
 			this.#clickHandler = (e: Event) => {
-				const fn = this.#props.onclick;
+				const fn = this._props.onclick;
 				if (fn) fn(e);
 			};
 			el.addEventListener('click', this.#clickHandler);

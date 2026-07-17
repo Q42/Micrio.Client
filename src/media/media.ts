@@ -49,7 +49,6 @@ micrio-media figure .overlay{position:absolute;top:0;left:0;width:100%;height:10
 micrio-media figure .overlay.hidden{opacity:0;pointer-events:none}
 micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-icon-size:40px;--micrio-border-radius:100%;--micrio-button-background:rgba(0,0,0,.6);--micrio-button-shadow:none;--micrio-background-filter:none;pointer-events:none}`;
 
-	#props: MediaProps = {};
 	#videoEl: HTMLVideoElement | HTMLAudioElement | undefined;
 	#tourInstance: VideoTourInstance | undefined;
 	#frame: HTMLIFrameElement | undefined;
@@ -63,15 +62,6 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 	#seeking = false;
 	#muted = false;
 	#subEl: MicrioElement | undefined;
-
-	onMount() {
-		this.#render();
-	}
-
-	setProps(props: Partial<MediaProps>) {
-		Object.assign(this.#props, props);
-		if (this.isConnected) this.#render();
-	}
 
 	#createYoutubeIframe(src: string, p: MediaProps, figure: HTMLElement) {
 		const match = src.match(YOUTUBE_RE);
@@ -171,10 +161,10 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 		this.#wireEvents(video);
 	}
 
-	#render() {
-		const p = this.#props;
+	protected _render() {
+		const p = this._props;
 		const src = p.src;
-		if (!src && !p.tour) { this.innerHTML = ''; return; }
+		if (!src && !p.tour) { this.replaceChildren(); return; }
 
 		const isYoutube = src ? YOUTUBE_RE.test(src) : false;
 		const isVimeo = src ? VIMEO_RE.test(src) : false;

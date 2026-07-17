@@ -88,7 +88,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 		const key = [pageIds, tourIds, hidden, $_lang, this.#isMobile, this.#shown].join('::');
 		if (!this.checkRenderKey(key)) return;
 
-		if (empty || hidden) { this.innerHTML = ''; return; }
+		if (empty || hidden) { this.replaceChildren(); return; }
 
 		this.replaceChildren();
 

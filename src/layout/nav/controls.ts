@@ -259,7 +259,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			const culturesKey = cultures.join(',');
 			if (culturesKey !== this.#lastCultures) {
 				this.#lastCultures = culturesKey;
-				items.innerHTML = '';
+				items.replaceChildren();
 
 				for (const l of cultures) {
 					createElement('micrio-button', {

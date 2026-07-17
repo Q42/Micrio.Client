@@ -20,7 +20,7 @@ micrio-image-embeds>*{pointer-events:all}`;
 		const { image } = this.#props;
 
 		this.watchLater(image.data, d => {
-			this.innerHTML = '';
+			this.replaceChildren();
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
 					createElement('micrio-embed', { parent: this, setProps: { embed, image } });

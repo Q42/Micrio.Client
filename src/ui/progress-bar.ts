@@ -17,19 +17,8 @@ micrio-progress-bar .bars>*::before{display:block;position:absolute;content:' ';
 micrio-progress-bar .bars::after{content:'';position:absolute;display:block;width:16px;height:16px;left:var(--progress);top:50%;transform:translate3d(-50%,-50%,0);background-color:var(--micrio-color);pointer-events:none;border-radius:8px}
 micrio-progress-bar .time{display:block;font-size:90%;min-width:50px;text-align:center;padding:0 10px;font-variant-numeric:tabular-nums}`;
 
-	#props: ProgressBarProps = { duration: 0 };
-
-	onMount() {
-		this.#render();
-	}
-
-	setProps(props: Partial<ProgressBarProps>) {
-		Object.assign(this.#props, props);
-		if (this.isConnected) this.#render();
-	}
-
-	#render() {
-		const p = this.#props;
+	protected _render() {
+		const p = this._props;
 		const currentTime = p.currentTime ?? 0;
 		const duration = p.duration || 1;
 		const percent = Math.round((currentTime / duration) * 10000) / 100;
