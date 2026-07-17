@@ -24,6 +24,9 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 	#to: any;
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;
+	#autoHide = false;
+	#is360 = false;
+	#checkHidden: (() => boolean) | null = null;
 
 	onMount() {
 		const { image } = this.#props;
@@ -35,9 +38,12 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 		const camera = image.camera;
 		const settings = image.$settings;
 
+		this.#autoHide = !settings.alwaysShowMinimap;
+		this.#is360 = !!info.is360;
+		this.#checkHidden = () => !this.#is360 && camera.isZoomedOut();
+
 		const maxWidth = settings.minimapWidth ?? 200;
 		const maxHeight = settings.minimapHeight ?? 160;
-		const autoHide = !settings.alwaysShowMinimap;
 		const noControls = !!settings.noControls;
 		const aspect = info.width / info.height;
 		const width = maxWidth / aspect > maxHeight ? Math.round(maxHeight * aspect) : maxWidth;
@@ -149,17 +155,27 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 		micrio.canvas.element.addEventListener('mousemove', () => this.#moved(), passive);
 		this.addCleanup(() => micrio.canvas.element.removeEventListener('mousemove', () => this.#moved(), passive));
 
-		afterFrame().then(() => {
-			const isSame = get(micrio.current) == image;
-			const zoomedOut = !info.is360 && camera.isZoomedOut();
-			this.#_canvas.classList.toggle('hidden', !isSame || (autoHide && (zoomedOut || this.#hidden)));
-		});
+		afterFrame().then(() => this.#syncVisibility());
 	}
 
 	#moved() {
+		this.#_canvas.classList.remove('hidden');
 		this.#hidden = false;
 		clearTimeout(this.#to);
-		this.#to = setTimeout(() => { this.#hidden = true; }, 2500);
+		this.#to = setTimeout(() => {
+			if (this.#checkHidden?.()) this.#_canvas.classList.add('hidden');
+			this.#hidden = true;
+		}, 2500);
+	}
+
+	#syncVisibility() {
+		const micrio = this.getMicrio();
+		const isSame = micrio ? get(micrio.current) == this.#props.image : false;
+		const zoomedOut = this.#checkHidden?.() ?? false;
+		if (!isSame || (this.#autoHide && zoomedOut && this.#hidden))
+			this.#_canvas.classList.add('hidden');
+		else
+			this.#_canvas.classList.remove('hidden');
 	}
 
 	#get360Rects(_area: Models.Camera.View, w: number, h: number): { x: number; y: number; w: number; h: number }[] {

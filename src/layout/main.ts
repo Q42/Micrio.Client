@@ -71,7 +71,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'gallery', 'controls', 'embeds', 'markers',
-		'details', 'popup', 'tour', 'popover',
+		'details', 'popup', 'tour', 'popover', 'minimap',
 		'error', 'progress'
 	];
 
@@ -229,6 +229,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const showControls = !noHTML && !!$info;
 		const showDetails = !noHTML && !hasTourOrMarker && !!$settings?.showInfo;
 		const showToolbar = !noHTML && this.#firstInited && !$settings?.noToolbar;
+		const showMinimap = !noHTML && !!$info && $settings?.minimap !== false && !!micrio.$current?.thumbSrc;
 
 		this.#show('audio', hasAudio && !!$data && !!$info, () =>
 			createElement('micrio-audio-controller')
@@ -300,6 +301,10 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const $gallery = get(micrio.gallery);
 		this.#show('gallery', !!$settings?.omni || !!$gallery, () =>
 			createElement('micrio-gallery', { setProps: { controller: $gallery ?? undefined } }) as MicrioElement
+		);
+
+		this.#show('minimap', showMinimap, () =>
+			createElement('micrio-minimap', { setProps: { image: micrio.$current! } }) as MicrioElement
 		);
 
 		this.#show('details', showDetails && !!this.#info && !!this.#data, () =>
