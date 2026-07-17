@@ -35,9 +35,6 @@ export const MICRIO_TLD: string = getMicrioTLD();
 /** Base URL for the viewer data API (info.json, album JSON, spaces JSON). @internal */
 export const VIEWER_BASE: string = `https://viewer.${MICRIO_TLD}/`;
 
-/** List of demo image IDs that might use the default BASEPATH even if they appear to be V5.
- * @internal
- */
 /** Keys used for storing Micrio settings in localStorage.
  * @internal
  */

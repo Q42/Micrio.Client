@@ -119,3 +119,8 @@ export const easeIn = new Bicubic(0.42, 0, 1, 1);
 export const easeOut = new Bicubic(0, 0, 0.58, 1);
 /** Predefined cubic bezier easing: linear. @internal */
 export const linear = new Bicubic(0, 0, 1, 1);
+
+const _timingFns = [easeInOut, easeIn, easeOut, linear] as const;
+
+/** Resolves a numeric timing function index to its Bicubic instance. */
+export const getTimingFunction = (fn: number): Bicubic => _timingFns[fn] ?? easeInOut;

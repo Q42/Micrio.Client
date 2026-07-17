@@ -4,7 +4,7 @@
  * @internal
  */
 
-import { easeInOut, easeIn, easeOut, linear, Bicubic, longitudeDistance } from './easing'
+import { Bicubic, easeInOut, getTimingFunction, longitudeDistance } from './easing'
 import { View } from './shared'
 import type { default as TileCanvas } from './tile-canvas';
 
@@ -138,7 +138,7 @@ export default class Ani {
 
 		this.#isJump = isJump;
 
-		this.#fn = fn === 3 ? linear : fn === 2 ? easeOut : fn === 1 ? easeIn : easeInOut;
+		this.#fn = getTimingFunction(fn);
 
 		const el = c.main.el;
 		if (el.areaHeight !== 0) {

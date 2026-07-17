@@ -11,7 +11,7 @@ import { readable, writable, get } from '$core/store';
 import { clone, deepCopy } from '$utils/object';
 import { getIdVal, idIsV5 } from '$utils/id';
 import { once } from '$utils/store';
-import { MicrioError } from '$core/error';
+import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
 import { archive } from '$utils/archive';
@@ -277,13 +277,10 @@ export class MicrioImage {
 	 * @param displayMessage Optional user-friendly message to display
 	 */
 	#setError(e: Error | string, displayMessage?: string): never {
-		// Use MicrioError's displayMessage if available, otherwise fall back
-		const message = e instanceof MicrioError 
-			? e.displayMessage 
-			: (displayMessage ?? (e instanceof Error ? e.message : e) ?? 'An unknown error has occurred');
+		const message = displayMessage ?? getErrorMessage(e);
 		this.error = message;
 		this.engine.micrio.printError(e instanceof MicrioError ? e : message);
-		this.engine.micrio.loading.set(false); // Stop loading indicator
+		this.engine.micrio.loading.set(false);
 		throw e instanceof Error ? e : new Error(message);
 	}
 
@@ -504,7 +501,7 @@ export class MicrioImage {
 
 		// Throw error if trying to get tile for a video (shouldn't happen)
 		if(i.settings?._360?.video?.src)
-			throw 'Video thumb';
+			throw new Error('Video thumb');
 
 		// Construct standard Micrio tile URL
 		return `${this.tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.extension}`;

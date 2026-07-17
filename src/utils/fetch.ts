@@ -51,12 +51,4 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
 	return promise as Promise<T>;
 };
 
-/**
- * Checks if a JSON resource is cached or currently being fetched.
- * @internal
- * @param uri The URI to check.
- * @returns True if the resource is cached or being fetched.
- */
-
-
 

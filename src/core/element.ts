@@ -6,7 +6,7 @@ import { once } from '$utils/store';
 import { deepCopy } from '$utils/object';
 import { fetchJson, jsonCache } from '$utils/fetch';
 import { idIsV5 } from '$utils/id';
-import { MicrioError } from '$core/error';
+import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { ATTRIBUTE_OPTIONS as AO, DEFAULT_INFO, localStorageKeys } from './globals';
 import { writable, get } from '$core/store';
@@ -376,10 +376,7 @@ ${cssVars}`;
 	 * @param error The error (MicrioError, Error, or string) to display.
 	 */
 	printError(error?: Error | string): void {
-		const message = error instanceof MicrioError 
-			? error.displayMessage 
-			: (error instanceof Error ? error.message : error) 
-			?? 'An unknown error has occurred';
+		const message = getErrorMessage(error ?? 'An unknown error has occurred');
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
 		if(!this._ui) this.#printUI(false, false);
 		this._ui?.setProps?.({ error: message });
@@ -549,36 +546,33 @@ ${cssVars}`;
 			id: this.id // Start with the element's ID
 		};
 
-		// Helper to set nested properties
 		const setObj = (b:any, f:string, val:any) : void => {
-			const p = f.split('.'); // Split path like 'gallery.type'
-			for(let i=0;i<p.length-1;i++) b = b[p[i]]; // Traverse path
-			b[p[p.length-1]]=val; // Set value at final property
+			const p = f.split('.');
+			for(let i=0;i<p.length-1;i++) b = b[p[i]];
+			b[p[p.length-1]]=val;
 		}
 
-		// Process string attributes
-		for(const a in AO.STRINGS) {
-			const o = AO.STRINGS[a], val = this.getAttribute(a), f = o.f || a.replace('data-', '');
-			if(val) setObj(o.r?opts:sets, f, val); // Use root (opts) or settings (sets) based on 'r' flag
-		}
-		// Process boolean attributes
-		for(const a in AO.BOOLEANS) {
-			const o = AO.BOOLEANS[a], val = this.getAttribute(a), f = o.f || a.replace('data-', '');
-			const tr = val!=undefined&&val==''||val=='true'; // Check for true values (empty, '', 'true')
-			if(tr || val=='false') setObj(o.r?opts:sets,f,o.n ? !tr : !!tr); // Apply boolean value, handle negation ('n' flag)
-		}
-		// Process number attributes
-		for(const a in AO.NUMBERS) {
-			const o = AO.NUMBERS[a], f = o.f || a.replace('data-', '');
-			let val:string|number|null = this.getAttribute(a);
-			if(o.dN !== undefined && val == null) val = o.dN; // Use default number if attribute missing
-			if(val != undefined && !isNaN(Number(val))) setObj(o.r ? opts : sets,f,Number(val)); // Convert to number
-		}
-		// Process array attributes (comma-separated numbers)
-		for(const a in AO.ARRAYS) {
-			const o = AO.ARRAYS[a], val = this.getAttribute(a), f = o.f || a.replace('data-', '');
-			if(val != undefined) setObj(o.r ? opts : sets,f,val.split(',').map(s => Number(s))); // Split and convert to numbers
-		}
+		const process = (category: Record<string, any>, convert: (val: string | null, def: any) => any): void => {
+			for (const a in category) {
+				const d = category[a], val = this.getAttribute(a);
+				const f = d.f || a.replace('data-', '');
+				const v = convert(val, d);
+				if (v !== undefined) setObj(d.r ? opts : sets, f, v);
+			}
+		};
+
+		process(AO.STRINGS, val => val || undefined);
+		process(AO.BOOLEANS, (val, o) => {
+			const tr = val != undefined && (val === '' || val === 'true');
+			if (tr || val === 'false') return o.n ? !tr : !!tr;
+		});
+		process(AO.NUMBERS, (val, o) => {
+			if (o.dN !== undefined && val == null) val = o.dN;
+			if (val == null) return;
+			const n = Number(val);
+			return isNaN(n) ? undefined : n;
+		});
+		process(AO.ARRAYS, val => val != null ? val.split(',').map(Number) : undefined);
 
 		// Apply implications of 'static' setting
 		if(sets.static) {

@@ -50,9 +50,9 @@ if (matches) {
 	fs.writeFileSync(files.css, cssContent);
 }
 
-// Strip `static{this.styles="..."}` from compiled JS (CSS is already in the blob above)
+// Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS
 let jsRaw = fs.readFileSync(files.js).toString();
-jsRaw = jsRaw.replace(/static\s*\{\s*this\.styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*\1\s*;?\s*\}/g, '');
+jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '');
 fs.writeFileSync(files.js, jsRaw);
 
 // Prepend CSS style injection to the JS bundle

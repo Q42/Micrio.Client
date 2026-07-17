@@ -19,7 +19,7 @@ import { loadTexture, runningThreads, numThreads, abortDownload } from './textur
 import TileCanvas from './tile-canvas';
 import type Image from './tile-image';
 import { segsX, segsY } from './constants';
-import { easeInOut, easeIn, easeOut, linear, type Bicubic } from './easing';
+import { type Bicubic, easeInOut, getTimingFunction } from './easing';
 import { Viewport } from './shared';
 
 interface TileEntry {
@@ -376,7 +376,7 @@ export class Engine {
 			return;
 		}
 
-		if (!c.noImage && (!i.width || !i.height)) throw 'Invalid Micrio image size';
+		if (!c.noImage && (!i.width || !i.height)) throw new Error('Invalid Micrio image size');
 
 		const settings = c.$settings;
 
@@ -526,7 +526,7 @@ export class Engine {
 
 	/** Removes a canvas instance from the engine. @internal */
 	removeCanvas(c: MicrioImage): void {
-		if (!c.placed) throw 'Canvas is not placed yet';
+		if (!c.placed) throw new Error('Canvas is not placed yet');
 		const entry = this.#entryByImage.get(c);
 		if (!entry) return;
 		entry.canvas.remove();
@@ -835,7 +835,7 @@ export class Engine {
 		if (c) c.zIndex = z;
 	}
 	setGridTransitionTimingFunction(fn: number): void {
-		this.gridTransitionTimingFunction = fn === 0 ? easeInOut : fn === 1 ? easeIn : fn === 2 ? easeOut : fn === 3 ? linear : easeInOut;
+		this.gridTransitionTimingFunction = getTimingFunction(fn);
 	}
 	fadeTo(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean): void {
 		const c = this.getCanvas(img);

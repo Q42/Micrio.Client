@@ -73,8 +73,8 @@ export const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok,
 /** Returns a Promise that resolves after the next browser paint (two animation frames). */
 export const afterFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
-/** List of script URLs already loaded or currently loading. @private */
-const loaded: string[] = [];
+/** Set of script URLs already loaded or currently loading. @private */
+const loaded = new Set<string>();
 
 /**
  * Loads an external JavaScript file dynamically. Ensures scripts are loaded only once per session.
@@ -103,9 +103,9 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 }
 
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) => new Promise<void>((ok, err) => {
-	if (targetObj || loaded.includes(src)) return ok();
+	if (targetObj || loaded.has(src)) return ok();
 	const script = document.createElement('script');
-	const onload = () => { loaded.push(src); ok(); };
+	const onload = () => { loaded.add(src); ok(); };
 	if (cbFunc) (self as unknown as Record<string, () => void>)[cbFunc] = onload;
 	else script.onload = onload;
 	script.onerror = () => err?.();

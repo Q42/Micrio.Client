@@ -1,5 +1,5 @@
 import type { Readable, Subscriber } from './store';
-import { lazy } from './store';
+import { defer, skipFirst } from './store';
 import type { HTMLMicrioElement } from './element';
 import { createElement } from '$utils/dom';
 
@@ -41,15 +41,6 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		if (this.isConnected) this._render();
 	}
 
-	/**
-	 * Merge props and auto-render when connected. For use in subclasses that need
-	 * custom setProps logic (e.g. per-prop guards) but still want the auto-render.
-	 */
-	protected _setProps(p: Record<string, any>): void {
-		Object.assign(this._props, p);
-		if (this.isConnected) this._render();
-	}
-
 	/** Override in subclasses for render logic. Called on mount and after setProps. */
 	protected _render(): void {}
 
@@ -84,22 +75,21 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 
 	// ─── Store helpers ────────────────────────────────────────────
 
-	protected watch<T>(store: Readable<T>, fn: (value: T) => void): void {
-		this.addCleanup(store.subscribe(fn));
+	protected watch<T>(store: Readable<T>, fn: (value: T) => void, opts?: { skipFirst?: boolean; defer?: boolean }): void {
+		let sub: Subscriber<T> = fn;
+		if (opts?.skipFirst) sub = skipFirst(fn);
+		if (opts?.defer) sub = defer(fn);
+		this.addCleanup(store.subscribe(sub));
 	}
 
 	/** Subscribe but skip the very first emission (useful when onMount already sets initial state) */
 	protected watchLater<T>(store: Readable<T>, fn: (value: T) => void): void {
-		let first = true;
-		this.addCleanup(store.subscribe(v => {
-			if (first) { first = false; return; }
-			fn(v);
-		}));
+		this.watch(store, fn, { skipFirst: true });
 	}
 
 	/** Subscribe with microtask-level coalescing, skipping the initial emission */
 	protected watchLazy<T>(store: Readable<T>, fn: (value: T) => void): void {
-		this.watchWith(store, lazy(fn));
+		this.watch(store, fn, { skipFirst: true, defer: true });
 	}
 
 	/** Subscribe with a pre-built subscriber wrapper (for use with defer, skipFirst, etc.) */

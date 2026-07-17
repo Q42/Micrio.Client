@@ -63,11 +63,7 @@ export default defineConfig({
 		},
 		rollupOptions: {
 			output: {
-				globals: {
-					'_c': '_c',
-					'_u': '_u',
-					'_b': '_b'
-				},
+		
 				assetFileNames: () => `micrio.prod[extname]`
 			}
 		}
