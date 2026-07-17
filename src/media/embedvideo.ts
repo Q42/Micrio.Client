@@ -23,9 +23,11 @@ export class GLEmbedVideo {
 	/** Svelte store unsubscriber for the image visibility store. @internal */
 	#usVid:Unsubscriber|undefined = undefined;
 	/** Timeout ID for delayed video looping. @internal */
-	#vidRepeatTo:any = undefined;
+	#vidRepeatTo: ReturnType<typeof setTimeout> | undefined = undefined;
 	/** Timeout ID for delaying video loading/playback on visibility change. @internal */
-	#placeTo:any = undefined;
+	#placeTo: ReturnType<typeof setTimeout> | undefined = undefined;
+	/** Tracks whether the video was temporarily appended to the DOM for WebGL first-frame capture. */
+	#tmpDomAttached = false;
 	/** Should the video autoplay when visible? @internal */
 	#autoplay:boolean = true;
 
@@ -97,14 +99,15 @@ export class GLEmbedVideo {
 
 	/** Cleans up resources when the parent Embed component is unmounted. */
 	unmount() : void {
-		this.isMounted = false; // Mark as unmounted
-		// Clear timeouts
+		this.isMounted = false;
 		clearTimeout(this.#placeTo);
 		clearTimeout(this.#vidRepeatTo);
-		this._vid?.pause(); // Pause video
-		this.#unhook(); // Remove event listeners
-		this.#usVid?.(); // Unsubscribe from visibility store
-		// TODO: Consider destroying HLS player instance if created (this.#hlsPlayer?.destroy())
+		this._vid?.pause();
+		this.#unhook();
+		this.#usVid?.();
+		this.#hlsPlayer?.destroy();
+		this.#hlsPlayer = undefined;
+		this.#removeTmpDom();
 	}
 
 	/**
@@ -185,22 +188,26 @@ export class GLEmbedVideo {
 		canplayEvt: Browser.iOS ? 'loadedmetadata' : 'canplay',
 		// Handle 'canplay' or 'loadedmetadata' event
 		canplay:() => {
-			if(!this._vid || !this.isMounted) return; // Exit if unmounted or video element lost
-			// Attempt autoplay if enabled and not paused by external logic (e.g., zoom)
+			if(!this._vid || !this.isMounted) return;
 			if(this.#autoplay && !this.#paused) {
 				this._vid.play().catch(e => console.warn("WebGL Embed video play() failed on canplay:", e));
-				this.#moved(); // Trigger render after potential state change
+				this.#moved();
 			}
-			// If autoplay disabled but not hiding when paused, render the first frame
 			else if(!this.#embed.hideWhenPaused) {
-				this.#setPlaying(true); // Temporarily set playing to render frame
-				tick().then(() => { // After render
-					this.#setPlaying(false); // Set back to paused
-					// Remove temporary DOM element if added for first frame visibility
-					// TODO: Check if this removal logic is still necessary/correct.
-					setTimeout(() => this._vid?.remove(),50);
-				})
+				this.#setPlaying(true);
+				tick().then(() => {
+					this.#setPlaying(false);
+					this.#removeTmpDom();
+				});
 			}
+		}
+	}
+
+	/** Removes the video from the DOM if it was temporarily attached for WebGL first-frame capture. */
+	#removeTmpDom(): void {
+		if (this.#tmpDomAttached && this._vid?.parentNode) {
+			this._vid.remove();
+			this.#tmpDomAttached = false;
 		}
 	}
 
@@ -231,7 +238,7 @@ export class GLEmbedVideo {
 		if(!this._vid.parentNode && !this.#autoplay && !this.#ism3u) {
 			this._vid.setAttribute('style','opacity:0;position:absolute;top:0;left:0;transform-origin:left top;transform:scale(0.1);pointer-events:none;');
 			document.body.appendChild(this._vid);
-			// TODO: Ensure this temporary element is reliably removed later.
+			this.#tmpDomAttached = true;
 		}
 
 		// Add core event listeners
