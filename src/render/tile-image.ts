@@ -336,108 +336,59 @@ export default class Image {
 
 		const layer = this.layers[layerIdx];
 		const c = this.#canvas;
+		const tol = 0.1;
+		const vcy = c.view.centerY;
+		const vw = c.view.width + tol, vh = c.view.height + tol;
+		const ecx = this.areaCenterX, ecy = this.areaCenterY, ew = this.areaWidth, eh = this.areaHeight;
 
-		const tolerance = 0.1;
+		const iy0 = Math.max(vcy - vh / 2, ecy - eh / 2);
+		const iy1 = Math.min(vcy + vh / 2, ecy + eh / 2);
+		if (iy0 >= iy1) return;
 
-		const viewCenterX = mod1(c.view.centerX + c.camera360.offX);
-		const viewCenterY = c.view.centerY;
-		const viewWidth = c.view.width + tolerance;
-		const viewHeight = c.view.height + tolerance;
-
-		const embedCenterX = this.areaCenterX;
-		const embedCenterY = this.areaCenterY;
-		const embedWidth = this.areaWidth;
-		const embedHeight = this.areaHeight;
-
-		const viewY0 = viewCenterY - viewHeight / 2;
-		const viewY1 = viewCenterY + viewHeight / 2;
-		const embedY0 = embedCenterY - embedHeight / 2;
-		const embedY1 = embedCenterY + embedHeight / 2;
-
-		const intersectY0 = Math.max(viewY0, embedY0);
-		const intersectY1 = Math.min(viewY1, embedY1);
-
-		if (intersectY0 >= intersectY1) return;
-
-		let intersectX0: number = 0, intersectX1: number = 0;
-		let hasIntersection = false;
+		const vcx = c.is360 ? mod1(c.view.centerX + c.camera360.offX) : c.view.centerX;
+		let ix0: number, ix1: number;
 
 		if (c.is360) {
-			const viewX0 = mod1(viewCenterX - viewWidth / 2);
-			const viewX1 = mod1(viewCenterX + viewWidth / 2);
-			const embedX0 = mod1(embedCenterX - embedWidth / 2);
-			const embedX1 = mod1(embedCenterX + embedWidth / 2);
+			const vx0 = mod1(vcx - vw / 2), vx1 = mod1(vcx + vw / 2);
+			const ex0 = mod1(ecx - ew / 2), ex1 = mod1(ecx + ew / 2);
 
-			if (viewX1 > viewX0 && embedX1 > embedX0) {
-				intersectX0 = Math.max(viewX0, embedX0);
-				intersectX1 = Math.min(viewX1, embedX1);
-				hasIntersection = intersectX0 < intersectX1;
+			if (vx1 > vx0 && ex1 > ex0) {
+				ix0 = Math.max(vx0, ex0); ix1 = Math.min(vx1, ex1);
+				if (ix0 >= ix1) return;
+			} else if (vx1 < vx0 && ex1 > ex0) {
+				if (!(ex0 <= vx1 || ex1 >= vx0)) return;
+				ix0 = ex0; ix1 = ex1;
+			} else if (vx1 > vx0 && ex1 < ex0) {
+				if (!(vx0 <= ex1 || vx1 >= ex0)) return;
+				ix0 = vx0; ix1 = vx1;
+			} else {
+				ix0 = Math.max(vx0, ex0); ix1 = Math.min(vx1, ex1);
 			}
-			else if (viewX1 < viewX0 && embedX1 > embedX0) {
-				if (embedX0 <= viewX1 || embedX1 >= viewX0) {
-					intersectX0 = embedX0;
-					intersectX1 = embedX1;
-					hasIntersection = true;
-				}
-			}
-			else if (viewX1 > viewX0 && embedX1 < embedX0) {
-				if (viewX0 <= embedX1 || viewX1 >= embedX0) {
-					intersectX0 = viewX0;
-					intersectX1 = viewX1;
-					hasIntersection = true;
-				}
-			}
-			else if (viewX1 < viewX0 && embedX1 < embedX0) {
-				intersectX0 = Math.max(viewX0, embedX0);
-				intersectX1 = Math.min(viewX1, embedX1);
-				hasIntersection = true;
+
+			const eL = ecx - ew / 2, eR = ecx + ew / 2;
+			if (eR > 1) {
+				if (ix0 < eL) ix0 += 1;
+				if (ix1 < eL) ix1 += 1;
+			} else if (ix0 > ecx + 0.5) {
+				ix0 -= 1;
+			} else if (ix1 > ecx + 0.5) {
+				ix1 -= 1;
 			}
 		} else {
-			const viewX0 = viewCenterX - viewWidth / 2;
-			const viewX1 = viewCenterX + viewWidth / 2;
-			const embedX0 = embedCenterX - embedWidth / 2;
-			const embedX1 = embedCenterX + embedWidth / 2;
-
-			intersectX0 = Math.max(viewX0, embedX0);
-			intersectX1 = Math.min(viewX1, embedX1);
-			hasIntersection = intersectX0 < intersectX1;
+			ix0 = Math.max(vcx - vw / 2, ecx - ew / 2);
+			ix1 = Math.min(vcx + vw / 2, ecx + ew / 2);
+			if (ix0 >= ix1) return;
 		}
 
-		if (!hasIntersection) return;
+		const eL = ecx - ew / 2, eB = ecy - eh / 2;
+		const tW = layer.tileWidth, tH = layer.tileHeight;
+		const c0 = Math.floor(Math.max(0, Math.min(1, (ix0 - eL) / ew)) / tW);
+		const c1 = Math.min(layer.cols - 1, Math.floor(Math.max(0, Math.min(1, (ix1 - eL) / ew)) / tW));
+		const r0 = Math.floor(Math.max(0, Math.min(1, (iy0 - eB) / eh)) / tH);
+		const r1 = Math.min(layer.rows - 1, Math.floor(Math.max(0, Math.min(1, (iy1 - eB) / eh)) / tH));
 
-		let embedLeft = embedCenterX - embedWidth / 2;
-		let embedRight = embedCenterX + embedWidth / 2;
-
-		if (c.is360) {
-			if (embedRight > 1) {
-				if (intersectX0 < embedLeft) intersectX0 += 1;
-				if (intersectX1 < embedLeft) intersectX1 += 1;
-			}
-			else if (intersectX0 > embedCenterX + 0.5) {
-				intersectX0 -= 1;
-			}
-			else if (intersectX1 > embedCenterX + 0.5) {
-				intersectX1 -= 1;
-			}
-		}
-
-		const embedRelX0 = (intersectX0 - embedLeft) / embedWidth;
-		const embedRelX1 = (intersectX1 - embedLeft) / embedWidth;
-		const embedRelY0 = (intersectY0 - (embedCenterY - embedHeight / 2)) / embedHeight;
-		const embedRelY1 = (intersectY1 - (embedCenterY - embedHeight / 2)) / embedHeight;
-
-		const tW = layer.tileWidth;
-		const tH = layer.tileHeight;
-
-		const tileLeft = Math.floor(Math.max(0, Math.min(1, embedRelX0)) / tW);
-		const tileRight = Math.min(layer.cols - 1, Math.floor(Math.max(0, Math.min(1, embedRelX1)) / tW));
-		const tileTop = Math.floor(Math.max(0, Math.min(1, embedRelY0)) / tH);
-		const tileBottom = Math.min(layer.rows - 1, Math.floor(Math.max(0, Math.min(1, embedRelY1)) / tH));
-
-		for (let row = tileTop; row <= tileBottom; row++) {
-			for (let col = tileLeft; col <= tileRight; col++) {
-				this.#setToDraw(layer, col, row);
-			}
+		for (let row = r0; row <= r1; row++) {
+			for (let col = c0; col <= c1; col++) this.#setToDraw(layer, col, row);
 		}
 	}
 
