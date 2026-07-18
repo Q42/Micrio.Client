@@ -527,176 +527,102 @@ export default class Image {
 	}
 
 	#get360Tiles(l: Layer): void {
-		const c = this.#canvas;
-		const el = c.el;
-		const w = el.width, h = el.height;
+		const c = this.#canvas, w = c.el.width, h = c.el.height;
+		const sp = c.camera360.fieldOfView > Math.PI / 2 ? 20 : 12;
+		const eps = 1e-8, offX = c.camera360.offX;
 
 		Image.#sampledLength = 0;
-		Image.#uniqueLength = 0;
+		const add = (x: number, y: number) => {
+			const coo = c.camera360.getCoo(x, y);
+			const i = Image.#sampledLength++;
+			Image.#sampledXs[i] = coo.x;
+			Image.#sampledYs[i] = coo.y;
+		};
 
-		const samplesPerEdge: number = c.camera360.fieldOfView > Math.PI / 2 ? 20 : 12;
-		const epsilon: number = 1e-8;
-
-		for (let i = 0; i <= samplesPerEdge; i++) {
-			const t = i / samplesPerEdge;
-			let coo = c.camera360.getCoo(t * w, 0);
-			Image.#sampledXs[Image.#sampledLength] = coo.x;
-			Image.#sampledYs[Image.#sampledLength] = coo.y;
-			Image.#sampledLength++;
-			coo = c.camera360.getCoo((1 - t) * w, h);
-			Image.#sampledXs[Image.#sampledLength] = coo.x;
-			Image.#sampledYs[Image.#sampledLength] = coo.y;
-			Image.#sampledLength++;
-			coo = c.camera360.getCoo(w, t * h);
-			Image.#sampledXs[Image.#sampledLength] = coo.x;
-			Image.#sampledYs[Image.#sampledLength] = coo.y;
-			Image.#sampledLength++;
-			coo = c.camera360.getCoo(0, (1 - t) * h);
-			Image.#sampledXs[Image.#sampledLength] = coo.x;
-			Image.#sampledYs[Image.#sampledLength] = coo.y;
-			Image.#sampledLength++;
+		for (let i = 0; i <= sp; i++) {
+			const t = i / sp;
+			add(t * w, 0); add((1 - t) * w, h);
+			add(w, t * h); add(0, (1 - t) * h);
 		}
-
-		let coo: Coordinates;
 		for (let gy = 1; gy <= 3; gy++) {
 			const sy = h * gy / 4;
-			for (let gx = 1; gx <= 3; gx++) {
-				coo = c.camera360.getCoo(w * gx / 4, sy);
-				Image.#sampledXs[Image.#sampledLength] = coo.x;
-				Image.#sampledYs[Image.#sampledLength] = coo.y;
-				Image.#sampledLength++;
-			}
-			coo = c.camera360.getCoo(w * gy / 4, h - 1);
-			Image.#sampledXs[Image.#sampledLength] = coo.x;
-			Image.#sampledYs[Image.#sampledLength] = coo.y;
-			Image.#sampledLength++;
+			for (let gx = 1; gx <= 3; gx++) add(w * gx / 4, sy);
+			add(w * gy / 4, h - 1);
 		}
 
-		let minY: number = Infinity;
-		let maxY: number = -Infinity;
-		for (let i = 0; i < Image.#sampledLength; i++) {
-			const val = Image.#sampledYs[i];
-			if (val < minY) minY = val;
-			if (val > maxY) maxY = val;
+		const n = Image.#sampledLength;
+		let minY = Infinity, maxY = -Infinity;
+		for (let i = 0; i < n; i++) {
+			const v = Image.#sampledYs[i];
+			if (v < minY) minY = v;
+			if (v > maxY) maxY = v;
 		}
+		minY = Math.max(0, minY - 0.001);
+		maxY = Math.min(1, maxY + 0.05);
 
-		minY = Math.max(0, minY);
-		maxY = Math.min(1, maxY);
+		const xs = Image.#sampledXs, ux = Image.#uniqueXs;
+		for (let i = 0; i < n; i++) xs[i] = mod1(xs[i] - offX);
 
-		minY -= 0.001;
-		maxY += 0.05;
-		minY = Math.max(0, minY);
-		maxY = Math.min(1, maxY);
-
-		const offX = c.camera360.offX;
-		for (let i = 0; i < Image.#sampledLength; i++) {
-			Image.#sampledXs[i] = mod1(Image.#sampledXs[i] - offX);
-		}
 		Image.#uniqueLength = 0;
-		for (let i = 0; i < Image.#sampledLength; i++) {
-			const val = Image.#sampledXs[i];
+		for (let i = 0; i < n; i++) {
+			const val = xs[i];
 			let exists = false;
 			for (let j = 0; j < Image.#uniqueLength; j++) {
-				if (Math.abs(Image.#uniqueXs[j] - val) < epsilon) {
-					exists = true;
-					break;
-				}
+				if (Math.abs(ux[j] - val) < eps) { exists = true; break; }
 			}
-			if (!exists) {
-				Image.#uniqueXs[Image.#uniqueLength] = val;
-				Image.#uniqueLength++;
-			}
-		}
-		for (let i = 1; i < Image.#uniqueLength; i++) {
-			const key = Image.#uniqueXs[i];
-			let j: number = i - 1;
-			while (j >= 0 && Image.#uniqueXs[j] > key) {
-				Image.#uniqueXs[j + 1] = Image.#uniqueXs[j];
-				j--;
-			}
-			Image.#uniqueXs[j + 1] = key;
+			if (!exists) ux[Image.#uniqueLength++] = val;
 		}
 
-		const n: number = Image.#uniqueLength;
-		if (n < 2) {
-			minY = 0; maxY = 1;
-			Image.#uniqueLength = 0;
-			Image.#uniqueXs[0] = 0;
-			Image.#uniqueXs[1] = 1;
-			Image.#uniqueLength = 2;
+		const m = Image.#uniqueLength;
+		for (let i = 1; i < m; i++) {
+			const key = ux[i]; let j = i - 1;
+			while (j >= 0 && ux[j] > key) { ux[j + 1] = ux[j]; j--; }
+			ux[j + 1] = key;
+		}
+
+		let a0 = 0, a1 = 1, full = false;
+		if (m < 2) {
+			full = true; minY = 0; maxY = 1;
 		} else {
-			let maxGap: number = 0;
-			let maxGapIdx: number = -1;
-			for (let i = 0; i < n - 1; i++) {
-				const gap: number = Image.#uniqueXs[i + 1] - Image.#uniqueXs[i];
-				if (gap > maxGap) {
-					maxGap = gap;
-					maxGapIdx = i;
-				}
+			let maxGap = 0, idx = -1;
+			for (let i = 0; i < m - 1; i++) {
+				const g = ux[i + 1] - ux[i];
+				if (g > maxGap) { maxGap = g; idx = i; }
 			}
-			const wrapGap: number = Image.#uniqueXs[0] + 1 - Image.#uniqueXs[n - 1];
-			let isWrapMax: boolean = wrapGap > maxGap;
-			if (isWrapMax) {
-				maxGap = wrapGap;
-				maxGapIdx = n - 1;
-			}
+			const wGap = ux[0] + 1 - ux[m - 1];
+			const wrapMax = wGap > maxGap;
+			if (wrapMax) { maxGap = wGap; idx = m - 1; }
 
-			const arcLength: number = 1 - maxGap;
-
-			let arcStart: number = 0;
-			let arcEnd: number = 0;
-			if (isWrapMax) {
-				arcStart = Image.#uniqueXs[0];
-				arcEnd = Image.#uniqueXs[n - 1];
+			if (1 - maxGap >= 1 - 1e-6) {
+				full = true;
+			} else if (wrapMax) {
+				a0 = ux[0]; a1 = ux[m - 1];
 			} else {
-				arcStart = Image.#uniqueXs[(maxGapIdx + 1) % n];
-				arcEnd = Image.#uniqueXs[maxGapIdx] + 1;
+				a0 = ux[(idx + 1) % m]; a1 = ux[idx] + 1;
 			}
-
-			if (arcLength >= 1 - 1e-6) {
-				arcStart = 0;
-				arcEnd = 1;
-			}
-
-			Image.#uniqueLength = 0;
-			Image.#uniqueXs[0] = arcStart;
-			Image.#uniqueXs[1] = arcEnd;
-			Image.#uniqueLength = 2;
 		}
 
-		let isFullArc: boolean = Image.#uniqueXs[1] - Image.#uniqueXs[0] >= 1 - 1e-6;
-		if (minY < 0.05 || maxY > 0.95) {
-			isFullArc = true;
-		}
+		if (minY < 0.05 || maxY > 0.95) full = true;
 
-		let minRow: number = Math.max(0, Math.max(0, Math.floor((minY - 0.001) / l.tileHeight)));
-		let maxRow: number = Math.min(l.rows - 1, Math.max(0, Math.floor((maxY + l.tileHeight - 1e-10) / l.tileHeight)));
+		const tH = l.tileHeight, tW = l.tileWidth;
+		let r0 = Math.max(0, Math.floor((minY - 0.001) / tH));
+		let r1 = Math.min(l.rows - 1, Math.max(0, Math.floor((maxY + tH - 1e-10) / tH)));
+		if (minY < 1e-5) r0 = 0;
+		if (maxY > 1 - 1e-5) r1 = l.rows - 1;
 
-		if (minY < 1e-5) minRow = 0;
-		if (maxY > 1 - 1e-5) maxRow = l.rows - 1;
-
-		const tileWidth = l.tileWidth;
-		const isWrapping: boolean = Image.#uniqueXs[1] > 1;
-
-		for (let row = minRow; row <= maxRow; row++) {
-			if (isFullArc) {
-				for (let col = 0; col < l.cols; col++) {
-					this.#setToDraw(l, col, row);
-				}
-			} else if (!isWrapping) {
-				const minCol: number = Math.max(0, Math.max(0, Math.floor((Image.#uniqueXs[0] - 0.001) / tileWidth) - 1));
-				const maxCol: number = Math.min(l.cols - 1, Math.ceil((Image.#uniqueXs[1] + 0.001) / tileWidth));
-				for (let col = minCol; col <= maxCol; col++) {
-					this.#setToDraw(l, col, row);
-				}
+		const wrap = a1 > 1;
+		for (let row = r0; row <= r1; row++) {
+			if (full) {
+				for (let col = 0; col < l.cols; col++) this.#setToDraw(l, col, row);
 			} else {
-				const minCol1: number = Math.max(0, Math.max(0, Math.floor((Image.#uniqueXs[0] - 0.001) / tileWidth) - 1));
-				for (let col = minCol1; col < l.cols; col++) {
-					this.#setToDraw(l, col, row);
-				}
-				const maxCol2: number = Math.min(l.cols - 1, Math.ceil((mod1(Image.#uniqueXs[1] + 0.001)) / tileWidth));
-				for (let col = 0; col <= maxCol2; col++) {
-					this.#setToDraw(l, col, row);
+				const c0 = Math.max(0, Math.floor((a0 - 0.001) / tW) - 1);
+				if (!wrap) {
+					const c1 = Math.min(l.cols - 1, Math.ceil((a1 + 0.001) / tW));
+					for (let col = c0; col <= c1; col++) this.#setToDraw(l, col, row);
+				} else {
+					for (let col = c0; col < l.cols; col++) this.#setToDraw(l, col, row);
+					const c1 = Math.min(l.cols - 1, Math.ceil(mod1(a1 + 0.001) / tW));
+					for (let col = 0; col <= c1; col++) this.#setToDraw(l, col, row);
 				}
 			}
 		}
