@@ -8,11 +8,12 @@ import { modPI, mod1 } from '$utils/math'
 import { Coordinates } from './shared'
 import { Vec4, Mat4 } from './mat'
 import { segsX, segsY } from './constants'
-import { longitudeDistance, Bicubic, easeInOut } from './easing';
+import { longitudeDistance } from './easing';
+import EngineCamera from './engine-camera';
 import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 360 camera logic, perspective, and related calculations. @internal */
-export default class Camera360 {
+export default class Camera360 extends EngineCamera {
 	readonly pMatrix: Mat4 = new Mat4;
 	readonly iMatrix: Mat4 = new Mat4;
 	readonly #cachedInverse: Mat4 = new Mat4;
@@ -50,16 +51,14 @@ export default class Camera360 {
 
 	offX: number = 0;
 
-	readonly #canvas: TileCanvas;
-
 	constructor(
 		canvas: TileCanvas
 	) {
-		this.#canvas = canvas;
-		this.baseYaw = -this.#canvas.rotationY;
+		super(canvas);
+		this.baseYaw = -this.canvas.rotationY;
 		this.offX = this.baseYaw / (Math.PI * 2);
 
-		this.scaleY = this.#canvas.height / (this.#canvas.width / 2);
+		this.scaleY = this.canvas.height / (this.canvas.width / 2);
 		this.offY = (1 - this.scaleY) / 4;
 		this.yaw = this.baseYaw;
 		this.update();
@@ -76,7 +75,7 @@ export default class Camera360 {
 
 	/** Updates the 360 projection and rotation matrices. */
 	update(noPersp: boolean = false): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 		const el = c.el;
 
 		if (!noPersp) this.pMatrix.perspective(this.perspective, el.aspect, 0.0001, 20);
@@ -101,7 +100,7 @@ export default class Camera360 {
 	 * Applies rotation based on pixel delta from mouse/touch drag.
 	 */
 	rotate(xPx: number, yPx: number, duration: number = 0): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 		const el = c.el;
 		this.yaw += xPx * el.ratio / el.width * this.perspective * el.aspect;
 		this.pitch += yPx * el.ratio / el.height * this.perspective * this.scaleY;
@@ -129,7 +128,7 @@ export default class Camera360 {
 
 	/** Clamps the yaw value based on horizontal limits. */
 	#limitYaw(): void {
-		const halfHorizontalFov = this.perspective / 2 * this.#canvas.el.aspect;
+		const halfHorizontalFov = this.perspective / 2 * this.canvas.el.aspect;
 		const maxYaw = Math.PI * (this.limitX > 0 ? this.limitX : 1);
 
 		let y = this.yaw; while (y >= Math.PI) y -= Math.PI * 2; while (y < -Math.PI) y += Math.PI * 2;
@@ -140,7 +139,7 @@ export default class Camera360 {
 	 * Applies zoom by adjusting the perspective.
 	 */
 	zoomByFactor(factor: number, dur: number, noLimit: boolean, speed: number = 0, pxX: number = 0, pxY: number = 0): number {
-		const c = this.#canvas;
+		const c = this.canvas;
 		factor /= 2;
 		if (dur !== 0) {
 			dur = c.ani.zoom(factor, dur, speed, noLimit);
@@ -182,7 +181,7 @@ export default class Camera360 {
 
 	/** Sets the perspective (FoV) and updates related state. */
 	setPerspective(perspective: number, noLimit: boolean): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 		this.perspective = perspective;
 		if (!noLimit || c.is360) {
 			this.perspective = Math.min(this.maxPerspective, Math.max(this.minPerspective, this.perspective));
@@ -198,13 +197,13 @@ export default class Camera360 {
 
 	/** Recalculates the effective scale based on coordinate conversion. */
 	readScale(): void {
-		const el = this.#canvas.el;
+		const el = this.canvas.el;
 		const cX: number = el.width / 2;
 		const cY: number = el.height / 2;
 
 		const center0 = this.getCoo(cX, cY).x;
 		const center1 = this.getCoo(cX + 1, cY + 1).x;
-		this.scale = 1 / ((center1 + (center1 < center0 ? 1 : 0)) - center0) / this.#canvas.width;
+		this.scale = 1 / ((center1 + (center1 < center0 ? 1 : 0)) - center0) / this.canvas.width;
 	}
 
 	/** Sets the camera orientation directly. */
@@ -218,7 +217,10 @@ export default class Camera360 {
 	}
 
 	/** Sets the camera orientation using viewport format (center + dimensions). */
-	setView(centerX: number, centerY: number, _width: number, height: number, noLimit: boolean = false, correctNorth: boolean = false): void {
+	setView(centerX?: number, centerY?: number, _width?: number, height?: number, opts?: { noLimit?: boolean; correctNorth?: boolean }): boolean {
+		if (centerX == null || centerY == null || height == null) return false;
+		const noLimit = opts?.noLimit ?? false;
+		const correctNorth = opts?.correctNorth ?? false;
 		const adjustedCenterX = correctNorth ? centerX + this.offX : centerX;
 
 		this.yaw = (adjustedCenterX - .5) * Math.PI * 2;
@@ -226,11 +228,12 @@ export default class Camera360 {
 		this.setPerspective(Math.min(this.maxPerspective, height * Math.PI * this.scaleY), noLimit);
 		this.calculate3DFrustum();
 		this.#syncLogicalView();
+		return true;
 	}
 
 	/** Synchronizes the logical view with the current camera state for 360 images. */
 	#syncLogicalView(): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 
 		const centerX = mod1((this.yaw / (Math.PI * 2) + .5));
 		const centerY = (this.pitch / this.scaleY) / Math.PI + .5;
@@ -251,7 +254,7 @@ export default class Camera360 {
 		this.cameraForwardZ = Math.cos(pitch) * Math.cos(yaw);
 
 		const verticalFOV = 2 * Math.atan(1 / this.perspective);
-		const aspectRatio = this.#canvas.el.width / this.#canvas.el.height;
+		const aspectRatio = this.canvas.el.width / this.canvas.el.height;
 
 		const halfVerticalFOV = verticalFOV / 2;
 		const halfHorizontalFOV = Math.atan(Math.tan(halfVerticalFOV) * aspectRatio);
@@ -264,13 +267,13 @@ export default class Camera360 {
 		this.position.x = -distance * Math.sin(dir);
 		this.position.y = distanceY;
 		this.position.z = distance * Math.cos(dir);
-		this.#canvas.view.changed = true;
+		this.canvas.view.changed = true;
 		this.update();
 	}
 
 	/** Handles canvas resize events for 360 mode. */
 	resize(): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 		const el = c.el;
 		this.minPerspective = Math.min(.5, el.height / c.height) / c.maxScale * this.scaleY * Math.PI / el.ratio * el.scale;
 		this.setPerspective(this.perspective, true);
@@ -287,7 +290,7 @@ export default class Camera360 {
 
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
 	getCoo(pxX: number, pxY: number): Coordinates {
-		const el = this.#canvas.el;
+		const el = this.canvas.el;
 		this.vec4.x = (pxX * el.ratio / el.width) * 2 - 1;
 		this.vec4.y = -((pxY * el.ratio / el.height) * 2 - 1);
 		this.vec4.z = 1;
@@ -309,7 +312,7 @@ export default class Camera360 {
 
 	/** Converts 360 image coordinates [0-1] to screen pixel coordinates. */
 	getXYZ(x: number, y: number): Coordinates {
-		const el = this.#canvas.el;
+		const el = this.canvas.el;
 		this.getVec3(x + this.offX, y);
 
 		this.coo.x = ((this.vec4.x + 1) / 2) * el.width / el.ratio;
@@ -391,7 +394,7 @@ export default class Camera360 {
 		y *= this.scaleY; y /= 2; y -= .25; y += this.offY;
 		h *= this.scaleY; h /= 2;
 
-		const v = this.#canvas.main.vertexBuffer360;
+		const v = this.canvas.main.vertexBuffer360;
 		const a = this.radius;
 		const sW = w / segsX;
 		const sH = h / segsY;
@@ -456,62 +459,20 @@ export default class Camera360 {
 		return this.zoomByFactor(delta, duration, noLimit, 0, xPx, yPx);
 	}
 
-	pinchStart(): void {}
-
-	pinchStop(): void {}
-
-	pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
-		const c = this.#canvas;
-		const el = c.main.el;
-		const left = (Math.min(xPx1, xPx2) - el.left) / el.scale;
-		const top = (Math.min(yPx1, yPx2) - el.top) / el.scale;
-		const right = (Math.max(xPx1, xPx2) - el.left) / el.scale;
-		const bottom = (Math.max(yPx1, yPx2) - el.top) / el.scale;
-		const cX = left + (right - left) / 2;
-		const cY = top + (bottom - top) / 2;
-		const size = Math.max(right - left, bottom - top);
-		const delta = this.#canvas.camera2d.prevSize - size;
-
-		if (this.#canvas.camera2d.prevCenterX > 0) {
-			const dX = this.#canvas.camera2d.prevCenterX - cX;
-			const dY = this.#canvas.camera2d.prevCenterY - cY;
-			this.zoomByFactor(delta * 2, 0, false);
-			this.rotate(dX, dY);
-		}
-
-		this.#canvas.camera2d.prevCenterX = cX;
-		this.#canvas.camera2d.prevCenterY = cY;
-		this.#canvas.camera2d.prevSize = size;
+	protected handlePinchMove(delta: number, dX: number, dY: number): void {
+		this.zoomByFactor(delta * 2, 0, false);
+		this.rotate(dX, dY);
 	}
 
-	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
-		const c = this.#canvas;
-		const a = c.ani;
-		c.kinetic.stop();
-
+	protected flyToCenterX(centerX: number): number {
+		const c = this.canvas;
 		const currentCenterX = c.view.centerX;
 		const longitudeDist = longitudeDistance(currentCenterX, centerX);
-		const adjustedCenterX = currentCenterX + longitudeDist;
-
-		a.limit = false;
-		dur = a.toView(adjustedCenterX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
-		a.limit = false;
-		a.flying = true;
-		return dur;
+		return currentCenterX + longitudeDist;
 	}
 
-	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
-		const c = this.#canvas;
-		c.kinetic.stop();
-
-		const w: number = (1 / scale) * c.main.el.width;
-		const h: number = (1 / scale) * c.main.el.height;
-
-		dur = c.ani.toView(x, y, w, h, dur, fn, { speed });
-
-		c.ani.limit = dur === 0 || limit;
-		c.ani.flying = dur > 0;
-
-		return dur;
+	protected setCooDim(scale: number): { w: number; h: number } {
+		const el = this.canvas.main.el;
+		return { w: (1 / scale) * el.width, h: (1 / scale) * el.height };
 	}
 }

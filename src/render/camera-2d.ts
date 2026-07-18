@@ -4,13 +4,14 @@
  * @internal
  */
 
-import { Coordinates } from './shared'
-import { Bicubic, easeInOut } from './easing';
+import { Coordinates, Viewport } from './shared'
+import { easeInOut } from './easing';
 import { epsEq } from '$utils/math';
+import EngineCamera from './engine-camera';
 import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
-export default class Camera2D {
+export default class Camera2D extends EngineCamera {
 	scale: number = 1.0;
 	minScale: number = 1.0;
 	minSize: number = 1.0;
@@ -29,19 +30,17 @@ export default class Camera2D {
 	cph: number = -1;
 	#wasCoverLimit: boolean = true;
 
-	#canvas: TileCanvas;
-
 	constructor(
 		canvas: TileCanvas
 	) {
-		this.#canvas = canvas;
+		super(canvas);
 	}
 
 	/**
 	 * Converts screen pixel coordinates to relative image coordinates [0-1].
 	 */
 	getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Coordinates {
-		const c = this.#canvas;
+		const c = this.canvas;
 		if (c.noImage || c.freeMove)
 			noLimit = true;
 
@@ -68,7 +67,7 @@ export default class Camera2D {
 	 * Converts relative image coordinates [0-1] to screen pixel coordinates.
 	 */
 	getXY(x: number, y: number, abs: boolean): Coordinates {
-		const c = this.#canvas;
+		const c = this.canvas;
 		const el = c.el;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
 		this.xy.x = ((x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
@@ -86,7 +85,7 @@ export default class Camera2D {
 	 * Converts 3D coordinates relative to an omni object's center to screen pixel coordinates.
 	 */
 	getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
-		const c = this.#canvas;
+		const c = this.canvas;
 		const el = c.el;
 		const mat = c.camera360.pMatrix, vec4 = c.camera360.vec4;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
@@ -119,7 +118,7 @@ export default class Camera2D {
 
 	/** Recalculates scale limits (minScale, maxScale, coverScale, fullScale) based on current canvas and image dimensions. */
 	setCanvas(): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 		const el = c.el;
 
 		const cpw = el.width / c.width;
@@ -146,7 +145,7 @@ export default class Camera2D {
 
 		this.correctMinMax();
 
-		if (el.width && el.height && !this.#canvas.ani.isStarted()) {
+		if (el.width && el.height && !this.canvas.ani.isStarted()) {
 			c.view.copy(c.ani.lastView, true);
 			if (!c.is360) {
 				const pLimit = c.ani.limit;
@@ -159,7 +158,7 @@ export default class Camera2D {
 
 	/** Corrects minScale and maxScale based on coverLimit and focus area. */
 	correctMinMax(noLimit: boolean = false): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 		this.minScale = c.coverLimit ? this.coverScale : this.fullScale;
 
 		if (!noLimit && !c.main.isSwipe && (c.activeImageIdx === 0 && !c.coverLimit || c.activeImageIdx > 0)) {
@@ -185,8 +184,8 @@ export default class Camera2D {
 	 */
 	setView(): boolean {
 		if (this.cpw === -1) return false;
-		const c = this.#canvas;
-		const v = this.#canvas.view;
+		const c = this.canvas;
+		const v = this.canvas.view;
 
 		const limited = !c.freeMove && c.ani.limit;
 
@@ -210,7 +209,7 @@ export default class Camera2D {
 
 		v.set(v.centerX, v.centerY, v.width + overflowX, v.height + overflowY);
 
-		if (!this.#inited && c.coverStart) this.#canvas.ani.lastView.copy(v);
+		if (!this.#inited && c.coverStart) this.canvas.ani.lastView.copy(v);
 
 		if (!c.ani.correcting && c.coverLimit) v.limit(false);
 
@@ -228,8 +227,8 @@ export default class Camera2D {
 
 	/** Checks if the current view extends beyond the defined limits or max scale. */
 	isOutsideLimit(): boolean {
-		const v = this.#canvas.view;
-		return !this.#canvas.freeMove && (
+		const v = this.canvas.view;
+		return !this.canvas.freeMove && (
 			(!epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
 			|| (!epsEq(v.y0, v.lY0) && v.y0 < v.lY0) !== (!epsEq(v.y1, v.lY1) && v.y1 > v.lY1)
 			|| (!epsEq(this.scale, this.maxScale) && this.scale > this.maxScale)
@@ -240,11 +239,11 @@ export default class Camera2D {
 	 * Pans the view by a given pixel delta.
 	 */
 	pan(xPx: number, yPx: number, duration: number = 0, noLimit: boolean = false, force: boolean = false, isKinetic: boolean = false): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 
 		if ((this.isUnderZoom() || this.#pinching) && !force) return;
 
-		if (this.#canvas.freeMove) noLimit = true;
+		if (this.canvas.freeMove) noLimit = true;
 
 		const r = c.hasParent ? c.parent.el.ratio : c.el.ratio;
 		const v = c.view;
@@ -288,13 +287,13 @@ export default class Camera2D {
 	 * @returns The calculated animation duration.
 	 */
 	zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
-		const c = this.#canvas;
+		const c = this.canvas;
 
 		c.kinetic.stop();
 
 		if (!this.#pinching && this.isZoomedIn() && delta < 0) return 0;
 
-		if (this.#canvas.freeMove) noLimit = true;
+		if (this.canvas.freeMove) noLimit = true;
 
 		if (delta > 0 && this.isZoomedOut() && this.minSize >= 1 && (!this.#pinching || c.coverLimit)) return 0;
 
@@ -330,41 +329,10 @@ export default class Camera2D {
 		return duration;
 	}
 
-	prevSize: number = -1;
-	prevCenterX: number = -1;
-	prevCenterY: number = -1;
-
-	/** Handles pinch gesture updates. */
-	pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
-		const c = this.#canvas;
-		const el = c.main.el;
-
-		const left = (Math.min(xPx1, xPx2) - el.left) / el.scale;
-		const top = (Math.min(yPx1, yPx2) - el.top) / el.scale;
-		const right = (Math.max(xPx1, xPx2) - el.left) / el.scale;
-		const bottom = (Math.max(yPx1, yPx2) - el.top) / el.scale;
-
-		const cX = left + (right - left) / 2;
-		const cY = top + (bottom - top) / 2;
-		const size: number = Math.max(right - left, bottom - top);
-
-		const delta = this.prevSize - size;
-
-		c.kinetic.stop();
-
-		if (this.prevCenterX > 0) {
-			const dX = this.prevCenterX - cX;
-			const dY = this.prevCenterY - cY;
-
-			if (!this.#canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
-			this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.#canvas.pinchZoomOutLimit);
-			c.ani.limit = !!this.#canvas.pinchZoomOutLimit;
-		}
-		else c.ani.stop();
-
-		this.prevCenterX = cX;
-		this.prevCenterY = cY;
-		this.prevSize = size;
+	protected handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
+		if (!this.canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
+		this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas.pinchZoomOutLimit);
+		c.ani.limit = !!this.canvas.pinchZoomOutLimit;
 	}
 
 	/** Signals the start of a pinch gesture. */
@@ -375,17 +343,14 @@ export default class Camera2D {
 	/** Signals the end of a pinch gesture. */
 	pinchStop(): void {
 		this.#snapToBounds();
-
-		this.prevSize = -1;
-		this.prevCenterX = -1;
-		this.prevCenterY = -1;
 		this.#pinching = false;
+		super.pinchStop();
 	}
 
 	#snapToBounds(): void {
-		if (this.#canvas.freeMove) return;
+		if (this.canvas.freeMove) return;
 
-		const v = this.#canvas.view;
+		const v = this.canvas.view;
 		const isOverzoomed = this.scale > this.maxScale;
 
 		const targetWidth = isOverzoomed ? this.cpw / this.maxScale : v.width;
@@ -403,63 +368,38 @@ export default class Camera2D {
 			? v.lCenterY
 			: Math.max(v.lY0 + halfH, Math.min(v.centerY, v.lY1 - halfH));
 
-		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
+		this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
 	}
 
-	/**
-	 * Initiates a fly-to animation to a target view rectangle.
-	 * @returns The calculated animation duration.
-	 */
-	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
-		const c = this.#canvas;
-		const a = c.ani;
-		c.kinetic.stop();
+	// ─── SetCoo hooks ──────────────────────────────────────────────
 
-		a.limit = false;
-		dur = a.toView(centerX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
-		a.limit = false;
-		a.flying = true;
-		return dur;
-	}
-
-	/**
-	 * Sets the view center and scale, optionally animating.
-	 * @returns The calculated animation duration.
-	 */
-	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
+	protected handleSetCooInit(x: number, y: number, scale: number): boolean {
 		if (!this.#inited) {
 			this.#hasStartCoo = true;
 			this.#startCoo.x = x;
 			this.#startCoo.y = y;
 			this.#startCoo.scale = scale;
 			this.setView();
-			return 0;
+			return true;
 		}
+		return false;
+	}
 
-		const c = this.#canvas;
+	protected clampSetCooScale(scale: number): number {
+		return Math.max(this.minScale, scale);
+	}
 
-		if (scale === 0) scale = c.getScale();
+	protected setCooDim(scale: number): { w: number; h: number } {
+		return { w: (1 / scale) * this.cpw, h: (1 / scale) * this.cph };
+	}
 
-		scale = Math.max(this.minScale, scale);
-
-		c.kinetic.stop();
-
-		const w: number = (1 / scale) * this.cpw;
-		const h: number = (1 / scale) * this.cph;
-
+	protected beforeSetCooAnimate(x: number, y: number, w: number, h: number, dur: number): void {
 		if (dur === 0) {
 			if (x + w / 2 > 1) x = 1 - w / 2;
 			if (x - w / 2 < 0) x = w / 2;
 			if (y + h / 2 > 1) y = 1 - h / 2;
 			if (y - h / 2 < 0) y = h / 2;
 		}
-
-		dur = c.ani.toView(x, y, w, h, dur, fn, { speed });
-
-		c.ani.limit = dur === 0 || limit;
-		c.ani.flying = dur > 0;
-
-		return dur;
 	}
 
 	// ─── 360 camera compat stubs (for union with Camera360) ─────────
@@ -468,7 +408,7 @@ export default class Camera2D {
 
 	/** Updates the projection matrix for 2D rendering (delegates to Camera360.pMatrix). */
 	updateProjection(): void {
-		const c = this.#canvas;
+		const c = this.canvas;
 		const v = c.view;
 		c.camera360.pMatrix.perspective(c.camera360.perspective, c.el.aspect, 0.0001, 100);
 		c.camera360.pMatrix.translate(

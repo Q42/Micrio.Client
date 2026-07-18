@@ -9,6 +9,7 @@ import Ani from './ani'
 import Camera2D from './camera-2d'
 import Image from './tile-image'
 import Camera360 from './camera-360'
+import EngineCamera from './engine-camera'
 
 /**
  * Represents a single rendering canvas within the Micrio engine.
@@ -47,7 +48,7 @@ export class TileCanvas {
 	readonly kinetic!: Kinetic;
 	readonly camera2d!: Camera2D;
 	readonly camera360!: Camera360;
-	readonly camera!: Camera2D | Camera360;
+	readonly camera!: EngineCamera;
 	readonly rect: DrawRect = new DrawRect;
 	readonly el: Viewport = new Viewport;
 
@@ -632,7 +633,7 @@ export class TileCanvas {
 
 		if (this.width > 0) {
 			if (this.is360) {
-				this.camera360.setView(centerX, centerY, width, height, noLimit, correctNorth);
+				this.camera360.setView(centerX, centerY, width, height, { noLimit, correctNorth });
 				this.view.set(centerX, centerY, width, height);
 			} else if (this.camera2d.setView()) {
 				this.camera2d.updateProjection();
