@@ -5,7 +5,7 @@
  * @internal
  */
 
-import { DrawRect, Coordinates } from './shared';
+import { DrawRect } from './shared';
 import { twoNth, mod1 } from '$utils/math';
 import { Vec4, Mat4 } from './mat';
 import type { default as TileCanvas } from './tile-canvas';
@@ -186,18 +186,9 @@ export default class Image {
 	 */
 	#sphere3DOverlap(): boolean {
 		if (!this.#canvas.is360) return false;
-
-		const dotProduct = this.sphere3DX * this.#canvas.camera360.cameraForwardX +
-			this.sphere3DY * this.#canvas.camera360.cameraForwardY +
-			this.sphere3DZ * this.#canvas.camera360.cameraForwardZ;
-
-		const angularDistance = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
-
-		const embedAngularRadius = Math.max(this.angularWidth, this.angularHeight) / 2;
-
-		const effectiveFOV = this.#canvas.camera360.fieldOfView + embedAngularRadius;
-
-		return angularDistance < effectiveFOV;
+		const c = this.#canvas.camera360;
+		const dp = this.sphere3DX * c.cameraForwardX + this.sphere3DY * c.cameraForwardY + this.sphere3DZ * c.cameraForwardZ;
+		return Math.acos(Math.max(-1, Math.min(1, dp))) < c.fieldOfView + Math.max(this.angularWidth, this.angularHeight) / 2;
 	}
 
 	/** Checks if the image's bounding box is completely outside the current view. */
@@ -303,20 +294,17 @@ export default class Image {
 	#getTilesRect(layerIdx: number, x0: number, y0: number, x1: number, y1: number): void {
 		if (this.#outsideView()) return;
 
-		const layer = this.layers[layerIdx];
-		const tW = layer.tileWidth, tH = layer.tileHeight;
+		const l = this.layers[layerIdx];
+		const tW = l.tileWidth, tH = l.tileHeight;
 		const rW = this.rWidth, rH = this.rHeight;
 
-		const r = Math.min(layer.cols - 1, Math.floor(Math.max(0, x1 - this.x0) / rW / tW));
-		const b = Math.floor(Math.max(0, y1 - this.y0) / rH / tH);
-		const l = Math.floor(Math.max(0, x0 - this.x0) / rW / tW);
+		const r = Math.min(l.cols - 1, Math.floor(Math.max(0, x1 - this.x0) / rW / tW));
+		const b = Math.min(l.rows - 1, Math.floor(Math.max(0, y1 - this.y0) / rH / tH));
+		const c = Math.floor(Math.max(0, x0 - this.x0) / rW / tW);
 		let y = Math.floor(Math.max(0, y0 - this.y0) / rH / tH);
 
 		for (; y <= b; y++) {
-			if (y >= layer.rows) continue;
-			for (let x = l; x <= r; x++) {
-				this.#setToDraw(layer, x, y);
-			}
+			for (let x = c; x <= r; x++) this.#setToDraw(l, x, y);
 		}
 	}
 
