@@ -6,16 +6,12 @@ export function gridString(i: Models.ImageInfo.ImageInfo, opts?: {
 	view?: Models.Camera.View;
 	area?: Models.Camera.View;
 	size?: number[];
-	cultures?: string;
 }): string {
 	return [
 		i.id, i.width, i.height,
-		i.isDeepZoom ? 'd' : '',
-		i.isPng ? 'p' : i.isWebP ? 'w' : '',
 		opts?.view?.map(round).join('/'),
 		opts?.area?.map(round).join('/'),
 		i.settings?.focus?.map(round).join('-'),
-		opts?.cultures
 	].join(',').replace(/,+$/, '') + (opts?.size ? `|${opts.size.join(',')}` : '');
 }
 

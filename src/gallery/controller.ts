@@ -7,7 +7,7 @@ import { jsonCache } from '$utils/fetch';
 import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { archive } from '$utils/archive';
-import { Grid } from '$grid/grid';
+import { gridString } from '$grid/format';
 import { writable, get, type Writable } from '$core/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from '$core/globals';
 
@@ -225,7 +225,7 @@ export class Gallery {
 			const s = galleryConfig.sort;
 			if (s && index?.images) index.images.sort(Gallery.#sortArchiveImages(s));
 			gridData = index.images.map(i =>
-				Grid.getString(i, { cultures: 'cultures' in i ? (i.cultures as string[]).join('-') : undefined })
+				gridString(i)
 			).join(';');
 		}
 

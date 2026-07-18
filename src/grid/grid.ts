@@ -28,8 +28,6 @@ import { handleAction, createTourEventHandler } from './action-handlers';
  * Accessed via `micrioImage.grid`.
  */
 export class Grid {
-	static getString = gridString;
-
 	/** Array of {@link MicrioImage} instances currently part of the grid definition (loaded). */
 	readonly images:MicrioImage[] = [];
 
@@ -212,7 +210,7 @@ export class Grid {
 	 * This is the main method for changing the grid's content and appearance.
 	 *
 	 * @param input The grid definition. Can be:
-	 *   - A semicolon-separated string following the format defined in `Grid.getString`.
+	 *   - A semicolon-separated string following the format defined in {@link getString}.
 	 *   - An array of {@link MicrioImage} instances.
 	 *   - An array of objects `{image: MicrioImage, ...GridImageOptions}`.
 	 * @param opts Options controlling the transition and layout.
@@ -348,16 +346,12 @@ export class Grid {
 			id: parts[0],
 			width: width = (Number(parts[1]) || width),
 			height: height = (Number(parts[2]) || height),
-			isDeepZoom: parts[3] == 'd',
-			isPng: parts[4] == 'p',
-			isWebP: parts[4] == 'w',
 			size: size ?? [1],
-			view: parts[5] ? parts[5].split('/').map(Number) as Models.Camera.View : undefined,
-			area: parts[6] ? parts[6].split('/').map(Number) as Models.Camera.View : undefined,
+			view: parts[3] ? parts[3].split('/').map(Number) as Models.Camera.View : undefined,
+			area: parts[4] ? parts[4].split('/').map(Number) as Models.Camera.View : undefined,
 			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings || {}, {
-				focus: parts[7] ? parts[7].split('-').map(Number) as [number, number] : undefined
+				focus: parts[5] ? parts[5].split('-').map(Number) as [number, number] : undefined
 			})),
-			cultures: parts[8]?.replace(/-/g, ',') || undefined
 		} as Models.Grid.GridImage;
 	}
 
@@ -365,11 +359,10 @@ export class Grid {
 	 * Converts an ImageInfo object and options back into the grid string format.
 	 * @returns The grid encoded string for this image.
 	*/
-	getString = (i:Models.ImageInfo.ImageInfo, opts:Models.Grid.GridImageOptions = {}) : string => Grid.getString(i, {
+	getString = (i:Models.ImageInfo.ImageInfo, opts:Models.Grid.GridImageOptions = {}) : string => gridString(i, {
 		view: opts.view,
 		area: opts.area,
 		size: opts.size ?? this.nextSize.get(i.id) as [number,number],
-		cultures: ('cultures' in i && i['cultures'] ? i.cultures as string : '')?.replace(/,/g,'-')
 	});
 
 	#getCols = calcCols;
