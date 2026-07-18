@@ -602,7 +602,7 @@ export class TileCanvas {
 		this.focus.set(centerX, centerY, width, height);
 		this.camera2d.correctMinMax();
 		if (!noLimit) {
-			this.camera2d.setView();
+			this.camera2d.applyView();
 			this.camera2d.updateProjection();
 		}
 	}
@@ -635,7 +635,7 @@ export class TileCanvas {
 			if (this.is360) {
 				this.camera360.setView(centerX, centerY, width, height, { noLimit, correctNorth });
 				this.view.set(centerX, centerY, width, height);
-			} else if (this.camera2d.setView()) {
+			} else if (this.camera2d.applyView()) {
 				this.camera2d.updateProjection();
 			}
 		}

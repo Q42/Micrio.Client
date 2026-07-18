@@ -150,7 +150,7 @@ export default class Camera2D extends EngineCamera {
 			if (!c.is360) {
 				const pLimit = c.ani.limit;
 				c.ani.limit = false;
-				this.setView();
+				this.applyView();
 				c.ani.limit = pLimit;
 			}
 		}
@@ -179,10 +179,10 @@ export default class Camera2D extends EngineCamera {
 	isZoomedIn(): boolean { return epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
 
 	/**
-	 * Calculates and sets the current camera scale and view offsets based on the logical view rectangle.
-	 * @returns True if the view was successfully set, false if initialization is pending.
+	 * Recalculates scale and applies view constraints from the current logical view.
+	 * @returns True if the view was successfully applied, false if initialization is pending.
 	 */
-	setView(): boolean {
+	applyView(): boolean {
 		if (this.cpw === -1) return false;
 		const c = this.canvas;
 		const v = this.canvas.view;
@@ -379,7 +379,7 @@ export default class Camera2D extends EngineCamera {
 			this.#startCoo.x = x;
 			this.#startCoo.y = y;
 			this.#startCoo.scale = scale;
-			this.setView();
+			this.applyView();
 			return true;
 		}
 		return false;

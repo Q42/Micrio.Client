@@ -185,7 +185,7 @@ export class Camera {
 		if (!this.#canvas) return;
 		this.#canvas.camera2d.minScale = s;
 		this.#canvas.camera2d.correctMinMax();
-		this.#canvas.camera2d.setView();
+		this.#canvas.camera2d.applyView();
 		this.#canvas.camera360.update();
 	}
 

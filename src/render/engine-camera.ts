@@ -114,13 +114,6 @@ export default abstract class EngineCamera {
 
 	abstract pan(xPx: number, yPx: number, duration?: number, noLimit?: boolean, force?: boolean, isKinetic?: boolean): void;
 	abstract zoom(delta: number, xPx: number, yPx: number, duration?: number, noLimit?: boolean): number;
-	abstract setView(
-		centerX?: number,
-		centerY?: number,
-		width?: number,
-		height?: number,
-		opts?: { noLimit?: boolean; correctNorth?: boolean }
-	): boolean;
 	abstract correctMinMax(noLimit?: boolean): void;
 	abstract isOutsideLimit(): boolean;
 	abstract isUnderZoom(): boolean;
