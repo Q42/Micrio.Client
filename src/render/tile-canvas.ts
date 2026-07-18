@@ -173,7 +173,7 @@ export class TileCanvas {
 			this.resize();
 		}
 
-		if (!cfg.noImage) this.addImage(0, 0, 1, 1, width, height, cfg.tileSize, cfg.isSingle, cfg.isDeepZoom, false, targetOpacity, 0, 0, 0, 1, 0);
+		if (!cfg.noImage) this.addImage(0, 0, 1, 1, width, height, cfg.tileSize, cfg.isSingle, cfg.isDeepZoom, false, targetOpacity);
 		else {
 			this.main.numImages++;
 			this.bOpacity = 1;
@@ -197,7 +197,7 @@ export class TileCanvas {
 	 */
 	addImage(x0: number, y0: number, x1: number, y1: number, w: number, h: number,
 		tileSize: number, isSingle: boolean, isDeepZoom: boolean, isVideo: boolean,
-		opa: number, rotX: number, rotY: number, rotZ: number, scale: number, fromScale: number): Image {
+		opa: number, rotX: number = 0, rotY: number = 0, rotZ: number = 0, scale: number = 1, fromScale: number = 0): Image {
 		const image = new Image(
 			this,
 			this.main.numImages++,
@@ -209,7 +209,7 @@ export class TileCanvas {
 		image.setArea(x0, y0, x1, y1);
 		this.images.push(image);
 		this.main.numTiles = image.endOffset;
-		if (this.images.length === 1) this.setActiveImage(0, 0);
+		if (this.images.length === 1) this.setActiveImage(0);
 		return image;
 	}
 
@@ -261,8 +261,7 @@ export class TileCanvas {
 			this.webgl.moveTo(
 				this.main.distanceX * fact * base360Distance,
 				this.main.distanceY * fact * base360Distance,
-				this.main.direction,
-				0);
+				this.main.direction);
 		}
 	}
 
@@ -563,12 +562,12 @@ export class TileCanvas {
 	/** Sets the active layer for multi-layer omni objects. */
 	setActiveLayer(idx: number): void {
 		this.layer = idx;
-		this.setActiveImage(this.activeImageIdx, 0);
+		this.setActiveImage(this.activeImageIdx);
 		this.view.changed = true;
 	}
 
 	/** Sets the active image(s) for gallery/omni canvases. */
-	setActiveImage(idx: number, num: number): void {
+	setActiveImage(idx: number, num: number = 0): void {
 		const offset = this.layer * (this.images.length / this.omniNumLayers);
 		for (let i = 0; i < this.images.length; i++) {
 			const im = this.images[i];
@@ -645,7 +644,7 @@ export class TileCanvas {
 
 	correctMinMax(noLimit?: boolean): void { this.camera.correctMinMax(noLimit); }
 
-	setDirection(yaw: number, pitch: number, resetPersp: boolean): void {
+	setDirection(yaw: number, pitch: number, resetPersp: boolean = false): void {
 		if (isNaN(pitch)) pitch = this.webgl.pitch;
 		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
 	}

@@ -110,7 +110,7 @@ export default class SphericalView {
 	/**
 	 * Applies rotation based on pixel delta from mouse/touch drag.
 	 */
-	rotate(xPx: number, yPx: number, duration: number): void {
+	rotate(xPx: number, yPx: number, duration: number = 0): void {
 		const c = this.#canvas;
 		const el = c.el;
 		this.yaw += xPx * el.ratio / el.width * this.perspective * el.aspect;
@@ -149,7 +149,7 @@ export default class SphericalView {
 	/**
 	 * Applies zoom by adjusting the perspective.
 	 */
-	zoom(factor: number, dur: number, speed: number, noLimit: boolean, pxX: number = 0, pxY: number = 0): number {
+	zoom(factor: number, dur: number, noLimit: boolean, speed: number = 0, pxX: number = 0, pxY: number = 0): number {
 		const c = this.#canvas;
 		factor /= 2;
 		if (dur !== 0) {
@@ -218,7 +218,7 @@ export default class SphericalView {
 	}
 
 	/** Sets the camera orientation directly. */
-	setDirection(yaw: number, pitch: number, persp: number): void {
+	setDirection(yaw: number, pitch: number, persp: number = 0): void {
 		this.yaw = modPI(yaw - this.baseYaw);
 		this.pitch = pitch;
 		if (persp !== 0) this.setPerspective(persp, false);
@@ -272,7 +272,7 @@ export default class SphericalView {
 	}
 
 	/** Applies translation offset for 360 space transitions. */
-	moveTo(distance: number, distanceY: number, direction: number, addYaw: number): void {
+	moveTo(distance: number, distanceY: number, direction: number, addYaw: number = 0): void {
 		const dir: number = direction * Math.PI * 2 + addYaw;
 		this.position.x = -distance * Math.sin(dir);
 		this.position.y = distanceY;
@@ -359,7 +359,7 @@ export default class SphericalView {
 	 * Calculates the combined transformation matrix for placing an element
 	 * at a specific point on the 360 sphere.
 	 */
-	getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
+	getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
 		if (isNaN(radius)) radius = this.radius;
 
 		this.iMatrix.identity();

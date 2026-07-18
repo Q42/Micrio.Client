@@ -85,7 +85,7 @@ export default class EngineCamera {
 	/**
 	 * Converts 3D coordinates relative to an omni object's center to screen pixel coordinates.
 	 */
-	getXYOmniCoo(x: number, y: number, z: number, rotation: number, abs: boolean): Coordinates {
+	getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.#canvas;
 		const el = c.el;
 		const mat = c.webgl.pMatrix, vec4 = c.webgl.vec4;
@@ -223,7 +223,7 @@ export default class EngineCamera {
 
 		if (this.#hasStartCoo) {
 			this.#hasStartCoo = false;
-			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale, 0, 0, false, easeInOut);
+			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale);
 			return false;
 		}
 		return true;
@@ -242,7 +242,7 @@ export default class EngineCamera {
 	/**
 	 * Pans the view by a given pixel delta.
 	 */
-	pan(xPx: number, yPx: number, duration: number, noLimit: boolean, force: boolean = false, isKinetic: boolean = false): void {
+	pan(xPx: number, yPx: number, duration: number = 0, noLimit: boolean = false, force: boolean = false, isKinetic: boolean = false): void {
 		const c = this.#canvas;
 
 		if (c.is360) {
@@ -272,7 +272,7 @@ export default class EngineCamera {
 			if (c.ani.isStarted()) {
 				c.ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, !noLimit);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: !noLimit });
 			}
 		} else {
 			c.ani.stop();
@@ -286,7 +286,7 @@ export default class EngineCamera {
 				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
 				c.view.changed = true;
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, easeInOut);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, easeInOut);
 			}
 		}
 	}
@@ -295,11 +295,11 @@ export default class EngineCamera {
 	 * Zooms the view by a given delta, centered on screen coordinates.
 	 * @returns The calculated animation duration.
 	 */
-	zoom(delta: number, xPx: number, yPx: number, duration: number, noLimit: boolean): number {
+	zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
 		const c = this.#canvas;
 
 		if (c.is360) {
-			return c.webgl.zoom(delta, duration, 0, noLimit, xPx, yPx);
+			return c.webgl.zoom(delta, duration, noLimit, 0, xPx, yPx);
 		}
 
 		c.kinetic.stop();
@@ -335,7 +335,7 @@ export default class EngineCamera {
 		const targetHeight = v.height + factY;
 
 		c.ani.limit = limit;
-		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, limit);
+		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: limit });
 		c.ani.lastView.copy(c.view);
 		c.ani.limit = !noLimit;
 
@@ -369,8 +369,8 @@ export default class EngineCamera {
 			const dY = this.prevCenterY - cY;
 
 			if (c.is360) {
-				c.webgl.zoom(delta * 2, 0, 0, false);
-				c.webgl.rotate(dX, dY, 0);
+				c.webgl.zoom(delta * 2, 0, false);
+				c.webgl.rotate(dX, dY);
 			}
 			else {
 				if (!this.#canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
@@ -421,7 +421,7 @@ export default class EngineCamera {
 			? v.lCenterY
 			: Math.max(v.lY0 + halfH, Math.min(v.centerY, v.lY1 - halfH));
 
-		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, easeInOut, true);
+		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
 	}
 
 	/**
@@ -441,7 +441,7 @@ export default class EngineCamera {
 		}
 
 		a.limit = false;
-		dur = a.toView(adjustedCenterX, centerY, width, height, dur, speed, perc, isJump, limit, toOmniIdx, fn, limitZoom);
+		dur = a.toView(adjustedCenterX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
 		a.limit = false;
 		a.flying = true;
 		return dur;
@@ -451,7 +451,7 @@ export default class EngineCamera {
 	 * Sets the view center and scale, optionally animating.
 	 * @returns The calculated animation duration.
 	 */
-	setCoo(x: number, y: number, scale: number, dur: number, speed: number, limit: boolean, fn: Bicubic): number {
+	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
 		if (!this.#inited) {
 			this.#hasStartCoo = true;
 			this.#startCoo.x = x;
@@ -480,7 +480,7 @@ export default class EngineCamera {
 			if (y - h / 2 < 0) y = h / 2;
 		}
 
-		dur = c.ani.toView(x, y, w, h, dur, speed, 0, false, false, -1, fn);
+		dur = c.ani.toView(x, y, w, h, dur, fn, { speed });
 
 		c.ani.limit = dur === 0 || limit;
 		c.ani.flying = dur > 0;

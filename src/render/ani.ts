@@ -82,13 +82,13 @@ export default class Ani {
 	pause(): void {
 		if (this.#pausedAt > 0) return;
 		this.#isRunning = false;
-		this.#pausedAt = this.#canvas.main.time;
+		this.#pausedAt = this.#canvas.main.now;
 	}
 
 	/** Resumes a paused animation. */
 	resume(): void {
 		if (this.#pausedAt === 0 || this.#started === 0) return;
-		this.#started += this.#canvas.main.time - this.#pausedAt;
+		this.#started += this.#canvas.main.now - this.#pausedAt;
 		this.#pausedAt = 0;
 		this.#isRunning = true;
 	}
@@ -119,9 +119,17 @@ export default class Ani {
 	 */
 	toView(
 		toCenterX: number, toCenterY: number, toWidth: number, toHeight: number,
-		dur: number, speed: number, perc: number,
-		isJump: boolean, limitViewport: boolean, omniIdx: number,
-		fn: Bicubic, correct: boolean = false): number {
+		dur: number, fn: Bicubic,
+		opts: {
+			speed?: number;
+			perc?: number;
+			isJump?: boolean;
+			limitViewport?: boolean;
+			omniIdx?: number;
+			correct?: boolean;
+		} = {}): number {
+
+		const { speed = 0, perc = 0, isJump = false, limitViewport = false, omniIdx = -1, correct = false } = opts;
 
 		if (correct && this.correcting) {
 			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
@@ -244,7 +252,7 @@ export default class Ani {
 		this.#isZoom = false;
 		if (correct) this.correcting = true;
 
-		this.#started = this.#canvas.main.time - (perc * this.#duration);
+		this.#started = this.#canvas.main.now - (perc * this.#duration);
 		this.#isRunning = true;
 
 		return this.#duration * (1 - perc);
@@ -274,7 +282,7 @@ export default class Ani {
 		this.#zTo = this.#zFrom + (to / (webgl.scale * c.diagonal / 20));
 		if (!noLimit) this.#zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.#zTo));
 
-		this.#started = this.#canvas.main.time;
+		this.#started = this.#canvas.main.now;
 		this.#isRunning = true;
 
 		this.#duration = dur >= 0 ? dur : Math.abs(this.#zFrom - this.#zTo) * 1000 / speed;
@@ -282,7 +290,7 @@ export default class Ani {
 	}
 
 	/** Sets the starting view for progress calculation in flyTo animations. */
-	setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio: boolean): void {
+	setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio: boolean = false): void {
 		this.#vFrom.set(centerX, centerY, width, height, correctRatio);
 		this.#vTo.set(centerX, centerY, width, height, correctRatio);
 	}
@@ -292,7 +300,7 @@ export default class Ani {
 	 * @returns Current animation progress (0-1).
 	 */
 	step(): number {
-		const p: number = this.#started === 0 ? 1 : Math.min(1, Math.max(0, (this.#canvas.main.time - this.#started) / this.#duration));
+		const p: number = this.#started === 0 ? 1 : Math.min(1, Math.max(0, (this.#canvas.main.now - this.#started) / this.#duration));
 		const pE = this.#fn.get(p);
 		const scale = this.#canvas.getScale();
 

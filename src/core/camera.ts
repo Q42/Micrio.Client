@@ -4,7 +4,7 @@ import type TileCanvas from '$render/tile-canvas';
 
 import { tick } from '$core/store';
 import { mod, toCenterJSON } from '$utils/math';
-import { getEasing, easeInOut } from '$render/easing';
+import { getEasing } from '$render/easing';
 
 /**
  * Represents the virtual camera used to view a {@link MicrioImage}.
@@ -167,7 +167,7 @@ export class Camera {
 	 */
 	setCoo(x: number, y: number, scale = this.center[2] ?? 1): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera.setCoo(x, y, scale, 0, 0, false, easeInOut);
+		this.#canvas.camera.setCoo(x, y, scale);
 		this.image.engine.render();
 	}
 
@@ -204,7 +204,7 @@ export class Camera {
 
 	setDirection(yaw: number, pitch?: number): void {
 		if (!this.#canvas) return;
-		this.#canvas.setDirection(yaw, pitch ?? this.#canvas.webgl.pitch, false);
+		this.#canvas.setDirection(yaw, pitch ?? this.#canvas.webgl.pitch);
 		this.image.engine.render();
 	}
 
@@ -263,7 +263,7 @@ export class Camera {
 	 * @returns The resulting 4x4 matrix as a Float32Array.
 	 */
 	getMatrix(x: number, y: number, scale?: number, radius?: number, rotX?: number, rotY?: number, rotZ?: number, transY?: number, scaleX?: number, scaleY?: number, noCorrectNorth?: boolean): Float32Array {
-		return this.#canvas?.getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY || 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
+		return this.#canvas?.getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
 	}
 
 	/**
@@ -310,7 +310,7 @@ export class Camera {
 
 	/** [Omni] Gets the screen coordinates [x, y, scale, depth] for given 3D object coordinates. */
 	getOmniXY(x: number, y: number, z: number): Float64Array {
-		return this.#canvas?.camera.getXYOmniCoo(x, y, z, 0, false).arr ?? new Float64Array(5);
+		return this.#canvas?.camera.getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
 	}
 
 	// ─── Animation lifecycle (called by TileCanvas) ────────────────
@@ -390,7 +390,7 @@ export class Camera {
 			}
 			if (opts.prevView) {
 				const pCV = toCenterJSON(opts.prevView);
-				this.#canvas.ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height, false);
+				this.#canvas.ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
 			}
 			if (this.image.$settings.omni?.frames) {
 				const numLayers = this.image.$settings.omni.layers?.length ?? 1;

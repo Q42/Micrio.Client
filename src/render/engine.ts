@@ -417,7 +417,7 @@ export class Engine {
 		if (v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) {
 			canvas.setView(v[0] + v[2] / 2, v[1] + v[3] / 2, v[2], v[3], false, false, false, false);
 		} else if ((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') {
-			canvas.camera.setCoo(focus[0], focus[1], 0, 0, 0, false, easeInOut);
+			canvas.camera.setCoo(focus[0], focus[1], 0);
 			settings.focus = undefined;
 		}
 
@@ -688,7 +688,7 @@ export class Engine {
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 			canvas.micrioImage = image;
 		} else {
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
 			image.placed = true;
@@ -705,7 +705,7 @@ export class Engine {
 
 		if (!isEmbed) {
 			this.#bindCamera(image);
-			if (image.$settings.focus) canvas.camera.setCoo(image.$settings.focus[0], image.$settings.focus[1], 0, 0, 0, false, easeInOut);
+			if (image.$settings.focus) canvas.camera.setCoo(image.$settings.focus[0], image.$settings.focus[1], 0);
 			const v = (image.$info as any)['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
 			else if (canvas.hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
@@ -730,7 +730,7 @@ export class Engine {
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			const parentEntry = this.#entryByImage.get(parent);
 			if (!parentEntry) return;
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale ?? 0);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
 			image.placed = true;
