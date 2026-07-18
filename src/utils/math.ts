@@ -33,6 +33,9 @@ export const toCenterJSON = (v: Models.Camera.View): { centerX: number; centerY:
 export const pointInArea = (x: number, y: number, a: [number, number, number, number]): boolean =>
 	x >= a[0] && x <= a[0] + a[2] && y >= a[1] && y <= a[1] + a[3];
 
+/** Compare two numbers within 1e-6 epsilon. */
+export const epsEq = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
+
 /** Normalize a 3D vector in-place. Returns the squared length (0 if zero-length). */
 export const normalize3 = (x: number, y: number, z: number): [number, number, number] => {
 	let len = x * x + y * y + z * z;

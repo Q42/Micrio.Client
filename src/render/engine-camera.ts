@@ -6,6 +6,7 @@
 
 import { Coordinates } from './shared'
 import { longitudeDistance, Bicubic, easeInOut } from './easing';
+import { epsEq } from '$utils/math';
 import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
@@ -172,15 +173,12 @@ export default class EngineCamera {
 		this.#wasCoverLimit = c.coverLimit;
 	}
 
-	/** Compare two numbers within 1e-6 epsilon. */
-	static epsEq(a: number, b: number): boolean { return Math.abs(a - b) < 1e-6; }
-
 	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). */
 	isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
-	isZoomedOut(b: boolean = false): boolean { return EngineCamera.epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
+	isZoomedOut(b: boolean = false): boolean { return epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn(): boolean { return EngineCamera.epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
+	isZoomedIn(): boolean { return epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
 
 	/**
 	 * Calculates and sets the current camera scale and view offsets based on the logical view rectangle.
@@ -233,9 +231,9 @@ export default class EngineCamera {
 	isOutsideLimit(): boolean {
 		const v = this.#canvas.view;
 		return !this.#canvas.freeMove && (
-			(!EngineCamera.epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!EngineCamera.epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
-			|| (!EngineCamera.epsEq(v.y0, v.lY0) && v.y0 < v.lY0) !== (!EngineCamera.epsEq(v.y1, v.lY1) && v.y1 > v.lY1)
-			|| (!EngineCamera.epsEq(this.scale, this.maxScale) && this.scale > this.maxScale)
+			(!epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
+			|| (!epsEq(v.y0, v.lY0) && v.y0 < v.lY0) !== (!epsEq(v.y1, v.lY1) && v.y1 > v.lY1)
+			|| (!epsEq(this.scale, this.maxScale) && this.scale > this.maxScale)
 		);
 	}
 
