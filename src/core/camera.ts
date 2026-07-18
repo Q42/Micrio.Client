@@ -15,11 +15,6 @@ import { getEasing } from '$render/easing';
  * @author Marcel Duin <marcel@micr.io>
  */
 export class Camera {
-	/** Current center screen coordinates [x, y] and scale [z]. For 360, also includes [yaw, pitch]. For Omni, also includes [frameIndex]. */
-	readonly center: Models.Camera.Coords = [0, 0, 1];
-
-	/** CORRECT view: [x0, y0, width, height] */
-	readonly #view: Models.Camera.View = [0, 0, 1, 1];
 
 	/** Y-axis sphere rotation in radians for 360 images. @internal */
 	rotationY: number = 0;
@@ -63,10 +58,12 @@ export class Camera {
 	// ─── View / coordinate transforms ──────────────────────────────
 
 	/**
-	 * Gets the current image view rectangle.
-	 * @returns A copy of the current screen viewport array, or undefined if not initialized.
+	 * Gets the current image view rectangle [x0, y0, width, height].
 	 */
-	public getView = (): Models.Camera.View => this.#view;
+	public getView = (): Models.Camera.View => {
+		const v = this.#canvas?.view.arr;
+		return v ? [v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]] : [0, 0, 1, 1];
+	};
 
 	/**
 	 * Gets the current image view rectangle [x0, y0, width, height] relative to the image (0-1).
@@ -165,16 +162,16 @@ export class Camera {
 	 * @param y The target image Y coordinate (0-1).
 	 * @param scale The target scale (optional, defaults to current scale).
 	 */
-	setCoo(x: number, y: number, scale = this.center[2] ?? 1): void {
+	setCoo(x: number, y: number, scale?: number): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera.setCoo(x, y, scale);
+		this.#canvas.camera.setCoo(x, y, scale ?? this.getScale());
 		this.image.engine.render();
 	}
 
 	// ─── Camera properties ─────────────────────────────────────────
 
 	/** Gets the current camera zoom scale. */
-	getScale = (): number => this.center[2] ?? 1;
+	getScale = (): number => this.getCoo(0, 0)[2] || 1;
 
 	/** Gets the scale at which the image fully covers the viewport. */
 	getCoverScale = (): number => this.#canvas?.camera.coverScale ?? 1;
@@ -311,33 +308,13 @@ export class Camera {
 
 	/**
 	 * Called by the engine when the view changes (e.g., after panning, zooming, animation frame).
-	 * Updates the `center` property and the image's `view` state store.
+	 * Pushes the current view rectangle to the image's state store.
 	 * @internal
 	 */
 	viewChanged() {
 		if (!this.#canvas) return;
 		const v = this.#canvas.view.arr;
-		const prevCenterStr = this.center.join(',');
-		const centerCoords = this.getCoo(0, 0);
-
-		this.#view[0] = v[0] - v[2] / 2;
-		this.#view[1] = v[1] - v[3] / 2;
-		this.#view[2] = v[2];
-		this.#view[3] = v[3];
-
-		this.center[0] = v[0];
-		this.center[1] = v[1];
-		this.center[2] = centerCoords[2];
-
-		if (this.image.is360) {
-			this.center[3] = centerCoords[3];
-			this.center[4] = centerCoords[4];
-		}
-		if (this.image.isOmni) this.center[5] = this.image.swiper?.currentIndex;
-
-		if (this.center.join(',') != prevCenterStr || this.image.engine.micrio.canvas.resizing || this.#canvas?.areaAnimating()) {
-			this.image.state.view.set(this.#view);
-		}
+		this.image.state.view.set([v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]]);
 	}
 
 	// ─── Promise-based animations ──────────────────────────────────
@@ -432,7 +409,7 @@ export class Camera {
 		return new Promise((ok, abort) => {
 			if (!this.#canvas) return abort(new Error("engine not ready"));
 			const fn = getEasing(opts.timingFunction);
-			opts.duration = this.#canvas.camera.setCoo(coords[0]!, coords[1]!, coords[2] ?? this.center[2] ?? 1, opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
+			opts.duration = this.#canvas.camera.setCoo(coords[0]!, coords[1]!, coords[2] ?? this.getScale(), opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
 			this.image.engine.render();
 			if (opts.duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
@@ -452,7 +429,8 @@ export class Camera {
 	zoom(delta: number, duration = 0, x?: number, y?: number, _speed = 1, noLimit = false): Promise<void> {
 		return new Promise((ok, abort) => {
 			if (!this.#canvas) return abort(new Error("engine not ready"));
-			const coo = this.getXY(this.center[0], this.center[1]);
+			const v = this.#canvas.view.arr;
+			const coo = this.getXY(v[0], v[1]);
 			if (x == undefined) x = coo[0];
 			if (y == undefined) y = coo[1];
 			if (this.image.album && !this.image.album.hooked) return ok();
@@ -502,7 +480,10 @@ export class Camera {
 	}
 
 	/** Sets the camera zoom scale instantly. */
-	setScale(s: number): void { this.setCoo(this.center[0], this.center[1], s); }
+	setScale(s: number): void {
+		const v = this.#canvas?.view.arr;
+		if (v) this.setCoo(v[0], v[1], s);
+	}
 
 	aniIsKinetic(): boolean { return !!(this.#canvas?.kinetic.started); }
 }
