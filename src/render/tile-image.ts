@@ -436,35 +436,25 @@ export default class Image {
 	/** Calculates the effective scale of an embedded image based on its projection. */
 	#getEmbeddedScale(s: number): number {
 		if (this.#is360Embed) {
-			const areaFactor = Math.max(this.areaWidth * 2, this.areaHeight);
-			const sizeFactor = this.#canvas.width / this.width;
-			return s * areaFactor * sizeFactor;
+			return s * Math.max(this.areaWidth * 2, this.areaHeight) * (this.#canvas.width / this.width);
 		}
 
-		const embedWidth = this.areaWidth;
-		const embedHeight = this.areaHeight;
-		const embedX0 = this.areaCenterX - embedWidth / 2;
-		const embedX1 = this.areaCenterX + embedWidth / 2;
-		const cY = this.areaCenterY;
-		const pH = embedHeight / 2.5;
-		const el = this.#canvas.el, gl = this.#canvas.camera360, cW = this.#canvas.el.width;
+		const ew = this.areaWidth, eh = this.areaHeight;
+		const ecx = this.areaCenterX, ecy = this.areaCenterY;
+		const el = this.#canvas.el, gl = this.#canvas.camera360, cW = el.width;
+		const pH = eh / 2.5;
 
-		let px = gl.getXYZ(embedX0, cY - pH);
-		let lX = px.w > 0 || px.x < 0 ? 0 : Math.min(cW, px.x);
-		let b: number = 0;
-		if (px.inView(el)) b++;
-
-		if (gl.getXYZ(embedX1, cY - pH).inView(el)) b++;
-		const wT = ((px.w > 0 || px.x > cW ? cW : Math.max(0, px.x)) - lX);
-
-		if (gl.getXYZ(embedX0, cY + pH).inView(el)) b++;
-		lX = px.w > 0 || px.x < 0 ? 0 : Math.min(cW, px.x);
-		if (gl.getXYZ(embedX1, cY + pH).inView(el)) b++;
-
+		let b = 0;
+		const p0 = gl.getXYZ(ecx - ew / 2, ecy - pH);
+		if (p0.inView(el)) b++;
+		if (gl.getXYZ(ecx + ew / 2, ecy - pH).inView(el)) b++;
+		if (gl.getXYZ(ecx - ew / 2, ecy + pH).inView(el)) b++;
+		if (gl.getXYZ(ecx + ew / 2, ecy + pH).inView(el)) b++;
 		if (b === 0) return 0;
 
-		const wB = (px.w > 0 || px.x > cW ? cW : Math.max(0, px.x)) - lX;
-		return Math.min(1, Math.max(wB, wT) / this.width);
+		const l = p0.w > 0 || p0.x < 0 ? 0 : Math.min(cW, p0.x);
+		const r = p0.w > 0 || p0.x > cW ? cW : Math.max(0, p0.x);
+		return Math.min(1, (r - l) / this.width);
 	}
 
 	#get360Tiles(l: Layer): void {
