@@ -385,20 +385,19 @@ export default class Image {
 	}
 
 	#setToDraw(l: Layer, x: number, y: number): void {
-		const idx: number = Math.min(this.endOffset - 1, l.start + (y * l.cols) + x);
-		const seenIdx = idx - Image.#toDrawSeenBase;
-		if (seenIdx < Image.#toDrawSeen.length && Image.#toDrawSeen[seenIdx]) return;
-		if (seenIdx < Image.#toDrawSeen.length) Image.#toDrawSeen[seenIdx] = 1;
-		Image.#toDraw.push(idx);
-
-		if (this.#canvas.main.setTileOpacity(idx, idx === this.endOffset - 1, this.#canvas.opacity) >= 1) {
-			this.doneTotal++;
+		const s = Image.#toDrawSeen, sb = Image.#toDrawSeenBase;
+		const i = Math.min(this.endOffset - 1, l.start + y * l.cols + x);
+		const si = i - sb;
+		if (si < s.length) {
+			if (s[si]) return;
+			s[si] = 1;
 		}
-		else if (!this.isSingle && !this.#canvas.limited && l.index < this.numLayers - 1) {
-			const parentLayer = this.layers[l.index + 1];
-			const parentX = x >> 1;
-			const parentY = y >> 1;
-			this.#setToDraw(parentLayer, parentX, parentY);
+		Image.#toDraw.push(i);
+
+		if (this.#canvas.main.setTileOpacity(i, i === this.endOffset - 1, this.#canvas.opacity) >= 1) {
+			this.doneTotal++;
+		} else if (!this.isSingle && !this.#canvas.limited && l.index < this.numLayers - 1) {
+			this.#setToDraw(this.layers[l.index + 1], x >> 1, y >> 1);
 		}
 	}
 
