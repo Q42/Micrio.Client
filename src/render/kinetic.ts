@@ -39,20 +39,20 @@ export default class Kinetic {
 	 * Adds a step (delta) from the user's drag interaction.
 	 * @param pX Horizontal pixel delta since last step.
 	 * @param pY Vertical pixel delta since last step.
-	 * @param time Current timestamp (performance.now()).
 	 */
-	addStep(pX: number, pY: number, time: number): void {
+	addStep(pX: number, pY: number): void {
+		const t = this.#canvas.main.now;
 		if (this.#endTime) return;
-		if (this.#startTime === 0) this.#startTime = time;
+		if (this.#startTime === 0) this.#startTime = t;
 
-		const fact: number = this.#prevTime > 0 ? 16.67 / (time - this.#prevTime) : 1;
-		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) this.#lastInteraction = time;
+		const fact: number = this.#prevTime > 0 ? 16.67 / (t - this.#prevTime) : 1;
+		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) this.#lastInteraction = t;
 
 		const elasticity = this.#canvas.main.dragElasticity;
 
 		this.#dX += pX * elasticity;
 		this.#dY += pY * elasticity;
-		this.#prevTime = time;
+		this.#prevTime = t;
 	}
 
 	/** Starts the kinetic movement phase (called when user stops dragging). */
@@ -78,13 +78,14 @@ export default class Kinetic {
 	 * Calculates and applies the kinetic movement step for the current frame.
 	 * @returns Progress towards stopping (0 = max velocity, 1 = stopped).
 	 */
-	step(time: number): number {
+	step(): number {
+		const t = this.#canvas.main.now;
 		const webgl = this.#canvas.webgl;
 		const cam = this.#canvas.camera;
 		if (!this.started || this.#startTime === 0) return 1;
 
 		if (this.#endTime === 0) {
-			this.#endTime = time;
+			this.#endTime = t;
 			const factor = 1 - Math.min(1, (this.#endTime - this.#lastInteraction) / 250);
 			const deltaTime = this.#endTime - this.#startTime;
 
@@ -97,8 +98,8 @@ export default class Kinetic {
 		}
 
 		let v = Math.sqrt(this.#velocityX * this.#velocityX + this.#velocityY * this.#velocityY);
-		if (this.#canvas.is360) webgl.rotate(this.#velocityX, this.#velocityY, 0, time);
-		else cam.pan(this.#velocityX, this.#velocityY, 0, false, time, false, true);
+		if (this.#canvas.is360) webgl.rotate(this.#velocityX, this.#velocityY, 0);
+		else cam.pan(this.#velocityX, this.#velocityY, 0, false, false, true);
 
 		if (v <= 0.01) {
 			v = 0;

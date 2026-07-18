@@ -79,16 +79,16 @@ export default class Ani {
 	}
 
 	/** Pauses the current animation. */
-	pause(time: number): void {
+	pause(): void {
 		if (this.#pausedAt > 0) return;
 		this.#isRunning = false;
-		this.#pausedAt = time;
+		this.#pausedAt = this.#canvas.main.time;
 	}
 
 	/** Resumes a paused animation. */
-	resume(time: number): void {
+	resume(): void {
 		if (this.#pausedAt === 0 || this.#started === 0) return;
-		this.#started += time - this.#pausedAt;
+		this.#started += this.#canvas.main.time - this.#pausedAt;
 		this.#pausedAt = 0;
 		this.#isRunning = true;
 	}
@@ -121,7 +121,7 @@ export default class Ani {
 		toCenterX: number, toCenterY: number, toWidth: number, toHeight: number,
 		dur: number, speed: number, perc: number,
 		isJump: boolean, limitViewport: boolean, omniIdx: number,
-		fn: Bicubic, time: number, correct: boolean = false): number {
+		fn: Bicubic, correct: boolean = false): number {
 
 		if (correct && this.correcting) {
 			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
@@ -244,7 +244,7 @@ export default class Ani {
 		this.#isZoom = false;
 		if (correct) this.correcting = true;
 
-		this.#started = time - (perc * this.#duration);
+		this.#started = this.#canvas.main.time - (perc * this.#duration);
 		this.#isRunning = true;
 
 		return this.#duration * (1 - perc);
@@ -260,7 +260,7 @@ export default class Ani {
 	 * Starts a zoom animation (perspective change for 360).
 	 * @returns Calculated or provided animation duration in ms.
 	 */
-	zoom(to: number, dur: number, speed: number, noLimit: boolean, time: number): number {
+	zoom(to: number, dur: number, speed: number, noLimit: boolean): number {
 		this.stop();
 		this.#isView = false;
 		this.flying = false;
@@ -274,7 +274,7 @@ export default class Ani {
 		this.#zTo = this.#zFrom + (to / (webgl.scale * c.diagonal / 20));
 		if (!noLimit) this.#zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.#zTo));
 
-		this.#started = time;
+		this.#started = this.#canvas.main.time;
 		this.#isRunning = true;
 
 		this.#duration = dur >= 0 ? dur : Math.abs(this.#zFrom - this.#zTo) * 1000 / speed;
@@ -291,8 +291,8 @@ export default class Ani {
 	 * Calculates and applies the animation step for the current frame.
 	 * @returns Current animation progress (0-1).
 	 */
-	step(time: number): number {
-		const p: number = this.#started === 0 ? 1 : Math.min(1, Math.max(0, (time - this.#started) / this.#duration));
+	step(): number {
+		const p: number = this.#started === 0 ? 1 : Math.min(1, Math.max(0, (this.#canvas.main.time - this.#started) / this.#duration));
 		const pE = this.#fn.get(p);
 		const scale = this.#canvas.getScale();
 

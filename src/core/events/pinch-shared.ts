@@ -49,7 +49,7 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 
 	const i = ctx.vars.pinch.image;
 	if (i) {
-		i.canvas?.camera.pinchStop(performance.now());
+		i.canvas?.camera.pinchStop();
 		ctx.micrio.engine.render();
 	}
 	ctx.vars.pinch.image = undefined;

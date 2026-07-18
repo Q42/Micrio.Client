@@ -110,7 +110,7 @@ export default class SphericalView {
 	/**
 	 * Applies rotation based on pixel delta from mouse/touch drag.
 	 */
-	rotate(xPx: number, yPx: number, duration: number, time: number): void {
+	rotate(xPx: number, yPx: number, duration: number): void {
 		const c = this.#canvas;
 		const el = c.el;
 		this.yaw += xPx * el.ratio / el.width * this.perspective * el.aspect;
@@ -121,7 +121,7 @@ export default class SphericalView {
 		if (c.coverLimit || this.limitY > 0) this.#limitPitch();
 		if (this.limitX > 0) this.#limitYaw();
 
-		if (duration === 0) c.kinetic.addStep(xPx * 2, yPx * 2, time);
+		if (duration === 0) c.kinetic.addStep(xPx * 2, yPx * 2);
 
 		this.update();
 		this.calculate3DFrustum();
@@ -149,11 +149,11 @@ export default class SphericalView {
 	/**
 	 * Applies zoom by adjusting the perspective.
 	 */
-	zoom(factor: number, dur: number, speed: number, noLimit: boolean, t: number, pxX: number = 0, pxY: number = 0): number {
+	zoom(factor: number, dur: number, speed: number, noLimit: boolean, pxX: number = 0, pxY: number = 0): number {
 		const c = this.#canvas;
 		factor /= 2;
 		if (dur !== 0) {
-			dur = c.ani.zoom(factor, dur, speed, noLimit, t);
+			dur = c.ani.zoom(factor, dur, speed, noLimit);
 		} else {
 			factor /= this.scale * c.diagonal / 20;
 

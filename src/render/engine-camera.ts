@@ -223,7 +223,7 @@ export default class EngineCamera {
 
 		if (this.#hasStartCoo) {
 			this.#hasStartCoo = false;
-			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale, 0, 0, false, easeInOut, 0);
+			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale, 0, 0, false, easeInOut);
 			return false;
 		}
 		return true;
@@ -242,11 +242,11 @@ export default class EngineCamera {
 	/**
 	 * Pans the view by a given pixel delta.
 	 */
-	pan(xPx: number, yPx: number, duration: number, noLimit: boolean, time: number, force: boolean = false, isKinetic: boolean = false): void {
+	pan(xPx: number, yPx: number, duration: number, noLimit: boolean, force: boolean = false, isKinetic: boolean = false): void {
 		const c = this.#canvas;
 
 		if (c.is360) {
-			c.webgl.rotate(xPx, yPx, duration, time);
+			c.webgl.rotate(xPx, yPx, duration);
 			return;
 		}
 
@@ -272,13 +272,13 @@ export default class EngineCamera {
 			if (c.ani.isStarted()) {
 				c.ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, time, !noLimit);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, !noLimit);
 			}
 		} else {
 			c.ani.stop();
 
 			if (duration === 0) {
-				if (!isKinetic) c.kinetic.addStep(xPx * 4, yPx * 4, time);
+				if (!isKinetic) c.kinetic.addStep(xPx * 4, yPx * 4);
 				c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 				if (!noLimit) {
 					c.view.limit(false, false, c.freeMove);
@@ -286,7 +286,7 @@ export default class EngineCamera {
 				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
 				c.view.changed = true;
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, easeInOut, time);
+				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, 0, 0, false, false, -1, easeInOut);
 			}
 		}
 	}
@@ -295,11 +295,11 @@ export default class EngineCamera {
 	 * Zooms the view by a given delta, centered on screen coordinates.
 	 * @returns The calculated animation duration.
 	 */
-	zoom(delta: number, xPx: number, yPx: number, duration: number, noLimit: boolean, time: number): number {
+	zoom(delta: number, xPx: number, yPx: number, duration: number, noLimit: boolean): number {
 		const c = this.#canvas;
 
 		if (c.is360) {
-			return c.webgl.zoom(delta, duration, 0, noLimit, time, xPx, yPx);
+			return c.webgl.zoom(delta, duration, 0, noLimit, xPx, yPx);
 		}
 
 		c.kinetic.stop();
@@ -335,7 +335,7 @@ export default class EngineCamera {
 		const targetHeight = v.height + factY;
 
 		c.ani.limit = limit;
-		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, time, limit);
+		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, 0, 0, false, !noLimit && !this.#pinching, -1, easeInOut, limit);
 		c.ani.lastView.copy(c.view);
 		c.ani.limit = !noLimit;
 
@@ -369,12 +369,12 @@ export default class EngineCamera {
 			const dY = this.prevCenterY - cY;
 
 			if (c.is360) {
-				c.webgl.zoom(delta * 2, 0, 0, false, 1);
-				c.webgl.rotate(dX, dY, 0, 0);
+				c.webgl.zoom(delta * 2, 0, 0, false);
+				c.webgl.rotate(dX, dY, 0);
 			}
 			else {
-				if (!this.#canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, 0, true);
-				this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.#canvas.pinchZoomOutLimit, 0);
+				if (!this.#canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
+				this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.#canvas.pinchZoomOutLimit);
 				c.ani.limit = !!this.#canvas.pinchZoomOutLimit;
 			}
 		}
@@ -391,8 +391,8 @@ export default class EngineCamera {
 	}
 
 	/** Signals the end of a pinch gesture. */
-	pinchStop(time: number): void {
-		if (!this.#canvas.is360) this.#snapToBounds(time);
+	pinchStop(): void {
+		if (!this.#canvas.is360) this.#snapToBounds();
 
 		this.prevSize = -1;
 		this.prevCenterX = -1;
@@ -400,7 +400,7 @@ export default class EngineCamera {
 		this.#pinching = false;
 	}
 
-	#snapToBounds(time: number): void {
+	#snapToBounds(): void {
 		if (this.#canvas.freeMove) return;
 
 		const v = this.#canvas.view;
@@ -421,14 +421,14 @@ export default class EngineCamera {
 			? v.lCenterY
 			: Math.max(v.lY0 + halfH, Math.min(v.centerY, v.lY1 - halfH));
 
-		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, easeInOut, time, true);
+		this.#canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, 0, 0, false, false, -1, easeInOut, true);
 	}
 
 	/**
 	 * Initiates a fly-to animation to a target view rectangle.
 	 * @returns The calculated animation duration.
 	 */
-	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic, time: number): number {
+	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
 		const c = this.#canvas;
 		const a = c.ani;
 		c.kinetic.stop();
@@ -441,7 +441,7 @@ export default class EngineCamera {
 		}
 
 		a.limit = false;
-		dur = a.toView(adjustedCenterX, centerY, width, height, dur, speed, perc, isJump, limit, toOmniIdx, fn, time, limitZoom);
+		dur = a.toView(adjustedCenterX, centerY, width, height, dur, speed, perc, isJump, limit, toOmniIdx, fn, limitZoom);
 		a.limit = false;
 		a.flying = true;
 		return dur;
@@ -451,7 +451,7 @@ export default class EngineCamera {
 	 * Sets the view center and scale, optionally animating.
 	 * @returns The calculated animation duration.
 	 */
-	setCoo(x: number, y: number, scale: number, dur: number, speed: number, limit: boolean, fn: Bicubic, time: number): number {
+	setCoo(x: number, y: number, scale: number, dur: number, speed: number, limit: boolean, fn: Bicubic): number {
 		if (!this.#inited) {
 			this.#hasStartCoo = true;
 			this.#startCoo.x = x;
@@ -480,7 +480,7 @@ export default class EngineCamera {
 			if (y - h / 2 < 0) y = h / 2;
 		}
 
-		dur = c.ani.toView(x, y, w, h, dur, speed, 0, false, false, -1, fn, time);
+		dur = c.ani.toView(x, y, w, h, dur, speed, 0, false, false, -1, fn);
 
 		c.ani.limit = dur === 0 || limit;
 		c.ani.flying = dur > 0;

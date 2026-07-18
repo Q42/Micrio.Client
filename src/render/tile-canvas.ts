@@ -306,8 +306,8 @@ export class TileCanvas {
 			return;
 		}
 
-		let animating: boolean = this.ani.step(this.main.now) < 1
-			|| this.kinetic.step(this.main.now) < 1 || !this.isReady;
+		let animating: boolean = this.ani.step() < 1
+			|| this.kinetic.step() < 1 || !this.isReady;
 
 		this.toDraw.length = 0;
 
@@ -654,13 +654,13 @@ export class TileCanvas {
 		return this.webgl.getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).arr
 	}
 
-	aniPause(time: number): void {
+	aniPause(): void {
 		this.#areaAniPaused = true;
-		this.ani.pause(time);
+		this.ani.pause();
 	};
-	aniResume(time: number): void {
+	aniResume(): void {
 		this.#areaAniPaused = false;
-		this.ani.resume(time);
+		this.ani.resume();
 	};
 	aniStop(): void {
 		this.ani.stop();

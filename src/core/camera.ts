@@ -167,7 +167,7 @@ export class Camera {
 	 */
 	setCoo(x: number, y: number, scale = this.center[2] ?? 1): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera.setCoo(x, y, scale, 0, 0, false, easeInOut, performance.now());
+		this.#canvas.camera.setCoo(x, y, scale, 0, 0, false, easeInOut);
 		this.image.engine.render();
 	}
 
@@ -242,8 +242,8 @@ export class Camera {
 	// ─── Animation control ─────────────────────────────────────────
 
 	stop(): void { this.#canvas?.aniStop(); }
-	pause(): void { this.#canvas?.aniPause(performance.now()); }
-	resume(): void { this.#canvas?.aniResume(performance.now()); this.image.engine.render(); }
+	pause(): void { this.#canvas?.aniPause(); }
+	resume(): void { this.#canvas?.aniResume(); this.image.engine.render(); }
 
 	// ─── 360 / Omni / embed helpers ─────────────────────────────────
 
@@ -401,7 +401,7 @@ export class Camera {
 				}
 				if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, npl);
 			}
-			const duration = this.#canvas.camera.flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, getEasing(opts.timingFunction), performance.now());
+			const duration = this.#canvas.camera.flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, getEasing(opts.timingFunction));
 			this.image.engine.render();
 			if (duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
@@ -438,7 +438,7 @@ export class Camera {
 		return new Promise((ok, abort) => {
 			if (!this.#canvas) return abort(new Error("engine not ready"));
 			const fn = getEasing(opts.timingFunction);
-			opts.duration = this.#canvas.camera.setCoo(coords[0]!, coords[1]!, coords[2] ?? this.center[2] ?? 1, opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn, performance.now());
+			opts.duration = this.#canvas.camera.setCoo(coords[0]!, coords[1]!, coords[2] ?? this.center[2] ?? 1, opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
 			this.image.engine.render();
 			if (opts.duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
@@ -462,7 +462,7 @@ export class Camera {
 			if (x == undefined) x = coo[0];
 			if (y == undefined) y = coo[1];
 			if (this.image.album && !this.image.album.hooked) return ok();
-			duration = this.#canvas.camera.zoom(delta, x, y, duration, noLimit, performance.now());
+			duration = this.#canvas.camera.zoom(delta, x, y, duration, noLimit);
 			this.image.engine.render();
 			if (duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
@@ -503,7 +503,7 @@ export class Camera {
 	 */
 	pan(x: number, y: number, duration = 0, opts: { render?: boolean; noLimit?: boolean } = {}): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera.pan(x, y, duration, !!opts.noLimit, performance.now());
+		this.#canvas.camera.pan(x, y, duration, !!opts.noLimit);
 		if (duration > 0 || opts.render) this.image.engine.render();
 	}
 
