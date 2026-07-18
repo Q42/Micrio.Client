@@ -82,13 +82,13 @@ export default class Ani {
 	pause(): void {
 		if (this.#pausedAt > 0) return;
 		this.#isRunning = false;
-		this.#pausedAt = this.#canvas.main.now;
+		this.#pausedAt = performance.now();
 	}
 
 	/** Resumes a paused animation. */
 	resume(): void {
 		if (this.#pausedAt === 0 || this.#started === 0) return;
-		this.#started += this.#canvas.main.now - this.#pausedAt;
+		this.#started += performance.now() - this.#pausedAt;
 		this.#pausedAt = 0;
 		this.#isRunning = true;
 	}
@@ -252,7 +252,7 @@ export default class Ani {
 		this.#isZoom = false;
 		if (correct) this.correcting = true;
 
-		this.#started = this.#canvas.main.now - (perc * this.#duration);
+		this.#started = performance.now() - (perc * this.#duration);
 		this.#isRunning = true;
 
 		return this.#duration * (1 - perc);
@@ -282,7 +282,7 @@ export default class Ani {
 		this.#zTo = this.#zFrom + (to / (webgl.scale * c.diagonal / 20));
 		if (!noLimit) this.#zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.#zTo));
 
-		this.#started = this.#canvas.main.now;
+		this.#started = performance.now();
 		this.#isRunning = true;
 
 		this.#duration = dur >= 0 ? dur : Math.abs(this.#zFrom - this.#zTo) * 1000 / speed;
