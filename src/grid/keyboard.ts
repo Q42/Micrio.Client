@@ -2,6 +2,10 @@ import { Grid } from './grid';
 import type { MicrioImage } from '$core/image';
 import { pointInArea } from '$utils/math';
 
+const ARROW_DIR = {
+	ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+} as const;
+
 function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
 	const cells = grid.current.map((img, i) => ({
 		img, i,
@@ -19,7 +23,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 
 	for (const c of cells) {
 		if (c.i === curIdx) continue;
-		let dx = c.cx - cur.cx, dy = c.cy - cur.cy;
+		const dx = c.cx - cur.cx, dy = c.cy - cur.cy;
 		let ok = false;
 		switch (dir) {
 			case 'left':  ok = dx < 0 && Math.abs(dy) < threshold; break;
@@ -48,53 +52,42 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 			return;
 		}
 
-		if (grid.$focussed) return;
-		let img:MicrioImage|undefined;
-		switch (e.key) {
-			case 'ArrowLeft':  img = gridAdjacent(grid, 'left'); break;
-			case 'ArrowRight': img = gridAdjacent(grid, 'right'); break;
-			case 'ArrowUp':    img = gridAdjacent(grid, 'up'); break;
-			case 'ArrowDown':  img = gridAdjacent(grid, 'down'); break;
-			default: return;
-		}
+		const dir = ARROW_DIR[e.key as keyof typeof ARROW_DIR];
+		if (!dir || grid.$focussed) return;
+
 		e.preventDefault();
 		e.stopPropagation();
+
+		const img = gridAdjacent(grid, dir);
 		if (!img) return;
+
+		const focusedId = img.id;
 		grid._buttons.forEach((btn, id) => {
-			if (id === img!.id) btn.focus();
-			else btn.blur();
+			if (id === focusedId) { btn.focus(); btn.classList.add('focussed'); }
+			else { btn.blur(); btn.classList.remove('focussed'); }
 		});
 
-		if (grid.clickable == 'zoom') {
-			grid._buttons.forEach((btn, bid) => btn.classList.toggle('focussed', bid == img!.id));
-			if (!grid.image.camera.isZoomedOut()) {
-				const a = img.opts.area ?? [0,0,1,1];
-				grid.image.camera.flyToView(a, {duration: grid.aniDurationIn * 1000, limit: false});
-			}
+		if (grid.clickable == 'zoom' && !grid.image.camera.isZoomedOut()) {
+			grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid.aniDurationIn * 1000, limit: false});
 		}
 	};
 }
-
-const clickStates = new WeakMap<Grid, {x:number;y:number}>();
 
 export function hookGridKeys(grid: Grid) : void {
 	Grid.handlingKeys = true;
 	document.addEventListener('keydown', createGridKeyHandler(grid));
 
 	if (grid.panZoom == 'grid' && grid.clickable) {
-		clickStates.set(grid, {x:0, y:0});
+		let clickDown:{x:number;y:number}|undefined = {x:0, y:0};
 		grid.micrio.addEventListener('pointerdown', (e: PointerEvent) => {
-			const s = clickStates.get(grid);
-			if (s) { s.x = e.clientX; s.y = e.clientY; }
+			clickDown = {x: e.clientX, y: e.clientY};
 		});
 		grid.micrio.addEventListener('pointerup', (e: PointerEvent) => {
-			const cd = clickStates.get(grid);
-			if (!cd) return;
-			const dist = Math.hypot(e.clientX - cd.x, e.clientY - cd.y);
-			clickStates.delete(grid);
+			if (!clickDown) return;
+			const dist = Math.hypot(e.clientX - clickDown.x, e.clientY - clickDown.y);
+			clickDown = undefined;
 			if (dist > 10) return;
-			const coo = grid.image.camera.getCoo(e.clientX, e.clientY, true);
-			const vx = coo[0], vy = coo[1];
+			const [vx, vy] = grid.image.camera.getCoo(e.clientX, e.clientY, true);
 			const img = grid.current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 			if (!img) return;
 			grid.clickCell(img);
