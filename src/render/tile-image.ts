@@ -238,60 +238,52 @@ export default class Image {
 	getTiles(scale: number): number {
 		if (this.opacity <= 0) return 0;
 		this.doneTotal = 0;
+		const d = Image.#toDraw;
+		let s = Image.#toDrawSeen;
 
 		if (this.#is360Embed) {
 			scale = this.#getEmbeddedScale(scale);
 			if (!(this.doRender = (scale > 0))) return 0;
-		}
-		else {
-			const cam = this.#canvas.camera;
-			scale = Math.max(scale, cam.minScale) * this.rScale;
+		} else {
+			scale = Math.max(scale, this.#canvas.camera.minScale) * this.rScale;
 		}
 
-		const tileCount = this.endOffset - this.startOffset;
-		if (Image.#toDrawSeen.length < tileCount) {
-			Image.#toDrawSeen = new Uint8Array(tileCount);
-		} else {
-			for (let i = 0; i < tileCount; i++) Image.#toDrawSeen[i] = 0;
-		}
+		const n = this.endOffset - this.startOffset;
+		if (s.length < n) s = Image.#toDrawSeen = new Uint8Array(n);
+		else s.fill(0, 0, n);
 		Image.#toDrawSeenBase = this.startOffset;
 
+		const last = this.endOffset - 1;
+		const lastIdx = last - this.startOffset;
 		if (this.gotBase === 0) {
-			Image.#toDraw.push(this.endOffset - 1);
-			Image.#toDrawSeen[this.endOffset - 1 - this.startOffset] = 1;
-			this.#canvas.main.setTileOpacity(this.endOffset - 1, true, 1);
-		}
-		else if (this.#is360Embed) {
-			Image.#toDraw.push(this.endOffset - 1);
-			Image.#toDrawSeen[this.endOffset - 1 - this.startOffset] = 1;
+			d.push(last);
+			s[lastIdx] = 1;
+			this.#canvas.main.setTileOpacity(last, true, 1);
+		} else if (this.#is360Embed) {
+			d.push(last);
+			s[lastIdx] = 1;
 			this.doneTotal++;
 		}
 
-		const lIdx: number = this.#getTargetLayer(scale);
+		const lIdx = this.#getTargetLayer(scale);
 		const c = this.#canvas;
-		const v = c.view;
 
 		if (this.localIdx === 0 && c.is360) {
 			this.#get360Tiles(this.layers[lIdx]);
-		}
-		else {
-			if (this.#is360Embed) {
-				this.#getTilesViewport(lIdx);
-			} else if (c.is360) {
-				this.#getTilesRect(lIdx, v.x0, v.y0, v.x1, v.y1);
-			} else if (c.visible.x0 < c.visible.x1 && c.visible.y0 < c.visible.y1) {
-				this.#getTilesRect(lIdx,
-					Math.max(c.visible.x0, v.x0), Math.max(c.visible.y0, v.y0),
-					Math.min(c.visible.x1, v.x1), Math.min(c.visible.y1, v.y1)
-				);
-			}
-			if (this.#is360Embed) this.doneTotal++;
+		} else if (this.#is360Embed) {
+			this.#getTilesViewport(lIdx);
+			this.doneTotal++;
+		} else if (c.visible.x0 < c.visible.x1 && c.visible.y0 < c.visible.y1) {
+			const v = c.view;
+			this.#getTilesRect(lIdx,
+				Math.max(c.visible.x0, v.x0), Math.max(c.visible.y0, v.y0),
+				Math.min(c.visible.x1, v.x1), Math.min(c.visible.y1, v.y1)
+			);
 		}
 
-		Image.#toDraw.sort((a, b) => a > b ? -1 : a < b ? 1 : 0);
-		for (let i = 0; i < Image.#toDraw.length; i++)
-			c.toDraw.push(Image.#toDraw[i]);
-		Image.#toDraw.length = 0;
+		d.sort((a, b) => b - a);
+		for (const t of d) c.toDraw.push(t);
+		d.length = 0;
 
 		return this.doneTotal;
 	}
