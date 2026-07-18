@@ -126,7 +126,7 @@ export class Camera {
 			const box = this.image.engine.micrio.getBoundingClientRect();
 			x -= box.left; y -= box.top;
 		}
-		return (c.is360 ? c.webgl.getCoo(x, y) : c.camera.getCoo(x, y, !!abs, !!noLimit)).arr;
+		return (c.is360 ? c.camera360.getCoo(x, y) : c.camera.getCoo(x, y, !!abs, !!noLimit)).arr;
 	}
 
 	/**
@@ -153,10 +153,10 @@ export class Camera {
 		const c = this.#canvas;
 		if (!c) return new Float64Array(5);
 		const tNDiff = (this.image.is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
-		if (c.is360) return c.webgl.getXYZ(x - tNDiff, y).arr;
+		if (c.is360) return c.camera360.getXYZ(x - tNDiff, y).arr;
 		if (opts.rotation !== undefined && !isNaN(opts.rotation))
-			return c.camera.getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
-		return c.camera.getXY(x - tNDiff, y, !!opts.abs).arr;
+			return c.camera2d.getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
+		return c.camera2d.getXY(x - tNDiff, y, !!opts.abs).arr;
 	}
 
 	/**
@@ -183,10 +183,10 @@ export class Camera {
 
 	setMinScale(s: number): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera.minScale = s;
-		this.#canvas.camera.correctMinMax();
-		this.#canvas.camera.setView();
-		this.#canvas.webgl.update();
+		this.#canvas.camera2d.minScale = s;
+		this.#canvas.camera2d.correctMinMax();
+		this.#canvas.camera2d.setView();
+		this.#canvas.camera360.update();
 	}
 
 	setMinScreenSize(s: number): void { if (!this.image.album && this.#canvas) this.#canvas.camera.minSize = Math.max(0, Math.min(1, s)); }
@@ -198,13 +198,13 @@ export class Camera {
 	isZoomedOut = (full = false): boolean => !!(this.#canvas?.isZoomedOut(full));
 
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
-	getDirection = (): number => this.#canvas?.webgl.yaw ?? 0;
+	getDirection = (): number => this.#canvas?.camera360.yaw ?? 0;
 
-	getPitch = (): number => this.#canvas?.webgl.pitch ?? 0;
+	getPitch = (): number => this.#canvas?.camera360.pitch ?? 0;
 
 	setDirection(yaw: number, pitch?: number): void {
 		if (!this.#canvas) return;
-		this.#canvas.setDirection(yaw, pitch ?? this.#canvas.webgl.pitch);
+		this.#canvas.setDirection(yaw, pitch ?? this.#canvas.camera360.pitch);
 		this.image.engine.render();
 	}
 
@@ -235,7 +235,7 @@ export class Camera {
 
 	set360RangeLimit(xPerc = 0, yPerc = 0): void {
 		if (!this.#canvas) return;
-		this.#canvas.webgl.setLimits(xPerc, yPerc);
+		this.#canvas.camera360.setLimits(xPerc, yPerc);
 		this.image.engine.render();
 	}
 
@@ -310,7 +310,7 @@ export class Camera {
 
 	/** [Omni] Gets the screen coordinates [x, y, scale, depth] for given 3D object coordinates. */
 	getOmniXY(x: number, y: number, z: number): Float64Array {
-		return this.#canvas?.camera.getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
+		return this.#canvas?.camera2d.getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
 	}
 
 	// ─── Animation lifecycle (called by TileCanvas) ────────────────

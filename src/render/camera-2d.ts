@@ -5,12 +5,12 @@
  */
 
 import { Coordinates } from './shared'
-import { longitudeDistance, Bicubic, easeInOut } from './easing';
+import { Bicubic, easeInOut } from './easing';
 import { epsEq } from '$utils/math';
 import type { default as TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
-export default class EngineCamera {
+export default class Camera2D {
 	scale: number = 1.0;
 	minScale: number = 1.0;
 	minSize: number = 1.0;
@@ -35,7 +35,6 @@ export default class EngineCamera {
 		canvas: TileCanvas
 	) {
 		this.#canvas = canvas;
-		if (canvas.is360) this.#inited = true;
 	}
 
 	/**
@@ -89,7 +88,7 @@ export default class EngineCamera {
 	getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.#canvas;
 		const el = c.el;
-		const mat = c.webgl.pMatrix, vec4 = c.webgl.vec4;
+		const mat = c.camera360.pMatrix, vec4 = c.camera360.vec4;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
 
 		vec4.x = x;
@@ -243,11 +242,6 @@ export default class EngineCamera {
 	pan(xPx: number, yPx: number, duration: number = 0, noLimit: boolean = false, force: boolean = false, isKinetic: boolean = false): void {
 		const c = this.#canvas;
 
-		if (c.is360) {
-			c.webgl.rotate(xPx, yPx, duration);
-			return;
-		}
-
 		if ((this.isUnderZoom() || this.#pinching) && !force) return;
 
 		if (this.#canvas.freeMove) noLimit = true;
@@ -295,10 +289,6 @@ export default class EngineCamera {
 	 */
 	zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
 		const c = this.#canvas;
-
-		if (c.is360) {
-			return c.webgl.zoom(delta, duration, noLimit, 0, xPx, yPx);
-		}
 
 		c.kinetic.stop();
 
@@ -366,15 +356,9 @@ export default class EngineCamera {
 			const dX = this.prevCenterX - cX;
 			const dY = this.prevCenterY - cY;
 
-			if (c.is360) {
-				c.webgl.zoom(delta * 2, 0, false);
-				c.webgl.rotate(dX, dY);
-			}
-			else {
-				if (!this.#canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
-				this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.#canvas.pinchZoomOutLimit);
-				c.ani.limit = !!this.#canvas.pinchZoomOutLimit;
-			}
+			if (!this.#canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
+			this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.#canvas.pinchZoomOutLimit);
+			c.ani.limit = !!this.#canvas.pinchZoomOutLimit;
 		}
 		else c.ani.stop();
 
@@ -390,7 +374,7 @@ export default class EngineCamera {
 
 	/** Signals the end of a pinch gesture. */
 	pinchStop(): void {
-		if (!this.#canvas.is360) this.#snapToBounds();
+		this.#snapToBounds();
 
 		this.prevSize = -1;
 		this.prevCenterX = -1;
@@ -431,15 +415,8 @@ export default class EngineCamera {
 		const a = c.ani;
 		c.kinetic.stop();
 
-		let adjustedCenterX = centerX;
-		if (c.is360) {
-			const currentCenterX = c.view.centerX;
-			const longitudeDist = longitudeDistance(currentCenterX, centerX);
-			adjustedCenterX = currentCenterX + longitudeDist;
-		}
-
 		a.limit = false;
-		dur = a.toView(adjustedCenterX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
+		dur = a.toView(centerX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
 		a.limit = false;
 		a.flying = true;
 		return dur;
@@ -460,18 +437,17 @@ export default class EngineCamera {
 		}
 
 		const c = this.#canvas;
-		const is360 = c.is360;
 
-		if (scale === 0 || (!is360 && isNaN(scale))) scale = c.getScale();
+		if (scale === 0) scale = c.getScale();
 
-		if (!is360) scale = Math.max(this.minScale, scale);
+		scale = Math.max(this.minScale, scale);
 
 		c.kinetic.stop();
 
-		const w: number = isNaN(scale) && is360 ? c.view.width : (1 / scale) * this.cpw;
-		const h: number = isNaN(scale) && is360 ? c.view.height : (1 / scale) * this.cph;
+		const w: number = (1 / scale) * this.cpw;
+		const h: number = (1 / scale) * this.cph;
 
-		if (dur === 0 && !is360) {
+		if (dur === 0) {
 			if (x + w / 2 > 1) x = 1 - w / 2;
 			if (x - w / 2 < 0) x = w / 2;
 			if (y + h / 2 > 1) y = 1 - h / 2;
@@ -484,5 +460,21 @@ export default class EngineCamera {
 		c.ani.flying = dur > 0;
 
 		return dur;
+	}
+
+	// ─── 360 camera compat stubs (for union with Camera360) ─────────
+	yaw: number = 0;
+	pitch: number = 0;
+
+	/** Updates the projection matrix for 2D rendering (delegates to Camera360.pMatrix). */
+	updateProjection(): void {
+		const c = this.#canvas;
+		const v = c.view;
+		c.camera360.pMatrix.perspective(c.camera360.perspective, c.el.aspect, 0.0001, 100);
+		c.camera360.pMatrix.translate(
+			-(v.centerX - .5) * c.aspect,
+			v.centerY - .5,
+			-v.height / 2
+		);
 	}
 }

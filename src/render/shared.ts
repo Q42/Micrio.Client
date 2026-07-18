@@ -136,8 +136,8 @@ export class View {
 	/** Calculates the perspective value needed to achieve this view height in 360 mode. */
 	getPerspective(): number {
 		const c = this.#canvas;
-		const webgl = c.webgl;
-		return webgl.maxPerspective - (.5 / (this.height * c.height / c.el.height)) * Math.PI / webgl.scaleY
+		const w = c.camera360;
+		return w.maxPerspective - (.5 / (this.height * c.height / c.el.height)) * Math.PI / w.scaleY
 	}
 
 	/** Calculates the effective scale factor represented by this view. */
@@ -164,10 +164,10 @@ export class View {
 
 	limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
 		const c = this.#canvas;
-		const mS = c.camera.minSize;
+		const mS = c.camera2d.minSize;
 		const s = this.getScale();
 
-		if (mS < 1 && s < c.camera.minScale && !noLimit) {
+		if (mS < 1 && s < c.camera2d.minScale && !noLimit) {
 			const mWH = 1 / mS;
 			const nW = Math.min(mWH, this.width);
 			const nH = Math.min(mWH, this.height);
@@ -179,13 +179,13 @@ export class View {
 			return;
 		}
 
-		const overZoom: number = correctZoom ? Math.max(1, s / Math.max(c.camera.minScale, c.maxScale / c.el.scale)) : 1;
+		const overZoom: number = correctZoom ? Math.max(1, s / Math.max(c.camera2d.minScale, c.maxScale / c.el.scale)) : 1;
 		const maxVw: number = this.lWidth;
 		const maxVh: number = this.lHeight;
 		const vw: number = Math.min(maxVw, this.width * overZoom);
 		const vh: number = Math.min(maxVh, this.height * overZoom);
 
-		if (correctZoom && (overZoom > 1 || (noLimit && s < c.camera.minScale))) {
+		if (correctZoom && (overZoom > 1 || (noLimit && s < c.camera2d.minScale))) {
 			this.width = vw;
 			this.height = vh;
 		}
@@ -221,7 +221,7 @@ export class View {
 	correctAspectRatio(): void {
 		const c = this.#canvas;
 		if (c.is360) return;
-		const targetAspect = c.camera.cpw / c.camera.cph;
+		const targetAspect = c.camera2d.cpw / c.camera2d.cph;
 		const currentAspect = this.width / this.height;
 		if (currentAspect > targetAspect) {
 			this.height = this.width / targetAspect;

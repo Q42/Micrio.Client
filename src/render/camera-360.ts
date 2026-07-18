@@ -1,5 +1,5 @@
 /**
- * Handles 360 camera logic, perspective, and related SphericalView calculations.
+ * Handles 360 camera logic, perspective, and related calculations.
  * @author Marcel Duin <marcel@micr.io>
  * @internal
  */
@@ -8,10 +8,11 @@ import { modPI, mod1 } from '$utils/math'
 import { Coordinates } from './shared'
 import { Vec4, Mat4 } from './mat'
 import { segsX, segsY } from './constants'
+import { longitudeDistance, Bicubic, easeInOut } from './easing';
 import type { default as TileCanvas } from './tile-canvas';
 
-/** Handles 360 camera logic, perspective, and related SphericalView calculations. @internal */
-export default class SphericalView {
+/** Handles 360 camera logic, perspective, and related calculations. @internal */
+export default class Camera360 {
 	readonly pMatrix: Mat4 = new Mat4;
 	readonly iMatrix: Mat4 = new Mat4;
 	readonly #cachedInverse: Mat4 = new Mat4;
@@ -58,10 +59,8 @@ export default class SphericalView {
 		this.baseYaw = -this.#canvas.rotationY;
 		this.offX = this.baseYaw / (Math.PI * 2);
 
-		if (this.#canvas.is360) {
-			this.scaleY = this.#canvas.height / (this.#canvas.width / 2);
-			this.offY = (1 - this.scaleY) / 4;
-		}
+		this.scaleY = this.#canvas.height / (this.#canvas.width / 2);
+		this.offY = (1 - this.scaleY) / 4;
 		this.yaw = this.baseYaw;
 		this.update();
 	}
@@ -75,36 +74,27 @@ export default class SphericalView {
 		this.setPerspective(this.perspective, true);
 	}
 
-	/** Updates the projection and rotation matrices based on current state. */
+	/** Updates the 360 projection and rotation matrices. */
 	update(noPersp: boolean = false): void {
 		const c = this.#canvas;
 		const el = c.el;
 
-		if (!noPersp) this.pMatrix.perspective(this.perspective, el.aspect, 0.0001, c.is360 ? 20 : 100);
+		if (!noPersp) this.pMatrix.perspective(this.perspective, el.aspect, 0.0001, 20);
 		this.#inverseDirty = true;
 
-		if (c.is360) {
-			const pM = this.pMatrix;
-			this.pitch = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, this.pitch));
-			pM.rotateX(this.pitch);
-			pM.rotateY(this.yaw);
-			pM.translate(this.position.x, this.position.y, this.position.z);
+		const pM = this.pMatrix;
+		this.pitch = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, this.pitch));
+		pM.rotateX(this.pitch);
+		pM.rotateY(this.yaw);
+		pM.translate(this.position.x, this.position.y, this.position.z);
 
-			const rM = this.#rMatrix;
-			rM.perspectiveCss(this.perspective);
-			rM.translate(0, 0, el.height / el.ratio / 2);
-			rM.rotateX(-this.pitch);
-			rM.rotateY(this.yaw);
+		const rM = this.#rMatrix;
+		rM.perspectiveCss(this.perspective);
+		rM.translate(0, 0, el.height / el.ratio / 2);
+		rM.rotateX(-this.pitch);
+		rM.rotateY(this.yaw);
 
-			this.coo.direction = (this.yaw / Math.PI * 180) % 360;
-		} else {
-			const v = c.view;
-			this.pMatrix.translate(
-				-(v.centerX - .5) * c.aspect,
-				v.centerY - .5,
-				-v.height / 2
-			);
-		}
+		this.coo.direction = (this.yaw / Math.PI * 180) % 360;
 	}
 
 	/**
@@ -149,7 +139,7 @@ export default class SphericalView {
 	/**
 	 * Applies zoom by adjusting the perspective.
 	 */
-	zoom(factor: number, dur: number, noLimit: boolean, speed: number = 0, pxX: number = 0, pxY: number = 0): number {
+	zoomByFactor(factor: number, dur: number, noLimit: boolean, speed: number = 0, pxX: number = 0, pxY: number = 0): number {
 		const c = this.#canvas;
 		factor /= 2;
 		if (dur !== 0) {
@@ -199,7 +189,7 @@ export default class SphericalView {
 		}
 		if (c.coverLimit || this.limitY > 0) this.#limitPitch();
 		if (this.limitX > 0) this.#limitYaw();
-		this.pMatrix.perspective(this.perspective, c.el.aspect, 0.0001, c.is360 ? 20 : 100);
+		this.pMatrix.perspective(this.perspective, c.el.aspect, 0.0001, 20);
 		this.readScale();
 		this.update(true);
 		this.calculate3DFrustum();
@@ -241,7 +231,6 @@ export default class SphericalView {
 	/** Synchronizes the logical view with the current camera state for 360 images. */
 	#syncLogicalView(): void {
 		const c = this.#canvas;
-		if (!c.is360) return;
 
 		const centerX = mod1((this.yaw / (Math.PI * 2) + .5));
 		const centerY = (this.pitch / this.scaleY) / Math.PI + .5;
@@ -254,8 +243,6 @@ export default class SphericalView {
 
 	/** Calculates 3D camera frustum for accurate 360 embed visibility detection */
 	calculate3DFrustum(): void {
-		if (!this.#canvas.is360) return;
-
 		const yaw = this.yaw;
 		const pitch = this.pitch;
 
@@ -285,7 +272,6 @@ export default class SphericalView {
 	resize(): void {
 		const c = this.#canvas;
 		const el = c.el;
-		c.camera.setCanvas();
 		this.minPerspective = Math.min(.5, el.height / c.height) / c.maxScale * this.scaleY * Math.PI / el.ratio * el.scale;
 		this.setPerspective(this.perspective, true);
 	}
@@ -442,5 +428,90 @@ export default class SphericalView {
 				v[i + 14] = (cB * cR);
 			}
 		}
+	}
+
+	// ─── 2D camera compat methods (for union with Camera2D) ─────────
+
+	// 2D-specific properties, unused for 360
+	minScale: number = 0;
+	maxScale: number = 0;
+	coverScale: number = 0;
+	minSize: number = 1;
+
+	correctMinMax(): void {}
+
+	isOutsideLimit(): boolean { return false; }
+
+	isUnderZoom(): boolean { return false; }
+
+	isZoomedOut(_b: boolean = false): boolean { return this.perspective >= this.maxPerspective; }
+
+	isZoomedIn(): boolean { return this.perspective <= this.minPerspective; }
+
+	pan(xPx: number, yPx: number, duration: number = 0, _noLimit: boolean = false, _force: boolean = false, _isKinetic: boolean = false): void {
+		this.rotate(xPx, yPx, duration);
+	}
+
+	zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
+		return this.zoomByFactor(delta, duration, noLimit, 0, xPx, yPx);
+	}
+
+	pinchStart(): void {}
+
+	pinchStop(): void {}
+
+	pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
+		const c = this.#canvas;
+		const el = c.main.el;
+		const left = (Math.min(xPx1, xPx2) - el.left) / el.scale;
+		const top = (Math.min(yPx1, yPx2) - el.top) / el.scale;
+		const right = (Math.max(xPx1, xPx2) - el.left) / el.scale;
+		const bottom = (Math.max(yPx1, yPx2) - el.top) / el.scale;
+		const cX = left + (right - left) / 2;
+		const cY = top + (bottom - top) / 2;
+		const size = Math.max(right - left, bottom - top);
+		const delta = this.#canvas.camera2d.prevSize - size;
+
+		if (this.#canvas.camera2d.prevCenterX > 0) {
+			const dX = this.#canvas.camera2d.prevCenterX - cX;
+			const dY = this.#canvas.camera2d.prevCenterY - cY;
+			this.zoomByFactor(delta * 2, 0, false);
+			this.rotate(dX, dY);
+		}
+
+		this.#canvas.camera2d.prevCenterX = cX;
+		this.#canvas.camera2d.prevCenterY = cY;
+		this.#canvas.camera2d.prevSize = size;
+	}
+
+	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
+		const c = this.#canvas;
+		const a = c.ani;
+		c.kinetic.stop();
+
+		const currentCenterX = c.view.centerX;
+		const longitudeDist = longitudeDistance(currentCenterX, centerX);
+		const adjustedCenterX = currentCenterX + longitudeDist;
+
+		a.limit = false;
+		dur = a.toView(adjustedCenterX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
+		a.limit = false;
+		a.flying = true;
+		return dur;
+	}
+
+	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
+		const c = this.#canvas;
+		c.kinetic.stop();
+
+		const w: number = (1 / scale) * c.main.el.width;
+		const h: number = (1 / scale) * c.main.el.height;
+
+		dur = c.ani.toView(x, y, w, h, dur, fn, { speed });
+
+		c.ani.limit = dur === 0 || limit;
+		c.ani.flying = dur > 0;
+
+		return dur;
 	}
 }

@@ -171,7 +171,7 @@ export default class Image {
 		let yaw = (this.areaCenterX - 0.5) * 2 * Math.PI;
 		const pitch = (this.areaCenterY - 0.5) * Math.PI;
 
-		yaw += this.#canvas.webgl.baseYaw;
+		yaw += this.#canvas.camera360.baseYaw;
 
 		this.sphere3DX = Math.cos(pitch) * Math.sin(yaw);
 		this.sphere3DY = Math.sin(pitch);
@@ -187,15 +187,15 @@ export default class Image {
 	#sphere3DOverlap(): boolean {
 		if (!this.#canvas.is360) return false;
 
-		const dotProduct = this.sphere3DX * this.#canvas.webgl.cameraForwardX +
-			this.sphere3DY * this.#canvas.webgl.cameraForwardY +
-			this.sphere3DZ * this.#canvas.webgl.cameraForwardZ;
+		const dotProduct = this.sphere3DX * this.#canvas.camera360.cameraForwardX +
+			this.sphere3DY * this.#canvas.camera360.cameraForwardY +
+			this.sphere3DZ * this.#canvas.camera360.cameraForwardZ;
 
 		const angularDistance = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
 
 		const embedAngularRadius = Math.max(this.angularWidth, this.angularHeight) / 2;
 
-		const effectiveFOV = this.#canvas.webgl.fieldOfView + embedAngularRadius;
+		const effectiveFOV = this.#canvas.camera360.fieldOfView + embedAngularRadius;
 
 		return angularDistance < effectiveFOV;
 	}
@@ -339,7 +339,7 @@ export default class Image {
 
 		const tolerance = 0.1;
 
-		const viewCenterX = mod1(c.view.centerX + c.webgl.offX);
+		const viewCenterX = mod1(c.view.centerX + c.camera360.offX);
 		const viewCenterY = c.view.centerY;
 		const viewWidth = c.view.width + tolerance;
 		const viewHeight = c.view.height + tolerance;
@@ -462,14 +462,14 @@ export default class Image {
 	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
 	setDrawRect(r: DrawRect): void {
 		const v = this.#canvas.main.vertexBuffer;
-		const d = this.#canvas.webgl.radius;
+		const d = this.#canvas.camera360.radius;
 		const s: number = Math.PI * 2 * d;
 		const p = this.vec;
 		const m = this.mat;
 
 		const cX: number = this.x0 + this.rWidth / 2;
 		const cY: number = this.y0 + this.rHeight / 2;
-		const center = this.#canvas.webgl.getVec3(cX - this.#canvas.webgl.offX, cY, true, 5);
+		const center = this.#canvas.camera360.getVec3(cX - this.#canvas.camera360.offX, cY, true, 5);
 
 		m.identity();
 		m.translate(center.x, center.y, center.z);
@@ -506,7 +506,7 @@ export default class Image {
 		const embedX1 = this.areaCenterX + embedWidth / 2;
 		const cY = this.areaCenterY;
 		const pH = embedHeight / 2.5;
-		const el = this.#canvas.el, gl = this.#canvas.webgl, cW = this.#canvas.el.width;
+		const el = this.#canvas.el, gl = this.#canvas.camera360, cW = this.#canvas.el.width;
 
 		let px = gl.getXYZ(embedX0, cY - pH);
 		let lX = px.w > 0 || px.x < 0 ? 0 : Math.min(cW, px.x);
@@ -534,24 +534,24 @@ export default class Image {
 		Image.#sampledLength = 0;
 		Image.#uniqueLength = 0;
 
-		const samplesPerEdge: number = c.webgl.fieldOfView > Math.PI / 2 ? 20 : 12;
+		const samplesPerEdge: number = c.camera360.fieldOfView > Math.PI / 2 ? 20 : 12;
 		const epsilon: number = 1e-8;
 
 		for (let i = 0; i <= samplesPerEdge; i++) {
 			const t = i / samplesPerEdge;
-			let coo = c.webgl.getCoo(t * w, 0);
+			let coo = c.camera360.getCoo(t * w, 0);
 			Image.#sampledXs[Image.#sampledLength] = coo.x;
 			Image.#sampledYs[Image.#sampledLength] = coo.y;
 			Image.#sampledLength++;
-			coo = c.webgl.getCoo((1 - t) * w, h);
+			coo = c.camera360.getCoo((1 - t) * w, h);
 			Image.#sampledXs[Image.#sampledLength] = coo.x;
 			Image.#sampledYs[Image.#sampledLength] = coo.y;
 			Image.#sampledLength++;
-			coo = c.webgl.getCoo(w, t * h);
+			coo = c.camera360.getCoo(w, t * h);
 			Image.#sampledXs[Image.#sampledLength] = coo.x;
 			Image.#sampledYs[Image.#sampledLength] = coo.y;
 			Image.#sampledLength++;
-			coo = c.webgl.getCoo(0, (1 - t) * h);
+			coo = c.camera360.getCoo(0, (1 - t) * h);
 			Image.#sampledXs[Image.#sampledLength] = coo.x;
 			Image.#sampledYs[Image.#sampledLength] = coo.y;
 			Image.#sampledLength++;
@@ -561,12 +561,12 @@ export default class Image {
 		for (let gy = 1; gy <= 3; gy++) {
 			const sy = h * gy / 4;
 			for (let gx = 1; gx <= 3; gx++) {
-				coo = c.webgl.getCoo(w * gx / 4, sy);
+				coo = c.camera360.getCoo(w * gx / 4, sy);
 				Image.#sampledXs[Image.#sampledLength] = coo.x;
 				Image.#sampledYs[Image.#sampledLength] = coo.y;
 				Image.#sampledLength++;
 			}
-			coo = c.webgl.getCoo(w * gy / 4, h - 1);
+			coo = c.camera360.getCoo(w * gy / 4, h - 1);
 			Image.#sampledXs[Image.#sampledLength] = coo.x;
 			Image.#sampledYs[Image.#sampledLength] = coo.y;
 			Image.#sampledLength++;
@@ -588,7 +588,7 @@ export default class Image {
 		minY = Math.max(0, minY);
 		maxY = Math.min(1, maxY);
 
-		const offX = c.webgl.offX;
+		const offX = c.camera360.offX;
 		for (let i = 0; i < Image.#sampledLength; i++) {
 			Image.#sampledXs[i] = mod1(Image.#sampledXs[i] - offX);
 		}

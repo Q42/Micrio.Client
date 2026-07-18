@@ -6,9 +6,9 @@ import { base360Distance } from './constants';
 
 import Kinetic from './kinetic'
 import Ani from './ani'
-import EngineCamera from './engine-camera'
+import Camera2D from './camera-2d'
 import Image from './tile-image'
-import SphericalView from './spherical'
+import Camera360 from './camera-360'
 
 /**
  * Represents a single rendering canvas within the Micrio engine.
@@ -45,8 +45,9 @@ export class TileCanvas {
 	readonly focus!: View;
 	readonly ani!: Ani;
 	readonly kinetic!: Kinetic;
-	readonly camera!: EngineCamera;
-	readonly webgl!: SphericalView;
+	readonly camera2d!: Camera2D;
+	readonly camera360!: Camera360;
+	readonly camera!: Camera2D | Camera360;
 	readonly rect: DrawRect = new DrawRect;
 	readonly el: Viewport = new Viewport;
 
@@ -157,8 +158,9 @@ export class TileCanvas {
 		this.focus = new View(this);
 		this.ani = new Ani(this);
 		this.kinetic = new Kinetic(this);
-		this.camera = new EngineCamera(this);
-		this.webgl = new SphericalView(this);
+		this.camera2d = new Camera2D(this);
+		this.camera360 = new Camera360(this);
+		this.camera = this.is360 ? this.camera360 : this.camera2d;
 		this.area = new View(this);
 		this.currentArea = new View(this);
 		this.targetArea = new View(this);
@@ -258,7 +260,7 @@ export class TileCanvas {
 
 		if (this.main.distanceX !== 0 || this.main.distanceY !== 0) {
 			const fact: number = this.opacity === 0 ? 0 : easeInOut.get(1 - this.opacity) * (fadingIn ? 1 : -1);
-			this.webgl.moveTo(
+			this.camera360.moveTo(
 				this.main.distanceX * fact * base360Distance,
 				this.main.distanceY * fact * base360Distance,
 				this.main.direction);
@@ -319,14 +321,14 @@ export class TileCanvas {
 
 		if (!this.#isVisible && this.opacity >= 1) this.setCanvasVisible(true);
 
-		this.webgl.calculate3DFrustum();
+		this.camera360.calculate3DFrustum();
 
 		if (this.isReady && this.opacity !== this.targetOpacity) {
 			this.#stepOpacity();
 			animating = true;
 		}
 
-		const scale: number = (this.is360 ? this.webgl.scale : this.camera.scale) * this.el.scale;
+		const scale: number = (this.is360 ? this.camera360.scale : this.camera2d.scale) * this.el.scale;
 
 		for (let i = 0; i < this.images.length; i++) {
 			const image = this.images[i];
@@ -361,7 +363,7 @@ export class TileCanvas {
 
 		this.main.micrio.webgl.gl.viewport(this.el.left, this.main.el.height - this.el.height - this.el.top, this.el.width, this.el.height);
 
-		this.main.micrio.webgl.gl.uniformMatrix4fv(this.main.micrio.webgl.pmLoc, false, this.webgl.pMatrix.arr);
+		this.main.micrio.webgl.gl.uniformMatrix4fv(this.main.micrio.webgl.pmLoc, false, this.camera360.pMatrix.arr);
 
 		if (this.pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
@@ -461,8 +463,8 @@ export class TileCanvas {
 			if (!noDispatch) this.sendViewport();
 			this.view.changed = true;
 			this.resize();
-			this.camera.setCanvas();
-			this.webgl.update();
+			this.camera2d.setCanvas();
+			this.camera2d.updateProjection();
 		}
 
 		return animating;
@@ -490,7 +492,7 @@ export class TileCanvas {
 	#setTile(i: number): void {
 		const r = this.rect; this.#findTileRect(i);
 		if (this.is360) {
-			if (r.image.localIdx === 0) this.webgl.setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+			if (r.image.localIdx === 0) this.camera360.setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
 			else r.image.setDrawRect(r);
 		}
 		else {
@@ -529,10 +531,10 @@ export class TileCanvas {
 			this.diagonal = Math.sqrt(c.width * c.width + c.height * c.height);
 		}
 		if (!this.hasParent) {
-			if (this.is360) this.webgl.resize();
+			if (this.is360) this.camera360.resize();
 			else {
-				this.camera.setCanvas();
-				this.webgl.update();
+				this.camera2d.setCanvas();
+				this.camera2d.updateProjection();
 			}
 		}
 	}
@@ -579,7 +581,7 @@ export class TileCanvas {
 				this.view.changed = true;
 			}
 		}
-		this.camera.correctMinMax();
+		this.camera2d.correctMinMax();
 	}
 
 	/** Sets the focus area for gallery/grid canvases. */
@@ -597,21 +599,21 @@ export class TileCanvas {
 			else { im.tOpacity = 1; this.activeImageIdx = i; }
 		}
 		this.focus.set(centerX, centerY, width, height);
-		this.camera.correctMinMax();
+		this.camera2d.correctMinMax();
 		if (!noLimit) {
-			this.camera.setView();
-			this.webgl.update();
+			this.camera2d.setView();
+			this.camera2d.updateProjection();
 		}
 	}
 
 	/** Gets image coordinates from screen coordinates. */
 	getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Float64Array {
-		return (this.is360 ? this.webgl.getCoo(x, y) : this.camera.getCoo(x, y, abs, noLimit)).toArray()
+		return (this.is360 ? this.camera360.getCoo(x, y) : this.camera2d.getCoo(x, y, abs, noLimit)).toArray()
 	}
 
 	/** Gets screen coordinates from image coordinates. */
 	getXY(x: number, y: number, abs: boolean, radius: number, rotation: number): Float64Array {
-		return (this.is360 ? this.webgl.getXYZ(x, y) : !isNaN(radius) ? this.camera.getXYOmni(x, y, radius, isNaN(rotation) ? 0 : rotation, abs) : this.camera.getXY(x, y, abs)).toArray()
+		return (this.is360 ? this.camera360.getXYZ(x, y) : !isNaN(radius) ? this.camera2d.getXYOmni(x, y, radius, isNaN(rotation) ? 0 : rotation, abs) : this.camera2d.getXY(x, y, abs)).toArray()
 	}
 
 	/** Gets the current logical view array. */
@@ -630,27 +632,27 @@ export class TileCanvas {
 
 		if (this.width > 0) {
 			if (this.is360) {
-				this.webgl.setView(centerX, centerY, width, height, noLimit, correctNorth);
+				this.camera360.setView(centerX, centerY, width, height, noLimit, correctNorth);
 				this.view.set(centerX, centerY, width, height);
-			} else if (this.camera.setView()) {
-				this.webgl.update();
+			} else if (this.camera2d.setView()) {
+				this.camera2d.updateProjection();
 			}
 		}
 	}
 
-	getScale(): number { return this.is360 ? this.webgl.scale : this.camera.scale }
-	isZoomedIn(): boolean { return this.is360 ? this.webgl.perspective <= this.webgl.minPerspective : this.camera.isZoomedIn() }
-	isZoomedOut(b: boolean = false): boolean { return this.is360 ? this.webgl.perspective >= this.webgl.maxPerspective : this.camera.isZoomedOut(b) }
+	getScale(): number { return this.is360 ? this.camera360.scale : this.camera2d.scale }
+	isZoomedIn(): boolean { return this.is360 ? this.camera360.perspective <= this.camera360.minPerspective : this.camera2d.isZoomedIn() }
+	isZoomedOut(b: boolean = false): boolean { return this.is360 ? this.camera360.perspective >= this.camera360.maxPerspective : this.camera2d.isZoomedOut(b) }
 
-	correctMinMax(noLimit?: boolean): void { this.camera.correctMinMax(noLimit); }
+	correctMinMax(noLimit?: boolean): void { this.camera2d.correctMinMax(noLimit); }
 
 	setDirection(yaw: number, pitch: number, resetPersp: boolean = false): void {
-		if (isNaN(pitch)) pitch = this.webgl.pitch;
-		this.webgl.setDirection(yaw, pitch, resetPersp ? this.webgl.defaultPerspective : 0);
+		if (isNaN(pitch)) pitch = this.camera360.pitch;
+		this.camera360.setDirection(yaw, pitch, resetPersp ? this.camera360.defaultPerspective : 0);
 	}
 	getMatrix(x: number, y: number, s: number, r: number, rX: number, rY: number, rZ: number, t: number, sX: number = 1, sY: number = 1, noCorrectNorth: boolean = false): Float32Array {
 		const fact: number = 20000 / this.width;
-		return this.webgl.getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).arr
+		return this.camera360.getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).arr
 	}
 
 	aniPause(): void {

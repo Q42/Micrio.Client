@@ -452,7 +452,7 @@ export class Engine {
 			if (entry.canvas.hasParent) return;
 
 
-			const pitch = canvas.is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas.webgl.pitch : 0;
+			const pitch = canvas.is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas.camera360.pitch : 0;
 			this.#activeCanvasEntry = entry;
 
 			if (canvas.is360 && !this.preventDirectionSet) {
