@@ -413,13 +413,9 @@ export default class Image {
 	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
 	setDrawRect(r: DrawRect): void {
 		const v = this.#canvas.main.vertexBuffer;
-		const d = this.#canvas.camera360.radius;
-		const s: number = Math.PI * 2 * d;
-		const p = this.vec;
-		const m = this.mat;
-
-		const cX: number = this.x0 + this.rWidth / 2;
-		const cY: number = this.y0 + this.rHeight / 2;
+		const s = Math.PI * 2 * this.#canvas.camera360.radius;
+		const p = this.vec, m = this.mat;
+		const cX = this.x0 + this.rWidth / 2, cY = this.y0 + this.rHeight / 2;
 		const center = this.#canvas.camera360.getVec3(cX - this.#canvas.camera360.offX, cY, true, 5);
 
 		m.identity();
@@ -429,18 +425,20 @@ export default class Image {
 		m.rotateZ(-this.rotZ);
 		m.scaleFlat(this.scale * .5);
 
-		let x = (r.x0 - cX) * s, y = -(r.y0 - cY) * .5 * s;
-		p.x = 0; p.y = 0; p.z = 0; m.translate(x, y, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		v[0] = p.x; v[1] = p.y; v[2] = p.z;
+		const dx0 = (r.x0 - cX) * s, dx1 = (r.x1 - cX) * s;
+		const dy0 = -(r.y0 - cY) * .5 * s, dy1 = -(r.y1 - cY) * .5 * s;
 
-		p.x = 0; p.y = 0; p.z = 0; m.translate(x = (r.x0 - cX) * s, y = -(r.y1 - cY) * .5 * s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		v[3] = v[9] = p.x; v[4] = v[10] = p.y; v[5] = v[11] = p.z;
+		const tv = (x: number, y: number) => {
+			p.x = 0; p.y = 0; p.z = 0;
+			m.translate(x, y, 0); p.transformMat4(m); m.translate(-x, -y, 0);
+		};
 
-		p.x = 0; p.y = 0; p.z = 0; m.translate(x = (r.x1 - cX) * s, y = -(r.y0 - cY) * .5 * s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		v[6] = v[15] = p.x; v[7] = v[16] = p.y; v[8] = v[17] = p.z;
-
-		p.x = 0; p.y = 0; p.z = 0; m.translate(x = (r.x1 - cX) * s, y = -(r.y1 - cY) * .5 * s, 0); p.transformMat4(m); m.translate(-x, -y, 0);
-		v[12] = p.x; v[13] = p.y; v[14] = p.z;
+		tv(dx0, dy0); v[0] = p.x; v[1] = p.y; v[2] = p.z;
+		tv(dx0, dy1); v[3] = p.x; v[4] = p.y; v[5] = p.z;
+		tv(dx1, dy0); v[6] = p.x; v[7] = p.y; v[8] = p.z;
+		tv(dx1, dy1); v[12] = p.x; v[13] = p.y; v[14] = p.z;
+		v[9] = v[3]; v[10] = v[4]; v[11] = v[5];
+		v[15] = v[6]; v[16] = v[7]; v[17] = v[8];
 	}
 
 	/** Calculates the effective scale of an embedded image based on its projection. */
