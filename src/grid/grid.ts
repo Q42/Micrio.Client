@@ -8,7 +8,7 @@ import { getEasing } from '$render/easing';
 import { createElement, sleep } from '$utils/dom';
 import { pointInArea } from '$utils/math';
 
-import { getCols as calcCols } from './format';
+import { getCols } from './format';
 import { hookGridKeys } from './keyboard';
 import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
@@ -67,7 +67,7 @@ export class Grid {
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
-		tick().then(() => this.set(this.#initialGrid.map(i => this.#imageInfoToGridImage(i)), {
+		tick().then(() => this.set(this.#initialGridImages, {
 			cover: this.image.$settings?.initType == 'cover',
 			duration: 0,
 		}).then(() => {
@@ -124,8 +124,18 @@ export class Grid {
 		this.imageMap.set(img.id, img);
 	}
 
-	#imageInfoToGridImage(i: Models.ImageInfo.ImageInfo): Models.Grid.GridImage {
-		return { id: i.id, size: [1] };
+	get #initialGridImages(): Models.Grid.GridImage[] {
+		return this.#initialGrid.map(i => ({ id: i.id, size: [1] as [number, number?] }));
+	}
+
+	#getAttrForEntry(entry: Models.Grid.GridImage): Partial<Models.ImageInfo.ImageInfo> {
+		const orig = this.#initialGrid.find(i => i.id === entry.id);
+		return {
+			id: entry.id,
+			width: orig?.width,
+			height: orig?.height,
+			path: this.image.$info?.path,
+		};
 	}
 
 	#savePreviousLayout(): void {
@@ -140,7 +150,7 @@ export class Grid {
 		}));
 	}
 
-	set(input:Models.Grid.GridImage[]=[], opts:{
+	set(images:Models.Grid.GridImage[]=[], opts:{
 		noHistory?:boolean;
 		keepGrid?: boolean;
 		horizontal?:boolean;
@@ -162,8 +172,6 @@ export class Grid {
 
 		if(opts.cover === false && opts.coverLimit) opts.coverLimit = false;
 		if(opts.coverLimit && opts.cover == undefined) opts.cover = opts.coverLimit;
-
-		const images = input;
 		const focussed = this.$focussed;
 		const isDelayed = opts.transition?.endsWith('-delayed');
 		const isBehindDelay = opts.transition == 'behind-delayed';
@@ -260,8 +268,6 @@ export class Grid {
 		return this.current.some((img, i) => img.id !== this.images[i].id);
 	}
 
-	#getCols = calcCols;
-
 	#printGrid(images:Models.Grid.GridImage[], opts:{
 		horizontal?:boolean;
 		keepGrid?:boolean;
@@ -270,13 +276,13 @@ export class Grid {
 	}) : void {
 		if(!opts.keepGrid) this.#removeGrid();
 		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0);
-		const cols = opts.columns ?? (opts.horizontal ? images.length : this.#getCols(images.length, numTiles));
+		const cols = opts.columns ?? (opts.horizontal ? images.length : getCols(images.length, numTiles));
 		this._grid.style.gridTemplateColumns = `repeat(${cols}, auto)`;
 		this._grid.textContent = '';
 		this._grid.style.removeProperty('--translate');
 		this._grid.style.removeProperty('--scale');
 
-		images.forEach(i => { if(!i.id) return;
+		images.forEach(i => {
 			if(!this._buttons.has(i.id)) this._buttons.set(i.id, createElement('button'));
 			const tile = this._buttons.get(i.id)!;
 			if(i.size.toString() != '1') {
@@ -334,16 +340,6 @@ export class Grid {
 		this._grid.dispatchEvent(new CustomEvent('update'));
 	}
 
-	#getAttrForEntry(entry: Models.Grid.GridImage): Partial<Models.ImageInfo.ImageInfo> {
-		const orig = this.#initialGrid.find(i => i.id === entry.id);
-		return {
-			id: entry.id,
-			width: orig?.width,
-			height: orig?.height,
-			path: this.image.$info?.path,
-		};
-	}
-
 	#placeImage(entry:Models.Grid.GridImage, opts: {
 		duration:number;
 		delay:number;
@@ -398,7 +394,7 @@ export class Grid {
 		this.markersShown.set([]);
 		await tick();
 		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.#hasChanged()) duration = 0;
-		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#initialGrid.map(i => this.#imageInfoToGridImage(i)), { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
+		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#initialGridImages, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
 			this.depth.set(this.history.length = 0);
 			this.micrio.current.set(this.image);
 			return i;
