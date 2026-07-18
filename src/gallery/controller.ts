@@ -7,7 +7,6 @@ import { jsonCache } from '$utils/fetch';
 import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { archive } from '$utils/archive';
-import { gridString } from '$grid/format';
 import { writable, get, type Writable } from '$core/store';
 import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from '$core/globals';
 
@@ -44,8 +43,8 @@ export class Gallery {
 
 	readonly currentIndex: Writable<number> = writable(0);
 
-	/** For grid-type galleries, the processed grid string for Grid controller. */
-	_gridString: string | undefined;
+	/** For grid-type galleries, the archive ImageInfo[] for direct Grid consumption. */
+	_gridImages: Models.ImageInfo.ImageInfo[] | undefined;
 
 	/** Max width for the virtual container canvas (switch/omni galleries). */
 	containerWidth: number = 0;
@@ -212,7 +211,7 @@ export class Gallery {
 		return new Gallery(items, engine, micrio, galleryConfig);
 	}
 
-	static async fromGrid(gridData: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<Gallery | null> {
+	static async fromGrid(archiveId: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<Gallery | null> {
 		const galleryConfig: Models.GalleryConfig = { type: 'grid', ...config };
 
 		if (!galleryConfig.settings) galleryConfig.settings = {};
@@ -220,23 +219,18 @@ export class Gallery {
 		galleryConfig.settings.minimap = false;
 		const path = config?.path ?? BASEPATH_V5;
 
-		if (galleryConfig.archive && galleryConfig.archive == gridData) {
-			const index = await Gallery.#getArchiveIndex(gridData.split('.')[0], path, engine, micrio);
-			const s = galleryConfig.sort;
-			if (s && index?.images) index.images.sort(Gallery.#sortArchiveImages(s));
-			gridData = index.images.map(i =>
-				gridString(i)
-			).join(';');
-		}
+		const index = await Gallery.#getArchiveIndex(archiveId.split('.')[0], path, engine, micrio);
+		const s = galleryConfig.sort;
+		if (s && index?.images) index.images.sort(Gallery.#sortArchiveImages(s));
+		const images = index?.images ?? [];
 
-		const pages = gridData.split(';').map(t => t.trim());
-		const items: Models.GalleryItem[] = pages.map(e => {
-			const parts = e.split(',').map((v: any) => isNaN(v) ? v : Number(v));
-			return { id: parts[0], width: parts[1] ?? 0, height: parts[2] ?? 0, path };
-		});
+		const items: Models.GalleryItem[] = images.map(i => ({
+			id: i.id, width: i.width ?? 0, height: i.height ?? 0, path,
+			tileSize: i.tileSize, isDeepZoom: i.isDeepZoom, isPng: i.isPng, isWebP: i.isWebP,
+		}));
 
 		const gallery = new Gallery(items, engine, micrio, galleryConfig);
-		gallery._gridString = gridData;
+		gallery._gridImages = images;
 		return gallery;
 	}
 
@@ -258,8 +252,8 @@ export class Gallery {
 			config.settings = { ...aInfo.settings };
 		}
 
-		if (aInfo.type === 'grid') {
-			return Gallery.fromGrid(aInfo.archive!, engine, micrio, { ...config, path });
+		if (aInfo.type === 'grid' && aInfo.archive) {
+			return Gallery.fromGrid(aInfo.archive, engine, micrio, { ...config, path });
 		}
 
 		return Gallery.fromArchive(aInfo.archive!, path, engine, micrio, config);
@@ -349,11 +343,10 @@ export class Gallery {
 			if(galleryInfo.settings.grid?.clickable && galleryInfo.settings.hookKeys === undefined) {
 				galleryInfo.settings.hookKeys = true;
 			}
-			galleryInfo.grid = this._gridString;
 		}
 
 		micrio.open(galleryInfo, {
-			...(this.type !== 'grid' ? { gallery: this } : {})
+			...(this.type == 'grid' ? { gridImages: this._gridImages } : { gallery: this })
 		});
 	}
 

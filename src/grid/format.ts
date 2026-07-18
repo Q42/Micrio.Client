@@ -1,28 +1,5 @@
 import type { Models } from '$types/models';
 
-const round = (n:number) => Math.round(n*100000)/100000;
-
-export function gridString(i: Models.ImageInfo.ImageInfo, opts?: {
-	view?: Models.Camera.View;
-	area?: Models.Camera.View;
-	size?: number[];
-}): string {
-	return [
-		i.id, i.width, i.height,
-		opts?.view?.map(round).join('/'),
-		opts?.area?.map(round).join('/'),
-		i.settings?.focus?.map(round).join('-'),
-	].join(',').replace(/,+$/, '') + (opts?.size ? `|${opts.size.join(',')}` : '');
-}
-
-export function parseGridString(s: string): { parts: string[]; size?: [number, number?] } {
-	const g = s.split('|');
-	return {
-		parts: g[0].split(','),
-		size: g[1] ? g[1].split(',').map(Number) as [number, number?] : undefined
-	};
-}
-
 export function getCols(images: number, numTiles: number): number {
 	let num = Math.ceil(numTiles / Math.ceil(Math.sqrt(numTiles)));
 	if (images == numTiles) {

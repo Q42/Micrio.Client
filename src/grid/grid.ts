@@ -1,8 +1,3 @@
-/**
- * Micrio grid display controller
- * @author Marcel Duin <marcel@micr.io>
- */
-
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$core/element';
 
@@ -15,105 +10,58 @@ import { getEasing } from '$render/easing';
 import { createElement, sleep } from '$utils/dom';
 import { pointInArea } from '$utils/math';
 
-import { gridString, parseGridString, getCols as calcCols } from './format';
+import { getCols as calcCols } from './format';
 import { hookGridKeys } from './keyboard';
 import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
 
-
-
-/**
- * Controls the display and interaction logic for grid layouts.
- * Instantiated on the primary {@link MicrioImage} if grid data is present.
- * Accessed via `micrioImage.grid`.
- */
 export class Grid {
-	/** Array of {@link MicrioImage} instances currently part of the grid definition (loaded). */
 	readonly images:MicrioImage[] = [];
-
-	/** O(1) lookup map for images by ID, kept in sync with {@link images}. */
 	readonly imageMap:Map<string, MicrioImage> = new Map();
 
-	/** Array of {@link MicrioImage} instances currently visible in the grid layout. */
 	current:MicrioImage[] = [];
 
-	/** The main HTML `<div>` element used to render the CSS grid layout for the clickable overlay. */
 	_grid = createElement('div', { className: 'micrio-grid' });
-
-	/** Map storing references to the HTML `<button>` elements representing each grid item in the overlay. Keyed by image ID. */
 	_buttons:Map<string, HTMLButtonElement> = new Map();
 
-	/** If truthy, the HTML grid overlay remains visible and interactive when an image is focused.
-	 * `'focus'` expands the image to full view, `'zoom'` zooms the main camera to the image's viewport. */
 	clickable: 'focus'|'zoom'|false = false;
-
-	/** Pan/zoom behavior: `'cells'` operates on the individual cell under the cursor, `'grid'` on the main container. */
 	panZoom: 'cells'|'grid' = 'grid';
 
-	/** Writable Svelte store holding the currently focused {@link MicrioImage} instance, or undefined if in grid view. */
 	readonly focussed:Writable<MicrioImage|undefined> = writable();
-
-	/** Getter for the current value of the {@link focussed} store. */
 	get $focussed() : MicrioImage|undefined { return get(this.focussed); }
-
-	/** Writable Svelte store holding an array of {@link MicrioImage} instances whose markers should be displayed in the grid view. */
 	readonly markersShown:Writable<MicrioImage[]> = writable([]);
 
-	/** Array storing the history of grid layouts for back navigation. */
 	history:Models.Grid.GridHistory[] = [];
-
-	/** Writable Svelte store indicating the current depth in the grid history stack. */
 	public depth:Writable<number> = writable<number>(0);
 
-	/** Default animation duration (seconds) when transitioning *into* a new layout or focused view. */
 	aniDurationIn:number = 1;
-
-	/** Default animation duration (seconds) when transitioning *out* of a focused view or going back in history. */
 	aniDurationOut:number = 0.5;
-
-	/** Delay (seconds) between individual image transitions for 'delayed' effects. */
 	transitionDelay:number = .5;
 
-	/** Stores a specific crossfade duration for the *next* transition only. */
 	nextCrossFadeDuration:number|undefined;
-
-	/** Flag indicating if the current grid layout is a single horizontal row. */
 	isHorizontal:boolean = false;
-
-	/** Map storing the current cell size [widthSpan, heightSpan?] for each image ID in the grid. */
 	readonly cellSizes:Map<string, [number,number?]> = new Map();
-
-	/** Temporary map storing cell sizes for the *next* layout transition, often set by marker actions. */
 	readonly nextSize:Map<string, [number,number?]> = new Map();
 
-	/** Stores the name and data of the last custom grid action executed to prevent duplicates. */
 	lastAction:string|undefined;
-
-	/** Unsubscriber function for the main image view subscription used by the HTML grid overlay. */
 	viewUnsub:Unsubscriber|undefined;
-
-	/** Timeout ID for debouncing grid updates or transitions. */
 	_to:ReturnType<typeof setTimeout>|undefined;
-	/** Timeout ID specifically for fade-in animations during transitions. */
 	_fadeTo:ReturnType<typeof setTimeout>|undefined;
-	/** Default animation timing function for grid transitions. */
 	#timingFunction:Models.Camera.TimingFunction = 'ease';
 
-	/** If true, keyboard arrow navigation is active and should bypass the default key handler. */
 	static handlingKeys:boolean = false;
 
-	/** Stores the Promise returned by the last `set()` call. */
 	lastPromise:Promise<MicrioImage[]>|undefined;
 
-	/**
-	 * The Grid constructor. Initializes the grid based on image settings.
-	 * @param micrio The main HTMLMicrioElement instance.
-	 * @param image The MicrioImage instance acting as the virtual container for the grid.
-	*/
+	#initialGrid: Models.ImageInfo.ImageInfo[] = [];
+
 	constructor(
 		public micrio:HTMLMicrioElement,
-		public image:MicrioImage
+		public image:MicrioImage,
+		gridImages?: Models.ImageInfo.ImageInfo[]
 	) {
+		this.#initialGrid = gridImages ?? [];
+
 		const g = image.$settings?.grid;
 		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
 		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
@@ -121,7 +69,7 @@ export class Grid {
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
-		this.set(image.$info?.grid).then(() => {
+		this.set(this.#initialGrid).then(() => {
 			this.#hook();
 			micrio.events.dispatch('grid-load');
 		});
@@ -129,7 +77,6 @@ export class Grid {
 		micrio.events.dispatch('grid-init', this);
 	}
 
-	/** Hooks necessary event listeners for grid interactions. */
 	#hook() {
 		this.micrio.state.marker.subscribe(m => {
 			if(m && typeof m != 'string') {
@@ -166,57 +113,65 @@ export class Grid {
 
 	_tourEventHandler: ((e: Event) => void) | undefined;
 
-	/** Clears any pending timeouts for transitions or fades. */
 	#clearTimeouts() : void {
 		clearTimeout(this._to);
 		clearTimeout(this._fadeTo);
 	}
 
-	/** Adds a MicrioImage to the images array and lookup map. */
 	#trackImage(img: MicrioImage): void {
 		this.images.push(img);
 		this.imageMap.set(img.id, img);
 	}
 
-	/**
-	 * Normalizes the set() input into an array of GridImage definitions.
-	 *
-	 */
-	#parseInput(input: string|MicrioImage[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]): Models.Grid.GridImage[] {
-		if(typeof input != 'string')
-			input = input.map(i => i instanceof MicrioImage ? {image:i} : i)
-			.filter(g => !!g.image.$info).map(g => this.getString(g.image.$info!, g)).join(';');
-
-		return input.split(';').filter(s => !!s).map(s => this.getImage(s));
+	#parseInput(input: MicrioImage[]|Models.ImageInfo.ImageInfo[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]): Models.Grid.GridImage[] {
+		if (input.length && 'width' in input[0] && !('image' in input[0])) {
+			return (input as Models.ImageInfo.ImageInfo[]).map(i => this.#imageInfoToGridImage(i));
+		}
+		return (input as any[]).filter((g: any) => !(g instanceof MicrioImage) || !!g.$info).map((i: any) => {
+			const img = i instanceof MicrioImage ? i : i.image;
+			return this.#micrioImageToGridImage(img);
+		});
 	}
 
-	/**
-	 * Saves the current layout to the history stack and updates depth.
-	 *
-	 */
+	#imageInfoToGridImage(i: Models.ImageInfo.ImageInfo): Models.Grid.GridImage {
+		return {
+			path: this.image.$info?.path,
+			id: i.id,
+			width: i.width ?? 0,
+			height: i.height ?? 0,
+			size: [1],
+			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings || {}, {
+				focus: i.settings?.focus
+			})),
+		} as Models.Grid.GridImage;
+	}
+
+	#micrioImageToGridImage(img: MicrioImage, opts?: Models.Grid.GridImageOptions): Models.Grid.GridImage {
+		const info = img.$info;
+		return {
+			path: this.image.$info?.path,
+			id: img.id,
+			width: info?.width ?? 0,
+			height: info?.height ?? 0,
+			size: opts?.size ?? this.nextSize.get(img.id) as [number,number] ?? [1],
+			view: opts?.view,
+			area: opts?.area,
+		} as Models.Grid.GridImage;
+	}
+
 	#savePreviousLayout(): void {
 		this.depth.set(this.history.push({
-			layout: this.current.map(i => this.getString(i.$info as Models.ImageInfo.ImageInfo, {
+			layout: this.current.map(i => ({
+				id: i.id,
 				view: i.state.$view,
-				size: this.cellSizes.get(i.id) as [number,number]
-			})).join(';'),
+				size: this.cellSizes.get(i.id) as [number, number?] | undefined,
+			})),
 			horizontal: this.isHorizontal,
 			view: this.image.camera.getView()
 		}));
 	}
 
-	/**
-	 * Sets the grid layout based on an input string or array of image definitions.
-	 * This is the main method for changing the grid's content and appearance.
-	 *
-	 * @param input The grid definition. Can be:
-	 *   - A semicolon-separated string following the format defined in {@link getString}.
-	 *   - An array of {@link MicrioImage} instances.
-	 *   - An array of objects `{image: MicrioImage, ...GridImageOptions}`.
-	 * @param opts Options controlling the transition and layout.
-	 * @returns A Promise that resolves with the array of currently displayed {@link MicrioImage} instances when the transition completes.
-	*/
-	set(input:string|MicrioImage[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]='', opts:{
+	set(input:MicrioImage[]|Models.ImageInfo.ImageInfo[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]=[], opts:{
 		noHistory?:boolean;
 		keepGrid?: boolean;
 		horizontal?:boolean;
@@ -331,49 +286,13 @@ export class Grid {
 		}
 	})}
 
-	/** Checks if the current grid layout differs from the initial full grid layout. */
 	#hasChanged() : boolean {
 		if(this.current.length !== this.images.length) return true;
 		return this.current.some((img, i) => img.id !== this.images[i].id);
 	}
 
-	/** Parses an individual image grid string into a GridImage object. */
-	getImage(s: string): Models.Grid.GridImage {
-		const { parts, size } = parseGridString(s);
-		let width = 0, height = 0;
-		return {
-			path: this.image.$info?.path,
-			id: parts[0],
-			width: width = (Number(parts[1]) || width),
-			height: height = (Number(parts[2]) || height),
-			size: size ?? [1],
-			view: parts[3] ? parts[3].split('/').map(Number) as Models.Camera.View : undefined,
-			area: parts[4] ? parts[4].split('/').map(Number) as Models.Camera.View : undefined,
-			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings || {}, {
-				focus: parts[5] ? parts[5].split('-').map(Number) as [number, number] : undefined
-			})),
-		} as Models.Grid.GridImage;
-	}
-
-	/**
-	 * Converts an ImageInfo object and options back into the grid string format.
-	 * @returns The grid encoded string for this image.
-	*/
-	getString = (i:Models.ImageInfo.ImageInfo, opts:Models.Grid.GridImageOptions = {}) : string => gridString(i, {
-		view: opts.view,
-		area: opts.area,
-		size: opts.size ?? this.nextSize.get(i.id) as [number,number],
-	});
-
 	#getCols = calcCols;
 
-	/**
-	 * Creates or updates the HTML grid element (`_grid`) based on the provided image definitions.
-	 * Calculates the target area for each image based on the CSS grid layout.
-	 *
-	 * @param images Array of GridImage definitions for the layout.
-	 * @param opts Layout options (horizontal, keepGrid, scale, columns).
-	*/
 	#printGrid(images:Models.Grid.GridImage[], opts:{
 		horizontal?:boolean;
 		keepGrid?:boolean;
@@ -426,7 +345,6 @@ export class Grid {
 		if(!opts.keepGrid) this._grid.remove();
 	}
 
-	/** Places the HTML grid overlay element into the DOM and starts listening for view changes. */
 	#placeGrid() : void {
 		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return;
 		if(this._grid.parentNode) return;
@@ -434,14 +352,12 @@ export class Grid {
 		this.viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
 	}
 
-	/** Removes the HTML grid overlay element from the DOM and stops listening for view changes. */
 	#removeGrid() : void {
 		if(!this._grid.parentNode) return;
 		if(this.viewUnsub) this.viewUnsub();
 		this._grid.remove();
 	}
 
-	/** Updates the CSS transform of the HTML grid overlay based on the main image's camera view. */
 	#updateGrid = () : void => {
 		const xy = this.image.camera.getXY(0,0, true);
 		this._grid.style.setProperty('--translate', `translate3d(${xy[0]}px, ${xy[1]}px, 0)`);
@@ -449,13 +365,6 @@ export class Grid {
 		this._grid.dispatchEvent(new CustomEvent('update'));
 	}
 
-	/**
-	 * Places a single image within the grid layout and initiates its animation/fade-in.
-	 *
-	 * @param entry The GridImage definition object.
-	 * @param opts Options controlling the placement animation.
-	 * @returns The placed MicrioImage instance.
-	 */
 	#placeImage(entry:Models.Grid.GridImage, opts: {
 		duration:number;
 		delay:number;
@@ -490,9 +399,6 @@ export class Grid {
 		return img;
 	}
 
-	/** Fade out unused images in the grid and clean up their button references.
-	 * @param images The images to hide
-	*/
 	#removeImages(images:MicrioImage[]) : void {
 		const { engine } = this.micrio;
 		images.forEach(i => {
@@ -502,19 +408,11 @@ export class Grid {
 		engine.render();
 	}
 
-
-	/** Checks whether current viewed image is (part of) grid */
 	insideGrid() : boolean {
 		const c = this.micrio.$current;
 		return c == this.image || (!!c && this.imageMap.has(c.id));
 	}
 
-	/** Reset the grid to its initial layout
-	 * @param duration Duration in seconds
-	 * @param noCamAni Don't do any camera animating
-	 * @param forceAni Force animation on all grid images
-	 * @returns Promise when the transition is complete
-	*/
 	async reset(duration?:number, noCamAni?:boolean, forceAni?:boolean) : Promise<MicrioImage[]> {
 		const state = this.history[0];
 		this.images.forEach(i => i.camera.stop());
@@ -522,37 +420,23 @@ export class Grid {
 		this.markersShown.set([]);
 		await tick();
 		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.#hasChanged()) duration = 0;
-		return this.set(state?.layout || this.image.$info?.grid, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
+		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#initialGrid, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
 			this.depth.set(this.history.length = 0);
 			this.micrio.current.set(this.image);
 			return i;
 		});
 	}
 
-
-
-	/** Fly to the viewports of any markers containing a class name
-	 * @param tag The class name to match
-	 * @param duration Optional duration in ms
-	 * @param noZoom Don't zoom into the markers, just filter the images
-	 * @returns Promise when the transition is complete
-	*/
 	async flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
 		const spl = tag?.split('|').map(s => s.trim());
 		const name = spl?.[0]??'';
 		const images = !name ? this.images : this.images.filter(i => !!i.$data?.markers?.find(m => m.tags?.includes(name)));
 		return this.set(images.map(img => {
 			const m = img.$data?.markers?.find(m => m.tags?.includes(name));
-			return this.getString(img.$info as Models.ImageInfo.ImageInfo, {
-				view: !noZoom ? m?.view : undefined
-			})
-		}).join(';'),{duration, horizontal: spl?.[1]=='h'});
+			return { image: img, view: !noZoom ? m?.view : undefined };
+		}),{duration, horizontal: spl?.[1]=='h'});
 	}
 
-	/** Go back one step in the grid history
-	 * @param duration Optional duration for transition
-	 * @returns Promise when the transition is complete
-	*/
 	async back(duration?:number) : Promise<void> {
 		const state = this.history.pop();
 		if(!state) return;
@@ -563,7 +447,8 @@ export class Grid {
 		const focussed = this.$focussed;
 		if(focussed) this.blur();
 
-		await this.set(state.layout, {
+		const input = this.#layoutFromHistoryEntry(state) ?? [];
+		await this.set(input, {
 			duration,
 			noHistory: true,
 			horizontal: state.horizontal,
@@ -571,12 +456,19 @@ export class Grid {
 		});
 	}
 
-	/** Sets the animation timing function for the next transition. */
+	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): ({image: MicrioImage} & Models.Grid.GridImageOptions)[] | undefined {
+		if (!state?.layout?.length) return;
+		return state.layout.map(entry => {
+			const img = this.imageMap.get(entry.id);
+			if (!img) return null;
+			return { image: img, view: entry.view, size: entry.size };
+		}).filter(Boolean) as ({image: MicrioImage} & Models.Grid.GridImageOptions)[];
+	}
+
 	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
 		this.micrio.engine.gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
 	}
 
-	/** Simulates a click on a grid cell, applying the configured `clickable` effect (zoom or focus). */
 	clickCell(_img?:MicrioImage|string) : void {
 		const img = typeof _img == 'string' ? this.images.find(i => i.id == _img) : _img;
 		if(!this.clickable || !img) return;
@@ -588,11 +480,6 @@ export class Grid {
 		} else this.focus(img);
 	}
 
-	/** Open a grid image full size and set it as the main active image
-	 * @param img The image
-	 * @param opts Focus options
-	 * @returns Promise for when the transition completes
-	*/
 	async focus(img:MicrioImage|undefined, opts: Models.Grid.FocusOptions={}) : Promise<void> {
 		if(!img) return this.back();
 
@@ -613,9 +500,7 @@ export class Grid {
 		img.camera.setCoverLimit(!!opts.cover);
 		this.#setTimingFunction('ease');
 
-		const target:string = await transition(this, img, focussed, this.getString(img.$info!, {
-			view: opts.view
-		}), opts);
+		const target = await transition(this, img, focussed, opts);
 
 		if (img.canvas) img.canvas.zIndex = 3;
 		this.focussed.set(img);
@@ -637,7 +522,6 @@ export class Grid {
 		}).catch(() => {});
 	}
 
-	/** Unfocusses any currently focussed image */
 	blur() : void {
 		const focussed = this.$focussed;
 		if(!focussed) return;
@@ -649,32 +533,25 @@ export class Grid {
 		this.micrio.current.set(this.image);
 	}
 
-	/** Do an (external) action
-	 * @param action The action type enum or string
-	 * @param data Optional action data
-	 * @param duration Optional action duration
-	*/
 	action(action:GridActionType|string, data?:string, duration?:number) : void {
 		handleAction(this, action, data, duration);
 	}
 
-	/** Enlarge a specific image idx of the currently shown grid
-	 * @param idx The image index of the current grid
-	 * @param width The image target number of columns
-	 * @param height The image target number of rows
-	 * @returns Promise when the transition is completed
-	*/
 	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
-		return this.set((this.history[this.history.length-1]?.layout || this.image.$info!.grid!)
-			.split(';').map((v,i) => `${v}|${i==idx ? `${width},${height}` : 1}`).join(';'), {
-			noHistory: true,
-			keepGrid: true,
-			duration: 500
-		})
+		const layout = this.history[this.history.length-1]?.layout ?? this.#initialGrid;
+		if (!layout?.length) return this.current;
+		if (Array.isArray(layout) && 'id' in layout[0]) {
+			const entries = layout as { id: string; size?: [number, number?] }[];
+			const input = entries.map((e, i) => {
+				const img = this.imageMap.get(e.id);
+				if (!img) return null;
+				return { image: img, size: i == idx ? [width, height] as [number, number] : e.size };
+			}).filter(Boolean) as ({ image: MicrioImage } & Models.Grid.GridImageOptions)[];
+			return this.set(input, { noHistory: true, keepGrid: true, duration: 500 });
+		}
+		return this.current;
 	}
 
-	/** Returns the grid image under the given screen coordinates (clientX, clientY).
-	 *  If the current image is a focused grid child, returns it directly. */
 	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
 		const current = this.micrio.$current;
 		if (current && this.images.some(i => i === current)) return current;

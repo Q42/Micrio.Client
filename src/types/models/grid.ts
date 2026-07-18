@@ -38,7 +38,7 @@ export namespace Grid {
 	}
 
 	export interface GridHistory {
-		layout: string;
+		layout: { id: string; view?: Camera.View; size?: [number, number?] }[];
 		horizontal: boolean;
 		view?: Camera.View;
 	}

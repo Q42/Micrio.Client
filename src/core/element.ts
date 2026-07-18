@@ -343,7 +343,7 @@ ${cssVars}`;
 		}
 
 		this.keepRendering = !!opts.settings.keepRendering;
-		const doOpen = opts.id || opts.grid;
+		const doOpen = opts.id || opts.settings?.gallery?.type === 'grid';
 		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {
@@ -408,6 +408,8 @@ ${cssVars}`;
 		vector?: Models.Camera.Vector,
 		/** Optional Gallery controller, used for gallery/grid views. */
 		gallery?: Gallery,
+		/** ImageInfo array for initial grid layout. */
+		gridImages?: Models.ImageInfo.ImageInfo[],
 	}={}) : MicrioImage {
 		if(!this.#printed) this.#print();
 		const isId = typeof idOrInfo == 'string';
@@ -476,7 +478,9 @@ ${cssVars}`;
 			}
 
 			// Initialize grid controller if needed
-			if(i.grid && !c.grid) c.grid = new Grid(this, c);
+			if(c.$settings?.gallery?.type === 'grid' && !c.grid) {
+				c.grid = new Grid(this, c, opts.gridImages);
+			}
 
 			// Dispatch 'load' event after a tick
 			tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));

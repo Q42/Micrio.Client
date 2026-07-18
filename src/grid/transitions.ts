@@ -37,10 +37,9 @@ export async function transition(
 	grid: Grid,
 	target: MicrioImage,
 	current: MicrioImage|undefined,
-	layout: string,
 	{duration, view, transition: trans, noViewAni, exitView, blur, cover}:Models.Grid.FocusOptions
-) : Promise<string> {
-	if(!trans) return layout;
+) : Promise<({image: MicrioImage} & Models.Grid.GridImageOptions)[]> {
+	if(!trans) return [{image: target, view}];
 
 	if(trans == 'crossfade') {
 		target.camera.setArea([0,0,1,1]);
@@ -49,7 +48,7 @@ export async function transition(
 
 	if(view && noViewAni) target.camera.setView(view, {noRender: true, noLimit: true});
 
-	if(!current || trans == 'crossfade') return layout;
+	if(!current || trans == 'crossfade') return [{image: target, view}];
 
 	const isSlwipe = trans.startsWith('slide') || trans.startsWith('swipe');
 	const isBehind = trans.startsWith('behind');
@@ -66,25 +65,16 @@ export async function transition(
 	}
 	else if(trans.startsWith('swipe')) {
 		target.camera.setArea(swipeAreas[transDir!], {noDispatch: true, direct: true});
-		layout = [
-			grid.getString(current.$info!, {
-				view: exitView ?? current.camera.getView(),
-				area: swipeExitAreas[transDir!]
-			}),
-			grid.getString(target.$info!, {
-				view, area: [0, 0, 1, 1]
-			})
-		].join(';');
 	}
 	else if(isBehind) {
 		target.camera.setArea([0,0,1,1]);
 		target.camera.setView([0,0,1,1]);
-		const between = [
-			grid.getString(current.$info!, {view: [0,0,1,1]}),
-			grid.getString(target.$info!, {view: [0,0,1,1]})
+		const between: ({image: MicrioImage} & Models.Grid.GridImageOptions)[] = [
+			{image: current, view: [0,0,1,1]},
+			{image: target, view: [0,0,1,1]}
 		];
 		if(trans == 'behind-left') between.reverse();
-		await grid.set(between.join(';'), {
+		await grid.set(between, {
 			noBlur: true,
 			horizontal: true,
 			coverLimit: cover
@@ -103,5 +93,12 @@ export async function transition(
 		}, blurSpeed*1000);
 	}
 
-	return layout;
+	if (trans.startsWith('swipe')) {
+		return [
+			{image: current, view: exitView ?? current.camera.getView(), area: swipeExitAreas[transDir!]},
+			{image: target, view, area: [0, 0, 1, 1]},
+		];
+	}
+
+	return [{image: target, view}];
 }

@@ -117,11 +117,6 @@ export namespace ImageInfo {
 		/** The album (V5+) ID */
 		albumId?: string;
 
-		/** Image is a grid controller
-		 * @internal
-		*/
-		grid?: string;
-
 		/** Is a video (used for embeds), keep rendering when in view
 		 * @internal
 		*/
