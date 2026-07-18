@@ -2,9 +2,7 @@ import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$core/element';
 
 import { MicrioImage } from '$core/image';
-import { get, writable, type Unsubscriber, type Writable } from '$core/store';
-import { deepCopy } from '$utils/object';
-import { tick } from '$core/store';
+import { get, writable, type Unsubscriber, type Writable, tick } from '$core/store';
 import { GridActionType } from './actions';
 import { getEasing } from '$render/easing';
 import { createElement, sleep } from '$utils/dom';
@@ -69,10 +67,13 @@ export class Grid {
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
-		this.set(this.#initialGrid).then(() => {
+		tick().then(() => this.set(this.#initialGrid.map(i => this.#imageInfoToGridImage(i)), {
+			cover: this.image.$settings?.initType == 'cover',
+			duration: 0,
+		}).then(() => {
 			this.#hook();
 			micrio.events.dispatch('grid-load');
-		});
+		}));
 
 		micrio.events.dispatch('grid-init', this);
 	}
@@ -123,40 +124,8 @@ export class Grid {
 		this.imageMap.set(img.id, img);
 	}
 
-	#parseInput(input: MicrioImage[]|Models.ImageInfo.ImageInfo[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]): Models.Grid.GridImage[] {
-		if (input.length && 'width' in input[0] && !('image' in input[0])) {
-			return (input as Models.ImageInfo.ImageInfo[]).map(i => this.#imageInfoToGridImage(i));
-		}
-		return (input as any[]).filter((g: any) => !(g instanceof MicrioImage) || !!g.$info).map((i: any) => {
-			const img = i instanceof MicrioImage ? i : i.image;
-			return this.#micrioImageToGridImage(img);
-		});
-	}
-
 	#imageInfoToGridImage(i: Models.ImageInfo.ImageInfo): Models.Grid.GridImage {
-		return {
-			path: this.image.$info?.path,
-			id: i.id,
-			width: i.width ?? 0,
-			height: i.height ?? 0,
-			size: [1],
-			settings: ((s) => { delete s.gallery; return s; })(deepCopy(this.image.$settings || {}, {
-				focus: i.settings?.focus
-			})),
-		} as Models.Grid.GridImage;
-	}
-
-	#micrioImageToGridImage(img: MicrioImage, opts?: Models.Grid.GridImageOptions): Models.Grid.GridImage {
-		const info = img.$info;
-		return {
-			path: this.image.$info?.path,
-			id: img.id,
-			width: info?.width ?? 0,
-			height: info?.height ?? 0,
-			size: opts?.size ?? this.nextSize.get(img.id) as [number,number] ?? [1],
-			view: opts?.view,
-			area: opts?.area,
-		} as Models.Grid.GridImage;
+		return { id: i.id, size: [1] };
 	}
 
 	#savePreviousLayout(): void {
@@ -171,7 +140,7 @@ export class Grid {
 		}));
 	}
 
-	set(input:MicrioImage[]|Models.ImageInfo.ImageInfo[]|({image:MicrioImage} & Models.Grid.GridImageOptions)[]=[], opts:{
+	set(input:Models.Grid.GridImage[]=[], opts:{
 		noHistory?:boolean;
 		keepGrid?: boolean;
 		horizontal?:boolean;
@@ -194,7 +163,7 @@ export class Grid {
 		if(opts.cover === false && opts.coverLimit) opts.coverLimit = false;
 		if(opts.coverLimit && opts.cover == undefined) opts.cover = opts.coverLimit;
 
-		const images = this.#parseInput(input);
+		const images = input;
 		const focussed = this.$focussed;
 		const isDelayed = opts.transition?.endsWith('-delayed');
 		const isBehindDelay = opts.transition == 'behind-delayed';
@@ -244,8 +213,8 @@ export class Grid {
 		this.nextSize.clear();
 
 		if(opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
-		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(false));
-		else images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
+		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(false));
+		else images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(true));
 
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
@@ -269,7 +238,7 @@ export class Grid {
 			this.#clearTimeouts();
 			requestAnimationFrame(() => engine.crossfadeDuration = defaultDur);
 			if(isDelayed) this.images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
-			if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id!)?.camera.setCoverLimit(true));
+			if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(true));
 			if(this.clickable) this.#placeGrid();
 			this.lastAction = undefined;
 			resolved = true;
@@ -365,6 +334,16 @@ export class Grid {
 		this._grid.dispatchEvent(new CustomEvent('update'));
 	}
 
+	#getAttrForEntry(entry: Models.Grid.GridImage): Partial<Models.ImageInfo.ImageInfo> {
+		const orig = this.#initialGrid.find(i => i.id === entry.id);
+		return {
+			id: entry.id,
+			width: orig?.width,
+			height: orig?.height,
+			path: this.image.$info?.path,
+		};
+	}
+
 	#placeImage(entry:Models.Grid.GridImage, opts: {
 		duration:number;
 		delay:number;
@@ -373,7 +352,7 @@ export class Grid {
 		cover?:boolean;
 	}) : MicrioImage {
 		const { engine } = this.micrio;
-		let img = this.imageMap.get(entry.id!);
+		let img = this.imageMap.get(entry.id);
 		if(img && entry.area) sleep(opts.delay*1000).then(() => {
 			img!.camera.setArea(entry.area!, {
 				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img!.visible))
@@ -381,19 +360,18 @@ export class Grid {
 			if(opts.delay) engine.render();
 		});
 		else {
-			entry.lang = this.micrio.lang;
-			engine.addChild(img = new MicrioImage(engine, entry, {area: entry.area}), this.image);
+			const attr = this.#getAttrForEntry(entry);
+			img = new MicrioImage(engine, attr, {area: entry.area});
+			img.info.subscribe(() => {})();
+			engine.addChild(img, this.image);
 			this.#trackImage(img);
 		}
+
 		const aniOpts = {duration:opts.duration*1000, timingFunction: this.#timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera.aniDone && img.placed) {
-			const isCover = !!opts.cover || img.camera.getCoverLimit();
-			if(entry.view || !isCover) img.camera.flyToView(entry.view ?? [0,0,1,1], aniOpts).catch(() => {})
-			else if(entry.area && entry.width && entry.height) {
-				const targetRatio = (entry.area[2] * this.micrio.offsetWidth) / (entry.area[3] * this.micrio.offsetHeight);
-				img.camera.flyToView(targetRatio < (entry.width / entry.height) ? [.5,0,.5,1] : [0,.5,1,.5], aniOpts).catch(() => {});
-			}
-			else img.camera.flyToCoverView(aniOpts).catch(() => {});
+			if (entry.view) img.camera.flyToView(entry.view, aniOpts).catch(() => {});
+			else if (opts.cover) img.camera.flyToCoverView(aniOpts).catch(() => {});
+			else img.camera.flyToView([0,0,1,1], aniOpts).catch(() => {});
 		}
 
 		return img;
@@ -420,7 +398,7 @@ export class Grid {
 		this.markersShown.set([]);
 		await tick();
 		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.#hasChanged()) duration = 0;
-		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#initialGrid, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
+		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#initialGrid.map(i => this.#imageInfoToGridImage(i)), { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
 			this.depth.set(this.history.length = 0);
 			this.micrio.current.set(this.image);
 			return i;
@@ -433,7 +411,7 @@ export class Grid {
 		const images = !name ? this.images : this.images.filter(i => !!i.$data?.markers?.find(m => m.tags?.includes(name)));
 		return this.set(images.map(img => {
 			const m = img.$data?.markers?.find(m => m.tags?.includes(name));
-			return { image: img, view: !noZoom ? m?.view : undefined };
+			return { id: img.id, size: [1], view: !noZoom ? m?.view : undefined };
 		}),{duration, horizontal: spl?.[1]=='h'});
 	}
 
@@ -456,13 +434,12 @@ export class Grid {
 		});
 	}
 
-	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): ({image: MicrioImage} & Models.Grid.GridImageOptions)[] | undefined {
+	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): Models.Grid.GridImage[] | undefined {
 		if (!state?.layout?.length) return;
 		return state.layout.map(entry => {
-			const img = this.imageMap.get(entry.id);
-			if (!img) return null;
-			return { image: img, view: entry.view, size: entry.size };
-		}).filter(Boolean) as ({image: MicrioImage} & Models.Grid.GridImageOptions)[];
+			if (!this.imageMap.has(entry.id)) return null;
+			return { id: entry.id, size: entry.size ?? [1], view: entry.view };
+		}).filter(Boolean) as Models.Grid.GridImage[];
 	}
 
 	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
@@ -540,16 +517,12 @@ export class Grid {
 	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
 		const layout = this.history[this.history.length-1]?.layout ?? this.#initialGrid;
 		if (!layout?.length) return this.current;
-		if (Array.isArray(layout) && 'id' in layout[0]) {
-			const entries = layout as { id: string; size?: [number, number?] }[];
-			const input = entries.map((e, i) => {
-				const img = this.imageMap.get(e.id);
-				if (!img) return null;
-				return { image: img, size: i == idx ? [width, height] as [number, number] : e.size };
-			}).filter(Boolean) as ({ image: MicrioImage } & Models.Grid.GridImageOptions)[];
-			return this.set(input, { noHistory: true, keepGrid: true, duration: 500 });
-		}
-		return this.current;
+		const entries = layout as { id: string; size?: [number, number?] }[];
+		const input: Models.Grid.GridImage[] = entries.map((e, i) => ({
+			id: e.id,
+			size: i == idx ? [width, height] as [number, number] : e.size ?? [1],
+		}));
+		return this.set(input, { noHistory: true, keepGrid: true, duration: 500 });
 	}
 
 	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {

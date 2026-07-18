@@ -38,8 +38,8 @@ export async function transition(
 	target: MicrioImage,
 	current: MicrioImage|undefined,
 	{duration, view, transition: trans, noViewAni, exitView, blur, cover}:Models.Grid.FocusOptions
-) : Promise<({image: MicrioImage} & Models.Grid.GridImageOptions)[]> {
-	if(!trans) return [{image: target, view}];
+) : Promise<Models.Grid.GridImage[]> {
+	if(!trans) return [{id: target.id, size: [1], view}];
 
 	if(trans == 'crossfade') {
 		target.camera.setArea([0,0,1,1]);
@@ -48,7 +48,7 @@ export async function transition(
 
 	if(view && noViewAni) target.camera.setView(view, {noRender: true, noLimit: true});
 
-	if(!current || trans == 'crossfade') return [{image: target, view}];
+	if(!current || trans == 'crossfade') return [{id: target.id, size: [1], view}];
 
 	const isSlwipe = trans.startsWith('slide') || trans.startsWith('swipe');
 	const isBehind = trans.startsWith('behind');
@@ -69,9 +69,9 @@ export async function transition(
 	else if(isBehind) {
 		target.camera.setArea([0,0,1,1]);
 		target.camera.setView([0,0,1,1]);
-		const between: ({image: MicrioImage} & Models.Grid.GridImageOptions)[] = [
-			{image: current, view: [0,0,1,1]},
-			{image: target, view: [0,0,1,1]}
+		const between: Models.Grid.GridImage[] = [
+			{id: current.id, size: [1], view: [0,0,1,1]},
+			{id: target.id, size: [1], view: [0,0,1,1]}
 		];
 		if(trans == 'behind-left') between.reverse();
 		await grid.set(between, {
@@ -95,10 +95,10 @@ export async function transition(
 
 	if (trans.startsWith('swipe')) {
 		return [
-			{image: current, view: exitView ?? current.camera.getView(), area: swipeExitAreas[transDir!]},
-			{image: target, view, area: [0, 0, 1, 1]},
+			{id: current.id, size: [1], view: exitView ?? current.camera.getView(), area: swipeExitAreas[transDir!]},
+			{id: target.id, size: [1], view, area: [0, 0, 1, 1]},
 		];
 	}
 
-	return [{image: target, view}];
+	return [{id: target.id, size: [1], view}];
 }

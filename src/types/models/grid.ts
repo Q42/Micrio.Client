@@ -1,5 +1,4 @@
 import type { Camera } from './camera';
-import type { ImageInfo } from './info';
 export namespace Grid {
 	/** Grid .focus() transition from current view */
 	export type MarkerFocusTransition = (
@@ -30,8 +29,9 @@ export namespace Grid {
 		'appear-delayed'
 	)
 
-	/** Virtual ImageInfo extension to support grid logic */
-	export interface GridImage extends Partial<ImageInfo.ImageInfo> {
+		/** Virtual ImageInfo extension to support grid logic */
+	export interface GridImage {
+		id: string;
 		size: [number, number?];
 		area?: Camera.View;
 		view?: Camera.View;
@@ -41,12 +41,6 @@ export namespace Grid {
 		layout: { id: string; view?: Camera.View; size?: [number, number?] }[];
 		horizontal: boolean;
 		view?: Camera.View;
-	}
-
-	export interface GridImageOptions {
-		view?:Camera.View;
-		area?:Camera.View;
-		size?:number[];
 	}
 
 	export interface FocusOptions {

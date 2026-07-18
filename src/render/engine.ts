@@ -659,14 +659,25 @@ export class Engine {
 	}
 
 	/** Add a child image to the current canvas, either embed or independent canvas. @internal */
-	#addImage = async (
+	#addImage = (
 		image: MicrioImage,
 		parent: MicrioImage,
 		isEmbed: boolean = false,
 		opacity: number = 1
-	): Promise<void> => once(image.info).then((i): void => {
-		if (!i) return;
+	): void => {
 		this.images.push(image);
+		this.#placeOnCanvas(image, parent, isEmbed, opacity);
+	}
+
+	/** @internal */
+	#placeOnCanvas = (
+		image: MicrioImage,
+		parent: MicrioImage,
+		isEmbed: boolean,
+		opacity: number
+	): void => {
+		const i = image.$info;
+		if (!i) return;
 
 		const a = image.opts.area ?? [0, 0, 1, 1];
 		const _360 = image.$settings._360 ?? {};
@@ -682,7 +693,7 @@ export class Engine {
 			} else {
 				childOpts = {
 					coverLimit: !!image.$settings?.limitToCoverScale,
-					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover')
+					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
 				};
 			}
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
@@ -716,7 +727,7 @@ export class Engine {
 		image.baseTileIdx = this.numTiles - 1;
 		this.#getTileEntry(image.baseTileIdx).opacity = 1;
 		this.#baseTiles.push(image.baseTileIdx);
-	})
+	}
 
 	/** Adds an embedded MicrioImage instance. @internal */
 	addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {

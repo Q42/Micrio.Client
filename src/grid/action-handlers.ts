@@ -37,7 +37,7 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 					.map(i => grid.imageMap.get(i.trim()))
 					.filter((i): i is MicrioImage => i !== undefined);
 				if(imgs.length == 1) grid.focus(imgs[0], {duration});
-				else if(imgs.length > 0) grid.set(imgs, {
+				else if(imgs.length > 0) grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
 					horizontal: spl?.[1] == 'h'
 				});
@@ -93,7 +93,7 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 					const imgs = ids.filter((id, i) => ids.indexOf(id) == i)
 						.map(i => grid.imageMap.get(i))
 						.filter((i): i is MicrioImage => !!i)
-					if(imgs.length) grid.set(imgs, {
+					if(imgs.length) grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 						duration,
 						horizontal: data == 'h'
 					});
