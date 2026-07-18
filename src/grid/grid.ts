@@ -214,15 +214,15 @@ export class Grid {
 		};
 
 		if(ready && !opts.noCamAni) {
-			if(opts.view) this.image.camera.flyToView(opts.view, {duration:dur*1000}).catch(error);
-			else this.image.camera.flyToFullView({duration:dur*1000}).catch(error);
+			const p = opts.view ? this.image.camera.flyToView(opts.view, {duration:dur*1000})
+				: this.image.camera.flyToFullView({duration:dur*1000});
+			p.catch(error);
 		}
 
 		this.nextSize.clear();
 
 		if(opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
-		if(!opts.coverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(false));
-		else images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(true));
+		images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(!!opts.coverLimit));
 
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
@@ -235,7 +235,7 @@ export class Grid {
 			cover: opts.cover
 		}));
 
-		if(isAppear) this.current.slice(1).forEach(i => { const c = i.canvas; if (c) c.targetOpacity = .9999; if (c) c.opacity = .9999; });
+		if(isAppear) this.current.slice(1).forEach(i => { const c = i.canvas; c && (c.targetOpacity = c.opacity = .9999); });
 
 		const fadeIn = () => this.current.forEach((img,i) =>
 			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
@@ -365,9 +365,10 @@ export class Grid {
 
 		const aniOpts = {duration:opts.duration*1000, timingFunction: this.#timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera.aniDone && img.placed) {
-			if (entry.view) img.camera.flyToView(entry.view, aniOpts).catch(() => {});
-			else if (opts.cover) img.camera.flyToCoverView(aniOpts).catch(() => {});
-			else img.camera.flyToView([0,0,1,1], aniOpts).catch(() => {});
+			const p = entry.view ? img.camera.flyToView(entry.view, aniOpts)
+				: opts.cover ? img.camera.flyToCoverView(aniOpts)
+				: img.camera.flyToView([0,0,1,1], aniOpts);
+			p.catch(() => {});
 		}
 
 		return img;
