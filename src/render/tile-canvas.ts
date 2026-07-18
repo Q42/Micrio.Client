@@ -647,6 +647,13 @@ export class TileCanvas {
 
 	correctMinMax(noLimit?: boolean): void { this.camera2d.correctMinMax(noLimit); }
 
+	setMinScale(s: number): void {
+		this.camera2d.minScale = s;
+		this.camera2d.correctMinMax();
+		this.camera2d.applyView();
+		this.camera360.update();
+	}
+
 	setDirection(yaw: number, pitch: number, resetPersp: boolean = false): void {
 		if (isNaN(pitch)) pitch = this.camera360.pitch;
 		this.camera360.setDirection(yaw, pitch, resetPersp ? this.camera360.defaultPerspective : 0);

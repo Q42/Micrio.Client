@@ -181,13 +181,7 @@ export class Camera {
 
 	getMinScale = (): number => this.#canvas?.camera.minScale ?? 0.1;
 
-	setMinScale(s: number): void {
-		if (!this.#canvas) return;
-		this.#canvas.camera2d.minScale = s;
-		this.#canvas.camera2d.correctMinMax();
-		this.#canvas.camera2d.applyView();
-		this.#canvas.camera360.update();
-	}
+	setMinScale(s: number): void { this.#canvas?.setMinScale(s); }
 
 	setMinScreenSize(s: number): void { if (!this.image.album && this.#canvas) this.#canvas.camera.minSize = Math.max(0, Math.min(1, s)); }
 
