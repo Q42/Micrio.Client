@@ -45,7 +45,7 @@ export class PointerPinchHandler {
 
 		this.#ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-		if (this.#ctx.activePointers.size === 2 && !this.#ctx.isPinching()) {
+		if (this.#ctx.activePointers.size === 2 && !this.#ctx.pinching) {
 			const pointers = Array.from(this.#ctx.activePointers.values());
 			const p1 = pointers[0], p2 = pointers[1];
 
@@ -66,7 +66,7 @@ export class PointerPinchHandler {
 		if (!this.#ctx.activePointers.has(e.pointerId)) return;
 		this.#ctx.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-		if (!this.#ctx.isPinching() || this.#ctx.activePointers.size !== 2) return;
+		if (!this.#ctx.pinching || this.#ctx.activePointers.size !== 2) return;
 
 		const pointers = Array.from(this.#ctx.activePointers.values());
 		const coo = { x: pointers[0].x, y: pointers[0].y };
@@ -85,7 +85,7 @@ export class PointerPinchHandler {
 
 		this.#ctx.activePointers.delete(e.pointerId);
 
-		if (this.#ctx.isPinching() && this.#ctx.activePointers.size < 2) {
+		if (this.#ctx.pinching && this.#ctx.activePointers.size < 2) {
 			self.removeEventListener('pointermove', this.#move, eventPassiveCapture);
 			pinchStop(this.#ctx, e, this.#move);
 

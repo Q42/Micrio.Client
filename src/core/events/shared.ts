@@ -59,20 +59,15 @@ export interface EventContext {
 	/** Whether events are currently enabled */
 	isEnabled(): boolean;
 	/** Whether the user is currently panning */
-	isPanning(): boolean;
+	panning: boolean;
 	/** Whether the user is currently pinching */
-	isPinching(): boolean;
-	/** Set panning state */
-	setPanning(value: boolean): void;
-	/** Set pinching state */
-	setPinching(value: boolean): void;
-	/** Get/set wheeling state */
-	isWheeling(): boolean;
-	setWheeling(value: boolean): void;
+	pinching: boolean;
+	/** Whether the user is currently zooming via mouse wheel */
+	wheeling: boolean;
 	/** Whether Ctrl/Cmd key is required for wheel zoom */
-	isControlZoom(): boolean;
+	controlZoom: boolean;
 	/** Whether two fingers are required for touch panning */
-	isTwoFingerPan(): boolean;
+	twoFingerPan: boolean;
 	/** Event state variables */
 	vars: EventStateVars;
 	/** Get visible images */
@@ -88,17 +83,12 @@ export interface EventContext {
 	activePointers: Map<number, { x: number, y: number }>;
 	/** Captured pointer ID for dragging */
 	capturedPointerId: number | undefined;
-	setCapturedPointerId(id: number | undefined): void;
 	/** Current pinch factor */
 	pinchFactor: number | undefined;
-	setPinchFactor(value: number | undefined): void;
 	/** Previous scale during gestures */
 	pScale: number;
-	setPScale(value: number): void;
 	/** Has used Ctrl for zoom */
 	hasUsedCtrl: boolean;
-	setHasUsedCtrl(value: boolean): void;
 	/** Has touch support */
 	hasTouch: boolean;
 }
-

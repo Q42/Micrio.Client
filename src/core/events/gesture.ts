@@ -53,7 +53,7 @@ export class GestureHandler {
 		if (!gesture || gesture.scale === 1) return;
 
 		const diff = this.#ctx.pScale - gesture.scale;
-		this.#ctx.setPScale(gesture.scale);
+		this.#ctx.pScale = gesture.scale;
 
 		e.stopPropagation();
 		e.preventDefault();

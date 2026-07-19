@@ -27,7 +27,7 @@ export class KeyboardHandler {
 	 * @param e The KeyboardEvent.
 	 */
 	#handle = (e: KeyboardEvent): void => {
-		if (this.#ctx.isPanning() || this.#ctx.isPinching() || !this.#ctx.micrio.$current?.camera) return;
+		if (this.#ctx.panning || this.#ctx.pinching || !this.#ctx.micrio.$current?.camera) return;
 
 		// Bypass arrow handling when a grid is actively handling keys
 		if (Grid.handlingKeys && (e.key.startsWith('Arrow') || e.key == 'Enter' || e.key == ' ' || e.key == 'Escape')) return;

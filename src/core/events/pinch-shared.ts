@@ -2,19 +2,19 @@ import type { EventContext } from './shared';
 import type { DragHandler } from './drag';
 
 export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
-	ctx.vars.pinch.wasPanning = ctx.isPanning();
+	ctx.vars.pinch.wasPanning = ctx.panning;
 	dragHandler.stop(undefined, false, true);
 
-	ctx.setPinching(true);
+	ctx.pinching = true;
 	ctx.micrio.setAttribute('data-pinching', '');
-	ctx.setPinchFactor(undefined);
+	ctx.pinchFactor = undefined;
 
 	if (ctx.vars.pinch.image) {
 		ctx.vars.pinch.image.canvas?.camera.pinchStart();
 	}
 	ctx.micrio.engine.render();
 	ctx.dispatch('pinchstart');
-	if (ctx.isTwoFingerPan()) ctx.dispatch('panstart');
+	if (ctx.twoFingerPan) ctx.dispatch('panstart');
 }
 
 export function adjustSplitScreen(ctx: EventContext, coo: { x: number, y: number }, coo2: { x: number, y: number }): void {
@@ -34,13 +34,13 @@ export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2
 
 	adjustSplitScreen(ctx, coo, coo2);
 
-	ctx.setPinchFactor(Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v.sDst);
+	ctx.pinchFactor = Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v.sDst;
 	i.canvas?.camera.pinch(coo.x, coo.y, coo2.x, coo2.y);
 }
 
 export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: any[]) => void): void {
-	if (!ctx.isPinching()) return;
-	ctx.setPinching(false);
+	if (!ctx.pinching) return;
+	ctx.pinching = false;
 
 	self.removeEventListener('touchmove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions);
 	self.removeEventListener('pointermove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions);
@@ -53,10 +53,10 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 		ctx.micrio.engine.render();
 	}
 	ctx.vars.pinch.image = undefined;
-	ctx.setPinchFactor(undefined);
+	ctx.pinchFactor = undefined;
 
 	ctx.dispatch('pinchend');
-	if (ctx.isTwoFingerPan() && !ctx.vars.pinch.wasPanning) {
+	if (ctx.twoFingerPan && !ctx.vars.pinch.wasPanning) {
 		ctx.dispatch('panend');
 	}
 }

@@ -41,7 +41,7 @@ export class DragHandler {
 	 */
 	start = (e: PointerEvent, force = false): void => {
 		// Ignore non-primary buttons or touch events if twoFingerPan is enabled
-		if (e.button != 0 || (e.pointerType == 'touch' && this.#ctx.isTwoFingerPan())) return;
+		if (e.button != 0 || (e.pointerType == 'touch' && this.#ctx.twoFingerPan)) return;
 
 		// Ignore if interaction didn't start on the canvas element (unless forced or target has scroll-through)
 		if (!force && e.target != this.#ctx.el && !(e.target instanceof Element && e.target.closest('[data-scroll-through]'))) return;
@@ -50,10 +50,10 @@ export class DragHandler {
 		if (this.#ctx.micrio.$current?.isOmni && e.shiftKey) return;
 
 		// Don't start panning if we're pinching
-		if (this.#ctx.isPinching()) return;
+		if (this.#ctx.pinching) return;
 
 		// Handle potential conflicts with pinching
-		if (this.#ctx.isPanning()) {
+		if (this.#ctx.panning) {
 			// If already panning and a second touch starts, stop panning to allow pinch
 			if (e instanceof TouchEvent && e.touches.length > 1) this.stop();
 			return;
@@ -63,7 +63,7 @@ export class DragHandler {
 		const img = this.#ctx.getImage({ x: e.clientX, y: e.clientY });
 		if (!img) return;
 
-		this.#ctx.setPanning(true);
+		this.#ctx.panning = true;
 
 		// Store start coordinates and time, and lock to originating image
 		this.#ctx.vars.drag.start = [e.clientX, e.clientY, performance.now()];
@@ -89,7 +89,7 @@ export class DragHandler {
 		// Capture pointer only after significant movement to allow double-click
 		const moved = Math.hypot(this.#ctx.vars.drag.start[0] - e.clientX, this.#ctx.vars.drag.start[1] - e.clientY);
 		if (!this.#ctx.capturedPointerId && moved > 10) {
-			this.#ctx.setCapturedPointerId(e.pointerId);
+			this.#ctx.capturedPointerId = e.pointerId;
 			this.#ctx.micrio.setPointerCapture(e.pointerId);
 		}
 
@@ -112,9 +112,9 @@ export class DragHandler {
 	 * @param noDispatch If true, suppresses the 'panend' event.
 	 */
 	stop = (e?: PointerEvent, noKinetic = false, noDispatch = false): void => {
-		if (!this.#ctx.isPanning()) return;
+		if (!this.#ctx.panning) return;
 
-		this.#ctx.setPanning(false);
+		this.#ctx.panning = false;
 		this.#ctx.vars.drag.prev = undefined;
 
 		// Remove listeners
@@ -125,7 +125,7 @@ export class DragHandler {
 		if (this.#ctx.capturedPointerId) {
 			this.#ctx.micrio.releasePointerCapture(this.#ctx.capturedPointerId);
 		}
-		this.#ctx.setCapturedPointerId(undefined);
+		this.#ctx.capturedPointerId = undefined;
 
 		this.#ctx.micrio.removeAttribute('data-panning');
 
@@ -156,10 +156,9 @@ export class DragHandler {
 	 * triggering kinetic motion or a regular `panend`.
 	 */
 	#cancel = (e: PointerEvent): void => {
-		if (!this.#ctx.isPanning()) return;
+		if (!this.#ctx.panning) return;
 		// If a different pointer was the captured one, ignore.
 		if (this.#ctx.capturedPointerId !== undefined && e.pointerId !== this.#ctx.capturedPointerId) return;
 		this.stop(undefined, true, true);
 	}
 }
-

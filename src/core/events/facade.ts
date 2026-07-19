@@ -27,9 +27,7 @@ import {
  */
 export class Events implements EventContext {
 
-	/** The Micrio `<canvas>` element where most events are captured.
-	 * @internal
-	*/
+	/** The Micrio `<canvas>` element where most events are captured. */
 	el: HTMLCanvasElement;
 
 	/** Writable Svelte store indicating if event handling is currently enabled. Set to false during tours or animations. */
@@ -38,70 +36,43 @@ export class Events implements EventContext {
 	/** Getter for the current value of the {@link enabled} store. */
 	get $enabled(): boolean { return get(this.enabled) };
 
-	/** Flag indicating if the main event listeners are currently attached.
-	 * @internal
-	*/
+	/** Flag indicating if the main event listeners are currently attached. */
 	#hooked: boolean = false;
 
-	/** Flag indicating if the user is currently panning (dragging).
-	 * @internal
-	*/
-	#panning: boolean = false;
+	/** Flag indicating if the user is currently panning (dragging). */
+	panning: boolean = false;
 
-	/** Flag indicating if the user is currently pinching.
-	 * @internal
-	*/
-	#pinching: boolean = false;
+	/** Flag indicating if the user is currently pinching. */
+	pinching: boolean = false;
 
-	/** Flag indicating if a click event originated from outside the core interaction (e.g., UI button).
-	 * Used to potentially differentiate UI clicks from map clicks.
-	 * @internal
-	*/
+	/** Flag indicating if a click event originated from outside the core interaction (e.g., UI button). */
 	clicked: boolean = false;
 
-	/** Flag indicating if the user is currently zooming via mouse wheel.
-	 * @internal
-	*/
-	#wheeling: boolean = false;
+	/** Flag indicating if the user is currently zooming via mouse wheel. */
+	wheeling: boolean = false;
 
-	/** Flag indicating if Ctrl/Cmd key is required for mouse wheel zoom.
-	 * @internal
-	*/
-	#controlZoom: boolean = false;
+	/** Flag indicating if Ctrl/Cmd key is required for mouse wheel zoom. */
+	controlZoom: boolean = false;
 
-	/** Flag indicating if two fingers are required for touch panning.
-	 * @internal
-	*/
-	#twoFingerPan: boolean = false;
+	/** Flag indicating if two fingers are required for touch panning. */
+	twoFingerPan: boolean = false;
 
-	/** Stores the previous scale during pinch gestures for calculating zoom delta.
-	 * @internal
-	*/
+	/** Stores the previous scale during pinch gestures for calculating zoom delta. */
 	pScale: number = 1;
 
-	/** Flag indicating if the browser supports touch events.
-	 * @internal
-	*/
+	/** Flag indicating if the browser supports touch events. */
 	hasTouch: boolean = Browser.hasTouch && ('ontouchstart' in self);
 
-	/** Flag indicating if the user has explicitly used Ctrl/Cmd + wheel for zooming (differentiates from trackpad pinch).
-	 * @internal
-	*/
+	/** Flag indicating if the user has explicitly used Ctrl/Cmd + wheel for zooming (differentiates from trackpad pinch). */
 	hasUsedCtrl: boolean = false;
 
-	/** Cached settings object from the first loaded image.
-	 * @internal
-	*/
+	/** Cached settings object from the first loaded image. */
 	#settings: Models.ImageInfo.Settings | undefined;
 
-	/** Array of currently visible MicrioImage instances.
-	 * @internal
-	*/
+	/** Array of currently visible MicrioImage instances. */
 	#visible: MicrioImage[] | undefined;
 
-	/** Internal state variables for managing complex interactions like drag, pinch, double-tap.
-	 * @internal
-	*/
+	/** Internal state variables for managing complex interactions like drag, pinch, double-tap. */
 	vars: EventStateVars = {
 		drag: { prev: undefined, start: [0, 0, 0], image: undefined },
 		dbltap: { lastTapped: 0 },
@@ -111,12 +82,10 @@ export class Events implements EventContext {
 	/** Current pinch zoom factor relative to the start of the pinch. Undefined when not pinching. */
 	pinchFactor: number | undefined;
 
-	/** Map tracking active pointers for multi-touch pinch detection (pointer ID -> coordinates).
-	 * @internal
-	 */
+	/** Map tracking active pointers for multi-touch pinch detection (pointer ID -> coordinates). */
 	activePointers: Map<number, { x: number, y: number }> = new Map();
 
-	/** Stores the ID of the pointer currently captured for dragging. @internal */
+	/** Stores the ID of the pointer currently captured for dragging. */
 	capturedPointerId: number | undefined;
 
 	// Handler modules
@@ -131,10 +100,8 @@ export class Events implements EventContext {
 	/**
 	 * The Events constructor.
 	 * @param micrio The main HTMLMicrioElement instance.
-	 * @internal
 	 */
 	constructor(
-		/** @internal */
 		public micrio: HTMLMicrioElement,
 	) {
 		this.el = micrio.canvas.element;
@@ -170,29 +137,15 @@ export class Events implements EventContext {
 	// --- EventContext implementation ---
 
 	isEnabled(): boolean { return this.$enabled; }
-	isPanning(): boolean { return this.#panning; }
-	isPinching(): boolean { return this.#pinching; }
-	setPanning(value: boolean): void { this.#panning = value; }
-	setPinching(value: boolean): void { this.#pinching = value; }
-	isWheeling(): boolean { return this.#wheeling; }
-	setWheeling(value: boolean): void { this.#wheeling = value; }
-	isControlZoom(): boolean { return this.#controlZoom; }
-	isTwoFingerPan(): boolean { return this.#twoFingerPan; }
-	getVisible(): MicrioImage[] | undefined { return this.#visible; }
-	setCapturedPointerId(id: number | undefined): void { this.capturedPointerId = id; }
-	setPinchFactor(value: number | undefined): void { this.pinchFactor = value; }
-	setPScale(value: number): void { this.pScale = value; }
-	setHasUsedCtrl(value: boolean): void { this.hasUsedCtrl = value; }
 
 	/**
 	 * Checks if the user is currently interacting with the map via panning, pinching, or wheeling.
 	 * @returns True if the user is actively navigating.
 	*/
-	get isNavigating(): boolean { return this.#panning || this.#pinching || this.#wheeling || this.clicked; }
+	get isNavigating(): boolean { return this.panning || this.pinching || this.wheeling || this.clicked; }
 
 	/**
 	 * Dispatches a custom event on the main `<micr-io>` element.
-	 * @internal
 	 * @param type The event type string.
 	 * @param detail Optional event detail payload.
 	 */
@@ -203,7 +156,6 @@ export class Events implements EventContext {
 	/**
 	 * Determines which MicrioImage instance is under the given screen coordinates.
 	 * Handles split-screen layouts.
-	 * @internal
 	 * @param c Screen coordinates {x, y}.
 	 * @returns The MicrioImage instance under the coordinates, or the main current image as fallback.
 	 */
@@ -227,6 +179,8 @@ export class Events implements EventContext {
 		return t && !t.grid && (!t.opts.secondaryTo || !t.opts.isPassive) ? t : this.micrio.$current;
 	}
 
+	getVisible(): MicrioImage[] | undefined { return this.#visible; }
+
 	/** Hooks all necessary event listeners based on current settings. */
 	public hook(): void {
 		if (this.#hooked) return;
@@ -236,8 +190,8 @@ export class Events implements EventContext {
 		if (!s) return;
 
 		// Apply settings
-		this.#twoFingerPan = !!s.twoFingerPan;
-		if (this.#twoFingerPan) this.micrio.setAttribute('data-can-pan', '');
+		this.twoFingerPan = !!s.twoFingerPan;
+		if (this.twoFingerPan) this.micrio.setAttribute('data-can-pan', '');
 		else this.micrio.removeAttribute('data-can-pan');
 
 		// Hook specific event types based on settings
@@ -269,9 +223,9 @@ export class Events implements EventContext {
 	/** Hooks zoom-related event listeners (pinch, scroll, double-tap/click). */
 	public hookZoom(): void {
 		const s = this.#settings;
-		this.#controlZoom = !!s?.controlZoom;
+		this.controlZoom = !!s?.controlZoom;
 		if (!s || s.hookPinch) this.hookPinch();
-		if (!s || s.hookScroll || this.#controlZoom) this.hookScroll();
+		if (!s || s.hookScroll || this.controlZoom) this.hookScroll();
 		// Add double-tap/click listeners
 		if (this.micrio.canvas.$isMobile) this.#doubleTapHandler.hookTap();
 		else this.#doubleTapHandler.hookClick();
@@ -285,7 +239,7 @@ export class Events implements EventContext {
 		else this.#doubleTapHandler.unhookClick();
 	}
 
-	/** Flag indicating if scroll listeners are attached. @internal */
+	/** Flag indicating if scroll listeners are attached. */
 	public get scrollHooked(): boolean { return this.#wheelHandler.hooked; }
 
 	/** Hooks mouse wheel/scroll event listeners. */

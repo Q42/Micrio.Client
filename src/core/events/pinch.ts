@@ -43,9 +43,9 @@ export class PinchHandler {
 	start = (e: TouchEvent | Event): void => {
 		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
 
-		if (this.#ctx.isTwoFingerPan() && e.touches.length < 2) return;
+		if (this.#ctx.twoFingerPan && e.touches.length < 2) return;
 
-		if (this.#ctx.isPinching() || e.touches.length != 2) {
+		if (this.#ctx.pinching || e.touches.length != 2) {
 			this.stop(e as TouchEvent);
 			return;
 		}

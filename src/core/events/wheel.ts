@@ -38,54 +38,47 @@ export class WheelHandler {
 	handle = (e: WheelEvent | Event, force = false, offX = 0): void => {
 		if (!(e instanceof WheelEvent)) return;
 
-		// Check if zoom is allowed based on settings and modifier keys
-		if (this.#ctx.isControlZoom() && !e.ctrlKey) return;
+		if (this.#ctx.controlZoom && !e.ctrlKey) return;
 		if (!force && e.target instanceof Element && e.target != this.#ctx.el &&
 			!e.target.classList.contains('marker') && !e.target.closest('[data-scroll-through]')) return;
 
 		let delta = e.deltaY;
 
-		if (e.ctrlKey) this.#ctx.setHasUsedCtrl(true);
+		if (e.ctrlKey) this.#ctx.hasUsedCtrl = true;
 
-		const isControlZoomWithMouse = this.#ctx.isControlZoom() && (delta * 10 % 1 == 0);
+		const isControlZoomWithMouse = this.#ctx.controlZoom && (delta * 10 % 1 == 0);
 		const isTouchPad = this.#ctx.hasUsedCtrl && !isControlZoomWithMouse;
 		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
 
-		if (this.#ctx.isTwoFingerPan() && this.#ctx.micrio.$current?.camera.isZoomedOut()) return;
+		if (this.#ctx.twoFingerPan && this.#ctx.micrio.$current?.camera.isZoomedOut()) return;
 
-		// Prevent default scroll page behavior
 		e.stopPropagation();
 		e.preventDefault();
 
-		// Trackpad pinch zoom amplify
 		if ((Browser.OSX || isTouchPad) && e.ctrlKey) delta *= 10;
 
 		const coo = { x: e.clientX, y: e.clientY };
 		const image = this.#ctx.getImage(coo);
 		if (!image) return;
 
-		// Do scroll/pinch zoom
 		if (isZoom) {
 			const c = this.#ctx.micrio.canvas.viewport;
 			let offY = 0;
 
-			// TODO FIX ME
 			const box = this.#ctx.micrio.getBoundingClientRect();
 			image.camera.zoom(delta * 1 / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY);
 		}
-		// Pan x/y
 		else image.camera.pan(e.deltaX, e.deltaY);
 
-		this.#ctx.setWheeling(true);
+		this.#ctx.wheeling = true;
 
-		// Debounce wheel end event
 		clearTimeout(this.#wheelEndTo);
 		this.#wheelEndTo = setTimeout(this.#end, 50) as unknown as number;
 	}
 
 	/** Clears the wheeling state after a short delay. */
 	#end = (): void => {
-		this.#ctx.setWheeling(false);
+		this.#ctx.wheeling = false;
 	}
 }
 
