@@ -12,6 +12,7 @@ import { pointInArea } from '$utils/math';
 
 import { getCols } from './format';
 import { hookGridKeys } from './keyboard';
+import '$ui/button';
 import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
 
@@ -20,7 +21,9 @@ export class Grid extends MicrioElement {
 
 	static styles = `micrio-grid{position:fixed;top:0;left:0;width:100%;height:100%;display:grid;grid-auto-flow:row dense;grid-gap:0;will-change:transform;transform-origin:left top;--translate:none;--scale:1;transform:var(--translate) scale3d(var(--scale),var(--scale),1)}
 micrio-grid>button{background:transparent;border:none;padding:0;margin:0;cursor:pointer;pointer-events:auto;grid-area:auto / auto / span 1 / span 1}
-micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button{pointer-events:none}`;
+micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button{pointer-events:none}
+micrio-grid .grid-close{position:absolute;display:block;top:var(--micrio-border-margin);right:var(--micrio-border-margin);z-index:2;pointer-events:auto}
+micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 
 	readonly images:MicrioImage[] = [];
 	readonly imageMap:Map<string, MicrioImage> = new Map();
@@ -53,6 +56,7 @@ micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>
 	_to:ReturnType<typeof setTimeout>|undefined;
 	_fadeTo:ReturnType<typeof setTimeout>|undefined;
 	#timingFunction:Models.Camera.TimingFunction = 'ease';
+	#closeBtn!: HTMLElement;
 
 	static handlingKeys:boolean = false;
 
@@ -87,6 +91,16 @@ micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>
 			this.#hook();
 			this.micrio.events.dispatch('grid-load');
 		});
+
+		this.#closeBtn = createElement('micrio-button', {
+			className: 'grid-close',
+			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
+		}) as HTMLElement;
+		this.addCleanup(() => this.#closeBtn.remove());
+		this.addCleanup(this.focussed.subscribe(v => {
+			if (v) this.appendChild(this.#closeBtn);
+			else this.#closeBtn.remove();
+		}));
 
 		this.micrio.events.dispatch('grid-init', this);
 	}
@@ -280,7 +294,8 @@ micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>
 		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0);
 		const cols = opts.columns ?? (opts.horizontal ? images.length : getCols(images.length, numTiles));
 		this.style.gridTemplateColumns = `repeat(${cols}, auto)`;
-		this.textContent = '';
+		for (const btn of this._buttons.values()) btn.remove();
+		this._buttons.clear();
 		this.style.removeProperty('--translate');
 		this.style.removeProperty('--scale');
 
@@ -301,8 +316,6 @@ micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>
 		});
 
 		this.classList.toggle('grid-pan-zoom', this.panZoom == 'grid');
-
-		if (!this.parentNode) this.micrio.insertBefore(this, this.micrio.firstChild?.nextSibling ?? null);
 
 		const wasHidden = this.style.display === 'none';
 		if (wasHidden) this.style.display = '';
@@ -327,16 +340,16 @@ micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>
 
 	#placeGrid() : void {
 		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return;
-		if (this.style.display !== 'none' && this.parentNode) return;
 		if (!this.parentNode) this.micrio.insertBefore(this, this.micrio.firstChild?.nextSibling ?? null);
-		this.style.display = '';
+		this.style.pointerEvents = '';
+		for (const btn of this._buttons.values()) btn.style.display = '';
 		this.viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
 	}
 
 	#removeGrid() : void {
-		if (this.style.display === 'none' && !this.parentNode) return;
 		if(this.viewUnsub) this.viewUnsub();
-		this.style.display = 'none';
+		this.style.pointerEvents = 'none';
+		for (const btn of this._buttons.values()) btn.style.display = 'none';
 	}
 
 	#updateGrid = () : void => {
@@ -381,6 +394,7 @@ micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>
 		const { engine } = this.micrio;
 		images.forEach(i => {
 			if(i.placed) i.canvas?.fadeOut();
+			this._buttons.get(i.id)?.remove();
 			this._buttons.delete(i.id);
 		});
 		engine.render();

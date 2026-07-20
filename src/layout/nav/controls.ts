@@ -33,9 +33,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#showCultures = false;
 	#showSocial = false;
 	#showFullscreen = false;
-	#gridFocussed: MicrioImage | undefined;
-	#gridClickable: 'focus' | 'zoom' | false = false;
-	#grid: any = undefined;
 	#lastCultures = '';
 
 	#toggleMute = () => {
@@ -61,8 +58,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		this.getMicrio()!.lang = l;
 	};
 
-	#gridBack = () => this.#grid?.back();
-
 	#aside1!: HTMLElement;
 	#muteBtn: any;
 	#shareBtn: any;
@@ -70,7 +65,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#group1!: HTMLElement;
 	#zoomGroup: any;
 	#fsGroup: any;
-	#aside3!: HTMLElement;
 
 	onMount() {
 		const micrio = this.getMicrio();
@@ -92,7 +86,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		if (micrio.$current) readInfo(micrio.$current.$settings);
 
 		let settingsUnsub: Unsubscriber | undefined;
-		let gridUnsub: Unsubscriber | undefined;
 
 		this.addCleanup(micrio.current.subscribe(c => {
 			if (c) {
@@ -101,18 +94,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 					settingsUnsub?.();
 					settingsUnsub = c.settings.subscribe(readInfo);
 				});
-			}
-			const g = micrio.canvases[0]?.grid;
-			if (g !== this.#grid) {
-				gridUnsub?.();
-				this.#grid = g;
-				if (g) {
-					this.#gridClickable = g.clickable;
-					gridUnsub = g.focussed.subscribe(v => {
-						this.#gridFocussed = v;
-						this.#sync();
-					});
-				}
 			}
 		}));
 
@@ -157,8 +138,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			parent: this
 		});
 
-		this.#aside3 = createElement('aside', { className: 'grid-close', parent: this });
-
 		this.#built = true;
 	}
 
@@ -192,7 +171,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 
 		if (!hasControls) {
 			this.#aside1.replaceChildren();
-			this.#aside3.replaceChildren();
 			return;
 		}
 
@@ -300,24 +278,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			this.#group1.remove();
 		}
 
-		// Grid close button
-		const showGridClose = !!this.#gridFocussed && this.#gridClickable == 'focus' && !$popup && !$tour;
-		if (showGridClose) {
-			if (!this.#aside3?.isConnected) {
-				this.#aside3?.remove();
-				this.#aside3 = createElement('aside', {
-					className: 'grid-close',
-					children: [
-						createElement('micrio-button', {
-							setProps: { type: 'close', title: $i18n.close, onclick: this.#gridBack }
-						})
-					],
-					parent: this
-				});
-			}
-		} else if (this.#aside3?.isConnected) {
-			this.#aside3.remove();
-		}
 	}
 
 }
