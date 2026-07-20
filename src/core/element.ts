@@ -2,7 +2,6 @@ import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
 import type { Camera } from './camera';
 
-import { once } from '$utils/store';
 import { deepCopy } from '$utils/object';
 import { fetchJson, jsonCache } from '$utils/fetch';
 import { idIsV5 } from '$utils/id';
@@ -245,7 +244,9 @@ ${cssVars}`;
 		this.watch(this.current, c => this.#current = c);
 
 		let shown = false;
-		once<boolean>(this.loading, {targetValue: false}).then(() => {
+		const unsub = this.loading.subscribe(v => {
+			if (v) return;
+			unsub();
 			this.setAttribute('data-loaded','');
 
 			this.watch(this.switching, s => {

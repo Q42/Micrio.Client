@@ -2,7 +2,7 @@ import type { Grid } from './grid';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { GridActionType } from './actions';
-import { once } from '$utils/store';
+import { get } from '$core/store';
 
 
 function switchToGrid(grid: Grid): void {
@@ -87,16 +87,15 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 			},
 
 			[GridActionType.filterTourImages]: (data, duration) => {
-				once(grid.micrio.state.tour).then(t => { if(!t) return;
-					if(!('steps' in t) || !t.stepInfo) return;
-					const ids = t.stepInfo.map(s => s.micrioId);
-					const imgs = ids.filter((id, i) => ids.indexOf(id) == i)
-						.map(i => grid.imageMap.get(i))
-						.filter((i): i is MicrioImage => !!i)
-					if(imgs.length) grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
-						duration,
-						horizontal: data == 'h'
-					});
+				const t = get(grid.micrio.state.tour);
+				if(!t || !('steps' in t) || !t.stepInfo) return;
+				const ids = t.stepInfo.map(s => s.micrioId);
+				const imgs = ids.filter((id, i) => ids.indexOf(id) == i)
+					.map(i => grid.imageMap.get(i))
+					.filter((i): i is MicrioImage => !!i)
+				if(imgs.length) grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
+					duration,
+					horizontal: data == 'h'
 				});
 			},
 		};

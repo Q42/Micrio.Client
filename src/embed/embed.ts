@@ -4,7 +4,6 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { once } from '$utils/store';
 import { Browser } from '$utils/browser';
 import { GLEmbedVideo } from '$media/embedvideo';
 
@@ -346,9 +345,7 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		}
 
 		if (this.#isRawVideo) {
-			once(this.#glImage!.visible, { targetValue: true }).then(() => {
-				this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage!, embed, this.#paused, () => this.#moved());
-			});
+			this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage!, embed, this.#paused, () => this.#moved());
 		}
 
 		image.engine.render();

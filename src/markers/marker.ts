@@ -3,7 +3,6 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
 import { getSpaceVector } from '$utils/space';
-import { once } from '$utils/store';
 import { createElement } from '$utils/dom';
 
 export interface MarkerProps {
@@ -193,7 +192,9 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined });
 				} else if (marker.videoTour && !$tour) {
 					micrio.state.tour.set(marker.videoTour);
-					once(micrio.state.tour, { targetValue: undefined }).then(() => image.state.marker.set(undefined));
+					const unsub = micrio.state.tour.subscribe(t => {
+						if (!t) { unsub(); image.state.marker.set(undefined); }
+					});
 				}
 			} else {
 				tick().then(() => micrio.state.popup.set(marker));
