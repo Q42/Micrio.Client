@@ -22,6 +22,8 @@ export class Grid extends MicrioElement {
 	static styles = `micrio-grid{position:fixed;top:0;left:0;width:100%;height:100%;display:grid;grid-auto-flow:row dense;grid-gap:0;will-change:transform;transform-origin:left top;--translate:none;--scale:1;transform:var(--translate) scale3d(var(--scale),var(--scale),1)}
 micrio-grid>button{background:transparent;border:none;padding:0;margin:0;cursor:pointer;pointer-events:auto;grid-area:auto / auto / span 1 / span 1}
 micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button{pointer-events:none}
+micrio-grid.grid-cells-hidden{pointer-events:none}
+micrio-grid.grid-cells-hidden>button{display:none}
 micrio-grid .grid-close{position:absolute;display:block;top:var(--micrio-border-margin);right:var(--micrio-border-margin);z-index:2;pointer-events:auto}
 micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 
@@ -200,7 +202,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 
 		const ready = this.image.placed;
 		const dur = opts.duration ?? (opts.noHistory ? this.aniDurationOut : this.aniDurationIn);
-		const defaultDur = this.nextCrossFadeDuration ?? this.image.$settings.crossfadeDuration ?? 1;
+		const defaultDur = this.nextCrossFadeDuration ?? (this.image.$settings.crossfadeDuration ?? 1);
 		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
 		this.nextCrossFadeDuration = undefined;
 		if(ready) {
@@ -231,8 +233,8 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		};
 
 		if(ready && !opts.noCamAni) {
-			const p = opts.view ? this.image.camera.flyToView(opts.view, {duration:dur*1000})
-				: this.image.camera.flyToFullView({duration:dur*1000});
+			const p = opts.view ? this.image.camera.flyToView(opts.view, {duration: dur * 1000})
+				: this.image.camera.flyToFullView({duration: dur * 1000});
 			p.catch(error);
 		}
 
@@ -276,7 +278,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		}
 		else {
 			if(!opts.noFade) this._fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
-			this._to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0))*1000);
+			this._to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0)) * 1000);
 		}
 	})}
 
@@ -317,8 +319,8 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 
 		this.classList.toggle('grid-pan-zoom', this.panZoom == 'grid');
 
-		const wasHidden = this.style.display === 'none';
-		if (wasHidden) this.style.display = '';
+		const wasHiddenClass = this.classList.contains('grid-cells-hidden');
+		if (wasHiddenClass) this.classList.remove('grid-cells-hidden');
 
 		this.micrio.events.dispatch('grid-layout-set', this);
 
@@ -335,21 +337,19 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			if(img && !img.area) img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.width-o[0]*2)/w, (r.height-o[1]*2)/h]
 		});
 
-		if (!this.clickable || wasHidden) this.style.display = 'none';
+		if (!this.clickable) this.style.display = 'none';
+		if (wasHiddenClass) this.classList.add('grid-cells-hidden');
 	}
 
 	#placeGrid() : void {
 		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return;
-		if (!this.parentNode) this.micrio.insertBefore(this, this.micrio.firstChild?.nextSibling ?? null);
-		this.style.pointerEvents = '';
-		for (const btn of this._buttons.values()) btn.style.display = '';
+		this.classList.remove('grid-cells-hidden');
 		this.viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
 	}
 
 	#removeGrid() : void {
 		if(this.viewUnsub) this.viewUnsub();
-		this.style.pointerEvents = 'none';
-		for (const btn of this._buttons.values()) btn.style.display = 'none';
+		this.classList.add('grid-cells-hidden');
 	}
 
 	#updateGrid = () : void => {
@@ -372,14 +372,14 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		if (!img.placed) {
 			engine.addChild(img, this.image);
 		}
-		if(entry.area) sleep(opts.delay*1000).then(() => {
+		if(entry.area) sleep(opts.delay * 1000).then(() => {
 			img.camera.setArea(entry.area!, {
 				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img.visible))
 			});
 			if(opts.delay) engine.render();
 		});
 
-		const aniOpts = {duration:opts.duration*1000, timingFunction: this.#timingFunction, limit: false};
+		const aniOpts = {duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera.aniDone && img.placed) {
 			const p = entry.view ? img.camera.flyToView(entry.view, aniOpts)
 				: opts.cover ? img.camera.flyToCoverView(aniOpts)
@@ -536,14 +536,14 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			return this.set(galleryImages.map((img, i) => ({
 				id: img.id,
 				size: i == idx ? [width, height] as [number, number] : [1],
-			})), { noHistory: true, keepGrid: true, duration: 500 });
+			})), { noHistory: true, keepGrid: true, duration: .5 });
 		}
 		const entries = layout as { id: string; size?: [number, number?] }[];
 		const input: Models.Grid.GridImage[] = entries.map((e, i) => ({
 			id: e.id,
 			size: i == idx ? [width, height] as [number, number] : e.size ?? [1],
 		}));
-		return this.set(input, { noHistory: true, keepGrid: true, duration: 500 });
+		return this.set(input, { noHistory: true, keepGrid: true, duration: .5 });
 	}
 
 	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
