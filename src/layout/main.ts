@@ -299,7 +299,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		const $gallery = get(micrio.gallery);
-		this.#show('gallery', !!$settings?.omni || !!$gallery, () =>
+		this.#show('gallery', !!$settings?.omni || !!($gallery?.type !== 'grid' && $gallery), () =>
 			createElement('micrio-gallery', { setProps: { controller: $gallery ?? undefined } }) as MicrioElement
 		);
 

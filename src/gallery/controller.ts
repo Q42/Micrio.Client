@@ -44,9 +44,6 @@ export class Gallery {
 
 	readonly currentIndex: Writable<number> = writable(0);
 
-	/** Raw ImageInfo[] from the archive index, used to initialize the Grid. */
-	#gridImageInfos: Models.ImageInfo.ImageInfo[] = [];
-
 	/** Max width for the virtual container canvas (switch/omni galleries). */
 	containerWidth: number = 0;
 	/** Max height for the virtual container canvas (switch/omni galleries). */
@@ -170,38 +167,6 @@ export class Gallery {
 		});
 	}
 
-	/** Load an archive index and prepare the Gallery config. Shared by fromArchive / fromGrid. */
-	static async #fromArchiveIndex(
-		id: string, path: string, engine: Engine, micrio: HTMLMicrioElement, config: Models.GalleryConfig
-	): Promise<{ images: Models.ImageInfo.ImageInfo[]; config: Models.GalleryConfig }> {
-		const index = await Gallery.#getArchiveIndex(id.split('.')[0], path, engine, micrio);
-		if (index) config.archiveLayerOffset = index.delta;
-		const s = config.sort;
-		if (s && index?.images) index.images.sort(Gallery.#sortArchiveImages(s));
-		return { images: index?.images ?? [], config };
-	}
-
-	static async fromArchive(archiveId: string, path: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig>): Promise<Gallery> {
-		const { images, config: galleryConfig } = await Gallery.#fromArchiveIndex(
-			archiveId, path, engine, micrio, { type: 'swipe', ...config }
-		);
-		return new Gallery(images.map(i => ({ ...i, path, version: '' })), engine, micrio, galleryConfig);
-	}
-
-	static async fromGrid(archiveId: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<Gallery | null> {
-		const path = config?.path ?? BASEPATH_V5;
-		const gridClickable = config?.grid?.clickable ?? config?.settings?.grid?.clickable;
-		const settings: Record<string, any> = { zoomLimit: 15, minimap: false, ...config?.settings };
-		if (gridClickable && settings.hookKeys === undefined) settings.hookKeys = true;
-		const { images, config: galleryConfig } = await Gallery.#fromArchiveIndex(
-			archiveId, path, engine, micrio,
-			{ type: 'grid', ...config, settings }
-		);
-		const gallery = new Gallery([], engine, micrio, galleryConfig);
-		gallery.#gridImageInfos = images;
-		return gallery;
-	}
-
 	static async fromAlbum(albumId: string, engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
 		const aInfo = DataLoader.getAlbum(albumId);
 		if (!aInfo) return null;
@@ -214,17 +179,29 @@ export class Gallery {
 
 		const config: Partial<Models.GalleryConfig> = {
 			...aInfo,
-			startId: opts?.startId ?? aInfo.startId
+			startId: opts?.startId ?? aInfo.startId,
 		};
 		if (aInfo.settings) {
 			config.settings = { ...aInfo.settings };
 		}
 
 		if (aInfo.type === 'grid' && aInfo.archive) {
-			return Gallery.fromGrid(aInfo.archive, engine, micrio, { ...config, path });
+			const gridClickable = config.grid?.clickable ?? config.settings?.grid?.clickable;
+			const settings: Record<string, any> = { zoomLimit: 15, minimap: false, ...(config.settings ?? {}) };
+			if (gridClickable && settings.hookKeys === undefined) settings.hookKeys = true;
+			config.settings = settings as any;
 		}
 
-		return Gallery.fromArchive(aInfo.archive!, path, engine, micrio, config);
+		const index = await Gallery.#getArchiveIndex(aInfo.archive!.split('.')[0], path, engine, micrio);
+		if (index) config.archiveLayerOffset = index.delta;
+		const sort = config.sort;
+		if (sort && index?.images) index.images.sort(Gallery.#sortArchiveImages(sort));
+		const rawImages = index?.images ?? [];
+
+		return new Gallery(rawImages.map(i => ({ ...i, path, version: '' })), engine, micrio, {
+			...config,
+			type: config.type ?? 'swipe',
+		} as Models.GalleryConfig);
 	}
 
 	// --- Static Helpers ---
@@ -310,7 +287,7 @@ export class Gallery {
 		});
 
 		if (this.type == 'grid') {
-			img.grid = new Grid(micrio, img, this.#gridImageInfos);
+			img.grid = new Grid(micrio, img, this);
 		}
 	}
 

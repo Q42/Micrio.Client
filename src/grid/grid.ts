@@ -3,6 +3,7 @@ import type { HTMLMicrioElement } from '$core/element';
 
 import { MicrioImage } from '$core/image';
 import { get, writable, type Unsubscriber, type Writable, tick } from '$core/store';
+import { Gallery } from '$gallery/controller';
 import { GridActionType } from './actions';
 import { getEasing } from '$render/easing';
 import { createElement, sleep } from '$utils/dom';
@@ -51,14 +52,12 @@ export class Grid {
 
 	lastPromise:Promise<MicrioImage[]>|undefined;
 
-	#initialGrid: Models.ImageInfo.ImageInfo[] = [];
-
 	constructor(
 		public micrio:HTMLMicrioElement,
 		public image:MicrioImage,
-		gridImages?: Models.ImageInfo.ImageInfo[]
+		public gallery: Gallery
 	) {
-		this.#initialGrid = gridImages ?? [];
+		gallery.images.forEach(img => this.#trackImage(img));
 
 		const g = image.$settings?.grid;
 		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
@@ -67,13 +66,13 @@ export class Grid {
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
-		tick().then(() => this.set(this.#initialGridImages, {
+		this.set(this.#galleryGridImages, {
 			cover: this.image.$settings?.initType == 'cover',
 			duration: 0,
 		}).then(() => {
 			this.#hook();
 			micrio.events.dispatch('grid-load');
-		}));
+		});
 
 		micrio.events.dispatch('grid-init', this);
 	}
@@ -124,23 +123,8 @@ export class Grid {
 		this.imageMap.set(img.id, img);
 	}
 
-	get #initialGridImages(): Models.Grid.GridImage[] {
-		return this.#initialGrid.map(i => ({ id: i.id, size: [1] as [number, number?] }));
-	}
-
-	#getAttrForEntry(entry: Models.Grid.GridImage): Models.ImageBundle.BundleImage {
-		const orig = this.#initialGrid.find(i => i.id === entry.id);
-		return {
-			id: entry.id,
-			info: {
-				id: entry.id,
-				path: this.image.$info?.path ?? '',
-				version: '',
-				width: orig?.width ?? 0,
-				height: orig?.height ?? 0,
-
-			} as Models.ImageInfo.ImageInfo,
-		};
+	get #galleryGridImages(): Models.Grid.GridImage[] {
+		return this.gallery.images.map(i => ({ id: i.id, size: [1] as [number, number?] }));
 	}
 
 	#savePreviousLayout(): void {
@@ -353,20 +337,17 @@ export class Grid {
 		cover?:boolean;
 	}) : MicrioImage {
 		const { engine } = this.micrio;
-		let img = this.imageMap.get(entry.id);
-		if(img && entry.area) sleep(opts.delay*1000).then(() => {
-			img!.camera.setArea(entry.area!, {
-				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img!.visible))
+		const img = this.imageMap.get(entry.id)!;
+
+		if (!img.placed) {
+			engine.addChild(img, this.image);
+		}
+		if(entry.area) sleep(opts.delay*1000).then(() => {
+			img.camera.setArea(entry.area!, {
+				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img.visible))
 			});
 			if(opts.delay) engine.render();
 		});
-		else {
-			const bundle = this.#getAttrForEntry(entry);
-			img = new MicrioImage(engine, bundle, {area: entry.area});
-			img.info.subscribe(() => {})();
-			engine.addChild(img, this.image);
-			this.#trackImage(img);
-		}
 
 		const aniOpts = {duration:opts.duration*1000, timingFunction: this.#timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera.aniDone && img.placed) {
@@ -400,7 +381,7 @@ export class Grid {
 		this.markersShown.set([]);
 		await tick();
 		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.#hasChanged()) duration = 0;
-		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#initialGridImages, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
+		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#galleryGridImages, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
 			this.depth.set(this.history.length = 0);
 			this.micrio.current.set(this.image);
 			return i;
@@ -517,8 +498,15 @@ export class Grid {
 	}
 
 	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
-		const layout = this.history[this.history.length-1]?.layout ?? this.#initialGrid;
-		if (!layout?.length) return this.current;
+		const layout = this.history[this.history.length-1]?.layout;
+		if (!layout?.length) {
+			const galleryImages = this.gallery.images;
+			if (!galleryImages.length) return this.current;
+			return this.set(galleryImages.map((img, i) => ({
+				id: img.id,
+				size: i == idx ? [width, height] as [number, number] : [1],
+			})), { noHistory: true, keepGrid: true, duration: 500 });
+		}
 		const entries = layout as { id: string; size?: [number, number?] }[];
 		const input: Models.Grid.GridImage[] = entries.map((e, i) => ({
 			id: e.id,
