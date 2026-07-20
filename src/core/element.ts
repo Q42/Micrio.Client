@@ -18,7 +18,6 @@ import { Events } from '$core/events/facade';
 import { MicrioImage } from './image';
 import { State} from './state';
 import { GoogleTag } from '$utils/analytics';
-import { Grid } from '$grid/grid';
 import { Gallery } from '$gallery/controller';
 import { rtlLanguageCodes } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
@@ -362,16 +361,10 @@ ${cssVars}`;
 		}
 
 		this.keepRendering = !!opts.settings.keepRendering;
-		const doOpen = opts.id || opts.settings?.gallery?.type === 'grid';
 		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
 		const openBundle = () => {
 			if(opts.id) this.open(opts.id);
-			else if(opts.settings?.gallery?.type === 'grid') this.open({
-				id: '',
-				info: { id: '', path: '', version: VERSION, width: 0, height: 0 },
-				settings: opts.settings,
-			});
 		};
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {
 			const observer = new IntersectionObserver(e => {
@@ -381,7 +374,7 @@ ${cssVars}`;
 			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`});
 			observer.observe(this);
 		}
-		else if(doOpen) requestAnimationFrame(openBundle);
+		else if(opts.id) requestAnimationFrame(openBundle);
 	}
 
 	/**
@@ -429,8 +422,6 @@ ${cssVars}`;
 		vector?: Models.Camera.Vector,
 		/** Optional Gallery controller, used for gallery/grid views. */
 		gallery?: Gallery,
-		/** ImageInfo array for initial grid layout. */
-		gridImages?: Models.ImageInfo.ImageInfo[],
 	}={}) : Promise<MicrioImage> {
 		if(!this.#printed) await this.#print();
 
@@ -530,10 +521,6 @@ ${cssVars}`;
 				}
 
 				this.#initedFirst = true;
-			}
-
-			if(c.$settings?.gallery?.type === 'grid' && !c.grid) {
-				c.grid = new Grid(this, c, opts.gridImages);
 			}
 
 			tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
