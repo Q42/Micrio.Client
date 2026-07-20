@@ -11,78 +11,104 @@ searchable Knowledge Base at:
 
 For the npm package `@micrio/client`, see https://www.npmjs.com/package/@micrio/client
 
+## Architecture
+
+This repository contains the source code for the Micrio Client — a pure Web Component (`<micr-io>`) built with TypeScript. It renders high-resolution zoomable images using WebGL, manages state via a custom store API, and handles user input (mouse, touch, keyboard, gesture) through its own event system.
+
+Key source directories under `./src/`:
+
+| Directory | Purpose |
+|-----------|---------|
+| `core/`   | Element definition, image model, camera, state management, store API |
+| `render/` | WebGL engine, canvas management, tiling |
+| `ui/`     | UI component definitions and icon set |
+| `grid/`   | Grid layout and interaction |
+| `gallery/`| Gallery (swipe/switch) controller |
+| `media/`  | Video tour and embedded video controllers |
+| `types/`  | TypeScript type definitions and models |
+
 ## Getting it running
 
-Make sure you have Node and `pnpm` installed.
+Make sure you have Node >= 18.17 and `pnpm` installed.
 
-Make sure you are in this directory. From there, run:
+From this directory, run:
 
 ```sh
-# This will install all necessary dependencies: Svelte and TypeScript
 $ pnpm i
 ```
 
-To run the dev env:
+To start the dev server:
 
 ```sh
 $ pnpm run dev
 ```
 
-This will start a webserver on `http://localhost:2000/` which will auto reload to any changes made in the `./src` dir.
+This starts Vite on `http://localhost:2000/`. Changes to `./src/` are picked up via hot reload.
 
-## Engine
+## Type-checking
 
-The core rendering engine is written in TypeScript and lives in `./src/engine`. This handles all WebGL rendering, camera transforms, and canvas management.
+```sh
+$ pnpm run typecheck
+```
 
-If you make changes to the engine, the dev server (`pnpm run dev`) will automatically pick them up via hot reload.
+This runs `tsc` with the project's `tsconfig.json`.
 
-## Compilation
-
-To build the production client viewer JS:
+## Production build
 
 ```sh
 $ pnpm run build
 ```
 
-This will bundle all compiled resources and create the final JS lib and TS declaration files in `./public/dist`:
+This will:
+1. Bundle the source with Vite (IIFE, minified via Terser)
+2. Generate TypeScript declaration files from the docs entry point
+3. Assemble CSS from component static styles
+
+Output lands in `./public/dist/`:
 
 * `micrio.min.js`
 * `micrio.min.d.ts`
 
-If you want to test out the compiled version, check out `./index.html` and set the JS include to the compiled JS rather than the development version.
+To test the compiled version, edit `./index.html` to load the production JS rather than the dev module.
 
 ## Deploying a new Micrio version
 
 (For admins only)
 
-You need to have `wrangler` installed globally, and have a `CLOUDFLARE_API_TOKEN` with write access to the bucket set in `.env`.
+You need `wrangler` installed globally and a `CLOUDFLARE_API_TOKEN` with write access to the bucket set in `.env`.
 
-Secondly, you need to have write access to the npm repository of `@micrio/client`.
+You also need write access to the npm repository of `@micrio/client`.
 
-To publish to both the hosted JS and NPM, and do an automatic version increase, do:
+To publish to both the hosted JS and NPM with an automatic version bump:
 
 ```sh
 $ pnpm run publish -- --npm
 ```
 
-After this, if everything goes well, the current working version will be automatically increased.
+After a successful publish, create a new release at https://github.com/Q42/Micrio.Client/releases/new :
 
-**Before you do your next commit**, create a new release based on the current state at https://github.com/Q42/Micrio.Client/releases/new :
-
-1. Create a new tag with the version just published (ie `v5.1.1`)
-2. Auto-generate the release notes
+1. Create a tag matching the version just published (e.g. `v6.1.15`)
+2. Auto-generate release notes
 3. Publish the release
-4. Then commit the newly updated version changes
+4. Commit the version bump
 
-If you only want to update the hosted version, omit the `-- --npm` argument. This can be useful for testing, and having to add the argument is a safeguard for accidentally publishing a new version on NPM.
+To update only the hosted JS, omit `-- --npm`.
+
+## Documentation site
+
+Generated documentation (TypeDoc) is managed via:
+
+```sh
+$ pnpm run docs
+```
+
+This runs the TypeDoc pipeline defined in `tsconfig.docs.json`.
 
 ## Questions
 
-If you have any questions, do check out https://doc.micr.io/ for all (technical) documentation.
-
-If you have a reproducable issue, please submit a ticket at https://support.micr.io/ .
-
-For any other questions, contact us at support@micr.io.
+- Technical documentation: https://doc.micr.io/
+- Reproducible issues: https://support.micr.io/
+- General inquiries: support@micr.io
 
 Good luck!
 
