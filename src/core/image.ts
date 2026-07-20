@@ -1,5 +1,5 @@
 import type { Models } from '$types/models';
-import type { Readable, Writable } from '$core/store';
+import type { Writable } from '$core/store';
 import type { Grid } from '$grid/grid';
 import type { Engine } from '$render/engine';
 import type TileCanvas from '$render/tile-canvas';
@@ -8,9 +8,8 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
-import { readable, writable, get } from '$core/store';
+import { writable, get } from '$core/store';
 import { getIdVal, idIsV5 } from '$utils/id';
-import { once } from '$utils/store';
 import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
@@ -39,13 +38,13 @@ export class MicrioImage {
 	/** A unique instance identifier (UUID) generated for this specific instance. */
 	readonly uuid: string = crypto.randomUUID();
 
-	/** Svelte Readable store holding the image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
-	readonly info: Readable<Models.ImageInfo.ImageInfo>;
+	/** The image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
+	readonly info: Models.ImageInfo.ImageInfo;
 
-	/** Getter for the current value of the {@link info} store.
+	/** Getter for the current value of the {@link info} property.
 	 * @readonly
 	*/
-	get $info():Models.ImageInfo.ImageInfo { return get(this.info) }
+	get $info():Models.ImageInfo.ImageInfo { return this.info }
 
 	/** Svelte Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
 	readonly settings: Writable<Models.ImageInfo.Settings> = writable({});
@@ -205,7 +204,7 @@ export class MicrioImage {
 		}
 
 		const i = bundle.info;
-		this.info = readable<Models.ImageInfo.ImageInfo>(i);
+		this.info = i;
 		this.dataPath = i.path || BASEPATH_V5;
 
 		if(!opts.area) opts.area = [0,0,1,1];
@@ -376,7 +375,7 @@ export class MicrioImage {
 	 * @returns The calculated tile image source URL string, or undefined if info not loaded.
 	 */
 	getTileSrc(layer:number, x:number, y:number, frame?:number) : string|undefined {
-		const i = get(this.info);
+		const i = this.info;
 
 		// Adjust layer index for DeepZoom format
 		if(i.isDeepZoom) layer = this.dzLevels - layer;
@@ -435,44 +434,43 @@ export class MicrioImage {
 	/**
 	 * Adds an embedded MicrioImage (representing another Micrio image or video) within this image.
 	 * @param info Partial info data for the embed.
+	 * @param settings Optional settings for the embed.
 	 * @param area The placement area `[x, y, width, height]` within the parent image.
 	 * @param opts Embedding options (opacity, fit, etc.).
 	 * @returns The newly created embedded {@link MicrioImage} instance.
 	 */
-	addEmbed(info:Partial<Models.ImageInfo.ImageInfo> & { settings?: Partial<Models.ImageInfo.Settings> }, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
+	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, settings: Partial<Models.ImageInfo.Settings> | undefined, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
 		const img = new MicrioImage(this.engine, {
 			id: info.id ?? '',
 			info: { ...info, id: info.id ?? '' } as Models.ImageInfo.ImageInfo,
 			data: DataLoader.getBundleImageSync(info.id ?? '')?.data,
-			settings: info.settings as Partial<Models.ImageInfo.Settings>,
+			settings,
 		}, {area:a, isEmbed: true, useParentCamera: opts.asImage});
 		// Use parent camera if specified (e.g., for switch galleries)
 		if(!img.camera) img.camera = this.camera;
 		this.embeds.push(img); // Add to embeds list
 		if(opts.opacity === undefined) opts.opacity = 1; // Default opacity
 
-		// Once the embed's info is loaded
-		once(img.info).then((i) => { if(!i) return;
-			// Adjust area based on 'fit' option (cover or contain)
-			if(opts.fit == 'cover' || opts.fit == 'contain') {
-				const yS = this.is360 ? 2 : 1; // Y-scale factor for 360
-				const isCover = opts.fit == 'cover';
-				const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
-				const aAr = aW / aH * yS; // Area aspect ratio
-				const imgAr = i.width / i.height; // Image aspect ratio
-				// Adjust area dimensions based on aspect ratios and fit mode
-				if((isCover && imgAr < aAr) || (!isCover && imgAr >= aAr)) { // Adjust height
-					const nH = aW / imgAr * yS; a[1] = cY - nH/2; a[3] = nH;
-				} else { // Adjust width
-					const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = nW;
-				}
+		// Adjust area based on 'fit' option (cover or contain)
+		if(opts.fit == 'cover' || opts.fit == 'contain') {
+			const i = img.info;
+			const yS = this.is360 ? 2 : 1; // Y-scale factor for 360
+			const isCover = opts.fit == 'cover';
+			const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
+			const aAr = aW / aH * yS; // Area aspect ratio
+			const imgAr = i.width / i.height; // Image aspect ratio
+			// Adjust area dimensions based on aspect ratios and fit mode
+			if((isCover && imgAr < aAr) || (!isCover && imgAr >= aAr)) { // Adjust height
+				const nH = aW / imgAr * yS; a[1] = cY - nH/2; a[3] = nH;
+			} else { // Adjust width
+				const nW = aH * imgAr / yS; a[0] = cX - nW/2; a[2] = nW;
 			}
-			// Add the embed to the engine
-			this.engine.addEmbed(img, this, opts);
-			this.engine.render(); // Trigger render
-		});
+		}
+		// Add the embed to the engine
+		this.engine.addEmbed(img, this, opts);
+		this.engine.render(); // Trigger render
 		return img; // Return the new embed instance
 	}
 

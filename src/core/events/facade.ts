@@ -3,7 +3,6 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 
 import { Browser } from '$utils/browser';
-import { once } from '$utils/store';
 import { get, writable, type Writable } from '$core/store';
 
 import { DragHandler } from './drag';
@@ -126,11 +125,10 @@ export class Events implements EventContext {
 
 		// Get settings from the first loaded image and enable events if configured
 		micrio.current.subscribe(c => {
-			if (c && !this.#settings) once(c.info).then(info => {
-				if (!info) return;
+			if (c && !this.#settings) {
 				this.#settings = c.$settings as Models.ImageInfo.Settings;
 				if (!c.error && this.#settings.hookEvents) this.enabled.set(true);
-			})
+			}
 		});
 	}
 

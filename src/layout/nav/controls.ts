@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import type { Unsubscriber } from '$core/store';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
-import { once } from '$utils/store';
+
 import { createElement } from '$utils/dom';
 import { languageNames } from '$core/i18n/locale';
 
@@ -88,11 +88,9 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 
 		this.addCleanup(micrio.current.subscribe(c => {
 			if (c) {
-				once(c.info).then(i => {
-					if (!i || (get(tour) && 'steps' in get(tour)!)) return;
-					settingsUnsub?.();
-					settingsUnsub = c.settings.subscribe(readInfo);
-				});
+				if (get(tour) && 'steps' in get(tour)!) return;
+				settingsUnsub?.();
+				settingsUnsub = c.settings.subscribe(readInfo);
 			}
 		}));
 

@@ -4,7 +4,6 @@ import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
-import { once } from '$utils/store';
 import { getEasing } from '$render/easing';
 import { GallerySwiper } from '$gallery/swiper';
 import { createElement } from '$utils/dom';
@@ -477,8 +476,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			...(_self.#isStripSwipe ? { currentImage: writable(images[startImageIdx]) } : {}),
 		};
 
-		await once(parent.info);
-
 		if (this.#isStripSwipe) {
 			engine.gridTransitionTimingFunction = getEasing('ease-out');
 			await Promise.allSettled(images.map(d => engine.addChild(d as MicrioImage, parent)));
@@ -686,12 +683,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		const pagesPerLayer = totalFrames / numLayers;
 
 		// Wait for image to be placed before registering frames
-		if (!image.placed) {
-			once(image.info).then(() => {
-				if (image.placed) this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
-			});
-			return;
-		}
+		if (!image.placed) return;
 
 		this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
 	}

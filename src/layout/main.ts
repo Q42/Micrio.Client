@@ -1,6 +1,6 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { Readable, Writable } from '$core/store';
+import type { Writable } from '$core/store';
 import type { MicrioImage } from '$core/image';
 import { get, tick, writable } from '$core/store';
 import { once } from '$utils/store';
@@ -61,7 +61,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	static styles = `micrio-main{display:contents}`;
 
 	#props: MainProps = {};
-	#info: Readable<Models.ImageInfo.ImageInfo | undefined> | undefined;
+	#info: Models.ImageInfo.ImageInfo | undefined;
 	#data: Writable<Models.ImageData.ImageData | undefined> | undefined;
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
 	#firstInited = false;
@@ -131,18 +131,14 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#info = c.info;
 			this.#settings = undefined;
 
-			if (this.#info) {
-				this.addCleanup(this.#info.subscribe(() => this.#queueSync()));
-				once(this.#info).then(i => {
-					if (i) {
-						this.#firstInited = true;
-						this.#settings = c.settings;
-						if (this.#settings) this.addCleanup(this.#settings.subscribe(() => this.#queueSync()));
-						if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
-						this.#queueSync();
-					}
-				});
-			}
+			this.#firstInited = true;
+			this.#settings = c.settings;
+			if (this.#settings) this.addCleanup(this.#settings.subscribe(() => this.#queueSync()));
+			if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
+			this.#queueSync();
+
+			if (this.isConnected) this.#sync();
+
 			if ((this.#data = c.data) && didStart.indexOf(c.id) < 0) {
 				this.addCleanup(this.#data.subscribe(() => this.#queueSync()));
 				once(this.#data).then(async d => {
@@ -209,7 +205,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const $marker = get(micrio.state.marker);
 		const $markerPopup = get(micrio.state.popup);
 		const $popover = get(micrio.state.popover);
-		const $info = this.#info ? get(this.#info) : undefined;
+		const $info = this.#info;
 		const $settings = (this.#settings ? get(this.#settings) : undefined) as Models.ImageInfo.Settings | undefined;
 		const $data = this.#data ? get(this.#data) : undefined;
 		const error = this.#props.error;
@@ -311,7 +307,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#show('details', showDetails && !!this.#info && !!this.#data, () =>
-			createElement('micrio-details', { setProps: { info: get(this.#info!), data: get(this.#data!) } }) as MicrioElement
+			createElement('micrio-details', { setProps: { info: this.#info!, data: get(this.#data!) } }) as MicrioElement
 		);
 
 		// Per-image marker popups — each image's open marker gets its own popup

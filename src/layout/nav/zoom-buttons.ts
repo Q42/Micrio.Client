@@ -1,7 +1,6 @@
 import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
-import { once } from '$utils/store';
 import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 
@@ -79,7 +78,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 				if (!c) return;
 				if (this.#albumUnsub) { this.#albumUnsub(); this.#albumUnsub = undefined; }
 				if (this.#viewUnsub) { this.#viewUnsub(); this.#viewUnsub = undefined; }
-				once(c.info).then(() => tick()).then(() => {
+				tick().then(() => {
 					if (c.album?.currentImage) {
 						this.#albumUnsub = c.album.currentImage.subscribe(bindTo);
 					} else {

@@ -340,9 +340,8 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 				path: this.#info.tileBasePath ?? this.#info.path,
 				isSingle: !!embed.video,
 				isVideo: !!embed.video,
-				settings: {
-					_360: { rotX: this.#rotX, rotY: this.#rotY, rotZ: this.#rotZ }
-				},
+			}, {
+				_360: { rotX: this.#rotX, rotY: this.#rotY, rotZ: this.#rotZ }
 			}, embed.area as Models.Camera.View, { opacity, asImage: false });
 		}
 

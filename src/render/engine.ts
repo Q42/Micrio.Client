@@ -14,7 +14,6 @@ import { DEFAULT_TILE_SIZE } from '$core/globals';
 import { get } from '$core/store';
 import { archive } from '$utils/archive';
 import { Browser } from '$utils/browser';
-import { once } from '$utils/store';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 
 import TileCanvas from './tile-canvas';
@@ -441,12 +440,11 @@ export class Engine {
 	setCanvas(canvas?: MicrioImage): void {
 		if (!canvas || (canvas.placed && canvas === this.#activeCanvasEntry?.micrioImage)) return;
 
-		if (!canvas.placed) once(canvas.info).then(info => {
-			if (!info) return;
-			if (!this.micrio.$current || (!info.isIIIF && info.id != this.micrio.$current.id)) return;
+		if (!canvas.placed) {
+			if (!get(this.micrio.current) || (!canvas.info.isIIIF && canvas.info.id != get(this.micrio.current)!.id)) return;
 			this.#addCanvas(canvas);
 			if (canvas.embeds.length) canvas.embeds.forEach(e => this.addEmbed(e, canvas));
-		});
+		}
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
 			if (!entry) return;

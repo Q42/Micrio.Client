@@ -2,7 +2,6 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { once } from '$utils/store';
 import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 import './menu';
@@ -45,7 +44,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 				this.#data = d;
 				this.#render();
 			}));
-			once(c.info).then(() => this.addCleanup(c.settings.subscribe(() => this.syncDisplay?.())));
+			this.addCleanup(c.settings.subscribe(() => this.syncDisplay?.()));
 		}));
 
 		this.addCleanup(micrio.state.tour.subscribe(() => this.#render()));

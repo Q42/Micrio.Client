@@ -506,22 +506,20 @@ ${cssVars}`;
 			return c;
 		}
 
-		// ── Post-init (fires immediately now since info is synchronous) ────────
+		// ── Post-init ─────────────────────────────────────────────────────────
 
-		once(c.info).then(info => { if(!info || !c) return;
-			if(!this.#initedFirst) {
-				this.canvas.hook();
+		if(!this.#initedFirst) {
+			this.canvas.hook();
 
-				switch(this.#current?.$settings?.theme) {
-					case 'light': this.setAttribute('data-light-mode',''); break;
-					case 'os': this.setAttribute('data-auto-scheme',''); break;
-				}
-
-				this.#initedFirst = true;
+			switch(this.#current?.$settings?.theme) {
+				case 'light': this.setAttribute('data-light-mode',''); break;
+				case 'os': this.setAttribute('data-auto-scheme',''); break;
 			}
 
-			tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
-		});
+			this.#initedFirst = true;
+		}
+
+		tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
 
 		// ── 360 vector ────────────────────────────────────────────────────────
 
