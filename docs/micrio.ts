@@ -20,8 +20,6 @@
 */
 
 /** @internal */
-export * from '../src/core/enums';
-/** @internal */
 export * from '../src/core/element';
 /** @internal */
 export * from '../src/render/engine';
@@ -36,10 +34,12 @@ export * from '../src/core/camera';
 /** @internal */
 export * from '../src/core/state';
 /** @internal */
-export * from '../src/core/grid';
+export * from '../src/grid/grid';
 /** @internal */
 export * from '../src/gallery/swiper';
 /** @internal */
 export * from '../src/media/videotour';
 /** @internal */
 export * from '../src/types/models';
+/** @internal */
+export * from '../src/core/store';

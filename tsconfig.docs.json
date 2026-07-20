@@ -1,13 +1,14 @@
 {
-	"include": ["src/ts/", "src/types/", "src/docs/"],
+	"include": ["docs/", "src/types/"],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"],
 	"compilerOptions": {
 		"ignoreDeprecations": "6.0",
 		"typeRoots": ["./types"],
-		"rootDir": "./src",
+		"rootDir": ".",
 		"target": "es2022",
 		"module": "commonjs",
 		"moduleResolution": "node",
+		"declaration": true,
 		"emitDeclarationOnly": true,
 		"stripInternal": true,
 		"paths": {
@@ -29,7 +30,7 @@
 		}
 	},
 	"typedocOptions": {
-		"entryPoints": ["./src/docs/micrio.ts", "./src/docs/store.ts"],
+		"entryPoints": ["./docs/micrio.ts"],
 		"includes": ["."],
 		"excludePrivate": true,
 		"excludeInternal": true,
@@ -41,6 +42,5 @@
 		"readme": "./README.md",
 		"defaultCategory": "Micrio",
 		"name": "Micrio Client",
-		"gaID": "G-P1WB0J7VEM",
 	}
 }
