@@ -80,7 +80,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		this.gallery.images.forEach(img => this.#trackImage(img));
 
 		const g = this.image.$settings?.grid;
-		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
+		this.clickable = (g?.clickable && ['focus','zoom'].includes(g.clickable)) ? g.clickable : false;
 		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
 		if(this.clickable && this.image.$settings.hookKeys) hookGridKeys(this);
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
@@ -97,7 +97,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		this.#closeBtn = createElement('micrio-button', {
 			className: 'grid-close',
 			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
-		}) as HTMLElement;
+		});
 		this.addCleanup(() => this.#closeBtn.remove());
 		this.addCleanup(this.focussed.subscribe(v => {
 			if (v) this.appendChild(this.#closeBtn);
@@ -190,7 +190,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		this.lastAction = undefined;
 
 		if(opts.cover === false && opts.coverLimit) opts.coverLimit = false;
-		if(opts.coverLimit && opts.cover == undefined) opts.cover = opts.coverLimit;
+		if(opts.coverLimit && opts.cover == undefined) opts.cover = true;
 		const focussed = this.$focussed;
 		const isDelayed = opts.transition?.endsWith('-delayed');
 		const isBehindDelay = opts.transition == 'behind-delayed';
@@ -309,7 +309,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		images.forEach(i => {
 			if(!this._buttons.has(i.id)) this._buttons.set(i.id, createElement('button'));
 			const tile = this._buttons.get(i.id)!;
-			if(i.size.toString() != '1') {
+			if(i.size[0] !== 1 || i.size[1] !== undefined) {
 				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0]||i.size[1]}`;
 				this.cellSizes.set(i.id, i.size)
 			}
@@ -333,7 +333,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		const h = this.micrio.offsetHeight;
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1)));
 		this.style.transform = '';
-		this.childNodes.forEach((n:ChildNode) => { if(!n) return;
+		this.childNodes.forEach((n:ChildNode) => {
 			const e = n as HTMLElement;
 			const id = e.dataset.id;
 			const r = e.getBoundingClientRect();
@@ -557,8 +557,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		const current = this.micrio.$current;
 		if (current && this.images.some(i => i === current)) return current;
 		if (this.panZoom == 'grid') return this.image;
-		const coo = this.image.camera.getCoo(clientX, clientY, true);
-		const vx = coo[0], vy = coo[1];
+		const [vx, vy] = this.image.camera.getCoo(clientX, clientY, true);
 		return this.current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 	}
 
