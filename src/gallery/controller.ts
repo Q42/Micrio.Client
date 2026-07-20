@@ -82,6 +82,7 @@ export class Gallery {
 			}
 
 			const opts: Partial<MicrioImage['opts']> = {};
+			const data = DataLoader.getBundleImageSync(info.id)?.data;
 
 			if (isSwitch) {
 				opts.isEmbed = true;
@@ -116,10 +117,9 @@ export class Gallery {
 			}
 
 			return new MicrioImage(engine, {
-				id: info.id,
-				info: { ...info, revision: config.revisions?.[info.id] },
+				id: info.id, info,
 				settings: imageSettings as any,
-				data: DataLoader.getBundleImageSync(info.id)?.data,
+				data,
 			}, opts);
 		});
 
@@ -190,9 +190,12 @@ export class Gallery {
 
 	static async fromGrid(archiveId: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<Gallery | null> {
 		const path = config?.path ?? BASEPATH_V5;
+		const gridClickable = config?.grid?.clickable ?? config?.settings?.grid?.clickable;
+		const settings: Record<string, any> = { zoomLimit: 15, minimap: false, ...config?.settings };
+		if (gridClickable && settings.hookKeys === undefined) settings.hookKeys = true;
 		const { images, config: galleryConfig } = await Gallery.#fromArchiveIndex(
 			archiveId, path, engine, micrio,
-			{ type: 'grid', ...config, settings: { zoomLimit: 15, minimap: false, ...config?.settings } }
+			{ type: 'grid', ...config, settings }
 		);
 		const gallery = new Gallery([], engine, micrio, galleryConfig);
 		gallery.#gridImageInfos = images;
@@ -291,14 +294,6 @@ export class Gallery {
 		}
 
 		const path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
-
-		if(this.type == 'grid') {
-			gallerySettings.zoomLimit = 15;
-			gallerySettings.minimap = false;
-			if(gallerySettings.grid?.clickable && gallerySettings.hookKeys === undefined) {
-				gallerySettings.hookKeys = true;
-			}
-		}
 
 		const img = await micrio.open({
 			id: '',
