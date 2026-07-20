@@ -4,7 +4,6 @@
  */
 
 import type { Models } from '$types/models';
-import { VERSION } from './version';
 
 /** Base path for Micrio V4 assets (CDN).
  * @internal
@@ -69,24 +68,6 @@ export const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
 	_360: {},
 	_meta: {}
 };
-
-/** Default structure for the ImageInfo object, merged with fetched data.
- * @internal
- */
-export const DEFAULT_INFO : Models.ImageInfo.ImageInfo = {
-	// Required
-	id: '', // Placeholder for image ID
-
-	// Image info
-	version: VERSION, // Use major.minor from library version
-	path: BASEPATH, // Default asset path
-
-	// Image data
-	width: 0, // Placeholder
-	height: 0, // Placeholder
-
-	lang: 'en', // Default language
-}
 
 
 // --- <micr-io> Attribute Parsing Logic ---

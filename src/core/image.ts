@@ -6,7 +6,7 @@ import type TileCanvas from '$render/tile-canvas';
 import type { GallerySwiper } from '$gallery/swiper';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
-import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals';
+import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from '$core/store';
 import { getIdVal, idIsV5 } from '$utils/id';
@@ -39,19 +39,13 @@ export class MicrioImage {
 	/** A unique instance identifier (UUID) generated for this specific instance. */
 	readonly uuid: string = crypto.randomUUID();
 
-	/** Internal storage for the image info data.
-	 * @internal
-	 * @readonly
-	*/
-	#__info:Models.ImageInfo.ImageInfo = structuredClone(DEFAULT_INFO);
-
 	/** Svelte Readable store holding the image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
-	readonly info: Readable<Models.ImageInfo.ImageInfo|undefined>;
+	readonly info: Readable<Models.ImageInfo.ImageInfo>;
 
 	/** Getter for the current value of the {@link info} store.
 	 * @readonly
 	*/
-	get $info():Models.ImageInfo.ImageInfo|undefined { return this.#__info }
+	get $info():Models.ImageInfo.ImageInfo { return get(this.info) }
 
 	/** Svelte Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
 	readonly settings: Writable<Models.ImageInfo.Settings> = writable({});
@@ -211,7 +205,7 @@ export class MicrioImage {
 		}
 
 		const i = bundle.info;
-		this.#__info = i;
+		this.info = readable<Models.ImageInfo.ImageInfo>(i);
 		this.dataPath = i.path || BASEPATH_V5;
 
 		if(!opts.area) opts.area = [0,0,1,1];
@@ -343,9 +337,6 @@ export class MicrioImage {
 			});
 		}
 
-		// Info store — emit immediately (all data is synchronous from bundle)
-		this.info = readable<Models.ImageInfo.ImageInfo>(this.#__info);
-
 		const micrioRef = this.engine.micrio;
 
 		// Visibility subscription
@@ -389,8 +380,7 @@ export class MicrioImage {
 	 * @returns The calculated tile image source URL string, or undefined if info not loaded.
 	 */
 	getTileSrc(layer:number, x:number, y:number, frame?:number) : string|undefined {
-		const i = this.#__info;
-		if(!i) return; // Exit if info not loaded
+		const i = get(this.info);
 
 		// Adjust layer index for DeepZoom format
 		if(i.isDeepZoom) layer = this.dzLevels - layer;
@@ -525,8 +515,8 @@ export class MicrioImage {
 	loadBundleData(): void {
 		const entry = DataLoader.getBundleImageSync(this.id);
 		if(entry?.data) {
-			if(entry.info?.revision && !this.#__info.revision)
-				this.#__info.revision = entry.info.revision;
+			if(entry.info?.revision && !get(this.info).revision)
+				get(this.info).revision = entry.info.revision;
 			this.engine.micrio.events.dispatch('pre-data', { [this.id]: entry.data });
 			this.data.set(entry.data);
 		}
