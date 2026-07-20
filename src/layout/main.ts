@@ -3,7 +3,6 @@ import type { Models } from '$types/models';
 import type { Writable } from '$core/store';
 import type { MicrioImage } from '$core/image';
 import { get, tick, writable } from '$core/store';
-import { once } from '$utils/store';
 import { DataLoader } from '$utils/dataLoader';
 import { createElement } from '$utils/dom';
 import '$ui/icon';
@@ -62,7 +61,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 	#props: MainProps = {};
 	#info: Models.ImageInfo.ImageInfo | undefined;
-	#data: Writable<Models.ImageData.ImageData | undefined> | undefined;
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
@@ -139,15 +137,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 			if (this.isConnected) this.#sync();
 
-			if ((this.#data = c.data) && didStart.indexOf(c.id) < 0) {
-				this.addCleanup(this.#data.subscribe(() => this.#queueSync()));
-				once(this.#data).then(async d => {
-					if (!d) return;
-					didStart.push(c.id);
-					await tick().then(tick);
-					if (get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) return;
-					const autoStart = c.$settings.start;
-					if (autoStart) {
+			const d = c.$data;
+			if (d && didStart.indexOf(c.id) < 0) {
+				didStart.push(c.id);
+				const autoStart = c.$settings.start;
+				if (autoStart) {
+					tick().then(tick).then(() => {
+						if (get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) return;
 						switch (autoStart.type) {
 							case 'marker': c.state.marker.set(autoStart.id); break;
 							case 'markerTour': {
@@ -163,8 +159,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 								if (page) micrio.state.popover.set({ contentPage: page, showLangSelect: true }); break;
 							}
 						}
-					}
-				});
+					});
+				}
 			}
 			this.#queueSync();
 		}));
@@ -207,7 +203,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const $popover = get(micrio.state.popover);
 		const $info = this.#info;
 		const $settings = (this.#settings ? get(this.#settings) : undefined) as Models.ImageInfo.Settings | undefined;
-		const $data = this.#data ? get(this.#data) : undefined;
+		const $data = micrio.$current ? get(micrio.$current.data) : undefined;
 		const error = this.#props.error;
 		const loadingProgress = this.#props.loadingProgress ?? 1;
 		const noHTML = this.#props.noHTML ?? false;
@@ -306,8 +302,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			createElement('micrio-minimap', { setProps: { image: micrio.$current! } }) as MicrioElement
 		);
 
-		this.#show('details', showDetails && !!this.#info && !!this.#data, () =>
-			createElement('micrio-details', { setProps: { info: this.#info!, data: get(this.#data!) } }) as MicrioElement
+		this.#show('details', showDetails && !!$data, () =>
+			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } }) as MicrioElement
 		);
 
 		// Per-image marker popups — each image's open marker gets its own popup
