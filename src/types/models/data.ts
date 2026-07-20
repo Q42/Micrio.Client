@@ -524,7 +524,7 @@ export namespace ImageBundle {
 	export type BundleImage = {
 		id: string;
 		info: ImageInfo.ImageInfo;
-		data: ImageData.ImageData;
+		data?: ImageData.ImageData;
 		settings?: Partial<ImageInfo.Settings>;
 	};
 

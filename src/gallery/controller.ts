@@ -121,15 +121,20 @@ export class Gallery {
 
 			return new MicrioImage(engine, {
 				id: c.id,
-				path: c.path,
-				width: c.width,
-				height: c.height,
-				isDeepZoom: c.isDeepZoom,
-				isPng: c.isPng,
-				isWebP: c.isWebP,
-				tileSize: c.tileSize ?? DEFAULT_INFO.tileSize,
-				revision: rev,
-				settings: imageSettings as any
+				info: {
+					id: c.id,
+					path: c.path,
+					version: '',
+					width: c.width,
+					height: c.height,
+					tileSize: c.tileSize ?? DEFAULT_INFO.tileSize,
+					isDeepZoom: c.isDeepZoom,
+					isPng: c.isPng,
+					isWebP: c.isWebP,
+					revision: rev,
+				} as Models.ImageInfo.ImageInfo,
+				settings: imageSettings as any,
+				data: DataLoader.getBundleImageSync(c.id)?.data,
 			}, opts);
 		});
 
@@ -312,40 +317,41 @@ export class Gallery {
 
 	// --- Element Opening ---
 
-	/** Build gallery ImageInfo and open the parent gallery image on the `<micr-io>` element. */
+	/** Build gallery BundleImage and open the parent gallery image on the `<micr-io>` element. */
 	openOn(micrio: HTMLMicrioElement): void {
 		const isSwitch = this.type == 'switch';
-		const galleryInfo: Partial<Models.ImageInfo.ImageInfo> = {};
-
-		if(!isSwitch) {
-			galleryInfo.width = micrio.offsetWidth * micrio.canvas.getRatio();
-			galleryInfo.height = micrio.offsetHeight * micrio.canvas.getRatio();
-		} else {
-			galleryInfo.width = this.containerWidth;
-			galleryInfo.height = this.containerHeight;
-		}
-
-		galleryInfo.settings = {
+		const gallerySettings: Partial<Models.ImageInfo.Settings> = {
 			view: [0, 0, 1, 1],
 			gallery: { ...this.config },
-			pinchZoomOutLimit: isSwitch ? true : undefined
-		} as unknown as Models.ImageInfo.Settings;
+			pinchZoomOutLimit: isSwitch ? true : undefined,
+		};
 
 		if(this.config.settings) {
-			Object.assign(galleryInfo.settings, this.config.settings);
+			Object.assign(gallerySettings, this.config.settings);
 		}
 
-		galleryInfo.path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
+		const path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
 
 		if(this.type == 'grid') {
-			galleryInfo.settings.zoomLimit = 15;
-			galleryInfo.settings.minimap = false;
-			if(galleryInfo.settings.grid?.clickable && galleryInfo.settings.hookKeys === undefined) {
-				galleryInfo.settings.hookKeys = true;
+			gallerySettings.zoomLimit = 15;
+			gallerySettings.minimap = false;
+			if(gallerySettings.grid?.clickable && gallerySettings.hookKeys === undefined) {
+				gallerySettings.hookKeys = true;
 			}
 		}
 
-		micrio.open(galleryInfo, {
+		micrio.open({
+			id: '',
+			info: {
+				id: '',
+				path,
+				version: '',
+				width: isSwitch ? this.containerWidth : (micrio.offsetWidth * micrio.canvas.getRatio()),
+				height: isSwitch ? this.containerHeight : (micrio.offsetHeight * micrio.canvas.getRatio()),
+				tileSize: DEFAULT_INFO.tileSize,
+			},
+			settings: gallerySettings,
+		}, {
 			...(this.type == 'grid' ? { gridImages: this._gridImages } : { gallery: this })
 		});
 	}

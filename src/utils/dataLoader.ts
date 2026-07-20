@@ -44,14 +44,9 @@ async function fetchBundleOnce(id: string): Promise<void> {
 
 async function doFetchBundle(id: string): Promise<void> {
 	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json`);
-	if (bundle?.images) {
+		if (bundle?.images) {
 		for (const entry of bundle.images) {
 			if (entry?.id) {
-				// Migrate top-level settings → info.settings (new API shape)
-				if (entry.settings) {
-					entry.info.settings = entry.settings;
-					delete (entry as any).settings;
-				}
 				bundleCache.set(entry.id, entry);
 			}
 		}

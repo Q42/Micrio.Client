@@ -9,7 +9,6 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from '$core/store';
-import { deepCopy } from '$utils/object';
 import { getIdVal, idIsV5 } from '$utils/id';
 import { once } from '$utils/store';
 import { MicrioError, getErrorMessage } from '$core/error';
@@ -181,19 +180,16 @@ export class MicrioImage {
 	/** The engine TileCanvas for this image, if placed. */
 	get canvas(): TileCanvas | undefined { return this.engine.getCanvas(this); }
 
-	/** @internal */
-	#attr: Partial<Models.ImageInfo.ImageInfo>;
-
 	/**
 	 * Creates a new MicrioImage instance. Typically called by {@link HTMLMicrioElement.open}.
 	 * @internal
 	 * @param engine The global Engine controller instance.
-	 * @param attr Initial image info/settings, often from HTML attributes or parent data.
+	 * @param bundle The image's full {@link ImageBundle.BundleImage} data (from bundle.json).
 	 * @param opts Options controlling behavior (embedding, split-screen, etc.).
 	 */
 	constructor(
 		public engine: Engine,
-		attr:Partial<Models.ImageInfo.ImageInfo>,
+		bundle: Models.ImageBundle.BundleImage,
 		public opts:{
 			/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
 			area?: Models.Camera.View;
@@ -207,71 +203,199 @@ export class MicrioImage {
 			useParentCamera?: boolean;
 		} = {}
 	) {
-		this.#attr = attr;
-		this.state = new State.Image(this); // Initialize state manager
-		// Initialize camera unless using parent's
+		this.state = new State.Image(this);
 		if(!opts.useParentCamera) this.camera = new Camera(this);
 
-		this.id = (attr.id??'').replace(VIEWER_BASE,''); // Sanitize ID
+		this.id = bundle.id.replace(VIEWER_BASE,'');
 
-		// URL-encode the custom-id part for external IDs (`external/{org-slug}/{custom-id}`)
 		if(this.id.startsWith('external/')) {
 			const secondSlash = this.id.indexOf('/', this.id.indexOf('/') + 1);
 			if(secondSlash !== -1)
 				this.id = this.id.substring(0, secondSlash + 1) + encodeURIComponent(this.id.substring(secondSlash + 1));
 		}
-		// Determine base path for data JSON
-		this.dataPath = attr.path||this.#__info.path||BASEPATH_V5;
 
-		// Setup for split-screen secondary image
+		const i = bundle.info;
+		this.#__info = i;
+		this.dataPath = i.path || BASEPATH_V5;
+
 		if(opts.secondaryTo) {
-			this.opacity = 0; // Start invisible
-			// Default placement based on orientation
+			this.opacity = 0;
 			opts.area = this.engine.micrio.canvas.viewport.portrait ? [0,1,1,0] : [1,0,0,1];
-			if(opts.isPassive === undefined) opts.isPassive = true; // Default to passive following
+			if(opts.isPassive === undefined) opts.isPassive = true;
 		}
-		// Default area if not provided
 		else if(!opts.area) opts.area = [0,0,1,1];
 
-		// Setup readable store for image info, loading data asynchronously
-		let infoLoaded:boolean = false;
-		this.info = readable<Models.ImageInfo.ImageInfo|undefined>(undefined, set => {
-			infoLoaded ? set(this.#__info) : this.#load().then(set); infoLoaded=!0;
-		});
+		const s = bundle.settings;
+		const micrio = this.engine.micrio;
 
-		const micrio = this.engine.micrio; // Reference to main element
+		// V5 ID detection & derived info flags
+		(function(i: Models.ImageInfo.ImageInfo, id: string, s: Models.ImageInfo.Settings | undefined): { isV5Imported: boolean } {
+			if(s?._meta?.noLogo) s!.noLogo = true;
+			if(s?._meta?.noSmoothing) s!.noSmoothing = true;
 
-		// Subscribe to visibility changes
+			if (!i.isIIIF && id.length == 7) {
+				const b = getIdVal(id[1 + (getIdVal(id) % 6)]);
+				i.is360 = !!((b >> 4) & 1) || !!i.is360;
+				i.isWebP = !(b & 3);
+				i.isPng = (b & 3) == 2;
+				if ((b >> 3) & 1 && idIsV5(i.tilesId ?? id)) i.format = 'dz';
+				if (!i.path) i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;
+			}
+
+			const isV5Imported = id.length == 6 && id.startsWith('i') && !id.includes('/');
+			if (isV5Imported && !i.tilesId) i.tilesId = id.slice(1);
+			return { isV5Imported };
+		})(i, this.id, s);
+
+		// Determine tile base path
+		const isV5Imported = this.id.length == 6 && this.id.startsWith('i') && !this.id.includes('/');
+		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
+		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
+
+		const org = DataLoader.getOrganisation();
+		if(org?.baseUrl && !i.path.includes(org.baseUrl)) {
+			this.dataPath = i.path = org.baseUrl;
+			if(!isV5Imported) this.tileBase = this.dataPath;
+		}
+		else if(i.path == BASEPATH_V5_EU) this.dataPath = i.path;
+		else if(i.path) this.dataPath = i.path;
+
+		// Omni object setup (async archive — fire & forget)
+		if(s?.omni) {
+			this.isOmni = true;
+			if(parseFloat(i.version) >= 5) {
+				archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
+					.catch(e => this.#setError(e, 'Could not find object base package.'));
+				const gal = s.gallery = (s.gallery ?? {}) as any;
+				gal.type = 'switch';
+				gal.archive = i.id;
+			}
+		}
+
+		// Org branding CSS (fire & forget)
+		if(org?.branding && !(s?.noUI)) {
+			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
+			this.#loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
+				const fontFamily = getComputedStyle(this.engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
+				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
+					this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
+				});
+			});
+		}
+
+		// IIIF: extract short identifier from full URL
+		if(i.isIIIF && i.id.includes('/')) {
+			i.id = (('@id' in i ? (i as any)['@id'] : i.id) as string).replace(/^.*\//, '');
+		}
+
+		// 360 space data
+		if(i.spacesId && !micrio.spaceData) {
+			micrio.spaceData = DataLoader.getSpaceData(i.spacesId);
+			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
+		}
+
+		if(i.is360 && this.camera) {
+			const spaceRotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY;
+			if(spaceRotY != null) this.camera.rotationY = spaceRotY;
+			else if(s?._360?.trueNorth != null)
+				this.camera.rotationY = (s._360.trueNorth - 0.5) * Math.PI * 2;
+		}
+
+		// Derived flags & properties
+		this.noImage = this.noImage || this.isOmni || (!i.id && !i.tilesId);
+		this.extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg';
+		if(i.format == 'dz') i.isDeepZoom = true;
+		this.is360 = !!i.is360;
+		this.isVideo = !!i.isVideo;
+
+		// Language from revision
+		let lang = get(micrio._lang);
+		if(i.revision) {
+			const langs = Object.keys(i.revision);
+			if(langs.length && !langs.includes(lang as string))
+				micrio.lang = langs[0];
+		}
+
+		// Custom JS/CSS (fire & forget)
+		if(s && !s.noExternals) {
+			if(s.css) this.#loadStyle(s.css.href);
+			if(s.js) this.#loadScript(s.js.href, lang);
+		}
+
+		// Zoom levels
+		for(let f=i.tileSize; f < Math.max(i.width,i.height); f *= 2, this.levels++) {}
+		let max = Math.max(i.width, i.height); do this.dzLevels++; while((max/=2) > 1);
+		if(s?.gallery?.archive) this.levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
+		if(!this.noImage) this.thumbSrc = this.getTileSrc(this.levels, 0, 0);
+
+		micrio.events.dispatch('pre-info', i);
+
+		// Bundle data
+		if((!this.noImage || this.isOmni) && !s?.skipMeta) {
+			if(bundle.data) {
+				this.data.set(bundle.data);
+			} else {
+				this.loadBundleData();
+			}
+		}
+
+		// Linked split-screen
+		if(s?.micrioSplitLink && !this.opts.secondaryTo) {
+			const linkId = s.micrioSplitLink;
+			const linkCached = DataLoader.getBundleImageSync(linkId);
+			micrio.open({
+				id: linkId,
+				info: linkCached?.info ?? { id: linkId, path: '', version: '', width: 0, height: 0, tileSize: DEFAULT_INFO.tileSize } as Models.ImageInfo.ImageInfo,
+				settings: { hookEvents: s.secondaryInteractive !== false, ...(linkCached?.settings ?? {}) },
+			}, {
+				splitScreen: true,
+				isPassive: !s.noFollow,
+			})
+		}
+
+		// Settings store & watermark
+		if(s) this.settings.set(s);
+		if(i.watermark) this.engine.micrio.webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
+
+		// Omni controls hook
+		if(this.isOmni) {
+			this.state.layer.subscribe(l => {
+				if(!this.placed || !this.engine.ready) return;
+				this.canvas?.setActiveLayer(l);
+				this.engine.render();
+			});
+		}
+
+		// Info store — emit immediately (all data is synchronous from bundle)
+		this.info = readable<Models.ImageInfo.ImageInfo>(this.#__info);
+
+		const micrioRef = this.engine.micrio;
+
+		// Visibility subscription
 		let wasVis:boolean=get(this.visible);
 		let followUnsub:Unsubscriber|null;
 		this.visible.subscribe(v => {
-			if(v==wasVis) return; wasVis=v; // Ignore if visibility hasn't changed
+			if(v==wasVis) return; wasVis=v;
 
-			// Handle split-screen logic on visibility change
 			if(opts.secondaryTo) {
-				if(opts.isPassive) { // Manage passive following subscription
-					if(followUnsub) { followUnsub(); followUnsub = null; } // Unsubscribe if becoming hidden
-					else if(v) followUnsub = opts.secondaryTo.state.view.subscribe(v => { // Subscribe if becoming visible
-						if(v && !this.camera.aniDone) this.camera.setView(v, {noLimit: true}) // Follow view if not animating
+				if(opts.isPassive) {
+					if(followUnsub) { followUnsub(); followUnsub = null; }
+					else if(v) followUnsub = opts.secondaryTo.state.view.subscribe(v => {
+						if(v && !this.camera.aniDone) this.camera.setView(v, {noLimit: true})
 					});
 				}
-				// Dispatch split-screen events
-				if(v) micrio.events.dispatch('splitscreen-start', this);
-				else micrio.events.dispatch('splitscreen-stop', this);
+				if(v) micrioRef.events.dispatch('splitscreen-start', this);
+				else micrioRef.events.dispatch('splitscreen-stop', this);
 			}
-			// Update the global visible canvases list
-			micrio.visible.update(l => {
+			micrioRef.visible.update(l => {
 				if(v) l.push(this);
 				else l.splice(l.indexOf(this), 1);
 				return l;
 			});
-			// If this image became visible and is the main current image, clear switching state
-			if(v && micrio.$current == this) micrio.switching.set(false);
+			if(v && micrioRef.$current == this) micrioRef.switching.set(false);
 		});
 
-		// Keep internal video reference synced
 		this.video.subscribe(v => this._video = v);
-
 	}
 
 	/**
@@ -286,194 +410,6 @@ export class MicrioImage {
 		this.engine.micrio.printError(e instanceof MicrioError ? e : message);
 		this.engine.micrio.loading.set(false);
 		throw e instanceof Error ? e : new Error(message);
-	}
-
-	/**
-	 * Loads the image's core information (`info.json` or IIIF manifest).
-	 * Merges attribute settings and preset data. Calculates derived properties.
-	 * Handles IIIF sequence parsing and space data loading.
-	 * @internal
-	 * @returns Promise resolving to the loaded and processed ImageInfo object.
-	*/
-	async #load() : Promise<Models.ImageInfo.ImageInfo> {
-		let i = this.#__info; // Internal info object reference
-		const attr = this.#attr; // Initial attributes/info passed to constructor
-		const micrio = this.engine.micrio;
-
-		// Use provided object directly if it seems complete
-		if(attr.id && attr.width) {
-			if(attr.settings) deepCopy(DEFAULT_INFO.settings, attr.settings, {noOverwrite: true}); // Merge default settings
-			this.#__info = i = attr as Models.ImageInfo.ImageInfo;
-		}
-
-		// Determine if IIIF based on URL or format property
-		i.isIIIF = i.isIIIF || this.id.startsWith('http') || i.format == 'iiif';
-
-		let idFromCustomId:string|undefined;
-		// Fetch info if ID provided but dimensions missing
-		if(this.id && (!attr.width || !attr.height)) {
-			const loadError = (e:Error) => this.#setError(e, typeof e == 'string' ? e : 'Image with id "'+this.id+'" not found, published, or embeddable.');
-			// Fetch info (Micrio) or use preset data
-			deepCopy(await DataLoader.getInfo(this.id)
-				.then(r => {
-					// If custom ID requested (`id="external/{org-slug}/{customId}"`), the returned info is redirected to real image's ID path.
-					// Also correct this internally.
-					if(r?.id && !i.isIIIF && this.id.split('/').length>=3 && this.id.startsWith('external/')) {
-						idFromCustomId = r.id.split('/').reverse()[0];
-						this.dataPath = r.path || BASEPATH_V5;
-					}
-					return r;
-				})
-				.catch(loadError), i);
-		}
-		const { isV5Imported } = ((i: Models.ImageInfo.ImageInfo, id: string): { isV5Imported: boolean } => {
-			if (i.settings?._meta?.noLogo) i.settings.noLogo = true;
-			if (i.settings?._meta?.noSmoothing) i.settings.noSmoothing = true;
-
-			if (!i.isIIIF && id.length == 7) {
-				const b = getIdVal(id[1 + (getIdVal(id) % 6)]);
-				i.is360 = !!((b >> 4) & 1) || !!i.is360;
-				i.isWebP = !(b & 3);
-				i.isPng = (b & 3) == 2;
-				if ((b >> 3) & 1 && idIsV5(i.tilesId ?? id)) i.format = 'dz';
-				if (!i.path) i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;
-			}
-
-			const isV5Imported = id.length == 6 && id.startsWith('i') && !id.includes('/');
-			if (isV5Imported && !i.tilesId) i.tilesId = id.slice(1);
-			return { isV5Imported };
-		})(i, this.id);
-
-		// Merge attribute settings again (overriding fetched info)
-		deepCopy(attr, i);
-
-		// Overwrite internal Micrio ID with original Micrio ID
-		if(idFromCustomId) this.id = i.id = idFromCustomId;
-
-		// Determine tile base path
-		// V5 imported images always tile from the legacy CDN (b.micr.io)
-		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
-		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
-		// Use organization base URL if provided and path wasn't forced by attribute
-		const org = DataLoader.getOrganisation();
-		if(org?.baseUrl && !attr.path) {
-			this.dataPath = i.path = org.baseUrl;
-			if(!isV5Imported) this.tileBase = this.dataPath;
-		}
-		// Handle EU path explicitly
-		else if(i.path == BASEPATH_V5_EU) this.dataPath = i.path;
-		// Use path from fetched info as dataPath for all other cases
-		else if(i.path) this.dataPath = i.path;
-
-		// Handle Omni object setup (load base archive, configure gallery settings)
-		if(i.settings?.omni) {
-			this.isOmni = true;
-			if(parseFloat(i.version) >= 5) { // V5 Omni requires base archive
-				await archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
-					.catch(e => this.#setError(e, 'Could not find object base package.'));
-				// Configure gallery settings for Omni
-				const gal = i.settings.gallery = (i.settings.gallery ?? {}) as any;
-				gal.type = 'switch';
-				gal.archive = i.id; // Use image ID as archive key for gallery logic
-			}
-		}
-
-		// Load organization branding CSS if present
-		if(org?.branding && !(i.settings && i.settings.noUI)) {
-			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
-			this.#loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
-				// Check if custom font needs loading from Google Fonts
-				const fontFamily = getComputedStyle(this.engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
-				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
-					this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
-				});
-			});
-		}
-
-		// For IIIF images with full URL IDs, extract short identifier
-		if(i.isIIIF && i.id.includes('/')) {
-			i.id = (('@id' in i ? i['@id'] : i.id) as string).replace(/^.*\//, '');
-		}
-
-		// Load 360 space data from bundle if linked and not already loaded
-		if(i.spacesId && !micrio.spaceData) {
-			micrio.spaceData = DataLoader.getSpaceData(i.spacesId);
-			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
-		}
-
-		// Resolve 360 Y rotation: prefer space data, fall back to legacy _360.trueNorth
-		if(i.is360 && this.camera) {
-			const spaceRotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY;
-			if(spaceRotY != null) this.camera.rotationY = spaceRotY;
-			else if(i.settings?._360?.trueNorth != null)
-				this.camera.rotationY = (i.settings._360.trueNorth - 0.5) * Math.PI * 2;
-		}
-
-		// Set derived flags and properties
-		this.noImage = this.noImage || this.isOmni || (!i.id && !i.tilesId); // Mark as noImage if Omni or no tile source
-		this.extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg'; // Determine tile extension
-		if(i.format == 'dz') i.isDeepZoom = true; // Set deep zoom flag
-		this.is360 = !!i.is360;
-		this.isVideo = !!i.isVideo;
-
-		// Determine initial language from revision
-		let lang = get(micrio._lang);
-		if(i.revision) {
-			const langs = Object.keys(i.revision);
-			if(langs.length && !langs.includes(lang as string))
-				micrio.lang = langs[0];
-		}
-
-		// Load custom JS/CSS (legacy)
-		const s = i.settings;
-		if(s && !s?.noExternals) await Promise.all([
-			s.css ? this.#loadStyle(s.css.href) : null,
-			s.js ? this.#loadScript(s.js.href, lang) : null
-		].filter(p=>!!p));
-
-		// Calculate zoom levels
-		for(let f=i.tileSize; f < Math.max(i.width,i.height); f *= 2, this.levels++) {}
-		let max = Math.max(i.width, i.height); do this.dzLevels++; while((max/=2) > 1); // Calculate DeepZoom levels
-		if(s?.gallery?.archive) this.levels -= 1 - (s.gallery.archiveLayerOffset ?? 0); // Adjust levels based on archive offset
-		if(!this.noImage) this.thumbSrc = this.getTileSrc(this.levels, 0, 0); // Generate thumbnail URL
-
-		// Dispatch pre-info event for external manipulation
-		micrio.events.dispatch('pre-info', i);
-
-		// Load image-specific data (markers, tours, etc.) from the bundle cache
-		if((!this.noImage || this.isOmni) && !attr.settings?.skipMeta) {
-			this.loadBundleData();
-		}
-
-		// Handle linked split-screen setup
-		if(i.settings?.micrioSplitLink && !this.opts.secondaryTo) {
-			micrio.open({ // Open the linked image
-				id: i.settings.micrioSplitLink,
-				settings: { hookEvents: i.settings.secondaryInteractive !== false }
-			}, { // As a split-screen secondary image
-				splitScreen: true,
-				isPassive: !i.settings.noFollow // Follow main view unless disabled
-			})
-		}
-
-		// Set final settings store value (after merging everything)
-		if(i.settings) this.settings.set(i.settings);
-
-		// Set watermark if present
-		if(i.watermark) this.engine.micrio.webgl.loadWatermark(i.watermark, i.settings?.watermarkOpacity);
-
-		delete i.settings; // Remove settings from info object after processing
-
-		// Hook Omni controls if applicable
-		if(this.isOmni) {
-			this.state.layer.subscribe(l => {
-				if(!this.placed || !this.engine.ready) return;
-				this.canvas?.setActiveLayer(l);
-				this.engine.render();
-			});
-		}
-
-		return i; // Return the processed info object
 	}
 
 	/**
@@ -510,7 +446,7 @@ export class MicrioImage {
 		}
 
 		// Throw error if trying to get tile for a video (shouldn't happen)
-		if(i.settings?._360?.video?.src)
+		if(this.$settings?._360?.video?.src)
 			throw new Error('Video thumb');
 
 		// Construct standard Micrio tile URL
@@ -554,10 +490,15 @@ export class MicrioImage {
 	 * @param opts Embedding options (opacity, fit, etc.).
 	 * @returns The newly created embedded {@link MicrioImage} instance.
 	 */
-	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
+	addEmbed(info:Partial<Models.ImageInfo.ImageInfo> & { settings?: Partial<Models.ImageInfo.Settings> }, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
-		const img = new MicrioImage(this.engine, info, {area:a, isEmbed: true, useParentCamera: opts.asImage});
+		const img = new MicrioImage(this.engine, {
+			id: info.id ?? '',
+			info: { ...info, id: info.id ?? '' } as Models.ImageInfo.ImageInfo,
+			data: DataLoader.getBundleImageSync(info.id ?? '')?.data,
+			settings: info.settings as Partial<Models.ImageInfo.Settings>,
+		}, {area:a, isEmbed: true, useParentCamera: opts.asImage});
 		// Use parent camera if specified (e.g., for switch galleries)
 		if(!img.camera) img.camera = this.camera;
 		this.embeds.push(img); // Add to embeds list
@@ -608,7 +549,7 @@ export class MicrioImage {
 		// Set area for this secondary image (right/bottom half)
 		this.camera.setArea(p ? [0,.5,1,.5] : [.5,0,.5,1], {noRender:true});
 		// Set initial view for this image
-		this.camera.setView(this.#__info?.settings?.view ?? [0,0,1,1])
+		this.camera.setView(this.$settings?.view ?? [0,0,1,1])
 		this.engine.render(); // Trigger render
 	}
 

@@ -128,13 +128,18 @@ export class Grid {
 		return this.#initialGrid.map(i => ({ id: i.id, size: [1] as [number, number?] }));
 	}
 
-	#getAttrForEntry(entry: Models.Grid.GridImage): Partial<Models.ImageInfo.ImageInfo> {
+	#getAttrForEntry(entry: Models.Grid.GridImage): Models.ImageBundle.BundleImage {
 		const orig = this.#initialGrid.find(i => i.id === entry.id);
 		return {
 			id: entry.id,
-			width: orig?.width,
-			height: orig?.height,
-			path: this.image.$info?.path,
+			info: {
+				id: entry.id,
+				path: this.image.$info?.path ?? '',
+				version: '',
+				width: orig?.width ?? 0,
+				height: orig?.height ?? 0,
+				tileSize: 1024,
+			} as Models.ImageInfo.ImageInfo,
 		};
 	}
 
@@ -167,7 +172,7 @@ export class Grid {
 		scale?: number;
 		columns?: number;
 	}={}) : Promise<MicrioImage[]> { return this.lastPromise = new Promise((ok, err) => {
-		delete this.image.$info?.settings?.focus;
+		delete this.image.$settings?.focus;
 		this.lastAction = undefined;
 
 		if(opts.cover === false && opts.coverLimit) opts.coverLimit = false;
@@ -356,8 +361,8 @@ export class Grid {
 			if(opts.delay) engine.render();
 		});
 		else {
-			const attr = this.#getAttrForEntry(entry);
-			img = new MicrioImage(engine, attr, {area: entry.area});
+			const bundle = this.#getAttrForEntry(entry);
+			img = new MicrioImage(engine, bundle, {area: entry.area});
 			img.info.subscribe(() => {})();
 			engine.addChild(img, this.image);
 			this.#trackImage(img);

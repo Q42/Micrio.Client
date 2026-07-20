@@ -8,7 +8,8 @@ import { fetchJson, jsonCache } from '$utils/fetch';
 import { idIsV5 } from '$utils/id';
 import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
-import { ATTRIBUTE_OPTIONS as AO, DEFAULT_INFO, localStorageKeys } from './globals';
+import { VERSION } from './version';
+import { ATTRIBUTE_OPTIONS as AO, DEFAULT_INFO, DEFAULT_SETTINGS, localStorageKeys } from './globals';
 import { writable, get, tick } from '$core/store';
 import { Engine } from '$render/engine';
 import { WebGL } from '$render/webgl';
@@ -305,7 +306,6 @@ ${cssVars}`;
 		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
 		if(opts.settings.noControls) this.state.ui.controls.set(false);
 
-		// Show UI as early as possible so the logo appears during loading
 		if (!opts.settings.noLogo) this.#printUI(!!opts.settings.noUI, false);
 
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
@@ -333,28 +333,45 @@ ${cssVars}`;
 				gallery.openOn(this);
 				return;
 			}
+
 			const baseId = resp['@id'] || resp.id || opts.id.replace(/info.json$/, '');
-			opts.id = baseId;
-			opts.width = resp.width;
-			opts.height = resp.height;
-			opts.isIIIF = true;
-			opts.path = baseId.replace(/\/[^/]*$/, '');
-			opts.tileSize = resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize;
+			this.open({
+				id: baseId,
+				info: {
+					id: baseId,
+					path: baseId.replace(/\/[^/]*$/, '') + '/',
+					width: resp.width,
+					height: resp.height,
+					tileSize: resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize,
+					version: VERSION,
+					isIIIF: true,
+				} as Models.ImageInfo.ImageInfo,
+				settings: opts.settings,
+			});
+			return;
 		}
 
 		this.keepRendering = !!opts.settings.keepRendering;
 		const doOpen = opts.id || opts.settings?.gallery?.type === 'grid';
 		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
+		const openBundle = () => {
+			if(opts.id) this.open(opts.id);
+			else if(opts.settings?.gallery?.type === 'grid') this.open({
+				id: '',
+				info: { id: '', path: '', version: VERSION, width: 0, height: 0, tileSize: DEFAULT_INFO.tileSize },
+				settings: opts.settings,
+			});
+		};
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {
 			const observer = new IntersectionObserver(e => {
 				if(!e[0] || !e[0].isIntersecting) return;
 				observer.unobserve(this);
-				if(doOpen) this.open(opts);
+				openBundle();
 			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`});
 			observer.observe(this);
 		}
-		else if(doOpen) requestAnimationFrame(() => this.open(opts));
+		else if(doOpen) requestAnimationFrame(openBundle);
 	}
 
 	/**
@@ -386,14 +403,14 @@ ${cssVars}`;
 	}
 
 	/**
-	 * Opens a Micrio image by its ID or by providing partial image info data.
-	 * This is the primary method for loading and displaying images.
+	 * Opens a Micrio image by its Micrio ID (triggers a `bundle.json` download) or
+	 * by providing a pre-resolved {@link Models.ImageBundle.BundleImage}.
 	 *
-	 * @param idOrInfo An image ID string (e.g., 'abcdef123') or a partial {@link Models.ImageInfo.ImageInfo} object.
+	 * @param idOrInfo A Micrio image ID string or a full {@link Models.ImageBundle.BundleImage} object.
 	 * @param opts Options for opening the image.
 	 * @returns The {@link MicrioImage} instance being opened.
 	*/
-	open(idOrInfo:string|Partial<Models.ImageInfo.ImageInfo>, opts:{
+	async open(idOrInfo:string|Models.ImageBundle.BundleImage, opts:{
 		/** If true, keeps the grid view active instead of focusing on the opened image. */
 		gridView?: boolean,
 		/** If true, opens the image as a secondary split-screen view. */
@@ -410,39 +427,92 @@ ${cssVars}`;
 		gallery?: Gallery,
 		/** ImageInfo array for initial grid layout. */
 		gridImages?: Models.ImageInfo.ImageInfo[],
-	}={}) : MicrioImage {
-		if(!this.#printed) this.#print();
-		const isId = typeof idOrInfo == 'string';
-		const attrOpts = this.#getOptions();
-		let i:Partial<Models.ImageInfo.ImageInfo> = isId ? {...attrOpts, id:idOrInfo} : idOrInfo;
-		if(!i.settings) i.settings = {};
-		if(attrOpts.settings?.gallery?.archive) if(!/\.\d+$/.test(attrOpts.settings.gallery.archive)) delete attrOpts.settings.gallery.archive;
-		if(!isId) deepCopy(attrOpts.settings, i.settings);
-		if(this.defaultSettings) deepCopy(this.defaultSettings, i.settings);
-		if(i.settings?.gallery?.settings) deepCopy(i.settings.gallery.settings, i.settings);
+	}={}) : Promise<MicrioImage> {
+		if(!this.#printed) await this.#print();
 
-		if(this.$current && i.id == this.$current?.id) return this.$current;
+		// ── Resolve input to a BundleImage ────────────────────────────────────
+
+		const attrOpts = this.#getOptions();
+		let bundle: Models.ImageBundle.BundleImage;
+
+		// IIIF URL: fetch manifest, attempt gallery, else extract single image info
+		if(typeof idOrInfo === 'string' && idOrInfo.startsWith('http')) {
+			const resp = await fetchJson<Record<string, any>>(idOrInfo).catch(e => { this.printError(e); return undefined; });
+			if(!resp) return this.$current!;
+
+			let gallery: Gallery | null;
+			try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
+			catch(e) { this.printError(e as Error); return this.$current!; }
+			if(gallery) {
+				gallery.openOn(this);
+				return this.$current!;
+			}
+
+			const baseId = resp['@id'] || resp.id || idOrInfo.replace(/info.json$/, '');
+			bundle = {
+				id: baseId,
+				info: {
+					id: baseId,
+					path: baseId.replace(/\/[^/]*$/, '') + '/',
+					width: resp.width,
+					height: resp.height,
+					tileSize: resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize,
+					version: VERSION,
+					isIIIF: true,
+				},
+			};
+		}
+		// Standard bundle ID: fetch from DataLoader
+		else if(typeof idOrInfo === 'string') {
+			bundle = (await DataLoader.getBundleImage(idOrInfo))!;
+			if(!bundle) {
+				this.printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
+				return this.$current!;
+			}
+		}
+		// Already a BundleImage
+		else {
+			bundle = idOrInfo;
+		}
+
+		// ── Merge attribute / default settings (strings only — BundleImage already carries its own) ──
+
+		if(!bundle.settings) bundle.settings = {};
+		if(attrOpts.settings?.gallery?.archive && !/\.\d+$/.test(attrOpts.settings.gallery.archive))
+			delete attrOpts.settings.gallery.archive;
+		if(typeof idOrInfo === 'string') {
+			deepCopy(attrOpts.settings, bundle.settings);
+		}
+		if(this.defaultSettings) deepCopy(this.defaultSettings, bundle.settings);
+		if(bundle.settings?.gallery?.settings) deepCopy(bundle.settings.gallery.settings, bundle.settings);
+		deepCopy(DEFAULT_SETTINGS, bundle.settings, {noOverwrite: true}); // Fill in any missing defaults
+
+		// ── Deduplicate ───────────────────────────────────────────────────────
+
+		if(this.$current && bundle.id == this.$current?.id) return this.$current;
 
 		if(!opts.splitScreen && !opts.gridView && this.$current) this.switching.set(true);
-		if(!i.settings.noGTag) this.#analytics.hook();
-		this.#printUI(!!i.settings.noUI, !!i.settings.noLogo);
+		if(!bundle.settings.noGTag) this.#analytics.hook();
+		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
 
-		let c:MicrioImage|undefined = this.canvases.find(c => i.id && c.id == i.id);
+		// ── Find or create canvas ─────────────────────────────────────────────
+
+		let c:MicrioImage|undefined = this.canvases.find(c => bundle.id && c.id == bundle.id);
 		let isInGrid:boolean = false;
 		const grid = this.canvases[0]?.grid;
 		if(!c && grid) {
-			const gridImage = i.id ? grid.images.find(img => img.id == i.id) : undefined;
+			const gridImage = bundle.id ? grid.images.find(img => img.id == bundle.id) : undefined;
 			isInGrid = !!gridImage;
-			c = i.id ? gridImage : this.canvases[0];
+			c = bundle.id ? gridImage : this.canvases[0];
 			if(isInGrid && !grid.insideGrid()) this.current.set(this.canvases[0]);
 		}
 		if(!c) {
 			if(this.canvases.length) {
 				const main = this.canvases[0];
-				i.path = main.dataPath;
-				i.lang = this.lang;
+				bundle.info.path = main.dataPath;
+				bundle.info.lang = this.lang;
 			}
-			this.canvases.push(c = new MicrioImage(this.engine, i, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this.#current, isPassive: opts.isPassive } : undefined));
+			this.canvases.push(c = new MicrioImage(this.engine, bundle, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this.#current, isPassive: opts.isPassive } : undefined));
 		}
 
 		if(opts.gallery) {
@@ -451,8 +521,8 @@ ${cssVars}`;
 		}
 
 		if(opts.startView) {
-			c.state.view.set(i.settings.view = opts.startView);
-			if(c.placed && c.engine.ready) c.camera.setView(i.settings.view,{noRender:true});
+			c.state.view.set(bundle.settings.view = opts.startView);
+			if(c.placed && c.engine.ready) c.camera.setView(bundle.settings.view,{noRender:true});
 		}
 
 		if(!this.lang) this.lang = 'en';
@@ -465,7 +535,9 @@ ${cssVars}`;
 			return c;
 		}
 
-		once(c.info).then(i => { if(!i || !c) return;
+		// ── Post-init (fires immediately now since info is synchronous) ────────
+
+		once(c.info).then(info => { if(!info || !c) return;
 			if(!this.#initedFirst) {
 				this.canvas.hook();
 
@@ -477,52 +549,43 @@ ${cssVars}`;
 				this.#initedFirst = true;
 			}
 
-			// Initialize grid controller if needed
 			if(c.$settings?.gallery?.type === 'grid' && !c.grid) {
 				c.grid = new Grid(this, c, opts.gridImages);
 			}
 
-			// Dispatch 'load' event after a tick
 			tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
 
-			// Start split-screen transition if applicable
 			if(opts.splitScreen) tick().then(() => { if(!c) return;
-				// If in grid and an animation might be running (check aniDoneAdd queue)
 				if(grid?.image.camera.aniDoneAdd && grid.image.camera.aniDoneAdd.length > 0) {
-					// Add splitStart to the queue to run after animation finishes
 					grid.image.camera.aniDoneAdd.push(() => c?.splitStart());
 				} else {
-					// Otherwise, start the split screen immediately
 					c.splitStart();
 				}
 			});
-
 		});
 
-		// Set 360 orientation vector for transitions
+		// ── 360 vector ────────────────────────────────────────────────────────
+
 		this.engine.direction = opts.vector?.direction ?? 0;
 		this.engine.distanceX = opts.vector?.distanceX ?? 0;
 		this.engine.distanceY = opts.vector?.distanceY ?? 0;
-
-		// Prevent engine from auto-setting direction if coming from a waypoint
 		this.engine.preventDirectionSet = !opts.vector;
 
-		// Handle setting the current image based on context (grid, split, single)
-		if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == i.id))) {
-			// Focus the image within the grid, then set as current
-			grid?.focus(c, {view: i.settings?.view}).then(() => this.current.set(c));
+		// ── Set current / grid / split ────────────────────────────────────────
+
+		if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == bundle.id))) {
+			grid?.focus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
 		}
-		else if(!opts.splitScreen) { // Set as main current image
+		else if(!opts.splitScreen) {
 			this.current.set(c);
 		}
-		else { // Set as active canvas in engine for split-screen
+		else {
 			this.engine.setCanvas(c);
 		}
 
-		// If image has no visual content (e.g., just data), mark loading as finished
 		if(c.noImage) this.loading.set(false);
 
-		return c; // Return the MicrioImage instance
+		return c;
 	}
 
 	/**
@@ -541,12 +604,12 @@ ${cssVars}`;
 	 * @internal
 	 * @returns A partial {@link Models.ImageInfo.ImageInfo} object containing options derived from attributes.
 	*/
-	#getOptions(): Partial<Models.ImageInfo.ImageInfo> {
+	#getOptions(): Partial<Models.ImageInfo.ImageInfo> & { settings?: Partial<Models.ImageInfo.Settings> } {
 		const sets:Partial<Models.ImageInfo.Settings> = {
 			gallery: {} as any // Initialize gallery settings object
 		};
 
-		const opts:Partial<Models.ImageInfo.ImageInfo> = {
+		const opts = {
 			settings: sets as Models.ImageInfo.Settings,
 			id: this.id // Start with the element's ID
 		};

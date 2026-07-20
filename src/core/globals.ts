@@ -42,52 +42,28 @@ export const localStorageKeys = {
 	globalMuted: 'micrio-muted', // Key for storing the global muted state
 };
 
-/** Default settings applied to all Micrio images unless overridden.
+/** Default settings applied to all Micrio images unless overridden by the bundle or attributes.
  * @internal
  */
-const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
-	// General
-	camspeed: 1, // Camera animation speed multiplier
-
-	// Camera settings
-	view: [0,0,1,1], // Initial view full view
-	restrict: [0,0,1,1], // View restriction boundaries full image
-	focus: [.5,.5], // Default focus point [x, y] for zoom/cover view
-	zoomLimit: 1, // Maximum zoom factor relative to cover scale (1 = no zoom beyond cover)
-	fullscreen: true, // Enable fullscreen button
-
-	// Events
-	hookEvents: true, // Enable standard event listeners (click, drag, etc.)
-	hookScroll: true, // Enable scroll wheel zoom
-	hookPinch: true, // Enable pinch zoom
-	hookDrag: true, // Enable drag panning
-
-	// Minimap
-	minimap: true, // Enable minimap display
-
-	// Marker tours
-	doTourJumps: true, // Enable zoom-out/zoom-in effect for marker tour transitions
-
-	// Audio
-	audio: true, // Enable audio features
-	startVolume: 1, // Initial volume level (0-1)
-	mutedVolume: 0, // Volume level when muted (usually 0)
-
-	// Internal marker settings defaults
-	_markers: {
-		showTitles: false, // Show marker titles statically by default?
-		popupAnimation: {duration: 200, x: -50}, // Animation settings for marker popups
-		zoomOutAfterClose: true // Zoom out after closing a marker?
-	},
-	// Internal UI settings defaults
-	ui: {
-		controls: {
-			cultureSwitch: true // Show language switch button if multiple languages available?
-		}
-	},
-	// Internal 360 settings defaults
+export const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
+	camspeed: 1,
+	view: [0,0,1,1],
+	restrict: [0,0,1,1],
+	focus: [.5,.5],
+	zoomLimit: 1,
+	fullscreen: true,
+	hookEvents: true,
+	hookScroll: true,
+	hookPinch: true,
+	hookDrag: true,
+	minimap: true,
+	doTourJumps: true,
+	audio: true,
+	startVolume: 1,
+	mutedVolume: 0,
+	_markers: { showTitles: false, popupAnimation: {duration: 200, x: -50}, zoomOutAfterClose: true },
+	ui: { controls: { cultureSwitch: true } },
 	_360: {},
-	// Internal meta settings defaults
 	_meta: {}
 };
 
@@ -107,9 +83,6 @@ export const DEFAULT_INFO : Models.ImageInfo.ImageInfo = {
 	height: 0, // Placeholder
 	tileSize: 1024, // Default tile size
 	lang: 'en', // Default language
-
-	// Default settings object
-	settings: DEFAULT_SETTINGS
 }
 
 

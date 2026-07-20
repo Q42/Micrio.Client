@@ -87,11 +87,6 @@ export namespace ImageInfo {
 		/** Force the `path` attribute to be used to get the info.json data */
 		forceInfoPath?: boolean;
 
-		/** The image settings, such as viewport/UI settings, camera and user event behavior
-		 * NOTE: to modify this at runtime, use the MicrioImage.settings Writable store.
-		*/
-		settings?: Partial<ImageInfo.Settings>;
-
 		/** The image title (default: autoloaded) */
 		title?: string;
 
