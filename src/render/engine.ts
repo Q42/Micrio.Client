@@ -443,7 +443,7 @@ export class Engine {
 
 		if (!canvas.placed) once(canvas.info).then(info => {
 			if (!info) return;
-			if (!this.micrio.$current || (!info.isIIIF && !canvas.opts.secondaryTo && info.id != this.micrio.$current.id)) return;
+			if (!this.micrio.$current || (!info.isIIIF && info.id != this.micrio.$current.id)) return;
 			this.#addCanvas(canvas);
 			if (canvas.embeds.length) canvas.embeds.forEach(e => this.addEmbed(e, canvas));
 		});

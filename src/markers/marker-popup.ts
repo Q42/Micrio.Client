@@ -99,7 +99,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 					($tour as Models.ImageData.MarkerTour & { next?(): void }).next?.();
 				}
 			} else {
-				if ($current && !image.opts.secondaryTo && $current.id != image.id && data.micrioLink?.id == $current.id) {
+				if ($current && $current.id != image.id && data.micrioLink?.id == $current.id) {
 					micrio.open(image.id);
 					image.state.marker.set(undefined);
 					micrio.state.popup.set(undefined);

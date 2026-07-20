@@ -54,7 +54,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 	#w = 0;
 	#matrix = '';
 	#fto: any;
-	#splitOpenTo: any;
 	// Omni arc visibility: target frame index and [start, end] frame range
 	#omniIndex = 0;
 	#omniArc: [number, number] | undefined;
@@ -210,7 +209,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 		};
 
 		const close = () => {
-			clearTimeout(this.#splitOpenTo);
 			this.classList.remove('opened');
 			events.dispatch('marker-closed', marker);
 			micrio.state.popover.set(undefined);
@@ -308,7 +306,6 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 
 	onDestroy() {
 		clearTimeout(this.#fto);
-		clearTimeout(this.#splitOpenTo);
 	}
 }
 

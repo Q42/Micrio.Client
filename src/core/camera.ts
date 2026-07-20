@@ -259,7 +259,7 @@ export class Camera {
 
 	/**
 	 * Sets the rendering area for this image within the main canvas.
-	 * Used for split-screen and potentially other layout effects. Animates by default.
+	 * Used for grid/embed layout effects. Animates by default.
 	 * @param v The target area rectangle [x0, y0, width, height] relative to the main canvas (0-1).
 	 * @param opts Options for setting the area.
 	 */

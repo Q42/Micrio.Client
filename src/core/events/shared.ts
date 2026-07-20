@@ -23,7 +23,7 @@ export type EventStateVars = {
 	},
 	/** Pinching state */
 	pinch: {
-		/** The image being pinched (relevant for split-screen). */
+		/** The image being pinched. */
 		image: MicrioImage | undefined,
 		/** Initial distance between pinch points. */
 		sDst: number;

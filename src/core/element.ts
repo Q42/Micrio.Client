@@ -92,7 +92,7 @@ ${cssVars}`;
 	 */
 	readonly current:Writable<MicrioImage|undefined> = writable();
 
-	/** Writable Svelte store holding an array of currently visible {@link MicrioImage} instances (relevant for split-screen or grid). */
+	/** Writable Svelte store holding an array of currently visible {@link MicrioImage} instances (relevant for grid). */
 	readonly visible:Writable<MicrioImage[]> = writable([]);
 
 	/** Internal reference to the current image instance.
@@ -423,12 +423,6 @@ ${cssVars}`;
 	async open(idOrInfo:string|Models.ImageBundle.BundleImage, opts:{
 		/** If true, keeps the grid view active instead of focusing on the opened image. */
 		gridView?: boolean,
-		/** If true, opens the image as a secondary split-screen view. */
-		splitScreen?: boolean,
-		/** The primary image when opening in split-screen mode. Defaults to the current main image. */
-		splitTo?: MicrioImage,
-		/** If true, opens the split-screen view passively (doesn't take focus). */
-		isPassive?: boolean,
 		/** An optional starting view to apply immediately. */
 		startView?: Models.Camera.View,
 		/** For 360 transitions, provides the direction vector from the previous image. */
@@ -480,7 +474,7 @@ ${cssVars}`;
 
 		if(this.$current && bundle.id == this.$current?.id) return this.$current;
 
-		if(!opts.splitScreen && !opts.gridView && this.$current) this.switching.set(true);
+		if(!opts.gridView && this.$current) this.switching.set(true);
 		if(!bundle.settings.noGTag) this.#analytics.hook();
 		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
 
@@ -501,7 +495,7 @@ ${cssVars}`;
 				bundle.info.path = main.dataPath;
 				bundle.info.lang = this.lang;
 			}
-			this.canvases.push(c = new MicrioImage(this.engine, bundle, opts.splitScreen ? { secondaryTo: opts.splitTo ?? this.#current, isPassive: opts.isPassive } : undefined));
+			this.canvases.push(c = new MicrioImage(this.engine, bundle));
 		}
 
 		if(opts.gallery) {
@@ -543,14 +537,6 @@ ${cssVars}`;
 			}
 
 			tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
-
-			if(opts.splitScreen) tick().then(() => { if(!c) return;
-				if(grid?.image.camera.aniDoneAdd && grid.image.camera.aniDoneAdd.length > 0) {
-					grid.image.camera.aniDoneAdd.push(() => c?.splitStart());
-				} else {
-					c.splitStart();
-				}
-			});
 		});
 
 		// ── 360 vector ────────────────────────────────────────────────────────
@@ -560,16 +546,13 @@ ${cssVars}`;
 		this.engine.distanceY = opts.vector?.distanceY ?? 0;
 		this.engine.preventDirectionSet = !opts.vector;
 
-		// ── Set current / grid / split ────────────────────────────────────────
+		// ── Set current / grid ────────────────────────────────────────────────
 
 		if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == bundle.id))) {
 			grid?.focus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
 		}
-		else if(!opts.splitScreen) {
-			this.current.set(c);
-		}
 		else {
-			this.engine.setCanvas(c);
+			this.current.set(c);
 		}
 
 		if(c.noImage) this.loading.set(false);
@@ -578,14 +561,11 @@ ${cssVars}`;
 	}
 
 	/**
-	 * Closes an opened MicrioImage.
-	 * For split-screen images, it triggers the split-end transition.
-	 * For main images, it removes the canvas from the engine.
+	 * Closes an opened MicrioImage and removes its canvas from the engine.
 	 * @param img The {@link MicrioImage} instance to close.
 	*/
 	close(img:MicrioImage) : void {
-		if(img.opts.secondaryTo) img.splitEnd(); // End split-screen
-		else this.engine.removeCanvas(img); // Remove main canvas
+		this.engine.removeCanvas(img);
 	}
 
 	/**

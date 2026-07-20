@@ -214,8 +214,6 @@ export namespace ImageData {
 		customIconIdx?: number;
 		/** This marker links to this image */
 		micrioLink?: Partial<ImageInfo.ImageInfo>;
-		/** This marker opens secondary split image with id */
-		micrioSplitLink?: string;
 		/** Don't animate the camera when opening this marker */
 		noAnimate?: boolean;
 		/** Show the title below the marker

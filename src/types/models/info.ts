@@ -268,13 +268,6 @@ export namespace ImageInfo {
 		clusterMarkers?: boolean;
 		/** The clustered marker radius */
 		clusterMarkerRadius?: number;
-		/** A static split-screen Micrio Image ID */
-		micrioSplitLink?: string;
-		/** When this is a secondary image in split screen, allow independent navigating */
-		secondaryInteractive?: boolean;
-		/** When this is a secondary image, don't follow the main image's navigation */
-		noFollow?: boolean;
-
 		/** Dark/light theme */
 		theme?: ("dark" | "light" | "os");
 

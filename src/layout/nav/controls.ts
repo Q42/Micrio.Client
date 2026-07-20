@@ -17,8 +17,6 @@ export class MicrioControls extends MicrioElement<ControlsProps> {
 	static styles = `micrio-controls{display:contents}
 micrio-controls aside:not(.grid-close){position:absolute;right:var(--micrio-border-margin);bottom:var(--micrio-border-margin);padding:0;margin:0;direction:rtl;z-index:2;transition:transform .25s ease,opacity .25s ease}
 micr-io.hide-ui micrio-controls aside:not(.grid-close):not(:hover){transform:translateX(calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
-micrio-controls aside.primary:not(.portrait){right:calc(50% + var(--micrio-border-margin))}
-micrio-controls aside.primary.portrait{bottom:calc(50% + var(--micrio-border-margin))}
 micrio-controls aside.grid-close{top:var(--micrio-border-margin);bottom:auto;position:absolute;right:var(--micrio-border-margin);max-width:calc(100% - var(--micrio-border-margin) * 2);z-index:2}
 micr-io[data-switching]>micrio-controls,micr-io[data-tour-active]>micrio-controls{opacity:0;pointer-events:none}
 micrio-controls>micrio-button,micrio-controls>menu{padding:0;margin:8px 0;display:block;width:var(--micrio-button-size)}
@@ -35,8 +33,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#showCultures = false;
 	#showSocial = false;
 	#showFullscreen = false;
-	#secondaryControls: MicrioImage | null = null;
-	#secondaryPortrait = false;
 	#gridFocussed: MicrioImage | undefined;
 	#gridClickable: 'focus' | 'zoom' | false = false;
 	#grid: any = undefined;
@@ -74,7 +70,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 	#group1!: HTMLElement;
 	#zoomGroup: any;
 	#fsGroup: any;
-	#aside2!: HTMLElement;
 	#aside3!: HTMLElement;
 
 	onMount() {
@@ -84,25 +79,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 		const { state: micrioState, _lang } = micrio;
 		const { tour, popup } = micrioState;
 		const { controls, zoom } = micrio.state.ui;
-
-		const splitStart = (e: any) => {
-			const img = e.detail as MicrioImage;
-			this.#secondaryPortrait = micrio.canvas.viewport.portrait;
-			if (!img.opts.isPassive) this.#secondaryControls = img;
-			this.#sync();
-		};
-
-		const splitStop = () => {
-			this.#secondaryControls = null;
-			this.#sync();
-		};
-
-		micrio.addEventListener('splitscreen-start', splitStart);
-		micrio.addEventListener('splitscreen-stop', splitStop);
-		this.addCleanup(() => {
-			micrio.removeEventListener('splitscreen-start', splitStart);
-			micrio.removeEventListener('splitscreen-stop', splitStop);
-		});
 
 		const readInfo = (s: Models.ImageInfo.Settings) => {
 			zoom.set(!s.noZoom);
@@ -181,7 +157,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			parent: this
 		});
 
-		this.#aside2 = createElement('aside', { className: 'primary', parent: this });
 		this.#aside3 = createElement('aside', { className: 'grid-close', parent: this });
 
 		this.#built = true;
@@ -217,7 +192,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 
 		if (!hasControls) {
 			this.#aside1.replaceChildren();
-			this.#aside2.replaceChildren();
 			this.#aside3.replaceChildren();
 			return;
 		}
@@ -324,26 +298,6 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 			}
 		} else if (this.#group1?.isConnected) {
 			this.#group1.remove();
-		}
-
-		// Split-screen secondary controls
-		const hasSecondary = $zoom && !!this.#secondaryControls;
-		if (hasSecondary) {
-			if (!this.#aside2?.isConnected) {
-				this.#aside2?.remove();
-				this.#aside2 = createElement('aside', {
-					className: 'primary',
-					children: [
-						createElement('micrio-button-group', {
-							children: [createElement('micrio-zoom-buttons')]
-						})
-					],
-					parent: this
-				});
-			}
-			this.#aside2.classList.toggle('portrait', this.#secondaryPortrait);
-		} else if (this.#aside2?.isConnected) {
-			this.#aside2.remove();
 		}
 
 		// Grid close button

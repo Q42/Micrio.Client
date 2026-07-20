@@ -17,22 +17,10 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	if (ctx.twoFingerPan) ctx.dispatch('panstart');
 }
 
-export function adjustSplitScreen(ctx: EventContext, coo: { x: number, y: number }, coo2: { x: number, y: number }): void {
-	const i = ctx.vars.pinch.image;
-	if (i?.opts.secondaryTo && i.opts.isPassive && i.opts.area) {
-		const dX = i.opts.area[0] * ctx.micrio.offsetWidth;
-		const dY = i.opts.area[1] * ctx.micrio.offsetHeight;
-		coo.x -= dX; coo2.x -= dX;
-		coo.y -= dY; coo2.y -= dY;
-	}
-}
-
 export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2: { x: number, y: number }): void {
 	const v = ctx.vars.pinch;
 	const i = v.image;
 	if (!i) return;
-
-	adjustSplitScreen(ctx, coo, coo2);
 
 	ctx.pinchFactor = Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v.sDst;
 	i.canvas?.camera.pinch(coo.x, coo.y, coo2.x, coo2.y);

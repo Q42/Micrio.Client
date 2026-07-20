@@ -1,5 +1,5 @@
 import type { Models } from '$types/models';
-import type { Readable, Unsubscriber, Writable } from '$core/store';
+import type { Readable, Writable } from '$core/store';
 import type { Grid } from '$grid/grid';
 import type { Engine } from '$render/engine';
 import type TileCanvas from '$render/tile-canvas';
@@ -193,10 +193,6 @@ export class MicrioImage {
 		public opts:{
 			/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
 			area?: Models.Camera.View;
-			/** For split screen, the primary image this one is secondary to. */
-			secondaryTo?: MicrioImage;
-			/** If true, passively follows the view changes of the primary split-screen image. */
-			isPassive?: boolean;
 			/** If true, this image is embedded within another image (affects rendering/camera). */
 			isEmbed?: boolean;
 			/** If true, uses the parent image's camera instead of creating its own (for switch/omni galleries). */
@@ -218,12 +214,7 @@ export class MicrioImage {
 		this.#__info = i;
 		this.dataPath = i.path || BASEPATH_V5;
 
-		if(opts.secondaryTo) {
-			this.opacity = 0;
-			opts.area = this.engine.micrio.canvas.viewport.portrait ? [0,1,1,0] : [1,0,0,1];
-			if(opts.isPassive === undefined) opts.isPassive = true;
-		}
-		else if(!opts.area) opts.area = [0,0,1,1];
+		if(!opts.area) opts.area = [0,0,1,1];
 
 		const s = bundle.settings;
 		const micrio = this.engine.micrio;
@@ -339,20 +330,6 @@ export class MicrioImage {
 			}
 		}
 
-		// Linked split-screen
-		if(s?.micrioSplitLink && !this.opts.secondaryTo) {
-			const linkId = s.micrioSplitLink;
-			const linkCached = DataLoader.getBundleImageSync(linkId);
-			micrio.open({
-				id: linkId,
-				info: linkCached?.info ?? { id: linkId, path: '', version: '', width: 0, height: 0 } as Models.ImageInfo.ImageInfo,
-				settings: { hookEvents: s.secondaryInteractive !== false, ...(linkCached?.settings ?? {}) },
-			}, {
-				splitScreen: true,
-				isPassive: !s.noFollow,
-			})
-		}
-
 		// Settings store & watermark
 		if(s) this.settings.set(s);
 		if(i.watermark) this.engine.micrio.webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
@@ -373,20 +350,9 @@ export class MicrioImage {
 
 		// Visibility subscription
 		let wasVis:boolean=get(this.visible);
-		let followUnsub:Unsubscriber|null;
 		this.visible.subscribe(v => {
 			if(v==wasVis) return; wasVis=v;
 
-			if(opts.secondaryTo) {
-				if(opts.isPassive) {
-					if(followUnsub) { followUnsub(); followUnsub = null; }
-					else if(v) followUnsub = opts.secondaryTo.state.view.subscribe(v => {
-						if(v && !this.camera.aniDone) this.camera.setView(v, {noLimit: true})
-					});
-				}
-				if(v) micrioRef.events.dispatch('splitscreen-start', this);
-				else micrioRef.events.dispatch('splitscreen-stop', this);
-			}
 			micrioRef.visible.update(l => {
 				if(v) l.push(this);
 				else l.splice(l.indexOf(this), 1);
@@ -536,34 +502,6 @@ export class MicrioImage {
 	/** Gets the HTMLMediaElement associated with a video embed ID. */
 	getEmbedMediaElement(id:string) : HTMLMediaElement|undefined {
 		return this.#embedElements.get(id);
-	}
-
-	/** Starts the split-screen transition animation for this (secondary) image. @internal */
-	splitStart() : void {
-		const p = this.engine.micrio.canvas.viewport.portrait; // Check orientation
-		// Set area for primary image (left/top half)
-		this.opts.secondaryTo?.camera.setArea(p ? [0,0,1,.5] : [0,0,.5,1], {noRender:true});
-		// Set area for this secondary image (right/bottom half)
-		this.camera.setArea(p ? [0,.5,1,.5] : [.5,0,.5,1], {noRender:true});
-		// Set initial view for this image
-		this.camera.setView(this.$settings?.view ?? [0,0,1,1])
-		this.engine.render(); // Trigger render
-	}
-
-	/** Ends the split-screen transition animation for this (secondary) image. @internal */
-	splitEnd() : void {
-		const a = this.opts.area; // Get current area
-		if(!a) return;
-		const w = a[2], h = a[3];
-		// Exit if area is already collapsed (prevent multiple calls)
-		if(Math.round(w * 1000)/1000 == 0 || Math.round(h * 1000)/1000 == 0) return;
-		const p = w > h; // Determine direction to collapse based on aspect ratio
-		// Animate this image's area to collapse off-screen
-		this.camera.setArea(p ? [0,1,1,0] : [1,0,0,1], {noRender:true});
-		// If primary image is not animating (or not part of grid), reset its area to full
-		if(!this.opts.secondaryTo?.grid || !this.opts.secondaryTo.camera.aniDone)
-			this.opts.secondaryTo?.camera.setArea([0,0,1,1], {noRender:true});
-		this.engine.render(); // Trigger render
 	}
 
 	/** Fades in the image smoothly or instantly. */

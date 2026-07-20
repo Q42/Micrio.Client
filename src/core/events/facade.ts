@@ -155,7 +155,6 @@ export class Events implements EventContext {
 
 	/**
 	 * Determines which MicrioImage instance is under the given screen coordinates.
-	 * Handles split-screen layouts.
 	 * @param c Screen coordinates {x, y}.
 	 * @returns The MicrioImage instance under the coordinates, or the main current image as fallback.
 	 */
@@ -163,20 +162,15 @@ export class Events implements EventContext {
 		if (!this.#visible) return;
 		const w = this.micrio.offsetWidth, h = this.micrio.offsetHeight,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
-		const hasSplitScreen = this.#visible?.find(i => !!i.opts.secondaryTo);
 		const candidates = this.#visible.filter(i => !i.noImage);
 		// When a grid controller exists, use its own image-under-cursor detection
 		const gridCtrl = this.micrio.canvases.find(i => i.grid);
 		if (gridCtrl) return gridCtrl.grid?.getImageAt(c.x, c.y) ?? this.micrio.$current;
 		// Default: find the visible image under the cursor by area
 		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
-			hasSplitScreen && grid ? false : area ? x >= area[0] && x <= area[0] + area[2] && y >= area[1] && y <= area[1] + area[3] : false
+			grid ? false : area ? x >= area[0] && x <= area[0] + area[2] && y >= area[1] && y <= area[1] + area[3] : false
 		);
-		if (t && t.opts.secondaryTo && t.opts.isPassive && t.opts.area) {
-			c.x -= t.opts.area[0] * w;
-			c.y -= t.opts.area[1] * h;
-		}
-		return t && !t.grid && (!t.opts.secondaryTo || !t.opts.isPassive) ? t : this.micrio.$current;
+		return t && !t.grid ? t : this.micrio.$current;
 	}
 
 	getVisible(): MicrioImage[] | undefined { return this.#visible; }
