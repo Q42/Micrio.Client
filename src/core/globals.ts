@@ -42,6 +42,9 @@ export const localStorageKeys = {
 	globalMuted: 'micrio-muted', // Key for storing the global muted state
 };
 
+/** Default tile size used throughout the application when none is specified by the bundle. */
+export const DEFAULT_TILE_SIZE: number = 1024;
+
 /** Default settings applied to all Micrio images unless overridden by the bundle or attributes.
  * @internal
  */
@@ -81,7 +84,7 @@ export const DEFAULT_INFO : Models.ImageInfo.ImageInfo = {
 	// Image data
 	width: 0, // Placeholder
 	height: 0, // Placeholder
-	tileSize: 1024, // Default tile size
+
 	lang: 'en', // Default language
 }
 

@@ -138,7 +138,7 @@ export class Grid {
 				version: '',
 				width: orig?.width ?? 0,
 				height: orig?.height ?? 0,
-				tileSize: 1024,
+
 			} as Models.ImageInfo.ImageInfo,
 		};
 	}

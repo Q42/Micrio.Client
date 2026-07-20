@@ -68,9 +68,9 @@ export namespace ImageInfo {
 		*/
 		height: number;
 		/** The original tile size in px
-		 * @default autoloaded
+		 * @default 1024
 		*/
-		tileSize: number;
+		tileSize?: number;
 
 		/** Use an alternative image ID for the image tiles */
 		tilesId?: string;

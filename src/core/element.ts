@@ -9,7 +9,7 @@ import { idIsV5 } from '$utils/id';
 import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { VERSION } from './version';
-import { ATTRIBUTE_OPTIONS as AO, DEFAULT_INFO, DEFAULT_SETTINGS, localStorageKeys } from './globals';
+import { ATTRIBUTE_OPTIONS as AO, DEFAULT_SETTINGS, localStorageKeys } from './globals';
 import { writable, get, tick } from '$core/store';
 import { Engine } from '$render/engine';
 import { WebGL } from '$render/webgl';
@@ -342,10 +342,9 @@ ${cssVars}`;
 					path: baseId.replace(/\/[^/]*$/, '') + '/',
 					width: resp.width,
 					height: resp.height,
-					tileSize: resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize,
 					version: VERSION,
 					isIIIF: true,
-				} as Models.ImageInfo.ImageInfo,
+				},
 				settings: opts.settings,
 			});
 			return;
@@ -359,7 +358,7 @@ ${cssVars}`;
 			if(opts.id) this.open(opts.id);
 			else if(opts.settings?.gallery?.type === 'grid') this.open({
 				id: '',
-				info: { id: '', path: '', version: VERSION, width: 0, height: 0, tileSize: DEFAULT_INFO.tileSize },
+				info: { id: '', path: '', version: VERSION, width: 0, height: 0 },
 				settings: opts.settings,
 			});
 		};
@@ -456,7 +455,6 @@ ${cssVars}`;
 					path: baseId.replace(/\/[^/]*$/, '') + '/',
 					width: resp.width,
 					height: resp.height,
-					tileSize: resp.tiles?.[0]?.width ?? DEFAULT_INFO.tileSize,
 					version: VERSION,
 					isIIIF: true,
 				},

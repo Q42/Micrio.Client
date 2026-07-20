@@ -8,7 +8,7 @@ import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { archive } from '$utils/archive';
 import { writable, get, type Writable } from '$core/store';
-import { BASEPATH, BASEPATH_V5, DEFAULT_INFO } from '$core/globals';
+import { BASEPATH, BASEPATH_V5 } from '$core/globals';
 
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).
  *  The slot is defined in normalized coordinates [x, y, width, height] within a virtual container
@@ -127,7 +127,7 @@ export class Gallery {
 					version: '',
 					width: c.width,
 					height: c.height,
-					tileSize: c.tileSize ?? DEFAULT_INFO.tileSize,
+					tileSize: c.tileSize,
 					isDeepZoom: c.isDeepZoom,
 					isPng: c.isPng,
 					isWebP: c.isWebP,
@@ -163,7 +163,6 @@ export class Gallery {
 				height: b.height,
 				isPng: b.format === 'image/png',
 				path: b.service[0].id.replace(/\/[^/]*$/, ''),
-				tileSize: DEFAULT_INFO.tileSize
 			}));
 
 			if (images.length === 1) return null;
@@ -185,7 +184,6 @@ export class Gallery {
 			isDeepZoom: c.isDeepZoom,
 			isPng: c.isPng,
 			isWebP: c.isWebP,
-			tileSize: 1024
 		}));
 
 		return new Gallery(items, engine, micrio, {
@@ -210,7 +208,7 @@ export class Gallery {
 			isDeepZoom: i.isDeepZoom,
 			isPng: i.isPng,
 			isWebP: i.isWebP,
-			tileSize: i.tileSize || 1024,
+			tileSize: i.tileSize,
 		}));
 
 		return new Gallery(items, engine, micrio, galleryConfig);
@@ -348,7 +346,6 @@ export class Gallery {
 				version: '',
 				width: isSwitch ? this.containerWidth : (micrio.offsetWidth * micrio.canvas.getRatio()),
 				height: isSwitch ? this.containerHeight : (micrio.offsetHeight * micrio.canvas.getRatio()),
-				tileSize: DEFAULT_INFO.tileSize,
 			},
 			settings: gallerySettings,
 		}, {

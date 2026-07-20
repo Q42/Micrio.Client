@@ -10,6 +10,7 @@ import type { Camera } from '$core/camera';
 import type { Models } from '$types/models';
 
 import { MicrioImage } from '$core/image';
+import { DEFAULT_TILE_SIZE } from '$core/globals';
 import { get } from '$core/store';
 import { archive } from '$utils/archive';
 import { Browser } from '$utils/browser';
@@ -354,7 +355,7 @@ export class Engine {
 			c.opacity,
 			coverLimit,
 			{
-				tileSize: i.tileSize ?? 1024,
+				tileSize: i.tileSize ?? DEFAULT_TILE_SIZE,
 				is360: i.is360 ?? false,
 				noImage: c.noImage,
 				isSingle: !!(i.isSingle || is360Video),
@@ -699,7 +700,7 @@ export class Engine {
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 			canvas.micrioImage = image;
 		} else {
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
 			image.placed = true;
@@ -741,7 +742,7 @@ export class Engine {
 			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 			const parentEntry = this.#entryByImage.get(parent);
 			if (!parentEntry) return;
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize || 1024, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
 			image.placed = true;

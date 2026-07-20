@@ -6,7 +6,7 @@ import type TileCanvas from '$render/tile-canvas';
 import type { GallerySwiper } from '$gallery/swiper';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
-import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, VIEWER_BASE } from './globals';
+import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_INFO, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { readable, writable, get } from '$core/store';
 import { getIdVal, idIsV5 } from '$utils/id';
@@ -323,7 +323,7 @@ export class MicrioImage {
 		}
 
 		// Zoom levels
-		for(let f=i.tileSize; f < Math.max(i.width,i.height); f *= 2, this.levels++) {}
+		for(let f=i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width,i.height); f *= 2, this.levels++) {}
 		let max = Math.max(i.width, i.height); do this.dzLevels++; while((max/=2) > 1);
 		if(s?.gallery?.archive) this.levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
 		if(!this.noImage) this.thumbSrc = this.getTileSrc(this.levels, 0, 0);
@@ -345,7 +345,7 @@ export class MicrioImage {
 			const linkCached = DataLoader.getBundleImageSync(linkId);
 			micrio.open({
 				id: linkId,
-				info: linkCached?.info ?? { id: linkId, path: '', version: '', width: 0, height: 0, tileSize: DEFAULT_INFO.tileSize } as Models.ImageInfo.ImageInfo,
+				info: linkCached?.info ?? { id: linkId, path: '', version: '', width: 0, height: 0 } as Models.ImageInfo.ImageInfo,
 				settings: { hookEvents: s.secondaryInteractive !== false, ...(linkCached?.settings ?? {}) },
 			}, {
 				splitScreen: true,
@@ -431,17 +431,14 @@ export class MicrioImage {
 
 		// Handle IIIF URL generation
 		if(i.isIIIF) {
-			const s = i.tileSize; // Tile size
-			const ts = Math.pow(2, layer) * s; // Size of the tile at this layer in image pixels
-			// Calculate region coordinates, clamping to image boundaries
+			const tileSize = i.tileSize ?? DEFAULT_TILE_SIZE;
+			const ts = Math.pow(2, layer) * tileSize;
 			const left = Math.min(i.width, x * ts);
 			const top = Math.min(i.height, y * ts);
 			const regionW = Math.min(i.width-left, ts);
 			const regionH = Math.min(i.height-top, ts);
-			// Calculate requested size, clamping to tile size
-			const sizeW = Math.round(Math.min(s, regionW / ts * s));
-			const sizeH = Math.round(Math.min(s, regionH / ts * s));
-			// Construct IIIF Image API URL
+			const sizeW = Math.round(Math.min(tileSize, regionW / ts * tileSize));
+			const sizeH = Math.round(Math.min(tileSize, regionH / ts * tileSize));
 			return `${i.path}/${i.id}/${[left,top,regionW,regionH].join(',')}/${[sizeW,sizeH].join(',')}/0/default.jpg`;
 		}
 
