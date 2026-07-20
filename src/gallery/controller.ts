@@ -299,7 +299,7 @@ export class Gallery {
 	goto(index: number): void {
 		this.currentIndex.set(index);
 		const parent = this.parent;
-		// Dispatch gallery-show event so Gallery.svelte and album interface respond
+		// Dispatch gallery-show event so the gallery and album interface respond
 		if (parent) {
 			this.engine.micrio.events.dispatch('gallery-show', index);
 		}

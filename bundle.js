@@ -9,7 +9,7 @@ const buildDir = './public/build/';
 const cssFiles = [];
 const walk = (dir) => {
 	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-		if (entry.name.startsWith('.') || entry.name === 'svelte' || entry.name === 'node_modules') continue;
+		if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
 		const full = path.join(dir, entry.name);
 		if (entry.isDirectory()) walk(full);
 		else if (entry.isFile() && entry.name.endsWith('.ts')) cssFiles.push(full);
@@ -39,7 +39,7 @@ const files = {
 	js: buildDir + 'micrio.prod.iife.js',
 }
 
-// Fix double vite/svelte classname hash selectors
+// Deduplicate repeated classname hash selectors in bundled CSS
 let cssContent = fs.readFileSync(files.css).toString();
 const matches = cssContent.match(/\.([^\d\.{ ):>,]+)/mig);
 if (matches) {

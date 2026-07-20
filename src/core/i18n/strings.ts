@@ -124,7 +124,7 @@ export const langs : {
 };
 
 /**
- * Writable Svelte store holding the currently active `ButtonTranslations` object.
+ * Writable store holding the currently active `ButtonTranslations` object.
  * Defaults to English ('en'). UI components subscribe to this store to display
  * translated text based on the currently selected language.
  * The language is typically changed by updating the `micrio._lang` store, which

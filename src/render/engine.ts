@@ -136,7 +136,7 @@ export class Engine {
 	/** Forget in-memory tiles after X seconds not drawn. */
 	#deleteAfterSeconds: number;
 
-	/** Array storing Svelte store unsubscriber functions. @internal */
+	/** Array storing store unsubscriber functions. @internal */
 	#unsubscribe: Unsubscriber[] = [];
 
 	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */

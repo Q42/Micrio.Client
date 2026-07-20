@@ -408,7 +408,7 @@ export namespace ImageInfo {
 		tourStepCounterInPopup?: boolean;
 		/** Allow marker popups to be minimized */
 		canMinimizePopup?: boolean;
-		/** Svelte transition-in animation for popup */
+		/** Transition-in animation for popup */
 		popupAnimation?: any;
 		/** Place primary body text above any media in popup */
 		primaryBodyFirst?: boolean;

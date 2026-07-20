@@ -46,13 +46,13 @@ export class MicrioImage {
 	*/
 	get $info():Models.ImageInfo.ImageInfo { return this.info }
 
-	/** Svelte Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
+	/**  Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
 	readonly settings: Writable<Models.ImageInfo.Settings> = writable({});
 
 	/** Getter for the current value of the {@link settings} store. */
 	get $settings():Models.ImageInfo.Settings { return get(this.settings) }
 
-	/** Svelte Writable store holding the image's cultural data (markers, tours, text content for the current language). See {@link Models.ImageData.ImageData}. */
+	/**  Writable store holding the image's cultural data (markers, tours, text content for the current language). See {@link Models.ImageData.ImageData}. */
 	readonly data: Writable<Models.ImageData.ImageData|undefined> = writable(undefined);
 
 	/** Getter for the current value of the {@link data} store. */
@@ -64,10 +64,10 @@ export class MicrioImage {
 	/** The virtual camera instance controlling the view for this image. */
 	public camera!:Camera;
 
-	/** Svelte Writable store holding the HTMLVideoElement if this image represents a video. */
+	/**  Writable store holding the HTMLVideoElement if this image represents a video. */
 	public readonly video:Writable<HTMLVideoElement|undefined> = writable(undefined);
 
-	/** Svelte Writable store indicating if this image's canvas is currently visible and being rendered.
+	/**  Writable store indicating if this image's canvas is currently visible and being rendered.
 	 * @readonly
 	*/
 	public readonly visible: Writable<boolean> = writable(false);
@@ -158,7 +158,7 @@ export class MicrioImage {
 	*/
 	opacity: number = 1;
 
-	/** Svelte Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
+	/**  Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
 	public readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
 
 	/** Array of child {@link MicrioImage} instances embedded within this image. */

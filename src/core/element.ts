@@ -27,7 +27,7 @@ import { createElement } from '$utils/dom';
 /**
  * The main Micrio custom HTML element `<micr-io>`.
  * This class acts as the central controller for the Micrio viewer, managing
- * the WebGL canvas, compute engine, Svelte UI, state, events, and image loading.
+ * the WebGL canvas, compute engine, UI, state, events, and image loading.
  *
  * It orchestrates the interaction between different parts of the library and
  * exposes methods and properties for controlling the viewer.
@@ -80,14 +80,14 @@ ${cssVars}`;
 	readonly canvases: MicrioImage[] = [];
 
 	/**
-	 * Writable Svelte store holding the currently active main {@link MicrioImage}.
+	 * Writable store holding the currently active main {@link MicrioImage}.
 	 * Use `<micr-io>.open()` to change the active image.
 	 * Subscribe to this store to react to image changes.
 	 * Access the current value directly using the {@link $current} getter.
 	 */
 	readonly current:Writable<MicrioImage|undefined> = writable();
 
-	/** Writable Svelte store holding an array of currently visible {@link MicrioImage} instances (relevant for grid). */
+	/** Writable store holding an array of currently visible {@link MicrioImage} instances (relevant for grid). */
 	readonly visible:Writable<MicrioImage[]> = writable([]);
 
 	/** Internal reference to the current image instance.
@@ -117,7 +117,7 @@ ${cssVars}`;
 	/** The Google Analytics integration controller. */
 	readonly #analytics: GoogleTag = new GoogleTag(this);
 
-	/** Writable Svelte store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
+	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);
 
 	/** The WebGL rendering controller.
@@ -138,22 +138,22 @@ ${cssVars}`;
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
 	public defaultSettings?: Partial<Models.ImageInfo.Settings>;
 
-	/** Writable Svelte store indicating the overall loading state of the viewer.
+	/** Writable store indicating the overall loading state of the viewer.
 	 * @internal
 	*/
 	readonly loading:Writable<boolean> = writable(true);
 
-	/** Writable Svelte store indicating if the viewer is currently transitioning between images.
+	/** Writable store indicating if the viewer is currently transitioning between images.
 	 * @internal
 	*/
 	readonly switching:Writable<boolean> = writable(false);
 
-	/** Writable Svelte store indicating the global muted state for audio. Synced with the `muted` attribute and localStorage.
+	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute and localStorage.
 	 * @internal
 	*/
 	readonly isMuted:Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) == '1')
 
-	/** Writable Svelte store holding the currently active language code (e.g., 'en', 'nl').
+	/** Writable store holding the currently active language code (e.g., 'en', 'nl').
 	 * @internal
 	*/
 	readonly _lang: Writable<string> = writable();

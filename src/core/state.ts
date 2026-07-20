@@ -7,7 +7,7 @@ import { writable } from '$core/store';
 /**
  * # Micrio State management
  *
- * Manages the application state using Svelte stores, allowing reactive updates
+ * Manages the application state using stores, allowing reactive updates
  * throughout the UI.
  * Replaces the imperative API of Micrio 3.x.
  *
@@ -24,10 +24,10 @@ export namespace State {
 	* # HTMLMicrioElement state controller (`micrio.state`)
 	*
 	* Manages the global application state associated with the main `<micr-io>` element.
-	* Provides Svelte stores for reactive UI updates.
+	* Provides stores for reactive UI updates.
 	*/
 	export class Main {
-		/** Writable Svelte store holding the currently active tour object (VideoTour or MarkerTour), or undefined if no tour is active. */
+		/** Writable store holding the currently active tour object (VideoTour or MarkerTour), or undefined if no tour is active. */
 		public readonly tour: Writable<Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined> = writable();
 
 		/** Internal reference to the current tour object. @internal */
@@ -36,10 +36,10 @@ export namespace State {
 		/** Getter for the current value of the {@link tour} store. */
 		public get $tour() : Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined {return this.#_tour}
 
-		/** Writable Svelte store holding the marker object currently opened in the *main* active image, or undefined if none is open. */
+		/** Writable store holding the marker object currently opened in the *main* active image, or undefined if none is open. */
 		public readonly marker: Writable<Models.ImageData.Marker|undefined> = writable();
 
-		/** Writable Svelte store holding the ID of the marker currently being hovered over. */
+		/** Writable store holding the ID of the marker currently being hovered over. */
 		public readonly markerHoverId: Writable<string|undefined> = writable();
 
 		/** Internal reference to the currently opened marker object. @internal */
@@ -48,10 +48,10 @@ export namespace State {
 		/** Getter for the current value of the {@link marker} store. */
 		public get $marker() : Models.ImageData.Marker|undefined { return this.#_marker }
 
-		/** Writable Svelte store holding the marker object whose popup is currently displayed. */
+		/** Writable store holding the marker object whose popup is currently displayed. */
 		public readonly popup: Writable<Models.ImageData.Marker|undefined> = writable<Models.ImageData.Marker>();
 
-		/** Writable Svelte store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
+		/** Writable store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
 		public readonly popover:Writable<Models.State.PopoverType|undefined> = writable();
 
 		/** UI state stores. */
@@ -90,7 +90,7 @@ export namespace State {
 	* primarily its viewport and currently opened marker.
 	*/
 	export class Image {
-		/** Writable Svelte store holding the current viewport [x0, y0, width, height] of this image. */
+		/** Writable store holding the current viewport [x0, y0, width, height] of this image. */
 		public readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
 		/** Internal reference to the current view. @internal */
 		#_view:Models.Camera.View|undefined;
@@ -98,7 +98,7 @@ export namespace State {
 		public get $view() : Models.Camera.View|undefined {return this.#_view}
 
 		/**
-		 * Writable Svelte store holding the currently active marker within *this specific image*.
+		 * Writable store holding the currently active marker within *this specific image*.
 		 * Can be set with a marker ID string or a full marker object. Setting to undefined closes the marker.
 		 */
 		public readonly marker: Writable<Models.ImageData.Marker|string|undefined> = writable(undefined);
@@ -107,7 +107,7 @@ export namespace State {
 		/** Getter for the current value of the {@link marker} store. */
 		public get $marker() : Models.ImageData.Marker|undefined {return this.#_marker}
 
-		/** Writable Svelte store holding the currently displayed layer index (for Omni objects). */
+		/** Writable store holding the currently displayed layer index (for Omni objects). */
 		public readonly layer: Writable<number> = writable(0);
 
 		constructor(image:MicrioImage){

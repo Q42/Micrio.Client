@@ -12,7 +12,7 @@ import { HLS_SCRIPT_URL, HLS_PLAYER_CONFIG, mediaSourceSupported, cloudflareStre
 /**
  * Manages the loading, playback, and WebGL integration of embedded videos
  * that are rendered directly onto the Micrio canvas texture (not as HTML elements).
- * Used internally by the `Embed.svelte` component when `printGL` is true.
+ * Used internally when `printGL` is true.
  * Handles HLS playback via hls.js if necessary.
  */
 export class GLEmbedVideo {
@@ -20,7 +20,7 @@ export class GLEmbedVideo {
 	#ism3u:boolean = false;
 	/** HLS.js player instance, if used. @internal */
 	#hlsPlayer: HlsPlayer|undefined = undefined;
-	/** Svelte store unsubscriber for the image visibility store. @internal */
+	/** Store unsubscriber for the image visibility store. @internal */
 	#usVid:Unsubscriber|undefined = undefined;
 	/** Timeout ID for delayed video looping. @internal */
 	#vidRepeatTo: ReturnType<typeof setTimeout> | undefined = undefined;

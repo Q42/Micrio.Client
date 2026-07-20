@@ -1,8 +1,8 @@
 /**
  * # Store API in Micrio
  *
- * Micrio uses a custom store implementation (`$ts/store`) for its internal state management.
- * The API is compatible with Svelte stores (writable, readable, get, subscribe).
+ * Micrio uses a custom store implementation (`$core/store`) for its internal state management.
+ * The API is compatible with stores (writable, readable, get, subscribe).
  *
  * This means that changes in values can passively trigger state updates.
  *

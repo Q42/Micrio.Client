@@ -1,5 +1,5 @@
 /**
- * Lightweight inline SVG icon definitions, replacing @fortawesome/free-solid-svg-icons + svelte-fa.
+ * Lightweight inline SVG icon definitions, replacing @fortawesome/free-solid-svg-icons.
  * Each icon is a tuple: [width, height, svgPath].
  * @author Marcel Duin <marcel@micr.io>
  */

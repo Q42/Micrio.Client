@@ -30,7 +30,7 @@ type VideoTourSegment = {
 /**
  * Controls the playback of a video tour, animating the camera according
  * to a predefined timeline and synchronizing with associated audio/video media.
- * Instances are typically created and managed by the `Tour.svelte` component.
+ * Instances are typically created and managed internally.
  */
 export class VideoTourInstance {
 	/** The parsed timeline segments derived from the tour data. @internal */

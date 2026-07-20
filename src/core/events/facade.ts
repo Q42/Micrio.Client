@@ -29,7 +29,7 @@ export class Events implements EventContext {
 	/** The Micrio `<canvas>` element where most events are captured. */
 	el: HTMLCanvasElement;
 
-	/** Writable Svelte store indicating if event handling is currently enabled. Set to false during tours or animations. */
+	/** Writable store indicating if event handling is currently enabled. Set to false during tours or animations. */
 	enabled: Writable<boolean> = writable(false);
 
 	/** Getter for the current value of the {@link enabled} store. */

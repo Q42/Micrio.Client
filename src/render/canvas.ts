@@ -42,7 +42,7 @@ export class Canvas {
 		portrait:false // Is the viewport currently in portrait orientation?
 	};
 
-	/** Writable Svelte store indicating if the client is likely a mobile device. */
+	/** Writable store indicating if the client is likely a mobile device. */
 	readonly isMobile:Writable<boolean> = writable<boolean>(false);
 
 	/** Getter for the current value of the {@link isMobile} store. */
