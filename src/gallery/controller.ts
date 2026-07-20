@@ -121,7 +121,6 @@ export class Gallery {
 			}, opts);
 		});
 
-		queueMicrotask(() => this.images.forEach(c => c.loadBundleData()));
 	}
 
 	// --- Factory Methods ---

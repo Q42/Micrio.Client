@@ -316,12 +316,8 @@ export class MicrioImage {
 		micrio.events.dispatch('pre-info', i);
 
 		// Bundle data
-		if((!this.noImage || this.isOmni) && !s?.skipMeta) {
-			if(bundle.data) {
-				this.data.set(bundle.data);
-			} else {
-				this.loadBundleData();
-			}
+		if((!this.noImage || this.isOmni) && !s?.skipMeta && bundle.data) {
+			this.data.set(bundle.data);
 		}
 
 		// Settings store & watermark
@@ -506,20 +502,6 @@ export class MicrioImage {
 		const c = this.canvas;
 		if (c) { c.targetOpacity = 0; if (direct) c.opacity = 0; }
 		this.engine.render();
-	}
-
-	/** Loads image-specific data (markers, tours, etc.) from the bundle cache.
-	 *  Safe to call on gallery children and other non-current images —
-	 *  does not trigger auto-start or other main-image side effects.
-	 *  The bundle is typically already cached from the parent image's load. */
-	loadBundleData(): void {
-		const entry = DataLoader.getBundleImageSync(this.id);
-		if(entry?.data) {
-			if(entry.info?.revision && !get(this.info).revision)
-				get(this.info).revision = entry.info.revision;
-			this.engine.micrio.events.dispatch('pre-data', { [this.id]: entry.data });
-			this.data.set(entry.data);
-		}
 	}
 
 }
