@@ -292,6 +292,37 @@ ${cssVars}`;
 	}
 
 	/**
+	 * Fetches an IIIF manifest, attempts gallery creation, and falls back to a single-image BundleImage.
+	 * @returns The resolved BundleImage, or `undefined` if a gallery was opened or an error occurred.
+	 * @internal
+	 */
+	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
+		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.printError(e); return undefined; });
+		if(!resp) return;
+
+		let gallery: Gallery | null;
+		try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
+		catch(e) { this.printError(e as Error); return; }
+		if(gallery) {
+			gallery.openOn(this);
+			return;
+		}
+
+		const baseId = resp['@id'] || resp.id || url.replace(/info.json$/, '');
+		return {
+			id: baseId,
+			info: {
+				id: baseId,
+				path: baseId.replace(/\/[^/]*$/, '') + '/',
+				width: resp.width,
+				height: resp.height,
+				version: VERSION,
+				isIIIF: true,
+			},
+		};
+	}
+
+	/**
 	 * Performs initial setup based on element attributes.
 	 * Loads necessary data like galleries, grids, or archives before opening the first image.
 	 * Handles lazy loading logic.
@@ -323,30 +354,10 @@ ${cssVars}`;
 		}
 
 		if(opts.id && opts.id.startsWith('http')) {
-			const resp = await fetchJson<Record<string, any>>(opts.id).catch(e => { this.printError(e); return undefined; });
-			if(!resp) return;
-
-			let gallery: Gallery | null;
-			try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
-			catch(e) { this.printError(e as Error); return; }
-			if(gallery) {
-				gallery.openOn(this);
-				return;
-			}
-
-			const baseId = resp['@id'] || resp.id || opts.id.replace(/info.json$/, '');
-			this.open({
-				id: baseId,
-				info: {
-					id: baseId,
-					path: baseId.replace(/\/[^/]*$/, '') + '/',
-					width: resp.width,
-					height: resp.height,
-					version: VERSION,
-					isIIIF: true,
-				},
-				settings: opts.settings,
-			});
+			const bundle = await this.#handleIIIF(opts.id);
+			if(!bundle) return;
+			bundle.settings = opts.settings;
+			this.open(bundle);
 			return;
 		}
 
@@ -436,29 +447,9 @@ ${cssVars}`;
 
 		// IIIF URL: fetch manifest, attempt gallery, else extract single image info
 		if(typeof idOrInfo === 'string' && idOrInfo.startsWith('http')) {
-			const resp = await fetchJson<Record<string, any>>(idOrInfo).catch(e => { this.printError(e); return undefined; });
-			if(!resp) return this.$current!;
-
-			let gallery: Gallery | null;
-			try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
-			catch(e) { this.printError(e as Error); return this.$current!; }
-			if(gallery) {
-				gallery.openOn(this);
-				return this.$current!;
-			}
-
-			const baseId = resp['@id'] || resp.id || idOrInfo.replace(/info.json$/, '');
-			bundle = {
-				id: baseId,
-				info: {
-					id: baseId,
-					path: baseId.replace(/\/[^/]*$/, '') + '/',
-					width: resp.width,
-					height: resp.height,
-					version: VERSION,
-					isIIIF: true,
-				},
-			};
+			const iiifBundle = await this.#handleIIIF(idOrInfo);
+			if(!iiifBundle) return this.$current!;
+			bundle = iiifBundle;
 		}
 		// Standard bundle ID: fetch from DataLoader
 		else if(typeof idOrInfo === 'string') {
