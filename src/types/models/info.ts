@@ -489,19 +489,6 @@ export interface Album {
 	currentImage?: Writable<MicrioImage>;
 }
 
-/** Gallery item representing a single image within a gallery or grid */
-
-export type GalleryItem = {
-	id: string;
-	width: number;
-	height: number;
-	path?: string;
-	tileSize?: number;
-	isDeepZoom?: boolean;
-	isPng?: boolean;
-	isWebP?: boolean;
-};
-
 /** Gallery configuration */
 export type GalleryConfig = {
 	type: 'swipe' | 'switch' | 'grid';

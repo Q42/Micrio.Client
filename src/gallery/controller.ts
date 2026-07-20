@@ -54,7 +54,7 @@ export class Gallery {
 
 	get type(): Models.GalleryConfig['type'] { return this.config.type; }
 
-	constructor(items: Models.GalleryItem[], engine: Engine, micrio: HTMLMicrioElement, config: Models.GalleryConfig) {
+	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, micrio: HTMLMicrioElement, config: Models.GalleryConfig) {
 		this.engine = engine;
 		this.micrio = micrio;
 		this.config = config;
@@ -68,9 +68,7 @@ export class Gallery {
 			this.containerWidth = Math.max(...items.map(p => p.width * (isSpreads ? 2 : 1)));
 		}
 
-		this.images = items.map((c, i) => {
-			const rev = config.revisions?.[c.id];
-
+		this.images = items.map((info, i) => {
 			const imageSettings: Record<string, any> = { ...config.settings };
 
 			// Propagate archive layer offset so child images adjust their level count
@@ -101,18 +99,15 @@ export class Gallery {
 							: [0.5, 0, 0.5, 1];
 				}
 
-				let area = fitArea(slot, this.containerWidth, this.containerHeight, c.width, c.height);
+				let area = fitArea(slot, this.containerWidth, this.containerHeight, info.width, info.height);
 
 				if (isSpreads) {
 					if (slot[0] === 0.5) {
-						// Right page: left-align to the spread center
 						area[0] = 0.5;
 					} else if (slot[0] === 0) {
-						// Left page: right-align to the spread center
 						const w = area[2];
 						area[0] = 0.5 - w;
 					}
-					// Cover pages (slot [0.25, 0, 0.5, 1]) stay centered
 				}
 
 				opts.area = area;
@@ -121,25 +116,13 @@ export class Gallery {
 			}
 
 			return new MicrioImage(engine, {
-				id: c.id,
-				info: {
-					id: c.id,
-					path: c.path,
-					version: '',
-					width: c.width,
-					height: c.height,
-					tileSize: c.tileSize,
-					isDeepZoom: c.isDeepZoom,
-					isPng: c.isPng,
-					isWebP: c.isWebP,
-					revision: rev,
-				} as Models.ImageInfo.ImageInfo,
+				id: info.id,
+				info: { ...info, revision: config.revisions?.[info.id] },
 				settings: imageSettings as any,
-				data: DataLoader.getBundleImageSync(c.id)?.data,
+				data: DataLoader.getBundleImageSync(info.id)?.data,
 			}, opts);
 		});
 
-		// Load per-image data (markers, tours, etc.) from the bundle cache
 		queueMicrotask(() => this.images.forEach(c => c.loadBundleData()));
 	}
 
@@ -158,12 +141,9 @@ export class Gallery {
 			if (!canvases.length)
 				throw new MicrioError('NO_CANVASES', { displayMessage: 'No valid IIIF canvases found in the manifest' });
 
-			const images = canvases.map((b: any): Models.GalleryItem => ({
-				id: b.service[0].id,
-				width: b.width,
-				height: b.height,
-				isPng: b.format === 'image/png',
-				path: b.service[0].id.replace(/\/[^/]*$/, ''),
+			const images = canvases.map((b: any): Models.ImageInfo.ImageInfo => ({
+				id: b.service[0].id, path: b.service[0].id.replace(/\/[^/]*$/, ''), version: '',
+				width: b.width, height: b.height, isPng: b.format === 'image/png',
 			}));
 
 			if (images.length === 1) return null;
@@ -177,14 +157,10 @@ export class Gallery {
 	static fromAssets(assets: Models.Assets.Image[], engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; basePath?: string }): Gallery {
 		const path = opts?.basePath ?? micrio.$current?.dataPath ?? BASEPATH;
 
-		const items: Models.GalleryItem[] = assets.map(c => ({
-			id: c.micrioId ?? c.id!,
-			path,
-			width: c.width,
-			height: c.height,
-			isDeepZoom: c.isDeepZoom,
-			isPng: c.isPng,
-			isWebP: c.isWebP,
+		const items: Models.ImageInfo.ImageInfo[] = assets.map(c => ({
+			id: c.micrioId ?? c.id!, path, version: '',
+			width: c.width, height: c.height,
+			isDeepZoom: c.isDeepZoom, isPng: c.isPng, isWebP: c.isWebP,
 		}));
 
 		return new Gallery(items, engine, micrio, {
@@ -209,11 +185,7 @@ export class Gallery {
 		const { images, config: galleryConfig } = await Gallery.#fromArchiveIndex(
 			archiveId, path, engine, micrio, { type: 'swipe', ...config }
 		);
-		const items: Models.GalleryItem[] = images.map(i => ({
-			id: i.id, path, width: i.width, height: i.height,
-			isDeepZoom: i.isDeepZoom, isPng: i.isPng, isWebP: i.isWebP, tileSize: i.tileSize,
-		}));
-		return new Gallery(items, engine, micrio, galleryConfig);
+		return new Gallery(images.map(i => ({ ...i, path, version: '' })), engine, micrio, galleryConfig);
 	}
 
 	static async fromGrid(archiveId: string, engine: Engine, micrio: HTMLMicrioElement, config?: Partial<Models.GalleryConfig & { path?: string }>): Promise<Gallery | null> {
