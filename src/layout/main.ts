@@ -70,7 +70,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#lastEmbedIds = '';
 
 	#layers = [
-		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'gallery', 'controls', 'embeds', 'markers',
+		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'grid', 'gallery', 'controls', 'embeds', 'markers',
 		'details', 'popup', 'tour', 'popover', 'minimap',
 		'error', 'progress'
 	];
@@ -299,6 +299,9 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		const $gallery = get(micrio.gallery);
+		const grid = micrio.$current?.grid;
+		if (grid) this.#place('grid', grid);
+
 		this.#show('gallery', !!$settings?.omni || !!($gallery?.type !== 'grid' && $gallery), () =>
 			createElement('micrio-gallery', { setProps: { controller: $gallery ?? undefined } }) as MicrioElement
 		);

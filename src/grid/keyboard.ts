@@ -14,7 +14,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 	}));
 	if (!cells.length) return;
 
-	let curIdx = cells.findIndex(c => c.img.id == grid._grid.querySelector(':focus')?.getAttribute('data-id'));
+	let curIdx = cells.findIndex(c => c.img.id == grid.querySelector(':focus')?.getAttribute('data-id'));
 	if (curIdx < 0) curIdx = 0;
 
 	const cur = cells[curIdx];

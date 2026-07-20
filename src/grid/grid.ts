@@ -4,6 +4,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import { MicrioImage } from '$core/image';
 import { get, writable, type Unsubscriber, type Writable, tick } from '$core/store';
 import { Gallery } from '$gallery/controller';
+import { MicrioElement } from '$core/component';
 import { GridActionType } from './actions';
 import { getEasing } from '$render/easing';
 import { createElement, sleep } from '$utils/dom';
@@ -14,13 +15,18 @@ import { hookGridKeys } from './keyboard';
 import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
 
-export class Grid {
+export class Grid extends MicrioElement {
+	static tag = 'micrio-grid';
+
+	static styles = `micrio-grid{position:fixed;top:0;left:0;width:100%;height:100%;display:grid;grid-auto-flow:row dense;grid-gap:0;will-change:transform;transform-origin:left top;--translate:none;--scale:1;transform:var(--translate) scale3d(var(--scale),var(--scale),1)}
+micrio-grid>button{background:transparent;border:none;padding:0;margin:0;cursor:pointer;pointer-events:auto;grid-area:auto / auto / span 1 / span 1}
+micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button{pointer-events:none}`;
+
 	readonly images:MicrioImage[] = [];
 	readonly imageMap:Map<string, MicrioImage> = new Map();
 
 	current:MicrioImage[] = [];
 
-	_grid = createElement('div', { className: 'micrio-grid' });
 	_buttons:Map<string, HTMLButtonElement> = new Map();
 
 	clickable: 'focus'|'zoom'|false = false;
@@ -52,17 +58,25 @@ export class Grid {
 
 	lastPromise:Promise<MicrioImage[]>|undefined;
 
-	constructor(
-		public micrio:HTMLMicrioElement,
-		public image:MicrioImage,
-		public gallery: Gallery
-	) {
-		gallery.images.forEach(img => this.#trackImage(img));
+	micrio!: HTMLMicrioElement;
+	image!: MicrioImage;
+	gallery!: Gallery;
 
-		const g = image.$settings?.grid;
+	#inited = false;
+
+	onMount() {
+		if (this.#inited) return;
+		this.#inited = true;
+		const props = this._props as { micrio: HTMLMicrioElement; image: MicrioImage; gallery: Gallery };
+		this.micrio = props.micrio;
+		this.image = props.image;
+		this.gallery = props.gallery;
+		this.gallery.images.forEach(img => this.#trackImage(img));
+
+		const g = this.image.$settings?.grid;
 		this.clickable = g?.clickable == 'focus' || g?.clickable == 'zoom' ? g.clickable : false;
 		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
-		if(this.clickable && image.$settings.hookKeys) hookGridKeys(this);
+		if(this.clickable && this.image.$settings.hookKeys) hookGridKeys(this);
 		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
 
@@ -71,10 +85,10 @@ export class Grid {
 			duration: 0,
 		}).then(() => {
 			this.#hook();
-			micrio.events.dispatch('grid-load');
+			this.micrio.events.dispatch('grid-load');
 		});
 
-		micrio.events.dispatch('grid-init', this);
+		this.micrio.events.dispatch('grid-init', this);
 	}
 
 	#hook() {
@@ -95,7 +109,7 @@ export class Grid {
 		});
 
 		if(this.clickable) {
-			this._grid.addEventListener('click', e => {
+			this.addEventListener('click', e => {
 				this.clickCell((e.target as HTMLElement)?.dataset.id);
 			});
 
@@ -263,13 +277,12 @@ export class Grid {
 		scale?:number;
 		columns?:number;
 	}) : void {
-		if(!opts.keepGrid) this.#removeGrid();
 		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0);
 		const cols = opts.columns ?? (opts.horizontal ? images.length : getCols(images.length, numTiles));
-		this._grid.style.gridTemplateColumns = `repeat(${cols}, auto)`;
-		this._grid.textContent = '';
-		this._grid.style.removeProperty('--translate');
-		this._grid.style.removeProperty('--scale');
+		this.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+		this.textContent = '';
+		this.style.removeProperty('--translate');
+		this.style.removeProperty('--scale');
 
 		images.forEach(i => {
 			if(!this._buttons.has(i.id)) this._buttons.set(i.id, createElement('button'));
@@ -284,20 +297,23 @@ export class Grid {
 			}
 			tile.dataset.id = i.id;
 			tile.setAttribute('data-scroll-through', '');
-			this._grid.appendChild(tile);
+			this.appendChild(tile);
 		});
 
-		this._grid.classList.toggle('grid-pan-zoom', this.panZoom == 'grid');
+		this.classList.toggle('grid-pan-zoom', this.panZoom == 'grid');
 
-		if(!opts.keepGrid || !this._grid.parentNode) this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null);
+		if (!this.parentNode) this.micrio.insertBefore(this, this.micrio.firstChild?.nextSibling ?? null);
+
+		const wasHidden = this.style.display === 'none';
+		if (wasHidden) this.style.display = '';
 
 		this.micrio.events.dispatch('grid-layout-set', this);
 
 		const w = this.micrio.offsetWidth;
 		const h = this.micrio.offsetHeight;
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1)));
-		this._grid.style.transform = '';
-		this._grid.childNodes.forEach((n:ChildNode) => { if(!n) return;
+		this.style.transform = '';
+		this.childNodes.forEach((n:ChildNode) => { if(!n) return;
 			const e = n as HTMLElement;
 			const id = e.dataset.id;
 			const r = e.getBoundingClientRect();
@@ -306,27 +322,28 @@ export class Grid {
 			if(img && !img.area) img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.width-o[0]*2)/w, (r.height-o[1]*2)/h]
 		});
 
-		if(!opts.keepGrid) this._grid.remove();
+		if (!this.clickable || wasHidden) this.style.display = 'none';
 	}
 
 	#placeGrid() : void {
 		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return;
-		if(this._grid.parentNode) return;
-		this.micrio.insertBefore(this._grid, this.micrio.firstChild?.nextSibling ?? null);
+		if (this.style.display !== 'none' && this.parentNode) return;
+		if (!this.parentNode) this.micrio.insertBefore(this, this.micrio.firstChild?.nextSibling ?? null);
+		this.style.display = '';
 		this.viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
 	}
 
 	#removeGrid() : void {
-		if(!this._grid.parentNode) return;
+		if (this.style.display === 'none' && !this.parentNode) return;
 		if(this.viewUnsub) this.viewUnsub();
-		this._grid.remove();
+		this.style.display = 'none';
 	}
 
 	#updateGrid = () : void => {
 		const xy = this.image.camera.getXY(0,0, true);
-		this._grid.style.setProperty('--translate', `translate3d(${xy[0]}px, ${xy[1]}px, 0)`);
-		this._grid.style.setProperty('--scale', this.image.camera.getScale().toString());
-		this._grid.dispatchEvent(new CustomEvent('update'));
+		this.style.setProperty('--translate', `translate3d(${xy[0]}px, ${xy[1]}px, 0)`);
+		this.style.setProperty('--scale', this.image.camera.getScale().toString());
+		this.dispatchEvent(new CustomEvent('update'));
 	}
 
 	#placeImage(entry:Models.Grid.GridImage, opts: {
@@ -437,10 +454,10 @@ export class Grid {
 		if(this.clickable == 'zoom') {
 			const a = img.opts.area ?? [0,0,1,1];
 			this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
-		} else this.focus(img);
+		} else this.gridFocus(img);
 	}
 
-	async focus(img:MicrioImage|undefined, opts: Models.Grid.FocusOptions={}) : Promise<void> {
+	async gridFocus(img:MicrioImage|undefined, opts: Models.Grid.FocusOptions={}) : Promise<void> {
 		if(!img) return this.back();
 
 		if(opts.coverLimit) opts.cover = true;
@@ -534,3 +551,5 @@ export class Grid {
 		]
 	}
 }
+
+customElements.define(Grid.tag, Grid);

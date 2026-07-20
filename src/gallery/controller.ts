@@ -7,6 +7,7 @@ import { jsonCache } from '$utils/fetch';
 import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { archive } from '$utils/archive';
+import { createElement } from '$utils/dom';
 import { writable, get, type Writable } from '$core/store';
 import { BASEPATH, BASEPATH_V5 } from '$core/globals';
 import { Grid } from '$grid/grid';
@@ -287,7 +288,9 @@ export class Gallery {
 		});
 
 		if (this.type == 'grid') {
-			img.grid = new Grid(micrio, img, this);
+			img.grid = createElement(Grid.tag, {
+				setProps: { micrio, image: img, gallery: this },
+			}) as Grid;
 		}
 	}
 
