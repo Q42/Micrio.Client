@@ -1,6 +1,5 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$core/image';
 import type { Unsubscriber } from '$core/store';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';

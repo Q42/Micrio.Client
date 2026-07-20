@@ -161,7 +161,7 @@ export default class Camera2D extends EngineCamera {
 		const c = this.canvas;
 		this.minScale = c.coverLimit ? this.coverScale : this.fullScale;
 
-		if (!noLimit && !c.main.isSwipe && (c.activeImageIdx === 0 && !c.coverLimit || c.activeImageIdx > 0)) {
+		if (!noLimit && !c.main.isSwipe && (c.activeImageIdx === 0 && !c.coverLimit || c.activeImageIdx > 0 && !c.coverLimit)) {
 			const aW = c.focus.width * c.width, aH = c.focus.height * c.height;
 			const cW = c.el.width, cH = c.el.height;
 			this.minScale = cW / cH > aW / aH ? cH / aH : cW / aW;

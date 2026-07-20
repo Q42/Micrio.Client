@@ -240,8 +240,12 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 
 		this.nextSize.clear();
 
-		if(opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
-		images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(!!opts.coverLimit));
+		if (opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
+		const forcedCoverLimit = opts.cover && !opts.coverLimit;
+		if (forcedCoverLimit) {
+			opts.coverLimit = true;
+			images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(true));
+		}
 
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
@@ -265,7 +269,8 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			this.#clearTimeouts();
 			requestAnimationFrame(() => engine.crossfadeDuration = defaultDur);
 			if(isDelayed) this.images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
-			if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(true));
+			if(forcedCoverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(false));
+			else if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(true));
 			if(this.clickable) this.#placeGrid();
 			this.lastAction = undefined;
 			resolved = true;
@@ -372,17 +377,18 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		if (!img.placed) {
 			engine.addChild(img, this.image);
 		}
-		if(entry.area) sleep(opts.delay * 1000).then(() => {
-			img.camera.setArea(entry.area!, {
+		if (entry.area) {
+			const set = () => img.camera.setArea(entry.area!, {
 				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img.visible))
 			});
-			if(opts.delay) engine.render();
-		});
+			if (opts.delay) sleep(opts.delay * 1000).then(set).then(() => engine.render());
+			else set();
+		}
 
 		const aniOpts = {duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera.aniDone && img.placed) {
 			const p = entry.view ? img.camera.flyToView(entry.view, aniOpts)
-				: opts.cover ? img.camera.flyToCoverView(aniOpts)
+				: opts.cover ? img.camera.flyToCoverView({...aniOpts, duration: 0})
 				: img.camera.flyToView([0,0,1,1], aniOpts);
 			p.catch(() => {});
 		}
@@ -530,20 +536,21 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 
 	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
 		const layout = this.history[this.history.length-1]?.layout;
+		const cover = this.image.$settings?.initType === 'cover';
 		if (!layout?.length) {
 			const galleryImages = this.gallery.images;
 			if (!galleryImages.length) return this.current;
 			return this.set(galleryImages.map((img, i) => ({
 				id: img.id,
 				size: i == idx ? [width, height] as [number, number] : [1],
-			})), { noHistory: true, keepGrid: true, duration: .5 });
+			})), { noHistory: true, keepGrid: true, duration: .5, cover });
 		}
 		const entries = layout as { id: string; size?: [number, number?] }[];
 		const input: Models.Grid.GridImage[] = entries.map((e, i) => ({
 			id: e.id,
 			size: i == idx ? [width, height] as [number, number] : e.size ?? [1],
 		}));
-		return this.set(input, { noHistory: true, keepGrid: true, duration: .5 });
+		return this.set(input, { noHistory: true, keepGrid: true, duration: .5, cover });
 	}
 
 	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {

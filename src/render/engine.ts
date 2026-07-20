@@ -693,7 +693,7 @@ export class Engine {
 				childOpts = { coverLimit: false, coverStart: false };
 			} else {
 				childOpts = {
-					coverLimit: !!image.$settings?.limitToCoverScale,
+					coverLimit: !!image.$settings?.limitToCoverScale || !!parent.$settings?.limitToCoverScale,
 					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
 				};
 			}
