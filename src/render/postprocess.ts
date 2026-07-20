@@ -18,16 +18,22 @@ const quadVertices = new Float32Array([
  * Passes through position and texture coordinates.
  * @internal
  */
-const vertexShader = `
-attribute vec2 a_position; // Vertex position (-1 to 1)
-attribute vec2 a_texCoord; // Texture coordinate (0 to 1)
+const vertexShader = [
+	// Vertex position (-1 to 1)
+	'attribute vec2 a_position;',
+	// Texture coordinate (0 to 1)
+	'attribute vec2 a_texCoord;',
 
-varying vec2 v_texCoord; // Pass texCoord to fragment shader
+	// Pass texCoord to fragment shader
+	'varying vec2 v_texCoord;',
 
-void main() {
-	v_texCoord = a_texCoord; // Pass through texture coordinate
-	gl_Position = vec4(a_position, 0.0, 1.0); // Set clip space position
-}`;
+	'void main() {',
+	// Pass through texture coordinate
+		'v_texCoord = a_texCoord;',
+	// Set clip space position
+		'gl_Position = vec4(a_position, 0.0, 1.0);',
+	'}',
+].join('');
 
 /**
  * Handles WebGL postprocessing effects.

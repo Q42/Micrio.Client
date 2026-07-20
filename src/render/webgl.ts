@@ -17,46 +17,61 @@ import { createElement } from '$utils/dom';
 const isFirefox:boolean = Browser.firefox;
 
 /** Internal vertex shader source code. @internal */
-const vertexShader:string = `
-uniform mat4 GLMatrix; // Combined ModelViewProjection matrix from Engine
+const vertexShader:string = [
+	// Combined ModelViewProjection matrix from Engine
+	'uniform mat4 GLMatrix;',
 
-attribute vec3 pos; // Vertex position (from Engine buffer)
-attribute vec2 aTextureCoord; // Texture coordinate (from static buffer)
+	// Vertex position (from Engine buffer)
+	'attribute vec3 pos;',
+	// Texture coordinate (from static buffer)
+	'attribute vec2 aTextureCoord;',
 
-varying highp vec2 vTextureCoord; // Pass texture coordinate to fragment shader
+	// Pass texture coordinate to fragment shader
+	'varying highp vec2 vTextureCoord;',
 
-void main()
-{
-	gl_Position = GLMatrix * vec4(pos, 1.0); // Calculate clip space position
-	vTextureCoord = aTextureCoord; // Pass through texture coordinate
-}`;
+	'void main()',
+	'{',
+		// Calculate clip space position
+		'gl_Position = GLMatrix * vec4(pos, 1.0);',
+		// Pass through texture coordinate
+		'vTextureCoord = aTextureCoord;',
+	'}',
+].join('');
 
 /** Internal fragment shader source code. @internal */
-const fragmentShader:string = `
-precision mediump float; // Use medium precision for fragment calculations
+const fragmentShader:string = [
+	// Use medium precision for fragment calculations
+	'precision mediump float;',
 
-varying highp vec2 vTextureCoord; // Received texture coordinate from vertex shader
+	// Received texture coordinate from vertex shader
+	'varying highp vec2 vTextureCoord;',
 
-uniform sampler2D uSampler; // The tile texture
-uniform float opacity; // Tile opacity (for fading)
-uniform int noTexture; // Flag indicating if texture is missing/not loaded
+	// The tile texture
+	'uniform sampler2D uSampler;',
+	// Tile opacity (for fading)
+	'uniform float opacity;',
+	// Flag indicating if texture is missing/not loaded
+	'uniform int noTexture;',
 
-void main() {
-	if(noTexture==1) { // If texture is missing
-		gl_FragColor = vec4(.1,.1,.1,.1); // Draw a placeholder color (dark semi-transparent gray)
-	} else {
-	${isFirefox ? `
+	'void main() {',
+		// If texture is missing
+		'if(noTexture==1) {',
+		// Draw a placeholder color (dark semi-transparent gray)
+			'gl_FragColor = vec4(.1,.1,.1,.1);',
+		'} else {',
 		// Firefox premultiplied alpha workaround
-		vec4 textureColor = texture2D(uSampler, vTextureCoord);
-		// Manually apply opacity to RGB based on new alpha
-		float newAlpha = min(1., textureColor.a * opacity);
-		gl_FragColor = vec4(textureColor.rgb * newAlpha, newAlpha);` : `
-		// Standard alpha blending (premultiplied alpha assumed in blendFunc)
-		gl_FragColor = texture2D(uSampler, vTextureCoord) * opacity;` }
-		// Debug: Draw red instead of texture
-		//gl_FragColor = vec4(1.,0.,0.,1.);
-	}
-}`;
+		...(isFirefox ? [
+			'vec4 textureColor = texture2D(uSampler, vTextureCoord);',
+			// Manually apply opacity to RGB based on new alpha
+			'float newAlpha = min(1., textureColor.a * opacity);',
+			'gl_FragColor = vec4(textureColor.rgb * newAlpha, newAlpha);',
+		] : [
+			// Standard alpha blending (premultiplied alpha assumed in blendFunc)
+			'gl_FragColor = texture2D(uSampler, vTextureCoord) * opacity;',
+		]),
+		'}',
+	'}',
+].join('');
 
 /** Watermark tile size. @internal */
 const watermarkTileSize = 256;
