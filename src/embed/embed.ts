@@ -1,4 +1,4 @@
-import { createElement, type ElementOptions } from '$utils/dom';
+import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
@@ -190,50 +190,40 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 	}
 
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
-		const tag = this.#href ? 'a' : 'div';
-
-		const opts: ElementOptions = {
-			className: 'embed-container',
+		this.#container = createElement(this.#href ? 'a' : 'div', {
+			className: 'embed-container'
+				+ (this.#noEvents ? ' no-events' : '')
+				+ (this.#hideWhenPaused && !this.#printGL && !!embed.video ? ' hide-when-paused' : ''),
+			id: embed.id ? 'e-' + embed.id : undefined,
+			props: this.#href ? { href: this.#href } : { role: 'figure' },
+			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,
 			events: {
 				click: () => this.#click(),
 				keydown: () => this.#click()
 			},
 			parent: this
-		};
-		if (embed.id) opts.id = 'e-' + embed.id;
-		if (this.#href) {
-			opts.props = { href: this.#href };
-			if (this.#hrefBlankTarget) opts.attrs = { target: '_blank' };
-		} else {
-			opts.props = { role: 'figure' };
-		}
-
-		this.#container = createElement(tag, opts);
-
-		this.#container.classList.toggle('no-events', this.#noEvents);
-		this.#container.classList.toggle('hide-when-paused', this.#hideWhenPaused && !this.#printGL && !!embed.video);
+		});
 
 		if (embed.video && !this.#printGL) {
 			this.#buildVideoContent(embed);
 		} else if (embed.frameSrc) {
 			this.#buildIframeContent(embed);
 		} else if (!this.#printGL && embed.src) {
-			const imgProps: Record<string, unknown> = { src: embed.src, alt: 'Embed' };
-			if (this.#isSVG && embed.width) imgProps.width = embed.width;
-			if (this.#isSVG && embed.height) imgProps.height = embed.height;
 			createElement('img', {
-				props: imgProps,
+				props: {
+					src: embed.src, alt: 'Embed',
+					...(this.#isSVG && embed.width ? { width: embed.width } : {}),
+					...(this.#isSVG && embed.height ? { height: embed.height } : {}),
+				},
 				style: this.#buttonStyle,
 				attrs: { 'data-scroll-through': '' },
 				parent: this.#container
 			});
 		} else {
-			const btnProps: Record<string, unknown> = {};
 			const $_lang = get(this.#micrio._lang);
 			const title = embed.title || (marker?.i18n?.[$_lang]?.title);
-			if (title) btnProps.title = title;
 			createElement('button', {
-				props: Object.keys(btnProps).length ? btnProps : undefined,
+				props: title ? { title } : undefined,
 				style: this.#buttonStyle,
 				attrs: { 'data-scroll-through': '', 'aria-label': 'embed-button' },
 				parent: this.#container
@@ -248,8 +238,6 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 		const wCalc = this.#w * this.#info.width;
 		const relScale = wCalc / width;
 
-		this.#figureEl = createElement('figure');
-
 		const vid = createElement('video', {
 			props: {
 				src: video.src!,
@@ -261,25 +249,22 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 				playsInline: true,
 				crossOrigin: 'anonymous',
 				preload: 'metadata'
-			}
+			},
+			style: relScale !== 1 ? `transform:scale(${relScale})` : undefined,
+			children: video.transparent && video.hasH265 && video.src?.endsWith('.webm') ? [
+				createElement('source', {
+					props: {
+						src: video.src.replace('.webm', '.mp4'),
+						type: 'video/mp4;codecs=hvc1'
+					}
+				})
+			] : undefined
 		});
 
-		if (relScale !== 1) {
-			vid.style.transform = `scale(${relScale})`;
-		}
-
-		if (video.transparent && video.hasH265 && video.src?.endsWith('.webm')) {
-			createElement('source', {
-				props: {
-					src: video.src.replace('.webm', '.mp4'),
-					type: 'video/mp4;codecs=hvc1'
-				},
-				parent: vid
-			});
-		}
-
-		this.#figureEl.appendChild(vid);
-		this.#container!.appendChild(this.#figureEl);
+		this.#figureEl = createElement('figure', {
+			children: [vid],
+			parent: this.#container!
+		});
 		this.#videoEl = vid;
 
 		if (embed.id && this.#props.image) {
