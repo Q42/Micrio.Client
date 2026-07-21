@@ -14,13 +14,17 @@
 	<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 	<style>
 		html { position: fixed; }
-		html, body { overscroll-behavior: none; width: 100%; height: 100%; overflow: hidden; }
+		html, body { overscroll-behavior: none; width: 100%; height: 100%; overflow: hidden; color: #e0e0e0; }
 		body { margin: 0; background-color: #222222; }
 		body, button { font-family: 'Poppins', sans-serif; }
 		micr-io { display: block; width: 100%; height: 100%; }
-		html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; }
 		.topbar, .topbar * { margin: 0; padding: 0; box-sizing: border-box; }
-		.topbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.15rem 1rem; background: #16213e; border-bottom: 1px solid #0f3460; height: 40px; }
+		.topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 200; display: flex; align-items: center; gap: 0.75rem; padding: 0.15rem 1rem; background: #16213e; border-bottom: 1px solid #0f3460; height: 40px; }
+		.topbar.collapsed { transform: translateY(-100%); }
+		.topbar-toggle { position: fixed; top: 4px; right: 1rem; z-index: 201; background: #16213e; border: 1px solid #0f3460; color: #e0e0e0; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 0.7rem; line-height: 1.6; transition: opacity 0.3s; display: none; }
+		.topbar-toggle:hover { background: #0f3460; }
+		.topbar-close { background: none; border: none; color: #a8a8b8; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 2px; margin-left: auto; }
+		.topbar-close:hover { color: #e0e0e0; }
 		.topbar select { max-width: 380px; padding: 0.3rem 0.5rem; background: #0f3460; color: #e0e0e0; border: 1px solid #533483; border-radius: 4px; font-size: 0.75rem; }
 		.topbar label { font-weight: 600; font-size: 0.9rem; color: #a8a8b8; white-space: nowrap; }
 		.topbar .meta-info { display: flex; align-items: center; gap: 0.5rem 1rem; flex-wrap: wrap; flex: 1; font-size: 0.82rem; overflow: hidden; }
@@ -28,7 +32,7 @@
 		.topbar .meta-info .tag.organisation { background: #1a6b3c; }
 		.topbar .meta-info code { font-size: 0.78rem; color: #79c0ff; }
 		.topbar .meta-info a { color: #79c0ff; font-size: 0.78rem; white-space: nowrap; }
-		.main { display: flex; flex-direction: column; height: calc(100% - 40px); }
+		.main { display: flex; flex-direction: column; height: 100%; }
 		.viewport { flex: 1; position: relative; overflow: hidden; }
 		.viewport micr-io { display: block; width: 100%; height: 100%; }
 		.no-selection { display: flex; align-items: center; justify-content: center; flex: 1; color: #585878; font-size: 1.2rem; }
@@ -63,11 +67,13 @@
 	<!-- <script src="https://b.micr.io/micrio-1.9.min.js"></script> -->
 </head>
 <body>
-	<div class="topbar">
+	<button class="topbar-toggle" id="topbarToggle">☰</button>
+	<div class="topbar" id="topbar">
 		<label for="selector">Test case:</label>
 		<select id="selector"></select>
 		<div class="meta-info" id="meta"></div>
 		<button class="edit-btn" id="editBtn">Edit</button>
+		<button class="topbar-close" id="topbarClose">✕</button>
 	</div>
 	<div class="main">
 		<div class="viewport" id="viewport">
@@ -95,7 +101,7 @@
 				htmlString: '<micr-io id="zcucg" width="3418" height="4096" path="https://micrio.s3.eu-north-1.amazonaws.com/" tilesize="1024" format="dz" webp xextension="webp" skipmeta="" xui="false"></micr-io>' },
 			{ id: 'rqFkjZz', type: 'basic', description: 'General test image',
 				htmlString: '<micr-io id="rqFkjZz"></micr-io>',
-				editorLink: 'https://dash.micr.io/micrio/2026/@CVWjwhk' },
+				editorLink: 'https://dash.micr.io/micrio/2026/@rqFkjZz' },
 
 			// ── Omni ───────────────────────────────────────────────
 			{ id: 'QgjdoCK', type: 'omni', description: 'Omni image',
@@ -218,6 +224,9 @@
 		const meta = document.getElementById('meta');
 		const noSel = document.getElementById('noSel');
 		const editBtn = document.getElementById('editBtn');
+		const topbarEl = document.getElementById('topbar');
+		const topbarToggle = document.getElementById('topbarToggle');
+		const topbarClose = document.getElementById('topbarClose');
 		const overlay = document.getElementById('overlay');
 		const editor = document.getElementById('editor');
 		const saveBtn = document.getElementById('saveBtn');
@@ -249,6 +258,16 @@
 			editor.value = t.htmlString;
 			overlay.classList.add('open');
 			editor.focus();
+		});
+
+		topbarToggle.addEventListener('click', () => {
+			topbarEl.classList.remove('collapsed');
+			topbarToggle.style.display = 'none';
+		});
+
+		topbarClose.addEventListener('click', () => {
+			topbarEl.classList.add('collapsed');
+			topbarToggle.style.display = 'block';
 		});
 
 		function closeModal() {
@@ -316,6 +335,8 @@
 			sel.dispatchEvent(new Event('change'));
 		}
 
+		topbarEl.classList.add('collapsed');
+		topbarToggle.style.display = 'block';
 		build();
 	</script>
 </body>
