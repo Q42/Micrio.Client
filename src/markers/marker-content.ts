@@ -14,7 +14,7 @@ export interface MarkerContentProps {
 
 export class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	static tag = 'micrio-marker-content';
-	static styles = `micrio-marker-content{display:block;position:relative;padding:var(--micrio-popup-padding);padding-bottom:0;overflow-y:auto;user-select:text;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);box-sizing:border-box;text-align:var(--micrio-text-align)}
+	static styles = `micrio-marker-content{display:block;position:relative;padding:var(--micrio-popup-padding);padding-bottom:0;overflow-y:auto;user-select:text;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);box-sizing:border-box;text-align:var(--micrio-text-align);max-height:calc(100cqh - 2 * var(--micrio-border-margin))}
 micrio-marker-content>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
 micrio-marker-content h1{font-size:1.5em;font-weight:600;margin:0 0 1.25em 0}
 micrio-marker-content p{white-space:pre-line}
@@ -27,9 +27,11 @@ micrio-marker-content section{display:grid;grid-template-columns:repeat(auto-fit
 micrio-marker-content section button{color:inherit;border:none;display:block;width:100%;cursor:pointer;margin:0}
 micrio-marker-content section figure{padding:0;margin:0}
 micrio-marker-content section img{width:100%;display:block;object-fit:cover}
-@media(max-width:500px){micrio-marker-content section{display:block;float:right;width:100px;margin-left:var(--micrio-border-margin)}
-micrio-marker-content section>button:not(:nth-child(1)){display:none}
-micrio-marker-content section figcaption{display:none}
+micrio-marker-content section button:only-child img{max-height:min(50cqh,400px);object-fit:contain}
+@media(max-width:500px){
+	micrio-marker-content section{display:block;float:right;width:100px;margin-left:var(--micrio-border-margin)}
+	micrio-marker-content section>button:not(:nth-child(1)){display:none}
+	micrio-marker-content section figcaption{display:none}
 }`;
 
 	_title: HTMLElement | undefined;
