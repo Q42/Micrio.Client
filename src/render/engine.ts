@@ -224,10 +224,12 @@ export class Engine {
 
 		const numLoading = runningThreads();
 		const c = this.images[imgIdx];
-		const isVideo = 'camera' in c && c.isVideo;
-		const is360 = 'camera' in c && c.is360;
-		const img = 'camera' in c ? c : c.image;
+		const hasCamera = 'camera' in c;
+		const isVideo = hasCamera && c.isVideo;
+		const is360 = hasCamera && c.is360;
+		const img = hasCamera ? c : c.image;
 		const frame = 'frame' in c ? c.frame : undefined;
+		const noSmoothing = hasCamera && c.$settings.noSmoothing;
 
 		if (tile.loadState === 0 && numLoading < numThreads) {
 			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
@@ -239,9 +241,7 @@ export class Engine {
 			else {
 				tile.loadState = 1;
 				const src = img.getTileSrc(layer, x, y, frame);
-				if (src) this.getTexture(i, src, animating, {
-					noSmoothing: '$info' in c && c.$settings.noSmoothing
-				});
+				if (src) this.getTexture(i, src, animating, { noSmoothing });
 				else {
 					tile.loadState = 0;
 					return false;
@@ -291,7 +291,7 @@ export class Engine {
 	/** Unbinds event listeners, stops rendering, and cleans up resources. */
 	unbind(): void {
 		this.#stop();
-		while (this.#unsubscribe.length) this.#unsubscribe.shift()?.();
+		while (this.#unsubscribe.length) this.#unsubscribe.pop()?.();
 		this.#requests.forEach(src => abortDownload(src));
 		this.#requests.clear();
 		for (const [idx, tile] of this.#tiles.entries()) {
@@ -406,12 +406,7 @@ export class Engine {
 
 		canvas.sendViewport();
 
-		const numTiles = this.numTiles;
-		if (numTiles > 0) {
-			const baseTileIdx = numTiles - 1;
-			this.#getTileEntry(baseTileIdx).opacity = 1;
-			this.#baseTiles.push(baseTileIdx);
-		}
+		if (this.numTiles > 0) this.#registerBaseTile(this.numTiles - 1);
 
 		const v = get(c.state.view) || settings.view;
 		if (v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) {
@@ -531,6 +526,12 @@ export class Engine {
 			this.#tiles.set(i, tile);
 		}
 		return tile;
+	}
+
+	/** Registers a base tile index (mark loaded, cache in set). @internal */
+	#registerBaseTile(idx: number): void {
+		this.#getTileEntry(idx).opacity = 1;
+		this.#baseTiles.push(idx);
 	}
 
 	/** Prepares the WebGL context for drawing a new frame. @internal */
@@ -659,32 +660,35 @@ export class Engine {
 
 	/** Add a child image to the current canvas, either embed or independent canvas. @internal */
 	#addImage = (
-		image: MicrioImage,
+		image: MicrioImage | Models.Omni.Frame,
 		parent: MicrioImage,
 		isEmbed: boolean = false,
-		opacity: number = 1
+		opacity: number = 1,
+		fromScale?: number,
 	): void => {
 		this.images.push(image);
-		this.#placeOnCanvas(image, parent, isEmbed, opacity);
+		this.#placeOnCanvas(image, parent, isEmbed, opacity, fromScale);
 	}
 
 	/** @internal */
 	#placeOnCanvas = (
-		image: MicrioImage,
+		image: MicrioImage | Models.Omni.Frame,
 		parent: MicrioImage,
 		isEmbed: boolean,
-		opacity: number
+		opacity: number,
+		fromScale?: number,
 	): void => {
-		const i = image.$info;
+		const i = '$info' in image ? image.$info : parent.$info;
 		if (!i) return;
 
 		const a = image.opts.area ?? [0, 0, 1, 1];
-		const _360 = image.$settings._360 ?? {};
+		const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 		const parentEntry = this.#entryByImage.get(parent);
 		if (!parentEntry) return;
 
 		let canvas: TileCanvas;
 		if (!isEmbed) {
+			if (!(image instanceof MicrioImage)) return;
 			const isGallery = !!(image.$settings.gallery?.archive || image.$settings.gallery?.type);
 			let childOpts: { coverLimit?: boolean; coverStart?: boolean } = {};
 			if (isGallery) {
@@ -698,15 +702,14 @@ export class Engine {
 			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 			canvas.micrioImage = image;
 		} else {
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1);
+			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, fromScale ?? 0);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
 			image.placed = true;
 			this.#setEntry({ canvas: parentEntry.canvas, micrioImage: image });
 
 			image.baseTileIdx = this.numTiles - 1;
-			this.#getTileEntry(image.baseTileIdx).opacity = 1;
-			this.#baseTiles.push(image.baseTileIdx);
+			this.#registerBaseTile(image.baseTileIdx);
 			return;
 		}
 
@@ -714,8 +717,9 @@ export class Engine {
 		this.#setEntry({ canvas, micrioImage: image, camera: image.camera });
 
 		if (!isEmbed) {
-			this.#bindCamera(image);
-			if (image.$settings.focus) canvas.camera.setCoo(image.$settings.focus[0], image.$settings.focus[1], 0);
+			this.#bindCamera(image as MicrioImage);
+			const focus = (image as MicrioImage).$settings.focus;
+			if (focus) (canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);
 			const v = (image.$info as any)['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
 			else if (canvas.hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
@@ -724,31 +728,13 @@ export class Engine {
 		}
 
 		image.baseTileIdx = this.numTiles - 1;
-		this.#getTileEntry(image.baseTileIdx).opacity = 1;
-		this.#baseTiles.push(image.baseTileIdx);
+		this.#registerBaseTile(image.baseTileIdx);
 	}
 
 	/** Adds an embedded MicrioImage instance. @internal */
 	addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {
-		if ('camera' in image && opts.asImage) return this.#addImage(image, parent, true, opts.opacity ?? 1);
-		else {
-			const i = '$info' in image ? image.$info : parent.$info;
-			if (!i) return;
-			if (image.placed) return;
-			this.images.push(image);
-			const a = image.opts.area ?? [0, 0, 1, 1];
-			const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
-			const parentEntry = this.#entryByImage.get(parent);
-			if (!parentEntry) return;
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opts.opacity ?? 1, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, opts.fromScale);
-			this.#engImageToMicrio.set(engImage, image);
-			this.#micrioToEngImage.set(image, engImage);
-			image.placed = true;
-			this.#setEntry({ canvas: parentEntry.canvas, micrioImage: image });
-			image.baseTileIdx = this.numTiles - 1;
-			this.#getTileEntry(image.baseTileIdx).opacity = 1;
-			this.#baseTiles.push(image.baseTileIdx);
-		}
+		if (image.placed) return;
+		this.#addImage(image, parent, true, opts.opacity ?? 1, 'camera' in image && opts.asImage ? undefined : opts.fromScale);
 	}
 
 	/** Add a child independent canvas to the current canvas. @internal */
