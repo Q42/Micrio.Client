@@ -9,6 +9,8 @@ import { getEasing } from '$render/easing';
 import { GallerySwiper } from '$gallery/swiper';
 import { createElement } from '$utils/dom';
 import { icons } from '$ui/icons';
+import { DataLoader } from '$utils/dataLoader';
+import { archive } from '$utils/archive';
 import '$ui/button';
 import '$ui/dial';
 
@@ -670,9 +672,10 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	// ─── Omni 3D object rotation ───────────────────────────────────
 
 	/** Renders the omni rotation UI (dial + swipe + layer menu). */
-	#renderOmni(image: MicrioImage) {
+	async #renderOmni(image: MicrioImage) {
 		const micrio = this.getMicrio();
-		if (!micrio) return;
+		const bundle = DataLoader.getBundleImageSync(image.id);
+		if (!micrio || !bundle) return;
 		const settings = image.$settings;
 		const omni = settings.omni;
 		if (!omni) return;
@@ -701,6 +704,15 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			};
 			engine.addEmbed(frame, image, { opacity: 0, asImage: false });
 			frames.push(frame);
+		}
+
+		// Load the archive bin, after which UI will be 
+		if (bundle.settings?.omni && parseFloat(bundle.info.version) >= 5) {
+			await archive.load(
+				bundle.info.tileBasePath || bundle.info.path,
+				(bundle.info.tilesId ?? bundle.info.id) + '/base',
+				(p:number) => micrio._ui?.setProps?.({loadingProgress: p})
+			).catch(() => {});
 		}
 
 		// Show the first frame

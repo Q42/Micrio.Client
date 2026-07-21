@@ -23,7 +23,6 @@ import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
 import { cssVars } from './css-vars';
 import { createElement } from '$utils/dom';
-import { archive } from '$utils/archive';
 
 /**
  * The main Micrio custom HTML element `<micr-io>`.
@@ -338,25 +337,14 @@ ${cssVars}`;
 
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const bundle = await DataLoader.getBundleImage(opts.id).catch(() => undefined);
-			if(bundle) {
-				const onProgress = (p:number) => this._ui?.setProps?.({loadingProgress: p});
-				// Preload omni archive before open(), matching the fromAlbum() pattern
-				if (bundle.settings?.omni && parseFloat(bundle.info.version) >= 5) {
-					await archive.load(
-						bundle.info.tileBasePath || bundle.info.path,
-						(bundle.info.tilesId ?? bundle.info.id) + '/base',
-						onProgress
-					).catch(() => {});
-				}
-				if(bundle.info?.albumId) {
-					const galleryCtrl = await Gallery.fromAlbum(bundle.info.albumId, this.engine, this, {
-						startId: opts.id,
-						onProgress
-					}).catch(() => null);
-					if(galleryCtrl) {
-						galleryCtrl.openOn(this);
-						return;
-					}
+			if(bundle && bundle.info?.albumId) {
+				const galleryCtrl = await Gallery.fromAlbum(bundle.info.albumId, this.engine, this, {
+					startId: opts.id,
+					onProgress: (p:number) => this._ui?.setProps?.({loadingProgress: p})
+				}).catch(() => null);
+				if(galleryCtrl) {
+					galleryCtrl.openOn(this);
+					return;
 				}
 			}
 		}
