@@ -26,7 +26,7 @@ micrio-swipe-gallery>figcaption{position:absolute;top:var(--micrio-border-margin
 	}
 
 	onMount() {
-		const el = createElement('micr-io', { dataset: { logo: 'false' }, parent: this }) as HTMLMicrioElement;
+		const el = createElement('micr-io', { parent: this }) as HTMLMicrioElement;
 
 		const caption = createElement('figcaption', { parent: this });
 

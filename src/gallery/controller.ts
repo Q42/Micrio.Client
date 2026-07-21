@@ -163,7 +163,7 @@ export class Gallery {
 		return new Gallery(items, engine, micrio, {
 			type: 'swipe',
 			startId: opts?.startId,
-			settings: { skipMeta: true }
+			settings: { skipMeta: true, noLogo: true }
 		});
 	}
 
