@@ -33,8 +33,8 @@ export class DrawRect {
 
 /** Represents the logical view rectangle within an image. @internal */
 export class View {
-	/** Float64Array view of [centerX, centerY, width, height] — for efficient JS access. */
-	readonly arr: Float64Array = new Float64Array(4);
+	#arr: Float64Array = new Float64Array([0.5, 0.5, 1, 1]);
+	#dirty: boolean = false;
 	/** Flag indicating if the view coordinates have changed since the last frame. */
 	public changed: boolean = false;
 	/** Flag indicating if the view limits have changed. */
@@ -56,7 +56,18 @@ export class View {
 		public lHeight: number = 1,
 	) {
 		this.#canvas = canvas;
-		this.toArray();
+	}
+
+	/** Float64Array view of [centerX, centerY, width, height]. */
+	get arr(): Float64Array {
+		if (this.#dirty) {
+			this.#arr[0] = this.centerX;
+			this.#arr[1] = this.centerY;
+			this.#arr[2] = this.width;
+			this.#arr[3] = this.height;
+			this.#dirty = false;
+		}
+		return this.#arr;
 	}
 
 	get x0(): number {
@@ -77,10 +88,7 @@ export class View {
 	get lX1(): number { return this.lCenterX + this.lWidth / 2; }
 	get lY1(): number { return this.lCenterY + this.lHeight / 2; }
 
-	get yaw(): number { return (this.centerX - .5) * Math.PI * 2 }
-	get pitch(): number { return (this.centerY - .5) * Math.PI }
 	get aspect(): number { return this.width / this.height }
-	get size(): number { return Math.sqrt(this.width * this.width + this.height * this.height) * (1 / Math.sqrt(2)) }
 
 	set(centerX: number, centerY: number, width: number, height: number, preserveAspect: boolean = false): void {
 		if (preserveAspect) {
@@ -95,7 +103,7 @@ export class View {
 		this.width = width;
 		this.height = height;
 
-		this.toArray();
+		this.#dirty = true;
 		this.changed = true;
 	}
 
@@ -105,7 +113,7 @@ export class View {
 		this.centerY = (y0 + y1) / 2;
 		this.width = x1 - x0;
 		this.height = y1 - y0;
-		this.toArray();
+		this.#dirty = true;
 	}
 
 	setLimit(lCenterX: number, lCenterY: number, lWidth: number, lHeight: number): void {
@@ -130,14 +138,7 @@ export class View {
 			this.lHeight = v.lHeight;
 		}
 		this.changed = true;
-		this.toArray();
-	}
-
-	/** Calculates the perspective value needed to achieve this view height in 360 mode. */
-	getPerspective(): number {
-		const c = this.#canvas;
-		const w = c.camera360;
-		return w.maxPerspective - (.5 / (this.height * c.height / c.el.height)) * Math.PI / w.scaleY
+		this.#dirty = true;
 	}
 
 	/** Calculates the effective scale factor represented by this view. */
@@ -147,19 +148,6 @@ export class View {
 			this.width * c.width / c.el.width,
 			this.height * c.height / c.el.height
 		);
-	}
-
-	/** Calculates a distance metric between this view and another view, used for animation duration. */
-	getDistance(v: View, correctAspect: boolean): number {
-		if (correctAspect && this.#canvas.currentArea.isFull()) {
-			v.correctAspectRatio();
-			this.correctAspectRatio();
-		}
-		const dCenterX = Math.abs(this.centerX - v.centerX);
-		const dCenterY = Math.abs(this.centerY - v.centerY);
-		const dWidth = Math.abs(this.width - v.width);
-		const dHeight = Math.abs(this.height - v.height);
-		return (dCenterX + dCenterY + dWidth + dHeight) / 4;
 	}
 
 	limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
@@ -175,7 +163,7 @@ export class View {
 			this.centerY = 0.5;
 			this.width = nW;
 			this.height = nH;
-			this.toArray();
+			this.#dirty = true;
 			return;
 		}
 
@@ -196,7 +184,7 @@ export class View {
 		}
 
 		if (noLimit) {
-			this.toArray();
+			this.#dirty = true;
 			return;
 		}
 
@@ -215,7 +203,7 @@ export class View {
 			this.centerY = Math.max(this.lCenterY - lHalfH + halfH, Math.min(this.centerY, this.lCenterY + lHalfH - halfH));
 		}
 
-		this.toArray();
+		this.#dirty = true;
 	}
 
 	correctAspectRatio(): void {
@@ -228,16 +216,17 @@ export class View {
 		} else {
 			this.width = this.height * targetAspect;
 		}
-		this.toArray();
+		this.#dirty = true;
 	}
 
 	/** Updates the shared Float64Array with the current view coordinates. */
 	toArray(): Float64Array {
-		this.arr[0] = this.centerX;
-		this.arr[1] = this.centerY;
-		this.arr[2] = this.width;
-		this.arr[3] = this.height;
-		return this.arr;
+		this.#arr[0] = this.centerX;
+		this.#arr[1] = this.centerY;
+		this.#arr[2] = this.width;
+		this.#arr[3] = this.height;
+		this.#dirty = false;
+		return this.#arr;
 	}
 
 	/** Checks if this view is equal to another view. */
@@ -246,11 +235,6 @@ export class View {
 			&& this.centerY === centerY
 			&& this.width === width
 			&& this.height === height;
-	}
-
-	/** Checks if this view represents the full image [0,0,1,1]. */
-	isFull(): boolean {
-		return this.width === 1 && this.height === 1 && this.centerX === 0.5 && this.centerY === 0.5;
 	}
 }
 

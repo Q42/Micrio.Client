@@ -348,8 +348,6 @@ export class TileCanvas {
 		this.main.progress = this.main.toDrawTotal === 0 ? 1
 			: this.main.doneTotal / this.main.toDrawTotal;
 
-		this.view.toArray();
-
 		for (let i = 0; i < this.#children.length; i++)
 			this.#children[i].shouldDraw();
 

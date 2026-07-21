@@ -215,8 +215,6 @@ export default class Camera2D extends EngineCamera {
 
 		this.#inited = this.cpw > 0;
 
-		v.toArray();
-
 		if (this.#hasStartCoo) {
 			this.#hasStartCoo = false;
 			this.setCoo(this.#startCoo.x, this.#startCoo.y, this.#startCoo.scale);
