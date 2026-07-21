@@ -464,8 +464,10 @@ export class TileCanvas {
 			if (!noDispatch) this.sendViewport();
 			this.view.changed = true;
 			this.resize();
-			this.camera2d.setCanvas();
-			this.camera2d.updateProjection();
+			if (!this.is360) {
+				this.camera2d.setCanvas();
+				this.camera2d.updateProjection();
+			}
 		}
 
 		return animating;
