@@ -10,10 +10,8 @@ import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE }
 import { Camera } from './camera';
 import { writable, get } from '$core/store';
 import { getIdVal, idIsV5 } from '$utils/id';
-import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
-import { archive } from '$utils/archive';
 import { createElement } from '$utils/dom';
 
 /** Keep track of already loaded scripts-- only do this once per session
@@ -213,23 +211,14 @@ export class MicrioImage {
 		const micrio = this.engine.micrio;
 
 		// V5 ID detection & derived info flags
-		(function(i: Models.ImageInfo.ImageInfo, id: string, s: Models.ImageInfo.Settings | undefined): { isV5Imported: boolean } {
-			if(s?._meta?.noLogo) s!.noLogo = true;
-			if(s?._meta?.noSmoothing) s!.noSmoothing = true;
-
-			if (!i.isIIIF && id.length == 7) {
-				const b = getIdVal(id[1 + (getIdVal(id) % 6)]);
-				i.is360 = !!((b >> 4) & 1) || !!i.is360;
-				i.isWebP = !(b & 3);
-				i.isPng = (b & 3) == 2;
-				if ((b >> 3) & 1 && idIsV5(i.tilesId ?? id)) i.format = 'dz';
-				if (!i.path) i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;
-			}
-
-			const isV5Imported = id.length == 6 && id.startsWith('i') && !id.includes('/');
-			if (isV5Imported && !i.tilesId) i.tilesId = id.slice(1);
-			return { isV5Imported };
-		})(i, this.id, s);
+		if (!i.isIIIF && this.id.length == 7) {
+			const b = getIdVal(this.id[1 + (getIdVal(this.id) % 6)]);
+			i.is360 = !!((b >> 4) & 1) || !!i.is360;
+			i.isWebP = !(b & 3);
+			i.isPng = (b & 3) == 2;
+			if ((b >> 3) & 1 && idIsV5(i.tilesId ?? this.id)) i.format = 'dz';
+			if (!i.path) i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;
+		}
 
 		// Determine tile base path
 		const isV5Imported = this.id.length == 6 && this.id.startsWith('i') && !this.id.includes('/');
@@ -244,16 +233,9 @@ export class MicrioImage {
 		else if(i.path == BASEPATH_V5_EU) this.dataPath = i.path;
 		else if(i.path) this.dataPath = i.path;
 
-		// Omni object setup (async archive — fire & forget)
+		// Omni object setup
 		if(s?.omni) {
 			this.isOmni = true;
-			if(parseFloat(i.version) >= 5) {
-				archive.load(this.tileBase??this.dataPath, (i.tilesId??i.id)+'/base', loadingProgress => micrio._ui?.setProps?.({loadingProgress}))
-					.catch(e => this.#setError(e, 'Could not find object base package.'));
-				const gal = s.gallery = (s.gallery ?? {}) as any;
-				gal.type = 'switch';
-				gal.archive = i.id;
-			}
 		}
 
 		// Org branding CSS (fire & forget)
@@ -350,19 +332,6 @@ export class MicrioImage {
 		this.video.subscribe(v => this._video = v);
 	}
 
-	/**
-	 * Sets the error state and prints it to the UI.
-	 * @internal
-	 * @param e The original error (MicrioError, Error, or string)
-	 * @param displayMessage Optional user-friendly message to display
-	 */
-	#setError(e: Error | string, displayMessage?: string): never {
-		const message = displayMessage ?? getErrorMessage(e);
-		this.error = message;
-		this.engine.micrio.printError(e instanceof MicrioError ? e : message);
-		this.engine.micrio.loading.set(false);
-		throw e instanceof Error ? e : new Error(message);
-	}
 
 	/**
 	 * Generates the source URL for a specific image tile.

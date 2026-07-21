@@ -2,6 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
+import type { Omni } from '$types/models/omni';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { getEasing } from '$render/easing';
@@ -685,20 +686,10 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		// Wait for image to be placed before registering frames
 		if (!image.placed) return;
 
-		this.#initOmniFrames(image, engine, info, totalFrames, pagesPerLayer);
-	}
-
-	/**
-	 * Registers all omni frames with the engine, sets up the dial control,
-	 * swipe gesture, layer switching, and thumbnail preloading.
-	 */
-	#initOmniFrames(image: MicrioImage, engine: any, info: any, totalFrames: number, pagesPerLayer: number) {
-		const micrio = this.getMicrio()!;
-
 		// Register all frames as embeds on the parent canvas
 		const frames: any[] = [];
 		for (let j = 0; j < totalFrames; j++) {
-			const frame: any = {
+			const frame: Omni.Frame = {
 				id: info.id + '/' + j,
 				image,
 				visible: writable(false),
