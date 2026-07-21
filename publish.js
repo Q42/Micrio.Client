@@ -41,17 +41,34 @@ if(npmPublish) {
 	console.log('done.\n')
 }
 
-// Publish JS to Cloudflare R2
+// Publish JS to Cloudflare R2 via AWS CLI (S3-compatible API)
 console.warn(`Publishing version ${version} to Micrio CDNs`);
 const suffix = args?.find(a => a.startsWith('--suffix='))?.split('=')[1] || '';
 
-for(const bucket of ['micrio','-J eu micrio-eu']) {
-	console.log(`https://${bucket=='micrio'?'r2':'eu'}.micr.io/micrio-${version}${suffix}.min.js`);
+const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+const awsKey = process.env.AWS_ACCESS_KEY_ID;
+const awsSecret = process.env.AWS_SECRET_ACCESS_KEY;
+if(!accountId) console.warn('CLOUDFLARE_ACCOUNT_ID not set');
+if(!awsKey) console.warn('AWS_ACCESS_KEY_ID not set');
+if(!awsSecret) console.warn('AWS_SECRET_ACCESS_KEY not set');
+if(!accountId || !awsKey || !awsSecret) {
+	console.error('\nError: CLOUDFLARE_ACCOUNT_ID, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY must all be set');
+	process.exit();
+}
+
+const r2Endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
+const r2EuEndpoint = `https://${accountId}.eu.r2.cloudflarestorage.com`;
+
+for(const [bucket, domain, endpoint] of [
+	['micrio', 'r2', r2Endpoint],
+	['micrio-eu', 'eu', r2EuEndpoint]
+]) {
+	console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.min.js`);
 	for(const [ext, type] of [
 		['js','text/javascript'],
 		['d.ts','text/plain']
 	]) {
-		await run(`npx wrangler r2 object put ${bucket}/micrio-${version}${suffix}.min.${ext} -f ./public/dist/micrio.min.${ext} --content-type ${type} --cache-control "public, max-age=31536000" --remote`);
+		await run(`aws s3 cp ./public/dist/micrio.min.${ext} s3://${bucket}/micrio-${version}${suffix}.min.${ext} --endpoint-url ${endpoint} --content-type ${type} --cache-control "public, max-age=31536000"`).catch(error);
 	}
 }
 
