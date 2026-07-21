@@ -12,7 +12,7 @@ import { writable, get } from '$core/store';
 import { getIdVal, idIsV5 } from '$utils/id';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
-import { createElement } from '$utils/dom';
+import { createElement, loadScript } from '$utils/dom';
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @private
@@ -285,7 +285,13 @@ export class MicrioImage {
 		// Custom JS/CSS (fire & forget)
 		if(s && !s.noExternals) {
 			if(s.css) this.#loadStyle(s.css.href);
-			if(s.js) this.#loadScript(s.js.href, lang);
+			if(s.js) {
+				const url = s.js.href.replace('$lang', lang);
+				loadScript(url);
+				const _el = document.head.querySelector('script[src="'+url+'"]') as HTMLScriptElement | undefined;
+				/** @ts-ignore -- used for custom JS to have a cool self reference */
+				if (_el) _el['micrioElement'] = this.engine.micrio;
+			}
 		}
 
 		// Zoom levels
@@ -369,22 +375,6 @@ export class MicrioImage {
 		// Construct standard Micrio tile URL
 		return `${this.tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.extension}`;
 	}
-
-	/** Loads an external script dynamically. Ensures scripts are loaded only once.
-	 * @internal
-	 */
-	#loadScript(s:string, lang:string='') : Promise<void> { return new Promise((ok:() => void) => {
-		if(jsCss.includes(s) || document.querySelector('script[src="'+s+'"]')) ok(); // Already loaded
-		else { jsCss.push(s); // Mark as loading
-			const _el = createElement('script', {
-				props: { type: 'text/javascript', async: true, defer: true, src: s.replace('$lang', lang) },
-				events: { load: ok as EventListener },
-				parent: document.head
-			});
-			/** @ts-ignore -- used for custom JS to have a cool self reference */
-			_el['micrioElement'] = this.engine.micrio; // Pass Micrio element reference
-		}
-	})}
 
 	/** Loads an external stylesheet dynamically. Ensures stylesheets are loaded only once.
 	 * @internal
