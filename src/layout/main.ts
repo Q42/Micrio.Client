@@ -64,9 +64,9 @@ micrio-main.is360{perspective:50cqh}`;
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
-	#lastEmbedIds = '';
 	#activePopupMarkerId: string | undefined;
 	#markerElements = new Map<string, MicrioElement>();
+	#embedElements = new Map<string, MicrioElement>();
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'grid', 'gallery', 'controls', 'embeds', 'markers',
@@ -239,56 +239,15 @@ micrio-main.is360{perspective:50cqh}`;
 			createElement('micrio-toolbar')
 		);
 
-		// Markers — <micrio-markers> per visible image with markers
-		const $visible = get(micrio.visible).filter((i): i is MicrioImage =>
-			!i.opts?.isEmbed && !!i.$data?.markers?.length
+		const $visible = get(micrio.visible);
+		this.#syncImageLayer(this.#markerElements, 'micrio-markers', 'markers', $visible, showMarkers,
+			(i) => !i.opts?.isEmbed && !!i.$data?.markers?.length
 		);
-		const visibleIds = new Set($visible.map(i => i.id));
 
-		for (const [id, el] of this.#markerElements) {
-			if (!visibleIds.has(id)) {
-				el.remove();
-				this.#markerElements.delete(id);
-			}
-		}
-
-		if (showMarkers) {
-			for (const img of $visible) {
-				if (this.#markerElements.has(img.id)) continue;
-				const el = createElement('micrio-markers', { setProps: { image: img } }) as MicrioElement;
-				this.#markerElements.set(img.id, el);
-				const before = this.#getBefore('markers');
-				if (before) this.insertBefore(el, before);
-				else this.appendChild(el);
-			}
-		} else {
-			for (const el of this.#markerElements.values()) el.remove();
-			this.#markerElements.clear();
-		}
-
-		// Update layer reference for #getBefore
-		this.#elements.set('markers', this.#markerElements.values().next().value ?? null);
-
-		// Embeds — only for images whose data has embeds
-		{
-			const showEmbeds = micrio.getAttribute('data-embeds') != 'false';
-			const $visible = get(micrio.visible) as MicrioImage[];
-			const withEmbeds = $visible.filter(i => i.$data?.embeds?.length);
-			const ids = withEmbeds.map(i => i.id).join(',');
-			if (showEmbeds && ids !== this.#lastEmbedIds) {
-				for (const el of this.querySelectorAll(':scope > micrio-image-embeds')) el.remove();
-				this.#lastEmbedIds = ids;
-				for (const img of withEmbeds) {
-					const el = createElement('micrio-image-embeds', { setProps: { image: img } }) as MicrioElement;
-					const before = this.#getBefore('embeds');
-					if (before) this.insertBefore(el, before);
-					else this.appendChild(el);
-				}
-			} else if (!showEmbeds) {
-				for (const el of this.querySelectorAll(':scope > micrio-image-embeds')) el.remove();
-				this.#lastEmbedIds = '';
-			}
-		}
+		this.#syncImageLayer(this.#embedElements, 'micrio-image-embeds', 'embeds', $visible,
+			micrio.getAttribute('data-embeds') != 'false',
+			(i) => !!i.$data?.embeds?.length
+		);
 
 		this.#show('controls', showControls, () =>
 			createElement('micrio-controls', { setProps: { hasAudio: hasAudio || !!(videoSrc && video && !video.muted) } }) as MicrioElement
@@ -353,6 +312,41 @@ micrio-main.is360{perspective:50cqh}`;
 			const el = this.#elements.get('progress') as MicrioElement<ProgressCircleProps> | undefined;
 			if (el?.isConnected) el.setProps?.({ progress: loadingProgress });
 		}
+	}
+
+	#syncImageLayer(
+		map: Map<string, MicrioElement>,
+		tag: string,
+		layerKey: string,
+		visible: MicrioImage[],
+		enabled: boolean,
+		hasContent: (img: MicrioImage) => boolean,
+	) {
+		const filtered = visible.filter((i): i is MicrioImage => hasContent(i));
+		const visibleIds = new Set(filtered.map(i => i.id));
+
+		for (const [id, el] of map) {
+			if (!visibleIds.has(id)) {
+				el.remove();
+				map.delete(id);
+			}
+		}
+
+		if (enabled) {
+			for (const img of filtered) {
+				if (map.has(img.id)) continue;
+				const el = createElement(tag, { setProps: { image: img } }) as MicrioElement;
+				map.set(img.id, el);
+				const before = this.#getBefore(layerKey);
+				if (before) this.insertBefore(el, before);
+				else this.appendChild(el);
+			}
+		} else {
+			for (const el of map.values()) el.remove();
+			map.clear();
+		}
+
+		this.#elements.set(layerKey, map.values().next().value ?? null);
 	}
 
 
