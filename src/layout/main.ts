@@ -98,10 +98,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			const el = build();
 			this.#elements.set(key, el);
 			this.#place(key, el);
-			if (!el.children.length) {
-				el.remove();
-				this.#elements.set(key, null);
-			}
 		} else if (existing?.isConnected) {
 			existing.remove();
 			this.#elements.set(key, null);
