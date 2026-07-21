@@ -12,7 +12,8 @@ export interface MinimapProps {
 
 export class MicrioMinimap extends MicrioElement<MinimapProps> {
 	static tag = 'micrio-minimap';
-	static styles = `micrio-minimap canvas{position:absolute;bottom:var(--micrio-border-margin);right:5px;transform-origin:right bottom;display:block;background-size:100%;transition:opacity .2s ease;cursor:grab;-ms-content-zooming:none;-ms-touch-action:none;touch-action:none;border-radius:var(--micrio-border-radius)}
+	static styles = `micrio-minimap{display:contents}
+micrio-minimap canvas{position:absolute;bottom:var(--micrio-border-margin);right:5px;transform-origin:right bottom;display:block;background-size:100%;transition:opacity .2s ease;cursor:grab;-ms-content-zooming:none;-ms-touch-action:none;touch-action:none;border-radius:var(--micrio-border-radius)}
 micrio-minimap canvas:not(:hover).hidden{opacity:0;pointer-events:none}
 micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--micrio-button-size) + 8px)}
 @media(max-width:800px){micrio-minimap canvas{transform:scale3d(.5,.5,1);pointer-events:none;right:65px}}`;
@@ -20,7 +21,6 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 	#props: MinimapProps = { image: null! };
 	#_canvas!: HTMLCanvasElement;
 	#_ctx: CanvasRenderingContext2D | null = null;
-	#hidden = false;
 	#to: any;
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;
@@ -179,12 +179,15 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 	}
 
 	#moved() {
+		if (this.#checkHidden?.()) {
+			this.#_canvas.classList.add('hidden');
+			clearTimeout(this.#to);
+			return;
+		}
 		this.#_canvas.classList.remove('hidden');
-		this.#hidden = false;
 		clearTimeout(this.#to);
 		this.#to = setTimeout(() => {
 			if (this.#checkHidden?.()) this.#_canvas.classList.add('hidden');
-			this.#hidden = true;
 		}, 2500);
 	}
 
@@ -192,7 +195,7 @@ micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--mi
 		const micrio = this.getMicrio();
 		const isSame = micrio ? get(micrio.current) == this.#props.image : false;
 		const zoomedOut = this.#checkHidden?.() ?? false;
-		if (!isSame || (this.#autoHide && zoomedOut && this.#hidden))
+		if (!isSame || (this.#autoHide && zoomedOut))
 			this.#_canvas.classList.add('hidden');
 		else
 			this.#_canvas.classList.remove('hidden');
