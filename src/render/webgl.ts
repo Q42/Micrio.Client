@@ -528,6 +528,8 @@ export class WebGL {
 		gl.bindTexture(gl.TEXTURE_2D, this.#wmTexture);
 		gl.uniform1i(this.#noTxtLoc, 0);
 		gl.uniform1f(this.#opaLoc, this.#wmOpacity); // Slight transparency
+		this.#lastNoTexture = 0;
+		this.#lastOpacity = this.#wmOpacity;
 
 		// UVs (Repeated based on 512px tiling)
 		const w = gl.drawingBufferWidth / watermarkTileSize;
