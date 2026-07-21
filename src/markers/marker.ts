@@ -116,7 +116,7 @@ micrio-marker img{max-width:100%;max-height:100%;display:block;margin:auto}`;
 				else if (image.isOmni && omni) {
 					if (this.#omniArc && marker.rotation != null) {
 						const numFrames = omni.frames / (omni.layers?.length ?? 1);
-						let delta = (image.swiper?.currentIndex ?? 0) - this.#omniIndex;
+						let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex;
 						if (delta > numFrames / 2) delta -= numFrames;
 						if (delta < -numFrames / 2) delta += numFrames;
 						this.#behindCam = delta <= this.#omniArc[0] || delta >= this.#omniArc[1];

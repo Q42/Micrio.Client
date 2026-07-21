@@ -2,17 +2,12 @@ import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
-import type { Omni } from '$types/models/omni';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { getEasing } from '$render/easing';
-import { GallerySwiper } from '$gallery/swiper';
+import { OmniUI } from '$gallery/omni';
 import { createElement } from '$utils/dom';
-import { icons } from '$ui/icons';
-import { DataLoader } from '$utils/dataLoader';
-import { archive } from '$utils/archive';
 import '$ui/button';
-import '$ui/dial';
 
 const scrubPad = 16;
 
@@ -94,11 +89,13 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#stripDragActive = false;
 	#stripDragHorizontal = false;
 	#stripDragStartY = 0;
+	/** OmniUI instance when the current image is an omni 3D object. */
+	#omni: OmniUI|undefined;
 	/** Map tracking in-flight preload requests (keyed by thumbSrc). */
 	#preloading = new Map<string, any>();
 	#preloadD = 0;
 
-	onMount() {
+	async onMount() {
 		const micrio = this.getMicrio();
 		if (!micrio) return;
 
@@ -107,7 +104,10 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 		const settings = image.$settings;
 		if (settings?.omni) {
-			this.#renderOmni(image);
+			this.#omni = new OmniUI(micrio, image, this, (c,total,d,getTile,engine,hasArchive) =>
+				this.#preloadRange(c,total,d,getTile,engine,hasArchive)
+			);
+			await this.#omni.setup();
 			return;
 		}
 
@@ -669,152 +669,8 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.classList.toggle('force-hidden', !!hasPopup || !!hasTour);
 	}
 
-	// ─── Omni 3D object rotation ───────────────────────────────────
-
-	/** Renders the omni rotation UI (dial + swipe + layer menu). */
-	async #renderOmni(image: MicrioImage) {
-		const micrio = this.getMicrio();
-		const bundle = DataLoader.getBundleImageSync(image.id);
-		if (!micrio || !bundle) return;
-		const settings = image.$settings;
-		const omni = settings.omni;
-		if (!omni) return;
-		const engine = micrio.engine;
-		const info = image.$info;
-		if (!info) return;
-		const totalFrames = omni.frames;
-		const numLayers = omni.layers?.length ?? 1;
-		const pagesPerLayer = totalFrames / numLayers;
-
-		// Wait for image to be placed before registering frames
-		if (!image.placed) return;
-
-		// Register all frames as embeds on the parent canvas
-		const frames: any[] = [];
-		for (let j = 0; j < totalFrames; j++) {
-			const frame: Omni.Frame = {
-				id: info.id + '/' + j,
-				image,
-				visible: writable(false),
-				frame: j,
-				opts: { area: [0, 0, 1, 1] },
-				placed: false,
-				baseTileIdx: -1,
-				thumbSrc: image.getTileSrc(image.levels, 0, 0, j),
-			};
-			engine.addEmbed(frame, image, { opacity: 0, asImage: false });
-			frames.push(frame);
-		}
-
-		// Load the archive bin, after which UI will be 
-		if (bundle.settings?.omni && parseFloat(bundle.info.version) >= 5) {
-			await archive.load(
-				bundle.info.tileBasePath || bundle.info.path,
-				(bundle.info.tilesId ?? bundle.info.id) + '/base',
-				(p:number) => micrio._ui?.setProps?.({loadingProgress: p})
-			).catch(() => {});
-		}
-
-		// Show the first frame
-		image.canvas?.setActiveImage(0, 0);
-		engine.render();
-
-		const hasArchive = !!image.$settings.gallery?.archive;
-		const preloadD = 'requestIdleCallback' in self
-			? Math.max(36, Math.floor(totalFrames / 8) * 2)
-			: 50;
-
-		// Preload helper: loads thumbnails around the current frame
-		const preload = (c: number) => {
-			this.#preloadRange(c, totalFrames, preloadD,
-				idx => frames[idx] ? { baseTileIdx: frames[idx].baseTileIdx, thumbSrc: frames[idx].thumbSrc } : undefined,
-				engine, hasArchive);
-		};
-
-		// Create the dial for mouse/touch rotation
-		const dial = createElement('micrio-dial', {
-			parent: this,
-			setProps: {
-				currentRotation: 0, frames: pagesPerLayer, degrees: true,
-				onturn: (frame: number) => {
-					const idx = Math.round(frame) % pagesPerLayer;
-					image.swiper?.goto(idx);
-				}
-			}
-		}) as MicrioElement;
-
-		// Navigation function shared by swiper and dial
-		const gotoFn = (idx: number) => {
-			while (idx < 0) idx += pagesPerLayer;
-			idx %= pagesPerLayer;
-			image.canvas?.setActiveImage(idx, 0);
-			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
-			preload(idx);
-			engine.render();
-		};
-
-		// Swiper for gesture-based rotation
-		image.swiper = new GallerySwiper(micrio, pagesPerLayer, gotoFn, { continuous: true });
-		preload(0);
-
-		// Sync dial rotation when layer changes
-		this.addCleanup(image.state.layer.subscribe((idx: number) => {
-			dial.setProps({ currentRotation: (idx / pagesPerLayer) * 360 });
-		}));
-
-		// Omni layer menu: inject a layer-switcher into the image data's pages
-		const omniCfg = image.$settings.omni;
-		const omniNumLayers = omniCfg?.layers?.length ?? 1;
-		if (omniNumLayers > 1) {
-			const layerNames = omniCfg!.layers!.map((l: any, i: number) => ({
-				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, any]) => [lang, { title: name ?? 'Layer ' + (i + 1) }]))
-			}));
-			const langs = Object.keys(info.revision ?? {}) as string[];
-			if (!langs.length) {
-				const ml = get(micrio._lang);
-				if (ml) langs.push(ml);
-			}
-			if (langs.length) {
-				for (const lang of langs) {
-					for (let i = 0; i < layerNames.length; i++) {
-						if (!layerNames[i].i18n[lang])
-							layerNames[i].i18n[lang] = { title: 'Layer ' + (i + 1) };
-					}
-				}
-			}
-			const printLayerMenu = () => {
-				const currentLayer = get(image.state.layer);
-				image.data.update((d: any) => {
-					if (!d) d = {};
-					if (!d.pages) d.pages = [];
-					d.pages = d.pages.filter((p: any) => !p.id?.startsWith('_omni-layers'));
-					d.pages.push({
-						id: '_omni-layers-' + currentLayer,
-						i18n: layerNames[currentLayer].i18n,
-						icon: icons.layerGroup,
-						children: layerNames.map((title: any, i: number) => ({
-							id: 'omni-layer-' + i,
-							i18n: title.i18n,
-							action: () => {
-								image.state.layer.set(i);
-								preload(get(image.state.layer) * Math.floor(totalFrames / omniNumLayers));
-							}
-						})).filter((p: any) => p.id != 'omni-layer-' + currentLayer)
-					});
-					return d;
-				});
-			};
-			printLayerMenu();
-			this.addCleanup(image.state.layer.subscribe(printLayerMenu));
-		}
-	}
-
 	onDestroy() {
-		const image = this.getMicrio()?.$current;
-		if (image?.swiper) {
-			image.swiper.destroy();
-			image.swiper = undefined;
-		}
+		this.#omni?.destroy();
 	}
 }
 

@@ -289,7 +289,7 @@ export class Camera {
 	getOmniRotation(): number {
 		const omni = this.image.$settings.omni;
 		if (!omni || !this.#canvas) return 0;
-		return (this.image.swiper?.currentIndex ?? 0) / ((omni.frames ?? 1) / (omni.layers?.length ?? 1)) * Math.PI * 2;
+		return (this.image.omni?.currentIndex ?? 0) / ((omni.frames ?? 1) / (omni.layers?.length ?? 1)) * Math.PI * 2;
 	}
 
 	/** [Omni] Gets the frame index corresponding to a given rotation angle (radians). */

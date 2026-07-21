@@ -36,7 +36,7 @@ export * from '../src/core/state';
 /** @internal */
 export * from '../src/grid/grid';
 /** @internal */
-export * from '../src/gallery/swiper';
+export * from '../src/gallery/controller';
 /** @internal */
 export * from '../src/media/videotour';
 /** @internal */

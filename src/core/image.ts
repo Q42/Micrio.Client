@@ -3,7 +3,7 @@ import type { Writable } from '$core/store';
 import type { Grid } from '$grid/grid';
 import type { Engine } from '$render/engine';
 import type TileCanvas from '$render/tile-canvas';
-import type { GallerySwiper } from '$gallery/swiper';
+import type { OmniUI } from '$gallery/omni';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals';
@@ -73,8 +73,8 @@ export class MicrioImage {
 	/** Album information if this image is part of a V5 album. */
 	public album?: Models.Album|undefined;
 
-	/** Gallery swiper instance, if this image is part of a swipe gallery. */
-	public swiper: GallerySwiper|undefined;
+	/** OmniUI instance, if this image is an omni 3D object. */
+	public omni: OmniUI|undefined;
 
 	/** Stores the camera view state when a marker is opened, used to return to the previous view. */
 	openedView: Models.Camera.View|undefined;
