@@ -19,14 +19,14 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	protected _props: Record<string, any> = {};
 
 	connectedCallback(): void {
-		this._injectStyles();
+		this.#injectStyles();
 		this.onMount?.();
 		this._render?.();
 	}
 
 	disconnectedCallback(): void {
 		this.onDestroy?.();
-		this._cleanup();
+		this.#cleanup();
 	}
 
 	onMount?(): void;
@@ -121,7 +121,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 
 	// ─── CSS injection ────────────────────────────────────────────
 
-	private _injectStyles(): void {
+	#injectStyles(): void {
 		const ctor = this.constructor as typeof MicrioElement;
 		if (ctor.styles && !_injectedStyles.has(ctor.tag)) {
 			_injectedStyles.add(ctor.tag);
@@ -129,7 +129,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		}
 	}
 
-	private _cleanup(): void {
+	#cleanup(): void {
 		for (const fn of this.#_unsubs) fn();
 		this.#_unsubs = [];
 	}
