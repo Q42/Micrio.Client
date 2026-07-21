@@ -50,6 +50,17 @@ if (matches) {
 	fs.writeFileSync(files.css, cssContent);
 }
 
+// ── Minify and deflate CSS ──
+cssContent = cssContent.replace(/\n/g, '').replace(/[ \t]+/g, ' ').replace(/\s*([{};,])\s*/g, '$1').trim();
+
+// ── Deflate CSS: replace micr-* words with %N placeholders ──
+const micrWords = [...new Set(cssContent.match(/\bmicr[\w-]+/g) || [])];
+micrWords.sort((a, b) => b.length - a.length);
+const cssSuffixes = micrWords.map(w => w.slice(4));
+micrWords.forEach((word, i) => {
+	cssContent = cssContent.replace(new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), `%${String(i).padStart(2, '0')}`);
+});
+
 // Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS
 let jsRaw = fs.readFileSync(files.js).toString();
 jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '');
@@ -57,9 +68,8 @@ fs.writeFileSync(files.js, jsRaw);
 
 // Prepend CSS style injection to the JS bundle
 const escapedCss = cssContent.replace(/[$`]/g, '\\$&');
-const jsContent = `const _css=document.createElement('style');
-_css.className='micrio-interface';_css.textContent=\`${escapedCss}\`;
-document.head.insertBefore(_css,document.head.firstChild);
+const suffixJson = JSON.stringify(cssSuffixes);
+const jsContent = `const _inflate=(s,k)=>{for(let i=0;i<k.length;i++)s=s.replace(new RegExp('%'+(i<10?'0'+i:i),'g'),'micr'+k[i]);return s};const _css=_inflate(\`${escapedCss}\`,${suffixJson});const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=_css;document.head.insertBefore(_style,document.head.firstChild);
 ${jsRaw}`;
 fs.writeFileSync(files.js, jsContent);
 
