@@ -64,9 +64,9 @@ micrio-main.is360{perspective:50cqh}`;
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
-	#lastMarkerIds = '';
 	#lastEmbedIds = '';
 	#activePopupMarkerId: string | undefined;
+	#markerElements = new Map<string, MicrioElement>();
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'grid', 'gallery', 'controls', 'embeds', 'markers',
@@ -239,27 +239,35 @@ micrio-main.is360{perspective:50cqh}`;
 			createElement('micrio-toolbar')
 		);
 
-		{
-			const $visible = (get(micrio.visible) as MicrioImage[]).filter(i => !i.opts?.isEmbed);
-			const markerImages = $visible.filter(i => !i.$settings?.skipMeta);
-			const ids = markerImages.map(i => i.id).join(',');
-			if (showMarkers && ids !== this.#lastMarkerIds) {
-				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
-				this.#elements.set('markers', null);
-				this.#lastMarkerIds = ids;
-				for (const img of markerImages) {
-					const el = createElement('micrio-markers', { setProps: { image: img } }) as MicrioElement;
-					const before = this.#getBefore('markers');
-					if (before) this.insertBefore(el, before);
-					else this.appendChild(el);
-					if (!this.#elements.get('markers')) this.#elements.set('markers', el);
-				}
-				} else if (!showMarkers) {
-				for (const el of this.querySelectorAll(':scope > micrio-markers')) el.remove();
-				this.#elements.set('markers', null);
-				this.#lastMarkerIds = '';
+		// Markers — <micrio-markers> per visible image with markers
+		const $visible = get(micrio.visible).filter((i): i is MicrioImage =>
+			!i.opts?.isEmbed && !!i.$data?.markers?.length
+		);
+		const visibleIds = new Set($visible.map(i => i.id));
+
+		for (const [id, el] of this.#markerElements) {
+			if (!visibleIds.has(id)) {
+				el.remove();
+				this.#markerElements.delete(id);
 			}
 		}
+
+		if (showMarkers) {
+			for (const img of $visible) {
+				if (this.#markerElements.has(img.id)) continue;
+				const el = createElement('micrio-markers', { setProps: { image: img } }) as MicrioElement;
+				this.#markerElements.set(img.id, el);
+				const before = this.#getBefore('markers');
+				if (before) this.insertBefore(el, before);
+				else this.appendChild(el);
+			}
+		} else {
+			for (const el of this.#markerElements.values()) el.remove();
+			this.#markerElements.clear();
+		}
+
+		// Update layer reference for #getBefore
+		this.#elements.set('markers', this.#markerElements.values().next().value ?? null);
 
 		// Embeds — only for images whose data has embeds
 		{
