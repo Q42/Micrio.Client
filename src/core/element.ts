@@ -42,8 +42,6 @@ import { createElement } from '$utils/dom';
  * </script>
  * ```
  * 
- * {@include ./element.md}
- * 
  * @author Marcel Duin <marcel@micr.io>
 */
 export class HTMLMicrioElement extends MicrioElement {
