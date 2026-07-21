@@ -173,6 +173,8 @@ micrio-main.is360 micrio-markers.inactive{opacity:0}`;
 		this.watchLater(image.data, rebuild);
 		this.watchLater(switching, rebuild);
 		if (micrioState.tour) this.watchLater(micrioState.tour, rebuild);
+		if (focussed) this.watchLater(focussed, rebuild);
+		if (gridMarkersShown) this.watchLater(gridMarkersShown, rebuild);
 		this.watchLazy(micrio._lang, rebuild);
 
 		if (image.$settings.clusterMarkers) {
