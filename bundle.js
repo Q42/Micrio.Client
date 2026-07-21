@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 
 const version = process.env.npm_package_version;
 const outFile = `./public/dist/micrio.min.js`;
@@ -82,8 +83,6 @@ fs.writeFileSync(outFile, Buffer.concat([
 	Buffer.from(fs.readFileSync(files.js))
 ]));
 
-console.info('\x1b[36m%s\x1b[0m', `created ${outFile}`);
-
 // Generate .d.ts
 const dFile = outFile.replace('.js', '.d.ts');
 fs.writeFileSync(dFile, Buffer.concat([
@@ -98,4 +97,19 @@ fs.rmSync(files.css);
 fs.rmSync(files.js);
 fs.rmdirSync(buildDir);
 
-console.info('\x1b[36m%s\x1b[0m', `created ${dFile}`);
+const formatSize = (bytes) => {
+	const k = 1024;
+	const sizes = ['B', 'kB', 'MB'];
+	const i = bytes === 0 ? 0 : Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+	return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+};
+
+const gzipSize = (filePath) => zlib.gzipSync(fs.readFileSync(filePath)).length;
+
+console.info();
+console.info(`\x1b[2mFinal output:\x1b[0m`);
+
+const f = outFile;
+const raw = fs.statSync(f).size;
+const gz = gzipSize(f);
+console.info(` \x1b[38;2;0;212;238m\u25C8\x1b[0m \x1b[32m${path.relative('.', f)}\x1b[0m      \x1b[1m${formatSize(raw).padStart(9)}\x1b[0m \u2502 gzip: ${formatSize(gz)}`);

@@ -180,6 +180,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 	setProps(props: Partial<MainProps>) {
 		Object.assign(this.#props, props);
+		//if (this.isConnected) this.#queueSync();
 	}
 
 	#syncQueued = false;
