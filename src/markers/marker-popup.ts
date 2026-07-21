@@ -14,7 +14,8 @@ export interface MarkerPopupProps {
 
 export class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	static tag = 'micrio-marker-popup';
-	static styles = `micrio-marker-popup{display:block;cursor:auto;pointer-events:all;position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin);animation:micrio-popup-in .2s ease-out}
+	static styles = `micrio-marker-popup{display:block;cursor:auto;pointer-events:none;position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin);animation:micrio-popup-in .2s ease-out}
+micrio-marker-popup>*{pointer-events:auto}
 @keyframes micrio-popup-in{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:translateX(0)}}
 micrio-marker-popup.destroying{animation:none;opacity:0;transform:translateX(-50px);pointer-events:none;transition:opacity .2s ease-out,transform .2s ease-out}
 micrio-marker-popup>aside{padding:var(--micrio-border-margin)}
