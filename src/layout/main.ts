@@ -56,7 +56,8 @@ export interface MainProps {
 
 export class MicrioMain extends MicrioElement<MainProps> {
 	static tag = 'micrio-main';
-	static styles = `micrio-main{display:contents}`;
+	static styles = `micrio-main{display:contents}
+micrio-main.is360{perspective:50dvh}`;
 
 	#props: MainProps = {};
 	#info: Models.ImageInfo.ImageInfo | undefined;
@@ -205,8 +206,10 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const noHTML = this.#props.noHTML ?? false;
 		const noLogo = this.#props.noLogo ?? noHTML;
 
-		const video = $settings?._360?.video;
+		const _360 = micrio.$current?.is360
+		const video = _360 ? $settings!._360!.video : undefined;
 		const videoSrc = video?.src;
+		this.classList.toggle('is360', _360);
 		const positionalAudio = $data?.markers?.filter((m: any) => !!m.positionalAudio);
 		const hasAudio = !!$data?.music?.items.length || !!positionalAudio?.length;
 		const hasTourOrMarker = $tour || $marker;

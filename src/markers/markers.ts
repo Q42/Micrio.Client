@@ -16,8 +16,8 @@ export class MicrioMarkers extends MicrioElement<MarkersProps> {
 micrio-markers:empty{display:none}
 micrio-markers>*{pointer-events:all}
 micrio-markers.inactive>*{pointer-events:none}
-micrio-markers.is360{transition:opacity .25s}
-micrio-markers.is360.inactive{opacity:0}`;
+micrio-main.is360 micrio-markers{transition:opacity .25s}
+micrio-main.is360 micrio-markers.inactive{opacity:0}`;
 
 	#props: MarkersProps = { image: null! };
 
@@ -178,8 +178,6 @@ micrio-markers.is360.inactive{opacity:0}`;
 		if (image.$settings.clusterMarkers) {
 			this.addCleanup(image.state.view.subscribe(updateOverlapped));
 		}
-
-		if (image.is360) this.classList.add('is360');
 
 		if (!image.grid && image.$settings._markers?.zoomOutAfterClose) {
 			let wasVideoTour = false;

@@ -26,11 +26,6 @@ export class Canvas {
 	*/
 	resizing:boolean = false;
 
-	/** Flag indicating if 360 content has been displayed, requiring perspective CSS.
-	 * @internal
-	*/
-	#hasPerspective:boolean = false;
-
 	/** Object containing current viewport dimensions, position, and ratios. */
 	readonly viewport:Models.Canvas.ViewRect = {
 		width:0, // Rendered width in CSS pixels
@@ -103,9 +98,6 @@ export class Canvas {
 		// Get current rendered dimensions and position
 		const box = this.element.getBoundingClientRect();
 
-		// Track if 360 content has ever been loaded to apply perspective CSS
-		if(this.#micrio.$current?.is360) this.#hasPerspective = true;
-
 		let width = box.width;
 		let height = box.height;
 
@@ -133,9 +125,6 @@ export class Canvas {
 		const c = this.viewport; // Reference to viewport state object
 		// Exit if dimensions and ratio haven't changed
 		if(c.width == width && c.height == height && c.ratio == ratio && c.scale == scale) return;
-
-		// Apply perspective CSS if 360 content has been shown
-		if(this.#hasPerspective && this.#micrio._ui) this.#micrio._ui.style.perspective = height / 2 + 'px';
 
 		// Update viewport state object
 		c.width = width;
