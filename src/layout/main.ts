@@ -277,18 +277,31 @@ micrio-main.is360{perspective:50cqh}`;
 		const $popupMarker = get(micrio.state.popup);
 		const hasPopup = $popupMarker != null && $popupMarker.popupType !== 'popover';
 
+		const existing = this.#elements.get('popup');
+
 		if (hasPopup) {
-			const existing = this.#elements.get('popup');
-			if (existing?.isConnected && $popupMarker!.id !== this.#activePopupMarkerId) {
+			const shouldReplace = existing?.isConnected && (
+				$popupMarker!.id !== this.#activePopupMarkerId ||
+				existing.classList.contains('destroying')
+			);
+			if (shouldReplace) {
 				existing.remove();
 				this.#elements.set('popup', null);
 			}
-		}
-		this.#activePopupMarkerId = hasPopup ? $popupMarker!.id : undefined;
+			this.#activePopupMarkerId = $popupMarker!.id;
 
-		this.#show('popup', hasPopup, () =>
-			createElement('micrio-marker-popup', { setProps: { marker: $popupMarker! }, parent: this }) as MicrioElement
-		);
+			if (!this.#elements.get('popup')?.isConnected) {
+				this.#elements.set('popup',
+					createElement('micrio-marker-popup', { setProps: { marker: $popupMarker! }, parent: this }) as MicrioElement
+				);
+			}
+		} else {
+			// Don't remove — let the popup animate out via its destroying class
+			if (!existing?.isConnected) {
+				this.#elements.set('popup', null);
+				this.#activePopupMarkerId = undefined;
+			}
+		}
 
 		this.#show('tour', !!$tour, () => {
 			const isSerial = $tour && 'steps' in $tour && $tour.isSerialTour;

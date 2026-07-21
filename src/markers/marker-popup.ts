@@ -14,8 +14,9 @@ export interface MarkerPopupProps {
 
 export class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	static tag = 'micrio-marker-popup';
-	static styles = `micrio-marker-popup{display:block;cursor:auto;pointer-events:all;position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin)}
-micrio-marker-popup.destroying{pointer-events:none}
+	static styles = `micrio-marker-popup{display:block;cursor:auto;pointer-events:all;position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin);animation:micrio-popup-in .2s ease-out}
+@keyframes micrio-popup-in{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:translateX(0)}}
+micrio-marker-popup.destroying{animation:none;opacity:0;transform:translateX(-50px);pointer-events:none;transition:opacity .2s ease-out,transform .2s ease-out}
 micrio-marker-popup>aside{padding:var(--micrio-border-margin)}
 micrio-marker-popup>aside progress{display:none}
 @media(min-width:501px){micrio-marker-popup{width:440px;min-width:20%}micrio-marker-popup>aside{position:absolute;left:100%;top:0;padding-top:0}
@@ -49,6 +50,10 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 			this.#destroying = !m || m != marker;
 			this.classList.toggle('destroying', this.#destroying);
 		}));
+
+		this.addEventListener('transitionend', e => {
+			if ((e as TransitionEvent).target === this && this.#destroying) this.remove();
+		});
 
 		this.#render();
 	}
