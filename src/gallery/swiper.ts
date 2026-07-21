@@ -104,6 +104,7 @@ export class GallerySwiper {
 
 	/** Handles pointerdown event to initiate swipe. @internal */
 	#dStart = (e:PointerEvent):void => {
+		if (e.button !== 0) return; // Only left mouse button
 		this.#startedWithShift = e.shiftKey; // Check if shift key was pressed
 		const newDrag = !this.#isDragging(); // Is this the start of a new drag?
 		this.#pointers.set(e.pointerId, true); // Track active pointer
