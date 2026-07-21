@@ -66,6 +66,7 @@ micrio-main.is360{perspective:50cqh}`;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
 	#lastMarkerIds = '';
 	#lastEmbedIds = '';
+	#activePopupMarkerId: string | undefined;
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'grid', 'gallery', 'controls', 'embeds', 'markers',
@@ -305,33 +306,22 @@ micrio-main.is360{perspective:50cqh}`;
 			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } }) as MicrioElement
 		);
 
-		// Per-image marker popups — only created when micrio.state.popup is set (after flyTo completes)
-		{
-			const $popupMarker = get(micrio.state.popup);
-			const currentPopupIds = new Set<string>();
-			if ($popupMarker) {
-				const img = (MicrioElement.markerImages as Map<string, MicrioImage>)?.get($popupMarker.id);
-				if (img && !img.opts?.isEmbed) {
-					const key = 'popup-' + img.id;
-					currentPopupIds.add(key);
-					const existing = this.#elements.get(key) as MicrioElement | undefined;
-					if (existing?.isConnected) {
-						existing.setProps?.({ marker: $popupMarker });
-					} else {
-						existing?.remove();
-						const el = createElement('micrio-marker-popup', { setProps: { marker: $popupMarker }, parent: this }) as MicrioElement;
-						this.#elements.set(key, el);
-					}
-				}
-			}
-			// Remove popups for images that no longer have a popup
-			for (const [key, el] of this.#elements) {
-				if (key.startsWith('popup-') && !currentPopupIds.has(key) && el?.isConnected) {
-					el.remove();
-					this.#elements.set(key, null);
-				}
+		// Marker popup — only created when micrio.state.popup is set (after flyTo completes)
+		const $popupMarker = get(micrio.state.popup);
+		const hasPopup = $popupMarker != null && $popupMarker.popupType !== 'popover';
+
+		if (hasPopup) {
+			const existing = this.#elements.get('popup');
+			if (existing?.isConnected && $popupMarker!.id !== this.#activePopupMarkerId) {
+				existing.remove();
+				this.#elements.set('popup', null);
 			}
 		}
+		this.#activePopupMarkerId = hasPopup ? $popupMarker!.id : undefined;
+
+		this.#show('popup', hasPopup, () =>
+			createElement('micrio-marker-popup', { setProps: { marker: $popupMarker! }, parent: this }) as MicrioElement
+		);
 
 		this.#show('tour', !!$tour, () => {
 			const isSerial = $tour && 'steps' in $tour && $tour.isSerialTour;
