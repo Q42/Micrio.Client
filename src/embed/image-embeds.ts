@@ -1,7 +1,7 @@
 import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
-import { get } from '$core/store';
+
 import './embed';
 
 export interface ImageEmbedsProps {
@@ -19,7 +19,7 @@ micrio-image-embeds>*{pointer-events:all}`;
 	onMount() {
 		const { image } = this.#props;
 
-		this.watchLater(image.data, d => {
+		this.watch(image.data, d => {
 			this.replaceChildren();
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
@@ -27,13 +27,6 @@ micrio-image-embeds>*{pointer-events:all}`;
 				}
 			}
 		});
-
-		const data = get(image.data);
-		if (data?.embeds) {
-			for (const embed of data.embeds) {
-				createElement('micrio-embed', { parent: this, setProps: { embed, image } });
-			}
-		}
 	}
 
 	setProps(props: Partial<ImageEmbedsProps>) {
