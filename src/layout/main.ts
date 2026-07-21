@@ -180,7 +180,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 	setProps(props: Partial<MainProps>) {
 		Object.assign(this.#props, props);
-		//if (this.isConnected) this.#queueSync();
+		if (this.isConnected) this.#queueSync();
 	}
 
 	#syncQueued = false;
@@ -351,6 +351,11 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#show('progress', loadingProgress < 1, () =>
 			createElement('micrio-progress-circle', { setProps: { progress: loadingProgress } }) as MicrioElement<ProgressCircleProps>
 		);
+
+		if (loadingProgress < 1) {
+			const el = this.#elements.get('progress') as MicrioElement<ProgressCircleProps> | undefined;
+			if (el?.isConnected) el.setProps?.({ progress: loadingProgress });
+		}
 	}
 
 
