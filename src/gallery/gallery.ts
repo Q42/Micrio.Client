@@ -361,7 +361,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			}));
 			const pageImages = this.#pageToImages[pageIdx];
 			const num = (pageImages?.length ?? 1) - 1;
-			parent.canvas?.setActiveImage(startImageIdx, num);
+			parent.canvas?.setActiveImage(pageImages[0], num);
 			if (num > 0) {
 				parent.camera.setView([0, 0, 1, 1]);
 			} else {
