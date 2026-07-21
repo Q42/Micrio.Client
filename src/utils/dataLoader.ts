@@ -37,6 +37,8 @@ async function fetchBundleOnce(id: string): Promise<void> {
 	inflightFetches.set(id, promise);
 	try {
 		await promise;
+	} catch {
+		// Bundle fetch failed — getBundleImage will return undefined
 	} finally {
 		inflightFetches.delete(id);
 	}
