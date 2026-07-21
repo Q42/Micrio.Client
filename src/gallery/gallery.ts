@@ -4,8 +4,8 @@ import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
-import { getEasing } from '$render/easing';
 import { OmniUI } from '$gallery/omni';
+import { SwipeGallery } from '$gallery/swipe';
 import { createElement } from '$utils/dom';
 import '$ui/button';
 
@@ -66,8 +66,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#imageSlotWidth: number[] = [];
 	/** The parent MicrioImage hosting this gallery (switch/omni). */
 	#parentImage!: MicrioImage;
-	/** True if this is a strip-swipe gallery (not switch). */
-	#isStripSwipe = false;
 	#_ul: HTMLElement | null = null;
 	#prevBtn: MicrioElement | null = null;
 	#nextBtn: MicrioElement | null = null;
@@ -80,17 +78,10 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 	#autoHide = true;
 	/** Timeout ID for auto-hide. */
 	#to: number | undefined;
-	// Strip-swipe drag state
-	#stripDragId: number | undefined;
-	#stripDragStartX = 0;
-	#stripDragLastX = 0;
-	#stripDragLastT = 0;
-	#stripDragVelocity = 0;
-	#stripDragActive = false;
-	#stripDragHorizontal = false;
-	#stripDragStartY = 0;
 	/** OmniUI instance when the current image is an omni 3D object. */
 	#omni: OmniUI|undefined;
+	/** SwipeGallery instance when this is a strip-swipe gallery. */
+	#swipeGallery: SwipeGallery|undefined;
 	/** Map tracking in-flight preload requests (keyed by thumbSrc). */
 	#preloading = new Map<string, any>();
 	#preloadD = 0;
@@ -169,8 +160,8 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#currentPage = page;
 		this.#currentImageIdx = imgIdx;
 		if (changed) this.#frameChanged();
-		if (this.#isStripSwipe) {
-			this.#stripGoto(imgIdx, fast, duration, changed);
+		if (this.#swipeGallery) {
+			this.#swipeGallery.animateTo(imgIdx, fast, duration, this.#currentImageIdx);
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
@@ -190,139 +181,10 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#preload(this.#currentImageIdx);
 		const micrio = this.getMicrio();
 		micrio?.events.dispatch('gallery-show', this.#currentPage);
-		if (this.#isStripSwipe) {
+		if (this.#swipeGallery) {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
 		}
 		this.#updateScrubber();
-	}
-
-	// ─── Strip-swipe (touch/pointer swipe gallery) ─────────────────
-
-	/**
-	 * Slides images into position for strip-swipe navigation.
-	 * Optionally zooms out the current image first before sliding.
-	 */
-	#stripGoto(nextIdx: number, fast: boolean, duration: number, _changed: boolean) {
-		const images = this.#images;
-		if (!images[nextIdx]) return;
-		const snapDur = duration === 0 ? 0 : (fast ? 0.175 : 0.35);
-		const leaving = images[this.#currentImageIdx > -1 && this.#currentImageIdx !== nextIdx ? this.#currentImageIdx : -1] as MicrioImage | undefined;
-		const needsZoomOut = snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut();
-		const engine = images[0]?.engine;
-		if (!engine) return;
-		const baseSlot = this.#imageSlotPos[nextIdx];
-		const startSlide = () => {
-			engine.gridTransitionDuration = snapDur;
-			for (let i = 0; i < images.length; i++) {
-				const child = images[i] as MicrioImage | undefined;
-				if (!child?.camera) continue;
-				const cur = child.opts.area ?? [0, 0, 1, 1];
-				const prevSlotLeft = cur[0];
-				const prevSlotRight = cur[0] + cur[2];
-				const wasNearVisible = prevSlotRight > -1 && prevSlotLeft < 1;
-				const targetSlot = this.#imageSlotPos[i] - baseSlot;
-				const width = this.#imageSlotWidth[i];
-				const willBeVisible = targetSlot + width > -1 && targetSlot < 1;
-				const needsMove = Math.abs(cur[0] - targetSlot) > 1e-4 || Math.abs(cur[2] - width) > 1e-4;
-				const animate = snapDur > 0 && needsMove && (wasNearVisible || willBeVisible);
-				child.camera.setArea([targetSlot, 0, width, 1], { direct: !animate, noDispatch: true });
-			}
-			images[nextIdx]?.camera?.setView([0, 0, 1, 1]);
-			engine.render();
-		};
-		if (needsZoomOut) leaving!.camera!.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
-			.then(startSlide).catch(startSlide);
-		else startSlide();
-	}
-
-	#stripCanSwipe(): boolean {
-		const active = this.#images[this.#currentImageIdx] as MicrioImage | undefined;
-		return !!active?.camera?.isZoomedOut();
-	}
-
-	#stripPointerDown = (e: PointerEvent) => {
-		if (!this.#stripCanSwipe() || e.button !== 0 || this.#stripDragId !== undefined) return;
-		this.#stripDragId = e.pointerId;
-		this.#stripDragStartX = this.#stripDragLastX = e.clientX;
-		this.#stripDragStartY = e.clientY;
-		this.#stripDragLastT = e.timeStamp;
-		this.#stripDragVelocity = 0;
-		this.#stripDragActive = false;
-		this.#stripDragHorizontal = false;
-		window.addEventListener('pointermove', this.#stripPointerMove);
-		window.addEventListener('pointerup', this.#stripPointerUp);
-		window.addEventListener('pointercancel', this.#stripPointerUp);
-	};
-
-	#stripPointerMove = (e: PointerEvent) => {
-		if (e.pointerId !== this.#stripDragId) return;
-		const dx = e.clientX - this.#stripDragStartX;
-		const dy = e.clientY - this.#stripDragStartY;
-		if (!this.#stripDragActive) {
-			if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-			this.#stripDragHorizontal = Math.abs(dx) > Math.abs(dy);
-			if (!this.#stripDragHorizontal) { this.#stripPointerUp(e); return; }
-			this.#stripDragActive = true;
-			const micrio = this.getMicrio();
-			if (!micrio) return;
-			micrio.setAttribute('data-panning', '');
-			micrio.keepRendering = true;
-			micrio.canvas.element.setPointerCapture(e.pointerId);
-		}
-		const dt = Math.max(1, e.timeStamp - this.#stripDragLastT);
-		this.#stripDragVelocity = (e.clientX - this.#stripDragLastX) / dt;
-		this.#stripDragLastX = e.clientX;
-		this.#stripDragLastT = e.timeStamp;
-		const micrio = this.getMicrio();
-		if (!micrio) return;
-		const w = micrio.offsetWidth || 1;
-		const progress = dx / w;
-		this.#applyDragProgress(progress);
-	};
-
-	#stripPointerUp = (e: PointerEvent) => {
-		if (e.pointerId !== this.#stripDragId) return;
-		window.removeEventListener('pointermove', this.#stripPointerMove);
-		window.removeEventListener('pointerup', this.#stripPointerUp);
-		window.removeEventListener('pointercancel', this.#stripPointerUp);
-		const wasActive = this.#stripDragActive;
-		this.#stripDragId = undefined;
-		this.#stripDragActive = false;
-		const micrio = this.getMicrio();
-		if (!micrio) return;
-		micrio.removeAttribute('data-panning');
-		micrio.keepRendering = false;
-		if (!wasActive) return;
-		try { micrio.canvas.element.releasePointerCapture(e.pointerId); } catch (_) { }
-		const w = micrio.offsetWidth || 1;
-		const progress = (e.clientX - this.#stripDragStartX) / w;
-		let target = this.#currentPage;
-		if (progress < -0.3 || this.#stripDragVelocity < -0.5) target = Math.min(this.#pageToImages.length - 1, this.#currentPage + 1);
-		else if (progress > 0.3 || this.#stripDragVelocity > 0.5) target = Math.max(0, this.#currentPage - 1);
-		this.#goto(target);
-	};
-
-	/** Applies the current drag progress to all image slot positions during strip-swipe. */
-	#applyDragProgress(progress: number) {
-		const images = this.#images;
-		const curr = this.#currentPage;
-		const totalPages = this.#pageToImages.length;
-		const atLeftEdge = curr === 0 && progress > 0;
-		const atRightEdge = curr === totalPages - 1 && progress < 0;
-		const eased = (atLeftEdge || atRightEdge) ? Math.sign(progress) * Math.sqrt(Math.abs(progress)) * 0.3 : progress;
-		const imgIdx = this.#pageToImages[curr]?.[0] ?? 0;
-		const baseSlot = this.#imageSlotPos[imgIdx];
-		const engine = images[0]?.engine;
-		if (!engine || baseSlot === undefined) return;
-		for (let i = 0; i < images.length; i++) {
-			const child = images[i] as MicrioImage | undefined;
-			if (!child?.camera) continue;
-			const slotPos = this.#imageSlotPos[i] - baseSlot + eased;
-			const width = this.#imageSlotWidth[i];
-			if (slotPos + width <= -1 || slotPos >= 1) continue;
-			child.camera.setArea([slotPos, 0, width, 1], { direct: true, noDispatch: true });
-		}
-		engine.render();
 	}
 
 	// ─── Scrubber (clickable timeline bar) ─────────────────────────
@@ -436,7 +298,6 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 		this.#images = images;
 		this.#parentImage = image;
-		this.#isStripSwipe = controller.type === 'swipe';
 
 		const layout = controller.getPageLayout();
 		this.#pageToImages = layout.pages;
@@ -461,6 +322,14 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 		const engine = micrio.engine;
 		const parent = image;
+		const isSwipe = controller.type === 'swipe';
+
+		if (isSwipe) {
+			this.#swipeGallery = new SwipeGallery(micrio, images, this.#pageToImages, this.#imageSlotPos, this.#imageSlotWidth,
+				(page) => this.#goto(page),
+				() => this.#currentPage
+			);
+		}
 
 		// Initial scrubber render (before children are ready)
 		this.#currentPage = pageIdx;
@@ -476,26 +345,14 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 			prev: () => _self.#goto(_self.#currentPage - 1),
 			next: () => _self.#goto(_self.#currentPage + 1),
 			goto: (n: number) => _self.#goto(n),
-			...(_self.#isStripSwipe ? { currentImage: writable(images[startImageIdx]) } : {}),
+			...(_self.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		};
 
-		if (this.#isStripSwipe) {
-			engine.gridTransitionTimingFunction = getEasing('ease-out');
-			await Promise.allSettled(images.map(d => engine.addChild(d as MicrioImage, parent)));
-			const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
-			for (let i = 0; i < images.length; i++) {
-				const child = images[i] as MicrioImage;
-				if (!child.camera) continue;
-				child.camera.setCoverLimit(false);
-				const area = [this.#imageSlotPos[i] - baseSlot, 0, this.#imageSlotWidth[i], 1] as [number, number, number, number];
-				child.camera.setArea(area, { direct: true, noDispatch: true });
-				child.camera.setView([0, 0, 1, 1]);
-			}
-			(images[startImageIdx] as MicrioImage)?.visible.set(true);
+		if (this.#swipeGallery) {
+			await this.#swipeGallery.setup(startImageIdx, parent, engine);
 			this.#currentPage = pageIdx;
 			this.#frameChanged();
 			parent.album!.hooked = true;
-			engine.render();
 		} else {
 			// Switch gallery: embed all images on the parent canvas
 			await Promise.allSettled(images.map(d => {
@@ -520,10 +377,9 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#activity();
 
 		// Strip-swipe pointer events on the canvas element
-		if (this.#isStripSwipe && images.length > 1) {
-			const onDown = this.#stripPointerDown;
-			micrio.canvas.element.addEventListener('pointerdown', onDown);
-			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', onDown));
+		if (this.#swipeGallery && images.length > 1) {
+			micrio.canvas.element.addEventListener('pointerdown', this.#swipeGallery.handlePointerDown);
+			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
 		}
 
 		// Auto-hide listeners
@@ -671,6 +527,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 	onDestroy() {
 		this.#omni?.destroy();
+		this.#swipeGallery?.destroy();
 	}
 }
 
