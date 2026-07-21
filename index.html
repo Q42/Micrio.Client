@@ -172,15 +172,11 @@
 				editorLink: 'https://dash.micr.io/q42-shared/test/grid-test' },
 
 			// ── Gallery / Album ────────────────────────────────────
-			{ name: 'yOeffA', id: 'yOeffA.1780389977', type: 'gallery', description: 'Gallery, fullscreen, EU path',
-				htmlString: '<micr-io data-gallery="yOeffA.1780389977" data-fullscreen data-gallery-sort="name" data-path="https://eu.micr.io/"></micr-io>' },
 			{ id: 'mfcDxoh', type: 'gallery', description: 'Multi-image / book — Bibliotheek Erfgoed',
 				htmlString: '<micr-io id="mfcDxoh" datxa-path="https://r2.micr.io/"></micr-io>', organisation: 'Bibliotheek Erfgoed' },
 			{ id: 'WcOSjxV', type: 'gallery', description: 'Swipeable gallery with metadata (7th image)',
-				htmlString: '<micr-io id="WcOSjxV" data-embeds-inside-gl="false"></micr-io>',
+				htmlString: '<micr-io id="WcOSjxV" data-exmbeds-inside-gl="false"></micr-io>',
 				editorLink: 'https://dash.micr.io/micrio/2026-albums/test-album-met-metadata' },
-			{ name: 'xnRwQ (VGM)', id: 'xnRwQ,985,1200,,p;esgZB,960,1280,;pRiMP,960,1280,', type: 'gallery', description: 'Demo swipeable gallery — Van Gogh Museum',
-				htmlString: '<micr-io data-gallery="xnRwQ,985,1200,,p;esgZB,960,1280,;pRiMP,960,1280," data-path="https://micrio.vangoghmuseum.nl/micrio/"></micr-io>', organisation: 'Van Gogh Museum' },
 
 			// ── Book ───────────────────────────────────────────────
 			{ id: 'jcrosPa', type: 'book', description: 'Book / swipeable gallery with pages — Bibliotheek Erfgoed',
@@ -334,6 +330,15 @@
 			sel.value = activeIdx >= 0 ? activeIdx : 0;
 			sel.dispatchEvent(new Event('change'));
 		}
+
+		window.addEventListener('hashchange', () => {
+			const hashId = decodeURIComponent(location.hash.slice(1));
+			const idx = tests.findIndex(t => t.id === hashId);
+			if (idx >= 0) {
+				sel.value = idx;
+				sel.dispatchEvent(new Event('change'));
+			}
+		});
 
 		topbarEl.classList.add('collapsed');
 		topbarToggle.style.display = 'block';
