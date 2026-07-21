@@ -7,6 +7,7 @@
 import { Coordinates, Viewport } from './shared'
 import { easeInOut } from './easing';
 import { epsEq } from '$utils/math';
+import { Mat4 } from './mat'
 import EngineCamera from './engine-camera';
 import type { default as TileCanvas } from './tile-canvas';
 
@@ -26,6 +27,7 @@ export default class Camera2D extends EngineCamera {
 	#pinching: boolean = false;
 	#inited: boolean = false;
 	#hasStartCoo: boolean = false;
+	readonly #omniMat: Mat4 = new Mat4;
 	cpw: number = -1;
 	cph: number = -1;
 	#wasCoverLimit: boolean = true;
@@ -87,7 +89,7 @@ export default class Camera2D extends EngineCamera {
 	getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.canvas;
 		const el = c.el;
-		const mat = c.camera360.pMatrix, vec4 = c.camera360.vec4;
+		const mat = this.#omniMat, vec4 = c.camera360.vec4;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
 
 		vec4.x = x;
