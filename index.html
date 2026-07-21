@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Micrio Test Cases</title>
+	<meta name="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="google" value="notranslate">
+	<meta name="mobile-web-app-capable" content="yes">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+	<style>
+		html { position: fixed; }
+		html, body { overscroll-behavior: none; width: 100%; height: 100%; overflow: hidden; }
+		body { margin: 0; background-color: #222222; }
+		body, button { font-family: 'Poppins', sans-serif; }
+		micr-io { display: block; width: 100%; height: 100%; }
+		html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; }
+		.topbar, .topbar * { margin: 0; padding: 0; box-sizing: border-box; }
+		.topbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.15rem 1rem; background: #16213e; border-bottom: 1px solid #0f3460; height: 40px; }
+		.topbar select { max-width: 380px; padding: 0.3rem 0.5rem; background: #0f3460; color: #e0e0e0; border: 1px solid #533483; border-radius: 4px; font-size: 0.75rem; }
+		.topbar label { font-weight: 600; font-size: 0.9rem; color: #a8a8b8; white-space: nowrap; }
+		.topbar .meta-info { display: flex; align-items: center; gap: 0.5rem 1rem; flex-wrap: wrap; flex: 1; font-size: 0.82rem; overflow: hidden; }
+		.topbar .meta-info .tag { display: inline-block; background: #533483; padding: 0.05rem 0.45rem; border-radius: 3px; font-size: 0.7rem; font-weight: 600; }
+		.topbar .meta-info .tag.organisation { background: #1a6b3c; }
+		.topbar .meta-info code { font-size: 0.78rem; color: #79c0ff; }
+		.topbar .meta-info a { color: #79c0ff; font-size: 0.78rem; white-space: nowrap; }
+		.main { display: flex; flex-direction: column; height: calc(100% - 40px); }
+		.viewport { flex: 1; position: relative; overflow: hidden; }
+		.viewport micr-io { display: block; width: 100%; height: 100%; }
+		.no-selection { display: flex; align-items: center; justify-content: center; flex: 1; color: #585878; font-size: 1.2rem; }
+		.edit-btn { background: none; border: 1px solid #533483; color: #a8a8b8; padding: 0.15rem 0.5rem; border-radius: 3px; cursor: pointer; font-size: 0.75rem; white-space: nowrap; }
+		.edit-btn:hover { background: #533483; color: #e0e0e0; }
+		.overlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.6); }
+		.overlay.open { display: flex; align-items: center; justify-content: center; }
+		.modal { background: #1e2a4a; border: 1px solid #533483; border-radius: 6px; padding: 1rem; min-width: 80%; max-width: 90%; max-height: 85%; display: flex; flex-direction: column; }
+		.modal textarea { flex: 1; min-height: 300px; background: #0f1a2e; color: #c9d1d9; border: 1px solid #0f3460; border-radius: 4px; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: vertical; }
+		.modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
+		.modal-actions button { padding: 0.3rem 1rem; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85rem; }
+		.modal-actions .save { background: #1a6b3c; color: #fff; }
+		.modal-actions .save:hover { background: #2d8a4e; }
+		.modal-actions .cancel { background: #533483; color: #e0e0e0; }
+		.modal-actions .cancel:hover { background: #7040a8; }
+	</style>
+
+	<!-- Use this for local development -->
+	<script type="module" src="./src/main.ts"></script>
+
+	<!-- Use this to test the compiled version -->
+	<!-- <script src="./dist/micrio.min.js" defer></script> -->
+
+	<!-- Use a production version -->
+	<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-6.1.15e.min.js" defer></script> -->
+	<!-- <script src="https://r2.micr.io/micrio-6.0.7.min.js" defer></script> -->
+	<!-- <script src="https://b.micr.io/micrio-5.0.min.js" defer></script> -->
+	<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
+	<!-- <script src="https://b.micr.io/micrio-2.9.min.js"></script> -->
+	<!-- <script src="https://b.micr.io/micrio-3.3.min.js"></script> -->
+	<!-- <script src="https://b.micr.io/micrio-1.9.min.js"></script> -->
+</head>
+<body>
+	<div class="topbar">
+		<label for="selector">Test case:</label>
+		<select id="selector"></select>
+		<div class="meta-info" id="meta"></div>
+		<button class="edit-btn" id="editBtn">Edit</button>
+	</div>
+	<div class="main">
+		<div class="viewport" id="viewport">
+			<div class="no-selection" id="noSel">Select a test case</div>
+		</div>
+	</div>
+
+	<div class="overlay" id="overlay">
+		<div class="modal">
+			<textarea id="editor"></textarea>
+			<div class="modal-actions">
+				<button class="cancel" id="cancelBtn">Cancel</button>
+				<button class="save" id="saveBtn">Save</button>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const tests = [
+			// ── Basic ──────────────────────────────────────────────
+			{ id: 'dzzLm', type: 'basic', description: 'Basic test image',
+				htmlString: '<micr-io id="dzzLm" lang="nl"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/@dzzLm' },
+			{ name: 'zcucg (DZ)', id: 'zcucg', type: 'basic', description: 'Deep Zoom image with explicit dimensions',
+				htmlString: '<micr-io id="zcucg" width="3418" height="4096" path="https://micrio.s3.eu-north-1.amazonaws.com/" tilesize="1024" format="dz" webp xextension="webp" skipmeta="" xui="false"></micr-io>' },
+			{ id: 'rqFkjZz', type: 'basic', description: 'General test image',
+				htmlString: '<micr-io id="rqFkjZz"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/2026/@CVWjwhk' },
+
+			// ── Omni ───────────────────────────────────────────────
+			{ id: 'QgjdoCK', type: 'omni', description: 'Omni image',
+				htmlString: '<micr-io id="QgjdoCK"></micr-io>' },
+			{ id: 'HvoNSNV', type: 'omni', description: 'Omni image with markers',
+				htmlString: '<micr-io id="HvoNSNV"></micr-io>' },
+			{ id: 'iEvpRg', type: 'omni', description: 'Omni image with markers — Modemuze',
+				htmlString: '<micr-io id="iEvpRg"></micr-io>', organisation: 'Modemuze' },
+			{ id: 'KUMwoaU', type: 'omni', description: 'Omni image with layers — Modemuze',
+				htmlString: '<micr-io id="KUMwoaU"></micr-io>', organisation: 'Modemuze' },
+			{ id: 'GPjAGL', type: 'omni', description: 'Omni image with layers',
+				htmlString: '<micr-io id="GPjAGL"></micr-io>' },
+
+			// ── 360 tour ───────────────────────────────────────────
+			{ id: 'ZnaHJK', type: '360 tour', description: 'Spaces 360 tour',
+				htmlString: '<micr-io id="ZnaHJK"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/danique-demotest/sdfsdf/demo-360-tour' },
+			{ id: 'WkdtYs', type: '360 tour', description: '360 tour',
+				htmlString: '<micr-io id="WkdtYs"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/danique-demotest/sdfsdf/demo-360-tour' },
+			{ id: 'OJqMYL', type: '360 tour', description: '360 tour',
+				htmlString: '<micr-io id="OJqMYL"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/danique-demotest/sdfsdf/demo-360-tour' },
+			{ id: 'EaouKa', type: '360 tour', description: 'Spaces tour with rotated 360 embed and relative orb rotations',
+				htmlString: '<micr-io id="EaouKa" data-skipxmeta="true" daxta-coverlimit data-xembeds-inside-gl="false"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/danique-demotest/sdfsdf/demo-360-tour' },
+			{ id: 'fmxpBY', type: '360 tour', description: '360 tour',
+				htmlString: '<micr-io id="fmxpBY"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/danique-demotest/sdfsdf/demo-360-tour' },
+			{ id: 'mLOarF', type: '360 tour', description: '360 hi-res image with floating embed — Rijksmuseum',
+				htmlString: '<micr-io id="mLOarF" data-embedxs-inside-gl="false"></micr-io>', organisation: 'Rijksmuseum' },
+			{ id: 'gAqGDMz', type: '360 tour', description: '360 tour 2026',
+				htmlString: '<micr-io id="gAqGDMz"></micr-io>' },
+			{ id: 'uLNEVz', type: '360 tour', description: '360 poppenhuis',
+				htmlString: '<micr-io id="uLNEVz"></micr-io>' },
+			{ id: 'mqmDZU', type: '360 tour', description: '360 poppenhuis',
+				htmlString: '<micr-io id="mqmDZU"></micr-io>' },
+			{ id: 'sXvgoH', type: '360 tour', description: '360 poppenhuis',
+				htmlString: '<micr-io id="sXvgoH"></micr-io>' },
+
+			// ── Embeds ─────────────────────────────────────────────
+			{ id: 'SUeqOX', type: 'embeds', description: 'Embedded video',
+				htmlString: '<micr-io id="SUeqOX"></micr-io>' },
+			{ id: 'HAotXhO', type: 'embeds', description: 'Embedded video',
+				htmlString: '<micr-io id="HAotXhO"></micr-io>' },
+			{ name: 'dfhgojZ (NG)', id: 'dfhgojZ', type: 'embeds', description: 'Embedded video — National Gallery Imaginarium',
+				htmlString: '<micr-io id="dfhgojZ" daxta-skipmeta="true" dxata-embeds-inside-gl="false"></micr-io>', organisation: 'National Gallery' },
+			{ name: 'dfhgojZ (local)', id: 'dfhgojZ', type: 'embeds', description: 'Embedded video with local path override',
+				htmlString: '<micr-io id="dfhgojZ" daxta-embeds-inside-gl data-path="http://localhost:6100/r2/" datxa-force-path data-embeds-inside-gl="false" dxata-skipmeta daxta-cluster-markers></micr-io>', organisation: 'National Gallery' },
+			{ id: 'xRFsaTQ', type: 'embeds', description: 'Image with lots of in-image clickable embeds — Schooltv Lezen Voor De Lijst',
+				htmlString: '<micr-io id="xRFsaTQ"></micr-io>', organisation: 'Schooltv' },
+
+			// ── Serial tour ────────────────────────────────────────
+			{ id: 'ojvqWXd', type: 'serial tour', description: 'Serial multi-image tour',
+				htmlString: '<micr-io id="ojvqWXd"></micr-io>' },
+			{ id: 'JXflr', type: 'serial tour', description: 'Serial multi-image tour — Rijksmuseum Joao story',
+				htmlString: '<micr-io id="JXflr" xpath="https://micrio.rijksmuseum.nl/" data-fullscxreen data-gallxery-sort="name"></micr-io>', organisation: 'Rijksmuseum' },
+
+			// ── Grid ───────────────────────────────────────────────
+			{ id: 'BToEysn', type: 'grid', description: 'Demo grid with local path, markers, cluster',
+				htmlString: '<micr-io id="BToEysn" laxng="nl" daxta-zoomlimit="4" daxta-router="hash" data-embexds-inside-gl daxta-path="http://localhost:6100/r2/" daxta-force-path data-embxeds-inside-gl="true" data-sxkipmeta daxta-cluster-markers></micr-io>' },
+			{ name: 'sJbpCE', id: 'sJbpCE.1781772980', type: 'grid', description: 'Grid demo, fullscreen, sort by name, grid zoom',
+				htmlString: '<micr-io data-grid="sJbpCE.1781772980" data-fullscreen data-gallery-sort="name" data-grid-zoom="true"></micr-io>' },
+			{ name: 'SBzCMk', id: 'SBzCMk.1781809787', type: 'grid', description: 'Grid with cover init, fullscreen, random sort',
+				htmlString: '<micr-io data-grid="SBzCMk.1781809787" data-coxverlimit data-initxtype="cover" data-fullscreen daxta-gallery-sort="random" data-xkeys="false"></micr-io>' },
+			{ id: 'ojLvYTE', type: 'grid', description: 'Grid demo — Q42 shared',
+				htmlString: '<micr-io id="ojLvYTE" daxta-embeds-inside-gl="false"></micr-io>',
+				editorLink: 'https://dash.micr.io/q42-shared/test/grid-test' },
+
+			// ── Gallery / Album ────────────────────────────────────
+			{ name: 'yOeffA', id: 'yOeffA.1780389977', type: 'gallery', description: 'Gallery, fullscreen, EU path',
+				htmlString: '<micr-io data-gallery="yOeffA.1780389977" data-fullscreen data-gallery-sort="name" data-path="https://eu.micr.io/"></micr-io>' },
+			{ id: 'mfcDxoh', type: 'gallery', description: 'Multi-image / book — Bibliotheek Erfgoed',
+				htmlString: '<micr-io id="mfcDxoh" datxa-path="https://r2.micr.io/"></micr-io>', organisation: 'Bibliotheek Erfgoed' },
+			{ id: 'WcOSjxV', type: 'gallery', description: 'Swipeable gallery with metadata (7th image)',
+				htmlString: '<micr-io id="WcOSjxV" data-embeds-inside-gl="false"></micr-io>',
+				editorLink: 'https://dash.micr.io/micrio/2026-albums/test-album-met-metadata' },
+			{ name: 'xnRwQ (VGM)', id: 'xnRwQ,985,1200,,p;esgZB,960,1280,;pRiMP,960,1280,', type: 'gallery', description: 'Demo swipeable gallery — Van Gogh Museum',
+				htmlString: '<micr-io data-gallery="xnRwQ,985,1200,,p;esgZB,960,1280,;pRiMP,960,1280," data-path="https://micrio.vangoghmuseum.nl/micrio/"></micr-io>', organisation: 'Van Gogh Museum' },
+
+			// ── Book ───────────────────────────────────────────────
+			{ id: 'jcrosPa', type: 'book', description: 'Book / swipeable gallery with pages — Bibliotheek Erfgoed',
+				htmlString: '<micr-io id="jcrosPa"></micr-io>', organisation: 'Bibliotheek Erfgoed' },
+			{ id: 'CvAjsYe', type: 'book', description: 'Book / switching view, page 9 — Watchmen',
+				htmlString: '<micr-io id="CvAjsYe"></micr-io>', organisation: 'Watchmen' },
+
+			// ── IIIF ───────────────────────────────────────────────
+			{ name: 'IIIF Manifest', id: 'https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json', type: 'iiif', description: 'IIIF Presentation API V3 manifest — book recipe',
+				htmlString: '<micr-io xxid="blabla" id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io>' },
+			{ name: 'IIIF Image (info.json)', id: 'https://viewer.micr.io/sSoykjv/info.json', type: 'iiif', description: 'IIIF Image API info.json via Micrio viewer',
+				htmlString: '<micr-io id="https://viewer.micr.io/sSoykjv/info.json"></micr-io>' },
+			{ name: 'IIIF Image (Gallica)', id: 'https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18', type: 'iiif', description: 'IIIF Image API 3.0 — Gallica example',
+				htmlString: '<micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18"></micr-io>' },
+
+			// ── Custom ─────────────────────────────────────────────
+			{ id: 'cjhjTWD', type: 'custom', description: 'Image with custom external ID and watermark',
+				htmlString: '<micr-io id="cjhjTWD" lang="nl" xid="external/micrio/blabla" data-watermark-opacity="0.2"></micr-io>' },
+			{ name: 'NLB Singapore', id: 'external/nlb-singapore/f8fb9570-115c-11e3-83d5-0050568939ad', type: 'custom', description: 'Image with custom ID path — NLB Singapore',
+				htmlString: '<micr-io id="external/nlb-singapore/f8fb9570-115c-11e3-83d5-0050568939ad"></micr-io>', organisation: 'NLB Singapore' },
+
+			// ── Misc ───────────────────────────────────────────────
+			{ id: 'StLvjXj', type: 'misc', description: 'Staedel Museum Frankfurt — German content',
+				htmlString: '<micr-io id="StLvjXj" lang="de-DE"></micr-io>', organisation: 'Staedel Museum' },
+			{ id: 'zUtxLtj', type: 'misc', description: 'Staedel — skip meta, UI off',
+				htmlString: '<micr-io id="zUtxLtj" lang="de-DE" daxta-skipmeta datxa-ui="false"></micr-io>', organisation: 'Staedel Museum' },
+			{ id: 'vwUJF', type: 'misc', description: 'Minimal test',
+				htmlString: '<micr-io id="vwUJF"></micr-io>' },
+			{ id: 'PWaWcw', type: 'misc', description: 'With R2 path override',
+				htmlString: '<micr-io id="PWaWcw" path="https://r2.micr.io/"></micr-io>' },
+			{ id: 'HSucu', type: 'misc', description: 'With S3 path override',
+				htmlString: '<micr-io id="HSucu" path="https://micrio.s3.eu-north-1.amazonaws.com/"></micr-io>' },
+			{ id: 'XETzqjS', type: 'misc', description: 'General test',
+				htmlString: '<micr-io id="XETzqjS"></micr-io>' },
+			{ id: 'RKLaNjM', type: 'misc', description: 'General test',
+				htmlString: '<micr-io id="RKLaNjM"></micr-io>' },
+		];
+
+		const sel = document.getElementById('selector');
+		const viewport = document.getElementById('viewport');
+		const meta = document.getElementById('meta');
+		const noSel = document.getElementById('noSel');
+		const editBtn = document.getElementById('editBtn');
+		const overlay = document.getElementById('overlay');
+		const editor = document.getElementById('editor');
+		const saveBtn = document.getElementById('saveBtn');
+		const cancelBtn = document.getElementById('cancelBtn');
+
+		function render(t) {
+			meta.innerHTML = '';
+			const parts = [
+				`<span class="tag">${t.type}</span>`,
+			];
+			if (t.organisation) {
+				parts.push(`<span class="tag organisation">${t.organisation}</span>`);
+			}
+			if (t.description) {
+				parts.push(`<em>${t.description}</em>`);
+			}
+			if (t.editorLink) {
+				parts.push(`<a href="${t.editorLink}" target="_blank" style="color:#79c0ff;font-size:0.8rem;">Open in Dash</a>`);
+			}
+			meta.innerHTML = parts.join('');
+
+			noSel.style.display = 'none';
+			viewport.innerHTML = t.htmlString;
+		}
+
+		editBtn.addEventListener('click', () => {
+			const t = tests[sel.value];
+			if (!t) return;
+			editor.value = t.htmlString;
+			overlay.classList.add('open');
+			editor.focus();
+		});
+
+		function closeModal() {
+			overlay.classList.remove('open');
+		}
+
+		cancelBtn.addEventListener('click', closeModal);
+
+		saveBtn.addEventListener('click', () => {
+			const t = tests[sel.value];
+			if (!t) return;
+			t.htmlString = editor.value;
+			closeModal();
+			render(t);
+		});
+
+		overlay.addEventListener('click', e => {
+			if (e.target === overlay) closeModal();
+		});
+
+		editor.addEventListener('keydown', e => {
+			if (e.key === 'Escape') closeModal();
+			if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+				e.preventDefault();
+				saveBtn.click();
+			}
+		});
+
+		function build() {
+			const groups = {};
+			for (const t of tests) {
+				(groups[t.type] ??= []).push(t);
+			}
+
+			let i = 0;
+			for (const [type, items] of Object.entries(groups)) {
+				const opt = document.createElement('optgroup');
+				opt.label = type;
+				for (const t of items) {
+					const o = document.createElement('option');
+					o.value = i;
+					const label = t.name ? `${t.id} — ${t.name} — ${t.description}` : `${t.id} — ${t.description}`;
+					o.textContent = label;
+					opt.appendChild(o);
+					i++;
+				}
+				sel.appendChild(opt);
+			}
+			sel.addEventListener('change', () => {
+				const t = tests[sel.value];
+				if (t) {
+					location.hash = t.id;
+					render(t);
+				} else {
+					noSel.style.display = '';
+				}
+			});
+
+			// Select from hash, first uncommented (active) test, or first
+			const hashId = location.hash ? decodeURIComponent(location.hash.slice(1)) : '';
+			const hashIdx = hashId ? tests.findIndex(t => t.id === hashId) : -1;
+			const activeIdx = hashIdx >= 0 ? hashIdx
+				: tests.findIndex(t => t.htmlString.startsWith('<micr-io') && !t.htmlString.startsWith('<!--'));
+			sel.value = activeIdx >= 0 ? activeIdx : 0;
+			sel.dispatchEvent(new Event('change'));
+		}
+
+		build();
+	</script>
+</body>
+</html>
