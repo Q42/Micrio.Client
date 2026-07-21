@@ -305,26 +305,26 @@ micrio-main.is360{perspective:50cqh}`;
 			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } }) as MicrioElement
 		);
 
-		// Per-image marker popups — each image's open marker gets its own popup
+		// Per-image marker popups — only created when micrio.state.popup is set (after flyTo completes)
 		{
-			const visible = (get(micrio.visible) as MicrioImage[]).filter(i => !i.opts?.isEmbed);
+			const $popupMarker = get(micrio.state.popup);
 			const currentPopupIds = new Set<string>();
-			for (const img of visible) {
-				const m = get(img.state.marker);
-				if (m && typeof m != 'string' && m.popupType !== 'popover') {
+			if ($popupMarker) {
+				const img = (MicrioElement.markerImages as Map<string, MicrioImage>)?.get($popupMarker.id);
+				if (img && !img.opts?.isEmbed) {
 					const key = 'popup-' + img.id;
 					currentPopupIds.add(key);
 					const existing = this.#elements.get(key) as MicrioElement | undefined;
 					if (existing?.isConnected) {
-						existing.setProps?.({ marker: m });
+						existing.setProps?.({ marker: $popupMarker });
 					} else {
 						existing?.remove();
-						const el = createElement('micrio-marker-popup', { setProps: { marker: m }, parent: this }) as MicrioElement;
+						const el = createElement('micrio-marker-popup', { setProps: { marker: $popupMarker }, parent: this }) as MicrioElement;
 						this.#elements.set(key, el);
 					}
 				}
 			}
-			// Remove popups for images that no longer have a marker set
+			// Remove popups for images that no longer have a popup
 			for (const [key, el] of this.#elements) {
 				if (key.startsWith('popup-') && !currentPopupIds.has(key) && el?.isConnected) {
 					el.remove();
