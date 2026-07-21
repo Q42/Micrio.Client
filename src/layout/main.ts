@@ -241,7 +241,7 @@ micrio-main.is360{perspective:50cqh}`;
 
 		const $visible = get(micrio.visible);
 		this.#syncImageLayer(this.#markerElements, 'micrio-markers', 'markers', $visible, showMarkers,
-			(i) => !i.opts?.isEmbed && !!i.$data?.markers?.length
+			(i) => !i.opts?.isEmbed && (!!i.$data?.markers?.length || !!micrio.spaceData)
 		);
 
 		this.#syncImageLayer(this.#embedElements, 'micrio-image-embeds', 'embeds', $visible,
