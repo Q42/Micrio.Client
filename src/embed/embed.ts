@@ -19,7 +19,6 @@ export class MicrioEmbed extends MicrioElement<EmbedProps> {
 micrio-embed{display:contents}
 micrio-embed>.embed-container{position:absolute;display:block;top:0;left:0;transform:translate3d(calc(var(--x,0) - 50%),calc(var(--y,0) - 50%),0) scale3d(var(--s),var(--s),1);opacity:var(--opacity,1);direction:ltr;will-change:transform,opacity}
 micrio-embed>.embed-container.embed3d{top:50%;left:50%}
-micrio-embed>.embed-container.embed3d.behind{pointer-events:none;opacity:0!important}
 micrio-embed>.embed-container.no-events{pointer-events:none}
 micrio-embed>.embed-container.hide-when-paused{transition:opacity .25s}
 micrio-embed>.embed-container.hide-when-paused:has(figure.paused){opacity:0}

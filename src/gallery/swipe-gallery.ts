@@ -15,7 +15,7 @@ export class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	static styles = `micrio-swipe-gallery{display:contents}
 micrio-swipe-gallery>figcaption{position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin);padding:var(--micrio-popup-padding);max-width:410px;box-sizing:border-box;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
 @media(max-width:501px){micrio-swipe-gallery>figcaption{max-width:calc(100% - 3*var(--micrio-border-margin) - var(--micrio-button-size))}}
-micrio-swipe-gallery ul.micrio-gallery{--micrio-border-margin:16px}`;
+`;
 
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };
 

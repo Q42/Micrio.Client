@@ -62,7 +62,6 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** CSS injected into `<head>` when the first `<micr-io>` is connected. */
 	static styles = `micr-io{display:block;user-select:none;-webkit-touch-callout:none;overflow:hidden;position:relative;width:100%;height:100%;min-height:200px;backface-visibility:hidden;-webkit-backface-visibility:hidden;background-repeat:no-repeat;background-position:center center;background-size:contain;container-type:size}
 micr-io,micr-io button{font-family:var(--micrio-font-family,inherit);font-size:var(--micrio-font-size,inherit);background-color:var(--micrio-background-color,transparent)}
-micr-io h3{font-weight:600}
 micr-io[dir="rtl"]{--micrio-text-align:right}
 canvas.micrio{display:block;position:absolute;top:0;left:0;width:100%!important;height:100%!important;backface-visibility:hidden;user-select:none;-webkit-touch-callout:none;-webkit-user-select:none}
 micr-io:not([static]){overscroll-behavior:none}

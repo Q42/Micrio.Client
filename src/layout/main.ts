@@ -10,7 +10,6 @@ import '$ui/button';
 import '$ui/button-group';
 import '$ui/progress-circle';
 import type { ProgressCircleProps } from '$ui/progress-circle';
-import '$ui/progress-bar';
 import './logo';
 import './article';
 import '$media/subtitles';

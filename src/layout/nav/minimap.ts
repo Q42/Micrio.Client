@@ -14,7 +14,6 @@ export class MicrioMinimap extends MicrioElement<MinimapProps> {
 	static tag = 'micrio-minimap';
 	static styles = `micrio-minimap canvas{position:absolute;bottom:var(--micrio-border-margin);right:5px;transform-origin:right bottom;display:block;background-size:100%;transition:opacity .2s ease;cursor:grab;-ms-content-zooming:none;-ms-touch-action:none;touch-action:none;border-radius:var(--micrio-border-radius)}
 micrio-minimap canvas:not(:hover).hidden{opacity:0;pointer-events:none}
-micrio-minimap canvas.dragging{cursor:grabbing}
 micrio-minimap canvas.controls{right:calc(var(--micrio-border-margin) + var(--micrio-button-size) + 8px)}
 @media(max-width:800px){micrio-minimap canvas{transform:scale3d(.5,.5,1);pointer-events:none;right:65px}}`;
 

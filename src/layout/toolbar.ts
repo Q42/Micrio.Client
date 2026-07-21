@@ -17,7 +17,6 @@ micrio-toolbar menu.micrio-toolbar{transform:translate3d(0,0,0);width:100%;heigh
 micrio-toolbar menu.micrio-toolbar:not(.shown){transform:translate3d(calc(-100% - var(--micrio-border-margin) * 2),0,0)}
 }
 @media(min-width:501px){micrio-toolbar menu.indent{margin-left:calc(var(--micrio-border-margin) * 2 + 25px)}
-micrio-toolbar menu>.micrio-menu:not(:hover)>button.micrio-menu{margin-bottom:-15px}
 micrio-toolbar .micrio-toolbar>micrio-menu{color:#fff;margin-right:var(--micrio-border-margin);border-radius:var(--micrio-border-radius)}
 micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>micrio-menu:focus-within{backdrop-filter:var(--micrio-background-filter);background:var(--micrio-background);box-shadow:var(--micrio-button-shadow)}
 }`;

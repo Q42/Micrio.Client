@@ -16,7 +16,7 @@ export interface MarkerProps {
 export class MicrioMarker extends MicrioElement<MarkerProps> {
 	static tag = 'micrio-marker';
 	static styles = `micrio-marker{position:absolute;display:block;transform:translate3d(var(--x,0),var(--y,0),0) translate(-50%,-50%) scale3d(var(--scale,1),var(--scale,1),1);top:0;left:0;will-change:transform}
-micrio-marker:not(.cluster):not(.no-fade){animation:micrio-marker-fade .25s forwards}
+micrio-marker:not(.cluster){animation:micrio-marker-fade .25s forwards}
 micrio-marker.overlapped{display:none}
 @keyframes micrio-marker-fade{from{opacity:0}to{opacity:1}}
 micrio-marker.behind{pointer-events:none;opacity:0!important}
@@ -30,14 +30,14 @@ micrio-marker:hover label,.show-titles micrio-marker label{opacity:1}
 .show-titles micrio-marker label{pointer-events:all}
 micrio-marker label.static{transform:translate(-50%,4px) scale3d(calc(1/var(--scale,1)),calc(1/var(--scale,1)),1)}
 micrio-marker.default button{box-sizing:content-box;background-clip:content-box;border-radius:var(--micrio-marker-border-radius);border:var(--micrio-marker-border-size) solid var(--micrio-marker-border-color);transition:var(--micrio-marker-transition);background-color:var(--micrio-marker-color)}
-micrio-marker.default:hover,micrio-marker.default.hovered,micrio-marker.default.opened{z-index:1}
-micrio-marker.default:hover button,micrio-marker.default.hovered button,micrio-marker.default.opened button{background-color:var(--micrio-marker-highlight);border-width:0;width:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2);height:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2)}
+micrio-marker.default:hover,micrio-marker.default.opened{z-index:1}
+micrio-marker.default:hover button,micrio-marker.default.opened button{background-color:var(--micrio-marker-highlight);border-width:0;width:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2);height:calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2)}
 micrio-marker.has-icon{--micrio-marker-icon:none}
 micrio-marker.has-custom-icon{--micrio-marker-size:32px}
 micrio-marker.default.has-icon button{color:#fff;width:calc(var(--micrio-marker-size) + 24px);height:calc(var(--micrio-marker-size) + 24px);background-color:var(--micrio-marker-border-color);border:none}
-micrio-marker.default.has-icon.opened button svg,micrio-marker.default.has-icon.hovered button svg,micrio-marker.default.has-icon:hover button svg{color:var(--micrio-marker-highlight)}
+micrio-marker.default.has-icon.opened button svg,micrio-marker.default.has-icon:hover button svg{color:var(--micrio-marker-highlight)}
 micrio-marker.default.has-custom-icon button{background-color:transparent}
-micrio-marker.default.has-custom-icon.opened button,micrio-marker.default.has-custom-icon.hovered button,micrio-marker.default.has-custom-icon:hover button{background-color:var(--micrio-marker-highlight,var(--micrio-marker-color))}
+micrio-marker.default.has-custom-icon.opened button,micrio-marker.default.has-custom-icon:hover button{background-color:var(--micrio-marker-highlight,var(--micrio-marker-color))}
 micrio-marker.cluster button{border:2px solid var(--micrio-marker-color);background:var(--micrio-cluster-marker-background,#fff);color:var(--micrio-cluster-marker-color,#000);width:calc(var(--micrio-marker-size) + 12px);height:calc(var(--micrio-marker-size) + 12px);border-radius:100%;box-sizing:content-box}
 micrio-marker.cluster:hover button{background:var(--micrio-marker-highlight,#fff);border-color:var(--micrio-marker-highlight,#fff)}
 micrio-marker.cluster label{pointer-events:none;display:none}
