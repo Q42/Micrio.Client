@@ -48,12 +48,6 @@ micrio-button > :is(button, a) img {
 	max-width: 100%;
 	max-height: 100%;
 }
-micrio-button > :is(button, a)>* {
-	height: var(--micrio-icon-size)!important;
-	width: var(--micrio-icon-size);
-	font-size: var(--micrio-icon-size);
-	fill: var(--micrio-color);
-}
 micrio-button > :is(button, a).active {
 	color: var(--micrio-color-hover);
 }
