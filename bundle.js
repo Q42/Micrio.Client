@@ -20,10 +20,10 @@ walk('./src/');
 
 const cssParts = [];
 
-// CSS custom properties (cssVars)
-const cssVarsContent = fs.readFileSync('./src/core/css-vars.ts', 'utf-8');
-const cssVarsMatch = cssVarsContent.match(/cssVars\s*=\s*`([\s\S]*?)`/);
-if (cssVarsMatch?.[1]) cssParts.push(cssVarsMatch[1]);
+// CSS base (all global styles: custom properties, base element rules, combined rules)
+const cssBaseContent = fs.readFileSync('./src/core/css-base.ts', 'utf-8');
+const cssBaseMatch = cssBaseContent.match(/cssBase\s*=\s*`([\s\S]*?)`/);
+if (cssBaseMatch?.[1]) cssParts.push(cssBaseMatch[1]);
 
 // Component static styles
 for (const file of cssFiles) {
@@ -32,7 +32,7 @@ for (const file of cssFiles) {
 	if (match && match[1]) cssParts.push(match[1]);
 }
 
-fs.writeFileSync(buildDir + 'micrio.prod.css', cssParts.join('\n\n').replace(/\$\{cssVars\}/g, ''));
+fs.writeFileSync(buildDir + 'micrio.prod.css', cssParts.join('\n\n'));
 
 // ── Bundle ──
 const files = {
@@ -52,7 +52,7 @@ if (matches) {
 }
 
 // ── Minify and deflate CSS ──
-cssContent = cssContent.replace(/\n/g, '').replace(/[ \t]+/g, ' ').replace(/\s*([{};,:])\s*/g, '$1').trim();
+cssContent = cssContent.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n/g, '').replace(/[ \t]+/g, ' ').replace(/\s*([{};,:])\s*/g, '$1').trim();
 
 // Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS
 let jsRaw = fs.readFileSync(files.js).toString();

@@ -21,7 +21,7 @@ import { Gallery } from '$gallery/controller';
 import { isRTL } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
-import { cssVars } from './css-vars';
+import { cssBase } from './css-base';
 import { createElement } from '$utils/dom';
 
 /**
@@ -58,20 +58,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	static tag = 'micr-io';
 
 	/** CSS injected into `<head>` when the first `<micr-io>` is connected. */
-	static styles = `micr-io{display:block;user-select:none;-webkit-touch-callout:none;overflow:hidden;position:relative;width:100%;height:100%;min-height:200px;backface-visibility:hidden;-webkit-backface-visibility:hidden;background-repeat:no-repeat;background-position:center center;background-size:contain;container-type:size}
-micr-io,micr-io button{font-family:var(--micrio-font-family,inherit);font-size:var(--micrio-font-size,inherit);background-color:var(--micrio-background-color,transparent)}
-micr-io[dir="rtl"]{--micrio-text-align:right}
-canvas.micrio{display:block;position:absolute;top:0;left:0;width:100%!important;height:100%!important;backface-visibility:hidden;user-select:none;-webkit-touch-callout:none;-webkit-user-select:none}
-micr-io:not([static]){overscroll-behavior:none}
-micr-io[data-hooked]:not([data-panning])>canvas.micrio{cursor:move;cursor:-webkit-grab;cursor:-moz-grab;cursor:-ms-grab;cursor:grab;-ms-content-zooming:none;-ms-touch-action:none;touch-action:none}
-micr-io[data-panning]{cursor:-webkit-grabbing;cursor:-moz-grabbing;cursor:-ms-grabbing;cursor:grabbing}
-micr-io[data-hooked][data-can-pan]>canvas.micrio{-ms-touch-action:pan-y;touch-action:pan-y;overscroll-behavior:initial}
-micrio-main,micrio-toolbar,micrio-gallery,micrio-swipe-gallery,micrio-controls,micrio-popover,micrio-logo,micrio-logo-org,micrio-audio-controller,micrio-fullscreen,micrio-tour,micrio-serial-tour,micrio-embed,micrio-zoom-buttons,micrio-button,micrio-minimap{display:contents}
-micrio-markers:empty,micrio-image-embeds:empty,micrio-marker:empty,micrio-button-group:empty{display:none}
-micrio-media-controls>*,micrio-marker-content>*,micrio-tour .controls>micrio-button{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
-micrio-markers,micrio-image-embeds{pointer-events:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;will-change:width,height,top,left,opacity;perspective:inherit}
-micrio-details,micrio-swipe-gallery>figcaption,micrio-marker-content{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
-${cssVars}`;
+	static styles = cssBase;
 
 	/** Flag indicating if the initial print/setup has occurred.
 	 * @internal
