@@ -18,6 +18,9 @@ micrio-menu {
 	box-sizing: border-box;
 	text-align: center;
 }
+.micrio-menu-action svg {
+	display: inline-block;
+}
 @media (max-width: 500px) {
 	micrio-menu {
 		font-size: 1em;
