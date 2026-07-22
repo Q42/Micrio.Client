@@ -63,10 +63,9 @@ export const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
 	audio: true,
 	startVolume: 1,
 	mutedVolume: 0,
-	_markers: { showTitles: false, popupAnimation: {duration: 200, x: -50}, zoomOutAfterClose: true },
+	_markers: { showTitles: false, zoomOutAfterClose: true },
 	ui: { controls: { cultureSwitch: true } },
-	_360: {},
-	_meta: {}
+	_360: {}
 };
 
 

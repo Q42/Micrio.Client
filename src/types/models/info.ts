@@ -312,11 +312,6 @@ export namespace ImageInfo {
 			scale?: number;
 		};
 
-		/** Freeform custom settings, this is the "Custom JSON" field in the image editor */
-		_meta?: {
-			[key:string]: any;
-		};
-
 		/** UI customizations */
 		ui?: Partial<UserInterfaceSettings>;
 
@@ -409,8 +404,6 @@ export namespace ImageInfo {
 		tourStepCounterInPopup?: boolean;
 		/** Allow marker popups to be minimized */
 		canMinimizePopup?: boolean;
-		/** Transition-in animation for popup */
-		popupAnimation?: any;
 		/** Place primary body text above any media in popup */
 		primaryBodyFirst?: boolean;
 		/** Prevent all autoplay */

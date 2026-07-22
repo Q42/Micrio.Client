@@ -234,11 +234,6 @@ export namespace ImageData {
 		gridTourTransition?: Grid.MarkerFocusTransition;
 		/** Optional custom settings. This is the "Custom JSON" field in the marker editor */
 		_meta?: {
-			/** Deprecated split screen link
-			 * @deprecated Removed in 4.3
-			 * @internal
-			*/
-			secondary?: string;
 			/** For in grid multi-image tour, this step is in grid view */
 			gridView?: boolean;
 			/** Custom grid actions, action and action data |-separated */
