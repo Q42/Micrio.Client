@@ -13,13 +13,11 @@ micr-io.hide-ui micrio-controls aside:not(.grid-close):not(:hover) {
 	opacity: 0;
 	pointer-events: none;
 }
-micr-io[data-switching] > micrio-controls,
-micr-io[data-tour-active] > micrio-controls {
+micr-io:is([data-switching],[data-tour-active]) > micrio-controls {
 	opacity: 0;
 	pointer-events: none;
 }
-micrio-controls > micrio-button,
-micrio-controls > menu {
+micrio-controls > :is(micrio-button, menu) {
 	padding: 0;
 	margin: 8px 0;
 	display: block;
@@ -44,8 +42,7 @@ micrio-controls .lang-items {
 	box-shadow: var(--micrio-button-shadow);
 	white-space: nowrap;
 }
-micrio-controls menu.ctrl-lang:hover .lang-items,
-micrio-controls menu.ctrl-lang:focus-within .lang-items {
+micrio-controls menu.ctrl-lang:is(:hover,:focus-within) .lang-items {
 	display: flex;
 }
 micrio-controls .lang-items micrio-button {

@@ -49,8 +49,7 @@ micrio-toolbar menu.micrio-toolbar {
 		margin-right: var(--micrio-border-margin);
 		border-radius: var(--micrio-border-radius);
 	}
-	micrio-toolbar .micrio-toolbar > micrio-menu:hover,
-	micrio-toolbar .micrio-toolbar > micrio-menu:focus-within {
+	micrio-toolbar .micrio-toolbar > micrio-menu:is(:hover,:focus-within) {
 		backdrop-filter: var(--micrio-background-filter);
 		background: var(--micrio-background);
 		box-shadow: var(--micrio-button-shadow);

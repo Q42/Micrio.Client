@@ -23,10 +23,7 @@ micrio-grid>button {
 	pointer-events: auto;
 	grid-area: auto / auto / span 1 / span 1;
 }
-micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button {
-	pointer-events: none;
-}
-micrio-grid.grid-cells-hidden {
+:is(micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button,micrio-grid.grid-cells-hidden) {
 	pointer-events: none;
 }
 micrio-grid.grid-cells-hidden>button {

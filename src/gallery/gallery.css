@@ -183,30 +183,25 @@ micrio-gallery .handle-label.dragging {
 	transition: none;
 	transform: translateX(-50%) scale(1.05);
 }
-micr-io.hide-ui micrio-gallery:not(:hover) ul,micrio-gallery.force-hidden ul {
-	transform: translate(-50%,calc(100% + var(--micrio-border-margin)));
-	opacity: 0;
-	pointer-events: none;
-}
-@media (max-width: 500px) {
-	micr-io.hide-ui micrio-gallery:not(:hover) ul,micrio-gallery.force-hidden ul {
-		transform: translateY(calc(100% + var(--micrio-border-margin)));
-	}
-}
-micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.prev,micrio-gallery.force-hidden .gallery-btn.prev {
-	transform: translate(calc(-100% - var(--micrio-border-margin)),-50%);
-	opacity: 0;
-	pointer-events: none;
-}
-micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.next,micrio-gallery.force-hidden .gallery-btn.next {
-	transform: translate(calc(100% + var(--micrio-border-margin)),-50%);
-	opacity: 0;
-	pointer-events: none;
-}
+:is(micr-io.hide-ui micrio-gallery:not(:hover),micrio-gallery.force-hidden) :is(ul, .gallery-btn),
 micrio-gallery .gallery-btn:disabled {
 	opacity: 0;
 	pointer-events: none;
 }
-micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micrio-button:focus {
+:is(micr-io.hide-ui micrio-gallery:not(:hover),micrio-gallery.force-hidden) ul {
+	transform: translate(-50%,calc(100% + var(--micrio-border-margin)));
+}
+@media (max-width: 500px) {
+	:is(micr-io.hide-ui micrio-gallery:not(:hover),micrio-gallery.force-hidden) ul {
+		transform: translateY(calc(100% + var(--micrio-border-margin)));
+	}
+}
+:is(micr-io.hide-ui micrio-gallery:not(:hover),micrio-gallery.force-hidden) .gallery-btn.prev {
+	transform: translate(calc(-100% - var(--micrio-border-margin)),-50%);
+}
+:is(micr-io.hide-ui micrio-gallery:not(:hover),micrio-gallery.force-hidden) .gallery-btn.next {
+	transform: translate(calc(100% + var(--micrio-border-margin)),-50%);
+}
+micrio-gallery .gallery-btn.micrio-button:is(:hover, :focus) {
 	position: absolute !important;
 }

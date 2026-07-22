@@ -33,7 +33,7 @@ micrio-menu {
 		float: left;
 		position: relative;
 	}
-	micrio-menu:not(:focus-within):not(:hover) .items {
+	micrio-menu:not(:is(:focus-within,:hover)) .items {
 		display: none;
 	}
 	.micrio-menu-action {
@@ -50,8 +50,7 @@ micrio-menu {
 	.items .micrio-menu-action {
 		width: 100%;
 	}
-	.micrio-menu-action:hover,
-	.micrio-menu-action:focus {
+	.micrio-menu-action:is(:hover,:focus) {
 		text-shadow: none !important;
 		color: var(--micrio-color-hover) !important;
 	}

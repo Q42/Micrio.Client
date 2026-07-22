@@ -79,7 +79,7 @@ micr-io {
 	background-size:contain;
 	container-type:size;
 }
-micr-io,micr-io button {
+:is(micr-io,micr-io button) {
 	font-family:var(--micrio-font-family,inherit);
 	font-size:var(--micrio-font-size,inherit);
 	background-color:var(--micrio-background-color,transparent);
@@ -124,14 +124,14 @@ micr-io[data-hooked][data-can-pan]>canvas.micrio {
 	overscroll-behavior:initial;
 }
 /* display:contents containers */
-micrio-main,micrio-toolbar,micrio-gallery,micrio-swipe-gallery,micrio-controls,micrio-popover,micrio-logo,micrio-logo-org,micrio-audio-controller,micrio-fullscreen,micrio-tour,micrio-serial-tour,micrio-embed,micrio-zoom-buttons,micrio-button,micrio-minimap{display:contents}
+:where(micrio-main,micrio-toolbar,micrio-gallery,micrio-swipe-gallery,micrio-controls,micrio-popover,micrio-logo,micrio-logo-org,micrio-audio-controller,micrio-fullscreen,micrio-tour,micrio-serial-tour,micrio-embed,micrio-zoom-buttons,micrio-button,micrio-minimap){display:contents}
 /* hide empty containers */
-micrio-markers:empty,micrio-image-embeds:empty,micrio-marker:empty,micrio-button-group:empty{display:none}
+:is(micrio-markers,micrio-image-embeds,micrio-marker,micrio-button-group):empty{display:none}
 /* strip button chrome in nested contexts */
-micrio-media-controls>*,micrio-marker-content>*,micrio-tour .controls>micrio-button{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
+:is(micrio-media-controls,micrio-marker-content)>*,micrio-tour .controls>micrio-button{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
 /* full-viewport overlay bases */
-micrio-markers,micrio-image-embeds{pointer-events:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;will-change:width,height,top,left,opacity;perspective:inherit}
+:is(micrio-markers,micrio-image-embeds){pointer-events:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;will-change:width,height,top,left,opacity;perspective:inherit}
 /* panel theming (color, background, glass effect) */
-micrio-details,micrio-swipe-gallery>figcaption,micrio-marker-content{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
+:is(micrio-details,micrio-marker-content),micrio-swipe-gallery>figcaption{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
 /* display:block containers */
-micrio-media,micrio-media-controls{display:block}
+:is(micrio-media,micrio-media-controls){display:block}

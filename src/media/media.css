@@ -6,7 +6,7 @@ micrio-media figure {
 	margin: 0;
 	padding: 0;
 }
-micrio-media figure video,micrio-media figure audio {
+micrio-media figure :is(video, audio) {
 	width: 100%;
 	display: block;
 }
@@ -22,12 +22,10 @@ micrio-media figure iframe {
 	border: none;
 	display: block;
 }
-micrio-media figure:fullscreen iframe,
-micrio-media figure:-webkit-full-screen iframe {
+micrio-media figure:is(:fullscreen, :-webkit-full-screen) iframe {
 	height: 100%;
 }
-micrio-media figure:fullscreen video,
-micrio-media figure:-webkit-full-screen video {
+micrio-media figure:is(:fullscreen, :-webkit-full-screen) video {
 	height: 100%;
 	object-fit: contain;
 }

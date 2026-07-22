@@ -78,8 +78,7 @@ dialog:not(.article) > micrio-media {
 dialog:not(.article) > micrio-media > figure {
 	height: 100%;
 }
-dialog:not(.article) > micrio-media > figure iframe,
-dialog:not(.article) > micrio-media > figure video {
+dialog:not(.article) > micrio-media > figure :is(iframe, video) {
 	height: calc(100% - var(--micrio-button-size));
 }
 dialog > micrio-marker-content {

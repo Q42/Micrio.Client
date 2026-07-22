@@ -48,6 +48,6 @@ micrio-embed>.embed-container>button {
 	width: 100px;
 	aspect-ratio: var(--ratio);
 }
-micrio-embed>.embed-container>button,micrio-embed>.embed-container>img {
+micrio-embed>.embed-container>:is(button,img) {
 	touch-action: none;
 }
