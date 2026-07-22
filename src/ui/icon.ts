@@ -1,38 +1,8 @@
 import { MicrioElement } from '$core/component';
-import { icons, svgIcon, type MicrioIcon } from '$ui/icons';
+import { icons, svgIcon } from '$ui/icons';
 import type { IconName } from '$types/icon-name';
 
 const SMALL_NAMES = new Set<IconName>(['chevronDown', 'linkExt']);
-
-const ICON_LIB: Record<IconName, MicrioIcon> = {
-	play: icons.play,
-	pause: icons.pause,
-	close: icons.xmark,
-	playFilled: icons.playCircle,
-	a11y: icons.globe,
-	menu: icons.bars,
-	zoomIn: icons.plus,
-	zoomOut: icons.minus,
-	fullscreenEnter: icons.expand,
-	fullscreenLeave: icons.compress,
-	muted: icons.volumeXmark,
-	unmuted: icons.volumeHigh,
-	subtitles: icons.closedCaptioning,
-	subtitlesOff: icons.closedCaptioning,
-	prev: icons.arrowLeft,
-	up: icons.arrowUp,
-	next: icons.arrowRight,
-	down: icons.arrowDown,
-	video: icons.video,
-	audio: icons.volumeHigh,
-	image: icons.image,
-	share: icons.share,
-	error: icons.circleExclamation,
-	chevronDown: icons.chevronDown,
-	link: icons.link,
-	linkExt: icons.externalLink,
-	ellipsisVertical: icons.ellipsisVertical,
-};
 
 export class MicrioIconElement extends MicrioElement {
 	static tag = 'micrio-icon';
@@ -58,7 +28,7 @@ export class MicrioIconElement extends MicrioElement {
 
 	#readCustomHTML() {
 		const micrio = this.getMicrio();
-		this.#customHTML = micrio?.defaultSettings?.ui?.icons?.[this.#name];
+		this.#customHTML = micrio?.$current?.$settings?.ui?.icons?.[this.#name];
 	}
 
 	#render() {
@@ -68,7 +38,7 @@ export class MicrioIconElement extends MicrioElement {
 			return;
 		}
 
-		const icon = ICON_LIB[this.#name];
+		const icon = icons[this.#name];
 		if (!icon) { this.replaceChildren(); return; }
 
 		const svg = svgIcon(icon, { className: 'micrio-icon' });

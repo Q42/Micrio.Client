@@ -9,5 +9,5 @@ export type IconName = (
 	// Content types & actions
 	'playFilled'|'a11y'|'menu'|'audio'|'video'|'share'|
 	// Status & utilities
-	'error'|'chevronDown'|'link'|'linkExt'|'ellipsisVertical'|'image'
+	'error'|'chevronDown'|'link'|'linkExt'|'ellipsisVertical'|'image'|'layerGroup'
 );
