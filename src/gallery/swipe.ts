@@ -97,8 +97,21 @@ export class SwipeGallery {
 		else startSlide();
 	}
 
+	#resetDrag = ():void => {
+		this.#unlisten();
+		this.#stripDragId = undefined;
+		this.#stripDragActive = false;
+		this.#micrio.removeAttribute('data-panning');
+		this.#micrio.keepRendering = false;
+	};
+
 	handlePointerDown = (e:PointerEvent):void => {
-		if (!this.#canSwipe() || e.button !== 0 || this.#stripDragId !== undefined) return;
+		if (e.button !== 0) return;
+		if (this.#stripDragId !== undefined) {
+			if (e.pointerId !== this.#stripDragId) this.#resetDrag();
+			return;
+		}
+		if (!this.#canSwipe()) return;
 		this.#stripDragId = e.pointerId;
 		this.#stripDragStartX = this.#stripDragLastX = e.clientX;
 		this.#stripDragStartY = e.clientY;
@@ -136,12 +149,8 @@ export class SwipeGallery {
 
 	#stripPointerUp = (e:PointerEvent):void => {
 		if (e.pointerId !== this.#stripDragId) return;
-		this.#unlisten()
 		const wasActive = this.#stripDragActive;
-		this.#stripDragId = undefined;
-		this.#stripDragActive = false;
-		this.#micrio.removeAttribute('data-panning');
-		this.#micrio.keepRendering = false;
+		this.#resetDrag();
 		if (!wasActive) return;
 		try { this.#micrio.canvas.element.releasePointerCapture(e.pointerId); } catch (_) {}
 		const w = this.#micrio.offsetWidth || 1;
