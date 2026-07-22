@@ -1,133 +1,54 @@
 import { writable, type Writable } from '$core/store';
 
-/**
- * Interface defining the structure for UI button translations.
- * Each key corresponds to a specific UI element's title or label.
- */
-interface ButtonTranslations {
-	close: string;
-	zoomIn: string;
-	zoomOut: string;
-	fullscreenToggle: string;
-	switchLanguage: string;
-	share: string;
-	audioMute: string;
-	audioUnmute: string;
-	closeMarker: string;
-	tourStepNext: string;
-	tourStepPrev: string;
-	tourStop: string;
-	minimize: string;
-	play: string;
-	pause: string;
-	stop: string;
-	subtitlesToggle: string;
-	galleryPrev: string;
-	galleryNext: string;
-	menuToggle: string;
-	waypointFollow: string;
-	tours: string;
-	markerTours: string;
-	videoTours: string;
+type TranslationKeys =
+	| 'close' | 'zoomIn' | 'zoomOut' | 'fullscreenToggle'
+	| 'switchLanguage' | 'share' | 'audioMute' | 'audioUnmute'
+	| 'closeMarker' | 'tourStepNext' | 'tourStepPrev' | 'tourStop'
+	| 'minimize' | 'play' | 'pause' | 'stop'
+	| 'subtitlesToggle' | 'galleryPrev' | 'galleryNext'
+	| 'menuToggle' | 'waypointFollow' | 'tours' | 'markerTours' | 'videoTours';
+
+type ButtonTranslations = Record<TranslationKeys, string>;
+
+const langKeys = ['en', 'nl', 'de'];
+
+const strings = {
+	close: ['Close', 'Sluit', 'Schließen'],
+	zoomIn: ['Zoom in', 'Zoom in', 'Vergrößern'],
+	zoomOut: ['Zoom out', 'Zoom uit', 'Verkleinern'],
+	fullscreenToggle: ['Toggle fullscreen', 'Volledig scherm aan / uit', 'Vollbild umschalten'],
+	switchLanguage: ['Switch language', 'Kies taal', 'Sprache wechseln'],
+	share: ['Share', 'Deel', 'Teilen'],
+	audioMute: ['Mute audio', 'Geluid uit', 'Ton stummschalten'],
+	audioUnmute: ['Unmute audio', 'Geluid aan', 'Ton einschalten'],
+	closeMarker: ['Close this marker', 'Sluit deze marker', 'Diesen Marker schließen'],
+	tourStepNext: ['Next step', 'Volgende stap', 'Nächster Schritt'],
+	tourStepPrev: ['Previous step', 'Vorige stap', 'Vorheriger Schritt'],
+	tourStop: ['Stop this tour', 'Stop deze tour', 'Tour beenden'],
+	minimize: ['Minimize', 'Minimaliseer', 'Minimieren'],
+	play: ['Play', 'Start', 'Abspielen'],
+	pause: ['Pause', 'Pauzeer', 'Pause'],
+	stop: ['Stop', 'Stop', 'Stopp'],
+	subtitlesToggle: ['Toggle subtitles', 'Ondertitels aan / uit', 'Untertitel umschalten'],
+	galleryPrev: ['Previous image', 'Vorige afbeelding', 'Vorheriges Bild'],
+	galleryNext: ['Next image', 'Volgende afbeelding', 'Nächstes Bild'],
+	menuToggle: ['Toggle menu', 'Menu openen / sluiten', 'Menü umschalten'],
+	waypointFollow: ['Go this way', 'Ga deze richting', 'Diesen Weg gehen'],
+	tours: ['Tours', 'Tours', 'Touren'],
+	markerTours: ['Marker tours', 'Marker tours', 'Marker-Touren'],
+	videoTours: ['Video tours', 'Video tours', 'Video-Touren'],
+} satisfies Record<TranslationKeys, [string, string, string]>;
+
+export const langs: Record<string, ButtonTranslations> = {};
+
+const keys = Object.keys(strings) as TranslationKeys[];
+
+for (let i = 0; i < langKeys.length; i++) {
+	const lang: Partial<Record<TranslationKeys, string>> = {};
+	for (const key of keys) {
+		lang[key] = strings[key][i];
+	}
+	langs[langKeys[i]] = lang as ButtonTranslations;
 }
 
-/**
- * Object containing translations for UI button titles in different languages.
- * The keys are language codes (e.g., 'en', 'nl'), and the values are objects
- * conforming to the `ButtonTranslations` interface.
- */
-export const langs : {
-	[key: string]: ButtonTranslations
-} = {
-	/** English translations */
-	en: {
-		close: 'Close',
-		zoomIn: 'Zoom in',
-		zoomOut: 'Zoom out',
-		fullscreenToggle: 'Toggle fullscreen',
-		switchLanguage: 'Switch language',
-		share: 'Share',
-		audioMute: 'Mute audio',
-		audioUnmute: 'Unmute audio',
-		closeMarker: 'Close this marker',
-		tourStepNext: 'Next step',
-		tourStepPrev: 'Previous step',
-		tourStop: 'Stop this tour',
-		minimize: 'Minimize',
-		play: 'Play',
-		pause: 'Pause',
-		stop: 'Stop',
-		subtitlesToggle: 'Toggle subtitles',
-		galleryPrev: 'Previous image',
-		galleryNext: 'Next image',
-		menuToggle: 'Toggle menu',
-		waypointFollow: 'Go this way',
-		tours: 'Tours',
-		markerTours: 'Marker tours',
-		videoTours: 'Video tours',
-	},
-	/** Dutch translations */
-	nl: {
-		close: 'Sluit',
-		zoomIn: 'Zoom in',
-		zoomOut: 'Zoom uit',
-		fullscreenToggle: 'Volledig scherm aan / uit',
-		switchLanguage: 'Kies taal',
-		share: 'Deel',
-		audioMute: 'Geluid uit',
-		audioUnmute: 'Geluid aan',
-		closeMarker: 'Sluit deze marker',
-		tourStepNext: 'Volgende stap',
-		tourStepPrev: 'Vorige stap',
-		tourStop: 'Stop deze tour',
-		minimize: 'Minimaliseer',
-		play: 'Start',
-		pause: 'Pauzeer',
-		stop: 'Stop',
-		subtitlesToggle: 'Ondertitels aan / uit',
-		galleryPrev: 'Vorige afbeelding',
-		galleryNext: 'Volgende afbeelding',
-		menuToggle: 'Menu openen / sluiten',
-		waypointFollow: 'Ga deze richting',
-		tours: 'Tours',
-		markerTours: 'Marker tours',
-		videoTours: 'Video tours',
-	},
-	/** German translations */
-	de: {
-		close: 'Schließen',
-		zoomIn: 'Vergrößern',
-		zoomOut: 'Verkleinern',
-		fullscreenToggle: 'Vollbild umschalten',
-		switchLanguage: 'Sprache wechseln',
-		share: 'Teilen',
-		audioMute: 'Ton stummschalten',
-		audioUnmute: 'Ton einschalten',
-		closeMarker: 'Diesen Marker schließen',
-		tourStepNext: 'Nächster Schritt',
-		tourStepPrev: 'Vorheriger Schritt',
-		tourStop: 'Tour beenden',
-		minimize: 'Minimieren',
-		play: 'Abspielen',
-		pause: 'Pause',
-		stop: 'Stopp',
-		subtitlesToggle: 'Untertitel umschalten',
-		galleryPrev: 'Vorheriges Bild',
-		galleryNext: 'Nächstes Bild',
-		menuToggle: 'Menü umschalten',
-		waypointFollow: 'Diesen Weg gehen',
-		tours: 'Touren',
-		markerTours: 'Marker-Touren',
-		videoTours: 'Video-Touren',
-	},
-	// TODO: Add more languages as needed
-};
-
-/**
- * Writable store holding the currently active `ButtonTranslations` object.
- * Defaults to English ('en'). UI components subscribe to this store to display
- * translated text based on the currently selected language.
- * The language is typically changed by updating the `micrio._lang` store, which
- * should then trigger an update to this `i18n` store.
- */
 export const i18n:Writable<ButtonTranslations> = writable(langs.en);
