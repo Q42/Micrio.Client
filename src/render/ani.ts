@@ -164,7 +164,7 @@ export default class Ani {
 		f.set(fromCenterX, fromCenterY, fromWidth, fromHeight);
 
 		if (c.is360) {
-			toCenterX += longitudeDistance(fromCenterX, toCenterX);
+			toCenterX = fromCenterX + longitudeDistance(fromCenterX, toCenterX);
 			t.set(toCenterX, toCenterY, toWidth, toHeight);
 		}
 
