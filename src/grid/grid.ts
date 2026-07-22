@@ -41,32 +41,30 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 	get $focussed() : MicrioImage|undefined { return get(this.focussed); }
 	readonly markersShown:Writable<MicrioImage[]> = writable([]);
 
-	history:Models.Grid.GridHistory[] = [];
-	depth:Writable<number> = writable<number>(0);
+	#history:Models.Grid.GridHistory[] = [];
+	#depth:Writable<number> = writable<number>(0);
 
 	aniDurationIn:number = 1;
-	aniDurationOut:number = 0.5;
-	transitionDelay:number = .5;
+	#aniDurationOut:number = 0.5;
+	#transitionDelay:number = .5;
 
 	nextCrossFadeDuration:number|undefined;
-	isHorizontal:boolean = false;
-	readonly cellSizes:Map<string, [number,number?]> = new Map();
-	readonly nextSize:Map<string, [number,number?]> = new Map();
+	#isHorizontal:boolean = false;
+	readonly #cellSizes:Map<string, [number,number?]> = new Map();
+	readonly #nextSize:Map<string, [number,number?]> = new Map();
 
 	lastAction:string|undefined;
-	viewUnsub:Unsubscriber|undefined;
-	_to:ReturnType<typeof setTimeout>|undefined;
-	_fadeTo:ReturnType<typeof setTimeout>|undefined;
+	#viewUnsub:Unsubscriber|undefined;
+	#_to:ReturnType<typeof setTimeout>|undefined;
+	#_fadeTo:ReturnType<typeof setTimeout>|undefined;
 	#timingFunction:Models.Camera.TimingFunction = 'ease';
 	#closeBtn!: HTMLElement;
 
 	static handlingKeys:boolean = false;
 
-	lastPromise:Promise<MicrioImage[]>|undefined;
-
 	micrio!: HTMLMicrioElement;
 	image!: MicrioImage;
-	gallery!: Gallery;
+	#gallery!: Gallery;
 
 	#inited = false;
 
@@ -76,15 +74,15 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		const props = this._props as { micrio: HTMLMicrioElement; image: MicrioImage; gallery: Gallery };
 		this.micrio = props.micrio;
 		this.image = props.image;
-		this.gallery = props.gallery;
-		this.gallery.images.forEach(img => this.#trackImage(img));
+		this.#gallery = props.gallery;
+		this.#gallery.images.forEach(img => this.#trackImage(img));
 
 		const g = this.image.$settings?.grid;
 		this.clickable = (g?.clickable && ['focus','zoom'].includes(g.clickable)) ? g.clickable : false;
 		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
 		if(this.clickable && this.image.$settings.hookKeys) hookGridKeys(this);
-		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.aniDurationOut = g.transitionDuration;
-		if(g?.transitionDurationOut !== undefined) this.aniDurationOut = g.transitionDurationOut;
+		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.#aniDurationOut = g.transitionDuration;
+		if(g?.transitionDurationOut !== undefined) this.#aniDurationOut = g.transitionDurationOut;
 
 		this.set(this.#galleryGridImages, {
 			cover: this.image.$settings?.initType == 'cover',
@@ -115,7 +113,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 					const s = (typeof d.gridSize == 'number' ? [d.gridSize, d.gridSize]
 						: d.gridSize.split(',').map(Number)) as [number, number];
 					const micId = this.images.find(i => i.$data?.markers?.find(n => n == m))?.id;
-					if(micId) this.nextSize.set(micId, s);
+					if(micId) this.#nextSize.set(micId, s);
 				}
 				tick().then(() => {
 					const a = d?.gridAction?.split('|');
@@ -135,18 +133,18 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			this.focussed.subscribe(placeOrRemove);
 		}
 
-		this._tourEventHandler = createTourEventHandler(this);
+		this.#_tourEventHandler = createTourEventHandler(this);
 		const listen = this.micrio.addEventListener;
-		listen('tour-event', this._tourEventHandler);
+		listen('tour-event', this.#_tourEventHandler);
 		listen('serialtour-pause', () => this.images.forEach(i => i.camera.pause()));
 		listen('serialtour-play', () => this.images.forEach(i => i.camera.resume()));
 	}
 
-	_tourEventHandler: ((e: Event) => void) | undefined;
+	#_tourEventHandler: ((e: Event) => void) | undefined;
 
 	#clearTimeouts() : void {
-		clearTimeout(this._to);
-		clearTimeout(this._fadeTo);
+		clearTimeout(this.#_to);
+		clearTimeout(this.#_fadeTo);
 	}
 
 	#trackImage(img: MicrioImage): void {
@@ -155,17 +153,17 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 	}
 
 	get #galleryGridImages(): Models.Grid.GridImage[] {
-		return this.gallery.images.map(i => ({ id: i.id, size: [1] as [number, number?] }));
+		return this.#gallery.images.map(i => ({ id: i.id, size: [1] as [number, number?] }));
 	}
 
 	#savePreviousLayout(): void {
-		this.depth.set(this.history.push({
+		this.#depth.set(this.#history.push({
 			layout: this.current.map(i => ({
 				id: i.id,
 				view: i.state.$view,
-				size: this.cellSizes.get(i.id) as [number, number?] | undefined,
+				size: this.#cellSizes.get(i.id) as [number, number?] | undefined,
 			})),
-			horizontal: this.isHorizontal,
+			horizontal: this.#isHorizontal,
 			view: this.image.camera.getView()
 		}));
 	}
@@ -186,7 +184,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		cover?: boolean;
 		scale?: number;
 		columns?: number;
-	}={}) : Promise<MicrioImage[]> { return this.lastPromise = new Promise((ok, err) => {
+	}={}) : Promise<MicrioImage[]> { return new Promise((ok, err) => {
 		delete this.image.$settings?.focus;
 		this.lastAction = undefined;
 
@@ -202,7 +200,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			setupBehindTransition(this, images, opts, focussed);
 
 		const ready = this.image.placed;
-		const dur = opts.duration ?? (opts.noHistory ? this.aniDurationOut : this.aniDurationIn);
+		const dur = opts.duration ?? (opts.noHistory ? this.#aniDurationOut : this.aniDurationIn);
 		const defaultDur = this.nextCrossFadeDuration ?? (this.image.$settings.crossfadeDuration ?? 1);
 		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
 		this.nextCrossFadeDuration = undefined;
@@ -215,7 +213,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		if(doUnfocus) this.blur();
 
 		if(!opts.noHistory && this.current.length) this.#savePreviousLayout();
-		this.isHorizontal = !!opts.horizontal;
+		this.#isHorizontal = !!opts.horizontal;
 
 		this.#removeImages(this.images.filter(i => !images.find(n => n.id == i.id)));
 		this.#printGrid(images, {
@@ -239,7 +237,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			p.catch(error);
 		}
 
-		this.nextSize.clear();
+		this.#nextSize.clear();
 
 		if (opts.coverLimit == undefined) opts.coverLimit = !!this.image.$settings.limitToCoverScale;
 		const forcedCoverLimit = opts.cover && !opts.coverLimit;
@@ -249,7 +247,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		}
 
 		const isAppear = opts.transition == 'appear-delayed';
-		const getDelay = (i:number) : number => i * this.transitionDelay + (i > 0 && isAppear ? dur : 0);
+		const getDelay = (i:number) : number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0);
 
 		this.current = images.map((img,i) => this.#placeImage(img, {
 			duration: !opts.forceAni && doUnfocus && img.id != focussed?.id ? 0 : dur,
@@ -283,8 +281,8 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			done();
 		}
 		else {
-			if(!opts.noFade) this._fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
-			this._to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.transitionDelay : 0)) * 1000);
+			if(!opts.noFade) this.#_fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
+			this.#_to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.#transitionDelay : 0)) * 1000);
 		}
 	})}
 
@@ -312,11 +310,11 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 			const tile = this._buttons.get(i.id)!;
 			if(i.size[0] !== 1 || i.size[1] !== undefined) {
 				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0]||i.size[1]}`;
-				this.cellSizes.set(i.id, i.size)
+				this.#cellSizes.set(i.id, i.size)
 			}
 			else {
 				tile.style.removeProperty('grid-area');
-				this.cellSizes.delete(i.id);
+				this.#cellSizes.delete(i.id);
 			}
 			tile.dataset.id = i.id;
 			tile.setAttribute('data-scroll-through', '');
@@ -350,11 +348,11 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 	#placeGrid() : void {
 		if(!this.clickable || this.micrio.state.$tour || this.micrio.state.$marker) return;
 		this.classList.remove('grid-cells-hidden');
-		this.viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
+		this.#viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
 	}
 
 	#removeGrid() : void {
-		if(this.viewUnsub) this.viewUnsub();
+		if(this.#viewUnsub) this.#viewUnsub();
 		this.classList.add('grid-cells-hidden');
 	}
 
@@ -413,14 +411,14 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 	}
 
 	async reset(duration?:number, noCamAni?:boolean, forceAni?:boolean) : Promise<MicrioImage[]> {
-		const state = this.history[0];
+		const state = this.#history[0];
 		this.images.forEach(i => i.camera.stop());
 		this.image.camera.stop();
 		this.markersShown.set([]);
 		await tick();
 		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.#hasChanged()) duration = 0;
 		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#galleryGridImages, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
-			this.depth.set(this.history.length = 0);
+			this.#depth.set(this.#history.length = 0);
 			this.micrio.current.set(this.image);
 			return i;
 		});
@@ -437,10 +435,10 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 	}
 
 	async back(duration?:number) : Promise<void> {
-		const state = this.history.pop();
+		const state = this.#history.pop();
 		if(!state) return;
 
-		this.depth.set(this.history.length);
+		this.#depth.set(this.#history.length);
 		this.micrio.current.set(this.image);
 
 		const focussed = this.$focussed;
@@ -536,10 +534,10 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 	}
 
 	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
-		const layout = this.history[this.history.length-1]?.layout;
+		const layout = this.#history[this.#history.length-1]?.layout;
 		const cover = this.image.$settings?.initType === 'cover';
 		if (!layout?.length) {
-			const galleryImages = this.gallery.images;
+			const galleryImages = this.#gallery.images;
 			if (!galleryImages.length) return this.current;
 			return this.set(galleryImages.map((img, i) => ({
 				id: img.id,
