@@ -89,7 +89,6 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 					setProps: {
 						type: (!isPartOfTour || isLastStep) ? 'close' : 'next',
 						title: (!isPartOfTour || isLastStep) ? $i18n.closeMarker : $i18n.tourStepNext,
-						className: 'close-popover',
 						onclick: advanceOrClose
 					}
 				})

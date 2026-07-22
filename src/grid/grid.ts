@@ -87,7 +87,6 @@ export class Grid extends MicrioElement {
 		});
 
 		this.#closeBtn = createElement('micrio-button', {
-			className: 'grid-close',
 			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
 		});
 		this.addCleanup(() => this.#closeBtn.remove());

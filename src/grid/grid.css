@@ -29,7 +29,7 @@ micrio-grid>button {
 micrio-grid.grid-cells-hidden>button {
 	display: none;
 }
-micrio-grid .grid-close {
+micrio-grid .close {
 	position: absolute;
 	display: block;
 	top: var(--micrio-border-margin);
@@ -37,7 +37,7 @@ micrio-grid .grid-close {
 	z-index: 2;
 	pointer-events: auto;
 }
-micr-io.hide-ui .grid-close {
+micr-io.hide-ui .close {
 	opacity: 0;
 	pointer-events: none;
 }

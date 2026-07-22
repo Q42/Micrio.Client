@@ -163,7 +163,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (showMute) {
 			if (!this.#muteBtn?.isConnected) {
 				this.#muteBtn?.remove();
-				this.#muteBtn = createElement('micrio-button', { className: 'ctrl-mute' });
+				this.#muteBtn = createElement('micrio-button');
 				this.#aside1.prepend(this.#muteBtn);
 			}
 			this.#muteBtn.setProps({
