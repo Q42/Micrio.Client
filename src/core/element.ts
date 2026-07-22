@@ -295,7 +295,7 @@ ${cssVars}`;
 		if(!resp) return;
 
 		let gallery: Gallery | null;
-		try { gallery = Gallery.fromIIIF(resp, this.engine, this); }
+		try { gallery = Gallery.fromIIIF(resp, this.engine); }
 		catch(e) { this.printError(e as Error); return; }
 		if(gallery) {
 			gallery.openOn(this);
@@ -336,7 +336,7 @@ ${cssVars}`;
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const bundle = await DataLoader.getBundleImage(opts.id).catch(() => undefined);
 			if(bundle && bundle.info?.albumId) {
-				const galleryCtrl = await Gallery.fromAlbum(bundle.info.albumId, this.engine, this, {
+				const galleryCtrl = await Gallery.fromAlbum(bundle.info.albumId, this.engine, {
 					startId: opts.id,
 					onProgress: (p:number) => this._ui?.setProps?.({loadingProgress: p})
 				}).catch(() => null);

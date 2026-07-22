@@ -38,23 +38,19 @@ function fitArea(
 export class Gallery {
 	readonly config: Models.GalleryConfig;
 	readonly images: MicrioImage[];
-	readonly engine: Engine;
-	readonly micrio: HTMLMicrioElement;
+	readonly #engine: Engine;
 
-	parent: MicrioImage | null = null;
+	#parent: MicrioImage | null = null;
 
-	readonly currentIndex: Writable<number> = writable(0);
+	readonly #currentIndex: Writable<number> = writable(0);
 
 	/** Max width for the virtual container canvas (switch/omni galleries). */
-	containerWidth: number = 0;
+	#containerWidth: number = 0;
 	/** Max height for the virtual container canvas (switch/omni galleries). */
-	containerHeight: number = 0;
+	#containerHeight: number = 0;
 
-	get type(): Models.GalleryConfig['type'] { return this.config.type; }
-
-	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, micrio: HTMLMicrioElement, config: Models.GalleryConfig) {
-		this.engine = engine;
-		this.micrio = micrio;
+	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {
+		this.#engine = engine;
 		this.config = config;
 
 		const isSwitch = config.type == 'switch';
@@ -62,8 +58,8 @@ export class Gallery {
 		const coverPages = isSpreads ? (config.coverPages ?? 0) : 0;
 
 		if (isSwitch) {
-			this.containerHeight = Math.max(...items.map(p => p.height));
-			this.containerWidth = Math.max(...items.map(p => p.width * (isSpreads ? 2 : 1)));
+			this.#containerHeight = Math.max(...items.map(p => p.height));
+			this.#containerWidth = Math.max(...items.map(p => p.width * (isSpreads ? 2 : 1)));
 		}
 
 		this.images = items.map((info, i) => {
@@ -98,7 +94,7 @@ export class Gallery {
 							: [0.5, 0, 0.5, 1];
 				}
 
-				let area = fitArea(slot, this.containerWidth, this.containerHeight, info.width, info.height);
+				let area = fitArea(slot, this.#containerWidth, this.#containerHeight, info.width, info.height);
 
 				if (isSpreads) {
 					if (slot[0] === 0.5) {
@@ -126,7 +122,7 @@ export class Gallery {
 	// --- Factory Methods ---
 
 	/** Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image manifests and raw Image API responses. */
-	static fromIIIF(resp: any, engine: Engine, micrio: HTMLMicrioElement): Gallery | null {
+	static fromIIIF(resp: any, engine: Engine): Gallery | null {
 		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
 			throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });
 
@@ -145,7 +141,7 @@ export class Gallery {
 
 			if (images.length === 1) return null;
 
-			return new Gallery(images, engine, micrio, { type: 'swipe', settings: {} });
+			return new Gallery(images, engine, { type: 'swipe', settings: {} });
 		}
 
 		return null;
@@ -160,14 +156,14 @@ export class Gallery {
 			isDeepZoom: c.isDeepZoom, isPng: c.isPng, isWebP: c.isWebP,
 		}));
 
-		return new Gallery(items, engine, micrio, {
+		return new Gallery(items, engine, {
 			type: 'swipe',
 			startId: opts?.startId,
 			settings: { skipMeta: true, noLogo: true }
 		});
 	}
 
-	static async fromAlbum(albumId: string, engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
+	static async fromAlbum(albumId: string, engine: Engine, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
 		const aInfo = DataLoader.getAlbum(albumId);
 		if (!aInfo) return null;
 
@@ -192,13 +188,13 @@ export class Gallery {
 			config.settings = settings as any;
 		}
 
-		const index = await Gallery.#getArchiveIndex(aInfo.archive!.split('.')[0], path, engine, micrio);
+		const index = await Gallery.#getArchiveIndex(aInfo.archive!.split('.')[0], path);
 		if (index) config.archiveLayerOffset = index.delta;
 		const sort = config.sort;
 		if (sort && index?.images) index.images.sort(Gallery.#sortArchiveImages(sort));
 		const rawImages = index?.images ?? [];
 
-		return new Gallery(rawImages.map(i => ({ ...i, path, version: '' })), engine, micrio, {
+		return new Gallery(rawImages.map(i => ({ ...i, path, version: '' })), engine, {
 			...config,
 			type: config.type ?? 'swipe',
 		} as Models.GalleryConfig);
@@ -206,7 +202,7 @@ export class Gallery {
 
 	// --- Static Helpers ---
 
-	static #getArchiveIndex = async (id: string, path: string, _engine: Engine, _micrio: HTMLMicrioElement):
+	static #getArchiveIndex = async (id: string, path: string):
 		Promise<{ delta?: number; images: Models.ImageInfo.ImageInfo[] }> =>
 		archive.get<{ images: Models.ImageInfo.ImageInfo[] }>(`${path}${id}.json`)
 			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r; });
@@ -251,7 +247,7 @@ export class Gallery {
 	// --- Instance Methods ---
 
 	attach(parent: MicrioImage): void {
-		this.parent = parent;
+		this.#parent = parent;
 		(parent as any).__gallery = this;
 	}
 
@@ -259,7 +255,7 @@ export class Gallery {
 
 	/** Build gallery BundleImage and open the parent gallery image on the `<micr-io>` element. */
 	async openOn(micrio: HTMLMicrioElement): Promise<void> {
-		const isSwitch = this.type == 'switch';
+		const isSwitch = this.config.type == 'switch';
 		const gallerySettings: Partial<Models.ImageInfo.Settings> = {
 			view: [0, 0, 1, 1],
 			gallery: { ...this.config },
@@ -278,15 +274,15 @@ export class Gallery {
 				id: '',
 				path,
 				version: '',
-				width: isSwitch ? this.containerWidth : (micrio.offsetWidth * micrio.canvas.getRatio()),
-				height: isSwitch ? this.containerHeight : (micrio.offsetHeight * micrio.canvas.getRatio()),
+				width: isSwitch ? this.#containerWidth : (micrio.offsetWidth * micrio.canvas.getRatio()),
+				height: isSwitch ? this.#containerHeight : (micrio.offsetHeight * micrio.canvas.getRatio()),
 			},
 			settings: gallerySettings,
 		}, {
 			gallery: this
 		});
 
-		if (this.type == 'grid') {
+		if (this.config.type == 'grid') {
 			img.grid = createElement(Grid.tag, {
 				setProps: { micrio, image: img, gallery: this },
 			}) as Grid;
@@ -297,23 +293,23 @@ export class Gallery {
 
 	/** Go to a specific page index. */
 	goto(index: number): void {
-		this.currentIndex.set(index);
-		const parent = this.parent;
+		this.#currentIndex.set(index);
+		const parent = this.#parent;
 		// Dispatch gallery-show event so the gallery and album interface respond
 		if (parent) {
-			this.engine.micrio.events.dispatch('gallery-show', index);
+			this.#engine.micrio.events.dispatch('gallery-show', index);
 		}
 	}
 
 	/** Go to the next page. */
 	next(): void {
-		const current = get(this.currentIndex);
+		const current = get(this.#currentIndex);
 		this.goto(Math.min(this.images.length - 1, current + 1));
 	}
 
 	/** Go to the previous page. */
 	prev(): void {
-		const current = get(this.currentIndex);
+		const current = get(this.#currentIndex);
 		this.goto(Math.max(0, current - 1));
 	}
 }

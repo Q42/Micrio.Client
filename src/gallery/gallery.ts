@@ -322,7 +322,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 
 		const engine = micrio.engine;
 		const parent = image;
-		const isSwipe = controller.type === 'swipe';
+		const isSwipe = controller.config.type === 'swipe';
 
 		if (isSwipe) {
 			this.#swipeGallery = new SwipeGallery(micrio, images, this.#pageToImages, this.#imageSlotPos, this.#imageSlotWidth,
