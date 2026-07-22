@@ -263,10 +263,12 @@ export default class Camera360 extends EngineCamera {
 
 	/** Applies translation offset for 360 space transitions. */
 	moveTo(distance: number, distanceY: number, direction: number, addYaw: number = 0): void {
+		const p = this.position;
+
 		const dir: number = direction * Math.PI * 2 + addYaw;
-		this.position.x = -distance * Math.sin(dir);
-		this.position.y = distanceY;
-		this.position.z = distance * Math.cos(dir);
+		p.x = -distance * Math.sin(dir);
+		p.y = distanceY;
+		p.z = distance * Math.cos(dir);
 		this.canvas.view.changed = true;
 		this.update();
 	}
@@ -290,58 +292,66 @@ export default class Camera360 extends EngineCamera {
 
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
 	getCoo(pxX: number, pxY: number): Coordinates {
-		const el = this.canvas.el;
-		this.vec4.x = (pxX * el.ratio / el.width) * 2 - 1;
-		this.vec4.y = -((pxY * el.ratio / el.height) * 2 - 1);
-		this.vec4.z = 1;
-		this.vec4.w = 1;
+		const el = this.canvas.el,
+			v = this.vec4,
+			c = this.coo;
+
+		v.x = (pxX * el.ratio / el.width) * 2 - 1;
+		v.y = -((pxY * el.ratio / el.height) * 2 - 1);
+		v.z = 1;
+		v.w = 1;
 
 		this.#ensureInverse();
-		this.vec4.transformMat4(this.#cachedInverse);
+		v.transformMat4(this.#cachedInverse);
 
-		this.vec4.normalize();
-		this.coo.x = Math.atan2(this.vec4.x, -this.vec4.z) / Math.PI / 2 + .5;
-		this.coo.y = .5 - Math.asin(this.vec4.y) / Math.PI / this.scaleY;
-		this.coo.scale = this.scale;
-		this.coo.w = this.position.x + this.position.z;
-		this.coo.direction = this.yaw + this.baseYaw;
-		this.coo.toArray();
+		v.normalize();
+		c.x = Math.atan2(v.x, -v.z) / Math.PI / 2 + .5;
+		c.y = .5 - Math.asin(v.y) / Math.PI / this.scaleY;
+		c.scale = this.scale;
+		c.w = this.position.x + this.position.z;
+		c.direction = this.yaw + this.baseYaw;
+		c.toArray();
 
-		return this.coo;
+		return c;
 	}
 
 	/** Converts 360 image coordinates [0-1] to screen pixel coordinates. */
 	getXYZ(x: number, y: number): Coordinates {
-		const el = this.canvas.el;
+		const el = this.canvas.el,
+			v = this.vec4,
+			c = this.coo;
+
 		this.getVec3(x + this.offX, y);
 
-		this.coo.x = ((this.vec4.x + 1) / 2) * el.width / el.ratio;
-		this.coo.y = ((-this.vec4.y + 1) / 2) * el.height / el.ratio;
-		this.coo.scale = this.scale;
-		this.coo.w = -this.vec4.w;
-		this.coo.toArray();
+		c.x = ((v.x + 1) / 2) * el.width / el.ratio;
+		c.y = ((-v.y + 1) / 2) * el.height / el.ratio;
+		c.scale = this.scale;
+		c.w = -v.w;
+		c.toArray();
 
-		return this.coo;
+		return c;
 	}
 
 	/**
 	 * Calculates the 3D vector corresponding to a point on the 360 sphere.
 	 */
 	getVec3(x: number, y: number, abs: boolean = false, rad: number = this.radius): Vec4 {
+		const v = this.vec4;
+
 		x *= -Math.PI * 2;
 		y -= .5;
 		y *= -Math.PI;
 		y *= this.scaleY;
 
 		const cY = Math.cos(y);
-		this.vec4.x = cY * Math.sin(x) * rad;
-		this.vec4.y = Math.sin(y) * rad;
-		this.vec4.z = cY * Math.cos(x) * rad;
-		this.vec4.w = 1;
+		v.x = cY * Math.sin(x) * rad;
+		v.y = Math.sin(y) * rad;
+		v.z = cY * Math.cos(x) * rad;
+		v.w = 1;
 
-		if (!abs) this.vec4.transformMat4(this.pMatrix);
+		if (!abs) v.transformMat4(this.pMatrix);
 
-		return this.vec4;
+		return v;
 	}
 
 	/**
@@ -351,7 +361,10 @@ export default class Camera360 extends EngineCamera {
 	getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
 		if (isNaN(radius)) radius = this.radius;
 
-		const m = this.iMatrix;
+		const m = this.iMatrix,
+			v = this.vec4,
+			r = this.radius,
+			p = this.position;
 
 		m.identity();
 
@@ -362,29 +375,29 @@ export default class Camera360 extends EngineCamera {
 		y *= Math.PI * this.scaleY;
 
 		const cY = Math.cos(y);
-		this.vec4.x = cY * Math.sin(x);
-		this.vec4.y = Math.sin(y);
-		this.vec4.z = cY * Math.cos(x);
+		v.x = cY * Math.sin(x);
+		v.y = Math.sin(y);
+		v.z = cY * Math.cos(x);
 
 		m.translate(
-			this.position.x * radius / this.radius,
-			-this.position.y * radius / this.radius + transY * this.radius,
-			this.position.z * radius / this.radius
+			p.x * radius / r,
+			-p.y * radius / r + transY * r,
+			p.z * radius / r
 		);
 
 		m.translate(
-			this.vec4.x * radius,
-			this.vec4.y * radius,
-			this.vec4.z * radius
+			v.x * radius,
+			v.y * radius,
+			v.z * radius
 		);
 
-		m.rotateY(Math.atan2(this.vec4.x, this.vec4.z) + Math.PI + rY);
-		m.rotateX(this.vec4.y + rX);
+		m.rotateY(Math.atan2(v.x, v.z) + Math.PI + rY);
+		m.rotateX(v.y + rX);
 		m.rotateZ(rZ);
 
 		m.scale(sX, sY);
 
-		m.scaleFlat(scale / Math.PI / this.radius);
+		m.scaleFlat(scale / Math.PI / r);
 
 		m.multiply(this.#rMatrix);
 
