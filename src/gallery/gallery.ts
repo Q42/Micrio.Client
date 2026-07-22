@@ -380,9 +380,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
 	#buildScrubber() {
-		if (!this.#images.length || this.querySelector('ul')) return;
-
 		const total = this.#pageToImages.length;
+		if (!this.#images.length || total <= 1 || this.querySelector('ul')) return;
 		const $i18n = get(i18n);
 		const dense = total > 24;
 		const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1;
