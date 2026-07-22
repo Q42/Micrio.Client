@@ -37,12 +37,12 @@ export class MicrioImage {
 	readonly uuid: string = crypto.randomUUID();
 
 	/** The image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
-	readonly info: Models.ImageInfo.ImageInfo;
+	readonly #info: Models.ImageInfo.ImageInfo;
 
 	/** Getter for the current value of the {@link info} property.
 	 * @readonly
 	*/
-	get $info():Models.ImageInfo.ImageInfo { return this.info }
+	get $info():Models.ImageInfo.ImageInfo { return this.#info }
 
 	/**  Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
 	readonly settings: Writable<Models.ImageInfo.Settings> = writable({});
@@ -130,7 +130,7 @@ export class MicrioImage {
 	 * @readonly
 	 * @internal
 	*/
-	dzLevels: number = 0;
+	#dzLevels: number = 0;
 
 	/** Source URL for the image thumbnail.
 	 * @readonly
@@ -142,7 +142,7 @@ export class MicrioImage {
 	 * @readonly
 	 * @internal
 	*/
-	extension: string|undefined;
+	#extension: string|undefined;
 
 	/** Flag indicating if this is a virtual canvas (e.g., gallery container) without its own image tiles.
 	 * @readonly
@@ -168,8 +168,21 @@ export class MicrioImage {
 	/** Base path for fetching image tiles. */
 	tileBase:string|undefined;
 
+	/** The engine this image is managed by. */
+	get engine(): Engine { return this.#engine; }
+
 	/** The engine TileCanvas for this image, if placed. */
-	get canvas(): TileCanvas | undefined { return this.engine.getCanvas(this); }
+	get canvas(): TileCanvas | undefined { return this.#engine.getCanvas(this); }
+
+	readonly #engine: Engine;
+	opts: {
+		/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
+		area?: Models.Camera.View;
+		/** If true, this image is embedded within another image (affects rendering/camera). */
+		isEmbed?: boolean;
+		/** If true, uses the parent image's camera instead of creating its own (for switch/omni galleries). */
+		useParentCamera?: boolean;
+	};
 
 	/**
 	 * Creates a new MicrioImage instance. Typically called by {@link HTMLMicrioElement.open}.
@@ -179,9 +192,9 @@ export class MicrioImage {
 	 * @param opts Options controlling behavior (embedding, split-screen, etc.).
 	 */
 	constructor(
-		public engine: Engine,
+		engine: Engine,
 		bundle: Models.ImageBundle.BundleImage,
-		public opts:{
+		opts: {
 			/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
 			area?: Models.Camera.View;
 			/** If true, this image is embedded within another image (affects rendering/camera). */
@@ -190,6 +203,8 @@ export class MicrioImage {
 			useParentCamera?: boolean;
 		} = {}
 	) {
+		this.#engine = engine;
+		this.opts = opts;
 		this.state = new State.Image(this);
 		if(!opts.useParentCamera) this.camera = new Camera(this);
 
@@ -202,13 +217,13 @@ export class MicrioImage {
 		}
 
 		const i = bundle.info;
-		this.info = i;
+		this.#info = i;
 		this.dataPath = i.path || BASEPATH_V5;
 
 		if(!opts.area) opts.area = [0,0,1,1];
 
 		const s = bundle.settings;
-		const micrio = this.engine.micrio;
+		const micrio = this.#engine.micrio;
 
 		// V5 ID detection & derived info flags
 		if (!i.isIIIF && this.id.length == 7) {
@@ -242,7 +257,7 @@ export class MicrioImage {
 		if(org?.branding && !(s?.noUI)) {
 			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
 			this.#loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
-				const fontFamily = getComputedStyle(this.engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
+				const fontFamily = getComputedStyle(this.#engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
 				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
 					this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
 				});
@@ -269,7 +284,7 @@ export class MicrioImage {
 
 		// Derived flags & properties
 		this.noImage = this.noImage || this.isOmni || (!i.id && !i.tilesId);
-		this.extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg';
+		this.#extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg';
 		if(i.format == 'dz') i.isDeepZoom = true;
 		this.is360 = !!i.is360;
 		this.isVideo = !!i.isVideo;
@@ -290,13 +305,13 @@ export class MicrioImage {
 				loadScript(url);
 				const _el = document.head.querySelector('script[src="'+url+'"]') as HTMLScriptElement | undefined;
 				/** @ts-ignore -- used for custom JS to have a cool self reference */
-				if (_el) _el['micrioElement'] = this.engine.micrio;
+				if (_el) _el['micrioElement'] = this.#engine.micrio;
 			}
 		}
 
 		// Zoom levels
 		for(let f=i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width,i.height); f *= 2, this.levels++) {}
-		let max = Math.max(i.width, i.height); do this.dzLevels++; while((max/=2) > 1);
+		let max = Math.max(i.width, i.height); do this.#dzLevels++; while((max/=2) > 1);
 		if(s?.gallery?.archive) this.levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
 		if(!this.noImage) this.thumbSrc = this.getTileSrc(this.levels, 0, 0);
 
@@ -309,18 +324,18 @@ export class MicrioImage {
 
 		// Settings store & watermark
 		if(s) this.settings.set(s);
-		if(i.watermark) this.engine.micrio.webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
+		if(i.watermark) this.#engine.micrio.webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
 
 		// Omni controls hook
 		if(this.isOmni) {
 			this.state.layer.subscribe(l => {
-				if(!this.placed || !this.engine.ready) return;
+				if(!this.placed || !this.#engine.ready) return;
 				this.canvas?.setActiveLayer(l);
-				this.engine.render();
+				this.#engine.render();
 			});
 		}
 
-		const micrioRef = this.engine.micrio;
+		const micrioRef = this.#engine.micrio;
 
 		// Visibility subscription
 		let wasVis:boolean=get(this.visible);
@@ -350,10 +365,10 @@ export class MicrioImage {
 	 * @returns The calculated tile image source URL string, or undefined if info not loaded.
 	 */
 	getTileSrc(layer:number, x:number, y:number, frame?:number) : string|undefined {
-		const i = this.info;
+		const i = this.#info;
 
 		// Adjust layer index for DeepZoom format
-		if(i.isDeepZoom) layer = this.dzLevels - layer;
+		if(i.isDeepZoom) layer = this.#dzLevels - layer;
 
 		// Handle IIIF URL generation
 		if(i.isIIIF) {
@@ -373,7 +388,7 @@ export class MicrioImage {
 			throw new Error('Video thumb');
 
 		// Construct standard Micrio tile URL
-		return `${this.tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.extension}`;
+		return `${this.tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.#extension}`;
 	}
 
 	/** Loads an external stylesheet dynamically. Ensures stylesheets are loaded only once.
@@ -401,7 +416,7 @@ export class MicrioImage {
 	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, settings: Partial<Models.ImageInfo.Settings> | undefined, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
 		// Create new MicrioImage instance for the embed
-		const img = new MicrioImage(this.engine, {
+		const img = new MicrioImage(this.#engine, {
 			id: info.id ?? '',
 			info: { ...info, id: info.id ?? '' } as Models.ImageInfo.ImageInfo,
 			data: DataLoader.getBundleImageSync(info.id ?? '')?.data,
@@ -414,7 +429,7 @@ export class MicrioImage {
 
 		// Adjust area based on 'fit' option (cover or contain)
 		if(opts.fit == 'cover' || opts.fit == 'contain') {
-			const i = img.info;
+			const i = img.$info;
 			const yS = this.is360 ? 2 : 1; // Y-scale factor for 360
 			const isCover = opts.fit == 'cover';
 			const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
@@ -428,8 +443,8 @@ export class MicrioImage {
 			}
 		}
 		// Add the embed to the engine
-		this.engine.addEmbed(img, this, opts);
-		this.engine.render(); // Trigger render
+		this.#engine.addEmbed(img, this, opts);
+		this.#engine.render(); // Trigger render
 		return img; // Return the new embed instance
 	}
 
@@ -451,14 +466,14 @@ export class MicrioImage {
 	fadeIn(direct:boolean=false) : void {
 		const c = this.canvas;
 		if (c) { c.targetOpacity = 1; if (direct) c.opacity = 1; }
-		this.engine.render();
+		this.#engine.render();
 	}
 
 	/** Fades out the image smoothly or instantly. */
 	fadeOut(direct:boolean=false) : void {
 		const c = this.canvas;
 		if (c) { c.targetOpacity = 0; if (direct) c.opacity = 0; }
-		this.engine.render();
+		this.#engine.render();
 	}
 
 }

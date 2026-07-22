@@ -123,7 +123,7 @@ micrio-main.is360{perspective:50cqh}`;
 
 		this.addCleanup(micrio.current.subscribe(c => {
 			if (!c) return;
-			this.#info = c.info;
+			this.#info = c.$info;
 			this.#settings = undefined;
 
 			this.#firstInited = true;

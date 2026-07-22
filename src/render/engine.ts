@@ -434,7 +434,7 @@ export class Engine {
 		if (!canvas || (canvas.placed && canvas === this.#activeCanvasEntry?.micrioImage)) return;
 
 		if (!canvas.placed) {
-			if (!get(this.micrio.current) || (!canvas.info.isIIIF && canvas.info.id != get(this.micrio.current)!.id)) return;
+			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id != get(this.micrio.current)!.id)) return;
 			this.#addCanvas(canvas);
 			if (canvas.embeds.length) canvas.embeds.forEach(e => this.addEmbed(e, canvas));
 		}
