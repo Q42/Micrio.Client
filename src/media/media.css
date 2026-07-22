@@ -22,6 +22,15 @@ micrio-media figure iframe {
 	border: none;
 	display: block;
 }
+micrio-media figure:fullscreen iframe,
+micrio-media figure:-webkit-full-screen iframe {
+	height: 100%;
+}
+micrio-media figure:fullscreen video,
+micrio-media figure:-webkit-full-screen video {
+	height: 100%;
+	object-fit: contain;
+}
 micrio-media figure:has(video) {
 	width: auto;
 }
