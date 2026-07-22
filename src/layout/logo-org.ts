@@ -18,10 +18,7 @@ export interface LogoOrgProps {
 
 class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 	static tag = 'micrio-logo-org';
-	static styles = `micrio-logo-org {
-	display: contents;
-}
-micrio-logo-org a {
+	static styles = `micrio-logo-org a {
 	position: absolute;
 	top: calc(var(--micrio-border-margin) * 2);
 	right: calc(var(--micrio-border-margin) * 2);

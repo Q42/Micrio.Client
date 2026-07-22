@@ -9,16 +9,13 @@ import '$ui/button';
 
 class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';
-	static styles = `micrio-toolbar {
-	display: contents;
-}
-micrio-toolbar menu.micrio-toolbar {
+	static styles = `micrio-toolbar menu.micrio-toolbar {
 	position: absolute;
 	top: calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));
 	left: var(--micrio-border-margin);
 	margin: 0;
 	padding: 0;
-	color: #fff;
+	color: var(--micrio-color);
 	text-shadow: 1px 1px 2px #000;
 	transition: transform .25s ease;
 	z-index: 1;
@@ -40,7 +37,7 @@ micrio-toolbar menu.micrio-toolbar {
 		transform: translate3d(0, 0, 0);
 		width: 100%;
 		height: 100%;
-		background: rgba(0, 0, 0, 0.75);
+		background: var(--micrio-background);
 		top: 0;
 		left: 0;
 		padding: 32px 0;
@@ -59,7 +56,7 @@ micrio-toolbar menu.micrio-toolbar {
 		margin-left: calc(var(--micrio-border-margin) * 2 + 25px);
 	}
 	micrio-toolbar .micrio-toolbar > micrio-menu {
-		color: #fff;
+		color: var(--micrio-color);
 		margin-right: var(--micrio-border-margin);
 		border-radius: var(--micrio-border-radius);
 	}

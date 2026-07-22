@@ -66,6 +66,8 @@ micr-io:not([static]){overscroll-behavior:none}
 micr-io[data-hooked]:not([data-panning])>canvas.micrio{cursor:move;cursor:-webkit-grab;cursor:-moz-grab;cursor:-ms-grab;cursor:grab;-ms-content-zooming:none;-ms-touch-action:none;touch-action:none}
 micr-io[data-panning]{cursor:-webkit-grabbing;cursor:-moz-grabbing;cursor:-ms-grabbing;cursor:grabbing}
 micr-io[data-hooked][data-can-pan]>canvas.micrio{-ms-touch-action:pan-y;touch-action:pan-y;overscroll-behavior:initial}
+micrio-main,micrio-toolbar,micrio-gallery,micrio-swipe-gallery,micrio-controls,micrio-popover,micrio-logo,micrio-logo-org,micrio-audio-controller,micrio-fullscreen,micrio-tour,micrio-serial-tour,micrio-embed,micrio-zoom-buttons,micrio-button,micrio-minimap{display:contents}
+micrio-markers:empty,micrio-image-embeds:empty,micrio-marker:empty,micrio-button-group:empty{display:none}
 ${cssVars}`;
 
 	/** Flag indicating if the initial print/setup has occurred.

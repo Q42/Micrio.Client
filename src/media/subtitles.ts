@@ -24,7 +24,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	left: 50vw;
 	transform: translate3d(-50%, 0, 0);
 	text-align: center;
-	color: #fff;
+	color: var(--micrio-color);
 	width: 100vw;
 	pointer-events: none;
 	z-index: 6;
@@ -35,7 +35,7 @@ micrio-subtitles.raised {
 }
 micrio-subtitles p {
 	margin: .5em 0;
-	background-color: rgba(0, 0, 0, .6);
+	background-color: var(--micrio-background);
 	padding: 0 14px;
 	-webkit-box-decoration-break: clone;
 	box-decoration-break: clone;

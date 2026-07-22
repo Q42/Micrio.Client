@@ -23,9 +23,6 @@ export interface GalleryProps {
 class MicrioGallery extends MicrioElement<GalleryProps> {
 	static tag = 'micrio-gallery';
 	static styles = `
-micrio-gallery {
-	display: contents;
-}
 micrio-gallery .gallery-btn {
 	position: absolute;
 	top: 50%;

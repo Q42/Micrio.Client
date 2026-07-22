@@ -17,9 +17,6 @@ export interface TourProps {
 class MicrioTour extends MicrioElement<TourProps> {
 	static tag = 'micrio-tour';
 	static styles = `
-micrio-tour {
-	display: contents;
-}
 micrio-tour .controls {
 	position: absolute;
 	bottom: var(--micrio-border-margin);

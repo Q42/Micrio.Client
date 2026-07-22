@@ -16,9 +16,6 @@ export interface EmbedProps {
 class MicrioEmbed extends MicrioElement<EmbedProps> {
 	static tag = 'micrio-embed';
 	static styles = `
-micrio-embed {
-	display: contents;
-}
 micrio-embed>.embed-container {
 	position: absolute;
 	display: block;

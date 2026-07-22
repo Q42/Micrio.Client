@@ -58,12 +58,6 @@ micrio-waypoint.clicked .micrio-button {
 		transform: translate3d(-50%,-50%,0) scale3d(.75,.75,1);
 	}
 }
-micrio-waypoint.direction-up .micrio-button {
-	/* up */
-}
-micrio-waypoint.direction-down .micrio-button {
-	/* down */
-}
 `;
 
 	#props: WaypointProps = { targetId: '', image: null! };

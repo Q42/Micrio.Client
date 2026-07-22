@@ -24,9 +24,6 @@ micrio-markers {
 	will-change: width,height,top,left,opacity;
 	perspective: inherit;
 }
-micrio-markers:empty {
-	display: none;
-}
 micrio-markers>* {
 	pointer-events: all;
 }

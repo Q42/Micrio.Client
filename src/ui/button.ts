@@ -20,10 +20,7 @@ export interface ButtonProps {
 
 class MicrioButton extends MicrioElement<ButtonProps> {
 	static tag = 'micrio-button';
-	static styles = `micrio-button {
-	display: contents;
-}
-.micrio-button {
+	static styles = `.micrio-button {
 	margin: 0;
 	padding: 0 8px;
 	cursor: pointer;

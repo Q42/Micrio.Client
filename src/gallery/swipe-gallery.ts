@@ -12,10 +12,7 @@ export interface MicrioGalleryProps {
 
 class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	static tag = 'micrio-swipe-gallery';
-	static styles = `micrio-swipe-gallery {
-	display: contents;
-}
-micrio-swipe-gallery>figcaption {
+	static styles = `micrio-swipe-gallery>figcaption {
 	position: absolute;
 	top: var(--micrio-border-margin);
 	left: var(--micrio-border-margin);
@@ -28,7 +25,7 @@ micrio-swipe-gallery>figcaption {
 	box-shadow: var(--micrio-popup-shadow);
 	border-radius: var(--micrio-border-radius);
 }
-@media (max-width: 501px) {
+@media (max-width: 500px) {
 	micrio-swipe-gallery>figcaption {
 		max-width: calc(100% - 3*var(--micrio-border-margin) - var(--micrio-button-size));
 	}

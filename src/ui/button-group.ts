@@ -7,9 +7,6 @@ class MicrioButtonGroup extends MicrioElement {
 	box-shadow: var(--micrio-button-shadow);
 	border-radius: var(--micrio-border-radius);
 }
-micrio-button-group:empty {
-	display: none;
-}
 micrio-button-group .micrio-button {
 	border-radius: 0;
 	box-shadow: none;

@@ -3,10 +3,7 @@ import { MicrioElement } from '$core/component';
 
 class MicrioLogo extends MicrioElement {
 	static tag = 'micrio-logo';
-	static styles = `micrio-logo {
-	display: contents;
-}
-micrio-logo a {
+	static styles = `micrio-logo a {
 	position: absolute;
 	top: calc(var(--micrio-border-margin) * 2);
 	left: calc(var(--micrio-border-margin) * 2);

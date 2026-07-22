@@ -15,10 +15,7 @@ export interface PopoverProps {
 
 class MicrioPopover extends MicrioElement<PopoverProps> {
 	static tag = 'micrio-popover';
-	static styles = `micrio-popover {
-	display: contents;
-}
-dialog::backdrop {
+	static styles = `dialog::backdrop {
 	color: #fff;
 	animation: micrio-popover-bg .2s forwards;
 	backdrop-filter: blur(8px);

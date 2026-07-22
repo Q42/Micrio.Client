@@ -13,10 +13,7 @@ export interface ControlsProps {
 
 class MicrioControls extends MicrioElement<ControlsProps> {
 	static tag = 'micrio-controls';
-	static styles = `micrio-controls {
-	display: contents;
-}
-micrio-controls aside:not(.grid-close) {
+	static styles = `micrio-controls aside:not(.grid-close) {
 	position: absolute;
 	right: var(--micrio-border-margin);
 	bottom: var(--micrio-border-margin);

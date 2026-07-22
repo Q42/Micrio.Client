@@ -15,10 +15,10 @@ class MicrioError extends MicrioElement<ErrorProps> {
 	z-index: 10;
 }
 micrio-error > div {
-	background: rgba(0, 0, 0, .75);
-	color: #fff;
-	border: 1px solid white;
-	border-radius: 5px;
+	background: var(--micrio-background);
+	color: var(--micrio-color);
+	border: 1px solid var(--micrio-color);
+	border-radius: var(--micrio-border-radius);
 	padding: 10px;
 	text-align: center;
 	white-space: pre-wrap;

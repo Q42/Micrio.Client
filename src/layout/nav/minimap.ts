@@ -12,10 +12,7 @@ export interface MinimapProps {
 
 class MicrioMinimap extends MicrioElement<MinimapProps> {
 	static tag = 'micrio-minimap';
-	static styles = `micrio-minimap {
-	display: contents;
-}
-micrio-minimap canvas {
+	static styles = `micrio-minimap canvas {
 	position: absolute;
 	bottom: var(--micrio-border-margin);
 	right: 5px;

@@ -10,7 +10,7 @@ export interface ZoomButtonsProps {
 
 class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 	static tag = 'micrio-zoom-buttons';
-	static styles = `micrio-zoom-buttons{display:contents}`;
+	static styles = '';
 
 	#props: ZoomButtonsProps = {};
 	#target: MicrioImage | undefined;

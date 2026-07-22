@@ -159,9 +159,6 @@ micrio-marker.cluster label {
 	pointer-events: none;
 	display: none;
 }
-micrio-marker:empty {
-	display: none;
-}
 micrio-marker img {
 	max-width: 100%;
 	max-height: 100%;

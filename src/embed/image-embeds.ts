@@ -22,9 +22,6 @@ micrio-image-embeds {
 	will-change: width,height,top,left,opacity;
 	perspective: inherit;
 }
-micrio-image-embeds:empty {
-	display: none;
-}
 micrio-image-embeds>* {
 	pointer-events: all;
 }
