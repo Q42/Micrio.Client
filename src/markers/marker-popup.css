@@ -45,11 +45,6 @@ micrio-marker-popup>aside progress {
 		top: 0;
 		padding-top: 0;
 	}
-	micrio-marker-popup>aside>micrio-button>:is(button, a) {
-		padding: 0;
-		margin: 0 0 8px 0;
-		display: block;
-	}
 }
 @media (max-width: 500px) {
 	micrio-marker-popup>aside {

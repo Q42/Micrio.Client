@@ -105,16 +105,38 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const parent = this.getMicrio();
 		if (!parent) return;
 		if (parent.classList.contains('hide-ui')) {
+			if (this.#hasPopupOrTour()) return;
 			parent.classList.remove('hide-ui');
 			this.#updateScrubber();
 		}
 		clearTimeout(this.#to);
 		if (this.#autoHide) this.#to = window.setTimeout(() => {
+			if (this.#isInteractingWithUI()) return;
 			if (!parent.classList.contains('hide-ui')) {
 				parent.classList.add('hide-ui');
 				this.#updateScrubber();
 			}
 		}, 2000);
+	}
+
+	#hasPopupOrTour(): boolean {
+		const micrio = this.getMicrio();
+		if (!micrio) return false;
+		return !!(micrio.state.popup ? get(micrio.state.popup) : undefined) ||
+			!!(micrio.state.tour ? get(micrio.state.tour) : undefined);
+	}
+
+	/** Returns true when hovering/focusing a button, micrio-button, or scrubber bar anywhere in the micr-io. */
+	#isInteractingWithUI(): boolean {
+		if (this.#_ul?.matches(':hover')) return true;
+		const root = this.getMicrio();
+		if (!root) return false;
+		const active = document.activeElement;
+		const ui = root.querySelectorAll<HTMLElement>('button, micrio-button');
+		for (const el of ui) {
+			if (el.matches(':hover') || el === active || el.contains(active)) return true;
+		}
+		return false;
 	}
 
 	/**
@@ -355,14 +377,18 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
 		}
 
-		// Auto-hide listeners
+		// Auto-hide listeners (canvas + gallery UI)
 		const unhookActivity = () => {
 			micrio.canvas.element.removeEventListener('pointermove', this.#activity);
 			micrio.canvas.element.removeEventListener('pointerdown', this.#activity);
+			this.removeEventListener('pointermove', this.#activity);
+			this.removeEventListener('focusin', this.#activity);
 		};
 		if (this.#autoHide) {
 			micrio.canvas.element.addEventListener('pointermove', this.#activity);
 			micrio.canvas.element.addEventListener('pointerdown', this.#activity);
+			this.addEventListener('pointermove', this.#activity);
+			this.addEventListener('focusin', this.#activity);
 			this.#activity();
 		}
 		this.addCleanup(unhookActivity);
@@ -371,8 +397,16 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.addCleanup(() => window.removeEventListener('keydown', this.#keydown));
 
 		// Hide when popup/tour is open
-		this.addCleanup(micrio.state.popup.subscribe(() => this.#updateScrubber()));
-		this.addCleanup(micrio.state.tour.subscribe(() => this.#updateScrubber()));
+		const onPopupTour = () => {
+			if (this.#hasPopupOrTour()) {
+				this.getMicrio()?.classList.add('hide-ui');
+			} else {
+				this.#activity();
+			}
+			this.#updateScrubber();
+		};
+		this.addCleanup(micrio.state.popup.subscribe(onPopupTour));
+		this.addCleanup(micrio.state.tour.subscribe(onPopupTour));
 	}
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
@@ -489,10 +523,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		if (this.#prevBtn) (this.#prevBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr <= 0);
 		if (this.#nextBtn) (this.#nextBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr >= total - 1);
-
-		const hasPopup = this.getMicrio()?.state.popup ? get(this.getMicrio()!.state.popup) : undefined;
-		const hasTour = this.getMicrio()?.state.tour ? get(this.getMicrio()!.state.tour) : undefined;
-		this.classList.toggle('force-hidden', !!hasPopup || !!hasTour);
 	}
 
 	onDestroy() {

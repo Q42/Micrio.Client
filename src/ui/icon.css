@@ -1,3 +1,6 @@
+micrio-icon {
+	display: contents;
+}
 micrio-icon > svg {
 	display: block;
 	height: var(--micrio-icon-size);
