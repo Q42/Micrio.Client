@@ -17,11 +17,11 @@ export default class Camera2D extends EngineCamera {
 	minScale: number = 1.0;
 	minSize: number = 1.0;
 	maxScale: number = 1.0;
-	fullScale: number = 1.0;
+	#fullScale: number = 1.0;
 	coverScale: number = 1.0;
 
-	readonly xy: Coordinates = new Coordinates;
-	readonly coo: Coordinates = new Coordinates;
+	readonly #xy: Coordinates = new Coordinates;
+	readonly #coo: Coordinates = new Coordinates;
 	readonly #startCoo: Coordinates = new Coordinates;
 
 	#pinching: boolean = false;
@@ -48,21 +48,23 @@ export default class Camera2D extends EngineCamera {
 
 		const el = c.el;
 		const r = c.hasParent ? c.parent.el.ratio : el.ratio;
+		const v = c.view;
+		const coo = this.#coo;
 
 		if (abs) {
 			x -= el.left;
 			y -= el.top;
 		}
 
-		const rX = (x / this.scale * r) / c.width + c.view.x0;
-		const rY = (y / this.scale * r) / c.height + c.view.y0;
+		const rX = (x / this.scale * r) / c.width + v.x0;
+		const rY = (y / this.scale * r) / c.height + v.y0;
 
-		this.coo.x = noLimit ? rX : Math.max(c.view.lX0, Math.min(c.view.lX1, rX));
-		this.coo.y = noLimit ? rY : Math.max(c.view.lY0, Math.min(c.view.lY1, rY));
-		this.coo.scale = this.scale;
-		this.coo.toArray();
+		coo.x = noLimit ? rX : Math.max(v.lX0, Math.min(v.lX1, rX));
+		coo.y = noLimit ? rY : Math.max(v.lY0, Math.min(v.lY1, rY));
+		coo.scale = this.scale;
+		coo.toArray();
 
-		return this.coo;
+		return this.#coo;
 	}
 
 	/**
@@ -72,11 +74,12 @@ export default class Camera2D extends EngineCamera {
 		const c = this.canvas;
 		const el = c.el;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
-		this.xy.x = ((x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
-		this.xy.y = ((y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
-		this.xy.scale = this.scale / rat;
-		this.xy.toArray();
-		return this.xy;
+		const xy = this.#xy;
+		xy.x = ((x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
+		xy.y = ((y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
+		xy.scale = this.scale / rat;
+		xy.toArray();
+		return xy;
 	}
 
 	getXYOmni(x: number, y: number, radius: number, rotation: number, abs: boolean): Coordinates {
@@ -111,11 +114,13 @@ export default class Camera2D extends EngineCamera {
 
 		vec4.transformMat4(mat);
 
-		this.xy.x = ((.5 + vec4.x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
-		this.xy.y = ((.5 + vec4.y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
-		this.xy.w = -vec4.w - c.omniDistance;
-		this.xy.toArray();
-		return this.xy;
+		const xy = this.#xy;
+
+		xy.x = ((.5 + vec4.x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
+		xy.y = ((.5 + vec4.y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
+		xy.w = -vec4.w - c.omniDistance;
+		xy.toArray();
+		return xy;
 	}
 
 	/** Recalculates scale limits (minScale, maxScale, coverScale, fullScale) based on current canvas and image dimensions. */
@@ -134,7 +139,7 @@ export default class Camera2D extends EngineCamera {
 		this.cpw = cpw;
 		this.cph = cph;
 
-		this.fullScale = Math.min(cpw, cph);
+		this.#fullScale = Math.min(cpw, cph);
 		this.coverScale = Math.max(cpw, cph);
 
 		const lRat = c.view.lWidth / c.view.lHeight;
@@ -161,7 +166,7 @@ export default class Camera2D extends EngineCamera {
 	/** Corrects minScale and maxScale based on coverLimit and focus area. */
 	correctMinMax(noLimit: boolean = false): void {
 		const c = this.canvas;
-		this.minScale = c.coverLimit ? this.coverScale : this.fullScale;
+		this.minScale = c.coverLimit ? this.coverScale : this.#fullScale;
 
 		if (!noLimit && !c.main.isSwipe && (c.activeImageIdx === 0 && !c.coverLimit || c.activeImageIdx > 0 && !c.coverLimit)) {
 			const aW = c.focus.width * c.width, aH = c.focus.height * c.height;
@@ -376,9 +381,10 @@ export default class Camera2D extends EngineCamera {
 	protected handleSetCooInit(x: number, y: number, scale: number): boolean {
 		if (!this.#inited) {
 			this.#hasStartCoo = true;
-			this.#startCoo.x = x;
-			this.#startCoo.y = y;
-			this.#startCoo.scale = scale;
+			const coo = this.#startCoo;
+			coo.x = x;
+			coo.y = y;
+			coo.scale = scale;
 			this.applyView();
 			return true;
 		}
