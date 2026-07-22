@@ -19,11 +19,10 @@ export interface MenuProps {
 	originalId?: string | null;
 	onclose?: () => void;
 }
-import styles from './menu.css?inline';
+import './menu.css';
 
 class MicrioMenu extends MicrioElement<MenuProps> {
 	static tag = 'micrio-menu';
-	static styles = styles;
 
 	#props: MenuProps = { menu: null!, originalId: null };
 	#action: (() => void) | undefined;

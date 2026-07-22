@@ -15,11 +15,10 @@ export interface SubtitlesProps {
 	src?: string;
 	mediaEl?: HTMLElement;
 }
-import styles from './subtitles.css?inline';
+import './subtitles.css';
 
 class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	static tag = 'micrio-subtitles';
-	static styles = styles;
 
 	#props: SubtitlesProps = {};
 	#cues: Models.ImageData.Event[] = [];

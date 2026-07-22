@@ -13,11 +13,10 @@ export interface TourProps {
 	noHTML?: boolean;
 	onminimize?: (b: boolean) => void;
 }
-import styles from './tour.css?inline';
+import './tour.css';
 
 class MicrioTour extends MicrioElement<TourProps> {
 	static tag = 'micrio-tour';
-	static styles = styles;
 
 	#props: TourProps = { tour: null! };
 	#currentStep = 0;

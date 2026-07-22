@@ -10,11 +10,10 @@ import { languageNames } from '$core/i18n/locale';
 export interface ControlsProps {
 	hasAudio?: boolean;
 }
-import styles from './controls.css?inline';
+import './controls.css';
 
 class MicrioControls extends MicrioElement<ControlsProps> {
 	static tag = 'micrio-controls';
-	static styles = styles;
 
 	#props: ControlsProps = {};
 	#built = false;

@@ -75,7 +75,6 @@ class AudioPlaylist {
 
 class MicrioAudioController extends MicrioElement {
 	static tag = 'micrio-audio-controller';
-	static styles = '';
 
 	#playlist: AudioPlaylist | undefined;
 

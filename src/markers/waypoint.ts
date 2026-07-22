@@ -12,11 +12,10 @@ export interface WaypointProps {
 	settings?: Models.Spaces.WayPointSettings;
 	image: MicrioImage;
 }
-import styles from './waypoint.css?inline';
+import './waypoint.css';
 
 class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	static tag = 'micrio-waypoint';
-	static styles = styles;
 
 	#props: WaypointProps = { targetId: '', image: null! };
 

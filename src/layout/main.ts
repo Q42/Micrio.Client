@@ -53,11 +53,10 @@ export interface MainProps {
 	loadingProgress?: number;
 	error?: string | undefined;
 }
-import styles from './main.css?inline';
+import './main.css';
 
 class MicrioMain extends MicrioElement<MainProps> {
 	static tag = 'micrio-main';
-	static styles = styles;
 
 	#props: MainProps = {};
 	#info: Models.ImageInfo.ImageInfo | undefined;

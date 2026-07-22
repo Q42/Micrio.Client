@@ -3,11 +3,10 @@ import { icons, svgIcon } from '$ui/icons';
 import type { IconName } from '$types/icon-name';
 
 const SMALL_NAMES = new Set<IconName>(['chevronDown', 'linkExt']);
-import styles from './icon.css?inline';
+import './icon.css';
 
 class MicrioIconElement extends MicrioElement {
 	static tag = 'micrio-icon';
-	static styles = styles;
 
 	static observedAttributes = ['name', 'style'];
 

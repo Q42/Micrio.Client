@@ -34,11 +34,10 @@ export interface MediaProps {
 	hasAudio?: boolean;
 	fullscreenEl?: HTMLElement;
 }
-import styles from './media.css?inline';
+import './media.css';
 
 class MicrioMedia extends MicrioElement<MediaProps> {
 	static tag = 'micrio-media';
-	static styles = styles;
 
 	#videoEl: HTMLVideoElement | HTMLAudioElement | undefined;
 	#tourInstance: VideoTourInstance | undefined;

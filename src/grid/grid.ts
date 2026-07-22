@@ -15,12 +15,11 @@ import { hookGridKeys } from './keyboard';
 import '$ui/button';
 import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
-import styles from './grid.css?inline';
+import './grid.css';
 
 export class Grid extends MicrioElement {
 	static tag = 'micrio-grid';
 
-	static styles = styles;
 
 	readonly images:MicrioImage[] = [];
 	readonly imageMap:Map<string, MicrioImage> = new Map();

@@ -9,11 +9,10 @@ export interface SerialTourProps {
 	tour: Models.ImageData.MarkerTour;
 	onended?: () => void;
 }
-import styles from './serial-tour.css?inline';
+import './serial-tour.css';
 
 class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	static tag = 'micrio-serial-tour';
-	static styles = styles;
 
 	#props: SerialTourProps = { tour: null! };
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];

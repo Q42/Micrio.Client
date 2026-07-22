@@ -6,11 +6,10 @@ export interface DialProps {
 	degrees?: boolean;
 	onturn?: (frame: number) => void;
 }
-import styles from './dial.css?inline';
+import './dial.css';
 
 class MicrioDial extends MicrioElement<DialProps> {
 	static tag = 'micrio-dial';
-	static styles = styles;
 
 	#props: DialProps = { currentRotation: 0, frames: 1 };
 

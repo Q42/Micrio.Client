@@ -11,7 +11,6 @@ export interface AudioLocationProps {
 
 class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 	static tag = 'micrio-audio-location';
-	static styles = '';
 
 	#props: AudioLocationProps = { marker: null!, ctx: null!, is360: false };
 	#gain!: GainNode;

@@ -8,11 +8,10 @@ export interface DetailsProps {
 	info: Models.ImageInfo.ImageInfo;
 	data: Models.ImageData.ImageData;
 }
-import styles from './details.css?inline';
+import './details.css';
 
 class MicrioDetails extends MicrioElement<DetailsProps> {
 	static tag = 'micrio-details';
-	static styles = styles;
 
 	#props: Partial<DetailsProps> = {};
 	#detailsEl!: HTMLDetailsElement;

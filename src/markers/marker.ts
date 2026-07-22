@@ -12,11 +12,10 @@ export interface MarkerProps {
 	coords?: Map<string, [number, number, number?, number?]>;
 	overlapped?: boolean;
 }
-import styles from './marker.css?inline';
+import './marker.css';
 
 class MicrioMarker extends MicrioElement<MarkerProps> {
 	static tag = 'micrio-marker';
-	static styles = styles;
 
 	#props: MarkerProps = { marker: null! };
 	#opened = false;

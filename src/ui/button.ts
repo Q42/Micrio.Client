@@ -17,11 +17,10 @@ export interface ButtonProps {
 	onfocus?: (e: Event) => void;
 	onpointerdown?: (e: PointerEvent) => void;
 }
-import styles from './button.css?inline';
+import './button.css';
 
 class MicrioButton extends MicrioElement<ButtonProps> {
 	static tag = 'micrio-button';
-	static styles = styles;
 
 	#rootEl!: HTMLElement;
 

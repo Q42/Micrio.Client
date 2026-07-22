@@ -1,15 +1,11 @@
 import type { Readable, Subscriber } from './store';
 import { defer, skipFirst } from './store';
 import type { HTMLMicrioElement } from './element';
-import { createElement } from '$utils/dom';
 
 const PROVIDES = Symbol('micrio-provides');
 
-let _injectedStyles = new Set<string>();
-
 export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	static tag: string;
-	static styles: string;
 	static markerImages: Map<string, any> = new Map();
 
 	#_unsubs: (() => void)[] = [];
@@ -19,7 +15,6 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	protected _props: Record<string, any> = {};
 
 	connectedCallback(): void {
-		this.#injectStyles();
 		this.onMount?.();
 		this._render?.();
 	}
@@ -117,16 +112,6 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 
 	protected getMicrio(): HTMLMicrioElement | undefined {
 		return this.inject<any>('micrio');
-	}
-
-	// ─── CSS injection ────────────────────────────────────────────
-
-	#injectStyles(): void {
-		const ctor = this.constructor as typeof MicrioElement;
-		if (ctor.styles && !_injectedStyles.has(ctor.tag)) {
-			_injectedStyles.add(ctor.tag);
-			createElement('style', { textContent: ctor.styles, attrs: { 'data-micrio': ctor.tag }, parent: document.head });
-		}
 	}
 
 	#cleanup(): void {

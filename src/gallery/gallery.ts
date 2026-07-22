@@ -20,10 +20,9 @@ export interface GalleryProps {
  * Two modes: standard gallery (scrubber + arrow buttons, with optional strip-swipe)
  * and omni (dial + swipe gesture + layer menu).
  */
-import styles from './gallery.css?inline';
+import './gallery.css';
 class MicrioGallery extends MicrioElement<GalleryProps> {
 	static tag = 'micrio-gallery';
-	static styles = styles;
 
 	#props: GalleryProps = {};
 	/** Current page index (0-based) in the gallery timeline. */

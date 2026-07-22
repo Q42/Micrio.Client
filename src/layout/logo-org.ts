@@ -15,11 +15,10 @@ function getLogoSrc(img: Models.Assets.Image | string): string {
 export interface LogoOrgProps {
 	organisation: Models.ImageInfo.Organisation;
 }
-import styles from './logo-org.css?inline';
+import './logo-org.css';
 
 class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 	static tag = 'micrio-logo-org';
-	static styles = styles;
 
 	#props: LogoOrgProps = { organisation: null! };
 

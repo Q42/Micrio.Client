@@ -12,11 +12,10 @@ export interface EmbedProps {
 	image: MicrioImage;
 	marker?: Models.ImageData.Marker;
 }
-import styles from './embed.css?inline';
+import './embed.css';
 
 class MicrioEmbed extends MicrioElement<EmbedProps> {
 	static tag = 'micrio-embed';
-	static styles = styles;
 
 	#props: EmbedProps = { embed: null!, image: null! };
 

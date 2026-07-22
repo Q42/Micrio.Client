@@ -11,11 +11,10 @@ import './marker-content';
 export interface MarkerPopupProps {
 	marker: Models.ImageData.Marker;
 }
-import styles from './marker-popup.css?inline';
+import './marker-popup.css';
 
 class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	static tag = 'micrio-marker-popup';
-	static styles = styles;
 
 	#props: MarkerPopupProps = { marker: null! };
 	#content!: HTMLElement;

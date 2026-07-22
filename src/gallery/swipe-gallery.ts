@@ -9,11 +9,10 @@ export interface MicrioGalleryProps {
 	galleryStart?: string;
 	lang: string;
 }
-import styles from './swipe-gallery.css?inline';
+import './swipe-gallery.css';
 
 class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	static tag = 'micrio-swipe-gallery';
-	static styles = styles;
 
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };
 

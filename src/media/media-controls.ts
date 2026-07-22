@@ -23,11 +23,10 @@ export interface MediaControlsProps {
 	onclose?: () => void;
 	getTimeDisplay?: (currentTime: number, duration: number) => string;
 }
-import styles from './media-controls.css?inline';
+import './media-controls.css';
 
 class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	static tag = 'micrio-media-controls';
-	static styles = styles;
 
 	#props: MediaControlsProps = { paused: true, ended: false };
 	#wrapperEl!: HTMLElement;

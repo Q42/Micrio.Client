@@ -9,11 +9,10 @@ import { createElement, afterFrame } from '$utils/dom';
 export interface MinimapProps {
 	image: MicrioImage;
 }
-import styles from './minimap.css?inline';
+import './minimap.css';
 
 class MicrioMinimap extends MicrioElement<MinimapProps> {
 	static tag = 'micrio-minimap';
-	static styles = styles;
 
 	#props: MinimapProps = { image: null! };
 	#_canvas!: HTMLCanvasElement;

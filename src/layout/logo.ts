@@ -1,10 +1,9 @@
 import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
-import styles from './logo.css?inline';
+import './logo.css';
 
 class MicrioLogo extends MicrioElement {
 	static tag = 'micrio-logo';
-	static styles = styles;
 
 	#a!: HTMLAnchorElement;
 	#loadingTimer: any;

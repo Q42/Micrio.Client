@@ -6,11 +6,10 @@ import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 import './menu';
 import '$ui/button';
-import styles from './toolbar.css?inline';
+import './toolbar.css';
 
 class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';
-	static styles = styles;
 
 	#data: Models.ImageData.ImageData | undefined;
 	#shown = false;

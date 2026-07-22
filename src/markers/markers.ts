@@ -9,11 +9,10 @@ import './waypoint';
 export interface MarkersProps {
 	image: MicrioImage;
 }
-import styles from './markers.css?inline';
+import './markers.css';
 
 class MicrioMarkers extends MicrioElement<MarkersProps> {
 	static tag = 'micrio-markers';
-	static styles = styles;
 
 	#props: MarkersProps = { image: null! };
 

@@ -11,11 +11,10 @@ export interface MarkerContentProps {
 	noGallery?: boolean;
 	onclose?: () => void;
 }
-import styles from './marker-content.css?inline';
+import './marker-content.css';
 
 class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	static tag = 'micrio-marker-content';
-	static styles = styles;
 
 	_title: HTMLElement | undefined;
 

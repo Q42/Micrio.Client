@@ -6,28 +6,11 @@ const version = process.env.npm_package_version;
 const outFile = `./public/dist/micrio.min.js`;
 const buildDir = './public/build/';
 
-// ── Assemble CSS from component .css files ──
-const cssFiles = [];
-const walk = (dir) => {
-	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-		if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
-		const full = path.join(dir, entry.name);
-		if (entry.isDirectory()) walk(full);
-		else if (entry.isFile() && entry.name.endsWith('.css')) cssFiles.push(full);
-	}
-};
-walk('./src/');
-
-const cssParts = [];
-for (const file of cssFiles) {
-	cssParts.push(fs.readFileSync(file, 'utf-8'));
-}
-
-// ── Bundle ──
 const jsPath = buildDir + 'micrio.prod.iife.js';
+const cssPath = buildDir + 'micrio.prod.css';
 
-// Deduplicate repeated classname hash selectors in assembled CSS
-let cssContent = cssParts.join('\n\n');
+// Deduplicate repeated classname hash selectors in CSS
+let cssContent = fs.readFileSync(cssPath, 'utf-8');
 const matches = cssContent.match(/\.([^\d\.{ ):>,]+)/mig);
 if (matches) {
 	[...new Set(matches)].forEach(sel => {
@@ -51,6 +34,7 @@ const jsContent = `const _style=document.createElement('style');_style.className
 ${jsRaw}`;
 fs.writeFileSync(jsPath, jsContent);
 
+fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, Buffer.concat([
 	Buffer.from([
 		`/* Micrio Client ${version}`,
@@ -71,6 +55,7 @@ fs.writeFileSync(dFile, Buffer.concat([
 ]));
 fs.rmSync('./out.d.ts');
 fs.rmSync(jsPath);
+fs.rmSync(cssPath);
 fs.rmdirSync(buildDir);
 
 const formatSize = (bytes) => {

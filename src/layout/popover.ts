@@ -12,11 +12,10 @@ import '$gallery/swipe-gallery';
 export interface PopoverProps {
 	popover: Models.State.PopoverType;
 }
-import styles from './popover.css?inline';
+import './popover.css';
 
 class MicrioPopover extends MicrioElement<PopoverProps> {
 	static tag = 'micrio-popover';
-	static styles = styles;
 
 	#props: PopoverProps = { popover: null! };
 	#dialog!: HTMLDialogElement;

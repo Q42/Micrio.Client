@@ -12,11 +12,10 @@ const circleAttrs = { r: R, cx: CX, cy: CY, fill: 'transparent', 'stroke-width':
 export interface ProgressCircleProps {
 	progress?: number;
 }
-import styles from './progress-circle.css?inline';
+import './progress-circle.css';
 
 class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 	static tag = 'micrio-progress-circle';
-	static styles = styles;
 
 	#props: ProgressCircleProps = {};
 	#progressCircle!: SVGCircleElement;

@@ -4,11 +4,10 @@ import { MicrioElement } from '$core/component';
 export interface ErrorProps {
 	message?: string;
 }
-import styles from './error.css?inline';
+import './error.css';
 
 class MicrioError extends MicrioElement<ErrorProps> {
 	static tag = 'micrio-error';
-	static styles = styles;
 
 	protected _render() {
 		this.replaceChildren();
