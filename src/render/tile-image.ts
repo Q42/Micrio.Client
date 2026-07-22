@@ -54,12 +54,12 @@ export default class Image {
 	static #toDrawSeen: Uint8Array = new Uint8Array(0);
 	static #toDrawSeenBase: number = 0;
 
-	readonly vec: Vec4 = new Vec4;
-	readonly mat: Mat4 = new Mat4;
+	readonly #vec: Vec4 = new Vec4;
+	readonly #mat: Mat4 = new Mat4;
 
-	rScale: number = 0;
+	#rScale: number = 0;
 	readonly layers: Layer[] = [];
-	numLayers: number = 0;
+	#numLayers: number = 0;
 	targetLayer: number = 0;
 
 	public x0: number = 0;
@@ -69,23 +69,23 @@ export default class Image {
 	rWidth: number = 1;
 	rHeight: number = 1;
 
-	public areaCenterX: number = 0.5;
-	public areaCenterY: number = 0.5;
-	public areaWidth: number = 1;
-	public areaHeight: number = 1;
+	#areaCenterX: number = 0.5;
+	#areaCenterY: number = 0.5;
+	#areaWidth: number = 1;
+	#areaHeight: number = 1;
 
-	public sphere3DX: number = 0;
-	public sphere3DY: number = 0;
-	public sphere3DZ: number = -1;
-	public angularWidth: number = 0;
-	public angularHeight: number = 0;
+	#sphere3DX: number = 0;
+	#sphere3DY: number = 0;
+	#sphere3DZ: number = -1;
+	#angularWidth: number = 0;
+	#angularHeight: number = 0;
 
 	gotBase: number = 0;
 
 	readonly endOffset!: number;
-	aspect: number = 0;
+	#aspect: number = 0;
 
-	doneTotal: number = 0;
+	#doneTotal: number = 0;
 
 	doRender: boolean = false;
 
@@ -101,38 +101,69 @@ export default class Image {
 
 	readonly #canvas: TileCanvas;
 
+	readonly index: number;
+	readonly localIdx: number;
+	readonly width: number;
+	readonly height: number;
+	readonly #tileSize: number;
+	readonly #isSingle: boolean;
+	readonly isVideo: boolean;
+	readonly #startOffset: number;
+	opacity: number;
+	tOpacity: number;
+	rotX: number;
+	rotY: number;
+	rotZ: number;
+	readonly #scale: number;
+	readonly #fromScale: number;
+
 	constructor(
 		canvas: TileCanvas,
-		readonly index: number,
-		readonly localIdx: number,
-		readonly width: number,
-		readonly height: number,
-		readonly tileSize: number,
-		readonly isSingle: boolean,
-		readonly isDeepZoom: boolean,
-		readonly isVideo: boolean,
-		readonly startOffset: number,
-		public opacity: number,
-		public tOpacity: number,
-		public rotX: number,
-		public rotY: number,
-		public rotZ: number,
-		readonly scale: number,
-		readonly fromScale: number
+		index: number,
+		localIdx: number,
+		width: number,
+		height: number,
+		tileSize: number,
+		isSingle: boolean,
+		isDeepZoom: boolean,
+		isVideo: boolean,
+		startOffset: number,
+		opacity: number,
+		tOpacity: number,
+		rotX: number,
+		rotY: number,
+		rotZ: number,
+		scale: number,
+		fromScale: number
 	) {
 		this.#canvas = canvas;
+		this.index = index;
+		this.localIdx = localIdx;
+		this.width = width;
+		this.height = height;
+		this.#tileSize = tileSize;
+		this.#isSingle = isSingle;
+		this.isVideo = isVideo;
+		this.#startOffset = startOffset;
+		this.opacity = opacity;
+		this.tOpacity = tOpacity;
+		this.rotX = rotX;
+		this.rotY = rotY;
+		this.rotZ = rotZ;
+		this.#scale = scale;
+		this.#fromScale = fromScale;
 		const maxi = (width > height ? width : height);
 		this.#is360Embed = this.#canvas.is360 && this.localIdx > 0;
 
-		this.numLayers = isDeepZoom && !isSingle ? 2 : 1;
-		for (let s = tileSize; s < maxi * canvas.main.underzoomLevels; s *= 2) this.numLayers++;
-		if (canvas.main.hasArchive || this.fromScale > 0) this.numLayers -= 3 - canvas.main.archiveLayerOffset;
-		if (this.fromScale > 0) this.numLayers--;
-		this.numLayers = Math.max(1, this.numLayers);
+		this.#numLayers = isDeepZoom && !isSingle ? 2 : 1;
+		for (let s = tileSize; s < maxi * canvas.main.underzoomLevels; s *= 2) this.#numLayers++;
+		if (canvas.main.hasArchive || this.#fromScale > 0) this.#numLayers -= 3 - canvas.main.archiveLayerOffset;
+		if (this.#fromScale > 0) this.#numLayers--;
+		this.#numLayers = Math.max(1, this.#numLayers);
 
 		let o = startOffset;
-		for (let l = 0; l < this.numLayers; l++) {
-			const s2 = twoNth(l) * this.tileSize;
+		for (let l = 0; l < this.#numLayers; l++) {
+			const s2 = twoNth(l) * this.#tileSize;
 			const c = Math.ceil(width / s2);
 			const r = Math.ceil(height / s2);
 			this.layers.push(new Layer(this, this.layers.length, o, this.endOffset = o += c * r, s2, c, r));
@@ -146,19 +177,19 @@ export default class Image {
 		this.x1 = x1;
 		this.y1 = y1;
 
-		this.areaWidth = x1 + (x1 < x0 ? 1 : 0) - x0;
-		this.areaHeight = y1 - y0;
-		this.areaCenterX = x0 + this.areaWidth / 2;
-		this.areaCenterY = y0 + this.areaHeight / 2;
+		this.#areaWidth = x1 + (x1 < x0 ? 1 : 0) - x0;
+		this.#areaHeight = y1 - y0;
+		this.#areaCenterX = x0 + this.#areaWidth / 2;
+		this.#areaCenterY = y0 + this.#areaHeight / 2;
 
 		if (this.#canvas.is360) {
-			this.areaCenterX = mod1(this.areaCenterX);
+			this.#areaCenterX = mod1(this.#areaCenterX);
 		}
 
-		this.rWidth = this.areaWidth;
-		this.rHeight = this.areaHeight;
-		this.aspect = this.width / this.height;
-		this.rScale = this.aspect > this.#canvas.aspect ?
+		this.rWidth = this.#areaWidth;
+		this.rHeight = this.#areaHeight;
+		this.#aspect = this.width / this.height;
+		this.#rScale = this.#aspect > this.#canvas.aspect ?
 			this.#canvas.width / this.width * this.rWidth : this.#canvas.height / this.height * this.rHeight;
 
 		if (this.#canvas.is360) {
@@ -168,17 +199,17 @@ export default class Image {
 
 	/** Converts 2D sphere coordinates to 3D unit sphere position */
 	#calculate3DSpherePosition(): void {
-		let yaw = (this.areaCenterX - 0.5) * 2 * Math.PI;
-		const pitch = (this.areaCenterY - 0.5) * Math.PI;
+		let yaw = (this.#areaCenterX - 0.5) * 2 * Math.PI;
+		const pitch = (this.#areaCenterY - 0.5) * Math.PI;
 
 		yaw += this.#canvas.camera360.baseYaw;
 
-		this.sphere3DX = Math.cos(pitch) * Math.sin(yaw);
-		this.sphere3DY = Math.sin(pitch);
-		this.sphere3DZ = Math.cos(pitch) * Math.cos(yaw);
+		this.#sphere3DX = Math.cos(pitch) * Math.sin(yaw);
+		this.#sphere3DY = Math.sin(pitch);
+		this.#sphere3DZ = Math.cos(pitch) * Math.cos(yaw);
 
-		this.angularWidth = this.areaWidth * 2 * Math.PI;
-		this.angularHeight = this.areaHeight * Math.PI;
+		this.#angularWidth = this.#areaWidth * 2 * Math.PI;
+		this.#angularHeight = this.#areaHeight * Math.PI;
 	}
 
 	/**
@@ -187,8 +218,8 @@ export default class Image {
 	#sphere3DOverlap(): boolean {
 		if (!this.#canvas.is360) return false;
 		const c = this.#canvas.camera360;
-		const dp = this.sphere3DX * c.cameraForwardX + this.sphere3DY * c.cameraForwardY + this.sphere3DZ * c.cameraForwardZ;
-		return Math.acos(Math.max(-1, Math.min(1, dp))) < c.fieldOfView + Math.max(this.angularWidth, this.angularHeight) / 2;
+		const dp = this.#sphere3DX * c.cameraForwardX + this.#sphere3DY * c.cameraForwardY + this.#sphere3DZ * c.cameraForwardZ;
+		return Math.acos(Math.max(-1, Math.min(1, dp))) < c.fieldOfView + Math.max(this.#angularWidth, this.#angularHeight) / 2;
 	}
 
 	/** Checks if the image's bounding box is completely outside the current view. */
@@ -203,7 +234,7 @@ export default class Image {
 
 	/** Determines if this image should be rendered in the current frame. */
 	shouldRender(): boolean {
-		if (this.fromScale > 0 && this.fromScale > this.#canvas.camera.scale) return false;
+		if (this.#fromScale > 0 && this.#fromScale > this.#canvas.camera.scale) return false;
 		if ((this.isVideo || this.localIdx > 0) && this.opacity === 0 && this.tOpacity === 0) return false;
 		if (this.index === this.#canvas.activeImageIdx || (this.#canvas.is360 && this.localIdx === 0)) return true;
 		return !this.#outsideView();
@@ -228,7 +259,7 @@ export default class Image {
 	 */
 	getTiles(scale: number): number {
 		if (this.opacity <= 0) return 0;
-		this.doneTotal = 0;
+		this.#doneTotal = 0;
 		const d = Image.#toDraw;
 		let s = Image.#toDrawSeen;
 
@@ -236,16 +267,16 @@ export default class Image {
 			scale = this.#getEmbeddedScale(scale);
 			if (!(this.doRender = (scale > 0))) return 0;
 		} else {
-			scale = Math.max(scale, this.#canvas.camera.minScale) * this.rScale;
+			scale = Math.max(scale, this.#canvas.camera.minScale) * this.#rScale;
 		}
 
-		const n = this.endOffset - this.startOffset;
+		const n = this.endOffset - this.#startOffset;
 		if (s.length < n) s = Image.#toDrawSeen = new Uint8Array(n);
 		else s.fill(0, 0, n);
-		Image.#toDrawSeenBase = this.startOffset;
+		Image.#toDrawSeenBase = this.#startOffset;
 
 		const last = this.endOffset - 1;
-		const lastIdx = last - this.startOffset;
+		const lastIdx = last - this.#startOffset;
 		if (this.gotBase === 0) {
 			d.push(last);
 			s[lastIdx] = 1;
@@ -253,7 +284,7 @@ export default class Image {
 		} else if (this.#is360Embed) {
 			d.push(last);
 			s[lastIdx] = 1;
-			this.doneTotal++;
+			this.#doneTotal++;
 		}
 
 		const lIdx = this.#getTargetLayer(scale);
@@ -263,7 +294,7 @@ export default class Image {
 			this.#get360Tiles(this.layers[lIdx]);
 		} else if (this.#is360Embed) {
 			this.#getTilesViewport(lIdx);
-			this.doneTotal++;
+			this.#doneTotal++;
 		} else if (c.visible.x0 < c.visible.x1 && c.visible.y0 < c.visible.y1) {
 			const v = c.view;
 			this.#getTilesRect(lIdx,
@@ -276,14 +307,14 @@ export default class Image {
 		for (const t of d) c.toDraw.push(t);
 		d.length = 0;
 
-		return this.doneTotal;
+		return this.#doneTotal;
 	}
 
 	/** Calculates the target layer index based on the current scale. */
 	#getTargetLayer(scale: number): number {
-		let l: number = this.isSingle || this.#canvas.limited ? this.numLayers : 1 + this.#canvas.main.skipBaseLevels;
-		if (!this.isSingle && !this.#canvas.limited) {
-			for (; l < this.numLayers; l++) {
+		let l: number = this.#isSingle || this.#canvas.limited ? this.#numLayers : 1 + this.#canvas.main.skipBaseLevels;
+		if (!this.#isSingle && !this.#canvas.limited) {
+			for (; l < this.#numLayers; l++) {
 				if (twoNth(l) * scale >= 1) break;
 			}
 		}
@@ -319,7 +350,7 @@ export default class Image {
 		const tol = 0.1;
 		const vcy = c.view.centerY;
 		const vw = c.view.width + tol, vh = c.view.height + tol;
-		const ecx = this.areaCenterX, ecy = this.areaCenterY, ew = this.areaWidth, eh = this.areaHeight;
+		const ecx = this.#areaCenterX, ecy = this.#areaCenterY, ew = this.#areaWidth, eh = this.#areaHeight;
 
 		const iy0 = Math.max(vcy - vh / 2, ecy - eh / 2);
 		const iy1 = Math.min(vcy + vh / 2, ecy + eh / 2);
@@ -383,8 +414,8 @@ export default class Image {
 		Image.#toDraw.push(i);
 
 		if (this.#canvas.main.setTileOpacity(i, i === this.endOffset - 1, this.#canvas.opacity) >= 1) {
-			this.doneTotal++;
-		} else if (!this.isSingle && !this.#canvas.limited && l.index < this.numLayers - 1) {
+			this.#doneTotal++;
+		} else if (!this.#isSingle && !this.#canvas.limited && l.index < this.#numLayers - 1) {
 			this.#setToDraw(this.layers[l.index + 1], x >> 1, y >> 1);
 		}
 	}
@@ -393,7 +424,7 @@ export default class Image {
 	setDrawRect(r: DrawRect): void {
 		const v = this.#canvas.main.vertexBuffer;
 		const s = Math.PI * 2 * this.#canvas.camera360.radius;
-		const p = this.vec, m = this.mat;
+		const p = this.#vec, m = this.#mat;
 		const cX = this.x0 + this.rWidth / 2, cY = this.y0 + this.rHeight / 2;
 		const center = this.#canvas.camera360.getVec3(cX - this.#canvas.camera360.offX, cY, true, 5);
 
@@ -402,7 +433,7 @@ export default class Image {
 		m.rotateY(Math.atan2(center.x, center.z) + Math.PI + this.rotY);
 		m.rotateX(-Math.sin((cY - .5) * Math.PI) - this.rotX);
 		m.rotateZ(-this.rotZ);
-		m.scaleFlat(this.scale * .5);
+		m.scaleFlat(this.#scale * .5);
 
 		const dx0 = (r.x0 - cX) * s, dx1 = (r.x1 - cX) * s;
 		const dy0 = -(r.y0 - cY) * .5 * s, dy1 = -(r.y1 - cY) * .5 * s;
@@ -423,11 +454,11 @@ export default class Image {
 	/** Calculates the effective scale of an embedded image based on its projection. */
 	#getEmbeddedScale(s: number): number {
 		if (this.#is360Embed) {
-			return s * Math.max(this.areaWidth * 2, this.areaHeight) * (this.#canvas.width / this.width);
+			return s * Math.max(this.#areaWidth * 2, this.#areaHeight) * (this.#canvas.width / this.width);
 		}
 
-		const ew = this.areaWidth, eh = this.areaHeight;
-		const ecx = this.areaCenterX, ecy = this.areaCenterY;
+		const ew = this.#areaWidth, eh = this.#areaHeight;
+		const ecx = this.#areaCenterX, ecy = this.#areaCenterY;
 		const el = this.#canvas.el, gl = this.#canvas.camera360, cW = el.width;
 		const pH = eh / 2.5;
 
