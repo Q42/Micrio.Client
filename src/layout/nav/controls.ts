@@ -243,7 +243,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (zoomVisible) {
 				if (!this.#zoomGroup?.isConnected) {
 					this.#zoomGroup?.remove();
-					this.#zoomGroup = createElement('micrio-zoom-buttons', { className: 'ctrl-zoom' });
+					this.#zoomGroup = createElement('micrio-zoom-buttons');
 					if (this.#fsGroup?.isConnected) this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);
 					else this.#group1.appendChild(this.#zoomGroup);
 				}
@@ -253,7 +253,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (hasFullscreen) {
 				if (!this.#fsGroup?.isConnected) {
 					this.#fsGroup?.remove();
-					this.#fsGroup = createElement('micrio-fullscreen', { className: 'ctrl-fs', parent: this.#group1 });
+					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 });
 				}
 				this.#fsGroup.setProps({ el: micrio });
 			} else if (this.#fsGroup?.isConnected) {

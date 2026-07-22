@@ -114,7 +114,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 						textContent: cultureData?.title ?? '(Unknown)',
 						children: [
 							createElement('micrio-icon', {
-								attrs: { name: menu.linkTargetBlank ? 'linkExt' : 'link' },
+								setProps: { name: menu.linkTargetBlank ? 'linkExt' : 'link' },
 								style: { opacity: '.75' }
 							})
 						]
@@ -129,7 +129,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 			];
 			if (menu.children?.length) {
 				strongChildren.push(
-					createElement('micrio-icon', { attrs: { name: 'chevronDown' } })
+					createElement('micrio-icon', { setProps: { name: 'chevronDown' } })
 				);
 			}
 

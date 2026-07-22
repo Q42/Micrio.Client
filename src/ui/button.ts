@@ -60,7 +60,7 @@ class MicrioButton extends MicrioElement<ButtonProps> {
 		this.#rootEl = el;
 
 		if (p.type)
-			createElement('micrio-icon', { attrs: { name: p.type }, parent: el });
+			createElement('micrio-icon', { setProps: { name: p.type }, parent: el });
 		else if (p.icon)
 			createElement('img', { props: { src: p.icon.src, alt: 'Icon' }, parent: el });
 

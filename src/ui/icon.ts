@@ -8,8 +8,6 @@ import './icon.css';
 class MicrioIconElement extends MicrioElement {
 	static tag = 'micrio-icon';
 
-	static observedAttributes = ['name', 'style'];
-
 	#name: IconName = 'close';
 	#customHTML: string | undefined;
 
@@ -18,8 +16,8 @@ class MicrioIconElement extends MicrioElement {
 		this.#render();
 	}
 
-	attributeChangedCallback(attr: string, _old: string | null, val: string | null) {
-		if (attr === 'name' && val) this.#name = val as IconName;
+	setProps(props: Record<string, any>): void {
+		if (props.name) this.#name = props.name as IconName;
 		if (this.isConnected) {
 			this.#readCustomHTML();
 			this.#render();

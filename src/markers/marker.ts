@@ -254,7 +254,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				});
 			} else if (icon) {
 				createElement('micrio-icon', {
-					attrs: { name: icon },
+					setProps: { name: icon },
 					parent: btn
 				});
 			}
