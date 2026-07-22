@@ -18,7 +18,7 @@ import { MicrioImage } from './image';
 import { State} from './state';
 import { GoogleTag } from '$utils/analytics';
 import { Gallery } from '$gallery/controller';
-import { rtlLanguageCodes } from '$core/i18n/locale';
+import { isRTL } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
 import { cssVars } from './css-vars';
@@ -196,7 +196,7 @@ ${cssVars}`;
 				const baseLang = newVal.split('-')[0];
 					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en);
 					if(newVal) {
-						if(rtlLanguageCodes.includes(newVal)) this.setAttribute('dir', 'rtl');
+						if(isRTL(newVal)) this.setAttribute('dir', 'rtl');
 						else this.removeAttribute('dir');
 					}
 					if(prevLang) this.events.dispatch('lang-switch', newVal);
