@@ -364,19 +364,20 @@ micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-ic
 			}) as MicrioElement;
 
 			if (this.#videoEl && (this.#videoEl instanceof HTMLVideoElement || this.#videoEl instanceof HTMLAudioElement)) {
-				this.#videoEl.addEventListener('timeupdate', () => {
+				const listen = this.#videoEl.addEventListener;
+				listen('timeupdate', () => {
 					update();
 					if (!p.secondary) this.getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 				});
-				this.#videoEl.addEventListener('loadedmetadata', update);
-				this.#videoEl.addEventListener('play', update);
-				this.#videoEl.addEventListener('pause', update);
-				this.#videoEl.addEventListener('ended', () => {
+				listen('loadedmetadata', update);
+				listen('play', update);
+				listen('pause', update);
+				listen('ended', () => {
 					update();
 					p.onended?.();
 				});
-				this.#videoEl.addEventListener('seeking', () => { this.#seeking = true; update(); });
-				this.#videoEl.addEventListener('seeked', () => { this.#seeking = false; update(); });
+				listen('seeking', () => { this.#seeking = true; update(); });
+				listen('seeked', () => { this.#seeking = false; update(); });
 			}
 		}
 

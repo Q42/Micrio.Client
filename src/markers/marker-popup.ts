@@ -86,11 +86,12 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		const tourSourceImage = markerTour ? micrio.canvases.find((c: MicrioImage) =>
 			c.$data?.markerTours?.find((t: any) => t.id === markerTour.id)
 		) : undefined;
+		const tsSettings = tourSourceImage?.$settings._markers;
 		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0;
 		const showTourControls = isPartOfTour && !markerTour?.isSerialTour &&
-			(tourSourceImage?.$settings._markers?.tourControlsInPopup ?? settings.tourControlsInPopup);
+			(tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup);
 		const showTourStepCounter = isPartOfTour && !markerTour?.isSerialTour &&
-			(tourSourceImage?.$settings._markers?.tourStepCounterInPopup ?? settings.tourStepCounterInPopup);
+			(tsSettings?.tourStepCounterInPopup ?? settings.tourStepCounterInPopup);
 		const currentTourStep = markerTour?.currentStep ?? -1;
 		const closeButtonStopsTour = showTourControls || (markerTour ? markerTour.currentStep == markerTour.steps.length - 1 : undefined);
 		const isLastStep = markerTour ? markerTour.currentStep == markerTour.steps.length - 1 : false;

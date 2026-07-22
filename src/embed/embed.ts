@@ -313,16 +313,14 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 			if (this.#glImage.placed) image.engine.fadeImage(this.#glImage, opacity);
 		} else {
 			this.#glImage = image.addEmbed({
-				id: embed.video ? embed.id : embed.micrioId,
-				title: embed.uuid,
-				width: embed.width,
-				height: embed.height,
-				isPng: embed.isPng,
-				isWebP: embed.isWebP,
-				isDeepZoom: embed.isDeepZoom,
-				path: this.#info.tileBasePath ?? this.#info.path,
-				isSingle: !!embed.video,
-				isVideo: !!embed.video,
+				...embed,
+				...{
+					id: embed.video ? embed.id : embed.micrioId,
+					title: embed.uuid,
+					path: this.#info.tileBasePath ?? this.#info.path,
+					isSingle: !!embed.video,
+					isVideo: !!embed.video,
+				}
 			}, {
 				_360: { rotX: this.#rotX, rotY: this.#rotY, rotZ: this.#rotZ }
 			}, embed.area as Models.Camera.View, { opacity, asImage: false });
@@ -379,14 +377,15 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 		if ((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && this.#w) {
 			this.#paused = this.#shouldPause();
-			if (this.#glVideo?._vid) {
+			const vid = this.#glVideo?._vid;
+			if (vid) {
 				if (this.#paused) {
-					if (!this.#glVideo._vid.paused) this.#glVideo._vid.pause();
+					if (!vid.paused) vid.pause();
 				} else {
-					if (this.#glVideo._vid.paused) {
-						this.#glVideo.cancelTimeout();
-						if (image?.$settings?.embedRestartWhenShown) this.#glVideo._vid.currentTime = 0;
-						this.#glVideo._vid.play();
+					if (vid.paused) {
+						this.#glVideo!.cancelTimeout();
+						if (image?.$settings?.embedRestartWhenShown) vid.currentTime = 0;
+						vid.play();
 					}
 				}
 			}
@@ -395,30 +394,33 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 	}
 
 	#syncVideoPause(image: MicrioImage) {
-		if (!this.#videoEl) return;
+		const v = this.#videoEl;
+		if (!v) return;
 		if (this.#figureEl) this.#figureEl.classList.toggle('paused', this.#paused);
 		if (this.#paused) {
-			if (!this.#videoEl.paused) this.#videoEl.pause();
+			if (!v.paused) v.pause();
 		} else {
-			if (this.#videoEl.paused) {
-				if (image?.$settings?.embedRestartWhenShown) this.#videoEl.currentTime = 0;
-				this.#videoEl.play().catch(() => {});
+			if (v.paused) {
+				if (image?.$settings?.embedRestartWhenShown) v.currentTime = 0;
+				v.play().catch(() => {});
 			}
 		}
 	}
 
 	#shouldPause(): boolean {
 		const { embed } = this.#props;
-		if (!embed.video?.pauseWhenSmallerThan && !embed.video?.pauseWhenLargerThan) return !this.#autoplay;
+		const vid = embed.video;
+		if (!vid?.pauseWhenSmallerThan && !vid?.pauseWhenLargerThan) return !this.#autoplay;
+		const vp = this.#micrio.canvas.viewport;
 		const screenSize = this.#scaleVal
 			? Math.max(
-				(this.#w * this.#info.width) * this.#scaleVal / this.#micrio.canvas.viewport.width,
-				(this.#h * this.#info.height) * this.#scaleVal / this.#micrio.canvas.viewport.height
+				(this.#w * this.#info.width) * this.#scaleVal / vp.width,
+				(this.#h * this.#info.height) * this.#scaleVal / vp.height
 			)
 			: 0;
 		return !!(
-			(embed.video.pauseWhenSmallerThan && screenSize < embed.video.pauseWhenSmallerThan)
-			|| (embed.video.pauseWhenLargerThan && screenSize > embed.video.pauseWhenLargerThan)
+			(vid.pauseWhenSmallerThan && screenSize < vid.pauseWhenSmallerThan)
+			|| (vid.pauseWhenLargerThan && screenSize > vid.pauseWhenLargerThan)
 		);
 	}
 
@@ -461,8 +463,9 @@ micrio-embed>.embed-container>button,micrio-embed>.embed-container>img{touch-act
 
 		this.removeEventListener('change', this.#onChange);
 		if (this.#container) {
-			this.#container.removeEventListener('click', this.#click);
-			this.#container.removeEventListener('keydown', this.#click);
+			const unlisten = this.#container.removeEventListener;
+			unlisten('click', this.#click);
+			unlisten('keydown', this.#click);
 		}
 	}
 }

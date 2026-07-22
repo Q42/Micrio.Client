@@ -521,10 +521,11 @@ ${cssVars}`;
 
 		// ── 360 vector ────────────────────────────────────────────────────────
 
-		this.engine.direction = opts.vector?.direction ?? 0;
-		this.engine.distanceX = opts.vector?.distanceX ?? 0;
-		this.engine.distanceY = opts.vector?.distanceY ?? 0;
-		this.engine.preventDirectionSet = !opts.vector;
+		const e = this.engine;
+		e.direction = opts.vector?.direction ?? 0;
+		e.distanceX = opts.vector?.distanceX ?? 0;
+		e.distanceY = opts.vector?.distanceY ?? 0;
+		e.preventDirectionSet = !opts.vector;
 
 		// ── Set current / grid ────────────────────────────────────────────────
 

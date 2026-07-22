@@ -363,9 +363,10 @@ export class Camera {
 				const pCV = toCenterJSON(opts.prevView);
 				this.#canvas.ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
 			}
-			if (this.image.$settings.omni?.frames) {
-				const numLayers = this.image.$settings.omni.layers?.length ?? 1;
-				const npl = this.image.$settings.omni.frames / numLayers;
+			const omni = this.image.$settings.omni;
+			if (omni?.frames) {
+				const numLayers = omni.layers?.length ?? 1;
+				const npl = omni.frames / numLayers;
 				if (opts.omniIndex == undefined) {
 					const idx = view[4] || (Array.isArray(view) && view[5] !== undefined ? view[5] : undefined);
 					if (idx !== undefined) opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * npl);

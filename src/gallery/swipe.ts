@@ -106,9 +106,10 @@ export class SwipeGallery {
 		this.#stripDragVelocity = 0;
 		this.#stripDragActive = false;
 		this.#stripDragHorizontal = false;
-		window.addEventListener('pointermove', this.#stripPointerMove);
-		window.addEventListener('pointerup', this.#stripPointerUp);
-		window.addEventListener('pointercancel', this.#stripPointerUp);
+		const listen = window.addEventListener;
+		listen('pointermove', this.#stripPointerMove);
+		listen('pointerup', this.#stripPointerUp);
+		listen('pointercancel', this.#stripPointerUp);
 	};
 
 	#stripPointerMove = (e:PointerEvent):void => {
@@ -135,9 +136,7 @@ export class SwipeGallery {
 
 	#stripPointerUp = (e:PointerEvent):void => {
 		if (e.pointerId !== this.#stripDragId) return;
-		window.removeEventListener('pointermove', this.#stripPointerMove);
-		window.removeEventListener('pointerup', this.#stripPointerUp);
-		window.removeEventListener('pointercancel', this.#stripPointerUp);
+		this.#unlisten()
 		const wasActive = this.#stripDragActive;
 		this.#stripDragId = undefined;
 		this.#stripDragActive = false;
@@ -152,6 +151,13 @@ export class SwipeGallery {
 		else if (progress > 0.3 || this.#stripDragVelocity > 0.5) target = Math.max(0, this.#getCurrentPage() - 1);
 		this.#navigate(target);
 	};
+
+	#unlisten = ():void => {
+		const unlisten = window.removeEventListener
+		unlisten('pointermove', this.#stripPointerMove);
+		unlisten('pointerup', this.#stripPointerUp);
+		unlisten('pointercancel', this.#stripPointerUp);
+	}
 
 	#applyDragProgress(progress:number):void {
 		const images = this.#images;
@@ -178,8 +184,6 @@ export class SwipeGallery {
 	destroy():void {
 		this.#micrio.removeAttribute('data-panning');
 		this.#micrio.keepRendering = false;
-		window.removeEventListener('pointermove', this.#stripPointerMove);
-		window.removeEventListener('pointerup', this.#stripPointerUp);
-		window.removeEventListener('pointercancel', this.#stripPointerUp);
+		this.#unlisten();
 	}
 }

@@ -29,10 +29,11 @@ export class PointerPinchHandler {
 	/** Unhooks pointer pinch event listeners. */
 	unhook(): void {
 		this.#ctx.micrio.removeEventListener('pointerdown', this.start, eventPassive);
-		self.removeEventListener('pointerup', this.end, eventPassive);
-		self.removeEventListener('pointercancel', this.end, eventPassive);
+		const rem = self.removeEventListener;
+		rem('pointerup', this.end, eventPassive);
+		rem('pointercancel', this.end, eventPassive);
 		// Clean up pinch move listener if it was active
-		self.removeEventListener('pointermove', this.#move, eventPassiveCapture);
+		rem('pointermove', this.#move, eventPassiveCapture);
 		this.#ctx.activePointers.clear();
 	}
 

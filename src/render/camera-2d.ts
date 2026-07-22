@@ -410,8 +410,10 @@ export default class Camera2D extends EngineCamera {
 	updateProjection(): void {
 		const c = this.canvas;
 		const v = c.view;
-		c.camera360.pMatrix.perspective(c.camera360.perspective, c.el.aspect, 0.0001, 100);
-		c.camera360.pMatrix.translate(
+		const cam = c.camera360;
+		const m = cam.pMatrix;
+		m.perspective(cam.perspective, c.el.aspect, 0.0001, 100);
+		m.translate(
 			-(v.centerX - .5) * c.aspect,
 			v.centerY - .5,
 			-v.height / 2

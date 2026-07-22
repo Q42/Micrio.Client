@@ -331,44 +331,51 @@ export class TileCanvas {
 
 		const scale: number = (this.is360 ? this.camera360.scale : this.camera2d.scale) * this.el.scale;
 
+		const m = this.main;
+
 		for (let i = 0; i < this.images.length; i++) {
 			const image = this.images[i];
 			if (!image.shouldRender()) {
-				if (image.doRender) this.main.setImageVisible(image, image.doRender = false);
+				if (image.doRender) m.setImageVisible(image, image.doRender = false);
 			}
 			else {
-				if (i > 0 && !image.doRender) this.main.setImageVisible(image, image.doRender = true);
+				if (i > 0 && !image.doRender) m.setImageVisible(image, image.doRender = true);
 				if (image.isVideo && image.isVideoPlaying) animating = true;
 				if (image.opacityTick(this.isGallerySwitch || this.opacity < 1)) animating = true;
-				if (image.opacity > 0) this.main.doneTotal += image.getTiles(scale);
+				if (image.opacity > 0) m.doneTotal += image.getTiles(scale);
 			}
 		}
 
-		this.main.toDrawTotal += this.toDraw.length;
-		this.main.progress = this.main.toDrawTotal === 0 ? 1
-			: this.main.doneTotal / this.main.toDrawTotal;
+		m.toDrawTotal += this.toDraw.length;
+		m.progress = m.toDrawTotal === 0 ? 1
+			: m.doneTotal / m.toDrawTotal;
 
 		for (let i = 0; i < this.#children.length; i++)
 			this.#children[i].shouldDraw();
 
-		if (animating) this.main.animating = true;
+		if (animating) m.animating = true;
 	}
 
 	/** Executes the drawing commands for the current frame for this canvas. */
 	draw(): void {
 		if (this.targetOpacity === 0 && this.opacity === 0) return;
 
+		const m = this.main;
+		const gl = m.micrio.webgl;
+		const el = this.el;
+		const v = this.view;
+
 		const animating = this.ani.isStarted();
 
-		this.main.micrio.webgl.gl.viewport(this.el.left, this.main.el.height - this.el.height - this.el.top, this.el.width, this.el.height);
+		gl.gl.viewport(this.el.left, m.el.height - el.height - el.top, el.width, el.height);
 
-		this.main.micrio.webgl.gl.uniformMatrix4fv(this.main.micrio.webgl.pmLoc, false, this.camera360.pMatrix.arr);
+		gl.gl.uniformMatrix4fv(gl.pmLoc, false, this.camera360.pMatrix.arr);
 
 		if (this.pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
-			if (!(im.x1 <= this.view.x0 || im.x0 >= this.view.x1 || im.y1 <= this.view.y0 || im.y0 >= this.view.y1)) {
+			if (!(im.x1 <= v.x0 || im.x0 >= v.x1 || im.y1 <= v.y0 || im.y0 >= v.y1)) {
 				this.#setTile(im.endOffset - 1);
-				this.main.micrio.webgl.drawTile(undefined, im.tOpacity);
+				gl.drawTile(undefined, im.tOpacity);
 			}
 		}
 
@@ -377,14 +384,14 @@ export class TileCanvas {
 			const i: number = this.toDraw[j];
 			this.#setTile(i);
 
-			const isTargetLayer = r.layer === r.image.targetLayer - 1 || (!this.main.bareBone && r.layer === r.image.targetLayer);
+			const isTargetLayer = r.layer === r.image.targetLayer - 1 || (!m.bareBone && r.layer === r.image.targetLayer);
 			const isBaseTile = i === r.image.endOffset - 1;
-			const opa = this.main.getTileOpacity(i);
+			const opa = m.getTileOpacity(i);
 
-			if ((isTargetLayer || opa === 1 || isBaseTile) && this.main.drawTile(r.image.index, i, r.layer,
+			if ((isTargetLayer || opa === 1 || isBaseTile) && m.drawTile(r.image.index, i, r.layer,
 				r.x, r.y, opa * this.bOpacity * r.image.opacity, animating, r.layer === r.image.targetLayer - 1)
 				&& isBaseTile) {
-				r.image.gotBase = this.main.now;
+				r.image.gotBase = m.now;
 				if (!this.isReady) this.fadeIn();
 			}
 		}
@@ -396,8 +403,8 @@ export class TileCanvas {
 		for (let i = 0; i < this.#children.length; i++)
 			this.#children[i].draw();
 
-		if (this.view.changed) this.micrioImage?.camera?.viewChanged();
-		this.view.changed = false;
+		if (v.changed) this.micrioImage?.camera?.viewChanged();
+		v.changed = false;
 	}
 
 	#partialView(noDispatch: boolean): boolean {
@@ -642,15 +649,16 @@ export class TileCanvas {
 	}
 
 	getScale(): number { return this.is360 ? this.camera360.scale : this.camera2d.scale }
-	isZoomedIn(): boolean { return this.is360 ? this.camera360.perspective <= this.camera360.minPerspective : this.camera2d.isZoomedIn() }
-	isZoomedOut(b: boolean = false): boolean { return this.is360 ? this.camera360.perspective >= this.camera360.maxPerspective : this.camera2d.isZoomedOut(b) }
+	isZoomedIn(): boolean { const c360 = this.camera360; return this.is360 ? c360.perspective <= c360.minPerspective : this.camera2d.isZoomedIn() }
+	isZoomedOut(b: boolean = false): boolean { const c360 = this.camera360; return this.is360 ? c360.perspective >= c360.maxPerspective : this.camera2d.isZoomedOut(b) }
 
 	correctMinMax(noLimit?: boolean): void { this.camera2d.correctMinMax(noLimit); }
 
 	setMinScale(s: number): void {
-		this.camera2d.minScale = s;
-		this.camera2d.correctMinMax();
-		this.camera2d.applyView();
+		const c2d = this.camera2d;
+		c2d.minScale = s;
+		c2d.correctMinMax();
+		c2d.applyView();
 		this.camera360.update();
 	}
 

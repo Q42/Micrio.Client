@@ -21,22 +21,23 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 		const el = this.element;
 		const cb = this.callbacks;
 
-		if (cb.onPlay) el.addEventListener('play', cb.onPlay);
-		if (cb.onPause) el.addEventListener('pause', cb.onPause);
-		if (cb.onEnded) el.addEventListener('ended', cb.onEnded);
-		if (cb.onSeeking) el.addEventListener('seeking', cb.onSeeking);
-		if (cb.onSeeked) el.addEventListener('seeked', cb.onSeeked);
+		const listen = el.addEventListener;
+		if (cb.onPlay) listen('play', cb.onPlay);
+		if (cb.onPause) listen('pause', cb.onPause);
+		if (cb.onEnded) listen('ended', cb.onEnded);
+		if (cb.onSeeking) listen('seeking', cb.onSeeking);
+		if (cb.onSeeked) listen('seeked', cb.onSeeked);
 		if (cb.onTimeUpdate) {
-			el.addEventListener('timeupdate', () => cb.onTimeUpdate?.(el.currentTime));
+			listen('timeupdate', () => cb.onTimeUpdate?.(el.currentTime));
 		}
 		if (cb.onDurationChange) {
-			el.addEventListener('durationchange', () => cb.onDurationChange?.(el.duration));
+			listen('durationchange', () => cb.onDurationChange?.(el.duration));
 		}
 		if (cb.onError) {
-			el.addEventListener('error', () => cb.onError?.(new Error('Media playback error')));
+			listen('error', () => cb.onError?.(new Error('Media playback error')));
 		}
 		if (cb.onReady) {
-			el.addEventListener('canplay', cb.onReady);
+			listen('canplay', cb.onReady);
 		}
 	}
 
@@ -85,10 +86,11 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 		const cb = this.callbacks;
 
 		// Remove all event listeners
-		if (cb.onPlay) el.removeEventListener('play', cb.onPlay);
-		if (cb.onPause) el.removeEventListener('pause', cb.onPause);
-		if (cb.onEnded) el.removeEventListener('ended', cb.onEnded);
-		if (cb.onSeeking) el.removeEventListener('seeking', cb.onSeeking);
-		if (cb.onSeeked) el.removeEventListener('seeked', cb.onSeeked);
+		const unlisten = el.removeEventListener;
+		if (cb.onPlay) unlisten('play', cb.onPlay);
+		if (cb.onPause) unlisten('pause', cb.onPause);
+		if (cb.onEnded) unlisten('ended', cb.onEnded);
+		if (cb.onSeeking) unlisten('seeking', cb.onSeeking);
+		if (cb.onSeeked) unlisten('seeked', cb.onSeeked);
 	}
 }

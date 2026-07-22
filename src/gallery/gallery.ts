@@ -376,20 +376,23 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		// Auto-hide after a moment
 		this.#activity();
 
+		const listen = micrio.canvas.element.addEventListener;
+		const unlisten = micrio.canvas.element.removeEventListener;
+
 		// Strip-swipe pointer events on the canvas element
 		if (this.#swipeGallery && images.length > 1) {
-			micrio.canvas.element.addEventListener('pointerdown', this.#swipeGallery.handlePointerDown);
-			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
+			listen('pointerdown', this.#swipeGallery.handlePointerDown);
+			this.addCleanup(() => unlisten('pointerdown', this.#swipeGallery!.handlePointerDown));
 		}
 
 		// Auto-hide listeners
 		const unhookActivity = () => {
-			micrio.canvas.element.removeEventListener('pointermove', this.#activity);
-			micrio.canvas.element.removeEventListener('pointerdown', this.#activity);
+			unlisten('pointermove', this.#activity);
+			unlisten('pointerdown', this.#activity);
 		};
 		if (this.#autoHide) {
-			micrio.canvas.element.addEventListener('pointermove', this.#activity);
-			micrio.canvas.element.addEventListener('pointerdown', this.#activity);
+			listen('pointermove', this.#activity);
+			listen('pointerdown', this.#activity);
 			this.#activity();
 		}
 		this.addCleanup(unhookActivity);

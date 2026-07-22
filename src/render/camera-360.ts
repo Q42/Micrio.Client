@@ -351,7 +351,9 @@ export default class Camera360 extends EngineCamera {
 	getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
 		if (isNaN(radius)) radius = this.radius;
 
-		this.iMatrix.identity();
+		const m = this.iMatrix;
+
+		m.identity();
 
 		radius *= this.radius * (100 / (Math.PI * 2));
 
@@ -364,29 +366,29 @@ export default class Camera360 extends EngineCamera {
 		this.vec4.y = Math.sin(y);
 		this.vec4.z = cY * Math.cos(x);
 
-		this.iMatrix.translate(
+		m.translate(
 			this.position.x * radius / this.radius,
 			-this.position.y * radius / this.radius + transY * this.radius,
 			this.position.z * radius / this.radius
 		);
 
-		this.iMatrix.translate(
+		m.translate(
 			this.vec4.x * radius,
 			this.vec4.y * radius,
 			this.vec4.z * radius
 		);
 
-		this.iMatrix.rotateY(Math.atan2(this.vec4.x, this.vec4.z) + Math.PI + rY);
-		this.iMatrix.rotateX(this.vec4.y + rX);
-		this.iMatrix.rotateZ(rZ);
+		m.rotateY(Math.atan2(this.vec4.x, this.vec4.z) + Math.PI + rY);
+		m.rotateX(this.vec4.y + rX);
+		m.rotateZ(rZ);
 
-		this.iMatrix.scale(sX, sY);
+		m.scale(sX, sY);
 
-		this.iMatrix.scaleFlat(scale / Math.PI / this.radius);
+		m.scaleFlat(scale / Math.PI / this.radius);
 
-		this.iMatrix.multiply(this.#rMatrix);
+		m.multiply(this.#rMatrix);
 
-		return this.iMatrix;
+		return m;
 	}
 
 	/** Generates vertex data for a segment of the 360 sphere geometry. */

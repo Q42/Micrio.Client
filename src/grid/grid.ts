@@ -136,9 +136,10 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 		}
 
 		this._tourEventHandler = createTourEventHandler(this);
-		this.micrio.addEventListener('tour-event', this._tourEventHandler);
-		this.micrio.addEventListener('serialtour-pause', () => this.images.forEach(i => i.camera.pause()));
-		this.micrio.addEventListener('serialtour-play', () => this.images.forEach(i => i.camera.resume()));
+		const listen = this.micrio.addEventListener;
+		listen('tour-event', this._tourEventHandler);
+		listen('serialtour-pause', () => this.images.forEach(i => i.camera.pause()));
+		listen('serialtour-play', () => this.images.forEach(i => i.camera.resume()));
 	}
 
 	_tourEventHandler: ((e: Event) => void) | undefined;
