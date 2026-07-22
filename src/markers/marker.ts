@@ -192,6 +192,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		this.addCleanup(image.state.marker.subscribe(m => {
 			if (typeof m == 'string' && m == marker.id) image.state.marker.set(marker);
 			else if (m == marker) activated();
+			else if (m && m != marker) {
+				if (this.#opened) close();
+				this.#opened = false;
+			}
 			else if (!m && !data.alwaysOpen) {
 				if (this.#opened) close();
 				else this.classList.remove('opened');
