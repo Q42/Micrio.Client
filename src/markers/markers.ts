@@ -29,12 +29,11 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		this.addCleanup(image.viewport.subscribe((v: Models.Camera.View) => {
 			if (!v || v.length < 4) return;
 			v = v.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
-			this.style.cssText = [
-				...(!v[0] ? [] : [`left: ${v[0]}px`]),
-				...(!v[1] ? [] : [`top: ${v[1]}px`]),
-				`width: ${v[2]}px`,
-				`height: ${v[3]}px`
-			].join(';') + ';';
+			const size = micrio.canvas.viewport;
+			this.style.left = !v[0] ? '' : `${v[0]}px`;
+			this.style.top = !v[1] ? '' : `${v[1]}px`;
+			this.style.width = v[2] == size.width ? '' : `${v[2]}px`;
+			this.style.height = v[3] == size.height ? '' : `${v[3]}px`;
 		}));
 
 		const updateOverlapped = () => {
