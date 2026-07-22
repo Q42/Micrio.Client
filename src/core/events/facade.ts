@@ -87,6 +87,9 @@ export class Events implements EventContext {
 	/** Stores the ID of the pointer currently captured for dragging. */
 	capturedPointerId: number | undefined;
 
+	/** The main HTMLMicrioElement instance. */
+	micrio: HTMLMicrioElement;
+
 	// Handler modules
 	#dragHandler: DragHandler;
 	#pinchHandler: PinchHandler;
@@ -101,8 +104,9 @@ export class Events implements EventContext {
 	 * @param micrio The main HTMLMicrioElement instance.
 	 */
 	constructor(
-		public micrio: HTMLMicrioElement,
+		micrio: HTMLMicrioElement,
 	) {
+		this.micrio = micrio;
 		this.el = micrio.canvas.element;
 
 		// Initialize handler modules
