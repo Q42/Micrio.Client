@@ -98,7 +98,7 @@ export class VideoTourInstance {
 	}
 
 	/** Parses the raw timeline data from the tour content into the internal `timeline` array. */
-	public read(): void {
+	read(): void {
 		const timeline = this.#content.timeline;
 		this.#timeline = [];
 		for (let i = 0; i < timeline.length; i++) {

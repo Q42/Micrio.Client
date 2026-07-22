@@ -161,7 +161,7 @@ export class Canvas {
 	 * @param s Optional image settings object to check for `noRetina`.
 	 * @returns The calculated device pixel ratio.
 	 */
-	public getRatio = (s:Partial<Models.ImageInfo.Settings> = this.#micrio.$current?.$settings ?? {}) : number => !Browser.iOS && !s?.noRetina // Check conditions
+	getRatio = (s:Partial<Models.ImageInfo.Settings> = this.#micrio.$current?.$settings ?? {}) : number => !Browser.iOS && !s?.noRetina // Check conditions
 		&& self.devicePixelRatio && Math.max(1, Math.min(2, self.devicePixelRatio)) // Get ratio and clamp
 		|| 1; // Default to 1
 
@@ -171,7 +171,7 @@ export class Canvas {
 	 * @param width The horizontal offset margin in pixels.
 	 * @param height The vertical offset margin in pixels.
 	*/
-	public setMargins(width:number, height:number) : void {
+	setMargins(width:number, height:number) : void {
 		if (!this.#micrio.engine.ready) return;
 		this.#micrio.engine.el.areaWidth = width;
 		this.#micrio.engine.el.areaHeight = height;

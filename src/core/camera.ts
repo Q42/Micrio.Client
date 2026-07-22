@@ -65,7 +65,7 @@ export class Camera {
 	/**
 	 * Gets the current image view rectangle [x0, y0, width, height].
 	 */
-	public getView = (): Models.Camera.View => {
+	getView = (): Models.Camera.View => {
 		const v = this.#canvas?.view.arr;
 		return v ? [v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]] : [0, 0, 1, 1];
 	};
@@ -74,7 +74,7 @@ export class Camera {
 	 * Gets the current image view rectangle [x0, y0, width, height] relative to the image (0-1).
 	 * @returns The live Float64Array buffer from the engine.
 	 */
-	public getViewRaw = (): Float64Array => { return this.#canvas?.view.arr ?? new Float64Array(4); };
+	getViewRaw = (): Float64Array => { return this.#canvas?.view.arr ?? new Float64Array(4); };
 
 	/**
 	 * Sets the camera view instantly to the specified viewport.

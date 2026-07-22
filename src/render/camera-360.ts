@@ -41,10 +41,10 @@ export default class Camera360 extends EngineCamera {
 	maxPerspective: number = Math.PI / 2;
 	minPerspective: number = Math.PI / 2;
 
-	public cameraForwardX: number = 0;
-	public cameraForwardY: number = 0;
-	public cameraForwardZ: number = -1;
-	public fieldOfView: number = 0;
+	cameraForwardX: number = 0;
+	cameraForwardY: number = 0;
+	cameraForwardZ: number = -1;
+	fieldOfView: number = 0;
 
 	readonly vec4: Vec4 = new Vec4();
 	readonly #coo: Coordinates = new Coordinates;

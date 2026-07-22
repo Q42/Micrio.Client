@@ -42,7 +42,7 @@ micr-io.hide-ui .grid-close{opacity:0;pointer-events:none}`;
 	readonly markersShown:Writable<MicrioImage[]> = writable([]);
 
 	history:Models.Grid.GridHistory[] = [];
-	public depth:Writable<number> = writable<number>(0);
+	depth:Writable<number> = writable<number>(0);
 
 	aniDurationIn:number = 1;
 	aniDurationOut:number = 0.5;

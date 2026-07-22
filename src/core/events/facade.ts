@@ -174,7 +174,7 @@ export class Events implements EventContext {
 	getVisible(): MicrioImage[] | undefined { return this.#visible; }
 
 	/** Hooks all necessary event listeners based on current settings. */
-	public hook(): void {
+	hook(): void {
 		if (this.#hooked) return;
 		this.#hooked = true;
 
@@ -193,7 +193,7 @@ export class Events implements EventContext {
 	}
 
 	/** Unhooks all attached event listeners. */
-	public unhook(): void {
+	unhook(): void {
 		if (!this.#hooked) return;
 		this.#hooked = false;
 
@@ -207,13 +207,13 @@ export class Events implements EventContext {
 	}
 
 	/** Hooks keyboard event listeners. */
-	public hookKeys(): void { this.#keyboardHandler.hook(); }
+	hookKeys(): void { this.#keyboardHandler.hook(); }
 
 	/** Unhooks keyboard event listeners. */
-	public unhookKeys(): void { this.#keyboardHandler.unhook(); }
+	unhookKeys(): void { this.#keyboardHandler.unhook(); }
 
 	/** Hooks zoom-related event listeners (pinch, scroll, double-tap/click). */
-	public hookZoom(): void {
+	hookZoom(): void {
 		const s = this.#settings;
 		this.controlZoom = !!s?.controlZoom;
 		if (!s || s.hookPinch) this.hookPinch();
@@ -224,7 +224,7 @@ export class Events implements EventContext {
 	}
 
 	/** Unhooks zoom-related event listeners. */
-	public unhookZoom(): void {
+	unhookZoom(): void {
 		this.unhookPinch();
 		this.unhookScroll();
 		if (this.micrio.canvas.$isMobile) this.#doubleTapHandler.unhookTap();
@@ -232,16 +232,16 @@ export class Events implements EventContext {
 	}
 
 	/** Flag indicating if scroll listeners are attached. */
-	public get scrollHooked(): boolean { return this.#wheelHandler.hooked; }
+	get scrollHooked(): boolean { return this.#wheelHandler.hooked; }
 
 	/** Hooks mouse wheel/scroll event listeners. */
-	public hookScroll(): void { this.#wheelHandler.hook(); }
+	hookScroll(): void { this.#wheelHandler.hook(); }
 
 	/** Unhooks mouse wheel/scroll event listeners. */
-	public unhookScroll(): void { this.#wheelHandler.unhook(); }
+	unhookScroll(): void { this.#wheelHandler.unhook(); }
 
 	/** Hooks touch pinch and macOS gesture event listeners. */
-	public hookPinch(): void {
+	hookPinch(): void {
 		// Use touch events on iOS (most reliable there), pointer events everywhere else
 		if (Browser.iOS && this.hasTouch) {
 			this.#pinchHandler.hook();
@@ -252,7 +252,7 @@ export class Events implements EventContext {
 	}
 
 	/** Unhooks touch pinch and macOS gesture event listeners. */
-	public unhookPinch(): void {
+	unhookPinch(): void {
 		if (Browser.iOS && this.hasTouch) {
 			this.#pinchHandler.unhook();
 		} else {
@@ -262,9 +262,9 @@ export class Events implements EventContext {
 	}
 
 	/** Hooks pointer down/move/up listeners for drag panning. */
-	public hookDrag(): void { this.#dragHandler.hook(); }
+	hookDrag(): void { this.#dragHandler.hook(); }
 
 	/** Unhooks pointer listeners for drag panning. */
-	public unhookDrag(): void { this.#dragHandler.unhook(); }
+	unhookDrag(): void { this.#dragHandler.unhook(); }
 
 }

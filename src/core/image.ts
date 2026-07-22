@@ -57,24 +57,24 @@ export class MicrioImage {
 	get $data():Models.ImageData.ImageData|undefined { return get(this.data) }
 
 	/** State manager specific to this image instance (view, active marker, etc.). See {@link State.Image}. */
-	public readonly state:State.Image;
+	readonly state:State.Image;
 
 	/** The virtual camera instance controlling the view for this image. */
-	public camera!:Camera;
+	camera!:Camera;
 
 	/**  Writable store holding the HTMLVideoElement if this image represents a video. */
-	public readonly video:Writable<HTMLVideoElement|undefined> = writable(undefined);
+	readonly video:Writable<HTMLVideoElement|undefined> = writable(undefined);
 
 	/**  Writable store indicating if this image's canvas is currently visible and being rendered.
 	 * @readonly
 	*/
-	public readonly visible: Writable<boolean> = writable(false);
+	readonly visible: Writable<boolean> = writable(false);
 
 	/** Album information if this image is part of a V5 album. */
-	public album?: Models.Album|undefined;
+	album?: Models.Album|undefined;
 
 	/** OmniUI instance, if this image is an omni 3D object. */
-	public omni: OmniUI|undefined;
+	omni: OmniUI|undefined;
 
 	/** Stores the camera view state when a marker is opened, used to return to the previous view. */
 	openedView: Models.Camera.View|undefined;
@@ -157,13 +157,13 @@ export class MicrioImage {
 	opacity: number = 1;
 
 	/**  Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
-	public readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
+	readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
 
 	/** Array of child {@link MicrioImage} instances embedded within this image. */
 	readonly embeds: MicrioImage[] = [];
 
 	/** Grid controller instance, if this image is a grid container. */
-	public grid: Grid|undefined;
+	grid: Grid|undefined;
 
 	/** Base path for fetching image tiles. */
 	tileBase:string|undefined;

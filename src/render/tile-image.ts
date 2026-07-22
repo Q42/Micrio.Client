@@ -62,10 +62,10 @@ export default class Image {
 	#numLayers: number = 0;
 	targetLayer: number = 0;
 
-	public x0: number = 0;
-	public y0: number = 0;
-	public x1: number = 1;
-	public y1: number = 1;
+	x0: number = 0;
+	y0: number = 0;
+	x1: number = 1;
+	y1: number = 1;
 	rWidth: number = 1;
 	rHeight: number = 1;
 
@@ -91,7 +91,7 @@ export default class Image {
 
 	#is360Embed: boolean = false;
 
-	public isVideoPlaying: boolean = false;
+	isVideoPlaying: boolean = false;
 
 	static #sampledXs: Float64Array = new Float64Array(200);
 	static #sampledYs: Float64Array = new Float64Array(200);

@@ -103,13 +103,13 @@ ${cssVars}`;
 	get camera():Camera|undefined {return this.#current?.camera}
 
 	/** The controller managing the HTML `<canvas>` element, resizing, and viewport. */
-	public readonly canvas:Canvas = new Canvas(this);
+	readonly canvas:Canvas = new Canvas(this);
 
 	/** The controller managing user input events (mouse, touch, keyboard) and dispatching custom events. */
-	public readonly events:Events = new Events(this);
+	readonly events:Events = new Events(this);
 
 	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
-	public readonly state:State.Main = new State.Main();
+	readonly state:State.Main = new State.Main();
 
 	/** The Google Analytics integration controller. */
 	readonly #analytics: GoogleTag = new GoogleTag(this);
@@ -133,7 +133,7 @@ ${cssVars}`;
 	_ui:any;
 
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
-	public defaultSettings?: Partial<Models.ImageInfo.Settings>;
+	defaultSettings?: Partial<Models.ImageInfo.Settings>;
 
 	/** Writable store indicating the overall loading state of the viewer.
 	 * @internal

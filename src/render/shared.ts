@@ -11,7 +11,7 @@ import { mod1 } from '$utils/math';
 /** Structure to hold information about a specific tile to be drawn. @internal */
 export class DrawRect {
 	/** Reference to the Image instance this tile belongs to. */
-	public image!: Image;
+	image!: Image;
 
 	constructor(
 		/** Left edge of the tile in relative image coordinates (0-1). */
@@ -36,9 +36,9 @@ export class View {
 	#arr: Float64Array = new Float64Array([0.5, 0.5, 1, 1]);
 	#dirty: boolean = false;
 	/** Flag indicating if the view coordinates have changed since the last frame. */
-	public changed: boolean = false;
+	changed: boolean = false;
 	/** Flag indicating if the view limits have changed. */
-	public limitChanged: boolean = false;
+	limitChanged: boolean = false;
 
 	readonly #canvas: TileCanvas;
 

@@ -33,7 +33,7 @@ export class OmniUI {
 
 	goto(i:number):void { this.#goto(i); }
 
-	public get currentIndex():number { return this.#image.canvas?.activeImageIdx ?? -1; }
+	get currentIndex():number { return this.#image.canvas?.activeImageIdx ?? -1; }
 
 	constructor(
 		micrio:HTMLMicrioElement,
@@ -292,7 +292,7 @@ export class OmniUI {
 		}
 	}
 
-	public animateTo(idx: number) : void {
+	animateTo(idx: number) : void {
 		if(this.#raf) cancelAnimationFrame(this.#raf);
 		const duration = 250,
 			started = performance.now(),
