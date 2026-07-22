@@ -1,4 +1,4 @@
-.micrio-button {
+micrio-button > :is(button, a) {
 	margin: 0;
 	padding: 0 8px;
 	cursor: pointer;
@@ -21,56 +21,57 @@
 	box-shadow: var(--micrio-button-shadow);
 	backdrop-filter: var(--micrio-background-filter);
 	text-decoration: none;
+	font-family: inherit;
 }
-.micrio-button:hover {
+micrio-button > :is(button, a):hover {
 	outline: none;
 }
-.micrio-button.transparent {
+micrio-button > :is(button, a).transparent {
 	background-color: transparent;
 	backdrop-filter: none;
 }
-.micrio-button>* {
+micrio-button > :is(button, a)>* {
 	transition: opacity .25s ease;
 }
-.micrio-button:disabled {
+micrio-button > :is(button, a):disabled {
 	pointer-events: none;
 	cursor: default;
 }
-.micrio-button:disabled>* {
+micrio-button > :is(button, a):disabled>* {
 	opacity: .4;
 }
-.micrio-button.no-click {
+micrio-button > :is(button, a).no-click {
 	pointer-events: none;
 }
-.micrio-button img {
+micrio-button > :is(button, a) img {
 	pointer-events: none;
 	max-width: 100%;
 	max-height: 100%;
 }
-.micrio-button>* {
+micrio-button > :is(button, a)>* {
 	height: var(--micrio-icon-size)!important;
 	width: var(--micrio-icon-size);
 	font-size: var(--micrio-icon-size);
 	fill: var(--micrio-color);
 }
-.micrio-button.active {
+micrio-button > :is(button, a).active {
 	color: var(--micrio-color-hover);
 }
-.micrio-button.active svg {
+micrio-button > :is(button, a).active svg {
 	fill: var(--micrio-color-hover);
 }
 @media (hover: hover) {
-	.micrio-button:is(:hover,:focus) {
+	micrio-button > :is(button, a):is(:hover,:focus) {
 		background-color: var(--micrio-button-background-hover, var(--micrio-button-background, var(--micrio-background)));
 		color: var(--micrio-color-hover);
 		position: relative;
 		z-index: 1;
 	}
-	.micrio-button:is(:hover,:focus) svg {
+	micrio-button > :is(button, a):is(:hover,:focus) svg {
 		fill: var(--micrio-color-hover);
 		stroke: var(--micrio-color-hover);
 	}
-	.micrio-button:focus {
+	micrio-button > :is(button, a):focus {
 		outline: 1px solid var(--micrio-color-hover);
 	}
 }

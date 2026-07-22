@@ -176,10 +176,12 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			});
 
 			if (showTourStepCounter) {
-				createElement('button', {
-					className: 'micrio-button tour-step',
-					props: { disabled: true },
-					textContent: `${currentTourStep + 1} / ${$tour.steps.length}`,
+				createElement('micrio-button', {
+					setProps: {
+						disabled: true,
+						className: 'tour-step',
+					},
+					children: [`${currentTourStep + 1} / ${$tour.steps.length}`],
 					parent: group
 				});
 			}

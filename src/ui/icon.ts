@@ -41,7 +41,7 @@ class MicrioIconElement extends MicrioElement {
 		const icon = icons[this.#name];
 		if (!icon) { this.replaceChildren(); return; }
 
-		const svg = svgIcon(icon, { className: 'micrio-icon' });
+		const svg = svgIcon(icon);
 		if (SMALL_NAMES.has(this.#name)) svg.classList.add('small');
 		this.replaceChildren(svg);
 	}

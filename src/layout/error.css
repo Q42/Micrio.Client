@@ -16,7 +16,7 @@ micrio-error > div {
 	user-select: text;
 	line-height: 24px;
 }
-micrio-error svg.micrio-icon {
+micrio-error micrio-icon > svg {
 	vertical-align: middle;
 	height: 24px;
 	width: 24px;

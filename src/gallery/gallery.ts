@@ -387,7 +387,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#prevBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
-				type: 'prev', title: $i18n.galleryPrev, className: 'gallery-btn',
+				type: 'prev', title: $i18n.galleryPrev,
 				disabled: curr <= 0,
 				onclick: () => this.#goto(this.#currentPage - 1)
 			}
@@ -405,34 +405,32 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#_ul = ul;
 		ul.addEventListener('touchstart', this.#scrubStart, { passive: false });
 
-		const trackFill = createElement('span', { className: 'track-fill' });
-		createElement('span', { className: 'track', parent: ul, children: [trackFill] });
+		const trackFill = createElement('span');
+		createElement('span', { parent: ul, children: [trackFill] });
 
 		createElement('span', {
-			className: 'ticks',
 			parent: ul,
 			children: Array.from({ length: total }, (_, i) => {
 				if (dense && i % tickStep !== 0 && i !== total - 1) return null;
 				return createElement('span', {
-					className: 'tick' + (dense && i % (tickStep * 5) === 0 ? ' major' : ''),
+					attrs: dense && i % (tickStep * 5) === 0 ? { 'data-major': '' } : {},
 					style: { left: `${total > 1 ? (i / (total - 1)) * 100 : 50}%` }
 				});
 			})
 		});
 
 		createElement('button', {
-			className: 'handle',
 			parent: ul,
 			props: { role: 'slider', tabIndex: 0 },
 			attrs: { 'aria-label': 'Gallery position', 'aria-valuemin': '1', 'aria-valuemax': String(total) }
 		});
 
-		createElement('span', { className: 'handle-label', parent: ul });
+		createElement('span', { parent: ul });
 
 		this.#nextBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
-				type: 'next', title: $i18n.galleryNext, className: 'gallery-btn',
+				type: 'next', title: $i18n.galleryNext,
 				disabled: curr >= total - 1,
 				onclick: () => this.#goto(this.#currentPage + 1)
 			}
@@ -449,10 +447,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const fillPct = total > 1 ? (curr / (total - 1)) * 100 : 0;
 		const left = this.#_ul && !this.#dragging ? this.#getX(curr) : this.#_left;
 
-		const trackFill = this.querySelector('.track-fill') as HTMLElement;
+		const trackFill = this.querySelector('ul > :first-child > span') as HTMLElement;
 		if (trackFill) trackFill.style.width = `${fillPct}%`;
 
-		const allTicks = this.querySelectorAll('.tick');
+		const allTicks = this.querySelectorAll('ul > :nth-child(2) > span');
 		const visibleTicks: number[] = [];
 		for (let i = 0; i < total; i++) {
 			if (!dense || i % tickStep === 0 || i === total - 1 || i === curr) visibleTicks.push(i);
@@ -460,18 +458,18 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		allTicks.forEach((tick, idx) => {
 			const i = visibleTicks[idx];
 			if (i === undefined) return;
-			tick.classList.toggle('active', i === curr);
-			tick.classList.toggle('hover', i === this.#hoverIdx);
+			tick.toggleAttribute('data-active', i === curr);
+			tick.toggleAttribute('data-hover', i === this.#hoverIdx);
 		});
 
-		const handle = this.querySelector('.handle') as HTMLElement;
+		const handle = this.querySelector('ul > button') as HTMLElement;
 		if (handle) {
 			handle.style.left = `${left}px`;
 			handle.classList.toggle('dragging', this.#dragging);
 			handle.setAttribute('aria-valuenow', String(curr + 1));
 		}
 
-		const hl = this.querySelector('.handle-label') as HTMLElement;
+		const hl = this.querySelector('ul > button + span') as HTMLElement;
 		if (hl) {
 			hl.style.left = `${left}px`;
 			hl.classList.toggle('dragging', this.#dragging);

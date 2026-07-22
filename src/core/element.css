@@ -78,8 +78,6 @@ micr-io {
 	background-position:center center;
 	background-size:contain;
 	container-type:size;
-}
-:is(micr-io,micr-io button) {
 	font-family:var(--micrio-font-family,inherit);
 	font-size:var(--micrio-font-size,inherit);
 	background-color:var(--micrio-background-color,transparent);

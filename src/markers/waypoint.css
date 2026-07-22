@@ -10,7 +10,7 @@ micrio-waypoint {
 	--micrio-bb: var(--micrio-button-background);
 	--micrio-bbh: var(--micrio-button-background-hover);
 }
-micrio-waypoint .micrio-button {
+micrio-waypoint>micrio-button>:is(button, a) {
 	--micrio-button-background: var(--micrio-waypoint-background,var(--micrio-bb));
 	--micrio-button-background-hover: var(--micrio-waypoint-background-hover,var(--micrio-bbh));
 	--micrio-button-size: var(--micrio-waypoint-size);
@@ -22,15 +22,15 @@ micrio-waypoint .micrio-button {
 	border: var(--micrio-waypoint-border-size,var(--micrio-marker-border-size)) solid var(--micrio-waypoint-border-color,var(--micrio-marker-border-color));
 	margin: 0;
 }
-micrio-waypoint .micrio-button>svg {
+micrio-waypoint>micrio-button>:is(button, a)>svg {
 	pointer-events: none;
 	margin: 0 auto;
 }
-micrio-waypoint:hover .micrio-button {
+micrio-waypoint:hover>micrio-button>:is(button, a) {
 	transition: background-color .25s ease,opacity .25s ease,transform .25s ease;
 	transform: translate3d(-50%,-50%,0) scale3d(.6,.6,1);
 }
-micrio-waypoint.clicked .micrio-button {
+micrio-waypoint.clicked>micrio-button>:is(button, a) {
 	animation: micrio-waypoint-pulse .75s ease infinite alternate;
 }
 @keyframes micrio-waypoint-pulse {

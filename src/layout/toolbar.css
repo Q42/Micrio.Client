@@ -10,7 +10,7 @@ micrio-toolbar menu.micrio-toolbar {
 	z-index: 1;
 }
 @media (max-width: 500px) {
-	micrio-toolbar .micrio-button.toggle {
+	micrio-toolbar micrio-button > :is(button, a).toggle {
 		position: absolute;
 		top: var(--micrio-border-margin);
 		left: 0;
@@ -19,7 +19,7 @@ micrio-toolbar menu.micrio-toolbar {
 		box-shadow: none;
 		z-index: 2;
 	}
-	micrio-toolbar .micrio-button.toggle.indent {
+	micrio-toolbar micrio-button > :is(button, a).toggle.indent {
 		left: 35px;
 	}
 	micrio-toolbar menu.micrio-toolbar {

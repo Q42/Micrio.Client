@@ -45,7 +45,7 @@ micrio-marker-popup>aside progress {
 		top: 0;
 		padding-top: 0;
 	}
-	micrio-marker-popup>aside>.micrio-button {
+	micrio-marker-popup>aside>micrio-button>:is(button, a) {
 		padding: 0;
 		margin: 0 0 8px 0;
 		display: block;
@@ -70,7 +70,7 @@ micrio-marker-popup>aside progress {
 		margin-bottom: 0 !important;
 		display: flex;
 	}
-	micrio-marker-popup>aside .micrio-button {
+	micrio-marker-popup>aside micrio-button>:is(button, a) {
 		display: block !important;
 		height: var(--micrio-button-size);
 		padding: 0 !important;

@@ -1,4 +1,4 @@
-micrio-controls aside:not(.grid-close) {
+micrio-controls aside {
 	position: absolute;
 	right: var(--micrio-border-margin);
 	bottom: var(--micrio-border-margin);
@@ -8,7 +8,7 @@ micrio-controls aside:not(.grid-close) {
 	z-index: 2;
 	transition: transform .25s ease, opacity .25s ease;
 }
-micr-io.hide-ui micrio-controls aside:not(.grid-close):not(:hover) {
+micr-io.hide-ui micrio-controls aside:not(:hover) {
 	transform: translateX(calc(100% + var(--micrio-border-margin)));
 	opacity: 0;
 	pointer-events: none;
@@ -16,12 +16,6 @@ micr-io.hide-ui micrio-controls aside:not(.grid-close):not(:hover) {
 micr-io:is([data-switching],[data-tour-active]) > micrio-controls {
 	opacity: 0;
 	pointer-events: none;
-}
-micrio-controls > :is(micrio-button, menu) {
-	padding: 0;
-	margin: 8px 0;
-	display: block;
-	width: var(--micrio-button-size);
 }
 micrio-controls menu.ctrl-lang {
 	position: relative;
@@ -49,13 +43,13 @@ micrio-controls .lang-items micrio-button {
 	--micrio-button-shadow: none;
 	--micrio-background-filter: none;
 }
-micrio-controls .lang-items .micrio-button {
+micrio-controls .lang-items micrio-button > * {
 	padding: 0;
 }
-micrio-controls .lang-items .micrio-button > span {
+micrio-controls .lang-items micrio-button > * > span {
 	width: var(--micrio-button-size);
 }
-micrio-controls .lang-items .micrio-button.active {
+micrio-controls .lang-items micrio-button > *.active {
 	background: var(--micrio-color-hover);
 	color: var(--micrio-button-background, var(--micrio-background));
 }

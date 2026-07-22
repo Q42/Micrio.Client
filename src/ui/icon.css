@@ -1,9 +1,9 @@
-svg.micrio-icon {
+micrio-icon > svg {
 	display: inline-block;
 	height: 1em;
 	overflow: visible;
 	vertical-align: -.125em;
 }
-svg.micrio-icon.small {
+micrio-icon > svg.small {
 	height: .75em;
 }

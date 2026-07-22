@@ -139,7 +139,6 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		// Create canvas
 		this.#_canvas = createElement('canvas', {
 			props: { width, height },
-			className: noControls ? '' : 'controls',
 			events: { mousedown: dStart as EventListener },
 			parent: this
 		});

@@ -23,12 +23,17 @@ class MicrioButton extends MicrioElement<ButtonProps> {
 	static tag = 'micrio-button';
 
 	#rootEl!: HTMLElement;
+	#prevType?: string;
 
 	protected _render() {
 		const p = this._props;
 		const isAnchor = !!p.href;
 		const tag = isAnchor ? 'a' : 'button';
-		const classes = `micrio-button${p.type ? ' ' + p.type : ''}${p.className ? ' ' + p.className : ''}${p.active ? ' active' : ''}${p.noClick ? ' no-click' : ''}`;
+		const classes = `${p.className ? p.className + ' ' : ''}${p.active ? 'active' : ''}${p.noClick ? ' no-click' : ''}`.trim();
+
+		if (this.#prevType) this.classList.remove(this.#prevType);
+		if (p.type) this.classList.add(p.type);
+		this.#prevType = p.type;
 
 		if (this.#rootEl) this.#rootEl.remove();
 

@@ -212,7 +212,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			// Update active state on all language buttons
 			const langBtns = items.querySelectorAll(':scope > micrio-button');
 			for (let i = 0; i < langBtns.length; i++) {
-				const inner = langBtns[i].querySelector('.micrio-button');
+				const inner = langBtns[i].querySelector('button, a');
 				if (inner) inner.classList.toggle('active', cultures[i].toLowerCase() === $_lang.toLowerCase());
 			}
 		} else if (this.#langMenu?.isConnected) {
