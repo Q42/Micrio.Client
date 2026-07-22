@@ -16,10 +16,48 @@ export interface TourProps {
 
 class MicrioTour extends MicrioElement<TourProps> {
 	static tag = 'micrio-tour';
-	static styles = `micrio-tour{display:contents}
-micrio-tour .controls{position:absolute;bottom:var(--micrio-border-margin);left:50%;max-width:calc(100% - var(--micrio-border-margin) * 2);transform:translateX(-50%);box-sizing:border-box;display:flex;border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);background-color:var(--micrio-button-background,var(--micrio-background,none));padding:0;transition:transform .2s ease;z-index:5}
-micrio-tour .controls>micrio-button{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none;margin:0;border:none;border-radius:0}
-micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height:var(--micrio-button-size);padding:0 12px;font-size:90%;cursor:default;font-family:inherit;background:transparent;border:none;color:var(--micrio-color);display:flex;align-items:center}`;
+	static styles = `
+micrio-tour {
+	display: contents;
+}
+micrio-tour .controls {
+	position: absolute;
+	bottom: var(--micrio-border-margin);
+	left: 50%;
+	max-width: calc(100% - var(--micrio-border-margin) * 2);
+	transform: translateX(-50%);
+	box-sizing: border-box;
+	display: flex;
+	border-radius: var(--micrio-border-radius);
+	box-shadow: var(--micrio-button-shadow);
+	backdrop-filter: var(--micrio-background-filter);
+	background-color: var(--micrio-button-background,var(--micrio-background,none));
+	padding: 0;
+	transition: transform .2s ease;
+	z-index: 5;
+}
+micrio-tour .controls>micrio-button {
+	--micrio-button-background: none;
+	--micrio-background-filter: none;
+	--micrio-button-shadow: none;
+	margin: 0;
+	border: none;
+	border-radius: 0;
+}
+micrio-tour .controls .step-counter {
+	height: var(--micrio-button-size);
+	line-height: var(--micrio-button-size);
+	padding: 0 12px;
+	font-size: 90%;
+	cursor: default;
+	font-family: inherit;
+	background: transparent;
+	border: none;
+	color: var(--micrio-color);
+	display: flex;
+	align-items: center;
+}
+`;
 
 	#props: TourProps = { tour: null! };
 	#currentStep = 0;

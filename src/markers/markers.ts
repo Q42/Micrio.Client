@@ -12,12 +12,34 @@ export interface MarkersProps {
 
 class MicrioMarkers extends MicrioElement<MarkersProps> {
 	static tag = 'micrio-markers';
-	static styles = `micrio-markers{pointer-events:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;will-change:width,height,top,left,opacity;perspective:inherit}
-micrio-markers:empty{display:none}
-micrio-markers>*{pointer-events:all}
-micrio-markers.inactive>*{pointer-events:none}
-micrio-main.is360 micrio-markers{transition:opacity .25s}
-micrio-main.is360 micrio-markers.inactive{opacity:0}`;
+	static styles = `
+micrio-markers {
+	pointer-events: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	will-change: width,height,top,left,opacity;
+	perspective: inherit;
+}
+micrio-markers:empty {
+	display: none;
+}
+micrio-markers>* {
+	pointer-events: all;
+}
+micrio-markers.inactive>* {
+	pointer-events: none;
+}
+micrio-main.is360 micrio-markers {
+	transition: opacity .25s;
+}
+micrio-main.is360 micrio-markers.inactive {
+	opacity: 0;
+}
+`;
 
 	#props: MarkersProps = { image: null! };
 

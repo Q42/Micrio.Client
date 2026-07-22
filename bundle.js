@@ -52,7 +52,7 @@ if (matches) {
 }
 
 // ── Minify and deflate CSS ──
-cssContent = cssContent.replace(/\n/g, '').replace(/[ \t]+/g, ' ').replace(/\s*([{};,])\s*/g, '$1').trim();
+cssContent = cssContent.replace(/\n/g, '').replace(/[ \t]+/g, ' ').replace(/\s*([{};,:])\s*/g, '$1').trim();
 
 // ── Deflate CSS: replace micr-* words with %N placeholders ──
 const micrWords = [...new Set(cssContent.match(/\bmicr[\w-]+/g) || [])];

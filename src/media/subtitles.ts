@@ -18,10 +18,39 @@ export interface SubtitlesProps {
 
 class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	static tag = 'micrio-subtitles';
-	static styles = `micrio-subtitles{position:fixed;bottom:50px;left:50vw;transform:translate3d(-50%,0,0);text-align:center;color:#fff;width:100vw;pointer-events:none;z-index:6;transition:transform .2s ease}
-micrio-subtitles.raised{transform:translate3d(-50%,calc(-1 * var(--micrio-button-size)),0)}
-micrio-subtitles p{margin:.5em 0;background-color:rgba(0,0,0,.6);padding:0 14px;-webkit-box-decoration-break:clone;box-decoration-break:clone;white-space:pre-wrap;display:inline;text-shadow:2px 2px 1px #0005;font-size:2.5em;line-height:inherit}
-@media(max-width:640px){micrio-subtitles{width:95vw;font-size:.7em}}`;
+	static styles = `micrio-subtitles {
+	position: fixed;
+	bottom: 50px;
+	left: 50vw;
+	transform: translate3d(-50%, 0, 0);
+	text-align: center;
+	color: #fff;
+	width: 100vw;
+	pointer-events: none;
+	z-index: 6;
+	transition: transform .2s ease;
+}
+micrio-subtitles.raised {
+	transform: translate3d(-50%, calc(-1 * var(--micrio-button-size)), 0);
+}
+micrio-subtitles p {
+	margin: .5em 0;
+	background-color: rgba(0, 0, 0, .6);
+	padding: 0 14px;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+	white-space: pre-wrap;
+	display: inline;
+	text-shadow: 2px 2px 1px #0005;
+	font-size: 2.5em;
+	line-height: inherit;
+}
+@media (max-width: 640px) {
+	micrio-subtitles {
+		width: 95vw;
+		font-size: .7em;
+	}
+}`;
 
 	#props: SubtitlesProps = {};
 	#cues: Models.ImageData.Event[] = [];

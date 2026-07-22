@@ -18,9 +18,21 @@ export interface LogoOrgProps {
 
 class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 	static tag = 'micrio-logo-org';
-	static styles = `micrio-logo-org{display:contents}
-micrio-logo-org a{position:absolute;top:calc(var(--micrio-border-margin) * 2);right:calc(var(--micrio-border-margin) * 2);z-index:1;display:block}
-micrio-logo-org img{max-height:64px;display:block}`;
+	static styles = `micrio-logo-org {
+	display: contents;
+}
+micrio-logo-org a {
+	position: absolute;
+	top: calc(var(--micrio-border-margin) * 2);
+	right: calc(var(--micrio-border-margin) * 2);
+	z-index: 1;
+	display: block;
+}
+micrio-logo-org img {
+	max-height: 64px;
+	display: block;
+}
+`;
 
 	#props: LogoOrgProps = { organisation: null! };
 

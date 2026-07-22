@@ -12,9 +12,27 @@ export interface MicrioGalleryProps {
 
 class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	static tag = 'micrio-swipe-gallery';
-	static styles = `micrio-swipe-gallery{display:contents}
-micrio-swipe-gallery>figcaption{position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin);padding:var(--micrio-popup-padding);max-width:410px;box-sizing:border-box;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
-@media(max-width:501px){micrio-swipe-gallery>figcaption{max-width:calc(100% - 3*var(--micrio-border-margin) - var(--micrio-button-size))}}
+	static styles = `micrio-swipe-gallery {
+	display: contents;
+}
+micrio-swipe-gallery>figcaption {
+	position: absolute;
+	top: var(--micrio-border-margin);
+	left: var(--micrio-border-margin);
+	padding: var(--micrio-popup-padding);
+	max-width: 410px;
+	box-sizing: border-box;
+	color: var(--micrio-color);
+	background: var(--micrio-background);
+	backdrop-filter: var(--micrio-background-filter);
+	box-shadow: var(--micrio-popup-shadow);
+	border-radius: var(--micrio-border-radius);
+}
+@media (max-width: 501px) {
+	micrio-swipe-gallery>figcaption {
+		max-width: calc(100% - 3*var(--micrio-border-margin) - var(--micrio-button-size));
+	}
+}
 `;
 
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };

@@ -9,17 +9,68 @@ import '$ui/button';
 
 class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';
-	static styles = `micrio-toolbar{display:contents}
-micrio-toolbar menu.micrio-toolbar{position:absolute;top:calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));left:var(--micrio-border-margin);margin:0;padding:0;color:#fff;text-shadow:1px 1px 2px #000;transition:transform .25s ease;z-index:1}
-@media(max-width:500px){micrio-toolbar .micrio-button.toggle{position:absolute;top:var(--micrio-border-margin);left:0;height:34px;width:34px;box-shadow:none;z-index:2}
-micrio-toolbar .micrio-button.toggle.indent{left:35px}
-micrio-toolbar menu.micrio-toolbar{transform:translate3d(0,0,0);width:100%;height:100%;background:rgba(0,0,0,0.75);top:0;left:0;padding:32px 0;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;backdrop-filter:var(--micrio-background-filter);z-index:1}
-micrio-toolbar menu.micrio-toolbar:not(.shown){transform:translate3d(calc(-100% - var(--micrio-border-margin) * 2),0,0)}
+	static styles = `micrio-toolbar {
+	display: contents;
 }
-@media(min-width:501px){micrio-toolbar menu.indent{margin-left:calc(var(--micrio-border-margin) * 2 + 25px)}
-micrio-toolbar .micrio-toolbar>micrio-menu{color:#fff;margin-right:var(--micrio-border-margin);border-radius:var(--micrio-border-radius)}
-micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>micrio-menu:focus-within{backdrop-filter:var(--micrio-background-filter);background:var(--micrio-background);box-shadow:var(--micrio-button-shadow)}
-}`;
+micrio-toolbar menu.micrio-toolbar {
+	position: absolute;
+	top: calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));
+	left: var(--micrio-border-margin);
+	margin: 0;
+	padding: 0;
+	color: #fff;
+	text-shadow: 1px 1px 2px #000;
+	transition: transform .25s ease;
+	z-index: 1;
+}
+@media (max-width: 500px) {
+	micrio-toolbar .micrio-button.toggle {
+		position: absolute;
+		top: var(--micrio-border-margin);
+		left: 0;
+		height: 34px;
+		width: 34px;
+		box-shadow: none;
+		z-index: 2;
+	}
+	micrio-toolbar .micrio-button.toggle.indent {
+		left: 35px;
+	}
+	micrio-toolbar menu.micrio-toolbar {
+		transform: translate3d(0, 0, 0);
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.75);
+		top: 0;
+		left: 0;
+		padding: 32px 0;
+		overflow-y: auto;
+		overflow-x: hidden;
+		box-sizing: border-box;
+		backdrop-filter: var(--micrio-background-filter);
+		z-index: 1;
+	}
+	micrio-toolbar menu.micrio-toolbar:not(.shown) {
+		transform: translate3d(calc(-100% - var(--micrio-border-margin) * 2), 0, 0);
+	}
+}
+@media (min-width: 501px) {
+	micrio-toolbar menu.indent {
+		margin-left: calc(var(--micrio-border-margin) * 2 + 25px);
+	}
+	micrio-toolbar .micrio-toolbar > micrio-menu {
+		color: #fff;
+		margin-right: var(--micrio-border-margin);
+		border-radius: var(--micrio-border-radius);
+	}
+	micrio-toolbar .micrio-toolbar > micrio-menu:hover,
+	micrio-toolbar .micrio-toolbar > micrio-menu:focus-within {
+		backdrop-filter: var(--micrio-background-filter);
+		background: var(--micrio-background);
+		box-shadow: var(--micrio-button-shadow);
+	}
+}
+`;
 
 	#data: Models.ImageData.ImageData | undefined;
 	#shown = false;

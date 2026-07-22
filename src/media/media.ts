@@ -37,17 +37,80 @@ export interface MediaProps {
 
 class MicrioMedia extends MicrioElement<MediaProps> {
 	static tag = 'micrio-media';
-	static styles = `micrio-media{display:block}
-micrio-media figure{position:relative;margin:0;padding:0}
-micrio-media figure video,micrio-media figure audio{width:100%;display:block}
-micrio-media figure figcaption{padding:5px 10px;font-size:.85em;opacity:.7;text-align:center;background:var(--micrio-background)}
-micrio-media figure iframe{width:100%;border:none;display:block}
-micrio-media figure:has(video){width:auto}
-micrio-media figure.videotour{position:fixed;bottom:var(--micrio-border-margin);left:50%;transform:translateX(-50%);width:500px;max-width:90vw;display:flex;flex-direction:column;background:var(--micrio-button-background,var(--micrio-background,none));border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);margin:0;padding:0;z-index:5}
-micrio-media figure.hidden{display:none!important}
-micrio-media figure .overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1;background:rgba(0,0,0,.3);transition:opacity .3s ease}
-micrio-media figure .overlay.hidden{opacity:0;pointer-events:none}
-micrio-media figure .overlay micrio-button{--micrio-button-size:80px;--micrio-icon-size:40px;--micrio-border-radius:100%;--micrio-button-background:rgba(0,0,0,.6);--micrio-button-shadow:none;--micrio-background-filter:none;pointer-events:none}`;
+	static styles = `micrio-media {
+	display: block;
+}
+micrio-media figure {
+	position: relative;
+	margin: 0;
+	padding: 0;
+}
+micrio-media figure video,micrio-media figure audio {
+	width: 100%;
+	display: block;
+}
+micrio-media figure figcaption {
+	padding: 5px 10px;
+	font-size: .85em;
+	opacity: .7;
+	text-align: center;
+	background: var(--micrio-background);
+}
+micrio-media figure iframe {
+	width: 100%;
+	border: none;
+	display: block;
+}
+micrio-media figure:has(video) {
+	width: auto;
+}
+micrio-media figure.videotour {
+	position: fixed;
+	bottom: var(--micrio-border-margin);
+	left: 50%;
+	transform: translateX(-50%);
+	width: 500px;
+	max-width: 90vw;
+	display: flex;
+	flex-direction: column;
+	background: var(--micrio-button-background,var(--micrio-background,none));
+	border-radius: var(--micrio-border-radius);
+	box-shadow: var(--micrio-button-shadow);
+	backdrop-filter: var(--micrio-background-filter);
+	margin: 0;
+	padding: 0;
+	z-index: 5;
+}
+micrio-media figure.hidden {
+	display: none!important;
+}
+micrio-media figure .overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	z-index: 1;
+	background: rgba(0,0,0,.3);
+	transition: opacity .3s ease;
+}
+micrio-media figure .overlay.hidden {
+	opacity: 0;
+	pointer-events: none;
+}
+micrio-media figure .overlay micrio-button {
+	--micrio-button-size: 80px;
+	--micrio-icon-size: 40px;
+	--micrio-border-radius: 100%;
+	--micrio-button-background: rgba(0,0,0,.6);
+	--micrio-button-shadow: none;
+	--micrio-background-filter: none;
+	pointer-events: none;
+}`;
 
 	#videoEl: HTMLVideoElement | HTMLAudioElement | undefined;
 	#tourInstance: VideoTourInstance | undefined;

@@ -11,19 +11,76 @@ export interface DetailsProps {
 
 class MicrioDetails extends MicrioElement<DetailsProps> {
 	static tag = 'micrio-details';
-	static styles = `micrio-details{position:absolute;bottom:var(--micrio-border-margin);left:var(--micrio-border-margin);padding:var(--micrio-popup-padding);font-size:.9em;max-width:410px;user-select:text;white-space:normal;box-sizing:border-box;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);transition:all .5s ease}
-micrio-details details{display:block}
-micrio-details summary{cursor:pointer;list-style:none}
-micrio-details summary::-webkit-details-marker{display:none}
-micrio-details small{display:block;font-style:italic;font-weight:400}
-micrio-details>*{margin:0;overflow:hidden;text-overflow:ellipsis}
-micrio-details a{color:var(--micrio-color-hover,inherit)}
-micrio-details .close{position:absolute;top:0;left:calc(100% + 8px)}
-@media(max-width:600px){micrio-details{max-width:calc(100% - 10px)}
-micrio-details details:not([open]) cite{display:none}
-micrio-details details:not([open]) summary::marker,micrio-details details:not([open]) summary::-webkit-details-marker{display:inline-block;content:'?';font-size:20px;font-weight:700;line-height:20px;margin-right:5px}
-micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(100% + 8px)}
-}`;
+	static styles = `micrio-details {
+	position: absolute;
+	bottom: var(--micrio-border-margin);
+	left: var(--micrio-border-margin);
+	padding: var(--micrio-popup-padding);
+	font-size: .9em;
+	max-width: 410px;
+	user-select: text;
+	white-space: normal;
+	box-sizing: border-box;
+	color: var(--micrio-color);
+	background: var(--micrio-background);
+	backdrop-filter: var(--micrio-background-filter);
+	box-shadow: var(--micrio-popup-shadow);
+	border-radius: var(--micrio-border-radius);
+	transition: all .5s ease;
+}
+micrio-details details {
+	display: block;
+}
+micrio-details summary {
+	cursor: pointer;
+	list-style: none;
+}
+micrio-details summary::-webkit-details-marker {
+	display: none;
+}
+micrio-details small {
+	display: block;
+	font-style: italic;
+	font-weight: 400;
+}
+micrio-details > * {
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+micrio-details a {
+	color: var(--micrio-color-hover, inherit);
+}
+micrio-details .close {
+	position: absolute;
+	top: 0;
+	left: calc(100% + 8px);
+}
+@media (max-width: 600px) {
+	micrio-details {
+		max-width: calc(100% - 10px);
+	}
+	micrio-details details:not([open]) cite {
+		display: none;
+	}
+	micrio-details details:not([open]) summary::marker,
+	micrio-details details:not([open]) summary::-webkit-details-marker {
+		display: inline-block;
+		content: '?';
+		font-size: 20px;
+		font-weight: 700;
+		line-height: 20px;
+		margin-right: 5px;
+	}
+	micrio-details .close {
+		position: absolute;
+		top: auto;
+		left: auto;
+		right: 0;
+		bottom: calc(100% + 8px);
+	}
+}
+`;
 
 	#props: Partial<DetailsProps> = {};
 	#detailsEl!: HTMLDetailsElement;

@@ -56,8 +56,13 @@ export interface MainProps {
 
 class MicrioMain extends MicrioElement<MainProps> {
 	static tag = 'micrio-main';
-	static styles = `micrio-main{display:contents}
-micrio-main.is360{perspective:50cqh}`;
+	static styles = `micrio-main {
+	display: contents;
+}
+micrio-main.is360 {
+	perspective: 50cqh;
+}
+`;
 
 	#props: MainProps = {};
 	#info: Models.ImageInfo.ImageInfo | undefined;

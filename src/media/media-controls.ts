@@ -26,21 +26,85 @@ export interface MediaControlsProps {
 
 class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	static tag = 'micrio-media-controls';
-	static styles = `micrio-media-controls{display:block}
-micrio-media-controls aside.controls-wrapper{display:flex;align-items:center;width:100%;--micrio-background:var(--micrio-background,#000)}
-micrio-media-controls micrio-button{border-radius:0;margin:0;border:none}
-micrio-media-controls .ctrl-subtitles button:not(.active){color:var(--micrio-color)!important}
-micrio-media-controls .ctrl-subtitles button:not(.active) svg{fill:var(--micrio-color)!important}
-micrio-media-controls micrio-button:last-child{margin-right:16px}
-micrio-media-controls>*{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
-:fullscreen micrio-media-controls{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:430px;max-width:90vw;max-width:90cqw;border-radius:var(--micrio-border-radius)}
-micrio-media-controls .container{flex:1;display:flex;align-items:center;gap:8px;padding:0 8px}
-micrio-media-controls .bars{flex:1;height:4px;background:var(--micrio-progress-bar-background,var(--micrio-color-hover));cursor:pointer;position:relative;border-radius:2px}
-micrio-media-controls .bar{position:absolute;top:0;left:0;height:100%;background:var(--micrio-color)}
-micrio-media-controls .bars>.bar:first-child{border-radius:2px 0 0 2px}
-micrio-media-controls .bars>.bar:last-child{border-radius:0 2px 2px 0}
-micrio-media-controls .bars>.bar:only-child{border-radius:2px}
-micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--micrio-color);text-align:center;min-width:50px;padding:0;display:block}`;
+	static styles = `micrio-media-controls {
+	display: block;
+}
+micrio-media-controls aside.controls-wrapper {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	--micrio-background: var(--micrio-background, #000);
+}
+micrio-media-controls micrio-button {
+	border-radius: 0;
+	margin: 0;
+	border: none;
+}
+micrio-media-controls .ctrl-subtitles button:not(.active) {
+	color: var(--micrio-color)!important;
+}
+micrio-media-controls .ctrl-subtitles button:not(.active) svg {
+	fill: var(--micrio-color)!important;
+}
+micrio-media-controls micrio-button:last-child {
+	margin-right: 16px;
+}
+micrio-media-controls>* {
+	--micrio-button-background: none;
+	--micrio-background-filter: none;
+	--micrio-button-shadow: none;
+}
+:fullscreen micrio-media-controls {
+	position: absolute;
+	bottom: 5px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 430px;
+	max-width: 90vw;
+	max-width: 90cqw;
+	border-radius: var(--micrio-border-radius);
+}
+micrio-media-controls .container {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 8px;
+}
+micrio-media-controls .bars {
+	flex: 1;
+	height: 4px;
+	background: var(--micrio-progress-bar-background, var(--micrio-color-hover));
+	cursor: pointer;
+	position: relative;
+	border-radius: 2px;
+}
+micrio-media-controls .bar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	background: var(--micrio-color);
+}
+micrio-media-controls .bars>.bar:first-child {
+	border-radius: 2px 0 0 2px;
+}
+micrio-media-controls .bars>.bar:last-child {
+	border-radius: 0 2px 2px 0;
+}
+micrio-media-controls .bars>.bar:only-child {
+	border-radius: 2px;
+}
+micrio-media-controls .time {
+	font-size: 90%;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+	color: var(--micrio-color);
+	text-align: center;
+	min-width: 50px;
+	padding: 0;
+	display: block;
+}`;
 
 	#props: MediaControlsProps = { paused: true, ended: false };
 	#wrapperEl!: HTMLElement;
