@@ -354,20 +354,21 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			}) as MicrioElement;
 
 			if (this.#videoEl && (this.#videoEl instanceof HTMLVideoElement || this.#videoEl instanceof HTMLAudioElement)) {
-				const listen = this.#videoEl.addEventListener;
-				listen('timeupdate', () => {
+				this.#videoEl.addEventListener('timeupdate', () => {
 					update();
 					if (!p.secondary) this.getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 				});
-				listen('loadedmetadata', update);
-				listen('play', update);
-				listen('pause', update);
-				listen('ended', () => {
+				this.#videoEl.addEventListener('loadedmetadata', update);
+				this.#videoEl.addEventListener('play', update);
+				this.#videoEl.addEventListener('pause', update);
+				this.#videoEl.addEventListener('ended', () => {
 					update();
 					p.onended?.();
 				});
-				listen('seeking', () => { this.#seeking = true; update(); });
-				listen('seeked', () => { this.#seeking = false; update(); });
+				this.#videoEl.addEventListener('seeking', () => { this.#seeking = true; update(); });
+				this.#videoEl.addEventListener('seeked', () => { this.#seeking = false; update(); });
+
+				update();
 			}
 		}
 

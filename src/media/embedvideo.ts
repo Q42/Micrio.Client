@@ -242,22 +242,20 @@ export class GLEmbedVideo {
 		}
 
 		// Add core event listeners
-		const listen = this._vid.addEventListener;
-		listen('play', this.#events.play);
-		listen('pause', this.#events.pause);
-		listen('playing', this.#events.playing, {once:true}); // Only need first 'playing' event
-		listen(this.#events.canplayEvt, this.#events.canplay, {once: true}); // Listen for 'canplay' or 'loadedmetadata' once
+		this._vid.addEventListener('play', this.#events.play);
+		this._vid.addEventListener('pause', this.#events.pause);
+		this._vid.addEventListener('playing', this.#events.playing, {once:true}); // Only need first 'playing' event
+		this._vid.addEventListener(this.#events.canplayEvt, this.#events.canplay, {once: true}); // Listen for 'canplay' or 'loadedmetadata' once
 	}
 
 	/** Removes event listeners from the video element. @internal */
 	#unhook() : void {
 		if(!this._vid) return;
 		// Remove core event listeners
-		const unlisten = this._vid.removeEventListener;
-		unlisten('play', this.#events.play);
-		unlisten('pause', this.#events.pause);
-		unlisten('playing', this.#events.playing);
-		unlisten(this.#events.canplayEvt, this.#events.canplay);
+		this._vid.removeEventListener('play', this.#events.play);
+		this._vid.removeEventListener('pause', this.#events.pause);
+		this._vid.removeEventListener('playing', this.#events.playing);
+		this._vid.removeEventListener(this.#events.canplayEvt, this.#events.canplay);
 		// Remove potential loop listeners
 		this._vid.onended = null;
 		this._vid.onplay = null;

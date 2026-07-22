@@ -451,9 +451,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		this.removeEventListener('change', this.#onChange);
 		if (this.#container) {
-			const unlisten = this.#container.removeEventListener;
-			unlisten('click', this.#click);
-			unlisten('keydown', this.#click);
+			this.#container.removeEventListener('click', this.#click);
+			this.#container.removeEventListener('keydown', this.#click);
 		}
 	}
 }

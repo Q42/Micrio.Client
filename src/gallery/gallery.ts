@@ -349,23 +349,20 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// Auto-hide after a moment
 		this.#activity();
 
-		const listen = micrio.canvas.element.addEventListener;
-		const unlisten = micrio.canvas.element.removeEventListener;
-
 		// Strip-swipe pointer events on the canvas element
 		if (this.#swipeGallery && images.length > 1) {
-			listen('pointerdown', this.#swipeGallery.handlePointerDown);
-			this.addCleanup(() => unlisten('pointerdown', this.#swipeGallery!.handlePointerDown));
+			micrio.canvas.element.addEventListener('pointerdown', this.#swipeGallery.handlePointerDown);
+			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
 		}
 
 		// Auto-hide listeners
 		const unhookActivity = () => {
-			unlisten('pointermove', this.#activity);
-			unlisten('pointerdown', this.#activity);
+			micrio.canvas.element.removeEventListener('pointermove', this.#activity);
+			micrio.canvas.element.removeEventListener('pointerdown', this.#activity);
 		};
 		if (this.#autoHide) {
-			listen('pointermove', this.#activity);
-			listen('pointerdown', this.#activity);
+			micrio.canvas.element.addEventListener('pointermove', this.#activity);
+			micrio.canvas.element.addEventListener('pointerdown', this.#activity);
 			this.#activity();
 		}
 		this.addCleanup(unhookActivity);
