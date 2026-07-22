@@ -1,0 +1,120 @@
+dialog::backdrop {
+	color: #fff;
+	animation: micrio-popover-bg .2s forwards;
+	backdrop-filter: blur(8px);
+}
+@keyframes micrio-popover-bg {
+	from {
+		background: #0000;
+	}
+	to {
+		background: var(--micrio-popover-background);
+	}
+}
+dialog {
+	position: relative;
+	animation: micrio-popover-fade .5s forwards;
+	background: transparent;
+	border: none;
+	overflow: visible;
+	padding: 0;
+	pointer-events: all;
+	max-width: 90vw;
+	max-height: 90vh;
+}
+@keyframes micrio-popover-fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+dialog > aside {
+	--micrio-background-filter: none;
+	position: absolute;
+	z-index: 1;
+}
+dialog:not(.article) {
+	display: flex;
+}
+@media (min-width: 640px) {
+	dialog:not(.article) {
+		width: calc(85vw - 56px);
+		height: calc(9 / 16 * 85vw);
+		width: calc(85cqw - 56px);
+		height: calc(9 / 16 * 85cqw);
+	}
+	dialog > aside {
+		display: block;
+		left: 100%;
+		margin-left: var(--micrio-border-margin);
+		top: 0;
+	}
+}
+@media (max-width: 639px) {
+	dialog:not(.article) {
+		width: 100%;
+		height: 100%;
+		flex-direction: column;
+	}
+	dialog > aside {
+		position: fixed;
+		top: var(--micrio-border-margin);
+		right: var(--micrio-border-margin);
+	}
+}
+@media (min-aspect-ratio: 16 / 9) {
+	dialog:not(.article) {
+		height: 75vh;
+		width: calc(16 / 9 * 75vh);
+		height: 75cqh;
+		width: calc(16 / 9 * 75cqh);
+	}
+}
+dialog:not(.article) > micrio-media {
+	flex: 1;
+}
+dialog:not(.article) > micrio-media > figure {
+	height: 100%;
+}
+dialog:not(.article) > micrio-media > figure iframe,
+dialog:not(.article) > micrio-media > figure video {
+	height: calc(100% - var(--micrio-button-size));
+}
+dialog > micrio-marker-content {
+	width: 25vw;
+	width: 25cqw;
+	min-width: unset;
+	max-width: 320px;
+}
+dialog.article {
+	width: 540px;
+}
+dialog.article article {
+	text-shadow: none;
+	color: var(--micrio-color);
+	background: var(--micrio-background);
+	padding: 20px;
+	box-sizing: border-box;
+	max-height: calc(90cqh - 48px);
+	max-height: calc(90vh - 48px);
+	overflow-x: hidden;
+	overflow-y: auto;
+	border-radius: var(--micrio-border-radius);
+}
+dialog.article h2 {
+	text-align: center;
+}
+dialog.gallery > aside {
+	left: auto;
+	right: var(--micrio-border-margin);
+	top: var(--micrio-border-margin);
+	margin-left: 0;
+}
+dialog.gallery {
+	width: 100%;
+	height: 100%;
+	max-width: unset;
+	max-height: unset;
+}

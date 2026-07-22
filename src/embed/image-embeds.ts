@@ -7,14 +7,11 @@ import './embed';
 export interface ImageEmbedsProps {
 	image: MicrioImage;
 }
+import styles from './image-embeds.css?inline';
 
 class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 	static tag = 'micrio-image-embeds';
-	static styles = `
-micrio-image-embeds>* {
-	pointer-events: all;
-}
-`;
+	static styles = styles;
 
 	#props: ImageEmbedsProps = { image: null! };
 

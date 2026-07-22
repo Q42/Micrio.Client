@@ -53,13 +53,11 @@ export interface MainProps {
 	loadingProgress?: number;
 	error?: string | undefined;
 }
+import styles from './main.css?inline';
 
 class MicrioMain extends MicrioElement<MainProps> {
 	static tag = 'micrio-main';
-	static styles = `micrio-main.is360 {
-	perspective: 50cqh;
-}
-`;
+	static styles = styles;
 
 	#props: MainProps = {};
 	#info: Models.ImageInfo.ImageInfo | undefined;

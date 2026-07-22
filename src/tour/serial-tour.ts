@@ -9,80 +9,11 @@ export interface SerialTourProps {
 	tour: Models.ImageData.MarkerTour;
 	onended?: () => void;
 }
+import styles from './serial-tour.css?inline';
 
 class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	static tag = 'micrio-serial-tour';
-	static styles = `
-micrio-serial-tour>micrio-media {
-	display: contents;
-}
-micrio-serial-tour micrio-media-controls {
-	display: contents;
-}
-micrio-serial-tour micrio-media figure.videotour {
-	left: var(--micrio-border-margin);
-	transform: none;
-}
-micrio-serial-tour .bars {
-	display: flex;
-	height: var(--micrio-progress-bar-height,6px);
-	background: var(--micrio-progress-bar-background,rgba(128,128,128,.3));
-	position: relative;
-	border-radius: 3px;
-	overflow: hidden;
-}
-micrio-serial-tour .bars>.bar {
-	height: 100%;
-	display: block;
-	box-sizing: border-box;
-	position: relative;
-	cursor: pointer;
-	overflow: hidden;
-	background: transparent;
-}
-micrio-serial-tour .bars>.bar::before {
-	display: block;
-	position: absolute;
-	content: ' ';
-	background: var(--micrio-color);
-	height: 100%;
-	pointer-events: none;
-	width: var(--progress,0%);
-	will-change: width;
-}
-micrio-serial-tour .bars>.bar.active::before {
-	background: var(--micrio-active-color,var(--micrio-color));
-}
-micrio-serial-tour ol.chapters {
-	position: absolute;
-	left: var(--micrio-border-margin);
-	bottom: calc(2 * var(--micrio-border-margin) + var(--micrio-button-size));
-	color: var(--micrio-color);
-	text-shadow: var(--micrio-marker-text-shadow);
-	list-style-type: decimal-leading-zero;
-	margin: 0;
-}
-micrio-serial-tour ol.chapters>li {
-	padding: .15em;
-	white-space: pre;
-	transition: height .25s ease,opacity .25s .25s ease;
-}
-micrio-serial-tour ol.chapters>li.active {
-	font-weight: bold;
-}
-micrio-serial-tour ol.chapters button {
-	font: inherit;
-	background: none;
-	border: none;
-	display: inline;
-	color: inherit;
-	text-shadow: inherit;
-	cursor: pointer;
-}
-micrio-serial-tour ol.chapters button:hover {
-	text-decoration: underline;
-}
-`;
+	static styles = styles;
 
 	#props: SerialTourProps = { tour: null! };
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];

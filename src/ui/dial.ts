@@ -6,39 +6,11 @@ export interface DialProps {
 	degrees?: boolean;
 	onturn?: (frame: number) => void;
 }
+import styles from './dial.css?inline';
 
 class MicrioDial extends MicrioElement<DialProps> {
 	static tag = 'micrio-dial';
-	static styles = `micrio-dial {
-	position: absolute;
-	bottom: var(--micrio-border-margin);
-	width: 320px;
-	max-width: calc(100vw - calc(2 * (var(--micrio-button-size) + 4 * var(--micrio-border-margin))));
-	max-width: calc(100cqw - calc(2 * (var(--micrio-button-size) + 4 * var(--micrio-border-margin))));
-	left: 50%;
-	transform: translateX(-50%);
-	height: calc(var(--micrio-button-size)*0.6);
-	touch-action: none;
-	background-color: transparent;
-	cursor: w-resize;
-	overflow: hidden;
-}
-micrio-dial::before,micrio-dial::after {
-	content: '';
-	display: block;
-	width: 100%;
-	position: absolute;
-	background-position: var(--micrio-dial-offset, 0px);
-}
-micrio-dial::before {
-	height: 50%;
-	top: 25%;
-	background-image: repeating-linear-gradient(to right, #8888 0%, #8888 0.5%, transparent 1%, transparent 2.5%);
-}
-micrio-dial::after {
-	height: 100%;
-	background-image: repeating-linear-gradient(to right, #fff8 0%, #fff8 0.5%, transparent 1%, transparent 20%);
-}`;
+	static styles = styles;
 
 	#props: DialProps = { currentRotation: 0, frames: 1 };
 

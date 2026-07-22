@@ -1,0 +1,13 @@
+micrio-swipe-gallery>figcaption {
+	position: absolute;
+	top: var(--micrio-border-margin);
+	left: var(--micrio-border-margin);
+	padding: var(--micrio-popup-padding);
+	max-width: 410px;
+	box-sizing: border-box;
+}
+@media (max-width: 500px) {
+	micrio-swipe-gallery>figcaption {
+		max-width: calc(100% - 3*var(--micrio-border-margin) - var(--micrio-button-size));
+	}
+}

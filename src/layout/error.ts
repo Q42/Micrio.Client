@@ -4,41 +4,11 @@ import { MicrioElement } from '$core/component';
 export interface ErrorProps {
 	message?: string;
 }
+import styles from './error.css?inline';
 
 class MicrioError extends MicrioElement<ErrorProps> {
 	static tag = 'micrio-error';
-	static styles = `micrio-error {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	z-index: 10;
-}
-micrio-error > div {
-	background: var(--micrio-background);
-	color: var(--micrio-color);
-	border: 1px solid var(--micrio-color);
-	border-radius: var(--micrio-border-radius);
-	padding: 10px;
-	text-align: center;
-	white-space: pre-wrap;
-	user-select: text;
-	line-height: 24px;
-}
-micrio-error svg.micrio-icon {
-	vertical-align: middle;
-	height: 24px;
-	width: 24px;
-	fill: var(--micrio-color);
-	margin-right: 10px;
-}
-@media (max-width: 520px) {
-	micrio-error > div {
-		box-sizing: border-box;
-		width: 90%;
-	}
-}
-`;
+	static styles = styles;
 
 	protected _render() {
 		this.replaceChildren();

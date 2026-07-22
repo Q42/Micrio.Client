@@ -3,18 +3,11 @@ import { icons, svgIcon } from '$ui/icons';
 import type { IconName } from '$types/icon-name';
 
 const SMALL_NAMES = new Set<IconName>(['chevronDown', 'linkExt']);
+import styles from './icon.css?inline';
 
 class MicrioIconElement extends MicrioElement {
 	static tag = 'micrio-icon';
-	static styles = `svg.micrio-icon {
-	display: inline-block;
-	height: 1em;
-	overflow: visible;
-	vertical-align: -.125em;
-}
-svg.micrio-icon.small {
-	height: .75em;
-}`;
+	static styles = styles;
 
 	static observedAttributes = ['name', 'style'];
 

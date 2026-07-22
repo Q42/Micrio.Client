@@ -12,53 +12,11 @@ export interface WaypointProps {
 	settings?: Models.Spaces.WayPointSettings;
 	image: MicrioImage;
 }
+import styles from './waypoint.css?inline';
 
 class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	static tag = 'micrio-waypoint';
-	static styles = `
-micrio-waypoint {
-	display: block;
-	position: absolute;
-	transform-style: preserve-3d;
-	width: 0;
-	height: 0;
-	top: 50%;
-	left: 50%;
-	--micrio-bb: var(--micrio-button-background);
-	--micrio-bbh: var(--micrio-button-background-hover);
-}
-micrio-waypoint .micrio-button {
-	--micrio-button-background: var(--micrio-waypoint-background,var(--micrio-bb));
-	--micrio-button-background-hover: var(--micrio-waypoint-background-hover,var(--micrio-bbh));
-	--micrio-button-size: var(--micrio-waypoint-size);
-	--micrio-border-radius: var(--micrio-waypoint-border-radius,100%);
-	--micrio-icon-size: var(--micrio-waypoint-icon-size,calc(var(--micrio-button-size) - 50px));
-	transform: translate3d(-50%,-50%,0) scale3d(.5,.5,1);
-	pointer-events: all;
-	transition: background-color .25s ease,opacity .25s ease,border-color .25s ease,transform .25s ease;
-	border: var(--micrio-waypoint-border-size,var(--micrio-marker-border-size)) solid var(--micrio-waypoint-border-color,var(--micrio-marker-border-color));
-	margin: 0;
-}
-micrio-waypoint .micrio-button>svg {
-	pointer-events: none;
-	margin: 0 auto;
-}
-micrio-waypoint:hover .micrio-button {
-	transition: background-color .25s ease,opacity .25s ease,transform .25s ease;
-	transform: translate3d(-50%,-50%,0) scale3d(.6,.6,1);
-}
-micrio-waypoint.clicked .micrio-button {
-	animation: micrio-waypoint-pulse .75s ease infinite alternate;
-}
-@keyframes micrio-waypoint-pulse {
-	from {
-		transform: translate3d(-50%,-50%,0) scale3d(.5,.5,1);
-	}
-	to {
-		transform: translate3d(-50%,-50%,0) scale3d(.75,.75,1);
-	}
-}
-`;
+	static styles = styles;
 
 	#props: WaypointProps = { targetId: '', image: null! };
 

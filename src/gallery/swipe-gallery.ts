@@ -9,23 +9,11 @@ export interface MicrioGalleryProps {
 	galleryStart?: string;
 	lang: string;
 }
+import styles from './swipe-gallery.css?inline';
 
 class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	static tag = 'micrio-swipe-gallery';
-	static styles = `micrio-swipe-gallery>figcaption {
-	position: absolute;
-	top: var(--micrio-border-margin);
-	left: var(--micrio-border-margin);
-	padding: var(--micrio-popup-padding);
-	max-width: 410px;
-	box-sizing: border-box;
-}
-@media (max-width: 500px) {
-	micrio-swipe-gallery>figcaption {
-		max-width: calc(100% - 3*var(--micrio-border-margin) - var(--micrio-button-size));
-	}
-}
-`;
+	static styles = styles;
 
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };
 

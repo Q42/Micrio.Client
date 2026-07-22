@@ -1,0 +1,6 @@
+micrio-article a {
+	color: var(--micrio-color);
+}
+micrio-article img {
+	max-width: 100%;
+}

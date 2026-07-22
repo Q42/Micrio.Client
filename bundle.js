@@ -6,64 +6,46 @@ const version = process.env.npm_package_version;
 const outFile = `./public/dist/micrio.min.js`;
 const buildDir = './public/build/';
 
-// ── Assemble CSS from component static styles ──
+// ── Assemble CSS from component .css files ──
 const cssFiles = [];
 const walk = (dir) => {
 	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 		if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
 		const full = path.join(dir, entry.name);
 		if (entry.isDirectory()) walk(full);
-		else if (entry.isFile() && entry.name.endsWith('.ts')) cssFiles.push(full);
+		else if (entry.isFile() && entry.name.endsWith('.css')) cssFiles.push(full);
 	}
 };
 walk('./src/');
 
 const cssParts = [];
-
-// CSS base (all global styles: custom properties, base element rules, combined rules)
-const cssBaseContent = fs.readFileSync('./src/core/css-base.ts', 'utf-8');
-const cssBaseMatch = cssBaseContent.match(/cssBase\s*=\s*`([\s\S]*?)`/);
-if (cssBaseMatch?.[1]) cssParts.push(cssBaseMatch[1]);
-
-// Component static styles
 for (const file of cssFiles) {
-	const content = fs.readFileSync(file, 'utf-8');
-	const match = content.match(/static\s+styles\s*=\s*`([\s\S]*?)`/);
-	if (match && match[1]) cssParts.push(match[1]);
+	cssParts.push(fs.readFileSync(file, 'utf-8'));
 }
-
-fs.writeFileSync(buildDir + 'micrio.prod.css', cssParts.join('\n\n'));
 
 // ── Bundle ──
-const files = {
-	css: buildDir + 'micrio.prod.css',
-	js: buildDir + 'micrio.prod.iife.js',
-}
+const jsPath = buildDir + 'micrio.prod.iife.js';
 
-// Deduplicate repeated classname hash selectors in bundled CSS
-let cssContent = fs.readFileSync(files.css).toString();
+// Deduplicate repeated classname hash selectors in assembled CSS
+let cssContent = cssParts.join('\n\n');
 const matches = cssContent.match(/\.([^\d\.{ ):>,]+)/mig);
 if (matches) {
-	matches.filter((s, i) => matches.indexOf(s) == i).forEach(sel => {
+	[...new Set(matches)].forEach(sel => {
 		const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig');
-		if (reg.test(cssContent)) cssContent = cssContent.replace(reg, sel);
+		cssContent = cssContent.replace(reg, sel);
 	});
-	fs.writeFileSync(files.css, cssContent);
 }
 
-// ── Minify and deflate CSS ──
+// Minify CSS
 cssContent = cssContent.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n/g, '').replace(/[ \t]+/g, ' ').replace(/\s*([{};,:])\s*/g, '$1').trim();
 
-// Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS
-let jsRaw = fs.readFileSync(files.js).toString();
+// Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS & prepend CSS
+let jsRaw = fs.readFileSync(jsPath).toString();
 jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '');
-fs.writeFileSync(files.js, jsRaw);
-
-// Prepend CSS style injection to the JS bundle
 const escapedCss = cssContent.replace(/[$`]/g, '\\$&');
 const jsContent = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
 ${jsRaw}`;
-fs.writeFileSync(files.js, jsContent);
+fs.writeFileSync(jsPath, jsContent);
 
 fs.writeFileSync(outFile, Buffer.concat([
 	Buffer.from([
@@ -71,7 +53,7 @@ fs.writeFileSync(outFile, Buffer.concat([
 		...fs.readFileSync('./LICENSE').toString().trim().split('\n').map(r => ' * ' + r.trim()),
 		' */\n\n'
 	].join('\n')),
-	Buffer.from(fs.readFileSync(files.js))
+	Buffer.from(fs.readFileSync(jsPath))
 ]));
 
 // Generate .d.ts
@@ -84,8 +66,7 @@ fs.writeFileSync(dFile, Buffer.concat([
 	].join('\n'))
 ]));
 fs.rmSync('./out.d.ts');
-fs.rmSync(files.css);
-fs.rmSync(files.js);
+fs.rmSync(jsPath);
 fs.rmdirSync(buildDir);
 
 const formatSize = (bytes) => {

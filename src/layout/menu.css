@@ -1,0 +1,68 @@
+micrio-menu {
+	padding: 0;
+	margin: 0;
+	transition: background .2s ease, box-shadow .2s ease;
+}
+.micrio-menu-action {
+	font-family: inherit;
+	background: transparent;
+	display: block;
+	border: none;
+	padding: 0 24px;
+	font-size: .9em;
+	cursor: pointer;
+	text-decoration: none;
+	border-radius: 0;
+	color: inherit;
+	text-shadow: inherit;
+	box-sizing: border-box;
+	text-align: center;
+}
+@media (max-width: 500px) {
+	micrio-menu {
+		font-size: 1em;
+	}
+	.micrio-menu-action {
+		width: 100%;
+		margin-bottom: 10px;
+		padding: 6px 0;
+	}
+}
+@media (min-width: 501px) {
+	micrio-menu {
+		float: left;
+		position: relative;
+	}
+	micrio-menu:not(:focus-within):not(:hover) .items {
+		display: none;
+	}
+	.micrio-menu-action {
+		height: var(--micrio-button-size);
+		line-height: var(--micrio-button-size);
+		width: 100%;
+		text-align: var(--micrio-text-align);
+		white-space: pre;
+		font-weight: 600;
+	}
+	.items micrio-menu {
+		float: none;
+	}
+	.items .micrio-menu-action {
+		width: 100%;
+	}
+	.micrio-menu-action:hover,
+	.micrio-menu-action:focus {
+		text-shadow: none !important;
+		color: var(--micrio-color-hover) !important;
+	}
+	.items {
+		max-height: calc(100vh - 160px);
+		overflow-y: auto;
+		overflow-x: hidden;
+	}
+	micrio-menu strong micrio-icon {
+		margin-left: 10px;
+		line-height: 0;
+		vertical-align: 1px;
+	}
+}

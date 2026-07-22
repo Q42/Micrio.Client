@@ -21,7 +21,7 @@ import { Gallery } from '$gallery/controller';
 import { isRTL } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
-import { cssBase } from './css-base';
+import styles from './element.css?inline';
 import { createElement } from '$utils/dom';
 
 /**
@@ -58,7 +58,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	static tag = 'micr-io';
 
 	/** CSS injected into `<head>` when the first `<micr-io>` is connected. */
-	static styles = cssBase;
+	static styles = styles;
 
 	/** Flag indicating if the initial print/setup has occurred.
 	 * @internal

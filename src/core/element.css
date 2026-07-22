@@ -1,4 +1,4 @@
-export const cssBase = `
+
 html {
 	--micrio-color: #fff;
 	--micrio-color-hover: #45A4E4;
@@ -135,4 +135,3 @@ micrio-markers,micrio-image-embeds{pointer-events:none;position:absolute;top:0;l
 micrio-details,micrio-swipe-gallery>figcaption,micrio-marker-content{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
 /* display:block containers */
 micrio-media,micrio-media-controls{display:block}
-`;

@@ -1,0 +1,11 @@
+micrio-logo-org a {
+	position: absolute;
+	top: calc(var(--micrio-border-margin) * 2);
+	right: calc(var(--micrio-border-margin) * 2);
+	z-index: 1;
+	display: block;
+}
+micrio-logo-org img {
+	max-height: 64px;
+	display: block;
+}

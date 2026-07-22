@@ -15,57 +15,12 @@ import { hookGridKeys } from './keyboard';
 import '$ui/button';
 import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
+import styles from './grid.css?inline';
 
 export class Grid extends MicrioElement {
 	static tag = 'micrio-grid';
 
-	static styles = `
-micrio-grid {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: grid;
-	grid-auto-flow: row dense;
-	grid-gap: 0;
-	will-change: transform;
-	transform-origin: left top;
-	--translate: none;
-	--scale: 1;
-	transform: var(--translate) scale3d(var(--scale),var(--scale),1);
-}
-micrio-grid>button {
-	background: transparent;
-	border: none;
-	padding: 0;
-	margin: 0;
-	cursor: pointer;
-	pointer-events: auto;
-	grid-area: auto / auto / span 1 / span 1;
-}
-micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button {
-	pointer-events: none;
-}
-micrio-grid.grid-cells-hidden {
-	pointer-events: none;
-}
-micrio-grid.grid-cells-hidden>button {
-	display: none;
-}
-micrio-grid .grid-close {
-	position: absolute;
-	display: block;
-	top: var(--micrio-border-margin);
-	right: var(--micrio-border-margin);
-	z-index: 2;
-	pointer-events: auto;
-}
-micr-io.hide-ui .grid-close {
-	opacity: 0;
-	pointer-events: none;
-}
-`;
+	static styles = styles;
 
 	readonly images:MicrioImage[] = [];
 	readonly imageMap:Map<string, MicrioImage> = new Map();
