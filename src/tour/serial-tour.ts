@@ -164,10 +164,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	}
 
 	#injectBars() {
-		const wrapper = this.#mediaEl?.querySelector('micrio-media-controls .controls-wrapper');
+		const wrapper = this.#mediaEl?.querySelector('micrio-media-controls > aside');
 		if (!wrapper) return;
 
-		const holder = wrapper.querySelector('.container');
+		const holder = wrapper.querySelector('div');
 		if (!holder) return;
 
 		holder.querySelector('.bars')?.remove();
@@ -208,7 +208,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	#updateBars() {
 		if (!this.#built) return;
-		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('.controls-wrapper .bars > .bar') ?? [];
+		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('aside .bars > .bar') ?? [];
 		bars.forEach((bar, i) => {
 			const si = this.#stepInfo[i];
 			const ct = i === this.#currentStep ? (si.currentTime ?? 0) : 0;

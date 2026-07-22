@@ -56,7 +56,6 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			this.#built = true;
 
 			this.#wrapperEl = createElement('aside', {
-				className: 'controls-wrapper',
 				events: {
 					click: e => e.stopPropagation(),
 					keydown: e => e.stopPropagation(),
@@ -89,9 +88,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				});
 			}
 
-			const container = createElement('div', {
-				className: 'container',
-			});
+			const container = createElement('div');
 
 			const bars = createElement('div', {
 				className: 'bars',
