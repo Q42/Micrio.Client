@@ -4,16 +4,6 @@ import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 
-function getLength(length: number): string {
-	let unit = 'cm';
-	if (length >= 1e5) { unit = 'km'; length /= 1e5; }
-	else if (length >= 100) { unit = 'm'; length /= 100; }
-	else if (length < 1 / 1e6) { unit = 'nm'; length *= 1e7; }
-	else if (length < 1 / 1e3) { unit = 'µm'; length *= 1e4; }
-	else if (length < 1) { unit = 'mm'; length *= 10; }
-	return length.toFixed(2) + ' ' + unit;
-}
-
 export interface DetailsProps {
 	info: Models.ImageInfo.ImageInfo;
 	data: Models.ImageData.ImageData;
@@ -69,19 +59,15 @@ micrio-details .close{position:absolute;top:auto;left:auto;right:0;bottom:calc(1
 		const description = cData?.description;
 		const link = cData?.sourceUrl;
 		const copyright = cData?.copyright;
-		const cmWidth = $current.$settings?.cmWidth;
-		const cmHeight = $current.$settings?.cmHeight;
-		const size = cmWidth && cmHeight ? getLength(cmWidth) + ' x ' + getLength(cmHeight) : null;
-
 		if (!title && !description && !link) return;
 
 		this.#detailsEl.replaceChildren();
 
-		if (title || size) {
-			const summaryChildren: (Node | string | number | false | null | undefined)[] = [];
-			if (title) summaryChildren.push(createElement('cite', { textContent: title }));
-			if (size) summaryChildren.push(createElement('small', { textContent: size }));
-			createElement('summary', { children: summaryChildren, parent: this.#detailsEl });
+		if (title) {
+			createElement('summary', {
+				children: [createElement('cite', { textContent: title })],
+				parent: this.#detailsEl,
+			});
 		}
 
 		if (description) {
