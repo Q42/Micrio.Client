@@ -160,16 +160,11 @@ export default class Ani {
 			el.areaWidth = 0;
 		}
 
-		const fromCenterX = v.centerX;
-		const fromCenterY = v.centerY;
-		const fromWidth = v.width;
-		const fromHeight = v.height;
+		const fromCenterX = v.centerX, fromCenterY = v.centerY, fromWidth = v.width, fromHeight = v.height;
 		f.set(fromCenterX, fromCenterY, fromWidth, fromHeight);
 
 		if (c.is360) {
-			const longitudeDist = longitudeDistance(fromCenterX, toCenterX);
-			const optimizedCenterX = fromCenterX + longitudeDist;
-			toCenterX = optimizedCenterX;
+			toCenterX += longitudeDistance(fromCenterX, toCenterX);
 			t.set(toCenterX, toCenterY, toWidth, toHeight);
 		}
 
@@ -192,14 +187,8 @@ export default class Ani {
 					t.set(cX, cY, nw, t.height);
 				}
 			}
-			const fLeft = f.centerX - f.width / 2;
-			const fRight = f.centerX + f.width / 2;
-			const fTop = f.centerY - f.height / 2;
-			const fBottom = f.centerY + f.height / 2;
-			const tLeft = t.centerX - t.width / 2;
-			const tRight = t.centerX + t.width / 2;
-			const tTop = t.centerY - t.height / 2;
-			const tBottom = t.centerY + t.height / 2;
+			const fLeft = f.x0, fRight = f.x1, fTop = f.y0, fBottom = f.y1;
+			const tLeft = t.x0, tRight = t.x1, tTop = t.y0, tBottom = t.y1;
 
 			const el = tLeft < fLeft, et = tTop < fTop, er = tRight > fRight, eb = tBottom > fBottom;
 			if ((el || et || er || eb) && !(el && et && er && eb)) {
@@ -228,8 +217,8 @@ export default class Ani {
 		this.#mO = Math.max(.05, Math.min(.9, dst - (c.is360 ? .2 : .1)));
 		this.#duration = dur < 0 ? (dst * resoFact / c.camSpeed * durFact) / (speed <= 0 ? 1 : speed) : dur;
 
-		const numPerLayer = this.#canvas.images.length / this.#canvas.omniNumLayers;
-		this.#omniStartIdx = this.#canvas.activeImageIdx;
+		const numPerLayer = c.images.length / c.omniNumLayers;
+		this.#omniStartIdx = c.activeImageIdx;
 		this.#omniDelta = 0;
 		if (!isNaN(omniIdx) && omniIdx > 0 && omniIdx !== this.#omniStartIdx) {
 			this.#omniDelta = omniIdx - this.#omniStartIdx;
