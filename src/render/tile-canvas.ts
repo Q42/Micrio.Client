@@ -19,27 +19,6 @@ import EngineCamera from './engine-camera'
  */
 
 /** @internal */
-export interface TileCanvasConfig {
-	tileSize: number;
-	is360: boolean;
-	noImage: boolean;
-	isSingle: boolean;
-	isDeepZoom: boolean;
-	freeMove: boolean;
-	coverStart: boolean;
-	maxScale: number;
-	scaleMultiplier: number;
-	camSpeed: number;
-	rotationY: number;
-	isGallerySwitch: boolean;
-	pagesHaveBackground: boolean;
-	isOmni: boolean;
-	pinchZoomOutLimit: boolean;
-	omniNumLayers: number;
-	omniStartLayer: number;
-}
-
-/** @internal */
 export class TileCanvas {
 	readonly view!: View;
 
@@ -132,7 +111,23 @@ export class TileCanvas {
 		height: number,
 		targetOpacity: number,
 		coverLimit: boolean,
-		cfg: TileCanvasConfig,
+		tileSize: number,
+		is360: boolean,
+		noImage: boolean,
+		isDeepZoom: boolean,
+		freeMove: boolean,
+		coverStart: boolean,
+		maxScale: number,
+		scaleMultiplier: number,
+		camSpeed: number,
+		rotationY: number,
+		isGallerySwitch: boolean,
+		pagesHaveBackground: boolean,
+		isOmni: boolean,
+		pinchZoomOutLimit: boolean,
+		omniNumLayers: number,
+		isSingle: boolean,
+		omniStartLayer: number,
 		hasParent: boolean = false
 	) {
 		this.main = main;
@@ -141,21 +136,21 @@ export class TileCanvas {
 		this.targetOpacity = targetOpacity;
 		this.coverLimit = coverLimit;
 		this.hasParent = hasParent;
-		this.#tileSize = cfg.tileSize;
-		this.is360 = cfg.is360;
-		this.noImage = cfg.noImage;
-		this.#isDeepZoom = cfg.isDeepZoom;
-		this.freeMove = cfg.freeMove;
-		this.coverStart = coverLimit ? true : cfg.coverStart;
-		this.maxScale = cfg.maxScale;
-		this.scaleMultiplier = cfg.scaleMultiplier;
-		this.camSpeed = cfg.camSpeed;
-		this.rotationY = cfg.rotationY;
-		this.#isGallerySwitch = cfg.isGallerySwitch;
-		this.#pagesHaveBackground = cfg.pagesHaveBackground;
-		this.isOmni = cfg.isOmni;
-		this.pinchZoomOutLimit = cfg.pinchZoomOutLimit;
-		this.omniNumLayers = cfg.omniNumLayers;
+		this.#tileSize = tileSize;
+		this.is360 = is360;
+		this.noImage = noImage;
+		this.#isDeepZoom = isDeepZoom;
+		this.freeMove = freeMove;
+		this.coverStart = coverLimit ? true : coverStart;
+		this.maxScale = maxScale;
+		this.scaleMultiplier = scaleMultiplier;
+		this.camSpeed = camSpeed;
+		this.rotationY = rotationY;
+		this.#isGallerySwitch = isGallerySwitch;
+		this.#pagesHaveBackground = pagesHaveBackground;
+		this.isOmni = isOmni;
+		this.pinchZoomOutLimit = pinchZoomOutLimit;
+		this.omniNumLayers = omniNumLayers;
 		this.#index = main.canvases.length;
 		if (!hasParent) main.canvases.push(this);
 
@@ -175,7 +170,7 @@ export class TileCanvas {
 		this.visible = new View(this);
 		this.#full = new View(this);
 
-		if (cfg.is360) { this.view.set(0.5, 0.5, 1, 0.5); }
+		if (is360) { this.view.set(0.5, 0.5, 1, 0.5); }
 
 		if (!hasParent) {
 			this.el.copy(main.el);
@@ -183,13 +178,13 @@ export class TileCanvas {
 			this.resize();
 		}
 
-		if (!cfg.noImage) this.addImage(0, 0, 1, 1, width, height, cfg.tileSize, cfg.isSingle, cfg.isDeepZoom, false, targetOpacity);
+		if (!noImage) this.addImage(0, 0, 1, 1, width, height, tileSize, isSingle, isDeepZoom, false, targetOpacity);
 		else {
 			this.main.numImages++;
 			this.#bOpacity = 1;
 			this.opacity = 1;
 			this.#isReady = true;
-			if (cfg.omniStartLayer > 0) this.setActiveLayer(cfg.omniStartLayer);
+			if (omniStartLayer > 0) this.setActiveLayer(omniStartLayer);
 		}
 	}
 
@@ -230,25 +225,25 @@ export class TileCanvas {
 		const coverLimit = opts.coverLimit ?? true;
 		const coverStart = opts.coverStart ?? true;
 		const c = new TileCanvas(
-			this.main, width, height, 1, coverLimit, {
-				tileSize: this.#tileSize,
-				is360: false,
-				noImage: false,
-				isSingle: false,
-				isDeepZoom: this.main.hasArchive || this.#isDeepZoom,
-				freeMove: false,
-				coverStart,
-				maxScale: 1,
-				scaleMultiplier: 1,
-				camSpeed: this.camSpeed,
-				rotationY: 0,
-				isGallerySwitch: false,
-				pagesHaveBackground: false,
-				isOmni: false,
-				pinchZoomOutLimit: this.pinchZoomOutLimit,
-				omniNumLayers: 1,
-				omniStartLayer: 0,
-			}, true
+			this.main, width, height, 1, coverLimit,
+			this.#tileSize,
+			false,                                     // is360
+			false,                                     // noImage
+			this.main.hasArchive || this.#isDeepZoom,  // isDeepZoom
+			false,                                     // freeMove
+			coverStart,
+			1,                                         // maxScale
+			1,                                         // scaleMultiplier
+			this.camSpeed,
+			0,                                         // rotationY
+			false,                                     // isGallerySwitch
+			false,                                     // pagesHaveBackground
+			false,                                     // isOmni
+			this.pinchZoomOutLimit,
+			1,                                         // omniNumLayers
+			false,                                     // isSingle
+			0,                                         // omniStartLayer
+			true                                       // hasParent
 		);
 		c.setParent(this);
 		c.setArea(x0, y0, x1, y1, true, true);
