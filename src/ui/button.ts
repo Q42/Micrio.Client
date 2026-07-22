@@ -1,5 +1,5 @@
 import { MicrioElement } from '$core/component';
-import type { IconName } from './icon';
+import type { IconName } from '$types/icon-name';
 import type { Models } from '$types/models';
 import { createElement } from '$utils/dom';
 

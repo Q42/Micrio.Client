@@ -64,7 +64,7 @@ export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		const $i18n = get(i18n);
 		createElement('micrio-button', {
 			setProps: {
-				type: this.#isActive ? 'minimize' : 'maximize',
+				type: this.#isActive ? 'fullscreenLeave' : 'fullscreenEnter',
 				title: $i18n.fullscreenToggle,
 				onclick: this.#toggle
 			},

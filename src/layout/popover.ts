@@ -112,7 +112,7 @@ dialog.gallery{width:100%;height:100%;max-width:unset;max-height:unset}`;
 			children: [
 				createElement('micrio-button', {
 					setProps: {
-						type: (!isPartOfTour || isLastStep) ? 'close' : 'arrow-right',
+						type: (!isPartOfTour || isLastStep) ? 'close' : 'next',
 						title: (!isPartOfTour || isLastStep) ? $i18n.closeMarker : $i18n.tourStepNext,
 						className: 'close-popover',
 						onclick: advanceOrClose

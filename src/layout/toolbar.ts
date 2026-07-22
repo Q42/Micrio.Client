@@ -149,7 +149,7 @@ micrio-toolbar .micrio-toolbar>micrio-menu:hover,micrio-toolbar .micrio-toolbar>
 			createElement('micrio-button', {
 				setProps: {
 					title: $i18n.menuToggle,
-					type: this.#shown ? 'close' : 'ellipsis-vertical',
+					type: this.#shown ? 'close' : 'ellipsisVertical',
 					className: 'toggle transparent' + (this.querySelector('.micrio-toolbar.indent') ? ' indent' : ''),
 					onclick: this.#toggle
 				},

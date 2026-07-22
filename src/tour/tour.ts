@@ -106,7 +106,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			createElement('micrio-button', {
 				parent: div,
 				setProps: {
-					type: 'arrow-left', title: get(i18n).tourStepPrev,
+					type: 'prev', title: get(i18n).tourStepPrev,
 					disabled: this.#currentStep === 0,
 					onclick: () => mt.prev?.()
 				}
@@ -121,7 +121,7 @@ micrio-tour .controls .step-counter{height:var(--micrio-button-size);line-height
 			createElement('micrio-button', {
 				parent: div,
 				setProps: {
-					type: 'arrow-right', title: get(i18n).tourStepNext,
+					type: 'next', title: get(i18n).tourStepNext,
 					disabled: this.#currentStep >= mt.steps.length - 1,
 					onclick: () => mt.next?.()
 				}

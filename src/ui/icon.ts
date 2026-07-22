@@ -1,44 +1,37 @@
 import { MicrioElement } from '$core/component';
 import { icons, svgIcon, type MicrioIcon } from '$ui/icons';
+import type { IconName } from '$types/icon-name';
 
-export type IconName = (
-	'zoom-in'|'zoom-out'|'maximize'|'minimize'|'close'|
-	'arrow-right'|'arrow-down'|'arrow-left'|'arrow-up'|
-	'play'|'pause'|'subtitles'|'subtitles-off'|'volume-off'|'volume-up'|
-	'play-filled'|'a11y'|'menu'|'audio'|'video'|'share'|
-	'error'|'chevron-down'|'link'|'link-ext'|'ellipsis-vertical'|'image'
-);
-
-const SMALL_NAMES = new Set<IconName>(['chevron-down', 'link-ext']);
+const SMALL_NAMES = new Set<IconName>(['chevronDown', 'linkExt']);
 
 const ICON_LIB: Record<IconName, MicrioIcon> = {
 	play: icons.play,
 	pause: icons.pause,
 	close: icons.xmark,
-	'play-filled': icons.playCircle,
+	playFilled: icons.playCircle,
 	a11y: icons.globe,
 	menu: icons.bars,
-	'zoom-in': icons.plus,
-	'zoom-out': icons.minus,
-	maximize: icons.expand,
-	minimize: icons.compress,
-	'volume-off': icons.volumeXmark,
-	'volume-up': icons.volumeHigh,
+	zoomIn: icons.plus,
+	zoomOut: icons.minus,
+	fullscreenEnter: icons.expand,
+	fullscreenLeave: icons.compress,
+	muted: icons.volumeXmark,
+	unmuted: icons.volumeHigh,
 	subtitles: icons.closedCaptioning,
-	'subtitles-off': icons.closedCaptioning,
-	'arrow-left': icons.arrowLeft,
-	'arrow-up': icons.arrowUp,
-	'arrow-right': icons.arrowRight,
-	'arrow-down': icons.arrowDown,
+	subtitlesOff: icons.closedCaptioning,
+	prev: icons.arrowLeft,
+	up: icons.arrowUp,
+	next: icons.arrowRight,
+	down: icons.arrowDown,
 	video: icons.video,
 	audio: icons.volumeHigh,
 	image: icons.image,
 	share: icons.share,
 	error: icons.circleExclamation,
-	'chevron-down': icons.chevronDown,
+	chevronDown: icons.chevronDown,
 	link: icons.link,
-	'link-ext': icons.externalLink,
-	'ellipsis-vertical': icons.ellipsisVertical,
+	linkExt: icons.externalLink,
+	ellipsisVertical: icons.ellipsisVertical,
 };
 
 export class MicrioIconElement extends MicrioElement {
@@ -65,26 +58,7 @@ export class MicrioIconElement extends MicrioElement {
 
 	#readCustomHTML() {
 		const micrio = this.getMicrio();
-		const ui = micrio?.defaultSettings?.ui?.icons;
-		if (!ui) { this.#customHTML = undefined; return; }
-		switch (this.#name) {
-			case 'zoom-in': this.#customHTML = ui.zoomIn; break;
-			case 'zoom-out': this.#customHTML = ui.zoomOut; break;
-			case 'maximize': this.#customHTML = ui.fullscreenEnter; break;
-			case 'minimize': this.#customHTML = ui.fullscreenLeave; break;
-			case 'close': this.#customHTML = ui.close; break;
-			case 'arrow-right': this.#customHTML = ui.next; break;
-			case 'arrow-left': this.#customHTML = ui.prev; break;
-			case 'arrow-up': this.#customHTML = ui.up; break;
-			case 'arrow-down': this.#customHTML = ui.down; break;
-			case 'play': this.#customHTML = ui.play; break;
-			case 'pause': this.#customHTML = ui.pause; break;
-			case 'subtitles': this.#customHTML = ui.subtitles; break;
-			case 'subtitles-off': this.#customHTML = ui.subtitlesOff; break;
-			case 'volume-off': this.#customHTML = ui.muted; break;
-			case 'volume-up': this.#customHTML = ui.unmuted; break;
-			default: this.#customHTML = undefined;
-		}
+		this.#customHTML = micrio?.defaultSettings?.ui?.icons?.[this.#name];
 	}
 
 	#render() {

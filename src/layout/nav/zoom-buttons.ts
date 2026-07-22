@@ -40,7 +40,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 				btnIn = createElement('micrio-button', { className: 'zb-zoom-in', parent: this }) as MicrioElement;
 			}
 			btnIn.setProps({
-				type: 'zoom-in',
+				type: 'zoomIn',
 				title: $i18n.zoomIn,
 				disabled: zoomedIn,
 				onclick: () => {
@@ -54,7 +54,7 @@ export class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 				btnOut = createElement('micrio-button', { className: 'zb-zoom-out', parent: this }) as MicrioElement;
 			}
 			btnOut.setProps({
-				type: 'zoom-out',
+				type: 'zoomOut',
 				title: $i18n.zoomOut,
 				disabled: zoomedOut,
 				onclick: () => {

@@ -148,7 +148,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		if (!data.alwaysOpen) {
 			createElement('micrio-button', {
 				setProps: {
-					type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'arrow-right',
+					type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'next',
 					title: (!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext,
 					disabled: this.#clickedPrevNext,
 					onclick: close
@@ -160,7 +160,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 		if (canMinimize) {
 			createElement('micrio-button', {
 				setProps: {
-					type: this.#isMinimized ? 'arrow-up' : 'arrow-down',
+					type: this.#isMinimized ? 'up' : 'down',
 					title: $i18n.minimize,
 					onclick: toggleMinimize
 				},
@@ -182,7 +182,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 
 			createElement('micrio-button', {
 				setProps: {
-					type: 'arrow-left',
+					type: 'prev',
 					disabled: this.#clickedPrevNext || currentTourStep == 0,
 					title: $i18n.tourStepPrev,
 					onclick: () => markerTourStep(true)
@@ -201,7 +201,7 @@ button.tour-step{height:auto;line-height:normal;vertical-align:middle;cursor:def
 
 			createElement('micrio-button', {
 				setProps: {
-					type: 'arrow-right',
+					type: 'next',
 					disabled: this.#clickedPrevNext || isLastStep,
 					title: $i18n.tourStepNext,
 					onclick: () => markerTourStep()

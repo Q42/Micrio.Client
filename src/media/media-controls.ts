@@ -172,7 +172,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 		if (muteBtn && p.muted !== this.#prevMuted) {
 			this.#prevMuted = !!p.muted;
 			muteBtn.setProps({
-				type: p.muted ? 'volume-off' : 'volume-up',
+				type: p.muted ? 'muted' : 'unmuted',
 				title: p.muted ? $i18n.audioUnmute : $i18n.audioMute,
 				disabled: p.seeking,
 				onclick: p.onmute
@@ -182,7 +182,7 @@ micrio-media-controls .time{font-size:90%;white-space:nowrap;font-variant-numeri
 		const subBtn = this.#wrapperEl.querySelector('.ctrl-subtitles') as MicrioElement;
 		if (subBtn) {
 			subBtn.setProps({
-				type: $captionsEnabled ? 'subtitles' : 'subtitles-off',
+				type: $captionsEnabled ? 'subtitles' : 'subtitlesOff',
 				active: $captionsEnabled,
 				title: $i18n.subtitlesToggle,
 				onclick: () => captionsEnabled.set(!get(captionsEnabled))

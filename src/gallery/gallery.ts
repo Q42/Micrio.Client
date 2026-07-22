@@ -418,7 +418,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#prevBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
-				type: 'arrow-left', title: $i18n.galleryPrev, className: 'gallery-btn',
+				type: 'prev', title: $i18n.galleryPrev, className: 'gallery-btn',
 				disabled: curr <= 0,
 				onclick: () => this.#goto(this.#currentPage - 1)
 			}
@@ -463,7 +463,7 @@ micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micr
 		this.#nextBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
-				type: 'arrow-right', title: $i18n.galleryNext, className: 'gallery-btn',
+				type: 'next', title: $i18n.galleryNext, className: 'gallery-btn',
 				disabled: curr >= total - 1,
 				onclick: () => this.#goto(this.#currentPage + 1)
 			}

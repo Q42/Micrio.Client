@@ -3,6 +3,7 @@ import type { Assets } from './assets';
 import type { RevisionType } from './common';
 import type { Writable } from '$core/store';
 import type { MicrioImage } from '$core/image';
+import type { IconName } from '$types/icon-name';
 
 /**
   * # Base image data
@@ -432,38 +433,7 @@ export namespace ImageInfo {
 			/** Serial tour timebar clicking other segment always goes to start of chapter */
 			serialTourNoTimeScrub?: boolean;
 		},
-		icons?: {
-			/** The raw SVG string for zoom-in */
-			zoomIn?: string;
-			/** The raw SVG string for zoom-out */
-			zoomOut?: string;
-			/** The raw SVG string for fullscreen-start */
-			fullscreenEnter?: string;
-			/** The raw SVG string for fullscreen-stop */
-			fullscreenLeave?: string;
-			/** The raw SVG string for close */
-			close?: string;
-			/** Next step button */
-			next?: string;
-			/** Previous step button */
-			prev?: string;
-			/** Play button */
-			play?: string;
-			/** Pause button */
-			pause?: string;
-			/** Subtitles icon */
-			subtitles?: string;
-			/** Subtitles turned off icon */
-			subtitlesOff?: string;
-			/** Muted icon */
-			muted?: string;
-			/** Unmuted icon */
-			unmuted?: string;
-			/** Arrow up icon */
-			up?: string;
-			/** Arrow down icon */
-			down?: string;
-		}
+		icons?: Partial<Record<IconName, string>>;
 	}
 }
 

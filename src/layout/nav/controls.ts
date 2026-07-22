@@ -178,7 +178,7 @@ micrio-controls .lang-items .micrio-button.active{background:var(--micrio-color-
 				this.#aside1.prepend(this.#muteBtn);
 			}
 			this.#muteBtn.setProps({
-				type: $isMuted ? 'volume-off' : 'volume-up',
+				type: $isMuted ? 'muted' : 'unmuted',
 				title: $isMuted ? $i18n.audioUnmute : $i18n.audioMute,
 				onclick: this.#toggleMute
 			});
