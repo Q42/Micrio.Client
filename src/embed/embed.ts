@@ -130,6 +130,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.watch(moveSrc.viewport, () => this.#moved());
 		}
 
+		this.#applyPosition();
 		this.addEventListener('change', this.#onChange);
 	}
 
