@@ -24,8 +24,8 @@ export class MicrioGallery extends MicrioElement<GalleryProps> {
 	static tag = 'micrio-gallery';
 	static styles = `micrio-gallery{display:contents}
 micrio-gallery .gallery-btn{position:absolute;top:50%;transform:translate(0,-50%);transition:transform .25s ease,opacity .25s ease}
-micrio-gallery .gallery-btn.arrow-left{left:var(--micrio-border-margin)}
-micrio-gallery .gallery-btn.arrow-right{right:var(--micrio-border-margin)}
+micrio-gallery .gallery-btn.prev{left:var(--micrio-border-margin)}
+micrio-gallery .gallery-btn.next{right:var(--micrio-border-margin)}
 micrio-gallery ul{position:absolute;bottom:var(--micrio-border-margin);left:50%;transform:translateX(-50%);display:block;list-style-type:none;background:var(--micrio-button-background,var(--micrio-background,none));box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);border-radius:var(--micrio-border-radius);padding:0 16px;margin:0;height:var(--micrio-button-size);color:var(--micrio-color);transition:transform .25s ease,opacity .25s ease;max-width:calc(100vw - 50px);max-width:calc(100cqw - 50px);width:520px;touch-action:none;cursor:pointer}
 @media(max-width:500px){micrio-gallery ul{left:var(--micrio-border-margin);right:calc(var(--micrio-button-size) + var(--micrio-border-margin) * 2);width:auto;transform:none}}
 micrio-gallery .track{position:absolute;top:50%;left:16px;right:16px;height:2px;background:var(--micrio-scrubber-background);border-radius:2px;transform:translateY(-50%);pointer-events:none;overflow:hidden}
@@ -46,8 +46,8 @@ micrio-gallery .handle-label{position:absolute;bottom:calc(100% + 8px);left:0;tr
 micrio-gallery .handle-label.dragging{transition:none;transform:translateX(-50%) scale(1.05)}
 micr-io.hide-ui micrio-gallery:not(:hover) ul,micrio-gallery.force-hidden ul{transform:translate(-50%,calc(100% + var(--micrio-border-margin)));opacity:0;pointer-events:none}
 @media(max-width:500px){micr-io.hide-ui micrio-gallery:not(:hover) ul,micrio-gallery.force-hidden ul{transform:translateY(calc(100% + var(--micrio-border-margin)))}}
-micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-left,micrio-gallery.force-hidden .gallery-btn.arrow-left{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
-micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.arrow-right,micrio-gallery.force-hidden .gallery-btn.arrow-right{transform:translate(calc(100% + var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
+micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.prev,micrio-gallery.force-hidden .gallery-btn.prev{transform:translate(calc(-100% - var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
+micr-io.hide-ui micrio-gallery:not(:hover) .gallery-btn.next,micrio-gallery.force-hidden .gallery-btn.next{transform:translate(calc(100% + var(--micrio-border-margin)),-50%);opacity:0;pointer-events:none}
 micrio-gallery .gallery-btn:disabled{opacity:0;pointer-events:none}
 micrio-gallery .gallery-btn.micrio-button:hover,micrio-gallery .gallery-btn.micrio-button:focus{position:absolute!important}`;
 
