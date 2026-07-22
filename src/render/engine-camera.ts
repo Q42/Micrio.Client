@@ -12,9 +12,9 @@ export default abstract class EngineCamera {
 	protected readonly canvas: TileCanvas;
 
 	/** Shared pinch state. */
-	prevSize: number = -1;
-	prevCenterX: number = -1;
-	prevCenterY: number = -1;
+	#prevSize: number = -1;
+	#prevCenterX: number = -1;
+	#prevCenterY: number = -1;
 
 	constructor(canvas: TileCanvas) {
 		this.canvas = canvas;
@@ -43,19 +43,19 @@ export default abstract class EngineCamera {
 		const cX = left + (right - left) / 2;
 		const cY = top + (bottom - top) / 2;
 		const size: number = Math.max(right - left, bottom - top);
-		const delta = this.prevSize - size;
+		const delta = this.#prevSize - size;
 
 		c.kinetic.stop();
 
-		if (this.prevCenterX > 0) {
-			const dX = this.prevCenterX - cX;
-			const dY = this.prevCenterY - cY;
+		if (this.#prevCenterX > 0) {
+			const dX = this.#prevCenterX - cX;
+			const dY = this.#prevCenterY - cY;
 			this.handlePinchMove(delta, dX, dY, cX, cY, el, c);
 		} else c.ani.stop();
 
-		this.prevCenterX = cX;
-		this.prevCenterY = cY;
-		this.prevSize = size;
+		this.#prevCenterX = cX;
+		this.#prevCenterY = cY;
+		this.#prevSize = size;
 	}
 
 	pinchStart(): void {}
@@ -65,9 +65,9 @@ export default abstract class EngineCamera {
 	}
 
 	#resetPinchState(): void {
-		this.prevSize = -1;
-		this.prevCenterX = -1;
-		this.prevCenterY = -1;
+		this.#prevSize = -1;
+		this.#prevCenterX = -1;
+		this.#prevCenterY = -1;
 	}
 
 	protected abstract handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void;
