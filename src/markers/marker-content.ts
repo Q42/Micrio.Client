@@ -22,19 +22,9 @@ micrio-marker-content {
 	padding-bottom: 0;
 	overflow-y: auto;
 	user-select: text;
-	color: var(--micrio-color);
-	background: var(--micrio-background);
-	backdrop-filter: var(--micrio-background-filter);
-	box-shadow: var(--micrio-popup-shadow);
-	border-radius: var(--micrio-border-radius);
 	box-sizing: border-box;
 	text-align: var(--micrio-text-align);
 	max-height: calc(100cqh - 2 * var(--micrio-border-margin));
-}
-micrio-marker-content>* {
-	--micrio-button-background: none;
-	--micrio-background-filter: none;
-	--micrio-button-shadow: none;
 }
 micrio-marker-content h1 {
 	font-size: 1.5em;

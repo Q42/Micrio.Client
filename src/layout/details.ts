@@ -21,11 +21,6 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 	user-select: text;
 	white-space: normal;
 	box-sizing: border-box;
-	color: var(--micrio-color);
-	background: var(--micrio-background);
-	backdrop-filter: var(--micrio-background-filter);
-	box-shadow: var(--micrio-popup-shadow);
-	border-radius: var(--micrio-border-radius);
 	transition: all .5s ease;
 }
 micrio-details details {

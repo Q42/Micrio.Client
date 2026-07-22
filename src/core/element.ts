@@ -68,6 +68,9 @@ micr-io[data-panning]{cursor:-webkit-grabbing;cursor:-moz-grabbing;cursor:-ms-gr
 micr-io[data-hooked][data-can-pan]>canvas.micrio{-ms-touch-action:pan-y;touch-action:pan-y;overscroll-behavior:initial}
 micrio-main,micrio-toolbar,micrio-gallery,micrio-swipe-gallery,micrio-controls,micrio-popover,micrio-logo,micrio-logo-org,micrio-audio-controller,micrio-fullscreen,micrio-tour,micrio-serial-tour,micrio-embed,micrio-zoom-buttons,micrio-button,micrio-minimap{display:contents}
 micrio-markers:empty,micrio-image-embeds:empty,micrio-marker:empty,micrio-button-group:empty{display:none}
+micrio-media-controls>*,micrio-marker-content>*,micrio-tour .controls>micrio-button{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
+micrio-markers,micrio-image-embeds{pointer-events:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;will-change:width,height,top,left,opacity;perspective:inherit}
+micrio-details,micrio-swipe-gallery>figcaption,micrio-marker-content{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
 ${cssVars}`;
 
 	/** Flag indicating if the initial print/setup has occurred.

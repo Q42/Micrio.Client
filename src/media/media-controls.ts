@@ -49,11 +49,6 @@ micrio-media-controls .ctrl-subtitles button:not(.active) svg {
 micrio-media-controls micrio-button:last-child {
 	margin-right: 16px;
 }
-micrio-media-controls>* {
-	--micrio-button-background: none;
-	--micrio-background-filter: none;
-	--micrio-button-shadow: none;
-}
 :fullscreen micrio-media-controls {
 	position: absolute;
 	bottom: 5px;

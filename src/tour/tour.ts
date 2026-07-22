@@ -34,9 +34,6 @@ micrio-tour .controls {
 	z-index: 5;
 }
 micrio-tour .controls>micrio-button {
-	--micrio-button-background: none;
-	--micrio-background-filter: none;
-	--micrio-button-shadow: none;
 	margin: 0;
 	border: none;
 	border-radius: 0;

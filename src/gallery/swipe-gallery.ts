@@ -19,11 +19,6 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	padding: var(--micrio-popup-padding);
 	max-width: 410px;
 	box-sizing: border-box;
-	color: var(--micrio-color);
-	background: var(--micrio-background);
-	backdrop-filter: var(--micrio-background-filter);
-	box-shadow: var(--micrio-popup-shadow);
-	border-radius: var(--micrio-border-radius);
 }
 @media (max-width: 500px) {
 	micrio-swipe-gallery>figcaption {
