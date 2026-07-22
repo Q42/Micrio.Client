@@ -21,11 +21,6 @@ export class Canvas {
 	*/
 	#resizeObserver?:ResizeObserver;
 
-	/** Flag indicating if a resize operation is currently in progress.
-	 * @internal
-	*/
-	resizing:boolean = false;
-
 	/** Object containing current viewport dimensions, position, and ratios. */
 	readonly viewport:Models.Canvas.ViewRect = {
 		width:0, // Rendered width in CSS pixels
@@ -135,7 +130,6 @@ export class Canvas {
 		c.left = box.left;
 		c.portrait = window.matchMedia('(orientation: portrait)')?.matches ?? (height > width); // Check orientation
 
-		this.resizing = true; // Set resizing flag
 		// Update canvas buffer dimensions
 		this.element.width = width * ratio;
 		this.element.height = height * ratio;
@@ -146,7 +140,6 @@ export class Canvas {
 
 		// Notify engine of resize
 		this.#micrio.engine.resize(c);
-		this.resizing = false; // Clear resizing flag
 
 		// Dispatch 'resize' event with bounding box info
 		this.#micrio.events.dispatch('resize', box);
