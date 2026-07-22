@@ -118,7 +118,7 @@ export class Engine {
 	frameTime: number = 1 / 60;
 
 	/** Array storing references to all MicrioImage instances managed by the engine. @internal */
-	images: Array<MicrioImage | Models.Omni.Frame> = [];
+	#images: Array<MicrioImage | Models.Omni.Frame> = [];
 	/** Flag indicating if barebone mode is active. @internal */
 	#bareBoneSetting: boolean = false;
 	/** Array storing the base tile index for each image. @internal */
@@ -173,9 +173,13 @@ export class Engine {
 		this.#entryByImage.set(entry.micrioImage, entry);
 	}
 
+	/** The main HTMLMicrioElement instance. */
+	micrio: HTMLMicrioElement;
+
 	constructor(
-		public micrio: HTMLMicrioElement
+		micrio: HTMLMicrioElement
 	) {
+		this.micrio = micrio;
 		this.#deleteAfterSeconds = Browser.iOS ? 5 : get(this.micrio.canvas.isMobile) ? 30 : 90;
 		this.render = this.render.bind(this);
 		this.#unsubscribe.push(micrio.current.subscribe(this.setCanvas.bind(this)));
@@ -223,7 +227,7 @@ export class Engine {
 		tile.deleteAt = undefined;
 
 		const numLoading = runningThreads();
-		const c = this.images[imgIdx];
+		const c = this.#images[imgIdx];
 		const hasCamera = 'camera' in c;
 		const isVideo = hasCamera && c.isVideo;
 		const is360 = hasCamera && c.is360;
@@ -376,7 +380,7 @@ export class Engine {
 		c.placed = true;
 		canvas.micrioImage = c;
 		this.#setEntry({ canvas, micrioImage: c, camera: c.camera });
-		this.images.push(c);
+		this.#images.push(c);
 
 		this.#bindCamera(c);
 
@@ -664,7 +668,7 @@ export class Engine {
 		opacity: number = 1,
 		fromScale?: number,
 	): void => {
-		this.images.push(image);
+		this.#images.push(image);
 		this.#placeOnCanvas(image, parent, isEmbed, opacity, fromScale);
 	}
 
