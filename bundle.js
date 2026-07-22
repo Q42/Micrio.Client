@@ -37,7 +37,11 @@ if (matches) {
 }
 
 // Minify CSS
-cssContent = cssContent.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n/g, '').replace(/[ \t]+/g, ' ').replace(/\s*([{};,:])\s*/g, '$1').trim();
+cssContent = cssContent
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\s*([{}:;,])\s*/g, '$1')
+  .replace(/;}/g, '}')
+  .replace(/\s+/g, ' ');
 
 // Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS & prepend CSS
 let jsRaw = fs.readFileSync(jsPath).toString();
