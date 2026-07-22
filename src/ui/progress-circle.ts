@@ -1,9 +1,13 @@
 import { MicrioElement } from '$core/component';
 import { createSvgElement } from '$utils/dom';
 
-const SIZE = 100;
+const SIZE = '100';
 const RADIUS = 40;
 const CIRC = 2 * Math.PI * RADIUS;
+const CX = '50';
+const CY = '50';
+const R = '40';
+const circleAttrs = { r: R, cx: CX, cy: CY, fill: 'transparent', 'stroke-width': '8px' } satisfies Record<string,string>;
 
 export interface ProgressCircleProps {
 	progress?: number;
@@ -20,35 +24,16 @@ micrio-progress-circle circle{transition:stroke-dashoffset .25s ease}`;
 
 	onMount() {
 		const svg = createSvgElement('svg', {
-			attrs: {
-				width: String(SIZE),
-				height: String(SIZE),
-				viewBox: `0 0 ${SIZE} ${SIZE}`,
-			},
+			attrs: { width: SIZE, height: SIZE, viewBox: `0 0 ${SIZE} ${SIZE}` },
 		});
 
 		createSvgElement('circle', {
-			attrs: {
-				r: String(RADIUS),
-				cx: String(SIZE / 2),
-				cy: String(SIZE / 2),
-				fill: 'transparent',
-				stroke: '#e0e0e0',
-				'stroke-width': '8px',
-			},
+			attrs: { ...circleAttrs, stroke: '#e0e0e0' },
 			parent: svg as unknown as HTMLElement,
 		});
 
 		const pc = createSvgElement('circle', {
-			attrs: {
-				r: String(RADIUS),
-				cx: String(SIZE / 2),
-				cy: String(SIZE / 2),
-				fill: 'transparent',
-				stroke: '#00d4ee',
-				'stroke-width': '8px',
-				'stroke-dasharray': `${CIRC}px`,
-			},
+			attrs: { ...circleAttrs, stroke: '#00d4ee', 'stroke-dasharray': `${CIRC}px` },
 			parent: svg as unknown as HTMLElement,
 		});
 
