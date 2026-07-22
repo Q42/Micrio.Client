@@ -181,8 +181,6 @@ export namespace ImageInfo {
 		embedRestartWhenShown?: boolean;
 		/** Don't stop drawing frames when idle */
 		keepRendering?: boolean;
-		/** Don't load GTM module */
-		noGTag?: boolean;
 		/** Skip the deepest zoom levels */
 		skipBaseLevels?: number;
 

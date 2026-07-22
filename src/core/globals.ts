@@ -137,7 +137,6 @@ export const ATTRIBUTE_OPTIONS: {
 		'data-two-finger-pan': {f:'twoFingerPan'}, // Enable two-finger panning?
 		'data-control-zoom': {f:'controlZoom'}, // Enable zoom via ctrl/cmd + scroll?
 		'data-ui': {f:'noUI', n: true}, // Disable UI? (Negated)
-		'data-gtag': {f:'noGTag', n: true}, // Disable Google Analytics? (Negated)
 		'data-controls': {f:'noControls', n: true}, // Disable main controls? (Negated)
 		'data-logo': {f:'noLogo', n: true}, // Disable Micrio logo? (Negated)
 		'data-logo-org': {f:'noOrgLogo', n: true}, // Disable organization logo? (Negated)

@@ -16,7 +16,7 @@ import { Canvas } from '$render/canvas';
 import { Events } from '$core/events/facade';
 import { MicrioImage } from './image';
 import { State} from './state';
-import { GoogleTag } from '$utils/analytics';
+
 import { Gallery } from '$gallery/controller';
 import { isRTL } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
@@ -110,9 +110,6 @@ ${cssVars}`;
 
 	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
 	readonly state:State.Main = new State.Main();
-
-	/** The Google Analytics integration controller. */
-	readonly #analytics: GoogleTag = new GoogleTag(this);
 
 	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);
@@ -277,7 +274,6 @@ ${cssVars}`;
 		this.current.set(undefined);
 		this.events.enabled.set(false);
 		this.canvas.unhook();
-		this.#analytics.unhook();
 		this.engine.unbind();
 		if(this._ui) this._ui.remove();
 		delete this._ui;
@@ -461,7 +457,6 @@ ${cssVars}`;
 		if(this.$current && bundle.id == this.$current?.id) return this.$current;
 
 		if(!opts.gridView && this.$current) this.switching.set(true);
-		if(!bundle.settings.noGTag) this.#analytics.hook();
 		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
 
 		// ── Find or create canvas ─────────────────────────────────────────────
