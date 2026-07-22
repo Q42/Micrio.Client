@@ -16,7 +16,7 @@ export interface SubtitlesProps {
 	mediaEl?: HTMLElement;
 }
 
-export class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
+class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	static tag = 'micrio-subtitles';
 	static styles = `micrio-subtitles{position:fixed;bottom:50px;left:50vw;transform:translate3d(-50%,0,0);text-align:center;color:#fff;width:100vw;pointer-events:none;z-index:6;transition:transform .2s ease}
 micrio-subtitles.raised{transform:translate3d(-50%,calc(-1 * var(--micrio-button-size)),0)}

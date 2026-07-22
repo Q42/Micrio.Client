@@ -4,7 +4,7 @@ import type { IconName } from '$types/icon-name';
 
 const SMALL_NAMES = new Set<IconName>(['chevronDown', 'linkExt']);
 
-export class MicrioIconElement extends MicrioElement {
+class MicrioIconElement extends MicrioElement {
 	static tag = 'micrio-icon';
 	static styles = `svg.micrio-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-.125em}svg.micrio-icon.small{height:.75em}`;
 

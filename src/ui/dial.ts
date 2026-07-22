@@ -7,7 +7,7 @@ export interface DialProps {
 	onturn?: (frame: number) => void;
 }
 
-export class MicrioDial extends MicrioElement<DialProps> {
+class MicrioDial extends MicrioElement<DialProps> {
 	static tag = 'micrio-dial';
 	static styles = `micrio-dial{position:absolute;bottom:var(--micrio-border-margin);width:320px;max-width:calc(100vw - calc(2 * (var(--micrio-button-size) + 4 * var(--micrio-border-margin))));max-width:calc(100cqw - calc(2 * (var(--micrio-button-size) + 4 * var(--micrio-border-margin))));left:50%;transform:translateX(-50%);height:calc(var(--micrio-button-size)*0.6);touch-action:none;background-color:transparent;cursor:w-resize;overflow:hidden}
 micrio-dial::before,micrio-dial::after{content:'';display:block;width:100%;position:absolute;background-position:var(--micrio-dial-offset,0px)}

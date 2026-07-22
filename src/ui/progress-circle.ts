@@ -13,7 +13,7 @@ export interface ProgressCircleProps {
 	progress?: number;
 }
 
-export class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
+class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 	static tag = 'micrio-progress-circle';
 	static styles = `micrio-progress-circle{position:absolute;top:50%;left:50%;pointer-events:none;transform:translate(-50%,-50%) rotateZ(-90deg);z-index:10}
 micrio-progress-circle svg{display:block}

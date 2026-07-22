@@ -1,6 +1,6 @@
 import { MicrioElement } from '$core/component';
 
-export class MicrioButtonGroup extends MicrioElement {
+class MicrioButtonGroup extends MicrioElement {
 	static tag = 'micrio-button-group';
 	static styles = `micrio-button-group{display:block;box-shadow:var(--micrio-button-shadow);border-radius:var(--micrio-border-radius)}
 micrio-button-group:empty{display:none}

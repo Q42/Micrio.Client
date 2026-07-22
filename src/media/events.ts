@@ -7,7 +7,7 @@ export interface EventsProps {
 	duration: number;
 }
 
-export class MicrioEvents extends MicrioElement<EventsProps> {
+class MicrioEvents extends MicrioElement<EventsProps> {
 	static tag = 'micrio-events';
 	static styles = '';
 

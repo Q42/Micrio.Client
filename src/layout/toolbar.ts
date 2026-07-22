@@ -7,7 +7,7 @@ import { i18n } from '$core/i18n/strings';
 import './menu';
 import '$ui/button';
 
-export class MicrioToolbar extends MicrioElement {
+class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';
 	static styles = `micrio-toolbar{display:contents}
 micrio-toolbar menu.micrio-toolbar{position:absolute;top:calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));left:var(--micrio-border-margin);margin:0;padding:0;color:#fff;text-shadow:1px 1px 2px #000;transition:transform .25s ease;z-index:1}

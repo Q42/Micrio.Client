@@ -7,7 +7,7 @@ export interface FullscreenProps {
 	el: HTMLElement;
 }
 
-export class MicrioFullscreen extends MicrioElement<FullscreenProps> {
+class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	static tag = 'micrio-fullscreen';
 	static styles = `micrio-fullscreen{display:contents}`;
 

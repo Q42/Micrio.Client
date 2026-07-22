@@ -20,7 +20,7 @@ export interface GalleryProps {
  * Two modes: standard gallery (scrubber + arrow buttons, with optional strip-swipe)
  * and omni (dial + swipe gesture + layer menu).
  */
-export class MicrioGallery extends MicrioElement<GalleryProps> {
+class MicrioGallery extends MicrioElement<GalleryProps> {
 	static tag = 'micrio-gallery';
 	static styles = `micrio-gallery{display:contents}
 micrio-gallery .gallery-btn{position:absolute;top:50%;transform:translate(0,-50%);transition:transform .25s ease,opacity .25s ease}

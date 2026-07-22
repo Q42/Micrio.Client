@@ -12,7 +12,7 @@ export interface MarkerPopupProps {
 	marker: Models.ImageData.Marker;
 }
 
-export class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
+class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	static tag = 'micrio-marker-popup';
 	static styles = `micrio-marker-popup{display:block;cursor:auto;pointer-events:none;position:absolute;top:var(--micrio-border-margin);left:var(--micrio-border-margin);animation:micrio-popup-in .2s ease-out}
 micrio-marker-popup>*{pointer-events:auto}

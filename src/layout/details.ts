@@ -9,7 +9,7 @@ export interface DetailsProps {
 	data: Models.ImageData.ImageData;
 }
 
-export class MicrioDetails extends MicrioElement<DetailsProps> {
+class MicrioDetails extends MicrioElement<DetailsProps> {
 	static tag = 'micrio-details';
 	static styles = `micrio-details{position:absolute;bottom:var(--micrio-border-margin);left:var(--micrio-border-margin);padding:var(--micrio-popup-padding);font-size:.9em;max-width:410px;user-select:text;white-space:normal;box-sizing:border-box;color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius);transition:all .5s ease}
 micrio-details details{display:block}

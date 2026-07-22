@@ -24,7 +24,7 @@ export interface MediaControlsProps {
 	getTimeDisplay?: (currentTime: number, duration: number) => string;
 }
 
-export class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
+class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	static tag = 'micrio-media-controls';
 	static styles = `micrio-media-controls{display:block}
 micrio-media-controls aside.controls-wrapper{display:flex;align-items:center;width:100%;--micrio-background:var(--micrio-background,#000)}

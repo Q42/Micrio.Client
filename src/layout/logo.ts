@@ -1,7 +1,7 @@
 import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 
-export class MicrioLogo extends MicrioElement {
+class MicrioLogo extends MicrioElement {
 	static tag = 'micrio-logo';
 	static styles = `micrio-logo{display:contents}
 micrio-logo a{position:absolute;top:calc(var(--micrio-border-margin) * 2);left:calc(var(--micrio-border-margin) * 2);z-index:2;width:22px;height:22px;transition:transform .25s ease;display:block;cursor:pointer}

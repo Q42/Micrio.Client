@@ -10,7 +10,7 @@ export interface SerialTourProps {
 	onended?: () => void;
 }
 
-export class MicrioSerialTour extends MicrioElement<SerialTourProps> {
+class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	static tag = 'micrio-serial-tour';
 	static styles = `micrio-serial-tour{display:contents}
 micrio-serial-tour>micrio-media{display:contents}

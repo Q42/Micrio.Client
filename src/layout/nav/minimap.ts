@@ -10,7 +10,7 @@ export interface MinimapProps {
 	image: MicrioImage;
 }
 
-export class MicrioMinimap extends MicrioElement<MinimapProps> {
+class MicrioMinimap extends MicrioElement<MinimapProps> {
 	static tag = 'micrio-minimap';
 	static styles = `micrio-minimap{display:contents}
 micrio-minimap canvas{position:absolute;bottom:var(--micrio-border-margin);right:5px;transform-origin:right bottom;display:block;background-size:100%;transition:opacity .2s ease;cursor:grab;-ms-content-zooming:none;-ms-touch-action:none;touch-action:none;border-radius:var(--micrio-border-radius)}

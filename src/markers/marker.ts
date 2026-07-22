@@ -13,7 +13,7 @@ export interface MarkerProps {
 	overlapped?: boolean;
 }
 
-export class MicrioMarker extends MicrioElement<MarkerProps> {
+class MicrioMarker extends MicrioElement<MarkerProps> {
 	static tag = 'micrio-marker';
 	static styles = `micrio-marker{position:absolute;display:block;transform:translate3d(var(--x,0),var(--y,0),0) translate(-50%,-50%) scale3d(var(--scale,1),var(--scale,1),1);top:0;left:0;will-change:transform}
 micrio-marker:not(.cluster){animation:micrio-marker-fade .25s forwards}

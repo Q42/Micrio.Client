@@ -9,7 +9,7 @@ export interface AudioLocationProps {
 	is360: boolean;
 }
 
-export class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
+class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 	static tag = 'micrio-audio-location';
 	static styles = '';
 

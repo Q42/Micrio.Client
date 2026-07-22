@@ -13,7 +13,7 @@ export interface PopoverProps {
 	popover: Models.State.PopoverType;
 }
 
-export class MicrioPopover extends MicrioElement<PopoverProps> {
+class MicrioPopover extends MicrioElement<PopoverProps> {
 	static tag = 'micrio-popover';
 	static styles = `micrio-popover{display:contents}
 dialog::backdrop{color:#fff;animation:micrio-popover-bg .2s forwards;backdrop-filter:blur(8px)}

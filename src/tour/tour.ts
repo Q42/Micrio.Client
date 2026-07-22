@@ -14,7 +14,7 @@ export interface TourProps {
 	onminimize?: (b: boolean) => void;
 }
 
-export class MicrioTour extends MicrioElement<TourProps> {
+class MicrioTour extends MicrioElement<TourProps> {
 	static tag = 'micrio-tour';
 	static styles = `micrio-tour{display:contents}
 micrio-tour .controls{position:absolute;bottom:var(--micrio-border-margin);left:50%;max-width:calc(100% - var(--micrio-border-margin) * 2);transform:translateX(-50%);box-sizing:border-box;display:flex;border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);background-color:var(--micrio-button-background,var(--micrio-background,none));padding:0;transition:transform .2s ease;z-index:5}

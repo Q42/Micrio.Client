@@ -18,7 +18,7 @@ export interface ButtonProps {
 	onpointerdown?: (e: PointerEvent) => void;
 }
 
-export class MicrioButton extends MicrioElement<ButtonProps> {
+class MicrioButton extends MicrioElement<ButtonProps> {
 	static tag = 'micrio-button';
 	static styles = `micrio-button{display:contents}
 .micrio-button{margin:0;padding:0 8px;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;justify-content:center;transition:opacity .25s ease;font:inherit;font-size:90%;position:relative;touch-action:none;color:var(--micrio-color);background:var(--micrio-button-background,var(--micrio-background,none)) center center no-repeat;background-size:24px;min-width:var(--micrio-button-size);height:var(--micrio-button-size);border:none;border-radius:var(--micrio-border-radius);box-shadow:var(--micrio-button-shadow);backdrop-filter:var(--micrio-background-filter);text-decoration:none}

@@ -11,7 +11,7 @@ export interface ControlsProps {
 	hasAudio?: boolean;
 }
 
-export class MicrioControls extends MicrioElement<ControlsProps> {
+class MicrioControls extends MicrioElement<ControlsProps> {
 	static tag = 'micrio-controls';
 	static styles = `micrio-controls{display:contents}
 micrio-controls aside:not(.grid-close){position:absolute;right:var(--micrio-border-margin);bottom:var(--micrio-border-margin);padding:0;margin:0;direction:rtl;z-index:2;transition:transform .25s ease,opacity .25s ease}

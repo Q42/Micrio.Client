@@ -35,7 +35,7 @@ export interface MediaProps {
 	fullscreenEl?: HTMLElement;
 }
 
-export class MicrioMedia extends MicrioElement<MediaProps> {
+class MicrioMedia extends MicrioElement<MediaProps> {
 	static tag = 'micrio-media';
 	static styles = `micrio-media{display:block}
 micrio-media figure{position:relative;margin:0;padding:0}

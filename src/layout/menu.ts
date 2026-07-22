@@ -20,7 +20,7 @@ export interface MenuProps {
 	onclose?: () => void;
 }
 
-export class MicrioMenu extends MicrioElement<MenuProps> {
+class MicrioMenu extends MicrioElement<MenuProps> {
 	static tag = 'micrio-menu';
 	static styles = `micrio-menu{padding:0;margin:0;transition:background .2s ease,box-shadow .2s ease}
 .micrio-menu-action{font-family:inherit;background:transparent;display:block;border:none;padding:0 24px;font-size:.9em;cursor:pointer;text-decoration:none;border-radius:0;color:inherit;text-shadow:inherit;box-sizing:border-box;text-align:center}

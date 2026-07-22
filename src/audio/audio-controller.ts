@@ -73,7 +73,7 @@ class AudioPlaylist {
 
 // ── AudioController custom element ──
 
-export class MicrioAudioController extends MicrioElement {
+class MicrioAudioController extends MicrioElement {
 	static tag = 'micrio-audio-controller';
 	static styles = `micrio-audio-controller{display:contents}`;
 

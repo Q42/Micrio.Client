@@ -13,7 +13,7 @@ export interface EmbedProps {
 	marker?: Models.ImageData.Marker;
 }
 
-export class MicrioEmbed extends MicrioElement<EmbedProps> {
+class MicrioEmbed extends MicrioElement<EmbedProps> {
 	static tag = 'micrio-embed';
 	static styles = `
 micrio-embed{display:contents}
