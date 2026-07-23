@@ -249,11 +249,11 @@ export class Grid extends MicrioElement {
 			cover: opts.cover
 		}));
 
-		if(isAppear) this.current.slice(1).forEach(i => { const c = i.canvas; c && (c.targetOpacity = c.opacity = .9999); });
+		if(isAppear) this.current.slice(1).forEach(i => { const c = i.canvas; c && (c._targetOpacity = c.opacity = .9999); });
 
 		const fadeIn = () => this.current.forEach((img,i) =>
 			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
-				.then(() => img.canvas?.fadeIn())
+				.then(() => img.canvas?._fadeIn())
 		);
 
 		const done = () => {
@@ -390,7 +390,7 @@ export class Grid extends MicrioElement {
 	#removeImages(images:MicrioImage[]) : void {
 		const { engine } = this.micrio;
 		images.forEach(i => {
-			if(i.placed) i.canvas?.fadeOut();
+			if(i.placed) i.canvas?._fadeOut();
 			this._buttons.get(i.id)?.remove();
 			this._buttons.delete(i.id);
 		});
@@ -481,7 +481,7 @@ export class Grid extends MicrioElement {
 
 		if(focussed == img) return;
 
-		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !(focussed.canvas?.areaAnimating() ?? false) && !this.current.includes(img)));
+		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !(focussed.canvas?._areaAnimating() ?? false) && !this.current.includes(img)));
 		if(direct) img.camera.setArea([0,0,1,1], {noDispatch: true, direct: true});
 		if(focussed) this.blur();
 

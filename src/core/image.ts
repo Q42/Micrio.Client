@@ -2,7 +2,7 @@ import type { Models } from '$types/models';
 import type { Writable } from '$core/store';
 import type { Grid } from '$grid/grid';
 import type { Engine } from '$render/engine';
-import type TileCanvas from '$render/tile-canvas';
+import type { TileCanvas } from '$render/tile-canvas';
 import type { OmniUI } from '$gallery/omni';
 import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
@@ -330,7 +330,7 @@ export class MicrioImage {
 		if(this.isOmni) {
 			this.state.layer.subscribe(l => {
 				if(!this.placed || !this.#engine.ready) return;
-				this.canvas?.setActiveLayer(l);
+				this.canvas?._setActiveLayer(l);
 				this.#engine.render();
 			});
 		}
@@ -465,14 +465,14 @@ export class MicrioImage {
 	/** Fades in the image smoothly or instantly. */
 	fadeIn(direct:boolean=false) : void {
 		const c = this.canvas;
-		if (c) { c.targetOpacity = 1; if (direct) c.opacity = 1; }
+		if (c) { c._targetOpacity = 1; if (direct) c.opacity = 1; }
 		this.#engine.render();
 	}
 
 	/** Fades out the image smoothly or instantly. */
 	fadeOut(direct:boolean=false) : void {
 		const c = this.canvas;
-		if (c) { c.targetOpacity = 0; if (direct) c.opacity = 0; }
+		if (c) { c._targetOpacity = 0; if (direct) c.opacity = 0; }
 		this.#engine.render();
 	}
 

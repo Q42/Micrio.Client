@@ -6,7 +6,7 @@
 
 import { Coordinates, Viewport } from './shared'
 import { Bicubic, easeInOut } from './easing';
-import type { default as TileCanvas } from './tile-canvas';
+import type { TileCanvas } from './tile-canvas';
 
 export default abstract class EngineCamera {
 	protected readonly canvas: TileCanvas;

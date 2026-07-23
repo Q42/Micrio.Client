@@ -16,7 +16,7 @@ import { archive } from '$utils/archive';
 import { Browser } from '$utils/browser';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 
-import TileCanvas from './tile-canvas';
+import { TileCanvas } from './tile-canvas';
 import type Image from './tile-image';
 import { segsX, segsY } from './constants';
 import { type Bicubic, easeInOut } from './easing';
@@ -378,7 +378,7 @@ export class Engine {
 		);
 
 		c.placed = true;
-		canvas.micrioImage = c;
+		canvas._micrioImage = c;
 		this.#setEntry({ canvas, micrioImage: c, camera: c.camera });
 		this.#images.push(c);
 
@@ -398,15 +398,15 @@ export class Engine {
 			this._skipBaseLevels = settings.skipBaseLevels;
 
 		if (settings?.omni) {
-			canvas.omniDistance = -(settings.omni.distance ?? 0);
-			canvas.omniFieldOfView = settings.omni.fieldOfView ?? 0;
-			canvas.omniVerticalAngle = settings.omni.verticalAngle ?? 0;
-			canvas.omniOffsetX = settings.omni.offsetX ?? 0;
+			canvas._omniDistance = -(settings.omni.distance ?? 0);
+			canvas._omniFieldOfView = settings.omni.fieldOfView ?? 0;
+			canvas._omniVerticalAngle = settings.omni.verticalAngle ?? 0;
+			canvas._omniOffsetX = settings.omni.offsetX ?? 0;
 			c.state.view.set([0, 0, 1, 1]);
 		}
-		if (this.micrio.hasAttribute('data-limited') && c.canvas) c.canvas.limited = true;
+		if (this.micrio.hasAttribute('data-limited') && c.canvas) c.canvas._limited = true;
 
-		canvas.sendViewport();
+		canvas._sendViewport();
 
 		if (this._numTiles > 0) this.#registerBaseTile(this._numTiles - 1);
 
@@ -445,7 +445,7 @@ export class Engine {
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
 			if (!entry) return;
-			if (entry.canvas.hasParent) return;
+			if (entry.canvas._hasParent) return;
 
 
 			const pitch = canvas.is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas._camera360.pitch : 0;
@@ -453,10 +453,10 @@ export class Engine {
 
 			if (canvas.is360 && !this._preventDirectionSet) {
 				const reversedYaw = ((this._direction + 0.5) % 1) * Math.PI * 2;
-				entry.canvas.setDirection(reversedYaw - canvas.camera.rotationY, pitch, true);
+				entry.canvas._setDirection(reversedYaw - canvas.camera.rotationY, pitch, true);
 			}
 
-			if (entry.canvas.targetOpacity === 0) entry.canvas.fadeIn();
+			if (entry.canvas._targetOpacity === 0) entry.canvas._fadeIn();
 
 			if (canvas.$settings.omni?.layerStartIndex) canvas.state.layer.set(canvas.$settings.omni.layerStartIndex);
 			this._preventDirectionSet = false;
@@ -486,7 +486,7 @@ export class Engine {
 		this.#raf = -1;
 		this.#drawing = false;
 
-		if (this.shouldDraw(now)
+		if (this._shouldDraw(now)
 			|| this.micrio.keepRendering
 			|| this.micrio.events.isNavigating
 			|| this.micrio.$current?._video?.paused === false) {
@@ -495,7 +495,7 @@ export class Engine {
 
 		if (this.#isGallery) this.#drawStart();
 		this.#drawnSet.clear();
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].draw();
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._draw();
 
 		this.micrio.events.dispatch('draw');
 
@@ -504,13 +504,13 @@ export class Engine {
 		this.micrio.webgl.drawEnd();
 	}
 
-	shouldDraw(now: number): boolean {
+	_shouldDraw(now: number): boolean {
 		this._frameTime = 1000 / Math.min(33, now - this.now);
 		this.now = now;
 		this._doneTotal = 0;
 		this._toDrawTotal = 0;
 		this._animating = false;
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].shouldDraw();
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._shouldDraw();
 		return this._animating || this._progress < 1;
 	}
 
@@ -701,10 +701,10 @@ export class Engine {
 					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
 				};
 			}
-			canvas = parentEntry.canvas.addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
-			canvas.micrioImage = image;
+			canvas = parentEntry.canvas._addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
+			canvas._micrioImage = image;
 		} else {
-			const engImage = parentEntry.canvas.addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, fromScale ?? 0);
+			const engImage = parentEntry.canvas._addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, fromScale ?? 0);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
 			image.placed = true;
@@ -724,9 +724,9 @@ export class Engine {
 			if (focus) (canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);
 			const v = (image.$info as any)['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
-			else if (canvas.hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
+			else if (canvas._hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
 
-			canvas.sendViewport();
+			canvas._sendViewport();
 		}
 
 		image.baseTileIdx = this._numTiles - 1;
@@ -748,7 +748,7 @@ export class Engine {
 		const c = entry?.canvas;
 		if (!c) return;
 		if (entry.camera) {
-			c.targetOpacity = opacity;
+			c._targetOpacity = opacity;
 		} else {
 			const images = c.images;
 			for (let i = 0; i < images.length; i++) {

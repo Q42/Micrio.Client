@@ -10,7 +10,7 @@ import { Vec4, Mat4 } from './mat'
 import { segsX, segsY } from './constants'
 import { longitudeDistance } from './easing';
 import EngineCamera from './engine-camera';
-import type { default as TileCanvas } from './tile-canvas';
+import type { TileCanvas } from './tile-canvas';
 
 /** Handles 360 camera logic, perspective, and related calculations. @internal */
 export default class Camera360 extends EngineCamera {
@@ -55,7 +55,7 @@ export default class Camera360 extends EngineCamera {
 		canvas: TileCanvas
 	) {
 		super(canvas);
-		this.baseYaw = -this.canvas.rotationY;
+		this.baseYaw = -this.canvas._rotationY;
 		this.offX = this.baseYaw / (Math.PI * 2);
 
 		this.#scaleY = this.canvas.height / (this.canvas.width / 2);
@@ -107,7 +107,7 @@ export default class Camera360 extends EngineCamera {
 
 		this.yaw = modPI(this.yaw);
 
-		if (c.coverLimit || this.#limitY > 0) this.#limitPitch();
+		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 		if (this.#limitX > 0) this.#limitYaw();
 
 		if (duration === 0) c._kinetic.addStep(xPx * 2, yPx * 2);
@@ -144,7 +144,7 @@ export default class Camera360 extends EngineCamera {
 		if (dur !== 0) {
 			dur = c._ani.zoom(factor, dur, speed, noLimit);
 		} else {
-			factor /= this.scale * c.diagonal / 20;
+			factor /= this.scale * c._diagonal / 20;
 
 			const hasCursor: boolean = pxX > 0 && pxY > 0;
 			let beforeX: number = 0, beforeY: number = 0;
@@ -167,7 +167,7 @@ export default class Camera360 extends EngineCamera {
 				this.pitch += dy * Math.PI * this.#scaleY;
 
 				this.yaw = modPI(this.yaw);
-				if (c.coverLimit || this.#limitY > 0) this.#limitPitch();
+				if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 				if (this.#limitX > 0) this.#limitYaw();
 
 				this.update();
@@ -186,7 +186,7 @@ export default class Camera360 extends EngineCamera {
 		if (!noLimit || c.is360) {
 			this.perspective = Math.min(this.maxPerspective, Math.max(this.minPerspective, this.perspective));
 		}
-		if (c.coverLimit || this.#limitY > 0) this.#limitPitch();
+		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 		if (this.#limitX > 0) this.#limitYaw();
 		this.pMatrix.perspective(this.perspective, c.el.aspect, 0.0001, 20);
 		this.readScale();

@@ -8,7 +8,7 @@
 import { DrawRect } from './shared';
 import { twoNth, mod1 } from '$utils/math';
 import { Vec4, Mat4 } from './mat';
-import type { default as TileCanvas } from './tile-canvas';
+import type { TileCanvas } from './tile-canvas';
 
 /** Represents a single resolution layer within an Image. @internal */
 class Layer {
@@ -236,7 +236,7 @@ export default class Image {
 	shouldRender(): boolean {
 		if (this.#fromScale > 0 && this.#fromScale > this.#canvas.camera.scale) return false;
 		if ((this.isVideo || this.localIdx > 0) && this.opacity === 0 && this.tOpacity === 0) return false;
-		if (this.index === this.#canvas.activeImageIdx || (this.#canvas.is360 && this.localIdx === 0)) return true;
+		if (this.index === this.#canvas._activeImageIdx || (this.#canvas.is360 && this.localIdx === 0)) return true;
 		return !this.#outsideView();
 	}
 
@@ -304,7 +304,7 @@ export default class Image {
 		}
 
 		d.sort((a, b) => b - a);
-		for (const t of d) c.toDraw.push(t);
+		for (const t of d) c._toDraw.push(t);
 		d.length = 0;
 
 		return this.#doneTotal;
@@ -312,8 +312,8 @@ export default class Image {
 
 	/** Calculates the target layer index based on the current scale. */
 	#getTargetLayer(scale: number): number {
-		let l: number = this.#isSingle || this.#canvas.limited ? this.#numLayers : 1 + this.#canvas.main._skipBaseLevels;
-		if (!this.#isSingle && !this.#canvas.limited) {
+		let l: number = this.#isSingle || this.#canvas._limited ? this.#numLayers : 1 + this.#canvas.main._skipBaseLevels;
+		if (!this.#isSingle && !this.#canvas._limited) {
 			for (; l < this.#numLayers; l++) {
 				if (twoNth(l) * scale >= 1) break;
 			}
@@ -415,7 +415,7 @@ export default class Image {
 
 		if (this.#canvas.main.setTileOpacity(i, i === this.endOffset - 1, this.#canvas.opacity) >= 1) {
 			this.#doneTotal++;
-		} else if (!this.#isSingle && !this.#canvas.limited && l.index < this.#numLayers - 1) {
+		} else if (!this.#isSingle && !this.#canvas._limited && l.index < this.#numLayers - 1) {
 			this.#setToDraw(this.layers[l.index + 1], x >> 1, y >> 1);
 		}
 	}

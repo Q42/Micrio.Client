@@ -118,7 +118,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
-			this.#parentImage.canvas?.setActiveImage(imgIdx, num);
+			this.#parentImage.canvas?._setActiveImage(imgIdx, num);
 			if (num > 0) {
 				this.#parentImage.camera.setView([0, 0, 1, 1]);
 			} else {
@@ -314,7 +314,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			}));
 			const pageImages = this.#pageToImages[pageIdx];
 			const num = (pageImages?.length ?? 1) - 1;
-			parent.canvas?.setActiveImage(pageImages[0], num);
+			parent.canvas?._setActiveImage(pageImages[0], num);
 			if (num > 0) {
 				parent.camera.setView([0, 0, 1, 1]);
 			} else {

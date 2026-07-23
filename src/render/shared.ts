@@ -4,7 +4,7 @@
  * @internal
  */
 
-import type { default as TileCanvas } from './tile-canvas';
+import type { TileCanvas } from './tile-canvas';
 import type { default as Image } from './tile-image';
 import { mod1 } from '$utils/math';
 

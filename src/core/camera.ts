@@ -1,6 +1,6 @@
 import type { MicrioImage } from './image';
 import type { Models } from '$types/models';
-import type TileCanvas from '$render/tile-canvas';
+import type { TileCanvas } from '$render/tile-canvas';
 
 import { tick } from '$core/store';
 import { mod, toCenterJSON } from '$utils/math';
@@ -183,15 +183,15 @@ export class Camera {
 
 	getMinScale = (): number => this.#canvas?.camera.minScale ?? 0.1;
 
-	setMinScale(s: number): void { this.#canvas?.setMinScale(s); }
+	setMinScale(s: number): void { this.#canvas?._setMinScale(s); }
 
 	setMinScreenSize(s: number): void { if (!this.#image.album && this.#canvas) this.#canvas.camera.minSize = Math.max(0, Math.min(1, s)); }
 
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn = (): boolean => !!(this.#canvas?.isZoomedIn());
+	isZoomedIn = (): boolean => !!(this.#canvas?._isZoomedIn());
 
 	/** Checks if the camera is fully zoomed out. */
-	isZoomedOut = (full = false): boolean => !!(this.#canvas?.isZoomedOut(full));
+	isZoomedOut = (full = false): boolean => !!(this.#canvas?._isZoomedOut(full));
 
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
 	getDirection = (): number => this.#canvas?._camera360.yaw ?? 0;
@@ -200,7 +200,7 @@ export class Camera {
 
 	setDirection(yaw: number, pitch?: number): void {
 		if (!this.#canvas) return;
-		this.#canvas.setDirection(yaw, pitch ?? this.#canvas._camera360.pitch);
+		this.#canvas._setDirection(yaw, pitch ?? this.#canvas._camera360.pitch);
 		this.#image.engine.render();
 	}
 
@@ -223,11 +223,11 @@ export class Camera {
 	 */
 	setCoverLimit(b: boolean): void {
 		if (!this.#canvas) return;
-		this.#canvas.coverLimit = !!b;
-		this.#canvas.correctMinMax();
+		this.#canvas._coverLimit = !!b;
+		this.#canvas._correctMinMax();
 	}
 
-	getCoverLimit = (): boolean => !!(this.#canvas?.coverLimit);
+	getCoverLimit = (): boolean => !!(this.#canvas?._coverLimit);
 
 	set360RangeLimit(xPerc = 0, yPerc = 0): void {
 		if (!this.#canvas) return;
@@ -259,7 +259,7 @@ export class Camera {
 	 * @returns The resulting 4x4 matrix as a Float32Array.
 	 */
 	getMatrix(x: number, y: number, scale?: number, radius?: number, rotX?: number, rotY?: number, rotZ?: number, transY?: number, scaleX?: number, scaleY?: number, noCorrectNorth?: boolean): Float32Array {
-		return this.#canvas?.getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
+		return this.#canvas?._getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
 	}
 
 	/**
@@ -276,7 +276,7 @@ export class Camera {
 				if (img.localIdx > 0) { img.setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
 			}
 		} else {
-			this.#canvas.setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], !!opts.direct, !!opts.noDispatch);
+			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], !!opts.direct, !!opts.noDispatch);
 		}
 		if (!opts.noRender) this.#image.engine.render();
 	}

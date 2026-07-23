@@ -6,7 +6,7 @@
 
 import { Bicubic, easeInOut, longitudeDistance } from './easing'
 import { View } from './shared'
-import type { default as TileCanvas } from './tile-canvas';
+import type { TileCanvas } from './tile-canvas';
 
 /** Manages camera and view animations (fly-to, zoom). @internal */
 export default class Ani {
@@ -203,7 +203,7 @@ export default class Ani {
 
 		if (correct) t.limit(true, !limitViewport);
 
-		const resoFact = Math.max(10000, Math.min(15000, c.diagonal / 2));
+		const resoFact = Math.max(10000, Math.min(15000, c._diagonal / 2));
 		let dCenterX = Math.abs(fromCenterX - toCenterX);
 		if (c.is360) dCenterX = Math.min(dCenterX, 1 - dCenterX);
 		const dCenterY = Math.abs(fromCenterY - toCenterY);
@@ -215,10 +215,10 @@ export default class Ani {
 		const dst = (dCenterX + dCenterY + dWidth * zoomWeight + dHeight * zoomWeight) / 3;
 		this.#mI = Math.max(.5, .8 - dst * (c.is360 ? 1 : 2));
 		this.#mO = Math.max(.05, Math.min(.9, dst - (c.is360 ? .2 : .1)));
-		this.#duration = dur < 0 ? (dst * resoFact / c.camSpeed * durFact) / (speed <= 0 ? 1 : speed) : dur;
+		this.#duration = dur < 0 ? (dst * resoFact / c._camSpeed * durFact) / (speed <= 0 ? 1 : speed) : dur;
 
-		const numPerLayer = c.images.length / c.omniNumLayers;
-		this.#omniStartIdx = c.activeImageIdx;
+		const numPerLayer = c.images.length / c._omniNumLayers;
+		this.#omniStartIdx = c._activeImageIdx;
 		this.#omniDelta = 0;
 		if (!isNaN(omniIdx) && omniIdx > 0 && omniIdx !== this.#omniStartIdx) {
 			this.#omniDelta = omniIdx - this.#omniStartIdx;
@@ -268,7 +268,7 @@ export default class Ani {
 		const webgl = c._camera360;
 
 		this.#zFrom = webgl.perspective;
-		this.#zTo = this.#zFrom + (to / (webgl.scale * c.diagonal / 20));
+		this.#zTo = this.#zFrom + (to / (webgl.scale * c._diagonal / 20));
 		if (!noLimit) this.#zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.#zTo));
 
 		this.#started = performance.now();
@@ -314,10 +314,10 @@ export default class Ani {
 
 				if (this.#omniDelta) {
 					let idx = this.#omniStartIdx + Math.trunc(this.#omniDelta * this.#fn.get(Math.min(1, p * 1.5)));
-					const numPerLayer = this.#canvas.images.length / this.#canvas.omniNumLayers;
+					const numPerLayer = this.#canvas.images.length / this.#canvas._omniNumLayers;
 					if (idx < 0) idx += numPerLayer;
 					if (idx >= numPerLayer) idx -= numPerLayer;
-					this.#canvas.setActiveImage(idx, 0);
+					this.#canvas._setActiveImage(idx, 0);
 				}
 			}
 

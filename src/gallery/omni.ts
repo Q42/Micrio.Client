@@ -33,7 +33,7 @@ export class OmniUI {
 
 	goto(i:number):void { this.#goto(i); }
 
-	get currentIndex():number { return this.#image.canvas?.activeImageIdx ?? -1; }
+	get currentIndex():number { return this.#image.canvas?._activeImageIdx ?? -1; }
 
 	constructor(
 		micrio:HTMLMicrioElement,
@@ -93,7 +93,7 @@ export class OmniUI {
 			).catch(() => {});
 		}
 
-		image.canvas?.setActiveImage(0, 0);
+		image.canvas?._setActiveImage(0, 0);
 		engine.render();
 
 		const hasArchive = !!image.$settings.gallery?.archive;
@@ -123,7 +123,7 @@ export class OmniUI {
 		this.#goto = (idx: number) => {
 			while (idx < 0) idx += pagesPerLayer;
 			idx %= pagesPerLayer;
-			image.canvas?.setActiveImage(idx, 0);
+			image.canvas?._setActiveImage(idx, 0);
 			dial.setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 });
 			preload(idx);
 			engine.render();

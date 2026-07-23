@@ -177,7 +177,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				break;
 			case 'data-limited':
 				if(this.engine?._vertexBuffer && this.$current?.canvas)
-					this.$current.canvas.limited = !!newVal;
+					this.$current.canvas._limited = !!newVal;
 				break;
 			case 'lang': {
 			let prevLang = get(this._lang);
