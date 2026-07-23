@@ -19,8 +19,6 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#_ctx: CanvasRenderingContext2D | null = null;
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;
-	#autoHide = false;
-	#is360 = false;
 
 	onMount() {
 		const { image } = this.#props;
@@ -31,11 +29,6 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		if (!info) return;
 		const camera = image.camera;
 		const settings = image.$settings;
-
-		this.#autoHide = !settings.alwaysShowMinimap;
-		this.#is360 = !!info.is360;
-		
-		const checkHidden = () => !this.#is360 && !this.#autoHide && camera.isZoomedOut();
 
 		const maxWidth = settings.minimapWidth ?? 200;
 		const maxHeight = settings.minimapHeight ?? 160;
@@ -48,7 +41,6 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		const draw = (area: Models.Camera.View | undefined) => {
 			if (!area || !this.#_ctx) return;
-			this.#_canvas.classList.toggle('hidden', checkHidden());
 			const ctx = this.#_ctx;
 			ctx.clearRect(0, 0, width, height);
 
@@ -137,6 +129,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		// Create canvas
 		this.#_canvas = createElement('canvas', {
 			props: { width, height },
+			className: settings.alwaysShowMinimap ? 'fixed' : undefined,
 			events: { mousedown: dStart as EventListener },
 			parent: this
 		});

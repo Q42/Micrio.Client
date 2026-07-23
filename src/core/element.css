@@ -138,7 +138,8 @@ micr-io[data-hooked][data-can-pan]>canvas.micrio {
 micr-io[data-tour-active][data-idle] :is(micrio-logo a,micrio-logo-org a,micrio-tour > aside),
 micr-io[data-idle] :is(micrio-grid .close, micrio-media figure.videotour, micrio-serial-tour ol),
 micr-io:is([data-switching],[data-tour-active]) micrio-controls aside,
-micr-io:is([data-idle],[data-switching],[data-tour-active]) micrio-minimap canvas:not(:hover), micrio-minimap canvas:not(:hover).hidden,
+micr-io:is([data-idle],[data-switching],[data-tour-active]) micrio-minimap canvas:not(:hover),
+micr-io:not([data-zoomed]) micrio-minimap canvas:not(.fixed),
 micr-io:is([data-zoomed],[data-idle])  micrio-gallery :is(ul, micrio-button > button),
 micr-io[data-zoomed] micrio-details details,
 micrio-gallery > micrio-button > button:disabled {

@@ -13,12 +13,11 @@ micrio-minimap canvas {
 	border-radius: var(--micrio-border-radius);
 }
 micrio-main:has(> micrio-controls) > micrio-minimap > canvas {
-	right: calc(var(--micrio-border-margin) + var(--micrio-button-size) + 8px);
+	right: calc(2 * var(--micrio-border-margin) + var(--micrio-button-size));
 }
 @media (max-width: 800px) {
 	micrio-minimap canvas {
-		transform: scale3d(.5, .5, 1);
+		transform: scale3d(.5, .5, 1) !important;
 		pointer-events: none;
-		right: 65px;
 	}
 }
