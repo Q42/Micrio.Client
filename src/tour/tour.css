@@ -17,7 +17,7 @@ micrio-tour > aside {
 	z-index: 5;
 }
 micr-io[data-tour-active][data-idle] micrio-tour > aside {
-	transform: translate(-50%,calc(100% + var(--micrio-border-margin)));
+	transform: translate(-50%,100%);
 }
 
 micrio-tour > aside > micrio-button {

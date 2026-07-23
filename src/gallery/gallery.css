@@ -7,9 +7,11 @@ micrio-gallery > micrio-button > button {
 }
 micrio-gallery > micrio-button.prev > button {
 	left: var(--micrio-border-margin);
+	--micrio-hide: translate(-100%,-50%);
 }
 micrio-gallery > micrio-button.next > button {
 	right: var(--micrio-border-margin);
+	--micrio-hide: translate(100%,-50%);
 }
 micrio-gallery ul {
 	position: absolute;
@@ -32,6 +34,7 @@ micrio-gallery ul {
 	width: 520px;
 	touch-action: none;
 	cursor: pointer;
+	--micrio-hide: translate(-50%,100%);
 }
 @media (max-width: 500px) {
 	micrio-gallery ul {
@@ -183,24 +186,11 @@ micrio-gallery ul > button + span.dragging {
 	transition: none;
 	transform: translateX(-50%) scale(1.05);
 }
-micr-io[data-idle] micrio-gallery :is(ul, > micrio-button > button),
+micr-io[data-idle] micrio-gallery :is(ul, micrio-button > button),
 micrio-gallery > micrio-button > button:disabled {
 	opacity: 0;
 	pointer-events: none;
-}
-micr-io[data-idle] micrio-gallery ul {
-	transform: translate(-50%,calc(100% + var(--micrio-border-margin)));
-}
-@media (max-width: 500px) {
-	micr-io[data-idle] micrio-gallery ul {
-		transform: translateY(calc(100% + var(--micrio-border-margin)));
-	}
-}
-micr-io[data-idle] micrio-gallery > micrio-button.prev > button {
-	transform: translate(calc(-100% - var(--micrio-border-margin)),-50%);
-}
-micr-io[data-idle] micrio-gallery > micrio-button.next > button {
-	transform: translate(calc(100% + var(--micrio-border-margin)),-50%);
+	transform: var(--micrio-hide, none);
 }
 micrio-gallery > micrio-button > button:is(:hover, :focus) {
 	position: absolute !important;

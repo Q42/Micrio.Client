@@ -51,7 +51,7 @@ micrio-media figure.videotour {
 	transition: transform .25s ease,opacity .25s ease;
 }
 micr-io[data-idle] micrio-media figure.videotour {
-	transform: translate(-50%,calc(100% + var(--micrio-border-margin)));
+	transform: translate(-50%,100%);
 }
 micrio-media figure.hidden {
 	display: none!important;
