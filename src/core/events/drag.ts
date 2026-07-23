@@ -39,7 +39,7 @@ export class DragHandler {
 	 * @param e The PointerEvent.
 	 * @param force If true, forces drag start even if target isn't the canvas.
 	 */
-	start = (e: PointerEvent, force = false): void => {
+	start = (e: PointerEvent, force = false, keepAnimations = false): void => {
 		// Ignore non-primary buttons or touch events if twoFingerPan is enabled
 		if (e.button != 0 || (e.pointerType == 'touch' && this.#ctx.twoFingerPan)) return;
 
@@ -75,7 +75,7 @@ export class DragHandler {
 
 		this.#ctx.micrio.setAttribute('data-panning', '');
 		img.canvas?._kinetic.stop();
-		img.camera.stop();
+		if (!keepAnimations) img.camera.stop();
 		this.#ctx.micrio.engine.render();
 		this.#ctx.dispatch('panstart');
 	}

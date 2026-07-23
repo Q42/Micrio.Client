@@ -63,6 +63,6 @@ export function restartPanning(ctx: EventContext, dragHandler: DragHandler, poin
 				pointerId: remaining[0]
 			} as unknown as PointerEvent;
 		}
-		dragHandler.start(syntheticEvent, true);
+		dragHandler.start(syntheticEvent, true, true);
 	}
 }
