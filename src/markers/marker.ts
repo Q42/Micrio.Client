@@ -144,8 +144,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				const opts: any = { area: image.opts?.area };
 				if (image.isOmni) opts.omniIndex = this.#omniIndex;
 				image.camera.flyToView(marker.view, opts).then(openContent).catch(() => {
-					image.openedView = undefined;
-					image.state.marker.set(undefined);
+					if (image.state.$marker === marker) {
+						image.openedView = undefined;
+						image.state.marker.set(undefined);
+					}
 				});
 			} else {
 				openContent();
@@ -154,7 +156,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		const openContent = async () => {
 			if (cluster) return;
-			if (image.state.$marker != marker) return image.state.marker.set(marker);
+			if (image.state.$marker != marker) {
+				if (!image.state.$marker) return;
+				return image.state.marker.set(marker);
+			}
 			if (markerSettings.noMarkerActions) return;
 
 			const $tour = get(micrio.state.tour);
@@ -195,11 +200,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			else if (m && m != marker) {
 				if (this.#opened) close();
 				this.#opened = false;
+				image.camera.stop();
 			}
 			else if (!m && !data.alwaysOpen) {
 				if (this.#opened) close();
 				else this.classList.remove('opened');
 				this.#opened = false;
+				image.camera.stop();
 			}
 		}));
 
