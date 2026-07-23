@@ -465,14 +465,14 @@ export class MicrioImage {
 	/** Fades in the image smoothly or instantly. */
 	fadeIn(direct:boolean=false) : void {
 		const c = this.canvas;
-		if (c) { c._targetOpacity = 1; if (direct) c.opacity = 1; }
+		if (c) { c._targetOpacity = 1; if (direct) c._opacity = 1; }
 		this.#engine.render();
 	}
 
 	/** Fades out the image smoothly or instantly. */
 	fadeOut(direct:boolean=false) : void {
 		const c = this.canvas;
-		if (c) { c._targetOpacity = 0; if (direct) c.opacity = 0; }
+		if (c) { c._targetOpacity = 0; if (direct) c._opacity = 0; }
 		this.#engine.render();
 	}
 

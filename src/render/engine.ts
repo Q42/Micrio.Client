@@ -753,8 +753,8 @@ export class Engine {
 			const images = c.images;
 			for (let i = 0; i < images.length; i++) {
 				const im = images[i];
-				if (im.localIdx > 0) {
-					im.tOpacity = opacity;
+				if (im._localIdx > 0) {
+					im._tOpacity = opacity;
 					if (direct) im.opacity = opacity;
 				}
 			}
@@ -768,7 +768,7 @@ export class Engine {
 
 	setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
 		const engImage = this.#micrioToEngImage.get(img);
-		if (engImage) engImage.isVideoPlaying = playing;
+		if (engImage) engImage._isVideoPlaying = playing;
 	}
 
 	/** Resets all canvases. @internal */

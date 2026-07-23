@@ -58,7 +58,7 @@ export async function transition(
 		: trans.endsWith('-left') ? 270
 		: 90;
 
-	if(isSlwipe || isBehind) { const c = target.canvas; if (c) { c._targetOpacity = .9999; c.opacity = .9999; } }
+	if(isSlwipe || isBehind) { const c = target.canvas; if (c) { c._targetOpacity = .9999; c._opacity = .9999; } }
 
 	if(trans.startsWith('slide')) {
 		target.camera.setArea(slideAreas[transDir!], {noDispatch: true, direct: true});

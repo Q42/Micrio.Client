@@ -273,7 +273,7 @@ export class Camera {
 		this.#image.opts.area = v;
 		if (this.#image.opts.isEmbed && this.#image.placed) {
 			for (const img of this.#canvas.images) {
-				if (img.localIdx > 0) { img.setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
+				if (img._localIdx > 0) { img._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
 			}
 		} else {
 			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], !!opts.direct, !!opts.noDispatch);
@@ -285,7 +285,7 @@ export class Camera {
 	setRotation(rotX = 0, rotY = 0, rotZ = 0): void {
 		if (!this.#image.opts.isEmbed || !this.#canvas || !this.#image.engine.ready) return;
 		for (const img of this.#canvas.images) {
-			if (img.localIdx > 0) { img.rotX = rotX; img.rotY = rotY; img.rotZ = rotZ; break; }
+			if (img._localIdx > 0) { img._rotX = rotX; img._rotY = rotY; img._rotZ = rotZ; break; }
 		}
 		this.#image.engine.render();
 	}

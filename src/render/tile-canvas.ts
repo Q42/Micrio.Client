@@ -64,7 +64,7 @@ export class TileCanvas {
 
 	#isVisible: boolean = false;
 
-	opacity: number = 0;
+	_opacity: number = 0;
 	#bOpacity: number = 0;
 
 	#isReady: boolean = false;
@@ -182,7 +182,7 @@ export class TileCanvas {
 		else {
 			this.main._numImages++;
 			this.#bOpacity = 1;
-			this.opacity = 1;
+			this._opacity = 1;
 			this.#isReady = true;
 			if (omniStartLayer > 0) this._setActiveLayer(omniStartLayer);
 		}
@@ -211,9 +211,9 @@ export class TileCanvas {
 			isSingle, isDeepZoom, isVideo,
 			this.main._numTiles,
 			opa, opa, rotX, rotY, rotZ, scale, fromScale);
-		image.setArea(x0, y0, x1, y1);
+		image._setArea(x0, y0, x1, y1);
 		this.images.push(image);
-		this.main._numTiles = image.endOffset;
+		this.main._numTiles = image._endOffset;
 		if (this.images.length === 1) this._setActiveImage(0);
 		return image;
 	}
@@ -257,12 +257,12 @@ export class TileCanvas {
 			? this.main._spacesTransitionDuration
 			: this.main._canvases.length === 1 ? .25 : this.main._crossfadeDuration;
 		const delta: number = (1 / fadeDuration) / this.main._frameTime;
-		const fadingIn: boolean = this._targetOpacity > 0 && this._targetOpacity >= this.opacity;
-		this.opacity = fadingIn ? Math.min(1, this.opacity + delta) : Math.max(0, this.opacity - delta);
-		this.#bOpacity = easeInOut.get(this.opacity);
+		const fadingIn: boolean = this._targetOpacity > 0 && this._targetOpacity >= this._opacity;
+		this._opacity = fadingIn ? Math.min(1, this._opacity + delta) : Math.max(0, this._opacity - delta);
+		this.#bOpacity = easeInOut.get(this._opacity);
 
 		if (this.main._distanceX !== 0 || this.main._distanceY !== 0) {
-			const fact: number = this.opacity === 0 ? 0 : easeInOut.get(1 - this.opacity) * (fadingIn ? 1 : -1);
+			const fact: number = this._opacity === 0 ? 0 : easeInOut.get(1 - this._opacity) * (fadingIn ? 1 : -1);
 			this._camera360._moveTo(
 				this.main._distanceX * fact * base360Distance,
 				this.main._distanceY * fact * base360Distance,
@@ -299,7 +299,7 @@ export class TileCanvas {
 
 	/** Checks if the canvas is effectively hidden. */
 	#isHidden(): boolean {
-		return (this._targetOpacity === 0 && this.opacity === 0)
+		return (this._targetOpacity === 0 && this._opacity === 0)
 			|| (this.#currentArea.width === 0 || this.#currentArea.height === 0);
 	}
 
@@ -322,11 +322,11 @@ export class TileCanvas {
 			return;
 		}
 
-		if (!this.#isVisible && this.opacity >= 1) this.#setCanvasVisible(true);
+		if (!this.#isVisible && this._opacity >= 1) this.#setCanvasVisible(true);
 
 		this._camera360._calculate3DFrustum();
 
-		if (this.#isReady && this.opacity !== this._targetOpacity) {
+		if (this.#isReady && this._opacity !== this._targetOpacity) {
 			this.#stepOpacity();
 			animating = true;
 		}
@@ -337,14 +337,14 @@ export class TileCanvas {
 
 		for (let i = 0; i < this.images.length; i++) {
 			const image = this.images[i];
-			if (!image.shouldRender()) {
-				if (image.doRender) m.setImageVisible(image, image.doRender = false);
+			if (!image._shouldRender()) {
+				if (image._doRender) m.setImageVisible(image, image._doRender = false);
 			}
 			else {
-				if (i > 0 && !image.doRender) m.setImageVisible(image, image.doRender = true);
-				if (image.isVideo && image.isVideoPlaying) animating = true;
-				if (image.opacityTick(this.#isGallerySwitch || this.opacity < 1)) animating = true;
-				if (image.opacity > 0) m._doneTotal += image.getTiles(scale);
+				if (i > 0 && !image._doRender) m.setImageVisible(image, image._doRender = true);
+				if (image._isVideo && image._isVideoPlaying) animating = true;
+				if (image._opacityTick(this.#isGallerySwitch || this._opacity < 1)) animating = true;
+				if (image.opacity > 0) m._doneTotal += image._getTiles(scale);
 			}
 		}
 
@@ -360,7 +360,7 @@ export class TileCanvas {
 
 	/** Executes the drawing commands for the current frame for this canvas. */
 	_draw(): void {
-		if (this._targetOpacity === 0 && this.opacity === 0) return;
+		if (this._targetOpacity === 0 && this._opacity === 0) return;
 
 		const m = this.main;
 		const gl = m.micrio.webgl;
@@ -376,8 +376,8 @@ export class TileCanvas {
 		if (this.#pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
 			if (!(im.x1 <= v.x0 || im.x0 >= v.x1 || im.y1 <= v.y0 || im.y0 >= v.y1)) {
-				this.#setTile(im.endOffset - 1);
-				gl.drawTile(undefined, im.tOpacity);
+				this.#setTile(im._endOffset - 1);
+				gl.drawTile(undefined, im._tOpacity);
 			}
 		}
 
@@ -386,14 +386,14 @@ export class TileCanvas {
 			const i: number = this._toDraw[j];
 			this.#setTile(i);
 
-			const isTargetLayer = r.layer === r.image.targetLayer - 1 || (!m._bareBone && r.layer === r.image.targetLayer);
-			const isBaseTile = i === r.image.endOffset - 1;
+			const isTargetLayer = r.layer === r.image._targetLayer - 1 || (!m._bareBone && r.layer === r.image._targetLayer);
+			const isBaseTile = i === r.image._endOffset - 1;
 			const opa = m.getTileOpacity(i);
 
-			if ((isTargetLayer || opa === 1 || isBaseTile) && m.drawTile(r.image.index, i, r.layer,
-				r.x, r.y, opa * this.#bOpacity * r.image.opacity, animating, r.layer === r.image.targetLayer - 1)
+			if ((isTargetLayer || opa === 1 || isBaseTile) && m.drawTile(r.image._index, i, r.layer,
+				r.x, r.y, opa * this.#bOpacity * r.image.opacity, animating, r.layer === r.image._targetLayer - 1)
 				&& isBaseTile) {
-				r.image.gotBase = m.now;
+				r.image._gotBase = m.now;
 				if (!this.#isReady) this._fadeIn();
 			}
 		}
@@ -458,7 +458,7 @@ export class TileCanvas {
 		this.visible.set(visCenterX, visCenterY, visWidth, visHeight);
 
 		const ratio = hP ? 1 : c.ratio;
-		const fadingOut = this._targetOpacity < this.opacity;
+		const fadingOut = this._targetOpacity < this._opacity;
 		if (!fadingOut && this.el.set(
 			a.width * s * pW,
 			a.height * s * pH,
@@ -502,8 +502,8 @@ export class TileCanvas {
 	#setTile(i: number): void {
 		const r = this.#rect; this.#findTileRect(i);
 		if (this.is360) {
-			if (r.image.localIdx === 0) this._camera360._setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
-			else r.image.setDrawRect(r);
+			if (r.image._localIdx === 0) this._camera360._setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+			else r.image._setDrawRect(r);
 		}
 		else {
 			const v = this.main._vertexBuffer, a = this.aspect;
@@ -523,11 +523,11 @@ export class TileCanvas {
 
 	/** Finds the Image, Layer, and calculates the DrawRect for a given global tile index. */
 	#findTileRect(i: number): void {
-		let img = 0; while (i >= this.images[img].endOffset) img++;
+		let img = 0; while (i >= this.images[img]._endOffset) img++;
 		const image = this.images[img];
 
-		let l = 0; while (i >= image.layers[l].end) l++;
-		const layer = image.layers[l];
+		let l = 0; while (i >= image._layers[l]._end) l++;
+		const layer = image._layers[l];
 
 		layer.getTileRect(i, this.#rect);
 	}
@@ -555,7 +555,7 @@ export class TileCanvas {
 		this._ani.stop();
 		if (this.images.length > 0) {
 			const mainImage = this.images[0];
-			mainImage.gotBase = 0;
+			mainImage._gotBase = 0;
 			mainImage.opacity = 0;
 		}
 	}
@@ -579,9 +579,9 @@ export class TileCanvas {
 		for (let i = 0; i < this.images.length; i++) {
 			const im = this.images[i];
 			const diff = i - offset - idx;
-			if (diff !== 0) im.tOpacity = diff >= 0 && diff <= num ? 1 : 0;
+			if (diff !== 0) im._tOpacity = diff >= 0 && diff <= num ? 1 : 0;
 			else {
-				im.tOpacity = 1;
+				im._tOpacity = 1;
 				this._activeImageIdx = idx;
 				this.view.changed = true;
 			}

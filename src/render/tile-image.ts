@@ -12,35 +12,50 @@ import type { TileCanvas } from './tile-canvas';
 
 /** Represents a single resolution layer within an Image. @internal */
 class Layer {
-	readonly tileWidth: number;
-	readonly tileHeight: number;
+	readonly _tileWidth: number;
+	readonly _tileHeight: number;
+
+	readonly #image: Image;
+	readonly _index: number;
+	readonly _start: number;
+	readonly _end: number;
+	readonly #tileSize: number;
+	readonly _cols: number;
+	readonly _rows: number;
 
 	constructor(
-		readonly image: Image,
-		readonly index: number,
-		readonly start: number,
-		readonly end: number,
-		readonly tileSize: number,
-		readonly cols: number,
-		readonly rows: number
+		image: Image,
+		index: number,
+		start: number,
+		end: number,
+		tileSize: number,
+		cols: number,
+		rows: number
 	) {
-		this.tileWidth = tileSize / image.width;
-		this.tileHeight = tileSize / image.height;
+		this.#image = image;
+		this._index = index;
+		this._start = start;
+		this._end = end;
+		this.#tileSize = tileSize;
+		this._cols = cols;
+		this._rows = rows;
+		this._tileWidth = tileSize / image.width;
+		this._tileHeight = tileSize / image.height;
 	}
 
 	getTileRect(idx: number, r: DrawRect): DrawRect {
-		const localIdx = idx - this.start;
-		const x = localIdx % this.cols;
-		const y = Math.floor(localIdx / this.cols);
-		const i = this.image;
+		const localIdx = idx - this._start;
+		const x = localIdx % this._cols;
+		const y = Math.floor(localIdx / this._cols);
+		const i = this.#image;
 
-		r.x0 = i.x0 + ((x * this.tileSize) / i.width) * i.rWidth;
-		r.y0 = i.y0 + ((y * this.tileSize) / i.height) * i.rHeight;
-		r.x1 = i.x0 + Math.min((x + 1) * this.tileSize / i.width, 1) * i.rWidth;
-		r.y1 = i.y0 + Math.min((y + 1) * this.tileSize / i.height, 1) * i.rHeight;
+		r.x0 = i.x0 + ((x * this.#tileSize) / i.width) * i._rWidth;
+		r.y0 = i.y0 + ((y * this.#tileSize) / i.height) * i._rHeight;
+		r.x1 = i.x0 + Math.min((x + 1) * this.#tileSize / i.width, 1) * i._rWidth;
+		r.y1 = i.y0 + Math.min((y + 1) * this.#tileSize / i.height, 1) * i._rHeight;
 
 		r.image = i;
-		r.layer = this.index;
+		r.layer = this._index;
 		r.x = x;
 		r.y = y;
 
@@ -58,16 +73,16 @@ export default class Image {
 	readonly #mat: Mat4 = new Mat4;
 
 	#rScale: number = 0;
-	readonly layers: Layer[] = [];
+	readonly _layers: Layer[] = [];
 	#numLayers: number = 0;
-	targetLayer: number = 0;
+	_targetLayer: number = 0;
 
 	x0: number = 0;
 	y0: number = 0;
 	x1: number = 1;
 	y1: number = 1;
-	rWidth: number = 1;
-	rHeight: number = 1;
+	_rWidth: number = 1;
+	_rHeight: number = 1;
 
 	#areaCenterX: number = 0.5;
 	#areaCenterY: number = 0.5;
@@ -80,18 +95,18 @@ export default class Image {
 	#angularWidth: number = 0;
 	#angularHeight: number = 0;
 
-	gotBase: number = 0;
+	_gotBase: number = 0;
 
-	readonly endOffset!: number;
+	readonly _endOffset!: number;
 	#aspect: number = 0;
 
 	#doneTotal: number = 0;
 
-	doRender: boolean = false;
+	_doRender: boolean = false;
 
 	#is360Embed: boolean = false;
 
-	isVideoPlaying: boolean = false;
+	_isVideoPlaying: boolean = false;
 
 	static #sampledXs: Float64Array = new Float64Array(200);
 	static #sampledYs: Float64Array = new Float64Array(200);
@@ -101,19 +116,19 @@ export default class Image {
 
 	readonly #canvas: TileCanvas;
 
-	readonly index: number;
-	readonly localIdx: number;
+	readonly _index: number;
+	readonly _localIdx: number;
 	readonly width: number;
 	readonly height: number;
 	readonly #tileSize: number;
 	readonly #isSingle: boolean;
-	readonly isVideo: boolean;
+	readonly _isVideo: boolean;
 	readonly #startOffset: number;
 	opacity: number;
-	tOpacity: number;
-	rotX: number;
-	rotY: number;
-	rotZ: number;
+	_tOpacity: number;
+	_rotX: number;
+	_rotY: number;
+	_rotZ: number;
 	readonly #scale: number;
 	readonly #fromScale: number;
 
@@ -137,23 +152,23 @@ export default class Image {
 		fromScale: number
 	) {
 		this.#canvas = canvas;
-		this.index = index;
-		this.localIdx = localIdx;
+		this._index = index;
+		this._localIdx = localIdx;
 		this.width = width;
 		this.height = height;
 		this.#tileSize = tileSize;
 		this.#isSingle = isSingle;
-		this.isVideo = isVideo;
+		this._isVideo = isVideo;
 		this.#startOffset = startOffset;
 		this.opacity = opacity;
-		this.tOpacity = tOpacity;
-		this.rotX = rotX;
-		this.rotY = rotY;
-		this.rotZ = rotZ;
+		this._tOpacity = tOpacity;
+		this._rotX = rotX;
+		this._rotY = rotY;
+		this._rotZ = rotZ;
 		this.#scale = scale;
 		this.#fromScale = fromScale;
 		const maxi = (width > height ? width : height);
-		this.#is360Embed = this.#canvas.is360 && this.localIdx > 0;
+		this.#is360Embed = this.#canvas.is360 && this._localIdx > 0;
 
 		this.#numLayers = isDeepZoom && !isSingle ? 2 : 1;
 		for (let s = tileSize; s < maxi * canvas.main._underzoomLevels; s *= 2) this.#numLayers++;
@@ -166,12 +181,12 @@ export default class Image {
 			const s2 = twoNth(l) * this.#tileSize;
 			const c = Math.ceil(width / s2);
 			const r = Math.ceil(height / s2);
-			this.layers.push(new Layer(this, this.layers.length, o, this.endOffset = o += c * r, s2, c, r));
+			this._layers.push(new Layer(this, this._layers.length, o, this._endOffset = o += c * r, s2, c, r));
 		}
 	}
 
 	/** Sets the relative area this image occupies within its parent canvas. */
-	setArea(x0: number, y0: number, x1: number, y1: number): void {
+	_setArea(x0: number, y0: number, x1: number, y1: number): void {
 		this.x0 = x0;
 		this.y0 = y0;
 		this.x1 = x1;
@@ -186,11 +201,11 @@ export default class Image {
 			this.#areaCenterX = mod1(this.#areaCenterX);
 		}
 
-		this.rWidth = this.#areaWidth;
-		this.rHeight = this.#areaHeight;
+		this._rWidth = this.#areaWidth;
+		this._rHeight = this.#areaHeight;
 		this.#aspect = this.width / this.height;
 		this.#rScale = this.#aspect > this.#canvas.aspect ?
-			this.#canvas.width / this.width * this.rWidth : this.#canvas.height / this.height * this.rHeight;
+			this.#canvas.width / this.width * this._rWidth : this.#canvas.height / this.height * this._rHeight;
 
 		if (this.#canvas.is360) {
 			this.#calculate3DSpherePosition();
@@ -233,10 +248,10 @@ export default class Image {
 	}
 
 	/** Determines if this image should be rendered in the current frame. */
-	shouldRender(): boolean {
+	_shouldRender(): boolean {
 		if (this.#fromScale > 0 && this.#fromScale > this.#canvas.camera._scale) return false;
-		if ((this.isVideo || this.localIdx > 0) && this.opacity === 0 && this.tOpacity === 0) return false;
-		if (this.index === this.#canvas._activeImageIdx || (this.#canvas.is360 && this.localIdx === 0)) return true;
+		if ((this._isVideo || this._localIdx > 0) && this.opacity === 0 && this._tOpacity === 0) return false;
+		if (this._index === this.#canvas._activeImageIdx || (this.#canvas.is360 && this._localIdx === 0)) return true;
 		return !this.#outsideView();
 	}
 
@@ -244,8 +259,8 @@ export default class Image {
 	 * Steps the opacity animation for this image.
 	 * @returns True if the opacity changed (animation is active or snapped).
 	 */
-	opacityTick(direct: boolean): boolean {
-		const tOp = this.tOpacity;
+	_opacityTick(direct: boolean): boolean {
+		const tOp = this._tOpacity;
 		if (this.opacity === tOp) return false;
 		const delta = 1 / (this.#canvas.main._frameTime * this.#canvas.main._embedFadeDuration);
 		this.opacity = Math.min(1, Math.max(0, !direct ? tOp > this.opacity
@@ -257,7 +272,7 @@ export default class Image {
 	 * Calculates the set of tiles needed to render the current view for this image.
 	 * @returns The number of tiles from this image that are already loaded/drawn.
 	 */
-	getTiles(scale: number): number {
+	_getTiles(scale: number): number {
 		if (this.opacity <= 0) return 0;
 		this.#doneTotal = 0;
 		const d = Image.#toDraw;
@@ -265,19 +280,19 @@ export default class Image {
 
 		if (this.#is360Embed) {
 			scale = this.#getEmbeddedScale(scale);
-			if (!(this.doRender = (scale > 0))) return 0;
+			if (!(this._doRender = (scale > 0))) return 0;
 		} else {
 			scale = Math.max(scale, this.#canvas.camera._minScale) * this.#rScale;
 		}
 
-		const n = this.endOffset - this.#startOffset;
+		const n = this._endOffset - this.#startOffset;
 		if (s.length < n) s = Image.#toDrawSeen = new Uint8Array(n);
 		else s.fill(0, 0, n);
 		Image.#toDrawSeenBase = this.#startOffset;
 
-		const last = this.endOffset - 1;
+		const last = this._endOffset - 1;
 		const lastIdx = last - this.#startOffset;
-		if (this.gotBase === 0) {
+		if (this._gotBase === 0) {
 			d.push(last);
 			s[lastIdx] = 1;
 			this.#canvas.main.setTileOpacity(last, true, 1);
@@ -290,8 +305,8 @@ export default class Image {
 		const lIdx = this.#getTargetLayer(scale);
 		const c = this.#canvas;
 
-		if (this.localIdx === 0 && c.is360) {
-			this.#get360Tiles(this.layers[lIdx]);
+		if (this._localIdx === 0 && c.is360) {
+			this.#get360Tiles(this._layers[lIdx]);
 		} else if (this.#is360Embed) {
 			this.#getTilesViewport(lIdx);
 			this.#doneTotal++;
@@ -318,19 +333,19 @@ export default class Image {
 				if (twoNth(l) * scale >= 1) break;
 			}
 		}
-		return (this.targetLayer = l - 1);
+		return (this._targetLayer = l - 1);
 	}
 
 	/** Calculates and adds tiles within a given rectangular area for a specific layer. */
 	#getTilesRect(layerIdx: number, x0: number, y0: number, x1: number, y1: number): void {
 		if (this.#outsideView()) return;
 
-		const l = this.layers[layerIdx];
-		const tW = l.tileWidth, tH = l.tileHeight;
-		const rW = this.rWidth, rH = this.rHeight;
+		const l = this._layers[layerIdx];
+		const tW = l._tileWidth, tH = l._tileHeight;
+		const rW = this._rWidth, rH = this._rHeight;
 
-		const r = Math.min(l.cols - 1, Math.floor(Math.max(0, x1 - this.x0) / rW / tW));
-		const b = Math.min(l.rows - 1, Math.floor(Math.max(0, y1 - this.y0) / rH / tH));
+		const r = Math.min(l._cols - 1, Math.floor(Math.max(0, x1 - this.x0) / rW / tW));
+		const b = Math.min(l._rows - 1, Math.floor(Math.max(0, y1 - this.y0) / rH / tH));
 		const c = Math.floor(Math.max(0, x0 - this.x0) / rW / tW);
 		let y = Math.floor(Math.max(0, y0 - this.y0) / rH / tH);
 
@@ -345,7 +360,7 @@ export default class Image {
 	#getTilesViewport(layerIdx: number): void {
 		if (this.#outsideView()) return;
 
-		const layer = this.layers[layerIdx];
+		const layer = this._layers[layerIdx];
 		const c = this.#canvas;
 		const tol = 0.1;
 		const vcy = c.view.centerY;
@@ -392,11 +407,11 @@ export default class Image {
 		}
 
 		const eL = ecx - ew / 2, eB = ecy - eh / 2;
-		const tW = layer.tileWidth, tH = layer.tileHeight;
+		const tW = layer._tileWidth, tH = layer._tileHeight;
 		const c0 = Math.floor(Math.max(0, Math.min(1, (ix0 - eL) / ew)) / tW);
-		const c1 = Math.min(layer.cols - 1, Math.floor(Math.max(0, Math.min(1, (ix1 - eL) / ew)) / tW));
+		const c1 = Math.min(layer._cols - 1, Math.floor(Math.max(0, Math.min(1, (ix1 - eL) / ew)) / tW));
 		const r0 = Math.floor(Math.max(0, Math.min(1, (iy0 - eB) / eh)) / tH);
-		const r1 = Math.min(layer.rows - 1, Math.floor(Math.max(0, Math.min(1, (iy1 - eB) / eh)) / tH));
+		const r1 = Math.min(layer._rows - 1, Math.floor(Math.max(0, Math.min(1, (iy1 - eB) / eh)) / tH));
 
 		for (let row = r0; row <= r1; row++) {
 			for (let col = c0; col <= c1; col++) this.#setToDraw(layer, col, row);
@@ -405,7 +420,7 @@ export default class Image {
 
 	#setToDraw(l: Layer, x: number, y: number): void {
 		const s = Image.#toDrawSeen, sb = Image.#toDrawSeenBase;
-		const i = Math.min(this.endOffset - 1, l.start + y * l.cols + x);
+		const i = Math.min(this._endOffset - 1, l._start + y * l._cols + x);
 		const si = i - sb;
 		if (si < s.length) {
 			if (s[si]) return;
@@ -413,26 +428,26 @@ export default class Image {
 		}
 		Image.#toDraw.push(i);
 
-		if (this.#canvas.main.setTileOpacity(i, i === this.endOffset - 1, this.#canvas.opacity) >= 1) {
+		if (this.#canvas.main.setTileOpacity(i, i === this._endOffset - 1, this.#canvas._opacity) >= 1) {
 			this.#doneTotal++;
-		} else if (!this.#isSingle && !this.#canvas._limited && l.index < this.#numLayers - 1) {
-			this.#setToDraw(this.layers[l.index + 1], x >> 1, y >> 1);
+		} else if (!this.#isSingle && !this.#canvas._limited && l._index < this.#numLayers - 1) {
+			this.#setToDraw(this._layers[l._index + 1], x >> 1, y >> 1);
 		}
 	}
 
 	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
-	setDrawRect(r: DrawRect): void {
+	_setDrawRect(r: DrawRect): void {
 		const v = this.#canvas.main._vertexBuffer;
 		const s = Math.PI * 2 * this.#canvas._camera360._radius;
 		const p = this.#vec, m = this.#mat;
-		const cX = this.x0 + this.rWidth / 2, cY = this.y0 + this.rHeight / 2;
+		const cX = this.x0 + this._rWidth / 2, cY = this.y0 + this._rHeight / 2;
 		const center = this.#canvas._camera360._getVec3(cX - this.#canvas._camera360._offX, cY, true, 5);
 
 		m._identity();
 		m._translate(center.x, center.y, center.z);
-		m._rotateY(Math.atan2(center.x, center.z) + Math.PI + this.rotY);
-		m._rotateX(-Math.sin((cY - .5) * Math.PI) - this.rotX);
-		m._rotateZ(-this.rotZ);
+		m._rotateY(Math.atan2(center.x, center.z) + Math.PI + this._rotY);
+		m._rotateX(-Math.sin((cY - .5) * Math.PI) - this._rotX);
+		m._rotateZ(-this._rotZ);
 		m._scaleFlat(this.#scale * .5);
 
 		const dx0 = (r.x0 - cX) * s, dx1 = (r.x1 - cX) * s;
@@ -553,24 +568,24 @@ export default class Image {
 
 		if (minY < 0.05 || maxY > 0.95) full = true;
 
-		const tH = l.tileHeight, tW = l.tileWidth;
+		const tH = l._tileHeight, tW = l._tileWidth;
 		let r0 = Math.max(0, Math.floor((minY - 0.001) / tH));
-		let r1 = Math.min(l.rows - 1, Math.max(0, Math.floor((maxY + tH - 1e-10) / tH)));
+		let r1 = Math.min(l._rows - 1, Math.max(0, Math.floor((maxY + tH - 1e-10) / tH)));
 		if (minY < 1e-5) r0 = 0;
-		if (maxY > 1 - 1e-5) r1 = l.rows - 1;
+		if (maxY > 1 - 1e-5) r1 = l._rows - 1;
 
 		const wrap = a1 > 1;
 		for (let row = r0; row <= r1; row++) {
 			if (full) {
-				for (let col = 0; col < l.cols; col++) this.#setToDraw(l, col, row);
+				for (let col = 0; col < l._cols; col++) this.#setToDraw(l, col, row);
 			} else {
 				const c0 = Math.max(0, Math.floor((a0 - 0.001) / tW) - 1);
 				if (!wrap) {
-					const c1 = Math.min(l.cols - 1, Math.ceil((a1 + 0.001) / tW));
+					const c1 = Math.min(l._cols - 1, Math.ceil((a1 + 0.001) / tW));
 					for (let col = c0; col <= c1; col++) this.#setToDraw(l, col, row);
 				} else {
-					for (let col = c0; col < l.cols; col++) this.#setToDraw(l, col, row);
-					const c1 = Math.min(l.cols - 1, Math.ceil(mod1(a1 + 0.001) / tW));
+					for (let col = c0; col < l._cols; col++) this.#setToDraw(l, col, row);
+					const c1 = Math.min(l._cols - 1, Math.ceil(mod1(a1 + 0.001) / tW));
 					for (let col = 0; col <= c1; col++) this.#setToDraw(l, col, row);
 				}
 			}
