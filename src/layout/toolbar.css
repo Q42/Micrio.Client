@@ -23,21 +23,43 @@ micrio-toolbar > menu {
 		left: 35px;
 	}
 	micrio-toolbar > menu {
-		transform: translate3d(0, 0, 0);
-		width: 100%;
-		height: 100%;
-		background: var(--micrio-background);
-		top: 0;
+		position: fixed;
+		bottom: 0;
 		left: 0;
-		padding: 32px 0;
+		right: 0;
+		top: auto;
+		max-height: 60vh;
+		width: 100%;
+		background: var(--micrio-background);
+		backdrop-filter: var(--micrio-background-filter);
+		border-radius: 16px 16px 0 0;
+		padding: 16px 0;
+		margin: 0;
+		transform: translateY(100%);
+		transition: transform .3s ease;
+		z-index: 100;
 		overflow-y: auto;
 		overflow-x: hidden;
-		box-sizing: border-box;
-		backdrop-filter: var(--micrio-background-filter);
-		z-index: 1;
+		color: var(--micrio-color);
+		text-shadow: none;
 	}
-	micrio-toolbar > menu:not(.shown) {
-		transform: translate3d(calc(-100% - var(--micrio-border-margin) * 2), 0, 0);
+	micrio-toolbar > menu.shown {
+		transform: translateY(0);
+	}
+	micrio-toolbar > menu::before {
+		content: '';
+		display: block;
+		width: 36px;
+		height: 4px;
+		border-radius: 2px;
+		background: rgba(128, 128, 128, .3);
+		margin: -8px auto 12px;
+	}
+	.backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, .4);
+		z-index: 50;
 	}
 }
 @media (min-width: 501px) {

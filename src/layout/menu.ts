@@ -98,10 +98,11 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 
 		const click = (e: Event) => {
 			if (!menu.link) e.preventDefault();
+			if (menu.children?.length) e.stopPropagation();
 			this.#action?.();
 			const doClose = !!(this.#isOpen(menu) || this.#action || menu.link);
 			opened.set(doClose ? undefined : menu);
-			if (doClose) onclose?.();
+			if (this.#action || menu.link) onclose?.();
 		};
 
 		if (menu.link) {

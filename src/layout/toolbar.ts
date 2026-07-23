@@ -14,7 +14,10 @@ class MicrioToolbar extends MicrioElement {
 	#data: Models.ImageData.ImageData | undefined;
 	#shown = false;
 	#isMobile = false;
-	#toggle = () => this.#shown = !this.#shown;
+	#toggle = () => {
+		this.#shown = !this.#shown;
+		this.#render();
+	};
 
 	onMount() {
 		const micrio = this.getMicrio();
@@ -23,7 +26,11 @@ class MicrioToolbar extends MicrioElement {
 		const { _lang } = micrio;
 
 		this.#isMobile = window.innerWidth <= 500;
-		const resize = () => { this.#isMobile = window.innerWidth <= 500; this.#render(); };
+		const resize = () => {
+			this.#isMobile = window.innerWidth <= 500;
+			if (!this.#isMobile) this.#shown = false;
+			this.#render();
+		};
 
 		this.#render();
 
@@ -80,14 +87,24 @@ class MicrioToolbar extends MicrioElement {
 
 		this.replaceChildren();
 
+		if (this.#isMobile && this.#shown) {
+			createElement('div', {
+				className: 'backdrop',
+				events: { click: this.#toggle },
+				parent: this
+			});
+		}
+
 		const menu = createElement('menu', {
-			className: (!hidden && this.#shown ? 'shown' : '') || undefined
+			className: (this.#isMobile && this.#shown ? 'shown' : '') || undefined
 		});
+
+		const closeSheet = () => { if (this.#isMobile) { this.#shown = false; this.#render(); } };
 
 		if (mainPages) {
 			for (const page of mainPages) {
 				createElement('micrio-menu', {
-					setProps: { menu: page, originalId, onclose: () => { if (this.#isMobile) this.#shown = false; } },
+					setProps: { menu: page, originalId, onclose: closeSheet },
 					parent: menu
 				});
 			}
@@ -96,7 +113,7 @@ class MicrioToolbar extends MicrioElement {
 		if (hasMarkerTours) {
 			createElement('micrio-menu', {
 				setProps: {
-					onclose: () => { if (this.#isMobile) this.#shown = false; },
+					onclose: closeSheet,
 					menu: {
 						id: 'marker-tours',
 						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours } },
@@ -114,7 +131,7 @@ class MicrioToolbar extends MicrioElement {
 		if (hasVideoTours) {
 			createElement('micrio-menu', {
 				setProps: {
-					onclose: () => { if (this.#isMobile) this.#shown = false; },
+					onclose: closeSheet,
 					menu: {
 						id: 'video-tours',
 						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.videoTours : $i18n.tours } },

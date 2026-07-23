@@ -24,8 +24,26 @@ micrio-menu > :is(a,button) {
 	}
 	micrio-menu > :is(a,button) {
 		width: 100%;
-		margin-bottom: 10px;
-		padding: 6px 0;
+		margin: 0;
+		padding: 14px 20px;
+		text-align: left;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 1em;
+	}
+	micrio-menu > :is(a,button) strong {
+		flex: 1;
+	}
+	micrio-menu > div {
+		display: none;
+	}
+	micrio-menu.opened > div {
+		display: block;
+	}
+	micrio-menu > div > micrio-menu > :is(a, button) {
+		padding-left: 40px;
+		font-weight: 400;
 	}
 }
 @media (min-width: 501px) {
