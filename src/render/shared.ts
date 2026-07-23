@@ -152,10 +152,10 @@ export class View {
 
 	limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
 		const c = this.#canvas;
-		const mS = c._camera2d.minSize;
+		const mS = c._camera2d._minSize;
 		const s = this.getScale();
 
-		if (mS < 1 && s < c._camera2d.minScale && !noLimit) {
+		if (mS < 1 && s < c._camera2d._minScale && !noLimit) {
 			const mWH = 1 / mS;
 			const nW = Math.min(mWH, this.width);
 			const nH = Math.min(mWH, this.height);
@@ -167,13 +167,13 @@ export class View {
 			return;
 		}
 
-		const overZoom: number = correctZoom ? Math.max(1, s / Math.max(c._camera2d.minScale, c.maxScale / c.el.scale)) : 1;
+		const overZoom: number = correctZoom ? Math.max(1, s / Math.max(c._camera2d._minScale, c.maxScale / c.el.scale)) : 1;
 		const maxVw: number = this.lWidth;
 		const maxVh: number = this.lHeight;
 		const vw: number = Math.min(maxVw, this.width * overZoom);
 		const vh: number = Math.min(maxVh, this.height * overZoom);
 
-		if (correctZoom && (overZoom > 1 || (noLimit && s < c._camera2d.minScale))) {
+		if (correctZoom && (overZoom > 1 || (noLimit && s < c._camera2d._minScale))) {
 			this.width = vw;
 			this.height = vh;
 		}

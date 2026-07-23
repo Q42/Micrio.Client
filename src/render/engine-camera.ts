@@ -21,13 +21,13 @@ export default abstract class EngineCamera {
 	}
 
 	// ─── Properties (declared by subclasses) ───
-	abstract scale: number;
-	abstract yaw: number;
-	abstract pitch: number;
-	abstract minScale: number;
-	abstract maxScale: number;
-	abstract coverScale: number;
-	abstract minSize: number;
+	abstract _scale: number;
+	abstract _yaw: number;
+	abstract _pitch: number;
+	abstract _minScale: number;
+	abstract _maxScale: number;
+	abstract _coverScale: number;
+	abstract _minSize: number;
 
 	// ─── Shared pinch implementation ───
 

@@ -267,9 +267,9 @@ export default class Ani {
 		const c = this.#canvas;
 		const webgl = c._camera360;
 
-		this.#zFrom = webgl.perspective;
-		this.#zTo = this.#zFrom + (to / (webgl.scale * c._diagonal / 20));
-		if (!noLimit) this.#zTo = Math.min(webgl.maxPerspective, Math.max(webgl.minPerspective, this.#zTo));
+		this.#zFrom = webgl._perspective;
+		this.#zTo = this.#zFrom + (to / (webgl._scale * c._diagonal / 20));
+		if (!noLimit) this.#zTo = Math.min(webgl._maxPerspective, Math.max(webgl._minPerspective, this.#zTo));
 
 		this.#started = performance.now();
 		this.#isRunning = true;
@@ -322,7 +322,7 @@ export default class Ani {
 			}
 
 			if (this.#isZoom) {
-				this.#canvas._camera360.setPerspective(this.#zFrom * (1 - pE) + this.#zTo * pE, this.#zNoLimit);
+				this.#canvas._camera360._setPerspective(this.#zFrom * (1 - pE) + this.#zTo * pE, this.#zNoLimit);
 			}
 
 			if (p >= 1) {

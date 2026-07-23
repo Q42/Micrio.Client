@@ -98,7 +98,7 @@ export default class Kinetic {
 		}
 
 		let v = Math.sqrt(this.#velocityX * this.#velocityX + this.#velocityY * this.#velocityY);
-		if (this.#canvas.is360) webgl.rotate(this.#velocityX, this.#velocityY);
+		if (this.#canvas.is360) webgl._rotate(this.#velocityX, this.#velocityY);
 		else cam._pan(this.#velocityX, this.#velocityY, 0, false, false, true);
 
 		if (v <= 0.01) {

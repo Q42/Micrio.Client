@@ -14,7 +14,7 @@ import type { TileCanvas } from './tile-canvas';
 
 /** Handles 360 camera logic, perspective, and related calculations. @internal */
 export default class Camera360 extends EngineCamera {
-	readonly pMatrix: Mat4 = new Mat4;
+	readonly _pMatrix: Mat4 = new Mat4;
 	readonly #iMatrix: Mat4 = new Mat4;
 	readonly #cachedInverse: Mat4 = new Mat4;
 	#inverseDirty: boolean = true;
@@ -22,129 +22,128 @@ export default class Camera360 extends EngineCamera {
 
 	readonly #position: Vec4 = new Vec4;
 
-	radius: number = 10;
+	_radius: number = 10;
 
-	scale: number = 0;
+	_scale: number = 0;
 
 	#scaleY: number = 1;
 	#offY: number = 0;
+	_offX: number = 0;
 
 	#limitX: number = 0;
 	#limitY: number = 0;
 
-	baseYaw: number = 0;
-	yaw: number = 0;
-	pitch: number = 0;
+	_baseYaw: number = 0;
+	_yaw: number = 0;
+	_pitch: number = 0;
 
-	defaultPerspective: number = Math.PI / 2;
-	perspective: number = Math.PI / 2;
-	maxPerspective: number = Math.PI / 2;
-	minPerspective: number = Math.PI / 2;
+	_defaultPerspective: number = Math.PI / 2;
+	_perspective: number = Math.PI / 2;
+	_maxPerspective: number = Math.PI / 2;
+	_minPerspective: number = Math.PI / 2;
 
-	cameraForwardX: number = 0;
-	cameraForwardY: number = 0;
-	cameraForwardZ: number = -1;
-	fieldOfView: number = 0;
+	_cameraForwardX: number = 0;
+	_cameraForwardY: number = 0;
+	_cameraForwardZ: number = -1;
+	_fieldOfView: number = 0;
 
-	readonly vec4: Vec4 = new Vec4();
+	readonly _vec4: Vec4 = new Vec4();
 	readonly #coo: Coordinates = new Coordinates;
-
-	offX: number = 0;
 
 	constructor(
 		canvas: TileCanvas
 	) {
 		super(canvas);
-		this.baseYaw = -this.canvas._rotationY;
-		this.offX = this.baseYaw / (Math.PI * 2);
+		this._baseYaw = -this.canvas._rotationY;
+		this._offX = this._baseYaw / (Math.PI * 2);
 
 		this.#scaleY = this.canvas.height / (this.canvas.width / 2);
 		this.#offY = (1 - this.#scaleY) / 4;
-		this.yaw = this.baseYaw;
-		this.update();
+		this._yaw = this._baseYaw;
+		this._update();
 	}
 
 	/** Sets the horizontal and vertical movement limits. */
-	setLimits(x: number, y: number): void {
+	_setLimits(x: number, y: number): void {
 		this.#limitX = x;
 		this.#limitY = y;
-		this.maxPerspective = Math.PI / 2;
-		if (y > 0) this.maxPerspective = Math.min(this.maxPerspective, this.maxPerspective * y * 1.5);
-		this.setPerspective(this.perspective, true);
+		this._maxPerspective = Math.PI / 2;
+		if (y > 0) this._maxPerspective = Math.min(this._maxPerspective, this._maxPerspective * y * 1.5);
+		this._setPerspective(this._perspective, true);
 	}
 
 	/** Updates the 360 projection and rotation matrices. */
-	update(noPersp: boolean = false): void {
+	_update(noPersp: boolean = false): void {
 		const c = this.canvas;
 		const el = c.el;
 
-		if (!noPersp) this.pMatrix.perspective(this.perspective, el.aspect, 0.0001, 20);
+		if (!noPersp) this._pMatrix.perspective(this._perspective, el.aspect, 0.0001, 20);
 		this.#inverseDirty = true;
 
-		const pM = this.pMatrix;
-		this.pitch = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, this.pitch));
-		pM.rotateX(this.pitch);
-		pM.rotateY(this.yaw);
+		const pM = this._pMatrix;
+		this._pitch = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, this._pitch));
+		pM.rotateX(this._pitch);
+		pM.rotateY(this._yaw);
 		pM.translate(this.#position.x, this.#position.y, this.#position.z);
 
 		const rM = this.#rMatrix;
-		rM.perspectiveCss(this.perspective);
+		rM.perspectiveCss(this._perspective);
 		rM.translate(0, 0, el.height / el.ratio / 2);
-		rM.rotateX(-this.pitch);
-		rM.rotateY(this.yaw);
+		rM.rotateX(-this._pitch);
+		rM.rotateY(this._yaw);
 
-		this.#coo.direction = (this.yaw / Math.PI * 180) % 360;
+		this.#coo.direction = (this._yaw / Math.PI * 180) % 360;
 	}
 
 	/**
 	 * Applies rotation based on pixel delta from mouse/touch drag.
 	 */
-	rotate(xPx: number, yPx: number, duration: number = 0): void {
+	_rotate(xPx: number, yPx: number, duration: number = 0): void {
 		const c = this.canvas;
 		const el = c.el;
-		this.yaw += xPx * el.ratio / el.width * this.perspective * el.aspect;
-		this.pitch += yPx * el.ratio / el.height * this.perspective * this.#scaleY;
+		this._yaw += xPx * el.ratio / el.width * this._perspective * el.aspect;
+		this._pitch += yPx * el.ratio / el.height * this._perspective * this.#scaleY;
 
-		this.yaw = modPI(this.yaw);
+		this._yaw = modPI(this._yaw);
 
 		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 		if (this.#limitX > 0) this.#limitYaw();
 
 		if (duration === 0) c._kinetic.addStep(xPx * 2, yPx * 2);
 
-		this.update();
-		this.calculate3DFrustum();
+		this._update();
+		this._calculate3DFrustum();
 		this.#syncLogicalView();
 	}
 
 	/** Clamps the pitch value based on perspective and vertical limits. */
 	#limitPitch(): void {
-		const halfPerspective = this.perspective / 2;
+		const halfPerspective = this._perspective / 2;
 		const maxPitch = Math.PI * this.#scaleY / 2 * (this.#limitY > 0 ? this.#limitY : 1);
 
-		this.pitch = this.pitch > 0 ? Math.min(maxPitch, this.pitch + halfPerspective) - halfPerspective
-			: Math.max(-maxPitch, this.pitch - halfPerspective) + halfPerspective;
+		this._pitch = this._pitch > 0 ? Math.min(maxPitch, this._pitch + halfPerspective) - halfPerspective
+			: Math.max(-maxPitch, this._pitch - halfPerspective) + halfPerspective;
 	}
 
 	/** Clamps the yaw value based on horizontal limits. */
 	#limitYaw(): void {
-		const halfHorizontalFov = this.perspective / 2 * this.canvas.el.aspect;
+		const halfHorizontalFov = this._perspective / 2 * this.canvas.el.aspect;
 		const maxYaw = Math.PI * (this.#limitX > 0 ? this.#limitX : 1);
 
-		let y = this.yaw; while (y >= Math.PI) y -= Math.PI * 2; while (y < -Math.PI) y += Math.PI * 2;
-		this.yaw = modPI(Math.min(Math.max(maxYaw, halfHorizontalFov) - halfHorizontalFov, Math.max(Math.min(-maxYaw, -halfHorizontalFov) + halfHorizontalFov, y)));
+		let y = this._yaw; while (y >= Math.PI) y -= Math.PI * 2; while (y < -Math.PI) y += Math.PI * 2;
+		this._yaw = modPI(Math.min(Math.max(maxYaw, halfHorizontalFov) - halfHorizontalFov, Math.max(Math.min(-maxYaw, -halfHorizontalFov) + halfHorizontalFov, y)));
 	}
 
 	/**
 	 * Applies zoom by adjusting the perspective.
 	 */
-	zoomByFactor(factor: number, dur: number, noLimit: boolean, speed: number = 0, pxX: number = 0, pxY: number = 0): number {
+	#zoomByFactor(factor: number, dur: number, noLimit: boolean, speed: number = 0, pxX: number = 0, pxY: number = 0): number {
 		const c = this.canvas;
 		factor /= 2;
 		if (dur !== 0) {
 			dur = c._ani.zoom(factor, dur, speed, noLimit);
 		} else {
-			factor /= this.scale * c._diagonal / 20;
+			factor /= this._scale * c._diagonal / 20;
 
 			const hasCursor: boolean = pxX > 0 && pxY > 0;
 			let beforeX: number = 0, beforeY: number = 0;
@@ -154,7 +153,7 @@ export default class Camera360 extends EngineCamera {
 				beforeY = coo.y;
 			}
 
-			this.setPerspective(this.perspective + factor, noLimit);
+			this._setPerspective(this._perspective + factor, noLimit);
 
 			if (hasCursor) {
 				const after = this._getCoo(pxX, pxY);
@@ -163,16 +162,16 @@ export default class Camera360 extends EngineCamera {
 				if (dx < -.5) dx += 1;
 				const dy: number = beforeY - after.y;
 
-				this.yaw += dx * Math.PI * 2;
-				this.pitch += dy * Math.PI * this.#scaleY;
+				this._yaw += dx * Math.PI * 2;
+				this._pitch += dy * Math.PI * this.#scaleY;
 
-				this.yaw = modPI(this.yaw);
+				this._yaw = modPI(this._yaw);
 				if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 				if (this.#limitX > 0) this.#limitYaw();
 
-				this.update();
-				this.readScale();
-				this.calculate3DFrustum();
+				this._update();
+				this.#readScale();
+				this._calculate3DFrustum();
 				this.#syncLogicalView();
 			}
 		}
@@ -180,53 +179,53 @@ export default class Camera360 extends EngineCamera {
 	}
 
 	/** Sets the perspective (FoV) and updates related state. */
-	setPerspective(perspective: number, noLimit: boolean): void {
+	_setPerspective(perspective: number, noLimit: boolean): void {
 		const c = this.canvas;
-		this.perspective = perspective;
+		this._perspective = perspective;
 		if (!noLimit || c.is360) {
-			this.perspective = Math.min(this.maxPerspective, Math.max(this.minPerspective, this.perspective));
+			this._perspective = Math.min(this._maxPerspective, Math.max(this._minPerspective, this._perspective));
 		}
 		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 		if (this.#limitX > 0) this.#limitYaw();
-		this.pMatrix.perspective(this.perspective, c.el.aspect, 0.0001, 20);
-		this.readScale();
-		this.update(true);
-		this.calculate3DFrustum();
+		this._pMatrix.perspective(this._perspective, c.el.aspect, 0.0001, 20);
+		this.#readScale();
+		this._update(true);
+		this._calculate3DFrustum();
 		this.#syncLogicalView();
 	}
 
 	/** Recalculates the effective scale based on coordinate conversion. */
-	readScale(): void {
+	#readScale(): void {
 		const el = this.canvas.el;
 		const cX: number = el.width / 2;
 		const cY: number = el.height / 2;
 
 		const center0 = this._getCoo(cX, cY).x;
 		const center1 = this._getCoo(cX + 1, cY + 1).x;
-		this.scale = 1 / ((center1 + (center1 < center0 ? 1 : 0)) - center0) / this.canvas.width;
+		this._scale = 1 / ((center1 + (center1 < center0 ? 1 : 0)) - center0) / this.canvas.width;
 	}
 
 	/** Sets the camera orientation directly. */
-	setDirection(yaw: number, pitch: number, persp: number = 0): void {
-		this.yaw = modPI(yaw - this.baseYaw);
-		this.pitch = pitch;
-		if (persp !== 0) this.setPerspective(persp, false);
-		else this.update();
-		this.calculate3DFrustum();
+	_setDirection(yaw: number, pitch: number, persp: number = 0): void {
+		this._yaw = modPI(yaw - this._baseYaw);
+		this._pitch = pitch;
+		if (persp !== 0) this._setPerspective(persp, false);
+		else this._update();
+		this._calculate3DFrustum();
 		this.#syncLogicalView();
 	}
 
 	/** Sets the camera orientation using viewport format (center + dimensions). */
-	setView(centerX?: number, centerY?: number, _width?: number, height?: number, opts?: { noLimit?: boolean; correctNorth?: boolean }): boolean {
+	_setView(centerX?: number, centerY?: number, _width?: number, height?: number, opts?: { noLimit?: boolean; correctNorth?: boolean }): boolean {
 		if (centerX == null || centerY == null || height == null) return false;
 		const noLimit = opts?.noLimit ?? false;
 		const correctNorth = opts?.correctNorth ?? false;
-		const adjustedCenterX = correctNorth ? centerX + this.offX : centerX;
+		const adjustedCenterX = correctNorth ? centerX + this._offX : centerX;
 
-		this.yaw = (adjustedCenterX - .5) * Math.PI * 2;
-		this.pitch = (centerY - .5) * Math.PI * this.#scaleY;
-		this.setPerspective(Math.min(this.maxPerspective, height * Math.PI * this.#scaleY), noLimit);
-		this.calculate3DFrustum();
+		this._yaw = (adjustedCenterX - .5) * Math.PI * 2;
+		this._pitch = (centerY - .5) * Math.PI * this.#scaleY;
+		this._setPerspective(Math.min(this._maxPerspective, height * Math.PI * this.#scaleY), noLimit);
+		this._calculate3DFrustum();
 		this.#syncLogicalView();
 		return true;
 	}
@@ -235,9 +234,9 @@ export default class Camera360 extends EngineCamera {
 	#syncLogicalView(): void {
 		const c = this.canvas;
 
-		const centerX = mod1((this.yaw / (Math.PI * 2) + .5));
-		const centerY = (this.pitch / this.#scaleY) / Math.PI + .5;
-		const height = this.perspective / Math.PI / this.#scaleY;
+		const centerX = mod1((this._yaw / (Math.PI * 2) + .5));
+		const centerY = (this._pitch / this.#scaleY) / Math.PI + .5;
+		const height = this._perspective / Math.PI / this.#scaleY;
 		const width = height * (c.el.width === 0 ? 1 : .5 * Math.sqrt(c.el.aspect)) / (c.aspect / 2);
 
 		c.view.set(centerX, centerY, width, height);
@@ -245,24 +244,24 @@ export default class Camera360 extends EngineCamera {
 	}
 
 	/** Calculates 3D camera frustum for accurate 360 embed visibility detection */
-	calculate3DFrustum(): void {
-		const yaw = this.yaw;
-		const pitch = this.pitch;
+	_calculate3DFrustum(): void {
+		const yaw = this._yaw;
+		const pitch = this._pitch;
 
-		this.cameraForwardX = Math.cos(pitch) * Math.sin(yaw);
-		this.cameraForwardY = Math.sin(pitch);
-		this.cameraForwardZ = Math.cos(pitch) * Math.cos(yaw);
+		this._cameraForwardX = Math.cos(pitch) * Math.sin(yaw);
+		this._cameraForwardY = Math.sin(pitch);
+		this._cameraForwardZ = Math.cos(pitch) * Math.cos(yaw);
 
-		const verticalFOV = 2 * Math.atan(1 / this.perspective);
+		const verticalFOV = 2 * Math.atan(1 / this._perspective);
 		const aspectRatio = this.canvas.el.width / this.canvas.el.height;
 
 		const halfVerticalFOV = verticalFOV / 2;
 		const halfHorizontalFOV = Math.atan(Math.tan(halfVerticalFOV) * aspectRatio);
-		this.fieldOfView = halfHorizontalFOV * 2;
+		this._fieldOfView = halfHorizontalFOV * 2;
 	}
 
 	/** Applies translation offset for 360 space transitions. */
-	moveTo(distance: number, distanceY: number, direction: number, addYaw: number = 0): void {
+	_moveTo(distance: number, distanceY: number, direction: number, addYaw: number = 0): void {
 		const p = this.#position;
 
 		const dir: number = direction * Math.PI * 2 + addYaw;
@@ -270,21 +269,21 @@ export default class Camera360 extends EngineCamera {
 		p.y = distanceY;
 		p.z = distance * Math.cos(dir);
 		this.canvas.view.changed = true;
-		this.update();
+		this._update();
 	}
 
 	/** Handles canvas resize events for 360 mode. */
-	resize(): void {
+	_resize(): void {
 		const c = this.canvas;
 		const el = c.el;
-		this.minPerspective = Math.min(.5, el.height / c.height) / c.maxScale * this.#scaleY * Math.PI / el.ratio * el.scale;
-		this.setPerspective(this.perspective, true);
+		this._minPerspective = Math.min(.5, el.height / c.height) / c.maxScale * this.#scaleY * Math.PI / el.ratio * el.scale;
+		this._setPerspective(this._perspective, true);
 	}
 
 	/** Ensures the cached inverse projection matrix is up to date. */
 	#ensureInverse(): void {
 		if (this.#inverseDirty) {
-			this.#cachedInverse.copy(this.pMatrix);
+			this.#cachedInverse.copy(this._pMatrix);
 			this.#cachedInverse.invert();
 			this.#inverseDirty = false;
 		}
@@ -293,7 +292,7 @@ export default class Camera360 extends EngineCamera {
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
 	_getCoo(pxX: number, pxY: number): Coordinates {
 		const el = this.canvas.el,
-			v = this.vec4,
+			v = this._vec4,
 			c = this.#coo;
 
 		v.x = (pxX * el.ratio / el.width) * 2 - 1;
@@ -307,25 +306,25 @@ export default class Camera360 extends EngineCamera {
 		v.normalize();
 		c.x = Math.atan2(v.x, -v.z) / Math.PI / 2 + .5;
 		c.y = .5 - Math.asin(v.y) / Math.PI / this.#scaleY;
-		c.scale = this.scale;
+		c.scale = this._scale;
 		c.w = this.#position.x + this.#position.z;
-		c.direction = this.yaw + this.baseYaw;
+		c.direction = this._yaw + this._baseYaw;
 		c.toArray();
 
 		return c;
 	}
 
 	/** Converts 360 image coordinates [0-1] to screen pixel coordinates. */
-	getXYZ(x: number, y: number): Coordinates {
+	_getXYZ(x: number, y: number): Coordinates {
 		const el = this.canvas.el,
-			v = this.vec4,
+			v = this._vec4,
 			c = this.#coo;
 
-		this.getVec3(x + this.offX, y);
+		this._getVec3(x + this._offX, y);
 
 		c.x = ((v.x + 1) / 2) * el.width / el.ratio;
 		c.y = ((-v.y + 1) / 2) * el.height / el.ratio;
-		c.scale = this.scale;
+		c.scale = this._scale;
 		c.w = -v.w;
 		c.toArray();
 
@@ -335,8 +334,8 @@ export default class Camera360 extends EngineCamera {
 	/**
 	 * Calculates the 3D vector corresponding to a point on the 360 sphere.
 	 */
-	getVec3(x: number, y: number, abs: boolean = false, rad: number = this.radius): Vec4 {
-		const v = this.vec4;
+	_getVec3(x: number, y: number, abs: boolean = false, rad: number = this._radius): Vec4 {
+		const v = this._vec4;
 
 		x *= -Math.PI * 2;
 		y -= .5;
@@ -349,7 +348,7 @@ export default class Camera360 extends EngineCamera {
 		v.z = cY * Math.cos(x) * rad;
 		v.w = 1;
 
-		if (!abs) v.transformMat4(this.pMatrix);
+		if (!abs) v.transformMat4(this._pMatrix);
 
 		return v;
 	}
@@ -358,17 +357,17 @@ export default class Camera360 extends EngineCamera {
 	 * Calculates the combined transformation matrix for placing an element
 	 * at a specific point on the 360 sphere.
 	 */
-	getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
-		if (isNaN(radius)) radius = this.radius;
+	_getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
+		if (isNaN(radius)) radius = this._radius;
 
 		const m = this.#iMatrix,
-			v = this.vec4,
-			r = this.radius,
+			v = this._vec4,
+			r = this._radius,
 			p = this.#position;
 
 		m.identity();
 
-		radius *= this.radius * (100 / (Math.PI * 2));
+		radius *= this._radius * (100 / (Math.PI * 2));
 
 		x *= -Math.PI * 2;
 		y -= .5;
@@ -405,12 +404,12 @@ export default class Camera360 extends EngineCamera {
 	}
 
 	/** Generates vertex data for a segment of the 360 sphere geometry. */
-	setTile360(x: number, y: number, w: number, h: number): void {
+	_setTile360(x: number, y: number, w: number, h: number): void {
 		y *= this.#scaleY; y /= 2; y -= .25; y += this.#offY;
 		h *= this.#scaleY; h /= 2;
 
 		const v = this.canvas.main._vertexBuffer360;
-		const a = this.radius;
+		const a = this._radius;
 		const sW = w / segsX;
 		const sH = h / segsY;
 		const pi2 = Math.PI * 2;
@@ -418,9 +417,9 @@ export default class Camera360 extends EngineCamera {
 		for (let pY = 0; pY < segsY; pY++) {
 			for (let pX = 0; pX < segsX; pX++) {
 				const i = (pY * segsX + pX) * 6 * 3;
-				const l = -(mod1(x + sW * pX + this.offX) * pi2);
+				const l = -(mod1(x + sW * pX + this._offX) * pi2);
 				const t = -(y + sH * pY) * pi2;
-				const r = -(mod1(x + sW * (pX + 1) + this.offX) * pi2);
+				const r = -(mod1(x + sW * (pX + 1) + this._offX) * pi2);
 				const b = -(y + sH * (pY + 1)) * pi2;
 				const cL = Math.cos(l) * a || 0;
 				const sL = Math.sin(l) * a || 0;
@@ -451,10 +450,10 @@ export default class Camera360 extends EngineCamera {
 	// ─── 2D camera compat methods (for union with Camera2D) ─────────
 
 	// 2D-specific properties, unused for 360
-	minScale: number = 0;
-	maxScale: number = 0;
-	coverScale: number = 0;
-	minSize: number = 1;
+	_minScale: number = 0;
+	_maxScale: number = 0;
+	_coverScale: number = 0;
+	_minSize: number = 1;
 
 	_correctMinMax(): void {}
 
@@ -462,21 +461,21 @@ export default class Camera360 extends EngineCamera {
 
 	_isUnderZoom(): boolean { return false; }
 
-	_isZoomedOut(_b: boolean = false): boolean { return this.perspective >= this.maxPerspective; }
+	_isZoomedOut(_b: boolean = false): boolean { return this._perspective >= this._maxPerspective; }
 
-	_isZoomedIn(): boolean { return this.perspective <= this.minPerspective; }
+	_isZoomedIn(): boolean { return this._perspective <= this._minPerspective; }
 
 	_pan(xPx: number, yPx: number, duration: number = 0, _noLimit: boolean = false, _force: boolean = false, _isKinetic: boolean = false): void {
-		this.rotate(xPx, yPx, duration);
+		this._rotate(xPx, yPx, duration);
 	}
 
 	_zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
-		return this.zoomByFactor(delta, duration, noLimit, 0, xPx, yPx);
+		return this.#zoomByFactor(delta, duration, noLimit, 0, xPx, yPx);
 	}
 
 	protected _handlePinchMove(delta: number, dX: number, dY: number): void {
-		this.zoomByFactor(delta * 2, 0, false);
-		this.rotate(dX, dY);
+		this.#zoomByFactor(delta * 2, 0, false);
+		this._rotate(dX, dY);
 	}
 
 	protected _flyToCenterX(centerX: number): number {

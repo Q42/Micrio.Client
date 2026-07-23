@@ -263,7 +263,7 @@ export class TileCanvas {
 
 		if (this.main._distanceX !== 0 || this.main._distanceY !== 0) {
 			const fact: number = this.opacity === 0 ? 0 : easeInOut.get(1 - this.opacity) * (fadingIn ? 1 : -1);
-			this._camera360.moveTo(
+			this._camera360._moveTo(
 				this.main._distanceX * fact * base360Distance,
 				this.main._distanceY * fact * base360Distance,
 				this.main._direction);
@@ -324,14 +324,14 @@ export class TileCanvas {
 
 		if (!this.#isVisible && this.opacity >= 1) this.#setCanvasVisible(true);
 
-		this._camera360.calculate3DFrustum();
+		this._camera360._calculate3DFrustum();
 
 		if (this.#isReady && this.opacity !== this._targetOpacity) {
 			this.#stepOpacity();
 			animating = true;
 		}
 
-		const scale: number = (this.is360 ? this._camera360.scale : this._camera2d.scale) * this.el.scale;
+		const scale: number = (this.is360 ? this._camera360._scale : this._camera2d._scale) * this.el.scale;
 
 		const m = this.main;
 
@@ -371,7 +371,7 @@ export class TileCanvas {
 
 		gl.gl.viewport(this.el.left, m.el.height - el.height - el.top, el.width, el.height);
 
-		gl.gl.uniformMatrix4fv(gl.pmLoc, false, this._camera360.pMatrix.arr);
+		gl.gl.uniformMatrix4fv(gl.pmLoc, false, this._camera360._pMatrix.arr);
 
 		if (this.#pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
@@ -502,7 +502,7 @@ export class TileCanvas {
 	#setTile(i: number): void {
 		const r = this.#rect; this.#findTileRect(i);
 		if (this.is360) {
-			if (r.image.localIdx === 0) this._camera360.setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+			if (r.image.localIdx === 0) this._camera360._setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
 			else r.image.setDrawRect(r);
 		}
 		else {
@@ -541,7 +541,7 @@ export class TileCanvas {
 			this._diagonal = Math.sqrt(c.width * c.width + c.height * c.height);
 		}
 		if (!this._hasParent) {
-			if (this.is360) this._camera360.resize();
+			if (this.is360) this._camera360._resize();
 			else {
 				this._camera2d.setCanvas();
 				this._camera2d._updateProjection();
@@ -603,7 +603,7 @@ export class TileCanvas {
 
 		if (this.width > 0) {
 			if (this.is360) {
-				this._camera360.setView(centerX, centerY, width, height, { noLimit, correctNorth });
+				this._camera360._setView(centerX, centerY, width, height, { noLimit, correctNorth });
 				this.view.set(centerX, centerY, width, height);
 			} else if (this._camera2d.applyView()) {
 				this._camera2d._updateProjection();
@@ -611,27 +611,27 @@ export class TileCanvas {
 		}
 	}
 
-	getScale(): number { return this.is360 ? this._camera360.scale : this._camera2d.scale }
-	_isZoomedIn(): boolean { const c360 = this._camera360; return this.is360 ? c360.perspective <= c360.minPerspective : this._camera2d._isZoomedIn() }
-	_isZoomedOut(b: boolean = false): boolean { const c360 = this._camera360; return this.is360 ? c360.perspective >= c360.maxPerspective : this._camera2d._isZoomedOut(b) }
+	getScale(): number { return this.is360 ? this._camera360._scale : this._camera2d._scale }
+	_isZoomedIn(): boolean { const c360 = this._camera360; return this.is360 ? c360._perspective <= c360._minPerspective : this._camera2d._isZoomedIn() }
+	_isZoomedOut(b: boolean = false): boolean { const c360 = this._camera360; return this.is360 ? c360._perspective >= c360._maxPerspective : this._camera2d._isZoomedOut(b) }
 
 	_correctMinMax(noLimit?: boolean): void { this._camera2d._correctMinMax(noLimit); }
 
 	_setMinScale(s: number): void {
 		const c2d = this._camera2d;
-		c2d.minScale = s;
+		c2d._minScale = s;
 		c2d._correctMinMax();
 		c2d.applyView();
-		this._camera360.update();
+		this._camera360._update();
 	}
 
 	_setDirection(yaw: number, pitch: number, resetPersp: boolean = false): void {
-		if (isNaN(pitch)) pitch = this._camera360.pitch;
-		this._camera360.setDirection(yaw, pitch, resetPersp ? this._camera360.defaultPerspective : 0);
+		if (isNaN(pitch)) pitch = this._camera360._pitch;
+		this._camera360._setDirection(yaw, pitch, resetPersp ? this._camera360._defaultPerspective : 0);
 	}
 	_getMatrix(x: number, y: number, s: number, r: number, rX: number, rY: number, rZ: number, t: number, sX: number = 1, sY: number = 1, noCorrectNorth: boolean = false): Float32Array {
 		const fact: number = 20000 / this.width;
-		return this._camera360.getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).arr
+		return this._camera360._getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).arr
 	}
 
 	_aniPause(): void {

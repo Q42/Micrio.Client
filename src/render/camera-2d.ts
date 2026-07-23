@@ -13,12 +13,12 @@ import type { TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
 export default class Camera2D extends EngineCamera {
-	scale: number = 1.0;
-	minScale: number = 1.0;
-	minSize: number = 1.0;
-	maxScale: number = 1.0;
+	_scale: number = 1.0;
+	_minScale: number = 1.0;
+	_minSize: number = 1.0;
+	_maxScale: number = 1.0;
 	#fullScale: number = 1.0;
-	coverScale: number = 1.0;
+	_coverScale: number = 1.0;
 
 	readonly #xy: Coordinates = new Coordinates;
 	readonly #coo: Coordinates = new Coordinates;
@@ -56,12 +56,12 @@ export default class Camera2D extends EngineCamera {
 			y -= el.top;
 		}
 
-		const rX = (x / this.scale * r) / c.width + v.x0;
-		const rY = (y / this.scale * r) / c.height + v.y0;
+		const rX = (x / this._scale * r) / c.width + v.x0;
+		const rY = (y / this._scale * r) / c.height + v.y0;
 
 		coo.x = noLimit ? rX : Math.max(v.lX0, Math.min(v.lX1, rX));
 		coo.y = noLimit ? rY : Math.max(v.lY0, Math.min(v.lY1, rY));
-		coo.scale = this.scale;
+		coo.scale = this._scale;
 		coo.toArray();
 
 		return this.#coo;
@@ -75,9 +75,9 @@ export default class Camera2D extends EngineCamera {
 		const el = c.el;
 		const rat = c._hasParent ? c.parent.el.ratio : el.ratio;
 		const xy = this.#xy;
-		xy.x = ((x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
-		xy.y = ((y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
-		xy.scale = this.scale / rat;
+		xy.x = ((x - c.view.x0) * c.width) * this._scale / rat + (abs ? el.left : 0);
+		xy.y = ((y - c.view.y0) * c.height) * this._scale / rat + (abs ? el.top : 0);
+		xy.scale = this._scale / rat;
 		xy.toArray();
 		return xy;
 	}
@@ -92,7 +92,7 @@ export default class Camera2D extends EngineCamera {
 	getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.canvas;
 		const el = c.el;
-		const mat = this.#omniMat, vec4 = c._camera360.vec4;
+		const mat = this.#omniMat, vec4 = c._camera360._vec4;
 		const rat = c._hasParent ? c.parent.el.ratio : el.ratio;
 
 		vec4.x = x;
@@ -116,8 +116,8 @@ export default class Camera2D extends EngineCamera {
 
 		const xy = this.#xy;
 
-		xy.x = ((.5 + vec4.x - c.view.x0) * c.width) * this.scale / rat + (abs ? el.left : 0);
-		xy.y = ((.5 + vec4.y - c.view.y0) * c.height) * this.scale / rat + (abs ? el.top : 0);
+		xy.x = ((.5 + vec4.x - c.view.x0) * c.width) * this._scale / rat + (abs ? el.left : 0);
+		xy.y = ((.5 + vec4.y - c.view.y0) * c.height) * this._scale / rat + (abs ? el.top : 0);
 		xy.w = -vec4.w - c._omniDistance;
 		xy.toArray();
 		return xy;
@@ -140,14 +140,14 @@ export default class Camera2D extends EngineCamera {
 		this.cph = cph;
 
 		this.#fullScale = Math.min(cpw, cph);
-		this.coverScale = Math.max(cpw, cph);
+		this._coverScale = Math.max(cpw, cph);
 
 		const lRat = c.view.lWidth / c.view.lHeight;
 		c.view.limitChanged = false;
 		if (c.view.lWidth < 1 || c.view.lHeight < 1) {
 			const rat = cpw / cph;
-			if (lRat < rat) this.coverScale /= c.view.lWidth / rat;
-			else this.coverScale /= c.view.lHeight * rat;
+			if (lRat < rat) this._coverScale /= c.view.lWidth / rat;
+			else this._coverScale /= c.view.lHeight * rat;
 		}
 
 		this._correctMinMax();
@@ -166,24 +166,24 @@ export default class Camera2D extends EngineCamera {
 	/** Corrects minScale and maxScale based on coverLimit and focus area. */
 	_correctMinMax(noLimit: boolean = false): void {
 		const c = this.canvas;
-		this.minScale = c._coverLimit ? this.coverScale : this.#fullScale;
+		this._minScale = c._coverLimit ? this._coverScale : this.#fullScale;
 
 		if (!noLimit && !c.main._isSwipe && (c._activeImageIdx === 0 && !c._coverLimit || c._activeImageIdx > 0 && !c._coverLimit)) {
 			const aW = c.focus.width * c.width, aH = c.focus.height * c.height;
 			const cW = c.el.width, cH = c.el.height;
-			this.minScale = cW / cH > aW / aH ? cH / aH : cW / aW;
+			this._minScale = cW / cH > aW / aH ? cH / aH : cW / aW;
 		}
 
-		this.maxScale = this.minScale > 1 && c.maxScale < this.minScale ? this.minScale : Math.max(this.minScale, (c.maxScale * c._scaleMultiplier) / c.el.scale);
+		this._maxScale = this._minScale > 1 && c.maxScale < this._minScale ? this._minScale : Math.max(this._minScale, (c.maxScale * c._scaleMultiplier) / c.el.scale);
 		this.#wasCoverLimit = c._coverLimit;
 	}
 
 	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). */
-	_isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
+	_isUnderZoom(): boolean { return this._minSize < 1 && this._scale < this._minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
-	_isZoomedOut(b: boolean = false): boolean { return epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
+	_isZoomedOut(b: boolean = false): boolean { return epsEq(this._scale, this._minScale * (b ? this._minSize : 1)) || this._scale <= this._minScale * (b ? this._minSize : 1); }
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	_isZoomedIn(): boolean { return epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
+	_isZoomedIn(): boolean { return epsEq(this._scale, this._maxScale) || this._scale >= this._maxScale; }
 
 	/**
 	 * Recalculates scale and applies view constraints from the current logical view.
@@ -203,16 +203,16 @@ export default class Camera2D extends EngineCamera {
 		const cw = this.cpw;
 		const ch = this.cph;
 
-		this.scale = Math.min(cw / vw, ch / vh);
+		this._scale = Math.min(cw / vw, ch / vh);
 
-		if (limited && !this.#pinching && this.scale >= this.maxScale && c._ani.flying) this.scale = this.maxScale;
+		if (limited && !this.#pinching && this._scale >= this._maxScale && c._ani.flying) this._scale = this._maxScale;
 
-		if ((!c._ani.correcting && !this.#pinching) || c._coverLimit) this.scale = Math.max(this.minScale * this.minSize, this.scale);
+		if ((!c._ani.correcting && !this.#pinching) || c._coverLimit) this._scale = Math.max(this._minScale * this._minSize, this._scale);
 
-		if (!this.#inited && c._coverStart) this.scale = this.coverScale;
+		if (!this.#inited && c._coverStart) this._scale = this._coverScale;
 
-		const overflowX: number = (cw / this.scale - vw);
-		const overflowY: number = (ch / this.scale - vh);
+		const overflowX: number = (cw / this._scale - vw);
+		const overflowY: number = (ch / this._scale - vh);
 
 		v.set(v.centerX, v.centerY, v.width + overflowX, v.height + overflowY);
 
@@ -236,7 +236,7 @@ export default class Camera2D extends EngineCamera {
 		return !this.canvas._freeMove && (
 			(!epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
 			|| (!epsEq(v.y0, v.lY0) && v.y0 < v.lY0) !== (!epsEq(v.y1, v.lY1) && v.y1 > v.lY1)
-			|| (!epsEq(this.scale, this.maxScale) && this.scale > this.maxScale)
+			|| (!epsEq(this._scale, this._maxScale) && this._scale > this._maxScale)
 		);
 	}
 
@@ -253,8 +253,8 @@ export default class Camera2D extends EngineCamera {
 		const r = c._hasParent ? c.parent.el.ratio : c.el.ratio;
 		const v = c.view;
 
-		const dX: number = xPx / c.width / this.scale * r;
-		const dY: number = yPx / c.height / this.scale * r;
+		const dX: number = xPx / c.width / this._scale * r;
+		const dY: number = yPx / c.height / this._scale * r;
 
 		const newCenterX = v.centerX + dX;
 		const newCenterY = v.centerY + dY;
@@ -300,13 +300,13 @@ export default class Camera2D extends EngineCamera {
 
 		if (this.canvas._freeMove) noLimit = true;
 
-		if (delta > 0 && this._isZoomedOut() && this.minSize >= 1 && (!this.#pinching || c._coverLimit)) return 0;
+		if (delta > 0 && this._isZoomedOut() && this._minSize >= 1 && (!this.#pinching || c._coverLimit)) return 0;
 
 		const el = c.el;
 		const v = c.view;
 
 		const ratio: number = (this.cpw / this.cph);
-		let fact: number = delta * (el.width / 512) / c.width / this.scale;
+		let fact: number = delta * (el.width / 512) / c.width / this._scale;
 		let factY: number = fact / ratio;
 
 		if (delta < 0 && fact < -1) fact = -.9999;
@@ -335,7 +335,7 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	protected _handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
-		if (!this.canvas.main._noPinchPan && this.scale > this.minScale) this._pan(dX, dY, 0, false, true);
+		if (!this.canvas.main._noPinchPan && this._scale > this._minScale) this._pan(dX, dY, 0, false, true);
 		this._zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas._pinchZoomOutLimit);
 		c._ani.limit = !!this.canvas._pinchZoomOutLimit;
 	}
@@ -356,10 +356,10 @@ export default class Camera2D extends EngineCamera {
 		if (this.canvas._freeMove) return;
 
 		const v = this.canvas.view;
-		const isOverzoomed = this.scale > this.maxScale;
+		const isOverzoomed = this._scale > this._maxScale;
 
-		const targetWidth = isOverzoomed ? this.cpw / this.maxScale : v.width;
-		const targetHeight = isOverzoomed ? this.cph / this.maxScale : v.height;
+		const targetWidth = isOverzoomed ? this.cpw / this._maxScale : v.width;
+		const targetHeight = isOverzoomed ? this.cph / this._maxScale : v.height;
 
 		const halfW = targetWidth / 2;
 		const halfH = targetHeight / 2;
@@ -392,7 +392,7 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	protected _clampSetCooScale(scale: number): number {
-		return Math.max(this.minScale, scale);
+		return Math.max(this._minScale, scale);
 	}
 
 	protected _setCooDim(scale: number): { w: number; h: number } {
@@ -409,16 +409,16 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	// ─── 360 camera compat stubs (for union with Camera360) ─────────
-	yaw: number = 0;
-	pitch: number = 0;
+	_yaw: number = 0;
+	_pitch: number = 0;
 
 	/** Updates the projection matrix for 2D rendering (delegates to Camera360.pMatrix). */
 	_updateProjection(): void {
 		const c = this.canvas;
 		const v = c.view;
 		const cam = c._camera360;
-		const m = cam.pMatrix;
-		m.perspective(cam.perspective, c.el.aspect, 0.0001, 100);
+		const m = cam._pMatrix;
+		m.perspective(cam._perspective, c.el.aspect, 0.0001, 100);
 		m.translate(
 			-(v.centerX - .5) * c.aspect,
 			v.centerY - .5,

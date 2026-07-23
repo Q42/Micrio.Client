@@ -155,7 +155,7 @@ export class Camera {
 		const c = this.#canvas;
 		if (!c) return new Float64Array(5);
 		const tNDiff = (this.#image.is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
-		if (c.is360) return c._camera360.getXYZ(x - tNDiff, y).arr;
+		if (c.is360) return c._camera360._getXYZ(x - tNDiff, y).arr;
 		if (opts.rotation !== undefined && !isNaN(opts.rotation))
 			return c._camera2d.getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
 		return c._camera2d.getXY(x - tNDiff, y, !!opts.abs).arr;
@@ -179,13 +179,13 @@ export class Camera {
 	getScale = (): number => this.getCoo(0, 0)[2] || 1;
 
 	/** Gets the scale at which the image fully covers the viewport. */
-	getCoverScale = (): number => this.#canvas?.camera.coverScale ?? 1;
+	getCoverScale = (): number => this.#canvas?.camera._coverScale ?? 1;
 
-	getMinScale = (): number => this.#canvas?.camera.minScale ?? 0.1;
+	getMinScale = (): number => this.#canvas?.camera._minScale ?? 0.1;
 
 	setMinScale(s: number): void { this.#canvas?._setMinScale(s); }
 
-	setMinScreenSize(s: number): void { if (!this.#image.album && this.#canvas) this.#canvas.camera.minSize = Math.max(0, Math.min(1, s)); }
+	setMinScreenSize(s: number): void { if (!this.#image.album && this.#canvas) this.#canvas.camera._minSize = Math.max(0, Math.min(1, s)); }
 
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
 	isZoomedIn = (): boolean => !!(this.#canvas?._isZoomedIn());
@@ -194,13 +194,13 @@ export class Camera {
 	isZoomedOut = (full = false): boolean => !!(this.#canvas?._isZoomedOut(full));
 
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
-	getDirection = (): number => this.#canvas?._camera360.yaw ?? 0;
+	getDirection = (): number => this.#canvas?._camera360._yaw ?? 0;
 
-	getPitch = (): number => this.#canvas?._camera360.pitch ?? 0;
+	getPitch = (): number => this.#canvas?._camera360._pitch ?? 0;
 
 	setDirection(yaw: number, pitch?: number): void {
 		if (!this.#canvas) return;
-		this.#canvas._setDirection(yaw, pitch ?? this.#canvas._camera360.pitch);
+		this.#canvas._setDirection(yaw, pitch ?? this.#canvas._camera360._pitch);
 		this.#image.engine.render();
 	}
 
@@ -231,7 +231,7 @@ export class Camera {
 
 	set360RangeLimit(xPerc = 0, yPerc = 0): void {
 		if (!this.#canvas) return;
-		this.#canvas._camera360.setLimits(xPerc, yPerc);
+		this.#canvas._camera360._setLimits(xPerc, yPerc);
 		this.#image.engine.render();
 	}
 
