@@ -62,11 +62,11 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const { controls, zoom } = micrio.state.ui;
 
 		const readInfo = (s: Models.ImageInfo.Settings) => {
-			zoom.set(!s.noZoom);
-			controls.set(!s.noControls);
 			this.#showCultures = !!s.ui?.controls?.cultureSwitch;
 			this.#showSocial = !!s.social;
-			this.#showFullscreen = !!s.fullscreen;
+			if (s.fullscreen !== undefined) this.#showFullscreen = !!s.fullscreen;
+			zoom.set(!s.noZoom);
+			controls.set(!s.noControls);
 			this.#sync();
 		};
 
@@ -150,7 +150,9 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const hasSocial = this.#showSocial && ('share' in navigator);
 		const hasControls = $controls && (showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen);
 		const onlyFullscreen = this.#showFullscreen && !!$popup && isMobile;
-		const gridPanZoomCells = !!$current?.grid && $current.grid.panZoom == 'cells';
+		const gridPanZoomCells = !!$current?.grid && $current?.$settings?.grid?.panZoom == 'cells';
+		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
+		const showGroup = zoomVisible || this.#showFullscreen;
 
 		if (!hasControls) {
 			this.#aside1.replaceChildren();
@@ -230,9 +232,6 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		}
 
 		// Zoom + fullscreen button group
-		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
-		const showGroup = zoomVisible || this.#showFullscreen;
-
 		if (showGroup) {
 			if (!this.#group1?.isConnected) {
 				this.#group1?.remove();

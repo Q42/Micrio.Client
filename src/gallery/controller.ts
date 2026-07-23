@@ -249,6 +249,13 @@ export class Gallery {
 	attach(parent: MicrioImage): void {
 		this.#parent = parent;
 		(parent as any).__gallery = this;
+
+		if (this.config.type == 'grid') {
+			const micrio = parent.engine.micrio;
+			parent.grid = createElement(Grid.tag, {
+				setProps: { micrio, image: parent, gallery: this },
+			}) as Grid;
+		}
 	}
 
 	// --- Element Opening ---
@@ -268,7 +275,7 @@ export class Gallery {
 
 		const path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
 
-		const img = await micrio.open({
+		await micrio.open({
 			id: '',
 			info: {
 				id: '',
@@ -281,12 +288,6 @@ export class Gallery {
 		}, {
 			gallery: this
 		});
-
-		if (this.config.type == 'grid') {
-			img.grid = createElement(Grid.tag, {
-				setProps: { micrio, image: img, gallery: this },
-			}) as Grid;
-		}
 	}
 
 	// --- Navigation ---
