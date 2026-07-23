@@ -79,10 +79,10 @@ export default abstract class EngineCamera {
 		const a = c._ani;
 		c._kinetic.stop();
 		const adjustedCenterX = this._flyToCenterX(centerX);
-		a.limit = false;
+		a._limit = false;
 		dur = a.toView(adjustedCenterX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
-		a.limit = false;
-		a.flying = true;
+		a._limit = false;
+		a._flying = true;
 		return dur;
 	}
 
@@ -100,8 +100,8 @@ export default abstract class EngineCamera {
 		this._beforeSetCooAnimate(x, y, w, h, dur);
 
 		dur = c._ani.toView(x, y, w, h, dur, fn, { speed });
-		c._ani.limit = dur === 0 || limit;
-		c._ani.flying = dur > 0;
+		c._ani._limit = dur === 0 || limit;
+		c._ani._flying = dur > 0;
 		return dur;
 	}
 

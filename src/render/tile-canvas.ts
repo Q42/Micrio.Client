@@ -491,7 +491,7 @@ export class TileCanvas {
 			this.#area._copy(this.#currentArea);
 			this.#areaAniPerc = 0;
 			if (this.zIndex === 0) this.zIndex = 1;
-			this._ani.limit = false;
+			this._ani._limit = false;
 		}
 		this.#targetArea._setArea(x0, y0, x1, y1);
 		this.#partialView(noDispatch);
@@ -593,13 +593,13 @@ export class TileCanvas {
 	setView(centerX: number, centerY: number, width: number, height: number, noLimit: boolean, noLastView: boolean, correctNorth: boolean = false, forceLimit: boolean = false): void {
 		const mE = this.main.el;
 
-		if (mE._areaHeight > 0) { height += height / (1 - (mE._areaHeight / mE.height)); this._ani.limit = false; mE._areaHeight = 0; };
-		if (mE._areaWidth > 0) { width += width * (mE._areaWidth / mE.width); this._ani.limit = false; mE._areaWidth = 0; };
-		if (noLimit) this._ani.limit = false;
+		if (mE._areaHeight > 0) { height += height / (1 - (mE._areaHeight / mE.height)); this._ani._limit = false; mE._areaHeight = 0; };
+		if (mE._areaWidth > 0) { width += width * (mE._areaWidth / mE.width); this._ani._limit = false; mE._areaWidth = 0; };
+		if (noLimit) this._ani._limit = false;
 
 		this.view.set(centerX, centerY, width, height);
 		if (forceLimit && !noLimit) this.view._limit(false, false, this._freeMove);
-		if (!noLastView) this._ani.lastView._copy(this.view);
+		if (!noLastView) this._ani._lastView._copy(this.view);
 
 		if (this.width > 0) {
 			if (this.is360) {

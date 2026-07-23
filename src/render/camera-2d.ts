@@ -153,12 +153,12 @@ export default class Camera2D extends EngineCamera {
 		this._correctMinMax();
 
 		if (el.width && el.height && !this.canvas._ani.isStarted()) {
-			c.view._copy(c._ani.lastView, true);
+			c.view._copy(c._ani._lastView, true);
 			if (!c.is360) {
-				const pLimit = c._ani.limit;
-				c._ani.limit = false;
+				const pLimit = c._ani._limit;
+				c._ani._limit = false;
 				this.applyView();
-				c._ani.limit = pLimit;
+				c._ani._limit = pLimit;
 			}
 		}
 	}
@@ -194,9 +194,9 @@ export default class Camera2D extends EngineCamera {
 		const c = this.canvas;
 		const v = this.canvas.view;
 
-		const limited = !c._freeMove && c._ani.limit;
+		const limited = !c._freeMove && c._ani._limit;
 
-		if (!c._ani.correcting && (limited || (!c._ani.flying && c._coverLimit))) v._limit(false);
+		if (!c._ani._correcting && (limited || (!c._ani._flying && c._coverLimit))) v._limit(false);
 
 		const vw: number = v.width;
 		const vh: number = v.height;
@@ -205,9 +205,9 @@ export default class Camera2D extends EngineCamera {
 
 		this._scale = Math.min(cw / vw, ch / vh);
 
-		if (limited && !this.#pinching && this._scale >= this._maxScale && c._ani.flying) this._scale = this._maxScale;
+		if (limited && !this.#pinching && this._scale >= this._maxScale && c._ani._flying) this._scale = this._maxScale;
 
-		if ((!c._ani.correcting && !this.#pinching) || c._coverLimit) this._scale = Math.max(this._minScale * this._minSize, this._scale);
+		if ((!c._ani._correcting && !this.#pinching) || c._coverLimit) this._scale = Math.max(this._minScale * this._minSize, this._scale);
 
 		if (!this.#inited && c._coverStart) this._scale = this._coverScale;
 
@@ -216,9 +216,9 @@ export default class Camera2D extends EngineCamera {
 
 		v.set(v._centerX, v._centerY, v.width + overflowX, v.height + overflowY);
 
-		if (!this.#inited && c._coverStart) this.canvas._ani.lastView._copy(v);
+		if (!this.#inited && c._coverStart) this.canvas._ani._lastView._copy(v);
 
-		if (!c._ani.correcting && c._coverLimit) v._limit(false);
+		if (!c._ani._correcting && c._coverLimit) v._limit(false);
 
 		this.#inited = this.cpw > 0;
 
@@ -312,7 +312,7 @@ export default class Camera2D extends EngineCamera {
 		if (delta < 0 && fact < -1) fact = -.9999;
 		if (delta < 0 && factY < -1) factY = -.9999;
 
-		const limit = !noLimit && !c._freeMove && c._ani.limit && duration === 0;
+		const limit = !noLimit && !c._freeMove && c._ani._limit && duration === 0;
 		const r = c._hasParent ? c.parent.el.ratio : el.ratio;
 
 		xPx -= el.left;
@@ -326,10 +326,10 @@ export default class Camera2D extends EngineCamera {
 		const targetWidth = v.width + fact;
 		const targetHeight = v.height + factY;
 
-		c._ani.limit = limit;
+		c._ani._limit = limit;
 		duration = c._ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: limit });
-		c._ani.lastView._copy(c.view);
-		c._ani.limit = !noLimit;
+		c._ani._lastView._copy(c.view);
+		c._ani._limit = !noLimit;
 
 		return duration;
 	}
@@ -337,7 +337,7 @@ export default class Camera2D extends EngineCamera {
 	protected _handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
 		if (!this.canvas.main._noPinchPan && this._scale > this._minScale) this._pan(dX, dY, 0, false, true);
 		this._zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas._pinchZoomOutLimit);
-		c._ani.limit = !!this.canvas._pinchZoomOutLimit;
+		c._ani._limit = !!this.canvas._pinchZoomOutLimit;
 	}
 
 	/** Signals the start of a pinch gesture. */

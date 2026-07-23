@@ -17,7 +17,7 @@ export default class Ani {
 	/** Target view state for the animation. */
 	readonly #vTo: View;
 	/** Stores the final target view requested (might differ from vTo during corrections). */
-	readonly lastView: View;
+	readonly _lastView: View;
 
 	/** Flag indicating if a zoom animation (perspective change in 360) is active. */
 	#isZoom: boolean = false;
@@ -41,13 +41,11 @@ export default class Ani {
 	#isRunning: boolean = false;
 
 	/** Flag indicating if the view should be limited during animation (usually false during animation). */
-	limit: boolean = true;
-	/** Flag indicating if the current animation step resulted in zooming out. */
-	zoomingOut: boolean = false;
+	_limit: boolean = true;
 	/** Flag indicating if the animation is a fly-to type. */
-	flying: boolean = false;
+	_flying: boolean = false;
 	/** Flag indicating if the animation is correcting the view to stay within limits. */
-	correcting: boolean = false;
+	_correcting: boolean = false;
 
 	/** Timestamp when the animation was paused. 0 if not paused. */
 	#pausedAt: number = 0;
@@ -75,7 +73,7 @@ export default class Ani {
 		this.#canvas = canvas;
 		this.#vFrom = new View(canvas);
 		this.#vTo = new View(canvas);
-		this.lastView = new View(canvas);
+		this._lastView = new View(canvas);
 	}
 
 	/** Pauses the current animation. */
@@ -99,12 +97,12 @@ export default class Ani {
 			this.#canvas._aniAbort();
 		}
 		this.#started = 0;
-		this.limit = true;
-		this.flying = false;
+		this._limit = true;
+		this._flying = false;
 		this.#isRunning = false;
 		this.#isView = false;
 		this.#isZoom = false;
-		this.correcting = false;
+		this._correcting = false;
 		this.#pausedAt = 0;
 	}
 
@@ -131,12 +129,12 @@ export default class Ani {
 
 		const { speed = 0, perc = 0, isJump = false, limitViewport = false, omniIdx = -1, correct = false } = opts;
 
-		if (correct && this.correcting) {
+		if (correct && this._correcting) {
 			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
 			return dur;
 		}
 
-		this.lastView.set(toCenterX, toCenterY, toWidth, toHeight);
+		this._lastView.set(toCenterX, toCenterY, toWidth, toHeight);
 		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 
 		const c = this.#canvas;
@@ -236,10 +234,10 @@ export default class Ani {
 		}
 
 		this.#isView = true;
-		this.limit = false;
-		this.flying = true;
+		this._limit = false;
+		this._flying = true;
 		this.#isZoom = false;
-		if (correct) this.correcting = true;
+		if (correct) this._correcting = true;
 
 		this.#started = performance.now() - (perc * this.#duration);
 		this.#isRunning = true;
@@ -260,7 +258,7 @@ export default class Ani {
 	zoom(to: number, dur: number, speed: number, noLimit: boolean): number {
 		this.stop();
 		this.#isView = false;
-		this.flying = false;
+		this._flying = false;
 		this.#isZoom = true;
 		this.#zNoLimit = noLimit;
 
@@ -291,7 +289,6 @@ export default class Ani {
 	step(): number {
 		const p: number = this.#started === 0 ? 1 : Math.min(1, Math.max(0, (this.#canvas.main.now - this.#started) / this.#duration));
 		const pE = this.#fn.get(p);
-		const scale = this.#canvas.getScale();
 
 		if (this.#isRunning) {
 			if (this.#isView) {
@@ -326,13 +323,11 @@ export default class Ani {
 			}
 
 			if (p >= 1) {
-				this.lastView._copy(this.#canvas.view);
+				this._lastView._copy(this.#canvas.view);
 				this.#canvas._aniDone();
 				this.stop();
 			}
 		}
-
-		this.zoomingOut = this.#isRunning && this.#canvas.getScale() < scale;
 
 		return p;
 	}
