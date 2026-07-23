@@ -44,9 +44,6 @@ export class Events implements EventContext {
 	/** Flag indicating if the user is currently pinching. */
 	pinching: boolean = false;
 
-	/** Flag indicating if a click event originated from outside the core interaction (e.g., UI button). */
-	clicked: boolean = false;
-
 	/** Flag indicating if the user is currently zooming via mouse wheel. */
 	wheeling: boolean = false;
 
@@ -144,7 +141,7 @@ export class Events implements EventContext {
 	 * Checks if the user is currently interacting with the map via panning, pinching, or wheeling.
 	 * @returns True if the user is actively navigating.
 	*/
-	get isNavigating(): boolean { return this.panning || this.pinching || this.wheeling || this.clicked; }
+	get isNavigating(): boolean { return this.panning || this.pinching || this.wheeling; }
 
 	/**
 	 * Dispatches a custom event on the main `<micr-io>` element.

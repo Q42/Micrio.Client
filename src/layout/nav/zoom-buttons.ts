@@ -1,6 +1,6 @@
 import { MicrioElement } from '$core/component';
 import type { MicrioImage } from '$core/image';
-import { get, tick } from '$core/store';
+import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 
@@ -15,6 +15,8 @@ class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 	#target: MicrioImage | undefined;
 	#viewUnsub: (() => void) | undefined;
 	#albumUnsub: (() => void) | undefined;
+	#btnIn: MicrioElement | undefined;
+	#btnOut: MicrioElement | undefined;
 
 	onMount() {
 		const micrio = this.getMicrio();
@@ -34,33 +36,23 @@ class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 
 			const $i18n = get(i18n);
 
-			let btnIn = this.querySelector(':scope > .zoomIn') as MicrioElement;
-			if (!btnIn) {
-				btnIn = createElement('micrio-button', { parent: this }) as MicrioElement;
+			if (!this.#btnIn) {
+				(this.#btnIn = createElement('micrio-button') as MicrioElement).setProps({
+					type: 'zoomIn',
+					onclick: () => this.#target?.camera.zoomIn()
+				});
 			}
-			btnIn.setProps({
-				type: 'zoomIn',
-				title: $i18n.zoomIn,
-				disabled: zoomedIn,
-				onclick: () => {
-					micrio.events.clicked = true;
-					img?.camera.zoomIn().then(() => micrio.events.clicked = false);
-				}
-			});
+			if (!this.#btnIn.isConnected) this.append(this.#btnIn);
+			this.#btnIn.setProps({ title: $i18n.zoomIn, disabled: zoomedIn });
 
-			let btnOut = this.querySelector(':scope > .zoomOut') as MicrioElement;
-			if (!btnOut) {
-				btnOut = createElement('micrio-button', { parent: this }) as MicrioElement;
+			if (!this.#btnOut) {
+				(this.#btnOut = createElement('micrio-button') as MicrioElement).setProps({
+					type: 'zoomOut',
+					onclick: () => this.#target?.camera.zoomOut()
+				});
 			}
-			btnOut.setProps({
-				type: 'zoomOut',
-				title: $i18n.zoomOut,
-				disabled: zoomedOut,
-				onclick: () => {
-					micrio.events.clicked = true;
-					img?.camera.zoomOut().then(() => micrio.events.clicked = false);
-				}
-			});
+			if (!this.#btnOut.isConnected) this.append(this.#btnOut);
+			this.#btnOut.setProps({ title: $i18n.zoomOut, disabled: zoomedOut });
 		};
 
 		const bindTo = (img: MicrioImage | undefined) => {
@@ -77,14 +69,18 @@ class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 				if (!c) return;
 				if (this.#albumUnsub) { this.#albumUnsub(); this.#albumUnsub = undefined; }
 				if (this.#viewUnsub) { this.#viewUnsub(); this.#viewUnsub = undefined; }
-				tick().then(() => {
-					if (c.album?.currentImage) {
-						this.#albumUnsub = c.album.currentImage.subscribe(bindTo);
-					} else {
-						bindTo(c);
-					}
+				const subscribeAlbum = () => {
+					this.#viewUnsub?.();
+					this.#albumUnsub = c.album!.currentImage!.subscribe(bindTo);
 					update();
-				});
+				};
+				if (c.album?.currentImage) subscribeAlbum();
+				else {
+					bindTo(c);
+					requestAnimationFrame(() => {
+						if (c.album?.currentImage && !this.#albumUnsub) subscribeAlbum();
+					});
+				}
 			}));
 		}
 	}
