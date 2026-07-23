@@ -31,7 +31,7 @@ export default abstract class EngineCamera {
 
 	// ─── Shared pinch implementation ───
 
-	pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
+	_pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
 		const c = this.canvas;
 		const el = c.main.el;
 
@@ -50,7 +50,7 @@ export default abstract class EngineCamera {
 		if (this.#prevCenterX > 0) {
 			const dX = this.#prevCenterX - cX;
 			const dY = this.#prevCenterY - cY;
-			this.handlePinchMove(delta, dX, dY, cX, cY, el, c);
+			this._handlePinchMove(delta, dX, dY, cX, cY, el, c);
 		} else c._ani.stop();
 
 		this.#prevCenterX = cX;
@@ -58,9 +58,9 @@ export default abstract class EngineCamera {
 		this.#prevSize = size;
 	}
 
-	pinchStart(): void {}
+	_pinchStart(): void {}
 
-	pinchStop(): void {
+	_pinchStop(): void {
 		this.#resetPinchState();
 	}
 
@@ -70,15 +70,15 @@ export default abstract class EngineCamera {
 		this.#prevCenterY = -1;
 	}
 
-	protected abstract handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void;
+	protected abstract _handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void;
 
 	// ─── Shared flyTo / setCoo ───
 
-	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
+	_flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
 		const c = this.canvas;
 		const a = c._ani;
 		c._kinetic.stop();
-		const adjustedCenterX = this.flyToCenterX(centerX);
+		const adjustedCenterX = this._flyToCenterX(centerX);
 		a.limit = false;
 		dur = a.toView(adjustedCenterX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
 		a.limit = false;
@@ -86,18 +86,18 @@ export default abstract class EngineCamera {
 		return dur;
 	}
 
-	protected flyToCenterX(centerX: number): number { return centerX; }
+	protected _flyToCenterX(centerX: number): number { return centerX; }
 
 	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
-		if (this.handleSetCooInit(x, y, scale)) return 0;
+		if (this._handleSetCooInit(x, y, scale)) return 0;
 
 		const c = this.canvas;
 		if (scale === 0) scale = c.getScale();
-		scale = this.clampSetCooScale(scale);
+		scale = this._clampSetCooScale(scale);
 		c._kinetic.stop();
 
-		const { w, h } = this.setCooDim(scale);
-		this.beforeSetCooAnimate(x, y, w, h, dur);
+		const { w, h } = this._setCooDim(scale);
+		this._beforeSetCooAnimate(x, y, w, h, dur);
 
 		dur = c._ani.toView(x, y, w, h, dur, fn, { speed });
 		c._ani.limit = dur === 0 || limit;
@@ -105,19 +105,19 @@ export default abstract class EngineCamera {
 		return dur;
 	}
 
-	protected handleSetCooInit(_x: number, _y: number, _scale: number): boolean { return false; }
-	protected clampSetCooScale(scale: number): number { return scale; }
-	protected abstract setCooDim(scale: number): { w: number; h: number };
-	protected beforeSetCooAnimate(_x: number, _y: number, _w: number, _h: number, _dur: number): void {}
+	protected _handleSetCooInit(_x: number, _y: number, _scale: number): boolean { return false; }
+	protected _clampSetCooScale(scale: number): number { return scale; }
+	protected abstract _setCooDim(scale: number): { w: number; h: number };
+	protected _beforeSetCooAnimate(_x: number, _y: number, _w: number, _h: number, _dur: number): void {}
 
 	// ─── Common interface ───
 
-	abstract pan(xPx: number, yPx: number, duration?: number, noLimit?: boolean, force?: boolean, isKinetic?: boolean): void;
-	abstract zoom(delta: number, xPx: number, yPx: number, duration?: number, noLimit?: boolean): number;
-	abstract correctMinMax(noLimit?: boolean): void;
-	abstract isOutsideLimit(): boolean;
-	abstract isUnderZoom(): boolean;
-	abstract isZoomedIn(): boolean;
-	abstract isZoomedOut(b?: boolean): boolean;
-	abstract getCoo(x: number, y: number, abs?: boolean, noLimit?: boolean): Coordinates;
+	abstract _pan(xPx: number, yPx: number, duration?: number, noLimit?: boolean, force?: boolean, isKinetic?: boolean): void;
+	abstract _zoom(delta: number, xPx: number, yPx: number, duration?: number, noLimit?: boolean): number;
+	abstract _correctMinMax(noLimit?: boolean): void;
+	abstract _isOutsideLimit(): boolean;
+	abstract _isUnderZoom(): boolean;
+	abstract _isZoomedIn(): boolean;
+	abstract _isZoomedOut(b?: boolean): boolean;
+	abstract _getCoo(x: number, y: number, abs?: boolean, noLimit?: boolean): Coordinates;
 }

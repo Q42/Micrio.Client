@@ -482,7 +482,7 @@ export default class Image {
 
 		Image.#sampledLength = 0;
 		const add = (x: number, y: number) => {
-			const coo = c._camera360.getCoo(x, y);
+			const coo = c._camera360._getCoo(x, y);
 			const i = Image.#sampledLength++;
 			Image.#sampledXs[i] = coo.x;
 			Image.#sampledYs[i] = coo.y;

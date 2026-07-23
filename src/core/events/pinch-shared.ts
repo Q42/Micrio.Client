@@ -10,7 +10,7 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	ctx.pinchFactor = undefined;
 
 	if (ctx.vars.pinch.image) {
-		ctx.vars.pinch.image.canvas?.camera.pinchStart();
+		ctx.vars.pinch.image.canvas?.camera._pinchStart();
 	}
 	ctx.micrio.engine.render();
 	ctx.dispatch('pinchstart');
@@ -23,7 +23,7 @@ export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2
 	if (!i) return;
 
 	ctx.pinchFactor = Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v.sDst;
-	i.canvas?.camera.pinch(coo.x, coo.y, coo2.x, coo2.y);
+	i.canvas?.camera._pinch(coo.x, coo.y, coo2.x, coo2.y);
 }
 
 export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: any[]) => void): void {
@@ -37,7 +37,7 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 
 	const i = ctx.vars.pinch.image;
 	if (i) {
-		i.canvas?.camera.pinchStop();
+		i.canvas?.camera._pinchStop();
 		ctx.micrio.engine.render();
 	}
 	ctx.vars.pinch.image = undefined;

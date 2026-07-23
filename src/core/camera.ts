@@ -128,7 +128,7 @@ export class Camera {
 			const box = this.#image.engine.micrio.getBoundingClientRect();
 			x -= box.left; y -= box.top;
 		}
-		return (c.is360 ? c._camera360.getCoo(x, y) : c.camera.getCoo(x, y, !!abs, !!noLimit)).arr;
+		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, !!abs, !!noLimit)).arr;
 	}
 
 	/**
@@ -378,7 +378,7 @@ export class Camera {
 				}
 				if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, npl);
 			}
-			const duration = this.#canvas.camera.flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, getEasing(opts.timingFunction));
+			const duration = this.#canvas.camera._flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, getEasing(opts.timingFunction));
 			this.#image.engine.render();
 			if (duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
@@ -440,7 +440,7 @@ export class Camera {
 			if (x == undefined) x = coo[0];
 			if (y == undefined) y = coo[1];
 			if (this.#image.album && !this.#image.album.hooked) return ok();
-			duration = this.#canvas.camera.zoom(delta, x, y, duration, noLimit);
+			duration = this.#canvas.camera._zoom(delta, x, y, duration, noLimit);
 			this.#image.engine.render();
 			if (duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
@@ -481,7 +481,7 @@ export class Camera {
 	 */
 	pan(x: number, y: number, duration = 0, opts: { render?: boolean; noLimit?: boolean } = {}): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera.pan(x, y, duration, !!opts.noLimit);
+		this.#canvas.camera._pan(x, y, duration, !!opts.noLimit);
 		if (duration > 0 || opts.render) this.#image.engine.render();
 	}
 

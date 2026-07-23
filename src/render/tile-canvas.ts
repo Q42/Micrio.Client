@@ -473,7 +473,7 @@ export class TileCanvas {
 			this.resize();
 			if (!this.is360) {
 				this._camera2d.setCanvas();
-				this._camera2d.updateProjection();
+				this._camera2d._updateProjection();
 			}
 		}
 
@@ -544,7 +544,7 @@ export class TileCanvas {
 			if (this.is360) this._camera360.resize();
 			else {
 				this._camera2d.setCanvas();
-				this._camera2d.updateProjection();
+				this._camera2d._updateProjection();
 			}
 		}
 	}
@@ -591,7 +591,7 @@ export class TileCanvas {
 				this.view.changed = true;
 			}
 		}
-		this._camera2d.correctMinMax();
+		this._camera2d._correctMinMax();
 	}
 
 	/** Sets the focus area for gallery/grid canvases. */
@@ -609,16 +609,16 @@ export class TileCanvas {
 			else { im.tOpacity = 1; this.activeImageIdx = i; }
 		}
 		this.focus.set(centerX, centerY, width, height);
-		this._camera2d.correctMinMax();
+		this._camera2d._correctMinMax();
 		if (!noLimit) {
 			this._camera2d.applyView();
-			this._camera2d.updateProjection();
+			this._camera2d._updateProjection();
 		}
 	}
 
 	/** Gets image coordinates from screen coordinates. */
 	getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Float64Array {
-		return (this.is360 ? this._camera360.getCoo(x, y) : this._camera2d.getCoo(x, y, abs, noLimit)).toArray()
+		return (this.is360 ? this._camera360._getCoo(x, y) : this._camera2d._getCoo(x, y, abs, noLimit)).toArray()
 	}
 
 	/** Gets screen coordinates from image coordinates. */
@@ -645,21 +645,21 @@ export class TileCanvas {
 				this._camera360.setView(centerX, centerY, width, height, { noLimit, correctNorth });
 				this.view.set(centerX, centerY, width, height);
 			} else if (this._camera2d.applyView()) {
-				this._camera2d.updateProjection();
+				this._camera2d._updateProjection();
 			}
 		}
 	}
 
 	getScale(): number { return this.is360 ? this._camera360.scale : this._camera2d.scale }
-	isZoomedIn(): boolean { const c360 = this._camera360; return this.is360 ? c360.perspective <= c360.minPerspective : this._camera2d.isZoomedIn() }
-	isZoomedOut(b: boolean = false): boolean { const c360 = this._camera360; return this.is360 ? c360.perspective >= c360.maxPerspective : this._camera2d.isZoomedOut(b) }
+	isZoomedIn(): boolean { const c360 = this._camera360; return this.is360 ? c360.perspective <= c360.minPerspective : this._camera2d._isZoomedIn() }
+	isZoomedOut(b: boolean = false): boolean { const c360 = this._camera360; return this.is360 ? c360.perspective >= c360.maxPerspective : this._camera2d._isZoomedOut(b) }
 
-	correctMinMax(noLimit?: boolean): void { this._camera2d.correctMinMax(noLimit); }
+	correctMinMax(noLimit?: boolean): void { this._camera2d._correctMinMax(noLimit); }
 
 	setMinScale(s: number): void {
 		const c2d = this._camera2d;
 		c2d.minScale = s;
-		c2d.correctMinMax();
+		c2d._correctMinMax();
 		c2d.applyView();
 		this._camera360.update();
 	}

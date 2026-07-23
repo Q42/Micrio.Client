@@ -57,7 +57,7 @@ export default class Kinetic {
 
 	/** Starts the kinetic movement phase (called when user stops dragging). */
 	start(): void {
-		if (this.#canvas.camera.isUnderZoom()) return;
+		if (this.#canvas.camera._isUnderZoom()) return;
 		this.started = true;
 	}
 
@@ -99,7 +99,7 @@ export default class Kinetic {
 
 		let v = Math.sqrt(this.#velocityX * this.#velocityX + this.#velocityY * this.#velocityY);
 		if (this.#canvas.is360) webgl.rotate(this.#velocityX, this.#velocityY);
-		else cam.pan(this.#velocityX, this.#velocityY, 0, false, false, true);
+		else cam._pan(this.#velocityX, this.#velocityY, 0, false, false, true);
 
 		if (v <= 0.01) {
 			v = 0;

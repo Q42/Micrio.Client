@@ -149,7 +149,7 @@ export default class Camera360 extends EngineCamera {
 			const hasCursor: boolean = pxX > 0 && pxY > 0;
 			let beforeX: number = 0, beforeY: number = 0;
 			if (hasCursor) {
-				const coo = this.getCoo(pxX, pxY);
+				const coo = this._getCoo(pxX, pxY);
 				beforeX = coo.x;
 				beforeY = coo.y;
 			}
@@ -157,7 +157,7 @@ export default class Camera360 extends EngineCamera {
 			this.setPerspective(this.perspective + factor, noLimit);
 
 			if (hasCursor) {
-				const after = this.getCoo(pxX, pxY);
+				const after = this._getCoo(pxX, pxY);
 				let dx: number = beforeX - after.x;
 				if (dx > .5) dx -= 1;
 				if (dx < -.5) dx += 1;
@@ -201,8 +201,8 @@ export default class Camera360 extends EngineCamera {
 		const cX: number = el.width / 2;
 		const cY: number = el.height / 2;
 
-		const center0 = this.getCoo(cX, cY).x;
-		const center1 = this.getCoo(cX + 1, cY + 1).x;
+		const center0 = this._getCoo(cX, cY).x;
+		const center1 = this._getCoo(cX + 1, cY + 1).x;
 		this.scale = 1 / ((center1 + (center1 < center0 ? 1 : 0)) - center0) / this.canvas.width;
 	}
 
@@ -291,7 +291,7 @@ export default class Camera360 extends EngineCamera {
 	}
 
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
-	getCoo(pxX: number, pxY: number): Coordinates {
+	_getCoo(pxX: number, pxY: number): Coordinates {
 		const el = this.canvas.el,
 			v = this.vec4,
 			c = this.#coo;
@@ -456,37 +456,37 @@ export default class Camera360 extends EngineCamera {
 	coverScale: number = 0;
 	minSize: number = 1;
 
-	correctMinMax(): void {}
+	_correctMinMax(): void {}
 
-	isOutsideLimit(): boolean { return false; }
+	_isOutsideLimit(): boolean { return false; }
 
-	isUnderZoom(): boolean { return false; }
+	_isUnderZoom(): boolean { return false; }
 
-	isZoomedOut(_b: boolean = false): boolean { return this.perspective >= this.maxPerspective; }
+	_isZoomedOut(_b: boolean = false): boolean { return this.perspective >= this.maxPerspective; }
 
-	isZoomedIn(): boolean { return this.perspective <= this.minPerspective; }
+	_isZoomedIn(): boolean { return this.perspective <= this.minPerspective; }
 
-	pan(xPx: number, yPx: number, duration: number = 0, _noLimit: boolean = false, _force: boolean = false, _isKinetic: boolean = false): void {
+	_pan(xPx: number, yPx: number, duration: number = 0, _noLimit: boolean = false, _force: boolean = false, _isKinetic: boolean = false): void {
 		this.rotate(xPx, yPx, duration);
 	}
 
-	zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
+	_zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
 		return this.zoomByFactor(delta, duration, noLimit, 0, xPx, yPx);
 	}
 
-	protected handlePinchMove(delta: number, dX: number, dY: number): void {
+	protected _handlePinchMove(delta: number, dX: number, dY: number): void {
 		this.zoomByFactor(delta * 2, 0, false);
 		this.rotate(dX, dY);
 	}
 
-	protected flyToCenterX(centerX: number): number {
+	protected _flyToCenterX(centerX: number): number {
 		const c = this.canvas;
 		const currentCenterX = c.view.centerX;
 		const longitudeDist = longitudeDistance(currentCenterX, centerX);
 		return currentCenterX + longitudeDist;
 	}
 
-	protected setCooDim(scale: number): { w: number; h: number } {
+	protected _setCooDim(scale: number): { w: number; h: number } {
 		const el = this.canvas.main.el;
 		return { w: (1 / scale) * el.width, h: (1 / scale) * el.height };
 	}

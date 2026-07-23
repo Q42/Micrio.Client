@@ -41,7 +41,7 @@ export default class Camera2D extends EngineCamera {
 	/**
 	 * Converts screen pixel coordinates to relative image coordinates [0-1].
 	 */
-	getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Coordinates {
+	_getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Coordinates {
 		const c = this.canvas;
 		if (c.noImage || c.freeMove)
 			noLimit = true;
@@ -132,7 +132,7 @@ export default class Camera2D extends EngineCamera {
 		const cph = el.height / c.height;
 
 		if (!c.view.limitChanged && this.cpw === cpw && this.cph === cph) {
-			if (c.coverLimit !== this.#wasCoverLimit) this.correctMinMax();
+			if (c.coverLimit !== this.#wasCoverLimit) this._correctMinMax();
 			return;
 		}
 
@@ -150,7 +150,7 @@ export default class Camera2D extends EngineCamera {
 			else this.coverScale /= c.view.lHeight * rat;
 		}
 
-		this.correctMinMax();
+		this._correctMinMax();
 
 		if (el.width && el.height && !this.canvas._ani.isStarted()) {
 			c.view.copy(c._ani.lastView, true);
@@ -164,7 +164,7 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	/** Corrects minScale and maxScale based on coverLimit and focus area. */
-	correctMinMax(noLimit: boolean = false): void {
+	_correctMinMax(noLimit: boolean = false): void {
 		const c = this.canvas;
 		this.minScale = c.coverLimit ? this.coverScale : this.#fullScale;
 
@@ -179,11 +179,11 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). */
-	isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
+	_isUnderZoom(): boolean { return this.minSize < 1 && this.scale < this.minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
-	isZoomedOut(b: boolean = false): boolean { return epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
+	_isZoomedOut(b: boolean = false): boolean { return epsEq(this.scale, this.minScale * (b ? this.minSize : 1)) || this.scale <= this.minScale * (b ? this.minSize : 1); }
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn(): boolean { return epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
+	_isZoomedIn(): boolean { return epsEq(this.scale, this.maxScale) || this.scale >= this.maxScale; }
 
 	/**
 	 * Recalculates scale and applies view constraints from the current logical view.
@@ -231,7 +231,7 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	/** Checks if the current view extends beyond the defined limits or max scale. */
-	isOutsideLimit(): boolean {
+	_isOutsideLimit(): boolean {
 		const v = this.canvas.view;
 		return !this.canvas.freeMove && (
 			(!epsEq(v.x0, v.lX0) && v.x0 < v.lX0) !== (!epsEq(v.x1, v.lX1) && v.x1 > v.lX1)
@@ -243,10 +243,10 @@ export default class Camera2D extends EngineCamera {
 	/**
 	 * Pans the view by a given pixel delta.
 	 */
-	pan(xPx: number, yPx: number, duration: number = 0, noLimit: boolean = false, force: boolean = false, isKinetic: boolean = false): void {
+	_pan(xPx: number, yPx: number, duration: number = 0, noLimit: boolean = false, force: boolean = false, isKinetic: boolean = false): void {
 		const c = this.canvas;
 
-		if ((this.isUnderZoom() || this.#pinching) && !force) return;
+		if ((this._isUnderZoom() || this.#pinching) && !force) return;
 
 		if (this.canvas.freeMove) noLimit = true;
 
@@ -264,7 +264,7 @@ export default class Camera2D extends EngineCamera {
 		if (this.#pinching) {
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
-		} else if (!force && this.isOutsideLimit() && !isKinetic) {
+		} else if (!force && this._isOutsideLimit() && !isKinetic) {
 			if (c._ani.isStarted()) {
 				c._ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
 			} else {
@@ -291,16 +291,16 @@ export default class Camera2D extends EngineCamera {
 	 * Zooms the view by a given delta, centered on screen coordinates.
 	 * @returns The calculated animation duration.
 	 */
-	zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
+	_zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
 		const c = this.canvas;
 
 		c._kinetic.stop();
 
-		if (!this.#pinching && this.isZoomedIn() && delta < 0) return 0;
+		if (!this.#pinching && this._isZoomedIn() && delta < 0) return 0;
 
 		if (this.canvas.freeMove) noLimit = true;
 
-		if (delta > 0 && this.isZoomedOut() && this.minSize >= 1 && (!this.#pinching || c.coverLimit)) return 0;
+		if (delta > 0 && this._isZoomedOut() && this.minSize >= 1 && (!this.#pinching || c.coverLimit)) return 0;
 
 		const el = c.el;
 		const v = c.view;
@@ -317,7 +317,7 @@ export default class Camera2D extends EngineCamera {
 
 		xPx -= el.left;
 		yPx -= el.top;
-		const uZ = this.isUnderZoom();
+		const uZ = this._isUnderZoom();
 		const pX: number = xPx > 0 && !uZ ? xPx / el.width * r : .5;
 		const pY: number = yPx > 0 && !uZ ? yPx / el.height * r : .5;
 
@@ -334,22 +334,22 @@ export default class Camera2D extends EngineCamera {
 		return duration;
 	}
 
-	protected handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
-		if (!this.canvas.main._noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
-		this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas.pinchZoomOutLimit);
+	protected _handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
+		if (!this.canvas.main._noPinchPan && this.scale > this.minScale) this._pan(dX, dY, 0, false, true);
+		this._zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas.pinchZoomOutLimit);
 		c._ani.limit = !!this.canvas.pinchZoomOutLimit;
 	}
 
 	/** Signals the start of a pinch gesture. */
-	pinchStart(): void {
+	_pinchStart(): void {
 		this.#pinching = true;
 	}
 
 	/** Signals the end of a pinch gesture. */
-	pinchStop(): void {
+	_pinchStop(): void {
 		this.#snapToBounds();
 		this.#pinching = false;
-		super.pinchStop();
+		super._pinchStop();
 	}
 
 	#snapToBounds(): void {
@@ -378,7 +378,7 @@ export default class Camera2D extends EngineCamera {
 
 	// ─── SetCoo hooks ──────────────────────────────────────────────
 
-	protected handleSetCooInit(x: number, y: number, scale: number): boolean {
+	protected _handleSetCooInit(x: number, y: number, scale: number): boolean {
 		if (!this.#inited) {
 			this.#hasStartCoo = true;
 			const coo = this.#startCoo;
@@ -391,15 +391,15 @@ export default class Camera2D extends EngineCamera {
 		return false;
 	}
 
-	protected clampSetCooScale(scale: number): number {
+	protected _clampSetCooScale(scale: number): number {
 		return Math.max(this.minScale, scale);
 	}
 
-	protected setCooDim(scale: number): { w: number; h: number } {
+	protected _setCooDim(scale: number): { w: number; h: number } {
 		return { w: (1 / scale) * this.cpw, h: (1 / scale) * this.cph };
 	}
 
-	protected beforeSetCooAnimate(x: number, y: number, w: number, h: number, dur: number): void {
+	protected _beforeSetCooAnimate(x: number, y: number, w: number, h: number, dur: number): void {
 		if (dur === 0) {
 			if (x + w / 2 > 1) x = 1 - w / 2;
 			if (x - w / 2 < 0) x = w / 2;
@@ -413,7 +413,7 @@ export default class Camera2D extends EngineCamera {
 	pitch: number = 0;
 
 	/** Updates the projection matrix for 2D rendering (delegates to Camera360.pMatrix). */
-	updateProjection(): void {
+	_updateProjection(): void {
 		const c = this.canvas;
 		const v = c.view;
 		const cam = c._camera360;
