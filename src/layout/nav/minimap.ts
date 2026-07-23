@@ -4,7 +4,7 @@ import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { mod1 } from '$utils/math';
 import { Browser } from '$utils/browser';
-import { createElement, afterFrame } from '$utils/dom';
+import { createElement } from '$utils/dom';
 
 export interface MinimapProps {
 	image: MicrioImage;
@@ -17,12 +17,10 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#props: MinimapProps = { image: null! };
 	#_canvas!: HTMLCanvasElement;
 	#_ctx: CanvasRenderingContext2D | null = null;
-	#to: any;
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;
 	#autoHide = false;
 	#is360 = false;
-	#checkHidden: (() => boolean) | null = null;
 
 	onMount() {
 		const { image } = this.#props;
@@ -36,7 +34,8 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		this.#autoHide = !settings.alwaysShowMinimap;
 		this.#is360 = !!info.is360;
-		this.#checkHidden = () => !this.#is360 && camera.isZoomedOut();
+		
+		const checkHidden = () => !this.#is360 && !this.#autoHide && camera.isZoomedOut();
 
 		const maxWidth = settings.minimapWidth ?? 200;
 		const maxHeight = settings.minimapHeight ?? 160;
@@ -49,7 +48,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		const draw = (area: Models.Camera.View | undefined) => {
 			if (!area || !this.#_ctx) return;
-			this.#moved();
+			this.#_canvas.classList.toggle('hidden', checkHidden());
 			const ctx = this.#_ctx;
 			ctx.clearRect(0, 0, width, height);
 
@@ -164,44 +163,12 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		// Subscribe to view changes
 		this.addCleanup(image.state.view.subscribe(draw));
-		// Auto-hide on mouse move over main canvas
-		const passive: AddEventListenerOptions = { passive: true };
-		micrio.canvas.element.addEventListener('mousemove', () => this.#moved(), passive);
-		this.addCleanup(() => micrio.canvas.element.removeEventListener('mousemove', () => this.#moved(), passive));
-
-		afterFrame().then(() => this.#syncVisibility());
-	}
-
-	#moved() {
-		if (this.#checkHidden?.()) {
-			this.#_canvas.classList.add('hidden');
-			clearTimeout(this.#to);
-			return;
-		}
-		this.#_canvas.classList.remove('hidden');
-		clearTimeout(this.#to);
-		this.#to = setTimeout(() => {
-			if (this.#checkHidden?.()) this.#_canvas.classList.add('hidden');
-		}, 2500);
-	}
-
-	#syncVisibility() {
-		const micrio = this.getMicrio();
-		const isSame = micrio ? get(micrio.current) == this.#props.image : false;
-		const zoomedOut = this.#checkHidden?.() ?? false;
-		if (!isSame || (this.#autoHide && zoomedOut))
-			this.#_canvas.classList.add('hidden');
-		else
-			this.#_canvas.classList.remove('hidden');
 	}
 
 	setProps(props: Partial<MinimapProps>) {
 		if (props.image !== undefined) this.#props.image = props.image;
 	}
 
-	onDestroy() {
-		clearTimeout(this.#to);
-	}
 }
 
 customElements.define(MicrioMinimap.tag, MicrioMinimap);
