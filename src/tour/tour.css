@@ -1,11 +1,14 @@
 
-micrio-tour > aside {
-	display: block;
-	position: absolute;
+micrio-tour > aside.marker-tour {
 	bottom: var(--micrio-border-margin);
 	left: 50%;
 	max-width: calc(100% - var(--micrio-border-margin) * 2);
 	transform: translateX(-50%);
+}
+
+aside.marker-tour {
+	display: block;
+	position: absolute;
 	box-sizing: border-box;
 	display: flex;
 	border-radius: var(--micrio-border-radius);
@@ -18,17 +21,18 @@ micrio-tour > aside {
 	--micrio-hide: translate(-50%,100%);
 }
 
-micrio-tour > aside > micrio-button {
+aside.marker-tour > micrio-button {
 	--micrio-button-background: transparent;
 	--micrio-background-filter: none;
 	--micrio-button-shadow: none;
 	--micrio-border-radius: 0;
 }
-micrio-tour > aside > span {
+aside.marker-tour > span {
 	height: var(--micrio-button-size);
 	line-height: var(--micrio-button-size);
 	padding: 0 12px;
 	font-size: 90%;
+	text-align: center;
 	cursor: default;
 	font-family: inherit;
 	background: transparent;

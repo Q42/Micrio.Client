@@ -15,11 +15,12 @@ export interface TourProps {
 }
 import './tour.css';
 
-class MicrioTour extends MicrioElement<TourProps> {
+export class MicrioTour extends MicrioElement<TourProps> {
 	static tag = 'micrio-tour';
 
 	#props: TourProps = { tour: null! };
 	#currentStep = 0;
+	aside: HTMLElement | undefined;
 
 	onMount() {
 		const { tour } = this.#props;
@@ -46,6 +47,7 @@ class MicrioTour extends MicrioElement<TourProps> {
 			mt.currentStep ??= mt.initialStep ?? 0;
 			this.#currentStep = mt.currentStep;
 			const stepInfo = mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined;
+			const tourControlsInPopup = !!micrio.$current!.$settings?._markers?.tourControlsInPopup;
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
 				const si = stepInfo?.[newIdx];
@@ -94,13 +96,19 @@ class MicrioTour extends MicrioElement<TourProps> {
 				}
 			};
 
-			const renderControls = () => {
-				this.replaceChildren();
+			if(!this.aside) {
+				this.aside = createElement('aside',{
+					className: 'marker-tour',
+					parent: tourControlsInPopup ? undefined : this
+				});
+			}
 
-				const aside = createElement('aside');
+			const renderControls = () => {
+				if(!this.aside) return;
+				this.aside.replaceChildren();
 
 				createElement('micrio-button', {
-					parent: aside,
+					parent: this.aside,
 					setProps: {
 						type: 'prev', title: get(i18n).tourStepPrev,
 						disabled: this.#currentStep === 0,
@@ -109,12 +117,12 @@ class MicrioTour extends MicrioElement<TourProps> {
 				});
 
 				createElement('span', {
-					textContent: `${this.#currentStep + 1} / ${mt.steps.length}`,
-					parent: aside
+					textContent: `${this.#currentStep + 1}/${mt.steps.length}`,
+					parent: this.aside
 				});
 
 				createElement('micrio-button', {
-					parent: aside,
+					parent: this.aside,
 					setProps: {
 						type: 'next', title: get(i18n).tourStepNext,
 						disabled: this.#currentStep >= mt.steps.length - 1,
@@ -123,16 +131,18 @@ class MicrioTour extends MicrioElement<TourProps> {
 				});
 
 				if (!mt.cannotClose) {
-					createElement('micrio-button', {
-						parent: aside,
+					const close = createElement('micrio-button', {
+						parent: this.aside,
 						setProps: {
 							type: 'close', title: get(i18n).close,
 							onclick: () => micrio.state.tour.set(undefined)
 						}
 					});
+					// Buttons in marker-popup -- put close button first
+					if(tourControlsInPopup) {
+						this.aside.insertBefore(close, this.aside.firstChild);
+					}
 				}
-
-				this.appendChild(aside);
 			};
 
 			this.addCleanup(micrio.state.marker.subscribe(m => {

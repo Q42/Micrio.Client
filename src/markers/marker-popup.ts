@@ -1,6 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
+import type { MicrioTour } from '$tour/tour';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
 import { afterFrame, createElement } from '$utils/dom';
@@ -30,7 +31,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		if (!micrio || !marker) return;
 
 		marker.tags?.forEach(c => this.classList.add(c));
-		afterFrame().then(() => this.querySelector('button')?.focus());
+		afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
 
 		this.addCleanup(micrio.state.popup.subscribe(m => {
 			this.#destroying = !m || m != marker;
@@ -75,11 +76,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0;
 		const showTourControls = isPartOfTour && !markerTour?.isSerialTour &&
 			(tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup);
-		const showTourStepCounter = isPartOfTour && !markerTour?.isSerialTour &&
-			(tsSettings?.tourStepCounterInPopup ?? settings.tourStepCounterInPopup);
-		const currentTourStep = markerTour?.currentStep ?? -1;
 		const closeButtonStopsTour = showTourControls || (markerTour ? markerTour.currentStep == markerTour.steps.length - 1 : undefined);
-		const isLastStep = markerTour ? markerTour.currentStep == markerTour.steps.length - 1 : false;
 
 		const close = (e?: Event) => {
 			if ($tour && isPartOfTour && 'steps' in $tour) {
@@ -97,14 +94,6 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					image.state.marker.set(undefined);
 				}
 			}
-		};
-
-		const markerTourStep = (goPrev: boolean = false) => {
-			if (!markerTour) return;
-			if (goPrev) markerTour.prev?.();
-			else markerTour.next?.();
-			this.#clickedPrevNext = true;
-			setTimeout(() => this.#clickedPrevNext = false, 200);
 		};
 
 		const toggleMinimize = () => {
@@ -128,78 +117,48 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 		this.replaceChildren();
 
-		const aside = createElement('aside');
+		if (!showTourControls) {
+			const aside = createElement('aside');
 
-		if (!data.alwaysOpen) {
-			createElement('micrio-button', {
-				setProps: {
-					type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'next',
-					title: (!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext,
-					disabled: this.#clickedPrevNext,
-					onclick: close
-				},
-				parent: aside
-			});
-		}
-
-		if (canMinimize) {
-			createElement('micrio-button', {
-				setProps: {
-					type: this.#isMinimized ? 'up' : 'down',
-					title: $i18n.minimize,
-					onclick: toggleMinimize
-				},
-				parent: aside
-			});
-		}
-
-		if (showTourControls && $tour && 'steps' in $tour) {
-			createElement('progress', {
-				attrs: { 'aria-hidden': 'true' },
-				props: { value: (currentTourStep + 1) / $tour.steps.length },
-				parent: aside
-			});
-
-			const group = createElement('micrio-button-group');
-
-			createElement('micrio-button', {
-				setProps: {
-					type: 'prev',
-					disabled: this.#clickedPrevNext || currentTourStep == 0,
-					title: $i18n.tourStepPrev,
-					onclick: () => markerTourStep(true)
-				},
-				parent: group
-			});
-
-			if (showTourStepCounter) {
+			if (!data.alwaysOpen) {
 				createElement('micrio-button', {
 					setProps: {
-						disabled: true,
+						type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'next',
+						title: (!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext,
+						disabled: this.#clickedPrevNext,
+						onclick: close
 					},
-					children: [`${currentTourStep + 1} / ${$tour.steps.length}`],
-					parent: group
+					parent: aside
 				});
 			}
 
-			createElement('micrio-button', {
-				setProps: {
-					type: 'next',
-					disabled: this.#clickedPrevNext || isLastStep,
-					title: $i18n.tourStepNext,
-					onclick: () => markerTourStep()
-				},
-				parent: group
-			});
-			aside.appendChild(group);
-		}
+			if (canMinimize) {
+				createElement('micrio-button', {
+					setProps: {
+						type: this.#isMinimized ? 'up' : 'down',
+						title: $i18n.minimize,
+						onclick: toggleMinimize
+					},
+					parent: aside
+				});
+			}
 
-		this.appendChild(aside);
+			this.appendChild(aside);
+		}
 
 		this.#content = createElement('micrio-marker-content', {
 			setProps: { marker, onclose: close },
 			parent: this
 		});
+
+		if (showTourControls) {
+			requestAnimationFrame(() => {
+				const tourAside = (document.querySelector('micrio-tour') as MicrioTour)?.aside;
+				if (tourAside && !this.contains(tourAside)) {
+					this.appendChild(tourAside);
+				}
+			});
+		}
 	}
 
 }
