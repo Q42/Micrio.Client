@@ -100,19 +100,19 @@ export default class Camera2D extends EngineCamera {
 		vec4.z = z;
 		vec4.w = 1;
 
-		mat.identity();
+		mat._identity();
 
-		if (!abs && c._omniFieldOfView) mat.perspective(c._omniFieldOfView, c.aspect, 0.0001, 100);
-		if (c._omniDistance) mat.translate(0, 0, c._omniDistance);
-		if (c._omniOffsetX) mat.translate(c._omniOffsetX, 0, 0);
-		if (!abs && c._omniVerticalAngle) mat.rotateX(c._omniVerticalAngle);
+		if (!abs && c._omniFieldOfView) mat._perspective(c._omniFieldOfView, c.aspect, 0.0001, 100);
+		if (c._omniDistance) mat._translate(0, 0, c._omniDistance);
+		if (c._omniOffsetX) mat._translate(c._omniOffsetX, 0, 0);
+		if (!abs && c._omniVerticalAngle) mat._rotateX(c._omniVerticalAngle);
 
 		const numPerLayer = c.images.length / c._omniNumLayers;
 		const offset = c.layer * numPerLayer;
 		const currRot = (c.images.length > 0 ? -(c._activeImageIdx + 1 - offset) / (numPerLayer) * 2 * Math.PI : 0);
-		mat.rotateY(rotation + currRot);
+		mat._rotateY(rotation + currRot);
 
-		vec4.transformMat4(mat);
+		vec4._transformMat4(mat);
 
 		const xy = this.#xy;
 
@@ -418,8 +418,8 @@ export default class Camera2D extends EngineCamera {
 		const v = c.view;
 		const cam = c._camera360;
 		const m = cam._pMatrix;
-		m.perspective(cam._perspective, c.el.aspect, 0.0001, 100);
-		m.translate(
+		m._perspective(cam._perspective, c.el.aspect, 0.0001, 100);
+		m._translate(
 			-(v.centerX - .5) * c.aspect,
 			v.centerY - .5,
 			-v.height / 2

@@ -428,19 +428,19 @@ export default class Image {
 		const cX = this.x0 + this.rWidth / 2, cY = this.y0 + this.rHeight / 2;
 		const center = this.#canvas._camera360._getVec3(cX - this.#canvas._camera360._offX, cY, true, 5);
 
-		m.identity();
-		m.translate(center.x, center.y, center.z);
-		m.rotateY(Math.atan2(center.x, center.z) + Math.PI + this.rotY);
-		m.rotateX(-Math.sin((cY - .5) * Math.PI) - this.rotX);
-		m.rotateZ(-this.rotZ);
-		m.scaleFlat(this.#scale * .5);
+		m._identity();
+		m._translate(center.x, center.y, center.z);
+		m._rotateY(Math.atan2(center.x, center.z) + Math.PI + this.rotY);
+		m._rotateX(-Math.sin((cY - .5) * Math.PI) - this.rotX);
+		m._rotateZ(-this.rotZ);
+		m._scaleFlat(this.#scale * .5);
 
 		const dx0 = (r.x0 - cX) * s, dx1 = (r.x1 - cX) * s;
 		const dy0 = -(r.y0 - cY) * .5 * s, dy1 = -(r.y1 - cY) * .5 * s;
 
 		const tv = (x: number, y: number) => {
 			p.x = 0; p.y = 0; p.z = 0;
-			m.translate(x, y, 0); p.transformMat4(m); m.translate(-x, -y, 0);
+			m._translate(x, y, 0); p._transformMat4(m); m._translate(-x, -y, 0);
 		};
 
 		tv(dx0, dy0); v[0] = p.x; v[1] = p.y; v[2] = p.z;

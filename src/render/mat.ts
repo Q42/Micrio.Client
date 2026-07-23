@@ -43,7 +43,7 @@ export class Mat4 {
 	}
 
 	/** Resets the matrix to the identity matrix. */
-	identity(): void {
+	_identity(): void {
 		const a = this.arr;
 		a[0] = 1; a[1] = 0; a[2] = 0; a[3] = 0;
 		a[4] = 0; a[5] = 1; a[6] = 0; a[7] = 0;
@@ -52,12 +52,12 @@ export class Mat4 {
 	}
 
 	/** Copies the values from another Mat4 into this one. */
-	copy(s: Mat4): void {
+	_copy(s: Mat4): void {
 		this.arr.set(s.arr);
 	}
 
 	/** Multiplies this matrix by a rotation matrix created from the given angle around the X axis. */
-	rotateX(rad: number): void {
+	_rotateX(rad: number): void {
 		const a = this.arr;
 		const s = Math.sin(rad);
 		const c = Math.cos(rad);
@@ -75,7 +75,7 @@ export class Mat4 {
 	}
 
 	/** Multiplies this matrix by a rotation matrix created from the given angle around the Y axis. */
-	rotateY(rad: number): void {
+	_rotateY(rad: number): void {
 		const a = this.arr;
 		const s = Math.sin(rad);
 		const c = Math.cos(rad);
@@ -93,7 +93,7 @@ export class Mat4 {
 	}
 
 	/** Multiplies this matrix by a rotation matrix created from the given angle around the Z axis. */
-	rotateZ(rad: number): void {
+	_rotateZ(rad: number): void {
 		const a = this.arr;
 		const s = Math.sin(rad);
 		const c = Math.cos(rad);
@@ -111,14 +111,14 @@ export class Mat4 {
 	}
 
 	/** Uniform scale applied only to X and Y columns (Z unchanged). */
-	scaleFlat(scale: number): void {
+	_scaleFlat(scale: number): void {
 		const a = this.arr;
 		a[0] *= scale; a[1] *= scale; a[2] *= scale; a[3] *= scale;
 		a[4] *= scale; a[5] *= scale; a[6] *= scale; a[7] *= scale;
 	}
 
 	/** Translates the matrix by the given vector [x, y, z]. */
-	translate(x: number, y: number, z: number): void {
+	_translate(x: number, y: number, z: number): void {
 		const a = this.arr;
 		a[12] += a[0] * x + a[4] * y + a[8] * z;
 		a[13] += a[1] * x + a[5] * y + a[9] * z;
@@ -127,8 +127,8 @@ export class Mat4 {
 	}
 
 	/** Generates a perspective projection matrix with the given bounds. */
-	perspective(fovy: number, aspect: number, near: number, far: number): void {
-		this.identity();
+	_perspective(fovy: number, aspect: number, near: number, far: number): void {
+		this._identity();
 		const a = this.arr;
 		const f = 1.0 / Math.tan(fovy / 2);
 		const nf = 1 / (near - far);
@@ -142,8 +142,8 @@ export class Mat4 {
 	}
 
 	/** Generates a simplified perspective matrix suitable for CSS 3D transforms (no near/far clipping). */
-	perspectiveCss(fovy: number): void {
-		this.identity();
+	_perspectiveCss(fovy: number): void {
+		this._identity();
 		const a = this.arr;
 		const f = 1.0 / Math.tan(fovy / 2);
 		a[0] = f;
@@ -151,7 +151,7 @@ export class Mat4 {
 	}
 
 	/** Inverts the matrix. */
-	invert(): void {
+	_invert(): void {
 		const m = this.arr;
 		const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
 		const a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7];
@@ -196,7 +196,7 @@ export class Mat4 {
 	}
 
 	/** Multiplies this matrix by another matrix `a` (this = this * a). */
-	multiply(o: Mat4): void {
+	_multiply(o: Mat4): void {
 		const t = this.arr;
 		const a = o.arr;
 		let b0 = t[0], b1 = t[1], b2 = t[2], b3 = t[3];
@@ -225,7 +225,7 @@ export class Mat4 {
 	}
 
 	/** Scales the matrix by the given vector [x, y, z] (z defaults to 1). */
-	scale(x: number, y: number, z: number = 1): void {
+	_scale(x: number, y: number, z: number = 1): void {
 		const a = this.arr;
 		a[0] *= x; a[1] *= x; a[2] *= x; a[3] *= x;
 		a[4] *= y; a[5] *= y; a[6] *= y; a[7] *= y;
@@ -243,7 +243,7 @@ export class Vec4 {
 	) {}
 
 	/** Copies the values from another Vec4 into this one. */
-	copy(v: Vec4): void {
+	_copy(v: Vec4): void {
 		this.x = v.x;
 		this.y = v.y;
 		this.z = v.z;
@@ -251,7 +251,7 @@ export class Vec4 {
 	}
 
 	/** Transforms the vector by the given Mat4. */
-	transformMat4(m: Mat4): void {
+	_transformMat4(m: Mat4): void {
 		const a = m.arr;
 		const x = this.x, y = this.y, z = this.z;
 
@@ -264,7 +264,7 @@ export class Vec4 {
 	}
 
 	/** Normalizes the vector (scales it to have a length of 1). */
-	normalize(): void {
+	_normalize(): void {
 		let len = this.x * this.x + this.y * this.y + this.z * this.z;
 
 		if (len > 0) len = 1.0 / Math.sqrt(len);

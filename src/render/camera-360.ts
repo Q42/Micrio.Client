@@ -77,20 +77,20 @@ export default class Camera360 extends EngineCamera {
 		const c = this.canvas;
 		const el = c.el;
 
-		if (!noPersp) this._pMatrix.perspective(this._perspective, el.aspect, 0.0001, 20);
+		if (!noPersp) this._pMatrix._perspective(this._perspective, el.aspect, 0.0001, 20);
 		this.#inverseDirty = true;
 
 		const pM = this._pMatrix;
 		this._pitch = Math.min(Math.PI / 2, Math.max(-Math.PI / 2, this._pitch));
-		pM.rotateX(this._pitch);
-		pM.rotateY(this._yaw);
-		pM.translate(this.#position.x, this.#position.y, this.#position.z);
+		pM._rotateX(this._pitch);
+		pM._rotateY(this._yaw);
+		pM._translate(this.#position.x, this.#position.y, this.#position.z);
 
 		const rM = this.#rMatrix;
-		rM.perspectiveCss(this._perspective);
-		rM.translate(0, 0, el.height / el.ratio / 2);
-		rM.rotateX(-this._pitch);
-		rM.rotateY(this._yaw);
+		rM._perspectiveCss(this._perspective);
+		rM._translate(0, 0, el.height / el.ratio / 2);
+		rM._rotateX(-this._pitch);
+		rM._rotateY(this._yaw);
 
 		this.#coo.direction = (this._yaw / Math.PI * 180) % 360;
 	}
@@ -187,7 +187,7 @@ export default class Camera360 extends EngineCamera {
 		}
 		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 		if (this.#limitX > 0) this.#limitYaw();
-		this._pMatrix.perspective(this._perspective, c.el.aspect, 0.0001, 20);
+		this._pMatrix._perspective(this._perspective, c.el.aspect, 0.0001, 20);
 		this.#readScale();
 		this._update(true);
 		this._calculate3DFrustum();
@@ -283,8 +283,8 @@ export default class Camera360 extends EngineCamera {
 	/** Ensures the cached inverse projection matrix is up to date. */
 	#ensureInverse(): void {
 		if (this.#inverseDirty) {
-			this.#cachedInverse.copy(this._pMatrix);
-			this.#cachedInverse.invert();
+			this.#cachedInverse._copy(this._pMatrix);
+			this.#cachedInverse._invert();
 			this.#inverseDirty = false;
 		}
 	}
@@ -301,9 +301,9 @@ export default class Camera360 extends EngineCamera {
 		v.w = 1;
 
 		this.#ensureInverse();
-		v.transformMat4(this.#cachedInverse);
+		v._transformMat4(this.#cachedInverse);
 
-		v.normalize();
+		v._normalize();
 		c.x = Math.atan2(v.x, -v.z) / Math.PI / 2 + .5;
 		c.y = .5 - Math.asin(v.y) / Math.PI / this.#scaleY;
 		c.scale = this._scale;
@@ -348,7 +348,7 @@ export default class Camera360 extends EngineCamera {
 		v.z = cY * Math.cos(x) * rad;
 		v.w = 1;
 
-		if (!abs) v.transformMat4(this._pMatrix);
+		if (!abs) v._transformMat4(this._pMatrix);
 
 		return v;
 	}
@@ -365,7 +365,7 @@ export default class Camera360 extends EngineCamera {
 			r = this._radius,
 			p = this.#position;
 
-		m.identity();
+		m._identity();
 
 		radius *= this._radius * (100 / (Math.PI * 2));
 
@@ -378,27 +378,27 @@ export default class Camera360 extends EngineCamera {
 		v.y = Math.sin(y);
 		v.z = cY * Math.cos(x);
 
-		m.translate(
+		m._translate(
 			p.x * radius / r,
 			-p.y * radius / r + transY * r,
 			p.z * radius / r
 		);
 
-		m.translate(
+		m._translate(
 			v.x * radius,
 			v.y * radius,
 			v.z * radius
 		);
 
-		m.rotateY(Math.atan2(v.x, v.z) + Math.PI + rY);
-		m.rotateX(v.y + rX);
-		m.rotateZ(rZ);
+		m._rotateY(Math.atan2(v.x, v.z) + Math.PI + rY);
+		m._rotateX(v.y + rX);
+		m._rotateZ(rZ);
 
-		m.scale(sX, sY);
+		m._scale(sX, sY);
 
-		m.scaleFlat(scale / Math.PI / r);
+		m._scaleFlat(scale / Math.PI / r);
 
-		m.multiply(this.#rMatrix);
+		m._multiply(this.#rMatrix);
 
 		return m;
 	}
