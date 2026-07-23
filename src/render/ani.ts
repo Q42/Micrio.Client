@@ -149,15 +149,15 @@ export default class Ani {
 		this.#fn = fn;
 
 		const el = c.main.el;
-		if (el.areaHeight !== 0) {
-			const margin = toHeight / (1 - (el.areaHeight / el.height));
+		if (el._areaHeight !== 0) {
+			const margin = toHeight / (1 - (el._areaHeight / el.height));
 			if (margin > 0) toHeight += margin; else toHeight -= margin;
-			el.areaHeight = 0;
+			el._areaHeight = 0;
 		}
-		if (el.areaWidth !== 0) {
-			const margin = toWidth * (el.areaWidth / el.width);
+		if (el._areaWidth !== 0) {
+			const margin = toWidth * (el._areaWidth / el.width);
 			if (margin > 0) toWidth += margin; else toWidth -= margin;
-			el.areaWidth = 0;
+			el._areaWidth = 0;
 		}
 
 		const fromCenterX = v._centerX, fromCenterY = v._centerY, fromWidth = v.width, fromHeight = v.height;

@@ -166,8 +166,8 @@ export class Canvas {
 	*/
 	setMargins(width:number, height:number) : void {
 		if (!this.#micrio.engine.ready) return;
-		this.#micrio.engine.el.areaWidth = width;
-		this.#micrio.engine.el.areaHeight = height;
+		this.#micrio.engine.el._areaWidth = width;
+		this.#micrio.engine.el._areaHeight = height;
 	}
 
 }

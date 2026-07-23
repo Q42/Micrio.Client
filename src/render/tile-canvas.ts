@@ -466,7 +466,7 @@ export class TileCanvas {
 			(a.y0 - pV.y0) * pH * s,
 			ratio,
 			hP ? 1 : c.scale,
-			hP ? false : c.isPortrait
+			hP ? false : c._isPortrait
 		)) {
 			if (!noDispatch) this._sendViewport();
 			this.view._changed = true;
@@ -593,8 +593,8 @@ export class TileCanvas {
 	setView(centerX: number, centerY: number, width: number, height: number, noLimit: boolean, noLastView: boolean, correctNorth: boolean = false, forceLimit: boolean = false): void {
 		const mE = this.main.el;
 
-		if (mE.areaHeight > 0) { height += height / (1 - (mE.areaHeight / mE.height)); this._ani.limit = false; mE.areaHeight = 0; };
-		if (mE.areaWidth > 0) { width += width * (mE.areaWidth / mE.width); this._ani.limit = false; mE.areaWidth = 0; };
+		if (mE._areaHeight > 0) { height += height / (1 - (mE._areaHeight / mE.height)); this._ani.limit = false; mE._areaHeight = 0; };
+		if (mE._areaWidth > 0) { width += width * (mE._areaWidth / mE.width); this._ani.limit = false; mE._areaWidth = 0; };
 		if (noLimit) this._ani.limit = false;
 
 		this.view.set(centerX, centerY, width, height);

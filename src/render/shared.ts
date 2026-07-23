@@ -260,11 +260,11 @@ export class Viewport {
 		public height: number = 0,
 		public left: number = 0,
 		public top: number = 0,
-		public areaWidth: number = 0,
-		public areaHeight: number = 0,
+		public _areaWidth: number = 0,
+		public _areaHeight: number = 0,
 		public ratio: number = 1,
 		public scale: number = 1,
-		public isPortrait: boolean = false
+		public _isPortrait: boolean = false
 	) {}
 
 	get _aspect(): number { return this.width === 0 ? 1 : this.height === 0 ? 1 : this.width / this.height }
@@ -275,14 +275,14 @@ export class Viewport {
 	 */
 	set(w: number, h: number, l: number, t: number, r: number, s: number, p: boolean): boolean {
 		if (this.width === w * r && this.height === h * r && this.left === l && this.top === t &&
-			this.ratio === r && this.scale === s && this.isPortrait === p) return false;
+			this.ratio === r && this.scale === s && this._isPortrait === p) return false;
 		this.width = w * r;
 		this.height = h * r;
 		this.left = l * r;
 		this.top = t * r;
 		this.ratio = r;
 		this.scale = s;
-		this.isPortrait = p;
+		this._isPortrait = p;
 		return true;
 	}
 
@@ -294,6 +294,6 @@ export class Viewport {
 		this.top = v.top;
 		this.ratio = v.ratio;
 		this.scale = v.scale;
-		this.isPortrait = v.isPortrait;
+		this._isPortrait = v._isPortrait;
 	}
 }
