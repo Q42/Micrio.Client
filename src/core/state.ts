@@ -54,16 +54,6 @@ export namespace State {
 		/** Writable store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
 		readonly popover:Writable<Models.State.PopoverType|undefined> = writable();
 
-		/** UI state stores. */
-		ui = {
-			/** Writable store controlling the visibility of the main UI controls (bottom right). */
-			controls: writable<boolean>(true),
-			/** Writable store controlling the visibility of zoom buttons. */
-			zoom: writable<boolean>(true),
-			/** Writable store: true when gallery controls are hovered or focused, keeping all UI visible. */
-			hover: writable<boolean>(false)
-		}
-
 		/**
 		 * Map storing the playback state (currentTime, paused) of media elements associated with markers, keyed by a unique media ID.
 		 * Used to resume media playback when returning to a marker.

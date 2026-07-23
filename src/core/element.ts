@@ -340,7 +340,6 @@ export class HTMLMicrioElement extends MicrioElement {
 		const opts = this.#getOptions();
 		if(!opts.settings) opts.settings = {};
 		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
-		if(opts.settings.noControls) this.state.ui.controls.set(false);
 
 		if (!opts.settings.noLogo) this.#printUI(!!opts.settings.noUI, false);
 

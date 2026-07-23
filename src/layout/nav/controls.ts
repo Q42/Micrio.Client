@@ -59,14 +59,11 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 
 		const { state: micrioState, _lang } = micrio;
 		const { tour, popup } = micrioState;
-		const { controls, zoom } = micrio.state.ui;
 
 		const readInfo = (s: Models.ImageInfo.Settings) => {
 			this.#showCultures = !!s.ui?.controls?.cultureSwitch;
 			this.#showSocial = !!s.social;
 			if (s.fullscreen !== undefined) this.#showFullscreen = !!s.fullscreen;
-			zoom.set(!s.noZoom);
-			controls.set(!s.noControls);
 			this.#sync();
 		};
 
@@ -82,8 +79,6 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			}
 		}));
 
-		this.watchLater(controls, () => this.#sync());
-		this.watchLater(zoom, () => this.#sync());
 		this.watchLater(tour, () => this.#sync());
 		this.watchLater(popup, () => this.#sync());
 		this.watchLater(_lang, () => this.#sync());
@@ -106,20 +101,6 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (this.#built) return;
 
 		this.#aside1 = createElement('aside', {
-			events: {
-				pointerover: () => { (this.getMicrio())?.state.ui.hover.set(true); },
-				pointerout: (e: Event) => {
-					const pe = e as PointerEvent;
-					if (!pe.currentTarget || !(pe.currentTarget as HTMLElement).contains(pe.relatedTarget as Node))
-						(this.getMicrio())?.state.ui.hover.set(false);
-				},
-				focusin: () => { (this.getMicrio())?.state.ui.hover.set(true); },
-				focusout: (e: Event) => {
-					const fe = e as FocusEvent;
-					if (!(fe.currentTarget as HTMLElement).contains(fe.relatedTarget as Node))
-						(this.getMicrio())?.state.ui.hover.set(false);
-				}
-			},
 			parent: this
 		});
 
@@ -137,10 +118,10 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const $i18n = get(i18n);
 		const $isMuted = get(micrio.isMuted);
 		const $_lang = get(micrio._lang);
-		const $controls = get(micrio.state.ui.controls);
-		const $zoom = get(micrio.state.ui.zoom);
-		const $popup = get(micrio.state.popup);
 		const $current = micrio.$current;
+		const $settings = $current?.$settings;
+		const $zoom = !$settings?.noZoom;
+		const $popup = get(micrio.state.popup);
 		const info = $current?.$info;
 		const cultures = info?.revision ? Object.keys(info.revision) : [];
 		const isMobile = micrio.canvas.$isMobile;
@@ -148,7 +129,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const showMute = !!('micrioAudioContext' in window || this.#props.hasAudio);
 		const hasCultures = this.#showCultures && cultures.length > 1;
 		const hasSocial = this.#showSocial && ('share' in navigator);
-		const hasControls = $controls && (showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen);
+		const hasControls = showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen;
 		const onlyFullscreen = this.#showFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current?.$settings?.grid?.panZoom == 'cells';
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
