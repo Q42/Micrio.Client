@@ -303,6 +303,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		if (this.#swipeGallery) {
 			await this.#swipeGallery.setup(startImageIdx, parent, engine);
+			this.#currentImageIdx = startImageIdx;
 			this.#currentPage = pageIdx;
 			this.#frameChanged();
 			parent.album!.hooked = true;
