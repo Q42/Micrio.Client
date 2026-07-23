@@ -108,7 +108,10 @@ export class SwipeGallery {
 	handlePointerDown = (e:PointerEvent):void => {
 		if (e.button !== 0) return;
 		if (this.#stripDragId !== undefined) {
-			if (e.pointerId !== this.#stripDragId) this.#resetDrag();
+			if (e.pointerId !== this.#stripDragId) {
+				if (this.#stripDragActive) this.#navigate(this.#getCurrentPage());
+				this.#resetDrag();
+			}
 			return;
 		}
 		if (!this.#canSwipe()) return;
