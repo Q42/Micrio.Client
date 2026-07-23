@@ -13,8 +13,6 @@ class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 
 	#props: ZoomButtonsProps = {};
 	#target: MicrioImage | undefined;
-	#viewUnsub: (() => void) | undefined;
-	#albumUnsub: (() => void) | undefined;
 	#btnIn: MicrioElement | undefined;
 	#btnOut: MicrioElement | undefined;
 
@@ -22,10 +20,17 @@ class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 		const micrio = this.getMicrio();
 		if (!micrio) return;
 
+		const resolveTarget = () => {
+			const imgs = get(micrio.visible).filter(i => i.id);
+			return imgs.length === 1 ? imgs[0] : micrio.$current;
+		};
+
 		const update = () => {
+			this.#target = this.#props.image ?? resolveTarget();
+
 			const img = this.#target;
 			const zoomedIn = img?.camera.isZoomedIn() ?? true;
-			const zoomedOut = img?.camera.isZoomedOut(true) ?? true;
+			const zoomedOut = !micrio.hasAttribute('data-zoomed');
 			const minScale = img?.camera.getMinScale() ?? 0;
 			const upscaled = minScale > 1 && minScale > (img?.$settings.zoomLimit ?? 1);
 
@@ -55,43 +60,18 @@ class MicrioZoomButtons extends MicrioElement<ZoomButtonsProps> {
 			this.#btnOut.setProps({ title: $i18n.zoomOut, disabled: zoomedOut });
 		};
 
-		const bindTo = (img: MicrioImage | undefined) => {
-			if (this.#viewUnsub) { this.#viewUnsub(); this.#viewUnsub = undefined; }
-			this.#target = img;
-			if (img) this.#viewUnsub = img.state.view.subscribe(() => update());
-			else update();
-		};
+		this.addCleanup(micrio.current.subscribe(() => update()));
+		this.addCleanup(micrio.visible.subscribe(() => update()));
 
-		if (this.#props.image) {
-			bindTo(this.#props.image);
-		} else {
-			this.addCleanup(micrio.current.subscribe(c => {
-				if (!c) return;
-				if (this.#albumUnsub) { this.#albumUnsub(); this.#albumUnsub = undefined; }
-				if (this.#viewUnsub) { this.#viewUnsub(); this.#viewUnsub = undefined; }
-				const subscribeAlbum = () => {
-					this.#viewUnsub?.();
-					this.#albumUnsub = c.album!.currentImage!.subscribe(bindTo);
-					update();
-				};
-				if (c.album?.currentImage) subscribeAlbum();
-				else {
-					bindTo(c);
-					requestAnimationFrame(() => {
-						if (c.album?.currentImage && !this.#albumUnsub) subscribeAlbum();
-					});
-				}
-			}));
-		}
+		const onZoom = () => update();
+		micrio.addEventListener('zoom', onZoom);
+		this.addCleanup(() => micrio.removeEventListener('zoom', onZoom));
+
+		update();
 	}
 
 	setProps(props: Partial<ZoomButtonsProps>) {
 		Object.assign(this.#props, props);
-	}
-
-	onDestroy() {
-		if (this.#albumUnsub) this.#albumUnsub();
-		if (this.#viewUnsub) this.#viewUnsub();
 	}
 }
 

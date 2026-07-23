@@ -228,12 +228,20 @@ export class HTMLMicrioElement extends MicrioElement {
 			});
 		}
 
+		const updateZoomed = () => {
+			const imgs = get(this.visible).filter(i => i.id);
+			const target = imgs.length === 1 ? imgs[0] : this.#current;
+			this.toggleAttribute('data-zoomed', !!target?.camera && !target.camera.isZoomedOut());
+		};
+
 		this.watch(this.current, c => {
 			this.#current = c;
-			this.toggleAttribute('data-zoomed', !!c?.camera && !c.camera.isZoomedOut());
+			updateZoomed();
 		});
 
-		const onZoom = () => this.toggleAttribute('data-zoomed', !this.camera?.isZoomedOut());
+		this.watch(this.visible, () => updateZoomed());
+
+		const onZoom = () => updateZoomed();
 		this.addEventListener('zoom', onZoom);
 		this.addCleanup(() => this.removeEventListener('zoom', onZoom));
 
