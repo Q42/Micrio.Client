@@ -23,6 +23,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	#props: SubtitlesProps = {};
 	#cues: Models.ImageData.Event[] = [];
 	#currentTime = 0;
+	#currentCue: Models.ImageData.Event | undefined;
 	#cleanup: (() => void) | undefined;
 
 	onMount() {
@@ -75,8 +76,10 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	}
 
 	#renderCue() {
-		if (!get(captionsEnabled) || !this.#cues.length) { this.replaceChildren(); return; }
+		if (!get(captionsEnabled) || !this.#cues.length) { this.replaceChildren(); this.#currentCue = undefined; return; }
 		const cue = this.#cues.find(e => e.start <= this.#currentTime && e.end >= this.#currentTime);
+		if (cue === this.#currentCue) return;
+		this.#currentCue = cue;
 		this.innerHTML = cue ? `<p>${cue.data}</p>` : '';
 	}
 
