@@ -31,8 +31,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0);
 		this.#noTimeScrub = !!(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
 
-		micrio.classList.add('hide-ui');
-		this.addCleanup(() => micrio.classList.remove('hide-ui'));
+		micrio.setAttribute('data-tour-active', '');
+		this.addCleanup(() => micrio.removeAttribute('data-tour-active'));
 
 		const mt = tour;
 		mt.next = () => this.#nextStep();
@@ -58,7 +58,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#built = true;
 
 		if (this.#props.tour.printChapters) {
-			const ol = createElement('ol', { className: 'chapters' });
+			const ol = createElement('ol');
 			this.#stepInfo.forEach((si, i) => {
 				const marker = DataLoader.getStepMarker(si);
 				const title = this.#getTitle(marker);

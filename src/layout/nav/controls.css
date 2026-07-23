@@ -8,12 +8,8 @@ micrio-controls aside {
 	z-index: 2;
 	transition: transform .25s ease, opacity .25s ease;
 }
-micr-io.hide-ui micrio-controls aside:not(:hover) {
+micr-io:is([data-switching],[data-tour-active]) micrio-controls aside {
 	transform: translateX(calc(100% + var(--micrio-border-margin)));
-	opacity: 0;
-	pointer-events: none;
-}
-micr-io:is([data-switching],[data-tour-active]) > micrio-controls {
 	opacity: 0;
 	pointer-events: none;
 }

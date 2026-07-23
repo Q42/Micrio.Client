@@ -8,9 +8,9 @@ micrio-subtitles {
 	width: 100vw;
 	pointer-events: none;
 	z-index: 6;
-	transition: transform .2s ease;
+	transition: transform .25s ease;
 }
-micrio-subtitles.raised {
+micr-io[data-tour-active]:not([data-idle]) micrio-subtitles {
 	transform: translate3d(-50%, calc(-1 * var(--micrio-button-size)), 0);
 }
 micrio-subtitles p {

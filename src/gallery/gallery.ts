@@ -47,10 +47,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#dragging = false;
 	#dragIsPointer = false;
 	#box: DOMRect | null = null;
-	/** Auto-hide enabled (UI hides after 2s of inactivity). */
-	#autoHide = true;
-	/** Timeout ID for auto-hide. */
-	#to: number | undefined;
 	/** OmniUI instance when the current image is an omni 3D object. */
 	#omni: OmniUI|undefined;
 	/** SwipeGallery instance when this is a strip-swipe gallery. */
@@ -100,44 +96,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		return `${imgs[0] + 1}-${imgs[imgs.length - 1] + 1}`;
 	}
 
-	/** Resets auto-hide timer on user activity. */
-	#activity = () => {
-		const parent = this.getMicrio();
-		if (!parent) return;
-		if (parent.classList.contains('hide-ui')) {
-			if (this.#hasPopupOrTour()) return;
-			parent.classList.remove('hide-ui');
-			this.#updateScrubber();
-		}
-		clearTimeout(this.#to);
-		if (this.#autoHide) this.#to = window.setTimeout(() => {
-			if (this.#isInteractingWithUI()) return;
-			if (!parent.classList.contains('hide-ui')) {
-				parent.classList.add('hide-ui');
-				this.#updateScrubber();
-			}
-		}, 2000);
-	}
-
-	#hasPopupOrTour(): boolean {
-		const micrio = this.getMicrio();
-		if (!micrio) return false;
-		return !!(micrio.state.popup ? get(micrio.state.popup) : undefined) ||
-			!!(micrio.state.tour ? get(micrio.state.tour) : undefined);
-	}
-
-	/** Returns true when hovering/focusing a button, micrio-button, or scrubber bar anywhere in the micr-io. */
-	#isInteractingWithUI(): boolean {
-		if (this.#_ul?.matches(':hover')) return true;
-		const root = this.getMicrio();
-		if (!root) return false;
-		const active = document.activeElement;
-		const ui = root.querySelectorAll<HTMLElement>('button, micrio-button');
-		for (const el of ui) {
-			if (el.matches(':hover') || el === active || el.contains(active)) return true;
-		}
-		return false;
-	}
 
 	/**
 	 * Navigates to a specific page in the gallery.
@@ -278,7 +236,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			case 'End': this.#goto(this.#pageToImages.length - 1); break;
 			default: return;
 		}
-		this.#activity();
+		this.getMicrio()?.idle.activity();
 	};
 
 	// ─── Standard gallery render (scrubber + strip-swipe) ──────────
@@ -368,45 +326,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			parent.album!.hooked = true;
 		}
 
-		// Auto-hide after a moment
-		this.#activity();
-
 		// Strip-swipe pointer events on the canvas element
 		if (this.#swipeGallery && images.length > 1) {
 			micrio.canvas.element.addEventListener('pointerdown', this.#swipeGallery.handlePointerDown);
 			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
 		}
 
-		// Auto-hide listeners (canvas + gallery UI)
-		const unhookActivity = () => {
-			micrio.canvas.element.removeEventListener('pointermove', this.#activity);
-			micrio.canvas.element.removeEventListener('pointerdown', this.#activity);
-			this.removeEventListener('pointermove', this.#activity);
-			this.removeEventListener('focusin', this.#activity);
-		};
-		if (this.#autoHide) {
-			micrio.canvas.element.addEventListener('pointermove', this.#activity);
-			micrio.canvas.element.addEventListener('pointerdown', this.#activity);
-			this.addEventListener('pointermove', this.#activity);
-			this.addEventListener('focusin', this.#activity);
-			this.#activity();
-		}
-		this.addCleanup(unhookActivity);
-
 		window.addEventListener('keydown', this.#keydown);
 		this.addCleanup(() => window.removeEventListener('keydown', this.#keydown));
-
-		// Hide when popup/tour is open
-		const onPopupTour = () => {
-			if (this.#hasPopupOrTour()) {
-				this.getMicrio()?.classList.add('hide-ui');
-			} else {
-				this.#activity();
-			}
-			this.#updateScrubber();
-		};
-		this.addCleanup(micrio.state.popup.subscribe(onPopupTour));
-		this.addCleanup(micrio.state.tour.subscribe(onPopupTour));
 	}
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */

@@ -37,7 +37,7 @@ micrio-grid .close {
 	z-index: 2;
 	pointer-events: auto;
 }
-micr-io.hide-ui micrio-grid .close {
+micr-io[data-idle] micrio-grid .close {
 	opacity: 0;
 	pointer-events: none;
 }

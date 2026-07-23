@@ -23,6 +23,7 @@ import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
 import './element.css';
 import { createElement } from '$utils/dom';
+import { IdleState } from '$utils/idle';
 
 /**
  * The main Micrio custom HTML element `<micr-io>`.
@@ -152,6 +153,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	*/
 	keepRendering: boolean = false;
 
+	/** Idle state manager — sets `data-idle` on the element after inactivity. */
+	idle!: IdleState;
+
 	/** For setting first-time hooks
 	 * @internal
 	 */
@@ -244,6 +248,27 @@ export class HTMLMicrioElement extends MicrioElement {
 			const img = this.querySelector('img.preview');
 			if(img) setTimeout(() => img.remove(), 500);
 		});
+
+		// ── Idle detection (data-idle after inactivity) ────────────────
+
+		this.idle = new IdleState(this, {
+			shouldIdle: () => {
+				if (document.activeElement && this.contains(document.activeElement)) return false;
+				const buttons = this.querySelectorAll<HTMLElement>('button, micrio-button');
+				for (const el of buttons) {
+					if (el.matches(':hover')) return false;
+				}
+				return true;
+			},
+		});
+
+		const onActivity = () => this.idle.activity();
+		this.addEventListener('pointermove', onActivity, { passive: true });
+		this.addEventListener('pointerdown', onActivity, { passive: true });
+		this.addEventListener('focusin', onActivity, { passive: true });
+		window.addEventListener('keydown', onActivity);
+
+		this.idle.activity();
 	}
 
 	// Custom overloads for addEventListener to support fully typed custom Micrio events
@@ -267,6 +292,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(this._ui) this._ui.remove();
 		delete this._ui;
 		this.webgl.dispose(true);
+		this.idle?.destroy();
 		this.#printed = false;
 	}
 
