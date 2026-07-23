@@ -4,8 +4,15 @@ micrio-logo-org a {
 	right: calc(var(--micrio-border-margin) * 2);
 	z-index: 1;
 	display: block;
+	transition: transform .25s ease, opacity .25s ease;
 }
 micrio-logo-org img {
 	max-height: 64px;
 	display: block;
+}
+
+micr-io[data-tour-active][data-idle] micrio-logo-org a {
+	transform: translateX(100%);
+	opacity: 0;
+	pointer-events: none;
 }

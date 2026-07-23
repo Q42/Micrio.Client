@@ -215,7 +215,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const hasTourOrMarker = $tour || $marker;
 
 		const showMarkers = !noHTML || (micrio.getAttribute('data-ui') == 'markers');
-		const showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo && !$tour && !$marker && !$markerPopup;
+		const showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo && !$marker && !$markerPopup;
 		const showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo && !!this.#logoOrg && !$popover;
 		const showControls = !noHTML && !!$info && !$settings?.noControls;
 		const showDetails = !noHTML && !hasTourOrMarker && !!$settings?.showInfo;
