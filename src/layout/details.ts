@@ -2,7 +2,6 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { createElement } from '$utils/dom';
-import { i18n } from '$core/i18n/strings';
 
 export interface DetailsProps {
 	info: Models.ImageInfo.ImageInfo;
@@ -21,7 +20,6 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 		if (!micrio) return;
 
 		this.#detailsEl = createElement('details', {
-			events: { toggle: () => this.#toggleClose() },
 			parent: this
 		});
 
@@ -75,23 +73,6 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 		}
 
 	}
-
-	#toggleClose() {
-		const existing = this.#detailsEl.querySelector(':scope > micrio-button');
-		if (this.#detailsEl.open) {
-			if (existing) return;
-			createElement('micrio-button', {
-				setProps: {
-					type: 'close', title: get(i18n).close,
-					onclick: () => { this.#detailsEl.open = false; }
-				},
-				parent: this.#detailsEl
-			});
-		} else {
-			existing?.remove();
-		}
-	}
-
 }
 
 customElements.define(MicrioDetails.tag, MicrioDetails);

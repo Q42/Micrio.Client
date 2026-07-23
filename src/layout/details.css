@@ -8,6 +8,8 @@ micrio-details details {
 	user-select: text;
 	white-space: normal;
 	box-sizing: border-box;
+	--micrio-hide: translateY(100%);
+	transition: opacity .25s ease, transform .25s ease;
 }
 micrio-details summary {
 	cursor: pointer;
@@ -28,33 +30,9 @@ micrio-details details > * {
 micrio-details a {
 	color: var(--micrio-color-hover, inherit);
 }
-micrio-details details > micrio-button > :is(button,a) {
-	position: absolute;
-	bottom: calc(100% + var(--micrio-border-margin));
-	left: 0;
-}
 @media (max-width: 600px) {
 	micrio-details details {
 		max-width: calc(100% - var(--micrio-button-size) - 3 * var(--micrio-border-margin));
 		z-index: 5;
-	}
-	micxrio-details details:not([open]) cite {
-		display: none;
-	}
-	micxrio-details details:not([open]) summary::marker,
-	micrxio-details details:not([open]) summary::-webkit-details-marker {
-		display: inline-block;
-		content: '?';
-		font-size: 20px;
-		font-weight: 700;
-		line-height: 20px;
-		margin-right: 5px;
-	}
-	micrxio-details details > micrio-button > :is(button,a) {
-		position: absolute;
-		top: auto;
-		left: auto;
-		right: 0;
-		bottom: calc(100% + 8px);
 	}
 }
