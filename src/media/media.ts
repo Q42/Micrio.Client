@@ -371,26 +371,6 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				update();
 			}
 		}
-
-		// Play overlay (360 full-window video only)
-		if (p.is360 && !p.noPlayOverlay && !isTourOnly) {
-			const overlay = createElement('div', {
-				className: (!p.autoplay || p.paused ? 'hidden' : '') || undefined,
-				children: [
-					createElement('micrio-button', {
-						setProps: { type: 'play', noClick: true },
-					}) as Node,
-				],
-				events: {
-					click: () => {
-						const el = this.#videoEl;
-						if (el) { el.play().catch(() => { }); overlay.classList.add('hidden'); }
-						else if (this.#adapter) { this.#adapter.play(); overlay.classList.add('hidden'); }
-					},
-				},
-				parent: figure,
-			});
-		}
 	}
 
 	#wireEvents(el: HTMLVideoElement | HTMLAudioElement) {

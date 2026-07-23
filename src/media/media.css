@@ -56,30 +56,3 @@ micr-io[data-idle] micrio-media figure.videotour {
 micrio-media figure.hidden {
 	display: none!important;
 }
-micrio-media figure > div {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	z-index: 1;
-	background: rgba(0,0,0,.3);
-	transition: opacity .3s ease;
-}
-micrio-media figure > div.hidden {
-	opacity: 0;
-	pointer-events: none;
-}
-micrio-media figure > div micrio-button {
-	--micrio-button-size: 80px;
-	--micrio-icon-size: 40px;
-	--micrio-border-radius: 100%;
-	--micrio-button-background: rgba(0,0,0,.6);
-	--micrio-button-shadow: none;
-	--micrio-background-filter: none;
-	pointer-events: none;
-}
