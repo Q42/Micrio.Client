@@ -45,3 +45,7 @@ micrio-controls menu > div micrio-button > *.active {
 	background: var(--micrio-color-hover);
 	color: var(--micrio-button-background, var(--micrio-background));
 }
+
+micrio-zoom-buttons:has(> micrio-button:first-child > button[disabled]):has(> micrio-button:last-child > button[disabled]) {
+	display: none;
+}
