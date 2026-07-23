@@ -4,6 +4,7 @@ micrio-gallery > micrio-button > button {
 	top: 50%;
 	transform: translate(0,-50%);
 	transition: transform .15s ease,opacity .15s ease;
+	z-index: 2;
 }
 micrio-gallery > micrio-button.prev > button {
 	left: var(--micrio-border-margin);
@@ -42,6 +43,7 @@ micrio-gallery ul {
 		right: calc(var(--micrio-button-size) + var(--micrio-border-margin) * 2);
 		width: auto;
 		transform: none;
+		--micrio-hide: translateY(100%);
 	}
 }
 micrio-gallery ul > :first-child {
