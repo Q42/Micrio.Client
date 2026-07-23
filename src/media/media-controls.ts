@@ -81,13 +81,6 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				});
 			}
 
-			if (p.fullscreenEl) {
-				createElement('micrio-fullscreen', {
-					className: 'ctrl-fullscreen',
-					parent: this.#wrapperEl,
-				});
-			}
-
 			const container = createElement('div');
 
 			const bars = createElement('div', {
@@ -122,6 +115,13 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 
 			this.#wrapperEl.appendChild(container);
+
+			if (p.fullscreenEl) {
+				createElement('micrio-fullscreen', {
+					className: 'ctrl-fullscreen',
+					parent: this.#wrapperEl,
+				});
+			}
 
 			if (p.onclose) {
 				createElement('micrio-button', {
