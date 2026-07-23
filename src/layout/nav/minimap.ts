@@ -15,12 +15,28 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	static tag = 'micrio-minimap';
 
 	#props: MinimapProps = { image: null! };
-	#_canvas!: HTMLCanvasElement;
 	#_ctx: CanvasRenderingContext2D | null = null;
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;
+	#unsubView: (() => void) | undefined;
 
 	onMount() {
+		this.#setup();
+	}
+
+	setProps(props: Partial<MinimapProps>) {
+		if (props.image !== undefined && props.image !== this.#props.image) {
+			this.#props.image = props.image;
+			if (this.isConnected) {
+				this.#unsubView?.();
+				this.replaceChildren();
+				this.#_ctx = null;
+				this.#setup();
+			}
+		}
+	}
+
+	#setup() {
 		const { image } = this.#props;
 		const micrio = this.getMicrio();
 		if (!micrio || !image) return;
@@ -46,7 +62,6 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 			const hasThumb = !!(image.thumbSrc || thumbSrc);
 			if (info.is360) {
-				// Crosshair indicator: hairline at yaw + pitch, avoids equirectangular distortion
 				if (hasThumb) {
 					ctx.globalCompositeOperation = 'source-over';
 					ctx.fillStyle = 'rgba(0,0,0,.45)';
@@ -57,14 +72,11 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 				const cy = Math.max(0, Math.min(1, area[1] + area[3] / 2));
 				const px = Math.round(cx * width);
 				const py = Math.round(cy * height);
-				// Vertical hairline (yaw) — narrower than full FOV, but indicates direction
 				const hw = Math.max(1, Math.round(area[2] * width / 2));
 				ctx.fillStyle = hasThumb ? 'white' : 'rgba(255,255,255,.8)';
 				ctx.fillRect(Math.round(px - hw), 0, hw * 2, height);
-				// Horizontal hairline (pitch)
 				const hh = Math.max(1, Math.round(area[3] * height / 2));
 				ctx.fillRect(0, Math.round(py - hh), width, hh * 2);
-				// Center dot
 				ctx.beginPath();
 				ctx.arc(px, py, 3, 0, Math.PI * 2);
 				ctx.fill();
@@ -103,7 +115,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			if (e.button != 0) return;
 			window.addEventListener('mousemove', dDraw);
 			window.addEventListener('mouseup', dStop);
-			this.#mapRect = this.#_canvas.getBoundingClientRect();
+			this.#mapRect = canvas.getBoundingClientRect();
 			const cv = camera.getView();
 			if (cv) this.#dragViewDims = { width: cv[2], height: cv[3] };
 			dDraw(e);
@@ -126,40 +138,35 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			this.#dragViewDims = undefined;
 		};
 
-		// Create canvas
-		this.#_canvas = createElement('canvas', {
+		const canvas = createElement('canvas', {
 			props: { width, height },
 			className: settings.alwaysShowMinimap ? 'fixed' : undefined,
 			events: { mousedown: dStart as EventListener },
 			parent: this
 		});
 		if (thumbSrc) {
-			this.#_canvas.style.backgroundImage = `url('${thumbSrc}')`;
-			if (offset != 0) this.#_canvas.style.backgroundPositionX = `${width * offset}px`;
+			canvas.style.backgroundImage = `url('${thumbSrc}')`;
+			if (offset != 0) canvas.style.backgroundPositionX = `${width * offset}px`;
 		}
-		this.#_canvas.addEventListener('wheel', wheel, { passive: true });
+		canvas.addEventListener('wheel', wheel, { passive: true });
 
-		this.#_ctx = this.#_canvas.getContext('2d');
+		this.#_ctx = canvas.getContext('2d');
 		if (this.#_ctx) {
 			this.#_ctx.lineWidth = 1;
 			this.#_ctx.strokeStyle = 'white';
 		}
 
-		// Load thumbnail if cross-origin isolated
 		if (isolated && image.thumbSrc) {
 			fetch(image.thumbSrc).then(r => r.blob()).then(b => {
 				thumbSrc = URL.createObjectURL(b);
-				this.#_canvas.style.backgroundImage = `url('${thumbSrc}')`;
+				canvas.style.backgroundImage = `url('${thumbSrc}')`;
 				draw(get(image.state.view));
 			});
 		}
 
-		// Subscribe to view changes
-		this.addCleanup(image.state.view.subscribe(draw));
-	}
-
-	setProps(props: Partial<MinimapProps>) {
-		if (props.image !== undefined) this.#props.image = props.image;
+		this.#unsubView?.();
+		this.#unsubView = image.state.view.subscribe(draw);
+		this.addCleanup(this.#unsubView);
 	}
 
 }

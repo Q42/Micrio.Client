@@ -91,10 +91,13 @@ class MicrioMain extends MicrioElement<MainProps> {
 		else this.appendChild(el);
 	}
 
-	#show(key: string, condition: boolean, build: () => HTMLElement) {
+	#show(key: string, condition: boolean, build: () => HTMLElement, update?: (el: HTMLElement) => void) {
 		const existing = this.#elements.get(key);
 		if (condition) {
-			if (existing?.isConnected) return;
+			if (existing?.isConnected) {
+				update?.(existing);
+				return;
+			}
 			existing?.remove();
 			const el = build();
 			this.#elements.set(key, el);
@@ -269,8 +272,9 @@ class MicrioMain extends MicrioElement<MainProps> {
 			createElement('micrio-gallery', { setProps: { controller: $gallery ?? undefined } }) as MicrioElement
 		);
 
-		this.#show('minimap', showMinimap, () =>
-			createElement('micrio-minimap', { setProps: { image: micrio.$current! } }) as MicrioElement
+		this.#show('minimap', showMinimap,
+			() => createElement('micrio-minimap', { setProps: { image: micrio.$current! } }) as MicrioElement,
+			(el) => (el as MicrioElement).setProps?.({ image: micrio.$current! })
 		);
 
 		// Marker popup — only created when micrio.state.popup is set (after flyTo completes)
