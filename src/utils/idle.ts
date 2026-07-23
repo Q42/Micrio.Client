@@ -25,7 +25,7 @@ export class IdleState {
 
 	constructor(private el: HTMLElement, opts: IdleStateOptions = {}) {
 		this.o = {
-			delay: 2000,
+			delay: 4000,
 			onIdle: () => {},
 			onActive: () => {},
 			shouldIdle: () => true,

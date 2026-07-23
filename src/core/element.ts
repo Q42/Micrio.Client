@@ -265,6 +265,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		const onActivity = () => this.idle.activity();
 		this.addEventListener('pointermove', onActivity, { passive: true });
 		this.addEventListener('pointerdown', onActivity, { passive: true });
+		this.addEventListener('wheel', onActivity, { passive: true });
 		this.addEventListener('focusin', onActivity, { passive: true });
 		window.addEventListener('keydown', onActivity);
 

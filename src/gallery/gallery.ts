@@ -51,6 +51,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#omni: OmniUI|undefined;
 	/** SwipeGallery instance when this is a strip-swipe gallery. */
 	#swipeGallery: SwipeGallery|undefined;
+	/** Bound zoom handler for toggling the `zoomed` class. */
+	#onZoom: (() => void)|undefined;
 	/** Map tracking in-flight preload requests (keyed by thumbSrc). */
 	#preloading = new Map<string, any>();
 	#preloadD = 0;
@@ -138,6 +140,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
 		}
 		this.#updateScrubber();
+		this.#updateZoomedClass();
+	}
+
+	/** Toggles the `zoomed` class based on the current image's camera zoom state. */
+	#updateZoomedClass() {
+		const img = this.#images[this.#currentImageIdx];
+		this.classList.toggle('zoomed', !img?.camera?.isZoomedOut());
 	}
 
 	// ─── Scrubber (clickable timeline bar) ─────────────────────────
@@ -236,7 +245,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			case 'End': this.#goto(this.#pageToImages.length - 1); break;
 			default: return;
 		}
-		this.getMicrio()?.idle.activity();
 	};
 
 	// ─── Standard gallery render (scrubber + strip-swipe) ──────────
@@ -326,6 +334,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#frameChanged();
 			parent.album!.hooked = true;
 		}
+
+		// Track zoom state to toggle `zoomed` class on the gallery element
+		this.#onZoom = () => this.#updateZoomedClass();
+		micrio.addEventListener('zoom', this.#onZoom);
+		this.addCleanup(() => micrio.removeEventListener('zoom', this.#onZoom!));
 
 		// Strip-swipe pointer events on the canvas element
 		if (this.#swipeGallery && images.length > 1) {

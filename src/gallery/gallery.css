@@ -186,7 +186,7 @@ micrio-gallery ul > button + span.dragging {
 	transition: none;
 	transform: translateX(-50%) scale(1.05);
 }
-micr-io[data-idle] micrio-gallery :is(ul, micrio-button > button),
+:is(micrio-gallery.zoomed, micr-io[data-idle] micrio-gallery) :is(ul, micrio-button > button),
 micrio-gallery > micrio-button > button:disabled {
 	opacity: 0;
 	pointer-events: none;
