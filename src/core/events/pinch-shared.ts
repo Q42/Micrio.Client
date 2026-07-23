@@ -56,11 +56,11 @@ export function restartPanning(ctx: EventContext, dragHandler: DragHandler, poin
 			const t = pointers[0];
 			syntheticEvent = { button: 0, target: ctx.el, clientX: t.clientX, clientY: t.clientY } as unknown as PointerEvent;
 		} else {
-			const remaining = Array.from(pointers.entries())[0];
+			const [pointerId, { x, y }] = pointers.entries().next().value!;
 			syntheticEvent = {
 				button: 0, pointerType: 'touch', target: ctx.el,
-				clientX: remaining[1].x, clientY: remaining[1].y,
-				pointerId: remaining[0]
+				clientX: x, clientY: y,
+				pointerId
 			} as unknown as PointerEvent;
 		}
 		dragHandler.start(syntheticEvent, true, true);
