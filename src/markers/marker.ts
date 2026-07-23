@@ -141,9 +141,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) micrio.state.tour.set(undefined);
 			await tick();
 			if (marker.view && !data.noAnimate && !marker.videoTour) {
-				const opts: any = { area: image.opts?.area };
-				if (image.isOmni) opts.omniIndex = this.#omniIndex;
-				image.camera.flyToView(marker.view, opts).then(openContent).catch(() => {
+				image.camera.flyToView(marker.view, {
+					area: image.opts?.area,
+					omniIndex: image.isOmni ? this.#omniIndex : undefined,
+					isJump: true
+				}).then(openContent).catch(() => {
 					if (image.state.$marker === marker) {
 						image.openedView = undefined;
 						image.state.marker.set(undefined);
