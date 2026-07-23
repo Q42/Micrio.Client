@@ -12,9 +12,13 @@ micrio-tour .controls {
 	backdrop-filter: var(--micrio-background-filter);
 	background-color: var(--micrio-button-background,var(--micrio-background,none));
 	padding: 0;
-	transition: transform .2s ease;
+	transition: transform .25s ease,opacity .25s ease;
 	z-index: 5;
 }
+micr-io[data-tour-active][data-idle] micrio-tour .controls {
+	transform: translate(-50%,calc(100% + var(--micrio-border-margin)));
+}
+
 micrio-tour .controls>micrio-button {
 	margin: 0;
 	border: none;

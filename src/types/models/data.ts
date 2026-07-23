@@ -377,7 +377,7 @@ export namespace ImageData {
 		instance?: VideoTourInstance;
 	}
 
-	/** Timed events inside a {@link ImageData.VideoTour} */
+	/** Timed events inside a {@link VideoTour} */
 	export type Event = {
 		/** Start time in seconds */
 		start: number;

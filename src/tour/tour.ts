@@ -39,7 +39,6 @@ class MicrioTour extends MicrioElement<TourProps> {
 					setProps: { src: audio?.src, image, tour: vt, controls: true, autoplay: true, fullscreenEl: undefined, onclose: () => micrio.state.tour.set(undefined) }
 				});
 			}
-			micrio.setAttribute('data-tour-active', '');
 		}
 
 		if (isMarkerTour) {
@@ -153,15 +152,12 @@ class MicrioTour extends MicrioElement<TourProps> {
 		}
 
 		this.addCleanup(micrio.state.tour.subscribe(t => {
-			if (!t) {
-				micrio.removeAttribute('data-tour-active');
-				if (isMarkerTour) {
-					const mt = tour as Models.ImageData.MarkerTour;
-					const si = (mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined)?.[this.#currentStep];
-					if (si) {
-						const img = micrio.canvases?.find((c: MicrioImage) => c.id === si.micrioId);
-						if (img) img.state.marker.set(undefined);
-					}
+			if (!t && isMarkerTour) {
+				const mt = tour as Models.ImageData.MarkerTour;
+				const si = (mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined)?.[this.#currentStep];
+				if (si) {
+					const img = micrio.canvases?.find((c: MicrioImage) => c.id === si.micrioId);
+					if (img) img.state.marker.set(undefined);
 				}
 			}
 		}));
