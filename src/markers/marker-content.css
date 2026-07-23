@@ -9,11 +9,16 @@ micrio-marker-content {
 	box-sizing: border-box;
 	text-align: var(--micrio-text-align);
 	max-height: calc(100cqh - 2 * var(--micrio-border-margin));
+	min-height: var(--micrio-button-size);
 }
 micrio-marker-content h1 {
 	font-size: 1.5em;
 	font-weight: 600;
 	margin: 0 0 1.25em 0;
+}
+micrio-marker-content h1:only-child {
+	line-height: var(--micrio-button-size);
+	margin: calc(-1 * var(--micrio-popup-padding)) 0 0 0;
 }
 micrio-marker-content p {
 	white-space: pre-line;
