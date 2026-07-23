@@ -49,9 +49,7 @@ micrio-media figure.videotour {
 	padding: 0;
 	z-index: 5;
 	transition: transform .25s ease,opacity .25s ease;
-}
-micr-io[data-idle] micrio-media figure.videotour {
-	transform: translate(-50%,100%);
+	--micrio-hide: translate(-50%,100%);
 }
 micrio-media figure.hidden {
 	display: none!important;

@@ -44,11 +44,7 @@ micrio-serial-tour ol {
 	list-style-type: decimal-leading-zero;
 	margin: 0;
 	transition: transform .25s ease, opacity .25s ease;
-}
-micr-io[data-idle] micrio-serial-tour ol {
-	pointer-events: none;
-	transform: translate3d(-100%,0,0);
-	opacity: 0;
+	--micrio-hide: translate3d(-100%,0,0);
 }
 micrio-serial-tour ol>li {
 	padding: .15em;

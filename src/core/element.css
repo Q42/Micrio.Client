@@ -133,3 +133,17 @@ micr-io[data-hooked][data-can-pan]>canvas.micrio {
 :is(micrio-details,micrio-marker-content,micrio-button-group),micrio-swipe-gallery>figcaption{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
 /* display:block containers */
 :is(micrio-media,micrio-media-controls){display:block}
+
+/* Main hiding logic */
+micr-io[data-tour-active][data-idle] :is(micrio-logo a,micrio-logo-org a,micrio-tour > aside),
+micr-io[data-idle] :is(micrio-grid .close, micrio-media figure.videotour, micrio-serial-tour ol),
+micr-io:is([data-switching],[data-tour-active]) micrio-controls aside,
+micr-io:is([data-idle],[data-switching],[data-tour-active]) micrio-minimap canvas:not(:hover), micrio-minimap canvas:not(:hover).hidden,
+:is(micrio-gallery.zoomed, micr-io[data-idle] micrio-gallery) :is(ul, micrio-button > button),
+micrio-gallery > micrio-button > button:disabled {
+	opacity: 0;
+	pointer-events: none;
+	transform: var(--micrio-hide, none);
+}
+
+

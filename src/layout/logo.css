@@ -8,12 +8,7 @@ micrio-logo a {
 	transition: transform .25s ease, opacity .25s ease;
 	display: block;
 	cursor: pointer;
-}
-
-micr-io[data-tour-active][data-idle] micrio-logo a {
-	transform: translateX(-100%);
-	opacity: 0;
-	pointer-events: none;
+	--micrio-hide: translateX(-100%);
 }
 micrio-logo a:hover {
 	transform: rotate3d(0, 0, 1, -90deg);
