@@ -151,8 +151,8 @@ export class TileCanvas {
 		this.isOmni = isOmni;
 		this.pinchZoomOutLimit = pinchZoomOutLimit;
 		this.omniNumLayers = omniNumLayers;
-		this.#index = main.canvases.length;
-		if (!hasParent) main.canvases.push(this);
+		this.#index = main._canvases.length;
+		if (!hasParent) main._canvases.push(this);
 
 		this.aspect = width / height;
 		this.diagonal = Math.sqrt(width * width + height * height);
@@ -180,7 +180,7 @@ export class TileCanvas {
 
 		if (!noImage) this.addImage(0, 0, 1, 1, width, height, tileSize, isSingle, isDeepZoom, false, targetOpacity);
 		else {
-			this.main.numImages++;
+			this.main._numImages++;
 			this.#bOpacity = 1;
 			this.opacity = 1;
 			this.#isReady = true;
@@ -205,15 +205,15 @@ export class TileCanvas {
 		opa: number, rotX: number = 0, rotY: number = 0, rotZ: number = 0, scale: number = 1, fromScale: number = 0): Image {
 		const image = new Image(
 			this,
-			this.main.numImages++,
+			this.main._numImages++,
 			this.images.length,
 			w, h, tileSize,
 			isSingle, isDeepZoom, isVideo,
-			this.main.numTiles,
+			this.main._numTiles,
 			opa, opa, rotX, rotY, rotZ, scale, fromScale);
 		image.setArea(x0, y0, x1, y1);
 		this.images.push(image);
-		this.main.numTiles = image.endOffset;
+		this.main._numTiles = image.endOffset;
 		if (this.images.length === 1) this.setActiveImage(0);
 		return image;
 	}
@@ -229,7 +229,7 @@ export class TileCanvas {
 			this.#tileSize,
 			false,                                     // is360
 			false,                                     // noImage
-			this.main.hasArchive || this.#isDeepZoom,  // isDeepZoom
+			this.main._hasArchive || this.#isDeepZoom,  // isDeepZoom
 			false,                                     // freeMove
 			coverStart,
 			1,                                         // maxScale
@@ -253,20 +253,20 @@ export class TileCanvas {
 
 	/** Steps the opacity fade animation and applies 360 transition movement. */
 	#stepOpacity(): void {
-		const fadeDuration = this.main.distanceX !== 0 || this.main.distanceY !== 0
-			? this.main.spacesTransitionDuration
-			: this.main.canvases.length === 1 ? .25 : this.main.crossfadeDuration;
-		const delta: number = (1 / fadeDuration) / this.main.frameTime;
+		const fadeDuration = this.main._distanceX !== 0 || this.main._distanceY !== 0
+			? this.main._spacesTransitionDuration
+			: this.main._canvases.length === 1 ? .25 : this.main._crossfadeDuration;
+		const delta: number = (1 / fadeDuration) / this.main._frameTime;
 		const fadingIn: boolean = this.targetOpacity > 0 && this.targetOpacity >= this.opacity;
 		this.opacity = fadingIn ? Math.min(1, this.opacity + delta) : Math.max(0, this.opacity - delta);
 		this.#bOpacity = easeInOut.get(this.opacity);
 
-		if (this.main.distanceX !== 0 || this.main.distanceY !== 0) {
+		if (this.main._distanceX !== 0 || this.main._distanceY !== 0) {
 			const fact: number = this.opacity === 0 ? 0 : easeInOut.get(1 - this.opacity) * (fadingIn ? 1 : -1);
 			this.camera360.moveTo(
-				this.main.distanceX * fact * base360Distance,
-				this.main.distanceY * fact * base360Distance,
-				this.main.direction);
+				this.main._distanceX * fact * base360Distance,
+				this.main._distanceY * fact * base360Distance,
+				this.main._direction);
 		}
 	}
 
@@ -286,9 +286,9 @@ export class TileCanvas {
 	fadeIn(): void {
 		this.#isReady = true;
 		if (!this.hasParent && this.#currentArea.width === 1 && this.#currentArea.height === 1)
-			for (let i = 0; i < this.main.canvases.length; i++)
-				if (this.main.canvases[i] !== this)
-					this.main.canvases[i].fadeOut();
+			for (let i = 0; i < this.main._canvases.length; i++)
+				if (this.main._canvases[i] !== this)
+					this.main._canvases[i].fadeOut();
 		this.targetOpacity = 1;
 	}
 
@@ -344,18 +344,18 @@ export class TileCanvas {
 				if (i > 0 && !image.doRender) m.setImageVisible(image, image.doRender = true);
 				if (image.isVideo && image.isVideoPlaying) animating = true;
 				if (image.opacityTick(this.#isGallerySwitch || this.opacity < 1)) animating = true;
-				if (image.opacity > 0) m.doneTotal += image.getTiles(scale);
+				if (image.opacity > 0) m._doneTotal += image.getTiles(scale);
 			}
 		}
 
-		m.toDrawTotal += this.toDraw.length;
-		m.progress = m.toDrawTotal === 0 ? 1
-			: m.doneTotal / m.toDrawTotal;
+		m._toDrawTotal += this.toDraw.length;
+		m._progress = m._toDrawTotal === 0 ? 1
+			: m._doneTotal / m._toDrawTotal;
 
 		for (let i = 0; i < this.#children.length; i++)
 			this.#children[i].shouldDraw();
 
-		if (animating) m.animating = true;
+		if (animating) m._animating = true;
 	}
 
 	/** Executes the drawing commands for the current frame for this canvas. */
@@ -386,7 +386,7 @@ export class TileCanvas {
 			const i: number = this.toDraw[j];
 			this.#setTile(i);
 
-			const isTargetLayer = r.layer === r.image.targetLayer - 1 || (!m.bareBone && r.layer === r.image.targetLayer);
+			const isTargetLayer = r.layer === r.image.targetLayer - 1 || (!m._bareBone && r.layer === r.image.targetLayer);
 			const isBaseTile = i === r.image.endOffset - 1;
 			const opa = m.getTileOpacity(i);
 
@@ -424,9 +424,9 @@ export class TileCanvas {
 		const animating = this.areaAnimating();
 
 		if (animating) {
-			const delta: number = (1 / this.main.gridTransitionDuration) / this.main.frameTime;
+			const delta: number = (1 / this.main._gridTransitionDuration) / this.main._frameTime;
 			this.#areaAniPerc = Math.min(1, this.#areaAniPerc + delta);
-			const p = this.main.gridTransitionTimingFunction.get(this.#areaAniPerc);
+			const p = this.main._gridTransitionTimingFunction.get(this.#areaAniPerc);
 			const interpCenterX = (b.centerX + (t.centerX - b.centerX) * p);
 			const interpCenterY = (b.centerY + (t.centerY - b.centerY) * p);
 			const interpWidth = (b.width + (t.width - b.width) * p);
@@ -506,7 +506,7 @@ export class TileCanvas {
 			else r.image.setDrawRect(r);
 		}
 		else {
-			const v = this.main.vertexBuffer, a = this.aspect;
+			const v = this.main._vertexBuffer, a = this.aspect;
 			v[0] = v[3] = v[9] = ((r.x0 - .5) * a);
 			v[1] = v[7] = v[16] = (.5 - r.y0);
 			v[4] = v[10] = v[13] = (.5 - r.y1);
@@ -568,7 +568,7 @@ export class TileCanvas {
 
 	/** Re-adds this canvas instance to the main controller. */
 	replace(): void {
-		this.main.canvases.push(this);
+		this.main._canvases.push(this);
 	}
 
 	/** Sets the active layer for multi-layer omni objects. */

@@ -281,7 +281,7 @@ export class WebGL {
 		const gl = this.gl;
 		// Bind and buffer vertex position data (allocate to max size for bufferSubData compatibility)
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio.engine.vertexBuffer360.byteLength, gl.DYNAMIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio.engine._vertexBuffer360.byteLength, gl.DYNAMIC_DRAW);
 
 		// Enable and configure texture coordinate attribute
 		gl.enableVertexAttribArray(this.#txtAttr);
@@ -454,7 +454,7 @@ export class WebGL {
 		}
 
 		// Update dynamic vertex buffer via bufferSubData (buffer already allocated with DYNAMIC_DRAW)
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, is360 ? this.#micrio.engine.vertexBuffer360 : this.#micrio.engine.vertexBuffer);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, is360 ? this.#micrio.engine._vertexBuffer360 : this.#micrio.engine._vertexBuffer);
 
 		// Draw the geometry
 		// For wireframe debugging:

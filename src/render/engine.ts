@@ -51,71 +51,71 @@ export class Engine {
 	readonly el: Viewport = new Viewport;
 
 	/** Shared Float32Array for standard tile vertex data. */
-	readonly vertexBuffer: Float32Array = new Float32Array(6 * 3);
+	readonly _vertexBuffer: Float32Array = new Float32Array(6 * 3);
 	/** Shared Float32Array for 360 tile vertex data. */
-	readonly vertexBuffer360: Float32Array = new Float32Array(6 * 3 * segsX * segsY);
+	readonly _vertexBuffer360: Float32Array = new Float32Array(6 * 3 * segsX * segsY);
 
 	/** Array holding all instantiated TileCanvas instances managed by this engine. */
-	readonly canvases: TileCanvas[] = [];
+	readonly _canvases: TileCanvas[] = [];
 
 	/** Total number of tiles across all images in all canvases. */
-	numTiles: number = 0;
+	_numTiles: number = 0;
 	/** Total number of Image instances across all canvases. */
-	numImages: number = 0;
+	_numImages: number = 0;
 
 	/** Timestamp of the current frame (performance.now()). */
 	now: number = 0;
 	/** Flag indicating if any animation is active in any canvas this frame. */
-	animating: boolean = false;
+	_animating: boolean = false;
 	/** Overall loading progress (0-1) based on tiles drawn vs tiles needed. */
-	progress: number = 0;
+	_progress: number = 0;
 	/** Total number of tiles needed across all canvases this frame. */
-	toDrawTotal: number = 0;
+	_toDrawTotal: number = 0;
 	/** Total number of tiles successfully drawn (or already loaded) across all canvases this frame. */
-	doneTotal: number = 0;
+	_doneTotal: number = 0;
 
 	/** Default duration (seconds) for crossfade between canvases. */
-	crossfadeDuration: number = .25;
+	_crossfadeDuration: number = .25;
 	/** Default duration (seconds) for grid item transitions. */
-	gridTransitionDuration: number = .5;
+	_gridTransitionDuration: number = .5;
 	/** Default easing function for grid transitions. */
-	gridTransitionTimingFunction: Bicubic = easeInOut;
+	_gridTransitionTimingFunction: Bicubic = easeInOut;
 	/** Default duration (seconds) for transitions between 360 spaces. */
-	spacesTransitionDuration: number = .5;
+	_spacesTransitionDuration: number = .5;
 	/** Default duration (seconds) for fading embedded images/videos. */
-	embedFadeDuration: number = .5;
+	_embedFadeDuration: number = .5;
 
 	/** Elasticity factor for kinetic dragging (higher = more movement). */
-	dragElasticity: number = 1;
+	_dragElasticity: number = 1;
 
 	/** Flag indicating if a binary archive is being used. */
-	hasArchive: boolean = false;
+	_hasArchive: boolean = false;
 	/** Layer offset when using an archive. */
-	archiveLayerOffset: number = 0;
+	_archiveLayerOffset: number = 0;
 
 	/** Number of "underzoom" levels. */
-	underzoomLevels: number = 4;
+	_underzoomLevels: number = 4;
 	/** Number of lowest resolution layers to skip loading initially. */
-	skipBaseLevels: number = 0;
+	_skipBaseLevels: number = 0;
 
 	/** Flag for barebone mode (minimal texture loading). */
-	bareBone: boolean = false;
+	_bareBone: boolean = false;
 
 	/** Flag indicating if the current context is a swipe gallery. */
-	isSwipe: boolean = false;
+	_isSwipe: boolean = false;
 
 	/** Flag to disable panning during pinch gestures. */
-	noPinchPan: boolean = false;
+	_noPinchPan: boolean = false;
 
 	/** Target direction for 360 transition. */
-	direction: number = 0;
+	_direction: number = 0;
 	/** Horizontal distance for 360 transition. */
-	distanceX: number = 0;
+	_distanceX: number = 0;
 	/** Vertical distance for 360 transition. */
-	distanceY: number = 0;
+	_distanceY: number = 0;
 
 	/** Estimated time per frame in seconds (used for animation speed normalization). */
-	frameTime: number = 1 / 60;
+	_frameTime: number = 1 / 60;
 
 	/** Array storing references to all MicrioImage instances managed by the engine. @internal */
 	#images: Array<MicrioImage | Models.Omni.Frame> = [];
@@ -145,7 +145,7 @@ export class Engine {
 	#micrioToEngImage: Map<MicrioImage | Models.Omni.Frame, Image> = new Map();
 
 	/** If true, prevents the engine from auto-setting direction during 360 transitions. */
-	preventDirectionSet: boolean = false;
+	_preventDirectionSet: boolean = false;
 
 	/** Static Float32Array holding texture coordinates for a standard quad. */
 	static readonly _textureBuffer: Float32Array = Engine.#getTextureBuffer(1, 1);
@@ -212,7 +212,7 @@ export class Engine {
 		this.ready = true;
 
 		this.#unsubscribe.push(this.micrio.barebone.subscribe(b => {
-			this.bareBone = b;
+			this._bareBone = b;
 			this.#bareBoneSetting = b;
 		}));
 	}
@@ -325,10 +325,10 @@ export class Engine {
 		this.#isGallery = !!get(this.micrio.gallery) || c.isOmni;
 
 		if (settings.gallery?.archive) {
-			this.hasArchive = true;
-			this.archiveLayerOffset = settings.gallery.archiveLayerOffset ?? 0;
+			this._hasArchive = true;
+			this._archiveLayerOffset = settings.gallery.archiveLayerOffset ?? 0;
 		}
-		if (i.version && parseFloat(i.version) <= 3.1) this.underzoomLevels = 8;
+		if (i.version && parseFloat(i.version) <= 3.1) this._underzoomLevels = 8;
 
 		if (i.is360) settings.limitToCoverScale = false;
 		const coverLimit = !!settings.limitToCoverScale;
@@ -389,13 +389,13 @@ export class Engine {
 		if (settings?.restrict) c.camera.setLimit(settings.restrict);
 
 		if (settings?.crossfadeDuration)
-			this.crossfadeDuration = settings.crossfadeDuration;
+			this._crossfadeDuration = settings.crossfadeDuration;
 		if (settings?.embedFadeDuration)
-			this.embedFadeDuration = settings.embedFadeDuration;
+			this._embedFadeDuration = settings.embedFadeDuration;
 		if (settings?.dragElasticity !== undefined)
-			this.dragElasticity = settings.dragElasticity;
+			this._dragElasticity = settings.dragElasticity;
 		if (settings?.skipBaseLevels)
-			this.skipBaseLevels = settings.skipBaseLevels;
+			this._skipBaseLevels = settings.skipBaseLevels;
 
 		if (settings?.omni) {
 			canvas.omniDistance = -(settings.omni.distance ?? 0);
@@ -408,7 +408,7 @@ export class Engine {
 
 		canvas.sendViewport();
 
-		if (this.numTiles > 0) this.#registerBaseTile(this.numTiles - 1);
+		if (this._numTiles > 0) this.#registerBaseTile(this._numTiles - 1);
 
 		const v = get(c.state.view) || settings.view;
 		if (v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) {
@@ -451,15 +451,15 @@ export class Engine {
 			const pitch = canvas.is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas.camera360.pitch : 0;
 			this.#activeCanvasEntry = entry;
 
-			if (canvas.is360 && !this.preventDirectionSet) {
-				const reversedYaw = ((this.direction + 0.5) % 1) * Math.PI * 2;
+			if (canvas.is360 && !this._preventDirectionSet) {
+				const reversedYaw = ((this._direction + 0.5) % 1) * Math.PI * 2;
 				entry.canvas.setDirection(reversedYaw - canvas.camera.rotationY, pitch, true);
 			}
 
 			if (entry.canvas.targetOpacity === 0) entry.canvas.fadeIn();
 
 			if (canvas.$settings.omni?.layerStartIndex) canvas.state.layer.set(canvas.$settings.omni.layerStartIndex);
-			this.preventDirectionSet = false;
+			this._preventDirectionSet = false;
 			this.ready = true;
 			this.render();
 		}
@@ -495,7 +495,7 @@ export class Engine {
 
 		if (this.#isGallery) this.#drawStart();
 		this.#drawnSet.clear();
-		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].draw();
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].draw();
 
 		this.micrio.events.dispatch('draw');
 
@@ -505,13 +505,13 @@ export class Engine {
 	}
 
 	shouldDraw(now: number): boolean {
-		this.frameTime = 1000 / Math.min(33, now - this.now);
+		this._frameTime = 1000 / Math.min(33, now - this.now);
 		this.now = now;
-		this.doneTotal = 0;
-		this.toDrawTotal = 0;
-		this.animating = false;
-		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].shouldDraw();
-		return this.animating || this.progress < 1;
+		this._doneTotal = 0;
+		this._toDrawTotal = 0;
+		this._animating = false;
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].shouldDraw();
+		return this._animating || this._progress < 1;
 	}
 
 	#stop(): void {
@@ -656,7 +656,7 @@ export class Engine {
 	 */
 	resize(c: Models.Canvas.ViewRect): void {
 		this.el.set(c.width, c.height, c.left, c.top, c.ratio, c.scale, c.portrait);
-		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].resize();
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].resize();
 		if (this.ready) { this.#stop(); this.#draw(); }
 	}
 
@@ -710,7 +710,7 @@ export class Engine {
 			image.placed = true;
 			this.#setEntry({ canvas: parentEntry.canvas, micrioImage: image });
 
-			image.baseTileIdx = this.numTiles - 1;
+			image.baseTileIdx = this._numTiles - 1;
 			this.#registerBaseTile(image.baseTileIdx);
 			return;
 		}
@@ -729,7 +729,7 @@ export class Engine {
 			canvas.sendViewport();
 		}
 
-		image.baseTileIdx = this.numTiles - 1;
+		image.baseTileIdx = this._numTiles - 1;
 		this.#registerBaseTile(image.baseTileIdx);
 	}
 
@@ -773,13 +773,13 @@ export class Engine {
 
 	/** Resets all canvases. @internal */
 	reset(): void {
-		for (let i = 0; i < this.canvases.length; i++) this.canvases[i].reset();
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].reset();
 	}
 
 	/** Removes a TileCanvas from the managed list. @internal */
 	remove(c: TileCanvas): void {
-		for (let i = 0; i < this.canvases.length; i++) if (this.canvases[i] === c) {
-			this.canvases.splice(i, 1);
+		for (let i = 0; i < this._canvases.length; i++) if (this._canvases[i] === c) {
+			this._canvases.splice(i, 1);
 			return;
 		}
 	}

@@ -82,7 +82,7 @@ export async function transition(
 	}
 
 	if(blur && !isNaN(blur) && blur > 0) {
-		duration = duration ?? grid.nextCrossFadeDuration ?? grid.aniDurationIn;
+		duration = duration ?? grid._nextCrossFadeDuration ?? grid._aniDurationIn;
 		const blurSpeed = duration/2;
 		const style = grid.micrio.canvas.element.style;
 		style.transition = `filter ${blurSpeed}s ease`;

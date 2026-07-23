@@ -168,7 +168,7 @@ export default class Camera2D extends EngineCamera {
 		const c = this.canvas;
 		this.minScale = c.coverLimit ? this.coverScale : this.#fullScale;
 
-		if (!noLimit && !c.main.isSwipe && (c.activeImageIdx === 0 && !c.coverLimit || c.activeImageIdx > 0 && !c.coverLimit)) {
+		if (!noLimit && !c.main._isSwipe && (c.activeImageIdx === 0 && !c.coverLimit || c.activeImageIdx > 0 && !c.coverLimit)) {
 			const aW = c.focus.width * c.width, aH = c.focus.height * c.height;
 			const cW = c.el.width, cH = c.el.height;
 			this.minScale = cW / cH > aW / aH ? cH / aH : cW / aW;
@@ -335,7 +335,7 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	protected handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
-		if (!this.canvas.main.noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
+		if (!this.canvas.main._noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
 		this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas.pinchZoomOutLimit);
 		c.ani.limit = !!this.canvas.pinchZoomOutLimit;
 	}

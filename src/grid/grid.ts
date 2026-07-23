@@ -38,11 +38,11 @@ export class Grid extends MicrioElement {
 	#history:Models.Grid.GridHistory[] = [];
 	#depth:Writable<number> = writable<number>(0);
 
-	aniDurationIn:number = 1;
+	_aniDurationIn:number = 1;
 	#aniDurationOut:number = 0.5;
 	#transitionDelay:number = .5;
 
-	nextCrossFadeDuration:number|undefined;
+	_nextCrossFadeDuration:number|undefined;
 	#isHorizontal:boolean = false;
 	readonly #cellSizes:Map<string, [number,number?]> = new Map();
 	readonly #nextSize:Map<string, [number,number?]> = new Map();
@@ -75,7 +75,7 @@ export class Grid extends MicrioElement {
 		this.clickable = (g?.clickable && ['focus','zoom'].includes(g.clickable)) ? g.clickable : false;
 		this.panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
 		if(this.clickable && this.image.$settings.hookKeys) hookGridKeys(this);
-		if(g?.transitionDuration !== undefined) this.aniDurationIn = this.#aniDurationOut = g.transitionDuration;
+		if(g?.transitionDuration !== undefined) this._aniDurationIn = this.#aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.#aniDurationOut = g.transitionDurationOut;
 
 		this.set(this.#galleryGridImages, {
@@ -192,13 +192,13 @@ export class Grid extends MicrioElement {
 			setupBehindTransition(this, images, opts, focussed);
 
 		const ready = this.image.placed;
-		const dur = opts.duration ?? (opts.noHistory ? this.#aniDurationOut : this.aniDurationIn);
-		const defaultDur = this.nextCrossFadeDuration ?? (this.image.$settings.crossfadeDuration ?? 1);
-		const crossfadeDur = (dur || this.aniDurationIn) / (isBehindDelay ? 2 : 1);
-		this.nextCrossFadeDuration = undefined;
+		const dur = opts.duration ?? (opts.noHistory ? this.#aniDurationOut : this._aniDurationIn);
+		const defaultDur = this._nextCrossFadeDuration ?? (this.image.$settings.crossfadeDuration ?? 1);
+		const crossfadeDur = (dur || this._aniDurationIn) / (isBehindDelay ? 2 : 1);
+		this._nextCrossFadeDuration = undefined;
 		if(ready) {
-			engine.gridTransitionDuration = dur;
-			engine.crossfadeDuration = crossfadeDur;
+			engine._gridTransitionDuration = dur;
+			engine._crossfadeDuration = crossfadeDur;
 		}
 
 		const doUnfocus = !opts.noBlur && focussed;
@@ -258,7 +258,7 @@ export class Grid extends MicrioElement {
 
 		const done = () => {
 			this.#clearTimeouts();
-			requestAnimationFrame(() => engine.crossfadeDuration = defaultDur);
+			requestAnimationFrame(() => engine._crossfadeDuration = defaultDur);
 			if(isDelayed) this.images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
 			if(forcedCoverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(false));
 			else if(opts.coverLimit) images.forEach(i => this.imageMap.get(i.id)?.camera.setCoverLimit(true));
@@ -454,7 +454,7 @@ export class Grid extends MicrioElement {
 	}
 
 	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
-		this.micrio.engine.gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
+		this.micrio.engine._gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
 	}
 
 	clickCell(_img?:MicrioImage|string) : void {
@@ -464,7 +464,7 @@ export class Grid extends MicrioElement {
 		this._buttons.get(img.id)?.classList.add('focussed');
 		if(this.clickable == 'zoom') {
 			const a = img.opts.area ?? [0,0,1,1];
-			this.image.camera.flyToView(a, {duration: this.aniDurationIn * 1000, limit: false});
+			this.image.camera.flyToView(a, {duration: this._aniDurationIn * 1000, limit: false});
 		} else this.gridFocus(img);
 	}
 

@@ -176,7 +176,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				this.isMuted.set(this.hasAttribute('muted'));
 				break;
 			case 'data-limited':
-				if(this.engine?.vertexBuffer && this.$current?.canvas)
+				if(this.engine?._vertexBuffer && this.$current?.canvas)
 					this.$current.canvas.limited = !!newVal;
 				break;
 			case 'lang': {
@@ -547,10 +547,10 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── 360 vector ────────────────────────────────────────────────────────
 
 		const e = this.engine;
-		e.direction = opts.vector?.direction ?? 0;
-		e.distanceX = opts.vector?.distanceX ?? 0;
-		e.distanceY = opts.vector?.distanceY ?? 0;
-		e.preventDirectionSet = !opts.vector;
+		e._direction = opts.vector?.direction ?? 0;
+		e._distanceX = opts.vector?.distanceX ?? 0;
+		e._distanceY = opts.vector?.distanceY ?? 0;
+		e._preventDirectionSet = !opts.vector;
 
 		// ── Set current / grid ────────────────────────────────────────────────
 

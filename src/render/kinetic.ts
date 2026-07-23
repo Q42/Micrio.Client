@@ -48,7 +48,7 @@ export default class Kinetic {
 		const fact: number = this.#prevTime > 0 ? 16.67 / (t - this.#prevTime) : 1;
 		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) this.#lastInteraction = t;
 
-		const elasticity = this.#canvas.main.dragElasticity;
+		const elasticity = this.#canvas.main._dragElasticity;
 
 		this.#dX += pX * elasticity;
 		this.#dY += pY * elasticity;

@@ -409,7 +409,7 @@ export default class Camera360 extends EngineCamera {
 		y *= this.#scaleY; y /= 2; y -= .25; y += this.#offY;
 		h *= this.#scaleY; h /= 2;
 
-		const v = this.canvas.main.vertexBuffer360;
+		const v = this.canvas.main._vertexBuffer360;
 		const a = this.radius;
 		const sW = w / segsX;
 		const sH = h / segsY;

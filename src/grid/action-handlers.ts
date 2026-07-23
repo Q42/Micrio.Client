@@ -83,7 +83,7 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 			},
 
 			[GridActionType.nextFadeDuration]: (data) => {
-				grid.nextCrossFadeDuration = Number(data);
+				grid._nextCrossFadeDuration = Number(data);
 			},
 
 			[GridActionType.filterTourImages]: (data, duration) => {

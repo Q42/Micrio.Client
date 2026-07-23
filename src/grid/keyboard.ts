@@ -68,7 +68,7 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 		});
 
 		if (grid.clickable == 'zoom' && !grid.image.camera.isZoomedOut()) {
-			grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid.aniDurationIn * 1000, limit: false});
+			grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid._aniDurationIn * 1000, limit: false});
 		}
 	};
 }

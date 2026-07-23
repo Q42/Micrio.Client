@@ -49,7 +49,10 @@ export default defineConfig({
 				toplevel: false,
 				keep_classnames: false,
 				keep_fnames: false,
-				properties: false,
+				properties: {
+					// Mangle properties that start with an underscore
+					regex: /^_/,
+				},
 			},
 			format: {
 				comments: false,

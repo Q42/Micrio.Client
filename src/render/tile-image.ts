@@ -156,8 +156,8 @@ export default class Image {
 		this.#is360Embed = this.#canvas.is360 && this.localIdx > 0;
 
 		this.#numLayers = isDeepZoom && !isSingle ? 2 : 1;
-		for (let s = tileSize; s < maxi * canvas.main.underzoomLevels; s *= 2) this.#numLayers++;
-		if (canvas.main.hasArchive || this.#fromScale > 0) this.#numLayers -= 3 - canvas.main.archiveLayerOffset;
+		for (let s = tileSize; s < maxi * canvas.main._underzoomLevels; s *= 2) this.#numLayers++;
+		if (canvas.main._hasArchive || this.#fromScale > 0) this.#numLayers -= 3 - canvas.main._archiveLayerOffset;
 		if (this.#fromScale > 0) this.#numLayers--;
 		this.#numLayers = Math.max(1, this.#numLayers);
 
@@ -247,7 +247,7 @@ export default class Image {
 	opacityTick(direct: boolean): boolean {
 		const tOp = this.tOpacity;
 		if (this.opacity === tOp) return false;
-		const delta = 1 / (this.#canvas.main.frameTime * this.#canvas.main.embedFadeDuration);
+		const delta = 1 / (this.#canvas.main._frameTime * this.#canvas.main._embedFadeDuration);
 		this.opacity = Math.min(1, Math.max(0, !direct ? tOp > this.opacity
 			? Math.min(tOp, this.opacity + delta) : Math.max(tOp, this.opacity - delta) : tOp));
 		return this.opacity !== tOp;
@@ -312,7 +312,7 @@ export default class Image {
 
 	/** Calculates the target layer index based on the current scale. */
 	#getTargetLayer(scale: number): number {
-		let l: number = this.#isSingle || this.#canvas.limited ? this.#numLayers : 1 + this.#canvas.main.skipBaseLevels;
+		let l: number = this.#isSingle || this.#canvas.limited ? this.#numLayers : 1 + this.#canvas.main._skipBaseLevels;
 		if (!this.#isSingle && !this.#canvas.limited) {
 			for (; l < this.#numLayers; l++) {
 				if (twoNth(l) * scale >= 1) break;
@@ -422,7 +422,7 @@ export default class Image {
 
 	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
 	setDrawRect(r: DrawRect): void {
-		const v = this.#canvas.main.vertexBuffer;
+		const v = this.#canvas.main._vertexBuffer;
 		const s = Math.PI * 2 * this.#canvas.camera360.radius;
 		const p = this.#vec, m = this.#mat;
 		const cX = this.x0 + this.rWidth / 2, cY = this.y0 + this.rHeight / 2;
