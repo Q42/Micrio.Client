@@ -37,6 +37,9 @@ micrio-button > :is(button, a):disabled {
 	pointer-events: none;
 	cursor: default;
 }
+micrio-button > :is(button, a) svg {
+	display: block;
+}
 micrio-button > :is(button, a):disabled svg {
 	opacity: .4;
 }

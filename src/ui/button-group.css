@@ -1,3 +1,6 @@
+micrio-button-group {
+	display: block;
+}
 micrio-button-group micrio-button > :is(button, a) {
 	border-radius: 0;
 	box-shadow: none;

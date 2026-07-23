@@ -2,7 +2,7 @@ micrio-icon {
 	display: contents;
 }
 micrio-icon > svg {
-	display: block;
+	display: inline-block;
 	height: var(--micrio-icon-size);
 	width: var(--micrio-icon-size);
 }
