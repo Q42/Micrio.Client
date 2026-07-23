@@ -127,8 +127,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				}
 			}) as MicrioElement;
 			this.#mediaEl = media;
-			await afterFrame();
 			this.#mediaEl!.querySelector('figure')?.classList.add('videotour');
+			await afterFrame();
 			this.#injectBars();
 
 			const videoEl = this.#mediaEl!.querySelector('video,audio') as HTMLMediaElement;

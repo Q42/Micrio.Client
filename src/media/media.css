@@ -36,7 +36,7 @@ micrio-media figure.videotour {
 	position: fixed;
 	bottom: var(--micrio-border-margin);
 	left: 50%;
-	transform: translateX(-50%);
+	transform: translate(-50%,0);
 	width: 500px;
 	max-width: 90vw;
 	display: flex;

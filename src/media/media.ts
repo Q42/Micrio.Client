@@ -164,10 +164,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		this.replaceChildren();
 
 		const figure = createElement('figure', {
-			className: p.className ?? undefined,
+			className: [p.className, isTourOnly && 'videotour'].filter(Boolean).join(' ') || undefined,
 		});
-		if (p.className?.includes('hidden')) figure.classList.add('hidden');
-		if (isTourOnly) figure.classList.add('videotour');
 
 		if (p.is360) figure.style.setProperty('--micrio-background', 'transparent');
 
