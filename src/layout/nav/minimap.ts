@@ -40,7 +40,6 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		const maxWidth = settings.minimapWidth ?? 200;
 		const maxHeight = settings.minimapHeight ?? 160;
-		const noControls = !!settings.noControls;
 		const aspect = info.width / info.height;
 		const width = maxWidth / aspect > maxHeight ? Math.round(maxHeight * aspect) : maxWidth;
 		const height = maxWidth / aspect <= maxHeight ? Math.round(maxWidth / aspect) : maxHeight;

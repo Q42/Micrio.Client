@@ -217,10 +217,10 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const showMarkers = !noHTML || (micrio.getAttribute('data-ui') == 'markers');
 		const showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo && !$tour && !$marker && !$markerPopup;
 		const showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo && !!this.#logoOrg && !$popover;
-		const showControls = !noHTML && !!$info;
+		const showControls = !noHTML && !!$info && !$settings?.noControls;
 		const showDetails = !noHTML && !hasTourOrMarker && !!$settings?.showInfo;
 		const showToolbar = !noHTML && this.#firstInited && !$settings?.noToolbar;
-		const showMinimap = !noHTML && !!$info && $settings?.minimap !== false && !!micrio.$current?.thumbSrc;
+		const showMinimap = !noHTML && !!$info && $settings?.minimap !== false && !$settings?.noControls && !!micrio.$current?.thumbSrc;
 
 		this.#show('audio', hasAudio && !!$data && !!$info, () =>
 			createElement('micrio-audio-controller')
