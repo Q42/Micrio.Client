@@ -1,4 +1,4 @@
-micrio-details {
+micrio-details details {
 	position: absolute;
 	bottom: var(--micrio-border-margin);
 	left: var(--micrio-border-margin);
@@ -8,14 +8,9 @@ micrio-details {
 	user-select: text;
 	white-space: normal;
 	box-sizing: border-box;
-	transition: all .5s ease;
-}
-micrio-details details {
-	display: block;
 }
 micrio-details summary {
 	cursor: pointer;
-	list-style: none;
 }
 micrio-details summary::-webkit-details-marker {
 	display: none;
@@ -25,7 +20,7 @@ micrio-details small {
 	font-style: italic;
 	font-weight: 400;
 }
-micrio-details > * {
+micrio-details details > * {
 	margin: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -35,18 +30,19 @@ micrio-details a {
 }
 micrio-details details > micrio-button > :is(button,a) {
 	position: absolute;
-	top: 0;
-	left: calc(100% + 8px);
+	bottom: calc(100% + var(--micrio-border-margin));
+	left: 0;
 }
 @media (max-width: 600px) {
-	micrio-details {
-		max-width: calc(100% - 10px);
+	micrio-details details {
+		max-width: calc(100% - var(--micrio-button-size) - 3 * var(--micrio-border-margin));
+		z-index: 5;
 	}
-	micrio-details details:not([open]) cite {
+	micxrio-details details:not([open]) cite {
 		display: none;
 	}
-	micrio-details details:not([open]) summary::marker,
-	micrio-details details:not([open]) summary::-webkit-details-marker {
+	micxrio-details details:not([open]) summary::marker,
+	micrxio-details details:not([open]) summary::-webkit-details-marker {
 		display: inline-block;
 		content: '?';
 		font-size: 20px;
@@ -54,7 +50,7 @@ micrio-details details > micrio-button > :is(button,a) {
 		line-height: 20px;
 		margin-right: 5px;
 	}
-	micrio-details details > micrio-button > :is(button,a) {
+	micrxio-details details > micrio-button > :is(button,a) {
 		position: absolute;
 		top: auto;
 		left: auto;

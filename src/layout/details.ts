@@ -53,7 +53,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 
 		if (title) {
 			createElement('summary', {
-				children: [createElement('cite', { textContent: title })],
+				children: [createElement('span', { textContent: title })],
 				parent: this.#detailsEl,
 			});
 		}

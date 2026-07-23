@@ -130,7 +130,7 @@ micr-io[data-hooked][data-can-pan]>canvas.micrio {
 /* full-viewport overlay bases */
 :is(micrio-markers,micrio-image-embeds){pointer-events:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;will-change:width,height,top,left,opacity;perspective:inherit}
 /* panel theming (color, background, glass effect) */
-:is(micrio-details,micrio-marker-content,micrio-button-group),micrio-swipe-gallery>figcaption{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
+:is(micrio-details details,micrio-marker-content,micrio-button-group),micrio-swipe-gallery>figcaption{color:var(--micrio-color);background:var(--micrio-background);backdrop-filter:var(--micrio-background-filter);box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)}
 /* display:block containers */
 :is(micrio-media,micrio-media-controls){display:block}
 
@@ -145,5 +145,3 @@ micrio-gallery > micrio-button > button:disabled {
 	pointer-events: none;
 	transform: var(--micrio-hide, none);
 }
-
-

@@ -68,8 +68,8 @@ class MicrioMain extends MicrioElement<MainProps> {
 	#embedElements = new Map<string, MicrioElement>();
 
 	#layers = [
-		'audio', 'media', 'logo', 'orgLogo', 'toolbar', 'grid', 'gallery', 'controls', 'embeds', 'markers',
-		'details', 'popup', 'tour', 'popover', 'minimap',
+		'audio', 'media', 'logo', 'orgLogo', 'details', 'toolbar', 'grid', 'gallery', 'controls', 'embeds', 'markers',
+		'popup', 'tour', 'popover', 'minimap',
 		'error', 'progress'
 	];
 
@@ -234,6 +234,10 @@ class MicrioMain extends MicrioElement<MainProps> {
 			createElement('micrio-logo')
 		);
 
+		this.#show('details', showDetails && !!$data, () =>
+			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } }) as MicrioElement
+		);
+
 		this.#show('toolbar', showToolbar, () =>
 			createElement('micrio-toolbar')
 		);
@@ -266,10 +270,6 @@ class MicrioMain extends MicrioElement<MainProps> {
 
 		this.#show('minimap', showMinimap, () =>
 			createElement('micrio-minimap', { setProps: { image: micrio.$current! } }) as MicrioElement
-		);
-
-		this.#show('details', showDetails && !!$data, () =>
-			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } }) as MicrioElement
 		);
 
 		// Marker popup — only created when micrio.state.popup is set (after flyTo completes)
