@@ -213,7 +213,7 @@ export class Camera {
 	setLimit(v: Models.Camera.View): void {
 		if (!this.#canvas) return;
 		const l = toCenterJSON(v)!;
-		this.#canvas.view.setLimit(l.centerX, l.centerY, l.width, l.height);
+		this.#canvas.view._setLimit(l.centerX, l.centerY, l.width, l.height);
 		this.#image.engine.render();
 	}
 

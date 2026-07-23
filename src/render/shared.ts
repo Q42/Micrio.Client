@@ -36,24 +36,24 @@ export class View {
 	#arr: Float64Array = new Float64Array([0.5, 0.5, 1, 1]);
 	#dirty: boolean = false;
 	/** Flag indicating if the view coordinates have changed since the last frame. */
-	changed: boolean = false;
+	_changed: boolean = false;
 	/** Flag indicating if the view limits have changed. */
-	limitChanged: boolean = false;
+	_limitChanged: boolean = false;
 
 	readonly #canvas: TileCanvas;
 
 	constructor(
 		canvas: TileCanvas,
 
-		public centerX: number = 0.5,
-		public centerY: number = 0.5,
+		public _centerX: number = 0.5,
+		public _centerY: number = 0.5,
 		public width: number = 1,
 		public height: number = 1,
 
-		public lCenterX: number = 0.5,
-		public lCenterY: number = 0.5,
-		public lWidth: number = 1,
-		public lHeight: number = 1,
+		public _lCenterX: number = 0.5,
+		public _lCenterY: number = 0.5,
+		public _lWidth: number = 1,
+		public _lHeight: number = 1,
 	) {
 		this.#canvas = canvas;
 	}
@@ -61,8 +61,8 @@ export class View {
 	/** Float64Array view of [centerX, centerY, width, height]. */
 	get arr(): Float64Array {
 		if (this.#dirty) {
-			this.#arr[0] = this.centerX;
-			this.#arr[1] = this.centerY;
+			this.#arr[0] = this._centerX;
+			this.#arr[1] = this._centerY;
 			this.#arr[2] = this.width;
 			this.#arr[3] = this.height;
 			this.#dirty = false;
@@ -71,22 +71,22 @@ export class View {
 	}
 
 	get x0(): number {
-		let cx = this.centerX;
+		let cx = this._centerX;
 		if (this.#canvas.is360) cx = mod1(cx);
 		return this.#canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2);
 	}
-	get y0(): number { return this.centerY - this.height / 2; }
+	get y0(): number { return this._centerY - this.height / 2; }
 	get x1(): number {
-		let cx = this.centerX;
+		let cx = this._centerX;
 		if (this.#canvas.is360) cx = mod1(cx);
 		return this.#canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2);
 	}
-	get y1(): number { return this.centerY + this.height / 2; }
+	get y1(): number { return this._centerY + this.height / 2; }
 
-	get lX0(): number { return this.lCenterX - this.lWidth / 2; }
-	get lY0(): number { return this.lCenterY - this.lHeight / 2; }
-	get lX1(): number { return this.lCenterX + this.lWidth / 2; }
-	get lY1(): number { return this.lCenterY + this.lHeight / 2; }
+	get lX0(): number { return this._lCenterX - this._lWidth / 2; }
+	get lY0(): number { return this._lCenterY - this._lHeight / 2; }
+	get lX1(): number { return this._lCenterX + this._lWidth / 2; }
+	get lY1(): number { return this._lCenterY + this._lHeight / 2; }
 
 	get aspect(): number { return this.width / this.height }
 
@@ -98,51 +98,51 @@ export class View {
 			}
 		}
 
-		this.centerX = centerX;
-		this.centerY = centerY;
+		this._centerX = centerX;
+		this._centerY = centerY;
 		this.width = width;
 		this.height = height;
 
 		this.#dirty = true;
-		this.changed = true;
+		this._changed = true;
 	}
 
 	/** Sets the relative View area of a MicrioImage to render to, animates by default. Used in grids. */
-	setArea(x0: number, y0: number, x1: number, y1: number): void {
-		this.centerX = (x0 + x1) / 2;
-		this.centerY = (y0 + y1) / 2;
+	_setArea(x0: number, y0: number, x1: number, y1: number): void {
+		this._centerX = (x0 + x1) / 2;
+		this._centerY = (y0 + y1) / 2;
 		this.width = x1 - x0;
 		this.height = y1 - y0;
 		this.#dirty = true;
 	}
 
-	setLimit(lCenterX: number, lCenterY: number, lWidth: number, lHeight: number): void {
-		this.lCenterX = lCenterX;
-		this.lCenterY = lCenterY;
-		this.lWidth = lWidth;
-		this.lHeight = lHeight;
+	_setLimit(lCenterX: number, lCenterY: number, lWidth: number, lHeight: number): void {
+		this._lCenterX = lCenterX;
+		this._lCenterY = lCenterY;
+		this._lWidth = lWidth;
+		this._lHeight = lHeight;
 
-		this.changed = true;
-		this.limitChanged = true;
+		this._changed = true;
+		this._limitChanged = true;
 	}
 
-	copy(v: View, excludeLimit: boolean = false): void {
-		this.centerX = v.centerX;
-		this.centerY = v.centerY;
+	_copy(v: View, excludeLimit: boolean = false): void {
+		this._centerX = v._centerX;
+		this._centerY = v._centerY;
 		this.width = v.width;
 		this.height = v.height;
 		if (!excludeLimit) {
-			this.lCenterX = v.lCenterX;
-			this.lCenterY = v.lCenterY;
-			this.lWidth = v.lWidth;
-			this.lHeight = v.lHeight;
+			this._lCenterX = v._lCenterX;
+			this._lCenterY = v._lCenterY;
+			this._lWidth = v._lWidth;
+			this._lHeight = v._lHeight;
 		}
-		this.changed = true;
+		this._changed = true;
 		this.#dirty = true;
 	}
 
 	/** Calculates the effective scale factor represented by this view. */
-	getScale(): number {
+	#getScale(): number {
 		const c = this.#canvas;
 		return 1 / Math.max(
 			this.width * c.width / c.el.width,
@@ -150,17 +150,17 @@ export class View {
 		);
 	}
 
-	limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
+	_limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
 		const c = this.#canvas;
 		const mS = c._camera2d._minSize;
-		const s = this.getScale();
+		const s = this.#getScale();
 
 		if (mS < 1 && s < c._camera2d._minScale && !noLimit) {
 			const mWH = 1 / mS;
 			const nW = Math.min(mWH, this.width);
 			const nH = Math.min(mWH, this.height);
-			this.centerX = 0.5;
-			this.centerY = 0.5;
+			this._centerX = 0.5;
+			this._centerY = 0.5;
 			this.width = nW;
 			this.height = nH;
 			this.#dirty = true;
@@ -168,8 +168,8 @@ export class View {
 		}
 
 		const overZoom: number = correctZoom ? Math.max(1, s / Math.max(c._camera2d._minScale, c.maxScale / c.el.scale)) : 1;
-		const maxVw: number = this.lWidth;
-		const maxVh: number = this.lHeight;
+		const maxVw: number = this._lWidth;
+		const maxVh: number = this._lHeight;
 		const vw: number = Math.min(maxVw, this.width * overZoom);
 		const vh: number = Math.min(maxVh, this.height * overZoom);
 
@@ -189,24 +189,24 @@ export class View {
 		}
 
 		const halfW = Math.min(1, this.width) / 2;
-		const lHalfW = this.lWidth / 2;
+		const lHalfW = this._lWidth / 2;
 
 		if (this.#canvas.is360) {
-			this.centerX = mod1(this.centerX);
+			this._centerX = mod1(this._centerX);
 		} else if (!freeMove) {
-			this.centerX = Math.max(this.lCenterX - lHalfW + halfW, Math.min(this.centerX, this.lCenterX + lHalfW - halfW));
+			this._centerX = Math.max(this._lCenterX - lHalfW + halfW, Math.min(this._centerX, this._lCenterX + lHalfW - halfW));
 		}
 
 		const halfH = Math.min(1, this.height) / 2;
-		const lHalfH = this.lHeight / 2;
+		const lHalfH = this._lHeight / 2;
 		if (!freeMove) {
-			this.centerY = Math.max(this.lCenterY - lHalfH + halfH, Math.min(this.centerY, this.lCenterY + lHalfH - halfH));
+			this._centerY = Math.max(this._lCenterY - lHalfH + halfH, Math.min(this._centerY, this._lCenterY + lHalfH - halfH));
 		}
 
 		this.#dirty = true;
 	}
 
-	correctAspectRatio(): void {
+	_correctAspectRatio(): void {
 		const c = this.#canvas;
 		if (c.is360) return;
 		const targetAspect = c._camera2d.cpw / c._camera2d.cph;
@@ -219,23 +219,6 @@ export class View {
 		this.#dirty = true;
 	}
 
-	/** Updates the shared Float64Array with the current view coordinates. */
-	toArray(): Float64Array {
-		this.#arr[0] = this.centerX;
-		this.#arr[1] = this.centerY;
-		this.#arr[2] = this.width;
-		this.#arr[3] = this.height;
-		this.#dirty = false;
-		return this.#arr;
-	}
-
-	/** Checks if this view is equal to another view. */
-	equals(centerX: number, centerY: number, width: number, height: number): boolean {
-		return this.centerX === centerX
-			&& this.centerY === centerY
-			&& this.width === width
-			&& this.height === height;
-	}
 }
 
 /** Represents coordinates: relative image coordinates or screen pixel coordinates. @internal */
@@ -252,12 +235,12 @@ export class Coordinates {
 	) {}
 
 	/** Checks if the screen coordinate is potentially within the viewport bounds. */
-	inView(v: Viewport): boolean {
+	_inView(v: Viewport): boolean {
 		return this.w < -1 || (this.w < 3 && !(this.x < 0 || this.x > v.width || this.y < 0 || this.y > v.height));
 	}
 
 	/** Updates the shared Float64Array with the current coordinate values. */
-	toArray(): Float64Array {
+	_toArray(): Float64Array {
 		this.arr[0] = this.x;
 		this.arr[1] = this.y;
 		this.arr[2] = this.scale;
@@ -284,18 +267,7 @@ export class Viewport {
 		public isPortrait: boolean = false
 	) {}
 
-	get centerX(): number { return this.left + this.width / 2 }
-	get centerY(): number { return this.top + this.height / 2 }
-	get aspect(): number { return this.width === 0 ? 1 : this.height === 0 ? 1 : this.width / this.height }
-
-	/** Updates the shared Int32Array with the current viewport dimensions (integer pixels). */
-	toArray(): Int32Array {
-		this.arr[0] = this.width;
-		this.arr[1] = this.height;
-		this.arr[2] = this.left;
-		this.arr[3] = this.top;
-		return this.arr;
-	}
+	get _aspect(): number { return this.width === 0 ? 1 : this.height === 0 ? 1 : this.width / this.height }
 
 	/**
 	 * Sets the viewport properties, scaling by device pixel ratio.
@@ -315,7 +287,7 @@ export class Viewport {
 	}
 
 	/** Copies properties from another Viewport object. */
-	copy(v: Viewport): void {
+	_copy(v: Viewport): void {
 		this.width = v.width;
 		this.height = v.height;
 		this.left = v.left;

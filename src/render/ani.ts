@@ -160,7 +160,7 @@ export default class Ani {
 			el.areaWidth = 0;
 		}
 
-		const fromCenterX = v.centerX, fromCenterY = v.centerY, fromWidth = v.width, fromHeight = v.height;
+		const fromCenterX = v._centerX, fromCenterY = v._centerY, fromWidth = v.width, fromHeight = v.height;
 		f.set(fromCenterX, fromCenterY, fromWidth, fromHeight);
 
 		if (c.is360) {
@@ -169,8 +169,8 @@ export default class Ani {
 		}
 
 		if (limitViewport) {
-			t.correctAspectRatio();
-			t.limit(false);
+			t._correctAspectRatio();
+			t._limit(false);
 		}
 
 		this.#fL = 0; this.#fR = 0; this.#fT = 0; this.#fB = 0;
@@ -178,7 +178,7 @@ export default class Ani {
 
 		if (this.#isJump) {
 			if (!c.is360) {
-				const cX = t.centerX, cY = t.centerY;
+				const cX = t._centerX, cY = t._centerY;
 				if (t.aspect > f.aspect) {
 					const nh = t.width / f.aspect;
 					t.set(cX, cY, t.width, nh);
@@ -201,7 +201,7 @@ export default class Ani {
 			else t.set(toCenterX, toCenterY, toWidth, toHeight);
 		}
 
-		if (correct) t.limit(true, !limitViewport);
+		if (correct) t._limit(true, !limitViewport);
 
 		const resoFact = Math.max(10000, Math.min(15000, c._diagonal / 2));
 		let dCenterX = Math.abs(fromCenterX - toCenterX);
@@ -230,7 +230,7 @@ export default class Ani {
 		this.stop();
 
 		if (this.#duration === 0) {
-			c.setView(t.centerX, t.centerY, t.width, t.height, false, true);
+			c.setView(t._centerX, t._centerY, t.width, t.height, false, true);
 			this.#canvas._aniDone();
 			return this.#duration;
 		}
@@ -250,7 +250,7 @@ export default class Ani {
 	/** Updates the target view of a running animation. Used for corrections. */
 	updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting: boolean = false): void {
 		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
-		if (limiting) this.#vTo.limit(true);
+		if (limiting) this.#vTo._limit(true);
 	}
 
 	/**
@@ -300,14 +300,14 @@ export default class Ani {
 					o = this.#fn.get(Math.max(0, (p - mo) / (1 - mo)));
 				let n: number = 0;
 
-				let interpCenterX = f.centerX + (t.centerX - f.centerX) * (!(n = this.#fL || this.#fR) ? pE : n === 1 ? i : o);
-				let interpCenterY = f.centerY + (t.centerY - f.centerY) * (!(n = this.#fT || this.#fB) ? pE : n === 1 ? i : o);
+				let interpCenterX = f._centerX + (t._centerX - f._centerX) * (!(n = this.#fL || this.#fR) ? pE : n === 1 ? i : o);
+				let interpCenterY = f._centerY + (t._centerY - f._centerY) * (!(n = this.#fT || this.#fB) ? pE : n === 1 ? i : o);
 				const interpWidth = f.width + (t.width - f.width) * pE;
 				const interpHeight = f.height + (t.height - f.height) * pE;
 
 				if (this.#canvas.is360) {
-					const deltaX = longitudeDistance(f.centerX, t.centerX);
-					interpCenterX = f.centerX + deltaX * pE;
+					const deltaX = longitudeDistance(f._centerX, t._centerX);
+					interpCenterX = f._centerX + deltaX * pE;
 				}
 
 				this.#canvas.setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true);
@@ -326,7 +326,7 @@ export default class Ani {
 			}
 
 			if (p >= 1) {
-				this.lastView.copy(this.#canvas.view);
+				this.lastView._copy(this.#canvas.view);
 				this.#canvas._aniDone();
 				this.stop();
 			}

@@ -173,8 +173,8 @@ export class TileCanvas {
 		if (is360) { this.view.set(0.5, 0.5, 1, 0.5); }
 
 		if (!hasParent) {
-			this.el.copy(main.el);
-			this.setView(this.view.centerX, this.view.centerY, this.view.width, this.view.height, false, false);
+			this.el._copy(main.el);
+			this.setView(this.view._centerX, this.view._centerY, this.view.width, this.view.height, false, false);
 			this.resize();
 		}
 
@@ -405,8 +405,8 @@ export class TileCanvas {
 		for (let i = 0; i < this.#children.length; i++)
 			this.#children[i]._draw();
 
-		if (v.changed) this._micrioImage?.camera?.viewChanged();
-		v.changed = false;
+		if (v._changed) this._micrioImage?.camera?.viewChanged();
+		v._changed = false;
 	}
 
 	#partialView(noDispatch: boolean): boolean {
@@ -427,16 +427,16 @@ export class TileCanvas {
 			const delta: number = (1 / this.main._gridTransitionDuration) / this.main._frameTime;
 			this.#areaAniPerc = Math.min(1, this.#areaAniPerc + delta);
 			const p = this.main._gridTransitionTimingFunction.get(this.#areaAniPerc);
-			const interpCenterX = (b.centerX + (t.centerX - b.centerX) * p);
-			const interpCenterY = (b.centerY + (t.centerY - b.centerY) * p);
+			const interpCenterX = (b._centerX + (t._centerX - b._centerX) * p);
+			const interpCenterY = (b._centerY + (t._centerY - b._centerY) * p);
 			const interpWidth = (b.width + (t.width - b.width) * p);
 			const interpHeight = (b.height + (t.height - b.height) * p);
 			a.set(interpCenterX, interpCenterY, interpWidth, interpHeight);
 			if (this.#areaAniPerc === 1) {
 				if (this.zIndex === 1) this.zIndex = 0;
-				b.copy(t);
+				b._copy(t);
 			}
-			this.view.changed = true;
+			this.view._changed = true;
 		}
 
 		let visX0 = Math.max(v.x0, v.x0 + (pV.x0 - a.x0) / a.width * v.width);
@@ -469,7 +469,7 @@ export class TileCanvas {
 			hP ? false : c.isPortrait
 		)) {
 			if (!noDispatch) this._sendViewport();
-			this.view.changed = true;
+			this.view._changed = true;
 			this.resize();
 			if (!this.is360) {
 				this._camera2d.setCanvas();
@@ -484,16 +484,16 @@ export class TileCanvas {
 	_setArea(x0: number, y0: number, x1: number, y1: number, direct: boolean, noDispatch: boolean): void {
 		this.#areaAniPaused = false;
 		if (direct) {
-			this.#area.setArea(x0, y0, x1, y1);
-			this.#currentArea.setArea(x0, y0, x1, y1);
+			this.#area._setArea(x0, y0, x1, y1);
+			this.#currentArea._setArea(x0, y0, x1, y1);
 		}
 		else {
-			this.#area.copy(this.#currentArea);
+			this.#area._copy(this.#currentArea);
 			this.#areaAniPerc = 0;
 			if (this.zIndex === 0) this.zIndex = 1;
 			this._ani.limit = false;
 		}
-		this.#targetArea.setArea(x0, y0, x1, y1);
+		this.#targetArea._setArea(x0, y0, x1, y1);
 		this.#partialView(noDispatch);
 		this._sendViewport();
 	}
@@ -570,7 +570,7 @@ export class TileCanvas {
 	_setActiveLayer(idx: number): void {
 		this.layer = idx;
 		this._setActiveImage(this._activeImageIdx);
-		this.view.changed = true;
+		this.view._changed = true;
 	}
 
 	/** Sets the active image(s) for gallery/omni canvases. */
@@ -583,7 +583,7 @@ export class TileCanvas {
 			else {
 				im._tOpacity = 1;
 				this._activeImageIdx = idx;
-				this.view.changed = true;
+				this.view._changed = true;
 			}
 		}
 		this._camera2d._correctMinMax();
@@ -598,8 +598,8 @@ export class TileCanvas {
 		if (noLimit) this._ani.limit = false;
 
 		this.view.set(centerX, centerY, width, height);
-		if (forceLimit && !noLimit) this.view.limit(false, false, this._freeMove);
-		if (!noLastView) this._ani.lastView.copy(this.view);
+		if (forceLimit && !noLimit) this.view._limit(false, false, this._freeMove);
+		if (!noLastView) this._ani.lastView._copy(this.view);
 
 		if (this.width > 0) {
 			if (this.is360) {

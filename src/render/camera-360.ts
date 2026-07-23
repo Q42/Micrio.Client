@@ -77,7 +77,7 @@ export default class Camera360 extends EngineCamera {
 		const c = this.canvas;
 		const el = c.el;
 
-		if (!noPersp) this._pMatrix._perspective(this._perspective, el.aspect, 0.0001, 20);
+		if (!noPersp) this._pMatrix._perspective(this._perspective, el._aspect, 0.0001, 20);
 		this.#inverseDirty = true;
 
 		const pM = this._pMatrix;
@@ -101,7 +101,7 @@ export default class Camera360 extends EngineCamera {
 	_rotate(xPx: number, yPx: number, duration: number = 0): void {
 		const c = this.canvas;
 		const el = c.el;
-		this._yaw += xPx * el.ratio / el.width * this._perspective * el.aspect;
+		this._yaw += xPx * el.ratio / el.width * this._perspective * el._aspect;
 		this._pitch += yPx * el.ratio / el.height * this._perspective * this.#scaleY;
 
 		this._yaw = modPI(this._yaw);
@@ -127,7 +127,7 @@ export default class Camera360 extends EngineCamera {
 
 	/** Clamps the yaw value based on horizontal limits. */
 	#limitYaw(): void {
-		const halfHorizontalFov = this._perspective / 2 * this.canvas.el.aspect;
+		const halfHorizontalFov = this._perspective / 2 * this.canvas.el._aspect;
 		const maxYaw = Math.PI * (this.#limitX > 0 ? this.#limitX : 1);
 
 		let y = this._yaw; while (y >= Math.PI) y -= Math.PI * 2; while (y < -Math.PI) y += Math.PI * 2;
@@ -187,7 +187,7 @@ export default class Camera360 extends EngineCamera {
 		}
 		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
 		if (this.#limitX > 0) this.#limitYaw();
-		this._pMatrix._perspective(this._perspective, c.el.aspect, 0.0001, 20);
+		this._pMatrix._perspective(this._perspective, c.el._aspect, 0.0001, 20);
 		this.#readScale();
 		this._update(true);
 		this._calculate3DFrustum();
@@ -237,10 +237,10 @@ export default class Camera360 extends EngineCamera {
 		const centerX = mod1((this._yaw / (Math.PI * 2) + .5));
 		const centerY = (this._pitch / this.#scaleY) / Math.PI + .5;
 		const height = this._perspective / Math.PI / this.#scaleY;
-		const width = height * (c.el.width === 0 ? 1 : .5 * Math.sqrt(c.el.aspect)) / (c.aspect / 2);
+		const width = height * (c.el.width === 0 ? 1 : .5 * Math.sqrt(c.el._aspect)) / (c.aspect / 2);
 
 		c.view.set(centerX, centerY, width, height);
-		c.view.changed = true;
+		c.view._changed = true;
 	}
 
 	/** Calculates 3D camera frustum for accurate 360 embed visibility detection */
@@ -268,7 +268,7 @@ export default class Camera360 extends EngineCamera {
 		p.x = -distance * Math.sin(dir);
 		p.y = distanceY;
 		p.z = distance * Math.cos(dir);
-		this.canvas.view.changed = true;
+		this.canvas.view._changed = true;
 		this._update();
 	}
 
@@ -309,7 +309,7 @@ export default class Camera360 extends EngineCamera {
 		c.scale = this._scale;
 		c.w = this.#position.x + this.#position.z;
 		c.direction = this._yaw + this._baseYaw;
-		c.toArray();
+		c._toArray();
 
 		return c;
 	}
@@ -326,7 +326,7 @@ export default class Camera360 extends EngineCamera {
 		c.y = ((-v.y + 1) / 2) * el.height / el.ratio;
 		c.scale = this._scale;
 		c.w = -v.w;
-		c.toArray();
+		c._toArray();
 
 		return c;
 	}
@@ -480,7 +480,7 @@ export default class Camera360 extends EngineCamera {
 
 	protected _flyToCenterX(centerX: number): number {
 		const c = this.canvas;
-		const currentCenterX = c.view.centerX;
+		const currentCenterX = c.view._centerX;
 		const longitudeDist = longitudeDistance(currentCenterX, centerX);
 		return currentCenterX + longitudeDist;
 	}

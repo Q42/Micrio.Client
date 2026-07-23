@@ -724,7 +724,7 @@ export class Engine {
 			if (focus) (canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);
 			const v = (image.$info as any)['view'];
 			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
-			else if (canvas._hasParent) canvas.setView(canvas.view.centerX, canvas.view.centerY, canvas.view.width, canvas.view.height, false, false);
+			else if (canvas._hasParent) canvas.setView(canvas.view._centerX, canvas.view._centerY, canvas.view.width, canvas.view.height, false, false);
 
 			canvas._sendViewport();
 		}

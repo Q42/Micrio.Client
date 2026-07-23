@@ -363,7 +363,7 @@ export default class Image {
 		const layer = this._layers[layerIdx];
 		const c = this.#canvas;
 		const tol = 0.1;
-		const vcy = c.view.centerY;
+		const vcy = c.view._centerY;
 		const vw = c.view.width + tol, vh = c.view.height + tol;
 		const ecx = this.#areaCenterX, ecy = this.#areaCenterY, ew = this.#areaWidth, eh = this.#areaHeight;
 
@@ -371,7 +371,7 @@ export default class Image {
 		const iy1 = Math.min(vcy + vh / 2, ecy + eh / 2);
 		if (iy0 >= iy1) return;
 
-		const vcx = c.is360 ? mod1(c.view.centerX + c._camera360._offX) : c.view.centerX;
+		const vcx = c.is360 ? mod1(c.view._centerX + c._camera360._offX) : c.view._centerX;
 		let ix0: number, ix1: number;
 
 		if (c.is360) {
@@ -479,10 +479,10 @@ export default class Image {
 
 		let b = 0;
 		const p0 = gl._getXYZ(ecx - ew / 2, ecy - pH);
-		if (p0.inView(el)) b++;
-		if (gl._getXYZ(ecx + ew / 2, ecy - pH).inView(el)) b++;
-		if (gl._getXYZ(ecx - ew / 2, ecy + pH).inView(el)) b++;
-		if (gl._getXYZ(ecx + ew / 2, ecy + pH).inView(el)) b++;
+		if (p0._inView(el)) b++;
+		if (gl._getXYZ(ecx + ew / 2, ecy - pH)._inView(el)) b++;
+		if (gl._getXYZ(ecx - ew / 2, ecy + pH)._inView(el)) b++;
+		if (gl._getXYZ(ecx + ew / 2, ecy + pH)._inView(el)) b++;
 		if (b === 0) return 0;
 
 		const l = p0.w > 0 || p0.x < 0 ? 0 : Math.min(cW, p0.x);

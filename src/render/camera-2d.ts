@@ -62,7 +62,7 @@ export default class Camera2D extends EngineCamera {
 		coo.x = noLimit ? rX : Math.max(v.lX0, Math.min(v.lX1, rX));
 		coo.y = noLimit ? rY : Math.max(v.lY0, Math.min(v.lY1, rY));
 		coo.scale = this._scale;
-		coo.toArray();
+		coo._toArray();
 
 		return this.#coo;
 	}
@@ -78,7 +78,7 @@ export default class Camera2D extends EngineCamera {
 		xy.x = ((x - c.view.x0) * c.width) * this._scale / rat + (abs ? el.left : 0);
 		xy.y = ((y - c.view.y0) * c.height) * this._scale / rat + (abs ? el.top : 0);
 		xy.scale = this._scale / rat;
-		xy.toArray();
+		xy._toArray();
 		return xy;
 	}
 
@@ -119,7 +119,7 @@ export default class Camera2D extends EngineCamera {
 		xy.x = ((.5 + vec4.x - c.view.x0) * c.width) * this._scale / rat + (abs ? el.left : 0);
 		xy.y = ((.5 + vec4.y - c.view.y0) * c.height) * this._scale / rat + (abs ? el.top : 0);
 		xy.w = -vec4.w - c._omniDistance;
-		xy.toArray();
+		xy._toArray();
 		return xy;
 	}
 
@@ -131,7 +131,7 @@ export default class Camera2D extends EngineCamera {
 		const cpw = el.width / c.width;
 		const cph = el.height / c.height;
 
-		if (!c.view.limitChanged && this.cpw === cpw && this.cph === cph) {
+		if (!c.view._limitChanged && this.cpw === cpw && this.cph === cph) {
 			if (c._coverLimit !== this.#wasCoverLimit) this._correctMinMax();
 			return;
 		}
@@ -142,18 +142,18 @@ export default class Camera2D extends EngineCamera {
 		this.#fullScale = Math.min(cpw, cph);
 		this._coverScale = Math.max(cpw, cph);
 
-		const lRat = c.view.lWidth / c.view.lHeight;
-		c.view.limitChanged = false;
-		if (c.view.lWidth < 1 || c.view.lHeight < 1) {
+		const lRat = c.view._lWidth / c.view._lHeight;
+		c.view._limitChanged = false;
+		if (c.view._lWidth < 1 || c.view._lHeight < 1) {
 			const rat = cpw / cph;
-			if (lRat < rat) this._coverScale /= c.view.lWidth / rat;
-			else this._coverScale /= c.view.lHeight * rat;
+			if (lRat < rat) this._coverScale /= c.view._lWidth / rat;
+			else this._coverScale /= c.view._lHeight * rat;
 		}
 
 		this._correctMinMax();
 
 		if (el.width && el.height && !this.canvas._ani.isStarted()) {
-			c.view.copy(c._ani.lastView, true);
+			c.view._copy(c._ani.lastView, true);
 			if (!c.is360) {
 				const pLimit = c._ani.limit;
 				c._ani.limit = false;
@@ -196,7 +196,7 @@ export default class Camera2D extends EngineCamera {
 
 		const limited = !c._freeMove && c._ani.limit;
 
-		if (!c._ani.correcting && (limited || (!c._ani.flying && c._coverLimit))) v.limit(false);
+		if (!c._ani.correcting && (limited || (!c._ani.flying && c._coverLimit))) v._limit(false);
 
 		const vw: number = v.width;
 		const vh: number = v.height;
@@ -214,11 +214,11 @@ export default class Camera2D extends EngineCamera {
 		const overflowX: number = (cw / this._scale - vw);
 		const overflowY: number = (ch / this._scale - vh);
 
-		v.set(v.centerX, v.centerY, v.width + overflowX, v.height + overflowY);
+		v.set(v._centerX, v._centerY, v.width + overflowX, v.height + overflowY);
 
-		if (!this.#inited && c._coverStart) this.canvas._ani.lastView.copy(v);
+		if (!this.#inited && c._coverStart) this.canvas._ani.lastView._copy(v);
 
-		if (!c._ani.correcting && c._coverLimit) v.limit(false);
+		if (!c._ani.correcting && c._coverLimit) v._limit(false);
 
 		this.#inited = this.cpw > 0;
 
@@ -256,8 +256,8 @@ export default class Camera2D extends EngineCamera {
 		const dX: number = xPx / c.width / this._scale * r;
 		const dY: number = yPx / c.height / this._scale * r;
 
-		const newCenterX = v.centerX + dX;
-		const newCenterY = v.centerY + dY;
+		const newCenterX = v._centerX + dX;
+		const newCenterY = v._centerY + dY;
 		const viewWidth = v.width;
 		const viewHeight = v.height;
 
@@ -277,10 +277,10 @@ export default class Camera2D extends EngineCamera {
 				if (!isKinetic) c._kinetic.addStep(xPx * 4, yPx * 4);
 				c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 				if (!noLimit) {
-					c.view.limit(false, false, c._freeMove);
+					c.view._limit(false, false, c._freeMove);
 				}
 				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
-				c.view.changed = true;
+				c.view._changed = true;
 			} else {
 				c._ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, easeInOut);
 			}
@@ -321,14 +321,14 @@ export default class Camera2D extends EngineCamera {
 		const pX: number = xPx > 0 && !uZ ? xPx / el.width * r : .5;
 		const pY: number = yPx > 0 && !uZ ? yPx / el.height * r : .5;
 
-		const targetCenterX = v.centerX + fact * (0.5 - pX);
-		const targetCenterY = v.centerY + factY * (0.5 - pY);
+		const targetCenterX = v._centerX + fact * (0.5 - pX);
+		const targetCenterY = v._centerY + factY * (0.5 - pY);
 		const targetWidth = v.width + fact;
 		const targetHeight = v.height + factY;
 
 		c._ani.limit = limit;
 		duration = c._ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: limit });
-		c._ani.lastView.copy(c.view);
+		c._ani.lastView._copy(c.view);
 		c._ani.limit = !noLimit;
 
 		return duration;
@@ -363,15 +363,15 @@ export default class Camera2D extends EngineCamera {
 
 		const halfW = targetWidth / 2;
 		const halfH = targetHeight / 2;
-		const lHalfW = v.lWidth / 2;
-		const lHalfH = v.lHeight / 2;
+		const lHalfW = v._lWidth / 2;
+		const lHalfH = v._lHeight / 2;
 
 		const targetCenterX = halfW >= lHalfW
-			? v.lCenterX
-			: Math.max(v.lX0 + halfW, Math.min(v.centerX, v.lX1 - halfW));
+			? v._lCenterX
+			: Math.max(v.lX0 + halfW, Math.min(v._centerX, v.lX1 - halfW));
 		const targetCenterY = halfH >= lHalfH
-			? v.lCenterY
-			: Math.max(v.lY0 + halfH, Math.min(v.centerY, v.lY1 - halfH));
+			? v._lCenterY
+			: Math.max(v.lY0 + halfH, Math.min(v._centerY, v.lY1 - halfH));
 
 		this.canvas._ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
 	}
@@ -418,10 +418,10 @@ export default class Camera2D extends EngineCamera {
 		const v = c.view;
 		const cam = c._camera360;
 		const m = cam._pMatrix;
-		m._perspective(cam._perspective, c.el.aspect, 0.0001, 100);
+		m._perspective(cam._perspective, c.el._aspect, 0.0001, 100);
 		m._translate(
-			-(v.centerX - .5) * c.aspect,
-			v.centerY - .5,
+			-(v._centerX - .5) * c.aspect,
+			v._centerY - .5,
 			-v.height / 2
 		);
 	}
