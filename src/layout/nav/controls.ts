@@ -140,7 +140,6 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const $controls = get(micrio.state.ui.controls);
 		const $zoom = get(micrio.state.ui.zoom);
 		const $popup = get(micrio.state.popup);
-		const $tour = get(micrio.state.tour);
 		const $current = micrio.$current;
 		const info = $current?.$info;
 		const cultures = info?.revision ? Object.keys(info.revision) : [];
@@ -149,9 +148,8 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const showMute = !!('micrioAudioContext' in window || this.#props.hasAudio);
 		const hasCultures = this.#showCultures && cultures.length > 1;
 		const hasSocial = this.#showSocial && ('share' in navigator);
-		const hasFullscreen = this.#showFullscreen && !($tour && 'steps' in $tour && $tour.isSerialTour);
-		const hasControls = $controls && (showMute || hasCultures || hasSocial || $zoom || hasFullscreen);
-		const onlyFullscreen = hasFullscreen && !!$popup && isMobile;
+		const hasControls = $controls && (showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen);
+		const onlyFullscreen = this.#showFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current.grid.panZoom == 'cells';
 
 		if (!hasControls) {
@@ -233,7 +231,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 
 		// Zoom + fullscreen button group
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
-		const showGroup = zoomVisible || hasFullscreen;
+		const showGroup = zoomVisible || this.#showFullscreen;
 
 		if (showGroup) {
 			if (!this.#group1?.isConnected) {
@@ -250,7 +248,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			} else if (this.#zoomGroup?.isConnected) {
 				this.#zoomGroup.remove();
 			}
-			if (hasFullscreen) {
+			if (this.#showFullscreen) {
 				if (!this.#fsGroup?.isConnected) {
 					this.#fsGroup?.remove();
 					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 });

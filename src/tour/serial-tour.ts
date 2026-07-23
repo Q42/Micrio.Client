@@ -31,6 +31,9 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0);
 		this.#noTimeScrub = !!(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
 
+		micrio.classList.add('hide-ui');
+		this.addCleanup(() => micrio.classList.remove('hide-ui'));
+
 		const mt = tour;
 		mt.next = () => this.#nextStep();
 		mt.prev = () => { if (this.#currentStep > 0) this.#openStep(this.#currentStep - 1); };

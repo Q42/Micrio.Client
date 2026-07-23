@@ -36,7 +36,7 @@ class MicrioTour extends MicrioElement<TourProps> {
 				const audio = vt.i18n?.[get(micrio._lang)]?.audio;
 				createElement('micrio-media', {
 					parent: this,
-					setProps: { src: audio?.src, image, tour: vt, controls: true, autoplay: true, onclose: () => micrio.state.tour.set(undefined) }
+					setProps: { src: audio?.src, image, tour: vt, controls: true, autoplay: true, fullscreenEl: undefined, onclose: () => micrio.state.tour.set(undefined) }
 				});
 			}
 			micrio.setAttribute('data-tour-active', '');
