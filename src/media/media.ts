@@ -375,7 +375,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		// Play overlay (360 full-window video only)
 		if (p.is360 && !p.noPlayOverlay && !isTourOnly) {
 			const overlay = createElement('div', {
-				className: 'overlay' + (!p.autoplay || p.paused ? ' hidden' : ''),
+				className: (!p.autoplay || p.paused ? 'hidden' : '') || undefined,
 				children: [
 					createElement('micrio-button', {
 						setProps: { type: 'play', noClick: true },

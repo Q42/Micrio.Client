@@ -3,7 +3,7 @@ micrio-menu {
 	margin: 0;
 	transition: background .2s ease, box-shadow .2s ease;
 }
-.micrio-menu-action {
+micrio-menu > :is(a,button) {
 	font-family: inherit;
 	background: transparent;
 	display: block;
@@ -22,7 +22,7 @@ micrio-menu {
 	micrio-menu {
 		font-size: 1em;
 	}
-	.micrio-menu-action {
+	micrio-menu > :is(a,button) {
 		width: 100%;
 		margin-bottom: 10px;
 		padding: 6px 0;
@@ -33,10 +33,10 @@ micrio-menu {
 		float: left;
 		position: relative;
 	}
-	micrio-menu:not(:is(:focus-within,:hover)) .items {
+	micrio-menu:not(:is(:focus-within,:hover)) > div {
 		display: none;
 	}
-	.micrio-menu-action {
+	micrio-menu > :is(a,button) {
 		height: var(--micrio-button-size);
 		line-height: var(--micrio-button-size);
 		width: 100%;
@@ -44,17 +44,17 @@ micrio-menu {
 		white-space: pre;
 		font-weight: 600;
 	}
-	.items micrio-menu {
+	micrio-menu > div micrio-menu {
 		float: none;
 	}
-	.items .micrio-menu-action {
+	micrio-menu > div :is(a,button) {
 		width: 100%;
 	}
-	.micrio-menu-action:is(:hover,:focus) {
+	micrio-menu > :is(a,button):is(:hover,:focus) {
 		text-shadow: none !important;
 		color: var(--micrio-color-hover) !important;
 	}
-	.items {
+	micrio-menu > div {
 		max-height: calc(100vh - 160px);
 		overflow-y: auto;
 		overflow-x: hidden;

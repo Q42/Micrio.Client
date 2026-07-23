@@ -173,18 +173,17 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		const holder = wrapper.querySelector('div');
 		if (!holder) return;
 
-		holder.querySelector('.bars')?.remove();
+		holder.querySelector('[data-part="bars"]')?.remove();
 
-		const barsDiv = createElement('div', { className: 'bars' });
+		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } });
 		this.#stepInfo.forEach((si, i) => {
 			const marker = DataLoader.getStepMarker(si);
 			createElement('div', {
-				className: 'bar',
+				attrs: { 'data-part': 'bar', role: 'progressbar', tabindex: '0' },
 				dataset: { idx: String(i) },
 				props: { title: this.#getTitle(marker) ?? '' },
 				style: { width: `${(si.duration / (this.#duration || 1)) * 100}%` },
 				events: { click: () => this.#goto(i) },
-				attrs: { role: 'progressbar', tabindex: '0' },
 				parent: barsDiv
 			});
 		});
@@ -211,7 +210,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	#updateBars() {
 		if (!this.#built) return;
-		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('aside .bars > .bar') ?? [];
+		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('aside [data-part="bars"] > [data-part="bar"]') ?? [];
 		bars.forEach((bar, i) => {
 			const si = this.#stepInfo[i];
 			const ct = i === this.#currentStep ? (si.currentTime ?? 0) : 0;

@@ -31,6 +31,9 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	#props: MediaControlsProps = { paused: true, ended: false };
 	#wrapperEl!: HTMLElement;
 	#playBtn: any;
+	#muteBtnEl!: MicrioElement;
+	#subBtnEl!: MicrioElement;
+	#fsBtnEl!: MicrioElement;
 	#barEl!: HTMLElement;
 	#timeEl!: HTMLElement;
 	#built = false;
@@ -68,25 +71,23 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 
 			if (p.hasAudio) {
-				createElement('micrio-button', {
-					className: 'ctrl-mute',
+				this.#muteBtnEl = createElement('micrio-button', {
 					parent: this.#wrapperEl,
-				});
+				}) as MicrioElement;
 			}
 
 			if (p.subtitles) {
-				createElement('micrio-button', {
-					className: 'ctrl-subtitles',
+				this.#subBtnEl = createElement('micrio-button', {
 					parent: this.#wrapperEl,
-				});
+				}) as MicrioElement;
 			}
 
 			const container = createElement('div');
 
 			const bars = createElement('div', {
-				className: 'bars',
+				attrs: { 'data-part': 'bars' },
 				children: [
-					this.#barEl = createElement('div', { className: 'bar' }),
+					this.#barEl = createElement('div', { attrs: { 'data-part': 'bar' } }),
 				],
 			});
 
@@ -110,22 +111,19 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			container.appendChild(bars);
 
 			this.#timeEl = createElement('span', {
-				className: 'time',
 				parent: container,
 			});
 
 			this.#wrapperEl.appendChild(container);
 
 			if (p.fullscreenEl) {
-				createElement('micrio-fullscreen', {
-					className: 'ctrl-fullscreen',
+				this.#fsBtnEl = createElement('micrio-fullscreen', {
 					parent: this.#wrapperEl,
-				});
+				}) as MicrioElement;
 			}
 
 			if (p.onclose) {
 				createElement('micrio-button', {
-					className: 'ctrl-close',
 					setProps: { type: 'close', title: get(i18n).close, onclick: p.onclose },
 					parent: this.#wrapperEl,
 				});
@@ -151,10 +149,9 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		const muteBtn = this.#wrapperEl.querySelector('.ctrl-mute') as MicrioElement;
-		if (muteBtn && p.muted !== this.#prevMuted) {
+		if (this.#muteBtnEl && p.muted !== this.#prevMuted) {
 			this.#prevMuted = !!p.muted;
-			muteBtn.setProps({
+			this.#muteBtnEl.setProps({
 				type: p.muted ? 'muted' : 'unmuted',
 				title: p.muted ? $i18n.audioUnmute : $i18n.audioMute,
 				disabled: p.seeking,
@@ -162,9 +159,8 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		const subBtn = this.#wrapperEl.querySelector('.ctrl-subtitles') as MicrioElement;
-		if (subBtn) {
-			subBtn.setProps({
+		if (this.#subBtnEl) {
+			this.#subBtnEl.setProps({
 				type: $captionsEnabled ? 'subtitles' : 'subtitlesOff',
 				active: $captionsEnabled,
 				title: $i18n.subtitlesToggle,
@@ -172,8 +168,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		const fsBtn = this.#wrapperEl.querySelector('.ctrl-fullscreen') as MicrioElement;
-		if (fsBtn) fsBtn.setProps({ el: p.fullscreenEl });
+		if (this.#fsBtnEl) this.#fsBtnEl.setProps({ el: p.fullscreenEl });
 
 		if (p.duration && !isNaN(p.duration)) {
 			const progress = ((p.currentTime ?? 0) / p.duration) * 100;

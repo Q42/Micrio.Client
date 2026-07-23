@@ -106,7 +106,6 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 
 		if (menu.link) {
 			const a = createElement('a', {
-				className: 'micrio-menu-action',
 				props: { href: menu.link },
 				events: { click },
 				children: [
@@ -144,7 +143,6 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 			}
 
 			createElement('button', {
-				className: 'micrio-menu-action',
 				props: { type: 'button' },
 				events: { click },
 				children: btnChildren,
@@ -154,7 +152,6 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 
 		if (menu.children?.length) {
 			createElement('div', {
-				className: 'items',
 				parent: this,
 				children: menu.children.map(child =>
 					createElement('micrio-menu', {

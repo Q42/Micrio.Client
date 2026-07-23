@@ -33,7 +33,7 @@ micrio-details > * {
 micrio-details a {
 	color: var(--micrio-color-hover, inherit);
 }
-micrio-details .close {
+micrio-details details > micrio-button > :is(button,a) {
 	position: absolute;
 	top: 0;
 	left: calc(100% + 8px);
@@ -54,7 +54,7 @@ micrio-details .close {
 		line-height: 20px;
 		margin-right: 5px;
 	}
-	micrio-details .close {
+	micrio-details details > micrio-button > :is(button,a) {
 		position: absolute;
 		top: auto;
 		left: auto;

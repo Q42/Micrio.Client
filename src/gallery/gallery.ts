@@ -437,10 +437,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			hl.textContent = this.#pageLabel(curr) + (dense ? ` / ${total}` : '');
 		}
 
-		let hoverLabel = this.querySelector('.hover-label') as HTMLElement;
+		let hoverLabel = this.querySelector('[data-part="hover-label"]') as HTMLElement;
 		if (this.#hoverIdx >= 0 && this.#hoverIdx !== curr && !this.#dragging) {
 			if (!hoverLabel) {
-				hoverLabel = createElement('span', { className: 'hover-label', parent: this.querySelector('ul') ?? undefined });
+				hoverLabel = createElement('span', { attrs: { 'data-part': 'hover-label' }, parent: this.querySelector('ul') ?? undefined });
 			}
 			hoverLabel.style.left = `${total > 1 ? (this.#hoverIdx / (total - 1)) * 100 : 50}%`;
 			hoverLabel.textContent = this.#pageLabel(this.#hoverIdx);

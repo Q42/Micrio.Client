@@ -118,7 +118,7 @@ micrio-gallery ul.dense > :nth-child(2) > span[data-active] {
 		transform: translate(-50%,-50%);
 	}
 }
-micrio-gallery .hover-label {
+micrio-gallery [data-part="hover-label"] {
 	position: absolute;
 	bottom: calc(100% + 6px);
 	transform: translateX(-50%);

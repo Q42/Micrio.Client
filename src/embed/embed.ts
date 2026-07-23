@@ -178,9 +178,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
 		this.#container = createElement(this.#href ? 'a' : 'div', {
-			className: 'embed-container'
-				+ (this.#noEvents ? ' no-events' : '')
-				+ (this.#hideWhenPaused && !this.#printGL && !!embed.video ? ' hide-when-paused' : ''),
+			className: (this.#noEvents ? 'no-events' : '')
+				+ (this.#hideWhenPaused && !this.#printGL && !!embed.video ? ' hide-when-paused' : '') || undefined,
 			id: embed.id ? 'e-' + embed.id : undefined,
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
 			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,

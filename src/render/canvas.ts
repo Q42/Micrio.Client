@@ -49,7 +49,7 @@ export class Canvas {
 		this.onresize = this.onresize.bind(this); // Bind resize handler
 		// Use ResizeObserver if available for more reliable resize detection
 		if(self.ResizeObserver) this.#resizeObserver = new self.ResizeObserver(this.onresize);
-		this.element.className = 'micrio'; // Add class for potential styling
+		// Canvas is identified by its tag; no className needed
 	}
 
 	/**

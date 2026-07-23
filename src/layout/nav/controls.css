@@ -13,14 +13,14 @@ micr-io:is([data-switching],[data-tour-active]) micrio-controls aside {
 	opacity: 0;
 	pointer-events: none;
 }
-micrio-controls menu.ctrl-lang {
+micrio-controls menu {
 	position: relative;
 	padding: 0;
 	margin: 8px 0;
 	width: var(--micrio-button-size);
 	min-height: var(--micrio-button-size);
 }
-micrio-controls .lang-items {
+micrio-controls menu > div {
 	position: absolute;
 	right: 100%;
 	top: 0;
@@ -32,20 +32,20 @@ micrio-controls .lang-items {
 	box-shadow: var(--micrio-button-shadow);
 	white-space: nowrap;
 }
-micrio-controls menu.ctrl-lang:is(:hover,:focus-within) .lang-items {
+micrio-controls menu:is(:hover,:focus-within) > div {
 	display: flex;
 }
-micrio-controls .lang-items micrio-button {
+micrio-controls menu > div micrio-button {
 	--micrio-button-shadow: none;
 	--micrio-background-filter: none;
 }
-micrio-controls .lang-items micrio-button > * {
+micrio-controls menu > div micrio-button > * {
 	padding: 0;
 }
-micrio-controls .lang-items micrio-button > * > span {
+micrio-controls menu > div micrio-button > * > span {
 	width: var(--micrio-button-size);
 }
-micrio-controls .lang-items micrio-button > *.active {
+micrio-controls menu > div micrio-button > *.active {
 	background: var(--micrio-color-hover);
 	color: var(--micrio-button-background, var(--micrio-background));
 }

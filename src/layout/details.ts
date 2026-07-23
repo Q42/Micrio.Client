@@ -82,7 +82,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 			if (existing) return;
 			createElement('micrio-button', {
 				setProps: {
-					type: 'close', title: get(i18n).close, className: 'close',
+					type: 'close', title: get(i18n).close,
 					onclick: () => { this.#detailsEl.open = false; }
 				},
 				parent: this.#detailsEl

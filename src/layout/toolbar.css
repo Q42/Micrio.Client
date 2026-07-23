@@ -1,4 +1,4 @@
-micrio-toolbar menu.micrio-toolbar {
+micrio-toolbar > menu {
 	position: absolute;
 	top: calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));
 	left: var(--micrio-border-margin);
@@ -10,7 +10,7 @@ micrio-toolbar menu.micrio-toolbar {
 	z-index: 1;
 }
 @media (max-width: 500px) {
-	micrio-toolbar micrio-button > :is(button, a).toggle {
+	micrio-toolbar > micrio-button > :is(button, a) {
 		position: absolute;
 		top: var(--micrio-border-margin);
 		left: 0;
@@ -19,10 +19,10 @@ micrio-toolbar menu.micrio-toolbar {
 		box-shadow: none;
 		z-index: 2;
 	}
-	micrio-toolbar micrio-button > :is(button, a).toggle.indent {
+	micrio-toolbar > micrio-button > :is(button, a).indent {
 		left: 35px;
 	}
-	micrio-toolbar menu.micrio-toolbar {
+	micrio-toolbar > menu {
 		transform: translate3d(0, 0, 0);
 		width: 100%;
 		height: 100%;
@@ -36,20 +36,20 @@ micrio-toolbar menu.micrio-toolbar {
 		backdrop-filter: var(--micrio-background-filter);
 		z-index: 1;
 	}
-	micrio-toolbar menu.micrio-toolbar:not(.shown) {
+	micrio-toolbar > menu:not(.shown) {
 		transform: translate3d(calc(-100% - var(--micrio-border-margin) * 2), 0, 0);
 	}
 }
 @media (min-width: 501px) {
-	micrio-toolbar menu.indent {
+	micrio-toolbar > menu.indent {
 		margin-left: calc(var(--micrio-border-margin) * 2 + 25px);
 	}
-	micrio-toolbar .micrio-toolbar > micrio-menu {
+	micrio-toolbar > menu > micrio-menu {
 		color: var(--micrio-color);
 		margin-right: var(--micrio-border-margin);
 		border-radius: var(--micrio-border-radius);
 	}
-	micrio-toolbar .micrio-toolbar > micrio-menu:is(:hover,:focus-within) {
+	micrio-toolbar > menu > micrio-menu:is(:hover,:focus-within) {
 		backdrop-filter: var(--micrio-background-filter);
 		background: var(--micrio-background);
 		box-shadow: var(--micrio-button-shadow);

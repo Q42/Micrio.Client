@@ -49,6 +49,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	#muteBtn: any;
 	#shareBtn: any;
 	#langMenu: HTMLElement | undefined;
+	#langItemsEl: HTMLElement | undefined;
 	#group1!: HTMLElement;
 	#zoomGroup: any;
 	#fsGroup: any;
@@ -160,20 +161,20 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (hasCultures && !onlyFullscreen) {
 			if (!this.#langMenu?.isConnected) {
 				this.#langMenu?.remove();
+				this.#langItemsEl = undefined;
 				this.#langMenu = createElement('menu', {
-					className: 'ctrl-lang',
 					attrs: { tabindex: '0' },
 					children: [
-						createElement('micrio-button', { className: 'ctrl-lang-trigger' }),
-						createElement('div', { className: 'lang-items' })
+						createElement('micrio-button'),
+						this.#langItemsEl = createElement('div')
 					]
 				});
 				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
 			}
-			const trigger = this.#langMenu.querySelector('.ctrl-lang-trigger') as MicrioElement;
+			const trigger = this.#langMenu.querySelector('micrio-button') as MicrioElement;
 			trigger?.setProps({ type: 'a11y', title: $i18n.switchLanguage });
 
-			const items = this.#langMenu.querySelector('.lang-items')!;
+			const items = this.#langItemsEl!;
 			const culturesKey = cultures.join(',');
 			if (culturesKey !== this.#lastCultures) {
 				this.#lastCultures = culturesKey;
@@ -204,7 +205,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (hasSocial && !onlyFullscreen) {
 			if (!this.#shareBtn?.isConnected) {
 				this.#shareBtn?.remove();
-				this.#shareBtn = createElement('micrio-button', { className: 'ctrl-share' });
+				this.#shareBtn = createElement('micrio-button');
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
 			this.#shareBtn.setProps({ type: 'share', title: $i18n.share, onclick: this.#share });

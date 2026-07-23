@@ -85,7 +85,7 @@ class MicrioButton extends MicrioElement<ButtonProps> {
 		}
 		const text = textNodes.join('').trim();
 		if (text)
-			createElement('span', { className: 'micrio-button-text', textContent: text, parent: el });
+			createElement('span', { textContent: text, parent: el });
 	}
 }
 

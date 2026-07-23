@@ -157,13 +157,10 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			createElement('progress', {
 				attrs: { 'aria-hidden': 'true' },
 				props: { value: (currentTourStep + 1) / $tour.steps.length },
-				className: 'progress',
 				parent: aside
 			});
 
-			const group = createElement('micrio-button-group', {
-				setProps: { className: 'micrio-tour-controls' }
-			});
+			const group = createElement('micrio-button-group');
 
 			createElement('micrio-button', {
 				setProps: {
@@ -179,7 +176,6 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				createElement('micrio-button', {
 					setProps: {
 						disabled: true,
-						className: 'tour-step',
 					},
 					children: [`${currentTourStep + 1} / ${$tour.steps.length}`],
 					parent: group

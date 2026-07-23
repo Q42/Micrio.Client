@@ -5,7 +5,7 @@ micrio-serial-tour>micrio-media {
 micrio-serial-tour micrio-media-controls {
 	display: contents;
 }
-micrio-serial-tour .bars {
+micrio-serial-tour [data-part="bars"] {
 	display: flex;
 	height: var(--micrio-progress-bar-height,6px);
 	background: var(--micrio-progress-bar-background,rgba(128,128,128,.3));
@@ -13,7 +13,7 @@ micrio-serial-tour .bars {
 	border-radius: 3px;
 	overflow: hidden;
 }
-micrio-serial-tour .bars>.bar {
+micrio-serial-tour [data-part="bars"] > [data-part="bar"] {
 	height: 100%;
 	display: block;
 	box-sizing: border-box;
@@ -22,7 +22,7 @@ micrio-serial-tour .bars>.bar {
 	overflow: hidden;
 	background: transparent;
 }
-micrio-serial-tour .bars>.bar::before {
+micrio-serial-tour [data-part="bars"] > [data-part="bar"]::before {
 	display: block;
 	position: absolute;
 	content: ' ';
@@ -32,7 +32,7 @@ micrio-serial-tour .bars>.bar::before {
 	width: var(--progress,0%);
 	will-change: width;
 }
-micrio-serial-tour .bars>.bar.active::before {
+micrio-serial-tour [data-part="bars"] > [data-part="bar"].active::before {
 	background: var(--micrio-active-color,var(--micrio-color));
 }
 micrio-serial-tour ol {

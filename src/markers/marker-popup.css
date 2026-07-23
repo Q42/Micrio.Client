@@ -61,7 +61,7 @@ micrio-marker-popup>aside progress {
 		opacity: 0;
 		pointer-events: none;
 	}
-	micrio-marker-popup>aside .micrio-tour-controls {
+	micrio-marker-popup>aside micrio-button-group {
 		margin-bottom: 0 !important;
 		display: flex;
 	}
@@ -80,7 +80,7 @@ micrio-marker-popup>aside progress {
 		justify-content: space-between;
 	}
 }
-button.tour-step {
+micrio-button-group > micrio-button:nth-child(2) > :is(button,a) {
 	height: auto;
 	line-height: normal;
 	vertical-align: middle;

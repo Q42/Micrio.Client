@@ -56,7 +56,7 @@ micr-io[data-idle] micrio-media figure.videotour {
 micrio-media figure.hidden {
 	display: none!important;
 }
-micrio-media figure .overlay {
+micrio-media figure > div {
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -70,11 +70,11 @@ micrio-media figure .overlay {
 	background: rgba(0,0,0,.3);
 	transition: opacity .3s ease;
 }
-micrio-media figure .overlay.hidden {
+micrio-media figure > div.hidden {
 	opacity: 0;
 	pointer-events: none;
 }
-micrio-media figure .overlay micrio-button {
+micrio-media figure > div micrio-button {
 	--micrio-button-size: 80px;
 	--micrio-icon-size: 40px;
 	--micrio-border-radius: 100%;

@@ -81,7 +81,7 @@ class MicrioToolbar extends MicrioElement {
 		this.replaceChildren();
 
 		const menu = createElement('menu', {
-			className: 'micrio-toolbar' + (!hidden && this.#shown ? ' shown' : '')
+			className: (!hidden && this.#shown ? 'shown' : '') || undefined
 		});
 
 		if (mainPages) {
@@ -140,7 +140,7 @@ class MicrioToolbar extends MicrioElement {
 				setProps: {
 					title: $i18n.menuToggle,
 					type: this.#shown ? 'close' : 'ellipsisVertical',
-					className: 'toggle transparent' + (this.querySelector('.micrio-toolbar.indent') ? ' indent' : ''),
+					className: 'transparent' + (this.querySelector('menu.indent') ? ' indent' : '') || undefined,
 					onclick: this.#toggle
 				},
 				parent: this
@@ -149,7 +149,7 @@ class MicrioToolbar extends MicrioElement {
 	}
 
 	protected syncDisplay() {
-		const menuEl = this.querySelector('.micrio-toolbar');
+		const menuEl = this.querySelector('menu');
 		if (menuEl) {
 			const micrio = this.getMicrio();
 			const indent = !(micrio?.$current?.$settings?.noLogo ?? false);
