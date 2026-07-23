@@ -46,10 +46,10 @@ export class Canvas {
 
 	constructor(micrio:HTMLMicrioElement) {
 		this.#micrio = micrio;
+		this.element.className = 'micrio';
 		this.onresize = this.onresize.bind(this); // Bind resize handler
 		// Use ResizeObserver if available for more reliable resize detection
 		if(self.ResizeObserver) this.#resizeObserver = new self.ResizeObserver(this.onresize);
-		// Canvas is identified by its tag; no className needed
 	}
 
 	/**
