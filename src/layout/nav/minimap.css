@@ -12,7 +12,7 @@ micrio-minimap canvas {
 	touch-action: none;
 	border-radius: var(--micrio-border-radius);
 }
-micr-io:is([data-idle][data-switching],[data-tour-active]) micrio-minimap canvas, micrio-minimap canvas:not(:hover).hidden {
+micr-io:is([data-idle],[data-switching],[data-tour-active]) micrio-minimap canvas:not(:hover), micrio-minimap canvas:not(:hover).hidden {
 	opacity: 0;
 	pointer-events: none;
 }
