@@ -1,5 +1,6 @@
 
-micrio-tour .controls {
+micrio-tour > aside {
+	display: block;
 	position: absolute;
 	bottom: var(--micrio-border-margin);
 	left: 50%;
@@ -15,16 +16,17 @@ micrio-tour .controls {
 	transition: transform .25s ease,opacity .25s ease;
 	z-index: 5;
 }
-micr-io[data-tour-active][data-idle] micrio-tour .controls {
+micr-io[data-tour-active][data-idle] micrio-tour > aside {
 	transform: translate(-50%,calc(100% + var(--micrio-border-margin)));
 }
 
-micrio-tour .controls>micrio-button {
-	margin: 0;
-	border: none;
-	border-radius: 0;
+micrio-tour > aside > micrio-button {
+	--micrio-button-background: transparent;
+	--micrio-background-filter: none;
+	--micrio-button-shadow: none;
+	--micrio-border-radius: 0;
 }
-micrio-tour .controls .step-counter {
+micrio-tour > aside > span {
 	height: var(--micrio-button-size);
 	line-height: var(--micrio-button-size);
 	padding: 0 12px;

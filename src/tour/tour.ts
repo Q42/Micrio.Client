@@ -94,47 +94,46 @@ class MicrioTour extends MicrioElement<TourProps> {
 				}
 			};
 
-		const renderControls = () => {
-			this.replaceChildren();
+			const renderControls = () => {
+				this.replaceChildren();
 
-			const div = createElement('div', { className: 'controls' });
+				const aside = createElement('aside');
 
-			createElement('micrio-button', {
-				parent: div,
-				setProps: {
-					type: 'prev', title: get(i18n).tourStepPrev,
-					disabled: this.#currentStep === 0,
-					onclick: () => mt.prev?.()
-				}
-			});
-
-			createElement('span', {
-				className: 'step-counter',
-				textContent: `${this.#currentStep + 1} / ${mt.steps.length}`,
-				parent: div
-			});
-
-			createElement('micrio-button', {
-				parent: div,
-				setProps: {
-					type: 'next', title: get(i18n).tourStepNext,
-					disabled: this.#currentStep >= mt.steps.length - 1,
-					onclick: () => mt.next?.()
-				}
-			});
-
-			if (!mt.cannotClose) {
 				createElement('micrio-button', {
-					parent: div,
+					parent: aside,
 					setProps: {
-						type: 'close', title: get(i18n).close,
-						onclick: () => micrio.state.tour.set(undefined)
+						type: 'prev', title: get(i18n).tourStepPrev,
+						disabled: this.#currentStep === 0,
+						onclick: () => mt.prev?.()
 					}
 				});
-			}
 
-			this.appendChild(div);
-		};
+				createElement('span', {
+					textContent: `${this.#currentStep + 1} / ${mt.steps.length}`,
+					parent: aside
+				});
+
+				createElement('micrio-button', {
+					parent: aside,
+					setProps: {
+						type: 'next', title: get(i18n).tourStepNext,
+						disabled: this.#currentStep >= mt.steps.length - 1,
+						onclick: () => mt.next?.()
+					}
+				});
+
+				if (!mt.cannotClose) {
+					createElement('micrio-button', {
+						parent: aside,
+						setProps: {
+							type: 'close', title: get(i18n).close,
+							onclick: () => micrio.state.tour.set(undefined)
+						}
+					});
+				}
+
+				this.appendChild(aside);
+			};
 
 			this.addCleanup(micrio.state.marker.subscribe(m => {
 				if (!m) return;
