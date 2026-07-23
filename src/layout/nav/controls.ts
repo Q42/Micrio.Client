@@ -136,7 +136,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
 		const showGroup = zoomVisible || this.#showFullscreen;
 
-		if (!hasControls) {
+		if (($popup && isMobile) || !hasControls) {
 			this.#aside1.replaceChildren();
 			return;
 		}
@@ -162,6 +162,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (!this.#langMenu?.isConnected) {
 				this.#langMenu?.remove();
 				this.#langItemsEl = undefined;
+				this.#lastCultures = '';
 				this.#langMenu = createElement('menu', {
 					attrs: { tabindex: '0' },
 					children: [
