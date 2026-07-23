@@ -384,8 +384,6 @@ export namespace ImageInfo {
 		showTitles?: boolean;
 		/** Don't print any marker titles at all */
 		noTitles?: boolean;
-		/** Don't scale titles if marker is scaling */
-		titlesNoScale?: boolean;
 		/** All markers are sized to their viewports */
 		viewportIsMarker?: boolean;
 		/** All marker embeds are printed in HTML, not WebGL */
