@@ -7,6 +7,7 @@ import { i18n } from '$core/i18n/strings';
 import './menu';
 import '$ui/button';
 import './toolbar.css';
+import { randomUUID } from '$utils/id';
 
 class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';
@@ -118,7 +119,7 @@ class MicrioToolbar extends MicrioElement {
 						id: 'marker-tours',
 						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours } },
 						children: markerTours.map((t) => ({
-							id: t.id ?? crypto.randomUUID(),
+							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 							action: () => { t.initialStep = 0; micrioState.tour.set(t); }
 						}))
@@ -136,7 +137,7 @@ class MicrioToolbar extends MicrioElement {
 						id: 'video-tours',
 						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.videoTours : $i18n.tours } },
 						children: videoTours.map((t: any) => ({
-							id: t.id ?? crypto.randomUUID(),
+							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 							action: () => {
 								if (micrio.$current && micrio.$current.id != originalId) micrio.open(originalId);

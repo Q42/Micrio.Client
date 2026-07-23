@@ -9,7 +9,7 @@ import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
 import { writable, get } from '$core/store';
-import { getIdVal, idIsV5 } from '$utils/id';
+import { getIdVal, idIsV5, randomUUID } from '$utils/id';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
 import { createElement, loadScript } from '$utils/dom';
@@ -34,7 +34,7 @@ export class MicrioImage {
 	id: string;
 
 	/** A unique instance identifier (UUID) generated for this specific instance. */
-	readonly uuid: string = crypto.randomUUID();
+	readonly uuid: string = randomUUID();
 
 	/** The image's core information (dimensions, format, settings, etc.). See {@link Models.ImageInfo.ImageInfo}. */
 	readonly #info: Models.ImageInfo.ImageInfo;

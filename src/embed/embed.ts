@@ -13,6 +13,7 @@ export interface EmbedProps {
 	marker?: Models.ImageData.Marker;
 }
 import './embed.css';
+import { randomUUID } from '$utils/id';
 
 class MicrioEmbed extends MicrioElement<EmbedProps> {
 	static tag = 'micrio-embed';
@@ -69,7 +70,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#info = image.$info!;
 		if (!this.#info) return;
 
-		if (!embed.uuid) embed.uuid = crypto.randomUUID();
+		if (!embed.uuid) embed.uuid = randomUUID();
 
 		this.#is360 = image.is360;
 		this.#autoplay = embed.video?.autoplay ?? true;
