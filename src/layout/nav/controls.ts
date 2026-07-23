@@ -150,7 +150,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			}
 			this.#muteBtn.setProps({
 				type: $isMuted ? 'muted' : 'unmuted',
-				title: $isMuted ? $i18n.audioUnmute : $i18n.audioMute,
+				title: $isMuted ? $i18n._audioUnmute : $i18n._audioMute,
 				onclick: this.#toggleMute
 			});
 		} else if (this.#muteBtn?.isConnected) {
@@ -173,7 +173,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
 			}
 			const trigger = this.#langMenu.querySelector('micrio-button') as MicrioElement;
-			trigger?.setProps({ type: 'a11y', title: $i18n.switchLanguage });
+			trigger?.setProps({ type: 'a11y', title: $i18n._switchLanguage });
 
 			const items = this.#langItemsEl!;
 			const culturesKey = cultures.join(',');
@@ -209,7 +209,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 				this.#shareBtn = createElement('micrio-button');
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
-			this.#shareBtn.setProps({ type: 'share', title: $i18n.share, onclick: this.#share });
+			this.#shareBtn.setProps({ type: 'share', title: $i18n._share, onclick: this.#share });
 		} else if (this.#shareBtn?.isConnected) {
 			this.#shareBtn.remove();
 		}

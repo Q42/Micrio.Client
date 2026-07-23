@@ -140,7 +140,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 			setProps: {
 				type: icon ? undefined : 'up',
 				icon: icon || undefined,
-				title: title ?? $i18n.waypointFollow,
+				title: title ?? $i18n._waypointFollow,
 				onclick: this.#click,
 				onfocus: this.#focus,
 			},

@@ -124,7 +124,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				createElement('micrio-button', {
 					setProps: {
 						type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'next',
-						title: (!isPartOfTour || closeButtonStopsTour) ? $i18n.closeMarker : $i18n.tourStepNext,
+						title: (!isPartOfTour || closeButtonStopsTour) ? $i18n._closeMarker : $i18n._tourStepNext,
 						disabled: this.#clickedPrevNext,
 						onclick: close
 					},
@@ -136,7 +136,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				createElement('micrio-button', {
 					setProps: {
 						type: this.#isMinimized ? 'up' : 'down',
-						title: $i18n.minimize,
+						title: $i18n._minimize,
 						onclick: toggleMinimize
 					},
 					parent: aside

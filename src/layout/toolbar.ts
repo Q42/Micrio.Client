@@ -117,7 +117,7 @@ class MicrioToolbar extends MicrioElement {
 					onclose: closeSheet,
 					menu: {
 						id: 'marker-tours',
-						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.markerTours : $i18n.tours } },
+						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n._markerTours : $i18n._tours } },
 						children: markerTours.map((t) => ({
 							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
@@ -135,7 +135,7 @@ class MicrioToolbar extends MicrioElement {
 					onclose: closeSheet,
 					menu: {
 						id: 'video-tours',
-						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n.videoTours : $i18n.tours } },
+						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n._videoTours : $i18n._tours } },
 						children: videoTours.map((t: any) => ({
 							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
@@ -156,7 +156,7 @@ class MicrioToolbar extends MicrioElement {
 		if (this.#isMobile) {
 			createElement('micrio-button', {
 				setProps: {
-					title: $i18n.menuToggle,
+					title: $i18n._menuToggle,
 					type: this.#shown ? 'close' : 'ellipsisVertical',
 					className: 'transparent' + (this.querySelector('menu.indent') ? ' indent' : '') || undefined,
 					onclick: this.#toggle

@@ -28,8 +28,8 @@ class MicrioZoomButtons extends MicrioElement {
 			const img = resolveTarget();
 			const $i18n = get(i18n);
 
-			this.#btnIn.setProps({ title: $i18n.zoomIn, disabled: img?.camera.isZoomedIn() ?? true });
-			this.#btnOut.setProps({ title: $i18n.zoomOut, disabled: img?.camera.isZoomedOut() });
+			this.#btnIn.setProps({ title: $i18n._zoomIn, disabled: img?.camera.isZoomedIn() ?? true });
+			this.#btnOut.setProps({ title: $i18n._zoomOut, disabled: img?.camera.isZoomedOut() });
 		};
 
 		this.addCleanup(micrio.current.subscribe(() => update()));

@@ -348,7 +348,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#prevBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
-				type: 'prev', title: $i18n.galleryPrev,
+				type: 'prev', title: $i18n._galleryPrev,
 				disabled: curr <= 0,
 				onclick: () => this.#goto(this.#currentPage - 1)
 			}
@@ -391,7 +391,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#nextBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
-				type: 'next', title: $i18n.galleryNext,
+				type: 'next', title: $i18n._galleryNext,
 				disabled: curr >= total - 1,
 				onclick: () => this.#goto(this.#currentPage + 1)
 			}

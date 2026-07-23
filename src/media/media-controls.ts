@@ -124,7 +124,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 			if (p.onclose) {
 				createElement('micrio-button', {
-					setProps: { type: 'close', title: get(i18n).close, onclick: p.onclose },
+					setProps: { type: 'close', title: get(i18n)._close, onclick: p.onclose },
 					parent: this.#wrapperEl,
 				});
 			}
@@ -143,7 +143,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			this.#prevSeeking = !!p.seeking;
 			this.#playBtn.setProps({
 				type: !p.paused ? 'pause' : 'play',
-				title: !p.paused ? $i18n.pause : $i18n.play,
+				title: !p.paused ? $i18n._pause : $i18n._play,
 				disabled: !!p.seeking,
 				onclick: p.onplaypause
 			});
@@ -153,7 +153,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			this.#prevMuted = !!p.muted;
 			this.#muteBtnEl.setProps({
 				type: p.muted ? 'muted' : 'unmuted',
-				title: p.muted ? $i18n.audioUnmute : $i18n.audioMute,
+				title: p.muted ? $i18n._audioUnmute : $i18n._audioMute,
 				disabled: p.seeking,
 				onclick: p.onmute
 			});
@@ -163,7 +163,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			this.#subBtnEl.setProps({
 				type: $captionsEnabled ? 'subtitles' : 'subtitlesOff',
 				active: $captionsEnabled,
-				title: $i18n.subtitlesToggle,
+				title: $i18n._subtitlesToggle,
 				onclick: () => captionsEnabled.set(!get(captionsEnabled))
 			});
 		}
