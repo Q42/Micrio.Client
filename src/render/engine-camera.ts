@@ -45,13 +45,13 @@ export default abstract class EngineCamera {
 		const size: number = Math.max(right - left, bottom - top);
 		const delta = this.#prevSize - size;
 
-		c.kinetic.stop();
+		c._kinetic.stop();
 
 		if (this.#prevCenterX > 0) {
 			const dX = this.#prevCenterX - cX;
 			const dY = this.#prevCenterY - cY;
 			this.handlePinchMove(delta, dX, dY, cX, cY, el, c);
-		} else c.ani.stop();
+		} else c._ani.stop();
 
 		this.#prevCenterX = cX;
 		this.#prevCenterY = cY;
@@ -76,8 +76,8 @@ export default abstract class EngineCamera {
 
 	flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
 		const c = this.canvas;
-		const a = c.ani;
-		c.kinetic.stop();
+		const a = c._ani;
+		c._kinetic.stop();
 		const adjustedCenterX = this.flyToCenterX(centerX);
 		a.limit = false;
 		dur = a.toView(adjustedCenterX, centerY, width, height, dur, fn, { speed, perc, isJump, limitViewport: limit, omniIdx: toOmniIdx, correct: limitZoom });
@@ -94,14 +94,14 @@ export default abstract class EngineCamera {
 		const c = this.canvas;
 		if (scale === 0) scale = c.getScale();
 		scale = this.clampSetCooScale(scale);
-		c.kinetic.stop();
+		c._kinetic.stop();
 
 		const { w, h } = this.setCooDim(scale);
 		this.beforeSetCooAnimate(x, y, w, h, dur);
 
-		dur = c.ani.toView(x, y, w, h, dur, fn, { speed });
-		c.ani.limit = dur === 0 || limit;
-		c.ani.flying = dur > 0;
+		dur = c._ani.toView(x, y, w, h, dur, fn, { speed });
+		c._ani.limit = dur === 0 || limit;
+		c._ani.flying = dur > 0;
 		return dur;
 	}
 

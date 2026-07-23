@@ -110,7 +110,7 @@ export default class Camera360 extends EngineCamera {
 		if (c.coverLimit || this.#limitY > 0) this.#limitPitch();
 		if (this.#limitX > 0) this.#limitYaw();
 
-		if (duration === 0) c.kinetic.addStep(xPx * 2, yPx * 2);
+		if (duration === 0) c._kinetic.addStep(xPx * 2, yPx * 2);
 
 		this.update();
 		this.calculate3DFrustum();
@@ -142,7 +142,7 @@ export default class Camera360 extends EngineCamera {
 		const c = this.canvas;
 		factor /= 2;
 		if (dur !== 0) {
-			dur = c.ani.zoom(factor, dur, speed, noLimit);
+			dur = c._ani.zoom(factor, dur, speed, noLimit);
 		} else {
 			factor /= this.scale * c.diagonal / 20;
 

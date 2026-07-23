@@ -96,7 +96,7 @@ export default class Ani {
 	/** Stops the current animation completely and resets state. */
 	stop(): void {
 		if (this.#isRunning) {
-			this.#canvas.aniAbort();
+			this.#canvas._aniAbort();
 		}
 		this.#started = 0;
 		this.limit = true;
@@ -231,7 +231,7 @@ export default class Ani {
 
 		if (this.#duration === 0) {
 			c.setView(t.centerX, t.centerY, t.width, t.height, false, true);
-			this.#canvas.aniDone();
+			this.#canvas._aniDone();
 			return this.#duration;
 		}
 
@@ -265,7 +265,7 @@ export default class Ani {
 		this.#zNoLimit = noLimit;
 
 		const c = this.#canvas;
-		const webgl = c.camera360;
+		const webgl = c._camera360;
 
 		this.#zFrom = webgl.perspective;
 		this.#zTo = this.#zFrom + (to / (webgl.scale * c.diagonal / 20));
@@ -322,12 +322,12 @@ export default class Ani {
 			}
 
 			if (this.#isZoom) {
-				this.#canvas.camera360.setPerspective(this.#zFrom * (1 - pE) + this.#zTo * pE, this.#zNoLimit);
+				this.#canvas._camera360.setPerspective(this.#zFrom * (1 - pE) + this.#zTo * pE, this.#zNoLimit);
 			}
 
 			if (p >= 1) {
 				this.lastView.copy(this.#canvas.view);
-				this.#canvas.aniDone();
+				this.#canvas._aniDone();
 				this.stop();
 			}
 		}

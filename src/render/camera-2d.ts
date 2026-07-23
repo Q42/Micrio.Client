@@ -92,7 +92,7 @@ export default class Camera2D extends EngineCamera {
 	getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.canvas;
 		const el = c.el;
-		const mat = this.#omniMat, vec4 = c.camera360.vec4;
+		const mat = this.#omniMat, vec4 = c._camera360.vec4;
 		const rat = c.hasParent ? c.parent.el.ratio : el.ratio;
 
 		vec4.x = x;
@@ -152,13 +152,13 @@ export default class Camera2D extends EngineCamera {
 
 		this.correctMinMax();
 
-		if (el.width && el.height && !this.canvas.ani.isStarted()) {
-			c.view.copy(c.ani.lastView, true);
+		if (el.width && el.height && !this.canvas._ani.isStarted()) {
+			c.view.copy(c._ani.lastView, true);
 			if (!c.is360) {
-				const pLimit = c.ani.limit;
-				c.ani.limit = false;
+				const pLimit = c._ani.limit;
+				c._ani.limit = false;
 				this.applyView();
-				c.ani.limit = pLimit;
+				c._ani.limit = pLimit;
 			}
 		}
 	}
@@ -194,9 +194,9 @@ export default class Camera2D extends EngineCamera {
 		const c = this.canvas;
 		const v = this.canvas.view;
 
-		const limited = !c.freeMove && c.ani.limit;
+		const limited = !c.freeMove && c._ani.limit;
 
-		if (!c.ani.correcting && (limited || (!c.ani.flying && c.coverLimit))) v.limit(false);
+		if (!c._ani.correcting && (limited || (!c._ani.flying && c.coverLimit))) v.limit(false);
 
 		const vw: number = v.width;
 		const vh: number = v.height;
@@ -205,9 +205,9 @@ export default class Camera2D extends EngineCamera {
 
 		this.scale = Math.min(cw / vw, ch / vh);
 
-		if (limited && !this.#pinching && this.scale >= this.maxScale && c.ani.flying) this.scale = this.maxScale;
+		if (limited && !this.#pinching && this.scale >= this.maxScale && c._ani.flying) this.scale = this.maxScale;
 
-		if ((!c.ani.correcting && !this.#pinching) || c.coverLimit) this.scale = Math.max(this.minScale * this.minSize, this.scale);
+		if ((!c._ani.correcting && !this.#pinching) || c.coverLimit) this.scale = Math.max(this.minScale * this.minSize, this.scale);
 
 		if (!this.#inited && c.coverStart) this.scale = this.coverScale;
 
@@ -216,9 +216,9 @@ export default class Camera2D extends EngineCamera {
 
 		v.set(v.centerX, v.centerY, v.width + overflowX, v.height + overflowY);
 
-		if (!this.#inited && c.coverStart) this.canvas.ani.lastView.copy(v);
+		if (!this.#inited && c.coverStart) this.canvas._ani.lastView.copy(v);
 
-		if (!c.ani.correcting && c.coverLimit) v.limit(false);
+		if (!c._ani.correcting && c.coverLimit) v.limit(false);
 
 		this.#inited = this.cpw > 0;
 
@@ -265,16 +265,16 @@ export default class Camera2D extends EngineCamera {
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
 		} else if (!force && this.isOutsideLimit() && !isKinetic) {
-			if (c.ani.isStarted()) {
-				c.ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
+			if (c._ani.isStarted()) {
+				c._ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: !noLimit });
+				c._ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: !noLimit });
 			}
 		} else {
-			c.ani.stop();
+			c._ani.stop();
 
 			if (duration === 0) {
-				if (!isKinetic) c.kinetic.addStep(xPx * 4, yPx * 4);
+				if (!isKinetic) c._kinetic.addStep(xPx * 4, yPx * 4);
 				c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 				if (!noLimit) {
 					c.view.limit(false, false, c.freeMove);
@@ -282,7 +282,7 @@ export default class Camera2D extends EngineCamera {
 				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
 				c.view.changed = true;
 			} else {
-				c.ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, easeInOut);
+				c._ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, easeInOut);
 			}
 		}
 	}
@@ -294,7 +294,7 @@ export default class Camera2D extends EngineCamera {
 	zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
 		const c = this.canvas;
 
-		c.kinetic.stop();
+		c._kinetic.stop();
 
 		if (!this.#pinching && this.isZoomedIn() && delta < 0) return 0;
 
@@ -312,7 +312,7 @@ export default class Camera2D extends EngineCamera {
 		if (delta < 0 && fact < -1) fact = -.9999;
 		if (delta < 0 && factY < -1) factY = -.9999;
 
-		const limit = !noLimit && !c.freeMove && c.ani.limit && duration === 0;
+		const limit = !noLimit && !c.freeMove && c._ani.limit && duration === 0;
 		const r = c.hasParent ? c.parent.el.ratio : el.ratio;
 
 		xPx -= el.left;
@@ -326,10 +326,10 @@ export default class Camera2D extends EngineCamera {
 		const targetWidth = v.width + fact;
 		const targetHeight = v.height + factY;
 
-		c.ani.limit = limit;
-		duration = c.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: limit });
-		c.ani.lastView.copy(c.view);
-		c.ani.limit = !noLimit;
+		c._ani.limit = limit;
+		duration = c._ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: limit });
+		c._ani.lastView.copy(c.view);
+		c._ani.limit = !noLimit;
 
 		return duration;
 	}
@@ -337,7 +337,7 @@ export default class Camera2D extends EngineCamera {
 	protected handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
 		if (!this.canvas.main._noPinchPan && this.scale > this.minScale) this.pan(dX, dY, 0, false, true);
 		this.zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas.pinchZoomOutLimit);
-		c.ani.limit = !!this.canvas.pinchZoomOutLimit;
+		c._ani.limit = !!this.canvas.pinchZoomOutLimit;
 	}
 
 	/** Signals the start of a pinch gesture. */
@@ -373,7 +373,7 @@ export default class Camera2D extends EngineCamera {
 			? v.lCenterY
 			: Math.max(v.lY0 + halfH, Math.min(v.centerY, v.lY1 - halfH));
 
-		this.canvas.ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
+		this.canvas._ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
 	}
 
 	// ─── SetCoo hooks ──────────────────────────────────────────────
@@ -416,7 +416,7 @@ export default class Camera2D extends EngineCamera {
 	updateProjection(): void {
 		const c = this.canvas;
 		const v = c.view;
-		const cam = c.camera360;
+		const cam = c._camera360;
 		const m = cam.pMatrix;
 		m.perspective(cam.perspective, c.el.aspect, 0.0001, 100);
 		m.translate(

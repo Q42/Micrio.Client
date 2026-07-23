@@ -80,7 +80,7 @@ export default class Kinetic {
 	 */
 	step(): number {
 		const t = this.#canvas.main.now;
-		const webgl = this.#canvas.camera360;
+		const webgl = this.#canvas._camera360;
 		const cam = this.#canvas.camera;
 		if (!this.started || this.#startTime === 0) return 1;
 

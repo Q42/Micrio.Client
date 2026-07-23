@@ -202,7 +202,7 @@ export default class Image {
 		let yaw = (this.#areaCenterX - 0.5) * 2 * Math.PI;
 		const pitch = (this.#areaCenterY - 0.5) * Math.PI;
 
-		yaw += this.#canvas.camera360.baseYaw;
+		yaw += this.#canvas._camera360.baseYaw;
 
 		this.#sphere3DX = Math.cos(pitch) * Math.sin(yaw);
 		this.#sphere3DY = Math.sin(pitch);
@@ -217,7 +217,7 @@ export default class Image {
 	 */
 	#sphere3DOverlap(): boolean {
 		if (!this.#canvas.is360) return false;
-		const c = this.#canvas.camera360;
+		const c = this.#canvas._camera360;
 		const dp = this.#sphere3DX * c.cameraForwardX + this.#sphere3DY * c.cameraForwardY + this.#sphere3DZ * c.cameraForwardZ;
 		return Math.acos(Math.max(-1, Math.min(1, dp))) < c.fieldOfView + Math.max(this.#angularWidth, this.#angularHeight) / 2;
 	}
@@ -356,7 +356,7 @@ export default class Image {
 		const iy1 = Math.min(vcy + vh / 2, ecy + eh / 2);
 		if (iy0 >= iy1) return;
 
-		const vcx = c.is360 ? mod1(c.view.centerX + c.camera360.offX) : c.view.centerX;
+		const vcx = c.is360 ? mod1(c.view.centerX + c._camera360.offX) : c.view.centerX;
 		let ix0: number, ix1: number;
 
 		if (c.is360) {
@@ -423,10 +423,10 @@ export default class Image {
 	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
 	setDrawRect(r: DrawRect): void {
 		const v = this.#canvas.main._vertexBuffer;
-		const s = Math.PI * 2 * this.#canvas.camera360.radius;
+		const s = Math.PI * 2 * this.#canvas._camera360.radius;
 		const p = this.#vec, m = this.#mat;
 		const cX = this.x0 + this.rWidth / 2, cY = this.y0 + this.rHeight / 2;
-		const center = this.#canvas.camera360.getVec3(cX - this.#canvas.camera360.offX, cY, true, 5);
+		const center = this.#canvas._camera360.getVec3(cX - this.#canvas._camera360.offX, cY, true, 5);
 
 		m.identity();
 		m.translate(center.x, center.y, center.z);
@@ -459,7 +459,7 @@ export default class Image {
 
 		const ew = this.#areaWidth, eh = this.#areaHeight;
 		const ecx = this.#areaCenterX, ecy = this.#areaCenterY;
-		const el = this.#canvas.el, gl = this.#canvas.camera360, cW = el.width;
+		const el = this.#canvas.el, gl = this.#canvas._camera360, cW = el.width;
 		const pH = eh / 2.5;
 
 		let b = 0;
@@ -477,12 +477,12 @@ export default class Image {
 
 	#get360Tiles(l: Layer): void {
 		const c = this.#canvas, w = c.el.width, h = c.el.height;
-		const sp = c.camera360.fieldOfView > Math.PI / 2 ? 20 : 12;
-		const eps = 1e-8, offX = c.camera360.offX;
+		const sp = c._camera360.fieldOfView > Math.PI / 2 ? 20 : 12;
+		const eps = 1e-8, offX = c._camera360.offX;
 
 		Image.#sampledLength = 0;
 		const add = (x: number, y: number) => {
-			const coo = c.camera360.getCoo(x, y);
+			const coo = c._camera360.getCoo(x, y);
 			const i = Image.#sampledLength++;
 			Image.#sampledXs[i] = coo.x;
 			Image.#sampledYs[i] = coo.y;

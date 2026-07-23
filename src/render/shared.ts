@@ -152,10 +152,10 @@ export class View {
 
 	limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
 		const c = this.#canvas;
-		const mS = c.camera2d.minSize;
+		const mS = c._camera2d.minSize;
 		const s = this.getScale();
 
-		if (mS < 1 && s < c.camera2d.minScale && !noLimit) {
+		if (mS < 1 && s < c._camera2d.minScale && !noLimit) {
 			const mWH = 1 / mS;
 			const nW = Math.min(mWH, this.width);
 			const nH = Math.min(mWH, this.height);
@@ -167,13 +167,13 @@ export class View {
 			return;
 		}
 
-		const overZoom: number = correctZoom ? Math.max(1, s / Math.max(c.camera2d.minScale, c.maxScale / c.el.scale)) : 1;
+		const overZoom: number = correctZoom ? Math.max(1, s / Math.max(c._camera2d.minScale, c.maxScale / c.el.scale)) : 1;
 		const maxVw: number = this.lWidth;
 		const maxVh: number = this.lHeight;
 		const vw: number = Math.min(maxVw, this.width * overZoom);
 		const vh: number = Math.min(maxVh, this.height * overZoom);
 
-		if (correctZoom && (overZoom > 1 || (noLimit && s < c.camera2d.minScale))) {
+		if (correctZoom && (overZoom > 1 || (noLimit && s < c._camera2d.minScale))) {
 			this.width = vw;
 			this.height = vh;
 		}
@@ -209,7 +209,7 @@ export class View {
 	correctAspectRatio(): void {
 		const c = this.#canvas;
 		if (c.is360) return;
-		const targetAspect = c.camera2d.cpw / c.camera2d.cph;
+		const targetAspect = c._camera2d.cpw / c._camera2d.cph;
 		const currentAspect = this.width / this.height;
 		if (currentAspect > targetAspect) {
 			this.height = this.width / targetAspect;

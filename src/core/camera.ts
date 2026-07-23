@@ -23,13 +23,13 @@ export class Camera {
 	#canvas?: TileCanvas;
 
 	/** Promise resolve function called when a camera animation completes successfully. @internal */
-	aniDone: Function | undefined;
+	_aniDone: Function | undefined;
 
 	/** Promise reject function called when a camera animation is aborted (e.g., by user interaction). @internal */
-	aniAbort: Function | undefined;
+	_aniAbort: Function | undefined;
 
 	/** Array of additional callbacks to execute when an animation finishes. Used for queuing actions. @internal */
-	aniDoneAdd: Function[] = [];
+	_aniDoneAdd: Function[] = [];
 
 	readonly #image: MicrioImage;
 
@@ -128,7 +128,7 @@ export class Camera {
 			const box = this.#image.engine.micrio.getBoundingClientRect();
 			x -= box.left; y -= box.top;
 		}
-		return (c.is360 ? c.camera360.getCoo(x, y) : c.camera.getCoo(x, y, !!abs, !!noLimit)).arr;
+		return (c.is360 ? c._camera360.getCoo(x, y) : c.camera.getCoo(x, y, !!abs, !!noLimit)).arr;
 	}
 
 	/**
@@ -155,10 +155,10 @@ export class Camera {
 		const c = this.#canvas;
 		if (!c) return new Float64Array(5);
 		const tNDiff = (this.#image.is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
-		if (c.is360) return c.camera360.getXYZ(x - tNDiff, y).arr;
+		if (c.is360) return c._camera360.getXYZ(x - tNDiff, y).arr;
 		if (opts.rotation !== undefined && !isNaN(opts.rotation))
-			return c.camera2d.getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
-		return c.camera2d.getXY(x - tNDiff, y, !!opts.abs).arr;
+			return c._camera2d.getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
+		return c._camera2d.getXY(x - tNDiff, y, !!opts.abs).arr;
 	}
 
 	/**
@@ -194,13 +194,13 @@ export class Camera {
 	isZoomedOut = (full = false): boolean => !!(this.#canvas?.isZoomedOut(full));
 
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
-	getDirection = (): number => this.#canvas?.camera360.yaw ?? 0;
+	getDirection = (): number => this.#canvas?._camera360.yaw ?? 0;
 
-	getPitch = (): number => this.#canvas?.camera360.pitch ?? 0;
+	getPitch = (): number => this.#canvas?._camera360.pitch ?? 0;
 
 	setDirection(yaw: number, pitch?: number): void {
 		if (!this.#canvas) return;
-		this.#canvas.setDirection(yaw, pitch ?? this.#canvas.camera360.pitch);
+		this.#canvas.setDirection(yaw, pitch ?? this.#canvas._camera360.pitch);
 		this.#image.engine.render();
 	}
 
@@ -231,15 +231,15 @@ export class Camera {
 
 	set360RangeLimit(xPerc = 0, yPerc = 0): void {
 		if (!this.#canvas) return;
-		this.#canvas.camera360.setLimits(xPerc, yPerc);
+		this.#canvas._camera360.setLimits(xPerc, yPerc);
 		this.#image.engine.render();
 	}
 
 	// ─── Animation control ─────────────────────────────────────────
 
-	stop(): void { this.#canvas?.aniStop(); }
-	pause(): void { this.#canvas?.aniPause(); }
-	resume(): void { this.#canvas?.aniResume(); this.#image.engine.render(); }
+	stop(): void { this.#canvas?._aniStop(); }
+	pause(): void { this.#canvas?._aniPause(); }
+	resume(): void { this.#canvas?._aniResume(); this.#image.engine.render(); }
 
 	// ─── 360 / Omni / embed helpers ─────────────────────────────────
 
@@ -306,7 +306,7 @@ export class Camera {
 
 	/** [Omni] Gets the screen coordinates [x, y, scale, depth] for given 3D object coordinates. */
 	getOmniXY(x: number, y: number, z: number): Float64Array {
-		return this.#canvas?.camera2d.getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
+		return this.#canvas?._camera2d.getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
 	}
 
 	// ─── Animation lifecycle (called by TileCanvas) ────────────────
@@ -326,8 +326,8 @@ export class Camera {
 
 	/** Sets the internal Promise resolve/reject functions for the current animation. @internal */
 	#setAniPromises(ok: (...a: any[]) => any, abort: (...a: any[]) => any): void {
-		this.aniDone = ok;
-		this.aniAbort = abort;
+		this._aniDone = ok;
+		this._aniAbort = abort;
 	}
 
 	/**
@@ -366,7 +366,7 @@ export class Camera {
 			}
 			if (opts.prevView) {
 				const pCV = toCenterJSON(opts.prevView);
-				this.#canvas.ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
+				this.#canvas._ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
 			}
 			const omni = this.#image.$settings.omni;
 			if (omni?.frames) {
@@ -491,5 +491,5 @@ export class Camera {
 		if (v) this.setCoo(v[0], v[1], s);
 	}
 
-	aniIsKinetic(): boolean { return !!(this.#canvas?.kinetic.started); }
+	aniIsKinetic(): boolean { return !!(this.#canvas?._kinetic.started); }
 }
