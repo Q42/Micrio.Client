@@ -205,6 +205,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const loadingProgress = this.#props.loadingProgress ?? 1;
 		const noHTML = this.#props.noHTML ?? false;
 		const noLogo = this.#props.noLogo ?? noHTML;
+		const isMobile = micrio.canvas.$isMobile;
 
 		const _360 = micrio.$current?.is360
 		const video = _360 ? $settings!._360!.video : undefined;
@@ -220,7 +221,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const showControls = !noHTML && !!$info && !$settings?.noControls;
 		const showDetails = !noHTML && !hasTourOrMarker && !!$settings?.showInfo;
 		const showToolbar = !noHTML && this.#firstInited && !$settings?.noToolbar;
-		const showMinimap = !noHTML && !!$info && $settings?.minimap !== false && !$settings?.noControls && !!micrio.$current?.thumbSrc;
+		const showMinimap = !noHTML && !!$info && $settings?.minimap !== false && !$settings?.noControls && !!micrio.$current?.thumbSrc && !($markerPopup && isMobile);
 
 		this.#show('audio', hasAudio && !!$data && !!$info, () =>
 			createElement('micrio-audio-controller')

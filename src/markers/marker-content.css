@@ -88,4 +88,16 @@ micrio-marker-content section button:only-child img {
 	micrio-marker-content section figcaption {
 		display: none;
 	}
+	micrio-marker-content:not(:has(micrio-article)) section {
+		float: none;
+		width: 100%;
+		margin-left: 0;
+	}
+	micrio-marker-content:not(:has(micrio-article)) section button {
+		margin: 0;
+	}
+	micrio-marker-content:not(:has(micrio-article)) section img {
+		max-height: min(50cqh, 400px);
+		object-fit: contain;
+	}
 }

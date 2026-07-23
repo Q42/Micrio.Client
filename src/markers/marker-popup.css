@@ -50,7 +50,7 @@ micrio-marker-popup > aside {
 		right: var(--micrio-border-margin);
 		display: flex;
 		top: auto;
-		bottom: calc(var(--micrio-button-size) + 2 * var(--micrio-border-margin));
+		bottom: var(--micrio-border-margin);
 		flex-direction: column;
 		justify-content: space-between;
 		transition: opacity .25s ease;
