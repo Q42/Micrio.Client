@@ -70,7 +70,7 @@ export default class Camera2D extends EngineCamera {
 	/**
 	 * Converts relative image coordinates [0-1] to screen pixel coordinates.
 	 */
-	getXY(x: number, y: number, abs: boolean): Coordinates {
+	_getXY(x: number, y: number, abs: boolean): Coordinates {
 		const c = this.canvas;
 		const el = c.el;
 		const rat = c._hasParent ? c.parent.el.ratio : el.ratio;
@@ -82,14 +82,14 @@ export default class Camera2D extends EngineCamera {
 		return xy;
 	}
 
-	getXYOmni(x: number, y: number, radius: number, rotation: number, abs: boolean): Coordinates {
-		return this.getXYOmniCoo(x - .5, y - .5, radius, rotation, abs);
+	_getXYOmni(x: number, y: number, radius: number, rotation: number, abs: boolean): Coordinates {
+		return this._getXYOmniCoo(x - .5, y - .5, radius, rotation, abs);
 	}
 
 	/**
 	 * Converts 3D coordinates relative to an omni object's center to screen pixel coordinates.
 	 */
-	getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
+	_getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.canvas;
 		const el = c.el;
 		const mat = this.#omniMat, vec4 = c._camera360._vec4;
@@ -124,7 +124,7 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	/** Recalculates scale limits (minScale, maxScale, coverScale, fullScale) based on current canvas and image dimensions. */
-	setCanvas(): void {
+	_setCanvas(): void {
 		const c = this.canvas;
 		const el = c.el;
 
@@ -157,7 +157,7 @@ export default class Camera2D extends EngineCamera {
 			if (!c.is360) {
 				const pLimit = c._ani._limit;
 				c._ani._limit = false;
-				this.applyView();
+				this._applyView();
 				c._ani._limit = pLimit;
 			}
 		}
@@ -189,7 +189,7 @@ export default class Camera2D extends EngineCamera {
 	 * Recalculates scale and applies view constraints from the current logical view.
 	 * @returns True if the view was successfully applied, false if initialization is pending.
 	 */
-	applyView(): boolean {
+	_applyView(): boolean {
 		if (this.cpw === -1) return false;
 		const c = this.canvas;
 		const v = this.canvas.view;
@@ -263,7 +263,7 @@ export default class Camera2D extends EngineCamera {
 
 		if (this.#pinching) {
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
-			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
+			c._setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
 		} else if (!force && this._isOutsideLimit() && !isKinetic) {
 			if (c._ani._isStarted()) {
 				c._ani._updateTarget(newCenterX, newCenterY, v.width, v.height, true);
@@ -279,7 +279,7 @@ export default class Camera2D extends EngineCamera {
 				if (!noLimit) {
 					c.view._limit(false, false, c._freeMove);
 				}
-				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
+				c._setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
 				c.view._changed = true;
 			} else {
 				c._ani._toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, easeInOut);
@@ -385,7 +385,7 @@ export default class Camera2D extends EngineCamera {
 			coo.x = x;
 			coo.y = y;
 			coo.scale = scale;
-			this.applyView();
+			this._applyView();
 			return true;
 		}
 		return false;

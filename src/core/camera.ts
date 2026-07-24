@@ -99,7 +99,7 @@ export class Camera {
 			width *= opts.area[2];
 			height *= opts.area[3];
 		}
-		this.#canvas.setView(centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
+		this.#canvas._setView(centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
 		if (!opts.noRender) this.#image.engine.render();
 	}
 
@@ -157,8 +157,8 @@ export class Camera {
 		const tNDiff = (this.#image._is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
 		if (c.is360) return c._camera360._getXYZ(x - tNDiff, y).arr;
 		if (opts.rotation !== undefined && !isNaN(opts.rotation))
-			return c._camera2d.getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
-		return c._camera2d.getXY(x - tNDiff, y, !!opts.abs).arr;
+			return c._camera2d._getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
+		return c._camera2d._getXY(x - tNDiff, y, !!opts.abs).arr;
 	}
 
 	/**
@@ -306,7 +306,7 @@ export class Camera {
 
 	/** [Omni] Gets the screen coordinates [x, y, scale, depth] for given 3D object coordinates. */
 	getOmniXY(x: number, y: number, z: number): Float64Array {
-		return this.#canvas?._camera2d.getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
+		return this.#canvas?._camera2d._getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
 	}
 
 	// ─── Animation lifecycle (called by TileCanvas) ────────────────

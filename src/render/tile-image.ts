@@ -43,7 +43,7 @@ class Layer {
 		this._tileHeight = tileSize / image.height;
 	}
 
-	getTileRect(idx: number, r: DrawRect): DrawRect {
+	_getTileRect(idx: number, r: DrawRect): DrawRect {
 		const localIdx = idx - this._start;
 		const x = localIdx % this._cols;
 		const y = Math.floor(localIdx / this._cols);

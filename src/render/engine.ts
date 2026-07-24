@@ -303,7 +303,7 @@ export class Engine {
 			this.#deleteTile(idx);
 		}
 		this.#tiles.clear();
-		this.reset();
+		this.#reset();
 	}
 
 	/**
@@ -412,7 +412,7 @@ export class Engine {
 
 		const v = get(c.state.view) || settings.view;
 		if (v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) {
-			canvas.setView(v[0] + v[2] / 2, v[1] + v[3] / 2, v[2], v[3], false, false, false, false);
+			canvas._setView(v[0] + v[2] / 2, v[1] + v[3] / 2, v[2], v[3], false, false, false, false);
 		} else if ((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') {
 			canvas.camera.setCoo(focus[0], focus[1], 0);
 			settings.focus = undefined;
@@ -470,7 +470,7 @@ export class Engine {
 		if (!c._placed) throw new Error('Canvas is not placed yet');
 		const entry = this.#entryByImage.get(c);
 		if (!entry) return;
-		entry.canvas.remove();
+		entry.canvas._remove();
 		this.#entryByImage.delete(c);
 		this.render();
 	}
@@ -656,7 +656,7 @@ export class Engine {
 	 */
 	_resize(c: Models.Canvas.ViewRect): void {
 		this.el.set(c.width, c.height, c.left, c.top, c.ratio, c.scale, c.portrait);
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].resize();
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._resize();
 		if (this.ready) { this.#stop(); this.#draw(); }
 	}
 
@@ -723,8 +723,8 @@ export class Engine {
 			const focus = (image as MicrioImage).$settings.focus;
 			if (focus) (canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);
 			const v = (image.$info as any)['view'];
-			if (v && v.toString() != '0,0,1,1') canvas.setView(v[0], v[1], v[2], v[3], false, false, false, false);
-			else if (canvas._hasParent) canvas.setView(canvas.view._centerX, canvas.view._centerY, canvas.view.width, canvas.view.height, false, false);
+			if (v && v.toString() != '0,0,1,1') canvas._setView(v[0], v[1], v[2], v[3], false, false, false, false);
+			else if (canvas._hasParent) canvas._setView(canvas.view._centerX, canvas.view._centerY, canvas.view.width, canvas.view.height, false, false);
 
 			canvas._sendViewport();
 		}
@@ -771,12 +771,12 @@ export class Engine {
 	}
 
 	/** Resets all canvases. @internal */
-	reset(): void {
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].reset();
+	#reset(): void {
+		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._reset();
 	}
 
 	/** Removes a TileCanvas from the managed list. @internal */
-	remove(c: TileCanvas): void {
+	_remove(c: TileCanvas): void {
 		for (let i = 0; i < this._canvases.length; i++) if (this._canvases[i] === c) {
 			this._canvases.splice(i, 1);
 			return;

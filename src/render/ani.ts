@@ -228,7 +228,7 @@ export default class Ani {
 		this.stop();
 
 		if (this.#duration === 0) {
-			c.setView(t._centerX, t._centerY, t.width, t.height, false, true);
+			c._setView(t._centerX, t._centerY, t.width, t.height, false, true);
 			this.#canvas._aniDone();
 			return this.#duration;
 		}
@@ -307,7 +307,7 @@ export default class Ani {
 					interpCenterX = f._centerX + deltaX * pE;
 				}
 
-				this.#canvas.setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true);
+				this.#canvas._setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true);
 
 				if (this.#omniDelta) {
 					let idx = this.#omniStartIdx + Math.trunc(this.#omniDelta * this.#fn.get(Math.min(1, p * 1.5)));

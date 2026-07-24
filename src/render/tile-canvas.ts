@@ -174,8 +174,8 @@ export class TileCanvas {
 
 		if (!hasParent) {
 			this.el._copy(main.el);
-			this.setView(this.view._centerX, this.view._centerY, this.view.width, this.view.height, false, false);
-			this.resize();
+			this._setView(this.view._centerX, this.view._centerY, this.view.width, this.view.height, false, false);
+			this._resize();
 		}
 
 		if (!noImage) this._addImage(0, 0, 1, 1, width, height, tileSize, isSingle, isDeepZoom, false, targetOpacity);
@@ -412,7 +412,7 @@ export class TileCanvas {
 	#partialView(noDispatch: boolean): boolean {
 		const c = this.main.el;
 		const hP = this._hasParent;
-		const s = hP ? this.parent.getScale() : 1 / c.ratio;
+		const s = hP ? this.parent._getScale() : 1 / c.ratio;
 		const pW = hP ? this.parent.width : c.width;
 		const pH = hP ? this.parent.height : c.height;
 		const pV = hP ? this.parent.view : this.#full;
@@ -470,9 +470,9 @@ export class TileCanvas {
 		)) {
 			if (!noDispatch) this._sendViewport();
 			this.view._changed = true;
-			this.resize();
+			this._resize();
 			if (!this.is360) {
-				this._camera2d.setCanvas();
+				this._camera2d._setCanvas();
 				this._camera2d._updateProjection();
 			}
 		}
@@ -529,11 +529,11 @@ export class TileCanvas {
 		let l = 0; while (i >= image._layers[l]._end) l++;
 		const layer = image._layers[l];
 
-		layer.getTileRect(i, this.#rect);
+		layer._getTileRect(i, this.#rect);
 	}
 
 	/** Handles resizing of the canvas element. */
-	resize(): void {
+	_resize(): void {
 		if (this.#children.length) {
 			const c = this.main.el;
 			this.width = c.width;
@@ -543,14 +543,14 @@ export class TileCanvas {
 		if (!this._hasParent) {
 			if (this.is360) this._camera360._resize();
 			else {
-				this._camera2d.setCanvas();
+				this._camera2d._setCanvas();
 				this._camera2d._updateProjection();
 			}
 		}
 	}
 
 	/** Resets the canvas state. */
-	reset(): void {
+	_reset(): void {
 		this._kinetic.stop();
 		this._ani.stop();
 		if (this.images.length > 0) {
@@ -561,9 +561,9 @@ export class TileCanvas {
 	}
 
 	/** Removes this canvas instance from the main controller. */
-	remove(): void {
+	_remove(): void {
 		this.#setCanvasVisible(false);
-		this.main.remove(this);
+		this.main._remove(this);
 	}
 
 	/** Sets the active layer for multi-layer omni objects. */
@@ -590,7 +590,7 @@ export class TileCanvas {
 	}
 
 	/** Sets the logical view directly. */
-	setView(centerX: number, centerY: number, width: number, height: number, noLimit: boolean, noLastView: boolean, correctNorth: boolean = false, forceLimit: boolean = false): void {
+	_setView(centerX: number, centerY: number, width: number, height: number, noLimit: boolean, noLastView: boolean, correctNorth: boolean = false, forceLimit: boolean = false): void {
 		const mE = this.main.el;
 
 		if (mE._areaHeight > 0) { height += height / (1 - (mE._areaHeight / mE.height)); this._ani._limit = false; mE._areaHeight = 0; };
@@ -605,13 +605,13 @@ export class TileCanvas {
 			if (this.is360) {
 				this._camera360._setView(centerX, centerY, width, height, { noLimit, correctNorth });
 				this.view.set(centerX, centerY, width, height);
-			} else if (this._camera2d.applyView()) {
+			} else if (this._camera2d._applyView()) {
 				this._camera2d._updateProjection();
 			}
 		}
 	}
 
-	getScale(): number { return this.is360 ? this._camera360._scale : this._camera2d._scale }
+	_getScale(): number { return this.is360 ? this._camera360._scale : this._camera2d._scale }
 	_isZoomedIn(): boolean { const c360 = this._camera360; return this.is360 ? c360._perspective <= c360._minPerspective : this._camera2d._isZoomedIn() }
 	_isZoomedOut(b: boolean = false): boolean { const c360 = this._camera360; return this.is360 ? c360._perspective >= c360._maxPerspective : this._camera2d._isZoomedOut(b) }
 
@@ -621,7 +621,7 @@ export class TileCanvas {
 		const c2d = this._camera2d;
 		c2d._minScale = s;
 		c2d._correctMinMax();
-		c2d.applyView();
+		c2d._applyView();
 		this._camera360._update();
 	}
 

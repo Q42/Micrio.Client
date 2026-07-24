@@ -92,7 +92,7 @@ export default abstract class EngineCamera {
 		if (this._handleSetCooInit(x, y, scale)) return 0;
 
 		const c = this.canvas;
-		if (scale === 0) scale = c.getScale();
+		if (scale === 0) scale = c._getScale();
 		scale = this._clampSetCooScale(scale);
 		c._kinetic.stop();
 
