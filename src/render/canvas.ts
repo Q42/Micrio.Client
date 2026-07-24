@@ -136,7 +136,7 @@ export class Canvas {
 		// Update WebGL viewport
 		this.#micrio._webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
 		// Resize postprocessing framebuffer if active
-		this.#micrio._webgl.postprocessor?.resize();
+		this.#micrio._webgl._postprocessor?._resize();
 
 		// Notify engine of resize
 		this.#micrio._engine._resize(c);

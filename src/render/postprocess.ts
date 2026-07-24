@@ -43,7 +43,7 @@ const vertexShader = [
  */
 export class PostProcessor {
 	/** Framebuffer object used as the render target for the main scene. */
-	frameBuffer:WebGLFramebuffer;
+	_frameBuffer:WebGLFramebuffer;
 
 	/** Texture attached to the framebuffer where the main scene is rendered. @internal */
 	#texture:WebGLTexture;
@@ -60,6 +60,8 @@ export class PostProcessor {
 	/** Uniform location for passing time to the postprocessing shader. @internal */
 	#ppTimeLoc:WebGLUniformLocation;
 
+	#gl:WebGL2RenderingContext|WebGLRenderingContext;
+	
 	/**
 	 * Creates a PostProcessor instance.
 	 * Compiles the shaders, creates the framebuffer and texture, and sets up attributes/uniforms.
@@ -67,8 +69,6 @@ export class PostProcessor {
 	 * @param micrio The main HTMLMicrioElement instance (used for WebGL utilities).
 	 * @param fragmentShader The source code for the custom fragment shader implementing the effect.
 	 */
-	#gl:WebGL2RenderingContext|WebGLRenderingContext;
-
 	constructor(
 		gl:WebGL2RenderingContext|WebGLRenderingContext,
 		micrio:HTMLMicrioElement,
@@ -78,8 +78,8 @@ export class PostProcessor {
 		// --- Shader Compilation ---
 		this.#program = gl.createProgram()!; // TODO: Handle potential null return
 		// Compile vertex and fragment shaders using WebGL utility
-		micrio._webgl.getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
-		micrio._webgl.getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
+		micrio._webgl._getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
+		micrio._webgl._getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
 
 		// Link and use the program
 		gl.linkProgram(this.#program);
@@ -107,8 +107,8 @@ export class PostProcessor {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
 		// --- Framebuffer Setup ---
-		this.frameBuffer = gl.createFramebuffer()!; // TODO: Handle potential null return
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+		this._frameBuffer = gl.createFramebuffer()!; // TODO: Handle potential null return
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 		// Attach the texture as the color attachment
 		gl.framebufferTexture2D(
 			gl.FRAMEBUFFER,
@@ -138,7 +138,7 @@ export class PostProcessor {
 	 * passes uniforms (like time), and draws the fullscreen quad.
 	 * Assumes the main scene has already been rendered to this instance's framebuffer.
 	 */
-	render() : void {
+	_render() : void {
 		const gl = this.#gl;
 
 		// Bind the default framebuffer (null) to render to the screen
@@ -187,7 +187,7 @@ export class PostProcessor {
 	/**
 	 * Resizes the framebuffer texture when the canvas size changes.
 	 */
-	resize() {
+	_resize() {
 		const gl = this.#gl;
 		gl.bindTexture(gl.TEXTURE_2D, this.#texture);
 		// Recreate the texture with the new drawing buffer dimensions
@@ -197,9 +197,9 @@ export class PostProcessor {
 	}
 
 	/** Disposes WebGL resources used by the PostProcessor. */
-	dispose() : void {
+	_dispose() : void {
 		const gl = this.#gl;
-		gl.deleteFramebuffer(this.frameBuffer);
+		gl.deleteFramebuffer(this._frameBuffer);
 		gl.deleteTexture(this.#texture);
 		gl.deleteBuffer(this.#quad);
 		gl.deleteProgram(this.#program);

@@ -240,12 +240,12 @@ export class Engine {
 
 			if (isVideo && !is360) {
 				tile.loadState = 2;
-				tile.texture = this.micrio._webgl.getTexture();
+				tile.texture = this.micrio._webgl._getTexture();
 			}
 			else {
 				tile.loadState = 1;
 				const src = img.getTileSrc(layer, x, y, frame);
-				if (src) this.#getTexture(i, src, animating, { noSmoothing });
+				if (src) this._getTexture(i, src, animating, { noSmoothing });
 				else {
 					tile.loadState = 0;
 					return false;
@@ -258,9 +258,9 @@ export class Engine {
 			if (tile.texture) {
 				if (isVideo) {
 					if (!img._video || !img._video.dataset.playing) return false;
-					this.micrio._webgl.updateTexture(tile.texture, img._video);
+					this.micrio._webgl._updateTexture(tile.texture, img._video);
 				}
-				this.micrio._webgl.drawTile(tile.texture, opacity, is360);
+				this.micrio._webgl._drawTile(tile.texture, opacity, is360);
 			}
 
 			if (tile.loadState === 2) {
@@ -477,7 +477,7 @@ export class Engine {
 
 	/** Requests the next animation frame. */
 	render(): void {
-		if (this.#raf < 0) this.#raf = this.micrio._webgl.display.requestAnimationFrame(this.#draw);
+		if (this.#raf < 0) this.#raf = this.micrio._webgl._display.requestAnimationFrame(this.#draw);
 	}
 
 	#draw = (now: number = performance.now()): void => {
@@ -501,7 +501,7 @@ export class Engine {
 
 		this.#cleanup();
 
-		this.micrio._webgl.drawEnd();
+		this.micrio._webgl._drawEnd();
 	}
 
 	_shouldDraw(now: number): boolean {
@@ -516,7 +516,7 @@ export class Engine {
 
 	#stop(): void {
 		if (this.#raf < 0) return;
-		this.micrio._webgl.display.cancelAnimationFrame(this.#raf);
+		this.micrio._webgl._display.cancelAnimationFrame(this.#raf);
 		this.#raf = -1;
 	}
 
@@ -539,7 +539,7 @@ export class Engine {
 	/** Prepares the WebGL context for drawing a new frame. @internal */
 	#drawStart(): void {
 		if (this.#drawing) return;
-		this.micrio._webgl.drawStart();
+		this.micrio._webgl._drawStart();
 		this.#drawing = true;
 	}
 
@@ -547,7 +547,7 @@ export class Engine {
 	 * Initiates loading of a texture using the texture loader utility.
 	 * @internal
 	 */
-	#getTexture(i: number, src: string, ani: boolean, opts: {
+	_getTexture(i: number, src: string, ani: boolean, opts: {
 		force?: boolean;
 		noSmoothing?: boolean
 	} = {}): void {
@@ -569,7 +569,7 @@ export class Engine {
 		noSmoothing?: boolean
 	): void {
 		const tile = this.#getTileEntry(i);
-		tile.texture = this.micrio._webgl.getTexture(img, tile.texture, noSmoothing);
+		tile.texture = this.micrio._webgl._getTexture(img, tile.texture, noSmoothing);
 		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) img.close();
 		tile.loadState = 2;
 

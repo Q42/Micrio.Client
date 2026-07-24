@@ -324,7 +324,7 @@ export class MicrioImage {
 
 		// Settings store & watermark
 		if(s) this._settings.set(s);
-		if(i.watermark) this.#engine.micrio._webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
+		if(i.watermark) this.#engine.micrio._webgl._loadWatermark(i.watermark, s?.watermarkOpacity);
 
 		// Omni controls hook
 		if(this._isOmni) {

@@ -302,7 +302,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		this._engine._unbind();
 		if(this._ui) this._ui.remove();
 		delete this._ui;
-		this._webgl.dispose(true);
+		this._webgl._dispose(true);
 		this.#idle?.destroy();
 		this.#printed = false;
 	}
@@ -518,7 +518,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		this._engine._load();
 		if(!this._webgl.gl) try {
-			this._webgl.init();
+			this._webgl._init();
 		} catch(e) {
 			this.#printError(e as Error);
 			return c;

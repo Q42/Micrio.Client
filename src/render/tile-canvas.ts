@@ -371,13 +371,13 @@ export class TileCanvas {
 
 		gl.gl.viewport(this.el.left, m.el.height - el.height - el.top, el.width, el.height);
 
-		gl.gl.uniformMatrix4fv(gl.pmLoc, false, this._camera360._pMatrix.arr);
+		gl.gl.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
 
 		if (this.#pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
 			if (!(im.x1 <= v.x0 || im.x0 >= v.x1 || im.y1 <= v.y0 || im.y0 >= v.y1)) {
 				this.#setTile(im._endOffset - 1);
-				gl.drawTile(undefined, im._tOpacity);
+				gl._drawTile(undefined, im._tOpacity);
 			}
 		}
 

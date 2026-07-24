@@ -90,7 +90,7 @@ export class WebGL {
 	gl!:WebGLRenderingContext | WebGL2RenderingContext; // Definite assignment assertion
 
 	/** The display window object (usually `self`). */
-	display:Window = self;
+	_display:Window = self;
 
 	/** The main WebGL shader program for rendering tiles. @internal */
 	#program!:WebGLProgram;
@@ -102,7 +102,7 @@ export class WebGL {
 	#noTxtLoc!:WebGLUniformLocation;
 
 	/** Uniform location for the combined ModelViewProjection matrix (GLMatrix). */
-	pmLoc!:WebGLUniformLocation;
+	_pmLoc!:WebGLUniformLocation;
 
 	/** Attribute location for texture coordinates. @internal */
 	#txtAttr:number = -1;
@@ -153,7 +153,7 @@ export class WebGL {
 	#lastOpacity: number = -1;
 
 	/** Optional PostProcessor instance for applying fullscreen effects. */
-	postprocessor?:PostProcessor;
+	_postprocessor?:PostProcessor;
 
 	/**
 	 * Creates the WebGL instance.
@@ -168,7 +168,7 @@ export class WebGL {
 	}
 
 	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. */
-	init() : void {
+	_init() : void {
 		// Check for WebGL2 support
 		const hasGL2 = 'WebGL2RenderingContext' in window;
 		// Get WebGL context from the canvas
@@ -199,7 +199,7 @@ export class WebGL {
 		// Initialize post-processor if a fragment shader is provided in settings
 		const postprocessing = this.#micrio.$current?.$settings.postProcessingFragmentShader;
 		if(postprocessing) {
-			this.postprocessor = new PostProcessor(gl, this.#micrio, postprocessing);
+			this._postprocessor = new PostProcessor(gl, this.#micrio, postprocessing);
 			this.#micrio._keepRendering = true; // Force continuous rendering if postprocessing
 		}
 
@@ -214,8 +214,8 @@ export class WebGL {
 		this.#program = program;
 
 		// Compile and attach shaders
-		this.getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
-		this.getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
+		this._getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
+		this._getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
 		// Link program
 		gl.linkProgram(this.#program);
 		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
@@ -239,7 +239,7 @@ export class WebGL {
 		else throw new MicrioError('Failed to bind WebGL opacity uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
 		const pmLoc = gl.getUniformLocation(this.#program, 'GLMatrix');
-		if(pmLoc) this.pmLoc = pmLoc;
+		if(pmLoc) this._pmLoc = pmLoc;
 		else throw new MicrioError('Failed to bind WebGL matrix uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
 
 		const noTxtLoc = gl.getUniformLocation(this.#program, 'noTexture');
@@ -298,7 +298,7 @@ export class WebGL {
 	 * Disposes WebGL resources.
 	 * @param loseContext If true, attempts to lose the WebGL context entirely.
 	*/
-	dispose(loseContext:boolean=false ) : void {
+	_dispose(loseContext:boolean=false ) : void {
 		const gl = this.gl;
 		if (!gl) return; // Exit if context doesn't exist
 
@@ -312,7 +312,7 @@ export class WebGL {
 		// Delete shader program
 		gl.deleteProgram(this.#program);
 		// Delete framebuffer/texture from postprocessor if it exists
-		this.postprocessor?.dispose();
+		this._postprocessor?._dispose();
 		// Delete watermark texture
 		if(this.#wmTexture) gl.deleteTexture(this.#wmTexture);
 
@@ -333,7 +333,7 @@ export class WebGL {
 	 * @param source The shader source code string.
 	 * @throws If shader creation or compilation fails.
 	*/
-	getShader(program:WebGLProgram, type:number, source:string) {
+	_getShader(program:WebGLProgram, type:number, source:string) {
 		const shader = this.gl.createShader(type);
 		if(!shader) throw new Error(`Could not create WebGL shader (type: ${type})`);
 		this.gl.shaderSource(shader, source);
@@ -358,7 +358,7 @@ export class WebGL {
 	 * @returns The created or updated WebGLTexture.
 	 * @throws If texture creation fails.
 	*/
-	getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean) : WebGLTexture {
+	_getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean) : WebGLTexture {
 		const gl = this.gl;
 		const t = texture ?? gl.createTexture(); // Use existing or create new
 		if(!t) throw new Error('Could not create WebGL texture');
@@ -384,7 +384,7 @@ export class WebGL {
 	 * @param texture The WebGLTexture to update.
 	 * @param img The source image/bitmap/video.
 	 */
-	updateTexture(
+	_updateTexture(
 		texture:WebGLTexture,
 		img:TextureBitmap,
 	) : void {
@@ -397,19 +397,19 @@ export class WebGL {
 	}
 
 	/** Prepares for drawing a frame (binds framebuffer if postprocessing, clears canvas). @internal */
-	drawStart() : void {
+	_drawStart() : void {
 		const gl = this.gl;
 		// Bind framebuffer if postprocessing is active
-		if(this.postprocessor) gl.bindFramebuffer(gl.FRAMEBUFFER, this.postprocessor.frameBuffer);
+		if(this._postprocessor) gl.bindFramebuffer(gl.FRAMEBUFFER, this._postprocessor._frameBuffer);
 		// Clear the drawing buffer
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 	}
 
 	/** Finalizes frame drawing (renders postprocessing effect if active). @internal */
-	drawEnd() : void {
+	_drawEnd() : void {
 		// If postprocessor exists, render its effect to the screen
-		if(this.postprocessor) {
-			this.postprocessor.render();
+		if(this._postprocessor) {
+			this._postprocessor._render();
 			// Re-bind the main program and buffers for subsequent Micrio rendering if needed
 			this.gl.useProgram(this.#program);
 			this.#linkBuffers();
@@ -424,7 +424,7 @@ export class WebGL {
 	 * @param opacity The opacity of the tile (0-1).
 	 * @param is360 True if rendering a 360 tile.
 	*/
-	drawTile(texture?:WebGLTexture, opacity:number=1, is360:boolean=false) : void {
+	_drawTile(texture?:WebGLTexture, opacity:number=1, is360:boolean=false) : void {
 		const gl = this.gl;
 		// Set uniforms only when values change
 		const noTexture = texture ? 0 : 1;
@@ -467,7 +467,7 @@ export class WebGL {
 	 * Loads a watermark texture from a URL.
 	 * @param url The watermark image URL.
 	 */
-	loadWatermark(url: string, wmOpacity?:number) : void {
+	_loadWatermark(url: string, wmOpacity?:number) : void {
 		if(url === this.#wmUrl) return; // Already loaded/loading
 
 		this.#wmUrl = url;
@@ -492,7 +492,7 @@ export class WebGL {
 
 			// Create texture from canvas
 			if(this.#wmTexture) this.gl.deleteTexture(this.#wmTexture);
-			this.#wmTexture = this.getTexture(c); // getTexture supports HTMLCanvasElement
+			this.#wmTexture = this._getTexture(c); // getTexture supports HTMLCanvasElement
 
 			// Configure repeating texture
 			const gl = this.gl;
@@ -521,7 +521,7 @@ export class WebGL {
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 		// Set identity matrix for screen-space rendering
-		gl.uniformMatrix4fv(this.pmLoc, false, this.#wmMatrix);
+		gl.uniformMatrix4fv(this._pmLoc, false, this.#wmMatrix);
 
 		// Set texture
 		gl.activeTexture(gl.TEXTURE0);
