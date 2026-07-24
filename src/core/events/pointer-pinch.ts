@@ -42,6 +42,7 @@ export class PointerPinchHandler {
 	 */
 	start = (e: PointerEvent): void => {
 		if (e.pointerType !== 'touch') return;
+		if (e.target != this.#ctx._el) return;
 
 		this.#ctx._activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
