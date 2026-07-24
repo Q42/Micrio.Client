@@ -95,11 +95,17 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		si.ended = false;
 		si.currentTime = 0;
 
-		if (si.micrioId && micrio.$current?.id !== si.micrioId) {
-			await micrio.open(si.micrioId);
+		const marker = DataLoader._getStepMarker(si);
+
+		let startView: Models.Camera.View | undefined;
+		if (marker?.videoTour) {
+			const timeline = marker.videoTour.i18n?.[micrio.lang]?.timeline;
+			if (timeline?.length) startView = timeline[0].rect;
 		}
 
-		const marker = DataLoader._getStepMarker(si);
+		if (si.micrioId && micrio.$current?.id !== si.micrioId) {
+			await micrio.open(si.micrioId, { startView });
+		}
 
 		if (this.#mediaEl) {
 			this.#mediaEl.remove();
