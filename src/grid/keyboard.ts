@@ -90,7 +90,7 @@ export function hookGridKeys(grid: Grid) : void {
 			const [vx, vy] = grid.image.camera.getCoo(e.clientX, e.clientY, true);
 			const img = grid._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 			if (!img) return;
-			grid.clickCell(img);
+			grid._clickCell(img);
 		});
 	}
 }

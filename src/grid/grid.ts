@@ -116,7 +116,7 @@ export class Grid extends MicrioElement {
 
 		if(this._clickable) {
 			this.addEventListener('click', e => {
-				this.clickCell((e.target as HTMLElement)?.dataset.id);
+				this._clickCell((e.target as HTMLElement)?.dataset.id);
 			});
 
 			const placeOrRemove = (t:unknown) => { if(t) this.#removeGrid(); else this.#placeGrid(); };
@@ -396,7 +396,7 @@ export class Grid extends MicrioElement {
 		_engine.render();
 	}
 
-	insideGrid() : boolean {
+	_insideGrid() : boolean {
 		const c = this.micrio.$current;
 		return c == this.image || (!!c && this._imageMap.has(c.id));
 	}
@@ -415,7 +415,7 @@ export class Grid extends MicrioElement {
 		});
 	}
 
-	async flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
+	async _flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
 		const spl = tag?.split('|').map(s => s.trim());
 		const name = spl?.[0]??'';
 		const images = !name ? this._images : this._images.filter(i => !!i.$data?.markers?.find(m => m.tags?.includes(name)));
@@ -456,7 +456,7 @@ export class Grid extends MicrioElement {
 		this.micrio._engine._gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
 	}
 
-	clickCell(_img?:MicrioImage|string) : void {
+	_clickCell(_img?:MicrioImage|string) : void {
 		const img = typeof _img == 'string' ? this._images.find(i => i.id == _img) : _img;
 		if(!this._clickable || !img) return;
 		this._buttons.forEach(b => b.classList.remove('focussed'));
@@ -543,7 +543,7 @@ export class Grid extends MicrioElement {
 		return this.set(input, { noHistory: true, keepGrid: true, duration: .5, cover });
 	}
 
-	getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
+	_getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
 		const current = this.micrio.$current;
 		if (current && this._images.some(i => i === current)) return current;
 		if (this._panZoom == 'grid') return this.image;
@@ -551,15 +551,6 @@ export class Grid extends MicrioElement {
 		return this._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 	}
 
-	getRelativeView(image:MicrioImage, view:Models.Camera.View) : Models.Camera.View {
-		const a = image.opts.area ?? [0,0,1,1];
-		return [
-			a[0] + a[2] * view[0],
-			a[1] + a[3] * view[1],
-			a[2] * view[2],
-			a[3] * view[3]
-		]
-	}
 }
 
 customElements.define(Grid.tag, Grid);

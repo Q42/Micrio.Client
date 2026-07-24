@@ -491,7 +491,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;
 			isInGrid = !!gridImage;
 			c = bundle.id ? gridImage : this._canvases[0];
-			if(isInGrid && !grid.insideGrid()) this.current.set(this._canvases[0]);
+			if(isInGrid && !grid._insideGrid()) this.current.set(this._canvases[0]);
 		}
 		if(!c) {
 			if(this._canvases.length) {

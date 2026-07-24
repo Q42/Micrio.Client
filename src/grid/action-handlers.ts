@@ -63,11 +63,11 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 			},
 
 			[GridActionType.focusTagged]: (data, duration) => {
-				grid.flyToMarkers(data, duration);
+				grid._flyToMarkers(data, duration);
 			},
 
 			[GridActionType.focusWithTagged]: (data, duration) => {
-				grid.flyToMarkers(data, duration, true);
+				grid._flyToMarkers(data, duration, true);
 			},
 
 			[GridActionType.reset]: (_data, duration) => {
