@@ -1,6 +1,5 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$core/image';
 import type { MicrioTour } from '$tour/tour';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
@@ -57,8 +56,8 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const micrio = this._getMicrio();
 		if (!micrio || !marker) return;
 
-		const markerImages = MicrioElement._markerImages as Map<string, MicrioImage>;
-		const image = marker.id ? markerImages.get(marker.id) as MicrioImage : undefined;
+		const markerImages = MicrioElement._markerImages;
+		const image = marker.id ? markerImages.get(marker.id) : undefined;
 		if (!image) return;
 
 		const $tour = get(micrio.state.tour);
@@ -69,8 +68,8 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const canMinimize = settings.canMinimizePopup;
 
 		const markerTour = $tour && 'steps' in $tour ? $tour as Models.ImageData.MarkerTour & { next?(): void; prev?(): void } : undefined;
-		const tourSourceImage = markerTour ? micrio._canvases.find((c: MicrioImage) =>
-			c.$data?.markerTours?.find((t: any) => t.id === markerTour.id)
+		const tourSourceImage = markerTour ? micrio._canvases.find(c =>
+			c.$data?.markerTours?.find(t => t.id === markerTour.id)
 		) : undefined;
 		const tsSettings = tourSourceImage?.$settings._markers;
 		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0;

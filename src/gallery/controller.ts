@@ -248,7 +248,6 @@ export class Gallery {
 
 	_attach(parent: MicrioImage): void {
 		this.#parent = parent;
-		(parent as any).__gallery = this;
 
 		if (this._config.type == 'grid') {
 			const micrio = parent.engine.micrio;

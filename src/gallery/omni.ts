@@ -145,8 +145,8 @@ export class OmniUI {
 		const omniCfg = image.$settings.omni;
 		const omniNumLayers = omniCfg?.layers?.length ?? 1;
 		if (omniNumLayers > 1) {
-			const layerNames = omniCfg!.layers!.map((l: any, i: number) => ({
-				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, any]) => [lang, { title: name ?? 'Layer ' + (i + 1) }]))
+			const layerNames = omniCfg!.layers!.map((l,i) => ({
+				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? 'Layer ' + (i + 1) }]))
 			}));
 			const langs = Object.keys(info.revision ?? {}) as string[];
 			if (!langs.length) {
@@ -163,22 +163,22 @@ export class OmniUI {
 			}
 			const printLayerMenu = () => {
 				const currentLayer = get(image.state.layer);
-				image.data.update((d: any) => {
+				image.data.update(d => {
 					if (!d) d = {};
 					if (!d.pages) d.pages = [];
-					d.pages = d.pages.filter((p: any) => !p.id?.startsWith('_omni-layers'));
+					d.pages = d.pages.filter(p => !p.id?.startsWith('_omni-layers'));
 					d.pages.push({
 						id: '_omni-layers-' + currentLayer,
 						i18n: layerNames[currentLayer].i18n,
 						icon: icons.layerGroup,
-						children: layerNames.map((title: any, i: number) => ({
+						children: layerNames.map((title, i) => ({
 							id: 'omni-layer-' + i,
 							i18n: title.i18n,
 							action: () => {
 								image.state.layer.set(i);
 								preload(get(image.state.layer) * Math.floor(totalFrames / omniNumLayers));
 							}
-						})).filter((p: any) => p.id != 'omni-layer-' + currentLayer)
+						})).filter(p => p.id != 'omni-layer-' + currentLayer)
 					});
 					return d;
 				});

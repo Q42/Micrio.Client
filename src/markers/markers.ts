@@ -92,7 +92,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 							id, x: cx, y: cy, type: 'cluster', title: g.length + '',
 							view: [minX, minY, Math.max(0.1, maxX - minX), Math.max(0.1, maxY - minY)],
 							data: {}, popupType: 'none', tags: []
-						} as any,
+						},
 						image
 					},
 					parent: this

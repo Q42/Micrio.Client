@@ -65,7 +65,7 @@ class MicrioToolbar extends MicrioElement {
 		const $i18n = get(i18n);
 		const originalId = (micrio.$current as MicrioImage)?.id;
 
-		const hasTourLang = (t: any): boolean => !!t.i18n?.[$_lang];
+		const hasTourLang = (t:Models.ImageData.Tour): boolean => !!t.i18n?.[$_lang];
 		const hasPageLang = (p: Models.ImageData.Menu): boolean => !!p.i18n?.[$_lang];
 		const hidden = !!$tour || !!$marker || !!$popover;
 
@@ -79,8 +79,8 @@ class MicrioToolbar extends MicrioElement {
 				.concat(this.#data.pages.filter(p => p.id?.startsWith('_')))
 			: undefined;
 		const empty = !(mainPages?.length || hasMarkerTours || hasVideoTours);
-		const pageIds = (mainPages || []).map((p: any) => p.id).join(',');
-		const tourIds = markerTours.map((t: any) => t.id).join(',') + '|' + videoTours.map((t: any) => t.id).join(',');
+		const pageIds = (mainPages || []).map(p => p.id).join(',');
+		const tourIds = markerTours.map(t => t.id).join(',') + '|' + videoTours.map(t => t.id).join(',');
 		const key = [pageIds, tourIds, hidden, $_lang, this.#isMobile, this.#shown].join('::');
 		if (!this._checkRenderKey(key)) return;
 

@@ -1,6 +1,5 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 
@@ -23,8 +22,8 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		if (!marker) return;
 
 		const micrio = this._getMicrio();
-		const markerImages = MicrioElement._markerImages as Map<string, MicrioImage>;
-		const image = marker.id ? markerImages.get(marker.id) as MicrioImage : undefined;
+		const markerImages = MicrioElement._markerImages;
+		const image = marker.id ? markerImages.get(marker.id) : undefined;
 		if (!micrio || !image) return;
 
 		const $_lang = get(micrio._lang);

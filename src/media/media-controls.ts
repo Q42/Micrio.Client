@@ -1,3 +1,4 @@
+import type { MicrioButton } from '$ui/button';
 import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
@@ -30,7 +31,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 	#props: MediaControlsProps = { paused: true, ended: false };
 	#wrapperEl!: HTMLElement;
-	#playBtn: any;
+	#playBtn!: MicrioButton;
 	#muteBtnEl!: MicrioElement;
 	#subBtnEl!: MicrioElement;
 	#fsBtnEl!: MicrioElement;
@@ -68,7 +69,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 			this.#playBtn = createElement('micrio-button', {
 				parent: this.#wrapperEl,
-			});
+			}) as MicrioButton;
 
 			if (p.hasAudio) {
 				this.#muteBtnEl = createElement('micrio-button', {

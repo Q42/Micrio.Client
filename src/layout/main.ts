@@ -55,7 +55,7 @@ export interface MainProps {
 }
 import './main.css';
 
-class MicrioMain extends MicrioElement<MainProps> {
+export class MicrioMain extends MicrioElement<MainProps> {
 	static tag = 'micrio-main';
 
 	#props: MainProps = {};
@@ -146,11 +146,11 @@ class MicrioMain extends MicrioElement<MainProps> {
 						switch (autoStart.type) {
 							case 'marker': c.state.marker.set(autoStart.id); break;
 							case 'markerTour': {
-								const mt = d.markerTours?.find((t: any) => t.id == autoStart.id);
+								const mt = d.markerTours?.find(t => t.id == autoStart.id);
 								if (mt) micrio.state.tour.set(mt); break;
 							}
 							case 'tour': {
-								const vt = d.tours?.find((t: any) => t.id == autoStart.id);
+								const vt = d.tours?.find(t => t.id == autoStart.id);
 								if (vt) micrio.state.tour.set(vt); break;
 							}
 							case 'page': {
@@ -214,7 +214,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const video = _360 ? $settings!._360!.video : undefined;
 		const videoSrc = video?.src;
 		this.classList.toggle('is360', _360);
-		const positionalAudio = $data?.markers?.filter((m: any) => !!m.positionalAudio);
+		const positionalAudio = $data?.markers?.filter(m => !!m.positionalAudio);
 		const hasAudio = !!$data?.music?.items.length || !!positionalAudio?.length;
 		const hasTourOrMarker = $tour || $marker;
 

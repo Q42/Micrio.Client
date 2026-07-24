@@ -19,7 +19,7 @@ export interface ButtonProps {
 }
 import './button.css';
 
-class MicrioButton extends MicrioElement<ButtonProps> {
+export class MicrioButton extends MicrioElement<ButtonProps> {
 	static tag = 'micrio-button';
 
 	#rootEl!: HTMLElement;

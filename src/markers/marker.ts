@@ -35,7 +35,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const micrio = this._getMicrio();
 		if (!micrio || !image || !marker) return;
 
-		const markerImages = MicrioElement._markerImages as Map<string, MicrioImage>;
+		const markerImages = MicrioElement._markerImages;
 		if (!markerImages.has(marker.id) && image) markerImages.set(marker.id, image);
 
 		const events = micrio.events;

@@ -1,5 +1,6 @@
 import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
+import type { Engine } from '$render/engine';
 import { getEasing } from '$render/easing';
 
 export class SwipeGallery {
@@ -39,11 +40,11 @@ export class SwipeGallery {
 		this.#getCurrentPage = getCurrentPage;
 	}
 
-	async setup(startImageIdx:number, parent:MicrioImage, engine:any):Promise<void> {
+	async setup(startImageIdx:number, parent:MicrioImage, engine:Engine):Promise<void> {
 		this.#currentImageIdx = startImageIdx;
 
 		engine._gridTransitionTimingFunction = getEasing('ease-out');
-		await Promise.allSettled(this.#images.map(d => engine.addChild(d as MicrioImage, parent)));
+		await Promise.allSettled(this.#images.map(d => engine._addChild(d as MicrioImage, parent)));
 
 		const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
 		for (let i = 0; i < this.#images.length; i++) {

@@ -1,12 +1,13 @@
 import type { Readable, Subscriber } from './store';
 import { defer, skipFirst } from './store';
 import type { HTMLMicrioElement } from './element';
+import type { MicrioImage } from './image';
 
 const PROVIDES = Symbol('micrio-provides');
 
 export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	static tag: string;
-	static _markerImages: Map<string, any> = new Map();
+	static _markerImages: Map<string, MicrioImage> = new Map();
 
 	#_unsubs: (() => void)[] = [];
 	#_renderKey: string | null = null;

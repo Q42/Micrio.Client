@@ -1,6 +1,7 @@
 import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
 import type { Camera } from './camera';
+import type { MicrioMain } from '$layout/main';
 
 import { deepCopy } from '$utils/object';
 import { fetchJson } from '$utils/fetch';
@@ -112,7 +113,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** The root MicrioMain UI component instance.
 	 * @internal
 	*/
-	_ui:any;
+	_ui?:MicrioMain;
 
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
 	defaultSettings?: Partial<Models.ImageInfo.Settings>;
@@ -273,12 +274,10 @@ export class HTMLMicrioElement extends MicrioElement {
 		});
 
 		const onActivity = () => this.#idle.activity();
-		this.addEventListener('pointermove', onActivity, { passive: true });
-		this.addEventListener('pointerdown', onActivity, { passive: true });
-		this.addEventListener('wheel', onActivity, { passive: true });
-		this.addEventListener('focusin', onActivity, { passive: true });
+		for(const e of ['pointermove','pointerdown','wheel','focusin']) {
+			this.addEventListener(e, onActivity, { passive: true });
+		}
 		window.addEventListener('keydown', onActivity);
-
 		this.#idle.activity();
 	}
 
@@ -401,8 +400,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	#printUI(noHTML:boolean, noLogo:boolean) : void {
 		if(!this._ui) {
-			const el = createElement('micrio-main', { setProps: {noHTML, noLogo}, parent: this });
-			this._ui = el;
+			this._ui = createElement('micrio-main', { setProps: {noHTML, noLogo}, parent: this }) as MicrioMain;
 		} else {
 			this._ui._setProps?.({noHTML, noLogo});
 		}
