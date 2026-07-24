@@ -5,7 +5,7 @@ import { i18n } from '$core/i18n/strings';
 
 /** Custom element providing zoom in / zoom out buttons */
 class MicrioZoomButtons extends MicrioElement {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-zoom-buttons';
 
 	#btnIn!: MicrioElement;

@@ -10,6 +10,7 @@ export interface EventsProps {
 
 /** Custom element that dispatches tour-event custom events at defined media cue points. */
 class MicrioEvents extends MicrioElement<EventsProps> {
+	/* @internal */
 	static tag = 'micrio-events';
 
 	#props: EventsProps = { events: [], duration: 0 };

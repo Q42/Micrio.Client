@@ -17,7 +17,7 @@ import './marker-popup.css';
 
 /** Custom element rendering a marker's popup overlay with close, minimize, and tour navigation controls. */
 class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-marker-popup';
 
 	#props: MarkerPopupProps = { marker: null! };

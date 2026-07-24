@@ -25,7 +25,7 @@ import './gallery.css';
  * and omni (dial + swipe gesture + layer menu).
  */
 class MicrioGallery extends MicrioElement<GalleryProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-gallery';
 
 	#props: GalleryProps = {};

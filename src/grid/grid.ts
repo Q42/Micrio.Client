@@ -19,7 +19,7 @@ import './grid.css';
 
 /** The main Grid controller that arranges {@link MicrioImage} instances into a CSS grid layout. */
 export class Grid extends MicrioElement {
-	/** The custom element tag name. */
+	/** The custom element tag name. @internal */
 	static tag = 'micrio-grid';
 
 	/** @internal */

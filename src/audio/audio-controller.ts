@@ -78,7 +78,7 @@ class AudioPlaylist {
 
 /** Custom element that manages spatial audio, playlist playback, and user interaction for Micrio images. */
 class MicrioAudioController extends MicrioElement {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-audio-controller';
 
 	#playlist: AudioPlaylist | undefined;

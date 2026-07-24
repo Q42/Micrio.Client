@@ -22,7 +22,7 @@ import './marker.css';
 
 /** Custom element representing a single interactive marker (default, link, media, or cluster type). */
 class MicrioMarker extends MicrioElement<MarkerProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-marker';
 
 	#props: MarkerProps = { marker: null! };

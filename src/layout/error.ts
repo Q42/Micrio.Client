@@ -10,7 +10,7 @@ import './error.css';
 
 /** Custom element displaying an error message */
 class MicrioError extends MicrioElement<ErrorProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-error';
 
 	/** @internal */

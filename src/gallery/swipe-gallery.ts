@@ -14,7 +14,7 @@ import './swipe-gallery.css';
 
 /** Custom element that renders a swipe gallery from asset data with captions. */
 class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-swipe-gallery';
 
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };

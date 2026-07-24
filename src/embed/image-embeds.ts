@@ -13,7 +13,7 @@ import './image-embeds.css';
 
 /** Custom element that renders all embeds for a Micrio image by watching the image data for embed definitions. */
 class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-image-embeds';
 
 	#props: ImageEmbedsProps = { image: null! };

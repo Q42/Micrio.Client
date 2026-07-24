@@ -17,7 +17,7 @@ import './progress-circle.css';
 
 /** Web component that displays a circular progress indicator. */
 class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
-	/** The custom element tag name. */
+	/** The custom element tag name. @internal */
 	static tag = 'micrio-progress-circle';
 
 	#props: ProgressCircleProps = {};

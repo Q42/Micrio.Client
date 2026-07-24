@@ -22,7 +22,7 @@ import './button.css';
 
 /** Web component for rendering icon/text buttons and links. @internal */
 export class MicrioButton extends MicrioElement<ButtonProps> {
-	/** The custom element tag name. */
+	/** The custom element tag name. @internal */
 	static tag = 'micrio-button';
 
 	#rootEl!: HTMLElement;

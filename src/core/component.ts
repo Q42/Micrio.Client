@@ -11,7 +11,7 @@ const PROVIDES = Symbol('micrio-provides');
  * and a context (provide/inject) system for parent-child communication.
  */
 export abstract class MicrioElement<_P = {}> extends HTMLElement {
-	/** The custom element tag name registered via `customElements.define`. */
+	/** The custom element tag name registered via `customElements.define`. @internal */
 	static tag: string;
 	/** @internal */
 	static _markerImages: Map<string, MicrioImage> = new Map();

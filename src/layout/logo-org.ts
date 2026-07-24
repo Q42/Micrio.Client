@@ -21,7 +21,7 @@ import './logo-org.css';
 
 /** Custom element displaying the organisation's logo as a linked image */
 class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-logo-org';
 
 	#props: LogoOrgProps = { organisation: null! };

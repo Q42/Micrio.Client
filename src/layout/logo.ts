@@ -4,7 +4,7 @@ import './logo.css';
 
 /** Custom element displaying the Micrio logo with a loading state indicator */
 class MicrioLogo extends MicrioElement {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-logo';
 
 	#a!: HTMLAnchorElement;

@@ -24,7 +24,7 @@
  * console.log(micrio.$current.$data);
  * ```
  *
- * An example of setting and subscribing to the {@link Micrio.MicrioImage.data} writable store:
+ * An example of setting and subscribing to the {@link MicrioImage.data} writable store:
  *
  * ```js
  *
@@ -54,16 +54,16 @@
  * | Property   | Direct value getter | Type | Description |
  * | ----------- | ----------- | ------------- | ---- |
  * | **`<micr-io>` Element** |||
- * | .{@link Micrio.HTMLMicrioElement.current} | {@link Micrio.HTMLMicrioElement.$current} | {@link Writable}&lt;{@link Micrio.MicrioImage}&gt; | The current active and shown {@link Micrio.MicrioImage} |
+ * | .{@link HTMLMicrioElement.current} | {@link HTMLMicrioElement.$current} | {@link Writable}&lt;{@link MicrioImage}&gt; | The current active and shown {@link MicrioImage} |
  * | **`<micr-io>.state` controller** |||
- * | .{@link Micrio.State.Main.tour} | {@link Micrio.State.Main.$tour} | {@link Writable}&lt;{@link Micrio.Models.ImageData.MarkerTour} &#124; {@link Micrio.Models.ImageData.VideoTour}&gt; | The current running VideoTour or MarkerTour |
- * | .{@link Micrio.State.Main.marker} | {@link Micrio.State.Main.$marker} | {@link Writable}&lt;{@link Micrio.Models.ImageData.Marker}&gt; | The current opened marker in the current opened {@link Micrio.MicrioImage} |
+ * | .{@link State.Main.tour} | {@link State.Main.$tour} | {@link Writable}&lt;{@link Models.ImageData.MarkerTour} &#124; {@link Models.ImageData.VideoTour}&gt; | The current running VideoTour or MarkerTour |
+ * | .{@link State.Main.marker} | {@link State.Main.$marker} | {@link Writable}&lt;{@link Models.ImageData.Marker}&gt; | The current opened marker in the current opened {@link MicrioImage} |
  * **Individual `MicrioImage`** |||
- * | .{@link Micrio.MicrioImage.info} | {@link Micrio.MicrioImage.$info} | {@link Readable}&lt;{@link Micrio.Models.ImageInfo}&gt; | The static image base info |
- * | .{@link Micrio.MicrioImage.data} | {@link Micrio.MicrioImage.$data} | {@link Writable}&lt;{@link Micrio.Models.ImageData}&gt; | The image data (markers, tours, etc) |
+ * | .{@link MicrioImage.info} | {@link MicrioImage.$info} | {@link Readable}&lt;{@link Models.ImageInfo}&gt; | The static image base info |
+ * | .{@link MicrioImage.data} | {@link MicrioImage.$data} | {@link Writable}&lt;{@link Models.ImageData}&gt; | The image data (markers, tours, etc) |
  * **`MicrioImage.state` controller** |||
- * | .{@link Micrio.State.Image.view} | {@link Micrio.State.Image.$view} | {@link Writable}&lt;{@link Micrio.Models.Camera.View}&gt; | The current viewport |
- * | .{@link Micrio.State.Main.marker} | {@link Micrio.State.Main.$marker} | {@link Writable}&lt;{@link Micrio.Models.ImageData.Marker}&gt; | The current opened marker of this image |
+ * | .{@link State.Image.view} | {@link State.Image.$view} | {@link Writable}&lt;{@link Models.Camera.View}&gt; | The current viewport |
+ * | .{@link State.Main.marker} | {@link State.Main.$marker} | {@link Writable}&lt;{@link Models.ImageData.Marker}&gt; | The current opened marker of this image |
  *
  *
  */

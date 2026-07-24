@@ -15,7 +15,7 @@ export interface AudioLocationProps {
 
 /** Custom element that renders a spatial audio source positioned at a marker location in the image. */
 class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-audio-location';
 
 	#props: AudioLocationProps = { marker: null!, ctx: null!, is360: false };

@@ -14,7 +14,7 @@ import './serial-tour.css';
 
 /** Web component that plays a sequential tour with progress bars and chapter navigation. */
 class MicrioSerialTour extends MicrioElement<SerialTourProps> {
-	/** The custom element tag name. */
+	/** The custom element tag name. @internal */
 	static tag = 'micrio-serial-tour';
 
 	#props: SerialTourProps = { tour: null! };

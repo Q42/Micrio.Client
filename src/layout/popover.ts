@@ -17,7 +17,7 @@ import './popover.css';
 
 /** Custom element rendering a modal popover for pages, marker content, and galleries */
 class MicrioPopover extends MicrioElement<PopoverProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-popover';
 
 	#props: PopoverProps = { popover: null! };

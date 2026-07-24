@@ -15,7 +15,7 @@ import './minimap.css';
 
 /** Custom element rendering a draggable minimap overview of the image */
 class MicrioMinimap extends MicrioElement<MinimapProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-minimap';
 
 	#props: MinimapProps = { image: null! };

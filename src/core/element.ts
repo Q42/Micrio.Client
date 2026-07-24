@@ -53,7 +53,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** The Micrio library version number. */
 	static VERSION:string;
 
-	/** The custom element tag name registered via `customElements.define`. */
+	/** The custom element tag name registered via `customElements.define`. @internal */
 	static tag = 'micr-io';
 
 	/** Flag indicating if the initial print/setup has occurred.

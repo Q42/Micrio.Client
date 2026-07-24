@@ -10,6 +10,7 @@ export interface FullscreenProps {
 
 /** Custom element that renders a fullscreen toggle button for a given element. */
 class MicrioFullscreen extends MicrioElement<FullscreenProps> {
+	/* @internal */
 	static tag = 'micrio-fullscreen';
 
 	#props: Partial<FullscreenProps> = {};

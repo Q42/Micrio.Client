@@ -63,7 +63,7 @@ import './main.css';
 
 /** Main layout custom element that orchestrates all UI layers (logo, controls, markers, popups, etc.) @internal */
 export class MicrioMain extends MicrioElement<MainProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-main';
 
 	#props: MainProps = {};

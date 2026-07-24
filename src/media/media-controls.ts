@@ -29,6 +29,7 @@ import './media-controls.css';
 
 /** Custom element that renders play/pause, seek bar, mute, subtitles, and fullscreen controls for media playback. */
 class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
+	/* @internal */
 	static tag = 'micrio-media-controls';
 
 	#props: MediaControlsProps = { paused: true, ended: false };

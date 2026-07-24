@@ -12,7 +12,7 @@ import './details.css';
 
 /** Custom element displaying image details (title, description, copyright, source link) */
 class MicrioDetails extends MicrioElement<DetailsProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-details';
 
 	#props: Partial<DetailsProps> = {};

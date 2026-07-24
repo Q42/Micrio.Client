@@ -18,7 +18,7 @@ import './tour.css';
 
 /** Web component that displays marker-based or video tours with navigation controls. @internal */
 export class MicrioTour extends MicrioElement<TourProps> {
-	/** The custom element tag name. */
+	/** The custom element tag name. @internal */
 	static tag = 'micrio-tour';
 
 	#props: TourProps = { tour: null! };

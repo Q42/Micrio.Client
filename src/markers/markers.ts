@@ -15,7 +15,7 @@ import './markers.css';
 
 /** Custom element that manages all markers and waypoints for a MicrioImage, including clustering and spatial links. */
 class MicrioMarkers extends MicrioElement<MarkersProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-markers';
 
 	#props: MarkersProps = { image: null! };

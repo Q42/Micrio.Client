@@ -20,7 +20,7 @@ import './marker-content.css';
 
 /** Custom element that renders a marker's rich content (title, body, media, images, embeds). */
 class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-marker-content';
 
 	/** @internal */

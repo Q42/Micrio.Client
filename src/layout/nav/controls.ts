@@ -16,7 +16,7 @@ import './controls.css';
 
 /** Custom element rendering bottom navigation controls (mute, language, share, zoom, fullscreen) */
 class MicrioControls extends MicrioElement<ControlsProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-controls';
 
 	#props: ControlsProps = {};

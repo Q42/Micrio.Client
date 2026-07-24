@@ -8,7 +8,7 @@ import type { IconName } from '$types/icon-name';
 /**
   * # Base image data
   * 
-  * The MicrioData.ImageInfo.ImageInfo JSON data object, used to pass to {@link HTMLMicrioElement.open}.
+  * The MicrioData.ImageInfo.ImageInfo JSON data object, containing all basic image properties.
   * 
   * The static image information, such as original resolution, image type, title, and all non-language specific **settings** ({@link ImageInfo.Settings}), such as initial viewport, camera behavior, and 360&deg; settings.
   * 
@@ -133,7 +133,7 @@ export namespace ImageInfo {
 		fontFamily?: string;
 	};
 
-	/** Micrio image settings, which is on load included as {@link ImageInfo}`.settings`. */
+	/** Micrio image settings */
 	export type Settings = {
 		/** The starting viewport */
 		view?: Camera.View;

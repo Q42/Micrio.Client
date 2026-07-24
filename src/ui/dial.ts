@@ -11,7 +11,7 @@ import './dial.css';
 
 /** Web component for a 360-degree rotation dial control. */
 class MicrioDial extends MicrioElement<DialProps> {
-	/** The custom element tag name. */
+	/** The custom element tag name. @internal */
 	static tag = 'micrio-dial';
 
 	#props: DialProps = { currentRotation: 0, frames: 1 };

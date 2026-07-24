@@ -21,6 +21,7 @@ import './subtitles.css';
 
 /** Custom element that fetches and renders VTT subtitles synchronized with media playback. */
 class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
+	/* @internal */
 	static tag = 'micrio-subtitles';
 
 	#props: SubtitlesProps = {};

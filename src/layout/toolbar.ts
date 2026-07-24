@@ -11,7 +11,7 @@ import { randomUUID } from '$utils/id';
 
 /** Custom element rendering the top toolbar with navigation menus and tours */
 class MicrioToolbar extends MicrioElement {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-toolbar';
 
 	#data: Models.ImageData.ImageData | undefined;

@@ -21,7 +21,7 @@ import { randomUUID } from '$utils/id';
 
 /** Custom element that renders an embed (image, video, iframe, or GL-embedded Micrio image) positioned within a Micrio scene. */
 class MicrioEmbed extends MicrioElement<EmbedProps> {
-	/** HTML tag name for this custom element. */
+	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-embed';
 
 	#props: EmbedProps = { embed: null!, image: null! };

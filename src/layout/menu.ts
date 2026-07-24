@@ -28,7 +28,7 @@ import './menu.css';
 
 /** Custom element rendering a hierarchical menu tree */
 class MicrioMenu extends MicrioElement<MenuProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-menu';
 
 	#props: MenuProps = { menu: null!, originalId: null };

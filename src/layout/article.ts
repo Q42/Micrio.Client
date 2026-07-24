@@ -9,7 +9,7 @@ import './article.css';
 
 /** Custom element displaying an article with HTML content */
 class MicrioArticle extends MicrioElement<ArticleProps> {
-	/** The custom element tag name */
+	/** The custom element tag name @internal */
 	static tag = 'micrio-article';
 
 	/** @internal */

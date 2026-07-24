@@ -39,6 +39,7 @@ import './media.css';
 
 /** Custom element that renders and manages audio/video media, supporting YouTube, Vimeo, Cloudflare HLS, native HTML5, and video tours with integrated controls and subtitles. */
 class MicrioMedia extends MicrioElement<MediaProps> {
+	/* @internal */
 	static tag = 'micrio-media';
 
 	#videoEl: HTMLVideoElement | HTMLAudioElement | undefined;
