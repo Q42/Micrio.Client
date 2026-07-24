@@ -77,8 +77,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		const grid = image.grid;
 		if (grid) {
-			const focused = grid.focussed;
-			const markersShown = grid.markersShown;
+			const focused = grid._focussed;
+			const markersShown = grid._markersShown;
 			const updateInactive = () => {
 				const f = get(focused);
 				const ms = markersShown ? get(markersShown) : undefined;

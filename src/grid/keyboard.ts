@@ -7,7 +7,7 @@ const ARROW_DIR = {
 } as const;
 
 function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
-	const cells = grid.current.map((img, i) => ({
+	const cells = grid._current.map((img, i) => ({
 		img, i,
 		cx: img.opts.area![0] + img.opts.area![2] / 2,
 		cy: img.opts.area![1] + img.opts.area![3] / 2,
@@ -43,7 +43,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 
 function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 	return (e: KeyboardEvent) => {
-		if (!grid.current.length || !grid.clickable) return;
+		if (!grid._current.length || !grid._clickable) return;
 
 		if (e.key == 'Escape') {
 			grid._buttons.forEach(btn => btn.classList.remove('focussed'));
@@ -67,17 +67,17 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 			else { btn.blur(); btn.classList.remove('focussed'); }
 		});
 
-		if (grid.clickable == 'zoom' && !grid.image.camera.isZoomedOut()) {
+		if (grid._clickable == 'zoom' && !grid.image.camera.isZoomedOut()) {
 			grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid._aniDurationIn * 1000, limit: false});
 		}
 	};
 }
 
 export function hookGridKeys(grid: Grid) : void {
-	Grid.handlingKeys = true;
+	Grid._handlingKeys = true;
 	document.addEventListener('keydown', createGridKeyHandler(grid));
 
-	if (grid.panZoom == 'grid' && grid.clickable) {
+	if (grid._panZoom == 'grid' && grid._clickable) {
 		let clickDown:{x:number;y:number}|undefined = {x:0, y:0};
 		grid.micrio.addEventListener('pointerdown', (e: PointerEvent) => {
 			clickDown = {x: e.clientX, y: e.clientY};
@@ -88,7 +88,7 @@ export function hookGridKeys(grid: Grid) : void {
 			clickDown = undefined;
 			if (dist > 10) return;
 			const [vx, vy] = grid.image.camera.getCoo(e.clientX, e.clientY, true);
-			const img = grid.current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
+			const img = grid._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 			if (!img) return;
 			grid.clickCell(img);
 		});

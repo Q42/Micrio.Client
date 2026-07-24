@@ -22,7 +22,7 @@ export function setupBehindTransition(
 	opts.forceAreaAni = true;
 	const vW = isDelayed ? 1/images.length : 1;
 	let c = 0;
-	grid.images.forEach(i => {
+	grid._images.forEach(i => {
 		i.camera.setCoverLimit(isLim);
 		if(images.find(e => e.id == i.id)) {
 			i.camera.setArea([0,0,focussed?.id == i.id ? 1 : vW,1], {noDispatch: true, direct: true});

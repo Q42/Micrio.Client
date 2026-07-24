@@ -23,8 +23,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 		const { switching, state: micrioState } = micrio;
 		const grid = micrio.canvases[0]?.grid;
-		const focussed = grid?.focussed;
-		const gridMarkersShown = grid?.markersShown;
+		const focussed = grid?._focussed;
+		const gridMarkersShown = grid?._markersShown;
 
 		this._addCleanup(image._viewport.subscribe((v: Models.Camera.View) => {
 			if (!v || v.length < 4) return;

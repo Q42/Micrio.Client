@@ -495,7 +495,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		let isInGrid:boolean = false;
 		const grid = this.canvases[0]?.grid;
 		if(!c && grid) {
-			const gridImage = bundle.id ? grid.images.find(img => img.id == bundle.id) : undefined;
+			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;
 			isInGrid = !!gridImage;
 			c = bundle.id ? gridImage : this.canvases[0];
 			if(isInGrid && !grid.insideGrid()) this.current.set(this.canvases[0]);
@@ -554,7 +554,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Set current / grid ────────────────────────────────────────────────
 
-		if(isInGrid && (!opts.gridView || !grid?.current.find(img => img.id == bundle.id))) {
+		if(isInGrid && (!opts.gridView || !grid?._current.find(img => img.id == bundle.id))) {
 			grid?.gridFocus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
 		}
 		else {
