@@ -32,7 +32,6 @@ import '$markers/markers';
 import '$ui/dial';
 import '$layout/nav/minimap';
 import '$audio/audio-location';
-import '$media/events';
 import '$embed/embed';
 import '$embed/image-embeds';
 import '$tour/tour';

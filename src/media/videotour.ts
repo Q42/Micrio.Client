@@ -80,12 +80,14 @@ export class VideoTourInstance {
 		this.#unhookEvents = !data.keepInteraction && this.#micrio.events.$enabled;
 		data.instance = this;
 		this.read();
+		this.#initEvents();
 		this.#micrio.events._dispatch('videotour-start', this.#data);
 	}
 
 	/** Cleans up the tour instance, stops animations, and re-hooks events if necessary. */
 	destroy(): void {
 		if (this.#unhookEvents) this.#micrio.events.enabled.set(true);
+		this.#deactivateEvents();
 		if (!this.#playing) return;
 		this.#image.camera.stop();
 		this.#micrio.removeAttribute('data-tour-active');
@@ -112,6 +114,46 @@ export class VideoTourInstance {
 			});
 		}
 		if (this.#startedAt && !this.#playing) this.progress = this.currentTime;
+	}
+
+	/** Initializes event data by clamping end times to duration. @internal */
+	#initEvents(): void {
+		const events = this.#content.events;
+		if (!events?.length) return;
+		const duration = this.duration;
+		for (const e of events) {
+			e.start = Number(e.start || 0);
+			e.end = Math.min(Number(e.end || 0), duration);
+		}
+	}
+
+	/** Deactivates any currently active events, dispatching a final `tour-event`. @internal */
+	#deactivateEvents(): void {
+		const events = this.#content.events;
+		if (!events?.length) return;
+		for (const e of events) {
+			if (e.active) {
+				e.active = false;
+				this.#micrio.events._dispatch('tour-event', { ...e });
+			}
+		}
+	}
+
+	/**
+	 * Checks all tour events against the given time and dispatches `tour-event`
+	 * when an event becomes active or inactive.
+	 * Called externally during playback (e.g. from MicrioMedia time updates).
+	 */
+	updateEvents(time: number): void {
+		const events = this.#content.events;
+		if (!events?.length) return;
+		for (const e of events) {
+			const active = e.start <= time && e.end >= time;
+			if (active != !!e.active) {
+				e.active = active;
+				this.#micrio.events._dispatch('tour-event', { ...e });
+			}
+		}
 	}
 
 	/** Getter for the total duration of the tour in seconds. */
@@ -300,6 +342,7 @@ export class VideoTourInstance {
 		if (!seg) {
 			if (this.#timeline.length) this.#image.camera.stop();
 			if (!this.paused) this.#gotoStep(0);
+			this.updateEvents(ms / 1000);
 			return;
 		}
 
@@ -314,5 +357,7 @@ export class VideoTourInstance {
 			if (i > 1) this.#image.camera.setView(this.#timeline[i - 2].view, { noLimit: true });
 			this.#gotoStep(i - 1, perc);
 		}
+
+		this.updateEvents(ms / 1000);
 	}
 }
