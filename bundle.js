@@ -47,13 +47,11 @@ fs.writeFileSync(outFile, Buffer.concat([
 
 // Generate .d.ts
 const dFile = outFile.replace('.js', '.d.ts');
-fs.writeFileSync(dFile, Buffer.concat([
-	Buffer.from([
-		"declare module '@micrio/client' {",
-		...fs.readFileSync('./out.d.ts').toString().replace(/    /mg, '\t').split('\n').filter(l => /^\s/.test(l) && !/^\s*import/.test(l)),
-		"}"
-	].join('\n'))
-]));
+const dtsInput = fs.readFileSync('./out.d.ts', 'utf-8');
+const modules = parseDeclareModules(dtsInput);
+const internalNames = new Set(modules.keys());
+const dtsBundled = bundleDts(modules, internalNames);
+fs.writeFileSync(dFile, dtsBundled);
 fs.rmSync('./out.d.ts');
 fs.rmSync(jsPath);
 fs.rmSync(cssPath);
@@ -75,3 +73,164 @@ const f = outFile;
 const raw = fs.statSync(f).size;
 const gz = gzipSize(f);
 console.info(` \x1b[38;2;0;212;238m\u25C8\x1b[0m \x1b[32m${path.relative('.', f)}\x1b[0m      \x1b[1m${formatSize(raw).padStart(9)}\x1b[0m \u2502 gzip: ${formatSize(gz)}`);
+
+function parseDeclareModules(input) {
+	const modules = new Map();
+	const lines = input.split('\n');
+	let currentName = null;
+	let braceDepth = 0;
+	let contentLines = [];
+	let insideModule = false;
+
+	for (const line of lines) {
+		const singleMatch = line.match(/^declare module "([^"]+)" \{(.*)\}$/);
+		if (singleMatch) {
+			modules.set(singleMatch[1], singleMatch[2] === '' ? '' : singleMatch[2]);
+			continue;
+		}
+
+		const multiMatch = line.match(/^declare module "([^"]+)" \{$/);
+		if (multiMatch && !insideModule) {
+			currentName = multiMatch[1];
+			insideModule = true;
+			braceDepth = 1;
+			contentLines = [];
+			continue;
+		}
+
+		if (insideModule) {
+			for (const ch of line) {
+				if (ch === '{') braceDepth++;
+				if (ch === '}') braceDepth--;
+			}
+
+			if (braceDepth <= 0) {
+				modules.set(currentName, contentLines.join('\n'));
+				insideModule = false;
+				currentName = null;
+				contentLines = [];
+			} else {
+				contentLines.push(line);
+			}
+		}
+	}
+
+	return modules;
+}
+
+function bundleDts(modules, internalNames) {
+	const inlining = new Set();
+	const inlinedModules = new Set();
+
+	function inlineModule(name, extraIndent) {
+		extraIndent = extraIndent || 0;
+
+		if (inlining.has(name)) return '';
+		if (inlinedModules.has(name)) return '';
+		inlining.add(name);
+
+		const content = modules.get(name);
+		if (!content || content.trim() === '') {
+			inlining.delete(name);
+			inlinedModules.add(name);
+			return '';
+		}
+
+		const lines = content.split('\n');
+		const result = [];
+
+		for (const line of lines) {
+			const trimmed = line.trim();
+
+			if (!trimmed) {
+				result.push(line);
+				continue;
+			}
+
+			const indent = line.match(/^\s*/)[0];
+
+			const nsExport = trimmed.match(/^export \* as (\w+) from "([^"]+)"\s*;?$/);
+			if (nsExport) {
+				const srcModule = nsExport[2];
+				if (internalNames.has(srcModule)) {
+					const childContent = inlineModule(srcModule, extraIndent + 1);
+					if (childContent) {
+						result.push(`${indent}export namespace ${nsExport[1]} {`);
+						result.push(childContent);
+						result.push(`${indent}}`);
+					}
+					continue;
+				}
+				result.push(line);
+				continue;
+			}
+
+			const starExport = trimmed.match(/^export \* from "([^"]+)"\s*;?$/);
+			if (starExport) {
+				const srcModule = starExport[1];
+				if (internalNames.has(srcModule)) {
+					const childContent = inlineModule(srcModule, extraIndent);
+					if (childContent) {
+						result.push(childContent);
+					}
+					continue;
+				}
+				result.push(line);
+				continue;
+			}
+
+			if (trimmed.startsWith('import "') || trimmed.startsWith("import '")) {
+				continue;
+			}
+
+			const importAliasMatch = trimmed.match(/^import(?:\s+type)?\s+\{\s*(\w+)\s+as\s+(\w+)\s*\}\s+from\s+"([^"]+)"\s*;?$/);
+			if (importAliasMatch) {
+				const srcModule = importAliasMatch[3];
+				if (internalNames.has(srcModule)) {
+					result.push(`${indent}type ${importAliasMatch[2]} = ${importAliasMatch[1]};`);
+					continue;
+				}
+				result.push(line);
+				continue;
+			}
+
+			const importMatch = trimmed.match(/^import(?:\s+type)?\s+(?:\{[^}]*\}|[^\s]+)\s+from\s+"([^"]+)"\s*;?$/);
+			if (importMatch) {
+				const srcModule = importMatch[1];
+				if (internalNames.has(srcModule)) {
+					continue;
+				}
+				result.push(line);
+				continue;
+			}
+
+			result.push(line);
+		}
+
+		inlining.delete(name);
+		inlinedModules.add(name);
+
+		const output = result.join('\n');
+		if (extraIndent > 0 && output) {
+			const indentStr = '\t'.repeat(extraIndent);
+			return output.split('\n').map(l => l ? indentStr + l : l).join('\n');
+		}
+		return output;
+	}
+
+	const modelsContent = inlineModule('types/models', 0);
+
+	const processed = [];
+	for (const name of internalNames) {
+		if (name === 'types/models' || name === 'types/models/index') continue;
+		if (inlinedModules.has(name)) continue;
+		const content = inlineModule(name, 0);
+		if (content) {
+			processed.push(content);
+		}
+	}
+
+	if (modelsContent) processed.unshift(modelsContent);
+
+	return `declare module '@micrio/client' {\n${processed.join('\n\n')}\n}`;
+}

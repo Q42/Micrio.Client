@@ -1,10 +1,10 @@
 {
-	"include": ["docs/", "src/types/"],
+	"include": ["src/types/"],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"],
 	"compilerOptions": {
 		"ignoreDeprecations": "6.0",
-		"typeRoots": ["./types"],
-		"rootDir": ".",
+		"typeRoots": ["./src/types"],
+		"rootDir": "./src",
 		"target": "es2022",
 		"module": "commonjs",
 		"moduleResolution": "node",
@@ -12,7 +12,6 @@
 		"emitDeclarationOnly": true,
 		"stripInternal": true,
 		"paths": {
-			"$ts/*": ["./src/ts/*"],
 			"$types/*": ["./src/types/*"],
 			"$engine/*": ["./src/engine/*"],
 			"$core/*": ["./src/core/*"],
@@ -30,7 +29,7 @@
 		}
 	},
 	"typedocOptions": {
-		"entryPoints": ["./docs/micrio.ts"],
+		"entryPoints": ["./src/main.ts"],
 		"includes": ["."],
 		"excludePrivate": true,
 		"excludeInternal": true,
