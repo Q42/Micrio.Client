@@ -279,7 +279,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		});
 
 		const onActivity = () => this.#idle.activity();
-		for(const e of ['pointermove','pointerdown','wheel','focusin']) {
+		for(const e of ['mouseover','pointerdown','wheel','focusin']) {
 			this.addEventListener(e, onActivity, { passive: true });
 		}
 		window.addEventListener('keydown', onActivity);
