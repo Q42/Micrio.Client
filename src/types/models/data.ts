@@ -12,7 +12,7 @@ import type { Spaces } from './spaces';
 /**
 * # Image content data
 * 
-* The image content {@link ImageData} JSON object, which is accessible as {@link MicrioImage.data} as the Writable store, and {@link MicrioImage.$data} for its current value.
+* The image content {@link ImageData} JSON object, which is accessible as {@link MicrioImage[$data]} as the Writable store, and {@link MicrioImage.$data} for its current value.
 * 
 * This JSON data includes, for all published languages for this image:
 * 

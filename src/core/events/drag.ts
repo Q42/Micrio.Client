@@ -47,7 +47,7 @@ export class DragHandler {
 		if (!force && e.target != this.#ctx.el && !(e.target instanceof Element && e.target.closest('[data-scroll-through]'))) return;
 
 		// Ignore if Omni object and shift key is pressed
-		if (this.#ctx.micrio.$current?.isOmni && e.shiftKey) return;
+		if (this.#ctx.micrio.$current?._isOmni && e.shiftKey) return;
 
 		// Don't start panning if we're pinching
 		if (this.#ctx.pinching) return;

@@ -191,7 +191,7 @@ export class Grid extends MicrioElement {
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
 			setupBehindTransition(this, images, opts, focussed);
 
-		const ready = this.image.placed;
+		const ready = this.image._placed;
 		const dur = opts.duration ?? (opts.noHistory ? this.#aniDurationOut : this._aniDurationIn);
 		const defaultDur = this._nextCrossFadeDuration ?? (this.image.$settings.crossfadeDuration ?? 1);
 		const crossfadeDur = (dur || this._aniDurationIn) / (isBehindDelay ? 2 : 1);
@@ -365,7 +365,7 @@ export class Grid extends MicrioElement {
 		const { engine } = this.micrio;
 		const img = this.imageMap.get(entry.id)!;
 
-		if (!img.placed) {
+		if (!img._placed) {
 			engine.addChild(img, this.image);
 		}
 		if (entry.area) {
@@ -377,7 +377,7 @@ export class Grid extends MicrioElement {
 		}
 
 		const aniOpts = {duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false};
-		if(!opts.noCamAni && !img.camera._aniDone && img.placed) {
+		if(!opts.noCamAni && !img.camera._aniDone && img._placed) {
 			const p = entry.view ? img.camera.flyToView(entry.view, aniOpts)
 				: opts.cover ? img.camera.flyToCoverView({...aniOpts, duration: 0})
 				: img.camera.flyToView([0,0,1,1], aniOpts);
@@ -390,7 +390,7 @@ export class Grid extends MicrioElement {
 	#removeImages(images:MicrioImage[]) : void {
 		const { engine } = this.micrio;
 		images.forEach(i => {
-			if(i.placed) i.canvas?._fadeOut();
+			if(i._placed) i.canvas?._fadeOut();
 			this._buttons.get(i.id)?.remove();
 			this._buttons.delete(i.id);
 		});

@@ -72,7 +72,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		if (!embed.uuid) embed.uuid = randomUUID();
 
-		this.#is360 = image.is360;
+		this.#is360 = image._is360;
 		this.#autoplay = embed.video?.autoplay ?? true;
 
 		const grid = image.grid;
@@ -89,7 +89,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			if (markersShown) this._watch(markersShown, updateInactive);
 		}
 
-		this.#glImage = image.embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid) as MicrioImage | undefined;
+		this.#glImage = image._embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid) as MicrioImage | undefined;
 
 		this.#screenIsHDR = matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
@@ -128,7 +128,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		if (this.#hasHtml || !!embed.video?.pauseWhenSmallerThan || !!embed.video?.pauseWhenLargerThan) {
 			this._watch(moveSrc.state.view, () => this.#moved());
-			this._watch(moveSrc.viewport, () => this.#moved());
+			this._watch(moveSrc._viewport, () => this.#moved());
 		}
 
 		this.#applyPosition();
@@ -295,10 +295,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		const opacity = embed.hideWhenPaused ? 0.01 : (embed.opacity ?? 1);
 
-		if (this.#glImage && (this.#glImage.placed || image.embeds.includes(this.#glImage))) {
+		if (this.#glImage && (this.#glImage._placed || image._embeds.includes(this.#glImage))) {
 			this.#glImage.camera.setArea(embed.area as Models.Camera.View);
 			this.#glImage.camera.setRotation(this.#rotX, this.#rotY, this.#rotZ);
-			if (this.#glImage.placed) image.engine.fadeImage(this.#glImage, opacity);
+			if (this.#glImage._placed) image.engine.fadeImage(this.#glImage, opacity);
 		} else {
 			this.#glImage = image.addEmbed({
 				...embed,
@@ -333,7 +333,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const { embed, image } = this.#props;
 		if (!image?.engine.ready) return;
 
-		const vp = get(image.viewport);
+		const vp = get(image._viewport);
 		const view = get(image.state.view);
 
 		if (view && vp?.[2] > 0 && vp?.[3] > 0 && view[2] > 0 && view[3] > 0) {
@@ -440,7 +440,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#glVideo?.unmount();
 
 		const { embed, image } = this.#props;
-		if (this.#glImage && this.#glImage.placed && image) {
+		if (this.#glImage && this.#glImage._placed && image) {
 			image.engine.fadeImage(this.#glImage, 0);
 			image.engine.render();
 		}

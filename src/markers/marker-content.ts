@@ -38,7 +38,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		const content = marker.i18n?.[$_lang];
 		const singleImage = marker.images?.length == 1;
 		const galleryEnabled = !marker.data?.preventImageOpen && !noGallery;
-		const isDev = image.tileBase?.includes('micrio.dev');
+		const isDev = image._tileBase?.includes('micrio.dev');
 
 		const imageCaption = singleImage && marker.images?.[0]?.i18n?.[$_lang]?.description;
 

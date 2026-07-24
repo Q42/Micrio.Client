@@ -45,10 +45,10 @@ export class MicrioImage {
 	get $info():Models.ImageInfo.ImageInfo { return this.#info }
 
 	/**  Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
-	readonly settings: Writable<Models.ImageInfo.Settings> = writable({});
+	readonly _settings: Writable<Models.ImageInfo.Settings> = writable({});
 
 	/** Getter for the current value of the {@link settings} store. */
-	get $settings():Models.ImageInfo.Settings { return get(this.settings) }
+	get $settings():Models.ImageInfo.Settings { return get(this._settings) }
 
 	/**  Writable store holding the image's cultural data (markers, tours, text content for the current language). See {@link Models.ImageData.ImageData}. */
 	readonly data: Writable<Models.ImageData.ImageData|undefined> = writable(undefined);
@@ -76,8 +76,11 @@ export class MicrioImage {
 	/** OmniUI instance, if this image is an omni 3D object. */
 	omni: OmniUI|undefined;
 
+	/** Grid controller instance, if this image is a grid container. */
+	grid: Grid|undefined;
+
 	/** Stores the camera view state when a marker is opened, used to return to the previous view. */
-	openedView: Models.Camera.View|undefined;
+	_openedView: Models.Camera.View|undefined;
 
 	/** Internal reference to the video element.
 	 * @internal
@@ -85,7 +88,7 @@ export class MicrioImage {
 	_video:HTMLVideoElement|undefined;
 
 	/** Base path URI for fetching `data.[lang].json` files. */
-	dataPath: string;
+	_dataPath: string;
 
 	/** Stores an error message if loading failed. */
 	error: string|undefined;
@@ -94,37 +97,37 @@ export class MicrioImage {
 	 * @readonly
 	 * @internal
 	*/
-	placed: boolean = false;
+	_placed: boolean = false;
 
 	/** Base tile index within the engine texture atlas.
 	 * @readonly
 	 * @internal
 	*/
-	baseTileIdx: number = -1;
+	_baseTileIdx: number = -1;
 
 	/** Flag indicating if this is a 360 panoramic image.
 	 * @readonly
 	 * @internal
 	*/
-	is360: boolean = false;
+	_is360: boolean = false;
 
 	/** Flag indicating if this represents a video texture.
 	 * @readonly
 	 * @internal
 	*/
-	isVideo: boolean = false;
+	_isVideo: boolean = false;
 
 	/** Flag indicating if this is an Omni (3D object) viewer.
 	 * @readonly
 	 * @internal
 	*/
-	isOmni: boolean = false;
+	_isOmni: boolean = false;
 
 	/** Number of zoom levels available for this image.
 	 * @readonly
 	 * @internal
 	*/
-	levels: number = 1;
+	_levels: number = 1;
 
 	/** Number of DeepZoom levels (used for IIIF/DZI).
 	 * @readonly
@@ -148,25 +151,22 @@ export class MicrioImage {
 	 * @readonly
 	 * @internal
 	*/
-	noImage: boolean = false;
+	_noImage: boolean = false;
 
 	/** Initial opacity when the image is added (used for embeds/transitions).
 	 * @readonly
 	 * @internal
 	*/
-	opacity: number = 1;
+	_opacity: number = 1;
 
 	/**  Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
-	readonly viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
+	readonly _viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
 
 	/** Array of child {@link MicrioImage} instances embedded within this image. */
-	readonly embeds: MicrioImage[] = [];
-
-	/** Grid controller instance, if this image is a grid container. */
-	grid: Grid|undefined;
+	readonly _embeds: MicrioImage[] = [];
 
 	/** Base path for fetching image tiles. */
-	tileBase:string|undefined;
+	_tileBase:string|undefined;
 
 	/** The engine this image is managed by. */
 	get engine(): Engine { return this.#engine; }
@@ -218,7 +218,7 @@ export class MicrioImage {
 
 		const i = bundle.info;
 		this.#info = i;
-		this.dataPath = i.path || BASEPATH_V5;
+		this._dataPath = i.path || BASEPATH_V5;
 
 		if(!opts.area) opts.area = [0,0,1,1];
 
@@ -238,19 +238,19 @@ export class MicrioImage {
 		// Determine tile base path
 		const isV5Imported = this.id.length == 6 && this.id.startsWith('i') && !this.id.includes('/');
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
-		this.tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
+		this._tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 
 		const org = DataLoader.getOrganisation();
 		if(org?.baseUrl && !i.path.includes(org.baseUrl)) {
-			this.dataPath = i.path = org.baseUrl;
-			if(!isV5Imported) this.tileBase = this.dataPath;
+			this._dataPath = i.path = org.baseUrl;
+			if(!isV5Imported) this._tileBase = this._dataPath;
 		}
-		else if(i.path == BASEPATH_V5_EU) this.dataPath = i.path;
-		else if(i.path) this.dataPath = i.path;
+		else if(i.path == BASEPATH_V5_EU) this._dataPath = i.path;
+		else if(i.path) this._dataPath = i.path;
 
 		// Omni object setup
 		if(s?.omni) {
-			this.isOmni = true;
+			this._isOmni = true;
 		}
 
 		// Org branding CSS (fire & forget)
@@ -283,11 +283,11 @@ export class MicrioImage {
 		}
 
 		// Derived flags & properties
-		this.noImage = this.noImage || this.isOmni || (!i.id && !i.tilesId);
+		this._noImage = this._noImage || this._isOmni || (!i.id && !i.tilesId);
 		this.#extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg';
 		if(i.format == 'dz') i.isDeepZoom = true;
-		this.is360 = !!i.is360;
-		this.isVideo = !!i.isVideo;
+		this._is360 = !!i.is360;
+		this._isVideo = !!i.isVideo;
 
 		// Language from revision
 		let lang = get(micrio._lang);
@@ -310,26 +310,26 @@ export class MicrioImage {
 		}
 
 		// Zoom levels
-		for(let f=i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width,i.height); f *= 2, this.levels++) {}
+		for(let f=i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width,i.height); f *= 2, this._levels++) {}
 		let max = Math.max(i.width, i.height); do this.#dzLevels++; while((max/=2) > 1);
-		if(s?.gallery?.archive) this.levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
-		if(!this.noImage) this.thumbSrc = this.getTileSrc(this.levels, 0, 0);
+		if(s?.gallery?.archive) this._levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
+		if(!this._noImage) this.thumbSrc = this.getTileSrc(this._levels, 0, 0);
 
 		micrio.events.dispatch('pre-info', i);
 
 		// Bundle data
-		if((!this.noImage || this.isOmni) && !s?.skipMeta && bundle.data) {
+		if((!this._noImage || this._isOmni) && !s?.skipMeta && bundle.data) {
 			this.data.set(bundle.data);
 		}
 
 		// Settings store & watermark
-		if(s) this.settings.set(s);
+		if(s) this._settings.set(s);
 		if(i.watermark) this.#engine.micrio.webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
 
 		// Omni controls hook
-		if(this.isOmni) {
+		if(this._isOmni) {
 			this.state.layer.subscribe(l => {
-				if(!this.placed || !this.#engine.ready) return;
+				if(!this._placed || !this.#engine.ready) return;
 				this.canvas?._setActiveLayer(l);
 				this.#engine.render();
 			});
@@ -388,7 +388,7 @@ export class MicrioImage {
 			throw new Error('Video thumb');
 
 		// Construct standard Micrio tile URL
-		return `${this.tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.#extension}`;
+		return `${this._tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.#extension}`;
 	}
 
 	/** Loads an external stylesheet dynamically. Ensures stylesheets are loaded only once.
@@ -424,13 +424,13 @@ export class MicrioImage {
 		}, {area:a, isEmbed: true, useParentCamera: opts.asImage});
 		// Use parent camera if specified (e.g., for switch galleries)
 		if(!img.camera) img.camera = this.camera;
-		this.embeds.push(img); // Add to embeds list
+		this._embeds.push(img); // Add to embeds list
 		if(opts.opacity === undefined) opts.opacity = 1; // Default opacity
 
 		// Adjust area based on 'fit' option (cover or contain)
 		if(opts.fit == 'cover' || opts.fit == 'contain') {
 			const i = img.$info;
-			const yS = this.is360 ? 2 : 1; // Y-scale factor for 360
+			const yS = this._is360 ? 2 : 1; // Y-scale factor for 360
 			const isCover = opts.fit == 'cover';
 			const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
 			const aAr = aW / aH * yS; // Area aspect ratio

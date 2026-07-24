@@ -67,7 +67,7 @@ export class OmniUI {
 		const numLayers = omni.layers?.length ?? 1;
 		const pagesPerLayer = totalFrames / numLayers;
 
-		if (!image.placed) return;
+		if (!image._placed) return;
 
 		const frames: Omni.Frame[] = [];
 		for (let j = 0; j < totalFrames; j++) {
@@ -75,11 +75,11 @@ export class OmniUI {
 				id: info.id + '/' + j,
 				image,
 				visible: writable(false),
-				frame: j,
+				_frame: j,
 				opts: { area: [0, 0, 1, 1] },
-				placed: false,
-				baseTileIdx: -1,
-				thumbSrc: image.getTileSrc(image.levels, 0, 0, j),
+				_placed: false,
+				_baseTileIdx: -1,
+				thumbSrc: image.getTileSrc(image._levels, 0, 0, j),
 			};
 			engine.addEmbed(frame, image, { opacity: 0, asImage: false });
 			frames.push(frame);
@@ -103,7 +103,7 @@ export class OmniUI {
 
 		const preload = (c: number) => {
 			this.#preloadRangeFn(c, totalFrames, preloadD,
-				idx => frames[idx] ? { baseTileIdx: frames[idx].baseTileIdx, thumbSrc: frames[idx].thumbSrc } : undefined,
+				idx => frames[idx] ? { baseTileIdx: frames[idx]._baseTileIdx, thumbSrc: frames[idx].thumbSrc } : undefined,
 				engine, hasArchive);
 		};
 

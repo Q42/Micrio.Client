@@ -518,7 +518,7 @@ export class TileCanvas {
 	/** Notifies JS host about the current screen viewport details. */
 	_sendViewport(): void {
 		const c = this.main.el;
-		this._micrioImage?.viewport?.set([this.el.left / c.ratio, this.el.top / c.ratio, this.el.width / c.ratio, this.el.height / c.ratio]);
+		this._micrioImage?._viewport?.set([this.el.left / c.ratio, this.el.top / c.ratio, this.el.width / c.ratio, this.el.height / c.ratio]);
 	}
 
 	/** Finds the Image, Layer, and calculates the DrawRect for a given global tile index. */

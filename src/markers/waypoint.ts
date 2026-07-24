@@ -74,7 +74,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		const click = () => {
 			if (image.$settings._markers?.noMarkerActions) return;
 			this.#clicked = true;
-			image.openedView = undefined;
+			image._openedView = undefined;
 			image.state.marker.set(undefined);
 			micrio.open(targetId, { vector: this.#vector });
 		};
@@ -85,7 +85,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 			clearTimeout(this.#fto);
 			this.#fto = setTimeout(() => {
 				const px = image.camera.getXY(this.#coords.x, this.#coords.y);
-				if (!this.#clicked && (px[0] < 0 || px[0] >= micrio.offsetWidth || px[1] < 0 || px[1] >= micrio.offsetHeight || (image.is360 ? px[3] > 4 : false)))
+				if (!this.#clicked && (px[0] < 0 || px[0] >= micrio.offsetWidth || px[1] < 0 || px[1] >= micrio.offsetHeight || (image._is360 ? px[3] > 4 : false)))
 					image.camera.flyToCoo([this.#coords.x, this.#coords.y], { speed: 2, limit: true }).catch(() => { });
 			}, 150);
 		};

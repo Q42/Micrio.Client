@@ -148,7 +148,7 @@ export class Gallery {
 	}
 
 	static fromAssets(assets: Models.Assets.Image[], engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; basePath?: string }): Gallery {
-		const path = opts?.basePath ?? micrio.$current?.dataPath ?? BASEPATH;
+		const path = opts?.basePath ?? micrio.$current?._dataPath ?? BASEPATH;
 
 		const items: Models.ImageInfo.ImageInfo[] = assets.map(c => ({
 			id: c.micrioId ?? c.id!, path, version: '',

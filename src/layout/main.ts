@@ -129,7 +129,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 			this.#settings = undefined;
 
 			this.#firstInited = true;
-			this.#settings = c.settings;
+			this.#settings = c._settings;
 			if (this.#settings) this._addCleanup(this.#settings.subscribe(() => this.#queueSync()));
 			if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
 			this.#queueSync();
@@ -210,7 +210,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const noLogo = this.#props.noLogo ?? noHTML;
 		const isMobile = micrio.canvas.$isMobile;
 
-		const _360 = micrio.$current?.is360
+		const _360 = micrio.$current?._is360
 		const video = _360 ? $settings!._360!.video : undefined;
 		const videoSrc = video?.src;
 		this.classList.toggle('is360', _360);

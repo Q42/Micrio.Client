@@ -64,7 +64,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		// Omni arc: precompute target frame and visible range from marker rotation/visibleArc
 		const omni = image.$settings.omni;
-		if (image.isOmni && omni) {
+		if (image._isOmni && omni) {
 			const rot = (marker.rotation ?? 0) + (marker.backside ? Math.PI : 0);
 			this.#omniIndex = image.camera.getOmniFrame(rot) ?? 0;
 			if (marker.visibleArc) {
@@ -76,7 +76,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		const scales = !!marker.data?.scales || !!image.$settings.markersScale;
 		const moved = () => {
-			if (image.is360 && scales) {
+			if (image._is360 && scales) {
 				this.#matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1, 0, 0, 0).join(',');
 				this.style.setProperty('--mat', `matrix3d(${this.#matrix})`);
 				this.classList.add('mat3d');
@@ -85,8 +85,8 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					radius: marker.radius, rotation: marker.rotation
 				});
 				[this.#x, this.#y, this.#scaleVal, this.#w] = xy;
-				if (image.is360) this.#behindCam = this.#w > 0;
-				else if (image.isOmni && omni) {
+				if (image._is360) this.#behindCam = this.#w > 0;
+				else if (image._isOmni && omni) {
 					if (this.#omniArc && marker.rotation != null) {
 						const numFrames = omni.frames / (omni.layers?.length ?? 1);
 						let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex;
@@ -125,7 +125,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			clearTimeout(this.#fto);
 			this.#fto = setTimeout(() => {
 				const px = image.camera.getXY(marker.x, marker.y);
-				if (!this.#opened && (px[0] < 0 || px[0] >= micrio.offsetWidth || px[1] < 0 || px[1] >= micrio.offsetHeight || (image.is360 ? px[3] > 4 : false)))
+				if (!this.#opened && (px[0] < 0 || px[0] >= micrio.offsetWidth || px[1] < 0 || px[1] >= micrio.offsetHeight || (image._is360 ? px[3] > 4 : false)))
 					image.camera.flyToCoo([marker.x, marker.y], { speed: 2, limit: true }).catch(() => { });
 			}, 150);
 		};
@@ -143,11 +143,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (marker.view && !data.noAnimate && !marker.videoTour) {
 				image.camera.flyToView(marker.view, {
 					area: image.opts?.area,
-					omniIndex: image.isOmni ? this.#omniIndex : undefined,
+					omniIndex: image._isOmni ? this.#omniIndex : undefined,
 					isJump: true
 				}).then(openContent).catch(() => {
 					if (image.state.$marker === marker) {
-						image.openedView = undefined;
+						image._openedView = undefined;
 						image.state.marker.set(undefined);
 					}
 				});

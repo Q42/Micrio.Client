@@ -76,7 +76,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (c) {
 				if (get(tour) && 'steps' in get(tour)!) return;
 				settingsUnsub?.();
-				settingsUnsub = c.settings.subscribe(readInfo);
+				settingsUnsub = c._settings.subscribe(readInfo);
 			}
 		}));
 

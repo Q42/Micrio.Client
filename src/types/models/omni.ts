@@ -7,10 +7,10 @@ export namespace Omni {
 		id: string;
 		image: MicrioImage;
 		visible: Writable<boolean>;
-		frame: number;
+		_frame: number;
 		thumbSrc?: string;
-		baseTileIdx: number;
-		placed: boolean;
+		_baseTileIdx: number;
+		_placed: boolean;
 		opts: { area: Camera.View; };
 	}
 }

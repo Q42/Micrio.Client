@@ -41,7 +41,7 @@ class MicrioToolbar extends MicrioElement {
 				this.#data = d;
 				this.#render();
 			}));
-			this._addCleanup(c.settings.subscribe(() => this._syncDisplay?.()));
+			this._addCleanup(c._settings.subscribe(() => this._syncDisplay?.()));
 		}));
 
 		this._addCleanup(micrio.state.tour.subscribe(() => this.#render()));

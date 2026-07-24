@@ -26,7 +26,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		const focussed = grid?.focussed;
 		const gridMarkersShown = grid?.markersShown;
 
-		this._addCleanup(image.viewport.subscribe((v: Models.Camera.View) => {
+		this._addCleanup(image._viewport.subscribe((v: Models.Camera.View) => {
 			if (!v || v.length < 4) return;
 			v = v.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
 			const size = micrio.canvas.viewport;
@@ -178,14 +178,14 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		if (!image.grid && image.$settings._markers?.zoomOutAfterClose) {
 			let wasVideoTour = false;
 			this._addCleanup(image.state.marker.subscribe(m => {
-				if (m && typeof m != 'string' && !image.openedView && !m.noMarker && m.view) {
-			image.openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
+				if (m && typeof m != 'string' && !image._openedView && !m.noMarker && m.view) {
+			image._openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
 				: structuredClone(image.state.$view ?? image.camera?.getView());
 					wasVideoTour = !!m.videoTour;
-				} else if (!m && image.openedView && !get(micrio.state.tour)) {
+				} else if (!m && image._openedView && !get(micrio.state.tour)) {
 					setTimeout(() => {
-						if (image.openedView) {
-							const v = image.openedView;
+						if (image._openedView) {
+							const v = image._openedView;
 							const w = Math.min(1, v[2]);
 							const h = Math.min(1, v[3]);
 							const hw = w / 2, hh = h / 2;
@@ -195,7 +195,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 								speed: image.$settings._markers?.zoomOutAfterCloseSpeed,
 							}).catch(() => {});
 						}
-						image.openedView = undefined;
+						image._openedView = undefined;
 						wasVideoTour = false;
 					}, wasVideoTour ? 250 : 10);
 				}

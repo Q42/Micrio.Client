@@ -229,10 +229,10 @@ export class Engine {
 		const numLoading = runningThreads();
 		const c = this.#images[imgIdx];
 		const hasCamera = 'camera' in c;
-		const isVideo = hasCamera && c.isVideo;
-		const is360 = hasCamera && c.is360;
+		const isVideo = hasCamera && c._isVideo;
+		const is360 = hasCamera && c._is360;
 		const img = hasCamera ? c : c.image;
-		const frame = 'frame' in c ? c.frame : undefined;
+		const frame = '_frame' in c ? c._frame : undefined;
 		const noSmoothing = hasCamera && c.$settings.noSmoothing;
 
 		if (tile.loadState === 0 && numLoading < numThreads) {
@@ -318,11 +318,11 @@ export class Engine {
 			return;
 		}
 
-		if (!c.noImage && (!i.width || !i.height)) throw new Error('Invalid Micrio image size');
+		if (!c._noImage && (!i.width || !i.height)) throw new Error('Invalid Micrio image size');
 
 		const settings = c.$settings;
 
-		this.#isGallery = !!get(this.micrio.gallery) || c.isOmni;
+		this.#isGallery = !!get(this.micrio.gallery) || c._isOmni;
 
 		if (settings.gallery?.archive) {
 			this._hasArchive = true;
@@ -334,7 +334,7 @@ export class Engine {
 		const coverLimit = !!settings.limitToCoverScale;
 		const coverStart = coverLimit || settings.initType == 'cover';
 
-		if (c.noImage) this.micrio.loading.set(false);
+		if (c._noImage) this.micrio.loading.set(false);
 
 		const focus = [.5, .5];
 		const f = settings.focus;
@@ -355,11 +355,11 @@ export class Engine {
 		const canvas = new TileCanvas(
 			this,
 			i.width, i.height,
-			c.opacity,
+			c._opacity,
 			coverLimit,
 			i.tileSize ?? DEFAULT_TILE_SIZE,
 			i.is360 ?? false,
-			c.noImage,
+			c._noImage,
 			!!i.isDeepZoom,
 			settings.freeMove ?? false,
 			coverStart,
@@ -369,7 +369,7 @@ export class Engine {
 			c.camera.rotationY,
 			gallerySwitch,
 			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe',
-			c.isOmni,
+			c._isOmni,
 			settings.pinchZoomOutLimit ?? false,
 			numOmniLayers,
 			!!(i.isSingle || is360Video),
@@ -377,7 +377,7 @@ export class Engine {
 			false,
 		);
 
-		c.placed = true;
+		c._placed = true;
 		canvas._micrioImage = c;
 		this.#setEntry({ canvas, micrioImage: c, camera: c.camera });
 		this.#images.push(c);
@@ -420,7 +420,7 @@ export class Engine {
 
 		c.video.subscribe(v => v && v.addEventListener('play', this.render));
 
-		if (c.noImage) c.visible.set(true);
+		if (c._noImage) c.visible.set(true);
 
 		this.setCanvas(c);
 	}
@@ -435,12 +435,12 @@ export class Engine {
 	}
 
 	setCanvas(canvas?: MicrioImage): void {
-		if (!canvas || (canvas.placed && canvas === this.#activeCanvasEntry?.micrioImage)) return;
+		if (!canvas || (canvas._placed && canvas === this.#activeCanvasEntry?.micrioImage)) return;
 
-		if (!canvas.placed) {
+		if (!canvas._placed) {
 			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id != get(this.micrio.current)!.id)) return;
 			this.#addCanvas(canvas);
-			if (canvas.embeds.length) canvas.embeds.forEach(e => this.addEmbed(e, canvas));
+			if (canvas._embeds.length) canvas._embeds.forEach(e => this.addEmbed(e, canvas));
 		}
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
@@ -448,10 +448,10 @@ export class Engine {
 			if (entry.canvas._hasParent) return;
 
 
-			const pitch = canvas.is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas._camera360._pitch : 0;
+			const pitch = canvas._is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas._camera360._pitch : 0;
 			this.#activeCanvasEntry = entry;
 
-			if (canvas.is360 && !this._preventDirectionSet) {
+			if (canvas._is360 && !this._preventDirectionSet) {
 				const reversedYaw = ((this._direction + 0.5) % 1) * Math.PI * 2;
 				entry.canvas._setDirection(reversedYaw - canvas.camera.rotationY, pitch, true);
 			}
@@ -467,7 +467,7 @@ export class Engine {
 
 	/** Removes a canvas instance from the engine. @internal */
 	removeCanvas(c: MicrioImage): void {
-		if (!c.placed) throw new Error('Canvas is not placed yet');
+		if (!c._placed) throw new Error('Canvas is not placed yet');
 		const entry = this.#entryByImage.get(c);
 		if (!entry) return;
 		entry.canvas.remove();
@@ -707,15 +707,15 @@ export class Engine {
 			const engImage = parentEntry.canvas._addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, fromScale ?? 0);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
-			image.placed = true;
+			image._placed = true;
 			this.#setEntry({ canvas: parentEntry.canvas, micrioImage: image });
 
-			image.baseTileIdx = this._numTiles - 1;
-			this.#registerBaseTile(image.baseTileIdx);
+			image._baseTileIdx = this._numTiles - 1;
+			this.#registerBaseTile(image._baseTileIdx);
 			return;
 		}
 
-		image.placed = true;
+		image._placed = true;
 		this.#setEntry({ canvas, micrioImage: image, camera: image.camera });
 
 		if (!isEmbed) {
@@ -729,13 +729,13 @@ export class Engine {
 			canvas._sendViewport();
 		}
 
-		image.baseTileIdx = this._numTiles - 1;
-		this.#registerBaseTile(image.baseTileIdx);
+		image._baseTileIdx = this._numTiles - 1;
+		this.#registerBaseTile(image._baseTileIdx);
 	}
 
 	/** Adds an embedded MicrioImage instance. @internal */
 	addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {
-		if (image.placed) return;
+		if (image._placed) return;
 		this.#addImage(image, parent, true, opts.opacity ?? 1, 'camera' in image && opts.asImage ? undefined : opts.fromScale);
 	}
 

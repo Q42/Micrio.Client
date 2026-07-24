@@ -503,7 +503,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(!c) {
 			if(this.canvases.length) {
 				const main = this.canvases[0];
-				bundle.info.path = main.dataPath;
+				bundle.info.path = main._dataPath;
 				bundle.info.lang = this.lang;
 			}
 			this.canvases.push(c = new MicrioImage(this.engine, bundle));
@@ -516,7 +516,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(opts.startView) {
 			c.state.view.set(bundle.settings.view = opts.startView);
-			if(c.placed && c.engine.ready) c.camera.setView(bundle.settings.view,{noRender:true});
+			if(c._placed && c.engine.ready) c.camera.setView(bundle.settings.view,{noRender:true});
 		}
 
 		if(!this.lang) this.lang = 'en';
@@ -561,7 +561,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.current.set(c);
 		}
 
-		if(c.noImage) this.loading.set(false);
+		if(c._noImage) this.loading.set(false);
 
 		return c;
 	}

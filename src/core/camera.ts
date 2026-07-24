@@ -46,7 +46,7 @@ export class Camera {
 	) {
 		this.#image = image;
 		// For non-360 images, set initial view if already available
-		if (!image.is360) {
+		if (!image._is360) {
 			const view = image.state.$view;
 			if (view && image.$info?.width) tick().then(() => this.setView(view));
 		}
@@ -154,7 +154,7 @@ export class Camera {
 	} = {}) {
 		const c = this.#canvas;
 		if (!c) return new Float64Array(5);
-		const tNDiff = (this.#image.is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
+		const tNDiff = (this.#image._is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
 		if (c.is360) return c._camera360._getXYZ(x - tNDiff, y).arr;
 		if (opts.rotation !== undefined && !isNaN(opts.rotation))
 			return c._camera2d.getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
@@ -271,7 +271,7 @@ export class Camera {
 	setArea(v: Models.Camera.View, opts: { direct?: boolean; noDispatch?: boolean; noRender?: boolean } = {}): void {
 		if (!this.#canvas) return;
 		this.#image.opts.area = v;
-		if (this.#image.opts.isEmbed && this.#image.placed) {
+		if (this.#image.opts.isEmbed && this.#image._placed) {
 			for (const img of this.#canvas.images) {
 				if (img._localIdx > 0) { img._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
 			}

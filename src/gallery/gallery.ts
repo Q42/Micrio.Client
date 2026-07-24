@@ -220,7 +220,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const engine = images[0].engine;
 		const hasArchive = !!(images[0]?.$settings?.gallery?.archive);
 		this.#preloadRange(c, images.length, this.#preloadD,
-			idx => images[idx] ? { baseTileIdx: images[idx].baseTileIdx, thumbSrc: images[idx].thumbSrc } : undefined,
+			idx => images[idx] ? { baseTileIdx: images[idx]._baseTileIdx, thumbSrc: images[idx].thumbSrc } : undefined,
 			engine, hasArchive);
 	}
 
