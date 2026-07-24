@@ -215,50 +215,52 @@ export class GLEmbedVideo {
 	#hook() {
 		if(!this.#embed.video || !this._vid) return;
 		const loopAfter = this.#embed.video.loopAfter; // Delay before looping (seconds)
+		const v = this._vid;
 		// Handle looping with delay
 		if(this.#embed.video.loop && loopAfter) {
-			this._vid.loop = false; // Disable native loop
-			this._vid.onended = () => { // When video ends
+			v.loop = false; // Disable native loop
+			v.onended = () => { // When video ends
 				this.#setPlaying(false); // Set state to paused
 				// Schedule restart after delay
-				this.#vidRepeatTo = <any>setTimeout(() => this._vid?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000) as number;
+				this.#vidRepeatTo = <any>setTimeout(() => v?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000) as number;
 			}
 			// Ensure playing state is set correctly when play starts after loop delay
-			this._vid.onplay = () => this.#setPlaying(true);
+			v.onplay = () => this.#setPlaying(true);
 		}
 		// Handle simple looping
 		else {
-			this._vid.loop = this.#embed.video.loop;
-			this._vid.onended = null; // Remove potential previous listener
-			this._vid.onplay = null; // Remove potential previous listener
+			v.loop = this.#embed.video.loop;
+			v.onended = null; // Remove potential previous listener
+			v.onplay = null; // Remove potential previous listener
 		}
 
 		// Workaround: If no autoplay and not HLS, temporarily add video to DOM
 		// to ensure the first frame becomes visible/available for the texture.
-		if(!this._vid.parentNode && !this.#autoplay && !this.#ism3u) {
-			this._vid.setAttribute('style','opacity:0;position:absolute;top:0;left:0;transform-origin:left top;transform:scale(0.1);pointer-events:none;');
-			document.body.appendChild(this._vid);
+		if(!v.parentNode && !this.#autoplay && !this.#ism3u) {
+			v.setAttribute('style','opacity:0;position:absolute;top:0;left:0;transform-origin:left top;transform:scale(0.1);pointer-events:none;');
+			document.body.appendChild(v);
 			this.#tmpDomAttached = true;
 		}
 
 		// Add core event listeners
-		this._vid.addEventListener('play', this.#events.play);
-		this._vid.addEventListener('pause', this.#events.pause);
-		this._vid.addEventListener('playing', this.#events.playing, {once:true}); // Only need first 'playing' event
-		this._vid.addEventListener(this.#events.canplayEvt, this.#events.canplay, {once: true}); // Listen for 'canplay' or 'loadedmetadata' once
+		v.addEventListener('play', this.#events.play);
+		v.addEventListener('pause', this.#events.pause);
+		v.addEventListener('playing', this.#events.playing, {once:true}); // Only need first 'playing' event
+		v.addEventListener(this.#events.canplayEvt, this.#events.canplay, {once: true}); // Listen for 'canplay' or 'loadedmetadata' once
 	}
 
 	/** Removes event listeners from the video element. @internal */
 	#unhook() : void {
-		if(!this._vid) return;
+		const v = this._vid;
+		if(!v) return;
 		// Remove core event listeners
-		this._vid.removeEventListener('play', this.#events.play);
-		this._vid.removeEventListener('pause', this.#events.pause);
-		this._vid.removeEventListener('playing', this.#events.playing);
-		this._vid.removeEventListener(this.#events.canplayEvt, this.#events.canplay);
+		v.removeEventListener('play', this.#events.play);
+		v.removeEventListener('pause', this.#events.pause);
+		v.removeEventListener('playing', this.#events.playing);
+		v.removeEventListener(this.#events.canplayEvt, this.#events.canplay);
 		// Remove potential loop listeners
-		this._vid.onended = null;
-		this._vid.onplay = null;
+		v.onended = null;
+		v.onplay = null;
 	}
 
 }
