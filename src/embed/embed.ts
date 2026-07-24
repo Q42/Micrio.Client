@@ -371,7 +371,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 					if (!vid.paused) vid.pause();
 				} else {
 					if (vid.paused) {
-						this.#glVideo!.cancelTimeout();
+						this.#glVideo!._cancelTimeout();
 						if (image?.$settings?.embedRestartWhenShown) vid.currentTime = 0;
 						vid.play();
 					}
@@ -437,7 +437,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	_onDestroy() {
 		clearTimeout(this.#loopDelayTo);
-		this.#glVideo?.unmount();
+		this.#glVideo?._unmount();
 
 		const { embed, image } = this.#props;
 		if (this.#glImage && this.#glImage._placed && image) {

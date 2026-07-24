@@ -35,7 +35,7 @@ export class GLEmbedVideo {
 	_vid:HTMLVideoElement|undefined = undefined;
 
 	/** Flag indicating if the parent Embed component is still mounted. @internal */
-	isMounted:boolean = true;
+	#isMounted:boolean = true;
 
 	/**
 	 * Creates a GLEmbedVideo instance.
@@ -77,7 +77,7 @@ export class GLEmbedVideo {
 			if(v) { // If image becomes visible
 				// Schedule loading/playback after a short delay (or immediately first time)
 				this.#placeTo = setTimeout(() => {
-					if(!this.isMounted) return; // Exit if component unmounted
+					if(!this.#isMounted) return; // Exit if component unmounted
 					if(!this._vid) this.#load(); // Load video if not already loaded
 					else { // If already loaded
 						this.#hook(); // Ensure event listeners are attached
@@ -93,13 +93,13 @@ export class GLEmbedVideo {
 	}
 
 	/** Cancels any pending visibility timeout (e.g. pause scheduled on invisible). */
-	cancelTimeout(): void {
+	_cancelTimeout(): void {
 		clearTimeout(this.#placeTo);
 	}
 
 	/** Cleans up resources when the parent Embed component is unmounted. */
-	unmount() : void {
-		this.isMounted = false;
+	_unmount() : void {
+		this.#isMounted = false;
 		clearTimeout(this.#placeTo);
 		clearTimeout(this.#vidRepeatTo);
 		this._vid?.pause();
@@ -174,7 +174,7 @@ export class GLEmbedVideo {
 			if(!this.#image._video && this._vid) {
 				if('requestVideoFrameCallback' in this._vid) {
 					this._vid.requestVideoFrameCallback(() => {
-						if(this._vid && this.isMounted) {
+						if(this._vid && this.#isMounted) {
 							this.#image.video.set(this._vid);
 							this.#engine.render();
 						}
@@ -188,7 +188,7 @@ export class GLEmbedVideo {
 		canplayEvt: Browser.iOS ? 'loadedmetadata' : 'canplay',
 		// Handle 'canplay' or 'loadedmetadata' event
 		canplay:() => {
-			if(!this._vid || !this.isMounted) return;
+			if(!this._vid || !this.#isMounted) return;
 			if(this.#autoplay && !this.#paused) {
 				this._vid.play().catch(e => console.warn("WebGL Embed video play() failed on canplay:", e));
 				this.#moved();
