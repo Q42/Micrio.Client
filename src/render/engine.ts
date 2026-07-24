@@ -23,12 +23,12 @@ import { type Bicubic, easeInOut } from './easing';
 import { Viewport } from './shared';
 
 interface TileEntry {
-	texture?: WebGLTexture;
-	loadState: number;
-	opacity: number;
-	loadedAt?: number;
-	deleteAt?: number;
-	timeoutId?: number;
+	_texture?: WebGLTexture;
+	_loadState: number;
+	_opacity: number;
+	_loadedAt?: number;
+	_deleteAt?: number;
+	_timeoutId?: number;
 }
 
 interface CanvasEntry {
@@ -224,7 +224,7 @@ export class Engine {
 	_drawTile = (imgIdx: number, i: number, layer: number, x: number, y: number, opacity: number, animating: boolean, targetLayer: boolean): boolean => {
 		this.#drawnSet.add(i);
 		const tile = this.#getTileEntry(i);
-		tile.deleteAt = undefined;
+		tile._deleteAt = undefined;
 
 		const numLoading = runningThreads();
 		const c = this.#images[imgIdx];
@@ -235,37 +235,37 @@ export class Engine {
 		const frame = '_frame' in c ? c._frame : undefined;
 		const noSmoothing = hasCamera && c.$settings.noSmoothing;
 
-		if (tile.loadState === 0 && numLoading < numThreads) {
+		if (tile._loadState === 0 && numLoading < numThreads) {
 			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
 
 			if (isVideo && !is360) {
-				tile.loadState = 2;
-				tile.texture = this.micrio._webgl._getTexture();
+				tile._loadState = 2;
+				tile._texture = this.micrio._webgl._getTexture();
 			}
 			else {
-				tile.loadState = 1;
+				tile._loadState = 1;
 				const src = img._getTileSrc(layer, x, y, frame);
 				if (src) this._getTexture(i, src, animating, { noSmoothing });
 				else {
-					tile.loadState = 0;
+					tile._loadState = 0;
 					return false;
 				}
 			}
 		}
-		else if (tile.loadState >= 2) {
+		else if (tile._loadState >= 2) {
 			if (!this.#drawing) this.#drawStart();
 
-			if (tile.texture) {
+			if (tile._texture) {
 				if (isVideo) {
 					if (!img._video || !img._video.dataset.playing) return false;
-					this.micrio._webgl._updateTexture(tile.texture, img._video);
+					this.micrio._webgl._updateTexture(tile._texture, img._video);
 				}
-				this.micrio._webgl._drawTile(tile.texture, opacity, is360);
+				this.micrio._webgl._drawTile(tile._texture, opacity, is360);
 			}
 
-			if (tile.loadState === 2) {
-				tile.loadState = 3;
-				tile.loadedAt = this.now;
+			if (tile._loadState === 2) {
+				tile._loadState = 3;
+				tile._loadedAt = this.now;
 			}
 
 			return true;
@@ -274,16 +274,16 @@ export class Engine {
 	}
 
 	/** @internal */
-	_getTileOpacity = (i: number): number => { return this.#tiles.get(i)?.opacity || 0; }
+	_getTileOpacity = (i: number): number => { return this.#tiles.get(i)?._opacity || 0; }
 
 	/** @internal */
 	_setTileOpacity = (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
 		const tile = this.#tiles.get(i);
 		if (!tile) return 0;
-		if (tile.opacity < 1) {
-			tile.opacity = direct ? 1 : (tile.loadedAt && tile.loadedAt > 0 ? Math.min(1, (this.now - tile.loadedAt) / 250) * imageOpacity : 0);
+		if (tile._opacity < 1) {
+			tile._opacity = direct ? 1 : (tile._loadedAt && tile._loadedAt > 0 ? Math.min(1, (this.now - tile._loadedAt) / 250) * imageOpacity : 0);
 		}
-		return tile.opacity;
+		return tile._opacity;
 	}
 
 	/** @internal */
@@ -299,7 +299,7 @@ export class Engine {
 		this.#requests.forEach(src => abortDownload(src));
 		this.#requests.clear();
 		for (const [idx, tile] of this.#tiles.entries()) {
-			if (tile.timeoutId) clearTimeout(tile.timeoutId);
+			if (tile._timeoutId) clearTimeout(tile._timeoutId);
 			this.#deleteTile(idx);
 		}
 		this.#tiles.clear();
@@ -431,7 +431,7 @@ export class Engine {
 	 */
 	#bindCamera(img: MicrioImage): void {
 		const canvas = this.#entryByImage.get(img)!.canvas;
-		img.camera.bindEngineCanvas(canvas);
+		img.camera._bindEngineCanvas(canvas);
 	}
 
 	#setCanvas(canvas?: MicrioImage): void {
@@ -524,7 +524,7 @@ export class Engine {
 	#getTileEntry(i: number): TileEntry {
 		let tile = this.#tiles.get(i);
 		if (!tile) {
-			tile = { loadState: 0, opacity: 0 };
+			tile = { _loadState: 0, _opacity: 0 };
 			this.#tiles.set(i, tile);
 		}
 		return tile;
@@ -532,7 +532,7 @@ export class Engine {
 
 	/** Registers a base tile index (mark loaded, cache in set). @internal */
 	#registerBaseTile(idx: number): void {
-		this.#getTileEntry(idx).opacity = 1;
+		this.#getTileEntry(idx)._opacity = 1;
 		this.#baseTiles.push(idx);
 	}
 
@@ -552,7 +552,7 @@ export class Engine {
 		noSmoothing?: boolean
 	} = {}): void {
 		const tile = this.#tiles.get(i);
-		if (tile?.texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
+		if (tile?._texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
 		const inArchive = archive.db.has(src);
 		if (!inArchive) this.micrio._loading.set(true);
 		this.#requests.set(i, src);
@@ -569,11 +569,11 @@ export class Engine {
 		noSmoothing?: boolean
 	): void {
 		const tile = this.#getTileEntry(i);
-		tile.texture = this.micrio._webgl._getTexture(img, tile.texture, noSmoothing);
+		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing);
 		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) img.close();
-		tile.loadState = 2;
+		tile._loadState = 2;
 
-		tile.timeoutId = setTimeout(() => {
+		tile._timeoutId = setTimeout(() => {
 			this.#deleteRequest(i);
 		}, ani ? 150 : 50) as unknown as number;
 	}
@@ -582,9 +582,9 @@ export class Engine {
 	#deleteRequest(i: number): void {
 		this.#requests.delete(i);
 		const tile = this.#tiles.get(i);
-		if (tile?.timeoutId) {
-			clearTimeout(tile.timeoutId);
-			tile.timeoutId = undefined;
+		if (tile?._timeoutId) {
+			clearTimeout(tile._timeoutId);
+			tile._timeoutId = undefined;
 		}
 
 		if (!this.#requests.size) this.micrio._loading.set(false);
@@ -594,8 +594,8 @@ export class Engine {
 	#deleteTile(idx: number): void {
 		const tile = this.#tiles.get(idx);
 		if (tile) {
-			if (tile.texture) this.micrio._webgl.gl.deleteTexture(tile.texture);
-			if (tile.timeoutId) clearTimeout(tile.timeoutId);
+			if (tile._texture) this.micrio._webgl.gl.deleteTexture(tile._texture);
+			if (tile._timeoutId) clearTimeout(tile._timeoutId);
 			this.#tiles.delete(idx);
 		}
 	}
@@ -612,15 +612,15 @@ export class Engine {
 			if (this.#baseTiles.includes(idx)) continue;
 
 			const tile = this.#tiles.get(idx);
-			if (!tile || tile.loadState === 0) continue;
+			if (!tile || tile._loadState === 0) continue;
 
-			tile.opacity = 0;
+			tile._opacity = 0;
 
-			switch (tile.loadState) {
+			switch (tile._loadState) {
 				case 1:
 					const request = this.#requests.get(idx);
 					if (request) abortDownload(request);
-					tile.loadState = 0;
+					tile._loadState = 0;
 					break;
 
 				case 2:
@@ -631,7 +631,7 @@ export class Engine {
 					break;
 
 				case 3:
-					if (!tile.deleteAt) tile.deleteAt = now;
+					if (!tile._deleteAt) tile._deleteAt = now;
 					break;
 			}
 		}
@@ -644,7 +644,7 @@ export class Engine {
 		for (const idx of this.#drawnSet) this.#prevDrawnSet.add(idx);
 
 		for (const [idx, tile] of this.#tiles.entries()) {
-			if (tile.deleteAt && (now - tile.deleteAt) / 1000 > this.#deleteAfterSeconds) {
+			if (tile._deleteAt && (now - tile._deleteAt) / 1000 > this.#deleteAfterSeconds) {
 				this.#deleteTile(idx);
 			}
 		}

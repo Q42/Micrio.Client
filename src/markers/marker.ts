@@ -66,10 +66,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const omni = image.$settings.omni;
 		if (image._isOmni && omni) {
 			const rot = (marker.rotation ?? 0) + (marker.backside ? Math.PI : 0);
-			this.#omniIndex = image.camera.getOmniFrame(rot) ?? 0;
+			this.#omniIndex = image.camera._getOmniFrame(rot) ?? 0;
 			if (marker.visibleArc) {
-				const a0 = image.camera.getOmniFrame(marker.visibleArc[0]);
-				const a1 = image.camera.getOmniFrame(marker.visibleArc[1]);
+				const a0 = image.camera._getOmniFrame(marker.visibleArc[0]);
+				const a1 = image.camera._getOmniFrame(marker.visibleArc[1]);
 				if (a0 != null && a1 != null) this.#omniArc = [a0, a1];
 			}
 		}
@@ -81,7 +81,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				this.style.setProperty('--mat', `matrix3d(${this.#matrix})`);
 				this.classList.add('mat3d');
 			} else {
-				const xy = image.camera.getXYDirect(marker.x, marker.y, {
+				const xy = image.camera._getXYDirect(marker.x, marker.y, {
 					radius: marker.radius, rotation: marker.rotation
 				});
 				[this.#x, this.#y, this.#scaleVal, this.#w] = xy;

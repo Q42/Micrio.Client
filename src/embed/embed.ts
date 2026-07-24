@@ -341,7 +341,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.#y = vp[1] + (this.#cY - view[1]) / view[3] * vp[3];
 			this.#scaleVal = vp[2] / (view[2] * this.#info.width);
 		} else {
-			const coo = image.camera.getXYDirect(this.#cX, this.#cY);
+			const coo = image.camera._getXYDirect(this.#cX, this.#cY);
 			[this.#x, this.#y, this.#scaleVal] = Array.from(coo) as [number, number, number];
 		}
 

@@ -43,7 +43,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			const r = image.$settings.clusterMarkerRadius ?? 16;
 			const coords = markers.map(m => {
-				const xy = image.camera.getXYDirect(m.x, m.y, { radius: m.radius, rotation: m.rotation });
+				const xy = image.camera._getXYDirect(m.x, m.y, { radius: m.radius, rotation: m.rotation });
 				return [xy[0], xy[1]] as [number, number];
 			});
 

@@ -405,7 +405,7 @@ export class TileCanvas {
 		for (let i = 0; i < this.#children.length; i++)
 			this.#children[i]._draw();
 
-		if (v._changed) this._micrioImage?.camera?.viewChanged();
+		if (v._changed) this._micrioImage?.camera?._viewChanged();
 		v._changed = false;
 	}
 

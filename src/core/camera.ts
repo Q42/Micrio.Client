@@ -56,7 +56,7 @@ export class Camera {
 	 * Binds the engine TileCanvas instance for direct compute operations.
 	 * @internal
 	 */
-	bindEngineCanvas(canvas: TileCanvas): void {
+	_bindEngineCanvas(canvas: TileCanvas): void {
 		this.#canvas = canvas;
 	}
 
@@ -113,7 +113,7 @@ export class Camera {
 	 * @returns A Float64Array containing the relative image coordinates [x, y, scale, depth, yaw?, pitch?].
 	 */
 	getCoo(x: number, y: number, absolute = false, noLimit = false): Float64Array {
-		return this.getCooDirect(x, y, absolute, noLimit)
+		return this.#getCooDirect(x, y, absolute, noLimit)
 			.slice(0).map(d => Math.round(d * 1000000) / 1000000);
 	}
 
@@ -121,7 +121,7 @@ export class Camera {
 	 * Gets image coordinates [x, y, scale, depth, yaw?, pitch?] for given screen coordinates. Calls engine directly.
 	 * @internal
 	 */
-	getCooDirect(x: number, y: number, abs = false, noLimit = false) {
+	#getCooDirect(x: number, y: number, abs = false, noLimit = false) {
 		const c = this.#canvas;
 		if (!c) return new Float64Array(5);
 		if (abs) {
@@ -142,14 +142,14 @@ export class Camera {
 	 * @returns A Float64Array containing the screen coordinates [x, y, scale, depth].
 	 */
 	getXY(x: number, y: number, abs = false, radius?: number, rotation?: number, noTrueNorth?: boolean): Float64Array {
-		return this.getXYDirect(x, y, { abs, radius, rotation, noTrueNorth }).slice(0);
+		return this._getXYDirect(x, y, { abs, radius, rotation, noTrueNorth }).slice(0);
 	}
 
 	/**
 	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls engine directly.
 	 * @internal
 	 */
-	getXYDirect(x: number, y: number, opts: {
+	_getXYDirect(x: number, y: number, opts: {
 		abs?: boolean; radius?: number; rotation?: number; noTrueNorth?: boolean;
 	} = {}) {
 		const c = this.#canvas;
@@ -298,7 +298,7 @@ export class Camera {
 	}
 
 	/** [Omni] Gets the frame index corresponding to a given rotation angle (radians). */
-	getOmniFrame(rot?: number): number | undefined {
+	_getOmniFrame(rot?: number): number | undefined {
 		const omni = this.#image.$settings.omni;
 		if (!omni || rot == undefined) return;
 		return Math.floor((rot / (Math.PI * 2)) * (omni.frames / (omni.layers?.length ?? 1)));
@@ -316,7 +316,7 @@ export class Camera {
 	 * Pushes the current view rectangle to the image's state store.
 	 * @internal
 	 */
-	viewChanged() {
+	_viewChanged() {
 		if (!this.#canvas) return;
 		const v = this.#canvas.view.arr;
 		this.#image.state.view.set([v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]]);
@@ -490,6 +490,4 @@ export class Camera {
 		const v = this.#canvas?.view.arr;
 		if (v) this.setCoo(v[0], v[1], s);
 	}
-
-	aniIsKinetic(): boolean { return !!(this.#canvas?._kinetic.started); }
 }
