@@ -298,7 +298,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		if (this.#glImage && (this.#glImage._placed || image._embeds.includes(this.#glImage))) {
 			this.#glImage.camera.setArea(embed.area as Models.Camera.View);
 			this.#glImage.camera.setRotation(this.#rotX, this.#rotY, this.#rotZ);
-			if (this.#glImage._placed) image.engine.fadeImage(this.#glImage, opacity);
+			if (this.#glImage._placed) image.engine._fadeImage(this.#glImage, opacity);
 		} else {
 			this.#glImage = image.addEmbed({
 				...embed,
@@ -441,7 +441,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		const { embed, image } = this.#props;
 		if (this.#glImage && this.#glImage._placed && image) {
-			image.engine.fadeImage(this.#glImage, 0);
+			image.engine._fadeImage(this.#glImage, 0);
 			image.engine.render();
 		}
 

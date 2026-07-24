@@ -304,7 +304,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.current.set(undefined);
 		this.events.enabled.set(false);
 		this.canvas.unhook();
-		this.engine.unbind();
+		this.engine._unbind();
 		if(this._ui) this._ui.remove();
 		delete this._ui;
 		this.webgl.dispose(true);
@@ -521,7 +521,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(!this.lang) this.lang = 'en';
 
-		this.engine.load();
+		this.engine._load();
 		if(!this.webgl.gl) try {
 			this.webgl.init();
 		} catch(e) {
@@ -571,7 +571,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @param img The {@link MicrioImage} instance to close.
 	*/
 	close(img:MicrioImage) : void {
-		this.engine.removeCanvas(img);
+		this.engine._removeCanvas(img);
 	}
 
 	/**

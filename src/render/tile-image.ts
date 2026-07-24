@@ -295,7 +295,7 @@ export default class Image {
 		if (this._gotBase === 0) {
 			d.push(last);
 			s[lastIdx] = 1;
-			this.#canvas.main.setTileOpacity(last, true, 1);
+			this.#canvas.main._setTileOpacity(last, true, 1);
 		} else if (this.#is360Embed) {
 			d.push(last);
 			s[lastIdx] = 1;
@@ -428,7 +428,7 @@ export default class Image {
 		}
 		Image.#toDraw.push(i);
 
-		if (this.#canvas.main.setTileOpacity(i, i === this._endOffset - 1, this.#canvas._opacity) >= 1) {
+		if (this.#canvas.main._setTileOpacity(i, i === this._endOffset - 1, this.#canvas._opacity) >= 1) {
 			this.#doneTotal++;
 		} else if (!this.#isSingle && !this.#canvas._limited && l._index < this.#numLayers - 1) {
 			this.#setToDraw(this._layers[l._index + 1], x >> 1, y >> 1);

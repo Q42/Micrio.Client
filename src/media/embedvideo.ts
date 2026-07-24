@@ -122,9 +122,9 @@ export class GLEmbedVideo {
 		if (playing) this._vid.dataset.playing = '1';
 		else delete this._vid.dataset.playing;
 		// Notify Engine about the playback state change
-		this.#engine.setImageVideoPlaying(this.#image, playing);
+		this.#engine._setImageVideoPlaying(this.#image, playing);
 		// Handle fade-out/fade-in if hideWhenPaused is enabled
-		if(this.#embed.hideWhenPaused) this.#engine.fadeImage(this.#image, playing ? 1 : 0);
+		if(this.#embed.hideWhenPaused) this.#engine._fadeImage(this.#image, playing ? 1 : 0);
 		// Trigger Engine render if playing (to update texture)
 		if(playing) this.#engine.render();
 	}

@@ -338,10 +338,10 @@ export class TileCanvas {
 		for (let i = 0; i < this.images.length; i++) {
 			const image = this.images[i];
 			if (!image._shouldRender()) {
-				if (image._doRender) m.setImageVisible(image, image._doRender = false);
+				if (image._doRender) m._setImageVisible(image, image._doRender = false);
 			}
 			else {
-				if (i > 0 && !image._doRender) m.setImageVisible(image, image._doRender = true);
+				if (i > 0 && !image._doRender) m._setImageVisible(image, image._doRender = true);
 				if (image._isVideo && image._isVideoPlaying) animating = true;
 				if (image._opacityTick(this.#isGallerySwitch || this._opacity < 1)) animating = true;
 				if (image.opacity > 0) m._doneTotal += image._getTiles(scale);
@@ -388,9 +388,9 @@ export class TileCanvas {
 
 			const isTargetLayer = r.layer === r.image._targetLayer - 1 || (!m._bareBone && r.layer === r.image._targetLayer);
 			const isBaseTile = i === r.image._endOffset - 1;
-			const opa = m.getTileOpacity(i);
+			const opa = m._getTileOpacity(i);
 
-			if ((isTargetLayer || opa === 1 || isBaseTile) && m.drawTile(r.image._index, i, r.layer,
+			if ((isTargetLayer || opa === 1 || isBaseTile) && m._drawTile(r.image._index, i, r.layer,
 				r.x, r.y, opa * this.#bOpacity * r.image.opacity, animating, r.layer === r.image._targetLayer - 1)
 				&& isBaseTile) {
 				r.image._gotBase = m.now;

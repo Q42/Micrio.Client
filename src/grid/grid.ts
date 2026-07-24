@@ -365,7 +365,7 @@ export class Grid extends MicrioElement {
 		const img = this._imageMap.get(entry.id)!;
 
 		if (!img._placed) {
-			engine.addChild(img, this.image);
+			engine._addChild(img, this.image);
 		}
 		if (entry.area) {
 			const set = () => img.camera.setArea(entry.area!, {

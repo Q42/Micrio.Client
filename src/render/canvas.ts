@@ -139,7 +139,7 @@ export class Canvas {
 		this.#micrio.webgl.postprocessor?.resize();
 
 		// Notify engine of resize
-		this.#micrio.engine.resize(c);
+		this.#micrio.engine._resize(c);
 
 		// Dispatch 'resize' event with bounding box info
 		this.#micrio.events.dispatch('resize', box);

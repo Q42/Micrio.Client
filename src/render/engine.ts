@@ -164,7 +164,7 @@ export class Engine {
 	#entryByImage: Map<MicrioImage | Models.Omni.Frame, CanvasEntry> = new Map();
 
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
-	getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
+	_getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
 		return this.#entryByImage.get(img)?.canvas;
 	}
 
@@ -182,7 +182,7 @@ export class Engine {
 		this.micrio = micrio;
 		this.#deleteAfterSeconds = Browser.iOS ? 5 : get(this.micrio.canvas.isMobile) ? 30 : 90;
 		this.render = this.render.bind(this);
-		this.#unsubscribe.push(micrio.current.subscribe(this.setCanvas.bind(this)));
+		this.#unsubscribe.push(micrio.current.subscribe(this.#setCanvas.bind(this)));
 	}
 
 	/**
@@ -204,7 +204,7 @@ export class Engine {
 	/**
 	 * Initializes the engine and prepares the 360 texture buffer.
 	 */
-	load(): void {
+	_load(): void {
 		if (this.ready) return;
 
 		Engine._textureBuffer360 = Engine.#getTextureBuffer(segsX, segsY);
@@ -221,7 +221,7 @@ export class Engine {
 	 * Callback for the engine to request drawing a tile.
 	 * @returns True if the tile texture is ready and drawn, false otherwise.
 	 */
-	drawTile = (imgIdx: number, i: number, layer: number, x: number, y: number, opacity: number, animating: boolean, targetLayer: boolean): boolean => {
+	_drawTile = (imgIdx: number, i: number, layer: number, x: number, y: number, opacity: number, animating: boolean, targetLayer: boolean): boolean => {
 		this.#drawnSet.add(i);
 		const tile = this.#getTileEntry(i);
 		tile.deleteAt = undefined;
@@ -245,7 +245,7 @@ export class Engine {
 			else {
 				tile.loadState = 1;
 				const src = img.getTileSrc(layer, x, y, frame);
-				if (src) this.getTexture(i, src, animating, { noSmoothing });
+				if (src) this.#getTexture(i, src, animating, { noSmoothing });
 				else {
 					tile.loadState = 0;
 					return false;
@@ -274,10 +274,10 @@ export class Engine {
 	}
 
 	/** @internal */
-	getTileOpacity = (i: number): number => { return this.#tiles.get(i)?.opacity || 0; }
+	_getTileOpacity = (i: number): number => { return this.#tiles.get(i)?.opacity || 0; }
 
 	/** @internal */
-	setTileOpacity = (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
+	_setTileOpacity = (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
 		const tile = this.#tiles.get(i);
 		if (!tile) return 0;
 		if (tile.opacity < 1) {
@@ -287,13 +287,13 @@ export class Engine {
 	}
 
 	/** @internal */
-	setImageVisible = (img: Image, visible: boolean): void => {
+	_setImageVisible = (img: Image, visible: boolean): void => {
 		const micrioImage = this.#engImageToMicrio.get(img);
 		if (micrioImage && 'visible' in micrioImage) micrioImage.visible.set(visible);
 	}
 
 	/** Unbinds event listeners, stops rendering, and cleans up resources. */
-	unbind(): void {
+	_unbind(): void {
 		this.#stop();
 		while (this.#unsubscribe.length) this.#unsubscribe.pop()?.();
 		this.#requests.forEach(src => abortDownload(src));
@@ -422,7 +422,7 @@ export class Engine {
 
 		if (c._noImage) c.visible.set(true);
 
-		this.setCanvas(c);
+		this.#setCanvas(c);
 	}
 
 	/**
@@ -434,13 +434,13 @@ export class Engine {
 		img.camera.bindEngineCanvas(canvas);
 	}
 
-	setCanvas(canvas?: MicrioImage): void {
+	#setCanvas(canvas?: MicrioImage): void {
 		if (!canvas || (canvas._placed && canvas === this.#activeCanvasEntry?.micrioImage)) return;
 
 		if (!canvas._placed) {
 			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id != get(this.micrio.current)!.id)) return;
 			this.#addCanvas(canvas);
-			if (canvas._embeds.length) canvas._embeds.forEach(e => this.addEmbed(e, canvas));
+			if (canvas._embeds.length) canvas._embeds.forEach(e => this._addEmbed(e, canvas));
 		}
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
@@ -466,7 +466,7 @@ export class Engine {
 	}
 
 	/** Removes a canvas instance from the engine. @internal */
-	removeCanvas(c: MicrioImage): void {
+	_removeCanvas(c: MicrioImage): void {
 		if (!c._placed) throw new Error('Canvas is not placed yet');
 		const entry = this.#entryByImage.get(c);
 		if (!entry) return;
@@ -547,7 +547,7 @@ export class Engine {
 	 * Initiates loading of a texture using the texture loader utility.
 	 * @internal
 	 */
-	getTexture(i: number, src: string, ani: boolean, opts: {
+	#getTexture(i: number, src: string, ani: boolean, opts: {
 		force?: boolean;
 		noSmoothing?: boolean
 	} = {}): void {
@@ -654,7 +654,7 @@ export class Engine {
 	 * Resizes the viewport and updates engine dimensions.
 	 * @internal
 	 */
-	resize(c: Models.Canvas.ViewRect): void {
+	_resize(c: Models.Canvas.ViewRect): void {
 		this.el.set(c.width, c.height, c.left, c.top, c.ratio, c.scale, c.portrait);
 		for (let i = 0; i < this._canvases.length; i++) this._canvases[i].resize();
 		if (this.ready) { this.#stop(); this.#draw(); }
@@ -734,16 +734,16 @@ export class Engine {
 	}
 
 	/** Adds an embedded MicrioImage instance. @internal */
-	addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {
+	_addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {
 		if (image._placed) return;
 		this.#addImage(image, parent, true, opts.opacity ?? 1, 'camera' in image && opts.asImage ? undefined : opts.fromScale);
 	}
 
 	/** Add a child independent canvas to the current canvas. @internal */
-	addChild = (image: MicrioImage, parent: MicrioImage) => this.#addImage(image, parent);
+	_addChild = (image: MicrioImage, parent: MicrioImage) => this.#addImage(image, parent);
 
 	/** Fades an image (main or embed) to a target opacity. @internal */
-	fadeImage(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean = false): void {
+	_fadeImage(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean = false): void {
 		const entry = this.#entryByImage.get(img);
 		const c = entry?.canvas;
 		if (!c) return;
@@ -765,8 +765,7 @@ export class Engine {
 
 	// --- Facade methods (delegates to TileCanvas via getCanvas) ---
 	// Most facade methods have been replaced by MicrioImage.canvas getter.
-
-	setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
+	_setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
 		const engImage = this.#micrioToEngImage.get(img);
 		if (engImage) engImage._isVideoPlaying = playing;
 	}

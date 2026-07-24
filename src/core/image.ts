@@ -172,7 +172,7 @@ export class MicrioImage {
 	get engine(): Engine { return this.#engine; }
 
 	/** The engine TileCanvas for this image, if placed. */
-	get canvas(): TileCanvas | undefined { return this.#engine.getCanvas(this); }
+	get canvas(): TileCanvas | undefined { return this.#engine._getCanvas(this); }
 
 	readonly #engine: Engine;
 	opts: {
@@ -443,7 +443,7 @@ export class MicrioImage {
 			}
 		}
 		// Add the embed to the engine
-		this.#engine.addEmbed(img, this, opts);
+		this.#engine._addEmbed(img, this, opts);
 		this.#engine.render(); // Trigger render
 		return img; // Return the new embed instance
 	}
