@@ -36,8 +36,8 @@ class MicrioZoomButtons extends MicrioElement {
 		this._addCleanup(micrio._visible.subscribe(() => update()));
 
 		const onZoom = () => update();
-		micrio.addEventListener('zoom', onZoom);
-		this._addCleanup(() => micrio.removeEventListener('zoom', onZoom));
+		micrio._onZoom.push(onZoom);
+		this._addCleanup(() => { const i = micrio._onZoom.indexOf(onZoom); if(i >= 0) micrio._onZoom.splice(i, 1); });
 
 		update();
 	}

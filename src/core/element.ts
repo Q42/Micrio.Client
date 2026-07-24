@@ -99,6 +99,11 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
 	readonly state:State.Main = new State.Main();
 
+	/** Direct callbacks invoked on every camera move (instead of dispatching a DOM event). */
+	readonly _onMove: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
+	/** Direct callbacks invoked on every camera zoom (instead of dispatching a DOM event). */
+	readonly _onZoom: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
+
 	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);
 
@@ -237,9 +242,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		this._watch(this._visible, () => updateZoomed());
 
-		const onZoom = () => updateZoomed();
-		this.addEventListener('zoom', onZoom);
-		this._addCleanup(() => this.removeEventListener('zoom', onZoom));
+		const onZoomCb = () => updateZoomed();
+		this._onZoom.push(onZoomCb);
+		this._addCleanup(() => { const i = this._onZoom.indexOf(onZoomCb); if(i >= 0) this._onZoom.splice(i, 1); });
 
 		let shown = false;
 		const unsub = this._loading.subscribe(v => {

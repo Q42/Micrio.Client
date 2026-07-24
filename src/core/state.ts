@@ -112,13 +112,13 @@ export namespace State {
 					const detail = {image, view}; // Event detail payload with view360
 					pV = nV;
 					const nW = view[2], nH = view[3]; // Calculate new width/height
-					// Dispatch 'zoom' event if dimensions changed significantly
+					// Fire zoom callbacks if dimensions changed significantly
 					if(!pW || !pH || Math.abs((nW-pW)+(nH-pH)) > 1E-5) {
-						m.events._dispatch('zoom', detail)
+						for(const fn of m._onZoom) fn(detail);
 						pW=nW,pH=nH; // Update previous dimensions
 					}
-					// Dispatch 'move' event
-					m.events._dispatch('move', detail);
+					// Fire move callbacks
+					for(const fn of m._onMove) fn(detail);
 				}
 			});
 
