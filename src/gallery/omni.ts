@@ -2,6 +2,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Omni } from '$types/models/omni';
 import type { MicrioElement } from '$core/component';
+import type { Engine } from '$render/engine';
 import { easeInOut } from '$render/easing';
 import { DataLoader } from '$utils/dataLoader';
 import { archive } from '$utils/archive';
@@ -9,6 +10,8 @@ import { createElement } from '$utils/dom';
 import { icons } from '$ui/icons';
 import { get, writable } from '$core/store';
 import '$ui/dial';
+
+type PreloadRangeFn = (center:number,total:number,d:number,getTile:(idx:number)=>{baseTileIdx:number;thumbSrc?:string}|undefined,engine:Engine,hasArchive:boolean)=>void;
 
 export class OmniUI {
 	#micrio:HTMLMicrioElement;
@@ -28,7 +31,7 @@ export class OmniUI {
 	#startedWithShift:boolean = false;
 	#firstTouchId:number|undefined;
 	#goto:(i:number) => void = () => {};
-	#preloadRangeFn:(center:number,total:number,d:number,getTile:(idx:number)=>{baseTileIdx:number;thumbSrc?:string}|undefined,engine:any,hasArchive:boolean)=>void;
+	#preloadRangeFn:PreloadRangeFn;
 	#cleanups: (()=>void)[] = [];
 
 	goto(i:number):void { this.#goto(i); }
@@ -39,7 +42,7 @@ export class OmniUI {
 		micrio:HTMLMicrioElement,
 		image:MicrioImage,
 		parent:HTMLElement,
-		preloadRangeFn:(center:number,total:number,d:number,getTile:(idx:number)=>{baseTileIdx:number;thumbSrc?:string}|undefined,engine:any,hasArchive:boolean)=>void
+		preloadRangeFn:PreloadRangeFn
 	) {
 		this.#micrio = micrio;
 		this.#image = image;

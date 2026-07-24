@@ -2,6 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
+import type { Engine } from '$render/engine';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { OmniUI } from '$gallery/omni';
@@ -15,12 +16,13 @@ export interface GalleryProps {
 	controller?: GalleryController;
 }
 
+import './gallery.css';
+
 /**
  * Handles gallery navigation UI (scrubber, prev/next, strip-swipe) and omni 3D object rotation.
  * Two modes: standard gallery (scrubber + arrow buttons, with optional strip-swipe)
  * and omni (dial + swipe gesture + layer menu).
  */
-import './gallery.css';
 class MicrioGallery extends MicrioElement<GalleryProps> {
 	static tag = 'micrio-gallery';
 
@@ -196,7 +198,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 * Preloads thumbnail textures within a range around a center index.
 	 * Uses requestIdleCallback for low-priority texture loading.
 	 */
-	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: any, hasArchive: boolean) {
+	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: Engine, hasArchive: boolean) {
 		if (!total || !engine) return;
 		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
 		for (let x = -d; x <= d; x++) {
@@ -207,7 +209,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			const tile = getTile(rX);
 			if (tile?.thumbSrc && !this.#preloading.has(tile.thumbSrc)) {
 				this.#preloading.set(tile.thumbSrc, request(() =>
-					engine.getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive })
+					engine._getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive })
 				));
 			}
 		}
