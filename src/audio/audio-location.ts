@@ -1,49 +1,28 @@
-import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import { normalize3 } from '$utils/math';
 import { mainGain } from './audio-controller';
 
-/** Properties for configuring a positional audio element associated with a marker. @internal */
-export interface AudioLocationProps {
-	/** The marker this audio location is attached to. */
-	marker: Models.ImageData.Marker;
-	/** The shared Web Audio API context. */
-	ctx: AudioContext;
-	/** Whether the parent image is a 360° panorama. */
-	is360: boolean;
-}
-
-/** Custom element that renders a spatial audio source positioned at a marker location in the image. */
-class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
-	/** HTML tag name for this custom element. @internal */
-	static tag = 'micrio-audio-location';
-
-	#props: AudioLocationProps = { marker: null!, ctx: null!, is360: false };
+export class MicrioAudioLocation {
+	#micrio: HTMLMicrioElement;
 	#gain!: GainNode;
 	#panner!: PannerNode;
 	#source!: AudioBufferSourceNode;
 	#to: any;
+	#cleanup: (() => void) | undefined;
 
-	#end() {
-		if (this.#source) this.#source.disconnect();
-		clearTimeout(this.#to);
-		this.#panner.disconnect();
-		this.#gain.disconnect();
+	constructor(micrio: HTMLMicrioElement, marker: Models.ImageData.Marker, ctx: AudioContext, is360: boolean) {
+		this.#micrio = micrio;
+		this.#init(marker, ctx, is360);
 	}
 
-	/** @internal */
-	_onMount() {
-		const { marker, ctx, is360 } = this.#props;
-		const micrio = this._getMicrio();
-		if (!micrio || !marker || !ctx) return;
-
-		const image = micrio.$current as MicrioImage;
+	#init(marker: Models.ImageData.Marker, ctx: AudioContext, is360: boolean) {
+		const image = this.#micrio.$current as MicrioImage;
 		const info = image.$info;
 		if (!info) return;
 		const imgWidth = info.width;
 		const imgHeight = info.height;
-
 		const item = marker.positionalAudio as Models.Assets.AudioLocation;
 		if (!item) return;
 
@@ -91,7 +70,6 @@ class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 				}; else this.#source.loop = true;
 			}
 			this.#gain.gain.value = item.volume ?? 1;
-			// buffers come from AudioController module
 			this.#source.buffer = (window as Record<string, any>).__micrioAudioBuffers?.[item.src] ?? null;
 			if (this.#source.buffer) {
 				this.#source.connect(this.#panner);
@@ -117,19 +95,19 @@ class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 		this.#gain.connect(mainGain ?? ctx.destination);
 		start();
 
-		micrio.addEventListener('audio-update', update);
-		this._addCleanup(() => micrio.removeEventListener('audio-update', update));
+		this.#micrio.addEventListener('audio-update', update);
+		this.#cleanup = () => this.#micrio.removeEventListener('audio-update', update);
 	}
 
-	/** @internal */
-	_setProps(props: Partial<AudioLocationProps>) {
-		Object.assign(this.#props, props);
+	#end() {
+		if (this.#source) this.#source.disconnect();
+		clearTimeout(this.#to);
+		this.#panner.disconnect();
+		this.#gain.disconnect();
 	}
 
-	/** @internal */
-	_onDestroy() {
+	destroy() {
+		this.#cleanup?.();
 		this.#end();
 	}
 }
-
-customElements.define(MicrioAudioLocation.tag, MicrioAudioLocation);

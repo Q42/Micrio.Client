@@ -1,10 +1,10 @@
-import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
+import type { HTMLMicrioElement } from '$core/element';
 import { writable, get } from '$core/store';
 import { Browser } from '$utils/browser';
 import { normalize3 } from '$utils/math';
-import { createElement } from '$utils/dom';
+import { MicrioAudioLocation } from './audio-location';
 
 // ── Module-level AudioContext state ──
 
@@ -77,20 +77,25 @@ class AudioPlaylist {
 	destroy() { this.#audio.pause(); }
 }
 
-// ── AudioController custom element ──
+// ── AudioController ──
 
-/** Custom element that manages spatial audio, playlist playback, and user interaction for Micrio images. */
-class MicrioAudioController extends MicrioElement {
-	/** HTML tag name for this custom element. @internal */
-	static tag = 'micrio-audio-controller';
-
+/** Manages spatial audio, playlist playback, and user interaction for Micrio images. */
+export class MicrioAudioController {
+	#micrio: HTMLMicrioElement;
+	#image: MicrioImage;
 	#playlist: AudioPlaylist | undefined;
+	#cleanups: (() => void)[] = [];
+	#audioLocations: MicrioAudioLocation[] = [];
 
-	/** Rebuilds `<micrio-audio-location>` children for the given image's positional audio markers. @internal */
+	constructor(micrio: HTMLMicrioElement, image: MicrioImage) {
+		this.#micrio = micrio;
+		this.#image = image;
+		this.#init();
+	}
+
 	#rebuildAudioLocations(img: MicrioImage | undefined): void {
-		for (const el of this.querySelectorAll('micrio-audio-location')) {
-			el.remove();
-		}
+		for (const loc of this.#audioLocations) loc.destroy();
+		this.#audioLocations = [];
 		if (!_ctx || !img) return;
 		const info = img.$info;
 		if (!info) return;
@@ -100,21 +105,16 @@ class MicrioAudioController extends MicrioElement {
 		if (!posMarkers?.length) return;
 
 		for (const marker of posMarkers) {
-			createElement('micrio-audio-location', {
-				setProps: { marker, ctx: _ctx, is360 },
-				parent: this
-			});
+			this.#audioLocations.push(
+				new MicrioAudioLocation(this.#micrio, marker, _ctx, is360)
+			);
 		}
 	}
 
-	/** @internal */
-	_onMount() {
-		const micrio = this._getMicrio();
-		if (!micrio) return;
-
+	#init() {
+		const micrio = this.#micrio;
+		const image = this.#image;
 		const { events } = micrio;
-		const image = micrio.$current;
-		if (!image) return;
 
 		const info = image.$info;
 		if (!info) return;
@@ -152,15 +152,14 @@ class MicrioAudioController extends MicrioElement {
 		audio.volume = Browser.iOS ? 0 : 0.0001;
 		document.body.appendChild(audio);
 
-		this._addCleanup(interacted.subscribe(b => {
+		this.#cleanups.push(interacted.subscribe(b => {
 			if (!b) return;
-			const volumeStore = this._inject<any>('volume');
-			const vol = volumeStore ? get(volumeStore) : 1;
+			const vol = get(micrio._isMuted) ? 0 : 1;
 			if (!_ctx) init(typeof vol === 'number' ? vol : 1);
 			if (_ctx) {
 				const data = image.$data;
 				if (data?.markers?.filter((m: any) => !!m.positionalAudio).length) {
-					this._addCleanup(image.state.view.subscribe(v => {
+					this.#cleanups.push(image.state.view.subscribe(v => {
 						if (!v) return;
 						const d = Math.max(0, 1.05 - image.camera.getScale());
 						moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5));
@@ -170,7 +169,7 @@ class MicrioAudioController extends MicrioElement {
 			}
 		}));
 
-		this._addCleanup(micrio.current.subscribe(currentImage => {
+		this.#cleanups.push(micrio.current.subscribe(currentImage => {
 			if (!currentImage || !_ctx) return;
 			this.#rebuildAudioLocations(currentImage);
 		}));
@@ -183,31 +182,28 @@ class MicrioAudioController extends MicrioElement {
 		// Render playlist if music data exists
 		const data = image.$data;
 		if (data?.music?.items.length) {
-			const vol = this._inject<any>('volume');
-			const volVal: number = vol ? get(vol) : 1;
-			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, (volVal as number) * (data.music.volume ?? 1));
+			const vol = get(micrio._isMuted) ? 0 : 1;
+			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, (vol as number) * (data.music.volume ?? 1));
 		}
 
-		this._addCleanup(micrio._isMuted.subscribe(muted => {
+		this.#cleanups.push(micrio._isMuted.subscribe(muted => {
 			if (mainGain) mainGain.gain.value = muted ? 0 : 1;
 		}));
 
-		// Expose for renderless operation
-		this.destroy = () => {
+		// Store cleanup for renderless operation
+		this.#cleanups.push(() => {
 			if (_ctx) {
 				audio.remove();
 				removeEventListener('pointerup', onUserGesture);
 			}
-		};
+		});
 	}
 
-	/** Cleanup function exposed for renderless operation; pauses audio and removes event listeners. */
-	destroy: (() => void) | undefined;
-
-	/** @internal */
-	_onDestroy() {
+	destroy() {
+		for (const loc of this.#audioLocations) loc.destroy();
+		this.#audioLocations = [];
+		for (const fn of this.#cleanups) fn();
+		this.#cleanups = [];
 		this.#playlist?.destroy();
 	}
 }
-
-customElements.define(MicrioAudioController.tag, MicrioAudioController);

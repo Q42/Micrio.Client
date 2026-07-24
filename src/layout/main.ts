@@ -23,7 +23,7 @@ import '$markers/waypoint';
 import '$markers/marker-content';
 import './menu';
 import './toolbar';
-import '$audio/audio-controller';
+import { MicrioAudioController } from '$audio/audio-controller';
 import '$media/media';
 import '$media/media-controls';
 import '$markers/marker-popup';
@@ -31,7 +31,6 @@ import '$markers/marker';
 import '$markers/markers';
 import '$ui/dial';
 import '$layout/nav/minimap';
-import '$audio/audio-location';
 import '$embed/embed';
 import '$embed/image-embeds';
 import '$tour/tour';
@@ -73,6 +72,11 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#activePopupMarkerId: string | undefined;
 	#markerElements = new Map<string, MicrioElement>();
 	#embedElements = new Map<string, MicrioElement>();
+	#audioController: MicrioAudioController | undefined;
+	#destroyAudio(): void {
+		this.#audioController?.destroy();
+		this.#audioController = undefined;
+	}
 
 	#layers = [
 		'audio', 'media', 'logo', 'orgLogo', 'details', 'toolbar', 'grid', 'gallery', 'controls', 'embeds', 'markers',
@@ -235,9 +239,14 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const showToolbar = !noHTML && this.#firstInited && !$settings?.noToolbar;
 		const showMinimap = !noHTML && !!$info && $settings?.minimap !== false && !$settings?.noControls && !!micrio.$current?.thumbSrc && !($markerPopup && isMobile);
 
-		this.#show('audio', hasAudio && !!$data && !!$info, () =>
-			createElement('micrio-audio-controller')
-		);
+		if (hasAudio && !!$data && !!$info && micrio.$current) {
+			if (!this.#audioController) {
+				this.#audioController = new MicrioAudioController(micrio, micrio.$current);
+				this._addCleanup(() => this.#destroyAudio());
+			}
+		} else {
+			this.#destroyAudio();
+		}
 
 		this.#show('media', !!videoSrc && !!$info, () => {
 			return createElement('div');
