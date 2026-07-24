@@ -36,8 +36,8 @@ function fitArea(
 }
 
 export class Gallery {
-	readonly config: Models.GalleryConfig;
-	readonly images: MicrioImage[];
+	readonly _config: Models.GalleryConfig;
+	readonly _images: MicrioImage[];
 	readonly #engine: Engine;
 
 	#parent: MicrioImage | null = null;
@@ -51,7 +51,7 @@ export class Gallery {
 
 	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {
 		this.#engine = engine;
-		this.config = config;
+		this._config = config;
 
 		const isSwitch = config.type == 'switch';
 		const isSpreads = config.isSpreads;
@@ -62,7 +62,7 @@ export class Gallery {
 			this.#containerWidth = Math.max(...items.map(p => p.width * (isSpreads ? 2 : 1)));
 		}
 
-		this.images = items.map((info, i) => {
+		this._images = items.map((info, i) => {
 			const imageSettings: Record<string, any> = { ...config.settings };
 
 			// Propagate archive layer offset so child images adjust their level count
@@ -122,7 +122,7 @@ export class Gallery {
 	// --- Factory Methods ---
 
 	/** Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image manifests and raw Image API responses. */
-	static fromIIIF(resp: any, engine: Engine): Gallery | null {
+	static _fromIIIF(resp: any, engine: Engine): Gallery | null {
 		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
 			throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });
 
@@ -147,7 +147,7 @@ export class Gallery {
 		return null;
 	}
 
-	static fromAssets(assets: Models.Assets.Image[], engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; basePath?: string }): Gallery {
+	static _fromAssets(assets: Models.Assets.Image[], engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; basePath?: string }): Gallery {
 		const path = opts?.basePath ?? micrio.$current?._dataPath ?? BASEPATH;
 
 		const items: Models.ImageInfo.ImageInfo[] = assets.map(c => ({
@@ -163,7 +163,7 @@ export class Gallery {
 		});
 	}
 
-	static async fromAlbum(albumId: string, engine: Engine, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
+	static async _fromAlbum(albumId: string, engine: Engine, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
 		const aInfo = DataLoader.getAlbum(albumId);
 		if (!aInfo) return null;
 
@@ -220,23 +220,23 @@ export class Gallery {
 	/** Compute which image indices belong to each logical page.
 	 *  For spread albums, cover pages are single-image pages and remaining images
 	 *  are paired into spreads. For regular albums each image is its own page. */
-	getPageLayout(): { pages: number[][]; numPages: number } {
-		const isSpread = !!this.config.isSpreads;
-		const coverPages = this.config.coverPages ?? 0;
+	_getPageLayout(): { pages: number[][]; numPages: number } {
+		const isSpread = !!this._config.isSpreads;
+		const coverPages = this._config.coverPages ?? 0;
 		const pages: number[][] = [];
 
 		if (isSpread) {
 			let i = 0;
-			for (; i < Math.min(coverPages, this.images.length); i++) {
+			for (; i < Math.min(coverPages, this._images.length); i++) {
 				pages.push([i]);
 			}
-			for (; i < this.images.length; i += 2) {
+			for (; i < this._images.length; i += 2) {
 				const page = [i];
-				if (i + 1 < this.images.length) page.push(i + 1);
+				if (i + 1 < this._images.length) page.push(i + 1);
 				pages.push(page);
 			}
 		} else {
-			for (let i = 0; i < this.images.length; i++) {
+			for (let i = 0; i < this._images.length; i++) {
 				pages.push([i]);
 			}
 		}
@@ -246,11 +246,11 @@ export class Gallery {
 
 	// --- Instance Methods ---
 
-	attach(parent: MicrioImage): void {
+	_attach(parent: MicrioImage): void {
 		this.#parent = parent;
 		(parent as any).__gallery = this;
 
-		if (this.config.type == 'grid') {
+		if (this._config.type == 'grid') {
 			const micrio = parent.engine.micrio;
 			parent.grid = createElement(Grid.tag, {
 				setProps: { micrio, image: parent, gallery: this },
@@ -261,16 +261,16 @@ export class Gallery {
 	// --- Element Opening ---
 
 	/** Build gallery BundleImage and open the parent gallery image on the `<micr-io>` element. */
-	async openOn(micrio: HTMLMicrioElement): Promise<void> {
-		const isSwitch = this.config.type == 'switch';
+	async _openOn(micrio: HTMLMicrioElement): Promise<void> {
+		const isSwitch = this._config.type == 'switch';
 		const gallerySettings: Partial<Models.ImageInfo.Settings> = {
 			view: [0, 0, 1, 1],
-			gallery: { ...this.config },
+			gallery: { ...this._config },
 			pinchZoomOutLimit: isSwitch ? true : undefined,
 		};
 
-		if(this.config.settings) {
-			Object.assign(gallerySettings, this.config.settings);
+		if(this._config.settings) {
+			Object.assign(gallerySettings, this._config.settings);
 		}
 
 		const path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
@@ -305,7 +305,7 @@ export class Gallery {
 	/** Go to the next page. */
 	next(): void {
 		const current = get(this.#currentIndex);
-		this.goto(Math.min(this.images.length - 1, current + 1));
+		this.goto(Math.min(this._images.length - 1, current + 1));
 	}
 
 	/** Go to the previous page. */

@@ -68,7 +68,7 @@ export class Grid extends MicrioElement {
 		this.micrio = props.micrio;
 		this.image = props.image;
 		this.#gallery = props.gallery;
-		this.#gallery.images.forEach(img => this.#trackImage(img));
+		this.#gallery._images.forEach(img => this.#trackImage(img));
 
 		const g = this.image.$settings?.grid;
 		this._clickable = (g?.clickable && ['focus','zoom'].includes(g.clickable)) ? g.clickable : false;
@@ -144,7 +144,7 @@ export class Grid extends MicrioElement {
 	}
 
 	get #galleryGridImages(): Models.Grid.GridImage[] {
-		return this.#gallery.images.map(i => ({ id: i.id, size: [1] as [number, number?] }));
+		return this.#gallery._images.map(i => ({ id: i.id, size: [1] as [number, number?] }));
 	}
 
 	#savePreviousLayout(): void {
@@ -528,7 +528,7 @@ export class Grid extends MicrioElement {
 		const layout = this.#history[this.#history.length-1]?.layout;
 		const cover = this.image.$settings?.initType === 'cover';
 		if (!layout?.length) {
-			const galleryImages = this.#gallery.images;
+			const galleryImages = this.#gallery._images;
 			if (!galleryImages.length) return this._current;
 			return this.set(galleryImages.map((img, i) => ({
 				id: img.id,

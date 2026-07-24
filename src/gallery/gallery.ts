@@ -245,13 +245,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 * registers images with the engine, and sets up input handlers.
 	 */
 	async #renderGallery(micrio: HTMLMicrioElement, image: MicrioImage, controller: GalleryController) {
-		const images: MicrioImage[] = [...controller.images];
+		const images: MicrioImage[] = [...controller._images];
 		if (!images.length) return;
 
 		this.#images = images;
 		this.#parentImage = image;
 
-		const layout = controller.getPageLayout();
+		const layout = controller._getPageLayout();
 		this.#pageToImages = layout.pages;
 
 		// Precompute per-image slot positions and widths for spread-aware strip layout
@@ -264,8 +264,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				this.#imageSlotWidth[imgs[j]] = 1 / n;
 			}
 		}
-		const startImageIdx = controller.config.startId
-			? Math.max(0, images.findIndex(i => i.id === controller.config.startId))
+		const startImageIdx = controller._config.startId
+			? Math.max(0, images.findIndex(i => i.id === controller._config.startId))
 			: 0;
 		const idx = layout.pages.findIndex(p => p.includes(startImageIdx));
 		const pageIdx = idx >= 0 ? idx : 0;
@@ -274,7 +274,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		const engine = micrio.engine;
 		const parent = image;
-		const isSwipe = controller.config.type === 'swipe';
+		const isSwipe = controller._config.type === 'swipe';
 
 		if (isSwipe) {
 			this.#swipeGallery = new SwipeGallery(micrio, images, this.#pageToImages, this.#imageSlotPos, this.#imageSlotWidth,

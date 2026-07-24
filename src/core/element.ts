@@ -322,10 +322,10 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(!resp) return;
 
 		let gallery: Gallery | null;
-		try { gallery = Gallery.fromIIIF(resp, this.engine); }
+		try { gallery = Gallery._fromIIIF(resp, this.engine); }
 		catch(e) { this.printError(e as Error); return; }
 		if(gallery) {
-			gallery.openOn(this);
+			gallery._openOn(this);
 			return;
 		}
 
@@ -362,12 +362,12 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const bundle = await DataLoader.getBundleImage(opts.id).catch(() => undefined);
 			if(bundle && bundle.info?.albumId) {
-				const galleryCtrl = await Gallery.fromAlbum(bundle.info.albumId, this.engine, {
+				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this.engine, {
 					startId: opts.id,
 					onProgress: (p:number) => this._ui?._setProps?.({loadingProgress: p})
 				}).catch(() => null);
 				if(galleryCtrl) {
-					galleryCtrl.openOn(this);
+					galleryCtrl._openOn(this);
 					return;
 				}
 			}
@@ -510,7 +510,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		if(opts.gallery) {
-			opts.gallery.attach(c);
+			opts.gallery._attach(c);
 			this.gallery.set(opts.gallery);
 		}
 

@@ -268,7 +268,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const grid = micrio.$current?.grid;
 		if (grid) this.#place('grid', grid);
 
-		this.#show('gallery', !!$settings?.omni || !!($gallery?.config?.type !== 'grid' && $gallery), () =>
+		this.#show('gallery', !!$settings?.omni || !!($gallery?._config?.type !== 'grid' && $gallery), () =>
 			createElement('micrio-gallery', { setProps: { controller: $gallery ?? undefined } }) as MicrioElement
 		);
 
