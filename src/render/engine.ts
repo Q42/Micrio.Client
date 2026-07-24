@@ -41,7 +41,7 @@ interface CanvasEntry {
 /**
  * The main Micrio compute controller class. Handles the engine lifecycle,
  * render loop, tile management, and WebGL integration.
- * Accessed via `micrio.engine`.
+ * Accessed via `micrio._engine`.
  */
 export class Engine {
 
@@ -240,7 +240,7 @@ export class Engine {
 
 			if (isVideo && !is360) {
 				tile.loadState = 2;
-				tile.texture = this.micrio.webgl.getTexture();
+				tile.texture = this.micrio._webgl.getTexture();
 			}
 			else {
 				tile.loadState = 1;
@@ -258,9 +258,9 @@ export class Engine {
 			if (tile.texture) {
 				if (isVideo) {
 					if (!img._video || !img._video.dataset.playing) return false;
-					this.micrio.webgl.updateTexture(tile.texture, img._video);
+					this.micrio._webgl.updateTexture(tile.texture, img._video);
 				}
-				this.micrio.webgl.drawTile(tile.texture, opacity, is360);
+				this.micrio._webgl.drawTile(tile.texture, opacity, is360);
 			}
 
 			if (tile.loadState === 2) {
@@ -314,7 +314,7 @@ export class Engine {
 		const i = c.$info;
 		if (!i) return;
 		if (c.error) {
-			this.micrio.loading.set(false);
+			this.micrio._loading.set(false);
 			return;
 		}
 
@@ -334,7 +334,7 @@ export class Engine {
 		const coverLimit = !!settings.limitToCoverScale;
 		const coverStart = coverLimit || settings.initType == 'cover';
 
-		if (c._noImage) this.micrio.loading.set(false);
+		if (c._noImage) this.micrio._loading.set(false);
 
 		const focus = [.5, .5];
 		const f = settings.focus;
@@ -477,7 +477,7 @@ export class Engine {
 
 	/** Requests the next animation frame. */
 	render(): void {
-		if (this.#raf < 0) this.#raf = this.micrio.webgl.display.requestAnimationFrame(this.#draw);
+		if (this.#raf < 0) this.#raf = this.micrio._webgl.display.requestAnimationFrame(this.#draw);
 	}
 
 	#draw = (now: number = performance.now()): void => {
@@ -487,7 +487,7 @@ export class Engine {
 		this.#drawing = false;
 
 		if (this._shouldDraw(now)
-			|| this.micrio.keepRendering
+			|| this.micrio._keepRendering
 			|| this.micrio.events.isNavigating
 			|| this.micrio.$current?._video?.paused === false) {
 			this.render();
@@ -501,7 +501,7 @@ export class Engine {
 
 		this.#cleanup();
 
-		this.micrio.webgl.drawEnd();
+		this.micrio._webgl.drawEnd();
 	}
 
 	_shouldDraw(now: number): boolean {
@@ -516,7 +516,7 @@ export class Engine {
 
 	#stop(): void {
 		if (this.#raf < 0) return;
-		this.micrio.webgl.display.cancelAnimationFrame(this.#raf);
+		this.micrio._webgl.display.cancelAnimationFrame(this.#raf);
 		this.#raf = -1;
 	}
 
@@ -539,7 +539,7 @@ export class Engine {
 	/** Prepares the WebGL context for drawing a new frame. @internal */
 	#drawStart(): void {
 		if (this.#drawing) return;
-		this.micrio.webgl.drawStart();
+		this.micrio._webgl.drawStart();
 		this.#drawing = true;
 	}
 
@@ -554,7 +554,7 @@ export class Engine {
 		const tile = this.#tiles.get(i);
 		if (tile?.texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
 		const inArchive = archive.db.has(src);
-		if (!inArchive) this.micrio.loading.set(true);
+		if (!inArchive) this.micrio._loading.set(true);
 		this.#requests.set(i, src);
 		(inArchive ? archive.getImage(src) : loadTexture(src))
 			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
@@ -569,7 +569,7 @@ export class Engine {
 		noSmoothing?: boolean
 	): void {
 		const tile = this.#getTileEntry(i);
-		tile.texture = this.micrio.webgl.getTexture(img, tile.texture, noSmoothing);
+		tile.texture = this.micrio._webgl.getTexture(img, tile.texture, noSmoothing);
 		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) img.close();
 		tile.loadState = 2;
 
@@ -587,14 +587,14 @@ export class Engine {
 			tile.timeoutId = undefined;
 		}
 
-		if (!this.#requests.size) this.micrio.loading.set(false);
+		if (!this.#requests.size) this.micrio._loading.set(false);
 	}
 
 	/** @internal */
 	#deleteTile(idx: number): void {
 		const tile = this.#tiles.get(idx);
 		if (tile) {
-			if (tile.texture) this.micrio.webgl.gl.deleteTexture(tile.texture);
+			if (tile.texture) this.micrio._webgl.gl.deleteTexture(tile.texture);
 			if (tile.timeoutId) clearTimeout(tile.timeoutId);
 			this.#tiles.delete(idx);
 		}

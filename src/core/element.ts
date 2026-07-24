@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import type { Camera } from './camera';
 
 import { deepCopy } from '$utils/object';
-import { fetchJson, jsonCache } from '$utils/fetch';
+import { fetchJson } from '$utils/fetch';
 import { idIsV5 } from '$utils/id';
 import { MicrioError, getErrorMessage } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
@@ -52,9 +52,6 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** The Micrio library version number. */
 	static VERSION:string;
 
-	/** Static cache store for downloaded JSON files (like image info). */
-	static jsonCache = jsonCache;
-
 	/** The custom element tag name registered via `customElements.define`. */
 	static tag = 'micr-io';
 
@@ -64,7 +61,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	#printed: boolean = false;
 
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element. */
-	readonly canvases: MicrioImage[] = [];
+	readonly _canvases: MicrioImage[] = [];
 
 	/**
 	 * Writable store holding the currently active main {@link MicrioImage}.
@@ -75,7 +72,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	readonly current:Writable<MicrioImage|undefined> = writable();
 
 	/** Writable store holding an array of currently visible {@link MicrioImage} instances (relevant for grid). */
-	readonly visible:Writable<MicrioImage[]> = writable([]);
+	readonly _visible:Writable<MicrioImage[]> = writable([]);
 
 	/** Internal reference to the current image instance.
 	 * @internal
@@ -104,15 +101,13 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);
 
-	/** The WebGL rendering controller.
-	 * @internal
-	*/
-	readonly webgl:WebGL = new WebGL(this);
+	/** The WebGL rendering controller. */
+	readonly _webgl:WebGL = new WebGL(this);
 
 	/** The compute engine controller, managing the render loop and tile drawing.
 	 * @internal
 	*/
-	readonly engine:Engine = new Engine(this);
+	readonly _engine:Engine = new Engine(this);
 
 	/** The root MicrioMain UI component instance.
 	 * @internal
@@ -125,17 +120,17 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Writable store indicating the overall loading state of the viewer.
 	 * @internal
 	*/
-	readonly loading:Writable<boolean> = writable(true);
+	readonly _loading:Writable<boolean> = writable(true);
 
 	/** Writable store indicating if the viewer is currently transitioning between images.
 	 * @internal
 	*/
-	readonly switching:Writable<boolean> = writable(false);
+	readonly _switching:Writable<boolean> = writable(false);
 
 	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute and localStorage.
 	 * @internal
 	*/
-	readonly isMuted:Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) == '1')
+	readonly _isMuted:Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) == '1')
 
 	/** Writable store holding the currently active language code (e.g., 'en', 'nl').
 	 * @internal
@@ -151,10 +146,10 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** If true, forces the WebGL render loop to run continuously, even when idle.
 	 * @internal
 	*/
-	keepRendering: boolean = false;
+	_keepRendering: boolean = false;
 
 	/** Idle state manager — sets `data-idle` on the element after inactivity. */
-	idle!: IdleState;
+	#idle!: IdleState;
 
 	/** For setting first-time hooks
 	 * @internal
@@ -173,10 +168,10 @@ export class HTMLMicrioElement extends MicrioElement {
 				else this.open(newVal);
 			} break;
 			case 'muted':
-				this.isMuted.set(this.hasAttribute('muted'));
+				this._isMuted.set(this.hasAttribute('muted'));
 				break;
 			case 'data-limited':
-				if(this.engine?._vertexBuffer && this.$current?.canvas)
+				if(this._engine?._vertexBuffer && this.$current?.canvas)
 					this.$current.canvas._limited = !!newVal;
 				break;
 			case 'lang': {
@@ -211,10 +206,10 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(!('muted' in this)) {
 			Object.defineProperty(this, 'muted', {
-				get() { return get(this.isMuted) },
+				get() { return get(this._isMuted) },
 				set(b:boolean) { if(b) this.setAttribute('muted',''); else this.removeAttribute('muted'); }
 			});
-			this._watch(this.isMuted, b => {
+			this._watch(this._isMuted, b => {
 				/** @ts-ignore */
 				this['muted'] = b;
 				if(b) {
@@ -229,7 +224,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		const updateZoomed = () => {
-			const imgs = get(this.visible).filter(i => i.id);
+			const imgs = get(this._visible).filter(i => i.id);
 			const target = imgs.length === 1 ? imgs[0] : this.#current;
 			this.toggleAttribute('data-zoomed', !!target?.camera && !target.camera.isZoomedOut());
 		};
@@ -239,19 +234,19 @@ export class HTMLMicrioElement extends MicrioElement {
 			updateZoomed();
 		});
 
-		this._watch(this.visible, () => updateZoomed());
+		this._watch(this._visible, () => updateZoomed());
 
 		const onZoom = () => updateZoomed();
 		this.addEventListener('zoom', onZoom);
 		this._addCleanup(() => this.removeEventListener('zoom', onZoom));
 
 		let shown = false;
-		const unsub = this.loading.subscribe(v => {
+		const unsub = this._loading.subscribe(v => {
 			if (v) return;
 			unsub();
 			this.setAttribute('data-loaded','');
 
-			this._watch(this.switching, s => {
+			this._watch(this._switching, s => {
 				if(s) this.setAttribute('data-switching','');
 				else {
 					if(!shown) tick().then(() => this.events.dispatch('show', this));
@@ -266,7 +261,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Idle detection (data-idle after inactivity) ────────────────
 
-		this.idle = new IdleState(this, {
+		this.#idle = new IdleState(this, {
 			shouldIdle: () => {
 				if (document.activeElement && this.contains(document.activeElement)) return false;
 				const buttons = this.querySelectorAll<HTMLElement>('button, micrio-button');
@@ -277,14 +272,14 @@ export class HTMLMicrioElement extends MicrioElement {
 			},
 		});
 
-		const onActivity = () => this.idle.activity();
+		const onActivity = () => this.#idle.activity();
 		this.addEventListener('pointermove', onActivity, { passive: true });
 		this.addEventListener('pointerdown', onActivity, { passive: true });
 		this.addEventListener('wheel', onActivity, { passive: true });
 		this.addEventListener('focusin', onActivity, { passive: true });
 		window.addEventListener('keydown', onActivity);
 
-		this.idle.activity();
+		this.#idle.activity();
 	}
 
 	// Custom overloads for addEventListener to support fully typed custom Micrio events
@@ -304,11 +299,11 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.current.set(undefined);
 		this.events.enabled.set(false);
 		this.canvas.unhook();
-		this.engine._unbind();
+		this._engine._unbind();
 		if(this._ui) this._ui.remove();
 		delete this._ui;
-		this.webgl.dispose(true);
-		this.idle?.destroy();
+		this._webgl.dispose(true);
+		this.#idle?.destroy();
 		this.#printed = false;
 	}
 
@@ -318,12 +313,12 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 */
 	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
-		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.printError(e); return undefined; });
+		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.#printError(e); return undefined; });
 		if(!resp) return;
 
 		let gallery: Gallery | null;
-		try { gallery = Gallery._fromIIIF(resp, this.engine); }
-		catch(e) { this.printError(e as Error); return; }
+		try { gallery = Gallery._fromIIIF(resp, this._engine); }
+		catch(e) { this.#printError(e as Error); return; }
 		if(gallery) {
 			gallery._openOn(this);
 			return;
@@ -362,7 +357,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => undefined);
 			if(bundle && bundle.info?.albumId) {
-				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this.engine, {
+				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this._engine, {
 					startId: opts.id,
 					onProgress: (p:number) => this._ui?._setProps?.({loadingProgress: p})
 				}).catch(() => null);
@@ -381,7 +376,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			return;
 		}
 
-		this.keepRendering = !!opts.settings.keepRendering;
+		this._keepRendering = !!opts.settings.keepRendering;
 		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
 		const openBundle = () => {
@@ -418,12 +413,12 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 * @param error The error (MicrioError, Error, or string) to display.
 	 */
-	printError(error?: Error | string): void {
+	#printError(error?: Error | string): void {
 		const message = getErrorMessage(error ?? 'An unknown error has occurred');
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
 		if(!this._ui) this.#printUI(false, false);
 		this._ui?._setProps?.({ error: message });
-		this.loading.set(false);
+		this._loading.set(false);
 	}
 
 	/**
@@ -461,7 +456,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		else if(typeof idOrInfo === 'string') {
 			bundle = (await DataLoader._getBundleImage(idOrInfo))!;
 			if(!bundle) {
-				this.printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
+				this.#printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
 				return this.$current!;
 			}
 		}
@@ -486,27 +481,27 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(this.$current && bundle.id == this.$current?.id) return this.$current;
 
-		if(!opts.gridView && this.$current) this.switching.set(true);
+		if(!opts.gridView && this.$current) this._switching.set(true);
 		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
 
 		// ── Find or create canvas ─────────────────────────────────────────────
 
-		let c:MicrioImage|undefined = this.canvases.find(c => bundle.id && c.id == bundle.id);
+		let c:MicrioImage|undefined = this._canvases.find(c => bundle.id && c.id == bundle.id);
 		let isInGrid:boolean = false;
-		const grid = this.canvases[0]?.grid;
+		const grid = this._canvases[0]?.grid;
 		if(!c && grid) {
 			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;
 			isInGrid = !!gridImage;
-			c = bundle.id ? gridImage : this.canvases[0];
-			if(isInGrid && !grid.insideGrid()) this.current.set(this.canvases[0]);
+			c = bundle.id ? gridImage : this._canvases[0];
+			if(isInGrid && !grid.insideGrid()) this.current.set(this._canvases[0]);
 		}
 		if(!c) {
-			if(this.canvases.length) {
-				const main = this.canvases[0];
+			if(this._canvases.length) {
+				const main = this._canvases[0];
 				bundle.info.path = main._dataPath;
 				bundle.info.lang = this.lang;
 			}
-			this.canvases.push(c = new MicrioImage(this.engine, bundle));
+			this._canvases.push(c = new MicrioImage(this._engine, bundle));
 		}
 
 		if(opts.gallery) {
@@ -521,11 +516,11 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(!this.lang) this.lang = 'en';
 
-		this.engine._load();
-		if(!this.webgl.gl) try {
-			this.webgl.init();
+		this._engine._load();
+		if(!this._webgl.gl) try {
+			this._webgl.init();
 		} catch(e) {
-			this.printError(e as Error);
+			this.#printError(e as Error);
 			return c;
 		}
 
@@ -546,7 +541,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── 360 vector ────────────────────────────────────────────────────────
 
-		const e = this.engine;
+		const e = this._engine;
 		e._direction = opts.vector?.direction ?? 0;
 		e._distanceX = opts.vector?.distanceX ?? 0;
 		e._distanceY = opts.vector?.distanceY ?? 0;
@@ -561,7 +556,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.current.set(c);
 		}
 
-		if(c._noImage) this.loading.set(false);
+		if(c._noImage) this._loading.set(false);
 
 		return c;
 	}
@@ -571,7 +566,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @param img The {@link MicrioImage} instance to close.
 	*/
 	close(img:MicrioImage) : void {
-		this.engine._removeCanvas(img);
+		this._engine._removeCanvas(img);
 	}
 
 	/**

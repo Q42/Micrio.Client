@@ -150,7 +150,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#box = this.#_ul.getBoundingClientRect();
 		const micrio = this._getMicrio();
 		if (!micrio) return;
-		micrio.keepRendering = this.#dragging = true;
+		micrio._keepRendering = this.#dragging = true;
 		this.#hoverIdx = -1;
 		window.addEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
 		window.addEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
@@ -186,7 +186,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		window.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
 		const micrio = this._getMicrio();
 		if (!micrio) return;
-		this.#dragging = micrio.keepRendering = false;
+		this.#dragging = micrio._keepRendering = false;
 		this.#goto(this.#currentPage);
 	};
 
@@ -272,7 +272,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		this.#preloadD = 'requestIdleCallback' in self ? 100 : 50;
 
-		const engine = micrio.engine;
+		const engine = micrio._engine;
 		const parent = image;
 		const isSwipe = controller._config.type === 'swipe';
 

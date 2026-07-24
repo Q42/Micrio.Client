@@ -14,7 +14,7 @@ class MicrioZoomButtons extends MicrioElement {
 		if (!micrio) return;
 
 		const resolveTarget = () => {
-			const imgs = get(micrio.visible).filter(i => i.id);
+			const imgs = get(micrio._visible).filter(i => i.id);
 			return imgs.length === 1 ? imgs[0] : micrio.$current;
 		};
 
@@ -33,7 +33,7 @@ class MicrioZoomButtons extends MicrioElement {
 		};
 
 		this._addCleanup(micrio.current.subscribe(() => update()));
-		this._addCleanup(micrio.visible.subscribe(() => update()));
+		this._addCleanup(micrio._visible.subscribe(() => update()));
 
 		const onZoom = () => update();
 		micrio.addEventListener('zoom', onZoom);

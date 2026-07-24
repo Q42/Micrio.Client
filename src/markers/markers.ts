@@ -21,8 +21,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		const micrio = this._getMicrio();
 		if (!micrio || !image) return;
 
-		const { switching, state: micrioState } = micrio;
-		const grid = micrio.canvases[0]?.grid;
+		const { _switching: switching, state: micrioState } = micrio;
+		const grid = micrio._canvases[0]?.grid;
 		const focussed = grid?._focussed;
 		const gridMarkersShown = grid?._markersShown;
 

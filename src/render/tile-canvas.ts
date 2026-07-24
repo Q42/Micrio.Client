@@ -363,7 +363,7 @@ export class TileCanvas {
 		if (this._targetOpacity === 0 && this._opacity === 0) return;
 
 		const m = this.main;
-		const gl = m.micrio.webgl;
+		const gl = m.micrio._webgl;
 		const el = this.el;
 		const v = this.view;
 

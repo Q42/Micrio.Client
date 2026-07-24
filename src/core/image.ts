@@ -324,7 +324,7 @@ export class MicrioImage {
 
 		// Settings store & watermark
 		if(s) this._settings.set(s);
-		if(i.watermark) this.#engine.micrio.webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
+		if(i.watermark) this.#engine.micrio._webgl.loadWatermark(i.watermark, s?.watermarkOpacity);
 
 		// Omni controls hook
 		if(this._isOmni) {
@@ -342,12 +342,12 @@ export class MicrioImage {
 		this.visible.subscribe(v => {
 			if(v==wasVis) return; wasVis=v;
 
-			micrioRef.visible.update(l => {
+			micrioRef._visible.update(l => {
 				if(v) l.push(this);
 				else l.splice(l.indexOf(this), 1);
 				return l;
 			});
-			if(v && micrioRef.$current == this) micrioRef.switching.set(false);
+			if(v && micrioRef.$current == this) micrioRef._switching.set(false);
 		});
 
 		this.video.subscribe(v => this._video = v);

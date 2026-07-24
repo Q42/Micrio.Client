@@ -134,12 +134,12 @@ export class Canvas {
 		this.element.width = width * ratio;
 		this.element.height = height * ratio;
 		// Update WebGL viewport
-		this.#micrio.webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
+		this.#micrio._webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
 		// Resize postprocessing framebuffer if active
-		this.#micrio.webgl.postprocessor?.resize();
+		this.#micrio._webgl.postprocessor?.resize();
 
 		// Notify engine of resize
-		this.#micrio.engine._resize(c);
+		this.#micrio._engine._resize(c);
 
 		// Dispatch 'resize' event with bounding box info
 		this.#micrio.events.dispatch('resize', box);
@@ -165,9 +165,9 @@ export class Canvas {
 	 * @param height The vertical offset margin in pixels.
 	*/
 	setMargins(width:number, height:number) : void {
-		if (!this.#micrio.engine.ready) return;
-		this.#micrio.engine.el._areaWidth = width;
-		this.#micrio.engine.el._areaHeight = height;
+		if (!this.#micrio._engine.ready) return;
+		this.#micrio._engine.el._areaWidth = width;
+		this.#micrio._engine.el._areaHeight = height;
 	}
 
 }

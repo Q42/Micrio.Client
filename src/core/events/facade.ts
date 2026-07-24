@@ -122,7 +122,7 @@ export class Events implements EventContext {
 		});
 
 		// Keep track of visible images
-		micrio.visible.subscribe(v => this.#visible = v);
+		micrio._visible.subscribe(v => this.#visible = v);
 
 		// Get settings from the first loaded image and enable events if configured
 		micrio.current.subscribe(c => {
@@ -163,7 +163,7 @@ export class Events implements EventContext {
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
 		const candidates = this.#visible.filter(i => !i._noImage);
 		// When a grid controller exists, use its own image-under-cursor detection
-		const gridCtrl = this.micrio.canvases.find(i => i.grid);
+		const gridCtrl = this.micrio._canvases.find(i => i.grid);
 		if (gridCtrl) return gridCtrl.grid?.getImageAt(c.x, c.y) ?? this.micrio.$current;
 		// Default: find the visible image under the cursor by area
 		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>

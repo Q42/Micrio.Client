@@ -184,7 +184,7 @@ export class Grid extends MicrioElement {
 		const focussed = this.$focussed;
 		const isDelayed = opts.transition?.endsWith('-delayed');
 		const isBehindDelay = opts.transition == 'behind-delayed';
-		const { engine } = this.micrio;
+		const { _engine: engine } = this.micrio;
 
 		if(opts.transition == 'crossfade') opts.duration = 0;
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
@@ -361,7 +361,7 @@ export class Grid extends MicrioElement {
 		forceAreaAni?:boolean;
 		cover?:boolean;
 	}) : MicrioImage {
-		const { engine } = this.micrio;
+		const { _engine: engine } = this.micrio;
 		const img = this._imageMap.get(entry.id)!;
 
 		if (!img._placed) {
@@ -387,13 +387,13 @@ export class Grid extends MicrioElement {
 	}
 
 	#removeImages(images:MicrioImage[]) : void {
-		const { engine } = this.micrio;
+		const { _engine } = this.micrio;
 		images.forEach(i => {
 			if(i._placed) i.canvas?._fadeOut();
 			this._buttons.get(i.id)?.remove();
 			this._buttons.delete(i.id);
 		});
-		engine.render();
+		_engine.render();
 	}
 
 	insideGrid() : boolean {
@@ -453,7 +453,7 @@ export class Grid extends MicrioElement {
 	}
 
 	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
-		this.micrio.engine._gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
+		this.micrio._engine._gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
 	}
 
 	clickCell(_img?:MicrioImage|string) : void {
@@ -474,7 +474,7 @@ export class Grid extends MicrioElement {
 
 		const m = this.micrio;
 
-		if(!get(m.visible).find(i => i == this.image)) m.current.set(this.image);
+		if(!get(m._visible).find(i => i == this.image)) m.current.set(this.image);
 
 		const focussed = this.$focussed;
 

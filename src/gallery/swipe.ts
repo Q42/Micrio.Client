@@ -102,7 +102,7 @@ export class SwipeGallery {
 		this.#stripDragId = undefined;
 		this.#stripDragActive = false;
 		this.#micrio.removeAttribute('data-panning');
-		this.#micrio.keepRendering = false;
+		this.#micrio._keepRendering = false;
 	};
 
 	handlePointerDown = (e:PointerEvent):void => {
@@ -137,7 +137,7 @@ export class SwipeGallery {
 			if (!this.#stripDragHorizontal) { this.#stripPointerUp(e); return; }
 			this.#stripDragActive = true;
 			this.#micrio.setAttribute('data-panning', '');
-			this.#micrio.keepRendering = true;
+			this.#micrio._keepRendering = true;
 			this.#micrio.canvas.element.setPointerCapture(e.pointerId);
 		}
 		const dt = Math.max(1, e.timeStamp - this.#stripDragLastT);
@@ -193,7 +193,7 @@ export class SwipeGallery {
 
 	destroy():void {
 		this.#micrio.removeAttribute('data-panning');
-		this.#micrio.keepRendering = false;
+		this.#micrio._keepRendering = false;
 		this.#unlisten();
 	}
 }

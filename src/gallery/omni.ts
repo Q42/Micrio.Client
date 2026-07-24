@@ -59,7 +59,7 @@ export class OmniUI {
 		const omni = settings.omni;
 		if (!omni) return;
 
-		const engine = micrio.engine;
+		const engine = micrio._engine;
 		const info = image.$info;
 		if (!info) return;
 
@@ -208,8 +208,8 @@ export class OmniUI {
 				: v ? Math.round(v[3]*1000)/1000 >= 1 : true
 		);
 
-		micrio.engine._noPinchPan = true;
-		micrio.engine._isSwipe = true;
+		micrio._engine._noPinchPan = true;
+		micrio._engine._isSwipe = true;
 
 		this.#micrio.canvas.element.addEventListener('pointerdown', this.#dStart);
 	}

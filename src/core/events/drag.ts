@@ -76,7 +76,7 @@ export class DragHandler {
 		this.#ctx.micrio.setAttribute('data-panning', '');
 		img.canvas?._kinetic.stop();
 		if (!keepAnimations) img.camera.stop();
-		this.#ctx.micrio.engine.render();
+		this.#ctx.micrio._engine.render();
 		this.#ctx.dispatch('panstart');
 	}
 
@@ -135,7 +135,7 @@ export class DragHandler {
 			const img = this.#ctx.vars.drag.image ?? this.#ctx.getImage({ x: e.clientX, y: e.clientY });
 			if (img) {
 				img.canvas?._kinetic.start();
-				this.#ctx.micrio.engine.render();
+				this.#ctx.micrio._engine.render();
 			}
 		}
 

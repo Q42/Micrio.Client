@@ -25,7 +25,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	#toggleMute = () => {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
-		micrio.isMuted.set(!get(micrio.isMuted));
+		micrio._isMuted.set(!get(micrio._isMuted));
 	};
 
 	#share = () => {
@@ -117,7 +117,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (!micrio) return;
 
 		const $i18n = get(i18n);
-		const $isMuted = get(micrio.isMuted);
+		const $isMuted = get(micrio._isMuted);
 		const $_lang = get(micrio._lang);
 		const $current = micrio.$current;
 		const $settings = $current?.$settings;

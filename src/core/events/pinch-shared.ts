@@ -12,7 +12,7 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	if (ctx.vars.pinch.image) {
 		ctx.vars.pinch.image.canvas?.camera._pinchStart();
 	}
-	ctx.micrio.engine.render();
+	ctx.micrio._engine.render();
 	ctx.dispatch('pinchstart');
 	if (ctx.twoFingerPan) ctx.dispatch('panstart');
 }
@@ -38,7 +38,7 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 	const i = ctx.vars.pinch.image;
 	if (i) {
 		i.canvas?.camera._pinchStop();
-		ctx.micrio.engine.render();
+		ctx.micrio._engine.render();
 	}
 	ctx.vars.pinch.image = undefined;
 	ctx.pinchFactor = undefined;

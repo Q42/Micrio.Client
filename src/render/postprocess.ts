@@ -78,8 +78,8 @@ export class PostProcessor {
 		// --- Shader Compilation ---
 		this.#program = gl.createProgram()!; // TODO: Handle potential null return
 		// Compile vertex and fragment shaders using WebGL utility
-		micrio.webgl.getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
-		micrio.webgl.getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
+		micrio._webgl.getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
+		micrio._webgl.getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
 
 		// Link and use the program
 		gl.linkProgram(this.#program);

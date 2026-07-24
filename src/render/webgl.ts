@@ -82,7 +82,7 @@ const watermarkMaxSizeH = 64;
 
 /**
  * The WebGL controller class. Manages the WebGL context, shaders, buffers,
- * textures, and drawing operations. Accessed via `micrio.webgl`.
+ * textures, and drawing operations. Accessed via `micrio._webgl`.
  * @internal
  */
 export class WebGL {
@@ -200,7 +200,7 @@ export class WebGL {
 		const postprocessing = this.#micrio.$current?.$settings.postProcessingFragmentShader;
 		if(postprocessing) {
 			this.postprocessor = new PostProcessor(gl, this.#micrio, postprocessing);
-			this.#micrio.keepRendering = true; // Force continuous rendering if postprocessing
+			this.#micrio._keepRendering = true; // Force continuous rendering if postprocessing
 		}
 
 		// --- Shader Program Setup ---
@@ -281,7 +281,7 @@ export class WebGL {
 		const gl = this.gl;
 		// Bind and buffer vertex position data (allocate to max size for bufferSubData compatibility)
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio.engine._vertexBuffer360.byteLength, gl.DYNAMIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio._engine._vertexBuffer360.byteLength, gl.DYNAMIC_DRAW);
 
 		// Enable and configure texture coordinate attribute
 		gl.enableVertexAttribArray(this.#txtAttr);
@@ -454,7 +454,7 @@ export class WebGL {
 		}
 
 		// Update dynamic vertex buffer via bufferSubData (buffer already allocated with DYNAMIC_DRAW)
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, is360 ? this.#micrio.engine._vertexBuffer360 : this.#micrio.engine._vertexBuffer);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, is360 ? this.#micrio._engine._vertexBuffer360 : this.#micrio._engine._vertexBuffer);
 
 		// Draw the geometry
 		// For wireframe debugging:
@@ -502,7 +502,7 @@ export class WebGL {
 			// Restore to null binding
 			gl.bindTexture(gl.TEXTURE_2D, null);
 
-			this.#micrio.engine.render();
+			this.#micrio._engine.render();
 		};
 	}
 

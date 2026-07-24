@@ -112,9 +112,9 @@ class MicrioMain extends MicrioElement<MainProps> {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
 
-		const volume = writable<number>(get(micrio.isMuted) ? 0 : 1);
+		const volume = writable<number>(get(micrio._isMuted) ? 0 : 1);
 		this._provide('volume', volume);
-		this._addCleanup(micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1)));
+		this._addCleanup(micrio._isMuted.subscribe(b => volume.set(b ? 0 : 1)));
 
 		this._provide('mediaPaused', writable<boolean>(false));
 
@@ -169,7 +169,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 			if (sub) sub._setProps?.({ raised: !!get(micrio.state.tour) });
 		}));
 
-		for (const store of [micrio.visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
+		for (const store of [micrio._visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
 		micrio.state.tour, micrio.state.marker]) {
 			this._addCleanup(store.subscribe(() => this.#queueSync()));
 		}
@@ -246,7 +246,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 			createElement('micrio-toolbar')
 		);
 
-		const $visible = get(micrio.visible);
+		const $visible = get(micrio._visible);
 		this.#syncImageLayer(this.#markerElements, 'micrio-markers', 'markers', $visible, showMarkers,
 			(i) => !i.opts?.isEmbed && (!!i.$data?.markers?.length || !!micrio.spaceData)
 		);

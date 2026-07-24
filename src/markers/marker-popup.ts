@@ -69,7 +69,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const canMinimize = settings.canMinimizePopup;
 
 		const markerTour = $tour && 'steps' in $tour ? $tour as Models.ImageData.MarkerTour & { next?(): void; prev?(): void } : undefined;
-		const tourSourceImage = markerTour ? micrio.canvases.find((c: MicrioImage) =>
+		const tourSourceImage = markerTour ? micrio._canvases.find((c: MicrioImage) =>
 			c.$data?.markerTours?.find((t: any) => t.id === markerTour.id)
 		) : undefined;
 		const tsSettings = tourSourceImage?.$settings._markers;

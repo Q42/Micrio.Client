@@ -152,7 +152,7 @@ class MicrioAudioController extends MicrioElement {
 			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, (volVal as number) * (data.music.volume ?? 1));
 		}
 
-		this._addCleanup(micrio.isMuted.subscribe(muted => {
+		this._addCleanup(micrio._isMuted.subscribe(muted => {
 			if (mainGain) mainGain.gain.value = muted ? 0 : 1;
 		}));
 

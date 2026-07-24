@@ -31,7 +31,7 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		const basePath = parent?.$current?.$info?.path;
 
 		requestAnimationFrame(() => {
-			const galleryCtrl = Gallery._fromAssets(this.#props.gallery, el.engine, el, {
+			const galleryCtrl = Gallery._fromAssets(this.#props.gallery, el._engine, el, {
 				startId: this.#props.galleryStart,
 				basePath
 			});

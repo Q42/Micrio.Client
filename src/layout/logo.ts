@@ -22,7 +22,7 @@ class MicrioLogo extends MicrioElement {
 		});
 		if (target) this.#a.target = target;
 
-		this._addCleanup(micrio.loading.subscribe(l => {
+		this._addCleanup(micrio._loading.subscribe(l => {
 			clearTimeout(this.#loadingTimer);
 			if (!l) {
 				this.#loading = false;
