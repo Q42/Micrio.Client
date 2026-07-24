@@ -9,12 +9,15 @@ const CY = '50';
 const R = '40';
 const circleAttrs = { r: R, cx: CX, cy: CY, fill: 'transparent', 'stroke-width': '8px' } satisfies Record<string,string>;
 
+/** Properties for the progress circle component. */
 export interface ProgressCircleProps {
 	progress?: number;
 }
 import './progress-circle.css';
 
+/** Web component that displays a circular progress indicator. */
 class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
+	/** The custom element tag name. */
 	static tag = 'micrio-progress-circle';
 
 	#props: ProgressCircleProps = {};

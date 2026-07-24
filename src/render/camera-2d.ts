@@ -28,7 +28,9 @@ export default class Camera2D extends EngineCamera {
 	#inited: boolean = false;
 	#hasStartCoo: boolean = false;
 	readonly #omniMat: Mat4 = new Mat4;
+	/** Width ratio (element width / image width). */
 	cpw: number = -1;
+	/** Height ratio (element height / image height). */
 	cph: number = -1;
 	#wasCoverLimit: boolean = true;
 

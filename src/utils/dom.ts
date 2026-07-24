@@ -3,8 +3,10 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
+/** SVG namespace URI. */
 export const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/** Options for creating DOM elements with properties, attributes, events, and children. */
 export interface ElementOptions {
 	className?: string;
 	textContent?: string;
@@ -21,6 +23,7 @@ export interface ElementOptions {
 	ns?: string;
 }
 
+/** Creates an HTML element with the given tag and options, applying attributes, styles, events, and children. */
 export function createElement<K extends keyof HTMLElementTagNameMap>(tag: K, options?: ElementOptions): HTMLElementTagNameMap[K];
 export function createElement(tag: string, options?: ElementOptions): HTMLElement;
 export function createElement(tag: string, options: ElementOptions = {}): HTMLElement {
@@ -57,6 +60,7 @@ export function createElement(tag: string, options: ElementOptions = {}): HTMLEl
 	return el;
 }
 
+/** Creates an SVG element with the given tag and options. */
 export function createSvgElement<K extends keyof SVGElementTagNameMap>(tag: K, options?: ElementOptions): SVGElementTagNameMap[K];
 export function createSvgElement(tag: string, options?: ElementOptions): SVGElement;
 export function createSvgElement(tag: string, options: ElementOptions = {}): SVGElement {
@@ -102,6 +106,7 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 	}
 }
 
+/** Dynamically loads an external script, ensuring it is loaded only once per session. */
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) => new Promise<void>((ok, err) => {
 	if (targetObj || loaded.has(src)) return ok();
 	const script = document.createElement('script');

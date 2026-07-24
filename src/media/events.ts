@@ -1,12 +1,14 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 
+/** Props for the MicrioEvents component. */
 export interface EventsProps {
 	events: Models.ImageData.Event[];
 	currentTime?: number;
 	duration: number;
 }
 
+/** Custom element that dispatches tour-event custom events at defined media cue points. */
 class MicrioEvents extends MicrioElement<EventsProps> {
 	static tag = 'micrio-events';
 

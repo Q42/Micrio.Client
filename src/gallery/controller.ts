@@ -35,6 +35,7 @@ function fitArea(
 	return [cx - renderW / 2, cy - renderH / 2, renderW, renderH];
 }
 
+/** Manages a collection of gallery images with navigation (swipe, switch, grid, album). */
 export class Gallery {
 	readonly _config: Models.GalleryConfig;
 	readonly _images: MicrioImage[];

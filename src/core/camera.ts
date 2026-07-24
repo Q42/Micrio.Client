@@ -181,10 +181,13 @@ export class Camera {
 	/** Gets the scale at which the image fully covers the viewport. */
 	getCoverScale = (): number => this.#canvas?.camera._coverScale ?? 1;
 
+	/** Gets the minimum allowed camera zoom scale. */
 	getMinScale = (): number => this.#canvas?.camera._minScale ?? 0.1;
 
+	/** Sets the minimum allowed camera zoom scale. */
 	setMinScale(s: number): void { this.#canvas?._setMinScale(s); }
 
+	/** Sets the minimum screen size ratio that the image must occupy, restricting zoom-out. */
 	setMinScreenSize(s: number): void { if (!this.#image.album && this.#canvas) this.#canvas.camera._minSize = Math.max(0, Math.min(1, s)); }
 
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
@@ -196,8 +199,14 @@ export class Camera {
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
 	getDirection = (): number => this.#canvas?._camera360._yaw ?? 0;
 
+	/** Gets the current viewing pitch in 360 mode. @returns The current pitch in radians. */
 	getPitch = (): number => this.#canvas?._camera360._pitch ?? 0;
 
+	/**
+	 * Sets the viewing direction (yaw/pitch) in 360 mode.
+	 * @param yaw The target yaw in radians.
+	 * @param pitch The target pitch in radians (defaults to current pitch).
+	 */
 	setDirection(yaw: number, pitch?: number): void {
 		if (!this.#canvas) return;
 		this.#canvas._setDirection(yaw, pitch ?? this.#canvas._camera360._pitch);
@@ -229,6 +238,11 @@ export class Camera {
 
 	getCoverLimit = (): boolean => !!(this.#canvas?._coverLimit);
 
+	/**
+	 * Sets horizontal and vertical pan limits for 360 images as percentages of the full sphere.
+	 * @param xPerc Horizontal limit percentage (0-100).
+	 * @param yPerc Vertical limit percentage (0-100).
+	 */
 	set360RangeLimit(xPerc = 0, yPerc = 0): void {
 		if (!this.#canvas) return;
 		this.#canvas._camera360._setLimits(xPerc, yPerc);
@@ -237,8 +251,11 @@ export class Camera {
 
 	// ─── Animation control ─────────────────────────────────────────
 
+	/** Stops any ongoing camera animation immediately. */
 	stop(): void { this.#canvas?._aniStop(); }
+	/** Pauses the current camera animation. */
 	pause(): void { this.#canvas?._aniPause(); }
+	/** Resumes a previously paused camera animation and triggers a render. */
 	resume(): void { this.#canvas?._aniResume(); this.#image.engine.render(); }
 
 	// ─── 360 / Omni / embed helpers ─────────────────────────────────

@@ -45,6 +45,7 @@ function setOrientation(x: number, y: number, z: number) {
 	}
 }
 
+/** Manages sequential playback of a list of audio tracks, with optional looping. */
 class AudioPlaylist {
 	#audio = new Audio();
 	#list: Models.Assets.Audio[];
@@ -68,12 +69,15 @@ class AudioPlaylist {
 		this.#audio.play();
 	}
 
+	/** Stops playback and releases the audio element. */
 	destroy() { this.#audio.pause(); }
 }
 
 // ── AudioController custom element ──
 
+/** Custom element that manages spatial audio, playlist playback, and user interaction for Micrio images. */
 class MicrioAudioController extends MicrioElement {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-audio-controller';
 
 	#playlist: AudioPlaylist | undefined;
@@ -165,6 +169,7 @@ class MicrioAudioController extends MicrioElement {
 		};
 	}
 
+	/** Cleanup function exposed for renderless operation; pauses audio and removes event listeners. */
 	destroy: (() => void) | undefined;
 
 	_onDestroy() {

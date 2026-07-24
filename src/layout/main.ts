@@ -41,21 +41,29 @@ import '$gallery/gallery';
 import '$tour/serial-tour';
 
 
+/** Find a menu page by its ID within a nested menu structure */
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
 	if (p) for (let i = 0, t; i < p.length; i++)
 		if (p[i].id == id || (t = findPage(id, p[i].children))) return t ?? p[i];
 	return undefined;
 }
 
+/** Props for the main layout element */
 export interface MainProps {
+	/** Whether to disable HTML content rendering */
 	noHTML?: boolean;
+	/** Whether to hide the Micrio logo */
 	noLogo?: boolean;
+	/** Current loading progress (0–1), hides when >= 1 */
 	loadingProgress?: number;
+	/** An error message to display, or undefined to hide */
 	error?: string | undefined;
 }
 import './main.css';
 
+/** Main layout custom element that orchestrates all UI layers (logo, controls, markers, popups, etc.) */
 export class MicrioMain extends MicrioElement<MainProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-main';
 
 	#props: MainProps = {};

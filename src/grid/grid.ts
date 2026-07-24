@@ -17,7 +17,9 @@ import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
 import './grid.css';
 
+/** The main Grid controller that arranges {@link MicrioImage} instances into a CSS grid layout. */
 export class Grid extends MicrioElement {
+	/** The custom element tag name. */
 	static tag = 'micrio-grid';
 
 	readonly _images:MicrioImage[] = [];
@@ -31,6 +33,7 @@ export class Grid extends MicrioElement {
 	_panZoom: 'cells'|'grid' = 'grid';
 
 	readonly _focussed:Writable<MicrioImage|undefined> = writable();
+	/** The currently focussed (single-view) image, if any. */
 	get $focussed() : MicrioImage|undefined { return get(this._focussed); }
 	readonly _markersShown:Writable<MicrioImage[]> = writable([]);
 
@@ -55,7 +58,9 @@ export class Grid extends MicrioElement {
 
 	static _handlingKeys:boolean = false;
 
+	/** The parent `<micrio-*>` element this grid is bound to. */
 	micrio!: HTMLMicrioElement;
+	/** The main {@link MicrioImage} that serves as the grid viewport. */
 	image!: MicrioImage;
 	#gallery!: Gallery;
 
@@ -159,6 +164,7 @@ export class Grid extends MicrioElement {
 		}));
 	}
 
+	/** Set the grid to display the given images, arranging them into a CSS grid. */
 	set(images:Models.Grid.GridImage[]=[], opts:{
 		noHistory?:boolean;
 		keepGrid?: boolean;
@@ -401,6 +407,7 @@ export class Grid extends MicrioElement {
 		return c == this.image || (!!c && this._imageMap.has(c.id));
 	}
 
+	/** Reset the grid to its initial layout (all gallery images), clearing all history. */
 	async reset(duration?:number, noCamAni?:boolean, forceAni?:boolean) : Promise<MicrioImage[]> {
 		const state = this.#history[0];
 		this._images.forEach(i => i.camera.stop());
@@ -425,6 +432,7 @@ export class Grid extends MicrioElement {
 		}),{duration, horizontal: spl?.[1]=='h'});
 	}
 
+	/** Navigate to the previous layout state from the history stack. */
 	async back(duration?:number) : Promise<void> {
 		const state = this.#history.pop();
 		if(!state) return;
@@ -467,6 +475,7 @@ export class Grid extends MicrioElement {
 		} else this.gridFocus(img);
 	}
 
+	/** Focus the grid on a single image, optionally with a transition animation. */
 	async gridFocus(img:MicrioImage|undefined, opts: Models.Grid.FocusOptions={}) : Promise<void> {
 		if(!img) return this.back();
 
@@ -509,6 +518,7 @@ export class Grid extends MicrioElement {
 		}).catch(() => {});
 	}
 
+	/** Remove focus from the currently focussed image and return to the grid overview. */
 	blur() : void {
 		const focussed = this.$focussed;
 		if(!focussed) return;
@@ -520,10 +530,12 @@ export class Grid extends MicrioElement {
 		this.micrio.current.set(this.image);
 	}
 
+	/** Execute a grid action by type (e.g. `focus`, `reset`, `back`) with optional data and duration. */
 	action(action:GridActionType|string, data?:string, duration?:number) : void {
 		handleAction(this, action, data, duration);
 	}
 
+	/** Enlarge a specific grid cell to span the given number of columns/rows, re-laying out without history. */
 	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
 		const layout = this.#history[this.#history.length-1]?.layout;
 		const cover = this.image.$settings?.initType === 'cover';

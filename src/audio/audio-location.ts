@@ -3,13 +3,19 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { normalize3 } from '$utils/math';
 
+/** Properties for configuring a positional audio element associated with a marker. */
 export interface AudioLocationProps {
+	/** The marker this audio location is attached to. */
 	marker: Models.ImageData.Marker;
+	/** The shared Web Audio API context. */
 	ctx: AudioContext;
+	/** Whether the parent image is a 360° panorama. */
 	is360: boolean;
 }
 
+/** Custom element that renders a spatial audio source positioned at a marker location in the image. */
 class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-audio-location';
 
 	#props: AudioLocationProps = { marker: null!, ctx: null!, is360: false };

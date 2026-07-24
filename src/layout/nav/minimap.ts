@@ -6,12 +6,16 @@ import { mod1 } from '$utils/math';
 import { Browser } from '$utils/browser';
 import { createElement } from '$utils/dom';
 
+/** Props for the minimap element */
 export interface MinimapProps {
+	/** The image to display the minimap for */
 	image: MicrioImage;
 }
 import './minimap.css';
 
+/** Custom element rendering a draggable minimap overview of the image */
 class MicrioMinimap extends MicrioElement<MinimapProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-minimap';
 
 	#props: MinimapProps = { image: null! };

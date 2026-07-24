@@ -3,10 +3,12 @@ import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
 
+/** Props for the fullscreen toggle component. */
 export interface FullscreenProps {
 	el: HTMLElement;
 }
 
+/** Custom element that renders a fullscreen toggle button for a given element. */
 class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	static tag = 'micrio-fullscreen';
 

@@ -6,12 +6,16 @@ import { createElement } from '$utils/dom';
 import './marker';
 import './waypoint';
 
+/** Props for the markers container element. */
 export interface MarkersProps {
+	/** The MicrioImage instance whose markers to render. */
 	image: MicrioImage;
 }
 import './markers.css';
 
+/** Custom element that manages all markers and waypoints for a MicrioImage, including clustering and spatial links. */
 class MicrioMarkers extends MicrioElement<MarkersProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-markers';
 
 	#props: MarkersProps = { image: null! };

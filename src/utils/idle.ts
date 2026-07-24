@@ -33,18 +33,22 @@ export class IdleState {
 		};
 	}
 
+	/** Whether the element currently has the data-idle attribute. */
 	get idle(): boolean {
 		return this.el.hasAttribute('data-idle');
 	}
 
+	/** Whether the idle state manager is enabled. */
 	get enabled(): boolean {
 		return this._enabled;
 	}
+	/** Enables or disables the idle state manager. Disabling immediately pauses the timer. */
 	set enabled(v: boolean) {
 		this._enabled = v;
 		if (!v) this.pause();
 	}
 
+	/** Resets the idle timer and removes the data-idle attribute if present. */
 	activity() {
 		if (this.idle) {
 			this.el.removeAttribute('data-idle');
@@ -53,6 +57,7 @@ export class IdleState {
 		this.#schedule();
 	}
 
+	/** Removes the data-idle attribute and calls onActive if currently idle. */
 	show() {
 		if (this.idle) {
 			this.el.removeAttribute('data-idle');
@@ -60,6 +65,7 @@ export class IdleState {
 		}
 	}
 
+	/** Sets the data-idle attribute and calls onIdle, then pauses the timer. */
 	hide() {
 		if (!this.idle) {
 			this.el.setAttribute('data-idle', '');
@@ -68,14 +74,17 @@ export class IdleState {
 		this.pause();
 	}
 
+	/** Pauses the idle timer without changing the current idle state. */
 	pause() {
 		clearTimeout(this.to);
 	}
 
+	/** Resumes the idle timer, scheduling the idle check after the configured delay. */
 	resume() {
 		this.#schedule();
 	}
 
+	/** Clears the idle timer and cleans up. */
 	destroy() {
 		clearTimeout(this.to);
 	}

@@ -4,6 +4,7 @@ import type { MicrioImage } from '$core/image';
 import { slideAreas, swipeAreas, swipeExitAreas } from './format';
 import { sleep } from '$utils/dom';
 
+/** Configure the grid images for a "behind" or "behind-delayed" transition layout. */
 export function setupBehindTransition(
 	grid: Grid,
 	images: Models.Grid.GridImage[],
@@ -33,6 +34,7 @@ export function setupBehindTransition(
 	images.forEach(e => e.view = [0,0,1,1]);
 }
 
+/** Perform a transition animation (crossfade, slide, swipe, or behind) between two images. */
 export async function transition(
 	grid: Grid,
 	target: MicrioImage,

@@ -2,6 +2,7 @@ import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 
+/** Resolve an organisation logo to its image source URL */
 function getLogoSrc(img: Models.Assets.Image | string): string {
 	if (typeof img == 'string') return img;
 	let l = 0;
@@ -12,12 +13,15 @@ function getLogoSrc(img: Models.Assets.Image | string): string {
 		: img.src);
 }
 
+/** Props for the organisation logo element */
 export interface LogoOrgProps {
 	organisation: Models.ImageInfo.Organisation;
 }
 import './logo-org.css';
 
+/** Custom element displaying the organisation's logo as a linked image */
 class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-logo-org';
 
 	#props: LogoOrgProps = { organisation: null! };

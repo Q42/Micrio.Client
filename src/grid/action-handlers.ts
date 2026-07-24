@@ -16,6 +16,10 @@ function switchToGrid(grid: Grid): void {
 	});
 }
 
+/**
+ * Creates an event handler that listens for `tour-event` custom events
+ * and dispatches grid actions prefixed with `grid:`.
+ */
 export function createTourEventHandler(grid: Grid): (e: Event) => void {
 	return (e: Event): void => {
 		const event = (e as CustomEvent).detail as Models.ImageData.Event;
@@ -104,6 +108,10 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 	return map;
 }
 
+/**
+ * Execute a grid action by type, optionally passing data and a duration.
+ * Deduplicates repeated identical actions by tracking the last action key.
+ */
 export function handleAction(grid: Grid, action: GridActionType|string, data?: string, duration?: number): void {
 	if(typeof action == 'string') action = GridActionType[action as keyof typeof GridActionType];
 	const key = action+(data??'');

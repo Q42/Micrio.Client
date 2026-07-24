@@ -7,15 +7,21 @@ import { get } from '$core/store';
 import { Browser } from '$utils/browser';
 import { GLEmbedVideo } from '$media/embedvideo';
 
+/** Properties for configuring an embed element (image, video, iframe, or GL content). */
 export interface EmbedProps {
+	/** The embed data from the image manifest. */
 	embed: Models.ImageData.Embed;
+	/** The parent MicrioImage instance. */
 	image: MicrioImage;
+	/** Optional associated marker used for click actions. */
 	marker?: Models.ImageData.Marker;
 }
 import './embed.css';
 import { randomUUID } from '$utils/id';
 
+/** Custom element that renders an embed (image, video, iframe, or GL-embedded Micrio image) positioned within a Micrio scene. */
 class MicrioEmbed extends MicrioElement<EmbedProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-embed';
 
 	#props: EmbedProps = { embed: null!, image: null! };

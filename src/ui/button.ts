@@ -3,6 +3,7 @@ import type { IconName } from '$types/icon-name';
 import type { Models } from '$types/models';
 import { createElement } from '$utils/dom';
 
+/** Properties for the button component. */
 export interface ButtonProps {
 	type?: IconName;
 	icon?: Models.Assets.Image;
@@ -19,7 +20,9 @@ export interface ButtonProps {
 }
 import './button.css';
 
+/** Web component for rendering icon/text buttons and links. */
 export class MicrioButton extends MicrioElement<ButtonProps> {
+	/** The custom element tag name. */
 	static tag = 'micrio-button';
 
 	#rootEl!: HTMLElement;

@@ -8,6 +8,9 @@ import type { EventContext } from './shared';
 export class DoubleTapHandler {
 	#ctx: EventContext;
 
+	/**
+	 * @param ctx The shared event context.
+	 */
 	constructor(ctx: EventContext) {
 		this.#ctx = ctx;
 	}

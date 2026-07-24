@@ -1,3 +1,4 @@
+/** Formats a duration in seconds to a human-readable string (e.g. "1:23:45" or "3:45"). */
 export function parseTime(s: number): string {
 	if (isNaN(s)) return '0:00';
 	const d = new Date(Math.abs(s) * 1000);

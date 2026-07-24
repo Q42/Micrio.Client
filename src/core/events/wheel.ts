@@ -12,6 +12,9 @@ export class WheelHandler {
 	#wheelEndTo = -1;
 	#ctx: EventContext;
 
+	/**
+	 * @param ctx The shared event context.
+	 */
 	constructor(ctx: EventContext) {
 		this.#ctx = ctx;
 	}

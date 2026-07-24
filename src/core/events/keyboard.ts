@@ -8,6 +8,9 @@ import { Grid } from '$grid/grid';
 export class KeyboardHandler {
 	#ctx: EventContext;
 
+	/**
+	 * @param ctx The shared event context.
+	 */
 	constructor(ctx: EventContext) {
 		this.#ctx = ctx;
 	}

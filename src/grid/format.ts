@@ -1,5 +1,8 @@
 import type { Models } from '$types/models';
 
+/**
+ * Calculate the optimal number of grid columns for a given set of images and tiles.
+ */
 export function getCols(images: number, numTiles: number): number {
 	let num = Math.ceil(numTiles / Math.ceil(Math.sqrt(numTiles)));
 	if (images == numTiles) {
@@ -11,6 +14,7 @@ export function getCols(images: number, numTiles: number): number {
 	return num;
 }
 
+/** Camera view areas used for slide-in transitions, keyed by angle. */
 export const slideAreas: Record<number, Models.Camera.View> = {
 	0:   [0, -.5, 1, .5],
 	90:  [1, 0, .5, 1],
@@ -18,6 +22,7 @@ export const slideAreas: Record<number, Models.Camera.View> = {
 	270: [-.5, 0, .5, 1],
 };
 
+/** Camera view areas used for swipe-in transitions, keyed by angle. */
 export const swipeAreas: Record<number, Models.Camera.View> = {
 	0:   [0, -1, 1, 1],
 	90:  [1, 0, 1, 1],
@@ -25,6 +30,7 @@ export const swipeAreas: Record<number, Models.Camera.View> = {
 	270: [-1, 0, 1, 1],
 };
 
+/** Camera view areas used for swipe-out exit transitions, keyed by angle. */
 export const swipeExitAreas: Record<number, Models.Camera.View> = {
 	0:   [0, 1, 1, 1],
 	90:  [-1, 0, 1, 1],

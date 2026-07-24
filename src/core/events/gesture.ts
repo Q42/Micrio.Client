@@ -8,6 +8,9 @@ import { noEventPassive, type EventContext } from './shared';
 export class GestureHandler {
 	#ctx: EventContext;
 
+	/**
+	 * @param ctx The shared event context.
+	 */
 	constructor(ctx: EventContext) {
 		this.#ctx = ctx;
 	}

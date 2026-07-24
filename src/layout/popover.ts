@@ -9,12 +9,15 @@ import '$media/media';
 import '$markers/marker-content';
 import '$gallery/swipe-gallery';
 
+/** Props for the popover/modal element */
 export interface PopoverProps {
 	popover: Models.State.PopoverType;
 }
 import './popover.css';
 
+/** Custom element rendering a modal popover for pages, marker content, and galleries */
 class MicrioPopover extends MicrioElement<PopoverProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-popover';
 
 	#props: PopoverProps = { popover: null! };

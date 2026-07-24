@@ -59,6 +59,7 @@ export class View {
 	}
 
 	/** Float64Array view of [centerX, centerY, width, height]. */
+	/** @internal */
 	get arr(): Float64Array {
 		if (this.#dirty) {
 			this.#arr[0] = this._centerX;
@@ -70,26 +71,39 @@ export class View {
 		return this.#arr;
 	}
 
+	/** Left edge of the view rectangle in image coordinates. */
 	get x0(): number {
 		let cx = this._centerX;
 		if (this.#canvas.is360) cx = mod1(cx);
 		return this.#canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2);
 	}
+	/** Top edge of the view rectangle in image coordinates. */
 	get y0(): number { return this._centerY - this.height / 2; }
+	/** Right edge of the view rectangle in image coordinates. */
 	get x1(): number {
 		let cx = this._centerX;
 		if (this.#canvas.is360) cx = mod1(cx);
 		return this.#canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2);
 	}
+	/** Bottom edge of the view rectangle in image coordinates. */
 	get y1(): number { return this._centerY + this.height / 2; }
 
+	/** Left edge of the view limit boundary. */
 	get lX0(): number { return this._lCenterX - this._lWidth / 2; }
+	/** Top edge of the view limit boundary. */
 	get lY0(): number { return this._lCenterY - this._lHeight / 2; }
+	/** Right edge of the view limit boundary. */
 	get lX1(): number { return this._lCenterX + this._lWidth / 2; }
+	/** Bottom edge of the view limit boundary. */
 	get lY1(): number { return this._lCenterY + this._lHeight / 2; }
 
+	/** Aspect ratio (width / height) of the view rectangle. */
 	get aspect(): number { return this.width / this.height }
 
+	/**
+	 * Sets the view rectangle center and dimensions.
+	 * @param preserveAspect If true, adjusts dimensions to maintain aspect ratio.
+	 */
 	set(centerX: number, centerY: number, width: number, height: number, preserveAspect: boolean = false): void {
 		if (preserveAspect) {
 			const cAr = Math.min(1, this.width) / Math.min(1, this.height);

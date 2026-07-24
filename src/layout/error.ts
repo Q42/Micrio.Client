@@ -1,12 +1,16 @@
 import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 
+/** Props for the error display element */
 export interface ErrorProps {
+	/** The error message to show */
 	message?: string;
 }
 import './error.css';
 
+/** Custom element displaying an error message */
 class MicrioError extends MicrioElement<ErrorProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-error';
 
 	protected _render() {

@@ -1,6 +1,11 @@
 import type { EventContext } from './shared';
 import type { DragHandler } from './drag';
 
+/**
+ * Initialises pinch state: stops panning, sets pinching flag, dispatches `pinchstart` event.
+ * @param ctx The shared event context.
+ * @param dragHandler The drag handler whose panning is suspended.
+ */
 export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	ctx._vars._pinch._wasPanning = ctx._panning;
 	dragHandler.stop(undefined, false, true);
@@ -17,6 +22,12 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	if (ctx._twoFingerPan) ctx._dispatch('panstart');
 }
 
+/**
+ * Calculates the pinch scale factor and applies it to the camera.
+ * @param ctx The shared event context.
+ * @param coo First touch/pointer coordinates.
+ * @param coo2 Second touch/pointer coordinates.
+ */
 export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2: { x: number, y: number }): void {
 	const v = ctx._vars._pinch;
 	const i = v._image;
@@ -26,6 +37,12 @@ export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2
 	i.canvas?.camera._pinch(coo.x, coo.y, coo2.x, coo2.y);
 }
 
+/**
+ * Ends the pinch gesture: cleans up listeners, updates camera, dispatches `pinchend` event.
+ * @param ctx The shared event context.
+ * @param _e The originating event (unused).
+ * @param moveHandler The move handler to remove from the global listener.
+ */
 export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: any[]) => void): void {
 	if (!ctx._pinching) return;
 	ctx._pinching = false;
@@ -49,6 +66,12 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 	}
 }
 
+/**
+ * If only one pointer remains after a pinch ends, synthesises a pointerdown event to resume panning.
+ * @param ctx The shared event context.
+ * @param dragHandler The drag handler to restart.
+ * @param pointers The remaining active pointers.
+ */
 export function restartPanning(ctx: EventContext, dragHandler: DragHandler, pointers: Map<number, { x: number, y: number }> | TouchList): void {
 	if (pointers instanceof TouchList ? pointers.length === 1 : pointers.size === 1) {
 		let syntheticEvent: any;

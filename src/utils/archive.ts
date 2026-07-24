@@ -22,7 +22,7 @@ type MDPHeader = {
 class Archive {
 	/** Map storing loaded archive data ArrayBuffers, keyed by archive ID (e.g., 'g/folderId.revision' or 'imageId/base'). */
 	#data:Map<string, ArrayBuffer> = new Map;
-	/** Map storing the index of files within loaded archives. Key: full file path, Value: [archiveId, byteOffset, byteLength]. */
+	/** Map of file paths to [archiveId, byteOffset, byteLength] for fast file lookup. */
 	db:Map<string, [string, number, number]> = new Map;
 
 

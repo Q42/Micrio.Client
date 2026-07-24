@@ -20,17 +20,22 @@ import EngineCamera from './engine-camera'
 
 /** @internal */
 export class TileCanvas {
+	/** The logical view rectangle for this canvas. */
 	readonly view!: View;
 
+	/** The focus area view for this canvas. */
 	readonly focus!: View;
 	readonly _ani!: Ani;
 	readonly _kinetic!: Kinetic;
 	readonly _camera2d!: Camera2D;
 	readonly _camera360!: Camera360;
+	/** Camera controller (Camera2D or Camera360 depending on is360). */
 	readonly camera!: EngineCamera;
 	readonly #rect: DrawRect = new DrawRect;
+	/** Screen viewport dimensions for this canvas. */
 	readonly el: Viewport = new Viewport;
 
+	/** Array of Image instances (tile sources) attached to this canvas. */
 	readonly images: Image[] = [];
 
 	/** Cached diagonal (sqrt(w² + h²)), updated on resize. */
@@ -49,6 +54,7 @@ export class TileCanvas {
 	#_zIndex: number = 0;
 	#childrenDirty: boolean = false;
 
+	/** Z-index for ordering among sibling canvases. */
 	get zIndex(): number { return this.#_zIndex; }
 	set zIndex(v: number) {
 		if (this.#_zIndex !== v) {
@@ -59,6 +65,7 @@ export class TileCanvas {
 
 	readonly _toDraw: number[] = [];
 
+	/** Aspect ratio (image width / image height). */
 	readonly aspect: number;
 	#index: number = 0;
 
@@ -77,6 +84,7 @@ export class TileCanvas {
 
 	_limited: boolean = false;
 
+	/** Active layer index for multi-layer (omni) content. */
 	layer: number = 0;
 
 	/** The MicrioImage that owns this canvas, if placed. Set by Engine. */
@@ -98,8 +106,11 @@ export class TileCanvas {
 	readonly _pinchZoomOutLimit: boolean;
 	readonly _omniNumLayers: number;
 
+	/** Reference to the parent Engine instance. */
 	readonly main: Engine;
+	/** Logical width of the image in pixels. */
 	width: number;
+	/** Logical height of the image in pixels. */
 	height: number;
 	_targetOpacity: number;
 	_coverLimit: boolean;

@@ -5,7 +5,13 @@ import type { MicrioImage } from './image';
 
 const PROVIDES = Symbol('micrio-provides');
 
+/**
+ * Abstract base class for all Micrio custom HTML elements.
+ * Provides a standard lifecycle and prop/render pattern, store subscription helpers,
+ * and a context (provide/inject) system for parent-child communication.
+ */
 export abstract class MicrioElement<_P = {}> extends HTMLElement {
+	/** The custom element tag name registered via `customElements.define`. */
 	static tag: string;
 	static _markerImages: Map<string, MicrioImage> = new Map();
 
@@ -15,11 +21,13 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	/** Protected props storage for use with the standard setProps/render pattern. */
 	protected _props: Record<string, any> = {};
 
+	/** Lifecycle hook called when the element is added to the DOM. Calls _onMount and _render. */
 	connectedCallback(): void {
 		this._onMount?.();
 		this._render?.();
 	}
 
+	/** Lifecycle hook called when the element is removed from the DOM. Calls _onDestroy and cleans up subscriptions. */
 	disconnectedCallback(): void {
 		this._onDestroy?.();
 		this.#cleanup();

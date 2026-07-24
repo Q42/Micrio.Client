@@ -77,9 +77,13 @@ export default class Image {
 	#numLayers: number = 0;
 	_targetLayer: number = 0;
 
+	/** Left edge of the image area in canvas-relative coordinates. */
 	x0: number = 0;
+	/** Top edge of the image area in canvas-relative coordinates. */
 	y0: number = 0;
+	/** Right edge of the image area in canvas-relative coordinates. */
 	x1: number = 1;
+	/** Bottom edge of the image area in canvas-relative coordinates. */
 	y1: number = 1;
 	_rWidth: number = 1;
 	_rHeight: number = 1;
@@ -118,12 +122,15 @@ export default class Image {
 
 	readonly _index: number;
 	readonly _localIdx: number;
+	/** Original image width in pixels. */
 	readonly width: number;
+	/** Original image height in pixels. */
 	readonly height: number;
 	readonly #tileSize: number;
 	readonly #isSingle: boolean;
 	readonly _isVideo: boolean;
 	readonly #startOffset: number;
+	/** Current rendered opacity (0-1) of this image. */
 	opacity: number;
 	_tOpacity: number;
 	_rotX: number;

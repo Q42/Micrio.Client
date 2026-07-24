@@ -8,6 +8,9 @@ export class DragHandler {
 	#hooked = false;
 	#ctx: EventContext;
 
+	/**
+	 * @param ctx The shared event context.
+	 */
 	constructor(ctx: EventContext) {
 		this.#ctx = ctx;
 	}

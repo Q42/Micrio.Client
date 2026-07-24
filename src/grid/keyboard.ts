@@ -73,6 +73,7 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 	};
 }
 
+/** Register keyboard navigation (arrow keys and Escape) on the given grid. */
 export function hookGridKeys(grid: Grid) : void {
 	Grid._handlingKeys = true;
 	document.addEventListener('keydown', createGridKeyHandler(grid));

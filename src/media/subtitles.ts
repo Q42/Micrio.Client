@@ -4,6 +4,7 @@ import type { Models } from '$types/models';
 
 const CAPTIONS_KEY = 'micrio-captions-disable';
 
+/** Writable store indicating whether captions/subtitles are enabled. Persisted to localStorage. */
 export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) != '1');
 
 captionsEnabled.subscribe(b => {
@@ -11,12 +12,14 @@ captionsEnabled.subscribe(b => {
 	else localStorage.setItem(CAPTIONS_KEY, '1');
 });
 
+/** Props for the subtitles overlay component. */
 export interface SubtitlesProps {
 	src?: string;
 	mediaEl?: HTMLElement;
 }
 import './subtitles.css';
 
+/** Custom element that fetches and renders VTT subtitles synchronized with media playback. */
 class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	static tag = 'micrio-subtitles';
 

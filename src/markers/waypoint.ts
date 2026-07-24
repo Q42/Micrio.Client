@@ -7,14 +7,20 @@ import { getSpaceVector } from '$utils/space';
 import { i18n } from '$core/i18n/strings';
 import { createElement } from '$utils/dom';
 
+/** Props for the waypoint (spatial link indicator) custom element. */
 export interface WaypointProps {
+	/** The target image ID this waypoint points to. */
 	targetId: string;
+	/** Optional waypoint display and coordinate settings from space data. */
 	settings?: Models.Spaces.WayPointSettings;
+	/** The source MicrioImage this waypoint belongs to. */
 	image: MicrioImage;
 }
 import './waypoint.css';
 
+/** Custom element rendering a 3D spatial link waypoint between images. */
 class MicrioWaypoint extends MicrioElement<WaypointProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-waypoint';
 
 	#props: WaypointProps = { targetId: '', image: null! };

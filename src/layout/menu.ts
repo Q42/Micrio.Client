@@ -5,6 +5,7 @@ import { svgIcon } from '$ui/icons';
 import { writable, get, lazy } from '$core/store';
 import '$ui/icon';
 
+/** Currently opened menu sub-tree */
 const opened = writable<Models.ImageData.Menu | undefined>(undefined);
 let hooked = false;
 opened.subscribe(c => {
@@ -12,16 +13,22 @@ opened.subscribe(c => {
 	else { if (hooked) window.removeEventListener('click', close); }
 	hooked = !!c;
 });
+/** Close the currently opened menu */
 function close() { opened.set(undefined); }
 
+/** Props for a menu item element */
 export interface MenuProps {
 	menu: Models.ImageData.Menu;
+	/** Original image ID to switch back to if the menu navigates to a different image */
 	originalId?: string | null;
+	/** Callback invoked when this menu or a child triggers a close action */
 	onclose?: () => void;
 }
 import './menu.css';
 
+/** Custom element rendering a hierarchical menu tree */
 class MicrioMenu extends MicrioElement<MenuProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-menu';
 
 	#props: MenuProps = { menu: null!, originalId: null };

@@ -65,7 +65,7 @@ export namespace State {
 		}> = new Map();
 
 
-		/** @internal */
+		/** Initializes the main state controller and syncs internal references with store subscriptions. @internal */
 		constructor(){
 			// Keep internal properties synced with stores
 			this.tour.subscribe(t => { if(typeof t == 'string') return; this.#_tour = t });
@@ -100,6 +100,7 @@ export namespace State {
 		/** Writable store holding the currently displayed layer index (for Omni objects). */
 		readonly layer: Writable<number> = writable(0);
 
+		/** Creates an Image state controller and subscribes to view/marker changes to synchronise with the main element state. @param image The parent MicrioImage instance. */
 		constructor(image:MicrioImage){
 			const m = image.engine.micrio; // Reference to main element
 			let pV:string, pW:number, pH:number; // Previous view state for change detection

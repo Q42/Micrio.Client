@@ -11,8 +11,10 @@ import { icons } from '$ui/icons';
 import { get, writable } from '$core/store';
 import '$ui/dial';
 
+/** Callback for preloading thumbnail textures within a range around a center index. */
 type PreloadRangeFn = (center:number,total:number,d:number,getTile:(idx:number)=>{baseTileIdx:number;thumbSrc?:string}|undefined,engine:Engine,hasArchive:boolean)=>void;
 
+/** Manages omni 3D object rotation UI: dial, swipe gestures, frame navigation, and layer menu. */
 export class OmniUI {
 	#micrio:HTMLMicrioElement;
 	#image:MicrioImage;
@@ -34,8 +36,10 @@ export class OmniUI {
 	#preloadRangeFn:PreloadRangeFn;
 	#cleanups: (()=>void)[] = [];
 
+	/** Navigate to a specific frame index. */
 	goto(i:number):void { this.#goto(i); }
 
+	/** Active frame index currently displayed. */
 	get currentIndex():number { return this.#image.canvas?._activeImageIdx ?? -1; }
 
 	constructor(
@@ -50,6 +54,7 @@ export class OmniUI {
 		this.#preloadRangeFn = preloadRangeFn;
 	}
 
+	/** Initialize the omni UI: create frame objects, set up dial, swipe gestures, and layer menu. */
 	async setup() : Promise<void> {
 		const micrio = this.#micrio;
 		const image = this.#image;
@@ -188,6 +193,7 @@ export class OmniUI {
 		}
 	}
 
+	/** Tear down the omni UI, remove listeners, and clean up resources. */
 	destroy() : void {
 		this.#cleanSwiper();
 		for (const cleanup of this.#cleanups) cleanup();
@@ -295,6 +301,7 @@ export class OmniUI {
 		}
 	}
 
+	/** Smoothly animate to a target frame index. */
 	animateTo(idx: number) : void {
 		if(this.#raf) cancelAnimationFrame(this.#raf);
 		const duration = 250,

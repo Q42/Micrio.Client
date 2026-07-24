@@ -161,6 +161,7 @@ export class MicrioError extends Error {
 	}
 }
 
+/** Extracts a user-friendly display message from an Error or string. */
 export const getErrorMessage = (e: Error | string): string =>
 	e instanceof MicrioError ? e.displayMessage
 		: (e instanceof Error ? e.message : e) ?? 'An unknown error has occurred';

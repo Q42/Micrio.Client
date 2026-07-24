@@ -175,6 +175,7 @@ export class MicrioImage {
 	get canvas(): TileCanvas | undefined { return this.#engine._getCanvas(this); }
 
 	readonly #engine: Engine;
+	/** Options controlling this image instance's behaviour (embedding, area, parent camera usage). */
 	opts: {
 		/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
 		area?: Models.Camera.View;
@@ -457,7 +458,11 @@ export class MicrioImage {
 		else this.#embedElements.delete(id);
 	}
 
-	/** Gets the HTMLMediaElement associated with a video embed ID. */
+	/**
+	 * Gets the HTMLMediaElement associated with a video embed ID.
+	 * @param id The embed identifier.
+	 * @returns The media element, or undefined if not found.
+	 */
 	getEmbedMediaElement(id:string) : HTMLMediaElement|undefined {
 		return this.#embedElements.get(id);
 	}

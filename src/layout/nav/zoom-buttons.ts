@@ -3,7 +3,9 @@ import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
 
+/** Custom element providing zoom in / zoom out buttons */
 class MicrioZoomButtons extends MicrioElement {
+	/** The custom element tag name */
 	static tag = 'micrio-zoom-buttons';
 
 	#btnIn!: MicrioElement;

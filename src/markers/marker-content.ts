@@ -3,16 +3,24 @@ import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 
+/** Props for the marker content display element. */
 export interface MarkerContentProps {
+	/** The marker data to render content for. */
 	marker: Models.ImageData.Marker;
+	/** If true, embedded media (video) will not be rendered. */
 	noEmbed?: boolean;
+	/** If true, marker images gallery will not be rendered. */
 	noImages?: boolean;
+	/** If true, clicking images to open gallery is disabled. */
 	noGallery?: boolean;
+	/** Callback when content triggers a close action (e.g. media ends in tour). */
 	onclose?: () => void;
 }
 import './marker-content.css';
 
+/** Custom element that renders a marker's rich content (title, body, media, images, embeds). */
 class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-marker-content';
 
 	_title: HTMLElement | undefined;

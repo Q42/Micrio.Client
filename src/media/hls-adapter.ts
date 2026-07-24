@@ -9,11 +9,15 @@ import type { PlayerEventCallbacks } from '$types/media';
 import { loadExternalAPI } from '$utils/dom';
 import { HTML5PlayerAdapter } from './html5-adapter';
 
+/** URL for the HLS.js library bundle. */
 export const HLS_SCRIPT_URL = 'https://r2.micr.io/hls-1.6.15.min.js';
+/** Default configuration options for HLS.js player. */
 export const HLS_PLAYER_CONFIG = { abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 };
 
+/** Checks whether the browser supports MediaSource (required for HLS playback). */
 export const mediaSourceSupported = () => 'MediaSource' in globalThis || 'ManagedMediaSource' in globalThis;
 
+/** Builds a Cloudflare Stream HLS manifest URL from a stream ID. */
 export const cloudflareStreamUrl = (streamId: string) => `https://videodelivery.net/${streamId}/manifest/video.m3u8`;
 
 /**

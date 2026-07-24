@@ -2,7 +2,9 @@ import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import './logo.css';
 
+/** Custom element displaying the Micrio logo with a loading state indicator */
 class MicrioLogo extends MicrioElement {
+	/** The custom element tag name */
 	static tag = 'micrio-logo';
 
 	#a!: HTMLAnchorElement;

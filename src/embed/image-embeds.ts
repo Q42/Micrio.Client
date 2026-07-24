@@ -4,12 +4,16 @@ import type { MicrioImage } from '$core/image';
 
 import './embed';
 
+/** Properties for the image embeds container component. */
 export interface ImageEmbedsProps {
+	/** The parent MicrioImage whose embeds will be rendered. */
 	image: MicrioImage;
 }
 import './image-embeds.css';
 
+/** Custom element that renders all embeds for a Micrio image by watching the image data for embed definitions. */
 class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-image-embeds';
 
 	#props: ImageEmbedsProps = { image: null! };

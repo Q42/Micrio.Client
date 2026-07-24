@@ -12,6 +12,7 @@ import '$ui/button';
 
 const scrubPad = 16;
 
+/** Properties for the {@link MicrioGallery} custom element. */
 export interface GalleryProps {
 	controller?: GalleryController;
 }
@@ -24,6 +25,7 @@ import './gallery.css';
  * and omni (dial + swipe gesture + layer menu).
  */
 class MicrioGallery extends MicrioElement<GalleryProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-gallery';
 
 	#props: GalleryProps = {};

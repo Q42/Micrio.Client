@@ -5,16 +5,24 @@ import { get, tick } from '$core/store';
 import { getSpaceVector } from '$utils/space';
 import { createElement } from '$utils/dom';
 
+/** Props for the individual marker custom element. */
 export interface MarkerProps {
+	/** The marker data to render. */
 	marker: Models.ImageData.Marker;
+	/** The parent MicrioImage instance this marker belongs to. */
 	image?: MicrioImage;
+	/** If true, the marker element is hidden but still tracks state. */
 	forceHidden?: boolean;
+	/** Pre-computed screen-space coordinates keyed by marker ID. */
 	coords?: Map<string, [number, number, number?, number?]>;
+	/** If true, this marker is visually overlapped by others (cluster mode). */
 	overlapped?: boolean;
 }
 import './marker.css';
 
+/** Custom element representing a single interactive marker (default, link, media, or cluster type). */
 class MicrioMarker extends MicrioElement<MarkerProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-marker';
 
 	#props: MarkerProps = { marker: null! };

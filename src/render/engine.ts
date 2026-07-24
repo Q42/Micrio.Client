@@ -45,6 +45,7 @@ interface CanvasEntry {
  */
 export class Engine {
 
+	/** Flag indicating the engine has been initialized and is ready. */
 	ready: boolean = false;
 
 	/** Viewport for the main HTML element. */

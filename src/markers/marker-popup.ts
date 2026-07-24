@@ -8,12 +8,16 @@ import '$ui/button';
 import '$ui/button-group';
 import './marker-content';
 
+/** Props for the marker popup overlay element. */
 export interface MarkerPopupProps {
+	/** The marker data to display in the popup. */
 	marker: Models.ImageData.Marker;
 }
 import './marker-popup.css';
 
+/** Custom element rendering a marker's popup overlay with close, minimize, and tour navigation controls. */
 class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-marker-popup';
 
 	#props: MarkerPopupProps = { marker: null! };

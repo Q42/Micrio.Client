@@ -9,7 +9,9 @@ import '$ui/button';
 import './toolbar.css';
 import { randomUUID } from '$utils/id';
 
+/** Custom element rendering the top toolbar with navigation menus and tours */
 class MicrioToolbar extends MicrioElement {
+	/** The custom element tag name */
 	static tag = 'micrio-toolbar';
 
 	#data: Models.ImageData.ImageData | undefined;

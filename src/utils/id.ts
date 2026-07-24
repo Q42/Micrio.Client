@@ -18,4 +18,5 @@ export const getIdVal = (a: string): number => {
  */
 export const idIsV5 = (id: string): boolean => id.length == 6 || id.length == 7;
 
+/** Generates a random UUID string. */
 export const randomUUID = () => Math.random().toString();

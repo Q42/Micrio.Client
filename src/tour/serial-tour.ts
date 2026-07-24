@@ -5,13 +5,16 @@ import { parseTime } from '$utils/time';
 import { afterFrame, createElement } from '$utils/dom';
 import '$media/media';
 
+/** Properties for the serial tour component. */
 export interface SerialTourProps {
 	tour: Models.ImageData.MarkerTour;
 	onended?: () => void;
 }
 import './serial-tour.css';
 
+/** Web component that plays a sequential tour with progress bars and chapter navigation. */
 class MicrioSerialTour extends MicrioElement<SerialTourProps> {
+	/** The custom element tag name. */
 	static tag = 'micrio-serial-tour';
 
 	#props: SerialTourProps = { tour: null! };

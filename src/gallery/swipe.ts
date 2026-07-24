@@ -3,6 +3,7 @@ import type { MicrioImage } from '$core/image';
 import type { Engine } from '$render/engine';
 import { getEasing } from '$render/easing';
 
+/** Manages horizontal strip-swipe navigation between gallery images on a shared canvas. */
 export class SwipeGallery {
 	#micrio:HTMLMicrioElement;
 	#images:MicrioImage[];
@@ -40,6 +41,7 @@ export class SwipeGallery {
 		this.#getCurrentPage = getCurrentPage;
 	}
 
+	/** Initialize child images as camera layers and set up initial view areas. */
 	async setup(startImageIdx:number, parent:MicrioImage, engine:Engine):Promise<void> {
 		this.#currentImageIdx = startImageIdx;
 
@@ -63,6 +65,7 @@ export class SwipeGallery {
 		return !!active?.camera?.isZoomedOut();
 	}
 
+	/** Animate the strip to show the image at the given index. */
 	animateTo(nextIdx:number, fast:boolean, duration:number, currentImageIdx:number):void {
 		this.#currentImageIdx = currentImageIdx;
 
@@ -106,6 +109,7 @@ export class SwipeGallery {
 		this.#micrio._keepRendering = false;
 	};
 
+	/** Start handling a pointer drag for strip-swipe navigation. */
 	handlePointerDown = (e:PointerEvent):void => {
 		if (e.button !== 0) return;
 		if (this.#stripDragId !== undefined) {
@@ -192,6 +196,7 @@ export class SwipeGallery {
 		engine.render();
 	}
 
+	/** Clean up swipe state, remove listeners, and reset the micrio element. */
 	destroy():void {
 		this.#micrio.removeAttribute('data-panning');
 		this.#micrio._keepRendering = false;

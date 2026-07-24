@@ -8,6 +8,7 @@ import { fmt } from '$utils/time';
 import '$ui/button';
 import './fullscreen';
 
+/** Props for the media controls UI component. */
 export interface MediaControlsProps {
 	currentTime?: number;
 	duration?: number;
@@ -26,6 +27,7 @@ export interface MediaControlsProps {
 }
 import './media-controls.css';
 
+/** Custom element that renders play/pause, seek bar, mute, subtitles, and fullscreen controls for media playback. */
 class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	static tag = 'micrio-media-controls';
 

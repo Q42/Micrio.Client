@@ -11,6 +11,10 @@ export class PinchHandler {
 	#ctx: EventContext;
 	#dragHandler: DragHandler;
 
+	/**
+	 * @param ctx The shared event context.
+	 * @param dragHandler The drag handler for managing panning conflicts during pinch.
+	 */
 	constructor(
 		ctx: EventContext,
 		dragHandler: DragHandler

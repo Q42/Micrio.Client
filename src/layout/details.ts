@@ -3,13 +3,16 @@ import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 
+/** Props for the image details layout element */
 export interface DetailsProps {
 	info: Models.ImageInfo.ImageInfo;
 	data: Models.ImageData.ImageData;
 }
 import './details.css';
 
+/** Custom element displaying image details (title, description, copyright, source link) */
 class MicrioDetails extends MicrioElement<DetailsProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-details';
 
 	#props: Partial<DetailsProps> = {};

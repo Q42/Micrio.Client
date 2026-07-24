@@ -7,12 +7,16 @@ import { i18n } from '$core/i18n/strings';
 import { createElement } from '$utils/dom';
 import { languageNames } from '$core/i18n/locale';
 
+/** Props for the navigation controls element */
 export interface ControlsProps {
+	/** Whether the image has audio that can be muted/unmuted */
 	hasAudio?: boolean;
 }
 import './controls.css';
 
+/** Custom element rendering bottom navigation controls (mute, language, share, zoom, fullscreen) */
 class MicrioControls extends MicrioElement<ControlsProps> {
+	/** The custom element tag name */
 	static tag = 'micrio-controls';
 
 	#props: ControlsProps = {};

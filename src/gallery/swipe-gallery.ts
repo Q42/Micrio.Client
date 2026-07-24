@@ -4,6 +4,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import { Gallery } from '$gallery/controller';
 
+/** Properties for the {@link MicrioSwipeGallery} custom element. */
 export interface MicrioGalleryProps {
 	gallery: Models.Assets.Image[];
 	galleryStart?: string;
@@ -11,7 +12,9 @@ export interface MicrioGalleryProps {
 }
 import './swipe-gallery.css';
 
+/** Custom element that renders a swipe gallery from asset data with captions. */
 class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
+	/** HTML tag name for this custom element. */
 	static tag = 'micrio-swipe-gallery';
 
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };

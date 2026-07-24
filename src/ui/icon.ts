@@ -5,7 +5,9 @@ import type { IconName } from '$types/icon-name';
 const SMALL_NAMES = new Set<IconName>(['chevronDown', 'linkExt']);
 import './icon.css';
 
+/** Web component that renders an SVG icon by name, with support for custom HTML overrides. */
 class MicrioIconElement extends MicrioElement {
+	/** The custom element tag name. */
 	static tag = 'micrio-icon';
 
 	#name: IconName = 'close';

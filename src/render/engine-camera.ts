@@ -88,6 +88,10 @@ export default abstract class EngineCamera {
 
 	protected _flyToCenterX(centerX: number): number { return centerX; }
 
+	/**
+	 * Sets the camera to specific image coordinates at a given scale.
+	 * @returns Animation duration in ms (0 if set immediately).
+	 */
 	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
 		if (this._handleSetCooInit(x, y, scale)) return 0;
 

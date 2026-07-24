@@ -19,6 +19,7 @@ self.addEventListener('message', e => {
 
 type ItemArray = [string, (n: TextureBitmap) => void, (n: string) => void];
 
+/** Maximum number of concurrent texture loading threads. */
 export const numThreads: number = Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 2) - 1));
 
 const running: boolean[] = Array(numThreads).fill(false);
