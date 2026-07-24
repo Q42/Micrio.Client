@@ -88,8 +88,6 @@ export namespace ImageInfo {
 		/** The image title (default: autoloaded) */
 		title?: string;
 
-		/** @deprecated Moved to `bundle.json` top-level `organisation` */
-		organisation?: ImageInfo.Organisation;
 		/** The initial data language */
 		lang?: string;
 		/** The image is 360 degrees */
