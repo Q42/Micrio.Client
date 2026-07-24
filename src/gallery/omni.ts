@@ -52,7 +52,7 @@ export class OmniUI {
 		const image = this.#image;
 		const parent = this.#parent;
 
-		const bundle = DataLoader.getBundleImageSync(image.id);
+		const bundle = DataLoader._getBundleImageSync(image.id);
 		if (!bundle) return;
 
 		const settings = image.$settings;

@@ -240,7 +240,7 @@ export class MicrioImage {
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
 		this._tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 
-		const org = DataLoader.getOrganisation();
+		const org = DataLoader._getOrganisation();
 		if(org?.baseUrl && !i.path.includes(org.baseUrl)) {
 			this._dataPath = i.path = org.baseUrl;
 			if(!isV5Imported) this._tileBase = this._dataPath;
@@ -271,7 +271,7 @@ export class MicrioImage {
 
 		// 360 space data
 		if(i.spacesId && !micrio.spaceData) {
-			micrio.spaceData = DataLoader.getSpaceData(i.spacesId);
+			micrio.spaceData = DataLoader._getSpaceData(i.spacesId);
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
 
@@ -419,7 +419,7 @@ export class MicrioImage {
 		const img = new MicrioImage(this.#engine, {
 			id: info.id ?? '',
 			info: { ...info, id: info.id ?? '' } as Models.ImageInfo.ImageInfo,
-			data: DataLoader.getBundleImageSync(info.id ?? '')?.data,
+			data: DataLoader._getBundleImageSync(info.id ?? '')?.data,
 			settings,
 		}, {area:a, isEmbed: true, useParentCamera: opts.asImage});
 		// Use parent camera if specified (e.g., for switch galleries)

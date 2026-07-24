@@ -62,7 +62,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 				// If the new step has a video tour, use its first timeline viewport as the start view
 				let startView: Models.Camera.View | undefined;
-				const marker = DataLoader.getStepMarker(si);
+				const marker = DataLoader._getStepMarker(si);
 				if (marker?.videoTour) {
 					const lang = micrio.lang;
 					const vt = marker.videoTour;

@@ -360,7 +360,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (!opts.settings.noLogo) this.#printUI(!!opts.settings.noUI, false);
 
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
-			const bundle = await DataLoader.getBundleImage(opts.id).catch(() => undefined);
+			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => undefined);
 			if(bundle && bundle.info?.albumId) {
 				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this.engine, {
 					startId: opts.id,
@@ -459,7 +459,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 		// Standard bundle ID: fetch from DataLoader
 		else if(typeof idOrInfo === 'string') {
-			bundle = (await DataLoader.getBundleImage(idOrInfo))!;
+			bundle = (await DataLoader._getBundleImage(idOrInfo))!;
 			if(!bundle) {
 				this.printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
 				return this.$current!;

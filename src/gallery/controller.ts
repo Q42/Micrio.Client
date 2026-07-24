@@ -76,7 +76,7 @@ export class Gallery {
 			}
 
 			const opts: Partial<MicrioImage['opts']> = {};
-			const data = DataLoader.getBundleImageSync(info.id)?.data;
+			const data = DataLoader._getBundleImageSync(info.id)?.data;
 
 			if (isSwitch) {
 				opts.isEmbed = true;
@@ -164,10 +164,10 @@ export class Gallery {
 	}
 
 	static async _fromAlbum(albumId: string, engine: Engine, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
-		const aInfo = DataLoader.getAlbum(albumId);
+		const aInfo = DataLoader._getAlbum(albumId);
 		if (!aInfo) return null;
 
-		const path = opts?.path ?? DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
+		const path = opts?.path ?? DataLoader._getOrganisation()?.baseUrl ?? BASEPATH_V5;
 
 		if (aInfo.archive) {
 			await archive.load(path, 'g/' + aInfo.archive, opts?.onProgress);
@@ -273,7 +273,7 @@ export class Gallery {
 			Object.assign(gallerySettings, this._config.settings);
 		}
 
-		const path = DataLoader.getOrganisation()?.baseUrl ?? BASEPATH_V5;
+		const path = DataLoader._getOrganisation()?.baseUrl ?? BASEPATH_V5;
 
 		await micrio.open({
 			id: '',

@@ -112,7 +112,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		onmove();
 
 		this._addCleanup(image.state.view.subscribe(onmove));
-		DataLoader.getData(targetId).then(d => { if (d) this.#targetImage = d; this.#render(); });
+		DataLoader._getData(targetId).then(d => { if (d) this.#targetImage = d; this.#render(); });
 
 		micrio.dispatchEvent(new CustomEvent('wp-print', { detail: this.#iface }));
 

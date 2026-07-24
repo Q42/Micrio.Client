@@ -54,7 +54,7 @@ async function doFetchBundle(id: string): Promise<void> {
 		}
 		// When the bundle was fetched via an external/… alias, also cache
 		// the primary image under that alias so subsequent lookups (e.g.
-		// DataLoader.getInfo, getBundleImage) find it by the same key
+		// DataLoader._getBundleImage) find it by the same key
 		// the caller originally used.
 		if (id.startsWith('external/') && bundle.images[0]?.id) {
 			bundleCache.set(id, bundle.images[0]);
@@ -78,24 +78,13 @@ async function doFetchBundle(id: string): Promise<void> {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export const DataLoader = {
-
-	/** Returns the info for an image ID, or undefined if not found in its bundle. */
-	async getInfo(id: string): Promise<Models.ImageInfo.ImageInfo | undefined> {
-		return (await this.getBundleImage(id))?.info;
-	},
-
 	/** Returns the data for an image ID, or undefined if not found in its bundle. */
-	async getData(id: string): Promise<Models.ImageData.ImageData | undefined> {
-		return (await this.getBundleImage(id))?.data;
-	},
-
-	/** Synchronous accessor for already-cached bundle data. */
-	getDataSync(id: string): Models.ImageData.ImageData | undefined {
-		return bundleCache.get(id)?.data;
+	async _getData(id: string): Promise<Models.ImageData.ImageData | undefined> {
+		return (await this._getBundleImage(id))?.data;
 	},
 
 	/** Synchronous accessor for the full bundle entry (info + data) when it is already cached. */
-	getBundleImageSync(id: string): Models.ImageBundle.BundleImage | undefined {
+	_getBundleImageSync(id: string): Models.ImageBundle.BundleImage | undefined {
 		return bundleCache.get(id);
 	},
 
@@ -103,23 +92,23 @@ export const DataLoader = {
 	 * Resolves the marker for a tour step from the already-loaded bundle cache.
 	 * This replaces the earlier static `.marker` JSON that was inlined in stepInfo.
 	 */
-	getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
-		const data = this.getDataSync(step.micrioId);
+	_getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
+		const data = bundleCache.get(step.micrioId)?.data;
 		return data?.markers?.find(m => m.id === step.markerId);
 	},
 
 	/** Returns the space data for a space ID, or undefined if not found in its bundle. */
-	getSpaceData(id: string): Models.Spaces.Space | undefined {
+	_getSpaceData(id: string): Models.Spaces.Space | undefined {
 		return spaceCache.get(id);
 	},
 
 	/** Returns the organisation data from the bundle, or undefined. */
-	getOrganisation(): Models.ImageInfo.Organisation | undefined {
+	_getOrganisation(): Models.ImageInfo.Organisation | undefined {
 		return orgCache;
 	},
 
 	/** Returns the album info for an album ID from the bundle cache. */
-	getAlbum(id: string): Models.GalleryConfig | undefined {
+	_getAlbum(id: string): Models.GalleryConfig | undefined {
 		return albumCache.get(id);
 	},
 
@@ -127,7 +116,7 @@ export const DataLoader = {
 	 * Returns the full bundle entry (info + data) for a single image ID,
 	 * fetching the bundle once if not cached.
 	 */
-	async getBundleImage(id: string): Promise<BundleImage | undefined> {
+	async _getBundleImage(id: string): Promise<BundleImage | undefined> {
 		if (!id) return;
 		await fetchBundleOnce(id);
 		return bundleCache.get(id);

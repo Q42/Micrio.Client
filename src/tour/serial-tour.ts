@@ -60,7 +60,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (this.#props.tour.printChapters) {
 			const ol = createElement('ol');
 			this.#stepInfo.forEach((si, i) => {
-				const marker = DataLoader.getStepMarker(si);
+				const marker = DataLoader._getStepMarker(si);
 				const title = this.#getTitle(marker);
 				if (title) {
 					createElement('li', {
@@ -99,7 +99,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			await micrio.open(si.micrioId);
 		}
 
-		const marker = DataLoader.getStepMarker(si);
+		const marker = DataLoader._getStepMarker(si);
 
 		if (this.#mediaEl) {
 			this.#mediaEl.remove();
@@ -177,7 +177,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } });
 		this.#stepInfo.forEach((si, i) => {
-			const marker = DataLoader.getStepMarker(si);
+			const marker = DataLoader._getStepMarker(si);
 			createElement('div', {
 				attrs: { 'data-part': 'bar', role: 'progressbar', tabindex: '0' },
 				dataset: { idx: String(i) },

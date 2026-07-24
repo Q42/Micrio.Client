@@ -131,7 +131,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 			this.#firstInited = true;
 			this.#settings = c._settings;
 			if (this.#settings) this._addCleanup(this.#settings.subscribe(() => this.#queueSync()));
-			if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
+			if (!this.#logoOrg && DataLoader._getOrganisation()?.logo) this.#logoOrg = DataLoader._getOrganisation();
 			this.#queueSync();
 
 			if (this.isConnected) this.#sync();
