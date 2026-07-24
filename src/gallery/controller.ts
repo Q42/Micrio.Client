@@ -37,7 +37,9 @@ function fitArea(
 
 /** Manages a collection of gallery images with navigation (swipe, switch, grid, album). */
 export class Gallery {
+	/** @internal */
 	readonly _config: Models.GalleryConfig;
+	/** @internal */
 	readonly _images: MicrioImage[];
 	readonly #engine: Engine;
 
@@ -50,6 +52,7 @@ export class Gallery {
 	/** Max height for the virtual container canvas (switch/omni galleries). */
 	#containerHeight: number = 0;
 
+	/* @internal */
 	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {
 		this.#engine = engine;
 		this._config = config;
@@ -123,6 +126,7 @@ export class Gallery {
 	// --- Factory Methods ---
 
 	/** Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image manifests and raw Image API responses. */
+	/** @internal */
 	static _fromIIIF(resp: any, engine: Engine): Gallery | null {
 		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
 			throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });
@@ -148,6 +152,7 @@ export class Gallery {
 		return null;
 	}
 
+	/** @internal */
 	static _fromAssets(assets: Models.Assets.Image[], engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; basePath?: string }): Gallery {
 		const path = opts?.basePath ?? micrio.$current?._dataPath ?? BASEPATH;
 
@@ -164,6 +169,7 @@ export class Gallery {
 		});
 	}
 
+	/** @internal */
 	static async _fromAlbum(albumId: string, engine: Engine, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
 		const aInfo = DataLoader._getAlbum(albumId);
 		if (!aInfo) return null;
@@ -218,7 +224,7 @@ export class Gallery {
 
 	// --- Page Layout (spread-aware) ---
 
-	/** Compute which image indices belong to each logical page.
+	/** @internal Compute which image indices belong to each logical page.
 	 *  For spread albums, cover pages are single-image pages and remaining images
 	 *  are paired into spreads. For regular albums each image is its own page. */
 	_getPageLayout(): { pages: number[][]; numPages: number } {
@@ -247,6 +253,7 @@ export class Gallery {
 
 	// --- Instance Methods ---
 
+	/** @internal */
 	_attach(parent: MicrioImage): void {
 		this.#parent = parent;
 
@@ -260,7 +267,7 @@ export class Gallery {
 
 	// --- Element Opening ---
 
-	/** Build gallery BundleImage and open the parent gallery image on the `<micr-io>` element. */
+	/** @internal Build gallery BundleImage and open the parent gallery image on the `<micr-io>` element. */
 	async _openOn(micrio: HTMLMicrioElement): Promise<void> {
 		const isSwitch = this._config.type == 'switch';
 		const gallerySettings: Partial<Models.ImageInfo.Settings> = {

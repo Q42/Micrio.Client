@@ -6,6 +6,7 @@
 /**
  * Common interface for all media player adapters.
  * Abstracts the differences between HTML5, YouTube, Vimeo, and HLS players.
+ * @internal
  */
 export interface MediaPlayerAdapter {
 	/** Play the media */
@@ -39,6 +40,7 @@ export interface MediaPlayerAdapter {
 
 /**
  * Event callbacks for player state changes.
+ * @internal
  */
 export interface PlayerEventCallbacks {
 	onPlay?: () => void;
@@ -56,6 +58,7 @@ export interface PlayerEventCallbacks {
 
 /**
  * Configuration for creating a player adapter.
+ * @internal
  */
 export interface PlayerConfig {
 	width: number;

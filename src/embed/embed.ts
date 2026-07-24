@@ -7,7 +7,7 @@ import { get } from '$core/store';
 import { Browser } from '$utils/browser';
 import { GLEmbedVideo } from '$media/embedvideo';
 
-/** Properties for configuring an embed element (image, video, iframe, or GL content). */
+/** Properties for configuring an embed element (image, video, iframe, or GL content). @internal */
 export interface EmbedProps {
 	/** The embed data from the image manifest. */
 	embed: Models.ImageData.Embed;
@@ -68,6 +68,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#matrix = '';
 	#buttonStyle = '';
 
+	/** @internal */
 	_onMount() {
 		const { embed, image, marker } = this.#props;
 		this.#micrio = this._getMicrio()!;
@@ -437,10 +438,12 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#moved();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<EmbedProps>) {
 		Object.assign(this.#props, props);
 	}
 
+	/** @internal */
 	_onDestroy() {
 		clearTimeout(this.#loopDelayTo);
 		this.#glVideo?._unmount();

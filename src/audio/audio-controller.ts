@@ -7,6 +7,7 @@ import { normalize3 } from '$utils/math';
 // ── Module-level AudioContext state ──
 
 let mainGain: GainNode | undefined;
+/** @internal */
 let _ctx: AudioContext | null = null;
 let l: AudioListener | undefined;
 const interacted = writable<boolean>(false);
@@ -82,6 +83,7 @@ class MicrioAudioController extends MicrioElement {
 
 	#playlist: AudioPlaylist | undefined;
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -172,6 +174,7 @@ class MicrioAudioController extends MicrioElement {
 	/** Cleanup function exposed for renderless operation; pauses audio and removes event listeners. */
 	destroy: (() => void) | undefined;
 
+	/** @internal */
 	_onDestroy() {
 		this.#playlist?.destroy();
 	}

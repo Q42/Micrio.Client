@@ -13,11 +13,13 @@ class MicrioIconElement extends MicrioElement {
 	#name: IconName = 'close';
 	#customHTML: string | undefined;
 
+	/** @internal */
 	_onMount() {
 		this.#readCustomHTML();
 		this.#render();
 	}
 
+	/** @internal */
 	_setProps(props: Record<string, any>): void {
 		if (props.name) this.#name = props.name as IconName;
 		if (this.isConnected) {

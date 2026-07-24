@@ -2,46 +2,46 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Models } from '$types/models';
 
-/** Type alias for common event types handled. */
+/** Type alias for common event types handled. @internal */
 export type AllEvents = WheelEvent | MouseEvent | TouchEvent;
 
-/** Internal state variables used by the Events controller. */
+/** Internal state variables used by the Events controller. @internal */
 export type EventStateVars = {
-	/** Dragging state */
+	/** @internal Dragging state */
 	_drag: {
-		/** Previous pointer coordinates [x, y] during drag. */
+		/** @internal Previous pointer coordinates [x, y] during drag. */
 		_prev: number[] | undefined,
-		/** Start coordinates and timestamp [x, y, time] of the drag. */
+		/** @internal Start coordinates and timestamp [x, y, time] of the drag. */
 		_start: number[],
-		/** The image being panned, captured at drag start. */
+		/** @internal The image being panned, captured at drag start. */
 		_image: MicrioImage | undefined,
 	},
-	/** Double-tap state */
+	/** @internal Double-tap state */
 	_dbltap: {
-		/** Timestamp of the last tap. */
+		/** @internal Timestamp of the last tap. */
 		_lastTapped: number
 	},
-	/** Pinching state */
+	/** @internal Pinching state */
 	_pinch: {
-		/** The image being pinched. */
+		/** @internal The image being pinched. */
 		_image: MicrioImage | undefined,
-		/** Initial distance between pinch points. */
+		/** @internal Initial distance between pinch points. */
 		_sDst: number;
-		/** Was panning active before pinching started? */
+		/** @internal Was panning active before pinching started? */
 		_wasPanning: boolean;
 	},
 };
 
-/** Event listener options for passive listeners. */
+/** Event listener options for passive listeners. @internal */
 export const eventPassive: AddEventListenerOptions = { passive: true };
 
-/** Event listener options for passive, capturing listeners. */
+/** Event listener options for passive, capturing listeners. @internal */
 export const eventPassiveCapture: AddEventListenerOptions = { passive: true, capture: true };
 
-/** Event listener options for non-passive listeners (allowing preventDefault). */
+/** Event listener options for non-passive listeners (allowing preventDefault). @internal */
 export const noEventPassive: AddEventListenerOptions = { passive: false };
 
-/** Utility function to stop event propagation and prevent default browser behavior. */
+/** Utility function to stop event propagation and prevent default browser behavior. @internal */
 export function cancelPrevent(e: AllEvents): void {
 	e.stopPropagation();
 	e.preventDefault();
@@ -52,43 +52,43 @@ export function cancelPrevent(e: AllEvents): void {
  * This is passed to each handler module to avoid circular dependencies.
  */
 export interface EventContext {
-	/** The main Micrio element */
+	/** @internal The main Micrio element */
 	_micrio: HTMLMicrioElement;
-	/** The canvas element where events are captured */
+	/** @internal The canvas element where events are captured */
 	_el: HTMLCanvasElement;
-	/** Whether events are currently enabled */
+	/** @internal Whether events are currently enabled */
 	_isEnabled(): boolean;
-	/** Whether the user is currently panning */
+	/** @internal Whether the user is currently panning */
 	_panning: boolean;
-	/** Whether the user is currently pinching */
+	/** @internal Whether the user is currently pinching */
 	_pinching: boolean;
-	/** Whether the user is currently zooming via mouse wheel */
+	/** @internal Whether the user is currently zooming via mouse wheel */
 	_wheeling: boolean;
-	/** Whether Ctrl/Cmd key is required for wheel zoom */
+	/** @internal Whether Ctrl/Cmd key is required for wheel zoom */
 	_controlZoom: boolean;
-	/** Whether two fingers are required for touch panning */
+	/** @internal Whether two fingers are required for touch panning */
 	_twoFingerPan: boolean;
-	/** Event state variables */
+	/** @internal Event state variables */
 	_vars: EventStateVars;
-	/** Get visible images */
+	/** @internal Get visible images */
 	_getVisible(): MicrioImage[] | undefined;
-	/** Get image under coordinates */
+	/** @internal Get image under coordinates */
 	_getImage(c: { x: number, y: number }): MicrioImage | undefined;
-	/** Dispatch custom event */
+	/** @internal Dispatch custom event */
 	_dispatch<K extends keyof Models.MicrioEventDetails>(
 		type: K,
 		detail?: Models.MicrioEventDetails[K]
 	): void;
-	/** Active pointers map for pinch detection */
+	/** @internal Active pointers map for pinch detection */
 	_activePointers: Map<number, { x: number, y: number }>;
-	/** Captured pointer ID for dragging */
+	/** @internal Captured pointer ID for dragging */
 	_capturedPointerId: number | undefined;
-	/** Current pinch factor */
+	/** @internal Current pinch factor */
 	_pinchFactor: number | undefined;
-	/** Previous scale during gestures */
+	/** @internal Previous scale during gestures */
 	_pScale: number;
-	/** Has used Ctrl for zoom */
+	/** @internal Has used Ctrl for zoom */
 	_hasUsedCtrl: boolean;
-	/** Has touch support */
+	/** @internal Has touch support */
 	_hasTouch: boolean;
 }

@@ -4,7 +4,7 @@ import type { MicrioImage } from '$core/image';
 
 import './embed';
 
-/** Properties for the image embeds container component. */
+/** Properties for the image embeds container component. @internal */
 export interface ImageEmbedsProps {
 	/** The parent MicrioImage whose embeds will be rendered. */
 	image: MicrioImage;
@@ -18,6 +18,7 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 
 	#props: ImageEmbedsProps = { image: null! };
 
+	/** @internal */
 	_onMount() {
 		const { image } = this.#props;
 
@@ -31,6 +32,7 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 		});
 	}
 
+	/** @internal */
 	_setProps(props: Partial<ImageEmbedsProps>) {
 		if (props.image !== undefined) this.#props.image = props.image;
 	}

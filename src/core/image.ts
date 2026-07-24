@@ -15,7 +15,7 @@ import { State } from './state';
 import { createElement, loadScript } from '$utils/dom';
 
 /** Keep track of already loaded scripts-- only do this once per session
- * @private
+ * @internal
 */
 const jsCss:string[] = [];
 
@@ -44,7 +44,9 @@ export class MicrioImage {
 	*/
 	get $info():Models.ImageInfo.ImageInfo { return this.#info }
 
-	/**  Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}. */
+	/**  Writable store holding the image's specific settings, often merged from attributes and info data. See {@link Models.ImageInfo.Settings}.
+	 * @internal
+	*/
 	readonly _settings: Writable<Models.ImageInfo.Settings> = writable({});
 
 	/** Getter for the current value of the {@link settings} store. */
@@ -79,15 +81,20 @@ export class MicrioImage {
 	/** Grid controller instance, if this image is a grid container. */
 	grid: Grid|undefined;
 
-	/** Stores the camera view state when a marker is opened, used to return to the previous view. */
+	/** Stores the camera view state when a marker is opened, used to return to the previous view.
+	 * @internal
+	*/
 	_openedView: Models.Camera.View|undefined;
 
 	/** Internal reference to the video element.
 	 * @internal
+	 * 
 	*/
 	_video:HTMLVideoElement|undefined;
 
-	/** Base path URI for fetching `data.[lang].json` files. */
+	/** Base path URI for fetching `data.[lang].json` files.
+	 * @internal
+	*/
 	_dataPath: string;
 
 	/** Stores an error message if loading failed. */
@@ -159,19 +166,25 @@ export class MicrioImage {
 	*/
 	_opacity: number = 1;
 
-	/**  Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas. */
+	/**  Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas.
+	 * @internal
+	*/
 	readonly _viewport:Writable<Models.Camera.View> = writable<Models.Camera.View>();
 
-	/** Array of child {@link MicrioImage} instances embedded within this image. */
+	/** Array of child {@link MicrioImage} instances embedded within this image.
+	 * @internal
+	*/
 	readonly _embeds: MicrioImage[] = [];
 
-	/** Base path for fetching image tiles. */
+	/** Base path for fetching image tiles.
+	 * @internal
+	*/
 	_tileBase:string|undefined;
 
-	/** The engine this image is managed by. */
+	/** The engine this image is managed by. @internal */
 	get engine(): Engine { return this.#engine; }
 
-	/** The engine TileCanvas for this image, if placed. */
+	/** The engine TileCanvas for this image, if placed. @internal */
 	get canvas(): TileCanvas | undefined { return this.#engine._getCanvas(this); }
 
 	readonly #engine: Engine;

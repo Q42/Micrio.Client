@@ -4,7 +4,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import { Gallery } from '$gallery/controller';
 
-/** Properties for the {@link MicrioSwipeGallery} custom element. */
+/** Properties for the {@link MicrioSwipeGallery} custom element. @internal */
 export interface MicrioGalleryProps {
 	gallery: Models.Assets.Image[];
 	galleryStart?: string;

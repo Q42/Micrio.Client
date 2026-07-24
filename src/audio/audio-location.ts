@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { normalize3 } from '$utils/math';
 
-/** Properties for configuring a positional audio element associated with a marker. */
+/** Properties for configuring a positional audio element associated with a marker. @internal */
 export interface AudioLocationProps {
 	/** The marker this audio location is attached to. */
 	marker: Models.ImageData.Marker;
@@ -31,6 +31,7 @@ class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 		this.#gain.disconnect();
 	}
 
+	/** @internal */
 	_onMount() {
 		const { marker, ctx, is360 } = this.#props;
 		const micrio = this._getMicrio();
@@ -118,10 +119,12 @@ class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 		this._addCleanup(() => micrio.removeEventListener('audio-update', update));
 	}
 
+	/** @internal */
 	_setProps(props: Partial<AudioLocationProps>) {
 		Object.assign(this.#props, props);
 	}
 
+	/** @internal */
 	_onDestroy() {
 		this.#end();
 	}

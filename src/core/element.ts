@@ -61,7 +61,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	*/
 	#printed: boolean = false;
 
-	/** Array holding all instantiated {@link MicrioImage} objects managed by this element. */
+	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
+	 * @internal
+	*/
 	readonly _canvases: MicrioImage[] = [];
 
 	/**
@@ -72,7 +74,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	readonly current:Writable<MicrioImage|undefined> = writable();
 
-	/** Writable store holding an array of currently visible {@link MicrioImage} instances (relevant for grid). */
+	/** Writable store holding an array of currently visible {@link MicrioImage} instances (relevant for grid).
+	 * @internal
+	*/
 	readonly _visible:Writable<MicrioImage[]> = writable([]);
 
 	/** Internal reference to the current image instance.
@@ -99,15 +103,21 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
 	readonly state:State.Main = new State.Main();
 
-	/** Direct callbacks invoked on every camera move (instead of dispatching a DOM event). */
+	/** Direct callbacks invoked on every camera move (instead of dispatching a DOM event).
+	 * @internal
+	*/
 	readonly _onMove: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
-	/** Direct callbacks invoked on every camera zoom (instead of dispatching a DOM event). */
+	/** Direct callbacks invoked on every camera zoom (instead of dispatching a DOM event).
+	 * @internal
+	*/
 	readonly _onZoom: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
 
 	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);
 
-	/** The WebGL rendering controller. */
+	/** The WebGL rendering controller.
+	 * @internal
+	*/
 	readonly _webgl:WebGL = new WebGL(this);
 
 	/** The compute engine controller, managing the render loop and tile drawing.
@@ -287,15 +297,23 @@ export class HTMLMicrioElement extends MicrioElement {
 	}
 
 	// Custom overloads for addEventListener to support fully typed custom Micrio events
+	/* @internal */
 	addEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	/* @internal */
 	addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	/* @internal */
 	addEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | AddEventListenerOptions): void;
+	/* @internal */
 	addEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.addEventListener(type, listener, useCapture); }
 
 	// Custom overloads for removeEventListener to support fully typed custom Micrio events
+	/* @internal */
 	removeEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	/* @internal */
 	removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	/* @internal */
 	removeEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | EventListenerOptions): void;
+	/* @internal */
 	removeEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.removeEventListener(type, listener, useCapture); }
 
 	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */

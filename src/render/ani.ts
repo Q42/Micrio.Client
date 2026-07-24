@@ -16,7 +16,7 @@ export default class Ani {
 	readonly #vFrom: View;
 	/** Target view state for the animation. */
 	readonly #vTo: View;
-	/** Stores the final target view requested (might differ from vTo during corrections). */
+	/** Stores the final target view requested (might differ from vTo during corrections). @internal */
 	readonly _lastView: View;
 
 	/** Flag indicating if a zoom animation (perspective change in 360) is active. */
@@ -40,11 +40,11 @@ export default class Ani {
 	/** Flag indicating if the animation is currently running (not paused). */
 	#isRunning: boolean = false;
 
-	/** Flag indicating if the view should be limited during animation (usually false during animation). */
+	/** Flag indicating if the view should be limited during animation (usually false during animation). @internal */
 	_limit: boolean = true;
-	/** Flag indicating if the animation is a fly-to type. */
+	/** Flag indicating if the animation is a fly-to type. @internal */
 	_flying: boolean = false;
-	/** Flag indicating if the animation is correcting the view to stay within limits. */
+	/** Flag indicating if the animation is correcting the view to stay within limits. @internal */
 	_correcting: boolean = false;
 
 	/** Timestamp when the animation was paused. 0 if not paused. */
@@ -106,13 +106,14 @@ export default class Ani {
 		this.#pausedAt = 0;
 	}
 
-	/** Checks if a view animation is currently running. */
+	/** Checks if a view animation is currently running. @internal */
 	_isStarted(): boolean {
 		return this.#isRunning && this.#isView;
 	}
 
 	/**
 	 * Starts or updates a "fly-to" animation to a target view rectangle.
+	 * @internal
 	 * @returns Calculated or provided animation duration in ms.
 	 */
 	_toView(
@@ -245,7 +246,7 @@ export default class Ani {
 		return this.#duration * (1 - perc);
 	}
 
-	/** Updates the target view of a running animation. Used for corrections. */
+	/** Updates the target view of a running animation. Used for corrections. @internal */
 	_updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting: boolean = false): void {
 		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 		if (limiting) this.#vTo._limit(true);
@@ -276,7 +277,7 @@ export default class Ani {
 		return dur;
 	}
 
-	/** Sets the starting view for progress calculation in flyTo animations. */
+	/** Sets the starting view for progress calculation in flyTo animations. @internal */
 	_setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio: boolean = false): void {
 		this.#vFrom.set(centerX, centerY, width, height, correctRatio);
 		this.#vTo.set(centerX, centerY, width, height, correctRatio);
@@ -284,6 +285,7 @@ export default class Ani {
 
 	/**
 	 * Calculates and applies the animation step for the current frame.
+	 * @internal
 	 * @returns Current animation progress (0-1).
 	 */
 	_step(): number {

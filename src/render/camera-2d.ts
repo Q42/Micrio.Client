@@ -13,11 +13,16 @@ import type { TileCanvas } from './tile-canvas';
 
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
 export default class Camera2D extends EngineCamera {
+	/** @internal */
 	_scale: number = 1.0;
+	/** @internal */
 	_minScale: number = 1.0;
+	/** @internal */
 	_minSize: number = 1.0;
+	/** @internal */
 	_maxScale: number = 1.0;
 	#fullScale: number = 1.0;
+	/** @internal */
 	_coverScale: number = 1.0;
 
 	readonly #xy: Coordinates = new Coordinates;
@@ -42,6 +47,7 @@ export default class Camera2D extends EngineCamera {
 
 	/**
 	 * Converts screen pixel coordinates to relative image coordinates [0-1].
+	 * @internal
 	 */
 	_getCoo(x: number, y: number, abs: boolean, noLimit: boolean): Coordinates {
 		const c = this.canvas;
@@ -71,6 +77,7 @@ export default class Camera2D extends EngineCamera {
 
 	/**
 	 * Converts relative image coordinates [0-1] to screen pixel coordinates.
+	 * @internal
 	 */
 	_getXY(x: number, y: number, abs: boolean): Coordinates {
 		const c = this.canvas;
@@ -84,12 +91,14 @@ export default class Camera2D extends EngineCamera {
 		return xy;
 	}
 
+	/** @internal */
 	_getXYOmni(x: number, y: number, radius: number, rotation: number, abs: boolean): Coordinates {
 		return this._getXYOmniCoo(x - .5, y - .5, radius, rotation, abs);
 	}
 
 	/**
 	 * Converts 3D coordinates relative to an omni object's center to screen pixel coordinates.
+	 * @internal
 	 */
 	_getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.canvas;
@@ -125,7 +134,7 @@ export default class Camera2D extends EngineCamera {
 		return xy;
 	}
 
-	/** Recalculates scale limits (minScale, maxScale, coverScale, fullScale) based on current canvas and image dimensions. */
+	/** Recalculates scale limits (minScale, maxScale, coverScale, fullScale) based on current canvas and image dimensions. @internal */
 	_setCanvas(): void {
 		const c = this.canvas;
 		const el = c.el;
@@ -165,7 +174,7 @@ export default class Camera2D extends EngineCamera {
 		}
 	}
 
-	/** Corrects minScale and maxScale based on coverLimit and focus area. */
+	/** Corrects minScale and maxScale based on coverLimit and focus area. @internal */
 	_correctMinMax(noLimit: boolean = false): void {
 		const c = this.canvas;
 		this._minScale = c._coverLimit ? this._coverScale : this.#fullScale;
@@ -180,15 +189,16 @@ export default class Camera2D extends EngineCamera {
 		this.#wasCoverLimit = c._coverLimit;
 	}
 
-	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). */
+	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). @internal */
 	_isUnderZoom(): boolean { return this._minSize < 1 && this._scale < this._minScale };
-	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). */
+	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). @internal */
 	_isZoomedOut(b: boolean = false): boolean { return epsEq(this._scale, this._minScale * (b ? this._minSize : 1)) || this._scale <= this._minScale * (b ? this._minSize : 1); }
-	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
+	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. @internal */
 	_isZoomedIn(): boolean { return epsEq(this._scale, this._maxScale) || this._scale >= this._maxScale; }
 
 	/**
 	 * Recalculates scale and applies view constraints from the current logical view.
+	 * @internal
 	 * @returns True if the view was successfully applied, false if initialization is pending.
 	 */
 	_applyView(): boolean {
@@ -232,7 +242,7 @@ export default class Camera2D extends EngineCamera {
 		return true;
 	}
 
-	/** Checks if the current view extends beyond the defined limits or max scale. */
+	/** Checks if the current view extends beyond the defined limits or max scale. @internal */
 	_isOutsideLimit(): boolean {
 		const v = this.canvas.view;
 		return !this.canvas._freeMove && (
@@ -244,6 +254,7 @@ export default class Camera2D extends EngineCamera {
 
 	/**
 	 * Pans the view by a given pixel delta.
+	 * @internal
 	 */
 	_pan(xPx: number, yPx: number, duration: number = 0, noLimit: boolean = false, force: boolean = false, isKinetic: boolean = false): void {
 		const c = this.canvas;
@@ -291,6 +302,7 @@ export default class Camera2D extends EngineCamera {
 
 	/**
 	 * Zooms the view by a given delta, centered on screen coordinates.
+	 * @internal
 	 * @returns The calculated animation duration.
 	 */
 	_zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
@@ -336,18 +348,19 @@ export default class Camera2D extends EngineCamera {
 		return duration;
 	}
 
+	/** @internal */
 	protected _handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
 		if (!this.canvas.main._noPinchPan && this._scale > this._minScale) this._pan(dX, dY, 0, false, true);
 		this._zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas._pinchZoomOutLimit);
 		c._ani._limit = !!this.canvas._pinchZoomOutLimit;
 	}
 
-	/** Signals the start of a pinch gesture. */
+	/** Signals the start of a pinch gesture. @internal */
 	_pinchStart(): void {
 		this.#pinching = true;
 	}
 
-	/** Signals the end of a pinch gesture. */
+	/** Signals the end of a pinch gesture. @internal */
 	_pinchStop(): void {
 		this.#snapToBounds();
 		this.#pinching = false;
@@ -380,6 +393,7 @@ export default class Camera2D extends EngineCamera {
 
 	// ─── SetCoo hooks ──────────────────────────────────────────────
 
+	/** @internal */
 	protected _handleSetCooInit(x: number, y: number, scale: number): boolean {
 		if (!this.#inited) {
 			this.#hasStartCoo = true;
@@ -393,14 +407,17 @@ export default class Camera2D extends EngineCamera {
 		return false;
 	}
 
+	/** @internal */
 	protected _clampSetCooScale(scale: number): number {
 		return Math.max(this._minScale, scale);
 	}
 
+	/** @internal */
 	protected _setCooDim(scale: number): { w: number; h: number } {
 		return { w: (1 / scale) * this.cpw, h: (1 / scale) * this.cph };
 	}
 
+	/** @internal */
 	protected _beforeSetCooAnimate(x: number, y: number, w: number, h: number, dur: number): void {
 		if (dur === 0) {
 			if (x + w / 2 > 1) x = 1 - w / 2;
@@ -411,10 +428,12 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	// ─── 360 camera compat stubs (for union with Camera360) ─────────
+	/** @internal */
 	_yaw: number = 0;
+	/** @internal */
 	_pitch: number = 0;
 
-	/** Updates the projection matrix for 2D rendering (delegates to Camera360.pMatrix). */
+	/** Updates the projection matrix for 2D rendering (delegates to Camera360.pMatrix). @internal */
 	_updateProjection(): void {
 		const c = this.canvas;
 		const v = c.view;

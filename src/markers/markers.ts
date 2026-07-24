@@ -6,7 +6,7 @@ import { createElement } from '$utils/dom';
 import './marker';
 import './waypoint';
 
-/** Props for the markers container element. */
+/** Props for the markers container element. @internal */
 export interface MarkersProps {
 	/** The MicrioImage instance whose markers to render. */
 	image: MicrioImage;
@@ -20,6 +20,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 	#props: MarkersProps = { image: null! };
 
+	/** @internal */
 	_onMount() {
 		const { image } = this.#props;
 		const micrio = this._getMicrio();
@@ -209,6 +210,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		rebuild();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<MarkersProps>) {
 		if (props.image !== undefined) this.#props.image = props.image;
 	}

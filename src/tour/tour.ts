@@ -8,7 +8,7 @@ import { DataLoader } from '$utils/dataLoader';
 import '$ui/button';
 import '$media/media';
 
-/** Properties for the tour component. */
+/** Properties for the tour component. @internal */
 export interface TourProps {
 	tour: Models.ImageData.MarkerTour | Models.ImageData.VideoTour;
 	noHTML?: boolean;
@@ -16,7 +16,7 @@ export interface TourProps {
 }
 import './tour.css';
 
-/** Web component that displays marker-based or video tours with navigation controls. */
+/** Web component that displays marker-based or video tours with navigation controls. @internal */
 export class MicrioTour extends MicrioElement<TourProps> {
 	/** The custom element tag name. */
 	static tag = 'micrio-tour';
@@ -26,6 +26,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 	/** The aside element containing step navigation controls. */
 	aside: HTMLElement | undefined;
 
+	/** @internal */
 	_onMount() {
 		const { tour } = this.#props;
 		const micrio = this._getMicrio();
@@ -176,6 +177,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 		}));
 	}
 
+	/** @internal */
 	_setProps(props: Partial<TourProps>) {
 		Object.assign(this.#props, props);
 	}

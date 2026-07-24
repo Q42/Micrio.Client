@@ -314,7 +314,9 @@ export class Camera {
 		return (this.#image.omni?.currentIndex ?? 0) / ((omni.frames ?? 1) / (omni.layers?.length ?? 1)) * Math.PI * 2;
 	}
 
-	/** [Omni] Gets the frame index corresponding to a given rotation angle (radians). */
+	/** [Omni] Gets the frame index corresponding to a given rotation angle (radians).
+	 * @internal
+	*/
 	_getOmniFrame(rot?: number): number | undefined {
 		const omni = this.#image.$settings.omni;
 		if (!omni || rot == undefined) return;

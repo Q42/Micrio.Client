@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 
-/** Props for the marker content display element. */
+/** Props for the marker content display element. @internal */
 export interface MarkerContentProps {
 	/** The marker data to render content for. */
 	marker: Models.ImageData.Marker;
@@ -23,8 +23,10 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	/** HTML tag name for this custom element. */
 	static tag = 'micrio-marker-content';
 
+	/** @internal */
 	_title: HTMLElement | undefined;
 
+	/** @internal */
 	protected _render() {
 		const { marker, noEmbed = false, noImages = false, noGallery = false, onclose } = this._props;
 		if (!marker) return;

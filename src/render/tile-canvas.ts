@@ -25,9 +25,13 @@ export class TileCanvas {
 
 	/** The focus area view for this canvas. */
 	readonly focus!: View;
+	/** @internal */
 	readonly _ani!: Ani;
+	/** @internal */
 	readonly _kinetic!: Kinetic;
+	/** @internal */
 	readonly _camera2d!: Camera2D;
+	/** @internal */
 	readonly _camera360!: Camera360;
 	/** Camera controller (Camera2D or Camera360 depending on is360). */
 	readonly camera!: EngineCamera;
@@ -38,7 +42,7 @@ export class TileCanvas {
 	/** Array of Image instances (tile sources) attached to this canvas. */
 	readonly images: Image[] = [];
 
-	/** Cached diagonal (sqrt(w² + h²)), updated on resize. */
+	/** Cached diagonal (sqrt(w² + h²)), updated on resize. @internal */
 	_diagonal: number = 0;
 
 	readonly #children: TileCanvas[] = [];
@@ -63,6 +67,7 @@ export class TileCanvas {
 		}
 	}
 
+	/** @internal */
 	readonly _toDraw: number[] = [];
 
 	/** Aspect ratio (image width / image height). */
@@ -71,39 +76,54 @@ export class TileCanvas {
 
 	#isVisible: boolean = false;
 
+	/** @internal */
 	_opacity: number = 0;
 	#bOpacity: number = 0;
 
 	#isReady: boolean = false;
+	/** @internal */
 	_activeImageIdx: number = -1;
 
+	/** @internal */
 	_omniFieldOfView: number = 0;
+	/** @internal */
 	_omniVerticalAngle: number = 0;
+	/** @internal */
 	_omniDistance: number = 0;
+	/** @internal */
 	_omniOffsetX: number = 0;
 
+	/** @internal */
 	_limited: boolean = false;
 
 	/** Active layer index for multi-layer (omni) content. */
 	layer: number = 0;
 
-	/** The MicrioImage that owns this canvas, if placed. Set by Engine. */
+	/** The MicrioImage that owns this canvas, if placed. Set by Engine. @internal */
 	_micrioImage?: MicrioImage;
 
 	readonly #tileSize: number;
 	readonly is360: boolean;
+	/** @internal */
 	readonly _noImage: boolean;
 	readonly #isDeepZoom: boolean;
+	/** @internal */
 	readonly _freeMove: boolean;
+	/** @internal */
 	readonly _coverStart: boolean;
 	readonly maxScale: number;
+	/** @internal */
 	readonly _scaleMultiplier: number;
+	/** @internal */
 	readonly _camSpeed: number;
+	/** @internal */
 	readonly _rotationY: number;
 	readonly #isGallerySwitch: boolean;
 	readonly #pagesHaveBackground: boolean;
 	readonly isOmni: boolean;
+	/** @internal */
 	readonly _pinchZoomOutLimit: boolean;
+	/** @internal */
 	readonly _omniNumLayers: number;
 
 	/** Reference to the parent Engine instance. */
@@ -112,8 +132,11 @@ export class TileCanvas {
 	width: number;
 	/** Logical height of the image in pixels. */
 	height: number;
+	/** @internal */
 	_targetOpacity: number;
+	/** @internal */
 	_coverLimit: boolean;
+	/** @internal */
 	readonly _hasParent: boolean;
 
 	constructor(
@@ -210,6 +233,7 @@ export class TileCanvas {
 
 	/**
 	 * Adds an image source (usually tiled) to this canvas.
+	 * @internal
 	 */
 	_addImage(x0: number, y0: number, x1: number, y1: number, w: number, h: number,
 		tileSize: number, isSingle: boolean, isDeepZoom: boolean, isVideo: boolean,
@@ -229,6 +253,7 @@ export class TileCanvas {
 		return image;
 	}
 
+	/** @internal */
 	_addChild(x0: number, y0: number, x1: number, y1: number,
 		width: number, height: number,
 		opts: { coverLimit?: boolean; coverStart?: boolean } = {}
@@ -287,13 +312,13 @@ export class TileCanvas {
 		this.#isVisible = b;
 	}
 
-	/** Initiates a fade-out animation. */
+	/** Initiates a fade-out animation. @internal */
 	_fadeOut(): void {
 		this._targetOpacity = 0;
 		this.zIndex = 0;
 	}
 
-	/** Initiates a fade-in animation. */
+	/** Initiates a fade-in animation. @internal */
 	_fadeIn(): void {
 		this.#isReady = true;
 		if (!this._hasParent && this.#currentArea.width === 1 && this.#currentArea.height === 1)
@@ -303,7 +328,7 @@ export class TileCanvas {
 		this._targetOpacity = 1;
 	}
 
-	/** Checks if the canvas area is currently animating. */
+	/** Checks if the canvas area is currently animating. @internal */
 	_areaAnimating(): boolean {
 		return !this.#areaAniPaused && this.#areaAniPerc < 1;
 	}
@@ -314,7 +339,7 @@ export class TileCanvas {
 			|| (this.#currentArea.width === 0 || this.#currentArea.height === 0);
 	}
 
-	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. */
+	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. @internal */
 	_shouldDraw(): void {
 		if (!this._areaAnimating() && this.#isHidden()) {
 			if (this.#isVisible) this.#setCanvasVisible(false);
@@ -369,7 +394,7 @@ export class TileCanvas {
 		if (animating) m._animating = true;
 	}
 
-	/** Executes the drawing commands for the current frame for this canvas. */
+	/** Executes the drawing commands for the current frame for this canvas. @internal */
 	_draw(): void {
 		if (this._targetOpacity === 0 && this._opacity === 0) return;
 
@@ -491,7 +516,7 @@ export class TileCanvas {
 		return animating;
 	}
 
-	/** Sets the target area for this canvas within its parent, optionally animating. */
+	/** Sets the target area for this canvas within its parent, optionally animating. @internal */
 	_setArea(x0: number, y0: number, x1: number, y1: number, direct: boolean, noDispatch: boolean): void {
 		this.#areaAniPaused = false;
 		if (direct) {
@@ -526,7 +551,7 @@ export class TileCanvas {
 		}
 	}
 
-	/** Notifies JS host about the current screen viewport details. */
+	/** Notifies JS host about the current screen viewport details. @internal */
 	_sendViewport(): void {
 		const c = this.main.el;
 		this._micrioImage?._viewport?.set([this.el.left / c.ratio, this.el.top / c.ratio, this.el.width / c.ratio, this.el.height / c.ratio]);
@@ -543,7 +568,7 @@ export class TileCanvas {
 		layer._getTileRect(i, this.#rect);
 	}
 
-	/** Handles resizing of the canvas element. */
+	/** Handles resizing of the canvas element. @internal */
 	_resize(): void {
 		if (this.#children.length) {
 			const c = this.main.el;
@@ -560,7 +585,7 @@ export class TileCanvas {
 		}
 	}
 
-	/** Resets the canvas state. */
+	/** Resets the canvas state. @internal */
 	_reset(): void {
 		this._kinetic.stop();
 		this._ani.stop();
@@ -571,20 +596,20 @@ export class TileCanvas {
 		}
 	}
 
-	/** Removes this canvas instance from the main controller. */
+	/** Removes this canvas instance from the main controller. @internal */
 	_remove(): void {
 		this.#setCanvasVisible(false);
 		this.main._remove(this);
 	}
 
-	/** Sets the active layer for multi-layer omni objects. */
+	/** Sets the active layer for multi-layer omni objects. @internal */
 	_setActiveLayer(idx: number): void {
 		this.layer = idx;
 		this._setActiveImage(this._activeImageIdx);
 		this.view._changed = true;
 	}
 
-	/** Sets the active image(s) for gallery/omni canvases. */
+	/** Sets the active image(s) for gallery/omni canvases. @internal */
 	_setActiveImage(idx: number, num: number = 0): void {
 		const offset = this.layer * (this.images.length / this._omniNumLayers);
 		for (let i = 0; i < this.images.length; i++) {
@@ -600,7 +625,7 @@ export class TileCanvas {
 		this._camera2d._correctMinMax();
 	}
 
-	/** Sets the logical view directly. */
+	/** Sets the logical view directly. @internal */
 	_setView(centerX: number, centerY: number, width: number, height: number, noLimit: boolean, noLastView: boolean, correctNorth: boolean = false, forceLimit: boolean = false): void {
 		const mE = this.main.el;
 
@@ -622,12 +647,17 @@ export class TileCanvas {
 		}
 	}
 
+	/** @internal */
 	_getScale(): number { return this.is360 ? this._camera360._scale : this._camera2d._scale }
+	/** @internal */
 	_isZoomedIn(): boolean { const c360 = this._camera360; return this.is360 ? c360._perspective <= c360._minPerspective : this._camera2d._isZoomedIn() }
+	/** @internal */
 	_isZoomedOut(b: boolean = false): boolean { const c360 = this._camera360; return this.is360 ? c360._perspective >= c360._maxPerspective : this._camera2d._isZoomedOut(b) }
 
+	/** @internal */
 	_correctMinMax(noLimit?: boolean): void { this._camera2d._correctMinMax(noLimit); }
 
+	/** @internal */
 	_setMinScale(s: number): void {
 		const c2d = this._camera2d;
 		c2d._minScale = s;
@@ -636,28 +666,34 @@ export class TileCanvas {
 		this._camera360._update();
 	}
 
+	/** @internal */
 	_setDirection(yaw: number, pitch: number, resetPersp: boolean = false): void {
 		if (isNaN(pitch)) pitch = this._camera360._pitch;
 		this._camera360._setDirection(yaw, pitch, resetPersp ? this._camera360._defaultPerspective : 0);
 	}
+	/** @internal */
 	_getMatrix(x: number, y: number, s: number, r: number, rX: number, rY: number, rZ: number, t: number, sX: number = 1, sY: number = 1, noCorrectNorth: boolean = false): Float32Array {
 		const fact: number = 20000 / this.width;
 		return this._camera360._getMatrix(x, y, s * fact, r, rX, rY, rZ, t, sX, sY, noCorrectNorth).arr
 	}
 
+	/** @internal */
 	_aniPause(): void {
 		this.#areaAniPaused = true;
 		this._ani.pause();
 	};
+	/** @internal */
 	_aniResume(): void {
 		this.#areaAniPaused = false;
 		this._ani.resume();
 	};
+	/** @internal */
 	_aniStop(): void {
 		this._ani.stop();
 		for (let i = 0; i < this.#children.length; i++) this.#children[i]._aniStop();
 	}
 
+	/** @internal */
 	_aniDone(): void {
 		const cam = this._micrioImage?.camera;
 		if (!cam) return;
@@ -665,6 +701,7 @@ export class TileCanvas {
 		while (cam._aniDoneAdd.length) cam._aniDoneAdd.shift()?.();
 		cam._aniAbort = cam._aniDone = undefined;
 	}
+	/** @internal */
 	_aniAbort(): void {
 		const cam = this._micrioImage?.camera;
 		if (!cam) return;

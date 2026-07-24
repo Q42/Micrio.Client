@@ -3,7 +3,7 @@ import type { Models } from '$types/models';
 import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 
-/** Props for the image details layout element */
+/** Props for the image details layout element @internal */
 export interface DetailsProps {
 	info: Models.ImageInfo.ImageInfo;
 	data: Models.ImageData.ImageData;
@@ -18,6 +18,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 	#props: Partial<DetailsProps> = {};
 	#detailsEl!: HTMLDetailsElement;
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -29,6 +30,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 		this.#render();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<DetailsProps>) {
 		if (props.info !== undefined) this.#props.info = props.info;
 		if (props.data !== undefined) this.#props.data = props.data;

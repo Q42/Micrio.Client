@@ -6,6 +6,7 @@ import { pinchStart, pinchMove, pinchStop, restartPanning } from './pinch-shared
  * Pointer-based pinch event handler module.
  * Handles pointerdown/pointermove/pointerup events for pinch-to-zoom gestures.
  * Works on Windows touchscreens, Android, and other platforms supporting Pointer Events.
+ * @internal
  */
 export class PointerPinchHandler {
 	#ctx: EventContext;

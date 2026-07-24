@@ -8,6 +8,7 @@ import type { MediaPlayerAdapter, PlayerEventCallbacks } from '$types/media';
 
 /**
  * Adapter for native HTML5 audio/video elements.
+ * @internal
  */
 export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 	constructor(

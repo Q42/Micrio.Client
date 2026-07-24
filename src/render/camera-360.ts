@@ -14,6 +14,7 @@ import type { TileCanvas } from './tile-canvas';
 
 /** Handles 360 camera logic, perspective, and related calculations. @internal */
 export default class Camera360 extends EngineCamera {
+	/** @internal */
 	readonly _pMatrix: Mat4 = new Mat4;
 	readonly #iMatrix: Mat4 = new Mat4;
 	readonly #cachedInverse: Mat4 = new Mat4;
@@ -22,31 +23,46 @@ export default class Camera360 extends EngineCamera {
 
 	readonly #position: Vec4 = new Vec4;
 
+	/** @internal */
 	_radius: number = 10;
 
+	/** @internal */
 	_scale: number = 0;
 
 	#scaleY: number = 1;
 	#offY: number = 0;
+	/** @internal */
 	_offX: number = 0;
 
 	#limitX: number = 0;
 	#limitY: number = 0;
 
+	/** @internal */
 	_baseYaw: number = 0;
+	/** @internal */
 	_yaw: number = 0;
+	/** @internal */
 	_pitch: number = 0;
 
+	/** @internal */
 	_defaultPerspective: number = Math.PI / 2;
+	/** @internal */
 	_perspective: number = Math.PI / 2;
+	/** @internal */
 	_maxPerspective: number = Math.PI / 2;
+	/** @internal */
 	_minPerspective: number = Math.PI / 2;
 
+	/** @internal */
 	_cameraForwardX: number = 0;
+	/** @internal */
 	_cameraForwardY: number = 0;
+	/** @internal */
 	_cameraForwardZ: number = -1;
+	/** @internal */
 	_fieldOfView: number = 0;
 
+	/** @internal */
 	readonly _vec4: Vec4 = new Vec4();
 	readonly #coo: Coordinates = new Coordinates;
 
@@ -63,7 +79,7 @@ export default class Camera360 extends EngineCamera {
 		this._update();
 	}
 
-	/** Sets the horizontal and vertical movement limits. */
+	/** Sets the horizontal and vertical movement limits. @internal */
 	_setLimits(x: number, y: number): void {
 		this.#limitX = x;
 		this.#limitY = y;
@@ -72,7 +88,7 @@ export default class Camera360 extends EngineCamera {
 		this._setPerspective(this._perspective, true);
 	}
 
-	/** Updates the 360 projection and rotation matrices. */
+	/** Updates the 360 projection and rotation matrices. @internal */
 	_update(noPersp: boolean = false): void {
 		const c = this.canvas;
 		const el = c.el;
@@ -97,6 +113,7 @@ export default class Camera360 extends EngineCamera {
 
 	/**
 	 * Applies rotation based on pixel delta from mouse/touch drag.
+	 * @internal
 	 */
 	_rotate(xPx: number, yPx: number, duration: number = 0): void {
 		const c = this.canvas;
@@ -178,7 +195,7 @@ export default class Camera360 extends EngineCamera {
 		return dur;
 	}
 
-	/** Sets the perspective (FoV) and updates related state. */
+	/** Sets the perspective (FoV) and updates related state. @internal */
 	_setPerspective(perspective: number, noLimit: boolean): void {
 		const c = this.canvas;
 		this._perspective = perspective;
@@ -205,7 +222,7 @@ export default class Camera360 extends EngineCamera {
 		this._scale = 1 / ((center1 + (center1 < center0 ? 1 : 0)) - center0) / this.canvas.width;
 	}
 
-	/** Sets the camera orientation directly. */
+	/** Sets the camera orientation directly. @internal */
 	_setDirection(yaw: number, pitch: number, persp: number = 0): void {
 		this._yaw = modPI(yaw - this._baseYaw);
 		this._pitch = pitch;
@@ -215,7 +232,7 @@ export default class Camera360 extends EngineCamera {
 		this.#syncLogicalView();
 	}
 
-	/** Sets the camera orientation using viewport format (center + dimensions). */
+	/** Sets the camera orientation using viewport format (center + dimensions). @internal */
 	_setView(centerX?: number, centerY?: number, _width?: number, height?: number, opts?: { noLimit?: boolean; correctNorth?: boolean }): boolean {
 		if (centerX == null || centerY == null || height == null) return false;
 		const noLimit = opts?.noLimit ?? false;
@@ -243,7 +260,7 @@ export default class Camera360 extends EngineCamera {
 		c.view._changed = true;
 	}
 
-	/** Calculates 3D camera frustum for accurate 360 embed visibility detection */
+	/** Calculates 3D camera frustum for accurate 360 embed visibility detection @internal */
 	_calculate3DFrustum(): void {
 		const yaw = this._yaw;
 		const pitch = this._pitch;
@@ -260,7 +277,7 @@ export default class Camera360 extends EngineCamera {
 		this._fieldOfView = halfHorizontalFOV * 2;
 	}
 
-	/** Applies translation offset for 360 space transitions. */
+	/** Applies translation offset for 360 space transitions. @internal */
 	_moveTo(distance: number, distanceY: number, direction: number, addYaw: number = 0): void {
 		const p = this.#position;
 
@@ -272,7 +289,7 @@ export default class Camera360 extends EngineCamera {
 		this._update();
 	}
 
-	/** Handles canvas resize events for 360 mode. */
+	/** Handles canvas resize events for 360 mode. @internal */
 	_resize(): void {
 		const c = this.canvas;
 		const el = c.el;
@@ -289,7 +306,7 @@ export default class Camera360 extends EngineCamera {
 		}
 	}
 
-	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. */
+	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. @internal */
 	_getCoo(pxX: number, pxY: number): Coordinates {
 		const el = this.canvas.el,
 			v = this._vec4,
@@ -314,7 +331,7 @@ export default class Camera360 extends EngineCamera {
 		return c;
 	}
 
-	/** Converts 360 image coordinates [0-1] to screen pixel coordinates. */
+	/** Converts 360 image coordinates [0-1] to screen pixel coordinates. @internal */
 	_getXYZ(x: number, y: number): Coordinates {
 		const el = this.canvas.el,
 			v = this._vec4,
@@ -333,6 +350,7 @@ export default class Camera360 extends EngineCamera {
 
 	/**
 	 * Calculates the 3D vector corresponding to a point on the 360 sphere.
+	 * @internal
 	 */
 	_getVec3(x: number, y: number, abs: boolean = false, rad: number = this._radius): Vec4 {
 		const v = this._vec4;
@@ -356,6 +374,7 @@ export default class Camera360 extends EngineCamera {
 	/**
 	 * Calculates the combined transformation matrix for placing an element
 	 * at a specific point on the 360 sphere.
+	 * @internal
 	 */
 	_getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
 		if (isNaN(radius)) radius = this._radius;
@@ -403,7 +422,7 @@ export default class Camera360 extends EngineCamera {
 		return m;
 	}
 
-	/** Generates vertex data for a segment of the 360 sphere geometry. */
+	/** Generates vertex data for a segment of the 360 sphere geometry. @internal */
 	_setTile360(x: number, y: number, w: number, h: number): void {
 		y *= this.#scaleY; y /= 2; y -= .25; y += this.#offY;
 		h *= this.#scaleY; h /= 2;
@@ -450,34 +469,47 @@ export default class Camera360 extends EngineCamera {
 	// ─── 2D camera compat methods (for union with Camera2D) ─────────
 
 	// 2D-specific properties, unused for 360
+	/** @internal */
 	_minScale: number = 0;
+	/** @internal */
 	_maxScale: number = 0;
+	/** @internal */
 	_coverScale: number = 0;
+	/** @internal */
 	_minSize: number = 1;
 
+	/** @internal */
 	_correctMinMax(): void {}
 
+	/** @internal */
 	_isOutsideLimit(): boolean { return false; }
 
+	/** @internal */
 	_isUnderZoom(): boolean { return false; }
 
+	/** @internal */
 	_isZoomedOut(_b: boolean = false): boolean { return this._perspective >= this._maxPerspective; }
 
+	/** @internal */
 	_isZoomedIn(): boolean { return this._perspective <= this._minPerspective; }
 
+	/** @internal */
 	_pan(xPx: number, yPx: number, duration: number = 0, _noLimit: boolean = false, _force: boolean = false, _isKinetic: boolean = false): void {
 		this._rotate(xPx, yPx, duration);
 	}
 
+	/** @internal */
 	_zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
 		return this.#zoomByFactor(delta, duration, noLimit, 0, xPx, yPx);
 	}
 
+	/** @internal */
 	protected _handlePinchMove(delta: number, dX: number, dY: number): void {
 		this.#zoomByFactor(delta * 2, 0, false);
 		this._rotate(dX, dY);
 	}
 
+	/** @internal */
 	protected _flyToCenterX(centerX: number): number {
 		const c = this.canvas;
 		const currentCenterX = c.view._centerX;
@@ -485,6 +517,7 @@ export default class Camera360 extends EngineCamera {
 		return currentCenterX + longitudeDist;
 	}
 
+	/** @internal */
 	protected _setCooDim(scale: number): { w: number; h: number } {
 		const el = this.canvas.main.el;
 		return { w: (1 / scale) * el.width, h: (1 / scale) * el.height };

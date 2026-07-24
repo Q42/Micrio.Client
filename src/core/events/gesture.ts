@@ -4,6 +4,7 @@ import { noEventPassive, type EventContext } from './shared';
 /**
  * macOS trackpad gesture event handler module.
  * Handles gesturestart/gesturechange/gestureend events for trackpad pinch-to-zoom.
+ * @internal
  */
 export class GestureHandler {
 	#ctx: EventContext;

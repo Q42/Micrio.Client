@@ -22,6 +22,7 @@ class MicrioToolbar extends MicrioElement {
 		this.#render();
 	};
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -168,6 +169,7 @@ class MicrioToolbar extends MicrioElement {
 		}
 	}
 
+	/** @internal */
 	protected _syncDisplay() {
 		const menuEl = this.querySelector('menu');
 		if (menuEl) {

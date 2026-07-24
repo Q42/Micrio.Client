@@ -4,6 +4,7 @@ import type { EventContext } from './shared';
 /**
  * Double-tap/click event handler module.
  * Handles double-tap (touch) and double-click (mouse) events for zooming.
+ * @internal
  */
 export class DoubleTapHandler {
 	#ctx: EventContext;

@@ -5,7 +5,7 @@ import { get, tick } from '$core/store';
 import { getSpaceVector } from '$utils/space';
 import { createElement } from '$utils/dom';
 
-/** Props for the individual marker custom element. */
+/** Props for the individual marker custom element. @internal */
 export interface MarkerProps {
 	/** The marker data to render. */
 	marker: Models.ImageData.Marker;
@@ -38,6 +38,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 	#omniIndex = 0;
 	#omniArc: [number, number] | undefined;
 
+	/** @internal */
 	_onMount() {
 		const { marker, image, forceHidden = false } = this.#props;
 		const micrio = this._getMicrio();
@@ -295,10 +296,12 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		if (marker.tags) marker.tags.forEach(c => this.classList.add(c));
 	}
 
+	/** @internal */
 	_setProps(props: Partial<MarkerProps>) {
 		Object.assign(this.#props, props);
 	}
 
+	/** @internal */
 	_onDestroy() {
 		clearTimeout(this.#fto);
 	}

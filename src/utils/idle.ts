@@ -1,3 +1,4 @@
+/** @internal */
 export interface IdleStateOptions {
 	/** Delay in ms before entering idle (default 2000). */
 	delay?: number;
@@ -17,10 +18,12 @@ export interface IdleStateOptions {
  *
  * Call `activity()` on user interaction to reset the timer and remove the
  * attribute. After `delay` ms of no activity, `data-idle` is added back.
+ * @internal
  */
 export class IdleState {
 	private o: Required<IdleStateOptions>;
 	private to: number | undefined;
+	/** @internal */
 	private _enabled = true;
 
 	constructor(private el: HTMLElement, opts: IdleStateOptions = {}) {

@@ -77,13 +77,14 @@ async function doFetchBundle(id: string): Promise<void> {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+/** @internal */
 export const DataLoader = {
-	/** Returns the data for an image ID, or undefined if not found in its bundle. */
+	/** @internal Returns the data for an image ID, or undefined if not found in its bundle. */
 	async _getData(id: string): Promise<Models.ImageData.ImageData | undefined> {
 		return (await this._getBundleImage(id))?.data;
 	},
 
-	/** Synchronous accessor for the full bundle entry (info + data) when it is already cached. */
+	/** @internal Synchronous accessor for the full bundle entry (info + data) when it is already cached. */
 	_getBundleImageSync(id: string): Models.ImageBundle.BundleImage | undefined {
 		return bundleCache.get(id);
 	},
@@ -91,23 +92,24 @@ export const DataLoader = {
 	/**
 	 * Resolves the marker for a tour step from the already-loaded bundle cache.
 	 * This replaces the earlier static `.marker` JSON that was inlined in stepInfo.
+	 * @internal
 	 */
 	_getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
 		const data = bundleCache.get(step.micrioId)?.data;
 		return data?.markers?.find(m => m.id === step.markerId);
 	},
 
-	/** Returns the space data for a space ID, or undefined if not found in its bundle. */
+	/** @internal Returns the space data for a space ID, or undefined if not found in its bundle. */
 	_getSpaceData(id: string): Models.Spaces.Space | undefined {
 		return spaceCache.get(id);
 	},
 
-	/** Returns the organisation data from the bundle, or undefined. */
+	/** @internal Returns the organisation data from the bundle, or undefined. */
 	_getOrganisation(): Models.ImageInfo.Organisation | undefined {
 		return orgCache;
 	},
 
-	/** Returns the album info for an album ID from the bundle cache. */
+	/** @internal Returns the album info for an album ID from the bundle cache. */
 	_getAlbum(id: string): Models.GalleryConfig | undefined {
 		return albumCache.get(id);
 	},
@@ -115,6 +117,7 @@ export const DataLoader = {
 	/**
 	 * Returns the full bundle entry (info + data) for a single image ID,
 	 * fetching the bundle once if not cached.
+	 * @internal
 	 */
 	async _getBundleImage(id: string): Promise<BundleImage | undefined> {
 		if (!id) return;

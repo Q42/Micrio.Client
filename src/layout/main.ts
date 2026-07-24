@@ -48,7 +48,7 @@ function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.Im
 	return undefined;
 }
 
-/** Props for the main layout element */
+/** Props for the main layout element @internal */
 export interface MainProps {
 	/** Whether to disable HTML content rendering */
 	noHTML?: boolean;
@@ -61,7 +61,7 @@ export interface MainProps {
 }
 import './main.css';
 
-/** Main layout custom element that orchestrates all UI layers (logo, controls, markers, popups, etc.) */
+/** Main layout custom element that orchestrates all UI layers (logo, controls, markers, popups, etc.) @internal */
 export class MicrioMain extends MicrioElement<MainProps> {
 	/** The custom element tag name */
 	static tag = 'micrio-main';
@@ -116,6 +116,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		}
 	}
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -186,6 +187,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#queueSync();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<MainProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) this.#queueSync();

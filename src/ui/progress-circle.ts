@@ -9,7 +9,7 @@ const CY = '50';
 const R = '40';
 const circleAttrs = { r: R, cx: CX, cy: CY, fill: 'transparent', 'stroke-width': '8px' } satisfies Record<string,string>;
 
-/** Properties for the progress circle component. */
+/** Properties for the progress circle component. @internal */
 export interface ProgressCircleProps {
 	progress?: number;
 }
@@ -23,6 +23,7 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 	#props: ProgressCircleProps = {};
 	#progressCircle!: SVGCircleElement;
 
+	/** @internal */
 	_onMount() {
 		const svg = createSvgElement('svg', {
 			attrs: { width: SIZE, height: SIZE, viewBox: `0 0 ${SIZE} ${SIZE}` },
@@ -43,6 +44,7 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 		this.#update();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<ProgressCircleProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) this.#update();

@@ -11,6 +11,7 @@ class MicrioLogo extends MicrioElement {
 	#loadingTimer: any;
 	#loading = false;
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -40,6 +41,7 @@ class MicrioLogo extends MicrioElement {
 		this._addCleanup(() => clearTimeout(this.#loadingTimer));
 	}
 
+	/** @internal */
 	_onDestroy() {
 		clearTimeout(this.#loadingTimer);
 	}

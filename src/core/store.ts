@@ -66,8 +66,6 @@
  * | .{@link Micrio.State.Main.marker} | {@link Micrio.State.Main.$marker} | {@link Writable}&lt;{@link Micrio.Models.ImageData.Marker}&gt; | The current opened marker of this image |
  *
  *
- * @category Stores
- * @module Store
  */
 
 /** Callback type for receiving store value updates. */
@@ -88,7 +86,7 @@ export interface Writable<T> extends Readable<T> {
 	update(fn: Updater<T>): void;
 }
 
-/** Creates a writable store with an optional initial value. */
+/** Creates a writable store with an optional initial value. @internal */
 export function writable<T>(value?: T): Writable<T> {
 	const subs = new Set<Subscriber<T>>();
 
@@ -108,7 +106,7 @@ export function writable<T>(value?: T): Writable<T> {
 	};
 }
 
-/** Creates a read-only store with an optional initial value and start/stop callback. */
+/** Creates a read-only store with an optional initial value and start/stop callback. @internal */
 export function readable<T>(value?: T, start?: (set: Subscriber<T>) => Unsubscriber | void): Readable<T> {
 	let stop: Unsubscriber | void;
 
@@ -145,12 +143,12 @@ export function get<T>(store: { subscribe(fn: Subscriber<T>): Unsubscriber }): T
 	return v as T;
 }
 
-/** Returns a resolved promise, used to defer execution until the next microtask. */
+/** Returns a resolved promise, used to defer execution until the next microtask. @internal */
 export function tick(): Promise<void> {
 	return Promise.resolve();
 }
 
-/** Wraps a subscriber so rapid successive calls coalesce into one via microtask */
+/** Wraps a subscriber so rapid successive calls coalesce into one via microtask @internal */
 export function defer<T>(fn: Subscriber<T>): Subscriber<T> {
 	let pending = false;
 	let last: T;
@@ -165,7 +163,7 @@ export function defer<T>(fn: Subscriber<T>): Subscriber<T> {
 	};
 }
 
-/** Wraps a subscriber to skip the very first emission (for onMount where initial state is handled manually) */
+/** Wraps a subscriber to skip the very first emission (for onMount where initial state is handled manually) @internal */
 export function skipFirst<T>(fn: Subscriber<T>): Subscriber<T> {
 	let first = true;
 	return (v: T) => {
@@ -174,7 +172,7 @@ export function skipFirst<T>(fn: Subscriber<T>): Subscriber<T> {
 	};
 }
 
-/** Combines skipFirst + defer: skip initial emission, then coalesce rapid subsequent calls */
+/** Combines skipFirst + defer: skip initial emission, then coalesce rapid subsequent calls @internal */
 export function lazy<T>(fn: Subscriber<T>): Subscriber<T> {
 	return defer(skipFirst(fn));
 }

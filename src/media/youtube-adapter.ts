@@ -22,6 +22,7 @@ const YT_STATE = {
 
 /**
  * Adapter for YouTube IFrame Player API.
+ * @internal
  */
 export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 	#player: YouTubePlayer | undefined;

@@ -40,9 +40,10 @@ const vertexShader = [
  * Sets up a framebuffer to render the main scene to a texture,
  * then renders a fullscreen quad using that texture and a custom fragment shader
  * to apply effects like bloom, vignette, etc.
+ * @internal
  */
 export class PostProcessor {
-	/** Framebuffer object used as the render target for the main scene. */
+	/** Framebuffer object used as the render target for the main scene. @internal */
 	_frameBuffer:WebGLFramebuffer;
 
 	/** Texture attached to the framebuffer where the main scene is rendered. @internal */
@@ -136,6 +137,7 @@ export class PostProcessor {
 	 * Renders the postprocessing effect.
 	 * Binds the postprocessing shader, sets up attributes, binds the scene texture,
 	 * passes uniforms (like time), and draws the fullscreen quad.
+	 * @internal
 	 * Assumes the main scene has already been rendered to this instance's framebuffer.
 	 */
 	_render() : void {
@@ -186,6 +188,7 @@ export class PostProcessor {
 
 	/**
 	 * Resizes the framebuffer texture when the canvas size changes.
+	 * @internal
 	 */
 	_resize() {
 		const gl = this.#gl;
@@ -196,7 +199,7 @@ export class PostProcessor {
 		gl.bindTexture(gl.TEXTURE_2D, null);
 	}
 
-	/** Disposes WebGL resources used by the PostProcessor. */
+	/** Disposes WebGL resources used by the PostProcessor. @internal */
 	_dispose() : void {
 		const gl = this.#gl;
 		gl.deleteFramebuffer(this._frameBuffer);

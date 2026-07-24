@@ -6,7 +6,7 @@ import { mod1 } from '$utils/math';
 import { Browser } from '$utils/browser';
 import { createElement } from '$utils/dom';
 
-/** Props for the minimap element */
+/** Props for the minimap element @internal */
 export interface MinimapProps {
 	/** The image to display the minimap for */
 	image: MicrioImage;
@@ -24,10 +24,12 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#mapRect: DOMRect | undefined;
 	#unsubView: (() => void) | undefined;
 
+	/** @internal */
 	_onMount() {
 		this.#setup();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<MinimapProps>) {
 		if (props.image !== undefined && props.image !== this.#props.image) {
 			this.#props.image = props.image;

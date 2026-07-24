@@ -89,7 +89,7 @@ export class WebGL {
 	/** The WebGL rendering context (can be WebGL1 or WebGL2). */
 	gl!:WebGLRenderingContext | WebGL2RenderingContext; // Definite assignment assertion
 
-	/** The display window object (usually `self`). */
+	/** The display window object (usually `self`). @internal */
 	_display:Window = self;
 
 	/** The main WebGL shader program for rendering tiles. @internal */
@@ -101,7 +101,7 @@ export class WebGL {
 	/** Uniform location for the 'noTexture' flag. @internal */
 	#noTxtLoc!:WebGLUniformLocation;
 
-	/** Uniform location for the combined ModelViewProjection matrix (GLMatrix). */
+	/** Uniform location for the combined ModelViewProjection matrix (GLMatrix). @internal */
 	_pmLoc!:WebGLUniformLocation;
 
 	/** Attribute location for texture coordinates. @internal */
@@ -152,7 +152,7 @@ export class WebGL {
 	/** Tracks last-set opacity uniform value to avoid redundant GL calls. */
 	#lastOpacity: number = -1;
 
-	/** Optional PostProcessor instance for applying fullscreen effects. */
+	/** Optional PostProcessor instance for applying fullscreen effects. @internal */
 	_postprocessor?:PostProcessor;
 
 	/**
@@ -167,7 +167,7 @@ export class WebGL {
 		this.#micrio = micrio;
 	}
 
-	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. */
+	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. @internal */
 	_init() : void {
 		// Check for WebGL2 support
 		const hasGL2 = 'WebGL2RenderingContext' in window;
@@ -296,6 +296,7 @@ export class WebGL {
 
 	/**
 	 * Disposes WebGL resources.
+	 * @internal
 	 * @param loseContext If true, attempts to lose the WebGL context entirely.
 	*/
 	_dispose(loseContext:boolean=false ) : void {
@@ -352,6 +353,7 @@ export class WebGL {
 
 	/**
 	 * Creates or updates a WebGL texture.
+	 * @internal
 	 * @param img Optional source image/bitmap/video for the texture. If omitted, creates an empty texture.
 	 * @param texture Optional existing WebGLTexture to update. If omitted, creates a new one.
 	 * @param noSmoothing If true, uses NEAREST filtering for magnification (pixelated look).
@@ -381,6 +383,7 @@ export class WebGL {
 	/**
 	 * Updates an existing WebGL texture with data from an image, bitmap, or video frame.
 	 * Typically used for updating video textures each frame.
+	 * @internal
 	 * @param texture The WebGLTexture to update.
 	 * @param img The source image/bitmap/video.
 	 */
@@ -420,6 +423,7 @@ export class WebGL {
 	/**
 	 * Draws a single tile using the provided texture and opacity.
 	 * Selects appropriate vertex/texture buffers based on whether it's a 360 tile.
+	 * @internal
 	 * @param texture The WebGLTexture for the tile (or undefined for placeholder).
 	 * @param opacity The opacity of the tile (0-1).
 	 * @param is360 True if rendering a 360 tile.
@@ -465,6 +469,7 @@ export class WebGL {
 
 	/**
 	 * Loads a watermark texture from a URL.
+	 * @internal
 	 * @param url The watermark image URL.
 	 */
 	_loadWatermark(url: string, wmOpacity?:number) : void {

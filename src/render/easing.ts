@@ -111,9 +111,9 @@ export const linear = new Bicubic(0, 0, 1, 1);
 
 const _timingFns = [easeInOut, easeIn, easeOut, linear] as const;
 
-/** Resolves a numeric timing function index to its Bicubic instance. */
+/** Resolves a numeric timing function index to its Bicubic instance. @internal */
 export const getTimingFunction = (fn: number): Bicubic => _timingFns[fn] ?? easeInOut;
 
 const _easingByName: Record<string, Bicubic> = { ease: easeInOut, 'ease-in': easeIn, 'ease-out': easeOut, linear };
-/** Resolves a timing function name (e.g. 'ease', 'ease-in') to its Bicubic instance. */
+/** Resolves a timing function name (e.g. 'ease', 'ease-in') to its Bicubic instance. @internal */
 export const getEasing = (name?: string): Bicubic => _easingByName[name ?? 'ease'] ?? easeInOut;

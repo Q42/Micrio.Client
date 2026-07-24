@@ -4,6 +4,7 @@ import { noEventPassive, type EventContext } from './shared';
 /**
  * Mouse wheel/scroll event handler module.
  * Handles wheel events for zooming and panning.
+ * @internal
  */
 export class WheelHandler {
 	/** Flag indicating if scroll listeners are attached. */

@@ -13,7 +13,7 @@ import './media-controls';
 const YOUTUBE_RE = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?/;
 const VIMEO_RE = /vimeo\.com/;
 
-/** Props for the MicrioMedia component. */
+/** Props for the MicrioMedia component. @internal */
 export interface MediaProps {
 	src?: string;
 	image?: MicrioImage;
@@ -153,6 +153,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		this.#wireEvents(video);
 	}
 
+	/** @internal */
 	protected _render() {
 		const p = this._props;
 		const src = p.src;
@@ -411,6 +412,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 	}
 
+	/** @internal */
 	_onDestroy() {
 		this.#tourInstance?.destroy();
 		this.#adapter?.destroy();

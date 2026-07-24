@@ -5,7 +5,7 @@ import { parseTime } from '$utils/time';
 import { afterFrame, createElement } from '$utils/dom';
 import '$media/media';
 
-/** Properties for the serial tour component. */
+/** Properties for the serial tour component. @internal */
 export interface SerialTourProps {
 	tour: Models.ImageData.MarkerTour;
 	onended?: () => void;
@@ -25,6 +25,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#duration = 0;
 	#noTimeScrub = false;
 
+	/** @internal */
 	_onMount() {
 		const { tour } = this.#props;
 		const micrio = this._getMicrio();
@@ -234,6 +235,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		chapters.forEach(li => li.classList.toggle('active', Number(li.dataset.idx) === this.#currentStep));
 	}
 
+	/** @internal */
 	_setProps(props: Partial<SerialTourProps>) {
 		if (props.tour !== undefined) this.#props.tour = props.tour;
 		if (props.onended !== undefined) this.#props.onended = props.onended;

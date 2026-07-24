@@ -3,6 +3,7 @@ import { eventPassive, cancelPrevent, type EventContext } from './shared';
 /**
  * Drag/pan event handler module.
  * Handles pointer down/move/up events for panning the image.
+ * @internal
  */
 export class DragHandler {
 	#hooked = false;

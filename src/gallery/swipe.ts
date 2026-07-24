@@ -3,7 +3,7 @@ import type { MicrioImage } from '$core/image';
 import type { Engine } from '$render/engine';
 import { getEasing } from '$render/easing';
 
-/** Manages horizontal strip-swipe navigation between gallery images on a shared canvas. */
+/** Manages horizontal strip-swipe navigation between gallery images on a shared canvas. @internal */
 export class SwipeGallery {
 	#micrio:HTMLMicrioElement;
 	#images:MicrioImage[];

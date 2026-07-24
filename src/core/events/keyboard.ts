@@ -4,6 +4,7 @@ import { Grid } from '$grid/grid';
 /**
  * Keyboard event handler module.
  * Handles keydown events for keyboard navigation (arrows, +/-).
+ * @internal
  */
 export class KeyboardHandler {
 	#ctx: EventContext;

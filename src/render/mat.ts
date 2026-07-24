@@ -42,7 +42,7 @@ export class Mat4 {
 		]);
 	}
 
-	/** Resets the matrix to the identity matrix. */
+	/** Resets the matrix to the identity matrix. @internal */
 	_identity(): void {
 		const a = this.arr;
 		a[0] = 1; a[1] = 0; a[2] = 0; a[3] = 0;
@@ -51,12 +51,12 @@ export class Mat4 {
 		a[12] = 0; a[13] = 0; a[14] = 0; a[15] = 1;
 	}
 
-	/** Copies the values from another Mat4 into this one. */
+	/** Copies the values from another Mat4 into this one. @internal */
 	_copy(s: Mat4): void {
 		this.arr.set(s.arr);
 	}
 
-	/** Multiplies this matrix by a rotation matrix created from the given angle around the X axis. */
+	/** Multiplies this matrix by a rotation matrix created from the given angle around the X axis. @internal */
 	_rotateX(rad: number): void {
 		const a = this.arr;
 		const s = Math.sin(rad);
@@ -74,7 +74,7 @@ export class Mat4 {
 		a[11] = a23 * c - a13 * s;
 	}
 
-	/** Multiplies this matrix by a rotation matrix created from the given angle around the Y axis. */
+	/** Multiplies this matrix by a rotation matrix created from the given angle around the Y axis. @internal */
 	_rotateY(rad: number): void {
 		const a = this.arr;
 		const s = Math.sin(rad);
@@ -92,7 +92,7 @@ export class Mat4 {
 		a[11] = a03 * s + a23 * c;
 	}
 
-	/** Multiplies this matrix by a rotation matrix created from the given angle around the Z axis. */
+	/** Multiplies this matrix by a rotation matrix created from the given angle around the Z axis. @internal */
 	_rotateZ(rad: number): void {
 		const a = this.arr;
 		const s = Math.sin(rad);
@@ -110,14 +110,14 @@ export class Mat4 {
 		a[7] = a13 * c - a03 * s;
 	}
 
-	/** Uniform scale applied only to X and Y columns (Z unchanged). */
+	/** Uniform scale applied only to X and Y columns (Z unchanged). @internal */
 	_scaleFlat(scale: number): void {
 		const a = this.arr;
 		a[0] *= scale; a[1] *= scale; a[2] *= scale; a[3] *= scale;
 		a[4] *= scale; a[5] *= scale; a[6] *= scale; a[7] *= scale;
 	}
 
-	/** Translates the matrix by the given vector [x, y, z]. */
+	/** Translates the matrix by the given vector [x, y, z]. @internal */
 	_translate(x: number, y: number, z: number): void {
 		const a = this.arr;
 		a[12] += a[0] * x + a[4] * y + a[8] * z;
@@ -126,7 +126,7 @@ export class Mat4 {
 		a[15] += a[3] * x + a[7] * y + a[11] * z;
 	}
 
-	/** Generates a perspective projection matrix with the given bounds. */
+	/** Generates a perspective projection matrix with the given bounds. @internal */
 	_perspective(fovy: number, aspect: number, near: number, far: number): void {
 		this._identity();
 		const a = this.arr;
@@ -141,7 +141,7 @@ export class Mat4 {
 		a[15] = 0;
 	}
 
-	/** Generates a simplified perspective matrix suitable for CSS 3D transforms (no near/far clipping). */
+	/** Generates a simplified perspective matrix suitable for CSS 3D transforms (no near/far clipping). @internal */
 	_perspectiveCss(fovy: number): void {
 		this._identity();
 		const a = this.arr;
@@ -150,7 +150,7 @@ export class Mat4 {
 		a[5] = f;
 	}
 
-	/** Inverts the matrix. */
+	/** Inverts the matrix. @internal */
 	_invert(): void {
 		const m = this.arr;
 		const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
@@ -195,7 +195,7 @@ export class Mat4 {
 		m[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
 	}
 
-	/** Multiplies this matrix by another matrix `a` (this = this * a). */
+	/** Multiplies this matrix by another matrix `a` (this = this * a). @internal */
 	_multiply(o: Mat4): void {
 		const t = this.arr;
 		const a = o.arr;
@@ -224,7 +224,7 @@ export class Mat4 {
 		t[15] = b0 * a[3] + b1 * a[7] + b2 * a[11] + b3 * a[15];
 	}
 
-	/** Scales the matrix by the given vector [x, y, z] (z defaults to 1). */
+	/** Scales the matrix by the given vector [x, y, z] (z defaults to 1). @internal */
 	_scale(x: number, y: number, z: number = 1): void {
 		const a = this.arr;
 		a[0] *= x; a[1] *= x; a[2] *= x; a[3] *= x;
@@ -242,7 +242,7 @@ export class Vec4 {
 		public w: number = 1
 	) {}
 
-	/** Copies the values from another Vec4 into this one. */
+	/** Copies the values from another Vec4 into this one. @internal */
 	_copy(v: Vec4): void {
 		this.x = v.x;
 		this.y = v.y;
@@ -250,7 +250,7 @@ export class Vec4 {
 		this.w = v.w;
 	}
 
-	/** Transforms the vector by the given Mat4. */
+	/** Transforms the vector by the given Mat4. @internal */
 	_transformMat4(m: Mat4): void {
 		const a = m.arr;
 		const x = this.x, y = this.y, z = this.z;
@@ -263,7 +263,7 @@ export class Vec4 {
 		this.w = w;
 	}
 
-	/** Normalizes the vector (scales it to have a length of 1). */
+	/** Normalizes the vector (scales it to have a length of 1). @internal */
 	_normalize(): void {
 		let len = this.x * this.x + this.y * this.y + this.z * this.z;
 

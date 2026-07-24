@@ -8,6 +8,7 @@ import { Coordinates, Viewport } from './shared'
 import { Bicubic, easeInOut } from './easing';
 import type { TileCanvas } from './tile-canvas';
 
+/** @internal */
 export default abstract class EngineCamera {
 	protected readonly canvas: TileCanvas;
 
@@ -21,16 +22,24 @@ export default abstract class EngineCamera {
 	}
 
 	// ─── Properties (declared by subclasses) ───
+	/** @internal */
 	abstract _scale: number;
+	/** @internal */
 	abstract _yaw: number;
+	/** @internal */
 	abstract _pitch: number;
+	/** @internal */
 	abstract _minScale: number;
+	/** @internal */
 	abstract _maxScale: number;
+	/** @internal */
 	abstract _coverScale: number;
+	/** @internal */
 	abstract _minSize: number;
 
 	// ─── Shared pinch implementation ───
 
+	/** @internal */
 	_pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
 		const c = this.canvas;
 		const el = c.main.el;
@@ -58,8 +67,10 @@ export default abstract class EngineCamera {
 		this.#prevSize = size;
 	}
 
+	/** @internal */
 	_pinchStart(): void {}
 
+	/** @internal */
 	_pinchStop(): void {
 		this.#resetPinchState();
 	}
@@ -70,10 +81,12 @@ export default abstract class EngineCamera {
 		this.#prevCenterY = -1;
 	}
 
+	/** @internal */
 	protected abstract _handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void;
 
 	// ─── Shared flyTo / setCoo ───
 
+	/** @internal */
 	_flyTo(centerX: number, centerY: number, width: number, height: number, dur: number, speed: number, perc: number, isJump: boolean, limit: boolean, limitZoom: boolean, toOmniIdx: number, fn: Bicubic): number {
 		const c = this.canvas;
 		const a = c._ani;
@@ -86,6 +99,7 @@ export default abstract class EngineCamera {
 		return dur;
 	}
 
+	/** @internal */
 	protected _flyToCenterX(centerX: number): number { return centerX; }
 
 	/**
@@ -109,19 +123,31 @@ export default abstract class EngineCamera {
 		return dur;
 	}
 
+	/** @internal */
 	protected _handleSetCooInit(_x: number, _y: number, _scale: number): boolean { return false; }
+	/** @internal */
 	protected _clampSetCooScale(scale: number): number { return scale; }
+	/** @internal */
 	protected abstract _setCooDim(scale: number): { w: number; h: number };
+	/** @internal */
 	protected _beforeSetCooAnimate(_x: number, _y: number, _w: number, _h: number, _dur: number): void {}
 
 	// ─── Common interface ───
 
+	/** @internal */
 	abstract _pan(xPx: number, yPx: number, duration?: number, noLimit?: boolean, force?: boolean, isKinetic?: boolean): void;
+	/** @internal */
 	abstract _zoom(delta: number, xPx: number, yPx: number, duration?: number, noLimit?: boolean): number;
+	/** @internal */
 	abstract _correctMinMax(noLimit?: boolean): void;
+	/** @internal */
 	abstract _isOutsideLimit(): boolean;
+	/** @internal */
 	abstract _isUnderZoom(): boolean;
+	/** @internal */
 	abstract _isZoomedIn(): boolean;
+	/** @internal */
 	abstract _isZoomedOut(b?: boolean): boolean;
+	/** @internal */
 	abstract _getCoo(x: number, y: number, abs?: boolean, noLimit?: boolean): Coordinates;
 }

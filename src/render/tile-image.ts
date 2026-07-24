@@ -12,15 +12,22 @@ import type { TileCanvas } from './tile-canvas';
 
 /** Represents a single resolution layer within an Image. @internal */
 class Layer {
+	/** @internal */
 	readonly _tileWidth: number;
+	/** @internal */
 	readonly _tileHeight: number;
 
 	readonly #image: Image;
+	/** @internal */
 	readonly _index: number;
+	/** @internal */
 	readonly _start: number;
+	/** @internal */
 	readonly _end: number;
 	readonly #tileSize: number;
+	/** @internal */
 	readonly _cols: number;
+	/** @internal */
 	readonly _rows: number;
 
 	constructor(
@@ -43,6 +50,7 @@ class Layer {
 		this._tileHeight = tileSize / image.height;
 	}
 
+	/** @internal */
 	_getTileRect(idx: number, r: DrawRect): DrawRect {
 		const localIdx = idx - this._start;
 		const x = localIdx % this._cols;
@@ -73,8 +81,10 @@ export default class Image {
 	readonly #mat: Mat4 = new Mat4;
 
 	#rScale: number = 0;
+	/** @internal */
 	readonly _layers: Layer[] = [];
 	#numLayers: number = 0;
+	/** @internal */
 	_targetLayer: number = 0;
 
 	/** Left edge of the image area in canvas-relative coordinates. */
@@ -85,7 +95,9 @@ export default class Image {
 	x1: number = 1;
 	/** Bottom edge of the image area in canvas-relative coordinates. */
 	y1: number = 1;
+	/** @internal */
 	_rWidth: number = 1;
+	/** @internal */
 	_rHeight: number = 1;
 
 	#areaCenterX: number = 0.5;
@@ -99,17 +111,21 @@ export default class Image {
 	#angularWidth: number = 0;
 	#angularHeight: number = 0;
 
+	/** @internal */
 	_gotBase: number = 0;
 
+	/** @internal */
 	readonly _endOffset!: number;
 	#aspect: number = 0;
 
 	#doneTotal: number = 0;
 
+	/** @internal */
 	_doRender: boolean = false;
 
 	#is360Embed: boolean = false;
 
+	/** @internal */
 	_isVideoPlaying: boolean = false;
 
 	static #sampledXs: Float64Array = new Float64Array(200);
@@ -120,7 +136,9 @@ export default class Image {
 
 	readonly #canvas: TileCanvas;
 
+	/** @internal */
 	readonly _index: number;
+	/** @internal */
 	readonly _localIdx: number;
 	/** Original image width in pixels. */
 	readonly width: number;
@@ -128,13 +146,18 @@ export default class Image {
 	readonly height: number;
 	readonly #tileSize: number;
 	readonly #isSingle: boolean;
+	/** @internal */
 	readonly _isVideo: boolean;
 	readonly #startOffset: number;
 	/** Current rendered opacity (0-1) of this image. */
 	opacity: number;
+	/** @internal */
 	_tOpacity: number;
+	/** @internal */
 	_rotX: number;
+	/** @internal */
 	_rotY: number;
+	/** @internal */
 	_rotZ: number;
 	readonly #scale: number;
 	readonly #fromScale: number;
@@ -192,7 +215,7 @@ export default class Image {
 		}
 	}
 
-	/** Sets the relative area this image occupies within its parent canvas. */
+	/** Sets the relative area this image occupies within its parent canvas. @internal */
 	_setArea(x0: number, y0: number, x1: number, y1: number): void {
 		this.x0 = x0;
 		this.y0 = y0;
@@ -254,7 +277,7 @@ export default class Image {
 		}
 	}
 
-	/** Determines if this image should be rendered in the current frame. */
+	/** Determines if this image should be rendered in the current frame. @internal */
 	_shouldRender(): boolean {
 		if (this.#fromScale > 0 && this.#fromScale > this.#canvas.camera._scale) return false;
 		if ((this._isVideo || this._localIdx > 0) && this.opacity === 0 && this._tOpacity === 0) return false;
@@ -264,6 +287,7 @@ export default class Image {
 
 	/**
 	 * Steps the opacity animation for this image.
+	 * @internal
 	 * @returns True if the opacity changed (animation is active or snapped).
 	 */
 	_opacityTick(direct: boolean): boolean {
@@ -277,6 +301,7 @@ export default class Image {
 
 	/**
 	 * Calculates the set of tiles needed to render the current view for this image.
+	 * @internal
 	 * @returns The number of tiles from this image that are already loaded/drawn.
 	 */
 	_getTiles(scale: number): number {
@@ -442,7 +467,7 @@ export default class Image {
 		}
 	}
 
-	/** Calculates the vertex positions for an embedded image within a 360 canvas. */
+	/** Calculates the vertex positions for an embedded image within a 360 canvas. @internal */
 	_setDrawRect(r: DrawRect): void {
 		const v = this.#canvas.main._vertexBuffer;
 		const s = Math.PI * 2 * this.#canvas._camera360._radius;

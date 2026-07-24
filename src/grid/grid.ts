@@ -22,40 +22,54 @@ export class Grid extends MicrioElement {
 	/** The custom element tag name. */
 	static tag = 'micrio-grid';
 
+	/** @internal */
 	readonly _images:MicrioImage[] = [];
+	/** @internal */
 	readonly _imageMap:Map<string, MicrioImage> = new Map();
 
+	/** @internal */
 	_current:MicrioImage[] = [];
 
+	/** @internal */
 	_buttons:Map<string, HTMLButtonElement> = new Map();
 
+	/** @internal */
 	_clickable: 'focus'|'zoom'|false = false;
+	/** @internal */
 	_panZoom: 'cells'|'grid' = 'grid';
 
+	/** @internal */
 	readonly _focussed:Writable<MicrioImage|undefined> = writable();
 	/** The currently focussed (single-view) image, if any. */
 	get $focussed() : MicrioImage|undefined { return get(this._focussed); }
+	/** @internal */
 	readonly _markersShown:Writable<MicrioImage[]> = writable([]);
 
 	#history:Models.Grid.GridHistory[] = [];
 	#depth:Writable<number> = writable<number>(0);
 
+	/** @internal */
 	_aniDurationIn:number = 1;
 	#aniDurationOut:number = 0.5;
 	#transitionDelay:number = .5;
 
+	/** @internal */
 	_nextCrossFadeDuration:number|undefined;
 	#isHorizontal:boolean = false;
 	readonly #cellSizes:Map<string, [number,number?]> = new Map();
 	readonly #nextSize:Map<string, [number,number?]> = new Map();
 
+	/** @internal */
 	_lastAction:string|undefined;
 	#viewUnsub:Unsubscriber|undefined;
+	/** @internal */
 	#_to:ReturnType<typeof setTimeout>|undefined;
+	/** @internal */
 	#_fadeTo:ReturnType<typeof setTimeout>|undefined;
 	#timingFunction:Models.Camera.TimingFunction = 'ease';
 	#closeBtn!: HTMLElement;
 
+	/** @internal */
 	static _handlingKeys:boolean = false;
 
 	/** The parent `<micrio-*>` element this grid is bound to. */
@@ -66,6 +80,7 @@ export class Grid extends MicrioElement {
 
 	#inited = false;
 
+	/** @internal */
 	_onMount() {
 		if (this.#inited) return;
 		this.#inited = true;
@@ -136,6 +151,7 @@ export class Grid extends MicrioElement {
 		this.micrio.addEventListener('serialtour-play', () => this._images.forEach(i => i.camera.resume()));
 	}
 
+	/** @internal */
 	#_tourEventHandler: ((e: Event) => void) | undefined;
 
 	#clearTimeouts() : void {
@@ -402,6 +418,7 @@ export class Grid extends MicrioElement {
 		_engine.render();
 	}
 
+	/** @internal */
 	_insideGrid() : boolean {
 		const c = this.micrio.$current;
 		return c == this.image || (!!c && this._imageMap.has(c.id));
@@ -422,6 +439,7 @@ export class Grid extends MicrioElement {
 		});
 	}
 
+	/** @internal */
 	async _flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
 		const spl = tag?.split('|').map(s => s.trim());
 		const name = spl?.[0]??'';
@@ -464,6 +482,7 @@ export class Grid extends MicrioElement {
 		this.micrio._engine._gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
 	}
 
+	/** @internal */
 	_clickCell(_img?:MicrioImage|string) : void {
 		const img = typeof _img == 'string' ? this._images.find(i => i.id == _img) : _img;
 		if(!this._clickable || !img) return;
@@ -555,6 +574,7 @@ export class Grid extends MicrioElement {
 		return this.set(input, { noHistory: true, keepGrid: true, duration: .5, cover });
 	}
 
+	/* @internal */
 	_getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
 		const current = this.micrio.$current;
 		if (current && this._images.some(i => i === current)) return current;

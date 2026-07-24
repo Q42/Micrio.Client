@@ -1,6 +1,6 @@
 import { MicrioElement } from '$core/component';
 
-/** Props for the article layout element */
+/** Props for the article layout element @internal */
 export interface ArticleProps {
 	/** HTML content to render inside the article */
 	html?: string;
@@ -12,6 +12,7 @@ class MicrioArticle extends MicrioElement<ArticleProps> {
 	/** The custom element tag name */
 	static tag = 'micrio-article';
 
+	/** @internal */
 	protected _render() {
 		if (this._props.html) this.innerHTML = this._props.html;
 	}

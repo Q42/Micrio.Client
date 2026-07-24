@@ -1,6 +1,6 @@
 import { MicrioElement } from '$core/component';
 
-/** Properties for the 360-degree rotation dial component. */
+/** Properties for the 360-degree rotation dial component. @internal */
 export interface DialProps {
 	currentRotation: number;
 	frames: number;
@@ -16,6 +16,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 
 	#props: DialProps = { currentRotation: 0, frames: 1 };
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -53,6 +54,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 		this.addEventListener('pointerdown', dStart);
 	}
 
+	/** @internal */
 	_setProps(props: Partial<DialProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) {

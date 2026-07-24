@@ -26,7 +26,7 @@ import {
  */
 export class Events implements EventContext {
 
-	/** The Micrio `<canvas>` element where most events are captured. */
+	/** @internal The Micrio `<canvas>` element where most events are captured. */
 	_el: HTMLCanvasElement;
 
 	/** Writable store indicating if event handling is currently enabled. Set to false during tours or animations. */
@@ -38,28 +38,28 @@ export class Events implements EventContext {
 	/** Flag indicating if the main event listeners are currently attached. */
 	#hooked: boolean = false;
 
-	/** Flag indicating if the user is currently panning (dragging). */
+	/** @internal Flag indicating if the user is currently panning (dragging). */
 	_panning: boolean = false;
 
-	/** Flag indicating if the user is currently pinching. */
+	/** @internal Flag indicating if the user is currently pinching. */
 	_pinching: boolean = false;
 
-	/** Flag indicating if the user is currently zooming via mouse wheel. */
+	/** @internal Flag indicating if the user is currently zooming via mouse wheel. */
 	_wheeling: boolean = false;
 
-	/** Flag indicating if Ctrl/Cmd key is required for mouse wheel zoom. */
+	/** @internal Flag indicating if Ctrl/Cmd key is required for mouse wheel zoom. */
 	_controlZoom: boolean = false;
 
-	/** Flag indicating if two fingers are required for touch panning. */
+	/** @internal Flag indicating if two fingers are required for touch panning. */
 	_twoFingerPan: boolean = false;
 
-	/** Stores the previous scale during pinch gestures for calculating zoom delta. */
+	/** @internal Stores the previous scale during pinch gestures for calculating zoom delta. */
 	_pScale: number = 1;
 
-	/** Flag indicating if the browser supports touch events. */
+	/** @internal Flag indicating if the browser supports touch events. */
 	_hasTouch: boolean = Browser.hasTouch && ('ontouchstart' in self);
 
-	/** Flag indicating if the user has explicitly used Ctrl/Cmd + wheel for zooming (differentiates from trackpad pinch). */
+	/** @internal Flag indicating if the user has explicitly used Ctrl/Cmd + wheel for zooming (differentiates from trackpad pinch). */
 	_hasUsedCtrl: boolean = false;
 
 	/** Cached settings object from the first loaded image. */
@@ -68,23 +68,23 @@ export class Events implements EventContext {
 	/** Array of currently visible MicrioImage instances. */
 	#visible: MicrioImage[] | undefined;
 
-	/** Internal state variables for managing complex interactions like drag, pinch, double-tap. */
+	/** @internal Internal state variables for managing complex interactions like drag, pinch, double-tap. */
 	_vars: EventStateVars = {
 		_drag: { _prev: undefined, _start: [0, 0, 0], _image: undefined },
 		_dbltap: { _lastTapped: 0 },
 		_pinch: { _image: undefined, _sDst: 0, _wasPanning: false },
 	};
 
-	/** Current pinch zoom factor relative to the start of the pinch. Undefined when not pinching. */
+	/** @internal Current pinch zoom factor relative to the start of the pinch. Undefined when not pinching. */
 	_pinchFactor: number | undefined;
 
-	/** Map tracking active pointers for multi-touch pinch detection (pointer ID -> coordinates). */
+	/** @internal Map tracking active pointers for multi-touch pinch detection (pointer ID -> coordinates). */
 	_activePointers: Map<number, { x: number, y: number }> = new Map();
 
-	/** Stores the ID of the pointer currently captured for dragging. */
+	/** @internal Stores the ID of the pointer currently captured for dragging. */
 	_capturedPointerId: number | undefined;
 
-	/** The main HTMLMicrioElement instance. */
+	/** @internal The main HTMLMicrioElement instance. */
 	_micrio: HTMLMicrioElement;
 
 	// Handler modules
@@ -135,6 +135,7 @@ export class Events implements EventContext {
 
 	// --- EventContext implementation ---
 
+	/** @internal */
 	_isEnabled(): boolean { return this.$enabled; }
 
 	/**
@@ -144,7 +145,7 @@ export class Events implements EventContext {
 	get isNavigating(): boolean { return this._panning || this._pinching || this._wheeling; }
 
 	/**
-	 * Dispatches a custom event on the main `<micr-io>` element.
+	 * @internal Dispatches a custom event on the main `<micr-io>` element.
 	 * @param type The event type string.
 	 * @param detail Optional event detail payload.
 	 */
@@ -153,7 +154,7 @@ export class Events implements EventContext {
 	}
 
 	/**
-	 * Determines which MicrioImage instance is under the given screen coordinates.
+	 * @internal Determines which MicrioImage instance is under the given screen coordinates.
 	 * @param c Screen coordinates {x, y}.
 	 * @returns The MicrioImage instance under the coordinates, or the main current image as fallback.
 	 */
@@ -172,6 +173,7 @@ export class Events implements EventContext {
 		return t && !t.grid ? t : this._micrio.$current;
 	}
 
+	/** @internal */
 	_getVisible(): MicrioImage[] | undefined { return this.#visible; }
 
 	/** Hooks all necessary event listeners based on current settings. */

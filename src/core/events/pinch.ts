@@ -6,6 +6,7 @@ import { pinchStart, pinchMove, pinchStop, restartPanning } from './pinch-shared
 /**
  * Touch pinch event handler module (iOS).
  * Handles touchstart/touchmove/touchend events for pinch-to-zoom gestures.
+ * @internal
  */
 export class PinchHandler {
 	#ctx: EventContext;

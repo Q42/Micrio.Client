@@ -12,7 +12,7 @@ import '$ui/button';
 
 const scrubPad = 16;
 
-/** Properties for the {@link MicrioGallery} custom element. */
+/** Properties for the {@link MicrioGallery} custom element. @internal */
 export interface GalleryProps {
 	controller?: GalleryController;
 }
@@ -43,9 +43,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#imageSlotWidth: number[] = [];
 	/** The parent MicrioImage hosting this gallery (switch/omni). */
 	#parentImage!: MicrioImage;
+	/** @internal */
 	#_ul: HTMLElement | null = null;
 	#prevBtn: MicrioElement | null = null;
 	#nextBtn: MicrioElement | null = null;
+	/** @internal */
 	#_left = 0;
 	#hoverIdx = -1;
 	#dragging = false;
@@ -59,6 +61,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#preloading = new Map<string, any>();
 	#preloadD = 0;
 
+	/** @internal */
 	async _onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -81,6 +84,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#renderGallery(micrio, image, controller);
 	}
 
+	/** @internal */
 	_setProps(props: Partial<GalleryProps>) {
 		if (props.controller !== undefined) this.#props.controller = props.controller;
 	}
@@ -456,6 +460,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (this.#nextBtn) (this.#nextBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr >= total - 1);
 	}
 
+	/** @internal */
 	_onDestroy() {
 		this.#omni?.destroy();
 		this.#swipeGallery?.destroy();

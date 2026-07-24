@@ -42,6 +42,7 @@ export class OmniUI {
 	/** Active frame index currently displayed. */
 	get currentIndex():number { return this.#image.canvas?._activeImageIdx ?? -1; }
 
+	/* @internal */
 	constructor(
 		micrio:HTMLMicrioElement,
 		image:MicrioImage,

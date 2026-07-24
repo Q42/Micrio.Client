@@ -8,7 +8,7 @@ import '$ui/button';
 import '$ui/button-group';
 import './marker-content';
 
-/** Props for the marker popup overlay element. */
+/** Props for the marker popup overlay element. @internal */
 export interface MarkerPopupProps {
 	/** The marker data to display in the popup. */
 	marker: Models.ImageData.Marker;
@@ -28,6 +28,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	#clickedPrevNext = false;
 	#originalHeights = new WeakMap<HTMLElement, number>();
 
+	/** @internal */
 	_onMount() {
 		const { marker } = this.#props;
 		const micrio = this._getMicrio();
@@ -48,6 +49,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		this.#render();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<MarkerPopupProps>) {
 		if (props.marker !== undefined && props.marker.id !== this.#props.marker?.id) {
 			this.#props.marker = props.marker;

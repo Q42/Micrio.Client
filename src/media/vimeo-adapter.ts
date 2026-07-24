@@ -10,6 +10,7 @@ import { loadExternalAPI } from '$utils/dom';
 
 /**
  * Adapter for Vimeo Player API.
+ * @internal
  */
 export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 	#player: VimeoPlayer | undefined;

@@ -16,7 +16,7 @@ opened.subscribe(c => {
 /** Close the currently opened menu */
 function close() { opened.set(undefined); }
 
-/** Props for a menu item element */
+/** Props for a menu item element @internal */
 export interface MenuProps {
 	menu: Models.ImageData.Menu;
 	/** Original image ID to switch back to if the menu navigates to a different image */
@@ -34,6 +34,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	#props: MenuProps = { menu: null!, originalId: null };
 	#action: (() => void) | undefined;
 
+	/** @internal */
 	_onMount() {
 		const { menu } = this.#props;
 		const micrio = this._getMicrio();
@@ -77,6 +78,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 		}
 	}
 
+	/** @internal */
 	_setProps(props: Partial<MenuProps>) {
 		Object.assign(this.#props, props);
 	}

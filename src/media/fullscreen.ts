@@ -3,7 +3,7 @@ import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
 import { i18n } from '$core/i18n/strings';
 
-/** Props for the fullscreen toggle component. */
+/** Props for the fullscreen toggle component. @internal */
 export interface FullscreenProps {
 	el: HTMLElement;
 }
@@ -22,11 +22,13 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		else el.requestFullscreen();
 	};
 
+	/** @internal */
 	_onMount() {
 		if (!this.#props?.el) return;
 		this.#init();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<FullscreenProps>) {
 		if (props.el !== undefined) {
 			this.#props.el = props.el;

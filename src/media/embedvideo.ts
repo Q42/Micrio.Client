@@ -14,6 +14,7 @@ import { HLS_SCRIPT_URL, HLS_PLAYER_CONFIG, mediaSourceSupported, cloudflareStre
  * that are rendered directly onto the Micrio canvas texture (not as HTML elements).
  * Used internally when `printGL` is true.
  * Handles HLS playback via hls.js if necessary.
+ * @internal
  */
 export class GLEmbedVideo {
 	/** Is the video source an HLS stream (.m3u8)? @internal */
@@ -92,12 +93,12 @@ export class GLEmbedVideo {
 		});
 	}
 
-	/** Cancels any pending visibility timeout (e.g. pause scheduled on invisible). */
+	/** Cancels any pending visibility timeout (e.g. pause scheduled on invisible). @internal */
 	_cancelTimeout(): void {
 		clearTimeout(this.#placeTo);
 	}
 
-	/** Cleans up resources when the parent Embed component is unmounted. */
+	/** Cleans up resources when the parent Embed component is unmounted. @internal */
 	_unmount() : void {
 		this.#isMounted = false;
 		clearTimeout(this.#placeTo);

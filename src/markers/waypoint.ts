@@ -7,7 +7,7 @@ import { getSpaceVector } from '$utils/space';
 import { i18n } from '$core/i18n/strings';
 import { createElement } from '$utils/dom';
 
-/** Props for the waypoint (spatial link indicator) custom element. */
+/** Props for the waypoint (spatial link indicator) custom element. @internal */
 export interface WaypointProps {
 	/** The target image ID this waypoint points to. */
 	targetId: string;
@@ -35,11 +35,13 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	#click: (() => void) | undefined;
 	#focus: (() => void) | undefined;
 
+	/** @internal */
 	_onMount() {
 		this.#setup();
 		this.#render();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<WaypointProps>) {
 		if (props.targetId !== undefined) this.#props.targetId = props.targetId;
 		if (props.image !== undefined) this.#props.image = props.image;
@@ -154,6 +156,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		});
 	}
 
+	/** @internal */
 	_onDestroy() {
 		clearTimeout(this.#fto);
 	}

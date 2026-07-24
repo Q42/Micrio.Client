@@ -8,7 +8,7 @@ import { fmt } from '$utils/time';
 import '$ui/button';
 import './fullscreen';
 
-/** Props for the media controls UI component. */
+/** Props for the media controls UI component. @internal */
 export interface MediaControlsProps {
 	currentTime?: number;
 	duration?: number;
@@ -46,11 +46,13 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	#prevProgress = -1;
 	#prevTime = '';
 
+	/** @internal */
 	_onMount() {
 		this.#build();
 		this._addCleanup(captionsEnabled.subscribe(() => this.#sync()));
 	}
 
+	/** @internal */
 	_setProps(props: Partial<MediaControlsProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) { this.#build(); if (this.#built) this.#sync(); }

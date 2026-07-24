@@ -41,7 +41,7 @@ export const localStorageKeys = {
 	globalMuted: 'micrio-muted', // Key for storing the global muted state
 };
 
-/** Default tile size used throughout the application when none is specified by the bundle. */
+/** Default tile size used throughout the application when none is specified by the bundle. @internal */
 export const DEFAULT_TILE_SIZE: number = 1024;
 
 /** Default settings applied to all Micrio images unless overridden by the bundle or attributes.

@@ -9,7 +9,7 @@ import '$media/media';
 import '$markers/marker-content';
 import '$gallery/swipe-gallery';
 
-/** Props for the popover/modal element */
+/** Props for the popover/modal element @internal */
 export interface PopoverProps {
 	popover: Models.State.PopoverType;
 }
@@ -23,6 +23,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 	#props: PopoverProps = { popover: null! };
 	#dialog!: HTMLDialogElement;
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -46,6 +47,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		this.#render();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<PopoverProps>) {
 		if (props.popover !== undefined) this.#props.popover = props.popover;
 		if (this.isConnected) this.#render();
@@ -172,6 +174,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		if (!this.#dialog.open) this.#dialog.showModal();
 	}
 
+	/** @internal */
 	_onDestroy() {
 		if (this.#dialog?.open) this.#dialog.close();
 	}

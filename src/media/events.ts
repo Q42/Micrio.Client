@@ -1,7 +1,7 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 
-/** Props for the MicrioEvents component. */
+/** Props for the MicrioEvents component. @internal */
 export interface EventsProps {
 	events: Models.ImageData.Event[];
 	currentTime?: number;
@@ -17,6 +17,7 @@ class MicrioEvents extends MicrioElement<EventsProps> {
 	/** Called externally from Media to check/send event triggers at currentTime */
 	update: ((time: number) => void) | undefined;
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -39,10 +40,12 @@ class MicrioEvents extends MicrioElement<EventsProps> {
 		};
 	}
 
+	/** @internal */
 	_setProps(props: Partial<EventsProps>) {
 		Object.assign(this.#props, props);
 	}
 
+	/** @internal */
 	_onDestroy() {
 		const micrio = this._getMicrio();
 		if (micrio) {

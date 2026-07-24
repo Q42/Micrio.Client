@@ -3,7 +3,7 @@ import type { IconName } from '$types/icon-name';
 import type { Models } from '$types/models';
 import { createElement } from '$utils/dom';
 
-/** Properties for the button component. */
+/** Properties for the button component. @internal */
 export interface ButtonProps {
 	type?: IconName;
 	icon?: Models.Assets.Image;
@@ -20,7 +20,7 @@ export interface ButtonProps {
 }
 import './button.css';
 
-/** Web component for rendering icon/text buttons and links. */
+/** Web component for rendering icon/text buttons and links. @internal */
 export class MicrioButton extends MicrioElement<ButtonProps> {
 	/** The custom element tag name. */
 	static tag = 'micrio-button';
@@ -28,6 +28,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 	#rootEl!: HTMLElement;
 	#prevType?: string;
 
+	/** @internal */
 	protected _syncDisplay() {
 		const p = this._props;
 		if (p.type !== this.#prevType) {
@@ -37,6 +38,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		}
 	}
 
+	/** @internal */
 	protected _render() {
 		const p = this._props;
 		const key = `${p.type}|${(p.icon?.src ?? '')}|${p.title ?? ''}|${p.disabled ?? ''}|${p.active ?? ''}|${p.className ?? ''}|${p.href ?? ''}|${p.blankTarget ?? ''}|${p.noClick ?? ''}`;

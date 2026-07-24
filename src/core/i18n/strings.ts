@@ -39,7 +39,7 @@ const strings = {
 	_videoTours: ['Video tours', 'Video tours', 'Video-Touren'],
 } satisfies Record<TranslationKeys, [string, string, string]>;
 
-/** Pre-built translation dictionaries keyed by language code (`'en'`, `'nl'`, `'de'`). */
+/** Pre-built translation dictionaries keyed by language code (`'en'`, `'nl'`, `'de'`). @internal */
 export const langs: Record<string, ButtonTranslations> = {};
 
 const keys = Object.keys(strings) as TranslationKeys[];
@@ -52,5 +52,5 @@ for (let i = 0; i < langKeys.length; i++) {
 	langs[langKeys[i]] = lang as ButtonTranslations;
 }
 
-/** Writable store holding the current UI button translations, initialized to English. */
+/** Writable store holding the current UI button translations, initialized to English. @internal */
 export const i18n:Writable<ButtonTranslations> = writable(langs.en);

@@ -23,11 +23,17 @@ import { type Bicubic, easeInOut } from './easing';
 import { Viewport } from './shared';
 
 interface TileEntry {
+	/** @internal */
 	_texture?: WebGLTexture;
+	/** @internal */
 	_loadState: number;
+	/** @internal */
 	_opacity: number;
+	/** @internal */
 	_loadedAt?: number;
+	/** @internal */
 	_deleteAt?: number;
+	/** @internal */
 	_timeoutId?: number;
 }
 
@@ -42,6 +48,7 @@ interface CanvasEntry {
  * The main Micrio compute controller class. Handles the engine lifecycle,
  * render loop, tile management, and WebGL integration.
  * Accessed via `micrio._engine`.
+ * @internal
  */
 export class Engine {
 
@@ -51,71 +58,71 @@ export class Engine {
 	/** Viewport for the main HTML element. */
 	readonly el: Viewport = new Viewport;
 
-	/** Shared Float32Array for standard tile vertex data. */
+	/** Shared Float32Array for standard tile vertex data. @internal */
 	readonly _vertexBuffer: Float32Array = new Float32Array(6 * 3);
-	/** Shared Float32Array for 360 tile vertex data. */
+	/** Shared Float32Array for 360 tile vertex data. @internal */
 	readonly _vertexBuffer360: Float32Array = new Float32Array(6 * 3 * segsX * segsY);
 
-	/** Array holding all instantiated TileCanvas instances managed by this engine. */
+	/** Array holding all instantiated TileCanvas instances managed by this engine. @internal */
 	readonly _canvases: TileCanvas[] = [];
 
-	/** Total number of tiles across all images in all canvases. */
+	/** Total number of tiles across all images in all canvases. @internal */
 	_numTiles: number = 0;
-	/** Total number of Image instances across all canvases. */
+	/** Total number of Image instances across all canvases. @internal */
 	_numImages: number = 0;
 
 	/** Timestamp of the current frame (performance.now()). */
 	now: number = 0;
-	/** Flag indicating if any animation is active in any canvas this frame. */
+	/** Flag indicating if any animation is active in any canvas this frame. @internal */
 	_animating: boolean = false;
-	/** Overall loading progress (0-1) based on tiles drawn vs tiles needed. */
+	/** Overall loading progress (0-1) based on tiles drawn vs tiles needed. @internal */
 	_progress: number = 0;
-	/** Total number of tiles needed across all canvases this frame. */
+	/** Total number of tiles needed across all canvases this frame. @internal */
 	_toDrawTotal: number = 0;
-	/** Total number of tiles successfully drawn (or already loaded) across all canvases this frame. */
+	/** Total number of tiles successfully drawn (or already loaded) across all canvases this frame. @internal */
 	_doneTotal: number = 0;
 
-	/** Default duration (seconds) for crossfade between canvases. */
+	/** Default duration (seconds) for crossfade between canvases. @internal */
 	_crossfadeDuration: number = .25;
-	/** Default duration (seconds) for grid item transitions. */
+	/** Default duration (seconds) for grid item transitions. @internal */
 	_gridTransitionDuration: number = .5;
-	/** Default easing function for grid transitions. */
+	/** Default easing function for grid transitions. @internal */
 	_gridTransitionTimingFunction: Bicubic = easeInOut;
-	/** Default duration (seconds) for transitions between 360 spaces. */
+	/** Default duration (seconds) for transitions between 360 spaces. @internal */
 	_spacesTransitionDuration: number = .5;
-	/** Default duration (seconds) for fading embedded images/videos. */
+	/** Default duration (seconds) for fading embedded images/videos. @internal */
 	_embedFadeDuration: number = .5;
 
-	/** Elasticity factor for kinetic dragging (higher = more movement). */
+	/** Elasticity factor for kinetic dragging (higher = more movement). @internal */
 	_dragElasticity: number = 1;
 
-	/** Flag indicating if a binary archive is being used. */
+	/** Flag indicating if a binary archive is being used. @internal */
 	_hasArchive: boolean = false;
-	/** Layer offset when using an archive. */
+	/** Layer offset when using an archive. @internal */
 	_archiveLayerOffset: number = 0;
 
-	/** Number of "underzoom" levels. */
+	/** Number of "underzoom" levels. @internal */
 	_underzoomLevels: number = 4;
-	/** Number of lowest resolution layers to skip loading initially. */
+	/** Number of lowest resolution layers to skip loading initially. @internal */
 	_skipBaseLevels: number = 0;
 
-	/** Flag for barebone mode (minimal texture loading). */
+	/** Flag for barebone mode (minimal texture loading). @internal */
 	_bareBone: boolean = false;
 
-	/** Flag indicating if the current context is a swipe gallery. */
+	/** Flag indicating if the current context is a swipe gallery. @internal */
 	_isSwipe: boolean = false;
 
-	/** Flag to disable panning during pinch gestures. */
+	/** Flag to disable panning during pinch gestures. @internal */
 	_noPinchPan: boolean = false;
 
-	/** Target direction for 360 transition. */
+	/** Target direction for 360 transition. @internal */
 	_direction: number = 0;
-	/** Horizontal distance for 360 transition. */
+	/** Horizontal distance for 360 transition. @internal */
 	_distanceX: number = 0;
-	/** Vertical distance for 360 transition. */
+	/** Vertical distance for 360 transition. @internal */
 	_distanceY: number = 0;
 
-	/** Estimated time per frame in seconds (used for animation speed normalization). */
+	/** Estimated time per frame in seconds (used for animation speed normalization). @internal */
 	_frameTime: number = 1 / 60;
 
 	/** Array storing references to all MicrioImage instances managed by the engine. @internal */
@@ -145,12 +152,12 @@ export class Engine {
 	/** Reverse map: MicrioImage → engine Image for O(1) lookup in video callbacks. @internal */
 	#micrioToEngImage: Map<MicrioImage | Models.Omni.Frame, Image> = new Map();
 
-	/** If true, prevents the engine from auto-setting direction during 360 transitions. */
+	/** If true, prevents the engine from auto-setting direction during 360 transitions. @internal */
 	_preventDirectionSet: boolean = false;
 
-	/** Static Float32Array holding texture coordinates for a standard quad. */
+	/** Static Float32Array holding texture coordinates for a standard quad. @internal */
 	static readonly _textureBuffer: Float32Array = Engine.#getTextureBuffer(1, 1);
-	/** Static Float32Array holding texture coordinates for the 360 sphere. */
+	/** Static Float32Array holding texture coordinates for the 360 sphere. @internal */
 	static _textureBuffer360: Float32Array;
 
 	/** Flag indicating if the current context is a gallery. @internal */
@@ -204,6 +211,7 @@ export class Engine {
 
 	/**
 	 * Initializes the engine and prepares the 360 texture buffer.
+	 * @internal
 	 */
 	_load(): void {
 		if (this.ready) return;
@@ -220,6 +228,7 @@ export class Engine {
 
 	/**
 	 * Callback for the engine to request drawing a tile.
+	 * @internal
 	 * @returns True if the tile texture is ready and drawn, false otherwise.
 	 */
 	_drawTile = (imgIdx: number, i: number, layer: number, x: number, y: number, opacity: number, animating: boolean, targetLayer: boolean): boolean => {
@@ -293,7 +302,7 @@ export class Engine {
 		if (micrioImage && 'visible' in micrioImage) micrioImage.visible.set(visible);
 	}
 
-	/** Unbinds event listeners, stops rendering, and cleans up resources. */
+	/** Unbinds event listeners, stops rendering, and cleans up resources. @internal */
 	_unbind(): void {
 		this.#stop();
 		while (this.#unsubscribe.length) this.#unsubscribe.pop()?.();
@@ -505,6 +514,7 @@ export class Engine {
 		this.micrio._webgl._drawEnd();
 	}
 
+	/** @internal */
 	_shouldDraw(now: number): boolean {
 		this._frameTime = 1000 / Math.min(33, now - this.now);
 		this.now = now;
@@ -764,6 +774,7 @@ export class Engine {
 
 	// --- Facade methods (delegates to TileCanvas via getCanvas) ---
 	// Most facade methods have been replaced by MicrioImage.canvas getter.
+	/** @internal */
 	_setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
 		const engImage = this.#micrioToEngImage.get(img);
 		if (engImage) engImage._isVideoPlaying = playing;

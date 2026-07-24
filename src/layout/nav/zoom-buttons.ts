@@ -11,6 +11,7 @@ class MicrioZoomButtons extends MicrioElement {
 	#btnIn!: MicrioElement;
 	#btnOut!: MicrioElement;
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;

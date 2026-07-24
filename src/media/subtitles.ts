@@ -4,7 +4,7 @@ import type { Models } from '$types/models';
 
 const CAPTIONS_KEY = 'micrio-captions-disable';
 
-/** Writable store indicating whether captions/subtitles are enabled. Persisted to localStorage. */
+/** Writable store indicating whether captions/subtitles are enabled. Persisted to localStorage. @internal */
 export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) != '1');
 
 captionsEnabled.subscribe(b => {
@@ -12,7 +12,7 @@ captionsEnabled.subscribe(b => {
 	else localStorage.setItem(CAPTIONS_KEY, '1');
 });
 
-/** Props for the subtitles overlay component. */
+/** Props for the subtitles overlay component. @internal */
 export interface SubtitlesProps {
 	src?: string;
 	mediaEl?: HTMLElement;
@@ -29,6 +29,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	#currentCue: Models.ImageData.Event | undefined;
 	#cleanup: (() => void) | undefined;
 
+	/** @internal */
 	_onMount() {
 		this.#cleanup = captionsEnabled.subscribe(() => this.#renderCue());
 
@@ -43,6 +44,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 		if (this.#props.src) this.#update();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<SubtitlesProps>) {
 		const srcChanged = props.src !== undefined && props.src !== this.#props.src;
 		Object.assign(this.#props, props);
@@ -86,6 +88,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 		this.innerHTML = cue ? `<p>${cue.data}</p>` : '';
 	}
 
+	/** @internal */
 	_onDestroy() {
 		this.#cleanup?.();
 	}

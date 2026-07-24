@@ -3,6 +3,7 @@ import type { DragHandler } from './drag';
 
 /**
  * Initialises pinch state: stops panning, sets pinching flag, dispatches `pinchstart` event.
+ * @internal
  * @param ctx The shared event context.
  * @param dragHandler The drag handler whose panning is suspended.
  */
@@ -24,6 +25,7 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 
 /**
  * Calculates the pinch scale factor and applies it to the camera.
+ * @internal
  * @param ctx The shared event context.
  * @param coo First touch/pointer coordinates.
  * @param coo2 Second touch/pointer coordinates.
@@ -39,6 +41,7 @@ export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2
 
 /**
  * Ends the pinch gesture: cleans up listeners, updates camera, dispatches `pinchend` event.
+ * @internal
  * @param ctx The shared event context.
  * @param _e The originating event (unused).
  * @param moveHandler The move handler to remove from the global listener.
@@ -68,6 +71,7 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 
 /**
  * If only one pointer remains after a pinch ends, synthesises a pointerdown event to resume panning.
+ * @internal
  * @param ctx The shared event context.
  * @param dragHandler The drag handler to restart.
  * @param pointers The remaining active pointers.

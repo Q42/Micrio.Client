@@ -13,7 +13,7 @@ function getLogoSrc(img: Models.Assets.Image | string): string {
 		: img.src);
 }
 
-/** Props for the organisation logo element */
+/** Props for the organisation logo element @internal */
 export interface LogoOrgProps {
 	organisation: Models.ImageInfo.Organisation;
 }
@@ -26,12 +26,14 @@ class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 
 	#props: LogoOrgProps = { organisation: null! };
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
 		this.#render();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<LogoOrgProps>) {
 		if (props.organisation !== undefined) this.#props.organisation = props.organisation;
 		if (this.isConnected) this.#render();

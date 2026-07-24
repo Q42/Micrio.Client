@@ -29,7 +29,7 @@ export namespace Grid {
 		'appear-delayed'
 	)
 
-		/** Virtual ImageInfo extension to support grid logic */
+	/** Virtual ImageInfo extension to support grid logic */
 	export interface GridImage {
 		id: string;
 		size: [number, number?];
@@ -37,6 +37,7 @@ export namespace Grid {
 		view?: Camera.View;
 	}
 
+	/* @internal */
 	export interface GridHistory {
 		layout: { id: string; view?: Camera.View; size?: [number, number?] }[];
 		horizontal: boolean;

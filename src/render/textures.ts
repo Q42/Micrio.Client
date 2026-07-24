@@ -19,7 +19,7 @@ self.addEventListener('message', e => {
 
 type ItemArray = [string, (n: TextureBitmap) => void, (n: string) => void];
 
-/** Maximum number of concurrent texture loading threads. */
+/** Maximum number of concurrent texture loading threads. @internal */
 export const numThreads: number = Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 2) - 1));
 
 const running: boolean[] = Array(numThreads).fill(false);
@@ -34,6 +34,7 @@ for (let i = 0; i < numThreads; i++) {
 	loaders.push(w);
 }
 
+/** @internal */
 export const loadTexture = (src: string): Promise<TextureBitmap> => new Promise((ok, err) => {
 	queue.push([src, ok, err]);
 	getNext();
@@ -73,10 +74,12 @@ function onmessage(idx: number, buffer?: ImageBitmap, error?: string, errorType?
 	}, 50);
 }
 
+/** @internal */
 export function runningThreads(): number {
 	return busyCount;
 }
 
+/** @internal */
 export function abortDownload(src: string): void {
 	let threadIdx = -1;
 	for (const [k, v] of promises.entries()) {

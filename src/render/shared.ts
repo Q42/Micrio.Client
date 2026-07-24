@@ -35,9 +35,9 @@ export class DrawRect {
 export class View {
 	#arr: Float64Array = new Float64Array([0.5, 0.5, 1, 1]);
 	#dirty: boolean = false;
-	/** Flag indicating if the view coordinates have changed since the last frame. */
+	/** Flag indicating if the view coordinates have changed since the last frame. @internal */
 	_changed: boolean = false;
-	/** Flag indicating if the view limits have changed. */
+	/** Flag indicating if the view limits have changed. @internal */
 	_limitChanged: boolean = false;
 
 	readonly #canvas: TileCanvas;
@@ -45,14 +45,20 @@ export class View {
 	constructor(
 		canvas: TileCanvas,
 
+		/** @internal */
 		public _centerX: number = 0.5,
+		/** @internal */
 		public _centerY: number = 0.5,
 		public width: number = 1,
 		public height: number = 1,
 
+		/** @internal */
 		public _lCenterX: number = 0.5,
+		/** @internal */
 		public _lCenterY: number = 0.5,
+		/** @internal */
 		public _lWidth: number = 1,
+		/** @internal */
 		public _lHeight: number = 1,
 	) {
 		this.#canvas = canvas;
@@ -121,7 +127,7 @@ export class View {
 		this._changed = true;
 	}
 
-	/** Sets the relative View area of a MicrioImage to render to, animates by default. Used in grids. */
+	/** Sets the relative View area of a MicrioImage to render to, animates by default. Used in grids. @internal */
 	_setArea(x0: number, y0: number, x1: number, y1: number): void {
 		this._centerX = (x0 + x1) / 2;
 		this._centerY = (y0 + y1) / 2;
@@ -130,6 +136,7 @@ export class View {
 		this.#dirty = true;
 	}
 
+	/** @internal */
 	_setLimit(lCenterX: number, lCenterY: number, lWidth: number, lHeight: number): void {
 		this._lCenterX = lCenterX;
 		this._lCenterY = lCenterY;
@@ -140,6 +147,7 @@ export class View {
 		this._limitChanged = true;
 	}
 
+	/** @internal */
 	_copy(v: View, excludeLimit: boolean = false): void {
 		this._centerX = v._centerX;
 		this._centerY = v._centerY;
@@ -164,6 +172,7 @@ export class View {
 		);
 	}
 
+	/** @internal */
 	_limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
 		const c = this.#canvas;
 		const mS = c._camera2d._minSize;
@@ -220,6 +229,7 @@ export class View {
 		this.#dirty = true;
 	}
 
+	/** @internal */
 	_correctAspectRatio(): void {
 		const c = this.#canvas;
 		if (c.is360) return;
@@ -248,12 +258,12 @@ export class Coordinates {
 		public direction: number = 0
 	) {}
 
-	/** Checks if the screen coordinate is potentially within the viewport bounds. */
+	/** Checks if the screen coordinate is potentially within the viewport bounds. @internal */
 	_inView(v: Viewport): boolean {
 		return this.w < -1 || (this.w < 3 && !(this.x < 0 || this.x > v.width || this.y < 0 || this.y > v.height));
 	}
 
-	/** Updates the shared Float64Array with the current coordinate values. */
+	/** Updates the shared Float64Array with the current coordinate values. @internal */
 	_toArray(): Float64Array {
 		this.arr[0] = this.x;
 		this.arr[1] = this.y;
@@ -274,13 +284,17 @@ export class Viewport {
 		public height: number = 0,
 		public left: number = 0,
 		public top: number = 0,
+		/** @internal */
 		public _areaWidth: number = 0,
+		/** @internal */
 		public _areaHeight: number = 0,
 		public ratio: number = 1,
 		public scale: number = 1,
+		/** @internal */
 		public _isPortrait: boolean = false
 	) {}
 
+	/** @internal */
 	get _aspect(): number { return this.width === 0 ? 1 : this.height === 0 ? 1 : this.width / this.height }
 
 	/**
@@ -300,7 +314,7 @@ export class Viewport {
 		return true;
 	}
 
-	/** Copies properties from another Viewport object. */
+	/** Copies properties from another Viewport object. @internal */
 	_copy(v: Viewport): void {
 		this.width = v.width;
 		this.height = v.height;

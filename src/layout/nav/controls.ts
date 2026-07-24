@@ -7,7 +7,7 @@ import { i18n } from '$core/i18n/strings';
 import { createElement } from '$utils/dom';
 import { languageNames } from '$core/i18n/locale';
 
-/** Props for the navigation controls element */
+/** Props for the navigation controls element @internal */
 export interface ControlsProps {
 	/** Whether the image has audio that can be muted/unmuted */
 	hasAudio?: boolean;
@@ -58,6 +58,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	#zoomGroup: any;
 	#fsGroup: any;
 
+	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
@@ -96,6 +97,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		this.#sync();
 	}
 
+	/** @internal */
 	_setProps(props: Partial<ControlsProps>) {
 		Object.assign(this.#props, props);
 	}

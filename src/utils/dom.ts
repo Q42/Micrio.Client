@@ -3,10 +3,10 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-/** SVG namespace URI. */
+/** SVG namespace URI. @internal */
 export const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** Options for creating DOM elements with properties, attributes, events, and children. */
+/** Options for creating DOM elements with properties, attributes, events, and children. @internal */
 export interface ElementOptions {
 	className?: string;
 	textContent?: string;
@@ -23,9 +23,11 @@ export interface ElementOptions {
 	ns?: string;
 }
 
-/** Creates an HTML element with the given tag and options, applying attributes, styles, events, and children. */
+/** Creates an HTML element with the given tag and options, applying attributes, styles, events, and children. @internal */
 export function createElement<K extends keyof HTMLElementTagNameMap>(tag: K, options?: ElementOptions): HTMLElementTagNameMap[K];
+/* @internal */
 export function createElement(tag: string, options?: ElementOptions): HTMLElement;
+/* @internal */
 export function createElement(tag: string, options: ElementOptions = {}): HTMLElement {
 	const el = options.ns
 		? document.createElementNS(options.ns, tag) as HTMLElement
@@ -60,9 +62,11 @@ export function createElement(tag: string, options: ElementOptions = {}): HTMLEl
 	return el;
 }
 
-/** Creates an SVG element with the given tag and options. */
+/** Creates an SVG element with the given tag and options. @internal */
 export function createSvgElement<K extends keyof SVGElementTagNameMap>(tag: K, options?: ElementOptions): SVGElementTagNameMap[K];
+/* @internal */
 export function createSvgElement(tag: string, options?: ElementOptions): SVGElement;
+/* @internal */
 export function createSvgElement(tag: string, options: ElementOptions = {}): SVGElement {
 	return createElement(tag, { ...options, ns: SVG_NS }) as unknown as SVGElement;
 }
@@ -74,7 +78,7 @@ export function createSvgElement(tag: string, options: ElementOptions = {}): SVG
  */
 export const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 
-/** Returns a Promise that resolves after the next browser paint (two animation frames). */
+/** Returns a Promise that resolves after the next browser paint (two animation frames). @internal */
 export const afterFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
 /** Set of script URLs already loaded or currently loading. @internal */
@@ -106,7 +110,7 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 	}
 }
 
-/** Dynamically loads an external script, ensuring it is loaded only once per session. */
+/** Dynamically loads an external script, ensuring it is loaded only once per session. @internal */
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) => new Promise<void>((ok, err) => {
 	if (targetObj || loaded.has(src)) return ok();
 	const script = document.createElement('script');

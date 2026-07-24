@@ -7,10 +7,10 @@
 import { createSvgElement, type ElementOptions } from '$utils/dom';
 import type { IconName } from '$types/icon-name';
 
-/** Tuple representing an SVG icon: [viewBox width, viewBox height, SVG path data]. */
+/** Tuple representing an SVG icon: [viewBox width, viewBox height, SVG path data]. @internal */
 export type MicrioIcon = [width: number, height: number, path: string];
 
-/** Create an SVG element from a MicrioIcon tuple. */
+/** Create an SVG element from a MicrioIcon tuple. @internal */
 export function svgIcon(icon: MicrioIcon, extra?: Partial<ElementOptions>): SVGSVGElement {
 	return createSvgElement('svg', {
 		...extra,
@@ -22,7 +22,7 @@ export function svgIcon(icon: MicrioIcon, extra?: Partial<ElementOptions>): SVGS
 	});
 }
 
-/** Map of icon names to their SVG icon definitions. */
+/** Map of icon names to their SVG icon definitions. @internal */
 export const icons = {
 	// original: arrowDown
 	down:              [384, 512, "M169.4 502.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L224 402.7 224 32c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 370.7-105.4-105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l160 160z"],
