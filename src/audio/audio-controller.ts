@@ -1,12 +1,15 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
+import type { MicrioImage } from '$core/image';
 import { writable, get } from '$core/store';
 import { Browser } from '$utils/browser';
 import { normalize3 } from '$utils/math';
+import { createElement } from '$utils/dom';
 
 // ── Module-level AudioContext state ──
 
-let mainGain: GainNode | undefined;
+/** @internal */
+export let mainGain: GainNode | undefined;
 /** @internal */
 let _ctx: AudioContext | null = null;
 let l: AudioListener | undefined;
@@ -83,6 +86,27 @@ class MicrioAudioController extends MicrioElement {
 
 	#playlist: AudioPlaylist | undefined;
 
+	/** Rebuilds `<micrio-audio-location>` children for the given image's positional audio markers. @internal */
+	#rebuildAudioLocations(img: MicrioImage | undefined): void {
+		for (const el of this.querySelectorAll('micrio-audio-location')) {
+			el.remove();
+		}
+		if (!_ctx || !img) return;
+		const info = img.$info;
+		if (!info) return;
+		const is360 = !!info.is360;
+		const data = img.$data;
+		const posMarkers = data?.markers?.filter((m: any) => !!m.positionalAudio);
+		if (!posMarkers?.length) return;
+
+		for (const marker of posMarkers) {
+			createElement('micrio-audio-location', {
+				setProps: { marker, ctx: _ctx, is360 },
+				parent: this
+			});
+		}
+	}
+
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
@@ -142,7 +166,13 @@ class MicrioAudioController extends MicrioElement {
 						moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5));
 					}));
 				}
+				this.#rebuildAudioLocations(micrio.$current);
 			}
+		}));
+
+		this._addCleanup(micrio.current.subscribe(currentImage => {
+			if (!currentImage || !_ctx) return;
+			this.#rebuildAudioLocations(currentImage);
 		}));
 
 		if (!_ctx) {

@@ -2,6 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { normalize3 } from '$utils/math';
+import { mainGain } from './audio-controller';
 
 /** Properties for configuring a positional audio element associated with a marker. @internal */
 export interface AudioLocationProps {
@@ -113,6 +114,7 @@ class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 
 		update();
 		this.#panner.connect(this.#gain);
+		this.#gain.connect(mainGain ?? ctx.destination);
 		start();
 
 		micrio.addEventListener('audio-update', update);

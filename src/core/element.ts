@@ -184,7 +184,8 @@ export class HTMLMicrioElement extends MicrioElement {
 				else this.open(newVal);
 			} break;
 			case 'muted':
-				this._isMuted.set(this.hasAttribute('muted'));
+				if (get(this._isMuted) !== this.hasAttribute('muted'))
+					this._isMuted.set(this.hasAttribute('muted'));
 				break;
 			case 'data-limited':
 				if(this._engine?._vertexBuffer && this.$current?.canvas)

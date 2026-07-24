@@ -88,6 +88,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		this._watchLater(tour, () => this.#sync());
 		this._watchLater(popup, () => this.#sync());
 		this._watchLater(_lang, () => this.#sync());
+		this._watchLater(micrio._isMuted, () => this.#sync());
 
 		const observer = new MutationObserver(() => this.#sync());
 		observer.observe(micrio, { attributes: true, attributeFilter: ['class'] });
@@ -140,27 +141,11 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const onlyFullscreen = this.#showFullscreen && !!$popup && isMobile;
 		const gridPanZoomCells = !!$current?.grid && $current?.$settings?.grid?.panZoom == 'cells';
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
-		const showGroup = zoomVisible || this.#showFullscreen;
+		const showGroup = showMute || zoomVisible || this.#showFullscreen;
 
 		if (($popup && isMobile) || !hasControls) {
 			this.#aside1.replaceChildren();
 			return;
-		}
-
-		// Mute button
-		if (showMute) {
-			if (!this.#muteBtn?.isConnected) {
-				this.#muteBtn?.remove();
-				this.#muteBtn = createElement('micrio-button');
-				this.#aside1.prepend(this.#muteBtn);
-			}
-			this.#muteBtn._setProps({
-				type: $isMuted ? 'muted' : 'unmuted',
-				title: $isMuted ? $i18n._audioUnmute : $i18n._audioMute,
-				onclick: this.#toggleMute
-			});
-		} else if (this.#muteBtn?.isConnected) {
-			this.#muteBtn.remove();
 		}
 
 		// Language menu
@@ -220,11 +205,26 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			this.#shareBtn.remove();
 		}
 
-		// Zoom + fullscreen button group
+		// Button group (mute, zoom, fullscreen)
 		if (showGroup) {
 			if (!this.#group1?.isConnected) {
 				this.#group1?.remove();
 				this.#group1 = createElement('micrio-button-group', { parent: this.#aside1 });
+			}
+			// Mute button (inserted first)
+			if (showMute) {
+				if (!this.#muteBtn?.isConnected) {
+					this.#muteBtn?.remove();
+					this.#muteBtn = createElement('micrio-button');
+					this.#group1.prepend(this.#muteBtn);
+				}
+				this.#muteBtn._setProps({
+					type: $isMuted ? 'muted' : 'unmuted',
+					title: $isMuted ? $i18n._audioUnmute : $i18n._audioMute,
+					onclick: this.#toggleMute
+				});
+			} else if (this.#muteBtn?.isConnected) {
+				this.#muteBtn.remove();
 			}
 			if (zoomVisible) {
 				if (!this.#zoomGroup?.isConnected) {
