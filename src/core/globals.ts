@@ -105,11 +105,6 @@ export const ATTRIBUTE_OPTIONS: {
 	STRINGS: {
 		'id': {r:true}, // Root property
 		'lang': {r:true}, // Root property
-		'data-thumb': {f: 'thumbSrc'}, // Field override
-		'data-title': {r:true},
-		'data-format': {r:true},
-		'data-extension': {r:true, f: 'tileExtension'},
-		'data-tiles': {r:true, f: 'tilesId'},
 		'data-path': {r:true},
 		'data-inittype': {f: 'initType'}, // Initial view type (cover, contain, view)
 		'data-start': {f: 'gallery.startId'}, // Starting image ID for gallery
@@ -118,37 +113,32 @@ export const ATTRIBUTE_OPTIONS: {
 	},
 
 	BOOLEANS: {
-		'data-static': {}, // Disable all interactions?
-		'muted': {f:'audio',n:true}, // Negated: `muted` attribute means `audio: false`? TODO: Verify this logic. Seems counter-intuitive. Should likely be `isMuted` state.
-		'data-png': {r:true,f:'isPng'}, // Image format hint
-		'data-webp': {r:true,f:'isWebP'}, // Image format hint
-		'data-dz': {r:true,f:'isDeepZoom'}, // DeepZoom format hint
-		'data-is360': {r:true}, // Is it a 360 image?
-		'data-no-externals': {f:'noExternals'}, // Disable loading external JS/CSS?
-		'data-skipmeta': {f:'skipMeta'}, // Skip loading metadata (info.json)?
-		'data-keeprendering': {f:'keepRendering'}, // Force continuous rendering loop?
-		'data-coverlimit': {f:'limitToCoverScale'}, // Limit zoom out to cover scale?
+		'data-static': {}, // Disable all interactions
+		'muted': {f:'audio',n:true}, // Negated: `muted` attribute means `audio: false`
+		'data-no-externals': {f:'noExternals'}, // Disable loading external JS/CSS
+		'data-skipmeta': {f:'skipMeta'}, // Skip loading metadata (markers, tours, etc)
+		'data-keeprendering': {f:'keepRendering'}, // Force continuous rendering loop
+		'data-coverlimit': {f:'limitToCoverScale'}, // Limit zoom out to cover scale
 		'data-events': {f:'hookEvents'}, // Enable/disable event hooks
 		'data-keys': {f:'hookKeys'}, // Enable/disable keyboard hooks
 		'data-zooming': {f:'noZoom',n:true}, // Disable zoom? (Negated)
-		'data-scroll-zoom': {f:'hookScroll'}, // Enable scroll zoom?
-		'data-pinch-zoom': {f:'hookPinch'}, // Enable pinch zoom?
-		'data-dragging': {f:'hookDrag'}, // Enable drag panning?
-		'data-two-finger-pan': {f:'twoFingerPan'}, // Enable two-finger panning?
-		'data-control-zoom': {f:'controlZoom'}, // Enable zoom via ctrl/cmd + scroll?
-		'data-ui': {f:'noUI', n: true}, // Disable UI? (Negated)
-		'data-controls': {f:'noControls', n: true}, // Disable main controls? (Negated)
-		'data-logo': {f:'noLogo', n: true}, // Disable Micrio logo? (Negated)
-		'data-logo-org': {f:'noOrgLogo', n: true}, // Disable organization logo? (Negated)
-		'data-toolbar': {f:'noToolbar', n: true}, // Disable top toolbar? (Negated)
-		'data-show-info': {f:'showInfo'}, // Show info panel on load?
-		'data-social': {}, // Enable social sharing buttons?
-		'data-fullscreen': {}, // Enable fullscreen button?
-		'data-minimap': {}, // Enable minimap?
-		'data-minimap-hide': {f:'alwaysShowMinimap',n:true}, // Always show minimap? (Negated)
-		'data-normalize-dpr': {f: 'zoomLimitDPRFix'}, // Apply DPR fix for zoom limit?
-		'data-freemove': {f: 'freeMove' }, // Enable free camera movement (e.g., beyond limits)?
-		'data-force-path': {f: 'forceInfoPath', r:true}, // Force using `data-path` for info.json
+		'data-scroll-zoom': {f:'hookScroll'}, // Enable scroll zoom
+		'data-pinch-zoom': {f:'hookPinch'}, // Enable pinch zoom
+		'data-dragging': {f:'hookDrag'}, // Enable drag panning
+		'data-two-finger-pan': {f:'twoFingerPan'}, // Enable two-finger panning
+		'data-control-zoom': {f:'controlZoom'}, // Enable zoom via ctrl/cmd + scroll
+		'data-ui': {f:'noUI', n: true}, // Disable UI (Negated)
+		'data-controls': {f:'noControls', n: true}, // Disable main controls element (Negated)
+		'data-logo': {f:'noLogo', n: true}, // Disable Micrio logo (Negated)
+		'data-logo-org': {f:'noOrgLogo', n: true}, // Disable organization logo (Negated)
+		'data-toolbar': {f:'noToolbar', n: true}, // Disable top toolbar (Negated)
+		'data-show-info': {f:'showInfo'}, // Show info panel if available
+		'data-social': {}, // Enable social sharing buttons
+		'data-fullscreen': {}, // Enable fullscreen button
+		'data-minimap': {}, // Enable minimap
+		'data-minimap-hide': {f:'alwaysShowMinimap',n:true}, // Always show minimap (Negated)
+		'data-normalize-dpr': {f: 'zoomLimitDPRFix'}, // High DPI screens can zoom in as far as 1:1 ones
+		'data-freemove': {f: 'freeMove' }, // Enable free camera movement (e.g., beyond limits)
 	},
 
 	NUMBERS: {
@@ -156,15 +146,11 @@ export const ATTRIBUTE_OPTIONS: {
 		'height': {r:true}, // Image height override
 		'width': {r:true}, // Image width override
 		'volume': {f:'startVolume'}, // Initial audio volume
-		'data-tilesize': {r:true,f:'tileSize'}, // Tile size override
 		'data-camspeed': {}, // Camera speed multiplier
 		'data-zoomlimit': {f:'zoomLimit'}, // Max zoom factor override
 		'data-minimap-height': {f:'minimapHeight'}, // Minimap height override
 		'data-minimap-width': {f:'minimapWidth'}, // Minimap width override
 		'data-mutedvolume': {f:'mutedVolume'}, // Volume when muted override
-		'data-width-cm': {f: 'cmWidth'}, // Physical width in cm
-		'data-height-cm': {f: 'cmHeight'}, // Physical height in cm
-		'data-gallery-cover-pages': {f: 'gallery.coverPages' }, // Number of cover pages in spreads gallery
 		'lazyload': {dN: 0}, // Lazy load threshold (percentage, default 0 = disabled)
 		'data-elasticity': {f: 'dragElasticity'}, // Drag elasticity factor
 		'data-skip-base-levels': {f: 'skipBaseLevels'}, // Number of base zoom levels to skip loading

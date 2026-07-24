@@ -85,9 +85,6 @@ export namespace ImageInfo {
 		/** Optional watermark image URI */
 		watermark?: string;
 
-		/** Force the `path` attribute to be used to get the info.json data */
-		forceInfoPath?: boolean;
-
 		/** The image title (default: autoloaded) */
 		title?: string;
 
