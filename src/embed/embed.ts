@@ -255,7 +255,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#videoEl = vid;
 
 		if (embed.id && this.#props.image) {
-			this.#props.image.setEmbedMediaElement(embed.id, vid);
+			this.#props.image._setEmbedMediaElement(embed.id, vid);
 		}
 
 		if (video.loop && video.loopAfter != null && video.loopAfter > 0) {
@@ -446,7 +446,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 
 		if (embed.video && embed.id && image) {
-			image.setEmbedMediaElement(embed.id);
+			image._setEmbedMediaElement(embed.id);
 		}
 
 		this.removeEventListener('change', this.#onChange);

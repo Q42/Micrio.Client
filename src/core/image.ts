@@ -313,7 +313,7 @@ export class MicrioImage {
 		for(let f=i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width,i.height); f *= 2, this._levels++) {}
 		let max = Math.max(i.width, i.height); do this.#dzLevels++; while((max/=2) > 1);
 		if(s?.gallery?.archive) this._levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
-		if(!this._noImage) this.thumbSrc = this.getTileSrc(this._levels, 0, 0);
+		if(!this._noImage) this.thumbSrc = this._getTileSrc(this._levels, 0, 0);
 
 		micrio.events.dispatch('pre-info', i);
 
@@ -364,7 +364,7 @@ export class MicrioImage {
 	 * @param frame Optional frame number for Omni objects.
 	 * @returns The calculated tile image source URL string, or undefined if info not loaded.
 	 */
-	getTileSrc(layer:number, x:number, y:number, frame?:number) : string|undefined {
+	_getTileSrc(layer:number, x:number, y:number, frame?:number) : string|undefined {
 		const i = this.#info;
 
 		// Adjust layer index for DeepZoom format
@@ -452,7 +452,7 @@ export class MicrioImage {
 	#embedElements:Map<string, HTMLMediaElement> = new Map();
 
 	/** Sets the HTMLMediaElement reference for a given embed ID. @internal */
-	setEmbedMediaElement(id:string, el?:HTMLMediaElement) : void {
+	_setEmbedMediaElement(id:string, el?:HTMLMediaElement) : void {
 		if(el) this.#embedElements.set(id, el);
 		else this.#embedElements.delete(id);
 	}
@@ -460,20 +460,6 @@ export class MicrioImage {
 	/** Gets the HTMLMediaElement associated with a video embed ID. */
 	getEmbedMediaElement(id:string) : HTMLMediaElement|undefined {
 		return this.#embedElements.get(id);
-	}
-
-	/** Fades in the image smoothly or instantly. */
-	fadeIn(direct:boolean=false) : void {
-		const c = this.canvas;
-		if (c) { c._targetOpacity = 1; if (direct) c._opacity = 1; }
-		this.#engine.render();
-	}
-
-	/** Fades out the image smoothly or instantly. */
-	fadeOut(direct:boolean=false) : void {
-		const c = this.canvas;
-		if (c) { c._targetOpacity = 0; if (direct) c._opacity = 0; }
-		this.#engine.render();
 	}
 
 }

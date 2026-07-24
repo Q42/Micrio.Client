@@ -244,7 +244,7 @@ export class Engine {
 			}
 			else {
 				tile.loadState = 1;
-				const src = img.getTileSrc(layer, x, y, frame);
+				const src = img._getTileSrc(layer, x, y, frame);
 				if (src) this._getTexture(i, src, animating, { noSmoothing });
 				else {
 					tile.loadState = 0;

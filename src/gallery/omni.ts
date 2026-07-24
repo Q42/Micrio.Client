@@ -82,7 +82,7 @@ export class OmniUI {
 				opts: { area: [0, 0, 1, 1] },
 				_placed: false,
 				_baseTileIdx: -1,
-				thumbSrc: image.getTileSrc(image._levels, 0, 0, j),
+				thumbSrc: image._getTileSrc(image._levels, 0, 0, j),
 			};
 			engine._addEmbed(frame, image, { opacity: 0, asImage: false });
 			frames.push(frame);
