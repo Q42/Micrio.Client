@@ -152,7 +152,7 @@ export default class Camera2D extends EngineCamera {
 
 		this._correctMinMax();
 
-		if (el.width && el.height && !this.canvas._ani.isStarted()) {
+		if (el.width && el.height && !this.canvas._ani._isStarted()) {
 			c.view._copy(c._ani._lastView, true);
 			if (!c.is360) {
 				const pLimit = c._ani._limit;
@@ -265,10 +265,10 @@ export default class Camera2D extends EngineCamera {
 			c.view.set(newCenterX, newCenterY, viewWidth, viewHeight);
 			c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, false);
 		} else if (!force && this._isOutsideLimit() && !isKinetic) {
-			if (c._ani.isStarted()) {
-				c._ani.updateTarget(newCenterX, newCenterY, v.width, v.height, true);
+			if (c._ani._isStarted()) {
+				c._ani._updateTarget(newCenterX, newCenterY, v.width, v.height, true);
 			} else {
-				c._ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: !noLimit });
+				c._ani._toView(newCenterX, newCenterY, viewWidth, viewHeight, 150, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: !noLimit });
 			}
 		} else {
 			c._ani.stop();
@@ -282,7 +282,7 @@ export default class Camera2D extends EngineCamera {
 				c.setView(newCenterX, newCenterY, viewWidth, viewHeight, noLimit, false, false, isKinetic);
 				c.view._changed = true;
 			} else {
-				c._ani.toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, easeInOut);
+				c._ani._toView(newCenterX, newCenterY, viewWidth, viewHeight, duration, easeInOut);
 			}
 		}
 	}
@@ -327,7 +327,7 @@ export default class Camera2D extends EngineCamera {
 		const targetHeight = v.height + factY;
 
 		c._ani._limit = limit;
-		duration = c._ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: limit });
+		duration = c._ani._toView(targetCenterX, targetCenterY, targetWidth, targetHeight, duration, easeInOut, { limitViewport: !noLimit && !this.#pinching, correct: limit });
 		c._ani._lastView._copy(c.view);
 		c._ani._limit = !noLimit;
 
@@ -373,7 +373,7 @@ export default class Camera2D extends EngineCamera {
 			? v._lCenterY
 			: Math.max(v.lY0 + halfH, Math.min(v._centerY, v.lY1 - halfH));
 
-		this.canvas._ani.toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
+		this.canvas._ani._toView(targetCenterX, targetCenterY, targetWidth, targetHeight, 150, easeInOut, { correct: true });
 	}
 
 	// ─── SetCoo hooks ──────────────────────────────────────────────

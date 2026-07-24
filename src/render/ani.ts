@@ -107,7 +107,7 @@ export default class Ani {
 	}
 
 	/** Checks if a view animation is currently running. */
-	isStarted(): boolean {
+	_isStarted(): boolean {
 		return this.#isRunning && this.#isView;
 	}
 
@@ -115,7 +115,7 @@ export default class Ani {
 	 * Starts or updates a "fly-to" animation to a target view rectangle.
 	 * @returns Calculated or provided animation duration in ms.
 	 */
-	toView(
+	_toView(
 		toCenterX: number, toCenterY: number, toWidth: number, toHeight: number,
 		dur: number, fn: Bicubic,
 		opts: {
@@ -130,7 +130,7 @@ export default class Ani {
 		const { speed = 0, perc = 0, isJump = false, limitViewport = false, omniIdx = -1, correct = false } = opts;
 
 		if (correct && this._correcting) {
-			this.updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
+			this._updateTarget(toCenterX, toCenterY, toWidth, toHeight, true);
 			return dur;
 		}
 
@@ -246,7 +246,7 @@ export default class Ani {
 	}
 
 	/** Updates the target view of a running animation. Used for corrections. */
-	updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting: boolean = false): void {
+	_updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting: boolean = false): void {
 		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 		if (limiting) this.#vTo._limit(true);
 	}
@@ -277,7 +277,7 @@ export default class Ani {
 	}
 
 	/** Sets the starting view for progress calculation in flyTo animations. */
-	setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio: boolean = false): void {
+	_setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio: boolean = false): void {
 		this.#vFrom.set(centerX, centerY, width, height, correctRatio);
 		this.#vTo.set(centerX, centerY, width, height, correctRatio);
 	}
@@ -286,7 +286,7 @@ export default class Ani {
 	 * Calculates and applies the animation step for the current frame.
 	 * @returns Current animation progress (0-1).
 	 */
-	step(): number {
+	_step(): number {
 		const p: number = this.#started === 0 ? 1 : Math.min(1, Math.max(0, (this.#canvas.main.now - this.#started) / this.#duration));
 		const pE = this.#fn.get(p);
 

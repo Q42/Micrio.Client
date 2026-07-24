@@ -366,7 +366,7 @@ export class Camera {
 			}
 			if (opts.prevView) {
 				const pCV = toCenterJSON(opts.prevView);
-				this.#canvas._ani.setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
+				this.#canvas._ani._setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
 			}
 			const omni = this.#image.$settings.omni;
 			if (omni?.frames) {

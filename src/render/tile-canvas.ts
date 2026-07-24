@@ -310,7 +310,7 @@ export class TileCanvas {
 			return;
 		}
 
-		let animating: boolean = this._ani.step() < 1
+		let animating: boolean = this._ani._step() < 1
 			|| this._kinetic.step() < 1 || !this.#isReady;
 
 		this._toDraw.length = 0;
@@ -367,7 +367,7 @@ export class TileCanvas {
 		const el = this.el;
 		const v = this.view;
 
-		const animating = this._ani.isStarted();
+		const animating = this._ani._isStarted();
 
 		gl.gl.viewport(this.el.left, m.el.height - el.height - el.top, el.width, el.height);
 
