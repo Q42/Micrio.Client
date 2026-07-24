@@ -20,7 +20,7 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 	#props: ProgressCircleProps = {};
 	#progressCircle!: SVGCircleElement;
 
-	onMount() {
+	_onMount() {
 		const svg = createSvgElement('svg', {
 			attrs: { width: SIZE, height: SIZE, viewBox: `0 0 ${SIZE} ${SIZE}` },
 		});
@@ -40,7 +40,7 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 		this.#update();
 	}
 
-	setProps(props: Partial<ProgressCircleProps>) {
+	_setProps(props: Partial<ProgressCircleProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) this.#update();
 	}

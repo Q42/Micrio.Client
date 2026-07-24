@@ -15,8 +15,8 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 	#props: Partial<DetailsProps> = {};
 	#detailsEl!: HTMLDetailsElement;
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		this.#detailsEl = createElement('details', {
@@ -26,7 +26,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 		this.#render();
 	}
 
-	setProps(props: Partial<DetailsProps>) {
+	_setProps(props: Partial<DetailsProps>) {
 		if (props.info !== undefined) this.#props.info = props.info;
 		if (props.data !== undefined) this.#props.data = props.data;
 		if (this.isConnected) this.#render();
@@ -35,7 +35,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 	#render() {
 		const info = this.#props.info;
 		const data = this.#props.data;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		const $_lang = micrio ? get(micrio._lang) : undefined;
 		const $current = micrio ? get(micrio.current) : undefined;
 		if (!info || !$_lang || !$current) return;

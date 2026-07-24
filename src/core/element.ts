@@ -203,8 +203,8 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * and kicks off initial loading.
 	 * @internal
 	*/
-	onMount() : void {
-		this.provide('micrio', this);
+	_onMount() : void {
+		this._provide('micrio', this);
 
 		this.canvas.place();
 		if(this.id && !this.#printed) this.#print();
@@ -214,7 +214,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				get() { return get(this.isMuted) },
 				set(b:boolean) { if(b) this.setAttribute('muted',''); else this.removeAttribute('muted'); }
 			});
-			this.watch(this.isMuted, b => {
+			this._watch(this.isMuted, b => {
 				/** @ts-ignore */
 				this['muted'] = b;
 				if(b) {
@@ -234,16 +234,16 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.toggleAttribute('data-zoomed', !!target?.camera && !target.camera.isZoomedOut());
 		};
 
-		this.watch(this.current, c => {
+		this._watch(this.current, c => {
 			this.#current = c;
 			updateZoomed();
 		});
 
-		this.watch(this.visible, () => updateZoomed());
+		this._watch(this.visible, () => updateZoomed());
 
 		const onZoom = () => updateZoomed();
 		this.addEventListener('zoom', onZoom);
-		this.addCleanup(() => this.removeEventListener('zoom', onZoom));
+		this._addCleanup(() => this.removeEventListener('zoom', onZoom));
 
 		let shown = false;
 		const unsub = this.loading.subscribe(v => {
@@ -251,7 +251,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			unsub();
 			this.setAttribute('data-loaded','');
 
-			this.watch(this.switching, s => {
+			this._watch(this.switching, s => {
 				if(s) this.setAttribute('data-switching','');
 				else {
 					if(!shown) tick().then(() => this.events.dispatch('show', this));
@@ -364,7 +364,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			if(bundle && bundle.info?.albumId) {
 				const galleryCtrl = await Gallery.fromAlbum(bundle.info.albumId, this.engine, {
 					startId: opts.id,
-					onProgress: (p:number) => this._ui?.setProps?.({loadingProgress: p})
+					onProgress: (p:number) => this._ui?._setProps?.({loadingProgress: p})
 				}).catch(() => null);
 				if(galleryCtrl) {
 					galleryCtrl.openOn(this);
@@ -409,7 +409,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			const el = createElement('micrio-main', { setProps: {noHTML, noLogo}, parent: this });
 			this._ui = el;
 		} else {
-			this._ui.setProps?.({noHTML, noLogo});
+			this._ui._setProps?.({noHTML, noLogo});
 		}
 	}
 
@@ -422,7 +422,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		const message = getErrorMessage(error ?? 'An unknown error has occurred');
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
 		if(!this._ui) this.#printUI(false, false);
-		this._ui?.setProps?.({ error: message });
+		this._ui?._setProps?.({ error: message });
 		this.loading.set(false);
 	}
 

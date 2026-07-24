@@ -20,8 +20,8 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 	#props: PopoverProps = { popover: null! };
 	#dialog!: HTMLDialogElement;
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		this.#dialog = createElement('dialog', {
@@ -43,14 +43,14 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		this.#render();
 	}
 
-	setProps(props: Partial<PopoverProps>) {
+	_setProps(props: Partial<PopoverProps>) {
 		if (props.popover !== undefined) this.#props.popover = props.popover;
 		if (this.isConnected) this.#render();
 	}
 
 	#render() {
 		const p = this.#props.popover;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !p) return;
 
 		const $_lang = get(micrio._lang);
@@ -59,7 +59,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		const pageId = 'contentPage' in p ? p.contentPage?.id : '';
 		const markerId = 'marker' in p ? p.marker?.id : '';
 		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${$_lang}`;
-		if (!this.checkRenderKey(key)) return;
+		if (!this._checkRenderKey(key)) return;
 
 		this.#dialog.replaceChildren();
 		this.#dialog.classList.remove('article', 'page', 'has-media', 'gallery');
@@ -169,7 +169,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		if (!this.#dialog.open) this.#dialog.showModal();
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		if (this.#dialog?.open) this.#dialog.close();
 	}
 }

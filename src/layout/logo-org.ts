@@ -22,13 +22,13 @@ class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 
 	#props: LogoOrgProps = { organisation: null! };
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		this.#render();
 	}
 
-	setProps(props: Partial<LogoOrgProps>) {
+	_setProps(props: Partial<LogoOrgProps>) {
 		if (props.organisation !== undefined) this.#props.organisation = props.organisation;
 		if (this.isConnected) this.#render();
 	}

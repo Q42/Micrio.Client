@@ -15,8 +15,8 @@ class MicrioEvents extends MicrioElement<EventsProps> {
 	/** Called externally from Media to check/send event triggers at currentTime */
 	update: ((time: number) => void) | undefined;
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const events = this.#props.events;
@@ -37,12 +37,12 @@ class MicrioEvents extends MicrioElement<EventsProps> {
 		};
 	}
 
-	setProps(props: Partial<EventsProps>) {
+	_setProps(props: Partial<EventsProps>) {
 		Object.assign(this.#props, props);
 	}
 
-	onDestroy() {
-		const micrio = this.getMicrio();
+	_onDestroy() {
+		const micrio = this._getMicrio();
 		if (micrio) {
 			const events = this.#props.events;
 			events.forEach(e => {

@@ -27,9 +27,9 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	#props: MenuProps = { menu: null!, originalId: null };
 	#action: (() => void) | undefined;
 
-	onMount() {
+	_onMount() {
 		const { menu } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		const { _lang } = micrio;
 
@@ -40,13 +40,13 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 		this.#evalAction();
 		this.#render();
 
-		this.watch(opened, () => this.classList.toggle('opened', this.#isOpen(this.#props.menu)));
-		this.watchWith<string>(_lang, lazy<string>(() => { this.#evalAction(); this.#render(); }));
+		this._watch(opened, () => this.classList.toggle('opened', this.#isOpen(this.#props.menu)));
+		this._watchWith<string>(_lang, lazy<string>(() => { this.#evalAction(); this.#render(); }));
 	}
 
 	#evalAction() {
 		const { menu, originalId } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		const { events, state: micrioState, _lang } = micrio;
 		const cultureData = this.#getCData(menu, get(_lang));
@@ -70,7 +70,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 		}
 	}
 
-	setProps(props: Partial<MenuProps>) {
+	_setProps(props: Partial<MenuProps>) {
 		Object.assign(this.#props, props);
 	}
 
@@ -87,7 +87,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 
 	#render() {
 		const { menu, originalId, onclose } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		const $_lang = get(micrio._lang);
 		const cultureData = this.#getCData(menu, $_lang);

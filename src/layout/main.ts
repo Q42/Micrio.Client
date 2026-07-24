@@ -108,29 +108,29 @@ class MicrioMain extends MicrioElement<MainProps> {
 		}
 	}
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const volume = writable<number>(get(micrio.isMuted) ? 0 : 1);
-		this.provide('volume', volume);
-		this.addCleanup(micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1)));
+		this._provide('volume', volume);
+		this._addCleanup(micrio.isMuted.subscribe(b => volume.set(b ? 0 : 1)));
 
-		this.provide('mediaPaused', writable<boolean>(false));
+		this._provide('mediaPaused', writable<boolean>(false));
 
 		const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
 		if (onlyMarkers) this.#props.noHTML = true;
 
 		const didStart: string[] = [];
 
-		this.addCleanup(micrio.current.subscribe(c => {
+		this._addCleanup(micrio.current.subscribe(c => {
 			if (!c) return;
 			this.#info = c.$info;
 			this.#settings = undefined;
 
 			this.#firstInited = true;
 			this.#settings = c.settings;
-			if (this.#settings) this.addCleanup(this.#settings.subscribe(() => this.#queueSync()));
+			if (this.#settings) this._addCleanup(this.#settings.subscribe(() => this.#queueSync()));
 			if (!this.#logoOrg && DataLoader.getOrganisation()?.logo) this.#logoOrg = DataLoader.getOrganisation();
 			this.#queueSync();
 
@@ -164,21 +164,21 @@ class MicrioMain extends MicrioElement<MainProps> {
 			this.#queueSync();
 		}));
 
-		this.addCleanup(micrio.state.tour.subscribe(() => {
+		this._addCleanup(micrio.state.tour.subscribe(() => {
 			const sub = this.#elements.get('subtitles') as MicrioElement;
-			if (sub) sub.setProps?.({ raised: !!get(micrio.state.tour) });
+			if (sub) sub._setProps?.({ raised: !!get(micrio.state.tour) });
 		}));
 
 		for (const store of [micrio.visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
 		micrio.state.tour, micrio.state.marker]) {
-			this.addCleanup(store.subscribe(() => this.#queueSync()));
+			this._addCleanup(store.subscribe(() => this.#queueSync()));
 		}
-		this.addCleanup(micrio._lang.subscribe(() => this.#queueSync()));
+		this._addCleanup(micrio._lang.subscribe(() => this.#queueSync()));
 
 		this.#queueSync();
 	}
 
-	setProps(props: Partial<MainProps>) {
+	_setProps(props: Partial<MainProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) this.#queueSync();
 	}
@@ -194,7 +194,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 	}
 
 	#sync() {
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const $tour = get(micrio.state.tour);
@@ -274,7 +274,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 
 		this.#show('minimap', showMinimap,
 			() => createElement('micrio-minimap', { setProps: { image: micrio.$current! } }) as MicrioElement,
-			(el) => (el as MicrioElement).setProps?.({ image: micrio.$current! })
+			(el) => (el as MicrioElement)._setProps?.({ image: micrio.$current! })
 		);
 
 		// Marker popup — only created when micrio.state.popup is set (after flyTo completes)
@@ -327,7 +327,7 @@ class MicrioMain extends MicrioElement<MainProps> {
 
 		if (loadingProgress < 1) {
 			const el = this.#elements.get('progress') as MicrioElement<ProgressCircleProps> | undefined;
-			if (el?.isConnected) el.setProps?.({ progress: loadingProgress });
+			if (el?.isConnected) el._setProps?.({ progress: loadingProgress });
 		}
 	}
 

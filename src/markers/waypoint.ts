@@ -29,12 +29,12 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	#click: (() => void) | undefined;
 	#focus: (() => void) | undefined;
 
-	onMount() {
+	_onMount() {
 		this.#setup();
 		this.#render();
 	}
 
-	setProps(props: Partial<WaypointProps>) {
+	_setProps(props: Partial<WaypointProps>) {
 		if (props.targetId !== undefined) this.#props.targetId = props.targetId;
 		if (props.image !== undefined) this.#props.image = props.image;
 		if (props.settings !== undefined) this.#props.settings = props.settings;
@@ -45,7 +45,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		const { targetId, image, settings } = this.#props;
 		if (!image || !targetId) return;
 
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const info = image.$info as Models.ImageInfo.ImageInfo;
@@ -111,7 +111,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 
 		onmove();
 
-		this.addCleanup(image.state.view.subscribe(onmove));
+		this._addCleanup(image.state.view.subscribe(onmove));
 		DataLoader.getData(targetId).then(d => { if (d) this.#targetImage = d; this.#render(); });
 
 		micrio.dispatchEvent(new CustomEvent('wp-print', { detail: this.#iface }));
@@ -125,7 +125,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		if (this.#hidden) { this.style.display = 'none'; return; }
 
 		const { settings } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		const $_lang = micrio ? get(micrio._lang) : 'en';
 		const $i18n = get(i18n);
 		const spaceData = micrio?.spaceData;
@@ -148,7 +148,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		});
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		clearTimeout(this.#fto);
 	}
 }

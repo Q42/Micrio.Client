@@ -78,8 +78,8 @@ class MicrioAudioController extends MicrioElement {
 
 	#playlist: AudioPlaylist | undefined;
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const { events } = micrio;
@@ -122,15 +122,15 @@ class MicrioAudioController extends MicrioElement {
 		audio.volume = Browser.iOS ? 0 : 0.0001;
 		document.body.appendChild(audio);
 
-		this.addCleanup(interacted.subscribe(b => {
+		this._addCleanup(interacted.subscribe(b => {
 			if (!b) return;
-			const volumeStore = this.inject<any>('volume');
+			const volumeStore = this._inject<any>('volume');
 			const vol = volumeStore ? get(volumeStore) : 1;
 			if (!_ctx) init(typeof vol === 'number' ? vol : 1);
 			if (_ctx) {
 				const data = image.$data;
 				if (data?.markers?.filter((m: any) => !!m.positionalAudio).length) {
-					this.addCleanup(image.state.view.subscribe(v => {
+					this._addCleanup(image.state.view.subscribe(v => {
 						if (!v) return;
 						const d = Math.max(0, 1.05 - image.camera.getScale());
 						moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5));
@@ -147,12 +147,12 @@ class MicrioAudioController extends MicrioElement {
 		// Render playlist if music data exists
 		const data = image.$data;
 		if (data?.music?.items.length) {
-			const vol = this.inject<any>('volume');
+			const vol = this._inject<any>('volume');
 			const volVal: number = vol ? get(vol) : 1;
 			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, (volVal as number) * (data.music.volume ?? 1));
 		}
 
-		this.addCleanup(micrio.isMuted.subscribe(muted => {
+		this._addCleanup(micrio.isMuted.subscribe(muted => {
 			if (mainGain) mainGain.gain.value = muted ? 0 : 1;
 		}));
 
@@ -167,7 +167,7 @@ class MicrioAudioController extends MicrioElement {
 
 	destroy: (() => void) | undefined;
 
-	onDestroy() {
+	_onDestroy() {
 		this.#playlist?.destroy();
 	}
 }

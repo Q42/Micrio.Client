@@ -20,12 +20,12 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		else el.requestFullscreen();
 	};
 
-	onMount() {
+	_onMount() {
 		if (!this.#props?.el) return;
 		this.#init();
 	}
 
-	setProps(props: Partial<FullscreenProps>) {
+	_setProps(props: Partial<FullscreenProps>) {
 		if (props.el !== undefined) {
 			this.#props.el = props.el;
 			if (this.isConnected && !this.#inited) this.#init();
@@ -40,7 +40,7 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 
 		this.#isActive = document.fullscreenElement === el;
 
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		const addScrollZoom = micrio && el == micrio && !micrio.events.scrollHooked;
 
 		const onchange = () => {
@@ -53,7 +53,7 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		};
 
 		document.addEventListener('fullscreenchange', onchange);
-		this.addCleanup(() => document.removeEventListener('fullscreenchange', onchange));
+		this._addCleanup(() => document.removeEventListener('fullscreenchange', onchange));
 
 		this.#renderButton();
 	}

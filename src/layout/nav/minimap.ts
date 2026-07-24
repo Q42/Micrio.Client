@@ -20,11 +20,11 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#mapRect: DOMRect | undefined;
 	#unsubView: (() => void) | undefined;
 
-	onMount() {
+	_onMount() {
 		this.#setup();
 	}
 
-	setProps(props: Partial<MinimapProps>) {
+	_setProps(props: Partial<MinimapProps>) {
 		if (props.image !== undefined && props.image !== this.#props.image) {
 			this.#props.image = props.image;
 			if (this.isConnected) {
@@ -38,7 +38,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 	#setup() {
 		const { image } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !image) return;
 
 		const info = image.$info;
@@ -166,7 +166,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		this.#unsubView?.();
 		this.#unsubView = image.state.view.subscribe(draw);
-		this.addCleanup(this.#unsubView);
+		this._addCleanup(this.#unsubView);
 	}
 
 }

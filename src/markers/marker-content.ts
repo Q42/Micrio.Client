@@ -22,14 +22,14 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		const { marker, noEmbed = false, noImages = false, noGallery = false, onclose } = this._props;
 		if (!marker) return;
 
-		const micrio = this.getMicrio();
-		const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;
+		const micrio = this._getMicrio();
+		const markerImages = MicrioElement._markerImages as Map<string, MicrioImage>;
 		const image = marker.id ? markerImages.get(marker.id) as MicrioImage : undefined;
 		if (!micrio || !image) return;
 
 		const $_lang = get(micrio._lang);
 		const key = `${marker.id}::${$_lang}::${noEmbed}::${noImages}::${noGallery}`;
-		if (!this.checkRenderKey(key)) return;
+		if (!this._checkRenderKey(key)) return;
 
 		const $tour = get(micrio.state.tour);
 		const isSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour;

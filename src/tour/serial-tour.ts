@@ -22,9 +22,9 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#duration = 0;
 	#noTimeScrub = false;
 
-	onMount() {
+	_onMount() {
 		const { tour } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !tour) return;
 
 		this.#stepInfo = (tour.stepInfo as Models.ImageData.MarkerTourStepInfo[]) || [];
@@ -32,13 +32,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#noTimeScrub = !!(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
 
 		micrio.setAttribute('data-tour-active', '');
-		this.addCleanup(() => micrio.removeAttribute('data-tour-active'));
+		this._addCleanup(() => micrio.removeAttribute('data-tour-active'));
 
 		const mt = tour;
 		mt.next = () => this.#nextStep();
 		mt.prev = () => { if (this.#currentStep > 0) this.#openStep(this.#currentStep - 1); };
 
-		this.addCleanup(micrio.state.marker.subscribe(m => {
+		this._addCleanup(micrio.state.marker.subscribe(m => {
 			if (!m || !this.#stepInfo.length) return;
 			const id = typeof m == 'string' ? m : m.id;
 			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
@@ -80,7 +80,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	}
 
 	async #openStep(idx: number) {
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const close = () => {
@@ -157,13 +157,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			this.#openStep(this.#currentStep + 1);
 		} else {
 			this.#props.onended?.();
-			this.getMicrio()?.state.tour.set(undefined);
+			this._getMicrio()?.state.tour.set(undefined);
 			this.remove();
 		}
 	}
 
 	#getTitle(m: Models.ImageData.Marker | undefined): string | undefined {
-		return m?.i18n?.[this.getMicrio()?.lang || 'en']?.title;
+		return m?.i18n?.[this._getMicrio()?.lang || 'en']?.title;
 	}
 
 	#injectBars() {
@@ -225,7 +225,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		chapters.forEach(li => li.classList.toggle('active', Number(li.dataset.idx) === this.#currentStep));
 	}
 
-	setProps(props: Partial<SerialTourProps>) {
+	_setProps(props: Partial<SerialTourProps>) {
 		if (props.tour !== undefined) this.#props.tour = props.tour;
 		if (props.onended !== undefined) this.#props.onended = props.onended;
 	}

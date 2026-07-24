@@ -6,7 +6,7 @@ const PROVIDES = Symbol('micrio-provides');
 
 export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	static tag: string;
-	static markerImages: Map<string, any> = new Map();
+	static _markerImages: Map<string, any> = new Map();
 
 	#_unsubs: (() => void)[] = [];
 	#_renderKey: string | null = null;
@@ -15,23 +15,23 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	protected _props: Record<string, any> = {};
 
 	connectedCallback(): void {
-		this.onMount?.();
+		this._onMount?.();
 		this._render?.();
 	}
 
 	disconnectedCallback(): void {
-		this.onDestroy?.();
+		this._onDestroy?.();
 		this.#cleanup();
 	}
 
-	onMount?(): void;
-	onDestroy?(): void;
+	_onMount?(): void;
+	_onDestroy?(): void;
 
 	/**
 	 * Override in subclasses to receive props.
 	 * The base implementation merges into `_props` and calls `_render()` when connected.
 	 */
-	setProps(props: Record<string, any>): void {
+	_setProps(props: Record<string, any>): void {
 		Object.assign(this._props, props);
 		if (this.isConnected) this._render();
 	}
@@ -43,18 +43,18 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	 * Register a cleanup function to be called automatically on disconnect.
 	 * Every component should use this instead of maintaining private cleanup arrays.
 	 */
-	protected addCleanup(fn: () => void): void {
+	protected _addCleanup(fn: () => void): void {
 		this.#_unsubs.push(fn);
 	}
 
 	/**
 	 * Call at the start of render(). If `key` matches the last render,
-	 * the render is skipped and `syncDisplay()` is called instead.
+	 * the render is skipped and `_syncDisplay()` is called instead.
 	 * Returns `true` if the render should proceed, `false` if skipped.
 	 */
-	protected checkRenderKey(key: string): boolean {
+	protected _checkRenderKey(key: string): boolean {
 		if (key === this.#_renderKey) {
-			this.syncDisplay?.();
+			this._syncDisplay?.();
 			return false;
 		}
 		this.#_renderKey = key;
@@ -66,41 +66,41 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	 * Use for lightweight CSS-only updates (toggling classes, CSS vars)
 	 * that should still apply even when the DOM structure doesn't change.
 	 */
-	protected syncDisplay?(): void;
+	protected _syncDisplay?(): void;
 
 	// ─── Store helpers ────────────────────────────────────────────
 
-	protected watch<T>(store: Readable<T>, fn: (value: T) => void, opts?: { skipFirst?: boolean; defer?: boolean }): void {
+	protected _watch<T>(store: Readable<T>, fn: (value: T) => void, opts?: { skipFirst?: boolean; defer?: boolean }): void {
 		let sub: Subscriber<T> = fn;
 		if (opts?.skipFirst) sub = skipFirst(fn);
 		if (opts?.defer) sub = defer(fn);
-		this.addCleanup(store.subscribe(sub));
+		this._addCleanup(store.subscribe(sub));
 	}
 
 	/** Subscribe but skip the very first emission (useful when onMount already sets initial state) */
-	protected watchLater<T>(store: Readable<T>, fn: (value: T) => void): void {
-		this.watch(store, fn, { skipFirst: true });
+	protected _watchLater<T>(store: Readable<T>, fn: (value: T) => void): void {
+		this._watch(store, fn, { skipFirst: true });
 	}
 
 	/** Subscribe with microtask-level coalescing, skipping the initial emission */
-	protected watchLazy<T>(store: Readable<T>, fn: (value: T) => void): void {
-		this.watch(store, fn, { skipFirst: true, defer: true });
+	protected _watchLazy<T>(store: Readable<T>, fn: (value: T) => void): void {
+		this._watch(store, fn, { skipFirst: true, defer: true });
 	}
 
 	/** Subscribe with a pre-built subscriber wrapper (for use with defer, skipFirst, etc.) */
-	protected watchWith<T>(store: Readable<T>, fn: Subscriber<T>): void {
-		this.addCleanup(store.subscribe(fn));
+	protected _watchWith<T>(store: Readable<T>, fn: Subscriber<T>): void {
+		this._addCleanup(store.subscribe(fn));
 	}
 
 	// ─── Context (provide / inject) ───────────────────────────────
 
-	protected provide(key: string, value: any): void {
+	protected _provide(key: string, value: any): void {
 		let map: Map<string, any> | undefined = (this as any)[PROVIDES];
 		if (!map) (this as any)[PROVIDES] = map = new Map();
 		map.set(key, value);
 	}
 
-	protected inject<T>(key: string): T | undefined {
+	protected _inject<T>(key: string): T | undefined {
 		let el: HTMLElement | null = this;
 		while (el) {
 			const map: Map<string, any> | undefined = (el as any)[PROVIDES];
@@ -110,8 +110,8 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		return undefined;
 	}
 
-	protected getMicrio(): HTMLMicrioElement | undefined {
-		return this.inject<any>('micrio');
+	protected _getMicrio(): HTMLMicrioElement | undefined {
+		return this._inject<any>('micrio');
 	}
 
 	#cleanup(): void {

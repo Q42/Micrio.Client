@@ -89,7 +89,7 @@ export class OmniUI {
 			await archive.load(
 				bundle.info.tileBasePath || bundle.info.path,
 				(bundle.info.tilesId ?? bundle.info.id) + '/base',
-				(p:number) => micrio._ui?.setProps?.({loadingProgress: p})
+				(p:number) => micrio._ui?._setProps?.({loadingProgress: p})
 			).catch(() => {});
 		}
 
@@ -124,7 +124,7 @@ export class OmniUI {
 			while (idx < 0) idx += pagesPerLayer;
 			idx %= pagesPerLayer;
 			image.canvas?._setActiveImage(idx, 0);
-			dial.setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 });
+			dial._setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 });
 			preload(idx);
 			engine.render();
 		};
@@ -135,7 +135,7 @@ export class OmniUI {
 
 		this.#cleanups.push(
 			image.state.layer.subscribe((idx: number) => {
-				dial.setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 });
+				dial._setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 });
 			})
 		);
 

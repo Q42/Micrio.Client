@@ -30,12 +30,12 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 	#omniIndex = 0;
 	#omniArc: [number, number] | undefined;
 
-	onMount() {
+	_onMount() {
 		const { marker, image, forceHidden = false } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !image || !marker) return;
 
-		const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;
+		const markerImages = MicrioElement._markerImages as Map<string, MicrioImage>;
 		if (!markerImages.has(marker.id) && image) markerImages.set(marker.id, image);
 
 		const events = micrio.events;
@@ -196,7 +196,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			micrio.state.popup.set(undefined);
 		};
 
-		this.addCleanup(image.state.marker.subscribe(m => {
+		this._addCleanup(image.state.marker.subscribe(m => {
 			if (typeof m == 'string' && m == marker.id) image.state.marker.set(marker);
 			else if (m == marker) activated();
 			else if (m && m != marker) {
@@ -213,7 +213,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		}));
 
 		if (!marker.noMarker) {
-			this.addCleanup(image.state.view.subscribe(() => {
+			this._addCleanup(image.state.view.subscribe(() => {
 				moved();
 			}));
 		}
@@ -287,11 +287,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		if (marker.tags) marker.tags.forEach(c => this.classList.add(c));
 	}
 
-	setProps(props: Partial<MarkerProps>) {
+	_setProps(props: Partial<MarkerProps>) {
 		Object.assign(this.#props, props);
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		clearTimeout(this.#fto);
 	}
 }

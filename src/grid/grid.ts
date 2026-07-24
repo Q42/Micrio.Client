@@ -62,7 +62,7 @@ export class Grid extends MicrioElement {
 
 	#inited = false;
 
-	onMount() {
+	_onMount() {
 		if (this.#inited) return;
 		this.#inited = true;
 		const props = this._props as { micrio: HTMLMicrioElement; image: MicrioImage; gallery: Gallery };
@@ -89,8 +89,8 @@ export class Grid extends MicrioElement {
 		this.#closeBtn = createElement('micrio-button', {
 			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
 		});
-		this.addCleanup(() => this.#closeBtn.remove());
-		this.addCleanup(this.focussed.subscribe(v => {
+		this._addCleanup(() => this.#closeBtn.remove());
+		this._addCleanup(this.focussed.subscribe(v => {
 			if (v) this.appendChild(this.#closeBtn);
 			else this.#closeBtn.remove();
 		}));

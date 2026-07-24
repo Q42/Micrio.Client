@@ -11,12 +11,12 @@ class MicrioIconElement extends MicrioElement {
 	#name: IconName = 'close';
 	#customHTML: string | undefined;
 
-	onMount() {
+	_onMount() {
 		this.#readCustomHTML();
 		this.#render();
 	}
 
-	setProps(props: Record<string, any>): void {
+	_setProps(props: Record<string, any>): void {
 		if (props.name) this.#name = props.name as IconName;
 		if (this.isConnected) {
 			this.#readCustomHTML();
@@ -25,7 +25,7 @@ class MicrioIconElement extends MicrioElement {
 	}
 
 	#readCustomHTML() {
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		this.#customHTML = micrio?.$current?.$settings?.ui?.icons?.[this.#name];
 	}
 

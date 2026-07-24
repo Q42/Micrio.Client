@@ -25,9 +25,9 @@ class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 		this.#gain.disconnect();
 	}
 
-	onMount() {
+	_onMount() {
 		const { marker, ctx, is360 } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !marker || !ctx) return;
 
 		const image = micrio.$current as MicrioImage;
@@ -109,14 +109,14 @@ class MicrioAudioLocation extends MicrioElement<AudioLocationProps> {
 		start();
 
 		micrio.addEventListener('audio-update', update);
-		this.addCleanup(() => micrio.removeEventListener('audio-update', update));
+		this._addCleanup(() => micrio.removeEventListener('audio-update', update));
 	}
 
-	setProps(props: Partial<AudioLocationProps>) {
+	_setProps(props: Partial<AudioLocationProps>) {
 		Object.assign(this.#props, props);
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		this.#end();
 	}
 }

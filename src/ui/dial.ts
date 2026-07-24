@@ -13,8 +13,8 @@ class MicrioDial extends MicrioElement<DialProps> {
 
 	#props: DialProps = { currentRotation: 0, frames: 1 };
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		const camera = micrio.$current?.camera;
 		if (!camera) return;
@@ -50,7 +50,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 		this.addEventListener('pointerdown', dStart);
 	}
 
-	setProps(props: Partial<DialProps>) {
+	_setProps(props: Partial<DialProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) {
 			const offset = -this.#props.currentRotation / 360 * (this.offsetWidth ?? 0);

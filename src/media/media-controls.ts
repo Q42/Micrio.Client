@@ -43,12 +43,12 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	#prevProgress = -1;
 	#prevTime = '';
 
-	onMount() {
+	_onMount() {
 		this.#build();
-		this.addCleanup(captionsEnabled.subscribe(() => this.#sync()));
+		this._addCleanup(captionsEnabled.subscribe(() => this.#sync()));
 	}
 
-	setProps(props: Partial<MediaControlsProps>) {
+	_setProps(props: Partial<MediaControlsProps>) {
 		Object.assign(this.#props, props);
 		if (this.isConnected) { this.#build(); if (this.#built) this.#sync(); }
 	}
@@ -141,7 +141,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 		if (p.paused !== this.#prevPaused || p.seeking !== this.#prevSeeking || this.#prevPaused === undefined) {
 			this.#prevPaused = p.paused;
 			this.#prevSeeking = !!p.seeking;
-			this.#playBtn.setProps({
+			this.#playBtn._setProps({
 				type: !p.paused ? 'pause' : 'play',
 				title: !p.paused ? $i18n._pause : $i18n._play,
 				disabled: !!p.seeking,
@@ -151,7 +151,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 		if (this.#muteBtnEl && p.muted !== this.#prevMuted) {
 			this.#prevMuted = !!p.muted;
-			this.#muteBtnEl.setProps({
+			this.#muteBtnEl._setProps({
 				type: p.muted ? 'muted' : 'unmuted',
 				title: p.muted ? $i18n._audioUnmute : $i18n._audioMute,
 				disabled: p.seeking,
@@ -160,7 +160,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 		}
 
 		if (this.#subBtnEl) {
-			this.#subBtnEl.setProps({
+			this.#subBtnEl._setProps({
 				type: $captionsEnabled ? 'subtitles' : 'subtitlesOff',
 				active: $captionsEnabled,
 				title: $i18n._subtitlesToggle,
@@ -168,7 +168,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		if (this.#fsBtnEl) this.#fsBtnEl.setProps({ el: p.fullscreenEl });
+		if (this.#fsBtnEl) this.#fsBtnEl._setProps({ el: p.fullscreenEl });
 
 		if (p.duration && !isNaN(p.duration)) {
 			const progress = ((p.currentTime ?? 0) / p.duration) * 100;

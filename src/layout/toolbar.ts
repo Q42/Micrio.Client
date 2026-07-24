@@ -20,8 +20,8 @@ class MicrioToolbar extends MicrioElement {
 		this.#render();
 	};
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const { _lang } = micrio;
@@ -35,27 +35,27 @@ class MicrioToolbar extends MicrioElement {
 
 		this.#render();
 
-		this.addCleanup(micrio.current.subscribe(c => {
+		this._addCleanup(micrio.current.subscribe(c => {
 			if (!c) return;
-			this.addCleanup(c.data.subscribe(d => {
+			this._addCleanup(c.data.subscribe(d => {
 				this.#data = d;
 				this.#render();
 			}));
-			this.addCleanup(c.settings.subscribe(() => this.syncDisplay?.()));
+			this._addCleanup(c.settings.subscribe(() => this._syncDisplay?.()));
 		}));
 
-		this.addCleanup(micrio.state.tour.subscribe(() => this.#render()));
-		this.addCleanup(micrio.state.marker.subscribe(() => this.#render()));
-		this.addCleanup(micrio.state.popover.subscribe(() => this.#render()));
-		this.addCleanup(_lang.subscribe(() => this.#render()));
+		this._addCleanup(micrio.state.tour.subscribe(() => this.#render()));
+		this._addCleanup(micrio.state.marker.subscribe(() => this.#render()));
+		this._addCleanup(micrio.state.popover.subscribe(() => this.#render()));
+		this._addCleanup(_lang.subscribe(() => this.#render()));
 
 		window.addEventListener('resize', resize);
-		this.addCleanup(() => window.removeEventListener('resize', resize));
+		this._addCleanup(() => window.removeEventListener('resize', resize));
 	}
 
 	#render() {
 		if (!this.#data) return;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		const { _lang, spaceData, state: micrioState } = micrio;
 		const $_lang = get(_lang);
@@ -82,7 +82,7 @@ class MicrioToolbar extends MicrioElement {
 		const pageIds = (mainPages || []).map((p: any) => p.id).join(',');
 		const tourIds = markerTours.map((t: any) => t.id).join(',') + '|' + videoTours.map((t: any) => t.id).join(',');
 		const key = [pageIds, tourIds, hidden, $_lang, this.#isMobile, this.#shown].join('::');
-		if (!this.checkRenderKey(key)) return;
+		if (!this._checkRenderKey(key)) return;
 
 		if (empty || hidden) { this.replaceChildren(); return; }
 
@@ -151,7 +151,7 @@ class MicrioToolbar extends MicrioElement {
 		}
 
 		this.appendChild(menu);
-		this.syncDisplay?.();
+		this._syncDisplay?.();
 
 		if (this.#isMobile) {
 			createElement('micrio-button', {
@@ -166,10 +166,10 @@ class MicrioToolbar extends MicrioElement {
 		}
 	}
 
-	protected syncDisplay() {
+	protected _syncDisplay() {
 		const menuEl = this.querySelector('menu');
 		if (menuEl) {
-			const micrio = this.getMicrio();
+			const micrio = this._getMicrio();
 			const indent = !(micrio?.$current?.$settings?.noLogo ?? false);
 			menuEl.classList.toggle('indent', indent);
 		}

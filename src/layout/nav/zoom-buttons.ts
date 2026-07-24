@@ -9,8 +9,8 @@ class MicrioZoomButtons extends MicrioElement {
 	#btnIn!: MicrioElement;
 	#btnOut!: MicrioElement;
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const resolveTarget = () => {
@@ -19,25 +19,25 @@ class MicrioZoomButtons extends MicrioElement {
 		};
 
 		this.#btnIn = createElement('micrio-button', {parent: this}) as MicrioElement;
-		this.#btnIn.setProps({ type: 'zoomIn', onclick: () => resolveTarget()?.camera.zoomIn() });
+		this.#btnIn._setProps({ type: 'zoomIn', onclick: () => resolveTarget()?.camera.zoomIn() });
 
 		this.#btnOut = createElement('micrio-button', {parent: this}) as MicrioElement;
-		this.#btnOut.setProps({ type: 'zoomOut', onclick: () => resolveTarget()?.camera.zoomOut()});
+		this.#btnOut._setProps({ type: 'zoomOut', onclick: () => resolveTarget()?.camera.zoomOut()});
 
 		const update = () => {
 			const img = resolveTarget();
 			const $i18n = get(i18n);
 
-			this.#btnIn.setProps({ title: $i18n._zoomIn, disabled: img?.camera.isZoomedIn() ?? true });
-			this.#btnOut.setProps({ title: $i18n._zoomOut, disabled: img?.camera.isZoomedOut() });
+			this.#btnIn._setProps({ title: $i18n._zoomIn, disabled: img?.camera.isZoomedIn() ?? true });
+			this.#btnOut._setProps({ title: $i18n._zoomOut, disabled: img?.camera.isZoomedOut() });
 		};
 
-		this.addCleanup(micrio.current.subscribe(() => update()));
-		this.addCleanup(micrio.visible.subscribe(() => update()));
+		this._addCleanup(micrio.current.subscribe(() => update()));
+		this._addCleanup(micrio.visible.subscribe(() => update()));
 
 		const onZoom = () => update();
 		micrio.addEventListener('zoom', onZoom);
-		this.addCleanup(() => micrio.removeEventListener('zoom', onZoom));
+		this._addCleanup(() => micrio.removeEventListener('zoom', onZoom));
 
 		update();
 	}

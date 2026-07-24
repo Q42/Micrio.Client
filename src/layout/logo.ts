@@ -9,8 +9,8 @@ class MicrioLogo extends MicrioElement {
 	#loadingTimer: any;
 	#loading = false;
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const target = !/micr\.io/.test(location.origin) || self.parent != self ? '_blank' : undefined;
@@ -22,7 +22,7 @@ class MicrioLogo extends MicrioElement {
 		});
 		if (target) this.#a.target = target;
 
-		this.addCleanup(micrio.loading.subscribe(l => {
+		this._addCleanup(micrio.loading.subscribe(l => {
 			clearTimeout(this.#loadingTimer);
 			if (!l) {
 				this.#loading = false;
@@ -35,10 +35,10 @@ class MicrioLogo extends MicrioElement {
 			}
 		}));
 
-		this.addCleanup(() => clearTimeout(this.#loadingTimer));
+		this._addCleanup(() => clearTimeout(this.#loadingTimer));
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		clearTimeout(this.#loadingTimer);
 	}
 

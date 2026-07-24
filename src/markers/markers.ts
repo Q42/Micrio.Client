@@ -16,9 +16,9 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 	#props: MarkersProps = { image: null! };
 
-	onMount() {
+	_onMount() {
 		const { image } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !image) return;
 
 		const { switching, state: micrioState } = micrio;
@@ -26,7 +26,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		const focussed = grid?.focussed;
 		const gridMarkersShown = grid?.markersShown;
 
-		this.addCleanup(image.viewport.subscribe((v: Models.Camera.View) => {
+		this._addCleanup(image.viewport.subscribe((v: Models.Camera.View) => {
 			if (!v || v.length < 4) return;
 			v = v.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
 			const size = micrio.canvas.viewport;
@@ -164,20 +164,20 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			if (image.$settings.clusterMarkers) updateOverlapped();
 		};
 
-		this.watchLater(image.data, rebuild);
-		this.watchLater(switching, rebuild);
-		if (micrioState.tour) this.watchLater(micrioState.tour, rebuild);
-		if (focussed) this.watchLater(focussed, rebuild);
-		if (gridMarkersShown) this.watchLater(gridMarkersShown, rebuild);
-		this.watchLazy(micrio._lang, rebuild);
+		this._watchLater(image.data, rebuild);
+		this._watchLater(switching, rebuild);
+		if (micrioState.tour) this._watchLater(micrioState.tour, rebuild);
+		if (focussed) this._watchLater(focussed, rebuild);
+		if (gridMarkersShown) this._watchLater(gridMarkersShown, rebuild);
+		this._watchLazy(micrio._lang, rebuild);
 
 		if (image.$settings.clusterMarkers) {
-			this.addCleanup(image.state.view.subscribe(updateOverlapped));
+			this._addCleanup(image.state.view.subscribe(updateOverlapped));
 		}
 
 		if (!image.grid && image.$settings._markers?.zoomOutAfterClose) {
 			let wasVideoTour = false;
-			this.addCleanup(image.state.marker.subscribe(m => {
+			this._addCleanup(image.state.marker.subscribe(m => {
 				if (m && typeof m != 'string' && !image.openedView && !m.noMarker && m.view) {
 			image.openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
 				: structuredClone(image.state.$view ?? image.camera?.getView());
@@ -205,12 +205,10 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		rebuild();
 	}
 
-	setProps(props: Partial<MarkersProps>) {
+	_setProps(props: Partial<MarkersProps>) {
 		if (props.image !== undefined) this.#props.image = props.image;
 	}
 
-	onDestroy() {
-	}
 }
 
 customElements.define(MicrioMarkers.tag, MicrioMarkers);

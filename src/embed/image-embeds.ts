@@ -14,10 +14,10 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 
 	#props: ImageEmbedsProps = { image: null! };
 
-	onMount() {
+	_onMount() {
 		const { image } = this.#props;
 
-		this.watch(image.data, d => {
+		this._watch(image.data, d => {
 			this.replaceChildren();
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
@@ -27,7 +27,7 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 		});
 	}
 
-	setProps(props: Partial<ImageEmbedsProps>) {
+	_setProps(props: Partial<ImageEmbedsProps>) {
 		if (props.image !== undefined) this.#props.image = props.image;
 	}
 }

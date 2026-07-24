@@ -22,9 +22,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 	#currentStep = 0;
 	aside: HTMLElement | undefined;
 
-	onMount() {
+	_onMount() {
 		const { tour } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !tour) return;
 
 		const isVideoTour = !('steps' in tour);
@@ -145,7 +145,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				}
 			};
 
-			this.addCleanup(micrio.state.marker.subscribe(m => {
+			this._addCleanup(micrio.state.marker.subscribe(m => {
 				if (!m) return;
 				const id = typeof m == 'string' ? m : m.id;
 				const idx = mt.steps.findIndex(s => s.startsWith(id));
@@ -160,7 +160,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			renderControls();
 		}
 
-		this.addCleanup(micrio.state.tour.subscribe(t => {
+		this._addCleanup(micrio.state.tour.subscribe(t => {
 			if (!t && isMarkerTour) {
 				const mt = tour as Models.ImageData.MarkerTour;
 				const si = (mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined)?.[this.#currentStep];
@@ -172,7 +172,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 		}));
 	}
 
-	setProps(props: Partial<TourProps>) {
+	_setProps(props: Partial<TourProps>) {
 		Object.assign(this.#props, props);
 	}
 

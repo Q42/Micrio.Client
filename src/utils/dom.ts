@@ -51,7 +51,7 @@ export function createElement(tag: string, options: ElementOptions = {}): HTMLEl
 		if (typeof child === 'string' || typeof child === 'number') el.append(String(child));
 		else el.append(child);
 	}
-	if (options.setProps) (el as any).setProps?.(options.setProps);
+	if (options.setProps) (el as any)._setProps?.(options.setProps);
 	if (options.parent) options.parent.appendChild(el);
 
 	return el;

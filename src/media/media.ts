@@ -235,10 +235,10 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					this.#paused = this.#tourInstance!.paused;
 					this.#ended = this.#tourInstance!.ended;
 					this.#updateControls();
-					if (!p.secondary) this.getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 					if (this.#ended) p.onended?.();
 				}, 250);
-				this.addCleanup(() => clearInterval(ival));
+				this._addCleanup(() => clearInterval(ival));
 				if (p.autoplay) this.#tourInstance.play();
 			} else {
 				const start = () => this.#tourInstance?.play();
@@ -251,7 +251,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 		// Create subtitles element as a child (auto-destroyed when media is removed)
 		if (!p.secondary && p.tour && !('steps' in p.tour)) {
-			const micrio = this.getMicrio();
+			const micrio = this._getMicrio();
 			const lang = micrio?.lang || 'en';
 			const sub = p.tour.i18n?.[lang]?.subtitle;
 			if (sub?.src) {
@@ -264,7 +264,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 		// Controls
 		if (p.controls !== false) {
-			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this.getMicrio()?.lang || 'en')]?.subtitle);
+			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
 
 			const onplaypause = () => {
 				const el = this.#videoEl;
@@ -321,7 +321,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					// YouTube tick updates #currentTime already; Vimeo uses callbacks
 					return;
 				} else return;
-				ctrlEl.setProps({
+				ctrlEl._setProps({
 					currentTime: this.#currentTime,
 					duration: this.#duration,
 					paused: this.#paused,
@@ -354,7 +354,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			if (this.#videoEl && (this.#videoEl instanceof HTMLVideoElement || this.#videoEl instanceof HTMLAudioElement)) {
 				this.#videoEl.addEventListener('timeupdate', () => {
 					update();
-					if (!p.secondary) this.getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 				});
 				this.#videoEl.addEventListener('loadedmetadata', update);
 				this.#videoEl.addEventListener('play', update);
@@ -372,9 +372,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	}
 
 	#wireEvents(el: HTMLVideoElement | HTMLAudioElement) {
-		const volumeStore = this.inject<any>('volume');
+		const volumeStore = this._inject<any>('volume');
 		if (volumeStore) {
-			this.addCleanup(volumeStore.subscribe((v: number) => { el.volume = v; }));
+			this._addCleanup(volumeStore.subscribe((v: number) => { el.volume = v; }));
 		}
 	}
 
@@ -398,7 +398,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	#updateControls() {
 		const controlsEl = this.querySelector('micrio-media-controls') as MicrioElement;
 		if (controlsEl) {
-			controlsEl.setProps({
+			controlsEl._setProps({
 				currentTime: this.#currentTime,
 				duration: this.#duration,
 				paused: this.#paused,
@@ -409,7 +409,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		this.#tourInstance?.destroy();
 		this.#adapter?.destroy();
 		this.#stopAdapterTick();

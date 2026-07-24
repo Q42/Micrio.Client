@@ -25,7 +25,7 @@ class MicrioButton extends MicrioElement<ButtonProps> {
 	#rootEl!: HTMLElement;
 	#prevType?: string;
 
-	protected syncDisplay() {
+	protected _syncDisplay() {
 		const p = this._props;
 		if (p.type !== this.#prevType) {
 			if (this.#prevType) this.classList.remove(this.#prevType);
@@ -37,7 +37,7 @@ class MicrioButton extends MicrioElement<ButtonProps> {
 	protected _render() {
 		const p = this._props;
 		const key = `${p.type}|${(p.icon?.src ?? '')}|${p.title ?? ''}|${p.disabled ?? ''}|${p.active ?? ''}|${p.className ?? ''}|${p.href ?? ''}|${p.blankTarget ?? ''}|${p.noClick ?? ''}`;
-		if (!this.checkRenderKey(key)) return;
+		if (!this._checkRenderKey(key)) return;
 
 		const isAnchor = !!p.href;
 		const tag = isAnchor ? 'a' : 'button';

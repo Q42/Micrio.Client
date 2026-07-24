@@ -23,13 +23,13 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	#lastCultures = '';
 
 	#toggleMute = () => {
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		micrio.isMuted.set(!get(micrio.isMuted));
 	};
 
 	#share = () => {
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !navigator.share) return;
 		if (micrio.$current?.$info) {
 			const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
@@ -42,7 +42,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	};
 
 	#setLang = (l: string) => {
-		this.getMicrio()!.lang = l;
+		this._getMicrio()!.lang = l;
 	};
 
 	#aside1!: HTMLElement;
@@ -54,8 +54,8 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	#zoomGroup: any;
 	#fsGroup: any;
 
-	onMount() {
-		const micrio = this.getMicrio();
+	_onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const { state: micrioState, _lang } = micrio;
@@ -72,7 +72,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 
 		let settingsUnsub: Unsubscriber | undefined;
 
-		this.addCleanup(micrio.current.subscribe(c => {
+		this._addCleanup(micrio.current.subscribe(c => {
 			if (c) {
 				if (get(tour) && 'steps' in get(tour)!) return;
 				settingsUnsub?.();
@@ -80,19 +80,19 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			}
 		}));
 
-		this.watchLater(tour, () => this.#sync());
-		this.watchLater(popup, () => this.#sync());
-		this.watchLater(_lang, () => this.#sync());
+		this._watchLater(tour, () => this.#sync());
+		this._watchLater(popup, () => this.#sync());
+		this._watchLater(_lang, () => this.#sync());
 
 		const observer = new MutationObserver(() => this.#sync());
 		observer.observe(micrio, { attributes: true, attributeFilter: ['class'] });
-		this.addCleanup(() => observer.disconnect());
+		this._addCleanup(() => observer.disconnect());
 
 		this.#build();
 		this.#sync();
 	}
 
-	setProps(props: Partial<ControlsProps>) {
+	_setProps(props: Partial<ControlsProps>) {
 		Object.assign(this.#props, props);
 	}
 
@@ -113,7 +113,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	#sync() {
 		if (!this.#built || !this.isConnected) return;
 
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const $i18n = get(i18n);
@@ -148,7 +148,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 				this.#muteBtn = createElement('micrio-button');
 				this.#aside1.prepend(this.#muteBtn);
 			}
-			this.#muteBtn.setProps({
+			this.#muteBtn._setProps({
 				type: $isMuted ? 'muted' : 'unmuted',
 				title: $isMuted ? $i18n._audioUnmute : $i18n._audioMute,
 				onclick: this.#toggleMute
@@ -173,7 +173,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
 			}
 			const trigger = this.#langMenu.querySelector('micrio-button') as MicrioElement;
-			trigger?.setProps({ type: 'a11y', title: $i18n._switchLanguage });
+			trigger?._setProps({ type: 'a11y', title: $i18n._switchLanguage });
 
 			const items = this.#langItemsEl!;
 			const culturesKey = cultures.join(',');
@@ -209,7 +209,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 				this.#shareBtn = createElement('micrio-button');
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
-			this.#shareBtn.setProps({ type: 'share', title: $i18n._share, onclick: this.#share });
+			this.#shareBtn._setProps({ type: 'share', title: $i18n._share, onclick: this.#share });
 		} else if (this.#shareBtn?.isConnected) {
 			this.#shareBtn.remove();
 		}
@@ -235,7 +235,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 					this.#fsGroup?.remove();
 					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 });
 				}
-				this.#fsGroup.setProps({ el: micrio });
+				this.#fsGroup._setProps({ el: micrio });
 			} else if (this.#fsGroup?.isConnected) {
 				this.#fsGroup.remove();
 			}

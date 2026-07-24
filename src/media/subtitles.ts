@@ -26,7 +26,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	#currentCue: Models.ImageData.Event | undefined;
 	#cleanup: (() => void) | undefined;
 
-	onMount() {
+	_onMount() {
 		this.#cleanup = captionsEnabled.subscribe(() => this.#renderCue());
 
 		const el = this.#props.mediaEl?.querySelector('video,audio') as HTMLMediaElement;
@@ -40,7 +40,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 		if (this.#props.src) this.#update();
 	}
 
-	setProps(props: Partial<SubtitlesProps>) {
+	_setProps(props: Partial<SubtitlesProps>) {
 		const srcChanged = props.src !== undefined && props.src !== this.#props.src;
 		Object.assign(this.#props, props);
 		if (srcChanged && this.isConnected) this.#update();
@@ -83,7 +83,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 		this.innerHTML = cue ? `<p>${cue.data}</p>` : '';
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		this.#cleanup?.();
 	}
 }

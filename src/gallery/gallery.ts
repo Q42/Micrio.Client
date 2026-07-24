@@ -55,8 +55,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#preloading = new Map<string, any>();
 	#preloadD = 0;
 
-	async onMount() {
-		const micrio = this.getMicrio();
+	async _onMount() {
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 
 		const image = micrio.$current as MicrioImage;
@@ -77,7 +77,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#renderGallery(micrio, image, controller);
 	}
 
-	setProps(props: Partial<GalleryProps>) {
+	_setProps(props: Partial<GalleryProps>) {
 		if (props.controller !== undefined) this.#props.controller = props.controller;
 	}
 
@@ -132,7 +132,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Called when the current page changes: dispatches event, preloads images, updates UI. */
 	#frameChanged() {
 		this.#preload(this.#currentImageIdx);
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		micrio?.events.dispatch('gallery-show', this.#currentPage);
 		if (this.#swipeGallery) {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
@@ -148,7 +148,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		e.stopPropagation();
 		if (this.#dragging || (this.#dragIsPointer = 'button' in e) && e.button !== 0 || !this.#_ul) return;
 		this.#box = this.#_ul.getBoundingClientRect();
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		micrio.keepRendering = this.#dragging = true;
 		this.#hoverIdx = -1;
@@ -184,7 +184,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#scrubStop = () => {
 		window.removeEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
 		window.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio) return;
 		this.#dragging = micrio.keepRendering = false;
 		this.#goto(this.#currentPage);
@@ -329,11 +329,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// Strip-swipe pointer events on the canvas element
 		if (this.#swipeGallery && images.length > 1) {
 			micrio.canvas.element.addEventListener('pointerdown', this.#swipeGallery.handlePointerDown);
-			this.addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
+			this._addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
 		}
 
 		window.addEventListener('keydown', this.#keydown);
-		this.addCleanup(() => window.removeEventListener('keydown', this.#keydown));
+		this._addCleanup(() => window.removeEventListener('keydown', this.#keydown));
 	}
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
@@ -452,7 +452,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (this.#nextBtn) (this.#nextBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr >= total - 1);
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		this.#omni?.destroy();
 		this.#swipeGallery?.destroy();
 	}

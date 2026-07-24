@@ -25,15 +25,15 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	#clickedPrevNext = false;
 	#originalHeights = new WeakMap<HTMLElement, number>();
 
-	onMount() {
+	_onMount() {
 		const { marker } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !marker) return;
 
 		marker.tags?.forEach(c => this.classList.add(c));
 		afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
 
-		this.addCleanup(micrio.state.popup.subscribe(m => {
+		this._addCleanup(micrio.state.popup.subscribe(m => {
 			this.#destroying = !m || m != marker;
 			this.classList.toggle('destroying', this.#destroying);
 		}));
@@ -45,7 +45,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		this.#render();
 	}
 
-	setProps(props: Partial<MarkerPopupProps>) {
+	_setProps(props: Partial<MarkerPopupProps>) {
 		if (props.marker !== undefined && props.marker.id !== this.#props.marker?.id) {
 			this.#props.marker = props.marker;
 			if (this.isConnected) this.#render();
@@ -54,10 +54,10 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 	#render() {
 		const { marker } = this.#props;
-		const micrio = this.getMicrio();
+		const micrio = this._getMicrio();
 		if (!micrio || !marker) return;
 
-		const markerImages = MicrioElement.markerImages as Map<string, MicrioImage>;
+		const markerImages = MicrioElement._markerImages as Map<string, MicrioImage>;
 		const image = marker.id ? markerImages.get(marker.id) as MicrioImage : undefined;
 		if (!image) return;
 

@@ -16,18 +16,18 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };
 
-	setProps(props: Partial<MicrioGalleryProps>) {
+	_setProps(props: Partial<MicrioGalleryProps>) {
 		if (props.gallery !== undefined) this.#props.gallery = props.gallery;
 		if (props.galleryStart !== undefined) this.#props.galleryStart = props.galleryStart;
 		if (props.lang !== undefined) this.#props.lang = props.lang;
 	}
 
-	onMount() {
+	_onMount() {
 		const el = createElement('micr-io', { parent: this }) as HTMLMicrioElement;
 
 		const caption = createElement('figcaption', { parent: this });
 
-		const parent = this.getMicrio();
+		const parent = this._getMicrio();
 		const basePath = parent?.$current?.$info?.path;
 
 		requestAnimationFrame(() => {
@@ -54,7 +54,7 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		updateCaption();
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		const el = this.querySelector(':scope > micr-io') as HTMLMicrioElement | null;
 		el?.destroy();
 	}

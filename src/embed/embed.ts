@@ -62,9 +62,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#matrix = '';
 	#buttonStyle = '';
 
-	onMount() {
+	_onMount() {
 		const { embed, image, marker } = this.#props;
-		this.#micrio = this.getMicrio()!;
+		this.#micrio = this._getMicrio()!;
 		if (!this.#micrio || !embed || !image) return;
 
 		this.#info = image.$info!;
@@ -85,8 +85,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				const inactive = !!(grid && f && f != image && ms && ms.indexOf(image) < 0);
 				this.#container?.classList.toggle('inactive', inactive);
 			};
-			this.watch(focused, updateInactive);
-			if (markersShown) this.watch(markersShown, updateInactive);
+			this._watch(focused, updateInactive);
+			if (markersShown) this._watch(markersShown, updateInactive);
 		}
 
 		this.#glImage = image.embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid) as MicrioImage | undefined;
@@ -127,8 +127,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const moveSrc = camOwner && camOwner !== image ? camOwner : image;
 
 		if (this.#hasHtml || !!embed.video?.pauseWhenSmallerThan || !!embed.video?.pauseWhenLargerThan) {
-			this.watch(moveSrc.state.view, () => this.#moved());
-			this.watch(moveSrc.viewport, () => this.#moved());
+			this._watch(moveSrc.state.view, () => this.#moved());
+			this._watch(moveSrc.viewport, () => this.#moved());
 		}
 
 		this.#applyPosition();
@@ -431,11 +431,11 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#moved();
 	}
 
-	setProps(props: Partial<EmbedProps>) {
+	_setProps(props: Partial<EmbedProps>) {
 		Object.assign(this.#props, props);
 	}
 
-	onDestroy() {
+	_onDestroy() {
 		clearTimeout(this.#loopDelayTo);
 		this.#glVideo?.unmount();
 
