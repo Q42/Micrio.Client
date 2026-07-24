@@ -135,7 +135,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#frameChanged() {
 		this.#preload(this.#currentImageIdx);
 		const micrio = this._getMicrio();
-		micrio?.events.dispatch('gallery-show', this.#currentPage);
+		micrio?.events._dispatch('gallery-show', this.#currentPage);
 		if (this.#swipeGallery) {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
 		}

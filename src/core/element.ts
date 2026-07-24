@@ -184,7 +184,7 @@ export class HTMLMicrioElement extends MicrioElement {
 						if(isRTL(newVal)) this.setAttribute('dir', 'rtl');
 						else this.removeAttribute('dir');
 					}
-					if(prevLang) this.events.dispatch('lang-switch', newVal);
+					if(prevLang) this.events._dispatch('lang-switch', newVal);
 				}
 				break;
 			}
@@ -214,11 +214,11 @@ export class HTMLMicrioElement extends MicrioElement {
 				this['muted'] = b;
 				if(b) {
 					localStorage.setItem(localStorageKeys.globalMuted, '1');
-					this.events.dispatch('audio-mute');
+					this.events._dispatch('audio-mute');
 				}
 				else {
 					localStorage.removeItem(localStorageKeys.globalMuted);
-					this.events.dispatch('audio-unmute');
+					this.events._dispatch('audio-unmute');
 				}
 			});
 		}
@@ -249,7 +249,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			this._watch(this._switching, s => {
 				if(s) this.setAttribute('data-switching','');
 				else {
-					if(!shown) tick().then(() => this.events.dispatch('show', this));
+					if(!shown) tick().then(() => this.events._dispatch('show', this));
 					shown = true;
 					this.removeAttribute('data-switching');
 				}
@@ -377,7 +377,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		this._keepRendering = !!opts.settings.keepRendering;
-		this.events.dispatch('print', opts as Models.ImageInfo.ImageInfo);
+		this.events._dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
 		const openBundle = () => {
 			if(opts.id) this.open(opts.id);

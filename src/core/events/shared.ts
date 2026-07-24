@@ -8,27 +8,27 @@ export type AllEvents = WheelEvent | MouseEvent | TouchEvent;
 /** Internal state variables used by the Events controller. */
 export type EventStateVars = {
 	/** Dragging state */
-	drag: {
+	_drag: {
 		/** Previous pointer coordinates [x, y] during drag. */
-		prev: number[] | undefined,
+		_prev: number[] | undefined,
 		/** Start coordinates and timestamp [x, y, time] of the drag. */
-		start: number[],
+		_start: number[],
 		/** The image being panned, captured at drag start. */
-		image: MicrioImage | undefined,
+		_image: MicrioImage | undefined,
 	},
 	/** Double-tap state */
-	dbltap: {
+	_dbltap: {
 		/** Timestamp of the last tap. */
-		lastTapped: number
+		_lastTapped: number
 	},
 	/** Pinching state */
-	pinch: {
+	_pinch: {
 		/** The image being pinched. */
-		image: MicrioImage | undefined,
+		_image: MicrioImage | undefined,
 		/** Initial distance between pinch points. */
-		sDst: number;
+		_sDst: number;
 		/** Was panning active before pinching started? */
-		wasPanning: boolean;
+		_wasPanning: boolean;
 	},
 };
 
@@ -53,42 +53,42 @@ export function cancelPrevent(e: AllEvents): void {
  */
 export interface EventContext {
 	/** The main Micrio element */
-	micrio: HTMLMicrioElement;
+	_micrio: HTMLMicrioElement;
 	/** The canvas element where events are captured */
-	el: HTMLCanvasElement;
+	_el: HTMLCanvasElement;
 	/** Whether events are currently enabled */
-	isEnabled(): boolean;
+	_isEnabled(): boolean;
 	/** Whether the user is currently panning */
-	panning: boolean;
+	_panning: boolean;
 	/** Whether the user is currently pinching */
-	pinching: boolean;
+	_pinching: boolean;
 	/** Whether the user is currently zooming via mouse wheel */
-	wheeling: boolean;
+	_wheeling: boolean;
 	/** Whether Ctrl/Cmd key is required for wheel zoom */
-	controlZoom: boolean;
+	_controlZoom: boolean;
 	/** Whether two fingers are required for touch panning */
-	twoFingerPan: boolean;
+	_twoFingerPan: boolean;
 	/** Event state variables */
-	vars: EventStateVars;
+	_vars: EventStateVars;
 	/** Get visible images */
-	getVisible(): MicrioImage[] | undefined;
+	_getVisible(): MicrioImage[] | undefined;
 	/** Get image under coordinates */
-	getImage(c: { x: number, y: number }): MicrioImage | undefined;
+	_getImage(c: { x: number, y: number }): MicrioImage | undefined;
 	/** Dispatch custom event */
-	dispatch<K extends keyof Models.MicrioEventDetails>(
+	_dispatch<K extends keyof Models.MicrioEventDetails>(
 		type: K,
 		detail?: Models.MicrioEventDetails[K]
 	): void;
 	/** Active pointers map for pinch detection */
-	activePointers: Map<number, { x: number, y: number }>;
+	_activePointers: Map<number, { x: number, y: number }>;
 	/** Captured pointer ID for dragging */
-	capturedPointerId: number | undefined;
+	_capturedPointerId: number | undefined;
 	/** Current pinch factor */
-	pinchFactor: number | undefined;
+	_pinchFactor: number | undefined;
 	/** Previous scale during gestures */
-	pScale: number;
+	_pScale: number;
 	/** Has used Ctrl for zoom */
-	hasUsedCtrl: boolean;
+	_hasUsedCtrl: boolean;
 	/** Has touch support */
-	hasTouch: boolean;
+	_hasTouch: boolean;
 }

@@ -142,7 +142,7 @@ export class Canvas {
 		this.#micrio._engine._resize(c);
 
 		// Dispatch 'resize' event with bounding box info
-		this.#micrio.events.dispatch('resize', box);
+		this.#micrio.events._dispatch('resize', box);
 
 		// Update mobile flag (debounced slightly)
 		this.isMobile.set(/mobile/i.test(navigator.userAgent));

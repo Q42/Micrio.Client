@@ -497,7 +497,7 @@ export class Engine {
 		this.#drawnSet.clear();
 		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._draw();
 
-		this.micrio.events.dispatch('draw');
+		this.micrio.events._dispatch('draw');
 
 		this.#cleanup();
 

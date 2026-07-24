@@ -15,18 +15,18 @@ export class GestureHandler {
 	/** Hooks macOS gesture event listeners. */
 	hook(): void {
 		if (Browser.OSX) {
-			this.#ctx.micrio.addEventListener('gesturestart', this.#handle, noEventPassive);
-			this.#ctx.micrio.addEventListener('gesturechange', this.#handle, noEventPassive);
-			this.#ctx.micrio.addEventListener('gestureend', this.#handle, noEventPassive);
+			this.#ctx._micrio.addEventListener('gesturestart', this.#handle, noEventPassive);
+			this.#ctx._micrio.addEventListener('gesturechange', this.#handle, noEventPassive);
+			this.#ctx._micrio.addEventListener('gestureend', this.#handle, noEventPassive);
 		}
 	}
 
 	/** Unhooks macOS gesture event listeners. */
 	unhook(): void {
 		if (Browser.OSX) {
-			this.#ctx.micrio.removeEventListener('gesturestart', this.#handle, noEventPassive);
-			this.#ctx.micrio.removeEventListener('gesturechange', this.#handle, noEventPassive);
-			this.#ctx.micrio.removeEventListener('gestureend', this.#handle, noEventPassive);
+			this.#ctx._micrio.removeEventListener('gesturestart', this.#handle, noEventPassive);
+			this.#ctx._micrio.removeEventListener('gesturechange', this.#handle, noEventPassive);
+			this.#ctx._micrio.removeEventListener('gestureend', this.#handle, noEventPassive);
 		}
 	}
 
@@ -52,15 +52,15 @@ export class GestureHandler {
 		const gesture = this.#getGestureEvent(e);
 		if (!gesture || gesture.scale === 1) return;
 
-		const diff = this.#ctx.pScale - gesture.scale;
-		this.#ctx.pScale = gesture.scale;
+		const diff = this.#ctx._pScale - gesture.scale;
+		this.#ctx._pScale = gesture.scale;
 
 		e.stopPropagation();
 		e.preventDefault();
 
 		if (e.type == 'gesturechange') {
-			this.#ctx.getImage({ x: gesture.clientX, y: gesture.clientY })?.camera.zoom(
-				diff * this.#ctx.micrio.canvas.viewport.height,
+			this.#ctx._getImage({ x: gesture.clientX, y: gesture.clientY })?.camera.zoom(
+				diff * this.#ctx._micrio.canvas.viewport.height,
 				0,
 				gesture.clientX,
 				gesture.clientY

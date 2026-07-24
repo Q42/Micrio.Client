@@ -114,11 +114,11 @@ export namespace State {
 					const nW = view[2], nH = view[3]; // Calculate new width/height
 					// Dispatch 'zoom' event if dimensions changed significantly
 					if(!pW || !pH || Math.abs((nW-pW)+(nH-pH)) > 1E-5) {
-						m.events.dispatch('zoom', detail)
+						m.events._dispatch('zoom', detail)
 						pW=nW,pH=nH; // Update previous dimensions
 					}
 					// Dispatch 'move' event
-					m.events.dispatch('move', detail);
+					m.events._dispatch('move', detail);
 				}
 			});
 

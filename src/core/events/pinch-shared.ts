@@ -2,50 +2,50 @@ import type { EventContext } from './shared';
 import type { DragHandler } from './drag';
 
 export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
-	ctx.vars.pinch.wasPanning = ctx.panning;
+	ctx._vars._pinch._wasPanning = ctx._panning;
 	dragHandler.stop(undefined, false, true);
 
-	ctx.pinching = true;
-	ctx.micrio.setAttribute('data-pinching', '');
-	ctx.pinchFactor = undefined;
+	ctx._pinching = true;
+	ctx._micrio.setAttribute('data-pinching', '');
+	ctx._pinchFactor = undefined;
 
-	if (ctx.vars.pinch.image) {
-		ctx.vars.pinch.image.canvas?.camera._pinchStart();
+	if (ctx._vars._pinch._image) {
+		ctx._vars._pinch._image.canvas?.camera._pinchStart();
 	}
-	ctx.micrio._engine.render();
-	ctx.dispatch('pinchstart');
-	if (ctx.twoFingerPan) ctx.dispatch('panstart');
+	ctx._micrio._engine.render();
+	ctx._dispatch('pinchstart');
+	if (ctx._twoFingerPan) ctx._dispatch('panstart');
 }
 
 export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2: { x: number, y: number }): void {
-	const v = ctx.vars.pinch;
-	const i = v.image;
+	const v = ctx._vars._pinch;
+	const i = v._image;
 	if (!i) return;
 
-	ctx.pinchFactor = Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v.sDst;
+	ctx._pinchFactor = Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v._sDst;
 	i.canvas?.camera._pinch(coo.x, coo.y, coo2.x, coo2.y);
 }
 
 export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: any[]) => void): void {
-	if (!ctx.pinching) return;
-	ctx.pinching = false;
+	if (!ctx._pinching) return;
+	ctx._pinching = false;
 
 	self.removeEventListener('touchmove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions);
 	self.removeEventListener('pointermove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions);
 
-	ctx.micrio.removeAttribute('data-pinching');
+	ctx._micrio.removeAttribute('data-pinching');
 
-	const i = ctx.vars.pinch.image;
+	const i = ctx._vars._pinch._image;
 	if (i) {
 		i.canvas?.camera._pinchStop();
-		ctx.micrio._engine.render();
+		ctx._micrio._engine.render();
 	}
-	ctx.vars.pinch.image = undefined;
-	ctx.pinchFactor = undefined;
+	ctx._vars._pinch._image = undefined;
+	ctx._pinchFactor = undefined;
 
-	ctx.dispatch('pinchend');
-	if (ctx.twoFingerPan && !ctx.vars.pinch.wasPanning) {
-		ctx.dispatch('panend');
+	ctx._dispatch('pinchend');
+	if (ctx._twoFingerPan && !ctx._vars._pinch._wasPanning) {
+		ctx._dispatch('panend');
 	}
 }
 
@@ -54,11 +54,11 @@ export function restartPanning(ctx: EventContext, dragHandler: DragHandler, poin
 		let syntheticEvent: any;
 		if (pointers instanceof TouchList) {
 			const t = pointers[0];
-			syntheticEvent = { button: 0, target: ctx.el, clientX: t.clientX, clientY: t.clientY } as unknown as PointerEvent;
+			syntheticEvent = { button: 0, target: ctx._el, clientX: t.clientX, clientY: t.clientY } as unknown as PointerEvent;
 		} else {
 			const [pointerId, { x, y }] = pointers.entries().next().value!;
 			syntheticEvent = {
-				button: 0, pointerType: 'touch', target: ctx.el,
+				button: 0, pointerType: 'touch', target: ctx._el,
 				clientX: x, clientY: y,
 				pointerId
 			} as unknown as PointerEvent;

@@ -27,7 +27,7 @@ import {
 export class Events implements EventContext {
 
 	/** The Micrio `<canvas>` element where most events are captured. */
-	el: HTMLCanvasElement;
+	_el: HTMLCanvasElement;
 
 	/** Writable store indicating if event handling is currently enabled. Set to false during tours or animations. */
 	enabled: Writable<boolean> = writable(false);
@@ -39,28 +39,28 @@ export class Events implements EventContext {
 	#hooked: boolean = false;
 
 	/** Flag indicating if the user is currently panning (dragging). */
-	panning: boolean = false;
+	_panning: boolean = false;
 
 	/** Flag indicating if the user is currently pinching. */
-	pinching: boolean = false;
+	_pinching: boolean = false;
 
 	/** Flag indicating if the user is currently zooming via mouse wheel. */
-	wheeling: boolean = false;
+	_wheeling: boolean = false;
 
 	/** Flag indicating if Ctrl/Cmd key is required for mouse wheel zoom. */
-	controlZoom: boolean = false;
+	_controlZoom: boolean = false;
 
 	/** Flag indicating if two fingers are required for touch panning. */
-	twoFingerPan: boolean = false;
+	_twoFingerPan: boolean = false;
 
 	/** Stores the previous scale during pinch gestures for calculating zoom delta. */
-	pScale: number = 1;
+	_pScale: number = 1;
 
 	/** Flag indicating if the browser supports touch events. */
-	hasTouch: boolean = Browser.hasTouch && ('ontouchstart' in self);
+	_hasTouch: boolean = Browser.hasTouch && ('ontouchstart' in self);
 
 	/** Flag indicating if the user has explicitly used Ctrl/Cmd + wheel for zooming (differentiates from trackpad pinch). */
-	hasUsedCtrl: boolean = false;
+	_hasUsedCtrl: boolean = false;
 
 	/** Cached settings object from the first loaded image. */
 	#settings: Models.ImageInfo.Settings | undefined;
@@ -69,23 +69,23 @@ export class Events implements EventContext {
 	#visible: MicrioImage[] | undefined;
 
 	/** Internal state variables for managing complex interactions like drag, pinch, double-tap. */
-	vars: EventStateVars = {
-		drag: { prev: undefined, start: [0, 0, 0], image: undefined },
-		dbltap: { lastTapped: 0 },
-		pinch: { image: undefined, sDst: 0, wasPanning: false },
+	_vars: EventStateVars = {
+		_drag: { _prev: undefined, _start: [0, 0, 0], _image: undefined },
+		_dbltap: { _lastTapped: 0 },
+		_pinch: { _image: undefined, _sDst: 0, _wasPanning: false },
 	};
 
 	/** Current pinch zoom factor relative to the start of the pinch. Undefined when not pinching. */
-	pinchFactor: number | undefined;
+	_pinchFactor: number | undefined;
 
 	/** Map tracking active pointers for multi-touch pinch detection (pointer ID -> coordinates). */
-	activePointers: Map<number, { x: number, y: number }> = new Map();
+	_activePointers: Map<number, { x: number, y: number }> = new Map();
 
 	/** Stores the ID of the pointer currently captured for dragging. */
-	capturedPointerId: number | undefined;
+	_capturedPointerId: number | undefined;
 
 	/** The main HTMLMicrioElement instance. */
-	micrio: HTMLMicrioElement;
+	_micrio: HTMLMicrioElement;
 
 	// Handler modules
 	#dragHandler: DragHandler;
@@ -103,8 +103,8 @@ export class Events implements EventContext {
 	constructor(
 		micrio: HTMLMicrioElement,
 	) {
-		this.micrio = micrio;
-		this.el = micrio.canvas.element;
+		this._micrio = micrio;
+		this._el = micrio.canvas.element;
 
 		// Initialize handler modules
 		this.#dragHandler = new DragHandler(this);
@@ -135,21 +135,21 @@ export class Events implements EventContext {
 
 	// --- EventContext implementation ---
 
-	isEnabled(): boolean { return this.$enabled; }
+	_isEnabled(): boolean { return this.$enabled; }
 
 	/**
 	 * Checks if the user is currently interacting with the map via panning, pinching, or wheeling.
 	 * @returns True if the user is actively navigating.
 	*/
-	get isNavigating(): boolean { return this.panning || this.pinching || this.wheeling; }
+	get isNavigating(): boolean { return this._panning || this._pinching || this._wheeling; }
 
 	/**
 	 * Dispatches a custom event on the main `<micr-io>` element.
 	 * @param type The event type string.
 	 * @param detail Optional event detail payload.
 	 */
-	dispatch<K extends string & keyof Models.MicrioEventDetails>(type: K, detail?: Models.MicrioEventDetails[K]): void {
-		this.micrio.dispatchEvent(new CustomEvent(type, detail !== undefined ? { detail } : undefined))
+	_dispatch<K extends string & keyof Models.MicrioEventDetails>(type: K, detail?: Models.MicrioEventDetails[K]): void {
+		this._micrio.dispatchEvent(new CustomEvent(type, detail !== undefined ? { detail } : undefined))
 	}
 
 	/**
@@ -157,22 +157,22 @@ export class Events implements EventContext {
 	 * @param c Screen coordinates {x, y}.
 	 * @returns The MicrioImage instance under the coordinates, or the main current image as fallback.
 	 */
-	getImage(c: { x: number, y: number }): MicrioImage | undefined {
+	_getImage(c: { x: number, y: number }): MicrioImage | undefined {
 		if (!this.#visible) return;
-		const w = this.micrio.offsetWidth, h = this.micrio.offsetHeight,
+		const w = this._micrio.offsetWidth, h = this._micrio.offsetHeight,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
 		const candidates = this.#visible.filter(i => !i._noImage);
 		// When a grid controller exists, use its own image-under-cursor detection
-		const gridCtrl = this.micrio._canvases.find(i => i.grid);
-		if (gridCtrl) return gridCtrl.grid?.getImageAt(c.x, c.y) ?? this.micrio.$current;
+		const gridCtrl = this._micrio._canvases.find(i => i.grid);
+		if (gridCtrl) return gridCtrl.grid?.getImageAt(c.x, c.y) ?? this._micrio.$current;
 		// Default: find the visible image under the cursor by area
 		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
 			grid ? false : area ? x >= area[0] && x <= area[0] + area[2] && y >= area[1] && y <= area[1] + area[3] : false
 		);
-		return t && !t.grid ? t : this.micrio.$current;
+		return t && !t.grid ? t : this._micrio.$current;
 	}
 
-	getVisible(): MicrioImage[] | undefined { return this.#visible; }
+	_getVisible(): MicrioImage[] | undefined { return this.#visible; }
 
 	/** Hooks all necessary event listeners based on current settings. */
 	hook(): void {
@@ -183,9 +183,9 @@ export class Events implements EventContext {
 		if (!s) return;
 
 		// Apply settings
-		this.twoFingerPan = !!s.twoFingerPan;
-		if (this.twoFingerPan) this.micrio.setAttribute('data-can-pan', '');
-		else this.micrio.removeAttribute('data-can-pan');
+		this._twoFingerPan = !!s.twoFingerPan;
+		if (this._twoFingerPan) this._micrio.setAttribute('data-can-pan', '');
+		else this._micrio.removeAttribute('data-can-pan');
 
 		// Hook specific event types based on settings
 		if (s?.hookKeys) this.hookKeys();
@@ -199,7 +199,7 @@ export class Events implements EventContext {
 		this.#hooked = false;
 
 		// Clear pointer tracking state
-		this.activePointers.clear();
+		this._activePointers.clear();
 
 		// Unhook specific event types
 		this.unhookDrag();
@@ -216,11 +216,11 @@ export class Events implements EventContext {
 	/** Hooks zoom-related event listeners (pinch, scroll, double-tap/click). */
 	hookZoom(): void {
 		const s = this.#settings;
-		this.controlZoom = !!s?.controlZoom;
+		this._controlZoom = !!s?.controlZoom;
 		if (!s || s.hookPinch) this.hookPinch();
-		if (!s || s.hookScroll || this.controlZoom) this.hookScroll();
+		if (!s || s.hookScroll || this._controlZoom) this.hookScroll();
 		// Add double-tap/click listeners
-		if (this.micrio.canvas.$isMobile) this.#doubleTapHandler.hookTap();
+		if (this._micrio.canvas.$isMobile) this.#doubleTapHandler.hookTap();
 		else this.#doubleTapHandler.hookClick();
 	}
 
@@ -228,7 +228,7 @@ export class Events implements EventContext {
 	unhookZoom(): void {
 		this.unhookPinch();
 		this.unhookScroll();
-		if (this.micrio.canvas.$isMobile) this.#doubleTapHandler.unhookTap();
+		if (this._micrio.canvas.$isMobile) this.#doubleTapHandler.unhookTap();
 		else this.#doubleTapHandler.unhookClick();
 	}
 
@@ -244,7 +244,7 @@ export class Events implements EventContext {
 	/** Hooks touch pinch and macOS gesture event listeners. */
 	hookPinch(): void {
 		// Use touch events on iOS (most reliable there), pointer events everywhere else
-		if (Browser.iOS && this.hasTouch) {
+		if (Browser.iOS && this._hasTouch) {
 			this.#pinchHandler.hook();
 		} else {
 			this.#pointerPinchHandler.hook();
@@ -254,7 +254,7 @@ export class Events implements EventContext {
 
 	/** Unhooks touch pinch and macOS gesture event listeners. */
 	unhookPinch(): void {
-		if (Browser.iOS && this.hasTouch) {
+		if (Browser.iOS && this._hasTouch) {
 			this.#pinchHandler.unhook();
 		} else {
 			this.#pointerPinchHandler.unhook();

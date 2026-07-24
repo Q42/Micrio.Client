@@ -19,13 +19,13 @@ export class WheelHandler {
 	/** Hooks mouse wheel/scroll event listeners. */
 	hook(): void {
 		if (this.hooked) return;
-		this.#ctx.micrio.addEventListener('wheel', this.handle, noEventPassive);
+		this.#ctx._micrio.addEventListener('wheel', this.handle, noEventPassive);
 		this.hooked = true;
 	}
 
 	/** Unhooks mouse wheel/scroll event listeners. */
 	unhook(): void {
-		this.#ctx.micrio.removeEventListener('wheel', this.handle, noEventPassive);
+		this.#ctx._micrio.removeEventListener('wheel', this.handle, noEventPassive);
 		this.hooked = false;
 	}
 
@@ -38,19 +38,19 @@ export class WheelHandler {
 	handle = (e: WheelEvent | Event, force = false, offX = 0): void => {
 		if (!(e instanceof WheelEvent)) return;
 
-		if (this.#ctx.controlZoom && !e.ctrlKey) return;
-		if (!force && e.target instanceof Element && e.target != this.#ctx.el &&
+		if (this.#ctx._controlZoom && !e.ctrlKey) return;
+		if (!force && e.target instanceof Element && e.target != this.#ctx._el &&
 			!e.target.classList.contains('marker') && !e.target.closest('[data-scroll-through]')) return;
 
 		let delta = e.deltaY;
 
-		if (e.ctrlKey) this.#ctx.hasUsedCtrl = true;
+		if (e.ctrlKey) this.#ctx._hasUsedCtrl = true;
 
-		const isControlZoomWithMouse = this.#ctx.controlZoom && (delta * 10 % 1 == 0);
-		const isTouchPad = this.#ctx.hasUsedCtrl && !isControlZoomWithMouse;
+		const isControlZoomWithMouse = this.#ctx._controlZoom && (delta * 10 % 1 == 0);
+		const isTouchPad = this.#ctx._hasUsedCtrl && !isControlZoomWithMouse;
 		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
 
-		if (this.#ctx.twoFingerPan && this.#ctx.micrio.$current?.camera.isZoomedOut()) return;
+		if (this.#ctx._twoFingerPan && this.#ctx._micrio.$current?.camera.isZoomedOut()) return;
 
 		e.stopPropagation();
 		e.preventDefault();
@@ -58,19 +58,19 @@ export class WheelHandler {
 		if ((Browser.OSX || isTouchPad) && e.ctrlKey) delta *= 10;
 
 		const coo = { x: e.clientX, y: e.clientY };
-		const image = this.#ctx.getImage(coo);
+		const image = this.#ctx._getImage(coo);
 		if (!image) return;
 
 		if (isZoom) {
-			const c = this.#ctx.micrio.canvas.viewport;
+			const c = this.#ctx._micrio.canvas.viewport;
 			let offY = 0;
 
-			const box = this.#ctx.micrio.getBoundingClientRect();
+			const box = this.#ctx._micrio.getBoundingClientRect();
 			image.camera.zoom(delta * 1 / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY);
 		}
 		else image.camera.pan(e.deltaX, e.deltaY);
 
-		this.#ctx.wheeling = true;
+		this.#ctx._wheeling = true;
 
 		clearTimeout(this.#wheelEndTo);
 		this.#wheelEndTo = setTimeout(this.#end, 50) as unknown as number;
@@ -78,7 +78,7 @@ export class WheelHandler {
 
 	/** Clears the wheeling state after a short delay. */
 	#end = (): void => {
-		this.#ctx.wheeling = false;
+		this.#ctx._wheeling = false;
 	}
 }
 

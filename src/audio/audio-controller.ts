@@ -140,7 +140,7 @@ class MicrioAudioController extends MicrioElement {
 		}));
 
 		if (!_ctx) {
-			audio.play().then(input).catch(() => events.dispatch('autoplay-blocked'));
+			audio.play().then(input).catch(() => events._dispatch('autoplay-blocked'));
 			addEventListener('pointerup', onUserGesture, { once: true });
 		}
 

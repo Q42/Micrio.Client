@@ -315,7 +315,7 @@ export class MicrioImage {
 		if(s?.gallery?.archive) this._levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
 		if(!this._noImage) this.thumbSrc = this._getTileSrc(this._levels, 0, 0);
 
-		micrio.events.dispatch('pre-info', i);
+		micrio.events._dispatch('pre-info', i);
 
 		// Bundle data
 		if((!this._noImage || this._isOmni) && !s?.skipMeta && bundle.data) {

@@ -255,7 +255,7 @@ export class OmniUI {
 
 		if(!this.#hitTresh && this.#startX !== undefined && (
 			this.#hitTresh = this.#pointers.size != 2 ? true
-				: Math.abs(e.clientX - this.#startX) > ((this.#micrio.events.pinchFactor && this.#micrio.events.pinchFactor > 1.25 ? 0.3 : 0.15) * this.#micrio.offsetWidth)
+				: Math.abs(e.clientX - this.#startX) > ((this.#micrio.events._pinchFactor && this.#micrio.events._pinchFactor > 1.25 ? 0.3 : 0.15) * this.#micrio.offsetWidth)
 		)) this.#startX = e.clientX;
 		if(!this.#hitTresh) return;
 

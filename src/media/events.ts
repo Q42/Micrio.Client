@@ -31,7 +31,7 @@ class MicrioEvents extends MicrioElement<EventsProps> {
 				const active = e.start <= time && e.end >= time;
 				if (active != !!e.active) {
 					e.active = active;
-					micrio.events.dispatch('tour-event', { ...e });
+					micrio.events._dispatch('tour-event', { ...e });
 				}
 			}
 		};
@@ -47,7 +47,7 @@ class MicrioEvents extends MicrioElement<EventsProps> {
 			const events = this.#props.events;
 			events.forEach(e => {
 				const active = e.active;
-				if (active) { e.active = false; micrio.events.dispatch('tour-event', { ...e }); }
+				if (active) { e.active = false; micrio.events._dispatch('tour-event', { ...e }); }
 			});
 		}
 	}

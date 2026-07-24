@@ -21,15 +21,15 @@ export class PinchHandler {
 
 	/** Hooks touch pinch event listeners (iOS only). */
 	hook(): void {
-		if (Browser.iOS && this.#ctx.hasTouch) {
-			this.#ctx.micrio.addEventListener('touchstart', this.start, eventPassive);
+		if (Browser.iOS && this.#ctx._hasTouch) {
+			this.#ctx._micrio.addEventListener('touchstart', this.start, eventPassive);
 		}
 	}
 
 	/** Unhooks touch pinch event listeners. */
 	unhook(): void {
-		if (Browser.iOS && this.#ctx.hasTouch) {
-			this.#ctx.micrio.removeEventListener('touchstart', this.start, eventPassive);
+		if (Browser.iOS && this.#ctx._hasTouch) {
+			this.#ctx._micrio.removeEventListener('touchstart', this.start, eventPassive);
 		}
 		// Clean up in case we're in the middle of a pinch
 		self.removeEventListener('touchmove', this.#move, eventPassiveCapture);
@@ -43,9 +43,9 @@ export class PinchHandler {
 	start = (e: TouchEvent | Event): void => {
 		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
 
-		if (this.#ctx.twoFingerPan && e.touches.length < 2) return;
+		if (this.#ctx._twoFingerPan && e.touches.length < 2) return;
 
-		if (this.#ctx.pinching || e.touches.length != 2) {
+		if (this.#ctx._pinching || e.touches.length != 2) {
 			this.stop(e as TouchEvent);
 			return;
 		}
@@ -54,8 +54,8 @@ export class PinchHandler {
 
 		const t = e.touches;
 
-		this.#ctx.vars.pinch.image = this.#ctx.getImage({ x: t[0].clientX, y: t[0].clientY });
-		this.#ctx.vars.pinch.sDst = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+		this.#ctx._vars._pinch._image = this.#ctx._getImage({ x: t[0].clientX, y: t[0].clientY });
+		this.#ctx._vars._pinch._sDst = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 
 		self.addEventListener('touchmove', this.#move, eventPassiveCapture);
 		self.addEventListener('touchend', this.stop, eventPassiveCapture);

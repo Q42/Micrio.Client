@@ -14,22 +14,22 @@ export class DoubleTapHandler {
 
 	/** Hooks double-tap event listener (mobile). */
 	hookTap(): void {
-		this.#ctx.el.addEventListener('touchstart', this.#tap);
+		this.#ctx._el.addEventListener('touchstart', this.#tap);
 	}
 
 	/** Unhooks double-tap event listener. */
 	unhookTap(): void {
-		this.#ctx.el.removeEventListener('touchstart', this.#tap);
+		this.#ctx._el.removeEventListener('touchstart', this.#tap);
 	}
 
 	/** Hooks double-click event listener (desktop). */
 	hookClick(): void {
-		this.#ctx.el.addEventListener('dblclick', this.#click);
+		this.#ctx._el.addEventListener('dblclick', this.#click);
 	}
 
 	/** Unhooks double-click event listener. */
 	unhookClick(): void {
-		this.#ctx.el.removeEventListener('dblclick', this.#click);
+		this.#ctx._el.removeEventListener('dblclick', this.#click);
 	}
 
 	/**
@@ -41,12 +41,12 @@ export class DoubleTapHandler {
 		const now = performance.now();
 
 		// If tap occurs within 250ms of the previous tap, trigger double-click logic
-		if (e.touches.length == 1 && now - this.#ctx.vars.dbltap.lastTapped < 250) {
+		if (e.touches.length == 1 && now - this.#ctx._vars._dbltap._lastTapped < 250) {
 			e.stopPropagation();
 			e.preventDefault();
 			this.#click(e);
 		}
-		this.#ctx.vars.dbltap.lastTapped = now;
+		this.#ctx._vars._dbltap._lastTapped = now;
 	}
 
 	/**
@@ -56,9 +56,9 @@ export class DoubleTapHandler {
 	 */
 	#click = (e: MouseEvent | TouchEvent): void => {
 		const t = e instanceof TouchEvent ? e.touches[0] : e;
-		const img = this.#ctx.getImage({ x: t.clientX, y: t.clientY });
+		const img = this.#ctx._getImage({ x: t.clientX, y: t.clientY });
 		// Use zoom method with negative delta to zoom in, providing click coordinates
-		img?.camera.zoom(-300, 500, t.clientX, t.clientY, 1, !this.#ctx.micrio.$current?.album).catch(() => {});
+		img?.camera.zoom(-300, 500, t.clientX, t.clientY, 1, !this.#ctx._micrio.$current?.album).catch(() => {});
 	}
 }
 

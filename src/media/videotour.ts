@@ -80,7 +80,7 @@ export class VideoTourInstance {
 		this.#unhookEvents = !data.keepInteraction && this.#micrio.events.$enabled;
 		data.instance = this;
 		this.read();
-		this.#micrio.events.dispatch('videotour-start', this.#data);
+		this.#micrio.events._dispatch('videotour-start', this.#data);
 	}
 
 	/** Cleans up the tour instance, stops animations, and re-hooks events if necessary. */
@@ -89,7 +89,7 @@ export class VideoTourInstance {
 		if (!this.#playing) return;
 		this.#image.camera.stop();
 		this.#micrio.removeAttribute('data-tour-active');
-		this.#micrio.events.dispatch('videotour-stop', this.#data);
+		this.#micrio.events._dispatch('videotour-stop', this.#data);
 		this.#playing = false;
 		this.#startedAt = undefined;
 		this.#data.instance = undefined;
@@ -248,14 +248,14 @@ export class VideoTourInstance {
 	/** Sets playing state attributes and dispatches events. @internal */
 	#startedPlaying(): void {
 		this.#micrio.setAttribute('data-tour-active', '');
-		this.#micrio.events.dispatch('videotour-play');
+		this.#micrio.events._dispatch('videotour-play');
 		if (this.#unhookEvents) this.#micrio.events.enabled.set(false);
 	}
 
 	/** Clears playing state attributes and dispatches events. @internal */
 	#stoppedPlaying(): void {
 		//this.#micrio.removeAttribute('data-tour-active');
-		this.#micrio.events.dispatch('videotour-pause');
+		this.#micrio.events._dispatch('videotour-pause');
 		if (this.#unhookEvents) this.#micrio.events.enabled.set(true);
 	}
 

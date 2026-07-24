@@ -136,7 +136,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			this.classList.add('opened');
 			clearTimeout(this.#fto);
 			if (markerSettings.noMarkerActions) return;
-			events.dispatch('marker-open', marker);
+			events._dispatch('marker-open', marker);
 			const $tour = get(micrio.state.tour);
 			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) micrio.state.tour.set(undefined);
 			await tick();
@@ -165,7 +165,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (markerSettings.noMarkerActions) return;
 
 			const $tour = get(micrio.state.tour);
-			events.dispatch('marker-opened', marker);
+			events._dispatch('marker-opened', marker);
 			if (marker.popupType != 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
 				// no popup - handle popover or video tour
 				if (marker.popupType == 'popover') {
@@ -191,7 +191,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		const close = () => {
 			this.classList.remove('opened');
-			events.dispatch('marker-closed', marker);
+			events._dispatch('marker-closed', marker);
 			micrio.state.popover.set(undefined);
 			micrio.state.popup.set(undefined);
 		};

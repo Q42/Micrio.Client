@@ -82,7 +82,7 @@ export class Grid extends MicrioElement {
 			duration: 0,
 		}).then(() => {
 			this.#hook();
-			this.micrio.events.dispatch('grid-load');
+			this.micrio.events._dispatch('grid-load');
 		});
 
 		this.#closeBtn = createElement('micrio-button', {
@@ -94,7 +94,7 @@ export class Grid extends MicrioElement {
 			else this.#closeBtn.remove();
 		}));
 
-		this.micrio.events.dispatch('grid-init', this);
+		this.micrio.events._dispatch('grid-init', this);
 	}
 
 	#hook() {
@@ -317,7 +317,7 @@ export class Grid extends MicrioElement {
 		const wasHiddenClass = this.classList.contains('grid-cells-hidden');
 		if (wasHiddenClass) this.classList.remove('grid-cells-hidden');
 
-		this.micrio.events.dispatch('grid-layout-set', this);
+		this.micrio.events._dispatch('grid-layout-set', this);
 
 		const w = this.micrio.offsetWidth;
 		const h = this.micrio.offsetHeight;
@@ -502,7 +502,7 @@ export class Grid extends MicrioElement {
 			cover: !!opts.cover,
 			coverLimit: !!opts.coverLimit
 		}).then(() => {
-			m.events.dispatch('grid-focus', img);
+			m.events._dispatch('grid-focus', img);
 			this.#removeGrid();
 			if(m.$current != img) m.current.set(img);
 			this.image.camera.setLimit([0, 0, 1, 1]);
@@ -514,7 +514,7 @@ export class Grid extends MicrioElement {
 		if(!focussed) return;
 		this._buttons.forEach(b => b.classList.remove('focussed'));
 		if (focussed.canvas) focussed.canvas.zIndex = 2;
-		this.micrio.events.dispatch('grid-blur');
+		this.micrio.events._dispatch('grid-blur');
 		this._focussed.set(undefined);
 		this.image.camera.setLimit([0, 0, 1, 1]);
 		this.micrio.current.set(this.image);

@@ -64,7 +64,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 		} else if ((cultureData?.content || cultureData?.embed || menu.image || menuWithExtras.content || menuWithExtras.embedUrl) ||
 			(cultureData?.title && !menu.children?.length && !menu.link && !menu.markerId)) {
 			this.#action = () => {
-				events.dispatch('page-open', menu);
+				events._dispatch('page-open', menu);
 				micrioState.popover.set({ contentPage: menu });
 			};
 		}
