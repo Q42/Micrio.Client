@@ -85,9 +85,9 @@ export class Engine {
 	/** Default duration (seconds) for crossfade between canvases. @internal */
 	_crossfadeDuration: number = .25;
 	/** Default duration (seconds) for grid item transitions. @internal */
-	_gridTransitionDuration: number = .5;
+	_itemTransitionDuration: number = .5;
 	/** Default easing function for grid transitions. @internal */
-	_gridTransitionTimingFunction: Bicubic = easeInOut;
+	_itemTransitionTimingFunction: Bicubic = easeInOut;
 	/** Default duration (seconds) for transitions between 360 spaces. @internal */
 	_spacesTransitionDuration: number = .5;
 	/** Default duration (seconds) for fading embedded images/videos. @internal */

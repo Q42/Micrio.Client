@@ -45,7 +45,7 @@ export class SwipeGallery {
 	async setup(startImageIdx:number, parent:MicrioImage, engine:Engine):Promise<void> {
 		this.#currentImageIdx = startImageIdx;
 
-		engine._gridTransitionTimingFunction = getEasing('ease-out');
+		engine._itemTransitionTimingFunction = getEasing('ease-out');
 		await Promise.allSettled(this.#images.map(d => engine._addChild(d as MicrioImage, parent)));
 
 		const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
@@ -78,7 +78,7 @@ export class SwipeGallery {
 		if (!engine) return;
 		const baseSlot = this.#imageSlotPos[nextIdx];
 		const startSlide = () => {
-			engine._gridTransitionDuration = snapDur;
+			engine._itemTransitionDuration = snapDur;
 			for (let i = 0; i < images.length; i++) {
 				const child = images[i] as MicrioImage | undefined;
 				if (!child?.camera) continue;

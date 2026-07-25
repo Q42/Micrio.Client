@@ -218,7 +218,7 @@ export class Grid extends MicrioElement {
 		const crossfadeDur = (dur || this._aniDurationIn) / (isBehindDelay ? 2 : 1);
 		this._nextCrossFadeDuration = undefined;
 		if(ready) {
-			engine._gridTransitionDuration = dur;
+			engine._itemTransitionDuration = dur;
 			engine._crossfadeDuration = crossfadeDur;
 		}
 
@@ -479,7 +479,7 @@ export class Grid extends MicrioElement {
 	}
 
 	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
-		this.micrio._engine._gridTransitionTimingFunction = getEasing(this.#timingFunction=fn);
+		this.micrio._engine._itemTransitionTimingFunction = getEasing(this.#timingFunction=fn);
 	}
 
 	/** @internal */

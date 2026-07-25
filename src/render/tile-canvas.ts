@@ -460,9 +460,9 @@ export class TileCanvas {
 		const animating = this._areaAnimating();
 
 		if (animating) {
-			const delta: number = (1 / this.main._gridTransitionDuration) / this.main._frameTime;
+			const delta: number = (1 / this.main._itemTransitionDuration) / this.main._frameTime;
 			this.#areaAniPerc = Math.min(1, this.#areaAniPerc + delta);
-			const p = this.main._gridTransitionTimingFunction.get(this.#areaAniPerc);
+			const p = this.main._itemTransitionTimingFunction.get(this.#areaAniPerc);
 			const interpCenterX = (b._centerX + (t._centerX - b._centerX) * p);
 			const interpCenterY = (b._centerY + (t._centerY - b._centerY) * p);
 			const interpWidth = (b.width + (t.width - b.width) * p);
