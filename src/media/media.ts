@@ -164,7 +164,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		const isVimeo = src ? VIMEO_RE.test(src) : false;
 		const isCloudflare = src ? src.startsWith('cfvid://') : false;
 		const isAudio = src ? src.includes('.mp3') || src.includes('.ogg') || src.includes('.wav') || src.includes('audio/') : false;
-		const isStandaloneVideoTour = !!p.tour && !!p.image;
+		const isStandaloneVideoTour = !!p.tour && !!p.image && (!src || isAudio);
 		this.replaceChildren();
 
 		const figure = createElement('figure', {
@@ -247,7 +247,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					this.#tourInstance!.updateEvents(this.#currentTime);
 					this.#updateControls();
 					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
-					if (this.#ended) p.onended?.();
+					if (this.#ended && (!this.#mediaEl || this.#mediaEl.ended)) p.onended?.();
 				}, 250);
 				this._addCleanup(() => clearInterval(ival));
 				if (p.autoplay) this.#tourInstance.play();
@@ -370,7 +370,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				this.#mediaEl.addEventListener('pause', update);
 				this.#mediaEl.addEventListener('ended', () => {
 					update();
-					p.onended?.();
+					if (!isStandaloneVideoTour) p.onended?.();
 				});
 				this.#mediaEl.addEventListener('seeking', () => { this.#seeking = true; update(); });
 				this.#mediaEl.addEventListener('seeked', () => { this.#seeking = false; update(); });
