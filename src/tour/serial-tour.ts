@@ -104,7 +104,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		let startView: Models.Camera.View | undefined;
 		if (marker?.videoTour) {
 			const timeline = marker.videoTour.i18n?.[micrio.lang]?.timeline;
-			if (timeline?.length) startView = timeline[0].rect;
+			if (timeline?.length && timeline[0].start <= 1) startView = timeline[0].rect;
 		}
 
 		if (si.micrioId && micrio.$current?.id !== si.micrioId) {

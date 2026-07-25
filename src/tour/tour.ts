@@ -81,7 +81,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					const lang = micrio.lang;
 					const vt = marker.videoTour;
 					const timeline = vt.i18n?.[lang]?.timeline;
-					if (timeline?.length) startView = timeline[0].rect;
+					if (timeline?.length && timeline[0].start <= 1) startView = timeline[0].rect;
 				}
 
 				const img = si.micrioId && micrio.$current?.id !== si.micrioId
