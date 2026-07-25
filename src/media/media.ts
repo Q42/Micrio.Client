@@ -233,8 +233,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			this.#tourInstance = new VideoTourInstance(p.image, p.tour);
 
 			if (this.#mediaEl) {
-				this.#mediaEl.addEventListener('play', () => this.#tourInstance?.play());
-				this.#mediaEl.addEventListener('pause', () => this.#tourInstance?.pause());
+				const onPlay = () => this.#tourInstance?.play();
+				this.#mediaEl.addEventListener('play', onPlay);
+				this._addCleanup(() => this.#mediaEl?.removeEventListener('play', onPlay));
 			}
 
 			if (isStandaloneVideoTour) {
@@ -252,7 +253,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				this._addCleanup(() => clearInterval(ival));
 				if (p.autoplay) this.#tourInstance.play();
 			} else {
-				this.#mediaEl?.addEventListener('ended', () => this.#tourInstance?.pause());
+				const onEnded = () => this.#tourInstance?.pause();
+				this.#mediaEl?.addEventListener('ended', onEnded);
+				this._addCleanup(() => this.#mediaEl?.removeEventListener('ended', onEnded));
 				if (!this.#mediaEl?.paused) this.#tourInstance?.play();
 			}
 		}
@@ -277,8 +280,13 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			const onplaypause = () => {
 				const el = this.#mediaEl;
 				if (el) {
-					if (el.paused) el.play().catch(() => { });
-					else el.pause();
+					if (el.paused) {
+						el.play().catch(() => { });
+						this.#tourInstance?.play();
+					} else {
+						el.pause();
+						this.#tourInstance?.pause();
+					}
 				} else if (this.#tourInstance) {
 					if (this.#tourInstance.paused) this.#tourInstance.play();
 					else this.#tourInstance.pause();

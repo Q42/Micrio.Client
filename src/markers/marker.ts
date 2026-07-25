@@ -192,7 +192,6 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			const linkId = data.micrioLink?.id;
 			if (linkId) {
 				tick().then(() => {
-					image.camera.stop();
 					micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector });
 				});
 			}
@@ -208,16 +207,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		this._addCleanup(image.state.marker.subscribe(m => {
 			if (typeof m == 'string' && m == marker.id) image.state.marker.set(marker);
 			else if (m == marker) activated();
-			else if (m && m != marker) {
+			else if (!data.alwaysOpen && (!m || m != marker)) {
 				if (this.#opened) close();
+				else if (!m) this.classList.remove('opened');
 				this.#opened = false;
-				image.camera.stop();
-			}
-			else if (!m && !data.alwaysOpen) {
-				if (this.#opened) close();
-				else this.classList.remove('opened');
-				this.#opened = false;
-				image.camera.stop();
+				if (!get(micrio.state.tour)) image.camera.stop();
 			}
 		}));
 
