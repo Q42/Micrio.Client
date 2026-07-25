@@ -86,7 +86,7 @@ export class SwipeGallery {
 				const cur = child.opts.area ?? [0, 0, 1, 1];
 				const prevSlotLeft = cur[0];
 				const prevSlotRight = cur[0] + cur[2];
-				const wasNearVisible = prevSlotRight > -1 && prevSlotLeft < 1;
+				const wasNearVisible = prevSlotRight > -1 && prevSlotLeft < 2;
 				const targetSlot = this.#imageSlotPos[i] - baseSlot;
 				const width = this.#imageSlotWidth[i];
 				const willBeVisible = targetSlot + width > -1 && targetSlot < 1;
