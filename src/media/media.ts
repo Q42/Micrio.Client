@@ -42,7 +42,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	/* @internal */
 	static tag = 'micrio-media';
 
-	#videoEl: HTMLVideoElement | HTMLAudioElement | undefined;
+	#mediaEl: HTMLVideoElement | HTMLAudioElement | undefined;
 	#tourInstance: VideoTourInstance | undefined;
 	#frame: HTMLIFrameElement | undefined;
 	#hlsSrc: string | undefined;
@@ -114,7 +114,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			},
 			parent: figure,
 		});
-		this.#videoEl = video;
+		this.#mediaEl = video;
 		this.#wireEvents(video);
 		this.#hlsSrc = hlsSrc;
 	}
@@ -131,7 +131,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			style: { display: 'none' },
 			parent: figure,
 		});
-		this.#videoEl = audio;
+		this.#mediaEl = audio;
 		this.#wireEvents(audio);
 	}
 
@@ -150,7 +150,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			},
 			parent: figure,
 		});
-		this.#videoEl = video;
+		this.#mediaEl = video;
 		this.#wireEvents(video);
 	}
 
@@ -164,11 +164,11 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		const isVimeo = src ? VIMEO_RE.test(src) : false;
 		const isCloudflare = src ? src.startsWith('cfvid://') : false;
 		const isAudio = src ? src.includes('.mp3') || src.includes('.ogg') || src.includes('.wav') || src.includes('audio/') : false;
-		const isTourOnly = (!src || isAudio) && !!p.tour && !!p.image;
+		const isStandaloneVideoTour = !!p.tour && !!p.image;
 		this.replaceChildren();
 
 		const figure = createElement('figure', {
-			className: [p.className, isTourOnly && 'videotour'].filter(Boolean).join(' ') || undefined,
+			className: p.className,
 		});
 
 		if (p.is360) figure.style.setProperty('--micrio-background', 'transparent');
@@ -179,9 +179,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			this.#createVimeoIframe(src!, p, figure);
 		} else if (isCloudflare) {
 			this.#createCloudflareVideo(src!, p, figure);
-		} else if (!isTourOnly && isAudio) {
+		} else if (isAudio && src) {
 			this.#createAudioElement(src!, p, figure);
-		} else if (!isTourOnly) {
+		} else if (src) {
 			this.#createNativeVideo(src!, p, figure);
 		}
 
@@ -220,8 +220,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 
 		// Initialize HLS adapter for Cloudflare video
-		if (isCloudflare && this.#hlsSrc && this.#videoEl && mediaSourceSupported()) {
-			this.#adapter = new HLSPlayerAdapter(this.#videoEl as HTMLVideoElement, this.#hlsSrc, {
+		if (isCloudflare && this.#hlsSrc && this.#mediaEl && mediaSourceSupported()) {
+			this.#adapter = new HLSPlayerAdapter(this.#mediaEl as HTMLVideoElement, this.#hlsSrc, {
 				onReady: () => { this.#updateControls(); },
 				onEnded: () => { this.#ended = true; this.#paused = true; this.#updateControls(); p.onended?.(); },
 			});
@@ -229,9 +229,15 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 
 		// Tour instance
-		if (p.tour && p.image && (this.#videoEl || isTourOnly)) {
+		if (p.tour && p.image && (this.#mediaEl || isStandaloneVideoTour)) {
 			this.#tourInstance = new VideoTourInstance(p.image, p.tour);
-			if (isTourOnly) {
+
+			if (this.#mediaEl) {
+				this.#mediaEl.addEventListener('play', () => this.#tourInstance?.play());
+				this.#mediaEl.addEventListener('pause', () => this.#tourInstance?.pause());
+			}
+
+			if (isStandaloneVideoTour) {
 				this.#duration = this.#tourInstance.duration;
 				const ival = setInterval(() => {
 					this.#currentTime = this.#tourInstance!.currentTime;
@@ -246,11 +252,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				this._addCleanup(() => clearInterval(ival));
 				if (p.autoplay) this.#tourInstance.play();
 			} else {
-				const start = () => this.#tourInstance?.play();
-				this.#videoEl?.addEventListener('play', start);
-				this.#videoEl?.addEventListener('pause', () => this.#tourInstance?.pause());
-				this.#videoEl?.addEventListener('ended', () => this.#tourInstance?.pause());
-				if (!this.#videoEl?.paused) start();
+				this.#mediaEl?.addEventListener('ended', () => this.#tourInstance?.pause());
+				if (!this.#mediaEl?.paused) this.#tourInstance?.play();
 			}
 		}
 
@@ -272,7 +275,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
 
 			const onplaypause = () => {
-				const el = this.#videoEl;
+				const el = this.#mediaEl;
 				if (el) {
 					if (el.paused) el.play().catch(() => { });
 					else el.pause();
@@ -288,7 +291,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			};
 
 			const onmute = () => {
-				const el = this.#videoEl;
+				const el = this.#mediaEl;
 				if (el) {
 					this.#muted = !this.#muted;
 					el.muted = this.#muted;
@@ -301,7 +304,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			};
 
 			const onseek = (n: number) => {
-				const el = this.#videoEl;
+				const el = this.#mediaEl;
 				if (el) {
 					el.currentTime = n;
 				} else if (this.#tourInstance) {
@@ -312,7 +315,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			};
 
 			const update = () => {
-				const el = this.#videoEl;
+				const el = this.#mediaEl;
 				if (el) {
 					this.#currentTime = el.currentTime;
 					this.#duration = el.duration || 0;
@@ -356,21 +359,21 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				parent: figure,
 			}) as MicrioElement;
 
-			if (this.#videoEl && (this.#videoEl instanceof HTMLVideoElement || this.#videoEl instanceof HTMLAudioElement)) {
-				this.#videoEl.addEventListener('timeupdate', () => {
+			if (this.#mediaEl && (this.#mediaEl instanceof HTMLVideoElement || this.#mediaEl instanceof HTMLAudioElement)) {
+				this.#mediaEl.addEventListener('timeupdate', () => {
 					update();
 					this.#tourInstance?.updateEvents(this.#currentTime);
 					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
 				});
-				this.#videoEl.addEventListener('loadedmetadata', update);
-				this.#videoEl.addEventListener('play', update);
-				this.#videoEl.addEventListener('pause', update);
-				this.#videoEl.addEventListener('ended', () => {
+				this.#mediaEl.addEventListener('loadedmetadata', update);
+				this.#mediaEl.addEventListener('play', update);
+				this.#mediaEl.addEventListener('pause', update);
+				this.#mediaEl.addEventListener('ended', () => {
 					update();
 					p.onended?.();
 				});
-				this.#videoEl.addEventListener('seeking', () => { this.#seeking = true; update(); });
-				this.#videoEl.addEventListener('seeked', () => { this.#seeking = false; update(); });
+				this.#mediaEl.addEventListener('seeking', () => { this.#seeking = true; update(); });
+				this.#mediaEl.addEventListener('seeked', () => { this.#seeking = false; update(); });
 
 				update();
 			}

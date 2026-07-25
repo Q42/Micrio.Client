@@ -32,7 +32,7 @@ micrio-media figure:is(:fullscreen, :-webkit-full-screen) video {
 micrio-media figure:has(video) {
 	width: auto;
 }
-micrio-media figure.videotour {
+:is(micrio-tour, micrio-serial-tour) micrio-media figure {
 	position: fixed;
 	bottom: var(--micrio-border-margin);
 	left: 50%;

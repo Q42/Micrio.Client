@@ -137,7 +137,6 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				}
 			}) as MicrioElement;
 			this.#mediaEl = media;
-			this.#mediaEl!.querySelector('figure')?.classList.add('videotour');
 			await afterFrame();
 			this.#injectBars();
 
