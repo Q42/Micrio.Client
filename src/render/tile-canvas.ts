@@ -291,7 +291,7 @@ export class TileCanvas {
 	#stepOpacity(): void {
 		const fadeDuration = this.main._distanceX !== 0 || this.main._distanceY !== 0
 			? this.main._spacesTransitionDuration
-			: this.main._canvases.length === 1 ? .25 : this.main._crossfadeDuration;
+			: this.main._canvases.length === 1 && !this._hasParent ? .25 : this.main._crossfadeDuration;
 		const delta: number = (1 / fadeDuration) / this.main._frameTime;
 		const fadingIn: boolean = this._targetOpacity > 0 && this._targetOpacity >= this._opacity;
 		this._opacity = fadingIn ? Math.min(1, this._opacity + delta) : Math.max(0, this._opacity - delta);
