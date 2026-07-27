@@ -330,6 +330,13 @@ export namespace ImageInfo {
 
 		/** Watermark opacity, defaults to 0.075 */
 		watermarkOpacity?: number;
+
+		/** Split-screen: open a secondary image alongside this one (Micrio ID). */
+		micrioSplitLink?: string;
+		/** Split-screen: if true, the secondary camera does not follow the primary. */
+		noFollow?: boolean;
+		/** Split-screen: if false, the secondary image is display-only (no user interaction). */
+		secondaryInteractive?: boolean;
 	}
 
 	export type OmniSettings = {

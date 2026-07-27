@@ -475,6 +475,12 @@ export class Engine {
 		}
 	}
 
+	/** Places a MicrioImage on the engine directly, without touching the `current` store. @internal */
+	_addCanvasDirect(c: MicrioImage): void {
+		if (c._placed) return;
+		this.#addCanvas(c);
+	}
+
 	/** Removes a canvas instance from the engine. @internal */
 	_removeCanvas(c: MicrioImage): void {
 		if (!c._placed) throw new Error('Canvas is not placed yet');

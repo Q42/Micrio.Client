@@ -22,6 +22,7 @@ import { Gallery } from '$gallery/controller';
 import { isRTL } from '$core/i18n/locale';
 import { i18n, langs } from '$core/i18n/strings';
 import { MicrioElement } from '$core/component';
+import { openSplit, closeAllSplits } from '$core/split';
 import './element.css';
 import { createElement } from '$utils/dom';
 import { IdleState } from '$utils/idle';
@@ -503,6 +504,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(this.$current && bundle.id == this.$current?.id) return this.$current;
 
+		// Close any active splits when navigating away
+		if(this.$current && !opts.gridView) closeAllSplits(this);
+
 		if(!opts.gridView && this.$current) this._switching.set(true);
 		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
 
@@ -579,6 +583,16 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		if(c._noImage) this._loading.set(false);
+
+		// Settings-level split screen (auto-open on load)
+		if(c.$settings.micrioSplitLink && !c._noImage && !c.grid) {
+			tick().then(() => {
+				if(this.$current !== c) return;
+				openSplit(this, c, { micrioId: c.$settings.micrioSplitLink! }, {
+					isPassive: !c.$settings.noFollow,
+				});
+			});
+		}
 
 		return c;
 	}

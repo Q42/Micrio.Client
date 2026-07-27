@@ -230,6 +230,11 @@ export namespace ImageData {
 		alwaysOpen?: boolean;
 		/** The marker scales with the zooming image */
 		scales?: boolean;
+		/**
+		 * When opening this marker, split the screen and open this image on the side.
+		 * Comma-separated format: `"micrioId,markerId,follows"`
+		 */
+		micrioSplitLink?: string;
 		/** Grid tour transition animation */
 		gridTourTransition?: Grid.MarkerFocusTransition;
 		/** Optional custom settings. This is the "Custom JSON" field in the marker editor */

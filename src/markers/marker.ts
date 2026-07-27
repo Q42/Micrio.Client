@@ -4,6 +4,7 @@ import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
 import { getSpaceVector } from '$utils/space';
 import { createElement } from '$utils/dom';
+import { openSplit, closeSplit, parseSplitLink, getSplitSecondary } from '$core/split';
 
 /** Props for the individual marker custom element. @internal */
 export interface MarkerProps {
@@ -195,6 +196,27 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector });
 				});
 			}
+
+			const splitRaw = data.micrioSplitLink;
+			if (splitRaw) {
+				const parsed = parseSplitLink(splitRaw);
+				if (parsed) {
+					const existing = getSplitSecondary(image);
+					if (existing) {
+						if (existing.id === parsed.micrioId) {
+							if (parsed.markerId) {
+								const m = existing.$data?.markers?.find(m => m.id === parsed.markerId);
+								if (m) existing.state.marker.set(m);
+							}
+						} else {
+							closeSplit(micrio, image);
+							tick().then(() => openSplit(micrio, image, parsed, { isPassive: parsed.follows }));
+						}
+					} else {
+						openSplit(micrio, image, parsed, { isPassive: parsed.follows });
+					}
+				}
+			}
 		};
 
 		const close = () => {
@@ -208,7 +230,20 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (typeof m == 'string' && m == marker.id) image.state.marker.set(marker);
 			else if (m == marker) activated();
 			else if (!data.alwaysOpen && (!m || m != marker)) {
-				if (this.#opened) close();
+				if (this.#opened) {
+					// Only close split if new marker doesn't target the same image
+					const newMarker = (m && typeof m !== 'string') ? m : null;
+					if (!newMarker || !newMarker.data?.micrioSplitLink) {
+						closeSplit(micrio, image);
+					} else {
+						const newParsed = parseSplitLink(newMarker.data.micrioSplitLink);
+						const existing = getSplitSecondary(image);
+						if (!newParsed || !existing || newParsed.micrioId !== existing.id) {
+							closeSplit(micrio, image);
+						}
+					}
+					close();
+				}
 				else if (!m) this.classList.remove('opened');
 				this.#opened = false;
 				if (!get(micrio.state.tour)) image.camera.stop();

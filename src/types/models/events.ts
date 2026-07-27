@@ -123,6 +123,12 @@ export interface MicrioEventDetails {
 	/** The main grid has lost focus, i.e., navigated away */
 	'grid-blur': void;
 
+	// Split-screen
+	/** A split-screen secondary image has been opened */
+	'splitscreen-start': MicrioImage;
+	/** A split-screen secondary image has been closed */
+	'splitscreen-stop': MicrioImage;
+
 	// Special cases
 	/** When there is any user action, this event fires. Deferred and fires at a maximum rate of every 500ms */
 	'update': Array<string>;
