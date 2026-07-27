@@ -367,7 +367,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				parent: figure,
 			}) as MicrioElement;
 
-			if (this.#mediaEl && (this.#mediaEl instanceof HTMLVideoElement || this.#mediaEl instanceof HTMLAudioElement)) {
+			if (this.#mediaEl && (this.#mediaEl instanceof HTMLVideoElement || this.#mediaEl instanceof HTMLAudioElement) && !isStandaloneVideoTour) {
 				this.#mediaEl.addEventListener('timeupdate', () => {
 					update();
 					this.#tourInstance?.updateEvents(this.#currentTime);
