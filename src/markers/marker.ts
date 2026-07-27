@@ -230,15 +230,17 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			else if (m == marker) activated();
 			else if (!data.alwaysOpen && (!m || m != marker)) {
 				if (this.#opened) {
-					// Only close split if new marker doesn't target the same image
-					const newMarker = (m && typeof m !== 'string') ? m : null;
-					if (!newMarker || !newMarker.data?.micrioSplitLink) {
-						closeSplit(micrio, image);
-					} else {
-						const newParsed = parseSplitLink(newMarker.data.micrioSplitLink);
-						const existing = getSplitSecondary(image);
-						if (!newParsed || !existing || newParsed.micrioId !== existing.id) {
+					// Only manage split lifecycle if this marker itself has a split link
+					if (data.micrioSplitLink) {
+						const newMarker = (m && typeof m !== 'string') ? m : null;
+						if (!newMarker || !newMarker.data?.micrioSplitLink) {
 							closeSplit(micrio, image);
+						} else {
+							const newParsed = parseSplitLink(newMarker.data.micrioSplitLink);
+							const existing = getSplitSecondary(image);
+							if (!newParsed || !existing || newParsed.micrioId !== existing.id) {
+								closeSplit(micrio, image);
+							}
 						}
 					}
 					close();
