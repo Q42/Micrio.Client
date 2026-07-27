@@ -141,7 +141,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		};
 
 		const activated = async () => {
-			if (this.#opened) return;
+			if (this.#opened) {
+				if (!get(micrio.state.popup)) image.state.marker.set(undefined);
+				return;
+			}
 			this.#opened = true;
 			this.classList.add('opened');
 			clearTimeout(this.#fto);
