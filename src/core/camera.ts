@@ -88,16 +88,19 @@ export class Camera {
 		correctNorth?: boolean;
 		/** If true, prevents triggering a render after setting the view. */
 		noRender?: boolean;
-		/** If provided, interprets `view` relative to this sub-area instead of the full image. */
-		area?: Models.Camera.View;
 	} = {}): void {
 		if (!this.#canvas) return;
 		let { centerX, centerY, width, height } = toCenterJSON(view);
-		if (opts.area) {
-			centerX = opts.area[0] + centerX * opts.area[2];
-			centerY = opts.area[1] + centerY * opts.area[3];
-			width *= opts.area[2];
-			height *= opts.area[3];
+		// When this image shares a parent canvas (e.g. an embed using useParentCamera),
+		// remap view coordinates from the sub-image's [0,1] space to the parent canvas.
+		if (this.#image.opts.useParentCamera) {
+			const a = this.#image.opts.area;
+			if (a) {
+				centerX = a[0] + centerX * a[2];
+				centerY = a[1] + centerY * a[3];
+				width *= a[2];
+				height *= a[3];
+			}
 		}
 		this.#canvas._setView(centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
 		if (!opts.noRender) this.#image.engine.render();
@@ -364,8 +367,6 @@ export class Camera {
 		isJump?: boolean;
 		/** For Omni objects: the target image frame index to animate to. */
 		omniIndex?: number;
-		/** If provided, interprets `view` relative to this sub-area. */
-		area?: Models.Camera.View;
 		/** If true, respects the image's maximum zoom limit during animation. */
 		limitZoom?: boolean;
 		/** If provided, adds a margin to the view. */
@@ -378,10 +379,14 @@ export class Camera {
 				centerX += opts.margin[0]; centerY += opts.margin[1];
 				width -= opts.margin[0] * 2; height -= opts.margin[1] * 2;
 			}
-			if (opts.area) {
-				const a = opts.area;
-				centerX = a[0] + centerX * a[2]; centerY = a[1] + centerY * a[3];
-				width *= a[2]; height *= a[3];
+			// When this image shares a parent canvas (e.g. an embed using useParentCamera),
+			// remap view coordinates from the sub-image's [0,1] space to the parent canvas.
+			if (this.#image.opts.useParentCamera) {
+				const a = this.#image.opts.area;
+				if (a) {
+					centerX = a[0] + centerX * a[2]; centerY = a[1] + centerY * a[3];
+					width *= a[2]; height *= a[3];
+				}
 			}
 			if (opts.prevView) {
 				const pCV = toCenterJSON(opts.prevView);

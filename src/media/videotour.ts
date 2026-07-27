@@ -260,7 +260,6 @@ export class VideoTourInstance {
 		if (!step) return;
 
 		const prevStep = this.#timeline[this.#currentIndex - 1];
-		const area = this.#image.opts?.area;
 		const prevView: Models.Camera.View | undefined = prevStep?.view;
 
 		if (this.#wasPaused && prevView) {
@@ -272,14 +271,13 @@ export class VideoTourInstance {
 				pv.centerY * (1 - p) + nv.centerY * p - (pv.height * (1 - p) + nv.height * p) / 2,
 				pv.width * (1 - p) + nv.width * p,
 				pv.height * (1 - p) + nv.height * p
-			], { noLimit: true, area });
+			], { noLimit: true });
 			this.#nextStep();
 		} else {
 			this.#image.camera.flyToView(step.view, {
 				duration: step.duration,
 				progress: perc,
 				prevView,
-				area
 			}).then(() => {
 				if (this.#currentIndex != undefined && step === this.#timeline[this.#currentIndex])
 					this.#nextStep();

@@ -122,7 +122,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (markerSettings.noMarkerActions) return;
 			if (marker.type == 'cluster') {
 				if (marker.view && micrio.$current?.$info) {
-					image.camera.flyToView(marker.view, { area: image.opts?.area, limitZoom: true });
+					image.camera.flyToView(marker.view, { limitZoom: true });
 				}
 			} else {
 				image.state.marker.set(marker);
@@ -152,7 +152,6 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			await tick();
 			if (marker.view && !data.noAnimate && !marker.videoTour) {
 				image.camera.flyToView(marker.view, {
-					area: image.opts?.area,
 					omniIndex: image._isOmni ? this.#omniIndex : undefined,
 					isJump: true
 				}).then(openContent).catch(() => {
