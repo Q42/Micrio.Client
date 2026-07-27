@@ -116,6 +116,7 @@ export namespace State {
 					// Fire zoom callbacks if dimensions changed significantly
 					if(!pW || !pH || Math.abs((nW-pW)+(nH-pH)) > 1E-5) {
 						for(const fn of m._onZoom) fn(detail);
+						m.events._dispatch('zoom', {image, view});
 						pW=nW,pH=nH; // Update previous dimensions
 					}
 					// Fire move callbacks
