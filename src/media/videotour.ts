@@ -88,15 +88,16 @@ export class VideoTourInstance {
 	destroy(): void {
 		if (this.#unhookEvents) this.#micrio.events.enabled.set(true);
 		this.#deactivateEvents();
-		if (!this.#playing) return;
-		this.#image.camera.stop();
 		this.#micrio.removeAttribute('data-tour-active');
+		clearTimeout(this.#_to);
+		if (this.#playing) {
+			this.#image.camera.stop();
+			this.#playing = false;
+		}
 		this.#micrio.events._dispatch('videotour-stop', this.#data);
-		this.#playing = false;
 		this.#startedAt = undefined;
 		this.#data.instance = undefined;
 		this.#startAt = undefined;
-		clearTimeout(this.#_to);
 	}
 
 	/** Parses the raw timeline data from the tour content into the internal `timeline` array. */
