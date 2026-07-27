@@ -7,6 +7,10 @@ searchable Knowledge Base at:
 
 [https://doc.micr.io/](https://doc.micr.io/)
 
+This application is open source and is available on GitHub:
+
+https://github.com/Q42/Micrio.Client
+
 ## NPM package
 
 For the npm package `@micrio/client`, see https://www.npmjs.com/package/@micrio/client

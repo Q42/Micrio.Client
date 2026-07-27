@@ -3,6 +3,9 @@
  * 
  * The `<micr-io>` viewer client.
  * 
+ * For the TypeScript API documentation (these pages), start your journey at the `<micr-io>`
+ * element definition: {@link HTMLMicrioElement}
+ * 
  * Main documentation page: https://doc.micr.io/ .
  *
  * Visit https://doc.micr.io/client/embedding.html for documentation on how to embed
