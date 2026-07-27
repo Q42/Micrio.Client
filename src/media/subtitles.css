@@ -26,8 +26,8 @@ micrio-subtitles p {
 	line-height: inherit;
 }
 @media (max-width: 640px) {
-	micrio-subtitles {
+	micrio-subtitles p {
 		width: 95vw;
-		font-size: .7em;
+		font-size: 1.4em;
 	}
 }
