@@ -17,8 +17,6 @@ export namespace Attributes {
 		'data-skipmeta'?: boolean;
 		/** Simulate an <img/> element. No logo, loader bar, and no event listeners. Default: false */
 		'data-static'?: boolean;
-		/** Sending user input as GA Events to any available GTag instance (does nothing if none). Default: true */
-		'data-gtag'?: boolean;
 
 		// Camera controls
 		/** Set the speed factor for camera animations. Default: 1 */

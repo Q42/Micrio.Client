@@ -17,10 +17,6 @@ html {
 	--micrio-button-size: 48px;
 	--micrio-button-shadow: 0 4px 8px rgba(0,0,0,.33);
 
-	--micrio-transition-fast: .15s ease;
-	--micrio-transition: .25s ease;
-	--micrio-transition-slow: .5s ease;
-
 	--micrio-marker-size: 16px;
 	--micrio-marker-text-color: #fff;
 	--micrio-marker-text-shadow: 0px 2px 4px rgba(0,0,0,0.6);
