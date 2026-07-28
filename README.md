@@ -11,6 +11,12 @@ This application is open source and is available on GitHub:
 
 https://github.com/Q42/Micrio.Client
 
+## Upgrading to the latest version (v7)
+
+If you are using Micrio inside your project, and have custom CSS and/or using the JS API, check out this document which has all changes from earlier versions:
+
+https://doc.micr.io/client/v7/changes.html
+
 ## NPM package
 
 For the npm package `@micrio/client`, see https://www.npmjs.com/package/@micrio/client
