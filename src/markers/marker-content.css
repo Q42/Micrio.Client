@@ -17,8 +17,7 @@ micrio-marker-content h1 {
 	margin: 0 0 1.25em 0;
 }
 micrio-marker-content h1:only-child {
-	line-height: var(--micrio-button-size);
-	margin: calc(-1 * var(--micrio-popup-padding)) 0 0 0;
+	margin-bottom: var(--micrio-popup-padding);
 }
 micrio-marker-content p {
 	white-space: pre-line;
