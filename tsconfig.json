@@ -1,22 +1,43 @@
 {
-	"extends": "@tsconfig/svelte/tsconfig.json",
 	"compilerOptions": {
 		"strict": true,
-		"target": "ES2020",
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
 		"noEmit": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"paths": {
-			"$ts/*": ["./src/ts/*"],
 			"$types/*": ["./src/types/*"],
-			"$engine/*": ["./src/engine/*"]
+			"$media/*": ["./src/media/*"],
+			"$core/*": ["./src/core/*"],
+			"$ui/*": ["./src/ui/*"],
+			"$markers/*": ["./src/markers/*"],
+			"$tour/*": ["./src/tour/*"],
+			"$gallery/*": ["./src/gallery/*"],
+			"$render/*": ["./src/render/*"],
+			"$utils/*": ["./src/utils/*"],
+			"$audio/*": ["./src/audio/*"],
+			"$embed/*": ["./src/embed/*"],
+			"$layout/*": ["./src/layout/*"],
+			"$grid/*": ["./src/grid/*"]
 		}
 	},
 	"include": [
-		"src/svelte/Main.svelte",
+		"src/*.ts",
 		"src/types/**/*",
-		"src/ts/**/*",
-		"src/engine/**/*",
+		"src/media/**/*",
+		"src/core/**/*",
+		"src/ui/**/*",
+		"src/markers/**/*",
+		"src/tour/**/*",
+		"src/gallery/**/*",
+		"src/audio/**/*",
+		"src/embed/**/*",
+		"src/layout/**/*",
+		"src/render/**/*",
+		"src/utils/**/*",
+		"src/grid/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }

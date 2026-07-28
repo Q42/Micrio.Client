@@ -1,0 +1,16 @@
+
+micrio-markers>* {
+	pointer-events: all;
+}
+micrio-markers.inactive>* {
+	pointer-events: none;
+}
+micrio-main.is360 micrio-markers {
+	transition: opacity .25s;
+}
+micrio-main.is360 micrio-markers.inactive {
+	opacity: 0;
+}
+micr-io[data-tour-active] micrio-markers {
+	display: none;
+}

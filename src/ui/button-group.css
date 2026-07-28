@@ -1,0 +1,23 @@
+micrio-button-group {
+	display: block;
+}
+micrio-button-group micrio-button > :is(button, a) {
+	border-radius: 0;
+	box-shadow: none;
+	--micrio-button-background: transparent;
+	--micrio-background-filter: none;
+}
+micrio-button-group > micrio-button:first-child > :is(button, a),
+micrio-button-group > :first-child > micrio-button:first-child > :is(button, a) {
+	border-radius: var(--micrio-border-radius) var(--micrio-border-radius) 0 0;
+}
+micrio-button-group > micrio-button:last-child > :is(button, a),
+micrio-button-group > :last-child > micrio-button:last-child > :is(button, a) {
+	border-radius: 0 0 var(--micrio-border-radius) var(--micrio-border-radius);
+}
+
+@media (max-width: 500px) {
+	micrio-button-group micrio-button > :is(button, a) {
+		height: calc(var(--micrio-button-size) - 4px);
+	}
+}

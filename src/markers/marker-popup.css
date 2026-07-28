@@ -1,0 +1,68 @@
+
+micrio-marker-popup {
+	display: block;
+	cursor: auto;
+	position: absolute;
+	top: var(--micrio-border-margin);
+	left: var(--micrio-border-margin);
+}
+micrio-marker-popup > aside {
+	padding: 0;
+	position: absolute;
+}
+@keyframes micrio-popup-in {
+	from {
+		opacity: 0;
+		transform: translateX(-50px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+@media (min-width: 501px) {
+	micrio-marker-popup {
+		width: 440px;
+		min-width: 20%;
+		animation: micrio-popup-in .2s ease-out;
+	}
+	micrio-marker-popup>aside {
+		left: calc(100% + var(--micrio-border-margin));
+		top: 0;
+		flex-direction: column-reverse;
+	}
+	micrio-marker-popup.destroying {
+		animation: none;
+		opacity: 0;
+		transform: translateX(-50px);
+		pointer-events: none;
+		transition: opacity .2s ease-out,transform .2s ease-out;
+	}
+}
+@media (max-width: 500px) {
+	micrio-marker-popup>aside {
+		top: 0;
+		right: 0;
+		z-index: 2;
+		--micrio-button-shadow: none;
+		--micrio-background: none;
+		--micrio-background-filter: none;
+	}
+	micrio-marker-popup :is(h1,micrio-media:only-child) {
+		margin-right: calc(var(--micrio-button-size) - 2 * var(--micrio-border-margin, 0));
+	}
+	micrio-marker-popup {
+		width: auto;
+		right: var(--micrio-border-margin);
+		display: flex;
+		top: auto;
+		top: var(--micrio-border-margin);
+		flex-direction: column;
+		justify-content: space-between;
+		transition: opacity .25s ease;
+	}
+	micrio-marker-popup.destroying {
+		opacity: 0;
+		pointer-events: none;
+	}
+}

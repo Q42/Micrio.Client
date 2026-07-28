@@ -1,0 +1,74 @@
+micrio-media-controls {
+	display: block;
+}
+micrio-media-controls > aside {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	--micrio-background: var(--micrio-background, #000);
+}
+micrio-media-controls micrio-button > button {
+	border-radius: 0;
+	margin: 0;
+	border: none;
+}
+micrio-media-controls .subtitles button:not(.active) {
+	color: var(--micrio-color)!important;
+}
+micrio-media-controls .subtitles button:not(.active) svg {
+	fill: var(--micrio-color)!important;
+}
+micrio-media-controls micrio-button:last-child {
+	margin-right: 16px;
+}
+:fullscreen micrio-media-controls {
+	position: absolute;
+	bottom: var(--micrio-border-margin, 5px);
+	left: 50%;
+	transform: translateX(-50%);
+	width: 430px;
+	max-width: calc(100vw - 2 * var(--micrio-border-margin, 0));
+	max-width: calc(100cqw - 2 * var(--micrio-border-margin, 0));
+	border-radius: var(--micrio-border-radius);
+}
+micrio-media-controls aside > div {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 8px;
+}
+micrio-media-controls [data-part="bars"] {
+	flex: 1;
+	height: 4px;
+	background: var(--micrio-progress-bar-background, var(--micrio-color-hover));
+	cursor: pointer;
+	position: relative;
+	border-radius: 2px;
+}
+micrio-media-controls [data-part="bar"] {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	background: var(--micrio-color);
+}
+micrio-media-controls [data-part="bars"] > [data-part="bar"]:first-child {
+	border-radius: 2px 0 0 2px;
+}
+micrio-media-controls [data-part="bars"] > [data-part="bar"]:last-child {
+	border-radius: 0 2px 2px 0;
+}
+micrio-media-controls [data-part="bars"] > [data-part="bar"]:only-child {
+	border-radius: 2px;
+}
+micrio-media-controls aside > div > span {
+	font-size: 90%;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+	color: var(--micrio-color);
+	text-align: center;
+	min-width: 50px;
+	padding: 0;
+	display: block;
+}

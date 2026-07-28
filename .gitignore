@@ -1,3 +1,4 @@
 node_modules
 public/dist/micrio.min.*
 public/build/micrio.prod.*
+pnpm-lock.yaml

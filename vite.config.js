@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -8,9 +7,19 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 export default defineConfig({
 	resolve: {
 		alias: {
-			'$ts': resolve('src/ts'),
 			'$types': resolve('src/types'),
-			'$engine': resolve('src/engine'),
+			'$media': resolve('src/media'),
+			'$core': resolve('src/core'),
+			'$ui': resolve('src/ui'),
+			'$markers': resolve('src/markers'),
+			'$tour': resolve('src/tour'),
+			'$gallery': resolve('src/gallery'),
+			'$audio': resolve('src/audio'),
+			'$embed': resolve('src/embed'),
+			'$layout': resolve('src/layout'),
+			'$render': resolve('src/render'),
+			'$grid': resolve('src/grid'),
+			'$utils': resolve('src/utils'),
 		}
 	},
 	define: {
@@ -23,35 +32,43 @@ export default defineConfig({
 		minify: 'terser',
 		terserOptions: {
 			compress: {
-				pure_funcs: ['console.log']
-			}
+				pure_funcs: ['console.log'],
+				booleans_as_integers: true,
+				passes: 6,
+				unsafe_arrows: true,
+				unsafe_comps: true,
+				unsafe_math: true,
+				unsafe_methods: true,
+				unsafe_proto: true,
+				unsafe_regexp: true,
+				unsafe_undefined: true,
+				drop_debugger: true,
+				ecma: 2022,
+			},
+			mangle: {
+				toplevel: false,
+				keep_classnames: false,
+				keep_fnames: false,
+				properties: {
+					// Mangle properties that start with an underscore
+					regex: /^_/,
+				},
+			},
+			format: {
+				comments: false,
+			},
 		},
 		lib: {
-			entry: `./src/ts/main.ts`,
+			entry: `./src/main.ts`,
 			name: 'Micrio',
 			fileName: `micrio.prod`,
 			formats: ['iife']
 		},
 		rollupOptions: {
 			output: {
-				globals: {
-					'_c': '_c',
-					'_u': '_u',
-					'_b': '_b'
-				},
+		
 				assetFileNames: () => `micrio.prod[extname]`
 			}
 		}
-	},
-	plugins: [
-		svelte({
-			preprocess: vitePreprocess(),
-			compilerOptions: {
-				// Kebabcase classnames
-				cssHash: ({name}) => 'micrio-'+name.split('').map((letter, idx) =>
-					letter.toUpperCase() === letter ? `${idx !== 0 ? '-' : ''}${letter.toLowerCase()}` : letter
-				).join('')
-			}
-		})
-	]
+	}
 });

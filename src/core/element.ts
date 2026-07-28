@@ -1,0 +1,666 @@
+import type { Writable } from '$core/store';
+import type { Models } from '$types/models';
+import type { Camera } from './camera';
+import type { MicrioMain } from '$layout/main';
+
+import { deepCopy } from '$utils/object';
+import { fetchJson } from '$utils/fetch';
+import { idIsV5 } from '$utils/id';
+import { MicrioError, getErrorMessage } from '$core/error';
+import { DataLoader } from '$utils/dataLoader';
+import { VERSION } from './version';
+import { ATTRIBUTE_OPTIONS as AO, DEFAULT_SETTINGS, localStorageKeys } from './globals';
+import { writable, get, tick } from '$core/store';
+import { Engine } from '$render/engine';
+import { WebGL } from '$render/webgl';
+import { Canvas } from '$render/canvas';
+import { Events } from '$core/events/facade';
+import { MicrioImage } from './image';
+import { State} from './state';
+
+import { Gallery } from '$gallery/controller';
+import { isRTL } from '$core/i18n/locale';
+import { i18n, langs } from '$core/i18n/strings';
+import { MicrioElement } from '$core/component';
+import { openSplit, closeAllSplits } from '$core/split';
+import './element.css';
+import { createElement } from '$utils/dom';
+import { IdleState } from '$utils/idle';
+
+/**
+ * The main Micrio custom HTML element `<micr-io>`.
+ * This class acts as the central controller for the Micrio viewer, managing
+ * the WebGL canvas, compute engine, UI, state, events, and image loading.
+ *
+ * It orchestrates the interaction between different parts of the library and
+ * exposes methods and properties for controlling the viewer.
+ *
+ * @example
+ * ```html
+ * <micr-io id="image123"></micr-io>
+ * <script>
+ *   const viewer = document.querySelector('micr-io');
+ *   viewer.open('image456');
+ *   viewer.addEventListener('marker-click', (e) => console.log(e.detail));
+ * </script>
+ * ```
+ * 
+ * @author Marcel Duin <marcel@micr.io>
+*/
+export class HTMLMicrioElement extends MicrioElement {
+	/** Observed attributes trigger `attributeChangedCallback` when changed. */
+	static get observedAttributes() { return ['id', 'muted', 'data-limited', 'lang']; }
+
+	/** The Micrio library version number. */
+	static VERSION:string;
+
+	/** The custom element tag name registered via `customElements.define`. @internal */
+	static tag = 'micr-io';
+
+	/** Flag indicating if the initial print/setup has occurred.
+	 * @internal
+	*/
+	#printed: boolean = false;
+
+	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
+	 * @internal
+	*/
+	readonly _canvases: MicrioImage[] = [];
+
+	/**
+	 * Writable store holding the currently active main {@link MicrioImage}.
+	 * Use `<micr-io>.open()` to change the active image.
+	 * Subscribe to this store to react to image changes.
+	 * Access the current value directly using the {@link $current} getter.
+	 */
+	readonly current:Writable<MicrioImage|undefined> = writable();
+
+	/** Writable store holding an array of currently visible {@link MicrioImage} instances (relevant for grid).
+	 * @internal
+	*/
+	readonly _visible:Writable<MicrioImage[]> = writable([]);
+
+	/** Internal reference to the current image instance.
+	 * @internal
+	*/
+	#current: MicrioImage|undefined;
+
+	/**
+	 * Getter for the current value of the {@link current} store.
+	 * Provides direct access to the active {@link MicrioImage} instance.
+	 * @readonly
+	*/
+	get $current():MicrioImage|undefined {return this.#current}
+
+	/** Getter for the virtual {@link Camera} instance of the currently active image. */
+	get camera():Camera|undefined {return this.#current?.camera}
+
+	/** The controller managing the HTML `<canvas>` element, resizing, and viewport. */
+	readonly canvas:Canvas = new Canvas(this);
+
+	/** The controller managing user input events (mouse, touch, keyboard) and dispatching custom events. */
+	readonly events:Events = new Events(this);
+
+	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
+	readonly state:State.Main = new State.Main();
+
+	/** Direct callbacks invoked on every camera move (instead of dispatching a DOM event).
+	 * @internal
+	*/
+	readonly _onMove: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
+	/** Direct callbacks invoked on every camera zoom (instead of dispatching a DOM event).
+	 * @internal
+	*/
+	readonly _onZoom: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
+
+	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
+	readonly barebone:Writable<boolean> = writable(false);
+
+	/** The WebGL rendering controller.
+	 * @internal
+	*/
+	readonly _webgl:WebGL = new WebGL(this);
+
+	/** The compute engine controller, managing the render loop and tile drawing.
+	 * @internal
+	*/
+	readonly _engine:Engine = new Engine(this);
+
+	/** The root MicrioMain UI component instance.
+	 * @internal
+	*/
+	_ui?:MicrioMain;
+
+	/** Custom settings object provided programmatically, overriding server-fetched settings. */
+	defaultSettings?: Partial<Models.ImageInfo.Settings>;
+
+	/** Writable store indicating the overall loading state of the viewer.
+	 * @internal
+	*/
+	readonly _loading:Writable<boolean> = writable(true);
+
+	/** Writable store indicating if the viewer is currently transitioning between images.
+	 * @internal
+	*/
+	readonly _switching:Writable<boolean> = writable(false);
+
+	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute and localStorage.
+	 * @internal
+	*/
+	readonly _isMuted:Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) == '1')
+
+	/** Writable store holding the currently active language code (e.g., 'en', 'nl').
+	 * @internal
+	*/
+	readonly _lang: Writable<string> = writable();
+
+	/** Holds data for the current 360 space, if applicable (loaded via `data-space` attribute or API). */
+	spaceData:Models.Spaces.Space|undefined;
+
+	/** The current active gallery controller, if any. */
+	readonly gallery: Writable<Gallery|undefined> = writable();
+
+	/** If true, forces the WebGL render loop to run continuously, even when idle.
+	 * @internal
+	*/
+	_keepRendering: boolean = false;
+
+	/** Idle state manager — sets `data-idle` on the element after inactivity. */
+	#idle!: IdleState;
+
+	/** For setting first-time hooks
+	 * @internal
+	 */
+	#initedFirst: boolean = false;
+
+	/**
+	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-limited`, and `lang`.
+	 * @internal
+	*/
+	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, _oldVal:string, newVal:string) {
+		switch(attr) {
+			case 'id': {
+				if(!this.isConnected || !newVal) return;
+				if(!this.#printed) this.#print();
+				else this.open(newVal);
+			} break;
+			case 'muted':
+				if (get(this._isMuted) !== this.hasAttribute('muted'))
+					this._isMuted.set(this.hasAttribute('muted'));
+				break;
+			case 'data-limited':
+				if(this._engine?._vertexBuffer && this.$current?.canvas)
+					this.$current.canvas._limited = !!newVal;
+				break;
+			case 'lang': {
+			let prevLang = get(this._lang);
+			if(prevLang != newVal) {
+				this._lang.set(newVal);
+				const baseLang = newVal.split('-')[0];
+					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en);
+					if(newVal) {
+						if(isRTL(newVal)) this.setAttribute('dir', 'rtl');
+						else this.removeAttribute('dir');
+					}
+					if(prevLang) this.events._dispatch('lang-switch', newVal);
+				}
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Lifecycle hook called when the element is connected to the DOM.
+	 * Provides itself as 'micrio' to descendants, positions the canvas,
+	 * sets up the muted property, syncs the internal current reference,
+	 * and kicks off initial loading.
+	 * @internal
+	*/
+	_onMount() : void {
+		this._provide('micrio', this);
+
+		this.canvas.place();
+		if(this.id && !this.#printed) this.#print();
+
+		if(!('muted' in this)) {
+			Object.defineProperty(this, 'muted', {
+				get() { return get(this._isMuted) },
+				set(b:boolean) { if(b) this.setAttribute('muted',''); else this.removeAttribute('muted'); }
+			});
+			this._watch(this._isMuted, b => {
+				/** @ts-ignore */
+				this['muted'] = b;
+				if(b) {
+					localStorage.setItem(localStorageKeys.globalMuted, '1');
+					this.events._dispatch('audio-mute');
+				}
+				else {
+					localStorage.removeItem(localStorageKeys.globalMuted);
+					this.events._dispatch('audio-unmute');
+				}
+			});
+		}
+
+		const updateZoomed = () => {
+			const imgs = get(this._visible).filter(i => i.id);
+			const target = imgs.length === 1 ? imgs[0] : this.#current;
+			this.toggleAttribute('data-zoomed', !!target?.camera && !target.camera.isZoomedOut());
+		};
+
+		this._watch(this.current, c => {
+			this.#current = c;
+			updateZoomed();
+		});
+
+		this._watch(this._visible, () => updateZoomed());
+
+		const onZoomCb = () => updateZoomed();
+		this._onZoom.push(onZoomCb);
+		this._addCleanup(() => { const i = this._onZoom.indexOf(onZoomCb); if(i >= 0) this._onZoom.splice(i, 1); });
+
+		let shown = false;
+		const unsub = this._loading.subscribe(v => {
+			if (v) return;
+			unsub();
+			this.setAttribute('data-loaded','');
+
+			this._watch(this._switching, s => {
+				if(s) this.setAttribute('data-switching','');
+				else {
+					if(!shown) tick().then(() => this.events._dispatch('show', this));
+					shown = true;
+					this.removeAttribute('data-switching');
+				}
+			});
+
+			const img = this.querySelector('img.preview');
+			if(img) setTimeout(() => img.remove(), 500);
+		});
+
+		// ── Idle detection (data-idle after inactivity) ────────────────
+
+		this.#idle = new IdleState(this, {
+			shouldIdle: () => {
+				if (document.activeElement && this.contains(document.activeElement)) return false;
+				const buttons = this.querySelectorAll<HTMLElement>('button, micrio-button');
+				for (const el of buttons) {
+					if (el.matches(':hover')) return false;
+				}
+				return true;
+			},
+		});
+
+		const onActivity = () => this.#idle.activity();
+		for(const e of ['mouseover','pointerdown','wheel','focusin']) {
+			this.addEventListener(e, onActivity, { passive: true });
+		}
+		window.addEventListener('keydown', onActivity);
+		this.#idle.activity();
+	}
+
+	// Custom overloads for addEventListener to support fully typed custom Micrio events
+	/* @internal */
+	addEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	/* @internal */
+	addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	/* @internal */
+	addEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | AddEventListenerOptions): void;
+	/* @internal */
+	addEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.addEventListener(type, listener, useCapture); }
+
+	// Custom overloads for removeEventListener to support fully typed custom Micrio events
+	/* @internal */
+	removeEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	/* @internal */
+	removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	/* @internal */
+	removeEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | EventListenerOptions): void;
+	/* @internal */
+	removeEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.removeEventListener(type, listener, useCapture); }
+
+	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */
+	destroy() : void {
+		this.current.set(undefined);
+		this.events.enabled.set(false);
+		this.canvas.unhook();
+		this._engine._unbind();
+		if(this._ui) this._ui.remove();
+		delete this._ui;
+		this._webgl._dispose(true);
+		this.#idle?.destroy();
+		this.#printed = false;
+	}
+
+	/**
+	 * Fetches an IIIF manifest, attempts gallery creation, and falls back to a single-image BundleImage.
+	 * @returns The resolved BundleImage, or `undefined` if a gallery was opened or an error occurred.
+	 * @internal
+	 */
+	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
+		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.#printError(e); return undefined; });
+		if(!resp) return;
+
+		let gallery: Gallery | null;
+		try { gallery = Gallery._fromIIIF(resp, this._engine); }
+		catch(e) { this.#printError(e as Error); return; }
+		if(gallery) {
+			gallery._openOn(this);
+			return;
+		}
+
+		const baseId = resp['@id'] || resp.id || url.replace(/info.json$/, '');
+		return {
+			id: baseId,
+			info: {
+				id: baseId,
+				path: baseId.replace(/\/[^/]*$/, '') + '/',
+				width: resp.width,
+				height: resp.height,
+				version: VERSION,
+				isIIIF: true,
+			},
+		};
+	}
+
+	/**
+	 * Performs initial setup based on element attributes.
+	 * Loads necessary data like galleries, grids, or archives before opening the first image.
+	 * Handles lazy loading logic.
+	 * @internal
+	*/
+	async #print() : Promise<void> {
+		if(this.#printed) return;
+		this.#printed = true;
+		await tick();
+		const opts = this.#getOptions();
+		if(!opts.settings) opts.settings = {};
+		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
+
+		if (!opts.settings.noLogo) this.#printUI(!!opts.settings.noUI, false);
+
+		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
+			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => undefined);
+			if(bundle && bundle.info?.albumId) {
+				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this._engine, {
+					startId: opts.id,
+					onProgress: (p:number) => this._ui?._setProps?.({loadingProgress: p})
+				}).catch(() => null);
+				if(galleryCtrl) {
+					galleryCtrl._openOn(this);
+					return;
+				}
+			}
+		}
+
+		if(opts.id && opts.id.startsWith('http')) {
+			const bundle = await this.#handleIIIF(opts.id);
+			if(!bundle) return;
+			bundle.settings = opts.settings;
+			this.open(bundle);
+			return;
+		}
+
+		this._keepRendering = !!opts.settings.keepRendering;
+		this.events._dispatch('print', opts as Models.ImageInfo.ImageInfo);
+
+		const openBundle = () => {
+			if(opts.id) this.open(opts.id);
+		};
+		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {
+			const observer = new IntersectionObserver(e => {
+				if(!e[0] || !e[0].isIntersecting) return;
+				observer.unobserve(this);
+				openBundle();
+			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`});
+			observer.observe(this);
+		}
+		else if(opts.id) requestAnimationFrame(openBundle);
+	}
+
+	/**
+	 * Initializes or updates the MicrioMain UI component.
+	 * @internal
+	 * @param noHTML If true, renders a minimal UI without HTML overlays.
+	 * @param noLogo If true, hides the Micrio logo.
+	 */
+	#printUI(noHTML:boolean, noLogo:boolean) : void {
+		if(!this._ui) {
+			this._ui = createElement('micrio-main', { setProps: {noHTML, noLogo}, parent: this }) as MicrioMain;
+		} else {
+			this._ui._setProps?.({noHTML, noLogo});
+		}
+	}
+
+	/**
+	 * Displays an error message in the UI.
+	 * @internal
+	 * @param error The error (MicrioError, Error, or string) to display.
+	 */
+	#printError(error?: Error | string): void {
+		const message = getErrorMessage(error ?? 'An unknown error has occurred');
+		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
+		if(!this._ui) this.#printUI(false, false);
+		this._ui?._setProps?.({ error: message });
+		this._loading.set(false);
+	}
+
+	/**
+	 * Opens a Micrio image by its Micrio ID (triggers a `bundle.json` download) or
+	 * by providing a pre-resolved {@link Models.ImageBundle.BundleImage}.
+	 *
+	 * @param idOrInfo A Micrio image ID string or a full {@link Models.ImageBundle.BundleImage} object.
+	 * @param opts Options for opening the image.
+	 * @returns The {@link MicrioImage} instance being opened.
+	*/
+	async open(idOrInfo:string|Models.ImageBundle.BundleImage, opts:{
+		/** If true, keeps the grid view active instead of focusing on the opened image. */
+		gridView?: boolean,
+		/** An optional starting view to apply immediately. */
+		startView?: Models.Camera.View,
+		/** For 360 transitions, provides the direction vector from the previous image. */
+		vector?: Models.Camera.Vector,
+		/** Optional Gallery controller, used for gallery/grid views. */
+		gallery?: Gallery,
+	}={}) : Promise<MicrioImage> {
+		if(!this.#printed) await this.#print();
+
+		// ── Resolve input to a BundleImage ────────────────────────────────────
+
+		const attrOpts = this.#getOptions();
+		let bundle: Models.ImageBundle.BundleImage;
+
+		// IIIF URL: fetch manifest, attempt gallery, else extract single image info
+		if(typeof idOrInfo === 'string' && idOrInfo.startsWith('http')) {
+			const iiifBundle = await this.#handleIIIF(idOrInfo);
+			if(!iiifBundle) return this.$current!;
+			bundle = iiifBundle;
+		}
+		// Standard bundle ID: fetch from DataLoader
+		else if(typeof idOrInfo === 'string') {
+			bundle = (await DataLoader._getBundleImage(idOrInfo))!;
+			if(!bundle) {
+				this.#printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
+				return this.$current!;
+			}
+		}
+		// Already a BundleImage
+		else {
+			bundle = idOrInfo;
+		}
+
+		// ── Merge attribute / default settings (strings only — BundleImage already carries its own) ──
+
+		if(!bundle.settings) bundle.settings = {};
+		if(attrOpts.settings?.gallery?.archive && !/\.\d+$/.test(attrOpts.settings.gallery.archive))
+			delete attrOpts.settings.gallery.archive;
+		if(typeof idOrInfo === 'string') {
+			deepCopy(attrOpts.settings, bundle.settings);
+		}
+		if(this.defaultSettings) deepCopy(this.defaultSettings, bundle.settings);
+		if(bundle.settings?.gallery?.settings) deepCopy(bundle.settings.gallery.settings, bundle.settings);
+		deepCopy(DEFAULT_SETTINGS, bundle.settings, {noOverwrite: true}); // Fill in any missing defaults
+
+		// ── Deduplicate ───────────────────────────────────────────────────────
+
+		if(this.$current && bundle.id == this.$current?.id) return this.$current;
+
+		// Close any active splits when navigating away
+		if(this.$current && !opts.gridView) closeAllSplits(this);
+
+		if(!opts.gridView && this.$current) this._switching.set(true);
+		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
+
+		// ── Find or create canvas ─────────────────────────────────────────────
+
+		let c:MicrioImage|undefined = this._canvases.find(c => bundle.id && c.id == bundle.id);
+		let isInGrid:boolean = false;
+		const grid = this._canvases[0]?.grid;
+		if(!c && grid) {
+			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;
+			isInGrid = !!gridImage;
+			c = bundle.id ? gridImage : this._canvases[0];
+			if(isInGrid && !grid._insideGrid()) this.current.set(this._canvases[0]);
+		}
+		if(!c) {
+			if(this._canvases.length) {
+				const main = this._canvases[0];
+				bundle.info.path = main._dataPath;
+				bundle.info.lang = this.lang;
+			}
+			this._canvases.push(c = new MicrioImage(this._engine, bundle));
+		}
+
+		if(opts.gallery) {
+			opts.gallery._attach(c);
+			this.gallery.set(opts.gallery);
+		}
+
+		if(opts.startView) {
+			c.state.view.set(bundle.settings.view = opts.startView);
+			if(c._placed && c.engine.ready) c.camera.setView(bundle.settings.view,{noRender:true});
+		}
+
+		if(!this.lang) this.lang = 'en';
+
+		this._engine._load();
+		if(!this._webgl.gl) try {
+			this._webgl._init();
+		} catch(e) {
+			this.#printError(e as Error);
+			return c;
+		}
+
+		// ── Post-init ─────────────────────────────────────────────────────────
+
+		if(!this.#initedFirst) {
+			this.canvas.hook();
+
+			switch(this.#current?.$settings?.theme) {
+				case 'light': this.setAttribute('data-light-mode',''); break;
+				case 'os': this.setAttribute('data-auto-scheme',''); break;
+			}
+
+			this.#initedFirst = true;
+		}
+
+		tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
+
+		// ── 360 vector ────────────────────────────────────────────────────────
+
+		const e = this._engine;
+		e._direction = opts.vector?.direction ?? 0;
+		e._distanceX = opts.vector?.distanceX ?? 0;
+		e._distanceY = opts.vector?.distanceY ?? 0;
+		e._preventDirectionSet = !opts.vector;
+
+		// ── Set current / grid ────────────────────────────────────────────────
+
+		if(isInGrid && (!opts.gridView || !grid?._current.find(img => img.id == bundle.id))) {
+			grid?.gridFocus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
+		}
+		else {
+			this.current.set(c);
+		}
+
+		if(c._noImage) this._loading.set(false);
+
+		// Settings-level split screen (auto-open on load)
+		if(c.$settings.micrioSplitLink && !c._noImage && !c.grid) {
+			tick().then(() => {
+				if(this.$current !== c) return;
+				openSplit(this, c, { micrioId: c.$settings.micrioSplitLink! }, {
+					isPassive: !c.$settings.noFollow,
+				});
+			});
+		}
+
+		return c;
+	}
+
+	/**
+	 * Closes an opened MicrioImage and removes its canvas from the engine.
+	 * @param img The {@link MicrioImage} instance to close.
+	*/
+	close(img:MicrioImage) : void {
+		this._engine._removeCanvas(img);
+	}
+
+	/**
+	 * Parses HTML attributes of the `<micr-io>` element into a partial ImageInfo object.
+	 * @internal
+	 * @returns A partial {@link Models.ImageInfo.ImageInfo} object containing options derived from attributes.
+	*/
+	#getOptions(): Partial<Models.ImageInfo.ImageInfo> & { settings?: Partial<Models.ImageInfo.Settings> } {
+		const sets:Partial<Models.ImageInfo.Settings> = {
+			gallery: {} as any // Initialize gallery settings object
+		};
+
+		const opts = {
+			settings: sets as Models.ImageInfo.Settings,
+			id: this.id // Start with the element's ID
+		};
+
+		const setObj = (b:any, f:string, val:any) : void => {
+			const p = f.split('.');
+			for(let i=0;i<p.length-1;i++) b = b[p[i]];
+			b[p[p.length-1]]=val;
+		}
+
+		const process = (category: Record<string, any>, convert: (val: string | null, def: any) => any): void => {
+			for (const a of Object.keys(category)) {
+				const d = category[a], val = this.getAttribute(a);
+				const f = d.f || a.replace('data-', '');
+				const v = convert(val, d);
+				if (v !== undefined) setObj(d.r ? opts : sets, f, v);
+			}
+		};
+
+		process(AO.STRINGS, val => val || undefined);
+		process(AO.BOOLEANS, (val, o) => {
+			const tr = val != undefined && (val === '' || val === 'true');
+			if (tr || val === 'false') return o.n ? !tr : !!tr;
+		});
+		process(AO.NUMBERS, (val, o) => {
+			if (o.dN !== undefined && val == null) val = o.dN;
+			if (val == null) return;
+			const n = Number(val);
+			return isNaN(n) ? undefined : n;
+		});
+		process(AO.ARRAYS, val => val != null ? val.split(',').map(Number) : undefined);
+
+		// Apply implications of 'static' setting
+		if(sets.static) {
+			sets.noUI = sets.skipMeta = true;
+			sets.hookEvents = false;
+		}
+
+		return opts;
+	}
+
+	/** Getter for the current language code. */
+	get lang() { return get(this._lang) }
+	/** Setter for the current language code. Triggers language change logic. */
+	set lang(l:string) { this.setAttribute('lang', l) }
+}
+
+

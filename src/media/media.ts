@@ -1,0 +1,480 @@
+import { createElement } from '$utils/dom';
+import { MicrioElement } from '$core/component';
+import type { Models } from '$types/models';
+import type { MicrioImage } from '$core/image';
+import { VideoTourInstance } from './videotour';
+import { YouTubePlayerAdapter } from './youtube-adapter';
+import { VimeoPlayerAdapter } from './vimeo-adapter';
+import { HLSPlayerAdapter, cloudflareStreamUrl, mediaSourceSupported } from './hls-adapter';
+import type { MediaPlayerAdapter } from '$types/media';
+import '$ui/button';
+import './media-controls';
+
+const YOUTUBE_RE = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?/;
+const VIMEO_RE = /vimeo\.com/;
+
+let _sharedAudioEl: HTMLAudioElement | undefined;
+let _sharedAudioRefCount = 0;
+
+function acquireSharedAudio(): HTMLAudioElement {
+	if (!_sharedAudioEl) {
+		_sharedAudioEl = document.createElement('audio');
+		_sharedAudioEl.style.display = 'none';
+		_sharedAudioEl.controls = false;
+		_sharedAudioEl.preload = 'metadata';
+		document.body.appendChild(_sharedAudioEl);
+	}
+	_sharedAudioRefCount++;
+	return _sharedAudioEl;
+}
+
+function releaseSharedAudio() {
+	if (--_sharedAudioRefCount <= 0) {
+		_sharedAudioRefCount = 0;
+		_sharedAudioEl?.remove();
+		_sharedAudioEl = undefined;
+	}
+}
+
+/** Props for the MicrioMedia component. @internal */
+export interface MediaProps {
+	src?: string;
+	image?: MicrioImage;
+	tour?: Models.ImageData.VideoTour | null;
+	autoplay?: boolean;
+	controls?: boolean;
+	paused?: boolean;
+	noPlayOverlay?: boolean;
+	is360?: boolean;
+	width?: number;
+	height?: number;
+	muted?: boolean;
+	secondary?: boolean;
+	figcaption?: string;
+	className?: string;
+	onended?: () => void;
+	onclose?: () => void;
+	getTimeDisplay?: (currentTime: number, duration: number) => string;
+	hasAudio?: boolean;
+	fullscreenEl?: HTMLElement;
+}
+import './media.css';
+
+/** Custom element that renders and manages audio/video media, supporting YouTube, Vimeo, Cloudflare HLS, native HTML5, and video tours with integrated controls and subtitles. */
+class MicrioMedia extends MicrioElement<MediaProps> {
+	/* @internal */
+	static tag = 'micrio-media';
+
+	#mediaEl: HTMLVideoElement | HTMLAudioElement | undefined;
+	#tourInstance: VideoTourInstance | undefined;
+	#frame: HTMLIFrameElement | undefined;
+	#hlsSrc: string | undefined;
+	#adapter: MediaPlayerAdapter | undefined;
+	#adapterTick: ReturnType<typeof setInterval> | undefined;
+	#paused = true;
+	#ended = false;
+	#duration = 0;
+	#currentTime = 0;
+	#seeking = false;
+	#muted = false;
+	#subEl: MicrioElement | undefined;
+
+	#createYoutubeIframe(src: string, p: MediaProps, figure: HTMLElement) {
+		const match = src.match(YOUTUBE_RE);
+		const videoId = match?.[5];
+		if (!videoId) return;
+		const iframe = createElement('iframe', {
+			props: {
+				src: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&playsinline=1&enablejsapi=1`,
+				width: String(p.width ?? 400),
+				height: String(p.height ?? 240),
+			},
+			attrs: {
+				allow: 'autoplay; encrypted-media',
+				allowfullscreen: '',
+			},
+			parent: figure,
+		});
+		this.#frame = iframe;
+	}
+
+	#createVimeoIframe(src: string, p: MediaProps, figure: HTMLElement) {
+		const idMatch = src.match(/\/(\d+)/);
+		if (!idMatch?.[1]) return;
+		const vimeoId = idMatch[1];
+		const tokenPart = src.slice(src.indexOf(vimeoId) + vimeoId.length + 1);
+		const vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined;
+		const embedSrc = `https://player.vimeo.com/video/${vimeoId}?${vimeoToken ? `h=${vimeoToken}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0`;
+		const iframe = createElement('iframe', {
+			props: {
+				src: embedSrc,
+				width: String(p.width ?? 400),
+				height: String(p.height ?? 240),
+			},
+			attrs: {
+				allow: 'autoplay; fullscreen',
+				allowfullscreen: '',
+			},
+			parent: figure,
+		});
+		this.#frame = iframe;
+	}
+
+	#createCloudflareVideo(src: string, p: MediaProps, figure: HTMLElement) {
+		const cfId = src.slice(8);
+		const hlsSrc = cloudflareStreamUrl(cfId);
+		const video = createElement('video', {
+			props: {
+				src: hlsSrc,
+				width: p.width ?? 400,
+				height: p.height ?? 240,
+				controls: false,
+				preload: 'metadata',
+				playsInline: true,
+				crossOrigin: 'anonymous',
+				...(p.autoplay ? { autoplay: true } : {}),
+				...(p.muted ? { muted: true } : {}),
+			},
+			parent: figure,
+		});
+		this.#mediaEl = video;
+		this.#wireEvents(video);
+		this.#hlsSrc = hlsSrc;
+	}
+
+	#createAudioElement(src: string, p: MediaProps, _figure: HTMLElement) {
+		if (!(this.#mediaEl instanceof HTMLAudioElement)) {
+			const audio = acquireSharedAudio();
+			this.#mediaEl = audio;
+			this.#wireEvents(audio);
+			this._addCleanup(() => {
+				releaseSharedAudio();
+				this.#mediaEl = undefined;
+			});
+		}
+		const audio = this.#mediaEl as HTMLAudioElement;
+		audio.src = src;
+		if (p.autoplay) audio.setAttribute('autoplay', '');
+		else audio.removeAttribute('autoplay');
+		audio.muted = !!p.muted;
+	}
+
+	#createNativeVideo(src: string, p: MediaProps, figure: HTMLElement) {
+		const video = createElement('video', {
+			props: {
+				src,
+				width: p.width ?? 400,
+				height: p.height ?? 240,
+				controls: false,
+				preload: 'metadata',
+				playsInline: true,
+				crossOrigin: 'anonymous',
+				...(p.autoplay ? { autoplay: true } : {}),
+				...(p.muted ? { muted: true } : {}),
+			},
+			parent: figure,
+		});
+		this.#mediaEl = video;
+		this.#wireEvents(video);
+	}
+
+	/** @internal */
+	protected _render() {
+		const p = this._props;
+		const src = p.src;
+		if (!src && !p.tour) { this.replaceChildren(); return; }
+
+		const isYoutube = src ? YOUTUBE_RE.test(src) : false;
+		const isVimeo = src ? VIMEO_RE.test(src) : false;
+		const isCloudflare = src ? src.startsWith('cfvid://') : false;
+		const isAudio = src ? src.includes('.mp3') || src.includes('.ogg') || src.includes('.wav') || src.includes('audio/') : false;
+		const isStandaloneVideoTour = !!p.tour && !!p.image && !src;
+		this.replaceChildren();
+
+		const figure = createElement('figure', {
+			className: p.className,
+		});
+
+		if (p.is360) figure.style.setProperty('--micrio-background', 'transparent');
+
+		if (isYoutube) {
+			this.#createYoutubeIframe(src!, p, figure);
+		} else if (isVimeo) {
+			this.#createVimeoIframe(src!, p, figure);
+		} else if (isCloudflare) {
+			this.#createCloudflareVideo(src!, p, figure);
+		} else if (isAudio && src) {
+			this.#createAudioElement(src!, p, figure);
+		} else if (src) {
+			this.#createNativeVideo(src!, p, figure);
+		}
+
+		if (p.figcaption) {
+			createElement('figcaption', {
+				textContent: p.figcaption,
+				parent: figure,
+			});
+		}
+
+		this.appendChild(figure);
+
+		// Initialize player adapters
+		if (this.#frame) {
+			const pWidth = p.width ?? 400;
+			const pHeight = p.height ?? 240;
+			if (isYoutube) {
+				this.#adapter = new YouTubePlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
+					onPlay: () => { this.#paused = false; this.#startAdapterTick(); this.#updateControls(); },
+					onPause: () => { this.#paused = true; this.#stopAdapterTick(); this.#updateControls(); },
+					onEnded: () => { this.#ended = true; this.#paused = true; this.#stopAdapterTick(); this.#updateControls(); p.onended?.(); },
+					onSeeking: () => { this.#seeking = true; },
+					onSeeked: () => { this.#seeking = false; this.#updateControls(); },
+				});
+				(this.#adapter as YouTubePlayerAdapter).initialize().then(() => { if (p.autoplay) this.#adapter!.play(); }).catch(() => {});
+			} else if (isVimeo) {
+				this.#adapter = new VimeoPlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
+					onPlay: () => { this.#paused = false; this.#updateControls(); },
+					onPause: () => { this.#paused = true; this.#updateControls(); },
+					onEnded: () => { this.#ended = true; this.#paused = true; this.#updateControls(); p.onended?.(); },
+					onTimeUpdate: (t) => { this.#currentTime = t; this.#updateControls(); },
+					onDurationChange: (d) => { this.#duration = d; },
+				});
+				(this.#adapter as VimeoPlayerAdapter).initialize().then(() => { if (p.autoplay) this.#adapter!.play(); }).catch(() => {});
+			}
+		}
+
+		// Initialize HLS adapter for Cloudflare video
+		if (isCloudflare && this.#hlsSrc && this.#mediaEl && mediaSourceSupported()) {
+			this.#adapter = new HLSPlayerAdapter(this.#mediaEl as HTMLVideoElement, this.#hlsSrc, {
+				onReady: () => { this.#updateControls(); },
+				onEnded: () => { this.#ended = true; this.#paused = true; this.#updateControls(); p.onended?.(); },
+			});
+			(this.#adapter as HLSPlayerAdapter).initialize().catch(() => {});
+		}
+
+		// Tour instance
+		if (p.tour && p.image && (this.#mediaEl || isStandaloneVideoTour)) {
+			this.#tourInstance = new VideoTourInstance(p.image, p.tour);
+
+			if (this.#mediaEl) {
+				const onPlay = () => this.#tourInstance?.play();
+				this.#mediaEl.addEventListener('play', onPlay);
+				this._addCleanup(() => this.#mediaEl?.removeEventListener('play', onPlay));
+			}
+
+			if (isStandaloneVideoTour) {
+				this.#duration = this.#tourInstance.duration;
+				const ival = setInterval(() => {
+					this.#currentTime = this.#tourInstance!.currentTime;
+					this.#duration = this.#tourInstance!.duration;
+					this.#paused = this.#tourInstance!.paused;
+					this.#ended = this.#tourInstance!.ended;
+					this.#tourInstance!.updateEvents(this.#currentTime);
+					this.#updateControls();
+					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+					if (this.#ended && (!this.#mediaEl || this.#mediaEl.ended)) p.onended?.();
+				}, 250);
+				this._addCleanup(() => clearInterval(ival));
+				if (p.autoplay) this.#tourInstance.play();
+			} else {
+				const onEnded = () => this.#tourInstance?.pause();
+				this.#mediaEl?.addEventListener('ended', onEnded);
+				this._addCleanup(() => this.#mediaEl?.removeEventListener('ended', onEnded));
+				if (!this.#mediaEl?.paused) this.#tourInstance?.play();
+			}
+		}
+
+		// Create subtitles element as a child (auto-destroyed when media is removed)
+		if (!p.secondary && p.tour && !('steps' in p.tour)) {
+			const micrio = this._getMicrio();
+			const lang = micrio?.lang || 'en';
+			const sub = p.tour.i18n?.[lang]?.subtitle;
+			if (sub?.src) {
+				this.#subEl = createElement('micrio-subtitles', {
+					setProps: { src: sub.src, mediaEl: this.#mediaEl ?? this },
+					parent: (this.closest('micrio-main') || this.parentNode) as HTMLElement | undefined,
+				}) as MicrioElement;
+			}
+		}
+
+		// Controls
+		if (p.controls !== false) {
+			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
+
+			const onplaypause = () => {
+				const el = this.#mediaEl;
+				if (el) {
+					if (el.paused) {
+						el.play().catch(() => { });
+						this.#tourInstance?.play();
+					} else {
+						el.pause();
+						this.#tourInstance?.pause();
+					}
+				} else if (this.#tourInstance) {
+					if (this.#tourInstance.paused) this.#tourInstance.play();
+					else this.#tourInstance.pause();
+				} else if (this.#adapter) {
+					this.#adapter.isPaused().then(paused => {
+						if (paused) this.#adapter!.play();
+						else this.#adapter!.pause();
+					});
+				}
+			};
+
+			const onmute = () => {
+				const el = this.#mediaEl;
+				if (el) {
+					this.#muted = !this.#muted;
+					el.muted = this.#muted;
+					this.#updateControls();
+				} else if (this.#adapter) {
+					this.#muted = !this.#muted;
+					this.#adapter.setMuted(this.#muted);
+					this.#updateControls();
+				}
+			};
+
+			const onseek = (n: number) => {
+				const el = this.#mediaEl;
+				if (el) {
+					el.currentTime = n;
+				} else if (this.#tourInstance) {
+					this.#tourInstance.currentTime = n;
+				} else if (this.#adapter) {
+					this.#adapter.setCurrentTime(n);
+				}
+			};
+
+			const update = () => {
+				const el = this.#mediaEl;
+				if (el) {
+					this.#currentTime = el.currentTime;
+					this.#duration = el.duration || 0;
+					this.#paused = el.paused;
+					this.#ended = el.ended || false;
+					this.#seeking = el.seeking;
+					this.#muted = el.muted;
+				} else if (this.#tourInstance) {
+					return; // tour-only uses its own interval
+				} else if (this.#adapter) {
+					// YouTube tick updates #currentTime already; Vimeo uses callbacks
+					return;
+				} else return;
+				ctrlEl._setProps({
+					currentTime: this.#currentTime,
+					duration: this.#duration,
+					paused: this.#paused,
+					ended: this.#ended,
+					seeking: this.#seeking,
+					muted: this.#muted,
+					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
+					subtitles: hasSub,
+					getTimeDisplay: p.getTimeDisplay,
+					fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
+					onplaypause, onmute, onseek,
+					onclose: p.onclose
+				});
+			};
+
+			const ctrlEl = createElement('micrio-media-controls', {
+				setProps: {
+					paused: true,
+					ended: false,
+					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
+					subtitles: hasSub,
+					getTimeDisplay: p.getTimeDisplay,
+					fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
+					onplaypause, onmute, onseek,
+					onclose: p.onclose
+				},
+				parent: figure,
+			}) as MicrioElement;
+
+			if (this.#mediaEl && (this.#mediaEl instanceof HTMLVideoElement || this.#mediaEl instanceof HTMLAudioElement) && !isStandaloneVideoTour) {
+				const onTimeUpdate = () => {
+					update();
+					this.#tourInstance?.updateEvents(this.#currentTime);
+					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+				};
+				const onEnded = () => {
+					update();
+					if (!isStandaloneVideoTour) p.onended?.();
+				};
+				const onSeeking = () => { this.#seeking = true; update(); };
+				const onSeeked = () => { this.#seeking = false; update(); };
+
+				this.#mediaEl.addEventListener('timeupdate', onTimeUpdate);
+				this.#mediaEl.addEventListener('loadedmetadata', update);
+				this.#mediaEl.addEventListener('play', update);
+				this.#mediaEl.addEventListener('pause', update);
+				this.#mediaEl.addEventListener('ended', onEnded);
+				this.#mediaEl.addEventListener('seeking', onSeeking);
+				this.#mediaEl.addEventListener('seeked', onSeeked);
+
+				this._addCleanup(() => {
+					const el = this.#mediaEl;
+					if (!el) return;
+					el.removeEventListener('timeupdate', onTimeUpdate);
+					el.removeEventListener('loadedmetadata', update);
+					el.removeEventListener('play', update);
+					el.removeEventListener('pause', update);
+					el.removeEventListener('ended', onEnded);
+					el.removeEventListener('seeking', onSeeking);
+					el.removeEventListener('seeked', onSeeked);
+				});
+
+				update();
+			}
+		}
+	}
+
+	#wireEvents(el: HTMLVideoElement | HTMLAudioElement) {
+		const volumeStore = this._inject<any>('volume');
+		if (volumeStore) {
+			this._addCleanup(volumeStore.subscribe((v: number) => { el.volume = v; }));
+		}
+	}
+
+	#startAdapterTick() {
+		if (this.#adapterTick != null) return;
+		this.#adapterTick = setInterval(async () => {
+			if (!this.#adapter) return;
+			this.#currentTime = await this.#adapter.getCurrentTime();
+			this.#duration = await this.#adapter.getDuration();
+			this.#tourInstance?.updateEvents(this.#currentTime);
+			this.#updateControls();
+		}, 250);
+	}
+
+	#stopAdapterTick() {
+		if (this.#adapterTick != null) {
+			clearInterval(this.#adapterTick);
+			this.#adapterTick = undefined;
+		}
+	}
+
+	#updateControls() {
+		const controlsEl = this.querySelector('micrio-media-controls') as MicrioElement;
+		if (controlsEl) {
+			controlsEl._setProps({
+				currentTime: this.#currentTime,
+				duration: this.#duration,
+				paused: this.#paused,
+				ended: this.#ended,
+				seeking: this.#seeking,
+				muted: this.#muted,
+			});
+		}
+	}
+
+	/** @internal */
+	_onDestroy() {
+		this.#tourInstance?.destroy();
+		this.#adapter?.destroy();
+		this.#stopAdapterTick();
+		this.#subEl?.remove();
+	}
+}
+
+customElements.define(MicrioMedia.tag, MicrioMedia);

@@ -1,0 +1,57 @@
+micrio-media {
+	display: block;
+}
+micrio-media figure {
+	position: relative;
+	margin: 0;
+	padding: 0;
+}
+micrio-media figure :is(video, audio) {
+	width: 100%;
+	display: block;
+}
+micrio-media figure figcaption {
+	padding: 5px 10px;
+	font-size: .85em;
+	opacity: .7;
+	text-align: center;
+	background: var(--micrio-background);
+}
+micrio-media figure iframe {
+	width: 100%;
+	border: none;
+	display: block;
+}
+micrio-media figure:is(:fullscreen, :-webkit-full-screen) iframe {
+	height: 100%;
+}
+micrio-media figure:is(:fullscreen, :-webkit-full-screen) video {
+	height: 100%;
+	object-fit: contain;
+}
+micrio-media figure:has(video) {
+	width: auto;
+}
+:is(micrio-tour, micrio-serial-tour) micrio-media figure {
+	position: fixed;
+	bottom: var(--micrio-border-margin);
+	left: 50%;
+	transform: translate(-50%,0);
+	width: 500px;
+	max-width: calc(100vw - 2 * var(--micrio-border-margin, 0));
+	max-width: calc(100cqw - 2 * var(--micrio-border-margin, 0));
+	display: flex;
+	flex-direction: column;
+	background: var(--micrio-button-background,var(--micrio-background,none));
+	border-radius: var(--micrio-border-radius);
+	box-shadow: var(--micrio-button-shadow);
+	backdrop-filter: var(--micrio-background-filter);
+	margin: 0;
+	padding: 0;
+	z-index: 5;
+	transition: transform .25s ease,opacity .25s ease;
+	--micrio-hide: translate(-50%,100%);
+}
+micrio-media figure.hidden {
+	display: none!important;
+}

@@ -1,0 +1,11 @@
+micrio-icon {
+	display: contents;
+}
+micrio-icon > svg {
+	display: inline-block;
+	height: var(--micrio-icon-size);
+	width: var(--micrio-icon-size);
+}
+micrio-icon > svg.small {
+	height: .75em;
+}

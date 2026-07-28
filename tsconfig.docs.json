@@ -1,23 +1,35 @@
 {
-	"include": ["src/ts/", "src/types/", "src/docs/"],
+	"include": ["src/types/"],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"],
 	"compilerOptions": {
 		"ignoreDeprecations": "6.0",
-		"typeRoots": ["./types"],
+		"typeRoots": ["./src/types"],
 		"rootDir": "./src",
-		"target": "es2020",
+		"target": "es2022",
 		"module": "commonjs",
 		"moduleResolution": "node",
+		"declaration": true,
 		"emitDeclarationOnly": true,
 		"stripInternal": true,
 		"paths": {
-			"$ts/*": ["./src/ts/*"],
 			"$types/*": ["./src/types/*"],
-			"$engine/*": ["./src/engine/*"]
+			"$engine/*": ["./src/engine/*"],
+			"$core/*": ["./src/core/*"],
+			"$media/*": ["./src/media/*"],
+			"$ui/*": ["./src/ui/*"],
+			"$markers/*": ["./src/markers/*"],
+			"$tour/*": ["./src/tour/*"],
+			"$gallery/*": ["./src/gallery/*"],
+			"$render/*": ["./src/render/*"],
+			"$utils/*": ["./src/utils/*"],
+			"$audio/*": ["./src/audio/*"],
+			"$embed/*": ["./src/embed/*"],
+			"$layout/*": ["./src/layout/*"],
+			"$grid/*": ["./src/grid/*"]
 		}
 	},
 	"typedocOptions": {
-		"entryPoints": ["./src/docs/micrio.ts", "./src/docs/store.ts"],
+		"entryPoints": ["./src/main.ts"],
 		"includes": ["."],
 		"excludePrivate": true,
 		"excludeInternal": true,
@@ -29,6 +41,5 @@
 		"readme": "./README.md",
 		"defaultCategory": "Micrio",
 		"name": "Micrio Client",
-		"gaID": "G-P1WB0J7VEM",
 	}
 }

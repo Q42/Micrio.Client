@@ -1,0 +1,51 @@
+micrio-controls aside {
+	position: absolute;
+	right: var(--micrio-border-margin);
+	bottom: var(--micrio-border-margin);
+	padding: 0;
+	margin: 0;
+	direction: rtl;
+	z-index: 2;
+	transition: transform .25s ease, opacity .25s ease;
+	--micrio-hide: translateX(100%);
+}
+micrio-controls menu {
+	position: relative;
+	padding: 0;
+	margin: 8px 0;
+	width: var(--micrio-button-size);
+	min-height: var(--micrio-button-size);
+}
+micrio-controls menu > div {
+	position: absolute;
+	right: 100%;
+	top: 0;
+	display: none;
+	flex-direction: row;
+	background: var(--micrio-background);
+	backdrop-filter: var(--micrio-background-filter);
+	border-radius: var(--micrio-border-radius);
+	box-shadow: var(--micrio-button-shadow);
+	white-space: nowrap;
+}
+micrio-controls menu:is(:hover,:focus-within) > div {
+	display: flex;
+}
+micrio-controls menu > div micrio-button {
+	--micrio-button-shadow: none;
+	--micrio-background-filter: none;
+}
+micrio-controls menu > div micrio-button > * {
+	padding: 0;
+}
+micrio-controls menu > div micrio-button > * > span {
+	width: var(--micrio-button-size);
+}
+micrio-controls menu > div micrio-button > *.active {
+	background: var(--micrio-color-hover);
+	color: var(--micrio-button-background, var(--micrio-background));
+}
+
+micrio-zoom-buttons:has(> micrio-button:first-child > button[disabled]):has(> micrio-button:last-child > button[disabled]) {
+	display: none;
+}

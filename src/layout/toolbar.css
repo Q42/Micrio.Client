@@ -1,0 +1,79 @@
+micrio-toolbar > menu {
+	position: absolute;
+	top: calc(var(--micrio-border-margin) - (var(--micrio-button-size) / 2 - 27px));
+	left: var(--micrio-border-margin);
+	margin: 0;
+	padding: 0;
+	color: var(--micrio-color);
+	text-shadow: 1px 1px 2px #000;
+	transition: transform .25s ease;
+	z-index: 1;
+}
+@media (max-width: 500px) {
+	micrio-toolbar > micrio-button > :is(button, a) {
+		position: absolute;
+		top: var(--micrio-border-margin);
+		left: 0;
+		height: 34px;
+		width: 34px;
+		box-shadow: none;
+		z-index: 2;
+	}
+	micrio-toolbar > micrio-button > :is(button, a).indent {
+		left: 35px;
+	}
+	micrio-toolbar > menu {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		top: auto;
+		max-height: 60vh;
+		width: 100%;
+		background: var(--micrio-background);
+		backdrop-filter: var(--micrio-background-filter);
+		border-radius: 16px 16px 0 0;
+		padding: 16px 0;
+		margin: 0;
+		transform: translateY(100%);
+		transition: transform .3s ease;
+		z-index: 100;
+		overflow-y: auto;
+		overflow-x: hidden;
+		color: var(--micrio-color);
+		text-shadow: none;
+	}
+	micrio-toolbar > menu.shown {
+		transform: translateY(0);
+	}
+	micrio-toolbar > menu::before {
+		content: '';
+		display: block;
+		width: 36px;
+		height: 4px;
+		border-radius: 2px;
+		background: rgba(128, 128, 128, .3);
+		margin: -8px auto 12px;
+	}
+	.backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, .4);
+		z-index: 50;
+	}
+}
+@media (min-width: 501px) {
+	micrio-toolbar > menu.indent {
+		margin-left: calc(var(--micrio-border-margin) * 2 + 25px);
+	}
+	micrio-toolbar > menu > micrio-menu {
+		color: var(--micrio-color);
+		margin-right: var(--micrio-border-margin);
+		border-radius: var(--micrio-border-radius);
+	}
+	micrio-toolbar > menu > micrio-menu:is(:hover,:focus-within) {
+		backdrop-filter: var(--micrio-background-filter);
+		background: var(--micrio-background);
+		box-shadow: var(--micrio-button-shadow);
+	}
+}

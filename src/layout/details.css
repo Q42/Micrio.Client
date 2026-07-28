@@ -1,0 +1,38 @@
+micrio-details details {
+	position: absolute;
+	bottom: var(--micrio-border-margin);
+	left: var(--micrio-border-margin);
+	padding: var(--micrio-popup-padding);
+	font-size: .9em;
+	max-width: 410px;
+	user-select: text;
+	white-space: normal;
+	box-sizing: border-box;
+	--micrio-hide: translateY(100%);
+	transition: opacity .25s ease, transform .25s ease;
+}
+micrio-details summary {
+	cursor: pointer;
+}
+micrio-details summary::-webkit-details-marker {
+	display: none;
+}
+micrio-details small {
+	display: block;
+	font-style: italic;
+	font-weight: 400;
+}
+micrio-details details > * {
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+micrio-details a {
+	color: var(--micrio-color-hover, inherit);
+}
+@media (max-width: 600px) {
+	micrio-details details {
+		max-width: calc(100% - var(--micrio-button-size) - 3 * var(--micrio-border-margin));
+		z-index: 5;
+	}
+}

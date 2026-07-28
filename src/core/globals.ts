@@ -1,0 +1,164 @@
+/**
+ * Global variables, constants, default settings, and attribute parsing logic.
+ * @author Marcel Duin <marcel@micr.io>
+ */
+
+import type { Models } from '$types/models';
+
+/** Base path for Micrio V4 assets (CDN).
+ * @internal
+ */
+export const BASEPATH:string = 'https://b.micr.io/';
+/** Base path for Micrio V5 assets (R2 Global).
+ * @internal
+ */
+export const BASEPATH_V5:string = 'https://r2.micr.io/';
+/** Base path for Micrio V5 EU assets (R2 EU).
+ * @internal
+ */
+export const BASEPATH_V5_EU:string = 'https://eu.micr.io/';
+
+/** Detect the active Micrio TLD from the hosting domain. @internal */
+function getMicrioTLD(): string {
+	try {
+		const h = location.hostname;
+		if (h.endsWith('micrio.dev')) return 'micrio.dev';
+		if (h.endsWith('micrio.net')) return 'micrio.net';
+	} catch {}
+	return 'micr.io';
+}
+
+/** The active Micrio top-level domain (`micr.io`, `micrio.net`, or `micrio.dev`). @internal */
+export const MICRIO_TLD: string = getMicrioTLD();
+
+/** Base URL for the viewer data API (info.json, album JSON, spaces JSON). @internal */
+export const VIEWER_BASE: string = `https://viewer.${MICRIO_TLD}/`;
+
+/** Keys used for storing Micrio settings in localStorage.
+ * @internal
+ */
+export const localStorageKeys = {
+	globalMuted: 'micrio-muted', // Key for storing the global muted state
+};
+
+/** Default tile size used throughout the application when none is specified by the bundle. @internal */
+export const DEFAULT_TILE_SIZE: number = 1024;
+
+/** Default settings applied to all Micrio images unless overridden by the bundle or attributes.
+ * @internal
+ */
+export const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
+	camspeed: 1,
+	view: [0,0,1,1],
+	restrict: [0,0,1,1],
+	focus: [.5,.5],
+	zoomLimit: 1,
+	fullscreen: true,
+	hookEvents: true,
+	hookScroll: true,
+	hookPinch: true,
+	hookDrag: true,
+	minimap: true,
+	doTourJumps: true,
+	audio: true,
+	startVolume: 1,
+	mutedVolume: 0,
+	_markers: { showTitles: false, zoomOutAfterClose: true },
+	ui: { controls: { cultureSwitch: true } },
+	_360: {}
+};
+
+
+// --- <micr-io> Attribute Parsing Logic ---
+
+/** Defines how an HTML attribute maps to an option property.
+ * @internal
+ */
+type ATTRIBUTE_DEFINITION = {
+	/** `r`: If true, the property belongs to the root ImageInfo object, otherwise to `settings`. */
+	r?: boolean;
+	/** `f`: The target property name (or path using dots, e.g., 'gallery.type'). Defaults to attribute name without 'data-'. */
+	f?: string;
+	/** `n`: If true, negates the boolean value (e.g., `data-no-ui` becomes `noUI: true`). */
+	n?: boolean;
+	/** `dN`: Default value if the attribute is not present (used for numbers). */
+	dN?: any;
+}
+
+/** Type for mapping attribute names to their definitions.
+ * @internal
+ */
+type ATTRIBUTE_OPTIONS = { [key: string]: ATTRIBUTE_DEFINITION }
+
+/**
+ * Defines mappings for parsing `<micr-io>` HTML attributes into the
+ * `ImageInfo` options object used internally.
+ * `r`: root property, `f`: field name override, `n`: negate boolean, `dN`: default number value.
+ * @internal
+ */
+export const ATTRIBUTE_OPTIONS: {
+	STRINGS: ATTRIBUTE_OPTIONS;
+	BOOLEANS: ATTRIBUTE_OPTIONS;
+	NUMBERS: ATTRIBUTE_OPTIONS;
+	ARRAYS: ATTRIBUTE_OPTIONS;
+} = {
+	STRINGS: {
+		'id': {r:true}, // Root property
+		'lang': {r:true}, // Root property
+		'data-path': {r:true},
+		'data-inittype': {f: 'initType'}, // Initial view type (cover, contain, view)
+		'data-start': {f: 'gallery.startId'}, // Starting image ID for gallery
+		'data-gallery-sort': {f: 'gallery.sort'}, // Gallery sorting ('name', '-created', etc.)
+		'data-gallery-type': {f:'gallery.type'}, // Gallery type ('swipe', 'switch', 'grid')
+	},
+
+	BOOLEANS: {
+		'data-static': {}, // Disable all interactions
+		'muted': {f:'audio',n:true}, // Negated: `muted` attribute means `audio: false`
+		'data-no-externals': {f:'noExternals'}, // Disable loading external JS/CSS
+		'data-skipmeta': {f:'skipMeta'}, // Skip loading metadata (markers, tours, etc)
+		'data-keeprendering': {f:'keepRendering'}, // Force continuous rendering loop
+		'data-coverlimit': {f:'limitToCoverScale'}, // Limit zoom out to cover scale
+		'data-events': {f:'hookEvents'}, // Enable/disable event hooks
+		'data-keys': {f:'hookKeys'}, // Enable/disable keyboard hooks
+		'data-zooming': {f:'noZoom',n:true}, // Disable zoom? (Negated)
+		'data-scroll-zoom': {f:'hookScroll'}, // Enable scroll zoom
+		'data-pinch-zoom': {f:'hookPinch'}, // Enable pinch zoom
+		'data-dragging': {f:'hookDrag'}, // Enable drag panning
+		'data-two-finger-pan': {f:'twoFingerPan'}, // Enable two-finger panning
+		'data-control-zoom': {f:'controlZoom'}, // Enable zoom via ctrl/cmd + scroll
+		'data-ui': {f:'noUI', n: true}, // Disable UI (Negated)
+		'data-controls': {f:'noControls', n: true}, // Disable main controls element (Negated)
+		'data-logo': {f:'noLogo', n: true}, // Disable Micrio logo (Negated)
+		'data-logo-org': {f:'noOrgLogo', n: true}, // Disable organization logo (Negated)
+		'data-toolbar': {f:'noToolbar', n: true}, // Disable top toolbar (Negated)
+		'data-show-info': {f:'showInfo'}, // Show info panel if available
+		'data-social': {}, // Enable social sharing buttons
+		'data-fullscreen': {}, // Enable fullscreen button
+		'data-minimap': {}, // Enable minimap
+		'data-minimap-hide': {f:'alwaysShowMinimap',n:true}, // Always show minimap (Negated)
+		'data-normalize-dpr': {f: 'zoomLimitDPRFix'}, // High DPI screens can zoom in as far as 1:1 ones
+		'data-freemove': {f: 'freeMove' }, // Enable free camera movement (e.g., beyond limits)
+	},
+
+	NUMBERS: {
+		'data-version': {r:true}, // Image version
+		'height': {r:true}, // Image height override
+		'width': {r:true}, // Image width override
+		'volume': {f:'startVolume'}, // Initial audio volume
+		'data-camspeed': {}, // Camera speed multiplier
+		'data-zoomlimit': {f:'zoomLimit'}, // Max zoom factor override
+		'data-minimap-height': {f:'minimapHeight'}, // Minimap height override
+		'data-minimap-width': {f:'minimapWidth'}, // Minimap width override
+		'data-mutedvolume': {f:'mutedVolume'}, // Volume when muted override
+		'lazyload': {dN: 0}, // Lazy load threshold (percentage, default 0 = disabled)
+		'data-elasticity': {f: 'dragElasticity'}, // Drag elasticity factor
+		'data-skip-base-levels': {f: 'skipBaseLevels'}, // Number of base zoom levels to skip loading
+		'data-watermark-opacity': {f: 'watermarkOpacity'}, // Watermark opacity, defaults to 0.075
+	},
+
+	ARRAYS : { // Comma-separated numbers
+		'data-focus': {}, // Default focus point [x, y]
+		'data-view': {}, // Initial view [x0, y0, width, height]
+	}
+};

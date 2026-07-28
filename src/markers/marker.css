@@ -1,0 +1,150 @@
+
+micrio-marker {
+	position: absolute;
+	display: block;
+	transform: translate3d(var(--x,0),var(--y,0),0) translate(-50%,-50%) scale3d(var(--scale,1),var(--scale,1),1);
+	top: 0;
+	left: 0;
+	will-change: transform;
+}
+micrio-marker:not(.cluster) {
+	animation: micrio-marker-fade .25s forwards;
+}
+micrio-marker.overlapped {
+	display: none;
+}
+@keyframes micrio-marker-fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+micrio-marker.behind {
+	pointer-events: none;
+	opacity: 0 !important;
+}
+micrio-marker.mat3d {
+	transform: var(--mat);
+	top: 50%;
+	left: 50%;
+	transform-style: preserve-3d;
+}
+micrio-marker.mat3d button {
+	position: absolute;
+	transform: translate3d(-50%,-50%,0);
+}
+micrio-marker button {
+	display: block;
+	width: var(--micrio-marker-size);
+	height: var(--micrio-marker-size);
+	color: var(--micrio-marker-text-color);
+	position: relative;
+	cursor: pointer;
+	font: inherit;
+	padding: 0;
+	margin: 0;
+	background: transparent none center center no-repeat;
+	background-image: var(--micrio-marker-icon);
+	background-size: contain;
+	border: none;
+}
+micrio-marker label {
+	position: absolute;
+	top: 50%;
+	left: 100%;
+	text-align: var(--micrio-text-align);
+	cursor: pointer;
+	transform: translate(0,-50%);
+	padding-left: 10px;
+	max-width: 170px;
+	width: max-content;
+	white-space: pre-wrap;
+	font-size: 90%;
+	font-weight: 600;
+	line-height: 1em;
+	text-shadow: var(--micrio-marker-text-shadow);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .1s ease;
+}
+micrio-marker:hover {
+	z-index: 2;
+}
+:is(micrio-marker:hover,.show-titles micrio-marker) label {
+	opacity: 1;
+}
+@media (max-width: 640px) {
+	micrio-marker label {
+		font-size: 12px;
+	}
+}
+.show-titles micrio-marker label {
+	pointer-events: all;
+}
+micrio-marker label.static {
+	transform: translate(-50%,4px) scale3d(calc(1/var(--scale,1)),calc(1/var(--scale,1)),1);
+}
+micrio-marker.default button {
+	box-sizing: content-box;
+	background-clip: content-box;
+	border-radius: var(--micrio-marker-border-radius);
+	border: var(--micrio-marker-border-size) solid var(--micrio-marker-border-color);
+	transition: var(--micrio-marker-transition);
+	background-color: var(--micrio-marker-color);
+}
+micrio-marker.default:is(:hover,.opened) {
+	z-index: 1;
+}
+micrio-marker.default:is(:hover,.opened) button {
+	background-color: var(--micrio-marker-highlight);
+	border-width: 0;
+	width: calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2);
+	height: calc(var(--micrio-marker-size,25px) + var(--micrio-marker-border-size,3px)*2);
+}
+micrio-marker.has-icon {
+	--micrio-marker-icon: none;
+}
+micrio-marker.has-custom-icon {
+	--micrio-marker-size: 32px;
+}
+micrio-marker.default.has-icon button {
+	color: #fff;
+	width: calc(var(--micrio-marker-size) + 24px);
+	height: calc(var(--micrio-marker-size) + 24px);
+	background-color: var(--micrio-marker-border-color);
+	border: none;
+}
+micrio-marker.default.has-icon:is(.opened,:hover) button svg {
+	color: var(--micrio-marker-highlight);
+}
+micrio-marker.default.has-custom-icon button {
+	background-color: transparent;
+}
+micrio-marker.default.has-custom-icon:is(.opened,:hover) button {
+	background-color: var(--micrio-marker-highlight,var(--micrio-marker-color));
+}
+micrio-marker.cluster button {
+	border: 2px solid var(--micrio-marker-color);
+	background: var(--micrio-cluster-marker-background,#fff);
+	color: var(--micrio-cluster-marker-color,#000);
+	width: calc(var(--micrio-marker-size) + 12px);
+	height: calc(var(--micrio-marker-size) + 12px);
+	border-radius: 100%;
+	box-sizing: content-box;
+}
+micrio-marker.cluster:hover button {
+	background: var(--micrio-marker-highlight,#fff);
+	border-color: var(--micrio-marker-highlight,#fff);
+}
+micrio-marker.cluster label {
+	pointer-events: none;
+	display: none;
+}
+micrio-marker img {
+	max-width: 100%;
+	max-height: 100%;
+	display: block;
+	margin: auto;
+}
