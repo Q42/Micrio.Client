@@ -29,3 +29,9 @@ import type { HTMLMicrioElement } from '@micrio/client';
 // This will be a fully typed element
 const micrioElement = document.querySelector('micr-io') as HTMLMicrioElement;
 ```
+
+## Upgrading to the latest version (v7)
+
+If you are using Micrio inside your project, and have custom CSS and/or using the JS API, check out this document which has all changes from earlier versions:
+
+https://doc.micr.io/client/v7/changes.html
