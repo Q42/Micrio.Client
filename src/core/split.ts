@@ -53,15 +53,14 @@ export async function openSplit(
 
 	const bundle = await DataLoader._getBundleImage(link.micrioId);
 	if (!bundle) return;
-
-	if (opts?.isPassive === false && primary.$settings.secondaryInteractive !== false)
-		bundle.settings = { ...bundle.settings, hookEvents: true };
-
+	
 	const secondary = new MicrioImage(micrio._engine, bundle);
 	micrio._canvases.push(secondary);
 	micrio._engine._addCanvasDirect(secondary);
 
 	secondary._opacity = 0;
+
+	if (opts?.isPassive !== false) secondary._isPassiveSecondary = true;
 
 	const portrait = micrio.canvas.viewport.portrait;
 	primary.camera.setArea(portrait ? [0, 0, 1, 0.5] : [0, 0, 0.5, 1]);

@@ -162,7 +162,7 @@ export class Events implements EventContext {
 		if (!this.#visible) return;
 		const w = this._micrio.offsetWidth, h = this._micrio.offsetHeight,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
-		const candidates = this.#visible.filter(i => !i._noImage);
+		const candidates = this.#visible.filter(i => !i._noImage && !i._isPassiveSecondary);
 		// When a grid controller exists, use its own image-under-cursor detection
 		const gridCtrl = this._micrio._canvases.find(i => i.grid);
 		if (gridCtrl) return gridCtrl.grid?._getImageAt(c.x, c.y) ?? this._micrio.$current;

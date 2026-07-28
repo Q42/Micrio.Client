@@ -160,6 +160,9 @@ export class MicrioImage {
 	*/
 	_noImage: boolean = false;
 
+	/** If true, input on this image's area should be routed to the primary instead. @internal */
+	_isPassiveSecondary?: boolean;
+
 	/** Initial opacity when the image is added (used for embeds/transitions).
 	 * @readonly
 	 * @internal
