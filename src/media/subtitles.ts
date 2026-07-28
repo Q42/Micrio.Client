@@ -34,7 +34,8 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	_onMount() {
 		this.#cleanup = captionsEnabled.subscribe(() => this.#renderCue());
 
-		const el = this.#props.mediaEl?.querySelector('video,audio') as HTMLMediaElement;
+		const el = (this.#props.mediaEl?.querySelector('video,audio') as HTMLMediaElement)
+			|| (this.#props.mediaEl instanceof HTMLMediaElement ? this.#props.mediaEl : undefined);
 		if (el) {
 			const onTime = () => { this.#currentTime = el.currentTime; this.#renderCue(); };
 			el.addEventListener('timeupdate', onTime);
