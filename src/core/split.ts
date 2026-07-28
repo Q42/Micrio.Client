@@ -86,7 +86,7 @@ export async function openSplit(
 		unsubData = secondary.data.subscribe(d => {
 			if (!d) return;
 			const m = d.markers?.find(m => m.id === link.markerId);
-			if (m) secondary.state.marker.set(m);
+			if (m?.view) secondary.camera.flyToView(m.view, { isJump: true });
 			unsubData?.();
 		});
 	}

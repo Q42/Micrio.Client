@@ -208,7 +208,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 						if (existing.id === parsed.micrioId) {
 							if (parsed.markerId) {
 								const m = existing.$data?.markers?.find(m => m.id === parsed.markerId);
-								if (m) existing.state.marker.set(m);
+								if (m?.view) existing.camera.flyToView(m.view, { isJump: true });
 							}
 						} else {
 							closeSplit(micrio, image);
