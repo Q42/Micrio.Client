@@ -4,7 +4,7 @@ import type { MicrioImage } from '$core/image';
 import { get, tick } from '$core/store';
 import { getSpaceVector } from '$utils/space';
 import { createElement } from '$utils/dom';
-import { openSplit, closeSplit, parseSplitLink, getSplitSecondary } from '$core/split';
+import { openSplit, closeSplit, parseSplitLink, getSplitSecondary, isSplitSecondary } from '$core/split';
 
 /** Props for the individual marker custom element. @internal */
 export interface MarkerProps {
@@ -200,7 +200,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 
 			const splitRaw = data.micrioSplitLink;
-			if (splitRaw) {
+			if (splitRaw && !isSplitSecondary(image)) {
 				const parsed = parseSplitLink(splitRaw);
 				if (parsed) {
 					const existing = getSplitSecondary(image);

@@ -35,6 +35,13 @@ export function getSplitSecondary(primary: MicrioImage): MicrioImage | undefined
 	return splits.get(primary)?.secondary;
 }
 
+export function isSplitSecondary(image: MicrioImage): boolean {
+	for (const s of splits.values()) {
+		if (s.secondary === image) return true;
+	}
+	return false;
+}
+
 export async function openSplit(
 	micrio: HTMLMicrioElement,
 	primary: MicrioImage,
@@ -42,7 +49,7 @@ export async function openSplit(
 	opts?: { isPassive?: boolean },
 ): Promise<void> {
 	if (splits.has(primary)) return;
-	if (primary._noImage || primary.grid) return;
+	if (primary._noImage || primary.grid || isSplitSecondary(primary)) return;
 
 	const bundle = await DataLoader._getBundleImage(link.micrioId);
 	if (!bundle) return;
@@ -75,11 +82,12 @@ export async function openSplit(
 	}
 
 	if (link.markerId) {
-		const unsubData = secondary.data.subscribe(d => {
+		let unsubData: (() => void) | undefined;
+		unsubData = secondary.data.subscribe(d => {
 			if (!d) return;
 			const m = d.markers?.find(m => m.id === link.markerId);
 			if (m) secondary.state.marker.set(m);
-			unsubData();
+			unsubData?.();
 		});
 	}
 
