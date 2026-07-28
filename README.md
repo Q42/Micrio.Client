@@ -81,38 +81,6 @@ Output lands in `./public/dist/`:
 
 To test the compiled version, edit `./index.html` to load the production JS rather than the dev module.
 
-## Deploying a new Micrio version
-
-(For admins only)
-
-You need the [AWS CLI](https://aws.amazon.com/cli/) installed and configured with an R2 API token (set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`). Your Cloudflare account ID must be set via the `CLOUDFLARE_ACCOUNT_ID` environment variable. The script constructs both the default endpoint (`https://<id>.r2.cloudflarestorage.com`) and the EU jurisdiction endpoint (`https://<id>.eu.r2.cloudflarestorage.com`) automatically.
-
-You also need write access to the npm repository of `@micrio/client`.
-
-To publish to both the hosted JS and NPM with an automatic version bump:
-
-```sh
-$ pnpm run publish -- --npm
-```
-
-After a successful publish, create a new release at https://github.com/Q42/Micrio.Client/releases/new :
-
-1. Create a tag matching the version just published (e.g. `v6.1.15`)
-2. Auto-generate release notes
-3. Publish the release
-4. Commit the version bump
-
-To update only the hosted JS, omit `-- --npm`.
-
-## Documentation site
-
-Generated documentation (TypeDoc) is managed via:
-
-```sh
-$ pnpm run docs
-```
-
-This runs the TypeDoc pipeline defined in `tsconfig.docs.json`.
 
 ## Questions
 
