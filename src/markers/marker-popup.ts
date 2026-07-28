@@ -79,8 +79,8 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		) : undefined;
 		const tsSettings = tourSourceImage?.$settings._markers;
 		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0;
-		const showTourControls = isPartOfTour && !markerTour?.isSerialTour &&
-			(micrio.canvas.$isMobile || (tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup));
+		const showTourControls = !micrio.canvas.$isMobile && isPartOfTour && !markerTour?.isSerialTour &&
+			(tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup);
 		const closeButtonStopsTour = showTourControls || (markerTour ? markerTour.currentStep == markerTour.steps.length - 1 : undefined);
 
 		const close = (e?: Event) => {

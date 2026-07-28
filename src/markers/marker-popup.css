@@ -41,16 +41,22 @@ micrio-marker-popup > aside {
 }
 @media (max-width: 500px) {
 	micrio-marker-popup>aside {
-		bottom: 100%;
+		top: 0;
 		right: 0;
-		margin-bottom: var(--micrio-border-margin);
+		z-index: 2;
+		--micrio-button-shadow: none;
+		--micrio-background: none;
+		--micrio-background-filter: none;
+	}
+	micrio-marker-popup :is(h1,micrio-media:only-child) {
+		margin-right: calc(var(--micrio-button-size) - 2 * var(--micrio-border-margin, 0));
 	}
 	micrio-marker-popup {
 		width: auto;
 		right: var(--micrio-border-margin);
 		display: flex;
 		top: auto;
-		bottom: var(--micrio-border-margin);
+		top: var(--micrio-border-margin);
 		flex-direction: column;
 		justify-content: space-between;
 		transition: opacity .25s ease;

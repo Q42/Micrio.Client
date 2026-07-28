@@ -38,7 +38,8 @@ micrio-media figure:has(video) {
 	left: 50%;
 	transform: translate(-50%,0);
 	width: 500px;
-	max-width: 90vw;
+	max-width: calc(100vw - 2 * var(--micrio-border-margin, 0));
+	max-width: calc(100cqw - 2 * var(--micrio-border-margin, 0));
 	display: flex;
 	flex-direction: column;
 	background: var(--micrio-button-background,var(--micrio-background,none));

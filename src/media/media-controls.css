@@ -23,12 +23,12 @@ micrio-media-controls micrio-button:last-child {
 }
 :fullscreen micrio-media-controls {
 	position: absolute;
-	bottom: 5px;
+	bottom: var(--micrio-border-margin, 5px);
 	left: 50%;
 	transform: translateX(-50%);
 	width: 430px;
-	max-width: 90vw;
-	max-width: 90cqw;
+	max-width: calc(100vw - 2 * var(--micrio-border-margin, 0));
+	max-width: calc(100cqw - 2 * var(--micrio-border-margin, 0));
 	border-radius: var(--micrio-border-radius);
 }
 micrio-media-controls aside > div {
