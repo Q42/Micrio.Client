@@ -66,3 +66,9 @@ micrio-serial-tour ol button {
 micrio-serial-tour ol button:hover {
 	text-decoration: underline;
 }
+
+@media (max-width: 500px) {
+	micrio-serial-tour ol {
+		bottom: calc(var(--micrio-button-size) + 3 * var(--micrio-border-margin));
+	}
+}
