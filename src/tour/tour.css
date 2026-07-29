@@ -21,11 +21,14 @@ aside.marker-tour {
 	--micrio-hide: translate(-50%,100%);
 }
 
-aside.marker-tour > micrio-button {
+aside.marker-tour micrio-button {
 	--micrio-button-background: transparent;
 	--micrio-background-filter: none;
 	--micrio-button-shadow: none;
 	--micrio-border-radius: 0;
+}
+micr-io:not([data-tour-active]) aside.marker-tour micrio-fullscreen {
+	display: none;
 }
 aside.marker-tour > span {
 	height: var(--micrio-button-size);

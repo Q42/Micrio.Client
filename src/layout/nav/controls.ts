@@ -130,6 +130,8 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const $settings = $current?.$settings;
 		const $zoom = !$settings?.noZoom;
 		const $popup = get(micrio.state.popup);
+		const $tour = get(micrio.state.tour);
+		const isMarkerTour = $tour && 'steps' in $tour;
 		const info = $current?.$info;
 		const cultures = info?.revision ? Object.keys(info.revision) : [];
 		const isMobile = micrio.canvas.$isMobile;
@@ -138,7 +140,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const hasCultures = this.#showCultures && cultures.length > 1;
 		const hasSocial = this.#showSocial && ('share' in navigator);
 		const hasControls = showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen;
-		const onlyFullscreen = this.#showFullscreen && !!$popup && isMobile;
+		const onlyFullscreen = this.#showFullscreen && ((!!$popup && isMobile) || isMarkerTour);
 		const gridPanZoomCells = !!$current?.grid && $current?.$settings?.grid?.panZoom == 'cells';
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
 		const showGroup = showMute || zoomVisible || this.#showFullscreen;
@@ -161,7 +163,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 						this.#langItemsEl = createElement('div')
 					]
 				});
-				this.#aside1.insertBefore(this.#langMenu, this.#shareBtn?.isConnected ? this.#shareBtn : null);
+				this.#aside1.prepend(this.#langMenu);
 			}
 			const trigger = this.#langMenu.querySelector('micrio-button') as MicrioElement;
 			trigger?._setProps({ type: 'a11y', title: $i18n._switchLanguage });
