@@ -66,6 +66,7 @@ export class Grid extends MicrioElement {
 	#_to:ReturnType<typeof setTimeout>|undefined;
 	/** @internal */
 	#_fadeTo:ReturnType<typeof setTimeout>|undefined;
+	#setId:number = 0;
 	#timingFunction:Models.Camera.TimingFunction = 'ease';
 	#closeBtn!: HTMLElement;
 
@@ -197,7 +198,12 @@ export class Grid extends MicrioElement {
 		cover?: boolean;
 		scale?: number;
 		columns?: number;
-	}={}) : Promise<MicrioImage[]> { return new Promise((ok, err) => {
+	}={}) : Promise<MicrioImage[]> {
+		const setId = ++this.#setId;
+		if(this._images.length) this._images.forEach(i => i.camera.stop());
+		this.image.camera.stop();
+
+		return new Promise((ok, err) => {
 		delete this.image.$settings?.focus;
 		this._lastAction = undefined;
 
@@ -240,6 +246,7 @@ export class Grid extends MicrioElement {
 
 		let resolved = false;
 		const error = () => {
+			if(setId !== this.#setId) return;
 			this.#clearTimeouts();
 			if(!resolved) err();
 		};
@@ -278,6 +285,7 @@ export class Grid extends MicrioElement {
 		);
 
 		const done = () => {
+			if(setId !== this.#setId) return;
 			this.#clearTimeouts();
 			requestAnimationFrame(() => engine._crossfadeDuration = defaultDur);
 			if(isDelayed) this._images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
@@ -519,9 +527,6 @@ export class Grid extends MicrioElement {
 
 		if (img.canvas) img.canvas.zIndex = 3;
 		this._focussed.set(img);
-
-		if(!get(img.visible) && (opts.transition == 'crossfade' || !opts.transition))
-			opts.duration = 0;
 
 		return this.set(target, {
 			noBlur: true,
