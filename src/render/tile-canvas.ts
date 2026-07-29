@@ -558,14 +558,24 @@ export class TileCanvas {
 	}
 
 	/** Finds the Image, Layer, and calculates the DrawRect for a given global tile index. */
-	#findTileRect(i: number): void {
+	#findTileRect(i: number): [number, number] {
 		let img = 0; while (i >= this.images[img]._endOffset) img++;
 		const image = this.images[img];
 
 		let l = 0; while (i >= image._layers[l]._end) l++;
 		const layer = image._layers[l];
-
 		layer._getTileRect(i, this.#rect);
+		return [img, layer._index];
+	}
+
+	/** Checks if a tile (by global index) is within the current camera viewport of this canvas. @internal */
+	_isTileInViewport(idx: number): boolean {
+		if (this.is360) return false;
+		const r = this.#rect,
+			v = this.view;
+		const [imgIdx, lIdx] = this.#findTileRect(idx);
+		if (lIdx <= this.images[imgIdx]._targetLayer) return false;
+		return !(r.x1 <= v.x0 || r.x0 >= v.x1 || r.y1 <= v.y0 || r.y0 >= v.y1);
 	}
 
 	/** Handles resizing of the canvas element. @internal */

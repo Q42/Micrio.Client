@@ -611,10 +611,24 @@ export class Engine {
 	#deleteTile(idx: number): void {
 		const tile = this.#tiles.get(idx);
 		if (tile) {
-			if (tile._texture) this.micrio._webgl.gl.deleteTexture(tile._texture);
+			if (tile._texture) {
+				this.micrio._webgl.gl.deleteTexture(tile._texture);
+				tile._texture = undefined;
+			}
 			if (tile._timeoutId) clearTimeout(tile._timeoutId);
 			this.#tiles.delete(idx);
 		}
+	}
+
+	/**
+	 * Checks if a tile (by global index) is inside the current camera viewport of its canvas.
+	 * @internal
+	 */
+	#isTileInViewport(idx: number): boolean {
+		for (let i = 0; i < this._canvases.length; i++) {
+			if (this._canvases[i]._isTileInViewport(idx)) return true;
+		}
+		return false;
 	}
 
 	/**
@@ -662,7 +676,11 @@ export class Engine {
 
 		for (const [idx, tile] of this.#tiles.entries()) {
 			if (tile._deleteAt && (now - tile._deleteAt) / 1000 > this.#deleteAfterSeconds) {
-				this.#deleteTile(idx);
+				if (this.#isTileInViewport(idx)) {
+					tile._deleteAt = now;
+				} else {
+					this.#deleteTile(idx);
+				}
 			}
 		}
 	}
