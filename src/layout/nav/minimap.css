@@ -15,6 +15,10 @@ micrio-minimap canvas {
 micrio-main:has(> micrio-controls) > micrio-minimap > canvas {
 	right: calc(2 * var(--micrio-border-margin) + var(--micrio-button-size));
 }
+micrio-minimap.hidden canvas:not(:hover) {
+	opacity: 0;
+	pointer-events: none;
+}
 @media (max-width: 800px) {
 	micrio-minimap canvas {
 		transform: scale3d(.5, .5, 1) !important;

@@ -139,8 +139,7 @@ micrio-swipe-gallery>figcaption {
 /* Main hiding logic */
 micr-io[data-tour-active][data-idle] :is(micrio-logo a,micrio-logo-org a,micrio-tour > aside),
 micr-io[data-idle] :is(micrio-grid .close, micrio-tour micrio-media figure, micrio-serial-tour :is(micrio-media figure, ol)),
-micr-io:is([data-switching],[data-tour-active]) micrio-controls aside,
-micr-io:is([data-idle],[data-switching],[data-tour-active]) micrio-minimap canvas:not(:hover),
+micr-io:is([data-switching],[data-tour-active]) :is(micrio-controls aside, micrio-minimap canvas),
 micr-io:not([data-zoomed]) micrio-minimap canvas:not(.fixed),
 micr-io:is([data-zoomed],[data-idle]) micrio-gallery :is(ul, micrio-button > button),
 micr-io[data-zoomed] micrio-details details,

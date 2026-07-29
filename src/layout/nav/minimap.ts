@@ -23,6 +23,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;
 	#unsubView: (() => void) | undefined;
+	#to: any;
 
 	/** @internal */
 	_onMount() {
@@ -65,6 +66,9 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			if (!area || !this.#_ctx) return;
 			const ctx = this.#_ctx;
 			ctx.clearRect(0, 0, width, height);
+			clearTimeout(this.#to);
+			this.classList.remove('hidden');
+			this.#to = setTimeout(() => this.classList.add('hidden'), 2500);
 
 			const hasThumb = !!(image.thumbSrc || thumbSrc);
 			if (info.is360) {
