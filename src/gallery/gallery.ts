@@ -127,12 +127,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
 			this.#parentImage.canvas?._setActiveImage(imgIdx, num);
-			if (num > 0) {
-				this.#parentImage.camera.setView([0, 0, 1, 1]);
-			} else {
-				const area = this.#images[imgIdx]?.opts?.area;
-				if (area) this.#parentImage.camera.setView(area);
-			}
+			this.#parentImage.camera.setView([0, 0, 1, 1]);
 		}
 		this.#parentImage.album!.hooked = true;
 	}
@@ -323,12 +318,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			const pageImages = this.#pageToImages[pageIdx];
 			const num = (pageImages?.length ?? 1) - 1;
 			parent.canvas?._setActiveImage(pageImages[0], num);
-			if (num > 0) {
-				parent.camera.setView([0, 0, 1, 1]);
-			} else {
-				const area = this.#images[startImageIdx]?.opts?.area;
-				if (area) parent.camera.setView(area);
-			}
+			parent.camera.setView([0, 0, 1, 1]);
 			this.#currentPage = pageIdx;
 			this.#frameChanged();
 			parent.album!.hooked = true;
