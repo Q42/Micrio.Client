@@ -21,16 +21,6 @@ micrio-media-controls .subtitles button:not(.active) svg {
 micrio-media-controls micrio-button:last-child {
 	margin-right: 16px;
 }
-:fullscreen micrio-media-controls {
-	position: absolute;
-	bottom: var(--micrio-border-margin, 5px);
-	left: 50%;
-	transform: translateX(-50%);
-	width: 430px;
-	max-width: calc(100vw - 2 * var(--micrio-border-margin, 0));
-	max-width: calc(100cqw - 2 * var(--micrio-border-margin, 0));
-	border-radius: var(--micrio-border-radius);
-}
 micrio-media-controls aside > div {
 	flex: 1;
 	display: flex;
