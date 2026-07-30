@@ -12,6 +12,7 @@
  */
 
 import type { Models } from '$types/models';
+import { VERSION } from '$core/version';
 import { VIEWER_BASE } from '$core/globals';
 import { fetchJson } from './fetch';
 
@@ -45,7 +46,7 @@ async function fetchBundleOnce(id: string): Promise<void> {
 }
 
 async function doFetchBundle(id: string): Promise<void> {
-	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json`);
+	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json?v=${VERSION}`);
 		if (bundle?.images) {
 		for (const entry of bundle.images) {
 			if (entry?.id) {
