@@ -351,14 +351,28 @@ export class HTMLMicrioElement extends MicrioElement {
 			return;
 		}
 
-		const baseId = resp['@id'] || resp.id || url.replace(/info.json$/, '');
+		// Determine id, width, height from canvas body (single-image manifest) or top-level info.json fields
+		let id = resp['@id'] || resp.id || url.replace(/info.json$/, '');
+		let width = resp.width;
+		let height = resp.height;
+
+		if (resp.type === 'Manifest') {
+			const body = resp.items?.[0]?.items?.[0]?.items?.[0]?.body;
+			const service = body?.service?.[0];
+			if (service?.id) {
+				id = service.id;
+				width = body.width;
+				height = body.height;
+			}
+		}
+
 		return {
-			id: baseId,
+			id,
 			info: {
-				id: baseId,
-				path: baseId.replace(/\/[^/]*$/, '') + '/',
-				width: resp.width,
-				height: resp.height,
+				id,
+				path: id.replace(/\/[^/]*$/, ''),
+				width,
+				height,
 				version: VERSION,
 				isIIIF: true,
 			},
