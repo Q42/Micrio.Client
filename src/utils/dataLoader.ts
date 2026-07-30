@@ -25,6 +25,7 @@ type BundleImage = Models.ImageBundle.BundleImage;
 const bundleCache = new Map<string, BundleImage>();
 const spaceCache = new Map<string, Models.Spaces.Space>();
 const albumCache = new Map<string, Models.GalleryConfig>();
+const bundleToursCache = new Map<string, Models.ImageData.MarkerTour[]>();
 const inflightFetches = new Map<string, Promise<void>>();
 let orgCache: Models.ImageInfo.Organisation | undefined;
 
@@ -47,10 +48,12 @@ async function fetchBundleOnce(id: string): Promise<void> {
 
 async function doFetchBundle(id: string): Promise<void> {
 	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json?v=${VERSION}`);
-		if (bundle?.images) {
+
+	if (bundle?.images) {
 		for (const entry of bundle.images) {
 			if (entry?.id) {
 				bundleCache.set(entry.id, entry);
+				if(bundle.tours) bundleToursCache.set(entry.id, bundle.tours);
 			}
 		}
 		// When the bundle was fetched via an external/… alias, also cache
@@ -59,6 +62,7 @@ async function doFetchBundle(id: string): Promise<void> {
 		// the caller originally used.
 		if (id.startsWith('external/') && bundle.images[0]?.id) {
 			bundleCache.set(id, bundle.images[0]);
+			if(bundle.tours) bundleToursCache.set(id, bundle.tours);
 		}
 	}
 	if (bundle?.organisation) {
@@ -113,6 +117,11 @@ export const DataLoader = {
 	/** @internal Returns the album info for an album ID from the bundle cache. */
 	_getAlbum(id: string): Models.GalleryConfig | undefined {
 		return albumCache.get(id);
+	},
+
+	/** @internal Returns the bundle-level marker tours for an image ID, or undefined if no tours were in the bundle. */
+	_getBundleTours(id: string): Models.ImageData.MarkerTour[] | undefined {
+		return bundleToursCache.get(id);
 	},
 
 	/**

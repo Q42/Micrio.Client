@@ -292,6 +292,10 @@ export class MicrioImage {
 			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
 		}
 
+		if(!micrio.bundleTours) {
+			micrio.bundleTours = DataLoader._getBundleTours(this.id);
+		}
+
 		if(i.is360 && this.camera) {
 			const spaceRotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY;
 			if(spaceRotY != null) this.camera.rotationY = spaceRotY;

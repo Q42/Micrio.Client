@@ -60,7 +60,7 @@ class MicrioToolbar extends MicrioElement {
 		if (!this.#data) return;
 		const micrio = this._getMicrio();
 		if (!micrio) return;
-		const { _lang, spaceData, state: micrioState } = micrio;
+		const { _lang, state: micrioState } = micrio;
 		const $_lang = get(_lang);
 		const $tour = get(micrioState.tour);
 		const $marker = get(micrioState.marker);
@@ -72,7 +72,7 @@ class MicrioToolbar extends MicrioElement {
 		const hasPageLang = (p: Models.ImageData.Menu): boolean => !!p.i18n?.[$_lang];
 		const hidden = !!$tour || !!$marker || !!$popover;
 
-		const markerTours = ((this.#data?.markerTours ?? []).concat(spaceData?.markerTours ?? [])).filter(hasTourLang);
+		const markerTours = ((micrio.bundleTours ?? []).concat(this.#data?.markerTours ?? [])).filter(hasTourLang);
 		const hasMarkerTours = markerTours.length > 0;
 		const videoTours = this.#data?.tours?.filter(hasTourLang) ?? [];
 		const hasVideoTours = videoTours.length > 0;

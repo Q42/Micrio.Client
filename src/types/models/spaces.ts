@@ -1,5 +1,5 @@
 import type { Assets } from './assets';
-import type { ImageData } from './data';
+
 export namespace Spaces {
 	export interface SpaceImage {
 		/** The Micrio ID */
@@ -23,8 +23,6 @@ export namespace Spaces {
 		links: [string, string, {[key:string]: WayPointSettings}?][];
 		/** Custom icon lib */
 		icons?: Assets.Image[];
-		/** Multi-image marker tours */
-		markerTours?: ImageData.MarkerTour[];
 	}
 
 	export interface WaypointInterface {

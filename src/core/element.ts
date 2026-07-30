@@ -157,6 +157,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Holds data for the current 360 space, if applicable (loaded via `data-space` attribute or API). */
 	spaceData:Models.Spaces.Space|undefined;
 
+	/** Holds bundle-level marker tours, available regardless of which image is shown. */
+	bundleTours:Models.ImageData.MarkerTour[]|undefined;
+
 	/** The current active gallery controller, if any. */
 	readonly gallery: Writable<Gallery|undefined> = writable();
 

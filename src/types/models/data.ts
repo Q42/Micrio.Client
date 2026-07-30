@@ -534,5 +534,6 @@ export namespace ImageBundle {
 			data: Spaces.Space;
 		}[];
 		album?: GalleryConfig;
+		tours?: ImageData.MarkerTour[];
 	};
 }
