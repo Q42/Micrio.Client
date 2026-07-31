@@ -50,7 +50,8 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		};
 
 		el.addEventListener('gallery-show', ((e: Event) => {
-			currentIdx = (e as CustomEvent).detail as number;
+			const id = (e as CustomEvent).detail[0] as string;
+			currentIdx = Math.max(0, this.#props.gallery.findIndex(item => (item.micrioId ?? item.id) === id));
 			updateCaption();
 		}) as EventListener);
 

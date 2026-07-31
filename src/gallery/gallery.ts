@@ -150,7 +150,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#frameChanged() {
 		this.#preload(this.#currentImageIdx);
 		const micrio = this._getMicrio();
-		micrio?.events._dispatch('gallery-show', this.#currentPage);
+		micrio?.events._dispatch('gallery-show', (this.#pageToImages[this.#currentPage] ?? []).map(i => this.#images[i].id));
 		if (this.#swipeGallery) {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
 		}
@@ -358,8 +358,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// and mark the pages visible so their markers render.
 		if(!('MicrioBook3D' in window)) throw new Error('Could not load Micrio Book3D viewer')
 		for (const img of this.#images) img.visible.set(true);
-		this.#currentPage = pageIdx;
-		this.#frameChanged();
 		parent.album!.hooked = true;
 		this.#book3d = new ((window.MicrioBook3D) as any)({
 			canvas: parent.engine.micrio.canvas.element,

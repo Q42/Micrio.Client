@@ -108,8 +108,8 @@ export interface MicrioEventDetails {
 	'page-closed': ImageData.Menu;
 
 	// Album viewing
-	/** Triggers on album image change */
-	'gallery-show': number;
+	/** Triggers on album image change, containing the ids of the currently shown image(s) */
+	'gallery-show': string[];
 
 	// Grid views
 	/** The grid controller has initialized */

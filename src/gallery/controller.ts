@@ -318,7 +318,8 @@ export class Gallery {
 		const parent = this.#parent;
 		// Dispatch gallery-show event so the gallery and album interface respond
 		if (parent) {
-			this.#engine.micrio.events._dispatch('gallery-show', index);
+			const page = this._getPageLayout().pages[index] ?? [Math.min(index, this._images.length - 1)];
+			this.#engine.micrio.events._dispatch('gallery-show', page.map(i => this._images[i].id));
 		}
 	}
 
