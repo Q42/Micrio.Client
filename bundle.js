@@ -6,6 +6,10 @@ const version = process.env.npm_package_version;
 const outFile = `./public/dist/micrio.min.js`;
 const buildDir = './public/build/';
 
+const book3dFile = './public/micrio-book3d.js';
+const hasBook3d = fs.existsSync(book3dFile);
+if(hasBook3d) console.log(`Including optional module: ${book3dFile}`);
+
 const jsPath = buildDir + 'micrio.prod.iife.js';
 const cssPath = buildDir + 'micrio.prod.css';
 
@@ -42,7 +46,8 @@ fs.writeFileSync(outFile, Buffer.concat([
 		...fs.readFileSync('./LICENSE').toString().trim().split('\n').map(r => ' * ' + r.trim()),
 		' */\n\n'
 	].join('\n')),
-	Buffer.from(fs.readFileSync(jsPath))
+	Buffer.from(fs.readFileSync(jsPath)),
+	...(hasBook3d ? [Buffer.from('\n'), Buffer.from(fs.readFileSync(book3dFile))] : [])
 ]));
 
 // Generate .d.ts

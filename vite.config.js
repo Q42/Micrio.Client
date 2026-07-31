@@ -70,11 +70,5 @@ export default defineConfig({
 				assetFileNames: () => `micrio.prod[extname]`
 			}
 		}
-	},
-	server: {
-		headers: {
-			'Cross-Origin-Opener-Policy': 'same-origin',
-			'Cross-Origin-Embedder-Policy': 'require-corp',
-		},
-	},
+	}
 });
