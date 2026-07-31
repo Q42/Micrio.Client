@@ -559,12 +559,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(!this.lang) this.lang = 'en';
 
-		// Book3D albums ship their own WebGL renderer on the shared `<canvas>`,
-		// so the Micrio engine and WebGL stay uninitialized (and inert) while loaded.
-		const isBook3D = opts.gallery?._config?.type === 'book3d' || bundle.settings?.gallery?.type === 'book3d';
-		this._engine._book3d = isBook3D;
-
-		if(!isBook3D) {
+		if(!this._engine._book3d) {
 			this._engine._load();
 			if(!this._webgl.gl) try {
 				this._webgl._init();

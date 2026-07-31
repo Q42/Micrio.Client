@@ -3,6 +3,8 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
 import type { Engine } from '$render/engine';
+import type { Models } from '$types/models';
+import { archive } from '$utils/archive';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { OmniUI } from '$gallery/omni';
@@ -16,6 +18,10 @@ const scrubPad = 16;
 export interface GalleryProps {
 	controller?: GalleryController;
 }
+
+interface BookViewer3D {
+	goto: (n:number) => void
+};
 
 import './gallery.css';
 
@@ -60,6 +66,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Map tracking in-flight preload requests (keyed by thumbSrc). */
 	#preloading = new Map<string, any>();
 	#preloadD = 0;
+
+	/** 3d book viewer @internal */
+	#book3d: BookViewer3D | undefined;
+
 
 	/** @internal */
 	async _onMount() {
@@ -121,7 +131,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#currentPage = page;
 		this.#currentImageIdx = imgIdx;
 		if (changed) this.#frameChanged();
-		if (this.#swipeGallery) {
+		if (this.#book3d) {
+			this.#book3d.goto(page)
+		} else if (this.#swipeGallery) {
 			this.#swipeGallery.animateTo(imgIdx, fast, duration, this.#currentImageIdx);
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
@@ -311,14 +323,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#frameChanged();
 			parent.album!.hooked = true;
 		} else if (isBook3D) {
-			// Book3D album: the album ships its own WebGL renderer for the shared
-			// `<canvas>`, so no engine instancing happens here. Keep all DOM UI
-			// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
-			// and mark the pages visible so their markers render.
-			for (const img of images) img.visible.set(true);
-			this.#currentPage = pageIdx;
-			this.#frameChanged();
-			parent.album!.hooked = true;
+			this.#loadBook3d(parent,controller._items,pageIdx);
 		} else {
 			// Switch gallery: embed all images on the parent canvas
 			await Promise.allSettled(images.map(d => {
@@ -342,6 +347,27 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		window.addEventListener('keydown', this.#keydown);
 		this._addCleanup(() => window.removeEventListener('keydown', this.#keydown));
+	}
+
+	#loadBook3d(parent:MicrioImage, items: Models.ImageInfo.ImageInfo[], pageIdx:number) {
+		// Book3D album: the album ships its own WebGL renderer for the shared
+		// `<canvas>`, so no engine instancing happens here. Keep all DOM UI
+		// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
+		// and mark the pages visible so their markers render.
+		if(!('MicrioBook3D' in window)) return;
+		for (const img of this.#images) img.visible.set(true);
+		this.#currentPage = pageIdx;
+		this.#frameChanged();
+		parent.album!.hooked = true;
+		this.#book3d = new ((window.MicrioBook3D) as any)({
+			canvas: parent.engine.micrio.canvas.element,
+			bookIndex: {
+				images: items,
+				delta: pageIdx
+			},
+			getImageById: archive._getImageById,
+			onPageChange: (p:number) => this.#goto(p)
+		}) as BookViewer3D;
 	}
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */

@@ -265,6 +265,19 @@ export class Gallery {
 				setProps: { micrio, image: parent, gallery: this },
 			}) as Grid;
 		}
+
+		// Book3D albums ship their own WebGL renderer on the shared `<canvas>`,
+		// so the Micrio engine and WebGL stay uninitialized (and inert) while loaded.
+		if(this._config.type == 'book3d') {
+			if(!('SharedArrayBuffer' in self)) {
+				console.warn('[Micrio]: No `SharedArrayBuffer` available, 3D Book Viewer is disabled. Using 2D fallback.')
+				this._config.type = 'swipe';
+			}
+			else {
+				parent.engine._book3d = true;
+			}
+		}
+
 	}
 
 	// --- Element Opening ---
