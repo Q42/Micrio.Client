@@ -9,7 +9,8 @@ import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { OmniUI } from '$gallery/omni';
 import { SwipeGallery } from '$gallery/swipe';
-import { createElement } from '$utils/dom';
+import { createElement, loadScript } from '$utils/dom';
+import { VERSION } from '$core/version';
 import '$ui/button';
 
 const scrubPad = 16;
@@ -351,12 +352,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this._addCleanup(() => window.removeEventListener('keydown', this.#keydown));
 	}
 
-	#loadBook3d(parent:MicrioImage, items: Models.ImageInfo.ImageInfo[], pageIdx:number) {
+	async #loadBook3d(parent:MicrioImage, items: Models.ImageInfo.ImageInfo[], pageIdx:number) : Promise<void> {
 		// Book3D album: the album ships its own WebGL renderer for the shared
 		// `<canvas>`, so no engine instancing happens here. Keep all DOM UI
 		// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
 		// and mark the pages visible so their markers render.
-		if(!('MicrioBook3D' in window)) return;
+		if(!('MicrioBook3D' in window)) await loadScript(`https://r2.micr.io/micrio-book3d.${VERSION}.min.js`);
+		if(!('MicrioBook3D' in window)) throw new Error('Could not load Micrio Book3D viewer')
 		for (const img of this.#images) img.visible.set(true);
 		this.#currentPage = pageIdx;
 		this.#frameChanged();

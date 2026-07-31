@@ -25,6 +25,8 @@
 		xxmicr-io { --micrio-font-family: 'Raleway', sans-serif; }
 	</style>
 
+	<!-- <script src="/micrio-book3d.js"></script> -->
+
 	<!-- Use this for local development -->
 	<script type="module" src="./src/main.ts"></script>
 
@@ -175,6 +177,9 @@
 		// Override the default settings by setting the `.defaultSettings` property
 		// on a <micr-io> HTML element
 		micrio.defaultSettings = {
+			gallery: {
+				type: 'book3d'
+			}
 		};
 
 		// Listen to opened marker hooks

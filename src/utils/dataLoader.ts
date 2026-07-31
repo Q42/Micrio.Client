@@ -76,7 +76,6 @@ async function doFetchBundle(id: string): Promise<void> {
 		}
 	}
 	if (bundle?.album) {
-		bundle.album.type = 'book3d';
 		albumCache.set(bundle.album.id!, bundle.album);
 	}
 }
