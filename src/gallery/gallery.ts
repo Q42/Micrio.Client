@@ -23,6 +23,7 @@ interface BookViewer3D {
 	goto: (n:number) => void;
 	zoom: (delta:number) => void;
 	isZoomedIn: () => boolean;
+	ready: Promise<void>;
 };
 
 import './gallery.css';
@@ -150,7 +151,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#frameChanged() {
 		this.#preload(this.#currentImageIdx);
 		const micrio = this._getMicrio();
-		micrio?.events._dispatch('gallery-show', (this.#pageToImages[this.#currentPage] ?? []).map(i => this.#images[i].id));
+		const ids = (this.#pageToImages[this.#currentPage] ?? []).map(i => this.#images[i].id);
+		micrio?.events._dispatch('gallery-show', ids);
+
+		if (this.#book3d) {
+			for (const img of this.#images) img.visible.set(ids.includes(img.id));
+		}
 		if (this.#swipeGallery) {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
 		}
@@ -357,7 +363,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
 		// and mark the pages visible so their markers render.
 		if(!('MicrioBook3D' in window)) throw new Error('Could not load Micrio Book3D viewer')
-		for (const img of this.#images) img.visible.set(true);
 		parent.album!.hooked = true;
 		this.#book3d = new ((window.MicrioBook3D) as any)({
 			canvas: parent.engine.micrio.canvas.element,
@@ -371,6 +376,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}) as BookViewer3D;
 		parent.engine.micrio.events.unhookScroll();
 		parent.camera._zoomOverride = (n:number) => this.#book3d!.zoom(n);
+		this.#book3d.ready.then(() => {
+			this.#frameChanged();
+		})
 	}
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
