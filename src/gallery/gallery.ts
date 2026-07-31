@@ -325,7 +325,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#frameChanged();
 			parent.album!.hooked = true;
 		} else if (isBook3D) {
-			this.#loadBook3d(parent,controller._items,pageIdx);
+			this.#loadBook3d(parent,controller._items,startImageIdx);
 		} else {
 			// Switch gallery: embed all images on the parent canvas
 			await Promise.allSettled(images.map(d => {
@@ -365,8 +365,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			canvas: parent.engine.micrio.canvas.element,
 			bookIndex: {
 				images: items,
-				delta: pageIdx
+				delta: 0
 			},
+			startPageIdx: pageIdx,
 			getImageById: archive._getImageById,
 			onPageChange: (p:number) => this.#goto(p)
 		}) as BookViewer3D;
