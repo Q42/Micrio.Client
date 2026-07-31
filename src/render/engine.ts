@@ -584,7 +584,7 @@ export class Engine {
 		const inArchive = archive.db.has(src);
 		if (!inArchive) this.micrio._loading.set(true);
 		this.#requests.set(i, src);
-		(inArchive ? archive.getImage(src) : loadTexture(src))
+		(inArchive ? archive._getImage(src) : loadTexture(src))
 			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
 			.catch(() => this.#deleteRequest(i));
 	}
