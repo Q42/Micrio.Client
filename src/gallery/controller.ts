@@ -45,6 +45,7 @@ export class Gallery {
 
 	#parent: MicrioImage | null = null;
 
+	readonly _items: Models.ImageInfo.ImageInfo[];
 	readonly #currentIndex: Writable<number> = writable(0);
 
 	/** Max width for the virtual container canvas (switch/omni galleries). */
@@ -55,6 +56,7 @@ export class Gallery {
 	/* @internal */
 	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {
 		this.#engine = engine;
+		this._items = items;
 		this._config = config;
 
 		const isSwitch = config.type == 'switch';
@@ -263,6 +265,19 @@ export class Gallery {
 				setProps: { micrio, image: parent, gallery: this },
 			}) as Grid;
 		}
+
+		// Book3D albums ship their own WebGL renderer on the shared `<canvas>`,
+		// so the Micrio engine and WebGL stay uninitialized (and inert) while loaded.
+		if(this._config.type == 'book3d') {
+			if(!('SharedArrayBuffer' in self)) {
+				console.warn('[Micrio]: No `SharedArrayBuffer` available, 3D Book Viewer is disabled. Using 2D fallback.')
+				this._config.type = 'swipe';
+			}
+			else {
+				parent.engine._book3d = true;
+			}
+		}
+
 	}
 
 	// --- Element Opening ---

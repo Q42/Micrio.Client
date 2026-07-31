@@ -24,8 +24,8 @@ class Archive {
 	#data:Map<string, ArrayBuffer> = new Map;
 	/** Map of file paths to [archiveId, byteOffset, byteLength] for fast file lookup. */
 	db:Map<string, [string, number, number]> = new Map;
-
-
+	/** Map storing image ID → full db key for quick lookup by `getImageById`. */
+	private imageKeys:Map<string, string> = new Map;
 
 	/**
 	 * Loads an archive file (.bin or .mdp) via XMLHttpRequest.
@@ -79,6 +79,19 @@ class Archive {
 			// If header is valid (name and size > 0), add entry to the database
 			if(h.name && h.size > 0) {
 				this.db.set(path+imgPath+h.name.replace('./',''), [id, i+hSize, h.size]); // Key: full path, Value: [archiveId, offset, size]
+				
+				// Index image thumbnails by their image ID (first path segment after basePath)
+				// e.g., "mXApNjq/8/0_0.webp" → image ID "mXApNjq"
+				const cleanName = h.name.replace('./','');
+				const fullPath = path+imgPath+cleanName;
+				const slashIdx = cleanName.indexOf('/');
+				if (slashIdx > 0) {
+					const imageId = cleanName.substring(0, slashIdx);
+					// Only set if not already present (first match wins)
+					if (!this.imageKeys.has(imageId)) {
+						this.imageKeys.set(imageId, fullPath);
+					}
+				}
 			} else if (h.size === 0 && !h.name) {
 				// Encountering null blocks likely means end of TAR archive, stop parsing.
 				break;
@@ -127,11 +140,24 @@ class Archive {
 	 * @returns A Promise resolving to the loaded TextureBitmap.
 	 * @throws If the file or its archive is not found.
 	 */
-	getImage = async (u: string) : Promise<TextureBitmap> => {
+	_getImage = async (u: string) : Promise<TextureBitmap> => {
 		const i = this.db.get(u);
 		if(!i || !this.#data.has(i[0])) throw new Error('Could not get blob: '+u);
 		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
 		return self.createImageBitmap(blob);
+	}
+
+	/**
+	 * Retrieves an image file from a loaded archive using just the image ID.
+	 * Looks up the first thumbnail match for the given image ID in the imageKeys index.
+	 * @param imageId The image ID (e.g., "mXApNjq").
+	 * @returns A Promise resolving to the loaded TextureBitmap.
+	 * @throws If no matching image is found in the archive.
+	 */
+	_getImageById = async (imageId: string): Promise<TextureBitmap> => {
+		const fullPath = this.imageKeys.get(imageId);
+		if (!fullPath) throw new Error(`No image found in archive for ID: ${imageId}`);
+		return this._getImage(fullPath);
 	}
 }
 

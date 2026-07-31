@@ -247,7 +247,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		const updateZoomed = () => {
 			const imgs = get(this._visible).filter(i => i.id);
 			const target = imgs.length === 1 ? imgs[0] : this.#current;
-			this.toggleAttribute('data-zoomed', !!target?.camera && !target.camera.isZoomedOut());
+			this.toggleAttribute('data-zoomed', !!target?.camera && !!target._placed && !target.camera.isZoomedOut());
 		};
 
 		this._watch(this.current, c => {
@@ -559,12 +559,14 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(!this.lang) this.lang = 'en';
 
-		this._engine._load();
-		if(!this._webgl.gl) try {
-			this._webgl._init();
-		} catch(e) {
-			this.#printError(e as Error);
-			return c;
+		if(!this._engine._book3d) {
+			this._engine._load();
+			if(!this._webgl.gl) try {
+				this._webgl._init();
+			} catch(e) {
+				this.#printError(e as Error);
+				return c;
+			}
 		}
 
 		// ── Post-init ─────────────────────────────────────────────────────────

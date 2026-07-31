@@ -17,6 +17,10 @@ const jsFile = './public/dist/micrio.min.js';
 const exists = fs.existsSync(jsFile);
 if(!exists) console.warn('Compiled Micrio JS not found.');
 
+const book3dFile = './public/micrio-book3d.js';
+const hasBook3d = fs.existsSync(book3dFile);
+if(hasBook3d) console.log(`Including optional module: ${book3dFile}`);
+
 const isCurrentVersion = exists && fs.readFileSync(jsFile, 'utf8').split('\n')[0].indexOf(version) > 0;
 if(exists && !isCurrentVersion) console.warn('Compiled version is not the latest version.')
 
@@ -69,6 +73,10 @@ for(const [bucket, domain, endpoint] of [
 		['d.ts','text/plain']
 	]) {
 		await run(`aws s3 cp ./public/dist/micrio.min.${ext} s3://${bucket}/micrio-${version}${suffix}.min.${ext} --endpoint-url ${endpoint} --content-type ${type} --cache-control "public, max-age=31536000"`).catch(error);
+	}
+	if(hasBook3d) {
+		console.log(`https://${domain}.micr.io/micrio-book3d.${version}.min.js`);
+		await run(`aws s3 cp ${book3dFile} s3://${bucket}/micrio-book3d.${version}.min.js --endpoint-url ${endpoint} --content-type text/javascript --cache-control "public, max-age=31536000"`).catch(error);
 	}
 }
 

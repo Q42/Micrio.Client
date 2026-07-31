@@ -48,7 +48,7 @@ class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 			props: { rel: 'noopener', href: org.href ?? '#', title: org.name ?? '', target: '_blank' },
 			attrs: { 'aria-label': `${org.name} homepage` },
 			children: [
-				createElement('img', { props: { src: getLogoSrc(org.logo), alt: 'Logo' } })
+				createElement('img', { props: { src: getLogoSrc(org.logo), alt: 'Logo', crossOrigin: 'anonymous' } })
 			],
 			parent: this
 		});

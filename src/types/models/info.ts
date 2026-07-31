@@ -452,7 +452,7 @@ export interface Album {
 
 /** Gallery configuration */
 export type GalleryConfig = {
-	type: 'swipe' | 'switch' | 'grid';
+	type: 'swipe' | 'switch' | 'grid' | 'book3d';
 	startId?: string;
 	sort?: 'name' | '-name' | 'created' | '-created' | 'random';
 	isSpreads?: boolean;

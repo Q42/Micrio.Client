@@ -131,15 +131,17 @@ export class Canvas {
 		c.portrait = window.matchMedia('(orientation: portrait)')?.matches ?? (height > width); // Check orientation
 
 		// Update canvas buffer dimensions
-		this.element.width = width * ratio;
-		this.element.height = height * ratio;
-		// Update WebGL viewport
-		this.#micrio._webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
-		// Resize postprocessing framebuffer if active
-		this.#micrio._webgl._postprocessor?._resize();
+		if (this.#micrio._webgl.gl) {
+			this.element.width = width * ratio;
+			this.element.height = height * ratio;
+			// Update WebGL viewport
+			this.#micrio._webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
+			// Resize postprocessing framebuffer if active
+			this.#micrio._webgl._postprocessor?._resize();
 
-		// Notify engine of resize
-		this.#micrio._engine._resize(c);
+			// Notify engine of resize
+			this.#micrio._engine._resize(c);
+		}
 
 		// Dispatch 'resize' event with bounding box info
 		this.#micrio.events._dispatch('resize', box);

@@ -96,6 +96,13 @@ export class Engine {
 	/** Elasticity factor for kinetic dragging (higher = more movement). @internal */
 	_dragElasticity: number = 1;
 
+	/** Flag indicating if a `book3d` album is active. The album ships its own WebGL
+	 *  renderer on the shared `<canvas>`, so the engine stays fully inert (no canvases,
+	 *  render loop, or texture loading) while the DOM UI (markers, gallery controls) still works.
+	 *  @internal
+	 */
+	_book3d: boolean = false;
+
 	/** Flag indicating if a binary archive is being used. @internal */
 	_hasArchive: boolean = false;
 	/** Layer offset when using an archive. @internal */
@@ -321,6 +328,7 @@ export class Engine {
 	 * @internal
 	 */
 	#addCanvas(c: MicrioImage): void {
+		if (this._book3d) return;
 		const i = c.$info;
 		if (!i) return;
 		if (c.error) {
@@ -446,6 +454,7 @@ export class Engine {
 
 	#setCanvas(canvas?: MicrioImage): void {
 		if (!canvas || (canvas._placed && canvas === this.#activeCanvasEntry?.micrioImage)) return;
+		if (this._book3d) return;
 
 		if (!canvas._placed) {
 			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id != get(this.micrio.current)!.id)) return;
@@ -493,11 +502,13 @@ export class Engine {
 
 	/** Requests the next animation frame. */
 	render(): void {
+		if (this._book3d) return;
 		if (this.#raf < 0) this.#raf = this.micrio._webgl._display.requestAnimationFrame(this.#draw);
 	}
 
 	#draw = (now: number = performance.now()): void => {
 		if (!this.micrio.isConnected || !this.micrio.$current) return;
+		if (this._book3d) return;
 
 		this.#raf = -1;
 		this.#drawing = false;
@@ -573,7 +584,7 @@ export class Engine {
 		const inArchive = archive.db.has(src);
 		if (!inArchive) this.micrio._loading.set(true);
 		this.#requests.set(i, src);
-		(inArchive ? archive.getImage(src) : loadTexture(src))
+		(inArchive ? archive._getImage(src) : loadTexture(src))
 			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
 			.catch(() => this.#deleteRequest(i));
 	}
@@ -703,6 +714,7 @@ export class Engine {
 		opacity: number = 1,
 		fromScale?: number,
 	): void => {
+		if (this._book3d) return;
 		this.#images.push(image);
 		this.#placeOnCanvas(image, parent, isEmbed, opacity, fromScale);
 	}
@@ -768,6 +780,7 @@ export class Engine {
 
 	/** Adds an embedded MicrioImage instance. @internal */
 	_addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {
+		if (this._book3d) return;
 		if (image._placed) return;
 		this.#addImage(image, parent, true, opts.opacity ?? 1, 'camera' in image && opts.asImage ? undefined : opts.fromScale);
 	}
