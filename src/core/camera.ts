@@ -31,6 +31,9 @@ export class Camera {
 	/** Array of additional callbacks to execute when an animation finishes. Used for queuing actions. @internal */
 	_aniDoneAdd: Function[] = [];
 
+	/** Possible .zoom() override for Book3D */
+	_zoomOverride: ((n:number) => void) | undefined;
+
 	readonly #image: MicrioImage;
 
 	/** @internal The parent MicrioImage instance. */
@@ -458,14 +461,16 @@ export class Camera {
 	 */
 	zoom(delta: number, duration = 0, x?: number, y?: number, _speed = 1, noLimit = false): Promise<void> {
 		return new Promise((ok, abort) => {
-			if (!this.#canvas) return abort(new Error("engine not ready"));
-			const v = this.#canvas.view.arr;
-			const coo = this.getXY(v[0], v[1]);
-			if (x == undefined) x = coo[0];
-			if (y == undefined) y = coo[1];
-			if (this.#image.album && !this.#image.album.hooked) return ok();
-			duration = this.#canvas.camera._zoom(delta, x, y, duration, noLimit);
-			this.#image.engine.render();
+			if(this._zoomOverride) this._zoomOverride(delta);
+			else if(this.#canvas) {
+				const v = this.#canvas.view.arr;
+				const coo = this.getXY(v[0], v[1]);
+				if (x == undefined) x = coo[0];
+				if (y == undefined) y = coo[1];
+				if (this.#image.album && !this.#image.album.hooked) return ok();
+				duration = this.#canvas.camera._zoom(delta, x, y, duration, noLimit);
+				this.#image.engine.render();
+			}
 			if (duration == 0) ok();
 			else this.#setAniPromises(ok, abort);
 		});

@@ -20,7 +20,9 @@ export interface GalleryProps {
 }
 
 interface BookViewer3D {
-	goto: (n:number) => void
+	goto: (n:number) => void;
+	zoom: (delta:number) => void;
+	isZoomedIn: () => boolean;
 };
 
 import './gallery.css';
@@ -368,6 +370,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			getImageById: archive._getImageById,
 			onPageChange: (p:number) => this.#goto(p)
 		}) as BookViewer3D;
+		parent.engine.micrio.events.unhookScroll();
+		parent.camera._zoomOverride = (n:number) => this.#book3d!.zoom(n);
 	}
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
