@@ -45,6 +45,7 @@ export class Gallery {
 
 	#parent: MicrioImage | null = null;
 
+	readonly _items: Models.ImageInfo.ImageInfo[];
 	readonly #currentIndex: Writable<number> = writable(0);
 
 	/** Max width for the virtual container canvas (switch/omni galleries). */
@@ -55,6 +56,7 @@ export class Gallery {
 	/* @internal */
 	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {
 		this.#engine = engine;
+		this._items = items;
 		this._config = config;
 
 		const isSwitch = config.type == 'switch';
