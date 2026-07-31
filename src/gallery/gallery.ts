@@ -474,7 +474,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (hl) {
 			hl.style.left = `${left}px`;
 			hl.classList.toggle('dragging', this.#dragging);
-			hl.textContent = this.#pageLabel(curr) + (dense ? ` / ${total}` : '');
+			const pageTotal = this.#pageToImages.reduce((n, p) => n + p.length, 0);
+			hl.textContent = this.#pageLabel(curr) + (dense ? ` / ${pageTotal}` : '');
 		}
 
 		let hoverLabel = this.querySelector('[data-part="hover-label"]') as HTMLElement;
