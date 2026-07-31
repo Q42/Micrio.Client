@@ -473,6 +473,7 @@ export class WebGL {
 	 * @param url The watermark image URL.
 	 */
 	_loadWatermark(url: string, wmOpacity?:number) : void {
+		if (!this.gl) return; // WebGL not initialized (e.g. book3d album)
 		if(url === this.#wmUrl) return; // Already loaded/loading
 
 		this.#wmUrl = url;

@@ -200,7 +200,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 * Uses requestIdleCallback for low-priority texture loading.
 	 */
 	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: Engine, hasArchive: boolean) {
-		if (!total || !engine) return;
+		if (!total || !engine?.ready) return;
 		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
 		for (let x = -d; x <= d; x++) {
 			if (!x) continue;
@@ -278,6 +278,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const engine = micrio._engine;
 		const parent = image;
 		const isSwipe = controller._config.type === 'swipe';
+		const isBook3D = controller._config.type === 'book3d';
 
 		if (isSwipe) {
 			this.#swipeGallery = new SwipeGallery(micrio, images, this.#pageToImages, this.#imageSlotPos, this.#imageSlotWidth,
@@ -306,6 +307,15 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (this.#swipeGallery) {
 			await this.#swipeGallery.setup(startImageIdx, parent, engine);
 			this.#currentImageIdx = startImageIdx;
+			this.#currentPage = pageIdx;
+			this.#frameChanged();
+			parent.album!.hooked = true;
+		} else if (isBook3D) {
+			// Book3D album: the album ships its own WebGL renderer for the shared
+			// `<canvas>`, so no engine instancing happens here. Keep all DOM UI
+			// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
+			// and mark the pages visible so their markers render.
+			for (const img of images) img.visible.set(true);
 			this.#currentPage = pageIdx;
 			this.#frameChanged();
 			parent.album!.hooked = true;

@@ -247,7 +247,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		const updateZoomed = () => {
 			const imgs = get(this._visible).filter(i => i.id);
 			const target = imgs.length === 1 ? imgs[0] : this.#current;
-			this.toggleAttribute('data-zoomed', !!target?.camera && !target.camera.isZoomedOut());
+			this.toggleAttribute('data-zoomed', !!target?.camera && !!target._placed && !target.camera.isZoomedOut());
 		};
 
 		this._watch(this.current, c => {
@@ -559,12 +559,19 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(!this.lang) this.lang = 'en';
 
-		this._engine._load();
-		if(!this._webgl.gl) try {
-			this._webgl._init();
-		} catch(e) {
-			this.#printError(e as Error);
-			return c;
+		// Book3D albums ship their own WebGL renderer on the shared `<canvas>`,
+		// so the Micrio engine and WebGL stay uninitialized (and inert) while loaded.
+		const isBook3D = opts.gallery?._config?.type === 'book3d' || bundle.settings?.gallery?.type === 'book3d';
+		this._engine._book3d = isBook3D;
+
+		if(!isBook3D) {
+			this._engine._load();
+			if(!this._webgl.gl) try {
+				this._webgl._init();
+			} catch(e) {
+				this.#printError(e as Error);
+				return c;
+			}
 		}
 
 		// ── Post-init ─────────────────────────────────────────────────────────
