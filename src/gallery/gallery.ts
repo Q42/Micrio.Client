@@ -397,7 +397,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			}
 		}) as BookViewer3D;
 		parent.engine.micrio.events.unhookScroll();
-		parent.camera._zoomOverride = (n:number) => this.#book3d!.zoom(n);
+		parent.camera._zoomOverride = (n:number) => book3d.zoom(n);
+		parent.camera._isZoomedInOverride = () => book3d.isZoomedIn();
 		this.#book3d.ready.then(() => {
 			this.#frameChanged();
 		})

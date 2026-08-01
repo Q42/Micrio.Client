@@ -34,6 +34,9 @@ export class Camera {
 	/** Possible .zoom() override for Book3D */
 	_zoomOverride: ((n:number) => void) | undefined;
 
+	/** Possible override for Book3D */
+	_isZoomedInOverride: (() => boolean) | undefined;
+
 	/** Possible override for `_getXYDirect` for Book3D */
 	_getXYDirectOverride: ((x:number, y:number) => Float64Array) | undefined;
 
@@ -201,7 +204,7 @@ export class Camera {
 	setMinScreenSize(s: number): void { if (!this.#image.album && this.#canvas) this.#canvas.camera._minSize = Math.max(0, Math.min(1, s)); }
 
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn = (): boolean => !!(this.#canvas?._isZoomedIn());
+	isZoomedIn = (): boolean => !!(this._isZoomedInOverride ? this._isZoomedInOverride() : this.#canvas?._isZoomedIn());
 
 	/** Checks if the camera is fully zoomed out. */
 	isZoomedOut = (full = false): boolean => !!(this.#canvas?._isZoomedOut(full));
