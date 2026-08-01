@@ -56,6 +56,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const noTitles = marker.data?.showTitle === false || !!markerSettings.noTitles || !!image.$settings.omni?.sideLabels;
 		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || !!image.$settings.omni?.sideLabels;
 
+		// For 3d books, no camera animations
+		const isBook3d = micrio.$current?.album?.info?.type == 'book3d';
+		if(isBook3d) delete marker.view;
+
 		// Derive marker view from video tour
 		if (marker.videoTour) {
 			const vt = marker.videoTour;
