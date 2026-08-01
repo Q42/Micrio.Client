@@ -160,9 +160,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const ids = (this.#pageToImages[this.#currentPage] ?? []).map(i => this.#images[i].id);
 		micrio?.events._dispatch('gallery-show', ids);
 
-		if (this.#book3d) {
-			for (const img of this.#images) img.visible.set(ids.includes(img.id));
-		}
 		if (this.#swipeGallery) {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
 		}
@@ -381,16 +378,17 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			getImageById: archive._getImageById,
 			onPageChange: (p:number) => this.#goto(p),
 			onViewChange: null,
-			onDraw: () => {
-				this.#images.filter(i => i.visible)
-				const $visible = get(micrio._visible);
-				for(const img of $visible) {
+			onDraw: (ids:string[]) => {
+				for (const img of this.#images) {
+					const isVis = ids.includes(img.id);
+					img.visible.set(isVis);
+					if(!isVis) continue;
 					if(!img.camera._getXYDirectOverride) {
 						const cooArr = new Float64Array(5);
 						img.camera._getXYDirectOverride = function(_x:number, _y:number) {
-							const {x, y} = book3d.textureToScreen(img.id, _x, _y);
-							cooArr[0] = x;
-							cooArr[1] = y;
+							const out = book3d.textureToScreen(img.id, _x, _y);
+							cooArr[0] = out.x;
+							cooArr[1] = out.y;
 							return cooArr;
 						}
 					}
