@@ -34,6 +34,9 @@ export class Camera {
 	/** Possible .zoom() override for Book3D */
 	_zoomOverride: ((n:number) => void) | undefined;
 
+	/** Possible override for `_getXYDirect` for Book3D */
+	_getXYDirectOverride: ((x:number, y:number) => Float64Array) | undefined;
+
 	readonly #image: MicrioImage;
 
 	/** @internal The parent MicrioImage instance. */
@@ -158,6 +161,7 @@ export class Camera {
 	_getXYDirect(x: number, y: number, opts: {
 		abs?: boolean; radius?: number; rotation?: number; noTrueNorth?: boolean;
 	} = {}) {
+		if(this._getXYDirectOverride) return this._getXYDirectOverride(x, y);
 		const c = this.#canvas;
 		if (!c) return new Float64Array(5);
 		const tNDiff = (this.#image._is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;

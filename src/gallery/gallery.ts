@@ -22,6 +22,12 @@ export interface GalleryProps {
 interface BookViewer3D {
 	goto: (n:number) => void;
 	zoom: (delta:number) => void;
+	textureToScreen: (imageId:string, x:number, y:number) => {
+		x: number;
+		y: number;
+		pageIndex: number;
+		side: number;
+	};
 	isZoomedIn: () => boolean;
 	ready: Promise<void>;
 };
@@ -364,15 +370,33 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// and mark the pages visible so their markers render.
 		if(!('MicrioBook3D' in window)) throw new Error('Could not load Micrio Book3D viewer')
 		parent.album!.hooked = true;
-		this.#book3d = new ((window.MicrioBook3D) as any)({
-			canvas: parent.engine.micrio.canvas.element,
+		const micrio = parent.engine.micrio;
+		const book3d = this.#book3d = new ((window.MicrioBook3D) as any)({
+			canvas: micrio.canvas.element,
 			bookIndex: {
 				images: items,
 				delta: 0
 			},
 			startPageIdx: pageIdx,
 			getImageById: archive._getImageById,
-			onPageChange: (p:number) => this.#goto(p)
+			onPageChange: (p:number) => this.#goto(p),
+			onViewChange: null,
+			onDraw: () => {
+				this.#images.filter(i => i.visible)
+				const $visible = get(micrio._visible);
+				for(const img of $visible) {
+					if(!img.camera._getXYDirectOverride) {
+						const cooArr = new Float64Array(5);
+						img.camera._getXYDirectOverride = function(_x:number, _y:number) {
+							const {x, y} = book3d.textureToScreen(img.id, _x, _y);
+							cooArr[0] = x;
+							cooArr[1] = y;
+							return cooArr;
+						}
+					}
+					img.state.view.update(v => v);
+				}
+			}
 		}) as BookViewer3D;
 		parent.engine.micrio.events.unhookScroll();
 		parent.camera._zoomOverride = (n:number) => this.#book3d!.zoom(n);
