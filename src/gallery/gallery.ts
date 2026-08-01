@@ -27,6 +27,8 @@ interface BookViewer3D {
 		y: number;
 		pageIndex: number;
 		side: number;
+		facing: boolean;
+		obscured: boolean;
 	};
 	isZoomedIn: () => boolean;
 	ready: Promise<void>;
@@ -387,8 +389,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 						const cooArr = new Float64Array(5);
 						img.camera._getXYDirectOverride = function(_x:number, _y:number) {
 							const out = book3d.textureToScreen(img.id, _x, _y);
-							cooArr[0] = out.x;
-							cooArr[1] = out.y;
+							const visible = out.facing && !out.obscured;
+							cooArr[0] = visible ? out.x : -1;
+							cooArr[1] = visible ? out.y : -1;
 							return cooArr;
 						}
 					}

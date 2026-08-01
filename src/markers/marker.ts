@@ -95,8 +95,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					radius: marker.radius, rotation: marker.rotation
 				});
 				[this.#x, this.#y, this.#scaleVal, this.#w] = xy;
-				if (image._is360) this.#behindCam = this.#w > 0;
-				else if (image._isOmni && omni) {
+				const obscured = (image._is360 && this.#w >= 0) || (this.#x == -1 && this.#y == -1);
+				this.#behindCam = obscured;
+				if (image._isOmni && omni) {
 					if (this.#omniArc && marker.rotation != null) {
 						const numFrames = omni.frames / (omni.layers?.length ?? 1);
 						let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex;
