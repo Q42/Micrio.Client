@@ -107,7 +107,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const glAttrValue = this.#micrio.getAttribute('data-embeds-inside-gl');
 		this.#embedImageAsHtml = this.#isSVG || isIOS14 || (!this.#screenIsHDR && !this.#micrio.hasAttribute('data-embeds-inside-gl') && !!embed.video) || glAttrValue == 'false';
 
-		this.#printGL = !this.#embedImageAsHtml && !!(
+		// 3d books have their own WebGL renderer
+		const isBook3d = this.#micrio.$current?.album?.info?.type == 'book3d';
+
+		this.#printGL = !isBook3d && !this.#embedImageAsHtml && !!(
 			(embed.micrioId && (!this.#isSmall || !embed.src))
 			|| (embed.video && !embed.video.controls && !embed.video.transparent)
 		);
