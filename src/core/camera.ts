@@ -40,6 +40,18 @@ export class Camera {
 	/** Possible override for `_getXYDirect` for Book3D */
 	_getXYDirectOverride: ((x:number, y:number) => Float64Array) | undefined;
 
+	/** getMatrix book3d override */
+	_getMatrixOverride: ((
+		x: number,
+		y: number,
+		scale: number,
+		rotX?: number,
+		rotY?: number,
+		rotZ?: number,
+		scaleX?: number,
+		scaleY?: number,
+	) => Float32Array) | undefined;
+
 	readonly #image: MicrioImage;
 
 	/** @internal The parent MicrioImage instance. */
@@ -289,6 +301,7 @@ export class Camera {
 	 * @returns The resulting 4x4 matrix as a Float32Array.
 	 */
 	getMatrix(x: number, y: number, scale?: number, radius?: number, rotX?: number, rotY?: number, rotZ?: number, transY?: number, scaleX?: number, scaleY?: number, noCorrectNorth?: boolean): Float32Array {
+		if(this._getMatrixOverride) return this._getMatrixOverride(x, y, scale || 1, rotX, rotY, rotZ, scaleX, scaleY);
 		return this.#canvas?._getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
 	}
 

@@ -30,6 +30,23 @@ interface BookViewer3D {
 		facing: boolean;
 		obscured: boolean;
 	};
+	textureToMatrix: (
+		imageId: string,
+		x: number,
+		y: number,
+		scale: number,
+		radius?: number,
+		rotX?: number,
+		rotY?: number,
+		rotZ?: number,
+		transY?: number,
+		scaleX?: number,
+		scaleY?: number,
+	) => {
+		matrix: Float32Array;
+		facing: boolean;
+		obscured: boolean;
+	};
 	isZoomedIn: () => boolean;
 	ready: Promise<void>;
 };
@@ -384,18 +401,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				for (const img of this.#images) {
 					const isVis = ids.includes(img.id);
 					img.visible.set(isVis);
-					if(!isVis) continue;
-					if(!img.camera._getXYDirectOverride) {
-						const cooArr = new Float64Array(5);
-						img.camera._getXYDirectOverride = function(_x:number, _y:number) {
-							const out = book3d.textureToScreen(img.id, _x, _y);
-							const visible = out.facing && !out.obscured;
-							cooArr[0] = visible ? out.x : -1;
-							cooArr[1] = visible ? out.y : -1;
-							return cooArr;
-						}
+					if(isVis) {
+						if(!img.camera._getXYDirectOverride) this.#hookImageBook3d(img);
+						img.state.view.update(v => v);
 					}
-					img.state.view.update(v => v);
 				}
 			}
 		}) as BookViewer3D;
@@ -405,6 +414,36 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#book3d.ready.then(() => {
 			this.#frameChanged();
 		})
+	}
+
+	#hookImageBook3d(img: MicrioImage) {
+		const book3d = this.#book3d;
+		if(!book3d) return;
+		if(!img.camera._getXYDirectOverride) {
+			const cooArr = new Float64Array(5);
+			img.camera._getXYDirectOverride = function(_x:number, _y:number) {
+				const out = book3d.textureToScreen(img.id, _x, _y);
+				const visible = out.facing && !out.obscured;
+				cooArr[0] = visible ? out.x : -1;
+				cooArr[1] = visible ? out.y : -1;
+				return cooArr;
+			}
+		}
+		if(!img.camera._getMatrixOverride) {
+			img.camera._getMatrixOverride = function(
+				x: number,
+				y: number,
+				scale: number,
+				rotX?: number,
+				rotY?: number,
+				rotZ?: number,
+				scaleX?: number,
+				scaleY?: number
+			) {
+				const out = book3d.textureToMatrix(img.id, x, y, scale, 0, rotX, rotY, rotZ, 0, scaleX, scaleY);
+				return out.facing && !out.obscured ? out.matrix : new Float32Array();
+			}
+		}
 	}
 
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */

@@ -41,6 +41,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#isSVG = false;
 	#isSmall = false;
 	#screenIsHDR = false;
+	#isBook3d = false;
 	#embedImageAsHtml = false;
 	#printGL = false;
 	#noEvents = false;
@@ -108,9 +109,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#embedImageAsHtml = this.#isSVG || isIOS14 || (!this.#screenIsHDR && !this.#micrio.hasAttribute('data-embeds-inside-gl') && !!embed.video) || glAttrValue == 'false';
 
 		// 3d books have their own WebGL renderer
-		const isBook3d = this.#micrio.$current?.album?.info?.type == 'book3d';
+		this.#isBook3d = this.#micrio.$current?.album?.info?.type == 'book3d';
 
-		this.#printGL = !isBook3d && !this.#embedImageAsHtml && !!(
+		this.#printGL = !this.#isBook3d && !this.#embedImageAsHtml && !!(
 			(embed.micrioId && (!this.#isSmall || !embed.src))
 			|| (embed.video && !embed.video.controls && !embed.video.transparent)
 		);
@@ -162,7 +163,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const isGLEmbeddedMicrio = this.#printGL && embed.micrioId && embed.width;
 		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
 
-		let scale = this.#w * this.#info.width / (embed.width ?? 100) / (!this.#printGL ? this.#s : embed.width ? this.#w : 1) * (this.#is360 ? Math.PI / 2 : 1);
+		let scale = this.#w * (this.#isBook3d ? 1 : this.#info.width / (embed.width ?? 100) / (!this.#printGL ? this.#s : embed.width ? this.#w : 1) * (this.#is360 ? Math.PI / 2 : 1));
 
 		const styles: string[] = [];
 
@@ -341,7 +342,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#applyPosition() {
 		const { embed, image } = this.#props;
-		if (!image?.engine.ready) return;
+		if (!this.#isBook3d && !image?.engine.ready) return;
 
 		const vp = get(image._viewport);
 		const view = get(image.state.view);
@@ -355,14 +356,16 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			[this.#x, this.#y, this.#scaleVal] = Array.from(coo) as [number, number, number];
 		}
 
-		if (this.#is360) {
+		const isMat = this.#is360 || this.#isBook3d;
+
+		if (isMat) {
 			const mat = image.camera.getMatrix(this.#cX, this.#cY, this.#s, 1, this.#rotX, this.#rotY, this.#rotZ, undefined, this.#scaleX, this.#scaleY);
 			this.#matrix = Array.from(mat).join(',');
 		}
 
 		if (this.#container) {
-			const style = this.#is360
-				? `transform:matrix3d(${this.#matrix});`
+			const style = isMat
+				? this.#matrix ? `transform:matrix3d(${this.#matrix});` : 'display:none'
 				: `--x:${this.#x}px;--y:${this.#y}px;--s:${this.#scaleVal};`;
 
 			const opStyle = embed.opacity !== undefined && embed.opacity !== 1

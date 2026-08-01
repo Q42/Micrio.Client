@@ -226,7 +226,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const _360 = micrio.$current?._is360
 		const video = _360 ? $settings!._360!.video : undefined;
 		const videoSrc = video?.src;
-		this.classList.toggle('is360', _360);
+		const isBook3d = micrio.$current?.album?.info?.type == 'book3d';
+		this.classList.toggle('is3d', _360 || isBook3d);
 		const positionalAudio = $data?.markers?.filter(m => !!m.positionalAudio);
 		const hasAudio = !!$data?.music?.items.length || !!positionalAudio?.length;
 		const hasTourOrMarker = $tour || $marker;
