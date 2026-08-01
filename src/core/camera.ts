@@ -219,7 +219,7 @@ export class Camera {
 	isZoomedIn = (): boolean => !!(this._isZoomedInOverride ? this._isZoomedInOverride() : this.#canvas?._isZoomedIn());
 
 	/** Checks if the camera is fully zoomed out. */
-	isZoomedOut = (full = false): boolean => !!(this.#canvas?._isZoomedOut(full));
+	isZoomedOut = (full = false): boolean => !!(this._isZoomedInOverride ? !this._isZoomedInOverride() : this.#canvas?._isZoomedOut(full));
 
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
 	getDirection = (): number => this.#canvas?._camera360._yaw ?? 0;

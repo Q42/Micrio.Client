@@ -397,21 +397,22 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			getImageById: archive._getImageById,
 			onPageChange: (p:number) => this.#goto(p),
 			onViewChange: null,
-			onDraw: (ids:string[]) => {
+			onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
-					const isVis = ids.includes(img.id);
-					img.visible.set(isVis);
-					if(isVis) {
+					const drawn = _drawn.find(d => d.id == img.id);
+					img.visible.set(!!drawn);
+					if(drawn) {
 						if(!img.camera._getXYDirectOverride) this.#hookImageBook3d(img);
-						img.state.view.update(v => v);
+						img.state.view.update(() => drawn.bounds);
 					}
 				}
 			}
 		}) as BookViewer3D;
 		parent.engine.micrio.events.unhookScroll();
 		parent.camera._zoomOverride = (n:number) => book3d.zoom(n);
-		parent.camera._isZoomedInOverride = () => book3d.isZoomedIn();
+		parent.camera._isZoomedInOverride = () => !!book3d.isZoomedIn();
 		this.#book3d.ready.then(() => {
+			parent._placed = true;
 			this.#frameChanged();
 		})
 	}
