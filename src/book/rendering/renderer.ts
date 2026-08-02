@@ -53,6 +53,8 @@ interface PaperUniformLocations {
 	_pointLightPos: WebGLUniformLocation | null;
 	_pointLightColor: WebGLUniformLocation | null;
 	_pointLightIntensity: WebGLUniformLocation | null;
+	_frontRegion: WebGLUniformLocation | null;
+	_backRegion: WebGLUniformLocation | null;
 }
 
 interface BlurHUniformLocations {
@@ -100,6 +102,8 @@ export class PaperRenderer {
 		_pointLightPos: null,
 		_pointLightColor: null,
 		_pointLightIntensity: null,
+		_frontRegion: null,
+		_backRegion: null,
 	};
 
 	#meshDatas: MeshData[] = [];
@@ -114,6 +118,8 @@ export class PaperRenderer {
 	#frontBlendB: Float32Array = new Float32Array(0);
 	#backBlendA: Float32Array = new Float32Array(0);
 	#backBlendB: Float32Array = new Float32Array(0);
+	#frontRegions: Float32Array = new Float32Array(0);
+	#backRegions: Float32Array = new Float32Array(0);
 	#whiteTexture: WebGLTexture;
 
 	#activePreset: string = LIGHTING_PRESET;
@@ -202,6 +208,8 @@ export class PaperRenderer {
 		this.#paperULoc._pointLightPos = getUniform('Q[0]');
 		this.#paperULoc._pointLightColor = getUniform('R[0]');
 		this.#paperULoc._pointLightIntensity = getUniform('S[0]');
+		this.#paperULoc._frontRegion = getUniform('T');
+		this.#paperULoc._backRegion = getUniform('U');
 
 		this.#meshDatas = meshes.map((m, i) => this.#createMeshData(m, i));
 
@@ -218,6 +226,16 @@ export class PaperRenderer {
 		this.#frontBlendB = new Float32Array(pageCount);
 		this.#backBlendA = new Float32Array(pageCount);
 		this.#backBlendB = new Float32Array(pageCount);
+
+		this.#frontRegions = new Float32Array(pageCount * 4);
+		this.#backRegions = new Float32Array(pageCount * 4);
+		for (let p = 0; p < pageCount; p++) {
+			// Default region stretches the texture over the whole page.
+			this.#frontRegions[p * 4 + 2] = 1;
+			this.#frontRegions[p * 4 + 3] = 1;
+			this.#backRegions[p * 4 + 2] = 1;
+			this.#backRegions[p * 4 + 3] = 1;
+		}
 
 		gl.enable(gl.DEPTH_TEST);
 		gl.depthFunc(gl.LESS);
@@ -288,6 +306,17 @@ export class PaperRenderer {
 		this.#frontBlendB[pageIdx] = frontBlendB;
 		this.#backBlendA[pageIdx] = backBlendA;
 		this.#backBlendB[pageIdx] = backBlendB;
+	}
+
+	/**
+	 * Sets the per-page texture regions (see the fragment shader): each page's
+	 * front/back texture only occupies a sub-rectangle `[uMin, vMin, fU, fV]` of
+	 * the page UV space. Pass regions of `(0, 0, 1, 1)` to stretch textures over
+	 * the whole page. Each array has `4 · pageCount` floats.
+	 */
+	_setAspectRegions(frontRegions: Float32Array, backRegions: Float32Array): void {
+		this.#frontRegions = frontRegions;
+		this.#backRegions = backRegions;
 	}
 
 	_evictPageHiRes(pageIdx: number, side: 0 | 1, slot: 0 | 1): void {
@@ -407,6 +436,12 @@ export class PaperRenderer {
 		gl.uniform1f(this.#paperULoc._frontBlendB, this.#frontBlendB[pageIdx]);
 		gl.uniform1f(this.#paperULoc._backBlendA, this.#backBlendA[pageIdx]);
 		gl.uniform1f(this.#paperULoc._backBlendB, this.#backBlendB[pageIdx]);
+
+		const fr = pageIdx * 4;
+		gl.uniform4f(this.#paperULoc._frontRegion,
+			this.#frontRegions[fr], this.#frontRegions[fr + 1], this.#frontRegions[fr + 2], this.#frontRegions[fr + 3]);
+		gl.uniform4f(this.#paperULoc._backRegion,
+			this.#backRegions[fr], this.#backRegions[fr + 1], this.#backRegions[fr + 2], this.#backRegions[fr + 3]);
 
 		gl.bindVertexArray(md._vao);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, md._indexEBO);

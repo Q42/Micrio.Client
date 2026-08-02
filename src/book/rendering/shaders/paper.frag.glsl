@@ -10,7 +10,8 @@ precision highp float;
 //     uBackColor → E, uFrontTexture → F, uBackTexture → G, uFrontHiResA → H,
 //     uFrontHiResB → I, uBackHiResA → J, uBackHiResB → K, uFrontBlendA → L,
 //     uFrontBlendB → M, uBackBlendA → N, uBackBlendB → O, uNumPointLights → P,
-//     uPointLightPos → Q, uPointLightColor → R, uPointLightIntensity → S
+//     uPointLightPos → Q, uPointLightColor → R, uPointLightIntensity → S,
+//     uFrontRegion → T, uBackRegion → U
 
 #define MAX_POINT_LIGHTS 8
 
@@ -39,6 +40,9 @@ uniform vec3 Q[MAX_POINT_LIGHTS]; // uPointLightPos
 uniform vec3 R[MAX_POINT_LIGHTS]; // uPointLightColor
 uniform float S[MAX_POINT_LIGHTS]; // uPointLightIntensity
 
+uniform vec4 T; // uFrontRegion (uMin, vMin, fU, fV) — sub-rectangle of the page UV space the front texture occupies
+uniform vec4 U; // uBackRegion
+
 out vec4 o; // fragColor
 
 void main() {
@@ -47,20 +51,47 @@ void main() {
   vec3 n = normalize(Y); // N: world normal
   if (dot(n, v) < 0.0) n = -n;
 
+  // Each texture only occupies a sub-rectangle of the page UV space (region);
+  // outside it the fragment is transparent. `c0` is the page UV in the face's
+  // sampled coordinate space (mirrored on back faces), `q` the region-mapped
+  // texture coordinate, `m` a coverage mask that is 1 across the whole page
+  // when the region spans it entirely.
+  vec4 reg; // region (uMin, vMin, fU, fV)
+  vec2 c0; // page UV (sampled space)
+  if (gl_FrontFacing) {
+    c0 = Z;
+    reg = T;
+  } else {
+    c0 = vec2(1.0 - Z.x, Z.y);
+    reg = U;
+  }
+  float mask = 1.0;
+  if (reg.x > 0.0 || reg.y > 0.0 || reg.z < 1.0 || reg.w < 1.0) {
+    vec2 lo = (c0 - reg.xy) / reg.zw;
+    vec2 hi = (reg.xy + reg.zw - c0) / reg.zw;
+    // Region edges that coincide with the page edge (the spine, flush to the
+    // image) stay fully opaque; interior edges anti-alias.
+    mask =
+      (reg.x > 0.0         ? smoothstep(0.0, 0.004, lo.x) : 1.0)
+    * (reg.x + reg.z < 1.0 ? smoothstep(0.0, 0.004, hi.x) : 1.0)
+    * (reg.y > 0.0         ? smoothstep(0.0, 0.004, lo.y) : 1.0)
+    * (reg.y + reg.w < 1.0 ? smoothstep(0.0, 0.004, hi.y) : 1.0);
+  }
+  vec2 q = vec2((c0.x - reg.x) / reg.z, (c0.y - reg.y) / reg.w);
+
   // Choose base color and texture based on face (blend low-res ↔ A ↔ B hi-res)
   vec4 x; // texColor
   vec3 b; // baseColor
   if (gl_FrontFacing) {
-    vec4 f = texture(F, Z); // lowTex
-    vec4 i = texture(H, Z); // hiTexA
-    vec4 j = texture(I, Z); // hiTexB
+    vec4 f = texture(F, q); // lowTex
+    vec4 i = texture(H, q); // hiTexA
+    vec4 j = texture(I, q); // hiTexB
     float k = clamp(L + M, 0.0, 1.0); // blend
     float r = k > 0.0 ? M / k : 0.0; // bFrac
     vec4 p = mix(i, j, r); // hiTex
     x = mix(f, p, k * p.a);
     b = D;
   } else {
-    vec2 q = vec2(1.0 - Z.x, Z.y); // backTexCoord
     vec4 f = texture(G, q); // lowTex
     vec4 i = texture(J, q); // hiTexA
     vec4 j = texture(K, q); // hiTexB
@@ -71,6 +102,7 @@ void main() {
     b = E;
   }
 
+  x.a *= mask; // fade the texture (and thus the paper it covers) out at the region edge
   vec3 g = mix(b, x.rgb * b, x.a); // surfaceColor
 
   // Ambient
@@ -114,5 +146,5 @@ void main() {
   float y = w * w * w; // fresnel ^3
   c = mix(c, c * 0.85, y * 0.3);
 
-  o = vec4(c, 1.0);
+  o = vec4(c * mask, mask); // premultiplied alpha: transparent where the texture doesn't reach
 }

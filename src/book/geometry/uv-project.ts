@@ -15,6 +15,19 @@ export interface UvWorldResult {
 	_tangentV: Vec3;
 }
 
+/**
+ * The sub-rectangle of a page's UV space in which a texture is displayed with
+ * its native aspect ratio. `uMin`/`vMin` are the lower-left corner and
+ * `fU`/`fV` the fraction of the page's u/v range the texture occupies. A region
+ * of `(0, 0, 1, 1)` stretches the texture over the whole page.
+ */
+export interface TexRegion {
+	uMin: number;
+	vMin: number;
+	fU: number;
+	fV: number;
+}
+
 interface MeshSample {
 	_wx: number; _wy: number; _wz: number;
 	_nx: number; _ny: number; _nz: number;
@@ -28,16 +41,23 @@ function interpolateMesh(
 	v: number,
 	side: 0 | 1,
 	withNormals: boolean,
+	region?: TexRegion | null,
 ): MeshSample | null {
 	if (u < 0 || u > 1 || v < 0 || v > 1) return null;
 
 	const isCover = mesh instanceof CoverMesh;
 	const vertexBase = isCover && side === 1 ? VERTEX_COUNT : 0;
 
+	// The texture only occupies part of the page UV space (region). Map the image
+	// coordinate into that space first; a region of (0, 0, 1, 1) maps identity.
+	const r = region ?? { uMin: 0, vMin: 0, fU: 1, fV: 1 };
+	const uMapped = r.uMin + u * r.fU;
+	const vMapped = r.vMin + v * r.fV;
+
 	// Single-grid meshes sample the back texture at (1 - u, v) (see paper.frag.glsl),
 	// so a back-side texture coordinate must be un-mirrored to reach the right vertex.
-	const gu = isCover || side === 0 ? u : 1 - u;
-	const gv = v;
+	const gu = isCover || side === 0 ? uMapped : 1 - uMapped;
+	const gv = vMapped;
 
 	const cx = gu * (GRID_COLS - 1);
 	const cy = gv * (GRID_ROWS - 1);
@@ -103,6 +123,12 @@ function interpolateMesh(
 		vz = (pos[br + 2] - pos[tr + 2]) * sv;
 	}
 
+	// The grid spans the full page but the image only spans the region, so the
+	// world-space extent per image-u/v unit is the grid tangent scaled by the
+	// region's fill fractions.
+	ux *= r.fU; uy *= r.fU; uz *= r.fU;
+	vx *= r.fV; vy *= r.fV; vz *= r.fV;
+
 	// A back-side texture coordinate on a single-grid mesh is sampled mirrored
 	// (gu = 1 - u), so its u-tangent points the opposite way.
 	if (!isCover && side === 1) {
@@ -129,10 +155,14 @@ function interpolateMesh(
  *   1 = back face (sampled with the U axis mirrored on a single-grid PaperMesh,
  *       or on the separate back-face grid of a CoverMesh).
  *
+ * `region` restricts the image to a sub-rectangle of the page (see
+ * {@link TexRegion}); the tangents are scaled accordingly. When omitted the
+ * image is stretched over the whole page.
+ *
  * Returns null when (u, v) falls outside [0, 1].
  */
-export function uvToWorldPosition(mesh: PaperMesh, u: number, v: number, side: 0 | 1): UvWorldResult | null {
-	const s = interpolateMesh(mesh, u, v, side, true);
+export function uvToWorldPosition(mesh: PaperMesh, u: number, v: number, side: 0 | 1, region?: TexRegion | null): UvWorldResult | null {
+	const s = interpolateMesh(mesh, u, v, side, true, region);
 	if (!s) return null;
 
 	const len = Math.sqrt(s._nx * s._nx + s._ny * s._ny + s._nz * s._nz) || 1;
@@ -148,8 +178,8 @@ export function uvToWorldPosition(mesh: PaperMesh, u: number, v: number, side: 0
  * Like `uvToWorldPosition` but returns only the interpolated world-space
  * position, skipping the surface normal and tangent computation.
  */
-export function sampleMeshPosition(mesh: PaperMesh, u: number, v: number, side: 0 | 1): Vec3 | null {
-	const s = interpolateMesh(mesh, u, v, side, false);
+export function sampleMeshPosition(mesh: PaperMesh, u: number, v: number, side: 0 | 1, region?: TexRegion | null): Vec3 | null {
+	const s = interpolateMesh(mesh, u, v, side, false, region);
 	if (!s) return null;
 	return new Vec3(s._wx, s._wy, s._wz);
 }

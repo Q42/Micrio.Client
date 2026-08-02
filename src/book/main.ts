@@ -28,7 +28,7 @@ import { IIIFTextureManager } from './rendering/iiif-manager';
 import type { PageClickResult, PageDragResult } from './core/types';
 import type { Models } from '$types/models';
 import { rayIntersectMeshes } from './geometry/raycast';
-import { uvToWorldPosition, sampleMeshPosition, projectWorldToScreen, type UvWorldResult } from './geometry/uv-project';
+import { uvToWorldPosition, sampleMeshPosition, projectWorldToScreen, type UvWorldResult, type TexRegion } from './geometry/uv-project';
 import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync';
 import { getPreset, getPresets } from './rendering/lighting';
 import { archive } from '$utils/archive';
@@ -41,7 +41,7 @@ interface TextureContext {
 	result: UvWorldResult;
 }
 
-function computePageLayout(images: Models.ImageInfo.ImageInfo[], options?: BookViewerOptions) {
+function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
 	const pageCnt = Math.ceil(images.length / 2);
 	const totalImagePages = images.length;
 
@@ -58,45 +58,56 @@ function computePageLayout(images: Models.ImageInfo.ImageInfo[], options?: BookV
 
 	let totalAspect = 0;
 	let aspectCount = 0;
-	const computedPageAspects = new Float32Array(pageCnt);
+	const frontAspects = new Float32Array(pageCnt);
+	const backAspects = new Float32Array(pageCnt);
 
 	for (let p = 0; p < pageCnt; p++) {
 		const front = images[p * 2];
 		const back = images[p * 2 + 1];
-		let asp = 0;
-		let n = 0;
+		const frontAsp = (front && front.width > 0 && front.height > 0) ? front.height / front.width : DEFAULT_ASPECT;
+		const backAsp = (back && back.width > 0 && back.height > 0) ? back.height / back.width : frontAsp;
+		frontAspects[p] = frontAsp;
+		backAspects[p] = backAsp;
+
 		if (front && front.width > 0 && front.height > 0) {
-			asp += front.height / front.width;
-			n++;
+			totalAspect += frontAsp;
+			aspectCount++;
 		}
 		if (back && back.width > 0 && back.height > 0) {
-			asp += back.height / back.width;
-			n++;
+			totalAspect += backAsp;
+			aspectCount++;
 		}
-		const pageAsp = n > 0 ? asp / n : DEFAULT_ASPECT;
-		computedPageAspects[p] = pageAsp;
-		totalAspect += asp;
-		aspectCount += n;
 	}
 
 	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT;
 	const refArea = 1.0 * avgAspect;
 
-	const computedPageWidths = new Float32Array(pageCnt);
-	for (let p = 0; p < pageCnt; p++) {
-		const asp = computedPageAspects[p];
-		computedPageWidths[p] = Math.sqrt(refArea / asp);
-	}
+	// Every page shares the same geometry (the book-wide average aspect); per-page
+	// aspects are honored by rendering each texture in its own region of the page
+	// instead of resizing the geometry.
+	const computedPageWidths = new Float32Array(pageCnt).fill(Math.sqrt(refArea / avgAspect));
+	const aspectsForInit = new Float32Array(pageCnt).fill(avgAspect);
 
-	let aspectsForInit: Float32Array;
-	if (options?._useIndividualAspects ?? USE_INDIVIDUAL_ASPECTS) {
-		aspectsForInit = computedPageAspects;
-	} else {
-		aspectsForInit = new Float32Array(pageCnt).fill(avgAspect);
-		computedPageWidths.fill(Math.sqrt(refArea / avgAspect));
-	}
+	return { pageCnt, pageIdxes, totalImagePages, computedPageWidths, aspectsForInit, frontAspects, backAspects, avgAspect };
+}
 
-	return { pageCnt, pageIdxes, totalImagePages, computedPageWidths, aspectsForInit };
+/**
+ * The sub-rectangle of a page's UV space in which a texture with `texAspect`
+ * (height / width) is drawn without distortion on a page of aspect `pageAspect`.
+ * Returns `[uMin, vMin, fU, fV]`; the leftover page space is transparent.
+ *
+ * The image is always anchored to the book's spine. When `spineAtHigh` is true
+ * the spine lies at sampled u = 1 (a single-grid page's back face, sampled
+ * mirrored), so the image's far edge sits on the spine (`uMin = 1 - fU`).
+ * Otherwise the spine lies at sampled u = 0 and the image's near edge sits on it
+ * (`uMin = 0`). Vertically the image stays centered.
+ */
+function computeTexRegion(texAspect: number, pageAspect: number, spineAtHigh: boolean): [number, number, number, number] {
+	const fU = Math.min(1, pageAspect / Math.max(1e-4, texAspect));
+	const fV = Math.min(1, texAspect / Math.max(1e-4, pageAspect));
+	const uMin = spineAtHigh ? 1 - fU : 0;
+	const vMin = (1 - fV) / 2;
+	return [uMin, vMin, fU, fV];
 }
 
 export interface DrawnImage {
@@ -139,6 +150,12 @@ export class BookViewer {
 	#pageCount = 0;
 	#pageAspects: Float32Array = new Float32Array(0);
 	#pageWidths: Float32Array = new Float32Array(0);
+
+	/** When true, textures are rendered at their native aspect ratio within each page. */
+	#useIndividualAspects = false;
+	/** Per-page front/back texture regions `[uMin, vMin, fU, fV]` in page UV space. */
+	#frontRegions: Float32Array = new Float32Array(0);
+	#backRegions: Float32Array = new Float32Array(0);
 
 	#images: Models.ImageInfo.ImageInfo[] = [];
 
@@ -490,10 +507,22 @@ export class BookViewer {
 		if (pageIndex >= this.#meshes.length) return null;
 
 		const mesh = this.#meshes[pageIndex];
-		const result = uvToWorldPosition(mesh, u, v, side);
+		const result = uvToWorldPosition(mesh, u, v, side, this.#textureRegion(pageIndex, side));
 		if (!result) return null;
 
 		return { pageIndex, side, mesh, result };
+	}
+
+	/**
+	 * The page UV region in which the given page side's texture is displayed, or
+	 * null when textures are stretched over the whole page (i.e. when individual
+	 * aspects are disabled).
+	 */
+	#textureRegion(pageIndex: number, side: 0 | 1): TexRegion | null {
+		if (!this.#useIndividualAspects) return null;
+		const arr = side === 0 ? this.#frontRegions : this.#backRegions;
+		const o = pageIndex * 4;
+		return { uMin: arr[o], vMin: arr[o + 1], fU: arr[o + 2], fV: arr[o + 3] };
 	}
 
 	#getViewProjection(): { perspective: Mat4; viewProj: Mat4; clientWidth: number; clientHeight: number } | null {
@@ -653,13 +682,21 @@ export class BookViewer {
 			throw new Error('BookViewer: no images in book index');
 		}
 
-		const { pageCnt, pageIdxes, totalImagePages, computedPageWidths, aspectsForInit } = computePageLayout(images, options);
+		const { pageCnt, pageIdxes, totalImagePages, computedPageWidths, aspectsForInit, frontAspects, backAspects, avgAspect } = computePageLayout(images);
 		this.#images = images;
 
 		const ok = this.#initGeometry(pageCnt, computedPageWidths, aspectsForInit, options);
 		if (!ok) {
 			throw new Error('BookViewer: WebGL is not available in this browser.');
 		}
+
+		const useIndividual = options?._useIndividualAspects ?? USE_INDIVIDUAL_ASPECTS;
+		this.#useIndividualAspects = useIndividual;
+		// When individual aspects are off every page renders its texture stretched
+		// over the whole page, so the region aspects collapse to the page aspect.
+		const frontAspectSrc = useIndividual ? frontAspects : new Float32Array(pageCnt).fill(avgAspect);
+		const backAspectSrc = useIndividual ? backAspects : new Float32Array(pageCnt).fill(avgAspect);
+		this.#setupAspectRegions(pageCnt, frontAspectSrc, backAspectSrc, avgAspect);
 
 		const startPageIdx = options._startPageIdx;
 		if (startPageIdx !== undefined && startPageIdx > 0 && startPageIdx < totalImagePages) {
@@ -795,6 +832,35 @@ export class BookViewer {
 		});
 
 		return true;
+	}
+
+	/**
+	 * Builds the per-page front/back texture regions. Front faces are read with
+	 * the spine at sampled u = 0, so their image hugs the spine's near edge; back
+	 * faces of single-grid pages are sampled mirrored (spine at sampled u = 1),
+	 * so their image hugs the spine's far edge — the empty margin always ends up
+	 * on the free edge. Hard cover back faces have their own grid and keep their
+	 * native orientation.
+	 */
+	#setupAspectRegions(pageCnt: number, frontAspects: Float32Array, backAspects: Float32Array, pageAspect: number): void {
+		const front = new Float32Array(pageCnt * 4);
+		const back = new Float32Array(pageCnt * 4);
+		for (let p = 0; p < pageCnt; p++) {
+			const isCover = this.#meshes[p] instanceof CoverMesh;
+			this.#setRegion(front, p, computeTexRegion(frontAspects[p], pageAspect, false));
+			this.#setRegion(back, p, computeTexRegion(backAspects[p], pageAspect, !isCover));
+		}
+		this.#frontRegions = front;
+		this.#backRegions = back;
+		this.#renderer._setAspectRegions(front, back);
+	}
+
+	#setRegion(arr: Float32Array, pageIndex: number, region: [number, number, number, number]): void {
+		const o = pageIndex * 4;
+		arr[o] = region[0];
+		arr[o + 1] = region[1];
+		arr[o + 2] = region[2];
+		arr[o + 3] = region[3];
 	}
 
 	#applyBinding(): void {
@@ -1057,6 +1123,7 @@ export class BookViewer {
 		vp: { viewProj: Mat4; clientWidth: number; clientHeight: number },
 	): [number, number, number, number] | null {
 		const mesh = this.#meshes[pageIndex];
+		const region = this.#textureRegion(pageIndex, side);
 		const steps = 32;
 		let minU = Infinity, minV = Infinity, maxU = -Infinity, maxV = -Infinity;
 		let visible = 0;
@@ -1065,7 +1132,7 @@ export class BookViewer {
 			const u = i / steps;
 			for (let j = 0; j <= steps; j++) {
 				const v = j / steps;
-				const point = sampleMeshPosition(mesh, u, v, side);
+				const point = sampleMeshPosition(mesh, u, v, side, region);
 				if (!point) continue;
 				const screen = projectWorldToScreen(point, vp.viewProj, vp.clientWidth, vp.clientHeight);
 				if (!screen) continue;
