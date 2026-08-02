@@ -118,7 +118,7 @@ export interface BookViewerOptions {
 	/** Called whenever the current reading position changes. */
 	_onPageChange?: (pageIdx: number) => void;
 	/** Called whenever the camera moves (rotate/zoom/pan, including smoothing). */
-	_onViewChange?: () => void;
+	_onViewChange?: (images: DrawnImage[]) => void;
 	/** Called after every frame that is drawn to the canvas, with the micrioIds of the images visible in the current spread (plus any page mid-flip), each with a rough `[u, v, w, h]` rectangle (in texture UV space 0..1) of the part visible in the viewport. */
 	_onDraw?: (images: DrawnImage[]) => void;
 	_hardCover?: boolean;
@@ -151,7 +151,7 @@ export class BookViewer {
 
 	#canvas: HTMLCanvasElement;
 	#onPageChange?: (pageIdx: number) => void;
-	#onViewChange?: () => void;
+	#onViewChange?: (images: DrawnImage[]) => void;
 	#onDraw?: (images: DrawnImage[]) => void;
 
 	/** The last frame's on-screen image bounds, reused by `isZoomedIn`. */
@@ -180,11 +180,6 @@ export class BookViewer {
 	#prevPositions: Float32Array[] = [];
 
 	#totalStackHeight = 0;
-
-	/** Reference view-space depth used to convert the pixel `scale` argument of
-	 *  `textureToMatrix` into a fixed world size, so the object scales with the
-	 *  page when the camera zooms. Captured once at init (the default fit view). */
-	#referenceDepth = 1;
 
 	#lastTime = 0;
 	#solveCount = 0;
@@ -318,11 +313,13 @@ export class BookViewer {
 	 * `textureToScreen` returns for the image coordinate (x, y). After the
 	 * perspective divide `m[12]/m[15] = screenX` and `m[13]/m[15] = screenY`;
 	 * the matrix is normalized so `m[15] = 1`, making `m[12]`/`m[13]` the
-	 * literal pixel coordinates and `m[14] = 0`. The 4th row
-	 * (`m[3]`, `m[7]`, `m[11]`) carries the perspective divide.
+	 * literal pixel coordinates relative to the screen center and `m[14] = 0`.
+	 * The 4th row (`m[3]`, `m[7]`, `m[11]`) carries the perspective divide.
 	 *
-	 * `rotX/rotY/rotZ` rotate the object around its local axes and `scale` (in
-	 * CSS pixels) is the object size preserved at the anchor's depth.
+	 * `rotX/rotY/rotZ` rotate the object around its local axes and `scale` is
+	 * the object's width as a fraction of the page it lies on (1 = the full page
+	 * width), so the object always keeps its size relative to the page regardless
+	 * of the element's CSS pixel size.
 	 *
 	 * Alongside the matrix it reports visibility facts, identical to
 	 * `textureToScreen`:
@@ -335,8 +332,10 @@ export class BookViewer {
 	 * @param imageId The micrio image id.
 	 * @param x The image X coordinate (0-1).
 	 * @param y The image Y coordinate (0-1).
-	 * @param scale The object scale multiplier (in pixels).
-	 * @param radius The object radius (distance from center, default 10). Ignored.
+	 * @param scale The embed width as a fraction of the page (1 = full page width).
+	 * @param width The element's content width in CSS pixels; `scale` is converted
+	 * to a world size relative to this, so the element spans `scale` of the page
+	 * width no matter its pixel size. Defaults to 1 when unset.
 	 * @param rotX The object X rotation in radians.
 	 * @param rotY The object Y rotation in radians.
 	 * @param rotZ The object Z rotation in radians.
@@ -352,7 +351,7 @@ export class BookViewer {
 		x: number,
 		y: number,
 		scale: number,
-		radius?: number,
+		width?: number,
 		rotX?: number,
 		rotY?: number,
 		rotZ?: number,
@@ -360,8 +359,11 @@ export class BookViewer {
 		scaleX?: number,
 		scaleY?: number,
 	): { matrix: Float32Array; facing: boolean; obscured: boolean } | null {
-		void radius;
 		void transY;
+		// `width` is the element's content width in CSS pixels: `scale` is a
+		// fraction of the page width, so the object's world width is
+		// `scale·pageWidth` no matter how many CSS pixels the content has.
+		const pxW = width && width > 0 ? width : 1;
 
 		const ctx = this.#resolveTextureContext(imageId, x, y);
 		if (!ctx) return null;
@@ -375,7 +377,6 @@ export class BookViewer {
 		const n = ctx.result._normal;
 		const px = ctx.result._point._x, py = ctx.result._point._y, pz = ctx.result._point._z;
 		const { screen, viewProj, clientWidth, clientHeight } = proj;
-		const perspective = proj.perspective;
 
 		// World-space surface frame at the anchor point: unit u/v tangents (the
 		// directions the image's u/v axes run on the deformed mesh) and the
@@ -390,21 +391,22 @@ export class BookViewer {
 		const outward = (mesh instanceof CoverMesh || ctx.side === 0) ? 1 : -1;
 		const nx = n._x * outward, ny = n._y * outward, nz = n._z * outward;
 
-		// World-units per screen pixel at the *reference* view-space depth, so
-		// `scale` means CSS pixels on screen at the default fit zoom: pixels =
-		// f·H/(2·depth) per world unit with f = 1/tan(fov/2). The object gets a
-		// fixed world size, so it scales with the page when the camera zooms.
-		const f = perspective.arr[5];
-		const worldPerPx = (2 * this.#referenceDepth) / (Math.max(1, clientHeight) * f);
+		// World units per full u-unit (the page width) on the deformed surface at
+		// the anchor. `scale` is the embed's width as a fraction of the page (1 =
+		// the full page width), divided by the content's CSS width in pixels, so
+		// the object's world size is tied to the page: it scales with the page on
+		// zoom and keeps its relative size on the page regardless of the screen
+		// resolution or the element's pixel size. `scaleX`/`scaleY` remain
+		// relative multipliers on top of that base size.
 
 		// Rotations (X, then Y, then Z) and scale, in object-local space.
 		const rx = rotX ?? 0, ry = rotY ?? 0, rz = rotZ ?? 0;
 		const cx = Math.cos(rx), sx = Math.sin(rx);
 		const cy = Math.cos(ry), sy = Math.sin(ry);
 		const cz = Math.cos(rz), sz = Math.sin(rz);
-		const sX = scale * (scaleX ?? 1) * worldPerPx;
-		const sY = scale * (scaleY ?? 1) * worldPerPx;
-		const sZ = scale * worldPerPx;
+		const sX = scale * (scaleX ?? 1) * lenU / pxW;
+		const sY = scale * (scaleY ?? 1) * lenU / pxW;
+		const sZ = scale * lenU / pxW;
 
 		// Column-major 4x4 multiply: o = a · b.
 		const mul4 = (a: Float32Array, b: Float32Array): Float32Array => {
@@ -442,13 +444,13 @@ export class BookViewer {
 		mPlace[0] = 1; mPlace[5] = 1; mPlace[10] = 1; mPlace[15] = 1;
 		mPlace[12] = px; mPlace[13] = py; mPlace[14] = pz;
 
-		// NDC → CSS pixels (y flipped, origin at the canvas top-left).
+		// NDC → CSS pixels (y flipped, origin at the screen center).
 		const mPx = new Float32Array(16);
 		mPx[0] = clientWidth * 0.5;
 		mPx[5] = -clientHeight * 0.5;
 		mPx[10] = 1;
-		mPx[12] = clientWidth * 0.5;
-		mPx[13] = clientHeight * 0.5;
+		mPx[12] = 0;
+		mPx[13] = 0;
 		mPx[15] = 1;
 
 		// Full chain: object scale → object rotation → surface orientation →
@@ -459,13 +461,13 @@ export class BookViewer {
 		const out = mul4(mPx, mul4(vp64, mWorld));
 
 		// Normalize by the anchor's clip-space w so its matrix column maps to
-		// exactly its screen pixel position: m[12] = screenX, m[13] = screenY,
-		// m[15] = 1 (m[14] forced to 0), while the bottom row m[3]/m[7]/m[11]
-		// still carries the perspective divide.
+		// exactly its screen pixel position: m[12] = screenX, m[13] = screenY
+		// (relative to the screen center), m[15] = 1 (m[14] forced to 0), while
+		// the bottom row m[3]/m[7]/m[11] still carries the perspective divide.
 		const invW = 1 / out[15];
 		for (let i = 0; i < 16; i++) out[i] *= invW;
-		out[12] = screen.x;
-		out[13] = screen.y;
+		out[12] = screen.x - clientWidth * 0.5;
+		out[13] = screen.y - clientHeight * 0.5;
 		out[14] = 0;
 		out[15] = 1;
 
@@ -769,8 +771,6 @@ export class BookViewer {
 			const margin = Math.min(canvas.clientWidth, canvas.clientHeight) * VIEWPORT_MARGIN_PCT;
 			this.#camera._initContainRadius({ minX, maxX, minZ, maxZ }, margin);
 		}
-		this.#referenceDepth = this.#camera._radius;
-
 		this.#flipAnimator = new PageFlipAnimator();
 		this.#flipAnimator._initSlots(this.#pageCount);
 
@@ -825,9 +825,10 @@ export class BookViewer {
 				rotY?: number,
 				rotZ?: number,
 				scaleX?: number,
-				scaleY?: number
+				scaleY?: number,
+				width?: number
 			) => {
-				const out = this.#textureToMatrix(img.id, x, y, scale, 0, rotX, rotY, rotZ, 0, scaleX, scaleY);
+				const out = this.#textureToMatrix(img.id, x, y, scale, width, rotX, rotY, rotZ, 0, scaleX, scaleY);
 				return out && out.facing && !out.obscured ? out.matrix : new Float32Array();
 			}
 		}
@@ -1122,11 +1123,11 @@ export class BookViewer {
 		}
 		this.#camera._update(dt);
 		this.#updateViewportClamp();
-		if (this.#onViewChange && this.#camera._isMoving()) {
-			this.#onViewChange();
-		}
 		this.#renderer._render(this.#camera);
 		const drawn = this.#getDrawnImageBounds();
+		if (this.#onViewChange && this.#camera._isMoving()) {
+			this.#onViewChange(drawn);
+		}
 		this.#lastDrawnImages = drawn;
 		if (this.#onDraw) {
 			this.#onDraw(drawn);

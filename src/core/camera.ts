@@ -50,6 +50,8 @@ export class Camera {
 		rotZ?: number,
 		scaleX?: number,
 		scaleY?: number,
+		/** The element's content width in CSS pixels (used to convert `scale` to a world size). */
+		width?: number,
 	) => Float32Array) | undefined;
 
 	readonly #image: MicrioImage;
@@ -291,7 +293,9 @@ export class Camera {
 	 * @param x The image X coordinate (0-1).
 	 * @param y The image Y coordinate (0-1).
 	 * @param scale The object scale multiplier.
-	 * @param radius The object radius (distance from center, default 10).
+	 * @param radius The object radius (distance from center, default 10). For Book3D images
+	 * this is used as the element's content width in CSS pixels, so `scale` stays a fraction
+	 * of the page width.
 	 * @param rotX The object X rotation in radians.
 	 * @param rotY The object Y rotation in radians.
 	 * @param rotZ The object Z rotation in radians.
@@ -301,7 +305,7 @@ export class Camera {
 	 * @returns The resulting 4x4 matrix as a Float32Array.
 	 */
 	getMatrix(x: number, y: number, scale?: number, radius?: number, rotX?: number, rotY?: number, rotZ?: number, transY?: number, scaleX?: number, scaleY?: number, noCorrectNorth?: boolean): Float32Array {
-		if(this._getMatrixOverride) return this._getMatrixOverride(x, y, scale || 1, rotX, rotY, rotZ, scaleX, scaleY);
+		if(this._getMatrixOverride) return this._getMatrixOverride(x, y, scale || 1, rotX, rotY, rotZ, scaleX, scaleY, radius);
 		return this.#canvas?._getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
 	}
 

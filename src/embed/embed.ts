@@ -163,7 +163,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const isGLEmbeddedMicrio = this.#printGL && embed.micrioId && embed.width;
 		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
 
-		let scale = this.#w * (this.#isBook3d ? 1 : this.#info.width / (embed.width ?? 100) / (!this.#printGL ? this.#s : embed.width ? this.#w : 1) * (this.#is360 ? Math.PI / 2 : 1));
+		if(this.#isBook3d) return;
+
+		let scale = this.#w * (this.#info.width / (embed.width ?? 100) / (!this.#printGL ? this.#s : embed.width ? this.#w : 1) * (this.#is360 ? Math.PI / 2 : 1));
 
 		const styles: string[] = [];
 
@@ -359,7 +361,15 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const isMat = this.#is360 || this.#isBook3d;
 
 		if (isMat) {
-			const mat = image.camera.getMatrix(this.#cX, this.#cY, this.#s, 1, this.#rotX, this.#rotY, this.#rotZ, undefined, this.#scaleX, this.#scaleY);
+			// The content's width in CSS pixels as it renders before the matrix.
+			// `scale` stays a fraction of the page width, so the matrix maps the
+			// content to that fraction regardless of its pixel size.
+			const contentWidth = !this.#isBook3d ? 1 : embed.frameSrc || embed.video
+				? this.#w * this.#info.width
+				: embed.src
+					? (embed.width || this.#w * this.#info.width)
+					: 100;
+			const mat = image.camera.getMatrix(this.#cX, this.#cY, (!this.#isBook3d ? 1 : this.#w) * this.#s, contentWidth, this.#rotX, this.#rotY, this.#rotZ, undefined, this.#scaleX, this.#scaleY);
 			this.#matrix = Array.from(mat).join(',');
 		}
 
@@ -373,7 +383,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				: '';
 
 			this.#container.style.cssText = style + opStyle;
-			this.#container.classList.toggle('embed3d', this.#is360);
+			this.#container.classList.toggle('embed3d', this.#is360 || this.#isBook3d);
 		}
 
 		if ((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && this.#w) {
