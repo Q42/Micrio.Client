@@ -1,6 +1,5 @@
 // XPBD solver host.
-// Previously instantiating + dispatching to a WebAssembly module (wasm/solver.wasm),
-// now dispatching directly to the native TypeScript solver (native-solver.ts).
+// Dispatches directly to the native TypeScript solver (native-solver.ts).
 // The exported API is unchanged to keep callers (main.ts) untouched.
 
 import { PaperMesh } from '../geometry/paper-mesh';
@@ -42,11 +41,11 @@ function findPaperMesh(meshes: PaperMesh[]): PaperMesh | null {
 	return null;
 }
 
-export function isWasmReady(): boolean {
+export function isSolverReady(): boolean {
 	return ready;
 }
 
-export async function initWasmSolver(meshes: PaperMesh[], pageCount: number): Promise<void> {
+export async function initSolver(meshes: PaperMesh[], pageCount: number): Promise<void> {
 	ready = false;
 
 	const paperMesh = findPaperMesh(meshes);

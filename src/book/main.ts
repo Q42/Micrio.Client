@@ -8,10 +8,10 @@ import { Mat4 } from '$render/mat';
 import { PageFlipAnimator } from './animation/page-flip';
 import {
 	SolverSettings,
-	isWasmReady,
-	initWasmSolver,
+	isSolverReady,
+	initSolver,
 	dispatchSolve,
-} from './physics/wasm-sync';
+} from './physics/solver-sync';
 import {
 	PAGE_THICKNESS, COVER_THICKNESS_MULTIPLIER, COVER_SCALE_X, COVER_SCALE_Y,
 	SOLVER_ITERATIONS, SOLVER_SUBSTEPS, DISTANCE_COMPLIANCE,
@@ -667,7 +667,7 @@ export class BookViewer {
 			this.#gotoInstant(pageIdx);
 		}
 
-		await initWasmSolver(this.#meshes, this.#pageCount);
+		await initSolver(this.#meshes, this.#pageCount);
 
 		await this.#loadPageTextures(images);
 
@@ -1147,7 +1147,7 @@ export class BookViewer {
 	};
 
 	#syncSolverResults(): void {
-		if (!isWasmReady()) return;
+		if (!isSolverReady()) return;
 
 		for (let pi = 0; pi < this.#pageCount; pi++) {
 			if (!this.#activePageSet.has(pi)) continue;
@@ -1220,7 +1220,7 @@ export class BookViewer {
 	}
 
 	#dispatchPhysics(dt: number, progress: Float32Array): void {
-		if (!isWasmReady()) return;
+		if (!isSolverReady()) return;
 
 		const activeIndices = Array.from(this.#activePageSet);
 		if (activeIndices.length === 0) return;
