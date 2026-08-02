@@ -231,6 +231,33 @@ export class Mat4 {
 		a[4] *= y; a[5] *= y; a[6] *= y; a[7] *= y;
 		a[8] *= z; a[9] *= z; a[10] *= z; a[11] *= z;
 	}
+
+	/** Generates a view matrix from the eye position, a look-at target and an up vector. @internal */
+	_lookAt(eyeX: number, eyeY: number, eyeZ: number, centerX: number, centerY: number, centerZ: number, upX: number, upY: number, upZ: number): void {
+		const a = this.arr;
+
+		let fx = centerX - eyeX, fy = centerY - eyeY, fz = centerZ - eyeZ;
+		const fl = Math.sqrt(fx * fx + fy * fy + fz * fz) || 1;
+		fx /= fl; fy /= fl; fz /= fl;
+
+		let sx = fy * upZ - fz * upY;
+		let sy = fz * upX - fx * upZ;
+		let sz = fx * upY - fy * upX;
+		const sl = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1;
+		sx /= sl; sy /= sl; sz /= sl;
+
+		const ux = sy * fz - sz * fy;
+		const uy = sz * fx - sx * fz;
+		const uz = sx * fy - sy * fx;
+
+		a[0] = sx; a[1] = ux; a[2] = -fx; a[3] = 0;
+		a[4] = sy; a[5] = uy; a[6] = -fy; a[7] = 0;
+		a[8] = sz; a[9] = uz; a[10] = -fz; a[11] = 0;
+		a[12] = -(sx * eyeX + sy * eyeY + sz * eyeZ);
+		a[13] = -(ux * eyeX + uy * eyeY + uz * eyeZ);
+		a[14] = fx * eyeX + fy * eyeY + fz * eyeZ;
+		a[15] = 1;
+	}
 }
 
 /** Represents a 4D vector (x, y, z, w). @internal */

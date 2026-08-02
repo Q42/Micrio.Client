@@ -1,5 +1,5 @@
 import { PaperMesh } from '../geometry/paper-mesh';
-import { Mat4 } from '../core/mat4';
+import { Mat4 } from '$render/mat';
 import { OrbitCamera } from '../core/orbit-camera';
 import {
 	FRONT_COLOR, BACK_COLOR,
@@ -528,7 +528,7 @@ export class PaperRenderer {
 		let minX = Infinity, maxX = -Infinity;
 		let minY = Infinity, maxY = -Infinity;
 		let anyVisible = false;
-		const m = viewProj._data;
+		const m = viewProj.arr;
 		for (let i = 0; i < 8; i++) {
 			const wx = corners[i * 3];
 			const wy = corners[i * 3 + 1];
@@ -596,8 +596,13 @@ export class PaperRenderer {
 
 		const view = camera._getViewMatrix();
 		const aspect = this.#canvas.width / Math.max(1, this.#canvas.height);
-		const proj = Mat4._perspective(Math.PI * 0.25, aspect, 0.1, 50.0);
-		const viewProj = new Mat4()._copy(proj)._multiply(view);
+		const proj = new Mat4();
+		proj._perspective(Math.PI * 0.25, aspect, 0.1, 50.0);
+		// $render/mat's Mat4._multiply(o) computes `this = o·this`, so build `proj·view`
+		// by copying the view first and then multiplying by the projection.
+		const viewProj = new Mat4();
+		viewProj._copy(view);
+		viewProj._multiply(proj);
 
 		const time = performance.now() / 1000;
 		const lighting = computeLighting(this.#activePreset, this.#presetParams, time);
@@ -612,7 +617,7 @@ export class PaperRenderer {
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 		gl.useProgram(this.#paperProgram);
-		gl.uniformMatrix4fv(this.#paperULoc._viewProj, false, viewProj._data);
+		gl.uniformMatrix4fv(this.#paperULoc._viewProj, false, viewProj.arr);
 		gl.uniform3f(this.#paperULoc._lightDir, lighting._lightDir[0], lighting._lightDir[1], lighting._lightDir[2]);
 		gl.uniform3f(this.#paperULoc._ambientColor, lighting._ambientColor[0], lighting._ambientColor[1], lighting._ambientColor[2]);
 		gl.uniform3f(this.#paperULoc._lightColor, lighting._lightColor[0], lighting._lightColor[1], lighting._lightColor[2]);

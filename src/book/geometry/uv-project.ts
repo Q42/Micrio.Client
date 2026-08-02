@@ -1,5 +1,5 @@
 import { Vec3 } from '../core/vec3';
-import { Mat4 } from '../core/mat4';
+import { Mat4 } from '$render/mat';
 import type { PaperMesh } from './paper-mesh';
 import { CoverMesh } from './cover-mesh';
 import { GRID_COLS, GRID_ROWS, VERTEX_COUNT } from './paper-mesh';
@@ -165,7 +165,7 @@ export function projectWorldToScreen(
 	clientWidth: number,
 	clientHeight: number,
 ): { x: number; y: number } | null {
-	const m = viewProj._data;
+	const m = viewProj.arr;
 	const clipX = m[0] * point._x + m[4] * point._y + m[8] * point._z + m[12];
 	const clipY = m[1] * point._x + m[5] * point._y + m[9] * point._z + m[13];
 	const clipW = m[3] * point._x + m[7] * point._y + m[11] * point._z + m[15];

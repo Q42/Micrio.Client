@@ -4,7 +4,7 @@ import { PaperRenderer } from './rendering/renderer';
 import { InputHandler } from './input/input';
 import { OrbitCamera } from './core/orbit-camera';
 import { Vec3 } from './core/vec3';
-import { Mat4 } from './core/mat4';
+import { Mat4 } from '$render/mat';
 import { PageFlipAnimator } from './animation/page-flip';
 import {
 	SolverSettings,
@@ -400,7 +400,7 @@ export class BookViewer {
 		// `scale` means CSS pixels on screen at the default fit zoom: pixels =
 		// f·H/(2·depth) per world unit with f = 1/tan(fov/2). The object gets a
 		// fixed world size, so it scales with the page when the camera zooms.
-		const f = perspective._data[5];
+		const f = perspective.arr[5];
 		const worldPerPx = (2 * this.#referenceDepth) / (Math.max(1, clientHeight) * f);
 
 		// Rotations (X, then Y, then Z) and scale, in object-local space.
@@ -460,7 +460,7 @@ export class BookViewer {
 		// Full chain: object scale → object rotation → surface orientation →
 		// world → clip → screen. This produces a true perspective matrix so the
 		// element renders foreshortened like it lies flat on the image.
-		const vp64 = new Float32Array(viewProj._data);
+		const vp64 = new Float32Array(viewProj.arr);
 		const mWorld = mul4(mPlace, mul4(mOrient, mul4(mRz, mul4(mRy, mul4(mRx, mS)))));
 		const out = mul4(mPx, mul4(vp64, mWorld));
 
@@ -508,8 +508,13 @@ export class BookViewer {
 
 		const view = this.#camera._getViewMatrix();
 		const aspect = canvas.width / Math.max(1, canvas.height);
-		const perspective = Mat4._perspective(Math.PI * 0.25, aspect, 0.1, 50.0);
-		const viewProj = new Mat4()._copy(perspective)._multiply(view);
+		const perspective = new Mat4();
+		perspective._perspective(Math.PI * 0.25, aspect, 0.1, 50.0);
+		// $render/mat's Mat4._multiply(o) computes `this = o·this`, so build
+		// `perspective·view` by copying the view first, then multiplying by proj.
+		const viewProj = new Mat4();
+		viewProj._copy(view);
+		viewProj._multiply(perspective);
 
 		return { perspective, viewProj, clientWidth, clientHeight };
 	}
@@ -1212,9 +1217,14 @@ export class BookViewer {
 		const near = 0.1;
 		const far = 50.0;
 		const canvasSize = this.#renderer._getCanvasSize();
-		const proj = Mat4._perspective(Math.PI * 0.25, canvasSize.width / Math.max(1, canvasSize.height), near, far);
+		const proj = new Mat4();
+		proj._perspective(Math.PI * 0.25, canvasSize.width / Math.max(1, canvasSize.height), near, far);
 		const view = this.#camera._getViewMatrix();
-		const viewProj = new Mat4()._copy(proj)._multiply(view);
+		// $render/mat's Mat4._multiply(o) computes `this = o·this`, so build
+		// `proj·view` by copying the view first, then multiplying by proj.
+		const viewProj = new Mat4();
+		viewProj._copy(view);
+		viewProj._multiply(proj);
 		const screenBounds = this.#renderer._getBoundingBoxScreenBounds(viewProj);
 		if (screenBounds) {
 			const margin = Math.min(canvasSize.width, canvasSize.height) * VIEWPORT_MARGIN_PCT;

@@ -1,5 +1,5 @@
 import { Vec3 } from './vec3';
-import { Mat4 } from './mat4';
+import { Mat4 } from '$render/mat';
 
 export class OrbitCamera {
 	_theta: number = Math.PI * 0.4;
@@ -113,7 +113,10 @@ export class OrbitCamera {
 	}
 
 	_getViewMatrix(): Mat4 {
-		return Mat4._lookAt(this._getEye(), this._target, new Vec3(0, 1, 0));
+		const eye = this._getEye();
+		const view = new Mat4();
+		view._lookAt(eye._x, eye._y, eye._z, this._target._x, this._target._y, this._target._z, 0, 1, 0);
+		return view;
 	}
 
 	_setFreeCamMode(on: boolean): void {
