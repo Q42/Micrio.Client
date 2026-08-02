@@ -180,26 +180,28 @@ export class PaperRenderer {
 
 		this.#paperProgram = createGLProgram(gl, paperVertSrc, paperFragSrc);
 
-		this.#paperULoc._viewProj = gl.getUniformLocation(this.#paperProgram, 'a');
-		this.#paperULoc._lightDir = gl.getUniformLocation(this.#paperProgram, 'A');
-		this.#paperULoc._ambientColor = gl.getUniformLocation(this.#paperProgram, 'B');
-		this.#paperULoc._lightColor = gl.getUniformLocation(this.#paperProgram, 'C');
-		this.#paperULoc._frontColor = gl.getUniformLocation(this.#paperProgram, 'D');
-		this.#paperULoc._backColor = gl.getUniformLocation(this.#paperProgram, 'E');
-		this.#paperULoc._frontTexture = gl.getUniformLocation(this.#paperProgram, 'F');
-		this.#paperULoc._backTexture = gl.getUniformLocation(this.#paperProgram, 'G');
-		this.#paperULoc._frontHiResA = gl.getUniformLocation(this.#paperProgram, 'H');
-		this.#paperULoc._frontHiResB = gl.getUniformLocation(this.#paperProgram, 'I');
-		this.#paperULoc._backHiResA = gl.getUniformLocation(this.#paperProgram, 'J');
-		this.#paperULoc._backHiResB = gl.getUniformLocation(this.#paperProgram, 'K');
-		this.#paperULoc._frontBlendA = gl.getUniformLocation(this.#paperProgram, 'L');
-		this.#paperULoc._frontBlendB = gl.getUniformLocation(this.#paperProgram, 'M');
-		this.#paperULoc._backBlendA = gl.getUniformLocation(this.#paperProgram, 'N');
-		this.#paperULoc._backBlendB = gl.getUniformLocation(this.#paperProgram, 'O');
-		this.#paperULoc._numPointLights = gl.getUniformLocation(this.#paperProgram, 'P');
-		this.#paperULoc._pointLightPos = gl.getUniformLocation(this.#paperProgram, 'Q[0]');
-		this.#paperULoc._pointLightColor = gl.getUniformLocation(this.#paperProgram, 'R[0]');
-		this.#paperULoc._pointLightIntensity = gl.getUniformLocation(this.#paperProgram, 'S[0]');
+		const getUniform = (t:string, p:WebGLProgram = this.#paperProgram) => gl.getUniformLocation(p, t);
+
+		this.#paperULoc._viewProj = getUniform('a');
+		this.#paperULoc._lightDir = getUniform('A');
+		this.#paperULoc._ambientColor = getUniform('B');
+		this.#paperULoc._lightColor = getUniform('C');
+		this.#paperULoc._frontColor = getUniform('D');
+		this.#paperULoc._backColor = getUniform('E');
+		this.#paperULoc._frontTexture = getUniform('F');
+		this.#paperULoc._backTexture = getUniform('G');
+		this.#paperULoc._frontHiResA = getUniform('H');
+		this.#paperULoc._frontHiResB = getUniform('I');
+		this.#paperULoc._backHiResA = getUniform('J');
+		this.#paperULoc._backHiResB = getUniform('K');
+		this.#paperULoc._frontBlendA = getUniform('L');
+		this.#paperULoc._frontBlendB = getUniform('M');
+		this.#paperULoc._backBlendA = getUniform('N');
+		this.#paperULoc._backBlendB = getUniform('O');
+		this.#paperULoc._numPointLights = getUniform('P');
+		this.#paperULoc._pointLightPos = getUniform('Q[0]');
+		this.#paperULoc._pointLightColor = getUniform('R[0]');
+		this.#paperULoc._pointLightIntensity = getUniform('S[0]');
 
 		this.#meshDatas = meshes.map((m, i) => this.#createMeshData(m, i));
 
@@ -221,20 +223,20 @@ export class PaperRenderer {
 		gl.depthFunc(gl.LESS);
 
 		this.#blurHProgram = createGLProgram(gl, fullscreenVertSrc, blurHFragSrc);
-		this.#blurHULoc._sceneTex = gl.getUniformLocation(this.#blurHProgram, 'A');
-		this.#blurHULoc._texelSize = gl.getUniformLocation(this.#blurHProgram, 'B');
-		this.#blurHULoc._blurRadius = gl.getUniformLocation(this.#blurHProgram, 'C');
-		this.#blurHULoc._weights = gl.getUniformLocation(this.#blurHProgram, 'D[0]');
+		this.#blurHULoc._sceneTex = getUniform('A', this.#blurHProgram);
+		this.#blurHULoc._texelSize = getUniform('B', this.#blurHProgram);
+		this.#blurHULoc._blurRadius = getUniform('C', this.#blurHProgram);
+		this.#blurHULoc._weights = getUniform('D[0]', this.#blurHProgram);
 
 		this.#blurVProgram = createGLProgram(gl, fullscreenVertSrc, blurVFragSrc);
-		this.#blurVULoc._blurTex = gl.getUniformLocation(this.#blurVProgram, 'A');
-		this.#blurVULoc._sharpTex = gl.getUniformLocation(this.#blurVProgram, 'B');
-		this.#blurVULoc._texelSize = gl.getUniformLocation(this.#blurVProgram, 'C');
-		this.#blurVULoc._focusCenter = gl.getUniformLocation(this.#blurVProgram, 'D');
-		this.#blurVULoc._focusWidth = gl.getUniformLocation(this.#blurVProgram, 'E');
-		this.#blurVULoc._blurRadius = gl.getUniformLocation(this.#blurVProgram, 'F');
-		this.#blurVULoc._blurFalloff = gl.getUniformLocation(this.#blurVProgram, 'G');
-		this.#blurVULoc._weights = gl.getUniformLocation(this.#blurVProgram, 'H[0]');
+		this.#blurVULoc._blurTex = getUniform('A', this.#blurVProgram);
+		this.#blurVULoc._sharpTex = getUniform('B', this.#blurVProgram);
+		this.#blurVULoc._texelSize = getUniform('C', this.#blurVProgram);
+		this.#blurVULoc._focusCenter = getUniform('D', this.#blurVProgram);
+		this.#blurVULoc._focusWidth = getUniform('E', this.#blurVProgram);
+		this.#blurVULoc._blurRadius = getUniform('F', this.#blurVProgram);
+		this.#blurVULoc._blurFalloff = getUniform('G', this.#blurVProgram);
+		this.#blurVULoc._weights = getUniform('H[0]', this.#blurVProgram);
 
 		this.#quadVAO = this.#createFullscreenQuad();
 	}
@@ -329,22 +331,24 @@ export class PaperRenderer {
 		const vao = gl.createVertexArray()!;
 		gl.bindVertexArray(vao);
 
+		const ARRAY_BUFFER = gl.ARRAY_BUFFER;
+
 		const posVBO = gl.createBuffer()!;
-		gl.bindBuffer(gl.ARRAY_BUFFER, posVBO);
-		gl.bufferData(gl.ARRAY_BUFFER, mesh._positions as BufferSource, gl.DYNAMIC_DRAW);
+		gl.bindBuffer(ARRAY_BUFFER, posVBO);
+		gl.bufferData(ARRAY_BUFFER, mesh._positions as BufferSource, gl.DYNAMIC_DRAW);
 		gl.enableVertexAttribArray(0);
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
 		const normVBO = gl.createBuffer()!;
-		gl.bindBuffer(gl.ARRAY_BUFFER, normVBO);
+		gl.bindBuffer(ARRAY_BUFFER, normVBO);
 		const normals = mesh._computeNormals();
-		gl.bufferData(gl.ARRAY_BUFFER, normals as BufferSource, gl.DYNAMIC_DRAW);
+		gl.bufferData(ARRAY_BUFFER, normals as BufferSource, gl.DYNAMIC_DRAW);
 		gl.enableVertexAttribArray(1);
 		gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
 
 		const texCoordVBO = gl.createBuffer()!;
-		gl.bindBuffer(gl.ARRAY_BUFFER, texCoordVBO);
-		gl.bufferData(gl.ARRAY_BUFFER, mesh._texCoords as BufferSource, gl.STATIC_DRAW);
+		gl.bindBuffer(ARRAY_BUFFER, texCoordVBO);
+		gl.bufferData(ARRAY_BUFFER, mesh._texCoords as BufferSource, gl.STATIC_DRAW);
 		gl.enableVertexAttribArray(2);
 		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
 
