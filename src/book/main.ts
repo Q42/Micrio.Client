@@ -27,11 +27,11 @@ import {
 import { IIIFTextureManager } from './rendering/iiif-manager';
 import type { PageClickResult, PageDragResult } from './core/types';
 import type { Models } from '$types/models';
-import type { TextureBitmap } from '$render/textures';
 import { rayIntersectMeshes } from './geometry/raycast';
 import { uvToWorldPosition, sampleMeshPosition, projectWorldToScreen, type UvWorldResult } from './geometry/uv-project';
 import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync';
 import { getPreset, getPresets } from './rendering/lighting';
+import { archive } from '$utils/archive';
 
 interface TextureContext {
 	pageIndex: number;
@@ -88,7 +88,7 @@ function computePageLayout(images: Models.ImageInfo.ImageInfo[], options?: BookV
 	}
 
 	let aspectsForInit: Float32Array;
-	if (options?.useIndividualAspects ?? USE_INDIVIDUAL_ASPECTS) {
+	if (options?._useIndividualAspects ?? USE_INDIVIDUAL_ASPECTS) {
 		aspectsForInit = computedPageAspects;
 	} else {
 		aspectsForInit = new Float32Array(pageCnt).fill(avgAspect);
@@ -111,29 +111,27 @@ export interface DrawnImage {
 
 export interface BookViewerOptions {
 	/** The WebGL2 canvas to render into. Must be present in the document and sized by its host. */
-	canvas: HTMLCanvasElement;
+	_canvas: HTMLCanvasElement;
 	/** The already-loaded book index JSON. */
-	images: Models.ImageInfo.ImageInfo[];
-	/** Loader for page textures by image ID, provided by the host (e.g. Micrio's archive.getImageById). */
-	getImageById: (imageId: string) => Promise<TextureBitmap>;
+	_images: Models.ImageInfo.ImageInfo[];
 	/** Called whenever the current reading position changes. */
-	onPageChange?: (pageIdx: number) => void;
+	_onPageChange?: (pageIdx: number) => void;
 	/** Called whenever the camera moves (rotate/zoom/pan, including smoothing). */
-	onViewChange?: () => void;
+	_onViewChange?: () => void;
 	/** Called after every frame that is drawn to the canvas, with the micrioIds of the images visible in the current spread (plus any page mid-flip), each with a rough `[u, v, w, h]` rectangle (in texture UV space 0..1) of the part visible in the viewport. */
-	onDraw?: (images: DrawnImage[]) => void;
-	hardCover?: boolean;
-	tiltShift?: boolean;
-	lightingPreset?: string;
-	useIndividualAspects?: boolean;
-	startPageIdx?: number;
+	_onDraw?: (images: DrawnImage[]) => void;
+	_hardCover?: boolean;
+	_tiltShift?: boolean;
+	_lightingPreset?: string;
+	_useIndividualAspects?: boolean;
+	_startPageIdx?: number;
 	/** Base URL for the IIIF image server (hi-res streaming). */
-	iiifBaseUrl?: string;
+	_iiifBaseUrl?: string;
 }
 
 export class BookViewer {
 	static _getPresets = getPresets;
-	readonly ready: Promise<void>;
+	readonly _ready: Promise<void>;
 
 	#hardCover: boolean;
 
@@ -151,7 +149,6 @@ export class BookViewer {
 	#iiifManager: IIIFTextureManager | null = null;
 
 	#canvas: HTMLCanvasElement;
-	#getImageById: (imageId: string) => Promise<TextureBitmap>;
 	#onPageChange?: (pageIdx: number) => void;
 	#onViewChange?: () => void;
 	#onDraw?: (images: DrawnImage[]) => void;
@@ -192,17 +189,13 @@ export class BookViewer {
 	#solveCount = 0;
 
 	constructor(options: BookViewerOptions) {
-		if (!options.canvas) throw new Error('BookViewer: a `canvas` element is required.');
-		if (typeof options.getImageById !== 'function') throw new Error('BookViewer: a `getImageById` function is required.');
+		this.#canvas = options._canvas;
+		this.#onPageChange = options._onPageChange;
+		this.#onViewChange = options._onViewChange;
+		this.#onDraw = options._onDraw;
+		this.#hardCover = options._hardCover ?? HARD_COVER;
 
-		this.#canvas = options.canvas;
-		this.#getImageById = options.getImageById;
-		this.#onPageChange = options.onPageChange;
-		this.#onViewChange = options.onViewChange;
-		this.#onDraw = options.onDraw;
-		this.#hardCover = options.hardCover ?? HARD_COVER;
-
-		this.ready = this.#init(options);
+		this._ready = this.#init(options);
 	}
 
 	// ═══════════════════════════════════════════════════════════════
@@ -652,7 +645,7 @@ export class BookViewer {
 	};
 
 	async #init(options: BookViewerOptions): Promise<void> {
-		const images = options.images;
+		const images = options._images;
 		if (!images || images.length === 0) {
 			throw new Error('BookViewer: no images in book index');
 		}
@@ -665,7 +658,7 @@ export class BookViewer {
 			throw new Error('BookViewer: WebGL is not available in this browser.');
 		}
 
-		const startPageIdx = options.startPageIdx;
+		const startPageIdx = options._startPageIdx;
 		if (startPageIdx !== undefined && startPageIdx > 0 && startPageIdx < totalImagePages) {
 			const pageIdx = Math.min(Math.ceil(startPageIdx / 2), this.#pageCount - 1);
 			this.#gotoInstant(pageIdx);
@@ -675,7 +668,7 @@ export class BookViewer {
 
 		await this.#loadPageTextures(images);
 
-		this.#iiifManager = new IIIFTextureManager(this.#renderer, options.iiifBaseUrl);
+		this.#iiifManager = new IIIFTextureManager(this.#renderer, options._iiifBaseUrl);
 		this.#iiifManager._onRequestFrame = () => this.#requestFrame();
 		this.#iiifManager._init(images, this.#pageCount, pageIdxes);
 
@@ -763,7 +756,7 @@ export class BookViewer {
 		this.#camera._panBoundsMax = new Vec3(absX, maxY, maxZ);
 
 		this.#renderer = new PaperRenderer(gl);
-		this.#renderer._tiltShiftEnabled = options.tiltShift ?? TILT_SHIFT_ENABLED;
+		this.#renderer._tiltShiftEnabled = options._tiltShift ?? TILT_SHIFT_ENABLED;
 		this.#renderer._initialize(this.#meshes);
 		this.#renderer._setBoundingBox(
 			{ x: this.#camera._panBoundsMin!._x, y: this.#camera._panBoundsMin!._y, z: this.#camera._panBoundsMin!._z },
@@ -787,7 +780,7 @@ export class BookViewer {
 		this.#inputHandler = new InputHandler(canvas, this.#camera, this.#requestFrame);
 		this.#inputHandler._isZoomedInFn = () => this.isZoomedIn();
 
-		const preset = options.lightingPreset ?? LIGHTING_PRESET;
+		const preset = options._lightingPreset ?? LIGHTING_PRESET;
 		this.setLightingPreset(preset);
 
 		this.#applyBinding();
@@ -1242,8 +1235,8 @@ export class BookViewer {
 
 			pagePromises.push((async () => {
 				try {
-					const frontBitmap = await this.#getImageById(frontImg.id);
-					const backBitmap = backImg ? await this.#getImageById(backImg.id) : frontBitmap;
+					const frontBitmap = await archive._getImageById(frontImg.id);
+					const backBitmap = backImg ? await archive._getImageById(backImg.id) : frontBitmap;
 					this.#renderer._setPageTextures(p, frontBitmap, backBitmap);
 				} catch (err) {
 					console.warn(`Failed to load textures for page ${p}:`, err);

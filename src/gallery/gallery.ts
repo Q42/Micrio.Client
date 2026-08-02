@@ -4,7 +4,6 @@ import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
 import type { Engine } from '$render/engine';
 import type { Models } from '$types/models';
-import { archive } from '$utils/archive';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { OmniUI } from '$gallery/omni';
@@ -356,12 +355,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		parent.album!.hooked = true;
 		const micrio = parent.engine.micrio;
 		const book3d = this.#book3d = new BookViewer({
-			canvas: micrio.canvas.element,
-			images: items,
-			startPageIdx: pageIdx,
-			getImageById: archive._getImageById,
-			onPageChange: (p:number) => this.#goto(p),
-			onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
+			_canvas: micrio.canvas.element,
+			_images: items,
+			_startPageIdx: pageIdx,
+			_onPageChange: (p:number) => this.#goto(p),
+			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
 					const drawn = _drawn.find(d => d.id == img.id);
 					img.visible.set(!!drawn);
@@ -372,10 +370,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				}
 			}
 		});
-		parent.engine.micrio.events.unhookScroll();
+		micrio.events.unhookScroll();
+		micrio.events.unhookPinch();
 		parent.camera._zoomOverride = (n:number) => book3d.zoom(n);
 		parent.camera._isZoomedInOverride = () => !!book3d.isZoomedIn();
-		this.#book3d.ready.then(() => {
+		this.#book3d._ready.then(() => {
 			parent._placed = true;
 			this.#frameChanged();
 		})
