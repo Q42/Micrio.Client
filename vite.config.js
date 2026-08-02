@@ -75,15 +75,59 @@ export default defineConfig({
 });
 
 
+const GLSL_OPERATORS = new Set(['+', '-', '*', '/', '%', '=', '<', '>', '!', '&', '|', '^', '~', '?', ':', '.', ',', ';', '(', ')', '[', ']', '{', '}']);
+const GLSL_COMPOUND_OPERATORS = new Set(['++', '--', '+=', '-=', '*=', '/=', '%=', '==', '!=', '<=', '>=', '&&', '||', '<<', '>>', '&=', '|=', '^=']);
+
+function stripOperatorSpaces(src) {
+	let out = '';
+	let pending = false;
+	for (const c of src) {
+		if (c === ' ' || c === '\t' || c === '\r') {
+			pending = true;
+			continue;
+		}
+		if (pending && out.length) {
+			const prev = out[out.length - 1];
+			const prevOp = GLSL_OPERATORS.has(prev);
+			const curOp = GLSL_OPERATORS.has(c);
+			const compound = prevOp && curOp && GLSL_COMPOUND_OPERATORS.has(prev + c);
+			if (!(prevOp || curOp) || compound) out += ' ';
+		}
+		out += c;
+		pending = false;
+	}
+	return out;
+}
+
+function joinMinifiedLines(out, line) {
+	if (!out) return line;
+	if (out.endsWith('\n')) return out + line;
+	const last = out[out.length - 1];
+	const lastOp = GLSL_OPERATORS.has(last);
+	const firstOp = GLSL_OPERATORS.has(line[0]);
+	if ((lastOp || firstOp) && !(lastOp && firstOp && GLSL_COMPOUND_OPERATORS.has(last + line[0]))) {
+		return out + line;
+	}
+	return out + ' ' + line;
+}
+
 function glslMinify(src) {
-	return src
-		.replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '') // block comments
+	const lines = src
+		.replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, ' ') // block comments -> space (keeps token boundaries)
 		.replace(/\/\/[^\n]*/g, '')                          // line comments
-		.replace(/[ \t]+/g, ' ')                             // collapse horizontal whitespace
-		.replace(/^[ \t]+/gm, '')                            // trim line starts
-		.replace(/[ \t]+$/gm, '')                            // trim line ends
-		.replace(/\n{2,}/g, '\n')                            // collapse blank lines
-		.trim();
+		.split('\n')
+		.map(stripOperatorSpaces)
+		.filter(Boolean);
+
+	let out = '';
+	for (const line of lines) {
+		if (line[0] === '#') {
+			out += (out && !out.endsWith('\n') ? '\n' : '') + line + '\n';
+		} else {
+			out = joinMinifiedLines(out, line);
+		}
+	}
+	return out.trim();
 }
 
 function glslMinifyPlugin() {
