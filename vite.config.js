@@ -20,6 +20,7 @@ export default defineConfig({
 			'$layout': resolve('src/layout'),
 			'$render': resolve('src/render'),
 			'$grid': resolve('src/grid'),
+			'$book': resolve('src/book'),
 			'$utils': resolve('src/utils'),
 		}
 	},
