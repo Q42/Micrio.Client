@@ -4,6 +4,7 @@ import type { MicrioImage } from '$core/image';
 import type { Gallery as GalleryController } from '$gallery/controller';
 import type { Engine } from '$render/engine';
 import type { Models } from '$types/models';
+import type { GalleryConfig } from '$types/models/info';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
 import { OmniUI } from '$gallery/omni';
@@ -321,7 +322,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#frameChanged();
 			parent.album!.hooked = true;
 		} else if (isBook3D) {
-			this.#loadBook3d(parent,controller._items,startImageIdx);
+			this.#loadBook3d(parent,controller._items,startImageIdx,controller._config);
 		} else {
 			// Switch gallery: embed all images on the parent canvas
 			await Promise.allSettled(images.map(d => {
@@ -347,7 +348,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this._addCleanup(() => window.removeEventListener('keydown', this.#keydown));
 	}
 
-	#loadBook3d(parent:MicrioImage, items: Models.ImageInfo.ImageInfo[], pageIdx:number) : void {
+	#loadBook3d(parent:MicrioImage, items: Models.ImageInfo.ImageInfo[], pageIdx:number, config:GalleryConfig) : void {
 		// Book3D album: the album ships its own WebGL renderer for the shared
 		// `<canvas>`, so no engine instancing happens here. Keep all DOM UI
 		// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
@@ -358,6 +359,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			_canvas: micrio.canvas.element,
 			_images: items,
 			_startPageIdx: pageIdx,
+			_lightingPreset: config.settings?.lighting as string,
 			_onPageChange: (p:number) => this.#goto(p),
 			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {

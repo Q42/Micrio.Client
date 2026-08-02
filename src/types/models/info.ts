@@ -460,7 +460,7 @@ export type GalleryConfig = {
 	archive?: string;
 	archiveLayerOffset?: number;
 	revisions?: Record<string, Record<string, any>>;
-	settings?: Partial<ImageInfo.Settings>;
+	settings?: Record<string, any>;
 	id?: string;
 	name?: string;
 	grid?: {
