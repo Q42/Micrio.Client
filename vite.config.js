@@ -5,6 +5,7 @@ import { resolve } from 'path';
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
+	plugins: [glslMinifyPlugin()],
 	resolve: {
 		alias: {
 			'$types': resolve('src/types'),
@@ -72,3 +73,31 @@ export default defineConfig({
 		}
 	}
 });
+
+
+function glslMinify(src) {
+	return src
+		.replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '') // block comments
+		.replace(/\/\/[^\n]*/g, '')                          // line comments
+		.replace(/[ \t]+/g, ' ')                             // collapse horizontal whitespace
+		.replace(/^[ \t]+/gm, '')                            // trim line starts
+		.replace(/[ \t]+$/gm, '')                            // trim line ends
+		.replace(/\n{2,}/g, '\n')                            // collapse blank lines
+		.trim();
+}
+
+function glslMinifyPlugin() {
+	return {
+		name: 'glsl-minify',
+		enforce: 'pre',
+		async resolveId(id, importer) {
+			if (id.endsWith('.glsl?raw')) {
+				const resolved = await this.resolve(id.replace('?raw', ''), importer);
+				if (resolved) return resolved.id;
+			}
+		},
+		transform(src, id) {
+			if (id.endsWith('.glsl')) return `export default ${JSON.stringify(glslMinify(src))};`;
+		},
+	};
+}

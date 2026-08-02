@@ -10,6 +10,7 @@ import { get, writable } from '$core/store';
 import { OmniUI } from '$gallery/omni';
 import { SwipeGallery } from '$gallery/swipe';
 import { createElement } from '$utils/dom';
+import { BookViewer } from '../book/main';
 import '$ui/button';
 
 const scrubPad = 16;
@@ -18,38 +19,6 @@ const scrubPad = 16;
 export interface GalleryProps {
 	controller?: GalleryController;
 }
-
-interface BookViewer3D {
-	goto: (n:number) => void;
-	zoom: (delta:number) => void;
-	textureToScreen: (imageId:string, x:number, y:number) => {
-		x: number;
-		y: number;
-		pageIndex: number;
-		side: number;
-		facing: boolean;
-		obscured: boolean;
-	};
-	textureToMatrix: (
-		imageId: string,
-		x: number,
-		y: number,
-		scale: number,
-		radius?: number,
-		rotX?: number,
-		rotY?: number,
-		rotZ?: number,
-		transY?: number,
-		scaleX?: number,
-		scaleY?: number,
-	) => {
-		matrix: Float32Array;
-		facing: boolean;
-		obscured: boolean;
-	};
-	isZoomedIn: () => boolean;
-	ready: Promise<void>;
-};
 
 import './gallery.css';
 
@@ -96,7 +65,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#preloadD = 0;
 
 	/** 3d book viewer @internal */
-	#book3d: BookViewer3D | undefined;
+	#book3d: BookViewer | undefined;
 
 
 	/** @internal */
@@ -384,19 +353,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// `<canvas>`, so no engine instancing happens here. Keep all DOM UI
 		// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
 		// and mark the pages visible so their markers render.
-		if(!('MicrioBook3D' in window)) throw new Error('Could not load Micrio Book3D viewer')
 		parent.album!.hooked = true;
 		const micrio = parent.engine.micrio;
-		const book3d = this.#book3d = new ((window.MicrioBook3D) as any)({
+		const book3d = this.#book3d = new BookViewer({
 			canvas: micrio.canvas.element,
-			bookIndex: {
-				images: items,
-				delta: 0
-			},
+			images: items,
 			startPageIdx: pageIdx,
 			getImageById: archive._getImageById,
 			onPageChange: (p:number) => this.#goto(p),
-			onViewChange: null,
 			onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
 					const drawn = _drawn.find(d => d.id == img.id);
@@ -407,7 +371,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 					}
 				}
 			}
-		}) as BookViewer3D;
+		});
 		parent.engine.micrio.events.unhookScroll();
 		parent.camera._zoomOverride = (n:number) => book3d.zoom(n);
 		parent.camera._isZoomedInOverride = () => !!book3d.isZoomedIn();
@@ -424,7 +388,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			const cooArr = new Float64Array(5);
 			img.camera._getXYDirectOverride = function(_x:number, _y:number) {
 				const out = book3d.textureToScreen(img.id, _x, _y);
-				const visible = out.facing && !out.obscured;
+				const visible = out?.facing && !out.obscured;
 				cooArr[0] = visible ? out.x : -1;
 				cooArr[1] = visible ? out.y : -1;
 				return cooArr;
@@ -442,7 +406,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				scaleY?: number
 			) {
 				const out = book3d.textureToMatrix(img.id, x, y, scale, 0, rotX, rotY, rotZ, 0, scaleX, scaleY);
-				return out.facing && !out.obscured ? out.matrix : new Float32Array();
+				return out && out.facing && !out.obscured ? out.matrix : new Float32Array();
 			}
 		}
 	}
