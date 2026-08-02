@@ -360,6 +360,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			_images: items,
 			_startPageIdx: pageIdx,
 			_lightingPreset: config.settings?.lighting as string,
+			_useIndividualAspects: !!config.settings?.individualAspects,
 			_onPageChange: (p:number) => this.#goto(p),
 			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
