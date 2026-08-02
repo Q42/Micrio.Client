@@ -32,6 +32,7 @@ import { uvToWorldPosition, sampleMeshPosition, projectWorldToScreen, type UvWor
 import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync';
 import { getPreset, getPresets } from './rendering/lighting';
 import { archive } from '$utils/archive';
+import { MicrioImage } from '$core/image';
 
 interface TextureContext {
 	pageIndex: number;
@@ -288,7 +289,7 @@ export class BookViewer {
 	 *          the image is unknown, the coordinate is outside [0,1], the canvas
 	 *          has no size, or the point is behind the camera.
 	 */
-	textureToScreen(
+	#textureToScreen(
 		imageId: string,
 		u: number,
 		v: number,
@@ -346,7 +347,7 @@ export class BookViewer {
 	 * @returns the matrix plus visibility facts, or null when the image is
 	 *          unknown or the coordinate is outside [0, 1].
 	 */
-	textureToMatrix(
+	#textureToMatrix(
 		imageId: string,
 		x: number,
 		y: number,
@@ -801,6 +802,35 @@ export class BookViewer {
 			m._setBinding();
 		}
 		this.#flipAnimator._reset(this.#meshes);
+	}
+
+	_hookImageBook3d(img: MicrioImage) {
+		if(img.camera._getMatrixOverride) return;
+		if(!img.camera._getXYDirectOverride) {
+			const cooArr = new Float64Array(5);
+			img.camera._getXYDirectOverride = (_x:number, _y:number) => {
+				const out = this.#textureToScreen(img.id, _x, _y);
+				const visible = out?.facing && !out.obscured;
+				cooArr[0] = visible ? out.x : -1;
+				cooArr[1] = visible ? out.y : -1;
+				return cooArr;
+			}
+		}
+		if(!img.camera._getMatrixOverride) {
+			img.camera._getMatrixOverride = (
+				x: number,
+				y: number,
+				scale: number,
+				rotX?: number,
+				rotY?: number,
+				rotZ?: number,
+				scaleX?: number,
+				scaleY?: number
+			) => {
+				const out = this.#textureToMatrix(img.id, x, y, scale, 0, rotX, rotY, rotZ, 0, scaleX, scaleY);
+				return out && out.facing && !out.obscured ? out.matrix : new Float32Array();
+			}
+		}
 	}
 
 	#setupInputCallbacks(): void {
