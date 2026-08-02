@@ -9,69 +9,12 @@ import type { HTMLMicrioElement } from '$core/element';
 
 import { Engine } from './engine';
 import { PostProcessor } from './postprocess';
-import { Browser } from '$utils/browser';
 import { MicrioError, ErrorCodes } from '$core/error';
 import { segsX, segsY } from './constants';
 import { createElement } from '$utils/dom';
 
-const isFirefox:boolean = Browser.firefox;
-
-/** Internal vertex shader source code. @internal */
-const vertexShader:string = [
-	// Combined ModelViewProjection matrix from Engine
-	'uniform mat4 GLMatrix;',
-
-	// Vertex position (from Engine buffer)
-	'attribute vec3 pos;',
-	// Texture coordinate (from static buffer)
-	'attribute vec2 aTextureCoord;',
-
-	// Pass texture coordinate to fragment shader
-	'varying highp vec2 vTextureCoord;',
-
-	'void main()',
-	'{',
-		// Calculate clip space position
-		'gl_Position = GLMatrix * vec4(pos, 1.0);',
-		// Pass through texture coordinate
-		'vTextureCoord = aTextureCoord;',
-	'}',
-].join('');
-
-/** Internal fragment shader source code. @internal */
-const fragmentShader:string = [
-	// Use medium precision for fragment calculations
-	'precision mediump float;',
-
-	// Received texture coordinate from vertex shader
-	'varying highp vec2 vTextureCoord;',
-
-	// The tile texture
-	'uniform sampler2D uSampler;',
-	// Tile opacity (for fading)
-	'uniform float opacity;',
-	// Flag indicating if texture is missing/not loaded
-	'uniform int noTexture;',
-
-	'void main() {',
-		// If texture is missing
-		'if(noTexture==1) {',
-		// Draw a placeholder color (dark semi-transparent gray)
-			'gl_FragColor = vec4(.1,.1,.1,.1);',
-		'} else {',
-		// Firefox premultiplied alpha workaround
-		...(isFirefox ? [
-			'vec4 textureColor = texture2D(uSampler, vTextureCoord);',
-			// Manually apply opacity to RGB based on new alpha
-			'float newAlpha = min(1., textureColor.a * opacity);',
-			'gl_FragColor = vec4(textureColor.rgb * newAlpha, newAlpha);',
-		] : [
-			// Standard alpha blending (premultiplied alpha assumed in blendFunc)
-			'gl_FragColor = texture2D(uSampler, vTextureCoord) * opacity;',
-		]),
-		'}',
-	'}',
-].join('');
+import vertexShader from './shaders/main.vert.glsl?raw';
+import fragmentShader from './shaders/main.frag.glsl?raw';
 
 /** Watermark tile size. @internal */
 const watermarkTileSize = 256;
