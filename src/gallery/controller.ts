@@ -8,7 +8,6 @@ import { MicrioError } from '$core/error';
 import { DataLoader } from '$utils/dataLoader';
 import { archive } from '$utils/archive';
 import { createElement } from '$utils/dom';
-import { writable, get, type Writable } from '$core/store';
 import { BASEPATH, BASEPATH_V5 } from '$core/globals';
 import { Grid } from '$grid/grid';
 
@@ -41,12 +40,10 @@ export class Gallery {
 	readonly _config: Models.GalleryConfig;
 	/** @internal */
 	readonly _images: MicrioImage[];
-	readonly #engine: Engine;
 
 	#parent: MicrioImage | null = null;
 
 	readonly _items: Models.ImageInfo.ImageInfo[];
-	readonly #currentIndex: Writable<number> = writable(0);
 
 	/** Max width for the virtual container canvas (switch/omni galleries). */
 	#containerWidth: number = 0;
@@ -55,7 +52,6 @@ export class Gallery {
 
 	/* @internal */
 	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {
-		this.#engine = engine;
 		this._items = items;
 
 		// Book3D albums are always laid out as a book: a single cover page
@@ -311,27 +307,8 @@ export class Gallery {
 	}
 
 	// --- Navigation ---
-
-	/** Go to a specific page index. */
-	goto(index: number): void {
-		this.#currentIndex.set(index);
-		const parent = this.#parent;
-		// Dispatch gallery-show event so the gallery and album interface respond
-		if (parent) {
-			const page = this._getPageLayout().pages[index] ?? [Math.min(index, this._images.length - 1)];
-			this.#engine.micrio.events._dispatch('gallery-show', page.map(i => this._images[i].id));
-		}
-	}
-
-	/** Go to the next page. */
-	next(): void {
-		const current = get(this.#currentIndex);
-		this.goto(Math.min(this._images.length - 1, current + 1));
-	}
-
-	/** Go to the previous page. */
-	prev(): void {
-		const current = get(this.#currentIndex);
-		this.goto(Math.max(0, current - 1));
-	}
+	gotoId = (id: string) : void => this.goto(this._images.findIndex(i => i.id == id));
+	goto = (index: number): void => this.#parent?.album?.goto(index);
+	next = (): void => this.#parent?.album?.next();
+	prev = (): void => this.#parent?.album?.prev();
 }

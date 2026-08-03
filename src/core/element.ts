@@ -496,10 +496,16 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 		// Standard bundle ID: fetch from DataLoader
 		else if(typeof idOrInfo === 'string') {
-			bundle = (await DataLoader._getBundleImage(idOrInfo))!;
-			if(!bundle) {
-				this.#printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
+			if(this.gallery) {
+				this.gallery.gotoId(idOrInfo);
 				return this.$current!;
+			}
+			else {
+				bundle = (await DataLoader._getBundleImage(idOrInfo))!;
+				if(!bundle) {
+					this.#printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
+					return this.$current!;
+				}
 			}
 		}
 		// Already a BundleImage

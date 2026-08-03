@@ -121,7 +121,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	#goto(i: number, fast = false, duration = 150, force = false) {
 		const images = this.#images;
-		if (!images.length) return;
+		if (!images.length || i < 0) return;
 		const page = Math.round(Math.max(0, Math.min(this.#pageToImages.length - 1, i)));
 		const imgIdx = this.#pageToImages[page]?.[0] ?? 0;
 		const changed = force || page !== this.#currentPage;
