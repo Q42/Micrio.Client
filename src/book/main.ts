@@ -141,6 +141,8 @@ export interface BookViewerOptions {
 	 * transparent: they no longer block the pages behind them and you can see
 	 * through to the underlying spread. */
 	_seeThroughMargins?: boolean;
+	/** When false, the 90° rotate-view feature is disabled and its UI is hidden. Defaults to true. */
+	_allowRotation?: boolean;
 	_startPageIdx?: number;
 	/** Base URL for the IIIF image server (hi-res streaming). */
 	_iiifBaseUrl?: string;
@@ -152,6 +154,8 @@ export class BookViewer {
 
 	#hardCover: boolean;
 	#seeThroughMargins: boolean;
+	/** When false, the 90° rotate-view feature is disabled and its UI is hidden. */
+	#allowRotation: boolean;
 
 	#pageCount = 0;
 	#pageAspects: Float32Array = new Float32Array(0);
@@ -216,6 +220,7 @@ export class BookViewer {
 		this.#onDraw = options._onDraw;
 		this.#hardCover = options._hardCover ?? HARD_COVER;
 		this.#seeThroughMargins = options._seeThroughMargins ?? SEE_THROUGH_MARGINS;
+		this.#allowRotation = options._allowRotation ?? true;
 
 		this._ready = this.#init(options);
 	}
@@ -288,6 +293,11 @@ export class BookViewer {
 	rotateView(direction: 1 | -1): void {
 		this.#camera._rotateViewStep(direction);
 		this.#requestFrame();
+	}
+
+	/** Whether the 90° rotate-view feature is enabled. */
+	_allowRotation(): boolean {
+		return this.#allowRotation;
 	}
 
 	/**

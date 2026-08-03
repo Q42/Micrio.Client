@@ -68,6 +68,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#book3d: BookViewer | undefined;
 	/** Whether the current gallery is a 3D book (enables rotate-view buttons). */
 	#isBook3D = false;
+	/** Whether the 3D book allows the 90° rotate-view feature. */
+	#allowBookRotation = true;
 
 
 	/** @internal */
@@ -301,6 +303,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const parent = image;
 		const isSwipe = controller._config.type === 'swipe';
 		const isBook3D = this.#isBook3D = controller._config.type === 'book3d';
+		this.#allowBookRotation = controller._config.settings?.allowRotation !== false;
 
 		if (isSwipe) {
 			this.#swipeGallery = new SwipeGallery(micrio, images, this.#pageToImages, this.#imageSlotPos, this.#imageSlotWidth,
@@ -376,6 +379,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			_lightingPreset: config.settings?.lighting as string,
 			_useIndividualAspects: individualAspects,
 			_seeThroughMargins: individualAspects,
+			_allowRotation: this.#allowBookRotation,
 			_onPageChange: (p:number) => this.#goto(p),
 			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
@@ -416,7 +420,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			}
 		}) as MicrioElement;
 
-		if (this.#isBook3D) {
+		if (this.#isBook3D && this.#allowBookRotation) {
 			createElement('micrio-button', {
 				parent: this,
 				setProps: {
@@ -469,7 +473,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			}
 		}) as MicrioElement;
 
-		if (this.#isBook3D) {
+		if (this.#isBook3D && this.#allowBookRotation) {
 			createElement('micrio-button', {
 				parent: this,
 				setProps: {
