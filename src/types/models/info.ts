@@ -440,7 +440,7 @@ export interface Album {
 	prev: () => void;
 	/** Go to next page */
 	next: () => void;
-	/** Go to specific page index */
+	/** Go to specific image index */
 	goto: (n:number) => void;
 	/** Album has been initialized and hooked */
 	hooked?: boolean;

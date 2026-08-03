@@ -112,6 +112,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	}
 
 
+	/** Returns the page index containing the given image index (for spread-aware navigation). */
+	#imageIdxToPage(n: number): number {
+		const page = this.#pageToImages.findIndex(p => p.includes(n));
+		return page >= 0 ? page : 0;
+	}
+
 	/**
 	 * Navigates to a specific page in the gallery.
 	 * @param i Target page index.
@@ -311,7 +317,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			info: parent.$settings.gallery,
 			prev: () => _self.#goto(_self.#currentPage - 1),
 			next: () => _self.#goto(_self.#currentPage + 1),
-			goto: (n: number) => _self.#goto(n),
+			goto: (n: number) => _self.#goto(_self.#imageIdxToPage(n)),
 			...(_self.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		};
 
