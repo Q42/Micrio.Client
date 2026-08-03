@@ -66,6 +66,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/** 3d book viewer @internal */
 	#book3d: BookViewer | undefined;
+	/** Whether the current gallery is a 3D book (enables rotate-view buttons). */
+	#isBook3D = false;
 
 
 	/** @internal */
@@ -298,7 +300,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const engine = micrio._engine;
 		const parent = image;
 		const isSwipe = controller._config.type === 'swipe';
-		const isBook3D = controller._config.type === 'book3d';
+		const isBook3D = this.#isBook3D = controller._config.type === 'book3d';
 
 		if (isSwipe) {
 			this.#swipeGallery = new SwipeGallery(micrio, images, this.#pageToImages, this.#imageSlotPos, this.#imageSlotWidth,
@@ -414,6 +416,16 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			}
 		}) as MicrioElement;
 
+		if (this.#isBook3D) {
+			createElement('micrio-button', {
+				parent: this,
+				setProps: {
+					type: 'rotateLeft', title: $i18n._galleryRotateLeft,
+					onclick: () => this.#book3d?.rotateView(-1)
+				}
+			});
+		}
+
 		const ul = createElement('ul', {
 			className: dense ? 'dense' : '',
 			parent: this,
@@ -456,6 +468,16 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				onclick: () => this.#goto(this.#currentPage + 1)
 			}
 		}) as MicrioElement;
+
+		if (this.#isBook3D) {
+			createElement('micrio-button', {
+				parent: this,
+				setProps: {
+					type: 'rotateRight', title: $i18n._galleryRotateRight,
+					onclick: () => this.#book3d?.rotateView(1)
+				}
+			});
+		}
 	}
 
 	/** Updates scrubber bar state: track fill, ticks, handle position, labels. */

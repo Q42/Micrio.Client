@@ -140,6 +140,18 @@ export class OrbitCamera {
 		}
 	}
 
+	/**
+	 * Rotates the view by a 90° step (`π/2`) around the vertical axis to either
+	 * side: `+1` turns clockwise (right), `-1` counter-clockwise (left). The
+	 * current target azimuth is snapped to the nearest 90° grid point first, so
+	 * the view always rests on a 90° increment even after a free-drag orbit.
+	 */
+	_rotateViewStep(direction: 1 | -1): void {
+		const quarter = Math.PI / 2;
+		const snapped = Math.round(this.#targetTheta / quarter) * quarter;
+		this.#targetTheta = snapped + direction * quarter;
+	}
+
 	_getPickRay(screenX: number, screenY: number): { origin: Vec3; direction: Vec3 } {
 		const eye = this._getEye();
 		const target = this._target;

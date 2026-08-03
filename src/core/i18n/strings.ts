@@ -6,6 +6,7 @@ type TranslationKeys =
 	| '_closeMarker' | '_tourStepNext' | '_tourStepPrev' | '_tourStop'
 	| '_minimize' | '_play' | '_pause' | '_stop'
 	| '_subtitlesToggle' | '_galleryPrev' | '_galleryNext'
+	| '_galleryRotateLeft' | '_galleryRotateRight'
 	| '_menuToggle' | '_waypointFollow' | '_tours' | '_markerTours' | '_videoTours';
 
 type ButtonTranslations = Record<TranslationKeys, string>;
@@ -32,6 +33,8 @@ const strings = {
 	_subtitlesToggle: ['Toggle subtitles', 'Ondertitels aan / uit', 'Untertitel umschalten'],
 	_galleryPrev: ['Previous image', 'Vorige afbeelding', 'Vorheriges Bild'],
 	_galleryNext: ['Next image', 'Volgende afbeelding', 'Nächstes Bild'],
+	_galleryRotateLeft: ['Rotate view left', 'Draai beeld naar links', 'Ansicht nach links drehen'],
+	_galleryRotateRight: ['Rotate view right', 'Draai beeld naar rechts', 'Ansicht nach rechts drehen'],
 	_menuToggle: ['Toggle menu', 'Menu openen / sluiten', 'Menü umschalten'],
 	_waypointFollow: ['Go this way', 'Ga deze richting', 'Diesen Weg gehen'],
 	_tours: ['Tours', 'Tours', 'Touren'],

@@ -6,13 +6,16 @@ micrio-gallery > micrio-button > button {
 	transition: transform .15s ease,opacity .15s ease;
 	z-index: 2;
 }
-micrio-gallery > micrio-button.prev > button {
+micrio-gallery > micrio-button:is(.prev, .rotateLeft) > button {
 	left: var(--micrio-border-margin);
 	--micrio-hide: translate(-100%,-50%);
 }
-micrio-gallery > micrio-button.next > button {
+micrio-gallery > micrio-button:is(.next, .rotateRight) > button {
 	right: var(--micrio-border-margin);
 	--micrio-hide: translate(100%,-50%);
+}
+micrio-gallery > micrio-button:is(.rotateLeft, .rotateRight) > button {
+	top: calc(50% + var(--micrio-button-size) * 1.15);
 }
 micrio-gallery ul {
 	position: absolute;

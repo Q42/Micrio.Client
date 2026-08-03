@@ -282,6 +282,15 @@ export class BookViewer {
 	}
 
 	/**
+	 * Rotates the view by a 90° increment around the vertical axis: `1` turns
+	 * the book to the right (clockwise), `-1` to the left (counter-clockwise).
+	 */
+	rotateView(direction: 1 | -1): void {
+		this.#camera._rotateViewStep(direction);
+		this.#requestFrame();
+	}
+
+	/**
 	 * Returns whether the camera is zoomed in beyond the fit view. This is the
 	 * complement of "the whole spread fits the viewport": when every currently
 	 * visible image shows its full texture (`[0, 0, 1, 1]` bounds) the view is

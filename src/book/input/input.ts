@@ -133,7 +133,7 @@ export class InputHandler {
 
 	#blurActiveElement(): void {
 		const ae = document.activeElement as HTMLElement | null;
-		if (ae && ae !== this.#canvas && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA')) {
+		if (ae && ae !== this.#canvas) {
 			ae.blur();
 		}
 	}
