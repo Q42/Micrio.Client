@@ -10,7 +10,7 @@ micrio-subtitles {
 	z-index: 6;
 	transition: bottom .25s ease;
 }
-micr-io[data-tour-active]:not([data-idle]) micrio-subtitles {
+micr-io:is([data-video-tour-active],[data-marker-tour-active]):not([data-idle]) micrio-subtitles {
 	bottom: calc(3 * var(--micrio-border-margin) + var(--micrio-button-size));
 }
 micrio-subtitles p {

@@ -65,6 +65,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 		}
 
 		if (isMarkerTour) {
+			micrio.setAttribute('data-marker-tour-active', '');
+			this._addCleanup(() => micrio.removeAttribute('data-marker-tour-active'));
+
 			const mt = tour as Models.ImageData.MarkerTour;
 			mt.currentStep ??= mt.initialStep ?? 0;
 			this.#currentStep = mt.currentStep;

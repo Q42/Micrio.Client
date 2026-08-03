@@ -88,7 +88,7 @@ export class VideoTourInstance {
 	destroy(): void {
 		if (this.#unhookEvents) this.#micrio.events.enabled.set(true);
 		this.#deactivateEvents();
-		this.#micrio.removeAttribute('data-tour-active');
+		this.#micrio.removeAttribute('data-video-tour-active');
 		clearTimeout(this.#_to);
 		if (this.#playing) {
 			this.#image.camera.stop();
@@ -288,14 +288,13 @@ export class VideoTourInstance {
 
 	/** Sets playing state attributes and dispatches events. @internal */
 	#startedPlaying(): void {
-		this.#micrio.setAttribute('data-tour-active', '');
+		this.#micrio.setAttribute('data-video-tour-active', '');
 		this.#micrio.events._dispatch('videotour-play');
 		if (this.#unhookEvents) this.#micrio.events.enabled.set(false);
 	}
 
 	/** Clears playing state attributes and dispatches events. @internal */
 	#stoppedPlaying(): void {
-		//this.#micrio.removeAttribute('data-tour-active');
 		this.#micrio.events._dispatch('videotour-pause');
 		if (this.#unhookEvents) this.#micrio.events.enabled.set(true);
 	}

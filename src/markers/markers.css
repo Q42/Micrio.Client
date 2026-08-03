@@ -11,6 +11,6 @@ micrio-main.is360 micrio-markers {
 micrio-main.is360 micrio-markers.inactive {
 	opacity: 0;
 }
-micr-io[data-tour-active] micrio-markers {
+micr-io[data-video-tour-active] micrio-markers {
 	display: none;
 }

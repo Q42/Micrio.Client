@@ -27,7 +27,7 @@ aside.marker-tour micrio-button {
 	--micrio-button-shadow: none;
 	--micrio-border-radius: 0;
 }
-micr-io:not([data-tour-active]) aside.marker-tour micrio-fullscreen {
+micr-io:not([data-video-tour-active]) aside.marker-tour micrio-fullscreen {
 	display: none;
 }
 aside.marker-tour > span {
