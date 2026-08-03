@@ -293,6 +293,9 @@ export class HTMLMicrioElement extends MicrioElement {
 				for (const el of buttons) {
 					if (el.matches(':hover')) return false;
 				}
+				// A gallery scrub drag keeps the cursor busy even when it leaves
+				// the scrubber component — don't go idle while dragging.
+				if (this.querySelector('micrio-gallery[data-dragging]')) return false;
 				return true;
 			},
 		});

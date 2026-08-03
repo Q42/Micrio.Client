@@ -55,6 +55,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#hoverIdx = -1;
 	#dragging = false;
 	#dragIsPointer = false;
+	/** Pointer id captured during a scrub drag, for `setPointerCapture`. */
+	#dragPointerId = -1;
 	#box: DOMRect | null = null;
 	/** OmniUI instance when the current image is an omni 3D object. */
 	#omni: OmniUI|undefined;
@@ -178,7 +180,15 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const micrio = this._getMicrio();
 		if (!micrio) return;
 		micrio._keepRendering = this.#dragging = true;
+		this.setAttribute('data-dragging', '');
 		this.#hoverIdx = -1;
+		// Capture the pointer so pointermove/pointerup keep targeting the scrubber
+		// even when the cursor leaves it (or the window) mid-drag.
+		if (this.#dragIsPointer && 'button' in e) {
+			this.#dragPointerId = e.pointerId;
+			try { this.#_ul.setPointerCapture(e.pointerId); } catch (_) {}
+			window.addEventListener('pointercancel', this.#scrubStop);
+		}
 		window.addEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
 		window.addEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
 		this.#scrubMove(e);
@@ -211,9 +221,16 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#scrubStop = () => {
 		window.removeEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
 		window.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
+		if (this.#dragIsPointer) {
+			window.removeEventListener('pointercancel', this.#scrubStop);
+			try { this.#_ul?.releasePointerCapture(this.#dragPointerId); } catch (_) {}
+			this.#dragPointerId = -1;
+		}
+		this.#dragging = false;
+		this.removeAttribute('data-dragging');
 		const micrio = this._getMicrio();
 		if (!micrio) return;
-		this.#dragging = micrio._keepRendering = false;
+		micrio._keepRendering = false;
 		this.#goto(this.#currentPage);
 	};
 
