@@ -35,6 +35,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#figureEl?: HTMLElement;
 	#moveRaf: number | undefined;
 	#loopDelayTo: any;
+	/** Pending debounce for printing a book3d embed (waits for the view to settle). */
+	#book3dPrintTo: number | undefined;
+	/** True until the one-time book3d print delay after the embed is placed in the DOM has elapsed. */
+	#book3dPendingPrint = false;
 
 	#is360 = false;
 	#autoplay = true;
@@ -131,6 +135,17 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#readPlacement();
 
 		if (this.#hasHtml) this.#buildDOM(embed, marker);
+
+		if (this.#isBook3d && this.#hasHtml) {
+			// Set the print delay once, at placement time: keep the embed hidden
+			// for 500ms so it doesn't paint through pages being swiped past.
+			this.#book3dPendingPrint = true;
+			this.#book3dPrintTo = setTimeout(() => {
+				this.#book3dPrintTo = undefined;
+				this.#book3dPendingPrint = false;
+				this.#applyPosition();
+			}, 500);
+		}
 
 		if (this.#printGL) this.#printInsideGL();
 
@@ -382,8 +397,15 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				? `--opacity:${embed.opacity};`
 				: '';
 
-			this.#container.style.cssText = style + opStyle;
-			this.#container.classList.toggle('embed3d', this.#is360 || this.#isBook3d);
+			if (this.#isBook3d && this.#book3dPendingPrint) {
+				// Keep a book3d embed hidden until the one-time placement delay
+				// elapses, so it doesn't print through pages flashing by during
+				// a rapid swipe.
+				this.#container.style.cssText = 'display:none';
+			} else {
+				this.#container.style.cssText = style + opStyle;
+				this.#container.classList.toggle('embed3d', this.#is360 || this.#isBook3d);
+			}
 		}
 
 		if ((embed.video?.pauseWhenSmallerThan || embed.video?.pauseWhenLargerThan) && this.#w) {
@@ -462,6 +484,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	/** @internal */
 	_onDestroy() {
 		clearTimeout(this.#loopDelayTo);
+		clearTimeout(this.#book3dPrintTo);
 		this.#glVideo?._unmount();
 
 		const { embed, image } = this.#props;
