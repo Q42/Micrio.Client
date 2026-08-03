@@ -183,6 +183,8 @@ export class BookViewer {
 	#animFrameId = 0;
 	#gotoRafId = 0;
 	#gotoDamping = false;
+	/** Pending resolvers for in-flight `goto()` animations, fired once the page-flip cascade has settled. */
+	#gotoDone: (() => void)[] = [];
 	#selectedPage = 0;
 	#currentPage = 0;
 	#dragPageIndex = -1;
@@ -222,15 +224,31 @@ export class BookViewer {
 	// Public API
 	// ═══════════════════════════════════════════════════════════════
 
-	goto(pageIdx: number): void {
+	goto(pageIdx: number): Promise<void> {
 		const idx = Math.max(0, Math.min(this.#pageCount - 1, pageIdx));
-		if (idx === this.#currentPage) return;
+		if (idx === this.#currentPage) return Promise.resolve();
 
 		if (this.#gotoRafId !== 0) {
 			cancelAnimationFrame(this.#gotoRafId);
 			this.#gotoRafId = 0;
 		}
 		this.#gotoDamping = true;
+
+		const done = new Promise<void>((resolve) => {
+			let doneCb: () => void;
+			// Fallback so a pending goto never hangs (e.g. page-flip requested
+			// before the viewer is ready, or the tab is backgrounded).
+			const fallback = setTimeout(() => {
+				const i = this.#gotoDone.indexOf(doneCb);
+				if (i >= 0) this.#gotoDone.splice(i, 1);
+				resolve();
+			}, 3000);
+			doneCb = (): void => {
+				clearTimeout(fallback);
+				resolve();
+			};
+			this.#gotoDone.push(doneCb);
+		});
 
 		const direction = idx > this.#currentPage ? 1 : -1;
 		const fresh = !this.#flipAnimator._animating;
@@ -254,6 +272,8 @@ export class BookViewer {
 			this.#gotoRafId = requestAnimationFrame(step);
 		};
 		step();
+
+		return done;
 	}
 
 	zoom(delta:number): void {
@@ -1194,6 +1214,14 @@ export class BookViewer {
 		this.#dispatchPhysics(dt, progress);
 		this.#syncSolverResults();
 		this.#updateRenderBuffersForActivePages();
+
+		// A pending goto() has fully settled once the flip cascade has finished
+		// and no pages are still being animated/damped.
+		if (this.#gotoDone.length && !this.#gotoDamping && this.#gotoRafId === 0 && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
+			const cbs = this.#gotoDone;
+			this.#gotoDone = [];
+			for (const cb of cbs) cb();
+		}
 		if (this.#iiifManager) {
 			this.#iiifManager._onFrame(time, this.#currentPage, this.#camera._radius);
 		}

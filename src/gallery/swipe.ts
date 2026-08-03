@@ -65,42 +65,56 @@ export class SwipeGallery {
 		return !!active?.camera?.isZoomedOut();
 	}
 
-	/** Animate the strip to show the image at the given index. */
-	animateTo(nextIdx:number, fast:boolean, duration:number, currentImageIdx:number):void {
-		this.#currentImageIdx = currentImageIdx;
+	/** Animate the strip to show the image at the given index. Resolves once the slide (and any zoom-out flight) has completed. */
+	animateTo(nextIdx:number, fast:boolean, duration:number, currentImageIdx:number):Promise<void> {
+		return new Promise<void>((resolve) => {
+			this.#currentImageIdx = currentImageIdx;
 
-		const images = this.#images;
-		if (!images[nextIdx]) return;
-		const snapDur = duration === 0 ? 0 : (fast ? 0.125 : 0.2);
-		const leaving = images[currentImageIdx > -1 && currentImageIdx !== nextIdx ? currentImageIdx : -1] as MicrioImage | undefined;
-		const needsZoomOut = snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut();
-		const engine = images[0]?.engine;
-		if (!engine) return;
-		const baseSlot = this.#imageSlotPos[nextIdx];
-		const startSlide = () => {
-			engine._itemTransitionDuration = snapDur;
-			engine._crossfadeDuration = 0;
-			for (let i = 0; i < images.length; i++) {
-				const child = images[i] as MicrioImage | undefined;
-				if (!child?.camera) continue;
-				const cur = child.opts.area ?? [0, 0, 1, 1];
-				const prevSlotLeft = cur[0];
-				const prevSlotRight = cur[0] + cur[2];
-				const wasNearVisible = prevSlotRight > -1 && prevSlotLeft < 2;
-				const targetSlot = this.#imageSlotPos[i] - baseSlot;
-				const width = this.#imageSlotWidth[i];
-				const willBeVisible = targetSlot + width > -1 && targetSlot < 1;
-				const needsMove = Math.abs(cur[0] - targetSlot) > 1e-4 || Math.abs(cur[2] - width) > 1e-4;
-				const animate = snapDur > 0 && needsMove && (wasNearVisible || willBeVisible);
-				child.camera.setArea([targetSlot, 0, width, 1], { direct: !animate, noDispatch: true });
-			}
-			images[nextIdx]?.camera?.setView([0, 0, 1, 1]);
-			engine.render();
-		};
-		if (needsZoomOut) leaving!.camera!.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
-			.then(startSlide).catch(startSlide);
-		else startSlide();
+			const images = this.#images;
+			if (!images[nextIdx]) { resolve(); return; }
+			const snapDur = duration === 0 ? 0 : (fast ? 0.125 : 0.2);
+			const leaving = images[currentImageIdx > -1 && currentImageIdx !== nextIdx ? currentImageIdx : -1] as MicrioImage | undefined;
+			const needsZoomOut = snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut();
+			const engine = images[0]?.engine;
+			if (!engine) { resolve(); return; }
+			const baseSlot = this.#imageSlotPos[nextIdx];
+			const startSlide = () => {
+				engine._itemTransitionDuration = snapDur;
+				engine._crossfadeDuration = 0;
+				for (let i = 0; i < images.length; i++) {
+					const child = images[i] as MicrioImage | undefined;
+					if (!child?.camera) continue;
+					const cur = child.opts.area ?? [0, 0, 1, 1];
+					const prevSlotLeft = cur[0];
+					const prevSlotRight = cur[0] + cur[2];
+					const wasNearVisible = prevSlotRight > -1 && prevSlotLeft < 2;
+					const targetSlot = this.#imageSlotPos[i] - baseSlot;
+					const width = this.#imageSlotWidth[i];
+					const willBeVisible = targetSlot + width > -1 && targetSlot < 1;
+					const needsMove = Math.abs(cur[0] - targetSlot) > 1e-4 || Math.abs(cur[2] - width) > 1e-4;
+					const animate = snapDur > 0 && needsMove && (wasNearVisible || willBeVisible);
+					child.camera.setArea([targetSlot, 0, width, 1], { direct: !animate, noDispatch: true });
+				}
+				images[nextIdx]?.camera?.setView([0, 0, 1, 1]);
+				engine.render();
+				this.#awaitSlide(resolve);
+			};
+			if (needsZoomOut) leaving!.camera!.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
+				.then(startSlide).catch(startSlide);
+			else startSlide();
+		});
 	}
+
+	/** Resolves once none of the child canvases are mid area-transition (the strip slide finished). @internal */
+	#awaitSlide = (resolve:()=>void):void => {
+		const tick = ():void => {
+			for (const img of this.#images) {
+				if (img?.canvas?._areaAnimating()) { requestAnimationFrame(tick); return; }
+			}
+			resolve();
+		};
+		requestAnimationFrame(tick);
+	};
 
 	#resetDrag = ():void => {
 		this.#unlisten();

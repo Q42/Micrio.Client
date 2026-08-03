@@ -35,6 +35,14 @@ export class MicrioTour extends MicrioElement<TourProps> {
 		const isVideoTour = !('steps' in tour);
 		const isMarkerTour = 'steps' in tour;
 
+		// Locates an image by id across the opened canvases and any active
+		// album gallery (whose child images live outside `_canvases`).
+		const findImage = (id?: string): MicrioImage | undefined =>
+			id
+				? micrio._canvases.find((c: MicrioImage) => c.id === id)
+					?? micrio.gallery?._images.find(i => i.id === id)
+				: undefined;
+
 		if (isVideoTour) {
 			const vt = tour as Models.ImageData.VideoTour;
 			const image = micrio.$current;
@@ -70,7 +78,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				// Clear previous step's marker before navigating
 				const prevSi = stepInfo?.[prevIdx];
 				if (prevSi?.micrioId) {
-					const prevImg = micrio._canvases?.find((c: MicrioImage) => c.id === prevSi.micrioId);
+					const prevImg = findImage(prevSi.micrioId);
 					if (prevImg && get(prevImg.state.marker)) prevImg.state.marker.set(undefined);
 				}
 
@@ -184,7 +192,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				const mt = tour as Models.ImageData.MarkerTour;
 				const si = (mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined)?.[this.#currentStep];
 				if (si) {
-					const img = micrio._canvases?.find((c: MicrioImage) => c.id === si.micrioId);
+					const img = findImage(si.micrioId);
 					if (img) img.state.marker.set(undefined);
 				}
 			}

@@ -481,8 +481,6 @@ export class HTMLMicrioElement extends MicrioElement {
 	}={}) : Promise<MicrioImage> {
 		if(!this.#printed) await this.#print();
 
-		console.log('open!', idOrInfo, opts)
-
 		// ── Resolve input to a BundleImage ────────────────────────────────────
 
 		const attrOpts = this.#getOptions();
@@ -497,8 +495,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		// Standard bundle ID: fetch from DataLoader
 		else if(typeof idOrInfo === 'string') {
 			if(this.gallery) {
-				this.gallery.gotoId(idOrInfo);
-				return this.$current!;
+				const img = await this.gallery.gotoId(idOrInfo);
+				return img ?? this.$current!;
 			}
 			else {
 				bundle = (await DataLoader._getBundleImage(idOrInfo))!;

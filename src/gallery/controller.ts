@@ -307,8 +307,8 @@ export class Gallery {
 	}
 
 	// --- Navigation ---
-	gotoId = (id: string) : void => this.goto(this._images.findIndex(i => i.id == id));
-	goto = (index: number): void => this.#parent?.album?.goto(index);
+	gotoId = (id: string): Promise<MicrioImage | undefined> => this.goto(this._images.findIndex(i => i.id == id));
+	goto = (index: number): Promise<MicrioImage | undefined> => this.#parent?.album?.goto(index) ?? Promise.resolve(this._images[index]);
 	next = (): void => this.#parent?.album?.next();
 	prev = (): void => this.#parent?.album?.prev();
 }

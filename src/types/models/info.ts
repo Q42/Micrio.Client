@@ -440,8 +440,8 @@ export interface Album {
 	prev: () => void;
 	/** Go to next page */
 	next: () => void;
-	/** Go to specific image index */
-	goto: (n:number) => void;
+	/** Go to specific image index. Resolves once the gallery has animated to the target page. */
+	goto: (n:number) => Promise<MicrioImage | undefined>;
 	/** Album has been initialized and hooked */
 	hooked?: boolean;
 	/** Strip-swipe only: writable store tracking the currently active child

@@ -124,10 +124,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 * @param fast If true, uses a faster transition.
 	 * @param duration Transition duration in ms.
 	 * @param force Force navigation even if page hasn't changed.
+	 * @returns Resolves with the first MicrioImage of the target page, once the
+	 *          camera animation (swipe slide / 3D book flip) has completed.
 	 */
-	#goto(i: number, fast = false, duration = 150, force = false) {
+	async #goto(i: number, fast = false, duration = 150, force = false): Promise<MicrioImage | undefined> {
 		const images = this.#images;
-		if (!images.length || i < 0) return;
+		if (!images.length || i < 0) return undefined;
 		const page = Math.round(Math.max(0, Math.min(this.#pageToImages.length - 1, i)));
 		const imgIdx = this.#pageToImages[page]?.[0] ?? 0;
 		const changed = force || page !== this.#currentPage;
@@ -135,9 +137,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#currentImageIdx = imgIdx;
 		if (changed) this.#frameChanged();
 		if (this.#book3d) {
-			this.#book3d.goto(page)
+			await this.#book3d.goto(page)
 		} else if (this.#swipeGallery) {
-			this.#swipeGallery.animateTo(imgIdx, fast, duration, this.#currentImageIdx);
+			await this.#swipeGallery.animateTo(imgIdx, fast, duration, this.#currentImageIdx);
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
@@ -145,6 +147,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#parentImage.camera.setView([0, 0, 1, 1]);
 		}
 		this.#parentImage.album!.hooked = true;
+		return images[imgIdx];
 	}
 
 	/** Called when the current page changes: dispatches event, preloads images, updates UI. */
@@ -317,7 +320,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			info: parent.$settings.gallery,
 			prev: () => _self.#goto(_self.#currentPage - 1),
 			next: () => _self.#goto(_self.#currentPage + 1),
-			goto: (n: number) => _self.#goto(_self.#imageIdxToPage(n)),
+			// Navigate to the page containing image `n`, but resolve with the exact
+			// image at that index (spread pages contain more than one image).
+			goto: (n: number) => _self.#goto(_self.#imageIdxToPage(n)).then(() => _self.#images[n]),
 			...(_self.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		};
 
