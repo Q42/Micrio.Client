@@ -55,6 +55,7 @@ interface PaperUniformLocations {
 	_pointLightIntensity: WebGLUniformLocation | null;
 	_frontRegion: WebGLUniformLocation | null;
 	_backRegion: WebGLUniformLocation | null;
+	_seeThrough: WebGLUniformLocation | null;
 }
 
 interface BlurHUniformLocations {
@@ -104,6 +105,7 @@ export class PaperRenderer {
 		_pointLightIntensity: null,
 		_frontRegion: null,
 		_backRegion: null,
+		_seeThrough: null,
 	};
 
 	#meshDatas: MeshData[] = [];
@@ -129,6 +131,9 @@ export class PaperRenderer {
 	#pointLightIntensityData: Float32Array = new Float32Array(8);
 
 	public _tiltShiftEnabled: boolean = TILT_SHIFT_ENABLED;
+
+	/** When true, page margins without a texture are discarded (see-through) instead of drawn as transparent, so pages behind remain visible. */
+	public _seeThroughMargins: boolean = false;
 
 	#canvas: HTMLCanvasElement;
 
@@ -210,6 +215,7 @@ export class PaperRenderer {
 		this.#paperULoc._pointLightIntensity = getUniform('S[0]');
 		this.#paperULoc._frontRegion = getUniform('T');
 		this.#paperULoc._backRegion = getUniform('U');
+		this.#paperULoc._seeThrough = getUniform('V');
 
 		this.#meshDatas = meshes.map((m, i) => this.#createMeshData(m, i));
 
@@ -658,6 +664,8 @@ export class PaperRenderer {
 		gl.uniform3f(this.#paperULoc._lightColor, lighting._lightColor[0], lighting._lightColor[1], lighting._lightColor[2]);
 		gl.uniform3f(this.#paperULoc._frontColor, FRONT_COLOR[0], FRONT_COLOR[1], FRONT_COLOR[2]);
 		gl.uniform3f(this.#paperULoc._backColor, BACK_COLOR[0], BACK_COLOR[1], BACK_COLOR[2]);
+
+		gl.uniform1f(this.#paperULoc._seeThrough, this._seeThroughMargins ? 1.0 : 0.0);
 
 		gl.uniform1i(this.#paperULoc._numPointLights, lighting._numPointLights);
 		if (lighting._numPointLights > 0) {

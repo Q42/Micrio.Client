@@ -92,6 +92,11 @@ export const VIEWPORT_MARGIN_PCT = 0.05;
 /** Default camera polar angle in radians (0 = side view, π/2 = directly overhead) */
 export const DEFAULT_CAMERA_PHI = Math.PI * 0.42;
 
+/** When true, page margins without a texture are discarded instead of drawn as
+ * transparent: they no longer block the pages behind them and you can see
+ * through to the underlying spread. */
+export const SEE_THROUGH_MARGINS = false;
+
 /** RGB tint for the front face of each page */
 export const FRONT_COLOR: [number, number, number] = [0.96, 0.94, 0.91];
 

@@ -42,6 +42,7 @@ uniform float S[MAX_POINT_LIGHTS]; // uPointLightIntensity
 
 uniform vec4 T; // uFrontRegion (uMin, vMin, fU, fV) — sub-rectangle of the page UV space the front texture occupies
 uniform vec4 U; // uBackRegion
+uniform float V; // uSeeThroughMargins — discard fully transparent margin fragments so pages behind show through
 
 out vec4 o; // fragColor
 
@@ -79,6 +80,10 @@ void main() {
   }
   vec2 q = vec2((c0.x - reg.x) / reg.z, (c0.y - reg.y) / reg.w);
 
+  // See-through mode: fully transparent margins are dropped instead of drawn, so
+  // they neither occlude nor block the pages behind them in the depth buffer.
+  if (V > 0.5 && mask < 0.01) discard;
+
   // Choose base color and texture based on face (blend low-res ↔ A ↔ B hi-res)
   vec4 x; // texColor
   vec3 b; // baseColor
@@ -102,7 +107,6 @@ void main() {
     b = E;
   }
 
-  x.a *= mask; // fade the texture (and thus the paper it covers) out at the region edge
   vec3 g = mix(b, x.rgb * b, x.a); // surfaceColor
 
   // Ambient

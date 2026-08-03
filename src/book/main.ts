@@ -21,6 +21,7 @@ import {
 	VIEWPORT_MARGIN_PCT, DEFAULT_CAMERA_PHI,
 	HARD_COVER,
 	TILT_SHIFT_ENABLED,
+	SEE_THROUGH_MARGINS,
 	LIGHTING_PRESET,
 	GRAB_ROW, GRAB_ROW_MAX_OFFSET, GOTO_GRAB_ROW_MAX_OFFSET,
 } from './core/settings';
@@ -136,6 +137,10 @@ export interface BookViewerOptions {
 	_tiltShift?: boolean;
 	_lightingPreset?: string;
 	_useIndividualAspects?: boolean;
+	/** When true, page margins without a texture are discarded instead of drawn as
+	 * transparent: they no longer block the pages behind them and you can see
+	 * through to the underlying spread. */
+	_seeThroughMargins?: boolean;
 	_startPageIdx?: number;
 	/** Base URL for the IIIF image server (hi-res streaming). */
 	_iiifBaseUrl?: string;
@@ -146,6 +151,7 @@ export class BookViewer {
 	readonly _ready: Promise<void>;
 
 	#hardCover: boolean;
+	#seeThroughMargins: boolean;
 
 	#pageCount = 0;
 	#pageAspects: Float32Array = new Float32Array(0);
@@ -207,6 +213,7 @@ export class BookViewer {
 		this.#onViewChange = options._onViewChange;
 		this.#onDraw = options._onDraw;
 		this.#hardCover = options._hardCover ?? HARD_COVER;
+		this.#seeThroughMargins = options._seeThroughMargins ?? SEE_THROUGH_MARGINS;
 
 		this._ready = this.#init(options);
 	}
@@ -797,6 +804,7 @@ export class BookViewer {
 
 		this.#renderer = new PaperRenderer(gl);
 		this.#renderer._tiltShiftEnabled = options._tiltShift ?? TILT_SHIFT_ENABLED;
+		this.#renderer._seeThroughMargins = this.#seeThroughMargins;
 		this.#renderer._initialize(this.#meshes);
 		this.#renderer._setBoundingBox(
 			{ x: this.#camera._panBoundsMin!._x, y: this.#camera._panBoundsMin!._y, z: this.#camera._panBoundsMin!._z },
@@ -1010,6 +1018,7 @@ export class BookViewer {
 			}) as WebGL2RenderingContext | null;
 			if (gl && this.#renderer) {
 				this.#renderer = new PaperRenderer(gl);
+				this.#renderer._seeThroughMargins = this.#seeThroughMargins;
 				this.#renderer._initialize(this.#meshes);
 			}
 		});

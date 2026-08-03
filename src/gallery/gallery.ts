@@ -355,12 +355,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// and mark the pages visible so their markers render.
 		parent.album!.hooked = true;
 		const micrio = parent.engine.micrio;
+		const individualAspects = !!config.settings?.individualAspects;
 		const book3d = this.#book3d = new BookViewer({
 			_canvas: micrio.canvas.element,
 			_images: items,
 			_startPageIdx: pageIdx,
 			_lightingPreset: config.settings?.lighting as string,
-			_useIndividualAspects: !!config.settings?.individualAspects,
+			_useIndividualAspects: individualAspects,
+			_seeThroughMargins: individualAspects,
 			_onPageChange: (p:number) => this.#goto(p),
 			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
