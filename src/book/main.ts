@@ -305,12 +305,21 @@ export class BookViewer {
 	 * complement of "the whole spread fits the viewport": when every currently
 	 * visible image shows its full texture (`[0, 0, 1, 1]` bounds) the view is
 	 * zoomed out, and any image cut off by the viewport means it is zoomed in.
-	 * Based on the last rendered frame's on-screen bounds, so it stays accurate
-	 * after zooming back out.
+	 * A page that is part of the current view but entirely out of the viewport
+	 * (e.g. one page of a spread fills the screen while the other is off-screen)
+	 * also counts as zoomed in. Based on the last rendered frame's on-screen
+	 * bounds, so it stays accurate after zooming back out.
 	 */
 	isZoomedIn(): boolean {
 		const drawn = this.#lastDrawnImages;
 		if (drawn.length === 0) return false;
+
+		// Any page of the current view (spread + mid-flip pages) that is missing
+		// from the drawn set is completely out of the viewport, so the spread can
+		// no longer fit — treat it as zoomed in.
+		const expected = this.#getDrawnImages();
+		if (expected.some(e => !drawn.some(d => d.id === e.id))) return true;
+
 		return !drawn.every(img => {
 			const [u, v, w, h] = img.bounds;
 			return u <= 1e-4 && v <= 1e-4 && Math.abs(w - 1) <= 1e-4 && Math.abs(h - 1) <= 1e-4;

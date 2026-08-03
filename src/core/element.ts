@@ -246,7 +246,11 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		const updateZoomed = () => {
 			const imgs = get(this._visible).filter(i => i.id);
-			const target = imgs.length === 1 ? imgs[0] : this.#current;
+			// A 3D book is hosted by its parent image, whose camera carries the
+			// book3d zoom/pan overrides. The individual pages become visible as
+			// the spread changes, so pick the parent for the zoomed check instead
+			// of whichever single page happens to be on screen.
+			const target = this._engine._book3d ? this.#current : (imgs.length === 1 ? imgs[0] : this.#current);
 			this.toggleAttribute('data-zoomed', !!target?.camera && !!target._placed && !target.camera.isZoomedOut());
 		};
 
