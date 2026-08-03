@@ -340,7 +340,7 @@ export class Engine {
 
 		const settings = c.$settings;
 
-		this.#isGallery = !!get(this.micrio.gallery) || c._isOmni;
+		this.#isGallery = !!this.micrio.gallery || c._isOmni;
 
 		if (settings.gallery?.archive) {
 			this._hasArchive = true;

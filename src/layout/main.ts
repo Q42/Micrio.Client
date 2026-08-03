@@ -181,7 +181,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			if (sub) sub._setProps?.({ raised: !!get(micrio.state.tour) });
 		}));
 
-		for (const store of [micrio._visible, micrio.gallery, micrio.state.popup, micrio.state.popover,
+		for (const store of [micrio._visible, micrio.state.popup, micrio.state.popover,
 		micrio.state.tour, micrio.state.marker]) {
 			this._addCleanup(store.subscribe(() => this.#queueSync()));
 		}
@@ -283,12 +283,11 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			createElement('micrio-logo-org', { setProps: { organisation: this.#logoOrg! } }) as MicrioElement
 		);
 
-		const $gallery = get(micrio.gallery);
 		const grid = micrio.$current?.grid;
 		if (grid) this.#place('grid', grid);
 
-		this.#show('gallery', !!$settings?.omni || !!($gallery?._config?.type !== 'grid' && $gallery), () =>
-			createElement('micrio-gallery', { setProps: { controller: $gallery ?? undefined } }) as MicrioElement
+		this.#show('gallery', !!$settings?.omni || !!(micrio.gallery?._config?.type !== 'grid' && micrio.gallery), () =>
+			createElement('micrio-gallery', { setProps: { controller: micrio.gallery } }) as MicrioElement
 		);
 
 		this.#show('minimap', showMinimap,

@@ -161,7 +161,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	bundleTours:Models.ImageData.MarkerTour[]|undefined;
 
 	/** The current active gallery controller, if any. */
-	readonly gallery: Writable<Gallery|undefined> = writable();
+	gallery: Gallery|undefined;
 
 	/** If true, forces the WebGL render loop to run continuously, even when idle.
 	 * @internal
@@ -481,6 +481,8 @@ export class HTMLMicrioElement extends MicrioElement {
 	}={}) : Promise<MicrioImage> {
 		if(!this.#printed) await this.#print();
 
+		console.log('open!', idOrInfo, opts)
+
 		// ── Resolve input to a BundleImage ────────────────────────────────────
 
 		const attrOpts = this.#getOptions();
@@ -549,7 +551,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(opts.gallery) {
 			opts.gallery._attach(c);
-			this.gallery.set(opts.gallery);
+			this.gallery = opts.gallery;
 		}
 
 		if(opts.startView) {
