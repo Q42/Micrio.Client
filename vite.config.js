@@ -4,34 +4,75 @@ import { resolve } from 'path';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
-export default defineConfig({
-	plugins: [glslMinifyPlugin()],
-	resolve: {
-		alias: {
-			'$types': resolve('src/types'),
-			'$media': resolve('src/media'),
-			'$core': resolve('src/core'),
-			'$ui': resolve('src/ui'),
-			'$markers': resolve('src/markers'),
-			'$tour': resolve('src/tour'),
-			'$gallery': resolve('src/gallery'),
-			'$audio': resolve('src/audio'),
-			'$embed': resolve('src/embed'),
-			'$layout': resolve('src/layout'),
-			'$render': resolve('src/render'),
-			'$grid': resolve('src/grid'),
-			'$book': resolve('src/book'),
-			'$utils': resolve('src/utils'),
-		}
-	},
-	define: {
-		__VERSION__: JSON.stringify(pkg.version),
-	},
-	build: {
-		outDir: './public/build/',
-		emptyOutDir: false,
-		copyPublicDir: false,
-		minify: 'terser',
+const defaultAliases = {
+	'$types': resolve('src/types'),
+	'$media': resolve('src/media'),
+	'$core': resolve('src/core'),
+	'$ui': resolve('src/ui'),
+	'$markers': resolve('src/markers'),
+	'$tour': resolve('src/tour'),
+	'$gallery': resolve('src/gallery'),
+	'$audio': resolve('src/audio'),
+	'$embed': resolve('src/embed'),
+	'$layout': resolve('src/layout'),
+	'$render': resolve('src/render'),
+	'$grid': resolve('src/grid'),
+	'$book': resolve('src/book'),
+	'$utils': resolve('src/utils'),
+};
+
+const stub = (file) => resolve('build/stubs/' + file);
+
+// The `core` build excludes book/grid/audio/embed/media/tour/markers by stubbing
+// every import that kept source files make into those directories. Exact-match
+// entries must come before the generic `$media/*`-style aliases below.
+const coreStubAliases = [
+	{ find: '$media/subtitles', replacement: stub('empty.ts') },
+	{ find: '$media/fullscreen', replacement: stub('empty.ts') },
+	{ find: '$media/media-controls', replacement: stub('empty.ts') },
+	{ find: '$media/media', replacement: stub('empty.ts') },
+	{ find: '$embed/embed', replacement: stub('empty.ts') },
+	{ find: '$embed/image-embeds', replacement: stub('empty.ts') },
+	{ find: '$tour/tour', replacement: stub('empty.ts') },
+	{ find: '$tour/serial-tour', replacement: stub('empty.ts') },
+	{ find: '$grid/grid', replacement: stub('grid.ts') },
+	{ find: '$audio/audio-controller', replacement: stub('audio-controller.ts') },
+	{ find: '$book/main', replacement: stub('book-main.ts') },
+	{ find: '$markers/waypoint', replacement: stub('empty.ts') },
+	{ find: '$markers/marker-content', replacement: stub('empty.ts') },
+	{ find: '$markers/marker-popup', replacement: stub('empty.ts') },
+	{ find: '$markers/marker', replacement: stub('empty.ts') },
+	{ find: '$markers/markers', replacement: stub('empty.ts') },
+	{ find: '$layout/toolbar', replacement: stub('empty.ts') },
+	{ find: '$gallery/omni', replacement: stub('omni.ts') },
+	{ find: '$layout/logo', replacement: stub('empty.ts') },
+	{ find: '$layout/article', replacement: stub('empty.ts') },
+	{ find: '$layout/details', replacement: stub('empty.ts') },
+	{ find: '$layout/logo-org', replacement: stub('empty.ts') },
+	{ find: '$layout/menu', replacement: stub('empty.ts') },
+	{ find: '$layout/popover', replacement: stub('empty.ts') },
+	{ find: '$ui/progress-circle', replacement: stub('empty.ts') },
+	{ find: '$ui/dial', replacement: stub('empty.ts') },
+];
+
+export default defineConfig(({ mode }) => {
+	const core = mode === 'minimal';
+
+	return {
+		plugins: [glslMinifyPlugin()],
+		resolve: {
+			alias: core
+				? [...coreStubAliases, ...Object.entries(defaultAliases).map(([find, replacement]) => ({ find, replacement }))]
+				: defaultAliases,
+		},
+		define: {
+			__VERSION__: JSON.stringify(pkg.version),
+		},
+		build: {
+			outDir: './public/build/',
+			emptyOutDir: false,
+			copyPublicDir: false,
+			minify: 'terser',
 		terserOptions: {
 			compress: {
 				pure_funcs: ['console.log'],
@@ -63,15 +104,16 @@ export default defineConfig({
 		lib: {
 			entry: `./src/main.ts`,
 			name: 'Micrio',
-			fileName: `micrio.prod`,
+			fileName: core ? `micrio.prod.core` : `micrio.prod`,
 			formats: ['iife']
 		},
 		rollupOptions: {
 			output: {
-		
-				assetFileNames: () => `micrio.prod[extname]`
+
+				assetFileNames: () => `micrio.prod${core ? '.core' : ''}[extname]`
 			}
 		}
+	}
 	}
 });
 

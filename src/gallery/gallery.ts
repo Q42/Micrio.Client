@@ -10,7 +10,7 @@ import { get, writable } from '$core/store';
 import { OmniUI } from '$gallery/omni';
 import { SwipeGallery } from '$gallery/swipe';
 import { createElement } from '$utils/dom';
-import { BookViewer } from '../book/main';
+import { BookViewer } from '$book/main';
 import '$ui/button';
 
 const scrubPad = 16;

@@ -25,7 +25,8 @@
 			"$audio/*": ["./src/audio/*"],
 			"$embed/*": ["./src/embed/*"],
 			"$layout/*": ["./src/layout/*"],
-			"$grid/*": ["./src/grid/*"]
+			"$grid/*": ["./src/grid/*"],
+			"$book/*": ["./src/book/*"]
 		}
 	},
 	"typedocOptions": {

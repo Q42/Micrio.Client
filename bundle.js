@@ -3,63 +3,92 @@ import path from 'path';
 import zlib from 'zlib';
 
 const version = process.env.npm_package_version;
-const outFile = `./public/dist/micrio.min.js`;
 const buildDir = './public/build/';
 
 const book3dFile = './public/micrio-book3d.js';
 const hasBook3d = fs.existsSync(book3dFile);
 if(hasBook3d) console.log(`Including optional module: ${book3dFile}`);
 
-const jsPath = buildDir + 'micrio.prod.iife.js';
-const cssPath = buildDir + 'micrio.prod.css';
-
-// Deduplicate repeated classname hash selectors in CSS
-let cssContent = fs.readFileSync(cssPath, 'utf-8');
-const matches = cssContent.match(/\.([^\d\.{ ):>,]+)/mig);
-if (matches) {
-	[...new Set(matches)].forEach(sel => {
-		const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig');
-		cssContent = cssContent.replace(reg, sel);
-	});
+/** Deduplicate repeated classname hash selectors in CSS */
+function dedupeCssSelectors(cssContent) {
+	const matches = cssContent.match(/\.([^\d\.{ ):>,]+)/mig);
+	if (matches) {
+		[...new Set(matches)].forEach(sel => {
+			const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig');
+			cssContent = cssContent.replace(reg, sel);
+		});
+	}
+	return cssContent;
 }
 
-// Minify CSS
-cssContent = cssContent
-  .replace(/\/\*[\s\S]*?\*\//g, '')
-  .replace(/\s*([{};,])\s*/g, '$1')
-  .replace(/:\s+/g, ':')
-  .replace(/;}/g, '}')
-  .replace(/\s+/g, ' ');
+/** Minify CSS */
+function minifyCss(cssContent) {
+	return cssContent
+		.replace(/\/\*[\s\S]*?\*\//g, '')
+		.replace(/\s*([{};,])\s*/g, '$1')
+		.replace(/:\s+/g, ':')
+		.replace(/;}/g, '}')
+		.replace(/\s+/g, ' ');
+}
 
-// Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS & prepend CSS
-let jsRaw = fs.readFileSync(jsPath).toString();
-jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '');
-const escapedCss = cssContent.replace(/[$`]/g, '\\$&');
-const jsContent = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
-${jsRaw}`;
-fs.writeFileSync(jsPath, jsContent);
-
-fs.mkdirSync(path.dirname(outFile), { recursive: true });
-fs.writeFileSync(outFile, Buffer.concat([
-	Buffer.from([
+function licenseHeader() {
+	return [
 		`/* Micrio Client ${version}`,
 		...fs.readFileSync('./LICENSE').toString().trim().split('\n').map(r => ' * ' + r.trim()),
 		' */\n\n'
-	].join('\n')),
-	Buffer.from(fs.readFileSync(jsPath)),
-	...(hasBook3d ? [Buffer.from('\n'), Buffer.from(fs.readFileSync(book3dFile))] : [])
-]));
+	].join('\n');
+}
+
+/** Process a single build: strip static styles, prepend minified CSS, write the final dist file. */
+function processBuild({ jsName, cssName, outFile, withBook3d }) {
+	const jsPath = buildDir + jsName;
+	const cssPath = buildDir + cssName;
+
+	// Deduplicate repeated classname hash selectors in CSS
+	let cssContent = dedupeCssSelectors(fs.readFileSync(cssPath, 'utf-8'));
+	cssContent = minifyCss(cssContent);
+
+	// Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS & prepend CSS
+	let jsRaw = fs.readFileSync(jsPath).toString();
+	jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '');
+	const escapedCss = cssContent.replace(/[$`]/g, '\\$&');
+	const jsContent = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
+${jsRaw}`;
+	fs.writeFileSync(jsPath, jsContent);
+
+	fs.mkdirSync(path.dirname(outFile), { recursive: true });
+	fs.writeFileSync(outFile, Buffer.concat([
+		Buffer.from(licenseHeader()),
+		Buffer.from(fs.readFileSync(jsPath)),
+		...(withBook3d ? [Buffer.from('\n'), Buffer.from(fs.readFileSync(book3dFile))] : [])
+	]));
+
+	fs.rmSync(jsPath);
+	fs.rmSync(cssPath);
+}
+
+processBuild({
+	jsName: 'micrio.prod.iife.js',
+	cssName: 'micrio.prod.css',
+	outFile: './public/dist/micrio.min.js',
+	withBook3d: hasBook3d,
+});
+
+processBuild({
+	jsName: 'micrio.prod.core.iife.js',
+	cssName: 'micrio.prod.core.css',
+	outFile: './public/dist/micrio.core.min.js',
+	withBook3d: false,
+});
 
 // Generate .d.ts
-const dFile = outFile.replace('.js', '.d.ts');
+const dFile = './public/dist/micrio.min.d.ts';
 const dtsInput = fs.readFileSync('./out.d.ts', 'utf-8');
 const modules = parseDeclareModules(dtsInput);
 const internalNames = new Set(modules.keys());
 const dtsBundled = bundleDts(modules, internalNames);
 fs.writeFileSync(dFile, dtsBundled);
 fs.rmSync('./out.d.ts');
-fs.rmSync(jsPath);
-fs.rmSync(cssPath);
 fs.rmdirSync(buildDir);
 
 const formatSize = (bytes) => {
@@ -74,10 +103,11 @@ const gzipSize = (filePath) => zlib.gzipSync(fs.readFileSync(filePath)).length;
 console.info();
 console.info(`\x1b[2mFinal output:\x1b[0m`);
 
-const f = outFile;
-const raw = fs.statSync(f).size;
-const gz = gzipSize(f);
-console.info(` \x1b[38;2;0;212;238m\u25C8\x1b[0m \x1b[32m${path.relative('.', f)}\x1b[0m      \x1b[1m${formatSize(raw).padStart(9)}\x1b[0m \u2502 gzip: ${formatSize(gz)}`);
+for (const f of ['./public/dist/micrio.min.js', './public/dist/micrio.core.min.js']) {
+	const raw = fs.statSync(f).size;
+	const gz = gzipSize(f);
+	console.info(` \x1b[38;2;0;212;238m\u25C8\x1b[0m \x1b[32m${path.relative('.', f)}\x1b[0m      \x1b[1m${formatSize(raw).padStart(9)}\x1b[0m \u2502 gzip: ${formatSize(gz)}`);
+}
 
 function parseDeclareModules(input) {
 	const modules = new Map();

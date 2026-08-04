@@ -19,6 +19,21 @@ Since the Micrio Client is a passive binding for all HTML `<micr-io>` elements, 
 import '@micrio/client'
 ```
 
+## Core build
+
+If you only need tiled-image viewing (including IIIF) and none of the extended
+viewer types, a smaller `micrio.core.min.js` is available alongside the full
+build. It excludes the book, grid, audio, embed, media, markers, and tour
+modules, as well as the toolbar, omni (3D object), logo, article, details,
+menu, dial, and popover UI.
+
+```js
+import '@micrio/client/micrio.core.min.js'
+```
+
+Imagery whose data relies on an excluded feature will simply not render that
+feature rather than erroring out.
+
 ## Typed
 
 To get typed access to a Micrio HTML element, you can use the `HTMLMicrioElement` as exported by this package:

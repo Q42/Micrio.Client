@@ -1,5 +1,5 @@
 node_modules
 public/dist/micrio.min.*
+public/dist/micrio.core.min.*
 public/build/micrio.prod.*
-public/micrio-book3d.js
 pnpm-lock.yaml

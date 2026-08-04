@@ -70,6 +70,8 @@ for(const [bucket, domain, endpoint] of [
 	]) {
 		await run(`aws s3 cp ./public/dist/micrio.min.${ext} s3://${bucket}/micrio-${version}${suffix}.min.${ext} --endpoint-url ${endpoint} --content-type ${type} --cache-control "public, max-age=31536000"`).catch(error);
 	}
+	console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.core.min.js`);
+	await run(`aws s3 cp ./public/dist/micrio.core.min.js s3://${bucket}/micrio-${version}${suffix}.core.min.js --endpoint-url ${endpoint} --content-type text/javascript --cache-control "public, max-age=31536000"`).catch(error);
 }
 
 if(npmPublish) {
