@@ -382,6 +382,8 @@ export class HTMLMicrioElement extends MicrioElement {
 				height,
 				version: VERSION,
 				isIIIF: true,
+				tiles: resp.tiles,
+				preferredFormats: resp.preferredFormats,
 			},
 		};
 	}

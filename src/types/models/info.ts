@@ -118,6 +118,11 @@ export namespace ImageInfo {
 		*/
 		tiles?: { [key: string]: number }[];
 
+		/** The IIIF `preferredFormats` array from the `info.json` (e.g. `["webp", "jpg", "png"]`)
+		 * @internal
+		*/
+		preferredFormats?: string[];
+
 		/** The 360 tour space ID */
 		spacesId?: string;
 	}
