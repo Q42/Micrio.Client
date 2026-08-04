@@ -399,8 +399,8 @@ export class MicrioImage {
 			const top = Math.min(i.height, y * ts);
 			const regionW = Math.min(i.width-left, ts);
 			const regionH = Math.min(i.height-top, ts);
-			const sizeW = Math.round(Math.min(tileSize, regionW / ts * tileSize));
-			const sizeH = Math.round(Math.min(tileSize, regionH / ts * tileSize));
+			const sizeW = Math.ceil(Math.min(tileSize, regionW / ts * tileSize));
+			const sizeH = Math.ceil(Math.min(tileSize, regionH / ts * tileSize));
 			const ext = i.preferredFormats?.includes('webp') ? 'webp' : i.preferredFormats?.[0] ?? 'jpg';
 			return `${i.path}/${i.id}/${[left,top,regionW,regionH].join(',')}/${[sizeW,sizeH].join(',')}/0/default.${ext}`;
 		}
