@@ -132,8 +132,7 @@ export class WebGL {
 		if(hasGL2 ? !(gl instanceof window.WebGL2RenderingContext)
 			: !(gl instanceof window.WebGLRenderingContext)) {
 			throw new MicrioError('WebGL context creation failed', {
-				code: ErrorCodes.WEBGL_UNSUPPORTED,
-				displayMessage: 'Your browser does not support WebGL, which is required to view this content. Please try a different browser.'
+				code: ErrorCodes.WEBGL_UNSUPPORTED
 			});
 		}
 
@@ -150,8 +149,7 @@ export class WebGL {
 		const program = gl.createProgram();
 		if(!(program instanceof WebGLProgram)) {
 			throw new MicrioError('Failed to create WebGL program', {
-				code: ErrorCodes.WEBGL_SHADER_COMPILE,
-				displayMessage: 'There was a problem initializing the graphics. Please try refreshing the page.'
+				code: ErrorCodes.WEBGL_SHADER_COMPILE
 			});
 		}
 		this.#program = program;
@@ -163,8 +161,7 @@ export class WebGL {
 		gl.linkProgram(this.#program);
 		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
 			throw new MicrioError('Shader link error: ' + gl.getProgramInfoLog(this.#program), {
-				code: ErrorCodes.WEBGL_SHADER_COMPILE,
-				displayMessage: 'There was a problem initializing the graphics. Please try refreshing the page.'
+				code: ErrorCodes.WEBGL_SHADER_COMPILE
 			});
 		}
 		gl.useProgram(this.#program); // Use the program
@@ -194,19 +191,19 @@ export class WebGL {
 		this.#txtAttr = gl.getAttribLocation(this.#program, 'aTextureCoord');
 		const txtBuffer = gl.createBuffer();
 		if(txtBuffer) this.#txtBuffer = txtBuffer;
-		else throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
+		else throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Engine._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Engine
 
 		// Watermark Texture Coordinates Buffer
 		const wmTxtBuffer = gl.createBuffer();
 		if(wmTxtBuffer) this.#wmTxtBuffer = wmTxtBuffer;
-		else throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
+		else throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
 
 		// Vertex Position Buffer (Dynamic - updated by Engine)
 		const geomBuffer = gl.createBuffer();
 		if(geomBuffer) this.#geomBuffer = geomBuffer;
-		else throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY, displayMessage: 'Your device is low on memory. Try closing other browser tabs or applications.' });
+		else throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
 		this.#posAttr = gl.getAttribLocation(this.#program, 'pos');
 
 		// Link buffers to attributes initially
@@ -286,8 +283,7 @@ export class WebGL {
 		if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
 			this.gl.deleteProgram(program);
 			throw new MicrioError('Shader compilation failed: ' + this.gl.getShaderInfoLog(shader), {
-				code: ErrorCodes.WEBGL_SHADER_COMPILE,
-				displayMessage: 'There was a problem initializing the graphics. Please try refreshing the page.'
+				code: ErrorCodes.WEBGL_SHADER_COMPILE
 			});
 		}
 		this.gl.attachShader(program, shader); // Attach compiled shader

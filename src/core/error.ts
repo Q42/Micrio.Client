@@ -53,7 +53,7 @@ const UserErrorMessages: Record<ErrorCode, string> = {
 	[ErrorCodes.NETWORK_NOT_FOUND]: 'The requested image or content could not be found.',
 	[ErrorCodes.NETWORK_SERVER_ERROR]: 'The server encountered an error. Please try again later.',
 	
-	[ErrorCodes.WEBGL_UNSUPPORTED]: 'Your browser does not support WebGL, which is required to view this content. Please try a different browser.',
+	[ErrorCodes.WEBGL_UNSUPPORTED]: 'Your browser does not support WebGL, which is required to view this content.',
 	[ErrorCodes.WEBGL_CONTEXT_LOST]: 'The graphics context was lost. The page will attempt to recover.',
 	[ErrorCodes.WEBGL_SHADER_COMPILE]: 'There was a problem initializing the graphics. Please try refreshing the page.',
 	[ErrorCodes.WEBGL_OUT_OF_MEMORY]: 'Your device is low on memory. Try closing other browser tabs or applications.',
