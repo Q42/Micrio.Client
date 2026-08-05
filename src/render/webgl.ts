@@ -8,7 +8,7 @@ import type { TextureBitmap } from './textures';
 import type { HTMLMicrioElement } from '$core/element';
 
 import { Engine } from './engine';
-import { PostProcessor } from './postprocess';
+import { PostProcessor } from '$render/postprocess';
 import { MicrioError, ErrorCodes } from '$core/error';
 import { segsX, segsY } from './constants';
 import { createElement } from '$utils/dom';

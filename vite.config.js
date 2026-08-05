@@ -63,6 +63,7 @@ const coreStubAliases = [
 	{ find: '$ui/icons', replacement: stub('empty.ts') },
 	{ find: '$core/i18n/strings', replacement: stub('i18n-strings.ts') },
 	{ find: '$core/element-ui', replacement: stub('empty.ts') },
+	{ find: '$render/postprocess', replacement: stub('postprocess.ts') },
 ];
 
 export default defineConfig(({ mode }) => {

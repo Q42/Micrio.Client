@@ -27,7 +27,8 @@ build. It excludes the book, grid, audio, embed, media, markers, and tour
 modules, as well as the toolbar, controls, gallery (and its controller),
 omni (3D object), logo, article, details, menu, dial, popover, and button UI,
 along with the translation bundles and icon graphics. The CSS for auto-hiding
-the UI chrome is likewise excluded (the minimap's own visibility logic is kept).
+the UI chrome is likewise excluded (the minimap's own visibility logic is kept),
+as is WebGL postprocessing.
 
 ```js
 import '@micrio/client/micrio.core.min.js'
