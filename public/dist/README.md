@@ -25,7 +25,8 @@ If you only need tiled-image viewing (including IIIF) and none of the extended
 viewer types, a smaller `micrio.core.min.js` is available alongside the full
 build. It excludes the book, grid, audio, embed, media, markers, and tour
 modules, as well as the toolbar, controls, gallery (and its controller),
-omni (3D object), logo, article, details, menu, dial, popover, and button UI.
+omni (3D object), logo, article, details, menu, dial, popover, and button UI,
+along with the translation bundles and icon graphics.
 
 ```js
 import '@micrio/client/micrio.core.min.js'

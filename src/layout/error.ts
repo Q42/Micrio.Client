@@ -19,7 +19,6 @@ class MicrioError extends MicrioElement<ErrorProps> {
 		createElement('div', {
 			parent: this,
 			children: [
-				createElement('micrio-icon', { setProps: { name: 'error' } }),
 				createElement('span', { textContent: this._props.message ?? 'An unknown error has occurred' })
 			]
 		});

@@ -59,6 +59,9 @@ const coreStubAliases = [
 	{ find: '$gallery/controller', replacement: stub('gallery-controller.ts') },
 	{ find: '$ui/button', replacement: stub('empty.ts') },
 	{ find: '$ui/button-group', replacement: stub('empty.ts') },
+	{ find: '$ui/icon', replacement: stub('empty.ts') },
+	{ find: '$ui/icons', replacement: stub('empty.ts') },
+	{ find: '$core/i18n/strings', replacement: stub('i18n-strings.ts') },
 ];
 
 export default defineConfig(({ mode }) => {
