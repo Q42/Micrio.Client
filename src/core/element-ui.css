@@ -1,0 +1,34 @@
+/* display:contents containers */
+:where(micrio-main,micrio-toolbar,micrio-gallery,micrio-swipe-gallery,micrio-controls,micrio-popover,micrio-logo,micrio-logo-org,micrio-audio-controller,micrio-fullscreen,micrio-tour,micrio-serial-tour,micrio-embed,micrio-zoom-buttons,micrio-button){display:contents}
+/* hide empty containers */
+:is(micrio-markers,micrio-image-embeds,micrio-marker,micrio-button-group):empty{display:none}
+/* strip button chrome in nested contexts */
+:is(micrio-media-controls,micrio-marker-content)>*,micrio-tour .controls>micrio-button{--micrio-button-background:none;--micrio-background-filter:none;--micrio-button-shadow:none}
+/* full-viewport overlay bases */
+:is(micrio-markers,micrio-image-embeds){pointer-events:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;will-change:width,height,top,left,opacity;perspective:inherit}
+/* panel theming (color, background, glass effect) */
+:is(micrio-details details,micrio-marker-content,micrio-button-group),
+micrio-swipe-gallery>figcaption {
+	color:var(--micrio-color);
+	background:var(--micrio-background);
+	backdrop-filter:var(--micrio-background-filter);
+	box-shadow:var(--micrio-popup-shadow);border-radius:var(--micrio-border-radius)
+}
+/* display:block containers */
+:is(micrio-media,micrio-media-controls){display:block}
+
+/* Main hiding logic */
+micr-io:is([data-video-tour-active],[data-marker-tour-active])[data-idle] :is(micrio-logo a,micrio-logo-org a,micrio-tour > aside),
+micr-io[data-idle] :is(micrio-grid .close, micrio-tour micrio-media figure, micrio-serial-tour :is(micrio-media figure, ol)),
+micr-io:is([data-switching],[data-video-tour-active]) :is(micrio-controls aside, micrio-minimap canvas),
+micr-io[data-marker-tour-active] micrio-controls aside :is(> menu, > micrio-button, micrio-zoom-buttons),
+micr-io:is([data-zoomed],[data-idle],[data-marker-tour-active]) micrio-gallery :is(ul, micrio-button > button),
+micr-io[data-zoomed] micrio-details details,
+micrio-gallery > micrio-button > button:disabled {
+	opacity: 0;
+	pointer-events: none;
+	transform: var(--micrio-hide, none);
+}
+micr-io[data-marker-tour-active] micrio-controls aside :is(> menu, > micrio-button, micrio-zoom-buttons) {
+	--micrio-hide: none;
+}

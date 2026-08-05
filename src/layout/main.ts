@@ -6,6 +6,7 @@ import { get, tick, writable } from '$core/store';
 import { DataLoader } from '$utils/dataLoader';
 import { createElement } from '$utils/dom';
 import '$ui/icon';
+import '$core/element-ui';
 import '$ui/button';
 import '$ui/button-group';
 import '$ui/progress-circle';
