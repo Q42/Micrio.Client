@@ -53,6 +53,12 @@ const coreStubAliases = [
 	{ find: '$layout/popover', replacement: stub('empty.ts') },
 	{ find: '$ui/progress-circle', replacement: stub('empty.ts') },
 	{ find: '$ui/dial', replacement: stub('empty.ts') },
+	{ find: '$layout/nav/controls', replacement: stub('empty.ts') },
+	{ find: '$layout/nav/zoom-buttons', replacement: stub('empty.ts') },
+	{ find: '$gallery/gallery', replacement: stub('empty.ts') },
+	{ find: '$gallery/controller', replacement: stub('gallery-controller.ts') },
+	{ find: '$ui/button', replacement: stub('empty.ts') },
+	{ find: '$ui/button-group', replacement: stub('empty.ts') },
 ];
 
 export default defineConfig(({ mode }) => {
