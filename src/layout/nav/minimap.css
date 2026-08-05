@@ -1,7 +1,7 @@
 micrio-minimap canvas {
 	position: absolute;
 	bottom: var(--micrio-border-margin);
-	right: 5px;
+	right: var(--micrio-border-margin);
 	transform-origin: right bottom;
 	display: block;
 	background-size: 100%;

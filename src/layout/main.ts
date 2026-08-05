@@ -102,6 +102,12 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		else this.appendChild(el);
 	}
 
+	/** Whether a custom element tag is registered in this build; unregistered (excluded) elements must not render. */
+	#isRegistered(el: HTMLElement | string): boolean {
+		const tag = typeof el === 'string' ? el : el.localName;
+		return !tag.includes('-') || !!customElements.get(tag);
+	}
+
 	#show(key: string, condition: boolean, build: () => HTMLElement, update?: (el: HTMLElement) => void) {
 		const existing = this.#elements.get(key);
 		if (condition) {
@@ -111,6 +117,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}
 			existing?.remove();
 			const el = build();
+			if (!this.#isRegistered(el)) return;
 			this.#elements.set(key, el);
 			this.#place(key, el);
 		} else if (existing?.isConnected) {
@@ -367,7 +374,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}
 		}
 
-		if (enabled) {
+		if (enabled && this.#isRegistered(tag)) {
 			for (const img of filtered) {
 				if (map.has(img.id)) continue;
 				const el = createElement(tag, { setProps: { image: img } }) as MicrioElement;
