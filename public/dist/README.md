@@ -28,7 +28,7 @@ modules, as well as the toolbar, controls, gallery (and its controller),
 omni (3D object), logo, article, details, menu, dial, popover, and button UI,
 along with the translation bundles and icon graphics. The CSS for auto-hiding
 the UI chrome is likewise excluded (the minimap's own visibility logic is kept),
-as is WebGL postprocessing.
+as is WebGL postprocessing and MDP/.bin archive loading.
 
 ```js
 import '@micrio/client/micrio.core.min.js'

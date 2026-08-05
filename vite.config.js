@@ -64,6 +64,7 @@ const coreStubAliases = [
 	{ find: '$core/i18n/strings', replacement: stub('i18n-strings.ts') },
 	{ find: '$core/element-ui', replacement: stub('empty.ts') },
 	{ find: '$render/postprocess', replacement: stub('postprocess.ts') },
+	{ find: '$utils/archive', replacement: stub('archive.ts') },
 ];
 
 export default defineConfig(({ mode }) => {
