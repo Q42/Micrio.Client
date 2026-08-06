@@ -87,7 +87,7 @@ export default defineConfig(({ mode }) => {
 			minify: 'terser',
 		terserOptions: {
 			compress: {
-				pure_funcs: ['console.log'],
+				pure_funcs: ['console.log', ...(core ? ['console.info'] : [])],
 				booleans_as_integers: true,
 				passes: 6,
 				unsafe_arrows: true,
