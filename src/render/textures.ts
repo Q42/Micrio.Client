@@ -25,17 +25,23 @@ export const numThreads: number = Math.max(2, Math.min(6, (navigator.hardwareCon
 const running: boolean[] = Array(numThreads).fill(false);
 let busyCount = 0;
 const loaders: Worker[] = [];
+let workersReady = false;
 const queue: ItemArray[] = [];
 const promises: Map<number, ItemArray> = new Map;
 
-for (let i = 0; i < numThreads; i++) {
-	const w = new Worker(workerBlob);
-	w.onmessage = e => onmessage(i, e.data.data, e.data.error, e.data.type);
-	loaders.push(w);
+function ensureWorkers() {
+	if (workersReady) return;
+	workersReady = true;
+	for (let i = 0; i < numThreads; i++) {
+		const w = new Worker(workerBlob);
+		w.onmessage = e => onmessage(i, e.data.data, e.data.error, e.data.type);
+		loaders.push(w);
+	}
 }
 
 /** @internal */
 export const loadTexture = (src: string): Promise<TextureBitmap> => new Promise((ok, err) => {
+	ensureWorkers();
 	queue.push([src, ok, err]);
 	getNext();
 });
