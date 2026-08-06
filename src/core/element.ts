@@ -382,6 +382,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				height,
 				version: VERSION,
 				isIIIF: true,
+				is360: this.dataset.is360 == '',
 				tiles: resp.tiles,
 				preferredFormats: resp.preferredFormats,
 			},
