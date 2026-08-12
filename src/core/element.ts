@@ -370,6 +370,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				id = service.id;
 				width = body.width;
 				height = body.height;
+				resp.preferredFormats = service.preferredFormats;
 			}
 		}
 

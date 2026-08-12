@@ -143,7 +143,7 @@ export class Gallery {
 
 			const images = canvases.map((b: any): Models.ImageInfo.ImageInfo => ({
 				id: b.service[0].id, path: b.service[0].id.replace(/\/[^/]*$/, ''), version: '',
-				width: b.width, height: b.height, isPng: b.format === 'image/png', isIIIF: true,
+				width: b.width, height: b.height, isWebP: b.format === 'image/webp', isPng: b.format === 'image/png', isIIIF: true,
 			}));
 
 			if (images.length === 1) return null;
