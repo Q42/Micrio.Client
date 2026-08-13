@@ -46,7 +46,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const markers = image.$data?.markers?.filter(m => !m.i18n || m.i18n[get(micrio._lang)]);
 			if (!markers) return;
 
-			const r = image.$settings.clusterMarkerRadius ?? 16;
+			const r = image.$settings.clusterMarkerRadius ?? 24;
 			const coords = markers.map(m => {
 				const xy = image.camera._getXYDirect(m.x, m.y, { radius: m.radius, rotation: m.rotation });
 				return [xy[0], xy[1]] as [number, number];
@@ -90,12 +90,15 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				const maxX = Math.max(...g.map(i => markers[i].view ? markers[i].view![0] + markers[i].view![2] : markers[i].x));
 				const minY = Math.min(...g.map(i => markers[i].view ? markers[i].view![1] : markers[i].y));
 				const maxY = Math.max(...g.map(i => markers[i].view ? markers[i].view![1] + markers[i].view![3] : markers[i].y));
+				const viewW = Math.max(0.1, maxX - minX);
+				const viewH = Math.max(0.1, maxY - minY);
+				const view = [minX + (maxX - minX) / 2 - viewW / 2, minY + (maxY - minY) / 2 - viewH / 2, viewW, viewH];
 				createElement('micrio-marker', {
 					attrs: { 'data-marker-id': id },
 					setProps: {
 						marker: {
 							id, x: cx, y: cy, type: 'cluster', title: g.length + '',
-							view: [minX, minY, Math.max(0.1, maxX - minX), Math.max(0.1, maxY - minY)],
+							view,
 							data: {}, popupType: 'none', tags: []
 						},
 						image

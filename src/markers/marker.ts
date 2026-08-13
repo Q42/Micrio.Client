@@ -255,7 +255,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				}
 				else if (!m) this.classList.remove('opened');
 				this.#opened = false;
-				if (!get(micrio.state.tour)) image.camera.stop();
+				if (!cluster && !get(micrio.state.tour)) image.camera.stop();
 			}
 		}));
 
