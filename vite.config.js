@@ -105,8 +105,10 @@ export default defineConfig(({ mode }) => {
 				keep_classnames: false,
 				keep_fnames: false,
 				properties: {
-					// Mangle properties that start with an underscore
-					regex: /^_/,
+					// Mangle properties that start with an underscore, EXCEPT the
+					// underscore-prefixed keys that come from external data (server
+					// JSON) — mangling those silently breaks reads at runtime.
+					regex: /^_(?!markers$|360$|meta$)/,
 				},
 			},
 			format: {
