@@ -1,6 +1,6 @@
 {
 	"name": "@micrio/client",
-	"version": "7.0.21",
+	"version": "7.0.22",
 	"description": "Micrio Client image viewer",
 	"main": "micrio.min.js",
 	"types": "micrio.min.d.ts",
