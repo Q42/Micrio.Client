@@ -79,6 +79,7 @@ export default defineConfig(({ mode }) => {
 		},
 		define: {
 			__VERSION__: JSON.stringify(pkg.version),
+			__CORE__: core ? 'true' : 'false',
 		},
 		build: {
 			outDir: './public/build/',

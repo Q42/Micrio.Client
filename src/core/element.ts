@@ -27,6 +27,9 @@ import './element.css';
 import { createElement } from '$utils/dom';
 import { IdleState } from '$utils/idle';
 
+/** Compile-time flag — `true` in the core build (vite `--mode minimal`). */
+declare const __CORE__: boolean;
+
 /**
  * The main Micrio custom HTML element `<micr-io>`.
  * This class acts as the central controller for the Micrio viewer, managing
@@ -285,27 +288,31 @@ export class HTMLMicrioElement extends MicrioElement {
 		});
 
 		// ── Idle detection (data-idle after inactivity) ────────────────
+		// Skipped in the core build — the move listener it attaches costs CPU,
+		// and the CSS that consumes `data-idle` is stubbed out there anyway.
 
-		this.#idle = new IdleState(this, {
-			shouldIdle: () => {
-				if (document.activeElement && this.contains(document.activeElement)) return false;
-				const buttons = this.querySelectorAll<HTMLElement>('button, micrio-button');
-				for (const el of buttons) {
-					if (el.matches(':hover')) return false;
-				}
-				// A gallery scrub drag keeps the cursor busy even when it leaves
-				// the scrubber component — don't go idle while dragging.
-				if (this.querySelector('micrio-gallery[data-dragging]')) return false;
-				return true;
-			},
-		});
+		if(!__CORE__) {
+			this.#idle = new IdleState(this, {
+				shouldIdle: () => {
+					if (document.activeElement && this.contains(document.activeElement)) return false;
+					const buttons = this.querySelectorAll<HTMLElement>('button, micrio-button');
+					for (const el of buttons) {
+						if (el.matches(':hover')) return false;
+					}
+					// A gallery scrub drag keeps the cursor busy even when it leaves
+					// the scrubber component — don't go idle while dragging.
+					if (this.querySelector('micrio-gallery[data-dragging]')) return false;
+					return true;
+				},
+			});
 
-		const onActivity = () => this.#idle.activity();
-		for(const e of ['mousemove','pointerdown','wheel','focusin']) {
-			this.addEventListener(e, onActivity, { passive: true });
+			const onActivity = () => this.#idle.activity();
+			for(const e of ['mousemove','pointerdown','wheel','focusin']) {
+				this.addEventListener(e, onActivity, { passive: true });
+			}
+			window.addEventListener('keydown', onActivity);
+			this.#idle.activity();
 		}
-		window.addEventListener('keydown', onActivity);
-		this.#idle.activity();
 	}
 
 	// Custom overloads for addEventListener to support fully typed custom Micrio events
