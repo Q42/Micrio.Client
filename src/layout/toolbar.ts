@@ -15,6 +15,8 @@ class MicrioToolbar extends MicrioElement {
 	static tag = 'micrio-toolbar';
 
 	#data: Models.ImageData.ImageData | undefined;
+	#dataUnsub: (() => void) | undefined;
+	#settingsUnsub: (() => void) | undefined;
 	#shown = false;
 	#isMobile = false;
 	#toggle = () => {
@@ -40,12 +42,18 @@ class MicrioToolbar extends MicrioElement {
 
 		this._addCleanup(micrio.current.subscribe(c => {
 			if (!c) return;
-			this._addCleanup(c.data.subscribe(d => {
+			this.#dataUnsub?.();
+			this.#settingsUnsub?.();
+			this.#dataUnsub = c.data.subscribe(d => {
 				this.#data = d;
 				this.#render();
-			}));
-			this._addCleanup(c._settings.subscribe(() => this._syncDisplay?.()));
+			});
+			this.#settingsUnsub = c._settings.subscribe(() => this._syncDisplay?.());
 		}));
+		this._addCleanup(() => {
+			this.#dataUnsub?.();
+			this.#settingsUnsub?.();
+		});
 
 		this._addCleanup(micrio.state.tour.subscribe(() => this.#render()));
 		this._addCleanup(micrio.state.marker.subscribe(() => this.#render()));

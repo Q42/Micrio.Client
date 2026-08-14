@@ -68,6 +68,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#props: MainProps = {};
 	#info: Models.ImageInfo.ImageInfo | undefined;
 	#settings: Writable<Models.ImageInfo.Settings> | undefined;
+	#settingsUnsub: (() => void) | undefined;
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
 	#activePopupMarkerId: string | undefined;
@@ -135,6 +136,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const volume = writable<number>(get(micrio._isMuted) ? 0 : 1);
 		this._provide('volume', volume);
 		this._addCleanup(micrio._isMuted.subscribe(b => volume.set(b ? 0 : 1)));
+		this._addCleanup(() => this.#settingsUnsub?.());
 
 		this._provide('mediaPaused', writable<boolean>(false));
 
@@ -149,8 +151,9 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#settings = undefined;
 
 			this.#firstInited = true;
+			this.#settingsUnsub?.();
 			this.#settings = c._settings;
-			if (this.#settings) this._addCleanup(this.#settings.subscribe(() => this.#queueSync()));
+			this.#settingsUnsub = this.#settings?.subscribe(() => this.#queueSync());
 			if (!this.#logoOrg && DataLoader._getOrganisation()?.logo) this.#logoOrg = DataLoader._getOrganisation();
 			this.#queueSync();
 
