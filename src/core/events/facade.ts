@@ -135,9 +135,6 @@ export class Events implements EventContext {
 
 	// --- EventContext implementation ---
 
-	/** @internal */
-	_isEnabled(): boolean { return this.$enabled; }
-
 	/**
 	 * Checks if the user is currently interacting with the map via panning, pinching, or wheeling.
 	 * @returns True if the user is actively navigating.
