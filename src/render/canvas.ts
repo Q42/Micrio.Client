@@ -109,7 +109,8 @@ export class Canvas {
 
 		// Calculate CSS scale factor (relevant if micr-io element itself is scaled)
 		// Assume scale 1 for static images to avoid issues?
-		const scale = this.#micrio.hasAttribute('data-static') ? 1 : Math.floor(width) / this.#micrio.offsetWidth;
+		const offsetWidth = this.#micrio.offsetWidth;
+		const scale = this.#micrio.hasAttribute('data-static') || !offsetWidth ? 1 : Math.floor(width) / offsetWidth;
 		// Adjust dimensions based on scale
 		width /= scale;
 		height /= scale;
