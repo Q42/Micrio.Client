@@ -258,7 +258,7 @@ export class MicrioImage {
 		this._tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 
 		const org = DataLoader._getOrganisation();
-		if(org?.baseUrl && !i.path.includes(org.baseUrl)) {
+		if(org?.baseUrl && !i.path?.includes(org.baseUrl)) {
 			this._dataPath = i.path = org.baseUrl;
 			if(!isV5Imported) this._tileBase = this._dataPath;
 		}
