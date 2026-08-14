@@ -559,10 +559,10 @@ export class TileCanvas {
 
 	/** Finds the Image, Layer, and calculates the DrawRect for a given global tile index. */
 	#findTileRect(i: number): [number, number] {
-		let img = 0; while (i >= this.images[img]._endOffset) img++;
+		let img = 0; while (img < this.images.length - 1 && i >= this.images[img]._endOffset) img++;
 		const image = this.images[img];
 
-		let l = 0; while (i >= image._layers[l]._end) l++;
+		let l = 0; while (l < image._layers.length - 1 && i >= image._layers[l]._end) l++;
 		const layer = image._layers[l];
 		layer._getTileRect(i, this.#rect);
 		return [img, layer._index];
