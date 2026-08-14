@@ -213,10 +213,10 @@ export class OmniUI {
 
 		this.#micrio.setAttribute('data-hooked','');
 
-		this.#image.state.view.subscribe(v =>
+		this.#cleanups.push(this.#image.state.view.subscribe(v =>
 			this.#isFullWidth = this.#swiperOpts.coverLimit ? this.#image.camera.isZoomedOut()
 				: v ? Math.round(v[3]*1000)/1000 >= 1 : true
-		);
+		));
 
 		micrio._engine._noPinchPan = true;
 		micrio._engine._isSwipe = true;
@@ -228,6 +228,8 @@ export class OmniUI {
 		this.#micrio.canvas.element.removeEventListener('pointerdown', this.#dStart);
 		this.#pointers.clear();
 		this.#removeSwipeListeners();
+		this.#micrio._engine._noPinchPan = false;
+		this.#micrio._engine._isSwipe = false;
 	}
 
 	#removeSwipeListeners() {

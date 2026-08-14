@@ -192,10 +192,8 @@ export class MicrioAudioController {
 
 		// Store cleanup for renderless operation
 		this.#cleanups.push(() => {
-			if (_ctx) {
-				audio.remove();
-				removeEventListener('pointerup', onUserGesture);
-			}
+			audio.remove();
+			removeEventListener('pointerup', onUserGesture);
 		});
 	}
 
