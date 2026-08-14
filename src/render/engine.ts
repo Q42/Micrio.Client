@@ -603,7 +603,7 @@ export class Engine {
 
 		tile._timeoutId = setTimeout(() => {
 			this.#deleteRequest(i);
-		}, ani ? 150 : 50) as unknown as number;
+		}, ani ? 150 : 50);
 	}
 
 	/** @internal */
