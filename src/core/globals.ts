@@ -82,7 +82,7 @@ type ATTRIBUTE_DEFINITION = {
 	/** `n`: If true, negates the boolean value (e.g., `data-no-ui` becomes `noUI: true`). */
 	n?: boolean;
 	/** `dN`: Default value if the attribute is not present (used for numbers). */
-	dN?: any;
+	dN?: number;
 }
 
 /** Type for mapping attribute names to their definitions.

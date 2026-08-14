@@ -133,7 +133,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 							attrs: { 'data-target-id': id },
 							setProps: { targetId: id, settings: l[2]?.[image.id], image },
 							parent: this
-						}) as unknown as MicrioElement;
+						}) as MicrioElement;
 					}
 				}
 			} else {
@@ -158,7 +158,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 							attrs: { 'data-marker-id': m.id },
 							setProps: { marker: m, image, ...(m.noMarker ? { forceHidden: true } : {}) },
 							parent: this
-						}) as unknown as MicrioElement;
+						}) as MicrioElement;
 					}
 				}
 			} else {
