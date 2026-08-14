@@ -159,23 +159,20 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		audio.muted = !!p.muted;
 	}
 
-	#createNativeVideo(src: string, p: MediaProps, figure: HTMLElement) {
-		const video = createElement('video', {
+	#createIframe(src: string, p: MediaProps, figure: HTMLElement) {
+		const iframe = createElement('iframe', {
 			props: {
 				src,
-				width: p.width ?? 400,
-				height: p.height ?? 240,
-				controls: false,
-				preload: 'metadata',
-				playsInline: true,
-				crossOrigin: 'anonymous',
-				...(p.autoplay ? { autoplay: true } : {}),
-				...(p.muted ? { muted: true } : {}),
+				width: String(p.width ?? 400),
+				height: String(p.height ?? 240),
+			},
+			attrs: {
+				allow: 'autoplay; fullscreen',
+				allowfullscreen: '',
 			},
 			parent: figure,
 		});
-		this.#mediaEl = video;
-		this.#wireEvents(video);
+		this.#frame = iframe;
 	}
 
 	/** @internal */
@@ -188,6 +185,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		const isVimeo = src ? VIMEO_RE.test(src) : false;
 		const isCloudflare = src ? src.startsWith('cfvid://') : false;
 		const isAudio = src ? src.includes('.mp3') || src.includes('.ogg') || src.includes('.wav') || src.includes('audio/') : false;
+		const isEmbed = !!src && !isYoutube && !isVimeo && !isCloudflare && !isAudio;
 		const isStandaloneVideoTour = !!p.tour && !!p.image && !src;
 		this.replaceChildren();
 
@@ -206,7 +204,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		} else if (isAudio && src) {
 			this.#createAudioElement(src!, p, figure);
 		} else if (src) {
-			this.#createNativeVideo(src!, p, figure);
+			this.#createIframe(src!, p, figure);
 		}
 
 		if (p.figcaption) {
@@ -298,7 +296,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 
 		// Controls
-		if (p.controls !== false) {
+		if (p.controls !== false && !isEmbed) {
 			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
 
 			const onplaypause = () => {
