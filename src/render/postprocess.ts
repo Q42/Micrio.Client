@@ -1,5 +1,6 @@
 import type { HTMLMicrioElement } from '$core/element';
 
+import { MicrioError, ErrorCodes } from '$core/error';
 import vertexShader from './shaders/post.vert.glsl?raw';
 
 /**
@@ -39,7 +40,7 @@ export class PostProcessor {
 	/** Attribute location for texture coordinates in the postprocessing shader. @internal */
 	#ppTexCoordLoc:GLint;
 	/** Uniform location for passing time to the postprocessing shader. @internal */
-	#ppTimeLoc:WebGLUniformLocation;
+	#ppTimeLoc:WebGLUniformLocation | null;
 
 	#gl:WebGL2RenderingContext|WebGLRenderingContext;
 	
@@ -57,7 +58,9 @@ export class PostProcessor {
 	) {
 		this.#gl = gl;
 		// --- Shader Compilation ---
-		this.#program = gl.createProgram()!; // TODO: Handle potential null return
+		const program = gl.createProgram();
+		if (!program) throw new MicrioError('Failed to create postprocess program', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
+		this.#program = program;
 		// Compile vertex and fragment shaders using WebGL utility
 		micrio._webgl._getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
 		micrio._webgl._getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
@@ -73,10 +76,12 @@ export class PostProcessor {
 		// --- Get Attribute/Uniform Locations ---
 		this.#ppPositionLoc = gl.getAttribLocation(this.#program, 'a_position');
 		this.#ppTexCoordLoc = gl.getAttribLocation(this.#program, 'a_texCoord');
-		this.#ppTimeLoc = gl.getUniformLocation(this.#program, 'u_time')!; // Assume 'u_time' uniform exists
+		this.#ppTimeLoc = gl.getUniformLocation(this.#program, 'u_time');
 
 		// --- Framebuffer Texture Setup ---
-		this.#texture = gl.createTexture()!; // TODO: Handle potential null return
+		const texture = gl.createTexture();
+		if (!texture) throw new MicrioError('Failed to create postprocess texture', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
+		this.#texture = texture;
 		gl.bindTexture(gl.TEXTURE_2D, this.#texture);
 		// Create texture matching the drawing buffer size
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.#gl.drawingBufferWidth, this.#gl.drawingBufferHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -88,7 +93,9 @@ export class PostProcessor {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
 		// --- Framebuffer Setup ---
-		this._frameBuffer = gl.createFramebuffer()!; // TODO: Handle potential null return
+		const frameBuffer = gl.createFramebuffer();
+		if (!frameBuffer) throw new MicrioError('Failed to create postprocess framebuffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
+		this._frameBuffer = frameBuffer;
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 		// Attach the texture as the color attachment
 		gl.framebufferTexture2D(
@@ -108,7 +115,9 @@ export class PostProcessor {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 		// --- Quad Buffer Setup ---
-		this.#quad = gl.createBuffer()!; // TODO: Handle potential null return
+		const quad = gl.createBuffer();
+		if (!quad) throw new MicrioError('Failed to create postprocess buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
+		this.#quad = quad;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad);
 		gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW); // Upload quad vertex data
 	}
