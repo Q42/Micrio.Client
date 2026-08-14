@@ -139,13 +139,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const page = Math.round(Math.max(0, Math.min(this.#pageToImages.length - 1, i)));
 		const imgIdx = this.#pageToImages[page]?.[0] ?? 0;
 		const changed = force || page !== this.#currentPage;
+		const prevIdx = this.#currentImageIdx;
 		this.#currentPage = page;
 		this.#currentImageIdx = imgIdx;
 		if (changed) this.#frameChanged();
 		if (this.#book3d) {
 			await this.#book3d.goto(page)
 		} else if (this.#swipeGallery) {
-			await this.#swipeGallery.animateTo(imgIdx, fast, duration, this.#currentImageIdx);
+			await this.#swipeGallery.animateTo(imgIdx, fast, duration, prevIdx);
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
