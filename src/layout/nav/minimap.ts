@@ -23,7 +23,8 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;
 	#unsubView: (() => void) | undefined;
-	#to: any;
+	#to: ReturnType<typeof setTimeout> | undefined;
+	#thumbUrl: string | undefined;
 
 	/** @internal */
 	_onMount() {
@@ -168,7 +169,9 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		if (isolated && image.thumbSrc) {
 			fetch(image.thumbSrc).then(r => r.blob()).then(b => {
-				thumbSrc = URL.createObjectURL(b);
+				if (this.#thumbUrl) URL.revokeObjectURL(this.#thumbUrl);
+				this.#thumbUrl = URL.createObjectURL(b);
+				thumbSrc = this.#thumbUrl;
 				canvas.style.backgroundImage = `url('${thumbSrc}')`;
 				draw(get(image.state.view));
 			});
@@ -177,6 +180,13 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		this.#unsubView?.();
 		this.#unsubView = image.state.view.subscribe(draw);
 		this._addCleanup(this.#unsubView);
+	}
+
+	/** @internal */
+	_onDestroy() {
+		clearTimeout(this.#to);
+		if (this.#thumbUrl) URL.revokeObjectURL(this.#thumbUrl);
+		this.#thumbUrl = undefined;
 	}
 
 }
