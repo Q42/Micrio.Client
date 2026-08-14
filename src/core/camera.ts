@@ -451,7 +451,8 @@ export class Camera {
 	 * @returns A Promise that resolves when the animation completes.
 	 */
 	flyToCoverView(opts: Models.Camera.AnimationOptions = {}): Promise<void> {
-		const focus = (this.#image.$settings.focus ?? [.5, .5]) as Models.Camera.Coords;
+		const base = this.#image.$settings.focus ?? [.5, .5];
+		const focus: Models.Camera.Coords = [base[0], base[1]];
 		focus[2] = this.getCoverScale();
 		return this.flyToCoo(focus, opts);
 	}
