@@ -23,6 +23,7 @@ export function parseSplitLink(raw?: string): MicrioSplitLink | undefined {
 interface SplitState {
 	secondary: MicrioImage;
 	unsub: Unsubscriber | null;
+	unsubData: Unsubscriber | null;
 }
 
 const splits = new Map<MicrioImage, SplitState>();
@@ -80,8 +81,8 @@ export async function openSplit(
 		});
 	}
 
+	let unsubData: Unsubscriber | null = null;
 	if (link.markerId) {
-		let unsubData: (() => void) | undefined;
 		unsubData = secondary.data.subscribe(d => {
 			if (!d) return;
 			const m = d.markers?.find(m => m.id === link.markerId);
@@ -90,7 +91,7 @@ export async function openSplit(
 		});
 	}
 
-	splits.set(primary, { secondary, unsub });
+	splits.set(primary, { secondary, unsub, unsubData });
 	micrio.events._dispatch('splitscreen-start', secondary);
 }
 
@@ -104,6 +105,7 @@ export function closeSplit(
 	splits.delete(primary);
 
 	state.unsub?.();
+	state.unsubData?.();
 
 	const portrait = micrio.canvas.viewport.portrait;
 	state.secondary.camera.setArea(
