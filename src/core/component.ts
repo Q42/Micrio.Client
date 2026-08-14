@@ -93,8 +93,8 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	/** @internal */
 	protected _watch<T>(store: Readable<T>, fn: (value: T) => void, opts?: { skipFirst?: boolean; defer?: boolean }): void {
 		let sub: Subscriber<T> = fn;
-		if (opts?.skipFirst) sub = skipFirst(fn);
-		if (opts?.defer) sub = defer(fn);
+		if (opts?.skipFirst) sub = skipFirst(sub);
+		if (opts?.defer) sub = defer(sub);
 		this._addCleanup(store.subscribe(sub));
 	}
 
