@@ -485,6 +485,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	_onDestroy() {
 		clearTimeout(this.#loopDelayTo);
 		clearTimeout(this.#book3dPrintTo);
+		if (this.#moveRaf !== undefined) {
+			cancelAnimationFrame(this.#moveRaf);
+			this.#moveRaf = undefined;
+		}
 		this.#glVideo?._unmount();
 
 		const { embed, image } = this.#props;
