@@ -436,7 +436,12 @@ export class Engine {
 			settings.focus = undefined;
 		}
 
-		c.video.subscribe(v => v && v.addEventListener('play', this.render));
+		let currentVideo: HTMLVideoElement | undefined;
+		this.#unsubscribe.push(c.video.subscribe(v => {
+			if (currentVideo) currentVideo.removeEventListener('play', this.render);
+			currentVideo = v ?? undefined;
+			if (currentVideo) currentVideo.addEventListener('play', this.render);
+		}));
 
 		if (c._noImage) c.visible.set(true);
 
