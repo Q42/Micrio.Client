@@ -73,25 +73,35 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 	};
 }
 
-/** Register keyboard navigation (arrow keys and Escape) on the given grid. @internal */
-export function hookGridKeys(grid: Grid) : void {
+/** Register keyboard navigation (arrow keys and Escape) on the given grid.
+ * Returns a cleanup function that removes the listeners and resets the flag. @internal */
+export function hookGridKeys(grid: Grid) : () => void {
 	Grid._handlingKeys = true;
-	document.addEventListener('keydown', createGridKeyHandler(grid));
+	const keyHandler = createGridKeyHandler(grid);
+	document.addEventListener('keydown', keyHandler);
+
+	let clickDown:{x:number;y:number}|undefined;
+	const onPointerDown = (e: PointerEvent) => { clickDown = {x: e.clientX, y: e.clientY}; };
+	const onPointerUp = (e: PointerEvent) => {
+		if (!clickDown) return;
+		const dist = Math.hypot(e.clientX - clickDown.x, e.clientY - clickDown.y);
+		clickDown = undefined;
+		if (dist > 10) return;
+		const [vx, vy] = grid.image.camera.getCoo(e.clientX, e.clientY, true);
+		const img = grid._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
+		if (!img) return;
+		grid._clickCell(img);
+	};
 
 	if (grid._panZoom == 'grid' && grid._clickable) {
-		let clickDown:{x:number;y:number}|undefined = {x:0, y:0};
-		grid.micrio.addEventListener('pointerdown', (e: PointerEvent) => {
-			clickDown = {x: e.clientX, y: e.clientY};
-		});
-		grid.micrio.addEventListener('pointerup', (e: PointerEvent) => {
-			if (!clickDown) return;
-			const dist = Math.hypot(e.clientX - clickDown.x, e.clientY - clickDown.y);
-			clickDown = undefined;
-			if (dist > 10) return;
-			const [vx, vy] = grid.image.camera.getCoo(e.clientX, e.clientY, true);
-			const img = grid._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
-			if (!img) return;
-			grid._clickCell(img);
-		});
+		grid.micrio.addEventListener('pointerdown', onPointerDown);
+		grid.micrio.addEventListener('pointerup', onPointerUp);
 	}
+
+	return () => {
+		Grid._handlingKeys = false;
+		document.removeEventListener('keydown', keyHandler);
+		grid.micrio.removeEventListener('pointerdown', onPointerDown);
+		grid.micrio.removeEventListener('pointerup', onPointerUp);
+	};
 }
