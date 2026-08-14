@@ -174,6 +174,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Idle state manager — sets `data-idle` on the element after inactivity. */
 	#idle!: IdleState;
 
+	/** Activity callback retained so idle listeners can be removed on destroy. @internal */
+	#onActivity?: () => void;
+
 	/** For setting first-time hooks
 	 * @internal
 	 */
@@ -306,11 +309,11 @@ export class HTMLMicrioElement extends MicrioElement {
 				},
 			});
 
-			const onActivity = () => this.#idle.activity();
+			this.#onActivity = () => this.#idle.activity();
 			for(const e of ['mousemove','pointerdown','wheel','focusin']) {
-				this.addEventListener(e, onActivity, { passive: true });
+				this.addEventListener(e, this.#onActivity, { passive: true });
 			}
-			window.addEventListener('keydown', onActivity);
+			window.addEventListener('keydown', this.#onActivity);
 			this.#idle.activity();
 		}
 	}
@@ -345,6 +348,13 @@ export class HTMLMicrioElement extends MicrioElement {
 		delete this._ui;
 		this._webgl._dispose(true);
 		this.#idle?.destroy();
+		if (this.#onActivity) {
+			for (const e of ['mousemove','pointerdown','wheel','focusin'] as const) {
+				this.removeEventListener(e, this.#onActivity);
+			}
+			window.removeEventListener('keydown', this.#onActivity);
+			this.#onActivity = undefined;
+		}
 		this.#printed = false;
 	}
 
