@@ -71,6 +71,9 @@ class Layer {
 	}
 }
 
+/** Sorts tile indices descending so base/lower layers are drawn first. @internal */
+const sortTileIndices = (a: number, b: number): number => b - a;
+
 /** Represents a single image source (tiled or single) within a TileCanvas. @internal */
 export default class Image {
 	static readonly #toDraw: number[] = []
@@ -350,7 +353,7 @@ export default class Image {
 			);
 		}
 
-		d.sort((a, b) => b - a);
+		d.sort(sortTileIndices);
 		for (const t of d) c._toDraw.push(t);
 		d.length = 0;
 
