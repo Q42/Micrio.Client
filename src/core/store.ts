@@ -106,35 +106,6 @@ export function writable<T>(value?: T): Writable<T> {
 	};
 }
 
-/** Creates a read-only store with an optional initial value and start/stop callback. @internal */
-export function readable<T>(value?: T, start?: (set: Subscriber<T>) => Unsubscriber | void): Readable<T> {
-	let stop: Unsubscriber | void;
-
-	const subs = new Set<Subscriber<T>>();
-
-	return {
-		subscribe(run: Subscriber<T>, _invalidate?: (value?: T) => void): Unsubscriber {
-			subs.add(run);
-			if (value !== undefined) run(value);
-
-			if (subs.size === 1) {
-				stop = start?.(v => {
-					value = v;
-					subs.forEach(fn => fn(v));
-				});
-			}
-
-			return () => {
-				subs.delete(run);
-				if (subs.size === 0 && stop) {
-					stop();
-					stop = undefined;
-				}
-			};
-		}
-	};
-}
-
 /** Synchronously reads the current value of a store by subscribing and immediately unsubscribing. */
 export function get<T>(store: { subscribe(fn: Subscriber<T>): Unsubscriber }): T {
 	let v: T | undefined;

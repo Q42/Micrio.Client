@@ -14,7 +14,6 @@ export const jsonCache: Map<string, Object> = new Map();
  * @internal
  */
 const jsonPromises: Map<string, Promise<Object>> = new Map();
-const jsonErrors: Map<string, MicrioError> = new Map();
 
 /**
  * Fetches JSON data from a URI, utilizing a cache to avoid redundant requests.
@@ -28,15 +27,12 @@ const jsonErrors: Map<string, MicrioError> = new Map();
 export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
 	if (!noCache && jsonCache.has(uri)) return structuredClone(jsonCache.get(uri) as T);
 	if (jsonPromises.has(uri)) return jsonPromises.get(uri) as Promise<T>; // Return existing promise if fetch is in progress
-	if (jsonErrors.has(uri)) throw jsonErrors.get(uri)!;
 
 	// Create and store the fetch promise
 	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(async r => {
 		if (r.status == 200) return r.json();
 		else {
-			const err = MicrioError.fromResponse(r, `fetchJson(${uri})`);
-			jsonErrors.set(uri, err);
-			throw err;
+			throw MicrioError.fromResponse(r, `fetchJson(${uri})`);
 		}
 	}).then(j => {
 		if (!noCache) jsonCache.set(uri, j); // Store result in cache

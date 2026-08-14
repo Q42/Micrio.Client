@@ -139,13 +139,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const page = Math.round(Math.max(0, Math.min(this.#pageToImages.length - 1, i)));
 		const imgIdx = this.#pageToImages[page]?.[0] ?? 0;
 		const changed = force || page !== this.#currentPage;
+		const prevIdx = this.#currentImageIdx;
 		this.#currentPage = page;
 		this.#currentImageIdx = imgIdx;
 		if (changed) this.#frameChanged();
 		if (this.#book3d) {
 			await this.#book3d.goto(page)
 		} else if (this.#swipeGallery) {
-			await this.#swipeGallery.animateTo(imgIdx, fast, duration, this.#currentImageIdx);
+			await this.#swipeGallery.animateTo(imgIdx, fast, duration, prevIdx);
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page];
 			const num = (pageImages?.length ?? 1) - 1;
@@ -242,7 +243,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: Engine, hasArchive: boolean) {
 		if (!total || !engine?.ready) return;
-		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
+		const request: (cb: () => void) => number = self.requestIdleCallback ?? self.requestAnimationFrame;
 		for (let x = -d; x <= d; x++) {
 			if (!x) continue;
 			let rX = center + x;
@@ -250,9 +251,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			while (rX >= total) rX -= total;
 			const tile = getTile(rX);
 			if (tile?.thumbSrc && !this.#preloading.has(tile.thumbSrc)) {
-				this.#preloading.set(tile.thumbSrc, request(() =>
-					engine._getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive })
-				));
+				this.#preloading.set(tile.thumbSrc, request(() => {
+					engine._getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive });
+					this.#preloading.delete(tile.thumbSrc!);
+				}));
 			}
 		}
 	}

@@ -75,8 +75,8 @@ async function doFetchBundle(id: string): Promise<void> {
 			}
 		}
 	}
-	if (bundle?.album) {
-		albumCache.set(bundle.album.id!, bundle.album);
+	if (bundle?.album?.id) {
+		albumCache.set(bundle.album.id, bundle.album);
 	}
 }
 

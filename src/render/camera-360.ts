@@ -108,7 +108,7 @@ export default class Camera360 extends EngineCamera {
 		rM._rotateX(-this._pitch);
 		rM._rotateY(this._yaw);
 
-		this.#coo.direction = (this._yaw / Math.PI * 180) % 360;
+		this.#coo.direction = ((this._yaw / Math.PI * 180) % 360 + 360) % 360;
 	}
 
 	/**

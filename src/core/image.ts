@@ -258,7 +258,7 @@ export class MicrioImage {
 		this._tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 
 		const org = DataLoader._getOrganisation();
-		if(org?.baseUrl && !i.path.includes(org.baseUrl)) {
+		if(org?.baseUrl && !i.path?.includes(org.baseUrl)) {
 			this._dataPath = i.path = org.baseUrl;
 			if(!isV5Imported) this._tileBase = this._dataPath;
 		}
@@ -365,7 +365,10 @@ export class MicrioImage {
 
 			micrioRef._visible.update(l => {
 				if(v) l.push(this);
-				else l.splice(l.indexOf(this), 1);
+				else {
+					const i = l.indexOf(this);
+					if(i >= 0) l.splice(i, 1);
+				}
 				return l;
 			});
 			if(v && micrioRef.$current == this) micrioRef._switching.set(false);

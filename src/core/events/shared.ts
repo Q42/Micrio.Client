@@ -56,8 +56,6 @@ export interface EventContext {
 	_micrio: HTMLMicrioElement;
 	/** @internal The canvas element where events are captured */
 	_el: HTMLCanvasElement;
-	/** @internal Whether events are currently enabled */
-	_isEnabled(): boolean;
 	/** @internal Whether the user is currently panning */
 	_panning: boolean;
 	/** @internal Whether the user is currently pinching */

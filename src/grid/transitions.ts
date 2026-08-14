@@ -91,7 +91,10 @@ export async function transition(
 		style.filter = `blur(${blur}px)`;
 		setTimeout(() => {
 			style.filter = '';
-			setTimeout(() => style.transform = '', blurSpeed*1000);
+			setTimeout(() => {
+				style.transform = '';
+				style.transition = '';
+			}, blurSpeed*1000);
 		}, blurSpeed*1000);
 	}
 

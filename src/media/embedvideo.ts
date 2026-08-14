@@ -223,7 +223,7 @@ export class GLEmbedVideo {
 			v.onended = () => { // When video ends
 				this.#setPlaying(false); // Set state to paused
 				// Schedule restart after delay
-				this.#vidRepeatTo = <any>setTimeout(() => v?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000) as number;
+				this.#vidRepeatTo = setTimeout(() => v?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000);
 			}
 			// Ensure playing state is set correctly when play starts after loop delay
 			v.onplay = () => this.#setPlaying(true);

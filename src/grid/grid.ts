@@ -94,7 +94,7 @@ export class Grid extends MicrioElement {
 		const g = this.image.$settings?.grid;
 		this._clickable = (g?.clickable && ['focus','zoom'].includes(g.clickable)) ? g.clickable : false;
 		this._panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
-		if(this._clickable && this.image.$settings.hookKeys) hookGridKeys(this);
+		if(this._clickable && this.image.$settings.hookKeys) this._addCleanup(hookGridKeys(this));
 		if(g?.transitionDuration !== undefined) this._aniDurationIn = this.#aniDurationOut = g.transitionDuration;
 		if(g?.transitionDurationOut !== undefined) this.#aniDurationOut = g.transitionDurationOut;
 
@@ -116,6 +116,13 @@ export class Grid extends MicrioElement {
 		}));
 
 		this.micrio.events._dispatch('grid-init', this);
+	}
+
+	/** @internal */
+	_onDestroy() {
+		this.#clearTimeouts();
+		this.#viewUnsub?.();
+		this.#viewUnsub = undefined;
 	}
 
 	#hook() {
@@ -352,12 +359,13 @@ export class Grid extends MicrioElement {
 		const w = this.micrio.offsetWidth;
 		const h = this.micrio.offsetHeight;
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1)));
+		const imageById = new Map(images.map(i => [i.id, i]));
 		this.style.transform = '';
 		this.childNodes.forEach((n:ChildNode) => {
 			const e = n as HTMLElement;
 			const id = e.dataset.id;
 			const r = e.getBoundingClientRect();
-			const img = images.find(i => i.id == id);
+			const img = id ? imageById.get(id) : undefined;
 			const o = [(s/2)*r.width, (s/2)*r.height];
 			if(img && !img.area) img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.width-o[0]*2)/w, (r.height-o[1]*2)/h]
 		});

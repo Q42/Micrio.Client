@@ -18,7 +18,7 @@ export const mod1 = (n: number): number => mod(n);
 export const modPI = (n: number): number => mod(n, Math.PI * 2);
 
 /** Calculates 2 to the power of num (2^num). @internal */
-export const twoNth = (n: number): number => 1 << n;
+export const twoNth = (n: number): number => 2 ** n;
 
 /**
  * Converts a Camera.View tuple `[x, y, w, h]` to a center-based JSON object.

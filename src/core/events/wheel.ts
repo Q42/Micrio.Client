@@ -77,7 +77,7 @@ export class WheelHandler {
 		this.#ctx._wheeling = true;
 
 		clearTimeout(this.#wheelEndTo);
-		this.#wheelEndTo = setTimeout(this.#end, 50) as unknown as number;
+		this.#wheelEndTo = setTimeout(this.#end, 50);
 	}
 
 	/** Clears the wheeling state after a short delay. */

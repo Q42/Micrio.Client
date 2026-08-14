@@ -71,7 +71,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			// Toggle overlapped class on individual markers
 			for (let i = 0; i < markers.length; i++) {
-				const el = this.querySelector(`[data-marker-id="${markers[i].id}"]`);
+				const el = this.querySelector(`[data-marker-id="${CSS.escape(markers[i].id)}"]`);
 				el?.classList.toggle('overlapped', overlapped.has(i));
 			}
 
@@ -83,7 +83,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}
 			for (const g of clusters) {
 				const id = g.join(',');
-				if (this.querySelector(`:scope > micrio-marker.cluster[data-marker-id="${id}"]`)) continue;
+				if (this.querySelector(`:scope > micrio-marker.cluster[data-marker-id="${CSS.escape(id)}"]`)) continue;
 				const cx = g.reduce((s, i) => s + markers[i].x, 0) / g.length;
 				const cy = g.reduce((s, i) => s + markers[i].y, 0) / g.length;
 				const minX = Math.min(...g.map(i => markers[i].view ? markers[i].view![0] : markers[i].x));
@@ -127,13 +127,13 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				}
 				for (const l of links) {
 					const id = l[0] == image.id ? l[1] : l[0];
-					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${id}"]`) as MicrioElement;
+					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${CSS.escape(id)}"]`) as MicrioElement;
 					if (!el) {
 						el = createElement('micrio-waypoint', {
 							attrs: { 'data-target-id': id },
 							setProps: { targetId: id, settings: l[2]?.[image.id], image },
 							parent: this
-						}) as unknown as MicrioElement;
+						}) as MicrioElement;
 					}
 				}
 			} else {
@@ -152,13 +152,13 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				}
 
 				for (const m of filtered) {
-					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${m.id}"]`) as MicrioElement;
+					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${CSS.escape(m.id)}"]`) as MicrioElement;
 					if (!el) {
 						el = createElement('micrio-marker', {
 							attrs: { 'data-marker-id': m.id },
 							setProps: { marker: m, image, ...(m.noMarker ? { forceHidden: true } : {}) },
 							parent: this
-						}) as unknown as MicrioElement;
+						}) as MicrioElement;
 					}
 				}
 			} else {

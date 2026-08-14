@@ -103,25 +103,27 @@ export namespace State {
 		/** Creates an Image state controller and subscribes to view/marker changes to synchronise with the main element state. @param image The parent MicrioImage instance. */
 		constructor(image:MicrioImage){
 			const m = image.engine.micrio; // Reference to main element
-			let pV:string, pW:number, pH:number; // Previous view state for change detection
+			// Previous view (all four values) for change detection, plus previous
+			// zoom dimensions for the width/height change threshold.
+			let pX:number|undefined, pY:number|undefined, pW:number|undefined, pH:number|undefined;
+			let zW:number|undefined, zH:number|undefined;
 
 			// Subscribe to view store changes
 			this.view.subscribe(view => {
 				this.#_view = view; // Update internal reference
-				const nV = view?.toString(); // Stringify for simple comparison
-				if(view && nV && pV != nV) { // If view changed
-					const detail = {image, view}; // Event detail payload with view360
-					pV = nV;
-					const nW = view[2], nH = view[3]; // Calculate new width/height
-					// Fire zoom callbacks if dimensions changed significantly
-					if(!pW || !pH || Math.abs((nW-pW)+(nH-pH)) > 1E-5) {
-						for(const fn of m._onZoom) fn(detail);
-						m.events._dispatch('zoom', {image, view});
-						pW=nW,pH=nH; // Update previous dimensions
-					}
-					// Fire move callbacks
-					for(const fn of m._onMove) fn(detail);
+				if(!view) return;
+				const nX = view[0], nY = view[1], nW = view[2], nH = view[3];
+				if(pX === nX && pY === nY && pW === nW && pH === nH) return; // Unchanged
+				const detail = {image, view}; // Event detail payload with view360
+				pX = nX; pY = nY; pW = nW; pH = nH;
+				// Fire zoom callbacks if dimensions changed significantly
+				if(zW === undefined || zH === undefined || Math.abs((nW-zW)+(nH-zH)) > 1E-5) {
+					for(const fn of m._onZoom) fn(detail);
+					m.events._dispatch('zoom', {image, view});
+					zW=nW; zH=nH; // Update previous dimensions
 				}
+				// Fire move callbacks
+				for(const fn of m._onMove) fn(detail);
 			});
 
 			// Subscribe to local marker store changes

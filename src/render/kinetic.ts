@@ -45,7 +45,8 @@ export default class Kinetic {
 		if (this.#endTime) return;
 		if (this.#startTime === 0) this.#startTime = t;
 
-		const fact: number = this.#prevTime > 0 ? 16.67 / (t - this.#prevTime) : 1;
+		const dt = t - this.#prevTime;
+		const fact: number = this.#prevTime > 0 && dt > 0 ? 16.67 / dt : 1;
 		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) this.#lastInteraction = t;
 
 		const elasticity = this.#canvas.main._dragElasticity;
@@ -88,9 +89,10 @@ export default class Kinetic {
 			this.#endTime = t;
 			const factor = 1 - Math.min(1, (this.#endTime - this.#lastInteraction) / 250);
 			const deltaTime = this.#endTime - this.#startTime;
+			const inv = deltaTime > 0 ? 4 / deltaTime : 0;
 
-			this.#velocityX = this.#dX / (deltaTime / 4) * factor;
-			this.#velocityY = this.#dY / (deltaTime / 4) * factor;
+			this.#velocityX = this.#dX * inv * factor;
+			this.#velocityY = this.#dY * inv * factor;
 		}
 		else {
 			this.#velocityX *= .94;

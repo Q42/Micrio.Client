@@ -197,7 +197,9 @@ export class Gallery {
 			config.settings = settings as any;
 		}
 
-		const index = await Gallery.#getArchiveIndex(aInfo.archive!.split('.')[0], path);
+		const index = aInfo.archive
+			? await Gallery.#getArchiveIndex(aInfo.archive.split('.')[0], path)
+			: undefined;
 		if (index) config.archiveLayerOffset = index.delta;
 		const sort = config.sort;
 		if (sort && index?.images) index.images.sort(Gallery.#sortArchiveImages(sort));

@@ -37,6 +37,7 @@ function ensureWorkers() {
 		w.onmessage = e => onmessage(i, e.data.data, e.data.error, e.data.type);
 		loaders.push(w);
 	}
+	URL.revokeObjectURL(workerBlob);
 }
 
 /** @internal */

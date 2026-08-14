@@ -50,13 +50,13 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	};
 
 	#aside1!: HTMLElement;
-	#muteBtn: any;
-	#shareBtn: any;
+	#muteBtn: MicrioElement | undefined;
+	#shareBtn: MicrioElement | undefined;
 	#langMenu: HTMLElement | undefined;
 	#langItemsEl: HTMLElement | undefined;
 	#group1!: HTMLElement;
-	#zoomGroup: any;
-	#fsGroup: any;
+	#zoomGroup: MicrioElement | undefined;
+	#fsGroup: MicrioElement | undefined;
 
 	/** @internal */
 	_onMount() {
@@ -197,7 +197,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (hasSocial && !onlyFullscreen) {
 			if (!this.#shareBtn?.isConnected) {
 				this.#shareBtn?.remove();
-				this.#shareBtn = createElement('micrio-button');
+				this.#shareBtn = createElement('micrio-button') as MicrioElement;
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
 			this.#shareBtn._setProps({ type: 'share', title: $i18n._share, onclick: this.#share });
@@ -215,7 +215,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (showMute) {
 				if (!this.#muteBtn?.isConnected) {
 					this.#muteBtn?.remove();
-					this.#muteBtn = createElement('micrio-button');
+					this.#muteBtn = createElement('micrio-button') as MicrioElement;
 					this.#group1.prepend(this.#muteBtn);
 				}
 				this.#muteBtn._setProps({
@@ -229,7 +229,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (zoomVisible) {
 				if (!this.#zoomGroup?.isConnected) {
 					this.#zoomGroup?.remove();
-					this.#zoomGroup = createElement('micrio-zoom-buttons');
+					this.#zoomGroup = createElement('micrio-zoom-buttons') as MicrioElement;
 					if (this.#fsGroup?.isConnected) this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);
 					else this.#group1.appendChild(this.#zoomGroup);
 				}
@@ -239,7 +239,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (this.#showFullscreen) {
 				if (!this.#fsGroup?.isConnected) {
 					this.#fsGroup?.remove();
-					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 });
+					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 }) as MicrioElement;
 				}
 				this.#fsGroup._setProps({ el: micrio });
 			} else if (this.#fsGroup?.isConnected) {
