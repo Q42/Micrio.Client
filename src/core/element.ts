@@ -598,7 +598,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(!this.#initedFirst) {
 			this.canvas.hook();
 
-			switch(this.#current?.$settings?.theme) {
+			switch(c.$settings?.theme) {
 				case 'light': this.setAttribute('data-light-mode',''); break;
 				case 'os': this.setAttribute('data-auto-scheme',''); break;
 			}
