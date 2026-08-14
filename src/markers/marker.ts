@@ -58,13 +58,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		// For 3d books, no camera animations
 		const isBook3d = micrio.$current?.album?.info?.type == 'book3d';
-		if(isBook3d) delete marker.view;
+		let view = isBook3d ? undefined : marker.view;
 
 		// Derive marker view from video tour
 		if (marker.videoTour) {
 			const vt = marker.videoTour;
 			const timeline = vt.i18n?.[$_lang]?.timeline;
-			if (timeline?.length) marker.view = timeline[0].rect;
+			if (timeline?.length) view = timeline[0].rect;
 		}
 
 		const showLabel = content && (!noTitles) && (content.label || content.title);
@@ -126,8 +126,8 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (marker.onclick) return marker.onclick(marker);
 			if (markerSettings.noMarkerActions) return;
 			if (marker.type == 'cluster') {
-				if (marker.view && micrio.$current?.$info) {
-					image.camera.flyToView(marker.view, { limitZoom: true });
+				if (view && micrio.$current?.$info) {
+					image.camera.flyToView(view, { limitZoom: true });
 				}
 			} else {
 				image.state.marker.set(marker);
@@ -158,8 +158,8 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			const $tour = get(micrio.state.tour);
 			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) micrio.state.tour.set(undefined);
 			await tick();
-			if (marker.view && !data.noAnimate && !marker.videoTour) {
-				image.camera.flyToView(marker.view, {
+			if (view && !data.noAnimate && !marker.videoTour) {
+				image.camera.flyToView(view, {
 					omniIndex: image._isOmni ? this.#omniIndex : undefined,
 					isJump: true
 				}).then(openContent).catch(() => {
