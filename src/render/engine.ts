@@ -367,7 +367,7 @@ export class Engine {
 
 		const gallerySwitch = !!this.#isGallery && settings.gallery?.type == 'switch';
 
-		const numOmniLayers = settings.omni?.layers?.length ?? 1;
+		const numOmniLayers = Math.max(1, settings.omni?.layers?.length ?? 1);
 		if (settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);
 
 		const canvas = new TileCanvas(
