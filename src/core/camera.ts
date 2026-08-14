@@ -23,13 +23,13 @@ export class Camera {
 	#canvas?: TileCanvas;
 
 	/** Promise resolve function called when a camera animation completes successfully. @internal */
-	_aniDone: Function | undefined;
+	_aniDone: (() => void) | undefined;
 
 	/** Promise reject function called when a camera animation is aborted (e.g., by user interaction). @internal */
-	_aniAbort: Function | undefined;
+	_aniAbort: (() => void) | undefined;
 
 	/** Array of additional callbacks to execute when an animation finishes. Used for queuing actions. @internal */
-	_aniDoneAdd: Function[] = [];
+	_aniDoneAdd: (() => void)[] = [];
 
 	/** Possible .zoom() override for Book3D */
 	_zoomOverride: ((n:number) => void) | undefined;
@@ -374,7 +374,7 @@ export class Camera {
 	// ─── Promise-based animations ──────────────────────────────────
 
 	/** Sets the internal Promise resolve/reject functions for the current animation. @internal */
-	#setAniPromises(ok: (...a: any[]) => any, abort: (...a: any[]) => any): void {
+	#setAniPromises(ok: () => void, abort: () => void): void {
 		this._aniDone = ok;
 		this._aniAbort = abort;
 	}
