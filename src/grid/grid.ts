@@ -359,12 +359,13 @@ export class Grid extends MicrioElement {
 		const w = this.micrio.offsetWidth;
 		const h = this.micrio.offsetHeight;
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1)));
+		const imageById = new Map(images.map(i => [i.id, i]));
 		this.style.transform = '';
 		this.childNodes.forEach((n:ChildNode) => {
 			const e = n as HTMLElement;
 			const id = e.dataset.id;
 			const r = e.getBoundingClientRect();
-			const img = images.find(i => i.id == id);
+			const img = id ? imageById.get(id) : undefined;
 			const o = [(s/2)*r.width, (s/2)*r.height];
 			if(img && !img.area) img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.width-o[0]*2)/w, (r.height-o[1]*2)/h]
 		});
