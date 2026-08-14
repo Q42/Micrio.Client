@@ -243,7 +243,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: Engine, hasArchive: boolean) {
 		if (!total || !engine?.ready) return;
-		const request: any = self.requestIdleCallback ?? self.requestAnimationFrame;
+		const request: (cb: () => void) => number = self.requestIdleCallback ?? self.requestAnimationFrame;
 		for (let x = -d; x <= d; x++) {
 			if (!x) continue;
 			let rX = center + x;
@@ -251,9 +251,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			while (rX >= total) rX -= total;
 			const tile = getTile(rX);
 			if (tile?.thumbSrc && !this.#preloading.has(tile.thumbSrc)) {
-				this.#preloading.set(tile.thumbSrc, request(() =>
-					engine._getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive })
-				));
+				this.#preloading.set(tile.thumbSrc, request(() => {
+					engine._getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive });
+					this.#preloading.delete(tile.thumbSrc!);
+				}));
 			}
 		}
 	}
