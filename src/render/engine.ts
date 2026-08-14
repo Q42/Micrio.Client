@@ -136,8 +136,8 @@ export class Engine {
 	#images: Array<MicrioImage | Models.Omni.Frame> = [];
 	/** Flag indicating if barebone mode is active. @internal */
 	#bareBoneSetting: boolean = false;
-	/** Array storing the base tile index for each image. @internal */
-	#baseTiles: number[] = [];
+	/** Set of base tile indices (loaded, never evicted). @internal */
+	#baseTiles: Set<number> = new Set();
 	/** Set storing the indices of tiles drawn in the current frame. @internal */
 	#drawnSet: Set<number> = new Set();
 	/** Set storing the indices of tiles drawn in the previous frame. @internal */
@@ -566,7 +566,7 @@ export class Engine {
 	/** Registers a base tile index (mark loaded, cache in set). @internal */
 	#registerBaseTile(idx: number): void {
 		this.#getTileEntry(idx)._opacity = 1;
-		this.#baseTiles.push(idx);
+		this.#baseTiles.add(idx);
 	}
 
 	/** Prepares the WebGL context for drawing a new frame. @internal */
@@ -656,7 +656,7 @@ export class Engine {
 
 		for (const idx of this.#prevDrawnSet) {
 			if (this.#drawnSet.has(idx)) continue;
-			if (this.#baseTiles.includes(idx)) continue;
+			if (this.#baseTiles.has(idx)) continue;
 
 			const tile = this.#tiles.get(idx);
 			if (!tile || tile._loadState === 0) continue;
