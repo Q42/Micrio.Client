@@ -431,6 +431,9 @@ function injectStyles(): void {
 	white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
 .gd-note { margin-top: 12px; font-size: 11px; color: #77848d; line-height: 1.5; }
+.gd-docs { display: flex; flex-direction: column; gap: 6px; }
+.gd-docs a { color: #00d4ee; text-decoration: none; font-size: 12px; }
+.gd-docs a:hover { text-decoration: underline; }
 `;
 	const style = h('style');
 	style.textContent = css;
@@ -489,6 +492,14 @@ function buildShell(): HTMLElement {
 					<button data-act="stop-tour" title="Stop the running tour and reset">■ Stop</button>
 				</div>
 				<div class="gd-note" data-role="tour-note"></div>
+			</section>
+
+			<section>
+				<h3>Docs</h3>
+				<div class="gd-docs">
+					<a href="https://github.com/Q42/Micrio.Client/blob/main/templates/grid/README.md" target="_blank" rel="noopener">README — Grid API reference</a>
+					<a href="https://github.com/Q42/Micrio.Client/blob/main/templates/grid/HUMANS.md" target="_blank" rel="noopener">HUMANS — non-developer guide</a>
+				</div>
 			</section>
 
 			<div class="gd-note">Click a cell to focus it · <b>Esc</b> goes back · arrow keys navigate. Open the console and play with <code>window.grid</code>.</div>

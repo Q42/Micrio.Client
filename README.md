@@ -37,6 +37,15 @@ Key source directories under `./src/`:
 | `media/`  | Video tour and embedded video controllers |
 | `types/`  | TypeScript type definitions and models |
 
+## Grid template
+
+An interactive demo of the grid storytelling API lives in
+[`templates/grid/`](templates/grid/):
+
+- [`templates/grid/README.md`](templates/grid/README.md) — the technical Grid API reference.
+- [`templates/grid/HUMANS.md`](templates/grid/HUMANS.md) — the non-developer guide (markers, tours, video-tour events).
+- [`templates/grid/grid.html`](templates/grid/grid.html) + [`templates/grid/grid.ts`](templates/grid/grid.ts) — the runnable demo (`pnpm run dev`, then open `/templates/grid/grid.html`).
+
 ## Getting it running
 
 Make sure you have Node >= 18.17 and `pnpm` installed.
