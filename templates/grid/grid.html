@@ -23,17 +23,17 @@
 	</style>
 
 	<!-- Use this for local development -->
-	<script type="module" src="../../src/main.ts"></script>
+	<!-- <script type="module" src="../../src/main.ts"></script> -->
 
 	<!-- Use this to test the compiled version -->
 	<!-- <script src="../../dist/micrio.min.js" defer crossorigin="anonymous"></script> -->
 	<!-- <script src="../../dist/micrio.core.min.js" defer crossorigin="anonymous"></script> -->
 
 	<!-- Use a production version -->
-	<!-- <script src="https://r2.micr.io/micrio-7.1.0.min.js" defer></script> -->
+	<script src="https://r2.micr.io/micrio-7.1.0.min.js" defer></script>
 
-	<script>
-	</script>
+	<!-- Grid API demo + test interface (see ./grid.ts) -->
+	<script type="module" src="./grid.ts"></script>
 </head>
 
 <body>
@@ -41,35 +41,6 @@
 	<!-- https://dash.micr.io/micrio-shared/2026-grids/grid-template-demo -->
 	<micr-io id="sBuyejY"></micr-io>
 
-
-	<script>
-		window.micrio = document.querySelector('micr-io');
-
-		// Override the default settings by setting the `.defaultSettings` property
-		// on a <micr-io> HTML element
-		micrio.defaultSettings = {
-		};
-
-		// Listen to opened marker hooks
-		micrio.addEventListener('show', e => {
-			console.log('show', e.detail);
-			//console.log('Opened marker', e.detail);
-			console.log(micrio.$current.camera.getCoo(0,50));
-		});
-
-		// Put any pre-info init hooks here
-		micrio.addEventListener('pre-info', e => {
-			// At this point, you can manipulate the image settings for instance
-			// before it gets picked up by the Micrio initialization process.
-			//console.log(e.detail)
-		});
-
-		// Put any pre-data init hooks here
-		micrio.addEventListener('pre-data', e => {
-			// Same as `pre-info` hook, but this is for the image data / content.
-		});
-
-	</script>
 </body>
 
 </html>
