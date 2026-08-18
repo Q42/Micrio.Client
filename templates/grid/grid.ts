@@ -137,6 +137,98 @@ const MARKERS: Record<string, Marker[]> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Demo tours
+//
+// Micrio supports marker tours whose steps live on *different images*
+// (`MarkerTour.steps` + `MarkerTour.stepInfo[].micrioId`), and a marker can
+// carry its own `videoTour`. A video tour's `events` fire as `tour-event`
+// custom events, and any event whose `action` starts with `grid:` is executed
+// as a grid action by the Grid controller (see `src/grid/action-handlers.ts`).
+//
+// A marker can also trigger grid behavior directly: when a marker opens, the
+// grid reads `marker.data._meta.gridAction` (`action|data`) and runs it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Extra markers that drive a multi-image marker tour via `_meta.gridAction`. */
+const TOUR_MARKERS: Record<string, Marker[]> = {
+	sBuyejY: [{
+		id: 'tour-intro', x: 0.5, y: 0.5, view: [0, 0, 1, 1],
+		i18n: { en: { title: 'Welcome — the full grid' } },
+		data: { _meta: { gridAction: 'reset' } },
+	}],
+	JfujXSL: [{
+		id: 'tour-sisters', x: 0.5, y: 0.55, view: [0.3, 0.3, 0.4, 0.52],
+		i18n: { en: { title: 'The Sisters — every “figures” painting' } },
+		data: { _meta: { gridAction: 'focusWithTagged|figures' } },
+	}],
+	CpxjLFr: [{
+		id: 'tour-boats', x: 0.55, y: 0.55, view: [0.35, 0.34, 0.4, 0.42],
+		i18n: { en: { title: 'Boston Harbor — zoom into every “boats” motif' } },
+		data: { _meta: { gridAction: 'focusTagged|boats' } },
+	}],
+	pyjuYXY: [{
+		id: 'tour-outro', x: 0.5, y: 0.5, view: [0, 0, 1, 1],
+		i18n: { en: { title: 'The end — back to the overview' } },
+		data: { _meta: { gridAction: 'reset' } },
+	}],
+};
+
+/** Ordered steps for the marker-tour demo (image + marker to open on it). */
+const TOUR_STEPS: { image: string; markerId: string; note: string }[] = [
+	{ image: 'sBuyejY', markerId: 'tour-intro', note: 'gridAction: reset → full overview' },
+	{ image: 'JfujXSL', markerId: 'tour-sisters', note: 'gridAction: focusWithTagged figures' },
+	{ image: 'CpxjLFr', markerId: 'tour-boats', note: 'gridAction: focusTagged boats' },
+	{ image: 'pyjuYXY', markerId: 'tour-outro', note: 'gridAction: reset → overview' },
+];
+
+/**
+ * A standalone video tour (no audio) attached to a marker. Its camera
+ * `timeline` animates the focused image while its `events` fire `grid:*`
+ * actions at the given times — this is the marker-video-tour → grid-trigger
+ * chain.
+ */
+const GUIDED_TOUR: Models.ImageData.VideoTour = {
+	id: 'demo-guided-tour',
+	i18n: {
+		en: {
+			title: 'Guided grid tour',
+			duration: 14,
+			timeline: [
+				{ start: 0, end: 2, title: 'Overview', rect: [0, 0, 1, 1] },
+				{ start: 4, end: 8, title: 'Detail', rect: [0.3, 0.2, 0.45, 0.55] },
+				{ start: 10, end: 14, title: 'Overview', rect: [0, 0, 1, 1] },
+			],
+			events: [
+				{ start: 0.5, end: 1.5, action: 'grid:reset' },
+				{ start: 5, end: 7, action: 'grid:focusWithTagged', data: 'architecture' },
+				{ start: 8.5, end: 9.5, action: 'grid:focusTagged', data: 'boats' },
+				{ start: 11, end: 14, action: 'grid:reset' },
+			],
+		},
+	},
+};
+
+/** The marker that owns {@link GUIDED_TOUR}. Opening it starts the video tour. */
+const VIDEO_TOUR_MARKER: { image: string; marker: Marker } = {
+	image: 'sBuyejY',
+	marker: {
+		id: 'demo-guided',
+		x: 0.5, y: 0.5, view: [0, 0, 1, 1],
+		i18n: { en: { title: '▶ Play guided tour' } },
+		videoTour: GUIDED_TOUR,
+	},
+};
+
+/** Returns every demo marker for an image (tags + tour + video-tour). */
+function markersFor(id: string): Marker[] {
+	return [
+		...(MARKERS[id] ?? []),
+		...(TOUR_MARKERS[id] ?? []),
+		...(VIDEO_TOUR_MARKER.image === id ? [VIDEO_TOUR_MARKER.marker] : []),
+	];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Focus transitions available for `grid.gridFocus()`.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -156,6 +248,10 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, te
 	if (className) e.className = className;
 	if (text !== undefined) e.textContent = text;
 	return e;
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise(ok => setTimeout(ok, ms));
 }
 
 /** Build a whole-image thumbnail URL from the image's (corner-tile) `thumbSrc`. */
@@ -385,6 +481,16 @@ function buildShell(): HTMLElement {
 				</div>
 			</section>
 
+			<section>
+				<h3>Tours</h3>
+				<div class="gd-row">
+					<button data-act="marker-tour" title="Multi-image marker tour: each marker's gridAction changes the grid">▶ Marker tour</button>
+					<button data-act="guided-tour" title="A marker's own video tour fires grid: events on its timeline">▶ Guided tour</button>
+					<button data-act="stop-tour" title="Stop the running tour and reset">■ Stop</button>
+				</div>
+				<div class="gd-note" data-role="tour-note"></div>
+			</section>
+
 			<div class="gd-note">Click a cell to focus it · <b>Esc</b> goes back · arrow keys navigate. Open the console and play with <code>window.grid</code>.</div>
 		</aside>
 
@@ -414,10 +520,11 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 	focusTrans.value = 'slide-up';
 
 	const getTransition = () => focusTrans.value as FocusTransition;
+	const tourNote = root.querySelector<HTMLElement>('[data-role="tour-note"]')!;
 
 	buildStrip(strip, micrio, grid, getTransition);
 	buildTags(tagsBox, grid);
-	wireButtons(root, micrio, grid, getTransition);
+	wireButtons(root, micrio, grid, getTransition, tourNote);
 
 	const setSub = (s: string) => (sub.textContent = s);
 	setSub(`${CATALOG.length} images · ${Object.keys(MARKERS).length} with demo markers · click a cell to focus`);
@@ -447,8 +554,8 @@ async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
 	if (!gallery) return;
 
 	for (const { id } of CATALOG) {
-		const markers = MARKERS[id];
-		if (!markers?.length) continue;
+		const markers = markersFor(id);
+		if (!markers.length) continue;
 
 		const img = await gallery.gotoId(id);
 		if (!img) continue;
@@ -535,7 +642,7 @@ function allCells(): GridImage[] {
 	return CATALOG_IDS.map(id => ({ id, size: [1] as [number, number?] }));
 }
 
-function wireButtons(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, getTransition: () => FocusTransition): void {
+function wireButtons(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, getTransition: () => FocusTransition, tourNote: HTMLElement): void {
 	const on = (act: string, fn: () => void) => {
 		root.querySelector<HTMLButtonElement>(`[data-act="${act}"]`)?.addEventListener('click', fn);
 	};
@@ -577,5 +684,83 @@ function wireButtons(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, g
 	on('switch', () => grid.action('switchToGrid'));
 	on('slowfocus', () => {
 		void focusById(micrio, grid, CATALOG_IDS[0], getTransition(), 2.5);
+	});
+
+	// Tours
+	on('marker-tour', () => void runMarkerTour(micrio, grid, tourNote));
+	on('guided-tour', () => void runGuidedTour(micrio, grid, tourNote));
+	on('stop-tour', () => stopTours(micrio, grid, tourNote));
+}
+
+// ── demo tours ───────────────────────────────────────────────────────────────
+
+/** Monotonic token used to cancel a running tour (bumped by `stopTours`). */
+let tourToken = 0;
+
+function stopTours(micrio: HTMLMicrioElement, grid: Grid, note: HTMLElement): void {
+	tourToken++;
+	micrio.state.tour.set(undefined);
+	micrio.state.marker.set(undefined);
+	note.textContent = 'Tour stopped.';
+	void grid.reset(0.5);
+}
+
+/** Focus an image and open one of its markers, returning the image (or undefined). */
+async function openMarker(micrio: HTMLMicrioElement, grid: Grid, imageId: string, markerId: string, token: number): Promise<MicrioImage | undefined> {
+	const img = await micrio.gallery?.gotoId(imageId);
+	if (!img || token !== tourToken) return img;
+	await grid.gridFocus(img, { transition: 'slide-up', duration: 0.8 });
+	if (token !== tourToken) return img;
+	await sleep(400); // let the marker element render after focus
+	if (token !== tourToken) return img;
+	img.state.marker.set(markerId);
+	return img;
+}
+
+/**
+ * Demo 1 — a marker tour whose steps live on different images. Opening each
+ * marker runs its `data._meta.gridAction`, so the grid re-lays out at every
+ * step (`reset`, `focusWithTagged`, `focusTagged`, …).
+ */
+async function runMarkerTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLElement): Promise<void> {
+	const token = ++tourToken;
+
+	for (const step of TOUR_STEPS) {
+		if (token !== tourToken) return;
+		note.textContent = `Marker tour — ${titleOf(step.image)} · ${step.note}`;
+
+		const img = await openMarker(micrio, grid, step.image, step.markerId, token);
+		if (!img) continue;
+
+		await sleep(2600);
+		if (token !== tourToken) return;
+		img.state.marker.set(undefined);
+	}
+
+	if (token !== tourToken) return;
+	await grid.reset(1);
+	note.textContent = 'Marker tour finished — back to the overview.';
+}
+
+/**
+ * Demo 2 — a marker with its own standalone video tour. Opening the marker
+ * starts the video tour; its camera `timeline` animates the focused image and
+ * its `events` fire `grid:*` actions at the given times.
+ */
+async function runGuidedTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLElement): Promise<void> {
+	const token = ++tourToken;
+
+	note.textContent = 'Guided tour — a marker video tour firing grid triggers…';
+	const img = await openMarker(micrio, grid, VIDEO_TOUR_MARKER.image, VIDEO_TOUR_MARKER.marker.id, token);
+	if (!img) return;
+
+	// The video tour runs on its own; watch for it to finish.
+	const unsub = micrio.state.tour.subscribe(t => {
+		if (token !== tourToken) { unsub(); return; }
+		if (!t) {
+			unsub();
+			note.textContent = 'Guided tour finished.';
+			void grid.reset(1);
+		}
 	});
 }
