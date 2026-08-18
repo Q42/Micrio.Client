@@ -173,11 +173,7 @@ function titleOf(id: string): string {
 // Boot
 // ─────────────────────────────────────────────────────────────────────────────
 
-const micrio = document.querySelector('micr-io') as HTMLMicrioElement | null;
-
-if (!micrio) {
-	console.error('[grid demo] No <micr-io> element found.');
-} else {
+function boot(micrio: HTMLMicrioElement): void {
 	(window as unknown as { micrio: HTMLMicrioElement }).micrio = micrio;
 	micrio.defaultSettings = {
 		// Keep the demo canvas clean — our panel replaces the default UI.
@@ -207,6 +203,22 @@ if (!micrio) {
 		(window as unknown as { grid: Grid }).grid = grid;
 		void init(root, micrio, grid);
 	});
+}
+
+// Resolve the `<micr-io>` element. When this file is bundled as a classic
+// script for a static release, it may execute in `<head>` before the element
+// in `<body>` has been parsed — in that case wait for the document to finish.
+const micrioEl = document.querySelector('micr-io') as HTMLMicrioElement | null;
+if (micrioEl) {
+	boot(micrioEl);
+} else if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', () => {
+		const el = document.querySelector('micr-io') as HTMLMicrioElement | null;
+		if (el) boot(el);
+		else console.error('[grid demo] No <micr-io> element found.');
+	});
+} else {
+	console.error('[grid demo] No <micr-io> element found.');
 }
 
 /**
