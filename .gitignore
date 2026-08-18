@@ -2,4 +2,5 @@ node_modules
 public/dist/micrio.min.*
 public/dist/micrio.core.min.*
 public/build/micrio.prod.*
+templates/grid/grid.js
 pnpm-lock.yaml

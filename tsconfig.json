@@ -39,7 +39,8 @@
 		"src/render/**/*",
 		"src/utils/**/*",
 		"src/grid/**/*",
-		"src/book/**/*"
+		"src/book/**/*",
+		"templates/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }
