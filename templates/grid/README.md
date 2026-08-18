@@ -15,11 +15,13 @@ Grid controller can:
   swipe, "behind", staggered appear, …),
 - **focus** on a single image (zoom into it, with an exit animation), and
   navigate back to the overview,
-- be driven **declaratively from data**: Micrio Markers and Tours can trigger
-  any of these behaviors.
+- be driven **declaratively from data**: Micrio Markers, multi-image / serial
+  marker tours, and video-tour **events** can trigger any of these behaviors on
+  a timeline.
 
-Everything below is derived from the source in `src/grid/` — read that if you
-want the exact behavior behind an API.
+Everything below is derived from the source (`src/grid/`, `src/tour/`,
+`src/media/`, `src/markers/`) — read those if you want the exact behavior
+behind an API. `templates/grid/grid.ts` is a runnable demo of all of it.
 
 ---
 
@@ -27,14 +29,18 @@ want the exact behavior behind an API.
 
 1. [How a grid is created](#how-a-grid-is-created)
 2. [Getting a reference to the Grid controller](#getting-a-reference-to-the-grid-controller)
-3. [The data model](#the-data-model)
-4. [The Grid API](#the-grid-api)
-5. [Grid actions](#grid-actions)
-6. [Driving grids from Markers](#driving-grids-from-markers)
-7. [Driving grids from Tours](#driving-grids-from-tours)
-8. [Grid settings](#grid-settings)
-9. [Grid events](#grid-events)
-10. [A complete storytelling example](#a-complete-storytelling-example)
+3. [Public API vs internal fields](#public-api-vs-internal-fields)
+4. [The data model](#the-data-model)
+5. [The Grid API](#the-grid-api)
+6. [Grid actions](#grid-actions)
+7. [Driving grids from Markers](#driving-grids-from-markers)
+8. [Marker tours & serial tours](#marker-tours--serial-tours)
+9. [Video tours](#video-tours)
+10. [Video-tour events (`grid:` triggers)](#video-tour-events-grid-triggers)
+11. [Grid settings](#grid-settings)
+12. [Grid events](#grid-events)
+13. [A complete storytelling example](#a-complete-storytelling-example)
+14. [Reference: source files](#reference-source-files)
 
 ---
 
@@ -85,7 +91,7 @@ const micrio = document.querySelector('micr-io');
 
 micrio.addEventListener('grid-init', e => {
   const grid = e.detail; // the Grid controller
-  console.log('Grid ready, images:', grid._images.length);
+  console.log('Grid ready');
 });
 ```
 
@@ -123,6 +129,37 @@ Key public properties on the controller:
 
 ---
 
+## Public API vs internal fields
+
+Micrio follows an underscore convention for *internal* members:
+`grid._images`, `grid._imageMap`, `grid._current`, `micrio._canvases` and
+`micrio.gallery._images` are all marked `@internal` in the source.
+
+That matters for two reasons:
+
+1. They are **not part of the public contract** and can change between
+   releases.
+2. The production bundle renames them. `vite.config.js` mangles every property
+   matching `^_(?!markers$|360$|meta$)`, so `grid._images` and friends resolve
+   to `undefined` when you run against `micrio.min.js` or the CDN build. They
+   only work against the *unminified* dev source (`src/main.ts`).
+
+Stick to the public surface:
+
+| Do this (public, minification-safe) | Instead of (internal, breaks in prod) |
+|--------------------------------------|----------------------------------------|
+| `grid.$focussed`, `grid.image`, `grid.micrio` | `grid._focussed`, `grid._current`, … |
+| `grid.set/reset/back/blur/gridFocus/action/enlarge` | poking internal state |
+| `micrio.gallery.gotoId(id)` → `MicrioImage` | `grid._imageMap.get(id)` |
+| `img.id`, `img.$data`, `img.$settings`, `img.thumbSrc`, `img.data` | `img._something` |
+
+`micrio.gallery.gotoId(id)` resolves a cell to its `MicrioImage` instance by
+album image ID, and survives minification (it is a public method). Keep your
+own list of image IDs (from the album definition / editor), exactly like the
+demo template's `CATALOG` in `templates/grid/grid.ts`.
+
+---
+
 ## The data model
 
 The grid works with a small set of types from `src/types/models/grid.ts`.
@@ -145,10 +182,13 @@ interface GridImage {
 }
 ```
 
-- `id` must refer to an image that is part of the grid album (`grid._imageMap`).
-  The IDs come from the album's image list; `grid._images` and `grid._imageMap`
-  are marked `@internal` in the source but are the practical way to enumerate
-  the images and resolve IDs at runtime (used in the examples below).
+- `id` must refer to an image that is part of the grid album. The IDs come from
+  the album's image list (the editor shows them). The internal
+  `grid._images` / `grid._imageMap` maps exist but are renamed by the minifier
+  — see [Public API vs internal fields](#public-api-vs-internal-fields). For
+  the examples below, treat `grid._images` as a readable stand-in for "your own
+  list of the album's image IDs", and prefer
+  `micrio.gallery.gotoId(id)` to resolve instances.
 - `size` controls the CSS `grid-area` span. `[1]` is a normal cell, `[2,1]` or
   `[2]` spans two columns, `[2,2]` spans two columns and two rows.
 - `area` lets you position an image *within the viewport* directly (used
@@ -458,37 +498,217 @@ jumps to this marker's image (`Grid.MarkerFocusTransition`):
 
 ---
 
-## Driving grids from Tours
+## Marker tours & serial tours
 
-The grid listens for Micrio **tour events** whose `action` starts with
-`grid:`. Any tour event of the form `action: "grid:<name>"` is dispatched to
-the same action handler, with the event's `data` and its duration
-(`event.end - event.start`):
+A **marker tour** (`Models.ImageData.MarkerTour`) is an ordered list of markers
+that Micrio walks through, opening each in turn. Its steps live in `steps`
+(marker IDs) and are fleshed out by `stepInfo` (`MarkerTourStepInfo[]`), which
+Micrio generates from the marker data.
 
-```json
-{
-  "start": 0,
-  "end": 2,
-  "action": "grid:focus",
-  "data": "imgA,imgB|h"
+```ts
+interface MarkerTourStepInfo {
+  markerId: string;      // the marker to open
+  micrioId: string;      // the image that marker lives on
+  duration: number;      // step length (seconds)
+  startView?: Camera.View;
+  chapter?: number;
+  /** Stay in the grid view for this step (multi-image grid tours). */
+  gridView?: boolean;
 }
 ```
 
-```json
-{
-  "start": 2,
-  "end": 5,
-  "action": "grid:reset"
+A tour becomes **multi-image** when its steps reference different `micrioId`s.
+Start one by setting the global tour store:
+
+```js
+micrio.state.tour.set(markerTour);
+```
+
+`MarkerTour` fields worth knowing: `steps`, `stepInfo`, `isSerialTour`,
+`initialStep`, `printChapters`, `noControls`, `keepLastStep`, and runtime
+`next` / `prev` / `goto` helpers.
+
+### Serial tours
+
+Set `isSerialTour: true` to render the tour as a **serial tour**
+(`micrio-serial-tour` instead of `micrio-tour`): a single media timeline with
+per-step progress bars and chapter navigation, driven by each step's duration.
+In practice serial steps each carry a small video tour (see below) whose end
+auto-advances to the next step.
+
+```js
+micrio.state.tour.set({
+  id: 'my-serial-tour',
+  isSerialTour: true,
+  steps: ['markerA', 'markerB', 'markerC'],
+  stepInfo: [
+    { markerId: 'markerA', micrioId: 'imageA', duration: 6 },
+    { markerId: 'markerB', micrioId: 'imageB', duration: 6 },
+    { markerId: 'markerC', micrioId: 'imageC', duration: 6 },
+  ],
+});
+```
+
+### `gridView`
+
+For multi-image tours *inside a grid*, a step can opt to stay in the grid view
+instead of focusing a single image. It surfaces in two places:
+
+- marker `data._meta.gridView` (the editor's "Custom JSON" field), and
+- `MarkerTourStepInfo.gridView`, propagated by Micrio.
+
+`micrio.open(id, { gridView: true })` honours it and keeps the grid active.
+
+> **Grid gotcha.** When a gallery (including a grid) is active,
+> `micrio.open(id)` short-circuits to `gallery.gotoId(id)` and returns the
+> image **without focusing it**. To focus a specific cell, call
+> `grid.gridFocus(img)` (or `grid.action('focus', id)`) yourself — the demo
+> template drives its tours through this public API for exactly this reason.
+
+---
+
+## Video tours
+
+A **video tour** (`Models.ImageData.VideoTour`) is a timed camera animation
+with optional audio. Its per-language content carries a `timeline` and
+`events`:
+
+```ts
+interface VideoTourCultureData {
+  title?: string;
+  duration: number;              // total length, seconds
+  timeline: VideoTourView[];     // camera path
+  events: Event[];               // timed custom events
+  audio?: Assets.Audio;          // optional soundtrack / narration
+  subtitle?: Assets.Subtitle;
+}
+
+interface VideoTourView {
+  start: number;                 // when the camera ARRIVES at rect
+  end: number;                   // when it LEAVES rect
+  title?: string;
+  rect: Camera.View;             // [x, y, w, h]
+}
+
+interface Event {
+  start: number;
+  end: number;
+  action?: string;               // e.g. "grid:focusTagged"
+  data?: string;                 // action payload
+  id?: string;
 }
 ```
 
-Because these reuse `GridActionType`, every action in the
-[table above](#grid-actions) is available in a tour timeline: `grid:focus`,
-`grid:flyTo`, `grid:focusTagged`, `grid:focusWithTagged`, `grid:reset`,
-`grid:back`, `grid:switchToGrid`, `grid:filterTourImages`,
+### Timeline semantics
+
+The `start`/`end` of a view are arrival/leave times, not animation durations:
+
+- the **animation into** a view lasts `view.start - previousView.end`;
+- the **hold** at a view lasts `view.end - view.start`;
+- the **first** view (`start: 0`) is the initial camera position (no arrival
+  animation).
+
+So this zooms in and back out smoothly:
+
+```js
+timeline: [
+  { start: 0,  end: 2,  rect: [0, 0, 1, 1] },            // hold overview
+  { start: 4,  end: 8,  rect: [0.3, 0.2, 0.45, 0.55] },  // 2s zoom-in, hold detail
+  { start: 10, end: 14, rect: [0, 0, 1, 1] },            // 2s zoom-out, hold overview
+]
+```
+
+### Markers with their own video tour
+
+A marker can carry a video tour in `marker.videoTour`. Opening such a marker
+(with no popup content) starts the tour — `src/markers/marker.ts` calls
+`micrio.state.tour.set(marker.videoTour)`:
+
+```json
+{
+  "id": "myMarker",
+  "x": 0.5,
+  "y": 0.5,
+  "videoTour": { "id": "myTour", "i18n": { "en": { "duration": 14, "timeline": [], "events": [] } } }
+}
+```
+
+You can also start one directly (it animates the current image):
+
+```js
+micrio.state.tour.set(videoTour);
+```
+
+### Standalone video tours
+
+A video tour does **not** need audio/video to run. With no media `src`,
+`micrio-media` treats it as a standalone tour: it advances `currentTime` on a
+timer, animates the camera through the timeline, and still fires `events`.
+That makes it a clean way to script a grid sequence without producing an audio
+file.
+
+---
+
+## Video-tour events (`grid:` triggers)
+
+`VideoTour.events` are the workhorse for data-driven grid storytelling. During
+playback `VideoTourInstance.updateEvents(time)` marks each event `active` while
+`event.start <= time <= event.end` and dispatches a `tour-event` custom event
+(with the event object as `detail`) whenever that state flips.
+
+The Grid controller listens for `tour-event` (`src/grid/action-handlers.ts`).
+Any event whose `action` starts with `grid:` is run as a grid action:
+
+```js
+// createTourEventHandler, simplified
+if (!event.action?.startsWith('grid:')) return;
+if (event.active) handleAction(grid, event.action.slice(5), event.data, event.end - event.start);
+```
+
+So the event:
+
+- `action` → the `GridActionType` name **after** the `grid:` prefix;
+- `data` → the action's data (tag name, comma-separated image IDs, …);
+- `event.end - event.start` → the action `duration` (seconds);
+- fires once, when the event **becomes active** (and `handleAction` dedupes
+  immediately-repeated identical actions).
+
+A full example — a standalone video tour that re-lays-out the grid on a
+timeline:
+
+```json
+{
+  "id": "guided-tour",
+  "i18n": {
+    "en": {
+      "title": "Guided grid tour",
+      "duration": 14,
+      "timeline": [
+        { "start": 0, "end": 2,  "rect": [0, 0, 1, 1] },
+        { "start": 4, "end": 8,  "rect": [0.3, 0.2, 0.45, 0.55] },
+        { "start": 10, "end": 14, "rect": [0, 0, 1, 1] }
+      ],
+      "events": [
+        { "start": 0.5, "end": 1.5, "action": "grid:reset" },
+        { "start": 5,   "end": 7,   "action": "grid:focusWithTagged", "data": "architecture" },
+        { "start": 8.5, "end": 9.5, "action": "grid:focusTagged",     "data": "boats" },
+        { "start": 11,  "end": 14,  "action": "grid:reset" }
+      ]
+    }
+  }
+}
+```
+
+Every `GridActionType` is available this way:
+`grid:focus`, `grid:flyTo`, `grid:focusTagged`, `grid:focusWithTagged`,
+`grid:reset`, `grid:back`, `grid:switchToGrid`, `grid:filterTourImages`,
 `grid:nextFadeDuration`.
 
-This is how you sequence an entire grid narrative along a video tour timeline.
+Related: `marker.data.gridTourTransition` picks the `MarkerFocusTransition`
+(e.g. `"slide-up"`) used when a tour jumps to that marker's image, and a
+marker's `data._meta.gridAction` (`action|data`) fires the same handler the
+moment the marker opens — see
+[Driving grids from Markers](#driving-grids-from-markers).
 
 ---
 
@@ -602,11 +822,19 @@ narrative can be authored in the editor rather than in code.
 |------|---------|
 | `src/grid/grid.ts` | The `Grid` controller (layout, focus, history, actions). |
 | `src/grid/actions.ts` | `GridActionType` enum. |
-| `src/grid/action-handlers.ts` | Action implementations + tour-event dispatch. |
+| `src/grid/action-handlers.ts` | Action implementations + the `grid:` tour-event dispatch. |
 | `src/grid/transitions.ts` | Focus/set transition implementations. |
 | `src/grid/format.ts` | Column calculation and slide/swipe areas. |
 | `src/grid/keyboard.ts` | Arrow-key / Escape navigation. |
 | `src/types/models/grid.ts` | `GridImage`, `FocusOptions`, transition types. |
 | `src/types/models/info.ts` | `Settings.grid` and `GalleryConfig.grid`. |
-| `src/types/models/data.ts` | `Marker.data._meta`, `gridTourTransition`. |
-| `src/gallery/controller.ts` | Creates the grid when gallery `type === 'grid'`. |
+| `src/types/models/data.ts` | `Marker`/`MarkerTour`/`VideoTour`/`Event`, `_meta`, `gridTourTransition`. |
+| `src/types/models/events.ts` | Grid + tour event map (`grid-init`, `tour-event`, …). |
+| `src/gallery/controller.ts` | Creates the grid when gallery `type === 'grid'`; `gotoId`. |
+| `src/core/element.ts` | `open()` — grid focus, `gridView`, the gallery short-circuit. |
+| `src/tour/tour.ts` | `micrio-tour` (marker tour prev/next UI). |
+| `src/tour/serial-tour.ts` | `micrio-serial-tour` (timeline bars + chapters). |
+| `src/media/videotour.ts` | `VideoTourInstance` — camera timeline + event dispatch. |
+| `src/media/media.ts` | `micrio-media` — media & standalone video-tour playback. |
+| `src/markers/marker.ts` | Marker open → `videoTour` start / `gridAction`. |
+| `templates/grid/grid.ts` | The working demo (public-API tour runners, marker data). |
