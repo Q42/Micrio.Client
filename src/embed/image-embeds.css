@@ -1,4 +1,17 @@
+:root {
+  --micrio-embed-fade-in-duration: 0.6s;
+  --micrio-embed-fade-in-ease: ease;
+}
 
-micrio-image-embeds>* {
+micrio-image-embeds > * {
 	pointer-events: all;
+}
+
+micrio-image-embeds img {
+  opacity: 0;
+  transition: opacity var(--micrio-embed-fade-in-duration) var(--micrio-embed-fade-in-ease);
+}
+
+micrio-image-embeds img[data-loaded] {
+  opacity: 1;
 }

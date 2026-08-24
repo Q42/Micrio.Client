@@ -232,7 +232,13 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				},
 				style: this.#buttonStyle,
 				attrs: { 'data-scroll-through': '' },
-				parent: this.#container
+        parent: this.#container,
+        events: {
+          load: (e: Event) => {
+            const img = e.target as HTMLImageElement;
+            img.setAttribute("data-loaded", "");
+          },
+        }
 			});
 		} else {
 			const $_lang = get(this.#micrio._lang);
