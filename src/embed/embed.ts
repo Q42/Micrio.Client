@@ -47,7 +47,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#screenIsHDR = false;
 	#isBook3d = false;
 	#embedImageAsHtml = false;
-	#printGL = false;
+	#printGL = true;
 	#noEvents = false;
 	#href: string | undefined;
 	#hrefBlankTarget = false;
@@ -232,7 +232,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				},
 				style: this.#buttonStyle,
 				attrs: { 'data-scroll-through': '' },
-				parent: this.#container
+        parent: this.#container,
+        events: {
+          load: (e: Event) => {
+            console.log("test", this, e.target);
+            const img = e.target as HTMLImageElement;
+            img.setAttribute("data-loaded", "");
+          },
+        }
 			});
 		} else {
 			const $_lang = get(this.#micrio._lang);
