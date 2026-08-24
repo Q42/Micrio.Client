@@ -47,7 +47,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#screenIsHDR = false;
 	#isBook3d = false;
 	#embedImageAsHtml = false;
-	#printGL = true;
+	#printGL = false;
 	#noEvents = false;
 	#href: string | undefined;
 	#hrefBlankTarget = false;
@@ -235,7 +235,6 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
         parent: this.#container,
         events: {
           load: (e: Event) => {
-            console.log("test", this, e.target);
             const img = e.target as HTMLImageElement;
             img.setAttribute("data-loaded", "");
           },
