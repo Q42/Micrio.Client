@@ -92,7 +92,21 @@
 	</div>
 
 	<script>
+		// Loading-phase events fired by <micr-io>, in roughly the order they occur.
+		// 'tiles-rendered' is the newest addition; the rest are the existing ones.
+		const LOADING_EVENTS = ['pre-info', 'pre-data', 'print', 'load', 'tiles-rendered', 'show'];
+
 		const tests = [
+			// ── Events ─────────────────────────────────────────────
+			{ name: 'Loading events', id: 'dzzLm', type: 'events', description: 'Logs the new and existing loading events to the console',
+				htmlString: '<micr-io id="dzzLm"></micr-io>',
+				onRender: (micrio) => {
+					for (const ev of LOADING_EVENTS) {
+						micrio.addEventListener(ev, e => console.log(`[micrio] ${ev}`, e.detail));
+					}
+					console.log('[micrio] listening for loading events:', LOADING_EVENTS.join(', '));
+				} },
+
 			// ── Basic ──────────────────────────────────────────────
 			{ id: 'dzzLm', type: 'basic', description: 'Basic test image',
 				htmlString: '<micr-io id="dzzLm" lxang="nl" datxa-controls="false"></micr-io>',
@@ -261,6 +275,7 @@
 			noSel.style.display = 'none';
 			viewport.innerHTML = t.htmlString;
 			window.micrio = viewport.querySelector('micr-io')
+			if (window.micrio) t.onRender?.(window.micrio);
 		}
 
 		editBtn.addEventListener('click', () => {
