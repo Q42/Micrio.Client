@@ -20,6 +20,8 @@ export interface MicrioEventDetails {
 	'print': ImageInfo.ImageInfo;
 	/** Individual image data is loaded and Micrio will start rendering */
 	'load': MicrioImage;
+	/** The current image's tiles have finished rendering and it is fully faded in (opacity >= 1) */
+	'tiles-rendered': MicrioImage;
 	/** The user has switched available languages */
 	'lang-switch': string;
 

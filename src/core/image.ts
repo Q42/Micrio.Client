@@ -371,7 +371,10 @@ export class MicrioImage {
 				}
 				return l;
 			});
-			if(v && micrioRef.$current == this) micrioRef._switching.set(false);
+			if(v && micrioRef.$current == this) {
+				micrioRef._switching.set(false);
+				micrioRef.events._dispatch('tiles-rendered', this);
+			}
 		});
 
 		this.video.subscribe(v => this._video = v);
