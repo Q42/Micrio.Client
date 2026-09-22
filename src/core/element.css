@@ -93,6 +93,12 @@ canvas.micrio {
 	-webkit-touch-callout:none;
 	-webkit-user-select:none;
 }
+/* Stacked above <micrio-main> (DOM/UI, including HTML embeds) so 'front'-targeted
+ * embeds paint on top of it. Never receives pointer events, so panning/UI stay unaffected. */
+canvas.micrio.front {
+	pointer-events:none;
+	z-index:1;
+}
 micr-io:not([static]) {
 	overscroll-behavior:none;
 }

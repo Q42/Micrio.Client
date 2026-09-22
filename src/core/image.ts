@@ -13,6 +13,7 @@ import { getIdVal, idIsV5, randomUUID } from '$utils/id';
 import { DataLoader } from '$utils/dataLoader';
 import { State } from './state';
 import { createElement, loadScript } from '$utils/dom';
+import { EmbedStateController } from '$embed/embed-state';
 
 /** Keep track of already loaded scripts-- only do this once per session
  * @internal
@@ -191,6 +192,9 @@ export class MicrioImage {
 	get canvas(): TileCanvas | undefined { return this.#engine._getCanvas(this); }
 
 	readonly #engine: Engine;
+
+	/** Controller for cycling through `addEmbed(..., { states })` alternate content states, if configured. @internal */
+	#stateController?: EmbedStateController;
 	/** Options controlling this image instance's behaviour (embedding, area, parent camera usage). */
 	opts: {
 		/** Optional sub area [x, y, width, height] defining placement within a parent canvas (for embeds/galleries). */
@@ -440,10 +444,13 @@ export class MicrioImage {
 	 */
 	addEmbed(info:Partial<Models.ImageInfo.ImageInfo>, settings: Partial<Models.ImageInfo.Settings> | undefined, area:Models.Camera.View, opts:Models.Embeds.EmbedOptions = {}) : MicrioImage {
 		const a = area.slice(0); // Clone area array
+		// If any configured state is a video, the embed must be flagged as a video tile
+		// from the start so the engine keeps re-rendering while it plays.
+		const hasVideoState = !!opts.states?.some(s => 'video' in s && s.video);
 		// Create new MicrioImage instance for the embed
 		const img = new MicrioImage(this.#engine, {
 			id: info.id ?? '',
-			info: { ...info, id: info.id ?? '' } as Models.ImageInfo.ImageInfo,
+			info: { ...info, id: info.id ?? '', isVideo: info.isVideo || hasVideoState } as Models.ImageInfo.ImageInfo,
 			data: DataLoader._getBundleImageSync(info.id ?? '')?.data,
 			settings,
 		}, {area:a, isEmbed: true, useParentCamera: opts.asImage});
@@ -469,9 +476,22 @@ export class MicrioImage {
 		}
 		// Add the embed to the engine
 		this.#engine._addEmbed(img, this, opts);
+		if (opts.states?.length) {
+			img.#stateController = new EmbedStateController(img, opts.states);
+			img.#stateController.set(opts.initialState ?? 0);
+		}
 		this.#engine.render(); // Trigger render
 		return img; // Return the new embed instance
 	}
+
+	/** Advances a state-cycling embed (`addEmbed(..., { states })`) to its next state. No-op otherwise. */
+	nextState(): void { this.#stateController?.next(); }
+
+	/** Jumps a state-cycling embed directly to `index` (wraps). No-op if this embed has no configured states. */
+	setState(index: number): void { this.#stateController?.set(index); }
+
+	/** The current state index for a state-cycling embed, or -1 if none is configured. */
+	get stateIndex(): number { return this.#stateController?.index ?? -1; }
 
 	/** Map storing references to HTMLMediaElements associated with video embeds. @internal */
 	#embedElements:Map<string, HTMLMediaElement> = new Map();

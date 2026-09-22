@@ -124,6 +124,24 @@ export class HTMLMicrioElement extends MicrioElement {
 	*/
 	readonly _webgl:WebGL = new WebGL(this);
 
+	/** The front (above-DOM) WebGL rendering controller, created lazily by `_ensureFrontWebGL()`
+	 * the first time a `target: 'front'` embed is added.
+	 * @internal
+	*/
+	_webglFront?:WebGL;
+
+	/** Lazily creates the front WebGL context (and its `<canvas>`), used for embeds placed
+	 * above the DOM/UI layer via `image.addEmbed(..., { target: 'front' })`.
+	 * @internal
+	*/
+	_ensureFrontWebGL(): WebGL {
+		if(!this._webglFront) {
+			this._webglFront = new WebGL(this, this.canvas.ensureFront());
+			this._webglFront._init();
+		}
+		return this._webglFront;
+	}
+
 	/** The compute engine controller, managing the render loop and tile drawing.
 	 * @internal
 	*/
@@ -347,6 +365,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(this._ui) this._ui.remove();
 		delete this._ui;
 		this._webgl._dispose(true);
+		this._webglFront?._dispose(true);
 		this.#idle?.destroy();
 		if (this.#onActivity) {
 			for (const e of ['mousemove','pointerdown','wheel','focusin'] as const) {

@@ -239,7 +239,8 @@ export class TileCanvas {
 	 */
 	_addImage(x0: number, y0: number, x1: number, y1: number, w: number, h: number,
 		tileSize: number, isSingle: boolean, isDeepZoom: boolean, isVideo: boolean,
-		opa: number, rotX: number = 0, rotY: number = 0, rotZ: number = 0, scale: number = 1, fromScale: number = 0, parallax: number = 1): Image {
+		opa: number, rotX: number = 0, rotY: number = 0, rotZ: number = 0, scale: number = 1, fromScale: number = 0, parallax: number = 1,
+		target: 'back' | 'front' = 'back'): Image {
 		const image = new Image(
 			this,
 			this.main._numImages++,
@@ -247,7 +248,7 @@ export class TileCanvas {
 			w, h, tileSize,
 			isSingle, isDeepZoom, isVideo,
 			this.main._numTiles,
-			opa, opa, rotX, rotY, rotZ, scale, fromScale, parallax);
+			opa, opa, rotX, rotY, rotZ, scale, fromScale, parallax, target);
 		image._setArea(x0, y0, x1, y1);
 		this.images.push(image);
 		this.main._numTiles = image._endOffset;
@@ -401,20 +402,28 @@ export class TileCanvas {
 		if (this._targetOpacity === 0 && this._opacity === 0) return;
 
 		const m = this.main;
-		const gl = m.micrio._webgl;
 		const el = this.el;
 		const v = this.view;
 
 		const animating = this._ani._isStarted();
 
-		gl.gl.viewport(this.el.left, m.el.height - el.height - el.top, el.width, el.height);
-
+		// Draws start on the back context; switches to front only when a tile actually needs it.
+		let gl = m.micrio._webgl;
+		let curTarget: 'back' | 'front' = 'back';
+		gl.gl.viewport(el.left, m.el.height - el.height - el.top, el.width, el.height);
 		gl.gl.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
 		this.#boundParallaxImage = undefined;
 
 		if (this.#pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
 			if (!(im.x1 <= v.x0 || im.x0 >= v.x1 || im.y1 <= v.y0 || im.y0 >= v.y1)) {
+				if (im._target !== curTarget) {
+					curTarget = im._target;
+					gl = curTarget === 'front' && m.micrio._webglFront ? m.micrio._webglFront : m.micrio._webgl;
+					gl.gl.viewport(el.left, m.el.height - el.height - el.top, el.width, el.height);
+					gl.gl.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
+					this.#boundParallaxImage = undefined;
+				}
 				this.#setTile(im._endOffset - 1);
 				gl._drawTile(undefined, im._tOpacity);
 			}
@@ -424,6 +433,14 @@ export class TileCanvas {
 		for (let j = 0; j < this._toDraw.length; j++) {
 			const i: number = this._toDraw[j];
 			this.#setTile(i);
+
+			if (r.image._target !== curTarget) {
+				curTarget = r.image._target;
+				gl = curTarget === 'front' && m.micrio._webglFront ? m.micrio._webglFront : m.micrio._webgl;
+				gl.gl.viewport(el.left, m.el.height - el.height - el.top, el.width, el.height);
+				gl.gl.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
+				this.#boundParallaxImage = undefined;
+			}
 
 			if (!this.is360) {
 				const needsParallax = r.image._parallax !== 1 ? r.image : undefined;
@@ -441,7 +458,7 @@ export class TileCanvas {
 			const opa = m._getTileOpacity(i);
 
 			if ((isTargetLayer || opa === 1 || isBaseTile) && m._drawTile(r.image._index, i, r.layer,
-				r.x, r.y, opa * this.#bOpacity * r.image.opacity, animating, r.layer === r.image._targetLayer - 1)
+				r.x, r.y, opa * this.#bOpacity * r.image.opacity, animating, r.layer === r.image._targetLayer - 1, r.image._target)
 				&& isBaseTile) {
 				r.image._gotBase = m.now;
 				if (!this.#isReady) this._fadeIn();

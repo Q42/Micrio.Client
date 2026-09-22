@@ -104,10 +104,15 @@ export class WebGL {
 	*/
 	readonly #micrio:HTMLMicrioElement;
 
+	/** Explicit target canvas element, used for the lazily-created front (above-DOM) context. Defaults to `micrio.canvas.element`. @internal */
+	readonly #canvasEl?:HTMLCanvasElement;
+
 	constructor(
-		micrio:HTMLMicrioElement
+		micrio:HTMLMicrioElement,
+		canvasEl?:HTMLCanvasElement
 	){
 		this.#micrio = micrio;
+		this.#canvasEl = canvasEl;
 	}
 
 	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. @internal */
@@ -115,7 +120,7 @@ export class WebGL {
 		// Check for WebGL2 support
 		const hasGL2 = 'WebGL2RenderingContext' in window;
 		// Get WebGL context from the canvas
-		const gl = this.#micrio.canvas.element.getContext(hasGL2 ? 'webgl2' : 'webgl', {
+		const gl = (this.#canvasEl ?? this.#micrio.canvas.element).getContext(hasGL2 ? 'webgl2' : 'webgl', {
 			alpha: true, // Request alpha channel
 			// premultipliedAlpha: false, // Default is true, might affect blending
 			// preserveDrawingBuffer: true, // Needed for fadeBetween setting (legacy?) or explicit attribute

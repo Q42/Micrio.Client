@@ -168,6 +168,8 @@ export default class Image {
 	readonly _parallax: number;
 	/** Lazily-computed, parallax-scaled projection matrix, used instead of the canvas's shared matrix when _parallax !== 1. @internal */
 	_parallaxMatrix?: Mat4;
+	/** Which canvas/WebGL context this image draws on: 'back' (default, behind the DOM/UI layer) or 'front' (above it). @internal */
+	readonly _target: 'back' | 'front';
 
 	constructor(
 		canvas: TileCanvas,
@@ -187,7 +189,8 @@ export default class Image {
 		rotZ: number,
 		scale: number,
 		fromScale: number,
-		parallax: number = 1
+		parallax: number = 1,
+		target: 'back' | 'front' = 'back'
 	) {
 		this.#canvas = canvas;
 		this._index = index;
@@ -206,6 +209,7 @@ export default class Image {
 		this.#scale = scale;
 		this.#fromScale = fromScale;
 		this._parallax = parallax;
+		this._target = target;
 		const maxi = (width > height ? width : height);
 		this.#is360Embed = this.#canvas.is360 && this._localIdx > 0;
 

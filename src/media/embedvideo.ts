@@ -48,14 +48,14 @@ export class GLEmbedVideo {
 	 */
 	#engine: Engine;
 	#image: MicrioImage;
-	#embed: Models.ImageData.Embed;
+	#embed: Models.Embeds.EmbedVideoState;
 	#paused: boolean;
 	#moved: () => void;
 
 	constructor(
 		engine:Engine,
 		image:MicrioImage,
-		embed:Models.ImageData.Embed,
+		embed:Models.Embeds.EmbedVideoState,
 		paused:boolean, // Initial paused state
 		moved:() => void // Callback to trigger Engine render after state change
 	) {

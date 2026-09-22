@@ -17,6 +17,7 @@ import { Browser } from '$utils/browser';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
 
 import { TileCanvas } from './tile-canvas';
+import type { WebGL } from './webgl';
 import type Image from './tile-image';
 import { segsX, segsY } from './constants';
 import { type Bicubic, easeInOut } from './easing';
@@ -35,6 +36,8 @@ interface TileEntry {
 	_deleteAt?: number;
 	/** @internal */
 	_timeoutId?: number;
+	/** Which canvas/WebGL context this tile's texture belongs to. Set once when the entry is created. @internal */
+	_target: 'back' | 'front';
 }
 
 interface CanvasEntry {
@@ -172,6 +175,8 @@ export class Engine {
 
 	#raf: number = -1;
 	#drawing: boolean = false;
+	/** Whether the front (above-DOM) WebGL context has been cleared/started for the current frame. @internal */
+	#drawingFront: boolean = false;
 
 	/** The currently active canvas entry. @internal */
 	#activeCanvasEntry: CanvasEntry | null = null;
@@ -238,9 +243,9 @@ export class Engine {
 	 * @internal
 	 * @returns True if the tile texture is ready and drawn, false otherwise.
 	 */
-	_drawTile = (imgIdx: number, i: number, layer: number, x: number, y: number, opacity: number, animating: boolean, targetLayer: boolean): boolean => {
+	_drawTile = (imgIdx: number, i: number, layer: number, x: number, y: number, opacity: number, animating: boolean, targetLayer: boolean, target: 'back' | 'front' = 'back'): boolean => {
 		this.#drawnSet.add(i);
-		const tile = this.#getTileEntry(i);
+		const tile = this.#getTileEntry(i, target);
 		tile._deleteAt = undefined;
 
 		const numLoading = runningThreads();
@@ -257,7 +262,7 @@ export class Engine {
 
 			if (isVideo && !is360) {
 				tile._loadState = 2;
-				tile._texture = this.micrio._webgl._getTexture();
+				tile._texture = this.#glFor(target)._getTexture();
 			}
 			else {
 				tile._loadState = 1;
@@ -270,14 +275,14 @@ export class Engine {
 			}
 		}
 		else if (tile._loadState >= 2) {
-			if (!this.#drawing) this.#drawStart();
+			this.#drawStart(target);
 
 			if (tile._texture) {
 				if (isVideo) {
 					if (!img._video || !img._video.dataset.playing) return false;
-					this.micrio._webgl._updateTexture(tile._texture, img._video);
+					this.#glFor(target)._updateTexture(tile._texture, img._video);
 				}
-				this.micrio._webgl._drawTile(tile._texture, opacity, is360);
+				this.#glFor(target)._drawTile(tile._texture, opacity, is360);
 			}
 
 			if (tile._loadState === 2) {
@@ -517,6 +522,7 @@ export class Engine {
 
 		this.#raf = -1;
 		this.#drawing = false;
+		this.#drawingFront = false;
 
 		if (this._shouldDraw(now)
 			|| this.micrio._keepRendering
@@ -534,6 +540,7 @@ export class Engine {
 		this.#cleanup();
 
 		this.micrio._webgl._drawEnd();
+		if (this.micrio._webglFront) this.micrio._webglFront._drawEnd();
 	}
 
 	/** @internal */
@@ -554,26 +561,37 @@ export class Engine {
 	}
 
 	/** Gets or creates a tile entry for the given index. @internal */
-	#getTileEntry(i: number): TileEntry {
+	#getTileEntry(i: number, target: 'back' | 'front' = 'back'): TileEntry {
 		let tile = this.#tiles.get(i);
 		if (!tile) {
-			tile = { _loadState: 0, _opacity: 0 };
+			tile = { _loadState: 0, _opacity: 0, _target: target };
 			this.#tiles.set(i, tile);
 		}
 		return tile;
 	}
 
+	/** Resolves the WebGL context instance to draw/load a given target on. @internal */
+	#glFor(target?: 'back' | 'front'): WebGL {
+		return target === 'front' && this.micrio._webglFront ? this.micrio._webglFront : this.micrio._webgl;
+	}
+
 	/** Registers a base tile index (mark loaded, cache in set). @internal */
-	#registerBaseTile(idx: number): void {
-		this.#getTileEntry(idx)._opacity = 1;
+	#registerBaseTile(idx: number, target: 'back' | 'front' = 'back'): void {
+		this.#getTileEntry(idx, target)._opacity = 1;
 		this.#baseTiles.add(idx);
 	}
 
 	/** Prepares the WebGL context for drawing a new frame. @internal */
-	#drawStart(): void {
-		if (this.#drawing) return;
-		this.micrio._webgl._drawStart();
-		this.#drawing = true;
+	#drawStart(target: 'back' | 'front' = 'back'): void {
+		if (target === 'front') {
+			if (this.#drawingFront || !this.micrio._webglFront) return;
+			this.micrio._webglFront._drawStart();
+			this.#drawingFront = true;
+		} else {
+			if (this.#drawing) return;
+			this.micrio._webgl._drawStart();
+			this.#drawing = true;
+		}
 	}
 
 	/**
@@ -584,14 +602,35 @@ export class Engine {
 		force?: boolean;
 		noSmoothing?: boolean
 	} = {}): void {
+		void this.#fetchTexture(i, src, ani, opts);
+	}
+
+	/** Shared texture-fetch implementation behind `_getTexture` and `_reloadEmbedTexture`. @internal */
+	#fetchTexture(i: number, src: string, ani: boolean, opts: {
+		force?: boolean;
+		noSmoothing?: boolean
+	} = {}): Promise<void> {
 		const tile = this.#tiles.get(i);
-		if (tile?._texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
+		if ((tile?._texture && !opts.force) || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return Promise.resolve();
 		const inArchive = archive.db.has(src);
 		if (!inArchive) this.micrio._loading.set(true);
 		this.#requests.set(i, src);
-		(inArchive ? archive._getImage(src) : loadTexture(src))
-			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
-			.catch(() => this.#deleteRequest(i));
+		return (inArchive ? archive._getImage(src) : loadTexture(src))
+			.then((img) => { this.#gotTexture(i, img, ani, opts.noSmoothing); })
+			.catch(() => { this.#deleteRequest(i); });
+	}
+
+	/**
+	 * Forces an in-place reload of a single-tile embed's texture from a new source URL,
+	 * reusing the same WebGLTexture object already bound to that tile. @internal
+	 */
+	_reloadEmbedTexture(image: MicrioImage, src: string, opts: { noSmoothing?: boolean } = {}): Promise<void> {
+		const idx = image._baseTileIdx;
+		if (idx === undefined) return Promise.resolve();
+		const inFlight = this.#requests.get(idx);
+		if (inFlight) { abortDownload(inFlight); this.#requests.delete(idx); }
+		return this.#fetchTexture(idx, src, false, { force: true, noSmoothing: opts.noSmoothing })
+			.then(() => { this.render(); });
 	}
 
 	/** @internal */
@@ -602,7 +641,7 @@ export class Engine {
 		noSmoothing?: boolean
 	): void {
 		const tile = this.#getTileEntry(i);
-		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing);
+		tile._texture = this.#glFor(tile._target)._getTexture(img, tile._texture, noSmoothing);
 		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) img.close();
 		tile._loadState = 2;
 
@@ -628,7 +667,7 @@ export class Engine {
 		const tile = this.#tiles.get(idx);
 		if (tile) {
 			if (tile._texture) {
-				this.micrio._webgl.gl.deleteTexture(tile._texture);
+				this.#glFor(tile._target).gl.deleteTexture(tile._texture);
 				tile._texture = undefined;
 			}
 			if (tile._timeoutId) clearTimeout(tile._timeoutId);
@@ -719,10 +758,11 @@ export class Engine {
 		opacity: number = 1,
 		fromScale?: number,
 		parallax: number = 1,
+		target: 'back' | 'front' = 'back',
 	): void => {
 		if (this._book3d) return;
 		this.#images.push(image);
-		this.#placeOnCanvas(image, parent, isEmbed, opacity, fromScale, parallax);
+		this.#placeOnCanvas(image, parent, isEmbed, opacity, fromScale, parallax, target);
 	}
 
 	/** @internal */
@@ -733,6 +773,7 @@ export class Engine {
 		opacity: number,
 		fromScale?: number,
 		parallax: number = 1,
+		target: 'back' | 'front' = 'back',
 	): void => {
 		const i = '$info' in image ? image.$info : parent.$info;
 		if (!i) return;
@@ -758,14 +799,14 @@ export class Engine {
 			canvas = parentEntry.canvas._addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);
 			canvas._micrioImage = image;
 		} else {
-			const engImage = parentEntry.canvas._addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, fromScale ?? 0, parallax);
+			const engImage = parentEntry.canvas._addImage(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, i.tileSize ?? DEFAULT_TILE_SIZE, i.isSingle ?? false, i.isDeepZoom ?? false, i.isVideo ?? false, opacity, _360.rotX ?? 0, _360.rotY ?? 0, _360.rotZ ?? 0, _360.scale ?? 1, fromScale ?? 0, parallax, target);
 			this.#engImageToMicrio.set(engImage, image);
 			this.#micrioToEngImage.set(image, engImage);
 			image._placed = true;
 			this.#setEntry({ canvas: parentEntry.canvas, micrioImage: image });
 
 			image._baseTileIdx = this._numTiles - 1;
-			this.#registerBaseTile(image._baseTileIdx);
+			this.#registerBaseTile(image._baseTileIdx, target);
 			return;
 		}
 
@@ -790,7 +831,8 @@ export class Engine {
 		if (this._book3d) return;
 		if (image._placed) return;
 		if (opts.isPassiveSecondary && 'camera' in image) image._isPassiveSecondary = true;
-		this.#addImage(image, parent, true, opts.opacity ?? 1, 'camera' in image && opts.asImage ? undefined : opts.fromScale, opts.parallax ?? 1);
+		if (opts.target === 'front') this.micrio._ensureFrontWebGL();
+		this.#addImage(image, parent, true, opts.opacity ?? 1, 'camera' in image && opts.asImage ? undefined : opts.fromScale, opts.parallax ?? 1, opts.target ?? 'back');
 	}
 
 	/** Add a child independent canvas to the current canvas. @internal */

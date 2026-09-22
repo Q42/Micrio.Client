@@ -15,6 +15,9 @@ export class Canvas {
 	/** The main WebGL rendering `<canvas>` element. */
 	readonly element:HTMLCanvasElement = createElement('canvas');
 
+	/** The optional front WebGL rendering `<canvas>` element (above the DOM/UI layer), created lazily. @internal */
+	frontElement?:HTMLCanvasElement;
+
 	/** ResizeObserver instance for detecting element resize events.
 	 * @internal
 	 * @readonly
@@ -61,6 +64,26 @@ export class Canvas {
 		// Insert after the preview image if it exists, otherwise as the first child
 		const img = this.#micrio.querySelector('img.preview');
 		this.#micrio.insertBefore(this.element,img ? img.nextSibling : this.#micrio.firstChild);
+	}
+
+	/**
+	 * Lazily creates and inserts the front `<canvas>` element, stacked above the DOM/UI layer
+	 * (via CSS z-index) so 'front'-targeted embeds can paint on top of it.
+	 * @internal
+	*/
+	ensureFront(): HTMLCanvasElement {
+		if(!this.frontElement) {
+			const el = this.frontElement = createElement('canvas');
+			el.className = 'micrio front';
+			// Appended last so it also wins DOM-order ties against same-z-index chrome.
+			this.#micrio.appendChild(el);
+			const c = this.viewport;
+			if(c.width && c.height) {
+				el.width = c.width * c.ratio;
+				el.height = c.height * c.ratio;
+			}
+		}
+		return this.frontElement;
 	}
 
 	/**
@@ -139,6 +162,13 @@ export class Canvas {
 			this.#micrio._webgl.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
 			// Resize postprocessing framebuffer if active
 			this.#micrio._webgl._postprocessor?._resize();
+
+			// Mirror sizing/viewport to the front context, if it's been created
+			if (this.frontElement && this.#micrio._webglFront?.gl) {
+				this.frontElement.width = width * ratio;
+				this.frontElement.height = height * ratio;
+				this.#micrio._webglFront.gl.viewport(0, 0, c.width*c.ratio, c.height*c.ratio);
+			}
 
 			// Notify engine of resize
 			this.#micrio._engine._resize(c);
