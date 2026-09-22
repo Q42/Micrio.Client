@@ -4,3 +4,4 @@ public/dist/micrio.core.min.*
 public/build/micrio.prod.*
 templates/grid/grid.js
 pnpm-lock.yaml
+.DS_Store

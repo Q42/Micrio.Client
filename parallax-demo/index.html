@@ -65,6 +65,9 @@
       Drag to pan / scroll to zoom.<br />
       Click a lit window to open it.
       <table id="layerTable"></table>
+      <button id="cycleSign" style="margin-top: 8px; pointer-events: auto">
+        Cycle sign state
+      </button>
     </div>
     <!-- data-ui="markers" renders markers only, with noUI keeping all other chrome off
          (main.ts:246). -->
@@ -99,12 +102,40 @@
         // Areas past [0,1] are correct — foreground layers overflow the frame.
         const layers = [
           // id      w     h     area [x, y, w, h]                        parallax  label
-          ["trees", 940, 1326, [0.0061, -0.4332, 0.9894, 1.4135], 0.925, "trees"],
+          [
+            "trees",
+            940,
+            1326,
+            [0.0061, -0.4332, 0.9894, 1.4135],
+            0.925,
+            "trees",
+          ],
           ["house", 1762, 626, [-0.2217, 0.3535, 1.3086, 0.4708], 1.0, "house"],
-          ["snow", 1207, 198, [-0.1016, 0.9104, 1.1525, 0.1915], 1.04, "snow drift"],
+          [
+            "snow",
+            1207,
+            198,
+            [-0.1016, 0.9104, 1.1525, 0.1915],
+            1.04,
+            "snow drift",
+          ],
           ["door", 1721, 550, [-0.1146, 0.5885, 1.2696, 0.4109], 1.084, "door"],
-          ["gates", 1073, 290, [0.1135, 0.7631, 0.7957, 0.2178], 1.183, "gate posts"],
-          ["snowman", 241, 252, [0.6055, 0.8849, 0.1553, 0.1644], 1.255, "snowman"],
+          [
+            "gates",
+            1073,
+            290,
+            [0.1135, 0.7631, 0.7957, 0.2178],
+            1.183,
+            "gate posts",
+          ],
+          [
+            "snowman",
+            241,
+            252,
+            [0.6055, 0.8849, 0.1553, 0.1644],
+            1.255,
+            "snowman",
+          ],
         ];
 
         // How far past the canvas edges the camera may roam. Generous above (only sky),
@@ -141,15 +172,19 @@
           `<tr><td>sky (base)</td><td class="n">1.00</td></tr>`,
         );
 
+        // 'gates' is marked target:'front' to demo the back/front canvas sandwich: it now
+        // paints above the DOM/UI layer (markers, popups) sandwiched between the two
+        // canvases, instead of always sitting behind it like every other GL layer here.
         for (const [id, w, h, area, parallax, label] of layers) {
           image.addEmbed(info(id, w, h, "png"), {}, area, {
             opacity: 1,
             parallax,
             isPassiveSecondary: true,
+            target: (id === "gates") | (id === "snowman") ? "front" : "back",
           });
           table.insertAdjacentHTML(
             "beforeend",
-            `<tr><td>${label}${parallax === 1 ? " (ref)" : ""}</td><td class="n">${parallax.toFixed(2)}</td></tr>`,
+            `<tr><td>${label}${parallax === 1 ? " (ref)" : ""}${id === "gates" ? " [front]" : ""}</td><td class="n">${parallax.toFixed(2)}</td></tr>`,
           );
         }
 
@@ -219,6 +254,55 @@
             `<tr><td>bee ${n + 1}</td><td class="n">${parallax.toFixed(2)}</td></tr>`,
           );
         }
+
+        // "Sign" embed: demos cycling a GL embed's texture on click via
+        // image.addEmbed(..., { states }) + embed.nextState() — two static images and a
+        // video, cycled by the "Cycle sign state" button. The initial 'door' tile pyramid
+        // is only scaffolding: addEmbed's state controller immediately force-reloads the
+        // first configured state on top of it.
+        const sign = image.addEmbed(
+          {
+            id: "sign",
+            path: tileBase,
+            version: "7.1.2",
+            width: 300,
+            height: 300,
+            tileSize: 20000,
+            isSingle: true,
+            tileExtension: "png",
+          },
+          {},
+          [0.55, 0.74, 0.09, 0.09],
+          {
+            opacity: 1,
+            isPassiveSecondary: true,
+            states: [
+              { src: beeBase + "3-door.png" },
+              { src: beeBase + "4-gates.png" },
+              {
+                width: BEE_W,
+                height: BEE_H,
+                video: {
+                  title: "bee",
+                  src: beeBase + "bee.webm",
+                  size: 0,
+                  uploaded: 0,
+                  width: BEE_W,
+                  height: BEE_H,
+                  duration: 0,
+                  muted: true,
+                  loop: true,
+                  autoplay: true,
+                  controls: false,
+                  transparent: false,
+                },
+              },
+            ],
+          },
+        );
+        document.getElementById("cycleSign").addEventListener("click", () => {
+          sign.nextState();
+        });
 
         // Window rects, found by clustering the amber glass pixels in 2-house.png and
         // mapping through the house layer's area. They need no parallax handling because
