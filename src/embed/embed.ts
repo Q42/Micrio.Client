@@ -1,11 +1,13 @@
-import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
-import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
-import { Browser } from '$utils/browser';
 import { GLEmbedVideo } from '$media/embedvideo';
+import type { Models } from "$types/models";
+import { Browser } from "$utils/browser";
+import { createElement } from "$utils/dom";
+import { randomUUID } from "$utils/id";
+import "./embed.css";
 
 /** Properties for configuring an embed element (image, video, iframe, or GL content). @internal */
 export interface EmbedProps {
@@ -16,8 +18,6 @@ export interface EmbedProps {
 	/** Optional associated marker used for click actions. */
 	marker?: Models.ImageData.Marker;
 }
-import './embed.css';
-import { randomUUID } from '$utils/id';
 
 /** Custom element that renders an embed (image, video, iframe, or GL-embedded Micrio image) positioned within a Micrio scene. */
 class MicrioEmbed extends MicrioElement<EmbedProps> {
@@ -251,7 +251,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const width = this.#widthCapped;
 		const height = width / (video.width / video.height);
 		const wCalc = this.#w * this.#info.width;
-		const relScale = wCalc / width;
+    // 360 embeds render on a sphere segment; match the WebGL arc-length scale
+    // (same Math.PI / 2 factor as the img/button path in #readPlacement).
+    const relScale = (wCalc / width) * (this.#is360 ? Math.PI / 2 : 1);
 
 		const vid = createElement('video', {
 			props: {
