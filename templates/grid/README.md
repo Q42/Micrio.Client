@@ -150,6 +150,8 @@ Stick to the public surface:
 |--------------------------------------|----------------------------------------|
 | `grid.$focussed`, `grid.image`, `grid.micrio` | `grid._focussed`, `grid._current`, … |
 | `grid.set/reset/back/blur/gridFocus/action/enlarge` | poking internal state |
+| `grid.images` → `readonly MicrioImage[]` | `grid._images` |
+| `grid.getImage(id)` → `MicrioImage` | `grid._imageMap.get(id)` |
 | `micrio.gallery.gotoId(id)` → `MicrioImage` | `grid._imageMap.get(id)` |
 | `img.id`, `img.$data`, `img.$settings`, `img.thumbSrc`, `img.data` | `img._something` |
 
