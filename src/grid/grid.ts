@@ -28,6 +28,11 @@ export class Grid extends MicrioElement {
 	/** @internal */
 	readonly _imageMap:Map<string, MicrioImage> = new Map();
 
+	/** All {@link MicrioImage} instances managed by this grid. */
+  get images(): readonly MicrioImage[] {
+    return this._images;
+  }
+
 	/** @internal */
 	_current:MicrioImage[] = [];
 
