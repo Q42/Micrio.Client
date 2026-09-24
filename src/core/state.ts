@@ -124,6 +124,7 @@ export namespace State {
 				}
 				// Fire move callbacks
 				for(const fn of m._onMove) fn(detail);
+				m.events._dispatch('move', {image, view});
 			});
 
 			// Subscribe to local marker store changes
