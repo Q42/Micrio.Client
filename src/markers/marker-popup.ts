@@ -2,6 +2,7 @@ import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioTour } from '$tour/tour';
 import { get } from '$core/store';
+import { Frame } from '$core/frame';
 import { i18n } from '$core/i18n/strings';
 import { afterFrame, createElement } from '$utils/dom';
 import '$ui/button';
@@ -157,7 +158,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		});
 
 		if (showTourControls) {
-			requestAnimationFrame(() => {
+			Frame.request(() => {
 				const tourAside = (document.querySelector('micrio-tour') as MicrioTour)?.aside;
 				if (tourAside && !this.contains(tourAside)) {
 					this.appendChild(tourAside);

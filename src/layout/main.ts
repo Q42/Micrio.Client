@@ -3,6 +3,7 @@ import type { Models } from '$types/models';
 import type { Writable } from '$core/store';
 import type { MicrioImage } from '$core/image';
 import { get, tick, writable } from '$core/store';
+import { Frame } from '$core/frame';
 import { DataLoader } from '$utils/dataLoader';
 import { createElement } from '$utils/dom';
 import '$ui/icon';
@@ -211,7 +212,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#queueSync() {
 		if (this.#syncQueued) return;
 		this.#syncQueued = true;
-		requestAnimationFrame(() => {
+		Frame.request(() => {
 			this.#syncQueued = false;
 			if (this.isConnected) this.#sync();
 		});

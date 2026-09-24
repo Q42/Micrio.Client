@@ -2,6 +2,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Engine } from '$render/engine';
 import { getEasing } from '$render/easing';
+import { Frame } from '$core/frame';
 
 /** Manages horizontal strip-swipe navigation between gallery images on a shared canvas. @internal */
 export class SwipeGallery {
@@ -109,11 +110,11 @@ export class SwipeGallery {
 	#awaitSlide = (resolve:()=>void):void => {
 		const tick = ():void => {
 			for (const img of this.#images) {
-				if (img?.canvas?._areaAnimating()) { requestAnimationFrame(tick); return; }
+				if (img?.canvas?._areaAnimating()) { Frame.request(tick); return; }
 			}
 			resolve();
 		};
-		requestAnimationFrame(tick);
+		Frame.request(tick);
 	};
 
 	#resetDrag = ():void => {

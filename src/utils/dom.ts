@@ -3,6 +3,8 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
+import { Frame } from '$core/frame';
+
 /** SVG namespace URI. @internal */
 export const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -78,8 +80,8 @@ export function createSvgElement(tag: string, options: ElementOptions = {}): SVG
  */
 export const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
 
-/** Returns a Promise that resolves after the next browser paint (two animation frames). @internal */
-export const afterFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+/** Returns a Promise that resolves after the next browser paint (two frames). @internal */
+export const afterFrame = (): Promise<void> => Frame.afterPaint();
 
 /** Set of script URLs already loaded or currently loading. @internal */
 const loaded = new Set<string>();

@@ -3,6 +3,7 @@ import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import { Gallery } from '$gallery/controller';
+import { Frame } from '$core/frame';
 
 /** Properties for the {@link MicrioSwipeGallery} custom element. @internal */
 export interface MicrioGalleryProps {
@@ -33,7 +34,7 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		const parent = this._getMicrio();
 		const basePath = parent?.$current?.$info?.path;
 
-		requestAnimationFrame(() => {
+		Frame.request(() => {
 			const galleryCtrl = Gallery._fromAssets(this.#props.gallery, el._engine, el, {
 				startId: this.#props.galleryStart,
 				basePath

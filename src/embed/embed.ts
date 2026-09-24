@@ -35,7 +35,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#hidden = false;
 	#videoEl?: HTMLVideoElement;
 	#figureEl?: HTMLElement;
-	#moveRaf: number | undefined;
+	/** Latest values received from the view/viewport store subscriptions. */
+	#view?: Models.Camera.View;
+	#viewport?: Models.Camera.View;
 	#loopDelayTo: any;
 	/** Pending debounce for printing a book3d embed (waits for the view to settle). */
 	#book3dPrintTo: number | undefined;
@@ -72,7 +74,19 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#x = 0;
 	#y = 0;
 	#scaleVal = 0;
-	#matrix = '';
+	/** True if `is360 || isBook3d`; static per embed. */
+	#isMat = false;
+	/** Static matrix inputs computed once per placement. */
+	#matrixScale = 1;
+	#contentWidth = 1;
+	/** Last written values, so unchanged properties are never rewritten. */
+	#lastMatrix = '';
+	#lastX = NaN;
+	#lastY = NaN;
+	#lastS = NaN;
+	#lastOpacity = 1;
+	/** Last applied video-paused UI state. */
+	#pausedUI = false;
 	#buttonStyle = '';
 
 	/** @internal */
@@ -129,6 +143,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		// 3d books have their own WebGL renderer
 		this.#isBook3d = this.#micrio.$current?.album?.info?.type == 'book3d';
+		this.#isMat = this.#is360 || this.#isBook3d;
 
 		this.#printGL = !this.#isBook3d && !this.#embedImageAsHtml && !!(
 			(embed.micrioId && (forceGL || !this.#isSmall || !embed.src))
@@ -168,8 +183,11 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const moveSrc = camOwner && camOwner !== image ? camOwner : image;
 
 		if (this.#hasHtml || !!embed.video?.pauseWhenSmallerThan || !!embed.video?.pauseWhenLargerThan) {
-			this._watch(moveSrc.state.view, () => this.#moved());
-			this._watch(moveSrc._viewport, () => this.#moved());
+			// Cache the emitted values and reposition directly. Store updates happen
+			// inside the render frame, so this stays in-phase with the draw and never
+			// needs its own animation frame.
+			this._watch(moveSrc.state.view, v => { this.#view = v; this.#applyPosition(); });
+			this._watch(moveSrc._viewport, v => { this.#viewport = v; this.#applyPosition(); });
 		}
 
 		this.#applyPosition();
@@ -189,6 +207,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#rotZ = embed.rotZ ?? 0;
 		this.#scaleX = embed.scaleX ?? 1;
 		this.#scaleY = embed.scaleY ?? 1;
+
+		// Static inputs for the 360/book3d matrix — computed once per placement.
+		this.#matrixScale = (!this.#isBook3d ? 1 : this.#w) * this.#s;
+		this.#contentWidth = !this.#isBook3d ? 1 : embed.frameSrc || embed.video
+			? this.#w * this.#info.width
+			: embed.src
+				? (embed.width || this.#w * this.#info.width)
+				: 100;
 
 		const isGLEmbeddedMicrio = this.#printGL && embed.micrioId && embed.width;
 		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
@@ -359,49 +385,26 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 
 		if (this.#isRawVideo) {
-			this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage!, embed, this.#paused, () => this.#moved());
+			this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage!, embed, this.#paused, () => this.#applyPosition());
 		}
 
 		image.engine.render();
-	}
-
-	#moved() {
-		if (this.#moveRaf !== undefined) return;
-		this.#moveRaf = requestAnimationFrame(() => {
-			this.#moveRaf = undefined;
-			this.#applyPosition();
-		});
 	}
 
 	#applyPosition() {
 		const { embed, image } = this.#props;
 		if (!this.#isBook3d && !image?.engine.ready) return;
 
-		const vp = get(image._viewport);
-		const view = get(image.state.view);
+		const vp = this.#viewport;
+		const view = this.#view;
 
-		if (view && vp?.[2] > 0 && vp?.[3] > 0 && view[2] > 0 && view[3] > 0) {
+		if (view && vp && vp[2] > 0 && vp[3] > 0 && view[2] > 0 && view[3] > 0) {
 			this.#x = vp[0] + (this.#cX - view[0]) / view[2] * vp[2];
 			this.#y = vp[1] + (this.#cY - view[1]) / view[3] * vp[3];
 			this.#scaleVal = vp[2] / (view[2] * this.#info.width);
 		} else {
 			const coo = image.camera._getXYDirect(this.#cX, this.#cY);
-			[this.#x, this.#y, this.#scaleVal] = Array.from(coo) as [number, number, number];
-		}
-
-		const isMat = this.#is360 || this.#isBook3d;
-
-		if (isMat) {
-			// The content's width in CSS pixels as it renders before the matrix.
-			// `scale` stays a fraction of the page width, so the matrix maps the
-			// content to that fraction regardless of its pixel size.
-			const contentWidth = !this.#isBook3d ? 1 : embed.frameSrc || embed.video
-				? this.#w * this.#info.width
-				: embed.src
-					? (embed.width || this.#w * this.#info.width)
-					: 100;
-			const mat = image.camera.getMatrix(this.#cX, this.#cY, (!this.#isBook3d ? 1 : this.#w) * this.#s, contentWidth, this.#rotX, this.#rotY, this.#rotZ, undefined, this.#scaleX, this.#scaleY);
-			this.#matrix = mat.join(',');
+			this.#x = coo[0]; this.#y = coo[1]; this.#scaleVal = coo[2];
 		}
 
 		if (this.#container) {
@@ -412,34 +415,37 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				// elapses, so it doesn't print through pages flashing by during
 				// a rapid swipe.
 				if (!this.#hidden) { this.#hidden = true; s.display = 'none'; }
-			} else if (isMat) {
-				// 360/book3d: the matrix changes every frame. Write it straight to the
-				// `transform` property instead of rebuilding `style.cssText`, so only the
-				// transform is invalidated and the already composited layer
-				// (`will-change: transform,opacity`) can be updated instead of re-parsing
-				// the whole inline style on every pan frame.
-				const hidden = !this.#matrix;
+			} else if (this.#isMat) {
+				// 360/book3d: recompute the matrix and write it straight to the
+				// `transform` property (never `style.cssText`), skipping both the
+				// write and the property recalculation when nothing changed.
+				const matrix = image.camera.getMatrix(this.#cX, this.#cY, this.#matrixScale, this.#contentWidth, this.#rotX, this.#rotY, this.#rotZ, undefined, this.#scaleX, this.#scaleY).join(',');
+				const hidden = !matrix;
 				if (hidden !== this.#hidden) {
 					this.#hidden = hidden;
 					s.display = hidden ? 'none' : '';
 				}
-				if (!hidden) s.transform = `matrix3d(${this.#matrix})`;
+				if (!hidden && matrix !== this.#lastMatrix) {
+					this.#lastMatrix = matrix;
+					s.transform = `matrix3d(${matrix})`;
+				}
 			} else {
 				if (this.#hidden) { this.#hidden = false; s.display = ''; }
-				// 2D: only the position/scale custom properties change. Update them
-				// individually, and only when they actually changed, instead of
-				// rewriting the whole inline style through `cssText`.
-				const x = `${this.#x}px`, y = `${this.#y}px`, scale = `${this.#scaleVal}`;
-				if (s.getPropertyValue('--x') !== x) s.setProperty('--x', x);
-				if (s.getPropertyValue('--y') !== y) s.setProperty('--y', y);
-				if (s.getPropertyValue('--s') !== scale) s.setProperty('--s', scale);
+				// 2D: only the position/scale custom properties change. Compare the
+				// cached numbers and only build/write a property when it changed.
+				if (this.#x !== this.#lastX) { this.#lastX = this.#x; s.setProperty('--x', `${this.#x}px`); }
+				if (this.#y !== this.#lastY) { this.#lastY = this.#y; s.setProperty('--y', `${this.#y}px`); }
+				if (this.#scaleVal !== this.#lastS) { this.#lastS = this.#scaleVal; s.setProperty('--s', `${this.#scaleVal}`); }
 			}
 
 			if (!(this.#isBook3d && this.#book3dPendingPrint)) {
 				// Opacity is static per embed; only touch it when it actually changes.
-				const op = embed.opacity !== undefined && embed.opacity !== 1 ? `${embed.opacity}` : '';
-				if (op) { if (s.getPropertyValue('--opacity') !== op) s.setProperty('--opacity', op); }
-				else if (s.getPropertyValue('--opacity')) s.removeProperty('--opacity');
+				const opacity = embed.opacity !== undefined && embed.opacity !== 1 ? embed.opacity : 1;
+				if (opacity !== this.#lastOpacity) {
+					this.#lastOpacity = opacity;
+					if (opacity !== 1) s.setProperty('--opacity', `${opacity}`);
+					else s.removeProperty('--opacity');
+				}
 			}
 		}
 
@@ -464,7 +470,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#syncVideoPause(image: MicrioImage) {
 		const v = this.#videoEl;
 		if (!v) return;
-		if (this.#figureEl) this.#figureEl.classList.toggle('paused', this.#paused);
+		if (this.#figureEl && this.#pausedUI !== this.#paused) {
+			this.#pausedUI = this.#paused;
+			this.#figureEl.classList.toggle('paused', this.#paused);
+		}
 		if (this.#paused) {
 			if (!v.paused) v.pause();
 		} else {
@@ -508,7 +517,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			}
 		}
 		this.#readPlacement();
-		this.#moved();
+		// Editor-driven change: apply immediately (outside the render frame).
+		this.#applyPosition();
 	}
 
 	/** @internal */
@@ -520,10 +530,6 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	_onDestroy() {
 		clearTimeout(this.#loopDelayTo);
 		clearTimeout(this.#book3dPrintTo);
-		if (this.#moveRaf !== undefined) {
-			cancelAnimationFrame(this.#moveRaf);
-			this.#moveRaf = undefined;
-		}
 		this.#glVideo?._unmount();
 
 		const { embed, image } = this.#props;

@@ -11,6 +11,7 @@ import { DataLoader } from '$utils/dataLoader';
 import { VERSION } from './version';
 import { ATTRIBUTE_OPTIONS as AO, DEFAULT_SETTINGS, localStorageKeys } from './globals';
 import { writable, get, tick } from '$core/store';
+import { Frame } from './frame';
 import { Engine } from '$render/engine';
 import { WebGL } from '$render/webgl';
 import { Canvas } from '$render/canvas';
@@ -459,7 +460,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`});
 			observer.observe(this);
 		}
-		else if(opts.id) requestAnimationFrame(openBundle);
+		else if(opts.id) Frame.request(openBundle);
 	}
 
 	/**
