@@ -29,9 +29,14 @@ export class Grid extends MicrioElement {
 	readonly _imageMap:Map<string, MicrioImage> = new Map();
 
 	/** All {@link MicrioImage} instances managed by this grid. */
-  get images(): readonly MicrioImage[] {
-    return this._images;
-  }
+	get images(): readonly MicrioImage[] {
+		return this._images;
+	}
+
+	/** Get a grid {@link MicrioImage} instance by its image ID, if it is part of this grid. */
+	getImage(id: string): MicrioImage|undefined {
+		return this._imageMap.get(id);
+	}
 
 	/** @internal */
 	_current:MicrioImage[] = [];
