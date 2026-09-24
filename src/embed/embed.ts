@@ -31,6 +31,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#glImage?: MicrioImage;
 	#glVideo?: GLEmbedVideo;
 	#container?: HTMLElement;
+	/** True while the embed container is hidden through an inline `display` (360/book3d placement). */
+	#hidden = false;
 	#videoEl?: HTMLVideoElement;
 	#figureEl?: HTMLElement;
 	#moveRaf: number | undefined;
@@ -221,7 +223,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
 		this.#container = createElement(this.#href ? 'a' : 'div', {
 			className: (this.#noEvents ? 'no-events' : '')
-				+ (this.#hideWhenPaused && !this.#printGL && !!embed.video ? ' hide-when-paused' : '') || undefined,
+				+ (this.#hideWhenPaused && !this.#printGL && !!embed.video ? ' hide-when-paused' : '')
+				+ (this.#is360 || this.#isBook3d ? ' embed3d' : '') || undefined,
 			id: embed.id ? 'e-' + embed.id : undefined,
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
 			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,
@@ -398,26 +401,45 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 					? (embed.width || this.#w * this.#info.width)
 					: 100;
 			const mat = image.camera.getMatrix(this.#cX, this.#cY, (!this.#isBook3d ? 1 : this.#w) * this.#s, contentWidth, this.#rotX, this.#rotY, this.#rotZ, undefined, this.#scaleX, this.#scaleY);
-			this.#matrix = Array.from(mat).join(',');
+			this.#matrix = mat.join(',');
 		}
 
 		if (this.#container) {
-			const style = isMat
-				? this.#matrix ? `transform:matrix3d(${this.#matrix});` : 'display:none'
-				: `--x:${this.#x}px;--y:${this.#y}px;--s:${this.#scaleVal};`;
-
-			const opStyle = embed.opacity !== undefined && embed.opacity !== 1
-				? `--opacity:${embed.opacity};`
-				: '';
+			const c = this.#container, s = c.style;
 
 			if (this.#isBook3d && this.#book3dPendingPrint) {
 				// Keep a book3d embed hidden until the one-time placement delay
 				// elapses, so it doesn't print through pages flashing by during
 				// a rapid swipe.
-				this.#container.style.cssText = 'display:none';
+				if (!this.#hidden) { this.#hidden = true; s.display = 'none'; }
+			} else if (isMat) {
+				// 360/book3d: the matrix changes every frame. Write it straight to the
+				// `transform` property instead of rebuilding `style.cssText`, so only the
+				// transform is invalidated and the already composited layer
+				// (`will-change: transform,opacity`) can be updated instead of re-parsing
+				// the whole inline style on every pan frame.
+				const hidden = !this.#matrix;
+				if (hidden !== this.#hidden) {
+					this.#hidden = hidden;
+					s.display = hidden ? 'none' : '';
+				}
+				if (!hidden) s.transform = `matrix3d(${this.#matrix})`;
 			} else {
-				this.#container.style.cssText = style + opStyle;
-				this.#container.classList.toggle('embed3d', this.#is360 || this.#isBook3d);
+				if (this.#hidden) { this.#hidden = false; s.display = ''; }
+				// 2D: only the position/scale custom properties change. Update them
+				// individually, and only when they actually changed, instead of
+				// rewriting the whole inline style through `cssText`.
+				const x = `${this.#x}px`, y = `${this.#y}px`, scale = `${this.#scaleVal}`;
+				if (s.getPropertyValue('--x') !== x) s.setProperty('--x', x);
+				if (s.getPropertyValue('--y') !== y) s.setProperty('--y', y);
+				if (s.getPropertyValue('--s') !== scale) s.setProperty('--s', scale);
+			}
+
+			if (!(this.#isBook3d && this.#book3dPendingPrint)) {
+				// Opacity is static per embed; only touch it when it actually changes.
+				const op = embed.opacity !== undefined && embed.opacity !== 1 ? `${embed.opacity}` : '';
+				if (op) { if (s.getPropertyValue('--opacity') !== op) s.setProperty('--opacity', op); }
+				else if (s.getPropertyValue('--opacity')) s.removeProperty('--opacity');
 			}
 		}
 
