@@ -109,14 +109,27 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#isSmall = embed.width && embed.height ? embed.width * embed.height < 1048576 : false;
 
 		const isIOS14 = /iPhone OS 14_/i.test(navigator.userAgent);
+		// `data-embeds-inside-gl` render mode:
+		// - 'auto' (default, same as omitting the attribute): platform and size
+		//   heuristics decide — WebGL on capable/HDR setups, small images as <img>.
+		// - 'true': force every GL-capable embed into WebGL, overriding those
+		//   heuristics (small images rendered as <img>, non-HDR videos, the
+		//   SVG/iOS14 fallbacks).
+		// - 'false': force every embed to be rendered as HTML.
+		// Embeds that can't be rendered in WebGL (iframes, src-only images, videos
+		// with controls or alpha transparency) still fall back to HTML in any mode.
 		const glAttrValue = this.#micrio.getAttribute('data-embeds-inside-gl');
-		this.#embedImageAsHtml = this.#isSVG || isIOS14 || (!this.#screenIsHDR && !this.#micrio.hasAttribute('data-embeds-inside-gl') && !!embed.video) || glAttrValue == 'false';
+		const glMode: Models.Attributes.EmbedGLMode = glAttrValue === 'true' || glAttrValue === 'false' ? glAttrValue : 'auto';
+		const forceGL = glMode === 'true';
+		this.#embedImageAsHtml = glMode === 'false' || (glMode === 'auto' && (
+			this.#isSVG || isIOS14 || (!this.#screenIsHDR && !!embed.video)
+		));
 
 		// 3d books have their own WebGL renderer
 		this.#isBook3d = this.#micrio.$current?.album?.info?.type == 'book3d';
 
 		this.#printGL = !this.#isBook3d && !this.#embedImageAsHtml && !!(
-			(embed.micrioId && (!this.#isSmall || !embed.src))
+			(embed.micrioId && (forceGL || !this.#isSmall || !embed.src))
 			|| (embed.video && !embed.video.controls && !embed.video.transparent)
 		);
 
