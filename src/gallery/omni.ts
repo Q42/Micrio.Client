@@ -9,6 +9,7 @@ import { archive } from '$utils/archive';
 import { createElement } from '$utils/dom';
 import { icons } from '$ui/icons';
 import { get, writable } from '$core/store';
+import { Frame } from '$core/frame';
 import '$ui/dial';
 
 /** Callback for preloading thumbnail textures within a range around a center index. */
@@ -27,7 +28,7 @@ export class OmniUI {
 	#startX:number|undefined;
 	#hitTresh:boolean = false;
 	#snapTo:number[] = [];
-	#raf:number|undefined;
+	#raf:((time:number) => void)|undefined;
 	#pointers:Map<number, boolean> = new Map();
 	#isFullWidth:boolean = false;
 	#startedWithShift:boolean = false;
@@ -306,20 +307,22 @@ export class OmniUI {
 
 	/** Smoothly animate to a target frame index. */
 	animateTo(idx: number) : void {
-		if(this.#raf) cancelAnimationFrame(this.#raf);
+		if(this.#raf) Frame.cancel(this.#raf);
 		const duration = 250,
 			started = performance.now(),
 			startIdx = this.currentIndex,
 			delta = startIdx - idx;
 
-		const frame = (time:number) => {
+		const frame = (time:number) : void => {
 			const p = Math.min(1, (time - started) / duration);
-			if(p < 1) this.#raf = requestAnimationFrame(frame);
+			if(p < 1) { this.#raf = frame; Frame.request(frame); }
+			else this.#raf = undefined;
 			const d = startIdx - Math.round(easeInOut.get(p) * delta);
 			if(d != this.currentIndex) this.#goto(d);
 		}
 
-		this.#raf = requestAnimationFrame(frame);
+		this.#raf = frame;
+		Frame.request(frame);
 	}
 
 }

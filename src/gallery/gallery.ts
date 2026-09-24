@@ -7,6 +7,7 @@ import type { Models } from '$types/models';
 import type { GalleryConfig } from '$types/models/info';
 import { i18n } from '$core/i18n/strings';
 import { get, writable } from '$core/store';
+import { Frame } from '$core/frame';
 import { OmniUI } from '$gallery/omni';
 import { SwipeGallery } from '$gallery/swipe';
 import { createElement } from '$utils/dom';
@@ -243,7 +244,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: Engine, hasArchive: boolean) {
 		if (!total || !engine?.ready) return;
-		const request: (cb: () => void) => number = self.requestIdleCallback ?? self.requestAnimationFrame;
+		// Prefer idle time for low-priority thumbnail work; fall back to the shared
+		// frame scheduler instead of a private requestAnimationFrame.
+		const request: (cb: () => void) => void = self.requestIdleCallback
+			? (cb) => { self.requestIdleCallback(cb); }
+			: (cb) => { Frame.request(cb); };
 		for (let x = -d; x <= d; x++) {
 			if (!x) continue;
 			let rX = center + x;

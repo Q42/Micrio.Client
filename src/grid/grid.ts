@@ -3,6 +3,7 @@ import type { HTMLMicrioElement } from '$core/element';
 
 import { MicrioImage } from '$core/image';
 import { get, writable, type Unsubscriber, type Writable, tick } from '$core/store';
+import { Frame } from '$core/frame';
 import { Gallery } from '$gallery/controller';
 import { MicrioElement } from '$core/component';
 import { GridActionType } from './actions';
@@ -294,7 +295,7 @@ export class Grid extends MicrioElement {
 		const done = () => {
 			if(setId !== this.#setId) return;
 			this.#clearTimeouts();
-			requestAnimationFrame(() => engine._crossfadeDuration = defaultDur);
+			Frame.request(() => engine._crossfadeDuration = defaultDur);
 			if(isDelayed) this._images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
 			if(forcedCoverLimit) images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(false));
 			else if(opts.coverLimit) images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));

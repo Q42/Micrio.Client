@@ -1,4 +1,12 @@
 export namespace Attributes {
+	/**
+	 * Rendering mode for the `data-embeds-inside-gl` attribute:
+	 * - `'auto'` (default): platform and size heuristics decide.
+	 * - `'true'`: force all GL-capable embeds into WebGL.
+	 * - `'false'`: force all embeds to be rendered as HTML.
+	 */
+	export type EmbedGLMode = 'auto' | 'true' | 'false';
+
 	export interface MicrioCustomAttributes {
 		// General settings
 		/** The image ID */
@@ -85,6 +93,16 @@ export namespace Attributes {
 		'volume'?: number;
 		/** Fade music to this volume while other audio plays (between 0 and 1). Default: 0 */
 		'data-mutedvolume'?: number;
+
+		// Embeds
+		/** How embedded images/videos are rendered. `'auto'` (default, same as omitting
+		 * the attribute) lets the platform and size heuristics decide — WebGL where
+		 * supported, small images as HTML `<img>` elements. `'true'` forces every
+		 * GL-capable embed into WebGL (including small images that would otherwise be
+		 * HTML `<img>`, and non-HDR videos); embeds that WebGL cannot represent
+		 * (iframes, src-only images, videos with controls or alpha transparency) still
+		 * fall back to HTML. `'false'` forces every embed to be rendered as HTML. */
+		'data-embeds-inside-gl'?: EmbedGLMode;
 
 		// Specific technical settings
 		/** Toggle limited rendering mode in WebAssembly. */

@@ -5,6 +5,7 @@ import { InputHandler } from './input/input';
 import { OrbitCamera } from './core/orbit-camera';
 import { Vec3 } from './core/vec3';
 import { Mat4 } from '$render/mat';
+import { Frame } from '$core/frame';
 import { PageFlipAnimator } from './animation/page-flip';
 import {
 	SolverSettings,
@@ -184,8 +185,10 @@ export class BookViewer {
 	/** The last frame's on-screen image bounds, reused by `isZoomedIn`. */
 	#lastDrawnImages: DrawnImage[] = [];
 
-	#animFrameId = 0;
-	#gotoRafId = 0;
+	/** The pending `goto()` stepper callback, if a cascade is running. */
+	#gotoStep: (() => void) | undefined;
+	/** True while a `goto()` cascade still has steps to schedule. */
+	#gotoStepping = false;
 	#gotoDamping = false;
 	/** Pending resolvers for in-flight `goto()` animations, fired once the page-flip cascade has settled. */
 	#gotoDone: (() => void)[] = [];
@@ -233,10 +236,11 @@ export class BookViewer {
 		const idx = Math.max(0, Math.min(this.#pageCount - 1, pageIdx));
 		if (idx === this.#currentPage) return Promise.resolve();
 
-		if (this.#gotoRafId !== 0) {
-			cancelAnimationFrame(this.#gotoRafId);
-			this.#gotoRafId = 0;
+		if (this.#gotoStep) {
+			Frame.cancel(this.#gotoStep);
+			this.#gotoStep = undefined;
 		}
+		this.#gotoStepping = false;
 		this.#gotoDamping = true;
 
 		const done = new Promise<void>((resolve) => {
@@ -262,7 +266,8 @@ export class BookViewer {
 
 		const step = (): void => {
 			if (remaining <= 0) {
-				this.#gotoRafId = 0;
+				this.#gotoStep = undefined;
+				this.#gotoStepping = false;
 				return;
 			}
 			const maxOff = (first && fresh) ? GRAB_ROW_MAX_OFFSET : GOTO_GRAB_ROW_MAX_OFFSET;
@@ -274,8 +279,11 @@ export class BookViewer {
 			}
 			first = false;
 			remaining--;
-			this.#gotoRafId = requestAnimationFrame(step);
+			this.#gotoStep = step;
+			Frame.request(step);
 		};
+		this.#gotoStep = step;
+		this.#gotoStepping = true;
 		step();
 
 		return done;
@@ -725,10 +733,7 @@ export class BookViewer {
 	// ═══════════════════════════════════════════════════════════════
 
 	#requestFrame = (): void => {
-		if (this.#animFrameId) {
-			cancelAnimationFrame(this.#animFrameId);
-		}
-		this.#animFrameId = requestAnimationFrame((time) => this.#frame(time));
+		Frame.request(this.#frame);
 	};
 
 	async #init(options: BookViewerOptions): Promise<void> {
@@ -1207,7 +1212,6 @@ export class BookViewer {
 	}
 
 	#frame = (time: number): void => {
-		this.#animFrameId = 0;
 		if (this.#lastTime === 0) this.#lastTime = time;
 		let dt = (time - this.#lastTime) / 1000;
 		if (dt <= 0) dt = 1 / 60;
@@ -1235,7 +1239,7 @@ export class BookViewer {
 			}
 		}
 
-		if (this.#gotoDamping && this.#gotoRafId === 0 && !this.#flipAnimator._animating) {
+		if (this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating) {
 			this.#gotoDamping = false;
 		}
 
@@ -1245,7 +1249,7 @@ export class BookViewer {
 
 		// A pending goto() has fully settled once the flip cascade has finished
 		// and no pages are still being animated/damped.
-		if (this.#gotoDone.length && !this.#gotoDamping && this.#gotoRafId === 0 && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
+		if (this.#gotoDone.length && !this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
 			const cbs = this.#gotoDone;
 			this.#gotoDone = [];
 			for (const cb of cbs) cb();

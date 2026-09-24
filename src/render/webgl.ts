@@ -10,6 +10,7 @@ import type { HTMLMicrioElement } from '$core/element';
 import { Engine } from './engine';
 import { PostProcessor } from '$render/postprocess';
 import { MicrioError, ErrorCodes } from '$core/error';
+import { Frame } from '$core/frame';
 import { segsX, segsY } from './constants';
 import { createElement } from '$utils/dom';
 
@@ -108,6 +109,8 @@ export class WebGL {
 		micrio:HTMLMicrioElement
 	){
 		this.#micrio = micrio;
+		// The Frame scheduler owns the single rAF; keep the display seam in sync.
+		Frame._setDisplay(this._display);
 	}
 
 	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. @internal */

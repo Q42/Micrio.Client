@@ -12,6 +12,7 @@ import type { Models } from '$types/models';
 import { MicrioImage } from '$core/image';
 import { DEFAULT_TILE_SIZE } from '$core/globals';
 import { get } from '$core/store';
+import { Frame } from '$core/frame';
 import { archive } from '$utils/archive';
 import { Browser } from '$utils/browser';
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures';
@@ -170,7 +171,6 @@ export class Engine {
 	/** Flag indicating if the current context is a gallery. @internal */
 	#isGallery: boolean = false;
 
-	#raf: number = -1;
 	#drawing: boolean = false;
 
 	/** The currently active canvas entry. @internal */
@@ -505,17 +505,16 @@ export class Engine {
 		this.render();
 	}
 
-	/** Requests the next animation frame. */
+	/** Requests the next animation frame from the shared {@link Frame} scheduler. */
 	render(): void {
 		if (this._book3d) return;
-		if (this.#raf < 0) this.#raf = this.micrio._webgl._display.requestAnimationFrame(this.#draw);
+		Frame.request(this.#draw);
 	}
 
 	#draw = (now: number = performance.now()): void => {
 		if (!this.micrio.isConnected || !this.micrio.$current) return;
 		if (this._book3d) return;
 
-		this.#raf = -1;
 		this.#drawing = false;
 
 		if (this._shouldDraw(now)
@@ -548,9 +547,7 @@ export class Engine {
 	}
 
 	#stop(): void {
-		if (this.#raf < 0) return;
-		this.micrio._webgl._display.cancelAnimationFrame(this.#raf);
-		this.#raf = -1;
+		Frame.cancel(this.#draw);
 	}
 
 	/** Gets or creates a tile entry for the given index. @internal */
