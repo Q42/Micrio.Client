@@ -56,6 +56,23 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const noTitles = marker.data?.showTitle === false || !!markerSettings.noTitles || !!image.$settings.omni?.sideLabels;
 		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || !!image.$settings.omni?.sideLabels;
 
+		// --- Auto-start tour integration (_markers.autoStartTour) ---
+
+		/** Whether a marker tour has this marker as one of its steps. */
+		const inTour = (t: Models.ImageData.MarkerTour): boolean => !!t.steps?.some(s => s.startsWith(marker.id));
+		/** The marker tour to auto-start when this marker is opened, if it contains this marker. */
+		const autoStartMyTour: Models.ImageData.MarkerTour | undefined = markerSettings.autoStartTour
+			? micrio._canvases.map(c => c.$data?.markerTours?.find(inTour)).find(t => !!t)
+				?? (micrio.bundleTours ?? []).find(inTour)
+				?? micrio.gallery?._images.map(i => i.$data?.markerTours?.find(inTour)).find(t => !!t)
+			: undefined;
+		/** This marker's step index within its auto-start tour. */
+		const myTourStep = autoStartMyTour?.steps.findIndex(s => s.startsWith(marker.id));
+		/** Always start the auto-start tour from step 0 instead of from this marker's step. */
+		const startTourAtBeginning = !!markerSettings.autoStartTourAtBeginning;
+		/** This marker's custom grid action, temporarily suppressed when the tour restarts at step 0. */
+		const gridAction = data._meta?.gridAction;
+
 		// For 3d books, no camera animations
 		const isBook3d = micrio.$current?.album?.info?.type == 'book3d';
 		let view = isBook3d ? undefined : marker.view;
@@ -157,8 +174,19 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			events._dispatch('marker-open', marker);
 			const $tour = get(micrio.state.tour);
 			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) micrio.state.tour.set(undefined);
+
+			// When the auto-start tour has to restart from its first step, don't fly to this
+			// marker's own view first and suppress its grid action: the tour takes over.
+			const immediatelyStartMyTourAtBeginning = !!autoStartMyTour && startTourAtBeginning
+				&& myTourStep != undefined && myTourStep > 0
+				&& autoStartMyTour.id != ($tour as Models.ImageData.MarkerTour)?.id;
+			if (immediatelyStartMyTourAtBeginning) {
+				if (data._meta) delete data._meta.gridAction;
+				setTimeout(() => { if (data._meta) data._meta.gridAction = gridAction; }, 100);
+			}
+
 			await tick();
-			if (view && !data.noAnimate && !marker.videoTour) {
+			if (!immediatelyStartMyTourAtBeginning && view && !data.noAnimate && !marker.videoTour) {
 				image.camera.flyToView(view, {
 					omniIndex: image._isOmni ? this.#omniIndex : undefined,
 					isJump: true
@@ -181,8 +209,32 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 			if (markerSettings.noMarkerActions) return;
 
-			const $tour = get(micrio.state.tour);
+			let $tour = get(micrio.state.tour);
 			events._dispatch('marker-opened', marker);
+
+			// Auto-start this marker's tour, at this marker's step (or from the beginning)
+			if (autoStartMyTour && !$tour) {
+				const startStep = startTourAtBeginning ? 0 : (myTourStep ?? 0);
+				autoStartMyTour.initialStep = startStep;
+				// `currentStep` is sticky between runs, so set it too, or the tour would resume elsewhere
+				autoStartMyTour.currentStep = startStep;
+				const firstStep = autoStartMyTour.stepInfo?.[0];
+				// Starting from the beginning while the first step lives on another image: go there first
+				if (startTourAtBeginning && firstStep?.micrioId && firstStep.micrioId != image.id) {
+					const target = micrio._canvases.find(c => c.id == firstStep.micrioId);
+					if (target) micrio.current.set(target);
+					else micrio.open(firstStep.micrioId).catch(() => {});
+				}
+				micrio.state.tour.set(autoStartMyTour);
+				$tour = autoStartMyTour;
+				// The tour restarts at step 0, so this marker is not the step to show
+				if (startTourAtBeginning && (myTourStep ?? 0) > 0) {
+					image.state.marker.set(undefined);
+					return;
+				}
+				await tick();
+			}
+
 			if (marker.popupType != 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
 				// no popup - handle popover or video tour
 				if (marker.popupType == 'popover') {

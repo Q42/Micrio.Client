@@ -98,7 +98,10 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				const img = si.micrioId && micrio.$current?.id !== si.micrioId
 					? await micrio.open(si.micrioId, { startView })
 					: micrio.$current;
-				if (img) img.state.marker.set(si.markerId);
+				// Don't re-set (and thereby close/re-open) a marker that is already the active one
+				const active = img && get(img.state.marker);
+				const activeId = typeof active == 'string' ? active : active?.id;
+				if (img && activeId !== si.markerId) img.state.marker.set(si.markerId);
 			};
 
 			mt.next = () => {
