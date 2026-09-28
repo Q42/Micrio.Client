@@ -51,6 +51,9 @@ export class Grid extends MicrioElement<GridProps> {
 	/** @internal */
 	_buttons = new Map<string, HTMLButtonElement>()
 
+	/** Placeholder tiles for empty grid entries. @internal */
+	#emptyTiles: HTMLButtonElement[] = []
+
 	/** @internal */
 	_clickable: 'focus' | 'zoom' | false = false
 	/** @internal */
@@ -286,9 +289,11 @@ export class Grid extends MicrioElement<GridProps> {
 		)
 	}
 
-	/** Set the grid to display the given images, arranging them into a CSS grid. */
+	/** Set the grid to display the given images, arranging them into a CSS grid.
+	 * Use `{ empty: true }` for explicit empty cells; entries without an `id` are
+	 * also treated as empty cells for backwards compatibility. */
 	set(
-		images: Models.Grid.GridImage[] = [],
+		images: Models.Grid.GridEntry[] = [],
 		opts: {
 			noHistory?: boolean
 			keepGrid?: boolean
@@ -330,10 +335,11 @@ export class Grid extends MicrioElement<GridProps> {
 			const isBehindDelay = opts.transition === 'behind-delayed'
 			const { _engine: engine } = this.micrio
 
+			const imageEntries = images.filter((i): i is Models.Grid.GridImage => Boolean(i.id))
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
-				setupBehindTransition(this, images, opts, focussed)
+				setupBehindTransition(this, imageEntries, opts, focussed)
 			}
 
 			const ready = this.image._placed
@@ -356,7 +362,7 @@ export class Grid extends MicrioElement<GridProps> {
 			}
 			this.#isHorizontal = Boolean(opts.horizontal)
 
-			this.#removeImages(this._images.filter((i) => !images.find((n) => n.id === i.id)))
+			this.#removeImages(this._images.filter((i) => !imageEntries.find((n) => n.id === i.id)))
 			this.#printGrid(images, {
 				horizontal: opts.horizontal,
 				keepGrid: opts.keepGrid,
@@ -390,7 +396,7 @@ export class Grid extends MicrioElement<GridProps> {
 			const forcedCoverLimit = opts.cover && !opts.coverLimit
 			if (forcedCoverLimit) {
 				opts.coverLimit = true
-				for (const i of images) {
+				for (const i of imageEntries) {
 					this._imageMap.get(i.id)?.camera.setCoverLimit(true)
 				}
 			}
@@ -398,7 +404,7 @@ export class Grid extends MicrioElement<GridProps> {
 			const isAppear = opts.transition === 'appear-delayed'
 			const getDelay = (i: number): number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0)
 
-			this._current = images.map((img, i) =>
+			this._current = imageEntries.map((img, i) =>
 				this.#placeImage(img, {
 					duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : dur,
 					delay: isDelayed ? getDelay(i) : 0,
@@ -439,11 +445,11 @@ export class Grid extends MicrioElement<GridProps> {
 					}
 				}
 				if (forcedCoverLimit) {
-					for (const i of images) {
+					for (const i of imageEntries) {
 						this._imageMap.get(i.id)?.camera.setCoverLimit(false)
 					}
 				} else if (opts.coverLimit) {
-					for (const i of images) {
+					for (const i of imageEntries) {
 						this._imageMap.get(i.id)?.camera.setCoverLimit(true)
 					}
 				}
@@ -466,7 +472,7 @@ export class Grid extends MicrioElement<GridProps> {
 				}
 				this.#_to = setTimeout(
 					done,
-					(Math.max(crossfadeDur, dur) + (isDelayed ? (images.length - 1) * this.#transitionDelay : 0)) * 1000,
+					(Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length - 1) * this.#transitionDelay : 0)) * 1000,
 				)
 			}
 		})
@@ -480,7 +486,7 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#printGrid(
-		images: Models.Grid.GridImage[],
+		images: Models.Grid.GridEntry[],
 		opts: {
 			horizontal?: boolean
 			keepGrid?: boolean
@@ -488,34 +494,52 @@ export class Grid extends MicrioElement<GridProps> {
 			columns?: number
 		},
 	): void {
-		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0)
+		const numTiles = images.reduce((n, i) => n + (i.size?.[0] ?? 1) * (i.size?.[1] ?? 1), 0)
 		const cols = opts.columns ?? (opts.horizontal ? images.length : getCols(images.length, numTiles))
 		this.style.gridTemplateColumns = `repeat(${cols}, auto)`
 		for (const btn of this._buttons.values()) {
 			btn.remove()
 		}
 		this._buttons.clear()
+		for (const t of this.#emptyTiles) {
+			t.remove()
+		}
+		this.#emptyTiles.length = 0
 		this.style.removeProperty('--translate')
 		this.style.removeProperty('--scale')
 
 		for (const i of images) {
-			let tile = this._buttons.get(i.id)
-			if (!tile) {
+			let tile: HTMLButtonElement
+			if (!i.id) {
 				tile = createElement('button')
-				this._buttons.set(i.id, tile)
+				tile.disabled = true
+				tile.classList.add('grid-empty')
+				this.#emptyTiles.push(tile)
+			} else {
+				let btn = this._buttons.get(i.id)
+				if (!btn) {
+					btn = createElement('button')
+					this._buttons.set(i.id, btn)
+				}
+				tile = btn
+				tile.dataset.id = i.id
+				// The tiles are keyboard focus targets (`keyboard.ts` moves focus between them),
+				// so they need a name: without one every cell reads as just "button".
+				tile.setAttribute('aria-label', this._imageMap.get(i.id)?.$info?.title ?? i.id)
 			}
-			if (i.size[0] !== 1 || i.size[1] !== undefined) {
-				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0] || i.size[1]}`
-				this.#cellSizes.set(i.id, i.size)
+			const size = i.size ?? [1]
+			if (size[0] !== 1 || size[1] !== undefined) {
+				tile.style.gridArea = `auto / auto / span ${size[1]} / span ${size[0] || size[1]}`
+				if (i.id) {
+					this.#cellSizes.set(i.id, size)
+				}
 			} else {
 				tile.style.removeProperty('grid-area')
-				this.#cellSizes.delete(i.id)
+				if (i.id) {
+					this.#cellSizes.delete(i.id)
+				}
 			}
-			tile.dataset.id = i.id
 			tile.dataset.scrollThrough = ''
-			// The tiles are keyboard focus targets (`keyboard.ts` moves focus between them),
-			// so they need a name: without one every cell reads as just "button".
-			tile.setAttribute('aria-label', this._imageMap.get(i.id)?.$info?.title ?? i.id)
 			this.append(tile)
 		}
 
@@ -531,7 +555,7 @@ export class Grid extends MicrioElement<GridProps> {
 		const w = this.micrio.offsetWidth
 		const h = this.micrio.offsetHeight
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale ?? 1)))
-		const imageById = new Map(images.map((i) => [i.id, i]))
+		const imageById = new Map(images.filter((i): i is Models.Grid.GridImage => Boolean(i.id)).map((i) => [i.id, i]))
 		this.style.transform = ''
 		for (const n of this.childNodes) {
 			if (!(n instanceof HTMLElement)) {
