@@ -191,6 +191,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 			openStep(-1, this.#currentStep);
 			renderControls();
+
+			// Control titles are translated, so rebuild them on a UI language change
+			this._watchLater(micrio._lang, () => renderControls());
 		}
 
 		this._addCleanup(micrio.state.tour.subscribe(t => {

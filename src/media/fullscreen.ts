@@ -60,6 +60,9 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		document.addEventListener('fullscreenchange', onchange);
 		this._addCleanup(() => document.removeEventListener('fullscreenchange', onchange));
 
+		// The button title is translated, so refresh it on a UI language change
+		if (micrio) this._watchLater(micrio._lang, () => this.#renderButton());
+
 		this.#renderButton();
 	}
 

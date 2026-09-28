@@ -96,6 +96,16 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (!controller) return;
 
 		this.#renderGallery(micrio, image, controller);
+
+		// Scrubber button titles are translated, so refresh them on a UI language change
+		// (the scrubber bar itself is only built once)
+		this._watchLater(micrio._lang, () => {
+			const $i18n = get(i18n);
+			this.#prevBtn?._setProps({ title: $i18n._galleryPrev });
+			this.#nextBtn?._setProps({ title: $i18n._galleryNext });
+			this.querySelector<MicrioElement>('micrio-button.rotateLeft')?._setProps({ title: $i18n._galleryRotateLeft });
+			this.querySelector<MicrioElement>('micrio-button.rotateRight')?._setProps({ title: $i18n._galleryRotateRight });
+		});
 	}
 
 	/** @internal */

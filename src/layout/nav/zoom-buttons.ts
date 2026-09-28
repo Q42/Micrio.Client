@@ -37,6 +37,8 @@ class MicrioZoomButtons extends MicrioElement {
 
 		this._addCleanup(micrio.current.subscribe(() => update()));
 		this._addCleanup(micrio._visible.subscribe(() => update()));
+		// Button titles are translated, so refresh them on a UI language change
+		this._watchLater(micrio._lang, () => update());
 
 		const onZoom = () => update();
 		micrio._onZoom.push(onZoom);

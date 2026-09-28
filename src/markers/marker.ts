@@ -51,7 +51,6 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const events = micrio.events;
 		const $_lang = get(micrio._lang);
 		const markerSettings = image.$settings._markers ?? {};
-		const content = marker.i18n?.[$_lang];
 		const data = marker.data ?? {};
 		const noTitles = marker.data?.showTitle === false || !!markerSettings.noTitles || !!image.$settings.omni?.sideLabels;
 		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || !!image.$settings.omni?.sideLabels;
@@ -84,7 +83,6 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (timeline?.length) view = timeline[0].rect;
 		}
 
-		const showLabel = content && (!noTitles) && (content.label || content.title);
 		const cluster = marker.type == 'cluster';
 		const icon = !cluster && marker.type == 'link' ? 'link' : marker.type == 'media' ? 'play' : undefined;
 		const customIcon = marker.data?.customIconIdx != undefined
@@ -235,6 +233,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				await tick();
 			}
 
+			// Resolve content for the *current* language — the language may have changed
+			// since this element was mounted
+			const content = marker.i18n?.[get(micrio._lang)];
 			if (marker.popupType != 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
 				// no popup - handle popover or video tour
 				if (marker.popupType == 'popover') {
@@ -337,10 +338,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		if (!marker.htmlElement && !marker.noMarker) {
 			const btn = createElement('button', {
-				props: {
-					...(noToolTips || cluster ? {} : { title: content?.label || content?.title || '' }),
-					id: marker.id
-				},
+				props: { id: marker.id },
 				attrs: { 'data-scroll-through': '' },
 				events: {
 					click,
@@ -367,16 +365,29 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				});
 			}
 
-			if (showLabel) {
-				createElement('label', {
-					textContent: content?.label || content?.title || '',
-					attrs: {
-						for: marker.id,
-						'data-scroll-through': ''
-					},
-					parent: btn
-				});
-			}
+			/**
+			 * Marker labels and tooltips are translated, so (re)apply them for the
+			 * active UI language — `marker.i18n` may have no entry for it at all.
+			 */
+			const applyLabel = () => {
+				const content = marker.i18n?.[get(micrio._lang)];
+				const text = content?.label || content?.title || '';
+				if (!noToolTips && !cluster) btn.title = text;
+				let label = btn.querySelector('label');
+				if (content && !noTitles && text) {
+					if (!label) label = createElement('label', {
+						attrs: {
+							for: marker.id,
+							'data-scroll-through': ''
+						},
+						parent: btn
+					});
+					label.textContent = text;
+				} else if (label) label.remove();
+			};
+			applyLabel();
+
+			this._watchLater(micrio._lang, applyLabel);
 		}
 
 		// Initial position

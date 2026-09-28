@@ -43,6 +43,9 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			parent: this
 		});
 
+		// Button titles and content are translated, so re-render on a UI language change
+		this._watchLater(micrio._lang, () => this.#render());
+
 		this.#render();
 	}
 

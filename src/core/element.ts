@@ -203,11 +203,14 @@ export class HTMLMicrioElement extends MicrioElement {
 					this.$current.canvas._limited = !!newVal;
 				break;
 			case 'lang': {
-			let prevLang = get(this._lang);
-			if(prevLang != newVal) {
-				this._lang.set(newVal);
-				const baseLang = newVal.split('-')[0];
+				let prevLang = get(this._lang);
+				if(prevLang != newVal) {
+					// Set the translations *before* `_lang`: everything that re-renders on
+					// the language change (toolbar, controls, ...) reads `get(i18n)` while
+					// doing so, and would otherwise render the previous language
+					const baseLang = newVal.split('-')[0];
 					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en);
+					this._lang.set(newVal);
 					if(newVal) {
 						if(isRTL(newVal)) this.setAttribute('dir', 'rtl');
 						else this.removeAttribute('dir');

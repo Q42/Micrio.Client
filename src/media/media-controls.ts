@@ -40,17 +40,22 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	#fsBtnEl!: MicrioElement;
 	#barEl!: HTMLElement;
 	#timeEl!: HTMLElement;
+	#closeBtnEl: MicrioElement | undefined;
 	#built = false;
 	#prevPaused: boolean | undefined;
 	#prevSeeking = false;
 	#prevMuted = false;
 	#prevProgress = -1;
 	#prevTime = '';
+	#prevLang: string | undefined;
 
 	/** @internal */
 	_onMount() {
 		this.#build();
 		this._addCleanup(captionsEnabled.subscribe(() => this.#sync()));
+		// Button titles are translated, so refresh them on a UI language change
+		const micrio = this._getMicrio();
+		if (micrio) this._watchLater(micrio._lang, () => this.#sync());
 	}
 
 	/** @internal */
@@ -129,10 +134,10 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			}
 
 			if (p.onclose) {
-				createElement('micrio-button', {
+				this.#closeBtnEl = createElement('micrio-button', {
 					setProps: { type: 'close', title: get(i18n)._close, onclick: p.onclose },
 					parent: this.#wrapperEl,
-				});
+				}) as MicrioElement;
 			}
 		}
 
@@ -143,8 +148,14 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 		const p = this.#props;
 		const $i18n = get(i18n);
 		const $captionsEnabled = get(captionsEnabled);
+		// The previous state caches would skip the translated titles, so bypass them
+		// when the UI language changed
+		const micrio = this._getMicrio();
+		const $lang = micrio ? get(micrio._lang) : undefined;
+		const langChanged = $lang !== this.#prevLang;
+		this.#prevLang = $lang;
 
-		if (p.paused !== this.#prevPaused || p.seeking !== this.#prevSeeking || this.#prevPaused === undefined) {
+		if (langChanged || p.paused !== this.#prevPaused || p.seeking !== this.#prevSeeking || this.#prevPaused === undefined) {
 			this.#prevPaused = p.paused;
 			this.#prevSeeking = !!p.seeking;
 			this.#playBtn._setProps({
@@ -155,7 +166,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		if (this.#muteBtnEl && p.muted !== this.#prevMuted) {
+		if (this.#muteBtnEl && (langChanged || p.muted !== this.#prevMuted)) {
 			this.#prevMuted = !!p.muted;
 			this.#muteBtnEl._setProps({
 				type: p.muted ? 'muted' : 'unmuted',
@@ -175,6 +186,8 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 		}
 
 		if (this.#fsBtnEl) this.#fsBtnEl._setProps({ el: p.fullscreenEl });
+
+		if (this.#closeBtnEl && langChanged) this.#closeBtnEl._setProps({ title: $i18n._close });
 
 		if (p.duration && !isNaN(p.duration)) {
 			const progress = ((p.currentTime ?? 0) / p.duration) * 100;

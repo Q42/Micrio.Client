@@ -47,6 +47,9 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			if ((e as TransitionEvent).target === this && this.#destroying) this.remove();
 		});
 
+		// Button titles and content are translated, so re-render on a UI language change
+		this._watchLater(micrio._lang, () => { if (!this.#destroying) this.#render(); });
+
 		this.#render();
 	}
 

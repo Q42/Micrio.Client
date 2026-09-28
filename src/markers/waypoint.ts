@@ -39,6 +39,9 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	_onMount() {
 		this.#setup();
 		this.#render();
+		// The button title is translated, so refresh it on a UI language change
+		const micrio = this._getMicrio();
+		if (micrio) this._watchLater(micrio._lang, () => this.#render());
 	}
 
 	/** @internal */
