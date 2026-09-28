@@ -90,6 +90,29 @@ dialog:not(.article) > micrio-media > figure :is(iframe, video) {
 }
 dialog.article {
 	width: 540px;
+	display: flex;
+	flex-direction: column;
+}
+dialog.article > article {
+	flex: 0 1 auto;
+	min-height: 0;
+}
+dialog.article article img {
+	width: 100%;
+	height: auto;
+}
+/* Content page action buttons ("Start tour", "Free exploration", custom links) */
+dialog > menu {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+	margin: 10px 0;
+	padding: 0;
+	list-style: none;
+}
+dialog > menu.right {
+	justify-content: flex-end;
 }
 dialog.article article {
 	text-shadow: none;

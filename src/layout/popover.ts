@@ -36,10 +36,9 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 						p.image.state.marker.set(undefined);
 					}
 					micrio.state.popover.set(undefined);
-				},
-				click: (e) => {
-					if (e.target === this.#dialog) micrio.state.popover.set(undefined);
 				}
+				// No `click` handler: like in 6, clicking outside the popover does not
+				// close it — only its buttons, ESC or clearing the state do.
 			},
 			parent: this
 		});
@@ -71,9 +70,15 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 
 		const marker = 'marker' in p ? p.marker : undefined;
 		const markerTour = 'markerTour' in p ? p.markerTour : undefined;
+		const page = 'contentPage' in p ? p.contentPage : undefined;
 		const isPartOfTour = !!(marker && markerTour && 'steps' in markerTour &&
 			(markerTour as Models.ImageData.MarkerTour).steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0);
 		const isLastStep = isPartOfTour ? (markerTour as Models.ImageData.MarkerTour).currentStep == (markerTour as Models.ImageData.MarkerTour).steps.length - 1 : true;
+		/**
+		 * A content page carrying its own `close` button ("Free exploration") does
+		 * the closing itself, so the popover's close button is hidden (6 parity).
+		 */
+		const noCloseButton = !!page?.buttons?.find(b => b.type == 'close');
 
 		const advanceOrClose = (e?: Event) => {
 			if (isPartOfTour && markerTour && 'steps' in markerTour) {
@@ -87,21 +92,42 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			if (this.#dialog?.open) this.#dialog.close();
 		};
 
-		createElement('aside', {
-			parent: this.#dialog,
-			children: [
-				createElement('micrio-button', {
-					setProps: {
-						type: (!isPartOfTour || isLastStep) ? 'close' : 'next',
-						title: (!isPartOfTour || isLastStep) ? $i18n._closeMarker : $i18n._tourStepNext,
-						onclick: advanceOrClose
-					}
-				})
-			]
-		});
+		/**
+		 * Runs a content page's custom action button: closes the popover first,
+		 * then performs the action (marker / marker tour / video tour). `link`
+		 * buttons navigate through their own <a href>.
+		 */
+		const clickPageButton = (button: Models.ImageData.MenuPageButton) => {
+			if (this.#dialog?.open) this.#dialog.close();
+			if (button.type == 'close') return;
+			// Give the popover time to close before switching content, like in 6
+			setTimeout(() => {
+				const data = micrio.$current?.$data;
+				switch (button.type) {
+					case 'marker': micrio.$current?.state.marker.set(button.action); break;
+					case 'mtour': micrio.state.tour.set(data?.markerTours?.find(t => t.id == button.action)); break;
+					case 'vtour': micrio.state.tour.set(data?.tours?.find(t => t.id == button.action)); break;
+				}
+			}, 200);
+		};
 
-		if ('contentPage' in p && p.contentPage) {
-			const page = p.contentPage;
+		// 6 parity: no aside at all when the page closes itself and no tour nav is needed
+		if (!noCloseButton || isPartOfTour) {
+			createElement('aside', {
+				parent: this.#dialog,
+				children: [
+					createElement('micrio-button', {
+						setProps: {
+							type: (!isPartOfTour || isLastStep) ? 'close' : 'next',
+							title: (!isPartOfTour || isLastStep) ? $i18n._closeMarker : $i18n._tourStepNext,
+							onclick: advanceOrClose
+						}
+					})
+				]
+			});
+		}
+
+		if (page) {
 			const cd = page.i18n?.[$_lang];
 			this.#dialog.classList.add('page');
 
@@ -122,8 +148,32 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 				const articleChildren: (Node | string | number | false | null | undefined)[] = [];
 				if (cd?.title) articleChildren.push(createElement('h2', { textContent: cd.title }));
 				if (cd?.embed) articleChildren.push(createElement('micrio-media', { setProps: { src: cd.embed, controls: true } }));
+				// Page image (dropped in the 7 rewrite)
+				const pageImage = page.image as string | Models.Assets.Image | undefined;
+				const pageImageSrc = typeof pageImage == 'string' ? pageImage : pageImage?.src;
+				if (pageImageSrc) articleChildren.push(createElement('img', { props: { src: pageImageSrc, alt: '' } }));
 				if (cd?.content) articleChildren.push(createElement('div', { innerHTML: cd.content }));
 				createElement('article', { children: articleChildren, parent: this.#dialog });
+			}
+
+			// Page action buttons ("Start tour", "Free exploration", custom links;
+			// dropped in the 7 rewrite — they were only read for the isVideoPage check)
+			if (page.buttons?.length) {
+				const menu = createElement('menu', {
+					className: 'right',
+					parent: this.#dialog
+				});
+				for (const button of page.buttons) {
+					createElement('micrio-button', {
+						children: [button.i18nTitle?.[$_lang] ?? ''],
+						setProps: {
+							href: button.type == 'link' ? button.action : undefined,
+							blankTarget: button.blankTarget,
+							onclick: () => clickPageButton(button)
+						},
+						parent: menu
+					});
+				}
 			}
 		}
 
