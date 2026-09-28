@@ -203,7 +203,8 @@ export class Grid extends MicrioElement {
 	}
 
 	/** Set the grid to display the given images, arranging them into a CSS grid.
-	 * Use `{ empty: true }` for explicit empty cells.
+	 * Use `{ empty: true }` for explicit empty cells; this always renders an empty
+	 * placeholder cell, even when the entry also has an `id`.
 	 * Entries without an `id` are also treated as empty cells for backwards compatibility. */
 	set(images:Models.Grid.GridEntry[]=[], opts:{
 		noHistory?:boolean;
@@ -237,7 +238,7 @@ export class Grid extends MicrioElement {
 		const isBehindDelay = opts.transition == 'behind-delayed';
 		const { _engine: engine } = this.micrio;
 
-		const imageEntries = images.filter((i):i is Models.Grid.GridImage => !!i.id);
+		const imageEntries = images.filter((i):i is Models.Grid.GridImage => !!i.id && !i.empty);
 		if(opts.transition == 'crossfade') opts.duration = 0;
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
 			setupBehindTransition(this, imageEntries, opts, focussed);
@@ -354,25 +355,26 @@ export class Grid extends MicrioElement {
 
 		images.forEach(i => {
 			let tile:HTMLButtonElement;
-			if(!i.id) {
+			const isEmpty = !i.id || i.empty;
+			if(isEmpty) {
 				tile = createElement('button');
 				tile.disabled = true;
 				tile.classList.add('grid-empty');
 				this.#emptyTiles.push(tile);
 			}
 			else {
-				if(!this._buttons.has(i.id)) this._buttons.set(i.id, createElement('button'));
-				tile = this._buttons.get(i.id)!;
+				if(!this._buttons.has(i.id!)) this._buttons.set(i.id!, createElement('button'));
+				tile = this._buttons.get(i.id!)!;
 				tile.dataset.id = i.id;
 			}
 			const size = i.size ?? [1];
 			if(size[0] !== 1 || size[1] !== undefined) {
 				tile.style.gridArea = `auto / auto / span ${size[1]} / span ${size[0]||size[1]}`;
-				if(i.id) this.#cellSizes.set(i.id, size)
+				if(i.id && !isEmpty) this.#cellSizes.set(i.id, size)
 			}
 			else {
 				tile.style.removeProperty('grid-area');
-				if(i.id) this.#cellSizes.delete(i.id);
+				if(i.id && !isEmpty) this.#cellSizes.delete(i.id);
 			}
 			tile.setAttribute('data-scroll-through', '');
 			this.appendChild(tile);
@@ -388,7 +390,7 @@ export class Grid extends MicrioElement {
 		const w = this.micrio.offsetWidth;
 		const h = this.micrio.offsetHeight;
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1)));
-		const imageById = new Map(images.filter((i):i is Models.Grid.GridImage => !!i.id).map(i => [i.id, i]));
+		const imageById = new Map(images.filter((i):i is Models.Grid.GridImage => !!i.id && !i.empty).map(i => [i.id, i]));
 		this.style.transform = '';
 		this.childNodes.forEach((n:ChildNode) => {
 			const e = n as HTMLElement;
