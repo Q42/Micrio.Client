@@ -29,6 +29,10 @@ micrio-grid>button {
 micrio-grid.grid-cells-hidden>button {
 	display: none;
 }
+micrio-grid>button.grid-empty {
+	cursor: default;
+	pointer-events: none;
+}
 micrio-grid .close {
 	position: absolute;
 	display: block;

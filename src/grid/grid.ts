@@ -44,6 +44,9 @@ export class Grid extends MicrioElement {
 	/** @internal */
 	_buttons:Map<string, HTMLButtonElement> = new Map();
 
+	/** Placeholder tiles for empty grid entries. @internal */
+	#emptyTiles:HTMLElement[] = [];
+
 	/** @internal */
 	_clickable: 'focus'|'zoom'|false = false;
 	/** @internal */
@@ -199,8 +202,10 @@ export class Grid extends MicrioElement {
 		}));
 	}
 
-	/** Set the grid to display the given images, arranging them into a CSS grid. */
-	set(images:Models.Grid.GridImage[]=[], opts:{
+	/** Set the grid to display the given images, arranging them into a CSS grid.
+	 * Use `{ empty: true }` for explicit empty cells.
+	 * Entries without an `id` are also treated as empty cells for backwards compatibility. */
+	set(images:Models.Grid.GridEntry[]=[], opts:{
 		noHistory?:boolean;
 		keepGrid?: boolean;
 		horizontal?:boolean;
@@ -232,9 +237,10 @@ export class Grid extends MicrioElement {
 		const isBehindDelay = opts.transition == 'behind-delayed';
 		const { _engine: engine } = this.micrio;
 
+		const imageEntries = images.filter((i):i is Models.Grid.GridImage => !!i.id);
 		if(opts.transition == 'crossfade') opts.duration = 0;
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
-			setupBehindTransition(this, images, opts, focussed);
+			setupBehindTransition(this, imageEntries, opts, focussed);
 
 		const ready = this.image._placed;
 		const dur = opts.duration ?? (opts.noHistory ? this.#aniDurationOut : this._aniDurationIn);
@@ -252,7 +258,7 @@ export class Grid extends MicrioElement {
 		if(!opts.noHistory && this._current.length) this.#savePreviousLayout();
 		this.#isHorizontal = !!opts.horizontal;
 
-		this.#removeImages(this._images.filter(i => !images.find(n => n.id == i.id)));
+		this.#removeImages(this._images.filter(i => !imageEntries.find(n => n.id == i.id)));
 		this.#printGrid(images, {
 			horizontal: opts.horizontal,
 			keepGrid: opts.keepGrid,
@@ -281,13 +287,13 @@ export class Grid extends MicrioElement {
 		const forcedCoverLimit = opts.cover && !opts.coverLimit;
 		if (forcedCoverLimit) {
 			opts.coverLimit = true;
-			images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));
+			imageEntries.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));
 		}
 
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0);
 
-		this._current = images.map((img,i) => this.#placeImage(img, {
+		this._current = imageEntries.map((img,i) => this.#placeImage(img, {
 			duration: !opts.forceAni && doUnfocus && img.id != focussed?.id ? 0 : dur,
 			delay: isDelayed ? getDelay(i) : 0,
 			noCamAni: isAppear && i > 0 ? true : !!opts.noCamAni,
@@ -307,8 +313,8 @@ export class Grid extends MicrioElement {
 			this.#clearTimeouts();
 			Frame.request(() => engine._crossfadeDuration = defaultDur);
 			if(isDelayed) this._images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
-			if(forcedCoverLimit) images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(false));
-			else if(opts.coverLimit) images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));
+			if(forcedCoverLimit) imageEntries.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(false));
+			else if(opts.coverLimit) imageEntries.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));
 			if(this._clickable) this.#placeGrid();
 			this._lastAction = undefined;
 			resolved = true;
@@ -321,7 +327,7 @@ export class Grid extends MicrioElement {
 		}
 		else {
 			if(!opts.noFade) this.#_fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
-			this.#_to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (images.length-1) * this.#transitionDelay : 0)) * 1000);
+			this.#_to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length-1) * this.#transitionDelay : 0)) * 1000);
 		}
 	})}
 
@@ -330,32 +336,44 @@ export class Grid extends MicrioElement {
 		return this._current.some((img, i) => img.id !== this._images[i].id);
 	}
 
-	#printGrid(images:Models.Grid.GridImage[], opts:{
+	#printGrid(images:Models.Grid.GridEntry[], opts:{
 		horizontal?:boolean;
 		keepGrid?:boolean;
 		scale?:number;
 		columns?:number;
 	}) : void {
-		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0);
+		const numTiles = images.reduce((n, i) => n + (i.size?.[0] ?? 1) * (i.size?.[1] ?? 1), 0);
 		const cols = opts.columns ?? (opts.horizontal ? images.length : getCols(images.length, numTiles));
 		this.style.gridTemplateColumns = `repeat(${cols}, auto)`;
 		for (const btn of this._buttons.values()) btn.remove();
 		this._buttons.clear();
+		this.#emptyTiles.forEach(t => t.remove());
+		this.#emptyTiles.length = 0;
 		this.style.removeProperty('--translate');
 		this.style.removeProperty('--scale');
 
 		images.forEach(i => {
-			if(!this._buttons.has(i.id)) this._buttons.set(i.id, createElement('button'));
-			const tile = this._buttons.get(i.id)!;
-			if(i.size[0] !== 1 || i.size[1] !== undefined) {
-				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0]||i.size[1]}`;
-				this.#cellSizes.set(i.id, i.size)
+			let tile:HTMLButtonElement;
+			if(!i.id) {
+				tile = createElement('button');
+				tile.disabled = true;
+				tile.classList.add('grid-empty');
+				this.#emptyTiles.push(tile);
+			}
+			else {
+				if(!this._buttons.has(i.id)) this._buttons.set(i.id, createElement('button'));
+				tile = this._buttons.get(i.id)!;
+				tile.dataset.id = i.id;
+			}
+			const size = i.size ?? [1];
+			if(size[0] !== 1 || size[1] !== undefined) {
+				tile.style.gridArea = `auto / auto / span ${size[1]} / span ${size[0]||size[1]}`;
+				if(i.id) this.#cellSizes.set(i.id, size)
 			}
 			else {
 				tile.style.removeProperty('grid-area');
-				this.#cellSizes.delete(i.id);
+				if(i.id) this.#cellSizes.delete(i.id);
 			}
-			tile.dataset.id = i.id;
 			tile.setAttribute('data-scroll-through', '');
 			this.appendChild(tile);
 		});
@@ -370,7 +388,7 @@ export class Grid extends MicrioElement {
 		const w = this.micrio.offsetWidth;
 		const h = this.micrio.offsetHeight;
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale??1)));
-		const imageById = new Map(images.map(i => [i.id, i]));
+		const imageById = new Map(images.filter((i):i is Models.Grid.GridImage => !!i.id).map(i => [i.id, i]));
 		this.style.transform = '';
 		this.childNodes.forEach((n:ChildNode) => {
 			const e = n as HTMLElement;

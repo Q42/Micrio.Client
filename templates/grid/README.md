@@ -285,6 +285,22 @@ await grid.set(
 );
 ```
 
+```js
+// Reserve explicit empty cells to shape the layout
+await grid.set([
+  { id: 'hero', size: [2, 2] },
+  { empty: true, size: [1] },
+  { id: 'detailA', size: [1] },
+  { empty: true, size: [1, 2] },
+  { id: 'detailB', size: [1] },
+]);
+```
+
+`grid.set()` accepts both forms for empty cells:
+
+- Preferred explicit form: `{ empty: true, size?: [cols, rows?] }`
+- implicit form: an entry without `id`
+
 Notable `set` options:
 
 | Option | Type | Description |

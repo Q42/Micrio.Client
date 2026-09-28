@@ -37,6 +37,18 @@ export namespace Grid {
 		view?: Camera.View;
 	}
 
+	/** An empty placeholder cell in a grid layout, occupying grid space without an image */
+	export interface GridEmptyCell {
+		/** Explicit marker for an empty placeholder cell */
+		empty?: true;
+		id?: undefined;
+		/** Cell span as [columns, rows?], defaults to a 1x1 cell */
+		size?: [number, number?];
+	}
+
+	/** A single grid layout entry: an image, or an empty placeholder cell */
+	export type GridEntry = GridImage | GridEmptyCell;
+
 	/* @internal */
 	export interface GridHistory {
 		layout: { id: string; view?: Camera.View; size?: [number, number?] }[];
