@@ -29,6 +29,8 @@ export namespace Grid {
 		size: [number, number?]
 		area?: Camera.View
 		view?: Camera.View
+		/** Force this entry to render as an empty placeholder cell, even though it has an `id` */
+		empty?: true
 	}
 
 	/** An empty placeholder cell in a grid layout, occupying grid space without an image */

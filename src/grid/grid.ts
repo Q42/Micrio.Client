@@ -290,8 +290,9 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	/** Set the grid to display the given images, arranging them into a CSS grid.
-	 * Use `{ empty: true }` for explicit empty cells; entries without an `id` are
-	 * also treated as empty cells for backwards compatibility. */
+	 * Use `{ empty: true }` for explicit empty cells; this always renders an empty
+	 * placeholder cell, even when the entry also has an `id`.
+	 * Entries without an `id` are also treated as empty cells for backwards compatibility. */
 	set(
 		images: Models.Grid.GridEntry[] = [],
 		opts: {
@@ -335,7 +336,7 @@ export class Grid extends MicrioElement<GridProps> {
 			const isBehindDelay = opts.transition === 'behind-delayed'
 			const { _engine: engine } = this.micrio
 
-			const imageEntries = images.filter((i): i is Models.Grid.GridImage => Boolean(i.id))
+			const imageEntries = images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty)
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
@@ -510,7 +511,7 @@ export class Grid extends MicrioElement<GridProps> {
 
 		for (const i of images) {
 			let tile: HTMLButtonElement
-			if (!i.id) {
+			if (!i.id || i.empty) {
 				tile = createElement('button')
 				tile.disabled = true
 				tile.classList.add('grid-empty')
@@ -530,12 +531,12 @@ export class Grid extends MicrioElement<GridProps> {
 			const size = i.size ?? [1]
 			if (size[0] !== 1 || size[1] !== undefined) {
 				tile.style.gridArea = `auto / auto / span ${size[1]} / span ${size[0] || size[1]}`
-				if (i.id) {
+				if (i.id && !i.empty) {
 					this.#cellSizes.set(i.id, size)
 				}
 			} else {
 				tile.style.removeProperty('grid-area')
-				if (i.id) {
+				if (i.id && !i.empty) {
 					this.#cellSizes.delete(i.id)
 				}
 			}
@@ -555,7 +556,9 @@ export class Grid extends MicrioElement<GridProps> {
 		const w = this.micrio.offsetWidth
 		const h = this.micrio.offsetHeight
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale ?? 1)))
-		const imageById = new Map(images.filter((i): i is Models.Grid.GridImage => Boolean(i.id)).map((i) => [i.id, i]))
+		const imageById = new Map(
+			images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty).map((i) => [i.id, i]),
+		)
 		this.style.transform = ''
 		for (const n of this.childNodes) {
 			if (!(n instanceof HTMLElement)) {
