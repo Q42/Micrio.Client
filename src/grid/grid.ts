@@ -442,6 +442,12 @@ export class Grid extends MicrioElement<GridProps> {
 				}
 			}
 
+			// Newly added 'in-from-id' entries without a (valid) `from` source have
+			// nothing to animate in from, so they simply fade in at their target area.
+			const fadeInPlaceIds = isInFromId
+				? new Set(imageEntries.filter((e) => !prevById.has(e.id) && !fromAreas.has(e.id)).map((e) => e.id))
+				: undefined
+
 			this._current = imageEntries.map((img, i) =>
 				this.#placeImage(img, {
 					duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : dur,
@@ -450,6 +456,7 @@ export class Grid extends MicrioElement<GridProps> {
 					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni || fromAreas.has(img.id),
 					cover: opts.cover,
 					fromArea: fromAreas.get(img.id),
+					fadeInPlace: Boolean(fadeInPlaceIds?.has(img.id)),
 					ready: readyGate,
 				}),
 			)
@@ -464,7 +471,12 @@ export class Grid extends MicrioElement<GridProps> {
 					if (!c) {
 						return
 					}
-					c._targetOpacity = c._opacity = 0.9999
+					// Keep animated (source/incoming) items fully visible so they don't
+					// fade during their area animation. Fade-in-place items keep their
+					// default 0 opacity so they fade in at their target position.
+					if (!fadeInPlaceIds?.has(entry.id)) {
+						c._targetOpacity = c._opacity = 0.9999
+					}
 					let z = entry.z
 					if (z === undefined) {
 						if (sourceIds.has(entry.id)) {
@@ -690,6 +702,7 @@ export class Grid extends MicrioElement<GridProps> {
 			forceAreaAni?: boolean
 			cover?: boolean
 			fromArea?: Models.Camera.View
+			fadeInPlace?: boolean
 			ready?: Promise<void>
 		},
 	): MicrioImage {
@@ -704,9 +717,11 @@ export class Grid extends MicrioElement<GridProps> {
 		}
 
 		// Place at the source area immediately so its tiles start loading before
-		// the transition begins.
-		if (entry.area && opts.fromArea) {
-			img.camera.setArea(opts.fromArea, { noDispatch: true, direct: true })
+		// the transition begins. When there is no source to animate from
+		// (`fadeInPlace`), place directly at the final area instead so the item
+		// simply fades in at its defined end position.
+		if (entry.area && (opts.fromArea || opts.fadeInPlace)) {
+			img.camera.setArea(opts.fromArea ?? entry.area, { noDispatch: true, direct: true })
 			engine.render()
 		}
 
