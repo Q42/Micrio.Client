@@ -356,9 +356,13 @@ export class Grid extends MicrioElement {
 				c.zIndex = z;
 			});
 
-			// Wait until all newly added images have their base tiles rendered
-			// before opening the gate that starts the transition.
-			const incoming = this._current.filter(img => !prevById.has(img.id));
+			// Wait until the images that animate in from a source have rendered their
+			// base tiles before opening the gate that starts the transition, so they
+			// don't pop in mid-animation. Fade-in-place items are excluded: they are
+			// placed at their (often off-screen) end position and only become visible
+			// once the camera zooms out after the gate opens, so waiting for them
+			// would needlessly stall the whole transition until the timeout.
+			const incoming = this._current.filter(img => !prevById.has(img.id) && fromAreas.has(img.id));
 			const timeout = (Math.max(dur, crossfadeDur) || 1) * 1000 + 3000;
 			this.#whenImagesReady(incoming, timeout).then(() => { if(setId === this.#setId) openGate?.(); });
 		}
