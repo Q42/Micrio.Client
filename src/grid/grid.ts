@@ -337,6 +337,7 @@ export class Grid extends MicrioElement<GridProps> {
 			const { _engine: engine } = this.micrio
 
 			const imageEntries = images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty)
+			const prevById = new Map(this._current.map((img) => [img.id, img] as const))
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
@@ -384,11 +385,33 @@ export class Grid extends MicrioElement<GridProps> {
 				}
 			}
 
+			// For the 'in-from-id' transition, hold the entire transition (viewport
+			// camera, per-item area animations and fades) until all newly added images
+			// have loaded their base tiles, so they don't pop in mid-animation.
+			const isInFromId = opts.transition === 'in-from-id'
+			let openGate: (() => void) | undefined
+			const readyGate: Promise<void> | undefined = isInFromId
+				? new Promise<void>((r) => (openGate = r))
+				: undefined
+			const whenReady = (fn: () => void): void => {
+				if (readyGate) {
+					void readyGate.then(() => {
+						if (setId === this.#setId) {
+							fn()
+						}
+					})
+				} else {
+					fn()
+				}
+			}
+
 			if (ready && !opts.noCamAni) {
-				const p = opts.view
-					? this.image.camera.flyToView(opts.view, { duration: dur * 1000 })
-					: this.image.camera.flyToFullView({ duration: dur * 1000 })
-				p.catch(error)
+				whenReady(() => {
+					const p = opts.view
+						? this.image.camera.flyToView(opts.view, { duration: dur * 1000 })
+						: this.image.camera.flyToFullView({ duration: dur * 1000 })
+					p.catch(error)
+				})
 			}
 
 			if (opts.coverLimit === undefined) {
@@ -405,15 +428,66 @@ export class Grid extends MicrioElement<GridProps> {
 			const isAppear = opts.transition === 'appear-delayed'
 			const getDelay = (i: number): number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0)
 
+			const fromAreas = new Map<string, Models.Camera.View>()
+			if (isInFromId) {
+				for (const entry of imageEntries) {
+					const sourceId = entry.from
+					if (!sourceId || prevById.has(entry.id)) {
+						continue
+					}
+					const sourceArea = prevById.get(sourceId)?.opts.area
+					if (sourceArea) {
+						fromAreas.set(entry.id, sourceArea)
+					}
+				}
+			}
+
 			this._current = imageEntries.map((img, i) =>
 				this.#placeImage(img, {
 					duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : dur,
 					delay: isDelayed ? getDelay(i) : 0,
 					noCamAni: isAppear && i > 0 ? true : Boolean(opts.noCamAni),
-					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni,
+					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni || fromAreas.has(img.id),
 					cover: opts.cover,
+					fromArea: fromAreas.get(img.id),
+					ready: readyGate,
 				}),
 			)
+
+			if (isInFromId) {
+				const sourceIds = new Set(imageEntries.map((e) => e.from).filter((v): v is string => Boolean(v)))
+				const incomingIds = new Set(
+					imageEntries.filter((e) => !prevById.has(e.id) && fromAreas.has(e.id)).map((e) => e.id),
+				)
+				imageEntries.forEach((entry, i) => {
+					const c = this._imageMap.get(entry.id)?.canvas
+					if (!c) {
+						return
+					}
+					c._targetOpacity = c._opacity = 0.9999
+					let z = entry.z
+					if (z === undefined) {
+						if (sourceIds.has(entry.id)) {
+							z = 3000 + i
+						} else if (incomingIds.has(entry.id)) {
+							z = 2000 + i
+						} else {
+							z = 1000 + i
+						}
+					}
+					c.zIndex = z
+				})
+
+				// Wait until all newly added images have their base tiles rendered
+				// before opening the gate that starts the transition.
+				const incoming = this._current.filter((img) => !prevById.has(img.id))
+				const timeout = (Math.max(dur, crossfadeDur) || 1) * 1000 + 3000
+				void this.#whenImagesReady(incoming, timeout).then(() => {
+					if (setId === this.#setId) {
+						openGate?.()
+					}
+				})
+			}
 
 			if (isAppear) {
 				for (const i of this._current.slice(1)) {
@@ -438,7 +512,7 @@ export class Grid extends MicrioElement<GridProps> {
 				}
 				this.#clearTimeouts()
 				Frame.request(() => (engine._crossfadeDuration = defaultDur))
-				if (isDelayed) {
+				if (isDelayed || isInFromId) {
 					for (const i of this._images) {
 						if (i.canvas) {
 							i.canvas.zIndex = 0
@@ -462,20 +536,22 @@ export class Grid extends MicrioElement<GridProps> {
 				ok(this._current)
 			}
 
-			if (!dur && !crossfadeDur) {
-				if (!opts.noFade) {
-					fadeIn()
+			whenReady(() => {
+				if (!dur && !crossfadeDur) {
+					if (!opts.noFade) {
+						fadeIn()
+					}
+					done()
+				} else {
+					if (!opts.noFade) {
+						this.#_fadeTo = setTimeout(fadeIn, Math.max(0, (dur / 2) * 1000))
+					}
+					this.#_to = setTimeout(
+						done,
+						(Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length - 1) * this.#transitionDelay : 0)) * 1000,
+					)
 				}
-				done()
-			} else {
-				if (!opts.noFade) {
-					this.#_fadeTo = setTimeout(fadeIn, Math.max(0, (dur / 2) * 1000))
-				}
-				this.#_to = setTimeout(
-					done,
-					(Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length - 1) * this.#transitionDelay : 0)) * 1000,
-				)
-			}
+			})
 		})
 	}
 
@@ -613,6 +689,8 @@ export class Grid extends MicrioElement<GridProps> {
 			noCamAni?: boolean
 			forceAreaAni?: boolean
 			cover?: boolean
+			fromArea?: Models.Camera.View
+			ready?: Promise<void>
 		},
 	): MicrioImage {
 		const { _engine: engine } = this.micrio
@@ -624,38 +702,86 @@ export class Grid extends MicrioElement<GridProps> {
 		if (!img._placed) {
 			engine._addChild(img, this.image)
 		}
-		if (entry.area) {
-			const { area } = entry
-			const set = () => {
-				img.camera.setArea(area, {
-					direct: opts.duration === 0 || (!opts.forceAreaAni && !get(img.visible)),
-				})
-			}
-			if (opts.delay) {
-				void sleep(opts.delay * 1000)
-					.then(set)
-					.then(() => {
-						engine.render()
+
+		// Place at the source area immediately so its tiles start loading before
+		// the transition begins.
+		if (entry.area && opts.fromArea) {
+			img.camera.setArea(opts.fromArea, { noDispatch: true, direct: true })
+			engine.render()
+		}
+
+		// The actual transition: animate to the target area and optionally fly the
+		// image's camera. When a `ready` promise is supplied (in-from-id), this is
+		// deferred until all images have loaded so they don't pop in.
+		const start = () => {
+			if (entry.area) {
+				const { area } = entry
+				const set = () => {
+					img.camera.setArea(area, {
+						direct: opts.duration === 0 || (!opts.forceAreaAni && !get(img.visible)),
 					})
-			} else {
-				set()
+				}
+				if (opts.delay) {
+					void sleep(opts.delay * 1000)
+						.then(set)
+						.then(() => {
+							engine.render()
+						})
+				} else {
+					set()
+				}
+			}
+
+			const aniOpts = { duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false }
+			if (!opts.noCamAni && !img.camera._aniDone && img._placed) {
+				let p: Promise<void>
+				if (entry.view) {
+					p = img.camera.flyToView(entry.view, aniOpts)
+				} else if (opts.cover) {
+					p = img.camera.flyToCoverView({ ...aniOpts, duration: 0 })
+				} else {
+					p = img.camera.flyToView([0, 0, 1, 1], aniOpts)
+				}
+				p.catch(() => {})
 			}
 		}
 
-		const aniOpts = { duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false }
-		if (!opts.noCamAni && !img.camera._aniDone && img._placed) {
-			let p: Promise<void>
-			if (entry.view) {
-				p = img.camera.flyToView(entry.view, aniOpts)
-			} else if (opts.cover) {
-				p = img.camera.flyToCoverView({ ...aniOpts, duration: 0 })
-			} else {
-				p = img.camera.flyToView([0, 0, 1, 1], aniOpts)
-			}
-			p.catch(() => {})
+		if (opts.ready) {
+			void opts.ready.then(start)
+		} else {
+			start()
 		}
 
 		return img
+	}
+
+	/** Resolves once all given images have loaded (rendered) their base tile, or
+	 * after `timeout` ms as a safety fallback. Used to hold a transition until
+	 * newly added images are actually rendered so they don't pop in. @internal */
+	#whenImagesReady(images: MicrioImage[], timeout: number): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const { _engine: engine } = this.micrio
+			const start = performance.now()
+			const isReady = (img: MicrioImage): boolean => {
+				const c = img.canvas
+				if (!c) {
+					return false
+				}
+				if (c.images.length === 0) {
+					return true
+				}
+				return c.images[0]._gotBase > 0
+			}
+			const check = (): void => {
+				if (images.every(isReady) || performance.now() - start > timeout) {
+					resolve()
+				} else {
+					engine.render()
+					Frame.request(check)
+				}
+			}
+			check()
+		})
 	}
 
 	#removeImages(images: MicrioImage[]): void {
