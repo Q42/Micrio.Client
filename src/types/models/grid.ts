@@ -26,7 +26,8 @@ export namespace Grid {
 		'crossfade'|
 		'behind'|
 		'behind-delayed'|
-		'appear-delayed'
+		'appear-delayed'|
+		'in-from-id'
 	)
 
 	/** Virtual ImageInfo extension to support grid logic */
@@ -37,6 +38,13 @@ export namespace Grid {
 		view?: Camera.View;
 		/** Force this entry to render as an empty placeholder cell, even though it has an `id` */
 		empty?: true;
+		/**
+		 * Optional source image id to animate this entry in from.
+		 * Only applied for `grid.set(..., { transition: 'in-from-id' })` and only when this image is newly added.
+		 */
+		from?: string;
+		/** Optional stacking order override (higher values render on top). */
+		z?: number;
 	}
 
 	/** An empty placeholder cell in a grid layout, occupying grid space without an image */

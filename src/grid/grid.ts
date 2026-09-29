@@ -238,7 +238,8 @@ export class Grid extends MicrioElement {
 		const isBehindDelay = opts.transition == 'behind-delayed';
 		const { _engine: engine } = this.micrio;
 
-		const imageEntries = images.filter((i):i is Models.Grid.GridImage => !!i.id && !i.empty);
+		const imageEntries = images.filter((i): i is Models.Grid.GridImage => !!i.id && !i.empty);
+		const prevById = new Map(this._current.map(img => [img.id, img] as const));
 		if(opts.transition == 'crossfade') opts.duration = 0;
 		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
 			setupBehindTransition(this, imageEntries, opts, focussed);
@@ -276,11 +277,22 @@ export class Grid extends MicrioElement {
 			if(!resolved) err();
 		};
 
-		if(ready && !opts.noCamAni) {
+		// For the 'in-from-id' transition, hold the entire transition (viewport
+		// camera, per-item area animations and fades) until all newly added images
+		// have loaded their base tiles, so they don't pop in mid-animation.
+		const isInFromId = opts.transition == 'in-from-id';
+		let openGate: (() => void) | undefined;
+		const readyGate:Promise<void>|undefined = isInFromId ? new Promise<void>(r => openGate = r) : undefined;
+		const whenReady = (fn:() => void) : void => {
+			if(readyGate) readyGate.then(() => { if(setId === this.#setId) fn(); });
+			else fn();
+		};
+
+		if(ready && !opts.noCamAni) whenReady(() => {
 			const p = opts.view ? this.image.camera.flyToView(opts.view, {duration: dur * 1000})
 				: this.image.camera.flyToFullView({duration: dur * 1000});
 			p.catch(error);
-		}
+		});
 
 		this.#nextSize.clear();
 
@@ -294,13 +306,52 @@ export class Grid extends MicrioElement {
 		const isAppear = opts.transition == 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0);
 
+		const fromAreas = new Map<string, Models.Camera.View>();
+		if(opts.transition == 'in-from-id') {
+			imageEntries.forEach(entry => {
+				const sourceId = entry.from;
+				if(!sourceId) return;
+				if(prevById.has(entry.id)) return;
+				const source = prevById.get(sourceId);
+				const sourceArea = source?.opts.area;
+				if(!sourceArea) return;
+				fromAreas.set(entry.id, sourceArea);
+			});
+		}
+
 		this._current = imageEntries.map((img,i) => this.#placeImage(img, {
 			duration: !opts.forceAni && doUnfocus && img.id != focussed?.id ? 0 : dur,
 			delay: isDelayed ? getDelay(i) : 0,
 			noCamAni: isAppear && i > 0 ? true : !!opts.noCamAni,
-			forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni,
-			cover: opts.cover
+			forceAreaAni: isAppear && i > 0 ? false : (opts.forceAreaAni || fromAreas.has(img.id)),
+			cover: opts.cover,
+			fromArea: fromAreas.get(img.id),
+			ready: readyGate
 		}));
+
+		if(isInFromId) {
+			const sourceIds = new Set(imageEntries.map(e => e.from).filter((v): v is string => !!v));
+			const incomingIds = new Set(imageEntries.filter(e => !prevById.has(e.id) && !!fromAreas.get(e.id)).map(e => e.id));
+			imageEntries.forEach((entry, i) => {
+				const img = this._imageMap.get(entry.id);
+				const c = img?.canvas;
+				if(!c) return;
+				c._targetOpacity = c._opacity = .9999;
+				let z = entry.z;
+				if(z == undefined) {
+					if(sourceIds.has(entry.id)) z = 3000 + i;
+					else if(incomingIds.has(entry.id)) z = 2000 + i;
+					else z = 1000 + i;
+				}
+				c.zIndex = z;
+			});
+
+			// Wait until all newly added images have their base tiles rendered
+			// before opening the gate that starts the transition.
+			const incoming = this._current.filter(img => !prevById.has(img.id));
+			const timeout = (Math.max(dur, crossfadeDur) || 1) * 1000 + 3000;
+			this.#whenImagesReady(incoming, timeout).then(() => { if(setId === this.#setId) openGate?.(); });
+		}
 
 		if(isAppear) this._current.slice(1).forEach(i => { const c = i.canvas; c && (c._targetOpacity = c._opacity = .9999); });
 
@@ -313,7 +364,7 @@ export class Grid extends MicrioElement {
 			if(setId !== this.#setId) return;
 			this.#clearTimeouts();
 			Frame.request(() => engine._crossfadeDuration = defaultDur);
-			if(isDelayed) this._images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
+			if(isDelayed || isInFromId) this._images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });
 			if(forcedCoverLimit) imageEntries.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(false));
 			else if(opts.coverLimit) imageEntries.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));
 			if(this._clickable) this.#placeGrid();
@@ -322,14 +373,16 @@ export class Grid extends MicrioElement {
 			ok(this._current);
 		}
 
-		if(!dur && !crossfadeDur) {
-			if(!opts.noFade) fadeIn();
-			done();
-		}
-		else {
-			if(!opts.noFade) this.#_fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
-			this.#_to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length-1) * this.#transitionDelay : 0)) * 1000);
-		}
+		whenReady(() => {
+			if(!dur && !crossfadeDur) {
+				if(!opts.noFade) fadeIn();
+				done();
+			}
+			else {
+				if(!opts.noFade) this.#_fadeTo = setTimeout(fadeIn, Math.max(0, dur / 2 * 1000));
+				this.#_to = setTimeout(done, (Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length-1) * this.#transitionDelay : 0)) * 1000);
+			}
+		});
 	})}
 
 	#hasChanged() : boolean {
@@ -429,6 +482,8 @@ export class Grid extends MicrioElement {
 		noCamAni?:boolean;
 		forceAreaAni?:boolean;
 		cover?:boolean;
+		fromArea?: Models.Camera.View;
+		ready?: Promise<void>;
 	}) : MicrioImage {
 		const { _engine: engine } = this.micrio;
 		const img = this._imageMap.get(entry.id)!;
@@ -436,23 +491,60 @@ export class Grid extends MicrioElement {
 		if (!img._placed) {
 			engine._addChild(img, this.image);
 		}
-		if (entry.area) {
-			const set = () => img.camera.setArea(entry.area!, {
-				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img.visible))
-			});
-			if (opts.delay) sleep(opts.delay * 1000).then(set).then(() => engine.render());
-			else set();
+
+		// Place at the source area immediately so its tiles start loading before
+		// the transition begins.
+		if (entry.area && opts.fromArea) {
+			img.camera.setArea(opts.fromArea, {noDispatch: true, direct: true});
+			engine.render();
 		}
 
-		const aniOpts = {duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false};
-		if(!opts.noCamAni && !img.camera._aniDone && img._placed) {
-			const p = entry.view ? img.camera.flyToView(entry.view, aniOpts)
-				: opts.cover ? img.camera.flyToCoverView({...aniOpts, duration: 0})
-				: img.camera.flyToView([0,0,1,1], aniOpts);
-			p.catch(() => {});
-		}
+		// The actual transition: animate to the target area and optionally fly the
+		// image's camera. When a `ready` promise is supplied (in-from-id), this is
+		// deferred until all images have loaded so they don't pop in.
+		const start = () => {
+			if (entry.area) {
+				const set = () => img.camera.setArea(entry.area!, {
+					direct: opts.duration==0 || (!opts.forceAreaAni && !get(img.visible))
+				});
+				if (opts.delay) sleep(opts.delay * 1000).then(set).then(() => engine.render());
+				else set();
+			}
+
+			const aniOpts = {duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false};
+			if(!opts.noCamAni && !img.camera._aniDone && img._placed) {
+				const p = entry.view ? img.camera.flyToView(entry.view, aniOpts)
+					: opts.cover ? img.camera.flyToCoverView({...aniOpts, duration: 0})
+					: img.camera.flyToView([0,0,1,1], aniOpts);
+				p.catch(() => {});
+			}
+		};
+
+		if (opts.ready) opts.ready.then(start);
+		else start();
 
 		return img;
+	}
+
+	/** Resolves once all given images have loaded (rendered) their base tile, or
+	 * after `timeout` ms as a safety fallback. Used to hold a transition until
+	 * newly added images are actually rendered so they don't pop in. @internal */
+	#whenImagesReady(images:MicrioImage[], timeout:number) : Promise<void> {
+		return new Promise<void>(resolve => {
+			const { _engine: engine } = this.micrio;
+			const start = performance.now();
+			const isReady = (img:MicrioImage) : boolean => {
+				const c = img.canvas;
+				if(!c) return false;
+				if(!c.images.length) return true;
+				return c.images[0]._gotBase > 0;
+			};
+			const check = () : void => {
+				if(images.every(isReady) || performance.now() - start > timeout) resolve();
+				else { engine.render(); Frame.request(check); }
+			};
+			check();
+		});
 	}
 
 	#removeImages(images:MicrioImage[]) : void {
