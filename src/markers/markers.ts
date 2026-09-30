@@ -5,6 +5,7 @@ import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 import './marker';
 import './waypoint';
+import '$embed/embed';
 
 /** Props for the markers container element. @internal */
 export interface MarkersProps {
@@ -108,12 +109,43 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}
 		};
 
+		/**
+		 * Syncs the clickable area embeds of markers (`marker.clickableArea`).
+		 *
+		 * These are HTML embeds placed over a region of the image which open their
+		 * own marker when clicked. They are intentionally rendered *before* the
+		 * marker elements, so marker dots (and waypoints) stay on top of them.
+		 */
+		const updateClickableAreas = ($markers: Models.ImageData.Marker[] | undefined, inactive: boolean, lang: string) => {
+			const areas = !inactive && $markers
+				? $markers.filter(m => m.clickableArea && (!m.i18n || m.i18n[lang]))
+				: [];
+			const expected = new Set(areas.map(m => m.id));
+
+			for (const el of this.querySelectorAll(':scope > micrio-embed[data-marker-id]')) {
+				const id = el.getAttribute('data-marker-id');
+				if (!id || !expected.has(id)) el.remove();
+			}
+
+			const before = this.querySelector(':scope > micrio-marker, :scope > micrio-waypoint');
+			for (const m of areas) {
+				if (this.querySelector(`:scope > micrio-embed[data-marker-id="${CSS.escape(m.id)}"]`)) continue;
+				const el = createElement('micrio-embed', {
+					attrs: { 'data-marker-id': m.id },
+					setProps: { embed: m.clickableArea!, marker: m, image }
+				});
+				if (before) this.insertBefore(el, before);
+				else this.appendChild(el);
+			}
+		};
+
 		const rebuild = () => {
 			const $visible = image.$data?.markers;
 			const $focussed = focussed ? get(focussed) : undefined;
 			const $gridMarkersShown = gridMarkersShown ? get(gridMarkersShown) : undefined;
 			const inactive = grid && ($focussed != image && ($gridMarkersShown && $gridMarkersShown.indexOf(image) < 0));
 			const showTitles = !!(image.$settings._markers?.showTitles);
+			const $_lang = get(micrio._lang);
 
 			this.classList.toggle('inactive', !!inactive);
 			this.classList.toggle('show-titles', showTitles);
@@ -141,7 +173,6 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}
 
 			if ($visible) {
-				const $_lang = get(micrio._lang);
 				const filtered = $visible.filter(m => !m.i18n || m.i18n[$_lang]);
 				const expected = new Set(filtered.map(m => m.id));
 
@@ -168,6 +199,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			if (inactive) {
 				for (const el of this.querySelectorAll(':scope > micrio-marker, :scope > micrio-waypoint')) el.remove();
 			}
+
+			updateClickableAreas($visible, !!inactive, $_lang);
 
 			if (image.$settings.clusterMarkers) updateOverlapped();
 		};
