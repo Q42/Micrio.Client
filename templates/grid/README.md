@@ -150,6 +150,8 @@ Stick to the public surface:
 |--------------------------------------|----------------------------------------|
 | `grid.$focussed`, `grid.image`, `grid.micrio` | `grid._focussed`, `grid._current`, … |
 | `grid.set/reset/back/blur/gridFocus/action/enlarge` | poking internal state |
+| `grid.images` → `readonly MicrioImage[]` | `grid._images` |
+| `grid.getImage(id)` → `MicrioImage` | `grid._imageMap.get(id)` |
 | `micrio.gallery.gotoId(id)` → `MicrioImage` | `grid._imageMap.get(id)` |
 | `img.id`, `img.$data`, `img.$settings`, `img.thumbSrc`, `img.data` | `img._something` |
 
@@ -282,6 +284,22 @@ await grid.set(
   { duration: 1, transition: 'behind' }
 );
 ```
+
+```js
+// Reserve explicit empty cells to shape the layout
+await grid.set([
+  { id: 'hero', size: [2, 2] },
+  { empty: true, size: [1] },
+  { id: 'detailA', size: [1] },
+  { empty: true, size: [1, 2] },
+  { id: 'detailB', size: [1] },
+]);
+```
+
+`grid.set()` accepts both forms for empty cells:
+
+- Preferred explicit form: `{ empty: true, size?: [cols, rows?] }`
+- implicit form: an entry without `id`
 
 Notable `set` options:
 
