@@ -8,6 +8,9 @@ import { Frame } from '$core/frame';
 /** SVG namespace URI. @internal */
 export const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/** The `allow` attribute value for every iframe Micrio renders, enabling the permissions its supported players (YouTube, Vimeo, DRM video, geolocation-aware embeds) require. @internal */
+export const IFRAME_ALLOW = 'autoplay; fullscreen; encrypted-media; geolocation';
+
 /** Options for creating DOM elements with properties, attributes, events, and children. @internal */
 export interface ElementOptions {
 	className?: string;

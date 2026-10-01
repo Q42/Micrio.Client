@@ -1,4 +1,4 @@
-import { createElement } from '$utils/dom';
+import { createElement, IFRAME_ALLOW } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
@@ -353,7 +353,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			},
 			attrs: {
 				frameborder: '0',
-				allow: 'autoplay; encrypted-media',
+				allow: IFRAME_ALLOW,
 				allowfullscreen: ''
 			}
 		});

@@ -1,4 +1,4 @@
-import { createElement } from '$utils/dom';
+import { createElement, IFRAME_ALLOW } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
@@ -90,7 +90,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				height: String(p.height ?? 240),
 			},
 			attrs: {
-				allow: 'autoplay; encrypted-media',
+				allow: IFRAME_ALLOW,
 				allowfullscreen: '',
 			},
 			parent: figure,
@@ -112,7 +112,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				height: String(p.height ?? 240),
 			},
 			attrs: {
-				allow: 'autoplay; fullscreen',
+				allow: IFRAME_ALLOW,
 				allowfullscreen: '',
 			},
 			parent: figure,
@@ -167,7 +167,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				height: String(p.height ?? 240),
 			},
 			attrs: {
-				allow: 'autoplay; fullscreen',
+				allow: IFRAME_ALLOW,
 				allowfullscreen: '',
 			},
 			parent: figure,
