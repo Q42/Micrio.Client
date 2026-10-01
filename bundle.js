@@ -39,7 +39,15 @@ function licenseHeader() {
 	].join('\n');
 }
 
-/** Process a single build: strip static styles, prepend minified CSS, write the final dist file. */
+/**
+ * Process a single build: strip static styles, prepend minified CSS, write the final dist file.
+ *
+ * Micrio is a client-only library: the bundle injects its stylesheet and
+ * registers all custom elements as soon as it is evaluated. In a non-DOM
+ * environment (Node/SSR, workers, SvelteKit server rendering) `document` and
+ * `customElements` do not exist, so evaluating it would throw. Guarding the
+ * entire bundle makes importing it there a harmless no-op.
+ */
 function processBuild({ jsName, cssName, outFile, withBook3d }) {
 	const jsPath = buildDir + jsName;
 	const cssPath = buildDir + cssName;
@@ -52,15 +60,17 @@ function processBuild({ jsName, cssName, outFile, withBook3d }) {
 	let jsRaw = fs.readFileSync(jsPath).toString();
 	jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '');
 	const escapedCss = cssContent.replace(/[$`]/g, '\\$&');
-	const jsContent = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
-${jsRaw}`;
+
+	const bundle = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
+${jsRaw}${withBook3d ? '\n' + fs.readFileSync(book3dFile, 'utf-8') : ''}`;
+
+	const jsContent = `if(typeof document!=='undefined'&&typeof customElements!=='undefined'){\n${bundle}\n}`;
 	fs.writeFileSync(jsPath, jsContent);
 
 	fs.mkdirSync(path.dirname(outFile), { recursive: true });
 	fs.writeFileSync(outFile, Buffer.concat([
 		Buffer.from(licenseHeader()),
 		Buffer.from(fs.readFileSync(jsPath)),
-		...(withBook3d ? [Buffer.from('\n'), Buffer.from(fs.readFileSync(book3dFile))] : [])
 	]));
 
 	fs.rmSync(jsPath);
