@@ -1,10 +1,28 @@
 import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$core/element';
+import type { Camera } from '$core/camera';
 
 import { Browser } from '$utils/browser';
 import { get, writable } from '$core/store';
 import { createElement } from '$utils/dom';
+
+/** An inline style value and its priority, used to restore temporary styles verbatim. @internal */
+type StylePair = [value:string, priority:string];
+
+/** The area of the canvas that an image covers, and the view reproducing it. @internal */
+export interface ImageCrop {
+	/** Horizontal offset in CSS pixels, relative to the canvas element. */
+	left:number;
+	/** Vertical offset in CSS pixels, relative to the canvas element. */
+	top:number;
+	/** Width in CSS pixels. */
+	width:number;
+	/** Height in CSS pixels. */
+	height:number;
+	/** The camera view (in image coordinates) that reproduces exactly this area. */
+	view:Models.Camera.View;
+}
 
 /**
  * Manages the HTML `<canvas>` element used for WebGL rendering,
@@ -20,6 +38,16 @@ export class Canvas {
 	 * @readonly
 	*/
 	#resizeObserver?:ResizeObserver;
+
+	/** Saved inline box styles, used to restore the canvas after a temporary crop. @internal */
+	#savedBox?:{ left:StylePair; top:StylePair; width:StylePair; height:StylePair };
+
+	/**
+	 * True while the canvas is temporarily sized to the area the image covers, so that the
+	 * browser's native context menu "Copy image" action copies only the image itself
+	 * instead of the full canvas with its transparent padding.
+	*/
+	#cropMode:boolean = false;
 
 	/** Object containing current viewport dimensions, position, and ratios. */
 	readonly viewport:Models.Canvas.ViewRect = {
@@ -109,8 +137,12 @@ export class Canvas {
 
 		// Calculate CSS scale factor (relevant if micr-io element itself is scaled)
 		// Assume scale 1 for static images to avoid issues?
+		// A temporary crop resizes the canvas on purpose, so it must keep the scale it had
+		// instead of being mistaken for a CSS scale on the host element.
 		const offsetWidth = this.#micrio.offsetWidth;
-		const scale = this.#micrio.hasAttribute('data-static') || !offsetWidth ? 1 : Math.floor(width) / offsetWidth;
+		const scale = this.#micrio.hasAttribute('data-static') || !offsetWidth ? 1
+			: this.#cropMode ? this.viewport.scale || 1
+			: Math.floor(width) / offsetWidth;
 		// Adjust dimensions based on scale
 		width /= scale;
 		height /= scale;
@@ -145,7 +177,8 @@ export class Canvas {
 		}
 
 		// Dispatch 'resize' event with bounding box info
-		this.#micrio.events._dispatch('resize', box);
+		// (suppressed for the temporary context menu crop, which is not a real resize)
+		if (!this.#cropMode) this.#micrio.events._dispatch('resize', box);
 
 		// Update mobile flag (only when it actually changed)
 		const mobile = /mobile/i.test(navigator.userAgent);
@@ -161,6 +194,99 @@ export class Canvas {
 	getRatio = (s:Partial<Models.ImageInfo.Settings> = this.#micrio.$current?.$settings ?? {}) : number => !Browser.iOS && !s?.noRetina // Check conditions
 		&& self.devicePixelRatio && Math.max(1, Math.min(2, self.devicePixelRatio)) // Get ratio and clamp
 		|| 1; // Default to 1
+
+	/**
+	 * Calculates the area of the canvas that the given camera's image actually covers, in
+	 * CSS pixels relative to the canvas element, plus the camera view that reproduces
+	 * exactly that area.
+	 *
+	 * This is purely geometric: as soon as any edge of the image's drawn rectangle falls
+	 * inside the canvas rectangle, the image does not fill the canvas and there is
+	 * something to crop - whether that is because the image is zoomed out, or because it
+	 * is zoomed in past one axis while still leaving a margin on the other.
+	 *
+	 * Returns `undefined` when the image is not (meaningfully) on screen, or when it
+	 * already covers the entire canvas.
+	 * @param camera The camera of the image to measure.
+	 * @internal
+	*/
+	_imageCrop(camera:Camera) : ImageCrop | undefined {
+		// Unscaled CSS pixels, matching what the camera reports (and unaffected by any CSS
+		// transform on the micr-io element, which the viewport already compensates for)
+		const w = this.viewport.width, h = this.viewport.height;
+		if (!w || !h) return undefined;
+
+		// Image corners in canvas-element-relative CSS pixels
+		const [ix0, iy0] = camera.getXY(0, 0);
+		const [ix1, iy1] = camera.getXY(1, 1);
+
+		// The part of the image that falls within the canvas
+		const left = Math.max(0, Math.min(ix0, ix1));
+		const top = Math.max(0, Math.min(iy0, iy1));
+		const right = Math.min(w, Math.max(ix0, ix1));
+		const bottom = Math.min(h, Math.max(iy0, iy1));
+
+		const width = right - left;
+		const height = bottom - top;
+
+		if (width < 1 || height < 1) return undefined; // Image not (or barely) on screen
+		// Nothing to crop when the image already covers the whole canvas
+		if (left <= .5 && top <= .5 && right >= w - .5 && bottom >= h - .5) return undefined;
+
+		// The image coordinates of this region, so the cropped rendering is identical
+		const [vx0, vy0] = camera.getCoo(left, top, false, true);
+		const [vx1, vy1] = camera.getCoo(right, bottom, false, true);
+
+		return { left, top, width, height, view: [vx0, vy0, vx1 - vx0, vy1 - vy0] };
+	}
+
+	/**
+	 * Temporarily sizes the canvas element to the given area, so that the browser's native
+	 * context menu "Copy image" item copies only that area instead of the full canvas.
+	 * Reverts with {@link _exitCropMode}.
+	 *
+	 * While active, the CSS scale compensation in {@link onresize} is left untouched so the
+	 * drawing buffer matches the cropped area at the same pixel density as before.
+	 * @param crop The area to crop to, relative to the canvas element.
+	 * @internal
+	*/
+	_enterCropMode(crop:ImageCrop) : void {
+		if (this.#cropMode) return;
+		const el = this.element;
+		const st = el.style;
+		this.#savedBox = {
+			left: [st.getPropertyValue('left'), st.getPropertyPriority('left')],
+			top: [st.getPropertyValue('top'), st.getPropertyPriority('top')],
+			width: [st.getPropertyValue('width'), st.getPropertyPriority('width')],
+			height: [st.getPropertyValue('height'), st.getPropertyPriority('height')]
+		};
+		// The stylesheet sizes the canvas using `!important`, so the inline values need it too
+		st.setProperty('left', `${el.offsetLeft + crop.left}px`, 'important');
+		st.setProperty('top', `${el.offsetTop + crop.top}px`, 'important');
+		st.setProperty('width', `${crop.width}px`, 'important');
+		st.setProperty('height', `${crop.height}px`, 'important');
+		this.#cropMode = true;
+		this.onresize();
+	}
+
+	/**
+	 * Restores the canvas element's original box after {@link _enterCropMode}.
+	 * Does nothing when the canvas is not in crop mode.
+	 * @internal
+	*/
+	_exitCropMode() : void {
+		if (!this.#cropMode) return;
+		const saved = this.#savedBox;
+		const st = this.element.style;
+		this.#savedBox = undefined;
+		if (saved) for (const k of ['left', 'top', 'width', 'height'] as const) {
+			const [value, priority] = saved[k];
+			if (value) st.setProperty(k, value, priority);
+			else st.removeProperty(k);
+		}
+		this.#cropMode = false;
+		this.onresize();
+	}
 
 	/**
 	 * Sets virtual offset margins in the engine controller.

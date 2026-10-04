@@ -12,6 +12,7 @@ import { GestureHandler } from './gesture';
 import { WheelHandler } from './wheel';
 import { KeyboardHandler } from './keyboard';
 import { DoubleTapHandler } from './doubletap';
+import { ContextMenuCopyHandler } from './contextmenu-copy';
 import {
 	type EventContext,
 	type EventStateVars,
@@ -95,6 +96,7 @@ export class Events implements EventContext {
 	#wheelHandler: WheelHandler;
 	#keyboardHandler: KeyboardHandler;
 	#doubleTapHandler: DoubleTapHandler;
+	#contextMenuCopyHandler: ContextMenuCopyHandler;
 
 	/**
 	 * The Events constructor.
@@ -114,6 +116,7 @@ export class Events implements EventContext {
 		this.#wheelHandler = new WheelHandler(this);
 		this.#keyboardHandler = new KeyboardHandler(this);
 		this.#doubleTapHandler = new DoubleTapHandler(this);
+		this.#contextMenuCopyHandler = new ContextMenuCopyHandler(this);
 
 		// Subscribe to the enabled store to automatically hook/unhook listeners
 		this.enabled.subscribe(v => {
@@ -190,6 +193,7 @@ export class Events implements EventContext {
 		if (s?.hookKeys) this.hookKeys();
 		if (s.hookDrag) this.hookDrag();
 		if (!s.noZoom) this.hookZoom();
+		this.hookContextMenuCopy();
 	}
 
 	/** Unhooks all attached event listeners. */
@@ -204,6 +208,7 @@ export class Events implements EventContext {
 		this.unhookDrag();
 		this.unhookZoom();
 		this.unhookKeys();
+		this.unhookContextMenuCopy();
 	}
 
 	/** Hooks keyboard event listeners. */
@@ -266,5 +271,11 @@ export class Events implements EventContext {
 
 	/** Unhooks pointer listeners for drag panning. */
 	unhookDrag(): void { this.#dragHandler.unhook(); }
+
+	/** Hooks the native context menu copy crop handler (`data-contextmenu-crop`). */
+	hookContextMenuCopy(): void { this.#contextMenuCopyHandler.hook(); }
+
+	/** Unhooks the native context menu copy crop handler. */
+	unhookContextMenuCopy(): void { this.#contextMenuCopyHandler.unhook(); }
 
 }

@@ -708,6 +708,15 @@ export class Engine {
 		if (this.ready) { this.#stop(); this.#draw(); }
 	}
 
+	/**
+	 * Draws a frame immediately, bypassing the frame scheduler.
+	 * Used by operations that must be on screen (or in the drawing buffer) before the
+	 * browser gets another chance to run a frame - such as while a native context menu
+	 * is open, which stalls `requestAnimationFrame`.
+	 * @internal
+	 */
+	_drawSync(): void { this.#stop(); this.#draw(); }
+
 	/** Add a child image to the current canvas, either embed or independent canvas. @internal */
 	#addImage = (
 		image: MicrioImage | Models.Omni.Frame,

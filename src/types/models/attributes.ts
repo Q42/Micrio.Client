@@ -107,5 +107,10 @@ export namespace Attributes {
 		// Specific technical settings
 		/** Toggle limited rendering mode in WebAssembly. */
 		'data-limited'?: boolean;
+		/** While the native browser context menu is open, temporarily size the canvas to
+		 * the area the image is actually drawn on, so that its "Copy image" item copies the
+		 * image without transparent padding. Requires `data-preserve-drawing-buffer`.
+		 * Default: false */
+		'data-contextmenu-crop'?: boolean;
 	}
 }
