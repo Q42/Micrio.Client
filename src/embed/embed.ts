@@ -451,12 +451,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			if (vid) {
 				if (this.#paused) {
 					if (!vid.paused) {vid.pause();}
-				} else {
-					if (vid.paused) {
-						this.#glVideo!._cancelTimeout();
-						if (image?.$settings?.embedRestartWhenShown) {vid.currentTime = 0;}
-						void vid.play();
-					}
+				} else if (vid.paused) {
+					this.#glVideo!._cancelTimeout();
+					if (image?.$settings?.embedRestartWhenShown) {vid.currentTime = 0;}
+					void vid.play();
 				}
 			}
 			this.#syncVideoPause(image);
@@ -472,11 +470,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 		if (this.#paused) {
 			if (!v.paused) {v.pause();}
-		} else {
-			if (v.paused) {
-				if (image?.$settings?.embedRestartWhenShown) {v.currentTime = 0;}
-				v.play().catch(() => {});
-			}
+		} else if (v.paused) {
+			if (image?.$settings?.embedRestartWhenShown) {v.currentTime = 0;}
+			v.play().catch(() => {});
 		}
 	}
 

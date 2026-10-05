@@ -336,10 +336,8 @@ export class PaperRenderer {
 		if (side === 0) {
 			if (slot === 0) {this.#frontBlendA[pageIdx] = 0;}
 			else {this.#frontBlendB[pageIdx] = 0;}
-		} else {
-			if (slot === 0) {this.#backBlendA[pageIdx] = 0;}
-			else {this.#backBlendB[pageIdx] = 0;}
-		}
+		} else if (slot === 0) {this.#backBlendA[pageIdx] = 0;}
+		else {this.#backBlendB[pageIdx] = 0;}
 	}
 
 	_getCanvas(): HTMLCanvasElement {
