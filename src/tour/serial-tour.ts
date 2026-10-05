@@ -80,7 +80,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#built = true
 
 		if (this.#props.tour?.printChapters) {
-			const ol = createElement('ol')
+			const ol = createElement('ol', { className: 'chapters' })
 			for (const [i, si] of this.#stepInfo.entries()) {
 				const marker = DataLoader._getStepMarker(si)
 				const title = this.#getTitle(marker)

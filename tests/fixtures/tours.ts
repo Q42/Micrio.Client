@@ -231,6 +231,70 @@ export const crossImageMarkerTour = (firstId: string, secondId: string): Models.
 	],
 })
 
+/**
+ * A serial tour shaped like the published Rijksmuseum João story (`JXflr`): one
+ * bundle.json carrying every image of the story, a serial marker tour whose
+ * `stepInfo` names one marker per sibling image, and a video tour on each step
+ * marker — which is what the serial element turns into progress bars.
+ *
+ * The caller has to serve `images` from `bundle.json` and open the story by id:
+ * `DataLoader._getStepMarker` reads the bundle cache, which only the fetch fills.
+ * Ids are unique per call for the same reason (`DataLoader` caches by id per file).
+ */
+export const serialStoryBundle = (
+	suffix: string,
+	opts: { steps?: number; printChapters?: boolean } = {},
+): {
+	images: Models.ImageBundle.BundleImage[]
+	ids: string[]
+	serialTour: () => Models.ImageData.MarkerTour
+} => {
+	const count = opts.steps ?? 2
+	const ids = Array.from({ length: count }, (_, i) => `${suffix}${i}aaa`)
+	const stepIds = ids.map((_, i) => `step${i}`)
+	const images: Models.ImageBundle.BundleImage[] = ids.map((id, i) => ({
+		id,
+		info: baseInfo(id, { title: `Story image ${i + 1}` }),
+		settings: {},
+		data: {
+			i18n: { en: { title: `Story image ${i + 1}` } },
+			markers: [
+				marker(stepIds[i] ?? `step${i}`, {
+					data: { _meta: { crossfadeDuration: 2, keepTourViews: true } },
+					popupType: 'popup',
+					videoTour: videoTour({ id: `${suffix}-vt${i}`, duration: 6 }),
+					i18n: {
+						en: {
+							title: `Chapter ${i + 1}`,
+							body: `<p>Step ${i + 1}</p>`,
+							audio: {
+								title: `Step ${i + 1}`,
+								src: `https://r2.micr.io/audio/${suffix}-${i}.mp3`,
+								size: 1,
+								uploaded: 0,
+								duration: 6,
+								volume: 1,
+							},
+						},
+					},
+				}),
+			],
+		},
+	}))
+
+	const serialTour = (): Models.ImageData.MarkerTour => ({
+		id: `${suffix}-serial`,
+		steps: stepIds,
+		isSerialTour: true,
+		duration: count * 6,
+		...(opts.printChapters ? { printChapters: true } : {}),
+		i18n: { en: { title: 'Serial story', description: '' } },
+		stepInfo: stepIds.map((markerId, i) => ({ markerId, micrioId: ids[i] ?? '', duration: 6 })),
+	})
+
+	return { images, ids, serialTour }
+}
+
 /** A small WebVTT document covering the time formats the parser must handle. */
 export const vtt = (opts: { malformed?: boolean } = {}): string => {
 	const head = 'WEBVTT\n\n'
