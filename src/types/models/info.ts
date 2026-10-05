@@ -457,14 +457,17 @@ export interface Album {
 
 /** Gallery configuration */
 export interface GalleryConfig {
-	type: 'swipe' | 'switch' | 'grid' | 'book3d';
+	/** The gallery type; unset while a gallery config is still being collected from attributes. */
+	type?: 'swipe' | 'switch' | 'grid' | 'book3d';
 	startId?: string;
 	sort?: 'name' | '-name' | 'created' | '-created' | 'random';
 	isSpreads?: boolean;
 	coverPages?: number;
 	archive?: string;
 	archiveLayerOffset?: number;
-	revisions?: Record<string, Record<string, any>>;
+	revisions?: Record<string, Record<string, unknown>>;
+	/** Custom gallery settings JSON. */
+	// oxlint-disable-next-line typescript/no-explicit-any -- consumers (gallery/controller.ts) spread and read arbitrary nested keys from this custom-JSON bag, which `unknown` values would break
 	settings?: Record<string, any>;
 	id?: string;
 	name?: string;

@@ -4,7 +4,7 @@ import type { MicrioImage } from '$core/image';
 import type { ImageInfo } from './info';
 import type { ImageData } from './data';
 import type { Camera } from './camera';
-export type MicrioEvent<T = any> = Event & { detail: T };
+export type MicrioEvent<T = unknown> = Event & { detail: T };
 
 
 export interface MicrioEventDetails {

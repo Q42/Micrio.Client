@@ -286,7 +286,8 @@ export class MicrioImage {
 
 		// IIIF: extract short identifier from full URL
 		if(i.isIIIF && i.id.includes('/')) {
-			i.id = (('@id' in i ? (i as any)['@id'] : i.id) as string).replace(/^.*\//, '');
+			const legacyId = '@id' in i ? i['@id'] : i.id;
+			if (typeof legacyId === 'string') {i.id = legacyId.replace(/^.*\//, '');}
 		}
 
 		// 360 space data

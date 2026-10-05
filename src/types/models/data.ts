@@ -247,7 +247,7 @@ export namespace ImageData {
 			/** When opening this marker inside a grid, resize the tile to this */
 			gridSize?: number|string;
 			/** Any other value is accepted */
-			[key:string]: any;
+			[key:string]: unknown;
 		}
 	}
 

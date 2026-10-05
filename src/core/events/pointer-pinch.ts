@@ -67,8 +67,8 @@ export class PointerPinchHandler {
 	 * Handles pointer move during a multi-touch pinch gesture.
 	 * @param e The PointerEvent.
 	 */
-	#move = (e: PointerEvent): void => {
-		if (e.pointerType !== 'touch') {return;}
+	#move = (e: Event): void => {
+		if (!(e instanceof PointerEvent) || e.pointerType !== 'touch') {return;}
 		if (!this.#ctx._activePointers.has(e.pointerId)) {return;}
 		this.#ctx._activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 

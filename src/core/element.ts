@@ -31,11 +31,41 @@ import { IdleState } from '$utils/idle';
 /** Compile-time flag — `true` in the core build (vite `--mode minimal`). */
 declare const __CORE__: boolean;
 
+/** Loose shape of an IIIF manifest / `info.json` response, as read when opening by URL. @internal */
+interface IIIFResponse {
+	'@id'?: string;
+	id?: string;
+	width: number;
+	height: number;
+	type?: string;
+	tiles?: Models.ImageInfo.ImageInfo['tiles'];
+	preferredFormats?: string[];
+	items?: IIIFItem[];
+}
+
+/** Nested IIIF manifest item (canvas → annotation page → annotation). @internal */
+interface IIIFItem {
+	items?: IIIFItem[];
+	body?: {
+		width: number;
+		height: number;
+		service?: { id?: string; preferredFormats?: string[] }[];
+	};
+}
+
+/** An attribute definition map from {@link AO}. @internal */
+type AttributeCategory = typeof AO.STRINGS;
+/** A single attribute definition from {@link AO}. @internal */
+type AttributeDef = AttributeCategory[string];
+/** A parsed `<micr-io>` attribute value. @internal */
+type AttributeValue = string | number | boolean | number[] | undefined;
+
 /** Assigns a value to a (possibly dot-separated) key path within an options object. @internal */
-function setObj(obj:any, path:string, val:any) : void {
+function setObj(obj: object, path: string, val: unknown): void {
 	const p = path.split('.');
-	for(let i=0;i<p.length-1;i++) {obj = obj[p[i]];}
-	obj[p[p.length-1]]=val;
+	let target = obj;
+	for(let i=0;i<p.length-1;i++) {target = Reflect.get(target, p[i]);}
+	Reflect.set(target, p[p.length-1], val);
 }
 
 /**
@@ -334,21 +364,21 @@ export class HTMLMicrioElement extends MicrioElement {
 
 	// Custom overloads for addEventListener to support fully typed custom Micrio events
 	/* @internal */
-	addEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	addEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => void, options?: boolean | AddEventListenerOptions): void;
 	/* @internal */
-	addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => void, options?: boolean | AddEventListenerOptions): void;
 	/* @internal */
-	addEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | AddEventListenerOptions): void;
+	addEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => void, options?: boolean | AddEventListenerOptions): void;
 	/* @internal */
 	addEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.addEventListener(type, listener, useCapture); }
 
 	// Custom overloads for removeEventListener to support fully typed custom Micrio events
 	/* @internal */
-	removeEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	removeEventListener<K extends keyof Models.MicrioEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: Models.MicrioEventMap[K]) => void, options?: boolean | EventListenerOptions): void;
 	/* @internal */
-	removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLMicrioElement, ev: HTMLElementEventMap[K]) => void, options?: boolean | EventListenerOptions): void;
 	/* @internal */
-	removeEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => any, options?: boolean | EventListenerOptions): void;
+	removeEventListener(type: string, listener: (this: HTMLMicrioElement, ev: Event) => void, options?: boolean | EventListenerOptions): void;
 	/* @internal */
 	removeEventListener(type: string, listener: EventListener | EventListenerObject, useCapture?: boolean): void { super.removeEventListener(type, listener, useCapture); }
 
@@ -378,7 +408,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 */
 	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
-		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.#printError(e); return; });
+		const resp = await fetchJson<IIIFResponse>(url).catch(e => { this.#printError(e); return; });
 		if(!resp) {return undefined;}
 
 		let gallery: Gallery | null;
@@ -397,7 +427,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (resp.type === 'Manifest') {
 			const body = resp.items?.[0]?.items?.[0]?.items?.[0]?.body;
 			const service = body?.service?.[0];
-			if (service?.id) {
+			if (body && service?.id) {
 				({id} = service);
 				({width, height} = body);
 				resp.preferredFormats = service.preferredFormats;
@@ -681,7 +711,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	*/
 	#getOptions(): Partial<Models.ImageInfo.ImageInfo> & { settings?: Partial<Models.ImageInfo.Settings> } {
 		const sets:Partial<Models.ImageInfo.Settings> = {
-			gallery: {} as any // Initialize gallery settings object
+			gallery: {} // Initialize gallery settings object
 		};
 
 		const opts = {
@@ -689,7 +719,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			id: this.id // Start with the element's ID
 		};
 
-		const process = (category: Record<string, any>, convert: (val: string | null, def: any) => any): void => {
+		const process = (category: AttributeCategory, convert: (val: string | null, def: AttributeDef) => AttributeValue): void => {
 			for (const a of Object.keys(category)) {
 				const d = category[a], val = this.getAttribute(a);
 				const f = d.f || a.replace('data-', '');
@@ -705,9 +735,10 @@ export class HTMLMicrioElement extends MicrioElement {
 			return undefined;
 		});
 		process(AO.NUMBERS, (val, o): number | undefined => {
-			if (o.dN !== undefined && val == null) {val = o.dN;}
-			if (val == null) {return undefined;}
-			const n = Number(val);
+			let v: string | number | null = val;
+			if (o.dN !== undefined && v == null) {v = o.dN;}
+			if (v == null) {return undefined;}
+			const n = Number(v);
 			return Number.isNaN(n) ? undefined : n;
 		});
 		process(AO.ARRAYS, val => val != null ? val.split(',').map(Number) : undefined);

@@ -3,7 +3,18 @@ import { defer, skipFirst } from './store';
 import type { HTMLMicrioElement } from './element';
 import type { MicrioImage } from './image';
 
-const PROVIDES = Symbol('micrio-provides');
+/**
+ * Context values provided by an element, keyed by the element itself.
+ * Held in a WeakMap so the elements stay collectable and no `any`-indexed
+ * property is needed on the base class.
+ * @internal
+ */
+const provided = new WeakMap<HTMLElement, Map<string, unknown>>();
+
+/** True when `value` is the `<micr-io>` custom element. @internal */
+function isMicrioElement(value: unknown): value is HTMLMicrioElement {
+	return value instanceof HTMLElement && value.tagName.toLowerCase() === 'micr-io';
+}
 
 /**
  * Abstract base class for all Micrio custom HTML elements.
@@ -23,6 +34,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	/** Protected props storage for use with the standard setProps/render pattern.
 	 * @internal
 	*/
+	// oxlint-disable-next-line typescript/no-explicit-any -- shared props bag: every subclass destructures its own typed props from it, which `unknown` values would break
 	protected _props: Record<string, any> = {};
 
 	/** Lifecycle hook called when the element is added to the DOM. Calls _onMount and _render. @internal */
@@ -47,7 +59,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	 * The base implementation merges into `_props` and calls `_render()` when connected.
 	 * @internal
 	 */
-	_setProps(props: Record<string, any>): void {
+	_setProps(props: object): void {
 		Object.assign(this._props, props);
 		if (this.isConnected) {this._render();}
 	}
@@ -123,19 +135,19 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	// ─── Context (provide / inject) ───────────────────────────────
 
 	/** @internal */
-	protected _provide(key: string, value: any): void {
-		let map: Map<string, any> | undefined = (this as any)[PROVIDES];
-		if (!map) {(this as any)[PROVIDES] = map = new Map();}
+	protected _provide(key: string, value: unknown): void {
+		let map = provided.get(this);
+		if (!map) {provided.set(this, map = new Map());}
 		map.set(key, value);
 	}
 
 	/** @internal */
 	protected _inject(key: string): unknown {
-		const map = (this as any)[PROVIDES] as Map<string, any> | undefined;
+		const map = provided.get(this);
 		if (map?.has(key)) {return map.get(key);}
 		let el = this.parentElement;
 		while (el) {
-			const parentMap = (el as any)[PROVIDES] as Map<string, any> | undefined;
+			const parentMap = provided.get(el);
 			if (parentMap?.has(key)) {return parentMap.get(key);}
 			el = el.parentElement;
 		}
@@ -144,7 +156,8 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 
 	/** @internal */
 	protected _getMicrio(): HTMLMicrioElement | undefined {
-		return this._inject('micrio') as HTMLMicrioElement | undefined;
+		const micrio = this._inject('micrio');
+		return isMicrioElement(micrio) ? micrio : undefined;
 	}
 
 	#cleanup(): void {

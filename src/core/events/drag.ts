@@ -1,6 +1,22 @@
 import { eventPassive, cancelPrevent, type EventContext } from './shared';
 
 /**
+ * The pointer event fields read when starting a drag. Real `PointerEvent`s
+ * satisfy it, and a synthesized payload is passed when panning resumes after a
+ * pinch gesture.
+ * @internal
+ */
+export interface PointerLikeEvent {
+	button: number;
+	pointerType?: string;
+	target: EventTarget | null;
+	shiftKey?: boolean;
+	clientX: number;
+	clientY: number;
+	pointerId?: number;
+}
+
+/**
  * Drag/pan event handler module.
  * Handles pointer down/move/up events for panning the image.
  * @internal
@@ -43,7 +59,7 @@ export class DragHandler {
 	 * @param e The PointerEvent.
 	 * @param force If true, forces drag start even if target isn't the canvas.
 	 */
-	start = (e: PointerEvent, force = false, keepAnimations = false): void => {
+	start = (e: PointerLikeEvent, force = false, keepAnimations = false): void => {
 		// Ignore non-primary buttons or touch events if twoFingerPan is enabled
 		if (e.button !== 0 || (e.pointerType === 'touch' && this.#ctx._twoFingerPan)) {return;}
 

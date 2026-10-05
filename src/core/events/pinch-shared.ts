@@ -1,5 +1,5 @@
 import type { EventContext } from './shared';
-import type { DragHandler } from './drag';
+import type { DragHandler, PointerLikeEvent } from './drag';
 
 /**
  * Initialises pinch state: stops panning, sets pinching flag, dispatches `pinchstart` event.
@@ -46,7 +46,7 @@ export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2
  * @param _e The originating event (unused).
  * @param moveHandler The move handler to remove from the global listener.
  */
-export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: any[]) => void): void {
+export function pinchStop(ctx: EventContext, _e: Event, moveHandler: EventListener): void {
 	if (!ctx._pinching) {return;}
 	ctx._pinching = false;
 
@@ -78,7 +78,7 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
  */
 export function restartPanning(ctx: EventContext, dragHandler: DragHandler, pointers: Map<number, { x: number, y: number }> | TouchList): void {
 	if (pointers instanceof TouchList ? pointers.length === 1 : pointers.size === 1) {
-		let syntheticEvent: any;
+		let syntheticEvent: PointerLikeEvent;
 		if (pointers instanceof TouchList) {
 			const t = pointers[0];
 			syntheticEvent = { button: 0, target: ctx._el, clientX: t.clientX, clientY: t.clientY };
