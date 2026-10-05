@@ -43,8 +43,9 @@ import '$tour/serial-tour';
 
 /** Find a menu page by its ID within a nested menu structure */
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
-	if (p) {for (let i = 0, t; i < p.length; i++)
-		if (p[i].id === id || (t = findPage(id, p[i].children))) return t ?? p[i];}
+	if (p) {for (let i = 0, t; i < p.length; i++) {
+		if (p[i].id === id || (t = findPage(id, p[i].children))) {return t ?? p[i];}
+	}}
 	return undefined;
 }
 

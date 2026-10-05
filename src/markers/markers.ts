@@ -68,7 +68,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			// Deduplicate & sort each group
 			const clusters = groups.map(g => [...new Set(g)].sort((a, b) => a - b));
 			const overlapped = new Set<number>();
-			for (const g of clusters) {for (const i of g) overlapped.add(i);}
+			for (const g of clusters) {for (const i of g) {overlapped.add(i);}}
 
 			// Toggle overlapped class on individual markers
 			for (let i = 0; i < markers.length; i++) {
