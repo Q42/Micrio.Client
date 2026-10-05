@@ -122,7 +122,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			};
 			const dMove = (e: MouseEvent) => {
 				const rect = bars.getClientRects()[0];
-				if (!rect) {return;}
+				if (rect === undefined) {return;}
 				const perc = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
 				this.#props.onseek?.(perc * (this.#props.duration ?? 0));
 			};
@@ -178,7 +178,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		if (this.#muteBtnEl && (langChanged || p.muted !== this.#prevMuted)) {
+		if (this.#muteBtnEl !== undefined && (langChanged || p.muted !== this.#prevMuted)) {
 			this.#prevMuted = Boolean(p.muted);
 			this.#muteBtnEl._setProps({
 				type: p.muted ? 'muted' : 'unmuted',
@@ -188,7 +188,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		if (this.#subBtnEl) {
+		if (this.#subBtnEl !== undefined) {
 			this.#subBtnEl._setProps({
 				type: $captionsEnabled ? 'subtitles' : 'subtitlesOff',
 				active: $captionsEnabled,
@@ -197,7 +197,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		if (this.#fsBtnEl) {this.#fsBtnEl._setProps({ el: p.fullscreenEl });}
+		if (this.#fsBtnEl !== undefined) {this.#fsBtnEl._setProps({ el: p.fullscreenEl });}
 
 		if (this.#closeBtnEl && langChanged) {this.#closeBtnEl._setProps({ title: $i18n._close });}
 
