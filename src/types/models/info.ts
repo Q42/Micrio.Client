@@ -38,7 +38,7 @@ import type { IconName } from '$types/icon-name';
   */
 export namespace ImageInfo {
 	/** A Micrio image's main static image data object */
-	export type ImageInfo = {
+	export interface ImageInfo {
 		/** The image id */
 		id: string;
 		/** The image base path URI, with a trailing `/`
@@ -139,7 +139,7 @@ export namespace ImageInfo {
 	};
 
 	/** Micrio image settings */
-	export type Settings = {
+	export interface Settings {
 		/** The starting viewport */
 		view?: Camera.View;
 		/** Restrict navigation to this viewport (`[x0, y0, width, height]`) */
@@ -344,7 +344,7 @@ export namespace ImageInfo {
 		secondaryInteractive?: boolean;
 	}
 
-	export type OmniSettings = {
+	export interface OmniSettings {
 		/** Number of frames */
 		frames: number;
 		/** Starting frame index */
@@ -376,7 +376,7 @@ export namespace ImageInfo {
 	}
 
 	/** Image-wide marker settings */
-	export type MarkerSettings = {
+	export interface MarkerSettings {
 		/** An image-wise custom marker icon */
 		markerIcon?: Assets.Image;
 		/** The default marker color */
@@ -422,7 +422,7 @@ export namespace ImageInfo {
 	}
 
 	/** Custom interface settings */
-	export type UserInterfaceSettings = {
+	export interface UserInterfaceSettings {
 		controls?: {
 			/** Show the culture switch button if there are multiple available languages */
 			cultureSwitch?: boolean;
@@ -456,7 +456,7 @@ export interface Album {
 }
 
 /** Gallery configuration */
-export type GalleryConfig = {
+export interface GalleryConfig {
 	type: 'swipe' | 'switch' | 'grid' | 'book3d';
 	startId?: string;
 	sort?: 'name' | '-name' | 'created' | '-created' | 'random';
@@ -472,4 +472,4 @@ export type GalleryConfig = {
 		clickable?: 'focus' | 'zoom' | false;
 		panZoom?: 'cells' | 'grid';
 	};
-};
+}

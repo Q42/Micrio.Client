@@ -71,14 +71,14 @@ const TAG_LABELS: Record<Tag, string> = {
 // Demo markers — shared tag names across paintings.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type MarkerSeed = {
+interface MarkerSeed {
 	x: number;
 	y: number;
 	view: View;
 	tags: Tag[];
 	title: string;
 	body?: string;
-};
+}
 
 function makeMarkers(image: string, seeds: MarkerSeed[]): Marker[] {
 	return seeds.map((s, i) => ({

@@ -1,6 +1,6 @@
 // Media
 
-export type YouTubePlayer = {
+export interface YouTubePlayer {
 	new(frame: HTMLIFrameElement, options:{
 		host: string;
 		width: string;
@@ -28,7 +28,7 @@ export type YouTubePlayer = {
 	destroy: () => void;
 }
 
-export type VimeoPlayer = {
+export interface VimeoPlayer {
 	new(frame: HTMLIFrameElement, options:{
 		title: boolean;
 		width: string;
@@ -53,7 +53,7 @@ export type VimeoPlayer = {
 	destroy: () => void;
 }
 
-export type HlsPlayer = {
+export interface HlsPlayer {
 	new(config?: Record<string, unknown>) : HlsPlayer;
 	loadSource: (a:string) => void;
 	attachMedia: (a:HTMLMediaElement) => void;

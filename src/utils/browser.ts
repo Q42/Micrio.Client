@@ -4,13 +4,13 @@
  */
 
 /** Type definition for the Browser detection object. */
-type BrowserInfo = {
+interface BrowserInfo {
 	iOS: boolean; // Is it an iOS device (iPhone, iPad, iPod)?
 	firefox: boolean; // Is the browser Firefox?
 	OSX: boolean; // Is the operating system macOS?
 	hasTouch: boolean; // Does the browser support touch events?
 	safari: boolean; // Is the browser Safari (including iOS Safari)?
-};
+}
 
 /** User agent string for browser detection. */
 const ua = navigator.userAgent;

@@ -6,7 +6,7 @@ import type { Models } from '$types/models';
 export type AllEvents = WheelEvent | MouseEvent | TouchEvent;
 
 /** Internal state variables used by the Events controller. @internal */
-export type EventStateVars = {
+export interface EventStateVars {
 	/** @internal Dragging state */
 	_drag: {
 		/** @internal Previous pointer coordinates [x, y] during drag. */
@@ -30,7 +30,7 @@ export type EventStateVars = {
 		/** @internal Was panning active before pinching started? */
 		_wasPanning: boolean;
 	},
-};
+}
 
 /** Event listener options for passive listeners. @internal */
 export const eventPassive: AddEventListenerOptions = { passive: true };

@@ -78,7 +78,7 @@ import type { Spaces } from './spaces';
 */
 export namespace ImageData {
 	/** The main data JSON structure */
-	export type ImageData = {
+	export interface ImageData {
 		/** V5+: Save revision */
 		revision?: RevisionType;
 		/** Localized image details */
@@ -138,7 +138,7 @@ export namespace ImageData {
 
 
 	/** A Marker */
-	export type Marker = {
+	export interface Marker {
 		/** The marker ID */
 		id: string;
 		/** The relative marker X coordinate [0-1] */
@@ -207,7 +207,7 @@ export namespace ImageData {
 	}
 
 	/** Optional individual marker settings */
-	export type MarkerData = {
+	export interface MarkerData {
 		/** A custom marker icon image */
 		icon?: Assets.Image;
 		/** A predefined custom icon idx in MarkerSettings */
@@ -248,7 +248,7 @@ export namespace ImageData {
 			/** Any other value is accepted */
 			[key:string]: any;
 		}
-	};
+	}
 
 	/**
 	 * An embedded element inside the main image. This could be an image,
@@ -328,7 +328,7 @@ export namespace ImageData {
 	/** The MicrioTour abstract shared class for both {@link MarkerTour} and {@link VideoTour}
 	 * @abstract
 	*/
-	export type Tour = {
+	export interface Tour {
 		/** The tour id */
 		id: string;
 		/** Localized tour culture data */
@@ -342,7 +342,7 @@ export namespace ImageData {
 	}
 
 	/** A single videotour timeline viewport */
-	export type VideoTourView = {
+	export interface VideoTourView {
 		/** Start time in seconds */
 		start: number;
 		/** End time in seconds */
@@ -351,7 +351,7 @@ export namespace ImageData {
 		title?: string;
 		/** View rectangle */
 		rect: Camera.View;
-	};
+	}
 
 	export interface VideoTourCultureData extends TourCultureData {
 		/** The tour duration in seconds */
@@ -383,7 +383,7 @@ export namespace ImageData {
 	}
 
 	/** Timed events inside a {@link VideoTour} */
-	export type Event = {
+	export interface Event {
 		/** Start time in seconds */
 		start: number;
 		/** End time in seconds */
@@ -437,7 +437,7 @@ export namespace ImageData {
 	}
 
 	/** Auto generated metadata for marker tours */
-	export type MarkerTourStepInfo = {
+	export interface MarkerTourStepInfo {
 		markerId: string,
 		micrioId: string,
 		duration: number,
@@ -481,7 +481,7 @@ export namespace ImageData {
 	 * websites, or direct links to opening a marker.
 	 * This is created in the [Micrio editor](https://dash.micr.io/).
 	 */
-	export type Menu = {
+	export interface Menu {
 		/** The menu ID */
 		id: string;
 		/** Localized culture data */
@@ -519,14 +519,14 @@ export namespace ImageData {
  */
 
 export namespace ImageBundle {
-	export type BundleImage = {
+	export interface BundleImage {
 		id: string;
 		info: ImageInfo.ImageInfo;
 		data?: ImageData.ImageData;
 		settings?: Partial<ImageInfo.Settings>;
-	};
+	}
 
-	export type BundleResponse = {
+	export interface BundleResponse {
 		images: BundleImage[];
 		organisation?: ImageInfo.Organisation;
 		spaces?: {
@@ -535,5 +535,5 @@ export namespace ImageBundle {
 		}[];
 		album?: GalleryConfig;
 		tours?: ImageData.MarkerTour[];
-	};
+	}
 }

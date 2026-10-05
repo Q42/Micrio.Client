@@ -9,11 +9,11 @@ export namespace Camera {
 	export type Coords = [number, number, number?]|Float64Array;
 
 	/** A 360 vector for use in Spaces */
-	export type Vector = {
+	export interface Vector {
 		direction: number;
 		distanceX: number;
 		distanceY: number;
-	};
+	}
 
 	export type TimingFunction = ('ease'|'ease-in'|'ease-out'|'linear');
 

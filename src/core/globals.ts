@@ -74,7 +74,7 @@ export const DEFAULT_SETTINGS : Models.ImageInfo.Settings = {
 /** Defines how an HTML attribute maps to an option property.
  * @internal
  */
-type ATTRIBUTE_DEFINITION = {
+interface ATTRIBUTE_DEFINITION {
 	/** `r`: If true, the property belongs to the root ImageInfo object, otherwise to `settings`. */
 	r?: boolean;
 	/** `f`: The target property name (or path using dots, e.g., 'gallery.type'). Defaults to attribute name without 'data-'. */
@@ -88,7 +88,7 @@ type ATTRIBUTE_DEFINITION = {
 /** Type for mapping attribute names to their definitions.
  * @internal
  */
-type ATTRIBUTE_OPTIONS = { [key: string]: ATTRIBUTE_DEFINITION }
+interface ATTRIBUTE_OPTIONS { [key: string]: ATTRIBUTE_DEFINITION }
 
 /**
  * Defines mappings for parsing `<micr-io>` HTML attributes into the

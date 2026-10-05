@@ -2,7 +2,7 @@ import type { I18n } from './common';
 
 /** Assets (audio, video, images) */
 export namespace Assets {
-	export type BaseAsset = {
+	export interface BaseAsset {
 		/** The asset title (not filename) */
 		title: string;
 		/** The asset file name */

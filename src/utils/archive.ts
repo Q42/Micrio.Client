@@ -5,7 +5,7 @@ import { idIsV5 } from '$utils/id';
  * Subset of the Posix USTAR header format relevant for MDP files.
  * @internal
  */
-type MDPHeader = {
+interface MDPHeader {
 	/** File name (max 20 chars used here, though TAR allows more). */
 	name: string;
 	/** File size in bytes (octal string in TAR, parsed to number here). */

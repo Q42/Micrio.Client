@@ -16,7 +16,7 @@ import { easeInOut } from '$render/easing';
  * Internal representation of a segment in a video tour timeline.
  * @internal
  */
-type VideoTourSegment = {
+interface VideoTourSegment {
 	/** Duration of the camera animation for this segment (ms). */
 	duration: number;
 	/** Duration to pause at the end of this segment's animation (ms). */
