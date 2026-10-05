@@ -36,7 +36,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		if (!micrio || !marker) {return;}
 
 		marker.tags?.forEach(c => this.classList.add(c));
-		afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
+		void afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
 
 		this._addCleanup(micrio.state.popup.subscribe(m => {
 			this.#destroying = !m || m !== marker;
@@ -96,7 +96,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				}
 			} else {
 				if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
-					micrio.open(image.id);
+					void micrio.open(image.id);
 					image.state.marker.set(undefined);
 					micrio.state.popup.set(undefined);
 				} else {

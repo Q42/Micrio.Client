@@ -228,7 +228,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					onSeeking: () => { this.#seeking = true; },
 					onSeeked: () => { this.#seeking = false; this.#updateControls(); },
 				});
-				(this.#adapter as YouTubePlayerAdapter).initialize().then(() => { if (p.autoplay) {this.#adapter!.play();} }).catch(() => {});
+				(this.#adapter as YouTubePlayerAdapter).initialize().then(() => { if (p.autoplay) {void this.#adapter!.play();} }).catch(() => {});
 			} else if (isVimeo) {
 				this.#adapter = new VimeoPlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
 					onPlay: () => { this.#paused = false; this.#updateControls(); },
@@ -237,7 +237,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					onTimeUpdate: (t) => { this.#currentTime = t; this.#updateControls(); },
 					onDurationChange: (d) => { this.#duration = d; },
 				});
-				(this.#adapter as VimeoPlayerAdapter).initialize().then(() => { if (p.autoplay) {this.#adapter!.play();} }).catch(() => {});
+				(this.#adapter as VimeoPlayerAdapter).initialize().then(() => { if (p.autoplay) {void this.#adapter!.play();} }).catch(() => {});
 			}
 		}
 
@@ -313,8 +313,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					if (this.#tourInstance.paused) {this.#tourInstance.play();}
 					else {this.#tourInstance.pause();}
 				} else if (this.#adapter) {
-					this.#adapter.isPaused().then(paused => {
-						if (paused) {this.#adapter!.play();}
+					void this.#adapter.isPaused().then(paused => {
+						if (paused) {void this.#adapter!.play();}
 						else {this.#adapter!.pause();}
 					});
 				}

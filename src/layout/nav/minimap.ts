@@ -119,7 +119,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		};
 
 		const wheel = (e: WheelEvent) => {
-			camera.zoom(e.deltaY * (Browser.firefox ? 50 : 1));
+			void camera.zoom(e.deltaY * (Browser.firefox ? 50 : 1));
 		};
 
 		const dStart = (e: MouseEvent) => {
@@ -168,7 +168,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		}
 
 		if (isolated && image.thumbSrc) {
-			fetch(image.thumbSrc).then(r => r.blob()).then(b => {
+			void fetch(image.thumbSrc).then(r => r.blob()).then(b => {
 				if (this.#thumbUrl) {URL.revokeObjectURL(this.#thumbUrl);}
 				this.#thumbUrl = URL.createObjectURL(b);
 				thumbSrc = this.#thumbUrl;

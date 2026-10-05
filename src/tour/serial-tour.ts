@@ -40,7 +40,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		const mt = tour;
 		mt.next = () => this.#nextStep();
-		mt.prev = () => { if (this.#currentStep > 0) {this.#openStep(this.#currentStep - 1);} };
+		mt.prev = () => { if (this.#currentStep > 0) {void this.#openStep(this.#currentStep - 1);} };
 
 		this._addCleanup(micrio.state.marker.subscribe(m => {
 			if (!m || !this.#stepInfo.length) {return;}
@@ -48,13 +48,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
 			if (idx >= 0 && idx !== this.#currentStep) {
 				this.#stepInfo.forEach(s => s.ended = false);
-				this.#openStep(idx);
+				void this.#openStep(idx);
 			}
 		}));
 
 		this.#build();
 
-		this.#openStep(0);
+		void this.#openStep(0);
 	}
 
 	#build() {
@@ -163,7 +163,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (si) {si.ended = true;}
 
 		if (this.#currentStep < this.#stepInfo.length - 1) {
-			this.#openStep(this.#currentStep + 1);
+			void this.#openStep(this.#currentStep + 1);
 		} else {
 			this.#props.onended?.();
 			this._getMicrio()?.state.tour.set(undefined);
@@ -203,7 +203,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (this.#noTimeScrub && i === this.#currentStep) {return;}
 		if (i === this.#currentStep) {return;}
 		this.#stepInfo.forEach(s => s.ended = false);
-		this.#openStep(i);
+		void this.#openStep(i);
 	}
 
 	#calcTime() {

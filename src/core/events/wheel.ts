@@ -70,7 +70,7 @@ export class WheelHandler {
 			let offY = 0;
 
 			const box = this.#ctx._micrio.getBoundingClientRect();
-			image.camera.zoom(delta * 1 / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY);
+			void image.camera.zoom(delta * 1 / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY);
 		}
 		else {image.camera.pan(e.deltaX, e.deltaY);}
 

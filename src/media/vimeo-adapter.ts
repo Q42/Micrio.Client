@@ -57,7 +57,7 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 					reject(new Error('Player destroyed during initialization'));
 					return;
 				}
-				p.getVolume().then(() => {
+				void p.getVolume().then(() => {
 					this.#callbacks.onReady?.();
 					resolve();
 				});

@@ -87,7 +87,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 			this.#clicked = true;
 			image._openedView = undefined;
 			image.state.marker.set(undefined);
-			micrio.open(targetId, { vector: this.#vector });
+			void micrio.open(targetId, { vector: this.#vector });
 		};
 
 		const focus = () => {
@@ -123,7 +123,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		onmove();
 
 		this._addCleanup(image.state.view.subscribe(onmove));
-		DataLoader._getData(targetId).then(d => { if (d) {this.#targetImage = d;} this.#render(); });
+		void DataLoader._getData(targetId).then(d => { if (d) {this.#targetImage = d;} this.#render(); });
 
 		micrio.dispatchEvent(new CustomEvent('wp-print', { detail: this.#iface }));
 

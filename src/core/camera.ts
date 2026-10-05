@@ -71,7 +71,7 @@ export class Camera {
 		// For non-360 images, set initial view if already available
 		if (!image._is360) {
 			const view = image.state.$view;
-			if (view && image.$info?.width) {tick().then(() => this.setView(view));}
+			if (view && image.$info?.width) {void tick().then(() => this.setView(view));}
 		}
 	}
 

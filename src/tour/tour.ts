@@ -109,7 +109,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					const prev = this.#currentStep;
 					this.#currentStep++;
 					mt.currentStep = this.#currentStep;
-					openStep(prev, this.#currentStep);
+					void openStep(prev, this.#currentStep);
 					renderControls();
 				}
 			};
@@ -119,7 +119,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					const prev = this.#currentStep;
 					this.#currentStep--;
 					mt.currentStep = this.#currentStep;
-					openStep(prev, this.#currentStep);
+					void openStep(prev, this.#currentStep);
 					renderControls();
 				}
 			};
@@ -189,7 +189,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				}
 			}));
 
-			openStep(-1, this.#currentStep);
+			void openStep(-1, this.#currentStep);
 			renderControls();
 
 			// Control titles are translated, so rebuild them on a UI language change

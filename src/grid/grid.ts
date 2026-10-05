@@ -109,7 +109,7 @@ export class Grid extends MicrioElement {
 		if(g?.transitionDuration !== undefined) {this._aniDurationIn = this.#aniDurationOut = g.transitionDuration;}
 		if(g?.transitionDurationOut !== undefined) {this.#aniDurationOut = g.transitionDurationOut;}
 
-		this.set(this.#galleryGridImages, {
+		void this.set(this.#galleryGridImages, {
 			cover: this.image.$settings?.initType === 'cover',
 			duration: 0,
 		}).then(() => {
@@ -146,7 +146,7 @@ export class Grid extends MicrioElement {
 					const micId = this._images.find(i => i.$data?.markers?.find(n => n === m))?.id;
 					if(micId) {this.#nextSize.set(micId, s);}
 				}
-				tick().then(() => {
+				void tick().then(() => {
 					const a = d?.gridAction?.split('|');
 					if(a?.length && typeof a[0] === 'string') {this.action(a.shift() as string, a.join('|'));}
 				})
@@ -420,7 +420,7 @@ export class Grid extends MicrioElement {
 			const set = () => img.camera.setArea(entry.area!, {
 				direct: opts.duration===0 || (!opts.forceAreaAni && !get(img.visible))
 			});
-			if (opts.delay) {sleep(opts.delay * 1000).then(set).then(() => engine.render());}
+			if (opts.delay) {void sleep(opts.delay * 1000).then(set).then(() => engine.render());}
 			else {set();}
 		}
 
@@ -517,8 +517,8 @@ export class Grid extends MicrioElement {
 		this._buttons.get(img.id)?.classList.add('focussed');
 		if(this._clickable === 'zoom') {
 			const a = img.opts.area ?? [0,0,1,1];
-			this.image.camera.flyToView(a, {duration: this._aniDurationIn * 1000, limit: false});
-		} else {this.gridFocus(img);}
+			void this.image.camera.flyToView(a, {duration: this._aniDurationIn * 1000, limit: false});
+		} else {void this.gridFocus(img);}
 	}
 
 	/** Focus the grid on a single image, optionally with a transition animation. */

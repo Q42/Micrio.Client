@@ -191,8 +191,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		switch(attr) {
 			case 'id': { {
 				if(!this.isConnected || !newVal) {return;}
-				if(!this.#printed) {this.#print();}
-				else {this.open(newVal);}
+				if(!this.#printed) {void this.#print();}
+				else {void this.open(newVal);}
 			} break;
 			}
 			case 'muted': {
@@ -236,7 +236,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		this._provide('micrio', this);
 
 		this.canvas.place();
-		if(this.id && !this.#printed) {this.#print();}
+		if(this.id && !this.#printed) {void this.#print();}
 
 		if(!('muted' in this)) {
 			Object.defineProperty(this, 'muted', {
@@ -287,7 +287,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			this._watch(this._switching, s => {
 				if(s) {this.dataset.switching = '';}
 				else {
-					if(!shown) {tick().then(() => this.events._dispatch('show', this));}
+					if(!shown) {void tick().then(() => this.events._dispatch('show', this));}
 					shown = true;
 					delete this.dataset.switching;
 				}
@@ -378,7 +378,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		try { gallery = Gallery._fromIIIF(resp, this._engine); }
 		catch(e) { this.#printError(e as Error); return; }
 		if(gallery) {
-			gallery._openOn(this);
+			void gallery._openOn(this);
 			return;
 		}
 
@@ -438,7 +438,7 @@ export class HTMLMicrioElement extends MicrioElement {
 					onProgress: (p:number) => this._ui?._setProps?.({loadingProgress: p})
 				}).catch(() => null);
 				if(galleryCtrl) {
-					galleryCtrl._openOn(this);
+					void galleryCtrl._openOn(this);
 					return;
 				}
 			}
@@ -448,7 +448,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			const bundle = await this.#handleIIIF(opts.id);
 			if(!bundle) {return;}
 			bundle.settings = opts.settings;
-			this.open(bundle);
+			void this.open(bundle);
 			return;
 		}
 
@@ -456,7 +456,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.events._dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
 		const openBundle = () => {
-			if(opts.id) {this.open(opts.id);}
+			if(opts.id) {void this.open(opts.id);}
 		};
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in globalThis) {
 			const observer = new IntersectionObserver(e => {
@@ -624,7 +624,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.#initedFirst = true;
 		}
 
-		tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
+		void tick().then(() => this.dispatchEvent(new CustomEvent('load', {detail: c})));
 
 		// ── 360 vector ────────────────────────────────────────────────────────
 
@@ -637,7 +637,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Set current / grid ────────────────────────────────────────────────
 
 		if(isInGrid && (!opts.gridView || !grid?._current.find(img => img.id === bundle.id))) {
-			grid?.gridFocus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
+			void grid?.gridFocus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
 		}
 		else {
 			this.current.set(c);
@@ -647,9 +647,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// Settings-level split screen (auto-open on load)
 		if(c.$settings.micrioSplitLink && !c._noImage && !c.grid) {
-			tick().then(() => {
+			void tick().then(() => {
 				if(this.$current !== c) {return;}
-				openSplit(this, c, { micrioId: c.$settings.micrioSplitLink! }, {
+				void openSplit(this, c, { micrioId: c.$settings.micrioSplitLink! }, {
 					isPassive: !c.$settings.noFollow,
 				});
 			});

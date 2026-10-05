@@ -37,7 +37,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (!micrio || !navigator.share) {return;}
 		if (micrio.$current?.$info) {
 			const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
-			navigator.share({
+			void navigator.share({
 				title: micrio.$current.$info?.title,
 				text: cData?.description || `${micrio.$current.$info.width} x ${micrio.$current.$info.height} | Micrio`,
 				url: location.href

@@ -273,10 +273,10 @@ export class MicrioImage {
 		// Org branding CSS (fire & forget)
 		if(org?.branding && !(s?.noUI)) {
 			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
-			this.#loadStyle(`${r2Base}style/${org.slug}.css`).then(() => {
+			void this.#loadStyle(`${r2Base}style/${org.slug}.css`).then(() => {
 				const fontFamily = getComputedStyle(this.#engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
-				if(fontFamily) {document.fonts.ready.then(() => { if(!document.fonts.check(`16px ${  fontFamily}`))
-					this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
+				if(fontFamily) {void document.fonts.ready.then(() => { if(!document.fonts.check(`16px ${  fontFamily}`))
+					void this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
 				});}
 			});
 		}
@@ -320,10 +320,10 @@ export class MicrioImage {
 
 		// Custom JS/CSS (fire & forget)
 		if(s && !s.noExternals) {
-			if(s.css) {this.#loadStyle(s.css.href);}
+			if(s.css) {void this.#loadStyle(s.css.href);}
 			if(s.js) {
 				const url = s.js.href.replace('$lang', lang);
-				loadScript(url);
+				void loadScript(url);
 				const _el = document.head.querySelector(`script[src="${url}"]`) as HTMLScriptElement | undefined;
 				/** @ts-ignore -- used for custom JS to have a cool self reference */
 				if (_el) {_el['micrioElement'] = this.#engine.micrio;}
@@ -468,7 +468,7 @@ export class MicrioImage {
 			}
 		}
 		// Add the embed to the engine
-		this.#engine._addEmbed(img, this, opts);
+		void this.#engine._addEmbed(img, this, opts);
 		this.#engine.render(); // Trigger render
 		return img; // Return the new embed instance
 	}

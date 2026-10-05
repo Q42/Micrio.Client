@@ -142,7 +142,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (markerSettings.noMarkerActions) {return;}
 			if (marker.type === 'cluster') {
 				if (view && micrio.$current?.$info) {
-					image.camera.flyToView(view, { limitZoom: true });
+					void image.camera.flyToView(view, { limitZoom: true });
 				}
 			} else {
 				image.state.marker.set(marker);
@@ -195,7 +195,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					}
 				});
 			} else {
-				openContent();
+				void openContent();
 			}
 		};
 
@@ -247,13 +247,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					});
 				}
 			} else {
-				tick().then(() => micrio.state.popup.set(marker));
+				void tick().then(() => micrio.state.popup.set(marker));
 			}
 
 			const linkId = data.micrioLink?.id;
 			if (linkId) {
-				tick().then(() => {
-					micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector });
+				void tick().then(() => {
+					void micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector });
 				});
 			}
 
@@ -266,14 +266,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 						if (existing.id === parsed.micrioId) {
 							if (parsed.markerId) {
 								const m = existing.$data?.markers?.find(m => m.id === parsed.markerId);
-								if (m?.view) {existing.camera.flyToView(m.view, { isJump: true });}
+								if (m?.view) {void existing.camera.flyToView(m.view, { isJump: true });}
 							}
 						} else {
 							closeSplit(micrio, image);
-							tick().then(() => openSplit(micrio, image, parsed, { isPassive: parsed.follows }));
+							void tick().then(() => openSplit(micrio, image, parsed, { isPassive: parsed.follows }));
 						}
 					} else {
-						openSplit(micrio, image, parsed, { isPassive: parsed.follows });
+						void openSplit(micrio, image, parsed, { isPassive: parsed.follows });
 					}
 				}
 			}
@@ -288,7 +288,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		this._addCleanup(image.state.marker.subscribe(m => {
 			if (typeof m === 'string' && m === marker.id) {image.state.marker.set(marker);}
-			else if (m === marker) {activated();}
+			else if (m === marker) {void activated();}
 			else if (!data.alwaysOpen && (!m || m !== marker)) {
 				if (this.#opened) {
 					// Only manage split lifecycle if this marker itself has a split link
@@ -319,13 +319,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		}
 
 		if (!forceHidden) {
-			tick().then(() => {
+			void tick().then(() => {
 				const $popup = get(micrio.state.popup);
 				const $tour = get(micrio.state.tour);
 				if (this.#opened && !marker.noMarker && $popup && $popup !== marker && !$tour) {
 					image.state.marker.set(undefined);
 				} else if (data.alwaysOpen) {
-					openContent();
+					void openContent();
 				}
 			});
 		}

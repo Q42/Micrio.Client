@@ -95,7 +95,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const {controller} = this.#props;
 		if (!controller) {return;}
 
-		this.#renderGallery(micrio, image, controller);
+		void this.#renderGallery(micrio, image, controller);
 
 		// Scrubber button titles are translated, so refresh them on a UI language change
 		// (the scrubber bar itself is only built once)
@@ -220,7 +220,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#scrubMove = (e: PointerEvent | TouchEvent) => {
 		const [perc, idx] = this.#getScrubXPercIdx(e);
 		this.#_left = scrubPad + perc * (this.#box!.width - scrubPad * 2);
-		if (idx !== this.#currentPage) {this.#goto(idx, true);}
+		if (idx !== this.#currentPage) {void this.#goto(idx, true);}
 	};
 
 	/** Tracks hover position on scrubber (when not dragging). */
@@ -243,7 +243,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const micrio = this._getMicrio();
 		if (!micrio) {return;}
 		micrio._keepRendering = false;
-		this.#goto(this.#currentPage);
+		void this.#goto(this.#currentPage);
 	};
 
 	// ─── Preloading (eager thumbnail loading for nearby pages) ─────
@@ -290,14 +290,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#keydown = (e: KeyboardEvent) => {
 		switch (e.key) {
 			case 'PageUp':
-			case 'ArrowLeft': { this.#goto(this.#currentPage - 1, true); break;
+			case 'ArrowLeft': { void this.#goto(this.#currentPage - 1, true); break;
 			}
 			case 'PageDown':
-			case 'ArrowRight': { this.#goto(this.#currentPage + 1, true); break;
+			case 'ArrowRight': { void this.#goto(this.#currentPage + 1, true); break;
 			}
-			case 'Home': { this.#goto(0); break;
+			case 'Home': { void this.#goto(0); break;
 			}
-			case 'End': { this.#goto(this.#pageToImages.length - 1); break;
+			case 'End': { void this.#goto(this.#pageToImages.length - 1); break;
 			}
 			default: { return;
 			}
@@ -435,7 +435,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		micrio.events.unhookPinch();
 		parent.camera._zoomOverride = (n:number) => book3d.zoom(n);
 		parent.camera._isZoomedInOverride = () => book3d.isZoomedIn();
-		this.#book3d._ready.then(() => {
+		void this.#book3d._ready.then(() => {
 			parent._placed = true;
 			this.#frameChanged();
 		})

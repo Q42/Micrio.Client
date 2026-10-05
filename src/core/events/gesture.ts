@@ -65,7 +65,7 @@ export class GestureHandler {
 		e.preventDefault();
 
 		if (e.type === 'gesturechange') {
-			this.#ctx._getImage({ x: gesture.clientX, y: gesture.clientY })?.camera.zoom(
+			void this.#ctx._getImage({ x: gesture.clientX, y: gesture.clientY })?.camera.zoom(
 				diff * this.#ctx._micrio.canvas.viewport.height,
 				0,
 				gesture.clientX,

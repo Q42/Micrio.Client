@@ -70,7 +70,7 @@ class AudioPlaylist {
 		if (!this.#loop && this.#idx + 1 === this.#list.length) {return;}
 		const item = this.#list[(++this.#idx) % this.#list.length];
 		this.#audio.src = item.src ?? '';
-		this.#audio.play();
+		void this.#audio.play();
 	}
 
 	/** Stops playback and releases the audio element. */

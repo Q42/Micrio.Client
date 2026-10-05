@@ -196,7 +196,7 @@ export class GLEmbedVideo {
 			}
 			else if(!this.#embed.hideWhenPaused) {
 				this.#setPlaying(true);
-				tick().then(() => {
+				void tick().then(() => {
 					this.#setPlaying(false);
 					this.#removeTmpDom();
 				});

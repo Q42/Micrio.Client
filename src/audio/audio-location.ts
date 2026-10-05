@@ -93,7 +93,7 @@ export class MicrioAudioLocation {
 		update();
 		this.#panner.connect(this.#gain);
 		this.#gain.connect(mainGain ?? ctx.destination);
-		start();
+		void start();
 
 		this.#micrio.addEventListener('audio-update', update);
 		this.#cleanup = () => this.#micrio.removeEventListener('audio-update', update);

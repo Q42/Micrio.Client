@@ -9,7 +9,7 @@ function switchToGrid(grid: Grid): void {
 	const focus = grid.$focussed;
 	if(!focus) {return;}
 	const v = focus.camera.getView();
-	if(v) {grid.reset(0, true).then(() => {
+	if(v) {void grid.reset(0, true).then(() => {
 		if(focus.opts.area) grid.image.camera.setView(focus.opts.area, {noLimit: true});
 		focus.camera.setView(v, {noLimit: true});
 		grid.micrio.current.set(grid.image);
@@ -41,8 +41,8 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 				const imgs = name.split(',')
 					.map(i => grid._imageMap.get(i.trim()))
 					.filter((i): i is MicrioImage => i !== undefined);
-				if(imgs.length === 1) {grid.gridFocus(imgs[0], {duration});}
-				else if(imgs.length > 0) {grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
+				if(imgs.length === 1) {void grid.gridFocus(imgs[0], {duration});}
+				else if(imgs.length > 0) {void grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
 					horizontal: spl?.[1] === 'h'
 				});}
@@ -68,19 +68,19 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 			},
 
 			[GridActionType.focusTagged]: (data, duration) => {
-				grid._flyToMarkers(data, duration);
+				void grid._flyToMarkers(data, duration);
 			},
 
 			[GridActionType.focusWithTagged]: (data, duration) => {
-				grid._flyToMarkers(data, duration, true);
+				void grid._flyToMarkers(data, duration, true);
 			},
 
 			[GridActionType.reset]: (_data, duration) => {
-				grid.reset(duration);
+				void grid.reset(duration);
 			},
 
 			[GridActionType.back]: (_data, duration) => {
-				grid.back(duration);
+				void grid.back(duration);
 			},
 
 			[GridActionType.switchToGrid]: () => {
@@ -98,7 +98,7 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 				const imgs = ids.filter((id, i) => ids.indexOf(id) === i)
 					.map(i => grid._imageMap.get(i))
 					.filter((i): i is MicrioImage => Boolean(i))
-				if(imgs.length) {grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
+				if(imgs.length) {void grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
 					horizontal: data === 'h'
 				});}

@@ -39,7 +39,7 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 				startId: this.#props.galleryStart,
 				basePath
 			});
-			galleryCtrl._openOn(el);
+			void galleryCtrl._openOn(el);
 		});
 
 		let currentIdx = 0;

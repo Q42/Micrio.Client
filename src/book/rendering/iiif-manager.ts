@@ -206,7 +206,7 @@ export class IIIFTextureManager {
 				s._downloadState = 'downloading';
 
 				const slot = s._currentLevel === 0 ? s._activeSlot : (1 - s._activeSlot) as 0 | 1;
-				this.#fetchTexture(p, side as 0 | 1, slot, s);
+				void this.#fetchTexture(p, side as 0 | 1, slot, s);
 			}
 		}
 	}

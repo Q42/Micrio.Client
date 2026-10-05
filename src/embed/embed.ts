@@ -455,7 +455,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 					if (vid.paused) {
 						this.#glVideo!._cancelTimeout();
 						if (image?.$settings?.embedRestartWhenShown) {vid.currentTime = 0;}
-						vid.play();
+						void vid.play();
 					}
 				}
 			}

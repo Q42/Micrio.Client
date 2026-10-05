@@ -51,8 +51,8 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 
 		if (e.key === 'Escape') {
 			grid._buttons.forEach(btn => btn.classList.remove('focussed'));
-			if (grid.$focussed) { grid.back(); e.preventDefault(); e.stopPropagation(); }
-			else if (!grid.image.camera.isZoomedOut()) { grid.reset(); e.preventDefault(); e.stopPropagation(); }
+			if (grid.$focussed) { void grid.back(); e.preventDefault(); e.stopPropagation(); }
+			else if (!grid.image.camera.isZoomedOut()) { void grid.reset(); e.preventDefault(); e.stopPropagation(); }
 			return;
 		}
 
@@ -72,7 +72,7 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 		});
 
 		if (grid._clickable === 'zoom' && !grid.image.camera.isZoomedOut()) {
-			grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid._aniDurationIn * 1000, limit: false});
+			void grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid._aniDurationIn * 1000, limit: false});
 		}
 	};
 }
