@@ -313,9 +313,18 @@ export class TileCanvas {
 	}
 
 	/** Initiates a fade-out animation. @internal */
+	/** Initiates a fade-out animation (fades to opacity 0). @internal */
 	_fadeOut(): void {
 		this._targetOpacity = 0;
 		this.zIndex = 0;
+	}
+
+	/** Directly sets the canvas opacity, without animating. Also updates the
+	 * internal eased opacity actually used for rendering, which is otherwise
+	 * only recomputed while a fade animation is stepping. @internal */
+	_setOpacityDirect(o: number): void {
+		this._opacity = this._targetOpacity = o;
+		this.#bOpacity = easeInOut.get(o);
 	}
 
 	/** Initiates a fade-in animation. @internal */

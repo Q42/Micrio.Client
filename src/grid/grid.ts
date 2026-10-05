@@ -339,6 +339,7 @@ export class Grid extends MicrioElement {
 		if(isInFromId) {
 			const sourceIds = new Set(imageEntries.map(e => e.from).filter((v): v is string => !!v));
 			const incomingIds = new Set(imageEntries.filter(e => !prevById.has(e.id) && !!fromAreas.get(e.id)).map(e => e.id));
+
 			imageEntries.forEach((entry, i) => {
 				const img = this._imageMap.get(entry.id);
 				const c = img?.canvas;
@@ -346,7 +347,7 @@ export class Grid extends MicrioElement {
 				// Keep animated (source/incoming) items fully visible so they don't
 				// fade during their area animation. Fade-in-place items keep their
 				// default 0 opacity so they fade in at their target position.
-				if(!fadeInPlaceIds?.has(entry.id)) c._targetOpacity = c._opacity = .9999;
+				if(!fadeInPlaceIds?.has(entry.id)) c._setOpacityDirect(.9999);
 				let z = entry.z;
 				if(z == undefined) {
 					if(sourceIds.has(entry.id)) z = 3000 + i;
@@ -367,7 +368,7 @@ export class Grid extends MicrioElement {
 			this.#whenImagesReady(incoming, timeout).then(() => { if(setId === this.#setId) openGate?.(); });
 		}
 
-		if(isAppear) this._current.slice(1).forEach(i => { const c = i.canvas; c && (c._targetOpacity = c._opacity = .9999); });
+		if(isAppear) this._current.slice(1).forEach(i => i.canvas?._setOpacityDirect(.9999));
 
 		const fadeIn = () => this._current.forEach((img,i) =>
 			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
@@ -550,11 +551,15 @@ export class Grid extends MicrioElement {
 		return new Promise<void>(resolve => {
 			const { _engine: engine } = this.micrio;
 			const start = performance.now();
+			// `_gotBase` is the timestamp of the last frame the base tile was
+			// actually drawn. A stale value from an earlier appearance doesn't
+			// guarantee the texture still exists (tiles of removed images get
+			// cleaned up), so require a draw after this check started.
 			const isReady = (img:MicrioImage) : boolean => {
 				const c = img.canvas;
 				if(!c) return false;
 				if(!c.images.length) return true;
-				return c.images[0]._gotBase > 0;
+				return c.images[0]._gotBase >= start;
 			};
 			const check = () : void => {
 				if(images.every(isReady) || performance.now() - start > timeout) resolve();
