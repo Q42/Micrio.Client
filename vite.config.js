@@ -197,9 +197,11 @@ function glslMinifyPlugin() {
 				const resolved = await this.resolve(id.replace('?raw', ''), importer);
 				if (resolved) {return resolved.id;}
 			}
+			return null;
 		},
 		transform(src, id) {
 			if (id.endsWith('.glsl')) {return `export default ${JSON.stringify(glslMinify(src))};`;}
+			return null;
 		},
 	};
 }
