@@ -125,6 +125,19 @@ export async function openSpace(
 	}
 	return { viewer, ids, spaceId, space: space.data }
 }
+
+/**
+ * Opens a fresh space *and* waits until the image is on screen.
+ *
+ * The markers layer (and therefore every `<micrio-waypoint>`) only exists for images
+ * that are in `_visible`, which happens once the first frame has been drawn.
+ */
+export async function openVisibleSpace(index = 0, opts: Parameters<typeof openSpace>[1] = {}): Promise<OpenSpace> {
+	const space = await openSpace(index, opts)
+	await waitFor(() => get(space.viewer.el._visible).length > 0, 8000, 'image visible')
+	return space
+}
+
 /** Builds a bidirectional link pair with optional per-end settings. */
 export function linkPair(
 	a: string,

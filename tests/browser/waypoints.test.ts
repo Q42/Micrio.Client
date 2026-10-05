@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Models } from '../../src/types/models'
-import { freshSpace, linkPair, openSpace, type SpaceLink } from '../fixtures/space-fixture'
+import { freshSpace, linkPair, openVisibleSpace, type SpaceLink } from '../fixtures/space-fixture'
 import { get } from '../../src/core/store'
 import { mockJson } from '../helpers/network'
 import { mountViewer, waitFor } from '../helpers/viewer'
@@ -15,9 +15,8 @@ import { settle } from '../helpers/tour'
  * `_visible` first.
  */
 async function openLinked(opts: { links?: (ids: string[]) => SpaceLink[]; index?: number } = {}) {
-	const space = await openSpace(opts.index ?? 0, { links: opts.links })
-	await waitFor(() => get(space.viewer.el._visible).length > 0, 8000, 'image visible')
-	await settle(3)
+	const space = await openVisibleSpace(opts.index ?? 0, { links: opts.links })
+	await settle(2)
 	return space
 }
 
