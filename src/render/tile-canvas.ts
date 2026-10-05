@@ -319,9 +319,9 @@ export class TileCanvas {
 	_fadeIn(): void {
 		this.#isReady = true;
 		if (!this._hasParent && this.#currentArea.width === 1 && this.#currentArea.height === 1)
-			{for (let i = 0; i < this.main._canvases.length; i++) {
-				if (this.main._canvases[i] !== this) {
-					this.main._canvases[i]._fadeOut();
+			{for (const child of this.main._canvases) {
+				if (child !== this) {
+					child._fadeOut();
 				}
 			}}
 		this._targetOpacity = 1;
@@ -387,8 +387,8 @@ export class TileCanvas {
 		m._progress = m._toDrawTotal === 0 ? 1
 			: m._doneTotal / m._toDrawTotal;
 
-		for (let i = 0; i < this.#children.length; i++)
-			{this.#children[i]._shouldDraw();}
+		for (const child of this.#children)
+			{child._shouldDraw();}
 
 		if (animating) {m._animating = true;}
 	}
@@ -408,8 +408,7 @@ export class TileCanvas {
 
 		gl.gl.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
 
-		if (this.#pagesHaveBackground) {for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
-			const im = this.images[imgIdx];
+		if (this.#pagesHaveBackground) {for (const im of this.images) {
 			if (!(im.x1 <= v.x0 || im.x0 >= v.x1 || im.y1 <= v.y0 || im.y0 >= v.y1)) {
 				this.#setTile(im._endOffset - 1);
 				gl._drawTile(undefined, im._tOpacity);
@@ -417,8 +416,7 @@ export class TileCanvas {
 		}}
 
 		const r = this.#rect;
-		for (let j = 0; j < this._toDraw.length; j++) {
-			const i: number = this._toDraw[j];
+		for (const i of this._toDraw) {
 			this.#setTile(i);
 
 			const isTargetLayer = r.layer === r.image._targetLayer - 1 || (!m._bareBone && r.layer === r.image._targetLayer);
@@ -440,8 +438,8 @@ export class TileCanvas {
 			});
 			this.#childrenDirty = false;
 		}
-		for (let i = 0; i < this.#children.length; i++)
-			{this.#children[i]._draw();}
+		for (const child of this.#children)
+			{child._draw();}
 
 		if (v._changed) {this._micrioImage?.camera?._viewChanged();}
 		v._changed = false;
@@ -702,7 +700,7 @@ export class TileCanvas {
 	/** @internal */
 	_aniStop(): void {
 		this._ani.stop();
-		for (let i = 0; i < this.#children.length; i++) {this.#children[i]._aniStop();}
+		for (const child of this.#children) {child._aniStop();}
 	}
 
 	/** @internal */

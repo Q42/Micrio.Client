@@ -529,7 +529,7 @@ export class Engine {
 
 		if (this.#isGallery) {this.#drawStart();}
 		this.#drawnSet.clear();
-		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._draw();}
+		for (const c of this._canvases) {c._draw();}
 
 		this.micrio.events._dispatch('draw');
 
@@ -545,7 +545,7 @@ export class Engine {
 		this._doneTotal = 0;
 		this._toDrawTotal = 0;
 		this._animating = false;
-		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._shouldDraw();}
+		for (const c of this._canvases) {c._shouldDraw();}
 		return this._animating || this._progress < 1;
 	}
 
@@ -641,8 +641,8 @@ export class Engine {
 	 * @internal
 	 */
 	#isTileInViewport(idx: number): boolean {
-		for (let i = 0; i < this._canvases.length; i++) {
-			if (this._canvases[i]._isTileInViewport(idx)) {return true;}
+		for (const c of this._canvases) {
+			if (c._isTileInViewport(idx)) {return true;}
 		}
 		return false;
 	}
@@ -710,7 +710,7 @@ export class Engine {
 	 */
 	_resize(c: Models.Canvas.ViewRect): void {
 		this.el.set(c.width, c.height, c.left, c.top, c.ratio, c.scale, c.portrait);
-		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._resize();}
+		for (const canvas of this._canvases) {canvas._resize();}
 		if (this.ready) { this.#stop(); this.#draw(); }
 	}
 
@@ -814,8 +814,7 @@ export class Engine {
 			c._targetOpacity = opacity;
 		} else {
 			const {images} = c;
-			for (let i = 0; i < images.length; i++) {
-				const im = images[i];
+			for (const im of images) {
 				if (im._localIdx > 0) {
 					im._tOpacity = opacity;
 					if (direct) {im.opacity = opacity;}
@@ -836,7 +835,7 @@ export class Engine {
 
 	/** Resets all canvases. @internal */
 	#reset(): void {
-		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._reset();}
+		for (const c of this._canvases) {c._reset();}
 	}
 
 	/** Removes a TileCanvas from the managed list. @internal */
