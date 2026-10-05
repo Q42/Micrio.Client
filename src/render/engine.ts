@@ -336,7 +336,6 @@ export class Engine {
 	#addCanvas(c: MicrioImage): void {
 		if (this._book3d) {return;}
 		const i = c.$info;
-		if (!i) {return;}
 		if (c.error) {
 			this.micrio._loading.set(false);
 			return;
@@ -437,7 +436,7 @@ export class Engine {
 		const v = get(c.state.view) || settings.view;
 		if (v && !(v[0] === 0 && v[1] === 0 && v[2] === 1 && v[3] === 1)) {
 			canvas._setView(v[0] + v[2] / 2, v[1] + v[3] / 2, v[2], v[3], false, false, false, false);
-		} else if ((isSpaces || !i.is360) && focus && focus.toString() !== '0.5,0.5') {
+		} else if ((isSpaces || !i.is360) && focus.toString() !== '0.5,0.5') {
 			canvas.camera.setCoo(focus[0], focus[1], 0);
 			settings.focus = undefined;
 		}
@@ -750,7 +749,6 @@ export class Engine {
 		fromScale?: number,
 	): void => {
 		const i = '$info' in image ? image.$info : parent.$info;
-		if (!i) {return;}
 
 		const a = image.opts.area ?? [0, 0, 1, 1];
 		const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
