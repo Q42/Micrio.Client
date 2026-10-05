@@ -97,7 +97,6 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#micrio = micrio;
 
 		const info = image.$info;
-		if (!info) {return;}
 		this.#info = info;
 
 		if (!embed.uuid) {embed.uuid = randomUUID();}
@@ -106,17 +105,17 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#autoplay = embed.video?.autoplay ?? true;
 
 		const {grid} = image;
-		if (grid) {
+		if (grid !== undefined) {
 			const focused = grid._focussed;
 			const markersShown = grid._markersShown;
 			const updateInactive = () => {
 				const f = get(focused);
-				const ms = markersShown ? get(markersShown) : undefined;
-				const inactive = Boolean(grid && f && f !== image && ms && ms.indexOf(image) < 0);
+				const ms = get(markersShown);
+				const inactive = f !== undefined && f !== image && ms.indexOf(image) < 0;
 				this.#container?.classList.toggle('inactive', inactive);
 			};
 			this._watch(focused, updateInactive);
-			if (markersShown) {this._watch(markersShown, updateInactive);}
+			this._watch(markersShown, updateInactive);
 		}
 
 		this.#glImage = image._embeds.find(i => i.uuid === embed.uuid || i.$info?.title === embed.uuid);
@@ -180,7 +179,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		if (this.#printGL) {this.#printInsideGL();}
 
 		const camOwner = image.camera?.image;
-		const moveSrc = camOwner && camOwner !== image ? camOwner : image;
+		const moveSrc = camOwner !== undefined && camOwner !== image ? camOwner : image;
 
 		if (this.#hasHtml || Boolean(embed.video?.pauseWhenSmallerThan) || Boolean(embed.video?.pauseWhenLargerThan)) {
 			// Cache the emitted values and reposition directly. Store updates happen
@@ -221,7 +220,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.#contentWidth = 100;
 		}
 
-		const isGLEmbeddedMicrio = this.#printGL && embed.micrioId && embed.width;
+		const isGLEmbeddedMicrio = this.#printGL && Boolean(embed.micrioId) && Boolean(embed.width);
 		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
 
 		if(this.#isBook3d) {return;}
@@ -233,7 +232,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		const styles: string[] = [];
 
-		if (isGLEmbeddedMicrio && embed.width) {
+		if (isGLEmbeddedMicrio && embed.width !== undefined) {
 			scale = this.#w / (embed.width / this.#info.width) * htmlButtonEmbedScale * (this.#is360 ? Math.PI / 2 : 1);
 			styles.push(`width:${embed.width / htmlButtonEmbedScale}px`);
 		}
@@ -404,7 +403,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#applyPosition() {
 		const { embed, image } = this.#props;
 		if (!embed || !image) {return;}
-		if (!this.#isBook3d && !image?.engine.ready) {return;}
+		if (!this.#isBook3d && !image.engine.ready) {return;}
 
 		const vp = this.#viewport;
 		const view = this.#view;
@@ -518,7 +517,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#onChange = (e: Event) => {
 		const { embed } = this.#props;
-		if (embed && 'detail' in e && e.detail && typeof e.detail === 'object') {
+		if (embed !== undefined && hasObjectDetail(e)) {
 			Object.assign(embed, e.detail);
 		}
 		this.#readPlacement();
@@ -553,6 +552,15 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.#container.removeEventListener('keydown', this.#click);
 		}
 	}
+}
+
+/**
+ * True when `e` carries a usable object `detail` payload (e.g. an editor-driven
+ * property update dispatched as a CustomEvent). The check is runtime-driven
+ * because the event is also dispatched by external code.
+ */
+function hasObjectDetail(e: Event): e is Event & { detail: object } {
+	return 'detail' in e && e.detail !== undefined && e.detail !== null && typeof e.detail === 'object';
 }
 
 customElements.define(MicrioEmbed.tag, MicrioEmbed);
