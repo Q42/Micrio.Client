@@ -319,7 +319,7 @@ export class Engine {
 	_unbind(): void {
 		this.#stop();
 		while (this.#unsubscribe.length > 0) {this.#unsubscribe.pop()?.();}
-		this.#requests.forEach(src => abortDownload(src));
+		for (const src of this.#requests.values()) {abortDownload(src);}
 		this.#requests.clear();
 		for (const [idx, tile] of this.#tiles.entries()) {
 			if (tile._timeoutId) {clearTimeout(tile._timeoutId);}
@@ -472,7 +472,7 @@ export class Engine {
 			const current = get(this.micrio.current);
 			if (!current || (!canvas.$info.isIIIF && canvas.$info.id !== current.id)) {return;}
 			this.#addCanvas(canvas);
-			if (canvas._embeds.length > 0) {canvas._embeds.forEach(e => {void this._addEmbed(e, canvas);});}
+			if (canvas._embeds.length > 0) {for (const e of canvas._embeds) {void this._addEmbed(e, canvas);}}
 		}
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
