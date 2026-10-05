@@ -97,12 +97,12 @@ processBuild({
 
 // Generate .d.ts
 const dFile = './public/dist/micrio.min.d.ts'
-const dtsInput = fs.readFileSync('./out.d.ts', 'utf-8')
-const parsedModules = parseDeclareModules(dtsInput)
+const dtsDir = './.dts'
+const parsedModules = readDeclarationModules(dtsDir)
 const internalModuleNames = new Set(parsedModules.keys())
 const dtsBundled = bundleDts(parsedModules, internalModuleNames)
 fs.writeFileSync(dFile, dtsBundled)
-fs.rmSync('./out.d.ts')
+fs.rmSync(dtsDir, { recursive: true })
 fs.rmdirSync(buildDir)
 
 const formatSize = (bytes) => {
@@ -125,52 +125,65 @@ for (const f of ['./public/dist/micrio.min.js', './public/dist/micrio.core.min.j
 	)
 }
 
-function parseDeclareModules(input) {
+/**
+ * TypeScript 7 removed `--outFile`, so it emits one `.d.ts` per source file under
+ * `tsconfig.docs.json`'s `outDir` instead of a single bundle of `declare module`
+ * blocks. Read that tree into the same `name -> content` map the bundler used to
+ * get, deriving each name from its path relative to the emit root.
+ */
+function readDeclarationModules(root) {
 	const modules = new Map()
-	const lines = input.split('\n')
-	let currentName = null
-	let braceDepth = 0
-	let contentLines = []
-	let insideModule = false
 
-	for (const line of lines) {
-		const singleMatch = line.match(/^declare module "([^"]+)" \{(.*)\}$/)
-		if (singleMatch) {
-			modules.set(singleMatch[1], singleMatch[2] === '' ? '' : singleMatch[2])
-			continue
-		}
-
-		const multiMatch = line.match(/^declare module "([^"]+)" \{$/)
-		if (multiMatch && !insideModule) {
-			currentName = multiMatch[1]
-			insideModule = true
-			braceDepth = 1
-			contentLines = []
-			continue
-		}
-
-		if (insideModule) {
-			for (const ch of line) {
-				if (ch === '{') {
-					braceDepth++
-				}
-				if (ch === '}') {
-					braceDepth--
-				}
+	for (const dir of [root, ...subDirectories(root)]) {
+		for (const file of fs.readdirSync(dir).sort()) {
+			if (!file.endsWith('.d.ts')) {
+				continue
 			}
-
-			if (braceDepth <= 0) {
-				modules.set(currentName, contentLines.join('\n'))
-				insideModule = false
-				currentName = null
-				contentLines = []
-			} else {
-				contentLines.push(line)
-			}
+			const name = path
+				.relative(root, path.join(dir, file))
+				.replace(/\.d\.ts$/, '')
+				.split(path.sep)
+				.join('/')
+			modules.set(name, alignWithOutFile(fs.readFileSync(path.join(dir, file), 'utf-8'), path.posix.dirname(name)))
 		}
 	}
 
 	return modules
+}
+
+/** All directories below `root`, depth first. */
+function subDirectories(root) {
+	const dirs = []
+	for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+		if (entry.isDirectory()) {
+			const dir = path.join(root, entry.name)
+			dirs.push(dir, ...subDirectories(dir))
+		}
+	}
+	return dirs
+}
+
+/**
+ * Make per-file declaration emit look like the `declare module` blocks `--outFile` produced,
+ * so that the bundler below can keep working on it unchanged.
+ *
+ * `--outFile` resolved import/export specifiers to rootDir-relative module names, wrote them
+ * with double quotes, dropped the `declare` keyword (redundant inside an ambient module, and
+ * a TS1038 error where we re-emit it) and indented each module body by one level.
+ */
+function alignWithOutFile(content, dirName) {
+	return content
+		.replace(/^(\s*)export declare /gm, '$1export ')
+		.replace(/(from\s+|import\s+)['"]([^'"]+)['"]/g, (match, prefix, spec) => {
+			let resolved = null
+			if (spec.startsWith('$')) {
+				resolved = spec.slice(1)
+			} else if (spec.startsWith('.')) {
+				resolved = path.posix.join(dirName, spec)
+			}
+			return resolved === null ? match : `${prefix}"${resolved}"`
+		})
+		.replace(/^(?=.)/gm, '    ')
 }
 
 function bundleDts(modules, internalNames) {

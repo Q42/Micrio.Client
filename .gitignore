@@ -1,4 +1,5 @@
 node_modules
+/.dts
 public/dist/micrio.min.*
 public/dist/micrio.core.min.*
 public/build/micrio.prod.*
