@@ -124,7 +124,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Returns a human-readable page label (e.g. "3" or "5-6" for spreads). */
 	#pageLabel(idx: number): string {
 		const imgs = this.#pageToImages[idx];
-		if (!imgs || imgs.length <= 1) {return String(idx + 1);}
+		if (imgs === undefined || imgs.length <= 1) {return String(idx + 1);}
 		return `${imgs[0] + 1}-${imgs[imgs.length - 1] + 1}`;
 	}
 
@@ -259,7 +259,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (!total || !engine?.ready) {return;}
 		// Prefer idle time for low-priority thumbnail work; fall back to the shared
 		// frame scheduler instead of a private requestAnimationFrame.
-		const request: (cb: () => void) => void = globalThis.requestIdleCallback
+		const request: (cb: () => void) => void = globalThis.requestIdleCallback !== undefined
 			? (cb) => { globalThis.requestIdleCallback(cb); }
 			: (cb) => { Frame.request(cb); };
 		for (let x = -d; x <= d; x++) {
@@ -288,7 +288,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const {engine} = images[0];
 		const hasArchive = Boolean(images[0]?.$settings?.gallery?.archive);
 		this.#preloadRange(c, images.length, this.#preloadD,
-			idx => images[idx] ? { baseTileIdx: images[idx]._baseTileIdx, thumbSrc: images[idx].thumbSrc } : undefined,
+			idx => images[idx] !== undefined ? { baseTileIdx: images[idx]._baseTileIdx, thumbSrc: images[idx].thumbSrc } : undefined,
 			engine, hasArchive);
 	}
 
