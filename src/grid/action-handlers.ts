@@ -9,11 +9,11 @@ function switchToGrid(grid: Grid): void {
 	const focus = grid.$focussed;
 	if(!focus) {return;}
 	const v = focus.camera.getView();
-	if(v) {void grid.reset(0, true).then(() => {
+	void grid.reset(0, true).then(() => {
 		if(focus.opts.area) {grid.image.camera.setView(focus.opts.area, {noLimit: true});}
 		focus.camera.setView(v, {noLimit: true});
 		grid.micrio.current.set(grid.image);
-	});}
+	});
 }
 
 /** True for non-null objects; the starting point for narrowing event data. */
