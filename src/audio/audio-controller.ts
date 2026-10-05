@@ -18,6 +18,19 @@ let _ctx: AudioContext | null = null
 let l: AudioListener | undefined
 const interacted = writable<boolean>(false)
 
+/**
+ * The master gain for a mute state: `1` when unmuted, `_settings.mutedVolume`
+ * (default `0`) when muted, clamped so a stray setting cannot write an invalid gain.
+ * @internal
+ */
+function muteGain(image: MicrioImage, muted: boolean): number {
+	if (!muted) {
+		return 1
+	}
+	const configured = image.$settings.mutedVolume
+	return typeof configured === 'number' && Number.isFinite(configured) ? Math.min(1, Math.max(0, configured)) : 0
+}
+
 function init(volume: number) {
 	if (mainGain) {
 		return
@@ -199,9 +212,9 @@ export class MicrioAudioController {
 				if (!b) {
 					return
 				}
-				const vol = get(micrio._isMuted) ? 0 : 1
+				const vol = muteGain(image, get(micrio._isMuted))
 				if (!_ctx) {
-					init(typeof vol === 'number' ? vol : 1)
+					init(vol)
 				}
 				if (_ctx) {
 					const data = image.$data
@@ -243,18 +256,14 @@ export class MicrioAudioController {
 		// Render playlist if music data exists
 		const data = image.$data
 		if (data?.music?.items.length) {
-			const vol = get(micrio._isMuted) ? 0 : 1
-			this.#playlist = new AudioPlaylist(
-				data.music.items,
-				data.music.loop ?? true,
-				(vol as number) * (data.music.volume ?? 1),
-			)
+			const vol = muteGain(image, get(micrio._isMuted))
+			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, vol * (data.music.volume ?? 1))
 		}
 
 		this.#cleanups.push(
 			micrio._isMuted.subscribe((muted) => {
 				if (mainGain) {
-					mainGain.gain.value = muted ? 0 : 1
+					mainGain.gain.value = muteGain(image, muted)
 				}
 			}),
 		)

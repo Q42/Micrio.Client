@@ -273,6 +273,31 @@ describe('audio controller playlist', () => {
 			tracked.restore()
 		}
 	})
+
+	it('builds the playlist at the muted volume when the client starts muted', async () => {
+		const tracked = spyAudio()
+		const bundle = audioBundle({ music: { items: [track('https://example.test/m.mp3')], loop: true, volume: 1 } })
+		// `mutedVolume: 0` already exists in the bundle settings after the default merge,
+		// but `deepCopy(..., noOverwrite)` leaves a value set beforehand alone.
+		bundle.settings = { mutedVolume: 0.25 }
+		const viewer = mountViewer()
+		// `_isMuted` is module-level: start muted for this mount, restore afterwards
+		viewer.el._isMuted.set(true)
+		try {
+			mockJson(/bundle\.json/, { images: [bundle] })
+			await viewer.open(bundle.id)
+			await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
+			await waitForController()
+
+			const playlist = tracked.created.at(-1)
+			// 0.25 (mutedVolume) * 1 (the track's own volume)
+			expect(playlist?.volume).toBeCloseTo(0.25, 6)
+		} finally {
+			viewer.destroy()
+			tracked.restore()
+			viewer.el._isMuted.set(false)
+		}
+	})
 })
 
 describe('audio controller mute', () => {
@@ -287,6 +312,39 @@ describe('audio controller mute', () => {
 
 		viewer.el._isMuted.set(true)
 		await waitFor(() => main.gain.value === 0, 4000, 'the gain to be muted')
+		viewer.el._isMuted.set(false)
+		await waitFor(() => main.gain.value === 1, 4000, 'the gain to be unmuted')
+		viewer.destroy()
+	})
+
+	it('mutes to the configured mutedVolume instead of silence', async () => {
+		const viewer = await mountAudio(audioBundle({ music: someMusic() }))
+		const ctx = latestAudioContext()
+		const main = ctx?.gains[0]
+		expect(main).toBeDefined()
+		if (!main) {
+			throw new Error('no master gain')
+		}
+
+		// The setting lives in the image's settings store, which the bundle fills
+		viewer.el.$current?._settings.update((s) => ({ ...s, mutedVolume: 0.25 }))
+		viewer.el._isMuted.set(true)
+		await waitFor(() => main.gain.value === 0.25, 4000, 'the gain to be muted at mutedVolume')
+		viewer.el._isMuted.set(false)
+		await waitFor(() => main.gain.value === 1, 4000, 'the gain to be unmuted')
+		viewer.destroy()
+	})
+
+	it('clamps a mutedVolume outside 0-1', async () => {
+		const viewer = await mountAudio(audioBundle({ music: someMusic() }))
+		const main = latestAudioContext()?.gains[0]
+		if (!main) {
+			throw new Error('no master gain')
+		}
+
+		viewer.el.$current?._settings.update((s) => ({ ...s, mutedVolume: 4 }))
+		viewer.el._isMuted.set(true)
+		await waitFor(() => main.gain.value === 1, 4000, 'the gain to be clamped')
 		viewer.el._isMuted.set(false)
 		await waitFor(() => main.gain.value === 1, 4000, 'the gain to be unmuted')
 		viewer.destroy()
