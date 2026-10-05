@@ -368,16 +368,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.#glImage.camera.setRotation(this.#rotX, this.#rotY, this.#rotZ);
 			if (this.#glImage._placed) {image.engine._fadeImage(this.#glImage, opacity);}
 		} else {
-			this.#glImage = image.addEmbed({
-				...embed,
-				...{
-					id: embed.video ? embed.id : embed.micrioId,
-					title: embed.uuid,
-					path: this.#info.tileBasePath ?? this.#info.path,
-					isSingle: Boolean(embed.video),
-					isVideo: Boolean(embed.video),
-				}
-			}, {
+			this.#glImage = image.addEmbed(({
+	...embed,
+	id: embed.video ? embed.id : embed.micrioId,
+	title: embed.uuid,
+	path: this.#info.tileBasePath ?? this.#info.path,
+	isSingle: Boolean(embed.video),
+	isVideo: Boolean(embed.video)
+}), {
 				_360: { rotX: this.#rotX, rotY: this.#rotY, rotZ: this.#rotZ }
 			}, embed.area, { opacity, asImage: false });
 		}
