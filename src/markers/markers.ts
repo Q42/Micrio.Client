@@ -229,7 +229,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 							const v = image._openedView;
 							const w = Math.min(1, v[2]);
 							const h = Math.min(1, v[3]);
-							const hw = w / 2, hh = h / 2;
+							const hh = h / 2, hw = w / 2;
 							const cx = Math.max(hw, Math.min(1 - hw, v[0] + hw));
 							const cy = Math.max(hh, Math.min(1 - hh, v[1] + hh));
 							image.camera.flyToView([cx - hw, cy - hh, w, h] as Models.Camera.View, {
