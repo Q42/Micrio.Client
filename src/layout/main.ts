@@ -289,7 +289,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#show('controls', showControls, () =>
-			createElement('micrio-controls', { setProps: { hasAudio: hasAudio || Boolean(videoSrc && video && !video.muted) } })
+			createElement('micrio-controls', { setProps: { hasAudio: hasAudio || (videoSrc !== undefined && video !== undefined && !video.muted) } })
 		);
 
 		this.#show('orgLogo', showOrgLogo && Boolean(this.#logoOrg), () =>

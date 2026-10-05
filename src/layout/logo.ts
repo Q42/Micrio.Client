@@ -48,7 +48,7 @@ class MicrioLogo extends MicrioElement {
 	}
 
 	#updateClass() {
-		if (this.#a) {this.#a.classList.toggle('loading', this.#loading);}
+		if (this.#a !== undefined) {this.#a.classList.toggle('loading', this.#loading);}
 	}
 }
 
