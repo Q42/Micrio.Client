@@ -10,7 +10,7 @@ export class WheelHandler {
 	/** Flag indicating if scroll listeners are attached. */
 	hooked = false
 	/** Timeout ID for debouncing the 'wheelend' event. */
-	#wheelEndTo = -1
+	#wheelEndTo: ReturnType<typeof globalThis.setTimeout> | undefined = undefined
 	#ctx: EventContext
 
 	/**

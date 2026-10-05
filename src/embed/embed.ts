@@ -40,7 +40,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#viewport?: Models.Camera.View
 	#loopDelayTo: ReturnType<typeof setTimeout> | undefined
 	/** Pending debounce for printing a book3d embed (waits for the view to settle). */
-	#book3dPrintTo: number | undefined
+	#book3dPrintTo: ReturnType<typeof globalThis.setTimeout> | undefined
 	/** True until the one-time book3d print delay after the embed is placed in the DOM has elapsed. */
 	#book3dPendingPrint = false
 

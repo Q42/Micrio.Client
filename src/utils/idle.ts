@@ -22,7 +22,7 @@ export interface IdleStateOptions {
  */
 export class IdleState {
 	private o: Required<IdleStateOptions>
-	private to: number | undefined
+	private to: ReturnType<typeof globalThis.setTimeout> | undefined
 	/** @internal */
 	private _enabled = true
 

@@ -35,7 +35,7 @@ interface TileEntry {
 	/** @internal */
 	_deleteAt?: number
 	/** @internal */
-	_timeoutId?: number
+	_timeoutId?: ReturnType<typeof globalThis.setTimeout>
 }
 
 interface CanvasEntry {
