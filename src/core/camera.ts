@@ -349,7 +349,7 @@ export class Camera {
 	*/
 	_getOmniFrame(rot?: number): number | undefined {
 		const {omni} = this.#image.$settings;
-		if (!omni || rot === undefined) {return;}
+		if (!omni || rot === undefined) {return undefined;}
 		return Math.floor((rot / (Math.PI * 2)) * (omni.frames / (omni.layers?.length ?? 1)));
 	}
 

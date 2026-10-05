@@ -379,14 +379,14 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
 		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.#printError(e); return; });
-		if(!resp) {return;}
+		if(!resp) {return undefined;}
 
 		let gallery: Gallery | null;
 		try { gallery = Gallery._fromIIIF(resp, this._engine); }
-		catch(e) { this.#printError(e as Error); return; }
+		catch(e) { this.#printError(e as Error); return undefined; }
 		if(gallery) {
 			void gallery._openOn(this);
-			return;
+			return undefined;
 		}
 
 		// Determine id, width, height from canvas body (single-image manifest) or top-level info.json fields
@@ -698,13 +698,14 @@ export class HTMLMicrioElement extends MicrioElement {
 		};
 
 		process(AO.STRINGS, val => val || undefined);
-		process(AO.BOOLEANS, (val, o) => {
+		process(AO.BOOLEANS, (val, o): boolean | undefined => {
 			const tr = val !== undefined && (val === '' || val === 'true');
 			if (tr || val === 'false') {return o.n ? !tr : tr;}
+			return undefined;
 		});
-		process(AO.NUMBERS, (val, o) => {
+		process(AO.NUMBERS, (val, o): number | undefined => {
 			if (o.dN !== undefined && val == null) {val = o.dN;}
-			if (val == null) {return;}
+			if (val == null) {return undefined;}
 			const n = Number(val);
 			return Number.isNaN(n) ? undefined : n;
 		});

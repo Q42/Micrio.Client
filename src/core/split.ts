@@ -10,9 +10,9 @@ export interface MicrioSplitLink {
 }
 
 export function parseSplitLink(raw?: string): MicrioSplitLink | undefined {
-	if (!raw) {return;}
+	if (!raw) {return undefined;}
 	const parts = raw.split(',').map(s => s.trim());
-	if (!parts[0]) {return;}
+	if (!parts[0]) {return undefined;}
 	return {
 		micrioId: parts[0],
 		markerId: parts[1] || undefined,
