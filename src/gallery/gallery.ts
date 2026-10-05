@@ -383,7 +383,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			// Switch gallery: embed all images on the parent canvas
 			for (const d of images) {
 				if ('state' in d && !('image' in d)) {d.camera = parent.camera;}
-				engine._addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d });
+				void engine._addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d });
 			}
 			const pageImages = this.#pageToImages[pageIdx];
 			const num = (pageImages?.length ?? 1) - 1;
