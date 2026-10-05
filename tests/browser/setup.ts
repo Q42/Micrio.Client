@@ -8,6 +8,7 @@
 import { afterEach, beforeEach } from 'vitest'
 
 import { restoreNetwork } from '../helpers/network'
+import { installAudioContext } from './audio-context'
 import { installTextureWorker } from './textures'
 
 /**
@@ -28,8 +29,11 @@ console.info = (...args: unknown[]) => {
 }
 
 // The texture worker bootstrap is created at module load, so the fake worker has
-// to be in place *before* the client is imported.
+// to be in place *before* the client is imported. The audio controller likewise
+// keeps its AudioContext in module state and only ever initialises it once, so the
+// fake has to be installed up front rather than per test.
 installTextureWorker()
+installAudioContext()
 await import('../../src/main')
 
 beforeEach(() => {
