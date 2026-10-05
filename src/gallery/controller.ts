@@ -56,10 +56,10 @@ export class Gallery {
 
 		// Book3D albums are always laid out as a book: a single cover page
 		// followed by image spreads.
-		const isBook3d = config.type == 'book3d';
+		const isBook3d = config.type === 'book3d';
 		this._config = isBook3d ? { ...config, isSpreads: true, coverPages: 1 } : config;
 
-		const isSwitch = config.type == 'switch';
+		const isSwitch = config.type === 'switch';
 		const {isSpreads} = this._config;
 		const coverPages = isSpreads ? (this._config.coverPages ?? 0) : 0;
 
@@ -93,9 +93,9 @@ export class Gallery {
 				if (!isSpreads) {
 					slot = [0, 0, 1, 1];
 				} else {
-					slot = i - coverPages < 0 || (i == items.length - 1 && (i - coverPages) % 2 == 0)
+					slot = i - coverPages < 0 || (i === items.length - 1 && (i - coverPages) % 2 === 0)
 						? [0.25, 0, 0.5, 1]
-						: (i - coverPages) % 2 == 0
+						: (i - coverPages) % 2 === 0
 							? [0, 0, 0.5, 1]
 							: [0.5, 0, 0.5, 1];
 				}
@@ -219,10 +219,10 @@ export class Gallery {
 			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r; });
 
 	static #sortArchiveImages(sort: string | undefined): (a: Models.ImageInfo.ImageInfo, b: Models.ImageInfo.ImageInfo) => number {
-		return sort == 'random' ? () => Math.random() - .5
-			: sort == 'name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0
-				: sort == '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0
-					: sort == '-created' ? (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? 1 : a.created > b.created ? -1 : 0
+		return sort === 'random' ? () => Math.random() - .5
+			: sort === 'name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0
+				: sort === '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0
+					: sort === '-created' ? (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? 1 : a.created > b.created ? -1 : 0
 						: (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
 	}
 
@@ -261,7 +261,7 @@ export class Gallery {
 	_attach(parent: MicrioImage): void {
 		this.#parent = parent;
 
-		if (this._config.type == 'grid') {
+		if (this._config.type === 'grid') {
 			const {micrio} = parent.engine;
 			parent.grid = createElement(Grid.tag, {
 				setProps: { micrio, image: parent, gallery: this },
@@ -270,7 +270,7 @@ export class Gallery {
 
 		// Book3D albums ship their own WebGL renderer on the shared `<canvas>`,
 		// so the Micrio engine and WebGL stay uninitialized (and inert) while loaded.
-		if(this._config.type == 'book3d') {
+		if(this._config.type === 'book3d') {
 			parent.engine._book3d = true;
 		}
 
@@ -280,7 +280,7 @@ export class Gallery {
 
 	/** @internal Build gallery BundleImage and open the parent gallery image on the `<micr-io>` element. */
 	async _openOn(micrio: HTMLMicrioElement): Promise<void> {
-		const isSwitch = this._config.type == 'switch';
+		const isSwitch = this._config.type === 'switch';
 		const gallerySettings: Partial<Models.ImageInfo.Settings> = {
 			view: [0, 0, 1, 1],
 			gallery: { ...this._config },
@@ -309,7 +309,7 @@ export class Gallery {
 	}
 
 	// --- Navigation ---
-	gotoId = (id: string): Promise<MicrioImage | undefined> => this.goto(this._images.findIndex(i => i.id == id));
+	gotoId = (id: string): Promise<MicrioImage | undefined> => this.goto(this._images.findIndex(i => i.id === id));
 	goto = (index: number): Promise<MicrioImage | undefined> => this.#parent?.album?.goto(index) ?? Promise.resolve(this._images[index]);
 	next = (): void => this.#parent?.album?.next();
 	prev = (): void => this.#parent?.album?.prev();

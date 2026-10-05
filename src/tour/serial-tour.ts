@@ -44,7 +44,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		this._addCleanup(micrio.state.marker.subscribe(m => {
 			if (!m || !this.#stepInfo.length) {return;}
-			const id = typeof m == 'string' ? m : m.id;
+			const id = typeof m === 'string' ? m : m.id;
 			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
 			if (idx >= 0 && idx !== this.#currentStep) {
 				this.#stepInfo.forEach(s => s.ended = false);

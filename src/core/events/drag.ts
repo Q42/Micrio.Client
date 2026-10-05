@@ -45,10 +45,10 @@ export class DragHandler {
 	 */
 	start = (e: PointerEvent, force = false, keepAnimations = false): void => {
 		// Ignore non-primary buttons or touch events if twoFingerPan is enabled
-		if (e.button != 0 || (e.pointerType == 'touch' && this.#ctx._twoFingerPan)) {return;}
+		if (e.button !== 0 || (e.pointerType === 'touch' && this.#ctx._twoFingerPan)) {return;}
 
 		// Ignore if interaction didn't start on the canvas element (unless forced or target has scroll-through)
-		if (!force && e.target != this.#ctx._el && !(e.target instanceof Element && e.target.closest('[data-scroll-through]'))) {return;}
+		if (!force && e.target !== this.#ctx._el && !(e.target instanceof Element && e.target.closest('[data-scroll-through]'))) {return;}
 
 		// Ignore if Omni object and shift key is pressed
 		if (this.#ctx._micrio.$current?._isOmni && e.shiftKey) {return;}
@@ -135,7 +135,7 @@ export class DragHandler {
 		delete this.#ctx._micrio.dataset.panning;
 
 		// Notify engine pan stopped (triggers kinetic animation if enabled and not suppressed)
-		if (e && noKinetic == false) {
+		if (e && noKinetic === false) {
 			const img = this.#ctx._vars._drag._image ?? this.#ctx._getImage({ x: e.clientX, y: e.clientY });
 			if (img) {
 				img.canvas?._kinetic.start();

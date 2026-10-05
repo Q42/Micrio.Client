@@ -45,7 +45,7 @@ export class DoubleTapHandler {
 		const now = performance.now();
 
 		// If tap occurs within 250ms of the previous tap, trigger double-click logic
-		if (e.touches.length == 1 && now - this.#ctx._vars._dbltap._lastTapped < 250) {
+		if (e.touches.length === 1 && now - this.#ctx._vars._dbltap._lastTapped < 250) {
 			e.stopPropagation();
 			e.preventDefault();
 			this.#click(e);

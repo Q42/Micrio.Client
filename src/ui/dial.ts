@@ -30,7 +30,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 		const dStart = (e: PointerEvent) => {
 			e.stopPropagation();
 			e.preventDefault();
-			if (e.button != 0) {return;}
+			if (e.button !== 0) {return;}
 			micrio.addEventListener('pointermove', dMove);
 			micrio.addEventListener('pointerup', dStop);
 			micrio.dataset.panning = '';

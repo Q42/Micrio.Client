@@ -151,7 +151,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute and localStorage.
 	 * @internal
 	*/
-	readonly _isMuted:Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) == '1')
+	readonly _isMuted:Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) === '1')
 
 	/** Writable store holding the currently active language code (e.g., 'en', 'nl').
 	 * @internal
@@ -207,7 +207,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			}
 			case 'lang': {
 				let prevLang = get(this._lang);
-				if(prevLang != newVal) {
+				if(prevLang !== newVal) {
 					// Set the translations *before* `_lang`: everything that re-renders on
 					// the language change (toolbar, controls, ...) reads `get(i18n)` while
 					// doing so, and would otherwise render the previous language
@@ -407,7 +407,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				height,
 				version: VERSION,
 				isIIIF: true,
-				is360: this.dataset.is360 == '',
+				is360: this.dataset.is360 === '',
 				tiles: resp.tiles,
 				preferredFormats: resp.preferredFormats,
 			},
@@ -559,7 +559,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Deduplicate ───────────────────────────────────────────────────────
 
-		if(this.$current && bundle.id == this.$current?.id) {return this.$current;}
+		if(this.$current && bundle.id === this.$current?.id) {return this.$current;}
 
 		// Close any active splits when navigating away
 		if(this.$current && !opts.gridView) {closeAllSplits(this);}
@@ -569,11 +569,11 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Find or create canvas ─────────────────────────────────────────────
 
-		let c:MicrioImage|undefined = this._canvases.find(c => bundle.id && c.id == bundle.id);
+		let c:MicrioImage|undefined = this._canvases.find(c => bundle.id && c.id === bundle.id);
 		let isInGrid = false;
 		const grid = this._canvases[0]?.grid;
 		if(!c && grid) {
-			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;
+			const gridImage = bundle.id ? grid._images.find(img => img.id === bundle.id) : undefined;
 			isInGrid = Boolean(gridImage);
 			c = bundle.id ? gridImage : this._canvases[0];
 			if(isInGrid && !grid._insideGrid()) {this.current.set(this._canvases[0]);}
@@ -636,7 +636,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Set current / grid ────────────────────────────────────────────────
 
-		if(isInGrid && (!opts.gridView || !grid?._current.find(img => img.id == bundle.id))) {
+		if(isInGrid && (!opts.gridView || !grid?._current.find(img => img.id === bundle.id))) {
 			grid?.gridFocus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
 		}
 		else {
@@ -698,7 +698,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		process(AO.STRINGS, val => val || undefined);
 		process(AO.BOOLEANS, (val, o) => {
-			const tr = val != undefined && (val === '' || val === 'true');
+			const tr = val !== undefined && (val === '' || val === 'true');
 			if (tr || val === 'false') {return o.n ? !tr : tr;}
 		});
 		process(AO.NUMBERS, (val, o) => {

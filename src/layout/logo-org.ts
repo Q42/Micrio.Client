@@ -4,7 +4,7 @@ import type { Models } from '$types/models';
 
 /** Resolve an organisation logo to its image source URL */
 function getLogoSrc(img: Models.Assets.Image | string): string {
-	if (typeof img == 'string') {return img;}
+	if (typeof img === 'string') {return img;}
 	let l = 0;
 	let m = Math.max(img.width, img.height);
 	while (m > 1024) { l++; m /= 2; }

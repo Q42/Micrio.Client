@@ -185,7 +185,7 @@ export class OmniUI {
 								image.state.layer.set(i);
 								preload(get(image.state.layer) * Math.floor(totalFrames / omniNumLayers));
 							}
-						})).filter(p => p.id != `omni-layer-${  currentLayer}`)
+						})).filter(p => p.id !== `omni-layer-${  currentLayer}`)
 					});
 					return d;
 				});
@@ -238,7 +238,7 @@ export class OmniUI {
 		this.#micrio.removeEventListener('pointerup', this.#dStop);
 	}
 
-	#isDragging = () : boolean => this.#pointers.size == 2 || (this.#isFullWidth || this.#startedWithShift) && this.#pointers.size == 1;
+	#isDragging = () : boolean => this.#pointers.size === 2 || (this.#isFullWidth || this.#startedWithShift) && this.#pointers.size === 1;
 
 	#dStart = (e:PointerEvent):void => {
 		if (e.button !== 0) {return;}
@@ -260,11 +260,11 @@ export class OmniUI {
 	}
 
 	#dMove = (e:PointerEvent):void => {
-		if(!this.#isDragging() || e.pointerId != this.#firstTouchId
+		if(!this.#isDragging() || e.pointerId !== this.#firstTouchId
 			|| this.#startX === undefined || this.#startIndex === undefined) {return;}
 
 		if(!this.#hitTresh && this.#startX !== undefined && (
-			this.#hitTresh = this.#pointers.size != 2 ? true
+			this.#hitTresh = this.#pointers.size !== 2 ? true
 				: Math.abs(e.clientX - this.#startX) > ((this.#micrio.events._pinchFactor && this.#micrio.events._pinchFactor > 1.25 ? 0.3 : 0.15) * this.#micrio.offsetWidth)
 		)) {this.#startX = e.clientX;}
 		if(!this.#hitTresh) {return;}
@@ -281,12 +281,12 @@ export class OmniUI {
 
 		idx = Math.max(0, Math.min(this.#swiperLength-1, idx));
 
-		if(idx != this.currentIndex) {this.#goto(idx);}
+		if(idx !== this.currentIndex) {this.#goto(idx);}
 	}
 
 	#dStop = (e:PointerEvent):void => {
 		this.#pointers.delete(e.pointerId);
-		if(e.pointerId == this.#firstTouchId) {
+		if(e.pointerId === this.#firstTouchId) {
 			this.#micrio.releasePointerCapture(this.#firstTouchId);
 			this.#firstTouchId = undefined;
 		}
@@ -301,7 +301,7 @@ export class OmniUI {
 		if(this.#snapTo.length) {
 			const snapToIndex = this.#snapTo[this.#snapTo.map((i,idx) => [idx, Math.abs(i-this.currentIndex)])
 				.sort((a,b) => a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0)[0][0]];
-			if(snapToIndex != this.currentIndex) {this.animateTo(snapToIndex);}
+			if(snapToIndex !== this.currentIndex) {this.animateTo(snapToIndex);}
 		}
 	}
 
@@ -318,7 +318,7 @@ export class OmniUI {
 			if(p < 1) { this.#raf = frame; Frame.request(frame); }
 			else {this.#raf = undefined;}
 			const d = startIdx - Math.round(easeInOut.get(p) * delta);
-			if(d != this.currentIndex) {this.#goto(d);}
+			if(d !== this.currentIndex) {this.#goto(d);}
 		}
 
 		this.#raf = frame;

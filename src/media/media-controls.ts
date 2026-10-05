@@ -103,7 +103,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 
 			const dStart = (e: MouseEvent) => {
-				if (e.button != 0) {return;}
+				if (e.button !== 0) {return;}
 				globalThis.addEventListener('mousemove', dMove);
 				globalThis.addEventListener('mouseup', dStop);
 				dMove(e);

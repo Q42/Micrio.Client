@@ -44,7 +44,7 @@ import '$tour/serial-tour';
 /** Find a menu page by its ID within a nested menu structure */
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
 	if (p) {for (let i = 0, t; i < p.length; i++)
-		if (p[i].id == id || (t = findPage(id, p[i].children))) return t ?? p[i];}
+		if (p[i].id === id || (t = findPage(id, p[i].children))) return t ?? p[i];}
 	return undefined;
 }
 
@@ -141,7 +141,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		this._provide('mediaPaused', writable<boolean>(false));
 
-		const onlyMarkers = micrio.dataset.ui == 'markers';
+		const onlyMarkers = micrio.dataset.ui === 'markers';
 		if (onlyMarkers) {this.#props.noHTML = true;}
 
 		const didStart: string[] = [];
@@ -171,11 +171,11 @@ export class MicrioMain extends MicrioElement<MainProps> {
 							case 'marker': { c.state.marker.set(autoStart.id); break;
 							}
 							case 'markerTour': {
-								const mt = d.markerTours?.find(t => t.id == autoStart.id);
+								const mt = d.markerTours?.find(t => t.id === autoStart.id);
 								if (mt) {micrio.state.tour.set(mt);} break;
 							}
 							case 'tour': {
-								const vt = d.tours?.find(t => t.id == autoStart.id);
+								const vt = d.tours?.find(t => t.id === autoStart.id);
 								if (vt) {micrio.state.tour.set(vt);} break;
 							}
 							case 'page': {
@@ -239,13 +239,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const _360 = micrio.$current?._is360
 		const video = _360 ? $settings!._360!.video : undefined;
 		const videoSrc = video?.src;
-		const isBook3d = micrio.$current?.album?.info?.type == 'book3d';
+		const isBook3d = micrio.$current?.album?.info?.type === 'book3d';
 		this.classList.toggle('is3d', _360 || isBook3d);
 		const positionalAudio = $data?.markers?.filter(m => Boolean(m.positionalAudio));
 		const hasAudio = Boolean($data?.music?.items.length) || Boolean(positionalAudio?.length);
 		const hasTourOrMarker = $tour || $marker;
 
-		const showMarkers = !noHTML || (micrio.dataset.ui == 'markers');
+		const showMarkers = !noHTML || (micrio.dataset.ui === 'markers');
 		const showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo && !$marker && !$markerPopup;
 		const showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo && Boolean(this.#logoOrg) && !$popover;
 		const showControls = !noHTML && Boolean($info) && !$settings?.noControls;
@@ -284,7 +284,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#syncImageLayer(this.#embedElements, 'micrio-image-embeds', 'embeds', $visible,
-			micrio.dataset.embeds != 'false',
+			micrio.dataset.embeds !== 'false',
 			(i) => Boolean(i.$data?.embeds?.length)
 		);
 

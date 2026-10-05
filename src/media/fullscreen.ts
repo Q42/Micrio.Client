@@ -46,7 +46,7 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		this.#isActive = document.fullscreenElement === el;
 
 		const micrio = this._getMicrio();
-		const addScrollZoom = micrio && el == micrio && !micrio.events.scrollHooked;
+		const addScrollZoom = micrio && el === micrio && !micrio.events.scrollHooked;
 
 		const onchange = () => {
 			this.#isActive = document.fullscreenElement === el;

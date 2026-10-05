@@ -6,7 +6,7 @@ import type { Models } from '$types/models';
  */
 export function getCols(images: number, numTiles: number): number {
 	let num = Math.ceil(numTiles / Math.ceil(Math.sqrt(numTiles)));
-	if (images == numTiles) {
+	if (images === numTiles) {
 		const margin = Math.floor(Math.sqrt(images));
 		const cols: number[] = [];
 		for (let n = margin; n < num + margin; n++) {if (!(images % n)) cols.push(n);}

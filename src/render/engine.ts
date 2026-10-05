@@ -350,7 +350,7 @@ export class Engine {
 
 		if (i.is360) {settings.limitToCoverScale = false;}
 		const coverLimit = Boolean(settings.limitToCoverScale);
-		const coverStart = coverLimit || settings.initType == 'cover';
+		const coverStart = coverLimit || settings.initType === 'cover';
 
 		if (c._noImage) {this.micrio._loading.set(false);}
 
@@ -365,7 +365,7 @@ export class Engine {
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360.video));
 
-		const gallerySwitch = this.#isGallery && settings.gallery?.type == 'switch';
+		const gallerySwitch = this.#isGallery && settings.gallery?.type === 'switch';
 
 		const numOmniLayers = Math.max(1, settings.omni?.layers?.length ?? 1);
 		if (settings.omni) {settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);}
@@ -386,7 +386,7 @@ export class Engine {
 			settings.camspeed ?? 1,
 			c.camera.rotationY,
 			gallerySwitch,
-			settings.gallery !== undefined && settings.gallery.isSpreads === true && settings.gallery.type == 'swipe',
+			settings.gallery !== undefined && settings.gallery.isSpreads === true && settings.gallery.type === 'swipe',
 			c._isOmni,
 			settings.pinchZoomOutLimit ?? false,
 			numOmniLayers,
@@ -429,9 +429,9 @@ export class Engine {
 		if (this._numTiles > 0) {this.#registerBaseTile(this._numTiles - 1);}
 
 		const v = get(c.state.view) || settings.view;
-		if (v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) {
+		if (v && !(v[0] === 0 && v[1] === 0 && v[2] === 1 && v[3] === 1)) {
 			canvas._setView(v[0] + v[2] / 2, v[1] + v[3] / 2, v[2], v[3], false, false, false, false);
-		} else if ((isSpaces || !i.is360) && focus && focus.toString() != '0.5,0.5') {
+		} else if ((isSpaces || !i.is360) && focus && focus.toString() !== '0.5,0.5') {
 			canvas.camera.setCoo(focus[0], focus[1], 0);
 			settings.focus = undefined;
 		}
@@ -462,7 +462,7 @@ export class Engine {
 		if (this._book3d) {return;}
 
 		if (!canvas._placed) {
-			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id != get(this.micrio.current)!.id)) {return;}
+			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id !== get(this.micrio.current)!.id)) {return;}
 			this.#addCanvas(canvas);
 			if (canvas._embeds.length) {canvas._embeds.forEach(e => this._addEmbed(e, canvas));}
 		}
@@ -759,7 +759,7 @@ export class Engine {
 			} else {
 				childOpts = {
 					coverLimit: Boolean(image.$settings?.limitToCoverScale) || Boolean(parent.$settings?.limitToCoverScale),
-					coverStart: (image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
+					coverStart: (image.$settings?.limitToCoverScale || image.$settings?.initType === 'cover' || parent.$settings?.initType === 'cover')
 				};
 			}
 			canvas = parentEntry.canvas._addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);

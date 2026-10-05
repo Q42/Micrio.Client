@@ -43,14 +43,14 @@ export class WheelHandler {
 		if (!(e instanceof WheelEvent)) {return;}
 
 		if (this.#ctx._controlZoom && !e.ctrlKey) {return;}
-		if (!force && e.target instanceof Element && e.target != this.#ctx._el &&
+		if (!force && e.target instanceof Element && e.target !== this.#ctx._el &&
 			!e.target.classList.contains('marker') && !e.target.closest('[data-scroll-through]')) {return;}
 
 		let delta = e.deltaY;
 
 		if (e.ctrlKey) {this.#ctx._hasUsedCtrl = true;}
 
-		const isControlZoomWithMouse = this.#ctx._controlZoom && (delta * 10 % 1 == 0);
+		const isControlZoomWithMouse = this.#ctx._controlZoom && (delta * 10 % 1 === 0);
 		const isTouchPad = this.#ctx._hasUsedCtrl && !isControlZoomWithMouse;
 		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
 

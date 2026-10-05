@@ -104,13 +104,13 @@ export class Grid extends MicrioElement {
 
 		const g = this.image.$settings?.grid;
 		this._clickable = (g?.clickable && ['focus','zoom'].includes(g.clickable)) ? g.clickable : false;
-		this._panZoom = g?.panZoom == 'cells' ? 'cells' : 'grid';
+		this._panZoom = g?.panZoom === 'cells' ? 'cells' : 'grid';
 		if(this._clickable && this.image.$settings.hookKeys) {this._addCleanup(hookGridKeys(this));}
 		if(g?.transitionDuration !== undefined) {this._aniDurationIn = this.#aniDurationOut = g.transitionDuration;}
 		if(g?.transitionDurationOut !== undefined) {this.#aniDurationOut = g.transitionDurationOut;}
 
 		this.set(this.#galleryGridImages, {
-			cover: this.image.$settings?.initType == 'cover',
+			cover: this.image.$settings?.initType === 'cover',
 			duration: 0,
 		}).then(() => {
 			this.#hook();
@@ -138,17 +138,17 @@ export class Grid extends MicrioElement {
 
 	#hook() {
 		this.micrio.state.marker.subscribe(m => {
-			if(m && typeof m != 'string') {
+			if(m && typeof m !== 'string') {
 				const d = m.data?._meta;
 				if(d?.gridSize) {
-					const s = (typeof d.gridSize == 'number' ? [d.gridSize, d.gridSize]
+					const s = (typeof d.gridSize === 'number' ? [d.gridSize, d.gridSize]
 						: d.gridSize.split(',').map(Number)) as [number, number];
-					const micId = this._images.find(i => i.$data?.markers?.find(n => n == m))?.id;
+					const micId = this._images.find(i => i.$data?.markers?.find(n => n === m))?.id;
 					if(micId) {this.#nextSize.set(micId, s);}
 				}
 				tick().then(() => {
 					const a = d?.gridAction?.split('|');
-					if(a?.length && typeof a[0] == 'string') {this.action(a.shift() as string, a.join('|'));}
+					if(a?.length && typeof a[0] === 'string') {this.action(a.shift() as string, a.join('|'));}
 				})
 			}
 		});
@@ -226,14 +226,14 @@ export class Grid extends MicrioElement {
 		this._lastAction = undefined;
 
 		if(opts.cover === false && opts.coverLimit) {opts.coverLimit = false;}
-		if(opts.coverLimit && opts.cover == undefined) {opts.cover = true;}
+		if(opts.coverLimit && opts.cover === undefined) {opts.cover = true;}
 		const focussed = this.$focussed;
 		const isDelayed = opts.transition?.endsWith('-delayed');
-		const isBehindDelay = opts.transition == 'behind-delayed';
+		const isBehindDelay = opts.transition === 'behind-delayed';
 		const { _engine: engine } = this.micrio;
 
-		if(opts.transition == 'crossfade') {opts.duration = 0;}
-		else if(opts.transition == 'behind' || opts.transition == 'behind-delayed')
+		if(opts.transition === 'crossfade') {opts.duration = 0;}
+		else if(opts.transition === 'behind' || opts.transition === 'behind-delayed')
 			{setupBehindTransition(this, images, opts, focussed);}
 
 		const ready = this.image._placed;
@@ -252,7 +252,7 @@ export class Grid extends MicrioElement {
 		if(!opts.noHistory && this._current.length) {this.#savePreviousLayout();}
 		this.#isHorizontal = Boolean(opts.horizontal);
 
-		this.#removeImages(this._images.filter(i => !images.find(n => n.id == i.id)));
+		this.#removeImages(this._images.filter(i => !images.find(n => n.id === i.id)));
 		this.#printGrid(images, {
 			horizontal: opts.horizontal,
 			keepGrid: opts.keepGrid,
@@ -277,18 +277,18 @@ export class Grid extends MicrioElement {
 
 		this.#nextSize.clear();
 
-		if (opts.coverLimit == undefined) {opts.coverLimit = Boolean(this.image.$settings.limitToCoverScale);}
+		if (opts.coverLimit === undefined) {opts.coverLimit = Boolean(this.image.$settings.limitToCoverScale);}
 		const forcedCoverLimit = opts.cover && !opts.coverLimit;
 		if (forcedCoverLimit) {
 			opts.coverLimit = true;
 			images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));
 		}
 
-		const isAppear = opts.transition == 'appear-delayed';
+		const isAppear = opts.transition === 'appear-delayed';
 		const getDelay = (i:number) : number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0);
 
 		this._current = images.map((img,i) => this.#placeImage(img, {
-			duration: !opts.forceAni && doUnfocus && img.id != focussed?.id ? 0 : dur,
+			duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : dur,
 			delay: isDelayed ? getDelay(i) : 0,
 			noCamAni: isAppear && i > 0 ? true : Boolean(opts.noCamAni),
 			forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni,
@@ -360,7 +360,7 @@ export class Grid extends MicrioElement {
 			this.append(tile);
 		});
 
-		this.classList.toggle('grid-pan-zoom', this._panZoom == 'grid');
+		this.classList.toggle('grid-pan-zoom', this._panZoom === 'grid');
 
 		const wasHiddenClass = this.classList.contains('grid-cells-hidden');
 		if (wasHiddenClass) {this.classList.remove('grid-cells-hidden');}
@@ -418,7 +418,7 @@ export class Grid extends MicrioElement {
 		}
 		if (entry.area) {
 			const set = () => img.camera.setArea(entry.area!, {
-				direct: opts.duration==0 || (!opts.forceAreaAni && !get(img.visible))
+				direct: opts.duration===0 || (!opts.forceAreaAni && !get(img.visible))
 			});
 			if (opts.delay) {sleep(opts.delay * 1000).then(set).then(() => engine.render());}
 			else {set();}
@@ -448,7 +448,7 @@ export class Grid extends MicrioElement {
 	/** @internal */
 	_insideGrid() : boolean {
 		const c = this.micrio.$current;
-		return c == this.image || (c !== undefined && this._imageMap.has(c.id));
+		return c === this.image || (c !== undefined && this._imageMap.has(c.id));
 	}
 
 	/** Reset the grid to its initial layout (all gallery images), clearing all history. */
@@ -474,7 +474,7 @@ export class Grid extends MicrioElement {
 		return this.set(images.map(img => {
 			const m = img.$data?.markers?.find(m => m.tags?.includes(name));
 			return { id: img.id, size: [1], view: !noZoom ? m?.view : undefined };
-		}),{duration, horizontal: spl?.[1]=='h'});
+		}),{duration, horizontal: spl?.[1]==='h'});
 	}
 
 	/** Navigate to the previous layout state from the history stack. */
@@ -511,11 +511,11 @@ export class Grid extends MicrioElement {
 
 	/** @internal */
 	_clickCell(_img?:MicrioImage|string) : void {
-		const img = typeof _img == 'string' ? this._images.find(i => i.id == _img) : _img;
+		const img = typeof _img === 'string' ? this._images.find(i => i.id === _img) : _img;
 		if(!this._clickable || !img) {return;}
 		this._buttons.forEach(b => b.classList.remove('focussed'));
 		this._buttons.get(img.id)?.classList.add('focussed');
-		if(this._clickable == 'zoom') {
+		if(this._clickable === 'zoom') {
 			const a = img.opts.area ?? [0,0,1,1];
 			this.image.camera.flyToView(a, {duration: this._aniDurationIn * 1000, limit: false});
 		} else {this.gridFocus(img);}
@@ -529,13 +529,13 @@ export class Grid extends MicrioElement {
 
 		const m = this.micrio;
 
-		if(!get(m._visible).find(i => i == this.image)) {m.current.set(this.image);}
+		if(!get(m._visible).find(i => i === this.image)) {m.current.set(this.image);}
 
 		const focussed = this.$focussed;
 
-		if(focussed == img) {return;}
+		if(focussed === img) {return;}
 
-		const direct = !opts.transition?.startsWith('slide-') && (opts.duration == 0 || (focussed && !(focussed.canvas?._areaAnimating() ?? false) && !this._current.includes(img)));
+		const direct = !opts.transition?.startsWith('slide-') && (opts.duration === 0 || (focussed && !(focussed.canvas?._areaAnimating() ?? false) && !this._current.includes(img)));
 		if(direct) {img.camera.setArea([0,0,1,1], {noDispatch: true, direct: true});}
 		if(focussed) {this.blur();}
 
@@ -550,13 +550,13 @@ export class Grid extends MicrioElement {
 		return this.set(target, {
 			noBlur: true,
 			duration: opts.duration,
-			forceAreaAni: opts.transition != 'crossfade',
+			forceAreaAni: opts.transition !== 'crossfade',
 			cover: Boolean(opts.cover),
 			coverLimit: Boolean(opts.coverLimit)
 		}).then(() => {
 			m.events._dispatch('grid-focus', img);
 			this.#removeGrid();
-			if(m.$current != img) {m.current.set(img);}
+			if(m.$current !== img) {m.current.set(img);}
 			this.image.camera.setLimit([0, 0, 1, 1]);
 		}).catch(() => {});
 	}
@@ -587,13 +587,13 @@ export class Grid extends MicrioElement {
 			if (!galleryImages.length) {return this._current;}
 			return this.set(galleryImages.map((img, i) => ({
 				id: img.id,
-				size: i == idx ? [width, height] as [number, number] : [1],
+				size: i === idx ? [width, height] as [number, number] : [1],
 			})), { noHistory: true, keepGrid: true, duration: .5, cover });
 		}
 		const entries = layout as { id: string; size?: [number, number?] }[];
 		const input: Models.Grid.GridImage[] = entries.map((e, i) => ({
 			id: e.id,
-			size: i == idx ? [width, height] as [number, number] : e.size ?? [1],
+			size: i === idx ? [width, height] as [number, number] : e.size ?? [1],
 		}));
 		return this.set(input, { noHistory: true, keepGrid: true, duration: .5, cover });
 	}
@@ -602,7 +602,7 @@ export class Grid extends MicrioElement {
 	_getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
 		const current = this.micrio.$current;
 		if (current && this._images.some(i => i === current)) {return current;}
-		if (this._panZoom == 'grid') {return this.image;}
+		if (this._panZoom === 'grid') {return this.image;}
 		const [vx, vy] = this.image.camera.getCoo(clientX, clientY, true);
 		return this._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
 	}

@@ -16,7 +16,7 @@ export const getIdVal = (a: string): number => {
  * Checks if an ID likely belongs to the V5 format (6 or 7 characters).
  * @internal
  */
-export const idIsV5 = (id: string): boolean => id.length == 6 || id.length == 7;
+export const idIsV5 = (id: string): boolean => id.length === 6 || id.length === 7;
 
 /** Generates a random UUID string. @internal */
 export const randomUUID = () => Math.random().toString();

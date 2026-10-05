@@ -123,7 +123,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		};
 
 		const dStart = (e: MouseEvent) => {
-			if (e.button != 0) {return;}
+			if (e.button !== 0) {return;}
 			globalThis.addEventListener('mousemove', dDraw);
 			globalThis.addEventListener('mouseup', dStop);
 			this.#mapRect = canvas.getBoundingClientRect();
@@ -157,7 +157,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		});
 		if (thumbSrc) {
 			canvas.style.backgroundImage = `url('${thumbSrc}')`;
-			if (offset != 0) {canvas.style.backgroundPositionX = `${width * offset}px`;}
+			if (offset !== 0) {canvas.style.backgroundPositionX = `${width * offset}px`;}
 		}
 		canvas.addEventListener('wheel', wheel, { passive: true });
 

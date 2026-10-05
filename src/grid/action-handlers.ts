@@ -41,15 +41,15 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 				const imgs = name.split(',')
 					.map(i => grid._imageMap.get(i.trim()))
 					.filter((i): i is MicrioImage => i !== undefined);
-				if(imgs.length == 1) {grid.gridFocus(imgs[0], {duration});}
+				if(imgs.length === 1) {grid.gridFocus(imgs[0], {duration});}
 				else if(imgs.length > 0) {grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
-					horizontal: spl?.[1] == 'h'
+					horizontal: spl?.[1] === 'h'
 				});}
 			},
 
 			[GridActionType.flyTo]: (data, duration) => {
-				const images = data?.split(',').map(s => grid._current.find(i => i.id == s?.trim()));
+				const images = data?.split(',').map(s => grid._current.find(i => i.id === s?.trim()));
 				if(images?.length) {
 					const xs = images.map(i => i?.opts.area?.[0] ?? 0);
 					const ys = images.map(i => i?.opts.area?.[1] ?? 0);
@@ -95,12 +95,12 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 				const t = get(grid.micrio.state.tour);
 				if(!t || !('steps' in t) || !t.stepInfo) {return;}
 				const ids = t.stepInfo.map(s => s.micrioId);
-				const imgs = ids.filter((id, i) => ids.indexOf(id) == i)
+				const imgs = ids.filter((id, i) => ids.indexOf(id) === i)
 					.map(i => grid._imageMap.get(i))
 					.filter((i): i is MicrioImage => Boolean(i))
 				if(imgs.length) {grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
-					horizontal: data == 'h'
+					horizontal: data === 'h'
 				});}
 			},
 		};
@@ -115,9 +115,9 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
  * @internal
  */
 export function handleAction(grid: Grid, action: GridActionType|string, data?: string, duration?: number): void {
-	if(typeof action == 'string') {action = GridActionType[action as keyof typeof GridActionType];}
+	if(typeof action === 'string') {action = GridActionType[action as keyof typeof GridActionType];}
 	const key = action+(data??'');
-	if(grid._lastAction == key) {return;}
+	if(grid._lastAction === key) {return;}
 	const handler = getHandlerMap(grid)[action as number];
 	if(handler) {handler(data, duration);}
 	else {console.warn('Warning: unknown grid tour event', action);}

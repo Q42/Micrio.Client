@@ -14,7 +14,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 	}));
 	if (!cells.length) {return;}
 
-	let curIdx = cells.findIndex(c => c.img.id == grid.querySelector<HTMLElement>(':focus')?.dataset.id);
+	let curIdx = cells.findIndex(c => c.img.id === grid.querySelector<HTMLElement>(':focus')?.dataset.id);
 	if (curIdx < 0) {curIdx = 0;}
 
 	const cur = cells[curIdx];
@@ -42,14 +42,14 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 
 	if (best) {return best.img;}
 
-	return cells[dir == 'right' || dir == 'down' ? 0 : cells.length - 1].img;
+	return cells[dir === 'right' || dir === 'down' ? 0 : cells.length - 1].img;
 }
 
 function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 	return (e: KeyboardEvent) => {
 		if (!grid._current.length || !grid._clickable) {return;}
 
-		if (e.key == 'Escape') {
+		if (e.key === 'Escape') {
 			grid._buttons.forEach(btn => btn.classList.remove('focussed'));
 			if (grid.$focussed) { grid.back(); e.preventDefault(); e.stopPropagation(); }
 			else if (!grid.image.camera.isZoomedOut()) { grid.reset(); e.preventDefault(); e.stopPropagation(); }
@@ -71,7 +71,7 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 			else { btn.blur(); btn.classList.remove('focussed'); }
 		});
 
-		if (grid._clickable == 'zoom' && !grid.image.camera.isZoomedOut()) {
+		if (grid._clickable === 'zoom' && !grid.image.camera.isZoomedOut()) {
 			grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid._aniDurationIn * 1000, limit: false});
 		}
 	};
@@ -97,7 +97,7 @@ export function hookGridKeys(grid: Grid) : () => void {
 		grid._clickCell(img);
 	};
 
-	if (grid._panZoom == 'grid' && grid._clickable) {
+	if (grid._panZoom === 'grid' && grid._clickable) {
 		grid.micrio.addEventListener('pointerdown', onPointerDown);
 		grid.micrio.addEventListener('pointerup', onPointerUp);
 	}

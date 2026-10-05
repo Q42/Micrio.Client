@@ -150,7 +150,7 @@ export class VideoTourInstance {
 		if (!events?.length) {return;}
 		for (const e of events) {
 			const active = e.start <= time && e.end >= time;
-			if (active != Boolean(e.active)) {
+			if (active !== Boolean(e.active)) {
 				e.active = active;
 				this.#micrio.events._dispatch('tour-event', { ...e });
 			}
@@ -197,7 +197,7 @@ export class VideoTourInstance {
 
 	/** Pauses the tour playback. */
 	pause(): void {
-		if (this.#_paused || this.#currentIndex == undefined || this.#startedAt == undefined) {return;}
+		if (this.#_paused || this.#currentIndex === undefined || this.#startedAt === undefined) {return;}
 		this.#_paused = true;
 		this.#stoppedPlaying();
 		clearTimeout(this.#_to);
@@ -222,7 +222,7 @@ export class VideoTourInstance {
 	 * @param perc Optional starting progress percentage for the animation (0-1).
 	 */
 	#gotoStep(index: number, perc?: number): void {
-		if (this.#startedAt == undefined) {return;}
+		if (this.#startedAt === undefined) {return;}
 		clearTimeout(this.#_to);
 
 		if (!this.#timeline[index]) {
@@ -247,7 +247,7 @@ export class VideoTourInstance {
 
 	/** Schedules navigation to the next step after the current step's pause duration. @internal */
 	#nextStep(): void {
-		if (this.#currentIndex != undefined) {this.#gotoStep(this.#currentIndex + 1);}
+		if (this.#currentIndex !== undefined) {this.#gotoStep(this.#currentIndex + 1);}
 	}
 
 	/**
@@ -256,7 +256,7 @@ export class VideoTourInstance {
 	 * @param perc Optional starting progress percentage for the animation (0-1).
 	 */
 	#startAni(perc = 0): void {
-		if (this.#currentIndex == undefined || isNaN(perc)) {return;}
+		if (this.#currentIndex === undefined || isNaN(perc)) {return;}
 		const step = this.#timeline[this.#currentIndex];
 		if (!step) {return;}
 
@@ -280,7 +280,7 @@ export class VideoTourInstance {
 				progress: perc,
 				prevView,
 			}).then(() => {
-				if (this.#currentIndex != undefined && step === this.#timeline[this.#currentIndex])
+				if (this.#currentIndex !== undefined && step === this.#timeline[this.#currentIndex])
 					{this.#nextStep();}
 			}).catch(() => {});
 		}

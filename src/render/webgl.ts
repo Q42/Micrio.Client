@@ -392,7 +392,7 @@ export class WebGL {
 		const length = is360 ? 6 * segsX * segsY : 6;
 
 		// If switching between 360 and standard rendering, re-buffer static texture coordinates
-		if(is360 != this.#was360) {
+		if(is360 !== this.#was360) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.#txtBuffer);
 			gl.bufferData(gl.ARRAY_BUFFER, is360 ? Engine._textureBuffer360 : Engine._textureBuffer, gl.STATIC_DRAW);
 			// Re-bind geometry buffer

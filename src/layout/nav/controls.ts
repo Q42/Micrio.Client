@@ -139,7 +139,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const hasSocial = this.#showSocial && ('share' in navigator);
 		const hasControls = showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen;
 		const onlyFullscreen = this.#showFullscreen && (Boolean($popup) && isMobile);
-		const gridPanZoomCells = Boolean($current?.grid) && $current?.$settings?.grid?.panZoom == 'cells';
+		const gridPanZoomCells = Boolean($current?.grid) && $current?.$settings?.grid?.panZoom === 'cells';
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
 		const showGroup = showMute || zoomVisible || this.#showFullscreen;
 

@@ -38,8 +38,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const size = micrio.canvas.viewport;
 			this.style.left = !v[0] ? '' : `${v[0]}px`;
 			this.style.top = !v[1] ? '' : `${v[1]}px`;
-			this.style.width = v[2] == size.width ? '' : `${v[2]}px`;
-			this.style.height = v[3] == size.height ? '' : `${v[3]}px`;
+			this.style.width = v[2] === size.width ? '' : `${v[2]}px`;
+			this.style.height = v[3] === size.height ? '' : `${v[3]}px`;
 		}));
 
 		const updateOverlapped = () => {
@@ -143,7 +143,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const $visible = image.$data?.markers;
 			const $focussed = focussed ? get(focussed) : undefined;
 			const $gridMarkersShown = gridMarkersShown ? get(gridMarkersShown) : undefined;
-			const inactive = grid && ($focussed != image && ($gridMarkersShown && $gridMarkersShown.indexOf(image) < 0));
+			const inactive = grid && ($focussed !== image && ($gridMarkersShown && $gridMarkersShown.indexOf(image) < 0));
 			const showTitles = Boolean(image.$settings._markers?.showTitles);
 			const $_lang = get(micrio._lang);
 
@@ -152,13 +152,13 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			const $switching = get(switching);
 			if (!$switching && micrio.spaceData) {
-				const links = micrio.spaceData.links.filter((l: any) => l[0] == image.id || l[1] == image.id);
-				const linkIds = new Set(links.map((l: any) => l[0] == image.id ? l[1] : l[0]));
+				const links = micrio.spaceData.links.filter((l: any) => l[0] === image.id || l[1] === image.id);
+				const linkIds = new Set(links.map((l: any) => l[0] === image.id ? l[1] : l[0]));
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-waypoint')) {
 					if (!linkIds.has(el.dataset.targetId)) {el.remove();}
 				}
 				for (const l of links) {
-					const id = l[0] == image.id ? l[1] : l[0];
+					const id = l[0] === image.id ? l[1] : l[0];
 					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${CSS.escape(id)}"]`) as MicrioElement;
 					if (!el) {
 						el = createElement('micrio-waypoint', {
@@ -219,7 +219,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		if (!image.grid && image.$settings._markers?.zoomOutAfterClose) {
 			let wasVideoTour = false;
 			this._addCleanup(image.state.marker.subscribe(m => {
-				if (m && typeof m != 'string' && !image._openedView && !m.noMarker && m.view) {
+				if (m && typeof m !== 'string' && !image._openedView && !m.noMarker && m.view) {
 			image._openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
 				: structuredClone(image.state.$view ?? image.camera?.getView());
 					wasVideoTour = Boolean(m.videoTour);

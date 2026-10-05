@@ -30,7 +30,7 @@ export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Pro
 
 	// Create and store the fetch promise
 	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(async r => {
-		if (r.status == 200) {return r.json();}
+		if (r.status === 200) {return r.json();}
 			throw MicrioError.fromResponse(r, `fetchJson(${uri})`);
 		
 	}).then(j => {

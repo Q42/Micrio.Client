@@ -56,7 +56,7 @@ export class GestureHandler {
 		const gesture = this.#getGestureEvent(e);
 		if (!gesture) {return;}
 		if (gesture.scale === 1) { this.#ctx._pScale = 1; return; }
-		if (e.target instanceof Element && e.target != this.#ctx._el) {return;}
+		if (e.target instanceof Element && e.target !== this.#ctx._el) {return;}
 
 		const diff = this.#ctx._pScale - gesture.scale;
 		this.#ctx._pScale = gesture.scale;
@@ -64,7 +64,7 @@ export class GestureHandler {
 		e.stopPropagation();
 		e.preventDefault();
 
-		if (e.type == 'gesturechange') {
+		if (e.type === 'gesturechange') {
 			this.#ctx._getImage({ x: gesture.clientX, y: gesture.clientY })?.camera.zoom(
 				diff * this.#ctx._micrio.canvas.viewport.height,
 				0,

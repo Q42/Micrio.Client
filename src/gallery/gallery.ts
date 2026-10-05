@@ -422,7 +422,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			_onPageChange: (p:number) => this.#goto(p),
 			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
-					const drawn = _drawn.find(d => d.id == img.id);
+					const drawn = _drawn.find(d => d.id === img.id);
 					img.visible.set(Boolean(drawn));
 					if(drawn) {
 						if(!img.camera._getXYDirectOverride) {book3d._hookImageBook3d(img);}

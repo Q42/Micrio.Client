@@ -73,7 +73,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const gridAction = data._meta?.gridAction;
 
 		// For 3d books, no camera animations
-		const isBook3d = micrio.$current?.album?.info?.type == 'book3d';
+		const isBook3d = micrio.$current?.album?.info?.type === 'book3d';
 		let view = isBook3d ? undefined : marker.view;
 
 		// Derive marker view from video tour
@@ -83,13 +83,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (timeline?.length) {view = timeline[0].rect;}
 		}
 
-		const cluster = marker.type == 'cluster';
-		const icon = !cluster && marker.type == 'link' ? 'link' : marker.type == 'media' ? 'play' : undefined;
-		const customIcon = marker.data?.customIconIdx != undefined
+		const cluster = marker.type === 'cluster';
+		const icon = !cluster && marker.type === 'link' ? 'link' : marker.type === 'media' ? 'play' : undefined;
+		const customIcon = marker.data?.customIconIdx !== undefined
 			? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
 			: marker.data?.icon || markerSettings.markerIcon;
 		const hasIcon = Boolean(icon) || Boolean(customIcon);
-		const defaultClass = hasIcon || marker.type == 'default';
+		const defaultClass = hasIcon || marker.type === 'default';
 
 		// Omni arc: precompute target frame and visible range from marker rotation/visibleArc
 		const {omni} = image.$settings;
@@ -114,7 +114,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					radius: marker.radius, rotation: marker.rotation
 				});
 				[this.#x, this.#y, this.#scaleVal, this.#w] = xy;
-				const obscured = (image._is360 && this.#w >= 0) || (this.#x == -1 && this.#y == -1);
+				const obscured = (image._is360 && this.#w >= 0) || (this.#x === -1 && this.#y === -1);
 				this.#behindCam = obscured;
 				if (image._isOmni && omni) {
 					if (this.#omniArc && marker.rotation != null) {
@@ -140,7 +140,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const click = () => {
 			if (marker.onclick) {return marker.onclick(marker);}
 			if (markerSettings.noMarkerActions) {return;}
-			if (marker.type == 'cluster') {
+			if (marker.type === 'cluster') {
 				if (view && micrio.$current?.$info) {
 					image.camera.flyToView(view, { limitZoom: true });
 				}
@@ -176,8 +176,8 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			// When the auto-start tour has to restart from its first step, don't fly to this
 			// marker's own view first and suppress its grid action: the tour takes over.
 			const immediatelyStartMyTourAtBeginning = autoStartMyTour !== undefined && startTourAtBeginning
-				&& myTourStep != undefined && myTourStep > 0
-				&& autoStartMyTour.id != ($tour as Models.ImageData.MarkerTour)?.id;
+				&& myTourStep !== undefined && myTourStep > 0
+				&& autoStartMyTour.id !== ($tour as Models.ImageData.MarkerTour)?.id;
 			if (immediatelyStartMyTourAtBeginning) {
 				if (data._meta) {delete data._meta.gridAction;}
 				setTimeout(() => { if (data._meta) {data._meta.gridAction = gridAction;} }, 100);
@@ -201,7 +201,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		const openContent = async () => {
 			if (cluster) {return;}
-			if (image.state.$marker != marker) {
+			if (image.state.$marker !== marker) {
 				if (!image.state.$marker) {return;}
 				return image.state.marker.set(marker);
 			}
@@ -218,8 +218,8 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				autoStartMyTour.currentStep = startStep;
 				const firstStep = autoStartMyTour.stepInfo?.[0];
 				// Starting from the beginning while the first step lives on another image: go there first
-				if (startTourAtBeginning && firstStep?.micrioId && firstStep.micrioId != image.id) {
-					const target = micrio._canvases.find(c => c.id == firstStep.micrioId);
+				if (startTourAtBeginning && firstStep?.micrioId && firstStep.micrioId !== image.id) {
+					const target = micrio._canvases.find(c => c.id === firstStep.micrioId);
 					if (target) {micrio.current.set(target);}
 					else {micrio.open(firstStep.micrioId).catch(() => {});}
 				}
@@ -236,9 +236,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			// Resolve content for the *current* language — the language may have changed
 			// since this element was mounted
 			const content = marker.i18n?.[get(micrio._lang)];
-			if (marker.popupType != 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
+			if (marker.popupType !== 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
 				// no popup - handle popover or video tour
-				if (marker.popupType == 'popover') {
+				if (marker.popupType === 'popover') {
 					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined });
 				} else if (marker.videoTour && !$tour) {
 					micrio.state.tour.set(marker.videoTour);
@@ -287,9 +287,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		};
 
 		this._addCleanup(image.state.marker.subscribe(m => {
-			if (typeof m == 'string' && m == marker.id) {image.state.marker.set(marker);}
-			else if (m == marker) {activated();}
-			else if (!data.alwaysOpen && (!m || m != marker)) {
+			if (typeof m === 'string' && m === marker.id) {image.state.marker.set(marker);}
+			else if (m === marker) {activated();}
+			else if (!data.alwaysOpen && (!m || m !== marker)) {
 				if (this.#opened) {
 					// Only manage split lifecycle if this marker itself has a split link
 					if (data.micrioSplitLink) {
@@ -322,7 +322,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			tick().then(() => {
 				const $popup = get(micrio.state.popup);
 				const $tour = get(micrio.state.tour);
-				if (this.#opened && !marker.noMarker && $popup && $popup != marker && !$tour) {
+				if (this.#opened && !marker.noMarker && $popup && $popup !== marker && !$tour) {
 					image.state.marker.set(undefined);
 				} else if (data.alwaysOpen) {
 					openContent();
@@ -353,7 +353,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (customIcon) {
 				createElement('img', {
 					props: {
-						src: typeof customIcon == 'string' ? customIcon : customIcon.src,
+						src: typeof customIcon === 'string' ? customIcon : customIcon.src,
 						alt: ''
 					},
 					parent: btn

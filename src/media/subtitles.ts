@@ -5,7 +5,7 @@ import type { Models } from '$types/models';
 const CAPTIONS_KEY = 'micrio-captions-disable';
 
 /** Writable store indicating whether captions/subtitles are enabled. Persisted to localStorage. @internal */
-export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) != '1');
+export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) !== '1');
 
 captionsEnabled.subscribe(b => {
 	if (b) {localStorage.removeItem(CAPTIONS_KEY);}

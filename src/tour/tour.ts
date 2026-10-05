@@ -100,7 +100,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					: micrio.$current;
 				// Don't re-set (and thereby close/re-open) a marker that is already the active one
 				const active = img && get(img.state.marker);
-				const activeId = typeof active == 'string' ? active : active?.id;
+				const activeId = typeof active === 'string' ? active : active?.id;
 				if (img && activeId !== si.markerId) {img.state.marker.set(si.markerId);}
 			};
 
@@ -180,7 +180,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 			this._addCleanup(micrio.state.marker.subscribe(m => {
 				if (!m) {return;}
-				const id = typeof m == 'string' ? m : m.id;
+				const id = typeof m === 'string' ? m : m.id;
 				const idx = mt.steps.findIndex(s => s.startsWith(id));
 				if (idx >= 0 && idx !== this.#currentStep) {
 					this.#currentStep = idx;

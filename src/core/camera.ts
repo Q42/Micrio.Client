@@ -349,7 +349,7 @@ export class Camera {
 	*/
 	_getOmniFrame(rot?: number): number | undefined {
 		const {omni} = this.#image.$settings;
-		if (!omni || rot == undefined) {return;}
+		if (!omni || rot === undefined) {return;}
 		return Math.floor((rot / (Math.PI * 2)) * (omni.frames / (omni.layers?.length ?? 1)));
 	}
 
@@ -402,7 +402,7 @@ export class Camera {
 		return new Promise((ok, abort) => {
 			if (!this.#canvas) {return abort(new Error("engine not ready"));}
 			let { centerX, centerY, width, height } = toCenterJSON(view);
-			if (opts.margin?.length == 2) {
+			if (opts.margin?.length === 2) {
 				centerX += opts.margin[0]; centerY += opts.margin[1];
 				width -= opts.margin[0] * 2; height -= opts.margin[1] * 2;
 			}
@@ -423,15 +423,15 @@ export class Camera {
 			if (omni?.frames) {
 				const numLayers = omni.layers?.length ?? 1;
 				const npl = omni.frames / numLayers;
-				if (opts.omniIndex == undefined) {
+				if (opts.omniIndex === undefined) {
 					const idx = view[4] || (Array.isArray(view) && view[5] !== undefined ? view[5] : undefined);
 					if (idx !== undefined) {opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * npl);}
 				}
-				if (opts.omniIndex != undefined) {opts.omniIndex = mod(opts.omniIndex, npl);}
+				if (opts.omniIndex !== undefined) {opts.omniIndex = mod(opts.omniIndex, npl);}
 			}
 			const duration = this.#canvas.camera._flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, Boolean(opts.isJump), Boolean(opts.limit), Boolean(opts.limitZoom), opts.omniIndex ?? 0, getEasing(opts.timingFunction));
 			this.#image.engine.render();
-			if (duration == 0) {ok();}
+			if (duration === 0) {ok();}
 			else {this.#setAniPromises(ok, abort);}
 		});
 	}
@@ -469,7 +469,7 @@ export class Camera {
 			const fn = getEasing(opts.timingFunction);
 			opts.duration = this.#canvas.camera.setCoo(coords[0], coords[1], coords[2] ?? this.getScale(), opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
 			this.#image.engine.render();
-			if (opts.duration == 0) {ok();}
+			if (opts.duration === 0) {ok();}
 			else {this.#setAniPromises(ok, abort);}
 		});
 	}
@@ -490,13 +490,13 @@ export class Camera {
 			else if(this.#canvas) {
 				const v = this.#canvas.view.arr;
 				const coo = this.getXY(v[0], v[1]);
-				if (x == undefined) {x = coo[0];}
-				if (y == undefined) {y = coo[1];}
+				if (x === undefined) {x = coo[0];}
+				if (y === undefined) {y = coo[1];}
 				if (this.#image.album && !this.#image.album.hooked) {return ok();}
 				duration = this.#canvas.camera._zoom(delta, x, y, duration, noLimit);
 				this.#image.engine.render();
 			}
-			if (duration == 0) {ok();}
+			if (duration === 0) {ok();}
 			else {this.#setAniPromises(ok, abort);}
 		});
 	}

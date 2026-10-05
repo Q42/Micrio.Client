@@ -148,11 +148,11 @@ export class Canvas {
 		height /= scale;
 
 		// Get device pixel ratio for high-resolution rendering
-		const ratio = scale != 1 ? 1 : this.getRatio(); // Use ratio 1 if CSS scaled
+		const ratio = scale !== 1 ? 1 : this.getRatio(); // Use ratio 1 if CSS scaled
 
 		const c = this.viewport; // Reference to viewport state object
 		// Exit if dimensions and ratio haven't changed
-		if(c.width == width && c.height == height && c.ratio == ratio && c.scale == scale) {return;}
+		if(c.width === width && c.height === height && c.ratio === ratio && c.scale === scale) {return;}
 
 		// Update viewport state object
 		c.width = width;

@@ -39,7 +39,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
 
 		this._addCleanup(micrio.state.popup.subscribe(m => {
-			this.#destroying = !m || m != marker;
+			this.#destroying = !m || m !== marker;
 			this.classList.toggle('destroying', this.#destroying);
 		}));
 
@@ -85,7 +85,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0;
 		const showTourControls = !micrio.canvas.$isMobile && isPartOfTour && !markerTour?.isSerialTour &&
 			(tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup);
-		const closeButtonStopsTour = showTourControls || (markerTour ? markerTour.currentStep == markerTour.steps.length - 1 : undefined);
+		const closeButtonStopsTour = showTourControls || (markerTour ? markerTour.currentStep === markerTour.steps.length - 1 : undefined);
 
 		const close = (e?: Event) => {
 			if ($tour && isPartOfTour && 'steps' in $tour) {
@@ -95,7 +95,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					($tour).next?.();
 				}
 			} else {
-				if ($current && $current.id != image.id && data.micrioLink?.id == $current.id) {
+				if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
 					micrio.open(image.id);
 					image.state.marker.set(undefined);
 					micrio.state.popup.set(undefined);

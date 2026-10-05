@@ -167,7 +167,7 @@ export class Events implements EventContext {
 		const gridCtrl = this._micrio._canvases.find(i => i.grid);
 		if (gridCtrl) {return gridCtrl.grid?._getImageAt(c.x, c.y) ?? this._micrio.$current;}
 		// Default: find the visible image under the cursor by area
-		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
+		const t = candidates.length === 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
 			grid ? false : area ? x >= area[0] && x <= area[0] + area[2] && y >= area[1] && y <= area[1] + area[3] : false
 		);
 		return t && !t.grid ? t : this._micrio.$current;

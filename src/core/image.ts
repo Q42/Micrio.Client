@@ -243,17 +243,17 @@ export class MicrioImage {
 		const {micrio} = this.#engine;
 
 		// V5 ID detection & derived info flags
-		if (!i.isIIIF && this.id.length == 7) {
+		if (!i.isIIIF && this.id.length === 7) {
 			const b = getIdVal(this.id[1 + (getIdVal(this.id) % 6)]);
 			i.is360 = Boolean((b >> 4) & 1) || Boolean(i.is360);
 			i.isWebP = !(b & 3);
-			i.isPng = (b & 3) == 2;
+			i.isPng = (b & 3) === 2;
 			if ((b >> 3) & 1 && idIsV5(i.tilesId ?? this.id)) {i.format = 'dz';}
 			if (!i.path) {i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;}
 		}
 
 		// Determine tile base path
-		const isV5Imported = this.id.length == 6 && this.id.startsWith('i') && !this.id.includes('/');
+		const isV5Imported = this.id.length === 6 && this.id.startsWith('i') && !this.id.includes('/');
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
 		this._tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
 
@@ -262,7 +262,7 @@ export class MicrioImage {
 			this._dataPath = i.path = org.baseUrl;
 			if(!isV5Imported) {this._tileBase = this._dataPath;}
 		}
-		else if(i.path == BASEPATH_V5_EU) {this._dataPath = i.path;}
+		else if(i.path === BASEPATH_V5_EU) {this._dataPath = i.path;}
 		else if(i.path) {this._dataPath = i.path;}
 
 		// Omni object setup
@@ -289,7 +289,7 @@ export class MicrioImage {
 		// 360 space data
 		if(i.spacesId && !micrio.spaceData) {
 			micrio.spaceData = DataLoader._getSpaceData(i.spacesId);
-			if(micrio.spaceData?.images.length == 1) {delete micrio.spaceData;}
+			if(micrio.spaceData?.images.length === 1) {delete micrio.spaceData;}
 		}
 
 		if(!micrio.bundleTours) {
@@ -297,7 +297,7 @@ export class MicrioImage {
 		}
 
 		if(i.is360 && this.camera) {
-			const spaceRotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY;
+			const spaceRotY = micrio.spaceData?.images.find(img => img.id === this.id)?.rotationY;
 			if(spaceRotY != null) {this.camera.rotationY = spaceRotY;}
 			else if(s?._360?.trueNorth != null)
 				{this.camera.rotationY = (s._360.trueNorth - 0.5) * Math.PI * 2;}
@@ -306,7 +306,7 @@ export class MicrioImage {
 		// Derived flags & properties
 		this._noImage = this._noImage || this._isOmni || (!i.id && !i.tilesId);
 		this.#extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg';
-		if(i.format == 'dz') {i.isDeepZoom = true;}
+		if(i.format === 'dz') {i.isDeepZoom = true;}
 		this._is360 = Boolean(i.is360);
 		this._isVideo = Boolean(i.isVideo);
 
@@ -361,7 +361,7 @@ export class MicrioImage {
 		// Visibility subscription
 		let wasVis:boolean=get(this.visible);
 		this.visible.subscribe(v => {
-			if(v==wasVis) {return;} wasVis=v;
+			if(v===wasVis) {return;} wasVis=v;
 
 			micrioRef._visible.update(l => {
 				if(v) {l.push(this);}
@@ -371,7 +371,7 @@ export class MicrioImage {
 				}
 				return l;
 			});
-			if(v && micrioRef.$current == this) {micrioRef._switching.set(false);}
+			if(v && micrioRef.$current === this) {micrioRef._switching.set(false);}
 		});
 
 		this.video.subscribe(v => this._video = v);
@@ -453,10 +453,10 @@ export class MicrioImage {
 		if(opts.opacity === undefined) {opts.opacity = 1;} // Default opacity
 
 		// Adjust area based on 'fit' option (cover or contain)
-		if(opts.fit == 'cover' || opts.fit == 'contain') {
+		if(opts.fit === 'cover' || opts.fit === 'contain') {
 			const i = img.$info;
 			const yS = this._is360 ? 2 : 1; // Y-scale factor for 360
-			const isCover = opts.fit == 'cover';
+			const isCover = opts.fit === 'cover';
 			const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
 			const aAr = aW / aH * yS; // Area aspect ratio
 			const imgAr = i.width / i.height; // Image aspect ratio

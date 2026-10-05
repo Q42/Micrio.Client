@@ -110,14 +110,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			const updateInactive = () => {
 				const f = get(focused);
 				const ms = markersShown ? get(markersShown) : undefined;
-				const inactive = Boolean(grid && f && f != image && ms && ms.indexOf(image) < 0);
+				const inactive = Boolean(grid && f && f !== image && ms && ms.indexOf(image) < 0);
 				this.#container?.classList.toggle('inactive', inactive);
 			};
 			this._watch(focused, updateInactive);
 			if (markersShown) {this._watch(markersShown, updateInactive);}
 		}
 
-		this.#glImage = image._embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid);
+		this.#glImage = image._embeds.find(i => i.uuid === embed.uuid || i.$info?.title === embed.uuid);
 
 		this.#screenIsHDR = matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
@@ -142,14 +142,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		));
 
 		// 3d books have their own WebGL renderer
-		this.#isBook3d = this.#micrio.$current?.album?.info?.type == 'book3d';
+		this.#isBook3d = this.#micrio.$current?.album?.info?.type === 'book3d';
 		this.#isMat = this.#is360 || this.#isBook3d;
 
 		this.#printGL = !this.#isBook3d && !this.#embedImageAsHtml && Boolean((embed.micrioId && (forceGL || !this.#isSmall || !embed.src))
 			|| (embed.video && !embed.video.controls && !embed.video.transparent));
 
 		this.#noEvents = !embed.clickAction && !embed.frameSrc && !marker;
-		this.#href = embed.clickAction == 'href' ? embed.clickTarget : undefined;
+		this.#href = embed.clickAction === 'href' ? embed.clickTarget : undefined;
 		this.#hrefBlankTarget = Boolean(this.#href && embed.clickTargetBlank);
 
 		this.#isRawVideo = this.#printGL && Boolean(embed.video);
@@ -497,7 +497,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#click() {
 		const { embed, image, marker } = this.#props;
-		const markerId = embed.clickAction == 'markerId' ? embed.clickTarget : marker?.id;
+		const markerId = embed.clickAction === 'markerId' ? embed.clickTarget : marker?.id;
 		if (!markerId || !image || this.#href) {return;}
 		image.state.marker.set(markerId);
 	}

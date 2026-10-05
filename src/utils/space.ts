@@ -24,8 +24,8 @@ export function getSpaceVector(micrio: HTMLMicrioElement, targetId: string): {
 	const image = micrio.$current;
 	if (!image) {return;} // Exit if no current image
 	// Find source and target image data in spaceData
-	const source = micrio.spaceData?.images.find(i => i.id == image.id);
-	const target = micrio.spaceData?.images.find(i => i.id == targetId);
+	const source = micrio.spaceData?.images.find(i => i.id === image.id);
+	const target = micrio.spaceData?.images.find(i => i.id === targetId);
 	if (!source || !target) {return;} // Exit if source or target not found
 
 	// Calculate difference vector [dx, dy, dz]

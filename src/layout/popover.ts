@@ -76,12 +76,12 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		const page = 'contentPage' in p ? p.contentPage : undefined;
 		const isPartOfTour = Boolean(marker && markerTour && 'steps' in markerTour &&
 			(markerTour).steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0);
-		const isLastStep = isPartOfTour ? (markerTour as Models.ImageData.MarkerTour).currentStep == (markerTour as Models.ImageData.MarkerTour).steps.length - 1 : true;
+		const isLastStep = isPartOfTour ? (markerTour as Models.ImageData.MarkerTour).currentStep === (markerTour as Models.ImageData.MarkerTour).steps.length - 1 : true;
 		/**
 		 * A content page carrying its own `close` button ("Free exploration") does
 		 * the closing itself, so the popover's close button is hidden (6 parity).
 		 */
-		const noCloseButton = Boolean(page?.buttons?.find(b => b.type == 'close'));
+		const noCloseButton = Boolean(page?.buttons?.find(b => b.type === 'close'));
 
 		const advanceOrClose = (e?: Event) => {
 			if (isPartOfTour && markerTour && 'steps' in markerTour) {
@@ -102,16 +102,16 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		 */
 		const clickPageButton = (button: Models.ImageData.MenuPageButton) => {
 			if (this.#dialog?.open) {this.#dialog.close();}
-			if (button.type == 'close') {return;}
+			if (button.type === 'close') {return;}
 			// Give the popover time to close before switching content, like in 6
 			setTimeout(() => {
 				const data = micrio.$current?.$data;
 				switch (button.type) {
 					case 'marker': { micrio.$current?.state.marker.set(button.action); break;
 					}
-					case 'mtour': { micrio.state.tour.set(data?.markerTours?.find(t => t.id == button.action)); break;
+					case 'mtour': { micrio.state.tour.set(data?.markerTours?.find(t => t.id === button.action)); break;
 					}
-					case 'vtour': { micrio.state.tour.set(data?.tours?.find(t => t.id == button.action)); break;
+					case 'vtour': { micrio.state.tour.set(data?.tours?.find(t => t.id === button.action)); break;
 					}
 				}
 			}, 200);
@@ -156,7 +156,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 				if (cd?.embed) {articleChildren.push(createElement('micrio-media', { setProps: { src: cd.embed, controls: true } }));}
 				// Page image (dropped in the 7 rewrite)
 				const pageImage = page.image as string | Models.Assets.Image | undefined;
-				const pageImageSrc = typeof pageImage == 'string' ? pageImage : pageImage?.src;
+				const pageImageSrc = typeof pageImage === 'string' ? pageImage : pageImage?.src;
 				if (pageImageSrc) {articleChildren.push(createElement('img', { props: { src: pageImageSrc, alt: '' } }));}
 				if (cd?.content) {articleChildren.push(createElement('div', { innerHTML: cd.content }));}
 				createElement('article', { children: articleChildren, parent: this.#dialog });
@@ -173,7 +173,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 					createElement('micrio-button', {
 						children: [button.i18nTitle?.[$_lang] ?? ''],
 						setProps: {
-							href: button.type == 'link' ? button.action : undefined,
+							href: button.type === 'link' ? button.action : undefined,
 							blankTarget: button.blankTarget,
 							onclick: () => clickPageButton(button)
 						},
