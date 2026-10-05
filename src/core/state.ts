@@ -105,14 +105,14 @@ export namespace State {
 			const m = image.engine.micrio; // Reference to main element
 			// Previous view (all four values) for change detection, plus previous
 			// zoom dimensions for the width/height change threshold.
-			let pX:number|undefined, pY:number|undefined, pW:number|undefined, pH:number|undefined;
-			let zW:number|undefined, zH:number|undefined;
+			let pH:number|undefined, pW:number|undefined, pX:number|undefined, pY:number|undefined;
+			let zH:number|undefined, zW:number|undefined;
 
 			// Subscribe to view store changes
 			this.view.subscribe(view => {
 				this.#_view = view; // Update internal reference
 				if(!view) {return;}
-				const nX = view[0], nY = view[1], nW = view[2], nH = view[3];
+				const nH = view[3], nW = view[2], nX = view[0], nY = view[1];
 				if(pX === nX && pY === nY && pW === nW && pH === nH) {return;} // Unchanged
 				const detail = {image, view}; // Event detail payload with view360
 				pX = nX; pY = nY; pW = nW; pH = nH;

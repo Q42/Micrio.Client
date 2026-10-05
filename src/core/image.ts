@@ -458,7 +458,7 @@ export class MicrioImage {
 			const i = img.$info;
 			const yS = this._is360 ? 2 : 1; // Y-scale factor for 360
 			const isCover = opts.fit === 'cover';
-			const aW = a[2], aH = a[3], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
+			const aH = a[3], aW = a[2], cX = a[0] + aW/2, cY = a[1] + aH/2; // Area dimensions/center
 			const aAr = aW / aH * yS; // Area aspect ratio
 			const imgAr = i.width / i.height; // Image aspect ratio
 			// Adjust area dimensions based on aspect ratios and fit mode

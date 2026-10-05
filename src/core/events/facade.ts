@@ -159,8 +159,8 @@ export class Events implements EventContext {
 	 * @returns The MicrioImage instance under the coordinates, or the main current image as fallback.
 	 */
 	_getImage(c: { x: number, y: number }): MicrioImage | undefined {
-		if (!this.#visible) {return;}
-		const w = this._micrio.offsetWidth, h = this._micrio.offsetHeight,
+		if (!this.#visible) {return undefined;}
+		const h = this._micrio.offsetHeight, w = this._micrio.offsetWidth,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
 		const candidates = this.#visible.filter(i => !i._noImage && !i._isPassiveSecondary);
 		// When a grid controller exists, use its own image-under-cursor detection
