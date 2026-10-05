@@ -138,8 +138,10 @@ export class MicrioAudioLocation {
 			this.#source.disconnect()
 		}
 		clearTimeout(this.#to)
-		this.#panner.disconnect()
-		this.#gain.disconnect()
+		// `#init` bails out before creating these when the marker has no source, or when
+		// the element has no current image by then, and `destroy` is still called on it.
+		this.#panner?.disconnect()
+		this.#gain?.disconnect()
 	}
 
 	destroy() {
