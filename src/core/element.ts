@@ -244,7 +244,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				set(b:boolean) { if(b) {this.setAttribute('muted','');} else {this.removeAttribute('muted');} }
 			});
 			this._watch(this._isMuted, b => {
-				/** @ts-ignore */
+				// @ts-expect-error -- `muted` is defined dynamically below
 				this['muted'] = b;
 				if(b) {
 					localStorage.setItem(localStorageKeys.globalMuted, '1');

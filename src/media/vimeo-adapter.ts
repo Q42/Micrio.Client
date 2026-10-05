@@ -37,7 +37,7 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 		await loadExternalAPI('Vimeo', 'https://r2.micr.io/vimeo.min.js');
 
 		return new Promise((resolve, reject) => {
-			// @ts-ignore - Vimeo is loaded dynamically
+			// @ts-expect-error - Vimeo is loaded dynamically
 			this.#player = new window['Vimeo']['Player'](this.#frame, {
 				width: this.#config.width.toString(),
 				height: this.#config.height.toString(),

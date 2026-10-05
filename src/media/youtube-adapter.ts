@@ -49,7 +49,7 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 		await loadExternalAPI('YT', 'https://r2.micr.io/youtube.js', 'onYouTubeIframeAPIReady');
 
 		return new Promise((resolve, reject) => {
-			// @ts-ignore - YT is loaded dynamically
+			// @ts-expect-error - YT is loaded dynamically
 			this.#player = new window['YT']['Player'](this.#frame, {
 				host: YOUTUBE_HOST,
 				width: this.#config.width.toString(),

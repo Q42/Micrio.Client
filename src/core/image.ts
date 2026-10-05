@@ -325,7 +325,7 @@ export class MicrioImage {
 				const url = s.js.href.replace('$lang', lang);
 				void loadScript(url);
 				const _el = document.head.querySelector(`script[src="${url}"]`) as HTMLScriptElement | undefined;
-				/** @ts-ignore -- used for custom JS to have a cool self reference */
+				// @ts-expect-error -- used for custom JS to have a cool self reference
 				if (_el) {_el['micrioElement'] = this.#engine.micrio;}
 			}
 		}
