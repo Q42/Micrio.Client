@@ -1,6 +1,5 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioImage } from '$core/image';
 import { get } from '$core/store';
 import { createElement } from '$utils/dom';
 import { i18n } from '$core/i18n/strings';
@@ -76,7 +75,7 @@ class MicrioToolbar extends MicrioElement {
 		const $marker = get(micrioState.marker);
 		const $popover = get(micrioState.popover);
 		const $i18n = get(i18n);
-		const originalId = (micrio.$current as MicrioImage)?.id;
+		const originalId = micrio.$current?.id;
 
 		const hasPageLang = (p: Models.ImageData.Menu): boolean => Boolean(p.i18n?.[$_lang]);
 		const hidden = Boolean($tour) || Boolean($marker) || Boolean($popover);
@@ -151,7 +150,7 @@ class MicrioToolbar extends MicrioElement {
 							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 							action: () => {
-								if (micrio.$current && micrio.$current.id !== originalId) {void micrio.open(originalId);}
+								if (originalId && micrio.$current && micrio.$current.id !== originalId) {void micrio.open(originalId);}
 								micrioState.tour.set(t);
 							}
 						}))

@@ -11,7 +11,6 @@ import '$core/element-ui';
 import '$ui/button';
 import '$ui/button-group';
 import '$ui/progress-circle';
-import type { ProgressCircleProps } from '$ui/progress-circle';
 import '$layout/logo';
 import '$layout/article';
 import '$media/subtitles';
@@ -74,8 +73,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#firstInited = false;
 	#logoOrg: Models.ImageInfo.Organisation | undefined;
 	#activePopupMarkerId: string | undefined;
-	#markerElements = new Map<string, MicrioElement>();
-	#embedElements = new Map<string, MicrioElement>();
+	#markerElements = new Map<string, HTMLElement>();
+	#embedElements = new Map<string, HTMLElement>();
 	#audioController: MicrioAudioController | undefined;
 	#destroyAudio(): void {
 		this.#audioController?.destroy();
@@ -191,8 +190,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		}));
 
 		this._addCleanup(micrio.state.tour.subscribe(() => {
-			const sub = this.#elements.get('subtitles') as MicrioElement;
-			if (sub) {sub._setProps?.({ raised: Boolean(get(micrio.state.tour)) });}
+			const sub = this.#elements.get('subtitles');
+			if (sub instanceof MicrioElement) {sub._setProps?.({ raised: Boolean(get(micrio.state.tour)) });}
 		}));
 
 		for (const store of [micrio._visible, micrio.state.popup, micrio.state.popover,
@@ -306,7 +305,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		this.#show('minimap', showMinimap,
 			() => createElement('micrio-minimap', { setProps: { image: micrio.$current } }),
-			(el) => (el as MicrioElement)._setProps?.({ image: micrio.$current })
+			(el) => {if (el instanceof MicrioElement) {el._setProps?.({ image: micrio.$current });}}
 		);
 
 		// Marker popup — only created when micrio.state.popup is set (after flyTo completes)
@@ -356,13 +355,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		if (loadingProgress < 1) {
-			const el = this.#elements.get('progress') as MicrioElement<ProgressCircleProps> | undefined;
-			if (el?.isConnected) {el._setProps?.({ progress: loadingProgress });}
+			const el = this.#elements.get('progress');
+			if (el instanceof MicrioElement && el.isConnected) {el._setProps?.({ progress: loadingProgress });}
 		}
 	}
 
 	#syncImageLayer(
-		map: Map<string, MicrioElement>,
+		map: Map<string, HTMLElement>,
 		tag: string,
 		layerKey: string,
 		visible: MicrioImage[],
@@ -382,7 +381,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		if (enabled && this.#isRegistered(tag)) {
 			for (const img of filtered) {
 				if (map.has(img.id)) {continue;}
-				const el = createElement(tag, { setProps: { image: img } }) as MicrioElement;
+				const el = createElement(tag, { setProps: { image: img } });
 				map.set(img.id, el);
 				const before = this.#getBefore(layerKey);
 				if (before) {this.insertBefore(el, before);}

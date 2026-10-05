@@ -21,7 +21,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];
 	#currentStep = 0;
 	#built = false;
-	#mediaEl: MicrioElement | undefined = undefined;
+	#mediaEl: HTMLElement | undefined = undefined;
 	#duration = 0;
 	#noTimeScrub = false;
 
@@ -31,7 +31,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		const micrio = this._getMicrio();
 		if (!micrio || !tour) {return;}
 
-		this.#stepInfo = (tour.stepInfo as Models.ImageData.MarkerTourStepInfo[]) || [];
+		this.#stepInfo = tour.stepInfo || [];
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0);
 		this.#noTimeScrub = Boolean(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
 
@@ -135,13 +135,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					fullscreenEl: micrio,
 					getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`
 				}
-			}) as MicrioElement;
+			});
 			this.#mediaEl = media;
 			await afterFrame();
 			this.#injectBars();
 
-			const videoEl = this.#mediaEl.querySelector('video,audio') as HTMLMediaElement;
-			if (videoEl) {
+			const videoEl = this.#mediaEl?.querySelector('video,audio');
+			if (videoEl instanceof HTMLMediaElement) {
 				videoEl.addEventListener('timeupdate', () => {
 					const step = this.#stepInfo[this.#currentStep];
 					if (step) {step.currentTime = videoEl.currentTime;}

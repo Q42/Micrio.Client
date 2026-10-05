@@ -152,9 +152,9 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		const canvas = createElement('canvas', {
 			props: { width, height },
 			className: settings.alwaysShowMinimap ? 'fixed' : undefined,
-			events: { mousedown: dStart as EventListener },
 			parent: this
 		});
+		canvas.addEventListener('mousedown', dStart);
 		if (thumbSrc) {
 			canvas.style.backgroundImage = `url('${thumbSrc}')`;
 			if (offset !== 0) {canvas.style.backgroundPositionX = `${width * offset}px`;}

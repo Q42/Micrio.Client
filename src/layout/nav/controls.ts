@@ -51,13 +51,13 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	};
 
 	#aside1!: HTMLElement;
-	#muteBtn: MicrioElement | undefined;
-	#shareBtn: MicrioElement | undefined;
+	#muteBtn: HTMLElement | undefined;
+	#shareBtn: HTMLElement | undefined;
 	#langMenu: HTMLElement | undefined;
 	#langItemsEl!: HTMLElement;
 	#group1!: HTMLElement;
-	#zoomGroup: MicrioElement | undefined;
-	#fsGroup: MicrioElement | undefined;
+	#zoomGroup: HTMLElement | undefined;
+	#fsGroup: HTMLElement | undefined;
 
 	/** @internal */
 	_onMount() {
@@ -166,8 +166,8 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 				});
 				this.#aside1.prepend(this.#langMenu);
 			}
-			const trigger = this.#langMenu.querySelector('micrio-button') as MicrioElement;
-			trigger?._setProps({ type: 'a11y', title: $i18n._switchLanguage });
+			const trigger = this.#langMenu.querySelector('micrio-button');
+			if (trigger instanceof MicrioElement) {trigger._setProps({ type: 'a11y', title: $i18n._switchLanguage });}
 
 			const items = this.#langItemsEl;
 			const culturesKey = cultures.join(',');
@@ -200,10 +200,10 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (hasSocial && !onlyFullscreen) {
 			if (!this.#shareBtn?.isConnected) {
 				this.#shareBtn?.remove();
-				this.#shareBtn = createElement('micrio-button') as MicrioElement;
+				this.#shareBtn = createElement('micrio-button');
 				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
 			}
-			this.#shareBtn._setProps({ type: 'share', title: $i18n._share, onclick: this.#share });
+			if (this.#shareBtn instanceof MicrioElement) {this.#shareBtn._setProps({ type: 'share', title: $i18n._share, onclick: this.#share });}
 		} else if (this.#shareBtn?.isConnected) {
 			this.#shareBtn.remove();
 		}
@@ -218,21 +218,21 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (showMute) {
 				if (!this.#muteBtn?.isConnected) {
 					this.#muteBtn?.remove();
-					this.#muteBtn = createElement('micrio-button') as MicrioElement;
+					this.#muteBtn = createElement('micrio-button');
 					this.#group1.prepend(this.#muteBtn);
 				}
-				this.#muteBtn._setProps({
+				if (this.#muteBtn instanceof MicrioElement) {this.#muteBtn._setProps({
 					type: $isMuted ? 'muted' : 'unmuted',
 					title: $isMuted ? $i18n._audioUnmute : $i18n._audioMute,
 					onclick: this.#toggleMute
-				});
+				});}
 			} else if (this.#muteBtn?.isConnected) {
 				this.#muteBtn.remove();
 			}
 			if (zoomVisible) {
 				if (!this.#zoomGroup?.isConnected) {
 					this.#zoomGroup?.remove();
-					this.#zoomGroup = createElement('micrio-zoom-buttons') as MicrioElement;
+					this.#zoomGroup = createElement('micrio-zoom-buttons');
 					if (this.#fsGroup?.isConnected) {this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);}
 					else {this.#group1.append(this.#zoomGroup);}
 				}
@@ -242,9 +242,9 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			if (this.#showFullscreen) {
 				if (!this.#fsGroup?.isConnected) {
 					this.#fsGroup?.remove();
-					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 }) as MicrioElement;
+					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 });
 				}
-				this.#fsGroup._setProps({ el: micrio });
+				if (this.#fsGroup instanceof MicrioElement) {this.#fsGroup._setProps({ el: micrio });}
 			} else if (this.#fsGroup?.isConnected) {
 				this.#fsGroup.remove();
 			}

@@ -1,6 +1,5 @@
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
-import type { MicrioTour } from '$tour/tour';
 import { get } from '$core/store';
 import { Frame } from '$core/frame';
 import { i18n } from '$core/i18n/strings';
@@ -36,7 +35,10 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		if (!micrio || !marker) {return;}
 
 		for (const c of marker.tags ?? []) {this.classList.add(c);}
-		void afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
+		void afterFrame().then(() => {
+			const btn = this.querySelector('micrio-button:last-child > button');
+			if (btn instanceof HTMLElement) {btn.focus();}
+		});
 
 		this._addCleanup(micrio.state.popup.subscribe(m => {
 			this.#destroying = !m || m !== marker;
@@ -108,8 +110,8 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			this.classList.toggle('minimized', this.#isMinimized);
 			if (this.#content) {
 				for (const child of this.#content.children) {
-					const n = child as HTMLElement;
-					if (n && n !== this.#title) {
+					if (child instanceof HTMLElement && child !== this.#title) {
+						const n = child;
 						if (!this.#originalHeights.has(n)) {
 							this.#originalHeights.set(n, n.offsetHeight);
 							n.style.height = `${n.offsetHeight  }px`;
@@ -162,8 +164,9 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 		if (showTourControls) {
 			Frame.request(() => {
-				const tourAside = (document.querySelector('micrio-tour') as MicrioTour)?.aside;
-				if (tourAside && !this.contains(tourAside)) {
+				const tourEl = document.querySelector('micrio-tour');
+				const tourAside = tourEl instanceof MicrioElement && 'aside' in tourEl ? tourEl.aside : undefined;
+				if (tourAside instanceof HTMLElement && !this.contains(tourAside)) {
 					this.append(tourAside);
 				}
 			});

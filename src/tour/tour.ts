@@ -161,7 +161,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				createElement('micrio-fullscreen', {
 					parent: this.aside,
 					setProps: { el : micrio }
-				}) as MicrioElement;
+				});
 
 				if (!mt.cannotClose) {
 					const close = createElement('micrio-button', {

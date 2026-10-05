@@ -74,9 +74,9 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		const popupMarker = 'marker' in p ? p.marker : undefined;
 		const markerTour = 'markerTour' in p ? p.markerTour : undefined;
 		const page = 'contentPage' in p ? p.contentPage : undefined;
-		const isPartOfTour = Boolean(popupMarker && markerTour && 'steps' in markerTour &&
-			(markerTour).steps?.findIndex((s: string) => s.startsWith(popupMarker.id)) >= 0);
-		const isLastStep = isPartOfTour ? (markerTour as Models.ImageData.MarkerTour).currentStep === (markerTour as Models.ImageData.MarkerTour).steps.length - 1 : true;
+		const stepsTour = markerTour && 'steps' in markerTour ? markerTour : undefined;
+		const isPartOfTour = Boolean(popupMarker && stepsTour && stepsTour.steps?.findIndex((s: string) => s.startsWith(popupMarker.id)) >= 0);
+		const isLastStep = isPartOfTour && stepsTour ? stepsTour.currentStep === (stepsTour.steps.length - 1) : true;
 		/**
 		 * A content page carrying its own `close` button ("Free exploration") does
 		 * the closing itself, so the popover's close button is hidden (6 parity).

@@ -153,7 +153,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		const focus = () => {
 			if (markerSettings.noMarkerActions) {return;}
-			(this.parentNode as HTMLElement)?.scrollTo(0, 0);
+			if (this.parentNode instanceof HTMLElement) {this.parentNode.scrollTo(0, 0);}
 			clearTimeout(this.#fto);
 			this.#fto = setTimeout(() => {
 				const px = image.camera.getXY(marker.x, marker.y);
@@ -179,7 +179,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			// marker's own view first and suppress its grid action: the tour takes over.
 			const immediatelyStartMyTourAtBeginning = autoStartMyTour !== undefined && startTourAtBeginning
 				&& myTourStep !== undefined && myTourStep > 0
-				&& autoStartMyTour.id !== ($tour as Models.ImageData.MarkerTour)?.id;
+				&& autoStartMyTour.id !== $tour?.id;
 			if (immediatelyStartMyTourAtBeginning) {
 				if (data._meta) {delete data._meta.gridAction;}
 				setTimeout(() => { if (data._meta) {data._meta.gridAction = gridAction;} }, 100);

@@ -160,13 +160,13 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				}
 				for (const l of links) {
 					const id = l[0] === image.id ? l[1] : l[0];
-					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${CSS.escape(id)}"]`) as MicrioElement;
+					let el = this.querySelector(`:scope > micrio-waypoint[data-target-id="${CSS.escape(id)}"]`);
 					if (!el) {
 						el = createElement('micrio-waypoint', {
 							attrs: { 'data-target-id': id },
 							setProps: { targetId: id, settings: l[2]?.[image.id], image },
 							parent: this
-						}) as MicrioElement;
+						});
 					}
 				}
 			} else {
@@ -184,13 +184,13 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				}
 
 				for (const m of filtered) {
-					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${CSS.escape(m.id)}"]`) as MicrioElement;
+					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${CSS.escape(m.id)}"]`);
 					if (!el) {
 						el = createElement('micrio-marker', {
 							attrs: { 'data-marker-id': m.id },
 							setProps: { marker: m, image, ...(m.noMarker ? { forceHidden: true } : {}) },
 							parent: this
-						}) as MicrioElement;
+						});
 					}
 				}
 			} else {

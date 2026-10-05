@@ -16,6 +16,25 @@ opened.subscribe(c => {
 /** Close the currently opened menu */
 function close() { opened.set(undefined); }
 
+/** Shape of legacy (pre-i18n) menu data, which carried its culture data at the top level. */
+interface LegacyMenuData {
+	i18n?: unknown;
+	title?: unknown;
+	embed?: unknown;
+	content?: unknown;
+}
+
+/** Reads a legacy culture string field (typed `unknown` because it is not part of the current model). */
+function legacyString(value: unknown): string | undefined {
+	return typeof value === 'string' ? value : undefined;
+}
+
+/** Legacy (pre-i18n) menu data, carrying its culture data at the top level. */
+function legacyCultureData(m: Models.ImageData.Menu): Models.ImageData.MenuCultureData {
+	const legacy: LegacyMenuData = m;
+	return {title: legacyString(legacy.title), embed: legacyString(legacy.embed), content: legacyString(legacy.content)};
+}
+
 /** Props for a menu item element @internal */
 export interface MenuProps {
 	menu: Models.ImageData.Menu;
@@ -63,7 +82,8 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 		this.#action = undefined;
 
 		if (menu.action) {
-			this.#action = menu.action as () => void;
+			const {action} = menu;
+			this.#action = () => {action();};
 		} else if (menu.markerId) {
 			this.#action = () => {
 				if (originalId && micrio.$current?.id !== originalId) {void micrio.open(originalId);}
@@ -84,7 +104,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	}
 
 	#getCData(m: Models.ImageData.Menu, lang: string): Models.ImageData.MenuCultureData | undefined {
-		return m.i18n?.[lang] ?? (m as unknown as Models.ImageData.MenuCultureData);
+		return m.i18n?.[lang] ?? legacyCultureData(m);
 	}
 
 	#isOpen(menu: Models.ImageData.Menu | undefined): boolean {

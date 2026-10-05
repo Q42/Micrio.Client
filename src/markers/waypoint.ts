@@ -92,7 +92,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 
 		const focus = () => {
 			if (image.$settings._markers?.noMarkerActions) {return;}
-			(this.parentNode as HTMLElement)?.scrollTo(0, 0);
+			if (this.parentNode instanceof HTMLElement) {this.parentNode.scrollTo(0, 0);}
 			clearTimeout(this.#fto);
 			this.#fto = setTimeout(() => {
 				const px = image.camera.getXY(this.#coords.x, this.#coords.y);
@@ -114,7 +114,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		const hide = () => { this.#hidden = true; };
 		this.#iface = {
 			coords: customCoords,
-			settings: settings ?? {} as Models.Spaces.WayPointSettings,
+			settings: settings ?? { i18n: {} },
 			click: () => { },
 			get deleted() { return false; },
 			set deleted(del: boolean) { if (del) {hide();} }
