@@ -43,11 +43,11 @@ export class SwipeGallery {
 	}
 
 	/** Initialize child images as camera layers and set up initial view areas. */
-	async setup(startImageIdx:number, parent:MicrioImage, engine:Engine):Promise<void> {
+	setup(startImageIdx:number, parent:MicrioImage, engine:Engine):void {
 		this.#currentImageIdx = startImageIdx;
 
 		engine._itemTransitionTimingFunction = getEasing('ease-out');
-		await Promise.allSettled(this.#images.map(d => engine._addChild(d, parent)));
+		for (const d of this.#images) {engine._addChild(d, parent);}
 
 		const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
 		for (let i = 0; i < this.#images.length; i++) {

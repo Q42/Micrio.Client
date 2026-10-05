@@ -372,7 +372,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		};
 
 		if (this.#swipeGallery) {
-			await this.#swipeGallery.setup(startImageIdx, parent, engine);
+			this.#swipeGallery.setup(startImageIdx, parent, engine);
 			this.#currentImageIdx = startImageIdx;
 			this.#currentPage = pageIdx;
 			this.#frameChanged();
@@ -381,10 +381,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#loadBook3d(parent,controller._items,startImageIdx,controller._config);
 		} else {
 			// Switch gallery: embed all images on the parent canvas
-			await Promise.allSettled(images.map(d => {
+			for (const d of images) {
 				if ('state' in d && !('image' in d)) {d.camera = parent.camera;}
-				return engine._addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d });
-			}));
+				engine._addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d });
+			}
 			const pageImages = this.#pageToImages[pageIdx];
 			const num = (pageImages?.length ?? 1) - 1;
 			parent.canvas?._setActiveImage(pageImages[0], num);
