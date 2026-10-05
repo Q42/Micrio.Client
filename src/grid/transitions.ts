@@ -78,11 +78,7 @@ export async function transition(
 	}
 
 	if (isSlwipe || isBehind) {
-		const c = target.canvas
-		if (c) {
-			c._targetOpacity = 0.9999
-			c._opacity = 0.9999
-		}
+		target.canvas?._setOpacityDirect(0.9999)
 	}
 
 	if (trans.startsWith('slide')) {

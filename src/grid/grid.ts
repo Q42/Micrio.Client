@@ -466,6 +466,7 @@ export class Grid extends MicrioElement<GridProps> {
 				const incomingIds = new Set(
 					imageEntries.filter((e) => !prevById.has(e.id) && fromAreas.has(e.id)).map((e) => e.id),
 				)
+
 				imageEntries.forEach((entry, i) => {
 					const c = this._imageMap.get(entry.id)?.canvas
 					if (!c) {
@@ -475,7 +476,7 @@ export class Grid extends MicrioElement<GridProps> {
 					// fade during their area animation. Fade-in-place items keep their
 					// default 0 opacity so they fade in at their target position.
 					if (!fadeInPlaceIds?.has(entry.id)) {
-						c._targetOpacity = c._opacity = 0.9999
+						c._setOpacityDirect(0.9999)
 					}
 					let z = entry.z
 					if (z === undefined) {
@@ -507,10 +508,7 @@ export class Grid extends MicrioElement<GridProps> {
 
 			if (isAppear) {
 				for (const i of this._current.slice(1)) {
-					const c = i.canvas
-					if (c) {
-						c._targetOpacity = c._opacity = 0.9999
-					}
+					i.canvas?._setOpacityDirect(0.9999)
 				}
 			}
 
@@ -781,6 +779,10 @@ export class Grid extends MicrioElement<GridProps> {
 		return new Promise<void>((resolve) => {
 			const { _engine: engine } = this.micrio
 			const start = performance.now()
+			// `_gotBase` is the timestamp of the last frame the base tile was
+			// actually drawn. A stale value from an earlier appearance doesn't
+			// guarantee the texture still exists (tiles of removed images get
+			// cleaned up), so require a draw after this check started.
 			const isReady = (img: MicrioImage): boolean => {
 				const c = img.canvas
 				if (!c) {
@@ -789,7 +791,7 @@ export class Grid extends MicrioElement<GridProps> {
 				if (c.images.length === 0) {
 					return true
 				}
-				return c.images[0]._gotBase > 0
+				return c.images[0]._gotBase >= start
 			}
 			const check = (): void => {
 				if (images.every(isReady) || performance.now() - start > timeout) {
