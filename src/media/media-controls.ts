@@ -189,7 +189,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 		if (this.#closeBtnEl && langChanged) {this.#closeBtnEl._setProps({ title: $i18n._close });}
 
-		if (p.duration && !isNaN(p.duration)) {
+		if (p.duration && !Number.isNaN(p.duration)) {
 			const progress = ((p.currentTime ?? 0) / p.duration) * 100;
 			if (Math.abs(progress - this.#prevProgress) > 0.5 || progress === 0) {
 				this.#prevProgress = progress;

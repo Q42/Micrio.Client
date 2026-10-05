@@ -256,7 +256,7 @@ export class VideoTourInstance {
 	 * @param perc Optional starting progress percentage for the animation (0-1).
 	 */
 	#startAni(perc = 0): void {
-		if (this.#currentIndex === undefined || isNaN(perc)) {return;}
+		if (this.#currentIndex === undefined || Number.isNaN(perc)) {return;}
 		const step = this.#timeline[this.#currentIndex];
 		if (!step) {return;}
 
