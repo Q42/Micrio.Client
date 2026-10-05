@@ -295,7 +295,10 @@ export class Viewport {
 	) {}
 
 	/** @internal */
-	get _aspect(): number { return this.width === 0 ? 1 : this.height === 0 ? 1 : this.width / this.height }
+	get _aspect(): number {
+		if (this.width === 0 || this.height === 0) {return 1;}
+		return this.width / this.height;
+	}
 
 	/**
 	 * Sets the viewport properties, scaling by device pixel ratio.

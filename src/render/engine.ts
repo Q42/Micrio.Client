@@ -195,7 +195,8 @@ export class Engine {
 		micrio: HTMLMicrioElement
 	) {
 		this.micrio = micrio;
-		this.#deleteAfterSeconds = Browser.iOS ? 5 : get(this.micrio.canvas.isMobile) ? 30 : 90;
+		if (Browser.iOS) {this.#deleteAfterSeconds = 5;}
+		else {this.#deleteAfterSeconds = get(this.micrio.canvas.isMobile) ? 30 : 90;}
 		this.render = this.render.bind(this);
 		this.#unsubscribe.push(micrio.current.subscribe(this.#setCanvas.bind(this)));
 	}
@@ -298,7 +299,9 @@ export class Engine {
 		const tile = this.#tiles.get(i);
 		if (!tile) {return 0;}
 		if (tile._opacity < 1) {
-			tile._opacity = direct ? 1 : (tile._loadedAt && tile._loadedAt > 0 ? Math.min(1, (this.now - tile._loadedAt) / 250) * imageOpacity : 0);
+			if (direct) {tile._opacity = 1;}
+			else if (tile._loadedAt && tile._loadedAt > 0) {tile._opacity = Math.min(1, (this.now - tile._loadedAt) / 250) * imageOpacity;}
+			else {tile._opacity = 0;}
 		}
 		return tile._opacity;
 	}

@@ -192,10 +192,14 @@ export default class Ani {
 
 			const eb = tBottom > fBottom, el = tLeft < fLeft, er = tRight > fRight, et = tTop < fTop;
 			if ((el || et || er || eb) && !(el && et && er && eb)) {
-				this.#fL = el ? 1 : (tLeft > fLeft ? 2 : 0);
-				this.#fR = er ? 1 : (tRight < fRight ? 2 : 0);
-				this.#fT = et ? 1 : (tTop > fTop ? 2 : 0);
-				this.#fB = eb ? 1 : (tBottom < fBottom ? 2 : 0);
+				if (el) {this.#fL = 1;}
+				else {this.#fL = tLeft > fLeft ? 2 : 0;}
+				if (er) {this.#fR = 1;}
+				else {this.#fR = tRight < fRight ? 2 : 0;}
+				if (et) {this.#fT = 1;}
+				else {this.#fT = tTop > fTop ? 2 : 0;}
+				if (eb) {this.#fB = 1;}
+				else {this.#fB = tBottom < fBottom ? 2 : 0;}
 				durFact = 1.5;
 			}
 			else {t.set(toCenterX, toCenterY, toWidth, toHeight);}
@@ -300,8 +304,17 @@ export default class Ani {
 					o = this.#fn.get(Math.max(0, (p - mo) / (1 - mo)));
 				let n = 0;
 
-				let interpCenterX = f._centerX + (t._centerX - f._centerX) * (!(n = this.#fL || this.#fR) ? pE : n === 1 ? i : o);
-				let interpCenterY = f._centerY + (t._centerY - f._centerY) * (!(n = this.#fT || this.#fB) ? pE : n === 1 ? i : o);
+				n = this.#fL || this.#fR;
+				let easeX = pE;
+				if (n === 1) {easeX = i;}
+				else if (n) {easeX = o;}
+				let interpCenterX = f._centerX + (t._centerX - f._centerX) * easeX;
+
+				n = this.#fT || this.#fB;
+				let easeY = pE;
+				if (n === 1) {easeY = i;}
+				else if (n) {easeY = o;}
+				let interpCenterY = f._centerY + (t._centerY - f._centerY) * easeY;
 				const interpWidth = f.width + (t.width - f.width) * pE;
 				const interpHeight = f.height + (t.height - f.height) * pE;
 

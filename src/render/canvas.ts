@@ -142,9 +142,9 @@ export class Canvas {
 		// A temporary crop resizes the canvas on purpose, so it must keep the scale it had
 		// instead of being mistaken for a CSS scale on the host element.
 		const {offsetWidth} = this.#micrio;
-		const scale = Object.hasOwn(this.#micrio.dataset, "static") || !offsetWidth ? 1
-			: this.#cropMode ? this.viewport.scale || 1
-			: Math.floor(width) / offsetWidth;
+		let scale = Math.floor(width) / offsetWidth;
+		if (Object.hasOwn(this.#micrio.dataset, "static") || !offsetWidth) {scale = 1;}
+		else if (this.#cropMode) {scale = this.viewport.scale || 1;}
 		// Adjust dimensions based on scale
 		width /= scale;
 		height /= scale;

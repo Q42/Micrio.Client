@@ -286,9 +286,9 @@ export class TileCanvas {
 
 	/** Steps the opacity fade animation and applies 360 transition movement. */
 	#stepOpacity(): void {
-		const fadeDuration = this.main._distanceX !== 0 || this.main._distanceY !== 0
-			? this.main._spacesTransitionDuration
-			: this.main._canvases.length === 1 && !this._hasParent ? .25 : this.main._crossfadeDuration;
+		let fadeDuration = this.main._crossfadeDuration;
+		if (this.main._distanceX !== 0 || this.main._distanceY !== 0) {fadeDuration = this.main._spacesTransitionDuration;}
+		else if (this.main._canvases.length === 1 && !this._hasParent) {fadeDuration = .25;}
 		const delta: number = (1 / fadeDuration) / this.main._frameTime;
 		const fadingIn: boolean = this._targetOpacity > 0 && this._targetOpacity >= this._opacity;
 		this._opacity = fadingIn ? Math.min(1, this._opacity + delta) : Math.max(0, this._opacity - delta);
@@ -434,7 +434,10 @@ export class TileCanvas {
 		}
 
 		if (this.#childrenDirty) {
-			this.#children.sort((a, b) => a.zIndex > b.zIndex ? 1 : a.zIndex < b.zIndex ? -1 : 0);
+			this.#children.sort((a, b) => {
+				if (a.zIndex === b.zIndex) {return 0;}
+				return a.zIndex > b.zIndex ? 1 : -1;
+			});
 			this.#childrenDirty = false;
 		}
 		for (let i = 0; i < this.#children.length; i++)

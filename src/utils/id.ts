@@ -9,7 +9,10 @@
  */
 export const getIdVal = (a: string): number => {
 	let c = a.charCodeAt(0), u = c < 91;
-	return (c -= u ? 65 : 97) - (c > 7 ? 1 : 0) + (u ? 24 : c > 10 ? -1 : 0);
+	c -= u ? 65 : 97;
+	const v = c - (c > 7 ? 1 : 0);
+	if (u) {return v + 24;}
+	return v + (c > 10 ? -1 : 0);
 };
 
 /**

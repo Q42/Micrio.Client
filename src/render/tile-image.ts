@@ -297,8 +297,11 @@ export default class Image {
 		const tOp = this._tOpacity;
 		if (this.opacity === tOp) {return false;}
 		const delta = 1 / (this.#canvas.main._frameTime * this.#canvas.main._embedFadeDuration);
-		this.opacity = Math.min(1, Math.max(0, !direct ? tOp > this.opacity
-			? Math.min(tOp, this.opacity + delta) : Math.max(tOp, this.opacity - delta) : tOp));
+		let opacity = tOp;
+		if (!direct) {
+			opacity = tOp > this.opacity ? Math.min(tOp, this.opacity + delta) : Math.max(tOp, this.opacity - delta);
+		}
+		this.opacity = Math.min(1, Math.max(0, opacity));
 		return this.opacity !== tOp;
 	}
 
