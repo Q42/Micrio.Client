@@ -143,6 +143,11 @@ tours).
   must be mounted through `bundle.json`, not as a bundle object**: that cache is only
   filled by the fetch, so the object path resolves every step marker to `undefined` and
   the tour renders nothing without saying why.
+- `tests/fixtures/grid.ts` mounts a real grid album: it packs a tightly-packed MDP archive,
+  stubs the XHR the archive is read over, and opens the album through the element's **id
+  attribute** — the only path that turns an album into a gallery (`#print()`), since
+  `open(id)` alone never does. Its `waitForGrid` gate must not wait on the viewer's
+  `_visible` list (these fixtures serve no tiles, so it stays empty).
 - `src/core/state.ts` and friends are exercised with small plain-object stubs. When a
   stub needs a back-reference to itself (the `image.engine.micrio` pattern), build it as
   `const engine = { micrio }; const image = { engine }` — see the note below.
@@ -254,34 +259,7 @@ and `advance()` when the steps firing _is_ the thing under test.
 
 Roughly in order of value against risk:
 
-1. **Two tour bugs found while writing the above. Both are resolved, and one of them was
-   a fixture artefact worth knowing about:**
-   - **`_markers.tourControlsInPopup: true` rendered no controls — fixed.** The popup
-     decided to use the tour's controls from the tour state, but then moved the tour
-     element's `aside` into itself with a one-shot `Frame.request`. The layout mounts
-     `<micrio-tour>` in a later frame than the popup, and the popup was not watching the
-     tour state, so a popup that was already open when the tour started never re-rendered
-     into the controls layout: `<micrio-tour>` mounted with a detached aside and the popup
-     stayed bare. `marker-popup.ts` now re-renders on a tour-state change (and the placement
-     call retries until the tour element exists). Covered in `marker-tour.test.ts`
-     ("marker tour controls in the popup"), including the ordering that used to fail.
-   - **The serial tour does render its controls — the old fixture never could.** The
-     reported "`<micrio-serial-tour>` renders no children" was the harness: the serial
-     element resolves every step's marker through `DataLoader._getStepMarker`, which reads
-     `bundleCache`, and **only the `bundle.json` fetch fills that cache**. Every tour test
-     mounted with `mountTour(bundleObject)`, so every step marker resolved to `undefined`,
-     no `micrio-media` was built, and (without `printChapters`) the element legitimately had
-     no children. Opened by id instead, a story-shaped serial tour builds its media element,
-     its per-step progress bars and its chapter list — see `tests/fixtures/tours.ts`
-     (`serialStoryBundle`, shaped like the Rijksmuseum João story `JXflr`) and the
-     "serial tour controls" suite in `serial-tour.test.ts`.
-     - **The one real bug it did expose:** `serial-tour.ts` built its chapter list as a plain
-       `<ol>` while `#updateBars()` looked for `ol.chapters li`, so the active chapter was
-       never marked. Fixed by building it with `class="chapters"`.
-     - **Any tour code that reads `_getStepMarker`** (`tour.ts` and `serial-tour.ts` both do,
-       for progress bars and start views) is therefore untestable through the object path:
-       mount those through `bundle.json` with fresh ids, as the serial suite now does.
-2. **The audio layer's remaining gaps**, now that the contracts are pinned:
+1. **The audio layer's remaining gaps**, now that the contracts are pinned:
    - **`mutedVolume` is unused.** `DEFAULT_SETTINGS.mutedVolume` and its `data-mutedvolume`
      attribute are parsed, but nothing in `audio-controller` or `media` reads it: muting
      always means volume 0.
@@ -291,27 +269,12 @@ Roughly in order of value against risk:
    - `HTML5PlayerAdapter.destroy()` removes only the five no-argument listeners, leaving
      `timeupdate`, `durationchange`, `error` and `canplay` attached. Pinned as-is in the
      suite; whether it leaks is a separate call.
-3. **Grid storytelling** (`src/grid/**`) — the format layer is done; the controller is
-   blocked on a fixture problem, and it is the next thing to solve:
-   - **`tests/fixtures/grid.ts` mounts a real grid album and works.** It packs a genuine
-     tightly-packed MDP archive, stubs the XHR the archive is read over, and opens the
-     album through the element's **id attribute** — the only path that turns an album into
-     a gallery (`#print()`), since `open(id)` alone never does. Two mounts in one test and
-     repeated mounts across tests both work.
-   - **An earlier note here claimed a second mount "never resolves its album". That was my
-     misdiagnosis, and it is retracted.** The evidence behind it — `gallery: null` and an
-     empty `archive.db` — came from tests whose _own_ setup was wrong: a stale
-     `waitForGrid` gate and, separately, a caller that read `$current` after `destroy()`.
-     The one reproduction that looked deterministic actually failed on an assertion, not on
-     mounting (the following album mounted fine).
-   - What is genuinely worth knowing about the harness: `waitForGrid` must not gate on the
-     viewer's `_visible` list (it stays empty here, because these fixtures serve no tiles),
-     and every image id, album id and archive id has to be fresh per fixture, because
-     `DataLoader` caches by id for the whole file.
+2. **Grid storytelling** (`src/grid/**`) — the format layer and the album harness are done;
+   the controller is the next thing to solve:
    - The suites still to write are listed in the approved plan: controller (layout, history,
      focus, enlarge), transitions, actions and the `grid:` tour-event path, keyboard, and
      the integration paths.
-4. **UI components** — the button, icon, progress-circle, dial and menu tree are covered,
+3. **UI components** — the button, icon, progress-circle, dial and menu tree are covered,
    including language switching on the menu. Still open:
    - **`<micrio-toolbar>` itself**: which entries it collects (pages, marker tours, video
      tours), the `_`-prefixed system entries it keeps, its filtering by active language, the
@@ -322,9 +285,9 @@ Roughly in order of value against risk:
    - One menu case is `it.skip` in `ui-menu.test.ts` (nested branch open state): it passes
      on its own but is order-dependent in sequence, because the menu's open state is a
      module-level store. Re-enable once that leak is handled.
-5. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
+4. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
    after the other subsystems, and only with golden-image or geometry assertions.
-6. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
+5. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
    floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-7. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+6. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
