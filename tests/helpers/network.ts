@@ -20,6 +20,9 @@ interface Route {
 
 let restore: (() => void) | undefined
 
+/** Every URL the patched `fetch` has been asked for since the last `mockFetch`. */
+export const requested: string[] = []
+
 /** The original `fetch`, captured lazily so a test may patch before any call. */
 let original: typeof fetch | undefined
 
@@ -52,8 +55,10 @@ export function mockJson(match: RegExp, json: unknown, status = 200): void {
 function install(routes: Route[]): void {
 	const base = originalFetch()
 	restore?.()
+	requested.length = 0
 	const patched: typeof fetch = async (input, init) => {
 		const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+		requested.push(url)
 		for (const route of routes) {
 			if (route.test.test(url)) {
 				const response = route.respond(url)
