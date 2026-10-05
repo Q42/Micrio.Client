@@ -94,14 +94,12 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				} else {
 					($tour).next?.();
 				}
+			} else if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
+				void micrio.open(image.id);
+				image.state.marker.set(undefined);
+				micrio.state.popup.set(undefined);
 			} else {
-				if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
-					void micrio.open(image.id);
-					image.state.marker.set(undefined);
-					micrio.state.popup.set(undefined);
-				} else {
-					image.state.marker.set(undefined);
-				}
+				image.state.marker.set(undefined);
 			}
 		};
 

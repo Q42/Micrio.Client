@@ -331,12 +331,10 @@ export class MicrioMain extends MicrioElement<MainProps> {
 					createElement('micrio-marker-popup', { setProps: { marker: $popupMarker }, parent: this })
 				);
 			}
-		} else {
+		} else if (!existing?.isConnected) {
 			// Don't remove — let the popup animate out via its destroying class
-			if (!existing?.isConnected) {
-				this.#elements.set('popup', null);
-				this.#activePopupMarkerId = undefined;
-			}
+			this.#elements.set('popup', null);
+			this.#activePopupMarkerId = undefined;
 		}
 
 		this.#show('tour', Boolean($tour), () => {

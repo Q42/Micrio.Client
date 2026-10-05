@@ -10,7 +10,7 @@ const opened = writable<Models.ImageData.Menu | undefined>();
 let hooked = false;
 opened.subscribe(c => {
 	if (c) { if (!hooked) {globalThis.addEventListener('click', close);} }
-	else { if (hooked) {globalThis.removeEventListener('click', close);} }
+	else if (hooked) {globalThis.removeEventListener('click', close);}
 	hooked = Boolean(c);
 });
 /** Close the currently opened menu */
