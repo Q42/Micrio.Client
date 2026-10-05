@@ -7,8 +7,13 @@
  */
 import { afterEach, beforeEach } from 'vitest'
 
-import '../../src/main'
 import { restoreNetwork } from '../helpers/network'
+import { installTextureWorker } from './textures'
+
+// The texture worker bootstrap is created at module load, so the fake worker has
+// to be in place *before* the client is imported.
+installTextureWorker()
+await import('../../src/main')
 
 beforeEach(() => {
 	document.body.replaceChildren()
