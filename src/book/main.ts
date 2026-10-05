@@ -476,8 +476,8 @@ export class BookViewer {
 		// PaperMesh point the other way).
 		const tU = ctx.result._tangentU;
 		const tV = ctx.result._tangentV;
-		const lenU = Math.sqrt(tU._x * tU._x + tU._y * tU._y + tU._z * tU._z) || 1;
-		const lenV = Math.sqrt(tV._x * tV._x + tV._y * tV._y + tV._z * tV._z) || 1;
+		const lenU = Math.hypot(tU._x, tU._y, tU._z) || 1;
+		const lenV = Math.hypot(tV._x, tV._y, tV._z) || 1;
 		const ux = tU._x / lenU, uy = tU._y / lenU, uz = tU._z / lenU;
 		const vx = tV._x / lenV, vy = tV._y / lenV, vz = tV._z / lenV;
 		const outward = (mesh instanceof CoverMesh || ctx.side === 0) ? 1 : -1;

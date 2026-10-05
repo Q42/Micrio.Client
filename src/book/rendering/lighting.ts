@@ -37,7 +37,7 @@ function clamp01(n: number): number {
 }
 
 function normalize(v: number[]): [number, number, number] {
-	const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+	const len = Math.hypot(v[0], v[1], v[2]);
 	if (len < 1e-9) {return [0, 1, 0];}
 	return [v[0]/len, v[1]/len, v[2]/len];
 }

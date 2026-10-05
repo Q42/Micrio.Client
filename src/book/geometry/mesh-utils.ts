@@ -58,7 +58,7 @@ export function computeVertexNormals(
 			let nx = normals[i * 3] * inv;
 			let ny = normals[i * 3 + 1] * inv;
 			let nz = normals[i * 3 + 2] * inv;
-			const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+			const len = Math.hypot(nx, ny, nz);
 			if (len > 1e-9) {
 				normals[i * 3] = nx / len;
 				normals[i * 3 + 1] = ny / len;
@@ -83,7 +83,7 @@ export function addEdgeConstraint(
 	const dx = restPositions[i3] - restPositions[j3];
 	const dy = restPositions[i3 + 1] - restPositions[j3 + 1];
 	const dz = restPositions[i3 + 2] - restPositions[j3 + 2];
-	const restLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+	const restLen = Math.hypot(dx, dy, dz);
 	constrs.push({ _i: i, _j: j, _restLength: restLen });
 }
 

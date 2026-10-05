@@ -170,7 +170,7 @@ export class OrbitCamera {
 		const dx = forward._x + right._x * haX + up._x * haY;
 		const dy = forward._y + right._y * haX + up._y * haY;
 		const dz = forward._z + right._z * haX + up._z * haY;
-		const invLen = 1 / Math.sqrt(dx * dx + dy * dy + dz * dz);
+		const invLen = 1 / Math.hypot(dx, dy, dz);
 
 		return {
 			origin: eye,
@@ -232,7 +232,7 @@ export class OrbitCamera {
 		const dy = deltaY * px;
 
 		const xzUp = new Vec3(up._x, 0, up._z);
-		const xzLen = Math.sqrt(xzUp._x * xzUp._x + xzUp._z * xzUp._z);
+		const xzLen = Math.hypot(xzUp._x, xzUp._z);
 		if (xzLen > 1e-6) {
 			xzUp._x /= xzLen;
 			xzUp._z /= xzLen;

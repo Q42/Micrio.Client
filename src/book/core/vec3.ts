@@ -38,7 +38,7 @@ export class Vec3 {
 	}
 
 	_length(): number {
-		return Math.sqrt(this._x * this._x + this._y * this._y + this._z * this._z);
+		return Math.hypot(this._x, this._y, this._z);
 	}
 
 	_normalize(): Vec3 {

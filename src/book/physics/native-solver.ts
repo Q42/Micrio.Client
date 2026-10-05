@@ -159,7 +159,7 @@ function solveDistanceSet(
 		let dx = ix - jx;
 		let dy = iy - jy;
 		let dz = iz - jz;
-		const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+		const dist = Math.hypot(dx, dy, dz);
 		if (dist < EPS) {continue;}
 
 		const invDist = 1 / dist;

@@ -135,7 +135,7 @@ export class PaperMesh {
 			const dx = this._restPositions[i3a] - this._restPositions[i3b];
 			const dy = this._restPositions[i3a + 1] - this._restPositions[i3b + 1];
 			const dz = this._restPositions[i3a + 2] - this._restPositions[i3b + 2];
-			const restLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+			const restLen = Math.hypot(dx, dy, dz);
 			constrs.push({ _i: tipA, _j: tipB, _restLength: restLen });
 		}
 		this._bendingConstraints = constrs;

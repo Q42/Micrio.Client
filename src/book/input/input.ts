@@ -264,5 +264,5 @@ function firstTwo<K, V>(m: Map<K, V>): [V, V] {
 function dist(a: PointerState, b: PointerState): number {
 	const dx = b._clientX - a._clientX;
 	const dy = b._clientY - a._clientY;
-	return Math.sqrt(dx * dx + dy * dy);
+	return Math.hypot(dx, dy);
 }

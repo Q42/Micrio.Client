@@ -165,7 +165,7 @@ export function uvToWorldPosition(mesh: PaperMesh, u: number, v: number, side: 0
 	const s = interpolateMesh(mesh, u, v, side, true, region);
 	if (!s) {return null;}
 
-	const len = Math.sqrt(s._nx * s._nx + s._ny * s._ny + s._nz * s._nz) || 1;
+	const len = Math.hypot(s._nx, s._ny, s._nz) || 1;
 	return {
 		_point: new Vec3(s._wx, s._wy, s._wz),
 		_normal: new Vec3(s._nx / len, s._ny / len, s._nz / len),
