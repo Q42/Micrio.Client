@@ -98,7 +98,7 @@ export function writable<T>(value?: T): Writable<T> {
 		},
 		set(v: T) {
 			value = v;
-			subs.forEach(fn => fn(v));
+			for (const fn of subs) { fn(v); }
 		},
 		update(fn: Updater<T>) {
 			this.set(fn(value as T));
