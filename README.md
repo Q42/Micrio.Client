@@ -72,6 +72,19 @@ $ pnpm run typecheck
 
 This runs `tsc` with the project's `tsconfig.json`.
 
+## Unit tests
+
+```sh
+$ pnpm run test:core      # bare Node, no DOM, no network
+$ pnpm run test:browser   # headless Chromium via Playwright
+```
+
+Two independent Vitest projects: `core` covers pure logic (math, parsing, state,
+data loading, matrix math) and `browser` covers everything that needs a real DOM,
+layout, WebGL or the `<micr-io>` element. See [TESTING.md](TESTING.md) for how to run
+them, the offline-fixture strategy, hints for adding suites, and what is still
+untested.
+
 ## Linting
 
 ```sh
