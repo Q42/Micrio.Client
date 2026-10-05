@@ -127,7 +127,7 @@ class Archive {
 	get = <T>(u: string) : Promise<T> => new Promise((ok, err) => { // Added err callback
 		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
 		const data = i && this.#data.get(i[0]);
-		if(!i || !data) {return err(new Error(`Could not get blob: ${u}`));} // Throw error if not found
+		if(!i || !data) {err(new Error(`Could not get blob: ${u}`)); return;} // Throw error if not found
 		const fr = new FileReader();
 		fr.addEventListener('load', () => {
 			const {result} = fr;

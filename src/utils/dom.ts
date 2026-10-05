@@ -90,7 +90,10 @@ export function createSvgElement(tag: string, options: ElementOptions = {}): SVG
  * @internal
  * @param ms The number of milliseconds to wait. If 0, resolves immediately.
  */
-export const sleep = (ms: number) => new Promise<void>(ok => ms ? setTimeout(ok, ms) : ok());
+export const sleep = (ms: number) => new Promise<void>(ok => {
+	if (ms) {setTimeout(ok, ms);}
+	else {ok();}
+});
 
 /** Returns a Promise that resolves after the next browser paint (two frames). @internal */
 export const afterFrame = (): Promise<void> => Frame.afterPaint();
@@ -126,7 +129,7 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 
 /** Dynamically loads an external script, ensuring it is loaded only once per session. @internal */
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) => new Promise<void>((ok, err) => {
-	if (targetObj || loaded.has(src)) {return ok();}
+	if (targetObj || loaded.has(src)) {ok(); return;}
 	const script = document.createElement('script');
 	const onload = () => { loaded.add(src); ok(); };
 	if (cbFunc) {Object.assign(globalThis, {[cbFunc]: onload});}
