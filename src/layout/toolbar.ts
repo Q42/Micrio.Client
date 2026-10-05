@@ -169,7 +169,7 @@ class MicrioToolbar extends MicrioElement {
 				setProps: {
 					title: $i18n._menuToggle,
 					type: this.#shown ? 'close' : 'ellipsisVertical',
-					className: `transparent${  this.querySelector('menu.indent') ? ' indent' : ''}` || undefined,
+					className: `transparent${  this.querySelector('menu.indent') ? ' indent' : ''}`,
 					onclick: this.#toggle
 				},
 				parent: this
