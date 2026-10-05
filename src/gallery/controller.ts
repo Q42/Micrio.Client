@@ -75,7 +75,7 @@ export class Gallery {
 			// and generate thumbSrc URLs that match what the archive stores.
 			if (config.archiveLayerOffset !== undefined) {
 				imageSettings.gallery = {
-					...(imageSettings.gallery || {}),
+					...imageSettings.gallery,
 					archive: true,
 					archiveLayerOffset: config.archiveLayerOffset
 				};
@@ -192,7 +192,7 @@ export class Gallery {
 
 		if (aInfo.type === 'grid' && aInfo.archive) {
 			const gridClickable = config.grid?.clickable ?? config.settings?.grid?.clickable;
-			const settings: Record<string, any> = { zoomLimit: 15, minimap: false, ...(config.settings ?? {}) };
+			const settings: Record<string, any> = { zoomLimit: 15, minimap: false, ...config.settings };
 			if (gridClickable && settings.hookKeys === undefined) {settings.hookKeys = true;}
 			config.settings = settings as any;
 		}
