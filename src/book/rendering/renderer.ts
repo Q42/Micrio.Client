@@ -424,7 +424,7 @@ export class PaperRenderer {
 		const gl = this.#gl;
 		const pageIdx = md._pageIndex;
 
-		const binds: Array<[(WebGLTexture | null)[], WebGLUniformLocation | null]> = [
+		const binds: [(WebGLTexture | null)[], WebGLUniformLocation | null][] = [
 			[this.#frontTextures, this.#paperULoc._frontTexture],
 			[this.#backTextures, this.#paperULoc._backTexture],
 			[this.#frontHiResATextures, this.#paperULoc._frontHiResA],

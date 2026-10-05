@@ -131,7 +131,7 @@ export interface MicrioEventDetails {
 
 	// Special cases
 	/** When there is any user action, this event fires. Deferred and fires at a maximum rate of every 500ms */
-	'update': Array<string>;
+	'update': string[];
 }
 
 

@@ -111,11 +111,11 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Direct callbacks invoked on every camera move (instead of dispatching a DOM event).
 	 * @internal
 	*/
-	readonly _onMove: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
+	readonly _onMove: ((detail: { image: MicrioImage, view: Models.Camera.View }) => void)[] = [];
 	/** Direct callbacks invoked on every camera zoom (instead of dispatching a DOM event).
 	 * @internal
 	*/
-	readonly _onZoom: Array<(detail: { image: MicrioImage, view: Models.Camera.View }) => void> = [];
+	readonly _onZoom: ((detail: { image: MicrioImage, view: Models.Camera.View }) => void)[] = [];
 
 	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone:Writable<boolean> = writable(false);

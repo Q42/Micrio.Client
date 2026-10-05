@@ -198,7 +198,7 @@ export class CoverMesh extends PaperMesh {
 		this.#addFaceTriangles(tris, FACE_VERTEX_COUNT, true);
 
 		let vi = FACE_VERTEX_COUNT * 2;
-		const edges: Array<'bottom' | 'top' | 'freeEdge' | 'boundEdge'> =
+		const edges: ('bottom' | 'top' | 'freeEdge' | 'boundEdge')[] =
 			['bottom', 'top', 'freeEdge', 'boundEdge'];
 
 		for (const edge of edges) {

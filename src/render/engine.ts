@@ -134,7 +134,7 @@ export class Engine {
 	_frameTime: number = 1 / 60;
 
 	/** Array storing references to all MicrioImage instances managed by the engine. @internal */
-	#images: Array<MicrioImage | Models.Omni.Frame> = [];
+	#images: (MicrioImage | Models.Omni.Frame)[] = [];
 	/** Flag indicating if barebone mode is active. @internal */
 	#bareBoneSetting = false;
 	/** Set of base tile indices (loaded, never evicted). @internal */
