@@ -42,3 +42,26 @@ export interface HlsPlayer {
 export interface HlsPlayerConstructor {
 	new(config?: Record<string, unknown>) : HlsPlayer;
 }
+
+/** The global `YT` namespace exposed by the YouTube IFrame Player API script. */
+export interface YouTubeIframeApi {
+	Player: new (frame: HTMLIFrameElement, options: Record<string, unknown>) => YouTubePlayer;
+}
+
+/** The global `Vimeo` namespace exposed by the Vimeo Player API script. */
+export interface VimeoPlayerApi {
+	Player: new (frame: HTMLIFrameElement, options: Record<string, unknown>) => VimeoPlayer;
+}
+
+/** Externals loaded on demand by `loadExternalAPI`, so both are absent until then.
+ *  Declared both on `Window` and as global variables, since the adapters read them
+ *  off `globalThis` (`unicorn/prefer-global-this`). */
+declare global {
+	interface Window {
+		YT?: YouTubeIframeApi;
+		Vimeo?: VimeoPlayerApi;
+	}
+
+	var YT: YouTubeIframeApi | undefined;
+	var Vimeo: VimeoPlayerApi | undefined;
+}
