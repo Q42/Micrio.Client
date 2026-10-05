@@ -37,7 +37,6 @@ export class MicrioAudioLocation {
 		const image = this.#micrio.$current;
 		if (!image) {return;}
 		const info = image.$info;
-		if (!info) {return;}
 		const imgWidth = info.width;
 		const imgHeight = info.height;
 		const item = marker.positionalAudio;
@@ -79,7 +78,7 @@ export class MicrioAudioLocation {
 		};
 
 		const play = () => {
-			if (this.#source) {this.#source.disconnect();}
+			if (this.#source !== undefined) {this.#source.disconnect();}
 			this.#source = ctx.createBufferSource();
 			if (item.loop) {
 				if (item.repeatAfter > 0) {this.#source.addEventListener('ended', () => {
@@ -88,7 +87,7 @@ export class MicrioAudioLocation {
 			}
 			this.#gain.gain.value = item.volume ?? 1;
 			this.#source.buffer = audioBufferCache()[item.src] ?? null;
-			if (this.#source.buffer) {
+			if (this.#source.buffer !== null) {
 				this.#source.connect(this.#panner);
 				this.#source.start();
 			}
@@ -97,7 +96,7 @@ export class MicrioAudioLocation {
 		const start = async () => {
 			if (!item.src) {return;}
 			const buffers = audioBufferCache();
-			if (!buffers[item.src]) {
+			if (buffers[item.src] === undefined) {
 				buffers[item.src] = await fetch(item.src)
 					.then(res => res.arrayBuffer())
 					.then(b => ctx.decodeAudioData(b));
@@ -116,7 +115,7 @@ export class MicrioAudioLocation {
 	}
 
 	#end() {
-		if (this.#source) {this.#source.disconnect();}
+		if (this.#source !== undefined) {this.#source.disconnect();}
 		clearTimeout(this.#to);
 		this.#panner.disconnect();
 		this.#gain.disconnect();

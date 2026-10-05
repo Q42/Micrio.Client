@@ -24,7 +24,7 @@ function init(volume: number) {
 		const external: unknown = 'micrioAudioContext' in globals ? globals.micrioAudioContext : undefined;
 		_ctx = external instanceof AudioContext ? external : new AudioContext();
 	}
-	if (!_ctx) { console.warn('[Micrio] Your browser does not support the Web Audio API');; return;}
+	if (_ctx === null) { console.warn('[Micrio] Your browser does not support the Web Audio API');; return;}
 	if (_ctx.state === 'suspended') {_ctx.resume().then(() => { }).catch(() => { });}
 	mainGain = _ctx.createGain();
 	mainGain.connect(_ctx.destination);
@@ -35,7 +35,7 @@ function init(volume: number) {
 
 function setPosition(x: number, y: number, z: number) {
 	if (!l) {return;}
-	if (l.setPosition) {l.setPosition(x, y, z);}
+	if (l.setPosition !== undefined) {l.setPosition(x, y, z);}
 	else if ('positionX' in l) {
 		l.positionX.value = x;
 		l.positionY.value = y;
@@ -45,7 +45,7 @@ function setPosition(x: number, y: number, z: number) {
 
 function setOrientation(x: number, y: number, z: number) {
 	if (!l) {return;}
-	if (l.setOrientation) {l.setOrientation(x, y, z, 0, 1, 0);}
+	if (l.setOrientation !== undefined) {l.setOrientation(x, y, z, 0, 1, 0);}
 	else if ('forwardX' in l) {
 		l.forwardX.value = x;
 		l.forwardY.value = y;
@@ -102,7 +102,6 @@ export class MicrioAudioController {
 		this.#audioLocations = [];
 		if (!_ctx || !img) {return;}
 		const info = img.$info;
-		if (!info) {return;}
 		const is360 = Boolean(info.is360);
 		const data = img.$data;
 		const posMarkers = data?.markers?.filter(m => Boolean(m.positionalAudio));
@@ -121,7 +120,6 @@ export class MicrioAudioController {
 		const { events } = micrio;
 
 		const info = image.$info;
-		if (!info) {return;}
 		const is360 = Boolean(info.is360);
 		const ar = info.height / info.width;
 
