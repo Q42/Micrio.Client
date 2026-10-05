@@ -10,6 +10,8 @@
 		"dev": "vite --port 2000",
 		"publish": "node publish.js",
 		"docs": "npm run create:client --prefix ../Micrio.Server/doc.micr.io",
+		"lint": "oxlint --type-aware",
+		"lint:fix": "oxlint --type-aware --fix",
 		"typecheck": "tsc"
 	},
 	"keywords": [
@@ -27,6 +29,8 @@
 	},
 	"license": "MIT",
 	"devDependencies": {
+		"oxlint": "^1.86.0",
+		"oxlint-tsgolint": "^7.0.2003",
 		"terser": "^5.46.1",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.8"
