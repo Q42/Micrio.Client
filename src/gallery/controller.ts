@@ -215,7 +215,7 @@ export class Gallery {
 
 	// --- Static Helpers ---
 
-	static #getArchiveIndex = async (id: string, path: string):
+	static #getArchiveIndex = (id: string, path: string):
 		Promise<{ delta?: number; images: Models.ImageInfo.ImageInfo[] }> =>
 		archive.get<{ images: Models.ImageInfo.ImageInfo[] }>(`${path}${id}.json`)
 			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r; });

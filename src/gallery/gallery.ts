@@ -310,7 +310,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 * Renders the standard gallery UI: scrubber bar, prev/next buttons,
 	 * registers images with the engine, and sets up input handlers.
 	 */
-	async #renderGallery(micrio: HTMLMicrioElement, image: MicrioImage, controller: GalleryController) {
+	#renderGallery(micrio: HTMLMicrioElement, image: MicrioImage, controller: GalleryController) {
 		const images: MicrioImage[] = [...controller._images];
 		if (images.length === 0) {return;}
 

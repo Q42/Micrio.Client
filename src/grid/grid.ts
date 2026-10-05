@@ -467,7 +467,7 @@ export class Grid extends MicrioElement {
 	}
 
 	/** @internal */
-	async _flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
+	_flyToMarkers(tag?:string, duration?:number, noZoom?:boolean) : Promise<MicrioImage[]> {
 		const spl = tag?.split('|').map(s => s.trim());
 		const name = spl?.[0]??'';
 		const images = !name ? this._images : this._images.filter(i => Boolean(i.$data?.markers?.find(m => m.tags?.includes(name))));
@@ -579,12 +579,12 @@ export class Grid extends MicrioElement {
 	}
 
 	/** Enlarge a specific grid cell to span the given number of columns/rows, re-laying out without history. */
-	async enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
+	enlarge(idx:number, width:number, height:number=width) : Promise<MicrioImage[]> {
 		const layout = this.#history[this.#history.length-1]?.layout;
 		const cover = this.image.$settings?.initType === 'cover';
 		if (!layout?.length) {
 			const galleryImages = this.#gallery._images;
-			if (galleryImages.length === 0) {return this._current;}
+			if (galleryImages.length === 0) {return Promise.resolve(this._current);}
 			return this.set(galleryImages.map((img, i) => ({
 				id: img.id,
 				size: i === idx ? [width, height] as [number, number] : [1],
