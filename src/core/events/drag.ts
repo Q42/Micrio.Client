@@ -135,7 +135,7 @@ export class DragHandler {
 		delete this.#ctx._micrio.dataset.panning;
 
 		// Notify engine pan stopped (triggers kinetic animation if enabled and not suppressed)
-		if (e && noKinetic === false) {
+		if (e && !noKinetic) {
 			const img = this.#ctx._vars._drag._image ?? this.#ctx._getImage({ x: e.clientX, y: e.clientY });
 			if (img) {
 				img.canvas?._kinetic.start();
