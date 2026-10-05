@@ -72,6 +72,18 @@ $ pnpm run typecheck
 
 This runs `tsc` with the project's `tsconfig.json`.
 
+## Linting
+
+```sh
+$ pnpm run lint
+```
+
+This runs [oxlint](https://oxc.rs/docs/guide/usage/linter) in type-aware mode
+(configured by `.oxlintrc.json`, with `oxlint-tsgolint` providing the type
+information). `pnpm run lint:fix` applies the auto-fixable rules; the rest have
+to be fixed by hand. See [LINTING.md](LINTING.md) for the rule set, the
+deliberate exclusions and the current migration status.
+
 ## Production build
 
 ```sh
