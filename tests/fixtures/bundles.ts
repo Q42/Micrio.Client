@@ -1,7 +1,7 @@
 import type { Models } from '../../src/types/models'
 
 /** A tiny valid image info block: 512x512 @ 256px tiles => 2 zoom levels. */
-const baseInfo = (id: string, extra: Partial<Models.ImageInfo.ImageInfo> = {}): Models.ImageInfo.ImageInfo => ({
+export const baseInfo = (id: string, extra: Partial<Models.ImageInfo.ImageInfo> = {}): Models.ImageInfo.ImageInfo => ({
 	id,
 	path: 'https://r2.micr.io/',
 	version: '6.1.11',
@@ -13,7 +13,8 @@ const baseInfo = (id: string, extra: Partial<Models.ImageInfo.ImageInfo> = {}): 
 	...extra,
 })
 
-const marker = (id: string, extra: Partial<Models.ImageData.Marker> = {}): Models.ImageData.Marker => ({
+/** A marker with a title/body and sensible defaults. */
+export const marker = (id: string, extra: Partial<Models.ImageData.Marker> = {}): Models.ImageData.Marker => ({
 	id,
 	x: 0.5,
 	y: 0.5,
