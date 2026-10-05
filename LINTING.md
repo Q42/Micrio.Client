@@ -101,26 +101,17 @@ lint. Prefer a real fix over adding to this list.
 
 ## To fix later
 
-1. **Heavy type-aware rules.** These are off by default in oxlint and stay off
-   for now; each needs its own migration. Baseline counts with this config:
+**Heavy type-aware rules.** These are off by default in oxlint and stay off for
+now; each needs its own migration. Baseline counts with this config:
 
-   | Rule | Findings |
-   | --- | --- |
-   | `typescript/strict-boolean-expressions` | 875 |
-   | `typescript/no-unsafe-member-access` | 725 |
-   | `typescript/no-unsafe-assignment` | 323 |
-   | `typescript/no-confusing-void-expression` | 130 |
-   | `typescript/no-unsafe-argument` | 129 |
-   | `typescript/no-unsafe-return` | 41 |
-
-2. **`public/dist/package.json` `engines.node`** still says `>=18.17.0`. That is
-   the manifest of the *published* `@micrio/client` bundle, which needs no Node
-   runtime of its own, so it was deliberately left alone when the source-repo
-   floor moved to `^20.19.0 || >=22.12.0` (`package.json` and the README state
-   that range now, and `.nvmrc` is `24.4.0`). Align it if the published package
-   should gate on the same range.
-3. **CI.** There is no workflow directory yet, so lint/typecheck are local-only
-   gates. Add `pnpm lint` + `pnpm typecheck` to CI if/when one exists.
+| Rule | Findings |
+| --- | --- |
+| `typescript/strict-boolean-expressions` | 875 |
+| `typescript/no-unsafe-member-access` | 725 |
+| `typescript/no-unsafe-assignment` | 323 |
+| `typescript/no-confusing-void-expression` | 130 |
+| `typescript/no-unsafe-argument` | 129 |
+| `typescript/no-unsafe-return` | 41 |
 
 ## Working notes
 
