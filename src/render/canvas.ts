@@ -79,7 +79,7 @@ export class Canvas {
 		this.#micrio = micrio;
 		this.element.className = 'micrio';
 		// Use ResizeObserver if available for more reliable resize detection
-		if(globalThis.ResizeObserver) {this.#resizeObserver = new globalThis.ResizeObserver(this.#onResize);}
+		if(globalThis.ResizeObserver !== undefined) {this.#resizeObserver = new globalThis.ResizeObserver(this.#onResize);}
 	}
 
 	/**

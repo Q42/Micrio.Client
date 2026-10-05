@@ -63,7 +63,7 @@ export class TileCanvas {
 	set zIndex(v: number) {
 		if (this.#_zIndex !== v) {
 			this.#_zIndex = v;
-			if (this.parent) {this.parent.#childrenDirty = true;}
+			if (this.parent !== undefined) {this.parent.#childrenDirty = true;}
 		}
 	}
 
