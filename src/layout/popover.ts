@@ -137,13 +137,13 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			const cd = page.i18n?.[$_lang];
 			this.#dialog.classList.add('page');
 
-			const isVideoPage = cd?.embed && (!cd.content || cd.content.length < 250) && !page.image && !page.buttons?.length;
+			const isVideoPage = cd?.embed !== undefined && (!cd.content || cd.content.length < 250) && !page.image && !page.buttons?.length;
 			const hasMedia = Boolean(cd?.embed) || Boolean(page.image);
 
 			if (hasMedia) {this.#dialog.classList.add('has-media');}
 
 			if (isVideoPage) {
-				if (cd.embed) {
+				if (cd.embed !== undefined) {
 					createElement('micrio-media', {
 						setProps: { src: cd.embed, figcaption: cd.content, controls: true, autoplay: true },
 						parent: this.#dialog

@@ -150,7 +150,7 @@ class MicrioToolbar extends MicrioElement {
 							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 							action: () => {
-								if (originalId && micrio.$current && micrio.$current.id !== originalId) {void micrio.open(originalId);}
+								if (originalId !== undefined && micrio.$current !== undefined && micrio.$current.id !== originalId) {void micrio.open(originalId);}
 								micrioState.tour.set(t);
 							}
 						}))
