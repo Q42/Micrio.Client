@@ -18,6 +18,7 @@
 	"rules": {
 		"eslint/no-underscore-dangle": "off",
 		"unicorn/no-null": "off",
+		"unicorn/no-array-sort": "off",
 
 		"eslint/curly": "error",
 		"eslint/eqeqeq": ["error", "always", { "null": "ignore" }],

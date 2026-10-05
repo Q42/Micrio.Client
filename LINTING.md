@@ -90,6 +90,10 @@ These are off on purpose rather than forgotten:
 - Generated output (`public/**`, `templates/grid/grid.js`, `*.min.js`) is
   ignored: `templates/grid/grid.js` is built from `templates/grid/grid.ts` by
   `pnpm build:grid`.
+- `unicorn/no-array-sort` — its remedy (`Array#toSorted`) is an ES2023 API and
+  the project targets ES2022 (`tsconfig.json` has no `lib` override, so
+  `toSorted` does not type-check). The remaining call sites sort throwaway
+  local arrays. Revisit if the target moves to ES2023.
 
 ## To fix later
 
