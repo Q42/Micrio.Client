@@ -152,7 +152,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				this.#mediaEl = undefined;
 			});
 		}
-		const audio = this.#mediaEl as HTMLAudioElement;
+		const audio = this.#mediaEl;
 		audio.src = src;
 		if (p.autoplay) {audio.setAttribute('autoplay', '');}
 		else {audio.removeAttribute('autoplay');}
@@ -196,15 +196,15 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		if (p.is360) {figure.style.setProperty('--micrio-background', 'transparent');}
 
 		if (isYoutube) {
-			this.#createYoutubeIframe(src!, p, figure);
+			this.#createYoutubeIframe(src, p, figure);
 		} else if (isVimeo) {
-			this.#createVimeoIframe(src!, p, figure);
+			this.#createVimeoIframe(src, p, figure);
 		} else if (isCloudflare) {
-			this.#createCloudflareVideo(src!, p, figure);
+			this.#createCloudflareVideo(src, p, figure);
 		} else if (isAudio && src) {
-			this.#createAudioElement(src!, p, figure);
+			this.#createAudioElement(src, p, figure);
 		} else if (src) {
-			this.#createIframe(src!, p, figure);
+			this.#createIframe(src, p, figure);
 		}
 
 		if (p.figcaption) {

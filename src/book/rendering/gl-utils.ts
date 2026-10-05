@@ -18,7 +18,7 @@ export function createGLProgram(
 	const vs = compileShader(gl, gl.VERTEX_SHADER, vertSrc);
 	const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragSrc);
 
-	const prog = gl.createProgram()!;
+	const prog = gl.createProgram();
 	gl.attachShader(prog, vs);
 	gl.attachShader(prog, fs);
 	gl.linkProgram(prog);
@@ -47,7 +47,7 @@ export function setupTextureParams(gl: WebGL2RenderingContext, tex: WebGLTexture
 }
 
 export function createWhiteTexture(gl: WebGL2RenderingContext): WebGLTexture {
-	const tex = gl.createTexture()!;
+	const tex = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, tex);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
 		new Uint8Array([255, 255, 255, 0]));

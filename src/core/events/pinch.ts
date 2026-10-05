@@ -51,7 +51,7 @@ export class PinchHandler {
 		if (this.#ctx._twoFingerPan && e.touches.length < 2) {return;}
 
 		if (this.#ctx._pinching || e.touches.length != 2) {
-			this.stop(e as TouchEvent);
+			this.stop(e);
 			return;
 		}
 

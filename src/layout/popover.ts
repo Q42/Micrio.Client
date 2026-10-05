@@ -75,7 +75,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		const markerTour = 'markerTour' in p ? p.markerTour : undefined;
 		const page = 'contentPage' in p ? p.contentPage : undefined;
 		const isPartOfTour = Boolean(marker && markerTour && 'steps' in markerTour &&
-			(markerTour as Models.ImageData.MarkerTour).steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0);
+			(markerTour).steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0);
 		const isLastStep = isPartOfTour ? (markerTour as Models.ImageData.MarkerTour).currentStep == (markerTour as Models.ImageData.MarkerTour).steps.length - 1 : true;
 		/**
 		 * A content page carrying its own `close` button ("Free exploration") does
@@ -85,7 +85,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 
 		const advanceOrClose = (e?: Event) => {
 			if (isPartOfTour && markerTour && 'steps' in markerTour) {
-				const mt = markerTour as Models.ImageData.MarkerTour & { next?(): void };
+				const mt = markerTour;
 				if (e instanceof Event && isLastStep) {
 					micrio.state.tour.set(undefined);
 				} else {

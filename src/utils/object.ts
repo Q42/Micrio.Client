@@ -14,7 +14,7 @@ export function deepCopy<T>(from: T, into: T, opts: {
 } = {}): T {
 	if (!from || typeof from !== 'object') {return into;}
 	const target = into as Record<string, unknown>;
-	for (const key of Object.keys(from as Record<string, unknown>)) {
+	for (const key of Object.keys(from)) {
 		// Reject prototype-pollution keys; never legitimately present in settings data.
 		if (key === '__proto__' || key === 'constructor' || key === 'prototype') {continue;}
 		const val = (from as Record<string, unknown>)[key];

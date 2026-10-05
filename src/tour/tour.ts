@@ -44,7 +44,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				: undefined;
 
 		if (isVideoTour) {
-			const vt = tour as Models.ImageData.VideoTour;
+			const vt = tour;
 			const image = micrio.$current;
 			if (image) {
 				const audio = vt.i18n?.[get(micrio._lang)]?.audio;
@@ -68,10 +68,10 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			micrio.setAttribute('data-marker-tour-active', '');
 			this._addCleanup(() => micrio.removeAttribute('data-marker-tour-active'));
 
-			const mt = tour as Models.ImageData.MarkerTour;
+			const mt = tour;
 			mt.currentStep ??= mt.initialStep ?? 0;
 			this.#currentStep = mt.currentStep;
-			const stepInfo = mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined;
+			const stepInfo = mt.stepInfo;
 			const tourControlsInPopup = Boolean(micrio.$current!.$settings?._markers?.tourControlsInPopup);
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
@@ -198,8 +198,8 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 		this._addCleanup(micrio.state.tour.subscribe(t => {
 			if (!t && isMarkerTour) {
-				const mt = tour as Models.ImageData.MarkerTour;
-				const si = (mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined)?.[this.#currentStep];
+				const mt = tour;
+				const si = (mt.stepInfo)?.[this.#currentStep];
 				if (si) {
 					const img = findImage(si.micrioId);
 					if (img) {img.state.marker.set(undefined);}

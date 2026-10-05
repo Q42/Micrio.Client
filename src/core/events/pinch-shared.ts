@@ -81,14 +81,14 @@ export function restartPanning(ctx: EventContext, dragHandler: DragHandler, poin
 		let syntheticEvent: any;
 		if (pointers instanceof TouchList) {
 			const t = pointers[0];
-			syntheticEvent = { button: 0, target: ctx._el, clientX: t.clientX, clientY: t.clientY } as unknown as PointerEvent;
+			syntheticEvent = { button: 0, target: ctx._el, clientX: t.clientX, clientY: t.clientY };
 		} else {
 			const [pointerId, { x, y }] = pointers.entries().next().value!;
 			syntheticEvent = {
 				button: 0, pointerType: 'touch', target: ctx._el,
 				clientX: x, clientY: y,
 				pointerId
-			} as unknown as PointerEvent;
+			};
 		}
 		dragHandler.start(syntheticEvent, true, true);
 	}

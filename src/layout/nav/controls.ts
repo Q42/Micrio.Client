@@ -179,7 +179,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 							onclick: () => { this.#setLang(l); }
 						},
 						children: [l.toUpperCase()],
-						parent: items as HTMLElement
+						parent: items
 					});
 				}
 			}

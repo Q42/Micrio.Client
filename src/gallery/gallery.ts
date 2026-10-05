@@ -176,7 +176,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		micrio?.events._dispatch('gallery-show', ids);
 
 		if (this.#swipeGallery) {
-			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx] as MicrioImage);
+			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx]);
 		}
 		this.#updateScrubber();
 	}
@@ -210,7 +210,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#getScrubXPercIdx(e: PointerEvent | TouchEvent): [number, number] {
 		const _box = this.#box ?? this.#_ul!.getBoundingClientRect();
 		const total = this.#pageToImages.length;
-		const clientX = 'button' in e ? e.clientX : (e as TouchEvent).touches[0].clientX;
+		const clientX = 'button' in e ? e.clientX : (e).touches[0].clientX;
 		const perc = Math.min(1, Math.max(0, (clientX - _box.left - scrubPad) / (_box.width - scrubPad * 2)));
 		const idx = Math.max(0, Math.min(total - 1, Math.round(perc * Math.max(1, total - 1))));
 		return [perc, idx];
@@ -375,7 +375,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#currentImageIdx = startImageIdx;
 			this.#currentPage = pageIdx;
 			this.#frameChanged();
-			parent.album!.hooked = true;
+			parent.album.hooked = true;
 		} else if (isBook3D) {
 			this.#loadBook3d(parent,controller._items,startImageIdx,controller._config);
 		} else {
@@ -390,7 +390,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			parent.camera.setView([0, 0, 1, 1]);
 			this.#currentPage = pageIdx;
 			this.#frameChanged();
-			parent.album!.hooked = true;
+			parent.album.hooked = true;
 		}
 
 		// Strip-swipe pointer events on the canvas element
@@ -574,8 +574,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			hoverLabel?.remove();
 		}
 
-		if (this.#prevBtn) {(this.#prevBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr <= 0);}
-		if (this.#nextBtn) {(this.#nextBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr >= total - 1);}
+		if (this.#prevBtn) {(this.#prevBtn.querySelector('button'))?.toggleAttribute('disabled', curr <= 0);}
+		if (this.#nextBtn) {(this.#nextBtn.querySelector('button'))?.toggleAttribute('disabled', curr >= total - 1);}
 	}
 
 	/** @internal */

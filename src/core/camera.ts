@@ -248,7 +248,7 @@ export class Camera {
 	 */
 	setLimit(v: Models.Camera.View): void {
 		if (!this.#canvas) {return;}
-		const l = toCenterJSON(v)!;
+		const l = toCenterJSON(v);
 		this.#canvas.view._setLimit(l.centerX, l.centerY, l.width, l.height);
 		this.#image.engine.render();
 	}
@@ -467,7 +467,7 @@ export class Camera {
 		return new Promise((ok, abort) => {
 			if (!this.#canvas) {return abort(new Error("engine not ready"));}
 			const fn = getEasing(opts.timingFunction);
-			opts.duration = this.#canvas.camera.setCoo(coords[0]!, coords[1]!, coords[2] ?? this.getScale(), opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
+			opts.duration = this.#canvas.camera.setCoo(coords[0], coords[1], coords[2] ?? this.getScale(), opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
 			this.#image.engine.render();
 			if (opts.duration == 0) {ok();}
 			else {this.#setAniPromises(ok, abort);}
@@ -522,7 +522,7 @@ export class Camera {
 	async zoomOut(factor = 1, duration = 250, speed = 1): Promise<void> {
 		const c = this.#image.engine.micrio.canvas.viewport;
 		const rat = c.width / c.height;
-		const imgRat = this.#image.$info!.width / this.#image.$info!.height;
+		const imgRat = this.#image.$info.width / this.#image.$info.height;
 		return this.zoom(factor * (400 / Math.max(1, rat / imgRat / 2)), duration, undefined, undefined, speed).catch(() => {});
 	}
 

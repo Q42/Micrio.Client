@@ -140,7 +140,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			await afterFrame();
 			this.#injectBars();
 
-			const videoEl = this.#mediaEl!.querySelector('video,audio') as HTMLMediaElement;
+			const videoEl = this.#mediaEl.querySelector('video,audio') as HTMLMediaElement;
 			if (videoEl) {
 				videoEl.addEventListener('timeupdate', () => {
 					const si = this.#stepInfo[this.#currentStep];

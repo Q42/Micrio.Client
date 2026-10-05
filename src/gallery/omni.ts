@@ -155,7 +155,7 @@ export class OmniUI {
 			const layerNames = omniCfg!.layers!.map((l,i) => ({
 				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? `Layer ${  i + 1}` }]))
 			}));
-			const langs = Object.keys(info.revision ?? {}) as string[];
+			const langs = Object.keys(info.revision ?? {});
 			if (!langs.length) {
 				const ml = get(micrio._lang);
 				if (ml) {langs.push(ml);}

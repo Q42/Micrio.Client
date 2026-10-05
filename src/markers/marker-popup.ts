@@ -44,7 +44,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		}));
 
 		this.addEventListener('transitionend', e => {
-			if ((e as TransitionEvent).target === this && this.#destroying) {this.remove();}
+			if ((e).target === this && this.#destroying) {this.remove();}
 		});
 
 		// Button titles and content are translated, so re-render on a UI language change
@@ -77,7 +77,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const data = marker.data || {};
 		const canMinimize = settings.canMinimizePopup;
 
-		const markerTour = $tour && 'steps' in $tour ? $tour as Models.ImageData.MarkerTour & { next?(): void; prev?(): void } : undefined;
+		const markerTour = $tour && 'steps' in $tour ? $tour : undefined;
 		const tourSourceImage = markerTour ? micrio._canvases.find(c =>
 			c.$data?.markerTours?.find(t => t.id === markerTour.id)
 		) : undefined;
@@ -92,7 +92,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				if (e instanceof Event && closeButtonStopsTour) {
 					micrio.state.tour.set(undefined);
 				} else {
-					($tour as Models.ImageData.MarkerTour & { next?(): void }).next?.();
+					($tour).next?.();
 				}
 			} else {
 				if ($current && $current.id != image.id && data.micrioLink?.id == $current.id) {

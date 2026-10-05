@@ -780,9 +780,9 @@ export class Engine {
 		this.#setEntry({ canvas, micrioImage: image, camera: image.camera });
 
 		if (!isEmbed) {
-			this.#bindCamera(image as MicrioImage);
-			const {focus} = (image as MicrioImage).$settings;
-			if (focus) {(canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);}
+			this.#bindCamera(image);
+			const {focus} = (image).$settings;
+			if (focus) {(canvas).camera.setCoo(focus[0], focus[1], 0);}
 			else if (canvas._hasParent) {canvas._setView(canvas.view._centerX, canvas.view._centerY, canvas.view.width, canvas.view.height, false, false);}
 
 			canvas._sendViewport();

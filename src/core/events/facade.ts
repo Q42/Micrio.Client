@@ -130,7 +130,7 @@ export class Events implements EventContext {
 		// Get settings from the first loaded image and enable events if configured
 		micrio.current.subscribe(c => {
 			if (c && !this.#settings) {
-				this.#settings = c.$settings as Models.ImageInfo.Settings;
+				this.#settings = c.$settings;
 				if (!c.error && this.#settings.hookEvents) {this.enabled.set(true);}
 			}
 		});

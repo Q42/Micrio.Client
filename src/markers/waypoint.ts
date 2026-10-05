@@ -59,7 +59,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		const micrio = this._getMicrio();
 		if (!micrio) {return;}
 
-		const info = image.$info as Models.ImageInfo.ImageInfo;
+		const info = image.$info;
 		const vectorData = getSpaceVector(micrio, targetId);
 		if (!vectorData) { console.error(`[Micrio] Could not calculate vector for target ${targetId}`); return; }
 

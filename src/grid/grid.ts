@@ -192,7 +192,7 @@ export class Grid extends MicrioElement {
 			layout: this._current.map(i => ({
 				id: i.id,
 				view: i.state.$view,
-				size: this.#cellSizes.get(i.id) as [number, number?] | undefined,
+				size: this.#cellSizes.get(i.id),
 			})),
 			horizontal: this.#isHorizontal,
 			view: this.image.camera.getView()

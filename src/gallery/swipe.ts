@@ -47,18 +47,18 @@ export class SwipeGallery {
 		this.#currentImageIdx = startImageIdx;
 
 		engine._itemTransitionTimingFunction = getEasing('ease-out');
-		await Promise.allSettled(this.#images.map(d => engine._addChild(d as MicrioImage, parent)));
+		await Promise.allSettled(this.#images.map(d => engine._addChild(d, parent)));
 
 		const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
 		for (let i = 0; i < this.#images.length; i++) {
-			const child = this.#images[i] as MicrioImage;
+			const child = this.#images[i];
 			if (!child.camera) {continue;}
 			child.camera.setCoverLimit(false);
 			const area = [this.#imageSlotPos[i] - baseSlot, 0, this.#imageSlotWidth[i], 1] as [number, number, number, number];
 			child.camera.setArea(area, { direct: true, noDispatch: true });
 			child.camera.setView([0, 0, 1, 1]);
 		}
-		(this.#images[startImageIdx] as MicrioImage)?.visible.set(true);
+		(this.#images[startImageIdx])?.visible.set(true);
 	}
 
 	#canSwipe():boolean {
@@ -100,7 +100,7 @@ export class SwipeGallery {
 				engine.render();
 				this.#awaitSlide(resolve);
 			};
-			if (needsZoomOut) {leaving!.camera!.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
+			if (needsZoomOut) {leaving.camera.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
 				.then(startSlide).catch(startSlide);}
 			else {startSlide();}
 		});

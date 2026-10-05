@@ -228,7 +228,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const $markerPopup = get(micrio.state.popup);
 		const $popover = get(micrio.state.popover);
 		const $info = this.#info;
-		const $settings = (this.#settings ? get(this.#settings) : undefined) as Models.ImageInfo.Settings | undefined;
+		const $settings = (this.#settings ? get(this.#settings) : undefined);
 		const $data = micrio.$current ? get(micrio.$current.data) : undefined;
 		const {error} = this.#props;
 		const loadingProgress = this.#props.loadingProgress ?? 1;
@@ -271,7 +271,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#show('details', showDetails && Boolean($data), () =>
-			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } }) as MicrioElement
+			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } })
 		);
 
 		this.#show('toolbar', showToolbar, () =>
@@ -289,22 +289,22 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#show('controls', showControls, () =>
-			createElement('micrio-controls', { setProps: { hasAudio: hasAudio || Boolean(videoSrc && video && !video.muted) } }) as MicrioElement
+			createElement('micrio-controls', { setProps: { hasAudio: hasAudio || Boolean(videoSrc && video && !video.muted) } })
 		);
 
 		this.#show('orgLogo', showOrgLogo && Boolean(this.#logoOrg), () =>
-			createElement('micrio-logo-org', { setProps: { organisation: this.#logoOrg! } }) as MicrioElement
+			createElement('micrio-logo-org', { setProps: { organisation: this.#logoOrg! } })
 		);
 
 		const grid = micrio.$current?.grid;
 		if (grid) {this.#place('grid', grid);}
 
 		this.#show('gallery', Boolean($settings?.omni) || Boolean(micrio.gallery?._config?.type !== 'grid' && micrio.gallery), () =>
-			createElement('micrio-gallery', { setProps: { controller: micrio.gallery } }) as MicrioElement
+			createElement('micrio-gallery', { setProps: { controller: micrio.gallery } })
 		);
 
 		this.#show('minimap', showMinimap,
-			() => createElement('micrio-minimap', { setProps: { image: micrio.$current! } }) as MicrioElement,
+			() => createElement('micrio-minimap', { setProps: { image: micrio.$current! } }),
 			(el) => (el as MicrioElement)._setProps?.({ image: micrio.$current! })
 		);
 
@@ -316,18 +316,18 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		if (hasPopup) {
 			const shouldReplace = existing?.isConnected && (
-				$popupMarker!.id !== this.#activePopupMarkerId ||
+				$popupMarker.id !== this.#activePopupMarkerId ||
 				existing.classList.contains('destroying')
 			);
 			if (shouldReplace) {
 				existing.remove();
 				this.#elements.set('popup', null);
 			}
-			this.#activePopupMarkerId = $popupMarker!.id;
+			this.#activePopupMarkerId = $popupMarker.id;
 
 			if (!this.#elements.get('popup')?.isConnected) {
 				this.#elements.set('popup',
-					createElement('micrio-marker-popup', { setProps: { marker: $popupMarker! }, parent: this }) as MicrioElement
+					createElement('micrio-marker-popup', { setProps: { marker: $popupMarker }, parent: this })
 				);
 			}
 		} else {
@@ -341,19 +341,19 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#show('tour', Boolean($tour), () => {
 			const isSerial = $tour && 'steps' in $tour && $tour.isSerialTour;
 			const tag = isSerial ? 'micrio-serial-tour' : 'micrio-tour';
-			return createElement(tag, { setProps: { tour: $tour!, noHTML } }) as MicrioElement;
+			return createElement(tag, { setProps: { tour: $tour!, noHTML } });
 		});
 
 		this.#show('popover', Boolean($popover), () =>
-			createElement('micrio-popover', { setProps: { popover: $popover! } }) as MicrioElement
+			createElement('micrio-popover', { setProps: { popover: $popover! } })
 		);
 
 		this.#show('error', Boolean(error), () =>
-			createElement('micrio-error', { setProps: { message: error! } }) as MicrioElement
+			createElement('micrio-error', { setProps: { message: error! } })
 		);
 
 		this.#show('progress', loadingProgress < 1, () =>
-			createElement('micrio-progress-circle', { setProps: { progress: loadingProgress } }) as MicrioElement<ProgressCircleProps>
+			createElement('micrio-progress-circle', { setProps: { progress: loadingProgress } })
 		);
 
 		if (loadingProgress < 1) {

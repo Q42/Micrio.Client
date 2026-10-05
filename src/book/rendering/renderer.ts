@@ -269,7 +269,7 @@ export class PaperRenderer {
 		const gl = this.#gl;
 
 		{
-			const tex = this.#frontTextures[pageIndex] ? this.#frontTextures[pageIndex] : gl.createTexture()!;
+			const tex = this.#frontTextures[pageIndex] ? this.#frontTextures[pageIndex] : gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, tex);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, frontBitmap);
 			setupTextureParams(gl, tex);
@@ -278,7 +278,7 @@ export class PaperRenderer {
 		}
 
 		{
-			const tex = this.#backTextures[pageIndex] ? this.#backTextures[pageIndex] : gl.createTexture()!;
+			const tex = this.#backTextures[pageIndex] ? this.#backTextures[pageIndex] : gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, tex);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, backBitmap);
 			setupTextureParams(gl, tex);
@@ -295,9 +295,9 @@ export class PaperRenderer {
 			? (slot === 0 ? this.#frontHiResATextures : this.#frontHiResBTextures)
 			: (slot === 0 ? this.#backHiResATextures : this.#backHiResBTextures);
 
-		if (arr[pageIdx]) {gl.deleteTexture(arr[pageIdx]!);}
+		if (arr[pageIdx]) {gl.deleteTexture(arr[pageIdx]);}
 
-		const tex = gl.createTexture()!;
+		const tex = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, tex);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
 		setupTextureParams(gl, tex);
@@ -330,7 +330,7 @@ export class PaperRenderer {
 			? (slot === 0 ? this.#frontHiResATextures : this.#frontHiResBTextures)
 			: (slot === 0 ? this.#backHiResATextures : this.#backHiResBTextures);
 		if (arr[pageIdx]) {
-			this.#gl.deleteTexture(arr[pageIdx]!);
+			this.#gl.deleteTexture(arr[pageIdx]);
 			arr[pageIdx] = null;
 		}
 		if (side === 0) {
@@ -363,31 +363,31 @@ export class PaperRenderer {
 
 	#createMeshData(mesh: PaperMesh, pageIndex: number): MeshData {
 		const gl = this.#gl;
-		const vao = gl.createVertexArray()!;
+		const vao = gl.createVertexArray();
 		gl.bindVertexArray(vao);
 
 		const {ARRAY_BUFFER} = gl;
 
-		const posVBO = gl.createBuffer()!;
+		const posVBO = gl.createBuffer();
 		gl.bindBuffer(ARRAY_BUFFER, posVBO);
 		gl.bufferData(ARRAY_BUFFER, mesh._positions as BufferSource, gl.DYNAMIC_DRAW);
 		gl.enableVertexAttribArray(0);
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
-		const normVBO = gl.createBuffer()!;
+		const normVBO = gl.createBuffer();
 		gl.bindBuffer(ARRAY_BUFFER, normVBO);
 		const normals = mesh._computeNormals();
 		gl.bufferData(ARRAY_BUFFER, normals as BufferSource, gl.DYNAMIC_DRAW);
 		gl.enableVertexAttribArray(1);
 		gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
 
-		const texCoordVBO = gl.createBuffer()!;
+		const texCoordVBO = gl.createBuffer();
 		gl.bindBuffer(ARRAY_BUFFER, texCoordVBO);
 		gl.bufferData(ARRAY_BUFFER, mesh._texCoords as BufferSource, gl.STATIC_DRAW);
 		gl.enableVertexAttribArray(2);
 		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
 
-		const indexEBO = gl.createBuffer()!;
+		const indexEBO = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexEBO);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh._indexBuffer as BufferSource, gl.STATIC_DRAW);
 
@@ -406,11 +406,11 @@ export class PaperRenderer {
 
 	#createFullscreenQuad(): WebGLVertexArrayObject {
 		const gl = this.#gl;
-		const vao = gl.createVertexArray()!;
+		const vao = gl.createVertexArray();
 		gl.bindVertexArray(vao);
 
 		const verts = new Float32Array([-1, -1,  1, -1,  -1, 1,  1, 1]);
-		const vbo = gl.createBuffer()!;
+		const vbo = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
 		gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
 		gl.enableVertexAttribArray(0);
@@ -465,7 +465,7 @@ export class PaperRenderer {
 			gl.deleteFramebuffer(this.#sceneFbo._fbo);
 		}
 
-		const color = gl.createTexture()!;
+		const color = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, color);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -473,11 +473,11 @@ export class PaperRenderer {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-		const depth = gl.createRenderbuffer()!;
+		const depth = gl.createRenderbuffer();
 		gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
 		gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
 
-		const fbo = gl.createFramebuffer()!;
+		const fbo = gl.createFramebuffer();
 		gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, color, 0);
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
@@ -489,7 +489,7 @@ export class PaperRenderer {
 			gl.deleteFramebuffer(this.#blurFbo._fbo);
 		}
 
-		const blurColor = gl.createTexture()!;
+		const blurColor = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, blurColor);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -497,7 +497,7 @@ export class PaperRenderer {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-		const blurFboObj = gl.createFramebuffer()!;
+		const blurFboObj = gl.createFramebuffer();
 		gl.bindFramebuffer(gl.FRAMEBUFFER, blurFboObj);
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, blurColor, 0);
 
@@ -525,7 +525,7 @@ export class PaperRenderer {
 		const gl = this.#gl;
 		const md = this.#meshDatas[meshIndex];
 		gl.bindBuffer(gl.ARRAY_BUFFER, md._positionVBO);
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh._positions as BufferSource);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh._positions);
 	}
 
 	_updateNormalBuffer(meshIndex: number, mesh: PaperMesh): void {
@@ -534,7 +534,7 @@ export class PaperRenderer {
 		const md = this.#meshDatas[meshIndex];
 		const normals = mesh._computeNormals();
 		gl.bindBuffer(gl.ARRAY_BUFFER, md._normalVBO);
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, normals as BufferSource);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, normals);
 	}
 
 	_getBoundingBoxCorners(): Float32Array | null {

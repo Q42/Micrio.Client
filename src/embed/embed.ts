@@ -117,7 +117,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			if (markersShown) {this._watch(markersShown, updateInactive);}
 		}
 
-		this.#glImage = image._embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid) as MicrioImage | undefined;
+		this.#glImage = image._embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid);
 
 		this.#screenIsHDR = matchMedia('(dynamic-range: high)').matches || Browser.OSX;
 
@@ -295,7 +295,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		const vid = createElement('video', {
 			props: {
-				src: video.src!,
+				src: video.src,
 				width: Math.round(width),
 				height: Math.round(height),
 				controls: Boolean(video.controls),
@@ -364,7 +364,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const opacity = embed.hideWhenPaused ? 0.01 : (embed.opacity ?? 1);
 
 		if (this.#glImage && (this.#glImage._placed || image._embeds.includes(this.#glImage))) {
-			this.#glImage.camera.setArea(embed.area as Models.Camera.View);
+			this.#glImage.camera.setArea(embed.area);
 			this.#glImage.camera.setRotation(this.#rotX, this.#rotY, this.#rotZ);
 			if (this.#glImage._placed) {image.engine._fadeImage(this.#glImage, opacity);}
 		} else {
@@ -379,11 +379,11 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				}
 			}, {
 				_360: { rotX: this.#rotX, rotY: this.#rotY, rotZ: this.#rotZ }
-			}, embed.area as Models.Camera.View, { opacity, asImage: false });
+			}, embed.area, { opacity, asImage: false });
 		}
 
 		if (this.#isRawVideo) {
-			this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage!, embed, this.#paused, () => this.#applyPosition());
+			this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage, embed, this.#paused, () => this.#applyPosition());
 		}
 
 		image.engine.render();
@@ -508,7 +508,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		if (e && 'detail' in e) {
 			const emb = e.detail as Models.ImageData.Embed;
 			const target = this.#props.embed as Record<string, any>;
-			for (const x of Object.keys(emb as Record<string, unknown>)) {
+			for (const x of Object.keys(emb)) {
 				target[x] = (emb as Record<string, any>)[x];
 			}
 		}

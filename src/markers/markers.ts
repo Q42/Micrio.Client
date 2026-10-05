@@ -34,7 +34,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 		this._addCleanup(image._viewport.subscribe((v: Models.Camera.View) => {
 			if (!v || v.length < 4) {return;}
-			v = v.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
+			v = v.map(f => Math.round(f * 100) / 100);
 			const size = micrio.canvas.viewport;
 			this.style.left = !v[0] ? '' : `${v[0]}px`;
 			this.style.top = !v[1] ? '' : `${v[1]}px`;
@@ -87,10 +87,10 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				if (this.querySelector(`:scope > micrio-marker.cluster[data-marker-id="${CSS.escape(id)}"]`)) {continue;}
 				const cx = g.reduce((s, i) => s + markers[i].x, 0) / g.length;
 				const cy = g.reduce((s, i) => s + markers[i].y, 0) / g.length;
-				const minX = Math.min(...g.map(i => markers[i].view ? markers[i].view![0] : markers[i].x));
-				const maxX = Math.max(...g.map(i => markers[i].view ? markers[i].view![0] + markers[i].view![2] : markers[i].x));
-				const minY = Math.min(...g.map(i => markers[i].view ? markers[i].view![1] : markers[i].y));
-				const maxY = Math.max(...g.map(i => markers[i].view ? markers[i].view![1] + markers[i].view![3] : markers[i].y));
+				const minX = Math.min(...g.map(i => markers[i].view ? markers[i].view[0] : markers[i].x));
+				const maxX = Math.max(...g.map(i => markers[i].view ? markers[i].view[0] + markers[i].view[2] : markers[i].x));
+				const minY = Math.min(...g.map(i => markers[i].view ? markers[i].view[1] : markers[i].y));
+				const maxY = Math.max(...g.map(i => markers[i].view ? markers[i].view[1] + markers[i].view[3] : markers[i].y));
 				const viewW = Math.max(0.1, maxX - minX);
 				const viewH = Math.max(0.1, maxY - minY);
 				const view = [minX + (maxX - minX) / 2 - viewW / 2, minY + (maxY - minY) / 2 - viewH / 2, viewW, viewH];

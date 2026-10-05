@@ -861,8 +861,8 @@ export class BookViewer {
 		this.#renderer._seeThroughMargins = this.#seeThroughMargins;
 		this.#renderer._initialize(this.#meshes);
 		this.#renderer._setBoundingBox(
-			{ x: this.#camera._panBoundsMin!._x, y: this.#camera._panBoundsMin!._y, z: this.#camera._panBoundsMin!._z },
-			{ x: this.#camera._panBoundsMax!._x, y: this.#camera._panBoundsMax!._y, z: this.#camera._panBoundsMax!._z },
+			{ x: this.#camera._panBoundsMin._x, y: this.#camera._panBoundsMin._y, z: this.#camera._panBoundsMin._z },
+			{ x: this.#camera._panBoundsMax._x, y: this.#camera._panBoundsMax._y, z: this.#camera._panBoundsMax._z },
 		);
 		this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight);
 
@@ -1069,7 +1069,7 @@ export class BookViewer {
 				alpha: true,
 				premultipliedAlpha: true,
 				antialias: true,
-			}) as WebGL2RenderingContext | null;
+			});
 			if (gl && this.#renderer) {
 				this.#renderer = new PaperRenderer(gl);
 				this.#renderer._seeThroughMargins = this.#seeThroughMargins;

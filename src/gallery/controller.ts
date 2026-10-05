@@ -208,7 +208,7 @@ export class Gallery {
 		return new Gallery(rawImages.map(i => ({ ...i, path, version: '' })), engine, {
 			...config,
 			type: config.type ?? 'swipe',
-		} as Models.GalleryConfig);
+		});
 	}
 
 	// --- Static Helpers ---
