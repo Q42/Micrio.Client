@@ -63,8 +63,12 @@ type AttributeValue = string | number | boolean | number[] | undefined;
 /** Assigns a value to a (possibly dot-separated) key path within an options object. @internal */
 function setObj(obj: object, path: string, val: unknown): void {
 	const p = path.split('.');
-	let target = obj;
-	for(let i=0;i<p.length-1;i++) {target = Reflect.get(target, p[i]);}
+	let target: object = obj;
+	for(let i=0;i<p.length-1;i++) {
+		const next: unknown = Reflect.get(target, p[i]);
+		if (typeof next !== 'object' || next === null) {throw new TypeError(`Micrio: '${p[i]}' in '${path}' is not an object`);}
+		target = next;
+	}
 	Reflect.set(target, p[p.length-1], val);
 }
 
@@ -284,8 +288,8 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(!('muted' in this)) {
 			Object.defineProperty(this, 'muted', {
-				get() { return get(this._isMuted) },
-				set(b:boolean) { if(b) {this.setAttribute('muted','');} else {this.removeAttribute('muted');} }
+				get(this: HTMLMicrioElement) { return get(this._isMuted) },
+				set(this: HTMLMicrioElement, b:boolean) { if(b) {this.setAttribute('muted','');} else {this.removeAttribute('muted');} }
 			});
 			this._watch(this._isMuted, b => {
 				// @ts-expect-error -- `muted` is defined dynamically below

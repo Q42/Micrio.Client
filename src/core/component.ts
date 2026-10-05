@@ -136,7 +136,7 @@ export abstract class MicrioElement<_P extends object = Record<string, unknown>>
 	/** @internal */
 	protected _provide(key: string, value: unknown): void {
 		let map = provided.get(this);
-		if (!map) {provided.set(this, map = new Map());}
+		if (!map) {provided.set(this, map = new Map<string, unknown>());}
 		map.set(key, value);
 	}
 

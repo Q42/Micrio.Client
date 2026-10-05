@@ -19,10 +19,13 @@ self.addEventListener('message', e => {
 
 type ItemArray = [string, (n: TextureBitmap) => void, (n: string) => void];
 
+/** Payload posted back by a texture decoding worker. @internal */
+interface WorkerMessage { data?: ImageBitmap; error?: string; type?: string }
+
 /** Maximum number of concurrent texture loading threads. @internal */
 export const numThreads: number = Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 2) - 1));
 
-const running: boolean[] = Array(numThreads).fill(false);
+const running: boolean[] = Array<boolean>(numThreads).fill(false);
 let busyCount = 0;
 const loaders: Worker[] = [];
 let workersReady = false;
@@ -34,7 +37,7 @@ function ensureWorkers() {
 	workersReady = true;
 	for (let i = 0; i < numThreads; i++) {
 		const w = new Worker(workerBlob);
-		w.addEventListener('message', e =>{  onmessage(i, e.data.data, e.data.error, e.data.type); });
+		w.addEventListener('message', (e: MessageEvent<WorkerMessage>) =>{  onmessage(i, e.data.data, e.data.error, e.data.type); });
 		loaders.push(w);
 	}
 	URL.revokeObjectURL(workerBlob);
