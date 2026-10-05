@@ -55,7 +55,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 
 function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 	return (e: KeyboardEvent) => {
-		if (grid._current.length === 0 || !grid._clickable) {return;}
+		if (grid._current.length === 0 || grid._clickable === false) {return;}
 
 		if (e.key === 'Escape') {
 			for (const btn of grid._buttons.values()) {btn.classList.remove('focussed');}
@@ -108,7 +108,7 @@ export function hookGridKeys(grid: Grid) : () => void {
 		grid._clickCell(img);
 	};
 
-	if (grid._panZoom === 'grid' && grid._clickable) {
+	if (grid._panZoom === 'grid' && grid._clickable !== false) {
 		grid.micrio.addEventListener('pointerdown', onPointerDown);
 		grid.micrio.addEventListener('pointerup', onPointerUp);
 	}
