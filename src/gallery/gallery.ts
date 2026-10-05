@@ -64,7 +64,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** SwipeGallery instance when this is a strip-swipe gallery. */
 	#swipeGallery: SwipeGallery|undefined;
 	/** Map tracking in-flight preload requests (keyed by thumbSrc). */
-	#preloading = new Map<string, unknown>();
+	#preloading = new Set<string>();
 	#preloadD = 0;
 
 	/** 3d book viewer @internal */
@@ -85,8 +85,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		const settings = image.$settings;
 		if (settings?.omni) {
-			this.#omni = new OmniUI(micrio, image, this, (c,total,d,getTile,engine,hasArchive) =>
-				this.#preloadRange(c,total,d,getTile,engine,hasArchive)
+			this.#omni = new OmniUI(micrio, image, this, (c,total,d,getTile,engine,hasArchive) =>{ 
+				this.#preloadRange(c,total,d,getTile,engine,hasArchive); }
 			);
 			void this.#omni.setup();
 			return;
@@ -271,10 +271,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			if (tile?.thumbSrc) {
 				const {thumbSrc} = tile;
 				if (!this.#preloading.has(thumbSrc)) {
-					this.#preloading.set(thumbSrc, request(() => {
+					this.#preloading.add(thumbSrc);
+					request(() => {
 						engine._getTexture(tile.baseTileIdx, thumbSrc, false, { force: hasArchive });
 						this.#preloading.delete(thumbSrc);
-					}));
+					});
 				}
 			}
 		}
@@ -404,11 +405,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (this.#swipeGallery && images.length > 1) {
 			const swipeGallery = this.#swipeGallery;
 			micrio.canvas.element.addEventListener('pointerdown', swipeGallery.handlePointerDown);
-			this._addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', swipeGallery.handlePointerDown));
+			this._addCleanup(() =>{  micrio.canvas.element.removeEventListener('pointerdown', swipeGallery.handlePointerDown); });
 		}
 
 		globalThis.addEventListener('keydown', this.#keydown);
-		this._addCleanup(() => globalThis.removeEventListener('keydown', this.#keydown));
+		this._addCleanup(() =>{  globalThis.removeEventListener('keydown', this.#keydown); });
 	}
 
 	#loadBook3d(parent:MicrioImage, items: Models.ImageInfo.ImageInfo[], pageIdx:number, config:GalleryConfig) : void {
@@ -441,7 +442,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		});
 		micrio.events.unhookScroll();
 		micrio.events.unhookPinch();
-		parent.camera._zoomOverride = (n:number) => book3d.zoom(n);
+		parent.camera._zoomOverride = (n:number) =>{  book3d.zoom(n); };
 		parent.camera._isZoomedInOverride = () => book3d.isZoomedIn();
 		void this.#book3d._ready.then(() => {
 			parent._placed = true;
