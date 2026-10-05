@@ -8,6 +8,20 @@ import { MicrioAudioLocation } from './audio-location'
 
 // ── Module-level AudioContext state ──
 
+/**
+ * Whether this image has anything the audio layer can play: a music playlist or a
+ * marker with positional audio. Without one there is no controller, and no point
+ * probing autoplay or holding on to a hidden `<audio>`.
+ * @internal
+ */
+function imageHasAudio(image: MicrioImage): boolean {
+	const data = image.$data
+	if (data?.music?.items.length) {
+		return true
+	}
+	return Boolean(data?.markers?.some((m) => m.positionalAudio))
+}
+
 /** The global scope as a plain object, so runtime-provided globals can be probed with `in`. */
 const globals: object = globalThis
 
@@ -92,6 +106,9 @@ class AudioPlaylist {
 	#list: Models.Assets.Audio[]
 	#loop: boolean
 	#idx = -1
+	#onEnded = () => {
+		this.#next()
+	}
 
 	constructor(list: Models.Assets.Audio[], loop: boolean, volume: number) {
 		this.#list = list
@@ -99,9 +116,7 @@ class AudioPlaylist {
 		this.#audio.preload = 'none'
 		this.#audio.loop = false
 		this.#audio.volume = volume
-		this.#audio.addEventListener('ended', () => {
-			this.#next()
-		})
+		this.#audio.addEventListener('ended', this.#onEnded)
 		this.#next()
 	}
 
@@ -116,6 +131,7 @@ class AudioPlaylist {
 
 	/** Stops playback and releases the audio element. */
 	destroy() {
+		this.#audio.removeEventListener('ended', this.#onEnded)
 		this.#audio.pause()
 	}
 }
@@ -203,9 +219,13 @@ export class MicrioAudioController {
 			}
 		}
 
-		const audio = new Audio('data:audio/mpeg;base64,...')
-		audio.volume = Browser.iOS ? 0 : 0.0001
-		document.body.append(audio)
+		// The autoplay probe only makes sense when there is audio to be blocked
+		// (`main.ts` builds no controller without it, so this is a guard, not a case).
+		const audio = imageHasAudio(image) ? new Audio('data:audio/mpeg;base64,...') : undefined
+		if (audio) {
+			audio.volume = Browser.iOS ? 0 : 0.0001
+			document.body.append(audio)
+		}
 
 		this.#cleanups.push(
 			interacted.subscribe((b) => {
@@ -243,14 +263,23 @@ export class MicrioAudioController {
 			}),
 		)
 
-		if (!_ctx) {
-			audio
-				.play()
-				.then(input)
-				.catch(() => {
-					events._dispatch('autoplay-blocked')
+		if (audio) {
+			this.#cleanups.push(() => {
+				audio.pause()
+				audio.remove()
+			})
+			if (!_ctx) {
+				audio
+					.play()
+					.then(input)
+					.catch(() => {
+						events._dispatch('autoplay-blocked')
+					})
+				addEventListener('pointerup', onUserGesture, { once: true })
+				this.#cleanups.push(() => {
+					removeEventListener('pointerup', onUserGesture)
 				})
-			addEventListener('pointerup', onUserGesture, { once: true })
+			}
 		}
 
 		// Render playlist if music data exists
@@ -267,12 +296,6 @@ export class MicrioAudioController {
 				}
 			}),
 		)
-
-		// Store cleanup for renderless operation
-		this.#cleanups.push(() => {
-			audio.remove()
-			removeEventListener('pointerup', onUserGesture)
-		})
 	}
 
 	destroy() {

@@ -300,6 +300,17 @@ describe('audio controller playlist', () => {
 	})
 })
 
+describe('audio controller autoplay probe', () => {
+	// The probe is only built for an image with audio to play — the same condition the
+	// layout uses to build the controller, so a no-audio case cannot reach this class.
+	it('removes its probe element with the controller', async () => {
+		const viewer = await mountAudio(audioBundle({ positional: true }))
+		expect(probeAudio()).not.toBeNull()
+		viewer.destroy()
+		await waitFor(() => probeAudio() === null, 4000, 'the probe to be removed')
+	})
+})
+
 describe('audio controller mute', () => {
 	it('drives the master gain from the element mute state', async () => {
 		const viewer = await mountAudio(audioBundle({ music: someMusic() }))
