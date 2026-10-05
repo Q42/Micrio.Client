@@ -41,8 +41,8 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 	}
 
 	#render() {
-		const info = this.#props.info;
-		const data = this.#props.data;
+		const {info} = this.#props;
+		const {data} = this.#props;
 		const micrio = this._getMicrio();
 		const $_lang = micrio ? get(micrio._lang) : undefined;
 		const $current = micrio ? get(micrio.current) : undefined;

@@ -147,7 +147,7 @@ export default class Ani {
 
 		this.#fn = fn;
 
-		const el = c.main.el;
+		const {el} = c.main;
 		if (el._areaHeight !== 0) {
 			const margin = toHeight / (1 - (el._areaHeight / el.height));
 			if (margin > 0) {toHeight += margin;} else {toHeight -= margin;}

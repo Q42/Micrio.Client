@@ -178,7 +178,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	/** @internal */
 	protected _render() {
 		const p = this._props;
-		const src = p.src;
+		const {src} = p;
 		if (!src && !p.tour) { this.replaceChildren(); return; }
 
 		const isYoutube = src ? YOUTUBE_RE.test(src) : false;

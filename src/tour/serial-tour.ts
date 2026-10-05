@@ -117,7 +117,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		}
 
 		if (marker?.videoTour) {
-			const lang = micrio.lang;
+			const {lang} = micrio;
 			const audio = marker.videoTour.i18n?.[lang]?.audio ?? marker.i18n?.[lang]?.audio;
 
 			const prevPaused = false;

@@ -42,7 +42,7 @@ export default abstract class EngineCamera {
 	/** @internal */
 	_pinch(xPx1: number, yPx1: number, xPx2: number, yPx2: number): void {
 		const c = this.canvas;
-		const el = c.main.el;
+		const {el} = c.main;
 
 		const left = (Math.min(xPx1, xPx2) - el.left) / el.scale;
 		const top = (Math.min(yPx1, yPx2) - el.top) / el.scale;

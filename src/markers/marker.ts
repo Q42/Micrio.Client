@@ -48,7 +48,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const markerImages = MicrioElement._markerImages;
 		if (!markerImages.has(marker.id) && image) {markerImages.set(marker.id, image);}
 
-		const events = micrio.events;
+		const {events} = micrio;
 		const $_lang = get(micrio._lang);
 		const markerSettings = image.$settings._markers ?? {};
 		const data = marker.data ?? {};
@@ -92,7 +92,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const defaultClass = hasIcon || marker.type == 'default';
 
 		// Omni arc: precompute target frame and visible range from marker rotation/visibleArc
-		const omni = image.$settings.omni;
+		const {omni} = image.$settings;
 		if (image._isOmni && omni) {
 			const rot = (marker.rotation ?? 0) + (marker.backside ? Math.PI : 0);
 			this.#omniIndex = image.camera._getOmniFrame(rot) ?? 0;

@@ -509,7 +509,7 @@ export default class Image {
 
 		const ew = this.#areaWidth, eh = this.#areaHeight;
 		const ecx = this.#areaCenterX, ecy = this.#areaCenterY;
-		const el = this.#canvas.el, gl = this.#canvas._camera360, cW = el.width;
+		const {el} = this.#canvas, gl = this.#canvas._camera360, cW = el.width;
 		const pH = eh / 2.5;
 
 		let b = 0;

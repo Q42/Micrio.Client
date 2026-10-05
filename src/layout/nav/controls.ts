@@ -126,7 +126,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const $i18n = get(i18n);
 		const $isMuted = get(micrio._isMuted);
 		const $_lang = get(micrio._lang);
-		const $current = micrio.$current;
+		const {$current} = micrio;
 		const $settings = $current?.$settings;
 		const $zoom = !$settings?.noZoom;
 		const $popup = get(micrio.state.popup);

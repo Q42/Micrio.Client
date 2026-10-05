@@ -85,7 +85,7 @@ export class ContextMenuCopyHandler {
 		const image = micrio.$current;
 		if (!image || image._is360 || image._isOmni || image._noImage) {return;}
 
-		const canvas = micrio.canvas;
+		const {canvas} = micrio;
 		const crop = canvas._imageCrop(image.camera);
 		if (!crop) {return;} // Nothing to crop: the image covers the whole canvas
 

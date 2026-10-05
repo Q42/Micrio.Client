@@ -230,7 +230,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const $info = this.#info;
 		const $settings = (this.#settings ? get(this.#settings) : undefined) as Models.ImageInfo.Settings | undefined;
 		const $data = micrio.$current ? get(micrio.$current.data) : undefined;
-		const error = this.#props.error;
+		const {error} = this.#props;
 		const loadingProgress = this.#props.loadingProgress ?? 1;
 		const noHTML = this.#props.noHTML ?? false;
 		const noLogo = this.#props.noLogo ?? noHTML;

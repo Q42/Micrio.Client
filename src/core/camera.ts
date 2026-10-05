@@ -339,7 +339,7 @@ export class Camera {
 
 	/** [Omni] Gets the current rotation angle in radians based on the active frame index. */
 	getOmniRotation(): number {
-		const omni = this.#image.$settings.omni;
+		const {omni} = this.#image.$settings;
 		if (!omni || !this.#canvas) {return 0;}
 		return (this.#image.omni?.currentIndex ?? 0) / ((omni.frames ?? 1) / (omni.layers?.length ?? 1)) * Math.PI * 2;
 	}
@@ -348,7 +348,7 @@ export class Camera {
 	 * @internal
 	*/
 	_getOmniFrame(rot?: number): number | undefined {
-		const omni = this.#image.$settings.omni;
+		const {omni} = this.#image.$settings;
 		if (!omni || rot == undefined) {return;}
 		return Math.floor((rot / (Math.PI * 2)) * (omni.frames / (omni.layers?.length ?? 1)));
 	}
@@ -419,7 +419,7 @@ export class Camera {
 				const pCV = toCenterJSON(opts.prevView);
 				this.#canvas._ani._setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
 			}
-			const omni = this.#image.$settings.omni;
+			const {omni} = this.#image.$settings;
 			if (omni?.frames) {
 				const numLayers = omni.layers?.length ?? 1;
 				const npl = omni.frames / numLayers;

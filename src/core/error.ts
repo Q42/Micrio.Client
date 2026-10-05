@@ -113,7 +113,7 @@ export class MicrioError extends Error {
 	 * Categorizes HTTP status codes into appropriate error types.
 	 */
 	static fromResponse(response: Response, context?: string): MicrioError {
-		const status = response.status;
+		const {status} = response;
 		let code: ErrorCode = ErrorCodes.UNKNOWN;
 
 		if (status === 404) {

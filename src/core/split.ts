@@ -63,7 +63,7 @@ export async function openSplit(
 
 	if (opts?.isPassive !== false) {secondary._isPassiveSecondary = true;}
 
-	const portrait = micrio.canvas.viewport.portrait;
+	const {portrait} = micrio.canvas.viewport;
 	primary.camera.setArea(portrait ? [0, 0, 1, 0.5] : [0, 0, 0.5, 1]);
 	secondary.camera.setArea(
 		portrait ? [0, 1, 1, 0] : [1, 0, 0, 1],
@@ -107,7 +107,7 @@ export function closeSplit(
 	state.unsub?.();
 	state.unsubData?.();
 
-	const portrait = micrio.canvas.viewport.portrait;
+	const {portrait} = micrio.canvas.viewport;
 	state.secondary.camera.setArea(
 		portrait ? [0, 1, 1, 0] : [1, 0, 0, 1],
 		{ direct: true }

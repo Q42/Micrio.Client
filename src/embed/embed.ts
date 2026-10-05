@@ -103,7 +103,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#is360 = image._is360;
 		this.#autoplay = embed.video?.autoplay ?? true;
 
-		const grid = image.grid;
+		const {grid} = image;
 		if (grid) {
 			const focused = grid._focussed;
 			const markersShown = grid._markersShown;

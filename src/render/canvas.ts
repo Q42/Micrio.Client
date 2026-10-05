@@ -121,8 +121,8 @@ export class Canvas {
 		// Get current rendered dimensions and position
 		const box = this.element.getBoundingClientRect();
 
-		let width = box.width;
-		let height = box.height;
+		let {width} = box;
+		let {height} = box;
 
 		// Exit if element has no dimensions (e.g., display: none)
 		if(!width || !height) {return;}
@@ -139,7 +139,7 @@ export class Canvas {
 		// Assume scale 1 for static images to avoid issues?
 		// A temporary crop resizes the canvas on purpose, so it must keep the scale it had
 		// instead of being mistaken for a CSS scale on the host element.
-		const offsetWidth = this.#micrio.offsetWidth;
+		const {offsetWidth} = this.#micrio;
 		const scale = this.#micrio.hasAttribute('data-static') || !offsetWidth ? 1
 			: this.#cropMode ? this.viewport.scale || 1
 			: Math.floor(width) / offsetWidth;

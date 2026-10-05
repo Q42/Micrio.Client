@@ -453,7 +453,7 @@ export class Engine {
 	 * @internal
 	 */
 	#bindCamera(img: MicrioImage): void {
-		const canvas = this.#entryByImage.get(img)!.canvas;
+		const {canvas} = this.#entryByImage.get(img)!;
 		img.camera._bindEngineCanvas(canvas);
 	}
 
@@ -781,7 +781,7 @@ export class Engine {
 
 		if (!isEmbed) {
 			this.#bindCamera(image as MicrioImage);
-			const focus = (image as MicrioImage).$settings.focus;
+			const {focus} = (image as MicrioImage).$settings;
 			if (focus) {(canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);}
 			else if (canvas._hasParent) {canvas._setView(canvas.view._centerX, canvas.view._centerY, canvas.view.width, canvas.view.height, false, false);}
 
@@ -810,7 +810,7 @@ export class Engine {
 		if (entry.camera) {
 			c._targetOpacity = opacity;
 		} else {
-			const images = c.images;
+			const {images} = c;
 			for (let i = 0; i < images.length; i++) {
 				const im = images[i];
 				if (im._localIdx > 0) {

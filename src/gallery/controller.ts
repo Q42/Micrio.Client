@@ -60,7 +60,7 @@ export class Gallery {
 		this._config = isBook3d ? { ...config, isSpreads: true, coverPages: 1 } : config;
 
 		const isSwitch = config.type == 'switch';
-		const isSpreads = this._config.isSpreads;
+		const {isSpreads} = this._config;
 		const coverPages = isSpreads ? (this._config.coverPages ?? 0) : 0;
 
 		if (isSwitch) {
@@ -201,7 +201,7 @@ export class Gallery {
 			? await Gallery.#getArchiveIndex(aInfo.archive.split('.')[0], path)
 			: undefined;
 		if (index) {config.archiveLayerOffset = index.delta;}
-		const sort = config.sort;
+		const {sort} = config;
 		if (sort && index?.images) {index.images.sort(Gallery.#sortArchiveImages(sort));}
 		const rawImages = index?.images ?? [];
 
@@ -262,7 +262,7 @@ export class Gallery {
 		this.#parent = parent;
 
 		if (this._config.type == 'grid') {
-			const micrio = parent.engine.micrio;
+			const {micrio} = parent.engine;
 			parent.grid = createElement(Grid.tag, {
 				setProps: { micrio, image: parent, gallery: this },
 			}) as Grid;

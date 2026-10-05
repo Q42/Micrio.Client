@@ -400,7 +400,7 @@ export class TileCanvas {
 
 		const m = this.main;
 		const gl = m.micrio._webgl;
-		const el = this.el;
+		const {el} = this;
 		const v = this.view;
 
 		const animating = this._ani._isStarted();

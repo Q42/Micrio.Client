@@ -102,7 +102,7 @@ export class VideoTourInstance {
 
 	/** Parses the raw timeline data from the tour content into the internal `timeline` array. */
 	read(): void {
-		const timeline = this.#content.timeline;
+		const {timeline} = this.#content;
 		this.#timeline = [];
 		for (let i = 0; i < timeline.length; i++) {
 			const s = timeline[i], p = timeline[i - 1];
@@ -119,9 +119,9 @@ export class VideoTourInstance {
 
 	/** Initializes event data by clamping end times to duration. @internal */
 	#initEvents(): void {
-		const events = this.#content.events;
+		const {events} = this.#content;
 		if (!events?.length) {return;}
-		const duration = this.duration;
+		const {duration} = this;
 		for (const e of events) {
 			e.start = Number(e.start || 0);
 			e.end = Math.min(Number(e.end || 0), duration);
@@ -130,7 +130,7 @@ export class VideoTourInstance {
 
 	/** Deactivates any currently active events, dispatching a final `tour-event`. @internal */
 	#deactivateEvents(): void {
-		const events = this.#content.events;
+		const {events} = this.#content;
 		if (!events?.length) {return;}
 		for (const e of events) {
 			if (e.active) {
@@ -146,7 +146,7 @@ export class VideoTourInstance {
 	 * Called externally during playback (e.g. from MicrioMedia time updates).
 	 */
 	updateEvents(time: number): void {
-		const events = this.#content.events;
+		const {events} = this.#content;
 		if (!events?.length) {return;}
 		for (const e of events) {
 			const active = e.start <= time && e.end >= time;

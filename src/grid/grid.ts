@@ -374,7 +374,7 @@ export class Grid extends MicrioElement {
 		this.style.transform = '';
 		this.childNodes.forEach((n:ChildNode) => {
 			const e = n as HTMLElement;
-			const id = e.dataset.id;
+			const {id} = e.dataset;
 			const r = e.getBoundingClientRect();
 			const img = id ? imageById.get(id) : undefined;
 			const o = [(s/2)*r.width, (s/2)*r.height];

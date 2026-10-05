@@ -561,7 +561,7 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 // ── markers ──────────────────────────────────────────────────────────────────
 
 async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
-	const gallery = micrio.gallery;
+	const {gallery} = micrio;
 	if (!gallery) {return;}
 
 	for (const { id } of CATALOG) {

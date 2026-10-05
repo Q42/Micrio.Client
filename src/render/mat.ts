@@ -280,7 +280,7 @@ export class Vec4 {
 	/** Transforms the vector by the given Mat4. @internal */
 	_transformMat4(m: Mat4): void {
 		const a = m.arr;
-		const x = this.x, y = this.y, z = this.z;
+		const {x} = this, {y} = this, {z} = this;
 
 		const w = a[3] * x + a[7] * y + a[11] * z + a[15] || 1;
 

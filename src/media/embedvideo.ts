@@ -215,7 +215,7 @@ export class GLEmbedVideo {
 	/** Attaches event listeners to the video element. @internal */
 	#hook() {
 		if(!this.#embed.video || !this._vid) {return;}
-		const loopAfter = this.#embed.video.loopAfter; // Delay before looping (seconds)
+		const {loopAfter} = this.#embed.video; // Delay before looping (seconds)
 		const v = this._vid;
 		// Handle looping with delay
 		if(this.#embed.video.loop && loopAfter) {

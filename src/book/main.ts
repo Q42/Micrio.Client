@@ -453,7 +453,7 @@ export class BookViewer {
 
 		const { facing, obscured } = this.#computeTextureVisibility(ctx.mesh, ctx.side, ctx.pageIndex, ctx.result, proj.screen);
 
-		const mesh = ctx.mesh;
+		const {mesh} = ctx;
 		const n = ctx.result._normal;
 		const px = ctx.result._point._x, py = ctx.result._point._y, pz = ctx.result._point._z;
 		const { screen, viewProj, clientWidth, clientHeight } = proj;
@@ -590,8 +590,8 @@ export class BookViewer {
 
 	#getViewProjection(): { perspective: Mat4; viewProj: Mat4; clientWidth: number; clientHeight: number } | null {
 		const canvas = this.#renderer._getCanvas();
-		const clientWidth = canvas.clientWidth;
-		const clientHeight = canvas.clientHeight;
+		const {clientWidth} = canvas;
+		const {clientHeight} = canvas;
 		if (clientWidth <= 0 || clientHeight <= 0) {return null;}
 
 		const view = this.#camera._getViewMatrix();

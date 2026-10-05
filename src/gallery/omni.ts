@@ -66,7 +66,7 @@ export class OmniUI {
 		if (!bundle) {return;}
 
 		const settings = image.$settings;
-		const omni = settings.omni;
+		const {omni} = settings;
 		if (!omni) {return;}
 
 		const engine = micrio._engine;
@@ -269,7 +269,7 @@ export class OmniUI {
 		)) {this.#startX = e.clientX;}
 		if(!this.#hitTresh) {return;}
 
-		const camera = this.#micrio.$current!.camera;
+		const {camera} = this.#micrio.$current!;
 		const scale = !this.#swiperOpts.continuous ? 1 : Math.max(0.1, (camera.getXY(1, .5)[0] - camera.getXY(0, .5)[0]) / this.#micrio.offsetWidth);
 		const delta = Math.round((e.clientX - this.#startX) / (this.#micrio.offsetWidth * scale) * this.#swiperLength * (this.#swiperOpts.sensitivity ?? 1));
 		let idx = this.#startIndex - delta;

@@ -51,7 +51,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		const info = image.$info;
 		if (!info) {return;}
-		const camera = image.camera;
+		const {camera} = image;
 		const settings = image.$settings;
 
 		const maxWidth = settings.minimapWidth ?? 200;

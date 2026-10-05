@@ -366,7 +366,7 @@ export class PaperRenderer {
 		const vao = gl.createVertexArray()!;
 		gl.bindVertexArray(vao);
 
-		const ARRAY_BUFFER = gl.ARRAY_BUFFER;
+		const {ARRAY_BUFFER} = gl;
 
 		const posVBO = gl.createBuffer()!;
 		gl.bindBuffer(ARRAY_BUFFER, posVBO);

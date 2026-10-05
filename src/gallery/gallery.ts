@@ -92,7 +92,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			return;
 		}
 
-		const controller = this.#props.controller;
+		const {controller} = this.#props;
 		if (!controller) {return;}
 
 		this.#renderGallery(micrio, image, controller);
@@ -278,7 +278,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#preload(c: number) {
 		const images = this.#images;
 		if (!images.length || images.length <= 1) {return;}
-		const engine = images[0].engine;
+		const {engine} = images[0];
 		const hasArchive = Boolean(images[0]?.$settings?.gallery?.archive);
 		this.#preloadRange(c, images.length, this.#preloadD,
 			idx => images[idx] ? { baseTileIdx: images[idx]._baseTileIdx, thumbSrc: images[idx].thumbSrc } : undefined,
@@ -409,7 +409,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
 		// and mark the pages visible so their markers render.
 		parent.album!.hooked = true;
-		const micrio = parent.engine.micrio;
+		const {micrio} = parent.engine;
 		const individualAspects = Boolean(config.settings?.individualAspects);
 		const book3d = this.#book3d = new BookViewer({
 			_canvas: micrio.canvas.element,

@@ -192,7 +192,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		}
 
 		if ('marker' in p && p.marker) {
-			const marker = p.marker;
+			const {marker} = p;
 			const content = marker.i18n?.[$_lang];
 			const hasImages = Boolean(marker.images?.length);
 			const hasPopoverContent = Boolean(content && content.body) || (hasImages && Boolean(p.contentPage?.i18n?.[$_lang]?.embed));

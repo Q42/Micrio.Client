@@ -384,8 +384,8 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// Determine id, width, height from canvas body (single-image manifest) or top-level info.json fields
 		let id = resp['@id'] || resp.id || url.replace(/info.json$/, '');
-		let width = resp.width;
-		let height = resp.height;
+		let {width} = resp;
+		let {height} = resp;
 
 		if (resp.type === 'Manifest') {
 			const body = resp.items?.[0]?.items?.[0]?.items?.[0]?.body;

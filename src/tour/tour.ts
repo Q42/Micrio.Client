@@ -89,7 +89,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				let startView: Models.Camera.View | undefined;
 				const marker = DataLoader._getStepMarker(si);
 				if (marker?.videoTour) {
-					const lang = micrio.lang;
+					const {lang} = micrio;
 					const vt = marker.videoTour;
 					const timeline = vt.i18n?.[lang]?.timeline;
 					if (timeline?.length && timeline[0].start <= 1) {startView = timeline[0].rect;}

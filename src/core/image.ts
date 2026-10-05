@@ -240,7 +240,7 @@ export class MicrioImage {
 		if(!opts.area) {opts.area = [0,0,1,1];}
 
 		const s = bundle.settings;
-		const micrio = this.#engine.micrio;
+		const {micrio} = this.#engine;
 
 		// V5 ID detection & derived info flags
 		if (!i.isIIIF && this.id.length == 7) {

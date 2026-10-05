@@ -54,7 +54,7 @@ export default class Camera2D extends EngineCamera {
 		if (c._noImage || c._freeMove)
 			{noLimit = true;}
 
-		const el = c.el;
+		const {el} = c;
 		const r = c._hasParent ? c.parent.el.ratio : el.ratio;
 		const v = c.view;
 		const coo = this.#coo;
@@ -81,7 +81,7 @@ export default class Camera2D extends EngineCamera {
 	 */
 	_getXY(x: number, y: number, abs: boolean): Coordinates {
 		const c = this.canvas;
-		const el = c.el;
+		const {el} = c;
 		const rat = c._hasParent ? c.parent.el.ratio : el.ratio;
 		const xy = this.#xy;
 		xy.x = ((x - c.view.x0) * c.width) * this._scale / rat + (abs ? el.left : 0);
@@ -102,7 +102,7 @@ export default class Camera2D extends EngineCamera {
 	 */
 	_getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
 		const c = this.canvas;
-		const el = c.el;
+		const {el} = c;
 		const mat = this.#omniMat, vec4 = c._camera360._vec4;
 		const rat = c._hasParent ? c.parent.el.ratio : el.ratio;
 
@@ -137,7 +137,7 @@ export default class Camera2D extends EngineCamera {
 	/** Recalculates scale limits (minScale, maxScale, coverScale, fullScale) based on current canvas and image dimensions. @internal */
 	_setCanvas(): void {
 		const c = this.canvas;
-		const el = c.el;
+		const {el} = c;
 
 		const cpw = el.width / c.width;
 		const cph = el.height / c.height;
@@ -316,7 +316,7 @@ export default class Camera2D extends EngineCamera {
 
 		if (delta > 0 && this._isZoomedOut() && this._minSize >= 1 && (!this.#pinching || c._coverLimit)) {return 0;}
 
-		const el = c.el;
+		const {el} = c;
 		const v = c.view;
 
 		const ratio: number = (this.cpw / this.cph);

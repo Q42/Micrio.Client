@@ -221,7 +221,7 @@ export class WebGL {
 
 	/** Links the vertex and texture coordinate buffers to the shader attributes. @internal */
 	#linkBuffers() : void {
-		const gl = this.gl;
+		const {gl} = this;
 		// Bind and buffer vertex position data (allocate to max size for bufferSubData compatibility)
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#geomBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, this.#micrio._engine._vertexBuffer360.byteLength, gl.DYNAMIC_DRAW);
@@ -243,7 +243,7 @@ export class WebGL {
 	 * @param loseContext If true, attempts to lose the WebGL context entirely.
 	*/
 	_dispose(loseContext:boolean=false ) : void {
-		const gl = this.gl;
+		const {gl} = this;
 		if (!gl) {return;} // Exit if context doesn't exist
 
 		// Unbind buffers and textures
@@ -303,7 +303,7 @@ export class WebGL {
 	 * @throws If texture creation fails.
 	*/
 	_getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean) : WebGLTexture {
-		const gl = this.gl;
+		const {gl} = this;
 		const t = texture ?? gl.createTexture(); // Use existing or create new
 		if(!t) {throw new Error('Could not create WebGL texture');}
 
@@ -333,7 +333,7 @@ export class WebGL {
 		texture:WebGLTexture,
 		img:TextureBitmap,
 	) : void {
-		const gl = this.gl;
+		const {gl} = this;
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 		// Update texture data
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -343,7 +343,7 @@ export class WebGL {
 
 	/** Prepares for drawing a frame (binds framebuffer if postprocessing, clears canvas). @internal */
 	_drawStart() : void {
-		const gl = this.gl;
+		const {gl} = this;
 		// Bind framebuffer if postprocessing is active
 		if(this._postprocessor) {gl.bindFramebuffer(gl.FRAMEBUFFER, this._postprocessor._frameBuffer);}
 		// Clear the drawing buffer
@@ -371,7 +371,7 @@ export class WebGL {
 	 * @param is360 True if rendering a 360 tile.
 	*/
 	_drawTile(texture?:WebGLTexture, opacity:number=1, is360:boolean=false) : void {
-		const gl = this.gl;
+		const {gl} = this;
 		// Set uniforms only when values change
 		const noTexture = texture ? 0 : 1;
 		if (noTexture !== this.#lastNoTexture) {
@@ -443,7 +443,7 @@ export class WebGL {
 			this.#wmTexture = this._getTexture(c); // getTexture supports HTMLCanvasElement
 
 			// Configure repeating texture
-			const gl = this.gl;
+			const {gl} = this;
 			gl.bindTexture(gl.TEXTURE_2D, this.#wmTexture);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
@@ -458,7 +458,7 @@ export class WebGL {
 	 * Draws a watermark on top of the canvas.
 	 */
 	#drawWatermark() : void {
-		const gl = this.gl;
+		const {gl} = this;
 
 		if(!this.#wmTexture) {return;}
 

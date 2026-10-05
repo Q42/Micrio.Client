@@ -91,7 +91,7 @@ export default class Camera360 extends EngineCamera {
 	/** Updates the 360 projection and rotation matrices. @internal */
 	_update(noPersp: boolean = false): void {
 		const c = this.canvas;
-		const el = c.el;
+		const {el} = c;
 
 		if (!noPersp) {this._pMatrix._perspective(this._perspective, el._aspect, 0.0001, 20);}
 		this.#inverseDirty = true;
@@ -117,7 +117,7 @@ export default class Camera360 extends EngineCamera {
 	 */
 	_rotate(xPx: number, yPx: number, duration: number = 0): void {
 		const c = this.canvas;
-		const el = c.el;
+		const {el} = c;
 		this._yaw += xPx * el.ratio / el.width * this._perspective * el._aspect;
 		this._pitch += yPx * el.ratio / el.height * this._perspective * this.#scaleY;
 
@@ -213,7 +213,7 @@ export default class Camera360 extends EngineCamera {
 
 	/** Recalculates the effective scale based on coordinate conversion. */
 	#readScale(): void {
-		const el = this.canvas.el;
+		const {el} = this.canvas;
 		const cX: number = el.width / 2;
 		const cY: number = el.height / 2;
 
@@ -292,7 +292,7 @@ export default class Camera360 extends EngineCamera {
 	/** Handles canvas resize events for 360 mode. @internal */
 	_resize(): void {
 		const c = this.canvas;
-		const el = c.el;
+		const {el} = c;
 		this._minPerspective = Math.min(.5, el.height / c.height) / c.maxScale * this.#scaleY * Math.PI / el.ratio * el.scale;
 		this._setPerspective(this._perspective, true);
 	}
@@ -308,7 +308,7 @@ export default class Camera360 extends EngineCamera {
 
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. @internal */
 	_getCoo(pxX: number, pxY: number): Coordinates {
-		const el = this.canvas.el,
+		const {el} = this.canvas,
 			v = this._vec4,
 			c = this.#coo;
 
@@ -333,7 +333,7 @@ export default class Camera360 extends EngineCamera {
 
 	/** Converts 360 image coordinates [0-1] to screen pixel coordinates. @internal */
 	_getXYZ(x: number, y: number): Coordinates {
-		const el = this.canvas.el,
+		const {el} = this.canvas,
 			v = this._vec4,
 			c = this.#coo;
 
@@ -519,7 +519,7 @@ export default class Camera360 extends EngineCamera {
 
 	/** @internal */
 	protected _setCooDim(scale: number): { w: number; h: number } {
-		const el = this.canvas.main.el;
+		const {el} = this.canvas.main;
 		return { w: (1 / scale) * el.width, h: (1 / scale) * el.height };
 	}
 }
