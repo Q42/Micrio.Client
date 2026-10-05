@@ -64,7 +64,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Flag indicating if the initial print/setup has occurred.
 	 * @internal
 	*/
-	#printed: boolean = false;
+	#printed = false;
 
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
 	 * @internal
@@ -170,7 +170,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** If true, forces the WebGL render loop to run continuously, even when idle.
 	 * @internal
 	*/
-	_keepRendering: boolean = false;
+	_keepRendering = false;
 
 	/** Idle state manager — sets `data-idle` on the element after inactivity. */
 	#idle!: IdleState;
@@ -181,7 +181,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** For setting first-time hooks
 	 * @internal
 	 */
-	#initedFirst: boolean = false;
+	#initedFirst = false;
 
 	/**
 	 * Called when an observed attribute changes. Handles changes to `id`, `muted`, `data-limited`, and `lang`.
@@ -571,7 +571,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Find or create canvas ─────────────────────────────────────────────
 
 		let c:MicrioImage|undefined = this._canvases.find(c => bundle.id && c.id == bundle.id);
-		let isInGrid:boolean = false;
+		let isInGrid = false;
 		const grid = this._canvases[0]?.grid;
 		if(!c && grid) {
 			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;

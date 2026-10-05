@@ -21,17 +21,17 @@ export class OmniUI {
 	#image:MicrioImage;
 	#parent:HTMLElement;
 
-	#swiperLength:number = 0;
+	#swiperLength = 0;
 	#swiperOpts:{sensitivity?:number; continuous?:boolean; coverLimit?:boolean} = {};
 
 	#startIndex:number|undefined;
 	#startX:number|undefined;
-	#hitTresh:boolean = false;
+	#hitTresh = false;
 	#snapTo:number[] = [];
 	#raf:((time:number) => void)|undefined;
 	#pointers = new Map<number, boolean>();
-	#isFullWidth:boolean = false;
-	#startedWithShift:boolean = false;
+	#isFullWidth = false;
+	#startedWithShift = false;
 	#firstTouchId:number|undefined;
 	#goto:(i:number) => void = () => {};
 	#preloadRangeFn:PreloadRangeFn;

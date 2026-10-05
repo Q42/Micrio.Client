@@ -104,43 +104,43 @@ export class MicrioImage {
 	 * @readonly
 	 * @internal
 	*/
-	_placed: boolean = false;
+	_placed = false;
 
 	/** Base tile index within the engine texture atlas.
 	 * @readonly
 	 * @internal
 	*/
-	_baseTileIdx: number = -1;
+	_baseTileIdx = -1;
 
 	/** Flag indicating if this is a 360 panoramic image.
 	 * @readonly
 	 * @internal
 	*/
-	_is360: boolean = false;
+	_is360 = false;
 
 	/** Flag indicating if this represents a video texture.
 	 * @readonly
 	 * @internal
 	*/
-	_isVideo: boolean = false;
+	_isVideo = false;
 
 	/** Flag indicating if this is an Omni (3D object) viewer.
 	 * @readonly
 	 * @internal
 	*/
-	_isOmni: boolean = false;
+	_isOmni = false;
 
 	/** Number of zoom levels available for this image.
 	 * @readonly
 	 * @internal
 	*/
-	_levels: number = 1;
+	_levels = 1;
 
 	/** Number of DeepZoom levels (used for IIIF/DZI).
 	 * @readonly
 	 * @internal
 	*/
-	#dzLevels: number = 0;
+	#dzLevels = 0;
 
 	/** Source URL for the image thumbnail.
 	 * @readonly
@@ -158,7 +158,7 @@ export class MicrioImage {
 	 * @readonly
 	 * @internal
 	*/
-	_noImage: boolean = false;
+	_noImage = false;
 
 	/** If true, input on this image's area should be routed to the primary instead. @internal */
 	_isPassiveSecondary?: boolean;
@@ -167,7 +167,7 @@ export class MicrioImage {
 	 * @readonly
 	 * @internal
 	*/
-	_opacity: number = 1;
+	_opacity = 1;
 
 	/**  Writable store holding the calculated pixel viewport [left, top, width, height] of this image within the main canvas.
 	 * @internal

@@ -22,10 +22,10 @@ export type FrameCallback = (now: number) => void;
 let display: Window = self;
 
 /** Handle of the currently scheduled rAF, or 0 when none is scheduled. @internal */
-let rafId: number = 0;
+let rafId = 0;
 
 /** Monotonically increasing frame counter, incremented once per processed frame. @internal */
-let frameId: number = 0;
+let frameId = 0;
 
 /** Callbacks requested for the next frame (identity-deduplicated). @internal */
 const pending = new Set<FrameCallback>();

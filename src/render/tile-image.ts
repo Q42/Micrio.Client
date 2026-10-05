@@ -78,64 +78,64 @@ const sortTileIndices = (a: number, b: number): number => b - a;
 export default class Image {
 	static readonly #toDraw: number[] = []
 	static #toDrawSeen: Uint8Array = new Uint8Array(0);
-	static #toDrawSeenBase: number = 0;
+	static #toDrawSeenBase = 0;
 
 	readonly #vec: Vec4 = new Vec4;
 	readonly #mat: Mat4 = new Mat4;
 
-	#rScale: number = 0;
+	#rScale = 0;
 	/** @internal */
 	readonly _layers: Layer[] = [];
-	#numLayers: number = 0;
+	#numLayers = 0;
 	/** @internal */
-	_targetLayer: number = 0;
+	_targetLayer = 0;
 
 	/** Left edge of the image area in canvas-relative coordinates. */
-	x0: number = 0;
+	x0 = 0;
 	/** Top edge of the image area in canvas-relative coordinates. */
-	y0: number = 0;
+	y0 = 0;
 	/** Right edge of the image area in canvas-relative coordinates. */
-	x1: number = 1;
+	x1 = 1;
 	/** Bottom edge of the image area in canvas-relative coordinates. */
-	y1: number = 1;
+	y1 = 1;
 	/** @internal */
-	_rWidth: number = 1;
+	_rWidth = 1;
 	/** @internal */
-	_rHeight: number = 1;
+	_rHeight = 1;
 
-	#areaCenterX: number = 0.5;
-	#areaCenterY: number = 0.5;
-	#areaWidth: number = 1;
-	#areaHeight: number = 1;
+	#areaCenterX = 0.5;
+	#areaCenterY = 0.5;
+	#areaWidth = 1;
+	#areaHeight = 1;
 
-	#sphere3DX: number = 0;
-	#sphere3DY: number = 0;
-	#sphere3DZ: number = -1;
-	#angularWidth: number = 0;
-	#angularHeight: number = 0;
+	#sphere3DX = 0;
+	#sphere3DY = 0;
+	#sphere3DZ = -1;
+	#angularWidth = 0;
+	#angularHeight = 0;
 
 	/** @internal */
-	_gotBase: number = 0;
+	_gotBase = 0;
 
 	/** @internal */
 	readonly _endOffset!: number;
-	#aspect: number = 0;
+	#aspect = 0;
 
-	#doneTotal: number = 0;
-
-	/** @internal */
-	_doRender: boolean = false;
-
-	#is360Embed: boolean = false;
+	#doneTotal = 0;
 
 	/** @internal */
-	_isVideoPlaying: boolean = false;
+	_doRender = false;
+
+	#is360Embed = false;
+
+	/** @internal */
+	_isVideoPlaying = false;
 
 	static #sampledXs: Float64Array = new Float64Array(200);
 	static #sampledYs: Float64Array = new Float64Array(200);
 	static #uniqueXs: Float64Array = new Float64Array(200);
-	static #sampledLength: number = 0;
-	static #uniqueLength: number = 0;
+	static #sampledLength = 0;
+	static #uniqueLength = 0;
 
 	readonly #canvas: TileCanvas;
 

@@ -47,7 +47,7 @@ export class Canvas {
 	 * browser's native context menu "Copy image" action copies only the image itself
 	 * instead of the full canvas with its transparent padding.
 	*/
-	#cropMode:boolean = false;
+	#cropMode = false;
 
 	/** Object containing current viewport dimensions, position, and ratios. */
 	readonly viewport:Models.Canvas.ViewRect = {

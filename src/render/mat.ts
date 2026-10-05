@@ -29,10 +29,10 @@ export class Mat4 {
 	 * Creates a new Mat4 (defaults to the identity matrix).
 	 */
 	constructor(
-		a0: number = 1, a1: number = 0, a2: number = 0, a3: number = 0,
-		a4: number = 0, a5: number = 1, a6: number = 0, a7: number = 0,
-		a8: number = 0, a9: number = 0, a10: number = 1, a11: number = 0,
-		a12: number = 0, a13: number = 0, a14: number = 0, a15: number = 1
+		a0 = 1, a1 = 0, a2 = 0, a3 = 0,
+		a4 = 0, a5 = 1, a6 = 0, a7 = 0,
+		a8 = 0, a9 = 0, a10 = 1, a11 = 0,
+		a12 = 0, a13 = 0, a14 = 0, a15 = 1
 	) {
 		this.arr = new Float32Array([
 			a0, a1, a2, a3,
@@ -225,7 +225,7 @@ export class Mat4 {
 	}
 
 	/** Scales the matrix by the given vector [x, y, z] (z defaults to 1). @internal */
-	_scale(x: number, y: number, z: number = 1): void {
+	_scale(x: number, y: number, z = 1): void {
 		const a = this.arr;
 		a[0] *= x; a[1] *= x; a[2] *= x; a[3] *= x;
 		a[4] *= y; a[5] *= y; a[6] *= y; a[7] *= y;
@@ -263,10 +263,10 @@ export class Mat4 {
 /** Represents a 4D vector (x, y, z, w). @internal */
 export class Vec4 {
 	constructor(
-		public x: number = 0,
-		public y: number = 0,
-		public z: number = 0,
-		public w: number = 1
+		public x = 0,
+		public y = 0,
+		public z = 0,
+		public w = 1
 	) {}
 
 	/** Copies the values from another Vec4 into this one. @internal */

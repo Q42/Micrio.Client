@@ -60,13 +60,13 @@ export class Grid extends MicrioElement {
 	#depth:Writable<number> = writable<number>(0);
 
 	/** @internal */
-	_aniDurationIn:number = 1;
-	#aniDurationOut:number = 0.5;
-	#transitionDelay:number = .5;
+	_aniDurationIn = 1;
+	#aniDurationOut = 0.5;
+	#transitionDelay = .5;
 
 	/** @internal */
 	_nextCrossFadeDuration:number|undefined;
-	#isHorizontal:boolean = false;
+	#isHorizontal = false;
 	readonly #cellSizes = new Map<string, [number,number?]>();
 	readonly #nextSize = new Map<string, [number,number?]>();
 
@@ -77,12 +77,12 @@ export class Grid extends MicrioElement {
 	#_to:ReturnType<typeof setTimeout>|undefined;
 	/** @internal */
 	#_fadeTo:ReturnType<typeof setTimeout>|undefined;
-	#setId:number = 0;
+	#setId = 0;
 	#timingFunction:Models.Camera.TimingFunction = 'ease';
 	#closeBtn!: HTMLElement;
 
 	/** @internal */
-	static _handlingKeys:boolean = false;
+	static _handlingKeys = false;
 
 	/** The parent `<micrio-*>` element this grid is bound to. */
 	micrio!: HTMLMicrioElement;

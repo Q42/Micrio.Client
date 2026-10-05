@@ -8,15 +8,15 @@ import type { Models } from '$types/models';
 /** Base path for Micrio V4 assets (CDN).
  * @internal
  */
-export const BASEPATH:string = 'https://b.micr.io/';
+export const BASEPATH = 'https://b.micr.io/';
 /** Base path for Micrio V5 assets (R2 Global).
  * @internal
  */
-export const BASEPATH_V5:string = 'https://r2.micr.io/';
+export const BASEPATH_V5 = 'https://r2.micr.io/';
 /** Base path for Micrio V5 EU assets (R2 EU).
  * @internal
  */
-export const BASEPATH_V5_EU:string = 'https://eu.micr.io/';
+export const BASEPATH_V5_EU = 'https://eu.micr.io/';
 
 /** Detect the active Micrio TLD from the hosting domain. @internal */
 function getMicrioTLD(): string {
@@ -32,7 +32,7 @@ function getMicrioTLD(): string {
 export const MICRIO_TLD: string = getMicrioTLD();
 
 /** Base URL for the viewer data API (info.json, album JSON, spaces JSON). @internal */
-export const VIEWER_BASE: string = `https://viewer.${MICRIO_TLD}/`;
+export const VIEWER_BASE = `https://viewer.${MICRIO_TLD}/`;
 
 /** Keys used for storing Micrio settings in localStorage.
  * @internal
@@ -42,7 +42,7 @@ export const localStorageKeys = {
 };
 
 /** Default tile size used throughout the application when none is specified by the bundle. @internal */
-export const DEFAULT_TILE_SIZE: number = 1024;
+export const DEFAULT_TILE_SIZE = 1024;
 
 /** Default settings applied to all Micrio images unless overridden by the bundle or attributes.
  * @internal

@@ -29,7 +29,7 @@ export class PaperMesh {
 	readonly _paperWidth: number;
 	readonly _paperHeight: number;
 
-	constructor(yOffset: number = 0, paperWidth: number = 1, aspectRatio: number = DEFAULT_ASPECT) {
+	constructor(yOffset = 0, paperWidth = 1, aspectRatio: number = DEFAULT_ASPECT) {
 		this._yOffset = yOffset;
 		this._paperWidth = paperWidth;
 		this._paperHeight = paperWidth * aspectRatio;

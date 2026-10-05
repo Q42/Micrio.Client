@@ -9,23 +9,23 @@ import type { TileCanvas } from './tile-canvas';
 /** Handles kinetic scrolling/dragging behavior after user interaction stops. @internal */
 export default class Kinetic {
 	/** Accumulated horizontal delta during drag. */
-	#dX: number = 0;
+	#dX = 0;
 	/** Accumulated vertical delta during drag. */
-	#dY: number = 0;
+	#dY = 0;
 	/** Timestamp when the drag interaction started. */
-	#startTime: number = 0;
+	#startTime = 0;
 	/** Timestamp of the previous step added. */
-	#prevTime: number = 0;
+	#prevTime = 0;
 	/** Timestamp when the drag interaction ended (kinetic phase started). */
-	#endTime: number = 0;
+	#endTime = 0;
 	/** Timestamp of the last significant interaction step. */
-	#lastInteraction: number = 0;
+	#lastInteraction = 0;
 	/** Current horizontal velocity for kinetic movement. */
-	#velocityX: number = 0;
+	#velocityX = 0;
 	/** Current vertical velocity for kinetic movement. */
-	#velocityY: number = 0;
+	#velocityY = 0;
 	/** Flag indicating if kinetic movement is currently active. */
-	started: boolean = false;
+	started = false;
 
 	#canvas: TileCanvas;
 

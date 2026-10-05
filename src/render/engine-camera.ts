@@ -14,9 +14,9 @@ export default abstract class EngineCamera {
 	protected readonly canvas: TileCanvas;
 
 	/** Shared pinch state. */
-	#prevSize: number = -1;
-	#prevCenterX: number = -1;
-	#prevCenterY: number = -1;
+	#prevSize = -1;
+	#prevCenterX = -1;
+	#prevCenterY = -1;
 
 	constructor(canvas: TileCanvas) {
 		this.canvas = canvas;
@@ -107,7 +107,7 @@ export default abstract class EngineCamera {
 	 * Sets the camera to specific image coordinates at a given scale.
 	 * @returns Animation duration in ms (0 if set immediately).
 	 */
-	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
+	setCoo(x: number, y: number, scale: number, dur = 0, speed = 0, limit = false, fn: Bicubic = easeInOut): number {
 		if (this._handleSetCooInit(x, y, scale)) {return 0;}
 
 		const c = this.canvas;

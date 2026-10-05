@@ -54,7 +54,7 @@ interface CanvasEntry {
 export class Engine {
 
 	/** Flag indicating the engine has been initialized and is ready. */
-	ready: boolean = false;
+	ready = false;
 
 	/** Viewport for the main HTML element. */
 	readonly el: Viewport = new Viewport;
@@ -68,67 +68,67 @@ export class Engine {
 	readonly _canvases: TileCanvas[] = [];
 
 	/** Total number of tiles across all images in all canvases. @internal */
-	_numTiles: number = 0;
+	_numTiles = 0;
 	/** Total number of Image instances across all canvases. @internal */
-	_numImages: number = 0;
+	_numImages = 0;
 
 	/** Timestamp of the current frame (performance.now()). */
-	now: number = 0;
+	now = 0;
 	/** Flag indicating if any animation is active in any canvas this frame. @internal */
-	_animating: boolean = false;
+	_animating = false;
 	/** Overall loading progress (0-1) based on tiles drawn vs tiles needed. @internal */
-	_progress: number = 0;
+	_progress = 0;
 	/** Total number of tiles needed across all canvases this frame. @internal */
-	_toDrawTotal: number = 0;
+	_toDrawTotal = 0;
 	/** Total number of tiles successfully drawn (or already loaded) across all canvases this frame. @internal */
-	_doneTotal: number = 0;
+	_doneTotal = 0;
 
 	/** Default duration (seconds) for crossfade between canvases. @internal */
-	_crossfadeDuration: number = .25;
+	_crossfadeDuration = .25;
 	/** Default duration (seconds) for grid item transitions. @internal */
-	_itemTransitionDuration: number = .5;
+	_itemTransitionDuration = .5;
 	/** Default easing function for grid transitions. @internal */
 	_itemTransitionTimingFunction: Bicubic = easeInOut;
 	/** Default duration (seconds) for transitions between 360 spaces. @internal */
-	_spacesTransitionDuration: number = .5;
+	_spacesTransitionDuration = .5;
 	/** Default duration (seconds) for fading embedded images/videos. @internal */
-	_embedFadeDuration: number = .5;
+	_embedFadeDuration = .5;
 
 	/** Elasticity factor for kinetic dragging (higher = more movement). @internal */
-	_dragElasticity: number = 1;
+	_dragElasticity = 1;
 
 	/** Flag indicating if a `book3d` album is active. The album ships its own WebGL
 	 *  renderer on the shared `<canvas>`, so the engine stays fully inert (no canvases,
 	 *  render loop, or texture loading) while the DOM UI (markers, gallery controls) still works.
 	 *  @internal
 	 */
-	_book3d: boolean = false;
+	_book3d = false;
 
 	/** Flag indicating if a binary archive is being used. @internal */
-	_hasArchive: boolean = false;
+	_hasArchive = false;
 	/** Layer offset when using an archive. @internal */
-	_archiveLayerOffset: number = 0;
+	_archiveLayerOffset = 0;
 
 	/** Number of "underzoom" levels. @internal */
-	_underzoomLevels: number = 4;
+	_underzoomLevels = 4;
 	/** Number of lowest resolution layers to skip loading initially. @internal */
-	_skipBaseLevels: number = 0;
+	_skipBaseLevels = 0;
 
 	/** Flag for barebone mode (minimal texture loading). @internal */
-	_bareBone: boolean = false;
+	_bareBone = false;
 
 	/** Flag indicating if the current context is a swipe gallery. @internal */
-	_isSwipe: boolean = false;
+	_isSwipe = false;
 
 	/** Flag to disable panning during pinch gestures. @internal */
-	_noPinchPan: boolean = false;
+	_noPinchPan = false;
 
 	/** Target direction for 360 transition. @internal */
-	_direction: number = 0;
+	_direction = 0;
 	/** Horizontal distance for 360 transition. @internal */
-	_distanceX: number = 0;
+	_distanceX = 0;
 	/** Vertical distance for 360 transition. @internal */
-	_distanceY: number = 0;
+	_distanceY = 0;
 
 	/** Estimated time per frame in seconds (used for animation speed normalization). @internal */
 	_frameTime: number = 1 / 60;
@@ -136,7 +136,7 @@ export class Engine {
 	/** Array storing references to all MicrioImage instances managed by the engine. @internal */
 	#images: Array<MicrioImage | Models.Omni.Frame> = [];
 	/** Flag indicating if barebone mode is active. @internal */
-	#bareBoneSetting: boolean = false;
+	#bareBoneSetting = false;
 	/** Set of base tile indices (loaded, never evicted). @internal */
 	#baseTiles = new Set<number>();
 	/** Set storing the indices of tiles drawn in the current frame. @internal */
@@ -161,7 +161,7 @@ export class Engine {
 	#micrioToEngImage = new Map<MicrioImage | Models.Omni.Frame, Image>();
 
 	/** If true, prevents the engine from auto-setting direction during 360 transitions. @internal */
-	_preventDirectionSet: boolean = false;
+	_preventDirectionSet = false;
 
 	/** Static Float32Array holding texture coordinates for a standard quad. @internal */
 	static readonly _textureBuffer: Float32Array = Engine.#getTextureBuffer(1, 1);
@@ -169,9 +169,9 @@ export class Engine {
 	static _textureBuffer360: Float32Array;
 
 	/** Flag indicating if the current context is a gallery. @internal */
-	#isGallery: boolean = false;
+	#isGallery = false;
 
-	#drawing: boolean = false;
+	#drawing = false;
 
 	/** The currently active canvas entry. @internal */
 	#activeCanvasEntry: CanvasEntry | null = null;
@@ -294,7 +294,7 @@ export class Engine {
 	_getTileOpacity = (i: number): number => { return this.#tiles.get(i)?._opacity || 0; }
 
 	/** @internal */
-	_setTileOpacity = (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
+	_setTileOpacity = (i: number, direct = false, imageOpacity = 1): number => {
 		const tile = this.#tiles.get(i);
 		if (!tile) {return 0;}
 		if (tile._opacity < 1) {
@@ -724,8 +724,8 @@ export class Engine {
 	#addImage = (
 		image: MicrioImage | Models.Omni.Frame,
 		parent: MicrioImage,
-		isEmbed: boolean = false,
-		opacity: number = 1,
+		isEmbed = false,
+		opacity = 1,
 		fromScale?: number,
 	): void => {
 		if (this._book3d) {return;}
@@ -803,7 +803,7 @@ export class Engine {
 	_addChild = (image: MicrioImage, parent: MicrioImage) => this.#addImage(image, parent);
 
 	/** Fades an image (main or embed) to a target opacity. @internal */
-	_fadeImage(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean = false): void {
+	_fadeImage(img: MicrioImage | Models.Omni.Frame, opacity: number, direct = false): void {
 		const entry = this.#entryByImage.get(img);
 		const c = entry?.canvas;
 		if (!c) {return;}

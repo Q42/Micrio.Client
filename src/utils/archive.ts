@@ -44,7 +44,7 @@ class Archive {
 
 		const xhr = new XMLHttpRequest();
 		const data = await new Promise((ok, err) => {
-			let size:number = 0; // Total size for progress calculation
+			let size = 0; // Total size for progress calculation
 			xhr.responseType = 'arraybuffer'; // Expect binary data
 			// Progress handler
 			xhr.onprogress = e => {

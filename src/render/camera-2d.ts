@@ -15,30 +15,30 @@ import type { TileCanvas } from './tile-canvas';
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
 export default class Camera2D extends EngineCamera {
 	/** @internal */
-	_scale: number = 1;
+	_scale = 1;
 	/** @internal */
-	_minScale: number = 1;
+	_minScale = 1;
 	/** @internal */
-	_minSize: number = 1;
+	_minSize = 1;
 	/** @internal */
-	_maxScale: number = 1;
-	#fullScale: number = 1;
+	_maxScale = 1;
+	#fullScale = 1;
 	/** @internal */
-	_coverScale: number = 1;
+	_coverScale = 1;
 
 	readonly #xy: Coordinates = new Coordinates;
 	readonly #coo: Coordinates = new Coordinates;
 	readonly #startCoo: Coordinates = new Coordinates;
 
-	#pinching: boolean = false;
-	#inited: boolean = false;
-	#hasStartCoo: boolean = false;
+	#pinching = false;
+	#inited = false;
+	#hasStartCoo = false;
 	readonly #omniMat: Mat4 = new Mat4;
 	/** Width ratio (element width / image width). */
-	cpw: number = -1;
+	cpw = -1;
 	/** Height ratio (element height / image height). */
-	cph: number = -1;
-	#wasCoverLimit: boolean = true;
+	cph = -1;
+	#wasCoverLimit = true;
 
 	constructor(
 		canvas: TileCanvas
@@ -101,7 +101,7 @@ export default class Camera2D extends EngineCamera {
 	 * Converts 3D coordinates relative to an omni object's center to screen pixel coordinates.
 	 * @internal
 	 */
-	_getXYOmniCoo(x: number, y: number, z: number, rotation: number = 0, abs: boolean = false): Coordinates {
+	_getXYOmniCoo(x: number, y: number, z: number, rotation = 0, abs = false): Coordinates {
 		const c = this.canvas;
 		const {el} = c;
 		const mat = this.#omniMat, vec4 = c._camera360._vec4;
@@ -176,7 +176,7 @@ export default class Camera2D extends EngineCamera {
 	}
 
 	/** Corrects minScale and maxScale based on coverLimit and focus area. @internal */
-	_correctMinMax(noLimit: boolean = false): void {
+	_correctMinMax(noLimit = false): void {
 		const c = this.canvas;
 		this._minScale = c._coverLimit ? this._coverScale : this.#fullScale;
 
@@ -193,7 +193,7 @@ export default class Camera2D extends EngineCamera {
 	/** Checks if the current scale is below the minimum allowed scale (considering minSize margin). @internal */
 	_isUnderZoom(): boolean { return this._minSize < 1 && this._scale < this._minScale };
 	/** Checks if the camera is fully zoomed out (at or below minScale, considering minSize margin). @internal */
-	_isZoomedOut(b: boolean = false): boolean { return epsEq(this._scale, this._minScale * (b ? this._minSize : 1)) || this._scale <= this._minScale * (b ? this._minSize : 1); }
+	_isZoomedOut(b = false): boolean { return epsEq(this._scale, this._minScale * (b ? this._minSize : 1)) || this._scale <= this._minScale * (b ? this._minSize : 1); }
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. @internal */
 	_isZoomedIn(): boolean { return epsEq(this._scale, this._maxScale) || this._scale >= this._maxScale; }
 
@@ -257,7 +257,7 @@ export default class Camera2D extends EngineCamera {
 	 * Pans the view by a given pixel delta.
 	 * @internal
 	 */
-	_pan(xPx: number, yPx: number, duration: number = 0, noLimit: boolean = false, force: boolean = false, isKinetic: boolean = false): void {
+	_pan(xPx: number, yPx: number, duration = 0, noLimit = false, force = false, isKinetic = false): void {
 		const c = this.canvas;
 
 		if ((this._isUnderZoom() || this.#pinching) && !force) {return;}
@@ -306,7 +306,7 @@ export default class Camera2D extends EngineCamera {
 	 * @internal
 	 * @returns The calculated animation duration.
 	 */
-	_zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
+	_zoom(delta: number, xPx: number, yPx: number, duration = 0, noLimit: boolean): number {
 		const c = this.canvas;
 
 		c._kinetic.stop();
@@ -430,9 +430,9 @@ export default class Camera2D extends EngineCamera {
 
 	// ─── 360 camera compat stubs (for union with Camera360) ─────────
 	/** @internal */
-	_yaw: number = 0;
+	_yaw = 0;
 	/** @internal */
-	_pitch: number = 0;
+	_pitch = 0;
 
 	/** Updates the projection matrix for 2D rendering (delegates to Camera360.pMatrix). @internal */
 	_updateProjection(): void {

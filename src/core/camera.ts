@@ -17,7 +17,7 @@ import { getEasing } from '$render/easing';
 export class Camera {
 
 	/** Y-axis sphere rotation in radians for 360 images. @internal */
-	rotationY: number = 0;
+	rotationY = 0;
 
 	/** Direct reference to the engine TileCanvas for compute operations. @internal */
 	#canvas?: TileCanvas;

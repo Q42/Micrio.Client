@@ -133,7 +133,7 @@ export class PaperRenderer {
 	public _tiltShiftEnabled: boolean = TILT_SHIFT_ENABLED;
 
 	/** When true, page margins without a texture are discarded (see-through) instead of drawn as transparent, so pages behind remain visible. */
-	public _seeThroughMargins: boolean = false;
+	public _seeThroughMargins = false;
 
 	#canvas: HTMLCanvasElement;
 
@@ -163,7 +163,7 @@ export class PaperRenderer {
 	#flipProgress: Float32Array = new Float32Array(0);
 	#blurWeights: Float32Array;
 
-	#bboxIsSet: boolean = false;
+	#bboxIsSet = false;
 	#bboxMin: Float32Array = new Float32Array(3);
 	#bboxMax: Float32Array = new Float32Array(3);
 

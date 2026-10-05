@@ -53,7 +53,7 @@ export class PageFlipAnimator {
 	}
 
 	#slots: AnimSlot[] = [];
-	#selectedPage: number = 0;
+	#selectedPage = 0;
 
 	_getPageProgress(pageIndex: number): number {
 		const slot = this.#slots[pageIndex];

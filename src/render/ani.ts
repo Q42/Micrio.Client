@@ -12,7 +12,7 @@ import type { TileCanvas } from './tile-canvas';
 /** Manages camera and view animations (fly-to, zoom). @internal */
 export default class Ani {
 	/** Flag indicating if a view animation (fly-to) is active. */
-	#isView: boolean = false;
+	#isView = false;
 	/** Starting view state for the animation. */
 	readonly #vFrom: View;
 	/** Target view state for the animation. */
@@ -21,50 +21,50 @@ export default class Ani {
 	readonly _lastView: View;
 
 	/** Flag indicating if a zoom animation (perspective change in 360) is active. */
-	#isZoom: boolean = false;
+	#isZoom = false;
 	/** Flag indicating if the animation is a "jump" (zooms out then in). */
-	#isJump: boolean = false;
+	#isJump = false;
 	/** Starting perspective value for zoom animation. */
-	#zFrom: number = 0;
+	#zFrom = 0;
 	/** Target perspective value for zoom animation. */
-	#zTo: number = 0;
+	#zTo = 0;
 	/** Flag to disable perspective limits during zoom animation. */
-	#zNoLimit: boolean = false;
+	#zNoLimit = false;
 	/** Easing function used for the current animation. */
 	#fn: Bicubic = easeInOut;
 
 	/** Timestamp when the animation started. */
-	#started: number = 0;
+	#started = 0;
 	/** Total duration of the animation in milliseconds. */
-	#duration: number = 0;
+	#duration = 0;
 
 	/** Flag indicating if the animation is currently running (not paused). */
-	#isRunning: boolean = false;
+	#isRunning = false;
 
 	/** Flag indicating if the view should be limited during animation (usually false during animation). @internal */
-	_limit: boolean = true;
+	_limit = true;
 	/** Flag indicating if the animation is a fly-to type. @internal */
-	_flying: boolean = false;
+	_flying = false;
 	/** Flag indicating if the animation is correcting the view to stay within limits. @internal */
-	_correcting: boolean = false;
+	_correcting = false;
 
 	/** Timestamp when the animation was paused. 0 if not paused. */
-	#pausedAt: number = 0;
+	#pausedAt = 0;
 
 	// Jump animation edge direction flags: 0=none, 1=expanding, 2=contracting
-	#fL: number = 0;
-	#fT: number = 0;
-	#fR: number = 0;
-	#fB: number = 0;
+	#fL = 0;
+	#fT = 0;
+	#fR = 0;
+	#fB = 0;
 	/** Start point for the ease-in part of the jump animation curve. */
-	#mI: number = 0;
+	#mI = 0;
 	/** Start point for the ease-out part of the jump animation curve. */
-	#mO: number = 0;
+	#mO = 0;
 
 	/** Starting frame index for omni object rotation animation. */
-	#omniStartIdx: number = -1;
+	#omniStartIdx = -1;
 	/** Delta (number of frames) to rotate during omni animation. */
-	#omniDelta: number = 0;
+	#omniDelta = 0;
 
 	#canvas: TileCanvas;
 
@@ -174,7 +174,7 @@ export default class Ani {
 		}
 
 		this.#fL = 0; this.#fR = 0; this.#fT = 0; this.#fB = 0;
-		let durFact: number = 1;
+		let durFact = 1;
 
 		if (this.#isJump) {
 			if (!c.is360) {
@@ -248,7 +248,7 @@ export default class Ani {
 	}
 
 	/** Updates the target view of a running animation. Used for corrections. @internal */
-	_updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting: boolean = false): void {
+	_updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting = false): void {
 		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
 		if (limiting) {this.#vTo._limit(true);}
 	}
@@ -279,7 +279,7 @@ export default class Ani {
 	}
 
 	/** Sets the starting view for progress calculation in flyTo animations. @internal */
-	_setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio: boolean = false): void {
+	_setStartView(centerX: number, centerY: number, width: number, height: number, correctRatio = false): void {
 		this.#vFrom.set(centerX, centerY, width, height, correctRatio);
 		this.#vTo.set(centerX, centerY, width, height, correctRatio);
 	}
@@ -298,7 +298,7 @@ export default class Ani {
 				const f = this.#vFrom, t = this.#vTo;
 				const mo = this.#mO, i = this.#fn.get(Math.min(1, p / this.#mI)),
 					o = this.#fn.get(Math.max(0, (p - mo) / (1 - mo)));
-				let n: number = 0;
+				let n = 0;
 
 				let interpCenterX = f._centerX + (t._centerX - f._centerX) * (!(n = this.#fL || this.#fR) ? pE : n === 1 ? i : o);
 				let interpCenterY = f._centerY + (t._centerY - f._centerY) * (!(n = this.#fT || this.#fB) ? pE : n === 1 ? i : o);

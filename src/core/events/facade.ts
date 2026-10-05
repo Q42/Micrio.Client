@@ -37,31 +37,31 @@ export class Events implements EventContext {
 	get $enabled(): boolean { return get(this.enabled) };
 
 	/** Flag indicating if the main event listeners are currently attached. */
-	#hooked: boolean = false;
+	#hooked = false;
 
 	/** @internal Flag indicating if the user is currently panning (dragging). */
-	_panning: boolean = false;
+	_panning = false;
 
 	/** @internal Flag indicating if the user is currently pinching. */
-	_pinching: boolean = false;
+	_pinching = false;
 
 	/** @internal Flag indicating if the user is currently zooming via mouse wheel. */
-	_wheeling: boolean = false;
+	_wheeling = false;
 
 	/** @internal Flag indicating if Ctrl/Cmd key is required for mouse wheel zoom. */
-	_controlZoom: boolean = false;
+	_controlZoom = false;
 
 	/** @internal Flag indicating if two fingers are required for touch panning. */
-	_twoFingerPan: boolean = false;
+	_twoFingerPan = false;
 
 	/** @internal Stores the previous scale during pinch gestures for calculating zoom delta. */
-	_pScale: number = 1;
+	_pScale = 1;
 
 	/** @internal Flag indicating if the browser supports touch events. */
 	_hasTouch: boolean = Browser.hasTouch && ('ontouchstart' in self);
 
 	/** @internal Flag indicating if the user has explicitly used Ctrl/Cmd + wheel for zooming (differentiates from trackpad pinch). */
-	_hasUsedCtrl: boolean = false;
+	_hasUsedCtrl = false;
 
 	/** Cached settings object from the first loaded image. */
 	#settings: Models.ImageInfo.Settings | undefined;

@@ -4,7 +4,7 @@ import { Mat4 } from '$render/mat';
 export class OrbitCamera {
 	_theta: number = Math.PI * 0.4;
 	_phi: number = Math.PI * 0.25;
-	_radius: number = 1.5;
+	_radius = 1.5;
 	_target: Vec3 = new Vec3(0, 0, 0);
 
 	#targetTheta: number = this._theta;
@@ -12,23 +12,23 @@ export class OrbitCamera {
 	#targetRadius: number = this._radius;
 	#targetTarget: Vec3 = this._target._clone();
 
-	_rotateSpeed: number = 0.005;
-	_zoomSpeed: number = 0.003;
+	_rotateSpeed = 0.005;
+	_zoomSpeed = 0.003;
 
-	_minRadius: number = 0.6;
-	_maxRadius: number = 5;
+	_minRadius = 0.6;
+	_maxRadius = 5;
 
 	_panBoundsMin: Vec3 | null = null;
 	_panBoundsMax: Vec3 | null = null;
 
-	_freeCamMode: boolean = false;
+	_freeCamMode = false;
 
-	_canPanLeft: boolean = true;
-	_canPanRight: boolean = true;
-	_canPanUp: boolean = true;
-	_canPanDown: boolean = true;
+	_canPanLeft = true;
+	_canPanRight = true;
+	_canPanUp = true;
+	_canPanDown = true;
 
-	_manualZoomActive: boolean = false;
+	_manualZoomActive = false;
 
 	_isZoomedIn(): boolean {
 		return this._canPanLeft || this._canPanRight || this._canPanUp || this._canPanDown;
@@ -36,8 +36,8 @@ export class OrbitCamera {
 
 	_fov: number = Math.PI * 0.25;
 
-	#canvasW: number = 1;
-	#canvasH: number = 1;
+	#canvasW = 1;
+	#canvasH = 1;
 
 	_setCanvasSize(w: number, h: number): void {
 		this.#canvasW = 0 | w;
@@ -132,7 +132,7 @@ export class OrbitCamera {
 		}
 	}
 
-	_rotate(deltaTheta: number, deltaPhi: number, clampPhi: boolean = true): void {
+	_rotate(deltaTheta: number, deltaPhi: number, clampPhi = true): void {
 		this.#targetTheta += deltaTheta * this._rotateSpeed;
 		this.#targetPhi += deltaPhi * this._rotateSpeed;
 		if (clampPhi) {

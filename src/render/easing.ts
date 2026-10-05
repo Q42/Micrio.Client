@@ -77,9 +77,9 @@ export class Bicubic {
 	 */
 	#find_x_for(x: number): number {
 		let t: number = x;
-		let i: number = 0;
-		let current_x: number = 0;
-		let derivative_x: number = 0;
+		let i = 0;
+		let current_x = 0;
+		let derivative_x = 0;
 		while (i < 5) {
 			current_x = this.#bezier_x(t) - x;
 			derivative_x = this.#bezier_x_der(t);

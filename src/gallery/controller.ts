@@ -46,9 +46,9 @@ export class Gallery {
 	readonly _items: Models.ImageInfo.ImageInfo[];
 
 	/** Max width for the virtual container canvas (switch/omni galleries). */
-	#containerWidth: number = 0;
+	#containerWidth = 0;
 	/** Max height for the virtual container canvas (switch/omni galleries). */
-	#containerHeight: number = 0;
+	#containerHeight = 0;
 
 	/* @internal */
 	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {

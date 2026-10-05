@@ -49,7 +49,7 @@ export class WebGL {
 	_pmLoc!:WebGLUniformLocation;
 
 	/** Attribute location for texture coordinates. @internal */
-	#txtAttr:number = -1;
+	#txtAttr = -1;
 
 	/** WebGLBuffer for static texture coordinates. @internal */
 	#txtBuffer!:WebGLBuffer;
@@ -83,18 +83,18 @@ export class WebGL {
 	#wmMatrix: Float32Array = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
 
 	/** Watermark opacity @internal */
-	#wmOpacity: number = 0.075;
+	#wmOpacity = 0.075;
 
 	/** Attribute location for vertex positions. @internal */
-	#posAttr:number = -1;
+	#posAttr = -1;
 
 	/** Flag indicating if the previous draw call was for a 360 tile. @internal */
-	#was360:boolean = false;
+	#was360 = false;
 
 	/** Tracks last-set noTexture uniform value to avoid redundant GL calls. */
-	#lastNoTexture: number = -1;
+	#lastNoTexture = -1;
 	/** Tracks last-set opacity uniform value to avoid redundant GL calls. */
-	#lastOpacity: number = -1;
+	#lastOpacity = -1;
 
 	/** Optional PostProcessor instance for applying fullscreen effects. @internal */
 	_postprocessor?:PostProcessor;
@@ -242,7 +242,7 @@ export class WebGL {
 	 * @internal
 	 * @param loseContext If true, attempts to lose the WebGL context entirely.
 	*/
-	_dispose(loseContext:boolean=false ) : void {
+	_dispose(loseContext=false ) : void {
 		const {gl} = this;
 		if (!gl) {return;} // Exit if context doesn't exist
 
@@ -370,7 +370,7 @@ export class WebGL {
 	 * @param opacity The opacity of the tile (0-1).
 	 * @param is360 True if rendering a 360 tile.
 	*/
-	_drawTile(texture?:WebGLTexture, opacity:number=1, is360:boolean=false) : void {
+	_drawTile(texture?:WebGLTexture, opacity=1, is360=false) : void {
 		const {gl} = this;
 		// Set uniforms only when values change
 		const noTexture = texture ? 0 : 1;

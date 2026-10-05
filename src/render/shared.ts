@@ -15,30 +15,30 @@ export class DrawRect {
 
 	constructor(
 		/** Left edge of the tile in relative image coordinates (0-1). */
-		public x0: number = 0,
+		public x0 = 0,
 		/** Top edge of the tile in relative image coordinates (0-1). */
-		public y0: number = 0,
+		public y0 = 0,
 		/** Right edge of the tile in relative image coordinates (0-1). */
-		public x1: number = 0,
+		public x1 = 0,
 		/** Bottom edge of the tile in relative image coordinates (0-1). */
-		public y1: number = 0,
+		public y1 = 0,
 		/** Index of the resolution layer this tile belongs to. */
-		public layer: number = 0,
+		public layer = 0,
 		/** Column index of the tile within its layer. */
-		public x: number = 0,
+		public x = 0,
 		/** Row index of the tile within its layer. */
-		public y: number = 0
+		public y = 0
 	) {}
 }
 
 /** Represents the logical view rectangle within an image. @internal */
 export class View {
 	#arr: Float64Array = new Float64Array([0.5, 0.5, 1, 1]);
-	#dirty: boolean = false;
+	#dirty = false;
 	/** Flag indicating if the view coordinates have changed since the last frame. @internal */
-	_changed: boolean = false;
+	_changed = false;
 	/** Flag indicating if the view limits have changed. @internal */
-	_limitChanged: boolean = false;
+	_limitChanged = false;
 
 	readonly #canvas: TileCanvas;
 
@@ -46,20 +46,20 @@ export class View {
 		canvas: TileCanvas,
 
 		/** @internal */
-		public _centerX: number = 0.5,
+		public _centerX = 0.5,
 		/** @internal */
-		public _centerY: number = 0.5,
-		public width: number = 1,
-		public height: number = 1,
+		public _centerY = 0.5,
+		public width = 1,
+		public height = 1,
 
 		/** @internal */
-		public _lCenterX: number = 0.5,
+		public _lCenterX = 0.5,
 		/** @internal */
-		public _lCenterY: number = 0.5,
+		public _lCenterY = 0.5,
 		/** @internal */
-		public _lWidth: number = 1,
+		public _lWidth = 1,
 		/** @internal */
-		public _lHeight: number = 1,
+		public _lHeight = 1,
 	) {
 		this.#canvas = canvas;
 	}
@@ -110,7 +110,7 @@ export class View {
 	 * Sets the view rectangle center and dimensions.
 	 * @param preserveAspect If true, adjusts dimensions to maintain aspect ratio.
 	 */
-	set(centerX: number, centerY: number, width: number, height: number, preserveAspect: boolean = false): void {
+	set(centerX: number, centerY: number, width: number, height: number, preserveAspect = false): void {
 		if (preserveAspect) {
 			const cAr = Math.min(1, this.width) / Math.min(1, this.height);
 			if (width / height > cAr * 1.5 && width < this.width) {
@@ -148,7 +148,7 @@ export class View {
 	}
 
 	/** @internal */
-	_copy(v: View, excludeLimit: boolean = false): void {
+	_copy(v: View, excludeLimit = false): void {
 		this._centerX = v._centerX;
 		this._centerY = v._centerY;
 		this.width = v.width;
@@ -173,7 +173,7 @@ export class View {
 	}
 
 	/** @internal */
-	_limit(correctZoom: boolean, noLimit: boolean = false, freeMove: boolean = false): void {
+	_limit(correctZoom: boolean, noLimit = false, freeMove = false): void {
 		const c = this.#canvas;
 		const mS = c._camera2d._minSize;
 		const s = this.#getScale();
@@ -251,11 +251,11 @@ export class Coordinates {
 	readonly arr: Float64Array = new Float64Array(5);
 
 	constructor(
-		public x: number = .5,
-		public y: number = .5,
-		public scale: number = 1,
-		public w: number = 0,
-		public direction: number = 0
+		public x = .5,
+		public y = .5,
+		public scale = 1,
+		public w = 0,
+		public direction = 0
 	) {}
 
 	/** Checks if the screen coordinate is potentially within the viewport bounds. @internal */
@@ -280,18 +280,18 @@ export class Viewport {
 	readonly arr: Int32Array = new Int32Array(4);
 
 	constructor(
-		public width: number = 0,
-		public height: number = 0,
-		public left: number = 0,
-		public top: number = 0,
+		public width = 0,
+		public height = 0,
+		public left = 0,
+		public top = 0,
 		/** @internal */
-		public _areaWidth: number = 0,
+		public _areaWidth = 0,
 		/** @internal */
-		public _areaHeight: number = 0,
-		public ratio: number = 1,
-		public scale: number = 1,
+		public _areaHeight = 0,
+		public ratio = 1,
+		public scale = 1,
 		/** @internal */
-		public _isPortrait: boolean = false
+		public _isPortrait = false
 	) {}
 
 	/** @internal */

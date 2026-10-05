@@ -16,7 +16,7 @@ export class CoverMesh extends PaperMesh {
 	readonly _coverScale: number;
 	readonly _coverScaleY: number;
 
-	constructor(yOffset: number = 0, paperWidth: number = 1, aspectRatio: number = DEFAULT_ASPECT, coverThickness: number = 0.01, coverScale: number = COVER_SCALE_X, coverScaleY: number = COVER_SCALE_Y) {
+	constructor(yOffset = 0, paperWidth = 1, aspectRatio: number = DEFAULT_ASPECT, coverThickness = 0.01, coverScale: number = COVER_SCALE_X, coverScaleY: number = COVER_SCALE_Y) {
 		super(yOffset, paperWidth, aspectRatio);
 		this._coverThickness = coverThickness;
 		this._coverScale = coverScale;

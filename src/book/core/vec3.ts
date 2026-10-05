@@ -1,8 +1,8 @@
 export class Vec3 {
 	constructor(
-		public _x: number = 0,
-		public _y: number = 0,
-		public _z: number = 0
+		public _x = 0,
+		public _y = 0,
+		public _z = 0
 	) {}
 
 	_clone(): Vec3 {

@@ -18,7 +18,7 @@ import { HLS_SCRIPT_URL, HLS_PLAYER_CONFIG, mediaSourceSupported, cloudflareStre
  */
 export class GLEmbedVideo {
 	/** Is the video source an HLS stream (.m3u8)? @internal */
-	#ism3u:boolean = false;
+	#ism3u = false;
 	/** HLS.js player instance, if used. @internal */
 	#hlsPlayer: HlsPlayer|undefined = undefined;
 	/** Store unsubscriber for the image visibility store. @internal */
@@ -30,13 +30,13 @@ export class GLEmbedVideo {
 	/** Tracks whether the video was temporarily appended to the DOM for WebGL first-frame capture. */
 	#tmpDomAttached = false;
 	/** Should the video autoplay when visible? @internal */
-	#autoplay:boolean = true;
+	#autoplay = true;
 
 	/** The underlying HTMLVideoElement used for decoding. @internal */
 	_vid:HTMLVideoElement|undefined = undefined;
 
 	/** Flag indicating if the parent Embed component is still mounted. @internal */
-	#isMounted:boolean = true;
+	#isMounted = true;
 
 	/**
 	 * Creates a GLEmbedVideo instance.
@@ -71,7 +71,7 @@ export class GLEmbedVideo {
 		// Set autoplay flag from embed data
 		this.#autoplay = embed.video?.autoplay ?? true;
 
-		let first:boolean = true; // Flag for initial visibility check
+		let first = true; // Flag for initial visibility check
 		// Subscribe to image visibility changes
 		this.#usVid = this.#image.visible.subscribe(v =>  {
 			clearTimeout(this.#placeTo); // Clear any pending timeout

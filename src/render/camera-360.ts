@@ -18,31 +18,31 @@ export default class Camera360 extends EngineCamera {
 	readonly _pMatrix: Mat4 = new Mat4;
 	readonly #iMatrix: Mat4 = new Mat4;
 	readonly #cachedInverse: Mat4 = new Mat4;
-	#inverseDirty: boolean = true;
+	#inverseDirty = true;
 	readonly #rMatrix: Mat4 = new Mat4;
 
 	readonly #position: Vec4 = new Vec4;
 
 	/** @internal */
-	_radius: number = 10;
+	_radius = 10;
 
 	/** @internal */
-	_scale: number = 0;
+	_scale = 0;
 
-	#scaleY: number = 1;
-	#offY: number = 0;
+	#scaleY = 1;
+	#offY = 0;
 	/** @internal */
-	_offX: number = 0;
+	_offX = 0;
 
-	#limitX: number = 0;
-	#limitY: number = 0;
+	#limitX = 0;
+	#limitY = 0;
 
 	/** @internal */
-	_baseYaw: number = 0;
+	_baseYaw = 0;
 	/** @internal */
-	_yaw: number = 0;
+	_yaw = 0;
 	/** @internal */
-	_pitch: number = 0;
+	_pitch = 0;
 
 	/** @internal */
 	_defaultPerspective: number = Math.PI / 2;
@@ -54,13 +54,13 @@ export default class Camera360 extends EngineCamera {
 	_minPerspective: number = Math.PI / 2;
 
 	/** @internal */
-	_cameraForwardX: number = 0;
+	_cameraForwardX = 0;
 	/** @internal */
-	_cameraForwardY: number = 0;
+	_cameraForwardY = 0;
 	/** @internal */
-	_cameraForwardZ: number = -1;
+	_cameraForwardZ = -1;
 	/** @internal */
-	_fieldOfView: number = 0;
+	_fieldOfView = 0;
 
 	/** @internal */
 	readonly _vec4: Vec4 = new Vec4();
@@ -89,7 +89,7 @@ export default class Camera360 extends EngineCamera {
 	}
 
 	/** Updates the 360 projection and rotation matrices. @internal */
-	_update(noPersp: boolean = false): void {
+	_update(noPersp = false): void {
 		const c = this.canvas;
 		const {el} = c;
 
@@ -115,7 +115,7 @@ export default class Camera360 extends EngineCamera {
 	 * Applies rotation based on pixel delta from mouse/touch drag.
 	 * @internal
 	 */
-	_rotate(xPx: number, yPx: number, duration: number = 0): void {
+	_rotate(xPx: number, yPx: number, duration = 0): void {
 		const c = this.canvas;
 		const {el} = c;
 		this._yaw += xPx * el.ratio / el.width * this._perspective * el._aspect;
@@ -154,7 +154,7 @@ export default class Camera360 extends EngineCamera {
 	/**
 	 * Applies zoom by adjusting the perspective.
 	 */
-	#zoomByFactor(factor: number, dur: number, noLimit: boolean, speed: number = 0, pxX: number = 0, pxY: number = 0): number {
+	#zoomByFactor(factor: number, dur: number, noLimit: boolean, speed = 0, pxX = 0, pxY = 0): number {
 		const c = this.canvas;
 		factor /= 2;
 		if (dur !== 0) {
@@ -163,7 +163,7 @@ export default class Camera360 extends EngineCamera {
 			factor /= this._scale * c._diagonal / 20;
 
 			const hasCursor: boolean = pxX > 0 && pxY > 0;
-			let beforeX: number = 0, beforeY: number = 0;
+			let beforeX = 0, beforeY = 0;
 			if (hasCursor) {
 				const coo = this._getCoo(pxX, pxY);
 				beforeX = coo.x;
@@ -223,7 +223,7 @@ export default class Camera360 extends EngineCamera {
 	}
 
 	/** Sets the camera orientation directly. @internal */
-	_setDirection(yaw: number, pitch: number, persp: number = 0): void {
+	_setDirection(yaw: number, pitch: number, persp = 0): void {
 		this._yaw = modPI(yaw - this._baseYaw);
 		this._pitch = pitch;
 		if (persp !== 0) {this._setPerspective(persp, false);}
@@ -278,7 +278,7 @@ export default class Camera360 extends EngineCamera {
 	}
 
 	/** Applies translation offset for 360 space transitions. @internal */
-	_moveTo(distance: number, distanceY: number, direction: number, addYaw: number = 0): void {
+	_moveTo(distance: number, distanceY: number, direction: number, addYaw = 0): void {
 		const p = this.#position;
 
 		const dir: number = direction * Math.PI * 2 + addYaw;
@@ -352,7 +352,7 @@ export default class Camera360 extends EngineCamera {
 	 * Calculates the 3D vector corresponding to a point on the 360 sphere.
 	 * @internal
 	 */
-	_getVec3(x: number, y: number, abs: boolean = false, rad: number = this._radius): Vec4 {
+	_getVec3(x: number, y: number, abs = false, rad: number = this._radius): Vec4 {
 		const v = this._vec4;
 
 		x *= -Math.PI * 2;
@@ -376,7 +376,7 @@ export default class Camera360 extends EngineCamera {
 	 * at a specific point on the 360 sphere.
 	 * @internal
 	 */
-	_getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
+	_getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY = 0, sX = 1, sY = 1, _noCorrectNorth = false): Mat4 {
 		if (isNaN(radius)) {radius = this._radius;}
 
 		const m = this.#iMatrix,
@@ -470,13 +470,13 @@ export default class Camera360 extends EngineCamera {
 
 	// 2D-specific properties, unused for 360
 	/** @internal */
-	_minScale: number = 0;
+	_minScale = 0;
 	/** @internal */
-	_maxScale: number = 0;
+	_maxScale = 0;
 	/** @internal */
-	_coverScale: number = 0;
+	_coverScale = 0;
 	/** @internal */
-	_minSize: number = 1;
+	_minSize = 1;
 
 	/** @internal */
 	_correctMinMax(): void {}
@@ -488,18 +488,18 @@ export default class Camera360 extends EngineCamera {
 	_isUnderZoom(): boolean { return false; }
 
 	/** @internal */
-	_isZoomedOut(_b: boolean = false): boolean { return this._perspective >= this._maxPerspective; }
+	_isZoomedOut(_b = false): boolean { return this._perspective >= this._maxPerspective; }
 
 	/** @internal */
 	_isZoomedIn(): boolean { return this._perspective <= this._minPerspective; }
 
 	/** @internal */
-	_pan(xPx: number, yPx: number, duration: number = 0, _noLimit: boolean = false, _force: boolean = false, _isKinetic: boolean = false): void {
+	_pan(xPx: number, yPx: number, duration = 0, _noLimit = false, _force = false, _isKinetic = false): void {
 		this._rotate(xPx, yPx, duration);
 	}
 
 	/** @internal */
-	_zoom(delta: number, xPx: number, yPx: number, duration: number = 0, noLimit: boolean): number {
+	_zoom(delta: number, xPx: number, yPx: number, duration = 0, noLimit: boolean): number {
 		return this.#zoomByFactor(delta, duration, noLimit, 0, xPx, yPx);
 	}
 

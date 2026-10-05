@@ -9,7 +9,7 @@ import type { Models } from '$types/models';
  * Calculates the positive modulo (floored division remainder).
  * @internal
  */
-export const mod = (n: number, m: number = 1): number => (n % m + m) % m;
+export const mod = (n: number, m = 1): number => (n % m + m) % m;
 
 /** Calculates the modulo 1 of a number (keeps the fractional part, positive). @internal */
 export const mod1 = (n: number): number => mod(n);
