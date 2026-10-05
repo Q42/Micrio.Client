@@ -142,7 +142,13 @@ export const tourMarker = (
 	extra: Partial<Models.ImageData.Marker> = {},
 ) => marker(id, { videoTour: tour, popupType: 'none', ...extra })
 
-/** An image whose data carries the given tours, with tour-related settings. */
+/**
+ * An image whose data carries the given tours, with tour-related settings.
+ *
+ * `markersWithVideo` builds the marker set every serial tour needs: a serial tour
+ * only renders progress bars and chapters for steps whose marker carries a video
+ * tour (that media element is what the bars are injected into).
+ */
 export const tourBundle = (
 	opts: {
 		id?: string
@@ -151,20 +157,27 @@ export const tourBundle = (
 		tours?: Models.ImageData.VideoTour[]
 		settings?: Partial<Models.ImageInfo.Settings>
 		langs?: string[]
+		/** Add a video tour to each step marker, as a published serial tour has. */
+		markersWithVideo?: string[]
 	} = {},
 ): Models.ImageBundle.BundleImage => {
-	const { id = 'rqFkjZz', markers, markerTours, tours, settings = {}, langs = ['en'] } = opts
+	const { id = 'rqFkjZz', markerTours, tours, settings = {}, langs = ['en'], markersWithVideo } = opts
 	const i18n: Record<string, { title: string }> = {}
 	for (const lang of langs) {
 		i18n[lang] = { title: 'Tour image' }
 	}
+	const markers =
+		opts.markers ??
+		(markersWithVideo
+			? markersWithVideo.map((markerId) => tourMarker(markerId, videoTour({ id: `vt-${markerId}` })))
+			: [marker('m1'), marker('m2'), marker('m3')])
 	return {
 		id,
 		info: baseInfo(id, { title: 'Tour image', revision: { en: 1 } }),
 		settings,
 		data: {
 			i18n,
-			markers: markers ?? [marker('m1'), marker('m2'), marker('m3')],
+			markers,
 			...(markerTours !== undefined ? { markerTours } : {}),
 			...(tours !== undefined ? { tours } : {}),
 		},

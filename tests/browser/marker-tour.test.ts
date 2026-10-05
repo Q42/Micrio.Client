@@ -7,6 +7,10 @@ import { waitFor } from '../helpers/viewer'
 /** The `<micrio-tour>` UI is created by the layout once the tour store is set. */
 const tourEl = (viewer: Awaited<ReturnType<typeof mountTour>>) => viewer.el.querySelector('micrio-tour')
 
+/** The real `<button>` a `<micrio-button>` renders, typed so `disabled` is readable. */
+const button = (root: Element | null | undefined, selector: string): HTMLButtonElement | null =>
+	root?.querySelector<HTMLButtonElement>(selector) ?? null
+
 describe('marker tour UI', () => {
 	it('renders the step controls once the tour starts', async () => {
 		const tour = markerTour({ steps: ['m1', 'm2', 'm3'] })
@@ -31,8 +35,8 @@ describe('marker tour UI', () => {
 		const aside = tourEl(viewer)?.querySelector('aside.marker-tour')
 		expect(aside?.querySelector('span')?.textContent).toBe('1/3')
 
-		const prev = aside?.querySelector<HTMLElement>('micrio-button.prev button')
-		const next = aside?.querySelector<HTMLElement>('micrio-button.next button')
+		const prev = button(aside, 'micrio-button.prev button')
+		const next = button(aside, 'micrio-button.next button')
 		expect(prev?.disabled).toBe(true)
 		expect(next?.disabled).toBe(false)
 		viewer.destroy()
@@ -46,7 +50,7 @@ describe('marker tour UI', () => {
 
 		const counter = () => tourEl(viewer)?.querySelector('aside.marker-tour span')?.textContent
 		const click = async (selector: string) => {
-			tourEl(viewer)?.querySelector<HTMLElement>(selector)?.click()
+			button(tourEl(viewer), selector)?.click()
 			await settle(3)
 		}
 
@@ -72,7 +76,7 @@ describe('marker tour UI', () => {
 		tour.next?.()
 		await settle(3)
 		expect(tour.currentStep).toBe(1)
-		const next = tourEl(viewer)?.querySelector<HTMLElement>('micrio-button.next button')
+		const next = button(tourEl(viewer), 'micrio-button.next button')
 		expect(next?.disabled).toBe(true)
 
 		tour.next?.()
@@ -128,7 +132,7 @@ describe('marker tour closing', () => {
 		await settle(3)
 		await waitFor(() => viewer.el.$current?.state.$marker?.id === 'm1', 4000, 'step 1 marker')
 
-		tourEl(viewer)?.querySelector<HTMLElement>('micrio-button.close button')?.click()
+		button(tourEl(viewer), 'micrio-button.close button')?.click()
 		await settle(3)
 
 		expect(get(viewer.el.state.tour)).toBeUndefined()
