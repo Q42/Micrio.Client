@@ -1,4 +1,4 @@
-import type { MicrioButton } from '$ui/button';
+import type { ElementOptions } from '$utils/dom';
 import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import { get } from '$core/store';
@@ -7,6 +7,13 @@ import { captionsEnabled } from '$media/subtitles';
 import { fmt } from '$utils/time';
 import '$ui/button';
 import './fullscreen';
+
+/** Creates a `<micrio-*>` custom element and narrows it to its registered class. */
+function createComponent(tag: string, options: ElementOptions): MicrioElement {
+	const el = createElement(tag, options);
+	if (!(el instanceof MicrioElement)) {throw new Error(`<${tag}> is not a registered Micrio element`);}
+	return el;
+}
 
 /** Props for the media controls UI component. @internal */
 export interface MediaControlsProps {
@@ -34,7 +41,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 	#props: MediaControlsProps = { paused: true, ended: false };
 	#wrapperEl!: HTMLElement;
-	#playBtn!: MicrioButton;
+	#playBtn!: MicrioElement;
 	#muteBtnEl!: MicrioElement;
 	#subBtnEl!: MicrioElement;
 	#fsBtnEl!: MicrioElement;
@@ -77,20 +84,20 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				parent: this,
 			});
 
-			this.#playBtn = createElement('micrio-button', {
+			this.#playBtn = createComponent('micrio-button', {
 				parent: this.#wrapperEl,
-			}) as MicrioButton;
+			});
 
 			if (p.hasAudio) {
-				this.#muteBtnEl = createElement('micrio-button', {
+				this.#muteBtnEl = createComponent('micrio-button', {
 					parent: this.#wrapperEl,
-				}) as MicrioElement;
+				});
 			}
 
 			if (p.subtitles) {
-				this.#subBtnEl = createElement('micrio-button', {
+				this.#subBtnEl = createComponent('micrio-button', {
 					parent: this.#wrapperEl,
-				}) as MicrioElement;
+				});
 			}
 
 			const container = createElement('div');
@@ -128,16 +135,16 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			this.#wrapperEl.append(container);
 
 			if (p.fullscreenEl) {
-				this.#fsBtnEl = createElement('micrio-fullscreen', {
+				this.#fsBtnEl = createComponent('micrio-fullscreen', {
 					parent: this.#wrapperEl,
-				}) as MicrioElement;
+				});
 			}
 
 			if (p.onclose) {
-				this.#closeBtnEl = createElement('micrio-button', {
+				this.#closeBtnEl = createComponent('micrio-button', {
 					setProps: { type: 'close', title: get(i18n)._close, onclick: p.onclose },
 					parent: this.#wrapperEl,
-				}) as MicrioElement;
+				});
 			}
 		}
 

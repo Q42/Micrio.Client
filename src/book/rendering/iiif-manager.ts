@@ -13,6 +13,14 @@ import type { Models } from '$types/models';
 type DownloadState = 'idle' | 'pending' | 'downloading' | 'fading' | 'done';
 type FadeType = 'in' | 'cross';
 
+/** The two sides of a page: front (0) and back (1). */
+const SIDES = [0, 1] as const;
+
+/** Returns the other texture slot of a page side. */
+function otherSlot(slot: 0 | 1): 0 | 1 {
+	return slot === 0 ? 1 : 0;
+}
+
 interface PageSideState {
 	_downloadState: DownloadState;
 	_currentLevel: number;
@@ -134,11 +142,11 @@ export class IIIFTextureManager {
 
 	#updateVisibility(now: number, spreadCenter: number): void {
 		for (let p = 0; p < this.#pageCount; p++) {
-			for (let side = 0; side < 2; side++) {
+			for (const side of SIDES) {
 				const s = this.#states[p][side];
 				if (!s._imageId) {continue;}
 
-				if (this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) {
+				if (this.#isInPreloadRange(p, side, spreadCenter)) {
 					if (s._downloadState === 'idle') {
 						s._visibleSince = now;
 						s._downloadState = 'pending';
@@ -163,9 +171,9 @@ export class IIIFTextureManager {
 		const screenPagePx = (canvasWidth / 2) * zoomFactor;
 
 		for (let p = 0; p < this.#pageCount; p++) {
-			for (let side = 0; side < 2; side++) {
+			for (const side of SIDES) {
 				const s = this.#states[p][side];
-				if (!this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) {continue;}
+				if (!this.#isInPreloadRange(p, side, spreadCenter)) {continue;}
 				if (s._downloadState !== 'done') {continue;}
 				if (!s._imageId) {continue;}
 
@@ -186,12 +194,12 @@ export class IIIFTextureManager {
 		for (let p = 0; p < this.#pageCount; p++) {
 			const dist = this.#pageDistance(p, spreadCenter);
 
-			for (let side = 0; side < 2; side++) {
+			for (const side of SIDES) {
 				const s = this.#states[p][side];
 				if (s._downloadState !== 'pending') {continue;}
 				if (!s._imageId) {continue;}
 
-				if (!this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) {continue;}
+				if (!this.#isInPreloadRange(p, side, spreadCenter)) {continue;}
 
 				const elapsed = now - s._visibleSince;
 				if (elapsed < this.#debounceMs(dist)) {continue;}
@@ -205,8 +213,8 @@ export class IIIFTextureManager {
 				s._targetLevel = width;
 				s._downloadState = 'downloading';
 
-				const slot = s._currentLevel === 0 ? s._activeSlot : (1 - s._activeSlot) as 0 | 1;
-				void this.#fetchTexture(p, side as 0 | 1, slot, s);
+				const slot = s._currentLevel === 0 ? s._activeSlot : otherSlot(s._activeSlot);
+				void this.#fetchTexture(p, side, slot, s);
 			}
 		}
 	}
@@ -252,7 +260,7 @@ export class IIIFTextureManager {
 
 	#animateFades(now: number): void {
 		for (let p = 0; p < this.#pageCount; p++) {
-			for (let side = 0; side < 2; side++) {
+			for (const side of SIDES) {
 				const s = this.#states[p][side];
 				if (s._downloadState !== 'fading') {continue;}
 
@@ -262,8 +270,8 @@ export class IIIFTextureManager {
 				if (s._fadeProgress >= 1) {
 					if (s._fadeType === 'cross') {
 						const oldSlot = s._activeSlot;
-						s._activeSlot = (1 - s._activeSlot) as 0 | 1;
-						this.#renderer._evictPageHiRes(p, side as 0 | 1, oldSlot);
+						s._activeSlot = otherSlot(s._activeSlot);
+						this.#renderer._evictPageHiRes(p, side, oldSlot);
 					}
 					s._downloadState = 'done';
 				}
@@ -276,7 +284,7 @@ export class IIIFTextureManager {
 			const dist = this.#pageDistance(p, spreadCenter);
 			if (dist <= IIIF_GPU_EVICT_DISTANCE) {continue;}
 
-			for (let side = 0; side < 2; side++) {
+			for (const side of SIDES) {
 				const s = this.#states[p][side];
 				if (s._currentLevel === 0) {continue;}
 
@@ -285,8 +293,8 @@ export class IIIFTextureManager {
 					s._controller = null;
 				}
 
-				this.#renderer._evictPageHiRes(p, side as 0 | 1, 0);
-				this.#renderer._evictPageHiRes(p, side as 0 | 1, 1);
+				this.#renderer._evictPageHiRes(p, side, 0);
+				this.#renderer._evictPageHiRes(p, side, 1);
 				s._currentLevel = 0;
 				s._targetLevel = 0;
 				s._downloadState = 'idle';
@@ -326,7 +334,7 @@ export class IIIFTextureManager {
 
 	_hasPendingWork(): boolean {
 		for (let p = 0; p < this.#pageCount; p++) {
-			for (let side = 0; side < 2; side++) {
+			for (const side of SIDES) {
 				const s = this.#states[p][side];
 				if (s._downloadState === 'pending' || s._downloadState === 'downloading' || s._downloadState === 'fading') {
 					return true;

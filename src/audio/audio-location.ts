@@ -1,6 +1,5 @@
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$core/element';
-import type { MicrioImage } from '$core/image';
 import { normalize3 } from '$utils/math';
 import { mainGain } from './audio-controller';
 
@@ -35,12 +34,13 @@ export class MicrioAudioLocation {
 	}
 
 	#init(marker: Models.ImageData.Marker, ctx: AudioContext, is360: boolean) {
-		const image = this.#micrio.$current as MicrioImage;
+		const image = this.#micrio.$current;
+		if (!image) {return;}
 		const info = image.$info;
 		if (!info) {return;}
 		const imgWidth = info.width;
 		const imgHeight = info.height;
-		const item = marker.positionalAudio as Models.Assets.AudioLocation;
+		const item = marker.positionalAudio;
 		if (!item) {return;}
 
 		this.#gain = ctx.createGain();

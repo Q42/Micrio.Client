@@ -566,7 +566,7 @@ export class BookViewer {
 
 		// Front texture of page p is images[2p], back texture is images[2p + 1].
 		const pageIndex = Math.floor(imageIndex / 2);
-		const side = (imageIndex % 2) as 0 | 1;
+		const side: 0 | 1 = imageIndex % 2 === 0 ? 0 : 1;
 		if (pageIndex >= this.#meshes.length) {return null;}
 
 		const mesh = this.#meshes[pageIndex];

@@ -169,7 +169,8 @@ export class PaperRenderer {
 
 	constructor(gl: WebGL2RenderingContext) {
 		this.#gl = gl;
-		this.#canvas = gl.canvas as HTMLCanvasElement;
+		if (!(gl.canvas instanceof HTMLCanvasElement)) {throw new Error('WebGL2 context is not backed by an HTMLCanvasElement');}
+		this.#canvas = gl.canvas;
 		this._resize();
 		this.#whiteTexture = createWhiteTexture(gl);
 
@@ -370,26 +371,26 @@ export class PaperRenderer {
 
 		const posVBO = gl.createBuffer();
 		gl.bindBuffer(ARRAY_BUFFER, posVBO);
-		gl.bufferData(ARRAY_BUFFER, mesh._positions as BufferSource, gl.DYNAMIC_DRAW);
+		gl.bufferData(ARRAY_BUFFER, mesh._positions, gl.DYNAMIC_DRAW);
 		gl.enableVertexAttribArray(0);
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
 		const normVBO = gl.createBuffer();
 		gl.bindBuffer(ARRAY_BUFFER, normVBO);
 		const normals = mesh._computeNormals();
-		gl.bufferData(ARRAY_BUFFER, normals as BufferSource, gl.DYNAMIC_DRAW);
+		gl.bufferData(ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
 		gl.enableVertexAttribArray(1);
 		gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
 
 		const texCoordVBO = gl.createBuffer();
 		gl.bindBuffer(ARRAY_BUFFER, texCoordVBO);
-		gl.bufferData(ARRAY_BUFFER, mesh._texCoords as BufferSource, gl.STATIC_DRAW);
+		gl.bufferData(ARRAY_BUFFER, mesh._texCoords, gl.STATIC_DRAW);
 		gl.enableVertexAttribArray(2);
 		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
 
 		const indexEBO = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexEBO);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh._indexBuffer as BufferSource, gl.STATIC_DRAW);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh._indexBuffer, gl.STATIC_DRAW);
 
 		gl.bindVertexArray(null);
 

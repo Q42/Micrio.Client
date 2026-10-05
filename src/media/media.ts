@@ -1,3 +1,4 @@
+import type { ElementOptions } from '$utils/dom';
 import { createElement, IFRAME_ALLOW } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
@@ -13,6 +14,18 @@ import './media-controls';
 
 const YOUTUBE_RE = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w-]+\?v=|embed\/|v\/)?)([\w-]+)(\S+)?/;
 const VIMEO_RE = /vimeo\.com/;
+
+/** Creates a `<micrio-*>` custom element and narrows it to its registered class. */
+function createComponent(tag: string, options: ElementOptions): MicrioElement {
+	const el = createElement(tag, options);
+	if (!(el instanceof MicrioElement)) {throw new Error(`<${tag}> is not a registered Micrio element`);}
+	return el;
+}
+
+/** True when `value` is a store (the `volume` injection provides a number store). */
+function isNumberStore(value: unknown): value is Readable<number> {
+	return typeof value === 'object' && value !== null && 'subscribe' in value && typeof value.subscribe === 'function';
+}
 
 let _sharedAudioEl: HTMLAudioElement | undefined;
 let _sharedAudioRefCount = 0;
@@ -222,33 +235,36 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			const pWidth = p.width ?? 400;
 			const pHeight = p.height ?? 240;
 			if (isYoutube) {
-				this.#adapter = new YouTubePlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
+				const adapter = new YouTubePlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
 					onPlay: () => { this.#paused = false; this.#startAdapterTick(); this.#updateControls(); },
 					onPause: () => { this.#paused = true; this.#stopAdapterTick(); this.#updateControls(); },
 					onEnded: () => { this.#ended = true; this.#paused = true; this.#stopAdapterTick(); this.#updateControls(); p.onended?.(); },
 					onSeeking: () => { this.#seeking = true; },
 					onSeeked: () => { this.#seeking = false; this.#updateControls(); },
 				});
-				(this.#adapter as YouTubePlayerAdapter).initialize().then(() => { if (p.autoplay) {void this.#adapter!.play();} }).catch(() => {});
+				this.#adapter = adapter;
+				adapter.initialize().then(() => { if (p.autoplay) {void adapter.play();} }).catch(() => {});
 			} else if (isVimeo) {
-				this.#adapter = new VimeoPlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
+				const adapter = new VimeoPlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
 					onPlay: () => { this.#paused = false; this.#updateControls(); },
 					onPause: () => { this.#paused = true; this.#updateControls(); },
 					onEnded: () => { this.#ended = true; this.#paused = true; this.#updateControls(); p.onended?.(); },
 					onTimeUpdate: (t) => { this.#currentTime = t; this.#updateControls(); },
 					onDurationChange: (d) => { this.#duration = d; },
 				});
-				(this.#adapter as VimeoPlayerAdapter).initialize().then(() => { if (p.autoplay) {void this.#adapter!.play();} }).catch(() => {});
+				this.#adapter = adapter;
+				adapter.initialize().then(() => { if (p.autoplay) {void adapter.play();} }).catch(() => {});
 			}
 		}
 
 		// Initialize HLS adapter for Cloudflare video
-		if (isCloudflare && this.#hlsSrc && this.#mediaEl && mediaSourceSupported()) {
-			this.#adapter = new HLSPlayerAdapter(this.#mediaEl as HTMLVideoElement, this.#hlsSrc, {
+		if (isCloudflare && this.#hlsSrc && this.#mediaEl instanceof HTMLVideoElement && mediaSourceSupported()) {
+			const adapter = new HLSPlayerAdapter(this.#mediaEl, this.#hlsSrc, {
 				onReady: () => { this.#updateControls(); },
 				onEnded: () => { this.#ended = true; this.#paused = true; this.#updateControls(); p.onended?.(); },
 			});
-			(this.#adapter as HLSPlayerAdapter).initialize().catch(() => {});
+			this.#adapter = adapter;
+			adapter.initialize().catch(() => {});
 		}
 
 		// Tour instance
@@ -289,10 +305,11 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			const lang = micrio?.lang || 'en';
 			const sub = p.tour.i18n?.[lang]?.subtitle;
 			if (sub?.src) {
-				this.#subEl = createElement('micrio-subtitles', {
+				const host = this.closest('micrio-main') ?? this.parentNode;
+				this.#subEl = createComponent('micrio-subtitles', {
 					setProps: { src: sub.src, mediaEl: this.#mediaEl ?? this },
-					parent: (this.closest('micrio-main') || this.parentNode) as HTMLElement | undefined,
-				}) as MicrioElement;
+					parent: host instanceof HTMLElement ? host : undefined,
+				});
 			}
 		}
 
@@ -376,7 +393,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				});
 			};
 
-			const ctrlEl = createElement('micrio-media-controls', {
+			const ctrlEl = createComponent('micrio-media-controls', {
 				setProps: {
 					paused: true,
 					ended: false,
@@ -388,7 +405,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					onclose: p.onclose
 				},
 				parent: figure,
-			}) as MicrioElement;
+			});
 
 			if (this.#mediaEl && (this.#mediaEl instanceof HTMLVideoElement || this.#mediaEl instanceof HTMLAudioElement) && !isStandaloneVideoTour) {
 				const onTimeUpdate = () => {
@@ -429,8 +446,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	}
 
 	#wireEvents(el: HTMLVideoElement | HTMLAudioElement) {
-		const volumeStore = this._inject('volume') as Readable<number> | undefined;
-		if (volumeStore) {
+		const volumeStore = this._inject('volume');
+		if (isNumberStore(volumeStore)) {
 			this._addCleanup(volumeStore.subscribe((v: number) => { el.volume = v; }));
 		}
 	}
@@ -454,8 +471,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	}
 
 	#updateControls() {
-		const controlsEl = this.querySelector('micrio-media-controls') as MicrioElement;
-		if (controlsEl) {
+		const controlsEl = this.querySelector('micrio-media-controls');
+		if (controlsEl instanceof MicrioElement) {
 			controlsEl._setProps({
 				currentTime: this.#currentTime,
 				duration: this.#duration,

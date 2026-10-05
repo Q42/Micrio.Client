@@ -131,8 +131,8 @@ export class InputHandler {
 	// ═══ Helpers ══════════════════════════════════════════════════
 
 	#blurActiveElement(): void {
-		const ae = document.activeElement as HTMLElement | null;
-		if (ae && ae !== this.#canvas) {
+		const ae = document.activeElement;
+		if ((ae instanceof HTMLElement || ae instanceof SVGElement) && ae !== this.#canvas) {
 			ae.blur();
 		}
 	}
