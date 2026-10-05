@@ -1,0 +1,58 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "oxc"],
+	"env": {
+		"browser": true,
+		"node": true
+	},
+	"categories": {
+		"correctness": "error",
+		"suspicious": "error",
+		"perf": "error"
+	},
+	"options": {
+		"denyWarnings": true,
+		"reportUnusedDisableDirectives": "error"
+	},
+	"ignorePatterns": ["public/**", "templates/grid/grid.js", "**/*.min.js"],
+	"rules": {
+		"eslint/no-underscore-dangle": "off",
+		"unicorn/no-null": "off",
+
+		"eslint/curly": "error",
+		"eslint/eqeqeq": ["error", "always", { "null": "ignore" }],
+		"eslint/no-implicit-coercion": "error",
+		"eslint/prefer-template": "error",
+		"eslint/no-nested-ternary": "error",
+		"eslint/no-lonely-if": "error",
+		"eslint/no-else-return": "error",
+		"eslint/require-await": "error",
+		"eslint/no-promise-executor-return": "error",
+		"eslint/prefer-destructuring": ["error", { "array": false, "object": true }],
+		"eslint/sort-vars": "error",
+
+		"typescript/no-explicit-any": "error",
+		"typescript/no-non-null-assertion": "error",
+		"typescript/ban-ts-comment": "error",
+		"typescript/prefer-ts-expect-error": "error",
+		"typescript/consistent-type-definitions": "error",
+		"typescript/consistent-type-imports": "error",
+		"typescript/consistent-generic-constructors": "error",
+		"typescript/method-signature-style": "error",
+		"typescript/no-inferrable-types": "error",
+		"typescript/prefer-for-of": "error",
+		"typescript/array-type": "error",
+		"typescript/no-misused-promises": "error",
+
+		"unicorn/no-useless-undefined": "error",
+		"unicorn/no-zero-fractions": "error",
+		"unicorn/switch-case-braces": "error",
+		"unicorn/prefer-global-this": "error",
+		"unicorn/prefer-number-properties": "error",
+		"unicorn/prefer-modern-math-apis": "error",
+		"unicorn/explicit-length-check": "error",
+		"unicorn/prefer-dom-node-dataset": "error",
+		"unicorn/prefer-dom-node-append": "error",
+		"unicorn/no-array-for-each": "error"
+	}
+}
