@@ -99,7 +99,9 @@ export function writable<T>(value?: T): Writable<T> {
 		},
 		set(v: T) {
 			value = v
-			for (const fn of subs) {
+			// Snapshot: a subscriber may unsubscribe itself (or another) while being
+			// notified, which would otherwise skip the next subscriber in the Set.
+			for (const fn of Array.from(subs)) {
 				fn(v)
 			}
 		},
