@@ -156,11 +156,11 @@ export class OmniUI {
 				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? `Layer ${  i + 1}` }]))
 			}));
 			const langs = Object.keys(info.revision ?? {});
-			if (!langs.length) {
+			if (langs.length === 0) {
 				const ml = get(micrio._lang);
 				if (ml) {langs.push(ml);}
 			}
-			if (langs.length) {
+			if (langs.length > 0) {
 				for (const lang of langs) {
 					for (let i = 0; i < layerNames.length; i++) {
 						if (!layerNames[i].i18n[lang])
@@ -290,7 +290,7 @@ export class OmniUI {
 			this.#micrio.releasePointerCapture(this.#firstTouchId);
 			this.#firstTouchId = undefined;
 		}
-		if(!this.#pointers.size) {this.#swipeEnd();}
+		if(this.#pointers.size === 0) {this.#swipeEnd();}
 	}
 
 	#swipeEnd():void {
@@ -298,7 +298,7 @@ export class OmniUI {
 		this.#removeSwipeListeners();
 		this.#hitTresh = false;
 
-		if(this.#snapTo.length) {
+		if(this.#snapTo.length > 0) {
 			const snapToIndex = this.#snapTo[this.#snapTo.map((i,idx) => [idx, Math.abs(i-this.currentIndex)])
 				.sort((a,b) => a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0)[0][0]];
 			if(snapToIndex !== this.currentIndex) {this.animateTo(snapToIndex);}

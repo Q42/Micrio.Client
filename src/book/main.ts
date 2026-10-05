@@ -1250,7 +1250,7 @@ export class BookViewer {
 
 		// A pending goto() has fully settled once the flip cascade has finished
 		// and no pages are still being animated/damped.
-		if (this.#gotoDone.length && !this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
+		if (this.#gotoDone.length > 0 && !this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
 			const cbs = this.#gotoDone;
 			this.#gotoDone = [];
 			for (const cb of cbs) {cb();}

@@ -580,7 +580,7 @@ export class TileCanvas {
 
 	/** Handles resizing of the canvas element. @internal */
 	_resize(): void {
-		if (this.#children.length) {
+		if (this.#children.length > 0) {
 			const c = this.main.el;
 			this.width = c.width;
 			this.height = c.height;
@@ -708,7 +708,7 @@ export class TileCanvas {
 		const cam = this._micrioImage?.camera;
 		if (!cam) {return;}
 		if (cam._aniDone) {cam._aniDone();}
-		while (cam._aniDoneAdd.length) {cam._aniDoneAdd.shift()?.();}
+		while (cam._aniDoneAdd.length > 0) {cam._aniDoneAdd.shift()?.();}
 		cam._aniAbort = cam._aniDone = undefined;
 	}
 	/** @internal */

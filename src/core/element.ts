@@ -579,7 +579,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			if(isInGrid && !grid._insideGrid()) {this.current.set(this._canvases[0]);}
 		}
 		if(!c) {
-			if(this._canvases.length) {
+			if(this._canvases.length > 0) {
 				const main = this._canvases[0];
 				bundle.info.path = main._dataPath;
 				bundle.info.lang = this.lang;

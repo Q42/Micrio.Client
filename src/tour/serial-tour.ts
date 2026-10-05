@@ -43,7 +43,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		mt.prev = () => { if (this.#currentStep > 0) {void this.#openStep(this.#currentStep - 1);} };
 
 		this._addCleanup(micrio.state.marker.subscribe(m => {
-			if (!m || !this.#stepInfo.length) {return;}
+			if (!m || this.#stepInfo.length === 0) {return;}
 			const id = typeof m === 'string' ? m : m.id;
 			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
 			if (idx >= 0 && idx !== this.#currentStep) {
@@ -79,7 +79,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					});
 				}
 			});
-			if (ol.children.length) {this.append(ol);}
+			if (ol.children.length > 0) {this.append(ol);}
 		}
 	}
 

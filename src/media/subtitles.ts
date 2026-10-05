@@ -82,7 +82,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	}
 
 	#renderCue() {
-		if (!get(captionsEnabled) || !this.#cues.length) { this.replaceChildren(); this.#currentCue = undefined; return; }
+		if (!get(captionsEnabled) || this.#cues.length === 0) { this.replaceChildren(); this.#currentCue = undefined; return; }
 		const cue = this.#cues.find(e => e.start <= this.#currentTime && e.end >= this.#currentTime);
 		if (cue === this.#currentCue) {return;}
 		this.#currentCue = cue;

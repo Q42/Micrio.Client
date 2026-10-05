@@ -144,7 +144,7 @@ function stripOperatorSpaces(src) {
 			pending = true;
 			continue;
 		}
-		if (pending && out.length) {
+		if (pending && out.length > 0) {
 			const prev = out[out.length - 1];
 			const prevOp = GLSL_OPERATORS.has(prev);
 			const curOp = GLSL_OPERATORS.has(c);

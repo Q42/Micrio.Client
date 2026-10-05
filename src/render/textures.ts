@@ -48,7 +48,7 @@ export const loadTexture = (src: string): Promise<TextureBitmap> => new Promise(
 });
 
 function getNext() {
-	if (!queue.length) {return;}
+	if (queue.length === 0) {return;}
 	const i = running.indexOf(false);
 	if (i < 0) {return;}
 

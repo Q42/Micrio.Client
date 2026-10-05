@@ -338,7 +338,7 @@ export class VideoTourInstance {
 			{seg = this.#timeline[i];}
 
 		if (!seg) {
-			if (this.#timeline.length) {this.#image.camera.stop();}
+			if (this.#timeline.length > 0) {this.#image.camera.stop();}
 			if (!this.paused) {this.#gotoStep(0);}
 			this.updateEvents(ms / 1000);
 			return;

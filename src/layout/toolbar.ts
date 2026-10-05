@@ -71,7 +71,7 @@ class MicrioToolbar extends MicrioElement {
 		const $_lang = get(_lang);
 		const hasTourLang = (t:Models.ImageData.Tour): boolean => Boolean(t.i18n?.[$_lang]);
 		const markerTours = ((micrio.bundleTours ?? []).concat(this.#data?.markerTours ?? [])).filter(hasTourLang);
-		if (!this.#data && !markerTours.length) {return;}
+		if (!this.#data && markerTours.length === 0) {return;}
 		const $tour = get(micrioState.tour);
 		const $marker = get(micrioState.marker);
 		const $popover = get(micrioState.popover);

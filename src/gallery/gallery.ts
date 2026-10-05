@@ -146,7 +146,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	async #goto(i: number, fast = false, duration = 150, force = false): Promise<MicrioImage | undefined> {
 		const images = this.#images;
-		if (!images.length || i < 0) {return undefined;}
+		if (images.length === 0 || i < 0) {return undefined;}
 		const page = Math.round(Math.max(0, Math.min(this.#pageToImages.length - 1, i)));
 		const imgIdx = this.#pageToImages[page]?.[0] ?? 0;
 		const changed = force || page !== this.#currentPage;
@@ -277,7 +277,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Preloads gallery thumbnails around a given page index (used by standard gallery nav). */
 	#preload(c: number) {
 		const images = this.#images;
-		if (!images.length || images.length <= 1) {return;}
+		if (images.length === 0 || images.length <= 1) {return;}
 		const {engine} = images[0];
 		const hasArchive = Boolean(images[0]?.$settings?.gallery?.archive);
 		this.#preloadRange(c, images.length, this.#preloadD,
@@ -312,7 +312,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	async #renderGallery(micrio: HTMLMicrioElement, image: MicrioImage, controller: GalleryController) {
 		const images: MicrioImage[] = [...controller._images];
-		if (!images.length) {return;}
+		if (images.length === 0) {return;}
 
 		this.#images = images;
 		this.#parentImage = image;
@@ -444,7 +444,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
 	#buildScrubber() {
 		const total = this.#pageToImages.length;
-		if (!this.#images.length || total <= 1 || this.querySelector('ul')) {return;}
+		if (this.#images.length === 0 || total <= 1 || this.querySelector('ul')) {return;}
 		const $i18n = get(i18n);
 		const dense = total > 24;
 		const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1;

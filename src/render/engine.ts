@@ -312,7 +312,7 @@ export class Engine {
 	/** Unbinds event listeners, stops rendering, and cleans up resources. @internal */
 	_unbind(): void {
 		this.#stop();
-		while (this.#unsubscribe.length) {this.#unsubscribe.pop()?.();}
+		while (this.#unsubscribe.length > 0) {this.#unsubscribe.pop()?.();}
 		this.#requests.forEach(src => abortDownload(src));
 		this.#requests.clear();
 		for (const [idx, tile] of this.#tiles.entries()) {
@@ -464,7 +464,7 @@ export class Engine {
 		if (!canvas._placed) {
 			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id !== get(this.micrio.current)!.id)) {return;}
 			this.#addCanvas(canvas);
-			if (canvas._embeds.length) {canvas._embeds.forEach(e => this._addEmbed(e, canvas));}
+			if (canvas._embeds.length > 0) {canvas._embeds.forEach(e => this._addEmbed(e, canvas));}
 		}
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
@@ -617,7 +617,7 @@ export class Engine {
 			tile._timeoutId = undefined;
 		}
 
-		if (!this.#requests.size) {this.micrio._loading.set(false);}
+		if (this.#requests.size === 0) {this.micrio._loading.set(false);}
 	}
 
 	/** @internal */

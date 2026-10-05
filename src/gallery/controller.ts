@@ -138,7 +138,7 @@ export class Gallery {
 				?.flatMap((p: any) => p.items?.[0]?.items?.[0]?.body)
 				?.filter((b: any) => b?.service?.[0]?.id) ?? [];
 
-			if (!canvases.length)
+			if (canvases.length === 0)
 				{throw new MicrioError('NO_CANVASES', { displayMessage: 'No valid IIIF canvases found in the manifest' });}
 
 			const images = canvases.map((b: any): Models.ImageInfo.ImageInfo => ({

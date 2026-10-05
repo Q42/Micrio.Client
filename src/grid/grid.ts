@@ -218,7 +218,7 @@ export class Grid extends MicrioElement {
 		columns?: number;
 	}={}) : Promise<MicrioImage[]> {
 		const setId = ++this.#setId;
-		if(this._images.length) {this._images.forEach(i => i.camera.stop());}
+		if(this._images.length > 0) {this._images.forEach(i => i.camera.stop());}
 		this.image.camera.stop();
 
 		return new Promise((ok, err) => {
@@ -249,7 +249,7 @@ export class Grid extends MicrioElement {
 		const doUnfocus = !opts.noBlur && focussed;
 		if(doUnfocus) {this.blur();}
 
-		if(!opts.noHistory && this._current.length) {this.#savePreviousLayout();}
+		if(!opts.noHistory && this._current.length > 0) {this.#savePreviousLayout();}
 		this.#isHorizontal = Boolean(opts.horizontal);
 
 		this.#removeImages(this._images.filter(i => !images.find(n => n.id === i.id)));
@@ -584,7 +584,7 @@ export class Grid extends MicrioElement {
 		const cover = this.image.$settings?.initType === 'cover';
 		if (!layout?.length) {
 			const galleryImages = this.#gallery._images;
-			if (!galleryImages.length) {return this._current;}
+			if (galleryImages.length === 0) {return this._current;}
 			return this.set(galleryImages.map((img, i) => ({
 				id: img.id,
 				size: i === idx ? [width, height] as [number, number] : [1],

@@ -566,7 +566,7 @@ async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
 
 	for (const { id } of CATALOG) {
 		const markers = markersFor(id);
-		if (!markers.length) {continue;}
+		if (markers.length === 0) {continue;}
 
 		const img = await gallery.gotoId(id);
 		if (!img) {continue;}
@@ -575,7 +575,7 @@ async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
 			const existing = img.$data?.markers ?? [];
 			const have = new Set(existing.map(m => m.id));
 			const add = markers.filter(m => !have.has(m.id));
-			if (!add.length) {return;}
+			if (add.length === 0) {return;}
 			img.data.update(d => {
 				const base: Models.ImageData.ImageData = d ?? {};
 				return { ...base, markers: [...(base.markers ?? []), ...add] };
@@ -626,7 +626,7 @@ function refreshStrip(strip: HTMLElement, grid: Grid): void {
 function buildTags(box: HTMLElement, grid: Grid): void {
 	for (const tag of TAGS) {
 		const images = CATALOG.filter(c => MARKERS[c.id]?.some(m => m.tags?.includes(tag)));
-		if (!images.length) {continue;}
+		if (images.length === 0) {continue;}
 
 		const row = h('div', 'gd-tag');
 		const nm = h('span', 'nm', TAG_LABELS[tag]);

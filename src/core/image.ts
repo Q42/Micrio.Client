@@ -314,7 +314,7 @@ export class MicrioImage {
 		let lang = get(micrio._lang);
 		if(i.revision) {
 			const langs = Object.keys(i.revision);
-			if(langs.length && !langs.includes(lang))
+			if(langs.length > 0 && !langs.includes(lang))
 				{micrio.lang = langs.includes('en') ? 'en' : langs[0];}
 		}
 

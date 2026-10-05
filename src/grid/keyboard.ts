@@ -12,7 +12,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 		cx: img.opts.area![0] + img.opts.area![2] / 2,
 		cy: img.opts.area![1] + img.opts.area![3] / 2,
 	}));
-	if (!cells.length) {return;}
+	if (cells.length === 0) {return;}
 
 	let curIdx = cells.findIndex(c => c.img.id === grid.querySelector<HTMLElement>(':focus')?.dataset.id);
 	if (curIdx < 0) {curIdx = 0;}
@@ -47,7 +47,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 
 function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 	return (e: KeyboardEvent) => {
-		if (!grid._current.length || !grid._clickable) {return;}
+		if (grid._current.length === 0 || !grid._clickable) {return;}
 
 		if (e.key === 'Escape') {
 			grid._buttons.forEach(btn => btn.classList.remove('focussed'));

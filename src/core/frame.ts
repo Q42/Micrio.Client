@@ -54,7 +54,7 @@ function tick(now: number): void {
 		}
 	}
 
-	if (pending.size) {schedule();}
+	if (pending.size > 0) {schedule();}
 }
 
 /**
@@ -80,7 +80,7 @@ export const Frame = {
 	/** Removes a pending callback. A no-op if it is not queued. @internal */
 	cancel(cb: FrameCallback): void {
 		pending.delete(cb);
-		if (!pending.size && rafId) {
+		if (pending.size === 0 && rafId) {
 			display.cancelAnimationFrame(rafId);
 			rafId = 0;
 		}
@@ -107,7 +107,7 @@ export const Frame = {
 			if (rafId) {display.cancelAnimationFrame(rafId);}
 			display = win;
 			rafId = 0;
-			if (pending.size) {schedule();}
+			if (pending.size > 0) {schedule();}
 		}
 	}
 };
