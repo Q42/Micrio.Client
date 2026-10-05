@@ -54,7 +54,7 @@ export class Grid extends MicrioElement {
 	/** The currently focussed (single-view) image, if any. */
 	get $focussed() : MicrioImage|undefined { return get(this._focussed); }
 	/** @internal */
-	readonly _markersShown:Writable<MicrioImage[]> = writable([]);
+	readonly _markersShown:Writable<MicrioImage[]> = writable<MicrioImage[]>([]);
 
 	#history:Models.Grid.GridHistory[] = [];
 	#depth:Writable<number> = writable<number>(0);
