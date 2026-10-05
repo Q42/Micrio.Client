@@ -101,7 +101,10 @@ describe('fetchJson', () => {
 	})
 
 	it('propagates a network rejection and clears the in-flight entry', async () => {
-		const fetchMock = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(ok({ ok: 1 }))
+		const fetchMock = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('offline'))
+			.mockResolvedValueOnce(ok({ ok: 1 }))
 		vi.stubGlobal('fetch', fetchMock)
 		await expect(fetchJson('https://x/offline')).rejects.toThrow('offline')
 		expect(await fetchJson('https://x/offline')).toEqual({ ok: 1 })

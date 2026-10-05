@@ -163,7 +163,7 @@ describe('loadScript', () => {
 
 	it('rejects when the script errors before loading', async () => {
 		vi.spyOn(document.head, 'append').mockImplementation(((node: Node) => {
-			(node as HTMLScriptElement).dispatchEvent(new Event('error'))
+			;(node as HTMLScriptElement).dispatchEvent(new Event('error'))
 		}) as unknown as ParentNode['append'])
 		await expect(loadScript('https://example.test/fails.js', 'otherCb')).rejects.toBeUndefined()
 		vi.restoreAllMocks()
@@ -184,7 +184,7 @@ describe('loadExternalAPI', () => {
 	it('throws when the script loads but the global never appears', async () => {
 		vi.spyOn(document.head, 'append').mockImplementation(((node: Node) => {
 			// The script loads, but does not define the API we asked for
-			(node as HTMLScriptElement).dispatchEvent(new Event('load'))
+			;(node as HTMLScriptElement).dispatchEvent(new Event('load'))
 		}) as unknown as ParentNode['append'])
 		await expect(loadExternalAPI('NeverAppearsApi', 'https://example.test/none.js')).rejects.toThrow(
 			'Failed to load NeverAppearsApi API',

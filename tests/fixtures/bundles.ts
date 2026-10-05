@@ -129,14 +129,15 @@ export const spaceBundle = (): {
 })
 
 /** A two-image swipe gallery. */
-export const albumBundle = (): Models.ImageBundle.BundleResponse => ({
-	images: [
-		{ id: 'aaa1111', info: baseInfo('aaa1111'), settings: {}, data: {} },
-		{ id: 'bbb2222', info: baseInfo('bbb2222'), settings: {}, data: {} },
-	],
-	album: {
-		id: 'album-1',
-		type: 'swipe',
-		settings: {},
-	},
-} as unknown as Models.ImageBundle.BundleResponse)
+export const albumBundle = (): Models.ImageBundle.BundleResponse =>
+	({
+		images: [
+			{ id: 'aaa1111', info: baseInfo('aaa1111'), settings: {}, data: {} },
+			{ id: 'bbb2222', info: baseInfo('bbb2222'), settings: {}, data: {} },
+		],
+		album: {
+			id: 'album-1',
+			type: 'swipe',
+			settings: {},
+		},
+	}) as unknown as Models.ImageBundle.BundleResponse

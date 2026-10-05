@@ -99,8 +99,14 @@ describe('DataLoader bundles', () => {
 		respond(
 			bundle({
 				images: [
-					{ id: 'aaa1111', info: { id: 'aaa1111', width: 10, height: 10, path: 'https://r2.micr.io/', version: '6.1.0' } },
-					{ id: 'bbb2222', info: { id: 'bbb2222', width: 20, height: 20, path: 'https://r2.micr.io/', version: '6.1.0' } },
+					{
+						id: 'aaa1111',
+						info: { id: 'aaa1111', width: 10, height: 10, path: 'https://r2.micr.io/', version: '6.1.0' },
+					},
+					{
+						id: 'bbb2222',
+						info: { id: 'bbb2222', width: 20, height: 20, path: 'https://r2.micr.io/', version: '6.1.0' },
+					},
 				],
 			}),
 		)
@@ -192,8 +198,14 @@ describe('DataLoader organisation, spaces, album and tours', () => {
 			bundle({
 				tours,
 				images: [
-					{ id: 'aaa1111', info: { id: 'aaa1111', width: 10, height: 10, path: 'https://r2.micr.io/', version: '6.1.0' } },
-					{ id: 'bbb2222', info: { id: 'bbb2222', width: 20, height: 20, path: 'https://r2.micr.io/', version: '6.1.0' } },
+					{
+						id: 'aaa1111',
+						info: { id: 'aaa1111', width: 10, height: 10, path: 'https://r2.micr.io/', version: '6.1.0' },
+					},
+					{
+						id: 'bbb2222',
+						info: { id: 'bbb2222', width: 20, height: 20, path: 'https://r2.micr.io/', version: '6.1.0' },
+					},
 				],
 			}),
 		)
@@ -247,7 +259,17 @@ describe('DataLoader._getStepMarker', () => {
 	})
 
 	it('returns undefined for an image whose data has no markers', async () => {
-		respond(bundle({ images: [{ id: 'nomark00', info: { id: 'nomark00', width: 1, height: 1, path: 'https://r2.micr.io/', version: '6.1.0' }, data: {} }] }))
+		respond(
+			bundle({
+				images: [
+					{
+						id: 'nomark00',
+						info: { id: 'nomark00', width: 1, height: 1, path: 'https://r2.micr.io/', version: '6.1.0' },
+						data: {},
+					},
+				],
+			}),
+		)
 		const { DataLoader } = await freshLoader()
 		await DataLoader._getBundleImage('nomark00')
 		expect(DataLoader._getStepMarker({ markerId: 'x', micrioId: 'nomark00', duration: 1 })).toBeUndefined()

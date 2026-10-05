@@ -74,7 +74,9 @@ export default defineConfig(({ mode }) => {
 	return {
 		plugins: [glslMinifyPlugin()],
 		resolve: {
-			alias: core ? [...coreStubAliases, ...Object.entries(aliases).map(([find, replacement]) => ({ find, replacement }))] : aliases,
+			alias: core
+				? [...coreStubAliases, ...Object.entries(aliases).map(([find, replacement]) => ({ find, replacement }))]
+				: aliases,
 		},
 		define: {
 			__VERSION__: JSON.stringify(pkg.version),
