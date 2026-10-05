@@ -53,7 +53,7 @@ export class MicrioImage {
 	get $settings():Models.ImageInfo.Settings { return get(this._settings) }
 
 	/**  Writable store holding the image's cultural data (markers, tours, text content for the current language). See {@link Models.ImageData.ImageData}. */
-	readonly data: Writable<Models.ImageData.ImageData|undefined> = writable(undefined);
+	readonly data: Writable<Models.ImageData.ImageData|undefined> = writable();
 
 	/** Getter for the current value of the {@link data} store. */
 	get $data():Models.ImageData.ImageData|undefined { return get(this.data) }
@@ -65,7 +65,7 @@ export class MicrioImage {
 	camera!:Camera;
 
 	/**  Writable store holding the HTMLVideoElement if this image represents a video. */
-	readonly video:Writable<HTMLVideoElement|undefined> = writable(undefined);
+	readonly video:Writable<HTMLVideoElement|undefined> = writable();
 
 	/**  Writable store indicating if this image's canvas is currently visible and being rendered.
 	 * @readonly

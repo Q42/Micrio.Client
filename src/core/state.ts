@@ -81,7 +81,7 @@ export namespace State {
 	*/
 	export class Image {
 		/** Writable store holding the current viewport [x0, y0, width, height] of this image. */
-		readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
+		readonly view: Writable<Models.Camera.View|undefined> = writable();
 		/** Internal reference to the current view. @internal */
 		#_view:Models.Camera.View|undefined;
 		/** Getter for the current value of the {@link view} store. */
@@ -91,7 +91,7 @@ export namespace State {
 		 * Writable store holding the currently active marker within *this specific image*.
 		 * Can be set with a marker ID string or a full marker object. Setting to undefined closes the marker.
 		 */
-		readonly marker: Writable<Models.ImageData.Marker|string|undefined> = writable(undefined);
+		readonly marker: Writable<Models.ImageData.Marker|string|undefined> = writable();
 		/** Internal reference to the active marker object. @internal */
 		#_marker:Models.ImageData.Marker|undefined;
 		/** Getter for the current value of the {@link marker} store. */

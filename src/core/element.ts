@@ -371,7 +371,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 */
 	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
-		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.#printError(e); return undefined; });
+		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.#printError(e); return; });
 		if(!resp) {return;}
 
 		let gallery: Gallery | null;
@@ -431,7 +431,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (!opts.settings.noLogo) {this.#printUI(Boolean(opts.settings.noUI), false);}
 
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
-			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => undefined);
+			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => {});
 			if(bundle && bundle.info?.albumId) {
 				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this._engine, {
 					startId: opts.id,

@@ -6,7 +6,7 @@ import { writable, get, lazy } from '$core/store';
 import '$ui/icon';
 
 /** Currently opened menu sub-tree */
-const opened = writable<Models.ImageData.Menu | undefined>(undefined);
+const opened = writable<Models.ImageData.Menu | undefined>();
 let hooked = false;
 opened.subscribe(c => {
 	if (c) { if (!hooked) {globalThis.addEventListener('click', close);} }
