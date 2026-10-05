@@ -272,21 +272,21 @@ export class PaperRenderer {
 		const gl = this.#gl;
 
 		{
-			const tex = this.#frontTextures[pageIndex] ? this.#frontTextures[pageIndex] : gl.createTexture();
+			const tex = this.#frontTextures[pageIndex] !== undefined ? this.#frontTextures[pageIndex] : gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, tex);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, frontBitmap);
 			setupTextureParams(gl, tex);
 			gl.generateMipmap(gl.TEXTURE_2D);
-			if (!this.#frontTextures[pageIndex]) {this.#frontTextures[pageIndex] = tex;}
+			if (this.#frontTextures[pageIndex] === undefined) {this.#frontTextures[pageIndex] = tex;}
 		}
 
 		{
-			const tex = this.#backTextures[pageIndex] ? this.#backTextures[pageIndex] : gl.createTexture();
+			const tex = this.#backTextures[pageIndex] !== undefined ? this.#backTextures[pageIndex] : gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, tex);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, backBitmap);
 			setupTextureParams(gl, tex);
 			gl.generateMipmap(gl.TEXTURE_2D);
-			if (!this.#backTextures[pageIndex]) {this.#backTextures[pageIndex] = tex;}
+			if (this.#backTextures[pageIndex] === undefined) {this.#backTextures[pageIndex] = tex;}
 		}
 
 		gl.bindTexture(gl.TEXTURE_2D, null);
