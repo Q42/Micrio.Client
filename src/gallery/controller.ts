@@ -48,6 +48,33 @@ function compareNumbers(a: number | undefined, b: number | undefined, invert: bo
 	return invert ? -less : less;
 }
 
+/** True for non-null objects; the starting point for narrowing external JSON. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+/** A IIIF canvas body: the image service plus the dimensions the gallery needs. */
+interface IIIFCanvasBody {
+	id: string;
+	width: number;
+	height: number;
+	format?: string;
+}
+
+/** Narrow one IIIF canvas `body` value, mirroring the old `service[0].id` filter. */
+function toIIIFCanvasBody(value: unknown): IIIFCanvasBody | undefined {
+	if (!isRecord(value)) {return undefined;}
+	const service = Array.isArray(value.service) ? value.service[0] : undefined;
+	if (!isRecord(service) || typeof service.id !== 'string') {return undefined;}
+	if (typeof value.width !== 'number' || typeof value.height !== 'number') {return undefined;}
+	return {
+		id: service.id,
+		width: value.width,
+		height: value.height,
+		format: typeof value.format === 'string' ? value.format : undefined,
+	};
+}
+
 /** Manages a collection of gallery images with navigation (swipe, switch, grid, album). */
 export class Gallery {
 	/** @internal */
@@ -83,7 +110,7 @@ export class Gallery {
 		}
 
 		this._images = items.map((info, i) => {
-			const imageSettings: Record<string, any> = { ...config.settings };
+			const imageSettings = { ...config.settings };
 
 			// Propagate archive layer offset so child images adjust their level count
 			// and generate thumbSrc URLs that match what the archive stores.
@@ -135,7 +162,7 @@ export class Gallery {
 
 			return new MicrioImage(engine, {
 				id: info.id, info,
-				settings: imageSettings as any,
+				settings: imageSettings,
 				data,
 			}, opts);
 		});
@@ -146,20 +173,32 @@ export class Gallery {
 
 	/** Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image manifests and raw Image API responses. */
 	/** @internal */
-	static _fromIIIF(resp: any, engine: Engine): Gallery | null {
+	static _fromIIIF(resp: unknown, engine: Engine): Gallery | null {
+		if (!isRecord(resp)) {return null;}
 		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
 			{throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });}
 
 		if (resp.type === 'Manifest') {
-			const canvases = (resp.items as any[])
-				?.flatMap((p: any) => p.items?.[0]?.items?.[0]?.body)
-				?.filter((b: any) => b?.service?.[0]?.id) ?? [];
+			const canvases: IIIFCanvasBody[] = [];
+			const pages = Array.isArray(resp.items) ? resp.items : [];
+			for (const page of pages) {
+				if (!isRecord(page)) {continue;}
+				const canvas = Array.isArray(page.items) ? page.items[0] : undefined;
+				if (!isRecord(canvas)) {continue;}
+				const annotation = Array.isArray(canvas.items) ? canvas.items[0] : undefined;
+				if (!isRecord(annotation)) {continue;}
+				const bodies = Array.isArray(annotation.body) ? annotation.body : [annotation.body];
+				for (const body of bodies) {
+					const b = toIIIFCanvasBody(body);
+					if (b) {canvases.push(b);}
+				}
+			}
 
 			if (canvases.length === 0)
 				{throw new MicrioError('NO_CANVASES', { displayMessage: 'No valid IIIF canvases found in the manifest' });}
 
-			const images = canvases.map((b: any): Models.ImageInfo.ImageInfo => ({
-				id: b.service[0].id, path: b.service[0].id.replace(/\/[^/]*$/, ''), version: '',
+			const images = canvases.map((b): Models.ImageInfo.ImageInfo => ({
+				id: b.id, path: b.id.replace(/\/[^/]*$/, ''), version: '',
 				width: b.width, height: b.height, isWebP: b.format === 'image/webp', isPng: b.format === 'image/png', isIIIF: true,
 			}));
 
@@ -209,9 +248,9 @@ export class Gallery {
 
 		if (aInfo.type === 'grid' && aInfo.archive) {
 			const gridClickable = config.grid?.clickable ?? config.settings?.grid?.clickable;
-			const settings: Record<string, any> = { zoomLimit: 15, minimap: false, ...config.settings };
+			const settings: Record<string, unknown> = { zoomLimit: 15, minimap: false, ...config.settings };
 			if (gridClickable && settings.hookKeys === undefined) {settings.hookKeys = true;}
-			config.settings = settings as any;
+			config.settings = settings;
 		}
 
 		const index = aInfo.archive

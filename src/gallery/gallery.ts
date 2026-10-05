@@ -64,7 +64,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** SwipeGallery instance when this is a strip-swipe gallery. */
 	#swipeGallery: SwipeGallery|undefined;
 	/** Map tracking in-flight preload requests (keyed by thumbSrc). */
-	#preloading = new Map<string, any>();
+	#preloading = new Map<string, unknown>();
 	#preloadD = 0;
 
 	/** 3d book viewer @internal */
