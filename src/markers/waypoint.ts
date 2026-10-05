@@ -117,7 +117,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 			settings: settings ?? {} as Models.Spaces.WayPointSettings,
 			click: () => { },
 			get deleted() { return false; },
-			set deleted(v: boolean) { if (v) {hide();} }
+			set deleted(del: boolean) { if (del) {hide();} }
 		} as Models.Spaces.WaypointInterface & { click: () => void };
 
 		onmove();

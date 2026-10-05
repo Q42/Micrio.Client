@@ -94,9 +94,9 @@ processBuild({
 // Generate .d.ts
 const dFile = './public/dist/micrio.min.d.ts';
 const dtsInput = fs.readFileSync('./out.d.ts', 'utf-8');
-const modules = parseDeclareModules(dtsInput);
-const internalNames = new Set(modules.keys());
-const dtsBundled = bundleDts(modules, internalNames);
+const parsedModules = parseDeclareModules(dtsInput);
+const internalModuleNames = new Set(parsedModules.keys());
+const dtsBundled = bundleDts(parsedModules, internalModuleNames);
 fs.writeFileSync(dFile, dtsBundled);
 fs.rmSync('./out.d.ts');
 fs.rmdirSync(buildDir);
