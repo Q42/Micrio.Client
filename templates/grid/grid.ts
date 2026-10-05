@@ -251,7 +251,7 @@ function h<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, te
 }
 
 function sleep(ms: number): Promise<void> {
-	return new Promise(ok => setTimeout(ok, ms));
+	return new Promise(ok => { setTimeout(ok, ms); });
 }
 
 /** Build a whole-image thumbnail URL from the image's (corner-tile) `thumbSrc`. */
