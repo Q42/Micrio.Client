@@ -71,7 +71,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			const mt = tour;
 			mt.currentStep ??= mt.initialStep ?? 0;
 			this.#currentStep = mt.currentStep;
-			const stepInfo = mt.stepInfo;
+			const {stepInfo} = mt;
 			const tourControlsInPopup = Boolean(micrio.$current!.$settings?._markers?.tourControlsInPopup);
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
