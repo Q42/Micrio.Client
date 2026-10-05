@@ -131,7 +131,7 @@ export namespace State {
 			this.marker.subscribe(marker => {
 				const curr = this.#_marker; // Store previous marker
 				// Update internal marker reference (only store the object, not the ID string)
-				this.#_marker = (marker && typeof marker !== 'string' ? marker : undefined);
+				this.#_marker = (marker != null && typeof marker !== 'string' ? marker : undefined);
 				// If this marker change resulted in a new marker object being set,
 				// update the global marker state as well.
 				if(this.#_marker) {
@@ -139,7 +139,7 @@ export namespace State {
 				}
 				// If the marker was cleared locally AND it was the globally active marker,
 				// clear the global marker state too.
-				else if(!marker && m.state.$marker === curr) {
+				else if((marker == null || marker === '') && m.state.$marker === curr) {
 					m.state.marker.set(undefined);
 				}
 			});
