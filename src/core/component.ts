@@ -10,6 +10,7 @@ const PROVIDES = Symbol('micrio-provides');
  * Provides a standard lifecycle and prop/render pattern, store subscription helpers,
  * and a context (provide/inject) system for parent-child communication.
  */
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- `_P` is the props type each subclass declares as `extends MicrioElement<Props>`
 export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	/** The custom element tag name registered via `customElements.define`. @internal */
 	static tag: string;
@@ -129,11 +130,13 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	}
 
 	/** @internal */
-	protected _inject<T>(key: string): T | undefined {
-		let el: HTMLElement | null = this;
+	protected _inject(key: string): unknown {
+		const map = (this as any)[PROVIDES] as Map<string, any> | undefined;
+		if (map?.has(key)) {return map.get(key);}
+		let el = this.parentElement;
 		while (el) {
-			const map: Map<string, any> | undefined = (el as any)[PROVIDES];
-			if (map?.has(key)) {return map.get(key) as T;}
+			const parentMap = (el as any)[PROVIDES] as Map<string, any> | undefined;
+			if (parentMap?.has(key)) {return parentMap.get(key);}
 			el = el.parentElement;
 		}
 		return undefined;
@@ -141,7 +144,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 
 	/** @internal */
 	protected _getMicrio(): HTMLMicrioElement | undefined {
-		return this._inject<any>('micrio');
+		return this._inject('micrio') as HTMLMicrioElement | undefined;
 	}
 
 	#cleanup(): void {

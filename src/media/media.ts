@@ -2,6 +2,7 @@ import { createElement, IFRAME_ALLOW } from '$utils/dom';
 import { MicrioElement } from '$core/component';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
+import type { Readable } from '$core/store';
 import { VideoTourInstance } from './videotour';
 import { YouTubePlayerAdapter } from './youtube-adapter';
 import { VimeoPlayerAdapter } from './vimeo-adapter';
@@ -428,7 +429,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	}
 
 	#wireEvents(el: HTMLVideoElement | HTMLAudioElement) {
-		const volumeStore = this._inject<any>('volume');
+		const volumeStore = this._inject('volume') as Readable<number> | undefined;
 		if (volumeStore) {
 			this._addCleanup(volumeStore.subscribe((v: number) => { el.volume = v; }));
 		}
