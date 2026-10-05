@@ -33,7 +33,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		const gridMarkersShown = grid?._markersShown;
 
 		this._addCleanup(image._viewport.subscribe((v: Models.Camera.View) => {
-			if (!v || v.length < 4) {return;}
+			if (v === undefined || v.length < 4) {return;}
 			v = v.map(f => Math.round(f * 100) / 100);
 			const size = micrio.canvas.viewport;
 			this.style.left = !v[0] ? '' : `${v[0]}px`;
@@ -44,7 +44,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 		const updateOverlapped = () => {
 			if (!image.$settings.clusterMarkers) {return;}
-			const markers = image.$data?.markers?.filter(m => !m.i18n || m.i18n[get(micrio._lang)]);
+			const markers = image.$data?.markers?.filter(m => !m.i18n || m.i18n[get(micrio._lang)] !== undefined);
 			if (!markers) {return;}
 
 			const r = image.$settings.clusterMarkerRadius ?? 24;
@@ -118,7 +118,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		 */
 		const updateClickableAreas = ($markers: Models.ImageData.Marker[] | undefined, inactive: boolean, lang: string) => {
 			const areas = !inactive && $markers
-				? $markers.filter(m => m.clickableArea && (!m.i18n || m.i18n[lang]))
+				? $markers.filter(m => m.clickableArea && (!m.i18n || m.i18n[lang] !== undefined))
 				: [];
 			const expected = new Set(areas.map(m => m.id));
 
@@ -174,7 +174,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}
 
 			if ($visible) {
-				const filtered = $visible.filter(m => !m.i18n || m.i18n[$_lang]);
+				const filtered = $visible.filter(m => !m.i18n || m.i18n[$_lang] !== undefined);
 				const expected = new Set(filtered.map(m => m.id));
 
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker')) {
@@ -208,7 +208,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 		this._watchLater(image.data, rebuild);
 		this._watchLater(switching, rebuild);
-		if (micrioState.tour) {this._watchLater(micrioState.tour, rebuild);}
+		this._watchLater(micrioState.tour, rebuild);
 		if (focussed) {this._watchLater(focussed, rebuild);}
 		if (gridMarkersShown) {this._watchLater(gridMarkersShown, rebuild);}
 		this._watchLazy(micrio._lang, rebuild);
@@ -220,12 +220,12 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		if (!image.grid && image.$settings._markers?.zoomOutAfterClose) {
 			let wasVideoTour = false;
 			this._addCleanup(image.state.marker.subscribe(m => {
-				if (m && typeof m !== 'string' && !image._openedView && !m.noMarker && m.view) {
+				if (m !== undefined && m !== '' && typeof m !== 'string' && !image._openedView && !m.noMarker && m.view) {
 			const $tour = get(micrio.state.tour);
 			image._openedView = $tour && !('steps' in $tour) ? undefined
 				: structuredClone(image.state.$view ?? image.camera?.getView());
 					wasVideoTour = Boolean(m.videoTour);
-				} else if (!m && image._openedView && !get(micrio.state.tour)) {
+				} else if ((m === undefined || m === '') && image._openedView && !get(micrio.state.tour)) {
 					setTimeout(() => {
 						if (image._openedView) {
 							const v = image._openedView;
