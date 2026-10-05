@@ -121,5 +121,5 @@ export function closeSplit(
 }
 
 export function closeAllSplits(micrio: HTMLMicrioElement): void {
-	for (const p of [...splits.keys()]) {closeSplit(micrio, p);}
+	for (const p of splits.keys()) {closeSplit(micrio, p);}
 }
