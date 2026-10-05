@@ -75,14 +75,50 @@ This runs `tsc` with the project's `tsconfig.json`.
 ## Linting
 
 ```sh
-$ pnpm run lint
+$ pnpm run lint        # oxlint --type-aware
+$ pnpm run lint:fix    # oxlint --type-aware --fix
 ```
 
 This runs [oxlint](https://oxc.rs/docs/guide/usage/linter) in type-aware mode
 (configured by `.oxlintrc.json`, with `oxlint-tsgolint` providing the type
-information). `pnpm run lint:fix` applies the auto-fixable rules; the rest have
-to be fixed by hand. See [LINTING.md](LINTING.md) for the rule set, the
-deliberate exclusions and the current migration status.
+information). The rule set is deliberately strict: `correctness`, `suspicious`
+and `perf` are errors, plus a curated list of `pedantic`/`style`/type-aware
+rules (195 in total). `lint:fix` applies the auto-fixable rules; the rest have to
+be fixed by hand. The migration to this rule set is complete — 0 findings, and
+`pnpm typecheck` and `pnpm build` both pass. It landed as one small commit per
+rule per area, so `git log --grep '<rule-id>'` still shows how any single rule
+was resolved.
+
+Notes for changing the config:
+
+- `typescript/no-confusing-void-expression`, the `no-unsafe-*` family and
+  `strict-boolean-expressions` are off for `**/*.js` (the build scripts are not
+  in the TS program, so type-aware rules say nothing useful there); every other
+  rule still applies.
+- `strict-boolean-expressions` uses
+  `{ "allowNullableBoolean": true, "allowNullableString": true, "allowNullableNumber": true }`.
+  In oxlint 1.86 `allowNullableObject` is a no-op (nullable objects are always
+  reported) and wrapping a condition in `Boolean(x)` does not satisfy the rule —
+  write explicit comparisons. When converting, preserve the old falsiness set
+  exactly (`x !== undefined` is only equivalent for object values; `''`/`0` and
+  WebGL `null`-means-failure cases need explicit checks).
+- Off on purpose: `eslint/no-underscore-dangle` (3437 findings; `_`-prefixed
+  internals are the convention), `unicorn/no-null` (`null` and `undefined` differ
+  in the state model), `unicorn/no-array-sort` (its ES2023 remedy does not
+  type-check at the ES2022 target). The whole `style`, `restriction` and
+  `pedantic` categories stay disabled — individual rules from them are enabled
+  explicitly.
+- Generated output (`public/**`, `templates/grid/grid.js`, `*.min.js`) is
+  ignored; `grid.js` is built from `grid.ts` by `pnpm build:grid`.
+- Lint must exit 0 with zero findings (warnings are denied). Do not wire lint
+  into `build`/`publish`: publishing must never rewrite sources.
+- The few remaining `oxlint-disable-next-line` comments are each justified
+  in-code; `reportUnusedDisableDirectives` is `error`, so a stale one fails lint.
+
+The typing cleanup also made a few public types honest (runtime unchanged):
+`HTMLMicrioElement.open()` now returns `Promise<MicrioImage | undefined>`,
+`GalleryConfig.type` is optional, and `MicrioEventDetails['print']` is
+`Partial<ImageInfo.ImageInfo>`. Worth mentioning in release notes.
 
 ## Production build
 
