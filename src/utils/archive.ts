@@ -54,7 +54,7 @@ class Archive {
 			});
 			// Load handler
 			xhr.addEventListener('load', () => {
-				if(xhr.readyState === 4 && xhr.status === 200) { p?.(1); ok(xhr.response); } // Success
+				if(xhr.readyState === 4 && xhr.status === 200) { p?.(1); ok(xhr.response instanceof ArrayBuffer ? xhr.response : undefined); } // Success
 				else {err();} // Error
 			});
 			xhr.addEventListener('error', err); // Network error
@@ -131,7 +131,10 @@ class Archive {
 		const fr = new FileReader();
 		fr.addEventListener('load', () => {
 			const {result} = fr;
-			if (typeof result === 'string') {ok(JSON.parse(result));} // Parse JSON and resolve
+			if (typeof result === 'string') {
+				// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- archived JSON has no runtime schema; the caller declares `T`
+				ok(JSON.parse(result) as T);
+			} // Parse JSON and resolve
 			else {err(new Error(`Could not read blob: ${u}`));}
 		});
 		// Create a Blob from the specific byte range in the archive ArrayBuffer

@@ -36,7 +36,7 @@ export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Pro
 		if (r.status === 200) {return r.json();}
 			throw MicrioError.fromResponse(r, `fetchJson(${uri})`);
 		
-	}).then(j => {
+	}).then((j: unknown) => {
 		if (!noCache) {jsonCache.set(uri, j);} // Store result in cache
 		jsonPromises.delete(uri); // Remove promise from tracking map
 		return structuredClone(j);
@@ -45,7 +45,8 @@ export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Pro
 		throw e;
 	});
 	jsonPromises.set(uri, promise); // Track the ongoing promise
-	return await promise;
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the caller declares the shape via `T`
+	return await promise as T;
 };
 
 
