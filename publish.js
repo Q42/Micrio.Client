@@ -59,20 +59,25 @@ if(!accountId || !awsKey || !awsSecret) {
 const r2Endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
 const r2EuEndpoint = `https://${accountId}.eu.r2.cloudflarestorage.com`;
 
+/** Runs async tasks one after the other, in order. */
+const sequentially = (tasks) => tasks.reduce((chain, task) => chain.then(task), Promise.resolve());
+
+const uploadTasks = [];
 for(const [bucket, domain, endpoint] of [
 	['micrio', 'r2', r2Endpoint],
 	['micrio-eu', 'eu', r2EuEndpoint]
 ]) {
-	console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.min.js`);
+	uploadTasks.push(() => console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.min.js`));
 	for(const [ext, type] of [
 		['js','text/javascript'],
 		['d.ts','text/plain']
 	]) {
-		await run(`aws s3 cp ./public/dist/micrio.min.${ext} s3://${bucket}/micrio-${version}${suffix}.min.${ext} --endpoint-url ${endpoint} --content-type ${type} --cache-control "public, max-age=31536000"`).catch(error);
+		uploadTasks.push(() => run(`aws s3 cp ./public/dist/micrio.min.${ext} s3://${bucket}/micrio-${version}${suffix}.min.${ext} --endpoint-url ${endpoint} --content-type ${type} --cache-control "public, max-age=31536000"`).catch(error));
 	}
-	console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.core.min.js`);
-	await run(`aws s3 cp ./public/dist/micrio.core.min.js s3://${bucket}/micrio-${version}${suffix}.core.min.js --endpoint-url ${endpoint} --content-type text/javascript --cache-control "public, max-age=31536000"`).catch(error);
+	uploadTasks.push(() => console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.core.min.js`));
+	uploadTasks.push(() => run(`aws s3 cp ./public/dist/micrio.core.min.js s3://${bucket}/micrio-${version}${suffix}.core.min.js --endpoint-url ${endpoint} --content-type text/javascript --cache-control "public, max-age=31536000"`).catch(error));
 }
+await sequentially(uploadTasks);
 
 if(npmPublish) {
 	// When all is succesful, bump the current version number
