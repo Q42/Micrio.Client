@@ -178,6 +178,9 @@ export class Engine {
 	/** Map from MicrioImage/Frame → canvas entry (O(1) direct lookup). @internal */
 	#entryByImage = new Map<MicrioImage | Models.Omni.Frame, CanvasEntry>();
 
+	/** Bound video `play` listener, so the same reference can be added and removed. @internal */
+	#onVideoPlay = () => this.render();
+
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	_getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
 		return this.#entryByImage.get(img)?.canvas;
@@ -441,9 +444,9 @@ export class Engine {
 
 		let currentVideo: HTMLVideoElement | undefined;
 		this.#unsubscribe.push(c.video.subscribe(v => {
-			if (currentVideo) {currentVideo.removeEventListener('play', this.render);}
+			if (currentVideo) {currentVideo.removeEventListener('play', this.#onVideoPlay);}
 			currentVideo = v ?? undefined;
-			if (currentVideo) {currentVideo.addEventListener('play', this.render);}
+			if (currentVideo) {currentVideo.addEventListener('play', this.#onVideoPlay);}
 		}));
 
 		if (c._noImage) {c.visible.set(true);}
