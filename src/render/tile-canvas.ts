@@ -541,7 +541,7 @@ export class TileCanvas {
 			else {r.image._setDrawRect(r);}
 		}
 		else {
-			const v = this.main._vertexBuffer, a = this.aspect;
+			const a = this.aspect, v = this.main._vertexBuffer;
 			v[0] = v[3] = v[9] = ((r.x0 - .5) * a);
 			v[1] = v[7] = v[16] = (.5 - r.y0);
 			v[4] = v[10] = v[13] = (.5 - r.y1);

@@ -376,8 +376,8 @@ export default class Image {
 		if (this.#outsideView()) {return;}
 
 		const l = this._layers[layerIdx];
-		const tW = l._tileWidth, tH = l._tileHeight;
-		const rW = this._rWidth, rH = this._rHeight;
+		const tH = l._tileHeight, tW = l._tileWidth;
+		const rH = this._rHeight, rW = this._rWidth;
 
 		const r = Math.min(l._cols - 1, Math.floor(Math.max(0, x1 - this.x0) / rW / tW));
 		const b = Math.min(l._rows - 1, Math.floor(Math.max(0, y1 - this.y0) / rH / tH));
@@ -399,8 +399,8 @@ export default class Image {
 		const c = this.#canvas;
 		const tol = 0.1;
 		const vcy = c.view._centerY;
-		const vw = c.view.width + tol, vh = c.view.height + tol;
-		const ecx = this.#areaCenterX, ecy = this.#areaCenterY, ew = this.#areaWidth, eh = this.#areaHeight;
+		const vh = c.view.height + tol, vw = c.view.width + tol;
+		const ecx = this.#areaCenterX, ecy = this.#areaCenterY, eh = this.#areaHeight, ew = this.#areaWidth;
 
 		const iy0 = Math.max(vcy - vh / 2, ecy - eh / 2);
 		const iy1 = Math.min(vcy + vh / 2, ecy + eh / 2);
@@ -441,8 +441,8 @@ export default class Image {
 			if (ix0 >= ix1) {return;}
 		}
 
-		const eL = ecx - ew / 2, eB = ecy - eh / 2;
-		const tW = layer._tileWidth, tH = layer._tileHeight;
+		const eB = ecy - eh / 2, eL = ecx - ew / 2;
+		const tH = layer._tileHeight, tW = layer._tileWidth;
 		const c0 = Math.floor(Math.max(0, Math.min(1, (ix0 - eL) / ew)) / tW);
 		const c1 = Math.min(layer._cols - 1, Math.floor(Math.max(0, Math.min(1, (ix1 - eL) / ew)) / tW));
 		const r0 = Math.floor(Math.max(0, Math.min(1, (iy0 - eB) / eh)) / tH);
@@ -474,7 +474,7 @@ export default class Image {
 	_setDrawRect(r: DrawRect): void {
 		const v = this.#canvas.main._vertexBuffer;
 		const s = Math.PI * 2 * this.#canvas._camera360._radius;
-		const p = this.#vec, m = this.#mat;
+		const m = this.#mat, p = this.#vec;
 		const cX = this.x0 + this._rWidth / 2, cY = this.y0 + this._rHeight / 2;
 		const center = this.#canvas._camera360._getVec3(cX - this.#canvas._camera360._offX, cY, true, 5);
 
@@ -507,9 +507,10 @@ export default class Image {
 			return s * Math.max(this.#areaWidth * 2, this.#areaHeight) * (this.#canvas.width / this.width);
 		}
 
-		const ew = this.#areaWidth, eh = this.#areaHeight;
+		const eh = this.#areaHeight, ew = this.#areaWidth;
 		const ecx = this.#areaCenterX, ecy = this.#areaCenterY;
-		const {el} = this.#canvas, gl = this.#canvas._camera360, cW = el.width;
+		const {el} = this.#canvas, gl = this.#canvas._camera360;
+		const cW = el.width;
 		const pH = eh / 2.5;
 
 		let b = 0;
@@ -526,7 +527,7 @@ export default class Image {
 	}
 
 	#get360Tiles(l: Layer): void {
-		const c = this.#canvas, w = c.el.width, h = c.el.height;
+		const c = this.#canvas, h = c.el.height, w = c.el.width;
 		const sp = c._camera360._fieldOfView > Math.PI / 2 ? 20 : 12;
 		const eps = 1e-8, offX = c._camera360._offX;
 
@@ -550,7 +551,7 @@ export default class Image {
 		}
 
 		const n = Image.#sampledLength;
-		let minY = Infinity, maxY = -Infinity;
+		let maxY = -Infinity, minY = Infinity;
 		for (let i = 0; i < n; i++) {
 			const v = Image.#sampledYs[i];
 			if (v < minY) {minY = v;}
@@ -559,7 +560,7 @@ export default class Image {
 		minY = Math.max(0, minY - 0.001);
 		maxY = Math.min(1, maxY + 0.05);
 
-		const xs = Image.#sampledXs, ux = Image.#uniqueXs;
+		const ux = Image.#uniqueXs, xs = Image.#sampledXs;
 		for (let i = 0; i < n; i++) {xs[i] = mod1(xs[i] - offX);}
 
 		Image.#uniqueLength = 0;
@@ -583,7 +584,7 @@ export default class Image {
 		if (m < 2) {
 			full = true; minY = 0; maxY = 1;
 		} else {
-			let maxGap = 0, idx = -1;
+			let idx = -1, maxGap = 0;
 			for (let i = 0; i < m - 1; i++) {
 				const g = ux[i + 1] - ux[i];
 				if (g > maxGap) { maxGap = g; idx = i; }

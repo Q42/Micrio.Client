@@ -308,9 +308,9 @@ export default class Camera360 extends EngineCamera {
 
 	/** Converts screen pixel coordinates to 360 image coordinates [0-1]. @internal */
 	_getCoo(pxX: number, pxY: number): Coordinates {
-		const {el} = this.canvas,
-			v = this._vec4,
-			c = this.#coo;
+		const c = this.#coo,
+			{el} = this.canvas,
+			v = this._vec4;
 
 		v.x = (pxX * el.ratio / el.width) * 2 - 1;
 		v.y = -((pxY * el.ratio / el.height) * 2 - 1);
@@ -333,9 +333,9 @@ export default class Camera360 extends EngineCamera {
 
 	/** Converts 360 image coordinates [0-1] to screen pixel coordinates. @internal */
 	_getXYZ(x: number, y: number): Coordinates {
-		const {el} = this.canvas,
-			v = this._vec4,
-			c = this.#coo;
+		const c = this.#coo,
+			{el} = this.canvas,
+			v = this._vec4;
 
 		this._getVec3(x + this._offX, y);
 
@@ -380,9 +380,9 @@ export default class Camera360 extends EngineCamera {
 		if (Number.isNaN(radius)) {radius = this._radius;}
 
 		const m = this.#iMatrix,
-			v = this._vec4,
+			p = this.#position,
 			r = this._radius,
-			p = this.#position;
+			v = this._vec4;
 
 		m._identity();
 
@@ -444,8 +444,8 @@ export default class Camera360 extends EngineCamera {
 				const sL = Math.sin(l) * a || 0;
 				const cR = Math.cos(r) * a || 0;
 				const sR = Math.sin(r) * a || 0;
-				const cT = Math.cos(t), cB = Math.cos(b);
-				const sT = Math.sin(t) * a, sB = Math.sin(b) * a;
+				const cB = Math.cos(b), cT = Math.cos(t);
+				const sB = Math.sin(b) * a, sT = Math.sin(t) * a;
 
 				v[i + 0] = (cT * sL);
 				v[i + 1] = sT;

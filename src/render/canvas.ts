@@ -215,7 +215,7 @@ export class Canvas {
 	_imageCrop(camera:Camera) : ImageCrop | undefined {
 		// Unscaled CSS pixels, matching what the camera reports (and unaffected by any CSS
 		// transform on the micr-io element, which the viewport already compensates for)
-		const w = this.viewport.width, h = this.viewport.height;
+		const h = this.viewport.height, w = this.viewport.width;
 		if (!w || !h) {return undefined;}
 
 		// Image corners in canvas-element-relative CSS pixels

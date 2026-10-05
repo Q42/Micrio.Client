@@ -160,7 +160,7 @@ export default class Ani {
 			el._areaWidth = 0;
 		}
 
-		const fromCenterX = v._centerX, fromCenterY = v._centerY, fromWidth = v.width, fromHeight = v.height;
+		const fromCenterX = v._centerX, fromCenterY = v._centerY, fromHeight = v.height, fromWidth = v.width;
 		f.set(fromCenterX, fromCenterY, fromWidth, fromHeight);
 
 		if (c.is360) {
@@ -187,10 +187,10 @@ export default class Ani {
 					t.set(cX, cY, nw, t.height);
 				}
 			}
-			const fLeft = f.x0, fRight = f.x1, fTop = f.y0, fBottom = f.y1;
-			const tLeft = t.x0, tRight = t.x1, tTop = t.y0, tBottom = t.y1;
+			const fBottom = f.y1, fLeft = f.x0, fRight = f.x1, fTop = f.y0;
+			const tBottom = t.y1, tLeft = t.x0, tRight = t.x1, tTop = t.y0;
 
-			const el = tLeft < fLeft, et = tTop < fTop, er = tRight > fRight, eb = tBottom > fBottom;
+			const eb = tBottom > fBottom, el = tLeft < fLeft, er = tRight > fRight, et = tTop < fTop;
 			if ((el || et || er || eb) && !(el && et && er && eb)) {
 				this.#fL = el ? 1 : (tLeft > fLeft ? 2 : 0);
 				this.#fR = er ? 1 : (tRight < fRight ? 2 : 0);
@@ -296,7 +296,7 @@ export default class Ani {
 		if (this.#isRunning) {
 			if (this.#isView) {
 				const f = this.#vFrom, t = this.#vTo;
-				const mo = this.#mO, i = this.#fn.get(Math.min(1, p / this.#mI)),
+				const i = this.#fn.get(Math.min(1, p / this.#mI)), mo = this.#mO,
 					o = this.#fn.get(Math.max(0, (p - mo) / (1 - mo)));
 				let n = 0;
 
