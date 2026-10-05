@@ -600,7 +600,7 @@ export class Engine {
 	): void {
 		const tile = this.#getTileEntry(i);
 		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing);
-		if (globalThis.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) {img.close();}
+		if (globalThis.ImageBitmap !== undefined && img instanceof ImageBitmap && typeof (img.close) === 'function') {img.close();}
 		tile._loadState = 2;
 
 		tile._timeoutId = setTimeout(() => {
