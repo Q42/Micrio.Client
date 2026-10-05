@@ -1,6 +1,6 @@
 import { createElement } from '$utils/dom';
 import { MicrioElement } from '$core/component';
-import type { HTMLMicrioElement } from '$core/element';
+import { HTMLMicrioElement } from '$core/element';
 import type { Models } from '$types/models';
 import { Gallery } from '$gallery/controller';
 import { Frame } from '$core/frame';
@@ -27,7 +27,8 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	}
 
 	_onMount() {
-		const el = createElement('micr-io', { parent: this }) as HTMLMicrioElement;
+		const el = createElement('micr-io', { parent: this });
+		if (!(el instanceof HTMLMicrioElement)) {throw new Error('Could not create <micr-io> element');}
 
 		const caption = createElement('figcaption', { parent: this });
 
@@ -50,18 +51,20 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 			caption.style.display = text ? '' : 'none';
 		};
 
-		el.addEventListener('gallery-show', ((e: Event) => {
-			const id = (e as CustomEvent).detail[0] as string;
+		el.addEventListener('gallery-show', (e: Event) => {
+			if (!(e instanceof CustomEvent)) {return;}
+			const detail: unknown = e.detail;
+			const id = Array.isArray(detail) && typeof detail[0] === 'string' ? detail[0] : undefined;
 			currentIdx = Math.max(0, this.#props.gallery.findIndex(item => (item.micrioId ?? item.id) === id));
 			updateCaption();
-		}) as EventListener);
+		});
 
 		updateCaption();
 	}
 
 	_onDestroy() {
-		const el = this.querySelector(':scope > micr-io') as HTMLMicrioElement | null;
-		el?.destroy();
+		const el = this.querySelector(':scope > micr-io');
+		if (el instanceof HTMLMicrioElement) {el.destroy();}
 	}
 }
 

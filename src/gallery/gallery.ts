@@ -80,7 +80,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const micrio = this._getMicrio();
 		if (!micrio) {return;}
 
-		const image = micrio.$current as MicrioImage;
+		const image = micrio.$current;
 		if (!image) {return;}
 
 		const settings = image.$settings;
@@ -423,7 +423,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			_canvas: micrio.canvas.element,
 			_images: items,
 			_startPageIdx: pageIdx,
-			_lightingPreset: config.settings?.lighting as string,
+			_lightingPreset: typeof config.settings?.lighting === 'string' ? config.settings.lighting : undefined,
 			_useIndividualAspects: individualAspects,
 			_seeThroughMargins: individualAspects,
 			_allowRotation: this.#allowBookRotation,
@@ -458,14 +458,15 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1;
 		const curr = this.#currentPage;
 
-		this.#prevBtn = createElement('micrio-button', {
+		const prevBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
 				type: 'prev', title: $i18n._galleryPrev,
 				disabled: curr <= 0,
 				onclick: () => this.#goto(this.#currentPage - 1)
 			}
-		}) as MicrioElement;
+		});
+		this.#prevBtn = prevBtn instanceof MicrioElement ? prevBtn : null;
 
 		if (this.#isBook3D && this.#allowBookRotation) {
 			createElement('micrio-button', {
@@ -481,8 +482,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			className: dense ? 'dense' : '',
 			parent: this,
 			events: {
-				pointerdown: this.#scrubStart as EventListener,
-				pointermove: this.#scrubPointerMove as EventListener,
+				pointerdown: (e: Event) => {if (e instanceof PointerEvent) {this.#scrubStart(e);}},
+				pointermove: (e: Event) => {if (e instanceof PointerEvent) {this.#scrubPointerMove(e);}},
 				pointerleave: () => { this.#hoverIdx = -1; this.#updateScrubber(); }
 			}
 		});
@@ -511,14 +512,15 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		createElement('span', { parent: ul });
 
-		this.#nextBtn = createElement('micrio-button', {
+		const nextBtn = createElement('micrio-button', {
 			parent: this,
 			setProps: {
 				type: 'next', title: $i18n._galleryNext,
 				disabled: curr >= total - 1,
 				onclick: () => this.#goto(this.#currentPage + 1)
 			}
-		}) as MicrioElement;
+		});
+		this.#nextBtn = nextBtn instanceof MicrioElement ? nextBtn : null;
 
 		if (this.#isBook3D && this.#allowBookRotation) {
 			createElement('micrio-button', {
@@ -541,7 +543,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const fillPct = total > 1 ? (curr / (total - 1)) * 100 : 0;
 		const left = this.#_ul && !this.#dragging ? this.#getX(curr) : this.#_left;
 
-		const trackFill = this.querySelector('ul > :first-child > span') as HTMLElement;
+		const trackFill = this.querySelector<HTMLElement>('ul > :first-child > span');
 		if (trackFill) {trackFill.style.width = `${fillPct}%`;}
 
 		const allTicks = this.querySelectorAll('ul > :nth-child(2) > span');
@@ -556,14 +558,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			tick.toggleAttribute('data-hover', i === this.#hoverIdx);
 		}
 
-		const handle = this.querySelector('ul > button') as HTMLElement;
+		const handle = this.querySelector<HTMLElement>('ul > button');
 		if (handle) {
 			handle.style.left = `${left}px`;
 			handle.classList.toggle('dragging', this.#dragging);
 			handle.setAttribute('aria-valuenow', String(curr + 1));
 		}
 
-		const hl = this.querySelector('ul > button + span') as HTMLElement;
+		const hl = this.querySelector<HTMLElement>('ul > button + span');
 		if (hl) {
 			hl.style.left = `${left}px`;
 			hl.classList.toggle('dragging', this.#dragging);
@@ -571,7 +573,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			hl.textContent = this.#pageLabel(curr) + (dense ? ` / ${pageTotal}` : '');
 		}
 
-		let hoverLabel = this.querySelector('[data-part="hover-label"]') as HTMLElement;
+		let hoverLabel = this.querySelector<HTMLElement>('[data-part="hover-label"]');
 		if (this.#hoverIdx >= 0 && this.#hoverIdx !== curr && !this.#dragging) {
 			if (!hoverLabel) {
 				hoverLabel = createElement('span', { attrs: { 'data-part': 'hover-label' }, parent: this.querySelector('ul') ?? undefined });

@@ -6,6 +6,11 @@ const ARROW_DIR = {
 	ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
 } as const;
 
+/** True when `key` names one of the arrow keys in {@link ARROW_DIR}. */
+function isArrowKey(key: string): key is keyof typeof ARROW_DIR {
+	return Object.hasOwn(ARROW_DIR, key);
+}
+
 function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
 	const cells = grid._current.map((img, i) => {
 		const area = img.opts.area ?? [0, 0, 1, 1];
@@ -59,7 +64,7 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 			return;
 		}
 
-		const dir = ARROW_DIR[e.key as keyof typeof ARROW_DIR];
+		const dir = isArrowKey(e.key) ? ARROW_DIR[e.key] : undefined;
 		if (!dir || grid.$focussed) {return;}
 
 		e.preventDefault();
@@ -95,7 +100,10 @@ export function hookGridKeys(grid: Grid) : () => void {
 		clickDown = undefined;
 		if (dist > 10) {return;}
 		const [vx, vy] = grid.image.camera.getCoo(e.clientX, e.clientY, true);
-		const img = grid._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
+		const img = grid._current.find(i => {
+			const {area} = i.opts;
+			return area ? pointInArea(vx, vy, [area[0], area[1], area[2], area[3]]) : false;
+		});
 		if (!img) {return;}
 		grid._clickCell(img);
 	};

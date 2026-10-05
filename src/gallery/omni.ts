@@ -1,7 +1,7 @@
 import type { HTMLMicrioElement } from '$core/element';
 import type { MicrioImage } from '$core/image';
 import type { Omni } from '$types/models/omni';
-import type { MicrioElement } from '$core/component';
+import { MicrioElement } from '$core/component';
 import type { Engine } from '$render/engine';
 import { easeInOut } from '$render/easing';
 import { DataLoader } from '$utils/dataLoader';
@@ -125,7 +125,8 @@ export class OmniUI {
 					this.goto(Math.round(frame) % pagesPerLayer);
 				}
 			}
-		}) as MicrioElement;
+		});
+		if (!(dial instanceof MicrioElement)) {return;}
 
 		this.#swiperLength = pagesPerLayer;
 		this.#swiperOpts = { continuous: true };

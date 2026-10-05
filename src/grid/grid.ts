@@ -96,10 +96,9 @@ export class Grid extends MicrioElement {
 	_onMount() {
 		if (this.#inited) {return;}
 		this.#inited = true;
-		const props = this._props as { micrio: HTMLMicrioElement; image: MicrioImage; gallery: Gallery };
-		this.micrio = props.micrio;
-		this.image = props.image;
-		this.#gallery = props.gallery;
+		this.micrio = this._props.micrio;
+		this.image = this._props.image;
+		this.#gallery = this._props.gallery;
 		for (const img of this.#gallery._images) {this.#trackImage(img);}
 
 		const g = this.image.$settings?.grid;
@@ -141,21 +140,23 @@ export class Grid extends MicrioElement {
 			if(m && typeof m !== 'string') {
 				const d = m.data?._meta;
 				if(d?.gridSize) {
-					const s = (typeof d.gridSize === 'number' ? [d.gridSize, d.gridSize]
-						: d.gridSize.split(',').map(Number)) as [number, number];
+					const s: [number, number] = typeof d.gridSize === 'number' ? [d.gridSize, d.gridSize]
+						: [Number(d.gridSize.split(',')[0]), Number(d.gridSize.split(',')[1])];
 					const micId = this._images.find(i => i.$data?.markers?.find(n => n === m))?.id;
 					if(micId) {this.#nextSize.set(micId, s);}
 				}
 				void tick().then(() => {
 					const a = d?.gridAction?.split('|');
-					if(a?.length && typeof a[0] === 'string') {this.action(a.shift() as string, a.join('|'));}
+					const name = a?.[0];
+					if(a?.length && typeof name === 'string') {a.shift(); this.action(name, a.join('|'));}
 				})
 			}
 		});
 
 		if(this._clickable) {
 			this.addEventListener('click', e => {
-				this._clickCell((e.target as HTMLElement)?.dataset.id);
+				const {target} = e;
+				this._clickCell(target instanceof HTMLElement ? target.dataset.id : undefined);
 			});
 
 			const placeOrRemove = (t:unknown) => { if(t) {this.#removeGrid();} else {this.#placeGrid();} };
@@ -378,9 +379,9 @@ export class Grid extends MicrioElement {
 		const imageById = new Map(images.map(i => [i.id, i]));
 		this.style.transform = '';
 		for (const n of this.childNodes) {
-			const e = n as HTMLElement;
-			const {id} = e.dataset;
-			const r = e.getBoundingClientRect();
+			if (!(n instanceof HTMLElement)) {continue;}
+			const {id} = n.dataset;
+			const r = n.getBoundingClientRect();
 			const img = id ? imageById.get(id) : undefined;
 			const o = [(s/2)*r.width, (s/2)*r.height];
 			if(img && !img.area) {img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.width-o[0]*2)/w, (r.height-o[1]*2)/h]}
@@ -507,10 +508,10 @@ export class Grid extends MicrioElement {
 
 	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): Models.Grid.GridImage[] | undefined {
 		if (!state?.layout?.length) {return undefined;}
-		return state.layout.map(entry => {
+		return state.layout.map((entry): Models.Grid.GridImage | null => {
 			if (!this._imageMap.has(entry.id)) {return null;}
 			return { id: entry.id, size: entry.size ?? [1], view: entry.view };
-		}).filter(Boolean) as Models.Grid.GridImage[];
+		}).filter((entry): entry is Models.Grid.GridImage => entry !== null);
 	}
 
 	#setTimingFunction(fn:Models.Camera.TimingFunction) : void {
@@ -612,7 +613,10 @@ export class Grid extends MicrioElement {
 		if (current && this._images.some(i => i === current)) {return current;}
 		if (this._panZoom === 'grid') {return this.image;}
 		const [vx, vy] = this.image.camera.getCoo(clientX, clientY, true);
-		return this._current.find(i => i.opts.area && pointInArea(vx, vy, i.opts.area as [number, number, number, number]));
+		return this._current.find(i => {
+			const {area} = i.opts;
+			return area ? pointInArea(vx, vy, [area[0], area[1], area[2], area[3]]) : false;
+		});
 	}
 
 }

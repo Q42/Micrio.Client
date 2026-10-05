@@ -270,7 +270,7 @@ function titleOf(id: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function boot(micrio: HTMLMicrioElement): void {
-	(globalThis as unknown as { micrio: HTMLMicrioElement }).micrio = micrio;
+	Object.assign(globalThis, { micrio });
 	micrio.defaultSettings = {
 		// Keep the demo canvas clean — our panel replaces the default UI.
 		noControls: true,
@@ -296,7 +296,7 @@ function boot(micrio: HTMLMicrioElement): void {
 	// may fire before *or* after this module runs. We listen for the event,
 	// check whether the controller already exists, and poll as a safety net.
 	resolveGrid(micrio, grid => {
-		(globalThis as unknown as { grid: Grid }).grid = grid;
+		Object.assign(globalThis, { grid });
 		void init(root, micrio, grid);
 	});
 }
@@ -304,12 +304,12 @@ function boot(micrio: HTMLMicrioElement): void {
 // Resolve the `<micr-io>` element. When this file is bundled as a classic
 // script for a static release, it may execute in `<head>` before the element
 // in `<body>` has been parsed — in that case wait for the document to finish.
-const micrioEl = document.querySelector('micr-io') as HTMLMicrioElement | null;
+const micrioEl = document.querySelector<HTMLMicrioElement>('micr-io');
 if (micrioEl) {
 	boot(micrioEl);
 } else if (document.readyState === 'loading') {
 	document.addEventListener('DOMContentLoaded', () => {
-		const el = document.querySelector('micr-io') as HTMLMicrioElement | null;
+		const el = document.querySelector<HTMLMicrioElement>('micr-io');
 		if (el) {boot(el);}
 		else {console.error('[grid demo] No <micr-io> element found.');}
 	});
@@ -340,7 +340,11 @@ function resolveGrid(micrio: HTMLMicrioElement, onGrid: (grid: Grid) => void): v
 	// `micrio.$current` while the grid overview is showing.
 	const find = (): Grid | undefined => micrio.$current?.grid;
 
-	micrio.addEventListener('grid-init', e => finish((e as CustomEvent).detail as Grid));
+	micrio.addEventListener('grid-init', e => {
+		if (!(e instanceof CustomEvent)) {return;}
+		const grid: Grid = e.detail;
+		finish(grid);
+	});
 
 	// Already initialized?
 	finish(find());
@@ -534,7 +538,7 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 	}
 	focusTrans.value = 'slide-up';
 
-	const getTransition = () => focusTrans.value as FocusTransition;
+	const getTransition = (): FocusTransition => FOCUS_TRANSITIONS.find(t => t === focusTrans.value) ?? 'slide-up';
 
 	buildStrip(strip, micrio, grid, getTransition);
 	buildTags(tagsBox, grid);
@@ -549,7 +553,8 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 		refreshStrip(strip, grid);
 	});
 	grid.micrio.addEventListener('grid-focus', (e) => {
-		const img = (e as CustomEvent).detail as MicrioImage;
+		if (!(e instanceof CustomEvent)) {return;}
+		const img: MicrioImage = e.detail;
 		setSub(`Focused: ${titleOf(img.id)} — Esc or “Back” to return`);
 		refreshStrip(strip, grid);
 	});

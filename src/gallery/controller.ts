@@ -328,9 +328,10 @@ export class Gallery {
 
 		if (this._config.type === 'grid') {
 			const {micrio} = parent.engine;
-			parent.grid = createElement(Grid.tag, {
+			const gridEl = createElement(Grid.tag, {
 				setProps: { micrio, image: parent, gallery: this },
-			}) as Grid;
+			});
+			if (gridEl instanceof Grid) {parent.grid = gridEl;}
 		}
 
 		// Book3D albums ship their own WebGL renderer on the shared `<canvas>`,

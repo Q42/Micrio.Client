@@ -23,7 +23,8 @@ function switchToGrid(grid: Grid): void {
  */
 export function createTourEventHandler(grid: Grid): (e: Event) => void {
 	return (e: Event): void => {
-		const event = (e as CustomEvent).detail as Models.ImageData.Event;
+		if (!(e instanceof CustomEvent)) {return;}
+		const event: Models.ImageData.Event = e.detail;
 		if(!event || !event.action?.startsWith('grid:')) {return;}
 		if(event.active) {handleAction(grid, event.action.slice(5), event.data, event.end - event.start);}
 	};
@@ -109,16 +110,21 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 	return map;
 }
 
+/** True when `action` names a (non-numeric) member of {@link GridActionType}. */
+function isGridActionName(action: string): action is keyof typeof GridActionType {
+	return Object.hasOwn(GridActionType, action) && Number.isNaN(Number(action));
+}
+
 /**
  * Execute a grid action by type, optionally passing data and a duration.
  * Deduplicates repeated identical actions by tracking the last action key.
  * @internal
  */
 export function handleAction(grid: Grid, action: GridActionType|string, data?: string, duration?: number): void {
-	if(typeof action === 'string') {action = GridActionType[action as keyof typeof GridActionType];}
-	const key = action+(data??'');
+	const type = typeof action === 'string' && isGridActionName(action) ? GridActionType[action] : action;
+	const key = type+(data??'');
 	if(grid._lastAction === key) {return;}
-	const handler = getHandlerMap(grid)[action as number];
+	const handler = typeof type === 'number' ? getHandlerMap(grid)[type] : undefined;
 	if(handler) {handler(data, duration);}
 	else {console.warn('Warning: unknown grid tour event', action);}
 	grid._lastAction = key;
