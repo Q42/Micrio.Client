@@ -472,7 +472,7 @@ export class Grid extends MicrioElement {
 		const name = spl?.[0]??'';
 		const images = !name ? this._images : this._images.filter(i => Boolean(i.$data?.markers?.find(m => m.tags?.includes(name))));
 		return this.set(images.map(img => {
-			const m = img.$data?.markers?.find(m => m.tags?.includes(name));
+			const m = img.$data?.markers?.find(n => n.tags?.includes(name));
 			return { id: img.id, size: [1], view: !noZoom ? m?.view : undefined };
 		}),{duration, horizontal: spl?.[1]==='h'});
 	}
