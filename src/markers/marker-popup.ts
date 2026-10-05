@@ -1,5 +1,6 @@
 import { MicrioElement } from '$core/component'
 import type { Models } from '$types/models'
+import type { MicrioImage } from '$core/image'
 import { get } from '$core/store'
 import { Frame } from '$core/frame'
 import { i18n } from '$core/i18n/strings'
@@ -26,6 +27,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	#isMinimized = false
 	#destroying = false
 	#clickedPrevNext = false
+	#placedTourControls = false
 	#originalHeights = new WeakMap<HTMLElement, number>()
 
 	/** @internal */
@@ -59,6 +61,15 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			}
 		})
 
+		// The tour controls are rendered from the tour state, and the tour may be
+		// started *after* this popup, so re-render whenever the state they depend on
+		// changes — a one-shot placement would leave the popup without controls.
+		this._watch(micrio.state.tour, () => {
+			if (!this.#destroying && !this.#showTourControls !== !this.#placedTourControls) {
+				this.#render()
+			}
+		})
+
 		// Button titles and content are translated, so re-render on a UI language change
 		this._watchLater(micrio._lang, () => {
 			if (!this.#destroying) {
@@ -79,6 +90,38 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		}
 	}
 
+	/**
+	 * Whether the marker popup shows the tour's prev/counter/next controls instead
+	 * of its own close/minimize aside: a non-serial marker tour with the
+	 * `_markers.tourControlsInPopup` setting on, on a non-mobile canvas.
+	 */
+	get #showTourControls(): boolean {
+		const micrio = this._getMicrio()
+		const image = this.#getImage()
+		if (!micrio || !image) {
+			return false
+		}
+		const $tour = get(micrio.state.tour)
+		const markerTour = $tour && 'steps' in $tour ? $tour : undefined
+		if (!markerTour) {
+			return false
+		}
+		const tourSourceImage = micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === markerTour.id))
+		const settings = image.$settings._markers ?? {}
+		const tsSettings = tourSourceImage?.$settings._markers
+		const tourControlsInPopup = tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup
+		const isPartOfTour =
+			(markerTour.steps?.findIndex((s: string) => s.startsWith(this.#props.marker?.id ?? '')) ?? -1) >= 0
+
+		return !micrio.canvas.$isMobile && isPartOfTour && !markerTour.isSerialTour && tourControlsInPopup === true
+	}
+
+	/** The `<micrio-marker>` element this popup was opened for. */
+	#getImage(): MicrioImage | undefined {
+		const { marker } = this.#props
+		return marker?.id ? MicrioElement._markerImages.get(marker.id) : undefined
+	}
+
 	#render() {
 		const { marker } = this.#props
 		const micrio = this._getMicrio()
@@ -86,8 +129,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			return
 		}
 
-		const markerImages = MicrioElement._markerImages
-		const image = marker.id ? markerImages.get(marker.id) : undefined
+		const image = this.#getImage()
 		if (!image) {
 			return
 		}
@@ -100,16 +142,9 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const canMinimize = settings.canMinimizePopup
 
 		const markerTour = $tour && 'steps' in $tour ? $tour : undefined
-		const tourSourceImage = markerTour
-			? micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === markerTour.id))
-			: undefined
-		const tsSettings = tourSourceImage?.$settings._markers
 		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0
-		const showTourControls =
-			!micrio.canvas.$isMobile &&
-			isPartOfTour &&
-			!markerTour?.isSerialTour &&
-			(tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup)
+		const showTourControls = this.#showTourControls
+		this.#placedTourControls = showTourControls
 		const closeButtonStopsTour =
 			showTourControls || (markerTour ? markerTour.currentStep === markerTour.steps.length - 1 : undefined)
 
@@ -189,13 +224,26 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		})
 
 		if (showTourControls) {
+			// The aside lives in `<micrio-tour>`, which the layout may mount in a later
+			// frame than this popup, so keep asking for it until it exists.
 			Frame.request(() => {
-				const tourEl = document.querySelector('micrio-tour')
-				const tourAside = tourEl instanceof MicrioElement && 'aside' in tourEl ? tourEl.aside : undefined
-				if (tourAside instanceof HTMLElement && !this.contains(tourAside)) {
-					this.append(tourAside)
-				}
+				this.#placeTourAside()
 			})
+		}
+	}
+
+	/** Moves the tour element's control aside into this popup, once it exists. */
+	#placeTourAside(): void {
+		const tourEl = document.querySelector('micrio-tour')
+		const tourAside = tourEl instanceof MicrioElement && 'aside' in tourEl ? tourEl.aside : undefined
+		if (!(tourAside instanceof HTMLElement)) {
+			Frame.request(() => {
+				this.#placeTourAside()
+			})
+			return
+		}
+		if (!this.contains(tourAside)) {
+			this.append(tourAside)
 		}
 	}
 }

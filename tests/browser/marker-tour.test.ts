@@ -124,6 +124,89 @@ describe('marker tour navigation from the markers', () => {
 	})
 })
 
+/**
+ * `_markers.tourControlsInPopup` moves the tour's aside out of `<micrio-tour>`
+ * and into the marker popup, so the prev/next buttons sit next to the step's
+ * content. The element that is empty in that mode is the tour element itself —
+ * the controls live in the popup.
+ */
+describe('marker tour controls in the popup', () => {
+	it('renders the step controls inside the popup when the setting is on', async () => {
+		const tour = markerTour({ steps: ['m1', 'm2'] })
+		const bundle = tourBundle({ markerTours: [tour], settings: { _markers: { tourControlsInPopup: true } } })
+		const viewer = await mountTour(bundle)
+		viewer.el.state.tour.set(tour)
+		await waitFor(
+			() => viewer.el.querySelector('micrio-marker-popup aside.marker-tour') !== null,
+			4000,
+			'popup tour controls',
+		)
+
+		const popupAside = viewer.el.querySelector('micrio-marker-popup aside.marker-tour')
+		expect(popupAside).not.toBeNull()
+		expect(popupAside?.querySelectorAll('micrio-button').length).toBeGreaterThanOrEqual(3)
+		expect(button(popupAside, 'micrio-button.prev button')).not.toBeNull()
+		expect(button(popupAside, 'micrio-button.next button')).not.toBeNull()
+		// The popup mode puts the close button first, before the step buttons
+		expect(popupAside?.firstElementChild?.classList.contains('close')).toBe(true)
+		// and the tour element itself keeps no controls
+		expect(tourEl(viewer)?.querySelector('aside.marker-tour')).toBeNull()
+		viewer.destroy()
+	})
+
+	it('does not leave a stale aside behind when the tour moves to another step', async () => {
+		const tour = markerTour({ steps: ['m1', 'm2'] })
+		const bundle = tourBundle({ markerTours: [tour], settings: { _markers: { tourControlsInPopup: true } } })
+		const viewer = await mountTour(bundle)
+		viewer.el.state.tour.set(tour)
+		await waitFor(() => viewer.el.querySelector('micrio-marker-popup aside.marker-tour') !== null, 4000, 'tour aside')
+
+		tour.next?.()
+		await waitFor(() => viewer.el.$current?.state.$marker?.id === 'm2', 4000, 'step 2 marker')
+		const asides = viewer.el.querySelectorAll('micrio-marker-popup aside.marker-tour')
+		expect(asides).toHaveLength(1)
+		expect(asides[0]?.querySelector('span')?.textContent).toBe('2/2')
+		viewer.destroy()
+	})
+
+	it('keeps the controls inside the tour element without the setting', async () => {
+		const tour = markerTour({ steps: ['m1', 'm2'] })
+		const viewer = await mountTour(tourBundle({ markerTours: [tour] }))
+		viewer.el.state.tour.set(tour)
+		await settle(3)
+
+		expect(tourEl(viewer)?.querySelector('aside.marker-tour')).not.toBeNull()
+		expect(viewer.el.querySelector('micrio-marker-popup aside.marker-tour')).toBeNull()
+		viewer.destroy()
+	})
+
+	/**
+	 * The setting is read from the tour state, but the popup can already be open
+	 * when a tour starts on the marker it shows — that popup is not recreated, so
+	 * nothing would re-render it into the controls layout unless it watches the
+	 * tour state itself.
+	 */
+	it('moves the controls in when a tour starts on the marker whose popup is open', async () => {
+		const tour = markerTour({ steps: ['m3', 'm1'] })
+		const bundle = tourBundle({ markerTours: [tour], settings: { _markers: { tourControlsInPopup: true } } })
+		const viewer = await mountTour(bundle)
+
+		viewer.el.$current?.state.marker.set('m3')
+		await waitFor(() => viewer.el.$current?.state.$marker?.id === 'm3', 4000, 'popup marker')
+		await waitFor(() => viewer.el.querySelector('micrio-marker-popup') !== null, 4000, 'marker popup')
+		expect(viewer.el.querySelector('micrio-marker-popup aside.marker-tour')).toBeNull()
+
+		viewer.el.state.tour.set(tour)
+		await waitFor(
+			() => viewer.el.querySelector('micrio-marker-popup aside.marker-tour') !== null,
+			4000,
+			'popup tour controls',
+		)
+		expect(viewer.el.querySelectorAll('micrio-marker-popup aside.marker-tour')).toHaveLength(1)
+		viewer.destroy()
+	})
+})
+
 describe('marker tour closing', () => {
 	it('stops the tour and clears the active step marker', async () => {
 		const tour = markerTour({ steps: ['m1', 'm2'] })
