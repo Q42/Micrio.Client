@@ -9,6 +9,9 @@ import { DEFAULT_ASPECT } from '../core/settings';
 export { GRID_COLS, GRID_ROWS, VERTEX_COUNT } from '../core/settings';
 export type { EdgeConstraint, BendingConstraint, TriangleData };
 
+/** Canonical dedupe key for an undirected edge between vertices `a` and `b`. */
+const key = (a: number, b: number): string => (a < b ? `${a}-${b}` : `${b}-${a}`);
+
 export class PaperMesh {
 	_restPositions: Float32Array;
 	_positions: Float32Array;
@@ -109,7 +112,6 @@ export class PaperMesh {
 
 	protected _generateBendingConstraints(): void {
 		const edgeToTri = new Map<string, number[]>();
-		const key = (a: number, b: number): string => (a < b ? `${a}-${b}` : `${b}-${a}`);
 		for (let ti = 0; ti < this._triangles.length; ti++) {
 			const [v0, v1, v2] = this._triangles[ti]._indices;
 			for (const e of [key(v0, v1), key(v1, v2), key(v2, v0)]) {

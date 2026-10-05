@@ -113,6 +113,18 @@ function computeTexRegion(texAspect: number, pageAspect: number, spineAtHigh: bo
 	return [uMin, vMin, fU, fV];
 }
 
+/** Column-major 4x4 multiply: `o = a · b`. */
+function mul4(a: Float32Array, b: Float32Array): Float32Array {
+	const o = new Float32Array(16);
+	for (let c = 0; c < 4; c++) {
+		for (let r = 0; r < 4; r++) {
+			o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1]
+				+ a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+		}
+	}
+	return o;
+}
+
 export interface DrawnImage {
 	/** The micrio image id. */
 	id: string;
@@ -489,18 +501,6 @@ export class BookViewer {
 		const sZ = scale * lenU / pxW;
 
 		// Column-major 4x4 multiply: o = a · b.
-		const mul4 = (a: Float32Array, b: Float32Array): Float32Array => {
-			const o = new Float32Array(16);
-			for (let c = 0; c < 4; c++) {
-				for (let r = 0; r < 4; r++) {
-					o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1]
-						+ a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
-				}
-			}
-			return o;
-		};
-
-		// Object-local rotations (X, then Y, then Z) and scale.
 		const mRx = new Float32Array(16);
 		mRx[0] = 1; mRx[5] = cx; mRx[6] = sx; mRx[9] = -sx; mRx[10] = cx; mRx[15] = 1;
 		const mRy = new Float32Array(16);
