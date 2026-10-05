@@ -54,7 +54,8 @@ function getNext() {
 
 	running[i] = true;
 	busyCount++;
-	const item = queue.shift()!;
+	const item = queue.shift();
+	if (!item) {return;}
 	promises.set(i, item);
 	// oxlint-disable-next-line unicorn/require-post-message-target-origin -- Worker.postMessage takes a transfer list, not a target origin
 	loaders[i].postMessage({ src: item[0], type: `image/${  item[0].split('.').pop()}` });

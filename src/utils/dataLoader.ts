@@ -33,7 +33,8 @@ let orgCache: Models.ImageInfo.Organisation | undefined;
 
 async function fetchBundleOnce(id: string): Promise<void> {
 	if (!id || id.startsWith('http') || bundleCache.has(id)) {return;}
-	if (inflightFetches.has(id)) {return inflightFetches.get(id)!;}
+	const inflight = inflightFetches.get(id);
+	if (inflight) {return inflight;}
 
 	const promise = doFetchBundle(id);
 	inflightFetches.set(id, promise);

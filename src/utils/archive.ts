@@ -126,7 +126,8 @@ class Archive {
 	 */
 	get = <T>(u: string) : Promise<T> => new Promise((ok, err) => { // Added err callback
 		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
-		if(!i || !this.#data.has(i[0])) {return err(new Error(`Could not get blob: ${u}`));} // Throw error if not found
+		const data = i && this.#data.get(i[0]);
+		if(!i || !data) {return err(new Error(`Could not get blob: ${u}`));} // Throw error if not found
 		const fr = new FileReader();
 		fr.addEventListener('load', () => {
 			const {result} = fr;
@@ -134,7 +135,7 @@ class Archive {
 			else {err(new Error(`Could not read blob: ${u}`));}
 		});
 		// Create a Blob from the specific byte range in the archive ArrayBuffer
-		fr.readAsText(new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])])); // Read Blob as text
+		fr.readAsText(new Blob([new Uint8Array(data, i[1], i[2])])); // Read Blob as text
 	})
 
 	/**
@@ -147,8 +148,9 @@ class Archive {
 	 */
 	_getImage = async (u: string) : Promise<TextureBitmap> => {
 		const i = this.db.get(u);
-		if(!i || !this.#data.has(i[0])) {throw new Error(`Could not get blob: ${u}`);}
-		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
+		const data = i && this.#data.get(i[0]);
+		if(!i || !data) {throw new Error(`Could not get blob: ${u}`);}
+		const blob = new Blob([new Uint8Array(data, i[1], i[2])]);
 		return globalThis.createImageBitmap(blob);
 	}
 

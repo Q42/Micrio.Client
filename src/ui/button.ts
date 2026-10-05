@@ -58,8 +58,8 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 			title: p.title ?? '',
 			'aria-label': p.title ?? '',
 		};
-		if (isAnchor) {
-			attrs.href = p.href!;
+		if (p.href) {
+			attrs.href = p.href;
 			if (p.blankTarget) {attrs.target = '_blank';}
 		}
 

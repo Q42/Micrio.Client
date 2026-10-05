@@ -456,8 +456,9 @@ export class Engine {
 	 * @internal
 	 */
 	#bindCamera(img: MicrioImage): void {
-		const {canvas} = this.#entryByImage.get(img)!;
-		img.camera._bindEngineCanvas(canvas);
+		const entry = this.#entryByImage.get(img);
+		if (!entry) {return;}
+		img.camera._bindEngineCanvas(entry.canvas);
 	}
 
 	#setCanvas(canvas?: MicrioImage): void {
@@ -465,7 +466,8 @@ export class Engine {
 		if (this._book3d) {return;}
 
 		if (!canvas._placed) {
-			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id !== get(this.micrio.current)!.id)) {return;}
+			const current = get(this.micrio.current);
+			if (!current || (!canvas.$info.isIIIF && canvas.$info.id !== current.id)) {return;}
 			this.#addCanvas(canvas);
 			if (canvas._embeds.length > 0) {canvas._embeds.forEach(e => this._addEmbed(e, canvas));}
 		}
