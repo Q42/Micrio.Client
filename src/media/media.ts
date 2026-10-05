@@ -22,7 +22,7 @@ function acquireSharedAudio(): HTMLAudioElement {
 		_sharedAudioEl.style.display = 'none';
 		_sharedAudioEl.controls = false;
 		_sharedAudioEl.preload = 'metadata';
-		document.body.appendChild(_sharedAudioEl);
+		document.body.append(_sharedAudioEl);
 	}
 	_sharedAudioRefCount++;
 	return _sharedAudioEl;
@@ -214,7 +214,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			});
 		}
 
-		this.appendChild(figure);
+		this.append(figure);
 
 		// Initialize player adapters
 		if (this.#frame) {

@@ -152,7 +152,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				});
 			}
 
-			this.appendChild(aside);
+			this.append(aside);
 		}
 
 		this.#content = createElement('micrio-marker-content', {
@@ -164,7 +164,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			Frame.request(() => {
 				const tourAside = (document.querySelector('micrio-tour') as MicrioTour)?.aside;
 				if (tourAside && !this.contains(tourAside)) {
-					this.appendChild(tourAside);
+					this.append(tourAside);
 				}
 			});
 		}

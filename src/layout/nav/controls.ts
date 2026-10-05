@@ -231,7 +231,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 					this.#zoomGroup?.remove();
 					this.#zoomGroup = createElement('micrio-zoom-buttons') as MicrioElement;
 					if (this.#fsGroup?.isConnected) {this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);}
-					else {this.#group1.appendChild(this.#zoomGroup);}
+					else {this.#group1.append(this.#zoomGroup);}
 				}
 			} else if (this.#zoomGroup?.isConnected) {
 				this.#zoomGroup.remove();

@@ -150,7 +150,7 @@ export class MicrioAudioController {
 
 		const audio = new Audio('data:audio/mpeg;base64,...');
 		audio.volume = Browser.iOS ? 0 : 0.0001;
-		document.body.appendChild(audio);
+		document.body.append(audio);
 
 		this.#cleanups.push(interacted.subscribe(b => {
 			if (!b) {return;}

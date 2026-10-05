@@ -79,7 +79,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					});
 				}
 			});
-			if (ol.children.length) {this.appendChild(ol);}
+			if (ol.children.length) {this.append(ol);}
 		}
 	}
 

@@ -239,7 +239,7 @@ export class GLEmbedVideo {
 		// to ensure the first frame becomes visible/available for the texture.
 		if(!v.parentNode && !this.#autoplay && !this.#ism3u) {
 			v.setAttribute('style','opacity:0;position:absolute;top:0;left:0;transform-origin:left top;transform:scale(0.1);pointer-events:none;');
-			document.body.appendChild(v);
+			document.body.append(v);
 			this.#tmpDomAttached = true;
 		}
 

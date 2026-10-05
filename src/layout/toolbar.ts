@@ -161,7 +161,7 @@ class MicrioToolbar extends MicrioElement {
 			});
 		}
 
-		this.appendChild(menu);
+		this.append(menu);
 		this._syncDisplay?.();
 
 		if (this.#isMobile) {

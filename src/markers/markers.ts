@@ -135,7 +135,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					setProps: { embed: m.clickableArea!, marker: m, image }
 				});
 				if (before) {this.insertBefore(el, before);}
-				else {this.appendChild(el);}
+				else {this.append(el);}
 			}
 		};
 

@@ -23,7 +23,7 @@ export interface ElementOptions {
 	props?: Record<string, unknown>;
 	events?: Record<string, EventListenerOrEventListenerObject>;
 	children?: (Node | string | number | false | null | undefined)[];
-	parent?: Node;
+	parent?: ParentNode;
 	setProps?: Record<string, unknown>;
 	ns?: string;
 }
@@ -62,7 +62,7 @@ export function createElement(tag: string, options: ElementOptions = {}): HTMLEl
 		else el.append(child);
 	}}
 	if (options.setProps) {(el as any)._setProps?.(options.setProps);}
-	if (options.parent) {options.parent.appendChild(el);}
+	if (options.parent) {options.parent.append(el);}
 
 	return el;
 }
@@ -127,6 +127,6 @@ export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
 	script.defer = true;
 	if (self.crossOriginIsolated) {script.crossOrigin = 'anonymous';}
 	script.src = src;
-	document.head.appendChild(script);
+	document.head.append(script);
 });
 

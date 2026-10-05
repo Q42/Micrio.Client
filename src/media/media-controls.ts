@@ -119,13 +119,13 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				window.removeEventListener('mouseup', dStop);
 			};
 			bars.addEventListener('mousedown', dStart);
-			container.appendChild(bars);
+			container.append(bars);
 
 			this.#timeEl = createElement('span', {
 				parent: container,
 			});
 
-			this.#wrapperEl.appendChild(container);
+			this.#wrapperEl.append(container);
 
 			if (p.fullscreenEl) {
 				this.#fsBtnEl = createElement('micrio-fullscreen', {

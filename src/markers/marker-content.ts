@@ -131,10 +131,10 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 						parent: figure
 					});
 				}
-				btn.appendChild(figure);
-				section.appendChild(btn);
+				btn.append(figure);
+				section.append(btn);
 			}
-			this.appendChild(section);
+			this.append(section);
 		}
 
 		// Embed

@@ -288,7 +288,7 @@ function boot(micrio: HTMLMicrioElement): void {
 
 	injectStyles();
 	const root = buildShell();
-	document.body.appendChild(root);
+	document.body.append(root);
 
 	// Resolve the Grid controller. This is deliberately order-independent:
 	// depending on whether Micrio is loaded as an ES module (dev) or as a
@@ -437,7 +437,7 @@ function injectStyles(): void {
 `;
 	const style = h('style');
 	style.textContent = css;
-	document.head.appendChild(style);
+	document.head.append(style);
 }
 
 function buildShell(): HTMLElement {
@@ -526,7 +526,7 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 		const opt = h('option');
 		opt.value = t;
 		opt.textContent = t;
-		focusTrans.appendChild(opt);
+		focusTrans.append(opt);
 	}
 	focusTrans.value = 'slide-up';
 
@@ -598,7 +598,7 @@ function buildStrip(strip: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, g
 		const lb = h('span', 'lb', title);
 		cell.append(ph, lb);
 		cell.addEventListener('click', () => void focusById(micrio, grid, id, getTransition()));
-		strip.appendChild(cell);
+		strip.append(cell);
 
 		// Load the whole-image thumbnail asynchronously.
 		void micrio.gallery?.gotoId(id).then(img => {
@@ -643,7 +643,7 @@ function buildTags(box: HTMLElement, grid: Grid): void {
 		show.addEventListener('click', () => grid.action('focusWithTagged', tag));
 
 		row.append(zoom, show);
-		box.appendChild(row);
+		box.append(row);
 	}
 }
 

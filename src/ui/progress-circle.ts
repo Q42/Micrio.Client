@@ -39,7 +39,7 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 			parent: svg as unknown as HTMLElement,
 		});
 
-		this.appendChild(svg);
+		this.append(svg);
 		this.#progressCircle = pc;
 		this.#update();
 	}

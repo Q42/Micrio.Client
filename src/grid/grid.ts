@@ -122,7 +122,7 @@ export class Grid extends MicrioElement {
 		});
 		this._addCleanup(() => this.#closeBtn.remove());
 		this._addCleanup(this._focussed.subscribe(v => {
-			if (v) {this.appendChild(this.#closeBtn);}
+			if (v) {this.append(this.#closeBtn);}
 			else {this.#closeBtn.remove();}
 		}));
 
@@ -357,7 +357,7 @@ export class Grid extends MicrioElement {
 			}
 			tile.dataset.id = i.id;
 			tile.setAttribute('data-scroll-through', '');
-			this.appendChild(tile);
+			this.append(tile);
 		});
 
 		this.classList.toggle('grid-pan-zoom', this._panZoom == 'grid');

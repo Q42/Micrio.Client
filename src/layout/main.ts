@@ -102,7 +102,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		if (el.isConnected) {return;}
 		const before = this.#getBefore(key);
 		if (before) {this.insertBefore(el, before);}
-		else {this.appendChild(el);}
+		else {this.append(el);}
 	}
 
 	/** Whether a custom element tag is registered in this build; unregistered (excluded) elements must not render. */
@@ -387,7 +387,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				map.set(img.id, el);
 				const before = this.#getBefore(layerKey);
 				if (before) {this.insertBefore(el, before);}
-				else {this.appendChild(el);}
+				else {this.append(el);}
 			}
 		} else {
 			for (const el of map.values()) {el.remove();}
