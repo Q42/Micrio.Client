@@ -53,6 +53,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null;
 }
 
+/** True for arrays, but keeps the element type `unknown` (`Array.isArray` narrows to `any[]`). */
+function isUnknownArray(value: unknown): value is unknown[] {
+	return Array.isArray(value);
+}
+
+/** Narrows a custom-settings `grid.clickable` leaf to the values the grid understands. */
+function toGridClickable(settings: unknown): 'focus' | 'zoom' | false | undefined {
+	if (!isRecord(settings)) {return undefined;}
+	const {grid} = settings;
+	if (!isRecord(grid)) {return undefined;}
+	const {clickable} = grid;
+	return clickable === 'focus' || clickable === 'zoom' || clickable === false ? clickable : undefined;
+}
+
 /** A IIIF canvas body: the image service plus the dimensions the gallery needs. */
 interface IIIFCanvasBody {
 	id: string;
@@ -64,7 +78,7 @@ interface IIIFCanvasBody {
 /** Narrow one IIIF canvas `body` value, mirroring the old `service[0].id` filter. */
 function toIIIFCanvasBody(value: unknown): IIIFCanvasBody | undefined {
 	if (!isRecord(value)) {return undefined;}
-	const service = Array.isArray(value.service) ? value.service[0] : undefined;
+	const service = isUnknownArray(value.service) ? value.service[0] : undefined;
 	if (!isRecord(service) || typeof service.id !== 'string') {return undefined;}
 	if (typeof value.width !== 'number' || typeof value.height !== 'number') {return undefined;}
 	return {
@@ -115,8 +129,9 @@ export class Gallery {
 			// Propagate archive layer offset so child images adjust their level count
 			// and generate thumbSrc URLs that match what the archive stores.
 			if (config.archiveLayerOffset !== undefined) {
+				const existing: unknown = imageSettings.gallery;
 				imageSettings.gallery = {
-					...imageSettings.gallery,
+					...(isRecord(existing) ? existing : undefined),
 					archive: true,
 					archiveLayerOffset: config.archiveLayerOffset
 				};
@@ -183,9 +198,9 @@ export class Gallery {
 			const pages = Array.isArray(resp.items) ? resp.items : [];
 			for (const page of pages) {
 				if (!isRecord(page)) {continue;}
-				const canvas = Array.isArray(page.items) ? page.items[0] : undefined;
+				const canvas = isUnknownArray(page.items) ? page.items[0] : undefined;
 				if (!isRecord(canvas)) {continue;}
-				const annotation = Array.isArray(canvas.items) ? canvas.items[0] : undefined;
+				const annotation = isUnknownArray(canvas.items) ? canvas.items[0] : undefined;
 				if (!isRecord(annotation)) {continue;}
 				const bodies = Array.isArray(annotation.body) ? annotation.body : [annotation.body];
 				for (const body of bodies) {
@@ -252,7 +267,7 @@ export class Gallery {
 		}
 
 		if (aInfo.type === 'grid' && aInfo.archive) {
-			const gridClickable = config.grid?.clickable ?? config.settings?.grid?.clickable;
+			const gridClickable = config.grid?.clickable ?? toGridClickable(config.settings);
 			const settings: Record<string, unknown> = { zoomLimit: 15, minimap: false, ...config.settings };
 			if (gridClickable && settings.hookKeys === undefined) {settings.hookKeys = true;}
 			config.settings = settings;
