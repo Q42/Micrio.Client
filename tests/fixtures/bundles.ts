@@ -30,7 +30,13 @@ export const modernBundle = (): Models.ImageBundle.BundleImage => ({
 	settings: {},
 	data: {
 		i18n: { en: { title: 'Modern title', description: 'Modern description' } },
-		markers: [marker('m1'), marker('m2', { x: 0.25, y: 0.75, tags: ['focus'] })],
+		markers: [
+			marker('m1', {
+				// Marker with its own audio asset, used by the media suite
+				i18n: { en: { title: 'Marker m1', body: '<p>Body of m1</p>', audio: { src: 'audio/m1.mp3', duration: 12 } } },
+			}),
+			marker('m2', { x: 0.25, y: 0.75, tags: ['focus'] }),
+		],
 		markerTours: [
 			{
 				id: 'mt1',
@@ -94,8 +100,18 @@ export const spaceBundle = (): {
 	spaces: { id: string; data: Models.Spaces.Space }[]
 } => ({
 	images: [
-		{ id: 'aaa1111', info: baseInfo('aaa1111', { is360: true, isWebP: false }), settings: {}, data: {} },
-		{ id: 'bbb2222', info: baseInfo('bbb2222', { is360: true, isWebP: false }), settings: {}, data: {} },
+		{
+			id: 'aaa1111',
+			info: baseInfo('aaa1111', { is360: true, isWebP: false, spacesId: 'space-1' }),
+			settings: {},
+			data: {},
+		},
+		{
+			id: 'bbb2222',
+			info: baseInfo('bbb2222', { is360: true, isWebP: false, spacesId: 'space-1' }),
+			settings: {},
+			data: {},
+		},
 	],
 	spaces: [
 		{
