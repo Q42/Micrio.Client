@@ -400,7 +400,7 @@ export class Camera {
 		margin?: [number, number];
 	} = {}): Promise<void> {
 		return new Promise((ok, abort) => {
-			if (!this.#canvas) {return abort(new Error("engine not ready"));}
+			if (!this.#canvas) {abort(new Error("engine not ready")); return;}
 			let { centerX, centerY, width, height } = toCenterJSON(view);
 			if (opts.margin?.length === 2) {
 				centerX += opts.margin[0]; centerY += opts.margin[1];
@@ -465,7 +465,7 @@ export class Camera {
 	 */
 	flyToCoo(coords: Models.Camera.Coords, opts: Models.Camera.AnimationOptions = {}): Promise<void> {
 		return new Promise((ok, abort) => {
-			if (!this.#canvas) {return abort(new Error("engine not ready"));}
+			if (!this.#canvas) {abort(new Error("engine not ready")); return;}
 			const fn = getEasing(opts.timingFunction);
 			opts.duration = this.#canvas.camera.setCoo(coords[0], coords[1], coords[2] ?? this.getScale(), opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
 			this.#image.engine.render();
@@ -492,7 +492,7 @@ export class Camera {
 				const coo = this.getXY(v[0], v[1]);
 				if (x === undefined) {x = coo[0];}
 				if (y === undefined) {y = coo[1];}
-				if (this.#image.album && !this.#image.album.hooked) {return ok();}
+				if (this.#image.album && !this.#image.album.hooked) {ok(); return;}
 				duration = this.#canvas.camera._zoom(delta, x, y, duration, noLimit);
 				this.#image.engine.render();
 			}

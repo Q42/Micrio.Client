@@ -88,12 +88,12 @@ export const Frame = {
 
 	/** Resolves after the next frame. @internal */
 	after(): Promise<void> {
-		return new Promise<void>(ok => Frame.request(() => ok()));
+		return new Promise<void>(ok => { Frame.request(() => ok()); });
 	},
 
 	/** Resolves after the next paint (two frames), matching the old `afterFrame()`. @internal */
 	afterPaint(): Promise<void> {
-		return new Promise<void>(ok => Frame.request(() => Frame.request(() => ok())));
+		return new Promise<void>(ok => { Frame.request(() => Frame.request(() => ok())); });
 	},
 
 	/**
