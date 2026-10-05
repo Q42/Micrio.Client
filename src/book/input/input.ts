@@ -258,7 +258,10 @@ export class InputHandler {
 
 function firstTwo<K, V>(m: Map<K, V>): [V, V] {
 	const it = m.values();
-	return [it.next().value!, it.next().value!];
+	const a = it.next();
+	const b = it.next();
+	if (a.done || b.done) {throw new Error('expected at least two entries');}
+	return [a.value, b.value];
 }
 
 function dist(a: PointerState, b: PointerState): number {

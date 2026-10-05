@@ -280,11 +280,13 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			if (isStandaloneVideoTour) {
 				this.#duration = this.#tourInstance.duration;
 				const ival = setInterval(() => {
-					this.#currentTime = this.#tourInstance!.currentTime;
-					this.#duration = this.#tourInstance!.duration;
-					this.#paused = this.#tourInstance!.paused;
-					this.#ended = this.#tourInstance!.ended;
-					this.#tourInstance!.updateEvents(this.#currentTime);
+					const tour = this.#tourInstance;
+					if (!tour) {return;}
+					this.#currentTime = tour.currentTime;
+					this.#duration = tour.duration;
+					this.#paused = tour.paused;
+					this.#ended = tour.ended;
+					tour.updateEvents(this.#currentTime);
 					this.#updateControls();
 					if (!p.secondary) {this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));}
 					if (this.#ended && (!this.#mediaEl || this.#mediaEl.ended)) {p.onended?.();}
@@ -331,9 +333,10 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					if (this.#tourInstance.paused) {this.#tourInstance.play();}
 					else {this.#tourInstance.pause();}
 				} else if (this.#adapter) {
-					void this.#adapter.isPaused().then(paused => {
-						if (paused) {void this.#adapter!.play();}
-						else {this.#adapter!.pause();}
+					const adapter = this.#adapter;
+					void adapter.isPaused().then(paused => {
+						if (paused) {void adapter.play();}
+						else {adapter.pause();}
 					});
 				}
 			};

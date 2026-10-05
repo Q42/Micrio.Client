@@ -66,7 +66,8 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 							return;
 						}
 						this.#callbacks.onReady?.();
-						this.#callbacks.onDurationChange?.(this.#player!.getDuration());
+						const player = this.#player;
+						if (player) {this.#callbacks.onDurationChange?.(player.getDuration());}
 						resolve();
 					},
 					onStateChange: (e: {data: number}) => this.#handleStateChange(e.data),

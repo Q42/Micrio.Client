@@ -39,8 +39,9 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 
 	#init() {
 		if (this.#inited) {return;}
+		const { el } = this.#props;
+		if (!el) {return;}
 		this.#inited = true;
-		const el = this.#props.el!;
 		if (!('requestFullscreen' in el)) {return;}
 
 		this.#isActive = document.fullscreenElement === el;

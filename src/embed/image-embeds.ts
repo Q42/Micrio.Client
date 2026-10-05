@@ -16,11 +16,12 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-image-embeds';
 
-	#props: ImageEmbedsProps = { image: null! };
+	#props: Partial<ImageEmbedsProps> = {};
 
 	/** @internal */
 	_onMount() {
 		const { image } = this.#props;
+		if (!image) {return;}
 
 		this._watch(image.data, d => {
 			this.replaceChildren();

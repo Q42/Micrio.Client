@@ -45,7 +45,9 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 				autoplay: false,
 			});
 
-			const p = this.#player!;
+			const player = this.#player;
+			if (!player) {throw new Error('Vimeo player failed to initialize');}
+			const p = player;
 
 			p.on('error', () => {
 				this.#callbacks.onError?.(new Error('Vimeo player error'));

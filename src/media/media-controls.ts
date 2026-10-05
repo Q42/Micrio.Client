@@ -119,7 +119,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				const rect = bars.getClientRects()[0];
 				if (!rect) {return;}
 				const perc = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-				this.#props.onseek?.(perc * this.#props.duration!);
+				this.#props.onseek?.(perc * (this.#props.duration ?? 0));
 			};
 			const dStop = () => {
 				globalThis.removeEventListener('mousemove', dMove);

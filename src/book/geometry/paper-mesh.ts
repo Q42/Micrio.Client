@@ -129,8 +129,9 @@ export class PaperMesh {
 			for (const v of tB._indices) {if (setA.has(v)) {shared.push(v);}}
 			if (shared.length !== 2) {continue;}
 			const [s0, s1] = shared;
-			const tipA = tA._indices.find(v => v !== s0 && v !== s1)!;
-			const tipB = tB._indices.find(v => v !== s0 && v !== s1)!;
+			const tipA = tA._indices.find(v => v !== s0 && v !== s1);
+			const tipB = tB._indices.find(v => v !== s0 && v !== s1);
+			if (tipA === undefined || tipB === undefined) {continue;}
 			const i3a = tipA * 3, i3b = tipB * 3;
 			const dx = this._restPositions[i3a] - this._restPositions[i3b];
 			const dy = this._restPositions[i3a + 1] - this._restPositions[i3b + 1];

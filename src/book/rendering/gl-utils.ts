@@ -1,5 +1,6 @@
 export function compileShader(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
-	const shader = gl.createShader(type)!;
+	const shader = gl.createShader(type);
+	if (!shader) {throw new Error('Failed to create shader');}
 	gl.shaderSource(shader, src);
 	gl.compileShader(shader);
 	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {

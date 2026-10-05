@@ -221,9 +221,11 @@ export class PaperRenderer {
 		this.#meshDatas = meshes.map((m, i) => this.#createMeshData(m, i));
 
 		const pageCount = meshes.length;
+		// Empty slots read back as `undefined`, which the draw path falls back to
+		// the white texture for; they are filled in on first upload.
+		this.#frontTextures.length = pageCount;
+		this.#backTextures.length = pageCount;
 		for (let p = 0; p < pageCount; p++) {
-			this.#frontTextures.push(null!);
-			this.#backTextures.push(null!);
 			this.#frontHiResATextures.push(null);
 			this.#frontHiResBTextures.push(null);
 			this.#backHiResATextures.push(null);
@@ -455,7 +457,7 @@ export class PaperRenderer {
 		gl.drawElements(gl.TRIANGLES, md._indexCount, gl.UNSIGNED_INT, 0);
 	}
 
-	#createFbo(): void {
+	#createFbo(): { scene: FboAttachments; blur: FboAttachments } {
 		const gl = this.#gl;
 		const w = this.#canvas.width;
 		const h = this.#canvas.height;
@@ -483,7 +485,8 @@ export class PaperRenderer {
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, color, 0);
 		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
 
-		this.#sceneFbo = { _fbo: fbo, _color: color, _depth: depth };
+		const scene: FboAttachments = { _fbo: fbo, _color: color, _depth: depth };
+		this.#sceneFbo = scene;
 
 		if (this.#blurFbo) {
 			gl.deleteTexture(this.#blurFbo._color);
@@ -506,7 +509,16 @@ export class PaperRenderer {
 		gl.bindTexture(gl.TEXTURE_2D, null);
 		gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
-		this.#blurFbo = { _fbo: blurFboObj, _color: blurColor, _depth: null };
+		const blur: FboAttachments = { _fbo: blurFboObj, _color: blurColor, _depth: null };
+		this.#blurFbo = blur;
+
+		return { scene, blur };
+	}
+
+	/** Returns the offscreen FBO attachments, creating them on first use. */
+	#ensureFbos(): { scene: FboAttachments; blur: FboAttachments } {
+		if (this.#sceneFbo && this.#blurFbo) {return { scene: this.#sceneFbo, blur: this.#blurFbo };}
+		return this.#createFbo();
 	}
 
 	_resize(): void {
@@ -651,10 +663,10 @@ export class PaperRenderer {
 
 		gl.clearColor(0, 0, 0, 0);
 
-		if (this._tiltShiftEnabled) {
-			if (!this.#sceneFbo) {this.#createFbo();}
-			gl.bindFramebuffer(gl.FRAMEBUFFER, this.#sceneFbo!._fbo);
-		}
+		// Tilt-shift draws the scene offscreen first; resolve the attachments once
+		// so both the scene bind and the two blur passes share the same ones.
+		const fbos = this._tiltShiftEnabled ? this.#ensureFbos() : undefined;
+		if (fbos) {gl.bindFramebuffer(gl.FRAMEBUFFER, fbos.scene._fbo);}
 
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -710,7 +722,7 @@ export class PaperRenderer {
 
 		gl.disable(gl.POLYGON_OFFSET_FILL);
 
-		if (this._tiltShiftEnabled) {
+		if (fbos) {
 			const texelX = 1 / this.#canvas.width;
 			const texelY = 1 / this.#canvas.height;
 
@@ -722,7 +734,7 @@ export class PaperRenderer {
 			const blurFalloff = TILT_SHIFT_BLUR_FALLOFF * strength;
 
 			// Pass 1: horizontal separable blur → blurFbo
-			gl.bindFramebuffer(gl.FRAMEBUFFER, this.#blurFbo!._fbo);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, fbos.blur._fbo);
 			gl.clear(gl.COLOR_BUFFER_BIT);
 			gl.disable(gl.DEPTH_TEST);
 
@@ -733,7 +745,7 @@ export class PaperRenderer {
 			gl.uniform1fv(this.#blurHULoc._weights, this.#blurWeights);
 
 			gl.activeTexture(gl.TEXTURE0);
-			gl.bindTexture(gl.TEXTURE_2D, this.#sceneFbo!._color);
+			gl.bindTexture(gl.TEXTURE_2D, fbos.scene._color);
 
 			gl.bindVertexArray(this.#quadVAO);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -753,9 +765,9 @@ export class PaperRenderer {
 			gl.uniform1fv(this.#blurVULoc._weights, this.#blurWeights);
 
 			gl.activeTexture(gl.TEXTURE0);
-			gl.bindTexture(gl.TEXTURE_2D, this.#blurFbo!._color);
+			gl.bindTexture(gl.TEXTURE_2D, fbos.blur._color);
 			gl.activeTexture(gl.TEXTURE1);
-			gl.bindTexture(gl.TEXTURE_2D, this.#sceneFbo!._color);
+			gl.bindTexture(gl.TEXTURE_2D, fbos.scene._color);
 
 			gl.bindVertexArray(this.#quadVAO);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

@@ -132,11 +132,12 @@ export class GLEmbedVideo {
 
 	/** Loads the video source and sets up the HTMLVideoElement. @internal */
 	#load() : void {
-		if(!this.#embed.video || this._vid) {return;} // Exit if no video data or already loaded
+		const { video } = this.#embed;
+		if(!video || this._vid) {return;} // Exit if no video data or already loaded
 
 		// Determine video source URL (Cloudflare stream or direct src)
 		// Note: Cloudflare stream doesn't support alpha transparency, fallback to src if needed.
-		const src = this.#ism3u ? cloudflareStreamUrl(this.#embed.video.streamId!) : this.#embed.video.src;
+		const src = this.#ism3u && video.streamId ? cloudflareStreamUrl(video.streamId) : video.src;
 		if (!src) {
 			console.error("[Micrio GL Embed] No video source found for embed:", this.#embed.id);
 			return;
@@ -147,9 +148,9 @@ export class GLEmbedVideo {
 			props: {
 				crossOrigin: 'anonymous', // Needed for WebGL texture usage
 				playsInline: true, // Important for mobile playback
-				width: this.#embed.width!,
-				height: this.#embed.height!,
-				muted: this.#embed.video.muted, // Apply muted setting
+				width: this.#embed.width ?? 0,
+				height: this.#embed.height ?? 0,
+				muted: video.muted, // Apply muted setting
 			},
 		});
 
