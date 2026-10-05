@@ -138,17 +138,17 @@ export class Engine {
 	/** Flag indicating if barebone mode is active. @internal */
 	#bareBoneSetting: boolean = false;
 	/** Set of base tile indices (loaded, never evicted). @internal */
-	#baseTiles: Set<number> = new Set();
+	#baseTiles = new Set<number>();
 	/** Set storing the indices of tiles drawn in the current frame. @internal */
-	#drawnSet: Set<number> = new Set();
+	#drawnSet = new Set<number>();
 	/** Set storing the indices of tiles drawn in the previous frame. @internal */
-	#prevDrawnSet: Set<number> = new Set();
+	#prevDrawnSet = new Set<number>();
 	/** Double-buffer peer for prevDrawnSet to avoid per-frame allocation. @internal */
-	#prevDrawnSetSwap: Set<number> = new Set();
+	#prevDrawnSetSwap = new Set<number>();
 	/** Unified tile state storage. @internal */
-	#tiles: Map<number, TileEntry> = new Map();
+	#tiles = new Map<number, TileEntry>();
 	/** Map tracking ongoing texture download requests. @internal */
-	#requests: Map<number, string> = new Map();
+	#requests = new Map<number, string>();
 	/** Forget in-memory tiles after X seconds not drawn. */
 	#deleteAfterSeconds: number;
 
@@ -156,9 +156,9 @@ export class Engine {
 	#unsubscribe: Unsubscriber[] = [];
 
 	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */
-	#engImageToMicrio: Map<Image, MicrioImage | Models.Omni.Frame> = new Map();
+	#engImageToMicrio = new Map<Image, MicrioImage | Models.Omni.Frame>();
 	/** Reverse map: MicrioImage → engine Image for O(1) lookup in video callbacks. @internal */
-	#micrioToEngImage: Map<MicrioImage | Models.Omni.Frame, Image> = new Map();
+	#micrioToEngImage = new Map<MicrioImage | Models.Omni.Frame, Image>();
 
 	/** If true, prevents the engine from auto-setting direction during 360 transitions. @internal */
 	_preventDirectionSet: boolean = false;
@@ -176,7 +176,7 @@ export class Engine {
 	/** The currently active canvas entry. @internal */
 	#activeCanvasEntry: CanvasEntry | null = null;
 	/** Map from MicrioImage/Frame → canvas entry (O(1) direct lookup). @internal */
-	#entryByImage: Map<MicrioImage | Models.Omni.Frame, CanvasEntry> = new Map();
+	#entryByImage = new Map<MicrioImage | Models.Omni.Frame, CanvasEntry>();
 
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	_getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {

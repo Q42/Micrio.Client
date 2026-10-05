@@ -28,7 +28,7 @@ const IDLE_SLOT: AnimSlot = {
 };
 
 export class PageFlipAnimator {
-	_hardCoverPages: Set<number> = new Set();
+	_hardCoverPages = new Set<number>();
 
 	get #flipDuration(): number {
 		return BASE_FLIP_DURATION / Math.max(0.1, FLIP_SPEED);

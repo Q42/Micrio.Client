@@ -27,7 +27,7 @@ let busyCount = 0;
 const loaders: Worker[] = [];
 let workersReady = false;
 const queue: ItemArray[] = [];
-const promises: Map<number, ItemArray> = new Map;
+const promises = new Map<number, ItemArray>();
 
 function ensureWorkers() {
 	if (workersReady) {return;}

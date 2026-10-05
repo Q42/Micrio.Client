@@ -21,11 +21,11 @@ interface MDPHeader {
  */
 class Archive {
 	/** Map storing loaded archive data ArrayBuffers, keyed by archive ID (e.g., 'g/folderId.revision' or 'imageId/base'). */
-	#data:Map<string, ArrayBuffer> = new Map;
+	#data = new Map<string, ArrayBuffer>();
 	/** Map of file paths to [archiveId, byteOffset, byteLength] for fast file lookup. */
-	db:Map<string, [string, number, number]> = new Map;
+	db = new Map<string, [string, number, number]>();
 	/** Map storing image ID → full db key for quick lookup by `getImageById`. */
-	private imageKeys:Map<string, string> = new Map;
+	private imageKeys = new Map<string, string>();
 
 	/**
 	 * Loads an archive file (.bin or .mdp) via XMLHttpRequest.

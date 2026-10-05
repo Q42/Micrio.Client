@@ -59,10 +59,10 @@ export namespace State {
 		 * Used to resume media playback when returning to a marker.
 		 * @internal
 		*/
-		mediaState:Map<string,{
+		mediaState = new Map<string,{
 			currentTime: number,
 			paused: boolean
-		}> = new Map();
+		}>();
 
 
 		/** Initializes the main state controller and syncs internal references with store subscriptions. @internal */

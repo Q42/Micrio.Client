@@ -80,7 +80,7 @@ export class Events implements EventContext {
 	_pinchFactor: number | undefined;
 
 	/** @internal Map tracking active pointers for multi-touch pinch detection (pointer ID -> coordinates). */
-	_activePointers: Map<number, { x: number, y: number }> = new Map();
+	_activePointers = new Map<number, { x: number, y: number }>();
 
 	/** @internal Stores the ID of the pointer currently captured for dragging. */
 	_capturedPointerId: number | undefined;

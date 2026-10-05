@@ -29,7 +29,7 @@ export class OmniUI {
 	#hitTresh:boolean = false;
 	#snapTo:number[] = [];
 	#raf:((time:number) => void)|undefined;
-	#pointers:Map<number, boolean> = new Map();
+	#pointers = new Map<number, boolean>();
 	#isFullWidth:boolean = false;
 	#startedWithShift:boolean = false;
 	#firstTouchId:number|undefined;

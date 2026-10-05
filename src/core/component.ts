@@ -14,7 +14,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	/** The custom element tag name registered via `customElements.define`. @internal */
 	static tag: string;
 	/** @internal */
-	static _markerImages: Map<string, MicrioImage> = new Map();
+	static _markerImages = new Map<string, MicrioImage>();
 
 	#_unsubs: (() => void)[] = [];
 	#_renderKey: string | null = null;

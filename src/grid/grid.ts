@@ -26,7 +26,7 @@ export class Grid extends MicrioElement {
 	/** @internal */
 	readonly _images:MicrioImage[] = [];
 	/** @internal */
-	readonly _imageMap:Map<string, MicrioImage> = new Map();
+	readonly _imageMap = new Map<string, MicrioImage>();
 
 	/** All {@link MicrioImage} instances managed by this grid. */
 	get images(): readonly MicrioImage[] {
@@ -42,7 +42,7 @@ export class Grid extends MicrioElement {
 	_current:MicrioImage[] = [];
 
 	/** @internal */
-	_buttons:Map<string, HTMLButtonElement> = new Map();
+	_buttons = new Map<string, HTMLButtonElement>();
 
 	/** @internal */
 	_clickable: 'focus'|'zoom'|false = false;
@@ -67,8 +67,8 @@ export class Grid extends MicrioElement {
 	/** @internal */
 	_nextCrossFadeDuration:number|undefined;
 	#isHorizontal:boolean = false;
-	readonly #cellSizes:Map<string, [number,number?]> = new Map();
-	readonly #nextSize:Map<string, [number,number?]> = new Map();
+	readonly #cellSizes = new Map<string, [number,number?]>();
+	readonly #nextSize = new Map<string, [number,number?]>();
 
 	/** @internal */
 	_lastAction:string|undefined;

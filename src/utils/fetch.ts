@@ -8,12 +8,12 @@ import { MicrioError } from '$core/error';
 /** Global cache for fetched JSON data, keyed by URI.
  * @internal
  */
-export const jsonCache: Map<string, Object> = new Map();
+export const jsonCache = new Map<string, Object>();
 
 /** Map to track ongoing JSON fetch Promises, preventing duplicate requests.
  * @internal
  */
-const jsonPromises: Map<string, Promise<Object>> = new Map();
+const jsonPromises = new Map<string, Promise<Object>>();
 
 /**
  * Fetches JSON data from a URI, utilizing a cache to avoid redundant requests.

@@ -474,7 +474,7 @@ export class MicrioImage {
 	}
 
 	/** Map storing references to HTMLMediaElements associated with video embeds. @internal */
-	#embedElements:Map<string, HTMLMediaElement> = new Map();
+	#embedElements = new Map<string, HTMLMediaElement>();
 
 	/** Sets the HTMLMediaElement reference for a given embed ID. @internal */
 	_setEmbedMediaElement(id:string, el?:HTMLMediaElement) : void {

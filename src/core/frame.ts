@@ -28,7 +28,7 @@ let rafId: number = 0;
 let frameId: number = 0;
 
 /** Callbacks requested for the next frame (identity-deduplicated). @internal */
-const pending: Set<FrameCallback> = new Set();
+const pending = new Set<FrameCallback>();
 
 /** Requests the next frame if one is not already scheduled. @internal */
 function schedule(): void {
