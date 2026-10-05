@@ -675,7 +675,7 @@ export class TileCanvas {
 
 	/** @internal */
 	_setDirection(yaw: number, pitch: number, resetPersp = false): void {
-		if (isNaN(pitch)) {pitch = this._camera360._pitch;}
+		if (Number.isNaN(pitch)) {pitch = this._camera360._pitch;}
 		this._camera360._setDirection(yaw, pitch, resetPersp ? this._camera360._defaultPerspective : 0);
 	}
 	/** @internal */

@@ -220,7 +220,7 @@ export default class Ani {
 		const numPerLayer = c.images.length / c._omniNumLayers;
 		this.#omniStartIdx = c._activeImageIdx;
 		this.#omniDelta = 0;
-		if (!isNaN(omniIdx) && omniIdx > 0 && omniIdx !== this.#omniStartIdx) {
+		if (!Number.isNaN(omniIdx) && omniIdx > 0 && omniIdx !== this.#omniStartIdx) {
 			this.#omniDelta = omniIdx - this.#omniStartIdx;
 			if (this.#omniDelta < -numPerLayer / 2) {this.#omniDelta += numPerLayer;}
 			if (this.#omniDelta > numPerLayer / 2) {this.#omniDelta -= numPerLayer;}

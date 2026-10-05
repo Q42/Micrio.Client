@@ -358,8 +358,8 @@ export class Engine {
 		const f = settings.focus;
 		const isSpaces = Boolean(i.spacesId);
 		if (f) {
-			if (!isNaN(f[0]) && f[0] !== null) {focus[0] = f[0];}
-			if (!isNaN(f[1]) && f[1] !== null) {focus[1] = f[1];}
+			if (!Number.isNaN(f[0]) && f[0] !== null) {focus[0] = f[0];}
+			if (!Number.isNaN(f[1]) && f[1] !== null) {focus[1] = f[1];}
 		}
 
 		const vid360 = settings._360?.video;

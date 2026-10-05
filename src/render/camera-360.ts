@@ -377,7 +377,7 @@ export default class Camera360 extends EngineCamera {
 	 * @internal
 	 */
 	_getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY = 0, sX = 1, sY = 1, _noCorrectNorth = false): Mat4 {
-		if (isNaN(radius)) {radius = this._radius;}
+		if (Number.isNaN(radius)) {radius = this._radius;}
 
 		const m = this.#iMatrix,
 			v = this._vec4,

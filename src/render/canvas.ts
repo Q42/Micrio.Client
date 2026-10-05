@@ -131,7 +131,7 @@ export class Canvas {
 		const st = globalThis.getComputedStyle(this.element);
 		const originalW = Number.parseFloat(st.width);
 		// Adjust height based on width ratio if transform applied
-		if(!isNaN(originalW)) {
+		if(!Number.isNaN(originalW)) {
 			height = Number.parseFloat(st.height) * width / Math.max(1, originalW);
 		}
 
