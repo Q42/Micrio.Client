@@ -3,9 +3,9 @@
 import fs from 'fs';
 import { exec } from 'child_process';
 
-const run = (cmd) => new Promise((ok,error) => exec(cmd, (err, stdout, stderr) => {
+const run = (cmd) => new Promise((ok,error) => {exec(cmd, (err, stdout, stderr) => {
 	if(err) {error(err);} else {ok(stdout||stderr);}
-}));
+});});
 const error = (err) => {
 	console.error(`\nAn error has occurred: ${err}`);
 	process.exit();
