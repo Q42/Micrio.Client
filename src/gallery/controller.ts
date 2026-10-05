@@ -235,7 +235,7 @@ export class Gallery {
 	static #getArchiveIndex = (id: string, path: string):
 		Promise<{ delta?: number; images: Models.ImageInfo.ImageInfo[] }> =>
 		archive.get<{ images: Models.ImageInfo.ImageInfo[] }>(`${path}${id}.json`)
-			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r; });
+			.then(r => { for (const i of r.images) {jsonCache.set(`${path}${i.id}/info.json`, i);} return r; });
 
 	static #sortArchiveImages(sort: string | undefined): (a: Models.ImageInfo.ImageInfo, b: Models.ImageInfo.ImageInfo) => number {
 		switch (sort) {

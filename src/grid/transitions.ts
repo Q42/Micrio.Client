@@ -23,15 +23,15 @@ export function setupBehindTransition(
 	opts.forceAreaAni = true;
 	const vW = isDelayed ? 1/images.length : 1;
 	let c = 0;
-	grid._images.forEach(i => {
+	for (const i of grid._images) {
 		i.camera.setCoverLimit(isLim);
 		if(images.find(e => e.id === i.id)) {
 			i.camera.setArea([0,0,focussed?.id === i.id ? 1 : vW,1], {noDispatch: true, direct: true});
 			if(i !== focussed) {i.camera.setView([0,0,1,1]);}
 			if(isDelayed && i.canvas) {i.canvas.zIndex = images.length-(c++);}
 		}
-	});
-	images.forEach(e => e.view = [0,0,1,1]);
+	}
+	for (const e of images) {e.view = [0,0,1,1];}
 }
 
 /** Perform a transition animation (crossfade, slide, swipe, or behind) between two images. @internal */

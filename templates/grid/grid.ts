@@ -617,9 +617,9 @@ async function focusById(micrio: HTMLMicrioElement, grid: Grid, id: string, tran
 
 function refreshStrip(strip: HTMLElement, grid: Grid): void {
 	const focused = grid.$focussed?.id;
-	strip.querySelectorAll<HTMLElement>('.gd-cell').forEach(c => {
+	for (const c of strip.querySelectorAll<HTMLElement>('.gd-cell')) {
 		c.classList.toggle('on', c.dataset.id === focused);
-	});
+	}
 }
 
 // ── tag stories ──────────────────────────────────────────────────────────────

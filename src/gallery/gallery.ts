@@ -542,12 +542,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		for (let i = 0; i < total; i++) {
 			if (!dense || i % tickStep === 0 || i === total - 1 || i === curr) {visibleTicks.push(i);}
 		}
-		allTicks.forEach((tick, idx) => {
+		for (const [idx, tick] of Array.from(allTicks).entries()) {
 			const i = visibleTicks[idx];
-			if (i === undefined) {return;}
+			if (i === undefined) {continue;}
 			tick.toggleAttribute('data-active', i === curr);
 			tick.toggleAttribute('data-hover', i === this.#hoverIdx);
-		});
+		}
 
 		const handle = this.querySelector('ul > button') as HTMLElement;
 		if (handle) {

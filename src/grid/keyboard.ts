@@ -50,7 +50,7 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 		if (grid._current.length === 0 || !grid._clickable) {return;}
 
 		if (e.key === 'Escape') {
-			grid._buttons.forEach(btn => btn.classList.remove('focussed'));
+			for (const btn of grid._buttons.values()) {btn.classList.remove('focussed');}
 			if (grid.$focussed) { void grid.back(); e.preventDefault(); e.stopPropagation(); }
 			else if (!grid.image.camera.isZoomedOut()) { void grid.reset(); e.preventDefault(); e.stopPropagation(); }
 			return;
@@ -66,10 +66,10 @@ function createGridKeyHandler(grid: Grid) : (e: KeyboardEvent) => void {
 		if (!img) {return;}
 
 		const focusedId = img.id;
-		grid._buttons.forEach((btn, id) => {
+		for (const [id, btn] of grid._buttons) {
 			if (id === focusedId) { btn.focus(); btn.classList.add('focussed'); }
 			else { btn.blur(); btn.classList.remove('focussed'); }
-		});
+		}
 
 		if (grid._clickable === 'zoom' && !grid.image.camera.isZoomedOut()) {
 			void grid.image.camera.flyToView(img.opts.area ?? [0,0,1,1], {duration: grid._aniDurationIn * 1000, limit: false});
