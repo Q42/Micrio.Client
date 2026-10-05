@@ -300,7 +300,7 @@ export class MicrioImage {
 			micrio.bundleTours = DataLoader._getBundleTours(this.id);
 		}
 
-		if(i.is360 && this.camera) {
+		if(i.is360 && this.camera !== undefined) {
 			const spaceRotY = micrio.spaceData?.images.find(img => img.id === this.id)?.rotationY;
 			if(spaceRotY != null) {this.camera.rotationY = spaceRotY;}
 			else if(s?._360?.trueNorth != null)
@@ -453,7 +453,7 @@ export class MicrioImage {
 			settings,
 		}, {area:a, isEmbed: true, useParentCamera: opts.asImage});
 		// Use parent camera if specified (e.g., for switch galleries)
-		if(!img.camera) {img.camera = this.camera;}
+		if(img.camera === undefined) {img.camera = this.camera;}
 		this._embeds.push(img); // Add to embeds list
 		if(opts.opacity === undefined) {opts.opacity = 1;} // Default opacity
 
