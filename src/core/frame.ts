@@ -46,9 +46,9 @@ function tick(now: number): void {
 	const callbacks = [...pending];
 	pending.clear();
 
-	for (let i = 0; i < callbacks.length; i++) {
+	for (const cb of callbacks) {
 		try {
-			callbacks[i](now);
+			cb(now);
 		} catch (e) {
 			console.error('[Micrio] frame callback error', e);
 		}
