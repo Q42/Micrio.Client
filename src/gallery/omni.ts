@@ -71,7 +71,6 @@ export class OmniUI {
 
 		const engine = micrio._engine;
 		const info = image.$info;
-		if (!info) {return;}
 
 		const totalFrames = omni.frames;
 		const numLayers = omni.layers?.length ?? 1;
@@ -113,7 +112,7 @@ export class OmniUI {
 
 		const preload = (c: number) => {
 			this.#preloadRangeFn(c, totalFrames, preloadD,
-				idx => frames[idx] ? { baseTileIdx: frames[idx]._baseTileIdx, thumbSrc: frames[idx].thumbSrc } : undefined,
+				idx => frames[idx] !== undefined ? { baseTileIdx: frames[idx]._baseTileIdx, thumbSrc: frames[idx].thumbSrc } : undefined,
 				engine, hasArchive);
 		};
 
@@ -154,7 +153,7 @@ export class OmniUI {
 		const omniNumLayers = omniCfg?.layers?.length ?? 1;
 		if (omniCfg?.layers && omniNumLayers > 1) {
 			const layerNames = omniCfg.layers.map((l,i) => ({
-				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? `Layer ${  i + 1}` }]))
+				i18n: Object.fromEntries(Object.entries(l.i18n ?? {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? `Layer ${  i + 1}` }]))
 			}));
 			const langs = Object.keys(info.revision ?? {});
 			if (langs.length === 0) {
@@ -164,7 +163,7 @@ export class OmniUI {
 			if (langs.length > 0) {
 				for (const lang of langs) {
 					for (let i = 0; i < layerNames.length; i++) {
-						if (!layerNames[i].i18n[lang])
+						if (layerNames[i].i18n[lang] === undefined)
 							{layerNames[i].i18n[lang] = { title: `Layer ${  i + 1}` };}
 					}
 				}
