@@ -34,15 +34,13 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 
 	#share = () => {
 		const micrio = this._getMicrio();
-		if (!micrio || !navigator.share) {return;}
-		if (micrio.$current?.$info) {
-			const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
-			void navigator.share({
-				title: micrio.$current.$info?.title,
-				text: cData?.description || `${micrio.$current.$info.width} x ${micrio.$current.$info.height} | Micrio`,
-				url: location.href
-			});
-		}
+		if (!micrio || typeof navigator.share !== 'function' || micrio.$current === undefined) {return;}
+		const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
+		void navigator.share({
+			title: micrio.$current.$info?.title,
+			text: cData?.description || `${micrio.$current.$info.width} x ${micrio.$current.$info.height} | Micrio`,
+			url: location.href
+		});
 	};
 
 	#setLang = (l: string) => {

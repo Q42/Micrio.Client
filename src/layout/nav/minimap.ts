@@ -50,7 +50,6 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		if (!micrio || !image) {return;}
 
 		const info = image.$info;
-		if (!info) {return;}
 		const {camera} = image;
 		const settings = image.$settings;
 
@@ -128,7 +127,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			globalThis.addEventListener('mouseup', dStop);
 			this.#mapRect = canvas.getBoundingClientRect();
 			const cv = camera.getView();
-			if (cv) {this.#dragViewDims = { width: cv[2], height: cv[3] };}
+			this.#dragViewDims = { width: cv[2], height: cv[3] };
 			dDraw(e);
 		};
 
