@@ -90,11 +90,15 @@ export function stubArchiveXhr(body: ArrayBuffer | undefined, status = 200): () 
  * Image ids that survive `decodeV5Id` with predictable flags.
  *
  * Ids of 6-7 characters are treated as v5, and `decodeV5Id` overwrites `is360`, `isWebP`
- * and `isPng` from a character inside the id. The character after the first (here the
- * `N`) decodes to a value with WebP on, 360 off and no deep-zoom flag, so these are plain
- * non-360 raster images — exactly what a grid fixture wants. Every id is 7 characters.
+ * and `isPng` from a character inside the id: index `1 + (getIdVal(id[0]) % 6)`, which is
+ * index 1 for a leading `A`. `N` there decodes to a value with WebP on, 360 off and no
+ * deep-zoom flag, so these are plain non-360 raster images — what a grid fixture wants.
+ *
+ * The trailing characters still have to vary per fixture: `DataLoader` caches bundles by
+ * image id for the whole file, so reusing an id across tests would serve the first test's
+ * album (and so its archive) to every later one.
  */
-export const gridImageId = (n: number) => `AN${n.toString().padStart(5, '0')}`
+export const gridImageId = (n: number, suffix: string) => `AN${n.toString().padStart(4, '0')}${suffix}`.slice(0, 7)
 
 export interface GridOptions {
 	/** How many images the album has. */
@@ -127,7 +131,7 @@ export function gridFixture(opts: GridOptions = {}): GridFixture {
 	const suffix = Math.random().toString(36).slice(2, 7)
 	const albumId = `gridalbum${suffix}`
 	const archiveId = `grid${suffix}`
-	const ids = Array.from({ length: count }, (_, i) => gridImageId(i))
+	const ids = Array.from({ length: count }, (_, i) => gridImageId(i, suffix.slice(0, 3)))
 
 	const images: Models.ImageBundle.BundleImage[] = ids.map((id, i) => ({
 		id,
@@ -139,12 +143,18 @@ export function gridFixture(opts: GridOptions = {}): GridFixture {
 		},
 	}))
 
+	// `Gallery._fromAlbum` prefers `config.grid.clickable` over `settings.grid.clickable`,
+	// so the gallery-level value is what decides the controller's behaviour. Defaulting
+	// both keeps the fixture self-consistent when only one is given.
+	const settingsGrid = opts.settings?.grid as { clickable?: 'focus' | 'zoom' | false } | undefined
+	const clickable = opts.grid?.clickable ?? settingsGrid?.clickable ?? 'focus'
+	const panZoom = opts.grid?.panZoom ?? 'grid'
 	const album: Models.GalleryConfig = {
 		id: albumId,
 		type: 'grid',
 		archive: `${archiveId}.mdp`,
-		settings: { grid: { clickable: 'focus', ...(opts.settings?.grid as object) }, ...opts.settings },
-		grid: opts.grid ?? { clickable: 'focus', panZoom: 'grid' },
+		settings: { grid: { clickable, panZoom, ...(settingsGrid as object) }, ...opts.settings },
+		grid: { clickable, panZoom },
 	}
 
 	// The index lists every image, which is what gives each cell its info and ordering
@@ -182,7 +192,13 @@ export interface OpenGrid {
 	fixture: GridFixture
 }
 
-/** Waits for the grid controller the layout places under the `<micr-io>` element. */
+/**
+ * Waits for the grid controller the layout places under the `<micr-io>` element.
+ *
+ * The presence of the element is the signal, not the viewer's `_visible` list: these
+ * fixtures serve no real tiles, so an image never becomes visible even though the grid is
+ * fully laid out.
+ */
 export async function waitForGrid(el: Element, timeout = 8000): Promise<HTMLElement> {
 	await waitFor(() => el.querySelector('micrio-grid') !== null, timeout, 'the grid element')
 	const grid = el.querySelector<HTMLElement>('micrio-grid')
@@ -193,11 +209,13 @@ export async function waitForGrid(el: Element, timeout = 8000): Promise<HTMLElem
 }
 
 /**
- * Opens a grid album and waits until it is laid out.
+ * Opens a grid album and waits until it has been laid out.
  *
- * `grid-load` is the signal the client itself treats as "the initial `set()` resolved and
- * the hooks are wired" (see `templates/grid/README.md`), which is the state every test
- * wants to start from.
+ * The album itself is resolved through the element's **id attribute**, not through
+ * `open(id)`: `#print()` is the only place an album becomes a gallery, and it runs only
+ * while the element has not printed. On a freshly connected element that hook can already
+ * have fired by the time `open()` is awaited, so this waits for the id to be *applied* —
+ * `mountViewer` sets it before appending — and re-opens if the album still did not take.
  */
 export async function openGrid(opts: GridOptions = {}): Promise<OpenGrid> {
 	const fixture = gridFixture(opts)
@@ -205,18 +223,31 @@ export async function openGrid(opts: GridOptions = {}): Promise<OpenGrid> {
 	mockJson(/bundle\.json/, fixture.bundle)
 	const restoreXhr = stubArchiveXhr(fixture.mdp, opts.brokenArchive ? 404 : 200)
 
-	// The album is resolved by the element's *id attribute* (see `#print`), not by
-	// `open(id)`: that path calls `#print()` only while it has not printed yet, and it is
-	// the only place an album is turned into a gallery. `mountViewer` sets the attribute.
 	const first = fixture.ids[0] ?? ''
 	const viewer = mountViewer({ id: first }, 'width: 800px; height: 600px; display: block;')
 	await viewer.open(first)
-	await waitFor(() => viewer.el.gallery !== undefined, 8000, 'the album gallery')
 	await waitFor(() => get(viewer.el._loading) === false, 8000, 'loading to finish')
 
 	// The archive stub has to stay installed until the grid itself has been built: the
 	// gallery reads the archive index asynchronously, after `open()` has resolved
-	const grid = await waitForGrid(viewer.el)
+	let grid: HTMLElement
+	try {
+		grid = await waitForGrid(viewer.el, 4000)
+	} catch {
+		// Report what the client actually did, instead of a bare timeout
+		throw new Error(
+			`grid never mounted: ${JSON.stringify({
+				gallery: viewer.el.gallery?._config?.type ?? null,
+				current: viewer.el.$current?.id ?? null,
+				albumId: fixture.bundle.album.id,
+				archiveId: fixture.archiveId,
+				archiveDb: [...archive.db.keys()],
+				loading: get(viewer.el._loading),
+			})}`,
+		)
+	}
+	const gridCtrl = grid as unknown as { images: unknown[] }
+	await waitFor(() => gridCtrl.images.length > 0, 8000, 'the grid layout')
 	restoreXhr()
 	return { viewer, grid, ids: fixture.ids, fixture }
 }
