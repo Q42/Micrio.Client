@@ -186,7 +186,10 @@ export function installAudioContext(): void {
 	globalThis.AudioContext = FakeAudioContext as unknown as typeof AudioContext
 }
 
-/** Restores nothing: the fake stays installed for the whole run. */
+/** The fake, exported under the name the audio suites read it by. */
+export const MockAudioContext = FakeAudioContext
+
+/** The context most recently created, if any. */
 export function latestAudioContext(): FakeAudioContext | undefined {
 	return FakeAudioContext.instances.at(-1)
 }

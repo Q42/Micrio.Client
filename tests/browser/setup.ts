@@ -34,6 +34,21 @@ console.info = (...args: unknown[]) => {
 // fake has to be installed up front rather than per test.
 installTextureWorker()
 installAudioContext()
+
+/**
+ * Makes `play()` on a media element resolve instead of rejecting.
+ *
+ * Headless Chromium refuses playback without a user gesture and has no decoder for the
+ * fixture sources, so every real `<audio>`/`<video>` the client creates rejects — as an
+ * *unhandled* rejection for the playlist, which reports it as a test-run error. No test
+ * asserts on successful playback (they assert element attributes, routing and control
+ * state), and the code paths that deliberately handle a blocked play, like the
+ * autoplay probe in the audio controller, stub `play` themselves.
+ */
+HTMLMediaElement.prototype.play = function play() {
+	return Promise.resolve()
+}
+
 await import('../../src/main')
 
 beforeEach(() => {
