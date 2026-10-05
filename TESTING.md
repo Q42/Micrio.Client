@@ -236,7 +236,8 @@ and `advance()` when the steps firing _is_ the thing under test.
 | Spatial audio routing                            | `tests/browser/audio-location`          | done        |
 | Media adapters (HTML5/YouTube/Vimeo/HLS)         | `tests/browser/*-adapter`, `hls-player` | done        |
 | Adapter selection and wiring in `<micrio-media>` | `tests/browser/media-adapters`          | done        |
-| Grid storytelling                                | —                                       | not started |
+| Grid column maths and transition areas           | `tests/browser/grid-format`             | done        |
+| Grid storytelling                                | —                                       | partial     |
 | 3D book viewer                                   | `tests/browser/book3d-smoke`            | smoke only  |
 | UI components (toolbar, menu, popover)           | —                                       | not started |
 
@@ -265,8 +266,25 @@ Roughly in order of value against risk:
    - `HTML5PlayerAdapter.destroy()` removes only the five no-argument listeners, leaving
      `timeupdate`, `durationchange`, `error` and `canplay` attached. Pinned as-is in the
      suite; whether it leaks is a separate call.
-3. **Grid storytelling** (`src/grid/**`) — its own session: layout math, transitions,
-   keyboard, action handlers, marker-driven grid tours.
+3. **Grid storytelling** (`src/grid/**`) — the format layer is done; the controller is
+   blocked on a fixture problem, and it is the next thing to solve:
+   - **`tests/fixtures/grid.ts` can mount a real grid album, once.** It packs a genuine
+     tightly-packed MDP archive, stubs the XHR the archive is read over, and opens the
+     album through the element's **id attribute** — the only path that turns an album into
+     a gallery (`#print()`), since `open(id)` alone never does.
+   - **The blocker: a second mount in the same file intermittently never resolves its
+     album.** Symptom: no `gallery`, an empty `archive.db`, no `<micrio-grid>`, and
+     `open()` resolving to the image itself. It follows the _position_ in the file, not the
+     test — skipping cases just moves the failure — while every case passes in isolation
+     and five identical plain mounts in a row also pass. So it is set off by something a
+     driven grid leaves behind, not by mounting per se.
+   - Ruled out so far: unique ids and archive ids per fixture (fixed, and necessary);
+     `archive.db` not being cleared; the retry of `open()` (it short-circuits on the
+     dedupe check); stale `XMLHttpRequest` stubs; `bundle`/`album`/`json` caches keyed by
+     the fixture's own ids.
+   - The suites to write once it mounts repeatedly are listed in the approved plan:
+     controller (layout, history, focus, enlarge), transitions, actions and the
+     `grid:` tour-event path, keyboard, and the integration paths.
 4. **UI components** — toolbar/menu/popover rendering and locale switching beyond the
    tour entries.
 5. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
