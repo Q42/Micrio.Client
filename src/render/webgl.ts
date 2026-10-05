@@ -172,7 +172,7 @@ export class WebGL {
 		this._getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
 		// Link program
 		gl.linkProgram(this.#program);
-		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
+		if (gl.getProgramParameter(this.#program, gl.LINK_STATUS) !== true) {
 			throw new MicrioError(`Shader link error: ${  gl.getProgramInfoLog(this.#program)}`, {
 				code: ErrorCodes.WEBGL_SHADER_COMPILE
 			});
@@ -203,19 +203,19 @@ export class WebGL {
 		// Texture Coordinates Buffer (Static)
 		this.#txtAttr = gl.getAttribLocation(this.#program, 'aTextureCoord');
 		const txtBuffer = gl.createBuffer();
-		if(txtBuffer) {this.#txtBuffer = txtBuffer;}
+		if(txtBuffer != null) {this.#txtBuffer = txtBuffer;}
 		else {throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Engine._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Engine
 
 		// Watermark Texture Coordinates Buffer
 		const wmTxtBuffer = gl.createBuffer();
-		if(wmTxtBuffer) {this.#wmTxtBuffer = wmTxtBuffer;}
+		if(wmTxtBuffer != null) {this.#wmTxtBuffer = wmTxtBuffer;}
 		else {throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 
 		// Vertex Position Buffer (Dynamic - updated by Engine)
 		const geomBuffer = gl.createBuffer();
-		if(geomBuffer) {this.#geomBuffer = geomBuffer;}
+		if(geomBuffer != null) {this.#geomBuffer = geomBuffer;}
 		else {throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		this.#posAttr = gl.getAttribLocation(this.#program, 'pos');
 
@@ -294,7 +294,7 @@ export class WebGL {
 		gl.shaderSource(shader, source);
 		gl.compileShader(shader);
 		// Check compilation status
-		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+		if (gl.getShaderParameter(shader, gl.COMPILE_STATUS) !== true) {
 			gl.deleteProgram(program);
 			throw new MicrioError(`Shader compilation failed: ${  gl.getShaderInfoLog(shader)}`, {
 				code: ErrorCodes.WEBGL_SHADER_COMPILE
@@ -316,7 +316,7 @@ export class WebGL {
 	_getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean) : WebGLTexture {
 		const gl = this.#ctx;
 		const t = texture ?? gl.createTexture(); // Use existing or create new
-		if(!t) {throw new Error('Could not create WebGL texture');}
+		if(t == null) {throw new Error('Could not create WebGL texture');}
 
 		gl.bindTexture(gl.TEXTURE_2D, t); // Bind the texture
 
