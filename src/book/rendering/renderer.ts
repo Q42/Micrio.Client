@@ -357,7 +357,7 @@ export class PaperRenderer {
 
 	_isLightingAnimated(): boolean {
 		const presets = getPresets();
-		const p = presets.find(p => p.name === this.#activePreset);
+		const p = presets.find(preset => preset.name === this.#activePreset);
 		return p?.isAnimated ?? false;
 	}
 

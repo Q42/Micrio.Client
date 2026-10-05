@@ -82,7 +82,7 @@ export class MicrioAudioLocation {
 			const buffers = (globalThis as Record<string, any>).__micrioAudioBuffers || {};
 			if (!buffers[item.src]) {
 				buffers[item.src] = await fetch(item.src)
-					.then(r => r.arrayBuffer())
+					.then(res => res.arrayBuffer())
 					.then(b => ctx.decodeAudioData(b));
 				(globalThis as Record<string, any>).__micrioAudioBuffers = buffers;
 			}
