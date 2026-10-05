@@ -508,7 +508,7 @@ export class Camera {
 	 * @param speed Animation speed multiplier.
 	 * @returns A Promise that resolves when the animation completes.
 	 */
-	async zoomIn(factor = 1, duration = 250, speed = 1): Promise<void> {
+	zoomIn(factor = 1, duration = 250, speed = 1): Promise<void> {
 		return this.zoom(-factor * 200, duration, undefined, undefined, speed).catch(() => {});
 	}
 
@@ -519,7 +519,7 @@ export class Camera {
 	 * @param speed Animation speed multiplier.
 	 * @returns A Promise that resolves when the animation completes.
 	 */
-	async zoomOut(factor = 1, duration = 250, speed = 1): Promise<void> {
+	zoomOut(factor = 1, duration = 250, speed = 1): Promise<void> {
 		const c = this.#image.engine.micrio.canvas.viewport;
 		const rat = c.width / c.height;
 		const imgRat = this.#image.$info.width / this.#image.$info.height;
