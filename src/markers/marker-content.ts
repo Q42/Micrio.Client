@@ -49,7 +49,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		const galleryEnabled = !marker.data?.preventImageOpen && !noGallery;
 		const isDev = image._tileBase?.includes('micrio.dev');
 
-		const imageCaption = singleImage && marker.images?.[0]?.i18n?.[$_lang]?.description;
+		const imageCaption = singleImage ? marker.images?.[0]?.i18n?.[$_lang]?.description : undefined;
 
 		const openGallery = (startId: string | undefined) => {
 			if (!galleryEnabled) {return;}
