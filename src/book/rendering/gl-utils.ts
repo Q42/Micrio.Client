@@ -3,7 +3,7 @@ export function compileShader(gl: WebGL2RenderingContext, type: number, src: str
 	if (!shader) {throw new Error('Failed to create shader');}
 	gl.shaderSource(shader, src);
 	gl.compileShader(shader);
-	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+	if (gl.getShaderParameter(shader, gl.COMPILE_STATUS) !== true) {
 		const log = gl.getShaderInfoLog(shader);
 		gl.deleteShader(shader);
 		throw new Error(`Shader compile error: ${log}`);
@@ -23,7 +23,7 @@ export function createGLProgram(
 	gl.attachShader(prog, vs);
 	gl.attachShader(prog, fs);
 	gl.linkProgram(prog);
-	if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+	if (gl.getProgramParameter(prog, gl.LINK_STATUS) !== true) {
 		const log = gl.getProgramInfoLog(prog);
 		gl.deleteProgram(prog);
 		gl.deleteShader(vs);
