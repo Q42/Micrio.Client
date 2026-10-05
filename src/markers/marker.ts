@@ -84,7 +84,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		}
 
 		const cluster = marker.type === 'cluster';
-		const icon = !cluster && marker.type === 'link' ? 'link' : marker.type === 'media' ? 'play' : undefined;
+		let icon: string | undefined;
+		if (!cluster && marker.type === 'link') {icon = 'link';}
+		else if (marker.type === 'media') {icon = 'play';}
 		const customIcon = marker.data?.customIconIdx !== undefined
 			? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
 			: marker.data?.icon || markerSettings.markerIcon;

@@ -223,9 +223,9 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		bars.forEach((bar, i) => {
 			const si = this.#stepInfo[i];
 			const ct = i === this.#currentStep ? (si.currentTime ?? 0) : 0;
-			const pct = i < this.#currentStep || si.ended ? 100
-				: i === this.#currentStep ? Math.round((ct / (si.duration || 1)) * 10000) / 100
-				: 0;
+			let pct = 0;
+			if (i < this.#currentStep || si.ended) {pct = 100;}
+			else if (i === this.#currentStep) {pct = Math.round((ct / (si.duration || 1)) * 10000) / 100;}
 			bar.style.setProperty('--progress', `${pct}%`);
 			bar.classList.toggle('active', i === this.#currentStep);
 		});

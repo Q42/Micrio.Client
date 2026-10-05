@@ -8,8 +8,11 @@ function getLogoSrc(img: Models.Assets.Image | string): string {
 	let l = 0;
 	let m = Math.max(img.width, img.height);
 	while (m > 1024) { l++; m /= 2; }
+	let ext = 'jpg';
+	if (img.isPng) {ext = 'png';}
+	else if (img.isWebP) {ext = 'webp';}
 	return (img.micrioId && img.width > 1024
-		? `https://r2.micr.io/${  img.micrioId  }/${  l  }/0-0.${  img.isPng ? 'png' : img.isWebP ? 'webp' : 'jpg'}`
+		? `https://r2.micr.io/${  img.micrioId  }/${  l  }/0-0.${  ext}`
 		: img.src);
 }
 
