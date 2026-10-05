@@ -2,7 +2,7 @@
 export class BookViewer {
 	readonly _ready: Promise<void> = Promise.resolve();
 
-	constructor(..._args: unknown[]) {}
+	
 
 	goto(_pageIdx: number): Promise<void> {
 		return Promise.resolve();

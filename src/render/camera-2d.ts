@@ -40,11 +40,7 @@ export default class Camera2D extends EngineCamera {
 	cph = -1;
 	#wasCoverLimit = true;
 
-	constructor(
-		canvas: TileCanvas
-	) {
-		super(canvas);
-	}
+	
 
 	/**
 	 * Converts screen pixel coordinates to relative image coordinates [0-1].

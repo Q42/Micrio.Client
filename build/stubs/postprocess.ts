@@ -3,7 +3,7 @@ export class PostProcessor {
 	/** Default framebuffer (null) so `_drawStart` binds the screen instead of a postprocess target. */
 	_frameBuffer = null;
 
-	constructor(..._args: unknown[]) {}
+	
 
 	_render(): void {}
 
