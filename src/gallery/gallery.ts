@@ -357,17 +357,18 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#updateScrubber();
 
 		// Set up album object for external API access
-		const _self = this;
+		const currentIndex = () => this.#currentPage;
+		const goToPage = (n: number) => this.#goto(n);
 		parent.album = {
 			numPages: layout.numPages,
-			get currentIndex() { return _self.#currentPage },
+			get currentIndex() { return currentIndex() },
 			info: parent.$settings.gallery,
-			prev: () => _self.#goto(_self.#currentPage - 1),
-			next: () => _self.#goto(_self.#currentPage + 1),
+			prev: () => goToPage(currentIndex() - 1),
+			next: () => goToPage(currentIndex() + 1),
 			// Navigate to the page containing image `n`, but resolve with the exact
 			// image at that index (spread pages contain more than one image).
-			goto: (n: number) => _self.#goto(_self.#imageIdxToPage(n)).then(() => _self.#images[n]),
-			...(_self.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
+			goto: (n: number) => goToPage(this.#imageIdxToPage(n)).then(() => this.#images[n]),
+			...(this.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		};
 
 		if (this.#swipeGallery) {

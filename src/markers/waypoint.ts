@@ -111,13 +111,13 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 			).join(',')})`;
 		};
 
-		const self = this;
+		const hide = () => { this.#hidden = true; };
 		this.#iface = {
 			coords: customCoords,
 			settings: settings ?? {} as Models.Spaces.WayPointSettings,
 			click: () => { },
 			get deleted() { return false; },
-			set deleted(v: boolean) { if (v) {self.#hidden = true;} }
+			set deleted(v: boolean) { if (v) {hide();} }
 		} as Models.Spaces.WaypointInterface & { click: () => void };
 
 		onmove();
