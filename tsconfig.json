@@ -40,6 +40,7 @@
 		"src/utils/**/*",
 		"src/grid/**/*",
 		"src/book/**/*",
+		"build/**/*",
 		"templates/**/*"
 	],
 	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
