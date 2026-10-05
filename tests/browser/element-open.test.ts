@@ -109,7 +109,9 @@ describe('<micr-io> open()', () => {
 		const viewer = mountViewer()
 		await viewer.open(modernBundle())
 		await waitForLoaded(viewer, 'rqFkjZz')
-		expect(() => viewer.destroy()).not.toThrow()
+		expect(() => {
+			viewer.destroy()
+		}).not.toThrow()
 		expect(document.body.querySelector('micr-io')).toBeNull()
 		restoreNetwork()
 	})

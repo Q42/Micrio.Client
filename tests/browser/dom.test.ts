@@ -31,7 +31,7 @@ describe('createElement', () => {
 	it('removes an attribute when its value is null', () => {
 		const parent = createElement('div', { attrs: { 'data-x': '1' } })
 		const el = createElement('span', { attrs: { 'data-x': null }, parent })
-		expect(el.hasAttribute('data-x')).toBe(false)
+		expect(el.dataset.x).toBeUndefined()
 		expect(parent.firstElementChild).toBe(el)
 	})
 

@@ -3,7 +3,8 @@ import type { Models } from '../../src/types/models'
 import { jsonCache } from '../../src/utils/fetch'
 
 type Bundle = Models.ImageBundle.BundleResponse
-type DataLoaderModule = typeof import('../../src/utils/dataLoader')
+import type * as DataLoaderNs from '../../src/utils/dataLoader'
+type DataLoaderModule = typeof DataLoaderNs
 
 const bundle = (overrides: Partial<Bundle> = {}): Bundle => ({
 	images: [

@@ -12,7 +12,9 @@ import { restoreNetwork } from '../helpers/network'
 
 beforeEach(() => {
 	document.body.replaceChildren()
-	document.head.querySelectorAll('link[data-test-style]').forEach((el) => el.remove())
+	for (const el of document.head.querySelectorAll('link[data-test-style]')) {
+		el.remove()
+	}
 	localStorage.clear()
 })
 

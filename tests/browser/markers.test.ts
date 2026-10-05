@@ -32,7 +32,7 @@ describe('markers', () => {
 		await waitFor(() => (viewer.el.state.$marker?.id ?? '') === (first?.id ?? ''), 4000, 'marker state')
 
 		expect(viewer.el.$current?.state.$marker?.id).toBe(first?.id)
-		expect(viewer.el.state.$marker?.title ?? viewer.el.state.$marker?.i18n?.en?.title).toBeDefined()
+		expect(viewer.el.state.$marker?.i18n?.en?.title).toBeDefined()
 		expect(seen).toContain('marker-open')
 		viewer.destroy()
 	})
@@ -55,7 +55,7 @@ describe('markers', () => {
 		const before = viewer.el.querySelectorAll('micrio-marker').length
 		// Force a resize, which makes the marker layer lay out again
 		viewer.el.style.width = '400px'
-		window.dispatchEvent(new Event('resize'))
+		globalThis.dispatchEvent(new Event('resize'))
 		await waitFor(() => true, 200, 'settle')
 		expect(viewer.el.querySelectorAll('micrio-marker').length).toBe(before)
 		viewer.destroy()

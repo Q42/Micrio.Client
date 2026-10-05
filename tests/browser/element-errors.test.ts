@@ -62,7 +62,9 @@ describe('<micr-io> error handling', () => {
 		await viewer.open({
 			id: 'noimage1',
 			info: { id: 'noimage1', width: 0, height: 0, path: 'https://r2.micr.io/', version: '6.0.0' },
-			settings: { omni: { layers: 1 } },
+			settings: {
+				omni: { frames: 1, startIndex: 0, fieldOfView: 1, verticalAngle: 0, distance: 1, offsetX: 0 },
+			},
 			data: {},
 		})
 		expect(viewer.el.$current?.id).toBe('noimage1')
@@ -73,7 +75,9 @@ describe('<micr-io> error handling', () => {
 		const viewer = mountViewer()
 		await viewer.open('missing2')
 		await waitForError(viewer)
-		expect(() => viewer.destroy()).not.toThrow()
+		expect(() => {
+			viewer.destroy()
+		}).not.toThrow()
 		expect(document.body.querySelector('micr-io')).toBeNull()
 	})
 })

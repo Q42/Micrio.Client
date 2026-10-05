@@ -43,7 +43,7 @@ describe('Frame scheduler', () => {
 	}
 
 	afterEach(() => {
-		Frame._setDisplay(window)
+		Frame._setDisplay(globalThis as unknown as Window)
 		displays.length = 0
 		vi.restoreAllMocks()
 	})
@@ -111,7 +111,9 @@ describe('Frame scheduler', () => {
 		const display = install()
 		const cb = vi.fn()
 		Frame.request(cb)
-		expect(() => Frame.cancel(() => {})).not.toThrow()
+		expect(() => {
+			Frame.cancel(() => {})
+		}).not.toThrow()
 		// The scheduled frame survives and still runs the real callback
 		expect(display.pending).toBe(1)
 		display.runFrame()

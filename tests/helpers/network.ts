@@ -56,21 +56,31 @@ function install(routes: Route[]): void {
 	const base = originalFetch()
 	restore?.()
 	requested.length = 0
-	const patched: typeof fetch = async (input, init) => {
-		const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+	const patched: typeof fetch = (input) => {
+		let url: string
+		if (typeof input === 'string') {
+			url = input
+		} else if (input instanceof URL) {
+			url = input.href
+		} else {
+			const { url: requestUrl } = input
+			url = requestUrl
+		}
 		requested.push(url)
 		for (const route of routes) {
 			if (route.test.test(url)) {
 				const response = route.respond(url)
 				if (response) {
-					return response
+					return Promise.resolve(response)
 				}
 			}
 		}
-		return new Response(JSON.stringify({ error: `unmocked: ${url}` }), {
-			status: 404,
-			headers: { 'content-type': 'application/json' },
-		})
+		return Promise.resolve(
+			new Response(JSON.stringify({ error: `unmocked: ${url}` }), {
+				status: 404,
+				headers: { 'content-type': 'application/json' },
+			}),
+		)
 	}
 	globalThis.fetch = patched
 	restore = () => {

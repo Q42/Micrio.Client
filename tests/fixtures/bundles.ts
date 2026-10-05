@@ -33,7 +33,20 @@ export const modernBundle = (): Models.ImageBundle.BundleImage => ({
 		markers: [
 			marker('m1', {
 				// Marker with its own audio asset, used by the media suite
-				i18n: { en: { title: 'Marker m1', body: '<p>Body of m1</p>', audio: { src: 'audio/m1.mp3', duration: 12 } } },
+				i18n: {
+					en: {
+						title: 'Marker m1',
+						body: '<p>Body of m1</p>',
+						audio: {
+							title: 'm1',
+							src: 'https://r2.micr.io/audio/m1.mp3',
+							size: 1,
+							uploaded: 0,
+							duration: 12,
+							volume: 1,
+						},
+					},
+				},
 			}),
 			marker('m2', { x: 0.25, y: 0.75, tags: ['focus'] }),
 		],

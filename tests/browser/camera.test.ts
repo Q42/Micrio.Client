@@ -25,10 +25,13 @@ describe('camera', () => {
 		await waitForCamera(viewer)
 
 		const camera = viewer.el.$current?.camera
-		expect(camera?.getCoverScale()).toBeGreaterThan(0)
-		expect(camera?.getMinScale()).toBeGreaterThan(0)
-		expect(camera?.getMinScale()).toBeLessThanOrEqual(camera.getCoverScale())
-		expect(camera?.getScale()).toBeGreaterThan(0)
+		if (!camera) {
+			throw new Error('no camera on the current image')
+		}
+		expect(camera.getCoverScale()).toBeGreaterThan(0)
+		expect(camera.getMinScale()).toBeGreaterThan(0)
+		expect(camera.getMinScale()).toBeLessThanOrEqual(camera.getCoverScale())
+		expect(camera.getScale()).toBeGreaterThan(0)
 		viewer.destroy()
 	})
 

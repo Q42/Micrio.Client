@@ -81,14 +81,16 @@ describe('randomUUID', () => {
 	})
 })
 
-describe('decodeV5Id', () => {
-	// The packed character index is `1 + (getIdVal(id[0]) % 6)`. These ids and the
-	// expected flags were verified against the live `bundle.json` info for each id.
-	const decode = (id: string, info: Parameters<typeof decodeV5Id>[1] = {}) => {
-		decodeV5Id(id, info)
-		return info
-	}
+/**
+ * The packed character index is `1 + (getIdVal(id[0]) % 6)`. The ids below and their
+ * expected flags were verified against the live `bundle.json` info for each image.
+ */
+const decode = (id: string, info: Parameters<typeof decodeV5Id>[1] = {}) => {
+	decodeV5Id(id, info)
+	return info
+}
 
+describe('decodeV5Id', () => {
 	it('reads WebP from the low bits and 360 from bit 4', () => {
 		// rqFkjZz -> char 'j' (8): 00001000 => webp, deepzoom, r2
 		expect(decode('rqFkjZz', { is360: false })).toEqual({

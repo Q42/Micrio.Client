@@ -14,7 +14,8 @@ afterEach(() => {
 	el.remove()
 })
 
-const isIdle = () => el.hasAttribute('data-idle')
+/** `IdleState` writes the `data-idle` attribute; read it back through the dataset. */
+const isIdle = () => el.dataset.idle !== undefined
 
 describe('IdleState', () => {
 	it('starts active and goes idle after the delay', () => {

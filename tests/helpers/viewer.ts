@@ -1,30 +1,39 @@
 import type { HTMLMicrioElement } from '../../src/core/element'
-import type { Models } from '../../src/types/models'
 
 /** A mounted `<micr-io>` plus the teardown that removes it again. */
 export interface Viewer {
 	el: HTMLMicrioElement
-	/** Waits until the given bundle id is the current image, or rejects on timeout. */
-	open(bundle: Models.ImageBundle.BundleImage, opts?: Parameters<HTMLMicrioElement['open']>[1]): Promise<void>
-	destroy(): void
+	/** Opens a bundle object or resolves an image id (which goes through `bundle.json`). */
+	open: (
+		idOrBundle: Parameters<HTMLMicrioElement['open']>[0],
+		opts?: Parameters<HTMLMicrioElement['open']>[1],
+	) => Promise<void>
+	destroy: () => void
 }
 
-/** Mounts a visible, sized `<micr-io>` element into the document body. */
+/**
+ * Mounts a visible, sized `<micr-io>` element into the document body.
+ * `attrs` may be a plain attribute map, or a single id string for the common case.
+ */
 export function mountViewer(
-	attrs: Record<string, string> = {},
+	attrs: Record<string, string> | string = {},
 	style = 'width: 800px; height: 600px; display: block;',
 ): Viewer {
 	const el = document.createElement('micr-io') as HTMLMicrioElement
 	el.setAttribute('style', style)
-	for (const [key, value] of Object.entries(attrs)) {
-		el.setAttribute(key, value)
+	if (typeof attrs === 'string') {
+		el.id = attrs
+	} else {
+		for (const [key, value] of Object.entries(attrs)) {
+			el.setAttribute(key, value)
+		}
 	}
 	document.body.append(el)
 
 	return {
 		el,
-		async open(bundle, opts) {
-			await el.open(bundle, opts)
+		async open(idOrBundle, opts) {
+			await el.open(idOrBundle, opts)
 		},
 		destroy() {
 			el.destroy()
