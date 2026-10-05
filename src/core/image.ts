@@ -254,7 +254,9 @@ export class MicrioImage {
 		// Determine tile base path
 		const isV5Imported = this.id.length === 6 && this.id.startsWith('i') && !this.id.includes('/');
 		const isExternal = isV5Imported && !i.tileBasePath?.includes('micr.io');
-		this._tileBase = isExternal ? i.tileBasePath ?? BASEPATH : isV5Imported ? BASEPATH : i.tileBasePath ?? i.path ?? BASEPATH_V5;
+		if (isExternal) {this._tileBase = i.tileBasePath ?? BASEPATH;}
+		else if (isV5Imported) {this._tileBase = BASEPATH;}
+		else {this._tileBase = i.tileBasePath ?? i.path ?? BASEPATH_V5;}
 
 		const org = DataLoader._getOrganisation();
 		if(org?.baseUrl && !i.path?.includes(org.baseUrl)) {

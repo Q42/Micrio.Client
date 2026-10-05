@@ -270,7 +270,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			// book3d zoom/pan overrides. The individual pages become visible as
 			// the spread changes, so pick the parent for the zoomed check instead
 			// of whichever single page happens to be on screen.
-			const target = this._engine._book3d ? this.#current : (imgs.length === 1 ? imgs[0] : this.#current);
+			const target = (this._engine._book3d || imgs.length !== 1) ? this.#current : imgs[0];
 			this.toggleAttribute('data-zoomed', target?.camera !== undefined && target._placed && !target.camera.isZoomedOut());
 		};
 
