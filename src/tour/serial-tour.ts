@@ -237,7 +237,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	/** @internal */
 	_setProps(props: Partial<SerialTourProps>) {
 		if (props.tour !== undefined) {this.#props.tour = props.tour;}
-		if (props.onended !== undefined) {this.#props.onended = props.onended;}
+		// `onended` is a props callback, not a DOM event handler
+		if (props.onended !== undefined) {Object.assign(this.#props, {onended: props.onended});}
 	}
 
 }
