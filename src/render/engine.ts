@@ -472,7 +472,7 @@ export class Engine {
 			const current = get(this.micrio.current);
 			if (!current || (!canvas.$info.isIIIF && canvas.$info.id !== current.id)) {return;}
 			this.#addCanvas(canvas);
-			if (canvas._embeds.length > 0) {canvas._embeds.forEach(e => this._addEmbed(e, canvas));}
+			if (canvas._embeds.length > 0) {canvas._embeds.forEach(e => {void this._addEmbed(e, canvas);});}
 		}
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
