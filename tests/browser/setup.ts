@@ -10,6 +10,23 @@ import { afterEach, beforeEach } from 'vitest'
 import { restoreNetwork } from '../helpers/network'
 import { installTextureWorker } from './textures'
 
+/**
+ * Drops the client's version banner.
+ *
+ * `src/main.ts` logs it once per page load through `console.info`, which in
+ * browser mode means once per *test file* — attributed to "unknown test" because
+ * it fires while the module is still being imported. `console.info` is not used
+ * anywhere else in the client, and this filter keeps every other call intact.
+ */
+const info = console.info.bind(console)
+console.info = (...args: unknown[]) => {
+	const [first] = args
+	if (typeof first === 'string' && first.includes('Micrio') && first.includes('https://micr.io/')) {
+		return
+	}
+	info(...args)
+}
+
 // The texture worker bootstrap is created at module load, so the fake worker has
 // to be in place *before* the client is imported.
 installTextureWorker()
