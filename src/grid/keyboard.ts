@@ -26,10 +26,14 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 		const dx = c.cx - cur.cx, dy = c.cy - cur.cy;
 		let ok = false;
 		switch (dir) {
-			case 'left':  ok = dx < 0 && Math.abs(dy) < threshold; break;
-			case 'right': ok = dx > 0 && Math.abs(dy) < threshold; break;
-			case 'up':    ok = dy < 0 && Math.abs(dx) < threshold; break;
-			case 'down':  ok = dy > 0 && Math.abs(dx) < threshold; break;
+			case 'left': {  ok = dx < 0 && Math.abs(dy) < threshold; break;
+			}
+			case 'right': { ok = dx > 0 && Math.abs(dy) < threshold; break;
+			}
+			case 'up': {    ok = dy < 0 && Math.abs(dx) < threshold; break;
+			}
+			case 'down': {  ok = dy > 0 && Math.abs(dx) < threshold; break;
+			}
 		}
 		if (!ok) {continue;}
 		const dist = Math.abs(dx) + Math.abs(dy);

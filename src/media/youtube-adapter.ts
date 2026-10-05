@@ -77,24 +77,29 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 
 	#handleStateChange(state: number): void {
 		switch (state) {
-			case YT_STATE.UNSTARTED:
+			case YT_STATE.UNSTARTED: {
 				this.#callbacks.onBlocked?.();
 				this.#callbacks.onPause?.();
 				break;
-			case YT_STATE.ENDED:
+			}
+			case YT_STATE.ENDED: {
 				this.#callbacks.onEnded?.();
 				break;
-			case YT_STATE.PLAYING:
+			}
+			case YT_STATE.PLAYING: {
 				this.#callbacks.onPlay?.();
 				this.#callbacks.onSeeked?.();
 				break;
-			case YT_STATE.PAUSED:
+			}
+			case YT_STATE.PAUSED: {
 				this.#callbacks.onPause?.();
 				break;
-			case YT_STATE.BUFFERING:
+			}
+			case YT_STATE.BUFFERING: {
 				this.#callbacks.onBuffering?.();
 				this.#callbacks.onSeeking?.();
 				break;
+			}
 		}
 	}
 

@@ -661,22 +661,25 @@ export class Engine {
 			tile._opacity = 0;
 
 			switch (tile._loadState) {
-				case 1:
+				case 1: {
 					const request = this.#requests.get(idx);
 					if (request) {abortDownload(request);}
 					tile._loadState = 0;
 					break;
+				}
 
-				case 2:
+				case 2: {
 					if (this.#requests.has(idx)) {
 						this.#deleteRequest(idx);
 					}
 					this.#deleteTile(idx);
 					break;
+				}
 
-				case 3:
+				case 3: {
 					if (!tile._deleteAt) {tile._deleteAt = now;}
 					break;
+				}
 			}
 		}
 

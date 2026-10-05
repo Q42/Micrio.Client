@@ -189,19 +189,22 @@ export class HTMLMicrioElement extends MicrioElement {
 	*/
 	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, _oldVal:string, newVal:string) {
 		switch(attr) {
-			case 'id': {
+			case 'id': { {
 				if(!this.isConnected || !newVal) {return;}
 				if(!this.#printed) {this.#print();}
 				else {this.open(newVal);}
 			} break;
-			case 'muted':
+			}
+			case 'muted': {
 				if (get(this._isMuted) !== this.hasAttribute('muted'))
 					{this._isMuted.set(this.hasAttribute('muted'));}
 				break;
-			case 'data-limited':
+			}
+			case 'data-limited': {
 				if(this._engine?._vertexBuffer && this.$current?.canvas)
 					{this.$current.canvas._limited = !!newVal;}
 				break;
+			}
 			case 'lang': {
 				let prevLang = get(this._lang);
 				if(prevLang != newVal) {
@@ -613,8 +616,10 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.canvas.hook();
 
 			switch(c.$settings?.theme) {
-				case 'light': this.setAttribute('data-light-mode',''); break;
-				case 'os': this.setAttribute('data-auto-scheme',''); break;
+				case 'light': { this.setAttribute('data-light-mode',''); break;
+				}
+				case 'os': { this.setAttribute('data-auto-scheme',''); break;
+				}
 			}
 
 			this.#initedFirst = true;

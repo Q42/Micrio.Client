@@ -338,7 +338,8 @@ export function computeLighting(
 			);
 		}
 
-		default:
+		default: {
 			return empty();
+		}
 	}
 }

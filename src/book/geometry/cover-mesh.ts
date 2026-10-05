@@ -79,18 +79,22 @@ export class CoverMesh extends PaperMesh {
 	#getEdgeVertices(edge: 'bottom' | 'top' | 'freeEdge' | 'boundEdge'): number[] {
 		const result: number[] = [];
 		switch (edge) {
-			case 'bottom':
+			case 'bottom': {
 				for (let c = 0; c < GRID_COLS; c++) {result.push(c);}
 				break;
-			case 'top':
+			}
+			case 'top': {
 				for (let c = 0; c < GRID_COLS; c++) {result.push((GRID_ROWS - 1) * GRID_COLS + c);}
 				break;
-			case 'freeEdge':
+			}
+			case 'freeEdge': {
 				for (let r = 0; r < GRID_ROWS; r++) {result.push(r * GRID_COLS + (GRID_COLS - 1));}
 				break;
-			case 'boundEdge':
+			}
+			case 'boundEdge': {
 				for (let r = 0; r < GRID_ROWS; r++) {result.push(r * GRID_COLS);}
 				break;
+			}
 		}
 		return result;
 	}
@@ -166,10 +170,13 @@ export class CoverMesh extends PaperMesh {
 
 			let u: number, v: number;
 			switch (edge) {
-				case 'bottom': u = col / (GRID_COLS - 1); v = 0; break;
-				case 'top': u = col / (GRID_COLS - 1); v = 1; break;
-				case 'freeEdge': u = 1; v = row / (GRID_ROWS - 1); break;
-				case 'boundEdge': default: u = 0; v = row / (GRID_ROWS - 1); break;
+				case 'bottom': { u = col / (GRID_COLS - 1); v = 0; break;
+				}
+				case 'top': { u = col / (GRID_COLS - 1); v = 1; break;
+				}
+				case 'freeEdge': { u = 1; v = row / (GRID_ROWS - 1); break;
+				}
+				case 'boundEdge': default: { u = 0; v = row / (GRID_ROWS - 1); break;}
 			}
 
 			const vFront = vi + i * 2;

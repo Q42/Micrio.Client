@@ -168,7 +168,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 					tick().then(tick).then(() => {
 						if (get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) {return;}
 						switch (autoStart.type) {
-							case 'marker': c.state.marker.set(autoStart.id); break;
+							case 'marker': { c.state.marker.set(autoStart.id); break;
+							}
 							case 'markerTour': {
 								const mt = d.markerTours?.find(t => t.id == autoStart.id);
 								if (mt) {micrio.state.tour.set(mt);} break;

@@ -290,12 +290,17 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#keydown = (e: KeyboardEvent) => {
 		switch (e.key) {
 			case 'PageUp':
-			case 'ArrowLeft': this.#goto(this.#currentPage - 1, true); break;
+			case 'ArrowLeft': { this.#goto(this.#currentPage - 1, true); break;
+			}
 			case 'PageDown':
-			case 'ArrowRight': this.#goto(this.#currentPage + 1, true); break;
-			case 'Home': this.#goto(0); break;
-			case 'End': this.#goto(this.#pageToImages.length - 1); break;
-			default: return;
+			case 'ArrowRight': { this.#goto(this.#currentPage + 1, true); break;
+			}
+			case 'Home': { this.#goto(0); break;
+			}
+			case 'End': { this.#goto(this.#pageToImages.length - 1); break;
+			}
+			default: { return;
+			}
 		}
 	};
 

@@ -44,13 +44,18 @@ export class KeyboardHandler {
 		let dY = 0;
 
 		switch (e.key) {
-			case 'ArrowUp': dY -= hHeight; break;
-			case 'ArrowDown': dY += hHeight; break;
-			case 'ArrowLeft': dX -= hWidth; break;
-			case 'ArrowRight': dX += hWidth; break;
-			case '+': case '=': c.zoom(-200, dur).catch(() => {}); break;
-			case '-': case '_': c.zoom(200, dur).catch(() => {}); break;
-			default: return; // Ignore other keys
+			case 'ArrowUp': { dY -= hHeight; break;
+			}
+			case 'ArrowDown': { dY += hHeight; break;
+			}
+			case 'ArrowLeft': { dX -= hWidth; break;
+			}
+			case 'ArrowRight': { dX += hWidth; break;
+			}
+			case '+': case '=': { c.zoom(-200, dur).catch(() => {}); break;}
+			case '-': case '_': { c.zoom(200, dur).catch(() => {}); break;}
+			default: { return;
+			} // Ignore other keys
 		}
 
 		e.preventDefault();

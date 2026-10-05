@@ -107,9 +107,12 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			setTimeout(() => {
 				const data = micrio.$current?.$data;
 				switch (button.type) {
-					case 'marker': micrio.$current?.state.marker.set(button.action); break;
-					case 'mtour': micrio.state.tour.set(data?.markerTours?.find(t => t.id == button.action)); break;
-					case 'vtour': micrio.state.tour.set(data?.tours?.find(t => t.id == button.action)); break;
+					case 'marker': { micrio.$current?.state.marker.set(button.action); break;
+					}
+					case 'mtour': { micrio.state.tour.set(data?.markerTours?.find(t => t.id == button.action)); break;
+					}
+					case 'vtour': { micrio.state.tour.set(data?.tours?.find(t => t.id == button.action)); break;
+					}
 				}
 			}, 200);
 		};
