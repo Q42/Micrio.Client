@@ -587,12 +587,19 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		if (opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
-			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => {})
+			const bundle = await DataLoader._getBundleImage(opts.id).catch((error: unknown) => {
+				console.error('[Micrio] Could not load the bundle for', opts.id, error)
+			})
 			if (bundle && bundle.info?.albumId) {
+				// A failure here silently degrades the album to a single image, so it has to
+				// be visible: without this the viewer just shows one picture and no reason.
 				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this._engine, {
 					startId: opts.id,
 					onProgress: (p: number) => this._ui?._setProps?.({ loadingProgress: p }),
-				}).catch(() => null)
+				}).catch((error: unknown) => {
+					console.error('[Micrio] Could not open the album for', opts.id, error)
+					return null
+				})
 				if (galleryCtrl) {
 					void galleryCtrl._openOn(this)
 					return
