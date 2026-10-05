@@ -21,8 +21,7 @@ function isMicrioElement(value: unknown): value is HTMLMicrioElement {
  * Provides a standard lifecycle and prop/render pattern, store subscription helpers,
  * and a context (provide/inject) system for parent-child communication.
  */
-// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- `_P` is the props type each subclass declares as `extends MicrioElement<Props>`
-export abstract class MicrioElement<_P = {}> extends HTMLElement {
+export abstract class MicrioElement<_P extends object = Record<string, unknown>> extends HTMLElement {
 	/** The custom element tag name registered via `customElements.define`. @internal */
 	static tag: string;
 	/** @internal */
@@ -32,10 +31,10 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	#_renderKey: string | null = null;
 
 	/** Protected props storage for use with the standard setProps/render pattern.
+	 * Partial because props arrive incrementally through `_setProps`.
 	 * @internal
 	*/
-	// oxlint-disable-next-line typescript/no-explicit-any -- shared props bag: every subclass destructures its own typed props from it, which `unknown` values would break
-	protected _props: Record<string, any> = {};
+	protected _props: Partial<_P> = {};
 
 	/** Lifecycle hook called when the element is added to the DOM. Calls _onMount and _render. @internal */
 	connectedCallback(): void {
@@ -59,7 +58,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	 * The base implementation merges into `_props` and calls `_render()` when connected.
 	 * @internal
 	 */
-	_setProps(props: object): void {
+	_setProps(props: Partial<_P>): void {
 		Object.assign(this._props, props);
 		if (this.isConnected) {this._render();}
 	}
