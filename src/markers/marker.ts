@@ -58,7 +58,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		// --- Auto-start tour integration (_markers.autoStartTour) ---
 
 		/** Whether a marker tour has this marker as one of its steps. */
-		const inTour = (t: Models.ImageData.MarkerTour): boolean => Boolean(t.steps?.some(s => s.startsWith(marker.id)));
+		const inTour = (t: Models.ImageData.MarkerTour): boolean => t.steps?.some(s => s.startsWith(marker.id));
 		/** The marker tour to auto-start when this marker is opened, if it contains this marker. */
 		const autoStartMyTour: Models.ImageData.MarkerTour | undefined = markerSettings.autoStartTour
 			? micrio._canvases.map(c => c.$data?.markerTours?.find(inTour)).find(t => Boolean(t))
@@ -332,7 +332,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		// Build DOM
 		this.classList.toggle('cluster', cluster);
-		this.classList.toggle('default', Boolean(defaultClass));
+		this.classList.toggle('default', defaultClass);
 		this.classList.toggle('has-icon', hasIcon);
 		this.classList.toggle('has-custom-icon', Boolean(customIcon));
 

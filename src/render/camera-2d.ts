@@ -353,7 +353,7 @@ export default class Camera2D extends EngineCamera {
 	protected _handlePinchMove(delta: number, dX: number, dY: number, cX: number, cY: number, el: Viewport, c: TileCanvas): void {
 		if (!this.canvas.main._noPinchPan && this._scale > this._minScale) {this._pan(dX, dY, 0, false, true);}
 		this._zoom(delta * 2 * el.scale, cX, cY, 0, !this.canvas._pinchZoomOutLimit);
-		c._ani._limit = Boolean(this.canvas._pinchZoomOutLimit);
+		c._ani._limit = this.canvas._pinchZoomOutLimit;
 	}
 
 	/** Signals the start of a pinch gesture. @internal */

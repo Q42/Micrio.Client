@@ -69,7 +69,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const readInfo = (s: Models.ImageInfo.Settings) => {
 			this.#showCultures = Boolean(s.ui?.controls?.cultureSwitch);
 			this.#showSocial = Boolean(s.social);
-			if (s.fullscreen !== undefined) {this.#showFullscreen = Boolean(s.fullscreen) && Boolean(customElements.get('micrio-fullscreen'));}
+			if (s.fullscreen !== undefined) {this.#showFullscreen = s.fullscreen && Boolean(customElements.get('micrio-fullscreen'));}
 			this.#sync();
 		};
 

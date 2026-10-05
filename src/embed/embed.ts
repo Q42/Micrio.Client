@@ -298,9 +298,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				src: video.src,
 				width: Math.round(width),
 				height: Math.round(height),
-				controls: Boolean(video.controls),
-				loop: Boolean(video.loop) && (!video.loopAfter || video.loopAfter <= 0),
-				muted: Boolean(video.muted),
+				controls: video.controls,
+				loop: video.loop && (!video.loopAfter || video.loopAfter <= 0),
+				muted: video.muted,
 				playsInline: true,
 				crossOrigin: 'anonymous',
 				preload: 'metadata'

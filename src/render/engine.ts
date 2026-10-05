@@ -365,7 +365,7 @@ export class Engine {
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360.video));
 
-		const gallerySwitch = Boolean(this.#isGallery) && settings.gallery?.type == 'switch';
+		const gallerySwitch = this.#isGallery && settings.gallery?.type == 'switch';
 
 		const numOmniLayers = Math.max(1, settings.omni?.layers?.length ?? 1);
 		if (settings.omni) {settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);}
@@ -759,7 +759,7 @@ export class Engine {
 			} else {
 				childOpts = {
 					coverLimit: Boolean(image.$settings?.limitToCoverScale) || Boolean(parent.$settings?.limitToCoverScale),
-					coverStart: Boolean(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
+					coverStart: (image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
 				};
 			}
 			canvas = parentEntry.canvas._addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);

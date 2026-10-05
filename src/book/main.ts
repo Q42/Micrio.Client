@@ -83,7 +83,7 @@ function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
 	}
 
 	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT;
-	const refArea = Number(avgAspect);
+	const refArea = avgAspect;
 
 	// Every page shares the same geometry (the book-wide average aspect); per-page
 	// aspects are honored by rendering each texture in its own region of the page
@@ -1032,7 +1032,7 @@ export class BookViewer {
 			const crossedToRight = startedOnLeft && progress < 0.5;
 
 			if (crossedToLeft) {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, +1);
+				this.#flipAnimator._endDrag(this.#dragPageIndex, 1);
 				if (this.#dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount) {
 					this.#currentPage++;
 					this.#onPageChange?.(this.#currentPage);
@@ -1044,7 +1044,7 @@ export class BookViewer {
 					this.#onPageChange?.(this.#currentPage);
 				}
 			} else {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, startedOnRight ? -1 : +1);
+				this.#flipAnimator._endDrag(this.#dragPageIndex, startedOnRight ? -1 : 1);
 			}
 			this.#dragPageIndex = -1;
 			this.#requestFrame();

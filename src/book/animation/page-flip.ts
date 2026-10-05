@@ -92,7 +92,7 @@ export class PageFlipAnimator {
 		const pi = pageIndex ?? this.#selectedPage;
 		const slot = this.#slots[pi];
 		if (!slot) {return;}
-		this.#startAnim(slot, +1, grabRow);
+		this.#startAnim(slot, 1, grabRow);
 	}
 
 	_flipRight(pageIndex?: number, grabRow?: number): void {

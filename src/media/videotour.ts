@@ -123,8 +123,8 @@ export class VideoTourInstance {
 		if (!events?.length) {return;}
 		const {duration} = this;
 		for (const e of events) {
-			e.start = Number(e.start || 0);
-			e.end = Math.min(Number(e.end || 0), duration);
+			e.start = (e.start || 0);
+			e.end = Math.min((e.end || 0), duration);
 		}
 	}
 
@@ -158,7 +158,7 @@ export class VideoTourInstance {
 	}
 
 	/** Getter for the total duration of the tour in seconds. */
-	get duration(): number { return Number(this.#content.duration) }
+	get duration(): number { return this.#content.duration }
 	/** Setter for the total duration (updates internal content). */
 	set duration(v: number) { this.#content.duration = v }
 	/** Getter for the current paused state. */
@@ -305,7 +305,7 @@ export class VideoTourInstance {
 	 */
 	#setProgress(perc: number): void {
 		perc = Math.max(0, Math.min(1, perc));
-		this.#wasPaused = Boolean(this.paused) || !this.#playing;
+		this.#wasPaused = this.paused || !this.#playing;
 		this.pause();
 
 		if (!this.#wasPaused) {

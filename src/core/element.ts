@@ -700,7 +700,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		process(AO.STRINGS, val => val || undefined);
 		process(AO.BOOLEANS, (val, o) => {
 			const tr = val != undefined && (val === '' || val === 'true');
-			if (tr || val === 'false') {return o.n ? !tr : Boolean(tr);}
+			if (tr || val === 'false') {return o.n ? !tr : tr;}
 		});
 		process(AO.NUMBERS, (val, o) => {
 			if (o.dN !== undefined && val == null) {val = o.dN;}

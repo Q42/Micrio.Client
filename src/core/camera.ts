@@ -154,7 +154,7 @@ export class Camera {
 			const box = this.#image.engine.micrio.getBoundingClientRect();
 			x -= box.left; y -= box.top;
 		}
-		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, Boolean(abs), Boolean(noLimit))).arr;
+		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, abs, noLimit)).arr;
 	}
 
 	/**
@@ -259,7 +259,7 @@ export class Camera {
 	 */
 	setCoverLimit(b: boolean): void {
 		if (!this.#canvas) {return;}
-		this.#canvas._coverLimit = Boolean(b);
+		this.#canvas._coverLimit = b;
 		this.#canvas._correctMinMax();
 	}
 
