@@ -49,8 +49,6 @@
 		"typescript/no-unsafe-assignment": "error",
 		"typescript/no-unsafe-argument": "error",
 		"typescript/no-unsafe-return": "error",
-		// oxlint has no working allowNullableObject yet, so nullable-object
-		// truthiness stays an error and the checks are written out explicitly.
 		"typescript/strict-boolean-expressions": ["error", {
 			"allowNullableBoolean": true,
 			"allowNullableString": true,
