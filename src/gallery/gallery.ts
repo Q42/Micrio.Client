@@ -192,7 +192,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const micrio = this._getMicrio();
 		if (!micrio) {return;}
 		micrio._keepRendering = this.#dragging = true;
-		this.setAttribute('data-dragging', '');
+		this.dataset.dragging = '';
 		this.#hoverIdx = -1;
 		// Capture the pointer so pointermove/pointerup keep targeting the scrubber
 		// even when the cursor leaves it (or the window) mid-drag.
@@ -239,7 +239,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#dragPointerId = -1;
 		}
 		this.#dragging = false;
-		this.removeAttribute('data-dragging');
+		delete this.dataset.dragging;
 		const micrio = this._getMicrio();
 		if (!micrio) {return;}
 		micrio._keepRendering = false;

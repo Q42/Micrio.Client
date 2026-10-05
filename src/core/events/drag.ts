@@ -24,7 +24,7 @@ export class DragHandler {
 		this.#ctx._micrio.addEventListener('dragstart', cancelPrevent as EventListener);
 		this.#ctx._micrio.addEventListener('pointerdown', this.start, eventPassive);
 		self.addEventListener('pointercancel', this.#cancel, eventPassive);
-		this.#ctx._micrio.setAttribute('data-hooked', '');
+		this.#ctx._micrio.dataset.hooked = '';
 	}
 
 	/** Unhooks pointer listeners for drag panning. */
@@ -35,7 +35,7 @@ export class DragHandler {
 		this.#ctx._micrio.removeEventListener('pointerdown', this.start, eventPassive);
 		this.#ctx._micrio.removeEventListener('dragstart', cancelPrevent as EventListener);
 		self.removeEventListener('pointercancel', this.#cancel, eventPassive);
-		this.#ctx._micrio.removeAttribute('data-hooked');
+		delete this.#ctx._micrio.dataset.hooked;
 	}
 
 	/**
@@ -77,7 +77,7 @@ export class DragHandler {
 		this.#ctx._micrio.addEventListener('pointermove', this.#move, eventPassive);
 		this.#ctx._micrio.addEventListener('pointerup', this.stop, eventPassive);
 
-		this.#ctx._micrio.setAttribute('data-panning', '');
+		this.#ctx._micrio.dataset.panning = '';
 		img.canvas?._kinetic.stop();
 		if (!keepAnimations) {img.camera.stop();}
 		this.#ctx._micrio._engine.render();
@@ -132,7 +132,7 @@ export class DragHandler {
 		}
 		this.#ctx._capturedPointerId = undefined;
 
-		this.#ctx._micrio.removeAttribute('data-panning');
+		delete this.#ctx._micrio.dataset.panning;
 
 		// Notify engine pan stopped (triggers kinetic animation if enabled and not suppressed)
 		if (e && noKinetic == false) {

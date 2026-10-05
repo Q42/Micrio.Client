@@ -123,7 +123,7 @@ export class WebGL {
 			alpha: true, // Request alpha channel
 			// premultipliedAlpha: false, // Default is true, might affect blending
 			// preserveDrawingBuffer: true, // Needed for fadeBetween setting (legacy?) or explicit attribute
-			preserveDrawingBuffer: this.#micrio.hasAttribute('data-preserve-drawing-buffer'),
+			preserveDrawingBuffer: Object.hasOwn(this.#micrio.dataset, "preserveDrawingBuffer"),
 			stencil: false, // Stencil buffer not needed
 			antialias: false, // Antialiasing not needed (handled by rendering technique?)
 			depth: false, // Depth buffer not needed

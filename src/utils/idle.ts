@@ -38,7 +38,7 @@ export class IdleState {
 
 	/** Whether the element currently has the data-idle attribute. */
 	get idle(): boolean {
-		return this.el.hasAttribute('data-idle');
+		return Object.hasOwn(this.el.dataset, "idle");
 	}
 
 	/** Whether the idle state manager is enabled. */
@@ -54,7 +54,7 @@ export class IdleState {
 	/** Resets the idle timer and removes the data-idle attribute if present. */
 	activity() {
 		if (this.idle) {
-			this.el.removeAttribute('data-idle');
+			delete this.el.dataset.idle;
 			this.o.onActive();
 		}
 		this.#schedule();
@@ -63,7 +63,7 @@ export class IdleState {
 	/** Removes the data-idle attribute and calls onActive if currently idle. */
 	show() {
 		if (this.idle) {
-			this.el.removeAttribute('data-idle');
+			delete this.el.dataset.idle;
 			this.o.onActive();
 		}
 	}
@@ -71,7 +71,7 @@ export class IdleState {
 	/** Sets the data-idle attribute and calls onIdle, then pauses the timer. */
 	hide() {
 		if (!this.idle) {
-			this.el.setAttribute('data-idle', '');
+			this.el.dataset.idle = '';
 			this.o.onIdle();
 		}
 		this.pause();
@@ -101,7 +101,7 @@ export class IdleState {
 				return;
 			}
 			if (!this.idle) {
-				this.el.setAttribute('data-idle', '');
+				this.el.dataset.idle = '';
 				this.o.onIdle();
 			}
 		}, this.o.delay);

@@ -186,8 +186,8 @@ export class Events implements EventContext {
 
 		// Apply settings
 		this._twoFingerPan = Boolean(s.twoFingerPan);
-		if (this._twoFingerPan) {this._micrio.setAttribute('data-can-pan', '');}
-		else {this._micrio.removeAttribute('data-can-pan');}
+		if (this._twoFingerPan) {this._micrio.dataset.canPan = '';}
+		else {delete this._micrio.dataset.canPan;}
 
 		// Hook specific event types based on settings
 		if (s?.hookKeys) {this.hookKeys();}

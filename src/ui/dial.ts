@@ -33,7 +33,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 			if (e.button != 0) {return;}
 			micrio.addEventListener('pointermove', dMove);
 			micrio.addEventListener('pointerup', dStop);
-			micrio.setAttribute('data-panning', '');
+			micrio.dataset.panning = '';
 			micrio.setPointerCapture(pointerId = e.pointerId);
 			startRot = this.#props.currentRotation;
 			startX = e.clientX;
@@ -47,7 +47,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 
 		const dStop = () => {
 			if (pointerId) {micrio.releasePointerCapture(pointerId);}
-			micrio.removeAttribute('data-panning');
+			delete micrio.dataset.panning;
 			micrio.removeEventListener('pointermove', dMove);
 			micrio.removeEventListener('pointerup', dStop);
 		};

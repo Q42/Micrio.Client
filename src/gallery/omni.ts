@@ -207,12 +207,12 @@ export class OmniUI {
 	#initSwiper() {
 		const micrio = this.#micrio;
 
-		if(!this.#swiperOpts.sensitivity) {this.#swiperOpts.sensitivity = Number(micrio.getAttribute('data-swipe-sensitivity') ?? 1);}
+		if(!this.#swiperOpts.sensitivity) {this.#swiperOpts.sensitivity = Number(micrio.dataset.swipeSensitivity ?? 1);}
 
-		const snap = micrio.getAttribute('data-swipe-snap');
+		const snap = micrio.dataset.swipeSnap;
 		if(snap) {this.#snapTo = snap.split(',').map(Number);}
 
-		this.#micrio.setAttribute('data-hooked','');
+		this.#micrio.dataset.hooked = '';
 
 		this.#cleanups.push(this.#image.state.view.subscribe(v =>
 			this.#isFullWidth = this.#swiperOpts.coverLimit ? this.#image.camera.isZoomedOut()
@@ -249,7 +249,7 @@ export class OmniUI {
 
 		if(newDrag) {
 			this.#hitTresh = false;
-			this.#micrio.setAttribute('data-panning','');
+			this.#micrio.dataset.panning = '';
 			this.#startIndex = this.currentIndex;
 			this.#startX = e.clientX;
 			this.#firstTouchId = e.pointerId;
@@ -294,7 +294,7 @@ export class OmniUI {
 	}
 
 	#swipeEnd():void {
-		this.#micrio.removeAttribute('data-panning');
+		delete this.#micrio.dataset.panning;
 		this.#removeSwipeListeners();
 		this.#hitTresh = false;
 

@@ -12,7 +12,7 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	dragHandler.stop(undefined, false, true);
 
 	ctx._pinching = true;
-	ctx._micrio.setAttribute('data-pinching', '');
+	ctx._micrio.dataset.pinching = '';
 	ctx._pinchFactor = undefined;
 
 	if (ctx._vars._pinch._image) {
@@ -53,7 +53,7 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: a
 	self.removeEventListener('touchmove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions);
 	self.removeEventListener('pointermove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions);
 
-	ctx._micrio.removeAttribute('data-pinching');
+	delete ctx._micrio.dataset.pinching;
 
 	const i = ctx._vars._pinch._image;
 	if (i) {

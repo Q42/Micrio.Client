@@ -422,7 +422,7 @@ export class Engine {
 			canvas._omniOffsetX = settings.omni.offsetX ?? 0;
 			c.state.view.set([0, 0, 1, 1]);
 		}
-		if (this.micrio.hasAttribute('data-limited') && c.canvas) {c.canvas._limited = true;}
+		if (Object.hasOwn(this.micrio.dataset, "limited") && c.canvas) {c.canvas._limited = true;}
 
 		canvas._sendViewport();
 

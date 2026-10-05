@@ -78,8 +78,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			// Sync cluster marker elements
 			const clusterIds = new Set(clusters.map(g => g.join(',')));
-			for (const el of this.querySelectorAll(':scope > micrio-marker.cluster')) {
-				const id = el.getAttribute('data-marker-id');
+			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker.cluster')) {
+				const id = el.dataset.markerId;
 				if (id && !clusterIds.has(id)) {el.remove();}
 			}
 			for (const g of clusters) {
@@ -122,8 +122,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				: [];
 			const expected = new Set(areas.map(m => m.id));
 
-			for (const el of this.querySelectorAll(':scope > micrio-embed[data-marker-id]')) {
-				const id = el.getAttribute('data-marker-id');
+			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-embed[data-marker-id]')) {
+				const id = el.dataset.markerId;
 				if (!id || !expected.has(id)) {el.remove();}
 			}
 
@@ -154,8 +154,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			if (!$switching && micrio.spaceData) {
 				const links = micrio.spaceData.links.filter((l: any) => l[0] == image.id || l[1] == image.id);
 				const linkIds = new Set(links.map((l: any) => l[0] == image.id ? l[1] : l[0]));
-				for (const el of this.querySelectorAll(':scope > micrio-waypoint')) {
-					if (!linkIds.has(el.getAttribute('data-target-id'))) {el.remove();}
+				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-waypoint')) {
+					if (!linkIds.has(el.dataset.targetId)) {el.remove();}
 				}
 				for (const l of links) {
 					const id = l[0] == image.id ? l[1] : l[0];
@@ -169,15 +169,15 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					}
 				}
 			} else {
-				for (const el of this.querySelectorAll(':scope > micrio-waypoint')) {el.remove();}
+				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-waypoint')) {el.remove();}
 			}
 
 			if ($visible) {
 				const filtered = $visible.filter(m => !m.i18n || m.i18n[$_lang]);
 				const expected = new Set(filtered.map(m => m.id));
 
-				for (const el of this.querySelectorAll(':scope > micrio-marker')) {
-					const id = el.getAttribute('data-marker-id');
+				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker')) {
+					const id = el.dataset.markerId;
 					if (!id || el.classList.contains('cluster')) {continue;}
 					if (!expected.has(id)) {el.remove();}
 				}
@@ -193,7 +193,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					}
 				}
 			} else {
-				for (const el of this.querySelectorAll(':scope > micrio-marker')) {el.remove();}
+				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker')) {el.remove();}
 			}
 
 			if (inactive) {

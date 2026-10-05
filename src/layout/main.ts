@@ -141,7 +141,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		this._provide('mediaPaused', writable<boolean>(false));
 
-		const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
+		const onlyMarkers = micrio.dataset.ui == 'markers';
 		if (onlyMarkers) {this.#props.noHTML = true;}
 
 		const didStart: string[] = [];
@@ -245,7 +245,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const hasAudio = Boolean($data?.music?.items.length) || Boolean(positionalAudio?.length);
 		const hasTourOrMarker = $tour || $marker;
 
-		const showMarkers = !noHTML || (micrio.getAttribute('data-ui') == 'markers');
+		const showMarkers = !noHTML || (micrio.dataset.ui == 'markers');
 		const showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo && !$marker && !$markerPopup;
 		const showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo && Boolean(this.#logoOrg) && !$popover;
 		const showControls = !noHTML && Boolean($info) && !$settings?.noControls;
@@ -284,7 +284,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#syncImageLayer(this.#embedElements, 'micrio-image-embeds', 'embeds', $visible,
-			micrio.getAttribute('data-embeds') != 'false',
+			micrio.dataset.embeds != 'false',
 			(i) => Boolean(i.$data?.embeds?.length)
 		);
 

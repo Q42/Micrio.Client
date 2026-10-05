@@ -134,7 +134,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		// - 'false': force every embed to be rendered as HTML.
 		// Embeds that can't be rendered in WebGL (iframes, src-only images, videos
 		// with controls or alpha transparency) still fall back to HTML in any mode.
-		const glAttrValue = this.#micrio.getAttribute('data-embeds-inside-gl');
+		const glAttrValue = this.#micrio.dataset.embedsInsideGl;
 		const glMode: Models.Attributes.EmbedGLMode = glAttrValue === 'true' || glAttrValue === 'false' ? glAttrValue : 'auto';
 		const forceGL = glMode === 'true';
 		this.#embedImageAsHtml = glMode === 'false' || (glMode === 'auto' && (

@@ -356,7 +356,7 @@ export class Grid extends MicrioElement {
 				this.#cellSizes.delete(i.id);
 			}
 			tile.dataset.id = i.id;
-			tile.setAttribute('data-scroll-through', '');
+			tile.dataset.scrollThrough = '';
 			this.append(tile);
 		});
 

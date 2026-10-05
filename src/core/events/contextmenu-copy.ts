@@ -73,9 +73,9 @@ export class ContextMenuCopyHandler {
 	 */
 	#engage(): void {
 		const micrio = this.#ctx._micrio;
-		if (!micrio.hasAttribute('data-contextmenu-crop')) {return;}
+		if (!Object.hasOwn(micrio.dataset, "contextmenuCrop")) {return;}
 		// The browser reads the drawing buffer after compositing, so it must be preserved
-		if (!micrio.hasAttribute('data-preserve-drawing-buffer')) {return;}
+		if (!Object.hasOwn(micrio.dataset, "preserveDrawingBuffer")) {return;}
 
 		const engine = micrio._engine;
 		if (!engine.ready || !micrio._webgl.gl) {return;}

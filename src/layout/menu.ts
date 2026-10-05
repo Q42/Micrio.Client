@@ -103,7 +103,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 
 		this.replaceChildren();
 		this.classList.toggle('opened', this.#isOpen(menu));
-		this.setAttribute('data-title', cultureData?.title?.toLowerCase() ?? '');
+		this.dataset.title = cultureData?.title?.toLowerCase() ?? '';
 
 		const click = (e: Event) => {
 			if (!menu.link) {e.preventDefault();}

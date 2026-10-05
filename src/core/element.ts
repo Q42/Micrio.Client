@@ -282,14 +282,14 @@ export class HTMLMicrioElement extends MicrioElement {
 		const unsub = this._loading.subscribe(v => {
 			if (v) {return;}
 			unsub();
-			this.setAttribute('data-loaded','');
+			this.dataset.loaded = '';
 
 			this._watch(this._switching, s => {
-				if(s) {this.setAttribute('data-switching','');}
+				if(s) {this.dataset.switching = '';}
 				else {
 					if(!shown) {tick().then(() => this.events._dispatch('show', this));}
 					shown = true;
-					this.removeAttribute('data-switching');
+					delete this.dataset.switching;
 				}
 			});
 
@@ -616,9 +616,9 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.canvas.hook();
 
 			switch(c.$settings?.theme) {
-				case 'light': { this.setAttribute('data-light-mode',''); break;
+				case 'light': { this.dataset.lightMode = ''; break;
 				}
-				case 'os': { this.setAttribute('data-auto-scheme',''); break;
+				case 'os': { this.dataset.autoScheme = ''; break;
 				}
 			}
 
