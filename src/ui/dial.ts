@@ -47,8 +47,16 @@ class MicrioDial extends MicrioElement<DialProps> {
 		}
 
 		const dMove = (e: PointerEvent) => {
+			// An unstyled or hidden dial measures zero, which would turn the drag into a
+			// division by zero and hand the caller a non-finite frame.
+			if (this.offsetWidth <= 0 || micrio.offsetWidth <= 0) {
+				return
+			}
 			const scale = Math.max(1, (camera.getXY(1, 0.5)[0] - camera.getXY(0, 0.5)[0]) / micrio.offsetWidth)
 			const targetFrame = (startRot / 360 + (startX - e.clientX) / (this.offsetWidth * scale)) * this.#props.frames
+			if (!Number.isFinite(targetFrame)) {
+				return
+			}
 			this.#props.onturn?.(targetFrame)
 		}
 
