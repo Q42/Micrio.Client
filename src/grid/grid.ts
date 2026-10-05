@@ -113,7 +113,7 @@ export class Grid extends MicrioElement<GridProps> {
 		const g = this.image.$settings?.grid;
 		this._clickable = (g?.clickable && ['focus','zoom'].includes(g.clickable)) ? g.clickable : false;
 		this._panZoom = g?.panZoom === 'cells' ? 'cells' : 'grid';
-		if(this._clickable && this.image.$settings.hookKeys) {this._addCleanup(hookGridKeys(this));}
+		if(this._clickable !== false && this.image.$settings.hookKeys) {this._addCleanup(hookGridKeys(this));}
 		if(g?.transitionDuration !== undefined) {this._aniDurationIn = this.#aniDurationOut = g.transitionDuration;}
 		if(g?.transitionDurationOut !== undefined) {this.#aniDurationOut = g.transitionDurationOut;}
 
@@ -148,9 +148,10 @@ export class Grid extends MicrioElement<GridProps> {
 		this.micrio.state.marker.subscribe(m => {
 			if(m && typeof m !== 'string') {
 				const d = m.data?._meta;
-				if(d?.gridSize) {
-					const s: [number, number] = typeof d.gridSize === 'number' ? [d.gridSize, d.gridSize]
-						: [Number(d.gridSize.split(',')[0]), Number(d.gridSize.split(',')[1])];
+				const gs = d?.gridSize;
+				if(gs !== undefined && gs !== '' && gs !== 0) {
+					const s: [number, number] = typeof gs === 'number' ? [gs, gs]
+						: [Number(gs.split(',')[0]), Number(gs.split(',')[1])];
 					const micId = this._images.find(i => i.$data?.markers?.find(n => n === m))?.id;
 					if(micId) {this.#nextSize.set(micId, s);}
 				}
@@ -162,13 +163,13 @@ export class Grid extends MicrioElement<GridProps> {
 			}
 		});
 
-		if(this._clickable) {
+		if(this._clickable !== false) {
 			this.addEventListener('click', e => {
 				const {target} = e;
 				this._clickCell(target instanceof HTMLElement ? target.dataset.id : undefined);
 			});
 
-			const placeOrRemove = (t:unknown) => { if(t) {this.#removeGrid();} else {this.#placeGrid();} };
+			const placeOrRemove = (t:MicrioImage|Models.ImageData.Marker|Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined) => { if(t !== undefined) {this.#removeGrid();} else {this.#placeGrid();} };
 			this.micrio.state.tour.subscribe(placeOrRemove);
 			this.micrio.state.marker.subscribe(placeOrRemove);
 			this._focussed.subscribe(placeOrRemove);
@@ -256,7 +257,7 @@ export class Grid extends MicrioElement<GridProps> {
 			engine._crossfadeDuration = crossfadeDur;
 		}
 
-		const doUnfocus = !opts.noBlur && focussed;
+		const doUnfocus = !opts.noBlur && focussed !== undefined;
 		if(doUnfocus) {this.blur();}
 
 		if(!opts.noHistory && this._current.length > 0) {this.#savePreviousLayout();}
@@ -321,7 +322,7 @@ export class Grid extends MicrioElement<GridProps> {
 			if(isDelayed) {for (const i of this._images) { if (i.canvas) {i.canvas.zIndex = 0;} }}
 			if(forcedCoverLimit) {for (const i of images) {this._imageMap.get(i.id)?.camera.setCoverLimit(false);}}
 			else if(opts.coverLimit) {for (const i of images) {this._imageMap.get(i.id)?.camera.setCoverLimit(true);}}
-			if(this._clickable) {this.#placeGrid();}
+			if(this._clickable !== false) {this.#placeGrid();}
 			this._lastAction = undefined;
 			resolved = true;
 			ok(this._current);
@@ -396,12 +397,12 @@ export class Grid extends MicrioElement<GridProps> {
 			if(img && !img.area) {img.area = [(r.x+o[0])/w, (r.y+o[1])/h, (r.width-o[0]*2)/w, (r.height-o[1]*2)/h]}
 		}
 
-		if (!this._clickable) {this.style.display = 'none';}
+		if (this._clickable === false) {this.style.display = 'none';}
 		if (wasHiddenClass) {this.classList.add('grid-cells-hidden');}
 	}
 
 	#placeGrid() : void {
-		if(!this._clickable || this.micrio.state.$tour || this.micrio.state.$marker) {return;}
+		if(this._clickable === false || this.micrio.state.$tour || this.micrio.state.$marker) {return;}
 		this.classList.remove('grid-cells-hidden');
 		this.#viewUnsub = this.image.state.view.subscribe(this.#updateGrid);
 	}
@@ -477,7 +478,7 @@ export class Grid extends MicrioElement<GridProps> {
 		this._markersShown.set([]);
 		await tick();
 		if(!forceAni && !noCamAni && this.micrio.camera?.isZoomedOut() && !this.micrio.state.$tour && !this.$focussed && !this.#hasChanged()) {duration = 0;}
-		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#galleryGridImages, { noHistory: true, duration, noCamAni, forceAni, horizontal: state ? state.horizontal : false }).then(i => {
+		return this.set(this.#layoutFromHistoryEntry(state) ?? this.#galleryGridImages, { noHistory: true, duration, noCamAni, forceAni, horizontal: state !== undefined ? state.horizontal : false }).then(i => {
 			this.#depth.set(this.#history.length = 0);
 			this.micrio.current.set(this.image);
 			return i;
@@ -530,7 +531,7 @@ export class Grid extends MicrioElement<GridProps> {
 	/** @internal */
 	_clickCell(_img?:MicrioImage|string) : void {
 		const img = typeof _img === 'string' ? this._images.find(i => i.id === _img) : _img;
-		if(!this._clickable || !img) {return;}
+		if(this._clickable === false || !img) {return;}
 		for (const b of this._buttons.values()) {b.classList.remove('focussed');}
 		this._buttons.get(img.id)?.classList.add('focussed');
 		if(this._clickable === 'zoom') {
