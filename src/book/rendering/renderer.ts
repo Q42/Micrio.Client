@@ -686,8 +686,8 @@ export class PaperRenderer {
 		const animPages  = allPages.filter(md => isAnimating(md._pageIndex));
 
 		// Static pages: front-to-back (no offset, early-Z eliminates overdraw)
-		for (let di = 0; di < staticPages.length; di++) {
-			this.#drawPage(staticPages[di]);
+		for (const page of staticPages) {
+			this.#drawPage(page);
 		}
 
 		// Animating pages: back-to-front with polygon offset

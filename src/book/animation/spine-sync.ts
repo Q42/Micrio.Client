@@ -1,6 +1,6 @@
 export function computeWeightFactor(progress: Float32Array, pageCount: number): number {
 	let sum = 0;
-	for (let i = 0; i < progress.length; i++) {sum += progress[i];}
+	for (const value of progress) {sum += value;}
 	return pageCount > 0 ? sum / pageCount : 0;
 }
 

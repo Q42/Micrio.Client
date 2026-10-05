@@ -90,8 +90,8 @@ export class IIIFTextureManager {
 	}
 
 	#hasActiveFades(): boolean {
-		for (let p = 0; p < this.#states.length; p++) {
-			if (this.#states[p][0]._downloadState === 'fading' || this.#states[p][1]._downloadState === 'fading') {
+		for (const state of this.#states) {
+			if (state[0]._downloadState === 'fading' || state[1]._downloadState === 'fading') {
 				return true;
 			}
 		}
