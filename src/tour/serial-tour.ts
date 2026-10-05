@@ -47,7 +47,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			const id = typeof m === 'string' ? m : m.id;
 			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
 			if (idx >= 0 && idx !== this.#currentStep) {
-				this.#stepInfo.forEach(s => s.ended = false);
+				for (const s of this.#stepInfo) {s.ended = false;}
 				void this.#openStep(idx);
 			}
 		}));
@@ -63,7 +63,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		if (this.#props.tour.printChapters) {
 			const ol = createElement('ol');
-			this.#stepInfo.forEach((si, i) => {
+			for (const [i, si] of this.#stepInfo.entries()) {
 				const marker = DataLoader._getStepMarker(si);
 				const title = this.#getTitle(marker);
 				if (title) {
@@ -78,7 +78,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 						]
 					});
 				}
-			});
+			}
 			if (ol.children.length > 0) {this.append(ol);}
 		}
 	}
@@ -185,7 +185,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		holder.querySelector('[data-part="bars"]')?.remove();
 
 		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } });
-		this.#stepInfo.forEach((si, i) => {
+		for (const [i, si] of this.#stepInfo.entries()) {
 			const marker = DataLoader._getStepMarker(si);
 			createElement('div', {
 				attrs: { 'data-part': 'bar', role: 'progressbar', tabindex: '0' },
@@ -195,14 +195,14 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				events: { click: () => this.#goto(i) },
 				parent: barsDiv
 			});
-		});
+		}
 		holder.prepend(barsDiv);
 	}
 
 	#goto(i: number) {
 		if (this.#noTimeScrub && i === this.#currentStep) {return;}
 		if (i === this.#currentStep) {return;}
-		this.#stepInfo.forEach(s => s.ended = false);
+		for (const s of this.#stepInfo) {s.ended = false;}
 		void this.#openStep(i);
 	}
 
@@ -220,7 +220,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#updateBars() {
 		if (!this.#built) {return;}
 		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('aside [data-part="bars"] > [data-part="bar"]') ?? [];
-		bars.forEach((bar, i) => {
+		for (const [i, bar] of bars.entries()) {
 			const si = this.#stepInfo[i];
 			const ct = i === this.#currentStep ? (si.currentTime ?? 0) : 0;
 			let pct = 0;
@@ -228,10 +228,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			else if (i === this.#currentStep) {pct = Math.round((ct / (si.duration || 1)) * 10000) / 100;}
 			bar.style.setProperty('--progress', `${pct}%`);
 			bar.classList.toggle('active', i === this.#currentStep);
-		});
+		}
 
 		const chapters = this.querySelectorAll<HTMLElement>('ol.chapters li');
-		chapters.forEach(li => li.classList.toggle('active', Number(li.dataset.idx) === this.#currentStep));
+		for (const li of chapters) {li.classList.toggle('active', Number(li.dataset.idx) === this.#currentStep);}
 	}
 
 	/** @internal */

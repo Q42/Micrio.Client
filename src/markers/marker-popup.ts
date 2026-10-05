@@ -35,7 +35,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const micrio = this._getMicrio();
 		if (!micrio || !marker) {return;}
 
-		marker.tags?.forEach(c => this.classList.add(c));
+		for (const c of marker.tags ?? []) {this.classList.add(c);}
 		void afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
 
 		this._addCleanup(micrio.state.popup.subscribe(m => {

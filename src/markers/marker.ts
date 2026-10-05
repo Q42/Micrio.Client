@@ -396,7 +396,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		if (!marker.noMarker) {moved();}
 
 		// Marker tags as classes
-		if (marker.tags) {marker.tags.forEach(c => this.classList.add(c));}
+		if (marker.tags) {for (const c of marker.tags) {this.classList.add(c);}}
 	}
 
 	/** @internal */

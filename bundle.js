@@ -13,10 +13,10 @@ if(hasBook3d) {console.log(`Including optional module: ${book3dFile}`);}
 function dedupeCssSelectors(cssContent) {
 	const matches = cssContent.match(/\.([^\d.{ ):>,]+)/mig);
 	if (matches) {
-		[...new Set(matches)].forEach(sel => {
+		for (const sel of new Set(matches)) {
 			const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig');
 			cssContent = cssContent.replace(reg, sel);
-		});
+		}
 	}
 	return cssContent;
 }
