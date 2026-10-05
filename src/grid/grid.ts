@@ -306,7 +306,7 @@ export class Grid extends MicrioElement {
 			if(setId !== this.#setId) {return;}
 			this.#clearTimeouts();
 			Frame.request(() => engine._crossfadeDuration = defaultDur);
-			if(isDelayed) {this._images.forEach(i => { if (i.canvas) i.canvas.zIndex = 0; });}
+			if(isDelayed) {this._images.forEach(i => { if (i.canvas) {i.canvas.zIndex = 0;} });}
 			if(forcedCoverLimit) {images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(false));}
 			else if(opts.coverLimit) {images.forEach(i => this._imageMap.get(i.id)?.camera.setCoverLimit(true));}
 			if(this._clickable) {this.#placeGrid();}

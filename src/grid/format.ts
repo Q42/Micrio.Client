@@ -9,7 +9,7 @@ export function getCols(images: number, numTiles: number): number {
 	if (images === numTiles) {
 		const margin = Math.floor(Math.sqrt(images));
 		const cols: number[] = [];
-		for (let n = margin; n < num + margin; n++) {if (!(images % n)) cols.push(n);}
+		for (let n = margin; n < num + margin; n++) {if (!(images % n)) {cols.push(n);}}
 		if (cols.length > 0) {num = cols[Math.floor(cols.length / 2)];}
 	}
 	return num;
