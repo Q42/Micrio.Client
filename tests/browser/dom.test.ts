@@ -161,11 +161,53 @@ describe('loadScript', () => {
 		vi.restoreAllMocks()
 	})
 
-	it('rejects when the script errors before loading', async () => {
+	it('rejects when the script errors before loading, callback name or not', async () => {
+		// The callback name used to be the hang: it is only ever reached from the
+		// script's own load notification, so an error rejected nothing at all.
 		vi.spyOn(document.head, 'append').mockImplementation(((node: Node) => {
 			;(node as HTMLScriptElement).dispatchEvent(new Event('error'))
 		}) as unknown as ParentNode['append'])
-		await expect(loadScript('https://example.test/fails.js', 'otherCb')).rejects.toBeUndefined()
+		await expect(loadScript('https://example.test/fails.js', 'otherCb')).rejects.toThrow(
+			'Failed to load https://example.test/fails.js',
+		)
+		await expect(loadScript('https://example.test/fails2.js')).rejects.toThrow(
+			'Failed to load https://example.test/fails2.js',
+		)
+		vi.restoreAllMocks()
+	})
+
+	it('clears the callback global once the script has loaded', async () => {
+		const src = 'https://example.test/cb-cleanup.js'
+		vi.spyOn(document.head, 'append').mockImplementation(((node: Node) => {
+			;(node as HTMLScriptElement).dispatchEvent(new Event('load'))
+			;(globalThis as unknown as { cleanupCb: () => void }).cleanupCb()
+		}) as unknown as ParentNode['append'])
+		await loadScript(src, 'cleanupCb')
+		expect(Reflect.has(globalThis, 'cleanupCb')).toBe(false)
+		vi.restoreAllMocks()
+	})
+
+	it('settles once, so a late error after loading is ignored', async () => {
+		const src = 'https://example.test/load-then-error.js'
+		vi.spyOn(document.head, 'append').mockImplementation(((node: Node) => {
+			// With a callback name the script's own `load` event is not observed: the
+			// callback is the success signal, and it runs first here
+			;(globalThis as unknown as { lateCb: () => void }).lateCb()
+			// An error arriving afterwards must not reject an already-resolved promise
+			;(node as HTMLScriptElement).dispatchEvent(new Event('error'))
+		}) as unknown as ParentNode['append'])
+		await expect(loadScript(src, 'lateCb')).resolves.toBeUndefined()
+		vi.restoreAllMocks()
+	})
+
+	it('rejects through the callback global when the script errors', async () => {
+		vi.spyOn(document.head, 'append').mockImplementation(((node: Node) => {
+			;(node as HTMLScriptElement).dispatchEvent(new Event('error'))
+		}) as unknown as ParentNode['append'])
+		await expect(loadScript('https://example.test/cb-error.js', 'errorCb')).rejects.toThrow(
+			'Failed to load https://example.test/cb-error.js',
+		)
+		expect(Reflect.has(globalThis, 'errorCb')).toBe(false)
 		vi.restoreAllMocks()
 	})
 })
