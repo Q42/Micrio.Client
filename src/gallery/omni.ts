@@ -95,7 +95,7 @@ export class OmniUI {
 			frames.push(frame);
 		}
 
-		if (bundle.settings?.omni && parseFloat(bundle.info.version) >= 5) {
+		if (bundle.settings?.omni && Number.parseFloat(bundle.info.version) >= 5) {
 			await archive.load(
 				bundle.info.tileBasePath || bundle.info.path,
 				`${bundle.info.tilesId ?? bundle.info.id  }/base`,

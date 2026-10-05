@@ -113,7 +113,7 @@ class Archive {
 		// Helper to slice and trim null characters
 		const g = (l:number) => s.slice(i, i+=l).replace(/\x00/g,'').trim();
 		let i = 0;
-		return { name: g(20), size: parseInt(g(12), 8) } // Parse name (20 bytes) and size (12 bytes octal)
+		return { name: g(20), size: Number.parseInt(g(12), 8) } // Parse name (20 bytes) and size (12 bytes octal)
 	}
 
 	/**

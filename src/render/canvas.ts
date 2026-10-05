@@ -129,10 +129,10 @@ export class Canvas {
 
 		// Account for potential CSS transforms affecting getBoundingClientRect
 		const st = self.getComputedStyle(this.element);
-		const originalW = parseFloat(st.width);
+		const originalW = Number.parseFloat(st.width);
 		// Adjust height based on width ratio if transform applied
 		if(!isNaN(originalW)) {
-			height = parseFloat(st.height) * width / Math.max(1, originalW);
+			height = Number.parseFloat(st.height) * width / Math.max(1, originalW);
 		}
 
 		// Calculate CSS scale factor (relevant if micr-io element itself is scaled)

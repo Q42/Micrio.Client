@@ -346,7 +346,7 @@ export class Engine {
 			this._hasArchive = true;
 			this._archiveLayerOffset = settings.gallery.archiveLayerOffset ?? 0;
 		}
-		if (i.version && parseFloat(i.version) <= 3.1) {this._underzoomLevels = 8;}
+		if (i.version && Number.parseFloat(i.version) <= 3.1) {this._underzoomLevels = 8;}
 
 		if (i.is360) {settings.limitToCoverScale = false;}
 		const coverLimit = Boolean(settings.limitToCoverScale);

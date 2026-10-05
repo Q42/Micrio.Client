@@ -81,9 +81,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#contentWidth = 1;
 	/** Last written values, so unchanged properties are never rewritten. */
 	#lastMatrix = '';
-	#lastX = NaN;
-	#lastY = NaN;
-	#lastS = NaN;
+	#lastX = Number.NaN;
+	#lastY = Number.NaN;
+	#lastS = Number.NaN;
 	#lastOpacity = 1;
 	/** Last applied video-paused UI state. */
 	#pausedUI = false;
