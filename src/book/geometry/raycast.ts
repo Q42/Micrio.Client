@@ -18,7 +18,7 @@ export function rayIntersectMeshes(
 
 	for (let pi = 0; pi < meshes.length; pi++) {
 		const mesh = meshes[pi];
-		if (!mesh) {continue;}
+		if (mesh === undefined) {continue;}
 		const pos = mesh._positions;
 		const tris = mesh._triangles;
 

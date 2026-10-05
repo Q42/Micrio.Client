@@ -108,7 +108,7 @@ export class IIIFTextureManager {
 
 	#pageDistance(p: number, spreadCenter: number): number {
 		const images = this.#pageIdxes[spreadCenter];
-		if (images) {
+		if (images !== undefined) {
 			const frontImgIdx = p * 2;
 			const backImgIdx = p * 2 + 1;
 			if (images.includes(frontImgIdx) || images.includes(backImgIdx)) {
