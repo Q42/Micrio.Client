@@ -27,7 +27,7 @@ class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 	/** The custom element tag name @internal */
 	static tag = 'micrio-logo-org';
 
-	#props: LogoOrgProps = { organisation: null! };
+	#props: Partial<LogoOrgProps> = {};
 
 	/** @internal */
 	_onMount() {

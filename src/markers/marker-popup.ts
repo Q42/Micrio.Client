@@ -21,7 +21,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-marker-popup';
 
-	#props: MarkerPopupProps = { marker: null! };
+	#props: Partial<MarkerPopupProps> = {};
 	#content!: HTMLElement;
 	#title!: HTMLElement;
 	#isMinimized = false;
@@ -114,8 +114,10 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 							this.#originalHeights.set(n, n.offsetHeight);
 							n.style.height = `${n.offsetHeight  }px`;
 						}
+						const height = this.#originalHeights.get(n);
+						if (height === undefined) {continue;}
 						setTimeout(() => {
-							n.style.height = this.#isMinimized ? '0px' : `${this.#originalHeights.get(n)!  }px`;
+							n.style.height = this.#isMinimized ? '0px' : `${height}px`;
 						}, 100);
 					}
 				}

@@ -20,7 +20,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 	/** The custom element tag name @internal */
 	static tag = 'micrio-popover';
 
-	#props: PopoverProps = { popover: null! };
+	#props: Partial<PopoverProps> = {};
 	#dialog!: HTMLDialogElement;
 
 	/** @internal */

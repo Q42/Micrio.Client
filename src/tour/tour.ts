@@ -21,7 +21,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 	/** The custom element tag name. @internal */
 	static tag = 'micrio-tour';
 
-	#props: TourProps = { tour: null! };
+	#props: Partial<TourProps> = {};
 	#currentStep = 0;
 	/** The aside element containing step navigation controls. */
 	aside: HTMLElement | undefined;
@@ -72,7 +72,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			mt.currentStep ??= mt.initialStep ?? 0;
 			this.#currentStep = mt.currentStep;
 			const {stepInfo} = mt;
-			const tourControlsInPopup = Boolean(micrio.$current!.$settings?._markers?.tourControlsInPopup);
+			const tourControlsInPopup = Boolean(micrio.$current?.$settings?._markers?.tourControlsInPopup);
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
 				const si = stepInfo?.[newIdx];

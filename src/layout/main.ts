@@ -238,7 +238,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const isMobile = micrio.canvas.$isMobile;
 
 		const _360 = micrio.$current?._is360
-		const video = _360 ? $settings!._360!.video : undefined;
+		const video = _360 ? $settings?._360?.video : undefined;
 		const videoSrc = video?.src;
 		const isBook3d = micrio.$current?.album?.info?.type === 'book3d';
 		this.classList.toggle('is3d', _360 || isBook3d);
@@ -272,7 +272,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#show('details', showDetails && Boolean($data), () =>
-			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } })
+			createElement('micrio-details', { setProps: { info: $info, data: $data } })
 		);
 
 		this.#show('toolbar', showToolbar, () =>
@@ -294,7 +294,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#show('orgLogo', showOrgLogo && Boolean(this.#logoOrg), () =>
-			createElement('micrio-logo-org', { setProps: { organisation: this.#logoOrg! } })
+			createElement('micrio-logo-org', { setProps: { organisation: this.#logoOrg } })
 		);
 
 		const grid = micrio.$current?.grid;
@@ -305,8 +305,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		this.#show('minimap', showMinimap,
-			() => createElement('micrio-minimap', { setProps: { image: micrio.$current! } }),
-			(el) => (el as MicrioElement)._setProps?.({ image: micrio.$current! })
+			() => createElement('micrio-minimap', { setProps: { image: micrio.$current } }),
+			(el) => (el as MicrioElement)._setProps?.({ image: micrio.$current })
 		);
 
 		// Marker popup — only created when micrio.state.popup is set (after flyTo completes)
@@ -340,15 +340,15 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this.#show('tour', Boolean($tour), () => {
 			const isSerial = $tour && 'steps' in $tour && $tour.isSerialTour;
 			const tag = isSerial ? 'micrio-serial-tour' : 'micrio-tour';
-			return createElement(tag, { setProps: { tour: $tour!, noHTML } });
+			return createElement(tag, { setProps: { tour: $tour, noHTML } });
 		});
 
 		this.#show('popover', Boolean($popover), () =>
-			createElement('micrio-popover', { setProps: { popover: $popover! } })
+			createElement('micrio-popover', { setProps: { popover: $popover } })
 		);
 
 		this.#show('error', Boolean(error), () =>
-			createElement('micrio-error', { setProps: { message: error! } })
+			createElement('micrio-error', { setProps: { message: error } })
 		);
 
 		this.#show('progress', loadingProgress < 1, () =>

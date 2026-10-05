@@ -19,7 +19,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-markers';
 
-	#props: MarkersProps = { image: null! };
+	#props: Partial<MarkersProps> = {};
 
 	/** @internal */
 	_onMount() {
@@ -132,7 +132,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				if (this.querySelector(`:scope > micrio-embed[data-marker-id="${CSS.escape(m.id)}"]`)) {continue;}
 				const el = createElement('micrio-embed', {
 					attrs: { 'data-marker-id': m.id },
-					setProps: { embed: m.clickableArea!, marker: m, image }
+					setProps: { embed: m.clickableArea, marker: m, image }
 				});
 				if (before) {this.insertBefore(el, before);}
 				else {this.append(el);}
@@ -221,7 +221,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			let wasVideoTour = false;
 			this._addCleanup(image.state.marker.subscribe(m => {
 				if (m && typeof m !== 'string' && !image._openedView && !m.noMarker && m.view) {
-			image._openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
+			const $tour = get(micrio.state.tour);
+			image._openedView = $tour && !('steps' in $tour) ? undefined
 				: structuredClone(image.state.$view ?? image.camera?.getView());
 					wasVideoTour = Boolean(m.videoTour);
 				} else if (!m && image._openedView && !get(micrio.state.tour)) {

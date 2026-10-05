@@ -23,7 +23,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-waypoint';
 
-	#props: WaypointProps = { targetId: '', image: null! };
+	#props: Partial<WaypointProps> = { targetId: '' };
 
 	#clicked = false;
 	#hidden = false;

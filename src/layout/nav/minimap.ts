@@ -18,7 +18,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	/** The custom element tag name @internal */
 	static tag = 'micrio-minimap';
 
-	#props: MinimapProps = { image: null! };
+	#props: Partial<MinimapProps> = {};
 	#_ctx: CanvasRenderingContext2D | null = null;
 	#dragViewDims: { width: number; height: number } | undefined;
 	#mapRect: DOMRect | undefined;

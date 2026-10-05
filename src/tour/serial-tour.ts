@@ -17,7 +17,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	/** The custom element tag name. @internal */
 	static tag = 'micrio-serial-tour';
 
-	#props: SerialTourProps = { tour: null! };
+	#props: Partial<SerialTourProps> = {};
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];
 	#currentStep = 0;
 	#built = false;
@@ -61,7 +61,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (this.#built) {return;}
 		this.#built = true;
 
-		if (this.#props.tour.printChapters) {
+		if (this.#props.tour?.printChapters) {
 			const ol = createElement('ol');
 			for (const [i, si] of this.#stepInfo.entries()) {
 				const marker = DataLoader._getStepMarker(si);

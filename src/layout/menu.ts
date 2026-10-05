@@ -31,14 +31,14 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	/** The custom element tag name @internal */
 	static tag = 'micrio-menu';
 
-	#props: MenuProps = { menu: null!, originalId: null };
+	#props: Partial<MenuProps> = { originalId: null };
 	#action: (() => void) | undefined;
 
 	/** @internal */
 	_onMount() {
 		const { menu } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio) {return;}
+		if (!micrio || !menu) {return;}
 		const { _lang } = micrio;
 
 		if (menu.children?.length === 1 && !this.#getCData(menu, get(_lang))?.title) {
@@ -55,7 +55,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	#evalAction() {
 		const { menu, originalId } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio) {return;}
+		if (!micrio || !menu) {return;}
 		const { events, state: micrioState, _lang } = micrio;
 		const cultureData = this.#getCData(menu, get(_lang));
 		const menuWithExtras = menu as Models.ImageData.Menu & { content?: string; embedUrl?: string };
@@ -87,9 +87,9 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 		return m.i18n?.[lang] ?? (m as unknown as Models.ImageData.MenuCultureData);
 	}
 
-	#isOpen(menu: Models.ImageData.Menu): boolean {
+	#isOpen(menu: Models.ImageData.Menu | undefined): boolean {
 		const $opened = get(opened);
-		if (!$opened) {return false;}
+		if (!$opened || !menu) {return false;}
 		const check = (m: Models.ImageData.Menu): boolean => m === $opened || Boolean(m.children?.some(check));
 		return check(menu);
 	}
@@ -97,7 +97,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	#render() {
 		const { menu, originalId, onclose } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio) {return;}
+		if (!micrio || !menu) {return;}
 		const $_lang = get(micrio._lang);
 		const cultureData = this.#getCData(menu, $_lang);
 

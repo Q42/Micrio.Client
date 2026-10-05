@@ -26,7 +26,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-marker';
 
-	#props: MarkerProps = { marker: null! };
+	#props: Partial<MarkerProps> = {};
 	#opened = false;
 	#behindCam = false;
 	#x = 0;

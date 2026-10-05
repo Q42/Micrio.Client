@@ -46,14 +46,15 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	};
 
 	#setLang = (l: string) => {
-		this._getMicrio()!.lang = l;
+		const micrio = this._getMicrio();
+		if (micrio) {micrio.lang = l;}
 	};
 
 	#aside1!: HTMLElement;
 	#muteBtn: MicrioElement | undefined;
 	#shareBtn: MicrioElement | undefined;
 	#langMenu: HTMLElement | undefined;
-	#langItemsEl: HTMLElement | undefined;
+	#langItemsEl!: HTMLElement;
 	#group1!: HTMLElement;
 	#zoomGroup: MicrioElement | undefined;
 	#fsGroup: MicrioElement | undefined;
@@ -79,7 +80,8 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 
 		this._addCleanup(micrio.current.subscribe(c => {
 			if (c) {
-				if (get(tour) && 'steps' in get(tour)!) {return;}
+				const $tour = get(tour);
+				if ($tour && 'steps' in $tour) {return;}
 				settingsUnsub?.();
 				settingsUnsub = c._settings.subscribe(readInfo);
 			}
@@ -111,6 +113,8 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		this.#aside1 = createElement('aside', {
 			parent: this
 		});
+
+		this.#langItemsEl = createElement('div');
 
 		this.#built = true;
 	}
@@ -152,13 +156,12 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		if (hasCultures && !onlyFullscreen) {
 			if (!this.#langMenu?.isConnected) {
 				this.#langMenu?.remove();
-				this.#langItemsEl = undefined;
 				this.#lastCultures = '';
 				this.#langMenu = createElement('menu', {
 					attrs: { tabindex: '0' },
 					children: [
 						createElement('micrio-button'),
-						this.#langItemsEl = createElement('div')
+						this.#langItemsEl
 					]
 				});
 				this.#aside1.prepend(this.#langMenu);
@@ -166,7 +169,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			const trigger = this.#langMenu.querySelector('micrio-button') as MicrioElement;
 			trigger?._setProps({ type: 'a11y', title: $i18n._switchLanguage });
 
-			const items = this.#langItemsEl!;
+			const items = this.#langItemsEl;
 			const culturesKey = cultures.join(',');
 			if (culturesKey !== this.#lastCultures) {
 				this.#lastCultures = culturesKey;
