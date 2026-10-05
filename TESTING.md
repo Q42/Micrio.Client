@@ -122,17 +122,39 @@ tours).
 - `helpers/viewer.ts` mounts a sized `<micr-io>`, opens a bundle object or an id, and
   exposes `waitFor` for polling on animation frames. Prefer `waitFor` over fixed
   `setTimeout` delays.
+- `helpers/network.ts` also has `mockText(pattern, body)` for non-JSON resources
+  (WebVTT). Both helpers take a **RegExp**, not a URL string — passing a URL silently
+  produces a matcher that never matches.
+- `helpers/tour.ts` adds `mountTour` (mount + open + wait for load), `startTour` (set the
+  tour store the way the toolbar does), `recordEvents` (custom events with details) and a
+  pair of clock helpers, `tickClock(ms)` and `advance(ms)`.
+- `fixtures/tours.ts` builds video tours, marker tours, cross-image serial tours, and a
+  small VTT document. `markersWithVideo` exists because a serial tour only produces media
+  — and therefore progress bars — for steps whose marker carries a video tour.
 - `src/core/state.ts` and friends are exercised with small plain-object stubs. When a
   stub needs a back-reference to itself (the `image.engine.micrio` pattern), build it as
   `const engine = { micrio }; const image = { engine }` — see the note below.
 
-### A sharp edge worth knowing
+### Sharp edges worth knowing
 
-Object literals with a self-reference can lose the reference under the Vite transform
-when they are built inside a nested function and passed through an `as unknown as
-SomeClass` cast. Constructing the referenced object first and dereferencing it through a
-local (`const engine = { micrio }`) is the reliable shape, and is what
-`tests/core/state.test.ts` uses. It costs one line and saves an afternoon.
+**Self-referencing literals.** Object literals with a self-reference can lose the
+reference under the Vite transform when they are built inside a nested function and
+passed through an `as unknown as SomeClass` cast. Constructing the referenced object
+first and dereferencing it through a local (`const engine = { micrio }`) is the reliable
+shape, and is what `tests/core/state.test.ts` uses.
+
+**Private fields are invisible to assertions.** `#props` and friends are not own
+properties, so `(el as unknown as { _props?: X })._props` reads `undefined` even when
+the component was configured correctly. Reading them tells you nothing — assert through
+the DOM, or through a public accessor, instead. Several hours went into a phantom bug
+caused by this.
+
+**Fake timers freeze `waitFor`.** `waitFor` polls on `requestAnimationFrame`, which a
+faked clock never advances. Mount and open with real timers, then switch:
+`mountWithFakeTime` in `tests/browser/video-tour.test.ts` shows the pattern. Also
+remember that `VideoTourInstance` derives `currentTime` from `Date.now()`, so use
+`tickClock()` when you want to observe time passing without its scheduled steps firing,
+and `advance()` when the steps firing _is_ the thing under test.
 
 ## Type checking and linting
 
@@ -153,40 +175,55 @@ local (`const engine = { micrio }`) is the reliable shape, and is what
 
 ## Status
 
-| Area                                   | Suite                          | Status      |
-| -------------------------------------- | ------------------------------ | ----------- |
-| Math, ids, time, locale, easing        | `tests/core/*.test.ts`         | done        |
-| Store API, state controllers           | `tests/core/store`, `state`    | done        |
-| bundle.json loading and caching        | `tests/core/dataLoader`        | done        |
-| MDP archive parsing                    | `tests/core/archive`           | done        |
-| Matrix/vector math                     | `tests/core/mat`               | done        |
-| Legacy (pre-v5) vs v5+ bundles         | `tests/browser/element-legacy` | done        |
-| `<micr-io>` open / events / attributes | `tests/browser/element-*`      | done        |
-| Markers                                | `tests/browser/markers`        | done        |
-| 360 spaces and waypoints               | `tests/browser/tours-360`      | partial     |
-| Gallery / album switching              | `tests/browser/gallery`        | partial     |
-| Video tours, serial tours, audio       | —                              | not started |
-| Grid storytelling                      | —                              | not started |
-| 3D book viewer                         | `tests/browser/book3d-smoke`   | smoke only  |
-| UI components (toolbar, menu, popover) | —                              | not started |
-| Media adapters (YouTube/Vimeo/HLS)     | —                              | not started |
+| Area                                     | Suite                                | Status      |
+| ---------------------------------------- | ------------------------------------ | ----------- |
+| Math, ids, time, locale, easing          | `tests/core/*.test.ts`               | done        |
+| Store API, state controllers             | `tests/core/store`, `state`          | done        |
+| bundle.json loading and caching          | `tests/core/dataLoader`              | done        |
+| MDP archive parsing                      | `tests/core/archive`                 | done        |
+| Matrix/vector math                       | `tests/core/mat`                     | done        |
+| Legacy (pre-v5) vs v5+ bundles           | `tests/browser/element-legacy`       | done        |
+| `<micr-io>` open / events / attributes   | `tests/browser/element-*`            | done        |
+| Markers                                  | `tests/browser/markers`              | done        |
+| 360 spaces and waypoints                 | `tests/browser/tours-360`            | partial     |
+| Gallery / album switching                | `tests/browser/gallery`              | partial     |
+| Video tour timeline and playback         | `tests/browser/video-tour`           | done        |
+| Marker tour UI and navigation            | `tests/browser/marker-tour`          | done        |
+| Serial (multi-image) tours               | `tests/browser/serial-tour`          | partial     |
+| Media element, controls, subtitles       | `tests/browser/media-*`, `subtitles` | done        |
+| Tour toolbar and autostart wiring        | `tests/browser/tour-integration`     | done        |
+| Audio controller (Web Audio, positional) | —                                    | not started |
+| Grid storytelling                        | —                                    | not started |
+| 3D book viewer                           | `tests/browser/book3d-smoke`         | smoke only  |
+| UI components (toolbar, menu, popover)   | —                                    | not started |
+| Media adapters (YouTube/Vimeo/HLS)       | —                                    | not started |
 
 ## Session backlog
 
 Roughly in order of value against risk:
 
-1. **Grid storytelling** (`src/grid/**`) — its own session: layout math, transitions,
+1. **Two tour bugs found while writing the above.** Both need a separate, focused look
+   before the areas they touch can be called covered:
+   - **`src/tour/serial-tour.ts` renders no controls.** With a serial tour mounted, the
+     `<micrio-serial-tour>` element is created and `serialtour-*`, `markerTourActive` and
+     the cross-image step advance all work, but the element's own `_onMount` produces no
+     children: no progress bars, no chapter list, no time display. Confirmed with a
+     mounted tour, step markers carrying video tours, `printChapters`, and both with and
+     without a video tour on the marker.
+   - **`_markers.tourControlsInPopup: true` renders no controls either.** With that
+     setting the `<micrio-tour>` element mounts but is empty, where without it the aside
+     (prev/counter/next/fullscreen/close) renders normally.
+2. **Grid storytelling** (`src/grid/**`) — its own session: layout math, transitions,
    keyboard, action handlers, marker-driven grid tours.
-2. **Tours in depth** — actually running a marker tour and a video tour: step advance,
-   chapter/serial tours with their own video and audio, `tour-start`/`tour-stop` events,
-   audio muting and volume, `state.mediaState` resume behaviour.
 3. **360 in depth** — waypoint rendering, transition smoothness, `trueNorth` handling.
-4. **Media adapters** — subtitle parsing, HLS/YouTube/Vimeo adapter contracts against
-   stubbed players.
-5. **UI components** — toolbar/menu/popover rendering and locale switching.
-6. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
+4. **Audio controller** (`src/audio/**`) — the sequential playlist, `AudioContext`
+   gain/volume and positional audio. Needs a stubbed `AudioContext`.
+5. **Media adapters** — HLS/YouTube/Vimeo adapter contracts against stubbed players.
+6. **UI components** — toolbar/menu/popover rendering and locale switching beyond the
+   tour entries.
+7. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
    after the other subsystems, and only with golden-image or geometry assertions.
-7. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
+8. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
    floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-8. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+9. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
