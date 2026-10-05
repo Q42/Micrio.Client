@@ -517,10 +517,14 @@ function buildShell(): HTMLElement {
 async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): Promise<void> {
 	await injectMarkers(micrio);
 
-	const sub = root.querySelector<HTMLElement>('[data-role="sub"]')!;
-	const strip = root.querySelector<HTMLElement>('[data-role="strip"]')!;
-	const tagsBox = root.querySelector<HTMLElement>('[data-role="tags"]')!;
-	const focusTrans = root.querySelector<HTMLSelectElement>('[data-role="focus-trans"]')!;
+	const sub = root.querySelector<HTMLElement>('[data-role="sub"]');
+	const strip = root.querySelector<HTMLElement>('[data-role="strip"]');
+	const tagsBox = root.querySelector<HTMLElement>('[data-role="tags"]');
+	const focusTrans = root.querySelector<HTMLSelectElement>('[data-role="focus-trans"]');
+	const tourNote = root.querySelector<HTMLElement>('[data-role="tour-note"]');
+	if (!sub || !strip || !tagsBox || !focusTrans || !tourNote) {
+		throw new Error('[grid demo] Control panel markup is incomplete.');
+	}
 
 	for (const t of FOCUS_TRANSITIONS) {
 		const opt = h('option');
@@ -531,7 +535,6 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 	focusTrans.value = 'slide-up';
 
 	const getTransition = () => focusTrans.value as FocusTransition;
-	const tourNote = root.querySelector<HTMLElement>('[data-role="tour-note"]')!;
 
 	buildStrip(strip, micrio, grid, getTransition);
 	buildTags(tagsBox, grid);

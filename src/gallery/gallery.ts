@@ -164,7 +164,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#parentImage.canvas?._setActiveImage(imgIdx, num);
 			this.#parentImage.camera.setView([0, 0, 1, 1]);
 		}
-		this.#parentImage.album!.hooked = true;
+		if (this.#parentImage.album) {this.#parentImage.album.hooked = true;}
 		return images[imgIdx];
 	}
 
@@ -208,18 +208,21 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/** Returns [0-1 progress, page index] for a pointer/touch event on the scrubber. */
 	#getScrubXPercIdx(e: PointerEvent | TouchEvent): [number, number] {
-		const _box = this.#box ?? this.#_ul!.getBoundingClientRect();
+		const box = this.#box ?? this.#_ul?.getBoundingClientRect();
+		if (!box) {return [0, 0];}
 		const total = this.#pageToImages.length;
 		const clientX = 'button' in e ? e.clientX : (e).touches[0].clientX;
-		const perc = Math.min(1, Math.max(0, (clientX - _box.left - scrubPad) / (_box.width - scrubPad * 2)));
+		const perc = Math.min(1, Math.max(0, (clientX - box.left - scrubPad) / (box.width - scrubPad * 2)));
 		const idx = Math.max(0, Math.min(total - 1, Math.round(perc * Math.max(1, total - 1))));
 		return [perc, idx];
 	}
 
 	/** Updates scrubber position during drag. */
 	#scrubMove = (e: PointerEvent | TouchEvent) => {
+		const box = this.#box;
+		if (!box) {return;}
 		const [perc, idx] = this.#getScrubXPercIdx(e);
-		this.#_left = scrubPad + perc * (this.#box!.width - scrubPad * 2);
+		this.#_left = scrubPad + perc * (box.width - scrubPad * 2);
 		if (idx !== this.#currentPage) {void this.#goto(idx, true);}
 	};
 
@@ -265,11 +268,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			while (rX < 0) {rX += total;}
 			while (rX >= total) {rX -= total;}
 			const tile = getTile(rX);
-			if (tile?.thumbSrc && !this.#preloading.has(tile.thumbSrc)) {
-				this.#preloading.set(tile.thumbSrc, request(() => {
-					engine._getTexture(tile.baseTileIdx, tile.thumbSrc!, false, { force: hasArchive });
-					this.#preloading.delete(tile.thumbSrc!);
-				}));
+			if (tile?.thumbSrc) {
+				const {thumbSrc} = tile;
+				if (!this.#preloading.has(thumbSrc)) {
+					this.#preloading.set(thumbSrc, request(() => {
+						engine._getTexture(tile.baseTileIdx, thumbSrc, false, { force: hasArchive });
+						this.#preloading.delete(thumbSrc);
+					}));
+				}
 			}
 		}
 	}
@@ -396,8 +402,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		// Strip-swipe pointer events on the canvas element
 		if (this.#swipeGallery && images.length > 1) {
-			micrio.canvas.element.addEventListener('pointerdown', this.#swipeGallery.handlePointerDown);
-			this._addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
+			const swipeGallery = this.#swipeGallery;
+			micrio.canvas.element.addEventListener('pointerdown', swipeGallery.handlePointerDown);
+			this._addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', swipeGallery.handlePointerDown));
 		}
 
 		globalThis.addEventListener('keydown', this.#keydown);
@@ -409,7 +416,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// `<canvas>`, so no engine instancing happens here. Keep all DOM UI
 		// (scrubber, prev/next, keyboard nav, album API, gallery-show) intact,
 		// and mark the pages visible so their markers render.
-		parent.album!.hooked = true;
+		if (parent.album) {parent.album.hooked = true;}
 		const {micrio} = parent.engine;
 		const individualAspects = Boolean(config.settings?.individualAspects);
 		const book3d = this.#book3d = new BookViewer({

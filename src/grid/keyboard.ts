@@ -7,11 +7,14 @@ const ARROW_DIR = {
 } as const;
 
 function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage|undefined {
-	const cells = grid._current.map((img, i) => ({
-		img, i,
-		cx: img.opts.area![0] + img.opts.area![2] / 2,
-		cy: img.opts.area![1] + img.opts.area![3] / 2,
-	}));
+	const cells = grid._current.map((img, i) => {
+		const area = img.opts.area ?? [0, 0, 1, 1];
+		return {
+			img, i,
+			cx: area[0] + area[2] / 2,
+			cy: area[1] + area[3] / 2,
+		};
+	});
 	if (cells.length === 0) {return undefined;}
 
 	let curIdx = cells.findIndex(c => c.img.id === grid.querySelector<HTMLElement>(':focus')?.dataset.id);

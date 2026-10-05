@@ -214,11 +214,16 @@ export class Gallery {
 	static _fromAssets(assets: Models.Assets.Image[], engine: Engine, micrio: HTMLMicrioElement, opts?: { startId?: string; basePath?: string }): Gallery {
 		const path = opts?.basePath ?? micrio.$current?._dataPath ?? BASEPATH;
 
-		const items: Models.ImageInfo.ImageInfo[] = assets.map(c => ({
-			id: c.micrioId ?? c.id!, path, version: '',
-			width: c.width, height: c.height,
-			isDeepZoom: c.isDeepZoom, isPng: c.isPng, isWebP: c.isWebP,
-		}));
+		const items: Models.ImageInfo.ImageInfo[] = [];
+		for (const c of assets) {
+			const id = c.micrioId ?? c.id;
+			if (!id) {continue;}
+			items.push({
+				id, path, version: '',
+				width: c.width, height: c.height,
+				isDeepZoom: c.isDeepZoom, isPng: c.isPng, isWebP: c.isWebP,
+			});
+		}
 
 		return new Gallery(items, engine, {
 			type: 'swipe',

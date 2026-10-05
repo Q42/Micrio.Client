@@ -54,21 +54,20 @@ export async function transition(
 
 	const isSlwipe = trans.startsWith('slide') || trans.startsWith('swipe');
 	const isBehind = trans.startsWith('behind');
-	let transDir: number | undefined;
+	let transDir = 90;
 	if (isSlwipe) {
 		if (trans.endsWith('-up')) {transDir = 0;}
 		else if (trans.endsWith('-down')) {transDir = 180;}
 		else if (trans.endsWith('-left')) {transDir = 270;}
-		else {transDir = 90;}
 	}
 
 	if(isSlwipe || isBehind) { const c = target.canvas; if (c) { c._targetOpacity = .9999; c._opacity = .9999; } }
 
 	if(trans.startsWith('slide')) {
-		target.camera.setArea(slideAreas[transDir!], {noDispatch: true, direct: true});
+		target.camera.setArea(slideAreas[transDir], {noDispatch: true, direct: true});
 	}
 	else if(trans.startsWith('swipe')) {
-		target.camera.setArea(swipeAreas[transDir!], {noDispatch: true, direct: true});
+		target.camera.setArea(swipeAreas[transDir], {noDispatch: true, direct: true});
 	}
 	else if(isBehind) {
 		target.camera.setArea([0,0,1,1]);
@@ -102,7 +101,7 @@ export async function transition(
 
 	if (trans.startsWith('swipe')) {
 		return [
-			{id: current.id, size: [1], view: exitView ?? current.camera.getView(), area: swipeExitAreas[transDir!]},
+			{id: current.id, size: [1], view: exitView ?? current.camera.getView(), area: swipeExitAreas[transDir]},
 			{id: target.id, size: [1], view, area: [0, 0, 1, 1]},
 		];
 	}

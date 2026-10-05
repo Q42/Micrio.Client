@@ -18,7 +18,7 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	/** HTML tag name for this custom element. @internal */
 	static tag = 'micrio-swipe-gallery';
 
-	#props: MicrioGalleryProps = { gallery: null!, lang: '' };
+	#props: MicrioGalleryProps = { gallery: [], lang: '' };
 
 	_setProps(props: Partial<MicrioGalleryProps>) {
 		if (props.gallery !== undefined) {this.#props.gallery = props.gallery;}

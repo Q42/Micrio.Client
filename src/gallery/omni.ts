@@ -151,8 +151,8 @@ export class OmniUI {
 
 		const omniCfg = image.$settings.omni;
 		const omniNumLayers = omniCfg?.layers?.length ?? 1;
-		if (omniNumLayers > 1) {
-			const layerNames = omniCfg!.layers!.map((l,i) => ({
+		if (omniCfg?.layers && omniNumLayers > 1) {
+			const layerNames = omniCfg.layers.map((l,i) => ({
 				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? `Layer ${  i + 1}` }]))
 			}));
 			const langs = Object.keys(info.revision ?? {});
@@ -272,7 +272,9 @@ export class OmniUI {
 		)) {this.#startX = e.clientX;}
 		if(!this.#hitTresh) {return;}
 
-		const {camera} = this.#micrio.$current!;
+		const current = this.#micrio.$current;
+		if (!current) {return;}
+		const {camera} = current;
 		const scale = !this.#swiperOpts.continuous ? 1 : Math.max(0.1, (camera.getXY(1, .5)[0] - camera.getXY(0, .5)[0]) / this.#micrio.offsetWidth);
 		const delta = Math.round((e.clientX - this.#startX) / (this.#micrio.offsetWidth * scale) * this.#swiperLength * (this.#swiperOpts.sensitivity ?? 1));
 		let idx = this.#startIndex - delta;

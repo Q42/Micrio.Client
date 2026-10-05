@@ -347,8 +347,11 @@ export class Grid extends MicrioElement {
 		this.style.removeProperty('--scale');
 
 		for (const i of images) {
-			if(!this._buttons.has(i.id)) {this._buttons.set(i.id, createElement('button'));}
-			const tile = this._buttons.get(i.id)!;
+			let tile = this._buttons.get(i.id);
+			if (!tile) {
+				tile = createElement('button');
+				this._buttons.set(i.id, tile);
+			}
 			if(i.size[0] !== 1 || i.size[1] !== undefined) {
 				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0]||i.size[1]}`;
 				this.#cellSizes.set(i.id, i.size)
@@ -413,13 +416,15 @@ export class Grid extends MicrioElement {
 		cover?:boolean;
 	}) : MicrioImage {
 		const { _engine: engine } = this.micrio;
-		const img = this._imageMap.get(entry.id)!;
+		const img = this._imageMap.get(entry.id);
+		if (!img) {throw new Error(`Grid image not found: ${entry.id}`);}
 
 		if (!img._placed) {
 			engine._addChild(img, this.image);
 		}
 		if (entry.area) {
-			const set = () => img.camera.setArea(entry.area!, {
+			const {area} = entry;
+			const set = () => img.camera.setArea(area, {
 				direct: opts.duration===0 || (!opts.forceAreaAni && !get(img.visible))
 			});
 			if (opts.delay) {void sleep(opts.delay * 1000).then(set).then(() => engine.render());}
