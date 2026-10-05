@@ -11,11 +11,10 @@
  * `live/` suite is the place where real tiles are loaded.
  */
 
-type Responder = (url: string) => Response | undefined
-
+/** A single intercepted request pattern and the response it produces. */
 interface Route {
-	test: RegExp
-	respond: Responder
+	match: RegExp
+	respond: (url: string) => Response | undefined
 }
 
 let restore: (() => void) | undefined
@@ -33,23 +32,31 @@ function originalFetch(): typeof fetch {
 
 /** Installs a `fetch` that only answers the given routes; everything else is a 404. */
 export function mockFetch(routes: { match: RegExp; json?: unknown; status?: number }[]): void {
-	const mapped: Route[] = routes.map((r) => ({
-		test: r.match,
-		respond: () => {
-			const status = r.status ?? 200
-			const body = JSON.stringify(r.json ?? {})
-			return new Response(status === 200 ? body : JSON.stringify({ error: 'not found' }), {
-				status,
-				headers: { 'content-type': 'application/json' },
-			})
-		},
-	}))
-	install(mapped)
+	install(
+		routes.map((r) => ({
+			match: r.match,
+			respond: () => {
+				const status = r.status ?? 200
+				const body = status === 200 ? JSON.stringify(r.json ?? {}) : JSON.stringify({ error: 'not found' })
+				return new Response(body, { status, headers: { 'content-type': 'application/json' } })
+			},
+		})),
+	)
 }
 
 /** Installs a `fetch` that answers with a fixed JSON body for any URL matching `match`. */
 export function mockJson(match: RegExp, json: unknown, status = 200): void {
 	mockFetch([{ match, json, status }])
+}
+
+/** Installs a `fetch` that answers with a plain-text body, for non-JSON resources (WebVTT). */
+export function mockText(match: RegExp, text: string, status = 200): void {
+	install([
+		{
+			match,
+			respond: () => new Response(text, { status, headers: { 'content-type': 'text/vtt' } }),
+		},
+	])
 }
 
 function install(routes: Route[]): void {
@@ -68,7 +75,7 @@ function install(routes: Route[]): void {
 		}
 		requested.push(url)
 		for (const route of routes) {
-			if (route.test.test(url)) {
+			if (route.match.test(url)) {
 				const response = route.respond(url)
 				if (response) {
 					return Promise.resolve(response)
