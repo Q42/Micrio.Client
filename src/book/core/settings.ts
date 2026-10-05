@@ -63,7 +63,7 @@ export const SOLVER_ITERATIONS = 64;
 export const SOLVER_SUBSTEPS = 3;
 
 /** Distance constraint compliance (0.0 = perfectly stiff) */
-export const DISTANCE_COMPLIANCE = 0.000;
+export const DISTANCE_COMPLIANCE = 0;
 
 /** Bending constraint compliance (lower = stiffer) */
 export const BENDING_COMPLIANCE = 0.000041;
@@ -141,7 +141,7 @@ export const TILT_SHIFT_FOCUS_WIDTH = 0.25;
 export const TILT_SHIFT_BLUR_RADIUS = 4;
 
 /** Sharpness of the transition between in-focus and blurred regions (higher = sharper) */
-export const TILT_SHIFT_BLUR_FALLOFF = 1.0;
+export const TILT_SHIFT_BLUR_FALLOFF = 1;
 
 // ── Lighting ──
 

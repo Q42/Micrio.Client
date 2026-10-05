@@ -82,7 +82,7 @@ function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
 	}
 
 	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT;
-	const refArea = 1.0 * avgAspect;
+	const refArea = 1 * avgAspect;
 
 	// Every page shares the same geometry (the book-wide average aspect); per-page
 	// aspects are honored by rendering each texture in its own region of the page
@@ -597,7 +597,7 @@ export class BookViewer {
 		const view = this.#camera._getViewMatrix();
 		const aspect = canvas.width / Math.max(1, canvas.height);
 		const perspective = new Mat4();
-		perspective._perspective(Math.PI * 0.25, aspect, 0.1, 50.0);
+		perspective._perspective(Math.PI * 0.25, aspect, 0.1, 50);
 		// $render/mat's Mat4._multiply(o) computes `this = o·this`, so build
 		// `perspective·view` by copying the view first, then multiplying by proj.
 		const viewProj = new Mat4();
@@ -1013,7 +1013,7 @@ export class BookViewer {
 				? this.#dragStartCursorWorldX + mesh._paperWidth
 				: mesh._paperWidth - this.#dragStartCursorWorldX;
 			const progress = this.#dragStartProgress + displacement / Math.max(0.01, totalDistance);
-			this.#flipAnimator._setDragProgress(this.#dragPageIndex, Math.max(0.0, Math.min(1.0, progress)));
+			this.#flipAnimator._setDragProgress(this.#dragPageIndex, Math.max(0, Math.min(1, progress)));
 			this.#selectedPage = this.#dragPageIndex;
 			this.#requestFrame();
 		};
@@ -1091,7 +1091,7 @@ export class BookViewer {
 
 		const mesh = this.#meshes[hit._meshIndex];
 		const grabRow = 0.5 - hit._point._z / mesh._paperHeight;
-		const clampedGrabRow = Math.max(0.0, Math.min(1.0, grabRow));
+		const clampedGrabRow = Math.max(0, Math.min(1, grabRow));
 
 		return {
 			pageIndex: hit._meshIndex,
@@ -1114,7 +1114,7 @@ export class BookViewer {
 
 		const mesh = this.#meshes[hit._meshIndex];
 		const grabRow = 0.5 - hit._point._z / mesh._paperHeight;
-		const clampedGrabRow = Math.max(0.0, Math.min(1.0, grabRow));
+		const clampedGrabRow = Math.max(0, Math.min(1, grabRow));
 
 		return {
 			direction: hit._point._x < 0 ? 'prev' : 'next',
@@ -1375,7 +1375,7 @@ export class BookViewer {
 
 	#updateViewportClamp(): void {
 		const near = 0.1;
-		const far = 50.0;
+		const far = 50;
 		const canvasSize = this.#renderer._getCanvasSize();
 		const proj = new Mat4();
 		proj._perspective(Math.PI * 0.25, canvasSize.width / Math.max(1, canvasSize.height), near, far);

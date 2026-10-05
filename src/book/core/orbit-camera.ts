@@ -16,7 +16,7 @@ export class OrbitCamera {
 	_zoomSpeed: number = 0.003;
 
 	_minRadius: number = 0.6;
-	_maxRadius: number = 5.0;
+	_maxRadius: number = 5;
 
 	_panBoundsMin: Vec3 | null = null;
 	_panBoundsMax: Vec3 | null = null;

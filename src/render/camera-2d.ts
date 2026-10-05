@@ -14,16 +14,16 @@ import type { TileCanvas } from './tile-canvas';
 /** Handles 2D camera logic, view calculations, and user interactions like pan, zoom, pinch. @internal */
 export default class Camera2D extends EngineCamera {
 	/** @internal */
-	_scale: number = 1.0;
+	_scale: number = 1;
 	/** @internal */
-	_minScale: number = 1.0;
+	_minScale: number = 1;
 	/** @internal */
-	_minSize: number = 1.0;
+	_minSize: number = 1;
 	/** @internal */
-	_maxScale: number = 1.0;
-	#fullScale: number = 1.0;
+	_maxScale: number = 1;
+	#fullScale: number = 1;
 	/** @internal */
-	_coverScale: number = 1.0;
+	_coverScale: number = 1;
 
 	readonly #xy: Coordinates = new Coordinates;
 	readonly #coo: Coordinates = new Coordinates;

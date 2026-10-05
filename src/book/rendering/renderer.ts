@@ -620,7 +620,7 @@ export class PaperRenderer {
 
 	#computeBlurWeights(): Float32Array {
 		const weights = new Float32Array(15);
-		let sum = 0.0;
+		let sum = 0;
 		for (let i = -7; i <= 7; i++) {
 			const w = Math.exp(-0.125 * i * i);
 			weights[i + 7] = w;
@@ -638,7 +638,7 @@ export class PaperRenderer {
 		const view = camera._getViewMatrix();
 		const aspect = this.#canvas.width / Math.max(1, this.#canvas.height);
 		const proj = new Mat4();
-		proj._perspective(Math.PI * 0.25, aspect, 0.1, 50.0);
+		proj._perspective(Math.PI * 0.25, aspect, 0.1, 50);
 		// $render/mat's Mat4._multiply(o) computes `this = o·this`, so build `proj·view`
 		// by copying the view first and then multiplying by the projection.
 		const viewProj = new Mat4();
@@ -648,7 +648,7 @@ export class PaperRenderer {
 		const time = performance.now() / 1000;
 		const lighting = computeLighting(this.#activePreset, this.#presetParams, time);
 
-		gl.clearColor(0.0, 0.0, 0.0, 0.0);
+		gl.clearColor(0, 0, 0, 0);
 
 		if (this._tiltShiftEnabled) {
 			if (!this.#sceneFbo) {this.#createFbo();}
@@ -665,7 +665,7 @@ export class PaperRenderer {
 		gl.uniform3f(this.#paperULoc._frontColor, FRONT_COLOR[0], FRONT_COLOR[1], FRONT_COLOR[2]);
 		gl.uniform3f(this.#paperULoc._backColor, BACK_COLOR[0], BACK_COLOR[1], BACK_COLOR[2]);
 
-		gl.uniform1f(this.#paperULoc._seeThrough, this._seeThroughMargins ? 1.0 : 0.0);
+		gl.uniform1f(this.#paperULoc._seeThrough, this._seeThroughMargins ? 1 : 0);
 
 		gl.uniform1i(this.#paperULoc._numPointLights, lighting._numPointLights);
 		if (lighting._numPointLights > 0) {
@@ -682,7 +682,7 @@ export class PaperRenderer {
 		const allPages = this.#computeDrawOrder();
 
 		const isAnimating = (pi: number) =>
-			this.#flipProgress.length > pi && this.#flipProgress[pi] > 0.0 && this.#flipProgress[pi] < 1.0;
+			this.#flipProgress.length > pi && this.#flipProgress[pi] > 0 && this.#flipProgress[pi] < 1;
 
 		const staticPages = allPages.filter(md => !isAnimating(md._pageIndex));
 		const animPages  = allPages.filter(md => isAnimating(md._pageIndex));
@@ -698,7 +698,7 @@ export class PaperRenderer {
 			gl.enable(gl.POLYGON_OFFSET_FILL);
 
 			for (let i = 0; i < animPages.length; i++) {
-				gl.polygonOffset(0.0, -i * 12000.0);
+				gl.polygonOffset(0, -i * 12000);
 				this.#drawPage(animPages[i]);
 			}
 
@@ -710,12 +710,12 @@ export class PaperRenderer {
 		gl.disable(gl.POLYGON_OFFSET_FILL);
 
 		if (this._tiltShiftEnabled) {
-			const texelX = 1.0 / this.#canvas.width;
-			const texelY = 1.0 / this.#canvas.height;
+			const texelX = 1 / this.#canvas.width;
+			const texelY = 1 / this.#canvas.height;
 
 			const range = camera._maxRadius - camera._minRadius;
 			const t = range > 0 ? (camera._radius - camera._minRadius) / range : 0;
-			const strength = Math.max(0.05, 1.0 - t);
+			const strength = Math.max(0.05, 1 - t);
 
 			const blurRadius = TILT_SHIFT_BLUR_RADIUS * strength;
 			const blurFalloff = TILT_SHIFT_BLUR_FALLOFF * strength;

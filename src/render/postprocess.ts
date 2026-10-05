@@ -10,10 +10,10 @@ import vertexShader from './shaders/post.vert.glsl?raw';
  */
 const quadVertices = new Float32Array([
 	// x,    y,    u,  v
-	-1.00, -1.00,   0.0, 0.0, // bottom-left
-	 1.00, -1.00,   1.0, 0.0, // bottom-right
-	-1.00,  1.00,   0.0, 1.0, // top-left
-	 1.00,  1.00,   1.0, 1.0  // top-right
+	-1, -1,   0, 0, // bottom-left
+	 1, -1,   1, 0, // bottom-right
+	-1,  1,   0, 1, // top-left
+	 1,  1,   1, 1  // top-right
 ]);
 
 /**

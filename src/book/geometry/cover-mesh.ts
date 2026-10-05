@@ -16,7 +16,7 @@ export class CoverMesh extends PaperMesh {
 	readonly _coverScale: number;
 	readonly _coverScaleY: number;
 
-	constructor(yOffset: number = 0, paperWidth: number = 1.0, aspectRatio: number = DEFAULT_ASPECT, coverThickness: number = 0.01, coverScale: number = COVER_SCALE_X, coverScaleY: number = COVER_SCALE_Y) {
+	constructor(yOffset: number = 0, paperWidth: number = 1, aspectRatio: number = DEFAULT_ASPECT, coverThickness: number = 0.01, coverScale: number = COVER_SCALE_X, coverScaleY: number = COVER_SCALE_Y) {
 		super(yOffset, paperWidth, aspectRatio);
 		this._coverThickness = coverThickness;
 		this._coverScale = coverScale;
@@ -54,7 +54,7 @@ export class CoverMesh extends PaperMesh {
 		this.#addSideStrip(vi, this.#getEdgeVertices('boundEdge'), 0);
 
 		this._positions.set(this._restPositions);
-		this._invMasses.fill(1.0);
+		this._invMasses.fill(1);
 	}
 
 	#fillFaceGrid(baseIdx: number, y: number, halfHeight: number): void {
@@ -140,7 +140,7 @@ export class CoverMesh extends PaperMesh {
 		for (let row = 0; row < GRID_ROWS; row++) {
 			const v = row / (GRID_ROWS - 1);
 			for (let col = 0; col < GRID_COLS; col++) {
-				const u = 1.0 - col / (GRID_COLS - 1);
+				const u = 1 - col / (GRID_COLS - 1);
 				const idx = FACE_VERTEX_COUNT + row * GRID_COLS + col;
 				const uvIdx = idx * 2;
 				this._texCoords[uvIdx] = u;
@@ -166,10 +166,10 @@ export class CoverMesh extends PaperMesh {
 
 			let u: number, v: number;
 			switch (edge) {
-				case 'bottom': u = col / (GRID_COLS - 1); v = 0.0; break;
-				case 'top': u = col / (GRID_COLS - 1); v = 1.0; break;
-				case 'freeEdge': u = 1.0; v = row / (GRID_ROWS - 1); break;
-				case 'boundEdge': default: u = 0.0; v = row / (GRID_ROWS - 1); break;
+				case 'bottom': u = col / (GRID_COLS - 1); v = 0; break;
+				case 'top': u = col / (GRID_COLS - 1); v = 1; break;
+				case 'freeEdge': u = 1; v = row / (GRID_ROWS - 1); break;
+				case 'boundEdge': default: u = 0; v = row / (GRID_ROWS - 1); break;
 			}
 
 			const vFront = vi + i * 2;

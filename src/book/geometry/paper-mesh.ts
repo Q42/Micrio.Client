@@ -29,7 +29,7 @@ export class PaperMesh {
 	readonly _paperWidth: number;
 	readonly _paperHeight: number;
 
-	constructor(yOffset: number = 0, paperWidth: number = 1.0, aspectRatio: number = DEFAULT_ASPECT) {
+	constructor(yOffset: number = 0, paperWidth: number = 1, aspectRatio: number = DEFAULT_ASPECT) {
 		this._yOffset = yOffset;
 		this._paperWidth = paperWidth;
 		this._paperHeight = paperWidth * aspectRatio;
@@ -68,7 +68,7 @@ export class PaperMesh {
 			}
 		}
 		this._positions.set(this._restPositions);
-		this._invMasses.fill(1.0);
+		this._invMasses.fill(1);
 	}
 
 	protected _generateTexCoords(): void {
@@ -152,7 +152,7 @@ export class PaperMesh {
 	}
 
 	_setBinding(): void {
-		for (const idx of this._boundLeft) {this._invMasses[idx] = 0.0;}
+		for (const idx of this._boundLeft) {this._invMasses[idx] = 0;}
 	}
 
 	_computeNormals(): Float32Array {

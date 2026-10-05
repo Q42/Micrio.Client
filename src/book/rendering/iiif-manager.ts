@@ -257,9 +257,9 @@ export class IIIFTextureManager {
 				if (s._downloadState !== 'fading') {continue;}
 
 				const elapsed = now - s._fadeStartTime;
-				s._fadeProgress = Math.min(1.0, elapsed / IIIF_CROSSFADE_DURATION);
+				s._fadeProgress = Math.min(1, elapsed / IIIF_CROSSFADE_DURATION);
 
-				if (s._fadeProgress >= 1.0) {
+				if (s._fadeProgress >= 1) {
 					if (s._fadeType === 'cross') {
 						const oldSlot = s._activeSlot;
 						s._activeSlot = (1 - s._activeSlot) as 0 | 1;
@@ -316,12 +316,12 @@ export class IIIFTextureManager {
 			if (s._fadeType === 'in') {
 				return s._activeSlot === slot ? p : 0;
 			} else {
-				if (s._activeSlot === slot) {return 1.0 - p;}
+				if (s._activeSlot === slot) {return 1 - p;}
 				else {return p;}
 			}
 		}
 
-		return s._activeSlot === slot ? 1.0 : 0.0;
+		return s._activeSlot === slot ? 1 : 0;
 	}
 
 	_hasPendingWork(): boolean {

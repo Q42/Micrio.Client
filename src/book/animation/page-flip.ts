@@ -22,7 +22,7 @@ const IDLE_SLOT: AnimSlot = {
 	_startProgress: 0,
 	_elapsed: 0,
 	_drivenVertex: -1,
-	_savedInvMass: 1.0,
+	_savedInvMass: 1,
 	_grabRowOffset: 0,
 	_isDragging: false,
 };
@@ -115,7 +115,7 @@ export class PageFlipAnimator {
 	_setDragProgress(pageIndex: number, progress: number): void {
 		const slot = this.#slots[pageIndex];
 		if (!slot || !slot._isDragging) {return;}
-		slot._progress = Math.max(0.0, Math.min(1.0, progress));
+		slot._progress = Math.max(0, Math.min(1, progress));
 	}
 
 	_endDrag(pageIndex: number, direction: number): void {
@@ -151,7 +151,7 @@ export class PageFlipAnimator {
 			slot._startProgress = 0;
 			slot._elapsed = 0;
 			slot._drivenVertex = -1;
-			slot._savedInvMass = 1.0;
+			slot._savedInvMass = 1;
 			slot._grabRowOffset = 0;
 			slot._isDragging = false;
 		}
@@ -209,7 +209,7 @@ export class PageFlipAnimator {
 				slot._savedInvMasses = new Float32Array(mesh._invMasses.length);
 				slot._savedInvMasses.set(mesh._invMasses);
 				for (let i = 0; i < mesh._invMasses.length; i++) {
-					mesh._invMasses[i] = 0.0;
+					mesh._invMasses[i] = 0;
 				}
 			}
 			this.#applyRigidRotation(mesh, slot);
@@ -225,7 +225,7 @@ export class PageFlipAnimator {
 			slot._savedInvMass = mesh._invMasses[ci];
 			slot._drivenVertex = ci;
 		}
-		mesh._invMasses[ci] = 0.0;
+		mesh._invMasses[ci] = 0;
 
 		const i3 = ci * 3;
 		const spineY = mesh._positions[1];
@@ -250,7 +250,7 @@ export class PageFlipAnimator {
 			mesh._invMasses[slot._drivenVertex] = slot._savedInvMass;
 		}
 		slot._drivenVertex = -1;
-		slot._savedInvMass = 1.0;
+		slot._savedInvMass = 1;
 	}
 
 	#releaseAllDriven(meshes: PaperMesh[]): void {
@@ -269,7 +269,7 @@ export class PageFlipAnimator {
 				}
 			}
 			slot._drivenVertex = -1;
-			slot._savedInvMass = 1.0;
+			slot._savedInvMass = 1;
 		}
 	}
 
@@ -282,12 +282,12 @@ export class PageFlipAnimator {
 		if (slot._direction === 0) {return false;}
 
 		slot._elapsed += dt;
-		const target = slot._direction > 0 ? 1.0 : 0.0;
-		const fraction = Math.min(slot._elapsed / this.#flipDuration, 1.0);
+		const target = slot._direction > 0 ? 1 : 0;
+		const fraction = Math.min(slot._elapsed / this.#flipDuration, 1);
 		const eased = fraction * fraction * (3 - 2 * fraction);
 		slot._progress = slot._startProgress + (target - slot._startProgress) * eased;
 
-		if (fraction >= 1.0) {
+		if (fraction >= 1) {
 			slot._progress = target;
 			slot._direction = 0;
 			return true;
@@ -307,7 +307,7 @@ export class PageFlipAnimator {
 			this._initSlots(meshes.length);
 		}
 
-		const dtClamped = Math.min(dt, 1.0 / 30.0);
+		const dtClamped = Math.min(dt, 1 / 30);
 
 		// Pass 1: advance animations (skip dragged pages — they are manually controlled)
 		for (let pi = 0; pi < meshes.length; pi++) {

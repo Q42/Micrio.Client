@@ -29,7 +29,7 @@ function flickerSeed(i: number, t: number, flickerAmt: number): number {
 	const fast = Math.sin(t * 7.1 + phase * 2.8) * 0.15;
 	const crackle = Math.abs(Math.sin(t * 10.3 + phase * 5.1)) * 0.2;
 	const raw = 0.5 + (slow + mid + fast + crackle) * flickerAmt;
-	return Math.max(0.1, Math.min(1.0, raw));
+	return Math.max(0.1, Math.min(1, raw));
 }
 
 function clamp01(n: number): number {
@@ -80,7 +80,7 @@ const LIGHTING_PRESETS: LightingPreset[] = [
 		isAnimated: true,
 		params: [
 			{ key: 'candleCount', default: 3 },
-			{ key: 'spread', default: 2.0 },
+			{ key: 'spread', default: 2 },
 			{ key: 'intensity', default: 0.65 },
 			{ key: 'flicker', default: 0.2 },
 		],
@@ -163,7 +163,7 @@ export function computeLighting(
 		// ── ☀️ daylight ──
 		case 'daylight': {
 			const tod = params.timeOfDay ?? 12;
-			const sunAngle = ((tod / 24) * 2.0 - 0.5) * Math.PI; // -π/2 at 6h, +π/2 at 18h
+			const sunAngle = ((tod / 24) * 2 - 0.5) * Math.PI; // -π/2 at 6h, +π/2 at 18h
 			const sunHeight = Math.sin(sunAngle);
 			const dir = normalize([Math.cos(sunAngle), Math.max(0.05, sunHeight), -0.35]);
 
@@ -192,7 +192,7 @@ export function computeLighting(
 		// ── 💡 incandescent ──
 		case 'incandescent': {
 			const wattage = params.wattage ?? 1;
-			const wattBasis = [0.5, 1.0, 1.4][Math.round(wattage)] ?? 1.0;
+			const wattBasis = [0.5, 1, 1.4][Math.round(wattage)] ?? 1;
 			const lightScale = 0.6 + 0.4 * wattBasis;
 			const warmth = 0.4 - wattBasis * 0.15;
 
@@ -208,7 +208,7 @@ export function computeLighting(
 		// ── 🕯️ candlelight ──
 		case 'candlelight': {
 			const count = Math.round(params.candleCount ?? 4);
-			const spread = params.spread ?? 1.0;
+			const spread = params.spread ?? 1;
 			const brightness = params.intensity ?? 0.7;
 			const flickerAmt = params.flicker ?? 0.7;
 
@@ -220,7 +220,7 @@ export function computeLighting(
 				const step = half <= 1 ? 0 : idx / (half - 1);
 
 				const px = side * (1.2 + step * 2.2 * spread);
-				const pz = -1.5 - step * 2.0 * spread - Math.sin(i * 2.7) * 0.5 * spread;
+				const pz = -1.5 - step * 2 * spread - Math.sin(i * 2.7) * 0.5 * spread;
 				const py = 0.8 + Math.sin(i * 1.3) * 0.5;
 
 				posArr[i * 3] = px;
@@ -264,7 +264,7 @@ export function computeLighting(
 		// ── 🌙 moonlight ──
 		case 'moonlight': {
 			const phase = params.moonPhase ?? 0;
-			const brightnessTable = [1.0, 0.55, 0.22];
+			const brightnessTable = [1, 0.55, 0.22];
 			const b = brightnessTable[Math.round(phase)] ?? 0.55;
 
 			const moonPulse = 1 + Math.sin(time * 0.05) * 0.03;
@@ -288,18 +288,18 @@ export function computeLighting(
 			posArr[0] = -3.5;
 			posArr[0 + 1] = 1.2;
 			posArr[0 + 2] = -2.5;
-			colArr[0] = 1.0;
+			colArr[0] = 1;
 			colArr[0 + 1] = 0.45;
 			colArr[0 + 2] = 0.08;
-			intArr[0] = intensity * fireFlicker * 4.0;
+			intArr[0] = intensity * fireFlicker * 4;
 
 			posArr[3] = 3.5;
 			posArr[3 + 1] = 1.1;
 			posArr[3 + 2] = -2.5;
-			colArr[3] = 1.0;
+			colArr[3] = 1;
 			colArr[3 + 1] = 0.5;
 			colArr[3 + 2] = 0.1;
-			intArr[1] = intensity * fireFlicker * 3.0;
+			intArr[1] = intensity * fireFlicker * 3;
 
 			const cracklePulse = 1 - Math.abs(Math.sin(time * 9.7)) * crackleAmt * 0.4;
 			const cracklePulse2 = 1 - Math.abs(Math.sin(time * 14.3 + 1.1)) * crackleAmt * 0.25;

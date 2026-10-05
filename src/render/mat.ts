@@ -130,7 +130,7 @@ export class Mat4 {
 	_perspective(fovy: number, aspect: number, near: number, far: number): void {
 		this._identity();
 		const a = this.arr;
-		const f = 1.0 / Math.tan(fovy / 2);
+		const f = 1 / Math.tan(fovy / 2);
 		const nf = 1 / (near - far);
 
 		a[0] = (f / aspect);
@@ -145,7 +145,7 @@ export class Mat4 {
 	_perspectiveCss(fovy: number): void {
 		this._identity();
 		const a = this.arr;
-		const f = 1.0 / Math.tan(fovy / 2);
+		const f = 1 / Math.tan(fovy / 2);
 		a[0] = f;
 		a[5] = f;
 	}
@@ -175,7 +175,7 @@ export class Mat4 {
 
 		if (!det) {return;}
 
-		det = 1.0 / det;
+		det = 1 / det;
 
 		m[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
 		m[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
@@ -282,7 +282,7 @@ export class Vec4 {
 		const a = m.arr;
 		const x = this.x, y = this.y, z = this.z;
 
-		const w = a[3] * x + a[7] * y + a[11] * z + a[15] || 1.0;
+		const w = a[3] * x + a[7] * y + a[11] * z + a[15] || 1;
 
 		this.x = (a[0] * x + a[4] * y + a[8] * z + a[12]) / w;
 		this.y = (a[1] * x + a[5] * y + a[9] * z + a[13]) / w;
@@ -294,7 +294,7 @@ export class Vec4 {
 	_normalize(): void {
 		let len = this.x * this.x + this.y * this.y + this.z * this.z;
 
-		if (len > 0) {len = 1.0 / Math.sqrt(len);}
+		if (len > 0) {len = 1 / Math.sqrt(len);}
 
 		this.x *= len;
 		this.y *= len;

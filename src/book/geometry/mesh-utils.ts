@@ -54,7 +54,7 @@ export function computeVertexNormals(
 	for (let i = 0; i < vertexCount; i++) {
 		const cnt = counts[i];
 		if (cnt > 0) {
-			const inv = 1.0 / cnt;
+			const inv = 1 / cnt;
 			let nx = normals[i * 3] * inv;
 			let ny = normals[i * 3 + 1] * inv;
 			let nz = normals[i * 3 + 2] * inv;

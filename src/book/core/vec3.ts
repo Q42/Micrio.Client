@@ -62,7 +62,7 @@ export class Vec3 {
 	}
 
 	#div(s: number): Vec3 {
-		const inv = 1.0 / s;
+		const inv = 1 / s;
 		this._x *= inv;
 		this._y *= inv;
 		this._z *= inv;
