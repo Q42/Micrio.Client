@@ -5,3 +5,5 @@ public/dist/micrio.core.min.*
 public/build/micrio.prod.*
 templates/grid/grid.js
 pnpm-lock.yaml
+# Vitest browser-mode artifacts (failure screenshots, traces)
+/.vitest
