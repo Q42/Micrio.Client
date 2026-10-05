@@ -568,6 +568,7 @@ async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
 		const markers = markersFor(id);
 		if (markers.length === 0) {continue;}
 
+		// oxlint-disable-next-line eslint/no-await-in-loop -- gotoId mutates shared gallery state, so images are visited one at a time
 		const img = await gallery.gotoId(id);
 		if (!img) {continue;}
 
@@ -740,9 +741,11 @@ async function runMarkerTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLEl
 		if (token !== tourToken) {return;}
 		note.textContent = `Marker tour — ${titleOf(step.image)} · ${step.note}`;
 
+		// oxlint-disable-next-line eslint/no-await-in-loop -- tour steps must run strictly in order
 		const img = await openMarker(micrio, grid, step.image, step.markerId, token);
 		if (!img) {continue;}
 
+		// oxlint-disable-next-line eslint/no-await-in-loop -- tour steps must run strictly in order
 		await sleep(2600);
 		if (token !== tourToken) {return;}
 		img.state.marker.set(undefined);
