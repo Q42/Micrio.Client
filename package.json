@@ -5,7 +5,7 @@
 	"main": "micrio.js",
 	"type": "module",
 	"scripts": {
-		"build": "vite build && vite build --mode minimal && tsc -d --project tsconfig.docs.json --outFile out.d.ts && node bundle.js",
+		"build": "npm run lint && npm run format:check && vite build && vite build --mode minimal && tsc -d --project tsconfig.docs.json --outFile out.d.ts && node bundle.js",
 		"build:grid": "node templates/grid/build-grid.js",
 		"dev": "vite --port 2000",
 		"publish": "node publish.js",

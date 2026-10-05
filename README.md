@@ -110,8 +110,10 @@ Notes for changing the config:
   explicitly.
 - Generated output (`public/**`, `templates/grid/grid.js`, `*.min.js`) is
   ignored; `grid.js` is built from `grid.ts` by `pnpm build:grid`.
-- Lint must exit 0 with zero findings (warnings are denied). Do not wire lint
-  into `build`/`publish`: publishing must never rewrite sources.
+- Lint must exit 0 with zero findings (warnings are denied), and the repo must be
+  oxfmt-clean. `build` runs `lint` and `format:check` first and aborts on either,
+  so a broken build never ships. Never wire `lint:fix` or `format` (or any
+  autofix) into `build`/`publish`: publishing must never rewrite sources.
 - The few remaining `oxlint-disable-next-line` comments are each justified
   in-code; `reportUnusedDisableDirectives` is `error`, so a stale one fails lint.
 
