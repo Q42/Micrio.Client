@@ -1,5 +1,5 @@
 import { Vec3 } from '../core/vec3';
-import { Mat4 } from '$render/mat';
+import type { Mat4 } from '$render/mat';
 import type { PaperMesh } from './paper-mesh';
 import { CoverMesh } from './cover-mesh';
 import { GRID_COLS, GRID_ROWS, VERTEX_COUNT } from './paper-mesh';

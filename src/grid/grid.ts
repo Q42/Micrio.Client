@@ -1,12 +1,12 @@
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$core/element';
 
-import { MicrioImage } from '$core/image';
+import type { MicrioImage } from '$core/image';
 import { get, writable, type Unsubscriber, type Writable, tick } from '$core/store';
 import { Frame } from '$core/frame';
-import { Gallery } from '$gallery/controller';
+import type { Gallery } from '$gallery/controller';
 import { MicrioElement } from '$core/component';
-import { GridActionType } from './actions';
+import type { GridActionType } from './actions';
 import { getEasing } from '$render/easing';
 import { createElement, sleep } from '$utils/dom';
 import { pointInArea } from '$utils/math';

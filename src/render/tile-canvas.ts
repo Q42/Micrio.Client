@@ -9,7 +9,7 @@ import Ani from './ani'
 import Camera2D from './camera-2d'
 import Image from './tile-image'
 import Camera360 from './camera-360'
-import EngineCamera from './engine-camera'
+import type EngineCamera from './engine-camera'
 
 /**
  * Represents a single rendering canvas within the Micrio engine.

@@ -4,8 +4,9 @@
  * @internal
  */
 
-import { Coordinates, Viewport } from './shared'
-import { Bicubic, easeInOut } from './easing';
+import type { Coordinates, Viewport } from './shared'
+import type { Bicubic} from './easing';
+import { easeInOut } from './easing';
 import type { TileCanvas } from './tile-canvas';
 
 /** @internal */

@@ -7,8 +7,9 @@ import { Vec3 } from './core/vec3';
 import { Mat4 } from '$render/mat';
 import { Frame } from '$core/frame';
 import { PageFlipAnimator } from './animation/page-flip';
+import type {
+	SolverSettings} from './physics/solver-sync';
 import {
-	SolverSettings,
 	isSolverReady,
 	initSolver,
 	dispatchSolve,
@@ -34,7 +35,7 @@ import { uvToWorldPosition, sampleMeshPosition, projectWorldToScreen, type UvWor
 import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync';
 import { getPreset, getPresets } from './rendering/lighting';
 import { archive } from '$utils/archive';
-import { MicrioImage } from '$core/image';
+import type { MicrioImage } from '$core/image';
 
 interface TextureContext {
 	pageIndex: number;

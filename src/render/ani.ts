@@ -4,7 +4,8 @@
  * @internal
  */
 
-import { Bicubic, easeInOut, longitudeDistance } from './easing'
+import type { Bicubic} from './easing';
+import { easeInOut, longitudeDistance } from './easing'
 import { View } from './shared'
 import type { TileCanvas } from './tile-canvas';
 

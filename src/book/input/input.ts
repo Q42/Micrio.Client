@@ -1,5 +1,5 @@
-import { OrbitCamera } from '../core/orbit-camera';
-import { Vec3 } from '../core/vec3';
+import type { OrbitCamera } from '../core/orbit-camera';
+import type { Vec3 } from '../core/vec3';
 
 interface PointerState {
 	_clientX: number;

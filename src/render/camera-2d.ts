@@ -4,7 +4,8 @@
  * @internal
  */
 
-import { Coordinates, Viewport } from './shared'
+import type { Viewport } from './shared';
+import { Coordinates } from './shared'
 import { easeInOut } from './easing';
 import { epsEq } from '$utils/math';
 import { Mat4 } from './mat'

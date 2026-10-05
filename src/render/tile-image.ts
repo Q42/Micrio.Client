@@ -5,7 +5,7 @@
  * @internal
  */
 
-import { DrawRect } from './shared';
+import type { DrawRect } from './shared';
 import { twoNth, mod1 } from '$utils/math';
 import { Vec4, Mat4 } from './mat';
 import type { TileCanvas } from './tile-canvas';

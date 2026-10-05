@@ -1,4 +1,4 @@
-import { PaperRenderer } from './renderer';
+import type { PaperRenderer } from './renderer';
 import {
 	IIIF_BASE_URL,
 	IIIF_DEBOUNCE_BASE_MS,

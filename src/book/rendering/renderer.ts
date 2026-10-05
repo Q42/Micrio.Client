@@ -1,6 +1,6 @@
-import { PaperMesh } from '../geometry/paper-mesh';
+import type { PaperMesh } from '../geometry/paper-mesh';
 import { Mat4 } from '$render/mat';
-import { OrbitCamera } from '../core/orbit-camera';
+import type { OrbitCamera } from '../core/orbit-camera';
 import {
 	FRONT_COLOR, BACK_COLOR,
 	TILT_SHIFT_ENABLED, TILT_SHIFT_FOCUS_CENTER, TILT_SHIFT_FOCUS_WIDTH,

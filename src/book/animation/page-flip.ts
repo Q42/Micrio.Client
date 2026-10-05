@@ -1,4 +1,4 @@
-import { PaperMesh } from '../geometry/paper-mesh';
+import type { PaperMesh } from '../geometry/paper-mesh';
 import { CoverMesh } from '../geometry/cover-mesh';
 import { GRID_COLS, GRID_ROWS, ARC_PEAK, BASE_FLIP_DURATION, FLIP_SPEED, GRAB_ROW, GRAB_ROW_MAX_OFFSET } from '../core/settings';
 import { Vec3 } from '../core/vec3';

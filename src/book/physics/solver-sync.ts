@@ -2,7 +2,7 @@
 // Dispatches directly to the native TypeScript solver (native-solver.ts).
 // The exported API is unchanged to keep callers (main.ts) untouched.
 
-import { PaperMesh } from '../geometry/paper-mesh';
+import type { PaperMesh } from '../geometry/paper-mesh';
 import { CoverMesh } from '../geometry/cover-mesh';
 import { computeWeightFactor, computeAllPageFloors } from '../animation/spine-sync';
 import { runSubstep, buildConstraintSet, type ConstraintSet } from './native-solver';
