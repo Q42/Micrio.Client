@@ -65,9 +65,9 @@ export class MicrioAudioLocation {
 			if (this.#source) {this.#source.disconnect();}
 			this.#source = ctx.createBufferSource();
 			if (item.loop) {
-				if (item.repeatAfter > 0) {this.#source.onended = () => {
+				if (item.repeatAfter > 0) {this.#source.addEventListener('ended', () => {
 					this.#to = setTimeout(play, item.repeatAfter * 1000);
-				};} else {this.#source.loop = true;}
+				});} else {this.#source.loop = true;}
 			}
 			this.#gain.gain.value = item.volume ?? 1;
 			this.#source.buffer = (globalThis as Record<string, any>).__micrioAudioBuffers?.[item.src] ?? null;

@@ -170,6 +170,16 @@ export class GLEmbedVideo {
 	#events = {
 		play: () => this.#setPlaying(true),
 		pause: () => this.#setPlaying(false),
+		// Delayed looping (only attached when `loopAfter` is set): pause on end,
+		// then restart after the configured delay.
+		loopEnded: () => {
+			this.#setPlaying(false); // Set state to paused
+			const v = this._vid;
+			const loopAfter = this.#embed.video?.loopAfter ?? 0;
+			// Schedule restart after delay
+			this.#vidRepeatTo = setTimeout(() => v?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000);
+		},
+		loopPlay: () => this.#setPlaying(true),
 		// Set the video element on the parent MicrioImage once a real frame is available for WebGL texture upload
 		playing: () => {
 			if(!this.#image._video && this._vid) {
@@ -220,19 +230,16 @@ export class GLEmbedVideo {
 		// Handle looping with delay
 		if(this.#embed.video.loop && loopAfter) {
 			v.loop = false; // Disable native loop
-			v.onended = () => { // When video ends
-				this.#setPlaying(false); // Set state to paused
-				// Schedule restart after delay
-				this.#vidRepeatTo = setTimeout(() => v?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000);
-			}
+			v.addEventListener('ended', this.#events.loopEnded); // When video ends
 			// Ensure playing state is set correctly when play starts after loop delay
-			v.onplay = () => this.#setPlaying(true);
+			v.addEventListener('play', this.#events.loopPlay);
 		}
 		// Handle simple looping
 		else {
 			v.loop = this.#embed.video.loop;
-			v.onended = null; // Remove potential previous listener
-			v.onplay = null; // Remove potential previous listener
+			// Remove potential previous loop listeners
+			v.removeEventListener('ended', this.#events.loopEnded);
+			v.removeEventListener('play', this.#events.loopPlay);
 		}
 
 		// Workaround: If no autoplay and not HLS, temporarily add video to DOM
@@ -260,8 +267,8 @@ export class GLEmbedVideo {
 		v.removeEventListener('playing', this.#events.playing);
 		v.removeEventListener(this.#events.canplayEvt, this.#events.canplay);
 		// Remove potential loop listeners
-		v.onended = null;
-		v.onplay = null;
+		v.removeEventListener('ended', this.#events.loopEnded);
+		v.removeEventListener('play', this.#events.loopPlay);
 	}
 
 }

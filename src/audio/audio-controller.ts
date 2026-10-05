@@ -62,7 +62,7 @@ class AudioPlaylist {
 		this.#audio.preload = 'none';
 		this.#audio.loop = false;
 		this.#audio.volume = volume;
-		this.#audio.onended = () => this.#next();
+		this.#audio.addEventListener('ended', () => this.#next());
 		this.#next();
 	}
 
