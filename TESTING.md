@@ -268,23 +268,24 @@ Roughly in order of value against risk:
      suite; whether it leaks is a separate call.
 3. **Grid storytelling** (`src/grid/**`) — the format layer is done; the controller is
    blocked on a fixture problem, and it is the next thing to solve:
-   - **`tests/fixtures/grid.ts` can mount a real grid album, once.** It packs a genuine
+   - **`tests/fixtures/grid.ts` mounts a real grid album and works.** It packs a genuine
      tightly-packed MDP archive, stubs the XHR the archive is read over, and opens the
      album through the element's **id attribute** — the only path that turns an album into
-     a gallery (`#print()`), since `open(id)` alone never does.
-   - **The blocker: a second mount in the same file intermittently never resolves its
-     album.** Symptom: no `gallery`, an empty `archive.db`, no `<micrio-grid>`, and
-     `open()` resolving to the image itself. It follows the _position_ in the file, not the
-     test — skipping cases just moves the failure — while every case passes in isolation
-     and five identical plain mounts in a row also pass. So it is set off by something a
-     driven grid leaves behind, not by mounting per se.
-   - Ruled out so far: unique ids and archive ids per fixture (fixed, and necessary);
-     `archive.db` not being cleared; the retry of `open()` (it short-circuits on the
-     dedupe check); stale `XMLHttpRequest` stubs; `bundle`/`album`/`json` caches keyed by
-     the fixture's own ids.
-   - The suites to write once it mounts repeatedly are listed in the approved plan:
-     controller (layout, history, focus, enlarge), transitions, actions and the
-     `grid:` tour-event path, keyboard, and the integration paths.
+     a gallery (`#print()`), since `open(id)` alone never does. Two mounts in one test and
+     repeated mounts across tests both work.
+   - **An earlier note here claimed a second mount "never resolves its album". That was my
+     misdiagnosis, and it is retracted.** The evidence behind it — `gallery: null` and an
+     empty `archive.db` — came from tests whose _own_ setup was wrong: a stale
+     `waitForGrid` gate and, separately, a caller that read `$current` after `destroy()`.
+     The one reproduction that looked deterministic actually failed on an assertion, not on
+     mounting (the following album mounted fine).
+   - What is genuinely worth knowing about the harness: `waitForGrid` must not gate on the
+     viewer's `_visible` list (it stays empty here, because these fixtures serve no tiles),
+     and every image id, album id and archive id has to be fresh per fixture, because
+     `DataLoader` caches by id for the whole file.
+   - The suites still to write are listed in the approved plan: controller (layout, history,
+     focus, enlarge), transitions, actions and the `grid:` tour-event path, keyboard, and
+     the integration paths.
 4. **UI components** — toolbar/menu/popover rendering and locale switching beyond the
    tour entries.
 5. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only

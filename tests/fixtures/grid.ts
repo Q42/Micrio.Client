@@ -4,6 +4,7 @@ import { baseInfo } from './bundles'
 import { mockJson } from '../helpers/network'
 import { mountViewer, waitFor, type Viewer } from '../helpers/viewer'
 import { get } from '../../src/core/store'
+import { DataLoader } from '../../src/utils/dataLoader'
 
 /**
  * The grid harness.
@@ -240,6 +241,8 @@ export async function openGrid(opts: GridOptions = {}): Promise<OpenGrid> {
 				gallery: viewer.el.gallery?._config?.type ?? null,
 				current: viewer.el.$current?.id ?? null,
 				albumId: fixture.bundle.album.id,
+				albumFound: (fixture.bundle.album.id ? DataLoader._getAlbum(fixture.bundle.album.id)?.type : null) ?? null,
+				first: first,
 				archiveId: fixture.archiveId,
 				archiveDb: [...archive.db.keys()],
 				loading: get(viewer.el._loading),
