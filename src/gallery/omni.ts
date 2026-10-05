@@ -309,9 +309,9 @@ export class OmniUI {
 	animateTo(idx: number) : void {
 		if(this.#raf) {Frame.cancel(this.#raf);}
 		const duration = 250,
-			started = performance.now(),
 			startIdx = this.currentIndex,
-			delta = startIdx - idx;
+			started = performance.now();
+		const delta = startIdx - idx;
 
 		const frame = (time:number) : void => {
 			const p = Math.min(1, (time - started) / duration);
