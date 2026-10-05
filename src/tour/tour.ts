@@ -82,7 +82,8 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				const prevSi = stepInfo?.[prevIdx];
 				if (prevSi?.micrioId) {
 					const prevImg = findImage(prevSi.micrioId);
-					if (prevImg && get(prevImg.state.marker)) {prevImg.state.marker.set(undefined);}
+					const prevMarker = prevImg ? get(prevImg.state.marker) : undefined;
+					if (prevImg && prevMarker !== undefined && prevMarker !== '') {prevImg.state.marker.set(undefined);}
 				}
 
 				// If the new step has a video tour, use its first timeline viewport as the start view
