@@ -48,7 +48,7 @@ An interactive demo of the grid storytelling API lives in
 
 ## Getting it running
 
-Make sure you have Node >= 18.17 and `pnpm` installed.
+Make sure you have Node `^20.19.0 || >=22.12.0` (see `.nvmrc`) and `pnpm` installed.
 
 From this directory, run:
 
