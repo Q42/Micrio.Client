@@ -84,6 +84,17 @@ information). `pnpm run lint:fix` applies the auto-fixable rules; the rest have
 to be fixed by hand. See [LINTING.md](LINTING.md) for the rule set, the
 deliberate exclusions and the current migration status.
 
+## Formatting
+
+```sh
+$ pnpm run format
+```
+
+This runs [oxfmt](https://oxc.rs/docs/guide/usage/formatter) over the repository
+(configured by `.oxfmtrc.json`: tabs, single quotes, no semicolons, 120 columns).
+`pnpm run format:check` verifies the tree is formatted without writing anything,
+which is the command to use in a review or CI check.
+
 ## Production build
 
 ```sh

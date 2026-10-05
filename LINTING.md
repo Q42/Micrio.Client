@@ -27,6 +27,7 @@ same floor as vite 8); see `.nvmrc` (24.4.0).
 | `pnpm lint` | 0 findings, exit 0 (195 rules) |
 | `pnpm typecheck` | exit 0 |
 | `pnpm build` | succeeds |
+| `pnpm format:check` | exit 0 (whole repo formatted with oxfmt) |
 
 Both phases landed as many small commits, one rule per commit per area, so
 `git log --grep '<rule-id>'` shows how any single rule was resolved, e.g.
@@ -94,6 +95,30 @@ values `x !== undefined` is equivalent, but for `string | number | undefined`
 the old truthiness also excluded `''`/`0`, and for WebGL objects created with
 `createBuffer()`/`createProgram()` etc. a `null` return means failure — those
 use `x != null` on purpose.
+
+## Formatting
+
+Code is formatted with [oxfmt](https://oxc.rs/docs/guide/usage/formatter), the
+formatter from the same project as oxlint:
+
+```sh
+pnpm format        # rewrite in place
+pnpm format:check  # verify only (exit 1 + file list when something is unformatted)
+```
+
+`.oxfmtrc.json` holds the options: tabs, single quotes, no semicolons,
+`printWidth` 120, trailing commas everywhere, and `sortPackageJson: false` so
+`package.json` keys are left in their curated order.
+
+- oxfmt skips `public/**` and `templates/grid/grid.js` via `.gitignore`, so build
+  output is never touched (`node_modules`, lock files and `.git` are always
+  skipped).
+- `.glsl` shaders have no oxfmt parser and are left alone.
+- Formatting is whitespace/quote-only; the gates above (`typecheck`, `lint`,
+  `build`) are what prove it stayed that way. In particular `lint` fails on
+  unused disable directives, so a formatter bug that detaches an
+  `oxlint-disable-next-line` or `@ts-expect-error` from its target shows up as a
+  finding rather than passing silently.
 
 ## Deliberate rule exclusions
 
