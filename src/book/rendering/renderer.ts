@@ -289,11 +289,15 @@ export class PaperRenderer {
 		gl.bindTexture(gl.TEXTURE_2D, null);
 	}
 
+	/** Selects the hi-res texture array for a page side (front/back) and slot (A/B). */
+	#hiResTextures(side: 0 | 1, slot: 0 | 1): (WebGLTexture | null)[] {
+		if (side === 0) {return slot === 0 ? this.#frontHiResATextures : this.#frontHiResBTextures;}
+		return slot === 0 ? this.#backHiResATextures : this.#backHiResBTextures;
+	}
+
 	_setPageHiResTexture(pageIdx: number, side: 0 | 1, slot: 0 | 1, bitmap: ImageBitmap): void {
 		const gl = this.#gl;
-		const arr = side === 0
-			? (slot === 0 ? this.#frontHiResATextures : this.#frontHiResBTextures)
-			: (slot === 0 ? this.#backHiResATextures : this.#backHiResBTextures);
+		const arr = this.#hiResTextures(side, slot);
 
 		if (arr[pageIdx]) {gl.deleteTexture(arr[pageIdx]);}
 
@@ -326,9 +330,7 @@ export class PaperRenderer {
 	}
 
 	_evictPageHiRes(pageIdx: number, side: 0 | 1, slot: 0 | 1): void {
-		const arr = side === 0
-			? (slot === 0 ? this.#frontHiResATextures : this.#frontHiResBTextures)
-			: (slot === 0 ? this.#backHiResATextures : this.#backHiResBTextures);
+		const arr = this.#hiResTextures(side, slot);
 		if (arr[pageIdx]) {
 			this.#gl.deleteTexture(arr[pageIdx]);
 			arr[pageIdx] = null;

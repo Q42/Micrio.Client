@@ -208,18 +208,25 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		// Static inputs for the 360/book3d matrix — computed once per placement.
 		this.#matrixScale = (!this.#isBook3d ? 1 : this.#w) * this.#s;
-		this.#contentWidth = !this.#isBook3d ? 1 : embed.frameSrc || embed.video
-			? this.#w * this.#info.width
-			: embed.src
-				? (embed.width || this.#w * this.#info.width)
-				: 100;
+		if (!this.#isBook3d) {
+			this.#contentWidth = 1;
+		} else if (embed.frameSrc || embed.video) {
+			this.#contentWidth = this.#w * this.#info.width;
+		} else if (embed.src) {
+			this.#contentWidth = embed.width || this.#w * this.#info.width;
+		} else {
+			this.#contentWidth = 100;
+		}
 
 		const isGLEmbeddedMicrio = this.#printGL && embed.micrioId && embed.width;
 		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
 
 		if(this.#isBook3d) {return;}
 
-		let scale = this.#w * (this.#info.width / (embed.width ?? 100) / (!this.#printGL ? this.#s : embed.width ? this.#w : 1) * (this.#is360 ? Math.PI / 2 : 1));
+		let scaleDiv = 1;
+		if (!this.#printGL) {scaleDiv = this.#s;}
+		else if (embed.width) {scaleDiv = this.#w;}
+		let scale = this.#w * (this.#info.width / (embed.width ?? 100) / scaleDiv * (this.#is360 ? Math.PI / 2 : 1));
 
 		const styles: string[] = [];
 
