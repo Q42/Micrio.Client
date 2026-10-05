@@ -94,7 +94,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		};
 
 		const si = this.#stepInfo[idx];
-		if (!si) {return;}
+		if (si === undefined) {return;}
 
 		si.ended = false;
 		si.currentTime = 0;
@@ -144,7 +144,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			if (videoEl instanceof HTMLMediaElement) {
 				videoEl.addEventListener('timeupdate', () => {
 					const step = this.#stepInfo[this.#currentStep];
-					if (step) {step.currentTime = videoEl.currentTime;}
+					if (step !== undefined) {step.currentTime = videoEl.currentTime;}
 					this.#updateBars();
 				});
 			}
@@ -160,7 +160,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	#nextStep() {
 		const si = this.#stepInfo[this.#currentStep];
-		if (si) {si.ended = true;}
+		if (si !== undefined) {si.ended = true;}
 
 		if (this.#currentStep < this.#stepInfo.length - 1) {
 			void this.#openStep(this.#currentStep + 1);
