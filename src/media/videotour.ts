@@ -106,7 +106,7 @@ export class VideoTourInstance {
 		this.#timeline = [];
 		for (let i = 0; i < timeline.length; i++) {
 			const p = timeline[i - 1], s = timeline[i];
-			const start = p ? p.end : 0;
+			const start = p !== undefined ? p.end : 0;
 			this.#timeline.push({
 				view: s.rect,
 				start: start * 1000,
@@ -225,7 +225,7 @@ export class VideoTourInstance {
 		if (this.#startedAt === undefined) {return;}
 		clearTimeout(this.#_to);
 
-		if (!this.#timeline[index]) {
+		if (this.#timeline[index] === undefined) {
 			if (!this.paused || !this.#wasPaused) {
 				const remaining = Math.max(0, Math.round(this.duration * 1000 - (Date.now() - this.#startedAt)));
 				if (remaining > 0) {this.#_to = setTimeout(() =>{  this.pause(); }, remaining);}
@@ -258,12 +258,12 @@ export class VideoTourInstance {
 	#startAni(perc = 0): void {
 		if (this.#currentIndex === undefined || Number.isNaN(perc)) {return;}
 		const step = this.#timeline[this.#currentIndex];
-		if (!step) {return;}
+		if (step === undefined) {return;}
 
 		const prevStep = this.#timeline[this.#currentIndex - 1];
 		const prevView: Models.Camera.View | undefined = prevStep?.view;
 
-		if (this.#wasPaused && prevView) {
+		if (this.#wasPaused && prevView !== undefined) {
 			const p = easeInOut.get(perc);
 			const pv = toCenterJSON(prevView);
 			const nv = toCenterJSON(step.view);
@@ -350,7 +350,7 @@ export class VideoTourInstance {
 
 		if (perc > 1) {
 			this.#gotoStep(i);
-			if (seg.view) {this.#image.camera.setView(seg.view, { noLimit: true });}
+			if (seg.view !== undefined) {this.#image.camera.setView(seg.view, { noLimit: true });}
 		} else {
 			if (i > 1) {this.#image.camera.setView(this.#timeline[i - 2].view, { noLimit: true });}
 			this.#gotoStep(i - 1, perc);
