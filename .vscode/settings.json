@@ -1,0 +1,10 @@
+{
+	// TypeScript 7 (native/tsgo) has no JS-based `lib/tsserver.js`, so the
+	// built-in extension can't load it via the old typescript.tsdk route.
+	// The tsdk pin below is consumed by the TypeScript Native Preview
+	// extension (see extensions.json), which resolves the workspace
+	// typescript@7 package to its native binary; useTsgo hands the TS/JS
+	// language server over to it instead of the bundled JS tsserver.
+	"js/ts.experimental.useTsgo": true,
+	"js/ts.tsdk.path": "node_modules/typescript/lib"
+}
