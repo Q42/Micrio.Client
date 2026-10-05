@@ -8,7 +8,7 @@ import type { OmniUI } from '$gallery/omni'
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals'
 import { Camera } from './camera'
 import { writable, get } from '$core/store'
-import { getIdVal, idIsV5, randomUUID } from '$utils/id'
+import { decodeV5Id, randomUUID } from '$utils/id'
 import { DataLoader } from '$utils/dataLoader'
 import { State } from './state'
 import { createElement, loadScript } from '$utils/dom'
@@ -258,16 +258,7 @@ export class MicrioImage {
 
 		// V5 ID detection & derived info flags
 		if (!i.isIIIF && this.id.length === 7) {
-			const b = getIdVal(this.id[1 + (getIdVal(this.id) % 6)])
-			i.is360 = Boolean((b >> 4) & 1) || Boolean(i.is360)
-			i.isWebP = !(b & 3)
-			i.isPng = (b & 3) === 2
-			if ((b >> 3) & 1 && idIsV5(i.tilesId ?? this.id)) {
-				i.format = 'dz'
-			}
-			if (!i.path) {
-				i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`
-			}
+			decodeV5Id(this.id, i)
 		}
 
 		// Determine tile base path

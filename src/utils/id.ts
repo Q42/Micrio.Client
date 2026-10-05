@@ -24,5 +24,39 @@ export const getIdVal = (a: string): number => {
  */
 export const idIsV5 = (id: string): boolean => id.length === 6 || id.length === 7
 
+/**
+ * Applies the flags encoded in a 7-character V5 image ID onto an image info object.
+ *
+ * The character at `1 + (getIdVal(id[0]) % 6)` packs, per bit:
+ * `>>4`: 360 image, `>>3`: DeepZoom format, `>>2`: EU storage (else R2),
+ * `&3`: `0` = WebP, `2` = PNG.
+ *
+ * Only called for non-IIIF 7-character IDs, exactly as the constructor did inline
+ * before; the mutation of `info` is intentional (the bundle object is per-image).
+ * @internal
+ */
+export const decodeV5Id = (
+	id: string,
+	info: {
+		is360?: boolean
+		isWebP?: boolean
+		isPng?: boolean
+		format?: string
+		path?: string
+		tilesId?: string
+	},
+): void => {
+	const b = getIdVal(id[1 + (getIdVal(id) % 6)])
+	info.is360 = Boolean((b >> 4) & 1) || Boolean(info.is360)
+	info.isWebP = !(b & 3)
+	info.isPng = (b & 3) === 2
+	if ((b >> 3) & 1 && idIsV5(info.tilesId ?? id)) {
+		info.format = 'dz'
+	}
+	if (!info.path) {
+		info.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`
+	}
+}
+
 /** Generates a random UUID string. @internal */
 export const randomUUID = () => Math.random().toString()
