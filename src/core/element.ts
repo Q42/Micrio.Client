@@ -82,7 +82,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Writable store holding an array of currently visible {@link MicrioImage} instances (relevant for grid).
 	 * @internal
 	*/
-	readonly _visible:Writable<MicrioImage[]> = writable([]);
+	readonly _visible:Writable<MicrioImage[]> = writable<MicrioImage[]>([]);
 
 	/** Internal reference to the current image instance.
 	 * @internal

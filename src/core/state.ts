@@ -49,7 +49,7 @@ export namespace State {
 		get $marker() : Models.ImageData.Marker|undefined { return this.#_marker }
 
 		/** Writable store holding the marker object whose popup is currently displayed. */
-		readonly popup: Writable<Models.ImageData.Marker|undefined> = writable<Models.ImageData.Marker>();
+		readonly popup: Writable<Models.ImageData.Marker|undefined> = writable<Models.ImageData.Marker|undefined>();
 
 		/** Writable store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
 		readonly popover:Writable<Models.State.PopoverType|undefined> = writable();

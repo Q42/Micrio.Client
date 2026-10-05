@@ -10,31 +10,31 @@
  */
 export interface MediaPlayerAdapter {
 	/** Play the media */
-	play(): Promise<void>;
+	play: () => Promise<void>;
 
 	/** Pause the media */
-	pause(): void;
+	pause: () => void;
 
 	/** Get current playback time in seconds */
-	getCurrentTime(): Promise<number>;
+	getCurrentTime: () => Promise<number>;
 
 	/** Set current playback time in seconds */
-	setCurrentTime(time: number): void;
+	setCurrentTime: (time: number) => void;
 
 	/** Get total duration in seconds */
-	getDuration(): Promise<number>;
+	getDuration: () => Promise<number>;
 
 	/** Check if media is currently paused */
-	isPaused(): Promise<boolean>;
+	isPaused: () => Promise<boolean>;
 
 	/** Set muted state */
-	setMuted(muted: boolean): void;
+	setMuted: (muted: boolean) => void;
 
 	/** Set volume (0-1) */
-	setVolume(volume: number): void;
+	setVolume: (volume: number) => void;
 
 	/** Clean up resources */
-	destroy(): void;
+	destroy: () => void;
 
 }
 

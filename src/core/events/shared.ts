@@ -69,14 +69,14 @@ export interface EventContext {
 	/** @internal Event state variables */
 	_vars: EventStateVars;
 	/** @internal Get visible images */
-	_getVisible(): MicrioImage[] | undefined;
+	_getVisible: () => MicrioImage[] | undefined;
 	/** @internal Get image under coordinates */
-	_getImage(c: { x: number, y: number }): MicrioImage | undefined;
+	_getImage: (c: { x: number, y: number }) => MicrioImage | undefined;
 	/** @internal Dispatch custom event */
-	_dispatch<K extends keyof Models.MicrioEventDetails>(
+	_dispatch: <K extends keyof Models.MicrioEventDetails>(
 		type: K,
 		detail?: Models.MicrioEventDetails[K]
-	): void;
+	) => void;
 	/** @internal Active pointers map for pinch detection */
 	_activePointers: Map<number, { x: number, y: number }>;
 	/** @internal Captured pointer ID for dragging */

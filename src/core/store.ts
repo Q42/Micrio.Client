@@ -77,13 +77,13 @@ type Updater<T> = (value: T) => T;
 
 /** A read-only store that emits value changes to subscribers. */
 export interface Readable<T> {
-	subscribe(this: void, run: Subscriber<T>, invalidate?: (value?: T) => void): Unsubscriber;
+	subscribe: (this: void, run: Subscriber<T>, invalidate?: (value?: T) => void) => Unsubscriber;
 }
 
 /** A writable store that supports setting and updating its value. */
 export interface Writable<T> extends Readable<T> {
-	set(value: T): void;
-	update(fn: Updater<T>): void;
+	set: (value: T) => void;
+	update: (fn: Updater<T>) => void;
 }
 
 /** Creates a writable store with an optional initial value. @internal */
@@ -107,7 +107,7 @@ export function writable<T>(value?: T): Writable<T> {
 }
 
 /** Synchronously reads the current value of a store by subscribing and immediately unsubscribing. */
-export function get<T>(store: { subscribe(fn: Subscriber<T>): Unsubscriber }): T {
+export function get<T>(store: { subscribe: (fn: Subscriber<T>) => Unsubscriber }): T {
 	let v: T | undefined;
 	const unsub = store.subscribe(val => { v = val; });
 	unsub();
