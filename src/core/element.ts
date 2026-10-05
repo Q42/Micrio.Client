@@ -519,7 +519,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		vector?: Models.Camera.Vector,
 		/** Optional Gallery controller, used for gallery/grid views. */
 		gallery?: Gallery,
-	}={}) : Promise<MicrioImage> {
+	}={}) : Promise<MicrioImage|undefined> {
 		if(!this.#printed) {await this.#print();}
 
 		// ── Resolve input to a BundleImage ────────────────────────────────────
@@ -530,20 +530,21 @@ export class HTMLMicrioElement extends MicrioElement {
 		// IIIF URL: fetch manifest, attempt gallery, else extract single image info
 		if(typeof idOrInfo === 'string' && idOrInfo.startsWith('http')) {
 			const iiifBundle = await this.#handleIIIF(idOrInfo);
-			if(!iiifBundle) {return this.$current!;}
+			if(!iiifBundle) {return this.$current;}
 			bundle = iiifBundle;
 		}
 		// Standard bundle ID: fetch from DataLoader
 		else if(typeof idOrInfo === 'string') {
 			if(this.gallery) {
 				const img = await this.gallery.gotoId(idOrInfo);
-				return img ?? this.$current!;
+				return img ?? this.$current;
 			}
-				bundle = (await DataLoader._getBundleImage(idOrInfo))!;
-				if(!bundle) {
+				const loaded = await DataLoader._getBundleImage(idOrInfo);
+				if(!loaded) {
 					this.#printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`);
-					return this.$current!;
+					return this.$current;
 				}
+				bundle = loaded;
 			
 		}
 		// Already a BundleImage
@@ -654,8 +655,9 @@ export class HTMLMicrioElement extends MicrioElement {
 		// Settings-level split screen (auto-open on load)
 		if(c.$settings.micrioSplitLink && !c._noImage && !c.grid) {
 			void tick().then(() => {
-				if(this.$current !== c) {return;}
-				void openSplit(this, c, { micrioId: c.$settings.micrioSplitLink! }, {
+				const splitLink = c.$settings.micrioSplitLink;
+				if(this.$current !== c || !splitLink) {return;}
+				void openSplit(this, c, { micrioId: splitLink }, {
 					isPassive: !c.$settings.noFollow,
 				});
 			});

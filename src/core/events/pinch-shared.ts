@@ -83,7 +83,9 @@ export function restartPanning(ctx: EventContext, dragHandler: DragHandler, poin
 			const t = pointers[0];
 			syntheticEvent = { button: 0, target: ctx._el, clientX: t.clientX, clientY: t.clientY };
 		} else {
-			const [pointerId, { x, y }] = pointers.entries().next().value!;
+			const first = pointers.entries().next().value;
+			if (!first) {return;}
+			const [pointerId, { x, y }] = first;
 			syntheticEvent = {
 				button: 0, pointerType: 'touch', target: ctx._el,
 				clientX: x, clientY: y,
