@@ -705,7 +705,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			if (o.dN !== undefined && val == null) {val = o.dN;}
 			if (val == null) {return;}
 			const n = Number(val);
-			return isNaN(n) ? undefined : n;
+			return Number.isNaN(n) ? undefined : n;
 		});
 		process(AO.ARRAYS, val => val != null ? val.split(',').map(Number) : undefined);
 

@@ -183,7 +183,7 @@ export class Camera {
 		if (!c) {return new Float64Array(5);}
 		const tNDiff = (this.#image._is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
 		if (c.is360) {return c._camera360._getXYZ(x - tNDiff, y).arr;}
-		if (opts.rotation !== undefined && !isNaN(opts.rotation))
+		if (opts.rotation !== undefined && !Number.isNaN(opts.rotation))
 			{return c._camera2d._getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, Boolean(opts.abs)).arr;}
 		return c._camera2d._getXY(x - tNDiff, y, Boolean(opts.abs)).arr;
 	}
