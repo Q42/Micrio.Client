@@ -8,12 +8,12 @@ import { MicrioError } from '$core/error';
 /** Global cache for fetched JSON data, keyed by URI.
  * @internal
  */
-export const jsonCache = new Map<string, Object>();
+export const jsonCache = new Map<string, object>();
 
 /** Map to track ongoing JSON fetch Promises, preventing duplicate requests.
  * @internal
  */
-const jsonPromises = new Map<string, Promise<Object>>();
+const jsonPromises = new Map<string, Promise<object>>();
 
 /**
  * Fetches JSON data from a URI, utilizing a cache to avoid redundant requests.
@@ -24,7 +24,7 @@ const jsonPromises = new Map<string, Promise<Object>>();
  * @param noCache If true, appends a random query parameter to bypass browser cache.
  * @returns A Promise resolving to the fetched JSON data (type T) or undefined on error.
  */
-export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
+export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
 	if (!noCache && jsonCache.has(uri)) {return structuredClone(jsonCache.get(uri) as T);}
 	if (jsonPromises.has(uri)) {return jsonPromises.get(uri) as Promise<T>;} // Return existing promise if fetch is in progress
 
