@@ -198,7 +198,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// even when the cursor leaves it (or the window) mid-drag.
 		if (this.#dragIsPointer && 'button' in e) {
 			this.#dragPointerId = e.pointerId;
-			try { this.#_ul.setPointerCapture(e.pointerId); } catch (_) {}
+			try { this.#_ul.setPointerCapture(e.pointerId); } catch {}
 			globalThis.addEventListener('pointercancel', this.#scrubStop);
 		}
 		globalThis.addEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
@@ -235,7 +235,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		globalThis.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
 		if (this.#dragIsPointer) {
 			globalThis.removeEventListener('pointercancel', this.#scrubStop);
-			try { this.#_ul?.releasePointerCapture(this.#dragPointerId); } catch (_) {}
+			try { this.#_ul?.releasePointerCapture(this.#dragPointerId); } catch {}
 			this.#dragPointerId = -1;
 		}
 		this.#dragging = false;

@@ -175,7 +175,7 @@ export class SwipeGallery {
 		const wasActive = this.#stripDragActive;
 		this.#resetDrag();
 		if (!wasActive) {return;}
-		try { this.#micrio.canvas.element.releasePointerCapture(e.pointerId); } catch (_) {}
+		try { this.#micrio.canvas.element.releasePointerCapture(e.pointerId); } catch {}
 		const w = this.#micrio.offsetWidth || 1;
 		const progress = (e.clientX - this.#stripDragStartX) / w;
 		let target = this.#getCurrentPage();

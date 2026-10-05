@@ -4,7 +4,6 @@ import type { Grid } from '$grid/grid';
 import type { Engine } from '$render/engine';
 import type { TileCanvas } from '$render/tile-canvas';
 import type { OmniUI } from '$gallery/omni';
-import type { HTMLMicrioElement } from './element'; // Import HTMLMicrioElement type
 
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals';
 import { Camera } from './camera';
