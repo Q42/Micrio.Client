@@ -78,6 +78,7 @@ import type { Spaces } from './spaces';
 */
 export namespace ImageData {
 	/** The main data JSON structure */
+	// oxlint-disable-next-line eslint/no-shadow -- the nested interface is the public `Models.ImageData.ImageData` API type; renaming it would break consumers
 	export interface ImageData {
 		/** V5+: Save revision */
 		revision?: RevisionType;

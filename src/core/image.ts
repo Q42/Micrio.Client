@@ -369,8 +369,8 @@ export class MicrioImage {
 			micrioRef._visible.update(l => {
 				if(v) {l.push(this);}
 				else {
-					const i = l.indexOf(this);
-					if(i >= 0) {l.splice(i, 1);}
+					const idx = l.indexOf(this);
+					if(idx >= 0) {l.splice(idx, 1);}
 				}
 				return l;
 			});

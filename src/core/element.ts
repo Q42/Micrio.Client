@@ -576,7 +576,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Find or create canvas ─────────────────────────────────────────────
 
-		let c:MicrioImage|undefined = this._canvases.find(c => bundle.id && c.id === bundle.id);
+		let c:MicrioImage|undefined = this._canvases.find(canvas => bundle.id && canvas.id === bundle.id);
 		let isInGrid = false;
 		const grid = this._canvases[0]?.grid;
 		if(!c && grid) {
