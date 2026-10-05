@@ -6,7 +6,9 @@ micrio-controls aside {
 	margin: 0;
 	direction: rtl;
 	z-index: 2;
-	transition: transform .25s ease, opacity .25s ease;
+	transition:
+		transform 0.25s ease,
+		opacity 0.25s ease;
 	--micrio-hide: translateX(100%);
 }
 micrio-controls menu {
@@ -28,7 +30,7 @@ micrio-controls menu > div {
 	box-shadow: var(--micrio-button-shadow);
 	white-space: nowrap;
 }
-micrio-controls menu:is(:hover,:focus-within) > div {
+micrio-controls menu:is(:hover, :focus-within) > div {
 	display: flex;
 }
 micrio-controls menu > div micrio-button {
@@ -46,6 +48,8 @@ micrio-controls menu > div micrio-button > *.active {
 	color: var(--micrio-button-background, var(--micrio-background));
 }
 
-micrio-zoom-buttons:has(> micrio-button:first-child > button[disabled]):has(> micrio-button:last-child > button[disabled]) {
+micrio-zoom-buttons:has(> micrio-button:first-child > button[disabled]):has(
+		> micrio-button:last-child > button[disabled]
+	) {
 	display: none;
 }

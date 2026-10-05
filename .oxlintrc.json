@@ -49,11 +49,14 @@
 		"typescript/no-unsafe-assignment": "error",
 		"typescript/no-unsafe-argument": "error",
 		"typescript/no-unsafe-return": "error",
-		"typescript/strict-boolean-expressions": ["error", {
-			"allowNullableBoolean": true,
-			"allowNullableString": true,
-			"allowNullableNumber": true
-		}],
+		"typescript/strict-boolean-expressions": [
+			"error",
+			{
+				"allowNullableBoolean": true,
+				"allowNullableString": true,
+				"allowNullableNumber": true
+			}
+		],
 
 		"unicorn/no-useless-undefined": "error",
 		"unicorn/no-zero-fractions": "error",

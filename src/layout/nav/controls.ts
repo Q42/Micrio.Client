@@ -1,257 +1,301 @@
-import { MicrioElement } from '$core/component';
-import type { Models } from '$types/models';
-import type { Unsubscriber } from '$core/store';
-import { get } from '$core/store';
-import { i18n } from '$core/i18n/strings';
+import { MicrioElement } from '$core/component'
+import type { Models } from '$types/models'
+import type { Unsubscriber } from '$core/store'
+import { get } from '$core/store'
+import { i18n } from '$core/i18n/strings'
 
-import { createElement } from '$utils/dom';
-import { languageNames } from '$core/i18n/locale';
+import { createElement } from '$utils/dom'
+import { languageNames } from '$core/i18n/locale'
 
 /** Props for the navigation controls element @internal */
 export interface ControlsProps {
 	/** Whether the image has audio that can be muted/unmuted */
-	hasAudio?: boolean;
+	hasAudio?: boolean
 }
-import './controls.css';
+import './controls.css'
 
 /** Custom element rendering bottom navigation controls (mute, language, share, zoom, fullscreen) */
 class MicrioControls extends MicrioElement<ControlsProps> {
 	/** The custom element tag name @internal */
-	static tag = 'micrio-controls';
+	static tag = 'micrio-controls'
 
-	#props: ControlsProps = {};
-	#built = false;
-	#showCultures = false;
-	#showSocial = false;
-	#showFullscreen = false;
-	#lastCultures = '';
+	#props: ControlsProps = {}
+	#built = false
+	#showCultures = false
+	#showSocial = false
+	#showFullscreen = false
+	#lastCultures = ''
 
 	#toggleMute = () => {
-		const micrio = this._getMicrio();
-		if (!micrio) {return;}
-		micrio._isMuted.set(!get(micrio._isMuted));
-	};
+		const micrio = this._getMicrio()
+		if (!micrio) {
+			return
+		}
+		micrio._isMuted.set(!get(micrio._isMuted))
+	}
 
 	#share = () => {
-		const micrio = this._getMicrio();
-		if (!micrio || typeof navigator.share !== 'function' || micrio.$current === undefined) {return;}
-		const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
+		const micrio = this._getMicrio()
+		if (!micrio || typeof navigator.share !== 'function' || micrio.$current === undefined) {
+			return
+		}
+		const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)]
 		void navigator.share({
 			title: micrio.$current.$info?.title,
 			text: cData?.description || `${micrio.$current.$info.width} x ${micrio.$current.$info.height} | Micrio`,
-			url: location.href
-		});
-	};
+			url: location.href,
+		})
+	}
 
 	#setLang = (l: string) => {
-		const micrio = this._getMicrio();
-		if (micrio) {micrio.lang = l;}
-	};
+		const micrio = this._getMicrio()
+		if (micrio) {
+			micrio.lang = l
+		}
+	}
 
-	#aside1!: HTMLElement;
-	#muteBtn: HTMLElement | undefined;
-	#shareBtn: HTMLElement | undefined;
-	#langMenu: HTMLElement | undefined;
-	#langItemsEl!: HTMLElement;
-	#group1!: HTMLElement;
-	#zoomGroup: HTMLElement | undefined;
-	#fsGroup: HTMLElement | undefined;
+	#aside1!: HTMLElement
+	#muteBtn: HTMLElement | undefined
+	#shareBtn: HTMLElement | undefined
+	#langMenu: HTMLElement | undefined
+	#langItemsEl!: HTMLElement
+	#group1!: HTMLElement
+	#zoomGroup: HTMLElement | undefined
+	#fsGroup: HTMLElement | undefined
 
 	/** @internal */
 	_onMount() {
-		const micrio = this._getMicrio();
-		if (!micrio) {return;}
+		const micrio = this._getMicrio()
+		if (!micrio) {
+			return
+		}
 
-		const { state: micrioState, _lang } = micrio;
-		const { tour, popup } = micrioState;
+		const { state: micrioState, _lang } = micrio
+		const { tour, popup } = micrioState
 
 		const readInfo = (s: Models.ImageInfo.Settings) => {
-			this.#showCultures = Boolean(s.ui?.controls?.cultureSwitch);
-			this.#showSocial = Boolean(s.social);
-			if (s.fullscreen !== undefined) {this.#showFullscreen = s.fullscreen && Boolean(customElements.get('micrio-fullscreen'));}
-			this.#sync();
-		};
-
-		if (micrio.$current) {readInfo(micrio.$current.$settings);}
-
-		let settingsUnsub: Unsubscriber | undefined;
-
-		this._addCleanup(micrio.current.subscribe(c => {
-			if (c) {
-				const $tour = get(tour);
-				if ($tour && 'steps' in $tour) {return;}
-				settingsUnsub?.();
-				settingsUnsub = c._settings.subscribe(readInfo);
+			this.#showCultures = Boolean(s.ui?.controls?.cultureSwitch)
+			this.#showSocial = Boolean(s.social)
+			if (s.fullscreen !== undefined) {
+				this.#showFullscreen = s.fullscreen && Boolean(customElements.get('micrio-fullscreen'))
 			}
-		}));
+			this.#sync()
+		}
 
-		this._watchLater(tour, () =>{  this.#sync(); });
-		this._watchLater(popup, () =>{  this.#sync(); });
-		this._watchLater(_lang, () =>{  this.#sync(); });
-		this._watchLater(micrio._isMuted, () =>{  this.#sync(); });
+		if (micrio.$current) {
+			readInfo(micrio.$current.$settings)
+		}
 
-		const observer = new MutationObserver(() =>{  this.#sync(); });
-		observer.observe(micrio, { attributes: true, attributeFilter: ['class'] });
-		this._addCleanup(() =>{  observer.disconnect(); });
+		let settingsUnsub: Unsubscriber | undefined
 
-		this.#build();
-		this.#sync();
+		this._addCleanup(
+			micrio.current.subscribe((c) => {
+				if (c) {
+					const $tour = get(tour)
+					if ($tour && 'steps' in $tour) {
+						return
+					}
+					settingsUnsub?.()
+					settingsUnsub = c._settings.subscribe(readInfo)
+				}
+			}),
+		)
+
+		this._watchLater(tour, () => {
+			this.#sync()
+		})
+		this._watchLater(popup, () => {
+			this.#sync()
+		})
+		this._watchLater(_lang, () => {
+			this.#sync()
+		})
+		this._watchLater(micrio._isMuted, () => {
+			this.#sync()
+		})
+
+		const observer = new MutationObserver(() => {
+			this.#sync()
+		})
+		observer.observe(micrio, { attributes: true, attributeFilter: ['class'] })
+		this._addCleanup(() => {
+			observer.disconnect()
+		})
+
+		this.#build()
+		this.#sync()
 	}
 
 	/** @internal */
 	_setProps(props: Partial<ControlsProps>) {
-		Object.assign(this.#props, props);
+		Object.assign(this.#props, props)
 	}
 
 	// ── Build structural DOM once ──
 
 	#build() {
-		if (this.#built) {return;}
+		if (this.#built) {
+			return
+		}
 
 		this.#aside1 = createElement('aside', {
-			parent: this
-		});
+			parent: this,
+		})
 
-		this.#langItemsEl = createElement('div');
+		this.#langItemsEl = createElement('div')
 
-		this.#built = true;
+		this.#built = true
 	}
 
 	// ── Sync state — create/remove elements on demand ──
 
 	#sync() {
-		if (!this.#built || !this.isConnected) {return;}
+		if (!this.#built || !this.isConnected) {
+			return
+		}
 
-		const micrio = this._getMicrio();
-		if (!micrio) {return;}
+		const micrio = this._getMicrio()
+		if (!micrio) {
+			return
+		}
 
-		const $i18n = get(i18n);
-		const $isMuted = get(micrio._isMuted);
-		const $_lang = get(micrio._lang);
-		const {$current} = micrio;
-		const $settings = $current?.$settings;
-		const $zoom = !$settings?.noZoom;
-		const $popup = get(micrio.state.popup);
-		const info = $current?.$info;
-		const cultures = info?.revision ? Object.keys(info.revision) : [];
-		const isMobile = micrio.canvas.$isMobile;
+		const $i18n = get(i18n)
+		const $isMuted = get(micrio._isMuted)
+		const $_lang = get(micrio._lang)
+		const { $current } = micrio
+		const $settings = $current?.$settings
+		const $zoom = !$settings?.noZoom
+		const $popup = get(micrio.state.popup)
+		const info = $current?.$info
+		const cultures = info?.revision ? Object.keys(info.revision) : []
+		const isMobile = micrio.canvas.$isMobile
 
-		const showMute = Boolean('micrioAudioContext' in globalThis || this.#props.hasAudio);
-		const hasCultures = this.#showCultures && cultures.length > 1;
-		const hasSocial = this.#showSocial && ('share' in navigator);
-		const hasControls = showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen;
-		const onlyFullscreen = this.#showFullscreen && (Boolean($popup) && isMobile);
-		const gridPanZoomCells = Boolean($current?.grid) && $current?.$settings?.grid?.panZoom === 'cells';
-		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
-		const showGroup = showMute || zoomVisible || this.#showFullscreen;
+		const showMute = Boolean('micrioAudioContext' in globalThis || this.#props.hasAudio)
+		const hasCultures = this.#showCultures && cultures.length > 1
+		const hasSocial = this.#showSocial && 'share' in navigator
+		const hasControls = showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen
+		const onlyFullscreen = this.#showFullscreen && Boolean($popup) && isMobile
+		const gridPanZoomCells = Boolean($current?.grid) && $current?.$settings?.grid?.panZoom === 'cells'
+		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells
+		const showGroup = showMute || zoomVisible || this.#showFullscreen
 
 		if (($popup && isMobile) || !hasControls) {
-			this.#aside1.replaceChildren();
-			return;
+			this.#aside1.replaceChildren()
+			return
 		}
 
 		// Language menu
 		if (hasCultures && !onlyFullscreen) {
 			if (!this.#langMenu?.isConnected) {
-				this.#langMenu?.remove();
-				this.#lastCultures = '';
+				this.#langMenu?.remove()
+				this.#lastCultures = ''
 				this.#langMenu = createElement('menu', {
 					attrs: { tabindex: '0' },
-					children: [
-						createElement('micrio-button'),
-						this.#langItemsEl
-					]
-				});
-				this.#aside1.prepend(this.#langMenu);
+					children: [createElement('micrio-button'), this.#langItemsEl],
+				})
+				this.#aside1.prepend(this.#langMenu)
 			}
-			const trigger = this.#langMenu.querySelector('micrio-button');
-			if (trigger instanceof MicrioElement) {trigger._setProps({ type: 'a11y', title: $i18n._switchLanguage });}
+			const trigger = this.#langMenu.querySelector('micrio-button')
+			if (trigger instanceof MicrioElement) {
+				trigger._setProps({ type: 'a11y', title: $i18n._switchLanguage })
+			}
 
-			const items = this.#langItemsEl;
-			const culturesKey = cultures.join(',');
+			const items = this.#langItemsEl
+			const culturesKey = cultures.join(',')
 			if (culturesKey !== this.#lastCultures) {
-				this.#lastCultures = culturesKey;
-				items.replaceChildren();
+				this.#lastCultures = culturesKey
+				items.replaceChildren()
 
 				for (const l of cultures) {
 					createElement('micrio-button', {
 						setProps: {
 							title: languageNames?.of(l) ?? l,
-							onclick: () => { this.#setLang(l); }
+							onclick: () => {
+								this.#setLang(l)
+							},
 						},
 						children: [l.toUpperCase()],
-						parent: items
-					});
+						parent: items,
+					})
 				}
 			}
 			// Update active state on all language buttons
-			const langBtns = items.querySelectorAll(':scope > micrio-button');
+			const langBtns = items.querySelectorAll(':scope > micrio-button')
 			for (let i = 0; i < langBtns.length; i++) {
-				const inner = langBtns[i].querySelector('button, a');
-				if (inner) {inner.classList.toggle('active', cultures[i].toLowerCase() === $_lang.toLowerCase());}
+				const inner = langBtns[i].querySelector('button, a')
+				if (inner) {
+					inner.classList.toggle('active', cultures[i].toLowerCase() === $_lang.toLowerCase())
+				}
 			}
 		} else if (this.#langMenu?.isConnected) {
-			this.#langMenu.remove();
+			this.#langMenu.remove()
 		}
 
 		// Share button
 		if (hasSocial && !onlyFullscreen) {
 			if (!this.#shareBtn?.isConnected) {
-				this.#shareBtn?.remove();
-				this.#shareBtn = createElement('micrio-button');
-				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null);
+				this.#shareBtn?.remove()
+				this.#shareBtn = createElement('micrio-button')
+				this.#aside1.insertBefore(this.#shareBtn, this.#group1?.isConnected ? this.#group1 : null)
 			}
-			if (this.#shareBtn instanceof MicrioElement) {this.#shareBtn._setProps({ type: 'share', title: $i18n._share, onclick: this.#share });}
+			if (this.#shareBtn instanceof MicrioElement) {
+				this.#shareBtn._setProps({ type: 'share', title: $i18n._share, onclick: this.#share })
+			}
 		} else if (this.#shareBtn?.isConnected) {
-			this.#shareBtn.remove();
+			this.#shareBtn.remove()
 		}
 
 		// Button group (mute, zoom, fullscreen)
 		if (showGroup) {
 			if (!this.#group1?.isConnected) {
-				this.#group1?.remove();
-				this.#group1 = createElement('micrio-button-group', { parent: this.#aside1 });
+				this.#group1?.remove()
+				this.#group1 = createElement('micrio-button-group', { parent: this.#aside1 })
 			}
 			// Mute button (inserted first)
 			if (showMute) {
 				if (!this.#muteBtn?.isConnected) {
-					this.#muteBtn?.remove();
-					this.#muteBtn = createElement('micrio-button');
-					this.#group1.prepend(this.#muteBtn);
+					this.#muteBtn?.remove()
+					this.#muteBtn = createElement('micrio-button')
+					this.#group1.prepend(this.#muteBtn)
 				}
-				if (this.#muteBtn instanceof MicrioElement) {this.#muteBtn._setProps({
-					type: $isMuted ? 'muted' : 'unmuted',
-					title: $isMuted ? $i18n._audioUnmute : $i18n._audioMute,
-					onclick: this.#toggleMute
-				});}
+				if (this.#muteBtn instanceof MicrioElement) {
+					this.#muteBtn._setProps({
+						type: $isMuted ? 'muted' : 'unmuted',
+						title: $isMuted ? $i18n._audioUnmute : $i18n._audioMute,
+						onclick: this.#toggleMute,
+					})
+				}
 			} else if (this.#muteBtn?.isConnected) {
-				this.#muteBtn.remove();
+				this.#muteBtn.remove()
 			}
 			if (zoomVisible) {
 				if (!this.#zoomGroup?.isConnected) {
-					this.#zoomGroup?.remove();
-					this.#zoomGroup = createElement('micrio-zoom-buttons');
-					if (this.#fsGroup?.isConnected) {this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);}
-					else {this.#group1.append(this.#zoomGroup);}
+					this.#zoomGroup?.remove()
+					this.#zoomGroup = createElement('micrio-zoom-buttons')
+					if (this.#fsGroup?.isConnected) {
+						this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup)
+					} else {
+						this.#group1.append(this.#zoomGroup)
+					}
 				}
 			} else if (this.#zoomGroup?.isConnected) {
-				this.#zoomGroup.remove();
+				this.#zoomGroup.remove()
 			}
 			if (this.#showFullscreen) {
 				if (!this.#fsGroup?.isConnected) {
-					this.#fsGroup?.remove();
-					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 });
+					this.#fsGroup?.remove()
+					this.#fsGroup = createElement('micrio-fullscreen', { parent: this.#group1 })
 				}
-				if (this.#fsGroup instanceof MicrioElement) {this.#fsGroup._setProps({ el: micrio });}
+				if (this.#fsGroup instanceof MicrioElement) {
+					this.#fsGroup._setProps({ el: micrio })
+				}
 			} else if (this.#fsGroup?.isConnected) {
-				this.#fsGroup.remove();
+				this.#fsGroup.remove()
 			}
 		} else if (this.#group1?.isConnected) {
-			this.#group1.remove();
+			this.#group1.remove()
 		}
-
 	}
-
 }
 
-customElements.define(MicrioControls.tag, MicrioControls);
+customElements.define(MicrioControls.tag, MicrioControls)

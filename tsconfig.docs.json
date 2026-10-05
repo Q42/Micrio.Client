@@ -41,6 +41,6 @@
 		"lightHighlightTheme": "solarized-light",
 		"readme": "./README.md",
 		"defaultCategory": "Micrio",
-		"name": "Micrio Client",
+		"name": "Micrio Client"
 	}
 }

@@ -23,15 +23,15 @@
  * public methods, `micrio.gallery.gotoId()`) survives minification.
  */
 
-import type { HTMLMicrioElement } from '$core/element';
-import type { Grid } from '$grid/grid';
-import type { MicrioImage } from '$core/image';
-import type { Models } from '$types/models';
+import type { HTMLMicrioElement } from '$core/element'
+import type { Grid } from '$grid/grid'
+import type { MicrioImage } from '$core/image'
+import type { Models } from '$types/models'
 
-type GridImage = Models.Grid.GridImage;
-type View = Models.Camera.View;
-type Marker = Models.ImageData.Marker;
-type FocusTransition = Models.Grid.MarkerFocusTransition;
+type GridImage = Models.Grid.GridImage
+type View = Models.Camera.View
+type Marker = Models.ImageData.Marker
+type FocusTransition = Models.Grid.MarkerFocusTransition
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Demo catalogue — matches the "Grid template demo" album (11 images).
@@ -40,23 +40,23 @@ type FocusTransition = Models.Grid.MarkerFocusTransition;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CATALOG: { id: string; title: string }[] = [
-	{ id: 'sBuyejY',  title: 'Ancient Ruins, Messina' },
-	{ id: 'DPxSjQn',  title: 'Birds' },
-	{ id: 'CpxjLFr',  title: 'Boston Harbor' },
-	{ id: 'ZjzuXPn',  title: 'Lion Defending Its Prey' },
-	{ id: 'JfujXSL',  title: 'Sisters' },
-	{ id: 'ajMFvkb',  title: 'The Dogana, Venice' },
-	{ id: 'BEjwEGa',  title: 'The Evening of the Deluge' },
-	{ id: 'ojhxdmF',  title: 'Voyage of Life: Manhood' },
-	{ id: 'JkvjmWK',  title: 'Voyage of Life: Youth' },
-	{ id: 'jZwjFAU',  title: 'View of La Cava' },
-	{ id: 'pyjuYXY',  title: 'View of Lake Nemi' },
-];
+	{ id: 'sBuyejY', title: 'Ancient Ruins, Messina' },
+	{ id: 'DPxSjQn', title: 'Birds' },
+	{ id: 'CpxjLFr', title: 'Boston Harbor' },
+	{ id: 'ZjzuXPn', title: 'Lion Defending Its Prey' },
+	{ id: 'JfujXSL', title: 'Sisters' },
+	{ id: 'ajMFvkb', title: 'The Dogana, Venice' },
+	{ id: 'BEjwEGa', title: 'The Evening of the Deluge' },
+	{ id: 'ojhxdmF', title: 'Voyage of Life: Manhood' },
+	{ id: 'JkvjmWK', title: 'Voyage of Life: Youth' },
+	{ id: 'jZwjFAU', title: 'View of La Cava' },
+	{ id: 'pyjuYXY', title: 'View of Lake Nemi' },
+]
 
-const CATALOG_IDS = CATALOG.map(c => c.id);
+const CATALOG_IDS = CATALOG.map((c) => c.id)
 
-const TAGS = ['architecture', 'animals', 'boats', 'figures', 'landscape'] as const;
-type Tag = (typeof TAGS)[number];
+const TAGS = ['architecture', 'animals', 'boats', 'figures', 'landscape'] as const
+type Tag = (typeof TAGS)[number]
 
 /** Human labels for the tag buttons. */
 const TAG_LABELS: Record<Tag, string> = {
@@ -65,19 +65,19 @@ const TAG_LABELS: Record<Tag, string> = {
 	boats: 'Boats',
 	figures: 'Figures',
 	landscape: 'Landscape',
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Demo markers — shared tag names across paintings.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface MarkerSeed {
-	x: number;
-	y: number;
-	view: View;
-	tags: Tag[];
-	title: string;
-	body?: string;
+	x: number
+	y: number
+	view: View
+	tags: Tag[]
+	title: string
+	body?: string
 }
 
 function makeMarkers(image: string, seeds: MarkerSeed[]): Marker[] {
@@ -88,7 +88,7 @@ function makeMarkers(image: string, seeds: MarkerSeed[]): Marker[] {
 		view: s.view,
 		tags: [...s.tags],
 		i18n: { en: { title: s.title, ...(s.body ? { body: s.body } : {}) } },
-	}));
+	}))
 }
 
 const MARKERS: Record<string, Marker[]> = {
@@ -134,7 +134,7 @@ const MARKERS: Record<string, Marker[]> = {
 	pyjuYXY: makeMarkers('pyjuYXY', [
 		{ x: 0.34, y: 0.4, view: [0.14, 0.2, 0.45, 0.45], tags: ['landscape'], title: 'Lake Nemi' },
 	]),
-};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Demo tours
@@ -151,27 +151,47 @@ const MARKERS: Record<string, Marker[]> = {
 
 /** Extra markers that drive a multi-image marker tour via `_meta.gridAction`. */
 const TOUR_MARKERS: Record<string, Marker[]> = {
-	sBuyejY: [{
-		id: 'tour-intro', x: 0.5, y: 0.5, view: [0, 0, 1, 1],
-		i18n: { en: { title: 'Welcome — the full grid' } },
-		data: { _meta: { gridAction: 'reset' } },
-	}],
-	JfujXSL: [{
-		id: 'tour-sisters', x: 0.5, y: 0.55, view: [0.3, 0.3, 0.4, 0.52],
-		i18n: { en: { title: 'The Sisters — every “figures” painting' } },
-		data: { _meta: { gridAction: 'focusWithTagged|figures' } },
-	}],
-	CpxjLFr: [{
-		id: 'tour-boats', x: 0.55, y: 0.55, view: [0.35, 0.34, 0.4, 0.42],
-		i18n: { en: { title: 'Boston Harbor — zoom into every “boats” motif' } },
-		data: { _meta: { gridAction: 'focusTagged|boats' } },
-	}],
-	pyjuYXY: [{
-		id: 'tour-outro', x: 0.5, y: 0.5, view: [0, 0, 1, 1],
-		i18n: { en: { title: 'The end — back to the overview' } },
-		data: { _meta: { gridAction: 'reset' } },
-	}],
-};
+	sBuyejY: [
+		{
+			id: 'tour-intro',
+			x: 0.5,
+			y: 0.5,
+			view: [0, 0, 1, 1],
+			i18n: { en: { title: 'Welcome — the full grid' } },
+			data: { _meta: { gridAction: 'reset' } },
+		},
+	],
+	JfujXSL: [
+		{
+			id: 'tour-sisters',
+			x: 0.5,
+			y: 0.55,
+			view: [0.3, 0.3, 0.4, 0.52],
+			i18n: { en: { title: 'The Sisters — every “figures” painting' } },
+			data: { _meta: { gridAction: 'focusWithTagged|figures' } },
+		},
+	],
+	CpxjLFr: [
+		{
+			id: 'tour-boats',
+			x: 0.55,
+			y: 0.55,
+			view: [0.35, 0.34, 0.4, 0.42],
+			i18n: { en: { title: 'Boston Harbor — zoom into every “boats” motif' } },
+			data: { _meta: { gridAction: 'focusTagged|boats' } },
+		},
+	],
+	pyjuYXY: [
+		{
+			id: 'tour-outro',
+			x: 0.5,
+			y: 0.5,
+			view: [0, 0, 1, 1],
+			i18n: { en: { title: 'The end — back to the overview' } },
+			data: { _meta: { gridAction: 'reset' } },
+		},
+	],
+}
 
 /** Ordered steps for the marker-tour demo (image + marker to open on it). */
 const TOUR_STEPS: { image: string; markerId: string; note: string }[] = [
@@ -179,7 +199,7 @@ const TOUR_STEPS: { image: string; markerId: string; note: string }[] = [
 	{ image: 'JfujXSL', markerId: 'tour-sisters', note: 'gridAction: focusWithTagged figures' },
 	{ image: 'CpxjLFr', markerId: 'tour-boats', note: 'gridAction: focusTagged boats' },
 	{ image: 'pyjuYXY', markerId: 'tour-outro', note: 'gridAction: reset → overview' },
-];
+]
 
 /**
  * A standalone video tour (no audio) attached to a marker. Its camera
@@ -206,18 +226,20 @@ const GUIDED_TOUR: Models.ImageData.VideoTour = {
 			],
 		},
 	},
-};
+}
 
 /** The marker that owns {@link GUIDED_TOUR}. Opening it starts the video tour. */
 const VIDEO_TOUR_MARKER: { image: string; marker: Marker } = {
 	image: 'sBuyejY',
 	marker: {
 		id: 'demo-guided',
-		x: 0.5, y: 0.5, view: [0, 0, 1, 1],
+		x: 0.5,
+		y: 0.5,
+		view: [0, 0, 1, 1],
 		i18n: { en: { title: '▶ Play guided tour' } },
 		videoTour: GUIDED_TOUR,
 	},
-};
+}
 
 /** Returns every demo marker for an image (tags + tour + video-tour). */
 function markersFor(id: string): Marker[] {
@@ -225,7 +247,7 @@ function markersFor(id: string): Marker[] {
 		...(MARKERS[id] ?? []),
 		...(TOUR_MARKERS[id] ?? []),
 		...(VIDEO_TOUR_MARKER.image === id ? [VIDEO_TOUR_MARKER.marker] : []),
-	];
+	]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -234,35 +256,57 @@ function markersFor(id: string): Marker[] {
 
 const FOCUS_TRANSITIONS: FocusTransition[] = [
 	'crossfade',
-	'slide', 'slide-horiz', 'slide-vert', 'slide-up', 'slide-down', 'slide-left', 'slide-right',
-	'swipe', 'swipe-horiz', 'swipe-vert', 'swipe-up', 'swipe-down', 'swipe-right', 'swipe-left',
-	'behind', 'behind-left', 'behind-right',
-];
+	'slide',
+	'slide-horiz',
+	'slide-vert',
+	'slide-up',
+	'slide-down',
+	'slide-left',
+	'slide-right',
+	'swipe',
+	'swipe-horiz',
+	'swipe-vert',
+	'swipe-up',
+	'swipe-down',
+	'swipe-right',
+	'swipe-left',
+	'behind',
+	'behind-left',
+	'behind-right',
+]
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small DOM helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
-	const e = document.createElement(tag);
-	if (className) {e.className = className;}
-	if (text !== undefined) {e.textContent = text;}
-	return e;
+	const e = document.createElement(tag)
+	if (className) {
+		e.className = className
+	}
+	if (text !== undefined) {
+		e.textContent = text
+	}
+	return e
 }
 
 function sleep(ms: number): Promise<void> {
-	return new Promise(ok => { setTimeout(ok, ms); });
+	return new Promise((ok) => {
+		setTimeout(ok, ms)
+	})
 }
 
 /** Build a whole-image thumbnail URL from the image's (corner-tile) `thumbSrc`. */
 function thumbOf(img: MicrioImage, level = 8): string {
-	const src = img.thumbSrc;
-	if (!src) {return '';}
-	return src.replace(/(\/\d+\/0_0)(\.\w+)$/, `/${level}/0_0$2`);
+	const src = img.thumbSrc
+	if (!src) {
+		return ''
+	}
+	return src.replace(/(\/\d+\/0_0)(\.\w+)$/, `/${level}/0_0$2`)
 }
 
 function titleOf(id: string): string {
-	return CATALOG.find(c => c.id === id)?.title ?? id;
+	return CATALOG.find((c) => c.id === id)?.title ?? id
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,7 +314,7 @@ function titleOf(id: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function boot(micrio: HTMLMicrioElement): void {
-	Object.assign(globalThis, { micrio });
+	Object.assign(globalThis, { micrio })
 	micrio.defaultSettings = {
 		// Keep the demo canvas clean — our panel replaces the default UI.
 		noControls: true,
@@ -284,43 +328,46 @@ function boot(micrio: HTMLMicrioElement): void {
 			transitionDuration: 1,
 			transitionDurationOut: 0.6,
 		},
-	};
+	}
 
-	injectStyles();
-	const root = buildShell();
-	document.body.append(root);
+	injectStyles()
+	const root = buildShell()
+	document.body.append(root)
 
 	// Resolve the Grid controller. This is deliberately order-independent:
 	// depending on whether Micrio is loaded as an ES module (dev) or as a
 	// classic `<script defer>`/CDN bundle (compiled / production), `grid-init`
 	// may fire before *or* after this module runs. We listen for the event,
 	// check whether the controller already exists, and poll as a safety net.
-	resolveGrid(micrio, grid => {
-		Object.assign(globalThis, { grid });
-		void init(root, micrio, grid);
-	});
+	resolveGrid(micrio, (grid) => {
+		Object.assign(globalThis, { grid })
+		void init(root, micrio, grid)
+	})
 }
 
 // Resolve the `<micr-io>` element. When this file is bundled as a classic
 // script for a static release, it may execute in `<head>` before the element
 // in `<body>` has been parsed — in that case wait for the document to finish.
-const micrioEl = document.querySelector<HTMLMicrioElement>('micr-io');
+const micrioEl = document.querySelector<HTMLMicrioElement>('micr-io')
 if (micrioEl) {
-	boot(micrioEl);
+	boot(micrioEl)
 } else if (document.readyState === 'loading') {
 	document.addEventListener('DOMContentLoaded', () => {
-		const el = document.querySelector<HTMLMicrioElement>('micr-io');
-		if (el) {boot(el);}
-		else {console.error('[grid demo] No <micr-io> element found.');}
-	});
+		const el = document.querySelector<HTMLMicrioElement>('micr-io')
+		if (el) {
+			boot(el)
+		} else {
+			console.error('[grid demo] No <micr-io> element found.')
+		}
+	})
 } else {
-	console.error('[grid demo] No <micr-io> element found.');
+	console.error('[grid demo] No <micr-io> element found.')
 }
 
 /** True for a real `CustomEvent`; deliberately not a type predicate, so the typed
  *  Micrio event keeps its `detail` type instead of widening to `CustomEvent<any>`. */
 function isCustomEvent(e: Event): boolean {
-	return e instanceof CustomEvent;
+	return e instanceof CustomEvent
 }
 
 /**
@@ -332,36 +379,48 @@ function isCustomEvent(e: Event): boolean {
  *  3. polls for a short while as a fallback.
  */
 function resolveGrid(micrio: HTMLMicrioElement, onGrid: (grid: Grid) => void): void {
-	let done = false;
-	let timer: number | undefined;
+	let done = false
+	let timer: number | undefined
 
 	const finish = (grid?: Grid) => {
-		if (done || !grid) {return;}
-		done = true;
-		if (timer !== undefined) {clearInterval(timer);}
-		onGrid(grid);
-	};
+		if (done || !grid) {
+			return
+		}
+		done = true
+		if (timer !== undefined) {
+			clearInterval(timer)
+		}
+		onGrid(grid)
+	}
 
 	// The controller is attached to the main (viewport) image, which is
 	// `micrio.$current` while the grid overview is showing.
-	const find = (): Grid | undefined => micrio.$current?.grid;
+	const find = (): Grid | undefined => micrio.$current?.grid
 
-	micrio.addEventListener('grid-init', e => {
-		if (!isCustomEvent(e)) {return;}
-		const grid: Grid = e.detail;
-		finish(grid);
-	});
+	micrio.addEventListener('grid-init', (e) => {
+		if (!isCustomEvent(e)) {
+			return
+		}
+		const grid: Grid = e.detail
+		finish(grid)
+	})
 
 	// Already initialized?
-	finish(find());
+	finish(find())
 
 	// Safety net for any ordering/event edge case.
-	timer = globalThis.setInterval(() =>{  finish(find()); }, 150);
+	timer = globalThis.setInterval(() => {
+		finish(find())
+	}, 150)
 	globalThis.setTimeout(() => {
-		if (done) {return;}
-		if (timer !== undefined) {clearInterval(timer);}
-		console.warn('[grid demo] Timed out waiting for the grid controller.');
-	}, 15000);
+		if (done) {
+			return
+		}
+		if (timer !== undefined) {
+			clearInterval(timer)
+		}
+		console.warn('[grid demo] Timed out waiting for the grid controller.')
+	}, 15000)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -444,14 +503,14 @@ function injectStyles(): void {
 .gd-docs { display: flex; flex-direction: column; gap: 6px; }
 .gd-docs a { color: #00d4ee; text-decoration: none; font-size: 12px; }
 .gd-docs a:hover { text-decoration: underline; }
-`;
-	const style = h('style');
-	style.textContent = css;
-	document.head.append(style);
+`
+	const style = h('style')
+	style.textContent = css
+	document.head.append(style)
 }
 
 function buildShell(): HTMLElement {
-	const root = h('div', 'gd');
+	const root = h('div', 'gd')
 	root.innerHTML = `
 		<header class="gd-h">
 			<div class="gd-t">Micrio <b>Grid</b> — API demo</div>
@@ -516,8 +575,8 @@ function buildShell(): HTMLElement {
 		</aside>
 
 		<footer class="gd-strip" data-role="strip"></footer>
-	`;
-	return root;
+	`
+	return root
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -525,114 +584,143 @@ function buildShell(): HTMLElement {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): Promise<void> {
-	await injectMarkers(micrio);
+	await injectMarkers(micrio)
 
-	const sub = root.querySelector<HTMLElement>('[data-role="sub"]');
-	const strip = root.querySelector<HTMLElement>('[data-role="strip"]');
-	const tagsBox = root.querySelector<HTMLElement>('[data-role="tags"]');
-	const focusTrans = root.querySelector<HTMLSelectElement>('[data-role="focus-trans"]');
-	const tourNote = root.querySelector<HTMLElement>('[data-role="tour-note"]');
+	const sub = root.querySelector<HTMLElement>('[data-role="sub"]')
+	const strip = root.querySelector<HTMLElement>('[data-role="strip"]')
+	const tagsBox = root.querySelector<HTMLElement>('[data-role="tags"]')
+	const focusTrans = root.querySelector<HTMLSelectElement>('[data-role="focus-trans"]')
+	const tourNote = root.querySelector<HTMLElement>('[data-role="tour-note"]')
 	if (!sub || !strip || !tagsBox || !focusTrans || !tourNote) {
-		throw new Error('[grid demo] Control panel markup is incomplete.');
+		throw new Error('[grid demo] Control panel markup is incomplete.')
 	}
 
 	for (const t of FOCUS_TRANSITIONS) {
-		const opt = h('option');
-		opt.value = t;
-		opt.textContent = t;
-		focusTrans.append(opt);
+		const opt = h('option')
+		opt.value = t
+		opt.textContent = t
+		focusTrans.append(opt)
 	}
-	focusTrans.value = 'slide-up';
+	focusTrans.value = 'slide-up'
 
-	const getTransition = (): FocusTransition => FOCUS_TRANSITIONS.find(t => t === focusTrans.value) ?? 'slide-up';
+	const getTransition = (): FocusTransition => FOCUS_TRANSITIONS.find((t) => t === focusTrans.value) ?? 'slide-up'
 
-	buildStrip(strip, micrio, grid, getTransition);
-	buildTags(tagsBox, grid);
-	wireButtons(root, micrio, grid, getTransition, tourNote);
+	buildStrip(strip, micrio, grid, getTransition)
+	buildTags(tagsBox, grid)
+	wireButtons(root, micrio, grid, getTransition, tourNote)
 
-	const setSub = (s: string) => (sub.textContent = s);
-	setSub(`${CATALOG.length} images · ${Object.keys(MARKERS).length} with demo markers · click a cell to focus`);
+	const setSub = (s: string) => (sub.textContent = s)
+	setSub(`${CATALOG.length} images · ${Object.keys(MARKERS).length} with demo markers · click a cell to focus`)
 
 	// Keep the status line + strip highlight in sync with the controller.
 	grid.micrio.addEventListener('grid-layout-set', () => {
-		setSub('Layout updated');
-		refreshStrip(strip, grid);
-	});
+		setSub('Layout updated')
+		refreshStrip(strip, grid)
+	})
 	grid.micrio.addEventListener('grid-focus', (e) => {
-		if (!isCustomEvent(e)) {return;}
-		const img: MicrioImage = e.detail;
-		setSub(`Focused: ${titleOf(img.id)} — Esc or “Back” to return`);
-		refreshStrip(strip, grid);
-	});
+		if (!isCustomEvent(e)) {
+			return
+		}
+		const img: MicrioImage = e.detail
+		setSub(`Focused: ${titleOf(img.id)} — Esc or “Back” to return`)
+		refreshStrip(strip, grid)
+	})
 	grid.micrio.addEventListener('grid-blur', () => {
-		setSub('Overview');
-		refreshStrip(strip, grid);
-	});
+		setSub('Overview')
+		refreshStrip(strip, grid)
+	})
 
-	refreshStrip(strip, grid);
+	refreshStrip(strip, grid)
 }
 
 // ── markers ──────────────────────────────────────────────────────────────────
 
 async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
-	const {gallery} = micrio;
-	if (!gallery) {return;}
+	const { gallery } = micrio
+	if (!gallery) {
+		return
+	}
 
 	for (const { id } of CATALOG) {
-		const markers = markersFor(id);
-		if (markers.length === 0) {continue;}
+		const markers = markersFor(id)
+		if (markers.length === 0) {
+			continue
+		}
 
 		// oxlint-disable-next-line eslint/no-await-in-loop -- gotoId mutates shared gallery state, so images are visited one at a time
-		const img = await gallery.gotoId(id);
-		if (!img) {continue;}
+		const img = await gallery.gotoId(id)
+		if (!img) {
+			continue
+		}
 
 		const ensure = () => {
-			const existing = img.$data?.markers ?? [];
-			const have = new Set(existing.map(m => m.id));
-			const add = markers.filter(m => !have.has(m.id));
-			if (add.length === 0) {return;}
-			img.data.update(d => {
-				const base: Models.ImageData.ImageData = d ?? {};
-				return { ...base, markers: [...(base.markers ?? []), ...add] };
-			});
-		};
+			const existing = img.$data?.markers ?? []
+			const have = new Set(existing.map((m) => m.id))
+			const add = markers.filter((m) => !have.has(m.id))
+			if (add.length === 0) {
+				return
+			}
+			img.data.update((d) => {
+				const base: Models.ImageData.ImageData = d ?? {}
+				return { ...base, markers: [...(base.markers ?? []), ...add] }
+			})
+		}
 
-		ensure();
-		img.data.subscribe(() =>{  ensure(); });
+		ensure()
+		img.data.subscribe(() => {
+			ensure()
+		})
 	}
 }
 
 // ── thumbnail strip ──────────────────────────────────────────────────────────
 
-function buildStrip(strip: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, getTransition: () => FocusTransition): void {
+function buildStrip(
+	strip: HTMLElement,
+	micrio: HTMLMicrioElement,
+	grid: Grid,
+	getTransition: () => FocusTransition,
+): void {
 	for (const { id, title } of CATALOG) {
-		const cell = h('button', 'gd-cell');
-		cell.dataset.id = id;
+		const cell = h('button', 'gd-cell')
+		cell.dataset.id = id
 
-		const ph = h('div', 'ph');
-		const lb = h('span', 'lb', title);
-		cell.append(ph, lb);
-		cell.addEventListener('click', () => void focusById(micrio, grid, id, getTransition()));
-		strip.append(cell);
+		const ph = h('div', 'ph')
+		const lb = h('span', 'lb', title)
+		cell.append(ph, lb)
+		cell.addEventListener('click', () => void focusById(micrio, grid, id, getTransition()))
+		strip.append(cell)
 
 		// Load the whole-image thumbnail asynchronously.
-		void micrio.gallery?.gotoId(id).then(img => {
-			if (!img) {return;}
-			const url = thumbOf(img);
-			if (url) {ph.style.backgroundImage = `url('${url}')`;}
-		});
+		void micrio.gallery?.gotoId(id).then((img) => {
+			if (!img) {
+				return
+			}
+			const url = thumbOf(img)
+			if (url) {
+				ph.style.backgroundImage = `url('${url}')`
+			}
+		})
 	}
 }
 
-async function focusById(micrio: HTMLMicrioElement, grid: Grid, id: string, transition: FocusTransition, duration = 1): Promise<void> {
-	const img = await micrio.gallery?.gotoId(id);
-	if (img) {await grid.gridFocus(img, { transition, duration });}
+async function focusById(
+	micrio: HTMLMicrioElement,
+	grid: Grid,
+	id: string,
+	transition: FocusTransition,
+	duration = 1,
+): Promise<void> {
+	const img = await micrio.gallery?.gotoId(id)
+	if (img) {
+		await grid.gridFocus(img, { transition, duration })
+	}
 }
 
 function refreshStrip(strip: HTMLElement, grid: Grid): void {
-	const focused = grid.$focussed?.id;
+	const focused = grid.$focussed?.id
 	for (const c of strip.querySelectorAll<HTMLElement>('.gd-cell')) {
-		c.classList.toggle('on', c.dataset.id === focused);
+		c.classList.toggle('on', c.dataset.id === focused)
 	}
 }
 
@@ -640,47 +728,59 @@ function refreshStrip(strip: HTMLElement, grid: Grid): void {
 
 function buildTags(box: HTMLElement, grid: Grid): void {
 	for (const tag of TAGS) {
-		const images = CATALOG.filter(c => MARKERS[c.id]?.some(m => m.tags?.includes(tag)));
-		if (images.length === 0) {continue;}
+		const images = CATALOG.filter((c) => MARKERS[c.id]?.some((m) => m.tags?.includes(tag)))
+		if (images.length === 0) {
+			continue
+		}
 
-		const row = h('div', 'gd-tag');
-		const nm = h('span', 'nm', TAG_LABELS[tag]);
-		const cnt = h('span', 'cnt');
-		cnt.innerHTML = `<b>${images.length}</b>`;
-		row.append(nm, cnt);
+		const row = h('div', 'gd-tag')
+		const nm = h('span', 'nm', TAG_LABELS[tag])
+		const cnt = h('span', 'cnt')
+		cnt.innerHTML = `<b>${images.length}</b>`
+		row.append(nm, cnt)
 
-		const zoom = h('button', undefined, 'Zoom to motif');
-		zoom.title = 'Show every painting with this tag, zoomed to its marker';
-		zoom.addEventListener('click', () =>{  grid.action('focusTagged', tag); });
+		const zoom = h('button', undefined, 'Zoom to motif')
+		zoom.title = 'Show every painting with this tag, zoomed to its marker'
+		zoom.addEventListener('click', () => {
+			grid.action('focusTagged', tag)
+		})
 
-		const show = h('button', undefined, 'Show all');
-		show.title = 'Show every painting with this tag at full view';
-		show.addEventListener('click', () =>{  grid.action('focusWithTagged', tag); });
+		const show = h('button', undefined, 'Show all')
+		show.title = 'Show every painting with this tag at full view'
+		show.addEventListener('click', () => {
+			grid.action('focusWithTagged', tag)
+		})
 
-		row.append(zoom, show);
-		box.append(row);
+		row.append(zoom, show)
+		box.append(row)
 	}
 }
 
 // ── buttons ──────────────────────────────────────────────────────────────────
 
 function allCells(): GridImage[] {
-	return CATALOG_IDS.map(id => ({ id, size: [1] as [number, number?] }));
+	return CATALOG_IDS.map((id) => ({ id, size: [1] as [number, number?] }))
 }
 
-function wireButtons(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, getTransition: () => FocusTransition, tourNote: HTMLElement): void {
+function wireButtons(
+	root: HTMLElement,
+	micrio: HTMLMicrioElement,
+	grid: Grid,
+	getTransition: () => FocusTransition,
+	tourNote: HTMLElement,
+): void {
 	const on = (act: string, fn: () => void) => {
-		root.querySelector<HTMLButtonElement>(`[data-act="${act}"]`)?.addEventListener('click', fn);
-	};
+		root.querySelector<HTMLButtonElement>(`[data-act="${act}"]`)?.addEventListener('click', fn)
+	}
 
 	// Layout
-	on('reset', () => void grid.reset(1));
-	on('row', () => void grid.set(allCells(), { horizontal: true, duration: 1 }));
-	on('col', () => void grid.set(allCells(), { columns: 1, duration: 1 }));
+	on('reset', () => void grid.reset(1))
+	on('row', () => void grid.set(allCells(), { horizontal: true, duration: 1 }))
+	on('col', () => void grid.set(allCells(), { columns: 1, duration: 1 }))
 	on('pairs', () => {
-		const first = CATALOG_IDS.slice(0, 4).map(id => ({ id, size: [1] as [number, number?] }));
-		void grid.set(first, { columns: 2, duration: 1 });
-	});
+		const first = CATALOG_IDS.slice(0, 4).map((id) => ({ id, size: [1] as [number, number?] }))
+		void grid.set(first, { columns: 2, duration: 1 })
+	})
 	on('mosaic', () => {
 		const layout: GridImage[] = [
 			{ id: CATALOG_IDS[0], size: [2, 2] },
@@ -694,53 +794,73 @@ function wireButtons(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, g
 			{ id: CATALOG_IDS[8], size: [1] },
 			{ id: CATALOG_IDS[9], size: [1] },
 			{ id: CATALOG_IDS[10], size: [1] },
-		];
-		void grid.set(layout, { duration: 1, transition: 'behind' });
-	});
-	on('enlarge', () => void grid.enlarge(0, 2, 2));
+		]
+		void grid.set(layout, { duration: 1, transition: 'behind' })
+	})
+	on('enlarge', () => void grid.enlarge(0, 2, 2))
 
 	// Focus
-	on('back', () => void grid.back(0.8));
-	on('blur', () =>{  grid.blur(); });
+	on('back', () => void grid.back(0.8))
+	on('blur', () => {
+		grid.blur()
+	})
 
 	// Actions
 	on('flyto', () => {
-		void grid.reset(0.4).then(() =>{  grid.action('flyTo', 'CpxjLFr,ajMFvkb', 1); });
-	});
-	on('switch', () =>{  grid.action('switchToGrid'); });
+		void grid.reset(0.4).then(() => {
+			grid.action('flyTo', 'CpxjLFr,ajMFvkb', 1)
+		})
+	})
+	on('switch', () => {
+		grid.action('switchToGrid')
+	})
 	on('slowfocus', () => {
-		void focusById(micrio, grid, CATALOG_IDS[0], getTransition(), 2.5);
-	});
+		void focusById(micrio, grid, CATALOG_IDS[0], getTransition(), 2.5)
+	})
 
 	// Tours
-	on('marker-tour', () => void runMarkerTour(micrio, grid, tourNote));
-	on('guided-tour', () => void runGuidedTour(micrio, grid, tourNote));
-	on('stop-tour', () =>{  stopTours(micrio, grid, tourNote); });
+	on('marker-tour', () => void runMarkerTour(micrio, grid, tourNote))
+	on('guided-tour', () => void runGuidedTour(micrio, grid, tourNote))
+	on('stop-tour', () => {
+		stopTours(micrio, grid, tourNote)
+	})
 }
 
 // ── demo tours ───────────────────────────────────────────────────────────────
 
 /** Monotonic token used to cancel a running tour (bumped by `stopTours`). */
-let tourToken = 0;
+let tourToken = 0
 
 function stopTours(micrio: HTMLMicrioElement, grid: Grid, note: HTMLElement): void {
-	tourToken++;
-	micrio.state.tour.set(undefined);
-	micrio.state.marker.set(undefined);
-	note.textContent = 'Tour stopped.';
-	void grid.reset(0.5);
+	tourToken++
+	micrio.state.tour.set(undefined)
+	micrio.state.marker.set(undefined)
+	note.textContent = 'Tour stopped.'
+	void grid.reset(0.5)
 }
 
 /** Focus an image and open one of its markers, returning the image (or undefined). */
-async function openMarker(micrio: HTMLMicrioElement, grid: Grid, imageId: string, markerId: string, token: number): Promise<MicrioImage | undefined> {
-	const img = await micrio.gallery?.gotoId(imageId);
-	if (!img || token !== tourToken) {return img;}
-	await grid.gridFocus(img, { transition: 'slide-up', duration: 0.8 });
-	if (token !== tourToken) {return img;}
-	await sleep(400); // let the marker element render after focus
-	if (token !== tourToken) {return img;}
-	img.state.marker.set(markerId);
-	return img;
+async function openMarker(
+	micrio: HTMLMicrioElement,
+	grid: Grid,
+	imageId: string,
+	markerId: string,
+	token: number,
+): Promise<MicrioImage | undefined> {
+	const img = await micrio.gallery?.gotoId(imageId)
+	if (!img || token !== tourToken) {
+		return img
+	}
+	await grid.gridFocus(img, { transition: 'slide-up', duration: 0.8 })
+	if (token !== tourToken) {
+		return img
+	}
+	await sleep(400) // let the marker element render after focus
+	if (token !== tourToken) {
+		return img
+	}
+	img.state.marker.set(markerId)
+	return img
 }
 
 /**
@@ -749,25 +869,33 @@ async function openMarker(micrio: HTMLMicrioElement, grid: Grid, imageId: string
  * step (`reset`, `focusWithTagged`, `focusTagged`, …).
  */
 async function runMarkerTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLElement): Promise<void> {
-	const token = ++tourToken;
+	const token = ++tourToken
 
 	for (const step of TOUR_STEPS) {
-		if (token !== tourToken) {return;}
-		note.textContent = `Marker tour — ${titleOf(step.image)} · ${step.note}`;
+		if (token !== tourToken) {
+			return
+		}
+		note.textContent = `Marker tour — ${titleOf(step.image)} · ${step.note}`
 
 		// oxlint-disable-next-line eslint/no-await-in-loop -- tour steps must run strictly in order
-		const img = await openMarker(micrio, grid, step.image, step.markerId, token);
-		if (!img) {continue;}
+		const img = await openMarker(micrio, grid, step.image, step.markerId, token)
+		if (!img) {
+			continue
+		}
 
 		// oxlint-disable-next-line eslint/no-await-in-loop -- tour steps must run strictly in order
-		await sleep(2600);
-		if (token !== tourToken) {return;}
-		img.state.marker.set(undefined);
+		await sleep(2600)
+		if (token !== tourToken) {
+			return
+		}
+		img.state.marker.set(undefined)
 	}
 
-	if (token !== tourToken) {return;}
-	await grid.reset(1);
-	note.textContent = 'Marker tour finished — back to the overview.';
+	if (token !== tourToken) {
+		return
+	}
+	await grid.reset(1)
+	note.textContent = 'Marker tour finished — back to the overview.'
 }
 
 /**
@@ -776,19 +904,24 @@ async function runMarkerTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLEl
  * its `events` fire `grid:*` actions at the given times.
  */
 async function runGuidedTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLElement): Promise<void> {
-	const token = ++tourToken;
+	const token = ++tourToken
 
-	note.textContent = 'Guided tour — a marker video tour firing grid triggers…';
-	const img = await openMarker(micrio, grid, VIDEO_TOUR_MARKER.image, VIDEO_TOUR_MARKER.marker.id, token);
-	if (!img) {return;}
+	note.textContent = 'Guided tour — a marker video tour firing grid triggers…'
+	const img = await openMarker(micrio, grid, VIDEO_TOUR_MARKER.image, VIDEO_TOUR_MARKER.marker.id, token)
+	if (!img) {
+		return
+	}
 
 	// The video tour runs on its own; watch for it to finish.
-	const unsub = micrio.state.tour.subscribe(t => {
-		if (token !== tourToken) { unsub(); return; }
-		if (!t) {
-			unsub();
-			note.textContent = 'Guided tour finished.';
-			void grid.reset(1);
+	const unsub = micrio.state.tour.subscribe((t) => {
+		if (token !== tourToken) {
+			unsub()
+			return
 		}
-	});
+		if (!t) {
+			unsub()
+			note.textContent = 'Guided tour finished.'
+			void grid.reset(1)
+		}
+	})
 }

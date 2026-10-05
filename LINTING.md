@@ -17,16 +17,16 @@ same floor as vite 8); see `.nvmrc` (24.4.0).
 
 ## Status: complete
 
-| Phase | Baseline | Now |
-| --- | --- | --- |
-| Strict rule migration (65 rules) | 3568 findings | 0 |
-| Heavy type-aware rules (6 rules) | 1209 findings | 0 |
+| Phase                            | Baseline      | Now |
+| -------------------------------- | ------------- | --- |
+| Strict rule migration (65 rules) | 3568 findings | 0   |
+| Heavy type-aware rules (6 rules) | 1209 findings | 0   |
 
-| Gate | Result |
-| --- | --- |
-| `pnpm lint` | 0 findings, exit 0 (195 rules) |
-| `pnpm typecheck` | exit 0 |
-| `pnpm build` | succeeds |
+| Gate             | Result                         |
+| ---------------- | ------------------------------ |
+| `pnpm lint`      | 0 findings, exit 0 (195 rules) |
+| `pnpm typecheck` | exit 0                         |
+| `pnpm build`     | succeeds                       |
 
 Both phases landed as many small commits, one rule per commit per area, so
 `git log --grep '<rule-id>'` shows how any single rule was resolved, e.g.
@@ -123,19 +123,19 @@ Every `oxlint-disable-next-line` in the codebase, with its reason. There are no
 others; `options.reportUnusedDisableDirectives` is `error`, so a stale one fails
 lint. Prefer a real fix over adding to this list.
 
-| Location | Rule | Why |
-| --- | --- | --- |
-| `src/core/frame.ts:22` | `unicorn/prefer-global-this` | typed as the rAF host `Window`; `globalThis` is not assignable |
-| `src/render/webgl.ts:43` | `unicorn/prefer-global-this` | typed as `Window` for the WebGL display host |
-| `src/layout/logo.ts:19` | `unicorn/prefer-global-this` | compares the parent frame against this `Window` |
-| `src/render/textures.ts:63` | `unicorn/require-post-message-target-origin` | `Worker.postMessage` takes a transfer list, not a target origin |
-| `src/types/models/info.ts:470` | `typescript/no-explicit-any` | `GalleryConfig.settings` custom-JSON bag; consumers spread and read arbitrary nested keys |
-| `src/types/models/data.ts:81` | `eslint/no-shadow` | nested interface is the public `Models.ImageData.ImageData` API type; renaming breaks consumers |
-| `src/core/store.ts:96` | `typescript/no-unsafe-type-assertion` | initial store value is optional; narrowing would drop the initial `undefined` emission that `skipFirst` relies on |
-| `src/core/image.ts:450` | `typescript/no-unsafe-type-assertion` | embed info is intentionally partial; fabricating required fields would change runtime data |
-| `src/utils/fetch.ts:29,31,48` | `typescript/no-unsafe-type-assertion` | unverifiable JSON; the shape is the caller-declared generic `T` |
-| `src/utils/archive.ts:135` | `typescript/no-unsafe-type-assertion` | archived JSON has no runtime schema; the caller declares `T` |
-| `templates/grid/grid.ts:585,758,762` | `eslint/no-await-in-loop` | `gotoId` mutates shared gallery state; tour steps must run strictly in order |
+| Location                             | Rule                                         | Why                                                                                                               |
+| ------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/core/frame.ts:22`               | `unicorn/prefer-global-this`                 | typed as the rAF host `Window`; `globalThis` is not assignable                                                    |
+| `src/render/webgl.ts:43`             | `unicorn/prefer-global-this`                 | typed as `Window` for the WebGL display host                                                                      |
+| `src/layout/logo.ts:19`              | `unicorn/prefer-global-this`                 | compares the parent frame against this `Window`                                                                   |
+| `src/render/textures.ts:63`          | `unicorn/require-post-message-target-origin` | `Worker.postMessage` takes a transfer list, not a target origin                                                   |
+| `src/types/models/info.ts:470`       | `typescript/no-explicit-any`                 | `GalleryConfig.settings` custom-JSON bag; consumers spread and read arbitrary nested keys                         |
+| `src/types/models/data.ts:81`        | `eslint/no-shadow`                           | nested interface is the public `Models.ImageData.ImageData` API type; renaming breaks consumers                   |
+| `src/core/store.ts:96`               | `typescript/no-unsafe-type-assertion`        | initial store value is optional; narrowing would drop the initial `undefined` emission that `skipFirst` relies on |
+| `src/core/image.ts:450`              | `typescript/no-unsafe-type-assertion`        | embed info is intentionally partial; fabricating required fields would change runtime data                        |
+| `src/utils/fetch.ts:29,31,48`        | `typescript/no-unsafe-type-assertion`        | unverifiable JSON; the shape is the caller-declared generic `T`                                                   |
+| `src/utils/archive.ts:135`           | `typescript/no-unsafe-type-assertion`        | archived JSON has no runtime schema; the caller declares `T`                                                      |
+| `templates/grid/grid.ts:585,758,762` | `eslint/no-await-in-loop`                    | `gotoId` mutates shared gallery state; tour steps must run strictly in order                                      |
 
 The props-bag disables (`MicrioElement<_P>` and `_props`) that used to be listed
 here are gone: the props plumbing is typed now.

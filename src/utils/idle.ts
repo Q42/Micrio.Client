@@ -1,16 +1,16 @@
 /** @internal */
 export interface IdleStateOptions {
 	/** Delay in ms before entering idle (default 2000). */
-	delay?: number;
+	delay?: number
 	/** Called when entering idle — `data-idle` is about to be set. */
-	onIdle?: () => void;
+	onIdle?: () => void
 	/** Called when leaving idle — `data-idle` is about to be removed. */
-	onActive?: () => void;
+	onActive?: () => void
 	/**
 	 * Optional guard — return `false` to postpone entering idle.
 	 * The timer will re-arm and try again after `delay` ms.
 	 */
-	shouldIdle?: () => boolean;
+	shouldIdle?: () => boolean
 }
 
 /**
@@ -21,89 +21,96 @@ export interface IdleStateOptions {
  * @internal
  */
 export class IdleState {
-	private o: Required<IdleStateOptions>;
-	private to: number | undefined;
+	private o: Required<IdleStateOptions>
+	private to: number | undefined
 	/** @internal */
-	private _enabled = true;
+	private _enabled = true
 
-	constructor(private el: HTMLElement, opts: IdleStateOptions = {}) {
+	constructor(
+		private el: HTMLElement,
+		opts: IdleStateOptions = {},
+	) {
 		this.o = {
 			delay: 4000,
 			onIdle: () => {},
 			onActive: () => {},
 			shouldIdle: () => true,
 			...opts,
-		};
+		}
 	}
 
 	/** Whether the element currently has the data-idle attribute. */
 	get idle(): boolean {
-		return Object.hasOwn(this.el.dataset, "idle");
+		return Object.hasOwn(this.el.dataset, 'idle')
 	}
 
 	/** Whether the idle state manager is enabled. */
 	get enabled(): boolean {
-		return this._enabled;
+		return this._enabled
 	}
 	/** Enables or disables the idle state manager. Disabling immediately pauses the timer. */
 	set enabled(v: boolean) {
-		this._enabled = v;
-		if (!v) {this.pause();}
+		this._enabled = v
+		if (!v) {
+			this.pause()
+		}
 	}
 
 	/** Resets the idle timer and removes the data-idle attribute if present. */
 	activity() {
 		if (this.idle) {
-			delete this.el.dataset.idle;
-			this.o.onActive();
+			delete this.el.dataset.idle
+			this.o.onActive()
 		}
-		this.#schedule();
+		this.#schedule()
 	}
 
 	/** Removes the data-idle attribute and calls onActive if currently idle. */
 	show() {
 		if (this.idle) {
-			delete this.el.dataset.idle;
-			this.o.onActive();
+			delete this.el.dataset.idle
+			this.o.onActive()
 		}
 	}
 
 	/** Sets the data-idle attribute and calls onIdle, then pauses the timer. */
 	hide() {
 		if (!this.idle) {
-			this.el.dataset.idle = '';
-			this.o.onIdle();
+			this.el.dataset.idle = ''
+			this.o.onIdle()
 		}
-		this.pause();
+		this.pause()
 	}
 
 	/** Pauses the idle timer without changing the current idle state. */
 	pause() {
-		clearTimeout(this.to);
+		clearTimeout(this.to)
 	}
 
 	/** Resumes the idle timer, scheduling the idle check after the configured delay. */
 	resume() {
-		this.#schedule();
+		this.#schedule()
 	}
 
 	/** Clears the idle timer and cleans up. */
 	destroy() {
-		clearTimeout(this.to);
+		clearTimeout(this.to)
 	}
 
 	#schedule() {
-		clearTimeout(this.to);
-		if (!this._enabled) {return;}
+		clearTimeout(this.to)
+		if (!this._enabled) {
+			return
+		}
 		this.to = globalThis.setTimeout(() => {
 			if (!this.o.shouldIdle()) {
-				this.#schedule();
-				return;
+				this.#schedule()
+				return
 			}
 			if (!this.idle) {
-				this.el.dataset.idle = '';
-				this.o.onIdle();
+				this.el.dataset.idle = ''
+				this.o.onIdle()
 			}
-		}, this.o.delay);
+		}, this.o.delay)
 	}
 }

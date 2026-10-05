@@ -1,5 +1,5 @@
-import { Browser } from '$utils/browser';
-import { noEventPassive, type EventContext } from './shared';
+import { Browser } from '$utils/browser'
+import { noEventPassive, type EventContext } from './shared'
 
 /**
  * macOS trackpad gesture event handler module.
@@ -7,30 +7,30 @@ import { noEventPassive, type EventContext } from './shared';
  * @internal
  */
 export class GestureHandler {
-	#ctx: EventContext;
+	#ctx: EventContext
 
 	/**
 	 * @param ctx The shared event context.
 	 */
 	constructor(ctx: EventContext) {
-		this.#ctx = ctx;
+		this.#ctx = ctx
 	}
 
 	/** Hooks macOS gesture event listeners. */
 	hook(): void {
 		if (Browser.OSX) {
-			this.#ctx._micrio.addEventListener('gesturestart', this.#handle, noEventPassive);
-			this.#ctx._micrio.addEventListener('gesturechange', this.#handle, noEventPassive);
-			this.#ctx._micrio.addEventListener('gestureend', this.#handle, noEventPassive);
+			this.#ctx._micrio.addEventListener('gesturestart', this.#handle, noEventPassive)
+			this.#ctx._micrio.addEventListener('gesturechange', this.#handle, noEventPassive)
+			this.#ctx._micrio.addEventListener('gestureend', this.#handle, noEventPassive)
 		}
 	}
 
 	/** Unhooks macOS gesture event listeners. */
 	unhook(): void {
 		if (Browser.OSX) {
-			this.#ctx._micrio.removeEventListener('gesturestart', this.#handle, noEventPassive);
-			this.#ctx._micrio.removeEventListener('gesturechange', this.#handle, noEventPassive);
-			this.#ctx._micrio.removeEventListener('gestureend', this.#handle, noEventPassive);
+			this.#ctx._micrio.removeEventListener('gesturestart', this.#handle, noEventPassive)
+			this.#ctx._micrio.removeEventListener('gesturechange', this.#handle, noEventPassive)
+			this.#ctx._micrio.removeEventListener('gestureend', this.#handle, noEventPassive)
 		}
 	}
 
@@ -40,12 +40,17 @@ export class GestureHandler {
 	 * @returns Gesture data or null if not a gesture event.
 	 */
 	#getGestureEvent(e: Event): { scale: number; clientX: number; clientY: number } | null {
-		if ('scale' in e && typeof e['scale'] === 'number'
-			&& 'clientX' in e && typeof e['clientX'] === 'number'
-			&& 'clientY' in e && typeof e['clientY'] === 'number') {
-			return { scale: e['scale'], clientX: e['clientX'], clientY: e['clientY'] };
+		if (
+			'scale' in e &&
+			typeof e['scale'] === 'number' &&
+			'clientX' in e &&
+			typeof e['clientX'] === 'number' &&
+			'clientY' in e &&
+			typeof e['clientY'] === 'number'
+		) {
+			return { scale: e['scale'], clientX: e['clientX'], clientY: e['clientY'] }
 		}
-		return null;
+		return null
 	}
 
 	/**
@@ -54,25 +59,28 @@ export class GestureHandler {
 	 * @param e The GestureEvent.
 	 */
 	#handle = (e: Event): void => {
-		const gesture = this.#getGestureEvent(e);
-		if (!gesture) {return;}
-		if (gesture.scale === 1) { this.#ctx._pScale = 1; return; }
-		if (e.target instanceof Element && e.target !== this.#ctx._el) {return;}
+		const gesture = this.#getGestureEvent(e)
+		if (!gesture) {
+			return
+		}
+		if (gesture.scale === 1) {
+			this.#ctx._pScale = 1
+			return
+		}
+		if (e.target instanceof Element && e.target !== this.#ctx._el) {
+			return
+		}
 
-		const diff = this.#ctx._pScale - gesture.scale;
-		this.#ctx._pScale = gesture.scale;
+		const diff = this.#ctx._pScale - gesture.scale
+		this.#ctx._pScale = gesture.scale
 
-		e.stopPropagation();
-		e.preventDefault();
+		e.stopPropagation()
+		e.preventDefault()
 
 		if (e.type === 'gesturechange') {
-			void this.#ctx._getImage({ x: gesture.clientX, y: gesture.clientY })?.camera.zoom(
-				diff * this.#ctx._micrio.canvas.viewport.height,
-				0,
-				gesture.clientX,
-				gesture.clientY
-			);
+			void this.#ctx
+				._getImage({ x: gesture.clientX, y: gesture.clientY })
+				?.camera.zoom(diff * this.#ctx._micrio.canvas.viewport.height, 0, gesture.clientX, gesture.clientY)
 		}
 	}
 }
-

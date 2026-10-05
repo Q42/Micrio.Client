@@ -69,85 +69,94 @@
  */
 
 /** Callback type for receiving store value updates. */
-type Subscriber<T> = (value: T) => void;
+type Subscriber<T> = (value: T) => void
 /** Cleanup function returned by store subscription methods. */
-type Unsubscriber = () => void;
+type Unsubscriber = () => void
 /** Transformer function used with Writable.update(). */
-type Updater<T> = (value: T) => T;
+type Updater<T> = (value: T) => T
 
 /** A read-only store that emits value changes to subscribers. */
 export interface Readable<T> {
-	subscribe: (this: void, run: Subscriber<T>, invalidate?: (value?: T) => void) => Unsubscriber;
+	subscribe: (this: void, run: Subscriber<T>, invalidate?: (value?: T) => void) => Unsubscriber
 }
 
 /** A writable store that supports setting and updating its value. */
 export interface Writable<T> extends Readable<T> {
-	set: (value: T) => void;
-	update: (fn: Updater<T>) => void;
+	set: (value: T) => void
+	update: (fn: Updater<T>) => void
 }
 
 /** Creates a writable store with an optional initial value. @internal */
 export function writable<T>(value?: T): Writable<T> {
-	const subs = new Set<Subscriber<T>>();
+	const subs = new Set<Subscriber<T>>()
 
 	return {
 		subscribe(run: Subscriber<T>, _invalidate?: (value?: T) => void): Unsubscriber {
-			subs.add(run);
+			subs.add(run)
 			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the initial value is optional, so it types as `T | undefined`; stores created without one declare `T` including `undefined` and rely on this initial undefined emission
-			run(value as T);
-			return () => subs.delete(run);
+			run(value as T)
+			return () => subs.delete(run)
 		},
 		set(v: T) {
-			value = v;
-			for (const fn of subs) { fn(v); }
+			value = v
+			for (const fn of subs) {
+				fn(v)
+			}
 		},
 		update(fn: Updater<T>) {
-			this.set(fn(get(this)));
-		}
-	};
+			this.set(fn(get(this)))
+		},
+	}
 }
 
 /** Synchronously reads the current value of a store by subscribing and immediately unsubscribing. */
 export function get<T>(store: { subscribe: (fn: Subscriber<T>) => Unsubscriber }): T {
 	// The store emits synchronously on subscribe, so `value` is always assigned before it is read.
-	let value!: T;
-	const unsub = store.subscribe(val => { value = val; });
-	unsub();
-	return value;
+	let value!: T
+	const unsub = store.subscribe((val) => {
+		value = val
+	})
+	unsub()
+	return value
 }
 
 /** Returns a resolved promise, used to defer execution until the next microtask. @internal */
 export function tick(): Promise<void> {
-	return Promise.resolve();
+	return Promise.resolve()
 }
 
 /** Wraps a subscriber so rapid successive calls coalesce into one via microtask @internal */
 export function defer<T>(fn: Subscriber<T>): Subscriber<T> {
-	let pending = false;
-	let last: T;
+	let pending = false
+	let last: T
 	return (v: T) => {
-		last = v;
-		if (pending) {return;}
-		pending = true;
+		last = v
+		if (pending) {
+			return
+		}
+		pending = true
 		void Promise.resolve().then(() => {
-			pending = false;
-			fn(last);
-		});
-	};
+			pending = false
+			fn(last)
+		})
+	}
 }
 
 /** Wraps a subscriber to skip the very first emission (for onMount where initial state is handled manually) @internal */
 export function skipFirst<T>(fn: Subscriber<T>): Subscriber<T> {
-	let first = true;
+	let first = true
 	return (v: T) => {
-		if (first) { first = false; return; }
-		fn(v);
-	};
+		if (first) {
+			first = false
+			return
+		}
+		fn(v)
+	}
 }
 
 /** Combines skipFirst + defer: skip initial emission, then coalesce rapid subsequent calls @internal */
 export function lazy<T>(fn: Subscriber<T>): Subscriber<T> {
-	return defer(skipFirst(fn));
+	return defer(skipFirst(fn))
 }
 
-export type { Subscriber, Unsubscriber, Updater };
+export type { Subscriber, Unsubscriber, Updater }

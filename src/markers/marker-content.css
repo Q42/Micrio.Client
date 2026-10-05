@@ -1,4 +1,3 @@
-
 micrio-marker-content {
 	display: block;
 	position: relative;
@@ -41,13 +40,13 @@ micrio-marker-content button:disabled {
 micrio-marker-content figcaption {
 	padding: 10px;
 	font-style: italic;
-	font-size: .9em;
+	font-size: 0.9em;
 	margin-bottom: var(--micrio-popup-padding);
 	text-align: center;
 }
 micrio-marker-content section {
 	display: grid;
-	grid-template-columns: repeat(auto-fit,minmax(100px,1fr));
+	grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
 	column-gap: 5px;
 	row-gap: 5px;
 	justify-items: center;
@@ -71,7 +70,7 @@ micrio-marker-content section img {
 	object-fit: cover;
 }
 micrio-marker-content section button:only-child img {
-	max-height: min(50cqh,400px);
+	max-height: min(50cqh, 400px);
 	object-fit: contain;
 }
 @media (max-width: 500px) {
@@ -81,7 +80,7 @@ micrio-marker-content section button:only-child img {
 		width: 100px;
 		margin-left: var(--micrio-border-margin);
 	}
-	micrio-marker-content section>button:not(:nth-child(1)) {
+	micrio-marker-content section > button:not(:nth-child(1)) {
 		display: none;
 	}
 	micrio-marker-content section figcaption {

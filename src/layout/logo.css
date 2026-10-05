@@ -5,7 +5,9 @@ micrio-logo a {
 	z-index: 2;
 	width: 22px;
 	height: 22px;
-	transition: transform .25s ease, opacity .25s ease;
+	transition:
+		transform 0.25s ease,
+		opacity 0.25s ease;
 	display: block;
 	cursor: pointer;
 	--micrio-hide: translateX(-100%);
@@ -39,7 +41,7 @@ micrio-logo a::after {
 	outline: 1px solid #c5ff5b;
 }
 micrio-logo a.loading::after {
-	animation: micrio-logo-spin .5s infinite ease-out;
+	animation: micrio-logo-spin 0.5s infinite ease-out;
 }
 @keyframes micrio-logo-spin {
 	from {

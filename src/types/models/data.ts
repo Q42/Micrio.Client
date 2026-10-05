@@ -1,253 +1,251 @@
-import type { Camera } from './camera';
-import type { Assets } from './assets';
-import type { ImageInfo, GalleryConfig } from './info';
-import type { Grid } from './grid';
-import type { I18n, RevisionType } from './common';
-import type { VideoTourInstance } from '$media/videotour';
-import type { MicrioImage } from '$core/image';
-import type { MicrioIcon } from '$ui/icons';
-import type { Spaces } from './spaces';
-
+import type { Camera } from './camera'
+import type { Assets } from './assets'
+import type { ImageInfo, GalleryConfig } from './info'
+import type { Grid } from './grid'
+import type { I18n, RevisionType } from './common'
+import type { VideoTourInstance } from '$media/videotour'
+import type { MicrioImage } from '$core/image'
+import type { MicrioIcon } from '$ui/icons'
+import type { Spaces } from './spaces'
 
 /**
-* # Image content data
-* 
-* The image content {@link ImageData} JSON object, which is accessible as {@link MicrioImage.data} as the Writable store, and {@link MicrioImage.$data} for its current value.
-* 
-* This JSON data includes, for all published languages for this image:
-* 
-* * Markers
-* * Marker tours
-* * Video tours
-* * Audio, music
-* * In-image embeds
-* * Custom menu screens and content pages
-* 
-* To access the data of the current viewed image, use:
-* 
-* ```js
-* // The current shown image value of the .data store Writable
-* const data = micrio.$current.$data;
-* 
-* if(data) console.log(`The current image has ${data.markers.length} markers!`);
-* else console.warn('The current image has no data set.');
-* ```
-* 
-* To subscribe to any data changes:
-* 
-* ```js
-* micrio.$current.data.subscribe(data => {
-* 	console.log('Image has new or updated data!', data);
-* })
-* ```
-* 
-* To set your own custom data:
-* 
-* ```js
-* micrio.$current.data.set({
-* 	"markers": [
-* 		{
-* 			"i18n": {
-* 				"en": {
-* 					"title": "This is a test marker!"
-*				}
-*			},
-* 			"x": .5,
-* 			"y": .5
-* 		}
-* 	]
-* })
-* ```
-* 
-* Or to update an existing loaded data object:
-* 
-* ```js
-* micrio.$current.data.update(data => {
-* 	data.markers.push({
-* 		"i18n": {
-* 			"en": {
-* 				"title": "This is a newly added marker"
-*			}
-*		},
-* 		"x": .6,
-* 		"y": .5
-* 	});
-* 	return data;
-* })
-* ```
-*/
+ * # Image content data
+ *
+ * The image content {@link ImageData} JSON object, which is accessible as {@link MicrioImage.data} as the Writable store, and {@link MicrioImage.$data} for its current value.
+ *
+ * This JSON data includes, for all published languages for this image:
+ *
+ * * Markers
+ * * Marker tours
+ * * Video tours
+ * * Audio, music
+ * * In-image embeds
+ * * Custom menu screens and content pages
+ *
+ * To access the data of the current viewed image, use:
+ *
+ * ```js
+ * // The current shown image value of the .data store Writable
+ * const data = micrio.$current.$data;
+ *
+ * if(data) console.log(`The current image has ${data.markers.length} markers!`);
+ * else console.warn('The current image has no data set.');
+ * ```
+ *
+ * To subscribe to any data changes:
+ *
+ * ```js
+ * micrio.$current.data.subscribe(data => {
+ * 	console.log('Image has new or updated data!', data);
+ * })
+ * ```
+ *
+ * To set your own custom data:
+ *
+ * ```js
+ * micrio.$current.data.set({
+ * 	"markers": [
+ * 		{
+ * 			"i18n": {
+ * 				"en": {
+ * 					"title": "This is a test marker!"
+ *				}
+ *			},
+ * 			"x": .5,
+ * 			"y": .5
+ * 		}
+ * 	]
+ * })
+ * ```
+ *
+ * Or to update an existing loaded data object:
+ *
+ * ```js
+ * micrio.$current.data.update(data => {
+ * 	data.markers.push({
+ * 		"i18n": {
+ * 			"en": {
+ * 				"title": "This is a newly added marker"
+ *			}
+ *		},
+ * 		"x": .6,
+ * 		"y": .5
+ * 	});
+ * 	return data;
+ * })
+ * ```
+ */
 export namespace ImageData {
 	/** The main data JSON structure */
 	// oxlint-disable-next-line eslint/no-shadow -- the nested interface is the public `Models.ImageData.ImageData` API type; renaming it would break consumers
 	export interface ImageData {
 		/** V5+: Save revision */
-		revision?: RevisionType;
+		revision?: RevisionType
 		/** Localized image details */
-		i18n?: I18n<ImageDetailsCultureData>;
+		i18n?: I18n<ImageDetailsCultureData>
 		/** Markers */
-		markers?: ImageData.Marker[];
+		markers?: ImageData.Marker[]
 		/** Marker tours */
-		markerTours?: ImageData.MarkerTour[];
+		markerTours?: ImageData.MarkerTour[]
 		/** Video tours */
-		tours?: ImageData.VideoTour[];
+		tours?: ImageData.VideoTour[]
 		/** In-image embeds */
-		embeds?: ImageData.Embed[];
+		embeds?: ImageData.Embed[]
 		/** Custom menu pages */
-		pages?: ImageData.Menu[];
+		pages?: ImageData.Menu[]
 		/** Music playlist */
 		music?: {
 			/** The audio assets */
-			items: Assets.Audio[];
+			items: Assets.Audio[]
 			/** Loop the playlist */
-			loop: boolean;
+			loop: boolean
 			/** The music audio volume [0-1] (default: `1`) */
-			volume?: number;
-		};
+			volume?: number
+		}
 	}
 
 	export interface ImageDetailsCultureData {
 		/** Optional lang-specific image title */
-		title?: string;
+		title?: string
 		/** Optional lang-specific image description */
-		description?: string;
+		description?: string
 		/** Image copyright information */
-		copyright?: string;
+		copyright?: string
 		/** Original source URI */
-		sourceUrl?: string;
+		sourceUrl?: string
 	}
 
 	export interface MarkerCultureData {
 		/** The main marker title */
-		title?: string;
+		title?: string
 		/** The marker url slug */
-		slug?: string;
+		slug?: string
 		/** Alternative title to display as marker label */
-		label?: string;
+		label?: string
 		/** Marker main body HTML */
-		body?: string;
+		body?: string
 		/** Marker secondary body HTML */
-		bodySecondary?: string;
+		bodySecondary?: string
 		/** Audio asset */
-		audio?: Assets.Audio;
+		audio?: Assets.Audio
 		/** An optional iframe embed url */
-		embedUrl?: string;
+		embedUrl?: string
 		/** Embed title */
-		embedTitle?: string;
+		embedTitle?: string
 		/** Embed description */
-		embedDescription?: string;
+		embedDescription?: string
 	}
-
 
 	/** A Marker */
 	export interface Marker {
 		/** The marker ID */
-		id: string;
+		id: string
 		/** The relative marker X coordinate [0-1] */
-		x: number;
+		x: number
 		/** The relative marker Y coordinate [0-1] */
-		y: number;
+		y: number
 
-		i18n?: I18n<MarkerCultureData>;
+		i18n?: I18n<MarkerCultureData>
 
 		/** Omni-objects: radius from center */
-		radius?: number;
+		radius?: number
 		/** Rotation is concave: it's on the back of a front-rounded shape */
-		backside?: boolean;
+		backside?: boolean
 		/** Omni-objects: offset rotation in radians */
-		rotation?: number;
+		rotation?: number
 		/** Omni-objects: custom visibility between these radians */
-		visibleArc?: [number, number];
+		visibleArc?: [number, number]
 
 		/** The viewport to zoom to when the marker is opened */
-		view?: Camera.View;
+		view?: Camera.View
 
 		/** If an image has multiple layers, switch to this layer */
-		imageLayer?: number;
+		imageLayer?: number
 
 		/** Content type, for displaying */
-		type?: ('default' | 'image' | 'audio' | 'video' | 'media' | 'link' | 'waypoint' | 'cluster');
+		type?: 'default' | 'image' | 'audio' | 'video' | 'media' | 'link' | 'waypoint' | 'cluster'
 
 		/** Popup type */
-		popupType?: ('popup'|'popover'|'none'|'micrioLink');
+		popupType?: 'popup' | 'popover' | 'none' | 'micrioLink'
 
 		/** If type is area, this HTML embed will be used for the marker */
-		clickableArea?: Embed;
+		clickableArea?: Embed
 
 		/** Custom marker tags which will be also used as classnames on the marker elements */
-		tags?: string[];
+		tags?: string[]
 
 		/** Autoplay the audio asset when the marker is opened */
-		audioAutoPlay?: boolean;
+		audioAutoPlay?: boolean
 
 		/** Autoplay video embed when the marker is opened */
-		embedAutoPlay?: boolean;
+		embedAutoPlay?: boolean
 
 		/** Don't draw a marker element */
-		noMarker?: boolean;
+		noMarker?: boolean
 
 		/** A custom HTML element instead of the default <button> */
-		htmlElement?: HTMLElement;
+		htmlElement?: HTMLElement
 
 		/** Having the embed iframe printed mutes audio */
-		embedMutesAudio?: boolean;
+		embedMutesAudio?: boolean
 
 		/** Images inside marker popup */
-		images?: Assets.Image[];
+		images?: Assets.Image[]
 
 		/** Video tour which plays when the marker is opened */
-		videoTour?: VideoTour;
+		videoTour?: VideoTour
 
 		/** Positional audio asset */
-		positionalAudio?: Assets.AudioLocation;
+		positionalAudio?: Assets.AudioLocation
 
 		/** Optional function that overrides all behavior */
-		onclick?: (m:ImageData.Marker) => void;
+		onclick?: (m: ImageData.Marker) => void
 
 		/** Additional options */
-		data?: MarkerData;
+		data?: MarkerData
 	}
 
 	/** Optional individual marker settings */
 	export interface MarkerData {
 		/** A custom marker icon image */
-		icon?: Assets.Image;
+		icon?: Assets.Image
 		/** A predefined custom icon idx in MarkerSettings */
-		customIconIdx?: number;
+		customIconIdx?: number
 		/** This marker links to this image */
-		micrioLink?: Partial<ImageInfo.ImageInfo>;
+		micrioLink?: Partial<ImageInfo.ImageInfo>
 		/** Don't animate the camera when opening this marker */
-		noAnimate?: boolean;
+		noAnimate?: boolean
 		/** Show the title below the marker
 		 * @deprecated Use the main marker setting for this
-		*/
-		showTitle?: boolean;
+		 */
+		showTitle?: boolean
 		/** Don't open a large image viewer/gallery on image click */
-		preventImageOpen?: boolean;
+		preventImageOpen?: boolean
 		/** Force a marker popup no matter what */
-		notEmpty?: boolean;
+		notEmpty?: boolean
 		/** Jump the camera when opening this marker */
-		doJump?: boolean;
+		doJump?: boolean
 		/** This marker is not closeable */
-		alwaysOpen?: boolean;
+		alwaysOpen?: boolean
 		/** The marker scales with the zooming image */
-		scales?: boolean;
+		scales?: boolean
 		/**
 		 * When opening this marker, split the screen and open this image on the side.
 		 * Comma-separated format: `"micrioId,markerId,follows"`
 		 */
-		micrioSplitLink?: string;
+		micrioSplitLink?: string
 		/** Grid tour transition animation */
-		gridTourTransition?: Grid.MarkerFocusTransition;
+		gridTourTransition?: Grid.MarkerFocusTransition
 		/** Optional custom settings. This is the "Custom JSON" field in the marker editor */
 		_meta?: {
 			/** For in grid multi-image tour, this step is in grid view */
-			gridView?: boolean;
+			gridView?: boolean
 			/** Custom grid actions, action and action data |-separated */
-			gridAction?: string;
+			gridAction?: string
 			/** When opening this marker inside a grid, resize the tile to this */
-			gridSize?: number|string;
+			gridSize?: number | string
 			/** Any other value is accepted */
-			[key:string]: unknown;
+			[key: string]: unknown
 		}
 	}
 
@@ -256,115 +254,115 @@ export namespace ImageData {
 	 * iframe embed, or simple empty HTML element (Spaces).
 	 * This is created in the [Micrio editor](https://dash.micr.io/) or Spaces.
 	 */
-	 export type Embed = Partial<ImageInfo.ImageInfo> & {
+	export type Embed = Partial<ImageInfo.ImageInfo> & {
 		/** The area inside the main image to place the embed */
-		area: Camera.View;
+		area: Camera.View
 
 		/** Original asset url */
-		src?: string;
+		src?: string
 		/** An optional iframe src url */
-		frameSrc?: string;
+		frameSrc?: string
 		/** Autoplay YT/Vimeo */
-		autoplayFrame?: boolean;
+		autoplayFrame?: boolean
 
 		/** Optional title */
-		title?: string;
+		title?: string
 
 		/** An optional Micrio ID */
-		micrioId?: string;
+		micrioId?: string
 		/** Optional image width */
-		width?: number;
+		width?: number
 		/** Optional image height */
-		height?: number;
+		height?: number
 		/** Optional isPng */
-		isPng?: boolean;
+		isPng?: boolean
 		/** IsWebP */
-		isWebP?: boolean;
+		isWebP?: boolean
 		/** Opacity */
-		opacity?: number;
+		opacity?: number
 
 		/** Click interaction */
-		clickAction?: ('markerId'|'href')
+		clickAction?: 'markerId' | 'href'
 		/** Click action target */
-		clickTarget?: string;
+		clickTarget?: string
 		/** Opens link in new window */
-		clickTargetBlank?: boolean;
+		clickTargetBlank?: boolean
 
 		/** Unique instance ID */
-		uuid?: string;
+		uuid?: string
 
 		/** Relative scale for IFRAME embed in 360 */
-		scale?: number;
+		scale?: number
 		/** X rotation in 360 */
-		rotX?: number;
+		rotX?: number
 		/** Y rotation in 360 */
-		rotY?: number;
+		rotY?: number
 		/** Z rotation in 360 */
-		rotZ?: number;
+		rotZ?: number
 
-		scaleX?: number;
-		scaleY?: number;
+		scaleX?: number
+		scaleY?: number
 
 		/** A video asset */
 		video?: Assets.Video & {
 			/** Don't play video when smaller than % of screen */
-			pauseWhenSmallerThan?: number;
+			pauseWhenSmallerThan?: number
 			/** Don't play video when larger than % of screen */
-			pauseWhenLargerThan?: number;
-		};
+			pauseWhenLargerThan?: number
+		}
 
 		/** Hide while not playing video/media */
-		hideWhenPaused?: boolean;
+		hideWhenPaused?: boolean
 	}
 
 	export interface TourCultureData {
 		/** The tour title */
-		title?: string;
+		title?: string
 		/** The tour url slug */
-		slug?: string;
+		slug?: string
 		/** The tour description */
-		description?: string;
+		description?: string
 	}
 
 	/** The MicrioTour abstract shared class for both {@link MarkerTour} and {@link VideoTour}
 	 * @abstract
-	*/
+	 */
 	export interface Tour {
 		/** The tour id */
-		id: string;
+		id: string
 		/** Localized tour culture data */
-		i18n?: I18n<TourCultureData>;
+		i18n?: I18n<TourCultureData>
 		/** Auto-minimize controls while playing and idle */
-		minimize?: boolean;
+		minimize?: boolean
 		/** Cannot close this tour */
-		cannotClose?: boolean;
+		cannotClose?: boolean
 		/** Exit the tour on finish */
-		closeOnFinish?: boolean;
+		closeOnFinish?: boolean
 	}
 
 	/** A single videotour timeline viewport */
 	export interface VideoTourView {
 		/** Start time in seconds */
-		start: number;
+		start: number
 		/** End time in seconds */
-		end: number;
+		end: number
 		/** Viewport name */
-		title?: string;
+		title?: string
 		/** View rectangle */
-		rect: Camera.View;
+		rect: Camera.View
 	}
 
 	export interface VideoTourCultureData extends TourCultureData {
 		/** The tour duration in seconds */
-		duration: number;
+		duration: number
 		/** An optional audio file */
-		audio?: Assets.Audio;
+		audio?: Assets.Audio
 		/** Optional subtitles */
-		subtitle?: Assets.Subtitle;
+		subtitle?: Assets.Subtitle
 		/** The timeline data */
-		timeline: VideoTourView[];
+		timeline: VideoTourView[]
 		/** Custom events in tour timeline */
-		events: Event[];
+		events: Event[]
 	}
 
 	/**
@@ -373,108 +371,108 @@ export namespace ImageData {
 	 */
 	export type VideoTour = Tour & {
 		/** Localized videotour culture data */
-		i18n?: I18n<VideoTourCultureData>;
+		i18n?: I18n<VideoTourCultureData>
 		/** Don't hide the markers when running */
-		keepMarkers?: boolean;
+		keepMarkers?: boolean
 		/** Don't disable user navigation when running */
-		keepInteraction?: boolean;
+		keepInteraction?: boolean
 
 		/** Current running tour instance */
-		instance?: VideoTourInstance;
+		instance?: VideoTourInstance
 	}
 
 	/** Timed events inside a {@link VideoTour} */
 	export interface Event {
 		/** Start time in seconds */
-		start: number;
+		start: number
 		/** End time in seconds */
-		end: number;
+		end: number
 		/** Custom event name */
-		action?: string;
+		action?: string
 		/** Custom event data */
-		data?: string;
+		data?: string
 		/** Optional ID to hook to */
-		id?: string;
+		id?: string
 		/** The event is currently active */
-		active?: boolean;
+		active?: boolean
 	}
 
 	/**
 	 * A Micrio marker tour -- a sequence of markers, which the user can navigate
 	 * through. This is created in the [Micrio editor](https://dash.micr.io/).
 	 */
-	 export type MarkerTour = Tour & {
+	export type MarkerTour = Tour & {
 		/** Tour steps */
-		steps: string[];
+		steps: string[]
 		/** No user controls */
-		noControls?: boolean;
+		noControls?: boolean
 		/** Optional tour image asset */
-		image?: Assets.Image;
+		image?: Assets.Image
 		/** This is a scrolling tour */
-		scrollable?: boolean;
+		scrollable?: boolean
 		/** Don't reset view when tour ends */
-		keepLastStep?: boolean;
+		keepLastStep?: boolean
 		/** Chapter-based multi-video serial tour */
-		isSerialTour?: boolean;
+		isSerialTour?: boolean
 		/** Print the chapters in the interface */
-		printChapters?: boolean;
+		printChapters?: boolean
 
 		/** Internally generated propagated step data by Micrio */
-		stepInfo?: MarkerTourStepInfo[];
+		stepInfo?: MarkerTourStepInfo[]
 		/** Internally calculated total duration, sum of all step durations */
-		duration?: number;
+		duration?: number
 		/** Current tour step getter */
-		currentStep?: number;
+		currentStep?: number
 
 		/** Start on this tour step */
-		initialStep?: number;
+		initialStep?: number
 
 		/** Go to next step -- for running tours */
-		next?: () => void;
+		next?: () => void
 		/** Go to prev step -- for running tours */
-		prev?: () => void;
+		prev?: () => void
 		/** Go to step -- for running tours */
-		goto?: (n:number) => void;
+		goto?: (n: number) => void
 	}
 
 	/** Auto generated metadata for marker tours */
 	export interface MarkerTourStepInfo {
-		markerId: string,
-		micrioId: string,
-		duration: number,
-		imageHasOtherMarkers?: boolean,
-		startView?: Camera.View,
-		chapter?: number,
+		markerId: string
+		micrioId: string
+		duration: number
+		imageHasOtherMarkers?: boolean
+		startView?: Camera.View
+		chapter?: number
 		/** For in grid multi-image tour, stay in the grid view */
-		gridView?: boolean,
+		gridView?: boolean
 
 		/** Media current time */
-		currentTime?: number,
+		currentTime?: number
 		/** Media has ended */
 		ended?: boolean
 		/** @internal */
-		micrioImage?: MicrioImage;
-		hasSubtitle?: boolean;
+		micrioImage?: MicrioImage
+		hasSubtitle?: boolean
 	}
 
 	export interface MenuPageButton {
 		/** Localized button title */
-		i18nTitle: {[key:string]: string};
+		i18nTitle: { [key: string]: string }
 		/** Button action type */
-		type: ('close'|'marker'|'mtour'|'vtour'|'link');
+		type: 'close' | 'marker' | 'mtour' | 'vtour' | 'link'
 		/** The action value */
-		action?: string;
+		action?: string
 		/** Link opens in net tab */
-		blankTarget?: boolean;
+		blankTarget?: boolean
 	}
 
 	export interface MenuCultureData {
 		/** The menu title */
-		title?: string;
+		title?: string
 		/** For page: iframe embed */
-		embed?: string;
+		embed?: string
 		/** For page: content HTML */
-		content?: string;
+		content?: string
 	}
 
 	/**
@@ -484,32 +482,32 @@ export namespace ImageData {
 	 */
 	export interface Menu {
 		/** The menu ID */
-		id: string;
+		id: string
 		/** Localized culture data */
-		i18n?: I18n<MenuCultureData>;
+		i18n?: I18n<MenuCultureData>
 		/** Child menu elements */
-		children?: Menu[];
+		children?: Menu[]
 		/** Open this marker when clicking menu */
-		markerId?: string;
+		markerId?: string
 		/** Direct link url for menu button */
-		link?: string;
+		link?: string
 		/** Opens the link in a new window */
-		linkTargetBlank?: boolean;
+		linkTargetBlank?: boolean
 		/** Optional direct action function when clicked */
-		action?: Function;
+		action?: Function
 		/** For page: page image */
-		image?: Assets.Image;
+		image?: Assets.Image
 		/** Custom page action buttons */
-		buttons?: MenuPageButton[];
+		buttons?: MenuPageButton[]
 
 		/** The rendered HTML <menu> element
 		 * @internal
-		*/
-		_button?: HTMLButtonElement;
+		 */
+		_button?: HTMLButtonElement
 
 		/** Optional icon for main toolbar
 		 * @internal
-		*/
+		 */
 		icon?: MicrioIcon
 	}
 }
@@ -521,20 +519,20 @@ export namespace ImageData {
 
 export namespace ImageBundle {
 	export interface BundleImage {
-		id: string;
-		info: ImageInfo.ImageInfo;
-		data?: ImageData.ImageData;
-		settings?: Partial<ImageInfo.Settings>;
+		id: string
+		info: ImageInfo.ImageInfo
+		data?: ImageData.ImageData
+		settings?: Partial<ImageInfo.Settings>
 	}
 
 	export interface BundleResponse {
-		images: BundleImage[];
-		organisation?: ImageInfo.Organisation;
+		images: BundleImage[]
+		organisation?: ImageInfo.Organisation
 		spaces?: {
-			id: string;
-			data: Spaces.Space;
-		}[];
-		album?: GalleryConfig;
-		tours?: ImageData.MarkerTour[];
+			id: string
+			data: Spaces.Space
+		}[]
+		album?: GalleryConfig
+		tours?: ImageData.MarkerTour[]
 	}
 }

@@ -19,11 +19,11 @@ published data you can make it:
 
 ## The three building blocks
 
-| Block | When it fires | What it can do |
-|-------|---------------|----------------|
-| **Marker** (its "Custom JSON") | The moment the marker is opened | Run one grid action, resize a tile, stay in grid view. |
-| **Marker tour** | As the visitor walks through the steps | Open markers one-by-one, possibly across different images. |
-| **Video tour** (or a marker's own video tour) | While it plays | Move the camera, then fire grid actions at chosen times. |
+| Block                                         | When it fires                          | What it can do                                             |
+| --------------------------------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| **Marker** (its "Custom JSON")                | The moment the marker is opened        | Run one grid action, resize a tile, stay in grid view.     |
+| **Marker tour**                               | As the visitor walks through the steps | Open markers one-by-one, possibly across different images. |
+| **Video tour** (or a marker's own video tour) | While it plays                         | Move the camera, then fire grid actions at chosen times.   |
 
 All three use the **same grid action language** — learn it once, use it
 everywhere.
@@ -34,11 +34,11 @@ everywhere.
 
 Every marker has a **Custom JSON** field. The grid reads three keys from it:
 
-| Key | Value | What it does |
-|-----|-------|--------------|
-| `gridAction` | a grid action, see below | Runs that action the moment the marker opens. |
-| `gridSize` | a number or `"columns,rows"` | Makes the image's tile bigger while the marker is open. |
-| `gridView` | `true` | For multi-image tour steps: keep the grid view instead of zooming into one image. |
+| Key          | Value                        | What it does                                                                      |
+| ------------ | ---------------------------- | --------------------------------------------------------------------------------- |
+| `gridAction` | a grid action, see below     | Runs that action the moment the marker opens.                                     |
+| `gridSize`   | a number or `"columns,rows"` | Makes the image's tile bigger while the marker is open.                           |
+| `gridView`   | `true`                       | For multi-image tour steps: keep the grid view instead of zooming into one image. |
 
 Example Custom JSON that resets the grid when the marker opens:
 
@@ -59,19 +59,19 @@ Example that makes the tile 2 columns × 2 rows:
 ## The grid action language
 
 A **grid action** is one of these, written as `action` or `action|data`. The
-part after the `|` is the action's *data*.
+part after the `|` is the action's _data_.
 
-| Action | Data (after `\|`) | What it does |
-|--------|-------------------|--------------|
-| `reset` | — | Show the full overview again (every image). |
-| `focus` | image IDs, comma-separated | Show only those images. One ID opens it full-screen; several make a small grid of just those. |
-| `flyTo` | image IDs, comma-separated | Pan/zoom the whole view so all the named images are on screen. |
-| `focusTagged` | a tag name | Show only paintings that have a marker with this tag, **zoomed in on each marker**. |
-| `focusWithTagged` | a tag name | Show only paintings that have a marker with this tag, each at **full view**. |
-| `back` | — | Undo the last layout change (go back one step). |
-| `switchToGrid` | — | Drop the currently opened image back into the grid. |
-| `filterTourImages` | `h` (optional) | Show only the images that are steps of the currently running marker tour. |
-| `nextFadeDuration` | seconds (a number) | Set the crossfade length for the *next* change only. |
+| Action             | Data (after `\|`)          | What it does                                                                                  |
+| ------------------ | -------------------------- | --------------------------------------------------------------------------------------------- |
+| `reset`            | —                          | Show the full overview again (every image).                                                   |
+| `focus`            | image IDs, comma-separated | Show only those images. One ID opens it full-screen; several make a small grid of just those. |
+| `flyTo`            | image IDs, comma-separated | Pan/zoom the whole view so all the named images are on screen.                                |
+| `focusTagged`      | a tag name                 | Show only paintings that have a marker with this tag, **zoomed in on each marker**.           |
+| `focusWithTagged`  | a tag name                 | Show only paintings that have a marker with this tag, each at **full view**.                  |
+| `back`             | —                          | Undo the last layout change (go back one step).                                               |
+| `switchToGrid`     | —                          | Drop the currently opened image back into the grid.                                           |
+| `filterTourImages` | `h` (optional)             | Show only the images that are steps of the currently running marker tour.                     |
+| `nextFadeDuration` | seconds (a number)         | Set the crossfade length for the _next_ change only.                                          |
 
 ### The `h` flag
 
@@ -99,10 +99,10 @@ out as a single horizontal row:
 ## Marker tags — grouping paintings by motif
 
 A marker can carry one or more `tags`. Tags are the glue behind
-`focusTagged` / `focusWithTagged`: give several markers across *different*
+`focusTagged` / `focusWithTagged`: give several markers across _different_
 paintings the same tag, and one action can pull up all those paintings at once.
 
-For example, tag a marker on *The Dogana* and one on *Boston Harbor* with
+For example, tag a marker on _The Dogana_ and one on _Boston Harbor_ with
 `boats`. Then:
 
 - `focusTagged|boats` → shows just those paintings, zoomed onto the boats.
@@ -148,11 +148,11 @@ Next/Previous. Each step is one marker, and every step can live on a
 
 Each step carries:
 
-| Field | Meaning |
-|-------|---------|
-| `markerId` | which marker to open |
-| `micrioId` | which image that marker lives on |
-| `duration` | how long the step lasts (seconds) |
+| Field      | Meaning                                        |
+| ---------- | ---------------------------------------------- |
+| `markerId` | which marker to open                           |
+| `micrioId` | which image that marker lives on               |
+| `duration` | how long the step lasts (seconds)              |
 | `gridView` | stay in the grid view for this step (optional) |
 
 ### Serial tours
@@ -192,12 +192,12 @@ actions at exact moments.
 
 Each event has:
 
-| Field | Meaning |
-|-------|---------|
-| `start` | when it becomes active (seconds) |
-| `end` | when it stops being active (seconds) |
+| Field    | Meaning                                                   |
+| -------- | --------------------------------------------------------- |
+| `start`  | when it becomes active (seconds)                          |
+| `end`    | when it stops being active (seconds)                      |
 | `action` | what to do — for the grid, write `grid:` + an action name |
-| `data` | the action's data (tag name, image IDs, …) |
+| `data`   | the action's data (tag name, image IDs, …)                |
 
 The action fires **once**, when the event becomes active at `start`, and its
 duration is `end − start`.
@@ -219,30 +219,30 @@ goes:
 
 ```json
 {
-  "id": "guided-tour",
-  "i18n": {
-    "en": {
-      "title": "Guided grid tour",
-      "duration": 14,
-      "timeline": [
-        { "start": 0,  "end": 2,  "rect": [0, 0, 1, 1] },
-        { "start": 4,  "end": 8,  "rect": [0.3, 0.2, 0.45, 0.55] },
-        { "start": 10, "end": 14, "rect": [0, 0, 1, 1] }
-      ],
-      "events": [
-        { "start": 0.5, "end": 1.5, "action": "grid:reset" },
-        { "start": 5,   "end": 7,   "action": "grid:focusWithTagged", "data": "architecture" },
-        { "start": 8.5, "end": 9.5, "action": "grid:focusTagged",     "data": "boats" },
-        { "start": 11,  "end": 14,  "action": "grid:reset" }
-      ]
-    }
-  }
+	"id": "guided-tour",
+	"i18n": {
+		"en": {
+			"title": "Guided grid tour",
+			"duration": 14,
+			"timeline": [
+				{ "start": 0, "end": 2, "rect": [0, 0, 1, 1] },
+				{ "start": 4, "end": 8, "rect": [0.3, 0.2, 0.45, 0.55] },
+				{ "start": 10, "end": 14, "rect": [0, 0, 1, 1] }
+			],
+			"events": [
+				{ "start": 0.5, "end": 1.5, "action": "grid:reset" },
+				{ "start": 5, "end": 7, "action": "grid:focusWithTagged", "data": "architecture" },
+				{ "start": 8.5, "end": 9.5, "action": "grid:focusTagged", "data": "boats" },
+				{ "start": 11, "end": 14, "action": "grid:reset" }
+			]
+		}
+	}
 }
 ```
 
 Reading that timeline in plain English: start with the overview, zoom into a
-detail, zoom back out — and along the way, show the *architecture* paintings,
-then zoom in on every *boats* motif, then return to the full overview.
+detail, zoom back out — and along the way, show the _architecture_ paintings,
+then zoom in on every _boats_ motif, then return to the full overview.
 
 ---
 
@@ -296,33 +296,33 @@ timeline / last step.
 
 ### Marker Custom JSON keys
 
-| Key | Example value |
-|-----|---------------|
-| `gridAction` | `"focus|imgA,imgB|h"` |
-| `gridSize` | `2` or `"2,2"` or `"3,2"` |
-| `gridView` | `true` |
+| Key          | Example value             |
+| ------------ | ------------------------- |
+| `gridAction` | `"focus                   | imgA,imgB | h"` |
+| `gridSize`   | `2` or `"2,2"` or `"3,2"` |
+| `gridView`   | `true`                    |
 
 ### Marker data fields
 
-| Field | Example value |
-|-------|---------------|
-| `micrioLink` | `{ "id": "imgC" }` |
-| `gridTourTransition` | `"slide-up"` |
+| Field                | Example value      |
+| -------------------- | ------------------ |
+| `micrioLink`         | `{ "id": "imgC" }` |
+| `gridTourTransition` | `"slide-up"`       |
 
 ### Marker fields (on the marker itself)
 
-| Field | Example value |
-|-------|---------------|
-| `tags` | `["boats", "figures"]` |
+| Field       | Example value                   |
+| ----------- | ------------------------------- |
+| `tags`      | `["boats", "figures"]`          |
 | `videoTour` | a video-tour object (see above) |
 
 ### Video-tour event
 
-| Field | Example value |
-|-------|---------------|
-| `start` / `end` | `4` / `6` (seconds) |
-| `action` | `"grid:focusTagged"` |
-| `data` | `"boats"` |
+| Field           | Example value        |
+| --------------- | -------------------- |
+| `start` / `end` | `4` / `6` (seconds)  |
+| `action`        | `"grid:focusTagged"` |
+| `data`          | `"boats"`            |
 
 ### Grid actions at a glance
 

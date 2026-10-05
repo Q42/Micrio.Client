@@ -1,66 +1,81 @@
-import { MicrioElement } from '$core/component';
-import type { IconName } from '$types/icon-name';
-import type { Models } from '$types/models';
-import { createElement } from '$utils/dom';
+import { MicrioElement } from '$core/component'
+import type { IconName } from '$types/icon-name'
+import type { Models } from '$types/models'
+import { createElement } from '$utils/dom'
 
 /** Properties for the button component. @internal */
 export interface ButtonProps {
-	type?: IconName;
-	icon?: Models.Assets.Image;
-	title?: string | null;
-	disabled?: boolean;
-	active?: boolean;
-	className?: string;
-	href?: string;
-	blankTarget?: boolean;
-	noClick?: boolean;
-	onclick?: (e: Event) => void;
-	onfocus?: (e: Event) => void;
-	onpointerdown?: (e: PointerEvent) => void;
+	type?: IconName
+	icon?: Models.Assets.Image
+	title?: string | null
+	disabled?: boolean
+	active?: boolean
+	className?: string
+	href?: string
+	blankTarget?: boolean
+	noClick?: boolean
+	onclick?: (e: Event) => void
+	onfocus?: (e: Event) => void
+	onpointerdown?: (e: PointerEvent) => void
 }
-import './button.css';
+import './button.css'
 
 /** Web component for rendering icon/text buttons and links. @internal */
 export class MicrioButton extends MicrioElement<ButtonProps> {
 	/** The custom element tag name. @internal */
-	static tag = 'micrio-button';
+	static tag = 'micrio-button'
 
-	#rootEl!: HTMLElement;
-	#prevType?: string;
+	#rootEl!: HTMLElement
+	#prevType?: string
 
 	/** @internal */
 	protected _syncDisplay() {
-		const p = this._props;
+		const p = this._props
 		if (p.type !== this.#prevType) {
-			if (this.#prevType) {this.classList.remove(this.#prevType);}
-			if (p.type) {this.classList.add(p.type);}
-			this.#prevType = p.type;
+			if (this.#prevType) {
+				this.classList.remove(this.#prevType)
+			}
+			if (p.type) {
+				this.classList.add(p.type)
+			}
+			this.#prevType = p.type
 		}
 	}
 
 	/** @internal */
 	protected _render() {
-		const p = this._props;
-		const key = `${p.type}|${(p.icon?.src ?? '')}|${p.title ?? ''}|${p.disabled ?? ''}|${p.active ?? ''}|${p.className ?? ''}|${p.href ?? ''}|${p.blankTarget ?? ''}|${p.noClick ?? ''}`;
-		if (!this._checkRenderKey(key)) {return;}
+		const p = this._props
+		const key = `${p.type}|${p.icon?.src ?? ''}|${p.title ?? ''}|${p.disabled ?? ''}|${p.active ?? ''}|${p.className ?? ''}|${p.href ?? ''}|${p.blankTarget ?? ''}|${p.noClick ?? ''}`
+		if (!this._checkRenderKey(key)) {
+			return
+		}
 
-		const isAnchor = Boolean(p.href);
-		const tag = isAnchor ? 'a' : 'button';
-		const classes = `${p.className ? `${p.className  } ` : ''}${p.active ? 'active' : ''}${p.noClick ? ' no-click' : ''}`.trim();
+		const isAnchor = Boolean(p.href)
+		const tag = isAnchor ? 'a' : 'button'
+		const classes =
+			`${p.className ? `${p.className} ` : ''}${p.active ? 'active' : ''}${p.noClick ? ' no-click' : ''}`.trim()
 
-		if (this.#prevType) {this.classList.remove(this.#prevType);}
-		if (p.type) {this.classList.add(p.type);}
-		this.#prevType = p.type;
+		if (this.#prevType) {
+			this.classList.remove(this.#prevType)
+		}
+		if (p.type) {
+			this.classList.add(p.type)
+		}
+		this.#prevType = p.type
 
-		if (this.#rootEl !== undefined) {this.#rootEl.remove();}
+		if (this.#rootEl !== undefined) {
+			this.#rootEl.remove()
+		}
 
 		const attrs: Record<string, string | null> = {
 			title: p.title ?? '',
 			'aria-label': p.title ?? '',
-		};
+		}
 		if (p.href) {
-			attrs.href = p.href;
-			if (p.blankTarget) {attrs.target = '_blank';}
+			attrs.href = p.href
+			if (p.blankTarget) {
+				attrs.target = '_blank'
+			}
 		}
 
 		const el = createElement(tag, {
@@ -70,28 +85,36 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 			events: {
 				...(p.onclick && { click: p.onclick }),
 				...(p.onfocus && { focus: p.onfocus }),
-				...(p.onpointerdown && { pointerdown: (e: Event) => {if (e instanceof PointerEvent) {p.onpointerdown?.(e);}} }),
+				...(p.onpointerdown && {
+					pointerdown: (e: Event) => {
+						if (e instanceof PointerEvent) {
+							p.onpointerdown?.(e)
+						}
+					},
+				}),
 			},
 			parent: this,
-		});
-		this.#rootEl = el;
+		})
+		this.#rootEl = el
 
-		if (p.type)
-			{createElement('micrio-icon', { setProps: { name: p.type }, parent: el });}
-		else if (p.icon)
-			{createElement('img', { props: { src: p.icon.src, alt: 'Icon' }, parent: el });}
+		if (p.type) {
+			createElement('micrio-icon', { setProps: { name: p.type }, parent: el })
+		} else if (p.icon) {
+			createElement('img', { props: { src: p.icon.src, alt: 'Icon' }, parent: el })
+		}
 
-		const textNodes: string[] = [];
+		const textNodes: string[] = []
 		for (const child of this.childNodes) {
 			if (child !== el && (child.nodeType === Node.TEXT_NODE || child.nodeType === Node.ELEMENT_NODE)) {
-				textNodes.push(child.textContent ?? '');
-				child.remove();
+				textNodes.push(child.textContent ?? '')
+				child.remove()
 			}
 		}
-		const text = textNodes.join('').trim();
-		if (text)
-			{createElement('span', { textContent: text, parent: el });}
+		const text = textNodes.join('').trim()
+		if (text) {
+			createElement('span', { textContent: text, parent: el })
+		}
 	}
 }
 
-customElements.define(MicrioButton.tag, MicrioButton);
+customElements.define(MicrioButton.tag, MicrioButton)

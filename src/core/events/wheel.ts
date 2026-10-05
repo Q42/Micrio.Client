@@ -1,5 +1,5 @@
-import { Browser } from '$utils/browser';
-import { noEventPassive, type EventContext } from './shared';
+import { Browser } from '$utils/browser'
+import { noEventPassive, type EventContext } from './shared'
 
 /**
  * Mouse wheel/scroll event handler module.
@@ -8,29 +8,31 @@ import { noEventPassive, type EventContext } from './shared';
  */
 export class WheelHandler {
 	/** Flag indicating if scroll listeners are attached. */
-	hooked = false;
+	hooked = false
 	/** Timeout ID for debouncing the 'wheelend' event. */
-	#wheelEndTo = -1;
-	#ctx: EventContext;
+	#wheelEndTo = -1
+	#ctx: EventContext
 
 	/**
 	 * @param ctx The shared event context.
 	 */
 	constructor(ctx: EventContext) {
-		this.#ctx = ctx;
+		this.#ctx = ctx
 	}
 
 	/** Hooks mouse wheel/scroll event listeners. */
 	hook(): void {
-		if (this.hooked) {return;}
-		this.#ctx._micrio.addEventListener('wheel', this.handle, noEventPassive);
-		this.hooked = true;
+		if (this.hooked) {
+			return
+		}
+		this.#ctx._micrio.addEventListener('wheel', this.handle, noEventPassive)
+		this.hooked = true
 	}
 
 	/** Unhooks mouse wheel/scroll event listeners. */
 	unhook(): void {
-		this.#ctx._micrio.removeEventListener('wheel', this.handle, noEventPassive);
-		this.hooked = false;
+		this.#ctx._micrio.removeEventListener('wheel', this.handle, noEventPassive)
+		this.hooked = false
 	}
 
 	/**
@@ -40,49 +42,68 @@ export class WheelHandler {
 	 * @param offX Optional X offset for zoom focus.
 	 */
 	handle = (e: WheelEvent | Event, force = false, offX = 0): void => {
-		if (!(e instanceof WheelEvent)) {return;}
+		if (!(e instanceof WheelEvent)) {
+			return
+		}
 
-		if (this.#ctx._controlZoom && !e.ctrlKey) {return;}
-		if (!force && e.target instanceof Element && e.target !== this.#ctx._el &&
-			!e.target.classList.contains('marker') && !e.target.closest('[data-scroll-through]')) {return;}
+		if (this.#ctx._controlZoom && !e.ctrlKey) {
+			return
+		}
+		if (
+			!force &&
+			e.target instanceof Element &&
+			e.target !== this.#ctx._el &&
+			!e.target.classList.contains('marker') &&
+			!e.target.closest('[data-scroll-through]')
+		) {
+			return
+		}
 
-		let delta = e.deltaY;
+		let delta = e.deltaY
 
-		if (e.ctrlKey) {this.#ctx._hasUsedCtrl = true;}
+		if (e.ctrlKey) {
+			this.#ctx._hasUsedCtrl = true
+		}
 
-		const isControlZoomWithMouse = this.#ctx._controlZoom && (delta * 10 % 1 === 0);
-		const isTouchPad = this.#ctx._hasUsedCtrl && !isControlZoomWithMouse;
-		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
+		const isControlZoomWithMouse = this.#ctx._controlZoom && (delta * 10) % 1 === 0
+		const isTouchPad = this.#ctx._hasUsedCtrl && !isControlZoomWithMouse
+		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad
 
-		if (this.#ctx._twoFingerPan && this.#ctx._micrio.$current?.camera.isZoomedOut()) {return;}
+		if (this.#ctx._twoFingerPan && this.#ctx._micrio.$current?.camera.isZoomedOut()) {
+			return
+		}
 
-		e.stopPropagation();
-		e.preventDefault();
+		e.stopPropagation()
+		e.preventDefault()
 
-		if ((Browser.OSX || isTouchPad) && e.ctrlKey) {delta *= 10;}
+		if ((Browser.OSX || isTouchPad) && e.ctrlKey) {
+			delta *= 10
+		}
 
-		const coo = { x: e.clientX, y: e.clientY };
-		const image = this.#ctx._getImage(coo);
-		if (!image) {return;}
+		const coo = { x: e.clientX, y: e.clientY }
+		const image = this.#ctx._getImage(coo)
+		if (!image) {
+			return
+		}
 
 		if (isZoom) {
-			const c = this.#ctx._micrio.canvas.viewport;
-			let offY = 0;
+			const c = this.#ctx._micrio.canvas.viewport
+			let offY = 0
 
-			const box = this.#ctx._micrio.getBoundingClientRect();
-			void image.camera.zoom(delta * 1 / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY);
+			const box = this.#ctx._micrio.getBoundingClientRect()
+			void image.camera.zoom(delta / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY)
+		} else {
+			image.camera.pan(e.deltaX, e.deltaY)
 		}
-		else {image.camera.pan(e.deltaX, e.deltaY);}
 
-		this.#ctx._wheeling = true;
+		this.#ctx._wheeling = true
 
-		clearTimeout(this.#wheelEndTo);
-		this.#wheelEndTo = setTimeout(this.#end, 50);
+		clearTimeout(this.#wheelEndTo)
+		this.#wheelEndTo = setTimeout(this.#end, 50)
 	}
 
 	/** Clears the wheeling state after a short delay. */
 	#end = (): void => {
-		this.#ctx._wheeling = false;
+		this.#ctx._wheeling = false
 	}
 }
-

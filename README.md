@@ -27,15 +27,15 @@ This repository contains the source code for the Micrio Client — a pure Web Co
 
 Key source directories under `./src/`:
 
-| Directory | Purpose |
-|-----------|---------|
-| `core/`   | Element definition, image model, camera, state management, store API |
-| `render/` | WebGL engine, canvas management, tiling |
-| `ui/`     | UI component definitions and icon set |
-| `grid/`   | Grid layout and interaction |
-| `gallery/`| Gallery (swipe/switch) controller |
-| `media/`  | Video tour and embedded video controllers |
-| `types/`  | TypeScript type definitions and models |
+| Directory  | Purpose                                                              |
+| ---------- | -------------------------------------------------------------------- |
+| `core/`    | Element definition, image model, camera, state management, store API |
+| `render/`  | WebGL engine, canvas management, tiling                              |
+| `ui/`      | UI component definitions and icon set                                |
+| `grid/`    | Grid layout and interaction                                          |
+| `gallery/` | Gallery (swipe/switch) controller                                    |
+| `media/`   | Video tour and embedded video controllers                            |
+| `types/`   | TypeScript type definitions and models                               |
 
 ## Grid template
 
@@ -91,17 +91,17 @@ $ pnpm run build
 ```
 
 This will:
+
 1. Bundle the source with Vite (IIFE, minified via Terser)
 2. Generate TypeScript declaration files from the docs entry point
 3. Assemble CSS from component static styles
 
 Output lands in `./public/dist/`:
 
-* `micrio.min.js`
-* `micrio.min.d.ts`
+- `micrio.min.js`
+- `micrio.min.d.ts`
 
 To test the compiled version, edit `./index.html` to load the production JS rather than the dev module.
-
 
 ## Questions
 

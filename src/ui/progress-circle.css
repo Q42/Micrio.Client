@@ -10,5 +10,5 @@ micrio-progress-circle svg {
 	display: block;
 }
 micrio-progress-circle circle {
-	transition: stroke-dashoffset .25s ease;
+	transition: stroke-dashoffset 0.25s ease;
 }

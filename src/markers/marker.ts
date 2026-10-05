@@ -1,342 +1,429 @@
-import { MicrioElement } from '$core/component';
-import type { Models } from '$types/models';
-import type { MicrioImage } from '$core/image';
-import { get, tick } from '$core/store';
-import { getSpaceVector } from '$utils/space';
-import { createElement } from '$utils/dom';
-import { openSplit, closeSplit, parseSplitLink, getSplitSecondary, isSplitSecondary } from '$core/split';
+import { MicrioElement } from '$core/component'
+import type { Models } from '$types/models'
+import type { MicrioImage } from '$core/image'
+import { get, tick } from '$core/store'
+import { getSpaceVector } from '$utils/space'
+import { createElement } from '$utils/dom'
+import { openSplit, closeSplit, parseSplitLink, getSplitSecondary, isSplitSecondary } from '$core/split'
 
 /** Props for the individual marker custom element. @internal */
 export interface MarkerProps {
 	/** The marker data to render. */
-	marker: Models.ImageData.Marker;
+	marker: Models.ImageData.Marker
 	/** The parent MicrioImage instance this marker belongs to. */
-	image?: MicrioImage;
+	image?: MicrioImage
 	/** If true, the marker element is hidden but still tracks state. */
-	forceHidden?: boolean;
+	forceHidden?: boolean
 	/** Pre-computed screen-space coordinates keyed by marker ID. */
-	coords?: Map<string, [number, number, number?, number?]>;
+	coords?: Map<string, [number, number, number?, number?]>
 	/** If true, this marker is visually overlapped by others (cluster mode). */
-	overlapped?: boolean;
+	overlapped?: boolean
 }
-import './marker.css';
+import './marker.css'
 
 /** Custom element representing a single interactive marker (default, link, media, or cluster type). */
 class MicrioMarker extends MicrioElement<MarkerProps> {
 	/** HTML tag name for this custom element. @internal */
-	static tag = 'micrio-marker';
+	static tag = 'micrio-marker'
 
-	#props: Partial<MarkerProps> = {};
-	#opened = false;
-	#behindCam = false;
-	#x = 0;
-	#y = 0;
-	#scaleVal = 1;
-	#w = 0;
-	#matrix = '';
-	#fto: ReturnType<typeof setTimeout> | undefined;
+	#props: Partial<MarkerProps> = {}
+	#opened = false
+	#behindCam = false
+	#x = 0
+	#y = 0
+	#scaleVal = 1
+	#w = 0
+	#matrix = ''
+	#fto: ReturnType<typeof setTimeout> | undefined
 	// Omni arc visibility: target frame index and [start, end] frame range
-	#omniIndex = 0;
-	#omniArc: [number, number] | undefined;
+	#omniIndex = 0
+	#omniArc: [number, number] | undefined
 
 	/** @internal */
 	_onMount() {
-		const { marker, image, forceHidden = false } = this.#props;
-		const micrio = this._getMicrio();
-		if (!micrio || !image || !marker) {return;}
+		const { marker, image, forceHidden = false } = this.#props
+		const micrio = this._getMicrio()
+		if (!micrio || !image || !marker) {
+			return
+		}
 
-		const markerImages = MicrioElement._markerImages;
-		if (!markerImages.has(marker.id)) {markerImages.set(marker.id, image);}
+		const markerImages = MicrioElement._markerImages
+		if (!markerImages.has(marker.id)) {
+			markerImages.set(marker.id, image)
+		}
 
-		const {events} = micrio;
-		const $_lang = get(micrio._lang);
-		const markerSettings = image.$settings._markers ?? {};
-		const data = marker.data ?? {};
-		const noTitles = marker.data?.showTitle === false || Boolean(markerSettings.noTitles) || Boolean(image.$settings.omni?.sideLabels);
-		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || Boolean(image.$settings.omni?.sideLabels);
+		const { events } = micrio
+		const $_lang = get(micrio._lang)
+		const markerSettings = image.$settings._markers ?? {}
+		const data = marker.data ?? {}
+		const noTitles =
+			marker.data?.showTitle === false || Boolean(markerSettings.noTitles) || Boolean(image.$settings.omni?.sideLabels)
+		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || Boolean(image.$settings.omni?.sideLabels)
 
 		// --- Auto-start tour integration (_markers.autoStartTour) ---
 
 		/** Whether a marker tour has this marker as one of its steps. */
-		const inTour = (t: Models.ImageData.MarkerTour): boolean => t.steps?.some(s => s.startsWith(marker.id));
+		const inTour = (t: Models.ImageData.MarkerTour): boolean => t.steps?.some((s) => s.startsWith(marker.id))
 		/** The marker tour to auto-start when this marker is opened, if it contains this marker. */
 		const autoStartMyTour: Models.ImageData.MarkerTour | undefined = markerSettings.autoStartTour
-			? micrio._canvases.map(c => c.$data?.markerTours?.find(inTour)).find(t => Boolean(t))
-				?? (micrio.bundleTours ?? []).find(inTour)
-				?? micrio.gallery?._images.map(i => i.$data?.markerTours?.find(inTour)).find(t => Boolean(t))
-			: undefined;
+			? (micrio._canvases.map((c) => c.$data?.markerTours?.find(inTour)).find((t) => Boolean(t)) ??
+				(micrio.bundleTours ?? []).find(inTour) ??
+				micrio.gallery?._images.map((i) => i.$data?.markerTours?.find(inTour)).find((t) => Boolean(t)))
+			: undefined
 		/** This marker's step index within its auto-start tour. */
-		const myTourStep = autoStartMyTour?.steps.findIndex(s => s.startsWith(marker.id));
+		const myTourStep = autoStartMyTour?.steps.findIndex((s) => s.startsWith(marker.id))
 		/** Always start the auto-start tour from step 0 instead of from this marker's step. */
-		const startTourAtBeginning = Boolean(markerSettings.autoStartTourAtBeginning);
+		const startTourAtBeginning = Boolean(markerSettings.autoStartTourAtBeginning)
 		/** This marker's custom grid action, temporarily suppressed when the tour restarts at step 0. */
-		const gridAction = data._meta?.gridAction;
+		const gridAction = data._meta?.gridAction
 
 		// For 3d books, no camera animations
-		const isBook3d = micrio.$current?.album?.info?.type === 'book3d';
-		let view = isBook3d ? undefined : marker.view;
+		const isBook3d = micrio.$current?.album?.info?.type === 'book3d'
+		let view = isBook3d ? undefined : marker.view
 
 		// Derive marker view from video tour
 		if (marker.videoTour) {
-			const vt = marker.videoTour;
-			const timeline = vt.i18n?.[$_lang]?.timeline;
-			if (timeline?.length) {view = timeline[0].rect;}
+			const vt = marker.videoTour
+			const timeline = vt.i18n?.[$_lang]?.timeline
+			if (timeline?.length) {
+				view = timeline[0].rect
+			}
 		}
 
-		const cluster = marker.type === 'cluster';
-		let icon: string | undefined;
-		if (!cluster && marker.type === 'link') {icon = 'link';}
-		else if (marker.type === 'media') {icon = 'play';}
-		const customIcon = marker.data?.customIconIdx !== undefined
-			? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
-			: marker.data?.icon || markerSettings.markerIcon;
-		const hasIcon = Boolean(icon) || Boolean(customIcon);
-		const defaultClass = hasIcon || marker.type === 'default';
+		const cluster = marker.type === 'cluster'
+		let icon: string | undefined
+		if (!cluster && marker.type === 'link') {
+			icon = 'link'
+		} else if (marker.type === 'media') {
+			icon = 'play'
+		}
+		const customIcon =
+			marker.data?.customIconIdx !== undefined
+				? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
+				: marker.data?.icon || markerSettings.markerIcon
+		const hasIcon = Boolean(icon) || Boolean(customIcon)
+		const defaultClass = hasIcon || marker.type === 'default'
 
 		// Omni arc: precompute target frame and visible range from marker rotation/visibleArc
-		const {omni} = image.$settings;
+		const { omni } = image.$settings
 		if (image._isOmni && omni) {
-			const rot = (marker.rotation ?? 0) + (marker.backside ? Math.PI : 0);
-			this.#omniIndex = image.camera._getOmniFrame(rot) ?? 0;
+			const rot = (marker.rotation ?? 0) + (marker.backside ? Math.PI : 0)
+			this.#omniIndex = image.camera._getOmniFrame(rot) ?? 0
 			if (marker.visibleArc) {
-				const a0 = image.camera._getOmniFrame(marker.visibleArc[0]);
-				const a1 = image.camera._getOmniFrame(marker.visibleArc[1]);
-				if (a0 != null && a1 != null) {this.#omniArc = [a0, a1];}
+				const a0 = image.camera._getOmniFrame(marker.visibleArc[0])
+				const a1 = image.camera._getOmniFrame(marker.visibleArc[1])
+				if (a0 != null && a1 != null) {
+					this.#omniArc = [a0, a1]
+				}
 			}
 		}
 
-		const scales = Boolean(marker.data?.scales) || Boolean(image.$settings.markersScale);
+		const scales = Boolean(marker.data?.scales) || Boolean(image.$settings.markersScale)
 		const moved = () => {
 			if (image._is360 && scales) {
-				this.#matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1, 0, 0, 0).join(',');
-				this.style.setProperty('--mat', `matrix3d(${this.#matrix})`);
-				this.classList.add('mat3d');
+				this.#matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1, 0, 0, 0).join(',')
+				this.style.setProperty('--mat', `matrix3d(${this.#matrix})`)
+				this.classList.add('mat3d')
 			} else {
 				const xy = image.camera._getXYDirect(marker.x, marker.y, {
-					radius: marker.radius, rotation: marker.rotation
-				});
-				[this.#x, this.#y, this.#scaleVal, this.#w] = xy;
-				const obscured = (image._is360 && this.#w >= 0) || (this.#x === -1 && this.#y === -1);
-				this.#behindCam = obscured;
+					radius: marker.radius,
+					rotation: marker.rotation,
+				})
+				;[this.#x, this.#y, this.#scaleVal, this.#w] = xy
+				const obscured = (image._is360 && this.#w >= 0) || (this.#x === -1 && this.#y === -1)
+				this.#behindCam = obscured
 				if (image._isOmni && omni) {
 					if (this.#omniArc && marker.rotation != null) {
-						const numFrames = omni.frames / (omni.layers?.length ?? 1);
-						let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex;
-						if (delta > numFrames / 2) {delta -= numFrames;}
-						if (delta < -numFrames / 2) {delta += numFrames;}
-						this.#behindCam = delta <= this.#omniArc[0] || delta >= this.#omniArc[1];
+						const numFrames = omni.frames / (omni.layers?.length ?? 1)
+						let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex
+						if (delta > numFrames / 2) {
+							delta -= numFrames
+						}
+						if (delta < -numFrames / 2) {
+							delta += numFrames
+						}
+						this.#behindCam = delta <= this.#omniArc[0] || delta >= this.#omniArc[1]
 					} else if (omni.distance) {
-						this.#behindCam = this.#w < 0;
+						this.#behindCam = this.#w < 0
 					}
 				}
-				this.style.setProperty('--x', `${this.#x}px`);
-				this.style.setProperty('--y', `${this.#y}px`);
+				this.style.setProperty('--x', `${this.#x}px`)
+				this.style.setProperty('--y', `${this.#y}px`)
 				if (scales) {
-					this.style.setProperty('--scale', `${this.#scaleVal}`);
+					this.style.setProperty('--scale', `${this.#scaleVal}`)
 				}
-				this.classList.remove('mat3d');
-				this.classList.toggle('behind', this.#behindCam);
+				this.classList.remove('mat3d')
+				this.classList.toggle('behind', this.#behindCam)
 			}
-		};
+		}
 
 		const click = () => {
-			if (marker.onclick) { marker.onclick(marker);; return;}
-			if (markerSettings.noMarkerActions) {return;}
+			if (marker.onclick) {
+				marker.onclick(marker)
+				return
+			}
+			if (markerSettings.noMarkerActions) {
+				return
+			}
 			if (marker.type === 'cluster') {
 				if (view && micrio.$current?.$info) {
-					void image.camera.flyToView(view, { limitZoom: true });
+					void image.camera.flyToView(view, { limitZoom: true })
 				}
 			} else {
-				image.state.marker.set(marker);
+				image.state.marker.set(marker)
 			}
-		};
+		}
 
 		const focus = () => {
-			if (markerSettings.noMarkerActions) {return;}
-			if (this.parentNode instanceof HTMLElement) {this.parentNode.scrollTo(0, 0);}
-			clearTimeout(this.#fto);
+			if (markerSettings.noMarkerActions) {
+				return
+			}
+			if (this.parentNode instanceof HTMLElement) {
+				this.parentNode.scrollTo(0, 0)
+			}
+			clearTimeout(this.#fto)
 			this.#fto = setTimeout(() => {
-				const px = image.camera.getXY(marker.x, marker.y);
-				if (!this.#opened && (px[0] < 0 || px[0] >= micrio.offsetWidth || px[1] < 0 || px[1] >= micrio.offsetHeight || (image._is360 ? px[3] > 4 : false)))
-					{image.camera.flyToCoo([marker.x, marker.y], { speed: 2, limit: true }).catch(() => { });}
-			}, 150);
-		};
+				const px = image.camera.getXY(marker.x, marker.y)
+				if (
+					!this.#opened &&
+					(px[0] < 0 ||
+						px[0] >= micrio.offsetWidth ||
+						px[1] < 0 ||
+						px[1] >= micrio.offsetHeight ||
+						(image._is360 ? px[3] > 4 : false))
+				) {
+					image.camera.flyToCoo([marker.x, marker.y], { speed: 2, limit: true }).catch(() => {})
+				}
+			}, 150)
+		}
 
 		const activated = async () => {
 			if (this.#opened) {
-				if (!get(micrio.state.popup)) {image.state.marker.set(undefined);}
-				return;
+				if (!get(micrio.state.popup)) {
+					image.state.marker.set(undefined)
+				}
+				return
 			}
-			this.#opened = true;
-			this.classList.add('opened');
-			clearTimeout(this.#fto);
-			if (markerSettings.noMarkerActions) {return;}
-			events._dispatch('marker-open', marker);
-			const $tour = get(micrio.state.tour);
-			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) {micrio.state.tour.set(undefined);}
+			this.#opened = true
+			this.classList.add('opened')
+			clearTimeout(this.#fto)
+			if (markerSettings.noMarkerActions) {
+				return
+			}
+			events._dispatch('marker-open', marker)
+			const $tour = get(micrio.state.tour)
+			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) {
+				micrio.state.tour.set(undefined)
+			}
 
 			// When the auto-start tour has to restart from its first step, don't fly to this
 			// marker's own view first and suppress its grid action: the tour takes over.
-			const immediatelyStartMyTourAtBeginning = autoStartMyTour !== undefined && startTourAtBeginning
-				&& myTourStep !== undefined && myTourStep > 0
-				&& autoStartMyTour.id !== $tour?.id;
+			const immediatelyStartMyTourAtBeginning =
+				autoStartMyTour !== undefined &&
+				startTourAtBeginning &&
+				myTourStep !== undefined &&
+				myTourStep > 0 &&
+				autoStartMyTour.id !== $tour?.id
 			if (immediatelyStartMyTourAtBeginning) {
-				if (data._meta) {delete data._meta.gridAction;}
-				setTimeout(() => { if (data._meta) {data._meta.gridAction = gridAction;} }, 100);
+				if (data._meta) {
+					delete data._meta.gridAction
+				}
+				setTimeout(() => {
+					if (data._meta) {
+						data._meta.gridAction = gridAction
+					}
+				}, 100)
 			}
 
-			await tick();
+			await tick()
 			if (!immediatelyStartMyTourAtBeginning && view && !data.noAnimate && !marker.videoTour) {
-				image.camera.flyToView(view, {
-					omniIndex: image._isOmni ? this.#omniIndex : undefined,
-					isJump: true
-				}).then(openContent).catch(() => {
-					if (image.state.$marker === marker) {
-						image._openedView = undefined;
-						image.state.marker.set(undefined);
-					}
-				});
+				image.camera
+					.flyToView(view, {
+						omniIndex: image._isOmni ? this.#omniIndex : undefined,
+						isJump: true,
+					})
+					.then(openContent)
+					.catch(() => {
+						if (image.state.$marker === marker) {
+							image._openedView = undefined
+							image.state.marker.set(undefined)
+						}
+					})
 			} else {
-				void openContent();
+				void openContent()
 			}
-		};
+		}
 
 		const openContent = async () => {
-			if (cluster) {return;}
-			if (image.state.$marker !== marker) {
-				if (!image.state.$marker) {return;}
-				 image.state.marker.set(marker);; return;
+			if (cluster) {
+				return
 			}
-			if (markerSettings.noMarkerActions) {return;}
+			if (image.state.$marker !== marker) {
+				if (!image.state.$marker) {
+					return
+				}
+				image.state.marker.set(marker)
+				return
+			}
+			if (markerSettings.noMarkerActions) {
+				return
+			}
 
-			let $tour = get(micrio.state.tour);
-			events._dispatch('marker-opened', marker);
+			let $tour = get(micrio.state.tour)
+			events._dispatch('marker-opened', marker)
 
 			// Auto-start this marker's tour, at this marker's step (or from the beginning)
 			if (autoStartMyTour && !$tour) {
-				const startStep = startTourAtBeginning ? 0 : (myTourStep ?? 0);
-				autoStartMyTour.initialStep = startStep;
+				const startStep = startTourAtBeginning ? 0 : (myTourStep ?? 0)
+				autoStartMyTour.initialStep = startStep
 				// `currentStep` is sticky between runs, so set it too, or the tour would resume elsewhere
-				autoStartMyTour.currentStep = startStep;
-				const firstStep = autoStartMyTour.stepInfo?.[0];
+				autoStartMyTour.currentStep = startStep
+				const firstStep = autoStartMyTour.stepInfo?.[0]
 				// Starting from the beginning while the first step lives on another image: go there first
 				if (startTourAtBeginning && firstStep?.micrioId && firstStep.micrioId !== image.id) {
-					const target = micrio._canvases.find(c => c.id === firstStep.micrioId);
-					if (target) {micrio.current.set(target);}
-					else {micrio.open(firstStep.micrioId).catch(() => {});}
+					const target = micrio._canvases.find((c) => c.id === firstStep.micrioId)
+					if (target) {
+						micrio.current.set(target)
+					} else {
+						micrio.open(firstStep.micrioId).catch(() => {})
+					}
 				}
-				micrio.state.tour.set(autoStartMyTour);
-				$tour = autoStartMyTour;
+				micrio.state.tour.set(autoStartMyTour)
+				$tour = autoStartMyTour
 				// The tour restarts at step 0, so this marker is not the step to show
 				if (startTourAtBeginning && (myTourStep ?? 0) > 0) {
-					image.state.marker.set(undefined);
-					return;
+					image.state.marker.set(undefined)
+					return
 				}
-				await tick();
+				await tick()
 			}
 
 			// Resolve content for the *current* language — the language may have changed
 			// since this element was mounted
-			const content = marker.i18n?.[get(micrio._lang)];
-			if (marker.popupType !== 'popup' || (!content?.title && !content?.body && !content?.bodySecondary && !content?.embedUrl && !marker.images?.length && !marker.videoTour)) {
+			const content = marker.i18n?.[get(micrio._lang)]
+			if (
+				marker.popupType !== 'popup' ||
+				(!content?.title &&
+					!content?.body &&
+					!content?.bodySecondary &&
+					!content?.embedUrl &&
+					!marker.images?.length &&
+					!marker.videoTour)
+			) {
 				// no popup - handle popover or video tour
 				if (marker.popupType === 'popover') {
-					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined });
+					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined })
 				} else if (marker.videoTour && !$tour) {
-					micrio.state.tour.set(marker.videoTour);
-					const unsub = micrio.state.tour.subscribe(t => {
-						if (!t) { unsub(); image.state.marker.set(undefined); }
-					});
+					micrio.state.tour.set(marker.videoTour)
+					const unsub = micrio.state.tour.subscribe((t) => {
+						if (!t) {
+							unsub()
+							image.state.marker.set(undefined)
+						}
+					})
 				}
 			} else {
-				void tick().then(() =>{  micrio.state.popup.set(marker); });
+				void tick().then(() => {
+					micrio.state.popup.set(marker)
+				})
 			}
 
-			const linkId = data.micrioLink?.id;
+			const linkId = data.micrioLink?.id
 			if (linkId) {
 				void tick().then(() => {
-					void micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector });
-				});
+					void micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector })
+				})
 			}
 
-			const splitRaw = data.micrioSplitLink;
+			const splitRaw = data.micrioSplitLink
 			if (splitRaw && !isSplitSecondary(image)) {
-				const parsed = parseSplitLink(splitRaw);
+				const parsed = parseSplitLink(splitRaw)
 				if (parsed) {
-					const existing = getSplitSecondary(image);
+					const existing = getSplitSecondary(image)
 					if (existing) {
 						if (existing.id === parsed.micrioId) {
 							if (parsed.markerId) {
-								const m = existing.$data?.markers?.find(mm => mm.id === parsed.markerId);
-								if (m?.view) {void existing.camera.flyToView(m.view, { isJump: true });}
+								const m = existing.$data?.markers?.find((mm) => mm.id === parsed.markerId)
+								if (m?.view) {
+									void existing.camera.flyToView(m.view, { isJump: true })
+								}
 							}
 						} else {
-							closeSplit(micrio, image);
-							void tick().then(() => openSplit(micrio, image, parsed, { isPassive: parsed.follows }));
+							closeSplit(micrio, image)
+							void tick().then(() => openSplit(micrio, image, parsed, { isPassive: parsed.follows }))
 						}
 					} else {
-						void openSplit(micrio, image, parsed, { isPassive: parsed.follows });
+						void openSplit(micrio, image, parsed, { isPassive: parsed.follows })
 					}
 				}
 			}
-		};
+		}
 
 		const close = () => {
-			this.classList.remove('opened');
-			events._dispatch('marker-closed', marker);
-			micrio.state.popover.set(undefined);
-			micrio.state.popup.set(undefined);
-		};
+			this.classList.remove('opened')
+			events._dispatch('marker-closed', marker)
+			micrio.state.popover.set(undefined)
+			micrio.state.popup.set(undefined)
+		}
 
-		this._addCleanup(image.state.marker.subscribe(m => {
-			if (typeof m === 'string' && m === marker.id) {image.state.marker.set(marker);}
-			else if (m === marker) {void activated();}
-			else if (!data.alwaysOpen && m !== marker) {
-				if (this.#opened) {
-					// Only manage split lifecycle if this marker itself has a split link
-					if (data.micrioSplitLink) {
-						const newMarker = (m !== undefined && typeof m !== 'string') ? m : null;
-						if (!newMarker || !newMarker.data?.micrioSplitLink) {
-							closeSplit(micrio, image);
-						} else {
-							const newParsed = parseSplitLink(newMarker.data.micrioSplitLink);
-							const existing = getSplitSecondary(image);
-							if (!newParsed || !existing || newParsed.micrioId !== existing.id) {
-								closeSplit(micrio, image);
+		this._addCleanup(
+			image.state.marker.subscribe((m) => {
+				if (typeof m === 'string' && m === marker.id) {
+					image.state.marker.set(marker)
+				} else if (m === marker) {
+					void activated()
+				} else if (!data.alwaysOpen && m !== marker) {
+					if (this.#opened) {
+						// Only manage split lifecycle if this marker itself has a split link
+						if (data.micrioSplitLink) {
+							const newMarker = m !== undefined && typeof m !== 'string' ? m : null
+							if (!newMarker || !newMarker.data?.micrioSplitLink) {
+								closeSplit(micrio, image)
+							} else {
+								const newParsed = parseSplitLink(newMarker.data.micrioSplitLink)
+								const existing = getSplitSecondary(image)
+								if (!newParsed || !existing || newParsed.micrioId !== existing.id) {
+									closeSplit(micrio, image)
+								}
 							}
 						}
+						close()
+					} else if (m === undefined || m === '') {
+						this.classList.remove('opened')
 					}
-					close();
+					this.#opened = false
+					if (!cluster && !get(micrio.state.tour)) {
+						image.camera.stop()
+					}
 				}
-				else if (m === undefined || m === '') {this.classList.remove('opened');}
-				this.#opened = false;
-				if (!cluster && !get(micrio.state.tour)) {image.camera.stop();}
-			}
-		}));
+			}),
+		)
 
 		if (!marker.noMarker) {
-			this._addCleanup(image.state.view.subscribe(() => {
-				moved();
-			}));
+			this._addCleanup(
+				image.state.view.subscribe(() => {
+					moved()
+				}),
+			)
 		}
 
 		if (!forceHidden) {
 			void tick().then(() => {
-				const $popup = get(micrio.state.popup);
-				const $tour = get(micrio.state.tour);
+				const $popup = get(micrio.state.popup)
+				const $tour = get(micrio.state.tour)
 				if (this.#opened && !marker.noMarker && $popup && $popup !== marker && !$tour) {
-					image.state.marker.set(undefined);
+					image.state.marker.set(undefined)
 				} else if (data.alwaysOpen) {
-					void openContent();
+					void openContent()
 				}
-			});
+			})
 		}
 
 		// Build DOM
-		this.classList.toggle('cluster', cluster);
-		this.classList.toggle('default', defaultClass);
-		this.classList.toggle('has-icon', hasIcon);
-		this.classList.toggle('has-custom-icon', Boolean(customIcon));
+		this.classList.toggle('cluster', cluster)
+		this.classList.toggle('default', defaultClass)
+		this.classList.toggle('has-icon', hasIcon)
+		this.classList.toggle('has-custom-icon', Boolean(customIcon))
 
 		if (!marker.htmlElement && !marker.noMarker) {
 			const btn = createElement('button', {
@@ -345,26 +432,32 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				events: {
 					click,
 					focus,
-					blur: () =>{  clearTimeout(this.#fto); },
-					mouseenter: () =>{  micrio.state.markerHoverId.set(marker.id); },
-					mouseleave: () =>{  micrio.state.markerHoverId.set(undefined); }
+					blur: () => {
+						clearTimeout(this.#fto)
+					},
+					mouseenter: () => {
+						micrio.state.markerHoverId.set(marker.id)
+					},
+					mouseleave: () => {
+						micrio.state.markerHoverId.set(undefined)
+					},
 				},
-				parent: this
-			});
+				parent: this,
+			})
 
 			if (customIcon) {
 				createElement('img', {
 					props: {
 						src: typeof customIcon === 'string' ? customIcon : customIcon.src,
-						alt: ''
+						alt: '',
 					},
-					parent: btn
-				});
+					parent: btn,
+				})
 			} else if (icon) {
 				createElement('micrio-icon', {
 					setProps: { name: icon },
-					parent: btn
-				});
+					parent: btn,
+				})
 			}
 
 			/**
@@ -372,42 +465,54 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			 * active UI language — `marker.i18n` may have no entry for it at all.
 			 */
 			const applyLabel = () => {
-				const content = marker.i18n?.[get(micrio._lang)];
-				const text = content?.label || content?.title || '';
-				if (!noToolTips && !cluster) {btn.title = text;}
-				let label = btn.querySelector('label');
+				const content = marker.i18n?.[get(micrio._lang)]
+				const text = content?.label || content?.title || ''
+				if (!noToolTips && !cluster) {
+					btn.title = text
+				}
+				let label = btn.querySelector('label')
 				if (content && !noTitles && text) {
-					if (!label) {label = createElement('label', {
-						attrs: {
-							for: marker.id,
-							'data-scroll-through': ''
-						},
-						parent: btn
-					});}
-					label.textContent = text;
-				} else if (label) {label.remove();}
-			};
-			applyLabel();
+					if (!label) {
+						label = createElement('label', {
+							attrs: {
+								for: marker.id,
+								'data-scroll-through': '',
+							},
+							parent: btn,
+						})
+					}
+					label.textContent = text
+				} else if (label) {
+					label.remove()
+				}
+			}
+			applyLabel()
 
-			this._watchLater(micrio._lang, applyLabel);
+			this._watchLater(micrio._lang, applyLabel)
 		}
 
 		// Initial position
-		if (!marker.noMarker) {moved();}
+		if (!marker.noMarker) {
+			moved()
+		}
 
 		// Marker tags as classes
-		if (marker.tags) {for (const c of marker.tags) {this.classList.add(c);}}
+		if (marker.tags) {
+			for (const c of marker.tags) {
+				this.classList.add(c)
+			}
+		}
 	}
 
 	/** @internal */
 	_setProps(props: Partial<MarkerProps>) {
-		Object.assign(this.#props, props);
+		Object.assign(this.#props, props)
 	}
 
 	/** @internal */
 	_onDestroy() {
-		clearTimeout(this.#fto);
+		clearTimeout(this.#fto)
 	}
 }
 
-customElements.define(MicrioMarker.tag, MicrioMarker);
+customElements.define(MicrioMarker.tag, MicrioMarker)

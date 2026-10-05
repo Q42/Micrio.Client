@@ -2,4 +2,4 @@
 export const Grid = {
 	_handlingKeys: false,
 	tag: 'micrio-grid',
-};
+}
