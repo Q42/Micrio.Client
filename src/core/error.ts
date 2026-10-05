@@ -127,7 +127,7 @@ export class MicrioError extends Error {
 		}
 
 		return new MicrioError(
-			`${context ? context + ': ' : ''}HTTP ${status}`,
+			`${context ? `${context  }: ` : ''}HTTP ${status}`,
 			{ code, statusCode: status }
 		);
 	}
@@ -155,7 +155,7 @@ export class MicrioError extends Error {
 		}
 
 		return new MicrioError(
-			`${context ? context + ': ' : ''}${error.message}`,
+			`${context ? `${context  }: ` : ''}${error.message}`,
 			{ code, cause: error }
 		);
 	}

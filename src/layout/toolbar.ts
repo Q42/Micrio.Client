@@ -91,7 +91,7 @@ class MicrioToolbar extends MicrioElement {
 			: undefined;
 		const empty = !(mainPages?.length || hasMarkerTours || hasVideoTours);
 		const pageIds = (mainPages || []).map(p => p.id).join(',');
-		const tourIds = markerTours.map(t => t.id).join(',') + '|' + videoTours.map(t => t.id).join(',');
+		const tourIds = `${markerTours.map(t => t.id).join(',')  }|${  videoTours.map(t => t.id).join(',')}`;
 		const key = [pageIds, tourIds, hidden, $_lang, this.#isMobile, this.#shown].join('::');
 		if (!this._checkRenderKey(key)) {return;}
 
@@ -169,7 +169,7 @@ class MicrioToolbar extends MicrioElement {
 				setProps: {
 					title: $i18n._menuToggle,
 					type: this.#shown ? 'close' : 'ellipsisVertical',
-					className: 'transparent' + (this.querySelector('menu.indent') ? ' indent' : '') || undefined,
+					className: `transparent${  this.querySelector('menu.indent') ? ' indent' : ''}` || undefined,
 					onclick: this.#toggle
 				},
 				parent: this

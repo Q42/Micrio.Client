@@ -8,5 +8,5 @@ const rtlBases = ['ar', 'dv', 'fa', 'he', 'iw', 'ku', 'ps', 'sd', 'syr', 'ug', '
 
 /** Checks whether a language code is a right-to-left language. @internal */
 export function isRTL(lang: string): boolean {
-	return rtlBases.some(base => lang === base || lang.startsWith(base + '-'));
+	return rtlBases.some(base => lang === base || lang.startsWith(`${base  }-`));
 }

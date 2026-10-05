@@ -179,7 +179,7 @@ export class Gallery {
 		const path = opts?.path ?? DataLoader._getOrganisation()?.baseUrl ?? BASEPATH_V5;
 
 		if (aInfo.archive) {
-			await archive.load(path, 'g/' + aInfo.archive, opts?.onProgress);
+			await archive.load(path, `g/${  aInfo.archive}`, opts?.onProgress);
 		}
 
 		const config: Partial<Models.GalleryConfig> = {

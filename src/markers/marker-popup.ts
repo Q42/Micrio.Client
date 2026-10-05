@@ -114,10 +114,10 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					if (n && n !== this.#title) {
 						if (!this.#originalHeights.has(n)) {
 							this.#originalHeights.set(n, n.offsetHeight);
-							n.style.height = n.offsetHeight + 'px';
+							n.style.height = `${n.offsetHeight  }px`;
 						}
 						setTimeout(() => {
-							n.style.height = this.#isMinimized ? '0px' : this.#originalHeights.get(n)! + 'px';
+							n.style.height = this.#isMinimized ? '0px' : `${this.#originalHeights.get(n)!  }px`;
 						}, 100);
 					}
 				}

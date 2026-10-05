@@ -7,7 +7,7 @@ const run = (cmd) => new Promise((ok,error) => exec(cmd, (err, stdout, stderr) =
 	if(err) {error(err);} else {ok(stdout||stderr);}
 }));
 const error = (err) => {
-	console.error('\nAn error has occurred: '+err);
+	console.error(`\nAn error has occurred: ${err}`);
 	process.exit();
 }
 
@@ -83,7 +83,7 @@ if(npmPublish) {
 		{fs.writeFileSync(json, fs.readFileSync(json, 'utf-8')
 			.replace(/"version": ".*"/m,`"version": "${newVersion}"`));}
 
-	console.log('\nPublish completed. New working version: ' + newVersion);
+	console.log(`\nPublish completed. New working version: ${  newVersion}`);
 }
 else {
 	console.log('\nDone. To also publish to NPM, include the --npm param (npm run publish -- --npm --otp [your one-time password]).');

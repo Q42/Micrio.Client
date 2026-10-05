@@ -21,7 +21,7 @@ const defaultAliases = {
 	'$utils': resolve('src/utils'),
 };
 
-const stub = (file) => resolve('build/stubs/' + file);
+const stub = (file) => resolve(`build/stubs/${  file}`);
 
 // The `core` build excludes book/grid/audio/embed/media/tour/markers by stubbing
 // every import that kept source files make into those directories. Exact-match
@@ -166,7 +166,7 @@ function joinMinifiedLines(out, line) {
 	if ((lastOp || firstOp) && !(lastOp && firstOp && GLSL_COMPOUND_OPERATORS.has(last + line[0]))) {
 		return out + line;
 	}
-	return out + ' ' + line;
+	return `${out  } ${  line}`;
 }
 
 function glslMinify(src) {
@@ -180,7 +180,7 @@ function glslMinify(src) {
 	let out = '';
 	for (const line of lines) {
 		if (line[0] === '#') {
-			out += (out && !out.endsWith('\n') ? '\n' : '') + line + '\n';
+			out += `${(out && !out.endsWith('\n') ? '\n' : '') + line  }\n`;
 		} else {
 			out = joinMinifiedLines(out, line);
 		}

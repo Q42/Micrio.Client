@@ -66,7 +66,7 @@ class Archive {
 		this.#data.set(id, data); // Store loaded ArrayBuffer
 
 		// Determine image path prefix for Omni objects
-		const imgPath = isOmni ? id.split('/')[0]+'/' : '';
+		const imgPath = isOmni ? `${id.split('/')[0]}/` : '';
 
 		const hSize = 32; // Size of the simplified header used here
 
@@ -125,7 +125,7 @@ class Archive {
 	 */
 	get = <T>(u: string) : Promise<T> => new Promise((ok, err) => { // Added err callback
 		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
-		if(!i || !this.#data.has(i[0])) {return err(new Error('Could not get blob: '+u));} // Throw error if not found
+		if(!i || !this.#data.has(i[0])) {return err(new Error(`Could not get blob: ${u}`));} // Throw error if not found
 		const fr = new FileReader();
 		fr.onload = () => ok(JSON.parse(fr.result as string) as T); // Parse JSON and resolve
 		// Create a Blob from the specific byte range in the archive ArrayBuffer
@@ -142,7 +142,7 @@ class Archive {
 	 */
 	_getImage = async (u: string) : Promise<TextureBitmap> => {
 		const i = this.db.get(u);
-		if(!i || !this.#data.has(i[0])) {throw new Error('Could not get blob: '+u);}
+		if(!i || !this.#data.has(i[0])) {throw new Error(`Could not get blob: ${u}`);}
 		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
 		return self.createImageBitmap(blob);
 	}

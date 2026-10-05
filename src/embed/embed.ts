@@ -251,7 +251,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			className: (this.#noEvents ? 'no-events' : '')
 				+ (this.#hideWhenPaused && !this.#printGL && !!embed.video ? ' hide-when-paused' : '')
 				+ (this.#is360 || this.#isBook3d ? ' embed3d' : '') || undefined,
-			id: embed.id ? 'e-' + embed.id : undefined,
+			id: embed.id ? `e-${  embed.id}` : undefined,
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
 			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,
 			events: {

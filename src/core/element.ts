@@ -533,7 +533,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			else {
 				bundle = (await DataLoader._getBundleImage(idOrInfo))!;
 				if(!bundle) {
-					this.#printError('Image with id "'+idOrInfo+'" not found, published, or embeddable.');
+					this.#printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`);
 					return this.$current!;
 				}
 			}

@@ -46,7 +46,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 
 		const isAnchor = !!p.href;
 		const tag = isAnchor ? 'a' : 'button';
-		const classes = `${p.className ? p.className + ' ' : ''}${p.active ? 'active' : ''}${p.noClick ? ' no-click' : ''}`.trim();
+		const classes = `${p.className ? `${p.className  } ` : ''}${p.active ? 'active' : ''}${p.noClick ? ' no-click' : ''}`.trim();
 
 		if (this.#prevType) {this.classList.remove(this.#prevType);}
 		if (p.type) {this.classList.add(p.type);}

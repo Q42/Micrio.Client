@@ -34,7 +34,7 @@ function minifyCss(cssContent) {
 function licenseHeader() {
 	return [
 		`/* Micrio Client ${version}`,
-		...fs.readFileSync('./LICENSE').toString().trim().split('\n').map(r => ' * ' + r.trim()),
+		...fs.readFileSync('./LICENSE').toString().trim().split('\n').map(r => ` * ${  r.trim()}`),
 		' */\n\n'
 	].join('\n');
 }
@@ -62,7 +62,7 @@ function processBuild({ jsName, cssName, outFile, withBook3d }) {
 	const escapedCss = cssContent.replace(/[$`]/g, '\\$&');
 
 	const bundle = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
-${jsRaw}${withBook3d ? '\n' + fs.readFileSync(book3dFile, 'utf-8') : ''}`;
+${jsRaw}${withBook3d ? `\n${  fs.readFileSync(book3dFile, 'utf-8')}` : ''}`;
 
 	const jsContent = `if(typeof document!=='undefined'&&typeof customElements!=='undefined'){\n${bundle}\n}`;
 	fs.writeFileSync(jsPath, jsContent);

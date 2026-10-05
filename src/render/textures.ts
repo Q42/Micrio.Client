@@ -56,7 +56,7 @@ function getNext() {
 	busyCount++;
 	const item = queue.shift()!;
 	promises.set(i, item);
-	loaders[i].postMessage({ src: item[0], type: 'image/' + item[0].split('.').pop() });
+	loaders[i].postMessage({ src: item[0], type: `image/${  item[0].split('.').pop()}` });
 }
 
 function onmessage(idx: number, buffer?: ImageBitmap, error?: string, errorType?: string) {

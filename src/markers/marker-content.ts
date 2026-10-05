@@ -119,7 +119,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 					props: {
 						alt: getTitle(asset) ?? '',
 						src: asset.micrioId
-							? `https://iiif.${isDev ? 'micrio.dev' : 'micr.io'}/${asset.micrioId}/full/${singleImage ? '^' + Math.min(asset.width, 640) + ',' : '^,320'}/0/default.webp`
+							? `https://iiif.${isDev ? 'micrio.dev' : 'micr.io'}/${asset.micrioId}/full/${singleImage ? `^${  Math.min(asset.width, 640)  },` : '^,320'}/0/default.webp`
 							: asset.src
 					},
 					parent: figure

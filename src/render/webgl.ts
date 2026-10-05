@@ -163,7 +163,7 @@ export class WebGL {
 		// Link program
 		gl.linkProgram(this.#program);
 		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
-			throw new MicrioError('Shader link error: ' + gl.getProgramInfoLog(this.#program), {
+			throw new MicrioError(`Shader link error: ${  gl.getProgramInfoLog(this.#program)}`, {
 				code: ErrorCodes.WEBGL_SHADER_COMPILE
 			});
 		}
@@ -285,7 +285,7 @@ export class WebGL {
 		// Check compilation status
 		if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
 			this.gl.deleteProgram(program);
-			throw new MicrioError('Shader compilation failed: ' + this.gl.getShaderInfoLog(shader), {
+			throw new MicrioError(`Shader compilation failed: ${  this.gl.getShaderInfoLog(shader)}`, {
 				code: ErrorCodes.WEBGL_SHADER_COMPILE
 			});
 		}

@@ -273,9 +273,9 @@ export class MicrioImage {
 		// Org branding CSS (fire & forget)
 		if(org?.branding && !(s?.noUI)) {
 			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
-			this.#loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
+			this.#loadStyle(`${r2Base}style/${org.slug}.css`).then(() => {
 				const fontFamily = getComputedStyle(this.#engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
-				if(fontFamily) {document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
+				if(fontFamily) {document.fonts.ready.then(() => { if(!document.fonts.check(`16px ${  fontFamily}`))
 					this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
 				});}
 			});
@@ -324,7 +324,7 @@ export class MicrioImage {
 			if(s.js) {
 				const url = s.js.href.replace('$lang', lang);
 				loadScript(url);
-				const _el = document.head.querySelector('script[src="'+url+'"]') as HTMLScriptElement | undefined;
+				const _el = document.head.querySelector(`script[src="${url}"]`) as HTMLScriptElement | undefined;
 				/** @ts-ignore -- used for custom JS to have a cool self reference */
 				if (_el) {_el['micrioElement'] = this.#engine.micrio;}
 			}
@@ -413,14 +413,14 @@ export class MicrioImage {
 			{throw new Error('Video thumb');}
 
 		// Construct standard Micrio tile URL
-		return `${this._tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.#extension}`;
+		return `${this._tileBase}${i.tilesId||i.id}/${frame !== undefined ? `${frame  }/` : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.#extension}`;
 	}
 
 	/** Loads an external stylesheet dynamically. Ensures stylesheets are loaded only once.
 	 * @internal
 	 */
 	#loadStyle(s:string) : Promise<void> { return new Promise((ok:() => void) => {
-		if(jsCss.includes(s) || document.head.querySelector('link[href="'+s+'"]')) {ok();} // Already loaded
+		if(jsCss.includes(s) || document.head.querySelector(`link[href="${s}"]`)) {ok();} // Already loaded
 		else { jsCss.push(s); // Mark as loading
 			createElement('link', {
 				attrs: { type: 'text/css', rel: 'stylesheet', href: s },

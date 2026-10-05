@@ -82,7 +82,7 @@ export class OmniUI {
 		const frames: Omni.Frame[] = [];
 		for (let j = 0; j < totalFrames; j++) {
 			const frame: Omni.Frame = {
-				id: info.id + '/' + j,
+				id: `${info.id  }/${  j}`,
 				image,
 				visible: writable(false),
 				_frame: j,
@@ -98,7 +98,7 @@ export class OmniUI {
 		if (bundle.settings?.omni && parseFloat(bundle.info.version) >= 5) {
 			await archive.load(
 				bundle.info.tileBasePath || bundle.info.path,
-				(bundle.info.tilesId ?? bundle.info.id) + '/base',
+				`${bundle.info.tilesId ?? bundle.info.id  }/base`,
 				(p:number) => micrio._ui?._setProps?.({loadingProgress: p})
 			).catch(() => {});
 		}
@@ -153,7 +153,7 @@ export class OmniUI {
 		const omniNumLayers = omniCfg?.layers?.length ?? 1;
 		if (omniNumLayers > 1) {
 			const layerNames = omniCfg!.layers!.map((l,i) => ({
-				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? 'Layer ' + (i + 1) }]))
+				i18n: Object.fromEntries(Object.entries(l.i18n || {}).map(([lang, name]: [string, string?]) => [lang, { title: name ?? `Layer ${  i + 1}` }]))
 			}));
 			const langs = Object.keys(info.revision ?? {}) as string[];
 			if (!langs.length) {
@@ -164,7 +164,7 @@ export class OmniUI {
 				for (const lang of langs) {
 					for (let i = 0; i < layerNames.length; i++) {
 						if (!layerNames[i].i18n[lang])
-							{layerNames[i].i18n[lang] = { title: 'Layer ' + (i + 1) };}
+							{layerNames[i].i18n[lang] = { title: `Layer ${  i + 1}` };}
 					}
 				}
 			}
@@ -175,17 +175,17 @@ export class OmniUI {
 					if (!d.pages) {d.pages = [];}
 					d.pages = d.pages.filter(p => !p.id?.startsWith('_omni-layers'));
 					d.pages.push({
-						id: '_omni-layers-' + currentLayer,
+						id: `_omni-layers-${  currentLayer}`,
 						i18n: layerNames[currentLayer].i18n,
 						icon: icons.layerGroup,
 						children: layerNames.map((title, i) => ({
-							id: 'omni-layer-' + i,
+							id: `omni-layer-${  i}`,
 							i18n: title.i18n,
 							action: () => {
 								image.state.layer.set(i);
 								preload(get(image.state.layer) * Math.floor(totalFrames / omniNumLayers));
 							}
-						})).filter(p => p.id != 'omni-layer-' + currentLayer)
+						})).filter(p => p.id != `omni-layer-${  currentLayer}`)
 					});
 					return d;
 				});

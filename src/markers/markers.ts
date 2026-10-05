@@ -98,7 +98,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					attrs: { 'data-marker-id': id },
 					setProps: {
 						marker: {
-							id, x: cx, y: cy, type: 'cluster', title: g.length + '',
+							id, x: cx, y: cy, type: 'cluster', title: `${g.length  }`,
 							view,
 							data: {}, popupType: 'none', tags: []
 						},
