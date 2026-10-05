@@ -628,7 +628,7 @@ export class Engine {
 		const tile = this.#tiles.get(idx);
 		if (tile) {
 			if (tile._texture) {
-				this.micrio._webgl.gl.deleteTexture(tile._texture);
+				this.micrio._webgl.gl?.deleteTexture(tile._texture);
 				tile._texture = undefined;
 			}
 			if (tile._timeoutId) {clearTimeout(tile._timeoutId);}

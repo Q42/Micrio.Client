@@ -43,7 +43,8 @@ class Archive {
 		const isBin = isOmni || idIsV5(baseId); // Determine file extension (.bin for V5/Omni, .mdp for V4)
 
 		const xhr = new XMLHttpRequest();
-		const data = await new Promise((ok, err) => {
+		// TODO: Improve error handling, maybe reject promise?
+		const data = await new Promise<ArrayBuffer | undefined>((ok, err) => {
 			let size = 0; // Total size for progress calculation
 			xhr.responseType = 'arraybuffer'; // Expect binary data
 			// Progress handler
@@ -59,7 +60,7 @@ class Archive {
 			xhr.addEventListener('error', err); // Network error
 			xhr.open('GET', path+id+(isBin ? '.bin' : '.mdp')); // Construct URL
 			xhr.send();
-		}) as ArrayBuffer|undefined; // TODO: Improve error handling, maybe reject promise?
+		});
 
 		if(!data) {return;} // Exit if load failed
 
@@ -127,7 +128,11 @@ class Archive {
 		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
 		if(!i || !this.#data.has(i[0])) {return err(new Error(`Could not get blob: ${u}`));} // Throw error if not found
 		const fr = new FileReader();
-		fr.addEventListener('load', () => ok(JSON.parse(fr.result as string) as T)); // Parse JSON and resolve
+		fr.addEventListener('load', () => {
+			const {result} = fr;
+			if (typeof result === 'string') {ok(JSON.parse(result));} // Parse JSON and resolve
+			else {err(new Error(`Could not read blob: ${u}`));}
+		});
 		// Create a Blob from the specific byte range in the archive ArrayBuffer
 		fr.readAsText(new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])])); // Read Blob as text
 	})

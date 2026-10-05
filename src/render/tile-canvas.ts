@@ -399,14 +399,16 @@ export class TileCanvas {
 
 		const m = this.main;
 		const gl = m.micrio._webgl;
+		const ctx = gl.gl;
+		if (!ctx) {return;} // WebGL not initialized (e.g. book3d album)
 		const {el} = this;
 		const v = this.view;
 
 		const animating = this._ani._isStarted();
 
-		gl.gl.viewport(this.el.left, m.el.height - el.height - el.top, el.width, el.height);
+		ctx.viewport(this.el.left, m.el.height - el.height - el.top, el.width, el.height);
 
-		gl.gl.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
+		ctx.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
 
 		if (this.#pagesHaveBackground) {for (const im of this.images) {
 			if (!(im.x1 <= v.x0 || im.x0 >= v.x1 || im.y1 <= v.y0 || im.y0 >= v.y1)) {

@@ -5,6 +5,11 @@ import type { IconName } from '$types/icon-name';
 const SMALL_NAMES = new Set<IconName>(['chevronDown', 'linkExt']);
 import './icon.css';
 
+/** Checks whether a value is a known icon name. @internal */
+function isIconName(value: unknown): value is IconName {
+	return typeof value === 'string' && value in icons;
+}
+
 /** Web component that renders an SVG icon by name, with support for custom HTML overrides. */
 class MicrioIconElement extends MicrioElement {
 	/** The custom element tag name. @internal */
@@ -20,8 +25,8 @@ class MicrioIconElement extends MicrioElement {
 	}
 
 	/** @internal */
-	_setProps(props: Record<string, any>): void {
-		if (props.name) {this.#name = props.name as IconName;}
+	_setProps(props: Record<string, unknown>): void {
+		if (isIconName(props.name)) {this.#name = props.name;}
 		if (this.isConnected) {
 			this.#readCustomHTML();
 			this.#render();

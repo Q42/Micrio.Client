@@ -31,13 +31,24 @@ export interface ElementOptions {
 /** Creates an HTML element with the given tag and options, applying attributes, styles, events, and children. @internal */
 export function createElement<K extends keyof HTMLElementTagNameMap>(tag: K, options?: ElementOptions): HTMLElementTagNameMap[K];
 /* @internal */
+export function createElement(tag: string, options: ElementOptions & {ns: string}): SVGElement;
+/* @internal */
 export function createElement(tag: string, options?: ElementOptions): HTMLElement;
 /* @internal */
-export function createElement(tag: string, options: ElementOptions = {}): HTMLElement {
-	const el = options.ns
-		? document.createElementNS(options.ns, tag) as HTMLElement
-		: document.createElement(tag);
+export function createElement(tag: string, options: ElementOptions = {}): HTMLElement | SVGElement {
+	if (options.ns) {
+		const el = document.createElementNS(options.ns, tag);
+		if (!(el instanceof SVGElement)) {throw new Error(`Could not create SVG element: ${tag}`);}
+		applyOptions(el, options);
+		return el;
+	}
+	const el = document.createElement(tag);
+	applyOptions(el, options);
+	return el;
+}
 
+/** Applies the given options to a created element. @internal */
+function applyOptions(el: HTMLElement | SVGElement, options: ElementOptions): void {
 	if (options.className) {
 		if (el instanceof SVGElement) {el.setAttribute('class', options.className);}
 		else {el.className = options.className;}
@@ -61,10 +72,8 @@ export function createElement(tag: string, options: ElementOptions = {}): HTMLEl
 		if (typeof child === 'string' || typeof child === 'number') {el.append(String(child));}
 		else {el.append(child);}
 	}}
-	if (options.setProps) {(el as any)._setProps?.(options.setProps);}
+	if (options.setProps && '_setProps' in el && typeof el._setProps === 'function') {el._setProps(options.setProps);}
 	if (options.parent) {options.parent.append(el);}
-
-	return el;
 }
 
 /** Creates an SVG element with the given tag and options. @internal */
@@ -73,7 +82,7 @@ export function createSvgElement<K extends keyof SVGElementTagNameMap>(tag: K, o
 export function createSvgElement(tag: string, options?: ElementOptions): SVGElement;
 /* @internal */
 export function createSvgElement(tag: string, options: ElementOptions = {}): SVGElement {
-	return createElement(tag, { ...options, ns: SVG_NS }) as unknown as SVGElement;
+	return createElement(tag, { ...options, ns: SVG_NS });
 }
 
 /**
@@ -120,7 +129,7 @@ export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
 	if (targetObj || loaded.has(src)) {return ok();}
 	const script = document.createElement('script');
 	const onload = () => { loaded.add(src); ok(); };
-	if (cbFunc) {(globalThis as unknown as Record<string, () => void>)[cbFunc] = onload;}
+	if (cbFunc) {Object.assign(globalThis, {[cbFunc]: onload});}
 	else {script.addEventListener('load', onload);}
 	script.addEventListener('error', () => err?.());
 	script.async = true;

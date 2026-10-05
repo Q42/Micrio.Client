@@ -70,7 +70,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 			events: {
 				...(p.onclick && { click: p.onclick }),
 				...(p.onfocus && { focus: p.onfocus }),
-				...(p.onpointerdown && { pointerdown: p.onpointerdown as EventListener }),
+				...(p.onpointerdown && { pointerdown: (e: Event) => {if (e instanceof PointerEvent) {p.onpointerdown?.(e);}} }),
 			},
 			parent: this,
 		});

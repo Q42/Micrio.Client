@@ -31,12 +31,12 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 
 		createSvgElement('circle', {
 			attrs: { ...circleAttrs, stroke: '#e0e0e0' },
-			parent: svg as unknown as HTMLElement,
+			parent: svg,
 		});
 
 		const pc = createSvgElement('circle', {
 			attrs: { ...circleAttrs, stroke: '#00d4ee', 'stroke-dasharray': `${CIRC}px` },
-			parent: svg as unknown as HTMLElement,
+			parent: svg,
 		});
 
 		this.append(svg);
