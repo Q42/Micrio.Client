@@ -111,7 +111,7 @@ class Archive {
 	#parseHeader(d: Uint8Array) : MDPHeader {
 		const s = new TextDecoder().decode(d); // Decode bytes to string
 		// Helper to slice and trim null characters
-		const g = (l:number) => s.slice(i, i+=l).replace(/\x00/g,'').trim();
+		const g = (l:number) => s.slice(i, i+=l).replaceAll('\x00','').trim();
 		let i = 0;
 		return { name: g(20), size: Number.parseInt(g(12), 8) } // Parse name (20 bytes) and size (12 bytes octal)
 	}
