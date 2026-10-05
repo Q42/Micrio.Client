@@ -501,7 +501,7 @@ export class Grid extends MicrioElement {
 	}
 
 	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): Models.Grid.GridImage[] | undefined {
-		if (!state?.layout?.length) {return;}
+		if (!state?.layout?.length) {return undefined;}
 		return state.layout.map(entry => {
 			if (!this._imageMap.has(entry.id)) {return null;}
 			return { id: entry.id, size: entry.size ?? [1], view: entry.view };

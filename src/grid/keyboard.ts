@@ -12,7 +12,7 @@ function gridAdjacent(grid: Grid, dir: 'up'|'down'|'left'|'right') : MicrioImage
 		cx: img.opts.area![0] + img.opts.area![2] / 2,
 		cy: img.opts.area![1] + img.opts.area![3] / 2,
 	}));
-	if (cells.length === 0) {return;}
+	if (cells.length === 0) {return undefined;}
 
 	let curIdx = cells.findIndex(c => c.img.id === grid.querySelector<HTMLElement>(':focus')?.dataset.id);
 	if (curIdx < 0) {curIdx = 0;}
