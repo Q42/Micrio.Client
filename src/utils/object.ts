@@ -27,8 +27,8 @@ export function deepCopy<T>(from: T, into: T, opts: {
 		// Reject prototype-pollution keys; never legitimately present in settings data.
 		if (key === '__proto__' || key === 'constructor' || key === 'prototype') {continue;}
 		const val = source[key];
-		if (val && typeof val === 'object' && Object.getPrototypeOf(val) === Object.prototype) {
-			if (!target[key] || typeof target[key] !== 'object') {target[key] = {};}
+		if (isRecord(val) && Object.getPrototypeOf(val) === Object.prototype) {
+			if (!isRecord(target[key])) {target[key] = {};}
 			deepCopy(val, target[key], opts);
 		} else if (!opts.noOverwrite || !(key in target)) {
 			target[key] = val;
