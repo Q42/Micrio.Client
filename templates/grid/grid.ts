@@ -317,6 +317,12 @@ if (micrioEl) {
 	console.error('[grid demo] No <micr-io> element found.');
 }
 
+/** True for a real `CustomEvent`; deliberately not a type predicate, so the typed
+ *  Micrio event keeps its `detail` type instead of widening to `CustomEvent<any>`. */
+function isCustomEvent(e: Event): boolean {
+	return e instanceof CustomEvent;
+}
+
 /**
  * Wait for the grid controller to become available, then call `onGrid` exactly
  * once. Handles every ordering of `grid-init` relative to this module:
@@ -341,7 +347,7 @@ function resolveGrid(micrio: HTMLMicrioElement, onGrid: (grid: Grid) => void): v
 	const find = (): Grid | undefined => micrio.$current?.grid;
 
 	micrio.addEventListener('grid-init', e => {
-		if (!(e instanceof CustomEvent)) {return;}
+		if (!isCustomEvent(e)) {return;}
 		const grid: Grid = e.detail;
 		finish(grid);
 	});
@@ -553,7 +559,7 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 		refreshStrip(strip, grid);
 	});
 	grid.micrio.addEventListener('grid-focus', (e) => {
-		if (!(e instanceof CustomEvent)) {return;}
+		if (!isCustomEvent(e)) {return;}
 		const img: MicrioImage = e.detail;
 		setSub(`Focused: ${titleOf(img.id)} — Esc or “Back” to return`);
 		refreshStrip(strip, grid);

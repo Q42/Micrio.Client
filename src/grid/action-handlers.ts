@@ -16,6 +16,18 @@ function switchToGrid(grid: Grid): void {
 	});}
 }
 
+/** True for non-null objects; the starting point for narrowing event data. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+/** Narrows a `tour-event` payload to a tour event, checking the fields the grid reads. */
+function isTourEvent(value: unknown): value is Models.ImageData.Event {
+	if (!isRecord(value)) {return false;}
+	if (typeof value.start !== 'number' || typeof value.end !== 'number') {return false;}
+	return value.action === undefined || typeof value.action === 'string';
+}
+
 /**
  * Creates an event handler that listens for `tour-event` custom events
  * and dispatches grid actions prefixed with `grid:`.
@@ -24,9 +36,9 @@ function switchToGrid(grid: Grid): void {
 export function createTourEventHandler(grid: Grid): (e: Event) => void {
 	return (e: Event): void => {
 		if (!(e instanceof CustomEvent)) {return;}
-		const event: Models.ImageData.Event = e.detail;
-		if(!event || !event.action?.startsWith('grid:')) {return;}
-		if(event.active) {handleAction(grid, event.action.slice(5), event.data, event.end - event.start);}
+		const detail: unknown = e.detail;
+		if (!isTourEvent(detail) || !detail.action?.startsWith('grid:')) {return;}
+		if(detail.active) {handleAction(grid, detail.action.slice(5), detail.data, detail.end - detail.start);}
 	};
 }
 
