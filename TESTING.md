@@ -83,8 +83,17 @@ The default run is fully hermetic:
   is asserted.
 - A 404 is the default for anything unmatched, which keeps leaks loud instead of silent.
 - Texture tiles are decoded inside a dedicated Web Worker (`src/render/textures.ts`),
-  where the main-thread patch does not reach. The offline suite therefore asserts
-  nothing about pixels — only data, DOM, events, layout and camera state.
+  where the main-thread patch does not reach. `tests/browser/textures.ts` replaces
+  that worker with one that resolves every requested tile URL to a tiny real image
+  (a 4x4 WebP built once with `OffscreenCanvas`). Tiles therefore load instantly and
+  frames draw with real texture data — the suite can assert that rendering happened
+  (`engine._numTiles`, `engine._progress`, the `draw` event) without any network and
+  without `[Micrio Texture] Error loading …` noise for every tile.
+
+  It is installed from `tests/browser/setup.ts` _before_ `src/main` is imported,
+  because the worker bootstrap URL is created at module load. To assert on the tile
+  URLs the engine requested, read `requested` from `tests/helpers/network.ts` — the
+  fake worker answers exactly the URLs the engine asks for.
 
 ### The live suite
 

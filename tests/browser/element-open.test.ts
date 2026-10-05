@@ -37,6 +37,25 @@ describe('<micr-io> open()', () => {
 		viewer.destroy()
 	})
 
+	it('actually renders: tiles decode, frames draw and loading reports complete', async () => {
+		const viewer = mountViewer()
+		let draws = 0
+		viewer.el.addEventListener('draw', () => {
+			draws++
+		})
+
+		await viewer.open(modernBundle())
+		await waitForLoaded(viewer, 'rqFkjZz')
+		await waitFor(() => draws > 0, 4000, 'a frame to be drawn')
+
+		// The fake texture worker resolves every requested tile to a real image, so
+		// the engine has tiles on screen and reports progress without any network.
+		expect(viewer.el._engine._numTiles).toBeGreaterThan(0)
+		expect(viewer.el._engine._progress).toBeGreaterThan(0)
+		expect(draws).toBeGreaterThan(0)
+		viewer.destroy()
+	})
+
 	it('dispatches print, pre-info and load in order', async () => {
 		const viewer = mountViewer()
 		const events = collectEvents(viewer.el, ['print', 'pre-info', 'load', 'show'])
