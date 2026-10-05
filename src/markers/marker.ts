@@ -46,7 +46,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		if (!micrio || !image || !marker) {return;}
 
 		const markerImages = MicrioElement._markerImages;
-		if (!markerImages.has(marker.id) && image) {markerImages.set(marker.id, image);}
+		if (!markerImages.has(marker.id)) {markerImages.set(marker.id, image);}
 
 		const {events} = micrio;
 		const $_lang = get(micrio._lang);
@@ -291,11 +291,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		this._addCleanup(image.state.marker.subscribe(m => {
 			if (typeof m === 'string' && m === marker.id) {image.state.marker.set(marker);}
 			else if (m === marker) {void activated();}
-			else if (!data.alwaysOpen && (!m || m !== marker)) {
+			else if (!data.alwaysOpen && m !== marker) {
 				if (this.#opened) {
 					// Only manage split lifecycle if this marker itself has a split link
 					if (data.micrioSplitLink) {
-						const newMarker = (m && typeof m !== 'string') ? m : null;
+						const newMarker = (m !== undefined && typeof m !== 'string') ? m : null;
 						if (!newMarker || !newMarker.data?.micrioSplitLink) {
 							closeSplit(micrio, image);
 						} else {
@@ -308,7 +308,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					}
 					close();
 				}
-				else if (!m) {this.classList.remove('opened');}
+				else if (m === undefined || m === '') {this.classList.remove('opened');}
 				this.#opened = false;
 				if (!cluster && !get(micrio.state.tour)) {image.camera.stop();}
 			}
