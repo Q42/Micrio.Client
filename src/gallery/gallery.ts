@@ -95,7 +95,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const {controller} = this.#props;
 		if (!controller) {return;}
 
-		void this.#renderGallery(micrio, image, controller);
+		this.#renderGallery(micrio, image, controller);
 
 		// Scrubber button titles are translated, so refresh them on a UI language change
 		// (the scrubber bar itself is only built once)
