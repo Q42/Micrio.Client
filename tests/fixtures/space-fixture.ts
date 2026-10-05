@@ -84,8 +84,14 @@ export function freshSpace(
 	return { images, spaces, ids: images.map((i) => i.id), spaceId }
 }
 
-/** A loaded viewer on one image of a fresh linked space. */
-export interface OpenSpace extends Viewer {
+/**
+ * A loaded viewer on one image of a fresh linked space.
+ *
+ * `viewer` is the mounted `Viewer` (so `openSpace(...).viewer.el` works) and `space`
+ * carries the fixture's own space data for assertions about it.
+ */
+export interface OpenSpace {
+	viewer: Viewer
 	ids: string[]
 	spaceId: string
 	space: Models.Spaces.Space
@@ -117,9 +123,8 @@ export async function openSpace(
 	if (!space) {
 		throw new Error('space fixture missing')
 	}
-	return { ...viewer, ids, spaceId, space: space.data }
+	return { viewer, ids, spaceId, space: space.data }
 }
-
 /** Builds a bidirectional link pair with optional per-end settings. */
 export function linkPair(
 	a: string,

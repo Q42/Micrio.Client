@@ -10,7 +10,7 @@ import type { MicrioImage } from '../../src/core/image'
  * functions of the camera state, so there are no animation timings to wait for.
  */
 async function open360(index = 0) {
-	const viewer = await openSpace(index)
+	const { viewer } = await openSpace(index)
 	const image = viewer.el.$current
 	if (!image) {
 		throw new Error('no current image')
