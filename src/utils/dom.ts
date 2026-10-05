@@ -61,7 +61,7 @@ function applyOptions(el: HTMLElement | SVGElement, options: ElementOptions): vo
 		if (v == null) {el.removeAttribute(k);}
 		else {el.setAttribute(k, v);}
 	}}
-	if (options.style) {
+	if (options.style !== undefined && options.style !== '') {
 		if (typeof options.style === 'string') {el.style.cssText = options.style;}
 		else {Object.assign(el.style, options.style);}
 	}
@@ -129,7 +129,7 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 
 /** Dynamically loads an external script, ensuring it is loaded only once per session. @internal */
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) => new Promise<void>((ok, err) => {
-	if (targetObj || loaded.has(src)) {ok(); return;}
+	if (targetObj !== undefined || loaded.has(src)) {ok(); return;}
 	const script = document.createElement('script');
 	const onload = () => { loaded.add(src); ok(); };
 	if (cbFunc) {Object.assign(globalThis, {[cbFunc]: onload});}
