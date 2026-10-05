@@ -215,7 +215,6 @@ export class BookViewer {
 	#totalStackHeight = 0;
 
 	#lastTime = 0;
-	#solveCount = 0;
 
 	constructor(options: BookViewerOptions) {
 		this.#canvas = options._canvas;
@@ -1305,8 +1304,6 @@ export class BookViewer {
 		for (let pi = 0; pi < this.#pageCount; pi++) {
 			this.#prevPositions[pi].set(this.#meshes[pi]._positions);
 		}
-
-		this.#solveCount++;
 	}
 
 	#snapPageSpineY(pi: number, targetY: number, updateRenderer: boolean, updatePrev: boolean): void {

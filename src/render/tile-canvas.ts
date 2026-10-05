@@ -72,7 +72,6 @@ export class TileCanvas {
 
 	/** Aspect ratio (image width / image height). */
 	readonly aspect: number;
-	#index = 0;
 
 	#isVisible = false;
 
@@ -185,7 +184,6 @@ export class TileCanvas {
 		this.isOmni = isOmni;
 		this._pinchZoomOutLimit = pinchZoomOutLimit;
 		this._omniNumLayers = omniNumLayers;
-		this.#index = main._canvases.length;
 		if (!hasParent) {main._canvases.push(this);}
 
 		this.aspect = width / height;
@@ -228,7 +226,6 @@ export class TileCanvas {
 	/** Sets the parent canvas for a child canvas. */
 	#setParent(parent: TileCanvas): void {
 		this.parent = parent;
-		this.#index += parent.#children.length;
 	}
 
 	/**

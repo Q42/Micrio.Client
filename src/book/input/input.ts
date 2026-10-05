@@ -36,7 +36,6 @@ export class InputHandler {
 	#panStartX = 0;
 	#panStartY = 0;
 	#panMoved = 0;
-	#orbitMoved = 0;
 	#isDragging = false;
 	#dragStartFired = false;
 
@@ -150,7 +149,6 @@ export class InputHandler {
 		this.#panStartX = e.clientX;
 		this.#panStartY = e.clientY;
 		this.#panMoved = 0;
-		this.#orbitMoved = 0;
 		this.#isDragging = false;
 		this.#dragStartFired = false;
 	}
@@ -203,7 +201,6 @@ export class InputHandler {
 	}
 
 	#applyOrbit(dx: number, dy: number): void {
-		this.#orbitMoved += Math.abs(dx) + Math.abs(dy);
 		this.#camera._rotate(
 			this.#camera._freeCamMode ? dx : 0,
 			dy,
@@ -250,7 +247,6 @@ export class InputHandler {
 		this.#isDragging = false;
 		this.#dragStartFired = false;
 		this.#panMoved = 0;
-		this.#orbitMoved = 0;
 	}
 
 	#isZoomedIn(): boolean {
