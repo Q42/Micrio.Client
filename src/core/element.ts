@@ -249,7 +249,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				break;
 			}
 			case 'data-limited': {
-				if(this._engine?._vertexBuffer && this.$current?.canvas)
+				if(this.$current?.canvas)
 					{this.$current.canvas._limited = Boolean(newVal);}
 				break;
 			}
@@ -507,7 +507,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		};
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in globalThis) {
 			const observer = new IntersectionObserver(e => {
-				if(!e[0] || !e[0].isIntersecting) {return;}
+				if(e[0] === undefined || !e[0].isIntersecting) {return;}
 				observer.unobserve(this);
 				openBundle();
 			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`});
@@ -617,7 +617,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Find or create canvas ─────────────────────────────────────────────
 
-		let c:MicrioImage|undefined = this._canvases.find(canvas => bundle.id && canvas.id === bundle.id);
+		let c:MicrioImage|undefined = this._canvases.find(canvas => bundle.id !== '' && canvas.id === bundle.id);
 		let isInGrid = false;
 		const grid = this._canvases[0]?.grid;
 		if(!c && grid) {
