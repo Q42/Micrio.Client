@@ -4,12 +4,29 @@ import type { MicrioImage } from '$core/image';
 import { normalize3 } from '$utils/math';
 import { mainGain } from './audio-controller';
 
+/** The global scope as a plain object, so runtime-provided globals can be probed with `in`. */
+const globals: object = globalThis;
+
+/** True when `value` is a decoded-audio cache object. */
+function isAudioBufferCache(value: unknown): value is Record<string, AudioBuffer> {
+	return typeof value === 'object' && value !== null;
+}
+
+/** Decoded-audio cache shared across player instances, keyed by source URL. */
+function audioBufferCache(): Record<string, AudioBuffer> {
+	const existing: unknown = '__micrioAudioBuffers' in globals ? globals.__micrioAudioBuffers : undefined;
+	if (isAudioBufferCache(existing)) {return existing;}
+	const created: Record<string, AudioBuffer> = {};
+	Object.assign(globals, {__micrioAudioBuffers: created});
+	return created;
+}
+
 export class MicrioAudioLocation {
 	#micrio: HTMLMicrioElement;
 	#gain!: GainNode;
 	#panner!: PannerNode;
 	#source!: AudioBufferSourceNode;
-	#to: any;
+	#to: ReturnType<typeof setTimeout> | undefined;
 	#cleanup: (() => void) | undefined;
 
 	constructor(micrio: HTMLMicrioElement, marker: Models.ImageData.Marker, ctx: AudioContext, is360: boolean) {
@@ -70,7 +87,7 @@ export class MicrioAudioLocation {
 				});} else {this.#source.loop = true;}
 			}
 			this.#gain.gain.value = item.volume ?? 1;
-			this.#source.buffer = (globalThis as Record<string, any>).__micrioAudioBuffers?.[item.src] ?? null;
+			this.#source.buffer = audioBufferCache()[item.src] ?? null;
 			if (this.#source.buffer) {
 				this.#source.connect(this.#panner);
 				this.#source.start();
@@ -79,12 +96,11 @@ export class MicrioAudioLocation {
 
 		const start = async () => {
 			if (!item.src) {return;}
-			const buffers = (globalThis as Record<string, any>).__micrioAudioBuffers || {};
+			const buffers = audioBufferCache();
 			if (!buffers[item.src]) {
 				buffers[item.src] = await fetch(item.src)
 					.then(res => res.arrayBuffer())
 					.then(b => ctx.decodeAudioData(b));
-				(globalThis as Record<string, any>).__micrioAudioBuffers = buffers;
 			}
 			if (item.alwaysPlay && item.repeatAfter > 0) {this.#to = setTimeout(play, item.repeatAfter * 1000);}
 			else {play();}

@@ -38,7 +38,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	/** Latest values received from the view/viewport store subscriptions. */
 	#view?: Models.Camera.View;
 	#viewport?: Models.Camera.View;
-	#loopDelayTo: any;
+	#loopDelayTo: ReturnType<typeof setTimeout> | undefined;
 	/** Pending debounce for printing a book3d embed (waits for the view to settle). */
 	#book3dPrintTo: number | undefined;
 	/** True until the one-time book3d print delay after the embed is placed in the DOM has elapsed. */
@@ -499,12 +499,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	}
 
 	#onChange(e: Event) {
-		if (e && 'detail' in e) {
-			const emb = e.detail as Models.ImageData.Embed;
-			const target = this.#props.embed as Record<string, any>;
-			for (const x of Object.keys(emb)) {
-				target[x] = (emb as Record<string, any>)[x];
-			}
+		if ('detail' in e && e.detail && typeof e.detail === 'object') {
+			Object.assign(this.#props.embed, e.detail);
 		}
 		this.#readPlacement();
 		// Editor-driven change: apply immediately (outside the render frame).

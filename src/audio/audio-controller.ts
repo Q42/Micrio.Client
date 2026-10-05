@@ -8,6 +8,9 @@ import { MicrioAudioLocation } from './audio-location';
 
 // ── Module-level AudioContext state ──
 
+/** The global scope as a plain object, so runtime-provided globals can be probed with `in`. */
+const globals: object = globalThis;
+
 /** @internal */
 export let mainGain: GainNode | undefined;
 /** @internal */
@@ -17,9 +20,10 @@ const interacted = writable<boolean>(false);
 
 function init(volume: number) {
 	if (mainGain) {return;}
-	if (!_ctx) {_ctx = 'micrioAudioContext' in globalThis
-		? (globalThis as Record<string, any>)['micrioAudioContext'] as AudioContext
-		: new AudioContext();}
+	if (!_ctx) {
+		const external: unknown = 'micrioAudioContext' in globals ? globals.micrioAudioContext : undefined;
+		_ctx = external instanceof AudioContext ? external : new AudioContext();
+	}
 	if (!_ctx) {return console.warn('[Micrio] Your browser does not support the Web Audio API');}
 	if (_ctx.state === 'suspended') {_ctx.resume().then(() => { }).catch(() => { });}
 	mainGain = _ctx.createGain();
@@ -101,7 +105,7 @@ export class MicrioAudioController {
 		if (!info) {return;}
 		const is360 = Boolean(info.is360);
 		const data = img.$data;
-		const posMarkers = data?.markers?.filter((m: any) => Boolean(m.positionalAudio));
+		const posMarkers = data?.markers?.filter(m => Boolean(m.positionalAudio));
 		if (!posMarkers?.length) {return;}
 
 		for (const marker of posMarkers) {
@@ -158,7 +162,7 @@ export class MicrioAudioController {
 			if (!_ctx) {init(typeof vol === 'number' ? vol : 1);}
 			if (_ctx) {
 				const data = image.$data;
-				if (data?.markers?.filter((m: any) => Boolean(m.positionalAudio)).length) {
+				if (data?.markers?.filter(m => Boolean(m.positionalAudio)).length) {
 					this.#cleanups.push(image.state.view.subscribe(v => {
 						if (!v) {return;}
 						const d = Math.max(0, 1.05 - image.camera.getScale());

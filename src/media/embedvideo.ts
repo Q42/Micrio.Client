@@ -1,5 +1,5 @@
 import type { Unsubscriber } from '$core/store';
-import type { HlsPlayer, HlsPlayerConstructor } from '$types/externals';
+import type { HlsPlayer } from '$types/externals';
 import type { Models } from '$types/models';
 import type { MicrioImage } from '$core/image';
 import type { Engine } from '$render/engine';
@@ -7,7 +7,7 @@ import type { Engine } from '$render/engine';
 import { Browser } from '$utils/browser';
 import { createElement, loadExternalAPI } from '$utils/dom';
 import { tick } from '$core/store';
-import { HLS_SCRIPT_URL, HLS_PLAYER_CONFIG, mediaSourceSupported, cloudflareStreamUrl } from './hls-adapter';
+import { HLS_SCRIPT_URL, HLS_PLAYER_CONFIG, mediaSourceSupported, cloudflareStreamUrl, getHlsConstructor } from './hls-adapter';
 
 /**
  * Manages the loading, playback, and WebGL integration of embedded videos
@@ -159,7 +159,7 @@ export class GLEmbedVideo {
 			this._vid.src = src;
 		} else {
 			loadExternalAPI('Hls', HLS_SCRIPT_URL).then(() => {
-				this.#hlsPlayer = new ((globalThis as Record<string, any>)['Hls'] as HlsPlayerConstructor)(HLS_PLAYER_CONFIG);
+				this.#hlsPlayer = new (getHlsConstructor())(HLS_PLAYER_CONFIG);
 				this.#hlsPlayer.loadSource(src); // Load HLS manifest
 				if(this._vid) {this.#hlsPlayer.attachMedia(this._vid);} // Attach to video element
 			}).catch(e => console.error("[Micrio GL Embed] Failed to load HLS.js:", e));
