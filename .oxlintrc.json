@@ -45,6 +45,17 @@
 		"typescript/array-type": "error",
 		"typescript/no-misused-promises": "error",
 		"typescript/no-confusing-void-expression": "error",
+		"typescript/no-unsafe-member-access": "error",
+		"typescript/no-unsafe-assignment": "error",
+		"typescript/no-unsafe-argument": "error",
+		"typescript/no-unsafe-return": "error",
+		// oxlint has no working allowNullableObject yet, so nullable-object
+		// truthiness stays an error and the checks are written out explicitly.
+		"typescript/strict-boolean-expressions": ["error", {
+			"allowNullableBoolean": true,
+			"allowNullableString": true,
+			"allowNullableNumber": true
+		}],
 
 		"unicorn/no-useless-undefined": "error",
 		"unicorn/no-zero-fractions": "error",
