@@ -498,14 +498,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			|| (vid.pauseWhenLargerThan && screenSize > vid.pauseWhenLargerThan));
 	}
 
-	#click() {
+	#click = () => {
 		const { embed, image, marker } = this.#props;
 		const markerId = embed.clickAction === 'markerId' ? embed.clickTarget : marker?.id;
 		if (!markerId || !image || this.#href) {return;}
 		image.state.marker.set(markerId);
 	}
 
-	#onChange(e: Event) {
+	#onChange = (e: Event) => {
 		if ('detail' in e && e.detail && typeof e.detail === 'object') {
 			Object.assign(this.#props.embed, e.detail);
 		}
