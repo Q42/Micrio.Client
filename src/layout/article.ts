@@ -14,7 +14,7 @@ class MicrioArticle extends MicrioElement<ArticleProps> {
 
 	/** @internal */
 	protected _render() {
-		if (this._props.html) this.innerHTML = this._props.html;
+		if (this._props.html) {this.innerHTML = this._props.html;}
 	}
 }
 

@@ -28,13 +28,13 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 
 	#toggleMute = () => {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		micrio._isMuted.set(!get(micrio._isMuted));
 	};
 
 	#share = () => {
 		const micrio = this._getMicrio();
-		if (!micrio || !navigator.share) return;
+		if (!micrio || !navigator.share) {return;}
 		if (micrio.$current?.$info) {
 			const cData = micrio.$current.$data?.i18n?.[get(micrio._lang)];
 			navigator.share({
@@ -61,7 +61,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const { state: micrioState, _lang } = micrio;
 		const { tour, popup } = micrioState;
@@ -69,17 +69,17 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const readInfo = (s: Models.ImageInfo.Settings) => {
 			this.#showCultures = !!s.ui?.controls?.cultureSwitch;
 			this.#showSocial = !!s.social;
-			if (s.fullscreen !== undefined) this.#showFullscreen = !!s.fullscreen && !!customElements.get('micrio-fullscreen');
+			if (s.fullscreen !== undefined) {this.#showFullscreen = !!s.fullscreen && !!customElements.get('micrio-fullscreen');}
 			this.#sync();
 		};
 
-		if (micrio.$current) readInfo(micrio.$current.$settings);
+		if (micrio.$current) {readInfo(micrio.$current.$settings);}
 
 		let settingsUnsub: Unsubscriber | undefined;
 
 		this._addCleanup(micrio.current.subscribe(c => {
 			if (c) {
-				if (get(tour) && 'steps' in get(tour)!) return;
+				if (get(tour) && 'steps' in get(tour)!) {return;}
 				settingsUnsub?.();
 				settingsUnsub = c._settings.subscribe(readInfo);
 			}
@@ -106,7 +106,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	// ── Build structural DOM once ──
 
 	#build() {
-		if (this.#built) return;
+		if (this.#built) {return;}
 
 		this.#aside1 = createElement('aside', {
 			parent: this
@@ -118,10 +118,10 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 	// ── Sync state — create/remove elements on demand ──
 
 	#sync() {
-		if (!this.#built || !this.isConnected) return;
+		if (!this.#built || !this.isConnected) {return;}
 
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const $i18n = get(i18n);
 		const $isMuted = get(micrio._isMuted);
@@ -187,7 +187,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			const langBtns = items.querySelectorAll(':scope > micrio-button');
 			for (let i = 0; i < langBtns.length; i++) {
 				const inner = langBtns[i].querySelector('button, a');
-				if (inner) inner.classList.toggle('active', cultures[i].toLowerCase() === $_lang.toLowerCase());
+				if (inner) {inner.classList.toggle('active', cultures[i].toLowerCase() === $_lang.toLowerCase());}
 			}
 		} else if (this.#langMenu?.isConnected) {
 			this.#langMenu.remove();
@@ -230,8 +230,8 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 				if (!this.#zoomGroup?.isConnected) {
 					this.#zoomGroup?.remove();
 					this.#zoomGroup = createElement('micrio-zoom-buttons') as MicrioElement;
-					if (this.#fsGroup?.isConnected) this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);
-					else this.#group1.appendChild(this.#zoomGroup);
+					if (this.#fsGroup?.isConnected) {this.#group1.insertBefore(this.#zoomGroup, this.#fsGroup);}
+					else {this.#group1.appendChild(this.#zoomGroup);}
 				}
 			} else if (this.#zoomGroup?.isConnected) {
 				this.#zoomGroup.remove();

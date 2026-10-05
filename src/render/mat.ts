@@ -173,7 +173,7 @@ export class Mat4 {
 
 		let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
-		if (!det) return;
+		if (!det) {return;}
 
 		det = 1.0 / det;
 
@@ -294,7 +294,7 @@ export class Vec4 {
 	_normalize(): void {
 		let len = this.x * this.x + this.y * this.y + this.z * this.z;
 
-		if (len > 0) len = 1.0 / Math.sqrt(len);
+		if (len > 0) {len = 1.0 / Math.sqrt(len);}
 
 		this.x *= len;
 		this.y *= len;

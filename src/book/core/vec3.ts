@@ -43,7 +43,7 @@ export class Vec3 {
 
 	_normalize(): Vec3 {
 		const len = this._length();
-		if (len > 1e-9) this.#div(len);
+		if (len > 1e-9) {this.#div(len);}
 		return this;
 	}
 

@@ -68,8 +68,8 @@ export namespace State {
 		/** Initializes the main state controller and syncs internal references with store subscriptions. @internal */
 		constructor(){
 			// Keep internal properties synced with stores
-			this.tour.subscribe(t => { if(typeof t == 'string') return; this.#_tour = t });
-			this.marker.subscribe(m => { if(typeof m == 'string') return; this.#_marker = m });
+			this.tour.subscribe(t => { if(typeof t == 'string') {return;} this.#_tour = t });
+			this.marker.subscribe(m => { if(typeof m == 'string') {return;} this.#_marker = m });
 		}
 	}
 
@@ -111,19 +111,19 @@ export namespace State {
 			// Subscribe to view store changes
 			this.view.subscribe(view => {
 				this.#_view = view; // Update internal reference
-				if(!view) return;
+				if(!view) {return;}
 				const nX = view[0], nY = view[1], nW = view[2], nH = view[3];
-				if(pX === nX && pY === nY && pW === nW && pH === nH) return; // Unchanged
+				if(pX === nX && pY === nY && pW === nW && pH === nH) {return;} // Unchanged
 				const detail = {image, view}; // Event detail payload with view360
 				pX = nX; pY = nY; pW = nW; pH = nH;
 				// Fire zoom callbacks if dimensions changed significantly
 				if(zW === undefined || zH === undefined || Math.abs((nW-zW)+(nH-zH)) > 1E-5) {
-					for(const fn of m._onZoom) fn(detail);
+					for(const fn of m._onZoom) {fn(detail);}
 					m.events._dispatch('zoom', {image, view});
 					zW=nW; zH=nH; // Update previous dimensions
 				}
 				// Fire move callbacks
-				for(const fn of m._onMove) fn(detail);
+				for(const fn of m._onMove) {fn(detail);}
 				m.events._dispatch('move', {image, view});
 			});
 

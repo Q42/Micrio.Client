@@ -125,7 +125,7 @@ export function defer<T>(fn: Subscriber<T>): Subscriber<T> {
 	let last: T;
 	return (v: T) => {
 		last = v;
-		if (pending) return;
+		if (pending) {return;}
 		pending = true;
 		Promise.resolve().then(() => {
 			pending = false;

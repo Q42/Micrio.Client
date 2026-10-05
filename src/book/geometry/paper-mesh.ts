@@ -114,18 +114,18 @@ export class PaperMesh {
 			const [v0, v1, v2] = this._triangles[ti]._indices;
 			for (const e of [key(v0, v1), key(v1, v2), key(v2, v0)]) {
 				const list = edgeToTri.get(e);
-				if (list) list.push(ti); else edgeToTri.set(e, [ti]);
+				if (list) {list.push(ti);} else {edgeToTri.set(e, [ti]);}
 			}
 		}
 		const constrs: BendingConstraint[] = [];
 		for (const [, triList] of edgeToTri) {
-			if (triList.length !== 2) continue;
+			if (triList.length !== 2) {continue;}
 			const tA = this._triangles[triList[0]];
 			const tB = this._triangles[triList[1]];
 			const setA = new Set(tA._indices);
 			const shared: number[] = [];
-			for (const v of tB._indices) if (setA.has(v)) shared.push(v);
-			if (shared.length !== 2) continue;
+			for (const v of tB._indices) {if (setA.has(v)) shared.push(v);}
+			if (shared.length !== 2) {continue;}
 			const [s0, s1] = shared;
 			const tipA = tA._indices.find(v => v !== s0 && v !== s1)!;
 			const tipB = tB._indices.find(v => v !== s0 && v !== s1)!;
@@ -152,7 +152,7 @@ export class PaperMesh {
 	}
 
 	_setBinding(): void {
-		for (const idx of this._boundLeft) this._invMasses[idx] = 0.0;
+		for (const idx of this._boundLeft) {this._invMasses[idx] = 0.0;}
 	}
 
 	_computeNormals(): Float32Array {

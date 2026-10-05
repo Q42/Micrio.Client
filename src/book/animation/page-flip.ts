@@ -36,7 +36,7 @@ export class PageFlipAnimator {
 
 	get _animating(): boolean {
 		for (const s of this.#slots) {
-			if (s && s._direction !== 0) return true;
+			if (s && s._direction !== 0) {return true;}
 		}
 		return false;
 	}
@@ -62,7 +62,7 @@ export class PageFlipAnimator {
 
 	_setPageProgress(pageIndex: number, value: number): void {
 		const slot = this.#slots[pageIndex];
-		if (!slot) return;
+		if (!slot) {return;}
 		slot._progress = value;
 		slot._direction = 0;
 		slot._startProgress = value;
@@ -71,7 +71,7 @@ export class PageFlipAnimator {
 
 	_instantFlip(mesh: PaperMesh, pageIndex: number): void {
 		const slot = this.#slots[pageIndex];
-		if (!slot) return;
+		if (!slot) {return;}
 		slot._progress = 1;
 		slot._direction = 0;
 		slot._startProgress = 1;
@@ -91,20 +91,20 @@ export class PageFlipAnimator {
 	_flipLeft(pageIndex?: number, grabRow?: number): void {
 		const pi = pageIndex ?? this.#selectedPage;
 		const slot = this.#slots[pi];
-		if (!slot) return;
+		if (!slot) {return;}
 		this.#startAnim(slot, +1, grabRow);
 	}
 
 	_flipRight(pageIndex?: number, grabRow?: number): void {
 		const pi = pageIndex ?? this.#selectedPage;
 		const slot = this.#slots[pi];
-		if (!slot) return;
+		if (!slot) {return;}
 		this.#startAnim(slot, -1, grabRow);
 	}
 
 	_beginDrag(pageIndex: number, grabRow: number): void {
 		const slot = this.#slots[pageIndex];
-		if (!slot) return;
+		if (!slot) {return;}
 		slot._direction = 0;
 		slot._elapsed = 0;
 		slot._startProgress = slot._progress;
@@ -114,13 +114,13 @@ export class PageFlipAnimator {
 
 	_setDragProgress(pageIndex: number, progress: number): void {
 		const slot = this.#slots[pageIndex];
-		if (!slot || !slot._isDragging) return;
+		if (!slot || !slot._isDragging) {return;}
 		slot._progress = Math.max(0.0, Math.min(1.0, progress));
 	}
 
 	_endDrag(pageIndex: number, direction: number): void {
 		const slot = this.#slots[pageIndex];
-		if (!slot) return;
+		if (!slot) {return;}
 		slot._isDragging = false;
 		slot._direction = direction;
 		slot._startProgress = slot._progress;
@@ -256,7 +256,7 @@ export class PageFlipAnimator {
 	#releaseAllDriven(meshes: PaperMesh[]): void {
 		for (let pi = 0; pi < this.#slots.length; pi++) {
 			const slot = this.#slots[pi];
-			if (!slot) continue;
+			if (!slot) {continue;}
 			if (pi < meshes.length) {
 				if (slot._savedInvMasses) {
 					for (let i = 0; i < meshes[pi]._invMasses.length; i++) {
@@ -279,7 +279,7 @@ export class PageFlipAnimator {
 		mesh: PaperMesh,
 		outArcPos: Vec3
 	): boolean {
-		if (slot._direction === 0) return false;
+		if (slot._direction === 0) {return false;}
 
 		slot._elapsed += dt;
 		const target = slot._direction > 0 ? 1.0 : 0.0;
@@ -299,7 +299,7 @@ export class PageFlipAnimator {
 
 	_update(dt: number, meshes: PaperMesh[], selectedPage: number,
 				 totalStackHeight: number, pageCount: number, pageThickness: number): void {
-		if (selectedPage < 0 || selectedPage >= meshes.length) return;
+		if (selectedPage < 0 || selectedPage >= meshes.length) {return;}
 
 		this.#selectedPage = selectedPage;
 
@@ -312,7 +312,7 @@ export class PageFlipAnimator {
 		// Pass 1: advance animations (skip dragged pages — they are manually controlled)
 		for (let pi = 0; pi < meshes.length; pi++) {
 			const slot = this.#slots[pi];
-			if (!slot || slot._direction === 0 || slot._isDragging) continue;
+			if (!slot || slot._direction === 0 || slot._isDragging) {continue;}
 
 			const mesh = meshes[pi];
 			const tempArc = new Vec3();
@@ -331,7 +331,7 @@ export class PageFlipAnimator {
 		// Pass 2: snap spine Y to correct floor, then drive corners
 		for (let pi = 0; pi < meshes.length; pi++) {
 			const slot = this.#slots[pi];
-			if (!slot || (slot._direction === 0 && !slot._isDragging)) continue;
+			if (!slot || (slot._direction === 0 && !slot._isDragging)) {continue;}
 
 			const mesh = meshes[pi];
 

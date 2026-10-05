@@ -78,14 +78,14 @@ export default class Ani {
 
 	/** Pauses the current animation. */
 	pause(): void {
-		if (this.#pausedAt > 0) return;
+		if (this.#pausedAt > 0) {return;}
 		this.#isRunning = false;
 		this.#pausedAt = performance.now();
 	}
 
 	/** Resumes a paused animation. */
 	resume(): void {
-		if (this.#pausedAt === 0 || this.#started === 0) return;
+		if (this.#pausedAt === 0 || this.#started === 0) {return;}
 		this.#started += performance.now() - this.#pausedAt;
 		this.#pausedAt = 0;
 		this.#isRunning = true;
@@ -150,12 +150,12 @@ export default class Ani {
 		const el = c.main.el;
 		if (el._areaHeight !== 0) {
 			const margin = toHeight / (1 - (el._areaHeight / el.height));
-			if (margin > 0) toHeight += margin; else toHeight -= margin;
+			if (margin > 0) {toHeight += margin;} else {toHeight -= margin;}
 			el._areaHeight = 0;
 		}
 		if (el._areaWidth !== 0) {
 			const margin = toWidth * (el._areaWidth / el.width);
-			if (margin > 0) toWidth += margin; else toWidth -= margin;
+			if (margin > 0) {toWidth += margin;} else {toWidth -= margin;}
 			el._areaWidth = 0;
 		}
 
@@ -197,14 +197,14 @@ export default class Ani {
 				this.#fB = eb ? 1 : (tBottom < fBottom ? 2 : 0);
 				durFact = 1.5;
 			}
-			else t.set(toCenterX, toCenterY, toWidth, toHeight);
+			else {t.set(toCenterX, toCenterY, toWidth, toHeight);}
 		}
 
-		if (correct) t._limit(true, !limitViewport);
+		if (correct) {t._limit(true, !limitViewport);}
 
 		const resoFact = Math.max(10000, Math.min(15000, c._diagonal / 2));
 		let dCenterX = Math.abs(fromCenterX - toCenterX);
-		if (c.is360) dCenterX = Math.min(dCenterX, 1 - dCenterX);
+		if (c.is360) {dCenterX = Math.min(dCenterX, 1 - dCenterX);}
 		const dCenterY = Math.abs(fromCenterY - toCenterY);
 		const dWidth = Math.abs(fromWidth - toWidth);
 		const dHeight = Math.abs(fromHeight - toHeight);
@@ -221,8 +221,8 @@ export default class Ani {
 		this.#omniDelta = 0;
 		if (!isNaN(omniIdx) && omniIdx > 0 && omniIdx !== this.#omniStartIdx) {
 			this.#omniDelta = omniIdx - this.#omniStartIdx;
-			if (this.#omniDelta < -numPerLayer / 2) this.#omniDelta += numPerLayer;
-			if (this.#omniDelta > numPerLayer / 2) this.#omniDelta -= numPerLayer;
+			if (this.#omniDelta < -numPerLayer / 2) {this.#omniDelta += numPerLayer;}
+			if (this.#omniDelta > numPerLayer / 2) {this.#omniDelta -= numPerLayer;}
 			this.#duration += Math.abs(this.#omniDelta) / this.#canvas.images.length * 6000;
 		}
 
@@ -238,7 +238,7 @@ export default class Ani {
 		this._limit = false;
 		this._flying = true;
 		this.#isZoom = false;
-		if (correct) this._correcting = true;
+		if (correct) {this._correcting = true;}
 
 		this.#started = performance.now() - (perc * this.#duration);
 		this.#isRunning = true;
@@ -249,7 +249,7 @@ export default class Ani {
 	/** Updates the target view of a running animation. Used for corrections. @internal */
 	_updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting: boolean = false): void {
 		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight);
-		if (limiting) this.#vTo._limit(true);
+		if (limiting) {this.#vTo._limit(true);}
 	}
 
 	/**
@@ -268,7 +268,7 @@ export default class Ani {
 
 		this.#zFrom = webgl._perspective;
 		this.#zTo = this.#zFrom + (to / (webgl._scale * c._diagonal / 20));
-		if (!noLimit) this.#zTo = Math.min(webgl._maxPerspective, Math.max(webgl._minPerspective, this.#zTo));
+		if (!noLimit) {this.#zTo = Math.min(webgl._maxPerspective, Math.max(webgl._minPerspective, this.#zTo));}
 
 		this.#started = performance.now();
 		this.#isRunning = true;
@@ -314,8 +314,8 @@ export default class Ani {
 				if (this.#omniDelta) {
 					let idx = this.#omniStartIdx + Math.trunc(this.#omniDelta * this.#fn.get(Math.min(1, p * 1.5)));
 					const numPerLayer = this.#canvas.images.length / this.#canvas._omniNumLayers;
-					if (idx < 0) idx += numPerLayer;
-					if (idx >= numPerLayer) idx -= numPerLayer;
+					if (idx < 0) {idx += numPerLayer;}
+					if (idx >= numPerLayer) {idx -= numPerLayer;}
 					this.#canvas._setActiveImage(idx, 0);
 				}
 			}

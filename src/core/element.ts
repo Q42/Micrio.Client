@@ -190,17 +190,17 @@ export class HTMLMicrioElement extends MicrioElement {
 	attributeChangedCallback(attr:keyof Models.Attributes.MicrioCustomAttributes, _oldVal:string, newVal:string) {
 		switch(attr) {
 			case 'id': {
-				if(!this.isConnected || !newVal) return;
-				if(!this.#printed) this.#print();
-				else this.open(newVal);
+				if(!this.isConnected || !newVal) {return;}
+				if(!this.#printed) {this.#print();}
+				else {this.open(newVal);}
 			} break;
 			case 'muted':
 				if (get(this._isMuted) !== this.hasAttribute('muted'))
-					this._isMuted.set(this.hasAttribute('muted'));
+					{this._isMuted.set(this.hasAttribute('muted'));}
 				break;
 			case 'data-limited':
 				if(this._engine?._vertexBuffer && this.$current?.canvas)
-					this.$current.canvas._limited = !!newVal;
+					{this.$current.canvas._limited = !!newVal;}
 				break;
 			case 'lang': {
 				let prevLang = get(this._lang);
@@ -212,10 +212,10 @@ export class HTMLMicrioElement extends MicrioElement {
 					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en);
 					this._lang.set(newVal);
 					if(newVal) {
-						if(isRTL(newVal)) this.setAttribute('dir', 'rtl');
-						else this.removeAttribute('dir');
+						if(isRTL(newVal)) {this.setAttribute('dir', 'rtl');}
+						else {this.removeAttribute('dir');}
 					}
-					if(prevLang) this.events._dispatch('lang-switch', newVal);
+					if(prevLang) {this.events._dispatch('lang-switch', newVal);}
 				}
 				break;
 			}
@@ -233,12 +233,12 @@ export class HTMLMicrioElement extends MicrioElement {
 		this._provide('micrio', this);
 
 		this.canvas.place();
-		if(this.id && !this.#printed) this.#print();
+		if(this.id && !this.#printed) {this.#print();}
 
 		if(!('muted' in this)) {
 			Object.defineProperty(this, 'muted', {
 				get() { return get(this._isMuted) },
-				set(b:boolean) { if(b) this.setAttribute('muted',''); else this.removeAttribute('muted'); }
+				set(b:boolean) { if(b) {this.setAttribute('muted','');} else {this.removeAttribute('muted');} }
 			});
 			this._watch(this._isMuted, b => {
 				/** @ts-ignore */
@@ -273,25 +273,25 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		const onZoomCb = () => updateZoomed();
 		this._onZoom.push(onZoomCb);
-		this._addCleanup(() => { const i = this._onZoom.indexOf(onZoomCb); if(i >= 0) this._onZoom.splice(i, 1); });
+		this._addCleanup(() => { const i = this._onZoom.indexOf(onZoomCb); if(i >= 0) {this._onZoom.splice(i, 1);} });
 
 		let shown = false;
 		const unsub = this._loading.subscribe(v => {
-			if (v) return;
+			if (v) {return;}
 			unsub();
 			this.setAttribute('data-loaded','');
 
 			this._watch(this._switching, s => {
-				if(s) this.setAttribute('data-switching','');
+				if(s) {this.setAttribute('data-switching','');}
 				else {
-					if(!shown) tick().then(() => this.events._dispatch('show', this));
+					if(!shown) {tick().then(() => this.events._dispatch('show', this));}
 					shown = true;
 					this.removeAttribute('data-switching');
 				}
 			});
 
 			const img = this.querySelector('img.preview');
-			if(img) setTimeout(() => img.remove(), 500);
+			if(img) {setTimeout(() => img.remove(), 500);}
 		});
 
 		// ── Idle detection (data-idle after inactivity) ────────────────
@@ -301,14 +301,14 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(!__CORE__) {
 			this.#idle = new IdleState(this, {
 				shouldIdle: () => {
-					if (document.activeElement && this.contains(document.activeElement)) return false;
+					if (document.activeElement && this.contains(document.activeElement)) {return false;}
 					const buttons = this.querySelectorAll<HTMLElement>('button, micrio-button');
 					for (const el of buttons) {
-						if (el.matches(':hover')) return false;
+						if (el.matches(':hover')) {return false;}
 					}
 					// A gallery scrub drag keeps the cursor busy even when it leaves
 					// the scrubber component — don't go idle while dragging.
-					if (this.querySelector('micrio-gallery[data-dragging]')) return false;
+					if (this.querySelector('micrio-gallery[data-dragging]')) {return false;}
 					return true;
 				},
 			});
@@ -348,7 +348,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.events.enabled.set(false);
 		this.canvas.unhook();
 		this._engine._unbind();
-		if(this._ui) this._ui.remove();
+		if(this._ui) {this._ui.remove();}
 		delete this._ui;
 		this._webgl._dispose(true);
 		this.#idle?.destroy();
@@ -369,7 +369,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
 		const resp = await fetchJson<Record<string, any>>(url).catch(e => { this.#printError(e); return undefined; });
-		if(!resp) return;
+		if(!resp) {return;}
 
 		let gallery: Gallery | null;
 		try { gallery = Gallery._fromIIIF(resp, this._engine); }
@@ -418,14 +418,14 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	*/
 	async #print() : Promise<void> {
-		if(this.#printed) return;
+		if(this.#printed) {return;}
 		this.#printed = true;
 		await tick();
 		const opts = this.#getOptions();
-		if(!opts.settings) opts.settings = {};
-		if(this.defaultSettings) deepCopy(this.defaultSettings, opts.settings);
+		if(!opts.settings) {opts.settings = {};}
+		if(this.defaultSettings) {deepCopy(this.defaultSettings, opts.settings);}
 
-		if (!opts.settings.noLogo) this.#printUI(!!opts.settings.noUI, false);
+		if (!opts.settings.noLogo) {this.#printUI(!!opts.settings.noUI, false);}
 
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => undefined);
@@ -443,7 +443,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(opts.id && opts.id.startsWith('http')) {
 			const bundle = await this.#handleIIIF(opts.id);
-			if(!bundle) return;
+			if(!bundle) {return;}
 			bundle.settings = opts.settings;
 			this.open(bundle);
 			return;
@@ -453,17 +453,17 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.events._dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
 		const openBundle = () => {
-			if(opts.id) this.open(opts.id);
+			if(opts.id) {this.open(opts.id);}
 		};
 		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {
 			const observer = new IntersectionObserver(e => {
-				if(!e[0] || !e[0].isIntersecting) return;
+				if(!e[0] || !e[0].isIntersecting) {return;}
 				observer.unobserve(this);
 				openBundle();
 			}, { rootMargin: `${opts.settings.lazyload*100}% 0px`});
 			observer.observe(this);
 		}
-		else if(opts.id) Frame.request(openBundle);
+		else if(opts.id) {Frame.request(openBundle);}
 	}
 
 	/**
@@ -488,7 +488,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	#printError(error?: Error | string): void {
 		const message = getErrorMessage(error ?? 'An unknown error has occurred');
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
-		if(!this._ui) this.#printUI(false, false);
+		if(!this._ui) {this.#printUI(false, false);}
 		this._ui?._setProps?.({ error: message });
 		this._loading.set(false);
 	}
@@ -511,7 +511,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		/** Optional Gallery controller, used for gallery/grid views. */
 		gallery?: Gallery,
 	}={}) : Promise<MicrioImage> {
-		if(!this.#printed) await this.#print();
+		if(!this.#printed) {await this.#print();}
 
 		// ── Resolve input to a BundleImage ────────────────────────────────────
 
@@ -521,7 +521,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		// IIIF URL: fetch manifest, attempt gallery, else extract single image info
 		if(typeof idOrInfo === 'string' && idOrInfo.startsWith('http')) {
 			const iiifBundle = await this.#handleIIIF(idOrInfo);
-			if(!iiifBundle) return this.$current!;
+			if(!iiifBundle) {return this.$current!;}
 			bundle = iiifBundle;
 		}
 		// Standard bundle ID: fetch from DataLoader
@@ -545,24 +545,24 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Merge attribute / default settings (strings only — BundleImage already carries its own) ──
 
-		if(!bundle.settings) bundle.settings = {};
+		if(!bundle.settings) {bundle.settings = {};}
 		if(attrOpts.settings?.gallery?.archive && !/\.\d+$/.test(attrOpts.settings.gallery.archive))
-			delete attrOpts.settings.gallery.archive;
+			{delete attrOpts.settings.gallery.archive;}
 		if(typeof idOrInfo === 'string') {
 			deepCopy(attrOpts.settings, bundle.settings);
 		}
-		if(this.defaultSettings) deepCopy(this.defaultSettings, bundle.settings);
-		if(bundle.settings?.gallery?.settings) deepCopy(bundle.settings.gallery.settings, bundle.settings);
+		if(this.defaultSettings) {deepCopy(this.defaultSettings, bundle.settings);}
+		if(bundle.settings?.gallery?.settings) {deepCopy(bundle.settings.gallery.settings, bundle.settings);}
 		deepCopy(DEFAULT_SETTINGS, bundle.settings, {noOverwrite: true}); // Fill in any missing defaults
 
 		// ── Deduplicate ───────────────────────────────────────────────────────
 
-		if(this.$current && bundle.id == this.$current?.id) return this.$current;
+		if(this.$current && bundle.id == this.$current?.id) {return this.$current;}
 
 		// Close any active splits when navigating away
-		if(this.$current && !opts.gridView) closeAllSplits(this);
+		if(this.$current && !opts.gridView) {closeAllSplits(this);}
 
-		if(!opts.gridView && this.$current) this._switching.set(true);
+		if(!opts.gridView && this.$current) {this._switching.set(true);}
 		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
 
 		// ── Find or create canvas ─────────────────────────────────────────────
@@ -574,7 +574,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;
 			isInGrid = !!gridImage;
 			c = bundle.id ? gridImage : this._canvases[0];
-			if(isInGrid && !grid._insideGrid()) this.current.set(this._canvases[0]);
+			if(isInGrid && !grid._insideGrid()) {this.current.set(this._canvases[0]);}
 		}
 		if(!c) {
 			if(this._canvases.length) {
@@ -592,19 +592,19 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if(opts.startView) {
 			c.state.view.set(bundle.settings.view = opts.startView);
-			if(c._placed && c.engine.ready) c.camera.setView(bundle.settings.view,{noRender:true});
+			if(c._placed && c.engine.ready) {c.camera.setView(bundle.settings.view,{noRender:true});}
 		}
 
-		if(!this.lang) this.lang = 'en';
+		if(!this.lang) {this.lang = 'en';}
 
 		if(!this._engine._book3d) {
 			this._engine._load();
-			if(!this._webgl.gl) try {
+			if(!this._webgl.gl) {try {
 				this._webgl._init();
 			} catch(e) {
 				this.#printError(e as Error);
 				return c;
-			}
+			}}
 		}
 
 		// ── Post-init ─────────────────────────────────────────────────────────
@@ -639,12 +639,12 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.current.set(c);
 		}
 
-		if(c._noImage) this._loading.set(false);
+		if(c._noImage) {this._loading.set(false);}
 
 		// Settings-level split screen (auto-open on load)
 		if(c.$settings.micrioSplitLink && !c._noImage && !c.grid) {
 			tick().then(() => {
-				if(this.$current !== c) return;
+				if(this.$current !== c) {return;}
 				openSplit(this, c, { micrioId: c.$settings.micrioSplitLink! }, {
 					isPassive: !c.$settings.noFollow,
 				});
@@ -679,7 +679,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		const setObj = (b:any, f:string, val:any) : void => {
 			const p = f.split('.');
-			for(let i=0;i<p.length-1;i++) b = b[p[i]];
+			for(let i=0;i<p.length-1;i++) {b = b[p[i]];}
 			b[p[p.length-1]]=val;
 		}
 
@@ -688,18 +688,18 @@ export class HTMLMicrioElement extends MicrioElement {
 				const d = category[a], val = this.getAttribute(a);
 				const f = d.f || a.replace('data-', '');
 				const v = convert(val, d);
-				if (v !== undefined) setObj(d.r ? opts : sets, f, v);
+				if (v !== undefined) {setObj(d.r ? opts : sets, f, v);}
 			}
 		};
 
 		process(AO.STRINGS, val => val || undefined);
 		process(AO.BOOLEANS, (val, o) => {
 			const tr = val != undefined && (val === '' || val === 'true');
-			if (tr || val === 'false') return o.n ? !tr : !!tr;
+			if (tr || val === 'false') {return o.n ? !tr : !!tr;}
 		});
 		process(AO.NUMBERS, (val, o) => {
-			if (o.dN !== undefined && val == null) val = o.dN;
-			if (val == null) return;
+			if (o.dN !== undefined && val == null) {val = o.dN;}
+			if (val == null) {return;}
 			const n = Number(val);
 			return isNaN(n) ? undefined : n;
 		});

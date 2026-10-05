@@ -31,10 +31,10 @@ export class KeyboardHandler {
 	 * @param e The KeyboardEvent.
 	 */
 	#handle = (e: KeyboardEvent): void => {
-		if (this.#ctx._panning || this.#ctx._pinching || !this.#ctx._micrio.$current?.camera) return;
+		if (this.#ctx._panning || this.#ctx._pinching || !this.#ctx._micrio.$current?.camera) {return;}
 
 		// Bypass arrow handling when a grid is actively handling keys
-		if (Grid._handlingKeys && (e.key.startsWith('Arrow') || e.key == 'Enter' || e.key == ' ' || e.key == 'Escape')) return;
+		if (Grid._handlingKeys && (e.key.startsWith('Arrow') || e.key == 'Enter' || e.key == ' ' || e.key == 'Escape')) {return;}
 
 		const c = this.#ctx._micrio.$current.camera;
 		const hWidth = this.#ctx._micrio.offsetWidth / 2;
@@ -56,7 +56,7 @@ export class KeyboardHandler {
 		e.preventDefault();
 		e.stopPropagation();
 
-		if (dX != 0 || dY != 0) c.pan(dX, dY, dur);
+		if (dX != 0 || dY != 0) {c.pan(dX, dY, dur);}
 	}
 }
 

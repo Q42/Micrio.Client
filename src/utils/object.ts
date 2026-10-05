@@ -12,14 +12,14 @@
 export function deepCopy<T>(from: T, into: T, opts: {
 	noOverwrite?: boolean;
 } = {}): T {
-	if (!from || typeof from !== 'object') return into;
+	if (!from || typeof from !== 'object') {return into;}
 	const target = into as Record<string, unknown>;
 	for (const key of Object.keys(from as Record<string, unknown>)) {
 		// Reject prototype-pollution keys; never legitimately present in settings data.
-		if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+		if (key === '__proto__' || key === 'constructor' || key === 'prototype') {continue;}
 		const val = (from as Record<string, unknown>)[key];
 		if (val && typeof val === 'object' && Object.getPrototypeOf(val) === Object.prototype) {
-			if (!target[key] || typeof target[key] !== 'object') target[key] = {};
+			if (!target[key] || typeof target[key] !== 'object') {target[key] = {};}
 			deepCopy(val, target[key] as Record<string, unknown>, opts);
 		} else if (!opts.noOverwrite || !(key in target)) {
 			target[key] = val;

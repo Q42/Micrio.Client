@@ -14,7 +14,7 @@ class MicrioLogo extends MicrioElement {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const target = !/micr\.io/.test(location.origin) || self.parent != self ? '_blank' : undefined;
 
@@ -23,7 +23,7 @@ class MicrioLogo extends MicrioElement {
 			attrs: { 'aria-label': 'Micrio homepage' },
 			parent: this
 		});
-		if (target) this.#a.target = target;
+		if (target) {this.#a.target = target;}
 
 		this._addCleanup(micrio._loading.subscribe(l => {
 			clearTimeout(this.#loadingTimer);
@@ -47,7 +47,7 @@ class MicrioLogo extends MicrioElement {
 	}
 
 	#updateClass() {
-		if (this.#a) this.#a.classList.toggle('loading', this.#loading);
+		if (this.#a) {this.#a.classList.toggle('loading', this.#loading);}
 	}
 }
 

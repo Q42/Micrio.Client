@@ -41,23 +41,23 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		this.#render();
 		// The button title is translated, so refresh it on a UI language change
 		const micrio = this._getMicrio();
-		if (micrio) this._watchLater(micrio._lang, () => this.#render());
+		if (micrio) {this._watchLater(micrio._lang, () => this.#render());}
 	}
 
 	/** @internal */
 	_setProps(props: Partial<WaypointProps>) {
-		if (props.targetId !== undefined) this.#props.targetId = props.targetId;
-		if (props.image !== undefined) this.#props.image = props.image;
-		if (props.settings !== undefined) this.#props.settings = props.settings;
+		if (props.targetId !== undefined) {this.#props.targetId = props.targetId;}
+		if (props.image !== undefined) {this.#props.image = props.image;}
+		if (props.settings !== undefined) {this.#props.settings = props.settings;}
 		if (this.isConnected) { this.#setup(); this.#render(); }
 	}
 
 	#setup() {
 		const { targetId, image, settings } = this.#props;
-		if (!image || !targetId) return;
+		if (!image || !targetId) {return;}
 
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const info = image.$info as Models.ImageInfo.ImageInfo;
 		const vectorData = getSpaceVector(micrio, targetId);
@@ -83,7 +83,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		this.classList.toggle('direction-down', v[1] > 0);
 
 		const click = () => {
-			if (image.$settings._markers?.noMarkerActions) return;
+			if (image.$settings._markers?.noMarkerActions) {return;}
 			this.#clicked = true;
 			image._openedView = undefined;
 			image.state.marker.set(undefined);
@@ -91,18 +91,18 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		};
 
 		const focus = () => {
-			if (image.$settings._markers?.noMarkerActions) return;
+			if (image.$settings._markers?.noMarkerActions) {return;}
 			(this.parentNode as HTMLElement)?.scrollTo(0, 0);
 			clearTimeout(this.#fto);
 			this.#fto = setTimeout(() => {
 				const px = image.camera.getXY(this.#coords.x, this.#coords.y);
 				if (!this.#clicked && (px[0] < 0 || px[0] >= micrio.offsetWidth || px[1] < 0 || px[1] >= micrio.offsetHeight || (image._is360 ? px[3] > 4 : false)))
-					image.camera.flyToCoo([this.#coords.x, this.#coords.y], { speed: 2, limit: true }).catch(() => { });
+					{image.camera.flyToCoo([this.#coords.x, this.#coords.y], { speed: 2, limit: true }).catch(() => { });}
 			}, 150);
 		};
 
 		const onmove = () => {
-			if (this.#hidden) return;
+			if (this.#hidden) {return;}
 			this.style.transform = `matrix3d(${image.camera.getMatrix(
 				this.#coords.x, this.#coords.y,
 				this.#coords.baseScale * this.#coords.scale,
@@ -117,13 +117,13 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 			settings: settings ?? {} as Models.Spaces.WayPointSettings,
 			click: () => { },
 			get deleted() { return false; },
-			set deleted(v: boolean) { if (v) self.#hidden = true; }
+			set deleted(v: boolean) { if (v) {self.#hidden = true;} }
 		} as Models.Spaces.WaypointInterface & { click: () => void };
 
 		onmove();
 
 		this._addCleanup(image.state.view.subscribe(onmove));
-		DataLoader._getData(targetId).then(d => { if (d) this.#targetImage = d; this.#render(); });
+		DataLoader._getData(targetId).then(d => { if (d) {this.#targetImage = d;} this.#render(); });
 
 		micrio.dispatchEvent(new CustomEvent('wp-print', { detail: this.#iface }));
 

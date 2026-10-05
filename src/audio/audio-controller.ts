@@ -16,12 +16,12 @@ let l: AudioListener | undefined;
 const interacted = writable<boolean>(false);
 
 function init(volume: number) {
-	if (mainGain) return;
-	if (!_ctx) _ctx = 'micrioAudioContext' in window
+	if (mainGain) {return;}
+	if (!_ctx) {_ctx = 'micrioAudioContext' in window
 		? (window as Record<string, any>)['micrioAudioContext'] as AudioContext
-		: new AudioContext();
-	if (!_ctx) return console.warn('[Micrio] Your browser does not support the Web Audio API');
-	if (_ctx.state === 'suspended') _ctx.resume().then(() => { }).catch(() => { });
+		: new AudioContext();}
+	if (!_ctx) {return console.warn('[Micrio] Your browser does not support the Web Audio API');}
+	if (_ctx.state === 'suspended') {_ctx.resume().then(() => { }).catch(() => { });}
 	mainGain = _ctx.createGain();
 	mainGain.connect(_ctx.destination);
 	mainGain.gain.value = volume;
@@ -30,8 +30,8 @@ function init(volume: number) {
 }
 
 function setPosition(x: number, y: number, z: number) {
-	if (!l) return;
-	if (l.setPosition) l.setPosition(x, y, z);
+	if (!l) {return;}
+	if (l.setPosition) {l.setPosition(x, y, z);}
 	else if ('positionX' in l) {
 		l.positionX.value = x;
 		l.positionY.value = y;
@@ -40,8 +40,8 @@ function setPosition(x: number, y: number, z: number) {
 }
 
 function setOrientation(x: number, y: number, z: number) {
-	if (!l) return;
-	if (l.setOrientation) l.setOrientation(x, y, z, 0, 1, 0);
+	if (!l) {return;}
+	if (l.setOrientation) {l.setOrientation(x, y, z, 0, 1, 0);}
 	else if ('forwardX' in l) {
 		l.forwardX.value = x;
 		l.forwardY.value = y;
@@ -67,7 +67,7 @@ class AudioPlaylist {
 	}
 
 	#next() {
-		if (!this.#loop && this.#idx + 1 === this.#list.length) return;
+		if (!this.#loop && this.#idx + 1 === this.#list.length) {return;}
 		const item = this.#list[(++this.#idx) % this.#list.length];
 		this.#audio.src = item.src ?? '';
 		this.#audio.play();
@@ -94,15 +94,15 @@ export class MicrioAudioController {
 	}
 
 	#rebuildAudioLocations(img: MicrioImage | undefined): void {
-		for (const loc of this.#audioLocations) loc.destroy();
+		for (const loc of this.#audioLocations) {loc.destroy();}
 		this.#audioLocations = [];
-		if (!_ctx || !img) return;
+		if (!_ctx || !img) {return;}
 		const info = img.$info;
-		if (!info) return;
+		if (!info) {return;}
 		const is360 = !!info.is360;
 		const data = img.$data;
 		const posMarkers = data?.markers?.filter((m: any) => !!m.positionalAudio);
-		if (!posMarkers?.length) return;
+		if (!posMarkers?.length) {return;}
 
 		for (const marker of posMarkers) {
 			this.#audioLocations.push(
@@ -117,11 +117,11 @@ export class MicrioAudioController {
 		const { events } = micrio;
 
 		const info = image.$info;
-		if (!info) return;
+		if (!info) {return;}
 		const is360 = !!info.is360;
 		const ar = info.height / info.width;
 
-		if (!('AudioContext' in window)) return;
+		if (!('AudioContext' in window)) {return;}
 
 		const moved = (x: number, y: number, z: number) => {
 			if (is360) {
@@ -144,8 +144,8 @@ export class MicrioAudioController {
 		const input = () => interacted.set(true);
 
 		const onUserGesture = () => {
-			if (_ctx?.state === 'suspended') _ctx.resume().then(() => { }).catch(() => { });
-			else if (!_ctx) input();
+			if (_ctx?.state === 'suspended') {_ctx.resume().then(() => { }).catch(() => { });}
+			else if (!_ctx) {input();}
 		};
 
 		const audio = new Audio('data:audio/mpeg;base64,...');
@@ -153,14 +153,14 @@ export class MicrioAudioController {
 		document.body.appendChild(audio);
 
 		this.#cleanups.push(interacted.subscribe(b => {
-			if (!b) return;
+			if (!b) {return;}
 			const vol = get(micrio._isMuted) ? 0 : 1;
-			if (!_ctx) init(typeof vol === 'number' ? vol : 1);
+			if (!_ctx) {init(typeof vol === 'number' ? vol : 1);}
 			if (_ctx) {
 				const data = image.$data;
 				if (data?.markers?.filter((m: any) => !!m.positionalAudio).length) {
 					this.#cleanups.push(image.state.view.subscribe(v => {
-						if (!v) return;
+						if (!v) {return;}
 						const d = Math.max(0, 1.05 - image.camera.getScale());
 						moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5));
 					}));
@@ -170,7 +170,7 @@ export class MicrioAudioController {
 		}));
 
 		this.#cleanups.push(micrio.current.subscribe(currentImage => {
-			if (!currentImage || !_ctx) return;
+			if (!currentImage || !_ctx) {return;}
 			this.#rebuildAudioLocations(currentImage);
 		}));
 
@@ -187,7 +187,7 @@ export class MicrioAudioController {
 		}
 
 		this.#cleanups.push(micrio._isMuted.subscribe(muted => {
-			if (mainGain) mainGain.gain.value = muted ? 0 : 1;
+			if (mainGain) {mainGain.gain.value = muted ? 0 : 1;}
 		}));
 
 		// Store cleanup for renderless operation
@@ -198,9 +198,9 @@ export class MicrioAudioController {
 	}
 
 	destroy() {
-		for (const loc of this.#audioLocations) loc.destroy();
+		for (const loc of this.#audioLocations) {loc.destroy();}
 		this.#audioLocations = [];
-		for (const fn of this.#cleanups) fn();
+		for (const fn of this.#cleanups) {fn();}
 		this.#cleanups = [];
 		this.#playlist?.destroy();
 	}

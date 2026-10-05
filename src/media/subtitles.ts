@@ -8,8 +8,8 @@ const CAPTIONS_KEY = 'micrio-captions-disable';
 export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) != '1');
 
 captionsEnabled.subscribe(b => {
-	if (b) localStorage.removeItem(CAPTIONS_KEY);
-	else localStorage.setItem(CAPTIONS_KEY, '1');
+	if (b) {localStorage.removeItem(CAPTIONS_KEY);}
+	else {localStorage.setItem(CAPTIONS_KEY, '1');}
 });
 
 /** Props for the subtitles overlay component. @internal */
@@ -43,14 +43,14 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 			this.#cleanup = () => { prev?.(); el.removeEventListener('timeupdate', onTime); };
 		}
 
-		if (this.#props.src) this.#update();
+		if (this.#props.src) {this.#update();}
 	}
 
 	/** @internal */
 	_setProps(props: Partial<SubtitlesProps>) {
 		const srcChanged = props.src !== undefined && props.src !== this.#props.src;
 		Object.assign(this.#props, props);
-		if (srcChanged && this.isConnected) this.#update();
+		if (srcChanged && this.isConnected) {this.#update();}
 	}
 
 	#update() {
@@ -64,14 +64,14 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 				if(/-->/.test(s[l])) {
 					let idx = l+1;
 					const lines: string[] = [];
-					while(!s[idx] && idx < s.length) idx++;
-					while(s[idx] && s[idx].trim()) lines.push(s[idx++]);
+					while(!s[idx] && idx < s.length) {idx++;}
+					while(s[idx] && s[idx].trim()) {lines.push(s[idx++]);}
 					const [start,end] = s[l].split(' --> ')
 						.map(t => t.trim().replace(',','.').split(':').map(Number))
 						.map(v => {
-							if(v.length === 3) return v[0]*3600+v[1]*60+v[2];
-							else if(v.length === 2) return v[0]*60+v[1];
-							else return 0;
+							if(v.length === 3) {return v[0]*3600+v[1]*60+v[2];}
+							else if(v.length === 2) {return v[0]*60+v[1];}
+							else {return 0;}
 						});
 					cues.push({start, end, data: lines.join('\n')});
 					l+=lines.length+1;
@@ -85,7 +85,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	#renderCue() {
 		if (!get(captionsEnabled) || !this.#cues.length) { this.replaceChildren(); this.#currentCue = undefined; return; }
 		const cue = this.#cues.find(e => e.start <= this.#currentTime && e.end >= this.#currentTime);
-		if (cue === this.#currentCue) return;
+		if (cue === this.#currentCue) {return;}
 		this.#currentCue = cue;
 		this.innerHTML = cue ? `<p>${cue.data}</p>` : '';
 	}

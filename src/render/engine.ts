@@ -210,10 +210,10 @@ export class Engine {
 	): Float32Array {
 		const b = new Float32Array(2 * 6 * segsX * segsY);
 		const dX = 1 / segsX, dY = 1 / segsY;
-		for (let i = 0, y = 0; y < segsY; y++) for (let x = 0; x < segsX; x++, i += 12) {
+		for (let i = 0, y = 0; y < segsY; y++) {for (let x = 0; x < segsX; x++, i += 12) {
 			b[i + 3] = b[i + 7] = b[i + 9] = (b[i + 1] = b[i + 5] = b[i + 11] = y * dY) + dY;
 			b[i + 4] = b[i + 8] = b[i + 10] = (b[i + 0] = b[i + 2] = b[i + 6] = x * dX) + dX;
-		} return b;
+		}} return b;
 	}
 
 	/**
@@ -221,7 +221,7 @@ export class Engine {
 	 * @internal
 	 */
 	_load(): void {
-		if (this.ready) return;
+		if (this.ready) {return;}
 
 		Engine._textureBuffer360 = Engine.#getTextureBuffer(segsX, segsY);
 
@@ -253,7 +253,7 @@ export class Engine {
 		const noSmoothing = hasCamera && c.$settings.noSmoothing;
 
 		if (tile._loadState === 0 && numLoading < numThreads) {
-			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
+			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) {return false;}
 
 			if (isVideo && !is360) {
 				tile._loadState = 2;
@@ -262,7 +262,7 @@ export class Engine {
 			else {
 				tile._loadState = 1;
 				const src = img._getTileSrc(layer, x, y, frame);
-				if (src) this._getTexture(i, src, animating, { noSmoothing });
+				if (src) {this._getTexture(i, src, animating, { noSmoothing });}
 				else {
 					tile._loadState = 0;
 					return false;
@@ -270,11 +270,11 @@ export class Engine {
 			}
 		}
 		else if (tile._loadState >= 2) {
-			if (!this.#drawing) this.#drawStart();
+			if (!this.#drawing) {this.#drawStart();}
 
 			if (tile._texture) {
 				if (isVideo) {
-					if (!img._video || !img._video.dataset.playing) return false;
+					if (!img._video || !img._video.dataset.playing) {return false;}
 					this.micrio._webgl._updateTexture(tile._texture, img._video);
 				}
 				this.micrio._webgl._drawTile(tile._texture, opacity, is360);
@@ -296,7 +296,7 @@ export class Engine {
 	/** @internal */
 	_setTileOpacity = (i: number, direct: boolean = false, imageOpacity: number = 1): number => {
 		const tile = this.#tiles.get(i);
-		if (!tile) return 0;
+		if (!tile) {return 0;}
 		if (tile._opacity < 1) {
 			tile._opacity = direct ? 1 : (tile._loadedAt && tile._loadedAt > 0 ? Math.min(1, (this.now - tile._loadedAt) / 250) * imageOpacity : 0);
 		}
@@ -306,17 +306,17 @@ export class Engine {
 	/** @internal */
 	_setImageVisible = (img: Image, visible: boolean): void => {
 		const micrioImage = this.#engImageToMicrio.get(img);
-		if (micrioImage && 'visible' in micrioImage) micrioImage.visible.set(visible);
+		if (micrioImage && 'visible' in micrioImage) {micrioImage.visible.set(visible);}
 	}
 
 	/** Unbinds event listeners, stops rendering, and cleans up resources. @internal */
 	_unbind(): void {
 		this.#stop();
-		while (this.#unsubscribe.length) this.#unsubscribe.pop()?.();
+		while (this.#unsubscribe.length) {this.#unsubscribe.pop()?.();}
 		this.#requests.forEach(src => abortDownload(src));
 		this.#requests.clear();
 		for (const [idx, tile] of this.#tiles.entries()) {
-			if (tile._timeoutId) clearTimeout(tile._timeoutId);
+			if (tile._timeoutId) {clearTimeout(tile._timeoutId);}
 			this.#deleteTile(idx);
 		}
 		this.#tiles.clear();
@@ -328,15 +328,15 @@ export class Engine {
 	 * @internal
 	 */
 	#addCanvas(c: MicrioImage): void {
-		if (this._book3d) return;
+		if (this._book3d) {return;}
 		const i = c.$info;
-		if (!i) return;
+		if (!i) {return;}
 		if (c.error) {
 			this.micrio._loading.set(false);
 			return;
 		}
 
-		if (!c._noImage && (!i.width || !i.height)) throw new Error('Invalid Micrio image size');
+		if (!c._noImage && (!i.width || !i.height)) {throw new Error('Invalid Micrio image size');}
 
 		const settings = c.$settings;
 
@@ -346,20 +346,20 @@ export class Engine {
 			this._hasArchive = true;
 			this._archiveLayerOffset = settings.gallery.archiveLayerOffset ?? 0;
 		}
-		if (i.version && parseFloat(i.version) <= 3.1) this._underzoomLevels = 8;
+		if (i.version && parseFloat(i.version) <= 3.1) {this._underzoomLevels = 8;}
 
-		if (i.is360) settings.limitToCoverScale = false;
+		if (i.is360) {settings.limitToCoverScale = false;}
 		const coverLimit = !!settings.limitToCoverScale;
 		const coverStart = coverLimit || settings.initType == 'cover';
 
-		if (c._noImage) this.micrio._loading.set(false);
+		if (c._noImage) {this.micrio._loading.set(false);}
 
 		const focus = [.5, .5];
 		const f = settings.focus;
 		const isSpaces = !!i.spacesId;
 		if (f) {
-			if (!isNaN(f[0]) && f[0] !== null) focus[0] = f[0];
-			if (!isNaN(f[1]) && f[1] !== null) focus[1] = f[1];
+			if (!isNaN(f[0]) && f[0] !== null) {focus[0] = f[0];}
+			if (!isNaN(f[1]) && f[1] !== null) {focus[1] = f[1];}
 		}
 
 		const vid360 = settings._360?.video;
@@ -368,7 +368,7 @@ export class Engine {
 		const gallerySwitch = !!this.#isGallery && settings.gallery?.type == 'switch';
 
 		const numOmniLayers = Math.max(1, settings.omni?.layers?.length ?? 1);
-		if (settings.omni) settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);
+		if (settings.omni) {settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);}
 
 		const canvas = new TileCanvas(
 			this,
@@ -402,18 +402,18 @@ export class Engine {
 
 		this.#bindCamera(c);
 
-		if (c.opts.area) c.camera.setArea(c.opts.area, { direct: true, noDispatch: true, noRender: true });
+		if (c.opts.area) {c.camera.setArea(c.opts.area, { direct: true, noDispatch: true, noRender: true });}
 
-		if (settings?.restrict) c.camera.setLimit(settings.restrict);
+		if (settings?.restrict) {c.camera.setLimit(settings.restrict);}
 
 		if (settings?.crossfadeDuration)
-			this._crossfadeDuration = settings.crossfadeDuration;
+			{this._crossfadeDuration = settings.crossfadeDuration;}
 		if (settings?.embedFadeDuration)
-			this._embedFadeDuration = settings.embedFadeDuration;
+			{this._embedFadeDuration = settings.embedFadeDuration;}
 		if (settings?.dragElasticity !== undefined)
-			this._dragElasticity = settings.dragElasticity;
+			{this._dragElasticity = settings.dragElasticity;}
 		if (settings?.skipBaseLevels)
-			this._skipBaseLevels = settings.skipBaseLevels;
+			{this._skipBaseLevels = settings.skipBaseLevels;}
 
 		if (settings?.omni) {
 			canvas._omniDistance = -(settings.omni.distance ?? 0);
@@ -422,11 +422,11 @@ export class Engine {
 			canvas._omniOffsetX = settings.omni.offsetX ?? 0;
 			c.state.view.set([0, 0, 1, 1]);
 		}
-		if (this.micrio.hasAttribute('data-limited') && c.canvas) c.canvas._limited = true;
+		if (this.micrio.hasAttribute('data-limited') && c.canvas) {c.canvas._limited = true;}
 
 		canvas._sendViewport();
 
-		if (this._numTiles > 0) this.#registerBaseTile(this._numTiles - 1);
+		if (this._numTiles > 0) {this.#registerBaseTile(this._numTiles - 1);}
 
 		const v = get(c.state.view) || settings.view;
 		if (v && !(v[0] == 0 && v[1] == 0 && v[2] == 1 && v[3] == 1)) {
@@ -438,12 +438,12 @@ export class Engine {
 
 		let currentVideo: HTMLVideoElement | undefined;
 		this.#unsubscribe.push(c.video.subscribe(v => {
-			if (currentVideo) currentVideo.removeEventListener('play', this.render);
+			if (currentVideo) {currentVideo.removeEventListener('play', this.render);}
 			currentVideo = v ?? undefined;
-			if (currentVideo) currentVideo.addEventListener('play', this.render);
+			if (currentVideo) {currentVideo.addEventListener('play', this.render);}
 		}));
 
-		if (c._noImage) c.visible.set(true);
+		if (c._noImage) {c.visible.set(true);}
 
 		this.#setCanvas(c);
 	}
@@ -458,18 +458,18 @@ export class Engine {
 	}
 
 	#setCanvas(canvas?: MicrioImage): void {
-		if (!canvas || (canvas._placed && canvas === this.#activeCanvasEntry?.micrioImage)) return;
-		if (this._book3d) return;
+		if (!canvas || (canvas._placed && canvas === this.#activeCanvasEntry?.micrioImage)) {return;}
+		if (this._book3d) {return;}
 
 		if (!canvas._placed) {
-			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id != get(this.micrio.current)!.id)) return;
+			if (!get(this.micrio.current) || (!canvas.$info.isIIIF && canvas.$info.id != get(this.micrio.current)!.id)) {return;}
 			this.#addCanvas(canvas);
-			if (canvas._embeds.length) canvas._embeds.forEach(e => this._addEmbed(e, canvas));
+			if (canvas._embeds.length) {canvas._embeds.forEach(e => this._addEmbed(e, canvas));}
 		}
 		else if (canvas !== this.#activeCanvasEntry?.micrioImage) {
 			const entry = this.#entryByImage.get(canvas);
-			if (!entry) return;
-			if (entry.canvas._hasParent) return;
+			if (!entry) {return;}
+			if (entry.canvas._hasParent) {return;}
 
 
 			const pitch = canvas._is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas._camera360._pitch : 0;
@@ -480,9 +480,9 @@ export class Engine {
 				entry.canvas._setDirection(reversedYaw - canvas.camera.rotationY, pitch, true);
 			}
 
-			if (entry.canvas._targetOpacity === 0) entry.canvas._fadeIn();
+			if (entry.canvas._targetOpacity === 0) {entry.canvas._fadeIn();}
 
-			if (canvas.$settings.omni?.layerStartIndex) canvas.state.layer.set(canvas.$settings.omni.layerStartIndex);
+			if (canvas.$settings.omni?.layerStartIndex) {canvas.state.layer.set(canvas.$settings.omni.layerStartIndex);}
 			this._preventDirectionSet = false;
 			this.ready = true;
 			this.render();
@@ -491,15 +491,15 @@ export class Engine {
 
 	/** Places a MicrioImage on the engine directly, without touching the `current` store. @internal */
 	_addCanvasDirect(c: MicrioImage): void {
-		if (c._placed) return;
+		if (c._placed) {return;}
 		this.#addCanvas(c);
 	}
 
 	/** Removes a canvas instance from the engine. @internal */
 	_removeCanvas(c: MicrioImage): void {
-		if (!c._placed) throw new Error('Canvas is not placed yet');
+		if (!c._placed) {throw new Error('Canvas is not placed yet');}
 		const entry = this.#entryByImage.get(c);
-		if (!entry) return;
+		if (!entry) {return;}
 		entry.canvas._remove();
 		this.#entryByImage.delete(c);
 		this.render();
@@ -507,13 +507,13 @@ export class Engine {
 
 	/** Requests the next animation frame from the shared {@link Frame} scheduler. */
 	render(): void {
-		if (this._book3d) return;
+		if (this._book3d) {return;}
 		Frame.request(this.#draw);
 	}
 
 	#draw = (now: number = performance.now()): void => {
-		if (!this.micrio.isConnected || !this.micrio.$current) return;
-		if (this._book3d) return;
+		if (!this.micrio.isConnected || !this.micrio.$current) {return;}
+		if (this._book3d) {return;}
 
 		this.#drawing = false;
 
@@ -524,9 +524,9 @@ export class Engine {
 			this.render();
 		}
 
-		if (this.#isGallery) this.#drawStart();
+		if (this.#isGallery) {this.#drawStart();}
 		this.#drawnSet.clear();
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._draw();
+		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._draw();}
 
 		this.micrio.events._dispatch('draw');
 
@@ -542,7 +542,7 @@ export class Engine {
 		this._doneTotal = 0;
 		this._toDrawTotal = 0;
 		this._animating = false;
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._shouldDraw();
+		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._shouldDraw();}
 		return this._animating || this._progress < 1;
 	}
 
@@ -568,7 +568,7 @@ export class Engine {
 
 	/** Prepares the WebGL context for drawing a new frame. @internal */
 	#drawStart(): void {
-		if (this.#drawing) return;
+		if (this.#drawing) {return;}
 		this.micrio._webgl._drawStart();
 		this.#drawing = true;
 	}
@@ -582,9 +582,9 @@ export class Engine {
 		noSmoothing?: boolean
 	} = {}): void {
 		const tile = this.#tiles.get(i);
-		if (tile?._texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
+		if (tile?._texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) {return;}
 		const inArchive = archive.db.has(src);
-		if (!inArchive) this.micrio._loading.set(true);
+		if (!inArchive) {this.micrio._loading.set(true);}
 		this.#requests.set(i, src);
 		(inArchive ? archive._getImage(src) : loadTexture(src))
 			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
@@ -600,7 +600,7 @@ export class Engine {
 	): void {
 		const tile = this.#getTileEntry(i);
 		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing);
-		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) img.close();
+		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) {img.close();}
 		tile._loadState = 2;
 
 		tile._timeoutId = setTimeout(() => {
@@ -617,7 +617,7 @@ export class Engine {
 			tile._timeoutId = undefined;
 		}
 
-		if (!this.#requests.size) this.micrio._loading.set(false);
+		if (!this.#requests.size) {this.micrio._loading.set(false);}
 	}
 
 	/** @internal */
@@ -628,7 +628,7 @@ export class Engine {
 				this.micrio._webgl.gl.deleteTexture(tile._texture);
 				tile._texture = undefined;
 			}
-			if (tile._timeoutId) clearTimeout(tile._timeoutId);
+			if (tile._timeoutId) {clearTimeout(tile._timeoutId);}
 			this.#tiles.delete(idx);
 		}
 	}
@@ -639,7 +639,7 @@ export class Engine {
 	 */
 	#isTileInViewport(idx: number): boolean {
 		for (let i = 0; i < this._canvases.length; i++) {
-			if (this._canvases[i]._isTileInViewport(idx)) return true;
+			if (this._canvases[i]._isTileInViewport(idx)) {return true;}
 		}
 		return false;
 	}
@@ -652,18 +652,18 @@ export class Engine {
 		const now = performance.now();
 
 		for (const idx of this.#prevDrawnSet) {
-			if (this.#drawnSet.has(idx)) continue;
-			if (this.#baseTiles.has(idx)) continue;
+			if (this.#drawnSet.has(idx)) {continue;}
+			if (this.#baseTiles.has(idx)) {continue;}
 
 			const tile = this.#tiles.get(idx);
-			if (!tile || tile._loadState === 0) continue;
+			if (!tile || tile._loadState === 0) {continue;}
 
 			tile._opacity = 0;
 
 			switch (tile._loadState) {
 				case 1:
 					const request = this.#requests.get(idx);
-					if (request) abortDownload(request);
+					if (request) {abortDownload(request);}
 					tile._loadState = 0;
 					break;
 
@@ -675,7 +675,7 @@ export class Engine {
 					break;
 
 				case 3:
-					if (!tile._deleteAt) tile._deleteAt = now;
+					if (!tile._deleteAt) {tile._deleteAt = now;}
 					break;
 			}
 		}
@@ -685,7 +685,7 @@ export class Engine {
 		this.#prevDrawnSet = this.#prevDrawnSetSwap;
 		this.#prevDrawnSetSwap = tmp;
 		this.#prevDrawnSetSwap.clear();
-		for (const idx of this.#drawnSet) this.#prevDrawnSet.add(idx);
+		for (const idx of this.#drawnSet) {this.#prevDrawnSet.add(idx);}
 
 		for (const [idx, tile] of this.#tiles.entries()) {
 			if (tile._deleteAt && (now - tile._deleteAt) / 1000 > this.#deleteAfterSeconds) {
@@ -704,7 +704,7 @@ export class Engine {
 	 */
 	_resize(c: Models.Canvas.ViewRect): void {
 		this.el.set(c.width, c.height, c.left, c.top, c.ratio, c.scale, c.portrait);
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._resize();
+		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._resize();}
 		if (this.ready) { this.#stop(); this.#draw(); }
 	}
 
@@ -725,7 +725,7 @@ export class Engine {
 		opacity: number = 1,
 		fromScale?: number,
 	): void => {
-		if (this._book3d) return;
+		if (this._book3d) {return;}
 		this.#images.push(image);
 		this.#placeOnCanvas(image, parent, isEmbed, opacity, fromScale);
 	}
@@ -739,16 +739,16 @@ export class Engine {
 		fromScale?: number,
 	): void => {
 		const i = '$info' in image ? image.$info : parent.$info;
-		if (!i) return;
+		if (!i) {return;}
 
 		const a = image.opts.area ?? [0, 0, 1, 1];
 		const _360 = image instanceof MicrioImage ? image.$settings._360 ?? {} : {};
 		const parentEntry = this.#entryByImage.get(parent);
-		if (!parentEntry) return;
+		if (!parentEntry) {return;}
 
 		let canvas: TileCanvas;
 		if (!isEmbed) {
-			if (!(image instanceof MicrioImage)) return;
+			if (!(image instanceof MicrioImage)) {return;}
 			const isGallery = !!(image.$settings.gallery?.archive || image.$settings.gallery?.type);
 			let childOpts: { coverLimit?: boolean; coverStart?: boolean } = {};
 			if (isGallery) {
@@ -779,8 +779,8 @@ export class Engine {
 		if (!isEmbed) {
 			this.#bindCamera(image as MicrioImage);
 			const focus = (image as MicrioImage).$settings.focus;
-			if (focus) (canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);
-			else if (canvas._hasParent) canvas._setView(canvas.view._centerX, canvas.view._centerY, canvas.view.width, canvas.view.height, false, false);
+			if (focus) {(canvas as TileCanvas).camera.setCoo(focus[0], focus[1], 0);}
+			else if (canvas._hasParent) {canvas._setView(canvas.view._centerX, canvas.view._centerY, canvas.view.width, canvas.view.height, false, false);}
 
 			canvas._sendViewport();
 		}
@@ -791,8 +791,8 @@ export class Engine {
 
 	/** Adds an embedded MicrioImage instance. @internal */
 	_addEmbed(image: MicrioImage | Models.Omni.Frame, parent: MicrioImage, opts: Models.Embeds.EmbedOptions = {}): Promise<void> | void {
-		if (this._book3d) return;
-		if (image._placed) return;
+		if (this._book3d) {return;}
+		if (image._placed) {return;}
 		this.#addImage(image, parent, true, opts.opacity ?? 1, 'camera' in image && opts.asImage ? undefined : opts.fromScale);
 	}
 
@@ -803,7 +803,7 @@ export class Engine {
 	_fadeImage(img: MicrioImage | Models.Omni.Frame, opacity: number, direct: boolean = false): void {
 		const entry = this.#entryByImage.get(img);
 		const c = entry?.canvas;
-		if (!c) return;
+		if (!c) {return;}
 		if (entry.camera) {
 			c._targetOpacity = opacity;
 		} else {
@@ -812,7 +812,7 @@ export class Engine {
 				const im = images[i];
 				if (im._localIdx > 0) {
 					im._tOpacity = opacity;
-					if (direct) im.opacity = opacity;
+					if (direct) {im.opacity = opacity;}
 				}
 			}
 		}
@@ -825,19 +825,19 @@ export class Engine {
 	/** @internal */
 	_setImageVideoPlaying(img: MicrioImage | Models.Omni.Frame, playing: boolean): void {
 		const engImage = this.#micrioToEngImage.get(img);
-		if (engImage) engImage._isVideoPlaying = playing;
+		if (engImage) {engImage._isVideoPlaying = playing;}
 	}
 
 	/** Resets all canvases. @internal */
 	#reset(): void {
-		for (let i = 0; i < this._canvases.length; i++) this._canvases[i]._reset();
+		for (let i = 0; i < this._canvases.length; i++) {this._canvases[i]._reset();}
 	}
 
 	/** Removes a TileCanvas from the managed list. @internal */
 	_remove(c: TileCanvas): void {
-		for (let i = 0; i < this._canvases.length; i++) if (this._canvases[i] === c) {
+		for (let i = 0; i < this._canvases.length; i++) {if (this._canvases[i] === c) {
 			this._canvases.splice(i, 1);
 			return;
-		}
+		}}
 	}
 }

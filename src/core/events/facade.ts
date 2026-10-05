@@ -120,8 +120,8 @@ export class Events implements EventContext {
 
 		// Subscribe to the enabled store to automatically hook/unhook listeners
 		this.enabled.subscribe(v => {
-			if (v) this.hook();
-			else this.unhook();
+			if (v) {this.hook();}
+			else {this.unhook();}
 		});
 
 		// Keep track of visible images
@@ -131,7 +131,7 @@ export class Events implements EventContext {
 		micrio.current.subscribe(c => {
 			if (c && !this.#settings) {
 				this.#settings = c.$settings as Models.ImageInfo.Settings;
-				if (!c.error && this.#settings.hookEvents) this.enabled.set(true);
+				if (!c.error && this.#settings.hookEvents) {this.enabled.set(true);}
 			}
 		});
 	}
@@ -159,13 +159,13 @@ export class Events implements EventContext {
 	 * @returns The MicrioImage instance under the coordinates, or the main current image as fallback.
 	 */
 	_getImage(c: { x: number, y: number }): MicrioImage | undefined {
-		if (!this.#visible) return;
+		if (!this.#visible) {return;}
 		const w = this._micrio.offsetWidth, h = this._micrio.offsetHeight,
 			x = Math.max(0, Math.min(1, c.x / w)), y = Math.max(0, Math.min(1, c.y / h));
 		const candidates = this.#visible.filter(i => !i._noImage && !i._isPassiveSecondary);
 		// When a grid controller exists, use its own image-under-cursor detection
 		const gridCtrl = this._micrio._canvases.find(i => i.grid);
-		if (gridCtrl) return gridCtrl.grid?._getImageAt(c.x, c.y) ?? this._micrio.$current;
+		if (gridCtrl) {return gridCtrl.grid?._getImageAt(c.x, c.y) ?? this._micrio.$current;}
 		// Default: find the visible image under the cursor by area
 		const t = candidates.length == 1 ? candidates[0] : candidates.find(({ grid, opts: { area } }) =>
 			grid ? false : area ? x >= area[0] && x <= area[0] + area[2] && y >= area[1] && y <= area[1] + area[3] : false
@@ -178,27 +178,27 @@ export class Events implements EventContext {
 
 	/** Hooks all necessary event listeners based on current settings. */
 	hook(): void {
-		if (this.#hooked) return;
+		if (this.#hooked) {return;}
 		this.#hooked = true;
 
 		const s = this.#settings;
-		if (!s) return;
+		if (!s) {return;}
 
 		// Apply settings
 		this._twoFingerPan = !!s.twoFingerPan;
-		if (this._twoFingerPan) this._micrio.setAttribute('data-can-pan', '');
-		else this._micrio.removeAttribute('data-can-pan');
+		if (this._twoFingerPan) {this._micrio.setAttribute('data-can-pan', '');}
+		else {this._micrio.removeAttribute('data-can-pan');}
 
 		// Hook specific event types based on settings
-		if (s?.hookKeys) this.hookKeys();
-		if (s.hookDrag) this.hookDrag();
-		if (!s.noZoom) this.hookZoom();
+		if (s?.hookKeys) {this.hookKeys();}
+		if (s.hookDrag) {this.hookDrag();}
+		if (!s.noZoom) {this.hookZoom();}
 		this.hookContextMenuCopy();
 	}
 
 	/** Unhooks all attached event listeners. */
 	unhook(): void {
-		if (!this.#hooked) return;
+		if (!this.#hooked) {return;}
 		this.#hooked = false;
 
 		// Clear pointer tracking state
@@ -221,19 +221,19 @@ export class Events implements EventContext {
 	hookZoom(): void {
 		const s = this.#settings;
 		this._controlZoom = !!s?.controlZoom;
-		if (!s || s.hookPinch) this.hookPinch();
-		if (!s || s.hookScroll || this._controlZoom) this.hookScroll();
+		if (!s || s.hookPinch) {this.hookPinch();}
+		if (!s || s.hookScroll || this._controlZoom) {this.hookScroll();}
 		// Add double-tap/click listeners
-		if (this._micrio.canvas.$isMobile) this.#doubleTapHandler.hookTap();
-		else this.#doubleTapHandler.hookClick();
+		if (this._micrio.canvas.$isMobile) {this.#doubleTapHandler.hookTap();}
+		else {this.#doubleTapHandler.hookClick();}
 	}
 
 	/** Unhooks zoom-related event listeners. */
 	unhookZoom(): void {
 		this.unhookPinch();
 		this.unhookScroll();
-		if (this._micrio.canvas.$isMobile) this.#doubleTapHandler.unhookTap();
-		else this.#doubleTapHandler.unhookClick();
+		if (this._micrio.canvas.$isMobile) {this.#doubleTapHandler.unhookTap();}
+		else {this.#doubleTapHandler.unhookClick();}
 	}
 
 	/** Flag indicating if scroll listeners are attached. */

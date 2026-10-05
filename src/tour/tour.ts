@@ -30,7 +30,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 	_onMount() {
 		const { tour } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio || !tour) return;
+		if (!micrio || !tour) {return;}
 
 		const isVideoTour = !('steps' in tour);
 		const isMarkerTour = 'steps' in tour;
@@ -76,13 +76,13 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
 				const si = stepInfo?.[newIdx];
-				if (!si) return;
+				if (!si) {return;}
 
 				// Clear previous step's marker before navigating
 				const prevSi = stepInfo?.[prevIdx];
 				if (prevSi?.micrioId) {
 					const prevImg = findImage(prevSi.micrioId);
-					if (prevImg && get(prevImg.state.marker)) prevImg.state.marker.set(undefined);
+					if (prevImg && get(prevImg.state.marker)) {prevImg.state.marker.set(undefined);}
 				}
 
 				// If the new step has a video tour, use its first timeline viewport as the start view
@@ -92,7 +92,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					const lang = micrio.lang;
 					const vt = marker.videoTour;
 					const timeline = vt.i18n?.[lang]?.timeline;
-					if (timeline?.length && timeline[0].start <= 1) startView = timeline[0].rect;
+					if (timeline?.length && timeline[0].start <= 1) {startView = timeline[0].rect;}
 				}
 
 				const img = si.micrioId && micrio.$current?.id !== si.micrioId
@@ -101,7 +101,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				// Don't re-set (and thereby close/re-open) a marker that is already the active one
 				const active = img && get(img.state.marker);
 				const activeId = typeof active == 'string' ? active : active?.id;
-				if (img && activeId !== si.markerId) img.state.marker.set(si.markerId);
+				if (img && activeId !== si.markerId) {img.state.marker.set(si.markerId);}
 			};
 
 			mt.next = () => {
@@ -132,7 +132,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			}
 
 			const renderControls = () => {
-				if(!this.aside) return;
+				if(!this.aside) {return;}
 				this.aside.replaceChildren();
 
 				createElement('micrio-button', {
@@ -179,7 +179,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			};
 
 			this._addCleanup(micrio.state.marker.subscribe(m => {
-				if (!m) return;
+				if (!m) {return;}
 				const id = typeof m == 'string' ? m : m.id;
 				const idx = mt.steps.findIndex(s => s.startsWith(id));
 				if (idx >= 0 && idx !== this.#currentStep) {
@@ -202,7 +202,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				const si = (mt.stepInfo as Models.ImageData.MarkerTourStepInfo[] | undefined)?.[this.#currentStep];
 				if (si) {
 					const img = findImage(si.micrioId);
-					if (img) img.state.marker.set(undefined);
+					if (img) {img.state.marker.set(undefined);}
 				}
 			}
 		}));

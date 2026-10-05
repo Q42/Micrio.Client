@@ -18,14 +18,14 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	#inited = false;
 	#toggle = () => {
 		const el = this.#props.el;
-		if (!el) return;
-		if (this.#isActive) document.exitFullscreen();
-		else el.requestFullscreen();
+		if (!el) {return;}
+		if (this.#isActive) {document.exitFullscreen();}
+		else {el.requestFullscreen();}
 	};
 
 	/** @internal */
 	_onMount() {
-		if (!this.#props?.el) return;
+		if (!this.#props?.el) {return;}
 		this.#init();
 	}
 
@@ -33,15 +33,15 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	_setProps(props: Partial<FullscreenProps>) {
 		if (props.el !== undefined) {
 			this.#props.el = props.el;
-			if (this.isConnected && !this.#inited) this.#init();
+			if (this.isConnected && !this.#inited) {this.#init();}
 		}
 	}
 
 	#init() {
-		if (this.#inited) return;
+		if (this.#inited) {return;}
 		this.#inited = true;
 		const el = this.#props.el!;
-		if (!('requestFullscreen' in el)) return;
+		if (!('requestFullscreen' in el)) {return;}
 
 		this.#isActive = document.fullscreenElement === el;
 
@@ -51,8 +51,8 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		const onchange = () => {
 			this.#isActive = document.fullscreenElement === el;
 			if (addScrollZoom) {
-				if (this.#isActive) micrio!.events.hookScroll();
-				else micrio!.events.unhookScroll();
+				if (this.#isActive) {micrio!.events.hookScroll();}
+				else {micrio!.events.unhookScroll();}
 			}
 			this.#renderButton();
 		};
@@ -61,7 +61,7 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		this._addCleanup(() => document.removeEventListener('fullscreenchange', onchange));
 
 		// The button title is translated, so refresh it on a UI language change
-		if (micrio) this._watchLater(micrio._lang, () => this.#renderButton());
+		if (micrio) {this._watchLater(micrio._lang, () => this.#renderButton());}
 
 		this.#renderButton();
 	}

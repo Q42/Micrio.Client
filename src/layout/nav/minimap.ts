@@ -47,10 +47,10 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#setup() {
 		const { image } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio || !image) return;
+		if (!micrio || !image) {return;}
 
 		const info = image.$info;
-		if (!info) return;
+		if (!info) {return;}
 		const camera = image.camera;
 		const settings = image.$settings;
 
@@ -64,7 +64,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		let thumbSrc: string | undefined = isolated ? undefined : image.thumbSrc;
 
 		const draw = (area: Models.Camera.View | undefined) => {
-			if (!area || !this.#_ctx) return;
+			if (!area || !this.#_ctx) {return;}
 			const ctx = this.#_ctx;
 			ctx.clearRect(0, 0, width, height);
 			clearTimeout(this.#to);
@@ -91,7 +91,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 				ctx.beginPath();
 				ctx.arc(px, py, 3, 0, Math.PI * 2);
 				ctx.fill();
-				if (hasThumb) ctx.globalCompositeOperation = 'source-over';
+				if (hasThumb) {ctx.globalCompositeOperation = 'source-over';}
 			} else {
 				if (hasThumb) {
 					ctx.globalCompositeOperation = 'source-over';
@@ -123,17 +123,17 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		};
 
 		const dStart = (e: MouseEvent) => {
-			if (e.button != 0) return;
+			if (e.button != 0) {return;}
 			window.addEventListener('mousemove', dDraw);
 			window.addEventListener('mouseup', dStop);
 			this.#mapRect = canvas.getBoundingClientRect();
 			const cv = camera.getView();
-			if (cv) this.#dragViewDims = { width: cv[2], height: cv[3] };
+			if (cv) {this.#dragViewDims = { width: cv[2], height: cv[3] };}
 			dDraw(e);
 		};
 
 		const dDraw = (e: MouseEvent) => {
-			if (!this.#mapRect) return;
+			if (!this.#mapRect) {return;}
 			const x = Math.max(0, Math.min(1, (e.clientX - this.#mapRect.left) / this.#mapRect.width));
 			const y = Math.max(0, Math.min(1, (e.clientY - this.#mapRect.top) / this.#mapRect.height));
 			if (this.#dragViewDims) {
@@ -157,7 +157,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		});
 		if (thumbSrc) {
 			canvas.style.backgroundImage = `url('${thumbSrc}')`;
-			if (offset != 0) canvas.style.backgroundPositionX = `${width * offset}px`;
+			if (offset != 0) {canvas.style.backgroundPositionX = `${width * offset}px`;}
 		}
 		canvas.addEventListener('wheel', wheel, { passive: true });
 
@@ -169,7 +169,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		if (isolated && image.thumbSrc) {
 			fetch(image.thumbSrc).then(r => r.blob()).then(b => {
-				if (this.#thumbUrl) URL.revokeObjectURL(this.#thumbUrl);
+				if (this.#thumbUrl) {URL.revokeObjectURL(this.#thumbUrl);}
 				this.#thumbUrl = URL.createObjectURL(b);
 				thumbSrc = this.#thumbUrl;
 				canvas.style.backgroundImage = `url('${thumbSrc}')`;
@@ -185,7 +185,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	/** @internal */
 	_onDestroy() {
 		clearTimeout(this.#to);
-		if (this.#thumbUrl) URL.revokeObjectURL(this.#thumbUrl);
+		if (this.#thumbUrl) {URL.revokeObjectURL(this.#thumbUrl);}
 		this.#thumbUrl = undefined;
 	}
 

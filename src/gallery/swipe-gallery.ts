@@ -21,9 +21,9 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	#props: MicrioGalleryProps = { gallery: null!, lang: '' };
 
 	_setProps(props: Partial<MicrioGalleryProps>) {
-		if (props.gallery !== undefined) this.#props.gallery = props.gallery;
-		if (props.galleryStart !== undefined) this.#props.galleryStart = props.galleryStart;
-		if (props.lang !== undefined) this.#props.lang = props.lang;
+		if (props.gallery !== undefined) {this.#props.gallery = props.gallery;}
+		if (props.galleryStart !== undefined) {this.#props.galleryStart = props.galleryStart;}
+		if (props.lang !== undefined) {this.#props.lang = props.lang;}
 	}
 
 	_onMount() {

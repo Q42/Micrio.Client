@@ -33,7 +33,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	_onMount() {
 		const { marker } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio || !marker) return;
+		if (!micrio || !marker) {return;}
 
 		marker.tags?.forEach(c => this.classList.add(c));
 		afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
@@ -44,11 +44,11 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		}));
 
 		this.addEventListener('transitionend', e => {
-			if ((e as TransitionEvent).target === this && this.#destroying) this.remove();
+			if ((e as TransitionEvent).target === this && this.#destroying) {this.remove();}
 		});
 
 		// Button titles and content are translated, so re-render on a UI language change
-		this._watchLater(micrio._lang, () => { if (!this.#destroying) this.#render(); });
+		this._watchLater(micrio._lang, () => { if (!this.#destroying) {this.#render();} });
 
 		this.#render();
 	}
@@ -57,18 +57,18 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	_setProps(props: Partial<MarkerPopupProps>) {
 		if (props.marker !== undefined && props.marker.id !== this.#props.marker?.id) {
 			this.#props.marker = props.marker;
-			if (this.isConnected) this.#render();
+			if (this.isConnected) {this.#render();}
 		}
 	}
 
 	#render() {
 		const { marker } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio || !marker) return;
+		if (!micrio || !marker) {return;}
 
 		const markerImages = MicrioElement._markerImages;
 		const image = marker.id ? markerImages.get(marker.id) : undefined;
-		if (!image) return;
+		if (!image) {return;}
 
 		const $tour = get(micrio.state.tour);
 		const $current = get(micrio.current);

@@ -52,7 +52,7 @@ export class SwipeGallery {
 		const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
 		for (let i = 0; i < this.#images.length; i++) {
 			const child = this.#images[i] as MicrioImage;
-			if (!child.camera) continue;
+			if (!child.camera) {continue;}
 			child.camera.setCoverLimit(false);
 			const area = [this.#imageSlotPos[i] - baseSlot, 0, this.#imageSlotWidth[i], 1] as [number, number, number, number];
 			child.camera.setArea(area, { direct: true, noDispatch: true });
@@ -84,7 +84,7 @@ export class SwipeGallery {
 				engine._crossfadeDuration = 0;
 				for (let i = 0; i < images.length; i++) {
 					const child = images[i] as MicrioImage | undefined;
-					if (!child?.camera) continue;
+					if (!child?.camera) {continue;}
 					const cur = child.opts.area ?? [0, 0, 1, 1];
 					const prevSlotLeft = cur[0];
 					const prevSlotRight = cur[0] + cur[2];
@@ -100,9 +100,9 @@ export class SwipeGallery {
 				engine.render();
 				this.#awaitSlide(resolve);
 			};
-			if (needsZoomOut) leaving!.camera!.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
-				.then(startSlide).catch(startSlide);
-			else startSlide();
+			if (needsZoomOut) {leaving!.camera!.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
+				.then(startSlide).catch(startSlide);}
+			else {startSlide();}
 		});
 	}
 
@@ -127,15 +127,15 @@ export class SwipeGallery {
 
 	/** Start handling a pointer drag for strip-swipe navigation. */
 	handlePointerDown = (e:PointerEvent):void => {
-		if (e.button !== 0) return;
+		if (e.button !== 0) {return;}
 		if (this.#stripDragId !== undefined) {
 			if (e.pointerId !== this.#stripDragId) {
-				if (this.#stripDragActive) this.#navigate(this.#getCurrentPage());
+				if (this.#stripDragActive) {this.#navigate(this.#getCurrentPage());}
 				this.#resetDrag();
 			}
 			return;
 		}
-		if (!this.#canSwipe()) return;
+		if (!this.#canSwipe()) {return;}
 		this.#stripDragId = e.pointerId;
 		this.#stripDragStartX = this.#stripDragLastX = e.clientX;
 		this.#stripDragStartY = e.clientY;
@@ -149,11 +149,11 @@ export class SwipeGallery {
 	};
 
 	#stripPointerMove = (e:PointerEvent):void => {
-		if (e.pointerId !== this.#stripDragId) return;
+		if (e.pointerId !== this.#stripDragId) {return;}
 		const dx = e.clientX - this.#stripDragStartX;
 		const dy = e.clientY - this.#stripDragStartY;
 		if (!this.#stripDragActive) {
-			if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+			if (Math.abs(dx) < 6 && Math.abs(dy) < 6) {return;}
 			this.#stripDragHorizontal = Math.abs(dx) > Math.abs(dy);
 			if (!this.#stripDragHorizontal) { this.#stripPointerUp(e); return; }
 			this.#stripDragActive = true;
@@ -171,16 +171,16 @@ export class SwipeGallery {
 	};
 
 	#stripPointerUp = (e:PointerEvent):void => {
-		if (e.pointerId !== this.#stripDragId) return;
+		if (e.pointerId !== this.#stripDragId) {return;}
 		const wasActive = this.#stripDragActive;
 		this.#resetDrag();
-		if (!wasActive) return;
+		if (!wasActive) {return;}
 		try { this.#micrio.canvas.element.releasePointerCapture(e.pointerId); } catch (_) {}
 		const w = this.#micrio.offsetWidth || 1;
 		const progress = (e.clientX - this.#stripDragStartX) / w;
 		let target = this.#getCurrentPage();
-		if (progress < -0.3 || this.#stripDragVelocity < -0.5) target = Math.min(this.#pageToImages.length - 1, this.#getCurrentPage() + 1);
-		else if (progress > 0.3 || this.#stripDragVelocity > 0.5) target = Math.max(0, this.#getCurrentPage() - 1);
+		if (progress < -0.3 || this.#stripDragVelocity < -0.5) {target = Math.min(this.#pageToImages.length - 1, this.#getCurrentPage() + 1);}
+		else if (progress > 0.3 || this.#stripDragVelocity > 0.5) {target = Math.max(0, this.#getCurrentPage() - 1);}
 		this.#navigate(target);
 	};
 
@@ -200,13 +200,13 @@ export class SwipeGallery {
 		const imgIdx = this.#pageToImages[curr]?.[0] ?? 0;
 		const baseSlot = this.#imageSlotPos[imgIdx];
 		const engine = images[0]?.engine;
-		if (!engine || baseSlot === undefined) return;
+		if (!engine || baseSlot === undefined) {return;}
 		for (let i = 0; i < images.length; i++) {
 			const child = images[i] as MicrioImage | undefined;
-			if (!child?.camera) continue;
+			if (!child?.camera) {continue;}
 			const slotPos = this.#imageSlotPos[i] - baseSlot + eased;
 			const width = this.#imageSlotWidth[i];
-			if (slotPos + width <= -1 || slotPos >= 1) continue;
+			if (slotPos + width <= -1 || slotPos >= 1) {continue;}
 			child.camera.setArea([slotPos, 0, width, 1], { direct: true, noDispatch: true });
 		}
 		engine.render();

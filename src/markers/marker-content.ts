@@ -29,16 +29,16 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	/** @internal */
 	protected _render() {
 		const { marker, noEmbed = false, noImages = false, noGallery = false, onclose } = this._props;
-		if (!marker) return;
+		if (!marker) {return;}
 
 		const micrio = this._getMicrio();
 		const markerImages = MicrioElement._markerImages;
 		const image = marker.id ? markerImages.get(marker.id) : undefined;
-		if (!micrio || !image) return;
+		if (!micrio || !image) {return;}
 
 		const $_lang = get(micrio._lang);
 		const key = `${marker.id}::${$_lang}::${noEmbed}::${noImages}::${noGallery}`;
-		if (!this._checkRenderKey(key)) return;
+		if (!this._checkRenderKey(key)) {return;}
 
 		const $tour = get(micrio.state.tour);
 		const isSerialTour = $tour && 'steps' in $tour && $tour.isSerialTour;
@@ -52,7 +52,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		const imageCaption = singleImage && marker.images?.[0]?.i18n?.[$_lang]?.description;
 
 		const openGallery = (startId: string | undefined) => {
-			if (!galleryEnabled) return;
+			if (!galleryEnabled) {return;}
 			micrio.state.popover.set({ gallery: marker.images, galleryStart: startId, image });
 		};
 

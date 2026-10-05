@@ -4,7 +4,7 @@ import fs from 'fs';
 import { exec } from 'child_process';
 
 const run = (cmd) => new Promise((ok,error) => exec(cmd, (err, stdout, stderr) => {
-	if(err) error(err); else ok(stdout||stderr);
+	if(err) {error(err);} else {ok(stdout||stderr);}
 }));
 const error = (err) => {
 	console.error('\nAn error has occurred: '+err);
@@ -15,10 +15,10 @@ const version = process.env.npm_package_version;
 
 const jsFile = './public/dist/micrio.min.js';
 const exists = fs.existsSync(jsFile);
-if(!exists) console.warn('Compiled Micrio JS not found.');
+if(!exists) {console.warn('Compiled Micrio JS not found.');}
 
 const isCurrentVersion = exists && fs.readFileSync(jsFile, 'utf8').split('\n')[0].indexOf(version) > 0;
-if(exists && !isCurrentVersion) console.warn('Compiled version is not the latest version.')
+if(exists && !isCurrentVersion) {console.warn('Compiled version is not the latest version.')}
 
 if(!isCurrentVersion) {
 	process.stdout.write('\nBuilding... ');
@@ -48,9 +48,9 @@ const suffix = args?.find(a => a.startsWith('--suffix='))?.split('=')[1] || '';
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 const awsKey = process.env.AWS_ACCESS_KEY_ID;
 const awsSecret = process.env.AWS_SECRET_ACCESS_KEY;
-if(!accountId) console.warn('CLOUDFLARE_ACCOUNT_ID not set');
-if(!awsKey) console.warn('AWS_ACCESS_KEY_ID not set');
-if(!awsSecret) console.warn('AWS_SECRET_ACCESS_KEY not set');
+if(!accountId) {console.warn('CLOUDFLARE_ACCOUNT_ID not set');}
+if(!awsKey) {console.warn('AWS_ACCESS_KEY_ID not set');}
+if(!awsSecret) {console.warn('AWS_SECRET_ACCESS_KEY not set');}
 if(!accountId || !awsKey || !awsSecret) {
 	console.error('\nError: CLOUDFLARE_ACCOUNT_ID, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY must all be set');
 	process.exit();
@@ -80,8 +80,8 @@ if(npmPublish) {
 	const newVersion = tv.join('.');
 
 	for(const json of ['package.json', './public/dist/package.json'])
-		fs.writeFileSync(json, fs.readFileSync(json, 'utf-8')
-			.replace(/"version": ".*"/m,`"version": "${newVersion}"`));
+		{fs.writeFileSync(json, fs.readFileSync(json, 'utf-8')
+			.replace(/"version": ".*"/m,`"version": "${newVersion}"`));}
 
 	console.log('\nPublish completed. New working version: ' + newVersion);
 }

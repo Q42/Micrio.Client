@@ -178,35 +178,35 @@ export class WebGL {
 
 		// --- Get Uniform Locations ---
 		const opaLoc = gl.getUniformLocation(this.#program, 'opacity');
-		if(opaLoc) this.#opaLoc = opaLoc;
-		else throw new MicrioError('Failed to bind WebGL opacity uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
+		if(opaLoc) {this.#opaLoc = opaLoc;}
+		else {throw new MicrioError('Failed to bind WebGL opacity uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });}
 
 		const pmLoc = gl.getUniformLocation(this.#program, 'GLMatrix');
-		if(pmLoc) this._pmLoc = pmLoc;
-		else throw new MicrioError('Failed to bind WebGL matrix uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
+		if(pmLoc) {this._pmLoc = pmLoc;}
+		else {throw new MicrioError('Failed to bind WebGL matrix uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });}
 
 		const noTxtLoc = gl.getUniformLocation(this.#program, 'noTexture');
-		if(noTxtLoc) this.#noTxtLoc = noTxtLoc;
-		else throw new MicrioError('Failed to bind WebGL texture uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });
+		if(noTxtLoc) {this.#noTxtLoc = noTxtLoc;}
+		else {throw new MicrioError('Failed to bind WebGL texture uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE });}
 
 		// --- Buffer Setup ---
 		// Texture Coordinates Buffer (Static)
 		this.#txtAttr = gl.getAttribLocation(this.#program, 'aTextureCoord');
 		const txtBuffer = gl.createBuffer();
-		if(txtBuffer) this.#txtBuffer = txtBuffer;
-		else throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
+		if(txtBuffer) {this.#txtBuffer = txtBuffer;}
+		else {throw new MicrioError('Failed to create WebGL texture buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#txtBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, Engine._textureBuffer, gl.STATIC_DRAW); // Use static buffer from Engine
 
 		// Watermark Texture Coordinates Buffer
 		const wmTxtBuffer = gl.createBuffer();
-		if(wmTxtBuffer) this.#wmTxtBuffer = wmTxtBuffer;
-		else throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
+		if(wmTxtBuffer) {this.#wmTxtBuffer = wmTxtBuffer;}
+		else {throw new MicrioError('Failed to create WebGL watermark buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 
 		// Vertex Position Buffer (Dynamic - updated by Engine)
 		const geomBuffer = gl.createBuffer();
-		if(geomBuffer) this.#geomBuffer = geomBuffer;
-		else throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
+		if(geomBuffer) {this.#geomBuffer = geomBuffer;}
+		else {throw new MicrioError('Failed to create WebGL geometry buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		this.#posAttr = gl.getAttribLocation(this.#program, 'pos');
 
 		// Link buffers to attributes initially
@@ -244,7 +244,7 @@ export class WebGL {
 	*/
 	_dispose(loseContext:boolean=false ) : void {
 		const gl = this.gl;
-		if (!gl) return; // Exit if context doesn't exist
+		if (!gl) {return;} // Exit if context doesn't exist
 
 		// Unbind buffers and textures
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -258,12 +258,12 @@ export class WebGL {
 		// Delete framebuffer/texture from postprocessor if it exists
 		this._postprocessor?._dispose();
 		// Delete watermark texture
-		if(this.#wmTexture) gl.deleteTexture(this.#wmTexture);
+		if(this.#wmTexture) {gl.deleteTexture(this.#wmTexture);}
 
 		// Attempt to lose context if requested
 		if(loseContext) {
 			const tryLose = gl.getExtension('WEBGL_lose_context');
-			if(tryLose instanceof Object && tryLose['loseContext'] instanceof Function) tryLose['loseContext']();
+			if(tryLose instanceof Object && tryLose['loseContext'] instanceof Function) {tryLose['loseContext']();}
 		}
 		// Allow setting gl to null (instance is no longer usable after dispose)
 		this.gl = null as unknown as WebGLRenderingContext;
@@ -279,7 +279,7 @@ export class WebGL {
 	*/
 	_getShader(program:WebGLProgram, type:number, source:string) {
 		const shader = this.gl.createShader(type);
-		if(!shader) throw new Error(`Could not create WebGL shader (type: ${type})`);
+		if(!shader) {throw new Error(`Could not create WebGL shader (type: ${type})`);}
 		this.gl.shaderSource(shader, source);
 		this.gl.compileShader(shader);
 		// Check compilation status
@@ -305,12 +305,12 @@ export class WebGL {
 	_getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean) : WebGLTexture {
 		const gl = this.gl;
 		const t = texture ?? gl.createTexture(); // Use existing or create new
-		if(!t) throw new Error('Could not create WebGL texture');
+		if(!t) {throw new Error('Could not create WebGL texture');}
 
 		gl.bindTexture(gl.TEXTURE_2D, t); // Bind the texture
 
 		// Upload image data if provided
-		if(img) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+		if(img) {gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);}
 
 		// Set texture parameters
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); // Prevent wrapping
@@ -345,7 +345,7 @@ export class WebGL {
 	_drawStart() : void {
 		const gl = this.gl;
 		// Bind framebuffer if postprocessing is active
-		if(this._postprocessor) gl.bindFramebuffer(gl.FRAMEBUFFER, this._postprocessor._frameBuffer);
+		if(this._postprocessor) {gl.bindFramebuffer(gl.FRAMEBUFFER, this._postprocessor._frameBuffer);}
 		// Clear the drawing buffer
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 	}
@@ -359,7 +359,7 @@ export class WebGL {
 			this.gl.useProgram(this.#program);
 			this.#linkBuffers();
 		}
-		if(this.#wmTexture) this.#drawWatermark();
+		if(this.#wmTexture) {this.#drawWatermark();}
 	}
 
 	/**
@@ -415,12 +415,12 @@ export class WebGL {
 	 * @param url The watermark image URL.
 	 */
 	_loadWatermark(url: string, wmOpacity?:number) : void {
-		if (!this.gl) return; // WebGL not initialized (e.g. book3d album)
-		if(url === this.#wmUrl) return; // Already loaded/loading
+		if (!this.gl) {return;} // WebGL not initialized (e.g. book3d album)
+		if(url === this.#wmUrl) {return;} // Already loaded/loading
 
 		this.#wmUrl = url;
 		const img = new Image();
-		if(wmOpacity) this.#wmOpacity = wmOpacity;
+		if(wmOpacity) {this.#wmOpacity = wmOpacity;}
 		img.crossOrigin = 'anonymous';
 		img.src = url;
 		img.onload = () => {
@@ -428,7 +428,7 @@ export class WebGL {
 				props: { width: watermarkTileSize, height: watermarkTileSize }
 			});
 			const ctx = c.getContext('2d');
-			if(!ctx) return;
+			if(!ctx) {return;}
 
 			// Calculate dimensions to fit within bounds while maintaining aspect ratio
 			const ratio = Math.min(watermarkMaxSizeW / img.width, watermarkMaxSizeH / img.height);
@@ -439,7 +439,7 @@ export class WebGL {
 			ctx.drawImage(img, (watermarkTileSize - w) / 2, (watermarkTileSize - h) / 2, w, h);
 
 			// Create texture from canvas
-			if(this.#wmTexture) this.gl.deleteTexture(this.#wmTexture);
+			if(this.#wmTexture) {this.gl.deleteTexture(this.#wmTexture);}
 			this.#wmTexture = this._getTexture(c); // getTexture supports HTMLCanvasElement
 
 			// Configure repeating texture
@@ -460,7 +460,7 @@ export class WebGL {
 	#drawWatermark() : void {
 		const gl = this.gl;
 
-		if(!this.#wmTexture) return;
+		if(!this.#wmTexture) {return;}
 
 		// Use program
 		gl.useProgram(this.#program);

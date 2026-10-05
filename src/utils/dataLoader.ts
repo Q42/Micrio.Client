@@ -32,8 +32,8 @@ let orgCache: Models.ImageInfo.Organisation | undefined;
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 async function fetchBundleOnce(id: string): Promise<void> {
-	if (!id || id.startsWith('http') || bundleCache.has(id)) return;
-	if (inflightFetches.has(id)) return inflightFetches.get(id)!;
+	if (!id || id.startsWith('http') || bundleCache.has(id)) {return;}
+	if (inflightFetches.has(id)) {return inflightFetches.get(id)!;}
 
 	const promise = doFetchBundle(id);
 	inflightFetches.set(id, promise);
@@ -53,7 +53,7 @@ async function doFetchBundle(id: string): Promise<void> {
 		for (const entry of bundle.images) {
 			if (entry?.id) {
 				bundleCache.set(entry.id, entry);
-				if(bundle.tours) bundleToursCache.set(entry.id, bundle.tours);
+				if(bundle.tours) {bundleToursCache.set(entry.id, bundle.tours);}
 			}
 		}
 		// When the bundle was fetched via an external/… alias, also cache
@@ -62,7 +62,7 @@ async function doFetchBundle(id: string): Promise<void> {
 		// the caller originally used.
 		if (id.startsWith('external/') && bundle.images[0]?.id) {
 			bundleCache.set(id, bundle.images[0]);
-			if(bundle.tours) bundleToursCache.set(id, bundle.tours);
+			if(bundle.tours) {bundleToursCache.set(id, bundle.tours);}
 		}
 	}
 	if (bundle?.organisation) {
@@ -130,7 +130,7 @@ export const DataLoader = {
 	 * @internal
 	 */
 	async _getBundleImage(id: string): Promise<BundleImage | undefined> {
-		if (!id) return;
+		if (!id) {return;}
 		await fetchBundleOnce(id);
 		return bundleCache.get(id);
 	},

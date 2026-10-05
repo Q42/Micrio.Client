@@ -4,7 +4,7 @@ import type { Models } from '$types/models';
 
 /** Resolve an organisation logo to its image source URL */
 function getLogoSrc(img: Models.Assets.Image | string): string {
-	if (typeof img == 'string') return img;
+	if (typeof img == 'string') {return img;}
 	let l = 0;
 	let m = Math.max(img.width, img.height);
 	while (m > 1024) { l++; m /= 2; }
@@ -29,14 +29,14 @@ class MicrioLogoOrg extends MicrioElement<LogoOrgProps> {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		this.#render();
 	}
 
 	/** @internal */
 	_setProps(props: Partial<LogoOrgProps>) {
-		if (props.organisation !== undefined) this.#props.organisation = props.organisation;
-		if (this.isConnected) this.#render();
+		if (props.organisation !== undefined) {this.#props.organisation = props.organisation;}
+		if (this.isConnected) {this.#render();}
 	}
 
 	#render() {

@@ -223,21 +223,21 @@ export class MicrioImage {
 		this.#engine = engine;
 		this.opts = opts;
 		this.state = new State.Image(this);
-		if(!opts.useParentCamera) this.camera = new Camera(this);
+		if(!opts.useParentCamera) {this.camera = new Camera(this);}
 
 		this.id = bundle.id.replace(VIEWER_BASE,'');
 
 		if(this.id.startsWith('external/')) {
 			const secondSlash = this.id.indexOf('/', this.id.indexOf('/') + 1);
 			if(secondSlash !== -1)
-				this.id = this.id.substring(0, secondSlash + 1) + encodeURIComponent(this.id.substring(secondSlash + 1));
+				{this.id = this.id.substring(0, secondSlash + 1) + encodeURIComponent(this.id.substring(secondSlash + 1));}
 		}
 
 		const i = bundle.info;
 		this.#info = i;
 		this._dataPath = i.path || BASEPATH_V5;
 
-		if(!opts.area) opts.area = [0,0,1,1];
+		if(!opts.area) {opts.area = [0,0,1,1];}
 
 		const s = bundle.settings;
 		const micrio = this.#engine.micrio;
@@ -248,8 +248,8 @@ export class MicrioImage {
 			i.is360 = !!((b >> 4) & 1) || !!i.is360;
 			i.isWebP = !(b & 3);
 			i.isPng = (b & 3) == 2;
-			if ((b >> 3) & 1 && idIsV5(i.tilesId ?? this.id)) i.format = 'dz';
-			if (!i.path) i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;
+			if ((b >> 3) & 1 && idIsV5(i.tilesId ?? this.id)) {i.format = 'dz';}
+			if (!i.path) {i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`;}
 		}
 
 		// Determine tile base path
@@ -260,10 +260,10 @@ export class MicrioImage {
 		const org = DataLoader._getOrganisation();
 		if(org?.baseUrl && !i.path?.includes(org.baseUrl)) {
 			this._dataPath = i.path = org.baseUrl;
-			if(!isV5Imported) this._tileBase = this._dataPath;
+			if(!isV5Imported) {this._tileBase = this._dataPath;}
 		}
-		else if(i.path == BASEPATH_V5_EU) this._dataPath = i.path;
-		else if(i.path) this._dataPath = i.path;
+		else if(i.path == BASEPATH_V5_EU) {this._dataPath = i.path;}
+		else if(i.path) {this._dataPath = i.path;}
 
 		// Omni object setup
 		if(s?.omni) {
@@ -275,9 +275,9 @@ export class MicrioImage {
 			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`;
 			this.#loadStyle(r2Base+'style/'+org.slug+'.css').then(() => {
 				const fontFamily = getComputedStyle(this.#engine.micrio).getPropertyValue('--micrio-font-family')?.replace(/^'([^']+)'.*$/,'$1');
-				if(fontFamily) document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
+				if(fontFamily) {document.fonts.ready.then(() => { if(!document.fonts.check('16px ' + fontFamily))
 					this.#loadStyle(`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`)
-				});
+				});}
 			});
 		}
 
@@ -289,7 +289,7 @@ export class MicrioImage {
 		// 360 space data
 		if(i.spacesId && !micrio.spaceData) {
 			micrio.spaceData = DataLoader._getSpaceData(i.spacesId);
-			if(micrio.spaceData?.images.length == 1) delete micrio.spaceData;
+			if(micrio.spaceData?.images.length == 1) {delete micrio.spaceData;}
 		}
 
 		if(!micrio.bundleTours) {
@@ -298,15 +298,15 @@ export class MicrioImage {
 
 		if(i.is360 && this.camera) {
 			const spaceRotY = micrio.spaceData?.images.find(img => img.id == this.id)?.rotationY;
-			if(spaceRotY != null) this.camera.rotationY = spaceRotY;
+			if(spaceRotY != null) {this.camera.rotationY = spaceRotY;}
 			else if(s?._360?.trueNorth != null)
-				this.camera.rotationY = (s._360.trueNorth - 0.5) * Math.PI * 2;
+				{this.camera.rotationY = (s._360.trueNorth - 0.5) * Math.PI * 2;}
 		}
 
 		// Derived flags & properties
 		this._noImage = this._noImage || this._isOmni || (!i.id && !i.tilesId);
 		this.#extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg';
-		if(i.format == 'dz') i.isDeepZoom = true;
+		if(i.format == 'dz') {i.isDeepZoom = true;}
 		this._is360 = !!i.is360;
 		this._isVideo = !!i.isVideo;
 
@@ -315,26 +315,26 @@ export class MicrioImage {
 		if(i.revision) {
 			const langs = Object.keys(i.revision);
 			if(langs.length && !langs.includes(lang as string))
-				micrio.lang = langs.includes('en') ? 'en' : langs[0];
+				{micrio.lang = langs.includes('en') ? 'en' : langs[0];}
 		}
 
 		// Custom JS/CSS (fire & forget)
 		if(s && !s.noExternals) {
-			if(s.css) this.#loadStyle(s.css.href);
+			if(s.css) {this.#loadStyle(s.css.href);}
 			if(s.js) {
 				const url = s.js.href.replace('$lang', lang);
 				loadScript(url);
 				const _el = document.head.querySelector('script[src="'+url+'"]') as HTMLScriptElement | undefined;
 				/** @ts-ignore -- used for custom JS to have a cool self reference */
-				if (_el) _el['micrioElement'] = this.#engine.micrio;
+				if (_el) {_el['micrioElement'] = this.#engine.micrio;}
 			}
 		}
 
 		// Zoom levels
 		for(let f=i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width,i.height); f *= 2, this._levels++) {}
-		let max = Math.max(i.width, i.height); do this.#dzLevels++; while((max/=2) > 1);
-		if(s?.gallery?.archive) this._levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);
-		if(!this._noImage) this.thumbSrc = this._getTileSrc(this._levels, 0, 0);
+		let max = Math.max(i.width, i.height); do {this.#dzLevels++;} while((max/=2) > 1);
+		if(s?.gallery?.archive) {this._levels -= 1 - (s.gallery.archiveLayerOffset ?? 0);}
+		if(!this._noImage) {this.thumbSrc = this._getTileSrc(this._levels, 0, 0);}
 
 		micrio.events._dispatch('pre-info', i);
 
@@ -344,13 +344,13 @@ export class MicrioImage {
 		}
 
 		// Settings store & watermark
-		if(s) this._settings.set(s);
-		if(i.watermark) this.#engine.micrio._webgl._loadWatermark(i.watermark, s?.watermarkOpacity);
+		if(s) {this._settings.set(s);}
+		if(i.watermark) {this.#engine.micrio._webgl._loadWatermark(i.watermark, s?.watermarkOpacity);}
 
 		// Omni controls hook
 		if(this._isOmni) {
 			this.state.layer.subscribe(l => {
-				if(!this._placed || !this.#engine.ready) return;
+				if(!this._placed || !this.#engine.ready) {return;}
 				this.canvas?._setActiveLayer(l);
 				this.#engine.render();
 			});
@@ -361,17 +361,17 @@ export class MicrioImage {
 		// Visibility subscription
 		let wasVis:boolean=get(this.visible);
 		this.visible.subscribe(v => {
-			if(v==wasVis) return; wasVis=v;
+			if(v==wasVis) {return;} wasVis=v;
 
 			micrioRef._visible.update(l => {
-				if(v) l.push(this);
+				if(v) {l.push(this);}
 				else {
 					const i = l.indexOf(this);
-					if(i >= 0) l.splice(i, 1);
+					if(i >= 0) {l.splice(i, 1);}
 				}
 				return l;
 			});
-			if(v && micrioRef.$current == this) micrioRef._switching.set(false);
+			if(v && micrioRef.$current == this) {micrioRef._switching.set(false);}
 		});
 
 		this.video.subscribe(v => this._video = v);
@@ -392,7 +392,7 @@ export class MicrioImage {
 		const i = this.#info;
 
 		// Adjust layer index for DeepZoom format
-		if(i.isDeepZoom) layer = this.#dzLevels - layer;
+		if(i.isDeepZoom) {layer = this.#dzLevels - layer;}
 
 		// Handle IIIF URL generation
 		if(i.isIIIF) {
@@ -410,7 +410,7 @@ export class MicrioImage {
 
 		// Throw error if trying to get tile for a video (shouldn't happen)
 		if(this.$settings?._360?.video?.src)
-			throw new Error('Video thumb');
+			{throw new Error('Video thumb');}
 
 		// Construct standard Micrio tile URL
 		return `${this._tileBase}${i.tilesId||i.id}/${frame !== undefined ? frame + '/' : ''}${layer}/${x}${i.isDeepZoom?'_':'-'}${y}.${this.#extension}`;
@@ -420,7 +420,7 @@ export class MicrioImage {
 	 * @internal
 	 */
 	#loadStyle(s:string) : Promise<void> { return new Promise((ok:() => void) => {
-		if(jsCss.includes(s) || document.head.querySelector('link[href="'+s+'"]')) ok(); // Already loaded
+		if(jsCss.includes(s) || document.head.querySelector('link[href="'+s+'"]')) {ok();} // Already loaded
 		else { jsCss.push(s); // Mark as loading
 			createElement('link', {
 				attrs: { type: 'text/css', rel: 'stylesheet', href: s },
@@ -448,9 +448,9 @@ export class MicrioImage {
 			settings,
 		}, {area:a, isEmbed: true, useParentCamera: opts.asImage});
 		// Use parent camera if specified (e.g., for switch galleries)
-		if(!img.camera) img.camera = this.camera;
+		if(!img.camera) {img.camera = this.camera;}
 		this._embeds.push(img); // Add to embeds list
-		if(opts.opacity === undefined) opts.opacity = 1; // Default opacity
+		if(opts.opacity === undefined) {opts.opacity = 1;} // Default opacity
 
 		// Adjust area based on 'fit' option (cover or contain)
 		if(opts.fit == 'cover' || opts.fit == 'contain') {
@@ -478,8 +478,8 @@ export class MicrioImage {
 
 	/** Sets the HTMLMediaElement reference for a given embed ID. @internal */
 	_setEmbedMediaElement(id:string, el?:HTMLMediaElement) : void {
-		if(el) this.#embedElements.set(id, el);
-		else this.#embedElements.delete(id);
+		if(el) {this.#embedElements.set(id, el);}
+		else {this.#embedElements.delete(id);}
 	}
 
 	/**

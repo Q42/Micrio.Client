@@ -38,32 +38,32 @@ export class ContextMenuCopyHandler {
 
 	/** Hooks the context menu crop listeners. */
 	hook(): void {
-		if (this.#hooked) return;
+		if (this.#hooked) {return;}
 		this.#hooked = true;
 
 		// Runs before the browser builds the native context menu (and before Micrio's handlers)
 		this.#ctx._micrio.addEventListener('pointerdown', this.#pointerDown, eventPassive);
 
-		for (const type of restoreEvents) document.addEventListener(type, this.restore, eventPassiveCapture);
+		for (const type of restoreEvents) {document.addEventListener(type, this.restore, eventPassiveCapture);}
 		self.addEventListener('resize', this.restore, eventPassive);
 	}
 
 	/** Unhooks the context menu crop listeners, restoring the canvas if needed. */
 	unhook(): void {
-		if (!this.#hooked) return;
+		if (!this.#hooked) {return;}
 		this.#hooked = false;
 
 		this.restore();
 
 		this.#ctx._micrio.removeEventListener('pointerdown', this.#pointerDown, eventPassive);
 
-		for (const type of restoreEvents) document.removeEventListener(type, this.restore, eventPassiveCapture);
+		for (const type of restoreEvents) {document.removeEventListener(type, this.restore, eventPassiveCapture);}
 		self.removeEventListener('resize', this.restore, eventPassive);
 	}
 
 	/** Right-button presses start a possible native "Copy image" action. */
 	#pointerDown = (e: PointerEvent): void => {
-		if (e.button !== 2) return;
+		if (e.button !== 2) {return;}
 		this.#engage();
 	}
 
@@ -73,21 +73,21 @@ export class ContextMenuCopyHandler {
 	 */
 	#engage(): void {
 		const micrio = this.#ctx._micrio;
-		if (!micrio.hasAttribute('data-contextmenu-crop')) return;
+		if (!micrio.hasAttribute('data-contextmenu-crop')) {return;}
 		// The browser reads the drawing buffer after compositing, so it must be preserved
-		if (!micrio.hasAttribute('data-preserve-drawing-buffer')) return;
+		if (!micrio.hasAttribute('data-preserve-drawing-buffer')) {return;}
 
 		const engine = micrio._engine;
-		if (!engine.ready || !micrio._webgl.gl) return;
+		if (!engine.ready || !micrio._webgl.gl) {return;}
 
 		// The main image of this element. Other entries on the canvas are in-image embeds
 		// drawn inside this image's space, and they travel along with it.
 		const image = micrio.$current;
-		if (!image || image._is360 || image._isOmni || image._noImage) return;
+		if (!image || image._is360 || image._isOmni || image._noImage) {return;}
 
 		const canvas = micrio.canvas;
 		const crop = canvas._imageCrop(image.camera);
-		if (!crop) return; // Nothing to crop: the image covers the whole canvas
+		if (!crop) {return;} // Nothing to crop: the image covers the whole canvas
 
 		this.#image = image;
 		this.#view = image.camera.getView();
@@ -103,7 +103,7 @@ export class ContextMenuCopyHandler {
 	/** Restores the canvas size and camera view. Safe to call at any time. */
 	restore = (): void => {
 		const image = this.#image;
-		if (!image) return;
+		if (!image) {return;}
 		const view = this.#view;
 		this.#image = undefined;
 		this.#view = undefined;
@@ -111,7 +111,7 @@ export class ContextMenuCopyHandler {
 		const micrio = this.#ctx._micrio;
 		micrio.canvas._exitCropMode();
 		// The resize above re-applies a view derived from the cropped state, so restore ours after it
-		if (view) image.camera.setView(view, { noRender: true });
+		if (view) {image.camera.setView(view, { noRender: true });}
 		micrio._engine._drawSync();
 	}
 }

@@ -25,7 +25,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 	_onMount() {
 		const { image } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio || !image) return;
+		if (!micrio || !image) {return;}
 
 		const { _switching: switching, state: micrioState } = micrio;
 		const grid = micrio._canvases[0]?.grid;
@@ -33,7 +33,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		const gridMarkersShown = grid?._markersShown;
 
 		this._addCleanup(image._viewport.subscribe((v: Models.Camera.View) => {
-			if (!v || v.length < 4) return;
+			if (!v || v.length < 4) {return;}
 			v = v.map(f => Math.round(f * 100) / 100) as Models.Camera.View;
 			const size = micrio.canvas.viewport;
 			this.style.left = !v[0] ? '' : `${v[0]}px`;
@@ -43,9 +43,9 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		}));
 
 		const updateOverlapped = () => {
-			if (!image.$settings.clusterMarkers) return;
+			if (!image.$settings.clusterMarkers) {return;}
 			const markers = image.$data?.markers?.filter(m => !m.i18n || m.i18n[get(micrio._lang)]);
-			if (!markers) return;
+			if (!markers) {return;}
 
 			const r = image.$settings.clusterMarkerRadius ?? 24;
 			const coords = markers.map(m => {
@@ -57,8 +57,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const groups: number[][] = [];
 			for (let i = 0; i < markers.length; i++) {
 				for (let j = i + 1; j < markers.length; j++) {
-					if (markers[j].tags?.includes('no-cluster')) continue;
-					if (Math.abs(coords[j][0] - coords[i][0]) >= r || Math.abs(coords[j][1] - coords[i][1]) >= r) continue;
+					if (markers[j].tags?.includes('no-cluster')) {continue;}
+					if (Math.abs(coords[j][0] - coords[i][0]) >= r || Math.abs(coords[j][1] - coords[i][1]) >= r) {continue;}
 					const existing = groups.find(g => g.includes(i) || g.includes(j));
 					if (existing) { existing.push(i, j); }
 					else { groups.push([i, j]); }
@@ -68,7 +68,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			// Deduplicate & sort each group
 			const clusters = groups.map(g => [...new Set(g)].sort((a, b) => a - b));
 			const overlapped = new Set<number>();
-			for (const g of clusters) for (const i of g) overlapped.add(i);
+			for (const g of clusters) {for (const i of g) overlapped.add(i);}
 
 			// Toggle overlapped class on individual markers
 			for (let i = 0; i < markers.length; i++) {
@@ -80,11 +80,11 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const clusterIds = new Set(clusters.map(g => g.join(',')));
 			for (const el of this.querySelectorAll(':scope > micrio-marker.cluster')) {
 				const id = el.getAttribute('data-marker-id');
-				if (id && !clusterIds.has(id)) el.remove();
+				if (id && !clusterIds.has(id)) {el.remove();}
 			}
 			for (const g of clusters) {
 				const id = g.join(',');
-				if (this.querySelector(`:scope > micrio-marker.cluster[data-marker-id="${CSS.escape(id)}"]`)) continue;
+				if (this.querySelector(`:scope > micrio-marker.cluster[data-marker-id="${CSS.escape(id)}"]`)) {continue;}
 				const cx = g.reduce((s, i) => s + markers[i].x, 0) / g.length;
 				const cy = g.reduce((s, i) => s + markers[i].y, 0) / g.length;
 				const minX = Math.min(...g.map(i => markers[i].view ? markers[i].view![0] : markers[i].x));
@@ -124,18 +124,18 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			for (const el of this.querySelectorAll(':scope > micrio-embed[data-marker-id]')) {
 				const id = el.getAttribute('data-marker-id');
-				if (!id || !expected.has(id)) el.remove();
+				if (!id || !expected.has(id)) {el.remove();}
 			}
 
 			const before = this.querySelector(':scope > micrio-marker, :scope > micrio-waypoint');
 			for (const m of areas) {
-				if (this.querySelector(`:scope > micrio-embed[data-marker-id="${CSS.escape(m.id)}"]`)) continue;
+				if (this.querySelector(`:scope > micrio-embed[data-marker-id="${CSS.escape(m.id)}"]`)) {continue;}
 				const el = createElement('micrio-embed', {
 					attrs: { 'data-marker-id': m.id },
 					setProps: { embed: m.clickableArea!, marker: m, image }
 				});
-				if (before) this.insertBefore(el, before);
-				else this.appendChild(el);
+				if (before) {this.insertBefore(el, before);}
+				else {this.appendChild(el);}
 			}
 		};
 
@@ -155,7 +155,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				const links = micrio.spaceData.links.filter((l: any) => l[0] == image.id || l[1] == image.id);
 				const linkIds = new Set(links.map((l: any) => l[0] == image.id ? l[1] : l[0]));
 				for (const el of this.querySelectorAll(':scope > micrio-waypoint')) {
-					if (!linkIds.has(el.getAttribute('data-target-id'))) el.remove();
+					if (!linkIds.has(el.getAttribute('data-target-id'))) {el.remove();}
 				}
 				for (const l of links) {
 					const id = l[0] == image.id ? l[1] : l[0];
@@ -169,7 +169,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					}
 				}
 			} else {
-				for (const el of this.querySelectorAll(':scope > micrio-waypoint')) el.remove();
+				for (const el of this.querySelectorAll(':scope > micrio-waypoint')) {el.remove();}
 			}
 
 			if ($visible) {
@@ -178,8 +178,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 				for (const el of this.querySelectorAll(':scope > micrio-marker')) {
 					const id = el.getAttribute('data-marker-id');
-					if (!id || el.classList.contains('cluster')) continue;
-					if (!expected.has(id)) el.remove();
+					if (!id || el.classList.contains('cluster')) {continue;}
+					if (!expected.has(id)) {el.remove();}
 				}
 
 				for (const m of filtered) {
@@ -193,23 +193,23 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					}
 				}
 			} else {
-				for (const el of this.querySelectorAll(':scope > micrio-marker')) el.remove();
+				for (const el of this.querySelectorAll(':scope > micrio-marker')) {el.remove();}
 			}
 
 			if (inactive) {
-				for (const el of this.querySelectorAll(':scope > micrio-marker, :scope > micrio-waypoint')) el.remove();
+				for (const el of this.querySelectorAll(':scope > micrio-marker, :scope > micrio-waypoint')) {el.remove();}
 			}
 
 			updateClickableAreas($visible, !!inactive, $_lang);
 
-			if (image.$settings.clusterMarkers) updateOverlapped();
+			if (image.$settings.clusterMarkers) {updateOverlapped();}
 		};
 
 		this._watchLater(image.data, rebuild);
 		this._watchLater(switching, rebuild);
-		if (micrioState.tour) this._watchLater(micrioState.tour, rebuild);
-		if (focussed) this._watchLater(focussed, rebuild);
-		if (gridMarkersShown) this._watchLater(gridMarkersShown, rebuild);
+		if (micrioState.tour) {this._watchLater(micrioState.tour, rebuild);}
+		if (focussed) {this._watchLater(focussed, rebuild);}
+		if (gridMarkersShown) {this._watchLater(gridMarkersShown, rebuild);}
 		this._watchLazy(micrio._lang, rebuild);
 
 		if (image.$settings.clusterMarkers) {
@@ -248,7 +248,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 	/** @internal */
 	_setProps(props: Partial<MarkersProps>) {
-		if (props.image !== undefined) this.#props.image = props.image;
+		if (props.image !== undefined) {this.#props.image = props.image;}
 	}
 
 }

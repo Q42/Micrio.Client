@@ -29,7 +29,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	_onMount() {
 		const { tour } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio || !tour) return;
+		if (!micrio || !tour) {return;}
 
 		this.#stepInfo = (tour.stepInfo as Models.ImageData.MarkerTourStepInfo[]) || [];
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0);
@@ -40,10 +40,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		const mt = tour;
 		mt.next = () => this.#nextStep();
-		mt.prev = () => { if (this.#currentStep > 0) this.#openStep(this.#currentStep - 1); };
+		mt.prev = () => { if (this.#currentStep > 0) {this.#openStep(this.#currentStep - 1);} };
 
 		this._addCleanup(micrio.state.marker.subscribe(m => {
-			if (!m || !this.#stepInfo.length) return;
+			if (!m || !this.#stepInfo.length) {return;}
 			const id = typeof m == 'string' ? m : m.id;
 			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
 			if (idx >= 0 && idx !== this.#currentStep) {
@@ -58,7 +58,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	}
 
 	#build() {
-		if (this.#built) return;
+		if (this.#built) {return;}
 		this.#built = true;
 
 		if (this.#props.tour.printChapters) {
@@ -79,13 +79,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					});
 				}
 			});
-			if (ol.children.length) this.appendChild(ol);
+			if (ol.children.length) {this.appendChild(ol);}
 		}
 	}
 
 	async #openStep(idx: number) {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const close = () => {
 			micrio.state.tour.set(undefined);
@@ -94,7 +94,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		};
 
 		const si = this.#stepInfo[idx];
-		if (!si) return;
+		if (!si) {return;}
 
 		si.ended = false;
 		si.currentTime = 0;
@@ -104,7 +104,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		let startView: Models.Camera.View | undefined;
 		if (marker?.videoTour) {
 			const timeline = marker.videoTour.i18n?.[micrio.lang]?.timeline;
-			if (timeline?.length && timeline[0].start <= 1) startView = timeline[0].rect;
+			if (timeline?.length && timeline[0].start <= 1) {startView = timeline[0].rect;}
 		}
 
 		if (si.micrioId && micrio.$current?.id !== si.micrioId) {
@@ -144,7 +144,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			if (videoEl) {
 				videoEl.addEventListener('timeupdate', () => {
 					const si = this.#stepInfo[this.#currentStep];
-					if (si) si.currentTime = videoEl.currentTime;
+					if (si) {si.currentTime = videoEl.currentTime;}
 					this.#updateBars();
 				});
 			}
@@ -160,7 +160,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	#nextStep() {
 		const si = this.#stepInfo[this.#currentStep];
-		if (si) si.ended = true;
+		if (si) {si.ended = true;}
 
 		if (this.#currentStep < this.#stepInfo.length - 1) {
 			this.#openStep(this.#currentStep + 1);
@@ -177,10 +177,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	#injectBars() {
 		const wrapper = this.#mediaEl?.querySelector('micrio-media-controls > aside');
-		if (!wrapper) return;
+		if (!wrapper) {return;}
 
 		const holder = wrapper.querySelector('div');
-		if (!holder) return;
+		if (!holder) {return;}
 
 		holder.querySelector('[data-part="bars"]')?.remove();
 
@@ -200,8 +200,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	}
 
 	#goto(i: number) {
-		if (this.#noTimeScrub && i === this.#currentStep) return;
-		if (i === this.#currentStep) return;
+		if (this.#noTimeScrub && i === this.#currentStep) {return;}
+		if (i === this.#currentStep) {return;}
 		this.#stepInfo.forEach(s => s.ended = false);
 		this.#openStep(i);
 	}
@@ -210,15 +210,15 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		let total = 0;
 		for (let i = 0; i < this.#stepInfo.length; i++) {
 			const s = this.#stepInfo[i];
-			if (i < this.#currentStep || s.ended) total += s.duration;
+			if (i < this.#currentStep || s.ended) {total += s.duration;}
 			else if (i === this.#currentStep) { total += s.currentTime ?? 0; break; }
-			else break;
+			else {break;}
 		}
 		return total;
 	}
 
 	#updateBars() {
-		if (!this.#built) return;
+		if (!this.#built) {return;}
 		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('aside [data-part="bars"] > [data-part="bar"]') ?? [];
 		bars.forEach((bar, i) => {
 			const si = this.#stepInfo[i];
@@ -236,8 +236,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	/** @internal */
 	_setProps(props: Partial<SerialTourProps>) {
-		if (props.tour !== undefined) this.#props.tour = props.tour;
-		if (props.onended !== undefined) this.#props.onended = props.onended;
+		if (props.tour !== undefined) {this.#props.tour = props.tour;}
+		if (props.onended !== undefined) {this.#props.onended = props.onended;}
 	}
 
 }

@@ -43,8 +43,8 @@ import '$tour/serial-tour';
 
 /** Find a menu page by its ID within a nested menu structure */
 function findPage(id: string, p: Models.ImageData.Menu[] | undefined): Models.ImageData.Menu | undefined {
-	if (p) for (let i = 0, t; i < p.length; i++)
-		if (p[i].id == id || (t = findPage(id, p[i].children))) return t ?? p[i];
+	if (p) {for (let i = 0, t; i < p.length; i++)
+		if (p[i].id == id || (t = findPage(id, p[i].children))) return t ?? p[i];}
 	return undefined;
 }
 
@@ -93,16 +93,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const idx = this.#layers.indexOf(key);
 		for (let i = idx + 1; i < this.#layers.length; i++) {
 			const el = this.#elements.get(this.#layers[i]);
-			if (el?.isConnected) return el;
+			if (el?.isConnected) {return el;}
 		}
 		return null;
 	}
 
 	#place(key: string, el: HTMLElement) {
-		if (el.isConnected) return;
+		if (el.isConnected) {return;}
 		const before = this.#getBefore(key);
-		if (before) this.insertBefore(el, before);
-		else this.appendChild(el);
+		if (before) {this.insertBefore(el, before);}
+		else {this.appendChild(el);}
 	}
 
 	/** Whether a custom element tag is registered in this build; unregistered (excluded) elements must not render. */
@@ -120,7 +120,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}
 			existing?.remove();
 			const el = build();
-			if (!this.#isRegistered(el)) return;
+			if (!this.#isRegistered(el)) {return;}
 			this.#elements.set(key, el);
 			this.#place(key, el);
 		} else if (existing?.isConnected) {
@@ -132,7 +132,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const volume = writable<number>(get(micrio._isMuted) ? 0 : 1);
 		this._provide('volume', volume);
@@ -142,12 +142,12 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		this._provide('mediaPaused', writable<boolean>(false));
 
 		const onlyMarkers = micrio.getAttribute('data-ui') == 'markers';
-		if (onlyMarkers) this.#props.noHTML = true;
+		if (onlyMarkers) {this.#props.noHTML = true;}
 
 		const didStart: string[] = [];
 
 		this._addCleanup(micrio.current.subscribe(c => {
-			if (!c) return;
+			if (!c) {return;}
 			this.#info = c.$info;
 			this.#settings = undefined;
 
@@ -155,10 +155,10 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#settingsUnsub?.();
 			this.#settings = c._settings;
 			this.#settingsUnsub = this.#settings?.subscribe(() => this.#queueSync());
-			if (!this.#logoOrg && DataLoader._getOrganisation()?.logo) this.#logoOrg = DataLoader._getOrganisation();
+			if (!this.#logoOrg && DataLoader._getOrganisation()?.logo) {this.#logoOrg = DataLoader._getOrganisation();}
 			this.#queueSync();
 
-			if (this.isConnected) this.#sync();
+			if (this.isConnected) {this.#sync();}
 
 			const d = c.$data;
 			if (d && didStart.indexOf(c.id) < 0) {
@@ -166,20 +166,20 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				const autoStart = c.$settings.start;
 				if (autoStart) {
 					tick().then(tick).then(() => {
-						if (get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) return;
+						if (get(micrio.state.popover) || get(micrio.state.marker) || get(micrio.state.tour)) {return;}
 						switch (autoStart.type) {
 							case 'marker': c.state.marker.set(autoStart.id); break;
 							case 'markerTour': {
 								const mt = d.markerTours?.find(t => t.id == autoStart.id);
-								if (mt) micrio.state.tour.set(mt); break;
+								if (mt) {micrio.state.tour.set(mt);} break;
 							}
 							case 'tour': {
 								const vt = d.tours?.find(t => t.id == autoStart.id);
-								if (vt) micrio.state.tour.set(vt); break;
+								if (vt) {micrio.state.tour.set(vt);} break;
 							}
 							case 'page': {
 								const page = findPage(autoStart.id, d.pages);
-								if (page) micrio.state.popover.set({ contentPage: page, showLangSelect: true }); break;
+								if (page) {micrio.state.popover.set({ contentPage: page, showLangSelect: true });} break;
 							}
 						}
 					});
@@ -190,7 +190,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		this._addCleanup(micrio.state.tour.subscribe(() => {
 			const sub = this.#elements.get('subtitles') as MicrioElement;
-			if (sub) sub._setProps?.({ raised: !!get(micrio.state.tour) });
+			if (sub) {sub._setProps?.({ raised: !!get(micrio.state.tour) });}
 		}));
 
 		for (const store of [micrio._visible, micrio.state.popup, micrio.state.popover,
@@ -205,22 +205,22 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	/** @internal */
 	_setProps(props: Partial<MainProps>) {
 		Object.assign(this.#props, props);
-		if (this.isConnected) this.#queueSync();
+		if (this.isConnected) {this.#queueSync();}
 	}
 
 	#syncQueued = false;
 	#queueSync() {
-		if (this.#syncQueued) return;
+		if (this.#syncQueued) {return;}
 		this.#syncQueued = true;
 		Frame.request(() => {
 			this.#syncQueued = false;
-			if (this.isConnected) this.#sync();
+			if (this.isConnected) {this.#sync();}
 		});
 	}
 
 	#sync() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const $tour = get(micrio.state.tour);
 		const $marker = get(micrio.state.marker);
@@ -296,7 +296,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		);
 
 		const grid = micrio.$current?.grid;
-		if (grid) this.#place('grid', grid);
+		if (grid) {this.#place('grid', grid);}
 
 		this.#show('gallery', !!$settings?.omni || !!(micrio.gallery?._config?.type !== 'grid' && micrio.gallery), () =>
 			createElement('micrio-gallery', { setProps: { controller: micrio.gallery } }) as MicrioElement
@@ -357,7 +357,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		if (loadingProgress < 1) {
 			const el = this.#elements.get('progress') as MicrioElement<ProgressCircleProps> | undefined;
-			if (el?.isConnected) el._setProps?.({ progress: loadingProgress });
+			if (el?.isConnected) {el._setProps?.({ progress: loadingProgress });}
 		}
 	}
 
@@ -381,15 +381,15 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		if (enabled && this.#isRegistered(tag)) {
 			for (const img of filtered) {
-				if (map.has(img.id)) continue;
+				if (map.has(img.id)) {continue;}
 				const el = createElement(tag, { setProps: { image: img } }) as MicrioElement;
 				map.set(img.id, el);
 				const before = this.#getBefore(layerKey);
-				if (before) this.insertBefore(el, before);
-				else this.appendChild(el);
+				if (before) {this.insertBefore(el, before);}
+				else {this.appendChild(el);}
 			}
 		} else {
-			for (const el of map.values()) el.remove();
+			for (const el of map.values()) {el.remove();}
 			map.clear();
 		}
 

@@ -84,7 +84,7 @@ export default class Camera360 extends EngineCamera {
 		this.#limitX = x;
 		this.#limitY = y;
 		this._maxPerspective = Math.PI / 2;
-		if (y > 0) this._maxPerspective = Math.min(this._maxPerspective, this._maxPerspective * y * 1.5);
+		if (y > 0) {this._maxPerspective = Math.min(this._maxPerspective, this._maxPerspective * y * 1.5);}
 		this._setPerspective(this._perspective, true);
 	}
 
@@ -93,7 +93,7 @@ export default class Camera360 extends EngineCamera {
 		const c = this.canvas;
 		const el = c.el;
 
-		if (!noPersp) this._pMatrix._perspective(this._perspective, el._aspect, 0.0001, 20);
+		if (!noPersp) {this._pMatrix._perspective(this._perspective, el._aspect, 0.0001, 20);}
 		this.#inverseDirty = true;
 
 		const pM = this._pMatrix;
@@ -123,10 +123,10 @@ export default class Camera360 extends EngineCamera {
 
 		this._yaw = modPI(this._yaw);
 
-		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
-		if (this.#limitX > 0) this.#limitYaw();
+		if (c._coverLimit || this.#limitY > 0) {this.#limitPitch();}
+		if (this.#limitX > 0) {this.#limitYaw();}
 
-		if (duration === 0) c._kinetic.addStep(xPx * 2, yPx * 2);
+		if (duration === 0) {c._kinetic.addStep(xPx * 2, yPx * 2);}
 
 		this._update();
 		this._calculate3DFrustum();
@@ -147,7 +147,7 @@ export default class Camera360 extends EngineCamera {
 		const halfHorizontalFov = this._perspective / 2 * this.canvas.el._aspect;
 		const maxYaw = Math.PI * (this.#limitX > 0 ? this.#limitX : 1);
 
-		let y = this._yaw; while (y >= Math.PI) y -= Math.PI * 2; while (y < -Math.PI) y += Math.PI * 2;
+		let y = this._yaw; while (y >= Math.PI) {y -= Math.PI * 2;} while (y < -Math.PI) {y += Math.PI * 2;}
 		this._yaw = modPI(Math.min(Math.max(maxYaw, halfHorizontalFov) - halfHorizontalFov, Math.max(Math.min(-maxYaw, -halfHorizontalFov) + halfHorizontalFov, y)));
 	}
 
@@ -175,16 +175,16 @@ export default class Camera360 extends EngineCamera {
 			if (hasCursor) {
 				const after = this._getCoo(pxX, pxY);
 				let dx: number = beforeX - after.x;
-				if (dx > .5) dx -= 1;
-				if (dx < -.5) dx += 1;
+				if (dx > .5) {dx -= 1;}
+				if (dx < -.5) {dx += 1;}
 				const dy: number = beforeY - after.y;
 
 				this._yaw += dx * Math.PI * 2;
 				this._pitch += dy * Math.PI * this.#scaleY;
 
 				this._yaw = modPI(this._yaw);
-				if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
-				if (this.#limitX > 0) this.#limitYaw();
+				if (c._coverLimit || this.#limitY > 0) {this.#limitPitch();}
+				if (this.#limitX > 0) {this.#limitYaw();}
 
 				this._update();
 				this.#readScale();
@@ -202,8 +202,8 @@ export default class Camera360 extends EngineCamera {
 		if (!noLimit || c.is360) {
 			this._perspective = Math.min(this._maxPerspective, Math.max(this._minPerspective, this._perspective));
 		}
-		if (c._coverLimit || this.#limitY > 0) this.#limitPitch();
-		if (this.#limitX > 0) this.#limitYaw();
+		if (c._coverLimit || this.#limitY > 0) {this.#limitPitch();}
+		if (this.#limitX > 0) {this.#limitYaw();}
 		this._pMatrix._perspective(this._perspective, c.el._aspect, 0.0001, 20);
 		this.#readScale();
 		this._update(true);
@@ -226,15 +226,15 @@ export default class Camera360 extends EngineCamera {
 	_setDirection(yaw: number, pitch: number, persp: number = 0): void {
 		this._yaw = modPI(yaw - this._baseYaw);
 		this._pitch = pitch;
-		if (persp !== 0) this._setPerspective(persp, false);
-		else this._update();
+		if (persp !== 0) {this._setPerspective(persp, false);}
+		else {this._update();}
 		this._calculate3DFrustum();
 		this.#syncLogicalView();
 	}
 
 	/** Sets the camera orientation using viewport format (center + dimensions). @internal */
 	_setView(centerX?: number, centerY?: number, _width?: number, height?: number, opts?: { noLimit?: boolean; correctNorth?: boolean }): boolean {
-		if (centerX == null || centerY == null || height == null) return false;
+		if (centerX == null || centerY == null || height == null) {return false;}
 		const noLimit = opts?.noLimit ?? false;
 		const correctNorth = opts?.correctNorth ?? false;
 		const adjustedCenterX = correctNorth ? centerX + this._offX : centerX;
@@ -366,7 +366,7 @@ export default class Camera360 extends EngineCamera {
 		v.z = cY * Math.cos(x) * rad;
 		v.w = 1;
 
-		if (!abs) v._transformMat4(this._pMatrix);
+		if (!abs) {v._transformMat4(this._pMatrix);}
 
 		return v;
 	}
@@ -377,7 +377,7 @@ export default class Camera360 extends EngineCamera {
 	 * @internal
 	 */
 	_getMatrix(x: number, y: number, scale: number, radius: number, rX: number, rY: number, rZ: number, transY: number = 0, sX: number = 1, sY: number = 1, _noCorrectNorth: boolean = false): Mat4 {
-		if (isNaN(radius)) radius = this._radius;
+		if (isNaN(radius)) {radius = this._radius;}
 
 		const m = this.#iMatrix,
 			v = this._vec4,

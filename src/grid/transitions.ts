@@ -27,8 +27,8 @@ export function setupBehindTransition(
 		i.camera.setCoverLimit(isLim);
 		if(images.find(e => e.id == i.id)) {
 			i.camera.setArea([0,0,focussed?.id == i.id ? 1 : vW,1], {noDispatch: true, direct: true});
-			if(i != focussed) i.camera.setView([0,0,1,1]);
-			if(isDelayed && i.canvas) i.canvas.zIndex = images.length-(c++);
+			if(i != focussed) {i.camera.setView([0,0,1,1]);}
+			if(isDelayed && i.canvas) {i.canvas.zIndex = images.length-(c++);}
 		}
 	});
 	images.forEach(e => e.view = [0,0,1,1]);
@@ -41,16 +41,16 @@ export async function transition(
 	current: MicrioImage|undefined,
 	{duration, view, transition: trans, noViewAni, exitView, blur, cover}:Models.Grid.FocusOptions
 ) : Promise<Models.Grid.GridImage[]> {
-	if(!trans) return [{id: target.id, size: [1], view}];
+	if(!trans) {return [{id: target.id, size: [1], view}];}
 
 	if(trans == 'crossfade') {
 		target.camera.setArea([0,0,1,1]);
 		noViewAni = true;
 	}
 
-	if(view && noViewAni) target.camera.setView(view, {noRender: true, noLimit: true});
+	if(view && noViewAni) {target.camera.setView(view, {noRender: true, noLimit: true});}
 
-	if(!current || trans == 'crossfade') return [{id: target.id, size: [1], view}];
+	if(!current || trans == 'crossfade') {return [{id: target.id, size: [1], view}];}
 
 	const isSlwipe = trans.startsWith('slide') || trans.startsWith('swipe');
 	const isBehind = trans.startsWith('behind');
@@ -75,7 +75,7 @@ export async function transition(
 			{id: current.id, size: [1], view: [0,0,1,1]},
 			{id: target.id, size: [1], view: [0,0,1,1]}
 		];
-		if(trans == 'behind-left') between.reverse();
+		if(trans == 'behind-left') {between.reverse();}
 		await grid.set(between, {
 			noBlur: true,
 			horizontal: true,

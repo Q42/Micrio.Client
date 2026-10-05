@@ -82,7 +82,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	#createYoutubeIframe(src: string, p: MediaProps, figure: HTMLElement) {
 		const match = src.match(YOUTUBE_RE);
 		const videoId = match?.[5];
-		if (!videoId) return;
+		if (!videoId) {return;}
 		const iframe = createElement('iframe', {
 			props: {
 				src: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${p.autoplay ? 1 : 0}&playsinline=1&enablejsapi=1`,
@@ -100,7 +100,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 	#createVimeoIframe(src: string, p: MediaProps, figure: HTMLElement) {
 		const idMatch = src.match(/\/(\d+)/);
-		if (!idMatch?.[1]) return;
+		if (!idMatch?.[1]) {return;}
 		const vimeoId = idMatch[1];
 		const tokenPart = src.slice(src.indexOf(vimeoId) + vimeoId.length + 1);
 		const vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined;
@@ -154,8 +154,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 		const audio = this.#mediaEl as HTMLAudioElement;
 		audio.src = src;
-		if (p.autoplay) audio.setAttribute('autoplay', '');
-		else audio.removeAttribute('autoplay');
+		if (p.autoplay) {audio.setAttribute('autoplay', '');}
+		else {audio.removeAttribute('autoplay');}
 		audio.muted = !!p.muted;
 	}
 
@@ -193,7 +193,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			className: p.className,
 		});
 
-		if (p.is360) figure.style.setProperty('--micrio-background', 'transparent');
+		if (p.is360) {figure.style.setProperty('--micrio-background', 'transparent');}
 
 		if (isYoutube) {
 			this.#createYoutubeIframe(src!, p, figure);
@@ -228,7 +228,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					onSeeking: () => { this.#seeking = true; },
 					onSeeked: () => { this.#seeking = false; this.#updateControls(); },
 				});
-				(this.#adapter as YouTubePlayerAdapter).initialize().then(() => { if (p.autoplay) this.#adapter!.play(); }).catch(() => {});
+				(this.#adapter as YouTubePlayerAdapter).initialize().then(() => { if (p.autoplay) {this.#adapter!.play();} }).catch(() => {});
 			} else if (isVimeo) {
 				this.#adapter = new VimeoPlayerAdapter(this.#frame, { width: pWidth, height: pHeight }, {
 					onPlay: () => { this.#paused = false; this.#updateControls(); },
@@ -237,7 +237,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					onTimeUpdate: (t) => { this.#currentTime = t; this.#updateControls(); },
 					onDurationChange: (d) => { this.#duration = d; },
 				});
-				(this.#adapter as VimeoPlayerAdapter).initialize().then(() => { if (p.autoplay) this.#adapter!.play(); }).catch(() => {});
+				(this.#adapter as VimeoPlayerAdapter).initialize().then(() => { if (p.autoplay) {this.#adapter!.play();} }).catch(() => {});
 			}
 		}
 
@@ -269,16 +269,16 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					this.#ended = this.#tourInstance!.ended;
 					this.#tourInstance!.updateEvents(this.#currentTime);
 					this.#updateControls();
-					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
-					if (this.#ended && (!this.#mediaEl || this.#mediaEl.ended)) p.onended?.();
+					if (!p.secondary) {this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));}
+					if (this.#ended && (!this.#mediaEl || this.#mediaEl.ended)) {p.onended?.();}
 				}, 250);
 				this._addCleanup(() => clearInterval(ival));
-				if (p.autoplay) this.#tourInstance.play();
+				if (p.autoplay) {this.#tourInstance.play();}
 			} else {
 				const onEnded = () => this.#tourInstance?.pause();
 				this.#mediaEl?.addEventListener('ended', onEnded);
 				this._addCleanup(() => this.#mediaEl?.removeEventListener('ended', onEnded));
-				if (!this.#mediaEl?.paused) this.#tourInstance?.play();
+				if (!this.#mediaEl?.paused) {this.#tourInstance?.play();}
 			}
 		}
 
@@ -310,12 +310,12 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 						this.#tourInstance?.pause();
 					}
 				} else if (this.#tourInstance) {
-					if (this.#tourInstance.paused) this.#tourInstance.play();
-					else this.#tourInstance.pause();
+					if (this.#tourInstance.paused) {this.#tourInstance.play();}
+					else {this.#tourInstance.pause();}
 				} else if (this.#adapter) {
 					this.#adapter.isPaused().then(paused => {
-						if (paused) this.#adapter!.play();
-						else this.#adapter!.pause();
+						if (paused) {this.#adapter!.play();}
+						else {this.#adapter!.pause();}
 					});
 				}
 			};
@@ -358,7 +358,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				} else if (this.#adapter) {
 					// YouTube tick updates #currentTime already; Vimeo uses callbacks
 					return;
-				} else return;
+				} else {return;}
 				ctrlEl._setProps({
 					currentTime: this.#currentTime,
 					duration: this.#duration,
@@ -393,11 +393,11 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				const onTimeUpdate = () => {
 					update();
 					this.#tourInstance?.updateEvents(this.#currentTime);
-					if (!p.secondary) this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));
+					if (!p.secondary) {this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));}
 				};
 				const onEnded = () => {
 					update();
-					if (!isStandaloneVideoTour) p.onended?.();
+					if (!isStandaloneVideoTour) {p.onended?.();}
 				};
 				const onSeeking = () => { this.#seeking = true; update(); };
 				const onSeeked = () => { this.#seeking = false; update(); };
@@ -412,7 +412,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 				this._addCleanup(() => {
 					const el = this.#mediaEl;
-					if (!el) return;
+					if (!el) {return;}
 					el.removeEventListener('timeupdate', onTimeUpdate);
 					el.removeEventListener('loadedmetadata', update);
 					el.removeEventListener('play', update);
@@ -435,9 +435,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	}
 
 	#startAdapterTick() {
-		if (this.#adapterTick != null) return;
+		if (this.#adapterTick != null) {return;}
 		this.#adapterTick = setInterval(async () => {
-			if (!this.#adapter) return;
+			if (!this.#adapter) {return;}
 			this.#currentTime = await this.#adapter.getCurrentTime();
 			this.#duration = await this.#adapter.getDuration();
 			this.#tourInstance?.updateEvents(this.#currentTime);

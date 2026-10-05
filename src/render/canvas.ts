@@ -77,7 +77,7 @@ export class Canvas {
 		this.element.className = 'micrio';
 		this.onresize = this.onresize.bind(this); // Bind resize handler
 		// Use ResizeObserver if available for more reliable resize detection
-		if(self.ResizeObserver) this.#resizeObserver = new self.ResizeObserver(this.onresize);
+		if(self.ResizeObserver) {this.#resizeObserver = new self.ResizeObserver(this.onresize);}
 	}
 
 	/**
@@ -85,7 +85,7 @@ export class Canvas {
 	 * @internal
 	*/
 	place(){
-		if(this.element.parentNode) return; // Already placed
+		if(this.element.parentNode) {return;} // Already placed
 		// Insert after the preview image if it exists, otherwise as the first child
 		const img = this.#micrio.querySelector('img.preview');
 		this.#micrio.insertBefore(this.element,img ? img.nextSibling : this.#micrio.firstChild);
@@ -99,8 +99,8 @@ export class Canvas {
 		this.onresize(); // Initial resize calculation
 
 		// Attach appropriate listener
-		if(this.#resizeObserver) this.#resizeObserver.observe(this.element);
-		else window.addEventListener('resize', this.onresize);
+		if(this.#resizeObserver) {this.#resizeObserver.observe(this.element);}
+		else {window.addEventListener('resize', this.onresize);}
 	}
 
 	/**
@@ -108,8 +108,8 @@ export class Canvas {
 	 * @internal
 	*/
 	unhook() : void {
-		if(this.#resizeObserver) this.#resizeObserver.unobserve(this.element);
-		else window.removeEventListener('resize', this.onresize);
+		if(this.#resizeObserver) {this.#resizeObserver.unobserve(this.element);}
+		else {window.removeEventListener('resize', this.onresize);}
 	}
 
 	/**
@@ -125,7 +125,7 @@ export class Canvas {
 		let height = box.height;
 
 		// Exit if element has no dimensions (e.g., display: none)
-		if(!width || !height) return;
+		if(!width || !height) {return;}
 
 		// Account for potential CSS transforms affecting getBoundingClientRect
 		const st = self.getComputedStyle(this.element);
@@ -152,7 +152,7 @@ export class Canvas {
 
 		const c = this.viewport; // Reference to viewport state object
 		// Exit if dimensions and ratio haven't changed
-		if(c.width == width && c.height == height && c.ratio == ratio && c.scale == scale) return;
+		if(c.width == width && c.height == height && c.ratio == ratio && c.scale == scale) {return;}
 
 		// Update viewport state object
 		c.width = width;
@@ -178,11 +178,11 @@ export class Canvas {
 
 		// Dispatch 'resize' event with bounding box info
 		// (suppressed for the temporary context menu crop, which is not a real resize)
-		if (!this.#cropMode) this.#micrio.events._dispatch('resize', box);
+		if (!this.#cropMode) {this.#micrio.events._dispatch('resize', box);}
 
 		// Update mobile flag (only when it actually changed)
 		const mobile = /mobile/i.test(navigator.userAgent);
-		if (mobile !== this.$isMobile) this.isMobile.set(mobile);
+		if (mobile !== this.$isMobile) {this.isMobile.set(mobile);}
 	}
 
 	/**
@@ -214,7 +214,7 @@ export class Canvas {
 		// Unscaled CSS pixels, matching what the camera reports (and unaffected by any CSS
 		// transform on the micr-io element, which the viewport already compensates for)
 		const w = this.viewport.width, h = this.viewport.height;
-		if (!w || !h) return undefined;
+		if (!w || !h) {return undefined;}
 
 		// Image corners in canvas-element-relative CSS pixels
 		const [ix0, iy0] = camera.getXY(0, 0);
@@ -229,9 +229,9 @@ export class Canvas {
 		const width = right - left;
 		const height = bottom - top;
 
-		if (width < 1 || height < 1) return undefined; // Image not (or barely) on screen
+		if (width < 1 || height < 1) {return undefined;} // Image not (or barely) on screen
 		// Nothing to crop when the image already covers the whole canvas
-		if (left <= .5 && top <= .5 && right >= w - .5 && bottom >= h - .5) return undefined;
+		if (left <= .5 && top <= .5 && right >= w - .5 && bottom >= h - .5) {return undefined;}
 
 		// The image coordinates of this region, so the cropped rendering is identical
 		const [vx0, vy0] = camera.getCoo(left, top, false, true);
@@ -251,7 +251,7 @@ export class Canvas {
 	 * @internal
 	*/
 	_enterCropMode(crop:ImageCrop) : void {
-		if (this.#cropMode) return;
+		if (this.#cropMode) {return;}
 		const el = this.element;
 		const st = el.style;
 		this.#savedBox = {
@@ -275,15 +275,15 @@ export class Canvas {
 	 * @internal
 	*/
 	_exitCropMode() : void {
-		if (!this.#cropMode) return;
+		if (!this.#cropMode) {return;}
 		const saved = this.#savedBox;
 		const st = this.element.style;
 		this.#savedBox = undefined;
-		if (saved) for (const k of ['left', 'top', 'width', 'height'] as const) {
+		if (saved) {for (const k of ['left', 'top', 'width', 'height'] as const) {
 			const [value, priority] = saved[k];
 			if (value) st.setProperty(k, value, priority);
 			else st.removeProperty(k);
-		}
+		}}
 		this.#cropMode = false;
 		this.onresize();
 	}
@@ -295,7 +295,7 @@ export class Canvas {
 	 * @param height The vertical offset margin in pixels.
 	*/
 	setMargins(width:number, height:number) : void {
-		if (!this.#micrio._engine.ready) return;
+		if (!this.#micrio._engine.ready) {return;}
 		this.#micrio._engine.el._areaWidth = width;
 		this.#micrio._engine.el._areaHeight = height;
 	}

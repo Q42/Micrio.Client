@@ -21,7 +21,7 @@ class MicrioIconElement extends MicrioElement {
 
 	/** @internal */
 	_setProps(props: Record<string, any>): void {
-		if (props.name) this.#name = props.name as IconName;
+		if (props.name) {this.#name = props.name as IconName;}
 		if (this.isConnected) {
 			this.#readCustomHTML();
 			this.#render();
@@ -44,7 +44,7 @@ class MicrioIconElement extends MicrioElement {
 		if (!icon) { this.replaceChildren(); return; }
 
 		const svg = svgIcon(icon);
-		if (SMALL_NAMES.has(this.#name)) svg.classList.add('small');
+		if (SMALL_NAMES.has(this.#name)) {svg.classList.add('small');}
 		this.replaceChildren(svg);
 	}
 }

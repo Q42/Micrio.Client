@@ -32,7 +32,7 @@ const pending: Set<FrameCallback> = new Set();
 
 /** Requests the next frame if one is not already scheduled. @internal */
 function schedule(): void {
-	if (rafId) return;
+	if (rafId) {return;}
 	rafId = display.requestAnimationFrame(tick);
 }
 
@@ -53,7 +53,7 @@ function tick(now: number): void {
 		}
 	}
 
-	if (pending.size) schedule();
+	if (pending.size) {schedule();}
 }
 
 /**
@@ -103,10 +103,10 @@ export const Frame = {
 	_setDisplay(win: Window): void {
 		if (display !== win) {
 			// Re-home a scheduled frame so the previous display doesn't fire it.
-			if (rafId) display.cancelAnimationFrame(rafId);
+			if (rafId) {display.cancelAnimationFrame(rafId);}
 			display = win;
 			rafId = 0;
-			if (pending.size) schedule();
+			if (pending.size) {schedule();}
 		}
 	}
 };

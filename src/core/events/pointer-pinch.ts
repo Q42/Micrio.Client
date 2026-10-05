@@ -46,8 +46,8 @@ export class PointerPinchHandler {
 	 * @param e The PointerEvent.
 	 */
 	start = (e: PointerEvent): void => {
-		if (e.pointerType !== 'touch') return;
-		if (e.target != this.#ctx._el) return;
+		if (e.pointerType !== 'touch') {return;}
+		if (e.target != this.#ctx._el) {return;}
 
 		this.#ctx._activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -68,11 +68,11 @@ export class PointerPinchHandler {
 	 * @param e The PointerEvent.
 	 */
 	#move = (e: PointerEvent): void => {
-		if (e.pointerType !== 'touch') return;
-		if (!this.#ctx._activePointers.has(e.pointerId)) return;
+		if (e.pointerType !== 'touch') {return;}
+		if (!this.#ctx._activePointers.has(e.pointerId)) {return;}
 		this.#ctx._activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-		if (!this.#ctx._pinching || this.#ctx._activePointers.size !== 2) return;
+		if (!this.#ctx._pinching || this.#ctx._activePointers.size !== 2) {return;}
 
 		const pointers = Array.from(this.#ctx._activePointers.values());
 		const coo = { x: pointers[0].x, y: pointers[0].y };
@@ -87,7 +87,7 @@ export class PointerPinchHandler {
 	 * @param e The PointerEvent.
 	 */
 	end = (e: PointerEvent): void => {
-		if (e.pointerType !== 'touch') return;
+		if (e.pointerType !== 'touch') {return;}
 
 		this.#ctx._activePointers.delete(e.pointerId);
 

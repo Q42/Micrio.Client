@@ -36,7 +36,7 @@ function isCover(mesh: PaperMesh): mesh is CoverMesh {
 
 function findPaperMesh(meshes: PaperMesh[]): PaperMesh | null {
 	for (const m of meshes) {
-		if (!isCover(m)) return m;
+		if (!isCover(m)) {return m;}
 	}
 	return null;
 }
@@ -83,7 +83,7 @@ export function dispatchSolve(
 	pageCount: number,
 	pageThickness: number,
 ): void {
-	if (!ready) return;
+	if (!ready) {return;}
 
 	activeIndices.sort((a, b) => a - b);
 
@@ -117,7 +117,7 @@ export function dispatchSolve(
 	for (let s = 0; s < substeps; s++) {
 		for (const pi of activeIndices) {
 			const m = meshes[pi];
-			if (isCover(m)) continue;
+			if (isCover(m)) {continue;}
 
 			const lam = pageLambdas[pi];
 			const pf = pi < pageFloors.length ? pageFloors[pi] : 0;

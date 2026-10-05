@@ -43,7 +43,7 @@ function interpolateMesh(
 	withNormals: boolean,
 	region?: TexRegion | null,
 ): MeshSample | null {
-	if (u < 0 || u > 1 || v < 0 || v > 1) return null;
+	if (u < 0 || u > 1 || v < 0 || v > 1) {return null;}
 
 	const isCover = mesh instanceof CoverMesh;
 	const vertexBase = isCover && side === 1 ? VERTEX_COUNT : 0;
@@ -163,7 +163,7 @@ function interpolateMesh(
  */
 export function uvToWorldPosition(mesh: PaperMesh, u: number, v: number, side: 0 | 1, region?: TexRegion | null): UvWorldResult | null {
 	const s = interpolateMesh(mesh, u, v, side, true, region);
-	if (!s) return null;
+	if (!s) {return null;}
 
 	const len = Math.sqrt(s._nx * s._nx + s._ny * s._ny + s._nz * s._nz) || 1;
 	return {
@@ -180,7 +180,7 @@ export function uvToWorldPosition(mesh: PaperMesh, u: number, v: number, side: 0
  */
 export function sampleMeshPosition(mesh: PaperMesh, u: number, v: number, side: 0 | 1, region?: TexRegion | null): Vec3 | null {
 	const s = interpolateMesh(mesh, u, v, side, false, region);
-	if (!s) return null;
+	if (!s) {return null;}
 	return new Vec3(s._wx, s._wy, s._wz);
 }
 
@@ -199,7 +199,7 @@ export function projectWorldToScreen(
 	const clipX = m[0] * point._x + m[4] * point._y + m[8] * point._z + m[12];
 	const clipY = m[1] * point._x + m[5] * point._y + m[9] * point._z + m[13];
 	const clipW = m[3] * point._x + m[7] * point._y + m[11] * point._z + m[15];
-	if (clipW <= 0) return null;
+	if (clipW <= 0) {return null;}
 
 	const ndcX = clipX / clipW;
 	const ndcY = clipY / clipW;

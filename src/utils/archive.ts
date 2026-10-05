@@ -36,7 +36,7 @@ class Archive {
 	 * @returns Promise that resolves when the archive is loaded and parsed.
 	 */
 	async load(path:string, id: string, p?:(n:number)=>void) : Promise<void> {
-		if(this.#data.has(id)) return; // Already loaded
+		if(this.#data.has(id)) {return;} // Already loaded
 
 		const baseId = id.replace(/^.*\//,'').split('.')[0]; // Extract base ID (folder or image)
 		const isOmni = /\/base$/.test(id); // Is it an Omni base package?
@@ -48,20 +48,20 @@ class Archive {
 			xhr.responseType = 'arraybuffer'; // Expect binary data
 			// Progress handler
 			xhr.onprogress = e => {
-				if(!size) size = Number(xhr.getResponseHeader('Content-Length')); // Get total size once headers are available
+				if(!size) {size = Number(xhr.getResponseHeader('Content-Length'));} // Get total size once headers are available
 				p?.(Math.min(1, e.loaded / size)); // Report progress (clamped 0-1)
 			};
 			// Load handler
 			xhr.onload = () => {
 				if(xhr.readyState === 4 && xhr.status === 200) { p?.(1); ok(xhr.response); } // Success
-				else err(); // Error
+				else {err();} // Error
 			};
 			xhr.onerror = err; // Network error
 			xhr.open('GET', path+id+(isBin ? '.bin' : '.mdp')); // Construct URL
 			xhr.send();
 		}) as ArrayBuffer|undefined; // TODO: Improve error handling, maybe reject promise?
 
-		if(!data) return; // Exit if load failed
+		if(!data) {return;} // Exit if load failed
 
 		this.#data.set(id, data); // Store loaded ArrayBuffer
 
@@ -74,7 +74,7 @@ class Archive {
 		// Parse the archive data, reading headers and file sizes
 		while(i<data.byteLength) {
 			// Ensure there's enough data left for a header
-			if (i + hSize > data.byteLength) break;
+			if (i + hSize > data.byteLength) {break;}
 			const h = this.#parseHeader(new Uint8Array(data, i, hSize)); // Parse header
 			// If header is valid (name and size > 0), add entry to the database
 			if(h.name && h.size > 0) {
@@ -125,7 +125,7 @@ class Archive {
 	 */
 	get = <T>(u: string) : Promise<T> => new Promise((ok, err) => { // Added err callback
 		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
-		if(!i || !this.#data.has(i[0])) return err(new Error('Could not get blob: '+u)); // Throw error if not found
+		if(!i || !this.#data.has(i[0])) {return err(new Error('Could not get blob: '+u));} // Throw error if not found
 		const fr = new FileReader();
 		fr.onload = () => ok(JSON.parse(fr.result as string) as T); // Parse JSON and resolve
 		// Create a Blob from the specific byte range in the archive ArrayBuffer
@@ -142,7 +142,7 @@ class Archive {
 	 */
 	_getImage = async (u: string) : Promise<TextureBitmap> => {
 		const i = this.db.get(u);
-		if(!i || !this.#data.has(i[0])) throw new Error('Could not get blob: '+u);
+		if(!i || !this.#data.has(i[0])) {throw new Error('Could not get blob: '+u);}
 		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
 		return self.createImageBitmap(blob);
 	}
@@ -156,7 +156,7 @@ class Archive {
 	 */
 	_getImageById = async (imageId: string): Promise<TextureBitmap> => {
 		const fullPath = this.imageKeys.get(imageId);
-		if (!fullPath) throw new Error(`No image found in archive for ID: ${imageId}`);
+		if (!fullPath) {throw new Error(`No image found in archive for ID: ${imageId}`);}
 		return this._getImage(fullPath);
 	}
 }

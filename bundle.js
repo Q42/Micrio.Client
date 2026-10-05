@@ -7,7 +7,7 @@ const buildDir = './public/build/';
 
 const book3dFile = './public/micrio-book3d.js';
 const hasBook3d = fs.existsSync(book3dFile);
-if(hasBook3d) console.log(`Including optional module: ${book3dFile}`);
+if(hasBook3d) {console.log(`Including optional module: ${book3dFile}`);}
 
 /** Deduplicate repeated classname hash selectors in CSS */
 function dedupeCssSelectors(cssContent) {
@@ -145,8 +145,8 @@ function parseDeclareModules(input) {
 
 		if (insideModule) {
 			for (const ch of line) {
-				if (ch === '{') braceDepth++;
-				if (ch === '}') braceDepth--;
+				if (ch === '{') {braceDepth++;}
+				if (ch === '}') {braceDepth--;}
 			}
 
 			if (braceDepth <= 0) {
@@ -170,8 +170,8 @@ function bundleDts(modules, internalNames) {
 	function inlineModule(name, extraIndent) {
 		extraIndent = extraIndent || 0;
 
-		if (inlining.has(name)) return '';
-		if (inlinedModules.has(name)) return '';
+		if (inlining.has(name)) {return '';}
+		if (inlinedModules.has(name)) {return '';}
 		inlining.add(name);
 
 		const content = modules.get(name);
@@ -267,15 +267,15 @@ function bundleDts(modules, internalNames) {
 
 	const processed = [];
 	for (const name of internalNames) {
-		if (name === 'types/models' || name === 'types/models/index') continue;
-		if (inlinedModules.has(name)) continue;
+		if (name === 'types/models' || name === 'types/models/index') {continue;}
+		if (inlinedModules.has(name)) {continue;}
 		const content = inlineModule(name, 0);
 		if (content) {
 			processed.push(content);
 		}
 	}
 
-	if (modelsContent) processed.unshift(modelsContent);
+	if (modelsContent) {processed.unshift(modelsContent);}
 
 	return `declare module '@micrio/client' {\n${processed.join('\n\n')}\n}`;
 }

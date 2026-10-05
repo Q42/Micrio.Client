@@ -60,7 +60,7 @@ export default abstract class EngineCamera {
 			const dX = this.#prevCenterX - cX;
 			const dY = this.#prevCenterY - cY;
 			this._handlePinchMove(delta, dX, dY, cX, cY, el, c);
-		} else c._ani.stop();
+		} else {c._ani.stop();}
 
 		this.#prevCenterX = cX;
 		this.#prevCenterY = cY;
@@ -107,10 +107,10 @@ export default abstract class EngineCamera {
 	 * @returns Animation duration in ms (0 if set immediately).
 	 */
 	setCoo(x: number, y: number, scale: number, dur: number = 0, speed: number = 0, limit: boolean = false, fn: Bicubic = easeInOut): number {
-		if (this._handleSetCooInit(x, y, scale)) return 0;
+		if (this._handleSetCooInit(x, y, scale)) {return 0;}
 
 		const c = this.canvas;
-		if (scale === 0) scale = c._getScale();
+		if (scale === 0) {scale = c._getScale();}
 		scale = this._clampSetCooScale(scale);
 		c._kinetic.stop();
 

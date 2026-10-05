@@ -42,12 +42,12 @@ export default class Kinetic {
 	 */
 	addStep(pX: number, pY: number): void {
 		const t = this.#canvas.main.now;
-		if (this.#endTime) return;
-		if (this.#startTime === 0) this.#startTime = t;
+		if (this.#endTime) {return;}
+		if (this.#startTime === 0) {this.#startTime = t;}
 
 		const dt = t - this.#prevTime;
 		const fact: number = this.#prevTime > 0 && dt > 0 ? 16.67 / dt : 1;
-		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) this.#lastInteraction = t;
+		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) {this.#lastInteraction = t;}
 
 		const elasticity = this.#canvas.main._dragElasticity;
 
@@ -58,7 +58,7 @@ export default class Kinetic {
 
 	/** Starts the kinetic movement phase (called when user stops dragging). */
 	start(): void {
-		if (this.#canvas.camera._isUnderZoom()) return;
+		if (this.#canvas.camera._isUnderZoom()) {return;}
 		this.started = true;
 	}
 
@@ -83,7 +83,7 @@ export default class Kinetic {
 		const t = this.#canvas.main.now;
 		const webgl = this.#canvas._camera360;
 		const cam = this.#canvas.camera;
-		if (!this.started || this.#startTime === 0) return 1;
+		if (!this.started || this.#startTime === 0) {return 1;}
 
 		if (this.#endTime === 0) {
 			this.#endTime = t;
@@ -100,8 +100,8 @@ export default class Kinetic {
 		}
 
 		let v = Math.sqrt(this.#velocityX * this.#velocityX + this.#velocityY * this.#velocityY);
-		if (this.#canvas.is360) webgl._rotate(this.#velocityX, this.#velocityY);
-		else cam._pan(this.#velocityX, this.#velocityY, 0, false, false, true);
+		if (this.#canvas.is360) {webgl._rotate(this.#velocityX, this.#velocityY);}
+		else {cam._pan(this.#velocityX, this.#velocityY, 0, false, false, true);}
 
 		if (v <= 0.01) {
 			v = 0;

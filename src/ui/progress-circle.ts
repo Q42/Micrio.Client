@@ -47,11 +47,11 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 	/** @internal */
 	_setProps(props: Partial<ProgressCircleProps>) {
 		Object.assign(this.#props, props);
-		if (this.isConnected) this.#update();
+		if (this.isConnected) {this.#update();}
 	}
 
 	#update() {
-		if (!this.#progressCircle) return;
+		if (!this.#progressCircle) {return;}
 		const p = this.#props.progress ?? 0;
 		const offset = CIRC * (1 - p);
 		this.#progressCircle.setAttribute('stroke-dashoffset', `${offset}px`);

@@ -48,7 +48,7 @@ export class IdleState {
 	/** Enables or disables the idle state manager. Disabling immediately pauses the timer. */
 	set enabled(v: boolean) {
 		this._enabled = v;
-		if (!v) this.pause();
+		if (!v) {this.pause();}
 	}
 
 	/** Resets the idle timer and removes the data-idle attribute if present. */
@@ -94,7 +94,7 @@ export class IdleState {
 
 	#schedule() {
 		clearTimeout(this.to);
-		if (!this._enabled) return;
+		if (!this._enabled) {return;}
 		this.to = window.setTimeout(() => {
 			if (!this.o.shouldIdle()) {
 				this.#schedule();

@@ -30,7 +30,7 @@ const queue: ItemArray[] = [];
 const promises: Map<number, ItemArray> = new Map;
 
 function ensureWorkers() {
-	if (workersReady) return;
+	if (workersReady) {return;}
 	workersReady = true;
 	for (let i = 0; i < numThreads; i++) {
 		const w = new Worker(workerBlob);
@@ -48,9 +48,9 @@ export const loadTexture = (src: string): Promise<TextureBitmap> => new Promise(
 });
 
 function getNext() {
-	if (!queue.length) return;
+	if (!queue.length) {return;}
 	const i = running.indexOf(false);
-	if (i < 0) return;
+	if (i < 0) {return;}
 
 	running[i] = true;
 	busyCount++;
@@ -61,12 +61,12 @@ function getNext() {
 
 function onmessage(idx: number, buffer?: ImageBitmap, error?: string, errorType?: string) {
 	const item = promises.get(idx);
-	if (!item) return;
+	if (!item) {return;}
 	promises.delete(idx);
 
 	if (error) {
 		item[2](error);
-		if (errorType !== 'AbortError') console.error(`[Micrio Texture] Error loading ${item[0]}: ${errorType} - ${error}`);
+		if (errorType !== 'AbortError') {console.error(`[Micrio Texture] Error loading ${item[0]}: ${errorType} - ${error}`);}
 	} else if (buffer) {
 		item[1](buffer);
 	} else {
@@ -92,6 +92,6 @@ export function abortDownload(src: string): void {
 	for (const [k, v] of promises.entries()) {
 		if (v[0] === src) { threadIdx = k; break; }
 	}
-	if (threadIdx < 0) return;
+	if (threadIdx < 0) {return;}
 	loaders[threadIdx]?.postMessage('abort');
 }

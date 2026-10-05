@@ -93,12 +93,12 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	_onMount() {
 		const { embed, image, marker } = this.#props;
 		this.#micrio = this._getMicrio()!;
-		if (!this.#micrio || !embed || !image) return;
+		if (!this.#micrio || !embed || !image) {return;}
 
 		this.#info = image.$info!;
-		if (!this.#info) return;
+		if (!this.#info) {return;}
 
-		if (!embed.uuid) embed.uuid = randomUUID();
+		if (!embed.uuid) {embed.uuid = randomUUID();}
 
 		this.#is360 = image._is360;
 		this.#autoplay = embed.video?.autoplay ?? true;
@@ -114,7 +114,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				this.#container?.classList.toggle('inactive', inactive);
 			};
 			this._watch(focused, updateInactive);
-			if (markersShown) this._watch(markersShown, updateInactive);
+			if (markersShown) {this._watch(markersShown, updateInactive);}
 		}
 
 		this.#glImage = image._embeds.find(i => i.uuid == embed.uuid || i.$info?.title == embed.uuid) as MicrioImage | undefined;
@@ -164,7 +164,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		this.#readPlacement();
 
-		if (this.#hasHtml) this.#buildDOM(embed, marker);
+		if (this.#hasHtml) {this.#buildDOM(embed, marker);}
 
 		if (this.#isBook3d && this.#hasHtml) {
 			// Set the print delay once, at placement time: keep the embed hidden
@@ -177,7 +177,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			}, 500);
 		}
 
-		if (this.#printGL) this.#printInsideGL();
+		if (this.#printGL) {this.#printInsideGL();}
 
 		const camOwner = image.camera?.image;
 		const moveSrc = camOwner && camOwner !== image ? camOwner : image;
@@ -219,7 +219,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const isGLEmbeddedMicrio = this.#printGL && embed.micrioId && embed.width;
 		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1;
 
-		if(this.#isBook3d) return;
+		if(this.#isBook3d) {return;}
 
 		let scale = this.#w * (this.#info.width / (embed.width ?? 100) / (!this.#printGL ? this.#s : embed.width ? this.#w : 1) * (this.#is360 ? Math.PI / 2 : 1));
 
@@ -240,9 +240,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		if (embed.video) {
 			if (embed.video.width > embed.video.height)
-				this.#widthCapped = Math.min(embed.video.width, this.#w * this.#info.width, 2048);
+				{this.#widthCapped = Math.min(embed.video.width, this.#w * this.#info.width, 2048);}
 			else
-				this.#widthCapped = Math.min(embed.video.height, this.#h * this.#info.height, 2048) / (embed.video.height / embed.video.width);
+				{this.#widthCapped = Math.min(embed.video.height, this.#h * this.#info.height, 2048) / (embed.video.height / embed.video.width);}
 		}
 	}
 
@@ -332,7 +332,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			vid.loop = false;
 			const onEnded = () => {
 				this.#loopDelayTo = setTimeout(() => {
-					if (!this.#paused) vid.play().catch(() => {});
+					if (!this.#paused) {vid.play().catch(() => {});}
 				}, video.loopAfter! * 1000);
 			};
 			vid.addEventListener('ended', onEnded);
@@ -361,14 +361,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#printInsideGL() {
 		const { embed, image } = this.#props;
-		if (!image) return;
+		if (!image) {return;}
 
 		const opacity = embed.hideWhenPaused ? 0.01 : (embed.opacity ?? 1);
 
 		if (this.#glImage && (this.#glImage._placed || image._embeds.includes(this.#glImage))) {
 			this.#glImage.camera.setArea(embed.area as Models.Camera.View);
 			this.#glImage.camera.setRotation(this.#rotX, this.#rotY, this.#rotZ);
-			if (this.#glImage._placed) image.engine._fadeImage(this.#glImage, opacity);
+			if (this.#glImage._placed) {image.engine._fadeImage(this.#glImage, opacity);}
 		} else {
 			this.#glImage = image.addEmbed({
 				...embed,
@@ -393,7 +393,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#applyPosition() {
 		const { embed, image } = this.#props;
-		if (!this.#isBook3d && !image?.engine.ready) return;
+		if (!this.#isBook3d && !image?.engine.ready) {return;}
 
 		const vp = this.#viewport;
 		const view = this.#view;
@@ -443,8 +443,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				const opacity = embed.opacity !== undefined && embed.opacity !== 1 ? embed.opacity : 1;
 				if (opacity !== this.#lastOpacity) {
 					this.#lastOpacity = opacity;
-					if (opacity !== 1) s.setProperty('--opacity', `${opacity}`);
-					else s.removeProperty('--opacity');
+					if (opacity !== 1) {s.setProperty('--opacity', `${opacity}`);}
+					else {s.removeProperty('--opacity');}
 				}
 			}
 		}
@@ -454,11 +454,11 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			const vid = this.#glVideo?._vid;
 			if (vid) {
 				if (this.#paused) {
-					if (!vid.paused) vid.pause();
+					if (!vid.paused) {vid.pause();}
 				} else {
 					if (vid.paused) {
 						this.#glVideo!._cancelTimeout();
-						if (image?.$settings?.embedRestartWhenShown) vid.currentTime = 0;
+						if (image?.$settings?.embedRestartWhenShown) {vid.currentTime = 0;}
 						vid.play();
 					}
 				}
@@ -469,16 +469,16 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#syncVideoPause(image: MicrioImage) {
 		const v = this.#videoEl;
-		if (!v) return;
+		if (!v) {return;}
 		if (this.#figureEl && this.#pausedUI !== this.#paused) {
 			this.#pausedUI = this.#paused;
 			this.#figureEl.classList.toggle('paused', this.#paused);
 		}
 		if (this.#paused) {
-			if (!v.paused) v.pause();
+			if (!v.paused) {v.pause();}
 		} else {
 			if (v.paused) {
-				if (image?.$settings?.embedRestartWhenShown) v.currentTime = 0;
+				if (image?.$settings?.embedRestartWhenShown) {v.currentTime = 0;}
 				v.play().catch(() => {});
 			}
 		}
@@ -487,7 +487,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#shouldPause(): boolean {
 		const { embed } = this.#props;
 		const vid = embed.video;
-		if (!vid?.pauseWhenSmallerThan && !vid?.pauseWhenLargerThan) return !this.#autoplay;
+		if (!vid?.pauseWhenSmallerThan && !vid?.pauseWhenLargerThan) {return !this.#autoplay;}
 		const vp = this.#micrio.canvas.viewport;
 		const screenSize = this.#scaleVal
 			? Math.max(
@@ -504,7 +504,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#click() {
 		const { embed, image, marker } = this.#props;
 		const markerId = embed.clickAction == 'markerId' ? embed.clickTarget : marker?.id;
-		if (!markerId || !image || this.#href) return;
+		if (!markerId || !image || this.#href) {return;}
 		image.state.marker.set(markerId);
 	}
 

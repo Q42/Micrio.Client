@@ -39,30 +39,30 @@ export function createElement(tag: string, options: ElementOptions = {}): HTMLEl
 		: document.createElement(tag);
 
 	if (options.className) {
-		if (el instanceof SVGElement) el.setAttribute('class', options.className);
-		else el.className = options.className;
+		if (el instanceof SVGElement) {el.setAttribute('class', options.className);}
+		else {el.className = options.className;}
 	}
-	if (options.textContent !== undefined) el.textContent = options.textContent;
-	if (options.innerHTML !== undefined) el.innerHTML = options.innerHTML;
-	if (options.id) el.id = options.id;
-	if (options.dataset) for (const [k, v] of Object.entries(options.dataset)) el.dataset[k] = v;
-	if (options.attrs) for (const [k, v] of Object.entries(options.attrs)) {
+	if (options.textContent !== undefined) {el.textContent = options.textContent;}
+	if (options.innerHTML !== undefined) {el.innerHTML = options.innerHTML;}
+	if (options.id) {el.id = options.id;}
+	if (options.dataset) {for (const [k, v] of Object.entries(options.dataset)) el.dataset[k] = v;}
+	if (options.attrs) {for (const [k, v] of Object.entries(options.attrs)) {
 		if (v == null) el.removeAttribute(k);
 		else el.setAttribute(k, v);
-	}
+	}}
 	if (options.style) {
-		if (typeof options.style === 'string') el.style.cssText = options.style;
-		else Object.assign(el.style, options.style);
+		if (typeof options.style === 'string') {el.style.cssText = options.style;}
+		else {Object.assign(el.style, options.style);}
 	}
-	if (options.props) Object.assign(el, options.props);
-	if (options.events) for (const [type, handler] of Object.entries(options.events)) el.addEventListener(type, handler);
-	if (options.children) for (const child of options.children) {
+	if (options.props) {Object.assign(el, options.props);}
+	if (options.events) {for (const [type, handler] of Object.entries(options.events)) el.addEventListener(type, handler);}
+	if (options.children) {for (const child of options.children) {
 		if (child == null || child === false) continue;
 		if (typeof child === 'string' || typeof child === 'number') el.append(String(child));
 		else el.append(child);
-	}
-	if (options.setProps) (el as any)._setProps?.(options.setProps);
-	if (options.parent) options.parent.appendChild(el);
+	}}
+	if (options.setProps) {(el as any)._setProps?.(options.setProps);}
+	if (options.parent) {options.parent.appendChild(el);}
 
 	return el;
 }
@@ -117,15 +117,15 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 
 /** Dynamically loads an external script, ensuring it is loaded only once per session. @internal */
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) => new Promise<void>((ok, err) => {
-	if (targetObj || loaded.has(src)) return ok();
+	if (targetObj || loaded.has(src)) {return ok();}
 	const script = document.createElement('script');
 	const onload = () => { loaded.add(src); ok(); };
-	if (cbFunc) (self as unknown as Record<string, () => void>)[cbFunc] = onload;
-	else script.onload = onload;
+	if (cbFunc) {(self as unknown as Record<string, () => void>)[cbFunc] = onload;}
+	else {script.onload = onload;}
 	script.onerror = () => err?.();
 	script.async = true;
 	script.defer = true;
-	if (self.crossOriginIsolated) script.crossOrigin = 'anonymous';
+	if (self.crossOriginIsolated) {script.crossOrigin = 'anonymous';}
 	script.src = src;
 	document.head.appendChild(script);
 });

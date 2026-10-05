@@ -22,11 +22,11 @@ export function getSpaceVector(micrio: HTMLMicrioElement, targetId: string): {
 	vN: Models.Spaces.DirectionVector; // Normalized difference vector
 } | undefined {
 	const image = micrio.$current;
-	if (!image) return; // Exit if no current image
+	if (!image) {return;} // Exit if no current image
 	// Find source and target image data in spaceData
 	const source = micrio.spaceData?.images.find(i => i.id == image.id);
 	const target = micrio.spaceData?.images.find(i => i.id == targetId);
-	if (!source || !target) return; // Exit if source or target not found
+	if (!source || !target) {return;} // Exit if source or target not found
 
 	// Calculate difference vector [dx, dy, dz]
 	const v: Models.Spaces.DirectionVector = [
@@ -37,7 +37,7 @@ export function getSpaceVector(micrio: HTMLMicrioElement, targetId: string): {
 
 	// Normalize the vector
 	let len = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	if (len > 0) len = 1 / Math.sqrt(len);
+	if (len > 0) {len = 1 / Math.sqrt(len);}
 	const vN: Models.Spaces.DirectionVector = [v[0] * len, v[1] * len, v[2] * len];
 
 	// Calculate direction angle (yaw) and horizontal distance factor

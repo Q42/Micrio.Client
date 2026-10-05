@@ -21,7 +21,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		this.#detailsEl = createElement('details', {
 			parent: this
@@ -35,9 +35,9 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 
 	/** @internal */
 	_setProps(props: Partial<DetailsProps>) {
-		if (props.info !== undefined) this.#props.info = props.info;
-		if (props.data !== undefined) this.#props.data = props.data;
-		if (this.isConnected) this.#render();
+		if (props.info !== undefined) {this.#props.info = props.info;}
+		if (props.data !== undefined) {this.#props.data = props.data;}
+		if (this.isConnected) {this.#render();}
 	}
 
 	#render() {
@@ -46,14 +46,14 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 		const micrio = this._getMicrio();
 		const $_lang = micrio ? get(micrio._lang) : undefined;
 		const $current = micrio ? get(micrio.current) : undefined;
-		if (!info || !$_lang || !$current) return;
+		if (!info || !$_lang || !$current) {return;}
 
 		const cData = data?.i18n ? data.i18n[$_lang] : data as unknown as Models.ImageData.ImageDetailsCultureData;
 		const title = cData?.title ?? info.title ?? '';
 		const description = cData?.description;
 		const link = cData?.sourceUrl;
 		const copyright = cData?.copyright;
-		if (!title && !description && !link) return;
+		if (!title && !description && !link) {return;}
 
 		this.#detailsEl.replaceChildren();
 

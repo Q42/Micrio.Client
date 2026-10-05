@@ -54,9 +54,9 @@ export class GestureHandler {
 	 */
 	#handle = (e: Event): void => {
 		const gesture = this.#getGestureEvent(e);
-		if (!gesture) return;
+		if (!gesture) {return;}
 		if (gesture.scale === 1) { this.#ctx._pScale = 1; return; }
-		if (e.target instanceof Element && e.target != this.#ctx._el) return;
+		if (e.target instanceof Element && e.target != this.#ctx._el) {return;}
 
 		const diff = this.#ctx._pScale - gesture.scale;
 		this.#ctx._pScale = gesture.scale;

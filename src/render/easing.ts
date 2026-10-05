@@ -83,7 +83,7 @@ export class Bicubic {
 		while (i < 5) {
 			current_x = this.#bezier_x(t) - x;
 			derivative_x = this.#bezier_x_der(t);
-			if (derivative_x === 0) break;
+			if (derivative_x === 0) {break;}
 			t = t - current_x / derivative_x;
 			i++;
 		}

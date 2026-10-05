@@ -18,7 +18,7 @@ export class DragHandler {
 
 	/** Hooks pointer down/move/up listeners for drag panning. */
 	hook(): void {
-		if (this.#hooked) return;
+		if (this.#hooked) {return;}
 		this.#hooked = true;
 
 		this.#ctx._micrio.addEventListener('dragstart', cancelPrevent as EventListener);
@@ -29,7 +29,7 @@ export class DragHandler {
 
 	/** Unhooks pointer listeners for drag panning. */
 	unhook(): void {
-		if (!this.#hooked) return;
+		if (!this.#hooked) {return;}
 		this.#hooked = false;
 
 		this.#ctx._micrio.removeEventListener('pointerdown', this.start, eventPassive);
@@ -45,27 +45,27 @@ export class DragHandler {
 	 */
 	start = (e: PointerEvent, force = false, keepAnimations = false): void => {
 		// Ignore non-primary buttons or touch events if twoFingerPan is enabled
-		if (e.button != 0 || (e.pointerType == 'touch' && this.#ctx._twoFingerPan)) return;
+		if (e.button != 0 || (e.pointerType == 'touch' && this.#ctx._twoFingerPan)) {return;}
 
 		// Ignore if interaction didn't start on the canvas element (unless forced or target has scroll-through)
-		if (!force && e.target != this.#ctx._el && !(e.target instanceof Element && e.target.closest('[data-scroll-through]'))) return;
+		if (!force && e.target != this.#ctx._el && !(e.target instanceof Element && e.target.closest('[data-scroll-through]'))) {return;}
 
 		// Ignore if Omni object and shift key is pressed
-		if (this.#ctx._micrio.$current?._isOmni && e.shiftKey) return;
+		if (this.#ctx._micrio.$current?._isOmni && e.shiftKey) {return;}
 
 		// Don't start panning if we're pinching
-		if (this.#ctx._pinching) return;
+		if (this.#ctx._pinching) {return;}
 
 		// Handle potential conflicts with pinching
 		if (this.#ctx._panning) {
 			// If already panning and a second touch starts, stop panning to allow pinch
-			if (e instanceof TouchEvent && e.touches.length > 1) this.stop();
+			if (e instanceof TouchEvent && e.touches.length > 1) {this.stop();}
 			return;
 		}
 
 		// Determine the target image under the pointer
 		const img = this.#ctx._getImage({ x: e.clientX, y: e.clientY });
-		if (!img) return;
+		if (!img) {return;}
 
 		this.#ctx._panning = true;
 
@@ -79,7 +79,7 @@ export class DragHandler {
 
 		this.#ctx._micrio.setAttribute('data-panning', '');
 		img.canvas?._kinetic.stop();
-		if (!keepAnimations) img.camera.stop();
+		if (!keepAnimations) {img.camera.stop();}
 		this.#ctx._micrio._engine.render();
 		this.#ctx._dispatch('panstart');
 	}
@@ -117,7 +117,7 @@ export class DragHandler {
 	 * @param noDispatch If true, suppresses the 'panend' event.
 	 */
 	stop = (e?: PointerEvent, noKinetic = false, noDispatch = false): void => {
-		if (!this.#ctx._panning) return;
+		if (!this.#ctx._panning) {return;}
 
 		this.#ctx._panning = false;
 		this.#ctx._vars._drag._prev = undefined;
@@ -147,11 +147,11 @@ export class DragHandler {
 		this.#ctx._vars._drag._image = undefined;
 
 		// Dispatch 'panend' event unless suppressed
-		if (!noDispatch) this.#ctx._dispatch('panend', !e ? undefined : {
+		if (!noDispatch) {this.#ctx._dispatch('panend', !e ? undefined : {
 			'duration': performance.now() - this.#ctx._vars._drag._start[2],
 			'movedX': e.clientX - this.#ctx._vars._drag._start[0],
 			'movedY': e.clientY - this.#ctx._vars._drag._start[1]
-		});
+		});}
 	}
 
 	/**
@@ -161,9 +161,9 @@ export class DragHandler {
 	 * triggering kinetic motion or a regular `panend`.
 	 */
 	#cancel = (e: PointerEvent): void => {
-		if (!this.#ctx._panning) return;
+		if (!this.#ctx._panning) {return;}
 		// If a different pointer was the captured one, ignore.
-		if (this.#ctx._capturedPointerId !== undefined && e.pointerId !== this.#ctx._capturedPointerId) return;
+		if (this.#ctx._capturedPointerId !== undefined && e.pointerId !== this.#ctx._capturedPointerId) {return;}
 		this.stop(undefined, true, true);
 	}
 }

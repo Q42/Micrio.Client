@@ -77,7 +77,7 @@ export function addEdgeConstraint(
 	constrs: EdgeConstraint[],
 ): void {
 	const key = i < j ? `${i}-${j}` : `${j}-${i}`;
-	if (added.has(key)) return;
+	if (added.has(key)) {return;}
 	added.add(key);
 	const i3 = i * 3, j3 = j * 3;
 	const dx = restPositions[i3] - restPositions[j3];
@@ -95,10 +95,10 @@ export function addGridConstraints(
 	for (let r = 0; r < GRID_ROWS; r++) {
 		for (let c = 0; c < GRID_COLS; c++) {
 			const i = idx(c, r);
-			if (c + 1 < GRID_COLS) add(i, idx(c + 1, r));
-			if (r + 1 < GRID_ROWS) add(i, idx(c, r + 1));
-			if (c + 1 < GRID_COLS && r + 1 < GRID_ROWS) add(i, idx(c + 1, r + 1));
-			if (c - 1 >= 0 && r + 1 < GRID_ROWS) add(i, idx(c - 1, r + 1));
+			if (c + 1 < GRID_COLS) {add(i, idx(c + 1, r));}
+			if (r + 1 < GRID_ROWS) {add(i, idx(c, r + 1));}
+			if (c + 1 < GRID_COLS && r + 1 < GRID_ROWS) {add(i, idx(c + 1, r + 1));}
+			if (c - 1 >= 0 && r + 1 < GRID_ROWS) {add(i, idx(c - 1, r + 1));}
 		}
 	}
 }

@@ -10,9 +10,9 @@ export interface MicrioSplitLink {
 }
 
 export function parseSplitLink(raw?: string): MicrioSplitLink | undefined {
-	if (!raw) return;
+	if (!raw) {return;}
 	const parts = raw.split(',').map(s => s.trim());
-	if (!parts[0]) return;
+	if (!parts[0]) {return;}
 	return {
 		micrioId: parts[0],
 		markerId: parts[1] || undefined,
@@ -38,7 +38,7 @@ export function getSplitSecondary(primary: MicrioImage): MicrioImage | undefined
 
 export function isSplitSecondary(image: MicrioImage): boolean {
 	for (const s of splits.values()) {
-		if (s.secondary === image) return true;
+		if (s.secondary === image) {return true;}
 	}
 	return false;
 }
@@ -49,11 +49,11 @@ export async function openSplit(
 	link: MicrioSplitLink,
 	opts?: { isPassive?: boolean },
 ): Promise<void> {
-	if (splits.has(primary)) return;
-	if (primary._noImage || primary.grid || isSplitSecondary(primary)) return;
+	if (splits.has(primary)) {return;}
+	if (primary._noImage || primary.grid || isSplitSecondary(primary)) {return;}
 
 	const bundle = await DataLoader._getBundleImage(link.micrioId);
-	if (!bundle) return;
+	if (!bundle) {return;}
 	
 	const secondary = new MicrioImage(micrio._engine, bundle);
 	micrio._canvases.push(secondary);
@@ -61,7 +61,7 @@ export async function openSplit(
 
 	secondary._opacity = 0;
 
-	if (opts?.isPassive !== false) secondary._isPassiveSecondary = true;
+	if (opts?.isPassive !== false) {secondary._isPassiveSecondary = true;}
 
 	const portrait = micrio.canvas.viewport.portrait;
 	primary.camera.setArea(portrait ? [0, 0, 1, 0.5] : [0, 0, 0.5, 1]);
@@ -77,16 +77,16 @@ export async function openSplit(
 	if (opts?.isPassive !== false) {
 		unsub = primary.state.view.subscribe(v => {
 			if (v && !secondary.camera._aniDone)
-				secondary.camera.setView(v, { noLimit: true });
+				{secondary.camera.setView(v, { noLimit: true });}
 		});
 	}
 
 	let unsubData: Unsubscriber | null = null;
 	if (link.markerId) {
 		unsubData = secondary.data.subscribe(d => {
-			if (!d) return;
+			if (!d) {return;}
 			const m = d.markers?.find(m => m.id === link.markerId);
-			if (m?.view) secondary.camera.flyToView(m.view, { isJump: true });
+			if (m?.view) {secondary.camera.flyToView(m.view, { isJump: true });}
 			unsubData?.();
 		});
 	}
@@ -101,7 +101,7 @@ export function closeSplit(
 	opts?: { keepSecondaryCanvas?: boolean },
 ): void {
 	const state = splits.get(primary);
-	if (!state) return;
+	if (!state) {return;}
 	splits.delete(primary);
 
 	state.unsub?.();
@@ -121,5 +121,5 @@ export function closeSplit(
 }
 
 export function closeAllSplits(micrio: HTMLMicrioElement): void {
-	for (const p of [...splits.keys()]) closeSplit(micrio, p);
+	for (const p of [...splits.keys()]) {closeSplit(micrio, p);}
 }

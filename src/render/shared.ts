@@ -80,7 +80,7 @@ export class View {
 	/** Left edge of the view rectangle in image coordinates. */
 	get x0(): number {
 		let cx = this._centerX;
-		if (this.#canvas.is360) cx = mod1(cx);
+		if (this.#canvas.is360) {cx = mod1(cx);}
 		return this.#canvas.is360 ? mod1(cx - this.width / 2) : (cx - this.width / 2);
 	}
 	/** Top edge of the view rectangle in image coordinates. */
@@ -88,7 +88,7 @@ export class View {
 	/** Right edge of the view rectangle in image coordinates. */
 	get x1(): number {
 		let cx = this._centerX;
-		if (this.#canvas.is360) cx = mod1(cx);
+		if (this.#canvas.is360) {cx = mod1(cx);}
 		return this.#canvas.is360 ? mod1(cx + this.width / 2) : (cx + this.width / 2);
 	}
 	/** Bottom edge of the view rectangle in image coordinates. */
@@ -232,7 +232,7 @@ export class View {
 	/** @internal */
 	_correctAspectRatio(): void {
 		const c = this.#canvas;
-		if (c.is360) return;
+		if (c.is360) {return;}
 		const targetAspect = c._camera2d.cpw / c._camera2d.cph;
 		const currentAspect = this.width / this.height;
 		if (currentAspect > targetAspect) {
@@ -303,7 +303,7 @@ export class Viewport {
 	 */
 	set(w: number, h: number, l: number, t: number, r: number, s: number, p: boolean): boolean {
 		if (this.width === w * r && this.height === h * r && this.left === l && this.top === t &&
-			this.ratio === r && this.scale === s && this._isPortrait === p) return false;
+			this.ratio === r && this.scale === s && this._isPortrait === p) {return false;}
 		this.width = w * r;
 		this.height = h * r;
 		this.left = l * r;

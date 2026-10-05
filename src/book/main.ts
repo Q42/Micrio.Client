@@ -234,7 +234,7 @@ export class BookViewer {
 
 	goto(pageIdx: number): Promise<void> {
 		const idx = Math.max(0, Math.min(this.#pageCount - 1, pageIdx));
-		if (idx === this.#currentPage) return Promise.resolve();
+		if (idx === this.#currentPage) {return Promise.resolve();}
 
 		if (this.#gotoStep) {
 			Frame.cancel(this.#gotoStep);
@@ -249,7 +249,7 @@ export class BookViewer {
 			// before the viewer is ready, or the tab is backgrounded).
 			const fallback = setTimeout(() => {
 				const i = this.#gotoDone.indexOf(doneCb);
-				if (i >= 0) this.#gotoDone.splice(i, 1);
+				if (i >= 0) {this.#gotoDone.splice(i, 1);}
 				resolve();
 			}, 3000);
 			doneCb = (): void => {
@@ -320,13 +320,13 @@ export class BookViewer {
 	 */
 	isZoomedIn(): boolean {
 		const drawn = this.#lastDrawnImages;
-		if (drawn.length === 0) return false;
+		if (drawn.length === 0) {return false;}
 
 		// Any page of the current view (spread + mid-flip pages) that is missing
 		// from the drawn set is completely out of the viewport, so the spread can
 		// no longer fit — treat it as zoomed in.
 		const expected = this.#getDrawnImages();
-		if (expected.some(e => !drawn.some(d => d.id === e.id))) return true;
+		if (expected.some(e => !drawn.some(d => d.id === e.id))) {return true;}
 
 		return !drawn.every(img => {
 			const [u, v, w, h] = img.bounds;
@@ -336,7 +336,7 @@ export class BookViewer {
 
 	setLightingPreset(name: string): void {
 		const p = getPreset(name);
-		if (!p) return;
+		if (!p) {return;}
 		const params: Record<string, number> = {};
 		for (const param of p.params) {
 			params[param.key] = param.default;
@@ -370,10 +370,10 @@ export class BookViewer {
 		v: number,
 	): { x: number; y: number; pageIndex: number; side: 0 | 1; facing: boolean; obscured: boolean } | null {
 		const ctx = this.#resolveTextureContext(imageId, u, v);
-		if (!ctx) return null;
+		if (!ctx) {return null;}
 
 		const proj = this.#projectTextureToScreen(ctx.result._point);
-		if (!proj) return null;
+		if (!proj) {return null;}
 
 		const { facing, obscured } = this.#computeTextureVisibility(ctx.mesh, ctx.side, ctx.pageIndex, ctx.result, proj.screen);
 
@@ -446,10 +446,10 @@ export class BookViewer {
 		const pxW = width && width > 0 ? width : 1;
 
 		const ctx = this.#resolveTextureContext(imageId, x, y);
-		if (!ctx) return null;
+		if (!ctx) {return null;}
 
 		const proj = this.#projectTextureToScreen(ctx.result._point);
-		if (!proj) return null;
+		if (!proj) {return null;}
 
 		const { facing, obscured } = this.#computeTextureVisibility(ctx.mesh, ctx.side, ctx.pageIndex, ctx.result, proj.screen);
 
@@ -545,7 +545,7 @@ export class BookViewer {
 		// (relative to the screen center), m[15] = 1 (m[14] forced to 0), while
 		// the bottom row m[3]/m[7]/m[11] still carries the perspective divide.
 		const invW = 1 / out[15];
-		for (let i = 0; i < 16; i++) out[i] *= invW;
+		for (let i = 0; i < 16; i++) {out[i] *= invW;}
 		out[12] = screen.x - clientWidth * 0.5;
 		out[13] = screen.y - clientHeight * 0.5;
 		out[14] = 0;
@@ -559,19 +559,19 @@ export class BookViewer {
 	// ═══════════════════════════════════════════════════════════════
 
 	#resolveTextureContext(imageId: string, u: number, v: number): TextureContext | null {
-		if (this.#images.length === 0 || this.#meshes.length === 0) return null;
+		if (this.#images.length === 0 || this.#meshes.length === 0) {return null;}
 
 		const imageIndex = this.#images.findIndex(img => img.id === imageId);
-		if (imageIndex < 0) return null;
+		if (imageIndex < 0) {return null;}
 
 		// Front texture of page p is images[2p], back texture is images[2p + 1].
 		const pageIndex = Math.floor(imageIndex / 2);
 		const side = (imageIndex % 2) as 0 | 1;
-		if (pageIndex >= this.#meshes.length) return null;
+		if (pageIndex >= this.#meshes.length) {return null;}
 
 		const mesh = this.#meshes[pageIndex];
 		const result = uvToWorldPosition(mesh, u, v, side, this.#textureRegion(pageIndex, side));
-		if (!result) return null;
+		if (!result) {return null;}
 
 		return { pageIndex, side, mesh, result };
 	}
@@ -582,7 +582,7 @@ export class BookViewer {
 	 * aspects are disabled).
 	 */
 	#textureRegion(pageIndex: number, side: 0 | 1): TexRegion | null {
-		if (!this.#useIndividualAspects) return null;
+		if (!this.#useIndividualAspects) {return null;}
 		const arr = side === 0 ? this.#frontRegions : this.#backRegions;
 		const o = pageIndex * 4;
 		return { uMin: arr[o], vMin: arr[o + 1], fU: arr[o + 2], fV: arr[o + 3] };
@@ -592,7 +592,7 @@ export class BookViewer {
 		const canvas = this.#renderer._getCanvas();
 		const clientWidth = canvas.clientWidth;
 		const clientHeight = canvas.clientHeight;
-		if (clientWidth <= 0 || clientHeight <= 0) return null;
+		if (clientWidth <= 0 || clientHeight <= 0) {return null;}
 
 		const view = this.#camera._getViewMatrix();
 		const aspect = canvas.width / Math.max(1, canvas.height);
@@ -611,10 +611,10 @@ export class BookViewer {
 		point: Vec3,
 	): { screen: { x: number; y: number }; perspective: Mat4; viewProj: Mat4; clientWidth: number; clientHeight: number } | null {
 		const vp = this.#getViewProjection();
-		if (!vp) return null;
+		if (!vp) {return null;}
 
 		const screen = projectWorldToScreen(point, vp.viewProj, vp.clientWidth, vp.clientHeight);
-		if (!screen) return null;
+		if (!screen) {return null;}
 
 		return { screen, ...vp };
 	}
@@ -654,7 +654,7 @@ export class BookViewer {
 				const tTarget = (world._x - origin._x) * direction._x
 					+ (world._y - origin._y) * direction._y
 					+ (world._z - origin._z) * direction._z;
-				if (hit._t < tTarget - 1e-4) obscured = true;
+				if (hit._t < tTarget - 1e-4) {obscured = true;}
 			}
 		}
 
@@ -809,8 +809,8 @@ export class BookViewer {
 		for (let i = 0; i < this.#pageCount; i++) {
 			const w = this.#pageWidths[i];
 			const h = w * this.#pageAspects[i];
-			if (w > maxWidth) maxWidth = w;
-			if (h > maxHeight) maxHeight = h;
+			if (w > maxWidth) {maxWidth = w;}
+			if (h > maxHeight) {maxHeight = h;}
 		}
 
 		this.#meshes.length = 0;
@@ -843,12 +843,12 @@ export class BookViewer {
 		for (const m of this.#meshes) {
 			const pos = m._restPositions;
 			for (let i = 0; i < pos.length; i += 3) {
-				if (pos[i] < minX) minX = pos[i];
-				if (pos[i] > maxX) maxX = pos[i];
-				if (pos[i + 1] < minY) minY = pos[i + 1];
-				if (pos[i + 1] > maxY) maxY = pos[i + 1];
-				if (pos[i + 2] < minZ) minZ = pos[i + 2];
-				if (pos[i + 2] > maxZ) maxZ = pos[i + 2];
+				if (pos[i] < minX) {minX = pos[i];}
+				if (pos[i] > maxX) {maxX = pos[i];}
+				if (pos[i + 1] < minY) {minY = pos[i + 1];}
+				if (pos[i + 1] > maxY) {maxY = pos[i + 1];}
+				if (pos[i + 2] < minZ) {minZ = pos[i + 2];}
+				if (pos[i + 2] > maxZ) {maxZ = pos[i + 2];}
 			}
 		}
 		const absX = Math.max(Math.abs(minX), Math.abs(maxX));
@@ -932,7 +932,7 @@ export class BookViewer {
 	}
 
 	_hookImageBook3d(img: MicrioImage) {
-		if(img.camera._getMatrixOverride) return;
+		if(img.camera._getMatrixOverride) {return;}
 		if(!img.camera._getXYDirectOverride) {
 			const cooArr = new Float64Array(5);
 			img.camera._getXYDirectOverride = (_x:number, _y:number) => {
@@ -973,7 +973,7 @@ export class BookViewer {
 
 		this.#inputHandler._onPageDragStart = (startX, startY) => {
 			const result = this.#raycastForDrag(startX, startY);
-			if (!result) return;
+			if (!result) {return;}
 
 			const canvas = this.#renderer._getCanvas();
 			const rect = canvas.getBoundingClientRect();
@@ -995,7 +995,7 @@ export class BookViewer {
 		};
 
 		this.#inputHandler._onPageDragMove = (x, y) => {
-			if (this.#dragPageIndex < 0 || this.#dragPageIndex >= this.#pageCount) return;
+			if (this.#dragPageIndex < 0 || this.#dragPageIndex >= this.#pageCount) {return;}
 
 			const canvas = this.#renderer._getCanvas();
 			const rect = canvas.getBoundingClientRect();
@@ -1083,11 +1083,11 @@ export class BookViewer {
 		const sx = screenX - rect.left;
 		const sy = screenY - rect.top;
 
-		if (rect.width <= 0 || rect.height <= 0) return null;
+		if (rect.width <= 0 || rect.height <= 0) {return null;}
 
 		const { origin, direction } = this.#camera._getPickRay(sx, sy);
 		const hit = rayIntersectMeshes(this.#meshes, origin, direction);
-		if (!hit) return null;
+		if (!hit) {return null;}
 
 		const mesh = this.#meshes[hit._meshIndex];
 		const grabRow = 0.5 - hit._point._z / mesh._paperHeight;
@@ -1106,11 +1106,11 @@ export class BookViewer {
 		const sx = screenX - rect.left;
 		const sy = screenY - rect.top;
 
-		if (rect.width <= 0 || rect.height <= 0) return null;
+		if (rect.width <= 0 || rect.height <= 0) {return null;}
 
 		const { origin, direction } = this.#camera._getPickRay(sx, sy);
 		const hit = rayIntersectMeshes(this.#meshes, origin, direction);
-		if (!hit) return null;
+		if (!hit) {return null;}
 
 		const mesh = this.#meshes[hit._meshIndex];
 		const grabRow = 0.5 - hit._point._z / mesh._paperHeight;
@@ -1166,12 +1166,12 @@ export class BookViewer {
 
 	#getDrawnImageBounds(): DrawnImage[] {
 		const vp = this.#getViewProjection();
-		if (!vp) return [];
+		if (!vp) {return [];}
 
 		const out: DrawnImage[] = [];
 		for (const d of this.#getDrawnImages()) {
 			const bounds = this.#computeImageVisibleUv(d.pageIndex, d.side, vp);
-			if (bounds) out.push({ id: d.id, bounds });
+			if (bounds) {out.push({ id: d.id, bounds });}
 		}
 		return out;
 	}
@@ -1195,27 +1195,27 @@ export class BookViewer {
 			for (let j = 0; j <= steps; j++) {
 				const v = j / steps;
 				const point = sampleMeshPosition(mesh, u, v, side, region);
-				if (!point) continue;
+				if (!point) {continue;}
 				const screen = projectWorldToScreen(point, vp.viewProj, vp.clientWidth, vp.clientHeight);
-				if (!screen) continue;
-				if (screen.x < 0 || screen.x > vp.clientWidth || screen.y < 0 || screen.y > vp.clientHeight) continue;
-				if (u < minU) minU = u;
-				if (v < minV) minV = v;
-				if (u > maxU) maxU = u;
-				if (v > maxV) maxV = v;
+				if (!screen) {continue;}
+				if (screen.x < 0 || screen.x > vp.clientWidth || screen.y < 0 || screen.y > vp.clientHeight) {continue;}
+				if (u < minU) {minU = u;}
+				if (v < minV) {minV = v;}
+				if (u > maxU) {maxU = u;}
+				if (v > maxV) {maxV = v;}
 				visible++;
 			}
 		}
 
-		if (visible === 0) return null;
+		if (visible === 0) {return null;}
 		return [minU, minV, maxU - minU, maxV - minV];
 	}
 
 	#frame = (time: number): void => {
-		if (this.#lastTime === 0) this.#lastTime = time;
+		if (this.#lastTime === 0) {this.#lastTime = time;}
 		let dt = (time - this.#lastTime) / 1000;
-		if (dt <= 0) dt = 1 / 60;
-		if (dt > 1 / 30) dt = 1 / 30;
+		if (dt <= 0) {dt = 1 / 60;}
+		if (dt > 1 / 30) {dt = 1 / 30;}
 		this.#lastTime = time;
 
 		this.#flipAnimator._update(dt, this.#meshes, this.#selectedPage, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
@@ -1252,7 +1252,7 @@ export class BookViewer {
 		if (this.#gotoDone.length && !this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
 			const cbs = this.#gotoDone;
 			this.#gotoDone = [];
-			for (const cb of cbs) cb();
+			for (const cb of cbs) {cb();}
 		}
 		if (this.#iiifManager) {
 			this.#iiifManager._onFrame(time, this.#currentPage, this.#camera._radius);
@@ -1283,18 +1283,18 @@ export class BookViewer {
 	};
 
 	#syncSolverResults(): void {
-		if (!isSolverReady()) return;
+		if (!isSolverReady()) {return;}
 
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			if (!this.#activePageSet.has(pi)) continue;
-			if (this.#flipAnimator._isPageAnimating(pi) || this.#flipAnimator._isPageDragging(pi)) continue;
+			if (!this.#activePageSet.has(pi)) {continue;}
+			if (this.#flipAnimator._isPageAnimating(pi) || this.#flipAnimator._isPageDragging(pi)) {continue;}
 
 			const pos = this.#meshes[pi]._positions;
 			const prev = this.#prevPositions[pi];
 			let maxDelta = 0;
 			for (let i = 0; i < pos.length; i++) {
 				const d = Math.abs(pos[i] - prev[i]);
-				if (d > maxDelta) maxDelta = d;
+				if (d > maxDelta) {maxDelta = d;}
 			}
 			if (maxDelta < DELTA_IDLE_THRESHOLD) {
 				this.#activePageSet.delete(pi);
@@ -1311,7 +1311,7 @@ export class BookViewer {
 	#snapPageSpineY(pi: number, targetY: number, updateRenderer: boolean, updatePrev: boolean): void {
 		const m = this.#meshes[pi];
 		const delta = targetY - m._positions[1];
-		if (Math.abs(delta) <= 0.0001) return;
+		if (Math.abs(delta) <= 0.0001) {return;}
 
 		applySpineDelta(m._positions, delta);
 
@@ -1326,9 +1326,9 @@ export class BookViewer {
 
 	#snapPassivePages(progress: Float32Array, weightFactor: number): void {
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			if (this.#activePageSet.has(pi)) continue;
-			if (this.#flipAnimator._isPageAnimating(pi)) continue;
-			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) continue;
+			if (this.#activePageSet.has(pi)) {continue;}
+			if (this.#flipAnimator._isPageAnimating(pi)) {continue;}
+			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) {continue;}
 
 			const targetY = computePageSpineY(pi, progress[pi], weightFactor, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
 			this.#snapPageSpineY(pi, targetY, true, true);
@@ -1336,7 +1336,7 @@ export class BookViewer {
 	}
 
 	#snapHardCovers(progress: Float32Array, weightFactor: number): void {
-		if (!this.#hardCover) return;
+		if (!this.#hardCover) {return;}
 		for (const pi of this.#flipAnimator._hardCoverPages) {
 			const targetY = computePageSpineY(pi, progress[pi], weightFactor, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
 			this.#snapPageSpineY(pi, targetY, true, false);
@@ -1345,10 +1345,10 @@ export class BookViewer {
 
 	#snapSettlingActivePages(progress: Float32Array, weightFactor: number): void {
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			if (!this.#activePageSet.has(pi)) continue;
-			if (this.#flipAnimator._isPageAnimating(pi)) continue;
-			if (this.#flipAnimator._isPageDragging(pi)) continue;
-			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) continue;
+			if (!this.#activePageSet.has(pi)) {continue;}
+			if (this.#flipAnimator._isPageAnimating(pi)) {continue;}
+			if (this.#flipAnimator._isPageDragging(pi)) {continue;}
+			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) {continue;}
 
 			const targetY = computePageSpineY(pi, progress[pi], weightFactor, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
 			this.#snapPageSpineY(pi, targetY, false, true);
@@ -1356,10 +1356,10 @@ export class BookViewer {
 	}
 
 	#dispatchPhysics(dt: number, progress: Float32Array): void {
-		if (!isSolverReady()) return;
+		if (!isSolverReady()) {return;}
 
 		const activeIndices = Array.from(this.#activePageSet);
-		if (activeIndices.length === 0) return;
+		if (activeIndices.length === 0) {return;}
 
 		const subDt = dt / this.#solverSettings._substeps;
 		this.#solverSettings._damping = this.#gotoDamping ? GOTO_DAMPING : DAMPING;

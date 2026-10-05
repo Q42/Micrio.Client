@@ -95,7 +95,7 @@ export class OrbitCamera {
 	}
 
 	#getEffectivePhi(): number {
-		if (this._freeCamMode) return this._phi;
+		if (this._freeCamMode) {return this._phi;}
 		const linearT = (this._radius - this._minRadius) / (this._maxRadius - this._minRadius);
 		const zoomT = linearT * linearT;
 		const minPhi = (1 - zoomT) * Math.PI / 3;
@@ -209,12 +209,12 @@ export class OrbitCamera {
 	}
 
 	_pan(deltaX: number, deltaY: number): void {
-		if (!this._canPanLeft && !this._canPanRight && !this._canPanUp && !this._canPanDown) return;
+		if (!this._canPanLeft && !this._canPanRight && !this._canPanUp && !this._canPanDown) {return;}
 
-		if (deltaX > 0 && !this._canPanRight) deltaX = 0;
-		if (deltaX < 0 && !this._canPanLeft)  deltaX = 0;
-		if (deltaY > 0 && !this._canPanDown)  deltaY = 0;
-		if (deltaY < 0 && !this._canPanUp)    deltaY = 0;
+		if (deltaX > 0 && !this._canPanRight) {deltaX = 0;}
+		if (deltaX < 0 && !this._canPanLeft)  {deltaX = 0;}
+		if (deltaY > 0 && !this._canPanDown)  {deltaY = 0;}
+		if (deltaY < 0 && !this._canPanUp)    {deltaY = 0;}
 
 		const eye = this._getEye();
 		const forward = new Vec3(
@@ -245,7 +245,7 @@ export class OrbitCamera {
 	}
 
 	#clampTargetTarget(): void {
-		if (!this._panBoundsMin || !this._panBoundsMax) return;
+		if (!this._panBoundsMin || !this._panBoundsMax) {return;}
 		this.#targetTarget._x = Math.max(this._panBoundsMin._x, Math.min(this._panBoundsMax._x, this.#targetTarget._x));
 		this.#targetTarget._y = Math.max(this._panBoundsMin._y, Math.min(this._panBoundsMax._y, this.#targetTarget._y));
 		this.#targetTarget._z = Math.max(this._panBoundsMin._z, Math.min(this._panBoundsMax._z, this.#targetTarget._z));
@@ -344,8 +344,8 @@ export class OrbitCamera {
 		} else {
 			const loRight = (screenBounds.minX - margin) * px;
 			const hiRight = (screenBounds.maxX - (viewportW - margin)) * px;
-			if (ttRight < loRight) dRight = loRight - ttRight;
-			else if (ttRight > hiRight) dRight = hiRight - ttRight;
+			if (ttRight < loRight) {dRight = loRight - ttRight;}
+			else if (ttRight > hiRight) {dRight = hiRight - ttRight;}
 		}
 
 		if (boxH <= limitH) {
@@ -353,12 +353,12 @@ export class OrbitCamera {
 		} else {
 			const loUp = (viewportH - margin - screenBounds.maxY) * px;
 			const hiUp = (margin - screenBounds.minY) * px;
-			if (ttUp < loUp) dUp = loUp - ttUp;
-			else if (ttUp > hiUp) dUp = hiUp - ttUp;
+			if (ttUp < loUp) {dUp = loUp - ttUp;}
+			else if (ttUp > hiUp) {dUp = hiUp - ttUp;}
 		}
 
-		if (dRight !== 0) this.#targetTarget._add(new Vec3(right._x * dRight, right._y * dRight, right._z * dRight));
-		if (dUp !== 0) this.#targetTarget._add(new Vec3(up._x * dUp, up._y * dUp, up._z * dUp));
+		if (dRight !== 0) {this.#targetTarget._add(new Vec3(right._x * dRight, right._y * dRight, right._z * dRight));}
+		if (dUp !== 0) {this.#targetTarget._add(new Vec3(up._x * dUp, up._y * dUp, up._z * dUp));}
 		this.#clampTargetTarget();
 	}
 }

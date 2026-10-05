@@ -9,8 +9,8 @@ import '$ui/icon';
 const opened = writable<Models.ImageData.Menu | undefined>(undefined);
 let hooked = false;
 opened.subscribe(c => {
-	if (c) { if (!hooked) window.addEventListener('click', close); }
-	else { if (hooked) window.removeEventListener('click', close); }
+	if (c) { if (!hooked) {window.addEventListener('click', close);} }
+	else { if (hooked) {window.removeEventListener('click', close);} }
 	hooked = !!c;
 });
 /** Close the currently opened menu */
@@ -38,7 +38,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	_onMount() {
 		const { menu } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		const { _lang } = micrio;
 
 		if (menu.children?.length === 1 && !this.#getCData(menu, get(_lang))?.title) {
@@ -55,7 +55,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	#evalAction() {
 		const { menu, originalId } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		const { events, state: micrioState, _lang } = micrio;
 		const cultureData = this.#getCData(menu, get(_lang));
 		const menuWithExtras = menu as Models.ImageData.Menu & { content?: string; embedUrl?: string };
@@ -66,7 +66,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 			this.#action = menu.action as () => void;
 		} else if (menu.markerId) {
 			this.#action = () => {
-				if (originalId && micrio.$current?.id != originalId) micrio.open(originalId);
+				if (originalId && micrio.$current?.id != originalId) {micrio.open(originalId);}
 				micrio.$current?.state.marker.set(menu.markerId);
 			};
 		} else if ((cultureData?.content || cultureData?.embed || menu.image || menuWithExtras.content || menuWithExtras.embedUrl) ||
@@ -89,7 +89,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 
 	#isOpen(menu: Models.ImageData.Menu): boolean {
 		const $opened = get(opened);
-		if (!$opened) return false;
+		if (!$opened) {return false;}
 		const check = (m: Models.ImageData.Menu): boolean => m === $opened || !!m.children?.some(check);
 		return check(menu);
 	}
@@ -97,7 +97,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	#render() {
 		const { menu, originalId, onclose } = this.#props;
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		const $_lang = get(micrio._lang);
 		const cultureData = this.#getCData(menu, $_lang);
 
@@ -106,12 +106,12 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 		this.setAttribute('data-title', cultureData?.title?.toLowerCase() ?? '');
 
 		const click = (e: Event) => {
-			if (!menu.link) e.preventDefault();
-			if (menu.children?.length) e.stopPropagation();
+			if (!menu.link) {e.preventDefault();}
+			if (menu.children?.length) {e.stopPropagation();}
 			this.#action?.();
 			const doClose = !!(this.#isOpen(menu) || this.#action || menu.link);
 			opened.set(doClose ? undefined : menu);
-			if (this.#action || menu.link) onclose?.();
+			if (this.#action || menu.link) {onclose?.();}
 		};
 
 		if (menu.link) {
@@ -131,7 +131,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 				],
 				parent: this
 			});
-			if (menu.linkTargetBlank) a.target = '_blank';
+			if (menu.linkTargetBlank) {a.target = '_blank';}
 		} else {
 			const strongChildren: (Node | string | number | false | null | undefined)[] = [
 				cultureData?.title ?? '(Unknown)'

@@ -22,11 +22,11 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 		const el = this.element;
 		const cb = this.callbacks;
 
-		if (cb.onPlay) el.addEventListener('play', cb.onPlay);
-		if (cb.onPause) el.addEventListener('pause', cb.onPause);
-		if (cb.onEnded) el.addEventListener('ended', cb.onEnded);
-		if (cb.onSeeking) el.addEventListener('seeking', cb.onSeeking);
-		if (cb.onSeeked) el.addEventListener('seeked', cb.onSeeked);
+		if (cb.onPlay) {el.addEventListener('play', cb.onPlay);}
+		if (cb.onPause) {el.addEventListener('pause', cb.onPause);}
+		if (cb.onEnded) {el.addEventListener('ended', cb.onEnded);}
+		if (cb.onSeeking) {el.addEventListener('seeking', cb.onSeeking);}
+		if (cb.onSeeked) {el.addEventListener('seeked', cb.onSeeked);}
 		if (cb.onTimeUpdate) {
 			el.addEventListener('timeupdate', () => cb.onTimeUpdate?.(el.currentTime));
 		}
@@ -86,10 +86,10 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 		const cb = this.callbacks;
 
 		// Remove all event listeners
-		if (cb.onPlay) el.removeEventListener('play', cb.onPlay);
-		if (cb.onPause) el.removeEventListener('pause', cb.onPause);
-		if (cb.onEnded) el.removeEventListener('ended', cb.onEnded);
-		if (cb.onSeeking) el.removeEventListener('seeking', cb.onSeeking);
-		if (cb.onSeeked) el.removeEventListener('seeked', cb.onSeeked);
+		if (cb.onPlay) {el.removeEventListener('play', cb.onPlay);}
+		if (cb.onPause) {el.removeEventListener('pause', cb.onPause);}
+		if (cb.onEnded) {el.removeEventListener('ended', cb.onEnded);}
+		if (cb.onSeeking) {el.removeEventListener('seeking', cb.onSeeking);}
+		if (cb.onSeeked) {el.removeEventListener('seeked', cb.onSeeked);}
 	}
 }

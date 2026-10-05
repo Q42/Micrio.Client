@@ -22,7 +22,7 @@ export class WheelHandler {
 
 	/** Hooks mouse wheel/scroll event listeners. */
 	hook(): void {
-		if (this.hooked) return;
+		if (this.hooked) {return;}
 		this.#ctx._micrio.addEventListener('wheel', this.handle, noEventPassive);
 		this.hooked = true;
 	}
@@ -40,30 +40,30 @@ export class WheelHandler {
 	 * @param offX Optional X offset for zoom focus.
 	 */
 	handle = (e: WheelEvent | Event, force = false, offX = 0): void => {
-		if (!(e instanceof WheelEvent)) return;
+		if (!(e instanceof WheelEvent)) {return;}
 
-		if (this.#ctx._controlZoom && !e.ctrlKey) return;
+		if (this.#ctx._controlZoom && !e.ctrlKey) {return;}
 		if (!force && e.target instanceof Element && e.target != this.#ctx._el &&
-			!e.target.classList.contains('marker') && !e.target.closest('[data-scroll-through]')) return;
+			!e.target.classList.contains('marker') && !e.target.closest('[data-scroll-through]')) {return;}
 
 		let delta = e.deltaY;
 
-		if (e.ctrlKey) this.#ctx._hasUsedCtrl = true;
+		if (e.ctrlKey) {this.#ctx._hasUsedCtrl = true;}
 
 		const isControlZoomWithMouse = this.#ctx._controlZoom && (delta * 10 % 1 == 0);
 		const isTouchPad = this.#ctx._hasUsedCtrl && !isControlZoomWithMouse;
 		const isZoom = Browser.firefox || e.ctrlKey || !isTouchPad;
 
-		if (this.#ctx._twoFingerPan && this.#ctx._micrio.$current?.camera.isZoomedOut()) return;
+		if (this.#ctx._twoFingerPan && this.#ctx._micrio.$current?.camera.isZoomedOut()) {return;}
 
 		e.stopPropagation();
 		e.preventDefault();
 
-		if ((Browser.OSX || isTouchPad) && e.ctrlKey) delta *= 10;
+		if ((Browser.OSX || isTouchPad) && e.ctrlKey) {delta *= 10;}
 
 		const coo = { x: e.clientX, y: e.clientY };
 		const image = this.#ctx._getImage(coo);
-		if (!image) return;
+		if (!image) {return;}
 
 		if (isZoom) {
 			const c = this.#ctx._micrio.canvas.viewport;
@@ -72,7 +72,7 @@ export class WheelHandler {
 			const box = this.#ctx._micrio.getBoundingClientRect();
 			image.camera.zoom(delta * 1 / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY);
 		}
-		else image.camera.pan(e.deltaX, e.deltaY);
+		else {image.camera.pan(e.deltaX, e.deltaY);}
 
 		this.#ctx._wheeling = true;
 

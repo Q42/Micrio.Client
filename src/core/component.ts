@@ -48,7 +48,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	 */
 	_setProps(props: Record<string, any>): void {
 		Object.assign(this._props, props);
-		if (this.isConnected) this._render();
+		if (this.isConnected) {this._render();}
 	}
 
 	/** Override in subclasses for render logic. Called on mount and after setProps.
@@ -93,8 +93,8 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	/** @internal */
 	protected _watch<T>(store: Readable<T>, fn: (value: T) => void, opts?: { skipFirst?: boolean; defer?: boolean }): void {
 		let sub: Subscriber<T> = fn;
-		if (opts?.skipFirst) sub = skipFirst(sub);
-		if (opts?.defer) sub = defer(sub);
+		if (opts?.skipFirst) {sub = skipFirst(sub);}
+		if (opts?.defer) {sub = defer(sub);}
 		this._addCleanup(store.subscribe(sub));
 	}
 
@@ -124,7 +124,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	/** @internal */
 	protected _provide(key: string, value: any): void {
 		let map: Map<string, any> | undefined = (this as any)[PROVIDES];
-		if (!map) (this as any)[PROVIDES] = map = new Map();
+		if (!map) {(this as any)[PROVIDES] = map = new Map();}
 		map.set(key, value);
 	}
 
@@ -133,7 +133,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 		let el: HTMLElement | null = this;
 		while (el) {
 			const map: Map<string, any> | undefined = (el as any)[PROVIDES];
-			if (map?.has(key)) return map.get(key) as T;
+			if (map?.has(key)) {return map.get(key) as T;}
 			el = el.parentElement;
 		}
 		return undefined;
@@ -145,7 +145,7 @@ export abstract class MicrioElement<_P = {}> extends HTMLElement {
 	}
 
 	#cleanup(): void {
-		for (const fn of this.#_unsubs) fn();
+		for (const fn of this.#_unsubs) {fn();}
 		this.#_unsubs = [];
 	}
 }

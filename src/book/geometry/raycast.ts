@@ -18,7 +18,7 @@ export function rayIntersectMeshes(
 
 	for (let pi = 0; pi < meshes.length; pi++) {
 		const mesh = meshes[pi];
-		if (!mesh) continue;
+		if (!mesh) {continue;}
 		const pos = mesh._positions;
 		const tris = mesh._triangles;
 
@@ -36,7 +36,7 @@ export function rayIntersectMeshes(
 			const pz = direction._x * e2y - direction._y * e2x;
 
 			const det = e1x * px + e1y * py + e1z * pz;
-			if (Math.abs(det) < 1e-8) continue;
+			if (Math.abs(det) < 1e-8) {continue;}
 
 			const invDet = 1 / det;
 			const tx = origin._x - v0x;
@@ -44,17 +44,17 @@ export function rayIntersectMeshes(
 			const tz = origin._z - v0z;
 
 			const u = (tx * px + ty * py + tz * pz) * invDet;
-			if (u < 0 || u > 1) continue;
+			if (u < 0 || u > 1) {continue;}
 
 			const qx = ty * e1z - tz * e1y;
 			const qy = tz * e1x - tx * e1z;
 			const qz = tx * e1y - ty * e1x;
 
 			const v = (direction._x * qx + direction._y * qy + direction._z * qz) * invDet;
-			if (v < 0 || u + v > 1) continue;
+			if (v < 0 || u + v > 1) {continue;}
 
 			const t = (e2x * qx + e2y * qy + e2z * qz) * invDet;
-			if (t <= 0 || t >= closestT) continue;
+			if (t <= 0 || t >= closestT) {continue;}
 
 			closestT = t;
 			bestPoint = new Vec3(
@@ -66,6 +66,6 @@ export function rayIntersectMeshes(
 		}
 	}
 
-	if (closestT === Infinity || bestMeshIndex < 0) return null;
+	if (closestT === Infinity || bestMeshIndex < 0) {return null;}
 	return { _t: closestT, _point: bestPoint, _meshIndex: bestMeshIndex };
 }

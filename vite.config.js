@@ -149,7 +149,7 @@ function stripOperatorSpaces(src) {
 			const prevOp = GLSL_OPERATORS.has(prev);
 			const curOp = GLSL_OPERATORS.has(c);
 			const compound = prevOp && curOp && GLSL_COMPOUND_OPERATORS.has(prev + c);
-			if (!(prevOp || curOp) || compound) out += ' ';
+			if (!(prevOp || curOp) || compound) {out += ' ';}
 		}
 		out += c;
 		pending = false;
@@ -158,8 +158,8 @@ function stripOperatorSpaces(src) {
 }
 
 function joinMinifiedLines(out, line) {
-	if (!out) return line;
-	if (out.endsWith('\n')) return out + line;
+	if (!out) {return line;}
+	if (out.endsWith('\n')) {return out + line;}
 	const last = out[out.length - 1];
 	const lastOp = GLSL_OPERATORS.has(last);
 	const firstOp = GLSL_OPERATORS.has(line[0]);
@@ -195,11 +195,11 @@ function glslMinifyPlugin() {
 		async resolveId(id, importer) {
 			if (id.endsWith('.glsl?raw')) {
 				const resolved = await this.resolve(id.replace('?raw', ''), importer);
-				if (resolved) return resolved.id;
+				if (resolved) {return resolved.id;}
 			}
 		},
 		transform(src, id) {
-			if (id.endsWith('.glsl')) return `export default ${JSON.stringify(glslMinify(src))};`;
+			if (id.endsWith('.glsl')) {return `export default ${JSON.stringify(glslMinify(src))};`;}
 		},
 	};
 }

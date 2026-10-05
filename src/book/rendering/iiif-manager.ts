@@ -114,8 +114,8 @@ export class IIIFTextureManager {
 		const imgIdx = p * 2 + side;
 		for (let offset = -IIIF_PRELOAD_DISTANCE; offset <= IIIF_PRELOAD_DISTANCE; offset++) {
 			const cp = spreadCenter + offset;
-			if (cp < 0 || cp >= this.#pageCount) continue;
-			if (this.#pageIdxes[cp].includes(imgIdx)) return true;
+			if (cp < 0 || cp >= this.#pageCount) {continue;}
+			if (this.#pageIdxes[cp].includes(imgIdx)) {return true;}
 		}
 		return false;
 	}
@@ -126,9 +126,9 @@ export class IIIFTextureManager {
 
 	#chooseWidth(screenPagePx: number, currentLevel: number, originalWidth: number): number {
 		let width = 512;
-		if (screenPagePx > 768) width = 1024;
-		if (screenPagePx > 1536) width = 2048;
-		if (width > originalWidth && currentLevel >= originalWidth) return currentLevel;
+		if (screenPagePx > 768) {width = 1024;}
+		if (screenPagePx > 1536) {width = 2048;}
+		if (width > originalWidth && currentLevel >= originalWidth) {return currentLevel;}
 		return Math.max(width, currentLevel);
 	}
 
@@ -136,7 +136,7 @@ export class IIIFTextureManager {
 		for (let p = 0; p < this.#pageCount; p++) {
 			for (let side = 0; side < 2; side++) {
 				const s = this.#states[p][side];
-				if (!s._imageId) continue;
+				if (!s._imageId) {continue;}
 
 				if (this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) {
 					if (s._downloadState === 'idle') {
@@ -165,9 +165,9 @@ export class IIIFTextureManager {
 		for (let p = 0; p < this.#pageCount; p++) {
 			for (let side = 0; side < 2; side++) {
 				const s = this.#states[p][side];
-				if (!this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) continue;
-				if (s._downloadState !== 'done') continue;
-				if (!s._imageId) continue;
+				if (!this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) {continue;}
+				if (s._downloadState !== 'done') {continue;}
+				if (!s._imageId) {continue;}
 
 				const desired = this.#chooseWidth(screenPagePx, s._currentLevel, s._originalWidth);
 				if (desired > s._currentLevel) {
@@ -188,13 +188,13 @@ export class IIIFTextureManager {
 
 			for (let side = 0; side < 2; side++) {
 				const s = this.#states[p][side];
-				if (s._downloadState !== 'pending') continue;
-				if (!s._imageId) continue;
+				if (s._downloadState !== 'pending') {continue;}
+				if (!s._imageId) {continue;}
 
-				if (!this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) continue;
+				if (!this.#isInPreloadRange(p, side as 0 | 1, spreadCenter)) {continue;}
 
 				const elapsed = now - s._visibleSince;
-				if (elapsed < this.#debounceMs(dist)) continue;
+				if (elapsed < this.#debounceMs(dist)) {continue;}
 
 				const width = this.#chooseWidth(screenPagePx, s._currentLevel, s._originalWidth);
 				if (width <= s._currentLevel) {
@@ -218,10 +218,10 @@ export class IIIFTextureManager {
 
 		try {
 			const response = await fetch(url, { signal: controller.signal });
-			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			if (!response.ok) {throw new Error(`HTTP ${response.status}`);}
 			const blob = await response.blob();
 
-			if (controller.signal.aborted || state._downloadState !== 'downloading') return;
+			if (controller.signal.aborted || state._downloadState !== 'downloading') {return;}
 
 			const bitmap = await createImageBitmap(blob);
 
@@ -254,7 +254,7 @@ export class IIIFTextureManager {
 		for (let p = 0; p < this.#pageCount; p++) {
 			for (let side = 0; side < 2; side++) {
 				const s = this.#states[p][side];
-				if (s._downloadState !== 'fading') continue;
+				if (s._downloadState !== 'fading') {continue;}
 
 				const elapsed = now - s._fadeStartTime;
 				s._fadeProgress = Math.min(1.0, elapsed / IIIF_CROSSFADE_DURATION);
@@ -274,11 +274,11 @@ export class IIIFTextureManager {
 	#evictDistant(spreadCenter: number): void {
 		for (let p = 0; p < this.#pageCount; p++) {
 			const dist = this.#pageDistance(p, spreadCenter);
-			if (dist <= IIIF_GPU_EVICT_DISTANCE) continue;
+			if (dist <= IIIF_GPU_EVICT_DISTANCE) {continue;}
 
 			for (let side = 0; side < 2; side++) {
 				const s = this.#states[p][side];
-				if (s._currentLevel === 0) continue;
+				if (s._currentLevel === 0) {continue;}
 
 				if (s._downloadState === 'downloading' && s._controller) {
 					s._controller.abort();
@@ -309,15 +309,15 @@ export class IIIFTextureManager {
 	}
 
 	#computeSlotBlend(s: PageSideState, slot: 0 | 1): number {
-		if (s._currentLevel === 0) return 0;
+		if (s._currentLevel === 0) {return 0;}
 
 		if (s._downloadState === 'fading') {
 			const p = s._fadeProgress;
 			if (s._fadeType === 'in') {
 				return s._activeSlot === slot ? p : 0;
 			} else {
-				if (s._activeSlot === slot) return 1.0 - p;
-				else return p;
+				if (s._activeSlot === slot) {return 1.0 - p;}
+				else {return p;}
 			}
 		}
 

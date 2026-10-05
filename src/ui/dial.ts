@@ -19,9 +19,9 @@ class MicrioDial extends MicrioElement<DialProps> {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		const camera = micrio.$current?.camera;
-		if (!camera) return;
+		if (!camera) {return;}
 
 		let pointerId: number | undefined;
 		let startX = 0;
@@ -30,7 +30,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 		const dStart = (e: PointerEvent) => {
 			e.stopPropagation();
 			e.preventDefault();
-			if (e.button != 0) return;
+			if (e.button != 0) {return;}
 			micrio.addEventListener('pointermove', dMove);
 			micrio.addEventListener('pointerup', dStop);
 			micrio.setAttribute('data-panning', '');
@@ -46,7 +46,7 @@ class MicrioDial extends MicrioElement<DialProps> {
 		};
 
 		const dStop = () => {
-			if (pointerId) micrio.releasePointerCapture(pointerId);
+			if (pointerId) {micrio.releasePointerCapture(pointerId);}
 			micrio.removeAttribute('data-panning');
 			micrio.removeEventListener('pointermove', dMove);
 			micrio.removeEventListener('pointerup', dStop);

@@ -55,13 +55,13 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 		this._addCleanup(captionsEnabled.subscribe(() => this.#sync()));
 		// Button titles are translated, so refresh them on a UI language change
 		const micrio = this._getMicrio();
-		if (micrio) this._watchLater(micrio._lang, () => this.#sync());
+		if (micrio) {this._watchLater(micrio._lang, () => this.#sync());}
 	}
 
 	/** @internal */
 	_setProps(props: Partial<MediaControlsProps>) {
 		Object.assign(this.#props, props);
-		if (this.isConnected) { this.#build(); if (this.#built) this.#sync(); }
+		if (this.isConnected) { this.#build(); if (this.#built) {this.#sync();} }
 	}
 
 	#build() {
@@ -103,14 +103,14 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 
 			const dStart = (e: MouseEvent) => {
-				if (e.button != 0) return;
+				if (e.button != 0) {return;}
 				window.addEventListener('mousemove', dMove);
 				window.addEventListener('mouseup', dStop);
 				dMove(e);
 			};
 			const dMove = (e: MouseEvent) => {
 				const rect = bars.getClientRects()[0];
-				if (!rect) return;
+				if (!rect) {return;}
 				const perc = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
 				this.#props.onseek?.(perc * this.#props.duration!);
 			};
@@ -185,9 +185,9 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			});
 		}
 
-		if (this.#fsBtnEl) this.#fsBtnEl._setProps({ el: p.fullscreenEl });
+		if (this.#fsBtnEl) {this.#fsBtnEl._setProps({ el: p.fullscreenEl });}
 
-		if (this.#closeBtnEl && langChanged) this.#closeBtnEl._setProps({ title: $i18n._close });
+		if (this.#closeBtnEl && langChanged) {this.#closeBtnEl._setProps({ title: $i18n._close });}
 
 		if (p.duration && !isNaN(p.duration)) {
 			const progress = ((p.currentTime ?? 0) / p.duration) * 100;

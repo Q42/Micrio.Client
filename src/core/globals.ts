@@ -22,8 +22,8 @@ export const BASEPATH_V5_EU:string = 'https://eu.micr.io/';
 function getMicrioTLD(): string {
 	try {
 		const h = location.hostname;
-		if (h.endsWith('micrio.dev')) return 'micrio.dev';
-		if (h.endsWith('micrio.net')) return 'micrio.net';
+		if (h.endsWith('micrio.dev')) {return 'micrio.dev';}
+		if (h.endsWith('micrio.net')) {return 'micrio.net';}
 	} catch {}
 	return 'micr.io';
 }

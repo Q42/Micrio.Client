@@ -80,16 +80,16 @@ export class CoverMesh extends PaperMesh {
 		const result: number[] = [];
 		switch (edge) {
 			case 'bottom':
-				for (let c = 0; c < GRID_COLS; c++) result.push(c);
+				for (let c = 0; c < GRID_COLS; c++) {result.push(c);}
 				break;
 			case 'top':
-				for (let c = 0; c < GRID_COLS; c++) result.push((GRID_ROWS - 1) * GRID_COLS + c);
+				for (let c = 0; c < GRID_COLS; c++) {result.push((GRID_ROWS - 1) * GRID_COLS + c);}
 				break;
 			case 'freeEdge':
-				for (let r = 0; r < GRID_ROWS; r++) result.push(r * GRID_COLS + (GRID_COLS - 1));
+				for (let r = 0; r < GRID_ROWS; r++) {result.push(r * GRID_COLS + (GRID_COLS - 1));}
 				break;
 			case 'boundEdge':
-				for (let r = 0; r < GRID_ROWS; r++) result.push(r * GRID_COLS);
+				for (let r = 0; r < GRID_ROWS; r++) {result.push(r * GRID_COLS);}
 				break;
 		}
 		return result;
@@ -263,8 +263,8 @@ export class CoverMesh extends PaperMesh {
 
 	protected _identifyBoundEdges(): void {
 		this._boundLeft = [];
-		for (let r = 0; r < GRID_ROWS; r++) this._boundLeft.push(r * GRID_COLS);
-		for (let r = 0; r < GRID_ROWS; r++) this._boundLeft.push(FACE_VERTEX_COUNT + r * GRID_COLS);
+		for (let r = 0; r < GRID_ROWS; r++) {this._boundLeft.push(r * GRID_COLS);}
+		for (let r = 0; r < GRID_ROWS; r++) {this._boundLeft.push(FACE_VERTEX_COUNT + r * GRID_COLS);}
 	}
 
 	_computeNormals(): Float32Array {

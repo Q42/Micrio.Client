@@ -131,7 +131,7 @@ export class Gallery {
 	/** @internal */
 	static _fromIIIF(resp: any, engine: Engine): Gallery | null {
 		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
-			throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });
+			{throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });}
 
 		if (resp.type === 'Manifest') {
 			const canvases = (resp.items as any[])
@@ -139,14 +139,14 @@ export class Gallery {
 				?.filter((b: any) => b?.service?.[0]?.id) ?? [];
 
 			if (!canvases.length)
-				throw new MicrioError('NO_CANVASES', { displayMessage: 'No valid IIIF canvases found in the manifest' });
+				{throw new MicrioError('NO_CANVASES', { displayMessage: 'No valid IIIF canvases found in the manifest' });}
 
 			const images = canvases.map((b: any): Models.ImageInfo.ImageInfo => ({
 				id: b.service[0].id, path: b.service[0].id.replace(/\/[^/]*$/, ''), version: '',
 				width: b.width, height: b.height, isWebP: b.format === 'image/webp', isPng: b.format === 'image/png', isIIIF: true,
 			}));
 
-			if (images.length === 1) return null;
+			if (images.length === 1) {return null;}
 
 			return new Gallery(images, engine, { type: 'swipe', settings: {} });
 		}
@@ -174,7 +174,7 @@ export class Gallery {
 	/** @internal */
 	static async _fromAlbum(albumId: string, engine: Engine, opts?: { startId?: string; path?: string; onProgress?: (n: number) => void }): Promise<Gallery | null> {
 		const aInfo = DataLoader._getAlbum(albumId);
-		if (!aInfo) return null;
+		if (!aInfo) {return null;}
 
 		const path = opts?.path ?? DataLoader._getOrganisation()?.baseUrl ?? BASEPATH_V5;
 
@@ -193,16 +193,16 @@ export class Gallery {
 		if (aInfo.type === 'grid' && aInfo.archive) {
 			const gridClickable = config.grid?.clickable ?? config.settings?.grid?.clickable;
 			const settings: Record<string, any> = { zoomLimit: 15, minimap: false, ...(config.settings ?? {}) };
-			if (gridClickable && settings.hookKeys === undefined) settings.hookKeys = true;
+			if (gridClickable && settings.hookKeys === undefined) {settings.hookKeys = true;}
 			config.settings = settings as any;
 		}
 
 		const index = aInfo.archive
 			? await Gallery.#getArchiveIndex(aInfo.archive.split('.')[0], path)
 			: undefined;
-		if (index) config.archiveLayerOffset = index.delta;
+		if (index) {config.archiveLayerOffset = index.delta;}
 		const sort = config.sort;
-		if (sort && index?.images) index.images.sort(Gallery.#sortArchiveImages(sort));
+		if (sort && index?.images) {index.images.sort(Gallery.#sortArchiveImages(sort));}
 		const rawImages = index?.images ?? [];
 
 		return new Gallery(rawImages.map(i => ({ ...i, path, version: '' })), engine, {
@@ -243,7 +243,7 @@ export class Gallery {
 			}
 			for (; i < this._images.length; i += 2) {
 				const page = [i];
-				if (i + 1 < this._images.length) page.push(i + 1);
+				if (i + 1 < this._images.length) {page.push(i + 1);}
 				pages.push(page);
 			}
 		} else {

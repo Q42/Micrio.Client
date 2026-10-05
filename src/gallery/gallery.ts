@@ -78,10 +78,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** @internal */
 	async _onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const image = micrio.$current as MicrioImage;
-		if (!image) return;
+		if (!image) {return;}
 
 		const settings = image.$settings;
 		if (settings?.omni) {
@@ -93,7 +93,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 
 		const controller = this.#props.controller;
-		if (!controller) return;
+		if (!controller) {return;}
 
 		this.#renderGallery(micrio, image, controller);
 
@@ -110,12 +110,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/** @internal */
 	_setProps(props: Partial<GalleryProps>) {
-		if (props.controller !== undefined) this.#props.controller = props.controller;
+		if (props.controller !== undefined) {this.#props.controller = props.controller;}
 	}
 
 	/** Returns the X pixel position of a page in the scrubber bar. */
 	#getX(idx: number): number {
-		if (!this.#_ul) return 0;
+		if (!this.#_ul) {return 0;}
 		const w = this.#_ul.clientWidth;
 		const max = Math.max(1, this.#pageToImages.length - 1);
 		return scrubPad + (idx / max) * (w - scrubPad * 2);
@@ -124,7 +124,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Returns a human-readable page label (e.g. "3" or "5-6" for spreads). */
 	#pageLabel(idx: number): string {
 		const imgs = this.#pageToImages[idx];
-		if (!imgs || imgs.length <= 1) return String(idx + 1);
+		if (!imgs || imgs.length <= 1) {return String(idx + 1);}
 		return `${imgs[0] + 1}-${imgs[imgs.length - 1] + 1}`;
 	}
 
@@ -146,14 +146,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	async #goto(i: number, fast = false, duration = 150, force = false): Promise<MicrioImage | undefined> {
 		const images = this.#images;
-		if (!images.length || i < 0) return undefined;
+		if (!images.length || i < 0) {return undefined;}
 		const page = Math.round(Math.max(0, Math.min(this.#pageToImages.length - 1, i)));
 		const imgIdx = this.#pageToImages[page]?.[0] ?? 0;
 		const changed = force || page !== this.#currentPage;
 		const prevIdx = this.#currentImageIdx;
 		this.#currentPage = page;
 		this.#currentImageIdx = imgIdx;
-		if (changed) this.#frameChanged();
+		if (changed) {this.#frameChanged();}
 		if (this.#book3d) {
 			await this.#book3d.goto(page)
 		} else if (this.#swipeGallery) {
@@ -187,10 +187,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#scrubStart = (e: PointerEvent | TouchEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		if (this.#dragging || (this.#dragIsPointer = 'button' in e) && e.button !== 0 || !this.#_ul) return;
+		if (this.#dragging || (this.#dragIsPointer = 'button' in e) && e.button !== 0 || !this.#_ul) {return;}
 		this.#box = this.#_ul.getBoundingClientRect();
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		micrio._keepRendering = this.#dragging = true;
 		this.setAttribute('data-dragging', '');
 		this.#hoverIdx = -1;
@@ -220,12 +220,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#scrubMove = (e: PointerEvent | TouchEvent) => {
 		const [perc, idx] = this.#getScrubXPercIdx(e);
 		this.#_left = scrubPad + perc * (this.#box!.width - scrubPad * 2);
-		if (idx !== this.#currentPage) this.#goto(idx, true);
+		if (idx !== this.#currentPage) {this.#goto(idx, true);}
 	};
 
 	/** Tracks hover position on scrubber (when not dragging). */
 	#scrubPointerMove = (e: PointerEvent | TouchEvent) => {
-		if (!this.#dragging) this.#hoverIdx = this.#getScrubXPercIdx(e)[1];
+		if (!this.#dragging) {this.#hoverIdx = this.#getScrubXPercIdx(e)[1];}
 		this.#updateScrubber();
 	};
 
@@ -241,7 +241,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#dragging = false;
 		this.removeAttribute('data-dragging');
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		micrio._keepRendering = false;
 		this.#goto(this.#currentPage);
 	};
@@ -253,17 +253,17 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 * Uses requestIdleCallback for low-priority texture loading.
 	 */
 	#preloadRange(center: number, total: number, d: number, getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined, engine: Engine, hasArchive: boolean) {
-		if (!total || !engine?.ready) return;
+		if (!total || !engine?.ready) {return;}
 		// Prefer idle time for low-priority thumbnail work; fall back to the shared
 		// frame scheduler instead of a private requestAnimationFrame.
 		const request: (cb: () => void) => void = self.requestIdleCallback
 			? (cb) => { self.requestIdleCallback(cb); }
 			: (cb) => { Frame.request(cb); };
 		for (let x = -d; x <= d; x++) {
-			if (!x) continue;
+			if (!x) {continue;}
 			let rX = center + x;
-			while (rX < 0) rX += total;
-			while (rX >= total) rX -= total;
+			while (rX < 0) {rX += total;}
+			while (rX >= total) {rX -= total;}
 			const tile = getTile(rX);
 			if (tile?.thumbSrc && !this.#preloading.has(tile.thumbSrc)) {
 				this.#preloading.set(tile.thumbSrc, request(() => {
@@ -277,7 +277,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Preloads gallery thumbnails around a given page index (used by standard gallery nav). */
 	#preload(c: number) {
 		const images = this.#images;
-		if (!images.length || images.length <= 1) return;
+		if (!images.length || images.length <= 1) {return;}
 		const engine = images[0].engine;
 		const hasArchive = !!(images[0]?.$settings?.gallery?.archive);
 		this.#preloadRange(c, images.length, this.#preloadD,
@@ -307,7 +307,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	 */
 	async #renderGallery(micrio: HTMLMicrioElement, image: MicrioImage, controller: GalleryController) {
 		const images: MicrioImage[] = [...controller._images];
-		if (!images.length) return;
+		if (!images.length) {return;}
 
 		this.#images = images;
 		this.#parentImage = image;
@@ -376,7 +376,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		} else {
 			// Switch gallery: embed all images on the parent canvas
 			await Promise.allSettled(images.map(d => {
-				if ('state' in d && !('image' in d)) d.camera = parent.camera;
+				if ('state' in d && !('image' in d)) {d.camera = parent.camera;}
 				return engine._addEmbed(d, parent, { opacity: 0, asImage: 'camera' in d });
 			}));
 			const pageImages = this.#pageToImages[pageIdx];
@@ -420,7 +420,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 					const drawn = _drawn.find(d => d.id == img.id);
 					img.visible.set(!!drawn);
 					if(drawn) {
-						if(!img.camera._getXYDirectOverride) book3d._hookImageBook3d(img);
+						if(!img.camera._getXYDirectOverride) {book3d._hookImageBook3d(img);}
 						img.state.view.update(() => drawn.bounds);
 					}
 				}
@@ -439,7 +439,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Builds the scrubber bar DOM (ticks, track, handle, prev/next buttons). */
 	#buildScrubber() {
 		const total = this.#pageToImages.length;
-		if (!this.#images.length || total <= 1 || this.querySelector('ul')) return;
+		if (!this.#images.length || total <= 1 || this.querySelector('ul')) {return;}
 		const $i18n = get(i18n);
 		const dense = total > 24;
 		const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1;
@@ -482,7 +482,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		createElement('span', {
 			parent: ul,
 			children: Array.from({ length: total }, (_, i) => {
-				if (dense && i % tickStep !== 0 && i !== total - 1) return null;
+				if (dense && i % tickStep !== 0 && i !== total - 1) {return null;}
 				return createElement('span', {
 					attrs: dense && i % (tickStep * 5) === 0 ? { 'data-major': '' } : {},
 					style: { left: `${total > 1 ? (i / (total - 1)) * 100 : 50}%` }
@@ -521,7 +521,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Updates scrubber bar state: track fill, ticks, handle position, labels. */
 	#updateScrubber() {
 		const total = this.#pageToImages.length;
-		if (!total) return;
+		if (!total) {return;}
 		const curr = this.#currentPage;
 		const dense = total > 24;
 		const tickStep = dense ? Math.max(1, Math.ceil(total / 24)) : 1;
@@ -529,16 +529,16 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const left = this.#_ul && !this.#dragging ? this.#getX(curr) : this.#_left;
 
 		const trackFill = this.querySelector('ul > :first-child > span') as HTMLElement;
-		if (trackFill) trackFill.style.width = `${fillPct}%`;
+		if (trackFill) {trackFill.style.width = `${fillPct}%`;}
 
 		const allTicks = this.querySelectorAll('ul > :nth-child(2) > span');
 		const visibleTicks: number[] = [];
 		for (let i = 0; i < total; i++) {
-			if (!dense || i % tickStep === 0 || i === total - 1 || i === curr) visibleTicks.push(i);
+			if (!dense || i % tickStep === 0 || i === total - 1 || i === curr) {visibleTicks.push(i);}
 		}
 		allTicks.forEach((tick, idx) => {
 			const i = visibleTicks[idx];
-			if (i === undefined) return;
+			if (i === undefined) {return;}
 			tick.toggleAttribute('data-active', i === curr);
 			tick.toggleAttribute('data-hover', i === this.#hoverIdx);
 		});
@@ -569,8 +569,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			hoverLabel?.remove();
 		}
 
-		if (this.#prevBtn) (this.#prevBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr <= 0);
-		if (this.#nextBtn) (this.#nextBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr >= total - 1);
+		if (this.#prevBtn) {(this.#prevBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr <= 0);}
+		if (this.#nextBtn) {(this.#nextBtn.querySelector('button') as HTMLButtonElement | null)?.toggleAttribute('disabled', curr >= total - 1);}
 	}
 
 	/** @internal */

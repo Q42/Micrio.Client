@@ -63,7 +63,7 @@ export class TileCanvas {
 	set zIndex(v: number) {
 		if (this.#_zIndex !== v) {
 			this.#_zIndex = v;
-			if (this.parent) this.parent.#childrenDirty = true;
+			if (this.parent) {this.parent.#childrenDirty = true;}
 		}
 	}
 
@@ -186,7 +186,7 @@ export class TileCanvas {
 		this._pinchZoomOutLimit = pinchZoomOutLimit;
 		this._omniNumLayers = omniNumLayers;
 		this.#index = main._canvases.length;
-		if (!hasParent) main._canvases.push(this);
+		if (!hasParent) {main._canvases.push(this);}
 
 		this.aspect = width / height;
 		this._diagonal = Math.sqrt(width * width + height * height);
@@ -212,13 +212,13 @@ export class TileCanvas {
 			this._resize();
 		}
 
-		if (!noImage) this._addImage(0, 0, 1, 1, width, height, tileSize, isSingle, isDeepZoom, false, targetOpacity);
+		if (!noImage) {this._addImage(0, 0, 1, 1, width, height, tileSize, isSingle, isDeepZoom, false, targetOpacity);}
 		else {
 			this.main._numImages++;
 			this.#bOpacity = 1;
 			this._opacity = 1;
 			this.#isReady = true;
-			if (omniStartLayer > 0) this._setActiveLayer(omniStartLayer);
+			if (omniStartLayer > 0) {this._setActiveLayer(omniStartLayer);}
 		}
 	}
 
@@ -249,7 +249,7 @@ export class TileCanvas {
 		image._setArea(x0, y0, x1, y1);
 		this.images.push(image);
 		this.main._numTiles = image._endOffset;
-		if (this.images.length === 1) this._setActiveImage(0);
+		if (this.images.length === 1) {this._setActiveImage(0);}
 		return image;
 	}
 
@@ -322,9 +322,9 @@ export class TileCanvas {
 	_fadeIn(): void {
 		this.#isReady = true;
 		if (!this._hasParent && this.#currentArea.width === 1 && this.#currentArea.height === 1)
-			for (let i = 0; i < this.main._canvases.length; i++)
+			{for (let i = 0; i < this.main._canvases.length; i++)
 				if (this.main._canvases[i] !== this)
-					this.main._canvases[i]._fadeOut();
+					this.main._canvases[i]._fadeOut();}
 		this._targetOpacity = 1;
 	}
 
@@ -342,7 +342,7 @@ export class TileCanvas {
 	/** Determines if the canvas needs to be drawn in the next frame and calculates tiles needed. @internal */
 	_shouldDraw(): void {
 		if (!this._areaAnimating() && this.#isHidden()) {
-			if (this.#isVisible) this.#setCanvasVisible(false);
+			if (this.#isVisible) {this.#setCanvasVisible(false);}
 			return;
 		}
 
@@ -351,14 +351,14 @@ export class TileCanvas {
 
 		this._toDraw.length = 0;
 
-		if (this.#partialView(false)) animating = true;
+		if (this.#partialView(false)) {animating = true;}
 
 		if (!this.is360 && !this._areaAnimating() && (this.visible.width <= 0 || this.visible.height <= 0)) {
-			if (this.#isVisible) this.#setCanvasVisible(false);
+			if (this.#isVisible) {this.#setCanvasVisible(false);}
 			return;
 		}
 
-		if (!this.#isVisible && this._opacity >= 1) this.#setCanvasVisible(true);
+		if (!this.#isVisible && this._opacity >= 1) {this.#setCanvasVisible(true);}
 
 		this._camera360._calculate3DFrustum();
 
@@ -374,13 +374,13 @@ export class TileCanvas {
 		for (let i = 0; i < this.images.length; i++) {
 			const image = this.images[i];
 			if (!image._shouldRender()) {
-				if (image._doRender) m._setImageVisible(image, image._doRender = false);
+				if (image._doRender) {m._setImageVisible(image, image._doRender = false);}
 			}
 			else {
-				if (i > 0 && !image._doRender) m._setImageVisible(image, image._doRender = true);
-				if (image._isVideo && image._isVideoPlaying) animating = true;
-				if (image._opacityTick(this.#isGallerySwitch || this._opacity < 1)) animating = true;
-				if (image.opacity > 0) m._doneTotal += image._getTiles(scale);
+				if (i > 0 && !image._doRender) {m._setImageVisible(image, image._doRender = true);}
+				if (image._isVideo && image._isVideoPlaying) {animating = true;}
+				if (image._opacityTick(this.#isGallerySwitch || this._opacity < 1)) {animating = true;}
+				if (image.opacity > 0) {m._doneTotal += image._getTiles(scale);}
 			}
 		}
 
@@ -389,14 +389,14 @@ export class TileCanvas {
 			: m._doneTotal / m._toDrawTotal;
 
 		for (let i = 0; i < this.#children.length; i++)
-			this.#children[i]._shouldDraw();
+			{this.#children[i]._shouldDraw();}
 
-		if (animating) m._animating = true;
+		if (animating) {m._animating = true;}
 	}
 
 	/** Executes the drawing commands for the current frame for this canvas. @internal */
 	_draw(): void {
-		if (this._targetOpacity === 0 && this._opacity === 0) return;
+		if (this._targetOpacity === 0 && this._opacity === 0) {return;}
 
 		const m = this.main;
 		const gl = m.micrio._webgl;
@@ -409,13 +409,13 @@ export class TileCanvas {
 
 		gl.gl.uniformMatrix4fv(gl._pmLoc, false, this._camera360._pMatrix.arr);
 
-		if (this.#pagesHaveBackground) for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
+		if (this.#pagesHaveBackground) {for (let imgIdx = 0; imgIdx < this.images.length; imgIdx++) {
 			const im = this.images[imgIdx];
 			if (!(im.x1 <= v.x0 || im.x0 >= v.x1 || im.y1 <= v.y0 || im.y0 >= v.y1)) {
 				this.#setTile(im._endOffset - 1);
 				gl._drawTile(undefined, im._tOpacity);
 			}
-		}
+		}}
 
 		const r = this.#rect;
 		for (let j = 0; j < this._toDraw.length; j++) {
@@ -430,7 +430,7 @@ export class TileCanvas {
 				r.x, r.y, opa * this.#bOpacity * r.image.opacity, animating, r.layer === r.image._targetLayer - 1)
 				&& isBaseTile) {
 				r.image._gotBase = m.now;
-				if (!this.#isReady) this._fadeIn();
+				if (!this.#isReady) {this._fadeIn();}
 			}
 		}
 
@@ -439,9 +439,9 @@ export class TileCanvas {
 			this.#childrenDirty = false;
 		}
 		for (let i = 0; i < this.#children.length; i++)
-			this.#children[i]._draw();
+			{this.#children[i]._draw();}
 
-		if (v._changed) this._micrioImage?.camera?._viewChanged();
+		if (v._changed) {this._micrioImage?.camera?._viewChanged();}
 		v._changed = false;
 	}
 
@@ -469,7 +469,7 @@ export class TileCanvas {
 			const interpHeight = (b.height + (t.height - b.height) * p);
 			a.set(interpCenterX, interpCenterY, interpWidth, interpHeight);
 			if (this.#areaAniPerc === 1) {
-				if (this.zIndex === 1) this.zIndex = 0;
+				if (this.zIndex === 1) {this.zIndex = 0;}
 				b._copy(t);
 			}
 			this.view._changed = true;
@@ -504,7 +504,7 @@ export class TileCanvas {
 			hP ? 1 : c.scale,
 			hP ? false : c._isPortrait
 		)) {
-			if (!noDispatch) this._sendViewport();
+			if (!noDispatch) {this._sendViewport();}
 			this.view._changed = true;
 			this._resize();
 			if (!this.is360) {
@@ -526,7 +526,7 @@ export class TileCanvas {
 		else {
 			this.#area._copy(this.#currentArea);
 			this.#areaAniPerc = 0;
-			if (this.zIndex === 0) this.zIndex = 1;
+			if (this.zIndex === 0) {this.zIndex = 1;}
 			this._ani._limit = false;
 		}
 		this.#targetArea._setArea(x0, y0, x1, y1);
@@ -538,8 +538,8 @@ export class TileCanvas {
 	#setTile(i: number): void {
 		const r = this.#rect; this.#findTileRect(i);
 		if (this.is360) {
-			if (r.image._localIdx === 0) this._camera360._setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
-			else r.image._setDrawRect(r);
+			if (r.image._localIdx === 0) {this._camera360._setTile360(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);}
+			else {r.image._setDrawRect(r);}
 		}
 		else {
 			const v = this.main._vertexBuffer, a = this.aspect;
@@ -559,10 +559,10 @@ export class TileCanvas {
 
 	/** Finds the Image, Layer, and calculates the DrawRect for a given global tile index. */
 	#findTileRect(i: number): [number, number] {
-		let img = 0; while (img < this.images.length - 1 && i >= this.images[img]._endOffset) img++;
+		let img = 0; while (img < this.images.length - 1 && i >= this.images[img]._endOffset) {img++;}
 		const image = this.images[img];
 
-		let l = 0; while (l < image._layers.length - 1 && i >= image._layers[l]._end) l++;
+		let l = 0; while (l < image._layers.length - 1 && i >= image._layers[l]._end) {l++;}
 		const layer = image._layers[l];
 		layer._getTileRect(i, this.#rect);
 		return [img, layer._index];
@@ -570,11 +570,11 @@ export class TileCanvas {
 
 	/** Checks if a tile (by global index) is within the current camera viewport of this canvas. @internal */
 	_isTileInViewport(idx: number): boolean {
-		if (this.is360) return false;
+		if (this.is360) {return false;}
 		const r = this.#rect,
 			v = this.view;
 		const [imgIdx, lIdx] = this.#findTileRect(idx);
-		if (lIdx <= this.images[imgIdx]._targetLayer) return false;
+		if (lIdx <= this.images[imgIdx]._targetLayer) {return false;}
 		return !(r.x1 <= v.x0 || r.x0 >= v.x1 || r.y1 <= v.y0 || r.y0 >= v.y1);
 	}
 
@@ -587,7 +587,7 @@ export class TileCanvas {
 			this._diagonal = Math.sqrt(c.width * c.width + c.height * c.height);
 		}
 		if (!this._hasParent) {
-			if (this.is360) this._camera360._resize();
+			if (this.is360) {this._camera360._resize();}
 			else {
 				this._camera2d._setCanvas();
 				this._camera2d._updateProjection();
@@ -625,7 +625,7 @@ export class TileCanvas {
 		for (let i = 0; i < this.images.length; i++) {
 			const im = this.images[i];
 			const diff = i - offset - idx;
-			if (diff !== 0) im._tOpacity = diff >= 0 && diff <= num ? 1 : 0;
+			if (diff !== 0) {im._tOpacity = diff >= 0 && diff <= num ? 1 : 0;}
 			else {
 				im._tOpacity = 1;
 				this._activeImageIdx = idx;
@@ -641,11 +641,11 @@ export class TileCanvas {
 
 		if (mE._areaHeight > 0) { height += height / (1 - (mE._areaHeight / mE.height)); this._ani._limit = false; mE._areaHeight = 0; };
 		if (mE._areaWidth > 0) { width += width * (mE._areaWidth / mE.width); this._ani._limit = false; mE._areaWidth = 0; };
-		if (noLimit) this._ani._limit = false;
+		if (noLimit) {this._ani._limit = false;}
 
 		this.view.set(centerX, centerY, width, height);
-		if (forceLimit && !noLimit) this.view._limit(false, false, this._freeMove);
-		if (!noLastView) this._ani._lastView._copy(this.view);
+		if (forceLimit && !noLimit) {this.view._limit(false, false, this._freeMove);}
+		if (!noLastView) {this._ani._lastView._copy(this.view);}
 
 		if (this.width > 0) {
 			if (this.is360) {
@@ -678,7 +678,7 @@ export class TileCanvas {
 
 	/** @internal */
 	_setDirection(yaw: number, pitch: number, resetPersp: boolean = false): void {
-		if (isNaN(pitch)) pitch = this._camera360._pitch;
+		if (isNaN(pitch)) {pitch = this._camera360._pitch;}
 		this._camera360._setDirection(yaw, pitch, resetPersp ? this._camera360._defaultPerspective : 0);
 	}
 	/** @internal */
@@ -700,22 +700,22 @@ export class TileCanvas {
 	/** @internal */
 	_aniStop(): void {
 		this._ani.stop();
-		for (let i = 0; i < this.#children.length; i++) this.#children[i]._aniStop();
+		for (let i = 0; i < this.#children.length; i++) {this.#children[i]._aniStop();}
 	}
 
 	/** @internal */
 	_aniDone(): void {
 		const cam = this._micrioImage?.camera;
-		if (!cam) return;
-		if (cam._aniDone) cam._aniDone();
-		while (cam._aniDoneAdd.length) cam._aniDoneAdd.shift()?.();
+		if (!cam) {return;}
+		if (cam._aniDone) {cam._aniDone();}
+		while (cam._aniDoneAdd.length) {cam._aniDoneAdd.shift()?.();}
 		cam._aniAbort = cam._aniDone = undefined;
 	}
 	/** @internal */
 	_aniAbort(): void {
 		const cam = this._micrioImage?.camera;
-		if (!cam) return;
-		if (cam._aniAbort) cam._aniAbort();
+		if (!cam) {return;}
+		if (cam._aniAbort) {cam._aniAbort();}
 		cam._aniDoneAdd.length = 0;
 		cam._aniAbort = cam._aniDone = undefined;
 	}

@@ -204,9 +204,9 @@ export default class Image {
 		this.#is360Embed = this.#canvas.is360 && this._localIdx > 0;
 
 		this.#numLayers = isDeepZoom && !isSingle ? 2 : 1;
-		for (let s = tileSize; s < maxi * canvas.main._underzoomLevels; s *= 2) this.#numLayers++;
-		if (canvas.main._hasArchive || this.#fromScale > 0) this.#numLayers -= 3 - canvas.main._archiveLayerOffset;
-		if (this.#fromScale > 0) this.#numLayers--;
+		for (let s = tileSize; s < maxi * canvas.main._underzoomLevels; s *= 2) {this.#numLayers++;}
+		if (canvas.main._hasArchive || this.#fromScale > 0) {this.#numLayers -= 3 - canvas.main._archiveLayerOffset;}
+		if (this.#fromScale > 0) {this.#numLayers--;}
 		this.#numLayers = Math.max(1, this.#numLayers);
 
 		let o = startOffset;
@@ -264,7 +264,7 @@ export default class Image {
 	 * Checks if embed's 3D sphere position is within camera's viewing frustum
 	 */
 	#sphere3DOverlap(): boolean {
-		if (!this.#canvas.is360) return false;
+		if (!this.#canvas.is360) {return false;}
 		const c = this.#canvas._camera360;
 		const dp = this.#sphere3DX * c._cameraForwardX + this.#sphere3DY * c._cameraForwardY + this.#sphere3DZ * c._cameraForwardZ;
 		return Math.acos(Math.max(-1, Math.min(1, dp))) < c._fieldOfView + Math.max(this.#angularWidth, this.#angularHeight) / 2;
@@ -282,9 +282,9 @@ export default class Image {
 
 	/** Determines if this image should be rendered in the current frame. @internal */
 	_shouldRender(): boolean {
-		if (this.#fromScale > 0 && this.#fromScale > this.#canvas.camera._scale) return false;
-		if ((this._isVideo || this._localIdx > 0) && this.opacity === 0 && this._tOpacity === 0) return false;
-		if (this._index === this.#canvas._activeImageIdx || (this.#canvas.is360 && this._localIdx === 0)) return true;
+		if (this.#fromScale > 0 && this.#fromScale > this.#canvas.camera._scale) {return false;}
+		if ((this._isVideo || this._localIdx > 0) && this.opacity === 0 && this._tOpacity === 0) {return false;}
+		if (this._index === this.#canvas._activeImageIdx || (this.#canvas.is360 && this._localIdx === 0)) {return true;}
 		return !this.#outsideView();
 	}
 
@@ -295,7 +295,7 @@ export default class Image {
 	 */
 	_opacityTick(direct: boolean): boolean {
 		const tOp = this._tOpacity;
-		if (this.opacity === tOp) return false;
+		if (this.opacity === tOp) {return false;}
 		const delta = 1 / (this.#canvas.main._frameTime * this.#canvas.main._embedFadeDuration);
 		this.opacity = Math.min(1, Math.max(0, !direct ? tOp > this.opacity
 			? Math.min(tOp, this.opacity + delta) : Math.max(tOp, this.opacity - delta) : tOp));
@@ -308,21 +308,21 @@ export default class Image {
 	 * @returns The number of tiles from this image that are already loaded/drawn.
 	 */
 	_getTiles(scale: number): number {
-		if (this.opacity <= 0) return 0;
+		if (this.opacity <= 0) {return 0;}
 		this.#doneTotal = 0;
 		const d = Image.#toDraw;
 		let s = Image.#toDrawSeen;
 
 		if (this.#is360Embed) {
 			scale = this.#getEmbeddedScale(scale);
-			if (!(this._doRender = (scale > 0))) return 0;
+			if (!(this._doRender = (scale > 0))) {return 0;}
 		} else {
 			scale = Math.max(scale, this.#canvas.camera._minScale) * this.#rScale;
 		}
 
 		const n = this._endOffset - this.#startOffset;
-		if (s.length < n) s = Image.#toDrawSeen = new Uint8Array(n);
-		else s.fill(0, 0, n);
+		if (s.length < n) {s = Image.#toDrawSeen = new Uint8Array(n);}
+		else {s.fill(0, 0, n);}
 		Image.#toDrawSeenBase = this.#startOffset;
 
 		const last = this._endOffset - 1;
@@ -354,7 +354,7 @@ export default class Image {
 		}
 
 		d.sort(sortTileIndices);
-		for (const t of d) c._toDraw.push(t);
+		for (const t of d) {c._toDraw.push(t);}
 		d.length = 0;
 
 		return this.#doneTotal;
@@ -365,7 +365,7 @@ export default class Image {
 		let l: number = this.#isSingle || this.#canvas._limited ? this.#numLayers : 1 + this.#canvas.main._skipBaseLevels;
 		if (!this.#isSingle && !this.#canvas._limited) {
 			for (; l < this.#numLayers; l++) {
-				if (twoNth(l) * scale >= 1) break;
+				if (twoNth(l) * scale >= 1) {break;}
 			}
 		}
 		return (this._targetLayer = l - 1);
@@ -373,7 +373,7 @@ export default class Image {
 
 	/** Calculates and adds tiles within a given rectangular area for a specific layer. */
 	#getTilesRect(layerIdx: number, x0: number, y0: number, x1: number, y1: number): void {
-		if (this.#outsideView()) return;
+		if (this.#outsideView()) {return;}
 
 		const l = this._layers[layerIdx];
 		const tW = l._tileWidth, tH = l._tileHeight;
@@ -385,7 +385,7 @@ export default class Image {
 		let y = Math.floor(Math.max(0, y0 - this.y0) / rH / tH);
 
 		for (; y <= b; y++) {
-			for (let x = c; x <= r; x++) this.#setToDraw(l, x, y);
+			for (let x = c; x <= r; x++) {this.#setToDraw(l, x, y);}
 		}
 	}
 
@@ -393,7 +393,7 @@ export default class Image {
 	 * Calculates tiles for 360 embeds using viewport-based coordinates.
 	 */
 	#getTilesViewport(layerIdx: number): void {
-		if (this.#outsideView()) return;
+		if (this.#outsideView()) {return;}
 
 		const layer = this._layers[layerIdx];
 		const c = this.#canvas;
@@ -404,7 +404,7 @@ export default class Image {
 
 		const iy0 = Math.max(vcy - vh / 2, ecy - eh / 2);
 		const iy1 = Math.min(vcy + vh / 2, ecy + eh / 2);
-		if (iy0 >= iy1) return;
+		if (iy0 >= iy1) {return;}
 
 		const vcx = c.is360 ? mod1(c.view._centerX + c._camera360._offX) : c.view._centerX;
 		let ix0: number, ix1: number;
@@ -415,12 +415,12 @@ export default class Image {
 
 			if (vx1 > vx0 && ex1 > ex0) {
 				ix0 = Math.max(vx0, ex0); ix1 = Math.min(vx1, ex1);
-				if (ix0 >= ix1) return;
+				if (ix0 >= ix1) {return;}
 			} else if (vx1 < vx0 && ex1 > ex0) {
-				if (!(ex0 <= vx1 || ex1 >= vx0)) return;
+				if (!(ex0 <= vx1 || ex1 >= vx0)) {return;}
 				ix0 = ex0; ix1 = ex1;
 			} else if (vx1 > vx0 && ex1 < ex0) {
-				if (!(vx0 <= ex1 || vx1 >= ex0)) return;
+				if (!(vx0 <= ex1 || vx1 >= ex0)) {return;}
 				ix0 = vx0; ix1 = vx1;
 			} else {
 				ix0 = Math.max(vx0, ex0); ix1 = Math.min(vx1, ex1);
@@ -428,8 +428,8 @@ export default class Image {
 
 			const eL = ecx - ew / 2, eR = ecx + ew / 2;
 			if (eR > 1) {
-				if (ix0 < eL) ix0 += 1;
-				if (ix1 < eL) ix1 += 1;
+				if (ix0 < eL) {ix0 += 1;}
+				if (ix1 < eL) {ix1 += 1;}
 			} else if (ix0 > ecx + 0.5) {
 				ix0 -= 1;
 			} else if (ix1 > ecx + 0.5) {
@@ -438,7 +438,7 @@ export default class Image {
 		} else {
 			ix0 = Math.max(vcx - vw / 2, ecx - ew / 2);
 			ix1 = Math.min(vcx + vw / 2, ecx + ew / 2);
-			if (ix0 >= ix1) return;
+			if (ix0 >= ix1) {return;}
 		}
 
 		const eL = ecx - ew / 2, eB = ecy - eh / 2;
@@ -449,7 +449,7 @@ export default class Image {
 		const r1 = Math.min(layer._rows - 1, Math.floor(Math.max(0, Math.min(1, (iy1 - eB) / eh)) / tH));
 
 		for (let row = r0; row <= r1; row++) {
-			for (let col = c0; col <= c1; col++) this.#setToDraw(layer, col, row);
+			for (let col = c0; col <= c1; col++) {this.#setToDraw(layer, col, row);}
 		}
 	}
 
@@ -458,7 +458,7 @@ export default class Image {
 		const i = Math.min(this._endOffset - 1, l._start + y * l._cols + x);
 		const si = i - sb;
 		if (si < s.length) {
-			if (s[si]) return;
+			if (s[si]) {return;}
 			s[si] = 1;
 		}
 		Image.#toDraw.push(i);
@@ -514,11 +514,11 @@ export default class Image {
 
 		let b = 0;
 		const p0 = gl._getXYZ(ecx - ew / 2, ecy - pH);
-		if (p0._inView(el)) b++;
-		if (gl._getXYZ(ecx + ew / 2, ecy - pH)._inView(el)) b++;
-		if (gl._getXYZ(ecx - ew / 2, ecy + pH)._inView(el)) b++;
-		if (gl._getXYZ(ecx + ew / 2, ecy + pH)._inView(el)) b++;
-		if (b === 0) return 0;
+		if (p0._inView(el)) {b++;}
+		if (gl._getXYZ(ecx + ew / 2, ecy - pH)._inView(el)) {b++;}
+		if (gl._getXYZ(ecx - ew / 2, ecy + pH)._inView(el)) {b++;}
+		if (gl._getXYZ(ecx + ew / 2, ecy + pH)._inView(el)) {b++;}
+		if (b === 0) {return 0;}
 
 		const l = p0.w > 0 || p0.x < 0 ? 0 : Math.min(cW, p0.x);
 		const r = p0.w > 0 || p0.x > cW ? cW : Math.max(0, p0.x);
@@ -545,7 +545,7 @@ export default class Image {
 		}
 		for (let gy = 1; gy <= 3; gy++) {
 			const sy = h * gy / 4;
-			for (let gx = 1; gx <= 3; gx++) add(w * gx / 4, sy);
+			for (let gx = 1; gx <= 3; gx++) {add(w * gx / 4, sy);}
 			add(w * gy / 4, h - 1);
 		}
 
@@ -553,14 +553,14 @@ export default class Image {
 		let minY = Infinity, maxY = -Infinity;
 		for (let i = 0; i < n; i++) {
 			const v = Image.#sampledYs[i];
-			if (v < minY) minY = v;
-			if (v > maxY) maxY = v;
+			if (v < minY) {minY = v;}
+			if (v > maxY) {maxY = v;}
 		}
 		minY = Math.max(0, minY - 0.001);
 		maxY = Math.min(1, maxY + 0.05);
 
 		const xs = Image.#sampledXs, ux = Image.#uniqueXs;
-		for (let i = 0; i < n; i++) xs[i] = mod1(xs[i] - offX);
+		for (let i = 0; i < n; i++) {xs[i] = mod1(xs[i] - offX);}
 
 		Image.#uniqueLength = 0;
 		for (let i = 0; i < n; i++) {
@@ -569,7 +569,7 @@ export default class Image {
 			for (let j = 0; j < Image.#uniqueLength; j++) {
 				if (Math.abs(ux[j] - val) < eps) { exists = true; break; }
 			}
-			if (!exists) ux[Image.#uniqueLength++] = val;
+			if (!exists) {ux[Image.#uniqueLength++] = val;}
 		}
 
 		const m = Image.#uniqueLength;
@@ -601,27 +601,27 @@ export default class Image {
 			}
 		}
 
-		if (minY < 0.05 || maxY > 0.95) full = true;
+		if (minY < 0.05 || maxY > 0.95) {full = true;}
 
 		const tH = l._tileHeight, tW = l._tileWidth;
 		let r0 = Math.max(0, Math.floor((minY - 0.001) / tH));
 		let r1 = Math.min(l._rows - 1, Math.max(0, Math.floor((maxY + tH - 1e-10) / tH)));
-		if (minY < 1e-5) r0 = 0;
-		if (maxY > 1 - 1e-5) r1 = l._rows - 1;
+		if (minY < 1e-5) {r0 = 0;}
+		if (maxY > 1 - 1e-5) {r1 = l._rows - 1;}
 
 		const wrap = a1 > 1;
 		for (let row = r0; row <= r1; row++) {
 			if (full) {
-				for (let col = 0; col < l._cols; col++) this.#setToDraw(l, col, row);
+				for (let col = 0; col < l._cols; col++) {this.#setToDraw(l, col, row);}
 			} else {
 				const c0 = Math.max(0, Math.floor((a0 - 0.001) / tW) - 1);
 				if (!wrap) {
 					const c1 = Math.min(l._cols - 1, Math.ceil((a1 + 0.001) / tW));
-					for (let col = c0; col <= c1; col++) this.#setToDraw(l, col, row);
+					for (let col = c0; col <= c1; col++) {this.#setToDraw(l, col, row);}
 				} else {
-					for (let col = c0; col < l._cols; col++) this.#setToDraw(l, col, row);
+					for (let col = c0; col < l._cols; col++) {this.#setToDraw(l, col, row);}
 					const c1 = Math.min(l._cols - 1, Math.ceil(mod1(a1 + 0.001) / tW));
-					for (let col = 0; col <= c1; col++) this.#setToDraw(l, col, row);
+					for (let col = 0; col <= c1; col++) {this.#setToDraw(l, col, row);}
 				}
 			}
 		}

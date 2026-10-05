@@ -46,9 +46,9 @@ export class PinchHandler {
 	 * @param e The TouchEvent.
 	 */
 	start = (e: TouchEvent | Event): void => {
-		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
+		if (!Browser.hasTouch || !(e instanceof TouchEvent)) {return;}
 
-		if (this.#ctx._twoFingerPan && e.touches.length < 2) return;
+		if (this.#ctx._twoFingerPan && e.touches.length < 2) {return;}
 
 		if (this.#ctx._pinching || e.touches.length != 2) {
 			this.stop(e as TouchEvent);
@@ -73,9 +73,9 @@ export class PinchHandler {
 	 * @param e The TouchEvent.
 	 */
 	#move = (e: TouchEvent | Event): void => {
-		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
+		if (!Browser.hasTouch || !(e instanceof TouchEvent)) {return;}
 		const t = e.touches;
-		if (t?.length < 2) return;
+		if (t?.length < 2) {return;}
 
 		const coo = { x: t[0].clientX, y: t[0].clientY };
 		const coo2 = { x: t[1].clientX, y: t[1].clientY };

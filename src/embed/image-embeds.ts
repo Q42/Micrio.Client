@@ -34,7 +34,7 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 
 	/** @internal */
 	_setProps(props: Partial<ImageEmbedsProps>) {
-		if (props.image !== undefined) this.#props.image = props.image;
+		if (props.image !== undefined) {this.#props.image = props.image;}
 	}
 }
 

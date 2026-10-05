@@ -63,21 +63,21 @@ export class OmniUI {
 		const parent = this.#parent;
 
 		const bundle = DataLoader._getBundleImageSync(image.id);
-		if (!bundle) return;
+		if (!bundle) {return;}
 
 		const settings = image.$settings;
 		const omni = settings.omni;
-		if (!omni) return;
+		if (!omni) {return;}
 
 		const engine = micrio._engine;
 		const info = image.$info;
-		if (!info) return;
+		if (!info) {return;}
 
 		const totalFrames = omni.frames;
 		const numLayers = omni.layers?.length ?? 1;
 		const pagesPerLayer = totalFrames / numLayers;
 
-		if (!image._placed) return;
+		if (!image._placed) {return;}
 
 		const frames: Omni.Frame[] = [];
 		for (let j = 0; j < totalFrames; j++) {
@@ -131,7 +131,7 @@ export class OmniUI {
 		this.#swiperOpts = { continuous: true };
 
 		this.#goto = (idx: number) => {
-			while (idx < 0) idx += pagesPerLayer;
+			while (idx < 0) {idx += pagesPerLayer;}
 			idx %= pagesPerLayer;
 			image.canvas?._setActiveImage(idx, 0);
 			dial._setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 });
@@ -158,21 +158,21 @@ export class OmniUI {
 			const langs = Object.keys(info.revision ?? {}) as string[];
 			if (!langs.length) {
 				const ml = get(micrio._lang);
-				if (ml) langs.push(ml);
+				if (ml) {langs.push(ml);}
 			}
 			if (langs.length) {
 				for (const lang of langs) {
 					for (let i = 0; i < layerNames.length; i++) {
 						if (!layerNames[i].i18n[lang])
-							layerNames[i].i18n[lang] = { title: 'Layer ' + (i + 1) };
+							{layerNames[i].i18n[lang] = { title: 'Layer ' + (i + 1) };}
 					}
 				}
 			}
 			const printLayerMenu = () => {
 				const currentLayer = get(image.state.layer);
 				image.data.update(d => {
-					if (!d) d = {};
-					if (!d.pages) d.pages = [];
+					if (!d) {d = {};}
+					if (!d.pages) {d.pages = [];}
 					d.pages = d.pages.filter(p => !p.id?.startsWith('_omni-layers'));
 					d.pages.push({
 						id: '_omni-layers-' + currentLayer,
@@ -198,7 +198,7 @@ export class OmniUI {
 	/** Tear down the omni UI, remove listeners, and clean up resources. */
 	destroy() : void {
 		this.#cleanSwiper();
-		for (const cleanup of this.#cleanups) cleanup();
+		for (const cleanup of this.#cleanups) {cleanup();}
 		this.#cleanups = [];
 	}
 
@@ -207,10 +207,10 @@ export class OmniUI {
 	#initSwiper() {
 		const micrio = this.#micrio;
 
-		if(!this.#swiperOpts.sensitivity) this.#swiperOpts.sensitivity = Number(micrio.getAttribute('data-swipe-sensitivity') ?? 1);
+		if(!this.#swiperOpts.sensitivity) {this.#swiperOpts.sensitivity = Number(micrio.getAttribute('data-swipe-sensitivity') ?? 1);}
 
 		const snap = micrio.getAttribute('data-swipe-snap');
-		if(snap) this.#snapTo = snap.split(',').map(Number);
+		if(snap) {this.#snapTo = snap.split(',').map(Number);}
 
 		this.#micrio.setAttribute('data-hooked','');
 
@@ -241,7 +241,7 @@ export class OmniUI {
 	#isDragging = () : boolean => this.#pointers.size == 2 || (this.#isFullWidth || this.#startedWithShift) && this.#pointers.size == 1;
 
 	#dStart = (e:PointerEvent):void => {
-		if (e.button !== 0) return;
+		if (e.button !== 0) {return;}
 		this.#startedWithShift = e.shiftKey;
 		const newDrag = !this.#isDragging();
 		this.#pointers.set(e.pointerId, true);
@@ -261,13 +261,13 @@ export class OmniUI {
 
 	#dMove = (e:PointerEvent):void => {
 		if(!this.#isDragging() || e.pointerId != this.#firstTouchId
-			|| this.#startX === undefined || this.#startIndex === undefined) return;
+			|| this.#startX === undefined || this.#startIndex === undefined) {return;}
 
 		if(!this.#hitTresh && this.#startX !== undefined && (
 			this.#hitTresh = this.#pointers.size != 2 ? true
 				: Math.abs(e.clientX - this.#startX) > ((this.#micrio.events._pinchFactor && this.#micrio.events._pinchFactor > 1.25 ? 0.3 : 0.15) * this.#micrio.offsetWidth)
-		)) this.#startX = e.clientX;
-		if(!this.#hitTresh) return;
+		)) {this.#startX = e.clientX;}
+		if(!this.#hitTresh) {return;}
 
 		const camera = this.#micrio.$current!.camera;
 		const scale = !this.#swiperOpts.continuous ? 1 : Math.max(0.1, (camera.getXY(1, .5)[0] - camera.getXY(0, .5)[0]) / this.#micrio.offsetWidth);
@@ -275,13 +275,13 @@ export class OmniUI {
 		let idx = this.#startIndex - delta;
 
 		if(this.#swiperOpts.continuous) {
-			while(idx < 0) idx += this.#swiperLength;
-			while(idx > this.#swiperLength-1) idx -= this.#swiperLength;
+			while(idx < 0) {idx += this.#swiperLength;}
+			while(idx > this.#swiperLength-1) {idx -= this.#swiperLength;}
 		}
 
 		idx = Math.max(0, Math.min(this.#swiperLength-1, idx));
 
-		if(idx != this.currentIndex) this.#goto(idx);
+		if(idx != this.currentIndex) {this.#goto(idx);}
 	}
 
 	#dStop = (e:PointerEvent):void => {
@@ -290,7 +290,7 @@ export class OmniUI {
 			this.#micrio.releasePointerCapture(this.#firstTouchId);
 			this.#firstTouchId = undefined;
 		}
-		if(!this.#pointers.size) this.#swipeEnd();
+		if(!this.#pointers.size) {this.#swipeEnd();}
 	}
 
 	#swipeEnd():void {
@@ -301,13 +301,13 @@ export class OmniUI {
 		if(this.#snapTo.length) {
 			const snapToIndex = this.#snapTo[this.#snapTo.map((i,idx) => [idx, Math.abs(i-this.currentIndex)])
 				.sort((a,b) => a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0)[0][0]];
-			if(snapToIndex != this.currentIndex) this.animateTo(snapToIndex);
+			if(snapToIndex != this.currentIndex) {this.animateTo(snapToIndex);}
 		}
 	}
 
 	/** Smoothly animate to a target frame index. */
 	animateTo(idx: number) : void {
-		if(this.#raf) Frame.cancel(this.#raf);
+		if(this.#raf) {Frame.cancel(this.#raf);}
 		const duration = 250,
 			started = performance.now(),
 			startIdx = this.currentIndex,
@@ -316,9 +316,9 @@ export class OmniUI {
 		const frame = (time:number) : void => {
 			const p = Math.min(1, (time - started) / duration);
 			if(p < 1) { this.#raf = frame; Frame.request(frame); }
-			else this.#raf = undefined;
+			else {this.#raf = undefined;}
 			const d = startIdx - Math.round(easeInOut.get(p) * delta);
-			if(d != this.currentIndex) this.#goto(d);
+			if(d != this.currentIndex) {this.#goto(d);}
 		}
 
 		this.#raf = frame;

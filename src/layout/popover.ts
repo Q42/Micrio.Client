@@ -26,7 +26,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		this.#dialog = createElement('dialog', {
 			events: {
@@ -51,14 +51,14 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 
 	/** @internal */
 	_setProps(props: Partial<PopoverProps>) {
-		if (props.popover !== undefined) this.#props.popover = props.popover;
-		if (this.isConnected) this.#render();
+		if (props.popover !== undefined) {this.#props.popover = props.popover;}
+		if (this.isConnected) {this.#render();}
 	}
 
 	#render() {
 		const p = this.#props.popover;
 		const micrio = this._getMicrio();
-		if (!micrio || !p) return;
+		if (!micrio || !p) {return;}
 
 		const $_lang = get(micrio._lang);
 		const $i18n = get(i18n);
@@ -66,7 +66,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		const pageId = 'contentPage' in p ? p.contentPage?.id : '';
 		const markerId = 'marker' in p ? p.marker?.id : '';
 		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${$_lang}`;
-		if (!this._checkRenderKey(key)) return;
+		if (!this._checkRenderKey(key)) {return;}
 
 		this.#dialog.replaceChildren();
 		this.#dialog.classList.remove('article', 'page', 'has-media', 'gallery');
@@ -92,7 +92,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 					mt.next?.();
 				}
 			}
-			if (this.#dialog?.open) this.#dialog.close();
+			if (this.#dialog?.open) {this.#dialog.close();}
 		};
 
 		/**
@@ -101,8 +101,8 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		 * buttons navigate through their own <a href>.
 		 */
 		const clickPageButton = (button: Models.ImageData.MenuPageButton) => {
-			if (this.#dialog?.open) this.#dialog.close();
-			if (button.type == 'close') return;
+			if (this.#dialog?.open) {this.#dialog.close();}
+			if (button.type == 'close') {return;}
 			// Give the popover time to close before switching content, like in 6
 			setTimeout(() => {
 				const data = micrio.$current?.$data;
@@ -137,7 +137,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			const isVideoPage = cd?.embed && (!cd.content || cd.content.length < 250) && !page.image && !page.buttons?.length;
 			const hasMedia = !!cd?.embed || !!page.image;
 
-			if (hasMedia) this.#dialog.classList.add('has-media');
+			if (hasMedia) {this.#dialog.classList.add('has-media');}
 
 			if (isVideoPage) {
 				if (cd.embed) {
@@ -149,13 +149,13 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			} else {
 				this.#dialog.classList.add('article');
 				const articleChildren: (Node | string | number | false | null | undefined)[] = [];
-				if (cd?.title) articleChildren.push(createElement('h2', { textContent: cd.title }));
-				if (cd?.embed) articleChildren.push(createElement('micrio-media', { setProps: { src: cd.embed, controls: true } }));
+				if (cd?.title) {articleChildren.push(createElement('h2', { textContent: cd.title }));}
+				if (cd?.embed) {articleChildren.push(createElement('micrio-media', { setProps: { src: cd.embed, controls: true } }));}
 				// Page image (dropped in the 7 rewrite)
 				const pageImage = page.image as string | Models.Assets.Image | undefined;
 				const pageImageSrc = typeof pageImage == 'string' ? pageImage : pageImage?.src;
-				if (pageImageSrc) articleChildren.push(createElement('img', { props: { src: pageImageSrc, alt: '' } }));
-				if (cd?.content) articleChildren.push(createElement('div', { innerHTML: cd.content }));
+				if (pageImageSrc) {articleChildren.push(createElement('img', { props: { src: pageImageSrc, alt: '' } }));}
+				if (cd?.content) {articleChildren.push(createElement('div', { innerHTML: cd.content }));}
 				createElement('article', { children: articleChildren, parent: this.#dialog });
 			}
 
@@ -224,12 +224,12 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			}
 		}
 
-		if (!this.#dialog.open) this.#dialog.showModal();
+		if (!this.#dialog.open) {this.#dialog.showModal();}
 	}
 
 	/** @internal */
 	_onDestroy() {
-		if (this.#dialog?.open) this.#dialog.close();
+		if (this.#dialog?.open) {this.#dialog.close();}
 	}
 }
 

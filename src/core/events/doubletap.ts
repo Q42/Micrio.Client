@@ -41,7 +41,7 @@ export class DoubleTapHandler {
 	 * @param e The TouchEvent.
 	 */
 	#tap = (e: TouchEvent | Event): void => {
-		if (!Browser.hasTouch || !(e instanceof TouchEvent)) return;
+		if (!Browser.hasTouch || !(e instanceof TouchEvent)) {return;}
 		const now = performance.now();
 
 		// If tap occurs within 250ms of the previous tap, trigger double-click logic

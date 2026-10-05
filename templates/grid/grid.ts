@@ -245,8 +245,8 @@ const FOCUS_TRANSITIONS: FocusTransition[] = [
 
 function h<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
 	const e = document.createElement(tag);
-	if (className) e.className = className;
-	if (text !== undefined) e.textContent = text;
+	if (className) {e.className = className;}
+	if (text !== undefined) {e.textContent = text;}
 	return e;
 }
 
@@ -257,7 +257,7 @@ function sleep(ms: number): Promise<void> {
 /** Build a whole-image thumbnail URL from the image's (corner-tile) `thumbSrc`. */
 function thumbOf(img: MicrioImage, level = 8): string {
 	const src = img.thumbSrc;
-	if (!src) return '';
+	if (!src) {return '';}
 	return src.replace(/(\/\d+\/0_0)(\.\w+)$/, `/${level}/0_0$2`);
 }
 
@@ -310,8 +310,8 @@ if (micrioEl) {
 } else if (document.readyState === 'loading') {
 	document.addEventListener('DOMContentLoaded', () => {
 		const el = document.querySelector('micr-io') as HTMLMicrioElement | null;
-		if (el) boot(el);
-		else console.error('[grid demo] No <micr-io> element found.');
+		if (el) {boot(el);}
+		else {console.error('[grid demo] No <micr-io> element found.');}
 	});
 } else {
 	console.error('[grid demo] No <micr-io> element found.');
@@ -330,9 +330,9 @@ function resolveGrid(micrio: HTMLMicrioElement, onGrid: (grid: Grid) => void): v
 	let timer: number | undefined;
 
 	const finish = (grid?: Grid) => {
-		if (done || !grid) return;
+		if (done || !grid) {return;}
 		done = true;
-		if (timer !== undefined) clearInterval(timer);
+		if (timer !== undefined) {clearInterval(timer);}
 		onGrid(grid);
 	};
 
@@ -348,8 +348,8 @@ function resolveGrid(micrio: HTMLMicrioElement, onGrid: (grid: Grid) => void): v
 	// Safety net for any ordering/event edge case.
 	timer = window.setInterval(() => finish(find()), 150);
 	window.setTimeout(() => {
-		if (done) return;
-		if (timer !== undefined) clearInterval(timer);
+		if (done) {return;}
+		if (timer !== undefined) {clearInterval(timer);}
 		console.warn('[grid demo] Timed out waiting for the grid controller.');
 	}, 15000);
 }
@@ -562,20 +562,20 @@ async function init(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid): P
 
 async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
 	const gallery = micrio.gallery;
-	if (!gallery) return;
+	if (!gallery) {return;}
 
 	for (const { id } of CATALOG) {
 		const markers = markersFor(id);
-		if (!markers.length) continue;
+		if (!markers.length) {continue;}
 
 		const img = await gallery.gotoId(id);
-		if (!img) continue;
+		if (!img) {continue;}
 
 		const ensure = () => {
 			const existing = img.$data?.markers ?? [];
 			const have = new Set(existing.map(m => m.id));
 			const add = markers.filter(m => !have.has(m.id));
-			if (!add.length) return;
+			if (!add.length) {return;}
 			img.data.update(d => {
 				const base: Models.ImageData.ImageData = d ?? {};
 				return { ...base, markers: [...(base.markers ?? []), ...add] };
@@ -602,16 +602,16 @@ function buildStrip(strip: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, g
 
 		// Load the whole-image thumbnail asynchronously.
 		void micrio.gallery?.gotoId(id).then(img => {
-			if (!img) return;
+			if (!img) {return;}
 			const url = thumbOf(img);
-			if (url) ph.style.backgroundImage = `url('${url}')`;
+			if (url) {ph.style.backgroundImage = `url('${url}')`;}
 		});
 	}
 }
 
 async function focusById(micrio: HTMLMicrioElement, grid: Grid, id: string, transition: FocusTransition, duration = 1): Promise<void> {
 	const img = await micrio.gallery?.gotoId(id);
-	if (img) await grid.gridFocus(img, { transition, duration });
+	if (img) {await grid.gridFocus(img, { transition, duration });}
 }
 
 function refreshStrip(strip: HTMLElement, grid: Grid): void {
@@ -626,7 +626,7 @@ function refreshStrip(strip: HTMLElement, grid: Grid): void {
 function buildTags(box: HTMLElement, grid: Grid): void {
 	for (const tag of TAGS) {
 		const images = CATALOG.filter(c => MARKERS[c.id]?.some(m => m.tags?.includes(tag)));
-		if (!images.length) continue;
+		if (!images.length) {continue;}
 
 		const row = h('div', 'gd-tag');
 		const nm = h('span', 'nm', TAG_LABELS[tag]);
@@ -719,11 +719,11 @@ function stopTours(micrio: HTMLMicrioElement, grid: Grid, note: HTMLElement): vo
 /** Focus an image and open one of its markers, returning the image (or undefined). */
 async function openMarker(micrio: HTMLMicrioElement, grid: Grid, imageId: string, markerId: string, token: number): Promise<MicrioImage | undefined> {
 	const img = await micrio.gallery?.gotoId(imageId);
-	if (!img || token !== tourToken) return img;
+	if (!img || token !== tourToken) {return img;}
 	await grid.gridFocus(img, { transition: 'slide-up', duration: 0.8 });
-	if (token !== tourToken) return img;
+	if (token !== tourToken) {return img;}
 	await sleep(400); // let the marker element render after focus
-	if (token !== tourToken) return img;
+	if (token !== tourToken) {return img;}
 	img.state.marker.set(markerId);
 	return img;
 }
@@ -737,18 +737,18 @@ async function runMarkerTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLEl
 	const token = ++tourToken;
 
 	for (const step of TOUR_STEPS) {
-		if (token !== tourToken) return;
+		if (token !== tourToken) {return;}
 		note.textContent = `Marker tour — ${titleOf(step.image)} · ${step.note}`;
 
 		const img = await openMarker(micrio, grid, step.image, step.markerId, token);
-		if (!img) continue;
+		if (!img) {continue;}
 
 		await sleep(2600);
-		if (token !== tourToken) return;
+		if (token !== tourToken) {return;}
 		img.state.marker.set(undefined);
 	}
 
-	if (token !== tourToken) return;
+	if (token !== tourToken) {return;}
 	await grid.reset(1);
 	note.textContent = 'Marker tour finished — back to the overview.';
 }
@@ -763,7 +763,7 @@ async function runGuidedTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLEl
 
 	note.textContent = 'Guided tour — a marker video tour firing grid triggers…';
 	const img = await openMarker(micrio, grid, VIDEO_TOUR_MARKER.image, VIDEO_TOUR_MARKER.marker.id, token);
-	if (!img) return;
+	if (!img) {return;}
 
 	// The video tour runs on its own; watch for it to finish.
 	const unsub = micrio.state.tour.subscribe(t => {

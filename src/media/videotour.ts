@@ -75,7 +75,7 @@ export class VideoTourInstance {
 		this.#data = data;
 		this.#micrio = image.engine.micrio;
 		const content = data.i18n?.[get(this.#micrio._lang)];
-		if (!content) throw new Error('No valid content for video tour!');
+		if (!content) {throw new Error('No valid content for video tour!');}
 		this.#content = content;
 		this.#unhookEvents = !data.keepInteraction && this.#micrio.events.$enabled;
 		data.instance = this;
@@ -86,7 +86,7 @@ export class VideoTourInstance {
 
 	/** Cleans up the tour instance, stops animations, and re-hooks events if necessary. */
 	destroy(): void {
-		if (this.#unhookEvents) this.#micrio.events.enabled.set(true);
+		if (this.#unhookEvents) {this.#micrio.events.enabled.set(true);}
 		this.#deactivateEvents();
 		this.#micrio.removeAttribute('data-video-tour-active');
 		clearTimeout(this.#_to);
@@ -114,13 +114,13 @@ export class VideoTourInstance {
 				pauseDuration: (s.end - s.start) * 1000
 			});
 		}
-		if (this.#startedAt && !this.#playing) this.progress = this.currentTime;
+		if (this.#startedAt && !this.#playing) {this.progress = this.currentTime;}
 	}
 
 	/** Initializes event data by clamping end times to duration. @internal */
 	#initEvents(): void {
 		const events = this.#content.events;
-		if (!events?.length) return;
+		if (!events?.length) {return;}
 		const duration = this.duration;
 		for (const e of events) {
 			e.start = Number(e.start || 0);
@@ -131,7 +131,7 @@ export class VideoTourInstance {
 	/** Deactivates any currently active events, dispatching a final `tour-event`. @internal */
 	#deactivateEvents(): void {
 		const events = this.#content.events;
-		if (!events?.length) return;
+		if (!events?.length) {return;}
 		for (const e of events) {
 			if (e.active) {
 				e.active = false;
@@ -147,7 +147,7 @@ export class VideoTourInstance {
 	 */
 	updateEvents(time: number): void {
 		const events = this.#content.events;
-		if (!events?.length) return;
+		if (!events?.length) {return;}
 		for (const e of events) {
 			const active = e.start <= time && e.end >= time;
 			if (active != !!e.active) {
@@ -186,8 +186,8 @@ export class VideoTourInstance {
 			this.#pausedAt = undefined;
 		} else if (!this.#playing) {
 			this.#startedAt = Date.now();
-			if (this.#startAt === undefined) this.#gotoStep(0, 0);
-			else this.#gotoTime(this.duration * this.#startAt * 1000);
+			if (this.#startAt === undefined) {this.#gotoStep(0, 0);}
+			else {this.#gotoTime(this.duration * this.#startAt * 1000);}
 			this.#startAt = undefined;
 		}
 
@@ -197,13 +197,13 @@ export class VideoTourInstance {
 
 	/** Pauses the tour playback. */
 	pause(): void {
-		if (this.#_paused || this.#currentIndex == undefined || this.#startedAt == undefined) return;
+		if (this.#_paused || this.#currentIndex == undefined || this.#startedAt == undefined) {return;}
 		this.#_paused = true;
 		this.#stoppedPlaying();
 		clearTimeout(this.#_to);
-		if (this.#currentIndex >= 0) this.#image.camera.stop();
-		if (this.ended) this.#reset();
-		else this.#pausedAt = Date.now() - this.#startedAt;
+		if (this.#currentIndex >= 0) {this.#image.camera.stop();}
+		if (this.ended) {this.#reset();}
+		else {this.#pausedAt = Date.now() - this.#startedAt;}
 	}
 
 	/** Resets the tour state after ending or stopping. @internal */
@@ -222,13 +222,13 @@ export class VideoTourInstance {
 	 * @param perc Optional starting progress percentage for the animation (0-1).
 	 */
 	#gotoStep(index: number, perc?: number): void {
-		if (this.#startedAt == undefined) return;
+		if (this.#startedAt == undefined) {return;}
 		clearTimeout(this.#_to);
 
 		if (!this.#timeline[index]) {
 			if (!this.paused || !this.#wasPaused) {
 				const remaining = Math.max(0, Math.round(this.duration * 1000 - (Date.now() - this.#startedAt)));
-				if (remaining > 0) this.#_to = setTimeout(() => this.pause(), remaining);
+				if (remaining > 0) {this.#_to = setTimeout(() => this.pause(), remaining);}
 			}
 			return;
 		}
@@ -239,7 +239,7 @@ export class VideoTourInstance {
 		this.#image.camera.stop();
 
 		if (diff > 0) {
-			if (!this.#_paused) this.#_to = setTimeout(() => this.#startAni(perc), diff);
+			if (!this.#_paused) {this.#_to = setTimeout(() => this.#startAni(perc), diff);}
 		} else {
 			this.#startAni(perc);
 		}
@@ -247,7 +247,7 @@ export class VideoTourInstance {
 
 	/** Schedules navigation to the next step after the current step's pause duration. @internal */
 	#nextStep(): void {
-		if (this.#currentIndex != undefined) this.#gotoStep(this.#currentIndex + 1);
+		if (this.#currentIndex != undefined) {this.#gotoStep(this.#currentIndex + 1);}
 	}
 
 	/**
@@ -256,9 +256,9 @@ export class VideoTourInstance {
 	 * @param perc Optional starting progress percentage for the animation (0-1).
 	 */
 	#startAni(perc = 0): void {
-		if (this.#currentIndex == undefined || isNaN(perc)) return;
+		if (this.#currentIndex == undefined || isNaN(perc)) {return;}
 		const step = this.#timeline[this.#currentIndex];
-		if (!step) return;
+		if (!step) {return;}
 
 		const prevStep = this.#timeline[this.#currentIndex - 1];
 		const prevView: Models.Camera.View | undefined = prevStep?.view;
@@ -281,7 +281,7 @@ export class VideoTourInstance {
 				prevView,
 			}).then(() => {
 				if (this.#currentIndex != undefined && step === this.#timeline[this.#currentIndex])
-					this.#nextStep();
+					{this.#nextStep();}
 			}).catch(() => {});
 		}
 	}
@@ -290,13 +290,13 @@ export class VideoTourInstance {
 	#startedPlaying(): void {
 		this.#micrio.setAttribute('data-video-tour-active', '');
 		this.#micrio.events._dispatch('videotour-play');
-		if (this.#unhookEvents) this.#micrio.events.enabled.set(false);
+		if (this.#unhookEvents) {this.#micrio.events.enabled.set(false);}
 	}
 
 	/** Clears playing state attributes and dispatches events. @internal */
 	#stoppedPlaying(): void {
 		this.#micrio.events._dispatch('videotour-pause');
-		if (this.#unhookEvents) this.#micrio.events.enabled.set(true);
+		if (this.#unhookEvents) {this.#micrio.events.enabled.set(true);}
 	}
 
 	/**
@@ -335,11 +335,11 @@ export class VideoTourInstance {
 		let seg: VideoTourSegment | undefined;
 		let i = 0;
 		for (; i < this.#timeline.length && this.#timeline[i].start <= ms; i++)
-			seg = this.#timeline[i];
+			{seg = this.#timeline[i];}
 
 		if (!seg) {
-			if (this.#timeline.length) this.#image.camera.stop();
-			if (!this.paused) this.#gotoStep(0);
+			if (this.#timeline.length) {this.#image.camera.stop();}
+			if (!this.paused) {this.#gotoStep(0);}
 			this.updateEvents(ms / 1000);
 			return;
 		}
@@ -350,9 +350,9 @@ export class VideoTourInstance {
 
 		if (perc > 1) {
 			this.#gotoStep(i);
-			if (seg.view) this.#image.camera.setView(seg.view, { noLimit: true });
+			if (seg.view) {this.#image.camera.setView(seg.view, { noLimit: true });}
 		} else {
-			if (i > 1) this.#image.camera.setView(this.#timeline[i - 2].view, { noLimit: true });
+			if (i > 1) {this.#image.camera.setView(this.#timeline[i - 2].view, { noLimit: true });}
 			this.#gotoStep(i - 1, perc);
 		}
 

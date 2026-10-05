@@ -20,11 +20,11 @@ export class MicrioAudioLocation {
 	#init(marker: Models.ImageData.Marker, ctx: AudioContext, is360: boolean) {
 		const image = this.#micrio.$current as MicrioImage;
 		const info = image.$info;
-		if (!info) return;
+		if (!info) {return;}
 		const imgWidth = info.width;
 		const imgHeight = info.height;
 		const item = marker.positionalAudio as Models.Assets.AudioLocation;
-		if (!item) return;
+		if (!item) {return;}
 
 		this.#gain = ctx.createGain();
 		this.#panner = ctx.createPanner();
@@ -62,12 +62,12 @@ export class MicrioAudioLocation {
 		};
 
 		const play = () => {
-			if (this.#source) this.#source.disconnect();
+			if (this.#source) {this.#source.disconnect();}
 			this.#source = ctx.createBufferSource();
 			if (item.loop) {
-				if (item.repeatAfter > 0) this.#source.onended = () => {
+				if (item.repeatAfter > 0) {this.#source.onended = () => {
 					this.#to = setTimeout(play, item.repeatAfter * 1000);
-				}; else this.#source.loop = true;
+				};} else {this.#source.loop = true;}
 			}
 			this.#gain.gain.value = item.volume ?? 1;
 			this.#source.buffer = (window as Record<string, any>).__micrioAudioBuffers?.[item.src] ?? null;
@@ -78,7 +78,7 @@ export class MicrioAudioLocation {
 		};
 
 		const start = async () => {
-			if (!item.src) return;
+			if (!item.src) {return;}
 			const buffers = (window as Record<string, any>).__micrioAudioBuffers || {};
 			if (!buffers[item.src]) {
 				buffers[item.src] = await fetch(item.src)
@@ -86,8 +86,8 @@ export class MicrioAudioLocation {
 					.then(b => ctx.decodeAudioData(b));
 				(window as Record<string, any>).__micrioAudioBuffers = buffers;
 			}
-			if (item.alwaysPlay && item.repeatAfter > 0) this.#to = setTimeout(play, item.repeatAfter * 1000);
-			else play();
+			if (item.alwaysPlay && item.repeatAfter > 0) {this.#to = setTimeout(play, item.repeatAfter * 1000);}
+			else {play();}
 		};
 
 		update();
@@ -100,7 +100,7 @@ export class MicrioAudioLocation {
 	}
 
 	#end() {
-		if (this.#source) this.#source.disconnect();
+		if (this.#source) {this.#source.disconnect();}
 		clearTimeout(this.#to);
 		this.#panner.disconnect();
 		this.#gain.disconnect();

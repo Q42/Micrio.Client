@@ -1,6 +1,6 @@
 export function computeWeightFactor(progress: Float32Array, pageCount: number): number {
 	let sum = 0;
-	for (let i = 0; i < progress.length; i++) sum += progress[i];
+	for (let i = 0; i < progress.length; i++) {sum += progress[i];}
 	return pageCount > 0 ? sum / pageCount : 0;
 }
 
@@ -34,7 +34,7 @@ export function computeAllPageFloors(
 }
 
 export function applySpineDelta(positions: Float32Array, delta: number): void {
-	if (Math.abs(delta) <= 1e-6) return;
+	if (Math.abs(delta) <= 1e-6) {return;}
 	for (let i = 1; i < positions.length; i += 3) {
 		positions[i] += delta;
 	}

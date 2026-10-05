@@ -160,13 +160,13 @@ function solveDistanceSet(
 		let dy = iy - jy;
 		let dz = iz - jz;
 		const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-		if (dist < EPS) continue;
+		if (dist < EPS) {continue;}
 
 		const invDist = 1 / dist;
 		const C = dist - crl[c];
 
 		const w = invMasses[vi] + invMasses[vj];
-		if (w < EPS) continue;
+		if (w < EPS) {continue;}
 
 		// XPBD: dLambda = -(C + alpha_tilde * lambda) / (w + alpha_tilde)
 		const oldLambda = lambda[c];

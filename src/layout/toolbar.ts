@@ -27,21 +27,21 @@ class MicrioToolbar extends MicrioElement {
 	/** @internal */
 	_onMount() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 
 		const { _lang } = micrio;
 
 		this.#isMobile = window.innerWidth <= 500;
 		const resize = () => {
 			this.#isMobile = window.innerWidth <= 500;
-			if (!this.#isMobile) this.#shown = false;
+			if (!this.#isMobile) {this.#shown = false;}
 			this.#render();
 		};
 
 		this.#render();
 
 		this._addCleanup(micrio.current.subscribe(c => {
-			if (!c) return;
+			if (!c) {return;}
 			this.#dataUnsub?.();
 			this.#settingsUnsub?.();
 			this.#dataUnsub = c.data.subscribe(d => {
@@ -66,12 +66,12 @@ class MicrioToolbar extends MicrioElement {
 
 	#render() {
 		const micrio = this._getMicrio();
-		if (!micrio) return;
+		if (!micrio) {return;}
 		const { _lang, state: micrioState } = micrio;
 		const $_lang = get(_lang);
 		const hasTourLang = (t:Models.ImageData.Tour): boolean => !!t.i18n?.[$_lang];
 		const markerTours = ((micrio.bundleTours ?? []).concat(this.#data?.markerTours ?? [])).filter(hasTourLang);
-		if (!this.#data && !markerTours.length) return;
+		if (!this.#data && !markerTours.length) {return;}
 		const $tour = get(micrioState.tour);
 		const $marker = get(micrioState.marker);
 		const $popover = get(micrioState.popover);
@@ -93,7 +93,7 @@ class MicrioToolbar extends MicrioElement {
 		const pageIds = (mainPages || []).map(p => p.id).join(',');
 		const tourIds = markerTours.map(t => t.id).join(',') + '|' + videoTours.map(t => t.id).join(',');
 		const key = [pageIds, tourIds, hidden, $_lang, this.#isMobile, this.#shown].join('::');
-		if (!this._checkRenderKey(key)) return;
+		if (!this._checkRenderKey(key)) {return;}
 
 		if (empty || hidden) { this.replaceChildren(); return; }
 
@@ -151,7 +151,7 @@ class MicrioToolbar extends MicrioElement {
 							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 							action: () => {
-								if (micrio.$current && micrio.$current.id != originalId) micrio.open(originalId);
+								if (micrio.$current && micrio.$current.id != originalId) {micrio.open(originalId);}
 								micrioState.tour.set(t);
 							}
 						}))

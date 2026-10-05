@@ -25,17 +25,17 @@ const jsonPromises: Map<string, Promise<Object>> = new Map();
  * @returns A Promise resolving to the fetched JSON data (type T) or undefined on error.
  */
 export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
-	if (!noCache && jsonCache.has(uri)) return structuredClone(jsonCache.get(uri) as T);
-	if (jsonPromises.has(uri)) return jsonPromises.get(uri) as Promise<T>; // Return existing promise if fetch is in progress
+	if (!noCache && jsonCache.has(uri)) {return structuredClone(jsonCache.get(uri) as T);}
+	if (jsonPromises.has(uri)) {return jsonPromises.get(uri) as Promise<T>;} // Return existing promise if fetch is in progress
 
 	// Create and store the fetch promise
 	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(async r => {
-		if (r.status == 200) return r.json();
+		if (r.status == 200) {return r.json();}
 		else {
 			throw MicrioError.fromResponse(r, `fetchJson(${uri})`);
 		}
 	}).then(j => {
-		if (!noCache) jsonCache.set(uri, j); // Store result in cache
+		if (!noCache) {jsonCache.set(uri, j);} // Store result in cache
 		jsonPromises.delete(uri); // Remove promise from tracking map
 		return structuredClone(j);
 	}).catch(e => { // Handle fetch errors

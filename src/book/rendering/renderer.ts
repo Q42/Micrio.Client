@@ -274,7 +274,7 @@ export class PaperRenderer {
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, frontBitmap);
 			setupTextureParams(gl, tex);
 			gl.generateMipmap(gl.TEXTURE_2D);
-			if (!this.#frontTextures[pageIndex]) this.#frontTextures[pageIndex] = tex;
+			if (!this.#frontTextures[pageIndex]) {this.#frontTextures[pageIndex] = tex;}
 		}
 
 		{
@@ -283,7 +283,7 @@ export class PaperRenderer {
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, backBitmap);
 			setupTextureParams(gl, tex);
 			gl.generateMipmap(gl.TEXTURE_2D);
-			if (!this.#backTextures[pageIndex]) this.#backTextures[pageIndex] = tex;
+			if (!this.#backTextures[pageIndex]) {this.#backTextures[pageIndex] = tex;}
 		}
 
 		gl.bindTexture(gl.TEXTURE_2D, null);
@@ -295,7 +295,7 @@ export class PaperRenderer {
 			? (slot === 0 ? this.#frontHiResATextures : this.#frontHiResBTextures)
 			: (slot === 0 ? this.#backHiResATextures : this.#backHiResBTextures);
 
-		if (arr[pageIdx]) gl.deleteTexture(arr[pageIdx]!);
+		if (arr[pageIdx]) {gl.deleteTexture(arr[pageIdx]!);}
 
 		const tex = gl.createTexture()!;
 		gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -334,11 +334,11 @@ export class PaperRenderer {
 			arr[pageIdx] = null;
 		}
 		if (side === 0) {
-			if (slot === 0) this.#frontBlendA[pageIdx] = 0;
-			else this.#frontBlendB[pageIdx] = 0;
+			if (slot === 0) {this.#frontBlendA[pageIdx] = 0;}
+			else {this.#frontBlendB[pageIdx] = 0;}
 		} else {
-			if (slot === 0) this.#backBlendA[pageIdx] = 0;
-			else this.#backBlendB[pageIdx] = 0;
+			if (slot === 0) {this.#backBlendA[pageIdx] = 0;}
+			else {this.#backBlendB[pageIdx] = 0;}
 		}
 	}
 
@@ -461,7 +461,7 @@ export class PaperRenderer {
 
 		if (this.#sceneFbo) {
 			gl.deleteTexture(this.#sceneFbo._color);
-			if (this.#sceneFbo._depth) gl.deleteRenderbuffer(this.#sceneFbo._depth);
+			if (this.#sceneFbo._depth) {gl.deleteRenderbuffer(this.#sceneFbo._depth);}
 			gl.deleteFramebuffer(this.#sceneFbo._fbo);
 		}
 
@@ -521,7 +521,7 @@ export class PaperRenderer {
 	}
 
 	_updateVertexBuffer(meshIndex: number, mesh: PaperMesh): void {
-		if (meshIndex >= this.#meshDatas.length) return;
+		if (meshIndex >= this.#meshDatas.length) {return;}
 		const gl = this.#gl;
 		const md = this.#meshDatas[meshIndex];
 		gl.bindBuffer(gl.ARRAY_BUFFER, md._positionVBO);
@@ -529,7 +529,7 @@ export class PaperRenderer {
 	}
 
 	_updateNormalBuffer(meshIndex: number, mesh: PaperMesh): void {
-		if (meshIndex >= this.#meshDatas.length) return;
+		if (meshIndex >= this.#meshDatas.length) {return;}
 		const gl = this.#gl;
 		const md = this.#meshDatas[meshIndex];
 		const normals = mesh._computeNormals();
@@ -538,7 +538,7 @@ export class PaperRenderer {
 	}
 
 	_getBoundingBoxCorners(): Float32Array | null {
-		if (!this.#bboxIsSet) return null;
+		if (!this.#bboxIsSet) {return null;}
 		const min = this.#bboxMin;
 		const max = this.#bboxMax;
 		const corners = new Float32Array(24);
@@ -563,7 +563,7 @@ export class PaperRenderer {
 	 */
 	_getBoundingBoxScreenBounds(viewProj: Mat4): { minX: number; maxX: number; minY: number; maxY: number } | null {
 		const corners = this._getBoundingBoxCorners();
-		if (!corners) return null;
+		if (!corners) {return null;}
 		const w = this.#canvas.width;
 		const h = this.#canvas.height;
 		let minX = Infinity, maxX = -Infinity;
@@ -577,16 +577,16 @@ export class PaperRenderer {
 			const clipX = m[0] * wx + m[4] * wy + m[8] * wz + m[12];
 			const clipY = m[1] * wx + m[5] * wy + m[9] * wz + m[13];
 			const clipW = m[3] * wx + m[7] * wy + m[11] * wz + m[15];
-			if (clipW <= 0) continue;
+			if (clipW <= 0) {continue;}
 			anyVisible = true;
 			const ndcX = clipX / clipW;
 			const ndcY = clipY / clipW;
 			const sx = (ndcX * 0.5 + 0.5) * w;
 			const sy = (0.5 - ndcY * 0.5) * h;
-			if (sx < minX) minX = sx;
-			if (sx > maxX) maxX = sx;
-			if (sy < minY) minY = sy;
-			if (sy > maxY) maxY = sy;
+			if (sx < minX) {minX = sx;}
+			if (sx > maxX) {maxX = sx;}
+			if (sy < minY) {minY = sy;}
+			if (sy > maxY) {maxY = sy;}
 		}
 		return anyVisible ? { minX, maxX, minY, maxY } : null;
 	}
@@ -602,7 +602,7 @@ export class PaperRenderer {
 	}
 
 	#computeDrawOrder(): MeshData[] {
-		if (this.#flipProgress.length === 0) return this.#meshDatas;
+		if (this.#flipProgress.length === 0) {return this.#meshDatas;}
 
 		const pageCount = this.#meshDatas.length;
 		const totalStackHeight = pageCount * PAGE_THICKNESS;
@@ -651,7 +651,7 @@ export class PaperRenderer {
 		gl.clearColor(0.0, 0.0, 0.0, 0.0);
 
 		if (this._tiltShiftEnabled) {
-			if (!this.#sceneFbo) this.#createFbo();
+			if (!this.#sceneFbo) {this.#createFbo();}
 			gl.bindFramebuffer(gl.FRAMEBUFFER, this.#sceneFbo!._fbo);
 		}
 

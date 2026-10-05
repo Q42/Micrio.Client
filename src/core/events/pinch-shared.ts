@@ -20,7 +20,7 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 	}
 	ctx._micrio._engine.render();
 	ctx._dispatch('pinchstart');
-	if (ctx._twoFingerPan) ctx._dispatch('panstart');
+	if (ctx._twoFingerPan) {ctx._dispatch('panstart');}
 }
 
 /**
@@ -33,7 +33,7 @@ export function pinchStart(ctx: EventContext, dragHandler: DragHandler): void {
 export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2: { x: number, y: number }): void {
 	const v = ctx._vars._pinch;
 	const i = v._image;
-	if (!i) return;
+	if (!i) {return;}
 
 	ctx._pinchFactor = Math.hypot(coo.x - coo2.x, coo.y - coo2.y) / v._sDst;
 	i.canvas?.camera._pinch(coo.x, coo.y, coo2.x, coo2.y);
@@ -47,7 +47,7 @@ export function pinchMove(ctx: EventContext, coo: { x: number, y: number }, coo2
  * @param moveHandler The move handler to remove from the global listener.
  */
 export function pinchStop(ctx: EventContext, _e: Event, moveHandler: (...args: any[]) => void): void {
-	if (!ctx._pinching) return;
+	if (!ctx._pinching) {return;}
 	ctx._pinching = false;
 
 	self.removeEventListener('touchmove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions);

@@ -7,13 +7,13 @@ import { get } from '$core/store';
 
 function switchToGrid(grid: Grid): void {
 	const focus = grid.$focussed;
-	if(!focus) return;
+	if(!focus) {return;}
 	const v = focus.camera.getView();
-	if(v) grid.reset(0, true).then(() => {
+	if(v) {grid.reset(0, true).then(() => {
 		if(focus.opts.area) grid.image.camera.setView(focus.opts.area, {noLimit: true});
 		focus.camera.setView(v, {noLimit: true});
 		grid.micrio.current.set(grid.image);
-	});
+	});}
 }
 
 /**
@@ -24,8 +24,8 @@ function switchToGrid(grid: Grid): void {
 export function createTourEventHandler(grid: Grid): (e: Event) => void {
 	return (e: Event): void => {
 		const event = (e as CustomEvent).detail as Models.ImageData.Event;
-		if(!event || !event.action?.startsWith('grid:')) return;
-		if(event.active) handleAction(grid, event.action.slice(5), event.data, event.end - event.start);
+		if(!event || !event.action?.startsWith('grid:')) {return;}
+		if(event.active) {handleAction(grid, event.action.slice(5), event.data, event.end - event.start);}
 	};
 }
 
@@ -41,11 +41,11 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 				const imgs = name.split(',')
 					.map(i => grid._imageMap.get(i.trim()))
 					.filter((i): i is MicrioImage => i !== undefined);
-				if(imgs.length == 1) grid.gridFocus(imgs[0], {duration});
-				else if(imgs.length > 0) grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
+				if(imgs.length == 1) {grid.gridFocus(imgs[0], {duration});}
+				else if(imgs.length > 0) {grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
 					horizontal: spl?.[1] == 'h'
-				});
+				});}
 			},
 
 			[GridActionType.flyTo]: (data, duration) => {
@@ -64,7 +64,7 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 						bottom - minY,
 					], {duration:duration?duration*1000:undefined}).catch(()=>{});
 				}
-				else console.warn('Given image IDs gave no current displayed images');
+				else {console.warn('Given image IDs gave no current displayed images');}
 			},
 
 			[GridActionType.focusTagged]: (data, duration) => {
@@ -93,15 +93,15 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 
 			[GridActionType.filterTourImages]: (data, duration) => {
 				const t = get(grid.micrio.state.tour);
-				if(!t || !('steps' in t) || !t.stepInfo) return;
+				if(!t || !('steps' in t) || !t.stepInfo) {return;}
 				const ids = t.stepInfo.map(s => s.micrioId);
 				const imgs = ids.filter((id, i) => ids.indexOf(id) == i)
 					.map(i => grid._imageMap.get(i))
 					.filter((i): i is MicrioImage => !!i)
-				if(imgs.length) grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
+				if(imgs.length) {grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
 					horizontal: data == 'h'
-				});
+				});}
 			},
 		};
 		handlerMaps.set(grid, map);
@@ -115,11 +115,11 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
  * @internal
  */
 export function handleAction(grid: Grid, action: GridActionType|string, data?: string, duration?: number): void {
-	if(typeof action == 'string') action = GridActionType[action as keyof typeof GridActionType];
+	if(typeof action == 'string') {action = GridActionType[action as keyof typeof GridActionType];}
 	const key = action+(data??'');
-	if(grid._lastAction == key) return;
+	if(grid._lastAction == key) {return;}
 	const handler = getHandlerMap(grid)[action as number];
-	if(handler) handler(data, duration);
-	else console.warn('Warning: unknown grid tour event', action);
+	if(handler) {handler(data, duration);}
+	else {console.warn('Warning: unknown grid tour event', action);}
 	grid._lastAction = key;
 }

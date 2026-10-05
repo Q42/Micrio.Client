@@ -68,7 +68,7 @@ export class InputHandler {
 	#onPointerDown(e: PointerEvent): void {
 		this.#blurActiveElement();
 
-		if (e.pointerType === 'mouse' && e.button > 2) return;
+		if (e.pointerType === 'mouse' && e.button > 2) {return;}
 
 		e.preventDefault();
 
@@ -85,7 +85,7 @@ export class InputHandler {
 
 	#onPointerMove(e: PointerEvent): void {
 		const prev = this.#pointers.get(e.pointerId);
-		if (!prev) return;
+		if (!prev) {return;}
 		e.preventDefault();
 
 		this.#pointers.set(e.pointerId, { _clientX: e.clientX, _clientY: e.clientY });
@@ -236,8 +236,8 @@ export class InputHandler {
 				const result = this._onPageClick(this.#panStartX, this.#panStartY);
 				if (result) {
 					this._lastClickGrabRow = result.grabRow;
-					if (result.direction === 'prev') this._onPrevPage?.();
-					else if (result.direction === 'next') this._onNextPage?.();
+					if (result.direction === 'prev') {this._onPrevPage?.();}
+					else if (result.direction === 'next') {this._onNextPage?.();}
 				}
 			}
 		}
