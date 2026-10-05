@@ -108,7 +108,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const toggleMinimize = () => {
 			this.#isMinimized = !this.#isMinimized;
 			this.classList.toggle('minimized', this.#isMinimized);
-			if (this.#content) {
+			if (this.#content !== undefined) {
 				for (const child of this.#content.children) {
 					if (child instanceof HTMLElement && child !== this.#title) {
 						const n = child;
