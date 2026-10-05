@@ -59,7 +59,7 @@ export class PostProcessor {
 		this.#gl = gl;
 		// --- Shader Compilation ---
 		const program = gl.createProgram();
-		if (!program) {throw new MicrioError('Failed to create postprocess program', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
+		if (program == null) {throw new MicrioError('Failed to create postprocess program', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		this.#program = program;
 		// Compile vertex and fragment shaders using WebGL utility
 		micrio._webgl._getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
@@ -67,7 +67,7 @@ export class PostProcessor {
 
 		// Link and use the program
 		gl.linkProgram(this.#program);
-		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
+		if (gl.getProgramParameter(this.#program, gl.LINK_STATUS) !== true) {
 			console.error("Postprocess shader link error:", gl.getProgramInfoLog(this.#program));
 			// TODO: Handle shader link error more gracefully
 		}
@@ -80,7 +80,7 @@ export class PostProcessor {
 
 		// --- Framebuffer Texture Setup ---
 		const texture = gl.createTexture();
-		if (!texture) {throw new MicrioError('Failed to create postprocess texture', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
+		if (texture == null) {throw new MicrioError('Failed to create postprocess texture', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		this.#texture = texture;
 		gl.bindTexture(gl.TEXTURE_2D, this.#texture);
 		// Create texture matching the drawing buffer size
@@ -94,7 +94,7 @@ export class PostProcessor {
 
 		// --- Framebuffer Setup ---
 		const frameBuffer = gl.createFramebuffer();
-		if (!frameBuffer) {throw new MicrioError('Failed to create postprocess framebuffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
+		if (frameBuffer == null) {throw new MicrioError('Failed to create postprocess framebuffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		this._frameBuffer = frameBuffer;
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 		// Attach the texture as the color attachment
@@ -116,7 +116,7 @@ export class PostProcessor {
 
 		// --- Quad Buffer Setup ---
 		const quad = gl.createBuffer();
-		if (!quad) {throw new MicrioError('Failed to create postprocess buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
+		if (quad == null) {throw new MicrioError('Failed to create postprocess buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });}
 		this.#quad = quad;
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad);
 		gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW); // Upload quad vertex data
