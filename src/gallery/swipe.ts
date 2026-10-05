@@ -52,7 +52,7 @@ export class SwipeGallery {
 		const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0;
 		for (let i = 0; i < this.#images.length; i++) {
 			const child = this.#images[i];
-			if (!child.camera) {continue;}
+			if (child.camera === undefined) {continue;}
 			child.camera.setCoverLimit(false);
 			const area = [this.#imageSlotPos[i] - baseSlot, 0, this.#imageSlotWidth[i], 1] as [number, number, number, number];
 			child.camera.setArea(area, { direct: true, noDispatch: true });
@@ -72,13 +72,13 @@ export class SwipeGallery {
 			this.#currentImageIdx = currentImageIdx;
 
 			const images = this.#images;
-			if (!images[nextIdx]) { resolve(); return; }
+			if (images[nextIdx] === undefined) { resolve(); return; }
 			let snapDur = 0;
 			if (duration !== 0) {snapDur = fast ? 0.125 : 0.2;}
 			const leaving = images[currentImageIdx > -1 && currentImageIdx !== nextIdx ? currentImageIdx : -1] as MicrioImage | undefined;
 			const needsZoomOut = snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut();
 			const engine = images[0]?.engine;
-			if (!engine) { resolve(); return; }
+			if (engine === undefined) { resolve(); return; }
 			const baseSlot = this.#imageSlotPos[nextIdx];
 			const startSlide = () => {
 				engine._itemTransitionDuration = snapDur;
@@ -201,7 +201,7 @@ export class SwipeGallery {
 		const imgIdx = this.#pageToImages[curr]?.[0] ?? 0;
 		const baseSlot = this.#imageSlotPos[imgIdx];
 		const engine = images[0]?.engine;
-		if (!engine || baseSlot === undefined) {return;}
+		if (engine === undefined || baseSlot === undefined) {return;}
 		for (let i = 0; i < images.length; i++) {
 			const child = images[i] as MicrioImage | undefined;
 			if (!child?.camera) {continue;}
