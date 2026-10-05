@@ -8,10 +8,15 @@ import { fmt } from '$utils/time';
 import '$ui/button';
 import './fullscreen';
 
+/** True for a registered Micrio custom element; keeps the narrowed type non-generic. */
+function isMicrioElement(el: unknown): el is MicrioElement {
+	return el instanceof MicrioElement;
+}
+
 /** Creates a `<micrio-*>` custom element and narrows it to its registered class. */
 function createComponent(tag: string, options: ElementOptions): MicrioElement {
 	const el = createElement(tag, options);
-	if (!(el instanceof MicrioElement)) {throw new Error(`<${tag}> is not a registered Micrio element`);}
+	if (!isMicrioElement(el)) {throw new Error(`<${tag}> is not a registered Micrio element`);}
 	return el;
 }
 
