@@ -34,7 +34,8 @@ class MicrioDial extends MicrioElement<DialProps> {
 			micrio.addEventListener('pointermove', dMove);
 			micrio.addEventListener('pointerup', dStop);
 			micrio.dataset.panning = '';
-			micrio.setPointerCapture(pointerId = e.pointerId);
+			({pointerId} = e);
+			micrio.setPointerCapture(pointerId);
 			startRot = this.#props.currentRotation;
 			startX = e.clientX;
 		};
