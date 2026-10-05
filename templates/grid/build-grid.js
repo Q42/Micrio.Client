@@ -10,30 +10,36 @@
  *   node templates/grid/build-grid.js            # readable output
  *   node templates/grid/build-grid.js --minify   # minified output
  *
- * (esbuild is used here; it ships as a dependency of Vite. We shell out to its
- * CLI so this works regardless of how the package manager hoists it.)
+ * (Bundled through Vite's JS API. Vite 8 builds on rolldown and no longer
+ * ships esbuild, so the old esbuild CLI shell-out had nothing to run.)
  */
 
-import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { build } from 'vite'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const root = resolve(here, '..', '..')
-const isWin = process.platform === 'win32'
-const esbuildBin = resolve(root, 'node_modules', '.bin', isWin ? 'esbuild.cmd' : 'esbuild')
 const minify = process.argv.includes('--minify')
 
-const args = [
-	resolve(here, 'grid.ts'),
-	'--bundle',
-	'--format=iife',
-	'--target=es2022',
-	`--outfile=${resolve(here, 'grid.js')}`,
-	'--log-level=info',
-	...(minify ? ['--minify'] : []),
-]
-
-execFileSync(esbuildBin, args, { stdio: 'inherit' })
+await build({
+	configFile: false,
+	root: resolve(here, '..', '..'),
+	logLevel: 'info',
+	build: {
+		outDir: here,
+		emptyOutDir: false,
+		copyPublicDir: false,
+		target: 'es2022',
+		minify: minify ? 'terser' : false,
+		lib: {
+			entry: resolve(here, 'grid.ts'),
+			formats: ['iife'],
+			name: 'MicrioGrid',
+			fileName: () => 'grid.js',
+		},
+		// esbuild emitted this by default; keep the module running in strict mode.
+		rollupOptions: { output: { banner: '"use strict";' } },
+	},
+})
 
 console.log(`Built templates/grid/grid.js${minify ? ' (minified)' : ''}`)
