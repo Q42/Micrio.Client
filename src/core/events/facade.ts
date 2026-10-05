@@ -149,7 +149,7 @@ export class Events implements EventContext {
 	 * @param type The event type string.
 	 * @param detail Optional event detail payload.
 	 */
-	_dispatch<K extends string & keyof Models.MicrioEventDetails>(type: K, detail?: Models.MicrioEventDetails[K]): void {
+	_dispatch<K extends keyof Models.MicrioEventDetails>(type: K, detail?: Models.MicrioEventDetails[K]): void {
 		this._micrio.dispatchEvent(new CustomEvent(type, detail !== undefined ? { detail } : undefined))
 	}
 
