@@ -67,14 +67,14 @@ for(const [bucket, domain, endpoint] of [
 	['micrio', 'r2', r2Endpoint],
 	['micrio-eu', 'eu', r2EuEndpoint]
 ]) {
-	uploadTasks.push(() => console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.min.js`));
+	uploadTasks.push(() =>{  console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.min.js`); });
 	for(const [ext, type] of [
 		['js','text/javascript'],
 		['d.ts','text/plain']
 	]) {
 		uploadTasks.push(() => run(`aws s3 cp ./public/dist/micrio.min.${ext} s3://${bucket}/micrio-${version}${suffix}.min.${ext} --endpoint-url ${endpoint} --content-type ${type} --cache-control "public, max-age=31536000"`).catch(error));
 	}
-	uploadTasks.push(() => console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.core.min.js`));
+	uploadTasks.push(() =>{  console.log(`https://${domain}.micr.io/micrio-${version}${suffix}.core.min.js`); });
 	uploadTasks.push(() => run(`aws s3 cp ./public/dist/micrio.core.min.js s3://${bucket}/micrio-${version}${suffix}.core.min.js --endpoint-url ${endpoint} --content-type text/javascript --cache-control "public, max-age=31536000"`).catch(error));
 }
 await sequentially(uploadTasks);

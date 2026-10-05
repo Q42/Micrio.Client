@@ -119,7 +119,7 @@ export class Grid extends MicrioElement {
 		this.#closeBtn = createElement('micrio-button', {
 			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
 		});
-		this._addCleanup(() => this.#closeBtn.remove());
+		this._addCleanup(() =>{  this.#closeBtn.remove(); });
 		this._addCleanup(this._focussed.subscribe(v => {
 			if (v) {this.append(this.#closeBtn);}
 			else {this.#closeBtn.remove();}
@@ -425,10 +425,10 @@ export class Grid extends MicrioElement {
 		}
 		if (entry.area) {
 			const {area} = entry;
-			const set = () => img.camera.setArea(area, {
+			const set = () =>{  img.camera.setArea(area, {
 				direct: opts.duration===0 || (!opts.forceAreaAni && !get(img.visible))
-			});
-			if (opts.delay) {void sleep(opts.delay * 1000).then(set).then(() => engine.render());}
+			}); };
+			if (opts.delay) {void sleep(opts.delay * 1000).then(set).then(() =>{  engine.render(); });}
 			else {set();}
 		}
 

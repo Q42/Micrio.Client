@@ -111,7 +111,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 						title: getTitle(asset) ?? '',
 						disabled: !galleryEnabled
 					},
-					events: galleryEnabled ? { click: () => openGallery(asset.micrioId) } : undefined
+					events: galleryEnabled ? { click: () =>{  openGallery(asset.micrioId); } } : undefined
 				});
 
 				const figure = createElement('figure');

@@ -350,7 +350,7 @@ function resolveGrid(micrio: HTMLMicrioElement, onGrid: (grid: Grid) => void): v
 	finish(find());
 
 	// Safety net for any ordering/event edge case.
-	timer = globalThis.setInterval(() => finish(find()), 150);
+	timer = globalThis.setInterval(() =>{  finish(find()); }, 150);
 	globalThis.setTimeout(() => {
 		if (done) {return;}
 		if (timer !== undefined) {clearInterval(timer);}
@@ -592,7 +592,7 @@ async function injectMarkers(micrio: HTMLMicrioElement): Promise<void> {
 		};
 
 		ensure();
-		img.data.subscribe(() => ensure());
+		img.data.subscribe(() =>{  ensure(); });
 	}
 }
 
@@ -645,11 +645,11 @@ function buildTags(box: HTMLElement, grid: Grid): void {
 
 		const zoom = h('button', undefined, 'Zoom to motif');
 		zoom.title = 'Show every painting with this tag, zoomed to its marker';
-		zoom.addEventListener('click', () => grid.action('focusTagged', tag));
+		zoom.addEventListener('click', () =>{  grid.action('focusTagged', tag); });
 
 		const show = h('button', undefined, 'Show all');
 		show.title = 'Show every painting with this tag at full view';
-		show.addEventListener('click', () => grid.action('focusWithTagged', tag));
+		show.addEventListener('click', () =>{  grid.action('focusWithTagged', tag); });
 
 		row.append(zoom, show);
 		box.append(row);
@@ -695,13 +695,13 @@ function wireButtons(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, g
 
 	// Focus
 	on('back', () => void grid.back(0.8));
-	on('blur', () => grid.blur());
+	on('blur', () =>{  grid.blur(); });
 
 	// Actions
 	on('flyto', () => {
-		void grid.reset(0.4).then(() => grid.action('flyTo', 'CpxjLFr,ajMFvkb', 1));
+		void grid.reset(0.4).then(() =>{  grid.action('flyTo', 'CpxjLFr,ajMFvkb', 1); });
 	});
-	on('switch', () => grid.action('switchToGrid'));
+	on('switch', () =>{  grid.action('switchToGrid'); });
 	on('slowfocus', () => {
 		void focusById(micrio, grid, CATALOG_IDS[0], getTransition(), 2.5);
 	});
@@ -709,7 +709,7 @@ function wireButtons(root: HTMLElement, micrio: HTMLMicrioElement, grid: Grid, g
 	// Tours
 	on('marker-tour', () => void runMarkerTour(micrio, grid, tourNote));
 	on('guided-tour', () => void runGuidedTour(micrio, grid, tourNote));
-	on('stop-tour', () => stopTours(micrio, grid, tourNote));
+	on('stop-tour', () =>{  stopTours(micrio, grid, tourNote); });
 }
 
 // ── demo tours ───────────────────────────────────────────────────────────────

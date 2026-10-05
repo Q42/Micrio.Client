@@ -179,7 +179,7 @@ export class Engine {
 	#entryByImage = new Map<MicrioImage | Models.Omni.Frame, CanvasEntry>();
 
 	/** Bound video `play` listener, so the same reference can be added and removed. @internal */
-	#onVideoPlay = () => this.render();
+	#onVideoPlay = () =>{  this.render(); };
 
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	_getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
@@ -595,8 +595,8 @@ export class Engine {
 		if (!inArchive) {this.micrio._loading.set(true);}
 		this.#requests.set(i, src);
 		(inArchive ? archive._getImage(src) : loadTexture(src))
-			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
-			.catch(() => this.#deleteRequest(i));
+			.then((img) =>{  this.#gotTexture(i, img, ani, opts.noSmoothing); })
+			.catch(() =>{  this.#deleteRequest(i); });
 	}
 
 	/** @internal */
@@ -808,7 +808,7 @@ export class Engine {
 	}
 
 	/** Add a child independent canvas to the current canvas. @internal */
-	_addChild = (image: MicrioImage, parent: MicrioImage) => this.#addImage(image, parent);
+	_addChild = (image: MicrioImage, parent: MicrioImage) =>{  this.#addImage(image, parent); };
 
 	/** Fades an image (main or embed) to a target opacity. @internal */
 	_fadeImage(img: MicrioImage | Models.Omni.Frame, opacity: number, direct = false): void {

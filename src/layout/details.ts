@@ -53,7 +53,7 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 		});
 
 		// The shown metadata is language-dependent, so re-render on a UI language change
-		this._watchLater(micrio._lang, () => this.#render());
+		this._watchLater(micrio._lang, () =>{  this.#render(); });
 
 		this.#render();
 	}

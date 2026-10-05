@@ -134,7 +134,7 @@ export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
 	const onload = () => { loaded.add(src); ok(); };
 	if (cbFunc) {Object.assign(globalThis, {[cbFunc]: onload});}
 	else {script.addEventListener('load', onload);}
-	script.addEventListener('error', () => err?.());
+	script.addEventListener('error', () =>{  err?.(); });
 	script.async = true;
 	script.defer = true;
 	if (globalThis.crossOriginIsolated) {script.crossOrigin = 'anonymous';}

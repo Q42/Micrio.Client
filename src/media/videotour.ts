@@ -228,7 +228,7 @@ export class VideoTourInstance {
 		if (!this.#timeline[index]) {
 			if (!this.paused || !this.#wasPaused) {
 				const remaining = Math.max(0, Math.round(this.duration * 1000 - (Date.now() - this.#startedAt)));
-				if (remaining > 0) {this.#_to = setTimeout(() => this.pause(), remaining);}
+				if (remaining > 0) {this.#_to = setTimeout(() =>{  this.pause(); }, remaining);}
 			}
 			return;
 		}
@@ -239,7 +239,7 @@ export class VideoTourInstance {
 		this.#image.camera.stop();
 
 		if (diff > 0) {
-			if (!this.#_paused) {this.#_to = setTimeout(() => this.#startAni(perc), diff);}
+			if (!this.#_paused) {this.#_to = setTimeout(() =>{  this.#startAni(perc); }, diff);}
 		} else {
 			this.#startAni(perc);
 		}

@@ -44,7 +44,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		});
 
 		// Button titles and content are translated, so re-render on a UI language change
-		this._watchLater(micrio._lang, () => this.#render());
+		this._watchLater(micrio._lang, () =>{  this.#render(); });
 
 		this.#render();
 	}
@@ -175,7 +175,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 						setProps: {
 							href: button.type === 'link' ? button.action : undefined,
 							blankTarget: button.blankTarget,
-							onclick: () => clickPageButton(button)
+							onclick: () =>{  clickPageButton(button); }
 						},
 						parent: menu
 					});

@@ -87,14 +87,14 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			}
 		}));
 
-		this._watchLater(tour, () => this.#sync());
-		this._watchLater(popup, () => this.#sync());
-		this._watchLater(_lang, () => this.#sync());
-		this._watchLater(micrio._isMuted, () => this.#sync());
+		this._watchLater(tour, () =>{  this.#sync(); });
+		this._watchLater(popup, () =>{  this.#sync(); });
+		this._watchLater(_lang, () =>{  this.#sync(); });
+		this._watchLater(micrio._isMuted, () =>{  this.#sync(); });
 
-		const observer = new MutationObserver(() => this.#sync());
+		const observer = new MutationObserver(() =>{  this.#sync(); });
 		observer.observe(micrio, { attributes: true, attributeFilter: ['class'] });
-		this._addCleanup(() => observer.disconnect());
+		this._addCleanup(() =>{  observer.disconnect(); });
 
 		this.#build();
 		this.#sync();

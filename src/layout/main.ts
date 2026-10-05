@@ -136,7 +136,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		const volume = writable<number>(get(micrio._isMuted) ? 0 : 1);
 		this._provide('volume', volume);
-		this._addCleanup(micrio._isMuted.subscribe(b => volume.set(b ? 0 : 1)));
+		this._addCleanup(micrio._isMuted.subscribe(b =>{  volume.set(b ? 0 : 1); }));
 		this._addCleanup(() => this.#settingsUnsub?.());
 
 		this._provide('mediaPaused', writable<boolean>(false));
@@ -154,7 +154,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#firstInited = true;
 			this.#settingsUnsub?.();
 			this.#settings = c._settings;
-			this.#settingsUnsub = this.#settings?.subscribe(() => this.#queueSync());
+			this.#settingsUnsub = this.#settings?.subscribe(() =>{  this.#queueSync(); });
 			if (!this.#logoOrg && DataLoader._getOrganisation()?.logo) {this.#logoOrg = DataLoader._getOrganisation();}
 			this.#queueSync();
 
@@ -196,9 +196,9 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		for (const store of [micrio._visible, micrio.state.popup, micrio.state.popover,
 		micrio.state.tour, micrio.state.marker]) {
-			this._addCleanup(store.subscribe(() => this.#queueSync()));
+			this._addCleanup(store.subscribe(() =>{  this.#queueSync(); }));
 		}
-		this._addCleanup(micrio._lang.subscribe(() => this.#queueSync()));
+		this._addCleanup(micrio._lang.subscribe(() =>{  this.#queueSync(); }));
 
 		this.#queueSync();
 	}
@@ -256,7 +256,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		if (hasAudio && Boolean($data) && Boolean($info) && micrio.$current) {
 			if (!this.#audioController) {
 				this.#audioController = new MicrioAudioController(micrio, micrio.$current);
-				this._addCleanup(() => this.#destroyAudio());
+				this._addCleanup(() =>{  this.#destroyAudio(); });
 			}
 		} else {
 			this.#destroyAudio();

@@ -316,9 +316,9 @@ export class HTMLMicrioElement extends MicrioElement {
 			updateZoomed();
 		});
 
-		this._watch(this._visible, () => updateZoomed());
+		this._watch(this._visible, () =>{  updateZoomed(); });
 
-		const onZoomCb = () => updateZoomed();
+		const onZoomCb = () =>{  updateZoomed(); };
 		this._onZoom.push(onZoomCb);
 		this._addCleanup(() => { const i = this._onZoom.indexOf(onZoomCb); if(i >= 0) {this._onZoom.splice(i, 1);} });
 
@@ -331,14 +331,14 @@ export class HTMLMicrioElement extends MicrioElement {
 			this._watch(this._switching, s => {
 				if(s) {this.dataset.switching = '';}
 				else {
-					if(!shown) {void tick().then(() => this.events._dispatch('show', this));}
+					if(!shown) {void tick().then(() =>{  this.events._dispatch('show', this); });}
 					shown = true;
 					delete this.dataset.switching;
 				}
 			});
 
 			const img = this.querySelector('img.preview');
-			if(img) {setTimeout(() => img.remove(), 500);}
+			if(img) {setTimeout(() =>{  img.remove(); }, 500);}
 		});
 
 		// ── Idle detection (data-idle after inactivity) ────────────────
@@ -360,7 +360,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				},
 			});
 
-			this.#onActivity = () => this.#idle.activity();
+			this.#onActivity = () =>{  this.#idle.activity(); };
 			for(const e of ['mousemove','pointerdown','wheel','focusin']) {
 				this.addEventListener(e, this.#onActivity, { passive: true });
 			}
@@ -681,7 +681,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Set current / grid ────────────────────────────────────────────────
 
 		if(isInGrid && (!opts.gridView || !grid?._current.find(img => img.id === bundle.id))) {
-			void grid?.gridFocus(c, {view: bundle.settings?.view}).then(() => this.current.set(c));
+			void grid?.gridFocus(c, {view: bundle.settings?.view}).then(() =>{  this.current.set(c); });
 		}
 		else {
 			this.current.set(c);

@@ -40,7 +40,7 @@ export class Canvas {
 	#resizeObserver?:ResizeObserver;
 
 	/** Bound form of {@link onresize}, so the same reference can be added and removed as a listener. @internal */
-	#onResize = () => this.onresize();
+	#onResize = () =>{  this.onresize(); };
 
 	/** Saved inline box styles, used to restore the canvas after a temporary crop. @internal */
 	#savedBox?:{ left:StylePair; top:StylePair; width:StylePair; height:StylePair };

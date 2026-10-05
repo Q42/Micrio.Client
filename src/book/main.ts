@@ -769,7 +769,7 @@ export class BookViewer {
 		await this.#loadPageTextures(images);
 
 		this.#iiifManager = new IIIFTextureManager(this.#renderer, options._iiifBaseUrl);
-		this.#iiifManager._onRequestFrame = () => this.#requestFrame();
+		this.#iiifManager._onRequestFrame = () =>{  this.#requestFrame(); };
 		this.#iiifManager._init(images, this.#pageCount, pageIdxes);
 
 		this.#onPageChange?.(this.#currentPage);

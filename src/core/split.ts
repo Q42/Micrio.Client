@@ -115,7 +115,7 @@ export function closeSplit(
 	primary.camera.setArea([0, 0, 1, 1]);
 
 	if (!opts?.keepSecondaryCanvas) {
-		setTimeout(() => micrio._engine._removeCanvas(state.secondary), 400);
+		setTimeout(() =>{  micrio._engine._removeCanvas(state.secondary); }, 400);
 	}
 	micrio.events._dispatch('splitscreen-stop', state.secondary);
 }

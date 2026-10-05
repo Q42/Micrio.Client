@@ -24,7 +24,7 @@ function init(volume: number) {
 		const external: unknown = 'micrioAudioContext' in globals ? globals.micrioAudioContext : undefined;
 		_ctx = external instanceof AudioContext ? external : new AudioContext();
 	}
-	if (!_ctx) {return console.warn('[Micrio] Your browser does not support the Web Audio API');}
+	if (!_ctx) { console.warn('[Micrio] Your browser does not support the Web Audio API');; return;}
 	if (_ctx.state === 'suspended') {_ctx.resume().then(() => { }).catch(() => { });}
 	mainGain = _ctx.createGain();
 	mainGain.connect(_ctx.destination);
@@ -66,7 +66,7 @@ class AudioPlaylist {
 		this.#audio.preload = 'none';
 		this.#audio.loop = false;
 		this.#audio.volume = volume;
-		this.#audio.addEventListener('ended', () => this.#next());
+		this.#audio.addEventListener('ended', () =>{  this.#next(); });
 		this.#next();
 	}
 
@@ -145,7 +145,7 @@ export class MicrioAudioController {
 			}
 		};
 
-		const input = () => interacted.set(true);
+		const input = () =>{  interacted.set(true); };
 
 		const onUserGesture = () => {
 			if (_ctx?.state === 'suspended') {_ctx.resume().then(() => { }).catch(() => { });}
@@ -179,7 +179,7 @@ export class MicrioAudioController {
 		}));
 
 		if (!_ctx) {
-			audio.play().then(input).catch(() => events._dispatch('autoplay-blocked'));
+			audio.play().then(input).catch(() =>{  events._dispatch('autoplay-blocked'); });
 			addEventListener('pointerup', onUserGesture, { once: true });
 		}
 

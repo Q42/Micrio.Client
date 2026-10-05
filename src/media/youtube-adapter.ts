@@ -70,7 +70,7 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 						if (player) {this.#callbacks.onDurationChange?.(player.getDuration());}
 						resolve();
 					},
-					onStateChange: (e: {data: number}) => this.#handleStateChange(e.data),
+					onStateChange: (e: {data: number}) =>{  this.#handleStateChange(e.data); },
 				},
 			});
 		});

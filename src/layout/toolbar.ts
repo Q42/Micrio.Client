@@ -47,20 +47,20 @@ class MicrioToolbar extends MicrioElement {
 				this.#data = d;
 				this.#render();
 			});
-			this.#settingsUnsub = c._settings.subscribe(() => this._syncDisplay?.());
+			this.#settingsUnsub = c._settings.subscribe(() =>{  this._syncDisplay?.(); });
 		}));
 		this._addCleanup(() => {
 			this.#dataUnsub?.();
 			this.#settingsUnsub?.();
 		});
 
-		this._addCleanup(micrio.state.tour.subscribe(() => this.#render()));
-		this._addCleanup(micrio.state.marker.subscribe(() => this.#render()));
-		this._addCleanup(micrio.state.popover.subscribe(() => this.#render()));
-		this._addCleanup(_lang.subscribe(() => this.#render()));
+		this._addCleanup(micrio.state.tour.subscribe(() =>{  this.#render(); }));
+		this._addCleanup(micrio.state.marker.subscribe(() =>{  this.#render(); }));
+		this._addCleanup(micrio.state.popover.subscribe(() =>{  this.#render(); }));
+		this._addCleanup(_lang.subscribe(() =>{  this.#render(); }));
 
 		window.addEventListener('resize', resize);
-		this._addCleanup(() => window.removeEventListener('resize', resize));
+		this._addCleanup(() =>{  window.removeEventListener('resize', resize); });
 	}
 
 	#render() {

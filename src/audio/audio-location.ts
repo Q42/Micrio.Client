@@ -112,7 +112,7 @@ export class MicrioAudioLocation {
 		void start();
 
 		this.#micrio.addEventListener('audio-update', update);
-		this.#cleanup = () => this.#micrio.removeEventListener('audio-update', update);
+		this.#cleanup = () =>{  this.#micrio.removeEventListener('audio-update', update); };
 	}
 
 	#end() {

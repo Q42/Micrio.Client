@@ -39,7 +39,7 @@ class MicrioLogo extends MicrioElement {
 			}
 		}));
 
-		this._addCleanup(() => clearTimeout(this.#loadingTimer));
+		this._addCleanup(() =>{  clearTimeout(this.#loadingTimer); });
 	}
 
 	/** @internal */

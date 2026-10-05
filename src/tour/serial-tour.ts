@@ -39,7 +39,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this._addCleanup(() => {delete micrio.dataset.markerTourActive;});
 
 		const mt = tour;
-		mt.next = () => this.#nextStep();
+		mt.next = () =>{  this.#nextStep(); };
 		mt.prev = () => { if (this.#currentStep > 0) {void this.#openStep(this.#currentStep - 1);} };
 
 		this._addCleanup(micrio.state.marker.subscribe(m => {
@@ -73,7 +73,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 						children: [
 							createElement('button', {
 								textContent: title,
-								events: { click: () => this.#goto(i) }
+								events: { click: () =>{  this.#goto(i); } }
 							})
 						]
 					});
@@ -129,7 +129,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					image: micrio.$current,
 					controls: true,
 					autoplay: !prevPaused,
-					onended: () => this.#nextStep(),
+					onended: () =>{  this.#nextStep(); },
 					onclose: close,
 					hasAudio: this.#stepInfo.some(s => s.duration > 0),
 					fullscreenEl: micrio,
@@ -192,7 +192,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				dataset: { idx: String(i) },
 				props: { title: this.#getTitle(marker) ?? '' },
 				style: { width: `${(si.duration / (this.#duration || 1)) * 100}%` },
-				events: { click: () => this.#goto(i) },
+				events: { click: () =>{  this.#goto(i); } },
 				parent: barsDiv
 			});
 		}

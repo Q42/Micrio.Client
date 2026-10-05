@@ -140,7 +140,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		};
 
 		const click = () => {
-			if (marker.onclick) {return marker.onclick(marker);}
+			if (marker.onclick) { marker.onclick(marker);; return;}
 			if (markerSettings.noMarkerActions) {return;}
 			if (marker.type === 'cluster') {
 				if (view && micrio.$current?.$info) {
@@ -205,7 +205,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (cluster) {return;}
 			if (image.state.$marker !== marker) {
 				if (!image.state.$marker) {return;}
-				return image.state.marker.set(marker);
+				 image.state.marker.set(marker);; return;
 			}
 			if (markerSettings.noMarkerActions) {return;}
 
@@ -249,7 +249,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					});
 				}
 			} else {
-				void tick().then(() => micrio.state.popup.set(marker));
+				void tick().then(() =>{  micrio.state.popup.set(marker); });
 			}
 
 			const linkId = data.micrioLink?.id;
@@ -345,9 +345,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				events: {
 					click,
 					focus,
-					blur: () => clearTimeout(this.#fto),
-					mouseenter: () => micrio.state.markerHoverId.set(marker.id),
-					mouseleave: () => micrio.state.markerHoverId.set(undefined)
+					blur: () =>{  clearTimeout(this.#fto); },
+					mouseenter: () =>{  micrio.state.markerHoverId.set(marker.id); },
+					mouseleave: () =>{  micrio.state.markerHoverId.set(undefined); }
 				},
 				parent: this
 			});

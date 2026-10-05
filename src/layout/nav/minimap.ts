@@ -69,7 +69,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			ctx.clearRect(0, 0, width, height);
 			clearTimeout(this.#to);
 			this.classList.remove('hidden');
-			this.#to = setTimeout(() => this.classList.add('hidden'), 2500);
+			this.#to = setTimeout(() =>{  this.classList.add('hidden'); }, 2500);
 
 			const hasThumb = Boolean(image.thumbSrc || thumbSrc);
 			if (info.is360) {

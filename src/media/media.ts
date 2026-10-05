@@ -291,7 +291,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					if (!p.secondary) {this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }));}
 					if (this.#ended && (!this.#mediaEl || this.#mediaEl.ended)) {p.onended?.();}
 				}, 250);
-				this._addCleanup(() => clearInterval(ival));
+				this._addCleanup(() =>{  clearInterval(ival); });
 				if (p.autoplay) {this.#tourInstance.play();}
 			} else {
 				const onEnded = () => this.#tourInstance?.pause();

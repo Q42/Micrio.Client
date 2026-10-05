@@ -35,12 +35,12 @@ class MicrioZoomButtons extends MicrioElement {
 			if (this.#btnOut instanceof MicrioElement) {this.#btnOut._setProps({ title: $i18n._zoomOut, disabled: img?.camera.isZoomedOut() });}
 		};
 
-		this._addCleanup(micrio.current.subscribe(() => update()));
-		this._addCleanup(micrio._visible.subscribe(() => update()));
+		this._addCleanup(micrio.current.subscribe(() =>{  update(); }));
+		this._addCleanup(micrio._visible.subscribe(() =>{  update(); }));
 		// Button titles are translated, so refresh them on a UI language change
-		this._watchLater(micrio._lang, () => update());
+		this._watchLater(micrio._lang, () =>{  update(); });
 
-		const onZoom = () => update();
+		const onZoom = () =>{  update(); };
 		micrio._onZoom.push(onZoom);
 		this._addCleanup(() => { const i = micrio._onZoom.indexOf(onZoom); if(i >= 0) {micrio._onZoom.splice(i, 1);} });
 

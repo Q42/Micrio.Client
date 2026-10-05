@@ -32,7 +32,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 
 	/** @internal */
 	_onMount() {
-		this.#cleanup = captionsEnabled.subscribe(() => this.#renderCue());
+		this.#cleanup = captionsEnabled.subscribe(() =>{  this.#renderCue(); });
 
 		const found = this.#props.mediaEl?.querySelector('video,audio');
 		let el: HTMLMediaElement | undefined;
@@ -80,7 +80,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 			}
 			this.#cues = cues;
 			this.#renderCue();
-		}).catch(err => console.error('micrio-subtitles: fetch error:', err));
+		}).catch(err =>{  console.error('micrio-subtitles: fetch error:', err); });
 	}
 
 	#renderCue() {

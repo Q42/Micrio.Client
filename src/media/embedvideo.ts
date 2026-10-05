@@ -82,7 +82,7 @@ export class GLEmbedVideo {
 					if(!this._vid) {this.#load();} // Load video if not already loaded
 					else { // If already loaded
 						this.#hook(); // Ensure event listeners are attached
-						if(this.#autoplay && !this.#paused) {this._vid.play().catch(e => console.warn("WebGL Embed video play() failed", e));}
+						if(this.#autoplay && !this.#paused) {this._vid.play().catch(e =>{  console.warn("WebGL Embed video play() failed", e); });}
 					}
 				}, first ? 0 : 100); // No delay on first visibility
 			} else { // If image becomes hidden
@@ -163,14 +163,14 @@ export class GLEmbedVideo {
 				this.#hlsPlayer = new (getHlsConstructor())(HLS_PLAYER_CONFIG);
 				this.#hlsPlayer.loadSource(src); // Load HLS manifest
 				if(this._vid) {this.#hlsPlayer.attachMedia(this._vid);} // Attach to video element
-			}).catch(e => console.error("[Micrio GL Embed] Failed to load HLS.js:", e));
+			}).catch(e =>{  console.error("[Micrio GL Embed] Failed to load HLS.js:", e); });
 		}
 	}
 
 	/** Event listener callbacks. @internal */
 	#events = {
-		play: () => this.#setPlaying(true),
-		pause: () => this.#setPlaying(false),
+		play: () =>{  this.#setPlaying(true); },
+		pause: () =>{  this.#setPlaying(false); },
 		// Delayed looping (only attached when `loopAfter` is set): pause on end,
 		// then restart after the configured delay.
 		loopEnded: () => {
@@ -178,9 +178,9 @@ export class GLEmbedVideo {
 			const v = this._vid;
 			const loopAfter = this.#embed.video?.loopAfter ?? 0;
 			// Schedule restart after delay
-			this.#vidRepeatTo = setTimeout(() => v?.play().catch(e => console.warn("WebGL Embed video loop play() failed:", e)), loopAfter * 1000);
+			this.#vidRepeatTo = setTimeout(() => v?.play().catch(e =>{  console.warn("WebGL Embed video loop play() failed:", e); }), loopAfter * 1000);
 		},
-		loopPlay: () => this.#setPlaying(true),
+		loopPlay: () =>{  this.#setPlaying(true); },
 		// Set the video element on the parent MicrioImage once a real frame is available for WebGL texture upload
 		playing: () => {
 			if(!this.#image._video && this._vid) {
@@ -202,7 +202,7 @@ export class GLEmbedVideo {
 		canplay:() => {
 			if(!this._vid || !this.#isMounted) {return;}
 			if(this.#autoplay && !this.#paused) {
-				this._vid.play().catch(e => console.warn("WebGL Embed video play() failed on canplay:", e));
+				this._vid.play().catch(e =>{  console.warn("WebGL Embed video play() failed on canplay:", e); });
 				this.#moved();
 			}
 			else if(!this.#embed.hideWhenPaused) {

@@ -248,7 +248,7 @@ export class CoverMesh extends PaperMesh {
 	protected _generateDistanceConstraints(): void {
 		const added = new Set<string>();
 		const constrs: EdgeConstraint[] = [];
-		const add = (i: number, j: number) => addEdgeConstraint(i, j, this._restPositions, added, constrs);
+		const add = (i: number, j: number) =>{  addEdgeConstraint(i, j, this._restPositions, added, constrs); };
 
 		addGridConstraints(0, add);
 		addGridConstraints(FACE_VERTEX_COUNT, add);

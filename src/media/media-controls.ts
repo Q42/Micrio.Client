@@ -59,10 +59,10 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	/** @internal */
 	_onMount() {
 		this.#build();
-		this._addCleanup(captionsEnabled.subscribe(() => this.#sync()));
+		this._addCleanup(captionsEnabled.subscribe(() =>{  this.#sync(); }));
 		// Button titles are translated, so refresh them on a UI language change
 		const micrio = this._getMicrio();
-		if (micrio) {this._watchLater(micrio._lang, () => this.#sync());}
+		if (micrio) {this._watchLater(micrio._lang, () =>{  this.#sync(); });}
 	}
 
 	/** @internal */
@@ -78,8 +78,8 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 			this.#wrapperEl = createElement('aside', {
 				events: {
-					click: e => e.stopPropagation(),
-					keydown: e => e.stopPropagation(),
+					click: e =>{  e.stopPropagation(); },
+					keydown: e =>{  e.stopPropagation(); },
 				},
 				parent: this,
 			});
@@ -188,7 +188,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				type: $captionsEnabled ? 'subtitles' : 'subtitlesOff',
 				active: $captionsEnabled,
 				title: $i18n._subtitlesToggle,
-				onclick: () => captionsEnabled.set(!get(captionsEnabled))
+				onclick: () =>{  captionsEnabled.set(!get(captionsEnabled)); }
 			});
 		}
 

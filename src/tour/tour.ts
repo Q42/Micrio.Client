@@ -57,8 +57,8 @@ export class MicrioTour extends MicrioElement<TourProps> {
 						controls: true,
 						autoplay: true,
 						fullscreenEl: micrio,
-						onended: () => micrio.state.tour.set(undefined),
-						onclose: () => micrio.state.tour.set(undefined)
+						onended: () =>{  micrio.state.tour.set(undefined); },
+						onclose: () =>{  micrio.state.tour.set(undefined); }
 					}
 				});
 			}
@@ -168,7 +168,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 						parent: this.aside,
 						setProps: {
 							type: 'close', title: get(i18n)._close,
-							onclick: () => micrio.state.tour.set(undefined)
+							onclick: () =>{  micrio.state.tour.set(undefined); }
 						}
 					});
 					// Buttons in marker-popup -- put close button first
@@ -193,7 +193,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			renderControls();
 
 			// Control titles are translated, so rebuild them on a UI language change
-			this._watchLater(micrio._lang, () => renderControls());
+			this._watchLater(micrio._lang, () =>{  renderControls(); });
 		}
 
 		this._addCleanup(micrio.state.tour.subscribe(t => {

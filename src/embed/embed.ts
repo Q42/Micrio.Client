@@ -263,8 +263,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
 			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,
 			events: {
-				click: () => this.#click(),
-				keydown: () => this.#click()
+				click: () =>{  this.#click(); },
+				keydown: () =>{  this.#click(); }
 			},
 			parent: this
 		});
@@ -395,7 +395,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 
 		if (this.#isRawVideo) {
-			this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage, embed, this.#paused, () => this.#applyPosition());
+			this.#glVideo = new GLEmbedVideo(image.engine, this.#glImage, embed, this.#paused, () =>{  this.#applyPosition(); });
 		}
 
 		image.engine.render();

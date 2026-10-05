@@ -53,13 +53,13 @@ export class InputHandler {
 
 	#setupListeners(): void {
 		const c = this.#canvas;
-		c.addEventListener('pointerdown', (e) => this.#onPointerDown(e));
-		globalThis.addEventListener('pointermove', (e) => this.#onPointerMove(e));
-		globalThis.addEventListener('pointerup', (e) => this.#onPointerUp(e));
-		globalThis.addEventListener('pointercancel', (e) => this.#onPointerCancel(e));
+		c.addEventListener('pointerdown', (e) =>{  this.#onPointerDown(e); });
+		globalThis.addEventListener('pointermove', (e) =>{  this.#onPointerMove(e); });
+		globalThis.addEventListener('pointerup', (e) =>{  this.#onPointerUp(e); });
+		globalThis.addEventListener('pointercancel', (e) =>{  this.#onPointerCancel(e); });
 
-		c.addEventListener('wheel', (e) => this.#onWheel(e), { passive: false });
-		c.addEventListener('contextmenu', (e) => e.preventDefault());
+		c.addEventListener('wheel', (e) =>{  this.#onWheel(e); }, { passive: false });
+		c.addEventListener('contextmenu', (e) =>{  e.preventDefault(); });
 	}
 
 	// ═══ Pointer events ═══════════════════════════════════════════
