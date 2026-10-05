@@ -36,7 +36,7 @@ export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Pro
 	if (jsonPromises.has(uri)) {return jsonPromises.get(uri);} // Return existing promise if fetch is in progress
 
 	// Create and store the fetch promise
-	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(async r => {
+	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(r => {
 		if (r.status === 200) {return r.json();}
 			throw MicrioError.fromResponse(r, `fetchJson(${uri})`);
 		
@@ -49,7 +49,7 @@ export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Pro
 		throw e;
 	});
 	jsonPromises.set(uri, promise); // Track the ongoing promise
-	return promise;
+	return await promise;
 };
 
 

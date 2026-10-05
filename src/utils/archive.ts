@@ -151,7 +151,7 @@ class Archive {
 		const data = i && this.#data.get(i[0]);
 		if(!i || !data) {throw new Error(`Could not get blob: ${u}`);}
 		const blob = new Blob([new Uint8Array(data, i[1], i[2])]);
-		return globalThis.createImageBitmap(blob);
+		return await globalThis.createImageBitmap(blob);
 	}
 
 	/**
@@ -164,7 +164,7 @@ class Archive {
 	_getImageById = async (imageId: string): Promise<TextureBitmap> => {
 		const fullPath = this.imageKeys.get(imageId);
 		if (!fullPath) {throw new Error(`No image found in archive for ID: ${imageId}`);}
-		return this._getImage(fullPath);
+		return await this._getImage(fullPath);
 	}
 }
 
