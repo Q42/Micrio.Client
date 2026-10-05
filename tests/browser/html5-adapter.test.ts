@@ -150,39 +150,46 @@ describe('HTML5 adapter state', () => {
 })
 
 describe('HTML5 adapter teardown', () => {
-	it('stops delivering the callbacks it unsubscribed', () => {
+	it('detaches every callback it attached', () => {
+		// The four value listeners used to be attached as closures and kept firing
+		// after teardown; `destroy()` now detaches all nine.
 		const seen: string[] = []
-		const callbacks: PlayerEventCallbacks = {
+		const { element, adapter } = makeVideo({
 			onPlay: () => seen.push('play'),
 			onPause: () => seen.push('pause'),
 			onEnded: () => seen.push('ended'),
 			onSeeking: () => seen.push('seeking'),
 			onSeeked: () => seen.push('seeked'),
-		}
-		const { element, adapter } = makeVideo(callbacks)
+			onTimeUpdate: () => seen.push('time'),
+			onDurationChange: () => seen.push('duration'),
+			onError: () => seen.push('error'),
+			onReady: () => seen.push('ready'),
+		})
 		adapter.destroy()
 
-		for (const type of ['play', 'pause', 'ended', 'seeking', 'seeked']) {
+		Object.defineProperty(element, 'currentTime', { value: 1, configurable: true })
+		Object.defineProperty(element, 'duration', { value: 1, configurable: true })
+		for (const type of [
+			'play',
+			'pause',
+			'ended',
+			'seeking',
+			'seeked',
+			'timeupdate',
+			'durationchange',
+			'error',
+			'canplay',
+		]) {
 			element.dispatchEvent(new Event(type))
 		}
 		expect(seen).toEqual([])
 	})
 
-	it('leaves the value callbacks attached', () => {
-		// Pinned as-is: `destroy()` only removes the five no-argument listeners, so
-		// `timeupdate`, `durationchange`, `error` and `canplay` keep firing. Changing
-		// that is a behaviour change, not a test fix.
-		const seen: string[] = []
-		const { element, adapter } = makeVideo({
-			onTimeUpdate: () => seen.push('time'),
-			onError: () => seen.push('error'),
-			onReady: () => seen.push('ready'),
-		})
+	it('survives a second destroy', () => {
+		const { adapter } = makeVideo({ onPlay: () => {} })
 		adapter.destroy()
-		Object.defineProperty(element, 'currentTime', { value: 1, configurable: true })
-		element.dispatchEvent(new Event('timeupdate'))
-		element.dispatchEvent(new Event('error'))
-		element.dispatchEvent(new Event('canplay'))
-		expect(seen).toEqual(['time', 'error', 'ready'])
+		expect(() => {
+			adapter.destroy()
+		}).not.toThrow()
 	})
 })

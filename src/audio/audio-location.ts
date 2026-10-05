@@ -29,6 +29,8 @@ export class MicrioAudioLocation {
 	#source!: AudioBufferSourceNode
 	#to: ReturnType<typeof setTimeout> | undefined
 	#cleanup: (() => void) | undefined
+	/** The `ended` listener of the repeating source, so `#end` can detach it. */
+	#onSourceEnded: (() => void) | undefined
 
 	constructor(micrio: HTMLMicrioElement, marker: Models.ImageData.Marker, ctx: AudioContext, is360: boolean) {
 		this.#micrio = micrio
@@ -85,14 +87,19 @@ export class MicrioAudioLocation {
 
 		const play = () => {
 			if (this.#source !== undefined) {
+				if (this.#onSourceEnded) {
+					this.#source.removeEventListener('ended', this.#onSourceEnded)
+					this.#onSourceEnded = undefined
+				}
 				this.#source.disconnect()
 			}
 			this.#source = ctx.createBufferSource()
 			if (item.loop) {
 				if (item.repeatAfter > 0) {
-					this.#source.addEventListener('ended', () => {
+					this.#onSourceEnded = () => {
 						this.#to = setTimeout(play, item.repeatAfter * 1000)
-					})
+					}
+					this.#source.addEventListener('ended', this.#onSourceEnded)
 				} else {
 					this.#source.loop = true
 				}
@@ -135,6 +142,11 @@ export class MicrioAudioLocation {
 
 	#end() {
 		if (this.#source !== undefined) {
+			// The repeating source keeps a listener that would reschedule playback
+			if (this.#onSourceEnded) {
+				this.#source.removeEventListener('ended', this.#onSourceEnded)
+				this.#onSourceEnded = undefined
+			}
 			this.#source.disconnect()
 		}
 		clearTimeout(this.#to)

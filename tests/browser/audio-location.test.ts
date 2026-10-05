@@ -293,4 +293,23 @@ describe('audio location updates and teardown', () => {
 			micrio.dispatchEvent(new Event('audio-update'))
 		}).not.toThrow()
 	})
+
+	it('detaches the repeating source listener so a destroyed location cannot restart', async () => {
+		const ctx = new FakeAudioContext()
+		// A repeating source is the only one that keeps an `ended` listener
+		const { location } = await makeLocation(marker({ loop: true, repeatAfter: 2 }), ctx)
+		const sourcesBefore = ctx.sources.length
+
+		location.destroy()
+		// The listener that would reschedule playback is gone, so the event is inert:
+		// advancing past the repeat delay must not build a new buffer source
+		vi.useFakeTimers()
+		try {
+			ctx.sources.at(-1)?.emitEnded()
+			vi.advanceTimersByTime(5000)
+			expect(ctx.sources.length).toBe(sourcesBefore)
+		} finally {
+			vi.useRealTimers()
+		}
+	})
 })
