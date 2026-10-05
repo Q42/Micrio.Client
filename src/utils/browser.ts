@@ -22,7 +22,7 @@ const ua = navigator.userAgent;
 export const Browser: BrowserInfo = {
 	iOS: /ipad|iphone|ipod/i.test(ua),
 	firefox: /firefox/i.test(ua),
-	OSX: /macintosh/i.test(ua) && /os\ x/i.test(ua),
+	OSX: /macintosh/i.test(ua) && /os x/i.test(ua),
 	hasTouch: 'TouchEvent' in globalThis, // Check for TouchEvent support
 	safari: false // Initialized later
 };

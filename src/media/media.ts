@@ -10,7 +10,7 @@ import type { MediaPlayerAdapter } from '$types/media';
 import '$ui/button';
 import './media-controls';
 
-const YOUTUBE_RE = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?/;
+const YOUTUBE_RE = /((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be|youtube-nocookie\.com))(\/(?:[\w-]+\?v=|embed\/|v\/)?)([\w-]+)(\S+)?/;
 const VIMEO_RE = /vimeo\.com/;
 
 let _sharedAudioEl: HTMLAudioElement | undefined;

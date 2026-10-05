@@ -11,7 +11,7 @@ if(hasBook3d) {console.log(`Including optional module: ${book3dFile}`);}
 
 /** Deduplicate repeated classname hash selectors in CSS */
 function dedupeCssSelectors(cssContent) {
-	const matches = cssContent.match(/\.([^\d\.{ ):>,]+)/mig);
+	const matches = cssContent.match(/\.([^\d.{ ):>,]+)/mig);
 	if (matches) {
 		[...new Set(matches)].forEach(sel => {
 			const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig');
