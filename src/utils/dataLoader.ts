@@ -71,7 +71,7 @@ async function doFetchBundle(id: string): Promise<void> {
 	}
 	if (bundle?.spaces) {
 		for (const space of bundle.spaces) {
-			if (space?.id && space?.data) {
+			if (space?.id && space?.data !== undefined) {
 				spaceCache.set(space.id, space.data);
 			}
 		}
