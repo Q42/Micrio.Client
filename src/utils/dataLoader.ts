@@ -131,7 +131,7 @@ export const DataLoader = {
 	 * @internal
 	 */
 	async _getBundleImage(id: string): Promise<BundleImage | undefined> {
-		if (!id) {return;}
+		if (!id) {return undefined;}
 		await fetchBundleOnce(id);
 		return bundleCache.get(id);
 	},
