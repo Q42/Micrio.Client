@@ -295,7 +295,7 @@ export class Grid extends MicrioElement {
 			cover: opts.cover
 		}));
 
-		if(isAppear) {this._current.slice(1).forEach(i => { const c = i.canvas; c && (c._targetOpacity = c._opacity = .9999); });}
+		if(isAppear) {this._current.slice(1).forEach(i => { const c = i.canvas; if (c) {c._targetOpacity = c._opacity = .9999;} });}
 
 		const fadeIn = () => this._current.forEach((img,i) =>
 			sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur/2 : 0)) * 1000 : 0)
