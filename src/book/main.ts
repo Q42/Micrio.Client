@@ -67,16 +67,16 @@ function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
 	for (let p = 0; p < pageCnt; p++) {
 		const front = images[p * 2];
 		const back = images[p * 2 + 1];
-		const frontAsp = (front && front.width > 0 && front.height > 0) ? front.height / front.width : DEFAULT_ASPECT;
-		const backAsp = (back && back.width > 0 && back.height > 0) ? back.height / back.width : frontAsp;
+		const frontAsp = (front !== undefined && front.width > 0 && front.height > 0) ? front.height / front.width : DEFAULT_ASPECT;
+		const backAsp = (back !== undefined && back.width > 0 && back.height > 0) ? back.height / back.width : frontAsp;
 		frontAspects[p] = frontAsp;
 		backAspects[p] = backAsp;
 
-		if (front && front.width > 0 && front.height > 0) {
+		if (front !== undefined && front.width > 0 && front.height > 0) {
 			totalAspect += frontAsp;
 			aspectCount++;
 		}
-		if (back && back.width > 0 && back.height > 0) {
+		if (back !== undefined && back.width > 0 && back.height > 0) {
 			totalAspect += backAsp;
 			aspectCount++;
 		}
@@ -703,7 +703,7 @@ export class BookViewer {
 	}
 
 	_nextPage(grabRow?: number): void {
-		if (this.#flipAnimator && this.#currentPage < this.#pageCount) {
+		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount) {
 			this.#inputHandler._operation = 'none';
 			this.#selectedPage = this.#currentPage;
 			const useGrabRow = grabRow ?? this.#inputHandler._lastClickGrabRow ?? undefined;
@@ -716,7 +716,7 @@ export class BookViewer {
 	}
 
 	_prevPage(grabRow?: number): void {
-		if (this.#flipAnimator && this.#currentPage > 0) {
+		if (this.#flipAnimator !== undefined && this.#currentPage > 0) {
 			this.#inputHandler._operation = 'none';
 			this.#currentPage--;
 			this.#selectedPage = this.#currentPage;
@@ -738,7 +738,7 @@ export class BookViewer {
 
 	async #init(options: BookViewerOptions): Promise<void> {
 		const images = options._images;
-		if (!images || images.length === 0) {
+		if (images === undefined || images.length === 0) {
 			throw new Error('BookViewer: no images in book index');
 		}
 
@@ -943,21 +943,19 @@ export class BookViewer {
 				return cooArr;
 			}
 		}
-		if(!img.camera._getMatrixOverride) {
-			img.camera._getMatrixOverride = (
-				x: number,
-				y: number,
-				scale: number,
-				rotX?: number,
-				rotY?: number,
-				rotZ?: number,
-				scaleX?: number,
-				scaleY?: number,
-				width?: number
-			) => {
-				const out = this.#textureToMatrix(img.id, x, y, scale, width, rotX, rotY, rotZ, 0, scaleX, scaleY);
-				return out && out.facing && !out.obscured ? out.matrix : new Float32Array();
-			}
+		img.camera._getMatrixOverride = (
+			x: number,
+			y: number,
+			scale: number,
+			rotX?: number,
+			rotY?: number,
+			rotZ?: number,
+			scaleX?: number,
+			scaleY?: number,
+			width?: number
+		) => {
+			const out = this.#textureToMatrix(img.id, x, y, scale, width, rotX, rotY, rotZ, 0, scaleX, scaleY);
+			return out && out.facing && !out.obscured ? out.matrix : new Float32Array();
 		}
 	}
 
@@ -1069,7 +1067,7 @@ export class BookViewer {
 				premultipliedAlpha: true,
 				antialias: true,
 			});
-			if (gl && this.#renderer) {
+			if (gl && this.#renderer !== undefined) {
 				this.#renderer = new PaperRenderer(gl);
 				this.#renderer._seeThroughMargins = this.#seeThroughMargins;
 				this.#renderer._initialize(this.#meshes);
@@ -1132,7 +1130,7 @@ export class BookViewer {
 		const drawn: { id: string; pageIndex: number; side: 0 | 1 }[] = [];
 		const push = (pageIndex: number, side: 0 | 1): void => {
 			const img = this.#images[pageIndex * 2 + side];
-			if (img && !drawn.some(d => d.id === img.id)) {
+			if (img !== undefined && !drawn.some(d => d.id === img.id)) {
 				drawn.push({ id: img.id, pageIndex, side });
 			}
 		};
@@ -1272,7 +1270,7 @@ export class BookViewer {
 		const shouldContinue = (
 			this.#activePageSet.size > 0 ||
 			this.#flipAnimator._animating ||
-			(this.#inputHandler && this.#inputHandler._operation !== 'none') ||
+			(this.#inputHandler !== undefined && this.#inputHandler._operation !== 'none') ||
 			this.#renderer._isLightingAnimated() ||
 			this.#camera._isMoving()
 		);
@@ -1313,7 +1311,7 @@ export class BookViewer {
 
 		applySpineDelta(m._positions, delta);
 
-		if (updatePrev && this.#prevPositions[pi]) {
+		if (updatePrev && this.#prevPositions[pi] !== undefined) {
 			applySpineDelta(this.#prevPositions[pi], delta);
 		}
 		if (updateRenderer) {
@@ -1401,7 +1399,7 @@ export class BookViewer {
 			pagePromises.push((async () => {
 				try {
 					const frontBitmap = await archive._getImageById(frontImg.id);
-					const backBitmap = backImg ? await archive._getImageById(backImg.id) : frontBitmap;
+					const backBitmap = backImg !== undefined ? await archive._getImageById(backImg.id) : frontBitmap;
 					this.#renderer._setPageTextures(p, frontBitmap, backBitmap);
 				} catch (err) {
 					console.warn(`Failed to load textures for page ${p}:`, err);
