@@ -36,6 +36,8 @@ export default defineConfig({
 	define: {
 		__VERSION__: JSON.stringify(pkg.version),
 		__CORE__: 'false',
+		// Opt-in live suite: `MICRIO_LIVE=1 npm run test:browser:live`
+		__MICRIO_LIVE__: JSON.stringify(process.env.MICRIO_LIVE === '1'),
 	},
 	test: {
 		// The root config holds no tests itself; only the projects below do.

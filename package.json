@@ -17,6 +17,7 @@
 		"test": "vitest run",
 		"test:core": "vitest run --project core",
 		"test:browser": "vitest run --project browser",
+		"test:browser:live": "MICRIO_LIVE=1 vitest run --project browser tests/browser/live",
 		"test:watch": "vitest --project core",
 		"typecheck": "tsc"
 	},

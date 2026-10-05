@@ -6,6 +6,8 @@
 
 declare const __VERSION__: string
 declare const __CORE__: boolean
+/** `true` when the browser suite runs with `MICRIO_LIVE=1` (see TESTING.md). */
+declare const __MICRIO_LIVE__: boolean
 
 /** Vite's `.css` / `.glsl` module shape, for tests that import style-free modules. */
 declare module '*.css' {
