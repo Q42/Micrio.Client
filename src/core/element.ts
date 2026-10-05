@@ -398,9 +398,8 @@ export class HTMLMicrioElement extends MicrioElement {
 			const body = resp.items?.[0]?.items?.[0]?.items?.[0]?.body;
 			const service = body?.service?.[0];
 			if (service?.id) {
-				id = service.id;
-				width = body.width;
-				height = body.height;
+				({id} = service);
+				({width, height} = body);
 				resp.preferredFormats = service.preferredFormats;
 			}
 		}
