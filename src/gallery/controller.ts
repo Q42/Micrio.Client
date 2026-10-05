@@ -205,7 +205,9 @@ export class Gallery {
 		if (sort && index?.images) {index.images.sort(Gallery.#sortArchiveImages(sort));}
 		const rawImages = index?.images ?? [];
 
-		return new Gallery(rawImages.map(i => ({ ...i, path, version: '' })), engine, {
+		const items = [];
+		for (const i of rawImages) {items.push({ ...i, path, version: '' });}
+		return new Gallery(items, engine, {
 			...config,
 			type: config.type ?? 'swipe',
 		});
