@@ -209,12 +209,12 @@ export class Engine {
 	 * @internal
 	 */
 	static #getTextureBuffer(
-		segsX: number,
-		segsY: number
+		segX: number,
+		segY: number
 	): Float32Array {
-		const b = new Float32Array(2 * 6 * segsX * segsY);
-		const dX = 1 / segsX, dY = 1 / segsY;
-		for (let i = 0, y = 0; y < segsY; y++) {for (let x = 0; x < segsX; x++, i += 12) {
+		const b = new Float32Array(2 * 6 * segX * segY);
+		const dX = 1 / segX, dY = 1 / segY;
+		for (let i = 0, y = 0; y < segY; y++) {for (let x = 0; x < segX; x++, i += 12) {
 			b[i + 3] = b[i + 7] = b[i + 9] = (b[i + 1] = b[i + 5] = b[i + 11] = y * dY) + dY;
 			b[i + 4] = b[i + 8] = b[i + 10] = (b[i + 0] = b[i + 2] = b[i + 6] = x * dX) + dX;
 		}} return b;
@@ -443,9 +443,9 @@ export class Engine {
 		}
 
 		let currentVideo: HTMLVideoElement | undefined;
-		this.#unsubscribe.push(c.video.subscribe(v => {
+		this.#unsubscribe.push(c.video.subscribe(video => {
 			if (currentVideo) {currentVideo.removeEventListener('play', this.#onVideoPlay);}
-			currentVideo = v ?? undefined;
+			currentVideo = video ?? undefined;
 			if (currentVideo) {currentVideo.addEventListener('play', this.#onVideoPlay);}
 		}));
 

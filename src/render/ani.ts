@@ -190,15 +190,15 @@ export default class Ani {
 			const fBottom = f.y1, fLeft = f.x0, fRight = f.x1, fTop = f.y0;
 			const tBottom = t.y1, tLeft = t.x0, tRight = t.x1, tTop = t.y0;
 
-			const eb = tBottom > fBottom, el = tLeft < fLeft, er = tRight > fRight, et = tTop < fTop;
-			if ((el || et || er || eb) && !(el && et && er && eb)) {
-				if (el) {this.#fL = 1;}
+			const eB = tBottom > fBottom, eL = tLeft < fLeft, eR = tRight > fRight, eT = tTop < fTop;
+			if ((eL || eT || eR || eB) && !(eL && eT && eR && eB)) {
+				if (eL) {this.#fL = 1;}
 				else {this.#fL = tLeft > fLeft ? 2 : 0;}
-				if (er) {this.#fR = 1;}
+				if (eR) {this.#fR = 1;}
 				else {this.#fR = tRight < fRight ? 2 : 0;}
-				if (et) {this.#fT = 1;}
+				if (eT) {this.#fT = 1;}
 				else {this.#fT = tTop > fTop ? 2 : 0;}
-				if (eb) {this.#fB = 1;}
+				if (eB) {this.#fB = 1;}
 				else {this.#fB = tBottom < fBottom ? 2 : 0;}
 				durFact = 1.5;
 			}
