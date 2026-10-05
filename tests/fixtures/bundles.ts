@@ -108,7 +108,14 @@ export const legacyBundle = (): Models.ImageBundle.BundleImage => ({
 	} as Models.ImageData.ImageData,
 })
 
-/** Two images inside a 360 space with a link between them. */
+/**
+ * Two images inside a 360 space, linked both ways.
+ *
+ * The links are what `<micrio-waypoint>` navigates: `markers.ts` builds one waypoint
+ * per link that touches the current image. `links` entries are
+ * `[fromId, toId, { [fromImageId]: WayPointSettings }]`, so each end can carry its
+ * own label and coordinates.
+ */
 export const spaceBundle = (): {
 	images: Models.ImageBundle.BundleImage[]
 	spaces: { id: string; data: Models.Spaces.Space }[]
@@ -132,7 +139,10 @@ export const spaceBundle = (): {
 			id: 'space-1',
 			data: {
 				name: 'Zone',
-				links: [],
+				links: [
+					['aaa1111', 'bbb2222', { aaa1111: { i18n: { en: { title: 'To the second room' } } } }],
+					['bbb2222', 'aaa1111', { bbb2222: { i18n: { en: { title: 'Back to the first room' } } } }],
+				],
 				images: [
 					{ id: 'aaa1111', x: 0, y: 0, z: 0, rotationY: 0 },
 					{ id: 'bbb2222', x: 1, y: 0, z: 0, rotationY: Math.PI / 2 },
