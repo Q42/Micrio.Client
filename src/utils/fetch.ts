@@ -5,22 +5,15 @@
 
 import { MicrioError } from '$core/error';
 
-/**
- * A parsed JSON payload, as returned by `JSON.parse`. JSON is untyped until a caller of
- * {@link fetchJson} declares the shape it expects, so the caches below hold it as such.
+/** Global cache for fetched JSON data, keyed by URI. Values are untyped JSON.
  * @internal
  */
-type ParsedJson = ReturnType<typeof JSON.parse>;
-
-/** Global cache for fetched JSON data, keyed by URI.
- * @internal
- */
-export const jsonCache = new Map<string, ParsedJson>();
+export const jsonCache = new Map<string, unknown>();
 
 /** Map to track ongoing JSON fetch Promises, preventing duplicate requests.
  * @internal
  */
-const jsonPromises = new Map<string, Promise<ParsedJson>>();
+const jsonPromises = new Map<string, Promise<unknown>>();
 
 /**
  * Fetches JSON data from a URI, utilizing a cache to avoid redundant requests.
@@ -32,8 +25,11 @@ const jsonPromises = new Map<string, Promise<ParsedJson>>();
  * @returns A Promise resolving to the fetched JSON data (type T) or undefined on error.
  */
 export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
-	if (!noCache && jsonCache.has(uri)) {return structuredClone(jsonCache.get(uri));}
-	if (jsonPromises.has(uri)) {return jsonPromises.get(uri);} // Return existing promise if fetch is in progress
+	// JSON has no runtime schema: the shape is declared by the caller through `T`.
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- unverifiable cached JSON; the contract is `T`
+	if (!noCache && jsonCache.has(uri)) {return structuredClone(jsonCache.get(uri)) as T;}
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the in-flight promise resolves the same untyped JSON
+	if (jsonPromises.has(uri)) {return jsonPromises.get(uri) as Promise<T>;} // Return existing promise if fetch is in progress
 
 	// Create and store the fetch promise
 	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(r => {
