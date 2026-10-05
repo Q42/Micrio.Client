@@ -190,7 +190,7 @@ export class Gallery {
 	/** @internal */
 	static _fromIIIF(resp: unknown, engine: Engine): Gallery | null {
 		if (!isRecord(resp)) {return null;}
-		if (resp['@type'] === 'sc:Manifest' || resp.sequences)
+		if (resp['@type'] === 'sc:Manifest' || resp['sequences'] != null)
 			{throw new MicrioError('IIIF_V2_UNSUPPORTED', { displayMessage: 'Only IIIF Presentation API 3 manifests are supported' });}
 
 		if (resp.type === 'Manifest') {
@@ -269,7 +269,7 @@ export class Gallery {
 		if (aInfo.type === 'grid' && aInfo.archive) {
 			const gridClickable = config.grid?.clickable ?? toGridClickable(config.settings);
 			const settings: Record<string, unknown> = { zoomLimit: 15, minimap: false, ...config.settings };
-			if (gridClickable && settings.hookKeys === undefined) {settings.hookKeys = true;}
+			if ((gridClickable === 'focus' || gridClickable === 'zoom') && settings.hookKeys === undefined) {settings.hookKeys = true;}
 			config.settings = settings;
 		}
 
