@@ -73,7 +73,8 @@ export class SwipeGallery {
 
 			const images = this.#images;
 			if (!images[nextIdx]) { resolve(); return; }
-			const snapDur = duration === 0 ? 0 : (fast ? 0.125 : 0.2);
+			let snapDur = 0;
+			if (duration !== 0) {snapDur = fast ? 0.125 : 0.2;}
 			const leaving = images[currentImageIdx > -1 && currentImageIdx !== nextIdx ? currentImageIdx : -1] as MicrioImage | undefined;
 			const needsZoomOut = snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut();
 			const engine = images[0]?.engine;

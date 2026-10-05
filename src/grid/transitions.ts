@@ -54,11 +54,13 @@ export async function transition(
 
 	const isSlwipe = trans.startsWith('slide') || trans.startsWith('swipe');
 	const isBehind = trans.startsWith('behind');
-	const transDir:(number|undefined) = !isSlwipe ? undefined
-		: trans.endsWith('-up') ? 0
-		: trans.endsWith('-down') ? 180
-		: trans.endsWith('-left') ? 270
-		: 90;
+	let transDir: number | undefined;
+	if (isSlwipe) {
+		if (trans.endsWith('-up')) {transDir = 0;}
+		else if (trans.endsWith('-down')) {transDir = 180;}
+		else if (trans.endsWith('-left')) {transDir = 270;}
+		else {transDir = 90;}
+	}
 
 	if(isSlwipe || isBehind) { const c = target.canvas; if (c) { c._targetOpacity = .9999; c._opacity = .9999; } }
 

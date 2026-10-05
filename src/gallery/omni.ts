@@ -214,10 +214,13 @@ export class OmniUI {
 
 		this.#micrio.dataset.hooked = '';
 
-		this.#cleanups.push(this.#image.state.view.subscribe(v =>
-			this.#isFullWidth = this.#swiperOpts.coverLimit ? this.#image.camera.isZoomedOut()
-				: v ? Math.round(v[3]*1000)/1000 >= 1 : true
-		));
+		this.#cleanups.push(this.#image.state.view.subscribe(v => {
+			if (this.#swiperOpts.coverLimit) {
+				this.#isFullWidth = this.#image.camera.isZoomedOut();
+			} else {
+				this.#isFullWidth = v ? Math.round(v[3]*1000)/1000 >= 1 : true;
+			}
+		}));
 
 		micrio._engine._noPinchPan = true;
 		micrio._engine._isSwipe = true;
@@ -300,7 +303,7 @@ export class OmniUI {
 
 		if(this.#snapTo.length > 0) {
 			const snapToIndex = this.#snapTo[this.#snapTo.map((i,idx) => [idx, Math.abs(i-this.currentIndex)])
-				.sort((a,b) => a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0)[0][0]];
+				.sort((a,b) => a[1] - b[1])[0][0]];
 			if(snapToIndex !== this.currentIndex) {this.animateTo(snapToIndex);}
 		}
 	}

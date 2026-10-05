@@ -426,9 +426,10 @@ export class Grid extends MicrioElement {
 
 		const aniOpts = {duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false};
 		if(!opts.noCamAni && !img.camera._aniDone && img._placed) {
-			const p = entry.view ? img.camera.flyToView(entry.view, aniOpts)
-				: opts.cover ? img.camera.flyToCoverView({...aniOpts, duration: 0})
-				: img.camera.flyToView([0,0,1,1], aniOpts);
+			let p: Promise<void>;
+			if (entry.view) {p = img.camera.flyToView(entry.view, aniOpts);}
+			else if (opts.cover) {p = img.camera.flyToCoverView({...aniOpts, duration: 0});}
+			else {p = img.camera.flyToView([0,0,1,1], aniOpts);}
 			p.catch(() => {});
 		}
 

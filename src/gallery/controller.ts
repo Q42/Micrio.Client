@@ -34,6 +34,20 @@ function fitArea(
 	return [cx - renderW / 2, cy - renderH / 2, renderW, renderH];
 }
 
+/** Compare two optional archive metadata strings, inverting for descending sorts. */
+function compareStrings(a: string | undefined, b: string | undefined, invert: boolean): number {
+	if (!a || !b || a === b) {return 0;}
+	const less = a < b ? -1 : 1;
+	return invert ? -less : less;
+}
+
+/** Compare two optional archive metadata numbers, inverting for descending sorts. */
+function compareNumbers(a: number | undefined, b: number | undefined, invert: boolean): number {
+	if (!a || !b || a === b) {return 0;}
+	const less = a < b ? -1 : 1;
+	return invert ? -less : less;
+}
+
 /** Manages a collection of gallery images with navigation (swipe, switch, grid, album). */
 export class Gallery {
 	/** @internal */
@@ -93,11 +107,14 @@ export class Gallery {
 				if (!isSpreads) {
 					slot = [0, 0, 1, 1];
 				} else {
-					slot = i - coverPages < 0 || (i === items.length - 1 && (i - coverPages) % 2 === 0)
-						? [0.25, 0, 0.5, 1]
-						: (i - coverPages) % 2 === 0
-							? [0, 0, 0.5, 1]
-							: [0.5, 0, 0.5, 1];
+					const rel = i - coverPages;
+					if (rel < 0 || (i === items.length - 1 && rel % 2 === 0)) {
+						slot = [0.25, 0, 0.5, 1];
+					} else if (rel % 2 === 0) {
+						slot = [0, 0, 0.5, 1];
+					} else {
+						slot = [0.5, 0, 0.5, 1];
+					}
 				}
 
 				let area = fitArea(slot, this.#containerWidth, this.#containerHeight, info.width, info.height);
@@ -221,11 +238,13 @@ export class Gallery {
 			.then(r => { r.images.forEach(i => jsonCache.set(`${path}${i.id}/info.json`, i)); return r; });
 
 	static #sortArchiveImages(sort: string | undefined): (a: Models.ImageInfo.ImageInfo, b: Models.ImageInfo.ImageInfo) => number {
-		return sort === 'random' ? () => Math.random() - .5
-			: sort === 'name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0
-				: sort === '-name' ? (a, b) => !a.title || !b.title ? 0 : a.title < b.title ? 1 : a.title > b.title ? -1 : 0
-					: sort === '-created' ? (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? 1 : a.created > b.created ? -1 : 0
-						: (a, b) => !a.created || !b.created ? 0 : a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
+		switch (sort) {
+			case 'random': {return () => Math.random() - .5;}
+			case 'name': {return (a, b) => compareStrings(a.title, b.title, false);}
+			case '-name': {return (a, b) => compareStrings(a.title, b.title, true);}
+			case '-created': {return (a, b) => compareNumbers(a.created, b.created, true);}
+			default: {return (a, b) => compareNumbers(a.created, b.created, false);}
+		}
 	}
 
 	// --- Page Layout (spread-aware) ---
