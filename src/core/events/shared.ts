@@ -42,7 +42,7 @@ export const eventPassiveCapture: AddEventListenerOptions = { passive: true, cap
 export const noEventPassive: AddEventListenerOptions = { passive: false };
 
 /** Utility function to stop event propagation and prevent default browser behavior. @internal */
-export function cancelPrevent(e: AllEvents): void {
+export function cancelPrevent(e: Event): void {
 	e.stopPropagation();
 	e.preventDefault();
 }

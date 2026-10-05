@@ -68,6 +68,13 @@ function setObj(obj: object, path: string, val: unknown): void {
 	Reflect.set(target, p[p.length-1], val);
 }
 
+/** Registers the Micrio UI custom element so `createElement('micrio-main')` returns its class. @internal */
+declare global {
+	interface HTMLElementTagNameMap {
+		'micrio-main': MicrioMain;
+	}
+}
+
 /**
  * The main Micrio custom HTML element `<micr-io>`.
  * This class acts as the central controller for the Micrio viewer, managing
@@ -413,7 +420,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		let gallery: Gallery | null;
 		try { gallery = Gallery._fromIIIF(resp, this._engine); }
-		catch(e) { this.#printError(e as Error); return undefined; }
+		catch(e) { this.#printError(e); return undefined; }
 		if(gallery) {
 			void gallery._openOn(this);
 			return undefined;
@@ -489,7 +496,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		this._keepRendering = Boolean(opts.settings.keepRendering);
-		this.events._dispatch('print', opts as Models.ImageInfo.ImageInfo);
+		this.events._dispatch('print', opts);
 
 		const openBundle = () => {
 			if(opts.id) {void this.open(opts.id);}
@@ -513,7 +520,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	#printUI(noHTML:boolean, noLogo:boolean) : void {
 		if(!this._ui) {
-			this._ui = createElement('micrio-main', { setProps: {noHTML, noLogo}, parent: this }) as MicrioMain;
+			this._ui = createElement('micrio-main', { setProps: {noHTML, noLogo}, parent: this });
 		} else {
 			this._ui._setProps?.({noHTML, noLogo});
 		}
@@ -524,7 +531,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 * @param error The error (MicrioError, Error, or string) to display.
 	 */
-	#printError(error?: Error | string): void {
+	#printError(error?: unknown): void {
 		const message = getErrorMessage(error ?? 'An unknown error has occurred');
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})`: ''));
 		if(!this._ui) {this.#printUI(false, false);}
@@ -641,7 +648,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			if(!this._webgl.gl) {try {
 				this._webgl._init();
 			} catch(e) {
-				this.#printError(e as Error);
+				this.#printError(e);
 				return c;
 			}}
 		}

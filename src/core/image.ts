@@ -328,7 +328,7 @@ export class MicrioImage {
 			if(s.js) {
 				const url = s.js.href.replace('$lang', lang);
 				void loadScript(url);
-				const _el = document.head.querySelector(`script[src="${url}"]`) as HTMLScriptElement | undefined;
+				const _el = document.head.querySelector<HTMLScriptElement>(`script[src="${url}"]`);
 				// @ts-expect-error -- used for custom JS to have a cool self reference
 				if (_el) {_el['micrioElement'] = this.#engine.micrio;}
 			}
@@ -447,6 +447,7 @@ export class MicrioImage {
 		// Create new MicrioImage instance for the embed
 		const img = new MicrioImage(this.#engine, {
 			id: info.id ?? '',
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- embed info is intentionally partial (embeds only carry the fields they render) and MicrioImage takes it as its bundle info
 			info: { ...info, id: info.id ?? '' } as Models.ImageInfo.ImageInfo,
 			data: DataLoader._getBundleImageSync(info.id ?? '')?.data,
 			settings,

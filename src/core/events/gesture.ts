@@ -40,9 +40,10 @@ export class GestureHandler {
 	 * @returns Gesture data or null if not a gesture event.
 	 */
 	#getGestureEvent(e: Event): { scale: number; clientX: number; clientY: number } | null {
-		if ('scale' in e && typeof (e as { scale: unknown }).scale === 'number') {
-			const ge = e as Event & { scale: number; clientX: number; clientY: number };
-			return { scale: ge.scale, clientX: ge.clientX, clientY: ge.clientY };
+		if ('scale' in e && typeof e['scale'] === 'number'
+			&& 'clientX' in e && typeof e['clientX'] === 'number'
+			&& 'clientY' in e && typeof e['clientY'] === 'number') {
+			return { scale: e['scale'], clientX: e['clientX'], clientY: e['clientY'] };
 		}
 		return null;
 	}

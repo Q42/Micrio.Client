@@ -93,6 +93,7 @@ export function writable<T>(value?: T): Writable<T> {
 	return {
 		subscribe(run: Subscriber<T>, _invalidate?: (value?: T) => void): Unsubscriber {
 			subs.add(run);
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the initial value is optional, so it types as `T | undefined`; stores created without one declare `T` including `undefined` and rely on this initial undefined emission
 			run(value as T);
 			return () => subs.delete(run);
 		},
@@ -101,17 +102,18 @@ export function writable<T>(value?: T): Writable<T> {
 			for (const fn of subs) { fn(v); }
 		},
 		update(fn: Updater<T>) {
-			this.set(fn(value as T));
+			this.set(fn(get(this)));
 		}
 	};
 }
 
 /** Synchronously reads the current value of a store by subscribing and immediately unsubscribing. */
 export function get<T>(store: { subscribe: (fn: Subscriber<T>) => Unsubscriber }): T {
-	let v: T | undefined;
-	const unsub = store.subscribe(val => { v = val; });
+	// The store emits synchronously on subscribe, so `value` is always assigned before it is read.
+	let value!: T;
+	const unsub = store.subscribe(val => { value = val; });
 	unsub();
-	return v as T;
+	return value;
 }
 
 /** Returns a resolved promise, used to defer execution until the next microtask. @internal */

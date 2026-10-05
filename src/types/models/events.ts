@@ -16,8 +16,8 @@ export interface MicrioEventDetails {
 	'pre-info': ImageInfo.ImageInfo;
 	/** Before the ImageData contents are read, this event allows you to alter it */
 	'pre-data': { [micrioId: string]: ImageData.ImageData };
-	/** The main Micrio element has initialized and is being printed */
-	'print': ImageInfo.ImageInfo;
+	/** The main Micrio element has initialized and is being printed. The detail carries the parsed attribute options, which are partial. */
+	'print': Partial<ImageInfo.ImageInfo>;
 	/** Individual image data is loaded and Micrio will start rendering */
 	'load': MicrioImage;
 	/** The user has switched available languages */

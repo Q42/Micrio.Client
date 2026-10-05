@@ -37,7 +37,7 @@ export class DragHandler {
 		if (this.#hooked) {return;}
 		this.#hooked = true;
 
-		this.#ctx._micrio.addEventListener('dragstart', cancelPrevent as EventListener);
+		this.#ctx._micrio.addEventListener('dragstart', cancelPrevent);
 		this.#ctx._micrio.addEventListener('pointerdown', this.start, eventPassive);
 		self.addEventListener('pointercancel', this.#cancel, eventPassive);
 		this.#ctx._micrio.dataset.hooked = '';
@@ -49,7 +49,7 @@ export class DragHandler {
 		this.#hooked = false;
 
 		this.#ctx._micrio.removeEventListener('pointerdown', this.start, eventPassive);
-		this.#ctx._micrio.removeEventListener('dragstart', cancelPrevent as EventListener);
+		this.#ctx._micrio.removeEventListener('dragstart', cancelPrevent);
 		self.removeEventListener('pointercancel', this.#cancel, eventPassive);
 		delete this.#ctx._micrio.dataset.hooked;
 	}

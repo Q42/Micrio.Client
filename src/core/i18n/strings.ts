@@ -45,14 +45,22 @@ const strings = {
 /** Pre-built translation dictionaries keyed by language code (`'en'`, `'nl'`, `'de'`). @internal */
 export const langs: Record<string, ButtonTranslations> = {};
 
-const keys = Object.keys(strings) as TranslationKeys[];
+const keys = Object.keys(strings).filter((key): key is TranslationKeys => key in strings);
+
+/** Narrows a language dictionary once every translation key has been filled in. @internal */
+function isTranslations(lang: Partial<Record<TranslationKeys, string>>): lang is ButtonTranslations {
+	for (const key of keys) {
+		if (typeof lang[key] !== 'string') {return false;}
+	}
+	return true;
+}
 
 for (let i = 0; i < langKeys.length; i++) {
 	const lang: Partial<Record<TranslationKeys, string>> = {};
 	for (const key of keys) {
 		lang[key] = strings[key][i];
 	}
-	langs[langKeys[i]] = lang as ButtonTranslations;
+	if (isTranslations(lang)) {langs[langKeys[i]] = lang;}
 }
 
 /** Writable store holding the current UI button translations, initialized to English. @internal */
