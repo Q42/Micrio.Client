@@ -52,7 +52,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		if (p.type) {this.classList.add(p.type);}
 		this.#prevType = p.type;
 
-		if (this.#rootEl) {this.#rootEl.remove();}
+		if (this.#rootEl !== undefined) {this.#rootEl.remove();}
 
 		const attrs: Record<string, string | null> = {
 			title: p.title ?? '',
