@@ -1,10 +1,10 @@
-import type { MicrioImage } from './image';
-import type { Models } from '$types/models';
-import type { TileCanvas } from '$render/tile-canvas';
+import type { MicrioImage } from './image'
+import type { Models } from '$types/models'
+import type { TileCanvas } from '$render/tile-canvas'
 
-import { tick } from '$core/store';
-import { mod, toCenterJSON } from '$utils/math';
-import { getEasing } from '$render/easing';
+import { tick } from '$core/store'
+import { mod, toCenterJSON } from '$utils/math'
+import { getEasing } from '$render/easing'
 
 /**
  * Represents the virtual camera used to view a {@link MicrioImage}.
@@ -15,63 +15,68 @@ import { getEasing } from '$render/easing';
  * @author Marcel Duin <marcel@micr.io>
  */
 export class Camera {
-
 	/** Y-axis sphere rotation in radians for 360 images. @internal */
-	rotationY: number = 0;
+	rotationY = 0
 
 	/** Direct reference to the engine TileCanvas for compute operations. @internal */
-	#canvas?: TileCanvas;
+	#canvas?: TileCanvas
 
 	/** Promise resolve function called when a camera animation completes successfully. @internal */
-	_aniDone: (() => void) | undefined;
+	_aniDone: (() => void) | undefined
 
 	/** Promise reject function called when a camera animation is aborted (e.g., by user interaction). @internal */
-	_aniAbort: (() => void) | undefined;
+	_aniAbort: (() => void) | undefined
 
 	/** Array of additional callbacks to execute when an animation finishes. Used for queuing actions. @internal */
-	_aniDoneAdd: (() => void)[] = [];
+	_aniDoneAdd: (() => void)[] = []
 
 	/** Possible .zoom() override for Book3D */
-	_zoomOverride: ((n:number) => void) | undefined;
+	_zoomOverride: ((n: number) => void) | undefined
 
 	/** Possible override for Book3D */
-	_isZoomedInOverride: (() => boolean) | undefined;
+	_isZoomedInOverride: (() => boolean) | undefined
 
 	/** Possible override for `_getXYDirect` for Book3D */
-	_getXYDirectOverride: ((x:number, y:number) => Float64Array) | undefined;
+	_getXYDirectOverride: ((x: number, y: number) => Float64Array) | undefined
 
 	/** getMatrix book3d override */
-	_getMatrixOverride: ((
-		x: number,
-		y: number,
-		scale: number,
-		rotX?: number,
-		rotY?: number,
-		rotZ?: number,
-		scaleX?: number,
-		scaleY?: number,
-		/** The element's content width in CSS pixels (used to convert `scale` to a world size). */
-		width?: number,
-	) => Float32Array) | undefined;
+	_getMatrixOverride:
+		| ((
+				x: number,
+				y: number,
+				scale: number,
+				rotX?: number,
+				rotY?: number,
+				rotZ?: number,
+				scaleX?: number,
+				scaleY?: number,
+				/** The element's content width in CSS pixels (used to convert `scale` to a world size). */
+				width?: number,
+		  ) => Float32Array)
+		| undefined
 
-	readonly #image: MicrioImage;
+	readonly #image: MicrioImage
 
 	/** @internal The parent MicrioImage instance. */
-	get image(): MicrioImage { return this.#image; }
+	get image(): MicrioImage {
+		return this.#image
+	}
 
 	/**
 	 * Creates a Camera instance.
 	 * @internal
 	 * @param image The parent {@link MicrioImage} instance.
 	 */
-	constructor(
-		image: MicrioImage,
-	) {
-		this.#image = image;
+	constructor(image: MicrioImage) {
+		this.#image = image
 		// For non-360 images, set initial view if already available
 		if (!image._is360) {
-			const view = image.state.$view;
-			if (view && image.$info?.width) tick().then(() => this.setView(view));
+			const view = image.state.$view
+			if (view && image.$info?.width) {
+				void tick().then(() => {
+					this.setView(view)
+				})
+			}
 		}
 	}
 
@@ -80,7 +85,7 @@ export class Camera {
 	 * @internal
 	 */
 	_bindEngineCanvas(canvas: TileCanvas): void {
-		this.#canvas = canvas;
+		this.#canvas = canvas
 	}
 
 	// ─── View / coordinate transforms ──────────────────────────────
@@ -89,44 +94,53 @@ export class Camera {
 	 * Gets the current image view rectangle [x0, y0, width, height].
 	 */
 	getView = (): Models.Camera.View => {
-		const v = this.#canvas?.view.arr;
-		return v ? [v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]] : [0, 0, 1, 1];
-	};
+		const v = this.#canvas?.view.arr
+		return v ? [v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]] : [0, 0, 1, 1]
+	}
 
 	/**
 	 * Gets the current image view rectangle [x0, y0, width, height] relative to the image (0-1).
 	 * @returns The live Float64Array buffer from the engine.
 	 */
-	getViewRaw = (): Float64Array => { return this.#canvas?.view.arr ?? new Float64Array(4); };
+	getViewRaw = (): Float64Array => {
+		return this.#canvas?.view.arr ?? new Float64Array(4)
+	}
 
 	/**
 	 * Sets the camera view instantly to the specified viewport.
 	 * @param view The target viewport as a View [x0, y0, width, height].
 	 * @param opts Options for setting the view.
 	 */
-	setView(view: Models.Camera.View, opts: {
-		/** If true, allows setting a view outside the normal image boundaries. */
-		noLimit?: boolean;
-		/** If true (for 360), corrects the view based on the `trueNorth` setting. */
-		correctNorth?: boolean;
-		/** If true, prevents triggering a render after setting the view. */
-		noRender?: boolean;
-	} = {}): void {
-		if (!this.#canvas) return;
-		let { centerX, centerY, width, height } = toCenterJSON(view);
+	setView(
+		view: Models.Camera.View,
+		opts: {
+			/** If true, allows setting a view outside the normal image boundaries. */
+			noLimit?: boolean
+			/** If true (for 360), corrects the view based on the `trueNorth` setting. */
+			correctNorth?: boolean
+			/** If true, prevents triggering a render after setting the view. */
+			noRender?: boolean
+		} = {},
+	): void {
+		if (!this.#canvas) {
+			return
+		}
+		let { centerX, centerY, width, height } = toCenterJSON(view)
 		// When this image shares a parent canvas (e.g. an embed using useParentCamera),
 		// remap view coordinates from the sub-image's [0,1] space to the parent canvas.
 		if (this.#image.opts.useParentCamera) {
-			const a = this.#image.opts.area;
+			const a = this.#image.opts.area
 			if (a) {
-				centerX = a[0] + centerX * a[2];
-				centerY = a[1] + centerY * a[3];
-				width *= a[2];
-				height *= a[3];
+				centerX = a[0] + centerX * a[2]
+				centerY = a[1] + centerY * a[3]
+				width *= a[2]
+				height *= a[3]
 			}
 		}
-		this.#canvas._setView(centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
-		if (!opts.noRender) this.#image.engine.render();
+		this.#canvas._setView(centerX, centerY, width, height, Boolean(opts.noLimit), false, opts.correctNorth)
+		if (!opts.noRender) {
+			this.#image.engine.render()
+		}
 	}
 
 	/**
@@ -140,7 +154,8 @@ export class Camera {
 	 */
 	getCoo(x: number, y: number, absolute = false, noLimit = false): Float64Array {
 		return this.#getCooDirect(x, y, absolute, noLimit)
-			.slice(0).map(d => Math.round(d * 1000000) / 1000000);
+			.slice(0)
+			.map((d) => Math.round(d * 1000000) / 1000000)
 	}
 
 	/**
@@ -148,13 +163,16 @@ export class Camera {
 	 * @internal
 	 */
 	#getCooDirect(x: number, y: number, abs = false, noLimit = false) {
-		const c = this.#canvas;
-		if (!c) return new Float64Array(5);
-		if (abs) {
-			const box = this.#image.engine.micrio.getBoundingClientRect();
-			x -= box.left; y -= box.top;
+		const c = this.#canvas
+		if (!c) {
+			return new Float64Array(5)
 		}
-		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, !!abs, !!noLimit)).arr;
+		if (abs) {
+			const box = this.#image.engine.micrio.getBoundingClientRect()
+			x -= box.left
+			y -= box.top
+		}
+		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, abs, noLimit)).arr
 	}
 
 	/**
@@ -168,24 +186,38 @@ export class Camera {
 	 * @returns A Float64Array containing the screen coordinates [x, y, scale, depth].
 	 */
 	getXY(x: number, y: number, abs = false, radius?: number, rotation?: number, noTrueNorth?: boolean): Float64Array {
-		return this._getXYDirect(x, y, { abs, radius, rotation, noTrueNorth }).slice(0);
+		return this._getXYDirect(x, y, { abs, radius, rotation, noTrueNorth }).slice(0)
 	}
 
 	/**
 	 * Gets screen coordinates [x, y, scale, depth] for given image coordinates. Calls engine directly.
 	 * @internal
 	 */
-	_getXYDirect(x: number, y: number, opts: {
-		abs?: boolean; radius?: number; rotation?: number; noTrueNorth?: boolean;
-	} = {}) {
-		if(this._getXYDirectOverride) return this._getXYDirectOverride(x, y);
-		const c = this.#canvas;
-		if (!c) return new Float64Array(5);
-		const tNDiff = (this.#image._is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
-		if (c.is360) return c._camera360._getXYZ(x - tNDiff, y).arr;
-		if (opts.rotation !== undefined && !isNaN(opts.rotation))
-			return c._camera2d._getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;
-		return c._camera2d._getXY(x - tNDiff, y, !!opts.abs).arr;
+	_getXYDirect(
+		x: number,
+		y: number,
+		opts: {
+			abs?: boolean
+			radius?: number
+			rotation?: number
+			noTrueNorth?: boolean
+		} = {},
+	) {
+		if (this._getXYDirectOverride) {
+			return this._getXYDirectOverride(x, y)
+		}
+		const c = this.#canvas
+		if (!c) {
+			return new Float64Array(5)
+		}
+		const tNDiff = this.#image._is360 && !opts.noTrueNorth ? -this.rotationY / (Math.PI * 2) : 0
+		if (c.is360) {
+			return c._camera360._getXYZ(x - tNDiff, y).arr
+		}
+		if (opts.rotation !== undefined && !Number.isNaN(opts.rotation)) {
+			return c._camera2d._getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, Boolean(opts.abs)).arr
+		}
+		return c._camera2d._getXY(x - tNDiff, y, Boolean(opts.abs)).arr
 	}
 
 	/**
@@ -195,39 +227,49 @@ export class Camera {
 	 * @param scale The target scale (optional, defaults to current scale).
 	 */
 	setCoo(x: number, y: number, scale?: number): void {
-		if (!this.#canvas) return;
-		this.#canvas.camera.setCoo(x, y, scale ?? this.getScale());
-		this.#image.engine.render();
+		if (!this.#canvas) {
+			return
+		}
+		this.#canvas.camera.setCoo(x, y, scale ?? this.getScale())
+		this.#image.engine.render()
 	}
 
 	// ─── Camera properties ─────────────────────────────────────────
 
 	/** Gets the current camera zoom scale. */
-	getScale = (): number => this.getCoo(0, 0)[2] || 1;
+	getScale = (): number => this.getCoo(0, 0)[2] || 1
 
 	/** Gets the scale at which the image fully covers the viewport. */
-	getCoverScale = (): number => this.#canvas?.camera._coverScale ?? 1;
+	getCoverScale = (): number => this.#canvas?.camera._coverScale ?? 1
 
 	/** Gets the minimum allowed camera zoom scale. */
-	getMinScale = (): number => this.#canvas?.camera._minScale ?? 0.1;
+	getMinScale = (): number => this.#canvas?.camera._minScale ?? 0.1
 
 	/** Sets the minimum allowed camera zoom scale. */
-	setMinScale(s: number): void { this.#canvas?._setMinScale(s); }
+	setMinScale(s: number): void {
+		this.#canvas?._setMinScale(s)
+	}
 
 	/** Sets the minimum screen size ratio that the image must occupy, restricting zoom-out. */
-	setMinScreenSize(s: number): void { if (!this.#image.album && this.#canvas) this.#canvas.camera._minSize = Math.max(0, Math.min(1, s)); }
+	setMinScreenSize(s: number): void {
+		if (!this.#image.album && this.#canvas) {
+			this.#canvas.camera._minSize = Math.max(0, Math.min(1, s))
+		}
+	}
 
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn = (): boolean => !!(this._isZoomedInOverride ? this._isZoomedInOverride() : this.#canvas?._isZoomedIn());
+	isZoomedIn = (): boolean =>
+		Boolean(this._isZoomedInOverride ? this._isZoomedInOverride() : this.#canvas?._isZoomedIn())
 
 	/** Checks if the camera is fully zoomed out. */
-	isZoomedOut = (full = false): boolean => !!(this._isZoomedInOverride ? !this._isZoomedInOverride() : this.#canvas?._isZoomedOut(full));
+	isZoomedOut = (full = false): boolean =>
+		Boolean(this._isZoomedInOverride ? !this._isZoomedInOverride() : this.#canvas?._isZoomedOut(full))
 
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
-	getDirection = (): number => this.#canvas?._camera360._yaw ?? 0;
+	getDirection = (): number => this.#canvas?._camera360._yaw ?? 0
 
 	/** Gets the current viewing pitch in 360 mode. @returns The current pitch in radians. */
-	getPitch = (): number => this.#canvas?._camera360._pitch ?? 0;
+	getPitch = (): number => this.#canvas?._camera360._pitch ?? 0
 
 	/**
 	 * Sets the viewing direction (yaw/pitch) in 360 mode.
@@ -235,9 +277,11 @@ export class Camera {
 	 * @param pitch The target pitch in radians (defaults to current pitch).
 	 */
 	setDirection(yaw: number, pitch?: number): void {
-		if (!this.#canvas) return;
-		this.#canvas._setDirection(yaw, pitch ?? this.#canvas._camera360._pitch);
-		this.#image.engine.render();
+		if (!this.#canvas) {
+			return
+		}
+		this.#canvas._setDirection(yaw, pitch ?? this.#canvas._camera360._pitch)
+		this.#image.engine.render()
 	}
 
 	// ─── View limit control ────────────────────────────────────────
@@ -247,10 +291,12 @@ export class Camera {
 	 * @param v The viewport limit [x, y, width, height] in image-relative coordinates.
 	 */
 	setLimit(v: Models.Camera.View): void {
-		if (!this.#canvas) return;
-		const l = toCenterJSON(v)!;
-		this.#canvas.view._setLimit(l.centerX, l.centerY, l.width, l.height);
-		this.#image.engine.render();
+		if (!this.#canvas) {
+			return
+		}
+		const l = toCenterJSON(v)
+		this.#canvas.view._setLimit(l.centerX, l.centerY, l.width, l.height)
+		this.#image.engine.render()
 	}
 
 	/**
@@ -258,12 +304,14 @@ export class Camera {
 	 * @param b If true, limits the view to cover the screen.
 	 */
 	setCoverLimit(b: boolean): void {
-		if (!this.#canvas) return;
-		this.#canvas._coverLimit = !!b;
-		this.#canvas._correctMinMax();
+		if (!this.#canvas) {
+			return
+		}
+		this.#canvas._coverLimit = b
+		this.#canvas._correctMinMax()
 	}
 
-	getCoverLimit = (): boolean => !!(this.#canvas?._coverLimit);
+	getCoverLimit = (): boolean => Boolean(this.#canvas?._coverLimit)
 
 	/**
 	 * Sets horizontal and vertical pan limits for 360 images as percentages of the full sphere.
@@ -271,19 +319,28 @@ export class Camera {
 	 * @param yPerc Vertical limit percentage (0-100).
 	 */
 	set360RangeLimit(xPerc = 0, yPerc = 0): void {
-		if (!this.#canvas) return;
-		this.#canvas._camera360._setLimits(xPerc, yPerc);
-		this.#image.engine.render();
+		if (!this.#canvas) {
+			return
+		}
+		this.#canvas._camera360._setLimits(xPerc, yPerc)
+		this.#image.engine.render()
 	}
 
 	// ─── Animation control ─────────────────────────────────────────
 
 	/** Stops any ongoing camera animation immediately. */
-	stop(): void { this.#canvas?._aniStop(); }
+	stop(): void {
+		this.#canvas?._aniStop()
+	}
 	/** Pauses the current camera animation. */
-	pause(): void { this.#canvas?._aniPause(); }
+	pause(): void {
+		this.#canvas?._aniPause()
+	}
 	/** Resumes a previously paused camera animation and triggers a render. */
-	resume(): void { this.#canvas?._aniResume(); this.#image.engine.render(); }
+	resume(): void {
+		this.#canvas?._aniResume()
+		this.#image.engine.render()
+	}
 
 	// ─── 360 / Omni / embed helpers ─────────────────────────────────
 
@@ -304,9 +361,37 @@ export class Camera {
 	 * @param scaleY Optional non-uniform Y scaling.
 	 * @returns The resulting 4x4 matrix as a Float32Array.
 	 */
-	getMatrix(x: number, y: number, scale?: number, radius?: number, rotX?: number, rotY?: number, rotZ?: number, transY?: number, scaleX?: number, scaleY?: number, noCorrectNorth?: boolean): Float32Array {
-		if(this._getMatrixOverride) return this._getMatrixOverride(x, y, scale || 1, rotX, rotY, rotZ, scaleX, scaleY, radius);
-		return this.#canvas?._getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
+	getMatrix(
+		x: number,
+		y: number,
+		scale?: number,
+		radius?: number,
+		rotX?: number,
+		rotY?: number,
+		rotZ?: number,
+		transY?: number,
+		scaleX?: number,
+		scaleY?: number,
+		noCorrectNorth?: boolean,
+	): Float32Array {
+		if (this._getMatrixOverride) {
+			return this._getMatrixOverride(x, y, scale || 1, rotX, rotY, rotZ, scaleX, scaleY, radius)
+		}
+		return (
+			this.#canvas?._getMatrix(
+				x,
+				y,
+				scale ?? 1,
+				radius ?? 10,
+				rotX || 0,
+				rotY || 0,
+				rotZ || 0,
+				transY ?? 0,
+				scaleX ?? 1,
+				scaleY ?? 1,
+				Boolean(noCorrectNorth),
+			) ?? new Float32Array(16)
+		)
 	}
 
 	/**
@@ -316,46 +401,64 @@ export class Camera {
 	 * @param opts Options for setting the area.
 	 */
 	setArea(v: Models.Camera.View, opts: { direct?: boolean; noDispatch?: boolean; noRender?: boolean } = {}): void {
-		if (!this.#canvas) return;
-		this.#image.opts.area = v;
+		if (!this.#canvas) {
+			return
+		}
+		this.#image.opts.area = v
 		if (this.#image.opts.isEmbed && this.#image._placed) {
 			for (const img of this.#canvas.images) {
-				if (img._localIdx > 0) { img._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
+				if (img._localIdx > 0) {
+					img._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3])
+					return
+				}
 			}
 		} else {
-			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], !!opts.direct, !!opts.noDispatch);
+			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], Boolean(opts.direct), Boolean(opts.noDispatch))
 		}
-		if (!opts.noRender) this.#image.engine.render();
+		if (!opts.noRender) {
+			this.#image.engine.render()
+		}
 	}
 
 	/** Sets the 3D rotation for an embedded image (used for placing embeds in 360 space). */
 	setRotation(rotX = 0, rotY = 0, rotZ = 0): void {
-		if (!this.#image.opts.isEmbed || !this.#canvas || !this.#image.engine.ready) return;
-		for (const img of this.#canvas.images) {
-			if (img._localIdx > 0) { img._rotX = rotX; img._rotY = rotY; img._rotZ = rotZ; break; }
+		if (!this.#image.opts.isEmbed || !this.#canvas || !this.#image.engine.ready) {
+			return
 		}
-		this.#image.engine.render();
+		for (const img of this.#canvas.images) {
+			if (img._localIdx > 0) {
+				img._rotX = rotX
+				img._rotY = rotY
+				img._rotZ = rotZ
+				break
+			}
+		}
+		this.#image.engine.render()
 	}
 
 	/** [Omni] Gets the current rotation angle in radians based on the active frame index. */
 	getOmniRotation(): number {
-		const omni = this.#image.$settings.omni;
-		if (!omni || !this.#canvas) return 0;
-		return (this.#image.omni?.currentIndex ?? 0) / ((omni.frames ?? 1) / (omni.layers?.length ?? 1)) * Math.PI * 2;
+		const { omni } = this.#image.$settings
+		if (!omni || !this.#canvas) {
+			return 0
+		}
+		return ((this.#image.omni?.currentIndex ?? 0) / ((omni.frames ?? 1) / (omni.layers?.length ?? 1))) * Math.PI * 2
 	}
 
 	/** [Omni] Gets the frame index corresponding to a given rotation angle (radians).
 	 * @internal
-	*/
+	 */
 	_getOmniFrame(rot?: number): number | undefined {
-		const omni = this.#image.$settings.omni;
-		if (!omni || rot == undefined) return;
-		return Math.floor((rot / (Math.PI * 2)) * (omni.frames / (omni.layers?.length ?? 1)));
+		const { omni } = this.#image.$settings
+		if (!omni || rot === undefined) {
+			return undefined
+		}
+		return Math.floor((rot / (Math.PI * 2)) * (omni.frames / (omni.layers?.length ?? 1)))
 	}
 
 	/** [Omni] Gets the screen coordinates [x, y, scale, depth] for given 3D object coordinates. */
 	getOmniXY(x: number, y: number, z: number): Float64Array {
-		return this.#canvas?._camera2d._getXYOmniCoo(x, y, z).arr ?? new Float64Array(5);
+		return this.#canvas?._camera2d._getXYOmniCoo(x, y, z).arr ?? new Float64Array(5)
 	}
 
 	// ─── Animation lifecycle (called by TileCanvas) ────────────────
@@ -366,17 +469,19 @@ export class Camera {
 	 * @internal
 	 */
 	_viewChanged() {
-		if (!this.#canvas) return;
-		const v = this.#canvas.view.arr;
-		this.#image.state.view.set([v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]]);
+		if (!this.#canvas) {
+			return
+		}
+		const v = this.#canvas.view.arr
+		this.#image.state.view.set([v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]])
 	}
 
 	// ─── Promise-based animations ──────────────────────────────────
 
 	/** Sets the internal Promise resolve/reject functions for the current animation. @internal */
 	#setAniPromises(ok: () => void, abort: () => void): void {
-		this._aniDone = ok;
-		this._aniAbort = abort;
+		this._aniDone = ok
+		this._aniAbort = abort
 	}
 
 	/**
@@ -385,55 +490,85 @@ export class Camera {
 	 * @param opts Optional animation settings.
 	 * @returns A Promise that resolves when the animation completes, or rejects if aborted.
 	 */
-	flyToView(view: Models.Camera.View, opts: Models.Camera.AnimationOptions & {
-		/** Set the starting animation progress percentage (0-1). */
-		progress?: number;
-		/** Base the progress override on this starting view. */
-		prevView?: Models.Camera.View;
-		/** If true, performs a "jump" animation (zooms out then in). */
-		isJump?: boolean;
-		/** For Omni objects: the target image frame index to animate to. */
-		omniIndex?: number;
-		/** If true, respects the image's maximum zoom limit during animation. */
-		limitZoom?: boolean;
-		/** If provided, adds a margin to the view. */
-		margin?: [number, number];
-	} = {}): Promise<void> {
+	flyToView(
+		view: Models.Camera.View,
+		opts: Models.Camera.AnimationOptions & {
+			/** Set the starting animation progress percentage (0-1). */
+			progress?: number
+			/** Base the progress override on this starting view. */
+			prevView?: Models.Camera.View
+			/** If true, performs a "jump" animation (zooms out then in). */
+			isJump?: boolean
+			/** For Omni objects: the target image frame index to animate to. */
+			omniIndex?: number
+			/** If true, respects the image's maximum zoom limit during animation. */
+			limitZoom?: boolean
+			/** If provided, adds a margin to the view. */
+			margin?: [number, number]
+		} = {},
+	): Promise<void> {
 		return new Promise((ok, abort) => {
-			if (!this.#canvas) return abort(new Error("engine not ready"));
-			let { centerX, centerY, width, height } = toCenterJSON(view);
-			if (opts.margin?.length == 2) {
-				centerX += opts.margin[0]; centerY += opts.margin[1];
-				width -= opts.margin[0] * 2; height -= opts.margin[1] * 2;
+			if (!this.#canvas) {
+				abort(new Error('engine not ready'))
+				return
+			}
+			let { centerX, centerY, width, height } = toCenterJSON(view)
+			if (opts.margin?.length === 2) {
+				centerX += opts.margin[0]
+				centerY += opts.margin[1]
+				width -= opts.margin[0] * 2
+				height -= opts.margin[1] * 2
 			}
 			// When this image shares a parent canvas (e.g. an embed using useParentCamera),
 			// remap view coordinates from the sub-image's [0,1] space to the parent canvas.
 			if (this.#image.opts.useParentCamera) {
-				const a = this.#image.opts.area;
+				const a = this.#image.opts.area
 				if (a) {
-					centerX = a[0] + centerX * a[2]; centerY = a[1] + centerY * a[3];
-					width *= a[2]; height *= a[3];
+					centerX = a[0] + centerX * a[2]
+					centerY = a[1] + centerY * a[3]
+					width *= a[2]
+					height *= a[3]
 				}
 			}
 			if (opts.prevView) {
-				const pCV = toCenterJSON(opts.prevView);
-				this.#canvas._ani._setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height);
+				const pCV = toCenterJSON(opts.prevView)
+				this.#canvas._ani._setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height)
 			}
-			const omni = this.#image.$settings.omni;
+			const { omni } = this.#image.$settings
 			if (omni?.frames) {
-				const numLayers = omni.layers?.length ?? 1;
-				const npl = omni.frames / numLayers;
-				if (opts.omniIndex == undefined) {
-					const idx = view[4] || (Array.isArray(view) && view[5] !== undefined ? view[5] : undefined);
-					if (idx !== undefined) opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * npl);
+				const numLayers = omni.layers?.length ?? 1
+				const npl = omni.frames / numLayers
+				if (opts.omniIndex === undefined) {
+					const idx = view[4] || (Array.isArray(view) && view[5] !== undefined ? view[5] : undefined)
+					if (idx !== undefined) {
+						opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * npl)
+					}
 				}
-				if (opts.omniIndex != undefined) opts.omniIndex = mod(opts.omniIndex, npl);
+				if (opts.omniIndex !== undefined) {
+					opts.omniIndex = mod(opts.omniIndex, npl)
+				}
 			}
-			const duration = this.#canvas.camera._flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, getEasing(opts.timingFunction));
-			this.#image.engine.render();
-			if (duration == 0) ok();
-			else this.#setAniPromises(ok, abort);
-		});
+			const duration = this.#canvas.camera._flyTo(
+				centerX,
+				centerY,
+				width,
+				height,
+				opts.duration ?? -1,
+				opts.speed ?? -1,
+				opts.progress ?? 0,
+				Boolean(opts.isJump),
+				Boolean(opts.limit),
+				Boolean(opts.limitZoom),
+				opts.omniIndex ?? 0,
+				getEasing(opts.timingFunction),
+			)
+			this.#image.engine.render()
+			if (duration === 0) {
+				ok()
+			} else {
+				this.#setAniPromises(ok, abort)
+			}
+		})
 	}
 
 	/**
@@ -442,7 +577,7 @@ export class Camera {
 	 * @returns A Promise that resolves when the animation completes.
 	 */
 	flyToFullView(opts: Models.Camera.AnimationOptions = {}): Promise<void> {
-		return this.flyToCoo([.5, .5, this.getMinScale()], opts);
+		return this.flyToCoo([0.5, 0.5, this.getMinScale()], opts)
 	}
 
 	/**
@@ -451,10 +586,10 @@ export class Camera {
 	 * @returns A Promise that resolves when the animation completes.
 	 */
 	flyToCoverView(opts: Models.Camera.AnimationOptions = {}): Promise<void> {
-		const base = this.#image.$settings.focus ?? [.5, .5];
-		const focus: Models.Camera.Coords = [base[0], base[1]];
-		focus[2] = this.getCoverScale();
-		return this.flyToCoo(focus, opts);
+		const base = this.#image.$settings.focus ?? [0.5, 0.5]
+		const focus: Models.Camera.Coords = [base[0], base[1]]
+		focus[2] = this.getCoverScale()
+		return this.flyToCoo(focus, opts)
 	}
 
 	/**
@@ -465,13 +600,27 @@ export class Camera {
 	 */
 	flyToCoo(coords: Models.Camera.Coords, opts: Models.Camera.AnimationOptions = {}): Promise<void> {
 		return new Promise((ok, abort) => {
-			if (!this.#canvas) return abort(new Error("engine not ready"));
-			const fn = getEasing(opts.timingFunction);
-			opts.duration = this.#canvas.camera.setCoo(coords[0]!, coords[1]!, coords[2] ?? this.getScale(), opts.duration ?? -1, opts.speed ?? -1, opts.limit ?? false, fn);
-			this.#image.engine.render();
-			if (opts.duration == 0) ok();
-			else this.#setAniPromises(ok, abort);
-		});
+			if (!this.#canvas) {
+				abort(new Error('engine not ready'))
+				return
+			}
+			const fn = getEasing(opts.timingFunction)
+			opts.duration = this.#canvas.camera.setCoo(
+				coords[0],
+				coords[1],
+				coords[2] ?? this.getScale(),
+				opts.duration ?? -1,
+				opts.speed ?? -1,
+				opts.limit ?? false,
+				fn,
+			)
+			this.#image.engine.render()
+			if (opts.duration === 0) {
+				ok()
+			} else {
+				this.#setAniPromises(ok, abort)
+			}
+		})
 	}
 
 	/**
@@ -486,19 +635,30 @@ export class Camera {
 	 */
 	zoom(delta: number, duration = 0, x?: number, y?: number, _speed = 1, noLimit = false): Promise<void> {
 		return new Promise((ok, abort) => {
-			if(this._zoomOverride) this._zoomOverride(delta);
-			else if(this.#canvas) {
-				const v = this.#canvas.view.arr;
-				const coo = this.getXY(v[0], v[1]);
-				if (x == undefined) x = coo[0];
-				if (y == undefined) y = coo[1];
-				if (this.#image.album && !this.#image.album.hooked) return ok();
-				duration = this.#canvas.camera._zoom(delta, x, y, duration, noLimit);
-				this.#image.engine.render();
+			if (this._zoomOverride) {
+				this._zoomOverride(delta)
+			} else if (this.#canvas) {
+				const v = this.#canvas.view.arr
+				const coo = this.getXY(v[0], v[1])
+				if (x === undefined) {
+					x = coo[0]
+				}
+				if (y === undefined) {
+					y = coo[1]
+				}
+				if (this.#image.album && !this.#image.album.hooked) {
+					ok()
+					return
+				}
+				duration = this.#canvas.camera._zoom(delta, x, y, duration, noLimit)
+				this.#image.engine.render()
 			}
-			if (duration == 0) ok();
-			else this.#setAniPromises(ok, abort);
-		});
+			if (duration === 0) {
+				ok()
+			} else {
+				this.#setAniPromises(ok, abort)
+			}
+		})
 	}
 
 	/**
@@ -508,8 +668,8 @@ export class Camera {
 	 * @param speed Animation speed multiplier.
 	 * @returns A Promise that resolves when the animation completes.
 	 */
-	async zoomIn(factor = 1, duration = 250, speed = 1): Promise<void> {
-		return this.zoom(-factor * 200, duration, undefined, undefined, speed).catch(() => {});
+	zoomIn(factor = 1, duration = 250, speed = 1): Promise<void> {
+		return this.zoom(-factor * 200, duration, undefined, undefined, speed).catch(() => {})
 	}
 
 	/**
@@ -519,11 +679,13 @@ export class Camera {
 	 * @param speed Animation speed multiplier.
 	 * @returns A Promise that resolves when the animation completes.
 	 */
-	async zoomOut(factor = 1, duration = 250, speed = 1): Promise<void> {
-		const c = this.#image.engine.micrio.canvas.viewport;
-		const rat = c.width / c.height;
-		const imgRat = this.#image.$info!.width / this.#image.$info!.height;
-		return this.zoom(factor * (400 / Math.max(1, rat / imgRat / 2)), duration, undefined, undefined, speed).catch(() => {});
+	zoomOut(factor = 1, duration = 250, speed = 1): Promise<void> {
+		const c = this.#image.engine.micrio.canvas.viewport
+		const rat = c.width / c.height
+		const imgRat = this.#image.$info.width / this.#image.$info.height
+		return this.zoom(factor * (400 / Math.max(1, rat / imgRat / 2)), duration, undefined, undefined, speed).catch(
+			() => {},
+		)
 	}
 
 	/**
@@ -534,14 +696,20 @@ export class Camera {
 	 * @param opts Options: render (force render), noLimit (allow panning outside bounds).
 	 */
 	pan(x: number, y: number, duration = 0, opts: { render?: boolean; noLimit?: boolean } = {}): void {
-		if (!this.#canvas) return;
-		this.#canvas.camera._pan(x, y, duration, !!opts.noLimit);
-		if (duration > 0 || opts.render) this.#image.engine.render();
+		if (!this.#canvas) {
+			return
+		}
+		this.#canvas.camera._pan(x, y, duration, Boolean(opts.noLimit))
+		if (duration > 0 || opts.render) {
+			this.#image.engine.render()
+		}
 	}
 
 	/** Sets the camera zoom scale instantly. */
 	setScale(s: number): void {
-		const v = this.#canvas?.view.arr;
-		if (v) this.setCoo(v[0], v[1], s);
+		const v = this.#canvas?.view.arr
+		if (v) {
+			this.setCoo(v[0], v[1], s)
+		}
 	}
 }

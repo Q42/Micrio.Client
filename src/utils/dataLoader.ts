@@ -11,49 +11,56 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { Models } from '$types/models';
-import { VERSION } from '$core/version';
-import { VIEWER_BASE } from '$core/globals';
-import { fetchJson } from './fetch';
+import type { Models } from '$types/models'
+import { VERSION } from '$core/version'
+import { VIEWER_BASE } from '$core/globals'
+import { fetchJson } from './fetch'
 
 // ── Internal types ────────────────────────────────────────────────────────────
 
-type BundleImage = Models.ImageBundle.BundleImage;
+type BundleImage = Models.ImageBundle.BundleImage
 
 // ── Global singleton caches (shared across all <micr-io> elements) ────────────
 
-const bundleCache = new Map<string, BundleImage>();
-const spaceCache = new Map<string, Models.Spaces.Space>();
-const albumCache = new Map<string, Models.GalleryConfig>();
-const bundleToursCache = new Map<string, Models.ImageData.MarkerTour[]>();
-const inflightFetches = new Map<string, Promise<void>>();
-let orgCache: Models.ImageInfo.Organisation | undefined;
+const bundleCache = new Map<string, BundleImage>()
+const spaceCache = new Map<string, Models.Spaces.Space>()
+const albumCache = new Map<string, Models.GalleryConfig>()
+const bundleToursCache = new Map<string, Models.ImageData.MarkerTour[]>()
+const inflightFetches = new Map<string, Promise<void>>()
+let orgCache: Models.ImageInfo.Organisation | undefined
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 async function fetchBundleOnce(id: string): Promise<void> {
-	if (!id || id.startsWith('http') || bundleCache.has(id)) return;
-	if (inflightFetches.has(id)) return inflightFetches.get(id)!;
+	if (!id || id.startsWith('http') || bundleCache.has(id)) {
+		return
+	}
+	const inflight = inflightFetches.get(id)
+	if (inflight) {
+		return inflight
+	}
 
-	const promise = doFetchBundle(id);
-	inflightFetches.set(id, promise);
+	const promise = doFetchBundle(id)
+	inflightFetches.set(id, promise)
 	try {
-		await promise;
+		await promise
 	} catch {
 		// Bundle fetch failed — getBundleImage will return undefined
 	} finally {
-		inflightFetches.delete(id);
+		inflightFetches.delete(id)
 	}
 }
 
 async function doFetchBundle(id: string): Promise<void> {
-	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json?v=${VERSION}`);
+	const bundle = await fetchJson<Models.ImageBundle.BundleResponse>(`${VIEWER_BASE}${id}/bundle.json?v=${VERSION}`)
 
 	if (bundle?.images) {
 		for (const entry of bundle.images) {
 			if (entry?.id) {
-				bundleCache.set(entry.id, entry);
-				if(bundle.tours) bundleToursCache.set(entry.id, bundle.tours);
+				bundleCache.set(entry.id, entry)
+				if (bundle.tours) {
+					bundleToursCache.set(entry.id, bundle.tours)
+				}
 			}
 		}
 		// When the bundle was fetched via an external/… alias, also cache
@@ -61,22 +68,24 @@ async function doFetchBundle(id: string): Promise<void> {
 		// DataLoader._getBundleImage) find it by the same key
 		// the caller originally used.
 		if (id.startsWith('external/') && bundle.images[0]?.id) {
-			bundleCache.set(id, bundle.images[0]);
-			if(bundle.tours) bundleToursCache.set(id, bundle.tours);
+			bundleCache.set(id, bundle.images[0])
+			if (bundle.tours) {
+				bundleToursCache.set(id, bundle.tours)
+			}
 		}
 	}
 	if (bundle?.organisation) {
-		orgCache = bundle.organisation;
+		orgCache = bundle.organisation
 	}
 	if (bundle?.spaces) {
 		for (const space of bundle.spaces) {
-			if (space?.id && space?.data) {
-				spaceCache.set(space.id, space.data);
+			if (space?.id && space?.data !== undefined) {
+				spaceCache.set(space.id, space.data)
 			}
 		}
 	}
 	if (bundle?.album?.id) {
-		albumCache.set(bundle.album.id, bundle.album);
+		albumCache.set(bundle.album.id, bundle.album)
 	}
 }
 
@@ -86,12 +95,12 @@ async function doFetchBundle(id: string): Promise<void> {
 export const DataLoader = {
 	/** @internal Returns the data for an image ID, or undefined if not found in its bundle. */
 	async _getData(id: string): Promise<Models.ImageData.ImageData | undefined> {
-		return (await this._getBundleImage(id))?.data;
+		return (await this._getBundleImage(id))?.data
 	},
 
 	/** @internal Synchronous accessor for the full bundle entry (info + data) when it is already cached. */
 	_getBundleImageSync(id: string): Models.ImageBundle.BundleImage | undefined {
-		return bundleCache.get(id);
+		return bundleCache.get(id)
 	},
 
 	/**
@@ -100,28 +109,28 @@ export const DataLoader = {
 	 * @internal
 	 */
 	_getStepMarker(step: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
-		const data = bundleCache.get(step.micrioId)?.data;
-		return data?.markers?.find(m => m.id === step.markerId);
+		const data = bundleCache.get(step.micrioId)?.data
+		return data?.markers?.find((m) => m.id === step.markerId)
 	},
 
 	/** @internal Returns the space data for a space ID, or undefined if not found in its bundle. */
 	_getSpaceData(id: string): Models.Spaces.Space | undefined {
-		return spaceCache.get(id);
+		return spaceCache.get(id)
 	},
 
 	/** @internal Returns the organisation data from the bundle, or undefined. */
 	_getOrganisation(): Models.ImageInfo.Organisation | undefined {
-		return orgCache;
+		return orgCache
 	},
 
 	/** @internal Returns the album info for an album ID from the bundle cache. */
 	_getAlbum(id: string): Models.GalleryConfig | undefined {
-		return albumCache.get(id);
+		return albumCache.get(id)
 	},
 
 	/** @internal Returns the bundle-level marker tours for an image ID, or undefined if no tours were in the bundle. */
 	_getBundleTours(id: string): Models.ImageData.MarkerTour[] | undefined {
-		return bundleToursCache.get(id);
+		return bundleToursCache.get(id)
 	},
 
 	/**
@@ -130,8 +139,10 @@ export const DataLoader = {
 	 * @internal
 	 */
 	async _getBundleImage(id: string): Promise<BundleImage | undefined> {
-		if (!id) return;
-		await fetchBundleOnce(id);
-		return bundleCache.get(id);
+		if (!id) {
+			return undefined
+		}
+		await fetchBundleOnce(id)
+		return bundleCache.get(id)
 	},
-};
+}

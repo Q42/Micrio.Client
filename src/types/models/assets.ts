@@ -1,85 +1,85 @@
-import type { I18n } from './common';
+import type { I18n } from './common'
 
 /** Assets (audio, video, images) */
 export namespace Assets {
-	export type BaseAsset = {
+	export interface BaseAsset {
 		/** The asset title (not filename) */
-		title: string;
+		title: string
 		/** The asset file name */
-		fileName?: string;
+		fileName?: string
 		/** The file uri */
-		src: string;
+		src: string
 		/** File size in bytes */
-		size: number;
+		size: number
 		/** Created */
-		uploaded: number;
+		uploaded: number
 	}
 
 	export type Audio = BaseAsset & {
 		/** The sample duration */
-		duration: number;
+		duration: number
 		/** The sample volume */
-		volume: number;
+		volume: number
 	}
 
 	export type AudioLocation = Audio & {
 		/** Autoplay the sample */
-		alwaysPlay: boolean;
+		alwaysPlay: boolean
 		/** Loop the audio */
-		loop: boolean;
+		loop: boolean
 		/** Pause X seconds between plays */
-		repeatAfter: number;
+		repeatAfter: number
 		/** Don't play on mobile */
-		noMobile: boolean;
+		noMobile: boolean
 		/** The radius of the audible circle */
-		radius: number;
-	};
+		radius: number
+	}
 
 	/** An image asset uploaded in the Micrio editor */
 	export type Image = BaseAsset & {
-		id?: string;
+		id?: string
 		/** The image original width */
-		width: number;
+		width: number
 		/** The image original height */
-		height: number;
+		height: number
 		/** If the image is available as Micrio image, its ID */
-		micrioId?: string;
+		micrioId?: string
 		/** If the image has a Micrio version, optional alternative image tile ID */
-		tilesId?: string;
+		tilesId?: string
 		/** Is PNG */
-		isPng?: boolean;
+		isPng?: boolean
 		/** IsWebP */
-		isWebP?: boolean;
+		isWebP?: boolean
 		/** Used DeepZoom format */
-		isDeepZoom?: boolean;
+		isDeepZoom?: boolean
 		/** V5+: Translatable description */
-		i18n?: I18n<{ title?: string; description?: string; }>
+		i18n?: I18n<{ title?: string; description?: string }>
 	}
 
 	export type Video = BaseAsset & {
 		/** The video width */
-		width: number;
+		width: number
 		/** The video height */
-		height: number;
+		height: number
 		/** The video duration */
-		duration: number;
+		duration: number
 		/** Video is muted */
-		muted: boolean;
+		muted: boolean
 		/** Video loops */
-		loop: boolean;
+		loop: boolean
 		/** Video loops after X seconds waiting */
-		loopAfter?: number;
+		loopAfter?: number
 		/** Video autoplays */
-		autoplay: boolean;
+		autoplay: boolean
 		/** Cloudflare Stream ID */
-		streamId?: string;
+		streamId?: string
 		/** Show controls */
-		controls: boolean;
+		controls: boolean
 		/** Video has alpha transparency */
-		transparent: boolean;
+		transparent: boolean
 		/** Video has a separately uploaded Mac H265 transparent src */
-		hasH265?: boolean;
+		hasH265?: boolean
 	}
 
-	export type Subtitle = BaseAsset;
+	export type Subtitle = BaseAsset
 }

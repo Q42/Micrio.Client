@@ -42,10 +42,10 @@ feature rather than erroring out.
 To get typed access to a Micrio HTML element, you can use the `HTMLMicrioElement` as exported by this package:
 
 ```ts
-import type { HTMLMicrioElement } from '@micrio/client';
+import type { HTMLMicrioElement } from '@micrio/client'
 
 // This will be a fully typed element
-const micrioElement = document.querySelector('micr-io') as HTMLMicrioElement;
+const micrioElement = document.querySelector('micr-io') as HTMLMicrioElement
 ```
 
 ## Upgrading to the latest version (v7)

@@ -1,71 +1,89 @@
-import { MicrioElement } from '$core/component';
-import type { Models } from '$types/models';
-import { DataLoader } from '$utils/dataLoader';
-import { parseTime } from '$utils/time';
-import { afterFrame, createElement } from '$utils/dom';
-import '$media/media';
+import { MicrioElement } from '$core/component'
+import type { Models } from '$types/models'
+import { DataLoader } from '$utils/dataLoader'
+import { parseTime } from '$utils/time'
+import { afterFrame, createElement } from '$utils/dom'
+import '$media/media'
 
 /** Properties for the serial tour component. @internal */
 export interface SerialTourProps {
-	tour: Models.ImageData.MarkerTour;
-	onended?: () => void;
+	tour: Models.ImageData.MarkerTour
+	onended?: () => void
 }
-import './serial-tour.css';
+import './serial-tour.css'
 
 /** Web component that plays a sequential tour with progress bars and chapter navigation. */
 class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	/** The custom element tag name. @internal */
-	static tag = 'micrio-serial-tour';
+	static tag = 'micrio-serial-tour'
 
-	#props: SerialTourProps = { tour: null! };
-	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = [];
-	#currentStep = 0;
-	#built = false;
-	#mediaEl: MicrioElement | undefined = undefined;
-	#duration = 0;
-	#noTimeScrub = false;
+	#props: Partial<SerialTourProps> = {}
+	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = []
+	#currentStep = 0
+	#built = false
+	#mediaEl: HTMLElement | undefined = undefined
+	#duration = 0
+	#noTimeScrub = false
 
 	/** @internal */
 	_onMount() {
-		const { tour } = this.#props;
-		const micrio = this._getMicrio();
-		if (!micrio || !tour) return;
+		const { tour } = this.#props
+		const micrio = this._getMicrio()
+		if (!micrio || !tour) {
+			return
+		}
 
-		this.#stepInfo = (tour.stepInfo as Models.ImageData.MarkerTourStepInfo[]) || [];
-		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0);
-		this.#noTimeScrub = !!(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
+		this.#stepInfo = tour.stepInfo || []
+		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0)
+		this.#noTimeScrub = Boolean(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub)
 
-		micrio.setAttribute('data-marker-tour-active', '');
-		this._addCleanup(() => micrio.removeAttribute('data-marker-tour-active'));
+		micrio.dataset.markerTourActive = ''
+		this._addCleanup(() => {
+			delete micrio.dataset.markerTourActive
+		})
 
-		const mt = tour;
-		mt.next = () => this.#nextStep();
-		mt.prev = () => { if (this.#currentStep > 0) this.#openStep(this.#currentStep - 1); };
-
-		this._addCleanup(micrio.state.marker.subscribe(m => {
-			if (!m || !this.#stepInfo.length) return;
-			const id = typeof m == 'string' ? m : m.id;
-			const idx = this.#stepInfo.findIndex(s => s.markerId === id);
-			if (idx >= 0 && idx !== this.#currentStep) {
-				this.#stepInfo.forEach(s => s.ended = false);
-				this.#openStep(idx);
+		const mt = tour
+		mt.next = () => {
+			this.#nextStep()
+		}
+		mt.prev = () => {
+			if (this.#currentStep > 0) {
+				void this.#openStep(this.#currentStep - 1)
 			}
-		}));
+		}
 
-		this.#build();
+		this._addCleanup(
+			micrio.state.marker.subscribe((m) => {
+				if (!m || this.#stepInfo.length === 0) {
+					return
+				}
+				const id = typeof m === 'string' ? m : m.id
+				const idx = this.#stepInfo.findIndex((s) => s.markerId === id)
+				if (idx >= 0 && idx !== this.#currentStep) {
+					for (const s of this.#stepInfo) {
+						s.ended = false
+					}
+					void this.#openStep(idx)
+				}
+			}),
+		)
 
-		this.#openStep(0);
+		this.#build()
+
+		void this.#openStep(0)
 	}
 
 	#build() {
-		if (this.#built) return;
-		this.#built = true;
+		if (this.#built) {
+			return
+		}
+		this.#built = true
 
-		if (this.#props.tour.printChapters) {
-			const ol = createElement('ol');
-			this.#stepInfo.forEach((si, i) => {
-				const marker = DataLoader._getStepMarker(si);
-				const title = this.#getTitle(marker);
+		if (this.#props.tour?.printChapters) {
+			const ol = createElement('ol')
+			for (const [i, si] of this.#stepInfo.entries()) {
+				const marker = DataLoader._getStepMarker(si)
+				const title = this.#getTitle(marker)
 				if (title) {
 					createElement('li', {
 						dataset: { idx: String(i) },
@@ -73,54 +91,66 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 						children: [
 							createElement('button', {
 								textContent: title,
-								events: { click: () => this.#goto(i) }
-							})
-						]
-					});
+								events: {
+									click: () => {
+										this.#goto(i)
+									},
+								},
+							}),
+						],
+					})
 				}
-			});
-			if (ol.children.length) this.appendChild(ol);
+			}
+			if (ol.children.length > 0) {
+				this.append(ol)
+			}
 		}
 	}
 
 	async #openStep(idx: number) {
-		const micrio = this._getMicrio();
-		if (!micrio) return;
+		const micrio = this._getMicrio()
+		if (!micrio) {
+			return
+		}
 
 		const close = () => {
-			micrio.state.tour.set(undefined);
-			this.#props.onended?.();
-			this.remove();
-		};
+			micrio.state.tour.set(undefined)
+			this.#props.onended?.()
+			this.remove()
+		}
 
-		const si = this.#stepInfo[idx];
-		if (!si) return;
+		const si = this.#stepInfo[idx]
+		if (si === undefined) {
+			return
+		}
 
-		si.ended = false;
-		si.currentTime = 0;
+		si.ended = false
+		si.currentTime = 0
 
-		const marker = DataLoader._getStepMarker(si);
+		const marker = DataLoader._getStepMarker(si)
 
-		let startView: Models.Camera.View | undefined;
+		let startView: Models.Camera.View | undefined
 		if (marker?.videoTour) {
-			const timeline = marker.videoTour.i18n?.[micrio.lang]?.timeline;
-			if (timeline?.length && timeline[0].start <= 1) startView = timeline[0].rect;
+			const timeline = marker.videoTour.i18n?.[micrio.lang]?.timeline
+			if (timeline?.length && timeline[0].start <= 1) {
+				startView = timeline[0].rect
+			}
 		}
 
 		if (si.micrioId && micrio.$current?.id !== si.micrioId) {
-			await micrio.open(si.micrioId, { startView });
+			await micrio.open(si.micrioId, { startView })
 		}
 
 		if (this.#mediaEl) {
-			this.#mediaEl.remove();
-			this.#mediaEl = undefined;
+			this.#mediaEl.remove()
+			this.#mediaEl = undefined
 		}
 
 		if (marker?.videoTour) {
-			const lang = micrio.lang;
-			const audio = marker.videoTour.i18n?.[lang]?.audio ?? marker.i18n?.[lang]?.audio;
+			const { lang } = micrio
+			const audio = marker.videoTour.i18n?.[lang]?.audio ?? marker.i18n?.[lang]?.audio
 
-			const prevPaused = false;
+			const prevPaused = false
 			const media = createElement('micrio-media', {
 				parent: this,
 				setProps: {
@@ -129,117 +159,153 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					image: micrio.$current,
 					controls: true,
 					autoplay: !prevPaused,
-					onended: () => this.#nextStep(),
+					onended: () => {
+						this.#nextStep()
+					},
 					onclose: close,
-					hasAudio: this.#stepInfo.some(s => s.duration > 0),
+					hasAudio: this.#stepInfo.some((s) => s.duration > 0),
 					fullscreenEl: micrio,
-					getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`
-				}
-			}) as MicrioElement;
-			this.#mediaEl = media;
-			await afterFrame();
-			this.#injectBars();
+					getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`,
+				},
+			})
+			this.#mediaEl = media
+			await afterFrame()
+			this.#injectBars()
 
-			const videoEl = this.#mediaEl!.querySelector('video,audio') as HTMLMediaElement;
-			if (videoEl) {
+			const videoEl = this.#mediaEl?.querySelector('video,audio')
+			if (videoEl instanceof HTMLMediaElement) {
 				videoEl.addEventListener('timeupdate', () => {
-					const si = this.#stepInfo[this.#currentStep];
-					if (si) si.currentTime = videoEl.currentTime;
-					this.#updateBars();
-				});
+					const step = this.#stepInfo[this.#currentStep]
+					if (step !== undefined) {
+						step.currentTime = videoEl.currentTime
+					}
+					this.#updateBars()
+				})
 			}
 		}
 
-		this.#currentStep = idx;
-		this.#updateBars();
+		this.#currentStep = idx
+		this.#updateBars()
 
 		if (!marker?.videoTour && idx === this.#stepInfo.length - 1) {
-			this.#nextStep();
+			this.#nextStep()
 		}
 	}
 
 	#nextStep() {
-		const si = this.#stepInfo[this.#currentStep];
-		if (si) si.ended = true;
+		const si = this.#stepInfo[this.#currentStep]
+		if (si !== undefined) {
+			si.ended = true
+		}
 
 		if (this.#currentStep < this.#stepInfo.length - 1) {
-			this.#openStep(this.#currentStep + 1);
+			void this.#openStep(this.#currentStep + 1)
 		} else {
-			this.#props.onended?.();
-			this._getMicrio()?.state.tour.set(undefined);
-			this.remove();
+			this.#props.onended?.()
+			this._getMicrio()?.state.tour.set(undefined)
+			this.remove()
 		}
 	}
 
 	#getTitle(m: Models.ImageData.Marker | undefined): string | undefined {
-		return m?.i18n?.[this._getMicrio()?.lang || 'en']?.title;
+		return m?.i18n?.[this._getMicrio()?.lang || 'en']?.title
 	}
 
 	#injectBars() {
-		const wrapper = this.#mediaEl?.querySelector('micrio-media-controls > aside');
-		if (!wrapper) return;
+		const wrapper = this.#mediaEl?.querySelector('micrio-media-controls > aside')
+		if (!wrapper) {
+			return
+		}
 
-		const holder = wrapper.querySelector('div');
-		if (!holder) return;
+		const holder = wrapper.querySelector('div')
+		if (!holder) {
+			return
+		}
 
-		holder.querySelector('[data-part="bars"]')?.remove();
+		holder.querySelector('[data-part="bars"]')?.remove()
 
-		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } });
-		this.#stepInfo.forEach((si, i) => {
-			const marker = DataLoader._getStepMarker(si);
+		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } })
+		for (const [i, si] of this.#stepInfo.entries()) {
+			const marker = DataLoader._getStepMarker(si)
 			createElement('div', {
 				attrs: { 'data-part': 'bar', role: 'progressbar', tabindex: '0' },
 				dataset: { idx: String(i) },
 				props: { title: this.#getTitle(marker) ?? '' },
 				style: { width: `${(si.duration / (this.#duration || 1)) * 100}%` },
-				events: { click: () => this.#goto(i) },
-				parent: barsDiv
-			});
-		});
-		holder.prepend(barsDiv);
+				events: {
+					click: () => {
+						this.#goto(i)
+					},
+				},
+				parent: barsDiv,
+			})
+		}
+		holder.prepend(barsDiv)
 	}
 
 	#goto(i: number) {
-		if (this.#noTimeScrub && i === this.#currentStep) return;
-		if (i === this.#currentStep) return;
-		this.#stepInfo.forEach(s => s.ended = false);
-		this.#openStep(i);
+		if (this.#noTimeScrub && i === this.#currentStep) {
+			return
+		}
+		if (i === this.#currentStep) {
+			return
+		}
+		for (const s of this.#stepInfo) {
+			s.ended = false
+		}
+		void this.#openStep(i)
 	}
 
 	#calcTime() {
-		let total = 0;
+		let total = 0
 		for (let i = 0; i < this.#stepInfo.length; i++) {
-			const s = this.#stepInfo[i];
-			if (i < this.#currentStep || s.ended) total += s.duration;
-			else if (i === this.#currentStep) { total += s.currentTime ?? 0; break; }
-			else break;
+			const s = this.#stepInfo[i]
+			if (i < this.#currentStep || s.ended) {
+				total += s.duration
+			} else if (i === this.#currentStep) {
+				total += s.currentTime ?? 0
+				break
+			} else {
+				break
+			}
 		}
-		return total;
+		return total
 	}
 
 	#updateBars() {
-		if (!this.#built) return;
-		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('aside [data-part="bars"] > [data-part="bar"]') ?? [];
-		bars.forEach((bar, i) => {
-			const si = this.#stepInfo[i];
-			const ct = i === this.#currentStep ? (si.currentTime ?? 0) : 0;
-			const pct = i < this.#currentStep || si.ended ? 100
-				: i === this.#currentStep ? Math.round((ct / (si.duration || 1)) * 10000) / 100
-				: 0;
-			bar.style.setProperty('--progress', `${pct}%`);
-			bar.classList.toggle('active', i === this.#currentStep);
-		});
+		if (!this.#built) {
+			return
+		}
+		const bars = this.#mediaEl?.querySelectorAll<HTMLElement>('aside [data-part="bars"] > [data-part="bar"]') ?? []
+		for (const [i, bar] of bars.entries()) {
+			const si = this.#stepInfo[i]
+			const ct = i === this.#currentStep ? (si.currentTime ?? 0) : 0
+			let pct = 0
+			if (i < this.#currentStep || si.ended) {
+				pct = 100
+			} else if (i === this.#currentStep) {
+				pct = Math.round((ct / (si.duration || 1)) * 10000) / 100
+			}
+			bar.style.setProperty('--progress', `${pct}%`)
+			bar.classList.toggle('active', i === this.#currentStep)
+		}
 
-		const chapters = this.querySelectorAll<HTMLElement>('ol.chapters li');
-		chapters.forEach(li => li.classList.toggle('active', Number(li.dataset.idx) === this.#currentStep));
+		const chapters = this.querySelectorAll<HTMLElement>('ol.chapters li')
+		for (const li of chapters) {
+			li.classList.toggle('active', Number(li.dataset.idx) === this.#currentStep)
+		}
 	}
 
 	/** @internal */
 	_setProps(props: Partial<SerialTourProps>) {
-		if (props.tour !== undefined) this.#props.tour = props.tour;
-		if (props.onended !== undefined) this.#props.onended = props.onended;
+		if (props.tour !== undefined) {
+			this.#props.tour = props.tour
+		}
+		// `onended` is a props callback, not a DOM event handler
+		if (props.onended !== undefined) {
+			Object.assign(this.#props, { onended: props.onended })
+		}
 	}
-
 }
 
-customElements.define(MicrioSerialTour.tag, MicrioSerialTour);
+customElements.define(MicrioSerialTour.tag, MicrioSerialTour)

@@ -14,15 +14,15 @@
  * CLI so this works regardless of how the package manager hoists it.)
  */
 
-import { execFileSync } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const here = dirname(fileURLToPath(import.meta.url));
-const root = resolve(here, '..', '..');
-const isWin = process.platform === 'win32';
-const esbuildBin = resolve(root, 'node_modules', '.bin', isWin ? 'esbuild.cmd' : 'esbuild');
-const minify = process.argv.includes('--minify');
+const here = dirname(fileURLToPath(import.meta.url))
+const root = resolve(here, '..', '..')
+const isWin = process.platform === 'win32'
+const esbuildBin = resolve(root, 'node_modules', '.bin', isWin ? 'esbuild.cmd' : 'esbuild')
+const minify = process.argv.includes('--minify')
 
 const args = [
 	resolve(here, 'grid.ts'),
@@ -32,8 +32,8 @@ const args = [
 	`--outfile=${resolve(here, 'grid.js')}`,
 	'--log-level=info',
 	...(minify ? ['--minify'] : []),
-];
+]
 
-execFileSync(esbuildBin, args, { stdio: 'inherit' });
+execFileSync(esbuildBin, args, { stdio: 'inherit' })
 
-console.log(`Built templates/grid/grid.js${minify ? ' (minified)' : ''}`);
+console.log(`Built templates/grid/grid.js${minify ? ' (minified)' : ''}`)

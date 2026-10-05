@@ -1,4 +1,3 @@
-
 micrio-grid {
 	position: fixed;
 	top: 0;
@@ -12,9 +11,9 @@ micrio-grid {
 	transform-origin: left top;
 	--translate: none;
 	--scale: 1;
-	transform: var(--translate) scale3d(var(--scale),var(--scale),1);
+	transform: var(--translate) scale3d(var(--scale), var(--scale), 1);
 }
-micrio-grid>button {
+micrio-grid > button {
 	background: transparent;
 	border: none;
 	padding: 0;
@@ -23,10 +22,15 @@ micrio-grid>button {
 	pointer-events: auto;
 	grid-area: auto / auto / span 1 / span 1;
 }
-:is(micrio-grid>button.focussed,micrio-grid.grid-pan-zoom,micrio-grid.grid-pan-zoom>button,micrio-grid.grid-cells-hidden) {
+:is(
+	micrio-grid > button.focussed,
+	micrio-grid.grid-pan-zoom,
+	micrio-grid.grid-pan-zoom > button,
+	micrio-grid.grid-cells-hidden
+) {
 	pointer-events: none;
 }
-micrio-grid.grid-cells-hidden>button {
+micrio-grid.grid-cells-hidden > button {
 	display: none;
 }
 micrio-grid .close {

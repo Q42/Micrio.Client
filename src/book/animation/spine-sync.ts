@@ -1,7 +1,9 @@
 export function computeWeightFactor(progress: Float32Array, pageCount: number): number {
-	let sum = 0;
-	for (let i = 0; i < progress.length; i++) sum += progress[i];
-	return pageCount > 0 ? sum / pageCount : 0;
+	let sum = 0
+	for (const value of progress) {
+		sum += value
+	}
+	return pageCount > 0 ? sum / pageCount : 0
 }
 
 export function computePageSpineY(
@@ -12,11 +14,11 @@ export function computePageSpineY(
 	pageCount: number,
 	pageThickness: number,
 ): number {
-	const rightBase = weightFactor * totalStackHeight;
-	const leftBase = totalStackHeight - rightBase;
-	const rf = (pageCount - 1 - pageIndex) * pageThickness;
-	const lf = pageIndex * pageThickness;
-	return (1 - progress) * (rf + rightBase) + progress * (lf + leftBase);
+	const rightBase = weightFactor * totalStackHeight
+	const leftBase = totalStackHeight - rightBase
+	const rf = (pageCount - 1 - pageIndex) * pageThickness
+	const lf = pageIndex * pageThickness
+	return (1 - progress) * (rf + rightBase) + progress * (lf + leftBase)
 }
 
 export function computeAllPageFloors(
@@ -26,16 +28,18 @@ export function computeAllPageFloors(
 	pageCount: number,
 	pageThickness: number,
 ): Float32Array {
-	const floors = new Float32Array(pageCount);
+	const floors = new Float32Array(pageCount)
 	for (let pi = 0; pi < pageCount; pi++) {
-		floors[pi] = computePageSpineY(pi, progress[pi], weightFactor, totalStackHeight, pageCount, pageThickness);
+		floors[pi] = computePageSpineY(pi, progress[pi], weightFactor, totalStackHeight, pageCount, pageThickness)
 	}
-	return floors;
+	return floors
 }
 
 export function applySpineDelta(positions: Float32Array, delta: number): void {
-	if (Math.abs(delta) <= 1e-6) return;
+	if (Math.abs(delta) <= 1e-6) {
+		return
+	}
 	for (let i = 1; i < positions.length; i += 3) {
-		positions[i] += delta;
+		positions[i] += delta
 	}
 }

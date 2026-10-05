@@ -1,6 +1,6 @@
 dialog::backdrop {
 	color: #fff;
-	animation: micrio-popover-bg .2s forwards;
+	animation: micrio-popover-bg 0.2s forwards;
 	backdrop-filter: blur(8px);
 }
 @keyframes micrio-popover-bg {
@@ -13,7 +13,7 @@ dialog::backdrop {
 }
 dialog {
 	position: relative;
-	animation: micrio-popover-fade .5s forwards;
+	animation: micrio-popover-fade 0.5s forwards;
 	background: transparent;
 	border: none;
 	overflow: visible;
@@ -57,7 +57,6 @@ dialog:not(.article) {
 		min-width: unset;
 		max-width: 320px;
 	}
-
 }
 @media (max-width: 639px) {
 	dialog:not(.article) {
@@ -71,7 +70,7 @@ dialog:not(.article) {
 		right: var(--micrio-border-margin);
 	}
 }
-@media (min-aspect-ratio: 16 / 9) {
+@media (min-aspect-ratio: 16/9) {
 	dialog:not(.article) {
 		height: 75vh;
 		width: calc(16 / 9 * 75vh);

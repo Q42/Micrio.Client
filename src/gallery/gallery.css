@@ -1,18 +1,19 @@
-
 micrio-gallery > micrio-button > button {
 	position: absolute;
 	top: 50%;
-	transform: translate(0,-50%);
-	transition: transform .15s ease,opacity .15s ease;
+	transform: translate(0, -50%);
+	transition:
+		transform 0.15s ease,
+		opacity 0.15s ease;
 	z-index: 2;
 }
 micrio-gallery > micrio-button:is(.prev, .rotateLeft) > button {
 	left: var(--micrio-border-margin);
-	--micrio-hide: translate(-100%,-50%);
+	--micrio-hide: translate(-100%, -50%);
 }
 micrio-gallery > micrio-button:is(.next, .rotateRight) > button {
 	right: var(--micrio-border-margin);
-	--micrio-hide: translate(100%,-50%);
+	--micrio-hide: translate(100%, -50%);
 }
 micrio-gallery > micrio-button:is(.rotateLeft, .rotateRight) > button {
 	top: calc(50% + var(--micrio-button-size) * 1.15);
@@ -24,7 +25,7 @@ micrio-gallery ul {
 	transform: translateX(-50%);
 	display: block;
 	list-style-type: none;
-	background: var(--micrio-button-background,var(--micrio-background,none));
+	background: var(--micrio-button-background, var(--micrio-background, none));
 	box-shadow: var(--micrio-button-shadow);
 	backdrop-filter: var(--micrio-background-filter);
 	border-radius: var(--micrio-border-radius);
@@ -32,13 +33,15 @@ micrio-gallery ul {
 	margin: 0;
 	height: var(--micrio-button-size);
 	color: var(--micrio-color);
-	transition: transform .15s ease,opacity .15s ease;
+	transition:
+		transform 0.15s ease,
+		opacity 0.15s ease;
 	max-width: calc(100vw - 50px);
 	max-width: calc(100cqw - 50px);
 	width: 520px;
 	touch-action: none;
 	cursor: pointer;
-	--micrio-hide: translate(-50%,100%);
+	--micrio-hide: translate(-50%, 100%);
 }
 @media (max-width: 500px) {
 	micrio-gallery ul {
@@ -69,8 +72,8 @@ micrio-gallery ul > :first-child > span {
 	height: 100%;
 	background: var(--micrio-color);
 	border-radius: 2px;
-	opacity: .85;
-	transition: width .15s ease;
+	opacity: 0.85;
+	transition: width 0.15s ease;
 }
 micrio-gallery ul > :nth-child(2) {
 	position: absolute;
@@ -87,46 +90,49 @@ micrio-gallery ul > :nth-child(2) > span {
 	height: 6px;
 	border-radius: 50%;
 	background: var(--micrio-color);
-	opacity: .55;
-	transform: translate(-50%,-50%);
-	transition: opacity .2s ease,transform .2s ease,background-color .2s ease;
+	opacity: 0.55;
+	transform: translate(-50%, -50%);
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease,
+		background-color 0.2s ease;
 }
 micrio-gallery ul > :nth-child(2) > span[data-active] {
 	opacity: 1;
-	transform: translate(-50%,-50%) scale(1.6);
-	background: var(--micrio-color-hover,var(--micrio-color));
+	transform: translate(-50%, -50%) scale(1.6);
+	background: var(--micrio-color-hover, var(--micrio-color));
 }
 @media (hover: hover) {
 	micrio-gallery ul > :nth-child(2) > span[data-hover] {
 		opacity: 1;
-		transform: translate(-50%,-50%) scale(1.4);
+		transform: translate(-50%, -50%) scale(1.4);
 	}
 }
 micrio-gallery ul.dense > :nth-child(2) > span {
 	width: 1.5px;
 	height: 8px;
 	border-radius: 1px;
-	opacity: .35;
-	transform: translate(-50%,-50%);
+	opacity: 0.35;
+	transform: translate(-50%, -50%);
 }
 micrio-gallery ul.dense > :nth-child(2) > span[data-major] {
 	height: 12px;
-	opacity: .6;
+	opacity: 0.6;
 }
 micrio-gallery ul.dense > :nth-child(2) > span[data-active] {
 	width: 2px;
 	height: 14px;
 	opacity: 1;
-	background: var(--micrio-color-hover,var(--micrio-color));
-	transform: translate(-50%,-50%);
+	background: var(--micrio-color-hover, var(--micrio-color));
+	transform: translate(-50%, -50%);
 }
 @media (hover: hover) {
 	micrio-gallery ul.dense > :nth-child(2) > span[data-hover] {
-		opacity: .9;
-		transform: translate(-50%,-50%);
+		opacity: 0.9;
+		transform: translate(-50%, -50%);
 	}
 }
-micrio-gallery [data-part="hover-label"] {
+micrio-gallery [data-part='hover-label'] {
 	position: absolute;
 	bottom: calc(100% + 6px);
 	transform: translateX(-50%);
@@ -156,16 +162,27 @@ micrio-gallery ul > button {
 	border-radius: 999px;
 	cursor: ew-resize;
 	touch-action: none;
-	transform: translate(-50%,-50%);
-	transition: left .15s ease,height .15s ease,min-width .15s ease,background-color .2s ease,box-shadow .2s ease;
-	box-shadow: 0 2px 8px rgba(0,0,0,.35),0 0 0 0 var(--micrio-color-hover);
+	transform: translate(-50%, -50%);
+	transition:
+		left 0.15s ease,
+		height 0.15s ease,
+		min-width 0.15s ease,
+		background-color 0.2s ease,
+		box-shadow 0.2s ease;
+	box-shadow:
+		0 2px 8px rgba(0, 0, 0, 0.35),
+		0 0 0 0 var(--micrio-color-hover);
 }
 micrio-gallery ul > button:hover {
-	box-shadow: 0 2px 8px rgba(0,0,0,.4),0 0 0 4px rgba(255,255,255,.12);
+	box-shadow:
+		0 2px 8px rgba(0, 0, 0, 0.4),
+		0 0 0 4px rgba(255, 255, 255, 0.12);
 }
 micrio-gallery ul > button.dragging {
 	transition: none;
-	box-shadow: 0 2px 12px rgba(0,0,0,.5),0 0 0 6px rgba(255,255,255,.15);
+	box-shadow:
+		0 2px 12px rgba(0, 0, 0, 0.5),
+		0 0 0 6px rgba(255, 255, 255, 0.15);
 	cursor: grabbing;
 }
 micrio-gallery ul > button + span {
@@ -185,7 +202,9 @@ micrio-gallery ul > button + span {
 	box-shadow: var(--micrio-button-shadow);
 	pointer-events: none;
 	white-space: nowrap;
-	transition: left .15s ease,transform .15s ease;
+	transition:
+		left 0.15s ease,
+		transform 0.15s ease;
 }
 micrio-gallery ul > button + span.dragging {
 	transition: none;

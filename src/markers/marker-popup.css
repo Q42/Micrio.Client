@@ -1,4 +1,3 @@
-
 micrio-marker-popup {
 	display: block;
 	cursor: auto;
@@ -24,9 +23,9 @@ micrio-marker-popup > aside {
 	micrio-marker-popup {
 		width: 440px;
 		min-width: 20%;
-		animation: micrio-popup-in .2s ease-out;
+		animation: micrio-popup-in 0.2s ease-out;
 	}
-	micrio-marker-popup>aside {
+	micrio-marker-popup > aside {
 		left: calc(100% + var(--micrio-border-margin));
 		top: 0;
 		flex-direction: column-reverse;
@@ -36,11 +35,13 @@ micrio-marker-popup > aside {
 		opacity: 0;
 		transform: translateX(-50px);
 		pointer-events: none;
-		transition: opacity .2s ease-out,transform .2s ease-out;
+		transition:
+			opacity 0.2s ease-out,
+			transform 0.2s ease-out;
 	}
 }
 @media (max-width: 500px) {
-	micrio-marker-popup>aside {
+	micrio-marker-popup > aside {
 		top: 0;
 		right: 0;
 		z-index: 2;
@@ -48,7 +49,7 @@ micrio-marker-popup > aside {
 		--micrio-background: none;
 		--micrio-background-filter: none;
 	}
-	micrio-marker-popup :is(h1,micrio-media:only-child) {
+	micrio-marker-popup :is(h1, micrio-media:only-child) {
 		margin-right: calc(var(--micrio-button-size) - 2 * var(--micrio-border-margin, 0));
 	}
 	micrio-marker-popup {
@@ -59,7 +60,7 @@ micrio-marker-popup > aside {
 		top: var(--micrio-border-margin);
 		flex-direction: column;
 		justify-content: space-between;
-		transition: opacity .25s ease;
+		transition: opacity 0.25s ease;
 	}
 	micrio-marker-popup.destroying {
 		opacity: 0;

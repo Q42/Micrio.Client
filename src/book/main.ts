@@ -1,96 +1,121 @@
-import { PaperMesh } from './geometry/paper-mesh';
-import { CoverMesh } from './geometry/cover-mesh';
-import { PaperRenderer } from './rendering/renderer';
-import { InputHandler } from './input/input';
-import { OrbitCamera } from './core/orbit-camera';
-import { Vec3 } from './core/vec3';
-import { Mat4 } from '$render/mat';
-import { Frame } from '$core/frame';
-import { PageFlipAnimator } from './animation/page-flip';
+import { PaperMesh } from './geometry/paper-mesh'
+import { CoverMesh } from './geometry/cover-mesh'
+import { PaperRenderer } from './rendering/renderer'
+import { InputHandler } from './input/input'
+import { OrbitCamera } from './core/orbit-camera'
+import { Vec3 } from './core/vec3'
+import { Mat4 } from '$render/mat'
+import { Frame } from '$core/frame'
+import { PageFlipAnimator } from './animation/page-flip'
+import type { SolverSettings } from './physics/solver-sync'
+import { isSolverReady, initSolver, dispatchSolve } from './physics/solver-sync'
 import {
-	SolverSettings,
-	isSolverReady,
-	initSolver,
-	dispatchSolve,
-} from './physics/solver-sync';
-import {
-	PAGE_THICKNESS, COVER_THICKNESS_MULTIPLIER, COVER_SCALE_X, COVER_SCALE_Y,
-	SOLVER_ITERATIONS, SOLVER_SUBSTEPS, DISTANCE_COMPLIANCE,
-	BENDING_COMPLIANCE, DAMPING, GOTO_DAMPING, GRAVITY, GRAVITY_ENABLED,
+	PAGE_THICKNESS,
+	COVER_THICKNESS_MULTIPLIER,
+	COVER_SCALE_X,
+	COVER_SCALE_Y,
+	SOLVER_ITERATIONS,
+	SOLVER_SUBSTEPS,
+	DISTANCE_COMPLIANCE,
+	BENDING_COMPLIANCE,
+	DAMPING,
+	GOTO_DAMPING,
+	GRAVITY,
+	GRAVITY_ENABLED,
 	DELTA_IDLE_THRESHOLD,
-	USE_INDIVIDUAL_ASPECTS, DEFAULT_ASPECT,
-	VIEWPORT_MARGIN_PCT, DEFAULT_CAMERA_PHI,
+	USE_INDIVIDUAL_ASPECTS,
+	DEFAULT_ASPECT,
+	VIEWPORT_MARGIN_PCT,
+	DEFAULT_CAMERA_PHI,
 	HARD_COVER,
 	TILT_SHIFT_ENABLED,
 	SEE_THROUGH_MARGINS,
 	LIGHTING_PRESET,
-	GRAB_ROW, GRAB_ROW_MAX_OFFSET, GOTO_GRAB_ROW_MAX_OFFSET,
-} from './core/settings';
-import { IIIFTextureManager } from './rendering/iiif-manager';
-import type { PageClickResult, PageDragResult } from './core/types';
-import type { Models } from '$types/models';
-import { rayIntersectMeshes } from './geometry/raycast';
-import { uvToWorldPosition, sampleMeshPosition, projectWorldToScreen, type UvWorldResult, type TexRegion } from './geometry/uv-project';
-import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync';
-import { getPreset, getPresets } from './rendering/lighting';
-import { archive } from '$utils/archive';
-import { MicrioImage } from '$core/image';
+	GRAB_ROW,
+	GRAB_ROW_MAX_OFFSET,
+	GOTO_GRAB_ROW_MAX_OFFSET,
+} from './core/settings'
+import { IIIFTextureManager } from './rendering/iiif-manager'
+import type { PageClickResult, PageDragResult } from './core/types'
+import type { Models } from '$types/models'
+import { rayIntersectMeshes } from './geometry/raycast'
+import {
+	uvToWorldPosition,
+	sampleMeshPosition,
+	projectWorldToScreen,
+	type UvWorldResult,
+	type TexRegion,
+} from './geometry/uv-project'
+import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync'
+import { getPreset, getPresets } from './rendering/lighting'
+import { archive } from '$utils/archive'
+import type { MicrioImage } from '$core/image'
 
 interface TextureContext {
-	pageIndex: number;
-	side: 0 | 1;
-	mesh: PaperMesh;
-	result: UvWorldResult;
+	pageIndex: number
+	side: 0 | 1
+	mesh: PaperMesh
+	result: UvWorldResult
 }
 
 function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
-	const pageCnt = Math.ceil(images.length / 2);
-	const totalImagePages = images.length;
+	const pageCnt = Math.ceil(images.length / 2)
+	const totalImagePages = images.length
 
-	const pageIdxes: number[][] = [[0]];
+	const pageIdxes: number[][] = [[0]]
 	for (let p = 1; p < pageCnt; p++) {
-		const first = 2 * p - 1;
-		const last = 2 * p;
+		const first = 2 * p - 1
+		const last = 2 * p
 		if (last < images.length) {
-			pageIdxes.push([first, last]);
+			pageIdxes.push([first, last])
 		} else {
-			pageIdxes.push([first]);
+			pageIdxes.push([first])
 		}
 	}
 
-	let totalAspect = 0;
-	let aspectCount = 0;
-	const frontAspects = new Float32Array(pageCnt);
-	const backAspects = new Float32Array(pageCnt);
+	let totalAspect = 0
+	let aspectCount = 0
+	const frontAspects = new Float32Array(pageCnt)
+	const backAspects = new Float32Array(pageCnt)
 
 	for (let p = 0; p < pageCnt; p++) {
-		const front = images[p * 2];
-		const back = images[p * 2 + 1];
-		const frontAsp = (front && front.width > 0 && front.height > 0) ? front.height / front.width : DEFAULT_ASPECT;
-		const backAsp = (back && back.width > 0 && back.height > 0) ? back.height / back.width : frontAsp;
-		frontAspects[p] = frontAsp;
-		backAspects[p] = backAsp;
+		const front = images[p * 2]
+		const back = images[p * 2 + 1]
+		const frontAsp =
+			front !== undefined && front.width > 0 && front.height > 0 ? front.height / front.width : DEFAULT_ASPECT
+		const backAsp = back !== undefined && back.width > 0 && back.height > 0 ? back.height / back.width : frontAsp
+		frontAspects[p] = frontAsp
+		backAspects[p] = backAsp
 
-		if (front && front.width > 0 && front.height > 0) {
-			totalAspect += frontAsp;
-			aspectCount++;
+		if (front !== undefined && front.width > 0 && front.height > 0) {
+			totalAspect += frontAsp
+			aspectCount++
 		}
-		if (back && back.width > 0 && back.height > 0) {
-			totalAspect += backAsp;
-			aspectCount++;
+		if (back !== undefined && back.width > 0 && back.height > 0) {
+			totalAspect += backAsp
+			aspectCount++
 		}
 	}
 
-	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT;
-	const refArea = 1.0 * avgAspect;
+	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT
+	const refArea = avgAspect
 
 	// Every page shares the same geometry (the book-wide average aspect); per-page
 	// aspects are honored by rendering each texture in its own region of the page
 	// instead of resizing the geometry.
-	const computedPageWidths = new Float32Array(pageCnt).fill(Math.sqrt(refArea / avgAspect));
-	const aspectsForInit = new Float32Array(pageCnt).fill(avgAspect);
+	const computedPageWidths = new Float32Array(pageCnt).fill(Math.sqrt(refArea / avgAspect))
+	const aspectsForInit = new Float32Array(pageCnt).fill(avgAspect)
 
-	return { pageCnt, pageIdxes, totalImagePages, computedPageWidths, aspectsForInit, frontAspects, backAspects, avgAspect };
+	return {
+		pageCnt,
+		pageIdxes,
+		totalImagePages,
+		computedPageWidths,
+		aspectsForInit,
+		frontAspects,
+		backAspects,
+		avgAspect,
+	}
 }
 
 /**
@@ -104,99 +129,114 @@ function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
  * Otherwise the spine lies at sampled u = 0 and the image's near edge sits on it
  * (`uMin = 0`). Vertically the image stays centered.
  */
-function computeTexRegion(texAspect: number, pageAspect: number, spineAtHigh: boolean): [number, number, number, number] {
-	const fU = Math.min(1, pageAspect / Math.max(1e-4, texAspect));
-	const fV = Math.min(1, texAspect / Math.max(1e-4, pageAspect));
-	const uMin = spineAtHigh ? 1 - fU : 0;
-	const vMin = (1 - fV) / 2;
-	return [uMin, vMin, fU, fV];
+function computeTexRegion(
+	texAspect: number,
+	pageAspect: number,
+	spineAtHigh: boolean,
+): [number, number, number, number] {
+	const fU = Math.min(1, pageAspect / Math.max(1e-4, texAspect))
+	const fV = Math.min(1, texAspect / Math.max(1e-4, pageAspect))
+	const uMin = spineAtHigh ? 1 - fU : 0
+	const vMin = (1 - fV) / 2
+	return [uMin, vMin, fU, fV]
+}
+
+/** Column-major 4x4 multiply: `o = a · b`. */
+function mul4(a: Float32Array, b: Float32Array): Float32Array {
+	const o = new Float32Array(16)
+	for (let c = 0; c < 4; c++) {
+		for (let r = 0; r < 4; r++) {
+			o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3]
+		}
+	}
+	return o
 }
 
 export interface DrawnImage {
 	/** The micrio image id. */
-	id: string;
+	id: string
 	/**
 	 * A rough axis-aligned rectangle `[u, v, w, h]` in the image's texture UV
 	 * space (0..1) covering the part currently visible in the viewport. The
 	 * full texture visible is `[0, 0, 1, 1]`.
 	 */
-	bounds: [number, number, number, number];
+	bounds: [number, number, number, number]
 }
 
 export interface BookViewerOptions {
 	/** The WebGL2 canvas to render into. Must be present in the document and sized by its host. */
-	_canvas: HTMLCanvasElement;
+	_canvas: HTMLCanvasElement
 	/** The already-loaded book index JSON. */
-	_images: Models.ImageInfo.ImageInfo[];
+	_images: Models.ImageInfo.ImageInfo[]
 	/** Called whenever the current reading position changes. */
-	_onPageChange?: (pageIdx: number) => void;
+	_onPageChange?: (pageIdx: number) => void
 	/** Called whenever the camera moves (rotate/zoom/pan, including smoothing). */
-	_onViewChange?: (images: DrawnImage[]) => void;
+	_onViewChange?: (images: DrawnImage[]) => void
 	/** Called after every frame that is drawn to the canvas, with the micrioIds of the images visible in the current spread (plus any page mid-flip), each with a rough `[u, v, w, h]` rectangle (in texture UV space 0..1) of the part visible in the viewport. */
-	_onDraw?: (images: DrawnImage[]) => void;
-	_hardCover?: boolean;
-	_tiltShift?: boolean;
-	_lightingPreset?: string;
-	_useIndividualAspects?: boolean;
+	_onDraw?: (images: DrawnImage[]) => void
+	_hardCover?: boolean
+	_tiltShift?: boolean
+	_lightingPreset?: string
+	_useIndividualAspects?: boolean
 	/** When true, page margins without a texture are discarded instead of drawn as
 	 * transparent: they no longer block the pages behind them and you can see
 	 * through to the underlying spread. */
-	_seeThroughMargins?: boolean;
+	_seeThroughMargins?: boolean
 	/** When false, the 90° rotate-view feature is disabled and its UI is hidden. Defaults to true. */
-	_allowRotation?: boolean;
-	_startPageIdx?: number;
+	_allowRotation?: boolean
+	_startPageIdx?: number
 	/** Base URL for the IIIF image server (hi-res streaming). */
-	_iiifBaseUrl?: string;
+	_iiifBaseUrl?: string
 }
 
 export class BookViewer {
-	static _getPresets = getPresets;
-	readonly _ready: Promise<void>;
+	static _getPresets = getPresets
+	readonly _ready: Promise<void>
 
-	#hardCover: boolean;
-	#seeThroughMargins: boolean;
+	#hardCover: boolean
+	#seeThroughMargins: boolean
 	/** When false, the 90° rotate-view feature is disabled and its UI is hidden. */
-	#allowRotation: boolean;
+	#allowRotation: boolean
 
-	#pageCount = 0;
-	#pageAspects: Float32Array = new Float32Array(0);
-	#pageWidths: Float32Array = new Float32Array(0);
+	#pageCount = 0
+	#pageAspects: Float32Array = new Float32Array(0)
+	#pageWidths: Float32Array = new Float32Array(0)
 
 	/** When true, textures are rendered at their native aspect ratio within each page. */
-	#useIndividualAspects = false;
+	#useIndividualAspects = false
 	/** Per-page front/back texture regions `[uMin, vMin, fU, fV]` in page UV space. */
-	#frontRegions: Float32Array = new Float32Array(0);
-	#backRegions: Float32Array = new Float32Array(0);
+	#frontRegions: Float32Array = new Float32Array(0)
+	#backRegions: Float32Array = new Float32Array(0)
 
-	#images: Models.ImageInfo.ImageInfo[] = [];
+	#images: Models.ImageInfo.ImageInfo[] = []
 
-	#meshes: PaperMesh[] = [];
-	#renderer!: PaperRenderer;
-	#inputHandler!: InputHandler;
-	#camera!: OrbitCamera;
-	#flipAnimator!: PageFlipAnimator;
-	#iiifManager: IIIFTextureManager | null = null;
+	#meshes: PaperMesh[] = []
+	#renderer!: PaperRenderer
+	#inputHandler!: InputHandler
+	#camera!: OrbitCamera
+	#flipAnimator!: PageFlipAnimator
+	#iiifManager: IIIFTextureManager | null = null
 
-	#canvas: HTMLCanvasElement;
-	#onPageChange?: (pageIdx: number) => void;
-	#onViewChange?: (images: DrawnImage[]) => void;
-	#onDraw?: (images: DrawnImage[]) => void;
+	#canvas: HTMLCanvasElement
+	#onPageChange?: (pageIdx: number) => void
+	#onViewChange?: (images: DrawnImage[]) => void
+	#onDraw?: (images: DrawnImage[]) => void
 
 	/** The last frame's on-screen image bounds, reused by `isZoomedIn`. */
-	#lastDrawnImages: DrawnImage[] = [];
+	#lastDrawnImages: DrawnImage[] = []
 
 	/** The pending `goto()` stepper callback, if a cascade is running. */
-	#gotoStep: (() => void) | undefined;
+	#gotoStep: (() => void) | undefined
 	/** True while a `goto()` cascade still has steps to schedule. */
-	#gotoStepping = false;
-	#gotoDamping = false;
+	#gotoStepping = false
+	#gotoDamping = false
 	/** Pending resolvers for in-flight `goto()` animations, fired once the page-flip cascade has settled. */
-	#gotoDone: (() => void)[] = [];
-	#selectedPage = 0;
-	#currentPage = 0;
-	#dragPageIndex = -1;
-	#dragStartCursorWorldX = 0;
-	#dragStartProgress = 0;
+	#gotoDone: (() => void)[] = []
+	#selectedPage = 0
+	#currentPage = 0
+	#dragPageIndex = -1
+	#dragStartCursorWorldX = 0
+	#dragStartProgress = 0
 
 	#solverSettings: SolverSettings = {
 		_solverIterations: SOLVER_ITERATIONS,
@@ -206,26 +246,25 @@ export class BookViewer {
 		_damping: DAMPING,
 		_gravity: GRAVITY,
 		_gravityEnabled: GRAVITY_ENABLED,
-	};
+	}
 
-	#activePageSet = new Set<number>();
-	#prevPositions: Float32Array[] = [];
+	#activePageSet = new Set<number>()
+	#prevPositions: Float32Array[] = []
 
-	#totalStackHeight = 0;
+	#totalStackHeight = 0
 
-	#lastTime = 0;
-	#solveCount = 0;
+	#lastTime = 0
 
 	constructor(options: BookViewerOptions) {
-		this.#canvas = options._canvas;
-		this.#onPageChange = options._onPageChange;
-		this.#onViewChange = options._onViewChange;
-		this.#onDraw = options._onDraw;
-		this.#hardCover = options._hardCover ?? HARD_COVER;
-		this.#seeThroughMargins = options._seeThroughMargins ?? SEE_THROUGH_MARGINS;
-		this.#allowRotation = options._allowRotation ?? true;
+		this.#canvas = options._canvas
+		this.#onPageChange = options._onPageChange
+		this.#onViewChange = options._onViewChange
+		this.#onDraw = options._onDraw
+		this.#hardCover = options._hardCover ?? HARD_COVER
+		this.#seeThroughMargins = options._seeThroughMargins ?? SEE_THROUGH_MARGINS
+		this.#allowRotation = options._allowRotation ?? true
 
-		this._ready = this.#init(options);
+		this._ready = this.#init(options)
 	}
 
 	// ═══════════════════════════════════════════════════════════════
@@ -233,65 +272,69 @@ export class BookViewer {
 	// ═══════════════════════════════════════════════════════════════
 
 	goto(pageIdx: number): Promise<void> {
-		const idx = Math.max(0, Math.min(this.#pageCount - 1, pageIdx));
-		if (idx === this.#currentPage) return Promise.resolve();
+		const idx = Math.max(0, Math.min(this.#pageCount - 1, pageIdx))
+		if (idx === this.#currentPage) {
+			return Promise.resolve()
+		}
 
 		if (this.#gotoStep) {
-			Frame.cancel(this.#gotoStep);
-			this.#gotoStep = undefined;
+			Frame.cancel(this.#gotoStep)
+			this.#gotoStep = undefined
 		}
-		this.#gotoStepping = false;
-		this.#gotoDamping = true;
+		this.#gotoStepping = false
+		this.#gotoDamping = true
 
 		const done = new Promise<void>((resolve) => {
-			let doneCb: () => void;
+			let doneCb: () => void
 			// Fallback so a pending goto never hangs (e.g. page-flip requested
 			// before the viewer is ready, or the tab is backgrounded).
 			const fallback = setTimeout(() => {
-				const i = this.#gotoDone.indexOf(doneCb);
-				if (i >= 0) this.#gotoDone.splice(i, 1);
-				resolve();
-			}, 3000);
+				const i = this.#gotoDone.indexOf(doneCb)
+				if (i >= 0) {
+					this.#gotoDone.splice(i, 1)
+				}
+				resolve()
+			}, 3000)
 			doneCb = (): void => {
-				clearTimeout(fallback);
-				resolve();
-			};
-			this.#gotoDone.push(doneCb);
-		});
+				clearTimeout(fallback)
+				resolve()
+			}
+			this.#gotoDone.push(doneCb)
+		})
 
-		const direction = idx > this.#currentPage ? 1 : -1;
-		const fresh = !this.#flipAnimator._animating;
-		let remaining = Math.abs(idx - this.#currentPage);
-		let first = true;
+		const direction = idx > this.#currentPage ? 1 : -1
+		const fresh = !this.#flipAnimator._animating
+		let remaining = Math.abs(idx - this.#currentPage)
+		let first = true
 
 		const step = (): void => {
 			if (remaining <= 0) {
-				this.#gotoStep = undefined;
-				this.#gotoStepping = false;
-				return;
+				this.#gotoStep = undefined
+				this.#gotoStepping = false
+				return
 			}
-			const maxOff = (first && fresh) ? GRAB_ROW_MAX_OFFSET : GOTO_GRAB_ROW_MAX_OFFSET;
-			const grabRow = GRAB_ROW + (Math.random() * 2 - 1) * maxOff;
+			const maxOff = first && fresh ? GRAB_ROW_MAX_OFFSET : GOTO_GRAB_ROW_MAX_OFFSET
+			const grabRow = GRAB_ROW + (Math.random() * 2 - 1) * maxOff
 			if (direction > 0) {
-				this._nextPage(grabRow);
+				this._nextPage(grabRow)
 			} else {
-				this._prevPage(grabRow);
+				this._prevPage(grabRow)
 			}
-			first = false;
-			remaining--;
-			this.#gotoStep = step;
-			Frame.request(step);
-		};
-		this.#gotoStep = step;
-		this.#gotoStepping = true;
-		step();
+			first = false
+			remaining--
+			this.#gotoStep = step
+			Frame.request(step)
+		}
+		this.#gotoStep = step
+		this.#gotoStepping = true
+		step()
 
-		return done;
+		return done
 	}
 
-	zoom(delta:number): void {
-		this.#camera._zoom(delta);
-		this.#requestFrame();
+	zoom(delta: number): void {
+		this.#camera._zoom(delta)
+		this.#requestFrame()
 	}
 
 	/**
@@ -299,13 +342,13 @@ export class BookViewer {
 	 * the book to the right (clockwise), `-1` to the left (counter-clockwise).
 	 */
 	rotateView(direction: 1 | -1): void {
-		this.#camera._rotateViewStep(direction);
-		this.#requestFrame();
+		this.#camera._rotateViewStep(direction)
+		this.#requestFrame()
 	}
 
 	/** Whether the 90° rotate-view feature is enabled. */
 	_allowRotation(): boolean {
-		return this.#allowRotation;
+		return this.#allowRotation
 	}
 
 	/**
@@ -319,30 +362,36 @@ export class BookViewer {
 	 * bounds, so it stays accurate after zooming back out.
 	 */
 	isZoomedIn(): boolean {
-		const drawn = this.#lastDrawnImages;
-		if (drawn.length === 0) return false;
+		const drawn = this.#lastDrawnImages
+		if (drawn.length === 0) {
+			return false
+		}
 
 		// Any page of the current view (spread + mid-flip pages) that is missing
 		// from the drawn set is completely out of the viewport, so the spread can
 		// no longer fit — treat it as zoomed in.
-		const expected = this.#getDrawnImages();
-		if (expected.some(e => !drawn.some(d => d.id === e.id))) return true;
+		const expected = this.#getDrawnImages()
+		if (expected.some((e) => !drawn.some((d) => d.id === e.id))) {
+			return true
+		}
 
-		return !drawn.every(img => {
-			const [u, v, w, h] = img.bounds;
-			return u <= 1e-4 && v <= 1e-4 && Math.abs(w - 1) <= 1e-4 && Math.abs(h - 1) <= 1e-4;
-		});
+		return !drawn.every((img) => {
+			const [u, v, w, h] = img.bounds
+			return u <= 1e-4 && v <= 1e-4 && Math.abs(w - 1) <= 1e-4 && Math.abs(h - 1) <= 1e-4
+		})
 	}
 
 	setLightingPreset(name: string): void {
-		const p = getPreset(name);
-		if (!p) return;
-		const params: Record<string, number> = {};
-		for (const param of p.params) {
-			params[param.key] = param.default;
+		const p = getPreset(name)
+		if (!p) {
+			return
 		}
-		this.#renderer._setLightingPreset(name, params);
-		this.#requestFrame();
+		const params: Record<string, number> = {}
+		for (const param of p.params) {
+			params[param.key] = param.default
+		}
+		this.#renderer._setLightingPreset(name, params)
+		this.#requestFrame()
 	}
 
 	/**
@@ -369,15 +418,25 @@ export class BookViewer {
 		u: number,
 		v: number,
 	): { x: number; y: number; pageIndex: number; side: 0 | 1; facing: boolean; obscured: boolean } | null {
-		const ctx = this.#resolveTextureContext(imageId, u, v);
-		if (!ctx) return null;
+		const ctx = this.#resolveTextureContext(imageId, u, v)
+		if (!ctx) {
+			return null
+		}
 
-		const proj = this.#projectTextureToScreen(ctx.result._point);
-		if (!proj) return null;
+		const proj = this.#projectTextureToScreen(ctx.result._point)
+		if (!proj) {
+			return null
+		}
 
-		const { facing, obscured } = this.#computeTextureVisibility(ctx.mesh, ctx.side, ctx.pageIndex, ctx.result, proj.screen);
+		const { facing, obscured } = this.#computeTextureVisibility(
+			ctx.mesh,
+			ctx.side,
+			ctx.pageIndex,
+			ctx.result,
+			proj.screen,
+		)
 
-		return { x: proj.screen.x, y: proj.screen.y, pageIndex: ctx.pageIndex, side: ctx.side, facing, obscured };
+		return { x: proj.screen.x, y: proj.screen.y, pageIndex: ctx.pageIndex, side: ctx.side, facing, obscured }
 	}
 
 	/**
@@ -439,37 +498,55 @@ export class BookViewer {
 		scaleX?: number,
 		scaleY?: number,
 	): { matrix: Float32Array; facing: boolean; obscured: boolean } | null {
-		void transY;
+		void transY
 		// `width` is the element's content width in CSS pixels: `scale` is a
 		// fraction of the page width, so the object's world width is
 		// `scale·pageWidth` no matter how many CSS pixels the content has.
-		const pxW = width && width > 0 ? width : 1;
+		const pxW = width && width > 0 ? width : 1
 
-		const ctx = this.#resolveTextureContext(imageId, x, y);
-		if (!ctx) return null;
+		const ctx = this.#resolveTextureContext(imageId, x, y)
+		if (!ctx) {
+			return null
+		}
 
-		const proj = this.#projectTextureToScreen(ctx.result._point);
-		if (!proj) return null;
+		const proj = this.#projectTextureToScreen(ctx.result._point)
+		if (!proj) {
+			return null
+		}
 
-		const { facing, obscured } = this.#computeTextureVisibility(ctx.mesh, ctx.side, ctx.pageIndex, ctx.result, proj.screen);
+		const { facing, obscured } = this.#computeTextureVisibility(
+			ctx.mesh,
+			ctx.side,
+			ctx.pageIndex,
+			ctx.result,
+			proj.screen,
+		)
 
-		const mesh = ctx.mesh;
-		const n = ctx.result._normal;
-		const px = ctx.result._point._x, py = ctx.result._point._y, pz = ctx.result._point._z;
-		const { screen, viewProj, clientWidth, clientHeight } = proj;
+		const { mesh } = ctx
+		const n = ctx.result._normal
+		const px = ctx.result._point._x,
+			py = ctx.result._point._y,
+			pz = ctx.result._point._z
+		const { screen, viewProj, clientWidth, clientHeight } = proj
 
 		// World-space surface frame at the anchor point: unit u/v tangents (the
 		// directions the image's u/v axes run on the deformed mesh) and the
 		// outward normal of the displayed face (back faces of a single-grid
 		// PaperMesh point the other way).
-		const tU = ctx.result._tangentU;
-		const tV = ctx.result._tangentV;
-		const lenU = Math.sqrt(tU._x * tU._x + tU._y * tU._y + tU._z * tU._z) || 1;
-		const lenV = Math.sqrt(tV._x * tV._x + tV._y * tV._y + tV._z * tV._z) || 1;
-		const ux = tU._x / lenU, uy = tU._y / lenU, uz = tU._z / lenU;
-		const vx = tV._x / lenV, vy = tV._y / lenV, vz = tV._z / lenV;
-		const outward = (mesh instanceof CoverMesh || ctx.side === 0) ? 1 : -1;
-		const nx = n._x * outward, ny = n._y * outward, nz = n._z * outward;
+		const tU = ctx.result._tangentU
+		const tV = ctx.result._tangentV
+		const lenU = Math.hypot(tU._x, tU._y, tU._z) || 1
+		const lenV = Math.hypot(tV._x, tV._y, tV._z) || 1
+		const ux = tU._x / lenU,
+			uy = tU._y / lenU,
+			uz = tU._z / lenU
+		const vx = tV._x / lenV,
+			vy = tV._y / lenV,
+			vz = tV._z / lenV
+		const outward = mesh instanceof CoverMesh || ctx.side === 0 ? 1 : -1
+		const nx = n._x * outward,
+			ny = n._y * outward,
+			nz = n._z * outward
 
 		// World units per full u-unit (the page width) on the deformed surface at
 		// the anchor. `scale` is the embed's width as a fraction of the page (1 =
@@ -480,78 +557,102 @@ export class BookViewer {
 		// relative multipliers on top of that base size.
 
 		// Rotations (X, then Y, then Z) and scale, in object-local space.
-		const rx = rotX ?? 0, ry = rotY ?? 0, rz = rotZ ?? 0;
-		const cx = Math.cos(rx), sx = Math.sin(rx);
-		const cy = Math.cos(ry), sy = Math.sin(ry);
-		const cz = Math.cos(rz), sz = Math.sin(rz);
-		const sX = scale * (scaleX ?? 1) * lenU / pxW;
-		const sY = scale * (scaleY ?? 1) * lenU / pxW;
-		const sZ = scale * lenU / pxW;
+		const rx = rotX ?? 0,
+			ry = rotY ?? 0,
+			rz = rotZ ?? 0
+		const cx = Math.cos(rx),
+			sx = Math.sin(rx)
+		const cy = Math.cos(ry),
+			sy = Math.sin(ry)
+		const cz = Math.cos(rz),
+			sz = Math.sin(rz)
+		const sX = (scale * (scaleX ?? 1) * lenU) / pxW
+		const sY = (scale * (scaleY ?? 1) * lenU) / pxW
+		const sZ = (scale * lenU) / pxW
 
 		// Column-major 4x4 multiply: o = a · b.
-		const mul4 = (a: Float32Array, b: Float32Array): Float32Array => {
-			const o = new Float32Array(16);
-			for (let c = 0; c < 4; c++) {
-				for (let r = 0; r < 4; r++) {
-					o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1]
-						+ a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
-				}
-			}
-			return o;
-		};
+		const mRx = new Float32Array(16)
+		mRx[0] = 1
+		mRx[5] = cx
+		mRx[6] = sx
+		mRx[9] = -sx
+		mRx[10] = cx
+		mRx[15] = 1
+		const mRy = new Float32Array(16)
+		mRy[0] = cy
+		mRy[2] = -sy
+		mRy[5] = 1
+		mRy[8] = sy
+		mRy[10] = cy
+		mRy[15] = 1
+		const mRz = new Float32Array(16)
+		mRz[0] = cz
+		mRz[1] = sz
+		mRz[4] = -sz
+		mRz[5] = cz
+		mRz[10] = 1
+		mRz[15] = 1
 
-		// Object-local rotations (X, then Y, then Z) and scale.
-		const mRx = new Float32Array(16);
-		mRx[0] = 1; mRx[5] = cx; mRx[6] = sx; mRx[9] = -sx; mRx[10] = cx; mRx[15] = 1;
-		const mRy = new Float32Array(16);
-		mRy[0] = cy; mRy[2] = -sy; mRy[5] = 1; mRy[8] = sy; mRy[10] = cy; mRy[15] = 1;
-		const mRz = new Float32Array(16);
-		mRz[0] = cz; mRz[1] = sz; mRz[4] = -sz; mRz[5] = cz; mRz[10] = 1; mRz[15] = 1;
-
-		const mS = new Float32Array(16);
-		mS[0] = sX; mS[5] = sY; mS[10] = sZ; mS[15] = 1;
+		const mS = new Float32Array(16)
+		mS[0] = sX
+		mS[5] = sY
+		mS[10] = sZ
+		mS[15] = 1
 
 		// Orient the object's local frame onto the page surface: X along image u,
 		// Y along image v, Z along the outward normal.
-		const mOrient = new Float32Array(16);
-		mOrient[0] = ux; mOrient[1] = uy; mOrient[2] = uz;
-		mOrient[4] = vx; mOrient[5] = vy; mOrient[6] = vz;
-		mOrient[8] = nx; mOrient[9] = ny; mOrient[10] = nz;
-		mOrient[15] = 1;
+		const mOrient = new Float32Array(16)
+		mOrient[0] = ux
+		mOrient[1] = uy
+		mOrient[2] = uz
+		mOrient[4] = vx
+		mOrient[5] = vy
+		mOrient[6] = vz
+		mOrient[8] = nx
+		mOrient[9] = ny
+		mOrient[10] = nz
+		mOrient[15] = 1
 
 		// Translate to the anchor world point.
-		const mPlace = new Float32Array(16);
-		mPlace[0] = 1; mPlace[5] = 1; mPlace[10] = 1; mPlace[15] = 1;
-		mPlace[12] = px; mPlace[13] = py; mPlace[14] = pz;
+		const mPlace = new Float32Array(16)
+		mPlace[0] = 1
+		mPlace[5] = 1
+		mPlace[10] = 1
+		mPlace[15] = 1
+		mPlace[12] = px
+		mPlace[13] = py
+		mPlace[14] = pz
 
 		// NDC → CSS pixels (y flipped, origin at the screen center).
-		const mPx = new Float32Array(16);
-		mPx[0] = clientWidth * 0.5;
-		mPx[5] = -clientHeight * 0.5;
-		mPx[10] = 1;
-		mPx[12] = 0;
-		mPx[13] = 0;
-		mPx[15] = 1;
+		const mPx = new Float32Array(16)
+		mPx[0] = clientWidth * 0.5
+		mPx[5] = -clientHeight * 0.5
+		mPx[10] = 1
+		mPx[12] = 0
+		mPx[13] = 0
+		mPx[15] = 1
 
 		// Full chain: object scale → object rotation → surface orientation →
 		// world → clip → screen. This produces a true perspective matrix so the
 		// element renders foreshortened like it lies flat on the image.
-		const vp64 = new Float32Array(viewProj.arr);
-		const mWorld = mul4(mPlace, mul4(mOrient, mul4(mRz, mul4(mRy, mul4(mRx, mS)))));
-		const out = mul4(mPx, mul4(vp64, mWorld));
+		const vp64 = new Float32Array(viewProj.arr)
+		const mWorld = mul4(mPlace, mul4(mOrient, mul4(mRz, mul4(mRy, mul4(mRx, mS)))))
+		const out = mul4(mPx, mul4(vp64, mWorld))
 
 		// Normalize by the anchor's clip-space w so its matrix column maps to
 		// exactly its screen pixel position: m[12] = screenX, m[13] = screenY
 		// (relative to the screen center), m[15] = 1 (m[14] forced to 0), while
 		// the bottom row m[3]/m[7]/m[11] still carries the perspective divide.
-		const invW = 1 / out[15];
-		for (let i = 0; i < 16; i++) out[i] *= invW;
-		out[12] = screen.x - clientWidth * 0.5;
-		out[13] = screen.y - clientHeight * 0.5;
-		out[14] = 0;
-		out[15] = 1;
+		const invW = 1 / out[15]
+		for (let i = 0; i < 16; i++) {
+			out[i] *= invW
+		}
+		out[12] = screen.x - clientWidth * 0.5
+		out[13] = screen.y - clientHeight * 0.5
+		out[14] = 0
+		out[15] = 1
 
-		return { matrix: out, facing, obscured };
+		return { matrix: out, facing, obscured }
 	}
 
 	// ═══════════════════════════════════════════════════════════════
@@ -559,21 +660,29 @@ export class BookViewer {
 	// ═══════════════════════════════════════════════════════════════
 
 	#resolveTextureContext(imageId: string, u: number, v: number): TextureContext | null {
-		if (this.#images.length === 0 || this.#meshes.length === 0) return null;
+		if (this.#images.length === 0 || this.#meshes.length === 0) {
+			return null
+		}
 
-		const imageIndex = this.#images.findIndex(img => img.id === imageId);
-		if (imageIndex < 0) return null;
+		const imageIndex = this.#images.findIndex((img) => img.id === imageId)
+		if (imageIndex < 0) {
+			return null
+		}
 
 		// Front texture of page p is images[2p], back texture is images[2p + 1].
-		const pageIndex = Math.floor(imageIndex / 2);
-		const side = (imageIndex % 2) as 0 | 1;
-		if (pageIndex >= this.#meshes.length) return null;
+		const pageIndex = Math.floor(imageIndex / 2)
+		const side: 0 | 1 = imageIndex % 2 === 0 ? 0 : 1
+		if (pageIndex >= this.#meshes.length) {
+			return null
+		}
 
-		const mesh = this.#meshes[pageIndex];
-		const result = uvToWorldPosition(mesh, u, v, side, this.#textureRegion(pageIndex, side));
-		if (!result) return null;
+		const mesh = this.#meshes[pageIndex]
+		const result = uvToWorldPosition(mesh, u, v, side, this.#textureRegion(pageIndex, side))
+		if (!result) {
+			return null
+		}
 
-		return { pageIndex, side, mesh, result };
+		return { pageIndex, side, mesh, result }
 	}
 
 	/**
@@ -582,41 +691,53 @@ export class BookViewer {
 	 * aspects are disabled).
 	 */
 	#textureRegion(pageIndex: number, side: 0 | 1): TexRegion | null {
-		if (!this.#useIndividualAspects) return null;
-		const arr = side === 0 ? this.#frontRegions : this.#backRegions;
-		const o = pageIndex * 4;
-		return { uMin: arr[o], vMin: arr[o + 1], fU: arr[o + 2], fV: arr[o + 3] };
+		if (!this.#useIndividualAspects) {
+			return null
+		}
+		const arr = side === 0 ? this.#frontRegions : this.#backRegions
+		const o = pageIndex * 4
+		return { uMin: arr[o], vMin: arr[o + 1], fU: arr[o + 2], fV: arr[o + 3] }
 	}
 
 	#getViewProjection(): { perspective: Mat4; viewProj: Mat4; clientWidth: number; clientHeight: number } | null {
-		const canvas = this.#renderer._getCanvas();
-		const clientWidth = canvas.clientWidth;
-		const clientHeight = canvas.clientHeight;
-		if (clientWidth <= 0 || clientHeight <= 0) return null;
+		const canvas = this.#renderer._getCanvas()
+		const { clientWidth } = canvas
+		const { clientHeight } = canvas
+		if (clientWidth <= 0 || clientHeight <= 0) {
+			return null
+		}
 
-		const view = this.#camera._getViewMatrix();
-		const aspect = canvas.width / Math.max(1, canvas.height);
-		const perspective = new Mat4();
-		perspective._perspective(Math.PI * 0.25, aspect, 0.1, 50.0);
+		const view = this.#camera._getViewMatrix()
+		const aspect = canvas.width / Math.max(1, canvas.height)
+		const perspective = new Mat4()
+		perspective._perspective(Math.PI * 0.25, aspect, 0.1, 50)
 		// $render/mat's Mat4._multiply(o) computes `this = o·this`, so build
 		// `perspective·view` by copying the view first, then multiplying by proj.
-		const viewProj = new Mat4();
-		viewProj._copy(view);
-		viewProj._multiply(perspective);
+		const viewProj = new Mat4()
+		viewProj._copy(view)
+		viewProj._multiply(perspective)
 
-		return { perspective, viewProj, clientWidth, clientHeight };
+		return { perspective, viewProj, clientWidth, clientHeight }
 	}
 
-	#projectTextureToScreen(
-		point: Vec3,
-	): { screen: { x: number; y: number }; perspective: Mat4; viewProj: Mat4; clientWidth: number; clientHeight: number } | null {
-		const vp = this.#getViewProjection();
-		if (!vp) return null;
+	#projectTextureToScreen(point: Vec3): {
+		screen: { x: number; y: number }
+		perspective: Mat4
+		viewProj: Mat4
+		clientWidth: number
+		clientHeight: number
+	} | null {
+		const vp = this.#getViewProjection()
+		if (!vp) {
+			return null
+		}
 
-		const screen = projectWorldToScreen(point, vp.viewProj, vp.clientWidth, vp.clientHeight);
-		if (!screen) return null;
+		const screen = projectWorldToScreen(point, vp.viewProj, vp.clientWidth, vp.clientHeight)
+		if (!screen) {
+			return null
+		}
 
-		return { screen, ...vp };
+		return { screen, ...vp }
 	}
 
 	#computeTextureVisibility(
@@ -626,17 +747,15 @@ export class BookViewer {
 		result: UvWorldResult,
 		screen: { x: number; y: number },
 	): { facing: boolean; obscured: boolean } {
-		const world = result._point;
-		const n = result._normal;
+		const world = result._point
+		const n = result._normal
 
 		// Facing: does the face that displays this image point toward the camera?
 		// A single-grid PaperMesh's back texture is on the reverse side of the
 		// front normal; a CoverMesh's back face has its own outward normal.
-		const eye = this.#camera._getEye();
-		const dot = n._x * (eye._x - world._x)
-			+ n._y * (eye._y - world._y)
-			+ n._z * (eye._z - world._z);
-		const facing = (mesh instanceof CoverMesh || side === 0) ? dot > 0 : dot < 0;
+		const eye = this.#camera._getEye()
+		const dot = n._x * (eye._x - world._x) + n._y * (eye._y - world._y) + n._z * (eye._z - world._z)
+		const facing = mesh instanceof CoverMesh || side === 0 ? dot > 0 : dot < 0
 
 		// Obscured: a page's face that has turned away from the camera is not on
 		// screen. Which face that is depends on the flip progress — at 0 (right
@@ -645,86 +764,96 @@ export class BookViewer {
 		// back-side image is obscured below 0.5. Otherwise check whether another
 		// page's surface is in front of this point at its screen pixel (depth
 		// test via raycast).
-		const progress = this.#flipAnimator._getPageProgress(pageIndex);
-		let obscured = side === 0 ? progress > 0.5 : progress < 0.5;
+		const progress = this.#flipAnimator._getPageProgress(pageIndex)
+		let obscured = side === 0 ? progress > 0.5 : progress < 0.5
 		if (!obscured) {
-			const { origin, direction } = this.#camera._getPickRay(screen.x, screen.y);
-			const hit = rayIntersectMeshes(this.#meshes, origin, direction);
+			const { origin, direction } = this.#camera._getPickRay(screen.x, screen.y)
+			const hit = rayIntersectMeshes(this.#meshes, origin, direction)
 			if (hit) {
-				const tTarget = (world._x - origin._x) * direction._x
-					+ (world._y - origin._y) * direction._y
-					+ (world._z - origin._z) * direction._z;
-				if (hit._t < tTarget - 1e-4) obscured = true;
+				const tTarget =
+					(world._x - origin._x) * direction._x +
+					(world._y - origin._y) * direction._y +
+					(world._z - origin._z) * direction._z
+				if (hit._t < tTarget - 1e-4) {
+					obscured = true
+				}
 			}
 		}
 
-		return { facing, obscured };
+		return { facing, obscured }
 	}
 
 	#gotoInstant(pageIdx: number): void {
-		this.#currentPage = pageIdx;
-		this.#selectedPage = pageIdx;
+		this.#currentPage = pageIdx
+		this.#selectedPage = pageIdx
 
-		const progress = new Float32Array(this.#pageCount);
+		const progress = new Float32Array(this.#pageCount)
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			const isFlipped = pi < pageIdx;
-			progress[pi] = isFlipped ? 1 : 0;
-			this.#flipAnimator._setPageProgress(pi, progress[pi]);
+			const isFlipped = pi < pageIdx
+			progress[pi] = isFlipped ? 1 : 0
+			this.#flipAnimator._setPageProgress(pi, progress[pi])
 			if (isFlipped) {
-				this.#flipAnimator._instantFlip(this.#meshes[pi], pi);
+				this.#flipAnimator._instantFlip(this.#meshes[pi], pi)
 			} else {
-				this.#meshes[pi]._positions.set(this.#meshes[pi]._restPositions);
-				this.#meshes[pi]._velocities.fill(0);
+				this.#meshes[pi]._positions.set(this.#meshes[pi]._restPositions)
+				this.#meshes[pi]._velocities.fill(0)
 			}
 
-			this.#activePageSet.delete(pi);
+			this.#activePageSet.delete(pi)
 		}
 
-		const weightFactor = computeWeightFactor(progress, this.#pageCount);
+		const weightFactor = computeWeightFactor(progress, this.#pageCount)
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			const targetY = computePageSpineY(pi, progress[pi], weightFactor, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
-			this.#snapPageSpineY(pi, targetY, true, true);
-			this.#renderer._updateVertexBuffer(pi, this.#meshes[pi]);
-			this.#renderer._updateNormalBuffer(pi, this.#meshes[pi]);
+			const targetY = computePageSpineY(
+				pi,
+				progress[pi],
+				weightFactor,
+				this.#totalStackHeight,
+				this.#pageCount,
+				PAGE_THICKNESS,
+			)
+			this.#snapPageSpineY(pi, targetY, true, true)
+			this.#renderer._updateVertexBuffer(pi, this.#meshes[pi])
+			this.#renderer._updateNormalBuffer(pi, this.#meshes[pi])
 		}
 
-		this.#renderer._setFlipProgress(progress);
+		this.#renderer._setFlipProgress(progress)
 
-		this.#gotoDamping = false;
-		this.#onPageChange?.(this.#currentPage);
+		this.#gotoDamping = false
+		this.#onPageChange?.(this.#currentPage)
 	}
 
 	_getCurrentPage(): number {
-		return this.#currentPage;
+		return this.#currentPage
 	}
 
 	_getPageCount(): number {
-		return this.#pageCount;
+		return this.#pageCount
 	}
 
 	_nextPage(grabRow?: number): void {
-		if (this.#flipAnimator && this.#currentPage < this.#pageCount) {
-			this.#inputHandler._operation = 'none';
-			this.#selectedPage = this.#currentPage;
-			const useGrabRow = grabRow ?? this.#inputHandler._lastClickGrabRow ?? undefined;
-			this.#inputHandler._lastClickGrabRow = null;
-			this.#flipAnimator._flipLeft(this.#selectedPage, useGrabRow);
-			this.#currentPage++;
-			this.#onPageChange?.(this.#currentPage);
-			this.#requestFrame();
+		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount) {
+			this.#inputHandler._operation = 'none'
+			this.#selectedPage = this.#currentPage
+			const useGrabRow = grabRow ?? this.#inputHandler._lastClickGrabRow ?? undefined
+			this.#inputHandler._lastClickGrabRow = null
+			this.#flipAnimator._flipLeft(this.#selectedPage, useGrabRow)
+			this.#currentPage++
+			this.#onPageChange?.(this.#currentPage)
+			this.#requestFrame()
 		}
 	}
 
 	_prevPage(grabRow?: number): void {
-		if (this.#flipAnimator && this.#currentPage > 0) {
-			this.#inputHandler._operation = 'none';
-			this.#currentPage--;
-			this.#selectedPage = this.#currentPage;
-			const useGrabRow = grabRow ?? this.#inputHandler._lastClickGrabRow ?? undefined;
-			this.#inputHandler._lastClickGrabRow = null;
-			this.#flipAnimator._flipRight(this.#selectedPage, useGrabRow);
-			this.#onPageChange?.(this.#currentPage);
-			this.#requestFrame();
+		if (this.#flipAnimator !== undefined && this.#currentPage > 0) {
+			this.#inputHandler._operation = 'none'
+			this.#currentPage--
+			this.#selectedPage = this.#currentPage
+			const useGrabRow = grabRow ?? this.#inputHandler._lastClickGrabRow ?? undefined
+			this.#inputHandler._lastClickGrabRow = null
+			this.#flipAnimator._flipRight(this.#selectedPage, useGrabRow)
+			this.#onPageChange?.(this.#currentPage)
+			this.#requestFrame()
 		}
 	}
 
@@ -733,166 +862,204 @@ export class BookViewer {
 	// ═══════════════════════════════════════════════════════════════
 
 	#requestFrame = (): void => {
-		Frame.request(this.#frame);
-	};
+		Frame.request(this.#frame)
+	}
 
 	async #init(options: BookViewerOptions): Promise<void> {
-		const images = options._images;
-		if (!images || images.length === 0) {
-			throw new Error('BookViewer: no images in book index');
+		const images = options._images
+		if (images === undefined || images.length === 0) {
+			throw new Error('BookViewer: no images in book index')
 		}
 
-		const { pageCnt, pageIdxes, totalImagePages, computedPageWidths, aspectsForInit, frontAspects, backAspects, avgAspect } = computePageLayout(images);
-		this.#images = images;
+		const {
+			pageCnt,
+			pageIdxes,
+			totalImagePages,
+			computedPageWidths,
+			aspectsForInit,
+			frontAspects,
+			backAspects,
+			avgAspect,
+		} = computePageLayout(images)
+		this.#images = images
 
-		const ok = this.#initGeometry(pageCnt, computedPageWidths, aspectsForInit, options);
+		const ok = this.#initGeometry(pageCnt, computedPageWidths, aspectsForInit, options)
 		if (!ok) {
-			throw new Error('BookViewer: WebGL is not available in this browser.');
+			throw new Error('BookViewer: WebGL is not available in this browser.')
 		}
 
-		const useIndividual = options?._useIndividualAspects ?? USE_INDIVIDUAL_ASPECTS;
-		this.#useIndividualAspects = useIndividual;
+		const useIndividual = options?._useIndividualAspects ?? USE_INDIVIDUAL_ASPECTS
+		this.#useIndividualAspects = useIndividual
 		// When individual aspects are off every page renders its texture stretched
 		// over the whole page, so the region aspects collapse to the page aspect.
-		const frontAspectSrc = useIndividual ? frontAspects : new Float32Array(pageCnt).fill(avgAspect);
-		const backAspectSrc = useIndividual ? backAspects : new Float32Array(pageCnt).fill(avgAspect);
-		this.#setupAspectRegions(pageCnt, frontAspectSrc, backAspectSrc, avgAspect);
+		const frontAspectSrc = useIndividual ? frontAspects : new Float32Array(pageCnt).fill(avgAspect)
+		const backAspectSrc = useIndividual ? backAspects : new Float32Array(pageCnt).fill(avgAspect)
+		this.#setupAspectRegions(pageCnt, frontAspectSrc, backAspectSrc, avgAspect)
 
-		const startPageIdx = options._startPageIdx;
+		const startPageIdx = options._startPageIdx
 		if (startPageIdx !== undefined && startPageIdx > 0 && startPageIdx < totalImagePages) {
-			const pageIdx = Math.min(Math.ceil(startPageIdx / 2), this.#pageCount - 1);
-			this.#gotoInstant(pageIdx);
+			const pageIdx = Math.min(Math.ceil(startPageIdx / 2), this.#pageCount - 1)
+			this.#gotoInstant(pageIdx)
 		}
 
-		await initSolver(this.#meshes, this.#pageCount);
+		await initSolver(this.#meshes, this.#pageCount)
 
-		await this.#loadPageTextures(images);
+		await this.#loadPageTextures(images)
 
-		this.#iiifManager = new IIIFTextureManager(this.#renderer, options._iiifBaseUrl);
-		this.#iiifManager._onRequestFrame = () => this.#requestFrame();
-		this.#iiifManager._init(images, this.#pageCount, pageIdxes);
+		this.#iiifManager = new IIIFTextureManager(this.#renderer, options._iiifBaseUrl)
+		this.#iiifManager._onRequestFrame = () => {
+			this.#requestFrame()
+		}
+		this.#iiifManager._init(images, this.#pageCount, pageIdxes)
 
-		this.#onPageChange?.(this.#currentPage);
+		this.#onPageChange?.(this.#currentPage)
 
 		setTimeout(() => {
-			this.#requestFrame();
-		}, 500);
+			this.#requestFrame()
+		}, 500)
 	}
 
 	#initGeometry(pageCnt: number, pWidths: Float32Array, aspects: Float32Array, options: BookViewerOptions): boolean {
-		this.#pageCount = pageCnt;
-		this.#pageWidths = pWidths;
-		this.#pageAspects = aspects;
+		this.#pageCount = pageCnt
+		this.#pageWidths = pWidths
+		this.#pageAspects = aspects
 
-		const canvas = this.#canvas;
+		const canvas = this.#canvas
 
 		let gl: WebGL2RenderingContext | null = canvas.getContext('webgl2', {
 			alpha: true,
 			premultipliedAlpha: true,
 			antialias: true,
-		});
+		})
 
 		if (!gl) {
-			console.warn('BookViewer: WebGL not available');
-			return false;
+			console.warn('BookViewer: WebGL not available')
+			return false
 		}
 
-		this.#camera = new OrbitCamera();
-		this.#camera._target._set(0, 0, 0);
-		this.#camera._theta = 0;
-		this.#camera._phi = DEFAULT_CAMERA_PHI;
-		this.#camera._radius = 2.2;
-		this.#camera._snap();
+		this.#camera = new OrbitCamera()
+		this.#camera._target._set(0, 0, 0)
+		this.#camera._theta = 0
+		this.#camera._phi = DEFAULT_CAMERA_PHI
+		this.#camera._radius = 2.2
+		this.#camera._snap()
 
-		let maxWidth = 0;
-		let maxHeight = 0;
+		let maxWidth = 0
+		let maxHeight = 0
 		for (let i = 0; i < this.#pageCount; i++) {
-			const w = this.#pageWidths[i];
-			const h = w * this.#pageAspects[i];
-			if (w > maxWidth) maxWidth = w;
-			if (h > maxHeight) maxHeight = h;
+			const w = this.#pageWidths[i]
+			const h = w * this.#pageAspects[i]
+			if (w > maxWidth) {
+				maxWidth = w
+			}
+			if (h > maxHeight) {
+				maxHeight = h
+			}
 		}
 
-		this.#meshes.length = 0;
+		this.#meshes.length = 0
 		for (let i = 0; i < this.#pageCount; i++) {
-			const yOff = (this.#pageCount - 1 - i) * PAGE_THICKNESS;
-			const pw = this.#pageWidths[i];
-			const asp = this.#pageAspects[i];
+			const yOff = (this.#pageCount - 1 - i) * PAGE_THICKNESS
+			const pw = this.#pageWidths[i]
+			const asp = this.#pageAspects[i]
 			if (this.#hardCover && (i === 0 || i === this.#pageCount - 1)) {
-				const wScale = maxWidth / pw;
-				const hScale = maxHeight / (pw * asp);
-				const coverScaleX = Math.max(COVER_SCALE_X, wScale);
-				const coverScaleY = Math.max(COVER_SCALE_Y, hScale);
-				const cover = new CoverMesh(yOff, pw, asp, PAGE_THICKNESS * COVER_THICKNESS_MULTIPLIER, coverScaleX, coverScaleY);
-				this.#meshes.push(cover);
+				const wScale = maxWidth / pw
+				const hScale = maxHeight / (pw * asp)
+				const coverScaleX = Math.max(COVER_SCALE_X, wScale)
+				const coverScaleY = Math.max(COVER_SCALE_Y, hScale)
+				const cover = new CoverMesh(
+					yOff,
+					pw,
+					asp,
+					PAGE_THICKNESS * COVER_THICKNESS_MULTIPLIER,
+					coverScaleX,
+					coverScaleY,
+				)
+				this.#meshes.push(cover)
 			} else {
-				this.#meshes.push(new PaperMesh(yOff, pw, asp));
+				this.#meshes.push(new PaperMesh(yOff, pw, asp))
 			}
 		}
 
-		this.#activePageSet.clear();
-		this.#prevPositions.length = 0;
+		this.#activePageSet.clear()
+		this.#prevPositions.length = 0
 		for (let i = 0; i < this.#pageCount; i++) {
-			this.#prevPositions.push(new Float32Array(this.#meshes[i]._positions));
+			this.#prevPositions.push(new Float32Array(this.#meshes[i]._positions))
 		}
 
-		this.#totalStackHeight = this.#pageCount * PAGE_THICKNESS;
+		this.#totalStackHeight = this.#pageCount * PAGE_THICKNESS
 
-		let minX = Infinity, minY = Infinity, minZ = Infinity;
-		let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+		let minX = Infinity,
+			minY = Infinity,
+			minZ = Infinity
+		let maxX = -Infinity,
+			maxY = -Infinity,
+			maxZ = -Infinity
 		for (const m of this.#meshes) {
-			const pos = m._restPositions;
+			const pos = m._restPositions
 			for (let i = 0; i < pos.length; i += 3) {
-				if (pos[i] < minX) minX = pos[i];
-				if (pos[i] > maxX) maxX = pos[i];
-				if (pos[i + 1] < minY) minY = pos[i + 1];
-				if (pos[i + 1] > maxY) maxY = pos[i + 1];
-				if (pos[i + 2] < minZ) minZ = pos[i + 2];
-				if (pos[i + 2] > maxZ) maxZ = pos[i + 2];
+				if (pos[i] < minX) {
+					minX = pos[i]
+				}
+				if (pos[i] > maxX) {
+					maxX = pos[i]
+				}
+				if (pos[i + 1] < minY) {
+					minY = pos[i + 1]
+				}
+				if (pos[i + 1] > maxY) {
+					maxY = pos[i + 1]
+				}
+				if (pos[i + 2] < minZ) {
+					minZ = pos[i + 2]
+				}
+				if (pos[i + 2] > maxZ) {
+					maxZ = pos[i + 2]
+				}
 			}
 		}
-		const absX = Math.max(Math.abs(minX), Math.abs(maxX));
-		this.#camera._panBoundsMin = new Vec3(-absX, minY, minZ);
-		this.#camera._panBoundsMax = new Vec3(absX, maxY, maxZ);
+		const absX = Math.max(Math.abs(minX), Math.abs(maxX))
+		this.#camera._panBoundsMin = new Vec3(-absX, minY, minZ)
+		this.#camera._panBoundsMax = new Vec3(absX, maxY, maxZ)
 
-		this.#renderer = new PaperRenderer(gl);
-		this.#renderer._tiltShiftEnabled = options._tiltShift ?? TILT_SHIFT_ENABLED;
-		this.#renderer._seeThroughMargins = this.#seeThroughMargins;
-		this.#renderer._initialize(this.#meshes);
+		this.#renderer = new PaperRenderer(gl)
+		this.#renderer._tiltShiftEnabled = options._tiltShift ?? TILT_SHIFT_ENABLED
+		this.#renderer._seeThroughMargins = this.#seeThroughMargins
+		this.#renderer._initialize(this.#meshes)
 		this.#renderer._setBoundingBox(
-			{ x: this.#camera._panBoundsMin!._x, y: this.#camera._panBoundsMin!._y, z: this.#camera._panBoundsMin!._z },
-			{ x: this.#camera._panBoundsMax!._x, y: this.#camera._panBoundsMax!._y, z: this.#camera._panBoundsMax!._z },
-		);
-		this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight);
+			{ x: this.#camera._panBoundsMin._x, y: this.#camera._panBoundsMin._y, z: this.#camera._panBoundsMin._z },
+			{ x: this.#camera._panBoundsMax._x, y: this.#camera._panBoundsMax._y, z: this.#camera._panBoundsMax._z },
+		)
+		this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight)
 
 		{
-			const margin = Math.min(canvas.clientWidth, canvas.clientHeight) * VIEWPORT_MARGIN_PCT;
-			this.#camera._initContainRadius({ minX, maxX, minZ, maxZ }, margin);
+			const margin = Math.min(canvas.clientWidth, canvas.clientHeight) * VIEWPORT_MARGIN_PCT
+			this.#camera._initContainRadius({ minX, maxX, minZ, maxZ }, margin)
 		}
-		this.#flipAnimator = new PageFlipAnimator();
-		this.#flipAnimator._initSlots(this.#pageCount);
+		this.#flipAnimator = new PageFlipAnimator()
+		this.#flipAnimator._initSlots(this.#pageCount)
 
 		if (this.#hardCover) {
-			this.#flipAnimator._hardCoverPages = new Set([0, this.#pageCount - 1]);
+			this.#flipAnimator._hardCoverPages = new Set([0, this.#pageCount - 1])
 		}
 
-		this.#inputHandler = new InputHandler(canvas, this.#camera, this.#requestFrame);
-		this.#inputHandler._isZoomedInFn = () => this.isZoomedIn();
+		this.#inputHandler = new InputHandler(canvas, this.#camera, this.#requestFrame)
+		this.#inputHandler._isZoomedInFn = () => this.isZoomedIn()
 
-		const preset = options._lightingPreset ?? LIGHTING_PRESET;
-		this.setLightingPreset(preset);
+		const preset = options._lightingPreset ?? LIGHTING_PRESET
+		this.setLightingPreset(preset)
 
-		this.#applyBinding();
-		this.#setupInputCallbacks();
-		this.#setupResizeAndContextHandlers(canvas);
+		this.#applyBinding()
+		this.#setupInputCallbacks()
+		this.#setupResizeAndContextHandlers(canvas)
 
 		document.addEventListener('visibilitychange', () => {
 			if (document.hidden) {
-				this.#lastTime = 0;
+				this.#lastTime = 0
 			}
-		});
+		})
 
-		return true;
+		return true
 	}
 
 	/**
@@ -903,277 +1070,302 @@ export class BookViewer {
 	 * on the free edge. Hard cover back faces have their own grid and keep their
 	 * native orientation.
 	 */
-	#setupAspectRegions(pageCnt: number, frontAspects: Float32Array, backAspects: Float32Array, pageAspect: number): void {
-		const front = new Float32Array(pageCnt * 4);
-		const back = new Float32Array(pageCnt * 4);
+	#setupAspectRegions(
+		pageCnt: number,
+		frontAspects: Float32Array,
+		backAspects: Float32Array,
+		pageAspect: number,
+	): void {
+		const front = new Float32Array(pageCnt * 4)
+		const back = new Float32Array(pageCnt * 4)
 		for (let p = 0; p < pageCnt; p++) {
-			const isCover = this.#meshes[p] instanceof CoverMesh;
-			this.#setRegion(front, p, computeTexRegion(frontAspects[p], pageAspect, false));
-			this.#setRegion(back, p, computeTexRegion(backAspects[p], pageAspect, !isCover));
+			const isCover = this.#meshes[p] instanceof CoverMesh
+			this.#setRegion(front, p, computeTexRegion(frontAspects[p], pageAspect, false))
+			this.#setRegion(back, p, computeTexRegion(backAspects[p], pageAspect, !isCover))
 		}
-		this.#frontRegions = front;
-		this.#backRegions = back;
-		this.#renderer._setAspectRegions(front, back);
+		this.#frontRegions = front
+		this.#backRegions = back
+		this.#renderer._setAspectRegions(front, back)
 	}
 
 	#setRegion(arr: Float32Array, pageIndex: number, region: [number, number, number, number]): void {
-		const o = pageIndex * 4;
-		arr[o] = region[0];
-		arr[o + 1] = region[1];
-		arr[o + 2] = region[2];
-		arr[o + 3] = region[3];
+		const o = pageIndex * 4
+		arr[o] = region[0]
+		arr[o + 1] = region[1]
+		arr[o + 2] = region[2]
+		arr[o + 3] = region[3]
 	}
 
 	#applyBinding(): void {
 		for (const m of this.#meshes) {
-			m._setBinding();
+			m._setBinding()
 		}
-		this.#flipAnimator._reset(this.#meshes);
+		this.#flipAnimator._reset(this.#meshes)
 	}
 
 	_hookImageBook3d(img: MicrioImage) {
-		if(img.camera._getMatrixOverride) return;
-		if(!img.camera._getXYDirectOverride) {
-			const cooArr = new Float64Array(5);
-			img.camera._getXYDirectOverride = (_x:number, _y:number) => {
-				const out = this.#textureToScreen(img.id, _x, _y);
-				const visible = out?.facing && !out.obscured;
-				cooArr[0] = visible ? out.x : -1;
-				cooArr[1] = visible ? out.y : -1;
-				return cooArr;
+		if (img.camera._getMatrixOverride) {
+			return
+		}
+		if (!img.camera._getXYDirectOverride) {
+			const cooArr = new Float64Array(5)
+			img.camera._getXYDirectOverride = (_x: number, _y: number) => {
+				const out = this.#textureToScreen(img.id, _x, _y)
+				const visible = out?.facing && !out.obscured
+				cooArr[0] = visible ? out.x : -1
+				cooArr[1] = visible ? out.y : -1
+				return cooArr
 			}
 		}
-		if(!img.camera._getMatrixOverride) {
-			img.camera._getMatrixOverride = (
-				x: number,
-				y: number,
-				scale: number,
-				rotX?: number,
-				rotY?: number,
-				rotZ?: number,
-				scaleX?: number,
-				scaleY?: number,
-				width?: number
-			) => {
-				const out = this.#textureToMatrix(img.id, x, y, scale, width, rotX, rotY, rotZ, 0, scaleX, scaleY);
-				return out && out.facing && !out.obscured ? out.matrix : new Float32Array();
-			}
+		img.camera._getMatrixOverride = (
+			x: number,
+			y: number,
+			scale: number,
+			rotX?: number,
+			rotY?: number,
+			rotZ?: number,
+			scaleX?: number,
+			scaleY?: number,
+			width?: number,
+		) => {
+			const out = this.#textureToMatrix(img.id, x, y, scale, width, rotX, rotY, rotZ, 0, scaleX, scaleY)
+			return out && out.facing && !out.obscured ? out.matrix : new Float32Array()
 		}
 	}
 
 	#setupInputCallbacks(): void {
 		this.#inputHandler._onPrevPage = () => {
-			this._prevPage();
-		};
+			this._prevPage()
+		}
 		this.#inputHandler._onNextPage = () => {
-			this._nextPage();
-		};
-		this.#inputHandler._onPageClick = this.#handlePageClick;
-		this.#inputHandler._onWheelZoom = (sx, sy) => this.#handleZoomRaycast(sx, sy);
+			this._nextPage()
+		}
+		this.#inputHandler._onPageClick = this.#handlePageClick
+		this.#inputHandler._onWheelZoom = (sx, sy) => this.#handleZoomRaycast(sx, sy)
 
 		this.#inputHandler._onPageDragStart = (startX, startY) => {
-			const result = this.#raycastForDrag(startX, startY);
-			if (!result) return;
-
-			const canvas = this.#renderer._getCanvas();
-			const rect = canvas.getBoundingClientRect();
-			const sx = startX - rect.left;
-			const sy = startY - rect.top;
-			const { origin, direction } = this.#camera._getPickRay(sx, sy);
-			if (Math.abs(direction._y) >= 1e-8) {
-				this.#dragStartCursorWorldX = origin._x + direction._x * (-origin._y / direction._y);
-			} else {
-				this.#dragStartCursorWorldX = 0;
+			const result = this.#raycastForDrag(startX, startY)
+			if (!result) {
+				return
 			}
 
-			this.#dragPageIndex = result.pageIndex;
-			this.#dragStartProgress = this.#flipAnimator._getPageProgress(this.#dragPageIndex);
-			this.#flipAnimator._beginDrag(this.#dragPageIndex, result.grabRow);
-			this.#selectedPage = this.#dragPageIndex;
-			this.#activePageSet.add(this.#dragPageIndex);
-			this.#requestFrame();
-		};
+			const canvas = this.#renderer._getCanvas()
+			const rect = canvas.getBoundingClientRect()
+			const sx = startX - rect.left
+			const sy = startY - rect.top
+			const { origin, direction } = this.#camera._getPickRay(sx, sy)
+			if (Math.abs(direction._y) >= 1e-8) {
+				this.#dragStartCursorWorldX = origin._x + direction._x * (-origin._y / direction._y)
+			} else {
+				this.#dragStartCursorWorldX = 0
+			}
+
+			this.#dragPageIndex = result.pageIndex
+			this.#dragStartProgress = this.#flipAnimator._getPageProgress(this.#dragPageIndex)
+			this.#flipAnimator._beginDrag(this.#dragPageIndex, result.grabRow)
+			this.#selectedPage = this.#dragPageIndex
+			this.#activePageSet.add(this.#dragPageIndex)
+			this.#requestFrame()
+		}
 
 		this.#inputHandler._onPageDragMove = (x, y) => {
-			if (this.#dragPageIndex < 0 || this.#dragPageIndex >= this.#pageCount) return;
+			if (this.#dragPageIndex < 0 || this.#dragPageIndex >= this.#pageCount) {
+				return
+			}
 
-			const canvas = this.#renderer._getCanvas();
-			const rect = canvas.getBoundingClientRect();
-			const sx = x - rect.left;
-			const sy = y - rect.top;
-			const { origin, direction } = this.#camera._getPickRay(sx, sy);
+			const canvas = this.#renderer._getCanvas()
+			const rect = canvas.getBoundingClientRect()
+			const sx = x - rect.left
+			const sy = y - rect.top
+			const { origin, direction } = this.#camera._getPickRay(sx, sy)
 
-			if (Math.abs(direction._y) < 1e-8) { this.#requestFrame(); return; }
-			const t = -origin._y / direction._y;
-			const worldX = origin._x + direction._x * t;
+			if (Math.abs(direction._y) < 1e-8) {
+				this.#requestFrame()
+				return
+			}
+			const t = -origin._y / direction._y
+			const worldX = origin._x + direction._x * t
 
-			const mesh = this.#meshes[this.#dragPageIndex];
-			const displacement = this.#dragStartCursorWorldX - worldX;
-			const totalDistance = displacement > 0
-				? this.#dragStartCursorWorldX + mesh._paperWidth
-				: mesh._paperWidth - this.#dragStartCursorWorldX;
-			const progress = this.#dragStartProgress + displacement / Math.max(0.01, totalDistance);
-			this.#flipAnimator._setDragProgress(this.#dragPageIndex, Math.max(0.0, Math.min(1.0, progress)));
-			this.#selectedPage = this.#dragPageIndex;
-			this.#requestFrame();
-		};
+			const mesh = this.#meshes[this.#dragPageIndex]
+			const displacement = this.#dragStartCursorWorldX - worldX
+			const totalDistance =
+				displacement > 0
+					? this.#dragStartCursorWorldX + mesh._paperWidth
+					: mesh._paperWidth - this.#dragStartCursorWorldX
+			const progress = this.#dragStartProgress + displacement / Math.max(0.01, totalDistance)
+			this.#flipAnimator._setDragProgress(this.#dragPageIndex, Math.max(0, Math.min(1, progress)))
+			this.#selectedPage = this.#dragPageIndex
+			this.#requestFrame()
+		}
 
 		this.#inputHandler._onPageDragEnd = () => {
 			if (this.#dragPageIndex < 0 || this.#dragPageIndex >= this.#pageCount) {
-				this.#dragPageIndex = -1;
-				return;
+				this.#dragPageIndex = -1
+				return
 			}
-			const progress = this.#flipAnimator._getPageProgress(this.#dragPageIndex);
+			const progress = this.#flipAnimator._getPageProgress(this.#dragPageIndex)
 
-			const startedOnRight = this.#dragStartProgress <= 0.5;
-			const startedOnLeft = this.#dragStartProgress >= 0.5;
-			const crossedToLeft = startedOnRight && progress > 0.5;
-			const crossedToRight = startedOnLeft && progress < 0.5;
+			const startedOnRight = this.#dragStartProgress <= 0.5
+			const startedOnLeft = this.#dragStartProgress >= 0.5
+			const crossedToLeft = startedOnRight && progress > 0.5
+			const crossedToRight = startedOnLeft && progress < 0.5
 
 			if (crossedToLeft) {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, +1);
+				this.#flipAnimator._endDrag(this.#dragPageIndex, 1)
 				if (this.#dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount) {
-					this.#currentPage++;
-					this.#onPageChange?.(this.#currentPage);
+					this.#currentPage++
+					this.#onPageChange?.(this.#currentPage)
 				}
 			} else if (crossedToRight) {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, -1);
+				this.#flipAnimator._endDrag(this.#dragPageIndex, -1)
 				if (this.#dragPageIndex === this.#currentPage - 1 && this.#currentPage > 0) {
-					this.#currentPage--;
-					this.#onPageChange?.(this.#currentPage);
+					this.#currentPage--
+					this.#onPageChange?.(this.#currentPage)
 				}
 			} else {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, startedOnRight ? -1 : +1);
+				this.#flipAnimator._endDrag(this.#dragPageIndex, startedOnRight ? -1 : 1)
 			}
-			this.#dragPageIndex = -1;
-			this.#requestFrame();
-		};
+			this.#dragPageIndex = -1
+			this.#requestFrame()
+		}
 	}
 
 	#setupResizeAndContextHandlers(canvas: HTMLCanvasElement): void {
 		window.addEventListener('resize', () => {
-			this.#renderer._resize();
-			this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight);
-			this.#requestFrame();
-		});
+			this.#renderer._resize()
+			this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight)
+			this.#requestFrame()
+		})
 
 		canvas.addEventListener('webglcontextlost', (e) => {
-			console.warn('WebGL context lost.');
-			e.preventDefault();
-		});
+			console.warn('WebGL context lost.')
+			e.preventDefault()
+		})
 
 		canvas.addEventListener('webglcontextrestored', () => {
-			console.log('WebGL context restored.');
+			console.log('WebGL context restored.')
 			const gl = canvas.getContext('webgl2', {
 				alpha: true,
 				premultipliedAlpha: true,
 				antialias: true,
-			}) as WebGL2RenderingContext | null;
-			if (gl && this.#renderer) {
-				this.#renderer = new PaperRenderer(gl);
-				this.#renderer._seeThroughMargins = this.#seeThroughMargins;
-				this.#renderer._initialize(this.#meshes);
+			})
+			if (gl && this.#renderer !== undefined) {
+				this.#renderer = new PaperRenderer(gl)
+				this.#renderer._seeThroughMargins = this.#seeThroughMargins
+				this.#renderer._initialize(this.#meshes)
 			}
-		});
+		})
 	}
 
 	#raycastForDrag(screenX: number, screenY: number): PageDragResult | null {
-		const canvas = this.#renderer._getCanvas();
-		const rect = canvas.getBoundingClientRect();
-		const sx = screenX - rect.left;
-		const sy = screenY - rect.top;
+		const canvas = this.#renderer._getCanvas()
+		const rect = canvas.getBoundingClientRect()
+		const sx = screenX - rect.left
+		const sy = screenY - rect.top
 
-		if (rect.width <= 0 || rect.height <= 0) return null;
+		if (rect.width <= 0 || rect.height <= 0) {
+			return null
+		}
 
-		const { origin, direction } = this.#camera._getPickRay(sx, sy);
-		const hit = rayIntersectMeshes(this.#meshes, origin, direction);
-		if (!hit) return null;
+		const { origin, direction } = this.#camera._getPickRay(sx, sy)
+		const hit = rayIntersectMeshes(this.#meshes, origin, direction)
+		if (!hit) {
+			return null
+		}
 
-		const mesh = this.#meshes[hit._meshIndex];
-		const grabRow = 0.5 - hit._point._z / mesh._paperHeight;
-		const clampedGrabRow = Math.max(0.0, Math.min(1.0, grabRow));
+		const mesh = this.#meshes[hit._meshIndex]
+		const grabRow = 0.5 - hit._point._z / mesh._paperHeight
+		const clampedGrabRow = Math.max(0, Math.min(1, grabRow))
 
 		return {
 			pageIndex: hit._meshIndex,
 			grabRow: clampedGrabRow,
 			worldX: hit._point._x,
-		};
+		}
 	}
 
 	#handlePageClick = (screenX: number, screenY: number): PageClickResult | null => {
-		const canvas = this.#renderer._getCanvas();
-		const rect = canvas.getBoundingClientRect();
-		const sx = screenX - rect.left;
-		const sy = screenY - rect.top;
+		const canvas = this.#renderer._getCanvas()
+		const rect = canvas.getBoundingClientRect()
+		const sx = screenX - rect.left
+		const sy = screenY - rect.top
 
-		if (rect.width <= 0 || rect.height <= 0) return null;
+		if (rect.width <= 0 || rect.height <= 0) {
+			return null
+		}
 
-		const { origin, direction } = this.#camera._getPickRay(sx, sy);
-		const hit = rayIntersectMeshes(this.#meshes, origin, direction);
-		if (!hit) return null;
+		const { origin, direction } = this.#camera._getPickRay(sx, sy)
+		const hit = rayIntersectMeshes(this.#meshes, origin, direction)
+		if (!hit) {
+			return null
+		}
 
-		const mesh = this.#meshes[hit._meshIndex];
-		const grabRow = 0.5 - hit._point._z / mesh._paperHeight;
-		const clampedGrabRow = Math.max(0.0, Math.min(1.0, grabRow));
+		const mesh = this.#meshes[hit._meshIndex]
+		const grabRow = 0.5 - hit._point._z / mesh._paperHeight
+		const clampedGrabRow = Math.max(0, Math.min(1, grabRow))
 
 		return {
 			direction: hit._point._x < 0 ? 'prev' : 'next',
 			grabRow: clampedGrabRow,
-		};
-	};
+		}
+	}
 
 	#handleZoomRaycast(sx: number, sy: number): Vec3 | null {
-		const { origin, direction } = this.#camera._getPickRay(sx, sy);
-		const hit = rayIntersectMeshes(this.#meshes, origin, direction);
-		return hit?._point ?? null;
+		const { origin, direction } = this.#camera._getPickRay(sx, sy)
+		const hit = rayIntersectMeshes(this.#meshes, origin, direction)
+		return hit?._point ?? null
 	}
 
 	#getDrawnImages(): { id: string; pageIndex: number; side: 0 | 1 }[] {
-		const drawn: { id: string; pageIndex: number; side: 0 | 1 }[] = [];
+		const drawn: { id: string; pageIndex: number; side: 0 | 1 }[] = []
 		const push = (pageIndex: number, side: 0 | 1): void => {
-			const img = this.#images[pageIndex * 2 + side];
-			if (img && !drawn.some(d => d.id === img.id)) {
-				drawn.push({ id: img.id, pageIndex, side });
+			const img = this.#images[pageIndex * 2 + side]
+			if (img !== undefined && !drawn.some((d) => d.id === img.id)) {
+				drawn.push({ id: img.id, pageIndex, side })
 			}
-		};
+		}
 
 		// The open spread: right page shows its front, left page its back.
-		push(this.#currentPage, 0);
-		push(this.#currentPage - 1, 1);
+		push(this.#currentPage, 0)
+		push(this.#currentPage - 1, 1)
 
 		// Any page mid-flip is in view and shows both sides while rotating. It
 		// also still reveals part of the spread it's leaving: include the far
 		// page of the outgoing spread (the page it is about to cover).
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			const progress = this.#flipAnimator._getPageProgress(pi);
+			const progress = this.#flipAnimator._getPageProgress(pi)
 			if (progress > 0 && progress < 1) {
-				push(pi, 0);
-				push(pi, 1);
-				const dir = this.#flipAnimator._getPageDirection(pi);
+				push(pi, 0)
+				push(pi, 1)
+				const dir = this.#flipAnimator._getPageDirection(pi)
 				if (dir < 0) {
-					push(pi + 1, 0); // flipping back: outgoing right page's front
+					push(pi + 1, 0) // flipping back: outgoing right page's front
 				} else if (dir > 0) {
-					push(pi - 1, 1); // flipping forward: outgoing left page's back
+					push(pi - 1, 1) // flipping forward: outgoing left page's back
 				} else {
-					push(pi - 1, 1); // drag: direction unknown, include both neighbours
-					push(pi + 1, 0);
+					push(pi - 1, 1) // drag: direction unknown, include both neighbours
+					push(pi + 1, 0)
 				}
 			}
 		}
 
-		return drawn;
+		return drawn
 	}
 
 	#getDrawnImageBounds(): DrawnImage[] {
-		const vp = this.#getViewProjection();
-		if (!vp) return [];
-
-		const out: DrawnImage[] = [];
-		for (const d of this.#getDrawnImages()) {
-			const bounds = this.#computeImageVisibleUv(d.pageIndex, d.side, vp);
-			if (bounds) out.push({ id: d.id, bounds });
+		const vp = this.#getViewProjection()
+		if (!vp) {
+			return []
 		}
-		return out;
+
+		const out: DrawnImage[] = []
+		for (const d of this.#getDrawnImages()) {
+			const bounds = this.#computeImageVisibleUv(d.pageIndex, d.side, vp)
+			if (bounds) {
+				out.push({ id: d.id, bounds })
+			}
+		}
+		return out
 	}
 
 	// Samples the image's quad on a dense UV grid, projects each sample to the
@@ -1184,233 +1376,333 @@ export class BookViewer {
 		side: 0 | 1,
 		vp: { viewProj: Mat4; clientWidth: number; clientHeight: number },
 	): [number, number, number, number] | null {
-		const mesh = this.#meshes[pageIndex];
-		const region = this.#textureRegion(pageIndex, side);
-		const steps = 32;
-		let minU = Infinity, minV = Infinity, maxU = -Infinity, maxV = -Infinity;
-		let visible = 0;
+		const mesh = this.#meshes[pageIndex]
+		const region = this.#textureRegion(pageIndex, side)
+		const steps = 32
+		let maxU = -Infinity,
+			maxV = -Infinity,
+			minU = Infinity,
+			minV = Infinity
+		let visible = 0
 
 		for (let i = 0; i <= steps; i++) {
-			const u = i / steps;
+			const u = i / steps
 			for (let j = 0; j <= steps; j++) {
-				const v = j / steps;
-				const point = sampleMeshPosition(mesh, u, v, side, region);
-				if (!point) continue;
-				const screen = projectWorldToScreen(point, vp.viewProj, vp.clientWidth, vp.clientHeight);
-				if (!screen) continue;
-				if (screen.x < 0 || screen.x > vp.clientWidth || screen.y < 0 || screen.y > vp.clientHeight) continue;
-				if (u < minU) minU = u;
-				if (v < minV) minV = v;
-				if (u > maxU) maxU = u;
-				if (v > maxV) maxV = v;
-				visible++;
+				const v = j / steps
+				const point = sampleMeshPosition(mesh, u, v, side, region)
+				if (!point) {
+					continue
+				}
+				const screen = projectWorldToScreen(point, vp.viewProj, vp.clientWidth, vp.clientHeight)
+				if (!screen) {
+					continue
+				}
+				if (screen.x < 0 || screen.x > vp.clientWidth || screen.y < 0 || screen.y > vp.clientHeight) {
+					continue
+				}
+				if (u < minU) {
+					minU = u
+				}
+				if (v < minV) {
+					minV = v
+				}
+				if (u > maxU) {
+					maxU = u
+				}
+				if (v > maxV) {
+					maxV = v
+				}
+				visible++
 			}
 		}
 
-		if (visible === 0) return null;
-		return [minU, minV, maxU - minU, maxV - minV];
+		if (visible === 0) {
+			return null
+		}
+		return [minU, minV, maxU - minU, maxV - minV]
 	}
 
 	#frame = (time: number): void => {
-		if (this.#lastTime === 0) this.#lastTime = time;
-		let dt = (time - this.#lastTime) / 1000;
-		if (dt <= 0) dt = 1 / 60;
-		if (dt > 1 / 30) dt = 1 / 30;
-		this.#lastTime = time;
+		if (this.#lastTime === 0) {
+			this.#lastTime = time
+		}
+		let dt = (time - this.#lastTime) / 1000
+		if (dt <= 0) {
+			dt = 1 / 60
+		}
+		if (dt > 1 / 30) {
+			dt = 1 / 30
+		}
+		this.#lastTime = time
 
-		this.#flipAnimator._update(dt, this.#meshes, this.#selectedPage, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
+		this.#flipAnimator._update(
+			dt,
+			this.#meshes,
+			this.#selectedPage,
+			this.#totalStackHeight,
+			this.#pageCount,
+			PAGE_THICKNESS,
+		)
 
-		const progress = new Float32Array(this.#pageCount);
+		const progress = new Float32Array(this.#pageCount)
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			progress[pi] = this.#flipAnimator._getPageProgress(pi);
+			progress[pi] = this.#flipAnimator._getPageProgress(pi)
 		}
 
-		this.#renderer._setFlipProgress(progress);
+		this.#renderer._setFlipProgress(progress)
 
-		const weightFactor = computeWeightFactor(progress, this.#pageCount);
+		const weightFactor = computeWeightFactor(progress, this.#pageCount)
 
-		this.#snapPassivePages(progress, weightFactor);
-		this.#snapHardCovers(progress, weightFactor);
-		this.#snapSettlingActivePages(progress, weightFactor);
+		this.#snapPassivePages(progress, weightFactor)
+		this.#snapHardCovers(progress, weightFactor)
+		this.#snapSettlingActivePages(progress, weightFactor)
 
 		for (let pi = 0; pi < this.#pageCount; pi++) {
 			if (this.#flipAnimator._isPageAnimating(pi)) {
-				this.#activePageSet.add(pi);
+				this.#activePageSet.add(pi)
 			}
 		}
 
 		if (this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating) {
-			this.#gotoDamping = false;
+			this.#gotoDamping = false
 		}
 
-		this.#dispatchPhysics(dt, progress);
-		this.#syncSolverResults();
-		this.#updateRenderBuffersForActivePages();
+		this.#dispatchPhysics(dt, progress)
+		this.#syncSolverResults()
+		this.#updateRenderBuffersForActivePages()
 
 		// A pending goto() has fully settled once the flip cascade has finished
 		// and no pages are still being animated/damped.
-		if (this.#gotoDone.length && !this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
-			const cbs = this.#gotoDone;
-			this.#gotoDone = [];
-			for (const cb of cbs) cb();
+		if (
+			this.#gotoDone.length > 0 &&
+			!this.#gotoDamping &&
+			!this.#gotoStepping &&
+			!this.#flipAnimator._animating &&
+			this.#activePageSet.size === 0
+		) {
+			const cbs = this.#gotoDone
+			this.#gotoDone = []
+			for (const cb of cbs) {
+				cb()
+			}
 		}
 		if (this.#iiifManager) {
-			this.#iiifManager._onFrame(time, this.#currentPage, this.#camera._radius);
+			this.#iiifManager._onFrame(time, this.#currentPage, this.#camera._radius)
 		}
-		this.#camera._update(dt);
-		this.#updateViewportClamp();
-		this.#renderer._render(this.#camera);
-		const drawn = this.#getDrawnImageBounds();
+		this.#camera._update(dt)
+		this.#updateViewportClamp()
+		this.#renderer._render(this.#camera)
+		const drawn = this.#getDrawnImageBounds()
 		if (this.#onViewChange && this.#camera._isMoving()) {
-			this.#onViewChange(drawn);
+			this.#onViewChange(drawn)
 		}
-		this.#lastDrawnImages = drawn;
+		this.#lastDrawnImages = drawn
 		if (this.#onDraw) {
-			this.#onDraw(drawn);
+			this.#onDraw(drawn)
 		}
 
-		const shouldContinue = (
+		const shouldContinue =
 			this.#activePageSet.size > 0 ||
 			this.#flipAnimator._animating ||
-			(this.#inputHandler && this.#inputHandler._operation !== 'none') ||
+			(this.#inputHandler !== undefined && this.#inputHandler._operation !== 'none') ||
 			this.#renderer._isLightingAnimated() ||
 			this.#camera._isMoving()
-		);
 
 		if (shouldContinue) {
-			this.#requestFrame();
+			this.#requestFrame()
 		}
-	};
+	}
 
 	#syncSolverResults(): void {
-		if (!isSolverReady()) return;
+		if (!isSolverReady()) {
+			return
+		}
 
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			if (!this.#activePageSet.has(pi)) continue;
-			if (this.#flipAnimator._isPageAnimating(pi) || this.#flipAnimator._isPageDragging(pi)) continue;
+			if (!this.#activePageSet.has(pi)) {
+				continue
+			}
+			if (this.#flipAnimator._isPageAnimating(pi) || this.#flipAnimator._isPageDragging(pi)) {
+				continue
+			}
 
-			const pos = this.#meshes[pi]._positions;
-			const prev = this.#prevPositions[pi];
-			let maxDelta = 0;
+			const pos = this.#meshes[pi]._positions
+			const prev = this.#prevPositions[pi]
+			let maxDelta = 0
 			for (let i = 0; i < pos.length; i++) {
-				const d = Math.abs(pos[i] - prev[i]);
-				if (d > maxDelta) maxDelta = d;
+				const d = Math.abs(pos[i] - prev[i])
+				if (d > maxDelta) {
+					maxDelta = d
+				}
 			}
 			if (maxDelta < DELTA_IDLE_THRESHOLD) {
-				this.#activePageSet.delete(pi);
+				this.#activePageSet.delete(pi)
 			}
 		}
 
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			this.#prevPositions[pi].set(this.#meshes[pi]._positions);
+			this.#prevPositions[pi].set(this.#meshes[pi]._positions)
 		}
-
-		this.#solveCount++;
 	}
 
 	#snapPageSpineY(pi: number, targetY: number, updateRenderer: boolean, updatePrev: boolean): void {
-		const m = this.#meshes[pi];
-		const delta = targetY - m._positions[1];
-		if (Math.abs(delta) <= 0.0001) return;
+		const m = this.#meshes[pi]
+		const delta = targetY - m._positions[1]
+		if (Math.abs(delta) <= 0.0001) {
+			return
+		}
 
-		applySpineDelta(m._positions, delta);
+		applySpineDelta(m._positions, delta)
 
-		if (updatePrev && this.#prevPositions[pi]) {
-			applySpineDelta(this.#prevPositions[pi], delta);
+		if (updatePrev && this.#prevPositions[pi] !== undefined) {
+			applySpineDelta(this.#prevPositions[pi], delta)
 		}
 		if (updateRenderer) {
-			this.#renderer._updateVertexBuffer(pi, m);
-			this.#renderer._updateNormalBuffer(pi, m);
+			this.#renderer._updateVertexBuffer(pi, m)
+			this.#renderer._updateNormalBuffer(pi, m)
 		}
 	}
 
 	#snapPassivePages(progress: Float32Array, weightFactor: number): void {
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			if (this.#activePageSet.has(pi)) continue;
-			if (this.#flipAnimator._isPageAnimating(pi)) continue;
-			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) continue;
+			if (this.#activePageSet.has(pi)) {
+				continue
+			}
+			if (this.#flipAnimator._isPageAnimating(pi)) {
+				continue
+			}
+			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) {
+				continue
+			}
 
-			const targetY = computePageSpineY(pi, progress[pi], weightFactor, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
-			this.#snapPageSpineY(pi, targetY, true, true);
+			const targetY = computePageSpineY(
+				pi,
+				progress[pi],
+				weightFactor,
+				this.#totalStackHeight,
+				this.#pageCount,
+				PAGE_THICKNESS,
+			)
+			this.#snapPageSpineY(pi, targetY, true, true)
 		}
 	}
 
 	#snapHardCovers(progress: Float32Array, weightFactor: number): void {
-		if (!this.#hardCover) return;
+		if (!this.#hardCover) {
+			return
+		}
 		for (const pi of this.#flipAnimator._hardCoverPages) {
-			const targetY = computePageSpineY(pi, progress[pi], weightFactor, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
-			this.#snapPageSpineY(pi, targetY, true, false);
+			const targetY = computePageSpineY(
+				pi,
+				progress[pi],
+				weightFactor,
+				this.#totalStackHeight,
+				this.#pageCount,
+				PAGE_THICKNESS,
+			)
+			this.#snapPageSpineY(pi, targetY, true, false)
 		}
 	}
 
 	#snapSettlingActivePages(progress: Float32Array, weightFactor: number): void {
 		for (let pi = 0; pi < this.#pageCount; pi++) {
-			if (!this.#activePageSet.has(pi)) continue;
-			if (this.#flipAnimator._isPageAnimating(pi)) continue;
-			if (this.#flipAnimator._isPageDragging(pi)) continue;
-			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) continue;
+			if (!this.#activePageSet.has(pi)) {
+				continue
+			}
+			if (this.#flipAnimator._isPageAnimating(pi)) {
+				continue
+			}
+			if (this.#flipAnimator._isPageDragging(pi)) {
+				continue
+			}
+			if (this.#hardCover && this.#flipAnimator._hardCoverPages.has(pi)) {
+				continue
+			}
 
-			const targetY = computePageSpineY(pi, progress[pi], weightFactor, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
-			this.#snapPageSpineY(pi, targetY, false, true);
+			const targetY = computePageSpineY(
+				pi,
+				progress[pi],
+				weightFactor,
+				this.#totalStackHeight,
+				this.#pageCount,
+				PAGE_THICKNESS,
+			)
+			this.#snapPageSpineY(pi, targetY, false, true)
 		}
 	}
 
 	#dispatchPhysics(dt: number, progress: Float32Array): void {
-		if (!isSolverReady()) return;
+		if (!isSolverReady()) {
+			return
+		}
 
-		const activeIndices = Array.from(this.#activePageSet);
-		if (activeIndices.length === 0) return;
+		const activeIndices = Array.from(this.#activePageSet)
+		if (activeIndices.length === 0) {
+			return
+		}
 
-		const subDt = dt / this.#solverSettings._substeps;
-		this.#solverSettings._damping = this.#gotoDamping ? GOTO_DAMPING : DAMPING;
-		dispatchSolve(subDt, activeIndices, this.#solverSettings._substeps, this.#solverSettings, this.#meshes, progress, this.#totalStackHeight, this.#pageCount, PAGE_THICKNESS);
+		const subDt = dt / this.#solverSettings._substeps
+		this.#solverSettings._damping = this.#gotoDamping ? GOTO_DAMPING : DAMPING
+		dispatchSolve(
+			subDt,
+			activeIndices,
+			this.#solverSettings._substeps,
+			this.#solverSettings,
+			this.#meshes,
+			progress,
+			this.#totalStackHeight,
+			this.#pageCount,
+			PAGE_THICKNESS,
+		)
 	}
 
 	#updateRenderBuffersForActivePages(): void {
 		for (const pi of this.#activePageSet) {
-			this.#renderer._updateVertexBuffer(pi, this.#meshes[pi]);
-			this.#renderer._updateNormalBuffer(pi, this.#meshes[pi]);
+			this.#renderer._updateVertexBuffer(pi, this.#meshes[pi])
+			this.#renderer._updateNormalBuffer(pi, this.#meshes[pi])
 		}
 	}
 
 	#updateViewportClamp(): void {
-		const near = 0.1;
-		const far = 50.0;
-		const canvasSize = this.#renderer._getCanvasSize();
-		const proj = new Mat4();
-		proj._perspective(Math.PI * 0.25, canvasSize.width / Math.max(1, canvasSize.height), near, far);
-		const view = this.#camera._getViewMatrix();
+		const near = 0.1
+		const far = 50
+		const canvasSize = this.#renderer._getCanvasSize()
+		const proj = new Mat4()
+		proj._perspective(Math.PI * 0.25, canvasSize.width / Math.max(1, canvasSize.height), near, far)
+		const view = this.#camera._getViewMatrix()
 		// $render/mat's Mat4._multiply(o) computes `this = o·this`, so build
 		// `proj·view` by copying the view first, then multiplying by proj.
-		const viewProj = new Mat4();
-		viewProj._copy(view);
-		viewProj._multiply(proj);
-		const screenBounds = this.#renderer._getBoundingBoxScreenBounds(viewProj);
+		const viewProj = new Mat4()
+		viewProj._copy(view)
+		viewProj._multiply(proj)
+		const screenBounds = this.#renderer._getBoundingBoxScreenBounds(viewProj)
 		if (screenBounds) {
-			const margin = Math.min(canvasSize.width, canvasSize.height) * VIEWPORT_MARGIN_PCT;
-			this.#camera._clampViewport(screenBounds, canvasSize.width, canvasSize.height, margin);
+			const margin = Math.min(canvasSize.width, canvasSize.height) * VIEWPORT_MARGIN_PCT
+			this.#camera._clampViewport(screenBounds, canvasSize.width, canvasSize.height, margin)
 		}
 	}
 
 	async #loadPageTextures(images: Models.ImageInfo.ImageInfo[]): Promise<void> {
-		const pageCnt = Math.ceil(images.length / 2);
+		const pageCnt = Math.ceil(images.length / 2)
 
-		const pagePromises: Promise<void>[] = [];
+		const pagePromises: Promise<void>[] = []
 		for (let p = 0; p < pageCnt; p++) {
-			const frontImg = images[p * 2];
-			const backImg = images[p * 2 + 1];
+			const frontImg = images[p * 2]
+			const backImg = images[p * 2 + 1]
 
-			pagePromises.push((async () => {
-				try {
-					const frontBitmap = await archive._getImageById(frontImg.id);
-					const backBitmap = backImg ? await archive._getImageById(backImg.id) : frontBitmap;
-					this.#renderer._setPageTextures(p, frontBitmap, backBitmap);
-				} catch (err) {
-					console.warn(`Failed to load textures for page ${p}:`, err);
-				}
-			})());
+			pagePromises.push(
+				(async () => {
+					try {
+						const frontBitmap = await archive._getImageById(frontImg.id)
+						const backBitmap = backImg !== undefined ? await archive._getImageById(backImg.id) : frontBitmap
+						this.#renderer._setPageTextures(p, frontBitmap, backBitmap)
+					} catch (err) {
+						console.warn(`Failed to load textures for page ${p}:`, err)
+					}
+				})(),
+			)
 		}
 
-		await Promise.all(pagePromises);
+		await Promise.all(pagePromises)
 	}
 }

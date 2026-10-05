@@ -1,28 +1,26 @@
-import { createElement } from '$utils/dom';
-import { MicrioElement } from '$core/component';
+import { createElement } from '$utils/dom'
+import { MicrioElement } from '$core/component'
 
 /** Props for the error display element @internal */
 export interface ErrorProps {
 	/** The error message to show */
-	message?: string;
+	message?: string
 }
-import './error.css';
+import './error.css'
 
 /** Custom element displaying an error message */
 class MicrioError extends MicrioElement<ErrorProps> {
 	/** The custom element tag name @internal */
-	static tag = 'micrio-error';
+	static tag = 'micrio-error'
 
 	/** @internal */
 	protected _render() {
-		this.replaceChildren();
+		this.replaceChildren()
 		createElement('div', {
 			parent: this,
-			children: [
-				createElement('span', { textContent: this._props.message ?? 'An unknown error has occurred' })
-			]
-		});
+			children: [createElement('span', { textContent: this._props.message ?? 'An unknown error has occurred' })],
+		})
 	}
 }
 
-customElements.define(MicrioError.tag, MicrioError);
+customElements.define(MicrioError.tag, MicrioError)

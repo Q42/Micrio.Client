@@ -4,11 +4,11 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { YouTubePlayer } from '$types/externals';
-import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from '$types/media';
-import { loadExternalAPI } from '$utils/dom';
+import type { YouTubePlayer } from '$types/externals'
+import type { MediaPlayerAdapter, PlayerEventCallbacks, PlayerConfig } from '$types/media'
+import { loadExternalAPI } from '$utils/dom'
 
-const YOUTUBE_HOST = 'https://www.youtube-nocookie.com';
+const YOUTUBE_HOST = 'https://www.youtube-nocookie.com'
 
 /** YouTube player state constants */
 const YT_STATE = {
@@ -18,120 +18,136 @@ const YT_STATE = {
 	PAUSED: 2,
 	BUFFERING: 3,
 	CUED: 5,
-} as const;
+} as const
 
 /**
  * Adapter for YouTube IFrame Player API.
  * @internal
  */
 export class YouTubePlayerAdapter implements MediaPlayerAdapter {
-	#player: YouTubePlayer | undefined;
-	#destroyed = false;
+	#player: YouTubePlayer | undefined
+	#destroyed = false
 
-	#frame: HTMLIFrameElement;
-	#config: PlayerConfig;
-	#callbacks: PlayerEventCallbacks;
+	#frame: HTMLIFrameElement
+	#config: PlayerConfig
+	#callbacks: PlayerEventCallbacks
 
-	constructor(
-		frame: HTMLIFrameElement,
-		config: PlayerConfig,
-		callbacks: PlayerEventCallbacks = {}
-	) {
-		this.#frame = frame;
-		this.#config = config;
-		this.#callbacks = callbacks;
+	constructor(frame: HTMLIFrameElement, config: PlayerConfig, callbacks: PlayerEventCallbacks = {}) {
+		this.#frame = frame
+		this.#config = config
+		this.#callbacks = callbacks
 	}
 
 	/**
 	 * Loads the YouTube API and initializes the player.
 	 */
 	async initialize(): Promise<void> {
-		await loadExternalAPI('YT', 'https://r2.micr.io/youtube.js', 'onYouTubeIframeAPIReady');
+		await loadExternalAPI('YT', 'https://r2.micr.io/youtube.js', 'onYouTubeIframeAPIReady')
+
+		const { YT } = globalThis
+		if (!YT) {
+			throw new Error('YouTube IFrame Player API failed to load')
+		}
 
 		return new Promise((resolve, reject) => {
-			// @ts-ignore - YT is loaded dynamically
-			this.#player = new window['YT']['Player'](this.#frame, {
+			this.#player = new YT['Player'](this.#frame, {
 				host: YOUTUBE_HOST,
 				width: this.#config.width.toString(),
 				height: this.#config.height.toString(),
 				playerVars: { controls: 0 },
 				events: {
 					onError: () => {
-						this.#callbacks.onError?.(new Error('YouTube player error'));
-						reject(new Error('YouTube player error'));
+						this.#callbacks.onError?.(new Error('YouTube player error'))
+						reject(new Error('YouTube player error'))
 					},
 					onReady: () => {
 						if (this.#destroyed) {
-							reject(new Error('Player destroyed during initialization'));
-							return;
+							reject(new Error('Player destroyed during initialization'))
+							return
 						}
-						this.#callbacks.onReady?.();
-						this.#callbacks.onDurationChange?.(this.#player!.getDuration());
-						resolve();
+						this.#callbacks.onReady?.()
+						const player = this.#player
+						if (player) {
+							this.#callbacks.onDurationChange?.(player.getDuration())
+						}
+						resolve()
 					},
-					onStateChange: (e: {data: number}) => this.#handleStateChange(e.data),
+					onStateChange: (e: { data: number }) => {
+						this.#handleStateChange(e.data)
+					},
 				},
-			});
-		});
+			})
+		})
 	}
 
 	#handleStateChange(state: number): void {
 		switch (state) {
-			case YT_STATE.UNSTARTED:
-				this.#callbacks.onBlocked?.();
-				this.#callbacks.onPause?.();
-				break;
-			case YT_STATE.ENDED:
-				this.#callbacks.onEnded?.();
-				break;
-			case YT_STATE.PLAYING:
-				this.#callbacks.onPlay?.();
-				this.#callbacks.onSeeked?.();
-				break;
-			case YT_STATE.PAUSED:
-				this.#callbacks.onPause?.();
-				break;
-			case YT_STATE.BUFFERING:
-				this.#callbacks.onBuffering?.();
-				this.#callbacks.onSeeking?.();
-				break;
+			case YT_STATE.UNSTARTED: {
+				this.#callbacks.onBlocked?.()
+				this.#callbacks.onPause?.()
+				break
+			}
+			case YT_STATE.ENDED: {
+				this.#callbacks.onEnded?.()
+				break
+			}
+			case YT_STATE.PLAYING: {
+				this.#callbacks.onPlay?.()
+				this.#callbacks.onSeeked?.()
+				break
+			}
+			case YT_STATE.PAUSED: {
+				this.#callbacks.onPause?.()
+				break
+			}
+			case YT_STATE.BUFFERING: {
+				this.#callbacks.onBuffering?.()
+				this.#callbacks.onSeeking?.()
+				break
+			}
 		}
 	}
 
-	async play(): Promise<void> {
-		this.#player?.playVideo();
+	play(): Promise<void> {
+		this.#player?.playVideo()
+		return Promise.resolve()
 	}
 
 	pause(): void {
 		if (!this.#destroyed) {
-			this.#player?.pauseVideo?.();
+			this.#player?.pauseVideo?.()
 		}
 	}
 
-	async getCurrentTime(): Promise<number> {
-		return this.#player?.getCurrentTime?.() ?? 0;
+	getCurrentTime(): Promise<number> {
+		return Promise.resolve(this.#player?.getCurrentTime?.() ?? 0)
 	}
 
 	setCurrentTime(time: number): void {
-		this.#callbacks.onSeeking?.();
-		this.#player?.seekTo?.(time);
+		this.#callbacks.onSeeking?.()
+		this.#player?.seekTo?.(time)
 	}
 
-	async getDuration(): Promise<number> {
-		return this.#player?.getDuration?.() ?? 0;
+	getDuration(): Promise<number> {
+		return Promise.resolve(this.#player?.getDuration?.() ?? 0)
 	}
 
-	async isPaused(): Promise<boolean> {
-		if (!this.#player) return true;
-		const state = this.#player.getPlayerState?.();
-		return state === undefined || ([YT_STATE.UNSTARTED, YT_STATE.ENDED, YT_STATE.PAUSED, YT_STATE.CUED] as number[]).includes(state);
+	isPaused(): Promise<boolean> {
+		if (!this.#player) {
+			return Promise.resolve(true)
+		}
+		const state = this.#player.getPlayerState?.()
+		return Promise.resolve(
+			state === undefined ||
+				([YT_STATE.UNSTARTED, YT_STATE.ENDED, YT_STATE.PAUSED, YT_STATE.CUED] as number[]).includes(state),
+		)
 	}
 
 	setMuted(muted: boolean): void {
 		if (muted) {
-			this.#player?.mute?.();
+			this.#player?.mute?.()
 		} else {
-			this.#player?.unMute?.();
+			this.#player?.unMute?.()
 		}
 	}
 
@@ -141,8 +157,8 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 	}
 
 	destroy(): void {
-		this.#destroyed = true;
-		this.#player?.destroy?.();
-		this.#player = undefined;
+		this.#destroyed = true
+		this.#player?.destroy?.()
+		this.#player = undefined
 	}
 }

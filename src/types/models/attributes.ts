@@ -5,94 +5,94 @@ export namespace Attributes {
 	 * - `'true'`: force all GL-capable embeds into WebGL.
 	 * - `'false'`: force all embeds to be rendered as HTML.
 	 */
-	export type EmbedGLMode = 'auto' | 'true' | 'false';
+	export type EmbedGLMode = 'auto' | 'true' | 'false'
 
 	export interface MicrioCustomAttributes {
 		// General settings
 		/** The image ID */
-		'id'?: string;
+		id?: string
 		/** The data language code to use. Default: 'en' */
-		'lang'?: string;
+		lang?: string
 		/** For custom hosted Micrio images, specify the root URL. Default: Based on image */
-		'data-path'?: string;
+		'data-path'?: string
 		/** Set this to 'cover' to start the image using the full viewport. Default: undefined */
-		'data-inittype'?: string;
+		'data-inittype'?: string
 		/** The user cannot zoom out further than the full viewport. Default: undefined */
-		'data-coverlimit'?: boolean;
+		'data-coverlimit'?: boolean
 		/** Only start loading the image when it's been scrolled into the user's view. Default: false */
-		'lazyload'?: boolean;
+		lazyload?: boolean
 		/** Do not load any metadata (markers, tours, etc). Default: false */
-		'data-skipmeta'?: boolean;
+		'data-skipmeta'?: boolean
 		/** Simulate an <img/> element. No logo, loader bar, and no event listeners. Default: false */
-		'data-static'?: boolean;
+		'data-static'?: boolean
 
 		// Camera controls
 		/** Set the speed factor for camera animations. Default: 1 */
-		'data-camspeed'?: number;
+		'data-camspeed'?: number
 		/** Can pan outside the image's limits. Default: false */
-		'data-freemove'?: boolean;
+		'data-freemove'?: boolean
 		/** Set the percentage (1=100%) of how far a user can zoom in. Default: 1 */
-		'data-zoomlimit'?: number;
+		'data-zoomlimit'?: number
 		/** Set the initial viewport rectangle of the image. Default: [0,0,1,1] */
-		'data-view'?: number[];
+		'data-view'?: number[]
 		/** Set focus point of the image, treated as the center in case of image overflows. Default: [0.5, 0.5] */
-		'data-focus'?: number[];
+		'data-focus'?: number[]
 		/** Keep drawing frames, even if there is no movement. Default: false */
-		'data-keeprendering'?: boolean;
+		'data-keeprendering'?: boolean
 		/** When turned off, high DPI screens will have its zoom limited to visually 100% of pixel size. Default: true */
-		'data-normalize-dpr'?: boolean;
+		'data-normalize-dpr'?: boolean
 
 		// User input
 		/** No event handlers will be set up, and the image will be non-interactive. Default: true */
-		'data-events'?: boolean;
+		'data-events'?: boolean
 		/** Use your keyboard to navigate through the image. Default: false */
-		'data-keys'?: boolean;
+		'data-keys'?: boolean
 		/** Use trackpad/touchscreen pinching for zooming. Default: true */
-		'data-pinch-zoom'?: boolean;
+		'data-pinch-zoom'?: boolean
 		/** Use mousewheel/trackpad scrolling for zooming. Default: true */
-		'data-scroll-zoom'?: boolean;
+		'data-scroll-zoom'?: boolean
 		/** The user must press CTRL/CMD when zooming with the mousewheel. Default: false */
-		'data-control-zoom'?: boolean;
+		'data-control-zoom'?: boolean
 		/** Requires the user to use two fingers to pan the image on touch devices. Default: false */
-		'data-two-finger-pan'?: boolean;
+		'data-two-finger-pan'?: boolean
 		/** The user cannot zoom at all. Default: true */
-		'data-zooming'?: boolean;
+		'data-zooming'?: boolean
 		/** Use dragging and touch events for panning. Default: true */
-		'data-dragging'?: boolean;
+		'data-dragging'?: boolean
 
 		// User interface
 		/** No HTML UI elements will be printed. Default: true */
-		'data-ui'?: boolean;
+		'data-ui'?: boolean
 		/** No control buttons will be printed. Default: true */
-		'data-controls'?: boolean;
+		'data-controls'?: boolean
 		/** Show a fullscreen switching button on supported platforms. Default: true */
-		'data-fullscreen'?: boolean;
+		'data-fullscreen'?: boolean
 		/** Show a social sharing link menu. Default: false */
-		'data-social'?: boolean;
+		'data-social'?: boolean
 		/** The Micrio logo is displayed. Default: true */
-		'data-logo'?: boolean;
+		'data-logo'?: boolean
 		/** The optional Organisation logo (top right) will be hidden. Default: true */
-		'data-logo-org'?: boolean;
+		'data-logo-org'?: boolean
 		/** No top menu bar will be printed. Default: true */
-		'data-toolbar'?: boolean;
+		'data-toolbar'?: boolean
 		/** Show an image info panel with the title and description. Default: false */
-		'data-show-info'?: boolean;
+		'data-show-info'?: boolean
 		/** An interactive minimap will be shown. Default: false */
-		'data-minimap'?: boolean;
+		'data-minimap'?: boolean
 		/** The minimap will always be visible. Default: true */
-		'data-minimap-hide'?: boolean;
+		'data-minimap-hide'?: boolean
 		/** The minimap height in pixels. Default: 160 */
-		'data-minimap-height'?: number;
+		'data-minimap-height'?: number
 		/** The minimap width in pixels. Default: 200 */
-		'data-minimap-width'?: number;
+		'data-minimap-width'?: number
 
 		// Audio
 		/** All audio will be disabled if this attribute is present. */
-		'muted'?: boolean;
+		muted?: boolean
 		/** The general sound volume for music/sfx (between 0 and 1). Default: 1 */
-		'volume'?: number;
+		volume?: number
 		/** Fade music to this volume while other audio plays (between 0 and 1). Default: 0 */
-		'data-mutedvolume'?: number;
+		'data-mutedvolume'?: number
 
 		// Embeds
 		/** How embedded images/videos are rendered. `'auto'` (default, same as omitting
@@ -102,15 +102,15 @@ export namespace Attributes {
 		 * HTML `<img>`, and non-HDR videos); embeds that WebGL cannot represent
 		 * (iframes, src-only images, videos with controls or alpha transparency) still
 		 * fall back to HTML. `'false'` forces every embed to be rendered as HTML. */
-		'data-embeds-inside-gl'?: EmbedGLMode;
+		'data-embeds-inside-gl'?: EmbedGLMode
 
 		// Specific technical settings
 		/** Toggle limited rendering mode in WebAssembly. */
-		'data-limited'?: boolean;
+		'data-limited'?: boolean
 		/** While the native browser context menu is open, temporarily size the canvas to
 		 * the area the image is actually drawn on, so that its "Copy image" item copies the
 		 * image without transparent padding. Requires `data-preserve-drawing-buffer`.
 		 * Default: false */
-		'data-contextmenu-crop'?: boolean;
+		'data-contextmenu-crop'?: boolean
 	}
 }

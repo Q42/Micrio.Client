@@ -1,99 +1,141 @@
-import { MicrioElement } from '$core/component';
-import { get, writable } from '$core/store';
-import type { Models } from '$types/models';
+import { MicrioElement } from '$core/component'
+import { get, writable } from '$core/store'
+import type { Models } from '$types/models'
 
-const CAPTIONS_KEY = 'micrio-captions-disable';
+const CAPTIONS_KEY = 'micrio-captions-disable'
 
 /** Writable store indicating whether captions/subtitles are enabled. Persisted to localStorage. @internal */
-export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) != '1');
+export const captionsEnabled = writable<boolean>(localStorage.getItem(CAPTIONS_KEY) !== '1')
 
-captionsEnabled.subscribe(b => {
-	if (b) localStorage.removeItem(CAPTIONS_KEY);
-	else localStorage.setItem(CAPTIONS_KEY, '1');
-});
+captionsEnabled.subscribe((b) => {
+	if (b) {
+		localStorage.removeItem(CAPTIONS_KEY)
+	} else {
+		localStorage.setItem(CAPTIONS_KEY, '1')
+	}
+})
 
 /** Props for the subtitles overlay component. @internal */
 export interface SubtitlesProps {
-	src?: string;
-	mediaEl?: HTMLElement;
+	src?: string
+	mediaEl?: HTMLElement
 }
-import './subtitles.css';
+import './subtitles.css'
 
 /** Custom element that fetches and renders VTT subtitles synchronized with media playback. */
 class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	/* @internal */
-	static tag = 'micrio-subtitles';
+	static tag = 'micrio-subtitles'
 
-	#props: SubtitlesProps = {};
-	#cues: Models.ImageData.Event[] = [];
-	#currentTime = 0;
-	#currentCue: Models.ImageData.Event | undefined;
-	#cleanup: (() => void) | undefined;
+	#props: SubtitlesProps = {}
+	#cues: Models.ImageData.Event[] = []
+	#currentTime = 0
+	#currentCue: Models.ImageData.Event | undefined
+	#cleanup: (() => void) | undefined
 
 	/** @internal */
 	_onMount() {
-		this.#cleanup = captionsEnabled.subscribe(() => this.#renderCue());
+		this.#cleanup = captionsEnabled.subscribe(() => {
+			this.#renderCue()
+		})
 
-		const el = (this.#props.mediaEl?.querySelector('video,audio') as HTMLMediaElement)
-			|| (this.#props.mediaEl instanceof HTMLMediaElement ? this.#props.mediaEl : undefined);
+		const found = this.#props.mediaEl?.querySelector('video,audio')
+		let el: HTMLMediaElement | undefined
+		if (found instanceof HTMLMediaElement) {
+			el = found
+		} else if (this.#props.mediaEl instanceof HTMLMediaElement) {
+			el = this.#props.mediaEl
+		}
 		if (el) {
-			const onTime = () => { this.#currentTime = el.currentTime; this.#renderCue(); };
-			el.addEventListener('timeupdate', onTime);
-			const prev = this.#cleanup;
-			this.#cleanup = () => { prev?.(); el.removeEventListener('timeupdate', onTime); };
+			const onTime = () => {
+				this.#currentTime = el.currentTime
+				this.#renderCue()
+			}
+			el.addEventListener('timeupdate', onTime)
+			const prev = this.#cleanup
+			this.#cleanup = () => {
+				prev?.()
+				el.removeEventListener('timeupdate', onTime)
+			}
 		}
 
-		if (this.#props.src) this.#update();
+		if (this.#props.src) {
+			this.#update()
+		}
 	}
 
 	/** @internal */
 	_setProps(props: Partial<SubtitlesProps>) {
-		const srcChanged = props.src !== undefined && props.src !== this.#props.src;
-		Object.assign(this.#props, props);
-		if (srcChanged && this.isConnected) this.#update();
+		const srcChanged = props.src !== undefined && props.src !== this.#props.src
+		Object.assign(this.#props, props)
+		if (srcChanged && this.isConnected) {
+			this.#update()
+		}
 	}
 
 	#update() {
-		if (!this.#props.src) { this.replaceChildren(); return; }
+		if (!this.#props.src) {
+			this.replaceChildren()
+			return
+		}
 
-		this.#cues = [];
-		fetch(this.#props.src).then(r => r.text()).then(txt => {
-			const s = txt.split('\n');
-			const cues: Models.ImageData.Event[] = [];
-			for(let l=0; l<s.length; l++) {
-				if(/-->/.test(s[l])) {
-					let idx = l+1;
-					const lines: string[] = [];
-					while(!s[idx] && idx < s.length) idx++;
-					while(s[idx] && s[idx].trim()) lines.push(s[idx++]);
-					const [start,end] = s[l].split(' --> ')
-						.map(t => t.trim().replace(',','.').split(':').map(Number))
-						.map(v => {
-							if(v.length === 3) return v[0]*3600+v[1]*60+v[2];
-							else if(v.length === 2) return v[0]*60+v[1];
-							else return 0;
-						});
-					cues.push({start, end, data: lines.join('\n')});
-					l+=lines.length+1;
+		this.#cues = []
+		fetch(this.#props.src)
+			.then((r) => r.text())
+			.then((txt) => {
+				const s = txt.split('\n')
+				const cues: Models.ImageData.Event[] = []
+				for (let l = 0; l < s.length; l++) {
+					if (/-->/.test(s[l])) {
+						let idx = l + 1
+						const lines: string[] = []
+						while (!s[idx] && idx < s.length) {
+							idx++
+						}
+						while (s[idx] && s[idx].trim()) {
+							lines.push(s[idx++])
+						}
+						const [start, end] = s[l]
+							.split(' --> ')
+							.map((t) => t.trim().replace(',', '.').split(':').map(Number))
+							.map((v) => {
+								if (v.length === 3) {
+									return v[0] * 3600 + v[1] * 60 + v[2]
+								} else if (v.length === 2) {
+									return v[0] * 60 + v[1]
+								}
+								return 0
+							})
+						cues.push({ start, end, data: lines.join('\n') })
+						l += lines.length + 1
+					}
 				}
-			}
-			this.#cues = cues;
-			this.#renderCue();
-		}).catch(err => console.error('micrio-subtitles: fetch error:', err));
+				this.#cues = cues
+				this.#renderCue()
+			})
+			.catch((err) => {
+				console.error('micrio-subtitles: fetch error:', err)
+			})
 	}
 
 	#renderCue() {
-		if (!get(captionsEnabled) || !this.#cues.length) { this.replaceChildren(); this.#currentCue = undefined; return; }
-		const cue = this.#cues.find(e => e.start <= this.#currentTime && e.end >= this.#currentTime);
-		if (cue === this.#currentCue) return;
-		this.#currentCue = cue;
-		this.innerHTML = cue ? `<p>${cue.data}</p>` : '';
+		if (!get(captionsEnabled) || this.#cues.length === 0) {
+			this.replaceChildren()
+			this.#currentCue = undefined
+			return
+		}
+		const cue = this.#cues.find((e) => e.start <= this.#currentTime && e.end >= this.#currentTime)
+		if (cue === this.#currentCue) {
+			return
+		}
+		this.#currentCue = cue
+		this.innerHTML = cue ? `<p>${cue.data}</p>` : ''
 	}
 
 	/** @internal */
 	_onDestroy() {
-		this.#cleanup?.();
+		this.#cleanup?.()
 	}
 }
 
-customElements.define(MicrioSubtitles.tag, MicrioSubtitles);
+customElements.define(MicrioSubtitles.tag, MicrioSubtitles)

@@ -1,44 +1,43 @@
-
-micrio-embed > :is(a,div) {
+micrio-embed > :is(a, div) {
 	position: absolute;
 	display: block;
 	top: 0;
 	left: 0;
-	transform: translate3d(calc(var(--x,0) - 50%),calc(var(--y,0) - 50%),0) scale3d(var(--s),var(--s),1);
-	opacity: var(--opacity,1);
+	transform: translate3d(calc(var(--x, 0) - 50%), calc(var(--y, 0) - 50%), 0) scale3d(var(--s), var(--s), 1);
+	opacity: var(--opacity, 1);
 	direction: ltr;
-	will-change: transform,opacity;
+	will-change: transform, opacity;
 }
-micrio-embed > :is(a,div).embed3d {
+micrio-embed > :is(a, div).embed3d {
 	top: 50%;
 	left: 50%;
 }
-micrio-embed > :is(a,div).no-events {
+micrio-embed > :is(a, div).no-events {
 	pointer-events: none;
 }
-micrio-embed > :is(a,div).hide-when-paused {
-	transition: opacity .25s;
+micrio-embed > :is(a, div).hide-when-paused {
+	transition: opacity 0.25s;
 }
-micrio-embed > :is(a,div).hide-when-paused:has(figure.paused) {
+micrio-embed > :is(a, div).hide-when-paused:has(figure.paused) {
 	opacity: 0;
 }
-micrio-embed > :is(a,div).inactive {
+micrio-embed > :is(a, div).inactive {
 	opacity: 0;
 	pointer-events: none;
 }
-micrio-embed > :is(a,div) > * {
+micrio-embed > :is(a, div) > * {
 	position: absolute;
 	margin: 0;
-	transform: translate3d(-50%,-50%,0) scale3d(var(--scale,1),var(--scale,1),1);
+	transform: translate3d(-50%, -50%, 0) scale3d(var(--scale, 1), var(--scale, 1), 1);
 	cursor: pointer;
 }
-micrio-embed > :is(a,div) > *:not(button) {
+micrio-embed > :is(a, div) > *:not(button) {
 	width: auto !important;
 }
-micrio-embed > :is(a,div) > img {
+micrio-embed > :is(a, div) > img {
 	max-width: none;
 }
-micrio-embed > :is(a,div) > button {
+micrio-embed > :is(a, div) > button {
 	--scale: 1;
 	--ratio: 1;
 	padding: 0;
@@ -48,6 +47,6 @@ micrio-embed > :is(a,div) > button {
 	width: 100px;
 	aspect-ratio: var(--ratio);
 }
-micrio-embed > :is(a,div) > :is(button,img) {
+micrio-embed > :is(a, div) > :is(button, img) {
 	touch-action: none;
 }

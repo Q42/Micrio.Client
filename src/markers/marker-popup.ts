@@ -1,144 +1,172 @@
-import { MicrioElement } from '$core/component';
-import type { Models } from '$types/models';
-import type { MicrioTour } from '$tour/tour';
-import { get } from '$core/store';
-import { Frame } from '$core/frame';
-import { i18n } from '$core/i18n/strings';
-import { afterFrame, createElement } from '$utils/dom';
-import '$ui/button';
-import '$ui/button-group';
-import './marker-content';
+import { MicrioElement } from '$core/component'
+import type { Models } from '$types/models'
+import { get } from '$core/store'
+import { Frame } from '$core/frame'
+import { i18n } from '$core/i18n/strings'
+import { afterFrame, createElement } from '$utils/dom'
+import '$ui/button'
+import '$ui/button-group'
+import './marker-content'
 
 /** Props for the marker popup overlay element. @internal */
 export interface MarkerPopupProps {
 	/** The marker data to display in the popup. */
-	marker: Models.ImageData.Marker;
+	marker: Models.ImageData.Marker
 }
-import './marker-popup.css';
+import './marker-popup.css'
 
 /** Custom element rendering a marker's popup overlay with close, minimize, and tour navigation controls. */
 class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	/** HTML tag name for this custom element. @internal */
-	static tag = 'micrio-marker-popup';
+	static tag = 'micrio-marker-popup'
 
-	#props: MarkerPopupProps = { marker: null! };
-	#content!: HTMLElement;
-	#title!: HTMLElement;
-	#isMinimized = false;
-	#destroying = false;
-	#clickedPrevNext = false;
-	#originalHeights = new WeakMap<HTMLElement, number>();
+	#props: Partial<MarkerPopupProps> = {}
+	#content!: HTMLElement
+	#title!: HTMLElement
+	#isMinimized = false
+	#destroying = false
+	#clickedPrevNext = false
+	#originalHeights = new WeakMap<HTMLElement, number>()
 
 	/** @internal */
 	_onMount() {
-		const { marker } = this.#props;
-		const micrio = this._getMicrio();
-		if (!micrio || !marker) return;
+		const { marker } = this.#props
+		const micrio = this._getMicrio()
+		if (!micrio || !marker) {
+			return
+		}
 
-		marker.tags?.forEach(c => this.classList.add(c));
-		afterFrame().then(() => (this.querySelector('micrio-button:last-child > button') as HTMLElement)?.focus());
+		for (const c of marker.tags ?? []) {
+			this.classList.add(c)
+		}
+		void afterFrame().then(() => {
+			const btn = this.querySelector('micrio-button:last-child > button')
+			if (btn instanceof HTMLElement) {
+				btn.focus()
+			}
+		})
 
-		this._addCleanup(micrio.state.popup.subscribe(m => {
-			this.#destroying = !m || m != marker;
-			this.classList.toggle('destroying', this.#destroying);
-		}));
+		this._addCleanup(
+			micrio.state.popup.subscribe((m) => {
+				this.#destroying = !m || m !== marker
+				this.classList.toggle('destroying', this.#destroying)
+			}),
+		)
 
-		this.addEventListener('transitionend', e => {
-			if ((e as TransitionEvent).target === this && this.#destroying) this.remove();
-		});
+		this.addEventListener('transitionend', (e) => {
+			if (e.target === this && this.#destroying) {
+				this.remove()
+			}
+		})
 
 		// Button titles and content are translated, so re-render on a UI language change
-		this._watchLater(micrio._lang, () => { if (!this.#destroying) this.#render(); });
+		this._watchLater(micrio._lang, () => {
+			if (!this.#destroying) {
+				this.#render()
+			}
+		})
 
-		this.#render();
+		this.#render()
 	}
 
 	/** @internal */
 	_setProps(props: Partial<MarkerPopupProps>) {
 		if (props.marker !== undefined && props.marker.id !== this.#props.marker?.id) {
-			this.#props.marker = props.marker;
-			if (this.isConnected) this.#render();
+			this.#props.marker = props.marker
+			if (this.isConnected) {
+				this.#render()
+			}
 		}
 	}
 
 	#render() {
-		const { marker } = this.#props;
-		const micrio = this._getMicrio();
-		if (!micrio || !marker) return;
+		const { marker } = this.#props
+		const micrio = this._getMicrio()
+		if (!micrio || !marker) {
+			return
+		}
 
-		const markerImages = MicrioElement._markerImages;
-		const image = marker.id ? markerImages.get(marker.id) : undefined;
-		if (!image) return;
+		const markerImages = MicrioElement._markerImages
+		const image = marker.id ? markerImages.get(marker.id) : undefined
+		if (!image) {
+			return
+		}
 
-		const $tour = get(micrio.state.tour);
-		const $current = get(micrio.current);
-		const $i18n = get(i18n);
-		const settings = image.$settings._markers ?? {};
-		const data = marker.data || {};
-		const canMinimize = settings.canMinimizePopup;
+		const $tour = get(micrio.state.tour)
+		const $current = get(micrio.current)
+		const $i18n = get(i18n)
+		const settings = image.$settings._markers ?? {}
+		const data = marker.data || {}
+		const canMinimize = settings.canMinimizePopup
 
-		const markerTour = $tour && 'steps' in $tour ? $tour as Models.ImageData.MarkerTour & { next?(): void; prev?(): void } : undefined;
-		const tourSourceImage = markerTour ? micrio._canvases.find(c =>
-			c.$data?.markerTours?.find(t => t.id === markerTour.id)
-		) : undefined;
-		const tsSettings = tourSourceImage?.$settings._markers;
-		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0;
-		const showTourControls = !micrio.canvas.$isMobile && isPartOfTour && !markerTour?.isSerialTour &&
-			(tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup);
-		const closeButtonStopsTour = showTourControls || (markerTour ? markerTour.currentStep == markerTour.steps.length - 1 : undefined);
+		const markerTour = $tour && 'steps' in $tour ? $tour : undefined
+		const tourSourceImage = markerTour
+			? micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === markerTour.id))
+			: undefined
+		const tsSettings = tourSourceImage?.$settings._markers
+		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0
+		const showTourControls =
+			!micrio.canvas.$isMobile &&
+			isPartOfTour &&
+			!markerTour?.isSerialTour &&
+			(tsSettings?.tourControlsInPopup ?? settings.tourControlsInPopup)
+		const closeButtonStopsTour =
+			showTourControls || (markerTour ? markerTour.currentStep === markerTour.steps.length - 1 : undefined)
 
 		const close = (e?: Event) => {
 			if ($tour && isPartOfTour && 'steps' in $tour) {
 				if (e instanceof Event && closeButtonStopsTour) {
-					micrio.state.tour.set(undefined);
+					micrio.state.tour.set(undefined)
 				} else {
-					($tour as Models.ImageData.MarkerTour & { next?(): void }).next?.();
+					$tour.next?.()
 				}
+			} else if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
+				void micrio.open(image.id)
+				image.state.marker.set(undefined)
+				micrio.state.popup.set(undefined)
 			} else {
-				if ($current && $current.id != image.id && data.micrioLink?.id == $current.id) {
-					micrio.open(image.id);
-					image.state.marker.set(undefined);
-					micrio.state.popup.set(undefined);
-				} else {
-					image.state.marker.set(undefined);
-				}
+				image.state.marker.set(undefined)
 			}
-		};
+		}
 
 		const toggleMinimize = () => {
-			this.#isMinimized = !this.#isMinimized;
-			this.classList.toggle('minimized', this.#isMinimized);
-			if (this.#content) {
-				for (let i = 0; i < this.#content.children.length; i++) {
-					const n = this.#content.children[i] as HTMLElement;
-					if (n && n !== this.#title) {
+			this.#isMinimized = !this.#isMinimized
+			this.classList.toggle('minimized', this.#isMinimized)
+			if (this.#content !== undefined) {
+				for (const child of this.#content.children) {
+					if (child instanceof HTMLElement && child !== this.#title) {
+						const n = child
 						if (!this.#originalHeights.has(n)) {
-							this.#originalHeights.set(n, n.offsetHeight);
-							n.style.height = n.offsetHeight + 'px';
+							this.#originalHeights.set(n, n.offsetHeight)
+							n.style.height = `${n.offsetHeight}px`
+						}
+						const height = this.#originalHeights.get(n)
+						if (height === undefined) {
+							continue
 						}
 						setTimeout(() => {
-							n.style.height = this.#isMinimized ? '0px' : this.#originalHeights.get(n)! + 'px';
-						}, 100);
+							n.style.height = this.#isMinimized ? '0px' : `${height}px`
+						}, 100)
 					}
 				}
 			}
-		};
+		}
 
-		this.replaceChildren();
+		this.replaceChildren()
 
 		if (!showTourControls) {
-			const aside = createElement('aside');
+			const aside = createElement('aside')
 
 			if (!data.alwaysOpen) {
 				createElement('micrio-button', {
 					setProps: {
-						type: (!isPartOfTour || closeButtonStopsTour) ? 'close' : 'next',
-						title: (!isPartOfTour || closeButtonStopsTour) ? $i18n._closeMarker : $i18n._tourStepNext,
+						type: !isPartOfTour || closeButtonStopsTour ? 'close' : 'next',
+						title: !isPartOfTour || closeButtonStopsTour ? $i18n._closeMarker : $i18n._tourStepNext,
 						disabled: this.#clickedPrevNext,
-						onclick: close
+						onclick: close,
 					},
-					parent: aside
-				});
+					parent: aside,
+				})
 			}
 
 			if (canMinimize) {
@@ -146,30 +174,30 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					setProps: {
 						type: this.#isMinimized ? 'up' : 'down',
 						title: $i18n._minimize,
-						onclick: toggleMinimize
+						onclick: toggleMinimize,
 					},
-					parent: aside
-				});
+					parent: aside,
+				})
 			}
 
-			this.appendChild(aside);
+			this.append(aside)
 		}
 
 		this.#content = createElement('micrio-marker-content', {
 			setProps: { marker, onclose: close },
-			parent: this
-		});
+			parent: this,
+		})
 
 		if (showTourControls) {
 			Frame.request(() => {
-				const tourAside = (document.querySelector('micrio-tour') as MicrioTour)?.aside;
-				if (tourAside && !this.contains(tourAside)) {
-					this.appendChild(tourAside);
+				const tourEl = document.querySelector('micrio-tour')
+				const tourAside = tourEl instanceof MicrioElement && 'aside' in tourEl ? tourEl.aside : undefined
+				if (tourAside instanceof HTMLElement && !this.contains(tourAside)) {
+					this.append(tourAside)
 				}
-			});
+			})
 		}
 	}
-
 }
 
-customElements.define(MicrioMarkerPopup.tag, MicrioMarkerPopup);
+customElements.define(MicrioMarkerPopup.tag, MicrioMarkerPopup)

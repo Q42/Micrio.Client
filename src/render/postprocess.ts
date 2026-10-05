@@ -1,7 +1,7 @@
-import type { HTMLMicrioElement } from '$core/element';
+import type { HTMLMicrioElement } from '$core/element'
 
-import { MicrioError, ErrorCodes } from '$core/error';
-import vertexShader from './shaders/post.vert.glsl?raw';
+import { MicrioError, ErrorCodes } from '$core/error'
+import vertexShader from './shaders/post.vert.glsl?raw'
 
 /**
  * Vertex data for a fullscreen quad used in postprocessing.
@@ -10,11 +10,23 @@ import vertexShader from './shaders/post.vert.glsl?raw';
  */
 const quadVertices = new Float32Array([
 	// x,    y,    u,  v
-	-1.00, -1.00,   0.0, 0.0, // bottom-left
-	 1.00, -1.00,   1.0, 0.0, // bottom-right
-	-1.00,  1.00,   0.0, 1.0, // top-left
-	 1.00,  1.00,   1.0, 1.0  // top-right
-]);
+	-1,
+	-1,
+	0,
+	0, // bottom-left
+	1,
+	-1,
+	1,
+	0, // bottom-right
+	-1,
+	1,
+	0,
+	1, // top-left
+	1,
+	1,
+	1,
+	1, // top-right
+])
 
 /**
  * Handles WebGL postprocessing effects.
@@ -25,25 +37,25 @@ const quadVertices = new Float32Array([
  */
 export class PostProcessor {
 	/** Framebuffer object used as the render target for the main scene. @internal */
-	_frameBuffer:WebGLFramebuffer;
+	_frameBuffer: WebGLFramebuffer
 
 	/** Texture attached to the framebuffer where the main scene is rendered. @internal */
-	#texture:WebGLTexture;
+	#texture: WebGLTexture
 
 	/** WebGLBuffer holding the vertex data for the fullscreen quad. @internal */
-	#quad: WebGLBuffer;
+	#quad: WebGLBuffer
 
 	/** The compiled WebGL shader program for the postprocessing effect. @internal */
-	#program:WebGLProgram;
+	#program: WebGLProgram
 	/** Attribute location for vertex positions in the postprocessing shader. @internal */
-	#ppPositionLoc:GLint;
+	#ppPositionLoc: GLint
 	/** Attribute location for texture coordinates in the postprocessing shader. @internal */
-	#ppTexCoordLoc:GLint;
+	#ppTexCoordLoc: GLint
 	/** Uniform location for passing time to the postprocessing shader. @internal */
-	#ppTimeLoc:WebGLUniformLocation | null;
+	#ppTimeLoc: WebGLUniformLocation | null
 
-	#gl:WebGL2RenderingContext|WebGLRenderingContext;
-	
+	#gl: WebGL2RenderingContext | WebGLRenderingContext
+
 	/**
 	 * Creates a PostProcessor instance.
 	 * Compiles the shaders, creates the framebuffer and texture, and sets up attributes/uniforms.
@@ -51,75 +63,89 @@ export class PostProcessor {
 	 * @param micrio The main HTMLMicrioElement instance (used for WebGL utilities).
 	 * @param fragmentShader The source code for the custom fragment shader implementing the effect.
 	 */
-	constructor(
-		gl:WebGL2RenderingContext|WebGLRenderingContext,
-		micrio:HTMLMicrioElement,
-		fragmentShader:string
-	) {
-		this.#gl = gl;
+	constructor(gl: WebGL2RenderingContext | WebGLRenderingContext, micrio: HTMLMicrioElement, fragmentShader: string) {
+		this.#gl = gl
 		// --- Shader Compilation ---
-		const program = gl.createProgram();
-		if (!program) throw new MicrioError('Failed to create postprocess program', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
-		this.#program = program;
+		const program = gl.createProgram()
+		if (program == null) {
+			throw new MicrioError('Failed to create postprocess program', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY })
+		}
+		this.#program = program
 		// Compile vertex and fragment shaders using WebGL utility
-		micrio._webgl._getShader(this.#program, gl.VERTEX_SHADER, vertexShader);
-		micrio._webgl._getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader);
+		micrio._webgl._getShader(this.#program, gl.VERTEX_SHADER, vertexShader)
+		micrio._webgl._getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader)
 
 		// Link and use the program
-		gl.linkProgram(this.#program);
-		if (!gl.getProgramParameter(this.#program, gl.LINK_STATUS)) {
-			console.error("Postprocess shader link error:", gl.getProgramInfoLog(this.#program));
+		gl.linkProgram(this.#program)
+		if (gl.getProgramParameter(this.#program, gl.LINK_STATUS) !== true) {
+			console.error('Postprocess shader link error:', gl.getProgramInfoLog(this.#program))
 			// TODO: Handle shader link error more gracefully
 		}
-		gl.useProgram(this.#program);
+		gl.useProgram(this.#program)
 
 		// --- Get Attribute/Uniform Locations ---
-		this.#ppPositionLoc = gl.getAttribLocation(this.#program, 'a_position');
-		this.#ppTexCoordLoc = gl.getAttribLocation(this.#program, 'a_texCoord');
-		this.#ppTimeLoc = gl.getUniformLocation(this.#program, 'u_time');
+		this.#ppPositionLoc = gl.getAttribLocation(this.#program, 'a_position')
+		this.#ppTexCoordLoc = gl.getAttribLocation(this.#program, 'a_texCoord')
+		this.#ppTimeLoc = gl.getUniformLocation(this.#program, 'u_time')
 
 		// --- Framebuffer Texture Setup ---
-		const texture = gl.createTexture();
-		if (!texture) throw new MicrioError('Failed to create postprocess texture', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
-		this.#texture = texture;
-		gl.bindTexture(gl.TEXTURE_2D, this.#texture);
+		const texture = gl.createTexture()
+		if (texture == null) {
+			throw new MicrioError('Failed to create postprocess texture', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY })
+		}
+		this.#texture = texture
+		gl.bindTexture(gl.TEXTURE_2D, this.#texture)
 		// Create texture matching the drawing buffer size
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.#gl.drawingBufferWidth, this.#gl.drawingBufferHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		gl.texImage2D(
+			gl.TEXTURE_2D,
+			0,
+			gl.RGBA,
+			this.#gl.drawingBufferWidth,
+			this.#gl.drawingBufferHeight,
+			0,
+			gl.RGBA,
+			gl.UNSIGNED_BYTE,
+			null,
+		)
 
 		// Set texture parameters (linear filtering, clamp to edge)
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
 		// --- Framebuffer Setup ---
-		const frameBuffer = gl.createFramebuffer();
-		if (!frameBuffer) throw new MicrioError('Failed to create postprocess framebuffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
-		this._frameBuffer = frameBuffer;
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+		const frameBuffer = gl.createFramebuffer()
+		if (frameBuffer == null) {
+			throw new MicrioError('Failed to create postprocess framebuffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY })
+		}
+		this._frameBuffer = frameBuffer
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer)
 		// Attach the texture as the color attachment
 		gl.framebufferTexture2D(
 			gl.FRAMEBUFFER,
 			gl.COLOR_ATTACHMENT0,
 			gl.TEXTURE_2D,
 			this.#texture,
-			0 // Mipmap level
-		);
+			0, // Mipmap level
+		)
 
 		// Check if framebuffer is complete
 		if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-			throw new Error('Framebuffer not complete'); // Throw error if setup failed
+			throw new Error('Framebuffer not complete') // Throw error if setup failed
 		}
 
 		// Unbind the framebuffer (will be bound before rendering the main scene)
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
 		// --- Quad Buffer Setup ---
-		const quad = gl.createBuffer();
-		if (!quad) throw new MicrioError('Failed to create postprocess buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY });
-		this.#quad = quad;
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad);
-		gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW); // Upload quad vertex data
+		const quad = gl.createBuffer()
+		if (quad == null) {
+			throw new MicrioError('Failed to create postprocess buffer', { code: ErrorCodes.WEBGL_OUT_OF_MEMORY })
+		}
+		this.#quad = quad
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad)
+		gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW) // Upload quad vertex data
 	}
 
 	/**
@@ -129,50 +155,50 @@ export class PostProcessor {
 	 * @internal
 	 * Assumes the main scene has already been rendered to this instance's framebuffer.
 	 */
-	_render() : void {
-		const gl = this.#gl;
+	_render(): void {
+		const gl = this.#gl
 
 		// Bind the default framebuffer (null) to render to the screen
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
 		// Use the postprocessing shader program
-		gl.useProgram(this.#program);
+		gl.useProgram(this.#program)
 
 		// Bind the quad vertex buffer
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad)
 
 		// --- Set Vertex Attributes ---
 		// Position attribute
-		gl.enableVertexAttribArray(this.#ppPositionLoc);
+		gl.enableVertexAttribArray(this.#ppPositionLoc)
 		gl.vertexAttribPointer(
 			this.#ppPositionLoc, // location
 			2, // size (num components per iteration)
 			gl.FLOAT, // type
 			false, // normalize
 			4 * Float32Array.BYTES_PER_ELEMENT, // stride (bytes per vertex)
-			0 // offset (bytes from start of buffer)
-		);
+			0, // offset (bytes from start of buffer)
+		)
 		// Texture Coordinate attribute
-		gl.enableVertexAttribArray(this.#ppTexCoordLoc);
+		gl.enableVertexAttribArray(this.#ppTexCoordLoc)
 		gl.vertexAttribPointer(
 			this.#ppTexCoordLoc, // location
 			2, // size
 			gl.FLOAT, // type
 			false, // normalize
 			4 * Float32Array.BYTES_PER_ELEMENT, // stride
-			2 * Float32Array.BYTES_PER_ELEMENT // offset (after position data)
-		);
+			2 * Float32Array.BYTES_PER_ELEMENT, // offset (after position data)
+		)
 
 		// --- Set Uniforms & Texture ---
 		// Bind the texture containing the rendered main scene
-		gl.activeTexture(gl.TEXTURE0); // Use texture unit 0
-		gl.bindTexture(gl.TEXTURE_2D, this.#texture);
+		gl.activeTexture(gl.TEXTURE0) // Use texture unit 0
+		gl.bindTexture(gl.TEXTURE_2D, this.#texture)
 		// TODO: Should probably set a texture uniform in the shader (e.g., u_sceneTexture) and bind it to unit 0. Assuming shader implicitly uses texture unit 0.
 		// Pass current time to the shader (useful for animated effects)
-		gl.uniform1f(this.#ppTimeLoc, performance.now() / 1000);
+		gl.uniform1f(this.#ppTimeLoc, performance.now() / 1000)
 
 		// --- Draw the Quad ---
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); // Draw the quad (4 vertices)
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4) // Draw the quad (4 vertices)
 	}
 
 	/**
@@ -180,20 +206,30 @@ export class PostProcessor {
 	 * @internal
 	 */
 	_resize() {
-		const gl = this.#gl;
-		gl.bindTexture(gl.TEXTURE_2D, this.#texture);
+		const gl = this.#gl
+		gl.bindTexture(gl.TEXTURE_2D, this.#texture)
 		// Recreate the texture with the new drawing buffer dimensions
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.#gl.drawingBufferWidth, this.#gl.drawingBufferHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		gl.texImage2D(
+			gl.TEXTURE_2D,
+			0,
+			gl.RGBA,
+			this.#gl.drawingBufferWidth,
+			this.#gl.drawingBufferHeight,
+			0,
+			gl.RGBA,
+			gl.UNSIGNED_BYTE,
+			null,
+		)
 		// Unbind texture (good practice)
-		gl.bindTexture(gl.TEXTURE_2D, null);
+		gl.bindTexture(gl.TEXTURE_2D, null)
 	}
 
 	/** Disposes WebGL resources used by the PostProcessor. @internal */
-	_dispose() : void {
-		const gl = this.#gl;
-		gl.deleteFramebuffer(this._frameBuffer);
-		gl.deleteTexture(this.#texture);
-		gl.deleteBuffer(this.#quad);
-		gl.deleteProgram(this.#program);
+	_dispose(): void {
+		const gl = this.#gl
+		gl.deleteFramebuffer(this._frameBuffer)
+		gl.deleteTexture(this.#texture)
+		gl.deleteBuffer(this.#quad)
+		gl.deleteProgram(this.#program)
 	}
 }

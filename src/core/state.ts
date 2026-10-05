@@ -1,8 +1,8 @@
-import type { Writable } from '$core/store';
-import type { Models } from '$types/models';
-import type { MicrioImage } from './image';
+import type { Writable } from '$core/store'
+import type { Models } from '$types/models'
+import type { MicrioImage } from './image'
 
-import { writable } from '$core/store';
+import { writable } from '$core/store'
 
 /**
  * # Micrio State management
@@ -19,130 +19,164 @@ import { writable } from '$core/store';
  * @author Marcel Duin <marcel@micr.io>
  */
 export namespace State {
-
 	/**
-	* # HTMLMicrioElement state controller (`micrio.state`)
-	*
-	* Manages the global application state associated with the main `<micr-io>` element.
-	* Provides stores for reactive UI updates.
-	*/
+	 * # HTMLMicrioElement state controller (`micrio.state`)
+	 *
+	 * Manages the global application state associated with the main `<micr-io>` element.
+	 * Provides stores for reactive UI updates.
+	 */
 	export class Main {
 		/** Writable store holding the currently active tour object (VideoTour or MarkerTour), or undefined if no tour is active. */
-		readonly tour: Writable<Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined> = writable();
+		readonly tour: Writable<Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined> = writable()
 
 		/** Internal reference to the current tour object. @internal */
-		#_tour:Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined;
+		#_tour: Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined
 
 		/** Getter for the current value of the {@link tour} store. */
-		get $tour() : Models.ImageData.VideoTour|Models.ImageData.MarkerTour|undefined {return this.#_tour}
+		get $tour(): Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined {
+			return this.#_tour
+		}
 
 		/** Writable store holding the marker object currently opened in the *main* active image, or undefined if none is open. */
-		readonly marker: Writable<Models.ImageData.Marker|undefined> = writable();
+		readonly marker: Writable<Models.ImageData.Marker | undefined> = writable()
 
 		/** Writable store holding the ID of the marker currently being hovered over. */
-		readonly markerHoverId: Writable<string|undefined> = writable();
+		readonly markerHoverId: Writable<string | undefined> = writable()
 
 		/** Internal reference to the currently opened marker object. @internal */
-		#_marker: Models.ImageData.Marker|undefined;
+		#_marker: Models.ImageData.Marker | undefined
 
 		/** Getter for the current value of the {@link marker} store. */
-		get $marker() : Models.ImageData.Marker|undefined { return this.#_marker }
+		get $marker(): Models.ImageData.Marker | undefined {
+			return this.#_marker
+		}
 
 		/** Writable store holding the marker object whose popup is currently displayed. */
-		readonly popup: Writable<Models.ImageData.Marker|undefined> = writable<Models.ImageData.Marker>();
+		readonly popup: Writable<Models.ImageData.Marker | undefined> = writable<Models.ImageData.Marker | undefined>()
 
 		/** Writable store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
-		readonly popover:Writable<Models.State.PopoverType|undefined> = writable();
+		readonly popover: Writable<Models.State.PopoverType | undefined> = writable()
 
 		/**
 		 * Map storing the playback state (currentTime, paused) of media elements associated with markers, keyed by a unique media ID.
 		 * Used to resume media playback when returning to a marker.
 		 * @internal
-		*/
-		mediaState:Map<string,{
-			currentTime: number,
-			paused: boolean
-		}> = new Map();
-
+		 */
+		mediaState = new Map<
+			string,
+			{
+				currentTime: number
+				paused: boolean
+			}
+		>()
 
 		/** Initializes the main state controller and syncs internal references with store subscriptions. @internal */
-		constructor(){
+		constructor() {
 			// Keep internal properties synced with stores
-			this.tour.subscribe(t => { if(typeof t == 'string') return; this.#_tour = t });
-			this.marker.subscribe(m => { if(typeof m == 'string') return; this.#_marker = m });
+			this.tour.subscribe((t) => {
+				if (typeof t === 'string') {
+					return
+				}
+				this.#_tour = t
+			})
+			this.marker.subscribe((m) => {
+				if (typeof m === 'string') {
+					return
+				}
+				this.#_marker = m
+			})
 		}
 	}
 
 	/**
-	* # MicrioImage state controller (`micrioImage.state`)
-	*
-	* Manages the state specific to a single {@link MicrioImage} instance,
-	* primarily its viewport and currently opened marker.
-	*/
+	 * # MicrioImage state controller (`micrioImage.state`)
+	 *
+	 * Manages the state specific to a single {@link MicrioImage} instance,
+	 * primarily its viewport and currently opened marker.
+	 */
 	export class Image {
 		/** Writable store holding the current viewport [x0, y0, width, height] of this image. */
-		readonly view: Writable<Models.Camera.View|undefined> = writable(undefined);
+		readonly view: Writable<Models.Camera.View | undefined> = writable()
 		/** Internal reference to the current view. @internal */
-		#_view:Models.Camera.View|undefined;
+		#_view: Models.Camera.View | undefined
 		/** Getter for the current value of the {@link view} store. */
-		get $view() : Models.Camera.View|undefined {return this.#_view}
+		get $view(): Models.Camera.View | undefined {
+			return this.#_view
+		}
 
 		/**
 		 * Writable store holding the currently active marker within *this specific image*.
 		 * Can be set with a marker ID string or a full marker object. Setting to undefined closes the marker.
 		 */
-		readonly marker: Writable<Models.ImageData.Marker|string|undefined> = writable(undefined);
+		readonly marker: Writable<Models.ImageData.Marker | string | undefined> = writable()
 		/** Internal reference to the active marker object. @internal */
-		#_marker:Models.ImageData.Marker|undefined;
+		#_marker: Models.ImageData.Marker | undefined
 		/** Getter for the current value of the {@link marker} store. */
-		get $marker() : Models.ImageData.Marker|undefined {return this.#_marker}
+		get $marker(): Models.ImageData.Marker | undefined {
+			return this.#_marker
+		}
 
 		/** Writable store holding the currently displayed layer index (for Omni objects). */
-		readonly layer: Writable<number> = writable(0);
+		readonly layer: Writable<number> = writable(0)
 
 		/** Creates an Image state controller and subscribes to view/marker changes to synchronise with the main element state. @param image The parent MicrioImage instance. */
-		constructor(image:MicrioImage){
-			const m = image.engine.micrio; // Reference to main element
+		constructor(image: MicrioImage) {
+			const m = image.engine.micrio // Reference to main element
 			// Previous view (all four values) for change detection, plus previous
 			// zoom dimensions for the width/height change threshold.
-			let pX:number|undefined, pY:number|undefined, pW:number|undefined, pH:number|undefined;
-			let zW:number|undefined, zH:number|undefined;
+			let pH: number | undefined, pW: number | undefined, pX: number | undefined, pY: number | undefined
+			let zH: number | undefined, zW: number | undefined
 
 			// Subscribe to view store changes
-			this.view.subscribe(view => {
-				this.#_view = view; // Update internal reference
-				if(!view) return;
-				const nX = view[0], nY = view[1], nW = view[2], nH = view[3];
-				if(pX === nX && pY === nY && pW === nW && pH === nH) return; // Unchanged
-				const detail = {image, view}; // Event detail payload with view360
-				pX = nX; pY = nY; pW = nW; pH = nH;
+			this.view.subscribe((view) => {
+				this.#_view = view // Update internal reference
+				if (!view) {
+					return
+				}
+				const nH = view[3],
+					nW = view[2],
+					nX = view[0],
+					nY = view[1]
+				if (pX === nX && pY === nY && pW === nW && pH === nH) {
+					return
+				} // Unchanged
+				const detail = { image, view } // Event detail payload with view360
+				pX = nX
+				pY = nY
+				pW = nW
+				pH = nH
 				// Fire zoom callbacks if dimensions changed significantly
-				if(zW === undefined || zH === undefined || Math.abs((nW-zW)+(nH-zH)) > 1E-5) {
-					for(const fn of m._onZoom) fn(detail);
-					m.events._dispatch('zoom', {image, view});
-					zW=nW; zH=nH; // Update previous dimensions
+				if (zW === undefined || zH === undefined || Math.abs(nW - zW + (nH - zH)) > 1e-5) {
+					for (const fn of m._onZoom) {
+						fn(detail)
+					}
+					m.events._dispatch('zoom', { image, view })
+					zW = nW
+					zH = nH // Update previous dimensions
 				}
 				// Fire move callbacks
-				for(const fn of m._onMove) fn(detail);
-				m.events._dispatch('move', {image, view});
-			});
+				for (const fn of m._onMove) {
+					fn(detail)
+				}
+				m.events._dispatch('move', { image, view })
+			})
 
 			// Subscribe to local marker store changes
-			this.marker.subscribe(marker => {
-				const curr = this.#_marker; // Store previous marker
+			this.marker.subscribe((marker) => {
+				const curr = this.#_marker // Store previous marker
 				// Update internal marker reference (only store the object, not the ID string)
-				this.#_marker = (marker && typeof marker != 'string' ? marker : undefined);
+				this.#_marker = marker != null && typeof marker !== 'string' ? marker : undefined
 				// If this marker change resulted in a new marker object being set,
 				// update the global marker state as well.
-				if(this.#_marker) {
-					m.state.marker.set(this.#_marker);
+				if (this.#_marker) {
+					m.state.marker.set(this.#_marker)
 				}
 				// If the marker was cleared locally AND it was the globally active marker,
 				// clear the global marker state too.
-				else if(!marker && m.state.$marker == curr) {
-					m.state.marker.set(undefined);
+				else if ((marker == null || marker === '') && m.state.$marker === curr) {
+					m.state.marker.set(undefined)
 				}
-			});
+			})
 		}
 	}
 }

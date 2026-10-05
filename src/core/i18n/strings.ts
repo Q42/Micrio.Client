@@ -1,17 +1,36 @@
-import { writable, type Writable } from '$core/store';
+import { writable, type Writable } from '$core/store'
 
 type TranslationKeys =
-	| '_close' | '_zoomIn' | '_zoomOut' | '_fullscreenToggle'
-	| '_switchLanguage' | '_share' | '_audioMute' | '_audioUnmute'
-	| '_closeMarker' | '_tourStepNext' | '_tourStepPrev' | '_tourStop'
-	| '_minimize' | '_play' | '_pause' | '_stop'
-	| '_subtitlesToggle' | '_galleryPrev' | '_galleryNext'
-	| '_galleryRotateLeft' | '_galleryRotateRight'
-	| '_menuToggle' | '_waypointFollow' | '_tours' | '_markerTours' | '_videoTours';
+	| '_close'
+	| '_zoomIn'
+	| '_zoomOut'
+	| '_fullscreenToggle'
+	| '_switchLanguage'
+	| '_share'
+	| '_audioMute'
+	| '_audioUnmute'
+	| '_closeMarker'
+	| '_tourStepNext'
+	| '_tourStepPrev'
+	| '_tourStop'
+	| '_minimize'
+	| '_play'
+	| '_pause'
+	| '_stop'
+	| '_subtitlesToggle'
+	| '_galleryPrev'
+	| '_galleryNext'
+	| '_galleryRotateLeft'
+	| '_galleryRotateRight'
+	| '_menuToggle'
+	| '_waypointFollow'
+	| '_tours'
+	| '_markerTours'
+	| '_videoTours'
 
-type ButtonTranslations = Record<TranslationKeys, string>;
+type ButtonTranslations = Record<TranslationKeys, string>
 
-const langKeys = ['en', 'nl', 'de'];
+const langKeys = ['en', 'nl', 'de']
 
 const strings = {
 	_close: ['Close', 'Sluit', 'Schließen'],
@@ -40,20 +59,32 @@ const strings = {
 	_tours: ['Tours', 'Tours', 'Touren'],
 	_markerTours: ['Marker tours', 'Marker tours', 'Marker-Touren'],
 	_videoTours: ['Video tours', 'Video tours', 'Video-Touren'],
-} satisfies Record<TranslationKeys, [string, string, string]>;
+} satisfies Record<TranslationKeys, [string, string, string]>
 
 /** Pre-built translation dictionaries keyed by language code (`'en'`, `'nl'`, `'de'`). @internal */
-export const langs: Record<string, ButtonTranslations> = {};
+export const langs: Record<string, ButtonTranslations> = {}
 
-const keys = Object.keys(strings) as TranslationKeys[];
+const keys = Object.keys(strings).filter((key): key is TranslationKeys => key in strings)
+
+/** Narrows a language dictionary once every translation key has been filled in. @internal */
+function isTranslations(lang: Partial<Record<TranslationKeys, string>>): lang is ButtonTranslations {
+	for (const key of keys) {
+		if (typeof lang[key] !== 'string') {
+			return false
+		}
+	}
+	return true
+}
 
 for (let i = 0; i < langKeys.length; i++) {
-	const lang: Partial<Record<TranslationKeys, string>> = {};
+	const lang: Partial<Record<TranslationKeys, string>> = {}
 	for (const key of keys) {
-		lang[key] = strings[key][i];
+		lang[key] = strings[key][i]
 	}
-	langs[langKeys[i]] = lang as ButtonTranslations;
+	if (isTranslations(lang)) {
+		langs[langKeys[i]] = lang
+	}
 }
 
 /** Writable store holding the current UI button translations, initialized to English. @internal */
-export const i18n:Writable<ButtonTranslations> = writable(langs.en);
+export const i18n: Writable<ButtonTranslations> = writable(langs.en)

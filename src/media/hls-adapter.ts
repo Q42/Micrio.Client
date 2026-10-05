@@ -4,21 +4,38 @@
  * @author Marcel Duin <marcel@micr.io>
  */
 
-import type { HlsPlayer } from '$types/externals';
-import type { PlayerEventCallbacks } from '$types/media';
-import { loadExternalAPI } from '$utils/dom';
-import { HTML5PlayerAdapter } from './html5-adapter';
+import type { HlsPlayer, HlsPlayerConstructor } from '$types/externals'
+import type { PlayerEventCallbacks } from '$types/media'
+import { loadExternalAPI } from '$utils/dom'
+import { HTML5PlayerAdapter } from './html5-adapter'
 
 /** URL for the HLS.js library bundle. @internal */
-export const HLS_SCRIPT_URL = 'https://r2.micr.io/hls-1.6.15.min.js';
+export const HLS_SCRIPT_URL = 'https://r2.micr.io/hls-1.6.15.min.js'
 /** Default configuration options for HLS.js player. @internal */
-export const HLS_PLAYER_CONFIG = { abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 };
+export const HLS_PLAYER_CONFIG = { abrEwmaDefaultEstimate: 10_000_000, abrEwmaDefaultEstimateMax: 50_000_000 }
 
 /** Checks whether the browser supports MediaSource (required for HLS playback). @internal */
-export const mediaSourceSupported = () => 'MediaSource' in globalThis || 'ManagedMediaSource' in globalThis;
+export const mediaSourceSupported = () => 'MediaSource' in globalThis || 'ManagedMediaSource' in globalThis
 
 /** Builds a Cloudflare Stream HLS manifest URL from a stream ID. @internal */
-export const cloudflareStreamUrl = (streamId: string) => `https://videodelivery.net/${streamId}/manifest/video.m3u8`;
+export const cloudflareStreamUrl = (streamId: string) => `https://videodelivery.net/${streamId}/manifest/video.m3u8`
+
+/** The global scope as a plain object, so runtime-provided globals can be probed with `in`. */
+const globals: object = globalThis
+
+/** True when `value` is the global `Hls` constructor exposed by the HLS.js script. */
+function isHlsConstructor(value: unknown): value is HlsPlayerConstructor {
+	return typeof value === 'function'
+}
+
+/** Returns the global `Hls` constructor, throwing when the script did not load. @internal */
+export function getHlsConstructor(): HlsPlayerConstructor {
+	const ctor: unknown = 'Hls' in globals ? globals.Hls : undefined
+	if (!isHlsConstructor(ctor)) {
+		throw new Error('HLS.js failed to load')
+	}
+	return ctor
+}
 
 /**
  * Adapter for HLS.js streaming video.
@@ -26,42 +43,39 @@ export const cloudflareStreamUrl = (streamId: string) => `https://videodelivery.
  * @internal
  */
 export class HLSPlayerAdapter extends HTML5PlayerAdapter {
-	#hls: HlsPlayer | undefined;
-	#destroyed = false;
+	#hls: HlsPlayer | undefined
+	#destroyed = false
 
-	#hlsSrc: string;
+	#hlsSrc: string
 
-	constructor(
-		element: HTMLVideoElement,
-		hlsSrc: string,
-		callbacks: PlayerEventCallbacks = {}
-	) {
-		super(element, callbacks);
-		this.#hlsSrc = hlsSrc;
+	constructor(element: HTMLVideoElement, hlsSrc: string, callbacks: PlayerEventCallbacks = {}) {
+		super(element, callbacks)
+		this.#hlsSrc = hlsSrc
 	}
 
 	/**
 	 * Loads HLS.js and attaches to the video element.
 	 */
 	async initialize(): Promise<void> {
-		await loadExternalAPI('Hls', HLS_SCRIPT_URL);
+		await loadExternalAPI('Hls', HLS_SCRIPT_URL)
 
 		if (this.#destroyed) {
-			throw new Error('Adapter destroyed during initialization');
+			throw new Error('Adapter destroyed during initialization')
 		}
 
-		const hls: HlsPlayer = new (window as Record<string, any>)['Hls'](HLS_PLAYER_CONFIG);
-		this.#hls = hls;
-		hls.loadSource(this.#hlsSrc);
-		hls.attachMedia(this.element);
+		const Hls = getHlsConstructor()
+		const hls: HlsPlayer = new Hls(HLS_PLAYER_CONFIG)
+		this.#hls = hls
+		hls.loadSource(this.#hlsSrc)
+		hls.attachMedia(this.element)
 
-		this.callbacks.onReady?.();
+		this.callbacks.onReady?.()
 	}
 
 	destroy(): void {
-		this.#destroyed = true;
-		super.destroy();
-		this.#hls?.destroy();
-		this.#hls = undefined;
+		this.#destroyed = true
+		super.destroy()
+		this.#hls?.destroy()
+		this.#hls = undefined
 	}
 }

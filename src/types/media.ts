@@ -10,32 +10,31 @@
  */
 export interface MediaPlayerAdapter {
 	/** Play the media */
-	play(): Promise<void>;
+	play: () => Promise<void>
 
 	/** Pause the media */
-	pause(): void;
+	pause: () => void
 
 	/** Get current playback time in seconds */
-	getCurrentTime(): Promise<number>;
+	getCurrentTime: () => Promise<number>
 
 	/** Set current playback time in seconds */
-	setCurrentTime(time: number): void;
+	setCurrentTime: (time: number) => void
 
 	/** Get total duration in seconds */
-	getDuration(): Promise<number>;
+	getDuration: () => Promise<number>
 
 	/** Check if media is currently paused */
-	isPaused(): Promise<boolean>;
+	isPaused: () => Promise<boolean>
 
 	/** Set muted state */
-	setMuted(muted: boolean): void;
+	setMuted: (muted: boolean) => void
 
 	/** Set volume (0-1) */
-	setVolume(volume: number): void;
+	setVolume: (volume: number) => void
 
 	/** Clean up resources */
-	destroy(): void;
-
+	destroy: () => void
 }
 
 /**
@@ -43,17 +42,17 @@ export interface MediaPlayerAdapter {
  * @internal
  */
 export interface PlayerEventCallbacks {
-	onPlay?: () => void;
-	onPause?: () => void;
-	onEnded?: () => void;
-	onSeeking?: () => void;
-	onSeeked?: () => void;
-	onTimeUpdate?: (time: number) => void;
-	onDurationChange?: (duration: number) => void;
-	onError?: (error: Error) => void;
-	onBuffering?: () => void;
-	onReady?: () => void;
-	onBlocked?: () => void;
+	onPlay?: () => void
+	onPause?: () => void
+	onEnded?: () => void
+	onSeeking?: () => void
+	onSeeked?: () => void
+	onTimeUpdate?: (time: number) => void
+	onDurationChange?: (duration: number) => void
+	onError?: (error: Error) => void
+	onBuffering?: () => void
+	onReady?: () => void
+	onBlocked?: () => void
 }
 
 /**
@@ -61,11 +60,11 @@ export interface PlayerEventCallbacks {
  * @internal
  */
 export interface PlayerConfig {
-	width: number;
-	height: number;
-	autoplay?: boolean;
-	loop?: boolean;
-	muted?: boolean;
-	volume?: number;
-	startTime?: number;
+	width: number
+	height: number
+	autoplay?: boolean
+	loop?: boolean
+	muted?: boolean
+	volume?: number
+	startTime?: number
 }
