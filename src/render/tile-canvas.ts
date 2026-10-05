@@ -319,9 +319,11 @@ export class TileCanvas {
 	_fadeIn(): void {
 		this.#isReady = true;
 		if (!this._hasParent && this.#currentArea.width === 1 && this.#currentArea.height === 1)
-			{for (let i = 0; i < this.main._canvases.length; i++)
-				if (this.main._canvases[i] !== this)
-					this.main._canvases[i]._fadeOut();}
+			{for (let i = 0; i < this.main._canvases.length; i++) {
+				if (this.main._canvases[i] !== this) {
+					this.main._canvases[i]._fadeOut();
+				}
+			}}
 		this._targetOpacity = 1;
 	}
 

@@ -45,21 +45,21 @@ export function createElement(tag: string, options: ElementOptions = {}): HTMLEl
 	if (options.textContent !== undefined) {el.textContent = options.textContent;}
 	if (options.innerHTML !== undefined) {el.innerHTML = options.innerHTML;}
 	if (options.id) {el.id = options.id;}
-	if (options.dataset) {for (const [k, v] of Object.entries(options.dataset)) el.dataset[k] = v;}
+	if (options.dataset) {for (const [k, v] of Object.entries(options.dataset)) {el.dataset[k] = v;}}
 	if (options.attrs) {for (const [k, v] of Object.entries(options.attrs)) {
-		if (v == null) el.removeAttribute(k);
-		else el.setAttribute(k, v);
+		if (v == null) {el.removeAttribute(k);}
+		else {el.setAttribute(k, v);}
 	}}
 	if (options.style) {
 		if (typeof options.style === 'string') {el.style.cssText = options.style;}
 		else {Object.assign(el.style, options.style);}
 	}
 	if (options.props) {Object.assign(el, options.props);}
-	if (options.events) {for (const [type, handler] of Object.entries(options.events)) el.addEventListener(type, handler);}
+	if (options.events) {for (const [type, handler] of Object.entries(options.events)) {el.addEventListener(type, handler);}}
 	if (options.children) {for (const child of options.children) {
-		if (child == null || child === false) continue;
-		if (typeof child === 'string' || typeof child === 'number') el.append(String(child));
-		else el.append(child);
+		if (child == null || child === false) {continue;}
+		if (typeof child === 'string' || typeof child === 'number') {el.append(String(child));}
+		else {el.append(child);}
 	}}
 	if (options.setProps) {(el as any)._setProps?.(options.setProps);}
 	if (options.parent) {options.parent.append(el);}

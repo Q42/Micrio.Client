@@ -281,8 +281,8 @@ export class Canvas {
 		this.#savedBox = undefined;
 		if (saved) {for (const k of ['left', 'top', 'width', 'height'] as const) {
 			const [value, priority] = saved[k];
-			if (value) st.setProperty(k, value, priority);
-			else st.removeProperty(k);
+			if (value) {st.setProperty(k, value, priority);}
+			else {st.removeProperty(k);}
 		}}
 		this.#cropMode = false;
 		this.onresize();
