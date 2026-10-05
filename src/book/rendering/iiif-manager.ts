@@ -315,10 +315,10 @@ export class IIIFTextureManager {
 			const p = s._fadeProgress;
 			if (s._fadeType === 'in') {
 				return s._activeSlot === slot ? p : 0;
-			} else {
+			}
 				if (s._activeSlot === slot) {return 1 - p;}
 				else {return p;}
-			}
+			
 		}
 
 		return s._activeSlot === slot ? 1 : 0;

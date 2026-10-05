@@ -31,9 +31,8 @@ export const fetchJson = async <T = Object>(uri: string, noCache?: boolean): Pro
 	// Create and store the fetch promise
 	const promise = fetch(uri + (noCache ? (uri.includes('?') ? '&' : '?') + Math.random() : '')).then(async r => {
 		if (r.status == 200) {return r.json();}
-		else {
 			throw MicrioError.fromResponse(r, `fetchJson(${uri})`);
-		}
+		
 	}).then(j => {
 		if (!noCache) {jsonCache.set(uri, j);} // Store result in cache
 		jsonPromises.delete(uri); // Remove promise from tracking map

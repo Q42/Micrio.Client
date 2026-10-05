@@ -70,8 +70,7 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 						.map(t => t.trim().replace(',','.').split(':').map(Number))
 						.map(v => {
 							if(v.length === 3) {return v[0]*3600+v[1]*60+v[2];}
-							else if(v.length === 2) {return v[0]*60+v[1];}
-							else {return 0;}
+							else if(v.length === 2) {return v[0]*60+v[1];}return 0;
 						});
 					cues.push({start, end, data: lines.join('\n')});
 					l+=lines.length+1;

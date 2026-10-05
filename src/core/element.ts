@@ -533,13 +533,12 @@ export class HTMLMicrioElement extends MicrioElement {
 				const img = await this.gallery.gotoId(idOrInfo);
 				return img ?? this.$current!;
 			}
-			else {
 				bundle = (await DataLoader._getBundleImage(idOrInfo))!;
 				if(!bundle) {
 					this.#printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`);
 					return this.$current!;
 				}
-			}
+			
 		}
 		// Already a BundleImage
 		else {

@@ -274,10 +274,10 @@ export default class Image {
 	#outsideView(): boolean {
 		if (this.#is360Embed) {
 			return !this.#sphere3DOverlap();
-		} else {
+		}
 			const v = this.#canvas.view;
 			return this.x1 <= v.x0 || this.x0 >= v.x1 || this.y1 <= v.y0 || this.y0 >= v.y1;
-		}
+		
 	}
 
 	/** Determines if this image should be rendered in the current frame. @internal */
