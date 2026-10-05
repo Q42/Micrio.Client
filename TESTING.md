@@ -141,6 +141,22 @@ tours).
   stub needs a back-reference to itself (the `image.engine.micrio` pattern), build it as
   `const engine = { micrio }; const image = { engine }` — see the note below.
 
+### Fakes for the audio and player layers
+
+- `tests/browser/audio-context.ts` installs a hand-written `AudioContext` (gain, panner,
+  buffer source, listener, `decodeAudioData`), recording what each node was told and what
+  it was connected to. It is installed from the browser setup, not per test, because
+  `audio-controller` keeps its context in module state and initialises it at most once per
+  file: the `interacted` store, `_ctx` and `mainGain` are all file-scoped, so the suite is
+  ordered deliberately and `mainGain.gain.value` is the only sane way to observe muting.
+- The three external player APIs are stubbed at the global they are read from (`YT`,
+  `Vimeo`, `Hls`). That also short-circuits `loadExternalAPI`, which is the point: it only
+  fetches a script when the global is missing, and a `<script>` tag does **not** go through
+  the suite's `fetch` interception, so the real path would reach the CDN and never settle.
+- `HTMLMediaElement.prototype.play` is stubbed to resolve in the browser setup. Headless
+  Chromium cannot play any fixture source, and the playlist's rejection otherwise surfaces
+  as an unhandled error; no test asserts on playback succeeding.
+
 ### Sharp edges worth knowing
 
 **Self-referencing literals.** Object literals with a self-reference can lose the
@@ -154,6 +170,19 @@ properties, so `(el as unknown as { _props?: X })._props` reads `undefined` even
 the component was configured correctly. Reading them tells you nothing — assert through
 the DOM, or through a public accessor, instead. Several hours went into a phantom bug
 caused by this.
+
+**The audio controller only exists for an image with `music` or a marker carrying
+`positionalAudio`.** A plain marker does not qualify, so a test that needs the controller
+must include one of those — otherwise nothing is built and the assertion fails for a
+reason that has nothing to do with the behaviour under test. Its autoplay probe `<audio>`
+is also appended _before_ the `AudioContext` availability check, so the probe's presence
+is not evidence that the audio graph exists.
+
+**`dataLoader` caches image data by id for the whole file.** Reusing one id across tests
+means later tests get the first test's image — including one with no `data` — and the
+controller then never sees the `music` it was supposed to. Every audio test uses a fresh
+id, and waits for `$current.$data` rather than only for `_loading` to clear, because
+`_loading` clears first.
 
 **Fake timers freeze `waitFor`.** `waitFor` polls on `requestAnimationFrame`, which a
 faked clock never advances. Mount and open with real timers, then switch:
@@ -181,33 +210,35 @@ and `advance()` when the steps firing _is_ the thing under test.
 
 ## Status
 
-| Area                                       | Suite                                | Status      |
-| ------------------------------------------ | ------------------------------------ | ----------- |
-| Math, ids, time, locale, easing            | `tests/core/*.test.ts`               | done        |
-| Store API, state controllers               | `tests/core/store`, `state`          | done        |
-| bundle.json loading and caching            | `tests/core/dataLoader`              | done        |
-| MDP archive parsing                        | `tests/core/archive`                 | done        |
-| Matrix/vector math                         | `tests/core/mat`                     | done        |
-| Legacy (pre-v5) vs v5+ bundles             | `tests/browser/element-legacy`       | done        |
-| `<micr-io>` open / events / attributes     | `tests/browser/element-*`            | done        |
-| Markers                                    | `tests/browser/markers`              | done        |
-| 360 space resolution and navigation        | `tests/browser/tours-360`            | done        |
-| 360 camera (yaw/pitch, transforms, matrix) | `tests/browser/camera-360`           | done        |
-| `trueNorth` and image orientation          | `tests/browser/space-truenorth`      | done        |
-| 360 waypoints (`<micrio-waypoint>`)        | `tests/browser/waypoints`            | done        |
-| 360 space transitions                      | `tests/browser/space-transition`     | done        |
-| 360 minimap                                | `tests/browser/minimap-360`          | done        |
-| Gallery / album switching                  | `tests/browser/gallery`              | partial     |
-| Video tour timeline and playback           | `tests/browser/video-tour`           | done        |
-| Marker tour UI and navigation              | `tests/browser/marker-tour`          | done        |
-| Serial (multi-image) tours                 | `tests/browser/serial-tour`          | partial     |
-| Media element, controls, subtitles         | `tests/browser/media-*`, `subtitles` | done        |
-| Tour toolbar and autostart wiring          | `tests/browser/tour-integration`     | done        |
-| Audio controller (Web Audio, positional)   | —                                    | not started |
-| Grid storytelling                          | —                                    | not started |
-| 3D book viewer                             | `tests/browser/book3d-smoke`         | smoke only  |
-| UI components (toolbar, menu, popover)     | —                                    | not started |
-| Media adapters (YouTube/Vimeo/HLS)         | —                                    | not started |
+| Area                                             | Suite                                   | Status      |
+| ------------------------------------------------ | --------------------------------------- | ----------- |
+| Math, ids, time, locale, easing                  | `tests/core/*.test.ts`                  | done        |
+| Store API, state controllers                     | `tests/core/store`, `state`             | done        |
+| bundle.json loading and caching                  | `tests/core/dataLoader`                 | done        |
+| MDP archive parsing                              | `tests/core/archive`                    | done        |
+| Matrix/vector math                               | `tests/core/mat`                        | done        |
+| Legacy (pre-v5) vs v5+ bundles                   | `tests/browser/element-legacy`          | done        |
+| `<micr-io>` open / events / attributes           | `tests/browser/element-*`               | done        |
+| Markers                                          | `tests/browser/markers`                 | done        |
+| 360 space resolution and navigation              | `tests/browser/tours-360`               | done        |
+| 360 camera (yaw/pitch, transforms, matrix)       | `tests/browser/camera-360`              | done        |
+| `trueNorth` and image orientation                | `tests/browser/space-truenorth`         | done        |
+| 360 waypoints (`<micrio-waypoint>`)              | `tests/browser/waypoints`               | done        |
+| 360 space transitions                            | `tests/browser/space-transition`        | done        |
+| 360 minimap                                      | `tests/browser/minimap-360`             | done        |
+| Gallery / album switching                        | `tests/browser/gallery`                 | partial     |
+| Video tour timeline and playback                 | `tests/browser/video-tour`              | done        |
+| Marker tour UI and navigation                    | `tests/browser/marker-tour`             | done        |
+| Serial (multi-image) tours                       | `tests/browser/serial-tour`             | partial     |
+| Media element, controls, subtitles               | `tests/browser/media-*`, `subtitles`    | done        |
+| Tour toolbar and autostart wiring                | `tests/browser/tour-integration`        | done        |
+| Audio controller (Web Audio, positional)         | `tests/browser/audio-controller`        | done        |
+| Spatial audio routing                            | `tests/browser/audio-location`          | done        |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)         | `tests/browser/*-adapter`, `hls-player` | done        |
+| Adapter selection and wiring in `<micrio-media>` | `tests/browser/media-adapters`          | done        |
+| Grid storytelling                                | —                                       | not started |
+| 3D book viewer                                   | `tests/browser/book3d-smoke`            | smoke only  |
+| UI components (toolbar, menu, popover)           | —                                       | not started |
 
 ## Session backlog
 
@@ -224,16 +255,23 @@ Roughly in order of value against risk:
    - **`_markers.tourControlsInPopup: true` renders no controls either.** With that
      setting the `<micrio-tour>` element mounts but is empty, where without it the aside
      (prev/counter/next/fullscreen/close) renders normally.
-2. **Grid storytelling** (`src/grid/**`) — its own session: layout math, transitions,
+2. **The audio layer's remaining gaps**, now that the contracts are pinned:
+   - **`mutedVolume` is unused.** `DEFAULT_SETTINGS.mutedVolume` and its `data-mutedvolume`
+     attribute are parsed, but nothing in `audio-controller` or `media` reads it: muting
+     always means volume 0.
+   - **The autoplay probe leaks its `<audio>` on mobile.** `Browser.iOS` gets volume
+     `0.0001` for the probe, and the element is created before the `AudioContext` check,
+     so a browser without Web Audio still gets a hidden element.
+   - `HTML5PlayerAdapter.destroy()` removes only the five no-argument listeners, leaving
+     `timeupdate`, `durationchange`, `error` and `canplay` attached. Pinned as-is in the
+     suite; whether it leaks is a separate call.
+3. **Grid storytelling** (`src/grid/**`) — its own session: layout math, transitions,
    keyboard, action handlers, marker-driven grid tours.
-3. **Audio controller** (`src/audio/**`) — the sequential playlist, `AudioContext`
-   gain/volume and positional audio. Needs a stubbed `AudioContext`.
-4. **Media adapters** — HLS/YouTube/Vimeo adapter contracts against stubbed players.
-5. **UI components** — toolbar/menu/popover rendering and locale switching beyond the
+4. **UI components** — toolbar/menu/popover rendering and locale switching beyond the
    tour entries.
-6. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
+5. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
    after the other subsystems, and only with golden-image or geometry assertions.
-7. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
+6. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
    floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-8. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+7. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
