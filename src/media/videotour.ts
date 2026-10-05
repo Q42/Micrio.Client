@@ -105,7 +105,7 @@ export class VideoTourInstance {
 		const {timeline} = this.#content;
 		this.#timeline = [];
 		for (let i = 0; i < timeline.length; i++) {
-			const s = timeline[i], p = timeline[i - 1];
+			const p = timeline[i - 1], s = timeline[i];
 			const start = p ? p.end : 0;
 			this.#timeline.push({
 				view: s.rect,

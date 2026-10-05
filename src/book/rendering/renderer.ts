@@ -566,8 +566,8 @@ export class PaperRenderer {
 		if (!corners) {return null;}
 		const w = this.#canvas.width;
 		const h = this.#canvas.height;
-		let minX = Infinity, maxX = -Infinity;
-		let minY = Infinity, maxY = -Infinity;
+		let maxX = -Infinity, minX = Infinity;
+		let maxY = -Infinity, minY = Infinity;
 		let anyVisible = false;
 		const m = viewProj.arr;
 		for (let i = 0; i < 8; i++) {

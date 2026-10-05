@@ -1187,7 +1187,7 @@ export class BookViewer {
 		const mesh = this.#meshes[pageIndex];
 		const region = this.#textureRegion(pageIndex, side);
 		const steps = 32;
-		let minU = Infinity, minV = Infinity, maxU = -Infinity, maxV = -Infinity;
+		let maxU = -Infinity, maxV = -Infinity, minU = Infinity, minV = Infinity;
 		let visible = 0;
 
 		for (let i = 0; i <= steps; i++) {
