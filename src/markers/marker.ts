@@ -34,7 +34,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 	#scaleVal = 1;
 	#w = 0;
 	#matrix = '';
-	#fto: any;
+	#fto: ReturnType<typeof setTimeout> | undefined;
 	// Omni arc visibility: target frame index and [start, end] frame range
 	#omniIndex = 0;
 	#omniArc: [number, number] | undefined;

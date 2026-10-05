@@ -152,10 +152,11 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			const $switching = get(switching);
 			if (!$switching && micrio.spaceData) {
-				const links = micrio.spaceData.links.filter((l: any) => l[0] === image.id || l[1] === image.id);
-				const linkIds = new Set(links.map((l: any) => l[0] === image.id ? l[1] : l[0]));
+				const links = micrio.spaceData.links.filter(l => l[0] === image.id || l[1] === image.id);
+				const linkIds = new Set(links.map(l => l[0] === image.id ? l[1] : l[0]));
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-waypoint')) {
-					if (!linkIds.has(el.dataset.targetId)) {el.remove();}
+					const {targetId} = el.dataset;
+					if (!targetId || !linkIds.has(targetId)) {el.remove();}
 				}
 				for (const l of links) {
 					const id = l[0] === image.id ? l[1] : l[0];

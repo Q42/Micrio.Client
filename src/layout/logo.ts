@@ -8,7 +8,7 @@ class MicrioLogo extends MicrioElement {
 	static tag = 'micrio-logo';
 
 	#a!: HTMLAnchorElement;
-	#loadingTimer: any;
+	#loadingTimer: ReturnType<typeof setTimeout> | undefined;
 	#loading = false;
 
 	/** @internal */

@@ -30,7 +30,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	#targetImage: Models.ImageData.ImageData | undefined;
 	#coords!: Models.Spaces.WaypointCoords;
 	#iface!: Models.Spaces.WaypointInterface;
-	#fto: any;
+	#fto: ReturnType<typeof setTimeout> | undefined;
 	#vector!: Models.Camera.Vector;
 	#click: (() => void) | undefined;
 	#focus: (() => void) | undefined;

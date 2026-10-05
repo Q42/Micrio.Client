@@ -147,7 +147,7 @@ class MicrioToolbar extends MicrioElement {
 					menu: {
 						id: 'video-tours',
 						i18n: { [$_lang]: { title: hasBothTourTypes ? $i18n._videoTours : $i18n._tours } },
-						children: videoTours.map((t: any) => ({
+						children: videoTours.map(t => ({
 							id: t.id ?? randomUUID(),
 							i18n: { [$_lang]: { title: t.i18n?.[$_lang]?.title ?? '(Untitled)' } },
 							action: () => {
