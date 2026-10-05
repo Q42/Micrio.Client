@@ -317,7 +317,7 @@ export class IIIFTextureManager {
 				return s._activeSlot === slot ? p : 0;
 			}
 				if (s._activeSlot === slot) {return 1 - p;}
-				else {return p;}
+				return p;
 			
 		}
 
