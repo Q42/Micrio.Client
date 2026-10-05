@@ -16,45 +16,49 @@
  */
 
 /** A callback invoked once per scheduled frame with the rAF timestamp. @internal */
-export type FrameCallback = (now: number) => void;
+export type FrameCallback = (now: number) => void
 
 /** The window-like object providing rAF; overridable for non-window contexts. @internal */
 // oxlint-disable-next-line unicorn/prefer-global-this -- typed as the rAF host Window; globalThis is not assignable
-let display: Window = window;
+let display: Window = window
 
 /** Handle of the currently scheduled rAF, or 0 when none is scheduled. @internal */
-let rafId = 0;
+let rafId = 0
 
 /** Monotonically increasing frame counter, incremented once per processed frame. @internal */
-let frameId = 0;
+let frameId = 0
 
 /** Callbacks requested for the next frame (identity-deduplicated). @internal */
-const pending = new Set<FrameCallback>();
+const pending = new Set<FrameCallback>()
 
 /** Requests the next frame if one is not already scheduled. @internal */
 function schedule(): void {
-	if (rafId) {return;}
-	rafId = display.requestAnimationFrame(tick);
+	if (rafId) {
+		return
+	}
+	rafId = display.requestAnimationFrame(tick)
 }
 
 /** Processes one frame: snapshots the pending callbacks and reschedules if more arrive. @internal */
 function tick(now: number): void {
-	rafId = 0;
-	frameId++;
+	rafId = 0
+	frameId++
 
 	// Snapshot + clear: anything requested *during* this frame runs on the next one.
-	const callbacks = [...pending];
-	pending.clear();
+	const callbacks = [...pending]
+	pending.clear()
 
 	for (const cb of callbacks) {
 		try {
-			cb(now);
+			cb(now)
 		} catch (e) {
-			console.error('[Micrio] frame callback error', e);
+			console.error('[Micrio] frame callback error', e)
 		}
 	}
 
-	if (pending.size > 0) {schedule();}
+	if (pending.size > 0) {
+		schedule()
+	}
 }
 
 /**
@@ -65,7 +69,9 @@ function tick(now: number): void {
  */
 export const Frame = {
 	/** The number of the frame currently being processed. @internal */
-	get id(): number { return frameId; },
+	get id(): number {
+		return frameId
+	},
 
 	/**
 	 * Queues a callback for the next frame.
@@ -73,27 +79,37 @@ export const Frame = {
 	 * @internal
 	 */
 	request(cb: FrameCallback): void {
-		pending.add(cb);
-		schedule();
+		pending.add(cb)
+		schedule()
 	},
 
 	/** Removes a pending callback. A no-op if it is not queued. @internal */
 	cancel(cb: FrameCallback): void {
-		pending.delete(cb);
+		pending.delete(cb)
 		if (pending.size === 0 && rafId) {
-			display.cancelAnimationFrame(rafId);
-			rafId = 0;
+			display.cancelAnimationFrame(rafId)
+			rafId = 0
 		}
 	},
 
 	/** Resolves after the next frame. @internal */
 	after(): Promise<void> {
-		return new Promise<void>(ok => { Frame.request(() =>{  ok(); }); });
+		return new Promise<void>((ok) => {
+			Frame.request(() => {
+				ok()
+			})
+		})
 	},
 
 	/** Resolves after the next paint (two frames), matching the old `afterFrame()`. @internal */
 	afterPaint(): Promise<void> {
-		return new Promise<void>(ok => { Frame.request(() =>{  Frame.request(() => { ok(); }); }); });
+		return new Promise<void>((ok) => {
+			Frame.request(() => {
+				Frame.request(() => {
+					ok()
+				})
+			})
+		})
 	},
 
 	/**
@@ -104,10 +120,14 @@ export const Frame = {
 	_setDisplay(win: Window): void {
 		if (display !== win) {
 			// Re-home a scheduled frame so the previous display doesn't fire it.
-			if (rafId) {display.cancelAnimationFrame(rafId);}
-			display = win;
-			rafId = 0;
-			if (pending.size > 0) {schedule();}
+			if (rafId) {
+				display.cancelAnimationFrame(rafId)
+			}
+			display = win
+			rafId = 0
+			if (pending.size > 0) {
+				schedule()
+			}
 		}
-	}
-};
+	},
+}

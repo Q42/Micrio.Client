@@ -8,7 +8,7 @@ micrio-minimap canvas {
 	transform-origin: right bottom;
 	display: block;
 	background-size: 100%;
-	transition: opacity .2s ease;
+	transition: opacity 0.2s ease;
 	cursor: grab;
 	-ms-content-zooming: none;
 	-ms-touch-action: none;
@@ -26,7 +26,7 @@ micrio-minimap.hidden canvas:not(:hover) {
 
 @media (max-width: 800px) {
 	micrio-minimap canvas {
-		transform: scale3d(.5, .5, 1) !important;
+		transform: scale3d(0.5, 0.5, 1) !important;
 		pointer-events: none;
 	}
 }

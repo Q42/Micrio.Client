@@ -1,42 +1,46 @@
-import { createElement } from '$utils/dom';
-import { MicrioElement } from '$core/component';
-import type { MicrioImage } from '$core/image';
+import { createElement } from '$utils/dom'
+import { MicrioElement } from '$core/component'
+import type { MicrioImage } from '$core/image'
 
-import './embed';
+import './embed'
 
 /** Properties for the image embeds container component. @internal */
 export interface ImageEmbedsProps {
 	/** The parent MicrioImage whose embeds will be rendered. */
-	image: MicrioImage;
+	image: MicrioImage
 }
-import './image-embeds.css';
+import './image-embeds.css'
 
 /** Custom element that renders all embeds for a Micrio image by watching the image data for embed definitions. */
 class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 	/** HTML tag name for this custom element. @internal */
-	static tag = 'micrio-image-embeds';
+	static tag = 'micrio-image-embeds'
 
-	#props: Partial<ImageEmbedsProps> = {};
+	#props: Partial<ImageEmbedsProps> = {}
 
 	/** @internal */
 	_onMount() {
-		const { image } = this.#props;
-		if (!image) {return;}
+		const { image } = this.#props
+		if (!image) {
+			return
+		}
 
-		this._watch(image.data, d => {
-			this.replaceChildren();
+		this._watch(image.data, (d) => {
+			this.replaceChildren()
 			if (d?.embeds) {
 				for (const embed of d.embeds) {
-					createElement('micrio-embed', { parent: this, setProps: { embed, image } });
+					createElement('micrio-embed', { parent: this, setProps: { embed, image } })
 				}
 			}
-		});
+		})
 	}
 
 	/** @internal */
 	_setProps(props: Partial<ImageEmbedsProps>) {
-		if (props.image !== undefined) {this.#props.image = props.image;}
+		if (props.image !== undefined) {
+			this.#props.image = props.image
+		}
 	}
 }
 
-customElements.define(MicrioImageEmbeds.tag, MicrioImageEmbeds);
+customElements.define(MicrioImageEmbeds.tag, MicrioImageEmbeds)

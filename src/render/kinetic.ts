@@ -4,35 +4,33 @@
  * @internal
  */
 
-import type { TileCanvas } from './tile-canvas';
+import type { TileCanvas } from './tile-canvas'
 
 /** Handles kinetic scrolling/dragging behavior after user interaction stops. @internal */
 export default class Kinetic {
 	/** Accumulated horizontal delta during drag. */
-	#dX = 0;
+	#dX = 0
 	/** Accumulated vertical delta during drag. */
-	#dY = 0;
+	#dY = 0
 	/** Timestamp when the drag interaction started. */
-	#startTime = 0;
+	#startTime = 0
 	/** Timestamp of the previous step added. */
-	#prevTime = 0;
+	#prevTime = 0
 	/** Timestamp when the drag interaction ended (kinetic phase started). */
-	#endTime = 0;
+	#endTime = 0
 	/** Timestamp of the last significant interaction step. */
-	#lastInteraction = 0;
+	#lastInteraction = 0
 	/** Current horizontal velocity for kinetic movement. */
-	#velocityX = 0;
+	#velocityX = 0
 	/** Current vertical velocity for kinetic movement. */
-	#velocityY = 0;
+	#velocityY = 0
 	/** Flag indicating if kinetic movement is currently active. */
-	started = false;
+	started = false
 
-	#canvas: TileCanvas;
+	#canvas: TileCanvas
 
-	constructor(
-		canvas: TileCanvas
-	) {
-		this.#canvas = canvas;
+	constructor(canvas: TileCanvas) {
+		this.#canvas = canvas
 	}
 
 	/**
@@ -41,38 +39,46 @@ export default class Kinetic {
 	 * @param pY Vertical pixel delta since last step.
 	 */
 	addStep(pX: number, pY: number): void {
-		const t = this.#canvas.main.now;
-		if (this.#endTime) {return;}
-		if (this.#startTime === 0) {this.#startTime = t;}
+		const t = this.#canvas.main.now
+		if (this.#endTime) {
+			return
+		}
+		if (this.#startTime === 0) {
+			this.#startTime = t
+		}
 
-		const dt = t - this.#prevTime;
-		const fact: number = this.#prevTime > 0 && dt > 0 ? 16.67 / dt : 1;
-		if (Math.hypot(pX, pY) * fact > 20) {this.#lastInteraction = t;}
+		const dt = t - this.#prevTime
+		const fact: number = this.#prevTime > 0 && dt > 0 ? 16.67 / dt : 1
+		if (Math.hypot(pX, pY) * fact > 20) {
+			this.#lastInteraction = t
+		}
 
-		const elasticity = this.#canvas.main._dragElasticity;
+		const elasticity = this.#canvas.main._dragElasticity
 
-		this.#dX += pX * elasticity;
-		this.#dY += pY * elasticity;
-		this.#prevTime = t;
+		this.#dX += pX * elasticity
+		this.#dY += pY * elasticity
+		this.#prevTime = t
 	}
 
 	/** Starts the kinetic movement phase (called when user stops dragging). */
 	start(): void {
-		if (this.#canvas.camera._isUnderZoom()) {return;}
-		this.started = true;
+		if (this.#canvas.camera._isUnderZoom()) {
+			return
+		}
+		this.started = true
 	}
 
 	/** Stops the kinetic movement and resets state. */
 	stop(): void {
-		this.started = false;
-		this.#endTime = 0;
-		this.#startTime = 0;
-		this.#prevTime = 0;
-		this.#lastInteraction = 0;
-		this.#dX = 0;
-		this.#dY = 0;
-		this.#velocityX = 0;
-		this.#velocityY = 0;
+		this.started = false
+		this.#endTime = 0
+		this.#startTime = 0
+		this.#prevTime = 0
+		this.#lastInteraction = 0
+		this.#dX = 0
+		this.#dY = 0
+		this.#velocityX = 0
+		this.#velocityY = 0
 	}
 
 	/**
@@ -80,34 +86,38 @@ export default class Kinetic {
 	 * @returns Progress towards stopping (0 = max velocity, 1 = stopped).
 	 */
 	step(): number {
-		const t = this.#canvas.main.now;
-		const webgl = this.#canvas._camera360;
-		const cam = this.#canvas.camera;
-		if (!this.started || this.#startTime === 0) {return 1;}
+		const t = this.#canvas.main.now
+		const webgl = this.#canvas._camera360
+		const cam = this.#canvas.camera
+		if (!this.started || this.#startTime === 0) {
+			return 1
+		}
 
 		if (this.#endTime === 0) {
-			this.#endTime = t;
-			const factor = 1 - Math.min(1, (this.#endTime - this.#lastInteraction) / 250);
-			const deltaTime = this.#endTime - this.#startTime;
-			const inv = deltaTime > 0 ? 4 / deltaTime : 0;
+			this.#endTime = t
+			const factor = 1 - Math.min(1, (this.#endTime - this.#lastInteraction) / 250)
+			const deltaTime = this.#endTime - this.#startTime
+			const inv = deltaTime > 0 ? 4 / deltaTime : 0
 
-			this.#velocityX = this.#dX * inv * factor;
-			this.#velocityY = this.#dY * inv * factor;
-		}
-		else {
-			this.#velocityX *= .94;
-			this.#velocityY *= .94;
+			this.#velocityX = this.#dX * inv * factor
+			this.#velocityY = this.#dY * inv * factor
+		} else {
+			this.#velocityX *= 0.94
+			this.#velocityY *= 0.94
 		}
 
-		let v = Math.hypot(this.#velocityX, this.#velocityY);
-		if (this.#canvas.is360) {webgl._rotate(this.#velocityX, this.#velocityY);}
-		else {cam._pan(this.#velocityX, this.#velocityY, 0, false, false, true);}
+		let v = Math.hypot(this.#velocityX, this.#velocityY)
+		if (this.#canvas.is360) {
+			webgl._rotate(this.#velocityX, this.#velocityY)
+		} else {
+			cam._pan(this.#velocityX, this.#velocityY, 0, false, false, true)
+		}
 
 		if (v <= 0.01) {
-			v = 0;
-			this.stop();
+			v = 0
+			this.stop()
 		}
 
-		return 1 - v;
+		return 1 - v
 	}
 }

@@ -1,64 +1,96 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+	<head>
+		<title>Micrio scratchpad dev</title>
+		<meta name="Content-Type" content="text/html; charset=UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no" />
+		<meta http-equiv="X-UA-Compatible" content="chrome=1" />
+		<meta charset="UTF-8" />
+		<meta name="google" value="notranslate" />
+		<meta name="mobile-web-app-capable" content="yes" />
 
-<head>
-	<title>Micrio scratchpad dev</title>
-	<meta name="Content-Type" content="text/html; charset=UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=no">
-	<meta http-equiv="X-UA-Compatible" content="chrome=1">
-	<meta charset="UTF-8">
-	<meta name="google" value="notranslate">
-	<meta name="mobile-web-app-capable" content="yes">
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap"
+			as="style"
+			onload="
+				this.onload = null
+				this.rel = 'stylesheet'
+			"
+		/>
+		<style type="text/css" rel="stylesheet">
+			html {
+				position: fixed;
+			}
+			html,
+			body {
+				overscroll-behavior: none;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+			body {
+				margin: 0;
+				background-color: #222222;
+			}
+			body,
+			button {
+				font-family: 'Poppins', sans-serif;
+			}
+			micr-io {
+				display: block;
+				width: 100%;
+				height: 100%;
+			}
+		</style>
+		<style type="text/css" rel="stylesheet">
+			xxmicr-io {
+				--micrio-font-family: 'Raleway', sans-serif;
+			}
+		</style>
 
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap" rel="stylesheet">
-	<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-	<style type="text/css" rel="stylesheet">
-		html { position: fixed; }
-		html, body { overscroll-behavior: none; width: 100%; height: 100%; overflow: hidden; }
-		body { margin: 0; background-color: #222222; }
-		body, button { font-family: 'Poppins', sans-serif; }
-		micr-io { display: block; width: 100%; height: 100%; }
-	</style>
-	<style type="text/css" rel="stylesheet">
-		xxmicr-io { --micrio-font-family: 'Raleway', sans-serif; }
-	</style>
+		<!-- Use this for local development -->
+		<script type="module" src="./src/main.ts"></script>
 
-	<!-- Use this for local development -->
-	<!-- <script type="module" src="./src/main.ts"></script> -->
+		<!-- Use this to test the compiled version -->
+		<!-- <script src="./dist/micrio.min.js" defer crossorigin="anonymous"></script> -->
+		<!-- <script src="./dist/micrio.core.min.js" defer crossorigin="anonymous"></script> -->
 
-	<!-- Use this to test the compiled version -->
-	<!-- <script src="./dist/micrio.min.js" defer crossorigin="anonymous"></script> -->
-	<script src="./dist/micrio.core.min.js" defer crossorigin="anonymous"></script>
+		<!-- Use a production version -->
+		<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
+		<!-- <script src="https://r2.micr.io/micrio-6.1.14.min.js" defer></script> -->
+		<!-- <script src="https://r2.micr.io/micrio-7.1.0.min.js" defer></script> -->
+		<!-- <script src="https://r2.micr.io/micrio-7.0.9.min.js" defer></script> -->
+		<!-- <script src="https://b.micr.io/micrio-5.0.min.js" defer></script> -->
+		<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
+		<!-- <script src="https://b.micr.io/micrio-2.9.min.js"></script> -->
+		<!-- <script src="https://b.micr.io/micrio-3.3.min.js"></script> -->
+		<!-- <script src="https://b.micr.io/micrio-1.9.min.js"></script> -->
+		<!-- <script src="https://b.micr.io/micrio-1.2.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="https://b.micr.io/micrio-1.2.min.css"> -->
 
-	<!-- Use a production version -->
-	<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
-	<!-- <script src="https://r2.micr.io/micrio-6.1.15e.min.js" defer></script> -->
-	<!-- <script src="https://r2.micr.io/micrio-7.0.9.min.js" defer></script> -->
-	<!-- <script src="https://b.micr.io/micrio-5.0.min.js" defer></script> -->
-	<!-- <script src="https://b.micr.io/micrio-4.1.min.js" defer></script> -->
-	<!-- <script src="https://b.micr.io/micrio-2.9.min.js"></script> -->
-	<!-- <script src="https://b.micr.io/micrio-3.3.min.js"></script> -->
-	<!-- <script src="https://b.micr.io/micrio-1.9.min.js"></script> -->
+		<!-- <script src="http://localhost:8000/js/micrio.full.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="https://b.micr.io/micrio-1.2.min.css"> -->
 
+		<script></script>
+	</head>
 
+	<body>
+		<!-- <micr-io id="zcucg" path="https://micrio.s3.eu-north-1.amazonaws.com/"></micr-io> -->
 
-	<script>
-	</script>
-</head>
+		<!-- <micr-io id="zcucg" width="3418" height="4096" path="https://micrio.s3.eu-north-1.amazonaws.com/" tilesize="1024" format="dz" webp xextension="webp" skipmeta="" xui="false"></micr-io> -->
 
-<body>
-	<!-- <micr-io id="zcucg" path="https://micrio.s3.eu-north-1.amazonaws.com/"></micr-io> -->
+		<!-- <micr-io id="vwUJF"></micr-io> -->
+		<!-- <micr-io id="mfcDxoh" datxa-path="https://r2.micr.io/"></micr-io> -->
+		<!-- <micr-io id="PWaWcw" path="https://r2.micr.io/"></micr-io> -->
+		<!-- <micr-io id="HSucu" path="https://micrio.s3.eu-north-1.amazonaws.com/"></micr-io> -->
 
-	<!-- <micr-io id="zcucg" width="3418" height="4096" path="https://micrio.s3.eu-north-1.amazonaws.com/" tilesize="1024" format="dz" webp xextension="webp" skipmeta="" xui="false"></micr-io> -->
-
-<!-- <micr-io id="vwUJF"></micr-io> -->
-	<!-- <micr-io id="mfcDxoh" datxa-path="https://r2.micr.io/"></micr-io> -->
-	<!-- <micr-io id="PWaWcw" path="https://r2.micr.io/"></micr-io> -->
-	<!-- <micr-io id="HSucu" path="https://micrio.s3.eu-north-1.amazonaws.com/"></micr-io> -->
-
-	<!-- DEMO IDs
+		<!-- DEMO IDs
 		Basic test image: dzzLm
 		Omni image: QgjdoCK / HvoNSNV (has markers) / iEvpRg (markers)
 		Omni image with layers: KUMwoaU / GPjAGL
@@ -69,127 +101,135 @@
 		360 poppenhuis: uLNEVz  / mqmDZU / sXvgoH
 		Demo grid:
 	-->
-	<!-- <micr-io id="BToEysn" laxng="nl" daxta-zoomlimit="4" daxta-router="hash" data-embexds-inside-gl daxta-path="http://localhost:6100/r2/" daxta-force-path data-embxeds-inside-gl="true" data-sxkipmeta daxta-cluster-markers></micr-io> -->
-	<!-- <micr-io data-grid="sJbpCE.1781772980" data-fullscreen data-gallery-sort="name" data-grid-zoom="true"></micr-io> -->
+		<!-- <micr-io id="BToEysn" laxng="nl" daxta-zoomlimit="4" daxta-router="hash" data-embexds-inside-gl daxta-path="http://localhost:6100/r2/" daxta-force-path data-embxeds-inside-gl="true" data-sxkipmeta daxta-cluster-markers></micr-io> -->
+		<!-- <micr-io data-grid="sJbpCE.1781772980" data-fullscreen data-gallery-sort="name" data-grid-zoom="true"></micr-io> -->
 
-	<!-- 360 degree image with floating embed, Rijksmuseum MmMvrCA / gAqGDMz -->
-	<!-- <micr-io id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
-	<!-- <micr-io id="https://iiif.micr.io/dzzLm/info.json" data-embeds-inside-gl="false"></micr-io> -->
+		<!-- 360 degree image with floating embed, Rijksmuseum MmMvrCA / gAqGDMz -->
+		<!-- <micr-io id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
+		<!-- <micr-io id="https://iiif.micr.io/dzzLm/info.json" data-embeds-inside-gl="false"></micr-io> -->
 
+		<!-- <micr-io id="dzzLm"></micr-io> -->
 
-	<!-- <micr-io id="dzzLm"></micr-io> -->
+		<!-- <micr-io id="mLOarF" data-embeds-inside-gl="false"></micr-io> -->
+		<!-- <micr-io id="ZjWXQAF"></micr-io> -->
 
-	<!-- <micr-io id="mLOarF" data-embeds-inside-gl="false"></micr-io> -->
-	<!-- <micr-io id="ZjWXQAF"></micr-io> -->
-
-	<!--
+		<!--
 		http://localhost:8787/iiif/vaults/d6082d6b-5fa2-48a7-aff3-c1c2389ef8df/photos/1947b855-5621-40bb-b0b4-98538859e455
 		https://pbox.wut.pub/iiif/vaults/921e705c-cb3e-461c-b65d-f7a4077440b4/photos/40843547-76bc-4be5-b969-9690760c65c9
 	 -->
-	<micr-io id="http://localhost:8787/iiif/vaults/d6082d6b-5fa2-48a7-aff3-c1c2389ef8df/photos/1947b855-5621-40bb-b0b4-98538859e455/info.json"></micr-io>
+		<!-- <micr-io datxa-is360 idx="http://localhost:9001/iiif/vaults/d6082d6b-5fa2-48a7-aff3-c1c2389ef8df/photos/0799b012-4cca-4fe9-8dca-ccbc34a92c7c/info.json"></micr-io> -->
 
+		<!-- general test image - https://dash.micr.io/micrio/2026/@CVWjwhk -->
+		<!-- <micr-io id="rqFkjZz"></micr-io> -->
+		<!-- <micr-io id="dzzLm" lanxg="nl"></micr-io> -->
 
+		<!-- Staedel Museum Frankfurt: German content -->
+		<!-- <micr-io id="StLvjXj" lang="de-DE"></micr-io> -->
 
+		<!-- Staedel-->
+		<!-- <micr-io id="zUtxLtj" lang="de-DE" daxta-skipmeta datxa-ui="false"></micr-io> -->
 
-	<!-- general test image - https://dash.micr.io/micrio/2026/@CVWjwhk -->
-	<!-- <micr-io id="rqFkjZz"></micr-io> -->
-	<!-- <micr-io id="dzzLm" lang="nl"></micr-io> -->
+		<!-- 360 tour 2026 -->
+		<!-- <micr-io id="gAqGDMz"></micr-io> -->
 
-	<!-- Staedel Museum Frankfurt: German content -->
-	<!-- <micr-io id="StLvjXj" lang="de-DE"></micr-io> -->
+		<!-- <micr-io data-grid="SBzCMk.1781809787" data-coxverlimit data-initxtype="cover" data-fullscreen daxta-gallery-sort="random" data-xkeys="false"></micr-io> -->
+		<!-- <micr-io id="dfhgojZ" daxta-embeds-inside-gl data-path="http://localhost:6100/r2/" datxa-force-path data-embeds-inside-gl="false" dxata-skipmeta daxta-cluster-markers></micr-io> -->
+		<!-- <micr-io id="cjhjTWD" lang="nl" xid="external/micrio/blabla" data-watermark-opacity="0.2"></micr-io> -->
+		<!-- <micr-io xxid="blabla" id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
+		<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18"></micr-io> -->
+		<!-- multi image marker CVWjwhk / very small pBjaEqs-->
 
-	<!-- Staedel-->
-	<!-- <micr-io id="zUtxLtj" lang="de-DE" daxta-skipmeta datxa-ui="false"></micr-io> -->
+		<!-- <micr-io data-gallery="yOeffA.1780389977" data-fullscreen data-gallery-sort="name" data-path="https://eu.micr.io/"></micr-io> -->
+		<!-- <micr-io id="mfcDxoh"></micr-io> -->
 
-	<!-- 360 tour 2026 -->
-	<!-- <micr-io id="gAqGDMz"></micr-io> -->
+		<!-- <micr-io id="XETzqjS"></micr-io> -->
 
-	<!-- <micr-io data-grid="SBzCMk.1781809787" data-coxverlimit data-initxtype="cover" data-fullscreen daxta-gallery-sort="random" data-xkeys="false"></micr-io> -->
-	<!-- <micr-io id="dfhgojZ" daxta-embeds-inside-gl data-path="http://localhost:6100/r2/" datxa-force-path data-embeds-inside-gl="false" dxata-skipmeta daxta-cluster-markers></micr-io> -->
-	<!-- <micr-io id="cjhjTWD" lang="nl" xid="external/micrio/blabla" data-watermark-opacity="0.2"></micr-io> -->
-	<!-- <micr-io xxid="blabla" id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
-	<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18"></micr-io> -->
-	 <!-- multi image marker CVWjwhk / very small pBjaEqs-->
+		<!-- ALBUMS AND GALLERIES -->
 
-	<!-- <micr-io data-gallery="yOeffA.1780389977" data-fullscreen data-gallery-sort="name" data-path="https://eu.micr.io/"></micr-io> -->
-	<!-- <micr-io id="mfcDxoh"></micr-io> -->
+		<!-- 3D book birds cover kRRaTG / p4 QzVJuX - Teylers Museum -->
+		<!-- <micr-io id="kRRaTG"></micr-io> -->
 
-	<!-- <micr-io id="XETzqjS"></micr-io> -->
+		<!-- 3d book with markers / p1 gjdQTdU, p4 ZjWXQAF  / https://dash.micr.io/micrio/2026-albums/testboek-met-content -->
+		<!-- <micr-io id="ZjWXQAF"></micr-io> -->
 
-	<!-- ALBUMS AND GALLERIES -->
+		<!-- IIIF Presentation API V3 -->
+		<!-- <micr-io id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
 
-	<!-- 3D book birds cover kRRaTG / p4 QzVJuX - Teylers Museum -->
-	<!-- <micr-io id="kRRaTG"></micr-io> -->
+		<!-- IIIF Image API manifest, direct `info.json` single images -->
+		<!-- <micr-io id="https://viewer.micr.io/sSoykjv/info.json"></micr-io> -->
+		<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18/"></micr-io> -->
 
-	<!-- 3d book with markers / p1 gjdQTdU, p4 ZjWXQAF  / https://dash.micr.io/micrio/2026-albums/testboek-met-content -->
-	<!-- <micr-io id="ZjWXQAF"></micr-io> -->
+		<!-- Book / swipeable gallery with pages: mfcDxoh , jcrosPa - Bibliotheek Erfgoed -->
+		<!-- <micr-io id="jcrosPa"></micr-io> -->
 
-	<!-- IIIF Presentation API V3 -->
-	<!-- <micr-io id="https://iiif.io/api/cookbook/recipe/0009-book-1/manifest.json"></micr-io> -->
+		<!-- Swipeable gallery with data, first image exXfojW , 7th WcOSjxV (marker), 9th sSoykjv (embed) - https://dash.micr.io/micrio/2026-albums/test-album-met-metadata -->
+		<!-- <micr-io id="WcOSjxV" data-embeds-inside-gl="false"></micr-io> -->
 
-	<!-- IIIF Image API manifest, direct `info.json` single images -->
-	<!-- <micr-io id="https://viewer.micr.io/sSoykjv/info.json"></micr-io> -->
-	<!-- <micr-io id="https://iiif.io/api/image/3.0/example/reference/59d09e6773341f28ea166e9f3c1e674f-gallica_ark_12148_bpt6k1526005v_f18/"></micr-io> -->
+		<!-- Book / switching view, cover XoSoqjL , page 9 CvAjsYe - Watchmen -->
+		<!-- <micr-io id="CvAjsYe"></micr-io> -->
 
-	<!-- Book / swipeable gallery with pages: mfcDxoh , jcrosPa - Bibliotheek Erfgoed -->
-	<!-- <micr-io id="jcrosPa"></micr-io> -->
+		<!-- Grid demo ojLvYTE - https://dash.micr.io/q42-shared/test/grid-test -->
+		<!-- <micr-io id="ojLvYTE" daxta-embeds-inside-gl="false"></micr-io> -->
 
-	<!-- Swipeable gallery with data, first image exXfojW , 7th WcOSjxV (marker), 9th sSoykjv (embed) - https://dash.micr.io/micrio/2026-albums/test-album-met-metadata -->
-	<!-- <micr-io id="WcOSjxV" data-embeds-inside-gl="false"></micr-io> -->
+		<!-- Omni 360 object - Modemuze -->
+		<!-- <micr-io id="KUMwoaU"></micr-io> -->
 
-	<!-- Book / switching view, cover XoSoqjL , page 9 CvAjsYe - Watchmen -->
-	<!-- <micr-io id="CvAjsYe"></micr-io> -->
+		<!-- -->
+		<!-- <micr-io id="TEwZErN" data-embeds-inside-gl="false"></micr-io> -->
 
-	<!-- Grid demo ojLvYTE - https://dash.micr.io/q42-shared/test/grid-test -->
-	<!-- <micr-io id="ojLvYTE" daxta-embeds-inside-gl="false"></micr-io> -->
+		<!-- <link rel="stylesheet" href="staedelmuseum-micrio7.css" /> -->
 
-	<!-- Omni 360 object - Modemuze -->
-	<!-- <micr-io id="KUMwoaU"></micr-io> -->
+		<micr-io id="YMdMHNo" laxng="nl" data-contextmenu-crop data-preserve-drawing-buffer></micr-io>
 
-	<!-- <micr-io id="dzzLm"></micr-io> -->
+		<!-- 
+	ALBUM: http://localhost:9001/s/4OmtW97yu/manifest.json
+	IMAGE: http://localhost:9001/s/SgbraMhgV/manifest.json
+	IMAGE: http://localhost:9001/s/GMMHeeYgL/manifest.json
+	-->
+		<!-- <micr-io id="https://pbox.wut.pub/s/F63WAxYfj/manifest.json"></micr-io> -->
 
-	<!-- Embedded videos, Imaginarium -->
-	<!-- <micr-io id="dfhgojZ" daxta-skipmeta="true" dxata-embeds-inside-gl="false"></micr-io> -->
+		<!-- <micr-io id="https://share.vault.pub/v5y31EVE0/manifest.json"></micr-io> -->
 
-	<!-- Spaces tour with rotated 360 embed and relative orb rotations -->
-	<!-- <micr-io id="EaouKa" data-skipxmeta="true" daxta-coverlimit data-xembeds-inside-gl="false"></micr-io> -->
+		<!-- Embedded videos, Imaginarium -->
+		<!-- <micr-io id="dfhgojZ" daxta-skipmeta="true" dxata-embeds-inside-gl="false"></micr-io> -->
 
-	<!-- Spaces 360 tour -->
-	<!-- <micr-io id="ZnaHJK"></micr-io> -->
+		<!-- Spaces tour with rotated 360 embed and relative orb rotations -->
+		<!-- <micr-io id="EaouKa" data-skipxmeta="true" daxta-coverlimit data-embeds-inside-gl="false"></micr-io> -->
 
-	<!-- Rijksmuseum Serial Tour Joao -->
-	<!-- <micr-io id="JXflr" xpath="https://micrio.rijksmuseum.nl/" data-fullscxreen data-gallxery-sort="name"></micr-io> -->
+		<!-- Spaces 360 tour -->
+		<!-- <micr-io id="ZnaHJK"></micr-io> -->
 
-	<!-- Modemuze omni object -->
-	<!-- <micr-io id="iEvpRg"></micr-io> -->
+		<!-- Rijksmuseum Serial Tour Joao -->
+		<!-- <micr-io id="JXflr" xpath="https://micrio.rijksmuseum.nl/" data-fullscxreen data-gallxery-sort="name"></micr-io> -->
 
-	<!-- Image with custom ID and watermark -->
-	<!-- <micr-io id="external/nlb-singapore/f8fb9570-115c-11e3-83d5-0050568939ad"></micr-io> -->
+		<!-- Modemuze omni object -->
+		<!-- <micr-io id="iEvpRg"></micr-io> -->
 
-	<!-- <micr-io id="RKLaNjM"></micr-io> -->
+		<!-- Image with custom ID and watermark -->
+		<!-- <micr-io id="external/nlb-singapore/f8fb9570-115c-11e3-83d5-0050568939ad"></micr-io> -->
 
-	<!-- Image with lots of in-image clickable embeds, Schooltv Lezen Voor De Lijst -->
-	<!-- <micr-io id="xRFsaTQ"></micr-io> -->
+		<!-- <micr-io id="RKLaNjM"></micr-io> -->
 
-	<!-- Demo swipeable gallery -->
-	<!-- <micr-io data-gallery="xnRwQ,985,1200,,p;esgZB,960,1280,;pRiMP,960,1280," data-path="https://micrio.vangoghmuseum.nl/micrio/"></micr-io> -->
+		<!-- Image with lots of in-image clickable embeds, Schooltv Lezen Voor De Lijst -->
+		<!-- <micr-io id="xRFsaTQ"></micr-io> -->
 
-	<script>
-		window.micrio = document.querySelector('micr-io');
+		<!-- Demo swipeable gallery -->
+		<!-- <micr-io data-gallery="xnRwQ,985,1200,,p;esgZB,960,1280,;pRiMP,960,1280," data-path="https://micrio.vangoghmuseum.nl/micrio/"></micr-io> -->
+
+		<script>
+			window.micrio = document.querySelector('micr-io')
+			/*
 
 		// Override the default settings by setting the `.defaultSettings` property
 		// on a <micr-io> HTML element
 		micrio.defaultSettings = {
-			gallery: {
-				type: 'book3d'
-			}
 		};
 
 		// Listen to opened marker hooks
-		micrio.addEventListener('pre-data', e => {
+		micrio.addEventListener('show', e => {
 			console.log('show', e.detail);
 			//console.log('Opened marker', e.detail);
-			//console.log(micrio.$current.camera.getCoo(e.clientX,e.clientY));
+			console.log(micrio.$current.camera.getCoo(0,50));
 		});
 
 		// Put any pre-info init hooks here
@@ -203,8 +243,7 @@
 		micrio.addEventListener('pre-data', e => {
 			// Same as `pre-info` hook, but this is for the image data / content.
 		});
-
-	</script>
-</body>
-
+		*/
+		</script>
+	</body>
 </html>

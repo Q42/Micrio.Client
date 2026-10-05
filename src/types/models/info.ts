@@ -1,478 +1,478 @@
-import type { Camera } from './camera';
-import type { Assets } from './assets';
-import type { RevisionType } from './common';
-import type { Writable } from '$core/store';
-import type { MicrioImage } from '$core/image';
-import type { IconName } from '$types/icon-name';
+import type { Camera } from './camera'
+import type { Assets } from './assets'
+import type { RevisionType } from './common'
+import type { Writable } from '$core/store'
+import type { MicrioImage } from '$core/image'
+import type { IconName } from '$types/icon-name'
 
 /**
-  * # Base image data
-  * 
-  * The MicrioData.ImageInfo.ImageInfo JSON data object, containing all basic image properties.
-  * 
-  * The static image information, such as original resolution, image type, title, and all non-language specific **settings** ({@link ImageInfo.Settings}), such as initial viewport, camera behavior, and 360&deg; settings.
-  * 
-  * The only required field is `id`. If only the `id` field is specified, Micrio attempts to download the additional image data by itself (`info.json`), published by the Micrio servers. This data will also include image title, and any custom viewing settings set in the image editor.
-  * 
-  * This is a minimal accepted example:
-  * 
-  * ```json
-  * {
-  * 	"id": "dzzLm",
-  * }
-  * ```
-  * 
-  * If you have manually entered the image `width` and `height`, _it will not download_ the `info.json` file, assuming you have provided correct and complete data:
-  * 
-  * ```json
-  * {
-  * 	"id": "dzzLm",
-  * 	"width": 41472,
-  * 	"height": 30219
-  * }
-  * ```
-  * 
-  * Optionally, when using {@link HTMLMicrioElement} `<micr-io>` tag attributes, these will overwrite whatever is loaded from the server. So if in the Micrio editor you have enabled the fullscreen toggle button, you can disable it in your own HTML using `<micr-io data-fullscreen="false">`.
-  * 
-  * 
-  */
+ * # Base image data
+ *
+ * The MicrioData.ImageInfo.ImageInfo JSON data object, containing all basic image properties.
+ *
+ * The static image information, such as original resolution, image type, title, and all non-language specific **settings** ({@link ImageInfo.Settings}), such as initial viewport, camera behavior, and 360&deg; settings.
+ *
+ * The only required field is `id`. If only the `id` field is specified, Micrio attempts to download the additional image data by itself (`info.json`), published by the Micrio servers. This data will also include image title, and any custom viewing settings set in the image editor.
+ *
+ * This is a minimal accepted example:
+ *
+ * ```json
+ * {
+ * 	"id": "dzzLm",
+ * }
+ * ```
+ *
+ * If you have manually entered the image `width` and `height`, _it will not download_ the `info.json` file, assuming you have provided correct and complete data:
+ *
+ * ```json
+ * {
+ * 	"id": "dzzLm",
+ * 	"width": 41472,
+ * 	"height": 30219
+ * }
+ * ```
+ *
+ * Optionally, when using {@link HTMLMicrioElement} `<micr-io>` tag attributes, these will overwrite whatever is loaded from the server. So if in the Micrio editor you have enabled the fullscreen toggle button, you can disable it in your own HTML using `<micr-io data-fullscreen="false">`.
+ *
+ *
+ */
 export namespace ImageInfo {
 	/** A Micrio image's main static image data object */
+	// oxlint-disable-next-line eslint/no-shadow -- the nested interface is the public `Models.ImageInfo.ImageInfo` API type; renaming it would break consumers
 	export interface ImageInfo {
 		/** The image id */
-		id: string;
+		id: string
 		/** The image base path URI, with a trailing `/`
 		 * @default https://b.micr.io/
-		*/
-		path: string;
+		 */
+		path: string
 
 		/** The Micrio version this image was created in
 		 * @default autoloaded
-		*/
-		version: string;
+		 */
+		version: string
 
 		/** Created date */
-		created?: number;
+		created?: number
 
 		/** Has new viewport model, optimized for 360 images. Server-side only, not read client-side. */
-		viewsWH?: boolean;
+		viewsWH?: boolean
 
 		/** For V5+: published revisions per language */
-		revision?: RevisionType;
+		revision?: RevisionType
 
 		/** The original image width
 		 * @default autoloaded
-		*/
-		width: number;
+		 */
+		width: number
 		/** The original image height
 		 * @default autoloaded
-		*/
-		height: number;
+		 */
+		height: number
 		/** The original tile size in px
 		 * @default 1024
-		*/
-		tileSize?: number;
+		 */
+		tileSize?: number
 
 		/** Use an alternative image ID for the image tiles */
-		tilesId?: string;
+		tilesId?: string
 
 		/** Use an alternative basePath for image tiles */
-		tileBasePath?: string;
+		tileBasePath?: string
 
 		/** Optional custom file extension for tiles */
-		tileExtension?: string;
+		tileExtension?: string
 
 		/** Optional watermark image URI */
-		watermark?: string;
+		watermark?: string
 
 		/** The image title (default: autoloaded) */
-		title?: string;
+		title?: string
 
 		/** The initial data language */
-		lang?: string;
+		lang?: string
 		/** The image is 360 degrees */
-		is360?: boolean;
+		is360?: boolean
 		/** The image tiles are in WebP format */
-		isWebP?: boolean;
+		isWebP?: boolean
 		/** The image tiles are in PNG format */
-		isPng?: boolean;
+		isPng?: boolean
 		/** The tiled image is in DeepZoom format */
-		isDeepZoom?: boolean;
+		isDeepZoom?: boolean
 		/** The image has a IIIF source */
-		isIIIF?: boolean;
+		isIIIF?: boolean
 		/** Use a custom, single source uri for the zoomable image / video */
-		isSingle?: boolean;
+		isSingle?: boolean
 		/** A custom format (`dz` for DeepZoom, `iiif` for IIIF) */
-		format?: string;
+		format?: string
 
 		/** The album (V5+) ID */
-		albumId?: string;
+		albumId?: string
 
 		/** Is a video (used for embeds), keep rendering when in view
 		 * @internal
-		*/
-		isVideo?: boolean;
+		 */
+		isVideo?: boolean
 
 		/** The IIIF spec'd `tiles` object
 		 * @internal
-		*/
-		tiles?: { [key: string]: number }[];
+		 */
+		tiles?: { [key: string]: number }[]
 
 		/** The IIIF `preferredFormats` array from the `info.json` (e.g. `["webp", "jpg", "png"]`)
 		 * @internal
-		*/
-		preferredFormats?: string[];
+		 */
+		preferredFormats?: string[]
 
 		/** The 360 tour space ID */
-		spacesId?: string;
+		spacesId?: string
 	}
 
 	export interface Organisation {
-		name: string;
-		slug: string;
-		baseUrl?: string;
-		href?: string;
-		logo?: Assets.Image;
-		gtmId?: string;
-		branding?: boolean;
-		fontFamily?: string;
-	};
+		name: string
+		slug: string
+		baseUrl?: string
+		href?: string
+		logo?: Assets.Image
+		gtmId?: string
+		branding?: boolean
+		fontFamily?: string
+	}
 
 	/** Micrio image settings */
 	export interface Settings {
 		/** The starting viewport */
-		view?: Camera.View;
+		view?: Camera.View
 		/** Restrict navigation to this viewport (`[x0, y0, width, height]`) */
-		restrict?: Camera.View;
+		restrict?: Camera.View
 		/** Load a cover-initing image focussed on this coordinate (`[x, y]`) */
-		focus?: [number, number];
+		focus?: [number, number]
 
 		/** When opening the image without a predefined deeplink, open this */
 		start?: {
-			type: ('marker'|'markerTour'|'tour'|'page');
-			id: string;
+			type: 'marker' | 'markerTour' | 'tour' | 'page'
+			id: string
 		}
 
 		/** Use a custom uri for the info json file */
-		infoUrl?: string;
+		infoUrl?: string
 		/** Render this image as a static image */
-		static?: boolean;
+		static?: boolean
 		/** Use a custom thumbnail image uri */
-		thumbSrc?: string;
+		thumbSrc?: string
 		/** The starting viewport. Possible values `cover` and `contain`. Defaults to `contain` */
-		initType?: string;
+		initType?: string
 		/** The user cannot zoom out more than a fully covered view */
-		limitToCoverScale?: boolean;
+		limitToCoverScale?: boolean
 		/** Initialize the image when the container is scrolled into view (default: `false`) */
-		lazyload?: number;
+		lazyload?: number
 		/** Don't load any custom JS or CSS scripts */
-		noExternals?: boolean;
+		noExternals?: boolean
 		/** Don't load this image's {@link ImageData.ImageData} (markers, tours, etc) */
-		skipMeta?: boolean;
+		skipMeta?: boolean
 		/** Don't auto-load first available non-preferred data language */
-		onlyPreferredLang?: boolean;
+		onlyPreferredLang?: boolean
 		/** Do a crossfade when navigating between images (default: true) */
-		fadeBetween?: boolean;
+		fadeBetween?: boolean
 		/** Optional image crossfade duration, in seconds */
-		crossfadeDuration?: number;
+		crossfadeDuration?: number
 		/** Embedded images/videos fade in/out duration, in seconds */
-		embedFadeDuration?: number;
+		embedFadeDuration?: number
 		/** When being re-shown, always restart */
-		embedRestartWhenShown?: boolean;
+		embedRestartWhenShown?: boolean
 		/** Don't stop drawing frames when idle */
-		keepRendering?: boolean;
+		keepRendering?: boolean
 		/** Skip the deepest zoom levels */
-		skipBaseLevels?: number;
+		skipBaseLevels?: number
 
 		/** The camera animation speed (default: 1) */
-		camspeed?: number;
+		camspeed?: number
 		/** Kinetic dragging sensitivity (default: 1) */
-		dragElasticity?: number;
+		dragElasticity?: number
 		/** The maximum zoom level in % of the original (default: 1) */
-		zoomLimit?: number;
+		zoomLimit?: number
 		/** Turn off support for high DPI screens */
-		noRetina?: boolean;
+		noRetina?: boolean
 		/** Adjust the maximum zoom of high DPI screens to that of regular displays */
-		zoomLimitDPRFix?: boolean;
+		zoomLimitDPRFix?: boolean
 		/** Allow the user to pan and zoom out of image bounds */
-		freeMove?: boolean;
+		freeMove?: boolean
 		/** When navigating back to this image from another image, reset the initial view */
-		resetView?: boolean;
+		resetView?: boolean
 		/** Don't smooth out pixels when zooming in > 100% */
-		noSmoothing?: boolean;
+		noSmoothing?: boolean
 
 		/** Hook user events (default: true) */
-		hookEvents?: boolean;
+		hookEvents?: boolean
 		/** Hook keyboard controls (default: false) */
-		hookKeys?: boolean;
+		hookKeys?: boolean
 		/** Don't allow the user to zoom in or out */
-		noZoom?: boolean;
+		noZoom?: boolean
 		/** Use the mousewheel or trackpad scrolling for zooming (default: true) */
-		hookScroll?: boolean;
+		hookScroll?: boolean
 		/** Allow pinch to zoom on touch devices (default: true) */
-		hookPinch?: boolean;
+		hookPinch?: boolean
 		/** Allow panning through the image (default: true) */
-		hookDrag?: boolean;
+		hookDrag?: boolean
 		/** Force two-finger panning on touch devices (default: false) */
-		twoFingerPan?: boolean;
+		twoFingerPan?: boolean
 		/** Force using the CTRL/CMD-keys to zoom in using scrolling (default: false) */
-		controlZoom?: boolean;
+		controlZoom?: boolean
 		/** Don't allow less than minimum scale zooming when pinching */
-		pinchZoomOutLimit?: boolean;
+		pinchZoomOutLimit?: boolean
 
 		/** Don't load any UI elements */
-		noUI?: boolean;
+		noUI?: boolean
 		/** Don't show any controls in the UI */
-		noControls?: boolean;
+		noControls?: boolean
 		/** Show a fullscreen button if supported */
-		fullscreen?: boolean;
+		fullscreen?: boolean
 		/** Don't show the Micrio logo on the top left */
-		noLogo?: boolean;
+		noLogo?: boolean
 		/** Don't show the organisation logo on the top right */
-		noOrgLogo?: boolean;
+		noOrgLogo?: boolean
 		/** Don't show the menu bar with tours and custom pages */
-		noToolbar?: boolean;
+		noToolbar?: boolean
 		/** Show an info modal with the image title and description */
-		showInfo?: boolean;
+		showInfo?: boolean
 		/** Show a social sharing button */
-		social?: boolean;
+		social?: boolean
 
 		/** Show the minimap (default: true) */
-		minimap?: boolean;
+		minimap?: boolean
 		/** Don't fade out the minimap (default: false) */
-		alwaysShowMinimap?: boolean;
+		alwaysShowMinimap?: boolean
 		/** The minimap maximum width, in px (default: 200) */
-		minimapWidth?: number;
+		minimapWidth?: number
 		/** The minimap maximum height, in px (default: 160) */
-		minimapHeight?: number;
+		minimapHeight?: number
 
 		/** More natural camera zooming animation during transitions (default: `true`) */
-		doTourJumps?: boolean;
+		doTourJumps?: boolean
 
 		/** Enable the audio controller (default: `true`) */
-		audio?: boolean;
+		audio?: boolean
 		/** The starting audio volume [0-1] (default: `1`) */
-		startVolume?: number;
+		startVolume?: number
 		/** The audio volume when other media is playing `[0-1]` (default: `0`) */
-		mutedVolume?: number;
+		mutedVolume?: number
 		/** Mute the audio when the current browser tab loses focus */
-		muteOnBlur?: boolean;
+		muteOnBlur?: boolean
 
 		/** The physical width of the object in cm */
-		cmWidth?: number;
+		cmWidth?: number
 		/** The physical height of the object in cm */
-		cmHeight?: number;
+		cmHeight?: number
 
 		/** Overlapping markers are clustered */
-		clusterMarkers?: boolean;
+		clusterMarkers?: boolean
 		/** The clustered marker radius */
-		clusterMarkerRadius?: number;
+		clusterMarkerRadius?: number
 		/** Dark/light theme */
-		theme?: ("dark" | "light" | "os");
+		theme?: 'dark' | 'light' | 'os'
 
 		/** Load a custom JS file with this image */
 		js?: {
 			/** The asset href */
-			href: string;
-		};
+			href: string
+		}
 		/** Load a custom CSS file with this image */
 		css?: {
 			/** The asset href */
-			href: string;
-		};
+			href: string
+		}
 
 		/** All markers are scaled with the image */
-		markersScale?: boolean;
+		markersScale?: boolean
 
 		/** Albums */
-		gallery?: GalleryConfig;
+		gallery?: GalleryConfig
 
 		/** FOR OMNI OBJECTS */
-		omni?: OmniSettings;
+		omni?: OmniSettings
 
 		/** Optional marker settings */
-		_markers?: MarkerSettings;
+		_markers?: MarkerSettings
 
 		/** Optional settings for 360 images/video */
 		_360?: {
 			/** A 360 video object */
-			video?: Assets.Video;
+			video?: Assets.Video
 			/** @deprecated Use `Spaces.SpaceImage.rotationY` (radians). Normalized
 			 *  [0,1] image-X offset, 0.5 = identity. Still honoured for back-compat. */
-			trueNorth?: number;
+			trueNorth?: number
 			/** 2D embed X rotation in 360 */
-			rotX?: number;
+			rotX?: number
 			/** 2D embed Y rotation in 360 */
-			rotY?: number;
+			rotY?: number
 			/** 2D embed Z rotation in 360 */
-			rotZ?: number;
+			rotZ?: number
 			/** 2D embed IFRAME scale */
-			scale?: number;
-		};
+			scale?: number
+		}
 
 		/** UI customizations */
-		ui?: Partial<UserInterfaceSettings>;
+		ui?: Partial<UserInterfaceSettings>
 
 		/** Grid display and interaction settings */
 		grid?: {
 			/** Click behavior for grid images: `'focus'` expands to full view, `'zoom'` zooms to the image's viewport */
-			clickable?: 'focus' | 'zoom';
+			clickable?: 'focus' | 'zoom'
 			/** Pan/zoom behavior: `'cells'` operates on the individual cell under the cursor, `'grid'` operates on the main grid container */
-			panZoom?: 'cells' | 'grid';
+			panZoom?: 'cells' | 'grid'
 			/** Transition duration for grid animations, in seconds */
-			transitionDuration?: number;
+			transitionDuration?: number
 			/** Transition duration when going back, in seconds */
-			transitionDurationOut?: number;
-		};
+			transitionDurationOut?: number
+		}
 
 		/** ADVANCED: A fragment shader for WebGL postprocessing
 		 * This shader MUST have and use:
 		 * uniform sampler2D u_image; // the render buffer texture
 		 * varying vec2 v_texCoord;   // the texture coordinate
 		 * uniform float u_time;      // elapsed time in seconds
-		*/
-		postProcessingFragmentShader?: string;
+		 */
+		postProcessingFragmentShader?: string
 
 		/** Watermark opacity, defaults to 0.075 */
-		watermarkOpacity?: number;
+		watermarkOpacity?: number
 
 		/** Split-screen: open a secondary image alongside this one (Micrio ID). */
-		micrioSplitLink?: string;
+		micrioSplitLink?: string
 		/** Split-screen: if true, the secondary camera does not follow the primary. */
-		noFollow?: boolean;
+		noFollow?: boolean
 		/** Split-screen: if false, the secondary image is display-only (no user interaction). */
-		secondaryInteractive?: boolean;
+		secondaryInteractive?: boolean
 	}
 
 	export interface OmniSettings {
 		/** Number of frames */
-		frames: number;
+		frames: number
 		/** Starting frame index */
-		startIndex: number;
+		startIndex: number
 		/** The camera field of view in radians */
-		fieldOfView: number;
+		fieldOfView: number
 		/** The camera vertical angle in radians */
-		verticalAngle: number;
+		verticalAngle: number
 		/** The distance of the object center to the camera */
-		distance: number;
+		distance: number
 		/** Adjust the center for an object */
-		offsetX: number;
+		offsetX: number
 		/** Put the labels on the side of the object */
-		sideLabels?: boolean;
+		sideLabels?: boolean
 		/** Which frame is 0deg rotation */
-		frontIndex?: number;
+		frontIndex?: number
 		/** Layers */
-		layers?: {i18n: {[key:string]: string|undefined}}[];
+		layers?: { i18n: { [key: string]: string | undefined } }[]
 		/** Optional starting layer idx */
-		layerStartIndex?: number;
+		layerStartIndex?: number
 		/** Hide the rotation dial */
-		noDial?: boolean;
+		noDial?: boolean
 		/** Show degrees on dial */
-		showDegrees?: boolean;
+		showDegrees?: boolean
 		/** Gallery is omni object photography over 2 axes */
-		twoAxes?: boolean;
+		twoAxes?: boolean
 		/** Don't add key bindings for rotating */
-		noKeys?: boolean;
+		noKeys?: boolean
 	}
 
 	/** Image-wide marker settings */
 	export interface MarkerSettings {
 		/** An image-wise custom marker icon */
-		markerIcon?: Assets.Image;
+		markerIcon?: Assets.Image
 		/** The default marker color */
-		markerColor?: string;
+		markerColor?: string
 		/** The default marker size in px */
-		markerSize?: string;
+		markerSize?: string
 		/** Zoom out when closing a marker */
-		zoomOutAfterClose?: boolean;
+		zoomOutAfterClose?: boolean
 		/** Relative speed factor when zooming out after close */
-		zoomOutAfterCloseSpeed?: number;
+		zoomOutAfterCloseSpeed?: number
 		/** Always show the titles for all markers */
-		showTitles?: boolean;
+		showTitles?: boolean
 		/** Don't print any marker titles at all */
-		noTitles?: boolean;
+		noTitles?: boolean
 		/** All markers are sized to their viewports */
-		viewportIsMarker?: boolean;
+		viewportIsMarker?: boolean
 		/** All marker embeds are printed in HTML, not WebGL */
-		embedsInHtml?: boolean;
+		embedsInHtml?: boolean
 		/** Auto-start a marker tour when just opening marker */
-		autoStartTour?: boolean;
+		autoStartTour?: boolean
 		/** Always auto-start a marker tour from the beginning */
-		autoStartTourAtBeginning?: boolean;
+		autoStartTourAtBeginning?: boolean
 		/** Auto-progress a tour step when marker media has ended */
-		tourAutoProgress?: boolean;
+		tourAutoProgress?: boolean
 		/** Tour controls in popup */
-		tourControlsInPopup?: boolean;
+		tourControlsInPopup?: boolean
 		/** Show tour step counter in marker popup */
-		tourStepCounterInPopup?: boolean;
+		tourStepCounterInPopup?: boolean
 		/** Allow marker popups to be minimized */
-		canMinimizePopup?: boolean;
+		canMinimizePopup?: boolean
 		/** Place primary body text above any media in popup */
-		primaryBodyFirst?: boolean;
+		primaryBodyFirst?: boolean
 		/** Prevent all autoplay */
-		preventAutoPlay?: boolean;
+		preventAutoPlay?: boolean
 		/** Don't do anything when clicking markers */
-		noMarkerActions?: boolean;
+		noMarkerActions?: boolean
 		/** Hide markers when tour is running */
-		hideMarkersDuringTour?: boolean;
+		hideMarkersDuringTour?: boolean
 		/** Keep popup opened in between marker tour steps */
-		keepPopupsDuringTourTransitions?: boolean;
+		keepPopupsDuringTourTransitions?: boolean
 		/** Optional custom uploaded icons */
-		customIcons?: Assets.Image[];
+		customIcons?: Assets.Image[]
 	}
 
 	/** Custom interface settings */
 	export interface UserInterfaceSettings {
 		controls?: {
 			/** Show the culture switch button if there are multiple available languages */
-			cultureSwitch?: boolean;
+			cultureSwitch?: boolean
 			/** Serial tour timebar clicking other segment always goes to start of chapter */
-			serialTourNoTimeScrub?: boolean;
-		},
-		icons?: Partial<Record<IconName, string>>;
+			serialTourNoTimeScrub?: boolean
+		}
+		icons?: Partial<Record<IconName, string>>
 	}
 }
 
-
 export interface Album {
 	/** The number of pages in this album */
-	numPages: number;
+	numPages: number
 	/** The current page index */
-	currentIndex: number;
+	currentIndex: number
 	/** The album info */
-	info?: GalleryConfig;
+	info?: GalleryConfig
 	/** Go to previous page */
-	prev: () => void;
+	prev: () => void
 	/** Go to next page */
-	next: () => void;
+	next: () => void
 	/** Go to specific image index. Resolves once the gallery has animated to the target page. */
-	goto: (n:number) => Promise<MicrioImage | undefined>;
+	goto: (n: number) => Promise<MicrioImage | undefined>
 	/** Album has been initialized and hooked */
-	hooked?: boolean;
+	hooked?: boolean
 	/** Strip-swipe only: writable store tracking the currently active child
 	 * MicrioImage. Consumers (e.g. ZoomButtons) can subscribe to bind their
 	 * controls to the image under focus instead of the virtual parent. */
-	currentImage?: Writable<MicrioImage>;
+	currentImage?: Writable<MicrioImage>
 }
 
 /** Gallery configuration */
 export interface GalleryConfig {
 	/** The gallery type; unset while a gallery config is still being collected from attributes. */
-	type?: 'swipe' | 'switch' | 'grid' | 'book3d';
-	startId?: string;
-	sort?: 'name' | '-name' | 'created' | '-created' | 'random';
-	isSpreads?: boolean;
-	coverPages?: number;
-	archive?: string;
-	archiveLayerOffset?: number;
-	revisions?: Record<string, Record<string, unknown>>;
+	type?: 'swipe' | 'switch' | 'grid' | 'book3d'
+	startId?: string
+	sort?: 'name' | '-name' | 'created' | '-created' | 'random'
+	isSpreads?: boolean
+	coverPages?: number
+	archive?: string
+	archiveLayerOffset?: number
+	revisions?: Record<string, Record<string, unknown>>
 	/** Custom gallery settings JSON. */
 	// oxlint-disable-next-line typescript/no-explicit-any -- consumers (gallery/controller.ts) spread and read arbitrary nested keys from this custom-JSON bag, which `unknown` values would break
-	settings?: Record<string, any>;
-	id?: string;
-	name?: string;
+	settings?: Record<string, any>
+	id?: string
+	name?: string
 	grid?: {
-		clickable?: 'focus' | 'zoom' | false;
-		panZoom?: 'cells' | 'grid';
-	};
+		clickable?: 'focus' | 'zoom' | false
+		panZoom?: 'cells' | 'grid'
+	}
 }

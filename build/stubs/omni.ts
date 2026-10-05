@@ -1,7 +1,5 @@
 /** Minimal-build stub for `$gallery/omni` — the omni 3D object UI is excluded from the core build. */
 export class OmniUI {
-	
-
 	async setup(): Promise<void> {}
 
 	goto(_i: number): void {}

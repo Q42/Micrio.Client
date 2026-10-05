@@ -4,7 +4,7 @@
  * @internal
  */
 
-import { mod1 } from '$utils/math';
+import { mod1 } from '$utils/math'
 
 /**
  * Calculates the shortest angular distance between two longitude coordinates.
@@ -15,13 +15,13 @@ import { mod1 } from '$utils/math';
  * @internal
  */
 export function longitudeDistance(from: number, to: number): number {
-	const normalizedFrom = mod1(from);
-	const normalizedTo = mod1(to);
+	const normalizedFrom = mod1(from)
+	const normalizedTo = mod1(to)
 
-	const directDistance = normalizedTo - normalizedFrom;
-	const wrapDistance = directDistance > 0 ? directDistance - 1 : directDistance + 1;
+	const directDistance = normalizedTo - normalizedFrom
+	const wrapDistance = directDistance > 0 ? directDistance - 1 : directDistance + 1
 
-	return Math.abs(directDistance) <= Math.abs(wrapDistance) ? directDistance : wrapDistance;
+	return Math.abs(directDistance) <= Math.abs(wrapDistance) ? directDistance : wrapDistance
 }
 
 /**
@@ -30,43 +30,43 @@ export function longitudeDistance(from: number, to: number): number {
  * @internal
  */
 export class Bicubic {
-	readonly #Cx: number;
-	readonly #Bx: number;
-	readonly #Ax: number;
+	readonly #Cx: number
+	readonly #Bx: number
+	readonly #Ax: number
 
-	readonly #Cy: number;
-	readonly #By: number;
-	readonly #Ay: number;
+	readonly #Cy: number
+	readonly #By: number
+	readonly #Ay: number
 
-	readonly #isLinear: boolean;
+	readonly #isLinear: boolean
 
 	constructor(p1: number, p2: number, p3: number, p4: number) {
-		this.#isLinear = p1 === p2 && p3 === p4 && p1 === 0 && p3 === 1;
-		const Cx = 3 * p1;
-		const Bx = 3 * (p3 - p1) - Cx;
-		this.#Cx = Cx;
-		this.#Bx = Bx;
-		this.#Ax = 1 - Cx - Bx;
-		const Cy = 3 * p2;
-		const By = 3 * (p4 - p2) - Cy;
-		this.#Cy = Cy;
-		this.#By = By;
-		this.#Ay = 1 - Cy - By;
+		this.#isLinear = p1 === p2 && p3 === p4 && p1 === 0 && p3 === 1
+		const Cx = 3 * p1
+		const Bx = 3 * (p3 - p1) - Cx
+		this.#Cx = Cx
+		this.#Bx = Bx
+		this.#Ax = 1 - Cx - Bx
+		const Cy = 3 * p2
+		const By = 3 * (p4 - p2) - Cy
+		this.#Cy = Cy
+		this.#By = By
+		this.#Ay = 1 - Cy - By
 	}
 
 	/** Calculates the X coordinate on the bezier curve for a given parameter t. */
 	#bezier_x(t: number): number {
-		return t * (this.#Cx + t * (this.#Bx + t * this.#Ax));
+		return t * (this.#Cx + t * (this.#Bx + t * this.#Ax))
 	}
 
 	/** Calculates the Y coordinate on the bezier curve for a given parameter t. */
 	#bezier_y(t: number): number {
-		return t * (this.#Cy + t * (this.#By + t * this.#Ay));
+		return t * (this.#Cy + t * (this.#By + t * this.#Ay))
 	}
 
 	/** Calculates the derivative of the bezier curve's X component with respect to t. */
 	#bezier_x_der(t: number): number {
-		return this.#Cx + t * (2 * this.#Bx + 3 * this.#Ax * t);
+		return this.#Cx + t * (2 * this.#Bx + 3 * this.#Ax * t)
 	}
 
 	/**
@@ -76,18 +76,20 @@ export class Bicubic {
 	 * @returns The approximated parameter t for the given x.
 	 */
 	#find_x_for(x: number): number {
-		let t: number = x;
-		let i = 0;
-		let current_x = 0;
-		let derivative_x = 0;
+		let t: number = x
+		let i = 0
+		let current_x = 0
+		let derivative_x = 0
 		while (i < 5) {
-			current_x = this.#bezier_x(t) - x;
-			derivative_x = this.#bezier_x_der(t);
-			if (derivative_x === 0) {break;}
-			t = t - current_x / derivative_x;
-			i++;
+			current_x = this.#bezier_x(t) - x
+			derivative_x = this.#bezier_x_der(t)
+			if (derivative_x === 0) {
+				break
+			}
+			t = t - current_x / derivative_x
+			i++
 		}
-		return t;
+		return t
 	}
 
 	/**
@@ -96,24 +98,24 @@ export class Bicubic {
 	 * @returns The eased Y value.
 	 */
 	get(t: number): number {
-		return this.#isLinear ? t : this.#bezier_y(this.#find_x_for(t));
+		return this.#isLinear ? t : this.#bezier_y(this.#find_x_for(t))
 	}
 }
 
 /** Predefined cubic bezier easing: ease-in-out (standard). @internal */
-export const easeInOut = new Bicubic(0.42, 0, 0.58, 1);
+export const easeInOut = new Bicubic(0.42, 0, 0.58, 1)
 /** Predefined cubic bezier easing: ease-in. @internal */
-export const easeIn = new Bicubic(0.42, 0, 1, 1);
+export const easeIn = new Bicubic(0.42, 0, 1, 1)
 /** Predefined cubic bezier easing: ease-out. @internal */
-export const easeOut = new Bicubic(0, 0, 0.58, 1);
+export const easeOut = new Bicubic(0, 0, 0.58, 1)
 /** Predefined cubic bezier easing: linear. @internal */
-export const linear = new Bicubic(0, 0, 1, 1);
+export const linear = new Bicubic(0, 0, 1, 1)
 
-const _timingFns = [easeInOut, easeIn, easeOut, linear] as const;
+const _timingFns = [easeInOut, easeIn, easeOut, linear] as const
 
 /** Resolves a numeric timing function index to its Bicubic instance. @internal */
-export const getTimingFunction = (fn: number): Bicubic => _timingFns[fn] ?? easeInOut;
+export const getTimingFunction = (fn: number): Bicubic => _timingFns[fn] ?? easeInOut
 
-const _easingByName: Record<string, Bicubic> = { ease: easeInOut, 'ease-in': easeIn, 'ease-out': easeOut, linear };
+const _easingByName: Record<string, Bicubic> = { ease: easeInOut, 'ease-in': easeIn, 'ease-out': easeOut, linear }
 /** Resolves a timing function name (e.g. 'ease', 'ease-in') to its Bicubic instance. @internal */
-export const getEasing = (name?: string): Bicubic => _easingByName[name ?? 'ease'] ?? easeInOut;
+export const getEasing = (name?: string): Bicubic => _easingByName[name ?? 'ease'] ?? easeInOut

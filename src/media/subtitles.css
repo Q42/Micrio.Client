@@ -8,13 +8,13 @@ micrio-subtitles {
 	width: 100vw;
 	pointer-events: none;
 	z-index: 6;
-	transition: bottom .25s ease;
+	transition: bottom 0.25s ease;
 }
-micr-io:is([data-video-tour-active],[data-marker-tour-active]):not([data-idle]) micrio-subtitles {
+micr-io:is([data-video-tour-active], [data-marker-tour-active]):not([data-idle]) micrio-subtitles {
 	bottom: calc(3 * var(--micrio-border-margin) + var(--micrio-button-size));
 }
 micrio-subtitles p {
-	margin: .5em 0;
+	margin: 0.5em 0;
 	background-color: var(--micrio-background);
 	padding: 0 14px;
 	-webkit-box-decoration-break: clone;

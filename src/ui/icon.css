@@ -7,5 +7,5 @@ micrio-icon > svg {
 	width: var(--micrio-icon-size);
 }
 micrio-icon > svg.small {
-	height: .75em;
+	height: 0.75em;
 }

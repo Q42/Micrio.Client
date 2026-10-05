@@ -2,6 +2,6 @@
 export const archive = {
 	db: new Map<string, unknown>(),
 	_getImage(_u: string): Promise<never> {
-		return Promise.reject(new Error('Archive loading is not available in the core build'));
+		return Promise.reject(new Error('Archive loading is not available in the core build'))
 	},
-};
+}

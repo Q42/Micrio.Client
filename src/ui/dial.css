@@ -12,7 +12,8 @@ micrio-dial {
 	cursor: w-resize;
 	overflow: hidden;
 }
-micrio-dial::before,micrio-dial::after {
+micrio-dial::before,
+micrio-dial::after {
 	content: '';
 	display: block;
 	width: 100%;

@@ -1,4 +1,3 @@
-
 micrio-tour > aside.marker-tour {
 	bottom: var(--micrio-border-margin);
 	left: 50%;
@@ -14,11 +13,13 @@ aside.marker-tour {
 	border-radius: var(--micrio-border-radius);
 	box-shadow: var(--micrio-button-shadow);
 	backdrop-filter: var(--micrio-background-filter);
-	background-color: var(--micrio-button-background,var(--micrio-background,none));
+	background-color: var(--micrio-button-background, var(--micrio-background, none));
 	padding: 0;
-	transition: transform .25s ease,opacity .25s ease;
+	transition:
+		transform 0.25s ease,
+		opacity 0.25s ease;
 	z-index: 5;
-	--micrio-hide: translate(-50%,100%);
+	--micrio-hide: translate(-50%, 100%);
 }
 
 aside.marker-tour micrio-button {

@@ -6,7 +6,7 @@ micrio-button > :is(button, a) {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	transition: opacity .25s ease;
+	transition: opacity 0.25s ease;
 	font: inherit;
 	font-size: 90%;
 	position: relative;
@@ -30,15 +30,15 @@ micrio-button > :is(button, a).transparent {
 	background-color: transparent;
 	backdrop-filter: none;
 }
-micrio-button > :is(button, a)>* {
-	transition: opacity .25s ease;
+micrio-button > :is(button, a) > * {
+	transition: opacity 0.25s ease;
 }
 micrio-button > :is(button, a):disabled {
 	pointer-events: none;
 	cursor: default;
 }
 micrio-button > :is(button, a):disabled svg {
-	opacity: .4;
+	opacity: 0.4;
 }
 micrio-button > :is(button, a).no-click {
 	pointer-events: none;
@@ -55,12 +55,12 @@ micrio-button > :is(button, a).active svg {
 	fill: var(--micrio-color-hover);
 }
 @media (hover: hover) {
-	micrio-button > :is(button, a):is(:hover,:focus) {
+	micrio-button > :is(button, a):is(:hover, :focus) {
 		background-color: var(--micrio-button-background-hover, var(--micrio-button-background, var(--micrio-background)));
 		color: var(--micrio-color-hover);
 		z-index: 1;
 	}
-	micrio-button > :is(button, a):is(:hover,:focus) svg {
+	micrio-button > :is(button, a):is(:hover, :focus) svg {
 		fill: var(--micrio-color-hover);
 		stroke: var(--micrio-color-hover);
 	}

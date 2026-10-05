@@ -5,15 +5,15 @@
 
 /** Type definition for the Browser detection object. */
 interface BrowserInfo {
-	iOS: boolean; // Is it an iOS device (iPhone, iPad, iPod)?
-	firefox: boolean; // Is the browser Firefox?
-	OSX: boolean; // Is the operating system macOS?
-	hasTouch: boolean; // Does the browser support touch events?
-	safari: boolean; // Is the browser Safari (including iOS Safari)?
+	iOS: boolean // Is it an iOS device (iPhone, iPad, iPod)?
+	firefox: boolean // Is the browser Firefox?
+	OSX: boolean // Is the operating system macOS?
+	hasTouch: boolean // Does the browser support touch events?
+	safari: boolean // Is the browser Safari (including iOS Safari)?
 }
 
 /** User agent string for browser detection. */
-const ua = navigator.userAgent;
+const ua = navigator.userAgent
 
 /**
  * Object containing boolean flags for detected browser/OS features.
@@ -24,15 +24,14 @@ export const Browser: BrowserInfo = {
 	firefox: /firefox/i.test(ua),
 	OSX: /macintosh/i.test(ua) && /os x/i.test(ua),
 	hasTouch: 'TouchEvent' in globalThis, // Check for TouchEvent support
-	safari: false // Initialized later
-};
-
-// Refine Safari detection (must be OSX/iOS, contain 'safari' or 'instagram', but not 'chrome')
-Browser.safari = (Browser.OSX || Browser.iOS) && (/safari/i.test(ua) || /instagram/i.test(ua)) && !/chrome/i.test(ua);
-
-// Correct detection for iPads identifying as macOS but supporting touch events
-if (Browser.OSX && (Browser.safari && 'TouchEvent' in globalThis)) {
-	Browser.iOS = true;
-	Browser.OSX = false;
+	safari: false, // Initialized later
 }
 
+// Refine Safari detection (must be OSX/iOS, contain 'safari' or 'instagram', but not 'chrome')
+Browser.safari = (Browser.OSX || Browser.iOS) && (/safari/i.test(ua) || /instagram/i.test(ua)) && !/chrome/i.test(ua)
+
+// Correct detection for iPads identifying as macOS but supporting touch events
+if (Browser.OSX && Browser.safari && 'TouchEvent' in globalThis) {
+	Browser.iOS = true
+	Browser.OSX = false
+}

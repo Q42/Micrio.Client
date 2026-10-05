@@ -1,71 +1,86 @@
-import { createElement } from '$utils/dom';
-import { MicrioElement } from '$core/component';
-import { HTMLMicrioElement } from '$core/element';
-import type { Models } from '$types/models';
-import { Gallery } from '$gallery/controller';
-import { Frame } from '$core/frame';
+import { createElement } from '$utils/dom'
+import { MicrioElement } from '$core/component'
+import { HTMLMicrioElement } from '$core/element'
+import type { Models } from '$types/models'
+import { Gallery } from '$gallery/controller'
+import { Frame } from '$core/frame'
 
 /** Properties for the {@link MicrioSwipeGallery} custom element. @internal */
 export interface MicrioGalleryProps {
-	gallery: Models.Assets.Image[];
-	galleryStart?: string;
-	lang: string;
+	gallery: Models.Assets.Image[]
+	galleryStart?: string
+	lang: string
 }
-import './swipe-gallery.css';
+import './swipe-gallery.css'
 
 /** Custom element that renders a swipe gallery from asset data with captions. */
 class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 	/** HTML tag name for this custom element. @internal */
-	static tag = 'micrio-swipe-gallery';
+	static tag = 'micrio-swipe-gallery'
 
-	#props: MicrioGalleryProps = { gallery: [], lang: '' };
+	#props: MicrioGalleryProps = { gallery: [], lang: '' }
 
 	_setProps(props: Partial<MicrioGalleryProps>) {
-		if (props.gallery !== undefined) {this.#props.gallery = props.gallery;}
-		if (props.galleryStart !== undefined) {this.#props.galleryStart = props.galleryStart;}
-		if (props.lang !== undefined) {this.#props.lang = props.lang;}
+		if (props.gallery !== undefined) {
+			this.#props.gallery = props.gallery
+		}
+		if (props.galleryStart !== undefined) {
+			this.#props.galleryStart = props.galleryStart
+		}
+		if (props.lang !== undefined) {
+			this.#props.lang = props.lang
+		}
 	}
 
 	_onMount() {
-		const el = createElement('micr-io', { parent: this });
-		if (!(el instanceof HTMLMicrioElement)) {throw new Error('Could not create <micr-io> element');}
+		const el = createElement('micr-io', { parent: this })
+		if (!(el instanceof HTMLMicrioElement)) {
+			throw new Error('Could not create <micr-io> element')
+		}
 
-		const caption = createElement('figcaption', { parent: this });
+		const caption = createElement('figcaption', { parent: this })
 
-		const parent = this._getMicrio();
-		const basePath = parent?.$current?.$info?.path;
+		const parent = this._getMicrio()
+		const basePath = parent?.$current?.$info?.path
 
 		Frame.request(() => {
 			const galleryCtrl = Gallery._fromAssets(this.#props.gallery, el._engine, el, {
 				startId: this.#props.galleryStart,
-				basePath
-			});
-			void galleryCtrl._openOn(el);
-		});
+				basePath,
+			})
+			void galleryCtrl._openOn(el)
+		})
 
-		let currentIdx = 0;
+		let currentIdx = 0
 		const updateCaption = () => {
-			const item = this.#props.gallery[currentIdx];
-			const text = item?.i18n?.[this.#props.lang]?.description;
-			caption.innerHTML = text ?? '';
-			caption.style.display = text ? '' : 'none';
-		};
+			const item = this.#props.gallery[currentIdx]
+			const text = item?.i18n?.[this.#props.lang]?.description
+			caption.innerHTML = text ?? ''
+			caption.style.display = text ? '' : 'none'
+		}
 
 		el.addEventListener('gallery-show', (e: Event) => {
-			if (!(e instanceof CustomEvent)) {return;}
-			const detail: unknown = e.detail;
-			const id = Array.isArray(detail) && typeof detail[0] === 'string' ? detail[0] : undefined;
-			currentIdx = Math.max(0, this.#props.gallery.findIndex(item => (item.micrioId ?? item.id) === id));
-			updateCaption();
-		});
+			if (!(e instanceof CustomEvent)) {
+				return
+			}
+			const detail: unknown = e.detail
+			const id = Array.isArray(detail) && typeof detail[0] === 'string' ? detail[0] : undefined
+			currentIdx = Math.max(
+				0,
+				this.#props.gallery.findIndex((item) => (item.micrioId ?? item.id) === id),
+			)
+			updateCaption()
+		})
 
-		updateCaption();
+		updateCaption()
 	}
 
 	_onDestroy() {
-		const el = this.querySelector(':scope > micr-io');
-		if (el instanceof HTMLMicrioElement) {el.destroy();}
+		const el = this.querySelector(':scope > micr-io')
+		if (el instanceof HTMLMicrioElement) {
+			el.destroy()
+		}
 	}
 }
 
-customElements.define(MicrioSwipeGallery.tag, MicrioSwipeGallery);
+customElements.define(MicrioSwipeGallery.tag, MicrioSwipeGallery)

@@ -1,5 +1,5 @@
-import type { TextureBitmap } from '$render/textures';
-import { idIsV5 } from '$utils/id';
+import type { TextureBitmap } from '$render/textures'
+import { idIsV5 } from '$utils/id'
 
 /**
  * Subset of the Posix USTAR header format relevant for MDP files.
@@ -7,9 +7,9 @@ import { idIsV5 } from '$utils/id';
  */
 interface MDPHeader {
 	/** File name (max 20 chars used here, though TAR allows more). */
-	name: string;
+	name: string
 	/** File size in bytes (octal string in TAR, parsed to number here). */
-	size: number;
+	size: number
 }
 
 /**
@@ -21,11 +21,11 @@ interface MDPHeader {
  */
 class Archive {
 	/** Map storing loaded archive data ArrayBuffers, keyed by archive ID (e.g., 'g/folderId.revision' or 'imageId/base'). */
-	#data = new Map<string, ArrayBuffer>();
+	#data = new Map<string, ArrayBuffer>()
 	/** Map of file paths to [archiveId, byteOffset, byteLength] for fast file lookup. */
-	db = new Map<string, [string, number, number]>();
+	db = new Map<string, [string, number, number]>()
 	/** Map storing image ID → full db key for quick lookup by `getImageById`. */
-	private imageKeys = new Map<string, string>();
+	private imageKeys = new Map<string, string>()
 
 	/**
 	 * Loads an archive file (.bin or .mdp) via XMLHttpRequest.
@@ -35,71 +35,84 @@ class Archive {
 	 * @param p Optional progress callback function (receives progress 0-1).
 	 * @returns Promise that resolves when the archive is loaded and parsed.
 	 */
-	async load(path:string, id: string, p?:(n:number)=>void) : Promise<void> {
-		if(this.#data.has(id)) {return;} // Already loaded
+	async load(path: string, id: string, p?: (n: number) => void): Promise<void> {
+		if (this.#data.has(id)) {
+			return
+		} // Already loaded
 
-		const baseId = id.replace(/^.*\//,'').split('.')[0]; // Extract base ID (folder or image)
-		const isOmni = id.endsWith('/base'); // Is it an Omni base package?
-		const isBin = isOmni || idIsV5(baseId); // Determine file extension (.bin for V5/Omni, .mdp for V4)
+		const baseId = id.replace(/^.*\//, '').split('.')[0] // Extract base ID (folder or image)
+		const isOmni = id.endsWith('/base') // Is it an Omni base package?
+		const isBin = isOmni || idIsV5(baseId) // Determine file extension (.bin for V5/Omni, .mdp for V4)
 
-		const xhr = new XMLHttpRequest();
+		const xhr = new XMLHttpRequest()
 		// TODO: Improve error handling, maybe reject promise?
 		const data = await new Promise<ArrayBuffer | undefined>((ok, err) => {
-			let size = 0; // Total size for progress calculation
-			xhr.responseType = 'arraybuffer'; // Expect binary data
+			let size = 0 // Total size for progress calculation
+			xhr.responseType = 'arraybuffer' // Expect binary data
 			// Progress handler
-			xhr.addEventListener('progress', e => {
-				if(!size) {size = Number(xhr.getResponseHeader('Content-Length'));} // Get total size once headers are available
-				p?.(Math.min(1, e.loaded / size)); // Report progress (clamped 0-1)
-			});
+			xhr.addEventListener('progress', (e) => {
+				if (!size) {
+					size = Number(xhr.getResponseHeader('Content-Length'))
+				} // Get total size once headers are available
+				p?.(Math.min(1, e.loaded / size)) // Report progress (clamped 0-1)
+			})
 			// Load handler
 			xhr.addEventListener('load', () => {
-				if(xhr.readyState === 4 && xhr.status === 200) { p?.(1); ok(xhr.response instanceof ArrayBuffer ? xhr.response : undefined); } // Success
-				else {err();} // Error
-			});
-			xhr.addEventListener('error', err); // Network error
-			xhr.open('GET', path+id+(isBin ? '.bin' : '.mdp')); // Construct URL
-			xhr.send();
-		});
+				if (xhr.readyState === 4 && xhr.status === 200) {
+					p?.(1)
+					ok(xhr.response instanceof ArrayBuffer ? xhr.response : undefined)
+				} // Success
+				else {
+					err()
+				} // Error
+			})
+			xhr.addEventListener('error', err) // Network error
+			xhr.open('GET', path + id + (isBin ? '.bin' : '.mdp')) // Construct URL
+			xhr.send()
+		})
 
-		if(!data) {return;} // Exit if load failed
+		if (!data) {
+			return
+		} // Exit if load failed
 
-		this.#data.set(id, data); // Store loaded ArrayBuffer
+		this.#data.set(id, data) // Store loaded ArrayBuffer
 
 		// Determine image path prefix for Omni objects
-		const imgPath = isOmni ? `${id.split('/')[0]}/` : '';
+		const imgPath = isOmni ? `${id.split('/')[0]}/` : ''
 
-		const hSize = 32; // Size of the simplified header used here
+		const hSize = 32 // Size of the simplified header used here
 
-		let i = 0; // Byte offset
+		let i = 0 // Byte offset
 		// Parse the archive data, reading headers and file sizes
-		while(i<data.byteLength) {
+		while (i < data.byteLength) {
 			// Ensure there's enough data left for a header
-			if (i + hSize > data.byteLength) {break;}
-			const h = this.#parseHeader(new Uint8Array(data, i, hSize)); // Parse header
+			if (i + hSize > data.byteLength) {
+				break
+			}
+			const h = this.#parseHeader(new Uint8Array(data, i, hSize)) // Parse header
 			// If header is valid (name and size > 0), add entry to the database
-			if(h.name && h.size > 0) {
-				this.db.set(path+imgPath+h.name.replace('./',''), [id, i+hSize, h.size]); // Key: full path, Value: [archiveId, offset, size]
-				
+			if (h.name && h.size > 0) {
+				this.db.set(path + imgPath + h.name.replace('./', ''), [id, i + hSize, h.size]) // Key: full path, Value: [archiveId, offset, size]
+
 				// Index image thumbnails by their image ID (first path segment after basePath)
 				// e.g., "mXApNjq/8/0_0.webp" → image ID "mXApNjq"
-				const cleanName = h.name.replace('./','');
-				const fullPath = path+imgPath+cleanName;
-				const slashIdx = cleanName.indexOf('/');
+				const cleanName = h.name.replace('./', '')
+				const fullPath = path + imgPath + cleanName
+				const slashIdx = cleanName.indexOf('/')
 				if (slashIdx > 0) {
-					const imageId = cleanName.substring(0, slashIdx);
+					const imageId = cleanName.substring(0, slashIdx)
 					// Only set if not already present (first match wins)
 					if (!this.imageKeys.has(imageId)) {
-						this.imageKeys.set(imageId, fullPath);
+						this.imageKeys.set(imageId, fullPath)
 					}
 				}
 			} else if (h.size === 0 && !h.name) {
 				// Encountering null blocks likely means end of TAR archive, stop parsing.
-				break;
+				break
 			}
 			// Move offset to the next header (skip header + file data)
 			// TAR archives pad files to 512-byte blocks, but this implementation assumes tightly packed data.
-			i+=hSize + h.size;
+			i += hSize + h.size
 		}
 	}
 
@@ -109,11 +122,15 @@ class Archive {
 	 * @param d Uint8Array containing the header data.
 	 * @returns Parsed header object {name, size}.
 	 */
-	#parseHeader(d: Uint8Array) : MDPHeader {
-		const s = new TextDecoder().decode(d); // Decode bytes to string
+	#parseHeader(d: Uint8Array): MDPHeader {
+		const s = new TextDecoder().decode(d) // Decode bytes to string
 		// Helper to slice and trim null characters
-		const g = (l:number) => s.slice(i, i+=l).replaceAll('\x00','').trim();
-		let i = 0;
+		const g = (l: number) =>
+			s
+				.slice(i, (i += l))
+				.replaceAll('\x00', '')
+				.trim()
+		let i = 0
 		return { name: g(20), size: Number.parseInt(g(12), 8) } // Parse name (20 bytes) and size (12 bytes octal)
 	}
 
@@ -124,22 +141,29 @@ class Archive {
 	 * @returns A Promise resolving to the parsed JSON object.
 	 * @throws If the file or its archive is not found.
 	 */
-	get = <T>(u: string) : Promise<T> => new Promise((ok, err) => { // Added err callback
-		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
-		const data = i && this.#data.get(i[0]);
-		if(!i || !data) {err(new Error(`Could not get blob: ${u}`)); return;} // Throw error if not found
-		const fr = new FileReader();
-		fr.addEventListener('load', () => {
-			const {result} = fr;
-			if (typeof result === 'string') {
-				// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- archived JSON has no runtime schema; the caller declares `T`
-				ok(JSON.parse(result) as T);
-			} // Parse JSON and resolve
-			else {err(new Error(`Could not read blob: ${u}`));}
-		});
-		// Create a Blob from the specific byte range in the archive ArrayBuffer
-		fr.readAsText(new Blob([new Uint8Array(data, i[1], i[2])])); // Read Blob as text
-	})
+	get = <T>(u: string): Promise<T> =>
+		new Promise((ok, err) => {
+			// Added err callback
+			const i = this.db.get(u) // Look up file index [archiveId, offset, size]
+			const data = i && this.#data.get(i[0])
+			if (!i || !data) {
+				err(new Error(`Could not get blob: ${u}`))
+				return
+			} // Throw error if not found
+			const fr = new FileReader()
+			fr.addEventListener('load', () => {
+				const { result } = fr
+				if (typeof result === 'string') {
+					// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- archived JSON has no runtime schema; the caller declares `T`
+					ok(JSON.parse(result) as T)
+				} // Parse JSON and resolve
+				else {
+					err(new Error(`Could not read blob: ${u}`))
+				}
+			})
+			// Create a Blob from the specific byte range in the archive ArrayBuffer
+			fr.readAsText(new Blob([new Uint8Array(data, i[1], i[2])])) // Read Blob as text
+		})
 
 	/**
 	 * Retrieves an image file from a loaded archive as a TextureBitmap (ImageBitmap or HTMLImageElement).
@@ -149,12 +173,14 @@ class Archive {
 	 * @returns A Promise resolving to the loaded TextureBitmap.
 	 * @throws If the file or its archive is not found.
 	 */
-	_getImage = async (u: string) : Promise<TextureBitmap> => {
-		const i = this.db.get(u);
-		const data = i && this.#data.get(i[0]);
-		if(!i || !data) {throw new Error(`Could not get blob: ${u}`);}
-		const blob = new Blob([new Uint8Array(data, i[1], i[2])]);
-		return await globalThis.createImageBitmap(blob);
+	_getImage = async (u: string): Promise<TextureBitmap> => {
+		const i = this.db.get(u)
+		const data = i && this.#data.get(i[0])
+		if (!i || !data) {
+			throw new Error(`Could not get blob: ${u}`)
+		}
+		const blob = new Blob([new Uint8Array(data, i[1], i[2])])
+		return await globalThis.createImageBitmap(blob)
 	}
 
 	/**
@@ -165,9 +191,11 @@ class Archive {
 	 * @throws If no matching image is found in the archive.
 	 */
 	_getImageById = async (imageId: string): Promise<TextureBitmap> => {
-		const fullPath = this.imageKeys.get(imageId);
-		if (!fullPath) {throw new Error(`No image found in archive for ID: ${imageId}`);}
-		return await this._getImage(fullPath);
+		const fullPath = this.imageKeys.get(imageId)
+		if (!fullPath) {
+			throw new Error(`No image found in archive for ID: ${imageId}`)
+		}
+		return await this._getImage(fullPath)
 	}
 }
 
@@ -175,4 +203,4 @@ class Archive {
  * Singleton instance of the Archive controller.
  * @internal
  */
-export const archive = new Archive();
+export const archive = new Archive()

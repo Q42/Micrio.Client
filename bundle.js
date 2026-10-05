@@ -1,24 +1,26 @@
-import fs from 'fs';
-import path from 'path';
-import zlib from 'zlib';
+import fs from 'fs'
+import path from 'path'
+import zlib from 'zlib'
 
-const version = process.env.npm_package_version;
-const buildDir = './public/build/';
+const version = process.env.npm_package_version
+const buildDir = './public/build/'
 
-const book3dFile = './public/micrio-book3d.js';
-const hasBook3d = fs.existsSync(book3dFile);
-if(hasBook3d) {console.log(`Including optional module: ${book3dFile}`);}
+const book3dFile = './public/micrio-book3d.js'
+const hasBook3d = fs.existsSync(book3dFile)
+if (hasBook3d) {
+	console.log(`Including optional module: ${book3dFile}`)
+}
 
 /** Deduplicate repeated classname hash selectors in CSS */
 function dedupeCssSelectors(cssContent) {
-	const matches = cssContent.match(/\.([^\d.{ ):>,]+)/mig);
+	const matches = cssContent.match(/\.([^\d.{ ):>,]+)/gim)
 	if (matches) {
 		for (const sel of new Set(matches)) {
-			const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig');
-			cssContent = cssContent.replace(reg, sel);
+			const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig')
+			cssContent = cssContent.replace(reg, sel)
 		}
 	}
-	return cssContent;
+	return cssContent
 }
 
 /** Minify CSS */
@@ -28,15 +30,20 @@ function minifyCss(cssContent) {
 		.replace(/\s*([{};,])\s*/g, '$1')
 		.replace(/:\s+/g, ':')
 		.replace(/;}/g, '}')
-		.replace(/\s+/g, ' ');
+		.replace(/\s+/g, ' ')
 }
 
 function licenseHeader() {
 	return [
 		`/* Micrio Client ${version}`,
-		...fs.readFileSync('./LICENSE').toString().trim().split('\n').map(r => ` * ${  r.trim()}`),
-		' */\n\n'
-	].join('\n');
+		...fs
+			.readFileSync('./LICENSE')
+			.toString()
+			.trim()
+			.split('\n')
+			.map((r) => ` * ${r.trim()}`),
+		' */\n\n',
+	].join('\n')
 }
 
 /**
@@ -49,32 +56,29 @@ function licenseHeader() {
  * entire bundle makes importing it there a harmless no-op.
  */
 function processBuild({ jsName, cssName, outFile, withBook3d }) {
-	const jsPath = buildDir + jsName;
-	const cssPath = buildDir + cssName;
+	const jsPath = buildDir + jsName
+	const cssPath = buildDir + cssName
 
 	// Deduplicate repeated classname hash selectors in CSS
-	let cssContent = dedupeCssSelectors(fs.readFileSync(cssPath, 'utf-8'));
-	cssContent = minifyCss(cssContent);
+	let cssContent = dedupeCssSelectors(fs.readFileSync(cssPath, 'utf-8'))
+	cssContent = minifyCss(cssContent)
 
 	// Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS & prepend CSS
-	let jsRaw = fs.readFileSync(jsPath).toString();
-	jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '');
-	const escapedCss = cssContent.replace(/[$`]/g, '\\$&');
+	let jsRaw = fs.readFileSync(jsPath).toString()
+	jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '')
+	const escapedCss = cssContent.replace(/[$`]/g, '\\$&')
 
 	const bundle = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
-${jsRaw}${withBook3d ? `\n${  fs.readFileSync(book3dFile, 'utf-8')}` : ''}`;
+${jsRaw}${withBook3d ? `\n${fs.readFileSync(book3dFile, 'utf-8')}` : ''}`
 
-	const jsContent = `if(typeof document!=='undefined'&&typeof customElements!=='undefined'){\n${bundle}\n}`;
-	fs.writeFileSync(jsPath, jsContent);
+	const jsContent = `if(typeof document!=='undefined'&&typeof customElements!=='undefined'){\n${bundle}\n}`
+	fs.writeFileSync(jsPath, jsContent)
 
-	fs.mkdirSync(path.dirname(outFile), { recursive: true });
-	fs.writeFileSync(outFile, Buffer.concat([
-		Buffer.from(licenseHeader()),
-		Buffer.from(fs.readFileSync(jsPath)),
-	]));
+	fs.mkdirSync(path.dirname(outFile), { recursive: true })
+	fs.writeFileSync(outFile, Buffer.concat([Buffer.from(licenseHeader()), Buffer.from(fs.readFileSync(jsPath))]))
 
-	fs.rmSync(jsPath);
-	fs.rmSync(cssPath);
+	fs.rmSync(jsPath)
+	fs.rmSync(cssPath)
 }
 
 processBuild({
@@ -82,200 +86,221 @@ processBuild({
 	cssName: 'micrio.prod.css',
 	outFile: './public/dist/micrio.min.js',
 	withBook3d: hasBook3d,
-});
+})
 
 processBuild({
 	jsName: 'micrio.prod.core.iife.js',
 	cssName: 'micrio.prod.core.css',
 	outFile: './public/dist/micrio.core.min.js',
 	withBook3d: false,
-});
+})
 
 // Generate .d.ts
-const dFile = './public/dist/micrio.min.d.ts';
-const dtsInput = fs.readFileSync('./out.d.ts', 'utf-8');
-const parsedModules = parseDeclareModules(dtsInput);
-const internalModuleNames = new Set(parsedModules.keys());
-const dtsBundled = bundleDts(parsedModules, internalModuleNames);
-fs.writeFileSync(dFile, dtsBundled);
-fs.rmSync('./out.d.ts');
-fs.rmdirSync(buildDir);
+const dFile = './public/dist/micrio.min.d.ts'
+const dtsInput = fs.readFileSync('./out.d.ts', 'utf-8')
+const parsedModules = parseDeclareModules(dtsInput)
+const internalModuleNames = new Set(parsedModules.keys())
+const dtsBundled = bundleDts(parsedModules, internalModuleNames)
+fs.writeFileSync(dFile, dtsBundled)
+fs.rmSync('./out.d.ts')
+fs.rmdirSync(buildDir)
 
 const formatSize = (bytes) => {
-	const k = 1024;
-	const sizes = ['B', 'kB', 'MB'];
-	const i = bytes === 0 ? 0 : Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
-	return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-};
+	const k = 1024
+	const sizes = ['B', 'kB', 'MB']
+	const i = bytes === 0 ? 0 : Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1)
+	return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+}
 
-const gzipSize = (filePath) => zlib.gzipSync(fs.readFileSync(filePath)).length;
+const gzipSize = (filePath) => zlib.gzipSync(fs.readFileSync(filePath)).length
 
-console.info();
-console.info(`\x1b[2mFinal output:\x1b[0m`);
+console.info()
+console.info(`\x1b[2mFinal output:\x1b[0m`)
 
 for (const f of ['./public/dist/micrio.min.js', './public/dist/micrio.core.min.js']) {
-	const raw = fs.statSync(f).size;
-	const gz = gzipSize(f);
-	console.info(` \x1b[38;2;0;212;238m\u25C8\x1b[0m \x1b[32m${path.relative('.', f)}\x1b[0m      \x1b[1m${formatSize(raw).padStart(9)}\x1b[0m \u2502 gzip: ${formatSize(gz)}`);
+	const raw = fs.statSync(f).size
+	const gz = gzipSize(f)
+	console.info(
+		` \x1b[38;2;0;212;238m\u25C8\x1b[0m \x1b[32m${path.relative('.', f)}\x1b[0m      \x1b[1m${formatSize(raw).padStart(9)}\x1b[0m \u2502 gzip: ${formatSize(gz)}`,
+	)
 }
 
 function parseDeclareModules(input) {
-	const modules = new Map();
-	const lines = input.split('\n');
-	let currentName = null;
-	let braceDepth = 0;
-	let contentLines = [];
-	let insideModule = false;
+	const modules = new Map()
+	const lines = input.split('\n')
+	let currentName = null
+	let braceDepth = 0
+	let contentLines = []
+	let insideModule = false
 
 	for (const line of lines) {
-		const singleMatch = line.match(/^declare module "([^"]+)" \{(.*)\}$/);
+		const singleMatch = line.match(/^declare module "([^"]+)" \{(.*)\}$/)
 		if (singleMatch) {
-			modules.set(singleMatch[1], singleMatch[2] === '' ? '' : singleMatch[2]);
-			continue;
+			modules.set(singleMatch[1], singleMatch[2] === '' ? '' : singleMatch[2])
+			continue
 		}
 
-		const multiMatch = line.match(/^declare module "([^"]+)" \{$/);
+		const multiMatch = line.match(/^declare module "([^"]+)" \{$/)
 		if (multiMatch && !insideModule) {
-			currentName = multiMatch[1];
-			insideModule = true;
-			braceDepth = 1;
-			contentLines = [];
-			continue;
+			currentName = multiMatch[1]
+			insideModule = true
+			braceDepth = 1
+			contentLines = []
+			continue
 		}
 
 		if (insideModule) {
 			for (const ch of line) {
-				if (ch === '{') {braceDepth++;}
-				if (ch === '}') {braceDepth--;}
+				if (ch === '{') {
+					braceDepth++
+				}
+				if (ch === '}') {
+					braceDepth--
+				}
 			}
 
 			if (braceDepth <= 0) {
-				modules.set(currentName, contentLines.join('\n'));
-				insideModule = false;
-				currentName = null;
-				contentLines = [];
+				modules.set(currentName, contentLines.join('\n'))
+				insideModule = false
+				currentName = null
+				contentLines = []
 			} else {
-				contentLines.push(line);
+				contentLines.push(line)
 			}
 		}
 	}
 
-	return modules;
+	return modules
 }
 
 function bundleDts(modules, internalNames) {
-	const inlining = new Set();
-	const inlinedModules = new Set();
+	const inlining = new Set()
+	const inlinedModules = new Set()
 
 	function inlineModule(name, extraIndent) {
-		extraIndent = extraIndent || 0;
+		extraIndent = extraIndent || 0
 
-		if (inlining.has(name)) {return '';}
-		if (inlinedModules.has(name)) {return '';}
-		inlining.add(name);
+		if (inlining.has(name)) {
+			return ''
+		}
+		if (inlinedModules.has(name)) {
+			return ''
+		}
+		inlining.add(name)
 
-		const content = modules.get(name);
+		const content = modules.get(name)
 		if (!content || content.trim() === '') {
-			inlining.delete(name);
-			inlinedModules.add(name);
-			return '';
+			inlining.delete(name)
+			inlinedModules.add(name)
+			return ''
 		}
 
-		const lines = content.split('\n');
-		const result = [];
+		const lines = content.split('\n')
+		const result = []
 
 		for (const line of lines) {
-			const trimmed = line.trim();
+			const trimmed = line.trim()
 
 			if (!trimmed) {
-				result.push(line);
-				continue;
+				result.push(line)
+				continue
 			}
 
-			const indent = line.match(/^\s*/)[0];
+			const indent = line.match(/^\s*/)[0]
 
-			const nsExport = trimmed.match(/^export \* as (\w+) from "([^"]+)"\s*;?$/);
+			const nsExport = trimmed.match(/^export \* as (\w+) from "([^"]+)"\s*;?$/)
 			if (nsExport) {
-				const srcModule = nsExport[2];
+				const srcModule = nsExport[2]
 				if (internalNames.has(srcModule)) {
-					const childContent = inlineModule(srcModule, extraIndent + 1);
+					const childContent = inlineModule(srcModule, extraIndent + 1)
 					if (childContent) {
-						result.push(`${indent}export namespace ${nsExport[1]} {`);
-						result.push(childContent);
-						result.push(`${indent}}`);
+						result.push(`${indent}export namespace ${nsExport[1]} {`)
+						result.push(childContent)
+						result.push(`${indent}}`)
 					}
-					continue;
+					continue
 				}
-				result.push(line);
-				continue;
+				result.push(line)
+				continue
 			}
 
-			const starExport = trimmed.match(/^export \* from "([^"]+)"\s*;?$/);
+			const starExport = trimmed.match(/^export \* from "([^"]+)"\s*;?$/)
 			if (starExport) {
-				const srcModule = starExport[1];
+				const srcModule = starExport[1]
 				if (internalNames.has(srcModule)) {
-					const childContent = inlineModule(srcModule, extraIndent);
+					const childContent = inlineModule(srcModule, extraIndent)
 					if (childContent) {
-						result.push(childContent);
+						result.push(childContent)
 					}
-					continue;
+					continue
 				}
-				result.push(line);
-				continue;
+				result.push(line)
+				continue
 			}
 
 			if (trimmed.startsWith('import "') || trimmed.startsWith("import '")) {
-				continue;
+				continue
 			}
 
-			const importAliasMatch = trimmed.match(/^import(?:\s+type)?\s+\{\s*(\w+)\s+as\s+(\w+)\s*\}\s+from\s+"([^"]+)"\s*;?$/);
+			const importAliasMatch = trimmed.match(
+				/^import(?:\s+type)?\s+\{\s*(\w+)\s+as\s+(\w+)\s*\}\s+from\s+"([^"]+)"\s*;?$/,
+			)
 			if (importAliasMatch) {
-				const srcModule = importAliasMatch[3];
+				const srcModule = importAliasMatch[3]
 				if (internalNames.has(srcModule)) {
-					result.push(`${indent}type ${importAliasMatch[2]} = ${importAliasMatch[1]};`);
-					continue;
+					result.push(`${indent}type ${importAliasMatch[2]} = ${importAliasMatch[1]};`)
+					continue
 				}
-				result.push(line);
-				continue;
+				result.push(line)
+				continue
 			}
 
-			const importMatch = trimmed.match(/^import(?:\s+type)?\s+(?:\{[^}]*\}|[^\s]+)\s+from\s+"([^"]+)"\s*;?$/);
+			const importMatch = trimmed.match(/^import(?:\s+type)?\s+(?:\{[^}]*\}|[^\s]+)\s+from\s+"([^"]+)"\s*;?$/)
 			if (importMatch) {
-				const srcModule = importMatch[1];
+				const srcModule = importMatch[1]
 				if (internalNames.has(srcModule)) {
-					continue;
+					continue
 				}
-				result.push(line);
-				continue;
+				result.push(line)
+				continue
 			}
 
-			result.push(line);
+			result.push(line)
 		}
 
-		inlining.delete(name);
-		inlinedModules.add(name);
+		inlining.delete(name)
+		inlinedModules.add(name)
 
-		const output = result.join('\n');
+		const output = result.join('\n')
 		if (extraIndent > 0 && output) {
-			const indentStr = '\t'.repeat(extraIndent);
-			return output.split('\n').map(l => l ? indentStr + l : l).join('\n');
+			const indentStr = '\t'.repeat(extraIndent)
+			return output
+				.split('\n')
+				.map((l) => (l ? indentStr + l : l))
+				.join('\n')
 		}
-		return output;
+		return output
 	}
 
-	const modelsContent = inlineModule('types/models', 0);
+	const modelsContent = inlineModule('types/models', 0)
 
-	const processed = [];
+	const processed = []
 	for (const name of internalNames) {
-		if (name === 'types/models' || name === 'types/models/index') {continue;}
-		if (inlinedModules.has(name)) {continue;}
-		const content = inlineModule(name, 0);
+		if (name === 'types/models' || name === 'types/models/index') {
+			continue
+		}
+		if (inlinedModules.has(name)) {
+			continue
+		}
+		const content = inlineModule(name, 0)
 		if (content) {
-			processed.push(content);
+			processed.push(content)
 		}
 	}
 
-	if (modelsContent) {processed.unshift(modelsContent);}
+	if (modelsContent) {
+		processed.unshift(modelsContent)
+	}
 
-	return `declare module '@micrio/client' {\n${processed.join('\n\n')}\n}`;
+	return `declare module '@micrio/client' {\n${processed.join('\n\n')}\n}`
 }

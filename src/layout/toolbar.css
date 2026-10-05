@@ -6,7 +6,7 @@ micrio-toolbar > menu {
 	padding: 0;
 	color: var(--micrio-color);
 	text-shadow: 1px 1px 2px #000;
-	transition: transform .25s ease;
+	transition: transform 0.25s ease;
 	z-index: 1;
 }
 @media (max-width: 500px) {
@@ -36,7 +36,7 @@ micrio-toolbar > menu {
 		padding: 16px 0;
 		margin: 0;
 		transform: translateY(100%);
-		transition: transform .3s ease;
+		transition: transform 0.3s ease;
 		z-index: 100;
 		overflow-y: auto;
 		overflow-x: hidden;
@@ -52,13 +52,13 @@ micrio-toolbar > menu {
 		width: 36px;
 		height: 4px;
 		border-radius: 2px;
-		background: rgba(128, 128, 128, .3);
+		background: rgba(128, 128, 128, 0.3);
 		margin: -8px auto 12px;
 	}
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, .4);
+		background: rgba(0, 0, 0, 0.4);
 		z-index: 50;
 	}
 }
@@ -71,7 +71,7 @@ micrio-toolbar > menu {
 		margin-right: var(--micrio-border-margin);
 		border-radius: var(--micrio-border-radius);
 	}
-	micrio-toolbar > menu > micrio-menu:is(:hover,:focus-within) {
+	micrio-toolbar > menu > micrio-menu:is(:hover, :focus-within) {
 		backdrop-filter: var(--micrio-background-filter);
 		background: var(--micrio-background);
 		box-shadow: var(--micrio-button-shadow);

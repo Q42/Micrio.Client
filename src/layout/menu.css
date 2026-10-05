@@ -1,15 +1,17 @@
 micrio-menu {
 	padding: 0;
 	margin: 0;
-	transition: background .2s ease, box-shadow .2s ease;
+	transition:
+		background 0.2s ease,
+		box-shadow 0.2s ease;
 }
-micrio-menu > :is(a,button) {
+micrio-menu > :is(a, button) {
 	font-family: inherit;
 	background: transparent;
 	display: block;
 	border: none;
 	padding: 0 24px;
-	font-size: .9em;
+	font-size: 0.9em;
 	cursor: pointer;
 	text-decoration: none;
 	border-radius: 0;
@@ -22,7 +24,7 @@ micrio-menu > :is(a,button) {
 	micrio-menu {
 		font-size: 1em;
 	}
-	micrio-menu > :is(a,button) {
+	micrio-menu > :is(a, button) {
 		width: 100%;
 		margin: 0;
 		padding: 14px 20px;
@@ -32,7 +34,7 @@ micrio-menu > :is(a,button) {
 		gap: 8px;
 		font-size: 1em;
 	}
-	micrio-menu > :is(a,button) strong {
+	micrio-menu > :is(a, button) strong {
 		flex: 1;
 	}
 	micrio-menu > div {
@@ -51,10 +53,10 @@ micrio-menu > :is(a,button) {
 		float: left;
 		position: relative;
 	}
-	micrio-menu:not(:is(:focus-within,:hover)) > div {
+	micrio-menu:not(:is(:focus-within, :hover)) > div {
 		display: none;
 	}
-	micrio-menu > :is(a,button) {
+	micrio-menu > :is(a, button) {
 		height: var(--micrio-button-size);
 		line-height: var(--micrio-button-size);
 		width: 100%;
@@ -65,10 +67,10 @@ micrio-menu > :is(a,button) {
 	micrio-menu > div micrio-menu {
 		float: none;
 	}
-	micrio-menu > div :is(a,button) {
+	micrio-menu > div :is(a, button) {
 		width: 100%;
 	}
-	micrio-menu > :is(a,button):is(:hover,:focus) {
+	micrio-menu > :is(a, button):is(:hover, :focus) {
 		text-shadow: none !important;
 		color: var(--micrio-color-hover) !important;
 	}

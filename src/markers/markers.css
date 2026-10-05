@@ -1,12 +1,11 @@
-
-micrio-markers>* {
+micrio-markers > * {
 	pointer-events: all;
 }
-micrio-markers.inactive>* {
+micrio-markers.inactive > * {
 	pointer-events: none;
 }
 micrio-main.is360 micrio-markers {
-	transition: opacity .25s;
+	transition: opacity 0.25s;
 }
 micrio-main.is360 micrio-markers.inactive {
 	opacity: 0;

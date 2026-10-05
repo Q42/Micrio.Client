@@ -17,17 +17,16 @@ same floor as vite 8); see `.nvmrc` (24.4.0).
 
 ## Status: complete
 
-| Phase | Baseline | Now |
-| --- | --- | --- |
-| Strict rule migration (65 rules) | 3568 findings | 0 |
-| Heavy type-aware rules (6 rules) | 1209 findings | 0 |
+| Phase                            | Baseline      | Now |
+| -------------------------------- | ------------- | --- |
+| Strict rule migration (65 rules) | 3568 findings | 0   |
+| Heavy type-aware rules (6 rules) | 1209 findings | 0   |
 
-| Gate | Result |
-| --- | --- |
-| `pnpm lint` | 0 findings, exit 0 (195 rules) |
-| `pnpm typecheck` | exit 0 |
-| `pnpm build` | succeeds |
-| `pnpm format:check` | exit 0 (whole repo formatted with oxfmt) |
+| Gate             | Result                         |
+| ---------------- | ------------------------------ |
+| `pnpm lint`      | 0 findings, exit 0 (195 rules) |
+| `pnpm typecheck` | exit 0                         |
+| `pnpm build`     | succeeds                       |
 
 Both phases landed as many small commits, one rule per commit per area, so
 `git log --grep '<rule-id>'` shows how any single rule was resolved, e.g.
@@ -96,30 +95,6 @@ the old truthiness also excluded `''`/`0`, and for WebGL objects created with
 `createBuffer()`/`createProgram()` etc. a `null` return means failure — those
 use `x != null` on purpose.
 
-## Formatting
-
-Code is formatted with [oxfmt](https://oxc.rs/docs/guide/usage/formatter), the
-formatter from the same project as oxlint:
-
-```sh
-pnpm format        # rewrite in place
-pnpm format:check  # verify only (exit 1 + file list when something is unformatted)
-```
-
-`.oxfmtrc.json` holds the options: tabs, single quotes, no semicolons,
-`printWidth` 120, trailing commas everywhere, and `sortPackageJson: false` so
-`package.json` keys are left in their curated order.
-
-- oxfmt skips `public/**` and `templates/grid/grid.js` via `.gitignore`, so build
-  output is never touched (`node_modules`, lock files and `.git` are always
-  skipped).
-- `.glsl` shaders have no oxfmt parser and are left alone.
-- Formatting is whitespace/quote-only; the gates above (`typecheck`, `lint`,
-  `build`) are what prove it stayed that way. In particular `lint` fails on
-  unused disable directives, so a formatter bug that detaches an
-  `oxlint-disable-next-line` or `@ts-expect-error` from its target shows up as a
-  finding rather than passing silently.
-
 ## Deliberate rule exclusions
 
 These are off on purpose rather than forgotten:
@@ -148,19 +123,19 @@ Every `oxlint-disable-next-line` in the codebase, with its reason. There are no
 others; `options.reportUnusedDisableDirectives` is `error`, so a stale one fails
 lint. Prefer a real fix over adding to this list.
 
-| Location | Rule | Why |
-| --- | --- | --- |
-| `src/core/frame.ts:22` | `unicorn/prefer-global-this` | typed as the rAF host `Window`; `globalThis` is not assignable |
-| `src/render/webgl.ts:43` | `unicorn/prefer-global-this` | typed as `Window` for the WebGL display host |
-| `src/layout/logo.ts:19` | `unicorn/prefer-global-this` | compares the parent frame against this `Window` |
-| `src/render/textures.ts:63` | `unicorn/require-post-message-target-origin` | `Worker.postMessage` takes a transfer list, not a target origin |
-| `src/types/models/info.ts:470` | `typescript/no-explicit-any` | `GalleryConfig.settings` custom-JSON bag; consumers spread and read arbitrary nested keys |
-| `src/types/models/data.ts:81` | `eslint/no-shadow` | nested interface is the public `Models.ImageData.ImageData` API type; renaming breaks consumers |
-| `src/core/store.ts:96` | `typescript/no-unsafe-type-assertion` | initial store value is optional; narrowing would drop the initial `undefined` emission that `skipFirst` relies on |
-| `src/core/image.ts:450` | `typescript/no-unsafe-type-assertion` | embed info is intentionally partial; fabricating required fields would change runtime data |
-| `src/utils/fetch.ts:29,31,48` | `typescript/no-unsafe-type-assertion` | unverifiable JSON; the shape is the caller-declared generic `T` |
-| `src/utils/archive.ts:135` | `typescript/no-unsafe-type-assertion` | archived JSON has no runtime schema; the caller declares `T` |
-| `templates/grid/grid.ts:585,758,762` | `eslint/no-await-in-loop` | `gotoId` mutates shared gallery state; tour steps must run strictly in order |
+| Location                             | Rule                                         | Why                                                                                                               |
+| ------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/core/frame.ts:22`               | `unicorn/prefer-global-this`                 | typed as the rAF host `Window`; `globalThis` is not assignable                                                    |
+| `src/render/webgl.ts:43`             | `unicorn/prefer-global-this`                 | typed as `Window` for the WebGL display host                                                                      |
+| `src/layout/logo.ts:19`              | `unicorn/prefer-global-this`                 | compares the parent frame against this `Window`                                                                   |
+| `src/render/textures.ts:63`          | `unicorn/require-post-message-target-origin` | `Worker.postMessage` takes a transfer list, not a target origin                                                   |
+| `src/types/models/info.ts:470`       | `typescript/no-explicit-any`                 | `GalleryConfig.settings` custom-JSON bag; consumers spread and read arbitrary nested keys                         |
+| `src/types/models/data.ts:81`        | `eslint/no-shadow`                           | nested interface is the public `Models.ImageData.ImageData` API type; renaming breaks consumers                   |
+| `src/core/store.ts:96`               | `typescript/no-unsafe-type-assertion`        | initial store value is optional; narrowing would drop the initial `undefined` emission that `skipFirst` relies on |
+| `src/core/image.ts:450`              | `typescript/no-unsafe-type-assertion`        | embed info is intentionally partial; fabricating required fields would change runtime data                        |
+| `src/utils/fetch.ts:29,31,48`        | `typescript/no-unsafe-type-assertion`        | unverifiable JSON; the shape is the caller-declared generic `T`                                                   |
+| `src/utils/archive.ts:135`           | `typescript/no-unsafe-type-assertion`        | archived JSON has no runtime schema; the caller declares `T`                                                      |
+| `templates/grid/grid.ts:585,758,762` | `eslint/no-await-in-loop`                    | `gotoId` mutates shared gallery state; tour steps must run strictly in order                                      |
 
 The props-bag disables (`MicrioElement<_P>` and `_props`) that used to be listed
 here are gone: the props plumbing is typed now.
