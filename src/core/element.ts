@@ -31,6 +31,13 @@ import { IdleState } from '$utils/idle';
 /** Compile-time flag — `true` in the core build (vite `--mode minimal`). */
 declare const __CORE__: boolean;
 
+/** Assigns a value to a (possibly dot-separated) key path within an options object. @internal */
+function setObj(obj:any, path:string, val:any) : void {
+	const p = path.split('.');
+	for(let i=0;i<p.length-1;i++) {obj = obj[p[i]];}
+	obj[p[p.length-1]]=val;
+}
+
 /**
  * The main Micrio custom HTML element `<micr-io>`.
  * This class acts as the central controller for the Micrio viewer, managing
@@ -680,12 +687,6 @@ export class HTMLMicrioElement extends MicrioElement {
 			settings: sets as Models.ImageInfo.Settings,
 			id: this.id // Start with the element's ID
 		};
-
-		const setObj = (b:any, f:string, val:any) : void => {
-			const p = f.split('.');
-			for(let i=0;i<p.length-1;i++) {b = b[p[i]];}
-			b[p[p.length-1]]=val;
-		}
 
 		const process = (category: Record<string, any>, convert: (val: string | null, def: any) => any): void => {
 			for (const a of Object.keys(category)) {
