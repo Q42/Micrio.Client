@@ -77,7 +77,7 @@ export class Canvas {
 		this.element.className = 'micrio';
 		this.onresize = this.onresize.bind(this); // Bind resize handler
 		// Use ResizeObserver if available for more reliable resize detection
-		if(self.ResizeObserver) {this.#resizeObserver = new self.ResizeObserver(this.onresize);}
+		if(globalThis.ResizeObserver) {this.#resizeObserver = new globalThis.ResizeObserver(this.onresize);}
 	}
 
 	/**
@@ -128,7 +128,7 @@ export class Canvas {
 		if(!width || !height) {return;}
 
 		// Account for potential CSS transforms affecting getBoundingClientRect
-		const st = self.getComputedStyle(this.element);
+		const st = globalThis.getComputedStyle(this.element);
 		const originalW = Number.parseFloat(st.width);
 		// Adjust height based on width ratio if transform applied
 		if(!isNaN(originalW)) {
@@ -161,7 +161,7 @@ export class Canvas {
 		c.scale = scale;
 		c.top = box.top;
 		c.left = box.left;
-		c.portrait = window.matchMedia('(orientation: portrait)')?.matches ?? (height > width); // Check orientation
+		c.portrait = globalThis.matchMedia('(orientation: portrait)')?.matches ?? (height > width); // Check orientation
 
 		// Update canvas buffer dimensions
 		if (this.#micrio._webgl.gl) {
@@ -192,7 +192,7 @@ export class Canvas {
 	 * @returns The calculated device pixel ratio.
 	 */
 	getRatio = (s:Partial<Models.ImageInfo.Settings> = this.#micrio.$current?.$settings ?? {}) : number => !Browser.iOS && !s?.noRetina // Check conditions
-		&& self.devicePixelRatio && Math.max(1, Math.min(2, self.devicePixelRatio)) // Get ratio and clamp
+		&& globalThis.devicePixelRatio && Math.max(1, Math.min(2, globalThis.devicePixelRatio)) // Get ratio and clamp
 		|| 1; // Default to 1
 
 	/**

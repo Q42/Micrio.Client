@@ -270,7 +270,7 @@ function titleOf(id: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function boot(micrio: HTMLMicrioElement): void {
-	(window as unknown as { micrio: HTMLMicrioElement }).micrio = micrio;
+	(globalThis as unknown as { micrio: HTMLMicrioElement }).micrio = micrio;
 	micrio.defaultSettings = {
 		// Keep the demo canvas clean — our panel replaces the default UI.
 		noControls: true,
@@ -296,7 +296,7 @@ function boot(micrio: HTMLMicrioElement): void {
 	// may fire before *or* after this module runs. We listen for the event,
 	// check whether the controller already exists, and poll as a safety net.
 	resolveGrid(micrio, grid => {
-		(window as unknown as { grid: Grid }).grid = grid;
+		(globalThis as unknown as { grid: Grid }).grid = grid;
 		void init(root, micrio, grid);
 	});
 }
@@ -346,8 +346,8 @@ function resolveGrid(micrio: HTMLMicrioElement, onGrid: (grid: Grid) => void): v
 	finish(find());
 
 	// Safety net for any ordering/event edge case.
-	timer = window.setInterval(() => finish(find()), 150);
-	window.setTimeout(() => {
+	timer = globalThis.setInterval(() => finish(find()), 150);
+	globalThis.setTimeout(() => {
 		if (done) {return;}
 		if (timer !== undefined) {clearInterval(timer);}
 		console.warn('[grid demo] Timed out waiting for the grid controller.');

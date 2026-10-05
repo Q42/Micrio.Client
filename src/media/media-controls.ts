@@ -104,8 +104,8 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 			const dStart = (e: MouseEvent) => {
 				if (e.button != 0) {return;}
-				window.addEventListener('mousemove', dMove);
-				window.addEventListener('mouseup', dStop);
+				globalThis.addEventListener('mousemove', dMove);
+				globalThis.addEventListener('mouseup', dStop);
 				dMove(e);
 			};
 			const dMove = (e: MouseEvent) => {
@@ -115,8 +115,8 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				this.#props.onseek?.(perc * this.#props.duration!);
 			};
 			const dStop = () => {
-				window.removeEventListener('mousemove', dMove);
-				window.removeEventListener('mouseup', dStop);
+				globalThis.removeEventListener('mousemove', dMove);
+				globalThis.removeEventListener('mouseup', dStop);
 			};
 			bars.addEventListener('mousedown', dStart);
 			container.append(bars);

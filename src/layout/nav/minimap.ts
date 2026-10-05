@@ -60,7 +60,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		const width = maxWidth / aspect > maxHeight ? Math.round(maxHeight * aspect) : maxWidth;
 		const height = maxWidth / aspect <= maxHeight ? Math.round(maxWidth / aspect) : maxHeight;
 		const offset = -camera.rotationY / (Math.PI * 2);
-		const isolated = self.crossOriginIsolated;
+		const isolated = globalThis.crossOriginIsolated;
 		let thumbSrc: string | undefined = isolated ? undefined : image.thumbSrc;
 
 		const draw = (area: Models.Camera.View | undefined) => {
@@ -124,8 +124,8 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 
 		const dStart = (e: MouseEvent) => {
 			if (e.button != 0) {return;}
-			window.addEventListener('mousemove', dDraw);
-			window.addEventListener('mouseup', dStop);
+			globalThis.addEventListener('mousemove', dDraw);
+			globalThis.addEventListener('mouseup', dStop);
 			this.#mapRect = canvas.getBoundingClientRect();
 			const cv = camera.getView();
 			if (cv) {this.#dragViewDims = { width: cv[2], height: cv[3] };}
@@ -144,8 +144,8 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		};
 
 		const dStop = () => {
-			window.removeEventListener('mousemove', dDraw);
-			window.removeEventListener('mouseup', dStop);
+			globalThis.removeEventListener('mousemove', dDraw);
+			globalThis.removeEventListener('mouseup', dStop);
 			this.#dragViewDims = undefined;
 		};
 

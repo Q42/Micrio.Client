@@ -50,7 +50,7 @@ export class HLSPlayerAdapter extends HTML5PlayerAdapter {
 			throw new Error('Adapter destroyed during initialization');
 		}
 
-		const hls: HlsPlayer = new (window as Record<string, any>)['Hls'](HLS_PLAYER_CONFIG);
+		const hls: HlsPlayer = new (globalThis as Record<string, any>)['Hls'](HLS_PLAYER_CONFIG);
 		this.#hls = hls;
 		hls.loadSource(this.#hlsSrc);
 		hls.attachMedia(this.element);

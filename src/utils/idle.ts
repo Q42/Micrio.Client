@@ -95,7 +95,7 @@ export class IdleState {
 	#schedule() {
 		clearTimeout(this.to);
 		if (!this._enabled) {return;}
-		this.to = window.setTimeout(() => {
+		this.to = globalThis.setTimeout(() => {
 			if (!this.o.shouldIdle()) {
 				this.#schedule();
 				return;

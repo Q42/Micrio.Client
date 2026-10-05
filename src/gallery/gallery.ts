@@ -199,10 +199,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (this.#dragIsPointer && 'button' in e) {
 			this.#dragPointerId = e.pointerId;
 			try { this.#_ul.setPointerCapture(e.pointerId); } catch (_) {}
-			window.addEventListener('pointercancel', this.#scrubStop);
+			globalThis.addEventListener('pointercancel', this.#scrubStop);
 		}
-		window.addEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
-		window.addEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
+		globalThis.addEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
+		globalThis.addEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
 		this.#scrubMove(e);
 	};
 
@@ -231,10 +231,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/** Ends scrub drag. */
 	#scrubStop = () => {
-		window.removeEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
-		window.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
+		globalThis.removeEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove);
+		globalThis.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop);
 		if (this.#dragIsPointer) {
-			window.removeEventListener('pointercancel', this.#scrubStop);
+			globalThis.removeEventListener('pointercancel', this.#scrubStop);
 			try { this.#_ul?.releasePointerCapture(this.#dragPointerId); } catch (_) {}
 			this.#dragPointerId = -1;
 		}
@@ -256,8 +256,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (!total || !engine?.ready) {return;}
 		// Prefer idle time for low-priority thumbnail work; fall back to the shared
 		// frame scheduler instead of a private requestAnimationFrame.
-		const request: (cb: () => void) => void = self.requestIdleCallback
-			? (cb) => { self.requestIdleCallback(cb); }
+		const request: (cb: () => void) => void = globalThis.requestIdleCallback
+			? (cb) => { globalThis.requestIdleCallback(cb); }
 			: (cb) => { Frame.request(cb); };
 		for (let x = -d; x <= d; x++) {
 			if (!x) {continue;}
@@ -336,7 +336,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const idx = layout.pages.findIndex(p => p.includes(startImageIdx));
 		const pageIdx = idx >= 0 ? idx : 0;
 
-		this.#preloadD = 'requestIdleCallback' in self ? 100 : 50;
+		this.#preloadD = 'requestIdleCallback' in globalThis ? 100 : 50;
 
 		const engine = micrio._engine;
 		const parent = image;
@@ -399,8 +399,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this._addCleanup(() => micrio.canvas.element.removeEventListener('pointerdown', this.#swipeGallery!.handlePointerDown));
 		}
 
-		window.addEventListener('keydown', this.#keydown);
-		this._addCleanup(() => window.removeEventListener('keydown', this.#keydown));
+		globalThis.addEventListener('keydown', this.#keydown);
+		this._addCleanup(() => globalThis.removeEventListener('keydown', this.#keydown));
 	}
 
 	#loadBook3d(parent:MicrioImage, items: Models.ImageInfo.ImageInfo[], pageIdx:number, config:GalleryConfig) : void {

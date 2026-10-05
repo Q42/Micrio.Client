@@ -9,8 +9,8 @@ import '$ui/icon';
 const opened = writable<Models.ImageData.Menu | undefined>(undefined);
 let hooked = false;
 opened.subscribe(c => {
-	if (c) { if (!hooked) {window.addEventListener('click', close);} }
-	else { if (hooked) {window.removeEventListener('click', close);} }
+	if (c) { if (!hooked) {globalThis.addEventListener('click', close);} }
+	else { if (hooked) {globalThis.removeEventListener('click', close);} }
 	hooked = Boolean(c);
 });
 /** Close the currently opened menu */

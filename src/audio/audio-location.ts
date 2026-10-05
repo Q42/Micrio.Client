@@ -70,7 +70,7 @@ export class MicrioAudioLocation {
 				};} else {this.#source.loop = true;}
 			}
 			this.#gain.gain.value = item.volume ?? 1;
-			this.#source.buffer = (window as Record<string, any>).__micrioAudioBuffers?.[item.src] ?? null;
+			this.#source.buffer = (globalThis as Record<string, any>).__micrioAudioBuffers?.[item.src] ?? null;
 			if (this.#source.buffer) {
 				this.#source.connect(this.#panner);
 				this.#source.start();
@@ -79,12 +79,12 @@ export class MicrioAudioLocation {
 
 		const start = async () => {
 			if (!item.src) {return;}
-			const buffers = (window as Record<string, any>).__micrioAudioBuffers || {};
+			const buffers = (globalThis as Record<string, any>).__micrioAudioBuffers || {};
 			if (!buffers[item.src]) {
 				buffers[item.src] = await fetch(item.src)
 					.then(r => r.arrayBuffer())
 					.then(b => ctx.decodeAudioData(b));
-				(window as Record<string, any>).__micrioAudioBuffers = buffers;
+				(globalThis as Record<string, any>).__micrioAudioBuffers = buffers;
 			}
 			if (item.alwaysPlay && item.repeatAfter > 0) {this.#to = setTimeout(play, item.repeatAfter * 1000);}
 			else {play();}

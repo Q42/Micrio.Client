@@ -144,7 +144,7 @@ class Archive {
 		const i = this.db.get(u);
 		if(!i || !this.#data.has(i[0])) {throw new Error(`Could not get blob: ${u}`);}
 		const blob = new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])]);
-		return self.createImageBitmap(blob);
+		return globalThis.createImageBitmap(blob);
 	}
 
 	/**

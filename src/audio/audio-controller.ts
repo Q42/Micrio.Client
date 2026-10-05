@@ -17,8 +17,8 @@ const interacted = writable<boolean>(false);
 
 function init(volume: number) {
 	if (mainGain) {return;}
-	if (!_ctx) {_ctx = 'micrioAudioContext' in window
-		? (window as Record<string, any>)['micrioAudioContext'] as AudioContext
+	if (!_ctx) {_ctx = 'micrioAudioContext' in globalThis
+		? (globalThis as Record<string, any>)['micrioAudioContext'] as AudioContext
 		: new AudioContext();}
 	if (!_ctx) {return console.warn('[Micrio] Your browser does not support the Web Audio API');}
 	if (_ctx.state === 'suspended') {_ctx.resume().then(() => { }).catch(() => { });}
@@ -121,7 +121,7 @@ export class MicrioAudioController {
 		const is360 = Boolean(info.is360);
 		const ar = info.height / info.width;
 
-		if (!('AudioContext' in window)) {return;}
+		if (!('AudioContext' in globalThis)) {return;}
 
 		const moved = (x: number, y: number, z: number) => {
 			if (is360) {

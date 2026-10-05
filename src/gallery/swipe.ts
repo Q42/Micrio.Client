@@ -143,9 +143,9 @@ export class SwipeGallery {
 		this.#stripDragVelocity = 0;
 		this.#stripDragActive = false;
 		this.#stripDragHorizontal = false;
-		window.addEventListener('pointermove', this.#stripPointerMove);
-		window.addEventListener('pointerup', this.#stripPointerUp);
-		window.addEventListener('pointercancel', this.#stripPointerUp);
+		globalThis.addEventListener('pointermove', this.#stripPointerMove);
+		globalThis.addEventListener('pointerup', this.#stripPointerUp);
+		globalThis.addEventListener('pointercancel', this.#stripPointerUp);
 	};
 
 	#stripPointerMove = (e:PointerEvent):void => {
@@ -185,9 +185,9 @@ export class SwipeGallery {
 	};
 
 	#unlisten = ():void => {
-		window.removeEventListener('pointermove', this.#stripPointerMove);
-		window.removeEventListener('pointerup', this.#stripPointerUp);
-		window.removeEventListener('pointercancel', this.#stripPointerUp);
+		globalThis.removeEventListener('pointermove', this.#stripPointerMove);
+		globalThis.removeEventListener('pointerup', this.#stripPointerUp);
+		globalThis.removeEventListener('pointercancel', this.#stripPointerUp);
 	}
 
 	#applyDragProgress(progress:number):void {

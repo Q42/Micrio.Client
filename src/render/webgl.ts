@@ -34,7 +34,8 @@ export class WebGL {
 	gl!:WebGLRenderingContext | WebGL2RenderingContext; // Definite assignment assertion
 
 	/** The display window object (usually `self`). @internal */
-	_display:Window = self;
+	// oxlint-disable-next-line unicorn/prefer-global-this -- typed as Window for the WebGL display host
+	_display:Window = window;
 
 	/** The main WebGL shader program for rendering tiles. @internal */
 	#program!:WebGLProgram;
@@ -116,7 +117,7 @@ export class WebGL {
 	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. @internal */
 	_init() : void {
 		// Check for WebGL2 support
-		const hasGL2 = 'WebGL2RenderingContext' in window;
+		const hasGL2 = 'WebGL2RenderingContext' in globalThis;
 		// Get WebGL context from the canvas
 		const gl = this.#micrio.canvas.element.getContext(hasGL2 ? 'webgl2' : 'webgl', {
 			alpha: true, // Request alpha channel
@@ -132,8 +133,8 @@ export class WebGL {
 		}) as WebGLRenderingContext | WebGL2RenderingContext; // Type assertion
 
 		// Check if context creation was successful
-		if(hasGL2 ? !(gl instanceof window.WebGL2RenderingContext)
-			: !(gl instanceof window.WebGLRenderingContext)) {
+		if(hasGL2 ? !(gl instanceof globalThis.WebGL2RenderingContext)
+			: !(gl instanceof globalThis.WebGLRenderingContext)) {
 			throw new MicrioError('WebGL context creation failed', {
 				code: ErrorCodes.WEBGL_UNSUPPORTED
 			});

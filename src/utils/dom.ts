@@ -107,10 +107,10 @@ const loaded = new Set<string>();
  * @param cbFunc Optional global callback function name for script load.
  */
 export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: string): Promise<void> {
-	if (!(windowKey in self)) {
+	if (!(windowKey in globalThis)) {
 		await loadScript(url, cbFunc);
 	}
-	if (!(windowKey in self)) {
+	if (!(windowKey in globalThis)) {
 		throw new Error(`Failed to load ${windowKey} API from ${url}`);
 	}
 }
@@ -120,12 +120,12 @@ export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
 	if (targetObj || loaded.has(src)) {return ok();}
 	const script = document.createElement('script');
 	const onload = () => { loaded.add(src); ok(); };
-	if (cbFunc) {(self as unknown as Record<string, () => void>)[cbFunc] = onload;}
+	if (cbFunc) {(globalThis as unknown as Record<string, () => void>)[cbFunc] = onload;}
 	else {script.onload = onload;}
 	script.onerror = () => err?.();
 	script.async = true;
 	script.defer = true;
-	if (self.crossOriginIsolated) {script.crossOrigin = 'anonymous';}
+	if (globalThis.crossOriginIsolated) {script.crossOrigin = 'anonymous';}
 	script.src = src;
 	document.head.append(script);
 });

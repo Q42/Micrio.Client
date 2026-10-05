@@ -19,7 +19,8 @@
 export type FrameCallback = (now: number) => void;
 
 /** The window-like object providing rAF; overridable for non-window contexts. @internal */
-let display: Window = self;
+// oxlint-disable-next-line unicorn/prefer-global-this -- typed as the rAF host Window; globalThis is not assignable
+let display: Window = window;
 
 /** Handle of the currently scheduled rAF, or 0 when none is scheduled. @internal */
 let rafId = 0;

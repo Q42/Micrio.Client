@@ -159,7 +159,7 @@ export class GLEmbedVideo {
 			this._vid.src = src;
 		} else {
 			loadExternalAPI('Hls', HLS_SCRIPT_URL).then(() => {
-				this.#hlsPlayer = new ((window as Record<string, any>)['Hls'] as HlsPlayer)(HLS_PLAYER_CONFIG);
+				this.#hlsPlayer = new ((globalThis as Record<string, any>)['Hls'] as HlsPlayer)(HLS_PLAYER_CONFIG);
 				this.#hlsPlayer.loadSource(src); // Load HLS manifest
 				if(this._vid) {this.#hlsPlayer.attachMedia(this._vid);} // Attach to video element
 			}).catch(e => console.error("[Micrio GL Embed] Failed to load HLS.js:", e));

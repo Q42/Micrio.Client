@@ -58,7 +58,7 @@ export class Events implements EventContext {
 	_pScale = 1;
 
 	/** @internal Flag indicating if the browser supports touch events. */
-	_hasTouch: boolean = Browser.hasTouch && ('ontouchstart' in self);
+	_hasTouch: boolean = Browser.hasTouch && ('ontouchstart' in globalThis);
 
 	/** @internal Flag indicating if the user has explicitly used Ctrl/Cmd + wheel for zooming (differentiates from trackpad pinch). */
 	_hasUsedCtrl = false;

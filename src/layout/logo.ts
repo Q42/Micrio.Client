@@ -16,7 +16,8 @@ class MicrioLogo extends MicrioElement {
 		const micrio = this._getMicrio();
 		if (!micrio) {return;}
 
-		const target = !/micr\.io/.test(location.origin) || self.parent != self ? '_blank' : undefined;
+		// oxlint-disable-next-line unicorn/prefer-global-this -- compares the parent frame against this Window
+		const target = !/micr\.io/.test(location.origin) || window.parent != window ? '_blank' : undefined;
 
 		this.#a = createElement('a', {
 			props: { rel: 'noopener', href: 'https://micr.io/', title: 'Powered by Micrio' },

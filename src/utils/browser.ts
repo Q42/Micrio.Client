@@ -23,7 +23,7 @@ export const Browser: BrowserInfo = {
 	iOS: /ipad|iphone|ipod/i.test(ua),
 	firefox: /firefox/i.test(ua),
 	OSX: /macintosh/i.test(ua) && /os\ x/i.test(ua),
-	hasTouch: 'TouchEvent' in self, // Check for TouchEvent support
+	hasTouch: 'TouchEvent' in globalThis, // Check for TouchEvent support
 	safari: false // Initialized later
 };
 
@@ -31,7 +31,7 @@ export const Browser: BrowserInfo = {
 Browser.safari = (Browser.OSX || Browser.iOS) && (/safari/i.test(ua) || /instagram/i.test(ua)) && !/chrome/i.test(ua);
 
 // Correct detection for iPads identifying as macOS but supporting touch events
-if (Browser.OSX && (Browser.safari && 'TouchEvent' in self)) {
+if (Browser.OSX && (Browser.safari && 'TouchEvent' in globalThis)) {
 	Browser.iOS = true;
 	Browser.OSX = false;
 }

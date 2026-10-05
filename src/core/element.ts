@@ -320,7 +320,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			for(const e of ['mousemove','pointerdown','wheel','focusin']) {
 				this.addEventListener(e, this.#onActivity, { passive: true });
 			}
-			window.addEventListener('keydown', this.#onActivity);
+			globalThis.addEventListener('keydown', this.#onActivity);
 			this.#idle.activity();
 		}
 	}
@@ -359,7 +359,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			for (const e of ['mousemove','pointerdown','wheel','focusin'] as const) {
 				this.removeEventListener(e, this.#onActivity);
 			}
-			window.removeEventListener('keydown', this.#onActivity);
+			globalThis.removeEventListener('keydown', this.#onActivity);
 			this.#onActivity = undefined;
 		}
 		this.#printed = false;
@@ -458,7 +458,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		const openBundle = () => {
 			if(opts.id) {this.open(opts.id);}
 		};
-		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in window) {
+		if(opts.settings.lazyload !== undefined && 'IntersectionObserver' in globalThis) {
 			const observer = new IntersectionObserver(e => {
 				if(!e[0] || !e[0].isIntersecting) {return;}
 				observer.unobserve(this);

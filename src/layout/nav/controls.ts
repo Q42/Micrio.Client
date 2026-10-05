@@ -134,7 +134,7 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const cultures = info?.revision ? Object.keys(info.revision) : [];
 		const isMobile = micrio.canvas.$isMobile;
 
-		const showMute = Boolean('micrioAudioContext' in window || this.#props.hasAudio);
+		const showMute = Boolean('micrioAudioContext' in globalThis || this.#props.hasAudio);
 		const hasCultures = this.#showCultures && cultures.length > 1;
 		const hasSocial = this.#showSocial && ('share' in navigator);
 		const hasControls = showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen;
