@@ -124,7 +124,7 @@ export class PaperMesh {
 			const tB = this._triangles[triList[1]];
 			const setA = new Set(tA._indices);
 			const shared: number[] = [];
-			for (const v of tB._indices) {if (setA.has(v)) shared.push(v);}
+			for (const v of tB._indices) {if (setA.has(v)) {shared.push(v);}}
 			if (shared.length !== 2) {continue;}
 			const [s0, s1] = shared;
 			const tipA = tA._indices.find(v => v !== s0 && v !== s1)!;
