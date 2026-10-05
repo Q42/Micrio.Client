@@ -107,8 +107,8 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			this.#isMinimized = !this.#isMinimized;
 			this.classList.toggle('minimized', this.#isMinimized);
 			if (this.#content) {
-				for (let i = 0; i < this.#content.children.length; i++) {
-					const n = this.#content.children[i] as HTMLElement;
+				for (const child of this.#content.children) {
+					const n = child as HTMLElement;
 					if (n && n !== this.#title) {
 						if (!this.#originalHeights.has(n)) {
 							this.#originalHeights.set(n, n.offsetHeight);
