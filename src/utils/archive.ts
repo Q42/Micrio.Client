@@ -39,7 +39,7 @@ class Archive {
 		if(this.#data.has(id)) {return;} // Already loaded
 
 		const baseId = id.replace(/^.*\//,'').split('.')[0]; // Extract base ID (folder or image)
-		const isOmni = /\/base$/.test(id); // Is it an Omni base package?
+		const isOmni = id.endsWith('/base'); // Is it an Omni base package?
 		const isBin = isOmni || idIsV5(baseId); // Determine file extension (.bin for V5/Omni, .mdp for V4)
 
 		const xhr = new XMLHttpRequest();
