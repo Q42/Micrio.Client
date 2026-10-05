@@ -45,13 +45,13 @@ export function isSolverReady(): boolean {
 	return ready;
 }
 
-export async function initSolver(meshes: PaperMesh[], pageCount: number): Promise<void> {
+export function initSolver(meshes: PaperMesh[], pageCount: number): Promise<void> {
 	ready = false;
 
 	const paperMesh = findPaperMesh(meshes);
 	if (!paperMesh) {
 		console.warn('[Solver] No paper meshes found — solver will be idle.');
-		return;
+		return Promise.resolve();
 	}
 
 	distanceConstraints = buildConstraintSet(paperMesh._distanceConstraints);
@@ -70,6 +70,7 @@ export async function initSolver(meshes: PaperMesh[], pageCount: number): Promis
 	}
 
 	ready = true;
+	return Promise.resolve();
 }
 
 export function dispatchSolve(

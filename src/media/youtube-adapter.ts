@@ -103,8 +103,9 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 		}
 	}
 
-	async play(): Promise<void> {
+	play(): Promise<void> {
 		this.#player?.playVideo();
+		return Promise.resolve();
 	}
 
 	pause(): void {
@@ -113,8 +114,8 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 		}
 	}
 
-	async getCurrentTime(): Promise<number> {
-		return this.#player?.getCurrentTime?.() ?? 0;
+	getCurrentTime(): Promise<number> {
+		return Promise.resolve(this.#player?.getCurrentTime?.() ?? 0);
 	}
 
 	setCurrentTime(time: number): void {
@@ -122,14 +123,14 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 		this.#player?.seekTo?.(time);
 	}
 
-	async getDuration(): Promise<number> {
-		return this.#player?.getDuration?.() ?? 0;
+	getDuration(): Promise<number> {
+		return Promise.resolve(this.#player?.getDuration?.() ?? 0);
 	}
 
-	async isPaused(): Promise<boolean> {
-		if (!this.#player) {return true;}
+	isPaused(): Promise<boolean> {
+		if (!this.#player) {return Promise.resolve(true);}
 		const state = this.#player.getPlayerState?.();
-		return state === undefined || ([YT_STATE.UNSTARTED, YT_STATE.ENDED, YT_STATE.PAUSED, YT_STATE.CUED] as number[]).includes(state);
+		return Promise.resolve(state === undefined || ([YT_STATE.UNSTARTED, YT_STATE.ENDED, YT_STATE.PAUSED, YT_STATE.CUED] as number[]).includes(state));
 	}
 
 	setMuted(muted: boolean): void {

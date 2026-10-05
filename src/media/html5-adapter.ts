@@ -57,20 +57,20 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 		this.element.pause();
 	}
 
-	async getCurrentTime(): Promise<number> {
-		return this.element.currentTime;
+	getCurrentTime(): Promise<number> {
+		return Promise.resolve(this.element.currentTime);
 	}
 
 	setCurrentTime(time: number): void {
 		this.element.currentTime = time;
 	}
 
-	async getDuration(): Promise<number> {
-		return this.element.duration;
+	getDuration(): Promise<number> {
+		return Promise.resolve(this.element.duration);
 	}
 
-	async isPaused(): Promise<boolean> {
-		return this.element.paused;
+	isPaused(): Promise<boolean> {
+		return Promise.resolve(this.element.paused);
 	}
 
 	setMuted(muted: boolean): void {

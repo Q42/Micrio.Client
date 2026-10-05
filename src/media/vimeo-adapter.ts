@@ -95,8 +95,9 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 		});
 	}
 
-	async play(): Promise<void> {
+	play(): Promise<void> {
 		this.#player?.play();
+		return Promise.resolve();
 	}
 
 	pause(): void {
