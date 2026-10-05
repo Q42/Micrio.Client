@@ -18,8 +18,15 @@ import { setupBehindTransition, transition } from './transitions';
 import { handleAction, createTourEventHandler } from './action-handlers';
 import './grid.css';
 
+/** Props injected into a `<micrio-grid>` element by the gallery controller. @internal */
+interface GridProps {
+	micrio: HTMLMicrioElement;
+	image: MicrioImage;
+	gallery: Gallery;
+}
+
 /** The main Grid controller that arranges {@link MicrioImage} instances into a CSS grid layout. */
-export class Grid extends MicrioElement {
+export class Grid extends MicrioElement<GridProps> {
 	/** The custom element tag name. @internal */
 	static tag = 'micrio-grid';
 
@@ -95,10 +102,12 @@ export class Grid extends MicrioElement {
 	/** @internal */
 	_onMount() {
 		if (this.#inited) {return;}
+		const {micrio, image, gallery} = this._props;
+		if (micrio === undefined || image === undefined || gallery === undefined) {return;}
 		this.#inited = true;
-		this.micrio = this._props.micrio;
-		this.image = this._props.image;
-		this.#gallery = this._props.gallery;
+		this.micrio = micrio;
+		this.image = image;
+		this.#gallery = gallery;
 		for (const img of this.#gallery._images) {this.#trackImage(img);}
 
 		const g = this.image.$settings?.grid;

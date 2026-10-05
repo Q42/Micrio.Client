@@ -209,13 +209,13 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 		if (p.is360) {figure.style.setProperty('--micrio-background', 'transparent');}
 
-		if (isYoutube) {
+		if (src && isYoutube) {
 			this.#createYoutubeIframe(src, p, figure);
-		} else if (isVimeo) {
+		} else if (src && isVimeo) {
 			this.#createVimeoIframe(src, p, figure);
-		} else if (isCloudflare) {
+		} else if (src && isCloudflare) {
 			this.#createCloudflareVideo(src, p, figure);
-		} else if (isAudio && src) {
+		} else if (src && isAudio) {
 			this.#createAudioElement(src, p, figure);
 		} else if (src) {
 			this.#createIframe(src, p, figure);
@@ -317,7 +317,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 		// Controls
 		if (p.controls !== false && !isEmbed) {
-			const hasSub = !p.secondary && Boolean(p.tour) && !('steps' in p.tour) && Boolean(p.tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
+			const {tour} = p;
+			const hasSub = !p.secondary && tour != null && !('steps' in tour) && Boolean(tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
 
 			const onplaypause = () => {
 				const el = this.#mediaEl;

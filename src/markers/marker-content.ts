@@ -103,9 +103,10 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		}
 
 		// Marker Images
-		if (!noImages && Boolean(marker.images?.length)) {
+		const assets = marker.images;
+		if (!noImages && assets !== undefined && assets.length > 0) {
 			const section = createElement('section');
-			for (const asset of marker.images) {
+			for (const asset of assets) {
 				const btn = createElement('button', {
 					props: {
 						title: getTitle(asset) ?? '',
