@@ -108,7 +108,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	/** Whether a custom element tag is registered in this build; unregistered (excluded) elements must not render. */
 	#isRegistered(el: HTMLElement | string): boolean {
 		const tag = typeof el === 'string' ? el : el.localName;
-		return !tag.includes('-') || !!customElements.get(tag);
+		return !tag.includes('-') || Boolean(customElements.get(tag));
 	}
 
 	#show(key: string, condition: boolean, build: () => HTMLElement, update?: (el: HTMLElement) => void) {
@@ -191,7 +191,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		this._addCleanup(micrio.state.tour.subscribe(() => {
 			const sub = this.#elements.get('subtitles') as MicrioElement;
-			if (sub) {sub._setProps?.({ raised: !!get(micrio.state.tour) });}
+			if (sub) {sub._setProps?.({ raised: Boolean(get(micrio.state.tour)) });}
 		}));
 
 		for (const store of [micrio._visible, micrio.state.popup, micrio.state.popover,
@@ -241,19 +241,19 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		const videoSrc = video?.src;
 		const isBook3d = micrio.$current?.album?.info?.type == 'book3d';
 		this.classList.toggle('is3d', _360 || isBook3d);
-		const positionalAudio = $data?.markers?.filter(m => !!m.positionalAudio);
-		const hasAudio = !!$data?.music?.items.length || !!positionalAudio?.length;
+		const positionalAudio = $data?.markers?.filter(m => Boolean(m.positionalAudio));
+		const hasAudio = Boolean($data?.music?.items.length) || Boolean(positionalAudio?.length);
 		const hasTourOrMarker = $tour || $marker;
 
 		const showMarkers = !noHTML || (micrio.getAttribute('data-ui') == 'markers');
 		const showLogo = !noLogo && (!$info || !noHTML) && !$settings?.noLogo && !$marker && !$markerPopup;
-		const showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo && !!this.#logoOrg && !$popover;
-		const showControls = !noHTML && !!$info && !$settings?.noControls;
-		const showDetails = !noHTML && !hasTourOrMarker && !!$settings?.showInfo;
+		const showOrgLogo = !noHTML && showLogo && !$settings?.noOrgLogo && Boolean(this.#logoOrg) && !$popover;
+		const showControls = !noHTML && Boolean($info) && !$settings?.noControls;
+		const showDetails = !noHTML && !hasTourOrMarker && Boolean($settings?.showInfo);
 		const showToolbar = !noHTML && this.#firstInited && !$settings?.noToolbar;
-		const showMinimap = !noHTML && !!$info && $settings?.minimap !== false && !$settings?.noControls && !!micrio.$current?.thumbSrc && !($markerPopup && isMobile);
+		const showMinimap = !noHTML && Boolean($info) && $settings?.minimap !== false && !$settings?.noControls && Boolean(micrio.$current?.thumbSrc) && !($markerPopup && isMobile);
 
-		if (hasAudio && !!$data && !!$info && micrio.$current) {
+		if (hasAudio && Boolean($data) && Boolean($info) && micrio.$current) {
 			if (!this.#audioController) {
 				this.#audioController = new MicrioAudioController(micrio, micrio.$current);
 				this._addCleanup(() => this.#destroyAudio());
@@ -262,7 +262,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#destroyAudio();
 		}
 
-		this.#show('media', !!videoSrc && !!$info, () => {
+		this.#show('media', Boolean(videoSrc) && Boolean($info), () => {
 			return createElement('div');
 		});
 
@@ -270,7 +270,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			createElement('micrio-logo')
 		);
 
-		this.#show('details', showDetails && !!$data, () =>
+		this.#show('details', showDetails && Boolean($data), () =>
 			createElement('micrio-details', { setProps: { info: this.#info!, data: $data! } }) as MicrioElement
 		);
 
@@ -280,26 +280,26 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		const $visible = get(micrio._visible);
 		this.#syncImageLayer(this.#markerElements, 'micrio-markers', 'markers', $visible, showMarkers,
-			(i) => !i.opts?.isEmbed && (!!i.$data?.markers?.length || !!micrio.spaceData)
+			(i) => !i.opts?.isEmbed && (Boolean(i.$data?.markers?.length) || Boolean(micrio.spaceData))
 		);
 
 		this.#syncImageLayer(this.#embedElements, 'micrio-image-embeds', 'embeds', $visible,
 			micrio.getAttribute('data-embeds') != 'false',
-			(i) => !!i.$data?.embeds?.length
+			(i) => Boolean(i.$data?.embeds?.length)
 		);
 
 		this.#show('controls', showControls, () =>
-			createElement('micrio-controls', { setProps: { hasAudio: hasAudio || !!(videoSrc && video && !video.muted) } }) as MicrioElement
+			createElement('micrio-controls', { setProps: { hasAudio: hasAudio || Boolean(videoSrc && video && !video.muted) } }) as MicrioElement
 		);
 
-		this.#show('orgLogo', showOrgLogo && !!this.#logoOrg, () =>
+		this.#show('orgLogo', showOrgLogo && Boolean(this.#logoOrg), () =>
 			createElement('micrio-logo-org', { setProps: { organisation: this.#logoOrg! } }) as MicrioElement
 		);
 
 		const grid = micrio.$current?.grid;
 		if (grid) {this.#place('grid', grid);}
 
-		this.#show('gallery', !!$settings?.omni || !!(micrio.gallery?._config?.type !== 'grid' && micrio.gallery), () =>
+		this.#show('gallery', Boolean($settings?.omni) || Boolean(micrio.gallery?._config?.type !== 'grid' && micrio.gallery), () =>
 			createElement('micrio-gallery', { setProps: { controller: micrio.gallery } }) as MicrioElement
 		);
 
@@ -338,17 +338,17 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}
 		}
 
-		this.#show('tour', !!$tour, () => {
+		this.#show('tour', Boolean($tour), () => {
 			const isSerial = $tour && 'steps' in $tour && $tour.isSerialTour;
 			const tag = isSerial ? 'micrio-serial-tour' : 'micrio-tour';
 			return createElement(tag, { setProps: { tour: $tour!, noHTML } }) as MicrioElement;
 		});
 
-		this.#show('popover', !!$popover, () =>
+		this.#show('popover', Boolean($popover), () =>
 			createElement('micrio-popover', { setProps: { popover: $popover! } }) as MicrioElement
 		);
 
-		this.#show('error', !!error, () =>
+		this.#show('error', Boolean(error), () =>
 			createElement('micrio-error', { setProps: { message: error! } }) as MicrioElement
 		);
 

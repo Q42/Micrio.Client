@@ -97,7 +97,7 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 				const ids = t.stepInfo.map(s => s.micrioId);
 				const imgs = ids.filter((id, i) => ids.indexOf(id) == i)
 					.map(i => grid._imageMap.get(i))
-					.filter((i): i is MicrioImage => !!i)
+					.filter((i): i is MicrioImage => Boolean(i))
 				if(imgs.length) {grid.set(imgs.map(i => ({id: i.id, size: [1] as [number, number?]})), {
 					duration,
 					horizontal: data == 'h'

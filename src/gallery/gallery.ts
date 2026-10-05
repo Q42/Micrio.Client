@@ -279,7 +279,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const images = this.#images;
 		if (!images.length || images.length <= 1) {return;}
 		const engine = images[0].engine;
-		const hasArchive = !!(images[0]?.$settings?.gallery?.archive);
+		const hasArchive = Boolean(images[0]?.$settings?.gallery?.archive);
 		this.#preloadRange(c, images.length, this.#preloadD,
 			idx => images[idx] ? { baseTileIdx: images[idx]._baseTileIdx, thumbSrc: images[idx].thumbSrc } : undefined,
 			engine, hasArchive);
@@ -410,7 +410,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// and mark the pages visible so their markers render.
 		parent.album!.hooked = true;
 		const micrio = parent.engine.micrio;
-		const individualAspects = !!config.settings?.individualAspects;
+		const individualAspects = Boolean(config.settings?.individualAspects);
 		const book3d = this.#book3d = new BookViewer({
 			_canvas: micrio.canvas.element,
 			_images: items,
@@ -423,7 +423,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
 					const drawn = _drawn.find(d => d.id == img.id);
-					img.visible.set(!!drawn);
+					img.visible.set(Boolean(drawn));
 					if(drawn) {
 						if(!img.camera._getXYDirectOverride) {book3d._hookImageBook3d(img);}
 						img.state.view.update(() => drawn.bounds);
@@ -434,7 +434,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		micrio.events.unhookScroll();
 		micrio.events.unhookPinch();
 		parent.camera._zoomOverride = (n:number) => book3d.zoom(n);
-		parent.camera._isZoomedInOverride = () => !!book3d.isZoomedIn();
+		parent.camera._isZoomedInOverride = () => Boolean(book3d.isZoomedIn());
 		this.#book3d._ready.then(() => {
 			parent._placed = true;
 			this.#frameChanged();

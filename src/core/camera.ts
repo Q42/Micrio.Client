@@ -125,7 +125,7 @@ export class Camera {
 				height *= a[3];
 			}
 		}
-		this.#canvas._setView(centerX, centerY, width, height, !!opts.noLimit, false, opts.correctNorth);
+		this.#canvas._setView(centerX, centerY, width, height, Boolean(opts.noLimit), false, opts.correctNorth);
 		if (!opts.noRender) {this.#image.engine.render();}
 	}
 
@@ -154,7 +154,7 @@ export class Camera {
 			const box = this.#image.engine.micrio.getBoundingClientRect();
 			x -= box.left; y -= box.top;
 		}
-		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, !!abs, !!noLimit)).arr;
+		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, Boolean(abs), Boolean(noLimit))).arr;
 	}
 
 	/**
@@ -184,8 +184,8 @@ export class Camera {
 		const tNDiff = (this.#image._is360 && !opts.noTrueNorth) ? -this.rotationY / (Math.PI * 2) : 0;
 		if (c.is360) {return c._camera360._getXYZ(x - tNDiff, y).arr;}
 		if (opts.rotation !== undefined && !isNaN(opts.rotation))
-			{return c._camera2d._getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, !!opts.abs).arr;}
-		return c._camera2d._getXY(x - tNDiff, y, !!opts.abs).arr;
+			{return c._camera2d._getXYOmni(x - tNDiff, y, opts.radius ?? 0, opts.rotation, Boolean(opts.abs)).arr;}
+		return c._camera2d._getXY(x - tNDiff, y, Boolean(opts.abs)).arr;
 	}
 
 	/**
@@ -218,10 +218,10 @@ export class Camera {
 	setMinScreenSize(s: number): void { if (!this.#image.album && this.#canvas) {this.#canvas.camera._minSize = Math.max(0, Math.min(1, s));} }
 
 	/** Checks if the camera is zoomed in to the maximum allowed scale or beyond. */
-	isZoomedIn = (): boolean => !!(this._isZoomedInOverride ? this._isZoomedInOverride() : this.#canvas?._isZoomedIn());
+	isZoomedIn = (): boolean => Boolean(this._isZoomedInOverride ? this._isZoomedInOverride() : this.#canvas?._isZoomedIn());
 
 	/** Checks if the camera is fully zoomed out. */
-	isZoomedOut = (full = false): boolean => !!(this._isZoomedInOverride ? !this._isZoomedInOverride() : this.#canvas?._isZoomedOut(full));
+	isZoomedOut = (full = false): boolean => Boolean(this._isZoomedInOverride ? !this._isZoomedInOverride() : this.#canvas?._isZoomedOut(full));
 
 	/** Gets the current viewing direction (yaw) in 360 mode. @returns The current yaw in radians. */
 	getDirection = (): number => this.#canvas?._camera360._yaw ?? 0;
@@ -259,11 +259,11 @@ export class Camera {
 	 */
 	setCoverLimit(b: boolean): void {
 		if (!this.#canvas) {return;}
-		this.#canvas._coverLimit = !!b;
+		this.#canvas._coverLimit = Boolean(b);
 		this.#canvas._correctMinMax();
 	}
 
-	getCoverLimit = (): boolean => !!(this.#canvas?._coverLimit);
+	getCoverLimit = (): boolean => Boolean(this.#canvas?._coverLimit);
 
 	/**
 	 * Sets horizontal and vertical pan limits for 360 images as percentages of the full sphere.
@@ -306,7 +306,7 @@ export class Camera {
 	 */
 	getMatrix(x: number, y: number, scale?: number, radius?: number, rotX?: number, rotY?: number, rotZ?: number, transY?: number, scaleX?: number, scaleY?: number, noCorrectNorth?: boolean): Float32Array {
 		if(this._getMatrixOverride) {return this._getMatrixOverride(x, y, scale || 1, rotX, rotY, rotZ, scaleX, scaleY, radius);}
-		return this.#canvas?._getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, !!noCorrectNorth) ?? new Float32Array(16);
+		return this.#canvas?._getMatrix(x, y, scale ?? 1, radius ?? 10, rotX || 0, rotY || 0, rotZ || 0, transY ?? 0, scaleX ?? 1, scaleY ?? 1, Boolean(noCorrectNorth)) ?? new Float32Array(16);
 	}
 
 	/**
@@ -323,7 +323,7 @@ export class Camera {
 				if (img._localIdx > 0) { img._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3]); return; }
 			}
 		} else {
-			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], !!opts.direct, !!opts.noDispatch);
+			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], Boolean(opts.direct), Boolean(opts.noDispatch));
 		}
 		if (!opts.noRender) {this.#image.engine.render();}
 	}
@@ -429,7 +429,7 @@ export class Camera {
 				}
 				if (opts.omniIndex != undefined) {opts.omniIndex = mod(opts.omniIndex, npl);}
 			}
-			const duration = this.#canvas.camera._flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, !!opts.isJump, !!opts.limit, !!opts.limitZoom, opts.omniIndex ?? 0, getEasing(opts.timingFunction));
+			const duration = this.#canvas.camera._flyTo(centerX, centerY, width, height, opts.duration ?? -1, opts.speed ?? -1, opts.progress ?? 0, Boolean(opts.isJump), Boolean(opts.limit), Boolean(opts.limitZoom), opts.omniIndex ?? 0, getEasing(opts.timingFunction));
 			this.#image.engine.render();
 			if (duration == 0) {ok();}
 			else {this.#setAniPromises(ok, abort);}
@@ -535,7 +535,7 @@ export class Camera {
 	 */
 	pan(x: number, y: number, duration = 0, opts: { render?: boolean; noLimit?: boolean } = {}): void {
 		if (!this.#canvas) {return;}
-		this.#canvas.camera._pan(x, y, duration, !!opts.noLimit);
+		this.#canvas.camera._pan(x, y, duration, Boolean(opts.noLimit));
 		if (duration > 0 || opts.render) {this.#image.engine.render();}
 	}
 

@@ -94,7 +94,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 				setProps: {
 					src: audioSrc, noPlayOverlay: true, image, uuid: marker.id,
 					tour: marker.videoTour,
-					autoplay: marker.audioAutoPlay || (!content.audio && !!marker.videoTour),
+					autoplay: marker.audioAutoPlay || (!content.audio && Boolean(marker.videoTour)),
 					controls: !marker.videoTour || !content.embedUrl,
 					onended: mediaEnded, paused: pausedAudio
 				},
@@ -103,7 +103,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		}
 
 		// Marker Images
-		if (!noImages && !!marker.images?.length) {
+		if (!noImages && Boolean(marker.images?.length)) {
 			const section = createElement('section');
 			for (const asset of marker.images) {
 				const btn = createElement('button', {
@@ -149,7 +149,7 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 				});
 			}
 
-			const pausedVideo = marker?.embedAutoPlay === false || (!autoplayMedia || !!(content?.audio && marker?.audioAutoPlay));
+			const pausedVideo = marker?.embedAutoPlay === false || (!autoplayMedia || Boolean(content?.audio && marker?.audioAutoPlay));
 			createElement('micrio-media', {
 				setProps: {
 					image, src: content.embedUrl, uuid: marker.id,

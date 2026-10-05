@@ -110,7 +110,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			const updateInactive = () => {
 				const f = get(focused);
 				const ms = markersShown ? get(markersShown) : undefined;
-				const inactive = !!(grid && f && f != image && ms && ms.indexOf(image) < 0);
+				const inactive = Boolean(grid && f && f != image && ms && ms.indexOf(image) < 0);
 				this.#container?.classList.toggle('inactive', inactive);
 			};
 			this._watch(focused, updateInactive);
@@ -138,25 +138,23 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const glMode: Models.Attributes.EmbedGLMode = glAttrValue === 'true' || glAttrValue === 'false' ? glAttrValue : 'auto';
 		const forceGL = glMode === 'true';
 		this.#embedImageAsHtml = glMode === 'false' || (glMode === 'auto' && (
-			this.#isSVG || isIOS14 || (!this.#screenIsHDR && !!embed.video)
+			this.#isSVG || isIOS14 || (!this.#screenIsHDR && Boolean(embed.video))
 		));
 
 		// 3d books have their own WebGL renderer
 		this.#isBook3d = this.#micrio.$current?.album?.info?.type == 'book3d';
 		this.#isMat = this.#is360 || this.#isBook3d;
 
-		this.#printGL = !this.#isBook3d && !this.#embedImageAsHtml && !!(
-			(embed.micrioId && (forceGL || !this.#isSmall || !embed.src))
-			|| (embed.video && !embed.video.controls && !embed.video.transparent)
-		);
+		this.#printGL = !this.#isBook3d && !this.#embedImageAsHtml && Boolean((embed.micrioId && (forceGL || !this.#isSmall || !embed.src))
+			|| (embed.video && !embed.video.controls && !embed.video.transparent));
 
 		this.#noEvents = !embed.clickAction && !embed.frameSrc && !marker;
 		this.#href = embed.clickAction == 'href' ? embed.clickTarget : undefined;
-		this.#hrefBlankTarget = !!(this.#href && embed.clickTargetBlank);
+		this.#hrefBlankTarget = Boolean(this.#href && embed.clickTargetBlank);
 
-		this.#isRawVideo = this.#printGL && !!embed.video;
-		this.#hasHtml = !this.#printGL || !!embed.clickAction;
-		this.#hideWhenPaused = !!embed.hideWhenPaused;
+		this.#isRawVideo = this.#printGL && Boolean(embed.video);
+		this.#hasHtml = !this.#printGL || Boolean(embed.clickAction);
+		this.#hideWhenPaused = Boolean(embed.hideWhenPaused);
 
 		if (embed.video && !embed.video.controls) {
 			embed.video.muted = true;
@@ -182,7 +180,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const camOwner = image.camera?.image;
 		const moveSrc = camOwner && camOwner !== image ? camOwner : image;
 
-		if (this.#hasHtml || !!embed.video?.pauseWhenSmallerThan || !!embed.video?.pauseWhenLargerThan) {
+		if (this.#hasHtml || Boolean(embed.video?.pauseWhenSmallerThan) || Boolean(embed.video?.pauseWhenLargerThan)) {
 			// Cache the emitted values and reposition directly. Store updates happen
 			// inside the render frame, so this stays in-phase with the draw and never
 			// needs its own animation frame.
@@ -249,7 +247,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
 		this.#container = createElement(this.#href ? 'a' : 'div', {
 			className: (this.#noEvents ? 'no-events' : '')
-				+ (this.#hideWhenPaused && !this.#printGL && !!embed.video ? ' hide-when-paused' : '')
+				+ (this.#hideWhenPaused && !this.#printGL && Boolean(embed.video) ? ' hide-when-paused' : '')
 				+ (this.#is360 || this.#isBook3d ? ' embed3d' : '') || undefined,
 			id: embed.id ? `e-${  embed.id}` : undefined,
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
@@ -300,9 +298,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				src: video.src!,
 				width: Math.round(width),
 				height: Math.round(height),
-				controls: !!video.controls,
-				loop: !!video.loop && (!video.loopAfter || video.loopAfter <= 0),
-				muted: !!video.muted,
+				controls: Boolean(video.controls),
+				loop: Boolean(video.loop) && (!video.loopAfter || video.loopAfter <= 0),
+				muted: Boolean(video.muted),
 				playsInline: true,
 				crossOrigin: 'anonymous',
 				preload: 'metadata'
@@ -376,8 +374,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 					id: embed.video ? embed.id : embed.micrioId,
 					title: embed.uuid,
 					path: this.#info.tileBasePath ?? this.#info.path,
-					isSingle: !!embed.video,
-					isVideo: !!embed.video,
+					isSingle: Boolean(embed.video),
+					isVideo: Boolean(embed.video),
 				}
 			}, {
 				_360: { rotX: this.#rotX, rotY: this.#rotY, rotZ: this.#rotZ }
@@ -495,10 +493,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				(this.#h * this.#info.height) * this.#scaleVal / vp.height
 			)
 			: 0;
-		return !!(
-			(vid.pauseWhenSmallerThan && screenSize < vid.pauseWhenSmallerThan)
-			|| (vid.pauseWhenLargerThan && screenSize > vid.pauseWhenLargerThan)
-		);
+		return Boolean((vid.pauseWhenSmallerThan && screenSize < vid.pauseWhenSmallerThan)
+			|| (vid.pauseWhenLargerThan && screenSize > vid.pauseWhenLargerThan));
 	}
 
 	#click() {

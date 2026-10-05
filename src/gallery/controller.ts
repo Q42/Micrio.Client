@@ -232,7 +232,7 @@ export class Gallery {
 	 *  For spread albums, cover pages are single-image pages and remaining images
 	 *  are paired into spreads. For regular albums each image is its own page. */
 	_getPageLayout(): { pages: number[][]; numPages: number } {
-		const isSpread = !!this._config.isSpreads;
+		const isSpread = Boolean(this._config.isSpreads);
 		const coverPages = this._config.coverPages ?? 0;
 		const pages: number[][] = [];
 

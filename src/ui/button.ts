@@ -44,7 +44,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		const key = `${p.type}|${(p.icon?.src ?? '')}|${p.title ?? ''}|${p.disabled ?? ''}|${p.active ?? ''}|${p.className ?? ''}|${p.href ?? ''}|${p.blankTarget ?? ''}|${p.noClick ?? ''}`;
 		if (!this._checkRenderKey(key)) {return;}
 
-		const isAnchor = !!p.href;
+		const isAnchor = Boolean(p.href);
 		const tag = isAnchor ? 'a' : 'button';
 		const classes = `${p.className ? `${p.className  } ` : ''}${p.active ? 'active' : ''}${p.noClick ? ' no-click' : ''}`.trim();
 
@@ -66,7 +66,7 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		const el = createElement(tag, {
 			className: classes,
 			attrs,
-			props: { disabled: isAnchor ? undefined : !!p.disabled },
+			props: { disabled: isAnchor ? undefined : Boolean(p.disabled) },
 			events: {
 				...(p.onclick && { click: p.onclick }),
 				...(p.onfocus && { focus: p.onfocus }),

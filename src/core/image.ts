@@ -245,7 +245,7 @@ export class MicrioImage {
 		// V5 ID detection & derived info flags
 		if (!i.isIIIF && this.id.length == 7) {
 			const b = getIdVal(this.id[1 + (getIdVal(this.id) % 6)]);
-			i.is360 = !!((b >> 4) & 1) || !!i.is360;
+			i.is360 = Boolean((b >> 4) & 1) || Boolean(i.is360);
 			i.isWebP = !(b & 3);
 			i.isPng = (b & 3) == 2;
 			if ((b >> 3) & 1 && idIsV5(i.tilesId ?? this.id)) {i.format = 'dz';}
@@ -307,8 +307,8 @@ export class MicrioImage {
 		this._noImage = this._noImage || this._isOmni || (!i.id && !i.tilesId);
 		this.#extension = i.tileExtension || i.isPng && 'png' || i.isWebP && 'webp' || 'jpg';
 		if(i.format == 'dz') {i.isDeepZoom = true;}
-		this._is360 = !!i.is360;
-		this._isVideo = !!i.isVideo;
+		this._is360 = Boolean(i.is360);
+		this._isVideo = Boolean(i.isVideo);
 
 		// Language from revision
 		let lang = get(micrio._lang);

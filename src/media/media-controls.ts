@@ -157,17 +157,17 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 		if (langChanged || p.paused !== this.#prevPaused || p.seeking !== this.#prevSeeking || this.#prevPaused === undefined) {
 			this.#prevPaused = p.paused;
-			this.#prevSeeking = !!p.seeking;
+			this.#prevSeeking = Boolean(p.seeking);
 			this.#playBtn._setProps({
 				type: !p.paused ? 'pause' : 'play',
 				title: !p.paused ? $i18n._pause : $i18n._play,
-				disabled: !!p.seeking,
+				disabled: Boolean(p.seeking),
 				onclick: p.onplaypause
 			});
 		}
 
 		if (this.#muteBtnEl && (langChanged || p.muted !== this.#prevMuted)) {
-			this.#prevMuted = !!p.muted;
+			this.#prevMuted = Boolean(p.muted);
 			this.#muteBtnEl._setProps({
 				type: p.muted ? 'muted' : 'unmuted',
 				title: p.muted ? $i18n._audioUnmute : $i18n._audioMute,

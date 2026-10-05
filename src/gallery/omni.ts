@@ -106,7 +106,7 @@ export class OmniUI {
 		image.canvas?._setActiveImage(0, 0);
 		engine.render();
 
-		const hasArchive = !!image.$settings.gallery?.archive;
+		const hasArchive = Boolean(image.$settings.gallery?.archive);
 		const preloadD = 'requestIdleCallback' in self
 			? Math.max(36, Math.floor(totalFrames / 8) * 2)
 			: 50;

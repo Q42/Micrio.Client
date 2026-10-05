@@ -340,7 +340,7 @@ export class Engine {
 
 		const settings = c.$settings;
 
-		this.#isGallery = !!this.micrio.gallery || c._isOmni;
+		this.#isGallery = Boolean(this.micrio.gallery) || c._isOmni;
 
 		if (settings.gallery?.archive) {
 			this._hasArchive = true;
@@ -349,14 +349,14 @@ export class Engine {
 		if (i.version && parseFloat(i.version) <= 3.1) {this._underzoomLevels = 8;}
 
 		if (i.is360) {settings.limitToCoverScale = false;}
-		const coverLimit = !!settings.limitToCoverScale;
+		const coverLimit = Boolean(settings.limitToCoverScale);
 		const coverStart = coverLimit || settings.initType == 'cover';
 
 		if (c._noImage) {this.micrio._loading.set(false);}
 
 		const focus = [.5, .5];
 		const f = settings.focus;
-		const isSpaces = !!i.spacesId;
+		const isSpaces = Boolean(i.spacesId);
 		if (f) {
 			if (!isNaN(f[0]) && f[0] !== null) {focus[0] = f[0];}
 			if (!isNaN(f[1]) && f[1] !== null) {focus[1] = f[1];}
@@ -365,7 +365,7 @@ export class Engine {
 		const vid360 = settings._360?.video;
 		const is360Video = i.is360 && vid360 && (vid360.src || ('video' in vid360 && vid360.video));
 
-		const gallerySwitch = !!this.#isGallery && settings.gallery?.type == 'switch';
+		const gallerySwitch = Boolean(this.#isGallery) && settings.gallery?.type == 'switch';
 
 		const numOmniLayers = Math.max(1, settings.omni?.layers?.length ?? 1);
 		if (settings.omni) {settings.omni.layerStartIndex = Math.min(numOmniLayers - 1, settings.omni?.layerStartIndex ?? 0);}
@@ -378,7 +378,7 @@ export class Engine {
 			i.tileSize ?? DEFAULT_TILE_SIZE,
 			i.is360 ?? false,
 			c._noImage,
-			!!i.isDeepZoom,
+			Boolean(i.isDeepZoom),
 			settings.freeMove ?? false,
 			coverStart,
 			settings.zoomLimit || 1,
@@ -386,11 +386,11 @@ export class Engine {
 			settings.camspeed ?? 1,
 			c.camera.rotationY,
 			gallerySwitch,
-			!!settings.gallery?.isSpreads && settings.gallery.type == 'swipe',
+			settings.gallery !== undefined && settings.gallery.isSpreads === true && settings.gallery.type == 'swipe',
 			c._isOmni,
 			settings.pinchZoomOutLimit ?? false,
 			numOmniLayers,
-			!!(i.isSingle || is360Video),
+			Boolean(i.isSingle || is360Video),
 			settings.omni?.layerStartIndex ?? 0,
 			false,
 		);
@@ -752,14 +752,14 @@ export class Engine {
 		let canvas: TileCanvas;
 		if (!isEmbed) {
 			if (!(image instanceof MicrioImage)) {return;}
-			const isGallery = !!(image.$settings.gallery?.archive || image.$settings.gallery?.type);
+			const isGallery = Boolean(image.$settings.gallery?.archive || image.$settings.gallery?.type);
 			let childOpts: { coverLimit?: boolean; coverStart?: boolean } = {};
 			if (isGallery) {
 				childOpts = { coverLimit: false, coverStart: false };
 			} else {
 				childOpts = {
-					coverLimit: !!image.$settings?.limitToCoverScale || !!parent.$settings?.limitToCoverScale,
-					coverStart: !!(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
+					coverLimit: Boolean(image.$settings?.limitToCoverScale) || Boolean(parent.$settings?.limitToCoverScale),
+					coverStart: Boolean(image.$settings?.limitToCoverScale || image.$settings?.initType == 'cover' || parent.$settings?.initType == 'cover')
 				};
 			}
 			canvas = parentEntry.canvas._addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts);

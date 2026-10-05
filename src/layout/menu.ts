@@ -11,7 +11,7 @@ let hooked = false;
 opened.subscribe(c => {
 	if (c) { if (!hooked) {window.addEventListener('click', close);} }
 	else { if (hooked) {window.removeEventListener('click', close);} }
-	hooked = !!c;
+	hooked = Boolean(c);
 });
 /** Close the currently opened menu */
 function close() { opened.set(undefined); }
@@ -90,7 +90,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 	#isOpen(menu: Models.ImageData.Menu): boolean {
 		const $opened = get(opened);
 		if (!$opened) {return false;}
-		const check = (m: Models.ImageData.Menu): boolean => m === $opened || !!m.children?.some(check);
+		const check = (m: Models.ImageData.Menu): boolean => m === $opened || Boolean(m.children?.some(check));
 		return check(menu);
 	}
 
@@ -109,7 +109,7 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 			if (!menu.link) {e.preventDefault();}
 			if (menu.children?.length) {e.stopPropagation();}
 			this.#action?.();
-			const doClose = !!(this.#isOpen(menu) || this.#action || menu.link);
+			const doClose = Boolean(this.#isOpen(menu) || this.#action || menu.link);
 			opened.set(doClose ? undefined : menu);
 			if (this.#action || menu.link) {onclose?.();}
 		};

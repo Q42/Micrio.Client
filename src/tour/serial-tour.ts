@@ -33,7 +33,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		this.#stepInfo = (tour.stepInfo as Models.ImageData.MarkerTourStepInfo[]) || [];
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0);
-		this.#noTimeScrub = !!(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
+		this.#noTimeScrub = Boolean(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub);
 
 		micrio.setAttribute('data-marker-tour-active', '');
 		this._addCleanup(() => micrio.removeAttribute('data-marker-tour-active'));

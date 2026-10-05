@@ -82,7 +82,7 @@ function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
 	}
 
 	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT;
-	const refArea = 1 * avgAspect;
+	const refArea = Number(avgAspect);
 
 	// Every page shares the same geometry (the book-wide average aspect); per-page
 	// aspects are honored by rendering each texture in its own region of the page

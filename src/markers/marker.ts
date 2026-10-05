@@ -52,23 +52,23 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const $_lang = get(micrio._lang);
 		const markerSettings = image.$settings._markers ?? {};
 		const data = marker.data ?? {};
-		const noTitles = marker.data?.showTitle === false || !!markerSettings.noTitles || !!image.$settings.omni?.sideLabels;
-		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || !!image.$settings.omni?.sideLabels;
+		const noTitles = marker.data?.showTitle === false || Boolean(markerSettings.noTitles) || Boolean(image.$settings.omni?.sideLabels);
+		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || Boolean(image.$settings.omni?.sideLabels);
 
 		// --- Auto-start tour integration (_markers.autoStartTour) ---
 
 		/** Whether a marker tour has this marker as one of its steps. */
-		const inTour = (t: Models.ImageData.MarkerTour): boolean => !!t.steps?.some(s => s.startsWith(marker.id));
+		const inTour = (t: Models.ImageData.MarkerTour): boolean => Boolean(t.steps?.some(s => s.startsWith(marker.id)));
 		/** The marker tour to auto-start when this marker is opened, if it contains this marker. */
 		const autoStartMyTour: Models.ImageData.MarkerTour | undefined = markerSettings.autoStartTour
-			? micrio._canvases.map(c => c.$data?.markerTours?.find(inTour)).find(t => !!t)
+			? micrio._canvases.map(c => c.$data?.markerTours?.find(inTour)).find(t => Boolean(t))
 				?? (micrio.bundleTours ?? []).find(inTour)
-				?? micrio.gallery?._images.map(i => i.$data?.markerTours?.find(inTour)).find(t => !!t)
+				?? micrio.gallery?._images.map(i => i.$data?.markerTours?.find(inTour)).find(t => Boolean(t))
 			: undefined;
 		/** This marker's step index within its auto-start tour. */
 		const myTourStep = autoStartMyTour?.steps.findIndex(s => s.startsWith(marker.id));
 		/** Always start the auto-start tour from step 0 instead of from this marker's step. */
-		const startTourAtBeginning = !!markerSettings.autoStartTourAtBeginning;
+		const startTourAtBeginning = Boolean(markerSettings.autoStartTourAtBeginning);
 		/** This marker's custom grid action, temporarily suppressed when the tour restarts at step 0. */
 		const gridAction = data._meta?.gridAction;
 
@@ -88,7 +88,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const customIcon = marker.data?.customIconIdx != undefined
 			? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
 			: marker.data?.icon || markerSettings.markerIcon;
-		const hasIcon = !!icon || !!customIcon;
+		const hasIcon = Boolean(icon) || Boolean(customIcon);
 		const defaultClass = hasIcon || marker.type == 'default';
 
 		// Omni arc: precompute target frame and visible range from marker rotation/visibleArc
@@ -103,7 +103,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 		}
 
-		const scales = !!marker.data?.scales || !!image.$settings.markersScale;
+		const scales = Boolean(marker.data?.scales) || Boolean(image.$settings.markersScale);
 		const moved = () => {
 			if (image._is360 && scales) {
 				this.#matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1, 0, 0, 0).join(',');
@@ -175,7 +175,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 			// When the auto-start tour has to restart from its first step, don't fly to this
 			// marker's own view first and suppress its grid action: the tour takes over.
-			const immediatelyStartMyTourAtBeginning = !!autoStartMyTour && startTourAtBeginning
+			const immediatelyStartMyTourAtBeginning = autoStartMyTour !== undefined && startTourAtBeginning
 				&& myTourStep != undefined && myTourStep > 0
 				&& autoStartMyTour.id != ($tour as Models.ImageData.MarkerTour)?.id;
 			if (immediatelyStartMyTourAtBeginning) {
@@ -332,9 +332,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		// Build DOM
 		this.classList.toggle('cluster', cluster);
-		this.classList.toggle('default', !!defaultClass);
+		this.classList.toggle('default', Boolean(defaultClass));
 		this.classList.toggle('has-icon', hasIcon);
-		this.classList.toggle('has-custom-icon', !!customIcon);
+		this.classList.toggle('has-custom-icon', Boolean(customIcon));
 
 		if (!marker.htmlElement && !marker.noMarker) {
 			const btn = createElement('button', {

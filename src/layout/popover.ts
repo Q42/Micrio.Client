@@ -74,14 +74,14 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		const marker = 'marker' in p ? p.marker : undefined;
 		const markerTour = 'markerTour' in p ? p.markerTour : undefined;
 		const page = 'contentPage' in p ? p.contentPage : undefined;
-		const isPartOfTour = !!(marker && markerTour && 'steps' in markerTour &&
+		const isPartOfTour = Boolean(marker && markerTour && 'steps' in markerTour &&
 			(markerTour as Models.ImageData.MarkerTour).steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0);
 		const isLastStep = isPartOfTour ? (markerTour as Models.ImageData.MarkerTour).currentStep == (markerTour as Models.ImageData.MarkerTour).steps.length - 1 : true;
 		/**
 		 * A content page carrying its own `close` button ("Free exploration") does
 		 * the closing itself, so the popover's close button is hidden (6 parity).
 		 */
-		const noCloseButton = !!page?.buttons?.find(b => b.type == 'close');
+		const noCloseButton = Boolean(page?.buttons?.find(b => b.type == 'close'));
 
 		const advanceOrClose = (e?: Event) => {
 			if (isPartOfTour && markerTour && 'steps' in markerTour) {
@@ -138,7 +138,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			this.#dialog.classList.add('page');
 
 			const isVideoPage = cd?.embed && (!cd.content || cd.content.length < 250) && !page.image && !page.buttons?.length;
-			const hasMedia = !!cd?.embed || !!page.image;
+			const hasMedia = Boolean(cd?.embed) || Boolean(page.image);
 
 			if (hasMedia) {this.#dialog.classList.add('has-media');}
 
@@ -194,8 +194,8 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		if ('marker' in p && p.marker) {
 			const marker = p.marker;
 			const content = marker.i18n?.[$_lang];
-			const hasImages = !!marker.images?.length;
-			const hasPopoverContent = !!(content && content.body) || (hasImages && !!(p.contentPage?.i18n?.[$_lang]?.embed));
+			const hasImages = Boolean(marker.images?.length);
+			const hasPopoverContent = Boolean(content && content.body) || (hasImages && Boolean(p.contentPage?.i18n?.[$_lang]?.embed));
 
 			if (content?.embedUrl) {
 				createElement('micrio-media', {

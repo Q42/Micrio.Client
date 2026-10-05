@@ -65,7 +65,7 @@ export class GLEmbedVideo {
 		this.#paused = paused;
 		this.#moved = moved;
 		// Determine if HLS is needed (stream ID present and not transparent video)
-		this.#ism3u = !!embed.video?.streamId && !embed.video?.transparent;
+		this.#ism3u = Boolean(embed.video?.streamId) && !embed.video?.transparent;
 		// Get existing video element if already created (e.g., by previous instance)
 		this._vid = image._video;
 		// Set autoplay flag from embed data

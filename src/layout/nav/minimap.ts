@@ -71,7 +71,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			this.classList.remove('hidden');
 			this.#to = setTimeout(() => this.classList.add('hidden'), 2500);
 
-			const hasThumb = !!(image.thumbSrc || thumbSrc);
+			const hasThumb = Boolean(image.thumbSrc || thumbSrc);
 			if (info.is360) {
 				if (hasThumb) {
 					ctx.globalCompositeOperation = 'source-over';

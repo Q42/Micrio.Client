@@ -156,7 +156,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		audio.src = src;
 		if (p.autoplay) {audio.setAttribute('autoplay', '');}
 		else {audio.removeAttribute('autoplay');}
-		audio.muted = !!p.muted;
+		audio.muted = Boolean(p.muted);
 	}
 
 	#createIframe(src: string, p: MediaProps, figure: HTMLElement) {
@@ -185,8 +185,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		const isVimeo = src ? VIMEO_RE.test(src) : false;
 		const isCloudflare = src ? src.startsWith('cfvid://') : false;
 		const isAudio = src ? src.includes('.mp3') || src.includes('.ogg') || src.includes('.wav') || src.includes('audio/') : false;
-		const isEmbed = !!src && !isYoutube && !isVimeo && !isCloudflare && !isAudio;
-		const isStandaloneVideoTour = !!p.tour && !!p.image && !src;
+		const isEmbed = Boolean(src) && !isYoutube && !isVimeo && !isCloudflare && !isAudio;
+		const isStandaloneVideoTour = Boolean(p.tour) && Boolean(p.image) && !src;
 		this.replaceChildren();
 
 		const figure = createElement('figure', {
@@ -297,7 +297,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 		// Controls
 		if (p.controls !== false && !isEmbed) {
-			const hasSub = !p.secondary && !!p.tour && !('steps' in p.tour) && !!(p.tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
+			const hasSub = !p.secondary && Boolean(p.tour) && !('steps' in p.tour) && Boolean(p.tour.i18n?.[(this._getMicrio()?.lang || 'en')]?.subtitle);
 
 			const onplaypause = () => {
 				const el = this.#mediaEl;
@@ -366,7 +366,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					ended: this.#ended,
 					seeking: this.#seeking,
 					muted: this.#muted,
-					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
+					hasAudio: p.hasAudio ?? (Boolean(p.src) && !isAudio),
 					subtitles: hasSub,
 					getTimeDisplay: p.getTimeDisplay,
 					fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),
@@ -379,7 +379,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				setProps: {
 					paused: true,
 					ended: false,
-					hasAudio: p.hasAudio ?? (!!p.src && !isAudio),
+					hasAudio: p.hasAudio ?? (Boolean(p.src) && !isAudio),
 					subtitles: hasSub,
 					getTimeDisplay: p.getTimeDisplay,
 					fullscreenEl: p.fullscreenEl ?? (isAudio ? undefined : figure),

@@ -150,7 +150,7 @@ export class VideoTourInstance {
 		if (!events?.length) {return;}
 		for (const e of events) {
 			const active = e.start <= time && e.end >= time;
-			if (active != !!e.active) {
+			if (active != Boolean(e.active)) {
 				e.active = active;
 				this.#micrio.events._dispatch('tour-event', { ...e });
 			}
@@ -305,7 +305,7 @@ export class VideoTourInstance {
 	 */
 	#setProgress(perc: number): void {
 		perc = Math.max(0, Math.min(1, perc));
-		this.#wasPaused = !!this.paused || !this.#playing;
+		this.#wasPaused = Boolean(this.paused) || !this.#playing;
 		this.pause();
 
 		if (!this.#wasPaused) {

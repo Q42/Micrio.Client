@@ -202,7 +202,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			}
 			case 'data-limited': {
 				if(this._engine?._vertexBuffer && this.$current?.canvas)
-					{this.$current.canvas._limited = !!newVal;}
+					{this.$current.canvas._limited = Boolean(newVal);}
 				break;
 			}
 			case 'lang': {
@@ -264,7 +264,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			// the spread changes, so pick the parent for the zoomed check instead
 			// of whichever single page happens to be on screen.
 			const target = this._engine._book3d ? this.#current : (imgs.length === 1 ? imgs[0] : this.#current);
-			this.toggleAttribute('data-zoomed', !!target?.camera && !!target._placed && !target.camera.isZoomedOut());
+			this.toggleAttribute('data-zoomed', target?.camera !== undefined && target._placed && !target.camera.isZoomedOut());
 		};
 
 		this._watch(this.current, c => {
@@ -428,7 +428,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(!opts.settings) {opts.settings = {};}
 		if(this.defaultSettings) {deepCopy(this.defaultSettings, opts.settings);}
 
-		if (!opts.settings.noLogo) {this.#printUI(!!opts.settings.noUI, false);}
+		if (!opts.settings.noLogo) {this.#printUI(Boolean(opts.settings.noUI), false);}
 
 		if(opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
 			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => undefined);
@@ -452,7 +452,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			return;
 		}
 
-		this._keepRendering = !!opts.settings.keepRendering;
+		this._keepRendering = Boolean(opts.settings.keepRendering);
 		this.events._dispatch('print', opts as Models.ImageInfo.ImageInfo);
 
 		const openBundle = () => {
@@ -566,7 +566,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		if(this.$current && !opts.gridView) {closeAllSplits(this);}
 
 		if(!opts.gridView && this.$current) {this._switching.set(true);}
-		this.#printUI(!!bundle.settings.noUI, !!bundle.settings.noLogo);
+		this.#printUI(Boolean(bundle.settings.noUI), Boolean(bundle.settings.noLogo));
 
 		// ── Find or create canvas ─────────────────────────────────────────────
 
@@ -575,7 +575,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		const grid = this._canvases[0]?.grid;
 		if(!c && grid) {
 			const gridImage = bundle.id ? grid._images.find(img => img.id == bundle.id) : undefined;
-			isInGrid = !!gridImage;
+			isInGrid = Boolean(gridImage);
 			c = bundle.id ? gridImage : this._canvases[0];
 			if(isInGrid && !grid._insideGrid()) {this.current.set(this._canvases[0]);}
 		}
@@ -700,7 +700,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		process(AO.STRINGS, val => val || undefined);
 		process(AO.BOOLEANS, (val, o) => {
 			const tr = val != undefined && (val === '' || val === 'true');
-			if (tr || val === 'false') {return o.n ? !tr : !!tr;}
+			if (tr || val === 'false') {return o.n ? !tr : Boolean(tr);}
 		});
 		process(AO.NUMBERS, (val, o) => {
 			if (o.dN !== undefined && val == null) {val = o.dN;}

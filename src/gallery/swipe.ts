@@ -63,7 +63,7 @@ export class SwipeGallery {
 
 	#canSwipe():boolean {
 		const active = this.#images[this.#currentImageIdx] as MicrioImage | undefined;
-		return !!active?.camera?.isZoomedOut();
+		return Boolean(active?.camera?.isZoomedOut());
 	}
 
 	/** Animate the strip to show the image at the given index. Resolves once the slide (and any zoom-out flight) has completed. */

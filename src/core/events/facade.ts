@@ -185,7 +185,7 @@ export class Events implements EventContext {
 		if (!s) {return;}
 
 		// Apply settings
-		this._twoFingerPan = !!s.twoFingerPan;
+		this._twoFingerPan = Boolean(s.twoFingerPan);
 		if (this._twoFingerPan) {this._micrio.setAttribute('data-can-pan', '');}
 		else {this._micrio.removeAttribute('data-can-pan');}
 
@@ -220,7 +220,7 @@ export class Events implements EventContext {
 	/** Hooks zoom-related event listeners (pinch, scroll, double-tap/click). */
 	hookZoom(): void {
 		const s = this.#settings;
-		this._controlZoom = !!s?.controlZoom;
+		this._controlZoom = Boolean(s?.controlZoom);
 		if (!s || s.hookPinch) {this.hookPinch();}
 		if (!s || s.hookScroll || this._controlZoom) {this.hookScroll();}
 		// Add double-tap/click listeners

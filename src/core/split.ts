@@ -16,7 +16,7 @@ export function parseSplitLink(raw?: string): MicrioSplitLink | undefined {
 	return {
 		micrioId: parts[0],
 		markerId: parts[1] || undefined,
-		follows: !!parts[2] && parts[2] !== 'false',
+		follows: Boolean(parts[2]) && parts[2] !== 'false',
 	};
 }
 

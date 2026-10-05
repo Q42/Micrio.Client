@@ -144,10 +144,10 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const $focussed = focussed ? get(focussed) : undefined;
 			const $gridMarkersShown = gridMarkersShown ? get(gridMarkersShown) : undefined;
 			const inactive = grid && ($focussed != image && ($gridMarkersShown && $gridMarkersShown.indexOf(image) < 0));
-			const showTitles = !!(image.$settings._markers?.showTitles);
+			const showTitles = Boolean(image.$settings._markers?.showTitles);
 			const $_lang = get(micrio._lang);
 
-			this.classList.toggle('inactive', !!inactive);
+			this.classList.toggle('inactive', Boolean(inactive));
 			this.classList.toggle('show-titles', showTitles);
 
 			const $switching = get(switching);
@@ -200,7 +200,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				for (const el of this.querySelectorAll(':scope > micrio-marker, :scope > micrio-waypoint')) {el.remove();}
 			}
 
-			updateClickableAreas($visible, !!inactive, $_lang);
+			updateClickableAreas($visible, Boolean(inactive), $_lang);
 
 			if (image.$settings.clusterMarkers) {updateOverlapped();}
 		};
@@ -222,7 +222,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				if (m && typeof m != 'string' && !image._openedView && !m.noMarker && m.view) {
 			image._openedView = get(micrio.state.tour) && !('steps' in get(micrio.state.tour)!) ? undefined
 				: structuredClone(image.state.$view ?? image.camera?.getView());
-					wasVideoTour = !!m.videoTour;
+					wasVideoTour = Boolean(m.videoTour);
 				} else if (!m && image._openedView && !get(micrio.state.tour)) {
 					setTimeout(() => {
 						if (image._openedView) {

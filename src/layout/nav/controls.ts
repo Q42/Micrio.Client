@@ -67,9 +67,9 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const { tour, popup } = micrioState;
 
 		const readInfo = (s: Models.ImageInfo.Settings) => {
-			this.#showCultures = !!s.ui?.controls?.cultureSwitch;
-			this.#showSocial = !!s.social;
-			if (s.fullscreen !== undefined) {this.#showFullscreen = !!s.fullscreen && !!customElements.get('micrio-fullscreen');}
+			this.#showCultures = Boolean(s.ui?.controls?.cultureSwitch);
+			this.#showSocial = Boolean(s.social);
+			if (s.fullscreen !== undefined) {this.#showFullscreen = Boolean(s.fullscreen) && Boolean(customElements.get('micrio-fullscreen'));}
 			this.#sync();
 		};
 
@@ -134,12 +134,12 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		const cultures = info?.revision ? Object.keys(info.revision) : [];
 		const isMobile = micrio.canvas.$isMobile;
 
-		const showMute = !!('micrioAudioContext' in window || this.#props.hasAudio);
+		const showMute = Boolean('micrioAudioContext' in window || this.#props.hasAudio);
 		const hasCultures = this.#showCultures && cultures.length > 1;
 		const hasSocial = this.#showSocial && ('share' in navigator);
 		const hasControls = showMute || hasCultures || hasSocial || $zoom || this.#showFullscreen;
-		const onlyFullscreen = this.#showFullscreen && (!!$popup && isMobile);
-		const gridPanZoomCells = !!$current?.grid && $current?.$settings?.grid?.panZoom == 'cells';
+		const onlyFullscreen = this.#showFullscreen && (Boolean($popup) && isMobile);
+		const gridPanZoomCells = Boolean($current?.grid) && $current?.$settings?.grid?.panZoom == 'cells';
 		const zoomVisible = $zoom && !onlyFullscreen && !gridPanZoomCells;
 		const showGroup = showMute || zoomVisible || this.#showFullscreen;
 

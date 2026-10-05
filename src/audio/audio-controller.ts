@@ -99,9 +99,9 @@ export class MicrioAudioController {
 		if (!_ctx || !img) {return;}
 		const info = img.$info;
 		if (!info) {return;}
-		const is360 = !!info.is360;
+		const is360 = Boolean(info.is360);
 		const data = img.$data;
-		const posMarkers = data?.markers?.filter((m: any) => !!m.positionalAudio);
+		const posMarkers = data?.markers?.filter((m: any) => Boolean(m.positionalAudio));
 		if (!posMarkers?.length) {return;}
 
 		for (const marker of posMarkers) {
@@ -118,7 +118,7 @@ export class MicrioAudioController {
 
 		const info = image.$info;
 		if (!info) {return;}
-		const is360 = !!info.is360;
+		const is360 = Boolean(info.is360);
 		const ar = info.height / info.width;
 
 		if (!('AudioContext' in window)) {return;}
@@ -158,7 +158,7 @@ export class MicrioAudioController {
 			if (!_ctx) {init(typeof vol === 'number' ? vol : 1);}
 			if (_ctx) {
 				const data = image.$data;
-				if (data?.markers?.filter((m: any) => !!m.positionalAudio).length) {
+				if (data?.markers?.filter((m: any) => Boolean(m.positionalAudio)).length) {
 					this.#cleanups.push(image.state.view.subscribe(v => {
 						if (!v) {return;}
 						const d = Math.max(0, 1.05 - image.camera.getScale());
