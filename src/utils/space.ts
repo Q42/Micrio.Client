@@ -42,7 +42,7 @@ export function getSpaceVector(micrio: HTMLMicrioElement, targetId: string): {
 
 	// Calculate direction angle (yaw) and horizontal distance factor
 	const directionX = mod((Math.atan2(-vN[0], vN[2])) / Math.PI / 2); // Calculate yaw (0-1)
-	const distanceX = Math.max(0, Math.min(.4, Math.sqrt(vN[0] * vN[0] + vN[2] * vN[2]))); // Horizontal distance factor (clamped)
+	const distanceX = Math.max(0, Math.min(.4, Math.hypot(vN[0], vN[2]))); // Horizontal distance factor (clamped)
 
 	return {
 		v, vN, directionX,

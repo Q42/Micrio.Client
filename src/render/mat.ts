@@ -237,13 +237,13 @@ export class Mat4 {
 		const a = this.arr;
 
 		let fx = centerX - eyeX, fy = centerY - eyeY, fz = centerZ - eyeZ;
-		const fl = Math.sqrt(fx * fx + fy * fy + fz * fz) || 1;
+		const fl = Math.hypot(fx, fy, fz) || 1;
 		fx /= fl; fy /= fl; fz /= fl;
 
 		let sx = fy * upZ - fz * upY;
 		let sy = fz * upX - fx * upZ;
 		let sz = fx * upY - fy * upX;
-		const sl = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1;
+		const sl = Math.hypot(sx, sy, sz) || 1;
 		sx /= sl; sy /= sl; sz /= sl;
 
 		const ux = sy * fz - sz * fy;

@@ -187,7 +187,7 @@ export class TileCanvas {
 		if (!hasParent) {main._canvases.push(this);}
 
 		this.aspect = width / height;
-		this._diagonal = Math.sqrt(width * width + height * height);
+		this._diagonal = Math.hypot(width, height);
 
 		this.view = new View(this);
 		this.focus = new View(this);
@@ -581,7 +581,7 @@ export class TileCanvas {
 			const c = this.main.el;
 			this.width = c.width;
 			this.height = c.height;
-			this._diagonal = Math.sqrt(c.width * c.width + c.height * c.height);
+			this._diagonal = Math.hypot(c.width, c.height);
 		}
 		if (!this._hasParent) {
 			if (this.is360) {this._camera360._resize();}

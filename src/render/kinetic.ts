@@ -47,7 +47,7 @@ export default class Kinetic {
 
 		const dt = t - this.#prevTime;
 		const fact: number = this.#prevTime > 0 && dt > 0 ? 16.67 / dt : 1;
-		if (Math.sqrt(pX * pX + pY * pY) * fact > 20) {this.#lastInteraction = t;}
+		if (Math.hypot(pX, pY) * fact > 20) {this.#lastInteraction = t;}
 
 		const elasticity = this.#canvas.main._dragElasticity;
 
@@ -99,7 +99,7 @@ export default class Kinetic {
 			this.#velocityY *= .94;
 		}
 
-		let v = Math.sqrt(this.#velocityX * this.#velocityX + this.#velocityY * this.#velocityY);
+		let v = Math.hypot(this.#velocityX, this.#velocityY);
 		if (this.#canvas.is360) {webgl._rotate(this.#velocityX, this.#velocityY);}
 		else {cam._pan(this.#velocityX, this.#velocityY, 0, false, false, true);}
 
