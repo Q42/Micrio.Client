@@ -121,8 +121,8 @@ export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
 	const script = document.createElement('script');
 	const onload = () => { loaded.add(src); ok(); };
 	if (cbFunc) {(globalThis as unknown as Record<string, () => void>)[cbFunc] = onload;}
-	else {script.onload = onload;}
-	script.onerror = () => err?.();
+	else {script.addEventListener('load', onload);}
+	script.addEventListener('error', () => err?.());
 	script.async = true;
 	script.defer = true;
 	if (globalThis.crossOriginIsolated) {script.crossOrigin = 'anonymous';}

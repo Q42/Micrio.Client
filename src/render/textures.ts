@@ -34,7 +34,7 @@ function ensureWorkers() {
 	workersReady = true;
 	for (let i = 0; i < numThreads; i++) {
 		const w = new Worker(workerBlob);
-		w.onmessage = e => onmessage(i, e.data.data, e.data.error, e.data.type);
+		w.addEventListener('message', e => onmessage(i, e.data.data, e.data.error, e.data.type));
 		loaders.push(w);
 	}
 	URL.revokeObjectURL(workerBlob);

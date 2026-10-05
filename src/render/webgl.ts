@@ -424,7 +424,7 @@ export class WebGL {
 		if(wmOpacity) {this.#wmOpacity = wmOpacity;}
 		img.crossOrigin = 'anonymous';
 		img.src = url;
-		img.onload = () => {
+		img.addEventListener('load', () => {
 			const c = createElement('canvas', {
 				props: { width: watermarkTileSize, height: watermarkTileSize }
 			});
@@ -452,7 +452,7 @@ export class WebGL {
 			gl.bindTexture(gl.TEXTURE_2D, null);
 
 			this.#micrio._engine.render();
-		};
+		});
 	}
 
 	/**

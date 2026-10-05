@@ -47,16 +47,16 @@ class Archive {
 			let size = 0; // Total size for progress calculation
 			xhr.responseType = 'arraybuffer'; // Expect binary data
 			// Progress handler
-			xhr.onprogress = e => {
+			xhr.addEventListener('progress', e => {
 				if(!size) {size = Number(xhr.getResponseHeader('Content-Length'));} // Get total size once headers are available
 				p?.(Math.min(1, e.loaded / size)); // Report progress (clamped 0-1)
-			};
+			});
 			// Load handler
-			xhr.onload = () => {
+			xhr.addEventListener('load', () => {
 				if(xhr.readyState === 4 && xhr.status === 200) { p?.(1); ok(xhr.response); } // Success
 				else {err();} // Error
-			};
-			xhr.onerror = err; // Network error
+			});
+			xhr.addEventListener('error', err); // Network error
 			xhr.open('GET', path+id+(isBin ? '.bin' : '.mdp')); // Construct URL
 			xhr.send();
 		}) as ArrayBuffer|undefined; // TODO: Improve error handling, maybe reject promise?
@@ -127,7 +127,7 @@ class Archive {
 		const i = this.db.get(u); // Look up file index [archiveId, offset, size]
 		if(!i || !this.#data.has(i[0])) {return err(new Error(`Could not get blob: ${u}`));} // Throw error if not found
 		const fr = new FileReader();
-		fr.onload = () => ok(JSON.parse(fr.result as string) as T); // Parse JSON and resolve
+		fr.addEventListener('load', () => ok(JSON.parse(fr.result as string) as T)); // Parse JSON and resolve
 		// Create a Blob from the specific byte range in the archive ArrayBuffer
 		fr.readAsText(new Blob([new Uint8Array(this.#data.get(i[0])!, i[1], i[2])])); // Read Blob as text
 	})

@@ -39,6 +39,9 @@ export class Canvas {
 	*/
 	#resizeObserver?:ResizeObserver;
 
+	/** Bound form of {@link onresize}, so the same reference can be added and removed as a listener. @internal */
+	#onResize = () => this.onresize();
+
 	/** Saved inline box styles, used to restore the canvas after a temporary crop. @internal */
 	#savedBox?:{ left:StylePair; top:StylePair; width:StylePair; height:StylePair };
 
@@ -75,9 +78,8 @@ export class Canvas {
 	constructor(micrio:HTMLMicrioElement) {
 		this.#micrio = micrio;
 		this.element.className = 'micrio';
-		this.onresize = this.onresize.bind(this); // Bind resize handler
 		// Use ResizeObserver if available for more reliable resize detection
-		if(globalThis.ResizeObserver) {this.#resizeObserver = new globalThis.ResizeObserver(this.onresize);}
+		if(globalThis.ResizeObserver) {this.#resizeObserver = new globalThis.ResizeObserver(this.#onResize);}
 	}
 
 	/**
@@ -100,7 +102,7 @@ export class Canvas {
 
 		// Attach appropriate listener
 		if(this.#resizeObserver) {this.#resizeObserver.observe(this.element);}
-		else {window.addEventListener('resize', this.onresize);}
+		else {window.addEventListener('resize', this.#onResize);}
 	}
 
 	/**
@@ -109,7 +111,7 @@ export class Canvas {
 	*/
 	unhook() : void {
 		if(this.#resizeObserver) {this.#resizeObserver.unobserve(this.element);}
-		else {window.removeEventListener('resize', this.onresize);}
+		else {window.removeEventListener('resize', this.#onResize);}
 	}
 
 	/**
