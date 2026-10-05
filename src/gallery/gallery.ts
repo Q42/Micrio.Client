@@ -76,7 +76,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 
 	/** @internal */
-	async _onMount() {
+	_onMount() {
 		const micrio = this._getMicrio();
 		if (!micrio) {return;}
 
@@ -88,7 +88,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#omni = new OmniUI(micrio, image, this, (c,total,d,getTile,engine,hasArchive) =>
 				this.#preloadRange(c,total,d,getTile,engine,hasArchive)
 			);
-			await this.#omni.setup();
+			void this.#omni.setup();
 			return;
 		}
 
@@ -346,7 +346,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		if (isSwipe) {
 			this.#swipeGallery = new SwipeGallery(micrio, images, this.#pageToImages, this.#imageSlotPos, this.#imageSlotWidth,
-				(page) => this.#goto(page),
+				(page) => {void this.#goto(page);},
 				() => this.#currentPage
 			);
 		}
@@ -363,8 +363,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			numPages: layout.numPages,
 			get currentIndex() { return currentIndex() },
 			info: parent.$settings.gallery,
-			prev: () => goToPage(currentIndex() - 1),
-			next: () => goToPage(currentIndex() + 1),
+			prev: () => {void goToPage(currentIndex() - 1);},
+			next: () => {void goToPage(currentIndex() + 1);},
 			// Navigate to the page containing image `n`, but resolve with the exact
 			// image at that index (spread pages contain more than one image).
 			goto: (n: number) => goToPage(this.#imageIdxToPage(n)).then(() => this.#images[n]),
@@ -420,7 +420,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			_useIndividualAspects: individualAspects,
 			_seeThroughMargins: individualAspects,
 			_allowRotation: this.#allowBookRotation,
-			_onPageChange: (p:number) => this.#goto(p),
+			_onPageChange: (p:number) => {void this.#goto(p);},
 			_onDraw: (_drawn:{id: string;bounds: [number, number, number, number];}[]) => {
 				for (const img of this.#images) {
 					const drawn = _drawn.find(d => d.id === img.id);
