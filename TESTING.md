@@ -134,9 +134,15 @@ tours).
 - `helpers/tour.ts` adds `mountTour` (mount + open + wait for load), `startTour` (set the
   tour store the way the toolbar does), `recordEvents` (custom events with details) and a
   pair of clock helpers, `tickClock(ms)` and `advance(ms)`.
-- `fixtures/tours.ts` builds video tours, marker tours, cross-image serial tours, and a
-  small VTT document. `markersWithVideo` exists because a serial tour only produces media
-  — and therefore progress bars — for steps whose marker carries a video tour.
+- `fixtures/tours.ts` builds video tours, marker tours, cross-image serial tours,
+  `serialStoryBundle` (a `JXflr`-shaped story: one bundle of sibling images, a serial tour
+  whose steps each carry a marker with its own video tour), and a small VTT document.
+  `markersWithVideo` exists because a serial tour only produces media — and therefore
+  progress bars — for steps whose marker carries a video tour.
+  **Tours that read `DataLoader._getStepMarker` (both `tour.ts` and `serial-tour.ts` do)
+  must be mounted through `bundle.json`, not as a bundle object**: that cache is only
+  filled by the fetch, so the object path resolves every step marker to `undefined` and
+  the tour renders nothing without saying why.
 - `src/core/state.ts` and friends are exercised with small plain-object stubs. When a
   stub needs a back-reference to itself (the `image.engine.micrio` pattern), build it as
   `const engine = { micrio }; const image = { engine }` — see the note below.
@@ -229,7 +235,7 @@ and `advance()` when the steps firing _is_ the thing under test.
 | Gallery / album switching                        | `tests/browser/gallery`                    | partial     |
 | Video tour timeline and playback                 | `tests/browser/video-tour`                 | done        |
 | Marker tour UI and navigation                    | `tests/browser/marker-tour`                | done        |
-| Serial (multi-image) tours                       | `tests/browser/serial-tour`                | partial     |
+| Serial (multi-image) tours                       | `tests/browser/serial-tour`                | done        |
 | Media element, controls, subtitles               | `tests/browser/media-*`, `subtitles`       | done        |
 | Tour toolbar and autostart wiring                | `tests/browser/tour-integration`           | done        |
 | Audio controller (Web Audio, positional)         | `tests/browser/audio-controller`           | done        |
@@ -248,17 +254,33 @@ and `advance()` when the steps firing _is_ the thing under test.
 
 Roughly in order of value against risk:
 
-1. **Two tour bugs found while writing the above.** Both need a separate, focused look
-   before the areas they touch can be called covered:
-   - **`src/tour/serial-tour.ts` renders no controls.** With a serial tour mounted, the
-     `<micrio-serial-tour>` element is created and `serialtour-*`, `markerTourActive` and
-     the cross-image step advance all work, but the element's own `_onMount` produces no
-     children: no progress bars, no chapter list, no time display. Confirmed with a
-     mounted tour, step markers carrying video tours, `printChapters`, and both with and
-     without a video tour on the marker.
-   - **`_markers.tourControlsInPopup: true` renders no controls either.** With that
-     setting the `<micrio-tour>` element mounts but is empty, where without it the aside
-     (prev/counter/next/fullscreen/close) renders normally.
+1. **Two tour bugs found while writing the above. Both are resolved, and one of them was
+   a fixture artefact worth knowing about:**
+   - **`_markers.tourControlsInPopup: true` rendered no controls — fixed.** The popup
+     decided to use the tour's controls from the tour state, but then moved the tour
+     element's `aside` into itself with a one-shot `Frame.request`. The layout mounts
+     `<micrio-tour>` in a later frame than the popup, and the popup was not watching the
+     tour state, so a popup that was already open when the tour started never re-rendered
+     into the controls layout: `<micrio-tour>` mounted with a detached aside and the popup
+     stayed bare. `marker-popup.ts` now re-renders on a tour-state change (and the placement
+     call retries until the tour element exists). Covered in `marker-tour.test.ts`
+     ("marker tour controls in the popup"), including the ordering that used to fail.
+   - **The serial tour does render its controls — the old fixture never could.** The
+     reported "`<micrio-serial-tour>` renders no children" was the harness: the serial
+     element resolves every step's marker through `DataLoader._getStepMarker`, which reads
+     `bundleCache`, and **only the `bundle.json` fetch fills that cache**. Every tour test
+     mounted with `mountTour(bundleObject)`, so every step marker resolved to `undefined`,
+     no `micrio-media` was built, and (without `printChapters`) the element legitimately had
+     no children. Opened by id instead, a story-shaped serial tour builds its media element,
+     its per-step progress bars and its chapter list — see `tests/fixtures/tours.ts`
+     (`serialStoryBundle`, shaped like the Rijksmuseum João story `JXflr`) and the
+     "serial tour controls" suite in `serial-tour.test.ts`.
+     - **The one real bug it did expose:** `serial-tour.ts` built its chapter list as a plain
+       `<ol>` while `#updateBars()` looked for `ol.chapters li`, so the active chapter was
+       never marked. Fixed by building it with `class="chapters"`.
+     - **Any tour code that reads `_getStepMarker`** (`tour.ts` and `serial-tour.ts` both do,
+       for progress bars and start views) is therefore untestable through the object path:
+       mount those through `bundle.json` with fresh ids, as the serial suite now does.
 2. **The audio layer's remaining gaps**, now that the contracts are pinned:
    - **`mutedVolume` is unused.** `DEFAULT_SETTINGS.mutedVolume` and its `data-mutedvolume`
      attribute are parsed, but nothing in `audio-controller` or `media` reads it: muting
