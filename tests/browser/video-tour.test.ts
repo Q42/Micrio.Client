@@ -121,8 +121,11 @@ describe('VideoTourInstance timeline', () => {
 		// Past the (clamped) end of the first event
 		inst.updateEvents(2)
 		const overrun = rec.events.find((e) => (e.detail as Models.ImageData.Event).action === 'overrun')
-		expect(rec.events).toHaveLength(1)
+		expect(rec.events.filter((e) => (e.detail as Models.ImageData.Event).action === 'overrun')).toHaveLength(1)
 		expect((overrun?.detail as Models.ImageData.Event | undefined)?.end).toBe(5)
+		// The second event has no explicit start, so it defaults to 0 and is active too
+		const noStart = rec.events.find((e) => (e.detail as Models.ImageData.Event).action === 'no-start')
+		expect((noStart?.detail as Models.ImageData.Event | undefined)?.start).toBe(0)
 
 		rec.stop()
 		inst.destroy()
