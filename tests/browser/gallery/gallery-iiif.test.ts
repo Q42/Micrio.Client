@@ -15,8 +15,12 @@ import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
  *   its Image API `service` id;
  * - an Image API 2.1 or 3.0 `info.json` → a single image with the declared tiles.
  *
- * Presentation 2 is rejected on purpose (`IIIF_V2_UNSUPPORTED`), and so is a manifest
- * whose canvas bodies carry no Image API service — both boundaries are pinned below.
+ * Presentation 2 is rejected on purpose (`IIIF_V2_UNSUPPORTED`). So is a manifest whose
+ * canvas bodies carry no Image API `service`: Micrio renders tiled IIIF only, the body's
+ * own URI is never read, and the cookbook's minimal `recipe/0001-mvm-image` (a plain PNG
+ * body) therefore renders `micrio-error` rather than its image. Both boundaries are
+ * pinned below; the code-side wording lives on `Gallery._fromIIIF` in
+ * `src/gallery/controller.ts`.
  *
  * Presentation 3 and the 4.0 draft share the same 2D structure (`type: Manifest`,
  * Canvas → AnnotationPage → Annotation → `body.service[0].id`), which is why v4 needs
