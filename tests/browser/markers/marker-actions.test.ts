@@ -185,7 +185,9 @@ describe('markers and tours', () => {
 		opened.viewer.el.state.tour.set(unrelated)
 		await settle(2)
 
-		await opened.openMarker('m2')
+		// The tour clears synchronously from the state notification, before the tick;
+		// the tour element's own teardown then decides the marker state.
+		opened.image().state.marker.set(fixture.mid('m2'))
 		await waitFor(() => get(opened.viewer.el.state.tour) === undefined, 6000, 'the unrelated tour stopped')
 		opened.viewer.destroy()
 	})
