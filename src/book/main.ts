@@ -172,6 +172,9 @@ export class BookViewer {
 
 	#lastTime = 0
 
+	/** Time accumulated by `_step`, fed to the IIIF manager in place of a real clock. */
+	#stepTime = 0
+
 	constructor(options: BookViewerOptions) {
 		this.#canvas = options._canvas
 		this.#onPageChange = options._onPageChange
@@ -746,6 +749,31 @@ export class BookViewer {
 
 	_getPageCount(): number {
 		return this.#pageCount
+	}
+
+	/**
+	 * Advances the viewer by one frame with an explicit delta, for tests: the
+	 * production loop is a `requestAnimationFrame` callback, which a test cannot
+	 * reach without driving real time. Returns whether the real loop would ask for
+	 * another frame, so a harness can keep stepping until the book settles.
+	 *
+	 * The IIIF manager is fed the time this step-driven clock has accumulated, so
+	 * its debounce and cross-fade timings advance with the frames.
+	 * @internal
+	 */
+	_step(dtMs = 1000 / 60): boolean {
+		if (this.#renderer === undefined) {
+			return false
+		}
+		let dt = dtMs / 1000
+		if (dt <= 0) {
+			dt = 1 / 60
+		}
+		if (dt > 1 / 30) {
+			dt = 1 / 30
+		}
+		this.#stepTime += dtMs
+		return this.#update(dt, this.#stepTime)
 	}
 
 	_nextPage(grabRow?: number): void {
@@ -1352,6 +1380,16 @@ export class BookViewer {
 		}
 		this.#lastTime = time
 
+		if (this.#update(dt, time)) {
+			this.#requestFrame()
+		}
+	}
+
+	/**
+	 * One frame of book simulation and drawing. Returns whether another frame is
+	 * wanted; the caller re-schedules (see `#frame` and `_step`).
+	 */
+	#update(dt: number, time: number): boolean {
 		this.#flipAnimator._update(
 			dt,
 			this.#meshes,
@@ -1425,11 +1463,8 @@ export class BookViewer {
 			this.#renderer._isLightingAnimated() ||
 			this.#camera._isMoving()
 
-		if (shouldContinue) {
-			this.#requestFrame()
-		}
+		return shouldContinue
 	}
-
 	#syncSolverResults(): void {
 		if (!isSolverReady()) {
 			return
