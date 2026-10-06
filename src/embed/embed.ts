@@ -112,16 +112,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		const { grid } = image
 		if (grid !== undefined) {
-			const focused = grid._focussed
-			const markersShown = grid._markersShown
-			const updateInactive = () => {
-				const f = get(focused)
-				const ms = get(markersShown)
-				const inactive = f !== undefined && f !== image && ms.indexOf(image) < 0
-				this.#container?.classList.toggle('inactive', inactive)
-			}
-			this._watch(focused, updateInactive)
-			this._watch(markersShown, updateInactive)
+			// The stores emit synchronously, i.e. before #buildDOM creates the overlay,
+			// so the initial state is applied again right after the overlay exists.
+			this._watch(grid._focussed, () => {
+				this.#syncGridInactive()
+			})
+			this._watch(grid._markersShown, () => {
+				this.#syncGridInactive()
+			})
 		}
 
 		this.#glImage = image._embeds.find((i) => i.uuid === embed.uuid || i.$info?.title === embed.uuid)
@@ -179,6 +177,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		if (this.#hasHtml) {
 			this.#buildDOM(embed, marker)
+			this.#syncGridInactive()
 		}
 
 		if (this.#isBook3d && this.#hasHtml) {
@@ -215,6 +214,22 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		this.#applyPosition()
 		this.addEventListener('change', this.#onChange)
+	}
+
+	/**
+	 * Applies the grid's `inactive` state to the overlay. Run from the grid store
+	 * subscriptions and again after `#buildDOM`, because the stores emit before the
+	 * overlay exists.
+	 */
+	#syncGridInactive() {
+		const { image } = this.#props
+		const grid = image?.grid
+		if (!image || !grid) {
+			return
+		}
+		const focused = get(grid._focussed)
+		const inactive = focused !== undefined && focused !== image && get(grid._markersShown).indexOf(image) < 0
+		this.#container?.classList.toggle('inactive', inactive)
 	}
 
 	#readPlacement() {
@@ -294,6 +309,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	}
 
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
+		// A re-connect runs _onMount again; clear any previous overlay so listeners and
+		// elements are not duplicated.
+		this.replaceChildren()
 		this.#container = createElement(this.#href ? 'a' : 'div', {
 			className:
 				(this.#noEvents ? 'no-events' : '') +
@@ -302,14 +320,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			id: embed.id ? `e-${embed.id}` : undefined,
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
 			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,
-			events: {
-				click: () => {
-					this.#click()
-				},
-				keydown: () => {
-					this.#click()
-				},
-			},
+			// Registered as the handler itself (not a wrapper closure) so `_onDestroy`
+			// can actually detach it.
+			events: { click: this.#click, keydown: this.#click },
 			parent: this,
 		})
 

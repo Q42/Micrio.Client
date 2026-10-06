@@ -395,13 +395,20 @@ describe('click actions', () => {
 		expect(get(image.state.marker)).toBeUndefined()
 	})
 
-	it('KNOWN GAP: destroy leaves the overlay click handler attached', () => {
+	it('detaches the overlay click handler on destroy', () => {
 		const { el, image } = mountRaw(imageEmbed(), {}, marker('area-1'))
 		const container = containerOf(el) as HTMLElement
 		el.remove()
-		// _onDestroy removes `#click`, but #buildDOM registered a wrapper closure.
 		container.dispatchEvent(new MouseEvent('click'))
-		expect(get(image.state.marker)).toBe('area-1')
+		expect(get(image.state.marker)).toBeUndefined()
+	})
+
+	it('keeps a single overlay when the element is re-connected', () => {
+		const { el } = mountRaw(imageEmbed())
+		el.remove()
+		host.el.append(el)
+		expect(el.querySelectorAll(':scope > div, :scope > a')).toHaveLength(1)
+		expect(el.querySelectorAll('img')).toHaveLength(1)
 	})
 })
 
@@ -443,18 +450,17 @@ describe('2D placement', () => {
 		expect(containerOf(el)?.style.transform).toBe('')
 	})
 
-	it('KNOWN GAP: the initial grid-inactive state is dropped, later changes apply', () => {
+	it('applies the initial grid-inactive state at mount', () => {
 		const focused = writable<MicrioImage | undefined>(fakeImage() as unknown as MicrioImage)
 		const shown = writable<MicrioImage[]>([])
 		const image = fakeImage({ grid: { _focussed: focused, _markersShown: shown } })
 		const el = mountOn(image, imageEmbed())
-		// #onMount subscribes before #buildDOM creates the overlay, so the first
-		// toggle has no container to write to and the class is never applied.
-		expect(containerOf(el)?.classList.contains('inactive')).toBe(false)
-		// A later emission does apply it.
-		focused.set(fakeImage() as unknown as MicrioImage)
+		// Applied after #buildDOM, even though the stores emit before it exists.
 		expect(containerOf(el)?.classList.contains('inactive')).toBe(true)
 		shown.set([image as unknown as MicrioImage])
+		expect(containerOf(el)?.classList.contains('inactive')).toBe(false)
+		focused.set(undefined)
+		shown.set([])
 		expect(containerOf(el)?.classList.contains('inactive')).toBe(false)
 	})
 })
