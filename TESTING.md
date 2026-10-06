@@ -148,6 +148,28 @@ tours).
   attribute** — the only path that turns an album into a gallery (`#print()`), since
   `open(id)` alone never does. Its `waitForGrid` gate must not wait on the viewer's
   `_visible` list (these fixtures serve no tiles, so it stays empty).
+- `tests/fixtures/ui.ts` is the UI harness: `uiBundle`/`openUi` mount a bundle with menu
+  pages, tours and markers, and `uiPage`/`pageButton`/`uiMarker`/`imageAsset` build the
+  shaped data the toolbar and popover tests need. `openUi` waits for the image data,
+  because the toolbar renders from it and not from the element alone.
+- **A marker only reaches the popover with `popupType: 'popover'`.** A plain marker opens
+  the lighter `micrio-marker-popup` (`state.popup`) instead, so a popover test whose marker
+  lacks that field waits forever for a dialog that is never built.
+- **The popover is re-rendered from its state, and its render key includes the gallery.**
+  Both were bugs found by this suite: the layout passed no update callback, so a popover
+  that was already open ignored a _new_ state (`#show` reuses the connected element), and
+  the render key held only page/marker ids, so one gallery could not replace another. A
+  case that swaps content while the dialog is open pins both — keep one.
+- **The layout removes `micrio-popover` when the state clears**, so "the popover closed"
+  is asserted as the element being gone (or the state being `undefined`), not as
+  `dialog.open === false` — by the time you look, the element is usually detached.
+- **The toolbar's mobile layout is tested by pinning `window.innerWidth` and dispatching
+  `resize`**, not by resizing the test iframe: the component measures the width itself, and
+  the real viewport would drag CSS media queries into assertions that are about the
+  component's state. `toolbar-mobile.test.ts` removes the stub afterwards.
+- One trap worth repeating: `micrio-button` passes its `className` down to the inner
+  `<button>`/`<a>`, so class assertions (the toolbar's `indent`, the popover's `no-click`)
+  have to query the child, not the host.
 - `src/core/state.ts` and friends are exercised with small plain-object stubs. When a
   stub needs a back-reference to itself (the `image.engine.micrio` pattern), build it as
   `const engine = { micrio }; const image = { engine }` — see the note below.
@@ -221,40 +243,41 @@ and `advance()` when the steps firing _is_ the thing under test.
 
 ## Status
 
-| Area                                               | Suite                                      | Status      |
-| -------------------------------------------------- | ------------------------------------------ | ----------- |
-| Math, ids, time, locale, easing                    | `tests/core/*.test.ts`                     | done        |
-| Store API, state controllers                       | `tests/core/store`, `state`                | done        |
-| bundle.json loading and caching                    | `tests/core/dataLoader`                    | done        |
-| MDP archive parsing                                | `tests/core/archive`                       | done        |
-| Matrix/vector math                                 | `tests/core/mat`                           | done        |
-| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/element-legacy`             | done        |
-| `<micr-io>` open / events / attributes             | `tests/browser/element-*`                  | done        |
-| Markers                                            | `tests/browser/markers`                    | done        |
-| 360 space resolution and navigation                | `tests/browser/tours-360`                  | done        |
-| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/camera-360`                 | done        |
-| `trueNorth` and image orientation                  | `tests/browser/space-truenorth`            | done        |
-| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/waypoints`                  | done        |
-| 360 space transitions                              | `tests/browser/space-transition`           | done        |
-| 360 minimap                                        | `tests/browser/minimap-360`                | done        |
-| Gallery / album switching                          | `tests/browser/gallery`                    | partial     |
-| Video tour timeline and playback                   | `tests/browser/video-tour`                 | done        |
-| Marker tour UI and navigation                      | `tests/browser/marker-tour`                | done        |
-| Serial (multi-image) tours                         | `tests/browser/serial-tour`                | done        |
-| Media element, controls, subtitles                 | `tests/browser/media-*`, `subtitles`       | done        |
-| Tour toolbar and autostart wiring                  | `tests/browser/tour-integration`           | done        |
-| Audio controller (Web Audio, positional)           | `tests/browser/audio-controller`           | done        |
-| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/media-settings`                | done        |
-| Spatial audio routing                              | `tests/browser/audio-location`             | done        |
-| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/*-adapter`, `hls-player`    | done        |
-| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media-adapters`             | done        |
-| Grid column maths and transition areas             | `tests/browser/grid-format`                | done        |
-| Grid storytelling                                  | —                                          | partial     |
-| 3D book viewer                                     | `tests/browser/book3d-smoke`               | smoke only  |
-| UI translation tables                              | `tests/core/i18n-strings`                  | done        |
-| Buttons, icons, progress circle, dial              | `tests/browser/ui-button`, `ui-primitives` | done        |
-| Menu tree and its actions                          | `tests/browser/ui-menu`                    | done        |
-| Toolbar layout and content-page popover            | —                                          | not started |
+| Area                                               | Suite                                      | Status     |
+| -------------------------------------------------- | ------------------------------------------ | ---------- |
+| Math, ids, time, locale, easing                    | `tests/core/*.test.ts`                     | done       |
+| Store API, state controllers                       | `tests/core/store`, `state`                | done       |
+| bundle.json loading and caching                    | `tests/core/dataLoader`                    | done       |
+| MDP archive parsing                                | `tests/core/archive`                       | done       |
+| Matrix/vector math                                 | `tests/core/mat`                           | done       |
+| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/element-legacy`             | done       |
+| `<micr-io>` open / events / attributes             | `tests/browser/element-*`                  | done       |
+| Markers                                            | `tests/browser/markers`                    | done       |
+| 360 space resolution and navigation                | `tests/browser/tours-360`                  | done       |
+| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/camera-360`                 | done       |
+| `trueNorth` and image orientation                  | `tests/browser/space-truenorth`            | done       |
+| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/waypoints`                  | done       |
+| 360 space transitions                              | `tests/browser/space-transition`           | done       |
+| 360 minimap                                        | `tests/browser/minimap-360`                | done       |
+| Gallery / album switching                          | `tests/browser/gallery`                    | partial    |
+| Video tour timeline and playback                   | `tests/browser/video-tour`                 | done       |
+| Marker tour UI and navigation                      | `tests/browser/marker-tour`                | done       |
+| Serial (multi-image) tours                         | `tests/browser/serial-tour`                | done       |
+| Media element, controls, subtitles                 | `tests/browser/media-*`, `subtitles`       | done       |
+| Tour toolbar and autostart wiring                  | `tests/browser/tour-integration`           | done       |
+| Audio controller (Web Audio, positional)           | `tests/browser/audio-controller`           | done       |
+| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/media-settings`                | done       |
+| Spatial audio routing                              | `tests/browser/audio-location`             | done       |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/*-adapter`, `hls-player`    | done       |
+| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media-adapters`             | done       |
+| Grid column maths and transition areas             | `tests/browser/grid-format`                | done       |
+| Grid storytelling                                  | —                                          | partial    |
+| 3D book viewer                                     | `tests/browser/book3d-smoke`               | smoke only |
+| UI translation tables                              | `tests/core/i18n-strings`                  | done       |
+| Buttons, icons, progress circle, dial              | `tests/browser/ui-button`, `ui-primitives` | done       |
+| Menu tree and its actions                          | `tests/browser/ui-menu`                    | done       |
+| Toolbar (desktop + mobile sheet)                   | `tests/browser/toolbar-*`                  | done       |
+| Content-page popover and welcome screen            | `tests/browser/popover`                    | done       |
 
 ## Session backlog
 
@@ -265,17 +288,14 @@ Roughly in order of value against risk:
    - The suites still to write are listed in the approved plan: controller (layout, history,
      focus, enlarge), transitions, actions and the `grid:` tour-event path, keyboard, and
      the integration paths.
-2. **UI components** — the button, icon, progress-circle, dial and menu tree are covered,
-   including language switching on the menu. Still open:
-   - **`<micrio-toolbar>` itself**: which entries it collects (pages, marker tours, video
-     tours), the `_`-prefixed system entries it keeps, its filtering by active language, the
-     mobile toggle, and hiding itself while a tour/marker/popover is open.
-   - **`<micrio-popover>`**: the content-page rendering (title, HTML content, embed,
-     page image, action buttons), the close-versus-tour-nav aside, and clearing the marker
-     and popover state when the dialog closes.
+2. **UI components** — the button, icon, progress-circle, dial, menu tree, toolbar and
+   popover are covered, including language switching on the menu and in the popover. Still
+   open:
    - One menu case is `it.skip` in `ui-menu.test.ts` (nested branch open state): it passes
      on its own but is order-dependent in sequence, because the menu's open state is a
      module-level store. Re-enable once that leak is handled.
+   - The popover's `showLangSelect` state flag is set by the welcome screen but read
+     nowhere in the client; the popover does not implement a language selector.
 3. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
    after the other subsystems, and only with golden-image or geometry assertions.
 4. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
