@@ -10,6 +10,7 @@ import { archive } from '$utils/archive'
 import { createElement } from '$utils/dom'
 import { BASEPATH, BASEPATH_V5 } from '$core/globals'
 import { Grid } from '$grid/grid'
+import { computePageLayout } from '$book/core/layout'
 
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).
  *  The slot is defined in normalized coordinates [x, y, width, height] within a virtual container
@@ -392,13 +393,18 @@ export class Gallery {
 
 	/** @internal Compute which image indices belong to each logical page.
 	 *  For spread albums, cover pages are single-image pages and remaining images
-	 *  are paired into spreads. For regular albums each image is its own page. */
+	 *  are paired into spreads. For regular albums each image is its own page.
+	 *  A book3d album uses the book's own layout, so the album and the viewer
+	 *  agree on the page count (otherwise the gallery's extra page can never be
+	 *  displayed: `BookViewer.goto` clamps it away). */
 	_getPageLayout(): { pages: number[][]; numPages: number } {
 		const isSpread = Boolean(this._config.isSpreads)
 		const coverPages = this._config.coverPages ?? 0
 		const pages: number[][] = []
 
-		if (isSpread) {
+		if (this._config.type === 'book3d') {
+			pages.push(...computePageLayout(this._images.map((image) => image.$info)).pageIdxes)
+		} else if (isSpread) {
 			let i = 0
 			for (; i < Math.min(coverPages, this._images.length); i++) {
 				pages.push([i])

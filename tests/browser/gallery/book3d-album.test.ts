@@ -27,10 +27,13 @@ describe('book3d album — taking over the viewer', () => {
 		book.viewer.destroy()
 	})
 
-	it('reports the gallery page count as cover-then-spreads', async () => {
+	it('reports the same page count as the book viewer', async () => {
+		// The gallery used to lay a book3d album out cover-then-spreads from
+		// index 1 ([0],[1,2],[3] = 3 pages) while the book pairs [0],[1,2] = 2,
+		// so the album's last page was unreachable
 		const book = await openBook({ count: 4 })
-		expect(bookAlbum(book.viewer.el)?.numPages).toBe(3)
-		expect(scrubberTicks(book.viewer.el)).toHaveLength(3)
+		expect(bookAlbum(book.viewer.el)?.numPages).toBe(2)
+		expect(scrubberTicks(book.viewer.el)).toHaveLength(2)
 		book.viewer.destroy()
 	})
 
