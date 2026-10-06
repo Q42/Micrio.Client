@@ -208,7 +208,7 @@ tours).
     book (that is how the book's draw hand-off reaches the marker layer), so a book test
     asserts through `bookAlbum(el)` (`numPages`, `currentIndex`, `next`/`prev`),
     `scrubberTicks(el)` and `bookMarkers(el)` rather than through `$current`.
-- `tests/browser/book/helpers.ts` is the BookViewer harness: `mountBook` mounts a sized
+- `tests/browser/book-helpers.ts` is the shared BookViewer harness: `mountBook` mounts a sized
   canvas and a `BookViewer`, and steps frames manually through the internal `_step` hook with
   a fixed delta, so flips and the physics are deterministic. Two things are load-bearing:
   - **One shared WebGL2 context per file.** Chromium keeps only a small number of live WebGL
@@ -222,6 +222,10 @@ tours).
     a frame that never comes. The harness hands `Frame` a host whose `requestAnimationFrame`
     captures `tick`, runs the book's own frame and then that tick, and re-homes the display
     in `afterEach`.
+  - **`destroy()` calls `viewer._stop()`.** `Frame` only ever removes a callback by running
+    it, so a viewer the test walks away from keeps a callback queued and every later frame
+    of the file re-runs that dead viewer's physics — the difference between a 6s and a 30s
+    browser run, and between one book suite and a flaky whole browser run.
 - `tests/fixtures/ui.ts` is the UI harness: `uiBundle`/`openUi` mount a bundle with menu
   pages, tours and markers, and `uiPage`/`pageButton`/`uiMarker`/`imageAsset` build the
   shaped data the toolbar and popover tests need.
@@ -306,6 +310,12 @@ meaningful after a real render, so grid tests assert the hand-off instead: the l
 `opts.area` a cell was measured into, and the calls the controller makes on the camera.
 `opts.area` is also written **once** — `#printGrid` skips an image that already has one, so a
 later `set(..., { scale })` does not move it.
+
+**A `BookViewer` requests frames through `Frame` and nothing removes them.** `Frame` only
+drops a callback when it runs it, so a viewer that is thrown away mid-animation stays in the
+queue for the rest of the page's life and every later frame re-runs its simulation (and
+re-queues it). Hosts must call `viewer._stop()` — the gallery does before building the next
+book, and the test harness does in `destroy()`.
 
 **A `BookViewer`'s state is private, so a test drives it and reads its callbacks.** `_step`
 runs one frame with an explicit delta and returns whether the loop wants another;
@@ -413,7 +423,7 @@ a fix has to change the pinning test.
 | Book camera, page flip, lighting presets           | `tests/browser/book/{orbit-camera,page-flip,lighting}`                           | done    |
 | Book renderer and IIIF texture manager             | `tests/browser/book/{renderer,iiif-manager}`                                     | done    |
 | `BookViewer` (flips, drags, zoom, draw bounds)     | `tests/browser/book/viewer`                                                      | done    |
-| book3d album path and the book fixture             | `tests/browser/book/book3d-album`                                                | done    |
+| book3d album path and the book fixture             | `tests/browser/gallery/book3d-album`                                             | done    |
 | UI translation tables                              | `tests/core/core/i18n/i18n-strings`                                              | done    |
 | Buttons, icons, progress circle, dial              | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done    |
 | Menu tree and its actions                          | `tests/browser/ui/ui-menu`                                                       | done    |
