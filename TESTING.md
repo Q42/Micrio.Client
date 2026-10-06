@@ -210,7 +210,7 @@ tours).
     `scrubberTicks(el)` and `bookMarkers(el)` rather than through `$current`.
 - `tests/browser/book-helpers.ts` is the shared BookViewer harness: `mountBook` mounts a sized
   canvas and a `BookViewer`, and steps frames manually through the internal `_step` hook with
-  a fixed delta, so flips and the physics are deterministic. Two things are load-bearing:
+  a fixed delta, so flips and the physics are deterministic. Four things are load-bearing:
   - **One shared WebGL2 context per file.** Chromium keeps only a small number of live WebGL
     contexts and silently evicts the oldest, after which `getContext` falls back and the
     frame loop crawls; a suite that mounts a context per test ends up with its later tests
@@ -226,6 +226,13 @@ tours).
     it, so a viewer the test walks away from keeps a callback queued and every later frame
     of the file re-runs that dead viewer's physics — the difference between a 6s and a 30s
     browser run, and between one book suite and a flaky whole browser run.
+  - **An awaited `goto()` needs `settle()`, not a synchronous stepping loop.** Frames only run
+    inside `step()`, so `await`ing a pending `goto()` while the harness is idle leaves the page
+    flip to its own 3s fallback: the book looks like it never settles when nothing is driving
+    it. `settle(predicate)` steps a frame and then yields, so promise callbacks run between
+    steps, and it reports how many frames the cascade took. That is how the `goto` tests pin
+    the cascade rather than the fallback (a cascade settles in well under 200 frames in both
+    directions).
 - `tests/fixtures/ui.ts` is the UI harness: `uiBundle`/`openUi` mount a bundle with menu
   pages, tours and markers, and `uiPage`/`pageButton`/`uiMarker`/`imageAsset` build the
   shaped data the toolbar and popover tests need.
@@ -349,43 +356,6 @@ behaviour on purpose, so wiring the feature up has to change a test rather than 
 - `pnpm format:check` must stay clean; run `pnpm format` after adding tests.
 - `pnpm build` does not run the test suites: it stays a fast release gate.
 
-## Findings from the book suites
-
-Defects and dead code the book suites surface, each pinned by a test that documents the
-current behaviour rather than hiding it. None of these were fixed in the testing session;
-a fix has to change the pinning test.
-
-- **A one-page book lets `_nextPage` move past its only page.** The guard is
-  `#currentPage < #pageCount`, which is true for the single page, so the counter lands on a
-  page that does not exist (`BookViewer — page turning > FINDING: a one-page book …`).
-- **A backward `goto()` cascade never reports itself settled.** Its completion waits on
-  `#activePageSet` emptying, and the pages a backward flip leaves behind never fall below
-  `DELTA_IDLE_THRESHOLD` — 3000 stepped frames (50s of simulated time) is not enough, so the
-  promise is only ever resolved by its own 3s fallback. The page itself arrives, which is
-  what a user sees; the cost is that `await album.prev()`-style callers (and anything that
-  waits before issuing the next `goto`) stall for 3s (see the `goto` tests).
-- **Candlelight counts more point lights than the shader has slots for.**
-  `computeLighting('candlelight', …)` writes at most 8 slots but reports the raw
-  `candleCount` as `_numPointLights`, so a 50-candle preset has the shader read past
-  `MAX_POINT_LIGHTS` (`lighting` suite).
-- **`#chooseWidth` can ask for a level the source cannot deliver.** Its `originalWidth`
-  guard is `width > originalWidth && currentLevel >= originalWidth`, so on a first load
-  (`currentLevel === 0`) a small source still gets the 2048 tile (`iiif-manager` suite).
-- **The book3d page layout disagrees with the gallery's.** `Gallery._fromAlbum` lays a
-  book3d album out as _cover page, then spreads_ (`coverPages: 1`), while
-  `computePageLayout` pairs from index 0 (`[0]`, `[1,2]`, `[3,4]`, …). For an even image
-  count the gallery therefore has one page more than the book has, and the extra gallery
-  page can never be displayed — `Gallery.#goto` passes it to `BookViewer.goto`, which clamps
-  it. A 4-image album is 3 gallery pages and 2 book pages
-  (`book3d-album` and `layout` suites).
-- **A degenerate radius range makes the eye NaN.** `#getEffectivePhi` divides by
-  `_maxRadius - _minRadius` without a guard, and `_initContainRadius` sets `maxRadius` to at
-  least `minRadius`, so a book whose box is small against the canvas can land on
-  `minRadius === maxRadius` and the camera's eye becomes NaN (`orbit-camera` suite).
-- **The book's per-page geometry widths are a no-op.** In `computePageLayout`,
-  `refArea === avgAspect`, so every `computedPageWidths` entry is 1; the aspect maths above
-  it only feeds `aspectsForInit` (`layout` suite).
-
 ## Status
 
 | Area                                               | Suite                                                                            | Status  |
@@ -434,14 +404,7 @@ a fix has to change the pinning test.
 
 Roughly in order of value against risk:
 
-1. ~~**3D book viewer in depth** — page flip, physics, lighting, IIIF page manager.~~ Done
-   (`tests/core/book/**`, `tests/browser/book/**`): the pure maths in the core project, and
-   geometry, projection, raycasting, camera, flip, lighting, renderer, IIIF manager, the
-   `BookViewer` and the album hand-off in the browser project, all offline and deterministic.
-   Deliberately left out: golden-image assertions (a WebGL canvas is not
-   `preserveDrawingBuffer`, so there is nothing to read back) and the physics' subjective
-   feel. Findings are listed above.
-2. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
+1. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
    floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-3. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+2. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.

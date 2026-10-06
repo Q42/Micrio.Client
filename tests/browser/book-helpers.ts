@@ -115,6 +115,12 @@ export interface ViewerHarness {
 	 * and a cascade plus its physics settle finishes well inside a few hundred.
 	 */
 	until: (predicate: () => boolean, budget?: number) => boolean
+	/**
+	 * Steps frames until `predicate` holds, yielding between steps so promise
+	 * callbacks run. An awaited `goto()` only resolves on a frame the harness
+	 * drives, so a plain synchronous stepping loop can never observe it.
+	 */
+	settle: (predicate: () => boolean, budget?: number) => Promise<{ frames: number; settled: boolean }>
 	/** The last `_onDraw` payload. */
 	lastDraw: () => DrawnImage[]
 	destroy: () => void
@@ -221,6 +227,25 @@ export async function mountBook(
 				}
 			}
 			return false
+		},
+		async settle(predicate, budget = 300) {
+			let frames = 0
+			let resolved = false
+			// One `await` per step, in the promise chain rather than in a loop body:
+			// each step must yield, so a promise the run scheduled between steps can
+			// run before the next frame is stepped.
+			const runStep = async (): Promise<void> => {
+				if (resolved || frames >= budget) {
+					return
+				}
+				step()
+				frames++
+				await Promise.resolve()
+				resolved = predicate()
+				return runStep()
+			}
+			await runStep()
+			return { frames, settled: predicate() }
 		},
 		lastDraw() {
 			return draws.at(-1) ?? []

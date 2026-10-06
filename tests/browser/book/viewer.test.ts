@@ -127,36 +127,44 @@ describe('BookViewer — goto', () => {
 		book.destroy()
 	})
 
-	it('clamps the target to the last page and gets there', async () => {
+	it('clamps the target to the last page and resolves when it has settled', async () => {
 		const book = await mountBook({
 			images: [bookImage('a'), bookImage('b'), bookImage('c'), bookImage('d'), bookImage('e'), bookImage('f')],
 		})
 		expect(book.viewer._getPageCount()).toBe(3)
 
-		// The page arrives whether or not the cascade reports itself settled, so
-		// the assertion is on the page (see the backward-cascade finding below).
-		const pending = book.viewer.goto(99)
-		expect(book.until(() => book.viewer._getCurrentPage() === 2)).toBe(true)
+		let resolved = false
+		const pending = book.viewer.goto(99).then(() => {
+			resolved = true
+		})
+		const { frames, settled } = await book.settle(() => resolved)
 		expect(book.viewer._getCurrentPage()).toBe(2)
+		// Settled by the cascade, not by goto()'s 3s fallback
+		expect(settled).toBe(true)
+		expect(frames).toBeLessThan(200)
 		await pending
 		book.destroy()
 	})
 
-	it('moves backward to the first page', async () => {
+	it('resolves a backward cascade too', async () => {
+		// A backward cascade was documented as never settling. It settles on the
+		// same order of frames as a forward one; what stalled was awaiting it
+		// without stepping frames (see `settle` in the harness).
 		const book = await mountBook({
 			images: [bookImage('a'), bookImage('b'), bookImage('c'), bookImage('d'), bookImage('e'), bookImage('f')],
 			_startPageIdx: 4,
 		})
 		expect(book.viewer._getCurrentPage()).toBe(2)
 
-		// FINDING (documented in TESTING.md): the cascade starts and the page
-		// arrives, but its completion never fires — `#activePageSet` does not empty
-		// even after 3000 stepped frames (50s of simulated time), so the promise is
-		// left to its own 3s fallback. The promise is deliberately not awaited here,
-		// because waiting for it is what stalls the test, not the book.
-		void book.viewer.goto(0)
-		expect(book.until(() => book.viewer._getCurrentPage() === 0)).toBe(true)
+		let resolved = false
+		const pending = book.viewer.goto(0).then(() => {
+			resolved = true
+		})
+		const { frames, settled } = await book.settle(() => resolved)
 		expect(book.viewer._getCurrentPage()).toBe(0)
+		expect(settled).toBe(true)
+		expect(frames).toBeLessThan(200)
+		await pending
 		book.destroy()
 	})
 })
