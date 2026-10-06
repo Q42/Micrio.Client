@@ -40,6 +40,24 @@ export default defineConfig({
 		__MICRIO_LIVE__: JSON.stringify(process.env.MICRIO_LIVE === '1'),
 	},
 	test: {
+		// Collected over both projects (`npm run test:coverage`), one merged report.
+		coverage: {
+			provider: 'v8',
+			// The whole source tree, not just what the tests happen to import: a file
+			// nothing touches has to show as 0%, not drop out of the report.
+			include: ['src/**/*.ts'],
+			exclude: ['src/types/**'], // type-only (see src/types/models.ts)
+			reporter: ['text'],
+			// The ratchet: floors sit ~1 point under the recorded baseline (TESTING.md,
+			// "Coverage"), so a real coverage loss fails the run while ordinary
+			// refactoring does not. Raise them when the baseline moves up.
+			thresholds: {
+				statements: 77,
+				branches: 65,
+				functions: 78,
+				lines: 77,
+			},
+		},
 		// The root config holds no tests itself; only the projects below do.
 		projects: [
 			{

@@ -20,6 +20,7 @@ pnpm test           # both projects
 pnpm test:core      # bare Node, no DOM, no browser, no network
 pnpm test:browser   # headless Chromium (Playwright)
 pnpm test:browser:live   # opt-in: the only suite that touches the network
+pnpm test:coverage  # both projects under v8 coverage, one merged report
 pnpm test:watch     # watch the core project while working on pure logic
 ```
 
@@ -202,6 +203,64 @@ These are the only cross-suite hazards; each harness documents its own use of th
    cancels the pending frame; the gallery calls it before replacing a book, and the test
    harness calls it in `destroy()`.
 
+## Coverage
+
+`pnpm test:coverage` runs both projects under `@vitest/coverage-v8` and merges them
+into one report. It measures all of `src/**/*.ts` — a file no test ever imports still
+shows up as 0%, rather than dropping out of the report.
+
+Coverage is a **whole-tree** number: the floors are checked against the merged report.
+The core project only reaches ~7% on its own (bare Node never imports render, gallery,
+book or the element), so `vitest run --project core --coverage` trips every threshold by
+design — use it to inspect one project, not to gate.
+
+Baseline (first recorded run, stable to ±0.05 across runs):
+
+| Metric     | Baseline | Floor |
+| ---------- | -------- | ----- |
+| Statements | 78.2     | 77    |
+| Branches   | 66.0     | 65    |
+| Functions  | 78.9     | 78    |
+| Lines      | 78.0     | 77    |
+
+The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
+coverage loss fails the run while ordinary refactoring does not. They are deliberately
+coarse and global: per-file thresholds would fail outright on the large parts of the
+tree that are intentionally at 0%.
+
+Read the number as "this code ran", not "this code is pinned". v8 counts a module as
+covered the moment it executes, and every browser suite loads the production entry
+(`setup.ts` imports `src/main`), so a component that merely mounts with the element — the
+toolbar, a swipe gallery, a media control — scores high with no assertion about it at all:
+63 of the 124 files in the report score above zero without a test ever naming the module.
+The suites above remain the source of truth for what is actually asserted.
+
+Statement coverage per area at that baseline — the thin spots are the honest backlog,
+not the floor:
+
+| Area        | Stmts |
+| ----------- | ----- |
+| src/utils   | 96.5  |
+| src/ui      | 93.4  |
+| src/gallery | 90.2  |
+| src/audio   | 88.2  |
+| src/layout  | 85.8  |
+| src/book    | 84.3  |
+| src/tour    | 80.5  |
+| src/grid    | 79.9  |
+| src/media   | 74.8  |
+| src/render  | 74.2  |
+| src/core    | 74.1  |
+| src/markers | 63.8  |
+| src/embed   | 1.2   |
+
+`src/embed` (image embeds) is the one real hole: nothing covers it yet. To raise the
+floor, run `pnpm test:coverage`, add ~1 point to each metric above the new baseline,
+and keep the same margin.
+
+`pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
+pays nothing for it.
+
 ## Type checking and linting
 
 - `pnpm typecheck` type-checks `src`, `build`, `templates` with `tsconfig.json`.
@@ -276,7 +335,7 @@ These are the only cross-suite hazards; each harness documents its own use of th
 
 Roughly in order of value against risk:
 
-1. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
-   floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-2. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
+2. **`src/embed`** — image embeds are the only area with no suite at all (1.2%); the
+   coverage floor will not notice it until a test imports the module.

@@ -15,6 +15,7 @@
 		"lint": "oxlint --type-aware",
 		"lint:fix": "oxlint --type-aware --fix",
 		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
 		"test:core": "vitest run --project core",
 		"test:browser": "vitest run --project browser",
 		"test:browser:live": "MICRIO_LIVE=1 vitest run --project browser tests/browser/live",
@@ -38,6 +39,7 @@
 	"devDependencies": {
 		"@types/node": "^24.19.1",
 		"@vitest/browser-playwright": "^5.0.3",
+		"@vitest/coverage-v8": "^5.0.3",
 		"oxfmt": "^0.71.0",
 		"oxlint": "^1.86.0",
 		"oxlint-tsgolint": "^7.0.2003",
