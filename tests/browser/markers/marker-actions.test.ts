@@ -19,6 +19,9 @@ afterEach(() => {
 	vi.useRealTimers()
 })
 
+/** Whether the marker layer is hidden by a running tour. */
+const layerHidden = (opened: Awaited<ReturnType<typeof openMarkers>>) => opened.layer()?.classList.contains('hidden')
+
 describe('marker open and close', () => {
 	it('opens a marker when its button is clicked', async () => {
 		const fixture = markerBundle()
@@ -276,6 +279,41 @@ describe('markers and tours', () => {
 		opened.viewer.el.state.tour.set(undefined)
 		await waitFor(() => opened.image().state.$marker === undefined, 6000, 'the marker cleared with the tour')
 		opened.viewer.destroy()
+	})
+})
+
+describe('marker hiding during tours', () => {
+	it('hides the markers during a marker tour only when the image asks for it', async () => {
+		const withSetting = markerBundle({
+			markerTours: [markerTour({ steps: ['m1', 'm2'] })],
+			settings: { _markers: { hideMarkersDuringTour: true } },
+		})
+		const opened = await openMarkers(withSetting)
+		expect(layerHidden(opened)).toBe(false)
+
+		opened.viewer.el.state.tour.set(withSetting.markerTours[0])
+		await waitFor(() => layerHidden(opened) === true, 4000, 'the hidden layer')
+		opened.viewer.destroy()
+
+		// A marker tour is its steps, so without the setting the markers stay
+		const plain = await openMarkers(markerBundle({ markerTours: [markerTour({ steps: ['m1', 'm2'] })] }))
+		plain.viewer.el.state.tour.set(plain.markerTours[0])
+		await settle(3)
+		expect(layerHidden(plain)).toBe(false)
+		plain.viewer.destroy()
+	})
+
+	it('hides the markers during a video tour unless the tour keeps them', async () => {
+		const shown = await openMarkers(markerBundle())
+		shown.viewer.el.state.tour.set(videoTour({ id: 'vt-hide' }))
+		await waitFor(() => layerHidden(shown) === true, 4000, 'the hidden layer')
+		shown.viewer.destroy()
+
+		const kept = await openMarkers(markerBundle())
+		kept.viewer.el.state.tour.set(videoTour({ id: 'vt-keep', keepMarkers: true }))
+		await settle(3)
+		expect(layerHidden(kept)).toBe(false)
+		kept.viewer.destroy()
 	})
 })
 

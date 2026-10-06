@@ -223,6 +223,17 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			this.classList.toggle('inactive', Boolean(inactive))
 			this.classList.toggle('show-titles', showTitles)
 
+			// A running tour hides the layer unless the tour keeps the markers (`keepMarkers`
+			// exists on video tours). Video tours hide by default; a marker tour hides only
+			// when the image asks for it, because its steps are usually the point of it.
+			const $tour = get(micrioState.tour)
+			const tourIsMarkerTour = $tour !== undefined && 'steps' in $tour
+			const keepMarkers = $tour !== undefined && 'keepMarkers' in $tour && Boolean($tour.keepMarkers)
+			this.classList.toggle(
+				'hidden',
+				$tour !== undefined && !keepMarkers && (tourIsMarkerTour ? Boolean(ms.hideMarkersDuringTour) : true),
+			)
+
 			// The marker size/colour are CSS variables on the layer, so every marker (and
 			// the synthetic clusters) inherits them; an unset setting clears the inline
 			// value again instead of pinning it to a stale one.

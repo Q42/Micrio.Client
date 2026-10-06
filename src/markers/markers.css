@@ -4,12 +4,12 @@ micrio-markers > * {
 micrio-markers.inactive > * {
 	pointer-events: none;
 }
+micrio-markers.hidden {
+	display: none;
+}
 micrio-main.is360 micrio-markers {
 	transition: opacity 0.25s;
 }
 micrio-main.is360 micrio-markers.inactive {
 	opacity: 0;
-}
-micr-io[data-video-tour-active] micrio-markers {
-	display: none;
 }

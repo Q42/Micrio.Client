@@ -44,6 +44,7 @@ export const videoTour = (
 		subtitle?: string
 		title?: string
 		keepInteraction?: boolean
+		keepMarkers?: boolean
 		/** Add an `nl` language entry whose timeline differs, for language-switch tests. */
 		extraLangWithTimeline?: boolean
 	} = {},
@@ -61,6 +62,7 @@ export const videoTour = (
 		subtitle,
 		title = 'Video tour',
 		keepInteraction,
+		keepMarkers,
 		extraLangWithTimeline = false,
 	} = opts
 
@@ -93,7 +95,12 @@ export const videoTour = (
 		}
 	}
 
-	return { id, i18n, ...(keepInteraction !== undefined ? { keepInteraction } : {}) }
+	return {
+		id,
+		i18n,
+		...(keepInteraction !== undefined ? { keepInteraction } : {}),
+		...(keepMarkers !== undefined ? { keepMarkers } : {}),
+	}
 }
 
 /** Builds a marker tour. Steps reference marker ids that must exist in the bundle. */
