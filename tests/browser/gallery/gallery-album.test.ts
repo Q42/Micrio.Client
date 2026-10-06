@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { Grid } from '$grid/grid'
+import { waitFor } from '../../helpers/viewer'
 import { restoreArchiveXhr } from '../../fixtures/grid'
 import type { AlbumOptions } from '../../fixtures/albums'
 import {
@@ -59,6 +60,28 @@ describe('album resolution', () => {
 		expect(mounted.viewer.el.gallery).toBeUndefined()
 		expect(mounted.viewer.el.$current?.id).toBe(mounted.mountId)
 		expect(mounted.viewer.el.$current?.album).toBeUndefined()
+	})
+})
+
+describe('album open race', () => {
+	it('builds the album before an explicit open issued while printing', async () => {
+		// Mounting starts `#print`; a page can call `open(id)` in the same tick. That
+		// open has to wait for the print, or it races the album and builds a second
+		// top-level canvas for the same image
+		const mounted = mountAlbum({ count: 3 })
+		const opened = mounted.viewer.open(mounted.mountId)
+
+		await awaitAlbum(mounted)
+		await opened
+
+		// Only the gallery's virtual parent
+		expect(mounted.viewer.el._canvases).toHaveLength(1)
+		expect(mounted.viewer.el.$current?.id).toBe('')
+
+		const album = albumOf(mounted.viewer.el)
+		expect(album?.currentIndex).toBe(0)
+		album?.next()
+		await waitFor(() => albumOf(mounted.viewer.el)?.currentIndex === 1, 4000, 'the second page')
 	})
 })
 

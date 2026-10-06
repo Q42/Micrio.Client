@@ -118,6 +118,11 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	#printed = false
 
+	/** The in-flight (or settled) initial setup, so a concurrent `open()` waits for it.
+	 * @internal
+	 */
+	#printing: Promise<void> | undefined
+
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
 	 * @internal
 	 */
@@ -503,6 +508,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.#onActivity = undefined
 		}
 		this.#printed = false
+		this.#printing = undefined
 	}
 
 	/**
@@ -563,16 +569,31 @@ export class HTMLMicrioElement extends MicrioElement {
 	}
 
 	/**
+	 * Runs the element's initial setup once.
+	 *
+	 * The in-flight run is published as a promise so that `open()` (which a page can
+	 * call while this is still resolving, e.g. right after mounting an album by id)
+	 * waits for it instead of racing it.
+	 * @internal
+	 */
+	#print(): Promise<void> {
+		this.#printing ??= this.#doPrint()
+		return this.#printing
+	}
+
+	/**
 	 * Performs initial setup based on element attributes.
 	 * Loads necessary data like galleries, grids, or archives before opening the first image.
 	 * Handles lazy loading logic.
 	 * @internal
 	 */
-	async #print(): Promise<void> {
+	async #doPrint(): Promise<void> {
 		if (this.#printed) {
 			return
 		}
 		this.#printed = true
+		// Keep this the first await: the synchronous part must not re-enter `#print`
+		// before `#printing` has been assigned.
 		await tick()
 		const opts = this.#getOptions()
 		if (!opts.settings) {
@@ -692,7 +713,14 @@ export class HTMLMicrioElement extends MicrioElement {
 			gallery?: Gallery
 		} = {},
 	): Promise<MicrioImage | undefined> {
-		if (!this.#printed) {
+		// Wait for any setup run that is still in flight: an album is only built at
+		// the end of `#print`, and opening the image before that would race it into
+		// a second canvas while the gallery is being attached.
+		//
+		// The gallery's own `_openOn` re-enters here from inside that run, so it must
+		// not wait on it (that would deadlock). It attaches the gallery before it
+		// yields, so the run can then finish and every other caller sees it.
+		if (opts.gallery === undefined || this.#printing === undefined) {
 			await this.#print()
 		}
 
