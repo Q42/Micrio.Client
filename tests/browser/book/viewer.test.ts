@@ -415,3 +415,103 @@ describe('BookViewer — texture loading', () => {
 		book.destroy()
 	})
 })
+
+/** A touch press and release at a canvas position. */
+function touchTap(book: ViewerHarness, x: number, y: number, pointerId = 21): void {
+	const rect = book.canvas.getBoundingClientRect()
+	const opts = {
+		clientX: rect.left + x,
+		clientY: rect.top + y,
+		pointerId,
+		pointerType: 'touch',
+		button: 0,
+		bubbles: true,
+	}
+	book.canvas.dispatchEvent(new PointerEvent('pointerdown', opts))
+	globalThis.dispatchEvent(new PointerEvent('pointerup', opts))
+}
+
+/**
+ * Touch and retina at the viewer level. The `InputHandler` state machine itself is
+ * pinned in `input.test.ts`; these cases confirm the wiring into a real
+ * `BookViewer`, and that a DPR-scaled drawing buffer does not change what a
+ * CSS-pixel tap picks.
+ */
+describe('BookViewer — touch and retina', () => {
+	it('turns a page from a touch tap', async () => {
+		const book = await mountBook({
+			images: [bookImage('a'), bookImage('b'), bookImage('c'), bookImage('d'), bookImage('e'), bookImage('f')],
+		})
+		book.steps(3)
+		const before = book.viewer._getCurrentPage()
+		let turned = false
+		for (const x of [200, 400, 500, 600]) {
+			touchTap(book, x, 300)
+			book.steps(3)
+			if (book.viewer._getCurrentPage() !== before) {
+				turned = true
+				break
+			}
+		}
+		expect(turned).toBe(true)
+		expect(book.viewer._getCurrentPage()).toBe(before + 1)
+		book.destroy()
+	})
+
+	it('zooms in from a two-finger pinch', async () => {
+		const book = await mountBook({ images: [bookImage('a'), bookImage('b')] })
+		book.steps(3)
+		const rect = book.canvas.getBoundingClientRect()
+		const at = (pointerId: number, x: number): PointerEventInit => ({
+			pointerId,
+			pointerType: 'touch',
+			button: 0,
+			clientX: rect.left + x,
+			clientY: rect.top + 300,
+			bubbles: true,
+		})
+		book.canvas.dispatchEvent(new PointerEvent('pointerdown', at(31, 300)))
+		book.canvas.dispatchEvent(new PointerEvent('pointerdown', at(32, 500)))
+		// Spread the fingers: the distance delta is negative, which zooms in
+		globalThis.dispatchEvent(new PointerEvent('pointermove', at(32, 620)))
+		expect(book.until(() => book.viewer.isZoomedIn())).toBe(true)
+		book.destroy()
+	})
+
+	it('picks the same page at any device pixel ratio', async () => {
+		const book = await mountBook({
+			images: [bookImage('a'), bookImage('b'), bookImage('c'), bookImage('d'), bookImage('e'), bookImage('f')],
+		})
+		book.steps(3)
+		const cssWidth = book.canvas.clientWidth
+		const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'devicePixelRatio')
+		Object.defineProperty(globalThis, 'devicePixelRatio', { value: 2, configurable: true })
+		try {
+			globalThis.dispatchEvent(new Event('resize'))
+			// The backing buffer is DPR-scaled; the CSS layout is not
+			expect(book.canvas.width).toBe(cssWidth * 2)
+			expect(book.canvas.clientWidth).toBe(cssWidth)
+
+			// A tap at the same CSS position still finds a page and turns it
+			const before = book.viewer._getCurrentPage()
+			let turned = false
+			for (const x of [200, 400, 500, 600]) {
+				touchTap(book, x, 300, 41)
+				book.steps(3)
+				if (book.viewer._getCurrentPage() !== before) {
+					turned = true
+					break
+				}
+			}
+			expect(turned).toBe(true)
+		} finally {
+			if (descriptor === undefined) {
+				delete (globalThis as { devicePixelRatio?: number }).devicePixelRatio
+			} else {
+				Object.defineProperty(globalThis, 'devicePixelRatio', descriptor)
+			}
+			globalThis.dispatchEvent(new Event('resize'))
+		}
+		book.destroy()
+	})
+})
