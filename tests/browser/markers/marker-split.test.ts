@@ -194,10 +194,9 @@ describe('marker split screen', () => {
 		opened.viewer.destroy()
 	})
 
-	it('KNOWN GAP: switching markers rebuilds a split that points at the same image', async () => {
-		// The state passes through the marker *id string* before the element resolves it,
-		// and the close path treats that intermediate value as "no marker" — so the split
-		// is torn down and recreated even though both markers link to the same image.
+	it('keeps the split when switching to another marker on the same image', async () => {
+		// The state passes through the marker *id string* first; the close path resolves
+		// it, so a switch between two markers linking to the same image keeps the split.
 		const target = markerBundle({ markers: [marker('s1')] })
 		const main = markerBundle({
 			markers: [
@@ -211,10 +210,12 @@ describe('marker split screen', () => {
 		await opened.openMarker('m1')
 		await waitFor(() => hasSplit(opened.image()), 6000, 'the split to open')
 		const secondary = secondaryOf(opened)
+		const canvases = opened.viewer.el._canvases.length
 
 		await opened.openMarker('m2')
-		await waitFor(() => secondaryOf(opened) !== undefined && secondaryOf(opened) !== secondary, 8000, 'a new split')
-		expect(secondaryOf(opened)?.id).toBe(target.id)
+		await settle(2)
+		expect(secondaryOf(opened)).toBe(secondary)
+		expect(opened.viewer.el._canvases.length).toBe(canvases)
 		opened.viewer.destroy()
 	})
 })

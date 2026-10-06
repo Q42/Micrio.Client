@@ -372,6 +372,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 		}
 
+		/**
+		 * Resolves the marker a state value points at. The image state accepts a marker id
+		 * string as well as an object, so the close paths have to look the object up — a
+		 * string is not "no marker".
+		 */
+		const markerFromState = (m: Models.ImageData.Marker | string | undefined): Models.ImageData.Marker | undefined =>
+			typeof m === 'string' ? image.$data?.markers?.find((mm) => mm.id === m) : m
+
 		const close = () => {
 			this.classList.remove('opened')
 			events._dispatch('marker-closed', marker)
@@ -389,7 +397,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					if (this.#opened) {
 						// Only manage split lifecycle if this marker itself has a split link
 						if (data.micrioSplitLink) {
-							const newMarker = m !== undefined && typeof m !== 'string' ? m : null
+							const newMarker = markerFromState(m)
 							if (!newMarker || !newMarker.data?.micrioSplitLink) {
 								closeSplit(micrio, image)
 							} else {
