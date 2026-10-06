@@ -5,5 +5,5 @@
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"allowJs": true
 	},
-	"include": ["tests/**/*", "vitest.config.ts", "vite.config.js"]
+	"include": ["src/types/imports.d.ts", "tests/**/*", "vitest.config.ts", "vite.config.js"]
 }
