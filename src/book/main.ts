@@ -24,7 +24,6 @@ import {
 	GRAVITY_ENABLED,
 	DELTA_IDLE_THRESHOLD,
 	USE_INDIVIDUAL_ASPECTS,
-	DEFAULT_ASPECT,
 	VIEWPORT_MARGIN_PCT,
 	DEFAULT_CAMERA_PHI,
 	HARD_COVER,
@@ -47,6 +46,7 @@ import {
 	type TexRegion,
 } from './geometry/uv-project'
 import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync'
+import { computePageLayout, computeTexRegion } from './core/layout'
 import { getPreset, getPresets } from './rendering/lighting'
 import { archive } from '$utils/archive'
 import type { MicrioImage } from '$core/image'
@@ -56,89 +56,6 @@ interface TextureContext {
 	side: 0 | 1
 	mesh: PaperMesh
 	result: UvWorldResult
-}
-
-function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
-	const pageCnt = Math.ceil(images.length / 2)
-	const totalImagePages = images.length
-
-	const pageIdxes: number[][] = [[0]]
-	for (let p = 1; p < pageCnt; p++) {
-		const first = 2 * p - 1
-		const last = 2 * p
-		if (last < images.length) {
-			pageIdxes.push([first, last])
-		} else {
-			pageIdxes.push([first])
-		}
-	}
-
-	let totalAspect = 0
-	let aspectCount = 0
-	const frontAspects = new Float32Array(pageCnt)
-	const backAspects = new Float32Array(pageCnt)
-
-	for (let p = 0; p < pageCnt; p++) {
-		const front = images[p * 2]
-		const back = images[p * 2 + 1]
-		const frontAsp =
-			front !== undefined && front.width > 0 && front.height > 0 ? front.height / front.width : DEFAULT_ASPECT
-		const backAsp = back !== undefined && back.width > 0 && back.height > 0 ? back.height / back.width : frontAsp
-		frontAspects[p] = frontAsp
-		backAspects[p] = backAsp
-
-		if (front !== undefined && front.width > 0 && front.height > 0) {
-			totalAspect += frontAsp
-			aspectCount++
-		}
-		if (back !== undefined && back.width > 0 && back.height > 0) {
-			totalAspect += backAsp
-			aspectCount++
-		}
-	}
-
-	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT
-	const refArea = avgAspect
-
-	// Every page shares the same geometry (the book-wide average aspect); per-page
-	// aspects are honored by rendering each texture in its own region of the page
-	// instead of resizing the geometry.
-	const computedPageWidths = new Float32Array(pageCnt).fill(Math.sqrt(refArea / avgAspect))
-	const aspectsForInit = new Float32Array(pageCnt).fill(avgAspect)
-
-	return {
-		pageCnt,
-		pageIdxes,
-		totalImagePages,
-		computedPageWidths,
-		aspectsForInit,
-		frontAspects,
-		backAspects,
-		avgAspect,
-	}
-}
-
-/**
- * The sub-rectangle of a page's UV space in which a texture with `texAspect`
- * (height / width) is drawn without distortion on a page of aspect `pageAspect`.
- * Returns `[uMin, vMin, fU, fV]`; the leftover page space is transparent.
- *
- * The image is always anchored to the book's spine. When `spineAtHigh` is true
- * the spine lies at sampled u = 1 (a single-grid page's back face, sampled
- * mirrored), so the image's far edge sits on the spine (`uMin = 1 - fU`).
- * Otherwise the spine lies at sampled u = 0 and the image's near edge sits on it
- * (`uMin = 0`). Vertically the image stays centered.
- */
-function computeTexRegion(
-	texAspect: number,
-	pageAspect: number,
-	spineAtHigh: boolean,
-): [number, number, number, number] {
-	const fU = Math.min(1, pageAspect / Math.max(1e-4, texAspect))
-	const fV = Math.min(1, texAspect / Math.max(1e-4, pageAspect))
-	const uMin = spineAtHigh ? 1 - fU : 0
-	const vMin = (1 - fV) / 2
-	return [uMin, vMin, fU, fV]
 }
 
 /** Column-major 4x4 multiply: `o = a · b`. */
