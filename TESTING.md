@@ -48,6 +48,45 @@ The browser suite is registered through the production entry point (`src/main.ts
 `customElements.define('micr-io', ...)` and the version banner behave exactly like a
 real page.
 
+### Test layout
+
+Tests are grouped in the directory of the module they pin, mirroring `src/`. The shared
+harness stays at `tests/`: `tests/fixtures/` (bundle, space, tour, grid and UI data
+builders), `tests/helpers/` (mount, wait, network and grid helpers) and the ambient
+`tests/tests.d.ts`.
+
+```
+tests/
+├── core/                    # project "core" — bare Node
+│   ├── core/                # src/core: error, state, store, i18n/
+│   ├── render/              # src/render: easing, mat
+│   └── utils/               # src/utils: archive, dataLoader, fetch, id, math, ...
+└── browser/                 # project "browser" — Chromium
+    ├── setup.ts             # vitest setupFiles: installs the fakes, imports src/main
+    ├── textures.ts          # tile-worker fake (installed by setup.ts)
+    ├── audio-context.ts     # AudioContext fake (installed by setup.ts)
+    ├── smoke.test.ts        # suite plumbing (the only test at the project root)
+    ├── audio/  book/  core/  gallery/  grid/  layout/  markers/  media/
+    ├── space/               # the 360 suites: camera, minimap, spaces, transitions
+    ├── tour/  ui/  utils/
+    └── live/                # opt-in network suite
+```
+
+`browser/space/` is the one feature directory without a 1:1 `src/` counterpart: the 360
+suites span `render/camera-360`, `layout/nav/minimap`, `utils/space`, `core/state` and
+`markers/waypoint`, so one home beats splitting them across four directories.
+
+**Import convention.** Tests import production code through the `$` aliases — `$core/store`,
+`$utils/dom`, `$types/models`, `await import('$book/main')` — so a test reads like the
+source file it covers. Test support (fixtures, helpers, a sibling fake such as
+`browser/audio-context.ts`, another test's helpers) stays relative. The one exception is
+`tests/browser/setup.ts`, which keeps `../../src/main`: the aliases map directories, and
+`src/main.ts` sits at the source root.
+
+Both projects' include globs (`tests/core/**/*.test.ts`, `tests/browser/**/*.test.ts`) are
+recursive, and `.oxlintrc.json`'s `tests/**/*.ts` override matches nested paths, so neither
+`vitest.config.ts` nor the lint and type-check config needed a change for the layout.
+
 ## Writing tests that have an edge
 
 Every test should pin down something an implementer could plausibly get wrong. The
@@ -117,8 +156,8 @@ tours).
 - **Bundle, space and album caches in `src/utils/dataLoader.ts` are module-level and
   keyed by id.** They live for the whole test file, so a test that goes through the
   network path needs **fresh ids**: a reused id serves the earlier test's bundle.
-  `tests/browser/element-open.test.ts`, `tours-360.test.ts` and `gallery.test.ts` show the
-  pattern.
+  `tests/browser/core/element-open.test.ts`, `tests/browser/space/tours-360.test.ts` and
+  `tests/browser/gallery/gallery.test.ts` show the pattern.
 - `helpers/viewer.ts` mounts a sized `<micr-io>`, opens a bundle object or an id, and
   exposes `waitFor` for polling on animation frames.
 - `helpers/network.ts` also has `mockText(pattern, body)` for non-JSON resources
@@ -220,7 +259,7 @@ serves the first test's image — including one with no `data`. `_loading` also 
 
 **Fake timers freeze `waitFor`.** `waitFor` polls on `requestAnimationFrame`, which a faked
 clock never advances: mount and open with real timers, then switch (`mountWithFakeTime` in
-`tests/browser/video-tour.test.ts`). `VideoTourInstance` derives `currentTime` from
+`tests/browser/media/video-tour.test.ts`). `VideoTourInstance` derives `currentTime` from
 `Date.now()`, so `tickClock()` passes time without its scheduled steps firing and
 `advance()` fires them.
 
@@ -243,7 +282,7 @@ later `set(..., { scale })` does not move it.
 
 **`_meta.gridSize` does nothing yet.** The controller stores it in `#nextSize` and clears
 that at the start of every `set`, and `#cellSizes` is written but never read, so a marker's
-`gridSize` never reaches the layout. `tests/browser/grid-actions.test.ts` pins the current
+`gridSize` never reaches the layout. `tests/browser/grid/grid-actions.test.ts` pins the current
 behaviour on purpose, so wiring the feature up has to change a test rather than pass silently.
 
 ## Type checking and linting
@@ -264,41 +303,41 @@ behaviour on purpose, so wiring the feature up has to change a test rather than 
 
 ## Status
 
-| Area                                               | Suite                                                                       | Status     |
-| -------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
-| Math, ids, time, locale, easing                    | `tests/core/*.test.ts`                                                      | done       |
-| Store API, state controllers                       | `tests/core/store`, `state`                                                 | done       |
-| bundle.json loading and caching                    | `tests/core/dataLoader`                                                     | done       |
-| MDP archive parsing                                | `tests/core/archive`                                                        | done       |
-| Matrix/vector math                                 | `tests/core/mat`                                                            | done       |
-| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/element-legacy`                                              | done       |
-| `<micr-io>` open / events / attributes             | `tests/browser/element-*`                                                   | done       |
-| Markers                                            | `tests/browser/markers`                                                     | done       |
-| 360 space resolution and navigation                | `tests/browser/tours-360`                                                   | done       |
-| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/camera-360`                                                  | done       |
-| `trueNorth` and image orientation                  | `tests/browser/space-truenorth`                                             | done       |
-| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/waypoints`                                                   | done       |
-| 360 space transitions                              | `tests/browser/space-transition`                                            | done       |
-| 360 minimap                                        | `tests/browser/minimap-360`                                                 | done       |
-| Gallery / album switching                          | `tests/browser/gallery`                                                     | partial    |
-| Video tour timeline and playback                   | `tests/browser/video-tour`                                                  | done       |
-| Marker tour UI and navigation                      | `tests/browser/marker-tour`                                                 | done       |
-| Serial (multi-image) tours                         | `tests/browser/serial-tour`                                                 | done       |
-| Media element, controls, subtitles                 | `tests/browser/media-*`, `subtitles`                                        | done       |
-| Tour toolbar and autostart wiring                  | `tests/browser/tour-integration`                                            | done       |
-| Audio controller (Web Audio, positional)           | `tests/browser/audio-controller`                                            | done       |
-| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/media-settings`                                                 | done       |
-| Spatial audio routing                              | `tests/browser/audio-location`                                              | done       |
-| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/*-adapter`, `hls-player`                                     | done       |
-| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media-adapters`                                              | done       |
-| Grid column maths and transition areas             | `tests/browser/grid-format`                                                 | done       |
-| Grid storytelling                                  | `tests/browser/grid-{layout,focus,history,tour-events,actions,integration}` | done       |
-| 3D book viewer                                     | `tests/browser/book3d-smoke`                                                | smoke only |
-| UI translation tables                              | `tests/core/i18n-strings`                                                   | done       |
-| Buttons, icons, progress circle, dial              | `tests/browser/ui-button`, `ui-primitives`                                  | done       |
-| Menu tree and its actions                          | `tests/browser/ui-menu`                                                     | done       |
-| Toolbar (desktop + mobile sheet)                   | `tests/browser/toolbar-*`                                                   | done       |
-| Content-page popover and welcome screen            | `tests/browser/popover`                                                     | done       |
+| Area                                               | Suite                                                                            | Status     |
+| -------------------------------------------------- | -------------------------------------------------------------------------------- | ---------- |
+| Math, ids, time, locale, easing                    | `tests/core/**/*.test.ts`                                                        | done       |
+| Store API, state controllers                       | `tests/core/core/store`, `state`                                                 | done       |
+| bundle.json loading and caching                    | `tests/core/utils/dataLoader`                                                    | done       |
+| MDP archive parsing                                | `tests/core/utils/archive`                                                       | done       |
+| Matrix/vector math                                 | `tests/core/render/mat`                                                          | done       |
+| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/core/element-legacy`                                              | done       |
+| `<micr-io>` open / events / attributes             | `tests/browser/core/element-*`                                                   | done       |
+| Markers                                            | `tests/browser/markers/markers`                                                  | done       |
+| 360 space resolution and navigation                | `tests/browser/space/tours-360`                                                  | done       |
+| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/space/camera-360`                                                 | done       |
+| `trueNorth` and image orientation                  | `tests/browser/space/space-truenorth`                                            | done       |
+| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/markers/waypoints`                                                | done       |
+| 360 space transitions                              | `tests/browser/space/space-transition`                                           | done       |
+| 360 minimap                                        | `tests/browser/space/minimap-360`                                                | done       |
+| Gallery / album switching                          | `tests/browser/gallery/gallery`                                                  | partial    |
+| Video tour timeline and playback                   | `tests/browser/media/video-tour`                                                 | done       |
+| Marker tour UI and navigation                      | `tests/browser/tour/marker-tour`                                                 | done       |
+| Serial (multi-image) tours                         | `tests/browser/tour/serial-tour`                                                 | done       |
+| Media element, controls, subtitles                 | `tests/browser/media/media-*`, `subtitles`                                       | done       |
+| Tour toolbar and autostart wiring                  | `tests/browser/tour/tour-integration`                                            | done       |
+| Audio controller (Web Audio, positional)           | `tests/browser/audio/audio-controller`                                           | done       |
+| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/utils/media-settings`                                                | done       |
+| Spatial audio routing                              | `tests/browser/audio/audio-location`                                             | done       |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/media/*-adapter`, `hls-player`                                    | done       |
+| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media/media-adapters`                                             | done       |
+| Grid column maths and transition areas             | `tests/browser/grid/grid-format`                                                 | done       |
+| Grid storytelling                                  | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done       |
+| 3D book viewer                                     | `tests/browser/book/book3d-smoke`                                                | smoke only |
+| UI translation tables                              | `tests/core/core/i18n/i18n-strings`                                              | done       |
+| Buttons, icons, progress circle, dial              | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done       |
+| Menu tree and its actions                          | `tests/browser/ui/ui-menu`                                                       | done       |
+| Toolbar (desktop + mobile sheet)                   | `tests/browser/layout/toolbar-*`                                                 | done       |
+| Content-page popover and welcome screen            | `tests/browser/layout/popover`                                                   | done       |
 
 ## Session backlog
 
