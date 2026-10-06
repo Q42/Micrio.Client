@@ -55,7 +55,9 @@ export interface MarkerFixture {
 /** Builds a fresh single-image bundle whose markers (and marker tours) carry unique ids. */
 export function markerBundle(opts: MarkerBundleOptions = {}): MarkerFixture {
 	const tag = suffix()
-	const id = `mk${tag}`
+	// Not 7 characters: `MicrioImage` decodes a 7-char non-IIIF id as a v5 id, which
+	// randomly flips `is360` and would make the 2D suites flaky.
+	const id = `mk${tag}img`
 	const prefix = opts.prefix === false ? '' : `${tag}-`
 	const mid = (short: string) => `${prefix}${short}`
 
@@ -73,7 +75,9 @@ export function markerBundle(opts: MarkerBundleOptions = {}): MarkerFixture {
 				next.steps = t.steps.map((s) => mid(s))
 			}
 			if (t.stepInfo) {
-				next.stepInfo = t.stepInfo.map((si) => Object.assign({}, si, { markerId: mid(si.markerId) }))
+				// The tours fixture carries a placeholder image id for a single-image
+				// tour; this fixture's tour steps all live on its own image.
+				next.stepInfo = t.stepInfo.map((si) => Object.assign({}, si, { markerId: mid(si.markerId), micrioId: id }))
 			}
 			markerTours.push(next)
 		}
