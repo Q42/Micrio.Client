@@ -238,6 +238,15 @@ describe('album degradation', () => {
 		expect(mounted.viewer.el.gallery).toBeUndefined()
 		expect(mounted.viewer.el.$current?.id).toBe(mounted.mountId)
 	})
+
+	it('injects no grid defaults into a grid album without an archive', async () => {
+		// The interactive defaults are gated on `aInfo.type === 'grid' && aInfo.archive`
+		const mounted = mountAlbum({ type: 'grid', count: 2, archive: null })
+		await awaitAlbum(mounted, { gate: 'grid' })
+		expect(mounted.viewer.el.gallery?._config.settings?.hookKeys).toBeUndefined()
+		expect(mounted.viewer.el.gallery?._config.settings?.zoomLimit).toBeUndefined()
+		expect(mounted.viewer.el.$current?.grid).toBeInstanceOf(Grid)
+	})
 })
 
 describe('a one-image album', () => {

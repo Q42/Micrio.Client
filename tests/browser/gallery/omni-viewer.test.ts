@@ -71,6 +71,16 @@ describe('omni — setup', () => {
 		expect(omni.viewer.el._engine._isSwipe).toBe(true)
 	})
 
+	it('projects an object coordinate onto the screen', async () => {
+		// `getOmniXY` returns [x, y, scale, depth, w]; the object centre must project
+		// to finite numbers (the marker layer positions from the same call)
+		const omni = await openOmni({ frames: 12, distance: 4 })
+		const xy = omni.image.camera.getOmniXY(0, 0, 0)
+		expect(xy).toHaveLength(5)
+		expect(Number.isFinite(xy[0])).toBe(true)
+		expect(Number.isFinite(xy[1])).toBe(true)
+	})
+
 	it('builds the dial even when the bundle is older than v5', async () => {
 		// `setup` only awaits the archive load for a v5+ bundle; the dial is built either way
 		const omni = await openOmni({ frames: 12, version: '4.0' })
