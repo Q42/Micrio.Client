@@ -143,10 +143,7 @@ describe('scrubber — pointer drag', () => {
 		expect(galleryEl(viewer.el)?.dataset.dragging).toBeUndefined()
 		expect(viewer.el._keepRendering).toBe(false)
 		// Releasing on the page the drag already reached does not run
-		// `#frameChanged`, and `#scrubStop` does not update the bar itself — so
-		// the handle's class only clears on the next scrubber update
-		expect(scrubberHandle(viewer.el)?.classList.contains('dragging')).toBe(true)
-		track.dispatchEvent(new PointerEvent('pointermove', { pointerId: 7, clientX: x, clientY: 10, bubbles: true }))
+		// `#frameChanged`, so the release itself has to re-render the bar
 		expect(scrubberHandle(viewer.el)?.classList.contains('dragging')).toBe(false)
 	})
 

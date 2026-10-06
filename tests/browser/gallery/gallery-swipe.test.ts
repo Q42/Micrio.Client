@@ -72,7 +72,7 @@ describe('swipe album — the album API', () => {
 		expect(album.currentIndex).toBe(2)
 	})
 
-	it('maps an out-of-range image index to the first page', async () => {
+	it('does not move on an image index outside the album', async () => {
 		const { viewer } = await openSwipe(3)
 		const album = albumOf(viewer.el)
 		if (!album) {
@@ -81,18 +81,21 @@ describe('swipe album — the album API', () => {
 		await album.goto(2)
 		expect(album.currentIndex).toBe(2)
 
-		// `album.goto` maps an image index to its page, and `#imageIdxToPage`
-		// returns 0 for a miss — so an out-of-range index lands on the *first*
-		// page while still resolving the requested (nonexistent) image index
+		// `album.goto` maps an image index to its page, and an unmapped index
+		// resolves `undefined` without moving — a miss must not jump to page 0
 		expect(await album.goto(99)).toBeUndefined()
-		expect(album.currentIndex).toBe(0)
+		expect(album.currentIndex).toBe(2)
 
 		// A negative index behaves the same way
 		expect(await album.goto(-5)).toBeUndefined()
-		expect(album.currentIndex).toBe(0)
+		expect(album.currentIndex).toBe(2)
+
+		// ...and so does `open(id)` for an id that is not in the album, which
+		// short-circuits into `gotoId`
+		expect(await viewer.open('zzzzzzz')).toBeUndefined()
+		expect(album.currentIndex).toBe(2)
 
 		// next() past the last page is a no-op: the page is set synchronously
-		await album.goto(2)
 		album.next()
 		expect(album.currentIndex).toBe(2)
 	})

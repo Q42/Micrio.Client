@@ -139,10 +139,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		return `${imgs[0] + 1}-${imgs[imgs.length - 1] + 1}`
 	}
 
-	/** Returns the page index containing the given image index (for spread-aware navigation). */
+	/**
+	 * Returns the page index containing the given image index (for spread-aware
+	 * navigation), or `-1` when the image is not part of the gallery.
+	 */
 	#imageIdxToPage(n: number): number {
-		const page = this.#pageToImages.findIndex((p) => p.includes(n))
-		return page >= 0 ? page : 0
+		return this.#pageToImages.findIndex((p) => p.includes(n))
 	}
 
 	/**
@@ -275,6 +277,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 		this.#dragging = false
 		delete this.dataset.dragging
+		// Re-render before the trailing goto: releasing on the page the drag already
+		// reached does not run `#frameChanged`, so without this the handle would keep
+		// its `dragging` class (and its mid-drag position) until the next update.
+		this.#updateScrubber()
 		const micrio = this._getMicrio()
 		if (!micrio) {
 			return
@@ -464,8 +470,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				void goToPage(currentIndex() + 1)
 			},
 			// Navigate to the page containing image `n`, but resolve with the exact
-			// image at that index (spread pages contain more than one image).
-			goto: (n: number) => goToPage(this.#imageIdxToPage(n)).then(() => this.#images[n]),
+			// image at that index (spread pages contain more than one image). An index
+			// that is not part of the album resolves `undefined` and does not move:
+			// jumping to page 0 would be a surprising place to land.
+			goto: (n: number) => {
+				const page = this.#imageIdxToPage(n)
+				return page < 0 ? Promise.resolve(undefined) : goToPage(page).then(() => this.#images[n])
+			},
 			...(this.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		}
 
