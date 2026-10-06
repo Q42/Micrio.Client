@@ -11,6 +11,12 @@ import { settle } from '../../helpers/tour'
 /**
  * Omni (3D rotatable object) viewing: the frame strip the UI builds, the dial,
  * the layer menu and the swipe gesture, plus what teardown resets.
+ *
+ * The suite stubs every `.css` import, so a component has **no box**: the dial's
+ * `getBoundingClientRect` and `offsetWidth` are zero until a test gives it an inline `display`
+ * and width. A `micrio-dial` also only writes its rotation offset while it is connected *and*
+ * measurable, so `_setProps` has to be re-applied after sizing it — that is what `sizeDial`
+ * below does, and why the offset assertions call it first.
  */
 
 const extraViewers: Viewer[] = []

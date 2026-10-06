@@ -23,6 +23,21 @@ import {
  *
  * Real album *viewing* (the swipe/switch UIs, the scrubber and omni) lives in
  * the sibling suites; here the gallery only has to exist and be configured.
+ *
+ * Two preconditions come from `Gallery._fromAlbum`, and both are easy to trip over:
+ *
+ * - **Every album type takes its images from the archive index** (`index.images`). A
+ *   `swipe` or `switch` album needs an archive exactly like a grid or book3d one; without
+ *   one the gallery has zero images and `#renderGallery` bails before it sets
+ *   `$current.album`, so there is no album API, no scrubber and no arrows at all.
+ * - **The album branch of `#print` needs the element's id attribute**: it runs only for a
+ *   v5 id whose bundle carries `info.albumId`, and only while the element has no
+ *   `width`/`height` attribute — which is why `mountAlbum` mounts by id and stays unsized.
+ *   `open(id)` alone never turns an album into a gallery.
+ *
+ * The album API's own `goto(n)` takes an **_image_ index, not a page**: `#imageIdxToPage`
+ * maps it to the page that contains that image, and the gallery's internal `#goto` is the
+ * one that clamps a page.
  */
 
 afterEach(() => {

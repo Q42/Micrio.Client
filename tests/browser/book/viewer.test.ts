@@ -2,6 +2,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BookViewer } from '$book/main'
 import { bookImage, mountBook, restoreFrameStub, type ViewerHarness } from '../book-helpers'
 
+/**
+ * `BookViewer`: construction, page flips, drags, zoom, rotation and the drawn bounds.
+ *
+ * The harness (see `../book-helpers.ts`) owns the frame loop and steps the viewer by hand
+ * with a fixed delta, so every test here works the same way: drive one of the viewer's
+ * public entry points, step frames, then read `_onDraw` / `_onPageChange` / `pages` rather
+ * than a private field (`_step`, `_getCurrentPage`, `_getPageCount` and `_allowRotation` are
+ * the only readers the viewer exposes).
+ *
+ * One convention is inverted and worth having in mind: **a negative zoom delta zooms in.**
+ * `OrbitCamera._zoom` adds `delta * _zoomSpeed` to the target radius, so `zoom(-2000)` pulls
+ * the camera closer and `zoom(2000)` pushes it away — the opposite of a wheel's `deltaY`.
+ * The book, the camera and the rotation buttons all agree on it; `orbit-camera.test.ts` pins
+ * the camera end.
+ */
+
 afterEach(() => {
 	restoreFrameStub()
 	vi.restoreAllMocks()

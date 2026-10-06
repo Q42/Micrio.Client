@@ -10,6 +10,16 @@ import { waitFor } from './viewer'
  * Everything here goes through the *public* surface (`grid.image`, `grid.images`,
  * `getImage`, the cell `<button>`s the controller prints) so the assertions stay
  * minification-safe and do not restate the implementation.
+ *
+ * Two limits of the fixtures shape every grid assertion:
+ *
+ * - **A cell's `camera.getView()` is not meaningful offline.** A cell's view only
+ *   becomes real after a render, and these fixtures serve no tiles, so no image ever
+ *   enters the viewer's `_visible` list (`grid-layout.test.ts` / `grid-focus.test.ts`
+ *   assert the hand-off instead: the printed layout, the `opts.area` a cell was
+ *   measured into, and the calls the controller makes on a camera).
+ * - **`opts.area` is written once.** `#printGrid` skips an image that already has an
+ *   area, so a later `set(..., { scale })` does not move it.
  */
 
 /** The `<button>` cells the grid currently prints, in layout order. */

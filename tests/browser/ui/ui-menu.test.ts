@@ -14,6 +14,11 @@ import type { Models } from '$types/models'
  * by every menu on the page, so the suite closes what it opens. And the whole tree *filters
  * on the active language*: an entry with no culture data for the current language is
  * dropped, which is why the fixture is localised in both languages.
+ *
+ * A click that *opens* a branch stops propagating, and a committing entry deliberately does
+ * not: the store installs a window click listener while something is open, so a bubbling
+ * open click would close the branch again in the same event, while an entry that acts wants
+ * that document click (it is also what closes an open branch elsewhere).
  */
 
 /**

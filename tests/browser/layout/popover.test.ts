@@ -24,6 +24,13 @@ import { waitFor } from '../../helpers/viewer'
  * becomes set, so tests drive the *state* (and, for the toolbar path, a real menu click).
  * And the dialog is a real `<dialog>`: `showModal()` gives it `.open`, and its `close` event
  * is what clears the state again.
+ *
+ * "The popover closed" therefore has to be asserted as **the element being gone** (the layout
+ * removes it once the state clears), not as `dialog.open === false`: by the time a test looks,
+ * the element is usually already detached. While it is open the same element is reused and
+ * re-rendered from its state — `#show`'s update callback holds the state, and the render key
+ * carries the page, marker, gallery and language, which is what lets one gallery replace
+ * another (`src/layout/popover.ts`).
  */
 
 const dialogOf = (viewer: Awaited<ReturnType<typeof openUi>>['viewer']) =>

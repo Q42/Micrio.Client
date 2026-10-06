@@ -199,8 +199,11 @@ describe('marker grid metadata', () => {
 	})
 
 	it('accepts a marker with _meta.gridView without changing the layout', async () => {
-		// `gridView` is a hint for `micrio.open(id, { gridView: true })` on the element side (the
-		// tour passes it through); the controller itself never reads it.
+		// `_meta.gridView` is inert on this path: the element only reads `gridView` from its own
+		// `open(id, { gridView })` options, and no code copies the marker value into them.
+		// (The equivalent per-step field, `MarkerTourStepInfo.gridView`, is declared but never
+		// passed to `open()` by `src/tour/tour.ts` either.) Asserted here so wiring it up has to
+		// change a test rather than pass silently.
 		const gridView = plainMarker('grid-view', { _meta: { gridView: true } })
 		const { viewer, grid, ids } = await openGrid(fast({ markers: { 0: [gridView] } }))
 		const opening = layoutIds(grid)

@@ -9,6 +9,9 @@ import type { MicrioElement } from '$core/component'
  *
  * It renders a `<button>` (or an `<a>` when given `href`) inside itself and re-renders on
  * a change key, so the assertions are on that inner element plus the host's own classes.
+ *
+ * The host passes its `className` **down to that inner element**, so a class assertion (the
+ * toolbar's `indent`, the popover's `no-click`) has to query the child, not the host.
  */
 
 /** Mounts a button with the given props and returns the host plus its inner element. */
