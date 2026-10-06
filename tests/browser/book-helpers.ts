@@ -1,6 +1,9 @@
 import { Frame } from '$core/frame'
 import { BookViewer, type BookViewerOptions, type DrawnImage } from '$book/main'
+import { archive } from '$utils/archive'
 import type { Models } from '$types/models'
+import { thumbBytes } from '../fixtures/book'
+import { makeMdp, stubArchiveXhr, restoreArchiveXhr } from '../fixtures/grid'
 
 /**
  * The BookViewer harness.
@@ -126,6 +129,30 @@ export interface ViewerHarness {
 	destroy: () => void
 }
 
+let archiveRun = 0
+
+/**
+ * Packs one decodable thumbnail per image id and loads it into the archive
+ * singleton, so the direct `BookViewer` harness reads real page textures instead
+ * of warning "No image found in archive" once per page.
+ *
+ * An entry's path is derived from the id alone (`<id>/1/0_0.webp`): `imageKeys` is
+ * first-match-wins and never cleared, so a path that changed between loads would
+ * strand that id on a db entry that no longer exists. The archive id is unique per
+ * call because `Archive.load` early-returns for an id whose bytes it already holds.
+ */
+async function loadPageArchive(ids: string[]): Promise<void> {
+	const bytes = await thumbBytes()
+	archive.db.clear()
+	stubArchiveXhr(makeMdp(ids.map((id) => ({ name: `${id}/1/0_0.webp`, data: bytes }))))
+	try {
+		await archive.load('https://r2.micr.io/', `bookviewer${(++archiveRun).toString(36)}`)
+	} finally {
+		// `load` awaits its own XHR; a failed load must not leak the stub either.
+		restoreArchiveXhr()
+	}
+}
+
 /**
  * Mounts a sized canvas and a `BookViewer` on it, waits for the viewer to finish
  * loading its page textures, and leaves the scheduler pointed at the harness.
@@ -143,9 +170,14 @@ export async function mountBook(
 	> & {
 		images?: Models.ImageInfo.ImageInfo[]
 		canvas?: HTMLCanvasElement
+		/** Skip the harness archive, to exercise the missing-texture path. */
+		_noArchive?: boolean
 	} = {},
 ): Promise<ViewerHarness> {
 	const images = options.images ?? [bookImage('p0'), bookImage('p1'), bookImage('p2'), bookImage('p3')]
+	if (options._noArchive !== true) {
+		await loadPageArchive(images.map((image) => image.id))
+	}
 	const canvas =
 		options.canvas ??
 		(() => {

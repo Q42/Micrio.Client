@@ -33,10 +33,10 @@ import { mountViewer, waitFor, type Viewer } from '../helpers/viewer'
  * `scrubberTicks`, `bookMarkers`) rather than through `$current`.
  */
 
-/** A decodable image body to store as each page's thumbnail. */
+/** A decodable image body to store as each page's thumbnail (shared with `browser/book-helpers`). */
 let thumbBlob: Promise<Uint8Array> | undefined
 
-async function thumbBytes(): Promise<Uint8Array> {
+export async function thumbBytes(): Promise<Uint8Array> {
 	thumbBlob ??= (async () => {
 		const canvas = new OffscreenCanvas(8, 6)
 		const ctx = canvas.getContext('2d')

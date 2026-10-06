@@ -390,7 +390,7 @@ describe('BookViewer — texture loading', () => {
 	it('warns instead of failing when the archive has no page image', async () => {
 		// A book whose images are not in the archive at all
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-		const book = await mountBook({ images: [bookImage('missing-a'), bookImage('missing-b')] })
+		const book = await mountBook({ images: [bookImage('missing-a'), bookImage('missing-b')], _noArchive: true })
 		expect(warn).toHaveBeenCalled()
 		expect(book.viewer._getPageCount()).toBe(1)
 		book.destroy()

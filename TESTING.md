@@ -128,7 +128,9 @@ The default run is fully hermetic:
 - `tests/helpers/network.ts` patches `globalThis.fetch`, so every main-thread request
   (`bundle.json`, IIIF manifests, styles, scripts) is served from a fixture or a 404.
   `requested` lists the URLs a test actually asked for, which is how "no network at all"
-  is asserted.
+  is asserted. `tests/browser/setup.ts` installs the patch with no routes in every
+  `beforeEach` (unless `__MICRIO_LIVE__`), so a suite that forgets to mock still cannot
+  reach the real network; `browser/smoke` pins that default.
 - A 404 is the default for anything unmatched, which keeps leaks loud instead of silent.
 - Anything that does **not** go through `fetch` needs its own fake: binary archives and
   album indexes (`src/utils/archive.ts` uses `XMLHttpRequest` — `stubArchiveXhr()`), and
@@ -174,7 +176,7 @@ mechanics; this is the map:
 | `helpers/grid.ts`           | reading a printed grid layout (`cellButtons`, `layoutIds`, `focusCell`, `settleFrames`)                                                |
 | `helpers/media.ts`          | mounting a `micrio-media` and waiting for its figure                                                                                   |
 | `helpers/embed.ts`          | the `micrio-embed` harness: `mockHost` (an id-less `<micr-io>`, so **no GL context**), `fakeImage`, `mountEmbed`, `dispatchChange`     |
-| `browser/book-helpers.ts`   | the shared `BookViewer` harness                                                                                                        |
+| `browser/book-helpers.ts`   | the shared `BookViewer` harness; packs a tiny archive for its page ids (opt out with `_noArchive`)                                     |
 
 Two rules apply to all of them:
 
