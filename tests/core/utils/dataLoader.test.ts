@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Models } from '../../src/types/models'
-import { jsonCache } from '../../src/utils/fetch'
+import type { Models } from '$types/models'
+import { jsonCache } from '$utils/fetch'
 
 type Bundle = Models.ImageBundle.BundleResponse
-import type * as DataLoaderNs from '../../src/utils/dataLoader'
+import type * as DataLoaderNs from '$utils/dataLoader'
 type DataLoaderModule = typeof DataLoaderNs
 
 const bundle = (overrides: Partial<Bundle> = {}): Bundle => ({
@@ -24,7 +24,7 @@ const bundle = (overrides: Partial<Bundle> = {}): Bundle => ({
 async function freshLoader(): Promise<DataLoaderModule> {
 	vi.resetModules()
 	jsonCache.clear()
-	return await import('../../src/utils/dataLoader')
+	return await import('$utils/dataLoader')
 }
 
 let fetchMock: ReturnType<typeof vi.fn>

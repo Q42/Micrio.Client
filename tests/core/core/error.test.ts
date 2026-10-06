@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ErrorCodes, MicrioError, getErrorMessage } from '../../src/core/error'
+import { ErrorCodes, MicrioError, getErrorMessage } from '$core/error'
 
 const response = (status: number) => ({ status }) as Response
 

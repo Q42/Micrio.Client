@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { archive } from '../../src/utils/archive'
+import { archive } from '$utils/archive'
 
 /** Builds one 32-byte MDP header entry: 20 bytes of name, 12 bytes of octal size. */
 function entry(name: string, size: number): Uint8Array {

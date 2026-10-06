@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isRTL } from '../../src/core/i18n/locale'
+import { isRTL } from '$core/i18n/locale'
 
 describe('isRTL', () => {
 	it('recognizes every right-to-left base language', () => {

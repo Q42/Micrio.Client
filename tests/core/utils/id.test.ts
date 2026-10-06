@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeV5Id, getIdVal, idIsV5, randomUUID } from '../../src/utils/id'
+import { decodeV5Id, getIdVal, idIsV5, randomUUID } from '$utils/id'
 
 describe('getIdVal', () => {
 	it('maps the uppercase alphabet to a 24..48 base', () => {

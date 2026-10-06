@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { get, writable } from '../../src/core/store'
-import { i18n, langs } from '../../src/core/i18n/strings'
+import { get, writable } from '$core/store'
+import { i18n, langs } from '$core/i18n/strings'
 
 /**
  * The UI translation tables behind every button label.

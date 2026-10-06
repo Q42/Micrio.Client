@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { epsEq, mod, mod1, modPI, normalize3, pointInArea, toCenterJSON, twoNth } from '../../src/utils/math'
+import { epsEq, mod, mod1, modPI, normalize3, pointInArea, toCenterJSON, twoNth } from '$utils/math'
 
 describe('mod', () => {
 	it('is a floored modulo, not a JS remainder', () => {

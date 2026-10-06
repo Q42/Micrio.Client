@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Bicubic, easeInOut, getEasing, getTimingFunction, longitudeDistance } from '../../src/render/easing'
+import { Bicubic, easeInOut, getEasing, getTimingFunction, longitudeDistance } from '$render/easing'
 
 describe('longitudeDistance', () => {
 	it('returns the direct distance when it is the shorter one', () => {

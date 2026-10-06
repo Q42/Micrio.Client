@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getSpaceVector } from '../../src/utils/space'
+import { getSpaceVector } from '$utils/space'
 
 /** Builds the minimal `micrio` surface `getSpaceVector` reads. */
 function stubMicrio(

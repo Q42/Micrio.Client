@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { State } from '../../src/core/state'
-import type { Writable } from '../../src/core/store'
-import { get, writable } from '../../src/core/store'
+import { State } from '$core/state'
+import type { Writable } from '$core/store'
+import { get, writable } from '$core/store'
 
 interface MarkerLike {
 	id: string

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fmt, parseTime } from '../../src/utils/time'
+import { fmt, parseTime } from '$utils/time'
 
 describe('parseTime', () => {
 	it('formats durations as hh:mm:ss, padding every field', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deepCopy } from '../../src/utils/object'
+import { deepCopy } from '$utils/object'
 
 describe('deepCopy', () => {
 	it('merges into an existing target and returns the same object', () => {

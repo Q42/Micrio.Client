@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MicrioError } from '../../src/core/error'
-import { fetchJson, jsonCache } from '../../src/utils/fetch'
+import { MicrioError } from '$core/error'
+import { fetchJson, jsonCache } from '$utils/fetch'
 
 const ok = (body: unknown): Response =>
 	({

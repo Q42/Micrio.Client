@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { defer, get, lazy, skipFirst, tick, writable, type Writable } from '../../src/core/store'
+import { defer, get, lazy, skipFirst, tick, writable, type Writable } from '$core/store'
 
 describe('writable', () => {
 	it('emits the current value synchronously on subscribe', () => {

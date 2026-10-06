@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { MicrioImage } from '../../src/core/image'
-import type { Models } from '../../src/types/models'
-import { imageHasAudio, mutedVolume, startVolume, volumeFor } from '../../src/utils/media-settings'
+import type { MicrioImage } from '$core/image'
+import type { Models } from '$types/models'
+import { imageHasAudio, mutedVolume, startVolume, volumeFor } from '$utils/media-settings'
 
 /**
  * The volume rules three places share: the `volume` store the layout provides, the Web

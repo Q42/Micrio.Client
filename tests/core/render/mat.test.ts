@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Mat4, Vec4 } from '../../src/render/mat'
+import { Mat4, Vec4 } from '$render/mat'
 
 /** Compares two matrices element-wise, tolerating Float32 precision. */
 function expectMatClose(actual: Float32Array, expected: number[], precision = 5) {
