@@ -19,6 +19,9 @@ const popupOf = (opened: OpenMarkers) => opened.viewer.el.querySelector<HTMLElem
 const control = (opened: OpenMarkers, selector: string): HTMLButtonElement | null =>
 	popupOf(opened)?.querySelector<HTMLButtonElement>(`${selector} button`) ?? null
 
+/** The popup's own tour step counter, when it renders one. */
+const counter = (opened: OpenMarkers) => popupOf(opened)?.querySelector('span.tour-counter')?.textContent
+
 afterEach(() => {
 	vi.useRealTimers()
 })
@@ -226,6 +229,49 @@ describe('marker popup during a marker tour', () => {
 		next?.click()
 		await waitFor(() => tour.currentStep === 1, 6000, 'the second step')
 		expect(tour.currentStep).toBe(1)
+		opened.viewer.destroy()
+	})
+})
+
+describe('marker popup tour step counter', () => {
+	it('shows the step counter when the image asks for it', async () => {
+		const fixture = markerBundle({
+			markerTours: [markerTour({ steps: ['m1', 'm2'] })],
+			settings: { _markers: { tourStepCounterInPopup: true } },
+		})
+		const tour = fixture.markerTours[0]
+		if (!tour) {
+			throw new Error('no tour')
+		}
+		const opened = await openMarkers(fixture)
+		opened.viewer.el.state.tour.set(tour)
+		await waitForPopup(opened.viewer.el)
+		await waitFor(() => counter(opened) === '1/2', 4000, 'the first counter')
+
+		control(opened, 'micrio-button.next')?.click()
+		await waitFor(() => tour.currentStep === 1, 6000, 'the second step')
+		await waitFor(() => counter(opened) === '2/2', 6000, 'the second counter')
+		opened.viewer.destroy()
+	})
+
+	it('shows no counter by default', async () => {
+		const fixture = markerBundle({ markerTours: [markerTour({ steps: ['m1', 'm2'] })] })
+		const opened = await openMarkers(fixture)
+		opened.viewer.el.state.tour.set(fixture.markerTours[0])
+		await waitForPopup(opened.viewer.el)
+		expect(counter(opened)).toBeUndefined()
+		opened.viewer.destroy()
+	})
+
+	it('leaves the counter to the tour aside in tourControlsInPopup mode', async () => {
+		const fixture = markerBundle({
+			markerTours: [markerTour({ steps: ['m1', 'm2'] })],
+			settings: { _markers: { tourControlsInPopup: true, tourStepCounterInPopup: true } },
+		})
+		const opened = await openMarkers(fixture)
+		opened.viewer.el.state.tour.set(fixture.markerTours[0])
+		await waitFor(() => Boolean(popupOf(opened)?.querySelector('aside.marker-tour')), 6000, 'the tour aside')
+		expect(counter(opened)).toBeUndefined()
 		opened.viewer.destroy()
 	})
 })
