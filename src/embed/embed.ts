@@ -145,6 +145,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const forceGL = glMode === 'true'
 		this.#embedImageAsHtml =
 			glMode === 'false' ||
+			// `_markers.embedsInHtml` only applies to the embeds a marker carries (its
+			// clickable areas), not to the image's own embeds
+			(Boolean(marker) && Boolean(image.$settings._markers?.embedsInHtml)) ||
 			(glMode === 'auto' && (this.#isSVG || isIOS14 || (!this.#screenIsHDR && Boolean(embed.video))))
 
 		// 3d books have their own WebGL renderer

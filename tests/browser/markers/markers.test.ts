@@ -30,6 +30,17 @@ const clickableMarker = (id: string) =>
 		} as Models.ImageData.Embed,
 	})
 
+/** A clickable area that would be printed into WebGL by default (a Micrio sub-image). */
+const glClickableMarker = (id: string) =>
+	marker(id, {
+		clickableArea: {
+			area: [0.1, 0.1, 0.2, 0.2],
+			clickAction: 'markerId',
+			clickTarget: id,
+			micrioId: 'glImage01',
+		} as Models.ImageData.Embed,
+	})
+
 describe('markers', () => {
 	it('renders one element per marker in the bundle data', async () => {
 		const opened = await openMarkers(markerBundle())
@@ -317,6 +328,32 @@ describe('markers — clickable areas', () => {
 
 		expect(opened.markerEl('click3')).toBeNull()
 		expect(opened.layer()?.querySelectorAll('micrio-embed[data-marker-id]').length).toBe(0)
+		opened.viewer.destroy()
+	})
+
+	it('prints a GL-capable area into WebGL by default', async () => {
+		const opened = await openMarkers(markerBundle({ prefix: false, markers: [glClickableMarker('gl2')] }))
+		await waitFor(() => opened.image()._embeds.length === 1, 6000, 'the WebGL sub-image')
+		expect(opened.layer()?.querySelector('micrio-embed[data-marker-id="gl2"] > div')).not.toBeNull()
+		opened.viewer.destroy()
+	})
+
+	it('prints a GL-capable area in HTML when the image asks for it', async () => {
+		const opened = await openMarkers(
+			markerBundle({
+				prefix: false,
+				markers: [glClickableMarker('gl3')],
+				settings: { _markers: { embedsInHtml: true } },
+			}),
+		)
+		await waitFor(
+			() => opened.layer()?.querySelector('micrio-embed[data-marker-id="gl3"] > div') !== null,
+			6000,
+			'the HTML overlay',
+		)
+		await settle(2)
+		// No WebGL sub-image is minted for the area
+		expect(opened.image()._embeds).toHaveLength(0)
 		opened.viewer.destroy()
 	})
 })
