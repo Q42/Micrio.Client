@@ -13,6 +13,27 @@ export const baseInfo = (id: string, extra: Partial<Models.ImageInfo.ImageInfo> 
 	...extra,
 })
 
+/**
+ * A tiny valid 2D bundle with a **fresh id per call**.
+ *
+ * `DataLoader`'s bundle cache and `fetchJson`'s response cache are module-level and keyed by
+ * id (see TESTING.md), so a suite that opens more than one image needs its own id each time —
+ * otherwise it silently gets the first test's data. Deliberately not a 7-character id:
+ * `MicrioImage` would decode that as a v5 id and read the tile format out of it.
+ */
+export const bundleWithFreshId = (
+	settings: Partial<Models.ImageInfo.Settings> = {},
+	info: Partial<Models.ImageInfo.ImageInfo> = {},
+): Models.ImageBundle.BundleImage => {
+	const id = `bx${Math.random().toString(36).slice(2, 8)}`
+	return {
+		id,
+		info: baseInfo(id, info),
+		settings,
+		data: {},
+	}
+}
+
 /** A marker with a title/body and sensible defaults. */
 export const marker = (id: string, extra: Partial<Models.ImageData.Marker> = {}): Models.ImageData.Marker => ({
 	id,

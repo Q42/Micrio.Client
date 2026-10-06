@@ -69,7 +69,7 @@ helpers) and the ambient `tests/tests.d.ts`.
 tests/
 ├── core/                    # project "core" — bare Node
 │   ├── core/                # src/core: error, state, store, i18n/
-│   ├── render/              # src/render: easing, mat
+│   ├── render/              # src/render: easing, mat, shared (view/coords/viewport)
 │   └── utils/               # src/utils: archive, dataLoader, fetch, id, math, ...
 └── browser/                 # project "browser" — Chromium
     ├── setup.ts             # vitest setupFiles: installs the fakes, imports src/main
@@ -78,6 +78,7 @@ tests/
     ├── book-helpers.ts      # the shared BookViewer harness (frame stepping, one GL context)
     ├── smoke.test.ts        # suite plumbing (the only test at the project root)
     ├── audio/  book/  core/  embed/  gallery/  grid/  layout/  markers/  media/
+    ├── render/              # the engine: canvas, camera-2d, engine-360, tile-image, postprocess
     ├── space/               # the 360 suites: camera, minimap, spaces, transitions
     ├── tour/  ui/  utils/
     └── live/                # opt-in network suite
@@ -164,25 +165,25 @@ tours).
 The builders live in `tests/fixtures/` and `tests/helpers/`. Each file documents its own
 mechanics; this is the map:
 
-| File                        | What it builds                                                                                                                                |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fixtures/bundles.ts`       | bundle builders: a modern v5+ image with markers/tours, a legacy pre-v5 image, a two-waypoint 360 space, a swipe album, a book3d album        |
-| `fixtures/space-fixture.ts` | the 360 harness: `freshSpace` (rewrites ids **and** waypoint link endpoints), `openSpace`, `openVisibleSpace`, plus optional markers/settings |
-| `fixtures/tours.ts`         | video tours, marker tours, cross-image serial tours, the `JXflr`-shaped story bundle, a small WebVTT document                                 |
-| `fixtures/markers.ts`       | the marker harness: a fresh single-image bundle with prefixed, tour-remapped marker ids and `openMarkers` (layer/element accessors)           |
-| `fixtures/grid.ts`          | a real packed grid album, the shared archive XHR stub, `gridImageId`                                                                          |
-| `fixtures/book.ts`          | a packed book3d album (thumbnails **and** index) and `openBook`                                                                               |
-| `fixtures/albums.ts`        | the swipe/switch/grid-config album harness (`albumFixture`/`mountAlbum`/`awaitAlbum`)                                                         |
-| `fixtures/omni.ts`          | the omni (3D object) fixture and `openOmni`                                                                                                   |
-| `fixtures/ui.ts`            | the toolbar/menu/popover bundle, localised in every language under test                                                                       |
-| `fixtures/embeds.ts`        | embed/video-asset builders and `embedBundle` (a 2D image whose `data.embeds` drives the layout layer)                                         |
-| `helpers/viewer.ts`         | `mountViewer` and `waitFor`                                                                                                                   |
-| `helpers/network.ts`        | the `fetch` patch, `mockJson`/`mockText`, `requested`                                                                                         |
-| `helpers/tour.ts`           | `mountTour`, `startTour`, `recordEvents`, `settle`, the fake-clock helpers                                                                    |
-| `helpers/grid.ts`           | reading a printed grid layout (`cellButtons`, `layoutIds`, `focusCell`, `settleFrames`)                                                       |
-| `helpers/media.ts`          | mounting a `micrio-media` and waiting for its figure                                                                                          |
-| `helpers/embed.ts`          | the `micrio-embed` harness: `mockHost` (an id-less `<micr-io>`, so **no GL context**), `fakeImage`, `mountEmbed`, `dispatchChange`            |
-| `browser/book-helpers.ts`   | the shared `BookViewer` harness; packs a tiny archive for its page ids (opt out with `_noArchive`)                                            |
+| File                        | What it builds                                                                                                                                                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fixtures/bundles.ts`       | bundle builders: a modern v5+ image with markers/tours, a legacy pre-v5 image, a two-waypoint 360 space, a swipe album, a book3d album, plus `bundleWithFreshId` (a plain 2D image with a new id per call) |
+| `fixtures/space-fixture.ts` | the 360 harness: `freshSpace` (rewrites ids **and** waypoint link endpoints), `openSpace`, `openVisibleSpace`, plus optional markers/settings                                                              |
+| `fixtures/tours.ts`         | video tours, marker tours, cross-image serial tours, the `JXflr`-shaped story bundle, a small WebVTT document                                                                                              |
+| `fixtures/markers.ts`       | the marker harness: a fresh single-image bundle with prefixed, tour-remapped marker ids and `openMarkers` (layer/element accessors)                                                                        |
+| `fixtures/grid.ts`          | a real packed grid album, the shared archive XHR stub, `gridImageId`                                                                                                                                       |
+| `fixtures/book.ts`          | a packed book3d album (thumbnails **and** index) and `openBook`                                                                                                                                            |
+| `fixtures/albums.ts`        | the swipe/switch/grid-config album harness (`albumFixture`/`mountAlbum`/`awaitAlbum`)                                                                                                                      |
+| `fixtures/omni.ts`          | the omni (3D object) fixture and `openOmni`                                                                                                                                                                |
+| `fixtures/ui.ts`            | the toolbar/menu/popover bundle, localised in every language under test                                                                                                                                    |
+| `fixtures/embeds.ts`        | embed/video-asset builders and `embedBundle` (a 2D image whose `data.embeds` drives the layout layer)                                                                                                      |
+| `helpers/viewer.ts`         | `mountViewer` and `waitFor`                                                                                                                                                                                |
+| `helpers/network.ts`        | the `fetch` patch, `mockJson`/`mockText`, `requested`                                                                                                                                                      |
+| `helpers/tour.ts`           | `mountTour`, `startTour`, `recordEvents`, `settle`, the fake-clock helpers                                                                                                                                 |
+| `helpers/grid.ts`           | reading a printed grid layout (`cellButtons`, `layoutIds`, `focusCell`, `settleFrames`)                                                                                                                    |
+| `helpers/media.ts`          | mounting a `micrio-media` and waiting for its figure                                                                                                                                                       |
+| `helpers/embed.ts`          | the `micrio-embed` harness: `mockHost` (an id-less `<micr-io>`, so **no GL context**), `fakeImage`, `mountEmbed`, `dispatchChange`                                                                         |
+| `browser/book-helpers.ts`   | the shared `BookViewer` harness; packs a tiny archive for its page ids (opt out with `_noArchive`)                                                                                                         |
 
 Three rules apply to all of them:
 
@@ -254,6 +255,91 @@ that test is the one to change):
 
 Also note: `getMatrix` hands back a **reused** `Float32Array`, and the CSSOM reserializes
 `matrix3d(...)` to ~6 significant digits with spaces — compare numbers, never strings.
+
+## The render engine
+
+`src/render/` is the ported WebGL tile engine: the `Engine` controller, one `TileCanvas` per
+placed image, the `Image` tile pyramid, a 2D and a 360 camera, an animation/kinetic pair, the
+`PostProcessor`, and the geometry substrate in `shared.ts`. The suites are:
+
+| Suite                        | Project | Covers                                                                                                            |
+| ---------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `core/render/shared`         | core    | `View`, `Coordinates`, `Viewport`, `DrawRect` — the pure geometry the whole engine rests on                       |
+| `browser/render/canvas`      | browser | the `Canvas` controller (place/hook/resize/crop/ratio/margins) and the `Engine` lifecycle & settings pass-through |
+| `browser/render/camera-2d`   | browser | `Camera2D` and the shared `EngineCamera`: `_pan`/`_zoom`/`_pinch`/`setCoo`/`_flyTo`, the scale-limit predicates   |
+| `browser/render/engine-360`  | browser | `Camera360` (rotate/zoom/limits/coordinates/view sync), the 360 `TileCanvas` facades, and `Kinetic`               |
+| `browser/render/tile-image`  | browser | the tile pyramid, layer selection, `_getTiles` culling, and the 360 sphere sampler                                |
+| `browser/render/postprocess` | browser | `PostProcessor` and the watermark/uniform paths of `WebGL`, with **no** viewer                                    |
+
+Harness notes:
+
+- **One GL context per file is the rule; `canvas` and `camera-2d` are the two exceptions.**
+  Both mount a viewer _per test_ because each assertion needs a clean camera (scale, limits and
+  any armed animation all leak between calls), and resetting a live engine by hand is more
+  fragile than one more context. Those two files together are still only a handful of contexts.
+  `engine-360` and `tile-image` follow the rule with one viewer each per describe block.
+- **`postprocess` needs no viewer at all.** `PostProcessor` takes a WebGL context as an
+  argument, and the element it is handed is only used for its pure `_getShader` compiler — so
+  the suite calls `micrio._webgl._init()` on an id-less `<micr-io>` and then keeps _that one_
+  context for the whole file, asserting with `gl.isTexture`/`isFramebuffer`/`isProgram` rather
+  than pixels.
+- **Two different `_canvases` arrays exist.** `viewer.el._canvases` is the element's list of
+  loaded `MicrioImage`s; `viewer.el._engine._canvases` is the engine's list of `TileCanvas`
+  instances, and the canvas is what knows which image it was built for (`canvas._micrioImage`).
+  Most render tests want the engine's list.
+- **The placed image is not always `micrio.$current`.** A grid/gallery parent owns its own
+  `MicrioImage` per id, so anything that walks the engine's per-image maps (fades, removal,
+  embedding) has to use `canvas._micrioImage` — see `placedImage()` in `canvas.test.ts`.
+- **`_getCoo` hands back one reused `Coordinates` and `View.arr` one reused `Float64Array`.**
+  Capture the scalars you need before the next call, exactly as with `getMatrix`.
+- **Some engine state is written by the frame loop, not by the call under test.** `TileCanvas`
+  resets the current image's opacity/target during its first frame, so `tile-image.test.ts`
+  waits one turn of the event loop after opening before poking an `Image` — otherwise the next
+  frame overwrites the value.
+
+Three state machines are pinned directly:
+
+1. **The tile load state** (`TileEntry._loadState`, 0 → 1 → 2 → 3) and the cleanup that
+   evicts a tile once it has been off-screen for `_deleteAfterSeconds`.
+2. **The camera limit/scale state** — `coverLimit` vs `freeMove`, `_minScale`/`_maxScale`,
+   `_minSize` and the over-zoom correction in `View._limit`.
+3. **`Ani`'s `_flying`/`_limit`/`_correcting` flags**, which decide whether a view write is
+   clamped while an animation is running.
+
+Two render files sit below their neighbours. **`tile-image.ts` (65.7%)**: its 360-embed
+overlap branches (`#getTilesViewport`, `#getEmbeddedScale`, `_setDrawRect`) need a hand-built
+frustum fixture, and the archive/`fromScale` layer-count variants need a packed archive.
+**`ani.ts` (77.5%)**: the uncovered half is the jump-transition edge flags (`#fL/#fR/#fT/#fB`)
+and the omni index wrap, both of which need a crafted from/to view pair rather than a real
+navigation. Both are noted in the backlog rather than faked.
+
+## The grid transitions and input layer
+
+`browser/grid/grid-transitions.test.ts` covers `src/grid/transitions.ts` and
+`src/grid/keyboard.ts` — the layout transitions and the keyboard/tap input layer — together
+with the marker/tour action dispatcher in `action-handlers.ts`.
+
+- **`gridFocus` never reaches `setupBehindTransition`.** Only
+  `grid.set(..., { transition: 'behind' | 'behind-delayed' })` does, and the stacking it applies
+  is overwritten once the layout settles — so that helper is asserted directly, with a real grid.
+  `behind-left` is a `MarkerFocusTransition`, not a `GridSetTransition`: only the plain `behind`
+  name survives `set()`'s narrowing.
+- **The blur runs under fake timers.** A focus with `blur: N` writes inline
+  `filter`/`transition` styles and clears them through two nested `setTimeout`s. Mount and open
+  with real timers first (`waitFor` polls on rAF, which a faked clock never advances), then
+  switch. The blur branch is also only reachable for a **non-crossfade** transition: a
+  crossfade returns from `transition()` before it, and so does a `view` handed in with
+  `noViewAni` set.
+- **`hookGridKeys` attaches the cell-tap listeners only for `panZoom === 'grid'` with a truthy
+  `clickable`.** There is no public API for "arrow key" or "tap", so both are dispatched as real
+  events; the tap path destructures `const [vx, vy] = gridImage.camera.getCoo(...)`, so a stub
+  of that camera method has to be iterable.
+- **This fixture lays every cell out in one row** (all areas share a `y`), which is why the
+  vertical arrow keys are asserted through their wrap-around fallback rather than a row change.
+- One gap is pinned: the `console.warn('Given image IDs gave no current displayed images')`
+  branch in the `flyTo` handler is unreachable from the dispatcher, because
+  `data?.split(',').map(...)` has at least one element for _any_ string, including `''`
+  (`grid-transitions.test.ts`, "a flyTo action with unknown ids is silently ignored").
 
 ## The markers subsystem
 
@@ -344,14 +430,14 @@ The core project only reaches ~7% on its own (bare Node never imports render, ga
 book or the element), so `vitest run --project core --coverage` trips every threshold by
 design — use it to inspect one project, not to gate.
 
-Baseline (re-recorded after the marker fixes, stable to ±0.05 across runs):
+Baseline (stable to ±0.05 across runs):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 83.7     | 83    |
-| Branches   | 74.3     | 73    |
-| Functions  | 84.8     | 84    |
-| Lines      | 83.5     | 82    |
+| Statements | 87.3     | 86    |
+| Branches   | 77.9     | 76    |
+| Functions  | 87.7     | 86    |
+| Lines      | 87.2     | 86    |
 
 The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
 coverage loss fails the run while ordinary refactoring does not. They are deliberately
@@ -365,31 +451,36 @@ toolbar, a swipe gallery, a media control — scores high with no assertion abou
 63 of the 124 files in the report score above zero without a test ever naming the module.
 The suites above remain the source of truth for what is actually asserted.
 
-Statement coverage per area at that baseline — the thin spots are the honest backlog,
-not the floor:
+Statement coverage per area. These are the rows `vitest` itself prints: a row covers the
+files that sit **directly** in that directory, so `src/core` and `src/core/events` (and
+`src/layout` / `src/layout/nav`) are separate rows. A _subtree_ figure has to be read off the
+child rows — `src/core` is 80.6% for its own files, and 71.2% once `src/core/events` (49.5%)
+is folded in.
 
-| Area        | Stmts |
-| ----------- | ----- |
-| src/utils   | 96.5  |
-| src/embed   | 93.4  |
-| src/ui      | 93.4  |
-| src/markers | 93.4  |
-| src/gallery | 90.2  |
-| src/audio   | 88.2  |
-| src/media   | 86.4  |
-| src/layout  | 86.3  |
-| src/book    | 84.3  |
-| src/tour    | 80.5  |
-| src/core    | 80.0  |
-| src/grid    | 79.9  |
-| src/render  | 74.9  |
+| Area            | Stmts | Covered   |
+| --------------- | ----- | --------- |
+| src/utils       | 96.5  | 361/374   |
+| src/core/i18n   | 95.5  | 21/22     |
+| src/embed       | 93.4  | 342/366   |
+| src/markers     | 93.4  | 739/791   |
+| src/ui          | 93.4  | 142/152   |
+| src/grid        | 90.3  | 616/682   |
+| src/gallery     | 90.2  | 899/997   |
+| src/audio       | 88.2  | 217/246   |
+| src/render      | 88.1  | 2753/3124 |
+| src/media       | 86.4  | 867/1003  |
+| src/layout      | 86.3  | 588/681   |
+| src/book        | 84.3  | 669/794   |
+| src/layout/nav  | 82.5  | 260/315   |
+| src/core        | 80.6  | 860/1067  |
+| src/tour        | 80.5  | 211/262   |
+| src/book/input  | 52.4  | 77/147    |
+| src/core/events | 49.5  | 241/487   |
 
-`src/embed` used to be the one real hole (1.2%); the embed suites now take it to ~93%.
-`src/markers` was the thinnest area left at 63.8%, and the marker suites took it to 93.4%
-— so the honest thin spots are now `src/render` (~75%), `src/grid` (~80%) and the
-interaction layer under `src/core/events` (~49%). To raise the floor, run
-`pnpm test:coverage`, move the baseline to the new number, and keep the floors ~1 point
-under it.
+The thin spots, in order: **`src/core/events` (49.5%)** — the wheel, gesture, pinch,
+double-tap and context-menu layer — then `src/book/input` (52.4%) and `src/tour` (80.5%).
+They are the backlog, not the floor. To raise the floor, run `pnpm test:coverage`, move the
+baseline to the new number, and keep the floors ~1 point under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
 pays nothing for it.
@@ -419,6 +510,12 @@ pays nothing for it.
 | bundle.json loading and caching                     | `tests/core/utils/dataLoader`                                                    | done   |
 | MDP archive parsing                                 | `tests/core/utils/archive`                                                       | done   |
 | Matrix/vector math                                  | `tests/core/render/mat`                                                          | done   |
+| View / Coordinates / Viewport geometry              | `tests/core/render/shared`                                                       | done   |
+| `Canvas` controller and `Engine` lifecycle          | `tests/browser/render/canvas`                                                    | done   |
+| 2D camera (`_pan`/`_zoom`/pinch/`setCoo`)           | `tests/browser/render/camera-2d`                                                 | done   |
+| 360 camera, 360 canvas facades, kinetic drag        | `tests/browser/render/engine-360`                                                | done   |
+| Tile pyramid, layer selection, tile culling         | `tests/browser/render/tile-image`                                                | done   |
+| Postprocessor and WebGL watermark                   | `tests/browser/render/postprocess`                                               | done   |
 | Legacy (pre-v5) vs v5+ bundles                      | `tests/browser/core/element-legacy`                                              | done   |
 | `<micr-io>` open / events / attributes              | `tests/browser/core/element-*`                                                   | done   |
 | Marker layer, filter, settings, clickable areas     | `tests/browser/markers/markers`                                                  | done   |
@@ -458,6 +555,7 @@ pays nothing for it.
 | Adapter selection and wiring in `<micrio-media>`    | `tests/browser/media/media-adapters`                                             | done   |
 | Grid column maths and transition areas              | `tests/browser/grid/grid-format`                                                 | done   |
 | Grid storytelling                                   | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done   |
+| Grid transitions, keyboard and tap input            | `tests/browser/grid/grid-transitions`                                            | done   |
 | Book maths (vec3, page layout, spine sync)          | `tests/core/book/{vec3,layout,spine-sync}`                                       | done   |
 | XPBD physics solver                                 | `tests/core/book/native-solver`                                                  | done   |
 | Book meshes, uv projection, raycasting              | `tests/browser/book/{meshes,uv-project,raycast}`                                 | done   |
@@ -487,3 +585,10 @@ Roughly in order of value against risk:
    pins it (see [The embed subsystem](#the-embed-subsystem)).
 3. **The layer's grid `inactive` path** — the one marker branch with no suite; reaching it
    offline needs a hand-built visible cell (see [The markers subsystem](#the-markers-subsystem)).
+4. **`src/core/events`** — the interaction layer (wheel, gesture, pinch, double-tap, context
+   menu) sits around 49%, now the lowest area in the tree. It needs a synthetic pointer-event
+   harness; the grid tap tests in `browser/grid/grid-transitions` are the closest thing to one.
+5. **`src/render/tile-image.ts`'s 360-embed branches** — `#getTilesViewport`,
+   `#getEmbeddedScale` and `_setDrawRect` need a hand-built frustum fixture, and the
+   archive/`fromScale` layer-count variants need a packed archive (see
+   [The render engine](#the-render-engine)).

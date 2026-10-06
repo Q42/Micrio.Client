@@ -60,10 +60,10 @@ export default defineConfig({
 			// "Coverage"), so a real coverage loss fails the run while ordinary
 			// refactoring does not. Raise them when the baseline moves up.
 			thresholds: {
-				statements: 83,
-				branches: 73,
-				functions: 84,
-				lines: 82,
+				statements: 86,
+				branches: 76,
+				functions: 86,
+				lines: 86,
 			},
 		},
 		// The root config holds no tests itself; only the projects below do.
