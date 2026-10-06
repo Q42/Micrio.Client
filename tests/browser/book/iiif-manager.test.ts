@@ -142,10 +142,10 @@ describe('IIIFTextureManager', () => {
 		})
 	})
 
-	it('asks for a level the source image cannot deliver, because of the guard order', async () => {
-		// `#chooseWidth` only compares against `originalWidth` when the current
-		// level is *already* at or above it, so a tiny source still gets the 2048
-		// tile on its first load. Pinned as the current behaviour of a bug.
+	it('never asks for a level wider than the source image', async () => {
+		// `#chooseWidth` used to compare a desired width against `originalWidth`
+		// while gating on the *current level*, so a first load (level 0) of a tiny
+		// source still requested the 2048 tile
 		const small = fakeRenderer(4096, 2048)
 		const zoomed = new IIIFTextureManager(small.renderer, 'https://iiif.test')
 		const { images, pageIdxes } = book(2, 300)
@@ -153,7 +153,7 @@ describe('IIIFTextureManager', () => {
 		zoomed._onFrame(0, 0, 2.2)
 		zoomed._onFrame(500, 0, 0.05)
 		await vi.waitFor(() => {
-			expect(requested[0]).toContain('!2048,')
+			expect(requested[0]).toContain('!300,')
 		})
 	})
 

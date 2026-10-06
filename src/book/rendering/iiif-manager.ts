@@ -144,8 +144,11 @@ export class IIIFTextureManager {
 		if (screenPagePx > 1536) {
 			width = 2048
 		}
-		if (width > originalWidth && currentLevel >= originalWidth) {
-			return currentLevel
+		// Never ask the image server for a level wider than the source: a small
+		// original would only ever upscale. An unknown (0) width keeps the
+		// screen-size choice, and a known level is never downgraded.
+		if (originalWidth > 0) {
+			width = Math.min(width, originalWidth)
 		}
 		return Math.max(width, currentLevel)
 	}
