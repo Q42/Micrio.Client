@@ -23,3 +23,16 @@
   meaningful per-checklist item commits, keeping the description under 255
   characters. Do NOT create git commits by default outside of that flow —
   leave the working tree to the user.
+- **Keep the number of live WebGL contexts tiny — Chromium silently falls back
+  to software rendering.** A test (or any page) that creates a context per
+  mount exhausts the browser's small budget, and the oldest contexts are
+  evicted: later frames then crawl, animations never finish, and it looks like
+  a logic bug. In the book suites every viewer shares one context
+  (`tests/browser/book/helpers.ts`). Prefer one context reused for the whole
+  file over one per fixture.
+- **`Frame` is a module singleton with no reset API.** Anything that drives
+  frames by hand (stubbing `requestAnimationFrame`, stepping a viewer) must keep
+  its scheduled-frame id honest: a callback left pending leaves `rafId` set, and
+  every later `Frame.request` then waits on a frame that never comes. Point it
+  at a capture host (`Frame._setDisplay`) and run one tick per step, as
+  `tests/browser/book/helpers.ts` does.
