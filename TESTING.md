@@ -164,31 +164,38 @@ tours).
 The builders live in `tests/fixtures/` and `tests/helpers/`. Each file documents its own
 mechanics; this is the map:
 
-| File                        | What it builds                                                                                                                         |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `fixtures/bundles.ts`       | bundle builders: a modern v5+ image with markers/tours, a legacy pre-v5 image, a two-waypoint 360 space, a swipe album, a book3d album |
-| `fixtures/space-fixture.ts` | the 360 harness: `freshSpace` (rewrites ids **and** waypoint link endpoints), `openSpace`, `openVisibleSpace`                          |
-| `fixtures/tours.ts`         | video tours, marker tours, cross-image serial tours, the `JXflr`-shaped story bundle, a small WebVTT document                          |
-| `fixtures/grid.ts`          | a real packed grid album, the shared archive XHR stub, `gridImageId`                                                                   |
-| `fixtures/book.ts`          | a packed book3d album (thumbnails **and** index) and `openBook`                                                                        |
-| `fixtures/albums.ts`        | the swipe/switch/grid-config album harness (`albumFixture`/`mountAlbum`/`awaitAlbum`)                                                  |
-| `fixtures/omni.ts`          | the omni (3D object) fixture and `openOmni`                                                                                            |
-| `fixtures/ui.ts`            | the toolbar/menu/popover bundle, localised in every language under test                                                                |
-| `fixtures/embeds.ts`        | embed/video-asset builders and `embedBundle` (a 2D image whose `data.embeds` drives the layout layer)                                  |
-| `helpers/viewer.ts`         | `mountViewer` and `waitFor`                                                                                                            |
-| `helpers/network.ts`        | the `fetch` patch, `mockJson`/`mockText`, `requested`                                                                                  |
-| `helpers/tour.ts`           | `mountTour`, `startTour`, `recordEvents`, `settle`, the fake-clock helpers                                                             |
-| `helpers/grid.ts`           | reading a printed grid layout (`cellButtons`, `layoutIds`, `focusCell`, `settleFrames`)                                                |
-| `helpers/media.ts`          | mounting a `micrio-media` and waiting for its figure                                                                                   |
-| `helpers/embed.ts`          | the `micrio-embed` harness: `mockHost` (an id-less `<micr-io>`, so **no GL context**), `fakeImage`, `mountEmbed`, `dispatchChange`     |
-| `browser/book-helpers.ts`   | the shared `BookViewer` harness; packs a tiny archive for its page ids (opt out with `_noArchive`)                                     |
+| File                        | What it builds                                                                                                                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fixtures/bundles.ts`       | bundle builders: a modern v5+ image with markers/tours, a legacy pre-v5 image, a two-waypoint 360 space, a swipe album, a book3d album        |
+| `fixtures/space-fixture.ts` | the 360 harness: `freshSpace` (rewrites ids **and** waypoint link endpoints), `openSpace`, `openVisibleSpace`, plus optional markers/settings |
+| `fixtures/tours.ts`         | video tours, marker tours, cross-image serial tours, the `JXflr`-shaped story bundle, a small WebVTT document                                 |
+| `fixtures/markers.ts`       | the marker harness: a fresh single-image bundle with prefixed, tour-remapped marker ids and `openMarkers` (layer/element accessors)           |
+| `fixtures/grid.ts`          | a real packed grid album, the shared archive XHR stub, `gridImageId`                                                                          |
+| `fixtures/book.ts`          | a packed book3d album (thumbnails **and** index) and `openBook`                                                                               |
+| `fixtures/albums.ts`        | the swipe/switch/grid-config album harness (`albumFixture`/`mountAlbum`/`awaitAlbum`)                                                         |
+| `fixtures/omni.ts`          | the omni (3D object) fixture and `openOmni`                                                                                                   |
+| `fixtures/ui.ts`            | the toolbar/menu/popover bundle, localised in every language under test                                                                       |
+| `fixtures/embeds.ts`        | embed/video-asset builders and `embedBundle` (a 2D image whose `data.embeds` drives the layout layer)                                         |
+| `helpers/viewer.ts`         | `mountViewer` and `waitFor`                                                                                                                   |
+| `helpers/network.ts`        | the `fetch` patch, `mockJson`/`mockText`, `requested`                                                                                         |
+| `helpers/tour.ts`           | `mountTour`, `startTour`, `recordEvents`, `settle`, the fake-clock helpers                                                                    |
+| `helpers/grid.ts`           | reading a printed grid layout (`cellButtons`, `layoutIds`, `focusCell`, `settleFrames`)                                                       |
+| `helpers/media.ts`          | mounting a `micrio-media` and waiting for its figure                                                                                          |
+| `helpers/embed.ts`          | the `micrio-embed` harness: `mockHost` (an id-less `<micr-io>`, so **no GL context**), `fakeImage`, `mountEmbed`, `dispatchChange`            |
+| `browser/book-helpers.ts`   | the shared `BookViewer` harness; packs a tiny archive for its page ids (opt out with `_noArchive`)                                            |
 
-Two rules apply to all of them:
+Three rules apply to all of them:
 
 - **Fresh ids for anything module-cached.** `DataLoader`'s bundle/space/album caches and
   the shared `jsonCache` are module-level and live for the whole test file, so a fixture
   that goes through the network path must generate new ids per call (the per-file base-36
-  counters in `grid.ts`, `albums.ts`, `omni.ts` and `ui.ts` do this).
+  counters in `grid.ts`, `albums.ts`, `omni.ts` and `ui.ts` do this). `MicrioElement._markerImages`
+  is the same kind of cache: it maps a marker id to its `MicrioImage` for the lifetime of
+  the test file, so `markers.ts` prefixes every marker id per call.
+- **Never give a fixture image a 7-character id.** `MicrioImage` decodes any non-IIIF
+  7-character id as a v5 id (`src/utils/id.ts`), which reads `is360` and the tile format
+  out of the id itself — so a random 7-character fixture id makes 2D tests randomly take
+  the 360 branch.
 - **Helper matchers take a `RegExp`, not a URL string** (`mockJson`, `mockText`,
   `bundleUrl`).
 
@@ -248,6 +255,67 @@ that test is the one to change):
 Also note: `getMatrix` hands back a **reused** `Float32Array`, and the CSSOM reserializes
 `matrix3d(...)` to ~6 significant digits with spaces — compare numbers, never strings.
 
+## The markers subsystem
+
+`src/markers/` is a layer element plus three children, and the suites are named after them:
+`browser/markers/{markers, marker-render, marker-actions, marker-popup, marker-content,
+marker-cluster, marker-autotour, marker-split}` (with `waypoints` covering the 360 links).
+
+- `markers.ts` (`<micrio-markers>`) is mounted by the layout once per **visible** image
+  that has markers or a 360 space. It filters markers by the active language, injects each
+  marker's `clickableArea` as a `<micrio-embed>` _before_ the marker elements, syncs the 360
+  waypoints, and runs the clustering pass.
+- `marker.ts` (`<micrio-marker>`) is the dot: icons, labels and tooltips from the marker's
+  `i18n`, its own click/focus handling, and the whole open/close state machine (camera view,
+  popup, popover, video tour, `micrioLink`, `micrioSplitLink`, auto-starting a marker tour).
+- `marker-popup.ts` (`<micrio-marker-popup>`) is created by the layout from
+  `micrio.state.popup`; a marker **popover** is a `state.popover` mode rendered by
+  `layout/popover.ts` instead.
+- `marker-content.ts` (`<micrio-marker-content>`) renders the culture data (title, bodies,
+  media, embed, images); both the popup and the popover mount it.
+
+Harness notes:
+
+- **`MicrioElement._markerImages` is a module-level map keyed by marker id and never
+  cleared.** `marker-content` and `marker-popup` resolve their image through it, so a
+  reused marker id hands a later test the image of a viewer that was destroyed earlier.
+  `fixtures/markers.ts` prefixes every marker id per call and remaps the marker tours'
+  `steps` and `stepInfo` (including `micrioId`, so a single-image tour does not try to open
+  the tours fixture's placeholder image).
+- **Wait for the layer, not for marker elements.** A fixture whose markers are all filtered
+  out by the active language still mounts `<micrio-markers>` and has no marker elements;
+  `openMarkers` waits for the layer for exactly that reason.
+- **A marker element is mounted against a real viewer** (the layer only exists inside
+  `<micr-io>`), while the popup and content elements are mounted by the layout and by their
+  parent — so the suites drive _state_ (`state.marker`, `state.popup`) rather than creating
+  the elements by hand.
+- **The popup animates out on its own.** Clearing `state.popup` does not remove the element:
+  its own subscription adds `destroying` and a `transitionend` on itself is what removes it.
+
+One branch is deliberately left out: the layer's grid `inactive` path (a cell that is not
+focused drops its markers, waypoints and clickable areas). Grid cells never enter
+`micrio._visible` offline — `helpers/grid.ts` documents why — so no `<micrio-markers>` is
+ever mounted for them, and reaching it needs a hand-built fake.
+
+The suites pin five gaps, each with a test starting with `KNOWN GAP`:
+
+1. **The cluster never shows its member count** — `markers.ts` sets it on the legacy
+   top-level `title`, which `marker.ts` does not read.
+2. **`no-cluster` is checked one-sidedly** — the pair loop only consults the _later_ member,
+   so the tag does nothing when it sits on the lower index.
+3. **A changed marker under the same id is never re-applied** — `rebuild` only creates
+   missing elements.
+4. **The popup control is never disabled** — `#clickedPrevNext` is read for `disabled` but
+   never assigned.
+5. **Switching markers rebuilds a split that points at the same image** — the state passes
+   through the marker _id string_ first, and the close path treats that intermediate value
+   as "no marker".
+
+Marker settings that are read **nowhere** in this client, so no suite can pin their
+behaviour (only their absence): `markerColor`, `markerSize`, `viewportIsMarker`,
+`embedsInHtml`, `hideMarkersDuringTour`, `keepPopupsDuringTourTransitions` and
+`tourStepCounterInPopup`.
+
 ## Coverage
 
 `pnpm test:coverage` runs both projects under `@vitest/coverage-v8` and merges them
@@ -259,14 +327,14 @@ The core project only reaches ~7% on its own (bare Node never imports render, ga
 book or the element), so `vitest run --project core --coverage` trips every threshold by
 design — use it to inspect one project, not to gate.
 
-Baseline (first recorded run, stable to ±0.05 across runs):
+Baseline (re-recorded after the marker suites, stable to ±0.05 across runs):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 81.6     | 80    |
-| Branches   | 71.1     | 70    |
-| Functions  | 81.6     | 81    |
-| Lines      | 81.5     | 80    |
+| Statements | 83.6     | 82    |
+| Branches   | 74.0     | 73    |
+| Functions  | 84.7     | 83    |
+| Lines      | 83.4     | 82    |
 
 The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
 coverage loss fails the run while ordinary refactoring does not. They are deliberately
@@ -288,21 +356,23 @@ not the floor:
 | src/utils   | 96.5  |
 | src/ui      | 93.4  |
 | src/embed   | 93.4  |
+| src/markers | 91.7  |
 | src/gallery | 90.2  |
 | src/audio   | 88.2  |
-| src/media   | 86.1  |
-| src/layout  | 86.0  |
+| src/media   | 86.4  |
+| src/layout  | 86.3  |
 | src/book    | 84.3  |
+| src/core    | 80.6  |
 | src/tour    | 80.5  |
 | src/grid    | 79.9  |
-| src/core    | 75.6  |
-| src/render  | 74.6  |
-| src/markers | 63.8  |
+| src/render  | 74.9  |
 
-`src/embed` used to be the one real hole (1.2%); the embed suites now take it to ~93%,
-and `src/media` moved from 74.8 to 86.1 with `GLEmbedVideo` covered. `src/markers` is the
-thinnest area left. To raise the floor, run `pnpm test:coverage`, move the baseline to the
-new number, and keep the floors ~1 point under it.
+`src/embed` used to be the one real hole (1.2%); the embed suites now take it to ~93%.
+`src/markers` was the thinnest area left at 63.8%, and the marker suites took it to 91.7%
+— so the honest thin spots are now `src/render` (~75%), `src/grid` (~80%) and the
+interaction layer under `src/core/events` (~49%). To raise the floor, run
+`pnpm test:coverage`, move the baseline to the new number, and keep the floors ~1 point
+under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
 pays nothing for it.
@@ -334,7 +404,14 @@ pays nothing for it.
 | Matrix/vector math                                  | `tests/core/render/mat`                                                          | done   |
 | Legacy (pre-v5) vs v5+ bundles                      | `tests/browser/core/element-legacy`                                              | done   |
 | `<micr-io>` open / events / attributes              | `tests/browser/core/element-*`                                                   | done   |
-| Markers                                             | `tests/browser/markers/markers`                                                  | done   |
+| Marker layer, language filter, clickable areas      | `tests/browser/markers/markers`                                                  | done   |
+| Marker icons, labels, tooltips, scaling (2D/360)    | `tests/browser/markers/marker-render`                                            | done   |
+| Marker clicks, events, links, tour interaction      | `tests/browser/markers/marker-actions`                                           | done   |
+| Marker popup, minimize, tour controls               | `tests/browser/markers/marker-popup`                                             | done   |
+| Marker content, media, embeds, image gallery        | `tests/browser/markers/marker-content`                                           | done   |
+| Marker clustering                                   | `tests/browser/markers/marker-cluster`                                           | done   |
+| Auto-starting a marker tour                         | `tests/browser/markers/marker-autotour`                                          | done   |
+| Marker split-screen links                           | `tests/browser/markers/marker-split`                                             | done   |
 | 360 space resolution and navigation                 | `tests/browser/space/tours-360`                                                  | done   |
 | 360 camera (yaw/pitch, transforms, matrix)          | `tests/browser/space/camera-360`                                                 | done   |
 | `trueNorth` and image orientation                   | `tests/browser/space/space-truenorth`                                            | done   |
@@ -391,3 +468,8 @@ Roughly in order of value against risk:
 2. **The leaky WebGL sub-image** — releasing an embedded `MicrioImage` needs image/engine
    teardown that does not exist yet, so the `KNOWN GAP` test in `browser/embed/embed`
    pins it (see [The embed subsystem](#the-embed-subsystem)).
+3. **The unread marker settings** — `markerColor`, `markerSize`, `viewportIsMarker`,
+   `embedsInHtml`, `hideMarkersDuringTour`, `keepPopupsDuringTourTransitions` and
+   `tourStepCounterInPopup` are declared and served but read nowhere (see
+   [The markers subsystem](#the-markers-subsystem)). Each needs a consumer or a removal,
+   and that is when the `KNOWN GAP` marker tests have to change.
