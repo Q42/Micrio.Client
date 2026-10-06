@@ -208,4 +208,21 @@ describe('marker popup during a marker tour', () => {
 		await waitFor(() => opened.viewer.el.state.$tour === undefined, 6000, 'the tour stopped')
 		opened.viewer.destroy()
 	})
+
+	it('KNOWN GAP: the popup control is never disabled', async () => {
+		// `#clickedPrevNext` is read for `disabled` but never assigned, so the step
+		// control stays clickable while the tour is moving.
+		const fixture = markerBundle({ markerTours: [markerTour({ steps: ['m1', 'm2'] })] })
+		const opened = await openMarkers(fixture)
+		opened.viewer.el.state.tour.set(fixture.markerTours[0])
+		await waitForPopup(opened.viewer.el)
+
+		const next = control(opened, 'micrio-button.next')
+		expect(next?.disabled).toBe(false)
+
+		next?.click()
+		await waitFor(() => control(opened, 'micrio-button.close') !== null, 6000, 'the close control')
+		expect(control(opened, 'micrio-button.close')?.disabled).toBe(false)
+		opened.viewer.destroy()
+	})
 })

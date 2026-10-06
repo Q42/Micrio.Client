@@ -106,6 +106,25 @@ describe('markers', () => {
 		])
 		opened.viewer.destroy()
 	})
+
+	it('KNOWN GAP: a changed marker with the same id is not re-rendered', async () => {
+		// `rebuild` only creates missing elements, so a marker whose data changed under
+		// the same id keeps its old label. When `_setProps` starts being re-applied,
+		// this test changes.
+		const opened = await openMarkers(markerBundle({ markers: [marker('m1')] }))
+		expect(opened.markerEl('m1')?.querySelector('label')?.textContent).toBe('Marker m1')
+
+		const data = opened.image().$data
+		const changed: Models.ImageData.Marker[] = []
+		for (const m of data?.markers ?? []) {
+			changed.push(Object.assign({}, m, { i18n: { en: { title: 'Updated title' } } }))
+		}
+		opened.image().data.set({ ...data, markers: changed })
+		await settle(2)
+
+		expect(opened.markerEl('m1')?.querySelector('label')?.textContent).toBe('Marker m1')
+		opened.viewer.destroy()
+	})
 })
 
 describe('markers — language filter', () => {
