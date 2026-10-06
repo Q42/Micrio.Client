@@ -21,6 +21,16 @@ import { mountViewer, waitFor, type Viewer } from '../helpers/viewer'
  * The image ids must survive `decodeV5Id` as plain, non-360 raster images and
  * must be unique per fixture: `DataLoader`'s bundle/album caches are module-level
  * and keyed by id, so a reused id serves an earlier test's album.
+ *
+ * The archive stub is the grid fixture's, and it is deliberately not removed by
+ * {@link openBook}: `#print`/`_openOn` are fire-and-forget, so an album can still
+ * be resolving when the test moves on. Restore it in the suite's `afterEach`
+ * (`restoreArchiveXhr()`).
+ *
+ * The gallery parent keeps its **empty id** and stays `$current` for the whole
+ * book — that is the hop the book's draw hand-off uses to reach the marker layer.
+ * A book test therefore asserts through the album accessors below (`bookAlbum`,
+ * `scrubberTicks`, `bookMarkers`) rather than through `$current`.
  */
 
 /** A decodable image body to store as each page's thumbnail. */

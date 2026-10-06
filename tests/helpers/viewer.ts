@@ -42,7 +42,13 @@ export function mountViewer(
 	}
 }
 
-/** Resolves once `predicate` is true, polling on animation frames; rejects after `timeout` ms. */
+/**
+ * Resolves once `predicate` is true, polling on animation frames; rejects after `timeout` ms.
+ *
+ * The polling is on `requestAnimationFrame`, so a faked clock never advances it: mount and
+ * open with real timers, then switch to `vi.useFakeTimers()` (the pattern
+ * `tests/browser/media/video-tour.test.ts` documents under `mountWithFakeTime`).
+ */
 export function waitFor(predicate: () => boolean, timeout = 5000, label = 'condition'): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		const start = performance.now()

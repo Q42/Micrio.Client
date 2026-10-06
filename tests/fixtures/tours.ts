@@ -2,6 +2,22 @@ import type { Models } from '$types/models'
 import type { I18n } from '$types/models/common'
 import { baseInfo, marker } from './bundles'
 
+/**
+ * Tour fixtures: video tours, marker tours, cross-image serial tours, the
+ * `JXflr`-shaped story bundle and a small WebVTT document.
+ *
+ * Two shapes matter before writing a tour test:
+ *
+ * - **A tour that reads `DataLoader._getStepMarker`** (`src/tour/tour.ts` and
+ *   `src/tour/serial-tour.ts` both do) **must be mounted through `bundle.json`**,
+ *   not as a bundle object: that cache is filled by the fetch, so the object path
+ *   resolves every step marker to `undefined`.
+ * - **A serial tour only produces media — and therefore progress bars — for steps
+ *   whose marker carries its own video tour.** {@link tourBundle}'s
+ *   `markersWithVideo` builds exactly that marker set; `serialStoryBundle` pairs it
+ *   with a serial tour whose `stepInfo` names one marker per sibling image.
+ */
+
 /** A camera viewport in tour space. */
 const view = (x: number, y: number, w = 0.5, h = 0.5): Models.Camera.View => [x, y, w, h]
 

@@ -53,7 +53,7 @@ export interface OmniOptions {
 	offsetX?: number
 	/** Put the labels on the side of the object. */
 	sideLabels?: boolean
-	/** Extra settings merged last (for the settings that are not wired up yet). */
+	/** Extra settings merged under `omni`, for the settings a test wants to vary. */
 	omni?: Partial<Models.ImageInfo.OmniSettings>
 	/** Bundle version; below `5` `setup` skips the archive load entirely. */
 	version?: string

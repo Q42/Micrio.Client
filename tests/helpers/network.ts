@@ -6,9 +6,16 @@
  * so fixtures can be served without touching the real viewer API.
  *
  * Texture tiles are decoded inside a dedicated Web Worker
- * (`src/render/textures.ts`), where this patch does not apply — the default
- * suite therefore asserts nothing about pixels, only about data and DOM. The
- * `live/` suite is the place where real tiles are loaded.
+ * (`src/render/textures.ts`), where this patch does not apply — `tests/browser/textures.ts`
+ * fakes that worker instead. Binary archives and album indexes bypass it too, because
+ * `src/utils/archive.ts` reads them over **XMLHttpRequest**: `stubArchiveXhr()` in
+ * `tests/fixtures/grid.ts` is that fake. The default suite therefore asserts nothing about
+ * pixels, only about data and DOM; the `live/` suite is where real tiles are loaded.
+ *
+ * One more thing the patch cannot undo: `fetchJson` caches its parsed responses in a
+ * module-level map keyed by URI (see `src/utils/fetch.ts`), so two tests that reuse a URL
+ * share the first test's response. Give every manifest or `info.json` fixture its own URL,
+ * the same way a reused image id would be served from `DataLoader`'s bundle cache.
  */
 
 /** A single intercepted request pattern and the response it produces. */
