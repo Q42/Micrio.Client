@@ -107,12 +107,10 @@ describe('markers', () => {
 		opened.viewer.destroy()
 	})
 
-	it('KNOWN GAP: a changed marker with the same id is not re-rendered', async () => {
-		// `rebuild` only creates missing elements, so a marker whose data changed under
-		// the same id keeps its old label. When `_setProps` starts being re-applied,
-		// this test changes.
+	it('re-renders a marker whose data changed under the same id', async () => {
 		const opened = await openMarkers(markerBundle({ markers: [marker('m1')] }))
-		expect(opened.markerEl('m1')?.querySelector('label')?.textContent).toBe('Marker m1')
+		const before = opened.markerEl('m1')
+		expect(before?.querySelector('label')?.textContent).toBe('Marker m1')
 
 		const data = opened.image().$data
 		const changed: Models.ImageData.Marker[] = []
@@ -120,9 +118,31 @@ describe('markers', () => {
 			changed.push(Object.assign({}, m, { i18n: { en: { title: 'Updated title' } } }))
 		}
 		opened.image().data.set({ ...data, markers: changed })
+		await waitFor(
+			() => opened.markerEl('m1')?.querySelector('label')?.textContent === 'Updated title',
+			4000,
+			'the updated marker',
+		)
+
+		// The stale element is replaced, not patched in place
+		expect(opened.markerEl('m1')).not.toBe(before)
+		opened.viewer.destroy()
+	})
+
+	it('re-renders a clickable area whose marker data changed', async () => {
+		const opened = await openMarkers(markerBundle({ markers: [clickableMarker('m1')] }))
+		await waitFor(() => opened.layer() !== null, 4000, 'the layer')
+		const before = opened.layer()?.querySelector('micrio-embed[data-marker-id]')
+
+		const data = opened.image().$data
+		const changed: Models.ImageData.Marker[] = []
+		for (const m of data?.markers ?? []) {
+			changed.push(Object.assign({}, m, { i18n: { en: { title: 'Updated area' } } }))
+		}
+		opened.image().data.set({ ...data, markers: changed })
 		await settle(2)
 
-		expect(opened.markerEl('m1')?.querySelector('label')?.textContent).toBe('Marker m1')
+		expect(opened.layer()?.querySelector('micrio-embed[data-marker-id]')).not.toBe(before)
 		opened.viewer.destroy()
 	})
 })

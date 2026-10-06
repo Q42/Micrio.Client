@@ -20,6 +20,10 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 	static tag = 'micrio-markers'
 
 	#props: Partial<MarkersProps> = {}
+	/** The marker object each rendered marker element was built from, to detect data edits. */
+	#markerObjects = new Map<string, Models.ImageData.Marker>()
+	/** The marker object each clickable-area embed was built from. */
+	#areaObjects = new Map<string, Models.ImageData.Marker>()
 
 	/** @internal */
 	_onMount() {
@@ -163,12 +167,16 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		const updateClickableAreas = ($markers: Models.ImageData.Marker[] | undefined, inactive: boolean, lang: string) => {
 			const areas =
 				!inactive && $markers ? $markers.filter((m) => m.clickableArea && (!m.i18n || m.i18n[lang] !== undefined)) : []
-			const expected = new Set(areas.map((m) => m.id))
+			const areasById = new Map(areas.map((m) => [m.id, m]))
 
 			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-embed[data-marker-id]')) {
 				const id = el.dataset.markerId
-				if (!id || !expected.has(id)) {
+				// An embed whose marker data changed carries stale props, so it is rebuilt
+				if (!id || areasById.get(id) !== this.#areaObjects.get(id)) {
 					el.remove()
+					if (id) {
+						this.#areaObjects.delete(id)
+					}
 				}
 			}
 
@@ -181,6 +189,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					attrs: { 'data-marker-id': m.id },
 					setProps: { embed: m.clickableArea, marker: m, image },
 				})
+				this.#areaObjects.set(m.id, m)
 				if (before) {
 					this.insertBefore(el, before)
 				} else {
@@ -238,29 +247,40 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					}
 					if (!expected.has(id)) {
 						el.remove()
+						this.#markerObjects.delete(id)
 					}
 				}
 
 				for (const m of filtered) {
 					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${CSS.escape(m.id)}"]`)
+					// New data for the same id means the mounted element is stale: removing
+					// it runs the element's own cleanup, so the fresh one subscribes again
+					if (el && this.#markerObjects.get(m.id) !== m) {
+						el.remove()
+						this.#markerObjects.delete(m.id)
+						el = null
+					}
 					if (!el) {
-						el = createElement('micrio-marker', {
+						createElement('micrio-marker', {
 							attrs: { 'data-marker-id': m.id },
 							setProps: { marker: m, image, ...(m.noMarker ? { forceHidden: true } : {}) },
 							parent: this,
 						})
+						this.#markerObjects.set(m.id, m)
 					}
 				}
 			} else {
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker')) {
 					el.remove()
 				}
+				this.#markerObjects.clear()
 			}
 
 			if (inactive) {
 				for (const el of this.querySelectorAll(':scope > micrio-marker, :scope > micrio-waypoint')) {
 					el.remove()
 				}
+				this.#markerObjects.clear()
 			}
 
 			updateClickableAreas($visible, Boolean(inactive), $_lang)
