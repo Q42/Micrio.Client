@@ -11,6 +11,7 @@ import type { SolverSettings } from './physics/solver-sync'
 import { isSolverReady, initSolver, dispatchSolve } from './physics/solver-sync'
 import {
 	PAGE_THICKNESS,
+	PAGE_WIDTH,
 	COVER_THICKNESS_MULTIPLIER,
 	COVER_SCALE_X,
 	COVER_SCALE_Y,
@@ -117,7 +118,6 @@ export class BookViewer {
 
 	#pageCount = 0
 	#pageAspects: Float32Array = new Float32Array(0)
-	#pageWidths: Float32Array = new Float32Array(0)
 
 	/** When true, textures are rendered at their native aspect ratio within each page. */
 	#useIndividualAspects = false
@@ -837,19 +837,11 @@ export class BookViewer {
 			throw new Error('BookViewer: no images in book index')
 		}
 
-		const {
-			pageCnt,
-			pageIdxes,
-			totalImagePages,
-			computedPageWidths,
-			aspectsForInit,
-			frontAspects,
-			backAspects,
-			avgAspect,
-		} = computePageLayout(images)
+		const { pageCnt, pageIdxes, totalImagePages, aspectsForInit, frontAspects, backAspects, avgAspect } =
+			computePageLayout(images)
 		this.#images = images
 
-		const ok = this.#initGeometry(pageCnt, computedPageWidths, aspectsForInit, options)
+		const ok = this.#initGeometry(pageCnt, aspectsForInit, options)
 		if (!ok) {
 			throw new Error('BookViewer: WebGL is not available in this browser.')
 		}
@@ -885,9 +877,8 @@ export class BookViewer {
 		}, 500)
 	}
 
-	#initGeometry(pageCnt: number, pWidths: Float32Array, aspects: Float32Array, options: BookViewerOptions): boolean {
+	#initGeometry(pageCnt: number, aspects: Float32Array, options: BookViewerOptions): boolean {
 		this.#pageCount = pageCnt
-		this.#pageWidths = pWidths
 		this.#pageAspects = aspects
 
 		const canvas = this.#canvas
@@ -910,14 +901,9 @@ export class BookViewer {
 		this.#camera._radius = 2.2
 		this.#camera._snap()
 
-		let maxWidth = 0
 		let maxHeight = 0
 		for (let i = 0; i < this.#pageCount; i++) {
-			const w = this.#pageWidths[i]
-			const h = w * this.#pageAspects[i]
-			if (w > maxWidth) {
-				maxWidth = w
-			}
+			const h = PAGE_WIDTH * this.#pageAspects[i]
 			if (h > maxHeight) {
 				maxHeight = h
 			}
@@ -926,16 +912,16 @@ export class BookViewer {
 		this.#meshes.length = 0
 		for (let i = 0; i < this.#pageCount; i++) {
 			const yOff = (this.#pageCount - 1 - i) * PAGE_THICKNESS
-			const pw = this.#pageWidths[i]
 			const asp = this.#pageAspects[i]
 			if (this.#hardCover && (i === 0 || i === this.#pageCount - 1)) {
-				const wScale = maxWidth / pw
-				const hScale = maxHeight / (pw * asp)
-				const coverScaleX = Math.max(COVER_SCALE_X, wScale)
+				// The book shares one page geometry, so a cover only has to
+				// stretch vertically to sit proud of the tallest page
+				const hScale = maxHeight / (PAGE_WIDTH * asp)
+				const coverScaleX = COVER_SCALE_X
 				const coverScaleY = Math.max(COVER_SCALE_Y, hScale)
 				const cover = new CoverMesh(
 					yOff,
-					pw,
+					PAGE_WIDTH,
 					asp,
 					PAGE_THICKNESS * COVER_THICKNESS_MULTIPLIER,
 					coverScaleX,
@@ -943,7 +929,7 @@ export class BookViewer {
 				)
 				this.#meshes.push(cover)
 			} else {
-				this.#meshes.push(new PaperMesh(yOff, pw, asp))
+				this.#meshes.push(new PaperMesh(yOff, PAGE_WIDTH, asp))
 			}
 		}
 

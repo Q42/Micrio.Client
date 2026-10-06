@@ -90,16 +90,6 @@ describe('computePageLayout — aspects', () => {
 		const layout = computePageLayout(images(4, () => [0, 0]))
 		expect(layout.avgAspect).toBeCloseTo(DEFAULT_ASPECT, 5)
 	})
-
-	it('every page gets the same geometry width, so per-page aspects never resize a page', () => {
-		// This is deliberate (regions do the per-image fitting) but worth pinning:
-		// `refArea === avgAspect`, so the width is always sqrt(1) === 1.
-		const layout = computePageLayout(images(5, (i) => [400, 200 + i * 100]))
-		for (const width of layout.computedPageWidths) {
-			expect(width).toBe(1)
-		}
-		expect(new Set(layout.computedPageWidths).size).toBe(1)
-	})
 })
 
 describe('computeTexRegion', () => {

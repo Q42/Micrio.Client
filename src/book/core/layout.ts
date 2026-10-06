@@ -12,8 +12,6 @@ export interface PageLayout {
 	pageIdxes: number[][]
 	/** The number of images in the book. */
 	totalImagePages: number
-	/** The geometry width of every page (a single shared value, see below). */
-	computedPageWidths: Float32Array
 	/** The page aspect (height / width) every page's geometry is built with. */
 	aspectsForInit: Float32Array
 	/** Per-page front face aspect (height / width) of the front image. */
@@ -33,10 +31,9 @@ export interface PageLayout {
  * (`width`/`height` <= 0, or missing) contribute the default aspect instead of
  * skewing the average.
  *
- * Note that every page shares one geometry (the book-wide average aspect) and
- * `computedPageWidths` is therefore the same constant for every page; per-image
- * aspects are honoured by rendering each texture in its own region of the page
- * (see `computeTexRegion`) rather than by resizing the page.
+ * Note that every page shares one geometry (the book-wide average aspect);
+ * per-image aspects are honoured by rendering each texture in its own region of
+ * the page (see `computeTexRegion`) rather than by resizing the page.
  */
 export function computePageLayout(images: Models.ImageInfo.ImageInfo[]): PageLayout {
 	const pageCnt = Math.ceil(images.length / 2)
@@ -78,19 +75,13 @@ export function computePageLayout(images: Models.ImageInfo.ImageInfo[]): PageLay
 	}
 
 	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT
-	const refArea = avgAspect
 
-	// Every page shares the same geometry (the book-wide average aspect); per-page
-	// aspects are honored by rendering each texture in its own region of the page
-	// instead of resizing the geometry.
-	const computedPageWidths = new Float32Array(pageCnt).fill(Math.sqrt(refArea / avgAspect))
 	const aspectsForInit = new Float32Array(pageCnt).fill(avgAspect)
 
 	return {
 		pageCnt,
 		pageIdxes,
 		totalImagePages,
-		computedPageWidths,
 		aspectsForInit,
 		frontAspects,
 		backAspects,
