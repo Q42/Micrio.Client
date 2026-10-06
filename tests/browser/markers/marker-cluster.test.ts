@@ -9,9 +9,6 @@ import { waitFor } from '../../helpers/viewer'
  * space, groups any pair closer than `_markers.clusterMarkerRadius` (default 24 px), marks
  * every member `overlapped` and prints one synthetic `<micrio-marker class="cluster">` per
  * group whose `data-marker-id` is the joined member *indices* (`"0,1"`).
- *
- * The synthetic marker carries the member count in the legacy top-level `title`, which the
- * current element never reads — see the pinned gap below.
  */
 
 /** The cluster elements in the layer. */
@@ -89,9 +86,7 @@ describe('marker clustering', () => {
 		opened.viewer.destroy()
 	})
 
-	it('KNOWN GAP: the no-cluster tag is only checked on the later pair member', async () => {
-		// The pair loop skips on `markers[j]`, so the tag has no effect when it sits on
-		// the lower index. When the check becomes symmetric, this test changes.
+	it('excludes a marker tagged no-cluster on either side of a pair', async () => {
 		const taggedFirst = await openMarkers(
 			markerBundle({
 				markers: [marker('m1', { x: 0.5, y: 0.5, tags: ['no-cluster'] }), marker('m2', { x: 0.5, y: 0.5 })],
@@ -99,7 +94,8 @@ describe('marker clustering', () => {
 			}),
 		)
 		await settle(2)
-		expect(clustersOf(taggedFirst)).toHaveLength(1)
+		expect(clustersOf(taggedFirst)).toHaveLength(0)
+		expect(taggedFirst.markerEl('m1')?.classList.contains('overlapped')).toBe(false)
 		taggedFirst.viewer.destroy()
 
 		const taggedSecond = await openMarkers(
@@ -111,6 +107,39 @@ describe('marker clustering', () => {
 		await settle(2)
 		expect(clustersOf(taggedSecond)).toHaveLength(0)
 		taggedSecond.viewer.destroy()
+	})
+
+	it('merges two groups that a bridging pair connects', async () => {
+		// x = .10 (0), .13 (1), .11 (2), .12 (3) on one line. The radius is set from the
+		// measured screen delta of 0.01 so that (0,2), (1,3) and (2,3) overlap while
+		// (0,1), (0,3) and (1,2) do not — the pair that bridges the two groups is last.
+		const opened = await openMarkers(
+			markerBundle({
+				markers: [
+					marker('m1', { x: 0.1, y: 0.5 }),
+					marker('m2', { x: 0.13, y: 0.5 }),
+					marker('m3', { x: 0.11, y: 0.5 }),
+					marker('m4', { x: 0.12, y: 0.5 }),
+				],
+				settings: { clusterMarkers: true },
+			}),
+		)
+		const image = opened.image()
+		const [ax] = image.camera._getXYDirect(0.1, 0.5)
+		const [bx] = image.camera._getXYDirect(0.11, 0.5)
+		const radius = Math.round(Math.abs(bx - ax) * 1.5)
+
+		// The radius is a setting, so it is applied the way a settings change is, plus a
+		// view notification (which is what re-runs the cluster pass for a live layer)
+		image._settings.set({ ...image.$settings, clusterMarkerRadius: radius })
+		image.state.view.set([0, 0, 1, 1])
+		await waitFor(() => clustersOf(opened).length === 1, 6000, 'one merged cluster')
+
+		expect(clustersOf(opened)[0]?.dataset.markerId).toBe('0,1,2,3')
+		for (const short of ['m1', 'm2', 'm3', 'm4']) {
+			expect(opened.markerEl(short)?.classList.contains('overlapped')).toBe(true)
+		}
+		opened.viewer.destroy()
 	})
 
 	it('removes the cluster when a member disappears', async () => {

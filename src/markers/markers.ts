@@ -67,15 +67,24 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const groups: number[][] = []
 			for (let i = 0; i < markers.length; i++) {
 				for (let j = i + 1; j < markers.length; j++) {
-					if (markers[j].tags?.includes('no-cluster')) {
+					// Either end can opt a marker out of clustering
+					if (markers[i].tags?.includes('no-cluster') || markers[j].tags?.includes('no-cluster')) {
 						continue
 					}
 					if (Math.abs(coords[j][0] - coords[i][0]) >= r || Math.abs(coords[j][1] - coords[i][1]) >= r) {
 						continue
 					}
-					const existing = groups.find((g) => g.includes(i) || g.includes(j))
-					if (existing) {
-						existing.push(i, j)
+					// A pair can bridge two groups that already exist, so merge every
+					// group either index belongs to — picking one would leave the other
+					// holding a member that is now in two clusters.
+					const matches = groups.filter((g) => g.includes(i) || g.includes(j))
+					if (matches.length > 0) {
+						const [first, ...rest] = matches
+						first.push(i, j)
+						for (const extra of rest) {
+							first.push(...extra)
+							groups.splice(groups.indexOf(extra), 1)
+						}
 					} else {
 						groups.push([i, j])
 					}
