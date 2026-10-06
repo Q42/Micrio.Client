@@ -94,9 +94,7 @@ describe('marker icons', () => {
 		opened.viewer.destroy()
 	})
 
-	it('KNOWN GAP: an out-of-range custom icon index does not fall back to data.icon', async () => {
-		// The index branch wins as soon as it is defined, so a stale index silently
-		// swallows the explicit icon. When the fallback is added, this test changes.
+	it('falls back to the marker icon for an out-of-range custom icon index', async () => {
 		const opened = await openMarkers(
 			markerBundle({
 				markers: [marker('m1', { data: { customIconIdx: 7, icon: asset('https://example.test/fallback.png') } })],
@@ -104,8 +102,24 @@ describe('marker icons', () => {
 			}),
 		)
 		const el = opened.markerEl('m1')
-		expect(el?.querySelector('img')).toBeNull()
-		expect(el?.classList.contains('has-custom-icon')).toBe(false)
+		expect(el?.querySelector('img')?.getAttribute('src')).toBe('https://example.test/fallback.png')
+		expect(el?.classList.contains('has-custom-icon')).toBe(true)
+		opened.viewer.destroy()
+	})
+
+	it('falls back to the image-wide icon for a bad index with no marker icon', async () => {
+		const opened = await openMarkers(
+			markerBundle({
+				markers: [marker('m1', { data: { customIconIdx: 7 } })],
+				settings: {
+					_markers: {
+						customIcons: [asset('https://example.test/zero.png')],
+						markerIcon: asset('https://example.test/wide.png'),
+					},
+				},
+			}),
+		)
+		expect(opened.markerEl('m1')?.querySelector('img')?.getAttribute('src')).toBe('https://example.test/wide.png')
 		opened.viewer.destroy()
 	})
 })

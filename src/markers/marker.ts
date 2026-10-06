@@ -99,10 +99,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		} else if (marker.type === 'media') {
 			icon = 'play'
 		}
-		const customIcon =
+		// A `customIconIdx` that no longer resolves (the icon was removed from the image)
+		// falls back to the marker's own icon and then the image-wide one
+		const indexedIcon =
 			marker.data?.customIconIdx !== undefined
 				? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
-				: marker.data?.icon || markerSettings.markerIcon
+				: undefined
+		const customIcon = indexedIcon ?? marker.data?.icon ?? markerSettings.markerIcon
 		const hasIcon = Boolean(icon) || Boolean(customIcon)
 		const defaultClass = hasIcon || marker.type === 'default'
 
