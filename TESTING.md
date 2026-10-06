@@ -208,6 +208,25 @@ tours).
     book (that is how the book's draw hand-off reaches the marker layer), so a book test
     asserts through `bookAlbum(el)` (`numPages`, `currentIndex`, `next`/`prev`),
     `scrubberTicks(el)` and `bookMarkers(el)` rather than through `$current`.
+- `tests/fixtures/albums.ts` is the swipe/switch/grid-config album harness. It packs an MDP
+  body with **only the archive index** (tiles come from the texture-worker fake, because
+  `engine._getTexture` consults `archive` only when the exact tile URL is a db key), and its
+  `albumFixture`/`mountAlbum` pair keeps every id, album id and archive id unique per call —
+  `DataLoader`'s bundle/album caches and `jsonCache` are module-level.
+  - **`awaitAlbum` never calls `open(id)`.** `mountAlbum` gives the element an id and `#print`
+    builds the album and opens its parent on its own; an explicit `open(id)` races that and
+    builds a second top-level canvas. That stray canvas eventually calls `TileCanvas._fadeIn`,
+    which fades out every _other_ canvas — including the gallery parent, which then counts as
+    hidden, stops stepping its children and leaves every awaited `SwipeGallery.animateTo`
+    pending forever. The gate is therefore the parent (`$current.album`, or `$current.grid` for
+    a `grid` album, which never renders `<micrio-gallery>` and never gets an album API).
+  - `destroyAlbums()` in `afterEach` destroys the viewers, next to `restoreArchiveXhr()`.
+- `tests/fixtures/omni.ts` is the omni (3D object) harness. `openOmni` mounts the element **by
+  id**, because `OmniUI.setup` reads the bundle back out of `DataLoader._getBundleImageSync` —
+  a cache only the `bundle.json` fetch fills, so `open(bundleObject)` never sets up the omni UI.
+  It also installs the shared archive XHR stub with an empty MDP, because a v5+ omni awaits
+  `archive.load(<id>/base)` over XHR. Its gate is `image.omni`, which `setup` assigns last
+  (`setup` itself is fire-and-forget). `destroyOmni()` in `afterEach`.
 - `tests/browser/book-helpers.ts` is the shared BookViewer harness: `mountBook` mounts a sized
   canvas and a `BookViewer`, and steps frames manually through the internal `_step` hook with
   a fixed delta, so flips and the physics are deterministic. Four things are load-bearing:
@@ -340,6 +359,65 @@ that at the start of every `set`, and `#cellSizes` is written but never read, so
 `gridSize` never reaches the layout. `tests/browser/grid/grid-actions.test.ts` pins the current
 behaviour on purpose, so wiring the feature up has to change a test rather than pass silently.
 
+**Every album type takes its images from the archive index.** `Gallery._fromAlbum` builds its
+list from `index.images` (with `index?.images ?? []`), so a `swipe` or `switch` album needs an
+archive exactly like a grid or book3d one. An album without an archive resolves to a `Gallery`
+with zero images, and `#renderGallery` returns before it sets `$current.album` — so the viewer
+shows no scrubber, no arrows and no album API at all (`gallery-album.test.ts` pins it).
+
+**The album branch of `#print` needs the element's id attribute.** It runs only for a v5 id
+whose bundle carries `info.albumId`, and only while the element has no `width`/`height`
+attribute. It also always passes the element's own id as `_fromAlbum`'s `startId`, and that
+argument wins over the album's `startId` — an album-level `startId` is unreachable through this
+path.
+
+**`album.goto(n)` takes an _image_ index, and a miss lands on page 0.** `#imageIdxToPage`
+returns 0 for an unknown index, so `album.goto(99)` moves to the first page and resolves
+`undefined` (the requested image index does not exist). The gallery's own `#goto` is the one
+that clamps a page.
+
+**An awaited `SwipeGallery.animateTo` needs the gallery parent to keep drawing.** The slide
+resolves through `Frame` once no child `_areaAnimating()`; if the parent canvas is faded out
+(another top-level canvas called `TileCanvas._fadeIn`, which fades out every other canvas) its
+`_shouldDraw` returns early, the children never step and the promise stays pending forever. That
+is why the album fixture lets `#print` own the open — a stray second canvas is enough to trigger
+it.
+
+**`fetchJson` caches by URI in a module-level `jsonCache`.** Two manifest tests that reuse the
+same URL get the first test's response; every IIIF fixture needs its own URL (the same reason
+`DataLoader` fixtures need fresh ids).
+
+**The scrubber handle keeps its `dragging` class after release.** `#scrubStop` clears
+`#dragging` and the `data-dragging` attribute but does not re-render the bar, and releasing on
+the page the drag already reached never runs `#frameChanged` either — so the class only clears
+on the next scrubber update (`gallery-scrubber.test.ts` pins it).
+
+**The stylesheet imports are stubbed in tests, so a component has no box.** `vitest.config.ts`
+replaces every `.css` import with an empty module, so the scrubber's `getBoundingClientRect`
+and `clientWidth` are zero until a test gives the gallery (or the dial) an inline `display` and
+`width`. Drag tests that measure pixels have to do that first.
+
+**An omni image needs the bundle cache.** `OmniUI.setup` starts from
+`DataLoader._getBundleImageSync(image.id)`, which only the `bundle.json` fetch fills — so
+`open(bundleObject)` shows the first frame with no dial, no layer menu and no `image.omni`.
+Omni tests mount by the element's id.
+
+**The omni swiper is gated on `#isFullWidth`, which only a _change_ of `state.view` sets.** The
+subscription in `#initSwiper` does not read the current value, so the first single-pointer drag
+can be inert until the camera view updates; holding shift forces the gesture. The move that
+crosses the drag threshold also re-arms `#startX` to its own `clientX`, so that move produces a
+zero delta — the rotation starts on the _next_ move. `omni-viewer.test.ts` pins both.
+
+**The omni layer menu subscription rotates the dial from the layer index, not the frame.** It
+feeds `state.layer` into the frame-based `(idx / pagesPerLayer) * 360`, so layer 1 of a
+36-frame/2-layer object reads as 1/18 of a turn (20°) instead of the half turn the layer names.
+Pinned as-is.
+
+**Six omni settings are read nowhere:** `noDial`, `noKeys`, `showDegrees`, `frontIndex`,
+`twoAxes` and the omni-level `startIndex`. The dial is always built (`degrees: true`) and frame
+0 is always the start, whatever they say. `omni-viewer.test.ts` pins the current behaviour, so
+wiring any of them up has to change a test rather than pass silently.
+
 ## Type checking and linting
 
 - `pnpm typecheck` type-checks `src`, `build`, `templates` with `tsconfig.json`.
@@ -358,47 +436,56 @@ behaviour on purpose, so wiring the feature up has to change a test rather than 
 
 ## Status
 
-| Area                                               | Suite                                                                            | Status  |
-| -------------------------------------------------- | -------------------------------------------------------------------------------- | ------- |
-| Math, ids, time, locale, easing                    | `tests/core/**/*.test.ts`                                                        | done    |
-| Store API, state controllers                       | `tests/core/core/store`, `state`                                                 | done    |
-| bundle.json loading and caching                    | `tests/core/utils/dataLoader`                                                    | done    |
-| MDP archive parsing                                | `tests/core/utils/archive`                                                       | done    |
-| Matrix/vector math                                 | `tests/core/render/mat`                                                          | done    |
-| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/core/element-legacy`                                              | done    |
-| `<micr-io>` open / events / attributes             | `tests/browser/core/element-*`                                                   | done    |
-| Markers                                            | `tests/browser/markers/markers`                                                  | done    |
-| 360 space resolution and navigation                | `tests/browser/space/tours-360`                                                  | done    |
-| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/space/camera-360`                                                 | done    |
-| `trueNorth` and image orientation                  | `tests/browser/space/space-truenorth`                                            | done    |
-| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/markers/waypoints`                                                | done    |
-| 360 space transitions                              | `tests/browser/space/space-transition`                                           | done    |
-| 360 minimap                                        | `tests/browser/space/minimap-360`                                                | done    |
-| Gallery / album switching                          | `tests/browser/gallery/gallery`                                                  | partial |
-| Video tour timeline and playback                   | `tests/browser/media/video-tour`                                                 | done    |
-| Marker tour UI and navigation                      | `tests/browser/tour/marker-tour`                                                 | done    |
-| Serial (multi-image) tours                         | `tests/browser/tour/serial-tour`                                                 | done    |
-| Media element, controls, subtitles                 | `tests/browser/media/media-*`, `subtitles`                                       | done    |
-| Tour toolbar and autostart wiring                  | `tests/browser/tour/tour-integration`                                            | done    |
-| Audio controller (Web Audio, positional)           | `tests/browser/audio/audio-controller`                                           | done    |
-| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/utils/media-settings`                                                | done    |
-| Spatial audio routing                              | `tests/browser/audio/audio-location`                                             | done    |
-| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/media/*-adapter`, `hls-player`                                    | done    |
-| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media/media-adapters`                                             | done    |
-| Grid column maths and transition areas             | `tests/browser/grid/grid-format`                                                 | done    |
-| Grid storytelling                                  | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done    |
-| Book maths (vec3, page layout, spine sync)         | `tests/core/book/{vec3,layout,spine-sync}`                                       | done    |
-| XPBD physics solver                                | `tests/core/book/native-solver`                                                  | done    |
-| Book meshes, uv projection, raycasting             | `tests/browser/book/{meshes,uv-project,raycast}`                                 | done    |
-| Book camera, page flip, lighting presets           | `tests/browser/book/{orbit-camera,page-flip,lighting}`                           | done    |
-| Book renderer and IIIF texture manager             | `tests/browser/book/{renderer,iiif-manager}`                                     | done    |
-| `BookViewer` (flips, drags, zoom, draw bounds)     | `tests/browser/book/viewer`                                                      | done    |
-| book3d album path and the book fixture             | `tests/browser/gallery/book3d-album`                                             | done    |
-| UI translation tables                              | `tests/core/core/i18n/i18n-strings`                                              | done    |
-| Buttons, icons, progress circle, dial              | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done    |
-| Menu tree and its actions                          | `tests/browser/ui/ui-menu`                                                       | done    |
-| Toolbar (desktop + mobile sheet)                   | `tests/browser/layout/toolbar-*`                                                 | done    |
-| Content-page popover and welcome screen            | `tests/browser/layout/popover`                                                   | done    |
+| Area                                               | Suite                                                                            | Status |
+| -------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
+| Math, ids, time, locale, easing                    | `tests/core/**/*.test.ts`                                                        | done   |
+| Store API, state controllers                       | `tests/core/core/store`, `state`                                                 | done   |
+| bundle.json loading and caching                    | `tests/core/utils/dataLoader`                                                    | done   |
+| MDP archive parsing                                | `tests/core/utils/archive`                                                       | done   |
+| Matrix/vector math                                 | `tests/core/render/mat`                                                          | done   |
+| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/core/element-legacy`                                              | done   |
+| `<micr-io>` open / events / attributes             | `tests/browser/core/element-*`                                                   | done   |
+| Markers                                            | `tests/browser/markers/markers`                                                  | done   |
+| 360 space resolution and navigation                | `tests/browser/space/tours-360`                                                  | done   |
+| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/space/camera-360`                                                 | done   |
+| `trueNorth` and image orientation                  | `tests/browser/space/space-truenorth`                                            | done   |
+| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/markers/waypoints`                                                | done   |
+| 360 space transitions                              | `tests/browser/space/space-transition`                                           | done   |
+| 360 minimap                                        | `tests/browser/space/minimap-360`                                                | done   |
+| Album resolution, config, sorting and degradation  | `tests/browser/gallery/gallery-album`                                            | done   |
+| Swipe album and strip navigation                   | `tests/browser/gallery/gallery-swipe`                                            | done   |
+| Gallery scrubber (pointer and touch)               | `tests/browser/gallery/gallery-scrubber`                                         | done   |
+| Switch album layout and navigation                 | `tests/browser/gallery/gallery-switch`                                           | done   |
+| IIIF manifest albums                               | `tests/browser/gallery/gallery-iiif`                                             | done   |
+| Asset galleries (`micrio-swipe-gallery`)           | `tests/browser/gallery/gallery-assets`                                           | done   |
+| Album bundle without a gallery controller          | `tests/browser/gallery/gallery`                                                  | done   |
+| Omni rotation, layers, dial and swipe              | `tests/browser/gallery/omni-viewer`                                              | done   |
+| Omni markers and marker tours                      | `tests/browser/gallery/omni-markers`                                             | done   |
+| Omni camera angle maths                            | `tests/core/core/camera-omni`                                                    | done   |
+| Video tour timeline and playback                   | `tests/browser/media/video-tour`                                                 | done   |
+| Marker tour UI and navigation                      | `tests/browser/tour/marker-tour`                                                 | done   |
+| Serial (multi-image) tours                         | `tests/browser/tour/serial-tour`                                                 | done   |
+| Media element, controls, subtitles                 | `tests/browser/media/media-*`, `subtitles`                                       | done   |
+| Tour toolbar and autostart wiring                  | `tests/browser/tour/tour-integration`                                            | done   |
+| Audio controller (Web Audio, positional)           | `tests/browser/audio/audio-controller`                                           | done   |
+| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/utils/media-settings`                                                | done   |
+| Spatial audio routing                              | `tests/browser/audio/audio-location`                                             | done   |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/media/*-adapter`, `hls-player`                                    | done   |
+| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media/media-adapters`                                             | done   |
+| Grid column maths and transition areas             | `tests/browser/grid/grid-format`                                                 | done   |
+| Grid storytelling                                  | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done   |
+| Book maths (vec3, page layout, spine sync)         | `tests/core/book/{vec3,layout,spine-sync}`                                       | done   |
+| XPBD physics solver                                | `tests/core/book/native-solver`                                                  | done   |
+| Book meshes, uv projection, raycasting             | `tests/browser/book/{meshes,uv-project,raycast}`                                 | done   |
+| Book camera, page flip, lighting presets           | `tests/browser/book/{orbit-camera,page-flip,lighting}`                           | done   |
+| Book renderer and IIIF texture manager             | `tests/browser/book/{renderer,iiif-manager}`                                     | done   |
+| `BookViewer` (flips, drags, zoom, draw bounds)     | `tests/browser/book/viewer`                                                      | done   |
+| book3d album path and the book fixture             | `tests/browser/gallery/book3d-album`                                             | done   |
+| UI translation tables                              | `tests/core/core/i18n/i18n-strings`                                              | done   |
+| Buttons, icons, progress circle, dial              | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done   |
+| Menu tree and its actions                          | `tests/browser/ui/ui-menu`                                                       | done   |
+| Toolbar (desktop + mobile sheet)                   | `tests/browser/layout/toolbar-*`                                                 | done   |
+| Content-page popover and welcome screen            | `tests/browser/layout/popover`                                                   | done   |
 
 ## Session backlog
 
