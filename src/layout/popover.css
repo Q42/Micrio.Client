@@ -113,6 +113,19 @@ dialog > menu {
 dialog > menu.right {
 	justify-content: flex-end;
 }
+/* Welcome-screen language switcher: a row of language codes above the content */
+dialog > menu.languages {
+	margin-top: 0;
+	margin-bottom: 4px;
+}
+dialog > menu.languages micrio-button > :is(button, a) {
+	min-width: 2.6em;
+	text-transform: uppercase;
+}
+dialog > menu.languages micrio-button > :is(button, a).active {
+	background: var(--micrio-active-color, var(--micrio-color));
+	color: var(--micrio-background);
+}
 dialog.article article {
 	text-shadow: none;
 	color: var(--micrio-color);

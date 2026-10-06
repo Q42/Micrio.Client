@@ -493,6 +493,63 @@ describe('popover as a welcome screen', () => {
 		viewer.destroy()
 	})
 
+	it('offers the published languages, and switches the page between them', async () => {
+		// The welcome screen is the one place the switcher appears: a modal cannot reach
+		// the controls' own language menu
+		const page = uiPage('welcome', 'Welcome', { content: '<p>Hello</p>' })
+		page.i18n = { en: { title: 'Welcome', content: '<p>Hello</p>' }, nl: { title: 'Welkom', content: '<p>Hallo</p>' } }
+		const { viewer } = await openUi(
+			uiBundle({
+				pages: [page],
+				revision: { en: 1, nl: 1 },
+				settings: { start: { type: 'page', id: 'welcome' } },
+			}),
+		)
+		await waitFor(() => dialogOf(viewer)?.open === true, 6000, 'the welcome popover')
+
+		const languageMenu = () => dialogOf(viewer)?.querySelector(':scope > menu.languages')
+		await waitFor(() => languageMenu() !== null, 4000, 'the language menu')
+		const labels = Array.from(languageMenu()?.querySelectorAll('micrio-button') ?? []).map((b) => b.textContent?.trim())
+		expect(labels).toEqual(['EN', 'NL'])
+		// The active language is marked, and usable through its title
+		expect(languageMenu()?.querySelector<HTMLButtonElement>('micrio-button button')?.classList.contains('active')).toBe(
+			true,
+		)
+		expect(languageMenu()?.querySelector<HTMLButtonElement>('micrio-button button')?.getAttribute('title')).toBeTruthy()
+
+		// Picking a language re-renders the page content in it
+		languageMenu()?.querySelectorAll<HTMLButtonElement>('micrio-button button')[1]?.click()
+		await waitFor(
+			() => dialogOf(viewer)?.querySelector(':scope > article h2')?.textContent === 'Welkom',
+			4000,
+			'the Dutch page',
+		)
+		expect(dialogOf(viewer)?.querySelector(':scope > article p')?.textContent).toBe('Hallo')
+		expect(viewer.el.lang).toBe('nl')
+		viewer.destroy()
+	})
+
+	it('shows no language menu for a single published language', async () => {
+		const page = uiPage('welcome', 'Welcome', { content: '<p>Hello</p>' })
+		const { viewer } = await openUi(
+			uiBundle({ pages: [page], revision: { en: 1 }, settings: { start: { type: 'page', id: 'welcome' } } }),
+		)
+		await waitFor(() => dialogOf(viewer)?.open === true, 6000, 'the welcome popover')
+
+		expect(dialogOf(viewer)?.querySelector(':scope > menu.languages')).toBeNull()
+		viewer.destroy()
+	})
+
+	it('shows no language menu for a content page that is not a welcome screen', async () => {
+		// Only the welcome state carries `showLangSelect`; ordinary pages stay as they are
+		const page = uiPage('about', 'About', { content: '<p>Body</p>' })
+		const { viewer } = await openUi(uiBundle({ pages: [page], revision: { en: 1, nl: 1 } }))
+		const dialog = await openPopover(viewer, { contentPage: page })
+
+		expect(dialog?.querySelector(':scope > menu.languages')).toBeNull()
+		viewer.destroy()
+	})
+
 	it('does not start when nothing matches, or when something is already open', async () => {
 		// A missing page id is a no-op
 		const missing = await openUi(

@@ -1,4 +1,5 @@
 import type { Models } from '../../src/types/models'
+import type { RevisionType } from '../../src/types/models/common'
 import { baseInfo, marker } from './bundles'
 import { mountViewer, waitFor, type Viewer } from '../helpers/viewer'
 import { get } from '../../src/core/store'
@@ -148,6 +149,8 @@ export interface UiBundleOptions extends UiMenuOptions {
 	langs?: string[]
 	/** Extra image settings. */
 	settings?: Partial<Models.ImageInfo.Settings>
+	/** Published revisions per language; the language switchers read these keys. */
+	revision?: RevisionType
 	/** Use these pages instead of `uiMenus`'s; the popover cases need shaped pages. */
 	pages?: Models.ImageData.Menu[]
 	/** Use these markers instead of the two plain ones; the popover cases need content. */
@@ -184,7 +187,7 @@ export function uiBundle(opts: UiBundleOptions = {}): UiBundle {
 		markerIds: markers.map((m) => m.id),
 		bundle: {
 			id,
-			info: baseInfo(id, { title: 'UI image' }),
+			info: baseInfo(id, { title: 'UI image', ...(opts.revision ? { revision: opts.revision } : {}) }),
 			settings: opts.settings ?? {},
 			data: {
 				i18n,
