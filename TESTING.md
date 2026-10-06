@@ -216,11 +216,11 @@ embed-360, embed-book3d, image-embeds}` and `browser/media/embedvideo`.
 Harness notes that are easy to get wrong:
 
 - **`helpers/embed.ts` mounts against an id-less `<micr-io>`.** `_getMicrio()` only needs a
-  `micrio` context, and an id-less element never calls `#print()`, so `embed.test.ts`'s 50
-  cases run with **no WebGL context at all**. `fakeImage()` mocks the exact `MicrioImage`
-  surface the module touches (`camera.getMatrix`/`_getXYDirect`, `engine`, the stores,
-  `addEmbed`, the media registry). The real-camera/real-engine paths live in the
-  `embed-360` and `image-embeds` suites, which do open viewers.
+  `micrio` context, and an id-less element never calls `#print()`, so `embed.test.ts` runs
+  with **no WebGL context at all**. `fakeImage()` mocks the exact `MicrioImage` surface the
+  module touches (`camera.getMatrix`/`_getXYDirect`, `engine`, the stores, `addEmbed`, the
+  media registry). The real-camera/real-engine paths live in the `embed-360` and
+  `image-embeds` suites, which do open viewers.
 - **Placement seams instead of geometry.** `camera._getMatrixOverride` and
   `_getXYDirectOverride` are the same seams `src/book/main.ts` installs, so stubbing them
   drives the 360/book3d matrix branch deterministically; `book3d` itself is simulated by
@@ -231,27 +231,12 @@ Harness notes that are easy to get wrong:
 - **Never dispatch a real `click` on an `href` embed** — the overlay is an `<a>` and a
   synthetic click would navigate the test page. Drive the shared handler with `keydown`.
 
-Known gaps these suites deliberately pin (each test says `KNOWN GAP`; when the gap closes,
+One gap is deliberately pinned (its test starts with `KNOWN GAP`; when the gap closes,
 that test is the one to change):
 
-1. **A book3d video embed is 0×0** — `#readPlacement` returns for book3d _before_
-   `#widthCapped` is computed, so `#buildVideoContent` derives width/height 0 and
-   `transform: scale(Infinity)` (dropped by CSS). Audio still autoplays.
-2. **Destroying an HTML video embed never pauses it** — `_onDestroy` clears the timers and
-   the media registry but never touches `#videoEl`, so a detached `<video>` keeps
-   decoding (and audible) after `image.data.set(...)` / leaving `_visible`.
-3. **`video.controls: true` implies `no-events`** — `#noEvents` ignores `video.controls`,
-   and `.no-events` is an inherited `pointer-events: none`, so the native controls cannot
-   be clicked even though they render.
-4. **A `change` event never resizes the wrapped content** — `#onChange` recomputes
-   `#buttonStyle`/`#widthCapped` but only `#applyPosition` runs, so an embed's size and
-   hit-area do not follow its data after mount, only its centre.
-5. **The grid `inactive` state is lost at mount** — the subscriptions fire before
-   `#buildDOM` creates the overlay, and nothing re-applies the class.
-6. **`_onDestroy`'s click/keydown removals are no-ops** (they remove `#click`, but
-   `#buildDOM` registered wrapper closures), so a detached overlay still opens its marker.
-7. **WebGL sub-images leak** — `image._embeds` is append-only; rebuilding an embed with a
+1. **WebGL sub-images leak** — `image._embeds` is append-only; rebuilding an embed with a
    fresh data object mints a new uuid, misses the reuse lookup and adds a second image.
+   Releasing it needs image/engine teardown that does not exist yet.
 
 Also note: `getMatrix` hands back a **reused** `Float32Array`, and the CSSOM reserializes
 `matrix3d(...)` to ~6 significant digits with spaces — compare numbers, never strings.
@@ -271,10 +256,10 @@ Baseline (first recorded run, stable to ±0.05 across runs):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 81.5     | 80    |
-| Branches   | 71.0     | 70    |
-| Functions  | 81.7     | 81    |
-| Lines      | 81.4     | 80    |
+| Statements | 81.6     | 80    |
+| Branches   | 71.1     | 70    |
+| Functions  | 81.6     | 81    |
+| Lines      | 81.5     | 80    |
 
 The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
 coverage loss fails the run while ordinary refactoring does not. They are deliberately
@@ -295,7 +280,7 @@ not the floor:
 | ----------- | ----- |
 | src/utils   | 96.5  |
 | src/ui      | 93.4  |
-| src/embed   | 93.1  |
+| src/embed   | 93.4  |
 | src/gallery | 90.2  |
 | src/audio   | 88.2  |
 | src/media   | 86.1  |
@@ -396,7 +381,6 @@ Roughly in order of value against risk:
 
 1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
-2. **The known embed gaps** — the seven `KNOWN GAP` tests in the `browser/embed` suites
-   (see [The embed subsystem](#the-embed-subsystem)) each pin a real defect; fixing one
-   turns its test into a regression test. The book3d video sizing and the unpaused
-   HTML video on destroy are the two with user-visible impact.
+2. **The leaky WebGL sub-image** — releasing an embedded `MicrioImage` needs image/engine
+   teardown that does not exist yet, so the `KNOWN GAP` test in `browser/embed/embed`
+   pins it (see [The embed subsystem](#the-embed-subsystem)).

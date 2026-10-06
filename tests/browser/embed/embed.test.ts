@@ -26,9 +26,9 @@ import type { Viewer } from '../../helpers/viewer'
  * real-camera / real-engine / real-layout behaviour lives in
  * `tests/browser/embed/embed-360.test.ts` and `image-embeds.test.ts`.
  *
- * Tests whose name starts with `KNOWN GAP` deliberately assert the *current*
- * (wrong) behaviour of a bug that has no test yet; when the gap closes, these
- * are the tests that must change (see TESTING.md).
+ * One test starts with `KNOWN GAP`: it pins a known defect that is deliberately
+ * left for a follow-up (see TESTING.md), so the gap cannot go unnoticed. When that
+ * gap closes, it is the test that has to change.
  */
 
 const initialUA = navigator.userAgent
@@ -353,12 +353,13 @@ describe('WebGL placement', () => {
 		expect(info.isSingle).toBe(true)
 	})
 
-	it('KNOWN GAP: rebuilding an embed leaks its WebGL sub-image', () => {
+	it('KNOWN GAP: rebuilding an embed leaks its WebGL sub-image (deferred)', () => {
 		const image = fakeImage()
 		mountOn(image, glEmbed())
 		expect(image._embeds).toHaveLength(1)
 		// A fresh embed object has no uuid, so the lookup in #printInsideGL misses
 		// and a second MicrioImage is created; _onDestroy only fades the first.
+		// Releasing it needs image/engine teardown that does not exist yet.
 		mountOn(image, glEmbed())
 		expect(image._embeds).toHaveLength(2)
 	})
