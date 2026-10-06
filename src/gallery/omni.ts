@@ -144,7 +144,7 @@ export class OmniUI {
 				setProps: {
 					currentRotation: (startIdx / pagesPerLayer) * 360,
 					frames: pagesPerLayer,
-					degrees: true,
+					degrees: Boolean(omni.showDegrees),
 					onturn: (frame: number) => {
 						this.goto(Math.round(frame) % pagesPerLayer)
 					},

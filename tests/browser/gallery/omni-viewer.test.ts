@@ -23,6 +23,26 @@ afterEach(() => {
 	restoreArchiveXhr()
 })
 
+/**
+ * Presses ArrowLeft and reports how many camera pans the key produced.
+ *
+ * The observable is the pan the keyboard handler would ask for: with `noKeys` there is no
+ * handler to ask for one. Assumes the viewer was mounted alone — keyboard hooks live on
+ * `document`, so a viewer left mounted by an earlier case answers the same keydown.
+ */
+async function pansOnArrowLeft(omni: OpenOmni): Promise<number> {
+	const { camera } = omni.image
+	const calls: unknown[] = []
+	const original = camera.pan.bind(camera)
+	camera.pan = (...args: Parameters<typeof original>) => {
+		calls.push(args)
+		original(...args)
+	}
+	omni.viewer.el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }))
+	await settle(2)
+	return calls.length
+}
+
 /** The dial and canvas drags capture the pointer, which a synthetic event cannot do. */
 function stubCapture(viewer: Viewer): void {
 	viewer.el.setPointerCapture = () => {}
@@ -297,14 +317,40 @@ describe('omni — layers', () => {
 		expect(omni.image.$data?.pages?.some((p) => p.id?.startsWith('_omni-layers')) ?? false).toBe(false)
 	})
 
-	it('pins the omni settings that are not wired up yet', async () => {
-		// `showDegrees`, `frontIndex`, `noKeys` and `twoAxes` are read nowhere, so
-		// they change nothing observable: the dial is still built and frame 0 is
-		// still active
-		const omni = await openOmni({
-			frames: 36,
-			omni: { noKeys: true, showDegrees: true, frontIndex: 5, twoAxes: true },
-		})
+	it('prints the degree readout only for showDegrees', async () => {
+		// `showDegrees` is a live dashboard setting ("Show rotation degrees"), and the dial's
+		// `degrees` prop is the only consumer: without it the dial is just the tick strip.
+		const plain = await openOmni({ frames: 36 })
+		expect(plain.dial?.querySelector('span')).toBeNull()
+
+		const withDegrees = await openOmni({ frames: 36, omni: { showDegrees: true } })
+		const dial = sizeDial(withDegrees)
+		const readout = dial.querySelector('span')
+		expect(readout).not.toBeNull()
+
+		// The readout tracks the active frame (9/36 turns = 90deg)
+		withDegrees.omni.goto(9)
+		expect(readout?.textContent).toBe('90º')
+	})
+
+	it('lets noKeys leave the keyboard to the host page', async () => {
+		// `noKeys` is what the dashboard sets on its preview so arrow keys keep navigating the
+		// editor. Both halves start from nothing, because a mounted viewer's key handler answers
+		// the same keydown.
+		destroyOmni()
+		const hooked = await openOmni({ frames: 12, settings: { hookKeys: true } })
+		expect(await pansOnArrowLeft(hooked)).toBe(1)
+
+		destroyOmni()
+		const quiet = await openOmni({ frames: 12, settings: { hookKeys: true }, omni: { noKeys: true } })
+		expect(await pansOnArrowLeft(quiet)).toBe(0)
+	})
+
+	it('pins the legacy-only omni settings as inert', async () => {
+		// `frontIndex` ("which frame is 0deg") and `twoAxes` (a separate two-axis drag UI) are
+		// read nowhere in this client and exposed by no dashboard page — they are legacy fields
+		// the server still sends. Asserted so that wiring one up has to change a test.
+		const omni = await openOmni({ frames: 36, omni: { frontIndex: 5, twoAxes: true } })
 		expect(omni.dial).not.toBeNull()
 		expect(omni.omni.currentIndex).toBe(0)
 	})

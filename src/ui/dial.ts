@@ -15,6 +15,8 @@ class MicrioDial extends MicrioElement<DialProps> {
 	static tag = 'micrio-dial'
 
 	#props: DialProps = { currentRotation: 0, frames: 1 }
+	/** The degree readout, present only while `degrees` is set. */
+	#readout: HTMLElement | undefined
 
 	/** @internal */
 	_onMount() {
@@ -57,6 +59,10 @@ class MicrioDial extends MicrioElement<DialProps> {
 			if (!Number.isFinite(targetFrame)) {
 				return
 			}
+			// Keep the readout live under the drag: the parent only re-syncs `currentRotation`
+			// when the frame actually changes
+			this.#props.currentRotation = ((targetFrame % this.#props.frames) / this.#props.frames) * 360
+			this.#printDegrees()
 			this.#props.onturn?.(targetFrame)
 		}
 
@@ -74,10 +80,31 @@ class MicrioDial extends MicrioElement<DialProps> {
 	/** @internal */
 	_setProps(props: Partial<DialProps>) {
 		Object.assign(this.#props, props)
-		if (this.isConnected) {
-			const offset = (-this.#props.currentRotation / 360) * (this.offsetWidth ?? 0)
-			this.style.setProperty('--micrio-dial-offset', `${offset}px`)
+		if (!this.isConnected) {
+			return
 		}
+		const offset = (-this.#props.currentRotation / 360) * (this.offsetWidth ?? 0)
+		this.style.setProperty('--micrio-dial-offset', `${offset}px`)
+		this.#printDegrees()
+	}
+
+	/**
+	 * Renders the degree readout when `degrees` is set, and drops it again when it is cleared.
+	 *
+	 * `degrees` comes from the omni's `showDegrees` setting and can be toggled while the dial is
+	 * mounted, so the element is created and removed with the flag rather than hidden by CSS.
+	 */
+	#printDegrees() {
+		if (!this.#props.degrees) {
+			this.#readout?.remove()
+			this.#readout = undefined
+			return
+		}
+		if (!this.#readout) {
+			this.#readout = document.createElement('span')
+			this.append(this.#readout)
+		}
+		this.#readout.textContent = `${Math.round(this.#props.currentRotation * 10) / 10}º`
 	}
 }
 

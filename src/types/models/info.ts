@@ -360,7 +360,12 @@ export namespace ImageInfo {
 		offsetX: number
 		/** Put the labels on the side of the object */
 		sideLabels?: boolean
-		/** Which frame is 0deg rotation */
+		/**
+		 * Which frame is 0deg rotation.
+		 * @deprecated Read nowhere in this client, and exposed by no dashboard page — a legacy
+		 * field the server still sends. Wiring it up has to change
+		 * `omni-viewer.test.ts`'s "legacy-only omni settings" test.
+		 */
 		frontIndex?: number
 		/** Layers */
 		layers?: { i18n: { [key: string]: string | undefined } }[]
@@ -370,9 +375,14 @@ export namespace ImageInfo {
 		noDial?: boolean
 		/** Show degrees on dial */
 		showDegrees?: boolean
-		/** Gallery is omni object photography over 2 axes */
+		/**
+		 * Gallery is omni object photography over 2 axes.
+		 * @deprecated Read nowhere in this client, and exposed by no dashboard page — a legacy
+		 * field the server still sends. Wiring it up has to change
+		 * `omni-viewer.test.ts`'s "legacy-only omni settings" test.
+		 */
 		twoAxes?: boolean
-		/** Don't add key bindings for rotating */
+		/** Don't add key bindings for rotating; an omni with this set never hooks the keyboard */
 		noKeys?: boolean
 	}
 

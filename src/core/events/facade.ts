@@ -211,7 +211,9 @@ export class Events implements EventContext {
 		}
 
 		// Hook specific event types based on settings
-		if (s?.hookKeys) {
+		// An omni object with `noKeys` never takes the keyboard: its host page keeps the arrow
+		// keys (that is how the dashboard previews an object without stealing its own navigation).
+		if (s?.hookKeys && !s.omni?.noKeys) {
 			this.hookKeys()
 		}
 		if (s.hookDrag) {
