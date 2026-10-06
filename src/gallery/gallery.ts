@@ -475,7 +475,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			// jumping to page 0 would be a surprising place to land.
 			goto: (n: number) => {
 				const page = this.#imageIdxToPage(n)
-				return page < 0 ? Promise.resolve(undefined) : goToPage(page).then(() => this.#images[n])
+				return page < 0 ? Promise.resolve<MicrioImage | undefined>() : goToPage(page).then(() => this.#images[n])
 			},
 			...(this.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		}

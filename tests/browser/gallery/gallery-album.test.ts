@@ -316,7 +316,7 @@ describe('gallery parent survival', () => {
 		if (!next) {
 			throw new Error('the second image never opened')
 		}
-		await waitFor(() => get(next.visible) === true, 4000, 'the opened image to draw')
+		await waitFor(() => get(next.visible), 4000, 'the opened image to draw')
 		await settle(2)
 
 		// The real fade-in already ran; calling it again keeps the assertion honest

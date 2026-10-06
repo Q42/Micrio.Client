@@ -19,7 +19,7 @@ const freshBundle = () => {
 /** Waits until the viewer reports a current image and has stopped loading. */
 async function waitForLoaded(viewer: ReturnType<typeof mountViewer>, id: string) {
 	await waitFor(() => viewer.el.$current?.id === id, 4000, `current image ${id}`)
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 }
 
 describe('<micr-io> open()', () => {

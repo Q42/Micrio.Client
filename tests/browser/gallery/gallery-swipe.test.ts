@@ -90,9 +90,9 @@ describe('swipe album — the album API', () => {
 		expect(await album.goto(-5)).toBeUndefined()
 		expect(album.currentIndex).toBe(2)
 
-		// ...and so does `open(id)` for an id that is not in the album, which
-		// short-circuits into `gotoId`
-		expect(await viewer.open('zzzzzzz')).toBeUndefined()
+		// ...and so does `open(id)` for an id that is not in the album: it
+		// short-circuits into `gotoId`, which resolves to the current image
+		expect(await viewer.el.open('zzzzzzz')).toBe(viewer.el.$current)
 		expect(album.currentIndex).toBe(2)
 
 		// next() past the last page is a no-op: the page is set synchronously
