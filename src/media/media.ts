@@ -65,8 +65,6 @@ export interface MediaProps {
 	tour?: Models.ImageData.VideoTour | null
 	autoplay?: boolean
 	controls?: boolean
-	paused?: boolean
-	noPlayOverlay?: boolean
 	is360?: boolean
 	width?: number
 	height?: number

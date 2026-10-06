@@ -358,6 +358,19 @@ describe('marker content audio', () => {
 		expect(anyMedia(loudEl)?.hasAttribute('autoplay')).toBe(true)
 		loud.viewer.destroy()
 	})
+
+	it('does not autoplay when the image prevents it', async () => {
+		const opened = await openMarkers(
+			markerBundle({
+				markers: [marker('m1', { i18n: { en: { audio: audioAsset() } }, audioAutoPlay: true })],
+				settings: { _markers: { preventAutoPlay: true } },
+			}),
+		)
+		const el = mountContent(opened, { marker: markerOf(opened, 'm1') })
+		await settle(1)
+		expect(anyMedia(el)?.hasAttribute('autoplay')).toBe(false)
+		opened.viewer.destroy()
+	})
 })
 
 describe('marker content media end', () => {
