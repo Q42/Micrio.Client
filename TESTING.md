@@ -373,26 +373,16 @@ that contains it; the gallery's own `#goto` is the one that clamps a page.
 that reuse the same URL get the first test's response; every IIIF fixture needs its own URL (the
 same reason `DataLoader` fixtures need fresh ids).
 
-**A IIIF manifest only works when each canvas body carries an Image API `service`.** The client
-reads `body.service[0].id` plus numeric `body.width`/`height` and ignores the body's own
-representation URI, so a service-less body — the shape of the cookbook's minimal single-image
-example, `recipe/0001-mvm-image` — counts as no canvas at all. A manifest with zero usable
-canvases throws `NO_CANVASES` _before_ the single-canvas fallback, so it renders `micrio-error`
-rather than the image. Presentation 4's manifest-level `services` **expansion** is deliberately
-unread: the v4 spec still requires `service` on the body, and every v4 example uses it.
-
-**Presentation 2 is rejected on purpose; anything else that is not `type: 'Manifest'` falls
-through to the single-image path.** `_fromIIIF` throws `IIIF_V2_UNSUPPORTED` on `@type:
-'sc:Manifest'` or on any `sequences` property. That is why an Image API 2.1 `info.json` (which
-has an `@id` but no manifest markers) still opens as one image.
-
-**A IIIF tile's file extension comes from `isWebP`/`preferredFormats` only.** `_getTileSrc`
-never reads `isPng`, and the single-image/`info.json` path does not read the body `format`
-either — a webp or png single-canvas manifest still asks for `.jpg` unless its service declares
-`preferredFormats` (`jpg` is a required Image API format, so the request is still valid). The
-`tiles` array from an `info.json` is stored on the info but never read, and `tileSize` is never
-derived from it: IIIF requests always use 1024px regions (`DEFAULT_TILE_SIZE`) rather than the
-publisher's declared tile grid.
+**IIIF support is limited to manifests whose canvas bodies carry an Image API `service`, and
+Presentation 2 is rejected.** `toIIIFCanvasBody` needs `body.service[0].id` plus numeric
+`body.width`/`height` and ignores the body's own representation URI, so a body without a service
+counts as no canvas at all, and a manifest with zero usable canvases throws `NO_CANVASES` _before_
+the single-canvas fallback: a manifest of plain image URIs (the cookbook's minimal
+`recipe/0001-mvm-image`) renders `micrio-error` rather than the image. `_fromIIIF` throws
+`IIIF_V2_UNSUPPORTED` on `@type: 'sc:Manifest'` or any `sequences`, and a response that is neither
+a usable manifest nor an `info.json` with numeric dimensions is rejected as unsupported rather
+than becoming a blank image. Presentation 4's manifest-level `services` expansion is unread; the
+v4 spec still requires `service` on the body.
 
 **The stylesheet imports are stubbed in tests, so a component has no box.** `vitest.config.ts`
 replaces every `.css` import with an empty module, so the scrubber's `getBoundingClientRect`
