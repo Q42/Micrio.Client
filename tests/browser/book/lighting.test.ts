@@ -168,13 +168,11 @@ describe('computeLighting — per-preset behaviour', () => {
 		expect(length(two._lightDir)).toBeCloseTo(1, 6)
 	})
 
-	it('candlelight counts more candles than the shader has slots for', () => {
-		// Only the first eight slots are ever written, but `_numPointLights` is the
-		// raw candle count: the shader then reads past its declared MAX_POINT_LIGHTS
-		// of 8. The renderer uploads the full 24-float buffers, so nothing throws —
-		// the extra lights are silently wrong. Pinned as the current behaviour of a bug.
+	it('caps candlelight at the slots the shader has', () => {
+		// Only the first eight slots are ever written, so the reported count must
+		// stop there too: the shader reads `P` lights against MAX_POINT_LIGHTS
 		const many = computeLighting('candlelight', { candleCount: 50 }, 0)
-		expect(many._numPointLights).toBe(50)
+		expect(many._numPointLights).toBe(8)
 		expect(Array.from(many._pointLightIntensity).filter((n) => n > 0)).toHaveLength(8)
 	})
 
