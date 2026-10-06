@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DragHandler } from '$core/events/drag'
-import { makeEventScene, pointer, touch, touchEvent, type EventScene } from './event-fixture'
+import { makeEventScene, pointer, type EventScene } from './event-fixture'
 
 /**
  * `DragHandler`: pointer panning, pointer capture and the kinetic release.
@@ -141,18 +141,18 @@ describe('DragHandler — start', () => {
 		expect(s.ctx._panning).toBe(false)
 	})
 
-	it('stops panning when a second touch starts', () => {
+	it('ignores a second press while already panning', () => {
 		const { scene: s, handler: h } = setup()
 		h.hook()
-		s.el.dispatchEvent(pointer('pointerdown', { button: 0, clientX: 10, clientY: 10 }))
+		s.el.dispatchEvent(pointer('pointerdown', { button: 0, pointerId: 1, clientX: 10, clientY: 10 }))
 		expect(s.ctx._panning).toBe(true)
 
-		// A real TouchEvent dispatched as `pointerdown` with a `button` of 0 is the only
-		// shape that reaches this branch: the pointer listener normally never sees one.
-		const twoFinger = touchEvent('pointerdown', [touch(1, 10, 10, s.el), touch(2, 40, 40, s.el)])
-		Object.assign(twoFinger, { button: 0 })
-		s.el.dispatchEvent(twoFinger)
-		expect(s.ctx._panning).toBe(false)
+		// A second finger does not restart the drag; the pinch layer stops the pan
+		s.el.dispatchEvent(
+			pointer('pointerdown', { button: 0, pointerId: 2, pointerType: 'touch', clientX: 40, clientY: 40 }),
+		)
+		expect(s.ctx._panning).toBe(true)
+		expect(s.ctx._vars._drag._start.slice(0, 2)).toEqual([10, 10])
 	})
 
 	it('does nothing when there is no image under the pointer', () => {
