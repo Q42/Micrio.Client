@@ -94,13 +94,20 @@ export class OrbitCamera {
 		)
 	}
 
+	/** Squared zoom factor along the radius range, 0 when the range is degenerate. */
+	#getZoomT(): number {
+		const range = this._maxRadius - this._minRadius
+		// `_initContainRadius` can leave maxRadius === minRadius for a box that is
+		// small against the canvas; dividing by that range turned the eye into NaN
+		const linearT = range > 0 ? (this._radius - this._minRadius) / range : 0
+		return linearT * linearT
+	}
+
 	#getEffectivePhi(): number {
 		if (this._freeCamMode) {
 			return this._phi
 		}
-		const linearT = (this._radius - this._minRadius) / (this._maxRadius - this._minRadius)
-		const zoomT = linearT * linearT
-		const minPhi = ((1 - zoomT) * Math.PI) / 3
+		const minPhi = ((1 - this.#getZoomT()) * Math.PI) / 3
 		return Math.max(minPhi, this._phi)
 	}
 
@@ -124,9 +131,7 @@ export class OrbitCamera {
 	_setFreeCamMode(on: boolean): void {
 		this._freeCamMode = on
 		if (!on) {
-			const linearT = (this._radius - this._minRadius) / (this._maxRadius - this._minRadius)
-			const zoomT = linearT * linearT
-			const minPhi = ((1 - zoomT) * Math.PI) / 3
+			const minPhi = ((1 - this.#getZoomT()) * Math.PI) / 3
 			const clampedPhi = Math.max(minPhi, Math.min(Math.PI * 0.49, this._phi))
 			this.#targetPhi = clampedPhi
 			this.#targetRadius = Math.max(this._minRadius, Math.min(this._maxRadius, this._radius))

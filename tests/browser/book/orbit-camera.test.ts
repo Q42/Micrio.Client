@@ -466,16 +466,18 @@ describe('OrbitCamera — pick ray', () => {
 })
 
 describe('OrbitCamera — degenerate radius range', () => {
-	it('produces a NaN eye when minRadius equals maxRadius, which a small book can reach', () => {
+	it('keeps the eye finite when minRadius equals maxRadius, which a small book can reach', () => {
 		// `_initContainRadius` sets maxRadius to at least minRadius, so a book whose
 		// box is small against the canvas lands on minRadius === maxRadius. The phi
-		// floor then divides by a zero range and the eye becomes NaN instead of
-		// falling back to the raw phi. Pinned as the current behaviour of a bug.
+		// floor used to divide by that zero range and turn the eye into NaN.
 		const cam = new OrbitCamera()
 		cam._minRadius = 0.6
 		cam._maxRadius = 0.6
 		cam._radius = 0.6
 		cam._snap()
-		expect(Number.isNaN(cam._getEye()._y)).toBe(true)
+		const eye = cam._getEye()
+		expect(Number.isFinite(eye._x)).toBe(true)
+		expect(Number.isFinite(eye._y)).toBe(true)
+		expect(Number.isFinite(eye._z)).toBe(true)
 	})
 })
