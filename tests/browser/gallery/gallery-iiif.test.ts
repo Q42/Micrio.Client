@@ -277,6 +277,21 @@ describe('IIIF Image API info.json', () => {
 		await waitForImage(viewer)
 	})
 
+	it('falls back to the URL when an info.json carries no id', async () => {
+		const viewer = await openIIIF(
+			{ '@context': 'http://iiif.io/api/image/3/context.json', type: 'ImageService3', width: 640, height: 480 },
+			'https://iiif.test/api3/2/info.json',
+		)
+		await waitFor(() => viewer.el.$current?.$info.isIIIF === true, 4000, 'the IIIF image')
+
+		// The image id is the request URL with its whole `info.json` suffix removed, so the
+		// trailing slash goes too — keeping it stripped the id down to an empty segment.
+		const image = viewer.el.$current
+		expect(image?.$info.id).toBe('2')
+		expect(image?.$info.path).toBe('https://iiif.test/api3')
+		expect(image?._getTileSrc(0, 0, 0)).toBe('https://iiif.test/api3/2/0,0,640,480/640,480/0/default.jpg')
+	})
+
 	it('opens an Image API 2.1 info.json (@id)', async () => {
 		const viewer = await openIIIF(
 			{
