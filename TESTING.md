@@ -138,7 +138,24 @@ tours).
   stubs the XHR the archive is read over, and opens the album through the element's **id
   attribute** — the only path that turns an album into a gallery (`#print()`), since
   `open(id)` alone never does. Its `waitForGrid` gate must not wait on the viewer's
-  `_visible` list (these fixtures serve no tiles, so it stays empty).
+  `_visible` list (these fixtures serve no tiles, so it stays empty). Two of its moving parts
+  are worth knowing before writing a grid test:
+  - **The archive XHR stub outlives `openGrid`.** `#print` is fire-and-forget, so an album can
+    still be resolving when the test moves on; a stub removed at the end of `openGrid` would
+    send that album to the real network, which 404s and silently degrades the grid to a single
+    image. Call `restoreArchiveXhr()` from the suite's `afterEach` instead.
+  - **Image ids must be unique per fixture, and `gridImageId` guarantees it.** A v5 id is
+    7 characters, so each fixture gets a base-36 tag from a monotonically increasing counter
+    (never `Math.random()` — a 3-character random tag collides, and `DataLoader`'s bundle cache
+    plus the shared `jsonCache` then serve an _earlier_ fixture's album). Markers that name an
+    image id in `_meta.gridAction` should be built through `withIds`, which hands the generated
+    ids to the caller inside the same fixture.
+  - `expectNoAlbum` is for the fixtures whose album is meant to fail (a broken archive, a
+    missing index): it skips the gates and resolves with `grid: undefined` so the test can
+    assert the degradation _and_ still destroy the viewer.
+- `tests/helpers/grid.ts` is the grid spec helper set: `cellButtons`/`cellButton`/`layoutIds`
+  read the printed cell `<button>`s, `focusCell` focuses one and waits for `$focussed`,
+  `settleFrames` waits out the controller's one-frame deferrals.
 - `tests/fixtures/ui.ts` is the UI harness: `uiBundle`/`openUi` mount a bundle with menu
   pages, tours and markers, and `uiPage`/`pageButton`/`uiMarker`/`imageAsset` build the
   shaped data the toolbar and popover tests need.
@@ -211,6 +228,24 @@ clock never advances: mount and open with real timers, then switch (`mountWithFa
 `resize`**, because the component measures the width itself and a narrow real viewport would
 drag CSS media queries into assertions about component state.
 
+**A grid fixture renders no `micrio-marker` elements, and its cells stay invisible.** The
+fixture serves no tiles, so no image ever enters the viewer's `_visible` list — and both the
+marker layer and the controller's `#placeGrid` are built from that list. A grid marker test
+therefore opens a marker by setting the marker _object_ on `image.state.marker` (the grid
+watches `micrio.state.marker`, which the state controller mirrors) rather than by id, which
+is an unrendered element's job to resolve.
+
+**A grid cell's `camera.getView()` is not usable offline.** A cell's view only becomes
+meaningful after a real render, so grid tests assert the hand-off instead: the layout, the
+`opts.area` a cell was measured into, and the calls the controller makes on the camera.
+`opts.area` is also written **once** — `#printGrid` skips an image that already has one, so a
+later `set(..., { scale })` does not move it.
+
+**`_meta.gridSize` does nothing yet.** The controller stores it in `#nextSize` and clears
+that at the start of every `set`, and `#cellSizes` is written but never read, so a marker's
+`gridSize` never reaches the layout. `tests/browser/grid-actions.test.ts` pins the current
+behaviour on purpose, so wiring the feature up has to change a test rather than pass silently.
+
 ## Type checking and linting
 
 - `pnpm typecheck` type-checks `src`, `build`, `templates` with `tsconfig.json`.
@@ -229,54 +264,49 @@ drag CSS media queries into assertions about component state.
 
 ## Status
 
-| Area                                               | Suite                                      | Status     |
-| -------------------------------------------------- | ------------------------------------------ | ---------- |
-| Math, ids, time, locale, easing                    | `tests/core/*.test.ts`                     | done       |
-| Store API, state controllers                       | `tests/core/store`, `state`                | done       |
-| bundle.json loading and caching                    | `tests/core/dataLoader`                    | done       |
-| MDP archive parsing                                | `tests/core/archive`                       | done       |
-| Matrix/vector math                                 | `tests/core/mat`                           | done       |
-| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/element-legacy`             | done       |
-| `<micr-io>` open / events / attributes             | `tests/browser/element-*`                  | done       |
-| Markers                                            | `tests/browser/markers`                    | done       |
-| 360 space resolution and navigation                | `tests/browser/tours-360`                  | done       |
-| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/camera-360`                 | done       |
-| `trueNorth` and image orientation                  | `tests/browser/space-truenorth`            | done       |
-| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/waypoints`                  | done       |
-| 360 space transitions                              | `tests/browser/space-transition`           | done       |
-| 360 minimap                                        | `tests/browser/minimap-360`                | done       |
-| Gallery / album switching                          | `tests/browser/gallery`                    | partial    |
-| Video tour timeline and playback                   | `tests/browser/video-tour`                 | done       |
-| Marker tour UI and navigation                      | `tests/browser/marker-tour`                | done       |
-| Serial (multi-image) tours                         | `tests/browser/serial-tour`                | done       |
-| Media element, controls, subtitles                 | `tests/browser/media-*`, `subtitles`       | done       |
-| Tour toolbar and autostart wiring                  | `tests/browser/tour-integration`           | done       |
-| Audio controller (Web Audio, positional)           | `tests/browser/audio-controller`           | done       |
-| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/media-settings`                | done       |
-| Spatial audio routing                              | `tests/browser/audio-location`             | done       |
-| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/*-adapter`, `hls-player`    | done       |
-| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media-adapters`             | done       |
-| Grid column maths and transition areas             | `tests/browser/grid-format`                | done       |
-| Grid storytelling                                  | —                                          | partial    |
-| 3D book viewer                                     | `tests/browser/book3d-smoke`               | smoke only |
-| UI translation tables                              | `tests/core/i18n-strings`                  | done       |
-| Buttons, icons, progress circle, dial              | `tests/browser/ui-button`, `ui-primitives` | done       |
-| Menu tree and its actions                          | `tests/browser/ui-menu`                    | done       |
-| Toolbar (desktop + mobile sheet)                   | `tests/browser/toolbar-*`                  | done       |
-| Content-page popover and welcome screen            | `tests/browser/popover`                    | done       |
+| Area                                               | Suite                                                                       | Status     |
+| -------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
+| Math, ids, time, locale, easing                    | `tests/core/*.test.ts`                                                      | done       |
+| Store API, state controllers                       | `tests/core/store`, `state`                                                 | done       |
+| bundle.json loading and caching                    | `tests/core/dataLoader`                                                     | done       |
+| MDP archive parsing                                | `tests/core/archive`                                                        | done       |
+| Matrix/vector math                                 | `tests/core/mat`                                                            | done       |
+| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/element-legacy`                                              | done       |
+| `<micr-io>` open / events / attributes             | `tests/browser/element-*`                                                   | done       |
+| Markers                                            | `tests/browser/markers`                                                     | done       |
+| 360 space resolution and navigation                | `tests/browser/tours-360`                                                   | done       |
+| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/camera-360`                                                  | done       |
+| `trueNorth` and image orientation                  | `tests/browser/space-truenorth`                                             | done       |
+| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/waypoints`                                                   | done       |
+| 360 space transitions                              | `tests/browser/space-transition`                                            | done       |
+| 360 minimap                                        | `tests/browser/minimap-360`                                                 | done       |
+| Gallery / album switching                          | `tests/browser/gallery`                                                     | partial    |
+| Video tour timeline and playback                   | `tests/browser/video-tour`                                                  | done       |
+| Marker tour UI and navigation                      | `tests/browser/marker-tour`                                                 | done       |
+| Serial (multi-image) tours                         | `tests/browser/serial-tour`                                                 | done       |
+| Media element, controls, subtitles                 | `tests/browser/media-*`, `subtitles`                                        | done       |
+| Tour toolbar and autostart wiring                  | `tests/browser/tour-integration`                                            | done       |
+| Audio controller (Web Audio, positional)           | `tests/browser/audio-controller`                                            | done       |
+| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/media-settings`                                                 | done       |
+| Spatial audio routing                              | `tests/browser/audio-location`                                              | done       |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/*-adapter`, `hls-player`                                     | done       |
+| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media-adapters`                                              | done       |
+| Grid column maths and transition areas             | `tests/browser/grid-format`                                                 | done       |
+| Grid storytelling                                  | `tests/browser/grid-{layout,focus,history,tour-events,actions,integration}` | done       |
+| 3D book viewer                                     | `tests/browser/book3d-smoke`                                                | smoke only |
+| UI translation tables                              | `tests/core/i18n-strings`                                                   | done       |
+| Buttons, icons, progress circle, dial              | `tests/browser/ui-button`, `ui-primitives`                                  | done       |
+| Menu tree and its actions                          | `tests/browser/ui-menu`                                                     | done       |
+| Toolbar (desktop + mobile sheet)                   | `tests/browser/toolbar-*`                                                   | done       |
+| Content-page popover and welcome screen            | `tests/browser/popover`                                                     | done       |
 
 ## Session backlog
 
 Roughly in order of value against risk:
 
-1. **Grid storytelling** (`src/grid/**`) — the format layer and the album harness are done;
-   the controller is the next thing to solve:
-   - The suites still to write are listed in the approved plan: controller (layout, history,
-     focus, enlarge), transitions, actions and the `grid:` tour-event path, keyboard, and
-     the integration paths.
-2. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
+1. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
    after the other subsystems, and only with golden-image or geometry assertions.
-3. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
+2. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
    floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-4. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+3. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
