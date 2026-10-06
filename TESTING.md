@@ -42,8 +42,7 @@ separate configs, so a core test can never accidentally depend on a browser.
 Both projects share the alias map and the GLSL plugin with the production build:
 `vite.config.js` exports `aliases` and `glslMinifyPlugin()`, and `vitest.config.ts`
 imports them. So `$core/...`, `$utils/...`, `$render/...` resolve in tests exactly like
-they do in the app. `templates/grid/**` resolution works for tests too, via the same alias
-map and the shared tsconfig (see [Type checking](#type-checking)).
+they do in the app, `templates/grid/**` included.
 
 The browser suite is registered through the production entry point (`src/main.ts`), so
 `customElements.define('micr-io', ...)` and the version banner behave exactly like a
@@ -83,17 +82,13 @@ The default run is fully hermetic:
   is asserted.
 - A 404 is the default for anything unmatched, which keeps leaks loud instead of silent.
 - Texture tiles are decoded inside a dedicated Web Worker (`src/render/textures.ts`),
-  where the main-thread patch does not reach. `tests/browser/textures.ts` replaces
-  that worker with one that resolves every requested tile URL to a tiny real image
-  (a 4x4 WebP built once with `OffscreenCanvas`). Tiles therefore load instantly and
-  frames draw with real texture data — the suite can assert that rendering happened
-  (`engine._numTiles`, `engine._progress`, the `draw` event) without any network and
-  without `[Micrio Texture] Error loading …` noise for every tile.
-
-  It is installed from `tests/browser/setup.ts` _before_ `src/main` is imported,
-  because the worker bootstrap URL is created at module load. To assert on the tile
-  URLs the engine requested, read `requested` from `tests/helpers/network.ts` — the
-  fake worker answers exactly the URLs the engine asks for.
+  which the main-thread patch cannot reach. `tests/browser/textures.ts` replaces that
+  worker with one that answers every tile URL with a tiny real image (a 4x4 WebP built
+  once with `OffscreenCanvas`), installed from `tests/browser/setup.ts` _before_
+  `src/main` is imported because the worker bootstrap URL is created at module load.
+  Tiles load instantly and frames draw with real texture data, so a suite can assert
+  that rendering happened (`engine._numTiles`, `engine._progress`, the `draw` event)
+  without network and without a texture error per tile.
 
 ### The live suite
 
@@ -117,32 +112,28 @@ tours).
   to render); a swipe album; a book3d album.
 - `fixtures/space-fixture.ts` is the 360 harness: `freshSpace` rewrites a space bundle to
   fresh ids (images, space, waypoint ids **and** link endpoints), `openSpace` mounts and
-  opens one, and `openVisibleSpace` additionally waits for `_visible` — which is what the
-  waypoints layer and the 360 geometry actually depend on. Use `openVisibleSpace` for
-  anything that inspects waypoints, the minimap or a settled camera.
+  opens one, and `openVisibleSpace` also waits for `_visible`, which the waypoints layer
+  and the 360 geometry depend on.
 - **Bundle, space and album caches in `src/utils/dataLoader.ts` are module-level and
-  keyed by id.** They live for the whole test file. A test that goes through the
-  network path must therefore use **fresh ids**, or it will hit a bundle cached by an
-  earlier test and never populate the new space/album. `tests/browser/element-open.test.ts`,
-  `tours-360.test.ts` and `gallery.test.ts` show the pattern.
+  keyed by id.** They live for the whole test file, so a test that goes through the
+  network path needs **fresh ids**: a reused id serves the earlier test's bundle.
+  `tests/browser/element-open.test.ts`, `tours-360.test.ts` and `gallery.test.ts` show the
+  pattern.
 - `helpers/viewer.ts` mounts a sized `<micr-io>`, opens a bundle object or an id, and
-  exposes `waitFor` for polling on animation frames. Prefer `waitFor` over fixed
-  `setTimeout` delays.
+  exposes `waitFor` for polling on animation frames.
 - `helpers/network.ts` also has `mockText(pattern, body)` for non-JSON resources
-  (WebVTT). Both helpers take a **RegExp**, not a URL string — passing a URL silently
-  produces a matcher that never matches.
+  (WebVTT). Both helpers take a **RegExp**, not a URL string.
 - `helpers/tour.ts` adds `mountTour` (mount + open + wait for load), `startTour` (set the
   tour store the way the toolbar does), `recordEvents` (custom events with details) and a
   pair of clock helpers, `tickClock(ms)` and `advance(ms)`.
 - `fixtures/tours.ts` builds video tours, marker tours, cross-image serial tours,
   `serialStoryBundle` (a `JXflr`-shaped story: one bundle of sibling images, a serial tour
-  whose steps each carry a marker with its own video tour), and a small VTT document.
+  whose steps each carry a marker with its own video tour) and a small VTT document.
   `markersWithVideo` exists because a serial tour only produces media — and therefore
   progress bars — for steps whose marker carries a video tour.
-  **Tours that read `DataLoader._getStepMarker` (both `tour.ts` and `serial-tour.ts` do)
-  must be mounted through `bundle.json`, not as a bundle object**: that cache is only
-  filled by the fetch, so the object path resolves every step marker to `undefined` and
-  the tour renders nothing without saying why.
+  **Tours that read `DataLoader._getStepMarker` (`tour.ts` and `serial-tour.ts` both do)
+  must be mounted through `bundle.json`, not as a bundle object**: that cache is filled by
+  the fetch, so the object path resolves every step marker to `undefined`.
 - `tests/fixtures/grid.ts` mounts a real grid album: it packs a tightly-packed MDP archive,
   stubs the XHR the archive is read over, and opens the album through the element's **id
   attribute** — the only path that turns an album into a gallery (`#print()`), since
@@ -150,29 +141,11 @@ tours).
   `_visible` list (these fixtures serve no tiles, so it stays empty).
 - `tests/fixtures/ui.ts` is the UI harness: `uiBundle`/`openUi` mount a bundle with menu
   pages, tours and markers, and `uiPage`/`pageButton`/`uiMarker`/`imageAsset` build the
-  shaped data the toolbar and popover tests need. `openUi` waits for the image data,
-  because the toolbar renders from it and not from the element alone.
+  shaped data the toolbar and popover tests need.
 - **A marker only reaches the popover with `popupType: 'popover'`.** A plain marker opens
-  the lighter `micrio-marker-popup` (`state.popup`) instead, so a popover test whose marker
-  lacks that field waits forever for a dialog that is never built.
-- **The popover is re-rendered from its state, and its render key includes the gallery.**
-  Both were bugs found by this suite: the layout passed no update callback, so a popover
-  that was already open ignored a _new_ state (`#show` reuses the connected element), and
-  the render key held only page/marker ids, so one gallery could not replace another. A
-  case that swaps content while the dialog is open pins both — keep one.
-- **The layout removes `micrio-popover` when the state clears**, so "the popover closed"
-  is asserted as the element being gone (or the state being `undefined`), not as
-  `dialog.open === false` — by the time you look, the element is usually detached.
-- **The toolbar's mobile layout is tested by pinning `window.innerWidth` and dispatching
-  `resize`**, not by resizing the test iframe: the component measures the width itself, and
-  the real viewport would drag CSS media queries into assertions that are about the
-  component's state. `toolbar-mobile.test.ts` removes the stub afterwards.
-- One trap worth repeating: `micrio-button` passes its `className` down to the inner
-  `<button>`/`<a>`, so class assertions (the toolbar's `indent`, the popover's `no-click`)
-  have to query the child, not the host.
-- `src/core/state.ts` and friends are exercised with small plain-object stubs. When a
-  stub needs a back-reference to itself (the `image.engine.micrio` pattern), build it as
-  `const engine = { micrio }; const image = { engine }` — see the note below.
+  the lighter `micrio-marker-popup` (`state.popup`) instead.
+- `src/core/state.ts` and friends are exercised with small plain-object stubs, which need
+  the self-referencing shape noted under [Sharp edges](#sharp-edges-worth-knowing).
 
 ### Fakes for the audio and player layers
 
@@ -192,37 +165,51 @@ tours).
 
 ### Sharp edges worth knowing
 
+**The layout removes `micrio-popover` when the state clears.** "The popover closed" is
+asserted as the element being gone (or the state being `undefined`), not as
+`dialog.open === false` — by the time you look, the element is usually detached.
+
+**A popover renders from its state, and its render key includes the gallery.** The state
+reaches an open popover through `#show`'s update callback (the element is reused), and the
+key carries the page, marker, gallery and language — which is what lets one gallery replace
+another.
+
+**A click that opens a menu branch stops propagating.** The module's `opened` store installs
+a window click listener while something is open, so opening a branch and letting the click
+bubble would close it again in the same event.
+
+**`micrio-button` passes its `className` down to the inner `<button>`/`<a>`.** Class
+assertions (the toolbar's `indent`, the popover's `no-click`) have to query the child, not
+the host.
+
 **Self-referencing literals.** Object literals with a self-reference can lose the
-reference under the Vite transform when they are built inside a nested function and
-passed through an `as unknown as SomeClass` cast. Constructing the referenced object
-first and dereferencing it through a local (`const engine = { micrio }`) is the reliable
-shape, and is what `tests/core/state.test.ts` uses.
+reference under the Vite transform when they are built inside a nested function and passed
+through an `as unknown as SomeClass` cast. Constructing the referenced object first and
+dereferencing it through a local (`const engine = { micrio }`) is the reliable shape.
 
 **Private fields are invisible to assertions.** `#props` and friends are not own
 properties, so `(el as unknown as { _props?: X })._props` reads `undefined` even when
 the component was configured correctly. Reading them tells you nothing — assert through
-the DOM, or through a public accessor, instead. Several hours went into a phantom bug
-caused by this.
+the DOM, or through a public accessor, instead.
 
 **The audio controller only exists for an image with `music` or a marker carrying
-`positionalAudio`.** A plain marker does not qualify, so a test that needs the controller
-must include one of those — otherwise nothing is built and the assertion fails for a
-reason that has nothing to do with the behaviour under test. Its autoplay probe `<audio>`
-is also appended _before_ the `AudioContext` availability check, so the probe's presence
-is not evidence that the audio graph exists.
+`positionalAudio`.** A plain marker builds nothing, so a controller test needs one of those.
+Its autoplay probe `<audio>` is appended _before_ the `AudioContext` availability check, so
+its presence is not evidence that the audio graph exists.
 
-**`dataLoader` caches image data by id for the whole file.** Reusing one id across tests
-means later tests get the first test's image — including one with no `data` — and the
-controller then never sees the `music` it was supposed to. Every audio test uses a fresh
-id, and waits for `$current.$data` rather than only for `_loading` to clear, because
-`_loading` clears first.
+**`dataLoader` caches image data by id for the whole file.** Reusing an id across tests
+serves the first test's image — including one with no `data`. `_loading` also clears before
+`$current.$data` is set, so an audio test waits on the data, not on loading.
 
-**Fake timers freeze `waitFor`.** `waitFor` polls on `requestAnimationFrame`, which a
-faked clock never advances. Mount and open with real timers, then switch:
-`mountWithFakeTime` in `tests/browser/video-tour.test.ts` shows the pattern. Also
-remember that `VideoTourInstance` derives `currentTime` from `Date.now()`, so use
-`tickClock()` when you want to observe time passing without its scheduled steps firing,
-and `advance()` when the steps firing _is_ the thing under test.
+**Fake timers freeze `waitFor`.** `waitFor` polls on `requestAnimationFrame`, which a faked
+clock never advances: mount and open with real timers, then switch (`mountWithFakeTime` in
+`tests/browser/video-tour.test.ts`). `VideoTourInstance` derives `currentTime` from
+`Date.now()`, so `tickClock()` passes time without its scheduled steps firing and
+`advance()` fires them.
+
+**The toolbar's mobile layout is tested by pinning `window.innerWidth` and dispatching
+`resize`**, because the component measures the width itself and a narrow real viewport would
+drag CSS media queries into assertions about component state.
 
 ## Type checking and linting
 
@@ -238,8 +225,7 @@ and `advance()` when the steps firing _is_ the thing under test.
   picks) still apply to tests. Type safety for tests comes from `tsc`, which does resolve
   the aliases.
 - `pnpm format:check` must stay clean; run `pnpm format` after adding tests.
-- `pnpm build` is unchanged: it stays a fast release gate and does not run the test
-  suites.
+- `pnpm build` does not run the test suites: it stays a fast release gate.
 
 ## Status
 
@@ -288,17 +274,9 @@ Roughly in order of value against risk:
    - The suites still to write are listed in the approved plan: controller (layout, history,
      focus, enlarge), transitions, actions and the `grid:` tour-event path, keyboard, and
      the integration paths.
-2. **UI components** — the button, icon, progress-circle, dial, menu tree, toolbar and
-   popover are covered, including language switching on the menu and in the popover. Still
-   open:
-   - One menu case is `it.skip` in `ui-menu.test.ts` (nested branch open state): it passes
-     on its own but is order-dependent in sequence, because the menu's open state is a
-     module-level store. Re-enable once that leak is handled.
-   - The popover's `showLangSelect` state flag is set by the welcome screen but read
-     nowhere in the client; the popover does not implement a language selector.
-3. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
+2. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
    after the other subsystems, and only with golden-image or geometry assertions.
-4. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
+3. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
    floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-5. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+4. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
