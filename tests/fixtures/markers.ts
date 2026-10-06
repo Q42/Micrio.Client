@@ -131,13 +131,16 @@ export interface OpenMarkers extends MarkerFixture {
  * Waiting for the *layer* rather than for marker elements is deliberate: a fixture whose
  * markers are all filtered out by the active language still mounts the layer and has no
  * marker elements, and waiting for them would only time out.
+ *
+ * `byId` opens the image by id, which is the path the bundle cache and
+ * `micrio.bundleTours` are filled through — the caller has to serve it first.
  */
 export async function openMarkers(
 	fixture: MarkerFixture,
-	opts: { attrs?: Record<string, string>; style?: string } = {},
+	opts: { attrs?: Record<string, string>; style?: string; byId?: boolean } = {},
 ): Promise<OpenMarkers> {
 	const viewer = mountViewer(opts.attrs ?? {}, opts.style)
-	await viewer.open(fixture.bundle)
+	await viewer.open(opts.byId ? fixture.id : fixture.bundle)
 	await waitFor(() => !get(viewer.el._loading), 8000, 'the marker image to load')
 	await waitFor(() => viewer.el.querySelector('micrio-markers') !== null, 8000, 'the marker layer')
 
