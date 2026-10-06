@@ -169,12 +169,7 @@ describe('micrio-menu opening', () => {
 		viewer.destroy()
 	})
 
-	// Skipped: the open-state bookkeeping for a *nested* branch is order-dependent in this
-	// suite. The case passes on its own and the parent/child classes are correct there, but
-	// in sequence the child's `opened` class intermittently never lands — the same
-	// module-level `opened` store that leaks between tests elsewhere. The assertions below
-	// are the intended contract, kept so the case can be re-enabled once that is solved.
-	it.skip('marks an ancestor as opened when a descendant is open', async () => {
+	it('marks an ancestor as opened when a descendant is open', async () => {
 		// Children *without* an action of their own are the ones that reveal rather than
 		// commit, so this tree uses plain leaves
 		const tree: Models.ImageData.Menu = {

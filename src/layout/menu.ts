@@ -160,11 +160,15 @@ class MicrioMenu extends MicrioElement<MenuProps> {
 			if (!menu.link) {
 				e.preventDefault()
 			}
-			if (menu.children?.length) {
-				e.stopPropagation()
-			}
 			this.#action?.()
 			const doClose = Boolean(this.#isOpen(menu) || this.#action || menu.link)
+			// Opening a sub-tree must not reach the window listener that the open state
+			// installs: that same click would close what it just opened. Only a click
+			// that opens one needs stopping — a committing entry wants the document
+			// click, because that is also what closes an open branch elsewhere.
+			if (!doClose) {
+				e.stopPropagation()
+			}
 			opened.set(doClose ? undefined : menu)
 			if (this.#action || menu.link) {
 				onclose?.()
