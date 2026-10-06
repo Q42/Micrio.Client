@@ -223,6 +223,38 @@ describe('marker grid metadata', () => {
 		viewer.destroy()
 	})
 
+	it('focuses with the marker gridTourTransition', async () => {
+		// A marker's `gridTourTransition` is the focus animation its own `gridAction` uses. The
+		// controller hands it to `gridFocus` as the transition option; the settled layout is the
+		// same whatever the transition, so the assertion is on the call.
+		const { viewer, grid, ids } = await openGrid(
+			fast({
+				withIds: (all) => ({
+					0: [
+						marker('moving', {
+							popupType: 'none',
+							i18n: { en: { title: 'moving' } },
+							data: { _meta: { gridAction: `focus|${all[2] ?? ''}` }, gridTourTransition: 'swipe-left' },
+						}),
+					],
+				}),
+			}),
+		)
+
+		const transitions: (string | undefined)[] = []
+		const original = grid.gridFocus.bind(grid)
+		grid.gridFocus = ((img, opts) => {
+			transitions.push(opts?.transition)
+			return original(img, opts)
+		}) as typeof grid.gridFocus
+
+		await openMarker(viewer, ids[0] ?? '', 'moving')
+		await settleFrames(4)
+		expect(transitions).toEqual(['swipe-left'])
+		expect(grid.$focussed?.id).toBe(ids[2])
+		viewer.destroy()
+	})
+
 	it('starts a marker video tour and hides the grid while it runs', async () => {
 		const vt = videoTour({ id: 'marker-vt', duration: 4 })
 		const withVideo = marker('play-me', {

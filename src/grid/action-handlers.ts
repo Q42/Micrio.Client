@@ -55,13 +55,16 @@ export function createTourEventHandler(grid: Grid): (e: Event) => void {
 	}
 }
 
-const handlerMaps = new WeakMap<Grid, Record<number, (data?: string, duration?: number) => void>>()
+/** One grid action handler: the action's data, its duration and the open marker's focus transition. */
+type ActionHandler = (data?: string, duration?: number, transition?: Models.Grid.MarkerFocusTransition) => void
 
-function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: number) => void> {
+const handlerMaps = new WeakMap<Grid, Record<number, ActionHandler>>()
+
+function getHandlerMap(grid: Grid): Record<number, ActionHandler> {
 	let map = handlerMaps.get(grid)
 	if (!map) {
 		map = {
-			[GridActionType.focus]: (data, duration) => {
+			[GridActionType.focus]: (data, duration, transition) => {
 				const spl = data?.split('|').map((s) => s.trim())
 				const name = spl?.[0] ?? ''
 				const imgs = name
@@ -69,7 +72,7 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 					.map((i) => grid._imageMap.get(i.trim()))
 					.filter((i): i is MicrioImage => i !== undefined)
 				if (imgs.length === 1) {
-					void grid.gridFocus(imgs[0], { duration })
+					void grid.gridFocus(imgs[0], { duration, transition })
 				} else if (imgs.length > 0) {
 					void grid.set(
 						imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
@@ -158,7 +161,13 @@ function isGridActionName(action: string): action is keyof typeof GridActionType
  * Deduplicates repeated identical actions by tracking the last action key.
  * @internal
  */
-export function handleAction(grid: Grid, action: GridActionType | string, data?: string, duration?: number): void {
+export function handleAction(
+	grid: Grid,
+	action: GridActionType | string,
+	data?: string,
+	duration?: number,
+	transition?: Models.Grid.MarkerFocusTransition,
+): void {
 	const type = typeof action === 'string' && isGridActionName(action) ? GridActionType[action] : action
 	const key = type + (data ?? '')
 	if (grid._lastAction === key) {
@@ -166,7 +175,7 @@ export function handleAction(grid: Grid, action: GridActionType | string, data?:
 	}
 	const handler = typeof type === 'number' ? getHandlerMap(grid)[type] : undefined
 	if (handler) {
-		handler(data, duration)
+		handler(data, duration, transition)
 	} else {
 		console.warn('Warning: unknown grid tour event', action)
 	}

@@ -190,7 +190,9 @@ export class Grid extends MicrioElement<GridProps> {
 					const name = a?.[0]
 					if (a?.length && typeof name === 'string') {
 						a.shift()
-						this.action(name, a.join('|'))
+						// The opened marker's `gridTourTransition` is the transition that action's
+						// focus should use when it lands on a single image
+						this.action(name, a.join('|'), undefined, m.data?.gridTourTransition)
 					}
 				})
 			}
@@ -807,8 +809,13 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	/** Execute a grid action by type (e.g. `focus`, `reset`, `back`) with optional data and duration. */
-	action(action: GridActionType | string, data?: string, duration?: number): void {
-		handleAction(this, action, data, duration)
+	action(
+		action: GridActionType | string,
+		data?: string,
+		duration?: number,
+		focusTransition?: Models.Grid.MarkerFocusTransition,
+	): void {
+		handleAction(this, action, data, duration, focusTransition)
 	}
 
 	/** Enlarge a specific grid cell to span the given number of columns/rows, re-laying out without history. */

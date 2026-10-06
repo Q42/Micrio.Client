@@ -726,6 +726,8 @@ export class HTMLMicrioElement extends MicrioElement {
 			gridView?: boolean
 			/** An optional starting view to apply immediately. */
 			startView?: Models.Camera.View
+			/** For a grid focus, the transition animation to use (a marker's `gridTourTransition`). */
+			transition?: Models.Grid.MarkerFocusTransition
 			/** For 360 transitions, provides the direction vector from the previous image. */
 			vector?: Models.Camera.Vector
 			/** Optional Gallery controller, used for gallery/grid views. */
@@ -891,7 +893,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Set current / grid ────────────────────────────────────────────────
 
 		if (isInGrid && (!opts.gridView || !grid?._current.find((img) => img.id === bundle.id))) {
-			void grid?.gridFocus(c, { view: bundle.settings?.view }).then(() => {
+			void grid?.gridFocus(c, { view: bundle.settings?.view, transition: opts.transition }).then(() => {
 				this.current.set(c)
 			})
 		} else {
