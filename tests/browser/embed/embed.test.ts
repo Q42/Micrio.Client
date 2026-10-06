@@ -503,23 +503,31 @@ describe('pause-on-zoom', () => {
 		expect(setCurrentTime).toHaveBeenCalledWith(0)
 	})
 
-	it('KNOWN GAP: an un-hooked 0x0 host viewport makes the screen size infinite', () => {
-		// canvas.viewport is 0x0 until the element is resized, and #shouldPause
-		// divides by it, so any pauseWhenLargerThan threshold is exceeded.
+	it('does not pause on an un-hooked 0x0 host viewport', () => {
+		// canvas.viewport is 0x0 until the element is resized; the screen size stays
+		// 0 instead of becoming Infinity, so no threshold is crossed.
 		host.el.canvas.viewport.width = 0
 		host.el.canvas.viewport.height = 0
 		const { el } = mountRaw(videoEmbed({}, { controls: true, pauseWhenLargerThan: 1e9 }))
-		expect(el.querySelector('figure')?.classList.contains('paused')).toBe(true)
+		expect(el.querySelector('figure')?.classList.contains('paused')).toBe(false)
 	})
 })
 
 describe('HTML video edge cases', () => {
-	it('KNOWN GAP: a controlled video overlay carries no-events and is therefore inert', () => {
+	it('keeps a controlled video overlay interactive', () => {
 		const { el } = mountRaw(videoEmbed({}, { controls: true }))
-		// `.no-events` is pointer-events:none (embed.css) and is inherited by the
-		// video, so the native controls cannot be clicked.
-		expect(hasNoEvents(el)).toBe(true)
+		// No `.no-events`: pointer-events stay auto so the native controls work.
+		expect(hasNoEvents(el)).toBe(false)
 		expect(el.querySelector('video')?.hasAttribute('controls')).toBe(true)
+	})
+
+	it('still lets pan/zoom through a controls-less video overlay', () => {
+		Browser.OSX = false
+		stubHdr(false)
+		const { el } = mountRaw(videoEmbed({}, { autoplay: false }))
+		// Rendered as HTML (non-HDR fallback) but with nothing to click.
+		expect(el.querySelector('video')).not.toBeNull()
+		expect(hasNoEvents(el)).toBe(true)
 	})
 
 	it('adds the hide-when-paused class to an HTML video overlay', () => {

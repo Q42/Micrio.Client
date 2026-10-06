@@ -159,7 +159,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				(embed.video && !embed.video.controls && !embed.video.transparent),
 			)
 
-		this.#noEvents = !embed.clickAction && !embed.frameSrc && !marker
+		// A video with native controls is interactive content: it must not be
+		// swallowed by the overlay's `no-events` (inherited pointer-events: none).
+		this.#noEvents = !embed.clickAction && !embed.frameSrc && !marker && !embed.video?.controls
 		this.#href = embed.clickAction === 'href' ? embed.clickTarget : undefined
 		this.#hrefBlankTarget = Boolean(this.#href && embed.clickTargetBlank)
 
@@ -610,13 +612,17 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		if (!vid?.pauseWhenSmallerThan && !vid?.pauseWhenLargerThan) {
 			return !this.#autoplay
 		}
-		const vp = this.#micrio.canvas.viewport
-		const screenSize = this.#scaleVal
-			? Math.max(
-					(this.#w * this.#info.width * this.#scaleVal) / vp.width,
-					(this.#h * this.#info.height * this.#scaleVal) / vp.height,
-				)
-			: 0
+		const { width, height } = this.#micrio.canvas.viewport
+		// The canvas viewport is 0x0 until the element is resized; dividing by it
+		// would make the screen size infinite and pause every pauseWhenLargerThan
+		// video at startup.
+		const screenSize =
+			this.#scaleVal && width > 0 && height > 0
+				? Math.max(
+						(this.#w * this.#info.width * this.#scaleVal) / width,
+						(this.#h * this.#info.height * this.#scaleVal) / height,
+					)
+				: 0
 		return Boolean(
 			(vid.pauseWhenSmallerThan && screenSize < vid.pauseWhenSmallerThan) ||
 			(vid.pauseWhenLargerThan && screenSize > vid.pauseWhenLargerThan),
