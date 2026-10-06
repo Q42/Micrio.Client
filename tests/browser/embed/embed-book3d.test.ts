@@ -141,14 +141,26 @@ describe('book3d embeds', () => {
 		expect((image.camera.getMatrix.mock.calls[0] as number[])[3]).toBe(100)
 	})
 
-	it('KNOWN GAP: a book3d video embed is built at 0×0', () => {
+	it('sizes a book3d video embed from its area cap', () => {
 		vi.useFakeTimers()
 		const image = book3dImage()
 		const el = mountBook(videoEmbed({}, { controls: true }), image)
 		const video = el.querySelector('video')
-		// #readPlacement returns before #widthCapped is computed for book3d, so
-		// #buildVideoContent derives a width/height of 0 (and scale(Infinity)).
-		expect(video?.getAttribute('width')).toBe('0')
-		expect(video?.getAttribute('height')).toBe('0')
+		// The area is a quarter of a 512px image (128px) and the video is 640x360,
+		// so the cap is the area width and the height follows the aspect ratio.
+		expect(video?.getAttribute('width')).toBe('128')
+		expect(video?.getAttribute('height')).toBe('72')
+	})
+
+	it('sizes a book3d video embed from the video when it is narrower than the area', () => {
+		vi.useFakeTimers()
+		const image = book3dImage()
+		const el = mountBook(videoEmbed({}, { controls: true, width: 64, height: 36 }), image)
+		const video = el.querySelector('video')
+		expect(video?.getAttribute('width')).toBe('64')
+		expect(video?.getAttribute('height')).toBe('36')
+		// The rendered width is still the area width (the video is scaled up), so the
+		// book matrix keeps normalising against the area width.
+		expect(video?.style.transform).toBe('scale(2)')
 	})
 })

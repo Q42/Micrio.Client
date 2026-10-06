@@ -230,6 +230,22 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#scaleX = embed.scaleX ?? 1
 		this.#scaleY = embed.scaleY ?? 1
 
+		// The video cap drives both the HTML <video> size (also for book3d, where
+		// the style math below is skipped) and its rendered width, so it has to be
+		// known before the early return. Malformed zero dimensions fall back to the
+		// area width instead of dividing by zero.
+		if (embed.video) {
+			const { width: vw, height: vh } = embed.video
+			if (vw > 0 && vh > 0) {
+				this.#widthCapped =
+					vw > vh
+						? Math.min(vw, this.#w * this.#info.width, 2048)
+						: Math.min(vh, this.#h * this.#info.height, 2048) / (vh / vw)
+			} else {
+				this.#widthCapped = this.#w * this.#info.width
+			}
+		}
+
 		// Static inputs for the 360/book3d matrix — computed once per placement.
 		this.#matrixScale = (!this.#isBook3d ? 1 : this.#w) * this.#s
 		if (!this.#isBook3d) {
@@ -271,15 +287,6 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 
 		this.#buttonStyle = styles.join(';')
-
-		if (embed.video) {
-			if (embed.video.width > embed.video.height) {
-				this.#widthCapped = Math.min(embed.video.width, this.#w * this.#info.width, 2048)
-			} else {
-				this.#widthCapped =
-					Math.min(embed.video.height, this.#h * this.#info.height, 2048) / (embed.video.height / embed.video.width)
-			}
-		}
 	}
 
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
