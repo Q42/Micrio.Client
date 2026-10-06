@@ -337,6 +337,13 @@ export class Gallery {
 		const index = aInfo.archive ? await Gallery.#getArchiveIndex(aInfo.archive.split('.')[0], path) : undefined
 		if (index) {
 			config.archiveLayerOffset = index.delta
+			// The caller's startId (the element's own id) only wins when the album
+			// actually contains that image; otherwise the album's own setting is the
+			// author's intent. `#renderGallery` clamps an unknown id to page 0.
+			const known = new Set(index.images.map((image) => image.id))
+			if (!opts?.startId || !known.has(opts.startId)) {
+				config.startId = aInfo.startId ?? opts?.startId
+			}
 		}
 		const { sort } = config
 		if (sort && index?.images) {

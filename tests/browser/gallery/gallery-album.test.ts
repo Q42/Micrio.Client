@@ -106,15 +106,24 @@ describe('album without an archive', () => {
 })
 
 describe('album start page', () => {
-	it('lets the element id win over the album startId', async () => {
-		// `#print` always passes the element's own id as `_fromAlbum`'s `startId`,
-		// and that argument takes precedence — so an album-level `startId` is
-		// unreachable through the id-attribute path and the first image opens
+	it('lets the element id win when the album contains it', async () => {
+		// `#print` passes the element's own id as `_fromAlbum`'s `startId`; when the
+		// album lists that image, it is the page to open
 		const mounted = mountAlbum({ count: 4, startIndex: 2 })
 		await awaitAlbum(mounted)
 		expect(albumOf(mounted.viewer.el)?.currentIndex).toBe(0)
-		// The effective startId is the element's, not the album's
 		expect(albumOf(mounted.viewer.el)?.info?.startId).toBe(mounted.mountId)
+	})
+
+	it('falls back to the album startId when the element id is not in the album', async () => {
+		// The mounted image is left out of the index, so the album's own startId is
+		// the author's intent — previously that setting was unreachable
+		const mounted = mountAlbum({ count: 3, startIndex: 2, omitFromIndex: [0] })
+		await awaitAlbum(mounted)
+
+		expect(mounted.viewer.el.gallery?._images.map((i) => i.id)).toEqual([mounted.ids[1], mounted.ids[2]])
+		expect(albumOf(mounted.viewer.el)?.info?.startId).toBe(mounted.ids[2])
+		expect(albumOf(mounted.viewer.el)?.currentIndex).toBe(1)
 	})
 
 	it('starts on the page of the element id', async () => {
@@ -128,6 +137,11 @@ describe('album start page', () => {
 		const mounted = mountAlbum({ count: 3, startId: 'zzzzzzz' })
 		await awaitAlbum(mounted)
 		expect(albumOf(mounted.viewer.el)?.currentIndex).toBe(0)
+
+		// ...also when the element id is not part of the album either
+		const omitted = mountAlbum({ count: 3, startId: 'zzzzzzz', omitFromIndex: [0] })
+		await awaitAlbum(omitted)
+		expect(albumOf(omitted.viewer.el)?.currentIndex).toBe(0)
 	})
 })
 

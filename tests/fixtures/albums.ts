@@ -64,6 +64,11 @@ export interface AlbumOptions {
 	brokenArchive?: boolean
 	/** Leave the index entry out of the archive body, so `#getArchiveIndex` rejects. */
 	missingIndex?: boolean
+	/**
+	 * Indices into `ids` to leave out of the album's index (their bundle entries
+	 * stay), so the mounted image id is not part of the album.
+	 */
+	omitFromIndex?: number[]
 }
 
 export interface AlbumFixture {
@@ -85,10 +90,12 @@ export function albumFixture(opts: AlbumOptions = {}): AlbumFixture {
 	const ids = Array.from({ length: count }, (_, i) => gridImageId(i, tag))
 	const startId = opts.startId ?? (opts.startIndex === undefined ? undefined : ids[opts.startIndex])
 
-	const indexImages = ids.map((id, i) => ({
-		...baseInfo(id, { isWebP: true, isDeepZoom: false, ...opts.index?.(id, i) }),
-		albumId,
-	}))
+	const indexImages = ids
+		.map((id, i) => ({
+			...baseInfo(id, { isWebP: true, isDeepZoom: false, ...opts.index?.(id, i) }),
+			albumId,
+		}))
+		.filter((_, i) => !opts.omitFromIndex?.includes(i))
 
 	const images: Models.ImageBundle.BundleImage[] = ids.map((id, i) => ({
 		id,
