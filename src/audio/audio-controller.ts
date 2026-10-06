@@ -4,23 +4,10 @@ import type { HTMLMicrioElement } from '$core/element'
 import { writable, get } from '$core/store'
 import { Browser } from '$utils/browser'
 import { normalize3 } from '$utils/math'
+import { imageHasAudio, volumeFor } from '$utils/media-settings'
 import { MicrioAudioLocation } from './audio-location'
 
 // ── Module-level AudioContext state ──
-
-/**
- * Whether this image has anything the audio layer can play: a music playlist or a
- * marker with positional audio. Without one there is no controller, and no point
- * probing autoplay or holding on to a hidden `<audio>`.
- * @internal
- */
-function imageHasAudio(image: MicrioImage): boolean {
-	const data = image.$data
-	if (data?.music?.items.length) {
-		return true
-	}
-	return Boolean(data?.markers?.some((m) => m.positionalAudio))
-}
 
 /** The global scope as a plain object, so runtime-provided globals can be probed with `in`. */
 const globals: object = globalThis
@@ -31,19 +18,6 @@ export let mainGain: GainNode | undefined
 let _ctx: AudioContext | null = null
 let l: AudioListener | undefined
 const interacted = writable<boolean>(false)
-
-/**
- * The master gain for a mute state: `1` when unmuted, `_settings.mutedVolume`
- * (default `0`) when muted, clamped so a stray setting cannot write an invalid gain.
- * @internal
- */
-function muteGain(image: MicrioImage, muted: boolean): number {
-	if (!muted) {
-		return 1
-	}
-	const configured = image.$settings.mutedVolume
-	return typeof configured === 'number' && Number.isFinite(configured) ? Math.min(1, Math.max(0, configured)) : 0
-}
 
 function init(volume: number) {
 	if (mainGain) {
@@ -232,7 +206,7 @@ export class MicrioAudioController {
 				if (!b) {
 					return
 				}
-				const vol = muteGain(image, get(micrio._isMuted))
+				const vol = volumeFor(image, get(micrio._isMuted))
 				if (!_ctx) {
 					init(vol)
 				}
@@ -285,14 +259,14 @@ export class MicrioAudioController {
 		// Render playlist if music data exists
 		const data = image.$data
 		if (data?.music?.items.length) {
-			const vol = muteGain(image, get(micrio._isMuted))
+			const vol = volumeFor(image, get(micrio._isMuted))
 			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, vol * (data.music.volume ?? 1))
 		}
 
 		this.#cleanups.push(
 			micrio._isMuted.subscribe((muted) => {
 				if (mainGain) {
-					mainGain.gain.value = muteGain(image, muted)
+					mainGain.gain.value = volumeFor(image, muted)
 				}
 			}),
 		)

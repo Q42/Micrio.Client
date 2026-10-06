@@ -221,60 +221,51 @@ and `advance()` when the steps firing _is_ the thing under test.
 
 ## Status
 
-| Area                                             | Suite                                      | Status      |
-| ------------------------------------------------ | ------------------------------------------ | ----------- |
-| Math, ids, time, locale, easing                  | `tests/core/*.test.ts`                     | done        |
-| Store API, state controllers                     | `tests/core/store`, `state`                | done        |
-| bundle.json loading and caching                  | `tests/core/dataLoader`                    | done        |
-| MDP archive parsing                              | `tests/core/archive`                       | done        |
-| Matrix/vector math                               | `tests/core/mat`                           | done        |
-| Legacy (pre-v5) vs v5+ bundles                   | `tests/browser/element-legacy`             | done        |
-| `<micr-io>` open / events / attributes           | `tests/browser/element-*`                  | done        |
-| Markers                                          | `tests/browser/markers`                    | done        |
-| 360 space resolution and navigation              | `tests/browser/tours-360`                  | done        |
-| 360 camera (yaw/pitch, transforms, matrix)       | `tests/browser/camera-360`                 | done        |
-| `trueNorth` and image orientation                | `tests/browser/space-truenorth`            | done        |
-| 360 waypoints (`<micrio-waypoint>`)              | `tests/browser/waypoints`                  | done        |
-| 360 space transitions                            | `tests/browser/space-transition`           | done        |
-| 360 minimap                                      | `tests/browser/minimap-360`                | done        |
-| Gallery / album switching                        | `tests/browser/gallery`                    | partial     |
-| Video tour timeline and playback                 | `tests/browser/video-tour`                 | done        |
-| Marker tour UI and navigation                    | `tests/browser/marker-tour`                | done        |
-| Serial (multi-image) tours                       | `tests/browser/serial-tour`                | done        |
-| Media element, controls, subtitles               | `tests/browser/media-*`, `subtitles`       | done        |
-| Tour toolbar and autostart wiring                | `tests/browser/tour-integration`           | done        |
-| Audio controller (Web Audio, positional)         | `tests/browser/audio-controller`           | done        |
-| Spatial audio routing                            | `tests/browser/audio-location`             | done        |
-| Media adapters (HTML5/YouTube/Vimeo/HLS)         | `tests/browser/*-adapter`, `hls-player`    | done        |
-| Adapter selection and wiring in `<micrio-media>` | `tests/browser/media-adapters`             | done        |
-| Grid column maths and transition areas           | `tests/browser/grid-format`                | done        |
-| Grid storytelling                                | —                                          | partial     |
-| 3D book viewer                                   | `tests/browser/book3d-smoke`               | smoke only  |
-| UI translation tables                            | `tests/core/i18n-strings`                  | done        |
-| Buttons, icons, progress circle, dial            | `tests/browser/ui-button`, `ui-primitives` | done        |
-| Menu tree and its actions                        | `tests/browser/ui-menu`                    | done        |
-| Toolbar layout and content-page popover          | —                                          | not started |
+| Area                                               | Suite                                      | Status      |
+| -------------------------------------------------- | ------------------------------------------ | ----------- |
+| Math, ids, time, locale, easing                    | `tests/core/*.test.ts`                     | done        |
+| Store API, state controllers                       | `tests/core/store`, `state`                | done        |
+| bundle.json loading and caching                    | `tests/core/dataLoader`                    | done        |
+| MDP archive parsing                                | `tests/core/archive`                       | done        |
+| Matrix/vector math                                 | `tests/core/mat`                           | done        |
+| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/element-legacy`             | done        |
+| `<micr-io>` open / events / attributes             | `tests/browser/element-*`                  | done        |
+| Markers                                            | `tests/browser/markers`                    | done        |
+| 360 space resolution and navigation                | `tests/browser/tours-360`                  | done        |
+| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/camera-360`                 | done        |
+| `trueNorth` and image orientation                  | `tests/browser/space-truenorth`            | done        |
+| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/waypoints`                  | done        |
+| 360 space transitions                              | `tests/browser/space-transition`           | done        |
+| 360 minimap                                        | `tests/browser/minimap-360`                | done        |
+| Gallery / album switching                          | `tests/browser/gallery`                    | partial     |
+| Video tour timeline and playback                   | `tests/browser/video-tour`                 | done        |
+| Marker tour UI and navigation                      | `tests/browser/marker-tour`                | done        |
+| Serial (multi-image) tours                         | `tests/browser/serial-tour`                | done        |
+| Media element, controls, subtitles                 | `tests/browser/media-*`, `subtitles`       | done        |
+| Tour toolbar and autostart wiring                  | `tests/browser/tour-integration`           | done        |
+| Audio controller (Web Audio, positional)           | `tests/browser/audio-controller`           | done        |
+| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/media-settings`                | done        |
+| Spatial audio routing                              | `tests/browser/audio-location`             | done        |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/*-adapter`, `hls-player`    | done        |
+| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media-adapters`             | done        |
+| Grid column maths and transition areas             | `tests/browser/grid-format`                | done        |
+| Grid storytelling                                  | —                                          | partial     |
+| 3D book viewer                                     | `tests/browser/book3d-smoke`               | smoke only  |
+| UI translation tables                              | `tests/core/i18n-strings`                  | done        |
+| Buttons, icons, progress circle, dial              | `tests/browser/ui-button`, `ui-primitives` | done        |
+| Menu tree and its actions                          | `tests/browser/ui-menu`                    | done        |
+| Toolbar layout and content-page popover            | —                                          | not started |
 
 ## Session backlog
 
 Roughly in order of value against risk:
 
-1. **The audio layer's remaining gaps**, now that the contracts are pinned:
-   - **`mutedVolume` is unused.** `DEFAULT_SETTINGS.mutedVolume` and its `data-mutedvolume`
-     attribute are parsed, but nothing in `audio-controller` or `media` reads it: muting
-     always means volume 0.
-   - **The autoplay probe leaks its `<audio>` on mobile.** `Browser.iOS` gets volume
-     `0.0001` for the probe, and the element is created before the `AudioContext` check,
-     so a browser without Web Audio still gets a hidden element.
-   - `HTML5PlayerAdapter.destroy()` removes only the five no-argument listeners, leaving
-     `timeupdate`, `durationchange`, `error` and `canplay` attached. Pinned as-is in the
-     suite; whether it leaks is a separate call.
-2. **Grid storytelling** (`src/grid/**`) — the format layer and the album harness are done;
+1. **Grid storytelling** (`src/grid/**`) — the format layer and the album harness are done;
    the controller is the next thing to solve:
    - The suites still to write are listed in the approved plan: controller (layout, history,
      focus, enlarge), transitions, actions and the `grid:` tour-event path, keyboard, and
      the integration paths.
-3. **UI components** — the button, icon, progress-circle, dial and menu tree are covered,
+2. **UI components** — the button, icon, progress-circle, dial and menu tree are covered,
    including language switching on the menu. Still open:
    - **`<micrio-toolbar>` itself**: which entries it collects (pages, marker tours, video
      tours), the `_`-prefixed system entries it keeps, its filtering by active language, the
@@ -285,9 +276,9 @@ Roughly in order of value against risk:
    - One menu case is `it.skip` in `ui-menu.test.ts` (nested branch open state): it passes
      on its own but is order-dependent in sequence, because the menu's open state is a
      module-level store. Re-enable once that leak is handled.
-4. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
+3. **3D book viewer in depth** — page flip, physics, lighting, IIIF page manager. Only
    after the other subsystems, and only with golden-image or geometry assertions.
-5. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
+4. **Coverage ratchet** — add `@vitest/coverage-v8`, record a baseline, then raise a
    floor. Deliberately postponed: no thresholds while most of the tree is still untested.
-6. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
+5. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.

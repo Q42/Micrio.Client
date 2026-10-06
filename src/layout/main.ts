@@ -6,6 +6,7 @@ import { get, tick, writable } from '$core/store'
 import { Frame } from '$core/frame'
 import { DataLoader } from '$utils/dataLoader'
 import { createElement } from '$utils/dom'
+import { volumeFor } from '$utils/media-settings'
 import '$ui/icon'
 import '$core/element-ui'
 import '$ui/button'
@@ -162,11 +163,29 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			return
 		}
 
-		const volume = writable<number>(get(micrio._isMuted) ? 0 : 1)
+		// The element volumes follow the image's configured levels, so a muted video or
+		// audio element plays at `mutedVolume` (silent by default) rather than being
+		// hard-coded to 0 — and a playing one at `startVolume`.
+		const volume = writable<number>(1)
+		const syncVolume = () => {
+			const { $current } = micrio
+			const muted = get(micrio._isMuted)
+			if ($current) {
+				volume.set(volumeFor($current, muted))
+			} else {
+				volume.set(muted ? 0 : 1)
+			}
+		}
+		syncVolume()
 		this._provide('volume', volume)
 		this._addCleanup(
-			micrio._isMuted.subscribe((b) => {
-				volume.set(b ? 0 : 1)
+			micrio._isMuted.subscribe(() => {
+				syncVolume()
+			}),
+		)
+		this._addCleanup(
+			micrio.current.subscribe(() => {
+				syncVolume()
 			}),
 		)
 		this._addCleanup(() => this.#settingsUnsub?.())
