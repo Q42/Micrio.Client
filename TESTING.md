@@ -72,7 +72,7 @@ tests/
     ├── audio-context.ts     # AudioContext fake (installed by setup.ts)
     ├── book-helpers.ts      # the shared BookViewer harness (frame stepping, one GL context)
     ├── smoke.test.ts        # suite plumbing (the only test at the project root)
-    ├── audio/  book/  core/  gallery/  grid/  layout/  markers/  media/
+    ├── audio/  book/  core/  embed/  gallery/  grid/  layout/  markers/  media/
     ├── space/               # the 360 suites: camera, minimap, spaces, transitions
     ├── tour/  ui/  utils/
     └── live/                # opt-in network suite
@@ -167,11 +167,13 @@ mechanics; this is the map:
 | `fixtures/albums.ts`        | the swipe/switch/grid-config album harness (`albumFixture`/`mountAlbum`/`awaitAlbum`)                                                  |
 | `fixtures/omni.ts`          | the omni (3D object) fixture and `openOmni`                                                                                            |
 | `fixtures/ui.ts`            | the toolbar/menu/popover bundle, localised in every language under test                                                                |
+| `fixtures/embeds.ts`        | embed/video-asset builders and `embedBundle` (a 2D image whose `data.embeds` drives the layout layer)                                  |
 | `helpers/viewer.ts`         | `mountViewer` and `waitFor`                                                                                                            |
 | `helpers/network.ts`        | the `fetch` patch, `mockJson`/`mockText`, `requested`                                                                                  |
 | `helpers/tour.ts`           | `mountTour`, `startTour`, `recordEvents`, `settle`, the fake-clock helpers                                                             |
 | `helpers/grid.ts`           | reading a printed grid layout (`cellButtons`, `layoutIds`, `focusCell`, `settleFrames`)                                                |
 | `helpers/media.ts`          | mounting a `micrio-media` and waiting for its figure                                                                                   |
+| `helpers/embed.ts`          | the `micrio-embed` harness: `mockHost` (an id-less `<micr-io>`, so **no GL context**), `fakeImage`, `mountEmbed`, `dispatchChange`     |
 | `browser/book-helpers.ts`   | the shared `BookViewer` harness                                                                                                        |
 
 Two rules apply to all of them:
@@ -203,6 +205,57 @@ These are the only cross-suite hazards; each harness documents its own use of th
    cancels the pending frame; the gallery calls it before replacing a book, and the test
    harness calls it in `destroy()`.
 
+## The embed subsystem
+
+`src/embed/embed.ts` (`<micrio-embed>`), `src/embed/image-embeds.ts` (the per-image layer)
+and `src/media/embedvideo.ts` (`GLEmbedVideo`) render an embed as an HTML overlay, as a
+tiled sub-image inside the WebGL scene, or **both** (a GL image plus an interactive
+overlay), in 2D, 360 and book3d geometry. The suites are `browser/embed/{embed,
+embed-360, embed-book3d, image-embeds}` and `browser/media/embedvideo`.
+
+Harness notes that are easy to get wrong:
+
+- **`helpers/embed.ts` mounts against an id-less `<micr-io>`.** `_getMicrio()` only needs a
+  `micrio` context, and an id-less element never calls `#print()`, so `embed.test.ts`'s 50
+  cases run with **no WebGL context at all**. `fakeImage()` mocks the exact `MicrioImage`
+  surface the module touches (`camera.getMatrix`/`_getXYDirect`, `engine`, the stores,
+  `addEmbed`, the media registry). The real-camera/real-engine paths live in the
+  `embed-360` and `image-embeds` suites, which do open viewers.
+- **Placement seams instead of geometry.** `camera._getMatrixOverride` and
+  `_getXYDirectOverride` are the same seams `src/book/main.ts` installs, so stubbing them
+  drives the 360/book3d matrix branch deterministically; `book3d` itself is simulated by
+  setting `image.album.info.type` (the layout mounts no album).
+- **The book3d 500 ms print delay is a real timer.** It is armed at mount and is the only
+  thing that clears it; the unit suite mounts the embed _while_ fake timers are active, so
+  `vi.advanceTimersByTime(500)` is exact. A test that mounts first cannot adopt the timer.
+- **Never dispatch a real `click` on an `href` embed** — the overlay is an `<a>` and a
+  synthetic click would navigate the test page. Drive the shared handler with `keydown`.
+
+Known gaps these suites deliberately pin (each test says `KNOWN GAP`; when the gap closes,
+that test is the one to change):
+
+1. **A book3d video embed is 0×0** — `#readPlacement` returns for book3d _before_
+   `#widthCapped` is computed, so `#buildVideoContent` derives width/height 0 and
+   `transform: scale(Infinity)` (dropped by CSS). Audio still autoplays.
+2. **Destroying an HTML video embed never pauses it** — `_onDestroy` clears the timers and
+   the media registry but never touches `#videoEl`, so a detached `<video>` keeps
+   decoding (and audible) after `image.data.set(...)` / leaving `_visible`.
+3. **`video.controls: true` implies `no-events`** — `#noEvents` ignores `video.controls`,
+   and `.no-events` is an inherited `pointer-events: none`, so the native controls cannot
+   be clicked even though they render.
+4. **A `change` event never resizes the wrapped content** — `#onChange` recomputes
+   `#buttonStyle`/`#widthCapped` but only `#applyPosition` runs, so an embed's size and
+   hit-area do not follow its data after mount, only its centre.
+5. **The grid `inactive` state is lost at mount** — the subscriptions fire before
+   `#buildDOM` creates the overlay, and nothing re-applies the class.
+6. **`_onDestroy`'s click/keydown removals are no-ops** (they remove `#click`, but
+   `#buildDOM` registered wrapper closures), so a detached overlay still opens its marker.
+7. **WebGL sub-images leak** — `image._embeds` is append-only; rebuilding an embed with a
+   fresh data object mints a new uuid, misses the reuse lookup and adds a second image.
+
+Also note: `getMatrix` hands back a **reused** `Float32Array`, and the CSSOM reserializes
+`matrix3d(...)` to ~6 significant digits with spaces — compare numbers, never strings.
+
 ## Coverage
 
 `pnpm test:coverage` runs both projects under `@vitest/coverage-v8` and merges them
@@ -218,10 +271,10 @@ Baseline (first recorded run, stable to ±0.05 across runs):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 78.2     | 77    |
-| Branches   | 66.0     | 65    |
-| Functions  | 78.9     | 78    |
-| Lines      | 78.0     | 77    |
+| Statements | 81.5     | 80    |
+| Branches   | 71.0     | 70    |
+| Functions  | 81.7     | 81    |
+| Lines      | 81.4     | 80    |
 
 The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
 coverage loss fails the run while ordinary refactoring does not. They are deliberately
@@ -242,21 +295,22 @@ not the floor:
 | ----------- | ----- |
 | src/utils   | 96.5  |
 | src/ui      | 93.4  |
+| src/embed   | 93.1  |
 | src/gallery | 90.2  |
 | src/audio   | 88.2  |
-| src/layout  | 85.8  |
+| src/media   | 86.1  |
+| src/layout  | 86.0  |
 | src/book    | 84.3  |
 | src/tour    | 80.5  |
 | src/grid    | 79.9  |
-| src/media   | 74.8  |
-| src/render  | 74.2  |
-| src/core    | 74.1  |
+| src/core    | 75.6  |
+| src/render  | 74.6  |
 | src/markers | 63.8  |
-| src/embed   | 1.2   |
 
-`src/embed` (image embeds) is the one real hole: nothing covers it yet. To raise the
-floor, run `pnpm test:coverage`, add ~1 point to each metric above the new baseline,
-and keep the same margin.
+`src/embed` used to be the one real hole (1.2%); the embed suites now take it to ~93%,
+and `src/media` moved from 74.8 to 86.1 with `GLEmbedVideo` covered. `src/markers` is the
+thinnest area left. To raise the floor, run `pnpm test:coverage`, move the baseline to the
+new number, and keep the floors ~1 point under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
 pays nothing for it.
@@ -279,57 +333,62 @@ pays nothing for it.
 
 ## Status
 
-| Area                                               | Suite                                                                            | Status |
-| -------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
-| Math, ids, time, locale, easing                    | `tests/core/**/*.test.ts`                                                        | done   |
-| Store API, state controllers                       | `tests/core/core/store`, `state`                                                 | done   |
-| bundle.json loading and caching                    | `tests/core/utils/dataLoader`                                                    | done   |
-| MDP archive parsing                                | `tests/core/utils/archive`                                                       | done   |
-| Matrix/vector math                                 | `tests/core/render/mat`                                                          | done   |
-| Legacy (pre-v5) vs v5+ bundles                     | `tests/browser/core/element-legacy`                                              | done   |
-| `<micr-io>` open / events / attributes             | `tests/browser/core/element-*`                                                   | done   |
-| Markers                                            | `tests/browser/markers/markers`                                                  | done   |
-| 360 space resolution and navigation                | `tests/browser/space/tours-360`                                                  | done   |
-| 360 camera (yaw/pitch, transforms, matrix)         | `tests/browser/space/camera-360`                                                 | done   |
-| `trueNorth` and image orientation                  | `tests/browser/space/space-truenorth`                                            | done   |
-| 360 waypoints (`<micrio-waypoint>`)                | `tests/browser/markers/waypoints`                                                | done   |
-| 360 space transitions                              | `tests/browser/space/space-transition`                                           | done   |
-| 360 minimap                                        | `tests/browser/space/minimap-360`                                                | done   |
-| Album resolution, config, sorting and degradation  | `tests/browser/gallery/gallery-album`                                            | done   |
-| Swipe album and strip navigation                   | `tests/browser/gallery/gallery-swipe`                                            | done   |
-| Gallery scrubber (pointer and touch)               | `tests/browser/gallery/gallery-scrubber`                                         | done   |
-| Switch album layout and navigation                 | `tests/browser/gallery/gallery-switch`                                           | done   |
-| IIIF (Presentation 2/3/4) and Image API info.json  | `tests/browser/gallery/gallery-iiif`                                             | done   |
-| Live IIIF manifests and their Image API tiles      | `tests/browser/live/iiif`                                                        | opt-in |
-| Asset galleries (`micrio-swipe-gallery`)           | `tests/browser/gallery/gallery-assets`                                           | done   |
-| Album bundle without a gallery controller          | `tests/browser/gallery/gallery`                                                  | done   |
-| Omni rotation, layers, dial and swipe              | `tests/browser/gallery/omni-viewer`                                              | done   |
-| Omni markers and marker tours                      | `tests/browser/gallery/omni-markers`                                             | done   |
-| Omni camera angle maths                            | `tests/core/core/camera-omni`                                                    | done   |
-| Video tour timeline and playback                   | `tests/browser/media/video-tour`                                                 | done   |
-| Marker tour UI and navigation                      | `tests/browser/tour/marker-tour`                                                 | done   |
-| Serial (multi-image) tours                         | `tests/browser/tour/serial-tour`                                                 | done   |
-| Media element, controls, subtitles                 | `tests/browser/media/media-*`, `subtitles`                                       | done   |
-| Tour toolbar and autostart wiring                  | `tests/browser/tour/tour-integration`                                            | done   |
-| Audio controller (Web Audio, positional)           | `tests/browser/audio/audio-controller`                                           | done   |
-| Audio level settings (`startVolume`/`mutedVolume`) | `tests/core/utils/media-settings`                                                | done   |
-| Spatial audio routing                              | `tests/browser/audio/audio-location`                                             | done   |
-| Media adapters (HTML5/YouTube/Vimeo/HLS)           | `tests/browser/media/*-adapter`, `hls-player`                                    | done   |
-| Adapter selection and wiring in `<micrio-media>`   | `tests/browser/media/media-adapters`                                             | done   |
-| Grid column maths and transition areas             | `tests/browser/grid/grid-format`                                                 | done   |
-| Grid storytelling                                  | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done   |
-| Book maths (vec3, page layout, spine sync)         | `tests/core/book/{vec3,layout,spine-sync}`                                       | done   |
-| XPBD physics solver                                | `tests/core/book/native-solver`                                                  | done   |
-| Book meshes, uv projection, raycasting             | `tests/browser/book/{meshes,uv-project,raycast}`                                 | done   |
-| Book camera, page flip, lighting presets           | `tests/browser/book/{orbit-camera,page-flip,lighting}`                           | done   |
-| Book renderer and IIIF texture manager             | `tests/browser/book/{renderer,iiif-manager}`                                     | done   |
-| `BookViewer` (flips, drags, zoom, draw bounds)     | `tests/browser/book/viewer`                                                      | done   |
-| book3d album path and the book fixture             | `tests/browser/gallery/book3d-album`                                             | done   |
-| UI translation tables                              | `tests/core/core/i18n/i18n-strings`                                              | done   |
-| Buttons, icons, progress circle, dial              | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done   |
-| Menu tree and its actions                          | `tests/browser/ui/ui-menu`                                                       | done   |
-| Toolbar (desktop + mobile sheet)                   | `tests/browser/layout/toolbar-*`                                                 | done   |
-| Content-page popover and welcome screen            | `tests/browser/layout/popover`                                                   | done   |
+| Area                                                | Suite                                                                            | Status |
+| --------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
+| Math, ids, time, locale, easing                     | `tests/core/**/*.test.ts`                                                        | done   |
+| Store API, state controllers                        | `tests/core/core/store`, `state`                                                 | done   |
+| bundle.json loading and caching                     | `tests/core/utils/dataLoader`                                                    | done   |
+| MDP archive parsing                                 | `tests/core/utils/archive`                                                       | done   |
+| Matrix/vector math                                  | `tests/core/render/mat`                                                          | done   |
+| Legacy (pre-v5) vs v5+ bundles                      | `tests/browser/core/element-legacy`                                              | done   |
+| `<micr-io>` open / events / attributes              | `tests/browser/core/element-*`                                                   | done   |
+| Markers                                             | `tests/browser/markers/markers`                                                  | done   |
+| 360 space resolution and navigation                 | `tests/browser/space/tours-360`                                                  | done   |
+| 360 camera (yaw/pitch, transforms, matrix)          | `tests/browser/space/camera-360`                                                 | done   |
+| `trueNorth` and image orientation                   | `tests/browser/space/space-truenorth`                                            | done   |
+| 360 waypoints (`<micrio-waypoint>`)                 | `tests/browser/markers/waypoints`                                                | done   |
+| 360 space transitions                               | `tests/browser/space/space-transition`                                           | done   |
+| 360 minimap                                         | `tests/browser/space/minimap-360`                                                | done   |
+| Album resolution, config, sorting and degradation   | `tests/browser/gallery/gallery-album`                                            | done   |
+| Swipe album and strip navigation                    | `tests/browser/gallery/gallery-swipe`                                            | done   |
+| Gallery scrubber (pointer and touch)                | `tests/browser/gallery/gallery-scrubber`                                         | done   |
+| Switch album layout and navigation                  | `tests/browser/gallery/gallery-switch`                                           | done   |
+| IIIF (Presentation 2/3/4) and Image API info.json   | `tests/browser/gallery/gallery-iiif`                                             | done   |
+| Live IIIF manifests and their Image API tiles       | `tests/browser/live/iiif`                                                        | opt-in |
+| Asset galleries (`micrio-swipe-gallery`)            | `tests/browser/gallery/gallery-assets`                                           | done   |
+| Album bundle without a gallery controller           | `tests/browser/gallery/gallery`                                                  | done   |
+| Omni rotation, layers, dial and swipe               | `tests/browser/gallery/omni-viewer`                                              | done   |
+| Omni markers and marker tours                       | `tests/browser/gallery/omni-markers`                                             | done   |
+| Omni camera angle maths                             | `tests/core/core/camera-omni`                                                    | done   |
+| Video tour timeline and playback                    | `tests/browser/media/video-tour`                                                 | done   |
+| Marker tour UI and navigation                       | `tests/browser/tour/marker-tour`                                                 | done   |
+| Serial (multi-image) tours                          | `tests/browser/tour/serial-tour`                                                 | done   |
+| Media element, controls, subtitles                  | `tests/browser/media/media-*`, `subtitles`                                       | done   |
+| Tour toolbar and autostart wiring                   | `tests/browser/tour/tour-integration`                                            | done   |
+| Audio controller (Web Audio, positional)            | `tests/browser/audio/audio-controller`                                           | done   |
+| Audio level settings (`startVolume`/`mutedVolume`)  | `tests/core/utils/media-settings`                                                | done   |
+| Spatial audio routing                               | `tests/browser/audio/audio-location`                                             | done   |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)            | `tests/browser/media/*-adapter`, `hls-player`                                    | done   |
+| Adapter selection and wiring in `<micrio-media>`    | `tests/browser/media/media-adapters`                                             | done   |
+| Grid column maths and transition areas              | `tests/browser/grid/grid-format`                                                 | done   |
+| Grid storytelling                                   | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done   |
+| Book maths (vec3, page layout, spine sync)          | `tests/core/book/{vec3,layout,spine-sync}`                                       | done   |
+| XPBD physics solver                                 | `tests/core/book/native-solver`                                                  | done   |
+| Book meshes, uv projection, raycasting              | `tests/browser/book/{meshes,uv-project,raycast}`                                 | done   |
+| Book camera, page flip, lighting presets            | `tests/browser/book/{orbit-camera,page-flip,lighting}`                           | done   |
+| Book renderer and IIIF texture manager              | `tests/browser/book/{renderer,iiif-manager}`                                     | done   |
+| `BookViewer` (flips, drags, zoom, draw bounds)      | `tests/browser/book/viewer`                                                      | done   |
+| book3d album path and the book fixture              | `tests/browser/gallery/book3d-album`                                             | done   |
+| UI translation tables                               | `tests/core/core/i18n/i18n-strings`                                              | done   |
+| Buttons, icons, progress circle, dial               | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done   |
+| Menu tree and its actions                           | `tests/browser/ui/ui-menu`                                                       | done   |
+| Toolbar (desktop + mobile sheet)                    | `tests/browser/layout/toolbar-*`                                                 | done   |
+| Content-page popover and welcome screen             | `tests/browser/layout/popover`                                                   | done   |
+| Image/video/iframe embeds, 2D HTML + WebGL          | `tests/browser/embed/embed`                                                      | done   |
+| 360 embed placement (`matrix3d`, π/2 scale)         | `tests/browser/embed/embed-360`                                                  | done   |
+| book3d embed placement and the print delay          | `tests/browser/embed/embed-book3d`                                               | done   |
+| `<micrio-image-embeds>` container and layout wiring | `tests/browser/embed/image-embeds`                                               | done   |
+| GL embed video (HLS, loop, visibility, teardown)    | `tests/browser/media/embedvideo`                                                 | done   |
 
 ## Session backlog
 
@@ -337,5 +396,7 @@ Roughly in order of value against risk:
 
 1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
-2. **`src/embed`** — image embeds are the only area with no suite at all (1.2%); the
-   coverage floor will not notice it until a test imports the module.
+2. **The known embed gaps** — the seven `KNOWN GAP` tests in the `browser/embed` suites
+   (see [The embed subsystem](#the-embed-subsystem)) each pin a real defect; fixing one
+   turns its test into a regression test. The book3d video sizing and the unpaused
+   HTML video on destroy are the two with user-visible impact.
