@@ -159,24 +159,48 @@ describe('marker grid actions', () => {
 })
 
 describe('marker grid metadata', () => {
-	it('does not resize a cell for _meta.gridSize (the size is never applied)', async () => {
-		// `#hook` records `_meta.gridSize` in `#nextSize`, and every `set()` clears `#nextSize`
-		// before it prints anything — so a marker's `gridSize` currently has no effect on the
-		// layout. Asserted here so the gap is deliberate rather than untested: when the feature
-		// is wired up, this is the test that has to change.
+	it('resizes the marker image\'s cell for _meta.gridSize "2,2"', async () => {
 		const sized = plainMarker('size-me', { _meta: { gridSize: '2,2' } })
 		const { viewer, grid, ids } = await openGrid(fast({ markers: { 0: [sized] } }))
 		const before = cellButton(grid, ids[0] ?? '')?.style.gridArea ?? ''
+		expect(before).toBe('')
 
 		await openMarker(viewer, ids[0] ?? '', 'size-me')
 		await settleFrames(4)
-		expect(cellButton(grid, ids[0] ?? '')?.style.gridArea).toBe(before)
+		const area = cellButton(grid, ids[0] ?? '')?.style.gridArea ?? ''
+		expect(area).toContain('span 2')
+		// The other cells keep their size: only the marker's image grows
+		expect(cellButton(grid, ids[1] ?? '')?.style.gridArea ?? '').toBe('')
+		viewer.destroy()
+	})
+
+	it('treats a numeric _meta.gridSize as a square', async () => {
+		const sized = plainMarker('square', { _meta: { gridSize: 2 } })
+		const { viewer, grid, ids } = await openGrid(fast({ markers: { 0: [sized] } }))
+
+		await openMarker(viewer, ids[0] ?? '', 'square')
+		await settleFrames(4)
+		const area = cellButton(grid, ids[0] ?? '')?.style.gridArea ?? ''
+		// `auto / auto / span 2 / span 2` — a single number means rows and columns alike
+		expect(area.match(/span 2/g)?.length).toBe(2)
+		viewer.destroy()
+	})
+
+	it('ignores a non-numeric _meta.gridSize', async () => {
+		const sized = plainMarker('garbage', { _meta: { gridSize: 'abc' } })
+		const { viewer, grid, ids } = await openGrid(fast({ markers: { 0: [sized] } }))
+		const opening = layoutIds(grid)
+
+		await openMarker(viewer, ids[0] ?? '', 'garbage')
+		await settleFrames(4)
+		expect(layoutIds(grid)).toEqual(opening)
+		expect(cellButton(grid, ids[0] ?? '')?.style.gridArea ?? '').toBe('')
 		viewer.destroy()
 	})
 
 	it('accepts a marker with _meta.gridView without changing the layout', async () => {
-		// `gridView` is a hint for `micrio.open(id, { gridView: true })` on the element side; the
-		// controller itself never reads it.
+		// `gridView` is a hint for `micrio.open(id, { gridView: true })` on the element side (the
+		// tour passes it through); the controller itself never reads it.
 		const gridView = plainMarker('grid-view', { _meta: { gridView: true } })
 		const { viewer, grid, ids } = await openGrid(fast({ markers: { 0: [gridView] } }))
 		const opening = layoutIds(grid)

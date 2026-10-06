@@ -77,7 +77,6 @@ export class Grid extends MicrioElement<GridProps> {
 	_nextCrossFadeDuration: number | undefined
 	#isHorizontal = false
 	readonly #cellSizes = new Map<string, [number, number?]>()
-	readonly #nextSize = new Map<string, [number, number?]>()
 
 	/** @internal */
 	_lastAction: string | undefined
@@ -171,11 +170,19 @@ export class Grid extends MicrioElement<GridProps> {
 				const d = m.data?._meta
 				const gs = d?.gridSize
 				if (gs !== undefined && gs !== '' && gs !== 0) {
+					// Resize the tile of the image carrying the marker. `enlarge` takes an
+					// index into the *current* layout, and the resize happens before the
+					// deferred `gridAction` below, so an action-carrying marker ends up with
+					// the action's layout (the resize is a one-shot at marker open, not
+					// something restored when the marker closes).
+					const micId = this._images.find((i) => i.$data?.markers?.find((n) => n === m))?.id
+					const idx = this._current.findIndex((i) => i.id === micId)
 					const s: [number, number] =
 						typeof gs === 'number' ? [gs, gs] : [Number(gs.split(',')[0]), Number(gs.split(',')[1])]
-					const micId = this._images.find((i) => i.$data?.markers?.find((n) => n === m))?.id
-					if (micId) {
-						this.#nextSize.set(micId, s)
+					// `"abc"` and the like parse to NaN, and `enlarge` would write a `span NaN`
+					// grid area: only a positive integer span is a size.
+					if (idx >= 0 && s.every((n) => Number.isInteger(n) && n > 0)) {
+						void this.enlarge(idx, s[0], s[1])
 					}
 				}
 				void tick().then(() => {
@@ -351,8 +358,6 @@ export class Grid extends MicrioElement<GridProps> {
 					: this.image.camera.flyToFullView({ duration: dur * 1000 })
 				p.catch(error)
 			}
-
-			this.#nextSize.clear()
 
 			if (opts.coverLimit === undefined) {
 				opts.coverLimit = Boolean(this.image.$settings.limitToCoverScale)
