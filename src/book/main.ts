@@ -795,7 +795,7 @@ export class BookViewer {
 	}
 
 	_nextPage(grabRow?: number): void {
-		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount) {
+		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount - 1) {
 			this.#inputHandler._operation = 'none'
 			this.#selectedPage = this.#currentPage
 			const useGrabRow = grabRow ?? this.#inputHandler._lastClickGrabRow ?? undefined
@@ -1178,7 +1178,7 @@ export class BookViewer {
 
 			if (crossedToLeft) {
 				this.#flipAnimator._endDrag(this.#dragPageIndex, 1)
-				if (this.#dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount) {
+				if (this.#dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount - 1) {
 					this.#currentPage++
 					this.#onPageChange?.(this.#currentPage)
 				}

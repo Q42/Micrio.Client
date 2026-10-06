@@ -97,16 +97,15 @@ describe('BookViewer — page turning', () => {
 		book.destroy()
 	})
 
-	it('FINDING: a one-page book lets _nextPage move past its only page', async () => {
-		// `_nextPage` guards on `#currentPage < #pageCount`, which is true for the
-		// single page of a one-page book, so the counter ends up at 1 — a page that
-		// does not exist. `_prevPage` then walks it back. Pinned as-is.
+	it('refuses to turn past its only page in a one-page book', async () => {
+		// `#pageCount` is a count, not a last index: guarding `_nextPage` with
+		// `#currentPage < #pageCount` let a one-page book land on page 1
 		const book = await mountBook({ images: [bookImage('a'), bookImage('b')] })
 		expect(book.viewer._getPageCount()).toBe(1)
+		book.pages.length = 0
 		book.viewer._nextPage()
-		expect(book.viewer._getCurrentPage()).toBe(1)
-		book.viewer._prevPage()
 		expect(book.viewer._getCurrentPage()).toBe(0)
+		expect(book.pages).toEqual([])
 		book.destroy()
 	})
 
