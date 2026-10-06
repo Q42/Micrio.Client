@@ -216,11 +216,18 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const $focussed = focussed ? get(focussed) : undefined
 			const $gridMarkersShown = gridMarkersShown ? get(gridMarkersShown) : undefined
 			const inactive = grid && $focussed !== image && $gridMarkersShown && $gridMarkersShown.indexOf(image) < 0
-			const showTitles = Boolean(image.$settings._markers?.showTitles)
+			const ms = image.$settings._markers ?? {}
+			const showTitles = Boolean(ms.showTitles)
 			const $_lang = get(micrio._lang)
 
 			this.classList.toggle('inactive', Boolean(inactive))
 			this.classList.toggle('show-titles', showTitles)
+
+			// The marker size/colour are CSS variables on the layer, so every marker (and
+			// the synthetic clusters) inherits them; an unset setting clears the inline
+			// value again instead of pinning it to a stale one.
+			this.style.setProperty('--micrio-marker-size', ms.markerSize ?? '')
+			this.style.setProperty('--micrio-marker-color', ms.markerColor ?? '')
 
 			const $switching = get(switching)
 			if (!$switching && micrio.spaceData) {
