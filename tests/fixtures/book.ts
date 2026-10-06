@@ -121,10 +121,9 @@ export interface OpenBook {
 /**
  * Opens a book3d album through the element's **id attribute**.
  *
- * `#print()` is the only place an album becomes a gallery, it runs only while
- * the element has not printed, and it is fire-and-forget — so opening the image
- * is not enough. The gallery arriving is the gate: `Gallery._loadBook3d` runs
- * once the gallery element mounts, which is after `#print` resolved.
+ * `#print()` is the only place an album becomes a gallery, and it runs only while
+ * the element has not printed. The book arriving is the gate: `Gallery._loadBook3d`
+ * runs once the gallery element mounts, which is after `#print` resolved.
  */
 export async function openBook(opts: BookOptions = {}): Promise<OpenBook> {
 	const fixture = await bookFixture(opts)

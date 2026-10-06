@@ -335,10 +335,8 @@ export async function getGrid(viewer: HTMLMicrioElement, timeout = 8000): Promis
  *
  * The album is resolved through the element's **id attribute**, not through `open(id)`:
  * `#print()` is the only place an album becomes a gallery, and it runs only while the element
- * has not printed. `#print` is fire-and-forget and can finish *after* `open()` has resolved, so
- * opening the image is not enough — the gate has to be the album itself: the parent gallery
- * image is `#print`'s last step, so once `$current` is it, the gallery is attached and the
- * layout has built the grid.
+ * has not printed. The gate is the album itself: the parent gallery image is `#print`'s last
+ * step, so once `$current` is it, the gallery is attached and the layout has built the grid.
  *
  * `opts.expectNoAlbum` is for the degenerate fixtures (a failed archive, a missing index) whose
  * whole point is that no album, and so no grid, ever arrives. It skips both gates and returns

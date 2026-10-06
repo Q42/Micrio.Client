@@ -50,8 +50,10 @@ describe('<micr-io> open()', () => {
 
 		// The fake texture worker resolves every requested tile to a real image, so
 		// the engine has tiles on screen and reports progress without any network.
+		// Progress is recomputed per frame and can read 0 while tiles are still in
+		// flight, so wait for it rather than asserting the first sample.
 		expect(viewer.el._engine._numTiles).toBeGreaterThan(0)
-		expect(viewer.el._engine._progress).toBeGreaterThan(0)
+		await waitFor(() => viewer.el._engine._progress > 0, 4000, 'render progress')
 		expect(draws).toBeGreaterThan(0)
 		viewer.destroy()
 	})
