@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { get } from '$core/store'
 import { Grid } from '$grid/grid'
+import { modernBundle } from '../../fixtures/bundles'
 import { waitFor } from '../../helpers/viewer'
+import { settle } from '../../helpers/tour'
 import { restoreArchiveXhr } from '../../fixtures/grid'
 import type { AlbumOptions } from '../../fixtures/albums'
 import {
@@ -278,5 +281,36 @@ describe('a one-image album', () => {
 		await awaitAlbum(mounted)
 		expect(albumOf(mounted.viewer.el)?.numPages).toBe(1)
 		expect(scrubberTicks(mounted.viewer.el)).toHaveLength(0)
+	})
+})
+
+describe('gallery parent survival', () => {
+	it('is not faded out by another image opening on top of it', async () => {
+		// `open(bundle)` has no gallery short-circuit, so it builds a second
+		// top-level canvas. That canvas fading in must not fade out the gallery
+		// parent: hidden, the parent stops stepping its children and any awaited
+		// strip animation stays pending forever.
+		const mounted = mountAlbum({ count: 3 })
+		const { viewer } = await awaitAlbum(mounted)
+		const parent = viewer.el._canvases.find((c) => c.album)
+		if (!parent?.album) {
+			throw new Error('no gallery parent')
+		}
+
+		await viewer.open(modernBundle())
+		const next = viewer.el._canvases.find((c) => c !== parent)
+		if (!next) {
+			throw new Error('the second image never opened')
+		}
+		await waitFor(() => get(next.visible) === true, 4000, 'the opened image to draw')
+		await settle(2)
+
+		// The real fade-in already ran; calling it again keeps the assertion honest
+		next.canvas?._fadeIn()
+		expect(parent.canvas?._targetOpacity).toBe(1)
+
+		// ...and the strip still animates to completion
+		await parent.album.goto(1)
+		await waitFor(() => parent.album?.currentIndex === 1, 6000, 'the strip slide')
 	})
 })

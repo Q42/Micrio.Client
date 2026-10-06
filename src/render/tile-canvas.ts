@@ -372,7 +372,10 @@ export class TileCanvas {
 		this.#isReady = true
 		if (!this._hasParent && this.#currentArea.width === 1 && this.#currentArea.height === 1) {
 			for (const child of this.main._canvases) {
-				if (child !== this) {
+				// A canvas that hosts child canvases (a gallery, grid or omni parent)
+				// must never be faded out: hidden, its `_shouldDraw` stops stepping
+				// those children, which stalls every awaited strip animation.
+				if (child !== this && child.#children.length === 0) {
 					child._fadeOut()
 				}
 			}
