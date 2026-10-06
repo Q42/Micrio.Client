@@ -125,6 +125,9 @@ micrio-marker.default.has-custom-icon:is(.opened, :hover) button {
 	background-color: var(--micrio-marker-highlight, var(--micrio-marker-color));
 }
 micrio-marker.cluster button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	border: 2px solid var(--micrio-marker-color);
 	background: var(--micrio-cluster-marker-background, #fff);
 	color: var(--micrio-cluster-marker-color, #000);

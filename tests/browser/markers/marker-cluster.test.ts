@@ -37,15 +37,17 @@ describe('marker clustering', () => {
 		opened.viewer.destroy()
 	})
 
-	it('KNOWN GAP: the cluster prints no visible member count', async () => {
-		// `markers.ts` sets the count on the legacy top-level `title`; `marker.ts` only
-		// reads `i18n`, so the synthetic marker renders as an empty dot.
+	it('prints the member count in the cluster dot', async () => {
+		// `markers.ts` carries the group size in the synthetic marker's legacy top-level
+		// `title`; a cluster has no label (its CSS hides it), so the count is the button's
+		// text.
 		const opened = await openMarkers(overlapping())
 		await waitFor(() => clustersOf(opened).length === 1, 6000, 'the cluster marker')
 		const cluster = clustersOf(opened)[0]
 
+		expect(cluster?.querySelector('button')?.textContent).toBe('2')
 		expect(cluster?.querySelector('label')).toBeNull()
-		// A cluster gets no tooltip either, so the count has no surface at all
+		// A cluster gets no tooltip
 		expect(cluster?.querySelector('button')?.getAttribute('title')).toBeNull()
 		opened.viewer.destroy()
 	})

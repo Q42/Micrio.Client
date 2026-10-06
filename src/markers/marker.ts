@@ -18,6 +18,8 @@ export interface MarkerProps {
 	coords?: Map<string, [number, number, number?, number?]>
 	/** If true, this marker is visually overlapped by others (cluster mode). */
 	overlapped?: boolean
+	/** Number of markers a synthetic cluster marker stands for. */
+	clusterCount?: number
 }
 import './marker.css'
 
@@ -41,7 +43,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 	/** @internal */
 	_onMount() {
-		const { marker, image, forceHidden = false } = this.#props
+		const { marker, image, forceHidden = false, clusterCount } = this.#props
 		const micrio = this._getMicrio()
 		if (!micrio || !image || !marker) {
 			return
@@ -469,6 +471,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					setProps: { name: icon },
 					parent: btn,
 				})
+			} else if (cluster) {
+				// A cluster has no label (its CSS hides one), so the group size is the
+				// button's text.
+				btn.textContent = clusterCount !== undefined ? String(clusterCount) : ''
 			}
 
 			/**
