@@ -470,7 +470,19 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			return createElement(tag, { setProps: { tour: $tour, noHTML } })
 		})
 
-		this.#show('popover', Boolean($popover), () => createElement('micrio-popover', { setProps: { popover: $popover } }))
+		// A popover can be replaced while it is open (a page switching to a gallery, a
+		// page action), and `#show` reuses the connected element, so the state has to
+		// reach it through the update callback
+		this.#show(
+			'popover',
+			Boolean($popover),
+			() => createElement('micrio-popover', { setProps: { popover: $popover } }),
+			(el) => {
+				if (el instanceof MicrioElement) {
+					el._setProps?.({ popover: $popover })
+				}
+			},
+		)
 
 		this.#show('error', Boolean(error), () => createElement('micrio-error', { setProps: { message: error } }))
 

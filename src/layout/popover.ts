@@ -75,7 +75,11 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 
 		const pageId = 'contentPage' in p ? p.contentPage?.id : ''
 		const markerId = 'marker' in p ? p.marker?.id : ''
-		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${$_lang}`
+		// The gallery is part of the content too: without it, swapping one gallery for
+		// another (a marker's images) kept the first one on screen
+		const gallery = 'gallery' in p ? p.gallery : undefined
+		const galleryKey = gallery ? `${gallery.length}:${p.galleryStart ?? ''}:${gallery[0]?.src ?? ''}` : ''
+		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${galleryKey}::${$_lang}`
 		if (!this._checkRenderKey(key)) {
 			return
 		}
