@@ -1,7 +1,7 @@
-import type { Grid } from '../../src/grid/grid'
-import type { Models } from '../../src/types/models'
-import type { HTMLMicrioElement } from '../../src/core/element'
-import { afterFrame } from '../../src/utils/dom'
+import type { Grid } from '$grid/grid'
+import type { Models } from '$types/models'
+import type { HTMLMicrioElement } from '$core/element'
+import { afterFrame } from '$utils/dom'
 import { waitFor } from './viewer'
 
 /**

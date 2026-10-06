@@ -1,8 +1,8 @@
-import type { Models } from '../../src/types/models'
-import type { RevisionType } from '../../src/types/models/common'
+import type { Models } from '$types/models'
+import type { RevisionType } from '$types/models/common'
 import { baseInfo, marker } from './bundles'
 import { mountViewer, waitFor, type Viewer } from '../helpers/viewer'
-import { get } from '../../src/core/store'
+import { get } from '$core/store'
 
 /**
  * Fixtures for the UI component suites: the toolbar, its menu tree, and the popover that

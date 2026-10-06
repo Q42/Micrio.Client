@@ -1,8 +1,8 @@
 import { vi } from 'vitest'
-import type { HTMLMicrioElement } from '../../src/core/element'
-import type { Models } from '../../src/types/models'
-import { get } from '../../src/core/store'
-import { afterFrame } from '../../src/utils/dom'
+import type { HTMLMicrioElement } from '$core/element'
+import type { Models } from '$types/models'
+import { get } from '$core/store'
+import { afterFrame } from '$utils/dom'
 import { mountViewer, type Viewer, waitFor } from './viewer'
 
 /** A viewer with a loaded tour-capable image. */

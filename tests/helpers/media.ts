@@ -1,5 +1,5 @@
-import type { MicrioElement } from '../../src/core/component'
-import { createElement } from '../../src/utils/dom'
+import type { MicrioElement } from '$core/component'
+import { createElement } from '$utils/dom'
 import { settle, type TourSetup } from './tour'
 import { waitFor } from './viewer'
 

@@ -1,4 +1,4 @@
-import type { HTMLMicrioElement } from '../../src/core/element'
+import type { HTMLMicrioElement } from '$core/element'
 
 /** A mounted `<micr-io>` plus the teardown that removes it again. */
 export interface Viewer {

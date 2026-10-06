@@ -1,5 +1,5 @@
-import type { Models } from '../../src/types/models'
-import { get } from '../../src/core/store'
+import type { Models } from '$types/models'
+import { get } from '$core/store'
 import { spaceBundle } from './bundles'
 import { mockJson } from '../helpers/network'
 import { mountViewer, waitFor, type Viewer } from '../helpers/viewer'

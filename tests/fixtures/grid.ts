@@ -1,14 +1,14 @@
-import type { Models } from '../../src/types/models'
-import type { Grid } from '../../src/grid/grid'
-import type { HTMLMicrioElement } from '../../src/core/element'
-import { archive } from '../../src/utils/archive'
+import type { Models } from '$types/models'
+import type { Grid } from '$grid/grid'
+import type { HTMLMicrioElement } from '$core/element'
+import { archive } from '$utils/archive'
 import { baseInfo } from './bundles'
 import { mockJson } from '../helpers/network'
 
 import { mountViewer, waitFor, type Viewer } from '../helpers/viewer'
 import { settle } from '../helpers/tour'
-import { get } from '../../src/core/store'
-import { DataLoader } from '../../src/utils/dataLoader'
+import { get } from '$core/store'
+import { DataLoader } from '$utils/dataLoader'
 
 /**
  * The grid harness.

@@ -1,5 +1,5 @@
-import type { Models } from '../../src/types/models'
-import type { I18n } from '../../src/types/models/common'
+import type { Models } from '$types/models'
+import type { I18n } from '$types/models/common'
 import { baseInfo, marker } from './bundles'
 
 /** A camera viewport in tour space. */

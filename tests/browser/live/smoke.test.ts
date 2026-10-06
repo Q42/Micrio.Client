@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { get } from '../../../src/core/store'
+import { get } from '$core/store'
 import { mountViewer, waitFor } from '../../helpers/viewer'
 
 const live = __MICRIO_LIVE__

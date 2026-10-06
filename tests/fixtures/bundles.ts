@@ -1,4 +1,4 @@
-import type { Models } from '../../src/types/models'
+import type { Models } from '$types/models'
 
 /** A tiny valid image info block: 512x512 @ 256px tiles => 2 zoom levels. */
 export const baseInfo = (id: string, extra: Partial<Models.ImageInfo.ImageInfo> = {}): Models.ImageInfo.ImageInfo => ({
