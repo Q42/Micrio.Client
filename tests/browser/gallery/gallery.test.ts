@@ -30,11 +30,20 @@ async function openAlbum() {
 	}
 	await viewer.open(first.id)
 	await waitFor(() => viewer.el.$current?.id === first.id, 4000, 'first image')
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 	return { viewer, bundle, ids: bundle.images.map((i) => i.id) }
 }
 
-describe('gallery', () => {
+/**
+ * An album bundle opened **without** the element's id attribute.
+ *
+ * `#print()` is the only place an album becomes a gallery, and it only runs for
+ * an element that has an id — so `mountViewer()` plus `open(id)` never builds a
+ * gallery controller and the album images stay independent. Real album viewing
+ * (swipe, switch, omni, grid) is covered by the sibling suites, starting at
+ * `gallery-album.test.ts`.
+ */
+describe('album bundle without a gallery controller', () => {
 	it('opens the album image even when an album is attached', async () => {
 		const { viewer, ids } = await openAlbum()
 		expect(viewer.el.$current?.id).toBe(ids[0])

@@ -23,7 +23,7 @@ async function openSwitch(count: number, opts: AlbumOptions = {}): Promise<OpenA
 describe('switch album — layout', () => {
 	it('opens on a virtual parent with all images embedded', async () => {
 		const { viewer, ids } = await openSwitch(3)
-		const gallery = viewer.el.gallery
+		const { gallery } = viewer.el
 		expect(gallery?._config.type).toBe('switch')
 		expect(viewer.el.$current?.id).toBe('')
 		expect(albumOf(viewer.el)?.numPages).toBe(3)
@@ -35,8 +35,8 @@ describe('switch album — layout', () => {
 
 	it('shares the parent camera with every child', async () => {
 		const { viewer } = await openSwitch(3)
-		const parent = viewer.el.$current
-		const gallery = viewer.el.gallery
+		const { $current: parent } = viewer.el
+		const { gallery } = viewer.el
 		expect(parent?.camera).toBeDefined()
 		for (const image of gallery?._images ?? []) {
 			expect(image.camera).toBe(parent?.camera)
@@ -70,7 +70,7 @@ describe('switch album — layout', () => {
 	it('centres a lone cover and the last unpaired page', async () => {
 		// 4 images, one cover: [0], [1,2], [3] — both single pages are centred
 		const { viewer } = await openSwitch(4, { isSpreads: true, coverPages: 1 })
-		const gallery = viewer.el.gallery
+		const { gallery } = viewer.el
 		expect(gallery?._getPageLayout().pages).toEqual([[0], [1, 2], [3]])
 		expect(gallery?._images[0]?.opts.area).toEqual([0.25, 0, 0.5, 1])
 		expect(gallery?._images[3]?.opts.area).toEqual([0.25, 0, 0.5, 1])

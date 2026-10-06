@@ -152,11 +152,7 @@ export function destroyAlbums(): void {
  * `#print` awaits a `tick()` before fetching, so a synchronous listener is in
  * place before the first album event.
  */
-export function mountAlbum(
-	opts: AlbumOptions = {},
-	mountIndex = 0,
-	attrs: Record<string, string> = {},
-): MountedAlbum {
+export function mountAlbum(opts: AlbumOptions = {}, mountIndex = 0, attrs: Record<string, string> = {}): MountedAlbum {
 	const fixture = albumFixture(opts)
 	archive.db.clear()
 	mockJson(/bundle\.json/, fixture.bundle)

@@ -108,7 +108,7 @@ describe('omni — marker content', () => {
 		await waitForOmniMarkers(omni.viewer.el)
 
 		omni.image.state.marker.set('over')
-		await waitFor(() => get(omni.viewer.el.state.popover)?.marker.id === 'over', 4000, 'the popover')
+		await waitFor(() => get(omni.viewer.el.state.popover)?.marker?.id === 'over', 4000, 'the popover')
 		expect(get(omni.viewer.el.state.popover)?.image).toBe(omni.image)
 	})
 })

@@ -50,8 +50,8 @@ describe('scrubber — the printed bar', () => {
 		const { viewer, ids } = await openScrubber(4)
 		const ticks = scrubberTicks(viewer.el)
 		expect(ticks).toHaveLength(4)
-		expect(ticks[0]?.hasAttribute('data-active')).toBe(true)
-		expect(ticks[1]?.hasAttribute('data-active')).toBe(false)
+		expect(ticks[0]?.dataset.active).toBe('')
+		expect(ticks[1]?.dataset.active).toBeUndefined()
 
 		const handle = scrubberHandle(viewer.el)
 		expect(handle?.getAttribute('role')).toBe('slider')
@@ -68,7 +68,9 @@ describe('scrubber — the printed bar', () => {
 	it('prints a single bar, even after navigating', async () => {
 		const { viewer } = await openScrubber(4)
 		albumOf(viewer.el)?.next()
-		await new Promise((resolve) => setTimeout(resolve, 50))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 50)
+		})
 		expect(viewer.el.querySelectorAll('micrio-gallery ul')).toHaveLength(1)
 	})
 
@@ -80,11 +82,13 @@ describe('scrubber — the printed bar', () => {
 		expect(next?.disabled).toBe(false)
 
 		press('End')
-		await new Promise((resolve) => setTimeout(resolve, 50))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 50)
+		})
 		expect(prev?.disabled).toBe(false)
 		expect(next?.disabled).toBe(true)
 		expect(scrubberHandle(viewer.el)?.getAttribute('aria-valuenow')).toBe('4')
-		expect(scrubberTicks(viewer.el)[3]?.hasAttribute('data-active')).toBe(true)
+		expect(scrubberTicks(viewer.el)[3]?.dataset.active).toBe('')
 		expect(viewer.el.querySelector('micrio-gallery ul > button + span')?.textContent).toBe('4')
 	})
 
@@ -94,7 +98,9 @@ describe('scrubber — the printed bar', () => {
 		expect(fill?.style.width).toBe('0%')
 
 		press('End')
-		await new Promise((resolve) => setTimeout(resolve, 50))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 50)
+		})
 		expect(fill?.style.width).toBe('100%')
 	})
 
@@ -123,7 +129,9 @@ describe('scrubber — pointer drag', () => {
 		}
 
 		const x = xForPage(track, 3, 4)
-		track.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, clientX: x, clientY: 10, button: 0, bubbles: true }))
+		track.dispatchEvent(
+			new PointerEvent('pointerdown', { pointerId: 7, clientX: x, clientY: 10, button: 0, bubbles: true }),
+		)
 
 		// The page is set synchronously; the slide animation follows
 		expect(galleryEl(mounted.viewer.el)?.dataset.dragging).toBe('')

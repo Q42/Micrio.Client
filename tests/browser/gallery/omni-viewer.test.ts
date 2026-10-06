@@ -30,7 +30,7 @@ function stubCapture(viewer: Viewer): void {
 
 /** Gives the dial a measurable width, so its rotation offset is observable. */
 function sizeDial(omni: OpenOmni, width = 200): HTMLElement {
-	const dial = omni.dial
+	const { dial } = omni
 	if (!dial) {
 		throw new Error('no dial')
 	}
@@ -57,7 +57,7 @@ describe('omni — setup', () => {
 
 	it('applies the omni camera settings to the canvas', async () => {
 		const omni = await openOmni({ frames: 12, distance: 4, fieldOfView: 0.7, verticalAngle: 0.2, offsetX: 0.1 })
-		const canvas = omni.image.canvas
+		const { canvas } = omni.image
 		// The distance is negated: the camera sits in front of the object
 		expect(canvas?._omniDistance).toBe(-4)
 		expect(canvas?._omniFieldOfView).toBeCloseTo(0.7, 6)

@@ -60,7 +60,7 @@ describe('IIIF albums', () => {
 		await waitFor(() => Boolean(viewer.el.gallery), 4000, 'the gallery')
 		await waitFor(() => viewer.el.$current?.album !== undefined, 4000, 'the album API')
 
-		const gallery = viewer.el.gallery
+		const { gallery } = viewer.el
 		expect(gallery?._config.type).toBe('swipe')
 		expect(gallery?._images).toHaveLength(2)
 		expect(gallery?._images[0]?.$info.isIIIF).toBe(true)
@@ -72,10 +72,7 @@ describe('IIIF albums', () => {
 	})
 
 	it('falls back to a single image for a one-canvas manifest', async () => {
-		const viewer = await openManifest(
-			manifest(body('https://iiif.test/single/0')),
-			'https://iiif.test/single/manifest',
-		)
+		const viewer = await openManifest(manifest(body('https://iiif.test/single/0')), 'https://iiif.test/single/manifest')
 		await waitFor(() => viewer.el.$current?.$info.isIIIF === true, 4000, 'the IIIF image')
 
 		// `_fromIIIF` returns null for a single canvas, so `#handleIIIF` builds one image

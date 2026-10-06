@@ -119,11 +119,12 @@ describe('swipe album — the album API', () => {
 		if (!album?.currentImage) {
 			throw new Error('no currentImage store')
 		}
-		expect(get(album.currentImage)?.id).toBe(ids[0])
+		const { currentImage } = album
+		expect(get(currentImage)?.id).toBe(ids[0])
 
 		album.next()
 		await waitFor(() => album.currentIndex === 1, 4000, 'the second page')
-		await waitFor(() => get(album.currentImage)?.id === ids[1], 4000, 'the second child')
+		await waitFor(() => get(currentImage)?.id === ids[1], 4000, 'the second child')
 	})
 
 	it('navigates with the keyboard', async () => {

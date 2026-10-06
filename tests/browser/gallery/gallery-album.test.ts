@@ -31,7 +31,7 @@ describe('album resolution', () => {
 		const mounted = mountAlbum({ count: 3 })
 		const { viewer, ids } = mounted
 		const { fixture } = mounted
-		const album = await awaitAlbum(mounted)
+		await awaitAlbum(mounted)
 
 		expect(viewer.el.gallery?._config.type).toBe('swipe')
 		expect(viewer.el.gallery?._images.map((i) => i.id)).toEqual(ids)
@@ -70,7 +70,7 @@ describe('album without an archive', () => {
 		const mounted = mountAlbum({ count: 3, archive: null })
 		await awaitAlbum(mounted, { gate: 'gallery' })
 
-		const gallery = mounted.viewer.el.gallery
+		const { gallery } = mounted.viewer.el
 		expect(gallery).toBeDefined()
 		expect(gallery?._images).toHaveLength(0)
 		expect(galleryEl(mounted.viewer.el)).not.toBeNull()

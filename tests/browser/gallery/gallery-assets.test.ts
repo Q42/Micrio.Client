@@ -51,8 +51,11 @@ async function openAssets(
 
 describe('micrio-swipe-gallery', () => {
 	it('builds a swipe gallery from the assets with the gallery settings the popover expects', async () => {
-		const { nested } = await openAssets([imageAsset('https://example.test/a.jpg', { id: 'a' }), imageAsset('https://example.test/b.jpg', { id: 'b' })])
-		const gallery = nested.gallery
+		const { nested } = await openAssets([
+			imageAsset('https://example.test/a.jpg', { id: 'a' }),
+			imageAsset('https://example.test/b.jpg', { id: 'b' }),
+		])
+		const { gallery } = nested
 
 		expect(gallery?._config.type).toBe('swipe')
 		expect(gallery?._images.map((i) => i.id)).toEqual(['a', 'b'])
