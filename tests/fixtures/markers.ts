@@ -46,6 +46,8 @@ export interface MarkerFixture {
 	id: string
 	/** The real marker ids, in fixture order. */
 	markerIds: string[]
+	/** The marker tours on the image, with their step ids remapped. */
+	markerTours: Models.ImageData.MarkerTour[]
 	/** The real id of a short marker id like `m1`. */
 	mid: (short: string) => string
 }
@@ -85,6 +87,7 @@ export function markerBundle(opts: MarkerBundleOptions = {}): MarkerFixture {
 	return {
 		id,
 		markerIds: markers.map((m) => m.id),
+		markerTours: markerTours ?? [],
 		mid,
 		bundle: {
 			id,
