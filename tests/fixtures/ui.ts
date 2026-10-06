@@ -148,6 +148,10 @@ export interface UiBundleOptions extends UiMenuOptions {
 	langs?: string[]
 	/** Extra image settings. */
 	settings?: Partial<Models.ImageInfo.Settings>
+	/** Use these pages instead of `uiMenus`'s; the popover cases need shaped pages. */
+	pages?: Models.ImageData.Menu[]
+	/** Use these markers instead of the two plain ones; the popover cases need content. */
+	markers?: Models.ImageData.Marker[]
 }
 
 export interface UiBundle {
@@ -171,8 +175,8 @@ export function uiBundle(opts: UiBundleOptions = {}): UiBundle {
 		i18n[lang] = { title: 'UI image' }
 	}
 
-	const markers = [marker('m1'), marker('m2')]
-	const pages = uiMenus(opts)
+	const markers = opts.markers ?? [marker('m1'), marker('m2')]
+	const pages = opts.pages ?? uiMenus(opts)
 
 	return {
 		id,
@@ -212,6 +216,113 @@ export function videoTourFixture(id = 'vt1', title = 'Video tour'): Models.Image
 			nl: { title, duration: 10, timeline: [], events: [] },
 		},
 	} as Models.ImageData.VideoTour
+}
+
+/** One image asset, as a content page or a marker's gallery holds them. */
+export function imageAsset(src: string, opts: { id?: string; micrioId?: string } = {}): Models.Assets.Image {
+	return {
+		title: src,
+		src,
+		size: 1,
+		uploaded: 0,
+		width: 512,
+		height: 512,
+		...(opts.id ? { id: opts.id } : {}),
+		...(opts.micrioId ? { micrioId: opts.micrioId } : {}),
+		i18n: { en: { title: src, description: `${src} description` }, nl: { title: src } },
+	}
+}
+
+export interface UiPageOptions {
+	/** Page content HTML. */
+	content?: string
+	/** An iframe/embed URL. */
+	embed?: string
+	/** A page image, as an asset or a plain source string. */
+	image?: Models.Assets.Image | string
+	/** Action buttons, rendered as custom buttons under the content. */
+	buttons?: Models.ImageData.MenuPageButton[]
+	/** Child pages, which the popover's welcome-screen lookup has to search. */
+	children?: Models.ImageData.Menu[]
+}
+
+/**
+ * A content page the popover renders: title plus whichever of content, embed, image and
+ * action buttons the case needs. Localised in both languages so the toolbar and the
+ * popover agree on what they show.
+ */
+export function uiPage(id: string, title: string, opts: UiPageOptions = {}): Models.ImageData.Menu {
+	const page: Models.ImageData.Menu = {
+		id,
+		i18n: {
+			en: {
+				title,
+				...(opts.content !== undefined ? { content: opts.content } : {}),
+				...(opts.embed !== undefined ? { embed: opts.embed } : {}),
+			},
+			nl: {
+				title,
+				...(opts.content !== undefined ? { content: opts.content } : {}),
+				...(opts.embed !== undefined ? { embed: opts.embed } : {}),
+			},
+		},
+	}
+	if (opts.image) {
+		page.image = typeof opts.image === 'string' ? (opts.image as unknown as Models.Assets.Image) : opts.image
+	}
+	if (opts.buttons) {
+		page.buttons = opts.buttons
+	}
+	if (opts.children) {
+		page.children = opts.children
+	}
+	return page
+}
+
+/** A page action button, labelled in both languages. */
+export function pageButton(
+	type: Models.ImageData.MenuPageButton['type'],
+	action?: string,
+	opts: { label?: string; blankTarget?: boolean } = {},
+): Models.ImageData.MenuPageButton {
+	return {
+		type,
+		...(action !== undefined ? { action } : {}),
+		i18nTitle: { en: opts.label ?? type, nl: opts.label ?? type },
+		...(opts.blankTarget ? { blankTarget: true } : {}),
+	}
+}
+
+/** A marker with popover content: body, an embedded media URL or an image gallery. */
+export function uiMarker(
+	id: string,
+	opts: {
+		body?: string
+		title?: string
+		embedUrl?: string
+		embedAutoPlay?: boolean
+		images?: Models.Assets.Image[]
+		popupType?: Models.ImageData.Marker['popupType']
+	} = {},
+): Models.ImageData.Marker {
+	const m = marker(id, {
+		i18n: {
+			en: {
+				title: opts.title ?? `Marker ${id}`,
+				body: opts.body ?? '',
+				...(opts.embedUrl ? { embedUrl: opts.embedUrl } : {}),
+			},
+			nl: {
+				title: opts.title ?? `Marker ${id}`,
+				body: opts.body ?? '',
+				...(opts.embedUrl ? { embedUrl: opts.embedUrl } : {}),
+			},
+		},
+		...(opts.embedAutoPlay !== undefined ? { embedAutoPlay: opts.embedAutoPlay } : {}),
+		...(opts.images ? { images: opts.images } : {}),
+		...(opts.popupType ? { popupType: opts.popupType } : {}),
+	})
+	return m
 }
 
 /**
