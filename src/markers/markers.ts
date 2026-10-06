@@ -158,6 +158,19 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		}
 
 		/**
+		 * Removes every synthetic cluster and clears the overlap flags, for when
+		 * `clusterMarkers` is turned off while a layer is already up.
+		 */
+		const clearClusters = () => {
+			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker.cluster')) {
+				el.remove()
+			}
+			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker.overlapped')) {
+				el.classList.remove('overlapped')
+			}
+		}
+
+		/**
 		 * Syncs the clickable area embeds of markers (`marker.clickableArea`).
 		 *
 		 * These are HTML embeds placed over a region of the image which open their
@@ -287,10 +300,13 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			if (image.$settings.clusterMarkers) {
 				updateOverlapped()
+			} else {
+				clearClusters()
 			}
 		}
 
 		this._watchLater(image.data, rebuild)
+		this._watchLater(image._settings, rebuild)
 		this._watchLater(switching, rebuild)
 		this._watchLater(micrioState.tour, rebuild)
 		if (focussed) {

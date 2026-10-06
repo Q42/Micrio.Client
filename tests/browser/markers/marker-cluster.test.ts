@@ -176,4 +176,17 @@ describe('marker clustering', () => {
 		spy.mockRestore()
 		opened.viewer.destroy()
 	})
+
+	it('clears the clusters when clustering is turned off', async () => {
+		const opened = await openMarkers(overlapping())
+		await waitFor(() => clustersOf(opened).length === 1, 6000, 'the cluster marker')
+		expect(opened.markerEl('m1')?.classList.contains('overlapped')).toBe(true)
+
+		opened.image()._settings.set({ ...opened.image().$settings, clusterMarkers: false })
+		await waitFor(() => clustersOf(opened).length === 0, 4000, 'the cluster removed')
+
+		// The layer reacts to the settings store, so the markers come back
+		expect(opened.markerEl('m1')?.classList.contains('overlapped')).toBe(false)
+		opened.viewer.destroy()
+	})
 })
