@@ -209,20 +209,23 @@ describe('marker popup during a marker tour', () => {
 		opened.viewer.destroy()
 	})
 
-	it('KNOWN GAP: the popup control is never disabled', async () => {
-		// `#clickedPrevNext` is read for `disabled` but never assigned, so the step
-		// control stays clickable while the tour is moving.
-		const fixture = markerBundle({ markerTours: [markerTour({ steps: ['m1', 'm2'] })] })
+	it('advances exactly one step per click', async () => {
+		// The popup is replaced by the layout for every step, so the control needs no
+		// disabled guard: a second click on the detached button cannot advance twice.
+		const fixture = markerBundle({ markerTours: [markerTour({ steps: ['m1', 'm2', 'm3'] })] })
+		const tour = fixture.markerTours[0]
+		if (!tour) {
+			throw new Error('no tour')
+		}
 		const opened = await openMarkers(fixture)
-		opened.viewer.el.state.tour.set(fixture.markerTours[0])
+		opened.viewer.el.state.tour.set(tour)
 		await waitForPopup(opened.viewer.el)
 
 		const next = control(opened, 'micrio-button.next')
-		expect(next?.disabled).toBe(false)
-
 		next?.click()
-		await waitFor(() => control(opened, 'micrio-button.close') !== null, 6000, 'the close control')
-		expect(control(opened, 'micrio-button.close')?.disabled).toBe(false)
+		next?.click()
+		await waitFor(() => tour.currentStep === 1, 6000, 'the second step')
+		expect(tour.currentStep).toBe(1)
 		opened.viewer.destroy()
 	})
 })

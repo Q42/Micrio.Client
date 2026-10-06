@@ -23,10 +23,10 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 	#props: Partial<MarkerPopupProps> = {}
 	#content!: HTMLElement
-	#title!: HTMLElement
 	#isMinimized = false
 	#destroying = false
-	#clickedPrevNext = false
+	/** True once a tour step has been requested from this popup. */
+	#stepping = false
 	#placedTourControls = false
 	#originalHeights = new WeakMap<HTMLElement, number>()
 
@@ -149,10 +149,16 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			showTourControls || (markerTour ? markerTour.currentStep === markerTour.steps.length - 1 : undefined)
 
 		const close = (e?: Event) => {
+			// The layout only swaps this popup out for the next step on the following
+			// tick, so a second click on the same button must not advance again.
+			if (this.#stepping) {
+				return
+			}
 			if ($tour && isPartOfTour && 'steps' in $tour) {
 				if (e instanceof Event && closeButtonStopsTour) {
 					micrio.state.tour.set(undefined)
 				} else {
+					this.#stepping = true
 					$tour.next?.()
 				}
 			} else if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
@@ -169,7 +175,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			this.classList.toggle('minimized', this.#isMinimized)
 			if (this.#content !== undefined) {
 				for (const child of this.#content.children) {
-					if (child instanceof HTMLElement && child !== this.#title) {
+					if (child instanceof HTMLElement) {
 						const n = child
 						if (!this.#originalHeights.has(n)) {
 							this.#originalHeights.set(n, n.offsetHeight)
@@ -197,7 +203,6 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					setProps: {
 						type: !isPartOfTour || closeButtonStopsTour ? 'close' : 'next',
 						title: !isPartOfTour || closeButtonStopsTour ? $i18n._closeMarker : $i18n._tourStepNext,
-						disabled: this.#clickedPrevNext,
 						onclick: close,
 					},
 					parent: aside,
