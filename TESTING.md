@@ -377,7 +377,7 @@ same URL get the first test's response; every IIIF fixture needs its own URL (th
 replaces every `.css` import with an empty module, so the scrubber's `getBoundingClientRect`
 and `clientWidth` are zero until a test gives the gallery (or the dial) an inline `display` and
 `width`. Drag tests that measure pixels have to do that first — and a `micrio-dial` only writes
-its rotation offset while connected *and* measurable, so `_setProps` has to be re-applied after
+its rotation offset while connected _and_ measurable, so `_setProps` has to be re-applied after
 sizing it.
 
 **Four omni settings are read nowhere:** `noKeys`, `showDegrees`, `frontIndex` and `twoAxes`.

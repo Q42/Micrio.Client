@@ -330,7 +330,12 @@ export class OmniUI {
 	#dMove = (e: PointerEvent): void => {
 		// The gesture origin, refreshed only when a pinch turns into a swipe (below).
 		let origin = this.#startX
-		if (!this.#isDragging() || e.pointerId !== this.#firstTouchId || origin === undefined || this.#startIndex === undefined) {
+		if (
+			!this.#isDragging() ||
+			e.pointerId !== this.#firstTouchId ||
+			origin === undefined ||
+			this.#startIndex === undefined
+		) {
 			return
 		}
 

@@ -277,7 +277,14 @@ describe('omni — layers', () => {
 
 		stubCapture(omni.viewer)
 		omni.viewer.el.canvas.element.dispatchEvent(
-			new PointerEvent('pointerdown', { pointerId: 4, clientX: 400, clientY: 300, button: 0, shiftKey: true, bubbles: true }),
+			new PointerEvent('pointerdown', {
+				pointerId: 4,
+				clientX: 400,
+				clientY: 300,
+				button: 0,
+				shiftKey: true,
+				bubbles: true,
+			}),
 		)
 		omni.viewer.el.dispatchEvent(
 			new PointerEvent('pointermove', { pointerId: 4, clientX: 100, clientY: 300, shiftKey: true, bubbles: true }),
