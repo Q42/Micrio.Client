@@ -175,6 +175,9 @@ export class BookViewer {
 	/** Time accumulated by `_step`, fed to the IIIF manager in place of a real clock. */
 	#stepTime = 0
 
+	/** True once `_stop()` ran: the viewer no longer takes frames. */
+	#stopped = false
+
 	constructor(options: BookViewerOptions) {
 		this.#canvas = options._canvas
 		this.#onPageChange = options._onPageChange
@@ -776,6 +779,21 @@ export class BookViewer {
 		return this.#update(dt, this.#stepTime)
 	}
 
+	/**
+	 * Stops the viewer's render loop for good.
+	 *
+	 * A viewer requests frames through `Frame`, a module singleton, and a request
+	 * is only ever removed by running its frame: a viewer that is thrown away
+	 * mid-animation leaves its callback queued, and every later frame then runs
+	 * that dead viewer's simulation again — and re-queues it. A host that discards
+	 * a viewer (the gallery replacing one, tests tearing one down) has to stop it.
+	 * @internal
+	 */
+	_stop(): void {
+		this.#stopped = true
+		Frame.cancel(this.#frame)
+	}
+
 	_nextPage(grabRow?: number): void {
 		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount) {
 			this.#inputHandler._operation = 'none'
@@ -807,6 +825,9 @@ export class BookViewer {
 	// ═══════════════════════════════════════════════════════════════
 
 	#requestFrame = (): void => {
+		if (this.#stopped) {
+			return
+		}
 		Frame.request(this.#frame)
 	}
 

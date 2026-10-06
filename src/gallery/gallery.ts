@@ -519,6 +519,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 		const { micrio } = parent.engine
 		const individualAspects = Boolean(config.settings?.individualAspects)
+		// A book requested while another is still animating would leave the first
+		// one's frame queued forever, and every later frame would keep running it
+		this.#book3d?._stop()
 		const book3d = (this.#book3d = new BookViewer({
 			_canvas: micrio.canvas.element,
 			_images: items,
