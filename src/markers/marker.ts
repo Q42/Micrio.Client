@@ -122,12 +122,18 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		const scales = Boolean(marker.data?.scales) || Boolean(image.$settings.markersScale)
 		const moved = () => {
+			// `viewportIsMarker` makes the marker cover the region it opens: it sits at the
+			// centre of its `view` and is sized to the view's smaller on-screen side.
+			const markerView = image.$settings._markers?.viewportIsMarker ? marker.view : undefined
+			const mx = markerView !== undefined ? markerView[0] + markerView[2] / 2 : marker.x
+			const my = markerView !== undefined ? markerView[1] + markerView[3] / 2 : marker.y
+
 			if (image._is360 && scales) {
-				this.#matrix = image.camera.getMatrix(marker.x, marker.y, 1, 1, 0, 0, 0).join(',')
+				this.#matrix = image.camera.getMatrix(mx, my, 1, 1, 0, 0, 0).join(',')
 				this.style.setProperty('--mat', `matrix3d(${this.#matrix})`)
 				this.classList.add('mat3d')
 			} else {
-				const xy = image.camera._getXYDirect(marker.x, marker.y, {
+				const xy = image.camera._getXYDirect(mx, my, {
 					radius: marker.radius,
 					rotation: marker.rotation,
 				})
@@ -156,6 +162,16 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				}
 				this.classList.remove('mat3d')
 				this.classList.toggle('behind', this.#behindCam)
+			}
+
+			if (markerView !== undefined) {
+				const [ax, ay] = image.camera.getXY(markerView[0], markerView[1])
+				const [bx, by] = image.camera.getXY(markerView[0] + markerView[2], markerView[1] + markerView[3])
+				const side = Math.max(8, Math.min(Math.abs(bx - ax), Math.abs(by - ay)))
+				this.style.setProperty('--micrio-marker-size', `${Math.round(side)}px`)
+			} else {
+				// Never pin a size a previous view wrote; the layer's setting applies again
+				this.style.removeProperty('--micrio-marker-size')
 			}
 		}
 
