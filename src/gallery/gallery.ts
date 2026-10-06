@@ -457,7 +457,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// Set up album object for external API access
 		const currentIndex = () => this.#currentPage
 		const goToPage = (n: number) => this.#goto(n)
-		parent.album = {
+		const album: Models.Album = {
 			numPages: layout.numPages,
 			get currentIndex() {
 				return currentIndex()
@@ -475,17 +475,20 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			// jumping to page 0 would be a surprising place to land.
 			goto: (n: number) => {
 				const page = this.#imageIdxToPage(n)
-				return page < 0 ? Promise.resolve<MicrioImage | undefined>() : goToPage(page).then(() => this.#images[n])
+				// A miss means `n` is not an image of this album either, so the
+				// requested index resolves to `undefined` without moving
+				return page < 0 ? Promise.resolve(this.#images[n]) : goToPage(page).then(() => this.#images[n])
 			},
 			...(this.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		}
+		parent.album = album
 
 		if (this.#swipeGallery) {
 			this.#swipeGallery.setup(startImageIdx, parent, engine)
 			this.#currentImageIdx = startImageIdx
 			this.#currentPage = pageIdx
 			this.#frameChanged()
-			parent.album.hooked = true
+			album.hooked = true
 		} else if (isBook3D) {
 			this.#loadBook3d(parent, controller._items, startImageIdx, controller._config)
 		} else {
@@ -502,7 +505,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			parent.camera.setView([0, 0, 1, 1])
 			this.#currentPage = pageIdx
 			this.#frameChanged()
-			parent.album.hooked = true
+			album.hooked = true
 		}
 
 		// Strip-swipe pointer events on the canvas element
