@@ -19,4 +19,10 @@ describe('browser suite plumbing', () => {
 		expect(viewer.el.$current?.$info.width).toBe(512)
 		viewer.destroy()
 	})
+
+	it.skipIf(__MICRIO_LIVE__)('denies un-mocked network access by default', async () => {
+		// setup.ts installs the 404 patch in beforeEach; the live suite opts out.
+		const response = await fetch('https://example.test/definitely-not-mocked')
+		expect(response.status).toBe(404)
+	})
 })

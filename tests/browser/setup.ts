@@ -7,7 +7,7 @@
  */
 import { afterEach, beforeEach } from 'vitest'
 
-import { restoreNetwork } from '../helpers/network'
+import { restoreNetwork, mockFetch } from '../helpers/network'
 import { installAudioContext } from './audio-context'
 import { installTextureWorker } from './textures'
 
@@ -52,6 +52,12 @@ HTMLMediaElement.prototype.play = function play() {
 await import('../../src/main')
 
 beforeEach(() => {
+	// Offline by default: the fetch patch answers every un-mocked URL with a 404, so
+	// a suite that forgets to mock cannot silently reach the real network. Tests
+	// override it with `mockJson`/`mockText`; the opt-in live suite opts out.
+	if (!__MICRIO_LIVE__) {
+		mockFetch([])
+	}
 	document.body.replaceChildren()
 	for (const el of document.head.querySelectorAll('link[data-test-style]')) {
 		el.remove()
