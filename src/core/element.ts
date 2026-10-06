@@ -35,8 +35,9 @@ declare const __CORE__: boolean
 interface IIIFResponse {
 	'@id'?: string
 	id?: string
-	width: number
-	height: number
+	/** Absent on anything that is not an Image API `info.json`. */
+	width?: number
+	height?: number
 	type?: string
 	tiles?: Models.ImageInfo.ImageInfo['tiles']
 	preferredFormats?: string[]
@@ -51,6 +52,11 @@ interface IIIFItem {
 		height: number
 		service?: { id?: string; preferredFormats?: string[] }[]
 	}
+}
+
+/** True for a dimension an Image API response can actually be rendered from. */
+function isImageSize(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
 /** An attribute definition map from {@link AO}. @internal */
@@ -512,7 +518,8 @@ export class HTMLMicrioElement extends MicrioElement {
 	}
 
 	/**
-	 * Fetches an IIIF manifest, attempts gallery creation, and falls back to a single-image BundleImage.
+	 * Fetches an IIIF document, attempts gallery creation, and falls back to a single-image BundleImage.
+	 * A response that is neither a usable manifest nor an Image API `info.json` is reported as unsupported.
 	 * @returns The resolved BundleImage, or `undefined` if a gallery was opened or an error occurred.
 	 * @internal
 	 */
@@ -538,9 +545,9 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		// Determine id, width, height from canvas body (single-image manifest) or top-level info.json fields
-		let id = resp['@id'] || resp.id || url.replace(/info.json$/, '')
-		let { width } = resp
-		let { height } = resp
+		let id: unknown = resp['@id'] || resp.id || url.replace(/info\.json$/, '')
+		let width: unknown = resp.width
+		let height: unknown = resp.height
 
 		if (resp.type === 'Manifest') {
 			const body = resp.items?.[0]?.items?.[0]?.items?.[0]?.body
@@ -550,6 +557,18 @@ export class HTMLMicrioElement extends MicrioElement {
 				;({ width, height } = body)
 				resp.preferredFormats = service.preferredFormats
 			}
+		}
+
+		// Every response that is neither a usable manifest nor an Image API info.json lands
+		// here — a IIIF Collection, or JSON from the wrong URL. Without this guard it would
+		// become an image with NaN bounds and a silently blank viewer.
+		if (typeof id !== 'string' || id === '' || !isImageSize(width) || !isImageSize(height)) {
+			this.#printError(
+				new MicrioError('UNSUPPORTED_IIIF', {
+					displayMessage: 'Not a valid IIIF manifest or Image API info.json',
+				}),
+			)
+			return undefined
 		}
 
 		return {

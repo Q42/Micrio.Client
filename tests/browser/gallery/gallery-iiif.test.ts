@@ -333,4 +333,27 @@ describe('IIIF — unsupported input', () => {
 		)
 		await expectError(viewer, 'No valid IIIF canvases found in the manifest')
 	})
+
+	it('reports a document that is neither a manifest nor an info.json', async () => {
+		// A IIIF Collection (or any other JSON) has no dimensions to render: without the
+		// guard it becomes an image with undefined bounds and a silently blank viewer.
+		const viewer = await openIIIF(
+			{
+				'@context': 'http://iiif.io/api/presentation/3/context.json',
+				id: 'https://iiif.test/coll/1',
+				type: 'Collection',
+				items: [],
+			},
+			'https://iiif.test/coll/manifest',
+		)
+		await expectError(viewer, 'Not a valid IIIF manifest or Image API info.json')
+	})
+
+	it('reports a response whose dimensions are not numbers', async () => {
+		const viewer = await openIIIF(
+			{ id: 'https://iiif.test/string/1', width: '800', height: 600 },
+			'https://iiif.test/string/1/info.json',
+		)
+		await expectError(viewer, 'Not a valid IIIF manifest or Image API info.json')
+	})
 })
