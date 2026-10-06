@@ -339,6 +339,33 @@ describe('omni — layers', () => {
 		expect(readout?.textContent).toBe('90º')
 	})
 
+	it('follows a showDegrees toggle on the live image settings', async () => {
+		// The settings page writes the flag onto the live image (mutating the object and calling
+		// the settings store's `update`), so the omni has to re-read it rather than keep the value
+		// it read at setup.
+		const omni = await openOmni({ frames: 36 })
+		const dial = sizeDial(omni)
+		expect(dial.querySelector('span')).toBeNull()
+
+		// The settings page mutates the settings object in place and hands it back to the store
+		const setShowDegrees = (showDegrees: boolean) => {
+			omni.image._settings.update((s) => {
+				if (s.omni) {
+					s.omni.showDegrees = showDegrees
+				}
+				return s
+			})
+		}
+
+		setShowDegrees(true)
+		await settle(2)
+		expect(dial.querySelector('span')).not.toBeNull()
+
+		setShowDegrees(false)
+		await settle(2)
+		expect(dial.querySelector('span')).toBeNull()
+	})
+
 	it('lets noKeys leave the keyboard to the host page', async () => {
 		// `noKeys` is what the dashboard sets on its preview so arrow keys keep navigating the
 		// editor. Both halves start from nothing, because a mounted viewer's key handler answers

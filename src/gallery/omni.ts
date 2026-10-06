@@ -182,6 +182,21 @@ export class OmniUI {
 			}),
 		)
 
+		// The editor toggles dial settings on the live image, so follow the settings store
+		// rather than reading `showDegrees` once at setup. It is compared in a local: the
+		// store's `omni` object is mutated in place, so `omni.showDegrees` has already
+		// changed by the time a subscriber runs.
+		let shownDegrees = Boolean(omni.showDegrees)
+		this.#cleanups.push(
+			image._settings.subscribe((s) => {
+				const degrees = Boolean(s.omni?.showDegrees)
+				if (degrees !== shownDegrees) {
+					shownDegrees = degrees
+					dial?._setProps?.({ degrees })
+				}
+			}),
+		)
+
 		const omniCfg = image.$settings.omni
 		const omniNumLayers = omniCfg?.layers?.length ?? 1
 		if (omniCfg?.layers && omniNumLayers > 1) {
