@@ -381,11 +381,16 @@ export class HTMLMicrioElement extends MicrioElement {
 		})
 
 		let shown = false
-		const unsub = this._loading.subscribe((v) => {
-			if (v) {
+		// `_watch` emits the current value synchronously on subscribe, so the "first load
+		// finished" work must be guarded by a flag rather than by unsubscribing from inside
+		// the callback (the unsubscriber is not assigned yet on that first, synchronous call
+		// — which also made reconnecting a loaded element throw).
+		let loaded = false
+		this._watch(this._loading, (v) => {
+			if (v || loaded) {
 				return
 			}
-			unsub()
+			loaded = true
 			this.dataset.loaded = ''
 
 			this._watch(this._switching, (s) => {

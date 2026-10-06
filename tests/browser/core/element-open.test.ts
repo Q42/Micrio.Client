@@ -81,6 +81,25 @@ describe('<micr-io> open()', () => {
 		viewer.destroy()
 	})
 
+	it('survives being disconnected and reconnected', async () => {
+		// Reconnecting re-runs `_onMount` while `_loading` is already false; the load
+		// subscription used to reference its own (not yet assigned) unsubscriber and throw.
+		const viewer = mountViewer()
+		await viewer.open(modernBundle())
+		await waitForLoaded(viewer, 'rqFkjZz')
+
+		delete viewer.el.dataset.loaded
+		viewer.el.remove()
+		expect(() => {
+			document.body.append(viewer.el)
+		}).not.toThrow()
+
+		// The mount ran again and re-marked the loaded state, with the image intact
+		expect(viewer.el.dataset.loaded).toBe('')
+		expect(viewer.el.$current?.id).toBe('rqFkjZz')
+		viewer.destroy()
+	})
+
 	it('re-opens the same image without a second fetch', async () => {
 		const bundle = freshBundle()
 		mockJson(/bundle\.json/, { images: [bundle] })

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Grid } from '$grid/grid'
 import type { MicrioImage } from '$core/image'
@@ -12,11 +12,9 @@ import { collectEvents, mountViewer, waitFor, type Viewer } from '../../../helpe
  * actual element so the settings-driven hooking, the real camera and the DOM event
  * target are exercised together. **One viewer for the whole file** (Chromium keeps
  * only a small number of WebGL contexts): `setup.ts` empties `<body>` before every
- * test, so the viewer lives in a container under `<html>` instead. Moving it there
- * happens before `open()`, while the element is still loading — reconnecting a
- * *loaded* `<micr-io>` re-enters its load subscription and throws (a pre-existing
- * element bug, out of scope here). Each test resets the camera and the interaction
- * flags itself.
+ * test, so each `beforeEach` re-appends the element — which also exercises the
+ * disconnect/reconnect path on every test. Each test resets the camera and the
+ * interaction flags itself.
  *
  * Retina is asserted at the seam the events layer owns: the coordinates handed to
  * the camera must not change with `devicePixelRatio`. The ratio is changed through
@@ -26,7 +24,6 @@ import { collectEvents, mountViewer, waitFor, type Viewer } from '../../../helpe
 
 let viewer: Viewer
 let image: MicrioImage
-let container: HTMLDivElement
 
 /** A pointer event whose `timeStamp` is fixed, so drag maths is deterministic. */
 type PointerInit = PointerEventInit & { timeStamp?: number }
@@ -85,13 +82,8 @@ async function scaleChanged(before: number): Promise<boolean> {
 }
 
 beforeAll(async () => {
-	container = document.createElement('div')
-	container.style.cssText = 'position: fixed; left: 0; top: 0; width: 800px; height: 600px; display: block;'
-	document.documentElement.append(container)
-
-	viewer = mountViewer({}, 'width: 800px; height: 600px; display: block;')
-	// Move it out of <body> while it is still loading (see the header note).
-	container.append(viewer.el)
+	// Fixed at the page origin so every coordinate assertion is a plain client position.
+	viewer = mountViewer({}, 'position: fixed; left: 0; top: 0; width: 800px; height: 600px; display: block;')
 
 	const bundle = bundleWithFreshId()
 	await viewer.open(bundle)
@@ -109,6 +101,13 @@ beforeAll(async () => {
 	viewer.el.releasePointerCapture = () => {}
 })
 
+beforeEach(() => {
+	// `setup.ts` emptied <body>; re-connecting the shared viewer is also the reconnect path.
+	if (!viewer.el.isConnected) {
+		document.body.append(viewer.el)
+	}
+})
+
 afterEach(async () => {
 	await reset()
 	// The capture test replaces the stub directly; `vi.restoreAllMocks` cannot undo that.
@@ -119,7 +118,6 @@ afterEach(async () => {
 
 afterAll(() => {
 	viewer.destroy()
-	container.remove()
 })
 
 describe('interaction — mouse drag', () => {
