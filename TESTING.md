@@ -34,6 +34,11 @@ installed `playwright` version expects. `playwright` is declared as `^1.59.0`, s
 pnpm exec playwright install chromium
 ```
 
+Failure screenshots and `context.annotate` attachments land in `.vitest/` (gitignored).
+Vitest never removes them, so `vitest.config.ts` clears the directory at config load:
+every test run starts clean, and whatever is in there afterwards belongs to the run you
+just did — delete it by hand if you want it gone sooner.
+
 ## The two projects
 
 `vitest.config.ts` defines two independent projects. They are separate processes with
