@@ -63,7 +63,11 @@ export class DoubleTapHandler {
 	#click = (e: MouseEvent | TouchEvent): void => {
 		const t = e instanceof TouchEvent ? e.touches[0] : e
 		const img = this.#ctx._getImage({ x: t.clientX, y: t.clientY })
-		// Use zoom method with negative delta to zoom in, providing click coordinates
-		img?.camera.zoom(-300, 500, t.clientX, t.clientY, 1, !this.#ctx._micrio.$current?.album).catch(() => {})
+		// `zoom` anchors in element-relative CSS pixels, so take the canvas box off the raw
+		// client point (the hit test above still wants the client point).
+		const box = this.#ctx._el.getBoundingClientRect()
+		img?.camera
+			.zoom(-300, 500, t.clientX - box.left, t.clientY - box.top, 1, !this.#ctx._micrio.$current?.album)
+			.catch(() => {})
 	}
 }

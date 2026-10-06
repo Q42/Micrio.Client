@@ -90,7 +90,9 @@ export class WheelHandler {
 			const c = this.#ctx._micrio.canvas.viewport
 			let offY = 0
 
-			const box = this.#ctx._micrio.getBoundingClientRect()
+			// The canvas element, not the host: it is the coordinate space the camera
+			// viewport (`left`/`top`/`width`) and `_zoom` are expressed in.
+			const box = this.#ctx._el.getBoundingClientRect()
 			void image.camera.zoom(delta / Math.sqrt(c.scale), 0, coo.x - offX - box.left, coo.y - box.top - offY)
 		} else {
 			image.camera.pan(e.deltaX, e.deltaY)

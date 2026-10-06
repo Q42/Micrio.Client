@@ -135,6 +135,20 @@ describe('GestureHandler — handling', () => {
 		}
 	})
 
+	it('anchors the zoom on the element-relative point', () => {
+		const restore = stubBrowser({ OSX: true })
+		try {
+			const offset = makeEventScene({ left: 100, top: 50 })
+			const h = new GestureHandler(offset.ctx)
+			h.hook()
+			offset.el.dispatchEvent(gesture('gesturechange', { scale: 1.5, clientX: 300, clientY: 200 }))
+			expect(offset.image?.camera.zoom).toHaveBeenCalledWith(-300, 0, 200, 150)
+			offset.destroy()
+		} finally {
+			restore()
+		}
+	})
+
 	it('consumes the start and end events without zooming', () => {
 		const restore = stubBrowser({ OSX: true })
 		try {

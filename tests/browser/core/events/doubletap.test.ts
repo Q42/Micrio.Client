@@ -96,17 +96,13 @@ describe('DoubleTapHandler — clicks', () => {
 		expect(s.image?.camera.zoom).toHaveBeenCalledWith(-300, 500, 50, 60, 1, false)
 	})
 
-	it('KNOWN GAP: passes the raw client point as the zoom anchor', () => {
-		// `Canvas._zoom` subtracts the viewport's `left`/`top` (so it expects client
-		// coordinates), while `wheel.ts` pre-subtracts the host box. On a host away from
-		// the page origin the two spaces disagree; this pins the double-tap side (and
-		// `gesture.ts` shares it) until the canonical space is decided.
+	it('anchors the zoom on the element-relative point', () => {
+		// `zoom` works in element-relative CSS pixels, so an offset host shifts the anchor.
 		const offset = makeEventScene({ left: 100, top: 50 })
 		const h = new DoubleTapHandler(offset.ctx)
 		h.hookClick()
 		offset.el.dispatchEvent(new MouseEvent('dblclick', { clientX: 300, clientY: 200, bubbles: true }))
-		// Raw client coordinates, not the element-relative (200, 150) that wheel would pass
-		expect(offset.image?.camera.zoom).toHaveBeenCalledWith(-300, 500, 300, 200, 1, true)
+		expect(offset.image?.camera.zoom).toHaveBeenCalledWith(-300, 500, 200, 150, 1, true)
 		offset.destroy()
 	})
 

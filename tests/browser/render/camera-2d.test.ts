@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
 import { bundleWithFreshId } from '../../fixtures/bundles'
 import type { MicrioImage } from '$core/image'
@@ -355,3 +355,61 @@ describe('EngineCamera setCoo and flyTo', () => {
 		viewer.destroy()
 	})
 })
+
+describe('Camera2D retina anchoring', () => {
+	it('keeps the cursor point fixed when zooming at a device pixel ratio of 2', async () => {
+		const { viewer, image, camera, canvasEl } = await open2d()
+		image.camera.setView([0.25, 0.25, 0.5, 0.5], { noLimit: true })
+		const before = image.camera.getView().slice()
+		const centerX = (before[0] ?? 0) + (before[2] ?? 1) / 2
+		const centerY = (before[1] ?? 0) + (before[3] ?? 1) / 2
+
+		const restore = setDpr(viewer, 2)
+		try {
+			// The visual centre in element-relative CSS pixels (`Viewport.width` is device pixels)
+			camera._zoom(-40, canvasEl.width / 4, canvasEl.height / 4, 0, true)
+			const view = image.camera.getView()
+			// An anchor on the centre must leave the centre where it was
+			expect((view[0] ?? 0) + (view[2] ?? 1) / 2).toBeCloseTo(centerX, 6)
+			expect((view[1] ?? 0) + (view[3] ?? 1) / 2).toBeCloseTo(centerY, 6)
+		} finally {
+			restore()
+		}
+		viewer.destroy()
+	})
+
+	it('converts client touches to element-relative CSS pixels for the pinch anchor', async () => {
+		const { viewer, camera } = await open2d()
+		const restore = setDpr(viewer, 2)
+		try {
+			const zoom = vi.spyOn(camera, '_zoom').mockReturnValue(0)
+			vi.spyOn(camera, '_pan').mockImplementation(() => {})
+			// The first call only records the baseline; the second one moves the camera
+			camera._pinch(300, 100, 400, 100)
+			camera._pinch(300, 100, 420, 100)
+
+			// The midpoint (360, 100) in client CSS, minus the canvas box in CSS pixels
+			const { left, top } = viewer.el.canvas.viewport
+			expect(zoom.mock.calls.at(-1)?.[1]).toBeCloseTo(360 - left, 6)
+			expect(zoom.mock.calls.at(-1)?.[2]).toBeCloseTo(100 - top, 6)
+		} finally {
+			restore()
+		}
+		viewer.destroy()
+	})
+})
+
+/** Forces a device pixel ratio on a mounted viewer, returning a restore function. */
+function setDpr(viewer: Viewer, ratio: number): () => void {
+	const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'devicePixelRatio')
+	Object.defineProperty(globalThis, 'devicePixelRatio', { value: ratio, configurable: true })
+	viewer.el.canvas.onresize()
+	return () => {
+		if (descriptor === undefined) {
+			delete (globalThis as { devicePixelRatio?: number }).devicePixelRatio
+		} else {
+			Object.defineProperty(globalThis, 'devicePixelRatio', descriptor)
+		}
+		viewer.el.canvas.onresize()
+	}
+}
