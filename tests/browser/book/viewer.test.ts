@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BookViewer } from '$book/main'
+import { requested } from '../../helpers/network'
 import { bookImage, mountBook, restoreFrameStub, type ViewerHarness } from '../book-helpers'
 
 /**
@@ -401,6 +402,16 @@ describe('BookViewer — texture loading', () => {
 		// The manager marks the spread's page pending, which is work, but the
 		// *book* must not schedule frames for pending network work alone
 		expect(book.step()).toBe(true)
+		book.destroy()
+	})
+
+	it('answers its hi-res page requests locally', async () => {
+		// Without a base URL the manager falls back to the IIIF CDN and, once the
+		// 500 ms debounce has passed, asks for a page texture. The suite's default
+		// 404 patch (setup.ts) is what keeps that request off the network.
+		const book = await mountBook({ images: [bookImage('a'), bookImage('b')] })
+		book.steps(60)
+		expect(requested.some((url) => url.includes('iiif.micr.io'))).toBe(true)
 		book.destroy()
 	})
 })
