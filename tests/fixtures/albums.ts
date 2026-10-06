@@ -176,12 +176,18 @@ export interface OpenAlbum extends MountedAlbum {
 /**
  * Opens the mounted album and waits until the gallery has taken over.
  *
- * The gate is the **parent image**, not the controller: `el.gallery` is only
- * assigned while the gallery's own `micrio.open()` is in flight, and the
- * explicit `open(id)` the test started can still win `current` afterwards. The
- * album API (`$current.album`) — or the grid controller for a `grid` album,
- * which never renders `<micrio-gallery>` and so never gets an album API — only
- * exists on that parent.
+ * Nothing opens the image explicitly: `mountAlbum` gives the element an id, and
+ * `#print` then resolves the album and opens the gallery parent itself. Calling
+ * `viewer.open(id)` here would race that and build a **second** top-level
+ * canvas; when that stray canvas finishes loading, `TileCanvas._fadeIn` fades
+ * out every other canvas, including the gallery parent — which then counts as
+ * hidden, stops stepping its children, and leaves every awaited
+ * `SwipeGallery.animateTo` promise pending forever.
+ *
+ * The gate is the parent image rather than the controller: the album API
+ * (`$current.album`) — or the grid controller for a `grid` album, which never
+ * renders `<micrio-gallery>` and so never gets an album API — only exists once
+ * that parent is current.
  *
  * The archive stub is deliberately **not** removed here: `#print` is
  * fire-and-forget, so an album can still be resolving when the test moves on.
@@ -191,11 +197,10 @@ export async function awaitAlbum(
 	mounted: MountedAlbum,
 	opts: { gate?: 'album' | 'grid' | 'gallery'; timeout?: number } = {},
 ): Promise<OpenAlbum> {
-	const { viewer, fixture, mountId } = mounted
+	const { viewer, fixture } = mounted
 	const gate = opts.gate ?? 'album'
 	const timeout = opts.timeout ?? 6000
 
-	await viewer.open(mountId)
 	try {
 		await waitFor(() => Boolean(viewer.el.gallery), timeout, 'the album controller')
 		if (gate === 'album') {
@@ -221,15 +226,17 @@ export async function awaitAlbum(
 }
 
 /**
- * Opens an album that is expected **not** to produce one (a broken archive, a
- * missing index, an album with no archive) and returns the degraded viewer, so
+ * Waits for an album that is expected **not** to produce one (a broken archive,
+ * a missing index, an album with no archive) and returns the degraded viewer, so
  * the test can assert the fallback and still destroy the element.
  */
-export async function awaitNoAlbum(mounted: MountedAlbum, timeout = 3000): Promise<MountedAlbum> {
+export async function awaitNoAlbum(mounted: MountedAlbum, timeout = 4000): Promise<MountedAlbum> {
 	const { viewer, mountId } = mounted
-	await viewer.open(mountId)
+	// `#print` still runs, but its album attempt fails and it opens the single
+	// image instead
+	await waitFor(() => viewer.el.$current?.id === mountId, timeout, 'the single image')
 	await waitFor(() => !get(viewer.el._loading), timeout, 'loading to finish').catch(() => {})
-	await settle(3)
+	await settle(2)
 	return mounted
 }
 
