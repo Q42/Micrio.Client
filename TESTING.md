@@ -369,9 +369,30 @@ attribute — an album fixture has to mount by the id and leave the element unsi
 **`album.goto(n)` takes an _image_ index, not a page.** `#imageIdxToPage` maps it to the page
 that contains it; the gallery's own `#goto` is the one that clamps a page.
 
-**`fetchJson` caches by URI in a module-level `jsonCache`.** Two manifest tests that reuse the
-same URL get the first test's response; every IIIF fixture needs its own URL (the same reason
-`DataLoader` fixtures need fresh ids).
+**`fetchJson` caches by URI in a module-level `jsonCache`.** Two manifest or `info.json` tests
+that reuse the same URL get the first test's response; every IIIF fixture needs its own URL (the
+same reason `DataLoader` fixtures need fresh ids).
+
+**A IIIF manifest only works when each canvas body carries an Image API `service`.** The client
+reads `body.service[0].id` plus numeric `body.width`/`height` and ignores the body's own
+representation URI, so a service-less body — the shape of the cookbook's minimal single-image
+example, `recipe/0001-mvm-image` — counts as no canvas at all. A manifest with zero usable
+canvases throws `NO_CANVASES` _before_ the single-canvas fallback, so it renders `micrio-error`
+rather than the image. Presentation 4's manifest-level `services` **expansion** is deliberately
+unread: the v4 spec still requires `service` on the body, and every v4 example uses it.
+
+**Presentation 2 is rejected on purpose; anything else that is not `type: 'Manifest'` falls
+through to the single-image path.** `_fromIIIF` throws `IIIF_V2_UNSUPPORTED` on `@type:
+'sc:Manifest'` or on any `sequences` property. That is why an Image API 2.1 `info.json` (which
+has an `@id` but no manifest markers) still opens as one image.
+
+**A IIIF tile's file extension comes from `isWebP`/`preferredFormats` only.** `_getTileSrc`
+never reads `isPng`, and the single-image/`info.json` path does not read the body `format`
+either — a webp or png single-canvas manifest still asks for `.jpg` unless its service declares
+`preferredFormats` (`jpg` is a required Image API format, so the request is still valid). The
+`tiles` array from an `info.json` is stored on the info but never read, and `tileSize` is never
+derived from it: IIIF requests always use 1024px regions (`DEFAULT_TILE_SIZE`) rather than the
+publisher's declared tile grid.
 
 **The stylesheet imports are stubbed in tests, so a component has no box.** `vitest.config.ts`
 replaces every `.css` import with an empty module, so the scrubber's `getBoundingClientRect`
@@ -423,7 +444,8 @@ wiring any of them up has to change a test rather than pass silently.
 | Swipe album and strip navigation                   | `tests/browser/gallery/gallery-swipe`                                            | done   |
 | Gallery scrubber (pointer and touch)               | `tests/browser/gallery/gallery-scrubber`                                         | done   |
 | Switch album layout and navigation                 | `tests/browser/gallery/gallery-switch`                                           | done   |
-| IIIF manifest albums                               | `tests/browser/gallery/gallery-iiif`                                             | done   |
+| IIIF (Presentation 2/3/4) and Image API info.json  | `tests/browser/gallery/gallery-iiif`                                             | done   |
+| Live IIIF manifests and their Image API tiles      | `tests/browser/live/iiif`                                                        | opt-in |
 | Asset galleries (`micrio-swipe-gallery`)           | `tests/browser/gallery/gallery-assets`                                           | done   |
 | Album bundle without a gallery controller          | `tests/browser/gallery/gallery`                                                  | done   |
 | Omni rotation, layers, dial and swipe              | `tests/browser/gallery/omni-viewer`                                              | done   |
