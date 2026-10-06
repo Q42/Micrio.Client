@@ -527,13 +527,14 @@ describe('HTML video edge cases', () => {
 		expect(containerOf(el)?.classList.contains('hide-when-paused')).toBe(true)
 	})
 
-	it('KNOWN GAP: destroying an HTML video embed never pauses it', () => {
+	it('stops the HTML video when the embed is destroyed', () => {
 		const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
 		const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause')
 		const { el } = mountRaw(videoEmbed({}, { controls: true, autoplay: true }))
 		expect(play).toHaveBeenCalled()
+		pause.mockClear()
 		el.remove()
-		// _onDestroy clears timers and the registry entry but never touches #videoEl.
-		expect(pause).not.toHaveBeenCalled()
+		// A detached media element would otherwise keep decoding and playing.
+		expect(pause).toHaveBeenCalled()
 	})
 })

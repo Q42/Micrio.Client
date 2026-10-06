@@ -654,6 +654,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	_onDestroy() {
 		clearTimeout(this.#loopDelayTo)
 		clearTimeout(this.#book3dPrintTo)
+		// Stop an HTML <video> (the GL path is stopped by #glVideo._unmount below):
+		// a detached media element otherwise keeps decoding and playing, and the
+		// registry entry is dropped further down.
+		this.#videoEl?.pause()
 		this.#glVideo?._unmount()
 
 		const { embed, image } = this.#props
