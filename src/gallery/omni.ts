@@ -1,10 +1,10 @@
 import type { HTMLMicrioElement } from '$core/element'
 import type { MicrioImage } from '$core/image'
+import type { Models } from '$types/models'
 import type { Omni } from '$types/models/omni'
 import { MicrioElement } from '$core/component'
 import type { Engine } from '$render/engine'
 import { easeInOut } from '$render/easing'
-import { DataLoader } from '$utils/dataLoader'
 import { archive } from '$utils/archive'
 import { createElement } from '$utils/dom'
 import { icons } from '$ui/icons'
@@ -68,11 +68,6 @@ export class OmniUI {
 		const image = this.#image
 		const parent = this.#parent
 
-		const bundle = DataLoader._getBundleImageSync(image.id)
-		if (!bundle) {
-			return
-		}
-
 		const settings = image.$settings
 		const { omni } = settings
 		if (!omni) {
@@ -85,6 +80,12 @@ export class OmniUI {
 		const totalFrames = omni.frames
 		const numLayers = omni.layers?.length ?? 1
 		const pagesPerLayer = totalFrames / numLayers
+		// `startIndex` is an absolute frame; wrap it into the layer the way `#goto` does
+		let startIdx = omni.startIndex ?? 0
+		while (startIdx < 0) {
+			startIdx += pagesPerLayer
+		}
+		startIdx %= pagesPerLayer
 
 		if (!image._placed) {
 			return
@@ -106,17 +107,15 @@ export class OmniUI {
 			frames.push(frame)
 		}
 
-		if (bundle.settings?.omni && Number.parseFloat(bundle.info.version) >= 5) {
+		if (Number.parseFloat(info.version) >= 5) {
 			await archive
-				.load(
-					bundle.info.tileBasePath || bundle.info.path,
-					`${bundle.info.tilesId ?? bundle.info.id}/base`,
-					(p: number) => micrio._ui?._setProps?.({ loadingProgress: p }),
+				.load(info.tileBasePath || info.path, `${info.tilesId ?? info.id}/base`, (p: number) =>
+					micrio._ui?._setProps?.({ loadingProgress: p }),
 				)
 				.catch(() => {})
 		}
 
-		image.canvas?._setActiveImage(0, 0)
+		image.canvas?._setActiveImage(startIdx, 0)
 		engine.render()
 
 		const hasArchive = Boolean(image.$settings.gallery?.archive)
@@ -136,19 +135,25 @@ export class OmniUI {
 			)
 		}
 
-		const dial = createElement('micrio-dial', {
-			parent,
-			setProps: {
-				currentRotation: 0,
-				frames: pagesPerLayer,
-				degrees: true,
-				onturn: (frame: number) => {
-					this.goto(Math.round(frame) % pagesPerLayer)
+		// `noDial` hides the only rotation control, so everything else (the swipe
+		// gesture, the frame strip and the layer menu) has to work without it
+		let dial: MicrioElement | undefined
+		if (!omni.noDial) {
+			const el = createElement('micrio-dial', {
+				parent,
+				setProps: {
+					currentRotation: (startIdx / pagesPerLayer) * 360,
+					frames: pagesPerLayer,
+					degrees: true,
+					onturn: (frame: number) => {
+						this.goto(Math.round(frame) % pagesPerLayer)
+					},
 				},
-			},
-		})
-		if (!(dial instanceof MicrioElement)) {
-			return
+			})
+			if (!(el instanceof MicrioElement)) {
+				return
+			}
+			dial = el
 		}
 
 		this.#swiperLength = pagesPerLayer
@@ -160,18 +165,20 @@ export class OmniUI {
 			}
 			idx %= pagesPerLayer
 			image.canvas?._setActiveImage(idx, 0)
-			dial._setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 })
+			dial?._setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 })
 			preload(idx)
 			engine.render()
 		}
 
 		this.#initSwiper()
 		image.omni = this
-		preload(0)
+		preload(startIdx)
 
 		this.#cleanups.push(
-			image.state.layer.subscribe((idx: number) => {
-				dial._setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 })
+			image.state.layer.subscribe(() => {
+				// The dial shows the *frame* within the layer, so a layer change must
+				// re-sync it from the active frame — not from the layer index
+				dial?._setProps?.({ currentRotation: (this.currentIndex / pagesPerLayer) * 360 })
 			}),
 		)
 
@@ -260,15 +267,18 @@ export class OmniUI {
 
 		this.#micrio.dataset.hooked = ''
 
-		this.#cleanups.push(
-			this.#image.state.view.subscribe((v) => {
-				if (this.#swiperOpts.coverLimit) {
-					this.#isFullWidth = this.#image.camera.isZoomedOut()
-				} else {
-					this.#isFullWidth = v ? Math.round(v[3] * 1000) / 1000 >= 1 : true
-				}
-			}),
-		)
+		// The subscription only fires on *change*, so the flag has to be seeded from
+		// the current view too — otherwise the first single-pointer drag is inert
+		// until the camera view happens to change.
+		const syncFullWidth = (v: Models.Camera.View | undefined): void => {
+			if (this.#swiperOpts.coverLimit) {
+				this.#isFullWidth = this.#image.camera.isZoomedOut()
+			} else {
+				this.#isFullWidth = v ? Math.round(v[3] * 1000) / 1000 >= 1 : true
+			}
+		}
+		syncFullWidth(this.#image.state.$view)
+		this.#cleanups.push(this.#image.state.view.subscribe(syncFullWidth))
 
 		micrio._engine._noPinchPan = true
 		micrio._engine._isSwipe = true
@@ -318,26 +328,26 @@ export class OmniUI {
 	}
 
 	#dMove = (e: PointerEvent): void => {
-		if (
-			!this.#isDragging() ||
-			e.pointerId !== this.#firstTouchId ||
-			this.#startX === undefined ||
-			this.#startIndex === undefined
-		) {
+		// The gesture origin, refreshed only when a pinch turns into a swipe (below).
+		let origin = this.#startX
+		if (!this.#isDragging() || e.pointerId !== this.#firstTouchId || origin === undefined || this.#startIndex === undefined) {
 			return
 		}
 
-		if (
-			!this.#hitTresh &&
-			this.#startX !== undefined &&
-			(this.#hitTresh =
-				this.#pointers.size !== 2
-					? true
-					: Math.abs(e.clientX - this.#startX) >
-						(this.#micrio.events._pinchFactor && this.#micrio.events._pinchFactor > 1.25 ? 0.3 : 0.15) *
-							this.#micrio.offsetWidth)
-		) {
-			this.#startX = e.clientX
+		if (!this.#hitTresh) {
+			if (this.#pointers.size !== 2) {
+				// A single pointer is always a swipe: keep the origin at the
+				// pointerdown so the first move already turns the object
+				this.#hitTresh = true
+			} else if (
+				Math.abs(e.clientX - origin) >
+				(this.#micrio.events._pinchFactor && this.#micrio.events._pinchFactor > 1.25 ? 0.3 : 0.15) *
+					this.#micrio.offsetWidth
+			) {
+				// A pinch that turns into a swipe is measured from where it crossed
+				this.#hitTresh = true
+				this.#startX = origin = e.clientX
+			}
 		}
 		if (!this.#hitTresh) {
 			return
@@ -352,7 +362,7 @@ export class OmniUI {
 			? 1
 			: Math.max(0.1, (camera.getXY(1, 0.5)[0] - camera.getXY(0, 0.5)[0]) / this.#micrio.offsetWidth)
 		const delta = Math.round(
-			((e.clientX - this.#startX) / (this.#micrio.offsetWidth * scale)) *
+			((e.clientX - origin) / (this.#micrio.offsetWidth * scale)) *
 				this.#swiperLength *
 				(this.#swiperOpts.sensitivity ?? 1),
 		)

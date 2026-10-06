@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { get } from '$core/store'
-import { restoreArchiveXhr } from '../../fixtures/grid'
+import { archive } from '$utils/archive'
+import { restoreArchiveXhr, stubArchiveXhr } from '../../fixtures/grid'
 import { destroyOmni, omniFixture, openOmni } from '../../fixtures/omni'
 import type { OpenOmni } from '../../fixtures/omni'
 import type { Viewer } from '../../helpers/viewer'
-import { mountViewer } from '../../helpers/viewer'
+import { mountViewer, waitFor } from '../../helpers/viewer'
 import { settle } from '../../helpers/tour'
 
 /**
@@ -28,7 +29,14 @@ function stubCapture(viewer: Viewer): void {
 	viewer.el.releasePointerCapture = () => {}
 }
 
-/** Gives the dial a measurable width, so its rotation offset is observable. */
+/**
+ * Gives the dial a measurable width, so its rotation offset is observable, and
+ * re-applies its props.
+ *
+ * The dial writes its offset from `offsetWidth`, and `createElement` sets props
+ * *before* appending the element — so its initial rotation is only written once
+ * it is connected and has a width.
+ */
 function sizeDial(omni: OpenOmni, width = 200): HTMLElement {
 	const { dial } = omni
 	if (!dial) {
@@ -36,6 +44,7 @@ function sizeDial(omni: OpenOmni, width = 200): HTMLElement {
 	}
 	dial.style.display = 'block'
 	dial.style.width = `${width}px`
+	;(dial as unknown as { _setProps?: (props: object) => void })._setProps?.({})
 	return dial
 }
 
@@ -88,18 +97,23 @@ describe('omni — setup', () => {
 		expect(omni.image.omni).toBe(omni.omni)
 	})
 
-	it('does not set up omni when the bundle was opened as an object', async () => {
-		// `setup` reads the bundle back out of the fetch cache, which the object path
-		// never fills — so `open(bundle)` shows the first frame and no omni UI at all
+	it('sets up omni from a bundle opened as an object', async () => {
+		// `setup` reads the image (info + settings) itself, so the object path works
+		// too — the archive load it awaits still needs the XHR stub
 		const fixture = omniFixture({ frames: 12 })
+		archive.db.clear()
+		stubArchiveXhr(fixture.mdp)
 		const viewer = mountViewer()
 		extraViewers.push(viewer)
 		await viewer.open(fixture.image)
-		await settle(3)
 
-		expect(viewer.el.$current?._isOmni).toBe(true)
-		expect(viewer.el.$current?.omni).toBeUndefined()
-		expect(viewer.el.querySelector('micrio-dial')).toBeNull()
+		const image = viewer.el.$current
+		await waitFor(() => image?.omni !== undefined, 6000, 'the omni UI')
+		expect(image?.canvas?.images).toHaveLength(12)
+		expect(viewer.el.querySelector('micrio-dial')).not.toBeNull()
+
+		image?.omni?.goto(3)
+		expect(image?.canvas?._activeImageIdx).toBe(3)
 	})
 })
 
@@ -124,10 +138,7 @@ describe('omni — rotation', () => {
 		expect(omni.omni.currentIndex).toBe(0)
 	})
 
-	it('turns with a shift-drag on the canvas', async () => {
-		// A single pointer only drives the omni while the object is fully zoomed out
-		// (`#isFullWidth`, which a *change* of `state.view` sets) or while shift is
-		// held — so shift is the deterministic path here
+	it('turns on the first move of a shift-drag', async () => {
 		const omni = await openOmni({ frames: 36 })
 		stubCapture(omni.viewer)
 		const canvas = omni.viewer.el.canvas.element
@@ -143,19 +154,34 @@ describe('omni — rotation', () => {
 			}),
 		)
 		expect(omni.viewer.el.dataset.panning).toBe('')
-		// The move that crosses the threshold re-arms the gesture (it resets
-		// `#startX` to its own clientX), so the delta is only computed from the
-		// *next* move on
+
+		// A single pointer keeps its pointerdown origin, so the threshold-crossing
+		// move already computes a real delta
 		omni.viewer.el.dispatchEvent(
 			new PointerEvent('pointermove', { pointerId: 3, clientX: 200, clientY: 300, shiftKey: true, bubbles: true }),
 		)
-		expect(omni.omni.currentIndex).toBe(0)
+		expect(omni.omni.currentIndex).not.toBe(0)
+
+		omni.viewer.el.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3, clientX: 200, bubbles: true }))
+		expect(omni.viewer.el.dataset.panning).toBeUndefined()
+	})
+
+	it('turns with a plain drag once the object is fully visible', async () => {
+		// `#isFullWidth` is seeded from the current view, so a drag without shift
+		// works from the start instead of waiting for the view to change
+		const omni = await openOmni({ frames: 36 })
+		stubCapture(omni.viewer)
+		const canvas = omni.viewer.el.canvas.element
+
+		canvas.dispatchEvent(
+			new PointerEvent('pointerdown', { pointerId: 5, clientX: 400, clientY: 300, button: 0, bubbles: true }),
+		)
 		omni.viewer.el.dispatchEvent(
-			new PointerEvent('pointermove', { pointerId: 3, clientX: 50, clientY: 300, shiftKey: true, bubbles: true }),
+			new PointerEvent('pointermove', { pointerId: 5, clientX: 100, clientY: 300, bubbles: true }),
 		)
 		expect(omni.omni.currentIndex).not.toBe(0)
 
-		omni.viewer.el.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3, clientX: 50, bubbles: true }))
+		omni.viewer.el.dispatchEvent(new PointerEvent('pointerup', { pointerId: 5, clientX: 100, bubbles: true }))
 		expect(omni.viewer.el.dataset.panning).toBeUndefined()
 	})
 
@@ -210,20 +236,53 @@ describe('omni — layers', () => {
 		expect(menu()?.children?.map((p) => p.id)).toEqual(['omni-layer-1'])
 	})
 
-	it('drives the canvas layer and the dial from the layer store', async () => {
+	it('keeps the dial on the frame when the layer changes', async () => {
 		const omni = await openOmni({ frames: 36, layers: 2 })
 		const dial = sizeDial(omni, 180)
 
+		omni.omni.goto(9)
+		expect(dialOffset(dial)).toBeCloseTo(-90, 3)
+
+		// A layer change must not re-rotate the dial from the layer index: the frame
+		// within the layer is unchanged
 		omni.image.state.layer.set(1)
 		expect(omni.image.canvas?.layer).toBe(1)
-		// Pinned as-is: the layer subscription feeds the *layer index* into the
-		// frame-based dial rotation, so layer 1 of 2 reads as 1/18 of a turn
-		// (20deg), not the half turn the layer names
-		expect(dialOffset(dial)).toBeCloseTo(-10, 3)
+		expect(dialOffset(dial)).toBeCloseTo(-90, 3)
 
 		omni.image.state.layer.set(0)
 		expect(omni.image.canvas?.layer).toBe(0)
-		expect(dialOffset(dial)).toBeCloseTo(0, 3)
+		expect(dialOffset(dial)).toBeCloseTo(-90, 3)
+	})
+
+	it('starts on the omni startIndex', async () => {
+		const omni = await openOmni({ frames: 36, omni: { startIndex: 9 } })
+		const dial = sizeDial(omni)
+		expect(omni.omni.currentIndex).toBe(9)
+		expect(omni.image.canvas?._activeImageIdx).toBe(9)
+		expect(dialOffset(dial)).toBeCloseTo(-50, 3)
+
+		// Out-of-range values wrap like `goto` does
+		const wrapped = await openOmni({ frames: 36, omni: { startIndex: -1 } })
+		expect(wrapped.omni.currentIndex).toBe(35)
+	})
+
+	it('hides the dial with noDial but keeps the object rotatable', async () => {
+		const omni = await openOmni({ frames: 36, omni: { noDial: true } })
+		expect(omni.viewer.el.querySelector('micrio-dial')).toBeNull()
+		expect(omni.image.omni).toBe(omni.omni)
+
+		// `goto` and the swipe gesture still work without the dial
+		omni.omni.goto(3)
+		expect(omni.image.canvas?._activeImageIdx).toBe(3)
+
+		stubCapture(omni.viewer)
+		omni.viewer.el.canvas.element.dispatchEvent(
+			new PointerEvent('pointerdown', { pointerId: 4, clientX: 400, clientY: 300, button: 0, shiftKey: true, bubbles: true }),
+		)
+		omni.viewer.el.dispatchEvent(
+			new PointerEvent('pointermove', { pointerId: 4, clientX: 100, clientY: 300, shiftKey: true, bubbles: true }),
+		)
+		expect(omni.omni.currentIndex).not.toBe(3)
 	})
 
 	it('adds no layer menu for a single-layer object', async () => {
@@ -232,12 +291,12 @@ describe('omni — layers', () => {
 	})
 
 	it('pins the omni settings that are not wired up yet', async () => {
-		// `noDial`, `noKeys`, `showDegrees`, `frontIndex`, `twoAxes` and the omni
-		// `startIndex` are read nowhere, so they change nothing observable: the dial
-		// is still built and frame 0 is still active
+		// `showDegrees`, `frontIndex`, `noKeys` and `twoAxes` are read nowhere, so
+		// they change nothing observable: the dial is still built and frame 0 is
+		// still active
 		const omni = await openOmni({
 			frames: 36,
-			omni: { noDial: true, noKeys: true, showDegrees: true, frontIndex: 5, twoAxes: true, startIndex: 7 },
+			omni: { noKeys: true, showDegrees: true, frontIndex: 5, twoAxes: true },
 		})
 		expect(omni.dial).not.toBeNull()
 		expect(omni.omni.currentIndex).toBe(0)
