@@ -27,7 +27,7 @@ describe('book3d (smoke only)', () => {
 
 		const viewer = mountViewer()
 		await viewer.open('book001')
-		await waitFor(() => get(viewer.el._loading) === false, 6000, 'loading to finish')
+		await waitFor(() => !get(viewer.el._loading), 6000, 'loading to finish')
 
 		// The element survives and still reports a current image with its data
 		expect(viewer.el.$current?.id).toBe('book001')

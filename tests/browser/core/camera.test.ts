@@ -9,7 +9,7 @@ const ELEMENT_HEIGHT = 600
 
 async function waitForLoaded(viewer: ReturnType<typeof mountViewer>, id: string) {
 	await waitFor(() => viewer.el.$current?.id === id, 4000, `current image ${id}`)
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 }
 
 /** The camera only reports real values once the engine has laid the image out. */

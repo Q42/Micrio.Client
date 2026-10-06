@@ -24,7 +24,7 @@ async function openSettings(settings: Record<string, unknown>, is360 = true) {
 	})
 	const viewer = mountViewer()
 	await viewer.open(id)
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 	const image = viewer.el.$current
 	if (!image) {
 		throw new Error('no current image')
@@ -138,7 +138,7 @@ describe('space data overrides trueNorth', () => {
 
 		const viewer = mountViewer()
 		await viewer.open(first.id)
-		await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+		await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 		expect(viewer.el.$current?.camera.rotationY).toBeCloseTo(Math.PI / 2, 8)
 		viewer.destroy()
 	})
@@ -158,7 +158,7 @@ describe('space data overrides trueNorth', () => {
 
 		const viewer = mountViewer()
 		await viewer.open(firstId)
-		await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+		await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 		expect(viewer.el.$current?.camera.rotationY).toBeCloseTo(Math.PI / 2, 8)
 		viewer.destroy()
 	})

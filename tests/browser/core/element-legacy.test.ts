@@ -6,7 +6,7 @@ import { legacyBundle, modernBundle } from '../../fixtures/bundles'
 
 async function waitForLoaded(viewer: ReturnType<typeof mountViewer>) {
 	await waitFor(() => viewer.el.$current !== undefined, 4000, 'current image')
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 }
 
 /** The pre-v5 bundle shape: culture data lives at the top level, not in `i18n`. */

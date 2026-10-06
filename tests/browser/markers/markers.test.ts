@@ -6,7 +6,7 @@ import { modernBundle } from '../../fixtures/bundles'
 async function openWithMarkers() {
 	const viewer = mountViewer()
 	await viewer.open(modernBundle())
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 	// Markers are placed a frame after the image reports loaded
 	await waitFor(() => viewer.el.querySelectorAll('micrio-marker').length > 0, 4000, 'marker elements')
 	return viewer

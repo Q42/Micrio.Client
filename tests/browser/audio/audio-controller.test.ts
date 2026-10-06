@@ -79,7 +79,7 @@ async function mountAudio(bundle: Models.ImageBundle.BundleImage): Promise<Viewe
 	mockJson(/bundle\.json/, { images: [bundle] })
 	const viewer = mountViewer()
 	await viewer.open(bundle.id)
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 	await waitFor(() => viewer.el.$current?.$data !== undefined, 4000, 'image data')
 	if (bundle.data?.music) {
 		await waitFor(() => (viewer.el.$current?.$data?.music?.items.length ?? 0) > 0, 4000, 'music data')

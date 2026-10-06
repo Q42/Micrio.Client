@@ -357,7 +357,7 @@ export async function openUi(
 	}
 	const viewer = mountViewer(attrs, opts.style)
 	await viewer.open(bundle.bundle)
-	await waitFor(() => get(viewer.el._loading) === false, 8000, 'the image to load')
+	await waitFor(() => !get(viewer.el._loading), 8000, 'the image to load')
 	// The toolbar and its menus render from the image data, so wait until it is present
 	await waitFor(() => viewer.el.$current?.$data !== undefined, 8000, 'the image data')
 	return { viewer, id: bundle.id, pages: bundle.pages, markerIds: bundle.markerIds }

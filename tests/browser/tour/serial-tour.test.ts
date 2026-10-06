@@ -77,7 +77,7 @@ describe('serial tour steps across images', () => {
 		const viewer = mountViewer()
 		await viewer.open(ids[0])
 		await waitFor(() => viewer.el.$current?.id === ids[0], 4000, 'first image')
-		await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+		await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 
 		const tour = crossImageMarkerTour(ids[0], ids[1])
 		tour.isSerialTour = true

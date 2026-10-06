@@ -117,7 +117,7 @@ export async function openSpace(
 	const id = ids[index] ?? ''
 	await viewer.open(id)
 	await waitFor(() => viewer.el.$current?.id === id, 4000, `current image ${id}`)
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 
 	const space = spaces[0]
 	if (!space) {

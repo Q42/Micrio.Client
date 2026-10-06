@@ -20,7 +20,7 @@ export async function mountTour(
 	await viewer.open(bundle)
 	const { id } = bundle
 	await waitFor(() => viewer.el.$current?.id === id, 4000, `current image ${id}`)
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 	return {
 		...viewer,
 		tourEl: () => viewer.el.querySelector('micrio-tour, micrio-serial-tour'),

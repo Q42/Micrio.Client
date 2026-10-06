@@ -17,7 +17,7 @@ describe('360 spaces', () => {
 		mockJson(/bundle\.json/, { images, spaces })
 		const viewer = mountViewer('', 'width: 512px; height: 256px; display: block;')
 		await viewer.open(images[0]?.id ?? '')
-		await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+		await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 		// A one-image space is not navigable and is discarded
 		expect(viewer.el.spaceData).toBeUndefined()
 		viewer.destroy()

@@ -18,7 +18,7 @@ import { tourBundle, videoTour } from '../../fixtures/tours'
 async function mountWithBundle(tour: Models.ImageData.VideoTour, settings: Partial<Models.ImageInfo.Settings> = {}) {
 	const viewer = mountViewer()
 	await viewer.open(tourBundle({ tours: [tour], settings }))
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 	const image = viewer.el.$current
 	if (!image) {
 		throw new Error('no current image')

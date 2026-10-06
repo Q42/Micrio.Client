@@ -12,7 +12,7 @@ describe('live CDN smoke', () => {
 		const viewer = mountViewer()
 		await viewer.open('rqFkjZz')
 		await waitFor(() => viewer.el.$current?.id === 'rqFkjZz', 15000, 'image to open')
-		await waitFor(() => get(viewer.el._loading) === false, 20000, 'tiles to load')
+		await waitFor(() => !get(viewer.el._loading), 20000, 'tiles to load')
 		expect(viewer.el.$current?.$info.width).toBeGreaterThan(0)
 		viewer.destroy()
 	})

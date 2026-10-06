@@ -4,7 +4,7 @@ import { mountViewer, waitFor } from '../../helpers/viewer'
 
 /** Waits for the error UI to be printed (the error message renders a frame later). */
 async function waitForError(viewer: ReturnType<typeof mountViewer>) {
-	await waitFor(() => get(viewer.el._loading) === false, 4000, 'loading to finish')
+	await waitFor(() => !get(viewer.el._loading), 4000, 'loading to finish')
 	await waitFor(() => viewer.el.querySelector('micrio-error') !== null, 4000, 'error element')
 }
 
