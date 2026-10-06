@@ -211,6 +211,14 @@ describe('HTML content', () => {
 		const { el } = mountRaw(imageEmbed({ opacity: 0.5 }))
 		expect(cssVar(el, '--opacity')).toBe('0.5')
 	})
+
+	it('falls back to the area width for a video with malformed dimensions', () => {
+		const { el } = mountRaw(videoEmbed({}, { controls: true, width: 0, height: 0 }))
+		const video = el.querySelector('video')
+		// A zero dimension would otherwise make both the cap and the aspect NaN.
+		expect(video?.getAttribute('width')).toBe('128')
+		expect(Number.isFinite(Number(video?.getAttribute('height')))).toBe(true)
+	})
 })
 
 describe('WebGL render decision', () => {
@@ -465,7 +473,7 @@ describe('change event', () => {
 		expect(setProperty).not.toHaveBeenCalled()
 	})
 
-	it('KNOWN GAP: a change event moves the overlay but never resizes the content it wraps', () => {
+	it('resizes and repositions the content it wraps', () => {
 		const image = fakeImage()
 		image.state.view.set([0, 0, 1, 1])
 		image._viewport.set([0, 0, 800, 600])
@@ -473,10 +481,35 @@ describe('change event', () => {
 		const button = contentOf(el) as HTMLElement
 		expect(button.style.getPropertyValue('--scale')).toBe('1.28')
 		dispatchChange(el, { area: [0.5, 0.5, 0.5, 0.5] })
-		// The overlay follows the new centre...
+		// Both the overlay centre and the wrapped content follow the new area.
 		expect(cssVar(el, '--x')).toBe('600px')
-		// ...but #onChange recomputes #buttonStyle and never writes it to the child.
-		expect(button.style.getPropertyValue('--scale')).toBe('1.28')
+		expect(button.style.getPropertyValue('--scale')).toBe('2.56')
+	})
+
+	it('resizes an iframe embed', () => {
+		const { el } = mountRaw(frameEmbed())
+		const iframe = contentOf(el)
+		expect(iframe?.getAttribute('width')).toBe('128')
+		dispatchChange(el, { area: [0.5, 0.5, 0.5, 0.5] })
+		expect(iframe?.getAttribute('width')).toBe('256')
+		expect(iframe?.getAttribute('height')).toBe('256')
+	})
+
+	it('resizes an HTML video embed', () => {
+		const { el } = mountRaw(videoEmbed({}, { controls: true }))
+		const video = el.querySelector('video')
+		expect(video?.getAttribute('width')).toBe('128')
+		dispatchChange(el, { area: [0.5, 0.5, 0.5, 0.5] })
+		expect(video?.getAttribute('width')).toBe('256')
+		expect(video?.getAttribute('height')).toBe('144')
+	})
+
+	it('repositions a WebGL embed through its camera', () => {
+		const { el, image } = mountRaw(glEmbed({ uuid: 'u1' }))
+		const gl = image._embeds[0]
+		dispatchChange(el, { area: [0.5, 0.5, 0.2, 0.2], rotY: 0.5 })
+		expect(gl.camera.setArea).toHaveBeenCalledWith([0.5, 0.5, 0.2, 0.2])
+		expect(gl.camera.setRotation).toHaveBeenCalledWith(0, 0.5, 0)
 	})
 })
 
