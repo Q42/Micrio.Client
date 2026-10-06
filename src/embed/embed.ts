@@ -485,8 +485,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 					...embed,
 					id: embed.video ? embed.id : embed.micrioId,
 					title: embed.uuid,
-					path: this.#info.tileBasePath ?? this.#info.path,
-					isSingle: Boolean(embed.video),
+					// An embed may carry its own bucket/file target (other org,
+					// self-hosted, `external/…`); the parent is only the default.
+					path: embed.path ?? this.#info.tileBasePath ?? this.#info.path,
+					isSingle: Boolean(embed.video) || Boolean(embed.isSingle),
 					isVideo: Boolean(embed.video),
 				},
 				{

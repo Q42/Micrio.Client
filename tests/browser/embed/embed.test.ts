@@ -346,12 +346,11 @@ describe('WebGL placement', () => {
 		expect(get(image.state.marker)).toBe('m-2')
 	})
 
-	it('KNOWN GAP: the parent tile base path overrides the embed’s own path and isSingle', () => {
+	it('respects an embed-supplied tile path and isSingle flag', () => {
 		const { image } = mountRaw(glEmbed({ path: 'https://other.test/', isSingle: true }))
 		const [info] = image.addEmbed.mock.calls[0] as [Record<string, unknown>]
-		// `#printInsideGL` spreads the embed and then overwrites `path`/`isSingle`.
-		expect(info.path).toBe('https://r2.micr.io/')
-		expect(info.isSingle).toBe(false)
+		expect(info.path).toBe('https://other.test/')
+		expect(info.isSingle).toBe(true)
 	})
 
 	it('KNOWN GAP: rebuilding an embed leaks its WebGL sub-image', () => {
