@@ -78,6 +78,7 @@ tests/
     ├── book-helpers.ts      # the shared BookViewer harness (frame stepping, one GL context)
     ├── smoke.test.ts        # suite plumbing (the only test at the project root)
     ├── audio/  book/  core/  embed/  gallery/  grid/  layout/  markers/  media/
+    ├── core/events/         # the interaction layer: drag, wheel, pinch, gesture, keyboard
     ├── render/              # the engine: canvas, camera-2d, engine-360, tile-image, postprocess
     ├── space/               # the 360 suites: camera, minimap, spaces, transitions
     ├── tour/  ui/  utils/
@@ -341,6 +342,70 @@ with the marker/tour action dispatcher in `action-handlers.ts`.
   `data?.split(',').map(...)` has at least one element for _any_ string, including `''`
   (`grid-transitions.test.ts`, "a flyTo action with unknown ids is silently ignored").
 
+## The interaction layer (`src/core/events`)
+
+`src/core/events` is the input layer for the 2D/360 viewer: `facade.ts` (the `Events`
+controller) plus one module per input kind. The suites are
+`browser/core/events/{drag, wheel, pinch, pointer-pinch, gesture, keyboard, doubletap, contextmenu-copy, facade}`
+and the real-viewer `input-integration`.
+
+- **The handlers are tested against a hand-built `EventContext`, not a `<micr-io>`.** Every
+  handler only needs the `EventContext` interface (`shared.ts`), so `event-fixture.ts` builds
+  a real wrapper `<div>` (the `_micrio` role) containing a real `<canvas>` (`_el`), with
+  recording camera/engine/canvas fakes and the real `writable` stores. That keeps the suites
+  GL-free and lets each settings variation get a fresh `Events` instance (`#settings` is
+  captured once from the first truthy `current`).
+- **Dispatch on `_el`, never on `_micrio`.** The drag, wheel, pinch, pointer-pinch and
+  gesture handlers listen on `_micrio` but reject an event whose `target` is not `_el` (or a
+  `[data-scroll-through]` descendant), so a test that dispatches on the wrapper silently
+  tests the rejection path. The fixture nests the canvas for exactly this reason.
+- **`Browser` is a plain object of data properties**, so `stubBrowser({ iOS, OSX, firefox,
+hasTouch })` assigns and restores; no device is emulated. The iOS touch pinch and the macOS
+  gesture handlers are only attached under those flags, but their public `start`/`stop` are
+  also driven directly for the guard branches.
+- **Coordinates handed to the camera are element-relative CSS pixels, independent of the
+  device pixel ratio.** `wheel.test.ts` and the integration suite assert the same anchor at
+  ratio 1 and 2, and that a screen point round-trips through image coordinates at both. The
+  integration suite changes the ratio through the real `Canvas.onresize()` path, so the engine
+  viewport and buffer size move with it.
+- **The integration suite keeps one `<micr-io>` for the whole file** (WebGL budget), in a
+  container under `<html>` because `setup.ts` empties `<body>` before every test. It mounts
+  the viewer _before_ `open()`: reconnecting a loaded `<micr-io>` re-enters its load
+  subscription and throws (`element.ts`, pre-existing and out of scope).
+- `wheel.ts`'s `wheelend` debounce is driven with fake timers; everything else uses real
+  timers.
+
+Two things are deliberately left as unreachable/defensive rather than faked:
+
+1. `facade.ts`'s `if (!this.#visible)` guard: the store emits its initial value on subscribe,
+   so `#visible` is always an array by the time `_getImage` runs.
+2. `drag.ts`'s "second touch while already panning" branch needs a `TouchEvent` carrying a
+   `button` of 0 (a real pointer listener never sees one); the suite dispatches exactly that
+   shape and says so in the test.
+
+## Book input
+
+`src/book/input/input.ts` (`InputHandler`) is the book's pointer state machine: orbit vs pan,
+page drag vs page click, two-pointer pinch and the wheel hit point. The suite is
+`browser/book/input.test.ts`.
+
+- **No `BookViewer` and no WebGL.** The handler takes `(canvas, camera, onActivity)`
+  directly; the camera is a recording fake with `_pan`/`_rotate`/`_zoom`/`_isZoomedIn` and
+  `_freeCamMode`, and the canvas is a plain element with a stubbed
+  `getBoundingClientRect()` at a non-zero origin (so a coordinate-space bug shows up).
+- **The handler works in CSS pixels from the canvas element** (`clientX − rect.left`) while
+  the renderer's backing buffer is DPR-scaled. The retina cases scale `canvas.width/height` to
+  2× and assert the wheel point and drag deltas are unchanged.
+- The viewer-level wiring (a touch tap turns a page, a two-finger pinch zooms, a DPR-2 buffer
+  picks the same page) lives in `browser/book/viewer.test.ts`, using its shared frame-stepping
+  harness. Setting `devicePixelRatio` and dispatching `resize` is what runs the real
+  `PaperRenderer._resize()`.
+- `InputHandler` has no teardown, so each test builds one with unique pointer ids; the stale
+  global listeners see no matching pointer and no-op.
+
+Also note: `input.ts`'s `firstTwo` throw and `pinch-shared.ts`'s `if (!first) return` are
+unreachable (both callers guarantee two/one entries) and are left as defensive code.
+
 ## The markers subsystem
 
 `src/markers/` is a layer element plus three children, and the suites are named after them:
@@ -434,10 +499,10 @@ Baseline (stable to ±0.05 across runs):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 87.3     | 86    |
-| Branches   | 77.9     | 76    |
-| Functions  | 87.7     | 86    |
-| Lines      | 87.2     | 86    |
+| Statements | 89.8     | 88    |
+| Branches   | 81.4     | 80    |
+| Functions  | 89.9     | 88    |
+| Lines      | 89.7     | 88    |
 
 The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
 coverage loss fails the run while ordinary refactoring does not. They are deliberately
@@ -454,11 +519,13 @@ The suites above remain the source of truth for what is actually asserted.
 Statement coverage per area. These are the rows `vitest` itself prints: a row covers the
 files that sit **directly** in that directory, so `src/core` and `src/core/events` (and
 `src/layout` / `src/layout/nav`) are separate rows. A _subtree_ figure has to be read off the
-child rows — `src/core` is 80.6% for its own files, and 71.2% once `src/core/events` (49.5%)
-is folded in.
+child rows — `src/core` is 81.3% for its own files, and 87.1% once `src/core/events` (99.6%)
+and `src/core/i18n` are folded in.
 
 | Area            | Stmts | Covered   |
 | --------------- | ----- | --------- |
+| src/core/events | 99.6  | 485/487   |
+| src/book/input  | 99.3  | 146/147   |
 | src/utils       | 96.5  | 361/374   |
 | src/core/i18n   | 95.5  | 21/22     |
 | src/embed       | 93.4  | 342/366   |
@@ -466,20 +533,19 @@ is folded in.
 | src/ui          | 93.4  | 142/152   |
 | src/grid        | 90.3  | 616/682   |
 | src/gallery     | 90.2  | 899/997   |
+| src/render      | 88.4  | 2761/3124 |
 | src/audio       | 88.2  | 217/246   |
-| src/render      | 88.1  | 2753/3124 |
 | src/media       | 86.4  | 867/1003  |
-| src/layout      | 86.3  | 588/681   |
-| src/book        | 84.3  | 669/794   |
+| src/layout      | 86.0  | 586/681   |
+| src/book        | 84.8  | 673/794   |
 | src/layout/nav  | 82.5  | 260/315   |
-| src/core        | 80.6  | 860/1067  |
+| src/core        | 81.3  | 867/1067  |
 | src/tour        | 80.5  | 211/262   |
-| src/book/input  | 52.4  | 77/147    |
-| src/core/events | 49.5  | 241/487   |
 
-The thin spots, in order: **`src/core/events` (49.5%)** — the wheel, gesture, pinch,
-double-tap and context-menu layer — then `src/book/input` (52.4%) and `src/tour` (80.5%).
-They are the backlog, not the floor. To raise the floor, run `pnpm test:coverage`, move the
+The thin spots now start at **`src/tour` (80.5%)** — mostly `serial-tour.ts` — then
+`src/core` (81.3%, mostly `camera.ts` and `image.ts`) and `src/layout/nav` (82.5%). The
+interaction layer and book input that used to head this list are covered above. They are the
+backlog, not the floor. To raise the floor, run `pnpm test:coverage`, move the
 baseline to the new number, and keep the floors ~1 point under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
@@ -563,6 +629,9 @@ pays nothing for it.
 | Book renderer and IIIF texture manager              | `tests/browser/book/{renderer,iiif-manager}`                                     | done   |
 | `BookViewer` (flips, drags, zoom, draw bounds)      | `tests/browser/book/viewer`                                                      | done   |
 | book3d album path and the book fixture              | `tests/browser/gallery/book3d-album`                                             | done   |
+| Wheel, drag, pinch, gesture, keyboard, context menu | `tests/browser/core/events/*`                                                    | done   |
+| Real-viewer input end to end, and retina DPR        | `tests/browser/core/events/input-integration`                                    | done   |
+| Book input (pan/orbit/pinch/click/wheel, retina)    | `tests/browser/book/input`                                                       | done   |
 | UI translation tables                               | `tests/core/core/i18n/i18n-strings`                                              | done   |
 | Buttons, icons, progress circle, dial               | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done   |
 | Menu tree and its actions                           | `tests/browser/ui/ui-menu`                                                       | done   |
@@ -585,9 +654,11 @@ Roughly in order of value against risk:
    pins it (see [The embed subsystem](#the-embed-subsystem)).
 3. **The layer's grid `inactive` path** — the one marker branch with no suite; reaching it
    offline needs a hand-built visible cell (see [The markers subsystem](#the-markers-subsystem)).
-4. **`src/core/events`** — the interaction layer (wheel, gesture, pinch, double-tap, context
-   menu) sits around 49%, now the lowest area in the tree. It needs a synthetic pointer-event
-   harness; the grid tap tests in `browser/grid/grid-transitions` are the closest thing to one.
+4. **The input-layer anchor space** — `camera-2d.ts`'s `_zoom` subtracts the viewport's
+   `left`/`top` (so it expects client coordinates), `wheel.ts` pre-subtracts the host box, and
+   `doubletap.ts`/`gesture.ts` pass raw client coordinates. Away from the page origin these
+   cannot all be right. The interaction suites pin the current behaviour (the offset-host
+   wheel test and the `KNOWN GAP` double-tap test); deciding the canonical space is the fix.
 5. **`src/render/tile-image.ts`'s 360-embed branches** — `#getTilesViewport`,
    `#getEmbeddedScale` and `_setDrawRect` need a hand-built frustum fixture, and the
    archive/`fromScale` layer-count variants need a packed archive (see
