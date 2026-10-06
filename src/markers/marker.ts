@@ -380,11 +380,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const markerFromState = (m: Models.ImageData.Marker | string | undefined): Models.ImageData.Marker | undefined =>
 			typeof m === 'string' ? image.$data?.markers?.find((mm) => mm.id === m) : m
 
-		const close = () => {
+		const close = (keepPopup = false) => {
 			this.classList.remove('opened')
 			events._dispatch('marker-closed', marker)
 			micrio.state.popover.set(undefined)
-			micrio.state.popup.set(undefined)
+			if (!keepPopup) {
+				micrio.state.popup.set(undefined)
+			}
 		}
 
 		this._addCleanup(
@@ -408,7 +410,16 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 								}
 							}
 						}
-						close()
+						// A marker tour clears its previous step before opening the next one,
+						// so the popup is kept across that pair when the image asks for it.
+						// The next step is named by the incoming value, or — for the tour's
+						// own clear — by the step the tour has already moved on to.
+						const tourNow = get(micrio.state.tour)
+						const markerTour = tourNow && 'steps' in tourNow ? tourNow : undefined
+						const nextMarker = markerFromState(m)
+						const stepId = nextMarker ? nextMarker.id : markerTour?.steps?.[markerTour.currentStep ?? 0]
+						const isNextStep = Boolean(stepId && markerTour?.steps?.some((s) => s.startsWith(stepId)))
+						close(Boolean(markerSettings.keepPopupsDuringTourTransitions) && isNextStep)
 					} else if (m === undefined || m === '') {
 						this.classList.remove('opened')
 					}

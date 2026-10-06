@@ -208,6 +208,50 @@ describe('markers and tours', () => {
 		opened.viewer.destroy()
 	})
 
+	it('keeps the popup open between tour steps when the image asks for it', async () => {
+		const fixture = markerBundle({
+			markerTours: [markerTour({ id: 'mt-keep', steps: ['m1', 'm2'] })],
+			settings: { _markers: { keepPopupsDuringTourTransitions: true } },
+		})
+		const tour = fixture.markerTours[0]
+		if (!tour) {
+			throw new Error('no tour')
+		}
+		const opened = await openMarkers(fixture)
+		opened.viewer.el.state.tour.set(tour)
+		await waitForPopup(opened.viewer.el)
+
+		const popups: (string | undefined)[] = []
+		const unsub = opened.viewer.el.state.popup.subscribe((p) => popups.push(p?.id))
+		tour.next?.()
+		await waitFor(() => opened.image().state.$marker?.id === fixture.mid('m2'), 6000, 'the second step')
+		unsub()
+
+		// The old step's clear must not blank the popup on the way to the new step
+		expect(popups).not.toContain(undefined)
+		opened.viewer.destroy()
+	})
+
+	it('clears the popup between tour steps without the setting', async () => {
+		const fixture = markerBundle({ markerTours: [markerTour({ id: 'mt-clear', steps: ['m1', 'm2'] })] })
+		const tour = fixture.markerTours[0]
+		if (!tour) {
+			throw new Error('no tour')
+		}
+		const opened = await openMarkers(fixture)
+		opened.viewer.el.state.tour.set(tour)
+		await waitForPopup(opened.viewer.el)
+
+		const popups: (string | undefined)[] = []
+		const unsub = opened.viewer.el.state.popup.subscribe((p) => popups.push(p?.id))
+		tour.next?.()
+		await waitFor(() => opened.image().state.$marker?.id === fixture.mid('m2'), 6000, 'the second step')
+		unsub()
+
+		expect(popups).toContain(undefined)
+		opened.viewer.destroy()
+	})
+
 	it('keeps a marker’s own video tour when it reopens', async () => {
 		const video = videoTour({ id: 'vt-own' })
 		const fixture = markerBundle({ markers: [marker('m1', { popupType: 'none', videoTour: video })] })
