@@ -33,6 +33,10 @@ export function freshSpace(
 		links?: (ids: string[]) => SpaceLink[]
 		/** Per-image rotationY override, keyed by remapped id index. */
 		rotationY?: (index: number) => number
+		/** Marker data for the first image, for the marker suites' 360 cases. */
+		markers?: Models.ImageData.Marker[]
+		/** Settings merged into every image (e.g. `markersScale`). */
+		settings?: Partial<Models.ImageInfo.Settings>
 	} = {},
 ): FreshSpace {
 	const suffix = (++run).toString().padStart(3, '0')
@@ -65,6 +69,15 @@ export function freshSpace(
 		id: remap(waypoint.id),
 		rotationY: opts.rotationY ? opts.rotationY(index) : waypoint.rotationY,
 	}))
+
+	for (const image of images) {
+		if (opts.settings) {
+			image.settings = { ...image.settings, ...opts.settings }
+		}
+	}
+	if (opts.markers && images[0]) {
+		images[0].data = { ...images[0].data, markers: opts.markers }
+	}
 
 	if (opts.links) {
 		space.data.links = opts.links(ids)
@@ -106,11 +119,20 @@ export async function openSpace(
 	opts: {
 		links?: (ids: string[]) => SpaceLink[]
 		rotationY?: (i: number) => number
+		/** Marker data attached to the first image (the marker suites' 360 cases). */
+		markers?: Models.ImageData.Marker[]
+		/** Settings merged into every image (the marker suites' 360 cases). */
+		settings?: Partial<Models.ImageInfo.Settings>
 		style?: string
 		attrs?: Record<string, string>
 	} = {},
 ): Promise<OpenSpace> {
-	const { images, spaces, ids, spaceId } = freshSpace({ links: opts.links, rotationY: opts.rotationY })
+	const { images, spaces, ids, spaceId } = freshSpace({
+		links: opts.links,
+		rotationY: opts.rotationY,
+		markers: opts.markers,
+		settings: opts.settings,
+	})
 	mockJson(/bundle\.json/, { images, spaces })
 
 	const viewer = mountViewer(opts.attrs ?? {}, opts.style ?? 'width: 512px; height: 256px; display: block;')
