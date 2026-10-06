@@ -5,6 +5,12 @@ import { GRID_COLS, GRID_ROWS, buildIndexBuffer, computeVertexNormals } from '$b
 
 const TRIANGLES = (GRID_COLS - 1) * (GRID_ROWS - 1) * 2
 const CELLS = (GRID_COLS - 1) * (GRID_ROWS - 1)
+
+/** The texture coordinate stored for one grid vertex. */
+const texCoordAt = (mesh: PaperMesh, col: number, row: number): number[] => {
+	const i = (row * GRID_COLS + col) * 2
+	return [mesh._texCoords[i], mesh._texCoords[i + 1]]
+}
 /** both diagonals per cell + the horizontal and vertical grid edges */
 const EDGES = CELLS * 2 + GRID_COLS * (GRID_ROWS - 1) + GRID_ROWS * (GRID_COLS - 1)
 /** the unique boundary edges of the grid (corners shared between two sides) */
@@ -32,14 +38,10 @@ describe('PaperMesh — grid', () => {
 	})
 
 	it('carries the normalized grid as texture coordinates', () => {
-		const at = (col: number, row: number) => {
-			const i = (row * GRID_COLS + col) * 2
-			return [mesh._texCoords[i], mesh._texCoords[i + 1]]
-		}
-		expect(at(0, 0)).toEqual([0, 0])
-		expect(at(GRID_COLS - 1, 0)).toEqual([1, 0])
-		expect(at(0, GRID_ROWS - 1)).toEqual([0, 1])
-		expect(at(GRID_COLS - 1, GRID_ROWS - 1)).toEqual([1, 1])
+		expect(texCoordAt(mesh, 0, 0)).toEqual([0, 0])
+		expect(texCoordAt(mesh, GRID_COLS - 1, 0)).toEqual([1, 0])
+		expect(texCoordAt(mesh, 0, GRID_ROWS - 1)).toEqual([0, 1])
+		expect(texCoordAt(mesh, GRID_COLS - 1, GRID_ROWS - 1)).toEqual([1, 1])
 	})
 
 	it('builds two triangles per grid cell and a matching index buffer', () => {

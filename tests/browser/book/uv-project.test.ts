@@ -39,9 +39,9 @@ describe('uvToWorldPosition — a flat paper page', () => {
 	})
 
 	it('returns a unit normal that matches the mesh winding', () => {
-		const r = uvToWorldPosition(mesh, 0.3, 0.7, 0)
-		expect(r?._normal._y).toBeCloseTo(1, 6)
-		expect(Math.hypot(r?._normal._x, r?._normal._y, r?._normal._z)).toBeCloseTo(1, 6)
+		const normal = uvToWorldPosition(mesh, 0.3, 0.7, 0)?._normal
+		expect(normal?._y).toBeCloseTo(1, 6)
+		expect(Math.hypot(normal?._x ?? 0, normal?._y ?? 0, normal?._z ?? 0)).toBeCloseTo(1, 6)
 	})
 
 	it('rejects a coordinate outside [0, 1]', () => {
@@ -143,11 +143,14 @@ describe('uvToWorldPosition — texture regions', () => {
 describe('sampleMeshPosition', () => {
 	it('returns the same point as the full sample, without normals or tangents', () => {
 		const mesh = new PaperMesh(0.1, 1.5, 0.8)
-		for (const [u, v] of [
+		const samples: [number, number][] = [
 			[0, 0],
 			[0.33, 0.66],
 			[1, 1],
-		]) {
+		]
+		for (const sample of samples) {
+			const u = sample[0]
+			const v = sample[1]
 			const full = uvToWorldPosition(mesh, u, v, 0)
 			const point = sampleMeshPosition(mesh, u, v, 0)
 			expect(point?._x).toBeCloseTo(full?._point._x ?? 0, 6)
