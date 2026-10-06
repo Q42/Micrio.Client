@@ -212,7 +212,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 			events._dispatch('marker-open', marker)
 			const $tour = get(micrio.state.tour)
-			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) {
+			// Stop a running tour that is not about this marker — but never this
+			// marker's own video tour, which activating it again would otherwise
+			// cancel (a video tour carries no `steps` to match against).
+			if (
+				$tour &&
+				$tour !== marker.videoTour &&
+				(!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))
+			) {
 				micrio.state.tour.set(undefined)
 			}
 
@@ -315,9 +322,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined })
 				} else if (marker.videoTour && !$tour) {
 					micrio.state.tour.set(marker.videoTour)
-					const unsub = micrio.state.tour.subscribe((t) => {
+					// The store notifies synchronously on subscribe, and marking it can
+					// re-enter this path — so the unsubscriber must exist before the
+					// subscription does (a `const` would be in its temporal dead zone)
+					let unsub: (() => void) | undefined
+					unsub = micrio.state.tour.subscribe((t) => {
 						if (!t) {
-							unsub()
+							unsub?.()
 							image.state.marker.set(undefined)
 						}
 					})
