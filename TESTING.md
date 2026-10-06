@@ -297,24 +297,41 @@ focused drops its markers, waypoints and clickable areas). Grid cells never ente
 `micrio._visible` offline — `helpers/grid.ts` documents why — so no `<micrio-markers>` is
 ever mounted for them, and reaching it needs a hand-built fake.
 
-The suites pin five gaps, each with a test starting with `KNOWN GAP`:
+### Markers, settings and clustering
 
-1. **The cluster never shows its member count** — `markers.ts` sets it on the legacy
-   top-level `title`, which `marker.ts` does not read.
-2. **`no-cluster` is checked one-sidedly** — the pair loop only consults the _later_ member,
-   so the tag does nothing when it sits on the lower index.
-3. **A changed marker under the same id is never re-applied** — `rebuild` only creates
-   missing elements.
-4. **The popup control is never disabled** — `#clickedPrevNext` is read for `disabled` but
-   never assigned.
-5. **Switching markers rebuilds a split that points at the same image** — the state passes
-   through the marker _id string_ first, and the close path treats that intermediate value
-   as "no marker".
+The layer is the only part of the subsystem that reacts to the settings store
+(`_watchLater(image._settings, rebuild)`); element-level settings (`viewportIsMarker`,
+`preventAutoPlay`) are read when a marker is built or repositioned, i.e. at load time.
 
-Marker settings that are read **nowhere** in this client, so no suite can pin their
-behaviour (only their absence): `markerColor`, `markerSize`, `viewportIsMarker`,
-`embedsInHtml`, `hideMarkersDuringTour`, `keepPopupsDuringTourTransitions` and
-`tourStepCounterInPopup`.
+- **Clustering** groups pairs closer than `_markers.clusterMarkerRadius` (top-level
+  `clusterMarkerRadius`, default 24 px) in screen space. Either member of a pair can opt
+  out with the `no-cluster` tag, and a pair that bridges two existing groups merges them.
+  The synthetic `<micrio-marker class="cluster">` carries its member count as the button's
+  text and its `data-marker-id` is the joined member _indices_ (`"0,1"`). Turning
+  `clusterMarkers` off removes the clusters and restores the markers. An edited marker
+  (same id, new object) and its clickable area are re-rendered, since `rebuild` compares
+  the marker object each element was built from.
+- **`markerColor` / `markerSize`** are written as `--micrio-marker-color` /
+  `--micrio-marker-size` on the layer, so every marker (and cluster) inherits them;
+  `viewportIsMarker` overrides the size per marker.
+- **`viewportIsMarker`** places a marker that has a `view` at the view's centre and sizes
+  it to the smaller on-screen side of that view (min 8 px). Clustering still measures
+  member `x`/`y`, so a viewport-sized member's cluster centroid is its dot position, not
+  its view centre.
+- **`embedsInHtml`** forces the HTML render path for the embeds that carry a `marker`
+  (the clickable areas); the image's own embeds and `data-embeds-inside-gl` keep their
+  behaviour.
+- **Hiding during tours**: a running tour hides the layer unless the video tour sets
+  `keepMarkers`. Video tours hide by default; a marker tour hides only with
+  `hideMarkersDuringTour`, because its steps are usually the point of it. The layer stays
+  mounted, so a step's popup still opens.
+- **`keepPopupsDuringTourTransitions`** skips clearing `state.popup` when a marker tour
+  moves from one step to the next; every other close (last step, tour stopped, unrelated
+  marker) still clears it.
+- **`tourStepCounterInPopup`** renders `currentStep+1/steps.length` in the popup's own
+  aside (not in `tourControlsInPopup` mode, where the tour's aside already shows it). The
+  counter is fresh per step because the layout replaces the popup; two consecutive steps
+  that share a marker id would not update it.
 
 ## Coverage
 
@@ -327,14 +344,14 @@ The core project only reaches ~7% on its own (bare Node never imports render, ga
 book or the element), so `vitest run --project core --coverage` trips every threshold by
 design — use it to inspect one project, not to gate.
 
-Baseline (re-recorded after the marker suites, stable to ±0.05 across runs):
+Baseline (re-recorded after the marker fixes, stable to ±0.05 across runs):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 83.6     | 82    |
-| Branches   | 74.0     | 73    |
-| Functions  | 84.7     | 83    |
-| Lines      | 83.4     | 82    |
+| Statements | 83.7     | 83    |
+| Branches   | 74.3     | 73    |
+| Functions  | 84.8     | 84    |
+| Lines      | 83.5     | 82    |
 
 The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
 coverage loss fails the run while ordinary refactoring does not. They are deliberately
@@ -354,21 +371,21 @@ not the floor:
 | Area        | Stmts |
 | ----------- | ----- |
 | src/utils   | 96.5  |
-| src/ui      | 93.4  |
 | src/embed   | 93.4  |
-| src/markers | 91.7  |
+| src/ui      | 93.4  |
+| src/markers | 93.4  |
 | src/gallery | 90.2  |
 | src/audio   | 88.2  |
 | src/media   | 86.4  |
 | src/layout  | 86.3  |
 | src/book    | 84.3  |
-| src/core    | 80.6  |
 | src/tour    | 80.5  |
+| src/core    | 80.0  |
 | src/grid    | 79.9  |
 | src/render  | 74.9  |
 
 `src/embed` used to be the one real hole (1.2%); the embed suites now take it to ~93%.
-`src/markers` was the thinnest area left at 63.8%, and the marker suites took it to 91.7%
+`src/markers` was the thinnest area left at 63.8%, and the marker suites took it to 93.4%
 — so the honest thin spots are now `src/render` (~75%), `src/grid` (~80%) and the
 interaction layer under `src/core/events` (~49%). To raise the floor, run
 `pnpm test:coverage`, move the baseline to the new number, and keep the floors ~1 point
@@ -404,8 +421,8 @@ pays nothing for it.
 | Matrix/vector math                                  | `tests/core/render/mat`                                                          | done   |
 | Legacy (pre-v5) vs v5+ bundles                      | `tests/browser/core/element-legacy`                                              | done   |
 | `<micr-io>` open / events / attributes              | `tests/browser/core/element-*`                                                   | done   |
-| Marker layer, language filter, clickable areas      | `tests/browser/markers/markers`                                                  | done   |
-| Marker icons, labels, tooltips, scaling (2D/360)    | `tests/browser/markers/marker-render`                                            | done   |
+| Marker layer, filter, settings, clickable areas     | `tests/browser/markers/markers`                                                  | done   |
+| Marker icons, labels, scaling, viewport sizing      | `tests/browser/markers/marker-render`                                            | done   |
 | Marker clicks, events, links, tour interaction      | `tests/browser/markers/marker-actions`                                           | done   |
 | Marker popup, minimize, tour controls               | `tests/browser/markers/marker-popup`                                             | done   |
 | Marker content, media, embeds, image gallery        | `tests/browser/markers/marker-content`                                           | done   |
@@ -468,8 +485,5 @@ Roughly in order of value against risk:
 2. **The leaky WebGL sub-image** — releasing an embedded `MicrioImage` needs image/engine
    teardown that does not exist yet, so the `KNOWN GAP` test in `browser/embed/embed`
    pins it (see [The embed subsystem](#the-embed-subsystem)).
-3. **The unread marker settings** — `markerColor`, `markerSize`, `viewportIsMarker`,
-   `embedsInHtml`, `hideMarkersDuringTour`, `keepPopupsDuringTourTransitions` and
-   `tourStepCounterInPopup` are declared and served but read nowhere (see
-   [The markers subsystem](#the-markers-subsystem)). Each needs a consumer or a removal,
-   and that is when the `KNOWN GAP` marker tests have to change.
+3. **The layer's grid `inactive` path** — the one marker branch with no suite; reaching it
+   offline needs a hand-built visible cell (see [The markers subsystem](#the-markers-subsystem)).
