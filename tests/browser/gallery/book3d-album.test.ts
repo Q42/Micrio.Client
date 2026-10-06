@@ -7,6 +7,7 @@ afterEach(() => {
 	// `#print()` is fire-and-forget, so an album can still be resolving when the
 	// test moves on; a stub removed per test would send it to the real network
 	restoreArchiveXhr()
+	document.body.replaceChildren()
 })
 
 describe('book3d album — taking over the viewer', () => {

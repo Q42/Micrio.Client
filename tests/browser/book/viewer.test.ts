@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BookViewer } from '$book/main'
-import { bookImage, mountBook, restoreFrameStub, type ViewerHarness } from './helpers'
+import { bookImage, mountBook, restoreFrameStub, type ViewerHarness } from '../book-helpers'
 
 afterEach(() => {
 	restoreFrameStub()

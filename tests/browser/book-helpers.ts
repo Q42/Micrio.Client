@@ -226,6 +226,10 @@ export async function mountBook(
 			return draws.at(-1) ?? []
 		},
 		destroy() {
+			// The viewer keeps a `Frame` request queued while it animates, and
+			// `Frame` is a singleton, so a viewer the test walks away from would keep
+			// running its simulation on every later frame of the file
+			viewer._stop()
 			document.body.replaceChildren()
 		},
 	}
