@@ -1,4 +1,4 @@
-import type { EventContext } from './shared'
+import { eventPassiveCapture, type EventContext } from './shared'
 import type { DragHandler, PointerLikeEvent } from './drag'
 
 /**
@@ -56,8 +56,10 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: EventListen
 	}
 	ctx._pinching = false
 
-	self.removeEventListener('touchmove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions)
-	self.removeEventListener('pointermove', moveHandler, { passive: true, capture: true } as AddEventListenerOptions)
+	// Both platform paths are registered with the same options object, and
+	// `removeEventListener` only matches when the `capture` flag does too.
+	self.removeEventListener('touchmove', moveHandler, eventPassiveCapture)
+	self.removeEventListener('pointermove', moveHandler, eventPassiveCapture)
 
 	delete ctx._micrio.dataset.pinching
 
