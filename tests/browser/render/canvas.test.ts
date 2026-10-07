@@ -471,22 +471,36 @@ describe('Engine canvas lifecycle', () => {
 		viewer.destroy()
 	})
 
-	it('_removeCanvas fades the image out and drops the entry', async () => {
+	it('_removeCanvas drops the canvas, its entry and the placed flag', async () => {
 		const { viewer } = await opened(bundleWith({}))
 		const image = placedImage(viewer)
 		const engine = viewer.el._engine
 		const canvases = engine._canvases.length
 
 		engine._removeCanvas(image)
-		// The immediate, synchronous effect: the canvas left the engine's list and its entry
-		// map. (`image._placed` is reset to false by the canvas itself, but the element's own
-		// state watcher can re-place the image on a later frame — that is the viewer still
-		// holding the image as `current`, not a failure of `_removeCanvas`.)
+		// The canvas left the engine's list and its lookup, and the image reads as unplaced
+		// again — which is what lets a later `current` write rebuild it (next test).
 		expect(engine._getCanvas(image)).toBeUndefined()
 		expect(canvases - engine._canvases.length).toBe(1)
-		// `_removeCanvas` deliberately leaves `_placed` alone: the image stays "placed" so a
-		// later re-add (a gallery switch back to it) does not rebuild it from scratch.
+		expect(image._placed).toBe(false)
+		expect(get(image.visible)).toBe(false)
+		viewer.destroy()
+	})
+
+	it('re-places a removed canvas when the image becomes current again', async () => {
+		const { viewer } = await opened(bundleWith({}))
+		const image = placedImage(viewer)
+		const engine = viewer.el._engine
+
+		engine._removeCanvas(image)
+		expect(engine._canvases).toHaveLength(0)
+
+		// The element still holds the image, and the `current` store notifies unconditionally,
+		// so setting it again rebuilds the canvas instead of leaving the viewer blank forever.
+		viewer.el.current.set(image)
+		await waitFor(() => engine._getCanvas(image) !== undefined, 6000, 'the canvas to be re-placed')
 		expect(image._placed).toBe(true)
+		expect(engine._canvases).toHaveLength(1)
 		viewer.destroy()
 	})
 

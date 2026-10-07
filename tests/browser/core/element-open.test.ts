@@ -156,3 +156,46 @@ describe('<micr-io> open()', () => {
 		restoreNetwork()
 	})
 })
+
+describe('<micr-io> close()', () => {
+	it('releases the canvas and lets the same image be opened again', async () => {
+		const bundle = freshBundle()
+		const viewer = mountViewer()
+		await viewer.open(bundle)
+		await waitForLoaded(viewer, bundle.id)
+
+		const image = viewer.el.$current
+		if (!image) {
+			throw new Error('no current image')
+		}
+		const engine = viewer.el._engine
+		await waitFor(() => engine._getCanvas(image) !== undefined, 4000, 'the placed canvas')
+
+		viewer.el.close(image)
+		expect(image._placed).toBe(false)
+		expect(engine._getCanvas(image)).toBeUndefined()
+
+		// The image stays in the element's list, so opening it again re-places its canvas
+		// rather than leaving the viewer blank.
+		await viewer.open(bundle)
+		await waitFor(() => engine._getCanvas(image) !== undefined, 4000, 'the re-placed canvas')
+		expect(image._placed).toBe(true)
+		viewer.destroy()
+	})
+
+	it('is a no-op for an image that was never placed', async () => {
+		const viewer = mountViewer()
+		await viewer.open(freshBundle())
+
+		// A fresh instance of the same class, as `canvas.test.ts` builds one for the
+		// engine's own "not placed yet" case
+		const image = viewer.el.$current as MicrioImage
+		const unplaced = Object.create(Object.getPrototypeOf(image)) as MicrioImage
+		unplaced._placed = false
+
+		expect(() => {
+			viewer.el.close(unplaced)
+		}).not.toThrow()
+		viewer.destroy()
+	})
+})

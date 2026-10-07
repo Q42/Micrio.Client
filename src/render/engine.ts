@@ -611,6 +611,13 @@ export class Engine {
 		}
 		entry.canvas._remove()
 		this.#entryByImage.delete(c)
+		// The image is unplaced again, so a later `#setCanvas` rebuilds its canvas. Leaving it
+		// "placed" — with no entry and no canvas — would make `#setCanvas` return early forever
+		// and the image could never be shown again.
+		c._placed = false
+		if (this.#activeCanvasEntry === entry) {
+			this.#activeCanvasEntry = null
+		}
 		this.render()
 	}
 

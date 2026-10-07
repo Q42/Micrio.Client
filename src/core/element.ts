@@ -802,7 +802,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Deduplicate ───────────────────────────────────────────────────────
 
-		if (this.$current && bundle.id === this.$current?.id) {
+		// An *unplaced* current image falls through instead: its canvas was closed (or never
+		// placed), and returning early here would leave the viewer with nothing to draw.
+		if (this.$current && this.$current._placed && bundle.id === this.$current.id) {
 			return this.$current
 		}
 
@@ -932,9 +934,15 @@ export class HTMLMicrioElement extends MicrioElement {
 
 	/**
 	 * Closes an opened MicrioImage and removes its canvas from the engine.
+	 *
+	 * The image stays in the element's list of loaded images, so opening it again (or making it
+	 * `current` again) rebuilds its canvas. Closing an image that is not placed is a no-op.
 	 * @param img The {@link MicrioImage} instance to close.
 	 */
 	close(img: MicrioImage): void {
+		if (!img._placed) {
+			return
+		}
 		this._engine._removeCanvas(img)
 	}
 
