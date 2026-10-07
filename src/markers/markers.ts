@@ -67,8 +67,10 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				return [xy[0], xy[1]] as [number, number]
 			})
 
-			// Build groups of overlapping markers
+			// Build groups of overlapping markers. `groupOf` keeps the merge below from
+			// scanning every existing group for each overlapping pair.
 			const groups: number[][] = []
+			const groupOf = new Map<number, number[]>()
 			for (let i = 0; i < markers.length; i++) {
 				for (let j = i + 1; j < markers.length; j++) {
 					// Either end can opt a marker out of clustering
@@ -81,16 +83,32 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					// A pair can bridge two groups that already exist, so merge every
 					// group either index belongs to — picking one would leave the other
 					// holding a member that is now in two clusters.
-					const matches = groups.filter((g) => g.includes(i) || g.includes(j))
-					if (matches.length > 0) {
-						const [first, ...rest] = matches
-						first.push(i, j)
-						for (const extra of rest) {
-							first.push(...extra)
-							groups.splice(groups.indexOf(extra), 1)
+					const gi = groupOf.get(i)
+					const gj = groupOf.get(j)
+					if (gi && gj) {
+						if (gi !== gj) {
+							// This pair bridges two existing groups, so merge them.
+							gi.push(...gj)
+							for (const member of gj) {
+								groupOf.set(member, gi)
+							}
+							groups.splice(groups.indexOf(gj), 1)
+						} else {
+							continue
 						}
+					} else if (gi) {
+						gi.push(j)
+						groupOf.set(j, gi)
+						continue
+					} else if (gj) {
+						gj.push(i)
+						groupOf.set(i, gj)
+						continue
 					} else {
-						groups.push([i, j])
+						const group = [i, j]
+						groups.push(group)
+						groupOf.set(i, group)
+						groupOf.set(j, group)
 					}
 				}
 			}
