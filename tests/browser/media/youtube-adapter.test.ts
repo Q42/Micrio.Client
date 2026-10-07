@@ -7,10 +7,10 @@ import type { PlayerEventCallbacks } from '$types/media'
  * stub captures the options handed to `new YT.Player(...)` and lets tests raise
  * readiness, errors and state changes by hand.
  *
- * `loadExternalAPI` is mocked in every test. It is awaited *before* the player is
- * constructed, and it loads a `<script>` tag when `globalThis.YT` is missing — script
- * tags do not go through the suite's `fetch` interception, so the real path would reach
- * the CDN and never settle offline.
+ * `loadExternalAPI` is never given a real script to load: the tests stub the API at the
+ * global it is read from (`globalThis.YT`), and it only appends a `<script>` tag when that
+ * key is missing from `globalThis`. A real script tag would not go through the suite's
+ * `fetch` interception, so the CDN path stays out of the offline run entirely.
  */
 interface YtEvents {
 	onReady?: () => void
@@ -148,13 +148,11 @@ describe('YouTube adapter initialization', () => {
 	})
 
 	it('rejects when the loader did not expose the API', async () => {
-		// No stub at all: the loader settles (a script that loads without setting the
-		// global, which is what a cached or blocked script looks like) and the adapter
-		// reports it rather than constructing a player it cannot use.
-		//
-		// The *unloadable* variant is deliberately not asserted: `loadScript` is passed a
-		// callback name, links `load` to that callback and never settles on `error`, so
-		// with `globalThis.YT` genuinely absent this promise hangs forever. See TESTING.md.
+		// No stub is installed. `afterEach` assigns `globalThis.YT = undefined` rather than
+		// deleting the key, so `loadExternalAPI` skips the script tag and reports the missing
+		// global: the loader settles without defining the API, which is what a cached or
+		// blocked script looks like. The script-*error* path (a callback name plus an `error`
+		// event, which `loadScript` settles on) is covered in `tests/browser/utils/dom.test.ts`.
 		const { adapter } = makeAdapter()
 		await expect(adapter.initialize()).rejects.toThrow('load')
 	})

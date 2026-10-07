@@ -551,8 +551,9 @@ and `src/core/i18n` are folded in.
 The thin spots now start at **`src/tour` (80.5%)** — mostly `serial-tour.ts` (74.8%) — then
 `src/core` (81.9%, mostly `camera.ts` at 61.5% and `image.ts` at 75.0%) and `src/layout/nav`
 (82.9%). The interaction layer and book input that used to head this list are covered above.
-They are the backlog, not the floor. To raise the floor, run `pnpm test:coverage`, move the
-baseline to the new number, and keep the floors a point or two under it.
+They are remaining thin spots rather than the floor, and they are deliberately _not_ a backlog
+list — the backlog below holds only the CI item. To raise the floor, run `pnpm test:coverage`,
+move the baseline to the new number, and keep the floors a point or two under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
 pays nothing for it.
