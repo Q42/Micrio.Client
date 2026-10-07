@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Models } from '$types/models'
 import { get } from '$core/store'
 import { openUi, uiBundle, markerTour, videoTourFixture } from '../../fixtures/ui'
+import { baseInfo } from '../../fixtures/bundles'
 import { settle } from '../../helpers/tour'
 import { waitFor } from '../../helpers/viewer'
 
@@ -218,5 +219,25 @@ describe('toolbar indent', () => {
 		await waitForMenus(second.viewer, 2)
 		expect(second.viewer.el.querySelector('micrio-toolbar > menu')?.classList.contains('indent')).toBe(false)
 		second.viewer.destroy()
+	})
+})
+
+describe('toolbar across images', () => {
+	it('shows the menus again when returning to an image whose menus were already shown', async () => {
+		const ui = uiBundle()
+		const { viewer } = await openUi(ui)
+		await waitForMenus(viewer, 2)
+
+		// An image with no culture data at all takes the toolbar's "nothing to show" path. That
+		// path used to return before the render key was stored, so coming back to the first image
+		// looked like an unchanged render: it was skipped and the bar stayed empty.
+		const plainId = `plain-${Math.random().toString(36).slice(2, 7)}`
+		await viewer.open({ id: plainId, info: baseInfo(plainId), settings: {} })
+		await waitFor(() => menus(viewer).length === 0, 4000, 'the toolbar to clear')
+
+		await viewer.open(ui.bundle)
+		await waitForMenus(viewer, 2)
+		expect(titles(viewer)).toEqual(['About', 'Contact'])
+		viewer.destroy()
 	})
 })
