@@ -155,14 +155,6 @@ const loaded = new Set<string>()
 const inFlight = new Map<string, Promise<void>>()
 
 /**
- * Loads an external JavaScript file dynamically. Ensures scripts are loaded only once per session.
- * @internal
- * @param src The URL of the script to load.
- * @param cbFunc Optional global callback function name to be called upon script load.
- * @param targetObj Optional target object (if provided, assumes script is already loaded).
- * @returns A Promise that resolves when the script is loaded, or rejects on error.
- */
-/**
  * Loads an external JavaScript API dynamically if not already present.
  * Checks for the API on `self` (window), loads the script if missing,
  * then verifies the API was loaded successfully.
@@ -180,7 +172,14 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 	}
 }
 
-/** Dynamically loads an external script, ensuring it is loaded only once per session. @internal */
+/**
+ * Dynamically loads an external script, ensuring it is loaded only once per session.
+ * @internal
+ * @param src The URL of the script to load.
+ * @param cbFunc Optional global callback function name to be called upon script load.
+ * @param targetObj If provided, the script is assumed to be already loaded.
+ * @returns A Promise that resolves when the script is loaded, or rejects on error.
+ */
 export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown): Promise<void> => {
 	if (targetObj !== undefined || loaded.has(src)) {
 		return Promise.resolve()
