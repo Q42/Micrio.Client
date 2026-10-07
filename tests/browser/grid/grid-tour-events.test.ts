@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { openGrid, restoreArchiveXhr } from '../../fixtures/grid'
 import type { gridFixture } from '../../fixtures/grid'
 import { cellButtons, layoutIds, settleFrames } from '../../helpers/grid'
@@ -140,9 +140,18 @@ describe('grid tour events', () => {
 	it('warns and stays put when flyTo names no current images', async () => {
 		const { viewer, grid } = await openGrid(fast())
 		const opening = layoutIds(grid)
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+		const flyToView = vi.spyOn(grid.image.camera, 'flyToView').mockResolvedValue()
+		// An unknown id, and then the payload-less event a `grid:flyTo` step can also carry:
+		// both resolve to no displayed image, so both warn and neither moves the view
 		tourEvent(viewer.el, { start: 1, end: 2, action: 'grid:flyTo', data: 'nope' })
+		tourEvent(viewer.el, { start: 4, end: 5, action: 'grid:flyTo' })
 		await settleFrames(3)
+		expect(warn).toHaveBeenCalledTimes(2)
+		expect(flyToView).not.toHaveBeenCalled()
 		expect(layoutIds(grid)).toEqual(opening)
+		warn.mockRestore()
+		flyToView.mockRestore()
 		viewer.destroy()
 	})
 })

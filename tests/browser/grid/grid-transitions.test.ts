@@ -587,21 +587,54 @@ describe('grid actions from markers and tours', () => {
 		viewer.destroy()
 	})
 
-	it('a flyTo action with unknown ids is silently ignored', async () => {
+	it('a flyTo action with unknown ids warns and leaves the view alone', async () => {
 		const { viewer, grid } = await openFullGrid()
-		// KNOWN GAP: the `console.warn('Given image IDs gave no current displayed images')`
-		// branch is unreachable from here. `data?.split(',').map(...)` produces an array with at
-		// least one element for *any* string, including `''`, so `images.length` is never 0 and
-		// the `else` can only run if a caller passes something that is not a string at all.
-		// Pinned rather than deleted: if the handler ever starts validating ids, this test is
-		// the one that has to change.
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+		const flyToView = vi.spyOn(grid.image.camera, 'flyToView').mockResolvedValue()
 		const { handleAction } = await import('$grid/action-handlers')
+		// The handler drops ids that are not part of the current layout, so a list that resolves
+		// to nothing is what makes the "no current displayed images" warning reachable
 		for (const data of ['nope,alsonope', '']) {
 			handleAction(grid as unknown as Parameters<typeof handleAction>[0], GridActionType.flyTo, data, 0)
 		}
-		expect(warn).not.toHaveBeenCalled()
+		expect(warn).toHaveBeenCalledTimes(2)
+		expect(flyToView).not.toHaveBeenCalled()
 		warn.mockRestore()
+		flyToView.mockRestore()
+		viewer.destroy()
+	})
+
+	it('a flyTo action with no data warns', async () => {
+		const { viewer, grid } = await openFullGrid()
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+		const flyToView = vi.spyOn(grid.image.camera, 'flyToView').mockResolvedValue()
+		const { handleAction } = await import('$grid/action-handlers')
+		// The route a `grid:flyTo` tour event without a data field takes. `handleAction` dedupes
+		// on `type + (data ?? '')`, so this cannot share a test with the empty-string case above.
+		handleAction(grid as unknown as Parameters<typeof handleAction>[0], GridActionType.flyTo, undefined, 0)
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(flyToView).not.toHaveBeenCalled()
+		warn.mockRestore()
+		flyToView.mockRestore()
+		viewer.destroy()
+	})
+
+	it('a flyTo action ignores the ids that are not displayed', async () => {
+		const { viewer, grid, ids } = await openFullGrid()
+		const flyToView = vi.spyOn(grid.image.camera, 'flyToView').mockResolvedValue()
+		const { handleAction } = await import('$grid/action-handlers')
+		handleAction(grid as unknown as Parameters<typeof handleAction>[0], GridActionType.flyTo, `${ids[0]},nope`, 0.5)
+		// One resolved cell: its own box, not the full image an unresolved entry used to pad to
+		const area = grid.getImage(ids[0] ?? '')?.opts.area ?? [0, 0, 1, 1]
+		expect(flyToView).toHaveBeenCalledTimes(1)
+		const [view, opts] = flyToView.mock.calls[0] ?? []
+		expect(opts).toEqual({ duration: 500 })
+		expect(view).toHaveLength(4)
+		for (let i = 0; i < 4; i++) {
+			// The box is rebuilt from the area, so the numbers carry float noise
+			expect(view?.[i] ?? Number.NaN).toBeCloseTo(area[i] ?? 0, 6)
+		}
+		flyToView.mockRestore()
 		viewer.destroy()
 	})
 

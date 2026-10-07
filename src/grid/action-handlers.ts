@@ -85,12 +85,16 @@ function getHandlerMap(grid: Grid): Record<number, ActionHandler> {
 			},
 
 			[GridActionType.flyTo]: (data, duration) => {
-				const images = data?.split(',').map((s) => grid._current.find((i) => i.id === s?.trim()))
-				if (images?.length) {
-					const xs = images.map((i) => i?.opts.area?.[0] ?? 0)
-					const ys = images.map((i) => i?.opts.area?.[1] ?? 0)
-					const right = Math.max(...images.map((i) => (i?.opts.area?.[0] ?? 0) + (i?.opts.area?.[2] ?? 1)))
-					const bottom = Math.max(...images.map((i) => (i?.opts.area?.[1] ?? 0) + (i?.opts.area?.[3] ?? 1)))
+				// Ids that are not part of the current layout are dropped: naming none of them has
+				// to warn, and a mixed list must not pad the box out with unresolved defaults.
+				const images = (data?.split(',') ?? [])
+					.map((s) => grid._current.find((i) => i.id === s.trim()))
+					.filter((i): i is MicrioImage => i !== undefined)
+				if (images.length > 0) {
+					const xs = images.map((i) => i.opts.area?.[0] ?? 0)
+					const ys = images.map((i) => i.opts.area?.[1] ?? 0)
+					const right = Math.max(...images.map((i) => (i.opts.area?.[0] ?? 0) + (i.opts.area?.[2] ?? 1)))
+					const bottom = Math.max(...images.map((i) => (i.opts.area?.[1] ?? 0) + (i.opts.area?.[3] ?? 1)))
 					const minX = Math.min(...xs)
 					const minY = Math.min(...ys)
 					grid.image.camera
