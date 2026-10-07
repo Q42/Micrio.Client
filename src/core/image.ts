@@ -493,9 +493,13 @@ export class MicrioImage {
 			} // Already loaded
 			else {
 				jsCss.push(s) // Mark as loading
+				// `error` matters as much as `load`: a stylesheet that 404s or is blocked leaves
+				// this promise pending forever otherwise, so a caller awaiting it (the org font
+				// follow-up) would hang and never run.
+				const settle = ok as EventListener
 				createElement('link', {
 					attrs: { type: 'text/css', rel: 'stylesheet', href: s },
-					events: { load: ok as EventListener },
+					events: { load: settle, error: settle },
 					parent: document.head,
 				})
 			}
