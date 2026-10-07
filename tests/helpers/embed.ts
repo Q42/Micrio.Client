@@ -24,8 +24,10 @@ import { mountViewer, waitFor, type Viewer } from './viewer'
  * `fakeImage()` mocks the *contract* between the embed element and its parent
  * image/engine: `camera.getMatrix` / `camera._getXYDirect` (the coordinate
  * seams, also overridable in production book3d), `engine.render`/`_fadeImage`,
- * `addEmbed`, the writable stores, and the media-element registry. If the real
- * `MicrioImage` API changes shape, this mock is what has to be updated — the
+ * `addEmbed`, the writable stores, and the media-element registry. It also mirrors
+ * the sub-image claim lifecycle the element drives (`_orphanEmbed`/`_adoptEmbed`/
+ * `_releaseOrphans`, backed by `engine._removeEmbed`). If the real `MicrioImage`
+ * API changes shape, this mock is what has to be updated — the
  * `embed-viewer`/`image-embeds` suites are the guard against that drift.
  *
  * ## Mounting rules
@@ -85,8 +87,13 @@ export interface FakeImage {
 		render: ReturnType<typeof vi.fn>
 		_fadeImage: ReturnType<typeof vi.fn>
 		_setImageVideoPlaying: ReturnType<typeof vi.fn>
+		_removeEmbed: ReturnType<typeof vi.fn>
 	}
 	addEmbed: ReturnType<typeof vi.fn>
+	/** The sub-image claim lifecycle the embed element drives (mirrors `MicrioImage`). */
+	_orphanEmbed: (img: FakeGlImage) => void
+	_adoptEmbed: (img: FakeGlImage) => void
+	_releaseOrphans: () => void
 	_setEmbedMediaElement: (id: string, el?: HTMLMediaElement) => void
 	getEmbedMediaElement: (id: string) => HTMLMediaElement | undefined
 }
@@ -103,6 +110,8 @@ export interface FakeImage {
 export function fakeImage(overrides: Partial<FakeImage> = {}): FakeImage {
 	const elements = new Map<string, HTMLMediaElement>()
 	const embeds: FakeGlImage[] = []
+	/** Sub-images whose owning embed is gone, mirroring `MicrioImage.#orphanedEmbeds`. */
+	const orphans = new Set<FakeGlImage>()
 
 	const image = {
 		id: 'img-id',
@@ -144,6 +153,7 @@ export function fakeImage(overrides: Partial<FakeImage> = {}): FakeImage {
 			render: vi.fn(),
 			_fadeImage: vi.fn(),
 			_setImageVideoPlaying: vi.fn(),
+			_removeEmbed: vi.fn(),
 		},
 		// Emulate `MicrioImage.addEmbed`, which registers the new sub-image on
 		// `_embeds` — the element's reuse path reads exactly that.
@@ -169,6 +179,32 @@ export function fakeImage(overrides: Partial<FakeImage> = {}): FakeImage {
 				return gl
 			},
 		),
+		// Mirrors `MicrioImage._orphanEmbed`/`_adoptEmbed`/`_releaseOrphans`: an orphan is
+		// faded out, kept on `_embeds`, and released on the next sweep unless re-adopted.
+		_orphanEmbed: (img: FakeGlImage) => {
+			if (!embeds.includes(img)) {
+				return
+			}
+			orphans.add(img)
+			img.visible?.set(false)
+			image.engine._fadeImage(img, 0)
+		},
+		_adoptEmbed: (img: FakeGlImage) => {
+			orphans.delete(img)
+		},
+		_releaseOrphans: () => {
+			if (orphans.size === 0) {
+				return
+			}
+			for (const img of orphans) {
+				const i = embeds.indexOf(img)
+				if (i >= 0) {
+					embeds.splice(i, 1)
+				}
+				image.engine._removeEmbed(img)
+			}
+			orphans.clear()
+		},
 		_setEmbedMediaElement: (id: string, el?: HTMLMediaElement) => {
 			if (el) {
 				elements.set(id, el)

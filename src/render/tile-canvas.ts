@@ -289,6 +289,25 @@ export class TileCanvas {
 		return image
 	}
 
+	/**
+	 * Detaches an embedded image; the engine frees its tiles. Any tiles already queued for
+	 * the current frame are dropped with it.
+	 * @internal
+	 */
+	_removeImage(image: Image): void {
+		const idx = this.images.indexOf(image)
+		if (idx < 0) {
+			return
+		}
+		this.images.splice(idx, 1)
+		for (let i = this._toDraw.length - 1; i >= 0; i--) {
+			const tile = this._toDraw[i]
+			if (tile >= image._startOffset && tile < image._endOffset) {
+				this._toDraw.splice(i, 1)
+			}
+		}
+	}
+
 	/** @internal */
 	_addChild(
 		x0: number,

@@ -98,6 +98,33 @@ describe('micrio-image-embeds (layout integration)', () => {
 		expect(image._embeds.some((i) => i.$info?.title === 'u1')).toBe(true)
 	})
 
+	it('rebuilding the embeds releases the previous WebGL sub-image', async () => {
+		const { viewer, image } = await openEmbedImage(embedBundle([glEmbed({ uuid: 'u1' })]))
+		viewers.push(viewer)
+		await waitFor(() => viewer.el.querySelector('micrio-image-embeds') !== null, 4000, 'the embed layer')
+		await waitFor(() => image._embeds.length === 1, 6000, 'the WebGL sub-image')
+
+		const { canvas } = image
+		const first = image._embeds[0]
+		if (!first || !canvas) {
+			throw new Error('the embed never reached the engine')
+		}
+		await waitFor(() => canvas.images.some((i) => i._localIdx > 0), 6000, 'the placed embed image')
+		const images = canvas.images.length
+
+		// Fresh embed objects with fresh uuids: the old sub-image cannot be re-adopted, so the
+		// sweep has to release it instead of letting `_embeds` grow.
+		image.data.set({ embeds: [glEmbed({ uuid: 'u2' })] })
+		await waitFor(() => image._embeds.length === 1 && image._embeds[0] !== first, 8000, 'the rebuilt embed')
+
+		expect(first._placed).toBe(false)
+		expect(image.engine._getCanvas(first)).toBeUndefined()
+		// Its base tile was registered (and would never be evicted), so the release must drop it
+		expect(image.engine._getTileOpacity(first._baseTileIdx)).toBe(0)
+		expect(canvas.images).toHaveLength(images)
+		expect(canvas.images.filter((i) => i._localIdx > 0)).toHaveLength(1)
+	})
+
 	it('omits the layer entirely when data-embeds is false', async () => {
 		const { viewer } = await openEmbedImage(embedBundle([imageEmbed()]), { 'data-embeds': 'false' })
 		viewers.push(viewer)

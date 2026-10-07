@@ -123,6 +123,12 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 
 		this.#glImage = image._embeds.find((i) => i.uuid === embed.uuid || i.$info?.title === embed.uuid)
+		if (this.#glImage !== undefined) {
+			// A sub-image left over by a rebuild or a re-connect that still matches this embed
+			// is claimed again; everything else the parent has orphaned is released below.
+			image._adoptEmbed(this.#glImage)
+		}
+		image._releaseOrphans()
 
 		this.#screenIsHDR = matchMedia('(dynamic-range: high)').matches || Browser.OSX
 
@@ -721,9 +727,11 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#glVideo?._unmount()
 
 		const { embed, image } = this.#props
-		if (this.#glImage && this.#glImage._placed && image) {
-			image.engine._fadeImage(this.#glImage, 0)
-			image.engine.render()
+		if (this.#glImage !== undefined && image !== undefined) {
+			// Keep the sub-image on the parent so a rebuild or a re-connect that mounts this
+			// embed again can re-adopt it; the next sweep releases it when nothing claims it.
+			image._orphanEmbed(this.#glImage)
+			this.#glImage = undefined
 		}
 
 		if (embed?.video && embed.id && image) {

@@ -25,10 +25,6 @@ import type { Viewer } from '../../helpers/viewer'
  * every decision here is deterministic and no WebGL context is created. The
  * real-camera / real-engine / real-layout behaviour lives in
  * `tests/browser/embed/embed-360.test.ts` and `image-embeds.test.ts`.
- *
- * One test starts with `KNOWN GAP`: it pins a known defect that is deliberately
- * left for a follow-up (see TESTING.md), so the gap cannot go unnoticed. When that
- * gap closes, it is the test that has to change.
  */
 
 const initialUA = navigator.userAgent
@@ -353,15 +349,34 @@ describe('WebGL placement', () => {
 		expect(info.isSingle).toBe(true)
 	})
 
-	it('KNOWN GAP: rebuilding an embed leaks its WebGL sub-image (deferred)', () => {
+	it('releases the previous WebGL sub-image when the embed is rebuilt', () => {
 		const image = fakeImage()
+		const first = mountOn(image, glEmbed())
+		const gl = image._embeds[0]
+		expect(image._embeds).toHaveLength(1)
+
+		// The element going away orphans its sub-image. A fresh embed data object mints a new
+		// uuid, misses the reuse lookup, and the sweep releases the orphan before the new one
+		// is created — so a rebuild cannot grow `_embeds`.
+		first.remove()
 		mountOn(image, glEmbed())
 		expect(image._embeds).toHaveLength(1)
-		// A fresh embed object has no uuid, so the lookup in #printInsideGL misses
-		// and a second MicrioImage is created; _onDestroy only fades the first.
-		// Releasing it needs image/engine teardown that does not exist yet.
-		mountOn(image, glEmbed())
-		expect(image._embeds).toHaveLength(2)
+		expect(image._embeds[0]).not.toBe(gl)
+		expect(image.engine._removeEmbed).toHaveBeenCalledWith(gl)
+	})
+
+	it('keeps the sub-image when the same embed object mounts again', () => {
+		const image = fakeImage()
+		const data = glEmbed({ uuid: 'u1' })
+		const first = mountOn(image, data)
+		const gl = image._embeds[0]
+
+		// A rebuild with the same objects (and a re-connect) matches on the uuid, re-adopts the
+		// orphan and therefore does not re-create the sub-image or re-fetch its tiles.
+		first.remove()
+		mountOn(image, data)
+		expect(image._embeds).toEqual([gl])
+		expect(image.engine._removeEmbed).not.toHaveBeenCalled()
 	})
 })
 

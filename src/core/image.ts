@@ -565,6 +565,56 @@ export class MicrioImage {
 		return img // Return the new embed instance
 	}
 
+	/**
+	 * Sub-images whose owning embed was destroyed. They stay on {@link _embeds} so a rebuild
+	 * or a re-connect that mounts the same embed again can re-adopt them; everything still
+	 * unclaimed when {@link _releaseOrphans} runs is released.
+	 * @internal
+	 */
+	readonly #orphanedEmbeds = new Set<MicrioImage>()
+
+	/**
+	 * Marks an embedded sub-image as no longer claimed by a live embed. It is faded out now
+	 * and released the next time {@link _releaseOrphans} runs.
+	 * @internal
+	 */
+	_orphanEmbed(img: MicrioImage): void {
+		if (!this._embeds.includes(img)) {
+			return
+		}
+		this.#orphanedEmbeds.add(img)
+		img.visible.set(false)
+		this.#engine._fadeImage(img, 0)
+	}
+
+	/**
+	 * Re-claims an orphaned sub-image, so the next sweep keeps it. Called when a
+	 * `<micrio-embed>` matches it on mount (a rebuild with the same data, or a re-connect).
+	 * @internal
+	 */
+	_adoptEmbed(img: MicrioImage): void {
+		this.#orphanedEmbeds.delete(img)
+	}
+
+	/**
+	 * Releases every sub-image whose owning embed is gone: drops it from {@link _embeds} and
+	 * tears its engine image, tiles and lookups down.
+	 * @internal
+	 */
+	_releaseOrphans(): void {
+		if (this.#orphanedEmbeds.size === 0) {
+			return
+		}
+		for (const img of this.#orphanedEmbeds) {
+			const idx = this._embeds.indexOf(img)
+			if (idx >= 0) {
+				this._embeds.splice(idx, 1)
+			}
+			this.#engine._removeEmbed(img)
+		}
+		this.#orphanedEmbeds.clear()
+	}
+
 	/** Map storing references to HTMLMediaElements associated with video embeds. @internal */
 	#embedElements = new Map<string, HTMLMediaElement>()
 
