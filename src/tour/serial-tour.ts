@@ -385,7 +385,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#elapsed += 0.25
 		si.currentTime = this.#elapsed
 		this.#updateBars()
-		if (si.duration > 0 && this.#elapsed >= si.duration) {
+		// `#nextStep` marks the step ended before the next one is committed, because opening a
+		// cross-image step awaits the image. Without the `ended` check this tick would re-enter
+		// the same step (and issue another `micrio.open`) on every interval beat while it loads.
+		if (si.duration > 0 && !si.ended && this.#elapsed >= si.duration) {
 			this.#nextStep()
 		}
 	}
