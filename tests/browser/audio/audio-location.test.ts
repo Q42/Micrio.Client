@@ -197,6 +197,7 @@ describe('audio location gain and playback', () => {
 			}
 		})
 		const first = ctx.sources.length
+		const firstSource = ctx.sources.at(-1)
 
 		vi.useFakeTimers()
 		try {
@@ -204,6 +205,9 @@ describe('audio location gain and playback', () => {
 			ctx.sources.at(-1)?.emitEnded()
 			await vi.advanceTimersByTimeAsync(2000)
 			expect(ctx.sources.length).toBeGreaterThan(first)
+			// The source being replaced is stopped, not just disconnected: `disconnect()` alone
+			// leaves a playing node (and its buffer) alive in the graph
+			expect(firstSource?.calls).toContain('stop')
 			// That new source is itself listening for its own end
 			ctx.sources.at(-1)?.emitEnded()
 			await vi.advanceTimersByTimeAsync(2000)
@@ -288,6 +292,9 @@ describe('audio location updates and teardown', () => {
 		const gain = ctx.gains.at(-1)
 		expect(panner.disconnects.length).toBeGreaterThan(0)
 		expect(gain?.disconnects.length).toBeGreaterThan(0)
+		// Disconnecting is not stopping: a source that is still playing (a looping one never
+		// ends on its own) would stay alive in the audio graph until it is stopped
+		expect(ctx.sources.at(-1)?.calls).toContain('stop')
 		// Dispatching afterwards must not throw or touch the (disconnected) nodes
 		expect(() => {
 			micrio.dispatchEvent(new Event('audio-update'))

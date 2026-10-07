@@ -81,6 +81,18 @@ describe('subtitles', () => {
 		viewer.destroy()
 	})
 
+	it('renders a cue whose timing line carries cue settings', async () => {
+		// WebVTT allows settings after the end timestamp. Parsing the whole tail as part of it
+		// turned the end into NaN, and a cue whose end never matched stayed invisible.
+		mockText(SUB_MATCH, 'WEBVTT\n\n00:00:09.000 --> 00:00:11.000 align:start position:10%\nSettings cue\n')
+		const { viewer, mediaEl, el } = await mountSubtitles(SUB_URL)
+
+		mediaEl.currentTime = 10
+		mediaEl.dispatchEvent(new Event('timeupdate'))
+		await waitFor(() => (el.textContent ?? '').includes('Settings cue'), 4000, 'the cue with settings')
+		viewer.destroy()
+	})
+
 	it('ignores malformed blocks and keeps the valid ones', async () => {
 		mockText(SUB_MATCH, vtt({ malformed: true }))
 		const { viewer, mediaEl, el } = await mountSubtitles(SUB_URL)

@@ -47,6 +47,20 @@ describe('media element selection', () => {
 		viewer.destroy()
 	})
 
+	it('pauses the media element when it is torn down', async () => {
+		const viewer = await mountTour(tourBundle({}))
+		const el = await mountMedia({ src: 'https://r2.micr.io/audio/tour.mp3' }, viewer)
+		await waitForRender(el)
+		expect(anyMedia(el)).toBeInstanceOf(HTMLAudioElement)
+
+		// A media element keeps playing after it is detached from the DOM, so the teardown has
+		// to pause it: closing an audio or video tour used to leave the sound running.
+		const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause')
+		viewer.destroy()
+		expect(pause).toHaveBeenCalled()
+		pause.mockRestore()
+	})
+
 	it('uses a youtube-nocookie iframe with the js api for YouTube urls', async () => {
 		const viewer = await mountTour(tourBundle({}))
 		const el = await mountMedia({ src: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', width: 640, height: 360 }, viewer)
@@ -76,6 +90,19 @@ describe('media element selection', () => {
 		const media = mediaOf(el)
 		expect(media).toBeInstanceOf(HTMLVideoElement)
 		expect(media?.getAttribute('crossorigin')).toBe('anonymous')
+		viewer.destroy()
+	})
+
+	it('reads an unlisted Vimeo h token from the query, without doubling it', async () => {
+		// Unlisted videos carry the hash as `?h=…`. Reading it as if it were a path token
+		// produced `h=h=…`, which Vimeo refuses, so the embed never played.
+		const viewer = await mountTour(tourBundle({}))
+		const el = await mountMedia({ src: 'https://vimeo.com/123456789?h=abcdef123' }, viewer)
+
+		const iframe = el.querySelector('iframe')
+		expect(iframe?.src).toContain('player.vimeo.com/video/123456789')
+		expect(iframe?.src).toContain('h=abcdef123')
+		expect(iframe?.src).not.toContain('h=h=')
 		viewer.destroy()
 	})
 
