@@ -32,6 +32,9 @@ interface SplitState {
 
 const splits = new Map<MicrioImage, SplitState>()
 
+/** Deferred canvas releases, kept so a teardown can cancel one that has not run yet. @internal */
+const pendingReleases = new Set<ReturnType<typeof globalThis.setTimeout>>()
+
 export function hasSplit(primary: MicrioImage): boolean {
 	return splits.has(primary)
 }
@@ -129,14 +132,17 @@ export function closeSplit(
 
 	if (!opts?.keepSecondaryCanvas) {
 		// The delay lets the area animation run out before the canvas is released. A teardown
-		// cannot wait for it: an untracked timer would outlive the viewer and release a canvas of
-		// an engine that has already been unbound.
+		// cannot wait for it, and the split is already out of `splits` by then, so the timer is
+		// tracked in `pendingReleases` and cancelled by `closeAllSplits(..., true)`: otherwise it
+		// would outlive the viewer and release a canvas of an engine that has already been unbound.
 		if (opts?.immediate) {
 			micrio._engine._removeCanvas(state.secondary)
 		} else {
-			setTimeout(() => {
+			const timer = globalThis.setTimeout(() => {
+				pendingReleases.delete(timer)
 				micrio._engine._removeCanvas(state.secondary)
 			}, 400)
+			pendingReleases.add(timer)
 		}
 	}
 	micrio.events._dispatch('splitscreen-stop', state.secondary)
@@ -145,5 +151,11 @@ export function closeSplit(
 export function closeAllSplits(micrio: HTMLMicrioElement, immediate = false): void {
 	for (const p of splits.keys()) {
 		closeSplit(micrio, p, { immediate })
+	}
+	if (immediate) {
+		for (const timer of pendingReleases) {
+			globalThis.clearTimeout(timer)
+		}
+		pendingReleases.clear()
 	}
 }
