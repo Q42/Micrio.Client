@@ -153,7 +153,11 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 		const vimeoId = idMatch[1]
 		const tokenPart = src.slice(src.indexOf(vimeoId) + vimeoId.length + 1)
-		const vimeoToken = tokenPart.replace(/\?.*$/, '') || undefined
+		// An unlisted video carries its token as `?h=<hash>`, and the slice above starts right after
+		// the `?` — so the query form has to be read as a query. Reading it as a path token put
+		// `h=h=<hash>` in the embed URL, which Vimeo rejects (and that is exactly the unlisted case
+		// the token is for).
+		const vimeoToken = src.match(/[?&]h=([^&#]+)/)?.[1] ?? (tokenPart.replace(/\?.*$/, '') || undefined)
 		const embedSrc = `https://player.vimeo.com/video/${vimeoId}?${vimeoToken ? `h=${vimeoToken}&` : ''}title=0&portrait=0&sidedock=0&byline=0&controls=0`
 		const iframe = createElement('iframe', {
 			props: {
