@@ -130,9 +130,12 @@ export class SwipeGallery {
 
 	/** Resolves once none of the child canvases are mid area-transition (the strip slide finished). @internal */
 	#awaitSlide = (resolve: () => void): void => {
+		// A superseded slide can leave an area animation that never settles; without a ceiling
+		// this waiter would keep a frame callback queued (and `_keepRendering` on) forever.
+		const deadLine = performance.now() + 5000
 		const tick = (): void => {
 			for (const img of this.#images) {
-				if (img?.canvas?._areaAnimating()) {
+				if (img?.canvas?._areaAnimating() && performance.now() < deadLine) {
 					Frame.request(tick)
 					return
 				}

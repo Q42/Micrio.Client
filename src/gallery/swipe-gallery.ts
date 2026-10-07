@@ -44,6 +44,11 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		const basePath = parent?.$current?.$info?.path
 
 		Frame.request(() => {
+			// The element can be removed in the same frame (a popover closed right after opening),
+			// which would otherwise build a gallery — and its WebGL context — into a detached host.
+			if (!this.isConnected) {
+				return
+			}
 			const galleryCtrl = Gallery._fromAssets(this.#props.gallery, el._engine, el, {
 				startId: this.#props.galleryStart,
 				basePath,

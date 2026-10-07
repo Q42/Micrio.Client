@@ -747,6 +747,11 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/** @internal */
 	_onDestroy() {
+		// `Frame` only removes a callback by running it, so a book left mid-flip keeps queuing its
+		// own frame forever — and keeps driving `img.visible`/`state.view` on this removed gallery.
+		// `#loadBook3d` already stops a book it replaces; the teardown path has to do the same.
+		this.#book3d?._stop()
+		this.#book3d = undefined
 		this.#omni?.destroy()
 		this.#swipeGallery?.destroy()
 	}
