@@ -129,6 +129,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	#printing: Promise<void> | undefined
 
+	/** Bumped by `destroy()`, so an initial setup that is still awaiting an async step stops. @internal */
+	#printGen = 0
+
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
 	 * @internal
 	 */
@@ -545,6 +548,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.#lazyObserver = undefined
 		this.#printed = false
 		this.#printing = undefined
+		// Stop a setup that is still suspended on an async step; see `#doPrint`
+		this.#printGen++
 	}
 
 	/**
@@ -641,9 +646,23 @@ export class HTMLMicrioElement extends MicrioElement {
 			return
 		}
 		this.#printed = true
+		// `destroy()` bumps this; a run that is suspended on an await then stops where it is.
+		// Otherwise it would re-print the UI and re-init the engine after teardown, and the next
+		// `#print()` would start a second, concurrent run next to it.
+		const gen = this.#printGen
+		const aborted = (): boolean => {
+			if (gen === this.#printGen) {
+				return false
+			}
+			this.#printed = false
+			return true
+		}
 		// Keep this the first await: the synchronous part must not re-enter `#print`
 		// before `#printing` has been assigned.
 		await tick()
+		if (aborted()) {
+			return
+		}
 		const opts = this.#getOptions()
 		if (!opts.settings) {
 			opts.settings = {}
@@ -660,6 +679,9 @@ export class HTMLMicrioElement extends MicrioElement {
 			const bundle = await DataLoader._getBundleImage(opts.id).catch((error: unknown) => {
 				console.error('[Micrio] Could not load the bundle for', opts.id, error)
 			})
+			if (aborted()) {
+				return
+			}
 			if (bundle && bundle.info?.albumId) {
 				// A failure here silently degrades the album to a single image, so it has to
 				// be visible: without this the viewer just shows one picture and no reason.
@@ -670,6 +692,9 @@ export class HTMLMicrioElement extends MicrioElement {
 					console.error('[Micrio] Could not open the album for', opts.id, error)
 					return null
 				})
+				if (aborted()) {
+					return
+				}
 				if (galleryCtrl) {
 					void galleryCtrl._openOn(this)
 					return
@@ -679,6 +704,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if (opts.id && opts.id.startsWith('http')) {
 			const bundle = await this.#handleIIIF(opts.id)
+			if (aborted()) {
+				return
+			}
 			if (!bundle) {
 				return
 			}
