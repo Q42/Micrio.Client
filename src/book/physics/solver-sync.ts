@@ -111,8 +111,11 @@ export function dispatchSolve(
 	const params = {
 		dt,
 		solverIterations: dynIters,
-		distanceCompliance: solverSettings._distanceCompliance / (dt * dt),
-		bendingCompliance: solverSettings._bendingCompliance / (dt * dt),
+		// Raw compliance: `runSubstep` applies the XPBD `alpha / dt^2` normalization itself. Dividing
+		// here as well made it `alpha / dt^4` (~4.3e4 for the shipped bending value instead of ~1.3),
+		// which left the bending constraint effectively inert.
+		distanceCompliance: solverSettings._distanceCompliance,
+		bendingCompliance: solverSettings._bendingCompliance,
 		damping: solverSettings._damping,
 		gravity: solverSettings._gravityEnabled ? solverSettings._gravity : 0,
 		gravityEnabled: solverSettings._gravityEnabled,
