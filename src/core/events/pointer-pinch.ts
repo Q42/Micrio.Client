@@ -102,7 +102,6 @@ export class PointerPinchHandler {
 		this.#ctx._activePointers.delete(e.pointerId)
 
 		if (this.#ctx._pinching && this.#ctx._activePointers.size < 2) {
-			self.removeEventListener('pointermove', this.#move, eventPassiveCapture)
 			pinchStop(this.#ctx, e, this.#move)
 
 			restartPanning(this.#ctx, this.#dragHandler, this.#ctx._activePointers)
