@@ -245,6 +245,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Activity callback retained so idle listeners can be removed on destroy. @internal */
 	#onActivity?: () => void
 
+	/** The lazyload observer, kept so `destroy` can disconnect it. @internal */
+	#lazyObserver?: IntersectionObserver
+
 	/** For setting first-time hooks
 	 * @internal
 	 */
@@ -353,7 +356,11 @@ export class HTMLMicrioElement extends MicrioElement {
 			// book3d zoom/pan overrides. The individual pages become visible as
 			// the spread changes, so pick the parent for the zoomed check instead
 			// of whichever single page happens to be on screen.
-			const target = this._engine._book3d || imgs.length !== 1 ? this.#current : imgs[0]
+			// Exactly one visible image and not a book: that image is the one to test. (Spelled
+			// out because `_book3d || imgs.length !== 1 ? this.#current : imgs[0]` reads as if
+			// the visible-image count decided the branch on its own.)
+			const singleVisible = !this._engine._book3d && imgs.length === 1
+			const target = singleVisible ? imgs[0] : this.#current
 			this.toggleAttribute(
 				'data-zoomed',
 				target?.camera !== undefined && target._placed && !target.camera.isZoomedOut(),
@@ -499,6 +506,11 @@ export class HTMLMicrioElement extends MicrioElement {
 		super.removeEventListener(type, listener, useCapture)
 	}
 
+	/** Pending `setTimeout` handles for content-page button actions, cancelled on destroy.
+	 *  @internal
+	 */
+	readonly _pageButtonTimers: ReturnType<typeof globalThis.setTimeout>[] = []
+
 	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */
 	destroy(): void {
 		this.current.set(undefined)
@@ -518,6 +530,14 @@ export class HTMLMicrioElement extends MicrioElement {
 			globalThis.removeEventListener('keydown', this.#onActivity)
 			this.#onActivity = undefined
 		}
+		// A page button navigates after a short delay; without this it would still mutate the
+		// viewer's state after its UI is gone.
+		for (const t of this._pageButtonTimers) {
+			clearTimeout(t)
+		}
+		this._pageButtonTimers.length = 0
+		this.#lazyObserver?.disconnect()
+		this.#lazyObserver = undefined
 		this.#printed = false
 		this.#printing = undefined
 	}
@@ -681,6 +701,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				},
 				{ rootMargin: `${opts.settings.lazyload * 100}% 0px` },
 			)
+			this.#lazyObserver = observer
 			observer.observe(this)
 		} else if (opts.id) {
 			Frame.request(openBundle)
