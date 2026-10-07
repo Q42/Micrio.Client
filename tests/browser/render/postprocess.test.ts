@@ -269,6 +269,61 @@ describe('WebGL watermark', () => {
 		release(micrio)
 	})
 
+	it('still fetches a watermark requested before the GL context exists', () => {
+		// What the element does on every load: it builds the image (and so asks for the
+		// watermark) *before* it creates the canvas and its context. Requesting the texture
+		// only when a context happened to exist meant the image was never fetched at all.
+		const srcs: string[] = []
+		const original = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src')
+		Object.defineProperty(HTMLImageElement.prototype, 'src', {
+			configurable: true,
+			set(value: string) {
+				srcs.push(value)
+			},
+			get() {
+				return srcs[srcs.length - 1] ?? ''
+			},
+		})
+
+		const micrio = document.createElement('micr-io') as HTMLMicrioElement
+		document.body.append(micrio)
+		expect(micrio._webgl.gl).toBeNull()
+		micrio._webgl._loadWatermark('https://example.test/wm.png')
+		expect(srcs).toEqual(['https://example.test/wm.png'])
+
+		if (original) {
+			Object.defineProperty(HTMLImageElement.prototype, 'src', original)
+		}
+		micrio.remove()
+	})
+
+	it('uploads and draws a watermark that arrived before init', async () => {
+		const restore = stubImageLoad()
+		const micrio = document.createElement('micr-io') as HTMLMicrioElement
+		micrio.setAttribute('style', 'width: 64px; height: 64px; display: block;')
+		document.body.append(micrio)
+		const webgl = micrio._webgl as WebGL
+
+		// Requested with no context (as the image constructor does), loaded, and only then
+		// does the context come up
+		webgl._loadWatermark('https://example.test/wm.png')
+		await Promise.resolve()
+		await Promise.resolve()
+		micrio._webgl._init()
+		const { gl } = micrio._webgl
+		if (!(gl instanceof WebGL2RenderingContext)) {
+			throw new Error('headless Chromium did not hand out a webgl2 context')
+		}
+
+		const drawArrays = vi.spyOn(gl, 'drawArrays')
+		webgl._drawEnd()
+		expect(drawArrays).toHaveBeenCalledWith(gl.TRIANGLES, 0, 6)
+
+		drawArrays.mockRestore()
+		restore()
+		release(micrio)
+	})
+
 	it('does not reload a watermark for the same URL', async () => {
 		const restore = stubImageLoad()
 		const { micrio } = makeGl()
