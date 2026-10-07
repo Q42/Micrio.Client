@@ -754,7 +754,9 @@ export class Engine {
 
 	/** @internal */
 	_shouldDraw(now: number): boolean {
-		this._frameTime = 1000 / Math.min(33, now - this.now)
+		// At least 1ms: two draws in the same millisecond (the synchronous `_drawSync`, or a resize
+		// burst) would otherwise make this Infinity and stall every opacity step for that frame.
+		this._frameTime = 1000 / Math.max(1, Math.min(33, now - this.now))
 		this.now = now
 		this._doneTotal = 0
 		this._toDrawTotal = 0
