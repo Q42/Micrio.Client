@@ -42,6 +42,25 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	/** The viewer, captured at mount: `_getMicrio()` walks the parent chain, which the layout
 	 *  has already removed by the time the teardown cleanup runs. */
 	#micrio: HTMLMicrioElement | undefined
+
+	/**
+	 * Sets the playback flags together and reports the transition, so `serialtour-play` and
+	 * `serialtour-pause` can never drift from the state they describe.
+	 * @internal
+	 */
+	#setPlaying(playing: boolean, paused: boolean): void {
+		const wasPlaying = this.#mediaPlaying && !this.#mediaPaused
+		this.#mediaPlaying = playing
+		this.#mediaPaused = paused
+		const isPlaying = playing && !paused
+		if (isPlaying === wasPlaying) {
+			return
+		}
+		const { tour } = this.#props
+		if (tour) {
+			this._getMicrio()?.events._dispatch(isPlaying ? 'serialtour-play' : 'serialtour-pause', tour)
+		}
+	}
 	#duration = 0
 	#noTimeScrub = false
 	/** Incremented by every `#openStep`, so a superseded call stops after its await. */
@@ -244,7 +263,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 						this.#break(error)
 					},
 					onblocked: () => {
-						this.#mediaPaused = true
+						this.#setPlaying(this.#mediaPlaying, true)
 					},
 					hasAudio: this.#stepInfo.some((s) => s.duration > 0),
 					fullscreenEl: micrio,
@@ -286,8 +305,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			}
 			// Real playback is the step's position, so the readout cannot drift from the audio
 			this.#elapsed = t
-			this.#mediaPlaying = true
-			this.#mediaPaused = false
+			this.#setPlaying(true, false)
 			const si = this.#stepInfo[this.#currentStep]
 			if (si !== undefined) {
 				si.currentTime = t
@@ -299,7 +317,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		}
 		// Blocked by the browser: the step is playable by hand, so it waits paused
 		const onBlocked = () => {
-			this.#mediaPaused = true
+			this.#setPlaying(this.#mediaPlaying, true)
 			this.#updateBars()
 		}
 		// A source that cannot play is a real failure: the tour stops and says why
