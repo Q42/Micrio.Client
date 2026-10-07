@@ -470,6 +470,12 @@ export class WebGL {
 
 	/** Finalizes frame drawing (renders postprocessing effect if active). @internal */
 	_drawEnd(): void {
+		// The context can be lost mid-frame; `#ctx` throws when it is, and the canvas draw path
+		// returns early on a lost context, so this has to as well rather than error every frame
+		// for the whole loss window.
+		if (!this.gl) {
+			return
+		}
 		// If postprocessor exists, render its effect to the screen
 		if (this._postprocessor) {
 			this._postprocessor._render()
