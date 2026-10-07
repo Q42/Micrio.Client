@@ -60,7 +60,10 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		const updateCaption = () => {
 			const item = this.#props.gallery[currentIdx]
 			const text = item?.i18n?.[this.#props.lang]?.description
-			caption.innerHTML = text ?? ''
+			// A description is plain asset metadata, rendered as text everywhere else
+			// (`marker-content` uses `textContent` for the same field), so markup in it is shown
+			// literally instead of being parsed into the page.
+			caption.textContent = text ?? ''
 			caption.style.display = text ? '' : 'none'
 		}
 
