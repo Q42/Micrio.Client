@@ -52,6 +52,11 @@ export class DragHandler {
 		}
 		this.#hooked = false
 
+		// End a drag that is still in flight: its window move/up listeners are only removed by
+		// `stop()`, so otherwise a disabled viewer keeps panning the camera and `_panning` stays
+		// set, which blocks every later drag and keeps `isNavigating` true (continuous rendering).
+		this.stop(undefined, true, true)
+
 		this.#ctx._micrio.removeEventListener('pointerdown', this.start, eventPassive)
 		this.#ctx._micrio.removeEventListener('dragstart', cancelPrevent)
 		self.removeEventListener('pointercancel', this.#cancel, eventPassive)

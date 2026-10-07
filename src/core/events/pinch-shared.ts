@@ -78,6 +78,32 @@ export function pinchStop(ctx: EventContext, _e: Event, moveHandler: EventListen
 }
 
 /**
+ * Ends a pinch that is still in flight when its handlers are detached.
+ *
+ * A pinch interrupted this way can never complete — its move/up listeners are gone — so
+ * without this `_pinching` stays set, blocking every later drag and keeping `isNavigating`
+ * true (which makes the engine render continuously), and the camera keeps its pinch state.
+ * Unlike {@link pinchStop} this reports nothing to the host, because no gesture ended.
+ * @internal
+ * @param ctx The shared event context.
+ */
+export function pinchCancel(ctx: EventContext): void {
+	if (!ctx._pinching) {
+		return
+	}
+	ctx._pinching = false
+	delete ctx._micrio.dataset.pinching
+
+	const i = ctx._vars._pinch._image
+	if (i) {
+		i.canvas?.camera._pinchStop()
+		ctx._micrio._engine.render()
+	}
+	ctx._vars._pinch._image = undefined
+	ctx._pinchFactor = undefined
+}
+
+/**
  * If only one pointer remains after a pinch ends, synthesises a pointerdown event to resume panning.
  * @internal
  * @param ctx The shared event context.

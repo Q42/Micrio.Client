@@ -1,6 +1,6 @@
 import { eventPassive, eventPassiveCapture, type EventContext } from './shared'
 import type { DragHandler } from './drag'
-import { pinchStart, pinchMove, pinchStop, restartPanning } from './pinch-shared'
+import { pinchStart, pinchMove, pinchStop, pinchCancel, restartPanning } from './pinch-shared'
 
 /**
  * Pointer-based pinch event handler module.
@@ -36,6 +36,8 @@ export class PointerPinchHandler {
 		// Clean up pinch move listener if it was active
 		self.removeEventListener('pointermove', this.#move, eventPassiveCapture)
 		this.#ctx._activePointers.clear()
+		// A pinch in flight can never complete once its listeners are gone
+		pinchCancel(this.#ctx)
 	}
 
 	/**
