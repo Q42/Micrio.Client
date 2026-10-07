@@ -148,8 +148,11 @@ export const sleep = (ms: number) =>
 /** Returns a Promise that resolves after the next browser paint (two frames). @internal */
 export const afterFrame = (): Promise<void> => Frame.afterPaint()
 
-/** Set of script URLs already loaded or currently loading. @internal */
+/** Set of script URLs already loaded successfully. @internal */
 const loaded = new Set<string>()
+
+/** In-flight script loads by URL, so two concurrent callers share one request. @internal */
+const inFlight = new Map<string, Promise<void>>()
 
 /**
  * Loads an external JavaScript file dynamically. Ensures scripts are loaded only once per session.
@@ -178,12 +181,19 @@ export async function loadExternalAPI(windowKey: string, url: string, cbFunc?: s
 }
 
 /** Dynamically loads an external script, ensuring it is loaded only once per session. @internal */
-export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
-	new Promise<void>((ok, err) => {
-		if (targetObj !== undefined || loaded.has(src)) {
-			ok()
-			return
-		}
+export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown): Promise<void> => {
+	if (targetObj !== undefined || loaded.has(src)) {
+		return Promise.resolve()
+	}
+	// Two embeds can ask for the same API in the same tick (two YouTube players mounting
+	// together). Injecting the script twice installs a second `cbFunc` global, and the API calls
+	// it once — so the first caller's promise would never settle. Sharing the in-flight promise
+	// is what keeps both of them resolvable.
+	const pending = inFlight.get(src)
+	if (pending) {
+		return pending
+	}
+	const promise = new Promise<void>((ok, err) => {
 		const script = document.createElement('script')
 		// Only the first signal counts: a script that errors after its callback already
 		// ran is not an error, and vice versa.
@@ -224,4 +234,10 @@ export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
 		}
 		script.src = src
 		document.head.append(script)
+	}).finally(() => {
+		// A failed load is not remembered, so the next caller still retries it
+		inFlight.delete(src)
 	})
+	inFlight.set(src, promise)
+	return promise
+}
