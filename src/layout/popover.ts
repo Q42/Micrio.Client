@@ -38,6 +38,11 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 					if (p && 'marker' in p && p.marker && p.image?.state?.marker) {
 						p.image.state.marker.set(undefined)
 					}
+					// Reported before the state is cleared, and only for a content page: a marker
+					// popover closing is not a page close.
+					if (p && 'contentPage' in p && p.contentPage) {
+						micrio.events._dispatch('page-closed', p.contentPage)
+					}
 					micrio.state.popover.set(undefined)
 				},
 				// No `click` handler: like in 6, clicking outside the popover does not
