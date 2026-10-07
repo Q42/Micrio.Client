@@ -99,4 +99,24 @@ describe('pre-v5 vs v5+ bundles', () => {
 		expect(viewer.el.lang).toBe('nl')
 		viewer.destroy()
 	})
+
+	it('substitutes $lang in a custom JS url with the language it settled on', async () => {
+		// A data URL, so the script is real but never leaves the page
+		const viewer = mountViewer()
+		const bundle = legacyBundle()
+		bundle.info.revision = { en: 1, nl: 2 }
+		bundle.settings = { js: { href: 'data:text/javascript,/*$lang*/' } }
+		await viewer.open(bundle)
+		await waitForLoaded(viewer)
+
+		// No `lang` attribute, and no revision entry for the initial (undefined) language, so the
+		// image settles on 'en'. The custom JS URL has to follow it: substituting the pre-switch
+		// language produced a literal `undefined`, i.e. a script that can never load.
+		expect(viewer.el.lang).toBe('en')
+		const src = document.head
+			.querySelector<HTMLScriptElement>('script[src^="data:text/javascript,"]')
+			?.getAttribute('src')
+		expect(src).toBe('data:text/javascript,/*en*/')
+		viewer.destroy()
+	})
 })

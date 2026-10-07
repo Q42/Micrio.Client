@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { get } from '$core/store'
 import type { MicrioImage } from '$core/image'
 import { collectEvents, mountViewer, waitFor } from '../../helpers/viewer'
+import { settle } from '../../helpers/tour'
 import { legacyBundle, modernBundle } from '../../fixtures/bundles'
+import { videoTour } from '../../fixtures/tours'
 import { mockJson, requested, restoreNetwork } from '../../helpers/network'
 
 /**
@@ -154,6 +156,66 @@ describe('<micr-io> open()', () => {
 		}).not.toThrow()
 		expect(document.body.querySelector('micr-io')).toBeNull()
 		restoreNetwork()
+	})
+})
+
+describe('<micr-io> reconnect', () => {
+	/**
+	 * Reconnecting the element (a SPA moving it between containers) re-runs `_onMount` on every
+	 * descendant. The layers the layout reuses from the same host element render again when it
+	 * mounts, so each one has to rebuild rather than append a second copy.
+	 */
+	it('does not duplicate the mount-once UI', async () => {
+		const viewer = mountViewer()
+		await viewer.open(modernBundle())
+		await waitForLoaded(viewer, 'rqFkjZz')
+
+		const counts = () => ({
+			main: viewer.el.querySelectorAll('micrio-main').length,
+			logoLinks: viewer.el.querySelectorAll('micrio-logo > a').length,
+			minimapCanvases: viewer.el.querySelectorAll('micrio-minimap > canvas').length,
+			zoomButtons: viewer.el.querySelectorAll('micrio-controls micrio-zoom-buttons > micrio-button').length,
+		})
+		const before = counts()
+		expect(before).toEqual({ main: 1, logoLinks: 1, minimapCanvases: 1, zoomButtons: 2 })
+
+		viewer.el.remove()
+		document.body.append(viewer.el)
+		await settle(2)
+
+		expect(counts()).toEqual(before)
+		viewer.destroy()
+	})
+
+	it("does not replay the image's start action", async () => {
+		// A video tour is the cleanest start action to observe: clearing the `tour` store unmounts
+		// the element without leaving a dialog (whose deferred `close` would clear a re-opened
+		// popover again), and it leaves no marker behind for the auto-start guard to trip on.
+		const tour = videoTour({ id: 'vt-start', duration: 6 })
+		const bundle = modernBundle()
+		const data = bundle.data
+		if (!data) {
+			throw new Error('no bundle data')
+		}
+		data.tours = [tour]
+		bundle.settings = { start: { type: 'tour', id: tour.id } }
+
+		const viewer = mountViewer()
+		await viewer.open(bundle)
+		await waitForLoaded(viewer, 'rqFkjZz')
+		await waitFor(() => get(viewer.el.state.tour) !== undefined, 4000, 'the autostarted tour')
+
+		// The visitor closes it: the start action has had its turn for this image
+		viewer.el.state.tour.set(undefined)
+		await waitFor(() => viewer.el.querySelector('micrio-tour') === null, 4000, 'the tour to unmount')
+
+		viewer.el.remove()
+		document.body.append(viewer.el)
+		await settle(3)
+
+		// The completed id is remembered across mounts, so the tour does not start itself again
+		expect(get(viewer.el.state.tour)).toBeUndefined()
+		viewer.destroy()
 	})
 })
 
