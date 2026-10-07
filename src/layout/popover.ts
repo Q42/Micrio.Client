@@ -171,24 +171,29 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			if (button.type === 'close') {
 				return
 			}
-			// Give the popover time to close before switching content, like in 6
-			setTimeout(() => {
-				const data = micrio.$current?.$data
-				switch (button.type) {
-					case 'marker': {
-						micrio.$current?.state.marker.set(button.action)
-						break
+			// Give the popover time to close before switching content, like in 6. The timer is
+			// owned by the viewer rather than this element: closing the dialog removes the
+			// popover in the same tick, so a cleanup here would cancel the navigation.
+			const micrioEl = micrio
+			micrioEl._pageButtonTimers.push(
+				setTimeout(() => {
+					const data = micrio.$current?.$data
+					switch (button.type) {
+						case 'marker': {
+							micrio.$current?.state.marker.set(button.action)
+							break
+						}
+						case 'mtour': {
+							micrio.state.tour.set(data?.markerTours?.find((t) => t.id === button.action))
+							break
+						}
+						case 'vtour': {
+							micrio.state.tour.set(data?.tours?.find((t) => t.id === button.action))
+							break
+						}
 					}
-					case 'mtour': {
-						micrio.state.tour.set(data?.markerTours?.find((t) => t.id === button.action))
-						break
-					}
-					case 'vtour': {
-						micrio.state.tour.set(data?.tours?.find((t) => t.id === button.action))
-						break
-					}
-				}
-			}, 200)
+				}, 200),
+			)
 		}
 
 		// 6 parity: no aside at all when the page closes itself and no tour nav is needed
@@ -312,6 +317,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 				createElement('micrio-marker-content', {
 					setProps: {
 						marker,
+						image: micrio.$current,
 						noEmbed: true,
 						noGallery: true,
 						noImages: !content || !content.embedUrl,
