@@ -387,6 +387,34 @@ export class Engine {
 	}
 
 	/**
+	 * Drops every tile's GPU handle so a restored WebGL context uploads its textures again.
+	 *
+	 * A lost context invalidates all of its objects, but the tile entries keep the handles and
+	 * `_loadState >= 2`, so `#drawTile` would keep drawing the dead handle. `#cleanup` only
+	 * evicts an out-of-view tile after `#deleteAfterSeconds`, so an in-view tile would never
+	 * be reloaded and the viewer would stay blank. In-flight requests belong to the old context
+	 * too, and `_getTexture` refuses an index that is still requested.
+	 * @internal
+	 */
+	_resetTiles(): void {
+		for (const tile of this.#tiles.values()) {
+			tile._texture = undefined
+			tile._loadState = 0
+			tile._deleteAt = undefined
+			if (tile._timeoutId) {
+				clearTimeout(tile._timeoutId)
+				tile._timeoutId = undefined
+			}
+		}
+		// Deleting the entry currently being visited is safe for a Map iterator, so this is a
+		// plain loop rather than a snapshot copy.
+		for (const [idx, src] of this.#requests) {
+			abortDownload(src)
+			this.#deleteRequest(idx)
+		}
+	}
+
+	/**
 	 * Adds a new image canvas instance to the engine.
 	 * @internal
 	 */

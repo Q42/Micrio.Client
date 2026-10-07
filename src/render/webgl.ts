@@ -152,6 +152,8 @@ export class WebGL {
 			console.error('Micrio: could not restore the WebGL context', e)
 			return
 		}
+		// Every tile texture died with the context, so the engine re-uploads them into the new one
+		this.#micrio._engine._resetTiles()
 		this.#micrio._engine.render()
 	}
 
