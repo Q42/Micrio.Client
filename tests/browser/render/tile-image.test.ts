@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
 import { sleep } from '$utils/dom'
 import { bundleWithFreshId } from '../../fixtures/bundles'
-import { openSpace } from '../../fixtures/space-fixture'
+import { openSpace, openVisibleSpace } from '../../fixtures/space-fixture'
 import type Image from '$render/tile-image'
 import type { TileCanvas } from '$render/tile-canvas'
 
@@ -235,16 +235,17 @@ describe('Image tile culling', () => {
 		viewer.destroy()
 	})
 
-	it('a cull for an off-screen visible rect still queues the base tile', async () => {
+	it('a cull for an off-screen image still queues the base tile', async () => {
 		const { viewer, canvas, image } = await openImage()
 		image.opacity = 1
 		image._gotBase = 0
-		// An empty visible rect with an item outside the view: `#getTilesRect` returns in its
-		// `outsideView` guard, but the base tile is pushed before that
-		canvas.visible.set(0.5, 0.5, 0, 0)
+		// An item outside the view *with* a real visible rect: `#getTilesRect` is entered and
+		// returns in its `outsideView` guard, so the base tile is all that gets queued.
+		canvas.visible.set(0.5, 0.5, 1, 1)
 		image._setArea(2, 2, 3, 3)
+		canvas._toDraw.length = 0
 		image._getTiles(canvas.camera._scale)
-		expect(canvas._toDraw).toContain(image._endOffset - 1)
+		expect(canvas._toDraw).toEqual([image._endOffset - 1])
 		viewer.destroy()
 	})
 })
@@ -287,5 +288,118 @@ describe('Image in a 360 canvas', () => {
 		expect(image._rWidth).toBeCloseTo(1, 9)
 		expect(image._rHeight).toBeCloseTo(1, 9)
 		opened.viewer.destroy()
+	})
+})
+
+describe('360 embeds on a placed canvas', () => {
+	/**
+	 * A 360 *embed* is a second image on a sphere canvas (`_localIdx > 0`), and it is culled
+	 * through `#getTilesViewport` rather than the 2D rect path. One viewer for the whole block
+	 * (the GL-context budget), carrying exactly one embed.
+	 *
+	 * The frustum is hand-built: `#sphere3DOverlap` reads `_cameraForward*` and `_fieldOfView`
+	 * directly, so setting them pins the embed in (or out of) view without touching the camera's
+	 * yaw convention. All assertions run synchronously, so the engine cannot overwrite the
+	 * fields in a frame.
+	 */
+	let viewer: Viewer
+	let canvas: TileCanvas
+	let embed: Image
+
+	beforeAll(async () => {
+		const { viewer: openedViewer } = await openVisibleSpace(0)
+		await waitFor(() => openedViewer.el._engine._canvases.length > 0, 8000, 'a 360 canvas')
+		const placed = openedViewer.el._engine._canvases[0]
+		const image = openedViewer.el.$current
+		if (!placed || !image) {
+			throw new Error('no 360 canvas')
+		}
+		viewer = openedViewer
+		canvas = placed
+		// The element's own placement path, so the engine's per-image arrays stay addressed and
+		// `canvas._draw()` reaches the embed's `#setTile`.
+		image.addEmbed(
+			{ id: 'subimg', width: 512, height: 512, path: 'https://r2.micr.io/', isSingle: false, isVideo: false },
+			{ _360: {} },
+			[0.25, 0.25, 0.5, 0.5],
+			{ opacity: 1, asImage: false },
+		)
+		const sub = canvas.images.find((i) => i._localIdx > 0)
+		if (!sub) {
+			throw new Error('the embed was not placed on the canvas')
+		}
+		embed = sub
+	})
+
+	afterAll(() => {
+		viewer.destroy()
+	})
+
+	/** Points the frustum at the embed (a huge FoV) or away from it. */
+	function faceEmbed(inView: boolean): void {
+		const cam = canvas._camera360
+		cam._fieldOfView = inView ? Math.PI : 0
+		cam._cameraForwardX = 0
+		cam._cameraForwardY = 0
+		cam._cameraForwardZ = inView ? 1 : -1
+	}
+
+	it('culls a 360 embed through the viewport branch', () => {
+		embed._setArea(0.25, 0.25, 0.75, 0.75)
+		embed.opacity = 1
+		embed._gotBase = 1
+		faceEmbed(true)
+		canvas.view.set(0.5, 0.5, 0.5, 0.5)
+
+		expect(embed._shouldRender()).toBe(true)
+		canvas._toDraw.length = 0
+		embed._getTiles(1)
+		// The embed is visible, so more than its always-queued base tile is culled
+		expect(embed._doRender).toBe(true)
+		expect(canvas._toDraw.length).toBeGreaterThan(1)
+		expect(canvas._toDraw.every((i) => i >= 0 && i < embed._endOffset)).toBe(true)
+		expect(canvas._toDraw).toContain(embed._endOffset - 1)
+
+		// Behind the camera the same embed queues only its base tile
+		faceEmbed(false)
+		canvas._toDraw.length = 0
+		embed._getTiles(1)
+		expect(canvas._toDraw).toEqual([embed._endOffset - 1])
+	})
+
+	it('culls an embed that straddles the seam, and skips a disjoint view', () => {
+		embed.opacity = 1
+		embed._gotBase = 1
+		faceEmbed(true)
+
+		// An area that wraps past the right edge, viewed at the seam: both longitudes wrap
+		embed._setArea(0.9, 0.25, 1.15, 0.75)
+		canvas.view.set(0.95, 0.5, 0.5, 0.5)
+		canvas._toDraw.length = 0
+		embed._getTiles(1)
+		expect(canvas._toDraw.length).toBeGreaterThan(1)
+		expect(canvas._toDraw.every((i) => i >= 0 && i < embed._endOffset)).toBe(true)
+
+		// A view on a different latitude than the embed queues nothing beyond the base tile
+		embed._setArea(0.25, 0.75, 0.75, 1)
+		canvas.view.set(0.5, 0.1, 0.5, 0.1)
+		canvas._toDraw.length = 0
+		embed._getTiles(1)
+		expect(canvas._toDraw).toEqual([embed._endOffset - 1])
+	})
+
+	it('writes the sphere draw rect through the canvas draw path', () => {
+		faceEmbed(true)
+		// `_setDrawRect` is only reachable from `TileCanvas.#setTile`, i.e. through `_draw`
+		canvas._toDraw.length = 0
+		canvas._toDraw.push(embed._endOffset - 1)
+		canvas._draw()
+
+		const v = canvas.main._vertexBuffer
+		// The two triangles share their duplicated corners exactly
+		expect(v.slice(3, 6)).toEqual(v.slice(9, 12))
+		expect(v.slice(6, 9)).toEqual(v.slice(15, 18))
+		expect(v.slice(0, 18).every(Number.isFinite)).toBe(true)
+		expect(v.slice(0, 18).some((n) => n !== 0)).toBe(true)
 	})
 })
