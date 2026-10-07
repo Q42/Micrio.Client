@@ -91,10 +91,9 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		this._addCleanup(
 			micrio.current.subscribe((c) => {
 				if (c) {
-					const $tour = get(tour)
-					if ($tour && 'steps' in $tour) {
-						return
-					}
+					// Always re-subscribe, even while a marker tour is running: the tour opens a new
+					// image on every cross-image step, and skipping it here left `readInfo` — the only
+					// writer of `#showCultures`/`#showSocial`/`#showFullscreen` — on the previous image.
 					settingsUnsub?.()
 					settingsUnsub = c._settings.subscribe(readInfo)
 				}
