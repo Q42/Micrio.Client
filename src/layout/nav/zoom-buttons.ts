@@ -44,7 +44,8 @@ class MicrioZoomButtons extends MicrioElement {
 				this.#btnIn._setProps({ title: $i18n._zoomIn, disabled: img?.camera.isZoomedIn() ?? true })
 			}
 			if (this.#btnOut instanceof MicrioElement) {
-				this.#btnOut._setProps({ title: $i18n._zoomOut, disabled: img?.camera.isZoomedOut() })
+				// `undefined` renders an enabled button, and the click would be a no-op
+				this.#btnOut._setProps({ title: $i18n._zoomOut, disabled: img?.camera.isZoomedOut() ?? true })
 			}
 		}
 
