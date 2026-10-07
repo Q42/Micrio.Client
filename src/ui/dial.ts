@@ -67,14 +67,28 @@ class MicrioDial extends MicrioElement<DialProps> {
 		}
 
 		const dStop = () => {
-			if (pointerId) {
+			// Only release what `dStart` captured: `releasePointerCapture` throws for an id the
+			// element does not hold, and `hasPointerCapture` is not a reliable guard (both can be
+			// overridden independently).
+			if (pointerId !== undefined) {
 				micrio.releasePointerCapture(pointerId)
 			}
+			pointerId = undefined
 			delete micrio.dataset.panning
 			micrio.removeEventListener('pointermove', dMove)
 			micrio.removeEventListener('pointerup', dStop)
+			micrio.removeEventListener('pointercancel', dStop)
 		}
 		this.addEventListener('pointerdown', dStart)
+		// Without `pointercancel` and the teardown below, an interrupted drag left the capture,
+		// `data-panning` and both listeners on `<micr-io>`, and the dial kept turning on any later
+		// pointer move — even after `omni.ts` had replaced it.
+		micrio.addEventListener('pointercancel', dStop)
+		this._addCleanup(() => {
+			dStop()
+			this.removeEventListener('pointerdown', dStart)
+			micrio.removeEventListener('pointercancel', dStop)
+		})
 	}
 
 	/** @internal */
