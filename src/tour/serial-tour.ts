@@ -38,6 +38,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#broken = false
 	#duration = 0
 	#noTimeScrub = false
+	/** Incremented by every `#openStep`, so a superseded call stops after its await. */
+	#stepToken = 0
 
 	/** @internal */
 	_onMount() {
@@ -139,6 +141,11 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (!micrio) {
 			return
 		}
+		// Opening a cross-image step can take a whole step's worth of time, during which the
+		// interval keeps calling `#openStep` for the same target (the step is not committed yet).
+		// This token makes every call after the newest a no-op, so the step's media is not torn
+		// down and rebuilt over and over while the image loads.
+		const token = ++this.#stepToken
 
 		const close = () => {
 			micrio.state.tour.set(undefined)
@@ -166,6 +173,9 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		if (si.micrioId && micrio.$current?.id !== si.micrioId) {
 			await micrio.open(si.micrioId, { startView })
+			if (token !== this.#stepToken || !this.isConnected) {
+				return
+			}
 		}
 
 		// Opening the step image can take as long as a whole step, so the clock only starts
@@ -392,10 +402,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } })
 		for (const [i, si] of this.#stepInfo.entries()) {
 			const marker = DataLoader._getStepMarker(si)
-			createElement('div', {
-				attrs: { 'data-part': 'bar', role: 'progressbar', tabindex: '0' },
+			const title = this.#getTitle(marker) ?? ''
+			// A real button rather than a focusable `role="progressbar"`: the bar *does* navigate
+			// on click, so it has to be activatable by keyboard and carry a name.
+			createElement('button', {
+				attrs: { 'data-part': 'bar', type: 'button', 'aria-label': title },
 				dataset: { idx: String(i) },
-				props: { title: this.#getTitle(marker) ?? '' },
+				props: { title },
 				style: { width: `${(si.duration / (this.#duration || 1)) * 100}%` },
 				events: {
 					click: () => {
@@ -409,7 +422,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	}
 
 	#goto(i: number) {
-		if (this.#noTimeScrub && i === this.#currentStep) {
+		// The setting means "the time bar is a readout, not a scrubber": it has to block a jump to
+		// another step too, not just a re-click of the current one (which the guard below already
+		// covered, making the setting a no-op).
+		if (this.#noTimeScrub) {
 			return
 		}
 		if (i === this.#currentStep) {
