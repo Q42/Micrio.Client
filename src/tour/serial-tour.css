@@ -25,6 +25,14 @@ micrio-serial-tour [data-part='bars'] > [data-part='bar'] {
 	cursor: pointer;
 	overflow: hidden;
 	background: transparent;
+	/* The bars are `<button>`s so they are keyboard-activatable: reset the UA styling that
+	   would otherwise add a border, padding and font. */
+	appearance: none;
+	border: 0;
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	color: inherit;
 }
 micrio-serial-tour [data-part='bars'] > [data-part='bar']::before {
 	display: block;
