@@ -205,13 +205,13 @@ export class View {
 			return
 		}
 
-		const overZoom: number = correctZoom ? Math.max(1, s / c._camera2d._maxScale) : 1
+		const overZoom: number = correctZoom && !c.is360 ? Math.max(1, s / c._camera2d._maxScale) : 1
 		const maxVw: number = this._lWidth
 		const maxVh: number = this._lHeight
 		const vw: number = Math.min(maxVw, this.width * overZoom)
 		const vh: number = Math.min(maxVh, this.height * overZoom)
 
-		if (correctZoom && (overZoom > 1 || (noLimit && s < c._camera2d._minScale))) {
+		if (correctZoom && !c.is360 && (overZoom > 1 || (noLimit && s < c._camera2d._minScale))) {
 			this.width = vw
 			this.height = vh
 		}
