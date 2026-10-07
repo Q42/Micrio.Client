@@ -357,28 +357,3 @@ describe('markers — clickable areas', () => {
 		opened.viewer.destroy()
 	})
 })
-
-describe('markers — image settings', () => {
-	it('applies the marker size and colour as layer variables', async () => {
-		const opened = await openMarkers(
-			markerBundle({ settings: { _markers: { markerSize: '40px', markerColor: '#ff0000' } } }),
-		)
-		const layer = opened.layer()
-		expect(layer?.style.getPropertyValue('--micrio-marker-size')).toBe('40px')
-		expect(layer?.style.getPropertyValue('--micrio-marker-color')).toBe('#ff0000')
-		opened.viewer.destroy()
-	})
-
-	it('clears the layer variables when the settings drop them', async () => {
-		const opened = await openMarkers(markerBundle({ settings: { _markers: { markerSize: '40px' } } }))
-		expect(opened.layer()?.style.getPropertyValue('--micrio-marker-size')).toBe('40px')
-
-		opened.image()._settings.set({ ...opened.image().$settings, _markers: {} })
-		await waitFor(
-			() => opened.layer()?.style.getPropertyValue('--micrio-marker-size') === '',
-			4000,
-			'the size variable cleared',
-		)
-		opened.viewer.destroy()
-	})
-})

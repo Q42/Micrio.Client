@@ -254,14 +254,6 @@ describe('marker positioning', () => {
 	})
 })
 
-/** The on-screen side a view of these fractions should produce. */
-const viewSide = (opened: Awaited<ReturnType<typeof openMarkers>>, view: Models.Camera.View): number => {
-	const { camera } = opened.image()
-	const [ax, ay] = camera.getXY(view[0], view[1])
-	const [bx, by] = camera.getXY(view[0] + view[2], view[1] + view[3])
-	return Math.max(8, Math.min(Math.abs(bx - ax), Math.abs(by - ay)))
-}
-
 /** The on-screen position the marker's own coordinates map to. */
 const markerPoint = (opened: Awaited<ReturnType<typeof openMarkers>>, x: number, y: number): [number, number] => {
 	const { camera } = opened.image()
@@ -270,28 +262,9 @@ const markerPoint = (opened: Awaited<ReturnType<typeof openMarkers>>, x: number,
 }
 
 describe('marker viewport sizing', () => {
-	it('centres and sizes a marker on its view', async () => {
-		const view: Models.Camera.View = [0.25, 0.25, 0.5, 0.5]
-		const opened = await openMarkers(
-			markerBundle({
-				markers: [marker('m1', { x: 0.1, y: 0.9, view })],
-				settings: { _markers: { viewportIsMarker: true } },
-			}),
-		)
-		const { camera } = opened.image()
-		const [cx, cy] = camera.getXY(0.5, 0.5)
-		const el = opened.markerEl('m1')
-
-		expect(Number.parseFloat(el?.style.getPropertyValue('--x') ?? '')).toBeCloseTo(cx, 1)
-		expect(Number.parseFloat(el?.style.getPropertyValue('--y') ?? '')).toBeCloseTo(cy, 1)
-		expect(Number.parseFloat(el?.style.getPropertyValue('--micrio-marker-size') ?? '')).toBeCloseTo(
-			viewSide(opened, view),
-			0,
-		)
-		opened.viewer.destroy()
-	})
-
-	it('leaves the marker at its own coordinates without the setting', async () => {
+	it('keeps a marker with a view at its own coordinates and CSS size', async () => {
+		// The dashboard-era `_markers.viewportIsMarker` is not read: the marker neither moves
+		// to its view's centre nor takes its size
 		const view: Models.Camera.View = [0.25, 0.25, 0.5, 0.5]
 		const opened = await openMarkers(markerBundle({ markers: [marker('m1', { x: 0.2, y: 0.3, view })] }))
 		const [px, py] = markerPoint(opened, 0.2, 0.3)
@@ -299,21 +272,6 @@ describe('marker viewport sizing', () => {
 
 		expect(Number.parseFloat(el?.style.getPropertyValue('--x') ?? '')).toBeCloseTo(px, 1)
 		expect(Number.parseFloat(el?.style.getPropertyValue('--y') ?? '')).toBeCloseTo(py, 1)
-		expect(el?.style.getPropertyValue('--micrio-marker-size')).toBe('')
-		opened.viewer.destroy()
-	})
-
-	it('keeps the fixed size for a marker without a view', async () => {
-		const opened = await openMarkers(
-			markerBundle({
-				markers: [marker('m1', { x: 0.2, y: 0.3 })],
-				settings: { _markers: { viewportIsMarker: true } },
-			}),
-		)
-		const [px] = markerPoint(opened, 0.2, 0.3)
-		const el = opened.markerEl('m1')
-
-		expect(Number.parseFloat(el?.style.getPropertyValue('--x') ?? '')).toBeCloseTo(px, 1)
 		expect(el?.style.getPropertyValue('--micrio-marker-size')).toBe('')
 		opened.viewer.destroy()
 	})

@@ -390,10 +390,6 @@ export namespace ImageInfo {
 	export interface MarkerSettings {
 		/** An image-wise custom marker icon */
 		markerIcon?: Assets.Image
-		/** The default marker color */
-		markerColor?: string
-		/** The default marker size in px */
-		markerSize?: string
 		/** Zoom out when closing a marker */
 		zoomOutAfterClose?: boolean
 		/** Relative speed factor when zooming out after close */
@@ -402,8 +398,6 @@ export namespace ImageInfo {
 		showTitles?: boolean
 		/** Don't print any marker titles at all */
 		noTitles?: boolean
-		/** All markers are sized to their viewports */
-		viewportIsMarker?: boolean
 		/** All marker embeds are printed in HTML, not WebGL */
 		embedsInHtml?: boolean
 		/** Auto-start a marker tour when just opening marker */

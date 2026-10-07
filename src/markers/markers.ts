@@ -234,12 +234,6 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				$tour !== undefined && !keepMarkers && (tourIsMarkerTour ? Boolean(ms.hideMarkersDuringTour) : true),
 			)
 
-			// The marker size/colour are CSS variables on the layer, so every marker (and
-			// the synthetic clusters) inherits them; an unset setting clears the inline
-			// value again instead of pinning it to a stale one.
-			this.style.setProperty('--micrio-marker-size', ms.markerSize ?? '')
-			this.style.setProperty('--micrio-marker-color', ms.markerColor ?? '')
-
 			const $switching = get(switching)
 			if (!$switching && micrio.spaceData) {
 				const links = micrio.spaceData.links.filter((l) => l[0] === image.id || l[1] === image.id)

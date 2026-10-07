@@ -489,8 +489,10 @@ is the real discriminator.
 ### Markers, settings and clustering
 
 The layer is the only part of the subsystem that reacts to the settings store
-(`_watchLater(image._settings, rebuild)`); element-level settings (`viewportIsMarker`,
-`preventAutoPlay`) are read when a marker is built or repositioned, i.e. at load time.
+(`_watchLater(image._settings, rebuild)`); element-level settings (`preventAutoPlay`) are
+read when a marker is built or repositioned, i.e. at load time. A marker's size and colour
+come from CSS only — the dashboard-era `_markers.markerSize`, `markerColor` and
+`viewportIsMarker` are ignored (the old image data still carries them).
 
 - **Clustering** groups pairs closer than `_markers.clusterMarkerRadius` (top-level
   `clusterMarkerRadius`, default 24 px) in screen space. Either member of a pair can opt
@@ -500,13 +502,6 @@ The layer is the only part of the subsystem that reacts to the settings store
   `clusterMarkers` off removes the clusters and restores the markers. An edited marker
   (same id, new object) and its clickable area are re-rendered, since `rebuild` compares
   the marker object each element was built from.
-- **`markerColor` / `markerSize`** are written as `--micrio-marker-color` /
-  `--micrio-marker-size` on the layer, so every marker (and cluster) inherits them;
-  `viewportIsMarker` overrides the size per marker.
-- **`viewportIsMarker`** places a marker that has a `view` at the view's centre and sizes
-  it to the smaller on-screen side of that view (min 8 px). Clustering still measures
-  member `x`/`y`, so a viewport-sized member's cluster centroid is its dot position, not
-  its view centre.
 - **`embedsInHtml`** forces the HTML render path for the embeds that carry a `marker`
   (the clickable areas); the image's own embeds and `data-embeds-inside-gl` keep their
   behaviour.
