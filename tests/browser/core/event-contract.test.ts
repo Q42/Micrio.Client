@@ -6,8 +6,13 @@ import { EVENT_CATALOG, EVENT_NAMES, type DetailKind, type EventName } from '../
 import { marker, modernBundle } from '../../fixtures/bundles'
 import { markerBundle, waitForMarker } from '../../fixtures/markers'
 import { markerTour } from '../../fixtures/tours'
+import { openGrid, restoreArchiveXhr } from '../../fixtures/grid'
 import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
 import { settle } from '../../helpers/tour'
+import { cellButton, focusCell, settleFrames } from '../../helpers/grid'
+import { mountTour } from '../../helpers/tour'
+import { mountMedia, waitForRender, anyMedia } from '../../helpers/media'
+import { videoTour, tourBundle } from '../../fixtures/tours'
 
 /**
  * The public event contract, end to end.
@@ -64,8 +69,9 @@ function assertDetail(type: EventName, detail: unknown): void {
 	const label = `${type} detail`
 	switch (kind) {
 		case 'void': {
-			// An event with no payload is dispatched with no detail at all.
-			expect(detail, label).toBeUndefined()
+			// Dispatched without a detail; `CustomEvent` reports that as `null`, but a handler
+			// installed before the event is created sees no `detail` at all.
+			expect(detail ?? undefined, label).toBeUndefined()
 			break
 		}
 		case 'array': {
@@ -95,6 +101,7 @@ afterEach(() => {
 	viewer?.destroy()
 	viewer = undefined
 	rec = undefined
+	restoreArchiveXhr()
 })
 
 /** Mounts and opens a bundle, returning the viewer with recording already attached. */
@@ -239,6 +246,26 @@ describe('marker and tour events', () => {
 		await waitFor(() => r.details('tour-ended').length > 0, 4000, 'the tour to report its end')
 
 		expect(same(r.details('tour-ended')[0], tour)).toBe(true)
+		// The end is reported once even though both the store clearing and the element's
+		// teardown observe the same stop.
+		expect(r.details('tour-ended')).toHaveLength(1)
+	})
+
+	it('reports tour-stop once even when the tour element is removed again', async () => {
+		const fixture = markerBundle({ markerTours: [markerTour({ steps: ['m1', 'm2'] })] })
+		const tour = fixture.markerTours[0]
+		const { viewer: v, rec: r } = await open(fixture.bundle)
+
+		v.el.state.tour.set(tour)
+		await waitFor(() => v.el.querySelector('micrio-tour') !== null, 4000, 'the tour element')
+		v.el.state.tour.set(undefined)
+		await waitFor(() => r.details('tour-stop').length > 0, 4000, 'tour-stop')
+
+		// Clearing an already-cleared tour must not report a second stop.
+		v.el.state.tour.set(undefined)
+		await settle(3)
+
+		expect(r.details('tour-stop')).toHaveLength(1)
 	})
 
 	it('fires marker-open, marker-opened and marker-closed around one marker', async () => {
@@ -289,5 +316,145 @@ describe('events that must not double-fire', () => {
 
 		expect(r.details('audio-mute')).toHaveLength(1)
 		expect(r.details('audio-unmute')).toHaveLength(1)
+	})
+})
+
+describe('camera events', () => {
+	it('fires move and zoom with the image and view they describe', async () => {
+		// Recording starts after the open so the first post-open camera write is the only signal.
+		const v = mountViewer()
+		viewer = v
+		await v.open(modernBundle())
+		await waitFor(() => !get(v.el._loading), 4000, 'loading to finish')
+		const r = record(v.el)
+		rec = r
+
+		// `setCoo` writes the canvas view without publishing a change; the camera's animated
+		// entry points are the ones that end in `_viewChanged`, which is what the pair reports.
+		await v.el.camera?.zoom(-200, 0)
+
+		await waitFor(() => r.details('move').length > 0, 4000, 'move')
+		const moved = expectFired(r, 'move') as { image?: unknown; view?: unknown }
+		expect(same(moved.image, v.el.$current)).toBe(true)
+		expect(Array.isArray(moved.view) || ArrayBuffer.isView(moved.view)).toBe(true)
+
+		// `zoom` is gated on the view dimensions changing, which the zoom above does.
+		expectFired(r, 'zoom')
+	})
+
+	it('fires draw while the engine renders', async () => {
+		// `open()` records from before the load, so a rendered frame is already guaranteed.
+		const { rec: r } = await open(modernBundle())
+		await waitFor(() => r.details('draw').length > 0, 4000, 'a drawn frame')
+		expectFired(r, 'draw')
+	})
+})
+
+describe('grid events', () => {
+	it('fires grid-init, grid-load and grid-layout-set for a grid album', async () => {
+		const { viewer: v, grid, gridEl } = await openGrid({ count: 4 })
+		viewer = v
+		expect(grid).toBeDefined()
+		expect(gridEl).toBeDefined()
+		const r = record(v.el)
+		rec = r
+
+		// The album has already built its grid by now, so re-print a layout to observe the
+		// update path rather than asserting on events that fired before recording started.
+		const ids = grid?.images?.map((i) => i.id) ?? []
+		await grid?.['set']?.([{ id: ids[0] ?? '', size: [1] }], { duration: 0 })
+		await settleFrames(2)
+
+		expectFired(r, 'grid-layout-set')
+
+		const cell = cellButton(gridEl as unknown as Parameters<typeof cellButton>[0], ids[0] ?? '')
+		expect(cell).toBeDefined()
+		await focusCell(grid as NonNullable<typeof grid>, ids[0] ?? '')
+		expectFired(r, 'grid-focus')
+	})
+
+	it('fires grid-blur when the focused grid goes away', async () => {
+		const { viewer: v, grid, gridEl } = await openGrid({ count: 4 })
+		viewer = v
+		const r = record(v.el)
+		rec = r
+
+		const ids = grid?.images?.map((i) => i.id) ?? []
+		await focusCell(grid as NonNullable<typeof grid>, ids[0] ?? '')
+		await grid?.['back']?.()
+		await waitFor(() => r.details('grid-blur').length > 0, 4000, 'grid-blur')
+
+		expectFired(r, 'grid-blur')
+		expect(gridEl).toBeDefined()
+	})
+})
+
+describe('media events', () => {
+	it('fires media-play, media-pause and media-ended on the element transitions', async () => {
+		const setup = await mountTour(tourBundle({}))
+		viewer = { el: setup.el, open: setup.open, destroy: setup.destroy }
+		const r = record(setup.el)
+		rec = r
+
+		const el = await mountMedia({ src: 'https://r2.micr.io/audio/track.mp3' }, setup)
+		await waitForRender(el)
+		const media = anyMedia(el) as HTMLAudioElement
+		expect(media).toBeInstanceOf(HTMLAudioElement)
+
+		// Headless Chromium never really plays, so the transitions are driven by hand. The
+		// wiring listens on the element, which is exactly what a real play would fire.
+		Object.defineProperty(media, 'paused', { value: false, configurable: true })
+		media.dispatchEvent(new Event('play'))
+		await settle()
+
+		expectFired(r, 'media-play')
+
+		Object.defineProperty(media, 'paused', { value: true, configurable: true })
+		media.dispatchEvent(new Event('pause'))
+		await settle()
+
+		expectFired(r, 'media-pause')
+
+		media.dispatchEvent(new Event('ended'))
+		await waitFor(() => r.details('media-ended').length > 0, 4000, 'media-ended')
+
+		expectFired(r, 'media-ended')
+	})
+
+	it('does not repeat media-play when the element re-fires play without a pause', async () => {
+		const setup = await mountTour(tourBundle({}))
+		viewer = { el: setup.el, open: setup.open, destroy: setup.destroy }
+		const r = record(setup.el)
+		rec = r
+
+		const el = await mountMedia({ src: 'https://r2.micr.io/audio/loop.mp3' }, setup)
+		await waitForRender(el)
+		const media = anyMedia(el) as HTMLAudioElement
+
+		Object.defineProperty(media, 'paused', { value: false, configurable: true })
+		for (let i = 0; i < 3; i++) {
+			media.dispatchEvent(new Event('play'))
+		}
+		await settle()
+
+		expect(r.details('media-play')).toHaveLength(1)
+	})
+})
+
+describe('video tour events', () => {
+	it('fires videotour-start and videotour-stop around a video tour', async () => {
+		const tour = videoTour()
+		const setup = await mountTour(tourBundle({ tours: [tour] }))
+		viewer = { el: setup.el, open: setup.open, destroy: setup.destroy }
+		const r = record(setup.el)
+		rec = r
+
+		setup.el.state.tour.set(tour)
+		await waitFor(() => r.details('videotour-start').length > 0, 4000, 'videotour-start')
+		expect(same(r.details('videotour-start')[0], tour)).toBe(true)
+
+		setup.el.state.tour.set(undefined)
+		await waitFor(() => r.details('videotour-stop').length > 0, 4000, 'videotour-stop')
+		expect(same(r.details('videotour-stop')[0], tour)).toBe(true)
 	})
 })
