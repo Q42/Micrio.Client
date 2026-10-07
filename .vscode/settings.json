@@ -1,10 +1,15 @@
 {
-	// TypeScript 7 (native/tsgo) has no JS-based `lib/tsserver.js`, so the
-	// built-in extension can't load it via the old typescript.tsdk route.
-	// The tsdk pin below is consumed by the TypeScript Native Preview
-	// extension (see extensions.json), which resolves the workspace
-	// typescript@7 package to its native binary; useTsgo hands the TS/JS
-	// language server over to it instead of the bundled JS tsserver.
+	// This repo runs on TypeScript 7 (native). Its package ships no JS language server --
+	// `node_modules/typescript/lib` holds only `tsc.js` and `getExePath.js` -- so VS Code's
+	// built-in TypeScript extension cannot drive it. The TypeScript Native Preview extension
+	// (see extensions.json) runs the native server instead, enabled by `useTsgo` below.
+	//
+	// That integration is still experimental, and the extension does not yet auto-detect a
+	// workspace `typescript` 7 package: it looks only for `@typescript/native-preview`, which
+	// is no longer published. Without the `tsdk.path` pin it silently runs its own bundled
+	// compiler instead of this repo's, so the editor and `pnpm run typecheck` can disagree.
+	// Both lines can go once VS Code ships the native server itself; see README.md,
+	// "TypeScript 7 in VS Code".
 	"js/ts.experimental.useTsgo": true,
 	"js/ts.tsdk.path": "node_modules/typescript/lib"
 }
