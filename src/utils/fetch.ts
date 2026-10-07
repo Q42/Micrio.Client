@@ -24,11 +24,11 @@ const jsonPromises = new Map<string, Promise<unknown>>()
  * @param noCache If true, appends a random query parameter to bypass browser cache.
  * @returns A Promise resolving to the fetched JSON data (type T) or undefined on error.
  */
-export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
+export const fetchJson = <T = object>(uri: string, noCache?: boolean): Promise<T | undefined> => {
 	// JSON has no runtime schema: the shape is declared by the caller through `T`.
 	if (!noCache && jsonCache.has(uri)) {
 		// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- unverifiable cached JSON; the contract is `T`
-		return structuredClone(jsonCache.get(uri)) as T
+		return Promise.resolve(structuredClone(jsonCache.get(uri)) as T)
 	}
 	if (jsonPromises.has(uri)) {
 		// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the in-flight promise resolves the same untyped JSON
@@ -48,6 +48,7 @@ export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Pro
 				jsonCache.set(uri, j)
 			} // Store result in cache
 			jsonPromises.delete(uri) // Remove promise from tracking map
+			// Clone on the way out: the cached object must not be reachable from a caller.
 			return structuredClone(j)
 		})
 		.catch((e) => {
@@ -56,6 +57,8 @@ export const fetchJson = async <T = object>(uri: string, noCache?: boolean): Pro
 			throw e
 		})
 	jsonPromises.set(uri, promise) // Track the ongoing promise
+	// `promise` already resolves a clone (so a caller cannot mutate what was cached) — this used
+	// to clone that clone as well.
 	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the caller declares the shape via `T`
-	return (await promise) as T
+	return promise as Promise<T>
 }

@@ -66,6 +66,9 @@ class Archive {
 					err()
 				} // Error
 			})
+			// Rejecting with no value here is the established shape for this path (`load` returns
+			// early on a falsy result and callers log it); the network failure below carries a real
+			// Error so the two are distinguishable.
 			xhr.addEventListener('error', err) // Network error
 			xhr.open('GET', path + id + (isBin ? '.bin' : '.mdp')) // Construct URL
 			xhr.send()

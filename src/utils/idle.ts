@@ -85,6 +85,7 @@ export class IdleState {
 	/** Pauses the idle timer without changing the current idle state. */
 	pause() {
 		clearTimeout(this.to)
+		this.to = undefined
 	}
 
 	/** Resumes the idle timer, scheduling the idle check after the configured delay. */
@@ -95,10 +96,12 @@ export class IdleState {
 	/** Clears the idle timer and cleans up. */
 	destroy() {
 		clearTimeout(this.to)
+		this.to = undefined
 	}
 
 	#schedule() {
 		clearTimeout(this.to)
+		this.to = undefined
 		if (!this._enabled) {
 			return
 		}
