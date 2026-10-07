@@ -79,7 +79,11 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			mt.currentStep ??= mt.initialStep ?? 0
 			this.#currentStep = mt.currentStep
 			const { stepInfo } = mt
-			const tourControlsInPopup = Boolean(micrio.$current?.$settings?._markers?.tourControlsInPopup)
+			// Resolved from the image the tour is *authored* on, like `micrio-marker-popup` does:
+			// a tour that crosses images would otherwise read it from whichever image is shown,
+			// and the two components would disagree about whether the controls move into the popup.
+			const authored = micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === mt.id))
+			const tourControlsInPopup = Boolean((authored ?? micrio.$current)?.$settings?._markers?.tourControlsInPopup)
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
 				const si = stepInfo?.[newIdx]
