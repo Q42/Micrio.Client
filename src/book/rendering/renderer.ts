@@ -492,11 +492,13 @@ export class PaperRenderer {
 		gl.drawElements(gl.TRIANGLES, md._indexCount, gl.UNSIGNED_INT, 0)
 	}
 
-	#createFbo(): { scene: FboAttachments; blur: FboAttachments } {
+	/**
+	 * Deletes the offscreen FBO attachments, if any. Called before they are recreated (a resize
+	 * changes the target size) so the GPU objects are not leaked.
+	 * @internal
+	 */
+	#deleteFbos(): void {
 		const gl = this.#gl
-		const w = this.#canvas.width
-		const h = this.#canvas.height
-
 		if (this.#sceneFbo) {
 			gl.deleteTexture(this.#sceneFbo._color)
 			if (this.#sceneFbo._depth) {
@@ -504,6 +506,21 @@ export class PaperRenderer {
 			}
 			gl.deleteFramebuffer(this.#sceneFbo._fbo)
 		}
+		if (this.#blurFbo) {
+			gl.deleteTexture(this.#blurFbo._color)
+			gl.deleteFramebuffer(this.#blurFbo._fbo)
+		}
+		this.#sceneFbo = null
+		this.#blurFbo = null
+	}
+
+	#createFbo(): { scene: FboAttachments; blur: FboAttachments } {
+		const gl = this.#gl
+		const w = this.#canvas.width
+		const h = this.#canvas.height
+
+		// Both attachments are recreated from scratch, sized to the current canvas
+		this.#deleteFbos()
 
 		const color = gl.createTexture()
 		gl.bindTexture(gl.TEXTURE_2D, color)
@@ -524,11 +541,6 @@ export class PaperRenderer {
 
 		const scene: FboAttachments = { _fbo: fbo, _color: color, _depth: depth }
 		this.#sceneFbo = scene
-
-		if (this.#blurFbo) {
-			gl.deleteTexture(this.#blurFbo._color)
-			gl.deleteFramebuffer(this.#blurFbo._fbo)
-		}
 
 		const blurColor = gl.createTexture()
 		gl.bindTexture(gl.TEXTURE_2D, blurColor)
@@ -568,8 +580,9 @@ export class PaperRenderer {
 		this.#canvas.width = Math.floor(displayW * dpr)
 		this.#canvas.height = Math.floor(displayH * dpr)
 		gl.viewport(0, 0, this.#canvas.width, this.#canvas.height)
-		this.#sceneFbo = null
-		this.#blurFbo = null
+		// The attachments held the old, larger size, so they are deleted rather than dropped:
+		// `#ensureFbos` recreates them for the new drawing buffer on the next draw.
+		this.#deleteFbos()
 	}
 
 	_updateVertexBuffer(meshIndex: number, mesh: PaperMesh): void {
