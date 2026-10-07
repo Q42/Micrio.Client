@@ -1,5 +1,6 @@
 import { MicrioElement } from '$core/component'
 import type { Models } from '$types/models'
+import type { MicrioImage } from '$core/image'
 import { get } from '$core/store'
 import { createElement } from '$utils/dom'
 
@@ -7,6 +8,8 @@ import { createElement } from '$utils/dom'
 export interface MarkerContentProps {
 	/** The marker data to render content for. */
 	marker: Models.ImageData.Marker
+	/** The image the marker belongs to. */
+	image?: MicrioImage
 	/** If true, embedded media (video) will not be rendered. */
 	noEmbed?: boolean
 	/** If true, marker images gallery will not be rendered. */
@@ -34,8 +37,8 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		}
 
 		const micrio = this._getMicrio()
-		const markerImages = MicrioElement._markerImages
-		const image = marker.id ? markerImages.get(marker.id) : undefined
+		const { image: propsImage, marker: markerData } = this._props
+		const image = propsImage ?? (markerData?.id ? MicrioElement._markerImages.get(markerData.id) : undefined)
 		if (!micrio || !image) {
 			return
 		}
