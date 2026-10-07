@@ -280,15 +280,20 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 		this.#dragging = false
 		delete this.dataset.dragging
+		// Also reached from `_onDestroy`, where the viewer may already be gone: clear the render
+		// flag when it is still there, but the handle and the trailing navigation only need the
+		// normal path.
+		const micrio = this._getMicrio()
+		if (micrio) {
+			micrio._keepRendering = false
+		}
 		// Re-render before the trailing goto: releasing on the page the drag already
 		// reached does not run `#frameChanged`, so without this the handle would keep
 		// its `dragging` class (and its mid-drag position) until the next update.
 		this.#updateScrubber()
-		const micrio = this._getMicrio()
 		if (!micrio) {
 			return
 		}
-		micrio._keepRendering = false
 		void this.#goto(this.#currentPage)
 	}
 
@@ -765,6 +770,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/** @internal */
 	_onDestroy() {
+		// A scrub drag in flight has its move/up listeners on `globalThis` and only `#scrubStop`
+		// removes them, so a gallery removed mid-drag would otherwise keep scrubbing (and keep
+		// driving `#goto` and camera animations) from a detached element.
+		if (this.#dragging) {
+			this.#scrubStop()
+		}
 		// `Frame` only removes a callback by running it, so a book left mid-flip keeps queuing its
 		// own frame forever — and keeps driving `img.visible`/`state.view` on this removed gallery.
 		// `#loadBook3d` already stops a book it replaces; the teardown path has to do the same.
