@@ -209,6 +209,11 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const toggleMinimize = () => {
 			this.#isMinimized = !this.#isMinimized
 			this.classList.toggle('minimized', this.#isMinimized)
+			// This button is what collapses a running tour's UI, which is the condition
+			// `tour-minimize` documents.
+			if (get(micrio.state.tour)) {
+				micrio.events._dispatch('tour-minimize', this.#isMinimized)
+			}
 			if (this.#content !== undefined) {
 				for (const child of this.#content.children) {
 					if (child instanceof HTMLElement) {
