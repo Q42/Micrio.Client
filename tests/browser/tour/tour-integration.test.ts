@@ -38,6 +38,28 @@ describe('tour integration', () => {
 		expect(tour.instance).toBeDefined()
 		viewer.destroy()
 	})
+
+	it('gives a replaced tour its own element', async () => {
+		const video = videoTour({ id: 'vt-replace', duration: 6 })
+		// Two long steps, so the serial tour is still running while the assertions run (a
+		// last step without step media ends at once by design)
+		const serial = markerTour({ steps: ['m1', 'm2'], isSerialTour: true, duration: 40 })
+		const viewer = await mountTour(
+			tourBundle({ tours: [video], markerTours: [serial], markersWithVideo: serial.steps }),
+		)
+
+		await startTour(viewer, video)
+		expect(viewer.el.querySelector('micrio-tour')).not.toBeNull()
+		await waitFor(() => viewer.el.querySelector('micrio-media') !== null, 4000, 'the video tour media')
+
+		// Both tours live on the `tour` layer and even render under a different tag, so the
+		// connected element must not be reused: that kept the previous tour's media, controls
+		// and `next`/`prev` callbacks, and the serial tour never mounted at all.
+		await startTour(viewer, serial)
+		await waitFor(() => viewer.el.querySelector('micrio-serial-tour') !== null, 4000, 'the serial tour')
+		expect(viewer.el.querySelector('micrio-tour')).toBeNull()
+		viewer.destroy()
+	})
 })
 
 describe('tour toolbar entries', () => {
