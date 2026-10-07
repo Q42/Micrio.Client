@@ -332,10 +332,21 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					// subscription does (a `const` would be in its temporal dead zone)
 					let unsub: (() => void) | undefined
 					unsub = micrio.state.tour.subscribe((t) => {
-						if (!t) {
-							unsub?.()
+						if (t) {
+							return
+						}
+						unsub?.()
+						// Only when this marker is still the open one: another marker's
+						// `activated()` clears the tour as it opens, and closing whatever is open
+						// would close the marker the user just clicked.
+						if (image.state.$marker === marker) {
 							image.state.marker.set(undefined)
 						}
+					})
+					// The subscription outlives this element otherwise, and would clear a marker
+					// (or keep this one alive) long after the marker layer was torn down.
+					this._addCleanup(() => {
+						unsub?.()
 					})
 				}
 			} else {
