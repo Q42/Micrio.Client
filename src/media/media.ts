@@ -525,11 +525,15 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			}
 
 			const onseek = (n: number) => {
+				// A video tour is not either/or with its media element: seeking has to move the
+				// tour to that time as well, or its camera events and timeline stay behind the
+				// audio that was just skipped
+				if (this.#tourInstance) {
+					this.#tourInstance.currentTime = n
+				}
 				const el = this.#mediaEl
 				if (el) {
 					el.currentTime = n
-				} else if (this.#tourInstance) {
-					this.#tourInstance.currentTime = n
 				} else if (this.#adapter) {
 					this.#adapter.setCurrentTime(n)
 				}

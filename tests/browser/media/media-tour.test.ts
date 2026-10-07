@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { get, writable } from '$core/store'
 import { createElement } from '$utils/dom'
 import type { MicrioElement } from '$core/component'
 import { mountTour, recordEvents, settle } from '../../helpers/tour'
-import { tourBundle, videoTour } from '../../fixtures/tours'
+import { STEP_TONE_SECONDS, STEP_TONE_URI, tourBundle, videoTour } from '../../fixtures/tours'
 import { waitFor } from '../../helpers/viewer'
 
 /**
@@ -194,6 +194,44 @@ describe('media element with a video tour', () => {
 		expect(instance).toBeDefined()
 		expect(rec.events.map((e) => e.type)).toContain('videotour-stop')
 		expect(tour.instance).toBeUndefined()
+		viewer.destroy()
+	})
+
+	it('seeks the video tour too when its media is skipped', async () => {
+		// A video tour with audio is both a media element and a tour instance. Seeking used to
+		// move whichever existed first (`else if`), so skipping the audio left the tour's own
+		// timeline -- and the camera events it drives -- behind at the old time. Real audio is
+		// used so nothing fails to load, and the durations match, as an authored tour's do.
+		const tour = videoTour({ id: 'vt-skip', duration: STEP_TONE_SECONDS })
+		const viewer = await mountTour(tourBundle({ tours: [tour] }))
+		const image = viewer.el.$current
+		if (!image) {
+			throw new Error('no current image')
+		}
+		const el = await mountMedia(
+			{ tour, image, controls: true, autoplay: false, src: STEP_TONE_URI, duration: STEP_TONE_SECONDS },
+			viewer,
+		)
+		await waitForRender(el)
+		const { instance } = tour
+		expect(instance).toBeDefined()
+
+		const bars = el.querySelector<HTMLElement>('micrio-media-controls [data-part="bars"]')
+		if (!bars) {
+			throw new Error('no progress bar')
+		}
+		// The element is not laid out here, so stand in for the bar's geometry
+		vi.spyOn(bars, 'getClientRects').mockReturnValue([
+			{ left: 0, width: 100, top: 0, height: 10, right: 100, bottom: 10, x: 0, y: 0, toJSON: () => ({}) },
+		] as unknown as DOMRectList)
+		// Half way along the bar
+		bars.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, button: 0, bubbles: true }))
+		globalThis.dispatchEvent(new MouseEvent('mouseup'))
+
+		// The tour moved with the media, not only the media
+		expect(instance?.currentTime).toBeCloseTo(STEP_TONE_SECONDS / 2, 0)
+		const media = anyMedia(el)
+		expect(media instanceof HTMLMediaElement ? media.currentTime : undefined).toBeCloseTo(STEP_TONE_SECONDS / 2, 0)
 		viewer.destroy()
 	})
 })
