@@ -139,6 +139,10 @@ export class WebGL {
 		contextEvent.preventDefault()
 		console.warn('Micrio: WebGL context lost, waiting for it to be restored')
 		this.gl = null
+		// The uploaded texture died with the context. Dropping the handle is what makes the
+		// restore's `_init` upload the watermark image it still has loaded (the `_dispose` path
+		// keeps the same invariant) — otherwise every later frame would bind a dead texture.
+		this.#wmTexture = null
 	}
 
 	/** Rebuilds the context-internal state once the browser restores the context. @internal */
