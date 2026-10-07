@@ -119,9 +119,12 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 						while (s[idx] && s[idx].trim()) {
 							lines.push(s[idx++])
 						}
+						// Only the timestamps are parsed: a cue line may carry settings after the end
+						// timestamp (`… --> … align:start position:10%`), which made the end parse as
+						// NaN so the cue could never be shown, and the arrow itself may have no spaces.
 						const [start, end] = s[l]
-							.split(' --> ')
-							.map((t) => t.trim().replace(',', '.').split(':').map(Number))
+							.split(/\s*-->\s*/)
+							.map((t) => t.split(/\s+/)[0].replace(',', '.').split(':').map(Number))
 							.map((v) => {
 								if (v.length === 3) {
 									return v[0] * 3600 + v[1] * 60 + v[2]
