@@ -552,6 +552,10 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.#lazyObserver = undefined
 		this.#printed = false
 		this.#printing = undefined
+		// `canvas.unhook()` above detached the resize hooking, so the next print has to run the
+		// one-time init again (it also re-applies the theme dataset); leaving this set meant a
+		// re-printed viewer never tracked its size again.
+		this.#initedFirst = false
 		// Stop a setup that is still suspended on an async step; see `#doPrint`
 		this.#printGen++
 	}
