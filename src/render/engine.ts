@@ -193,6 +193,18 @@ export class Engine {
 		return this.#entryByImage.get(img)?.canvas
 	}
 
+	/**
+	 * Returns the engine Image backing a MicrioImage or Omni frame, or undefined.
+	 *
+	 * A canvas holds one engine Image per source, and every embed of a parent image shares the
+	 * parent's canvas, so an operation on one embed cannot look itself up by "the first image
+	 * with `_localIdx > 0`" — that is whichever embed happened to be added first.
+	 * @internal
+	 */
+	_getEngImage(img: MicrioImage | Models.Omni.Frame): Image | undefined {
+		return this.#micrioToEngImage.get(img)
+	}
+
 	/** Stores a canvas entry in the lookup maps. @internal */
 	#setEntry(entry: CanvasEntry): void {
 		this.#entryByImage.set(entry.micrioImage, entry)
@@ -1134,13 +1146,12 @@ export class Engine {
 		if (entry.camera) {
 			c._targetOpacity = opacity
 		} else {
-			const { images } = c
-			for (const im of images) {
-				if (im._localIdx > 0) {
-					im._tOpacity = opacity
-					if (direct) {
-						im.opacity = opacity
-					}
+			// One engine Image per embed: fading "every embed of the canvas" fades the siblings too.
+			const engImage = this.#micrioToEngImage.get(img)
+			if (engImage) {
+				engImage._tOpacity = opacity
+				if (direct) {
+					engImage.opacity = opacity
 				}
 			}
 		}

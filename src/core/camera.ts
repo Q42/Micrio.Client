@@ -406,12 +406,9 @@ export class Camera {
 		}
 		this.#image.opts.area = v
 		if (this.#image.opts.isEmbed && this.#image._placed) {
-			for (const img of this.#canvas.images) {
-				if (img._localIdx > 0) {
-					img._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3])
-					return
-				}
-			}
+			// The parent canvas holds one engine Image per embed, so this image's own engine
+			// Image is the only correct target.
+			this.#image.engine._getEngImage(this.#image)?._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3])
 		} else {
 			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], Boolean(opts.direct), Boolean(opts.noDispatch))
 		}
@@ -425,13 +422,11 @@ export class Camera {
 		if (!this.#image.opts.isEmbed || !this.#canvas || !this.#image.engine.ready) {
 			return
 		}
-		for (const img of this.#canvas.images) {
-			if (img._localIdx > 0) {
-				img._rotX = rotX
-				img._rotY = rotY
-				img._rotZ = rotZ
-				break
-			}
+		const engImage = this.#image.engine._getEngImage(this.#image)
+		if (engImage) {
+			engImage._rotX = rotX
+			engImage._rotY = rotY
+			engImage._rotZ = rotZ
 		}
 		this.#image.engine.render()
 	}
