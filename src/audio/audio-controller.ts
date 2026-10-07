@@ -141,6 +141,8 @@ export class MicrioAudioController {
 	#image: MicrioImage
 	#playlist: AudioPlaylist | undefined
 	#cleanups: (() => void)[] = []
+	/** True once `audio-init` has been reported for this controller. */
+	#inited = false
 	#audioLocations: MicrioAudioLocation[] = []
 
 	constructor(micrio: HTMLMicrioElement, image: MicrioImage) {
@@ -235,6 +237,13 @@ export class MicrioAudioController {
 				const vol = volumeFor(image, get(micrio._isMuted))
 				if (!_ctx) {
 					init(vol)
+				}
+				// Reported once per controller, and only now: the context exists and the master
+				// gain is wired, so audio can actually play. `init` returns early on a later image,
+				// which is why the flag is needed rather than dispatching from inside it.
+				if (_ctx && !this.#inited) {
+					this.#inited = true
+					events._dispatch('audio-init')
 				}
 				// A playlist built before any gesture had its `play()` refused; this is the
 				// first moment the browser will allow it.
