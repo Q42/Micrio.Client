@@ -43,6 +43,8 @@ class MicrioIconElement extends MicrioElement {
 	#render() {
 		const custom = this.#customHTML
 		if (custom) {
+			// Trusted by contract: `ui.icons` is authored in the owner's dashboard and shipped in
+			// the bundle. This is an HTML sink, so it must never be fed anything less than that.
 			this.innerHTML = custom
 			return
 		}

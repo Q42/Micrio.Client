@@ -52,6 +52,11 @@ export class DragHandler {
 		}
 		this.#hooked = false
 
+		// End a drag that is still in flight: its window move/up listeners are only removed by
+		// `stop()`, so otherwise a disabled viewer keeps panning the camera and `_panning` stays
+		// set, which blocks every later drag and keeps `isNavigating` true (continuous rendering).
+		this.stop(undefined, true, true)
+
 		this.#ctx._micrio.removeEventListener('pointerdown', this.start, eventPassive)
 		this.#ctx._micrio.removeEventListener('dragstart', cancelPrevent)
 		self.removeEventListener('pointercancel', this.#cancel, eventPassive)
@@ -105,9 +110,12 @@ export class DragHandler {
 		this.#ctx._vars._drag._start = [e.clientX, e.clientY, performance.now()]
 		this.#ctx._vars._drag._image = img
 
-		// Add move and up listeners
-		this.#ctx._micrio.addEventListener('pointermove', this.#move, eventPassive)
-		this.#ctx._micrio.addEventListener('pointerup', this.stop, eventPassive)
+		// Add move and up listeners on the window, not on the element: the pointer capture below
+		// only starts after 10px of movement (so a double-click still works), and until then a
+		// press released outside the element delivers no `pointerup` to it — `_panning` would stay
+		// set for the page's lifetime, blocking every later drag.
+		self.addEventListener('pointermove', this.#move, eventPassive)
+		self.addEventListener('pointerup', this.stop, eventPassive)
 
 		this.#ctx._micrio.dataset.panning = ''
 		img.canvas?._kinetic.stop()
@@ -126,11 +134,17 @@ export class DragHandler {
 		const cX = e.clientX,
 			cY = e.clientY
 
-		// Capture pointer only after significant movement to allow double-click
+		// Capture pointer only after significant movement to allow double-click. The id is recorded
+		// either way — this is a one-shot per drag — because a pointer that is no longer active (a
+		// synthetic event, one the browser already cancelled) has no capture to take and
+		// `setPointerCapture` throws a `NotFoundError` that would escape the event handler; the same
+		// error `stop()` already swallows on release.
 		const moved = Math.hypot(this.#ctx._vars._drag._start[0] - e.clientX, this.#ctx._vars._drag._start[1] - e.clientY)
 		if (!this.#ctx._capturedPointerId && moved > 10) {
 			this.#ctx._capturedPointerId = e.pointerId
-			this.#ctx._micrio.setPointerCapture(e.pointerId)
+			try {
+				this.#ctx._micrio.setPointerCapture(e.pointerId)
+			} catch {}
 		}
 
 		// Calculate delta and call camera pan on the originating image (not re-hit-testing)
@@ -157,12 +171,18 @@ export class DragHandler {
 		this.#ctx._vars._drag._prev = undefined
 
 		// Remove listeners
-		this.#ctx._micrio.removeEventListener('pointermove', this.#move, eventPassive)
-		this.#ctx._micrio.removeEventListener('pointerup', this.stop, eventPassive)
+		self.removeEventListener('pointermove', this.#move, eventPassive)
+		self.removeEventListener('pointerup', this.stop, eventPassive)
 
-		// Release pointer capture if active
-		if (this.#ctx._capturedPointerId) {
-			this.#ctx._micrio.releasePointerCapture(this.#ctx._capturedPointerId)
+		// Release pointer capture if active. A cancelled pointer (or one that was never captured)
+		// has no capture left, and `releasePointerCapture` throws `NotFoundError` then, which
+		// would abort the rest of this stop: the captured id would stay set (no later drag could
+		// capture), `data-panning` would keep the grab cursor and no kinetic pan would start.
+		const capturedId = this.#ctx._capturedPointerId
+		if (capturedId !== undefined) {
+			try {
+				this.#ctx._micrio.releasePointerCapture(capturedId)
+			} catch {}
 		}
 		this.#ctx._capturedPointerId = undefined
 

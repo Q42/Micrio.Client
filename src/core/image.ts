@@ -352,6 +352,11 @@ export class MicrioImage {
 			const langs = Object.keys(i.revision)
 			if (langs.length > 0 && !langs.includes(lang)) {
 				micrio.lang = langs.includes('en') ? 'en' : langs[0]
+				// `micrio.lang` goes through the `lang` attribute, whose change handler updates the
+				// store synchronously. Reading it back keeps the `$lang` substitution below from
+				// using the language this image is no longer shown in (or "undefined" when the
+				// element had no `lang` attribute at all).
+				lang = get(micrio._lang)
 			}
 		}
 
@@ -371,8 +376,12 @@ export class MicrioImage {
 			}
 		}
 
-		// Zoom levels
-		for (let f = i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width, i.height); f *= 2, this._levels++) {}
+		// Zoom levels. `??` keeps a `0` (or negative) tile size, which `f *= 2` can never grow out
+		// of, so the loop — and with it this constructor on the main thread — would never end.
+		// Unvalidated bundle/host data reaches here, so only a real positive size counts.
+		const rawTileSize = i.tileSize
+		const tileSize = typeof rawTileSize === 'number' && rawTileSize > 0 ? rawTileSize : DEFAULT_TILE_SIZE
+		for (let f = tileSize; f < Math.max(i.width, i.height); f *= 2, this._levels++) {}
 		let max = Math.max(i.width, i.height)
 		do {
 			this.#dzLevels++
@@ -388,6 +397,9 @@ export class MicrioImage {
 
 		// Bundle data
 		if ((!this._noImage || this._isOmni) && !s?.skipMeta && bundle.data) {
+			// Fired before the data is read, mirroring `pre-info`: the detail is the same object
+			// the store is about to hold, so a host handler can still alter its contents.
+			micrio.events._dispatch('pre-data', { [this.id]: bundle.data })
 			this.data.set(bundle.data)
 		}
 
@@ -490,9 +502,13 @@ export class MicrioImage {
 			} // Already loaded
 			else {
 				jsCss.push(s) // Mark as loading
+				// `error` matters as much as `load`: a stylesheet that 404s or is blocked leaves
+				// this promise pending forever otherwise, so a caller awaiting it (the org font
+				// follow-up) would hang and never run.
+				const settle = ok as EventListener
 				createElement('link', {
 					attrs: { type: 'text/css', rel: 'stylesheet', href: s },
-					events: { load: ok as EventListener },
+					events: { load: settle, error: settle },
 					parent: document.head,
 				})
 			}

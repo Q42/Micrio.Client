@@ -154,6 +154,9 @@ export class Engine {
 	/** Array storing store unsubscriber functions. @internal */
 	#unsubscribe: Unsubscriber[] = []
 
+	/** Per-canvas unsubscribers, released when that canvas is removed. @internal */
+	#canvasUnsubs = new Map<MicrioImage, Unsubscriber>()
+
 	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */
 	#engImageToMicrio = new Map<Image, MicrioImage | Models.Omni.Frame>()
 	/** Reverse map: MicrioImage → engine Image for O(1) lookup in video callbacks. @internal */
@@ -182,9 +185,24 @@ export class Engine {
 		this.render()
 	}
 
+	/** The video element that currently has {@link #onVideoPlay} attached. @internal */
+	#currentVideo: HTMLVideoElement | undefined
+
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	_getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
 		return this.#entryByImage.get(img)?.canvas
+	}
+
+	/**
+	 * Returns the engine Image backing a MicrioImage or Omni frame, or undefined.
+	 *
+	 * A canvas holds one engine Image per source, and every embed of a parent image shares the
+	 * parent's canvas, so an operation on one embed cannot look itself up by "the first image
+	 * with `_localIdx > 0`" — that is whichever embed happened to be added first.
+	 * @internal
+	 */
+	_getEngImage(img: MicrioImage | Models.Omni.Frame): Image | undefined {
+		return this.#micrioToEngImage.get(img)
 	}
 
 	/** Stores a canvas entry in the lookup maps. @internal */
@@ -356,6 +374,16 @@ export class Engine {
 		while (this.#unsubscribe.length > 0) {
 			this.#unsubscribe.pop()?.()
 		}
+		for (const unsub of this.#canvasUnsubs.values()) {
+			unsub()
+		}
+		this.#canvasUnsubs.clear()
+		// The last `video` emission added a listener to a real video element; unsubscribing does
+		// not run the callback that would remove it, so the element would keep the engine alive.
+		if (this.#currentVideo) {
+			this.#currentVideo.removeEventListener('play', this.#onVideoPlay)
+			this.#currentVideo = undefined
+		}
 		for (const src of this.#requests.values()) {
 			abortDownload(src)
 		}
@@ -368,6 +396,34 @@ export class Engine {
 		}
 		this.#tiles.clear()
 		this.#reset()
+	}
+
+	/**
+	 * Drops every tile's GPU handle so a restored WebGL context uploads its textures again.
+	 *
+	 * A lost context invalidates all of its objects, but the tile entries keep the handles and
+	 * `_loadState >= 2`, so `#drawTile` would keep drawing the dead handle. `#cleanup` only
+	 * evicts an out-of-view tile after `#deleteAfterSeconds`, so an in-view tile would never
+	 * be reloaded and the viewer would stay blank. In-flight requests belong to the old context
+	 * too, and `_getTexture` refuses an index that is still requested.
+	 * @internal
+	 */
+	_resetTiles(): void {
+		for (const tile of this.#tiles.values()) {
+			tile._texture = undefined
+			tile._loadState = 0
+			tile._deleteAt = undefined
+			if (tile._timeoutId) {
+				clearTimeout(tile._timeoutId)
+				tile._timeoutId = undefined
+			}
+		}
+		// Deleting the entry currently being visited is safe for a Map iterator, so this is a
+		// plain loop rather than a snapshot copy.
+		for (const [idx, src] of this.#requests) {
+			abortDownload(src)
+			this.#deleteRequest(idx)
+		}
 	}
 
 	/**
@@ -396,9 +452,10 @@ export class Engine {
 			this._hasArchive = true
 			this._archiveLayerOffset = settings.gallery.archiveLayerOffset ?? 0
 		}
-		if (i.version && Number.parseFloat(i.version) <= 3.1) {
-			this._underzoomLevels = 8
-		}
+		// Both of these are engine-level, so they are set for *every* canvas rather than only
+		// when a bundle opts in: otherwise one v3.x (or `skipBaseLevels`) image downgrades the
+		// level of detail of every image opened afterwards in the same element.
+		this._underzoomLevels = i.version && Number.parseFloat(i.version) <= 3.1 ? 8 : 4
 
 		if (i.is360) {
 			settings.limitToCoverScale = false
@@ -482,9 +539,7 @@ export class Engine {
 		if (settings?.dragElasticity !== undefined) {
 			this._dragElasticity = settings.dragElasticity
 		}
-		if (settings?.skipBaseLevels) {
-			this._skipBaseLevels = settings.skipBaseLevels
-		}
+		this._skipBaseLevels = settings?.skipBaseLevels ?? 0
 
 		if (settings?.omni) {
 			canvas._omniDistance = -(settings.omni.distance ?? 0)
@@ -511,13 +566,17 @@ export class Engine {
 			settings.focus = undefined
 		}
 
+		// Scoped to this canvas rather than to the engine: `_removeCanvas` has to be able to
+		// release it, or a closed image keeps its video element subscribed forever.
 		let currentVideo: HTMLVideoElement | undefined
-		this.#unsubscribe.push(
+		this.#canvasUnsubs.set(
+			c,
 			c.video.subscribe((video) => {
 				if (currentVideo) {
 					currentVideo.removeEventListener('play', this.#onVideoPlay)
 				}
 				currentVideo = video ?? undefined
+				this.#currentVideo = currentVideo
 				if (currentVideo) {
 					currentVideo.addEventListener('play', this.#onVideoPlay)
 				}
@@ -609,8 +668,38 @@ export class Engine {
 		if (!entry) {
 			return
 		}
+		// Embeds share their parent's canvas, so they have to be detached with it. Leaving their
+		// entries pointing at a canvas that is no longer in `_canvases`, with `_placed` still
+		// true, makes the re-add loop in `#setCanvas` skip them (`_addEmbed` returns early), so
+		// they would never be drawn again after `close()` + `open()`.
+		const embeds: (MicrioImage | Models.Omni.Frame)[] = []
+		for (const img of entry.canvas.images) {
+			const owner = this.#engImageToMicrio.get(img)
+			if (owner !== undefined && owner !== c) {
+				embeds.push(owner)
+			}
+		}
+		for (const embed of embeds) {
+			this._removeEmbed(embed)
+		}
 		entry.canvas._remove()
 		this.#entryByImage.delete(c)
+		// `close()` + `open()` is a supported cycle, so everything this canvas held has to go:
+		// its tiles (a base tile is never evicted by `#cleanup`), its slot in `#images`, and the
+		// video subscription it registered. Otherwise each cycle keeps a WebGL texture and a
+		// reference to the image alive for the life of the element.
+		for (const img of entry.canvas.images) {
+			this.#releaseTiles(img)
+		}
+		const idx = this.#images.indexOf(c)
+		if (idx >= 0) {
+			this.#images[idx] = undefined
+		}
+		const unsub = this.#canvasUnsubs.get(c)
+		if (unsub) {
+			unsub()
+			this.#canvasUnsubs.delete(c)
+		}
 		// The image is unplaced again, so a later `#setCanvas` rebuilds its canvas. Leaving it
 		// "placed" — with no entry and no canvas — would make `#setCanvas` return early forever
 		// and the image could never be shown again.
@@ -665,7 +754,9 @@ export class Engine {
 
 	/** @internal */
 	_shouldDraw(now: number): boolean {
-		this._frameTime = 1000 / Math.min(33, now - this.now)
+		// At least 1ms: two draws in the same millisecond (the synchronous `_drawSync`, or a resize
+		// burst) would otherwise make this Infinity and stall every opacity step for that frame.
+		this._frameTime = 1000 / Math.max(1, Math.min(33, now - this.now))
 		this.now = now
 		this._doneTotal = 0
 		this._toDrawTotal = 0
@@ -729,6 +820,12 @@ export class Engine {
 		this.#requests.set(i, src)
 		;(inArchive ? archive._getImage(src) : loadTexture(src))
 			.then((img) => {
+				// The tile can be released while its download is in flight (`#releaseTiles` aborts
+				// what it can, but an already-completed fetch still resolves). Uploading then
+				// re-creates the entry and a GPU texture that nothing will ever free.
+				if (this.#requests.get(i) !== src) {
+					return
+				}
 				this.#gotTexture(i, img, ani, opts.noSmoothing)
 			})
 			.catch(() => {
@@ -1022,7 +1119,7 @@ export class Engine {
 	 * every lookup and frees its tiles. Called from `MicrioImage._releaseOrphans`.
 	 * @internal
 	 */
-	_removeEmbed(image: MicrioImage): void {
+	_removeEmbed(image: MicrioImage | Models.Omni.Frame): void {
 		const entry = this.#entryByImage.get(image)
 		const engImage = this.#micrioToEngImage.get(image)
 		this.#entryByImage.delete(image)
@@ -1065,13 +1162,12 @@ export class Engine {
 		if (entry.camera) {
 			c._targetOpacity = opacity
 		} else {
-			const { images } = c
-			for (const im of images) {
-				if (im._localIdx > 0) {
-					im._tOpacity = opacity
-					if (direct) {
-						im.opacity = opacity
-					}
+			// One engine Image per embed: fading "every embed of the canvas" fades the siblings too.
+			const engImage = this.#micrioToEngImage.get(img)
+			if (engImage) {
+				engImage._tOpacity = opacity
+				if (direct) {
+					engImage.opacity = opacity
 				}
 			}
 		}

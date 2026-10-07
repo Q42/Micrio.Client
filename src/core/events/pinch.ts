@@ -1,7 +1,7 @@
 import { Browser } from '$utils/browser'
 import { eventPassive, eventPassiveCapture, type EventContext } from './shared'
 import type { DragHandler } from './drag'
-import { pinchStart, pinchMove, pinchStop, restartPanning } from './pinch-shared'
+import { pinchStart, pinchMove, pinchStop, pinchCancel, restartPanning } from './pinch-shared'
 
 /**
  * Touch pinch event handler module (iOS).
@@ -36,6 +36,8 @@ export class PinchHandler {
 		// Clean up in case we're in the middle of a pinch
 		self.removeEventListener('touchmove', this.#move, eventPassiveCapture)
 		self.removeEventListener('touchend', this.stop, eventPassiveCapture)
+		// A pinch in flight can never complete once its listeners are gone
+		pinchCancel(this.#ctx)
 	}
 
 	/**

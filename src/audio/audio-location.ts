@@ -29,6 +29,8 @@ export class MicrioAudioLocation {
 	#source!: AudioBufferSourceNode
 	#to: ReturnType<typeof setTimeout> | undefined
 	#cleanup: (() => void) | undefined
+	/** Set by `destroy`, so an in-flight fetch/decode cannot start playback afterwards. */
+	#destroyed = false
 	/** The `ended` listener of the repeating source, so `#end` can detach it. */
 	#onSourceEnded: (() => void) | undefined
 
@@ -86,13 +88,7 @@ export class MicrioAudioLocation {
 		}
 
 		const play = () => {
-			if (this.#source !== undefined) {
-				if (this.#onSourceEnded) {
-					this.#source.removeEventListener('ended', this.#onSourceEnded)
-					this.#onSourceEnded = undefined
-				}
-				this.#source.disconnect()
-			}
+			this.#releaseSource()
 			this.#source = ctx.createBufferSource()
 			if (item.loop) {
 				if (item.repeatAfter > 0) {
@@ -122,6 +118,11 @@ export class MicrioAudioLocation {
 					.then((res) => res.arrayBuffer())
 					.then((b) => ctx.decodeAudioData(b))
 			}
+			// The fetch/decode can straddle the marker's teardown; playing then would create a
+			// source (and a repeat chain) on a panner that `#end()` already disconnected.
+			if (this.#destroyed) {
+				return
+			}
 			if (item.alwaysPlay && item.repeatAfter > 0) {
 				this.#to = setTimeout(play, item.repeatAfter * 1000)
 			} else {
@@ -132,7 +133,9 @@ export class MicrioAudioLocation {
 		update()
 		this.#panner.connect(this.#gain)
 		this.#gain.connect(mainGain ?? ctx.destination)
-		void start()
+		void start().catch((err: unknown) => {
+			console.warn('[Micrio] Could not start positional audio', err)
+		})
 
 		this.#micrio.addEventListener('audio-update', update)
 		this.#cleanup = () => {
@@ -140,15 +143,29 @@ export class MicrioAudioLocation {
 		}
 	}
 
-	#end() {
-		if (this.#source !== undefined) {
-			// The repeating source keeps a listener that would reschedule playback
-			if (this.#onSourceEnded) {
-				this.#source.removeEventListener('ended', this.#onSourceEnded)
-				this.#onSourceEnded = undefined
-			}
-			this.#source.disconnect()
+	/**
+	 * Stops and disconnects the current source, if any.
+	 *
+	 * Disconnecting alone does not stop it: a looping source never ends on its own, so the context
+	 * would keep it (and its buffer) alive for the page's lifetime — which is what `destroy` used to
+	 * leave behind. `stop()` on a node that never started throws, hence the guard.
+	 */
+	#releaseSource(): void {
+		if (this.#source === undefined) {
+			return
 		}
+		if (this.#onSourceEnded) {
+			this.#source.removeEventListener('ended', this.#onSourceEnded)
+			this.#onSourceEnded = undefined
+		}
+		try {
+			this.#source.stop()
+		} catch {}
+		this.#source.disconnect()
+	}
+
+	#end() {
+		this.#releaseSource()
 		clearTimeout(this.#to)
 		// `#init` bails out before creating these when the marker has no source, or when
 		// the element has no current image by then, and `destroy` is still called on it.
@@ -157,6 +174,7 @@ export class MicrioAudioLocation {
 	}
 
 	destroy() {
+		this.#destroyed = true
 		this.#cleanup?.()
 		this.#end()
 	}

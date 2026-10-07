@@ -18,6 +18,9 @@ class MicrioLogo extends MicrioElement {
 			return
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of appending a second logo
+		this.replaceChildren()
+
 		// oxlint-disable-next-line unicorn/prefer-global-this -- compares the parent frame against this Window
 		const target = !/micr\.io/.test(location.origin) || window.parent !== window ? '_blank' : undefined
 

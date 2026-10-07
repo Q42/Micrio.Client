@@ -51,6 +51,9 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			return
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of appending a second canvas
+		this.replaceChildren()
+
 		const info = image.$info
 		const { camera } = image
 		const settings = image.$settings
@@ -164,6 +167,11 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			globalThis.removeEventListener('mouseup', dStop)
 			this.#dragViewDims = undefined
 		}
+		// A drag in progress when the minimap is replaced keeps driving `camera.setView` from
+		// stale rects otherwise, because only `mouseup` removed these two.
+		this._addCleanup(() => {
+			dStop()
+		})
 
 		const canvas = createElement('canvas', {
 			props: { width, height },
@@ -189,6 +197,11 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			void fetch(image.thumbSrc)
 				.then((r) => r.blob())
 				.then((b) => {
+					// The thumbnail can arrive after this element was removed, in which case the
+					// object URL would never be revoked by `_onDestroy` (already run).
+					if (!this.isConnected) {
+						return
+					}
 					if (this.#thumbUrl) {
 						URL.revokeObjectURL(this.#thumbUrl)
 					}

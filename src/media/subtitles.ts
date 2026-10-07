@@ -19,6 +19,11 @@ captionsEnabled.subscribe((b) => {
 export interface SubtitlesProps {
 	src?: string
 	mediaEl?: HTMLElement
+	/**
+	 * The playback clock in seconds, pushed by the host. A camera-only video tour has no
+	 * media element to listen to, so without this the overlay would stay on t=0.
+	 */
+	time?: number
 }
 import './subtitles.css'
 
@@ -28,10 +33,13 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 	static tag = 'micrio-subtitles'
 
 	#props: SubtitlesProps = {}
+	#pushedTime: number | undefined
 	#cues: Models.ImageData.Event[] = []
 	#currentTime = 0
 	#currentCue: Models.ImageData.Event | undefined
 	#cleanup: (() => void) | undefined
+	/** Increments per fetch, so a slower earlier response cannot overwrite a newer one. */
+	#requestId = 0
 
 	/** @internal */
 	_onMount() {
@@ -70,6 +78,16 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 		Object.assign(this.#props, props)
 		if (srcChanged && this.isConnected) {
 			this.#update()
+			return
+		}
+		// The host pushes its own playback clock when there is no media element to observe
+		// (a camera-only video tour), which would otherwise leave the overlay on t=0.
+		if (props.time !== undefined && props.time !== this.#pushedTime) {
+			this.#pushedTime = props.time
+			this.#currentTime = props.time
+			if (this.isConnected) {
+				this.#renderCue()
+			}
 		}
 	}
 
@@ -80,9 +98,15 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 		}
 
 		this.#cues = []
-		fetch(this.#props.src)
+		const requestId = ++this.#requestId
+		const { src } = this.#props
+		fetch(src)
 			.then((r) => r.text())
 			.then((txt) => {
+				// A newer `src` (or a destroyed element) makes this response stale.
+				if (requestId !== this.#requestId || !this.isConnected) {
+					return
+				}
 				const s = txt.split('\n')
 				const cues: Models.ImageData.Event[] = []
 				for (let l = 0; l < s.length; l++) {
@@ -95,9 +119,12 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 						while (s[idx] && s[idx].trim()) {
 							lines.push(s[idx++])
 						}
+						// Only the timestamps are parsed: a cue line may carry settings after the end
+						// timestamp (`… --> … align:start position:10%`), which made the end parse as
+						// NaN so the cue could never be shown, and the arrow itself may have no spaces.
 						const [start, end] = s[l]
-							.split(' --> ')
-							.map((t) => t.trim().replace(',', '.').split(':').map(Number))
+							.split(/\s*-->\s*/)
+							.map((t) => t.split(/\s+/)[0].replace(',', '.').split(':').map(Number))
 							.map((v) => {
 								if (v.length === 3) {
 									return v[0] * 3600 + v[1] * 60 + v[2]
@@ -129,7 +156,15 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 			return
 		}
 		this.#currentCue = cue
-		this.innerHTML = cue ? `<p>${cue.data}</p>` : ''
+		// `cue.data` is raw text from a remote `.vtt`, which may contain markup: assign it as a
+		// text node rather than through `innerHTML`.
+		if (!cue) {
+			this.replaceChildren()
+			return
+		}
+		const p = document.createElement('p')
+		p.textContent = cue.data ?? ''
+		this.replaceChildren(p)
 	}
 
 	/** @internal */

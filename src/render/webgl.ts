@@ -84,6 +84,13 @@ export class WebGL {
 	/** True once the watermark image has loaded and only the upload is missing. @internal */
 	#wmReady = false
 
+	/** Whether the context loss/restore listeners have been attached to the canvas. @internal */
+	#contextListenersAdded = false
+	/** @internal */
+	#onLost: ((e: Event) => void) | undefined
+	/** @internal */
+	#onRestored: (() => void) | undefined
+
 	/** Watermark vertices (static full screen quad). @internal */
 	#wmVerts: Float32Array = new Float32Array([-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0])
 
@@ -122,6 +129,38 @@ export class WebGL {
 		Frame._setDisplay(this._display)
 	}
 
+	/**
+	 * Handles the loss of the GPU context: `gl` stays non-null otherwise, so nothing would ever
+	 * re-initialise it and the viewer would simply stay blank.
+	 * @internal
+	 */
+	#onContextLost(contextEvent: Event): void {
+		// Without `preventDefault` the browser will not fire `webglcontextrestored`.
+		contextEvent.preventDefault()
+		console.warn('Micrio: WebGL context lost, waiting for it to be restored')
+		this.gl = null
+		// The uploaded texture died with the context. Dropping the handle is what makes the
+		// restore's `_init` upload the watermark image it still has loaded (the `_dispose` path
+		// keeps the same invariant) — otherwise every later frame would bind a dead texture.
+		this.#wmTexture = null
+	}
+
+	/** Rebuilds the context-internal state once the browser restores the context. @internal */
+	#onContextRestored(): void {
+		if (!this.#micrio.isConnected) {
+			return
+		}
+		try {
+			this._init()
+		} catch (e) {
+			console.error('Micrio: could not restore the WebGL context', e)
+			return
+		}
+		// Every tile texture died with the context, so the engine re-uploads them into the new one
+		this.#micrio._engine._resetTiles()
+		this.#micrio._engine.render()
+	}
+
 	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. @internal */
 	_init(): void {
 		// Check for WebGL2 support
@@ -154,6 +193,21 @@ export class WebGL {
 		}
 
 		this.gl = gl // Store the context
+
+		// Registered here rather than per canvas: the element keeps the same canvas, and a lost
+		// context would never be rebuilt without these.
+		if (!this.#contextListenersAdded) {
+			this.#contextListenersAdded = true
+			const canvas = this.#micrio.canvas.element
+			this.#onLost = (contextEvent) => {
+				this.#onContextLost(contextEvent)
+			}
+			this.#onRestored = () => {
+				this.#onContextRestored()
+			}
+			canvas.addEventListener('webglcontextlost', this.#onLost)
+			canvas.addEventListener('webglcontextrestored', this.#onRestored)
+		}
 
 		// A watermark requested before this point has been fetched but not uploaded yet
 		this.#uploadWatermark()
@@ -302,6 +356,17 @@ export class WebGL {
 			this.#wmTexture = null
 		}
 
+		if (loseContext && this.#contextListenersAdded) {
+			const canvas = this.#micrio.canvas.element
+			if (this.#onLost) {
+				canvas.removeEventListener('webglcontextlost', this.#onLost)
+			}
+			if (this.#onRestored) {
+				canvas.removeEventListener('webglcontextrestored', this.#onRestored)
+			}
+			this.#contextListenersAdded = false
+		}
+
 		// Attempt to lose context if requested
 		if (loseContext) {
 			const tryLose = gl.getExtension('WEBGL_lose_context')
@@ -309,6 +374,13 @@ export class WebGL {
 				tryLose['loseContext']()
 			}
 		}
+		// `_init` re-uploads the watermark on a new context, so re-initialisation is expected.
+		// These caches are what the new context has not actually been sent yet, so they have to
+		// go back to their initial values or the first draws skip uniform uploads and the 360 UV
+		// rebuffer.
+		this.#was360 = false
+		this.#lastNoTexture = -1
+		this.#lastOpacity = -1
 		// Allow setting gl to null (instance is no longer usable after dispose)
 		this.gl = null
 	}
@@ -402,6 +474,12 @@ export class WebGL {
 
 	/** Finalizes frame drawing (renders postprocessing effect if active). @internal */
 	_drawEnd(): void {
+		// The context can be lost mid-frame; `#ctx` throws when it is, and the canvas draw path
+		// returns early on a lost context, so this has to as well rather than error every frame
+		// for the whole loss window.
+		if (!this.gl) {
+			return
+		}
 		// If postprocessor exists, render its effect to the screen
 		if (this._postprocessor) {
 			this._postprocessor._render()

@@ -50,6 +50,9 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 			return
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of appending a second block
+		this.replaceChildren()
+
 		this.#detailsEl = createElement('details', {
 			parent: this,
 		})
@@ -90,11 +93,13 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 		const description = cData?.description
 		const link = cData?.sourceUrl
 		const copyright = cData?.copyright
+		// Cleared before the empty check: the element is reused across image changes, so an
+		// early return would otherwise leave the previous image's markup on screen.
+		this.#detailsEl.replaceChildren()
+
 		if (!title && !description && !link) {
 			return
 		}
-
-		this.#detailsEl.replaceChildren()
 
 		if (title) {
 			createElement('summary', {

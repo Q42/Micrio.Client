@@ -857,7 +857,14 @@ export class TileCanvas {
 		c2d._minScale = s
 		c2d._correctMinMax()
 		c2d._applyView()
-		this._camera360._update()
+		// The 2D projection needs `_updateProjection`'s view translate; the 360 one needs the
+		// rotations. Calling the 360 update on a 2D canvas left `w` at zero for its z=0 vertices,
+		// so nothing rendered until the next pan/zoom/resize.
+		if (this.is360) {
+			this._camera360._update()
+		} else {
+			this._camera2d._updateProjection()
+		}
 	}
 
 	/** @internal */

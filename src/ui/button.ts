@@ -104,7 +104,10 @@ export class MicrioButton extends MicrioElement<ButtonProps> {
 		}
 
 		const textNodes: string[] = []
-		for (const child of this.childNodes) {
+		// `childNodes` is a live NodeList: removing the current node while iterating it skipped
+		// every second removable child, dropping its text and leaving it in the light DOM.
+		// `Array.from` snapshots it (a plain spread is flagged as a needless copy).
+		for (const child of Array.from(this.childNodes)) {
 			if (child !== el && (child.nodeType === Node.TEXT_NODE || child.nodeType === Node.ELEMENT_NODE)) {
 				textNodes.push(child.textContent ?? '')
 				child.remove()

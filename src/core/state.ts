@@ -1,6 +1,7 @@
 import type { Writable } from '$core/store'
 import type { Models } from '$types/models'
 import type { MicrioImage } from './image'
+import type { HTMLMicrioElement } from './element'
 
 import { writable } from '$core/store'
 
@@ -58,8 +59,12 @@ export namespace State {
 		readonly popover: Writable<Models.State.PopoverType | undefined> = writable()
 
 		/**
-		 * Map storing the playback state (currentTime, paused) of media elements associated with markers, keyed by a unique media ID.
-		 * Used to resume media playback when returning to a marker.
+		 * Map storing the playback state (currentTime, paused) of media elements associated with
+		 * markers, keyed by a unique media ID.
+		 *
+		 * Reserved for resuming media playback when returning to a marker: nothing in `src`
+		 * writes or reads it yet, so it is currently inert surface. It is not pruned during a
+		 * session.
 		 * @internal
 		 */
 		mediaState = new Map<
@@ -78,13 +83,69 @@ export namespace State {
 					return
 				}
 				this.#_tour = t
+				this._touch('tour')
 			})
 			this.marker.subscribe((m) => {
 				if (typeof m === 'string') {
 					return
 				}
 				this.#_marker = m
+				this._touch('marker')
 			})
+			this.popup.subscribe(() => {
+				this._touch('popup')
+			})
+			this.popover.subscribe(() => {
+				this._touch('popover')
+			})
+		}
+
+		/** Fields touched since the pending `update` event, and its timer. @internal */
+		#touched = new Set<string>()
+		#touchTo: ReturnType<typeof globalThis.setTimeout> | undefined
+
+		/** The viewer this state belongs to, set by {@link HTMLMicrioElement}. @internal */
+		_micrio: HTMLMicrioElement | undefined
+
+		/** Binds the owning viewer, which the `update` event needs to dispatch on. @internal */
+		_setMicrio(micrio: HTMLMicrioElement): this {
+			this._micrio = micrio
+			return this
+		}
+
+		/**
+		 * Records that `field` changed and schedules the coalesced `update` event.
+		 *
+		 * The event is documented as firing on user action, deferred, at most once per 500 ms —
+		 * so the fields accumulate and one trailing timer emits them together. Only user-facing
+		 * signals call this; wiring it into the generic store setter would report every internal
+		 * write.
+		 * @internal
+		 */
+		_touch(field: string): void {
+			const micrio = this._micrio
+			if (!micrio) {
+				return
+			}
+			this.#touched.add(field)
+			if (this.#touchTo !== undefined) {
+				return
+			}
+			this.#touchTo = globalThis.setTimeout(() => {
+				this.#touchTo = undefined
+				const fields = [...this.#touched]
+				this.#touched.clear()
+				if (fields.length > 0) {
+					micrio.events._dispatch('update', fields)
+				}
+			}, 500)
+		}
+
+		/** Flushes a pending `update` timer without firing, for teardown. @internal */
+		_cancelTouch(): void {
+			globalThis.clearTimeout(this.#touchTo)
+			this.#touchTo = undefined
+			this.#touched.clear()
 		}
 	}
 
@@ -145,8 +206,9 @@ export namespace State {
 				pY = nY
 				pW = nW
 				pH = nH
-				// Fire zoom callbacks if dimensions changed significantly
-				if (zW === undefined || zH === undefined || Math.abs(nW - zW + (nH - zH)) > 1e-5) {
+				// Fire zoom callbacks if either dimension changed significantly. Summing the two
+				// deltas let a width and a height change of opposite sign cancel out.
+				if (zW === undefined || zH === undefined || Math.abs(nW - zW) > 1e-5 || Math.abs(nH - zH) > 1e-5) {
 					for (const fn of m._onZoom) {
 						fn(detail)
 					}

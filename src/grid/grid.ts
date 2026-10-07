@@ -166,41 +166,58 @@ export class Grid extends MicrioElement<GridProps> {
 		this.#clearTimeouts()
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
+		if (this.#_tourEventHandler) {
+			this.micrio.removeEventListener('tour-event', this.#_tourEventHandler)
+		}
+		if (this.#onSerialPause) {
+			this.micrio.removeEventListener('serialtour-pause', this.#onSerialPause)
+		}
+		if (this.#onSerialPlay) {
+			this.micrio.removeEventListener('serialtour-play', this.#onSerialPlay)
+		}
 	}
 
+	#onSerialPause?: () => void
+	#onSerialPlay?: () => void
+
 	#hook() {
-		this.micrio.state.marker.subscribe((m) => {
-			if (m && typeof m !== 'string') {
-				const d = m.data?._meta
-				const gs = d?.gridSize
-				if (gs !== undefined && gs !== '' && gs !== 0) {
-					// Resize the tile of the image carrying the marker. `enlarge` takes an
-					// index into the *current* layout, and the resize happens before the
-					// deferred `gridAction` below, so an action-carrying marker ends up with
-					// the action's layout (the resize is a one-shot at marker open, not
-					// something restored when the marker closes).
-					const micId = this._images.find((i) => i.$data?.markers?.find((n) => n === m))?.id
-					const idx = this._current.findIndex((i) => i.id === micId)
-					const s: [number, number] =
-						typeof gs === 'number' ? [gs, gs] : [Number(gs.split(',')[0]), Number(gs.split(',')[1])]
-					// `"abc"` and the like parse to NaN, and `enlarge` would write a `span NaN`
-					// grid area: only a positive integer span is a size.
-					if (idx >= 0 && s.every((n) => Number.isInteger(n) && n > 0)) {
-						this.enlarge(idx, s[0], s[1]).catch(() => {})
+		// Every subscription here runs `#placeGrid`/`#removeGrid` or a marker's `gridAction` on
+		// this grid, so they have to go with it: a removed grid would otherwise keep resizing
+		// tiles, starting camera animations and scheduling timeouts on torn-down images.
+		this._addCleanup(
+			this.micrio.state.marker.subscribe((m) => {
+				if (m && typeof m !== 'string') {
+					const d = m.data?._meta
+					const gs = d?.gridSize
+					if (gs !== undefined && gs !== '' && gs !== 0) {
+						// Resize the tile of the image carrying the marker. `enlarge` takes an
+						// index into the *current* layout, and the resize happens before the
+						// deferred `gridAction` below, so an action-carrying marker ends up with
+						// the action's layout (the resize is a one-shot at marker open, not
+						// something restored when the marker closes).
+						const micId = this._images.find((i) => i.$data?.markers?.find((n) => n === m))?.id
+						const idx = this._current.findIndex((i) => i.id === micId)
+						const s: [number, number] =
+							typeof gs === 'number' ? [gs, gs] : [Number(gs.split(',')[0]), Number(gs.split(',')[1])]
+						// `"abc"` and the like parse to NaN, and `enlarge` would write a `span NaN`
+						// grid area: only a positive integer span is a size.
+						if (idx >= 0 && s.every((n) => Number.isInteger(n) && n > 0)) {
+							this.enlarge(idx, s[0], s[1]).catch(() => {})
+						}
 					}
+					void tick().then(() => {
+						const a = d?.gridAction?.split('|')
+						const name = a?.[0]
+						if (a?.length && typeof name === 'string') {
+							a.shift()
+							// The opened marker's `gridTourTransition` is the transition that action's
+							// focus should use when it lands on a single image
+							this.action(name, a.join('|'), undefined, m.data?.gridTourTransition)
+						}
+					})
 				}
-				void tick().then(() => {
-					const a = d?.gridAction?.split('|')
-					const name = a?.[0]
-					if (a?.length && typeof name === 'string') {
-						a.shift()
-						// The opened marker's `gridTourTransition` is the transition that action's
-						// focus should use when it lands on a single image
-						this.action(name, a.join('|'), undefined, m.data?.gridTourTransition)
-					}
-				})
-			}
-		})
+			}),
+		)
 
 		if (this._clickable !== false) {
 			this.addEventListener('click', (e) => {
@@ -217,23 +234,25 @@ export class Grid extends MicrioElement<GridProps> {
 					this.#placeGrid()
 				}
 			}
-			this.micrio.state.tour.subscribe(placeOrRemove)
-			this.micrio.state.marker.subscribe(placeOrRemove)
-			this._focussed.subscribe(placeOrRemove)
+			this._addCleanup(this.micrio.state.tour.subscribe(placeOrRemove))
+			this._addCleanup(this.micrio.state.marker.subscribe(placeOrRemove))
+			this._addCleanup(this._focussed.subscribe(placeOrRemove))
 		}
 
 		this.#_tourEventHandler = createTourEventHandler(this)
 		this.micrio.addEventListener('tour-event', this.#_tourEventHandler)
-		this.micrio.addEventListener('serialtour-pause', () => {
+		this.#onSerialPause = () => {
 			for (const i of this._images) {
 				i.camera.pause()
 			}
-		})
-		this.micrio.addEventListener('serialtour-play', () => {
+		}
+		this.#onSerialPlay = () => {
 			for (const i of this._images) {
 				i.camera.resume()
 			}
-		})
+		}
+		this.micrio.addEventListener('serialtour-pause', this.#onSerialPause)
+		this.micrio.addEventListener('serialtour-play', this.#onSerialPlay)
 	}
 
 	/** @internal */
@@ -494,6 +513,9 @@ export class Grid extends MicrioElement<GridProps> {
 			}
 			tile.dataset.id = i.id
 			tile.dataset.scrollThrough = ''
+			// The tiles are keyboard focus targets (`keyboard.ts` moves focus between them),
+			// so they need a name: without one every cell reads as just "button".
+			tile.setAttribute('aria-label', this._imageMap.get(i.id)?.$info?.title ?? i.id)
 			this.append(tile)
 		}
 
@@ -537,13 +559,15 @@ export class Grid extends MicrioElement<GridProps> {
 			return
 		}
 		this.classList.remove('grid-cells-hidden')
+		// `done()` and `placeOrRemove` both reach here in one `set()` when a focussed image is
+		// blurred, so the previous subscription has to go or every focus/blur cycle adds one.
+		this.#viewUnsub?.()
 		this.#viewUnsub = this.image.state.view.subscribe(this.#updateGrid)
 	}
 
 	#removeGrid(): void {
-		if (this.#viewUnsub) {
-			this.#viewUnsub()
-		}
+		this.#viewUnsub?.()
+		this.#viewUnsub = undefined
 		this.classList.add('grid-cells-hidden')
 	}
 

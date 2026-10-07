@@ -1,4 +1,5 @@
 import { MicrioElement } from '$core/component'
+import type { HTMLMicrioElement } from '$core/element'
 import type { Models } from '$types/models'
 import { DataLoader } from '$utils/dataLoader'
 import { parseTime } from '$utils/time'
@@ -36,8 +37,34 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#mediaCleanup: (() => void) | undefined = undefined
 	/** Set by `#break`: a failed step can report its error more than once, and the tour must stop once. */
 	#broken = false
+	/** True once `tour-ended` has been reported, so it pairs with the tour exactly once. */
+	#endedReported = false
+	/** The viewer, captured at mount: `_getMicrio()` walks the parent chain, which the layout
+	 *  has already removed by the time the teardown cleanup runs. */
+	#micrio: HTMLMicrioElement | undefined
+
+	/**
+	 * Sets the playback flags together and reports the transition, so `serialtour-play` and
+	 * `serialtour-pause` can never drift from the state they describe.
+	 * @internal
+	 */
+	#setPlaying(playing: boolean, paused: boolean): void {
+		const wasPlaying = this.#mediaPlaying && !this.#mediaPaused
+		this.#mediaPlaying = playing
+		this.#mediaPaused = paused
+		const isPlaying = playing && !paused
+		if (isPlaying === wasPlaying) {
+			return
+		}
+		const { tour } = this.#props
+		if (tour) {
+			this._getMicrio()?.events._dispatch(isPlaying ? 'serialtour-play' : 'serialtour-pause', tour)
+		}
+	}
 	#duration = 0
 	#noTimeScrub = false
+	/** Incremented by every `#openStep`, so a superseded call stops after its await. */
+	#stepToken = 0
 
 	/** @internal */
 	_onMount() {
@@ -47,6 +74,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			return
 		}
 
+		this.#micrio = micrio
 		this.#stepInfo = tour.stepInfo || []
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0)
 		this.#noTimeScrub = Boolean(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub)
@@ -54,6 +82,19 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		micrio.dataset.markerTourActive = ''
 		this._addCleanup(() => {
 			delete micrio.dataset.markerTourActive
+		})
+
+		this._addCleanup(() => {
+			// Both stop paths — the natural `close()` and a failed step's `#break` — remove this
+			// element, so the end is reported here once rather than at each of them.
+			if (this.#endedReported) {
+				return
+			}
+			this.#endedReported = true
+			const t = this.#props.tour
+			if (t) {
+				this.#micrio?.events._dispatch('tour-ended', t)
+			}
 		})
 
 		const mt = tour
@@ -139,6 +180,11 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (!micrio) {
 			return
 		}
+		// Opening a cross-image step can take a whole step's worth of time, during which the
+		// interval keeps calling `#openStep` for the same target (the step is not committed yet).
+		// This token makes every call after the newest a no-op, so the step's media is not torn
+		// down and rebuilt over and over while the image loads.
+		const token = ++this.#stepToken
 
 		const close = () => {
 			micrio.state.tour.set(undefined)
@@ -166,6 +212,9 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		if (si.micrioId && micrio.$current?.id !== si.micrioId) {
 			await micrio.open(si.micrioId, { startView })
+			if (token !== this.#stepToken || !this.isConnected) {
+				return
+			}
 		}
 
 		// Opening the step image can take as long as a whole step, so the clock only starts
@@ -185,6 +234,14 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#mediaPlaying = false
 		this.#mediaPaused = false
 		this.#currentStep = idx
+
+		// One event per step, after the token check so a superseded call cannot report a step it
+		// never opened. The detail is the most specific tour object for this step: its own video
+		// tour when it has one, else the marker tour being stepped through.
+		const stepTour = marker?.videoTour ?? this.#props.tour
+		if (stepTour) {
+			this._getMicrio()?.events._dispatch('tour-step', stepTour)
+		}
 
 		if (marker?.videoTour) {
 			const { lang } = micrio
@@ -206,7 +263,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 						this.#break(error)
 					},
 					onblocked: () => {
-						this.#mediaPaused = true
+						this.#setPlaying(this.#mediaPlaying, true)
 					},
 					hasAudio: this.#stepInfo.some((s) => s.duration > 0),
 					fullscreenEl: micrio,
@@ -248,8 +305,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			}
 			// Real playback is the step's position, so the readout cannot drift from the audio
 			this.#elapsed = t
-			this.#mediaPlaying = true
-			this.#mediaPaused = false
+			this.#setPlaying(true, false)
 			const si = this.#stepInfo[this.#currentStep]
 			if (si !== undefined) {
 				si.currentTime = t
@@ -261,7 +317,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		}
 		// Blocked by the browser: the step is playable by hand, so it waits paused
 		const onBlocked = () => {
-			this.#mediaPaused = true
+			this.#setPlaying(this.#mediaPlaying, true)
 			this.#updateBars()
 		}
 		// A source that cannot play is a real failure: the tour stops and says why
@@ -329,7 +385,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#elapsed += 0.25
 		si.currentTime = this.#elapsed
 		this.#updateBars()
-		if (si.duration > 0 && this.#elapsed >= si.duration) {
+		// `#nextStep` marks the step ended before the next one is committed, because opening a
+		// cross-image step awaits the image. Without the `ended` check this tick would re-enter
+		// the same step (and issue another `micrio.open`) on every interval beat while it loads.
+		if (si.duration > 0 && !si.ended && this.#elapsed >= si.duration) {
 			this.#nextStep()
 		}
 	}
@@ -392,10 +451,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } })
 		for (const [i, si] of this.#stepInfo.entries()) {
 			const marker = DataLoader._getStepMarker(si)
-			createElement('div', {
-				attrs: { 'data-part': 'bar', role: 'progressbar', tabindex: '0' },
+			const title = this.#getTitle(marker) ?? ''
+			// A real button rather than a focusable `role="progressbar"`: the bar *does* navigate
+			// on click, so it has to be activatable by keyboard and carry a name.
+			createElement('button', {
+				attrs: { 'data-part': 'bar', type: 'button', 'aria-label': title },
 				dataset: { idx: String(i) },
-				props: { title: this.#getTitle(marker) ?? '' },
+				props: { title },
 				style: { width: `${(si.duration / (this.#duration || 1)) * 100}%` },
 				events: {
 					click: () => {
@@ -409,7 +471,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	}
 
 	#goto(i: number) {
-		if (this.#noTimeScrub && i === this.#currentStep) {
+		// The setting means "the time bar is a readout, not a scrubber": it has to block a jump to
+		// another step too, not just a re-click of the current one (which the guard below already
+		// covered, making the setting a no-op).
+		if (this.#noTimeScrub) {
 			return
 		}
 		if (i === this.#currentStep) {

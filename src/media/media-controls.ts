@@ -152,6 +152,11 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 				globalThis.removeEventListener('mouseup', dStop)
 			}
 			bars.addEventListener('mousedown', dStart)
+			// A drag that is still in progress when the bar goes away would otherwise leave the
+			// two window listeners (and this detached bar) alive until the next `mouseup`.
+			this._addCleanup(() => {
+				dStop()
+			})
 			container.append(bars)
 
 			this.#timeEl = createElement('span', {

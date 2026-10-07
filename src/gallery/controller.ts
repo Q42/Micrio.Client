@@ -37,7 +37,7 @@ function fitArea(
 
 /** Compare two optional archive metadata strings, inverting for descending sorts. */
 function compareStrings(a: string | undefined, b: string | undefined, invert: boolean): number {
-	if (!a || !b || a === b) {
+	if (a === undefined || b === undefined || a === b) {
 		return 0
 	}
 	const less = a < b ? -1 : 1
@@ -46,7 +46,8 @@ function compareStrings(a: string | undefined, b: string | undefined, invert: bo
 
 /** Compare two optional archive metadata numbers, inverting for descending sorts. */
 function compareNumbers(a: number | undefined, b: number | undefined, invert: boolean): number {
-	if (!a || !b || a === b) {
+	// Not `!a`: `0` is a legitimate value (and falsy), and made it sort equal to everything.
+	if (a === undefined || b === undefined || a === b) {
 		return 0
 	}
 	const less = a < b ? -1 : 1

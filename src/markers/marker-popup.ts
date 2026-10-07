@@ -13,6 +13,8 @@ import './marker-content'
 export interface MarkerPopupProps {
 	/** The marker data to display in the popup. */
 	marker: Models.ImageData.Marker
+	/** The image the marker belongs to, so the popup does not need a global marker-id lookup. */
+	image?: MicrioImage
 }
 import './marker-popup.css'
 
@@ -82,11 +84,12 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 	/** @internal */
 	_setProps(props: Partial<MarkerPopupProps>) {
-		if (props.marker !== undefined && props.marker.id !== this.#props.marker?.id) {
-			this.#props.marker = props.marker
-			if (this.isConnected) {
-				this.#render()
-			}
+		const markerChanged = props.marker !== undefined && props.marker.id !== this.#props.marker?.id
+		// `image` has to be merged too, not just `marker`: this override replaces the base
+		// implementation, so anything it does not assign is dropped.
+		Object.assign(this.#props, props)
+		if (markerChanged && this.isConnected) {
+			this.#render()
 		}
 	}
 
@@ -139,9 +142,14 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		)
 	}
 
-	/** The `<micrio-marker>` element this popup was opened for. */
+	/** The image this popup's marker belongs to. */
 	#getImage(): MicrioImage | undefined {
-		const { marker } = this.#props
+		const { image, marker } = this.#props
+		// The prop the layout passes is authoritative; the global map stays the fallback for a
+		// popup mounted without it (and for marker ids shared between images).
+		if (image) {
+			return image
+		}
 		return marker?.id ? MicrioElement._markerImages.get(marker.id) : undefined
 	}
 
@@ -201,6 +209,11 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const toggleMinimize = () => {
 			this.#isMinimized = !this.#isMinimized
 			this.classList.toggle('minimized', this.#isMinimized)
+			// This button is what collapses a running tour's UI, which is the condition
+			// `tour-minimize` documents.
+			if (get(micrio.state.tour)) {
+				micrio.events._dispatch('tour-minimize', this.#isMinimized)
+			}
 			if (this.#content !== undefined) {
 				for (const child of this.#content.children) {
 					if (child instanceof HTMLElement) {
@@ -261,31 +274,54 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		}
 
 		this.#content = createElement('micrio-marker-content', {
-			setProps: { marker, onclose: close },
+			setProps: { marker, image: this.#props.image, onclose: close },
 			parent: this,
 		})
 
 		if (showTourControls) {
 			// The aside lives in `<micrio-tour>`, which the layout may mount in a later
 			// frame than this popup, so keep asking for it until it exists.
-			Frame.request(() => {
-				this.#placeTourAside()
-			})
+			if (!this.#placingAside) {
+				this.#placingAside = true
+				Frame.request(this.#placeTourAside)
+			}
 		}
 	}
 
-	/** Moves the tour element's control aside into this popup, once it exists. */
-	#placeTourAside(): void {
-		const tourEl = document.querySelector('micrio-tour')
-		const tourAside = tourEl instanceof MicrioElement && 'aside' in tourEl ? tourEl.aside : undefined
-		if (!(tourAside instanceof HTMLElement)) {
-			Frame.request(() => {
-				this.#placeTourAside()
-			})
+	/** Set while a `#placeTourAside` retry chain is pending, so only one can be queued. */
+	#placingAside = false
+
+	/**
+	 * Moves the tour element's control aside into this popup, once it exists.
+	 *
+	 * The retry is bounded by this popup's own life: without the guard the chain re-queued
+	 * itself every frame for the rest of the session whenever the aside never appeared (a tour
+	 * that ends, a cross-image tour, or a `<micrio-tour>` the layout has removed).
+	 * @internal
+	 */
+	#placeTourAside = (): void => {
+		if (!this.isConnected) {
+			this.#placingAside = false
 			return
 		}
+		// Scoped to this viewer: a global lookup could hand another viewer's aside to this popup.
+		const tourEl = this._getMicrio()?.querySelector('micrio-tour')
+		const tourAside = tourEl instanceof MicrioElement && 'aside' in tourEl ? tourEl.aside : undefined
+		if (!(tourAside instanceof HTMLElement)) {
+			Frame.request(this.#placeTourAside)
+			return
+		}
+		this.#placingAside = false
 		if (!this.contains(tourAside)) {
 			this.append(tourAside)
+		}
+	}
+
+	/** @internal */
+	_onDestroy() {
+		if (this.#placingAside) {
+			Frame.cancel(this.#placeTourAside)
+			this.#placingAside = false
 		}
 	}
 }

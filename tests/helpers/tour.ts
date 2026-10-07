@@ -67,12 +67,17 @@ export function advance(ms: number): void {
 	vi.advanceTimersByTime(ms)
 }
 
-/** Collects dispatched custom events on the viewer, with their details. */
-export function recordEvents(
+/**
+ * Collects dispatched custom events on the viewer, with their details.
+ *
+ * `types` is keyed on the public event map, so a typo'd name is a compile error rather than a
+ * silently empty recorder — the failure mode that let a declared-but-unfired event go unnoticed.
+ */
+export function recordEvents<K extends keyof Models.MicrioEventDetails>(
 	el: HTMLMicrioElement,
-	types: string[],
-): { events: { type: string; detail: unknown }[]; stop: () => void } {
-	const events: { type: string; detail: unknown }[] = []
+	types: readonly K[],
+): { events: { type: K; detail: unknown }[]; stop: () => void } {
+	const events: { type: K; detail: unknown }[] = []
 	const handlers = types.map((type) => {
 		const fn = (e: Event) => events.push({ type, detail: (e as CustomEvent).detail })
 		el.addEventListener(type, fn)

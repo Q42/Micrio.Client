@@ -79,7 +79,11 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			mt.currentStep ??= mt.initialStep ?? 0
 			this.#currentStep = mt.currentStep
 			const { stepInfo } = mt
-			const tourControlsInPopup = Boolean(micrio.$current?.$settings?._markers?.tourControlsInPopup)
+			// Resolved from the image the tour is *authored* on, like `micrio-marker-popup` does:
+			// a tour that crosses images would otherwise read it from whichever image is shown,
+			// and the two components would disagree about whether the controls move into the popup.
+			const authored = micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === mt.id))
+			const tourControlsInPopup = Boolean((authored ?? micrio.$current)?.$settings?._markers?.tourControlsInPopup)
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
 				const si = stepInfo?.[newIdx]
@@ -228,7 +232,16 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 		this._addCleanup(
 			micrio.state.tour.subscribe((t) => {
-				if (!t && isMarkerTour) {
+				if (t) {
+					return
+				}
+				// The end is reported here rather than from `_onDestroy`: `_getMicrio()` walks the
+				// parent chain, which the layout has already removed by then.
+				if (!this.#stopped) {
+					this.#stopped = true
+					micrio.events._dispatch('tour-stop', tour)
+				}
+				if (isMarkerTour) {
 					const mt = tour
 					const si = mt.stepInfo?.[this.#currentStep]
 					if (si) {
@@ -240,7 +253,13 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				}
 			}),
 		)
+
+		// The tour is up and running: the element only exists while a tour is active.
+		micrio.events._dispatch('tour-start', tour)
 	}
+
+	/** True once `tour-stop` has been reported for this element, so it fires exactly once. */
+	#stopped = false
 
 	/** @internal */
 	_setProps(props: Partial<TourProps>) {

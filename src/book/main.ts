@@ -113,6 +113,10 @@ export class BookViewer {
 
 	#hardCover: boolean
 	#seeThroughMargins: boolean
+	/** The resolved tilt-shift flag, re-applied to a renderer built for a restored WebGL context. */
+	#tiltShift!: boolean
+	/** The resolved lighting preset name, re-applied to a renderer built for a restored context. */
+	#lightingPreset!: string
 	/** When false, the 90° rotate-view feature is disabled and its UI is hidden. */
 	#allowRotation: boolean
 
@@ -126,6 +130,9 @@ export class BookViewer {
 	#backRegions: Float32Array = new Float32Array(0)
 
 	#images: Models.ImageInfo.ImageInfo[] = []
+
+	/** True once the input/window listeners are attached, so `_stop` only detaches what exists. */
+	#listenersReady = false
 
 	#meshes: PaperMesh[] = []
 	#renderer!: PaperRenderer
@@ -792,6 +799,35 @@ export class BookViewer {
 	_stop(): void {
 		this.#stopped = true
 		Frame.cancel(this.#frame)
+		// A `goto()` cascade has to stop with the viewer: every pending step calls
+		// `_nextPage`/`_prevPage`, whose `#onPageChange` drives the gallery and therefore the
+		// *replacement* viewer, dragging it to this one's page indices.
+		if (this.#gotoStep) {
+			Frame.cancel(this.#gotoStep)
+			this.#gotoStep = undefined
+		}
+		this.#gotoStepping = false
+		// Resolve whoever is waiting on that cascade instead of leaving them on the 3 s fallback.
+		if (this.#gotoDone.length > 0) {
+			const cbs = this.#gotoDone
+			this.#gotoDone = []
+			for (const cb of cbs) {
+				cb()
+			}
+		}
+		// A viewer that never got past WebGL setup has no listeners or handlers to detach.
+		if (!this.#listenersReady) {
+			return
+		}
+		// A discarded viewer must not keep handling input or window events: its pointers would
+		// fight the viewer that replaced it on the same canvas, and the global listeners keep
+		// the whole viewer (renderer, textures, meshes) reachable for the life of the page.
+		this.#inputHandler._destroy()
+		window.removeEventListener('resize', this.#onWindowResize)
+		document.removeEventListener('visibilitychange', this.#onVisibilityChange)
+		const canvas = this.#renderer._getCanvas()
+		canvas.removeEventListener('webglcontextlost', this.#onContextLost)
+		canvas.removeEventListener('webglcontextrestored', this.#onContextRestored)
 	}
 
 	_nextPage(grabRow?: number): void {
@@ -975,7 +1011,9 @@ export class BookViewer {
 		this.#camera._panBoundsMax = new Vec3(absX, maxY, maxZ)
 
 		this.#renderer = new PaperRenderer(gl)
-		this.#renderer._tiltShiftEnabled = options._tiltShift ?? TILT_SHIFT_ENABLED
+		this.#tiltShift = options._tiltShift ?? TILT_SHIFT_ENABLED
+		this.#lightingPreset = options._lightingPreset ?? LIGHTING_PRESET
+		this.#renderer._tiltShiftEnabled = this.#tiltShift
 		this.#renderer._seeThroughMargins = this.#seeThroughMargins
 		this.#renderer._initialize(this.#meshes)
 		this.#renderer._setBoundingBox(
@@ -998,18 +1036,15 @@ export class BookViewer {
 		this.#inputHandler = new InputHandler(canvas, this.#camera, this.#requestFrame)
 		this.#inputHandler._isZoomedInFn = () => this.isZoomedIn()
 
-		const preset = options._lightingPreset ?? LIGHTING_PRESET
+		const preset = this.#lightingPreset
 		this.setLightingPreset(preset)
 
 		this.#applyBinding()
 		this.#setupInputCallbacks()
 		this.#setupResizeAndContextHandlers(canvas)
 
-		document.addEventListener('visibilitychange', () => {
-			if (document.hidden) {
-				this.#lastTime = 0
-			}
-		})
+		document.addEventListener('visibilitychange', this.#onVisibilityChange)
+		this.#listenersReady = true
 
 		return true
 	}
@@ -1183,30 +1218,74 @@ export class BookViewer {
 	}
 
 	#setupResizeAndContextHandlers(canvas: HTMLCanvasElement): void {
-		window.addEventListener('resize', () => {
-			this.#renderer._resize()
-			this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight)
-			this.#requestFrame()
-		})
+		window.addEventListener('resize', this.#onWindowResize)
+		canvas.addEventListener('webglcontextlost', this.#onContextLost)
+		canvas.addEventListener('webglcontextrestored', this.#onContextRestored)
+	}
 
-		canvas.addEventListener('webglcontextlost', (e) => {
-			console.warn('WebGL context lost.')
-			e.preventDefault()
-		})
+	/** Bound so `_stop` can detach it from `window`. @internal */
+	#onWindowResize = (): void => {
+		const canvas = this.#renderer._getCanvas()
+		this.#renderer._resize()
+		this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight)
+		this.#requestFrame()
+	}
 
-		canvas.addEventListener('webglcontextrestored', () => {
-			console.log('WebGL context restored.')
-			const gl = canvas.getContext('webgl2', {
-				alpha: true,
-				premultipliedAlpha: true,
-				antialias: true,
-			})
-			if (gl && this.#renderer !== undefined) {
-				this.#renderer = new PaperRenderer(gl)
-				this.#renderer._seeThroughMargins = this.#seeThroughMargins
-				this.#renderer._initialize(this.#meshes)
-			}
+	/** @internal */
+	#onContextLost = (e: Event): void => {
+		console.warn('WebGL context lost.')
+		e.preventDefault()
+	}
+
+	/** @internal */
+	#onContextRestored = (): void => {
+		console.log('WebGL context restored.')
+		const canvas = this.#renderer._getCanvas()
+		const gl = canvas.getContext('webgl2', {
+			alpha: true,
+			premultipliedAlpha: true,
+			antialias: true,
 		})
+		if (gl && this.#renderer !== undefined) {
+			this.#restoreRenderer(gl)
+		}
+	}
+
+	/**
+	 * Rebuilds the renderer for a restored WebGL context.
+	 *
+	 * The restored context gives a brand-new `PaperRenderer` whose programs, buffers and textures
+	 * all have to be created again, and none of the state `#initGeometry` installed on the old one
+	 * survives a new instance: without re-applying it the pages fall back to the flat texture
+	 * (permanently, since `#loadPageTextures` only runs from the load path), the bounding box stops
+	 * clamping and the lighting/tilt-shift preset is gone. The page textures are re-uploaded and the
+	 * IIIF manager is re-pointed at the new renderer with its downloaded levels dropped, because
+	 * their GPU handles died with the old context.
+	 * @internal
+	 */
+	#restoreRenderer(gl: WebGL2RenderingContext): void {
+		this.#renderer = new PaperRenderer(gl)
+		this.#renderer._tiltShiftEnabled = this.#tiltShift
+		this.#renderer._seeThroughMargins = this.#seeThroughMargins
+		this.#renderer._initialize(this.#meshes)
+		const min = this.#camera._panBoundsMin
+		const max = this.#camera._panBoundsMax
+		if (min && max) {
+			this.#renderer._setBoundingBox({ x: min._x, y: min._y, z: min._z }, { x: max._x, y: max._y, z: max._z })
+		}
+		if (this.#frontRegions.length > 0) {
+			this.#renderer._setAspectRegions(this.#frontRegions, this.#backRegions)
+		}
+		this.setLightingPreset(this.#lightingPreset)
+		void this.#loadPageTextures(this.#images)
+		this.#iiifManager?._rebind(this.#renderer)
+	}
+
+	/** Bound so `_stop` can detach it from `document`. @internal */
+	#onVisibilityChange = (): void => {
+		if (document.hidden) {
+			this.#lastTime = 0
+		}
 	}
 
 	#raycastForDrag(screenX: number, screenY: number): PageDragResult | null {

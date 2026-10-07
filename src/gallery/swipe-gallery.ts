@@ -44,6 +44,11 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		const basePath = parent?.$current?.$info?.path
 
 		Frame.request(() => {
+			// The element can be removed in the same frame (a popover closed right after opening),
+			// which would otherwise build a gallery — and its WebGL context — into a detached host.
+			if (!this.isConnected) {
+				return
+			}
 			const galleryCtrl = Gallery._fromAssets(this.#props.gallery, el._engine, el, {
 				startId: this.#props.galleryStart,
 				basePath,
@@ -55,7 +60,10 @@ class MicrioSwipeGallery extends MicrioElement<MicrioGalleryProps> {
 		const updateCaption = () => {
 			const item = this.#props.gallery[currentIdx]
 			const text = item?.i18n?.[this.#props.lang]?.description
-			caption.innerHTML = text ?? ''
+			// A description is plain asset metadata, rendered as text everywhere else
+			// (`marker-content` uses `textContent` for the same field), so markup in it is shown
+			// literally instead of being parsed into the page.
+			caption.textContent = text ?? ''
 			caption.style.display = text ? '' : 'none'
 		}
 

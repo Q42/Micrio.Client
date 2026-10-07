@@ -31,12 +31,20 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			return
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of stacking a second dialog
+		this.replaceChildren()
+
 		this.#dialog = createElement('dialog', {
 			events: {
 				close: () => {
 					const p = this.#props.popover
 					if (p && 'marker' in p && p.marker && p.image?.state?.marker) {
 						p.image.state.marker.set(undefined)
+					}
+					// Reported before the state is cleared, and only for a content page: a marker
+					// popover closing is not a page close.
+					if (p && 'contentPage' in p && p.contentPage) {
+						micrio.events._dispatch('page-closed', p.contentPage)
 					}
 					micrio.state.popover.set(undefined)
 				},
@@ -171,24 +179,29 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			if (button.type === 'close') {
 				return
 			}
-			// Give the popover time to close before switching content, like in 6
-			setTimeout(() => {
-				const data = micrio.$current?.$data
-				switch (button.type) {
-					case 'marker': {
-						micrio.$current?.state.marker.set(button.action)
-						break
+			// Give the popover time to close before switching content, like in 6. The timer is
+			// owned by the viewer rather than this element: closing the dialog removes the
+			// popover in the same tick, so a cleanup here would cancel the navigation.
+			const micrioEl = micrio
+			micrioEl._pageButtonTimers.push(
+				setTimeout(() => {
+					const data = micrio.$current?.$data
+					switch (button.type) {
+						case 'marker': {
+							micrio.$current?.state.marker.set(button.action)
+							break
+						}
+						case 'mtour': {
+							micrio.state.tour.set(data?.markerTours?.find((t) => t.id === button.action))
+							break
+						}
+						case 'vtour': {
+							micrio.state.tour.set(data?.tours?.find((t) => t.id === button.action))
+							break
+						}
 					}
-					case 'mtour': {
-						micrio.state.tour.set(data?.markerTours?.find((t) => t.id === button.action))
-						break
-					}
-					case 'vtour': {
-						micrio.state.tour.set(data?.tours?.find((t) => t.id === button.action))
-						break
-					}
-				}
-			}, 200)
+				}, 200),
+			)
 		}
 
 		// 6 parity: no aside at all when the page closes itself and no tour nav is needed
@@ -312,6 +325,7 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 				createElement('micrio-marker-content', {
 					setProps: {
 						marker,
+						image: micrio.$current,
 						noEmbed: true,
 						noGallery: true,
 						noImages: !content || !content.embedUrl,

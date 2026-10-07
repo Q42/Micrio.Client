@@ -53,6 +53,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		if (!markerImages.has(marker.id)) {
 			markerImages.set(marker.id, image)
 		}
+		// The map is a fallback lookup for consumers that were not given the image, so an entry
+		// is only worth keeping while a marker element for it exists: without this, every marker
+		// id ever mounted (synthetic cluster ids included) pins its image for the page lifetime.
+		this._addCleanup(() => {
+			if (markerImages.get(marker.id) === image) {
+				markerImages.delete(marker.id)
+			}
+		})
 
 		const { events } = micrio
 		const $_lang = get(micrio._lang)
@@ -332,10 +340,21 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					// subscription does (a `const` would be in its temporal dead zone)
 					let unsub: (() => void) | undefined
 					unsub = micrio.state.tour.subscribe((t) => {
-						if (!t) {
-							unsub?.()
+						if (t) {
+							return
+						}
+						unsub?.()
+						// Only when this marker is still the open one: another marker's
+						// `activated()` clears the tour as it opens, and closing whatever is open
+						// would close the marker the user just clicked.
+						if (image.state.$marker === marker) {
 							image.state.marker.set(undefined)
 						}
+					})
+					// The subscription outlives this element otherwise, and would clear a marker
+					// (or keep this one alive) long after the marker layer was torn down.
+					this._addCleanup(() => {
+						unsub?.()
 					})
 				}
 			} else {

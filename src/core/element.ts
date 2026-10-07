@@ -129,6 +129,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	#printing: Promise<void> | undefined
 
+	/** Bumped by `destroy()`, so an initial setup that is still awaiting an async step stops. @internal */
+	#printGen = 0
+
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
 	 * @internal
 	 */
@@ -173,7 +176,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	readonly events: Events = new Events(this)
 
 	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
-	readonly state: State.Main = new State.Main()
+	readonly state: State.Main = new State.Main()._setMicrio(this)
 
 	/** Direct callbacks invoked on every camera move (instead of dispatching a DOM event).
 	 * @internal
@@ -245,6 +248,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Activity callback retained so idle listeners can be removed on destroy. @internal */
 	#onActivity?: () => void
 
+	/** The lazyload observer, kept so `destroy` can disconnect it. @internal */
+	#lazyObserver?: IntersectionObserver
+
 	/** For setting first-time hooks
 	 * @internal
 	 */
@@ -300,6 +306,7 @@ export class HTMLMicrioElement extends MicrioElement {
 					if (prevLang) {
 						this.events._dispatch('lang-switch', newVal)
 					}
+					this.state._touch('lang')
 				}
 				break
 			}
@@ -353,7 +360,11 @@ export class HTMLMicrioElement extends MicrioElement {
 			// book3d zoom/pan overrides. The individual pages become visible as
 			// the spread changes, so pick the parent for the zoomed check instead
 			// of whichever single page happens to be on screen.
-			const target = this._engine._book3d || imgs.length !== 1 ? this.#current : imgs[0]
+			// Exactly one visible image and not a book: that image is the one to test. (Spelled
+			// out because `_book3d || imgs.length !== 1 ? this.#current : imgs[0]` reads as if
+			// the visible-image count decided the branch on its own.)
+			const singleVisible = !this._engine._book3d && imgs.length === 1
+			const target = singleVisible ? imgs[0] : this.#current
 			this.toggleAttribute(
 				'data-zoomed',
 				target?.camera !== undefined && target._placed && !target.camera.isZoomedOut(),
@@ -418,8 +429,11 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Idle detection (data-idle after inactivity) ────────────────
 		// Skipped in the core build — the move listener it attaches costs CPU,
 		// and the CSS that consumes `data-idle` is stubbed out there anyway.
+		// `_onMount` runs again on every reconnect, so the listeners are attached once: a second
+		// set would never be removed (only `destroy` removes the current closure) and the global
+		// keydown would pin the detached element, its images and its engine for the page lifetime.
 
-		if (!__CORE__) {
+		if (!__CORE__ && !this.#onActivity) {
 			this.#idle = new IdleState(this, {
 				shouldIdle: () => {
 					if (document.activeElement && this.contains(document.activeElement)) {
@@ -499,10 +513,20 @@ export class HTMLMicrioElement extends MicrioElement {
 		super.removeEventListener(type, listener, useCapture)
 	}
 
+	/** Pending `setTimeout` handles for content-page button actions, cancelled on destroy.
+	 *  @internal
+	 */
+	readonly _pageButtonTimers: ReturnType<typeof globalThis.setTimeout>[] = []
+
 	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */
 	destroy(): void {
+		// The split registry is module-global, so a split left open would keep both images (and,
+		// through their engine, this disposed element) reachable for the life of the page. It is
+		// closed synchronously here, while the engine and its canvases are still alive.
+		closeAllSplits(this, true)
 		this.current.set(undefined)
 		this.events.enabled.set(false)
+		this.state._cancelTouch()
 		this.canvas.unhook()
 		this._engine._unbind()
 		if (this._ui) {
@@ -518,8 +542,22 @@ export class HTMLMicrioElement extends MicrioElement {
 			globalThis.removeEventListener('keydown', this.#onActivity)
 			this.#onActivity = undefined
 		}
+		// A page button navigates after a short delay; without this it would still mutate the
+		// viewer's state after its UI is gone.
+		for (const t of this._pageButtonTimers) {
+			clearTimeout(t)
+		}
+		this._pageButtonTimers.length = 0
+		this.#lazyObserver?.disconnect()
+		this.#lazyObserver = undefined
 		this.#printed = false
 		this.#printing = undefined
+		// `canvas.unhook()` above detached the resize hooking, so the next print has to run the
+		// one-time init again (it also re-applies the theme dataset); leaving this set meant a
+		// re-printed viewer never tracked its size again.
+		this.#initedFirst = false
+		// Stop a setup that is still suspended on an async step; see `#doPrint`
+		this.#printGen++
 	}
 
 	/**
@@ -616,9 +654,23 @@ export class HTMLMicrioElement extends MicrioElement {
 			return
 		}
 		this.#printed = true
+		// `destroy()` bumps this; a run that is suspended on an await then stops where it is.
+		// Otherwise it would re-print the UI and re-init the engine after teardown, and the next
+		// `#print()` would start a second, concurrent run next to it.
+		const gen = this.#printGen
+		const aborted = (): boolean => {
+			if (gen === this.#printGen) {
+				return false
+			}
+			this.#printed = false
+			return true
+		}
 		// Keep this the first await: the synchronous part must not re-enter `#print`
 		// before `#printing` has been assigned.
 		await tick()
+		if (aborted()) {
+			return
+		}
 		const opts = this.#getOptions()
 		if (!opts.settings) {
 			opts.settings = {}
@@ -635,6 +687,9 @@ export class HTMLMicrioElement extends MicrioElement {
 			const bundle = await DataLoader._getBundleImage(opts.id).catch((error: unknown) => {
 				console.error('[Micrio] Could not load the bundle for', opts.id, error)
 			})
+			if (aborted()) {
+				return
+			}
 			if (bundle && bundle.info?.albumId) {
 				// A failure here silently degrades the album to a single image, so it has to
 				// be visible: without this the viewer just shows one picture and no reason.
@@ -645,6 +700,9 @@ export class HTMLMicrioElement extends MicrioElement {
 					console.error('[Micrio] Could not open the album for', opts.id, error)
 					return null
 				})
+				if (aborted()) {
+					return
+				}
 				if (galleryCtrl) {
 					void galleryCtrl._openOn(this)
 					return
@@ -654,6 +712,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if (opts.id && opts.id.startsWith('http')) {
 			const bundle = await this.#handleIIIF(opts.id)
+			if (aborted()) {
+				return
+			}
 			if (!bundle) {
 				return
 			}
@@ -681,6 +742,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				},
 				{ rootMargin: `${opts.settings.lazyload * 100}% 0px` },
 			)
+			this.#lazyObserver = observer
 			observer.observe(this)
 		} else if (opts.id) {
 			Frame.request(openBundle)
@@ -791,6 +853,23 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 		if (typeof idOrInfo === 'string') {
 			deepCopy(attrOpts.settings, bundle.settings)
+			// Root attributes were spread over the info object for an id (the IIIF path resolved
+			// its own bundle and never did), and `#getOptions` still parses them. Without this,
+			// `data-path`, `width`, `height` and `data-version` are read and then dropped.
+			if (!idOrInfo.startsWith('http')) {
+				if (attrOpts.width !== undefined) {
+					bundle.info.width = attrOpts.width
+				}
+				if (attrOpts.height !== undefined) {
+					bundle.info.height = attrOpts.height
+				}
+				if (attrOpts.path !== undefined) {
+					bundle.info.path = attrOpts.path
+				}
+				if (attrOpts.version !== undefined) {
+					bundle.info.version = attrOpts.version
+				}
+			}
 		}
 		if (this.defaultSettings) {
 			deepCopy(this.defaultSettings, bundle.settings)

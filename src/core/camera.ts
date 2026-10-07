@@ -2,7 +2,6 @@ import type { MicrioImage } from './image'
 import type { Models } from '$types/models'
 import type { TileCanvas } from '$render/tile-canvas'
 
-import { tick } from '$core/store'
 import { mod, toCenterJSON } from '$utils/math'
 import { getEasing } from '$render/easing'
 
@@ -69,15 +68,6 @@ export class Camera {
 	 */
 	constructor(image: MicrioImage) {
 		this.#image = image
-		// For non-360 images, set initial view if already available
-		if (!image._is360) {
-			const view = image.state.$view
-			if (view && image.$info?.width) {
-				void tick().then(() => {
-					this.setView(view)
-				})
-			}
-		}
 	}
 
 	/**
@@ -406,12 +396,9 @@ export class Camera {
 		}
 		this.#image.opts.area = v
 		if (this.#image.opts.isEmbed && this.#image._placed) {
-			for (const img of this.#canvas.images) {
-				if (img._localIdx > 0) {
-					img._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3])
-					return
-				}
-			}
+			// The parent canvas holds one engine Image per embed, so this image's own engine
+			// Image is the only correct target.
+			this.#image.engine._getEngImage(this.#image)?._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3])
 		} else {
 			this.#canvas._setArea(v[0], v[1], v[0] + v[2], v[1] + v[3], Boolean(opts.direct), Boolean(opts.noDispatch))
 		}
@@ -425,13 +412,11 @@ export class Camera {
 		if (!this.#image.opts.isEmbed || !this.#canvas || !this.#image.engine.ready) {
 			return
 		}
-		for (const img of this.#canvas.images) {
-			if (img._localIdx > 0) {
-				img._rotX = rotX
-				img._rotY = rotY
-				img._rotZ = rotZ
-				break
-			}
+		const engImage = this.#image.engine._getEngImage(this.#image)
+		if (engImage) {
+			engImage._rotX = rotX
+			engImage._rotY = rotY
+			engImage._rotZ = rotZ
 		}
 		this.#image.engine.render()
 	}
@@ -474,6 +459,9 @@ export class Camera {
 		}
 		const v = this.#canvas.view.arr
 		this.#image.state.view.set([v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]])
+		// The element owns the coalesced `update` event, so the signal is raised here, where a
+		// real element reference is available, rather than in the state subscription.
+		this.#image.engine.micrio.state._touch('view')
 	}
 
 	// ─── Promise-based animations ──────────────────────────────────

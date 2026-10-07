@@ -7,6 +7,9 @@ import { normalize3 } from '$utils/math'
 import { imageHasAudio, volumeFor } from '$utils/media-settings'
 import { MicrioAudioLocation } from './audio-location'
 
+/** A valid, silent WAV data URI, used to probe whether the browser allows autoplay. */
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+
 // ── Module-level AudioContext state ──
 
 /** The global scope as a plain object, so runtime-provided globals can be probed with `in`. */
@@ -100,7 +103,27 @@ class AudioPlaylist {
 		}
 		const item = this.#list[++this.#idx % this.#list.length]
 		this.#audio.src = item.src ?? ''
-		void this.#audio.play()
+		void this.play()
+	}
+
+	/** Starts the current track. Safe to call again after a blocked autoplay. Returns whether
+	 *  playback actually started, so a caller can retry on the next user gesture. */
+	async play(): Promise<boolean> {
+		if (!this.#audio.src) {
+			return false
+		}
+		try {
+			await this.#audio.play()
+			return true
+		} catch {
+			// Autoplay before any user gesture is refused; `resume()` retries it later.
+			return false
+		}
+	}
+
+	/** Resumes playback after the browser blocked it (called from the user-gesture path). */
+	resume(): void {
+		void this.play()
 	}
 
 	/** Stops playback and releases the audio element. */
@@ -118,6 +141,8 @@ export class MicrioAudioController {
 	#image: MicrioImage
 	#playlist: AudioPlaylist | undefined
 	#cleanups: (() => void)[] = []
+	/** True once `audio-init` has been reported for this controller. */
+	#inited = false
 	#audioLocations: MicrioAudioLocation[] = []
 
 	constructor(micrio: HTMLMicrioElement, image: MicrioImage) {
@@ -195,7 +220,10 @@ export class MicrioAudioController {
 
 		// The autoplay probe only makes sense when there is audio to be blocked
 		// (`main.ts` builds no controller without it, so this is a guard, not a case).
-		const audio = imageHasAudio(image) ? new Audio('data:audio/mpeg;base64,...') : undefined
+		// The clip has to be real — a data URI of a silent WAV frame. With the invalid one it
+		// used to carry, `play()` always failed with a source error, so `input()` never ran and
+		// a spurious `autoplay-blocked` was dispatched on every audio image.
+		const audio = imageHasAudio(image) ? new Audio(SILENT_WAV) : undefined
 		if (audio) {
 			audio.volume = Browser.iOS ? 0 : 0.0001
 			document.body.append(audio)
@@ -210,6 +238,16 @@ export class MicrioAudioController {
 				if (!_ctx) {
 					init(vol)
 				}
+				// Reported once per controller, and only now: the context exists and the master
+				// gain is wired, so audio can actually play. `init` returns early on a later image,
+				// which is why the flag is needed rather than dispatching from inside it.
+				if (_ctx && !this.#inited) {
+					this.#inited = true
+					events._dispatch('audio-init')
+				}
+				// A playlist built before any gesture had its `play()` refused; this is the
+				// first moment the browser will allow it.
+				this.#playlist?.resume()
 				if (_ctx) {
 					const data = image.$data
 					if (data?.markers?.filter((m) => Boolean(m.positionalAudio)).length) {
@@ -246,8 +284,12 @@ export class MicrioAudioController {
 				audio
 					.play()
 					.then(input)
-					.catch(() => {
-						events._dispatch('autoplay-blocked')
+					.catch((err: unknown) => {
+						// Only a policy block is an autoplay block; a codec/source failure is not.
+						if (err instanceof DOMException && err.name === 'NotAllowedError') {
+							events._dispatch('autoplay-blocked')
+						}
+						// The pointer fallback below still starts the audio on the next interaction.
 					})
 				addEventListener('pointerup', onUserGesture, { once: true })
 				this.#cleanups.push(() => {

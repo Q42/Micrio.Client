@@ -91,15 +91,18 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 		this._addCleanup(
 			micrio.current.subscribe((c) => {
 				if (c) {
-					const $tour = get(tour)
-					if ($tour && 'steps' in $tour) {
-						return
-					}
+					// Always re-subscribe, even while a marker tour is running: the tour opens a new
+					// image on every cross-image step, and skipping it here left `readInfo` — the only
+					// writer of `#showCultures`/`#showSocial`/`#showFullscreen` — on the previous image.
 					settingsUnsub?.()
 					settingsUnsub = c._settings.subscribe(readInfo)
 				}
 			}),
 		)
+
+		// The image-settings subscription is re-created per image, so the latest one has to be
+		// released on disconnect like `toolbar.ts` does — otherwise it survives the teardown.
+		this._addCleanup(() => settingsUnsub?.())
 
 		this._watchLater(tour, () => {
 			this.#sync()

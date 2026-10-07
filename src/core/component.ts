@@ -24,7 +24,7 @@ function isMicrioElement(value: unknown): value is HTMLMicrioElement {
 export abstract class MicrioElement<_P extends object = Record<string, unknown>> extends HTMLElement {
 	/** The custom element tag name registered via `customElements.define`. @internal */
 	static tag: string
-	/** @internal */
+	/** Marker id → the {@link MicrioImage} it was first mounted on. @internal */
 	static _markerImages = new Map<string, MicrioImage>()
 
 	#_unsubs: (() => void)[] = []
@@ -180,5 +180,8 @@ export abstract class MicrioElement<_P extends object = Record<string, unknown>>
 			fn()
 		}
 		this.#_unsubs = []
+		// The rendered DOM may have been discarded with the element's subtree, so the next
+		// mount has to render again even when its key matches the pre-disconnect one.
+		this.#_renderKey = null
 	}
 }

@@ -75,14 +75,24 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#settings: Writable<Models.ImageInfo.Settings> | undefined
 	#settingsUnsub: (() => void) | undefined
 	#firstInited = false
+	/** The tour the currently shown tour element was built for. @internal */
+	#tourShown: Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined
+	/** Image ids whose configured `start` action already ran, so a reconnect cannot replay it.
+	 * An instance field rather than an `_onMount` local, which a reconnect resets. @internal
+	 */
+	#didStart: string[] = []
 	#logoOrg: Models.ImageInfo.Organisation | undefined
 	#activePopupMarkerId: string | undefined
 	#markerElements = new Map<string, HTMLElement>()
 	#embedElements = new Map<string, HTMLElement>()
 	#audioController: MicrioAudioController | undefined
+	/** The image the audio controller was built for: it captures that image's playlist and 360
+	 *  geometry, so moving to another audio image needs a fresh one. */
+	#audioImage: MicrioImage | undefined
 	#destroyAudio(): void {
 		this.#audioController?.destroy()
 		this.#audioController = undefined
+		this.#audioImage = undefined
 	}
 
 	#layers = [
@@ -197,8 +207,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#props.noHTML = true
 		}
 
-		const didStart: string[] = []
-
 		this._addCleanup(
 			micrio.current.subscribe((c) => {
 				if (!c) {
@@ -223,8 +231,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				}
 
 				const d = c.$data
-				if (d && didStart.indexOf(c.id) < 0) {
-					didStart.push(c.id)
+				if (d && this.#didStart.indexOf(c.id) < 0) {
+					this.#didStart.push(c.id)
 					const autoStart = c.$settings.start
 					if (autoStart) {
 						void tick()
@@ -264,15 +272,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 					}
 				}
 				this.#queueSync()
-			}),
-		)
-
-		this._addCleanup(
-			micrio.state.tour.subscribe(() => {
-				const sub = this.#elements.get('subtitles')
-				if (sub instanceof MicrioElement) {
-					sub._setProps?.({ raised: Boolean(get(micrio.state.tour)) })
-				}
 			}),
 		)
 
@@ -363,7 +362,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			!($markerPopup && isMobile)
 
 		if (hasAudio && Boolean($data) && Boolean($info) && micrio.$current) {
+			// Rebuilt when the viewer moves to a different audio image: otherwise the first image's
+			// music keeps playing and the second image's never starts.
+			if (this.#audioController && this.#audioImage !== micrio.$current) {
+				this.#destroyAudio()
+			}
 			if (!this.#audioController) {
+				this.#audioImage = micrio.$current
 				this.#audioController = new MicrioAudioController(micrio, micrio.$current)
 				this._addCleanup(() => {
 					this.#destroyAudio()
@@ -379,8 +384,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		this.#show('logo', showLogo, () => createElement('micrio-logo'))
 
-		this.#show('details', showDetails && Boolean($data), () =>
-			createElement('micrio-details', { setProps: { info: $info, data: $data } }),
+		this.#show(
+			'details',
+			showDetails && Boolean($data),
+			() => createElement('micrio-details', { setProps: { info: $info, data: $data } }),
+			// `#show` reuses a connected element, so a new image's info/data has to reach it.
+			(el) => {
+				if (el instanceof MicrioElement) {
+					el._setProps?.({ info: $info, data: $data })
+				}
+			},
 		)
 
 		this.#show('toolbar', showToolbar, () => createElement('micrio-toolbar'))
@@ -404,10 +417,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			(i) => Boolean(i.$data?.embeds?.length),
 		)
 
-		this.#show('controls', showControls, () =>
-			createElement('micrio-controls', {
-				setProps: { hasAudio: hasAudio || (videoSrc !== undefined && video !== undefined && !video.muted) },
-			}),
+		const controlsHasAudio = hasAudio || (videoSrc !== undefined && video !== undefined && !video.muted)
+		this.#show(
+			'controls',
+			showControls,
+			() => createElement('micrio-controls', { setProps: { hasAudio: controlsHasAudio } }),
+			(el) => {
+				if (el instanceof MicrioElement) {
+					el._setProps?.({ hasAudio: controlsHasAudio })
+				}
+			},
 		)
 
 		this.#show('orgLogo', showOrgLogo && Boolean(this.#logoOrg), () =>
@@ -455,13 +474,26 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			if (!this.#elements.get('popup')?.isConnected) {
 				this.#elements.set(
 					'popup',
-					createElement('micrio-marker-popup', { setProps: { marker: $popupMarker }, parent: this }),
+					createElement('micrio-marker-popup', {
+						setProps: { marker: $popupMarker, image: micrio.$current },
+						parent: this,
+					}),
 				)
 			}
 		} else if (!existing?.isConnected) {
 			// Don't remove — let the popup animate out via its destroying class
 			this.#elements.set('popup', null)
 			this.#activePopupMarkerId = undefined
+		}
+
+		// `micrio-tour`/`micrio-serial-tour` wire their tour in `_onMount` and have no update path,
+		// so a different tour object needs its own element: reusing the connected one would keep
+		// the previous tour's media, controls and `next`/`prev` callbacks, and its tag can differ
+		// too (a marker tour replacing the running video tour, e.g. from a content-page button).
+		if ($tour !== this.#tourShown) {
+			this.#elements.get('tour')?.remove()
+			this.#elements.set('tour', null)
+			this.#tourShown = $tour
 		}
 
 		this.#show('tour', Boolean($tour), () => {
