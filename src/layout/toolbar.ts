@@ -50,6 +50,10 @@ class MicrioToolbar extends MicrioElement {
 				}
 				this.#dataUnsub?.()
 				this.#settingsUnsub?.()
+				// The new image's data store only emits once its bundle data arrives, which
+				// never happens for `skipMeta` images: without this the menus of the previous
+				// image stay on screen.
+				this.#data = undefined
 				this.#dataUnsub = c.data.subscribe((d) => {
 					this.#data = d
 					this.#render()
@@ -101,6 +105,9 @@ class MicrioToolbar extends MicrioElement {
 		const hasTourLang = (t: Models.ImageData.Tour): boolean => Boolean(t.i18n?.[$_lang])
 		const markerTours = (micrio.bundleTours ?? []).concat(this.#data?.markerTours ?? []).filter(hasTourLang)
 		if (!this.#data && markerTours.length === 0) {
+			// This early return sits before the `empty` branch below, so it has to clear the
+			// previous image's menus itself.
+			this.replaceChildren()
 			return
 		}
 		const $tour = get(micrioState.tour)
