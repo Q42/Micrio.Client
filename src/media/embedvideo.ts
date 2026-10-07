@@ -192,11 +192,16 @@ export class GLEmbedVideo {
 		} else {
 			loadExternalAPI('Hls', HLS_SCRIPT_URL)
 				.then(() => {
+					// The embed can be torn down while the API script loads (a closed popover, a
+					// rebuilt embed). Creating the player then would leave a live one that keeps
+					// fetching segments and that `_unmount` — already run, with `#hlsPlayer` still
+					// undefined — can never destroy. The same guard the visibility path uses.
+					if (!this.#isMounted || !this._vid) {
+						return
+					}
 					this.#hlsPlayer = new (getHlsConstructor())(HLS_PLAYER_CONFIG)
 					this.#hlsPlayer.loadSource(src) // Load HLS manifest
-					if (this._vid) {
-						this.#hlsPlayer.attachMedia(this._vid)
-					} // Attach to video element
+					this.#hlsPlayer.attachMedia(this._vid) // Attach to video element
 				})
 				.catch((e) => {
 					console.error('[Micrio GL Embed] Failed to load HLS.js:', e)
