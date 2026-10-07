@@ -9,7 +9,7 @@ micrio-dial {
 	height: calc(var(--micrio-button-size)*0.6);
 	touch-action: none;
 	background-color: transparent;
-	cursor: w-resize;
+	cursor: ew-resize;
 	overflow: hidden;
 }
 micrio-dial::before,
