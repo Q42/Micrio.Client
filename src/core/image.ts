@@ -352,6 +352,11 @@ export class MicrioImage {
 			const langs = Object.keys(i.revision)
 			if (langs.length > 0 && !langs.includes(lang)) {
 				micrio.lang = langs.includes('en') ? 'en' : langs[0]
+				// `micrio.lang` goes through the `lang` attribute, whose change handler updates the
+				// store synchronously. Reading it back keeps the `$lang` substitution below from
+				// using the language this image is no longer shown in (or "undefined" when the
+				// element had no `lang` attribute at all).
+				lang = get(micrio._lang)
 			}
 		}
 
