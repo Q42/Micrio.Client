@@ -223,10 +223,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			try {
 				this.#_ul.setPointerCapture(e.pointerId)
 			} catch {}
-			globalThis.addEventListener('pointercancel', this.#scrubStop)
 		}
 		globalThis.addEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove)
 		globalThis.addEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop)
+		// A cancelled touch (a system gesture, a second finger) never fires `touchend`, so
+		// without this the drag would stay active — keeping `_keepRendering` on, the `dragging`
+		// class set and a global `touchmove` listener attached to every later move.
+		globalThis.addEventListener(this.#dragIsPointer ? 'pointercancel' : 'touchcancel', this.#scrubStop)
 		this.#scrubMove(e)
 	}
 
@@ -268,8 +271,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#scrubStop = () => {
 		globalThis.removeEventListener(this.#dragIsPointer ? 'pointermove' : 'touchmove', this.#scrubMove)
 		globalThis.removeEventListener(this.#dragIsPointer ? 'pointerup' : 'touchend', this.#scrubStop)
+		globalThis.removeEventListener(this.#dragIsPointer ? 'pointercancel' : 'touchcancel', this.#scrubStop)
 		if (this.#dragIsPointer) {
-			globalThis.removeEventListener('pointercancel', this.#scrubStop)
 			try {
 				this.#_ul?.releasePointerCapture(this.#dragPointerId)
 			} catch {}
