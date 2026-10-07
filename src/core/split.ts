@@ -112,7 +112,7 @@ export async function openSplit(
 export function closeSplit(
 	micrio: HTMLMicrioElement,
 	primary: MicrioImage,
-	opts?: { keepSecondaryCanvas?: boolean },
+	opts?: { keepSecondaryCanvas?: boolean; immediate?: boolean },
 ): void {
 	const state = splits.get(primary)
 	if (!state) {
@@ -128,15 +128,22 @@ export function closeSplit(
 	primary.camera.setArea([0, 0, 1, 1])
 
 	if (!opts?.keepSecondaryCanvas) {
-		setTimeout(() => {
+		// The delay lets the area animation run out before the canvas is released. A teardown
+		// cannot wait for it: an untracked timer would outlive the viewer and release a canvas of
+		// an engine that has already been unbound.
+		if (opts?.immediate) {
 			micrio._engine._removeCanvas(state.secondary)
-		}, 400)
+		} else {
+			setTimeout(() => {
+				micrio._engine._removeCanvas(state.secondary)
+			}, 400)
+		}
 	}
 	micrio.events._dispatch('splitscreen-stop', state.secondary)
 }
 
-export function closeAllSplits(micrio: HTMLMicrioElement): void {
+export function closeAllSplits(micrio: HTMLMicrioElement, immediate = false): void {
 	for (const p of splits.keys()) {
-		closeSplit(micrio, p)
+		closeSplit(micrio, p, { immediate })
 	}
 }

@@ -520,6 +520,10 @@ export class HTMLMicrioElement extends MicrioElement {
 
 	/** Destroys the Micrio instance, cleans up resources, and removes event listeners. */
 	destroy(): void {
+		// The split registry is module-global, so a split left open would keep both images (and,
+		// through their engine, this disposed element) reachable for the life of the page. It is
+		// closed synchronously here, while the engine and its canvases are still alive.
+		closeAllSplits(this, true)
 		this.current.set(undefined)
 		this.events.enabled.set(false)
 		this.state._cancelTouch()
