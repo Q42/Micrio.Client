@@ -101,6 +101,10 @@ class MicrioControls extends MicrioElement<ControlsProps> {
 			}),
 		)
 
+		// The image-settings subscription is re-created per image, so the latest one has to be
+		// released on disconnect like `toolbar.ts` does — otherwise it survives the teardown.
+		this._addCleanup(() => settingsUnsub?.())
+
 		this._watchLater(tour, () => {
 			this.#sync()
 		})
