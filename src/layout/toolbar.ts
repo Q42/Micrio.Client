@@ -104,12 +104,6 @@ class MicrioToolbar extends MicrioElement {
 		const $_lang = get(_lang)
 		const hasTourLang = (t: Models.ImageData.Tour): boolean => Boolean(t.i18n?.[$_lang])
 		const markerTours = (micrio.bundleTours ?? []).concat(this.#data?.markerTours ?? []).filter(hasTourLang)
-		if (!this.#data && markerTours.length === 0) {
-			// This early return sits before the `empty` branch below, so it has to clear the
-			// previous image's menus itself.
-			this.replaceChildren()
-			return
-		}
 		const $tour = get(micrioState.tour)
 		const $marker = get(micrioState.marker)
 		const $popover = get(micrioState.popover)
@@ -133,6 +127,14 @@ class MicrioToolbar extends MicrioElement {
 		const tourIds = `${markerTours.map((t) => t.id).join(',')}|${videoTours.map((t) => t.id).join(',')}`
 		const key = [pageIds, tourIds, hidden, $_lang, this.#isMobile, this.#shown].join('::')
 		if (!this._checkRenderKey(key)) {
+			return
+		}
+
+		if (!this.#data && markerTours.length === 0) {
+			// No data yet: clear the previous image's menus. This runs *after* the key check, so
+			// the key of this empty state is stored — otherwise the data arriving with the same
+			// page/tour ids as the stored key would suppress the render and leave it empty.
+			this.replaceChildren()
 			return
 		}
 
