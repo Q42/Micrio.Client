@@ -10,6 +10,7 @@ import { VimeoPlayerAdapter } from './vimeo-adapter'
 import { HLSPlayerAdapter, cloudflareStreamUrl, mediaSourceSupported } from './hls-adapter'
 import type { MediaPlayerAdapter } from '$types/media'
 import '$ui/button'
+import { ErrorCodes } from '$core/error'
 import './media-controls'
 
 const YOUTUBE_RE =
@@ -58,6 +59,27 @@ function releaseSharedAudio() {
 	}
 }
 
+/** Reads a media element's failure into a sentence a log or error UI can show. */
+function describeMediaError(error: MediaError | null): string {
+	switch (error?.code) {
+		case MediaError.MEDIA_ERR_ABORTED: {
+			return 'loading the media was aborted'
+		}
+		case MediaError.MEDIA_ERR_NETWORK: {
+			return 'the media could not be downloaded (network failure or timeout)'
+		}
+		case MediaError.MEDIA_ERR_DECODE: {
+			return 'the media could not be decoded'
+		}
+		case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED: {
+			return 'the media source is not available or not supported'
+		}
+		default: {
+			return 'the media could not be played'
+		}
+	}
+}
+
 /** Props for the MicrioMedia component. @internal */
 export interface MediaProps {
 	src?: string
@@ -74,6 +96,10 @@ export interface MediaProps {
 	className?: string
 	onended?: () => void
 	onclose?: () => void
+	/** The media could not play (bad source, network failure, decoder error). */
+	onerror?: (error: Error) => void
+	/** The browser blocked autoplay: the media stays paused until the user plays it. */
+	onblocked?: () => void
 	getTimeDisplay?: (currentTime: number, duration: number) => string
 	hasAudio?: boolean
 	fullscreenEl?: HTMLElement
@@ -164,6 +190,28 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		this.#mediaEl = video
 		this.#wireEvents(video)
 		this.#hlsSrc = hlsSrc
+	}
+
+	/**
+	 * Reports a playback failure: to the prop callback when one was given, and always as an
+	 * event on this element, so a host (the serial tour) can react without inspecting the DOM.
+	 */
+	#fail(reason: string, error?: unknown) {
+		const err = error instanceof Error ? error : new Error(reason)
+		console.error(`[Micrio] Media failed (${ErrorCodes.TOUR_LOAD_FAILED}):`, reason, error ?? '')
+		this.dispatchEvent(new CustomEvent('error', { detail: err }))
+		this._props.onerror?.(err)
+		this._getMicrio()?.events._dispatch('media-error', { error: err, reason })
+	}
+
+	/** Reports that autoplay was blocked: playable, but only after a user gesture. */
+	#blocked() {
+		this.#paused = true
+		this.#updateControls()
+		this.dispatchEvent(new CustomEvent('blocked'))
+		this._props.onblocked?.()
+		// The documented signal for "playable, but the browser refused to start it"
+		this._getMicrio()?.events._dispatch('media-blocked')
 	}
 
 	#createAudioElement(src: string, p: MediaProps, _figure: HTMLElement) {
@@ -290,10 +338,14 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					.initialize()
 					.then(() => {
 						if (p.autoplay) {
-							void adapter.play()
+							void adapter.play().catch(() => {
+								this.#blocked()
+							})
 						}
 					})
-					.catch(() => {})
+					.catch((error: unknown) => {
+						this.#fail('the player could not be initialised', error)
+					})
 			} else if (isVimeo) {
 				const adapter = new VimeoPlayerAdapter(
 					this.#frame,
@@ -327,10 +379,14 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					.initialize()
 					.then(() => {
 						if (p.autoplay) {
-							void adapter.play()
+							void adapter.play().catch(() => {
+								this.#blocked()
+							})
 						}
 					})
-					.catch(() => {})
+					.catch((error: unknown) => {
+						this.#fail('the player could not be initialised', error)
+					})
 			}
 		}
 
@@ -340,6 +396,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				onReady: () => {
 					this.#updateControls()
 				},
+				onError: (error) => {
+					this.#fail('the stream could not be loaded', error)
+				},
 				onEnded: () => {
 					this.#ended = true
 					this.#paused = true
@@ -348,7 +407,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				},
 			})
 			this.#adapter = adapter
-			adapter.initialize().catch(() => {})
+			adapter.initialize().catch((error: unknown) => {
+				this.#fail('the stream could not be initialised', error)
+			})
 		}
 
 		// Tour instance
@@ -424,7 +485,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				const el = this.#mediaEl
 				if (el) {
 					if (el.paused) {
-						el.play().catch(() => {})
+						el.play().catch((error: unknown) => {
+							this.#fail('the media could not be played', error)
+						})
 						this.#tourInstance?.play()
 					} else {
 						el.pause()
@@ -523,6 +586,11 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				parent: figure,
 			})
 
+			// Prime the controls with the state known now, so the readout is filled from the
+			// first frame. Waiting for the first `loadedmetadata`/`timeupdate` leaves it empty
+			// until then -- and an empty readout collapses, handing its space to the bar.
+			this.#updateControls()
+
 			if (
 				this.#mediaEl &&
 				(this.#mediaEl instanceof HTMLVideoElement || this.#mediaEl instanceof HTMLAudioElement) &&
@@ -531,12 +599,19 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				const onTimeUpdate = () => {
 					update()
 					this.#tourInstance?.updateEvents(this.#currentTime)
+					// Its own playback progress, so a host component (the serial tour) can key
+					// its timeline off real playback instead of reaching into the DOM for the
+					// media element — which an iframe-based tour does not have at all.
+					this.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }))
 					if (!p.secondary) {
 						this._getMicrio()?.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }))
 					}
 				}
 				const onEnded = () => {
 					update()
+					// The step's media finished: a serial tour waits for this before moving on,
+					// so a step is never cut off while its audio is still playing.
+					this.dispatchEvent(new CustomEvent('ended'))
 					if (!isStandaloneVideoTour) {
 						p.onended?.()
 					}
@@ -586,6 +661,16 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				}),
 			)
 		}
+
+		// A failing source (404, timeout, dropped connection, undecodable data) reports
+		// itself only here: the element's own `error` event and its `MediaError` code.
+		const onError = () => {
+			this.#fail(describeMediaError(el.error), el.error)
+		}
+		el.addEventListener('error', onError)
+		this._addCleanup(() => {
+			el.removeEventListener('error', onError)
+		})
 	}
 
 	#startAdapterTick() {

@@ -91,6 +91,8 @@ export interface MicrioEventDetails {
 	'autoplay-blocked': void
 	/** Media was blocked from autoplaying */
 	'media-blocked': void
+	/** Media failed to play (bad source, network failure, decoder error) */
+	'media-error': { error: Error; reason: string }
 	/** Media has started playing */
 	'media-play': void
 	/** Media has stopped playing */
