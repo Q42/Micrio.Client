@@ -1,4 +1,5 @@
 import { MicrioElement } from '$core/component'
+import type { HTMLMicrioElement } from '$core/element'
 import type { Models } from '$types/models'
 import { DataLoader } from '$utils/dataLoader'
 import { parseTime } from '$utils/time'
@@ -36,6 +37,11 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#mediaCleanup: (() => void) | undefined = undefined
 	/** Set by `#break`: a failed step can report its error more than once, and the tour must stop once. */
 	#broken = false
+	/** True once `tour-ended` has been reported, so it pairs with the tour exactly once. */
+	#endedReported = false
+	/** The viewer, captured at mount: `_getMicrio()` walks the parent chain, which the layout
+	 *  has already removed by the time the teardown cleanup runs. */
+	#micrio: HTMLMicrioElement | undefined
 	#duration = 0
 	#noTimeScrub = false
 	/** Incremented by every `#openStep`, so a superseded call stops after its await. */
@@ -49,6 +55,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			return
 		}
 
+		this.#micrio = micrio
 		this.#stepInfo = tour.stepInfo || []
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0)
 		this.#noTimeScrub = Boolean(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub)
@@ -56,6 +63,19 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		micrio.dataset.markerTourActive = ''
 		this._addCleanup(() => {
 			delete micrio.dataset.markerTourActive
+		})
+
+		this._addCleanup(() => {
+			// Both stop paths — the natural `close()` and a failed step's `#break` — remove this
+			// element, so the end is reported here once rather than at each of them.
+			if (this.#endedReported) {
+				return
+			}
+			this.#endedReported = true
+			const t = this.#props.tour
+			if (t) {
+				this.#micrio?.events._dispatch('tour-ended', t)
+			}
 		})
 
 		const mt = tour
@@ -195,6 +215,14 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#mediaPlaying = false
 		this.#mediaPaused = false
 		this.#currentStep = idx
+
+		// One event per step, after the token check so a superseded call cannot report a step it
+		// never opened. The detail is the most specific tour object for this step: its own video
+		// tour when it has one, else the marker tour being stepped through.
+		const stepTour = marker?.videoTour ?? this.#props.tour
+		if (stepTour) {
+			this._getMicrio()?.events._dispatch('tour-step', stepTour)
+		}
 
 		if (marker?.videoTour) {
 			const { lang } = micrio
