@@ -817,6 +817,23 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 		if (typeof idOrInfo === 'string') {
 			deepCopy(attrOpts.settings, bundle.settings)
+			// Root attributes were spread over the info object for an id (the IIIF path resolved
+			// its own bundle and never did), and `#getOptions` still parses them. Without this,
+			// `data-path`, `width`, `height` and `data-version` are read and then dropped.
+			if (!idOrInfo.startsWith('http')) {
+				if (attrOpts.width !== undefined) {
+					bundle.info.width = attrOpts.width
+				}
+				if (attrOpts.height !== undefined) {
+					bundle.info.height = attrOpts.height
+				}
+				if (attrOpts.path !== undefined) {
+					bundle.info.path = attrOpts.path
+				}
+				if (attrOpts.version !== undefined) {
+					bundle.info.version = attrOpts.version
+				}
+			}
 		}
 		if (this.defaultSettings) {
 			deepCopy(this.defaultSettings, bundle.settings)
