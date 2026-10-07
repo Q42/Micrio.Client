@@ -173,7 +173,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	readonly events: Events = new Events(this)
 
 	/** The main state manager, providing access to various application states (UI visibility, active marker, tour, etc.). See {@link State.Main}. */
-	readonly state: State.Main = new State.Main()
+	readonly state: State.Main = new State.Main()._setMicrio(this)
 
 	/** Direct callbacks invoked on every camera move (instead of dispatching a DOM event).
 	 * @internal
@@ -303,6 +303,7 @@ export class HTMLMicrioElement extends MicrioElement {
 					if (prevLang) {
 						this.events._dispatch('lang-switch', newVal)
 					}
+					this.state._touch('lang')
 				}
 				break
 			}
@@ -515,6 +516,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	destroy(): void {
 		this.current.set(undefined)
 		this.events.enabled.set(false)
+		this.state._cancelTouch()
 		this.canvas.unhook()
 		this._engine._unbind()
 		if (this._ui) {
