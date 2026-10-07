@@ -134,11 +134,17 @@ export class DragHandler {
 		const cX = e.clientX,
 			cY = e.clientY
 
-		// Capture pointer only after significant movement to allow double-click
+		// Capture pointer only after significant movement to allow double-click. The id is recorded
+		// either way — this is a one-shot per drag — because a pointer that is no longer active (a
+		// synthetic event, one the browser already cancelled) has no capture to take and
+		// `setPointerCapture` throws a `NotFoundError` that would escape the event handler; the same
+		// error `stop()` already swallows on release.
 		const moved = Math.hypot(this.#ctx._vars._drag._start[0] - e.clientX, this.#ctx._vars._drag._start[1] - e.clientY)
 		if (!this.#ctx._capturedPointerId && moved > 10) {
 			this.#ctx._capturedPointerId = e.pointerId
-			this.#ctx._micrio.setPointerCapture(e.pointerId)
+			try {
+				this.#ctx._micrio.setPointerCapture(e.pointerId)
+			} catch {}
 		}
 
 		// Calculate delta and call camera pan on the originating image (not re-hit-testing)
