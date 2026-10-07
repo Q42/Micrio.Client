@@ -2,7 +2,6 @@ import type { MicrioImage } from './image'
 import type { Models } from '$types/models'
 import type { TileCanvas } from '$render/tile-canvas'
 
-import { tick } from '$core/store'
 import { mod, toCenterJSON } from '$utils/math'
 import { getEasing } from '$render/easing'
 
@@ -69,15 +68,6 @@ export class Camera {
 	 */
 	constructor(image: MicrioImage) {
 		this.#image = image
-		// For non-360 images, set initial view if already available
-		if (!image._is360) {
-			const view = image.state.$view
-			if (view && image.$info?.width) {
-				void tick().then(() => {
-					this.setView(view)
-				})
-			}
-		}
 	}
 
 	/**
