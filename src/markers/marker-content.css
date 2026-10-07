@@ -31,6 +31,10 @@ micrio-marker-content micrio-media + micrio-media {
 	margin-top: 0;
 }
 micrio-marker-content button {
+	/* A bare <button> is not a <micrio-button>, so the nested-context strip in
+	   `element-ui.css` never reaches it: without this the browser's own button
+	   background shows through. */
+	background: transparent;
 	padding: 0;
 	margin: 0 calc(-1 * var(--micrio-popup-padding)) var(--micrio-popup-padding) calc(-1 * var(--micrio-popup-padding));
 }
