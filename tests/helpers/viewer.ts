@@ -1,4 +1,5 @@
 import type { HTMLMicrioElement } from '$core/element'
+import type { Models } from '$types/models'
 
 /** A mounted `<micr-io>` plus the teardown that removes it again. */
 export interface Viewer {
@@ -67,9 +68,16 @@ export function waitFor(predicate: () => boolean, timeout = 5000, label = 'condi
 	})
 }
 
-/** Collects dispatched custom events of the given types on the viewer. */
-export function collectEvents(el: HTMLMicrioElement, types: string[]): { types: string[]; stop: () => void } {
-	const seen: string[] = []
+/**
+ * Collects dispatched custom events of the given types on the viewer.
+ *
+ * Keyed on the public event map so a typo'd name cannot silently collect nothing.
+ */
+export function collectEvents<K extends keyof Models.MicrioEventDetails>(
+	el: HTMLMicrioElement,
+	types: readonly K[],
+): { types: K[]; stop: () => void } {
+	const seen: K[] = []
 	const handlers = types.map((type) => {
 		const fn = () => seen.push(type)
 		el.addEventListener(type, fn)
