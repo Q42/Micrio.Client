@@ -263,6 +263,31 @@ These are the only cross-suite hazards; each harness documents its own use of th
    cancels the pending frame; the gallery calls it before replacing a book, and the test
    harness calls it in `destroy()`.
 
+## What the suite cannot see: stylesheets
+
+`vitest.config.ts` stubs every `.css` import to `{}`, so **no assertion in this suite observes
+a stylesheet**. A purely visual regression — a layout rule lost in a refactor, a
+`display: none` that out-specifies another, a selector that is one element too wide — passes
+the whole suite green.
+
+That is not hypothetical. Every one of these shipped and passed every test:
+
+- the serial tour's readout vanished because three `display: contents` rules were dropped
+  when the component's inline styles moved into a file (see [The serial tour](#the-serial-tour));
+- the media controls' readout collapsed on each step change, because the rule that hid the
+  media's own span out-specified the rule that replaced it;
+- a marker popup's clickable image showed the browser's `buttonface` background: a bare
+  `<button>` is not a `<micrio-button>`, so the nested-context strip never reached it;
+- the fullscreen media bar sat below the viewport, because the media is stretched to
+  `height: 100%` and the controls follow it in normal flow;
+- the zoom buttons were visible but dead under a marker tour: one rule set
+  `pointer-events: none` while a companion rule re-showed them.
+
+So: a CSS-only change **cannot be verified here**. Check it in a browser, and when a layout
+bug is reported, read the stylesheet rather than looking for a missing test. If you do need
+to assert a layout fact, injecting stylesheet text into a test is possible but was
+explicitly rejected as too invasive a change to the suite — ask before doing it.
+
 ## The embed subsystem
 
 `src/embed/embed.ts` (`<micrio-embed>`), `src/embed/image-embeds.ts` (the per-image layer)
@@ -562,10 +587,9 @@ its control bar are the two places that are easy to get wrong, and the suite pin
   sentence, adapter `onError` is forwarded on the YouTube/Vimeo/HLS paths, and initialisation
   rejections and a rejected user-initiated `play()` are reported instead of swallowed.
 
-**CSS is not observable from the suite.** `vitest.config.ts` stubs every `.css` import to
-`{}`, so no assertion sees a stylesheet: a purely visual regression (a missing layout rule,
-a `display: none` that out-specifies another) passes every test. Those have to be checked in
-a browser — the serial tour's readout was exactly that kind of bug.
+The readout is also the example that matters most from [What the suite cannot
+see](#what-the-suite-cannot-see-stylesheets): nothing here could have caught it, because no
+assertion observes a stylesheet.
 
 ## Coverage
 
@@ -583,14 +607,14 @@ some timing paths):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 90.9     | 89    |
+| Statements | 91.0     | 89    |
 | Branches   | 82.0     | 81    |
-| Functions  | 89.7     | 89    |
-| Lines      | 90.8     | 89    |
+| Functions  | 89.9     | 89    |
+| Lines      | 90.9     | 89    |
 
 The floors live in `vitest.config.ts` (`89/81/89/89`) and sit a point or two under the
 baseline, so a real coverage loss fails the run while ordinary refactoring does not. Branch
-coverage sits closest to its floor (81.98 against 81): a branch-heavy change — a new
+coverage sits closest to its floor (82.00 against 81): a branch-heavy change — a new
 conditional in a large file — can trip these **without any test failing**, so run
 `pnpm test:coverage` before assuming a green `pnpm test` is the whole story. They are deliberately
 coarse and global: per-file thresholds would fail outright on the large parts of the
@@ -621,25 +645,25 @@ and `src/core/i18n` are folded in.
 | src/embed         | 93.5  | 346/370   |
 | src/ui            | 93.4  | 142/152   |
 | src/markers       | 93.3  | 738/791   |
-| src/render        | 92.8  | 2900/3124 |
+| src/render        | 92.7  | 2898/3124 |
 | src/grid          | 90.5  | 618/683   |
 | src/gallery       | 90.2  | 899/997   |
 | src/audio         | 88.2  | 217/246   |
-| src/tour          | 86.0  | 240/279   |
+| src/tour          | 86.2  | 241/279   |
 | src/layout        | 86.3  | 588/681   |
-| src/media         | 85.8  | 861/1003  |
+| src/media         | 87.1  | 873/1003  |
 | src/book          | 84.8  | 673/794   |
 | src/layout/nav    | 82.9  | 261/315   |
 | src/core          | 82.0  | 888/1083  |
 
-The thin spots now start at **`src/core` (82.0%, mostly `camera.ts` and `image.ts`)** and
-`src/layout/nav` (82.9%), then `src/book` (84.8%) and `src/media` (85.8%, mostly
-`media.ts` at 75.6% — its adapter and HLS paths only run under their own suites). The
-serial tour's own file went from 74.8% to 84.7% with the clock/readout work. These are
-remaining thin spots rather than the floor, and they are deliberately _not_ a backlog
-list — the backlog below holds only the CI item. To raise the floor, run
-`pnpm test:coverage`, move the baseline to the new number, and keep the floors a point or
-two under it.
+The thin spots now start at **`src/core` (82.0%, mostly `camera.ts` and `image.ts`)**,
+`src/layout/nav` (82.9%) and `src/book` (84.8%), with `src/media` (87.1%) just behind: its
+adapters run under their own suites, and `media.ts` is at 79.9% because the YouTube/Vimeo/HLS
+paths need stubbed third-party APIs. The serial tour's own file is at 82.8% after the
+clock/readout/failure work. These are remaining thin spots rather than the floor, and they
+are deliberately _not_ a backlog list — the backlog below holds only the CI item. To raise the
+floor, run `pnpm test:coverage`, move the baseline to the new number, and keep the floors a
+point or two under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
 pays nothing for it.
@@ -661,6 +685,10 @@ pays nothing for it.
 - `pnpm build` does not run the test suites: it stays a fast release gate.
 
 ## Status
+
+Last full check: **1729 tests in 118 files pass**, coverage `91.0 / 82.0 / 89.9 / 90.9`
+(statements / branches / functions / lines, floors `89 / 81 / 89 / 89`), and
+`tsc` (both projects), `oxlint --type-aware` and `oxfmt --check` are clean.
 
 | Area                                                | Suite                                                                            | Status |
 | --------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
@@ -736,6 +764,7 @@ pays nothing for it.
 | book3d embed placement and the print delay          | `tests/browser/embed/embed-book3d`                                               | done   |
 | `<micrio-image-embeds>` container and layout wiring | `tests/browser/embed/image-embeds`                                               | done   |
 | GL embed video (HLS, loop, visibility, teardown)    | `tests/browser/media/embedvideo`                                                 | done   |
+| Stylesheet/layout regressions                       | [not assertable](#what-the-suite-cannot-see-stylesheets) — check in a browser    | gap    |
 
 ## Session backlog
 
