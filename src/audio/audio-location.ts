@@ -29,6 +29,8 @@ export class MicrioAudioLocation {
 	#source!: AudioBufferSourceNode
 	#to: ReturnType<typeof setTimeout> | undefined
 	#cleanup: (() => void) | undefined
+	/** Set by `destroy`, so an in-flight fetch/decode cannot start playback afterwards. */
+	#destroyed = false
 	/** The `ended` listener of the repeating source, so `#end` can detach it. */
 	#onSourceEnded: (() => void) | undefined
 
@@ -122,6 +124,11 @@ export class MicrioAudioLocation {
 					.then((res) => res.arrayBuffer())
 					.then((b) => ctx.decodeAudioData(b))
 			}
+			// The fetch/decode can straddle the marker's teardown; playing then would create a
+			// source (and a repeat chain) on a panner that `#end()` already disconnected.
+			if (this.#destroyed) {
+				return
+			}
 			if (item.alwaysPlay && item.repeatAfter > 0) {
 				this.#to = setTimeout(play, item.repeatAfter * 1000)
 			} else {
@@ -132,7 +139,9 @@ export class MicrioAudioLocation {
 		update()
 		this.#panner.connect(this.#gain)
 		this.#gain.connect(mainGain ?? ctx.destination)
-		void start()
+		void start().catch((err: unknown) => {
+			console.warn('[Micrio] Could not start positional audio', err)
+		})
 
 		this.#micrio.addEventListener('audio-update', update)
 		this.#cleanup = () => {
@@ -157,6 +166,7 @@ export class MicrioAudioLocation {
 	}
 
 	destroy() {
+		this.#destroyed = true
 		this.#cleanup?.()
 		this.#end()
 	}
