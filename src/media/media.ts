@@ -119,6 +119,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	#seeking = false
 	/** Whether the end of playback has already been reported to the host. */
 	#endedReported = false
+	/** Last reported paused state (`1` paused, `0` playing, `-1` nothing reported yet), so the
+	 *  public `media-play`/`media-pause` pair fires on transitions only. */
+	#reportedPaused = -1
 	#muted = false
 	#subEl: MicrioElement | undefined
 
@@ -650,7 +653,26 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			!isStandaloneVideoTour
 		) {
 			{
-				const onUpdate = (): void => updateControls?.()
+				// A new element starts unreported, so the first `update` still resolves a state.
+				this.#reportedPaused = -1
+				// `media-play`/`media-pause` are reported on the transition, so a repeated `play`
+				// event from the element cannot double-fire them. `-1` means "nothing reported yet".
+				const reportPlayback = (): void => {
+					const el = this.#mediaEl
+					if (!el || p.secondary) {
+						return
+					}
+					const paused = el.paused ? 1 : 0
+					if (paused === this.#reportedPaused) {
+						return
+					}
+					this.#reportedPaused = paused
+					this._getMicrio()?.events._dispatch(paused ? 'media-pause' : 'media-play')
+				}
+				const onUpdate = (): void => {
+					updateControls?.()
+					reportPlayback()
+				}
 				const onTimeUpdate = () => {
 					updateControls?.()
 					this.#subEl?._setProps?.({ time: this.#currentTime })
@@ -665,6 +687,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				}
 				const onEnded = () => {
 					updateControls?.()
+					if (!p.secondary) {
+						this._getMicrio()?.events._dispatch('media-ended')
+					}
 					// The step's media finished: a serial tour waits for this before moving on,
 					// so a step is never cut off while its audio is still playing.
 					this.dispatchEvent(new CustomEvent('ended'))
