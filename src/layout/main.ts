@@ -77,6 +77,10 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#firstInited = false
 	/** The tour the currently shown tour element was built for. @internal */
 	#tourShown: Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined
+	/** Image ids whose configured `start` action already ran, so a reconnect cannot replay it.
+	 * An instance field rather than an `_onMount` local, which a reconnect resets. @internal
+	 */
+	#didStart: string[] = []
 	#logoOrg: Models.ImageInfo.Organisation | undefined
 	#activePopupMarkerId: string | undefined
 	#markerElements = new Map<string, HTMLElement>()
@@ -203,8 +207,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#props.noHTML = true
 		}
 
-		const didStart: string[] = []
-
 		this._addCleanup(
 			micrio.current.subscribe((c) => {
 				if (!c) {
@@ -229,8 +231,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				}
 
 				const d = c.$data
-				if (d && didStart.indexOf(c.id) < 0) {
-					didStart.push(c.id)
+				if (d && this.#didStart.indexOf(c.id) < 0) {
+					this.#didStart.push(c.id)
 					const autoStart = c.$settings.start
 					if (autoStart) {
 						void tick()
