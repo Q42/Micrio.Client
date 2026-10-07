@@ -247,12 +247,15 @@ Harness notes that are easy to get wrong:
 - **Never dispatch a real `click` on an `href` embed** — the overlay is an `<a>` and a
   synthetic click would navigate the test page. Drive the shared handler with `keydown`.
 
-One gap is deliberately pinned (its test starts with `KNOWN GAP`; when the gap closes,
-that test is the one to change):
-
-1. **WebGL sub-images leak** — `image._embeds` is append-only; rebuilding an embed with a
-   fresh data object mints a new uuid, misses the reuse lookup and adds a second image.
-   Releasing it needs image/engine teardown that does not exist yet.
+**Sub-image lifetime.** A WebGL sub-image is **claimed** by the `<micrio-embed>` using it.
+Destroying the element orphans it — it stays on `image._embeds` (and fades out) so a rebuild or
+a re-connect that mounts the same embed object can re-adopt it — and the next claim sweep
+releases whatever is still unclaimed: `MicrioImage._releaseOrphans()` drops it from `_embeds`,
+and `Engine._removeEmbed()` detaches its engine image, deletes its tile textures (base tile
+included) and drops every lookup. The sweeps run from `MicrioEmbed._onMount` and from the
+`micrio-image-embeds` rebuild, which is what stops a rebuild with fresh embed data from growing
+`_embeds`. The harness `fakeImage` mirrors that claim API (orphan/adopt/release plus
+`engine._removeEmbed`).
 
 Also note: `getMatrix` hands back a **reused** `Float32Array`, and the CSSOM reserializes
 `matrix3d(...)` to ~6 significant digits with spaces — compare numbers, never strings.
@@ -307,12 +310,19 @@ Three state machines are pinned directly:
 3. **`Ani`'s `_flying`/`_limit`/`_correcting` flags**, which decide whether a view write is
    clamped while an animation is running.
 
-Two render files sit below their neighbours. **`tile-image.ts` (65.7%)**: its 360-embed
-overlap branches (`#getTilesViewport`, `#getEmbeddedScale`, `_setDrawRect`) need a hand-built
-frustum fixture, and the archive/`fromScale` layer-count variants need a packed archive.
+**`tile-image.ts` (94.2%)**. Its 360-embed culling — `#getTilesViewport`, `#getEmbeddedScale`
+and `_setDrawRect` — is pinned by a hand-built frustum in `tile-image.test.ts`
+(`browser/render/tile-image.test.ts`, "360 embeds on a placed canvas"): one shared 360 viewer
+carrying one embed placed through `image.addEmbed()`, with `_cameraForward*`/`_fieldOfView` set
+directly to put it in or out of view. The `#getEmbeddedScale` non-360 half and
+`#getTilesViewport`'s `!c.is360` half were deleted rather than tested: both are unreachable,
+because `#is360Embed` is written once in the constructor and is the only gate on either call.
+The archive/`fromScale` layer-count variants are covered through the engine's `_hasArchive`
+flag and an explicit `fromScale`. What remains is defensive: `#get360Tiles`' `m < 2` and
+zero-max-gap guards, which only a degenerate projection could reach.
 **`ani.ts` (77.5%)**: the uncovered half is the jump-transition edge flags (`#fL/#fR/#fT/#fB`)
 and the omni index wrap, both of which need a crafted from/to view pair rather than a real
-navigation. Both are noted in the backlog rather than faked.
+navigation, and that one is noted in the backlog rather than faked.
 
 ## The grid transitions and input layer
 
@@ -337,10 +347,11 @@ with the marker/tour action dispatcher in `action-handlers.ts`.
   of that camera method has to be iterable.
 - **This fixture lays every cell out in one row** (all areas share a `y`), which is why the
   vertical arrow keys are asserted through their wrap-around fallback rather than a row change.
-- One gap is pinned: the `console.warn('Given image IDs gave no current displayed images')`
-  branch in the `flyTo` handler is unreachable from the dispatcher, because
-  `data?.split(',').map(...)` has at least one element for _any_ string, including `''`
-  (`grid-transitions.test.ts`, "a flyTo action with unknown ids is silently ignored").
+- **`flyTo` validates its ids.** An id that is not part of the current layout is dropped before
+  the bounding box is computed, so naming none of them warns (`console.warn('Given image IDs gave
+no current displayed images')`) and leaves the view alone instead of flying to the full image.
+  Both routes are pinned: a string list (including `''`) in `grid-transitions.test.ts`, and the
+  payload-less `grid:flyTo` tour event in `grid-tour-events.test.ts` ("warns and stays put").
 
 ## The interaction layer (`src/core/events`)
 
@@ -398,7 +409,8 @@ page drag vs page click, two-pointer pinch and the wheel hit point. The suite is
 
 `src/markers/` is a layer element plus three children, and the suites are named after them:
 `browser/markers/{markers, marker-render, marker-actions, marker-popup, marker-content,
-marker-cluster, marker-autotour, marker-split}` (with `waypoints` covering the 360 links).
+marker-cluster, marker-autotour, marker-split}` (plus `markers-grid` for the layer's grid
+`inactive` path and `waypoints` for the 360 links).
 
 - `markers.ts` (`<micrio-markers>`) is mounted by the layout once per **visible** image
   that has markers or a 360 space. It filters markers by the active language, injects each
@@ -431,10 +443,15 @@ Harness notes:
 - **The popup animates out on its own.** Clearing `state.popup` does not remove the element:
   its own subscription adds `destroying` and a `transitionend` on itself is what removes it.
 
-One branch is deliberately left out: the layer's grid `inactive` path (a cell that is not
-focused drops its markers, waypoints and clickable areas). Grid cells never enter
-`micrio._visible` offline — `helpers/grid.ts` documents why — so no `<micrio-markers>` is
-ever mounted for them, and reaching it needs a hand-built fake.
+The layer's grid `inactive` path — a cell that is not focused drops its markers, waypoints and
+clickable-area embeds — is pinned by `browser/markers/markers-grid.test.ts`. Reaching it offline
+needs a _hand-built visible cell_: the layout only mounts a layer for an image in
+`micrio._visible`, and a cell never gets there on its own because its canvas keeps a zero-size
+visible rect (`helpers/grid.ts` documents why). The suite therefore calls
+`cell.visible.set(true)` and then focuses the cell, which proves the `inactive` term is what
+suppressed the markers rather than missing data. Note that `Grid._markersShown` is written
+nowhere in `src` today, so the `indexOf` term of `inactive` is currently constant and `$focussed`
+is the real discriminator.
 
 ### Markers, settings and clustering
 
@@ -483,16 +500,17 @@ The core project only reaches ~7% on its own (bare Node never imports render, ga
 book or the element), so `vitest run --project core --coverage` trips every threshold by
 design — use it to inspect one project, not to gate.
 
-Baseline (stable to ±0.05 across runs):
+Baseline (steady to a couple of tenths across runs — a few render branches only run on
+some timing paths):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 89.8     | 88    |
-| Branches   | 81.5     | 80    |
-| Functions  | 90.1     | 88    |
-| Lines      | 89.7     | 88    |
+| Statements | 90.9     | 89    |
+| Branches   | 82.0     | 81    |
+| Functions  | 90.4     | 89    |
+| Lines      | 90.8     | 89    |
 
-The floors live in `vitest.config.ts` and sit ~1 point under the baseline, so a real
+The floors live in `vitest.config.ts` and sit 1–2 points under the baseline, so a real
 coverage loss fails the run while ordinary refactoring does not. They are deliberately
 coarse and global: per-file thresholds would fail outright on the large parts of the
 tree that are intentionally at 0%.
@@ -507,7 +525,7 @@ The suites above remain the source of truth for what is actually asserted.
 Statement coverage per area. These are the rows `vitest` itself prints: a row covers the
 files that sit **directly** in that directory, so `src/core` and `src/core/events` (and
 `src/layout` / `src/layout/nav`) are separate rows. A _subtree_ figure has to be read off the
-child rows — `src/core` is 81.8% for its own files, and 87.6% once `src/core/events` (100%)
+child rows — `src/core` is 81.9% for its own files, and 87.6% once `src/core/events` (100%)
 and `src/core/i18n` are folded in.
 
 | Area            | Stmts | Covered   |
@@ -516,25 +534,25 @@ and `src/core/i18n` are folded in.
 | src/book/input  | 100.0 | 143/143   |
 | src/utils       | 96.5  | 361/374   |
 | src/core/i18n   | 95.5  | 21/22     |
-| src/embed       | 93.4  | 342/366   |
+| src/embed       | 93.5  | 346/370   |
 | src/markers     | 93.4  | 739/791   |
 | src/ui          | 93.4  | 142/152   |
-| src/grid        | 90.3  | 616/682   |
+| src/render      | 92.8  | 2900/3124 |
+| src/grid        | 90.5  | 618/683   |
 | src/gallery     | 90.2  | 899/997   |
-| src/render      | 88.4  | 2760/3123 |
 | src/audio       | 88.2  | 217/246   |
 | src/media       | 86.5  | 868/1003  |
-| src/layout      | 86.0  | 586/681   |
+| src/layout      | 86.3  | 588/681   |
 | src/book        | 84.8  | 673/794   |
 | src/layout/nav  | 82.9  | 261/315   |
-| src/core        | 81.8  | 874/1068  |
+| src/core        | 81.9  | 887/1083  |
 | src/tour        | 80.5  | 211/262   |
 
-The thin spots now start at **`src/tour` (80.5%)** — mostly `serial-tour.ts` — then
-`src/core` (81.8%, mostly `camera.ts` and `image.ts`) and `src/layout/nav` (82.9%). The
-interaction layer and book input that used to head this list are covered above. They are the
-backlog, not the floor. To raise the floor, run `pnpm test:coverage`, move the
-baseline to the new number, and keep the floors ~1 point under it.
+The thin spots now start at **`src/tour` (80.5%)** — mostly `serial-tour.ts` (74.8%) — then
+`src/core` (81.9%, mostly `camera.ts` at 61.5% and `image.ts` at 75.0%) and `src/layout/nav`
+(82.9%). The interaction layer and book input that used to head this list are covered above.
+They are the backlog, not the floor. To raise the floor, run `pnpm test:coverage`, move the
+baseline to the new number, and keep the floors a point or two under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
 pays nothing for it.
@@ -573,6 +591,7 @@ pays nothing for it.
 | Legacy (pre-v5) vs v5+ bundles                      | `tests/browser/core/element-legacy`                                              | done   |
 | `<micr-io>` open / events / attributes              | `tests/browser/core/element-*`                                                   | done   |
 | Marker layer, filter, settings, clickable areas     | `tests/browser/markers/markers`                                                  | done   |
+| Grid cell markers (inactive, then focused)          | `tests/browser/markers/markers-grid`                                             | done   |
 | Marker icons, labels, scaling, viewport sizing      | `tests/browser/markers/marker-render`                                            | done   |
 | Marker clicks, events, links, tour interaction      | `tests/browser/markers/marker-actions`                                           | done   |
 | Marker popup, minimize, tour controls               | `tests/browser/markers/marker-popup`                                             | done   |
@@ -633,16 +652,5 @@ pays nothing for it.
 
 ## Session backlog
 
-Roughly in order of value against risk:
-
 1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
    `test:core` + `test:browser`.
-2. **The leaky WebGL sub-image** — releasing an embedded `MicrioImage` needs image/engine
-   teardown that does not exist yet, so the `KNOWN GAP` test in `browser/embed/embed`
-   pins it (see [The embed subsystem](#the-embed-subsystem)).
-3. **The layer's grid `inactive` path** — the one marker branch with no suite; reaching it
-   offline needs a hand-built visible cell (see [The markers subsystem](#the-markers-subsystem)).
-4. **`src/render/tile-image.ts`'s 360-embed branches** — `#getTilesViewport`,
-   `#getEmbeddedScale` and `_setDrawRect` need a hand-built frustum fixture, and the
-   archive/`fromScale` layer-count variants need a packed archive (see
-   [The render engine](#the-render-engine)).

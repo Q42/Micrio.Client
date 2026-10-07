@@ -56,14 +56,14 @@ export default defineConfig({
 			include: ['src/**/*.ts'],
 			exclude: ['src/types/**'], // type-only (see src/types/models.ts)
 			reporter: ['text'],
-			// The ratchet: floors sit ~1 point under the recorded baseline (TESTING.md,
+			// The ratchet: floors sit 1–2 points under the recorded baseline (TESTING.md,
 			// "Coverage"), so a real coverage loss fails the run while ordinary
 			// refactoring does not. Raise them when the baseline moves up.
 			thresholds: {
-				statements: 88,
-				branches: 80,
-				functions: 88,
-				lines: 88,
+				statements: 89,
+				branches: 81,
+				functions: 89,
+				lines: 89,
 			},
 		},
 		// The root config holds no tests itself; only the projects below do.
