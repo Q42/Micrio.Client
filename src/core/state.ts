@@ -58,8 +58,12 @@ export namespace State {
 		readonly popover: Writable<Models.State.PopoverType | undefined> = writable()
 
 		/**
-		 * Map storing the playback state (currentTime, paused) of media elements associated with markers, keyed by a unique media ID.
-		 * Used to resume media playback when returning to a marker.
+		 * Map storing the playback state (currentTime, paused) of media elements associated with
+		 * markers, keyed by a unique media ID.
+		 *
+		 * Reserved for resuming media playback when returning to a marker: nothing in `src`
+		 * writes or reads it yet, so it is currently inert surface. It is not pruned during a
+		 * session.
 		 * @internal
 		 */
 		mediaState = new Map<
@@ -145,8 +149,9 @@ export namespace State {
 				pY = nY
 				pW = nW
 				pH = nH
-				// Fire zoom callbacks if dimensions changed significantly
-				if (zW === undefined || zH === undefined || Math.abs(nW - zW + (nH - zH)) > 1e-5) {
+				// Fire zoom callbacks if either dimension changed significantly. Summing the two
+				// deltas let a width and a height change of opposite sign cancel out.
+				if (zW === undefined || zH === undefined || Math.abs(nW - zW) > 1e-5 || Math.abs(nH - zH) > 1e-5) {
 					for (const fn of m._onZoom) {
 						fn(detail)
 					}
