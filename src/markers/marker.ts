@@ -53,6 +53,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		if (!markerImages.has(marker.id)) {
 			markerImages.set(marker.id, image)
 		}
+		// The map is a fallback lookup for consumers that were not given the image, so an entry
+		// is only worth keeping while a marker element for it exists: without this, every marker
+		// id ever mounted (synthetic cluster ids included) pins its image for the page lifetime.
+		this._addCleanup(() => {
+			if (markerImages.get(marker.id) === image) {
+				markerImages.delete(marker.id)
+			}
+		})
 
 		const { events } = micrio
 		const $_lang = get(micrio._lang)
