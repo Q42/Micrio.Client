@@ -314,7 +314,12 @@ export default class Camera360 extends EngineCamera {
 		this._cameraForwardY = Math.sin(pitch)
 		this._cameraForwardZ = Math.cos(pitch) * Math.cos(yaw)
 
-		const verticalFOV = 2 * Math.atan(1 / this._perspective)
+		// `_perspective` *is* the vertical field of view in radians: it is what `_update` hands
+		// to `Mat4._perspective`, and `#syncLogicalView` derives the logical view height from it.
+		// Inverting it here made the reported FOV grow towards 180 degrees as the camera zoomed
+		// in, so the embed cull accepted everything and the 360 tile sampler always took its
+		// expensive path.
+		const verticalFOV = this._perspective
 		const aspectRatio = this.canvas.el.width / this.canvas.el.height
 
 		const halfVerticalFOV = verticalFOV / 2
