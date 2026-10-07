@@ -88,13 +88,7 @@ export class MicrioAudioLocation {
 		}
 
 		const play = () => {
-			if (this.#source !== undefined) {
-				if (this.#onSourceEnded) {
-					this.#source.removeEventListener('ended', this.#onSourceEnded)
-					this.#onSourceEnded = undefined
-				}
-				this.#source.disconnect()
-			}
+			this.#releaseSource()
 			this.#source = ctx.createBufferSource()
 			if (item.loop) {
 				if (item.repeatAfter > 0) {
@@ -149,15 +143,29 @@ export class MicrioAudioLocation {
 		}
 	}
 
-	#end() {
-		if (this.#source !== undefined) {
-			// The repeating source keeps a listener that would reschedule playback
-			if (this.#onSourceEnded) {
-				this.#source.removeEventListener('ended', this.#onSourceEnded)
-				this.#onSourceEnded = undefined
-			}
-			this.#source.disconnect()
+	/**
+	 * Stops and disconnects the current source, if any.
+	 *
+	 * Disconnecting alone does not stop it: a looping source never ends on its own, so the context
+	 * would keep it (and its buffer) alive for the page's lifetime — which is what `destroy` used to
+	 * leave behind. `stop()` on a node that never started throws, hence the guard.
+	 */
+	#releaseSource(): void {
+		if (this.#source === undefined) {
+			return
 		}
+		if (this.#onSourceEnded) {
+			this.#source.removeEventListener('ended', this.#onSourceEnded)
+			this.#onSourceEnded = undefined
+		}
+		try {
+			this.#source.stop()
+		} catch {}
+		this.#source.disconnect()
+	}
+
+	#end() {
+		this.#releaseSource()
 		clearTimeout(this.#to)
 		// `#init` bails out before creating these when the marker has no source, or when
 		// the element has no current image by then, and `destroy` is still called on it.
