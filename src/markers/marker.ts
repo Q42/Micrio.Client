@@ -188,7 +188,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 			if (marker.type === 'cluster') {
 				if (view && micrio.$current?.$info) {
-					void image.camera.flyToView(view, { limitZoom: true })
+					image.camera.flyToView(view, { limitZoom: true }).catch(() => {})
 				}
 			} else {
 				image.state.marker.set(marker)
@@ -377,7 +377,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 							if (parsed.markerId) {
 								const m = existing.$data?.markers?.find((mm) => mm.id === parsed.markerId)
 								if (m?.view) {
-									void existing.camera.flyToView(m.view, { isJump: true })
+									existing.camera.flyToView(m.view, { isJump: true }).catch(() => {})
 								}
 							}
 						} else {

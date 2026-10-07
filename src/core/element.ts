@@ -900,9 +900,13 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Set current / grid ────────────────────────────────────────────────
 
 		if (isInGrid && (!opts.gridView || !grid?._current.find((img) => img.id === bundle.id))) {
-			void grid?.gridFocus(c, { view: bundle.settings?.view, transition: opts.transition }).then(() => {
-				this.current.set(c)
-			})
+			grid
+				?.gridFocus(c, { view: bundle.settings?.view, transition: opts.transition })
+				.then(() => {
+					this.current.set(c)
+				})
+				// A grid focus whose transition is superseded or torn down rejects; swallow it
+				.catch(() => {})
 		} else {
 			this.current.set(c)
 		}

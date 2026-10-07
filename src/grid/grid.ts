@@ -130,13 +130,17 @@ export class Grid extends MicrioElement<GridProps> {
 			this.#aniDurationOut = g.transitionDurationOut
 		}
 
-		void this.set(this.#galleryGridImages, {
+		this.set(this.#galleryGridImages, {
 			cover: this.image.$settings?.initType === 'cover',
 			duration: 0,
-		}).then(() => {
-			this.#hook()
-			this.micrio.events._dispatch('grid-load')
 		})
+			.then(() => {
+				this.#hook()
+				this.micrio.events._dispatch('grid-load')
+			})
+			// A layout animation started during load is aborted by the next `set()`/teardown;
+			// that rejection is expected, so it must not surface as an unhandled one.
+			.catch(() => {})
 
 		this.#closeBtn = createElement('micrio-button', {
 			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
@@ -182,7 +186,7 @@ export class Grid extends MicrioElement<GridProps> {
 					// `"abc"` and the like parse to NaN, and `enlarge` would write a `span NaN`
 					// grid area: only a positive integer span is a size.
 					if (idx >= 0 && s.every((n) => Number.isInteger(n) && n > 0)) {
-						void this.enlarge(idx, s[0], s[1])
+						this.enlarge(idx, s[0], s[1]).catch(() => {})
 					}
 				}
 				void tick().then(() => {
@@ -723,9 +727,9 @@ export class Grid extends MicrioElement<GridProps> {
 		this._buttons.get(img.id)?.classList.add('focussed')
 		if (this._clickable === 'zoom') {
 			const a = img.opts.area ?? [0, 0, 1, 1]
-			void this.image.camera.flyToView(a, { duration: this._aniDurationIn * 1000, limit: false })
+			this.image.camera.flyToView(a, { duration: this._aniDurationIn * 1000, limit: false }).catch(() => {})
 		} else {
-			void this.gridFocus(img)
+			this.gridFocus(img).catch(() => {})
 		}
 	}
 

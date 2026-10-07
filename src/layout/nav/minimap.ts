@@ -126,7 +126,7 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 		}
 
 		const wheel = (e: WheelEvent) => {
-			void camera.zoom(e.deltaY * (Browser.firefox ? 50 : 1))
+			camera.zoom(e.deltaY * (Browser.firefox ? 50 : 1)).catch(() => {})
 		}
 
 		const dStart = (e: MouseEvent) => {

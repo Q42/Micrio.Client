@@ -10,13 +10,17 @@ function switchToGrid(grid: Grid): void {
 		return
 	}
 	const v = focus.camera.getView()
-	void grid.reset(0, true).then(() => {
-		if (focus.opts.area) {
-			grid.image.camera.setView(focus.opts.area, { noLimit: true })
-		}
-		focus.camera.setView(v, { noLimit: true })
-		grid.micrio.current.set(grid.image)
-	})
+	grid
+		.reset(0, true)
+		.then(() => {
+			if (focus.opts.area) {
+				grid.image.camera.setView(focus.opts.area, { noLimit: true })
+			}
+			focus.camera.setView(v, { noLimit: true })
+			grid.micrio.current.set(grid.image)
+		})
+		// An aborted layout animation rejects; that is expected and must stay handled
+		.catch(() => {})
 }
 
 /** True for non-null objects; the starting point for narrowing event data. */
@@ -72,15 +76,17 @@ function getHandlerMap(grid: Grid): Record<number, ActionHandler> {
 					.map((i) => grid._imageMap.get(i.trim()))
 					.filter((i): i is MicrioImage => i !== undefined)
 				if (imgs.length === 1) {
-					void grid.gridFocus(imgs[0], { duration, transition })
+					grid.gridFocus(imgs[0], { duration, transition }).catch(() => {})
 				} else if (imgs.length > 0) {
-					void grid.set(
-						imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
-						{
-							duration,
-							horizontal: spl?.[1] === 'h',
-						},
-					)
+					grid
+						.set(
+							imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
+							{
+								duration,
+								horizontal: spl?.[1] === 'h',
+							},
+						)
+						.catch(() => {})
 				}
 			},
 
@@ -106,19 +112,19 @@ function getHandlerMap(grid: Grid): Record<number, ActionHandler> {
 			},
 
 			[GridActionType.focusTagged]: (data, duration) => {
-				void grid._flyToMarkers(data, duration)
+				grid._flyToMarkers(data, duration).catch(() => {})
 			},
 
 			[GridActionType.focusWithTagged]: (data, duration) => {
-				void grid._flyToMarkers(data, duration, true)
+				grid._flyToMarkers(data, duration, true).catch(() => {})
 			},
 
 			[GridActionType.reset]: (_data, duration) => {
-				void grid.reset(duration)
+				grid.reset(duration).catch(() => {})
 			},
 
 			[GridActionType.back]: (_data, duration) => {
-				void grid.back(duration)
+				grid.back(duration).catch(() => {})
 			},
 
 			[GridActionType.switchToGrid]: () => {
@@ -140,13 +146,15 @@ function getHandlerMap(grid: Grid): Record<number, ActionHandler> {
 					.map((i) => grid._imageMap.get(i))
 					.filter((i): i is MicrioImage => Boolean(i))
 				if (imgs.length > 0) {
-					void grid.set(
-						imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
-						{
-							duration,
-							horizontal: data === 'h',
-						},
-					)
+					grid
+						.set(
+							imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
+							{
+								duration,
+								horizontal: data === 'h',
+							},
+						)
+						.catch(() => {})
 				}
 			},
 		}

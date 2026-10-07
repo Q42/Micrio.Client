@@ -89,11 +89,12 @@ function createGridKeyHandler(grid: Grid): (e: KeyboardEvent) => void {
 				btn.classList.remove('focussed')
 			}
 			if (grid.$focussed) {
-				void grid.back()
+				// Both return a layout promise that rejects when its animation is aborted
+				grid.back().catch(() => {})
 				e.preventDefault()
 				e.stopPropagation()
 			} else if (!grid.image.camera.isZoomedOut()) {
-				void grid.reset()
+				grid.reset().catch(() => {})
 				e.preventDefault()
 				e.stopPropagation()
 			}
@@ -125,10 +126,12 @@ function createGridKeyHandler(grid: Grid): (e: KeyboardEvent) => void {
 		}
 
 		if (grid._clickable === 'zoom' && !grid.image.camera.isZoomedOut()) {
-			void grid.image.camera.flyToView(img.opts.area ?? [0, 0, 1, 1], {
-				duration: grid._aniDurationIn * 1000,
-				limit: false,
-			})
+			grid.image.camera
+				.flyToView(img.opts.area ?? [0, 0, 1, 1], {
+					duration: grid._aniDurationIn * 1000,
+					limit: false,
+				})
+				.catch(() => {})
 		}
 	}
 }
