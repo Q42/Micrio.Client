@@ -707,9 +707,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 
 		const allTicks = this.querySelectorAll('ul > :nth-child(2) > span')
+		// The list has to stay 1:1 with the ticks `#buildScrubber` actually created (dense albums
+		// only render every `tickStep`-th page plus the last one). Including `i === curr` here added
+		// a phantom entry whenever the current page is off that grid, which shifted every later tick
+		// by one — so the active/hover marks landed on the wrong pages.
 		const visibleTicks: number[] = []
 		for (let i = 0; i < total; i++) {
-			if (!dense || i % tickStep === 0 || i === total - 1 || i === curr) {
+			if (!dense || i % tickStep === 0 || i === total - 1) {
 				visibleTicks.push(i)
 			}
 		}
