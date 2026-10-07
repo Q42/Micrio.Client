@@ -105,9 +105,12 @@ export class DragHandler {
 		this.#ctx._vars._drag._start = [e.clientX, e.clientY, performance.now()]
 		this.#ctx._vars._drag._image = img
 
-		// Add move and up listeners
-		this.#ctx._micrio.addEventListener('pointermove', this.#move, eventPassive)
-		this.#ctx._micrio.addEventListener('pointerup', this.stop, eventPassive)
+		// Add move and up listeners on the window, not on the element: the pointer capture below
+		// only starts after 10px of movement (so a double-click still works), and until then a
+		// press released outside the element delivers no `pointerup` to it — `_panning` would stay
+		// set for the page's lifetime, blocking every later drag.
+		self.addEventListener('pointermove', this.#move, eventPassive)
+		self.addEventListener('pointerup', this.stop, eventPassive)
 
 		this.#ctx._micrio.dataset.panning = ''
 		img.canvas?._kinetic.stop()
@@ -157,8 +160,8 @@ export class DragHandler {
 		this.#ctx._vars._drag._prev = undefined
 
 		// Remove listeners
-		this.#ctx._micrio.removeEventListener('pointermove', this.#move, eventPassive)
-		this.#ctx._micrio.removeEventListener('pointerup', this.stop, eventPassive)
+		self.removeEventListener('pointermove', this.#move, eventPassive)
+		self.removeEventListener('pointerup', this.stop, eventPassive)
 
 		// Release pointer capture if active. A cancelled pointer (or one that was never captured)
 		// has no capture left, and `releasePointerCapture` throws `NotFoundError` then, which
