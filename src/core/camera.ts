@@ -474,6 +474,9 @@ export class Camera {
 		}
 		const v = this.#canvas.view.arr
 		this.#image.state.view.set([v[0] - v[2] / 2, v[1] - v[3] / 2, v[2], v[3]])
+		// The element owns the coalesced `update` event, so the signal is raised here, where a
+		// real element reference is available, rather than in the state subscription.
+		this.#image.engine.micrio.state._touch('view')
 	}
 
 	// ─── Promise-based animations ──────────────────────────────────

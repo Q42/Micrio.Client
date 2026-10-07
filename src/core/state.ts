@@ -220,7 +220,6 @@ export namespace State {
 				for (const fn of m._onMove) {
 					fn(detail)
 				}
-				m.state._touch('view')
 				m.events._dispatch('move', { image, view })
 			})
 
