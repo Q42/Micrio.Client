@@ -193,7 +193,7 @@ describe('<micr-io> reconnect', () => {
 		// popover again), and it leaves no marker behind for the auto-start guard to trip on.
 		const tour = videoTour({ id: 'vt-start', duration: 6 })
 		const bundle = modernBundle()
-		const data = bundle.data
+		const { data } = bundle
 		if (!data) {
 			throw new Error('no bundle data')
 		}
