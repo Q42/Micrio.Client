@@ -32,6 +32,11 @@ export class VimeoPlayerAdapter implements MediaPlayerAdapter {
 	async initialize(): Promise<void> {
 		await loadExternalAPI('Vimeo', 'https://r2.micr.io/vimeo.min.js')
 
+		// See the YouTube adapter: a player built after teardown can never be destroyed.
+		if (this.#destroyed) {
+			throw new Error('Player destroyed during initialization')
+		}
+
 		const { Vimeo } = globalThis
 		if (!Vimeo) {
 			throw new Error('Vimeo Player API failed to load')

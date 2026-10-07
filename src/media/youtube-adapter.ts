@@ -44,6 +44,13 @@ export class YouTubePlayerAdapter implements MediaPlayerAdapter {
 	async initialize(): Promise<void> {
 		await loadExternalAPI('YT', 'https://r2.micr.io/youtube.js', 'onYouTubeIframeAPIReady')
 
+		// The element can be torn down while the API script loads (a popup closed right after
+		// it opened). Creating the player then would leave a live one that `destroy()` — already
+		// run, with `#player` still undefined — can never reach.
+		if (this.#destroyed) {
+			throw new Error('Player destroyed during initialization')
+		}
+
 		const { YT } = globalThis
 		if (!YT) {
 			throw new Error('YouTube IFrame Player API failed to load')
