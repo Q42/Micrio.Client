@@ -607,16 +607,17 @@ some timing paths):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 91.0     | 89    |
-| Branches   | 82.0     | 81    |
-| Functions  | 89.9     | 89    |
-| Lines      | 90.9     | 89    |
+| Statements | 90.5     | 89    |
+| Branches   | 81.6     | 81    |
+| Functions  | 89.1     | 89    |
+| Lines      | 90.4     | 89    |
 
 The floors live in `vitest.config.ts` (`89/81/89/89`) and sit a point or two under the
 baseline, so a real coverage loss fails the run while ordinary refactoring does not. Branch
-coverage sits closest to its floor (82.00 against 81): a branch-heavy change — a new
-conditional in a large file — can trip these **without any test failing**, so run
-`pnpm test:coverage` before assuming a green `pnpm test` is the whole story. They are deliberately
+coverage sits closest to its floor (81.58 against 81), and functions are a tenth away
+(89.14 against 89) after the code-hardening pass: a branch-heavy change — a new conditional
+in a large file — can trip these **without any test failing**, so run `pnpm test:coverage`
+before assuming a green `pnpm test` is the whole story. They are deliberately
 coarse and global: per-file thresholds would fail outright on the large parts of the
 tree that are intentionally at 0%.
 
@@ -686,7 +687,7 @@ pays nothing for it.
 
 ## Status
 
-Last full check: **1729 tests in 118 files pass**, coverage `91.0 / 82.0 / 89.9 / 90.9`
+Last full check: **1767 tests in 120 files pass**, coverage `90.5 / 81.6 / 89.1 / 90.4`
 (statements / branches / functions / lines, floors `89 / 81 / 89 / 89`), and
 `tsc` (both projects), `oxlint --type-aware` and `oxfmt --check` are clean.
 
@@ -704,7 +705,7 @@ Last full check: **1729 tests in 118 files pass**, coverage `91.0 / 82.0 / 89.9 
 | Tile pyramid, layer selection, tile culling         | `tests/browser/render/tile-image`                                                | done   |
 | Postprocessor and WebGL watermark                   | `tests/browser/render/postprocess`                                               | done   |
 | Legacy (pre-v5) vs v5+ bundles                      | `tests/browser/core/element-legacy`                                              | done   |
-| `<micr-io>` open / events / attributes              | `tests/browser/core/element-*`                                                   | done   |
+| `<micr-io>` open / events / attributes / reconnect  | `tests/browser/core/element-*`                                                   | done   |
 | Marker layer, filter, settings, clickable areas     | `tests/browser/markers/markers`                                                  | done   |
 | Grid cell markers (inactive, then focused)          | `tests/browser/markers/markers-grid`                                             | done   |
 | Marker icons, labels, scaling, viewport sizing      | `tests/browser/markers/marker-render`                                            | done   |
@@ -722,7 +723,7 @@ Last full check: **1729 tests in 118 files pass**, coverage `91.0 / 82.0 / 89.9 
 | 360 minimap                                         | `tests/browser/space/minimap-360`                                                | done   |
 | Album resolution, config, sorting and degradation   | `tests/browser/gallery/gallery-album`                                            | done   |
 | Swipe album and strip navigation                    | `tests/browser/gallery/gallery-swipe`                                            | done   |
-| Gallery scrubber (pointer and touch)                | `tests/browser/gallery/gallery-scrubber`                                         | done   |
+| Gallery scrubber (pointer, touch, ticks, teardown)  | `tests/browser/gallery/gallery-scrubber`                                         | done   |
 | Switch album layout and navigation                  | `tests/browser/gallery/gallery-switch`                                           | done   |
 | IIIF (Presentation 2/3/4) and Image API info.json   | `tests/browser/gallery/gallery-iiif`                                             | done   |
 | Live IIIF manifests and their Image API tiles       | `tests/browser/live/iiif`                                                        | opt-in |
@@ -757,7 +758,7 @@ Last full check: **1729 tests in 118 files pass**, coverage `91.0 / 82.0 / 89.9 
 | UI translation tables                               | `tests/core/core/i18n/i18n-strings`                                              | done   |
 | Buttons, icons, progress circle, dial               | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done   |
 | Menu tree and its actions                           | `tests/browser/ui/ui-menu`                                                       | done   |
-| Toolbar (desktop + mobile sheet)                    | `tests/browser/layout/toolbar-*`                                                 | done   |
+| Toolbar (desktop + mobile sheet) and controls       | `tests/browser/layout/{toolbar-*,controls}`                                      | done   |
 | Content-page popover and welcome screen             | `tests/browser/layout/popover`                                                   | done   |
 | Image/video/iframe embeds, 2D HTML + WebGL          | `tests/browser/embed/embed`                                                      | done   |
 | 360 embed placement (`matrix3d`, π/2 scale)         | `tests/browser/embed/embed-360`                                                  | done   |
