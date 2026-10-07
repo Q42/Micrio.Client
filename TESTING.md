@@ -39,6 +39,39 @@ Vitest never removes them, so `vitest.config.ts` clears the directory at config 
 every test run starts clean, and whatever is in there afterwards belongs to the run you
 just did — delete it by hand if you want it gone sooner.
 
+### What a clean run still prints on stderr
+
+A green `pnpm test` is not silent: the suites that pin a **failure** path drive the client
+into it, and the browser forwards whatever it logs. Every remaining line is expected and
+belongs to a test that asserts the state that failure leaves behind (the rendered error
+message, the fallback image, the warning call — sometimes the same text, sometimes not):
+
+- `Warning: unknown grid tour event …` — the dispatcher's unknown-action branch; the
+  `grid-transitions` case asserts the text, the `grid-tour-events` one only the unchanged
+  layout.
+- `[Micrio] Could not open the album for …` — the album degradation cases (`brokenArchive`,
+  `missingIndex`). The trailing value is the rejection from the **stubbed** archive request,
+  never a download; see [Offline by default](#offline-by-default).
+- `Error: Only IIIF Presentation API 3 …`, `No valid IIIF canvases …`, `Not a valid IIIF
+manifest …` — the IIIF "unsupported input" cases, each asserting its exact message.
+- `Error: Image with id "…" not found …`, the WebGL-unsupported message — `element-errors`,
+  asserting the `micrio-error` text and that `open()` never rejects.
+
+Two categories used to appear and are now absent, so their return means a regression:
+
+- **`PromiseRejectionEvent { isTrusted: true }`** — an unhandled rejection from an aborted
+  camera or grid animation: `flyToView`/`zoom` reject when interrupted (`Ani.stop()`), and
+  `Grid.set()` propagates that as its own rejection. Every fire-and-forget caller has to
+  handle it with `.catch(() => {})`.
+- **`ResizeObserver loop completed with undelivered notifications.`** — Chromium's loop
+  protection. `Canvas.onresize` already returns early when nothing changed, so this can only
+  happen in the browser project, where `.css` imports are stubbed and the production
+  `canvas.micrio` box is therefore missing; `tests/browser/setup.ts` filters exactly that
+  message.
+
+Any _other_ stderr line is a real finding: no suite is expected to log an unhandled error or
+an unexpected warning.
+
 ## The two projects
 
 `vitest.config.ts` defines two independent projects. They are separate processes with

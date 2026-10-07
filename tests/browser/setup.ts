@@ -28,6 +28,27 @@ console.info = (...args: unknown[]) => {
 	info(...args)
 }
 
+/**
+ * Drops Chromium's ResizeObserver loop-protection warning.
+ *
+ * `Canvas` observes the `<canvas class="micrio">` element, and `onresize` already
+ * returns early when the viewport did not change. The warning still fires here because
+ * every `.css` import is stubbed in the browser project (see `vitest.config.ts`): the
+ * production rule that pins the canvas box (`canvas.micrio { width: 100% !important;
+ * height: 100% !important }`, `src/core/element.css`) is missing, so the observed box
+ * follows the canvas `width`/`height` attributes that `onresize` writes, and Chromium
+ * reports the extra delivery it needs. It is not an error from the client and cannot
+ * happen with the production stylesheet, so only that exact message is swallowed.
+ */
+const resizeObserverLoop = 'ResizeObserver loop completed with undelivered notifications'
+const error = console.error.bind(console)
+console.error = (...args: unknown[]) => {
+	if (args.some((a) => a instanceof Error && a.message.includes(resizeObserverLoop))) {
+		return
+	}
+	error(...args)
+}
+
 // The texture worker bootstrap is created at module load, so the fake worker has
 // to be in place *before* the client is imported. The audio controller likewise
 // keeps its AudioContext in module state and only ever initialises it once, so the
