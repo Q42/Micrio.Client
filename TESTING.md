@@ -56,6 +56,10 @@ message, the fallback image, the warning call — sometimes the same text, somet
 manifest …` — the IIIF "unsupported input" cases, each asserting its exact message.
 - `Error: Image with id "…" not found …`, the WebGL-unsupported message — `element-errors`,
   asserting the `micrio-error` text and that `open()` never rejects.
+- `[Micrio] Media failed (E303): …` followed by `[Micrio] Serial tour stopped: step 1/2 …` —
+  `serial-tour`'s failure case, which drives the media element's own `error` event and asserts
+  the tour stops, stays on the failing step and reports through `media-error`. One pair per
+  run: `#break()` is single-shot, so a step that reports twice still stops once.
 
 Two categories used to appear and are now absent, so their return means a regression:
 
@@ -96,7 +100,12 @@ real page.
 Tests are grouped in the directory of the module they pin, mirroring `src/`. The shared
 harness stays at `tests/`: `tests/fixtures/` (bundle, space, tour, grid, album, book,
 omni and UI data builders), `tests/helpers/` (mount, wait, network, tour and grid
-helpers) and the ambient `tests/tests.d.ts`.
+helpers) plus the ambient `tests/tests.d.ts`.
+
+Some fixtures have to be **real resources**, not stubs: a serial tour's step clock is
+driven by its own media, so `tests/fixtures/tours.ts` carries `STEP_TONE_URI` — an 8s tone
+as a small `data:` WAV — because a fake `.mp3` URL is a genuine load error, and a real
+error (correctly) breaks the tour.
 
 ```
 tests/
@@ -517,6 +526,47 @@ come from CSS only — the dashboard-era `_markers.markerSize`, `markerColor` an
   counter is fresh per step because the layout replaces the popup; two consecutive steps
   that share a marker id would not update it.
 
+## The serial tour
+
+`<micrio-serial-tour>` is the multi-image marker tour (`isSerialTour`). Its step clock and
+its control bar are the two places that are easy to get wrong, and the suite pins both
+(`tests/browser/tour/serial-tour.test.ts`).
+
+**Who owns what**
+
+- The **clock** is the tour's (a 250ms `#tick`). Advancement is never a timeout:
+  - a step **with media** is released by that media's own `ended` (`micrio-media`
+    dispatches `ended`/`timeupdate`/`blocked`/`error` on _itself_, so the tour subscribes by
+    event and never queries for a `video`/`audio` tag — a YouTube/Vimeo/HLS tour has none);
+  - a step whose media **never started** (still loading, or autoplay blocked) holds the clock
+    at 0 and waits. There is deliberately no grace period: a step is not skipped over
+    unheard;
+  - a step with **no media at all** is timed by its authored `stepInfo` duration.
+- The **control bar** is the media element's (`figure` is the bar, fixed to the bottom).
+  The tour injects one `[data-part="bar"]` per step into its `aside > div`.
+- The **time readout** is that bar's own `<span>` — `micrio-media-controls aside > div > span`
+  — fed by the tour's `getTimeDisplay`. It is not a span of the tour's own: the host is
+  `display: contents` (so the media figure _is_ the bar), which leaves it with no box to
+  position a child in. `media.ts` primes the controls the moment it creates them, so the
+  readout is filled on the first frame rather than at the first `loadedmetadata`/`timeupdate`
+  — an empty readout collapses, and the bar then takes its space.
+
+**Failures are not papered over**
+
+- A media **error** (404, timeout, decode failure, unplayable source) breaks the tour:
+  `#break()` stops it, clears `state.tour`, leaves the viewer on the failing step, and
+  reports through `media-error` naming the step (`step 1/2 (markerId) could not be played: …`).
+- **Blocked autoplay** is not an error: the step latches paused and waits for the user to
+  press play (`media-blocked`).
+- `media.ts` reports what happened — `describeMediaError()` turns `MediaError` into a
+  sentence, adapter `onError` is forwarded on the YouTube/Vimeo/HLS paths, and initialisation
+  rejections and a rejected user-initiated `play()` are reported instead of swallowed.
+
+**CSS is not observable from the suite.** `vitest.config.ts` stubs every `.css` import to
+`{}`, so no assertion sees a stylesheet: a purely visual regression (a missing layout rule,
+a `display: none` that out-specifies another) passes every test. Those have to be checked in
+a browser — the serial tour's readout was exactly that kind of bug.
+
 ## Coverage
 
 `pnpm test:coverage` runs both projects under `@vitest/coverage-v8` and merges them
@@ -535,11 +585,14 @@ some timing paths):
 | ---------- | -------- | ----- |
 | Statements | 90.9     | 89    |
 | Branches   | 82.0     | 81    |
-| Functions  | 90.4     | 89    |
+| Functions  | 89.7     | 89    |
 | Lines      | 90.8     | 89    |
 
-The floors live in `vitest.config.ts` and sit 1–2 points under the baseline, so a real
-coverage loss fails the run while ordinary refactoring does not. They are deliberately
+The floors live in `vitest.config.ts` (`89/81/89/89`) and sit a point or two under the
+baseline, so a real coverage loss fails the run while ordinary refactoring does not. Branch
+coverage sits closest to its floor (81.98 against 81): a branch-heavy change — a new
+conditional in a large file — can trip these **without any test failing**, so run
+`pnpm test:coverage` before assuming a green `pnpm test` is the whole story. They are deliberately
 coarse and global: per-file thresholds would fail outright on the large parts of the
 tree that are intentionally at 0%.
 
@@ -556,32 +609,37 @@ files that sit **directly** in that directory, so `src/core` and `src/core/event
 child rows — `src/core` is 81.9% for its own files, and 87.6% once `src/core/events` (100%)
 and `src/core/i18n` are folded in.
 
-| Area            | Stmts | Covered   |
-| --------------- | ----- | --------- |
-| src/core/events | 100.0 | 483/483   |
-| src/book/input  | 100.0 | 143/143   |
-| src/utils       | 96.5  | 361/374   |
-| src/core/i18n   | 95.5  | 21/22     |
-| src/embed       | 93.5  | 346/370   |
-| src/markers     | 93.4  | 739/791   |
-| src/ui          | 93.4  | 142/152   |
-| src/render      | 92.8  | 2900/3124 |
-| src/grid        | 90.5  | 618/683   |
-| src/gallery     | 90.2  | 899/997   |
-| src/audio       | 88.2  | 217/246   |
-| src/media       | 86.5  | 868/1003  |
-| src/layout      | 86.3  | 588/681   |
-| src/book        | 84.8  | 673/794   |
-| src/layout/nav  | 82.9  | 261/315   |
-| src/core        | 81.9  | 887/1083  |
-| src/tour        | 80.5  | 211/262   |
+| Area              | Stmts | Covered   |
+| ----------------- | ----- | --------- |
+| src/core/events   | 100.0 | 483/483   |
+| src/book/input    | 100.0 | 143/143   |
+| src/book/geometry | 99.2  | 254/256   |
+| src/book/core     | 97.6  | 123/126   |
+| src/book/physics  | 96.8  | 149/154   |
+| src/utils         | 96.5  | 361/374   |
+| src/core/i18n     | 95.5  | 21/22     |
+| src/embed         | 93.5  | 346/370   |
+| src/ui            | 93.4  | 142/152   |
+| src/markers       | 93.3  | 738/791   |
+| src/render        | 92.8  | 2900/3124 |
+| src/grid          | 90.5  | 618/683   |
+| src/gallery       | 90.2  | 899/997   |
+| src/audio         | 88.2  | 217/246   |
+| src/tour          | 86.0  | 240/279   |
+| src/layout        | 86.3  | 588/681   |
+| src/media         | 85.8  | 861/1003  |
+| src/book          | 84.8  | 673/794   |
+| src/layout/nav    | 82.9  | 261/315   |
+| src/core          | 82.0  | 888/1083  |
 
-The thin spots now start at **`src/tour` (80.5%)** — mostly `serial-tour.ts` (74.8%) — then
-`src/core` (81.9%, mostly `camera.ts` at 61.5% and `image.ts` at 75.0%) and `src/layout/nav`
-(82.9%). The interaction layer and book input that used to head this list are covered above.
-They are remaining thin spots rather than the floor, and they are deliberately _not_ a backlog
-list — the backlog below holds only the CI item. To raise the floor, run `pnpm test:coverage`,
-move the baseline to the new number, and keep the floors a point or two under it.
+The thin spots now start at **`src/core` (82.0%, mostly `camera.ts` and `image.ts`)** and
+`src/layout/nav` (82.9%), then `src/book` (84.8%) and `src/media` (85.8%, mostly
+`media.ts` at 75.6% — its adapter and HLS paths only run under their own suites). The
+serial tour's own file went from 74.8% to 84.7% with the clock/readout work. These are
+remaining thin spots rather than the floor, and they are deliberately _not_ a backlog
+list — the backlog below holds only the CI item. To raise the floor, run
+`pnpm test:coverage`, move the baseline to the new number, and keep the floors a point or
+two under it.
 
 `pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
 pays nothing for it.
