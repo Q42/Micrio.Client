@@ -365,6 +365,17 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	// ─── Keyboard ──────────────────────────────────────────────────
 
 	#keydown = (e: KeyboardEvent) => {
+		// The handler is on `document`, so it also sees keys typed on the host page: arrows and
+		// Home/End in a text field are not gallery navigation. Same guard as the grid's handler.
+		const { target } = e
+		if (
+			e.defaultPrevented ||
+			(target instanceof HTMLElement &&
+				(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)))
+		) {
+			return
+		}
+
 		switch (e.key) {
 			case 'PageUp':
 			case 'ArrowLeft': {
