@@ -275,15 +275,6 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}),
 		)
 
-		this._addCleanup(
-			micrio.state.tour.subscribe(() => {
-				const sub = this.#elements.get('subtitles')
-				if (sub instanceof MicrioElement) {
-					sub._setProps?.({ raised: Boolean(get(micrio.state.tour)) })
-				}
-			}),
-		)
-
 		for (const store of [
 			micrio._visible,
 			micrio.state.popup,
