@@ -93,11 +93,8 @@ export function restartPanning(
 			const t = pointers[0]
 			syntheticEvent = { button: 0, target: ctx._el, clientX: t.clientX, clientY: t.clientY }
 		} else {
-			const first = pointers.entries().next().value
-			if (!first) {
-				return
-			}
-			const [pointerId, { x, y }] = first
+			// Exactly one entry: a Map iterator always yields one.
+			const [[pointerId, { x, y }]] = pointers
 			syntheticEvent = {
 				button: 0,
 				pointerType: 'touch',

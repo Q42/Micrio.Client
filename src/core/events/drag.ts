@@ -88,12 +88,8 @@ export class DragHandler {
 			return
 		}
 
-		// Handle potential conflicts with pinching
+		// A second press while panning is left to the pinch layer: `pinchStart` stops the pan
 		if (this.#ctx._panning) {
-			// If already panning and a second touch starts, stop panning to allow pinch
-			if (e instanceof TouchEvent && e.touches.length > 1) {
-				this.stop()
-			}
 			return
 		}
 

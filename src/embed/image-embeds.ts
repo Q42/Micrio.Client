@@ -32,6 +32,9 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 					createElement('micrio-embed', { parent: this, setProps: { embed, image } })
 				}
 			}
+			// A rebuild that drops an embed (or empties the list) leaves its WebGL sub-image
+			// unclaimed; the children that were re-created above have re-adopted theirs.
+			image._releaseOrphans()
 		})
 	}
 

@@ -3,6 +3,10 @@
 /** Thickness of a single paper page in world-space units */
 export const PAGE_THICKNESS = 0.0012
 
+/** Width of every page in world-space units: the book shares one page geometry,
+ *  and a page's own shape comes from its aspect (`aspectsForInit`). */
+export const PAGE_WIDTH = 1
+
 /** Default page aspect ratio (height / width) — √2 ≅ A4 paper */
 export const DEFAULT_ASPECT = Math.SQRT2
 

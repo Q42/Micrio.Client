@@ -11,6 +11,7 @@ import type { SolverSettings } from './physics/solver-sync'
 import { isSolverReady, initSolver, dispatchSolve } from './physics/solver-sync'
 import {
 	PAGE_THICKNESS,
+	PAGE_WIDTH,
 	COVER_THICKNESS_MULTIPLIER,
 	COVER_SCALE_X,
 	COVER_SCALE_Y,
@@ -24,7 +25,6 @@ import {
 	GRAVITY_ENABLED,
 	DELTA_IDLE_THRESHOLD,
 	USE_INDIVIDUAL_ASPECTS,
-	DEFAULT_ASPECT,
 	VIEWPORT_MARGIN_PCT,
 	DEFAULT_CAMERA_PHI,
 	HARD_COVER,
@@ -47,6 +47,7 @@ import {
 	type TexRegion,
 } from './geometry/uv-project'
 import { computeWeightFactor, computePageSpineY, applySpineDelta } from './animation/spine-sync'
+import { computePageLayout, computeTexRegion } from './core/layout'
 import { getPreset, getPresets } from './rendering/lighting'
 import { archive } from '$utils/archive'
 import type { MicrioImage } from '$core/image'
@@ -56,89 +57,6 @@ interface TextureContext {
 	side: 0 | 1
 	mesh: PaperMesh
 	result: UvWorldResult
-}
-
-function computePageLayout(images: Models.ImageInfo.ImageInfo[]) {
-	const pageCnt = Math.ceil(images.length / 2)
-	const totalImagePages = images.length
-
-	const pageIdxes: number[][] = [[0]]
-	for (let p = 1; p < pageCnt; p++) {
-		const first = 2 * p - 1
-		const last = 2 * p
-		if (last < images.length) {
-			pageIdxes.push([first, last])
-		} else {
-			pageIdxes.push([first])
-		}
-	}
-
-	let totalAspect = 0
-	let aspectCount = 0
-	const frontAspects = new Float32Array(pageCnt)
-	const backAspects = new Float32Array(pageCnt)
-
-	for (let p = 0; p < pageCnt; p++) {
-		const front = images[p * 2]
-		const back = images[p * 2 + 1]
-		const frontAsp =
-			front !== undefined && front.width > 0 && front.height > 0 ? front.height / front.width : DEFAULT_ASPECT
-		const backAsp = back !== undefined && back.width > 0 && back.height > 0 ? back.height / back.width : frontAsp
-		frontAspects[p] = frontAsp
-		backAspects[p] = backAsp
-
-		if (front !== undefined && front.width > 0 && front.height > 0) {
-			totalAspect += frontAsp
-			aspectCount++
-		}
-		if (back !== undefined && back.width > 0 && back.height > 0) {
-			totalAspect += backAsp
-			aspectCount++
-		}
-	}
-
-	const avgAspect = aspectCount > 0 ? totalAspect / aspectCount : DEFAULT_ASPECT
-	const refArea = avgAspect
-
-	// Every page shares the same geometry (the book-wide average aspect); per-page
-	// aspects are honored by rendering each texture in its own region of the page
-	// instead of resizing the geometry.
-	const computedPageWidths = new Float32Array(pageCnt).fill(Math.sqrt(refArea / avgAspect))
-	const aspectsForInit = new Float32Array(pageCnt).fill(avgAspect)
-
-	return {
-		pageCnt,
-		pageIdxes,
-		totalImagePages,
-		computedPageWidths,
-		aspectsForInit,
-		frontAspects,
-		backAspects,
-		avgAspect,
-	}
-}
-
-/**
- * The sub-rectangle of a page's UV space in which a texture with `texAspect`
- * (height / width) is drawn without distortion on a page of aspect `pageAspect`.
- * Returns `[uMin, vMin, fU, fV]`; the leftover page space is transparent.
- *
- * The image is always anchored to the book's spine. When `spineAtHigh` is true
- * the spine lies at sampled u = 1 (a single-grid page's back face, sampled
- * mirrored), so the image's far edge sits on the spine (`uMin = 1 - fU`).
- * Otherwise the spine lies at sampled u = 0 and the image's near edge sits on it
- * (`uMin = 0`). Vertically the image stays centered.
- */
-function computeTexRegion(
-	texAspect: number,
-	pageAspect: number,
-	spineAtHigh: boolean,
-): [number, number, number, number] {
-	const fU = Math.min(1, pageAspect / Math.max(1e-4, texAspect))
-	const fV = Math.min(1, texAspect / Math.max(1e-4, pageAspect))
-	const uMin = spineAtHigh ? 1 - fU : 0
-	const vMin = (1 - fV) / 2
-	return [uMin, vMin, fU, fV]
 }
 
 /** Column-major 4x4 multiply: `o = a · b`. */
@@ -200,7 +118,6 @@ export class BookViewer {
 
 	#pageCount = 0
 	#pageAspects: Float32Array = new Float32Array(0)
-	#pageWidths: Float32Array = new Float32Array(0)
 
 	/** When true, textures are rendered at their native aspect ratio within each page. */
 	#useIndividualAspects = false
@@ -254,6 +171,12 @@ export class BookViewer {
 	#totalStackHeight = 0
 
 	#lastTime = 0
+
+	/** Time accumulated by `_step`, fed to the IIIF manager in place of a real clock. */
+	#stepTime = 0
+
+	/** True once `_stop()` ran: the viewer no longer takes frames. */
+	#stopped = false
 
 	constructor(options: BookViewerOptions) {
 		this.#canvas = options._canvas
@@ -831,8 +754,48 @@ export class BookViewer {
 		return this.#pageCount
 	}
 
+	/**
+	 * Advances the viewer by one frame with an explicit delta, for tests: the
+	 * production loop is a `requestAnimationFrame` callback, which a test cannot
+	 * reach without driving real time. Returns whether the real loop would ask for
+	 * another frame, so a harness can keep stepping until the book settles.
+	 *
+	 * The IIIF manager is fed the time this step-driven clock has accumulated, so
+	 * its debounce and cross-fade timings advance with the frames.
+	 * @internal
+	 */
+	_step(dtMs = 1000 / 60): boolean {
+		if (this.#renderer === undefined) {
+			return false
+		}
+		let dt = dtMs / 1000
+		if (dt <= 0) {
+			dt = 1 / 60
+		}
+		if (dt > 1 / 30) {
+			dt = 1 / 30
+		}
+		this.#stepTime += dtMs
+		return this.#update(dt, this.#stepTime)
+	}
+
+	/**
+	 * Stops the viewer's render loop for good.
+	 *
+	 * A viewer requests frames through `Frame`, a module singleton, and a request
+	 * is only ever removed by running its frame: a viewer that is thrown away
+	 * mid-animation leaves its callback queued, and every later frame then runs
+	 * that dead viewer's simulation again — and re-queues it. A host that discards
+	 * a viewer (the gallery replacing one, tests tearing one down) has to stop it.
+	 * @internal
+	 */
+	_stop(): void {
+		this.#stopped = true
+		Frame.cancel(this.#frame)
+	}
+
 	_nextPage(grabRow?: number): void {
-		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount) {
+		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount - 1) {
 			this.#inputHandler._operation = 'none'
 			this.#selectedPage = this.#currentPage
 			const useGrabRow = grabRow ?? this.#inputHandler._lastClickGrabRow ?? undefined
@@ -862,6 +825,9 @@ export class BookViewer {
 	// ═══════════════════════════════════════════════════════════════
 
 	#requestFrame = (): void => {
+		if (this.#stopped) {
+			return
+		}
 		Frame.request(this.#frame)
 	}
 
@@ -871,19 +837,11 @@ export class BookViewer {
 			throw new Error('BookViewer: no images in book index')
 		}
 
-		const {
-			pageCnt,
-			pageIdxes,
-			totalImagePages,
-			computedPageWidths,
-			aspectsForInit,
-			frontAspects,
-			backAspects,
-			avgAspect,
-		} = computePageLayout(images)
+		const { pageCnt, pageIdxes, totalImagePages, aspectsForInit, frontAspects, backAspects, avgAspect } =
+			computePageLayout(images)
 		this.#images = images
 
-		const ok = this.#initGeometry(pageCnt, computedPageWidths, aspectsForInit, options)
+		const ok = this.#initGeometry(pageCnt, aspectsForInit, options)
 		if (!ok) {
 			throw new Error('BookViewer: WebGL is not available in this browser.')
 		}
@@ -919,9 +877,8 @@ export class BookViewer {
 		}, 500)
 	}
 
-	#initGeometry(pageCnt: number, pWidths: Float32Array, aspects: Float32Array, options: BookViewerOptions): boolean {
+	#initGeometry(pageCnt: number, aspects: Float32Array, options: BookViewerOptions): boolean {
 		this.#pageCount = pageCnt
-		this.#pageWidths = pWidths
 		this.#pageAspects = aspects
 
 		const canvas = this.#canvas
@@ -944,14 +901,9 @@ export class BookViewer {
 		this.#camera._radius = 2.2
 		this.#camera._snap()
 
-		let maxWidth = 0
 		let maxHeight = 0
 		for (let i = 0; i < this.#pageCount; i++) {
-			const w = this.#pageWidths[i]
-			const h = w * this.#pageAspects[i]
-			if (w > maxWidth) {
-				maxWidth = w
-			}
+			const h = PAGE_WIDTH * this.#pageAspects[i]
 			if (h > maxHeight) {
 				maxHeight = h
 			}
@@ -960,16 +912,16 @@ export class BookViewer {
 		this.#meshes.length = 0
 		for (let i = 0; i < this.#pageCount; i++) {
 			const yOff = (this.#pageCount - 1 - i) * PAGE_THICKNESS
-			const pw = this.#pageWidths[i]
 			const asp = this.#pageAspects[i]
 			if (this.#hardCover && (i === 0 || i === this.#pageCount - 1)) {
-				const wScale = maxWidth / pw
-				const hScale = maxHeight / (pw * asp)
-				const coverScaleX = Math.max(COVER_SCALE_X, wScale)
+				// The book shares one page geometry, so a cover only has to
+				// stretch vertically to sit proud of the tallest page
+				const hScale = maxHeight / (PAGE_WIDTH * asp)
+				const coverScaleX = COVER_SCALE_X
 				const coverScaleY = Math.max(COVER_SCALE_Y, hScale)
 				const cover = new CoverMesh(
 					yOff,
-					pw,
+					PAGE_WIDTH,
 					asp,
 					PAGE_THICKNESS * COVER_THICKNESS_MULTIPLIER,
 					coverScaleX,
@@ -977,7 +929,7 @@ export class BookViewer {
 				)
 				this.#meshes.push(cover)
 			} else {
-				this.#meshes.push(new PaperMesh(yOff, pw, asp))
+				this.#meshes.push(new PaperMesh(yOff, PAGE_WIDTH, asp))
 			}
 		}
 
@@ -1212,7 +1164,7 @@ export class BookViewer {
 
 			if (crossedToLeft) {
 				this.#flipAnimator._endDrag(this.#dragPageIndex, 1)
-				if (this.#dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount) {
+				if (this.#dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount - 1) {
 					this.#currentPage++
 					this.#onPageChange?.(this.#currentPage)
 				}
@@ -1435,6 +1387,16 @@ export class BookViewer {
 		}
 		this.#lastTime = time
 
+		if (this.#update(dt, time)) {
+			this.#requestFrame()
+		}
+	}
+
+	/**
+	 * One frame of book simulation and drawing. Returns whether another frame is
+	 * wanted; the caller re-schedules (see `#frame` and `_step`).
+	 */
+	#update(dt: number, time: number): boolean {
 		this.#flipAnimator._update(
 			dt,
 			this.#meshes,
@@ -1508,11 +1470,8 @@ export class BookViewer {
 			this.#renderer._isLightingAnimated() ||
 			this.#camera._isMoving()
 
-		if (shouldContinue) {
-			this.#requestFrame()
-		}
+		return shouldContinue
 	}
-
 	#syncSolverResults(): void {
 		if (!isSolverReady()) {
 			return

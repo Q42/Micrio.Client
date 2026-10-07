@@ -289,6 +289,25 @@ export class TileCanvas {
 		return image
 	}
 
+	/**
+	 * Detaches an embedded image; the engine frees its tiles. Any tiles already queued for
+	 * the current frame are dropped with it.
+	 * @internal
+	 */
+	_removeImage(image: Image): void {
+		const idx = this.images.indexOf(image)
+		if (idx < 0) {
+			return
+		}
+		this.images.splice(idx, 1)
+		for (let i = this._toDraw.length - 1; i >= 0; i--) {
+			const tile = this._toDraw[i]
+			if (tile >= image._startOffset && tile < image._endOffset) {
+				this._toDraw.splice(i, 1)
+			}
+		}
+	}
+
 	/** @internal */
 	_addChild(
 		x0: number,
@@ -372,7 +391,10 @@ export class TileCanvas {
 		this.#isReady = true
 		if (!this._hasParent && this.#currentArea.width === 1 && this.#currentArea.height === 1) {
 			for (const child of this.main._canvases) {
-				if (child !== this) {
+				// A canvas that hosts child canvases (a gallery, grid or omni parent)
+				// must never be faded out: hidden, its `_shouldDraw` stops stepping
+				// those children, which stalls every awaited strip animation.
+				if (child !== this && child.#children.length === 0) {
 					child._fadeOut()
 				}
 			}

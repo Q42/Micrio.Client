@@ -1,6 +1,11 @@
-micrio-serial-tour > micrio-media {
-	display: contents;
-}
+/*
+ * The tour is a layout pass-through: the step's media and the media's controls are the flex
+ * items of the control bar's row, so the host and the wrappers collapse out of the box
+ * tree. These three rules were in the component's original inline styles and were lost when
+ * the styles moved into this file; without them the bar is not a flex row at all.
+ */
+micrio-serial-tour,
+micrio-serial-tour > micrio-media,
 micrio-serial-tour micrio-media-controls {
 	display: contents;
 }

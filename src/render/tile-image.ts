@@ -143,7 +143,8 @@ export default class Image {
 	readonly #isSingle: boolean
 	/** @internal */
 	readonly _isVideo: boolean
-	readonly #startOffset: number
+	/** First global tile index of this image's pyramid; used to free its tiles on release. @internal */
+	readonly _startOffset: number
 	/** Current rendered opacity (0-1) of this image. */
 	opacity: number
 	/** @internal */
@@ -184,7 +185,7 @@ export default class Image {
 		this.#tileSize = tileSize
 		this.#isSingle = isSingle
 		this._isVideo = isVideo
-		this.#startOffset = startOffset
+		this._startOffset = startOffset
 		this.opacity = opacity
 		this._tOpacity = tOpacity
 		this._rotX = rotX
@@ -339,16 +340,16 @@ export default class Image {
 			scale = Math.max(scale, this.#canvas.camera._minScale) * this.#rScale
 		}
 
-		const n = this._endOffset - this.#startOffset
+		const n = this._endOffset - this._startOffset
 		if (s.length < n) {
 			s = Image.#toDrawSeen = new Uint8Array(n)
 		} else {
 			s.fill(0, 0, n)
 		}
-		Image.#toDrawSeenBase = this.#startOffset
+		Image.#toDrawSeenBase = this._startOffset
 
 		const last = this._endOffset - 1
-		const lastIdx = last - this.#startOffset
+		const lastIdx = last - this._startOffset
 		if (this._gotBase === 0) {
 			d.push(last)
 			s[lastIdx] = 1
@@ -425,7 +426,8 @@ export default class Image {
 	}
 
 	/**
-	 * Calculates tiles for 360 embeds using viewport-based coordinates.
+	 * Calculates tiles for 360 embeds using viewport-based coordinates. Only reached for a
+	 * `#is360Embed` image, so the longitude intersection always wraps around the seam.
 	 */
 	#getTilesViewport(layerIdx: number): void {
 		if (this.#outsideView()) {
@@ -449,62 +451,52 @@ export default class Image {
 			return
 		}
 
-		const vcx = c.is360 ? mod1(c.view._centerX + c._camera360._offX) : c.view._centerX
+		const vcx = mod1(c.view._centerX + c._camera360._offX)
+		const vx0 = mod1(vcx - vw / 2),
+			vx1 = mod1(vcx + vw / 2)
+		const ex0 = mod1(ecx - ew / 2),
+			ex1 = mod1(ecx + ew / 2)
 		let ix0: number, ix1: number
 
-		if (c.is360) {
-			const vx0 = mod1(vcx - vw / 2),
-				vx1 = mod1(vcx + vw / 2)
-			const ex0 = mod1(ecx - ew / 2),
-				ex1 = mod1(ecx + ew / 2)
-
-			if (vx1 > vx0 && ex1 > ex0) {
-				ix0 = Math.max(vx0, ex0)
-				ix1 = Math.min(vx1, ex1)
-				if (ix0 >= ix1) {
-					return
-				}
-			} else if (vx1 < vx0 && ex1 > ex0) {
-				if (!(ex0 <= vx1 || ex1 >= vx0)) {
-					return
-				}
-				ix0 = ex0
-				ix1 = ex1
-			} else if (vx1 > vx0 && ex1 < ex0) {
-				if (!(vx0 <= ex1 || vx1 >= ex0)) {
-					return
-				}
-				ix0 = vx0
-				ix1 = vx1
-			} else {
-				ix0 = Math.max(vx0, ex0)
-				ix1 = Math.min(vx1, ex1)
-			}
-
-			const eL = ecx - ew / 2,
-				eR = ecx + ew / 2
-			if (eR > 1) {
-				if (ix0 < eL) {
-					ix0 += 1
-				}
-				if (ix1 < eL) {
-					ix1 += 1
-				}
-			} else if (ix0 > ecx + 0.5) {
-				ix0 -= 1
-			} else if (ix1 > ecx + 0.5) {
-				ix1 -= 1
-			}
-		} else {
-			ix0 = Math.max(vcx - vw / 2, ecx - ew / 2)
-			ix1 = Math.min(vcx + vw / 2, ecx + ew / 2)
+		if (vx1 > vx0 && ex1 > ex0) {
+			ix0 = Math.max(vx0, ex0)
+			ix1 = Math.min(vx1, ex1)
 			if (ix0 >= ix1) {
 				return
 			}
+		} else if (vx1 < vx0 && ex1 > ex0) {
+			if (!(ex0 <= vx1 || ex1 >= vx0)) {
+				return
+			}
+			ix0 = ex0
+			ix1 = ex1
+		} else if (vx1 > vx0 && ex1 < ex0) {
+			if (!(vx0 <= ex1 || vx1 >= ex0)) {
+				return
+			}
+			ix0 = vx0
+			ix1 = vx1
+		} else {
+			ix0 = Math.max(vx0, ex0)
+			ix1 = Math.min(vx1, ex1)
 		}
 
-		const eB = ecy - eh / 2,
-			eL = ecx - ew / 2
+		const eL = ecx - ew / 2,
+			eR = ecx + ew / 2
+		if (eR > 1) {
+			if (ix0 < eL) {
+				ix0 += 1
+			}
+			if (ix1 < eL) {
+				ix1 += 1
+			}
+		} else if (ix0 > ecx + 0.5) {
+			ix0 -= 1
+		} else if (ix1 > ecx + 0.5) {
+			ix1 -= 1
+		}
+
+		const eB = ecy - eh / 2
 		const tH = layer._tileHeight,
 			tW = layer._tileWidth
 		const c0 = Math.floor(Math.max(0, Math.min(1, (ix0 - eL) / ew)) / tW)
@@ -594,42 +586,12 @@ export default class Image {
 		v[17] = v[8]
 	}
 
-	/** Calculates the effective scale of an embedded image based on its projection. */
+	/**
+	 * Effective scale of an embedded image: only reached for a 360 embed (the caller checks
+	 * `#is360Embed`), where the embed's angular size on the sphere decides its tile density.
+	 */
 	#getEmbeddedScale(s: number): number {
-		if (this.#is360Embed) {
-			return s * Math.max(this.#areaWidth * 2, this.#areaHeight) * (this.#canvas.width / this.width)
-		}
-
-		const eh = this.#areaHeight,
-			ew = this.#areaWidth
-		const ecx = this.#areaCenterX,
-			ecy = this.#areaCenterY
-		const { el } = this.#canvas,
-			gl = this.#canvas._camera360
-		const cW = el.width
-		const pH = eh / 2.5
-
-		let b = 0
-		const p0 = gl._getXYZ(ecx - ew / 2, ecy - pH)
-		if (p0._inView(el)) {
-			b++
-		}
-		if (gl._getXYZ(ecx + ew / 2, ecy - pH)._inView(el)) {
-			b++
-		}
-		if (gl._getXYZ(ecx - ew / 2, ecy + pH)._inView(el)) {
-			b++
-		}
-		if (gl._getXYZ(ecx + ew / 2, ecy + pH)._inView(el)) {
-			b++
-		}
-		if (b === 0) {
-			return 0
-		}
-
-		const l = p0.w > 0 || p0.x < 0 ? 0 : Math.min(cW, p0.x)
-		const r = p0.w > 0 || p0.x > cW ? cW : Math.max(0, p0.x)
-		return Math.min(1, (r - l) / this.width)
+		return s * Math.max(this.#areaWidth * 2, this.#areaHeight) * (this.#canvas.width / this.width)
 	}
 
 	#get360Tiles(l: Layer): void {

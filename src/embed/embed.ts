@@ -35,12 +35,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#hidden = false
 	#videoEl?: HTMLVideoElement
 	#figureEl?: HTMLElement
+	/** The built content element (`img`/`button`/`iframe`/`video`) whose size follows the placement. */
+	#contentEl?: HTMLElement
 	/** Latest values received from the view/viewport store subscriptions. */
 	#view?: Models.Camera.View
 	#viewport?: Models.Camera.View
 	#loopDelayTo: ReturnType<typeof setTimeout> | undefined
 	/** Pending debounce for printing a book3d embed (waits for the view to settle). */
-	#book3dPrintTo: number | undefined
+	#book3dPrintTo: ReturnType<typeof globalThis.setTimeout> | undefined
 	/** True until the one-time book3d print delay after the embed is placed in the DOM has elapsed. */
 	#book3dPendingPrint = false
 
@@ -110,19 +112,23 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		const { grid } = image
 		if (grid !== undefined) {
-			const focused = grid._focussed
-			const markersShown = grid._markersShown
-			const updateInactive = () => {
-				const f = get(focused)
-				const ms = get(markersShown)
-				const inactive = f !== undefined && f !== image && ms.indexOf(image) < 0
-				this.#container?.classList.toggle('inactive', inactive)
-			}
-			this._watch(focused, updateInactive)
-			this._watch(markersShown, updateInactive)
+			// The stores emit synchronously, i.e. before #buildDOM creates the overlay,
+			// so the initial state is applied again right after the overlay exists.
+			this._watch(grid._focussed, () => {
+				this.#syncGridInactive()
+			})
+			this._watch(grid._markersShown, () => {
+				this.#syncGridInactive()
+			})
 		}
 
 		this.#glImage = image._embeds.find((i) => i.uuid === embed.uuid || i.$info?.title === embed.uuid)
+		if (this.#glImage !== undefined) {
+			// A sub-image left over by a rebuild or a re-connect that still matches this embed
+			// is claimed again; everything else the parent has orphaned is released below.
+			image._adoptEmbed(this.#glImage)
+		}
+		image._releaseOrphans()
 
 		this.#screenIsHDR = matchMedia('(dynamic-range: high)').matches || Browser.OSX
 
@@ -145,6 +151,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		const forceGL = glMode === 'true'
 		this.#embedImageAsHtml =
 			glMode === 'false' ||
+			// `_markers.embedsInHtml` only applies to the embeds a marker carries (its
+			// clickable areas), not to the image's own embeds
+			(Boolean(marker) && Boolean(image.$settings._markers?.embedsInHtml)) ||
 			(glMode === 'auto' && (this.#isSVG || isIOS14 || (!this.#screenIsHDR && Boolean(embed.video))))
 
 		// 3d books have their own WebGL renderer
@@ -159,7 +168,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				(embed.video && !embed.video.controls && !embed.video.transparent),
 			)
 
-		this.#noEvents = !embed.clickAction && !embed.frameSrc && !marker
+		// A video with native controls is interactive content: it must not be
+		// swallowed by the overlay's `no-events` (inherited pointer-events: none).
+		this.#noEvents = !embed.clickAction && !embed.frameSrc && !marker && !embed.video?.controls
 		this.#href = embed.clickAction === 'href' ? embed.clickTarget : undefined
 		this.#hrefBlankTarget = Boolean(this.#href && embed.clickTargetBlank)
 
@@ -175,6 +186,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 		if (this.#hasHtml) {
 			this.#buildDOM(embed, marker)
+			this.#syncGridInactive()
 		}
 
 		if (this.#isBook3d && this.#hasHtml) {
@@ -213,6 +225,22 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.addEventListener('change', this.#onChange)
 	}
 
+	/**
+	 * Applies the grid's `inactive` state to the overlay. Run from the grid store
+	 * subscriptions and again after `#buildDOM`, because the stores emit before the
+	 * overlay exists.
+	 */
+	#syncGridInactive() {
+		const { image } = this.#props
+		const grid = image?.grid
+		if (!image || !grid) {
+			return
+		}
+		const focused = get(grid._focussed)
+		const inactive = focused !== undefined && focused !== image && get(grid._markersShown).indexOf(image) < 0
+		this.#container?.classList.toggle('inactive', inactive)
+	}
+
 	#readPlacement() {
 		const { embed } = this.#props
 		if (!embed) {
@@ -229,6 +257,22 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#rotZ = embed.rotZ ?? 0
 		this.#scaleX = embed.scaleX ?? 1
 		this.#scaleY = embed.scaleY ?? 1
+
+		// The video cap drives both the HTML <video> size (also for book3d, where
+		// the style math below is skipped) and its rendered width, so it has to be
+		// known before the early return. Malformed zero dimensions fall back to the
+		// area width instead of dividing by zero.
+		if (embed.video) {
+			const { width: vw, height: vh } = embed.video
+			if (vw > 0 && vh > 0) {
+				this.#widthCapped =
+					vw > vh
+						? Math.min(vw, this.#w * this.#info.width, 2048)
+						: Math.min(vh, this.#h * this.#info.height, 2048) / (vh / vw)
+			} else {
+				this.#widthCapped = this.#w * this.#info.width
+			}
+		}
 
 		// Static inputs for the 360/book3d matrix — computed once per placement.
 		this.#matrixScale = (!this.#isBook3d ? 1 : this.#w) * this.#s
@@ -271,18 +315,12 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 
 		this.#buttonStyle = styles.join(';')
-
-		if (embed.video) {
-			if (embed.video.width > embed.video.height) {
-				this.#widthCapped = Math.min(embed.video.width, this.#w * this.#info.width, 2048)
-			} else {
-				this.#widthCapped =
-					Math.min(embed.video.height, this.#h * this.#info.height, 2048) / (embed.video.height / embed.video.width)
-			}
-		}
 	}
 
 	#buildDOM(embed: Models.ImageData.Embed, marker?: Models.ImageData.Marker) {
+		// A re-connect runs _onMount again; clear any previous overlay so listeners and
+		// elements are not duplicated.
+		this.replaceChildren()
 		this.#container = createElement(this.#href ? 'a' : 'div', {
 			className:
 				(this.#noEvents ? 'no-events' : '') +
@@ -291,14 +329,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			id: embed.id ? `e-${embed.id}` : undefined,
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
 			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,
-			events: {
-				click: () => {
-					this.#click()
-				},
-				keydown: () => {
-					this.#click()
-				},
-			},
+			// Registered as the handler itself (not a wrapper closure) so `_onDestroy`
+			// can actually detach it.
+			events: { click: this.#click, keydown: this.#click },
 			parent: this,
 		})
 
@@ -307,26 +340,62 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		} else if (embed.frameSrc) {
 			this.#buildIframeContent(embed)
 		} else if (!this.#printGL && embed.src) {
-			createElement('img', {
-				props: {
-					src: embed.src,
-					alt: 'Embed',
-					...(this.#isSVG && embed.width ? { width: embed.width } : {}),
-					...(this.#isSVG && embed.height ? { height: embed.height } : {}),
-				},
-				style: this.#buttonStyle,
+			this.#contentEl = createElement('img', {
+				props: { src: embed.src, alt: 'Embed' },
 				attrs: { 'data-scroll-through': '' },
 				parent: this.#container,
 			})
+			this.#applyContentSize()
 		} else {
 			const $_lang = get(this.#micrio._lang)
 			const title = embed.title || marker?.i18n?.[$_lang]?.title
-			createElement('button', {
+			this.#contentEl = createElement('button', {
 				props: title ? { title } : undefined,
-				style: this.#buttonStyle,
 				attrs: { 'data-scroll-through': '', 'aria-label': 'embed-button' },
 				parent: this.#container,
 			})
+			this.#applyContentSize()
+		}
+	}
+
+	/**
+	 * Applies the placement-derived size (and, for a video, its rendered scale) to the
+	 * built content element. Called once after building and again on an editor `change`,
+	 * so an embed's size follows its data after mount as well — the single source of
+	 * truth for content sizing.
+	 */
+	#applyContentSize() {
+		const el = this.#contentEl
+		const { embed } = this.#props
+		if (!el || !embed) {
+			return
+		}
+		if (el instanceof HTMLVideoElement) {
+			const { video } = embed
+			if (!video || !this.#widthCapped) {
+				return
+			}
+			// Malformed dimensions have no aspect to honour.
+			const aspect = video.width > 0 && video.height > 0 ? video.width / video.height : 1
+			el.width = Math.round(this.#widthCapped)
+			el.height = Math.round(this.#widthCapped / aspect)
+			const relScale = (this.#w * this.#info.width) / this.#widthCapped
+			el.style.transform = relScale === 1 ? '' : `scale(${relScale})`
+			return
+		}
+		if (el instanceof HTMLIFrameElement) {
+			el.width = String(Math.round(this.#w * this.#info.width))
+			el.height = String(Math.round(this.#h * this.#info.height))
+			return
+		}
+		el.style.cssText = this.#buttonStyle
+		if (this.#isSVG && el instanceof HTMLImageElement) {
+			if (embed.width !== undefined) {
+				el.width = embed.width
+			}
+			if (embed.height !== undefined) {
+				el.height = embed.height
+			}
 		}
 	}
 
@@ -335,16 +404,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		if (!video) {
 			return
 		}
-		const width = this.#widthCapped
-		const height = width / (video.width / video.height)
-		const wCalc = this.#w * this.#info.width
-		const relScale = wCalc / width
-
 		const vid = createElement('video', {
 			props: {
 				src: video.src,
-				width: Math.round(width),
-				height: Math.round(height),
 				controls: video.controls,
 				loop: video.loop && (!video.loopAfter || video.loopAfter <= 0),
 				muted: video.muted,
@@ -352,7 +414,6 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				crossOrigin: 'anonymous',
 				preload: 'metadata',
 			},
-			style: relScale !== 1 ? `transform:scale(${relScale})` : undefined,
 			children:
 				video.transparent && video.hasH265 && video.src?.endsWith('.webm')
 					? [
@@ -371,6 +432,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			parent: this.#container,
 		})
 		this.#videoEl = vid
+		this.#contentEl = vid
+		this.#applyContentSize()
 
 		if (embed.id && this.#props.image) {
 			this.#props.image._setEmbedMediaElement(embed.id, vid)
@@ -399,19 +462,16 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		if (!src) {
 			return
 		}
-		createElement('iframe', {
+		this.#contentEl = createElement('iframe', {
 			parent: this.#container,
-			props: {
-				src,
-				width: String(Math.round(this.#w * this.#info.width)),
-				height: String(Math.round(this.#h * this.#info.height)),
-			},
+			props: { src },
 			attrs: {
 				frameborder: '0',
 				allow: IFRAME_ALLOW,
 				allowfullscreen: '',
 			},
 		})
+		this.#applyContentSize()
 	}
 
 	#printInsideGL() {
@@ -434,8 +494,10 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 					...embed,
 					id: embed.video ? embed.id : embed.micrioId,
 					title: embed.uuid,
-					path: this.#info.tileBasePath ?? this.#info.path,
-					isSingle: Boolean(embed.video),
+					// An embed may carry its own bucket/file target (other org,
+					// self-hosted, `external/…`); the parent is only the default.
+					path: embed.path ?? this.#info.tileBasePath ?? this.#info.path,
+					isSingle: Boolean(embed.video) || Boolean(embed.isSingle),
 					isVideo: Boolean(embed.video),
 				},
 				{
@@ -603,13 +665,17 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		if (!vid?.pauseWhenSmallerThan && !vid?.pauseWhenLargerThan) {
 			return !this.#autoplay
 		}
-		const vp = this.#micrio.canvas.viewport
-		const screenSize = this.#scaleVal
-			? Math.max(
-					(this.#w * this.#info.width * this.#scaleVal) / vp.width,
-					(this.#h * this.#info.height * this.#scaleVal) / vp.height,
-				)
-			: 0
+		const { width, height } = this.#micrio.canvas.viewport
+		// The canvas viewport is 0x0 until the element is resized; dividing by it
+		// would make the screen size infinite and pause every pauseWhenLargerThan
+		// video at startup.
+		const screenSize =
+			this.#scaleVal && width > 0 && height > 0
+				? Math.max(
+						(this.#w * this.#info.width * this.#scaleVal) / width,
+						(this.#h * this.#info.height * this.#scaleVal) / height,
+					)
+				: 0
 		return Boolean(
 			(vid.pauseWhenSmallerThan && screenSize < vid.pauseWhenSmallerThan) ||
 			(vid.pauseWhenLargerThan && screenSize > vid.pauseWhenLargerThan),
@@ -634,6 +700,13 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			Object.assign(embed, e.detail)
 		}
 		this.#readPlacement()
+		this.#applyContentSize()
+		// A WebGL embed is placed through its camera, not an overlay.
+		const gl = this.#glImage
+		if (gl !== undefined && embed !== undefined) {
+			gl.camera.setArea(embed.area)
+			gl.camera.setRotation(this.#rotX, this.#rotY, this.#rotZ)
+		}
 		// Editor-driven change: apply immediately (outside the render frame).
 		this.#applyPosition()
 	}
@@ -647,12 +720,18 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	_onDestroy() {
 		clearTimeout(this.#loopDelayTo)
 		clearTimeout(this.#book3dPrintTo)
+		// Stop an HTML <video> (the GL path is stopped by #glVideo._unmount below):
+		// a detached media element otherwise keeps decoding and playing, and the
+		// registry entry is dropped further down.
+		this.#videoEl?.pause()
 		this.#glVideo?._unmount()
 
 		const { embed, image } = this.#props
-		if (this.#glImage && this.#glImage._placed && image) {
-			image.engine._fadeImage(this.#glImage, 0)
-			image.engine.render()
+		if (this.#glImage !== undefined && image !== undefined) {
+			// Keep the sub-image on the parent so a rebuild or a re-connect that mounts this
+			// embed again can re-adopt it; the next sweep releases it when nothing claims it.
+			image._orphanEmbed(this.#glImage)
+			this.#glImage = undefined
 		}
 
 		if (embed?.video && embed.id && image) {

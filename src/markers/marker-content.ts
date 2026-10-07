@@ -100,18 +100,16 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		if (!isSerialTour && ((!content.embedUrl && marker.videoTour) || content.audio)) {
 			const audio = marker.videoTour?.i18n?.[$_lang]?.audio ?? content?.audio
 			const audioSrc = audio?.src
-			const pausedAudio = !autoplayMedia || !marker?.audioAutoPlay
 			createElement('micrio-media', {
 				setProps: {
 					src: audioSrc,
-					noPlayOverlay: true,
 					image,
 					uuid: marker.id,
 					tour: marker.videoTour,
-					autoplay: marker.audioAutoPlay || (!content.audio && Boolean(marker.videoTour)),
+					// `preventAutoPlay` gates every media element, the audio included
+					autoplay: autoplayMedia && Boolean(marker.audioAutoPlay || (!content.audio && marker.videoTour)),
 					controls: !marker.videoTour || !content.embedUrl,
 					onended: mediaEnded,
-					paused: pausedAudio,
 				},
 				parent: this,
 			})
@@ -189,7 +187,6 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 					figcaption: content.embedDescription,
 					autoplay: !pausedVideo,
 					onended: mediaEnded,
-					paused: pausedVideo,
 				},
 				parent: this,
 			})

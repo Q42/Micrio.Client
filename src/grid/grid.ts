@@ -77,7 +77,6 @@ export class Grid extends MicrioElement<GridProps> {
 	_nextCrossFadeDuration: number | undefined
 	#isHorizontal = false
 	readonly #cellSizes = new Map<string, [number, number?]>()
-	readonly #nextSize = new Map<string, [number, number?]>()
 
 	/** @internal */
 	_lastAction: string | undefined
@@ -131,13 +130,17 @@ export class Grid extends MicrioElement<GridProps> {
 			this.#aniDurationOut = g.transitionDurationOut
 		}
 
-		void this.set(this.#galleryGridImages, {
+		this.set(this.#galleryGridImages, {
 			cover: this.image.$settings?.initType === 'cover',
 			duration: 0,
-		}).then(() => {
-			this.#hook()
-			this.micrio.events._dispatch('grid-load')
 		})
+			.then(() => {
+				this.#hook()
+				this.micrio.events._dispatch('grid-load')
+			})
+			// A layout animation started during load is aborted by the next `set()`/teardown;
+			// that rejection is expected, so it must not surface as an unhandled one.
+			.catch(() => {})
 
 		this.#closeBtn = createElement('micrio-button', {
 			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
@@ -171,11 +174,19 @@ export class Grid extends MicrioElement<GridProps> {
 				const d = m.data?._meta
 				const gs = d?.gridSize
 				if (gs !== undefined && gs !== '' && gs !== 0) {
+					// Resize the tile of the image carrying the marker. `enlarge` takes an
+					// index into the *current* layout, and the resize happens before the
+					// deferred `gridAction` below, so an action-carrying marker ends up with
+					// the action's layout (the resize is a one-shot at marker open, not
+					// something restored when the marker closes).
+					const micId = this._images.find((i) => i.$data?.markers?.find((n) => n === m))?.id
+					const idx = this._current.findIndex((i) => i.id === micId)
 					const s: [number, number] =
 						typeof gs === 'number' ? [gs, gs] : [Number(gs.split(',')[0]), Number(gs.split(',')[1])]
-					const micId = this._images.find((i) => i.$data?.markers?.find((n) => n === m))?.id
-					if (micId) {
-						this.#nextSize.set(micId, s)
+					// `"abc"` and the like parse to NaN, and `enlarge` would write a `span NaN`
+					// grid area: only a positive integer span is a size.
+					if (idx >= 0 && s.every((n) => Number.isInteger(n) && n > 0)) {
+						this.enlarge(idx, s[0], s[1]).catch(() => {})
 					}
 				}
 				void tick().then(() => {
@@ -183,7 +194,9 @@ export class Grid extends MicrioElement<GridProps> {
 					const name = a?.[0]
 					if (a?.length && typeof name === 'string') {
 						a.shift()
-						this.action(name, a.join('|'))
+						// The opened marker's `gridTourTransition` is the transition that action's
+						// focus should use when it lands on a single image
+						this.action(name, a.join('|'), undefined, m.data?.gridTourTransition)
 					}
 				})
 			}
@@ -351,8 +364,6 @@ export class Grid extends MicrioElement<GridProps> {
 					: this.image.camera.flyToFullView({ duration: dur * 1000 })
 				p.catch(error)
 			}
-
-			this.#nextSize.clear()
 
 			if (opts.coverLimit === undefined) {
 				opts.coverLimit = Boolean(this.image.$settings.limitToCoverScale)
@@ -716,9 +727,9 @@ export class Grid extends MicrioElement<GridProps> {
 		this._buttons.get(img.id)?.classList.add('focussed')
 		if (this._clickable === 'zoom') {
 			const a = img.opts.area ?? [0, 0, 1, 1]
-			void this.image.camera.flyToView(a, { duration: this._aniDurationIn * 1000, limit: false })
+			this.image.camera.flyToView(a, { duration: this._aniDurationIn * 1000, limit: false }).catch(() => {})
 		} else {
-			void this.gridFocus(img)
+			this.gridFocus(img).catch(() => {})
 		}
 	}
 
@@ -802,8 +813,13 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	/** Execute a grid action by type (e.g. `focus`, `reset`, `back`) with optional data and duration. */
-	action(action: GridActionType | string, data?: string, duration?: number): void {
-		handleAction(this, action, data, duration)
+	action(
+		action: GridActionType | string,
+		data?: string,
+		duration?: number,
+		focusTransition?: Models.Grid.MarkerFocusTransition,
+	): void {
+		handleAction(this, action, data, duration, focusTransition)
 	}
 
 	/** Enlarge a specific grid cell to span the given number of columns/rows, re-laying out without history. */

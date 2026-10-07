@@ -29,6 +29,17 @@ micrio-media figure:is(:fullscreen, :-webkit-full-screen) video {
 	height: 100%;
 	object-fit: contain;
 }
+/*
+ * In fullscreen the media fills the figure, so the controls (a following sibling inside the
+ * figure) would be pushed below the viewport and never seen. Overlay them on the media
+ * instead. Absolute, not fixed: it stays correct whatever the fullscreen element is.
+ */
+micrio-media figure:is(:fullscreen, :-webkit-full-screen) micrio-media-controls {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+}
 micrio-media figure:has(video) {
 	width: auto;
 }

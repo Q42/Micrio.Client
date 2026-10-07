@@ -61,7 +61,7 @@ micr-io:is([data-video-tour-active], [data-marker-tour-active])[data-idle]
 micr-io[data-idle]
 	:is(micrio-grid .close, micrio-tour micrio-media figure, micrio-serial-tour :is(micrio-media figure, ol)),
 micr-io:is([data-switching], [data-video-tour-active]) :is(micrio-controls aside, micrio-minimap canvas),
-micr-io[data-marker-tour-active] micrio-controls aside :is(> menu, > micrio-button, micrio-zoom-buttons),
+micr-io[data-marker-tour-active] micrio-controls aside :is(> menu, > micrio-button),
 micr-io:is([data-zoomed], [data-idle], [data-marker-tour-active]) micrio-gallery :is(ul, micrio-button > button),
 micr-io[data-zoomed] micrio-details details,
 micrio-gallery > micrio-button > button:disabled {
@@ -69,6 +69,7 @@ micrio-gallery > micrio-button > button:disabled {
 	pointer-events: none;
 	transform: var(--micrio-hide, none);
 }
-micr-io[data-marker-tour-active] micrio-controls aside :is(> menu, > micrio-button, micrio-zoom-buttons) {
+/* The marker tour only fades these out; zoom stays usable while a marker is open */
+micr-io[data-marker-tour-active] micrio-controls aside :is(> menu, > micrio-button) {
 	--micrio-hide: none;
 }

@@ -45,10 +45,13 @@ export default abstract class EngineCamera {
 		const c = this.canvas
 		const { el } = c.main
 
-		const left = (Math.min(xPx1, xPx2) - el.left) / el.scale
-		const top = (Math.min(yPx1, yPx2) - el.top) / el.scale
-		const right = (Math.max(xPx1, xPx2) - el.left) / el.scale
-		const bottom = (Math.max(yPx1, yPx2) - el.top) / el.scale
+		// The touches are client CSS pixels; `el.left`/`el.top` are device pixels (CSS × ratio),
+		// and every camera seam below works in element-relative CSS pixels.
+		const ratio = el.ratio || 1
+		const left = (Math.min(xPx1, xPx2) - el.left / ratio) / el.scale
+		const top = (Math.min(yPx1, yPx2) - el.top / ratio) / el.scale
+		const right = (Math.max(xPx1, xPx2) - el.left / ratio) / el.scale
+		const bottom = (Math.max(yPx1, yPx2) - el.top / ratio) / el.scale
 
 		const cX = left + (right - left) / 2
 		const cY = top + (bottom - top) / 2

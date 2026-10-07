@@ -64,8 +64,8 @@ export class Events implements EventContext {
 	/** Cached settings object from the first loaded image. */
 	#settings: Models.ImageInfo.Settings | undefined
 
-	/** Array of currently visible MicrioImage instances. */
-	#visible: MicrioImage[] | undefined
+	/** Array of currently visible MicrioImage instances. The store emits its initial value on subscribe, so this is set before any handler runs. */
+	#visible: MicrioImage[] = []
 
 	/** @internal Internal state variables for managing complex interactions like drag, pinch, double-tap. */
 	_vars: EventStateVars = {
@@ -162,9 +162,6 @@ export class Events implements EventContext {
 	 * @returns The MicrioImage instance under the coordinates, or the main current image as fallback.
 	 */
 	_getImage(c: { x: number; y: number }): MicrioImage | undefined {
-		if (!this.#visible) {
-			return undefined
-		}
 		const h = this._micrio.offsetHeight,
 			w = this._micrio.offsetWidth,
 			x = Math.max(0, Math.min(1, c.x / w)),
@@ -211,7 +208,9 @@ export class Events implements EventContext {
 		}
 
 		// Hook specific event types based on settings
-		if (s?.hookKeys) {
+		// An omni object with `noKeys` never takes the keyboard: its host page keeps the arrow
+		// keys (that is how the dashboard previews an object without stealing its own navigation).
+		if (s?.hookKeys && !s.omni?.noKeys) {
 			this.hookKeys()
 		}
 		if (s.hookDrag) {

@@ -20,6 +20,10 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 	static tag = 'micrio-markers'
 
 	#props: Partial<MarkersProps> = {}
+	/** The marker object each rendered marker element was built from, to detect data edits. */
+	#markerObjects = new Map<string, Models.ImageData.Marker>()
+	/** The marker object each clickable-area embed was built from. */
+	#areaObjects = new Map<string, Models.ImageData.Marker>()
 
 	/** @internal */
 	_onMount() {
@@ -67,15 +71,24 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const groups: number[][] = []
 			for (let i = 0; i < markers.length; i++) {
 				for (let j = i + 1; j < markers.length; j++) {
-					if (markers[j].tags?.includes('no-cluster')) {
+					// Either end can opt a marker out of clustering
+					if (markers[i].tags?.includes('no-cluster') || markers[j].tags?.includes('no-cluster')) {
 						continue
 					}
 					if (Math.abs(coords[j][0] - coords[i][0]) >= r || Math.abs(coords[j][1] - coords[i][1]) >= r) {
 						continue
 					}
-					const existing = groups.find((g) => g.includes(i) || g.includes(j))
-					if (existing) {
-						existing.push(i, j)
+					// A pair can bridge two groups that already exist, so merge every
+					// group either index belongs to — picking one would leave the other
+					// holding a member that is now in two clusters.
+					const matches = groups.filter((g) => g.includes(i) || g.includes(j))
+					if (matches.length > 0) {
+						const [first, ...rest] = matches
+						first.push(i, j)
+						for (const extra of rest) {
+							first.push(...extra)
+							groups.splice(groups.indexOf(extra), 1)
+						}
 					} else {
 						groups.push([i, j])
 					}
@@ -131,16 +144,29 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 							x: cx,
 							y: cy,
 							type: 'cluster',
-							title: `${g.length}`,
 							view,
 							data: {},
 							popupType: 'none',
 							tags: [],
 						},
 						image,
+						clusterCount: g.length,
 					},
 					parent: this,
 				})
+			}
+		}
+
+		/**
+		 * Removes every synthetic cluster and clears the overlap flags, for when
+		 * `clusterMarkers` is turned off while a layer is already up.
+		 */
+		const clearClusters = () => {
+			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker.cluster')) {
+				el.remove()
+			}
+			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker.overlapped')) {
+				el.classList.remove('overlapped')
 			}
 		}
 
@@ -154,12 +180,16 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		const updateClickableAreas = ($markers: Models.ImageData.Marker[] | undefined, inactive: boolean, lang: string) => {
 			const areas =
 				!inactive && $markers ? $markers.filter((m) => m.clickableArea && (!m.i18n || m.i18n[lang] !== undefined)) : []
-			const expected = new Set(areas.map((m) => m.id))
+			const areasById = new Map(areas.map((m) => [m.id, m]))
 
 			for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-embed[data-marker-id]')) {
 				const id = el.dataset.markerId
-				if (!id || !expected.has(id)) {
+				// An embed whose marker data changed carries stale props, so it is rebuilt
+				if (!id || areasById.get(id) !== this.#areaObjects.get(id)) {
 					el.remove()
+					if (id) {
+						this.#areaObjects.delete(id)
+					}
 				}
 			}
 
@@ -172,6 +202,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					attrs: { 'data-marker-id': m.id },
 					setProps: { embed: m.clickableArea, marker: m, image },
 				})
+				this.#areaObjects.set(m.id, m)
 				if (before) {
 					this.insertBefore(el, before)
 				} else {
@@ -185,11 +216,23 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const $focussed = focussed ? get(focussed) : undefined
 			const $gridMarkersShown = gridMarkersShown ? get(gridMarkersShown) : undefined
 			const inactive = grid && $focussed !== image && $gridMarkersShown && $gridMarkersShown.indexOf(image) < 0
-			const showTitles = Boolean(image.$settings._markers?.showTitles)
+			const ms = image.$settings._markers ?? {}
+			const showTitles = Boolean(ms.showTitles)
 			const $_lang = get(micrio._lang)
 
 			this.classList.toggle('inactive', Boolean(inactive))
 			this.classList.toggle('show-titles', showTitles)
+
+			// A running tour hides the layer unless the tour keeps the markers (`keepMarkers`
+			// exists on video tours). Video tours hide by default; a marker tour hides only
+			// when the image asks for it, because its steps are usually the point of it.
+			const $tour = get(micrioState.tour)
+			const tourIsMarkerTour = $tour !== undefined && 'steps' in $tour
+			const keepMarkers = $tour !== undefined && 'keepMarkers' in $tour && Boolean($tour.keepMarkers)
+			this.classList.toggle(
+				'hidden',
+				$tour !== undefined && !keepMarkers && (tourIsMarkerTour ? Boolean(ms.hideMarkersDuringTour) : true),
+			)
 
 			const $switching = get(switching)
 			if (!$switching && micrio.spaceData) {
@@ -229,39 +272,53 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					}
 					if (!expected.has(id)) {
 						el.remove()
+						this.#markerObjects.delete(id)
 					}
 				}
 
 				for (const m of filtered) {
 					let el = this.querySelector(`:scope > micrio-marker[data-marker-id="${CSS.escape(m.id)}"]`)
+					// New data for the same id means the mounted element is stale: removing
+					// it runs the element's own cleanup, so the fresh one subscribes again
+					if (el && this.#markerObjects.get(m.id) !== m) {
+						el.remove()
+						this.#markerObjects.delete(m.id)
+						el = null
+					}
 					if (!el) {
-						el = createElement('micrio-marker', {
+						createElement('micrio-marker', {
 							attrs: { 'data-marker-id': m.id },
 							setProps: { marker: m, image, ...(m.noMarker ? { forceHidden: true } : {}) },
 							parent: this,
 						})
+						this.#markerObjects.set(m.id, m)
 					}
 				}
 			} else {
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-marker')) {
 					el.remove()
 				}
+				this.#markerObjects.clear()
 			}
 
 			if (inactive) {
 				for (const el of this.querySelectorAll(':scope > micrio-marker, :scope > micrio-waypoint')) {
 					el.remove()
 				}
+				this.#markerObjects.clear()
 			}
 
 			updateClickableAreas($visible, Boolean(inactive), $_lang)
 
 			if (image.$settings.clusterMarkers) {
 				updateOverlapped()
+			} else {
+				clearClusters()
 			}
 		}
 
 		this._watchLater(image.data, rebuild)
+		this._watchLater(image._settings, rebuild)
 		this._watchLater(switching, rebuild)
 		this._watchLater(micrioState.tour, rebuild)
 		if (focussed) {

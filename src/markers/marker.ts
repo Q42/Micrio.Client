@@ -18,6 +18,8 @@ export interface MarkerProps {
 	coords?: Map<string, [number, number, number?, number?]>
 	/** If true, this marker is visually overlapped by others (cluster mode). */
 	overlapped?: boolean
+	/** Number of markers a synthetic cluster marker stands for. */
+	clusterCount?: number
 }
 import './marker.css'
 
@@ -41,7 +43,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 	/** @internal */
 	_onMount() {
-		const { marker, image, forceHidden = false } = this.#props
+		const { marker, image, forceHidden = false, clusterCount } = this.#props
 		const micrio = this._getMicrio()
 		if (!micrio || !image || !marker) {
 			return
@@ -97,10 +99,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		} else if (marker.type === 'media') {
 			icon = 'play'
 		}
-		const customIcon =
+		// A `customIconIdx` that no longer resolves (the icon was removed from the image)
+		// falls back to the marker's own icon and then the image-wide one
+		const indexedIcon =
 			marker.data?.customIconIdx !== undefined
 				? image.$settings._markers?.customIcons?.[marker.data.customIconIdx]
-				: marker.data?.icon || markerSettings.markerIcon
+				: undefined
+		const customIcon = indexedIcon ?? marker.data?.icon ?? markerSettings.markerIcon
 		const hasIcon = Boolean(icon) || Boolean(customIcon)
 		const defaultClass = hasIcon || marker.type === 'default'
 
@@ -167,7 +172,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 			if (marker.type === 'cluster') {
 				if (view && micrio.$current?.$info) {
-					void image.camera.flyToView(view, { limitZoom: true })
+					image.camera.flyToView(view, { limitZoom: true }).catch(() => {})
 				}
 			} else {
 				image.state.marker.set(marker)
@@ -212,7 +217,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 			events._dispatch('marker-open', marker)
 			const $tour = get(micrio.state.tour)
-			if ($tour && (!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))) {
+			// Stop a running tour that is not about this marker — but never this
+			// marker's own video tour, which activating it again would otherwise
+			// cancel (a video tour carries no `steps` to match against).
+			if (
+				$tour &&
+				$tour !== marker.videoTour &&
+				(!('steps' in $tour) || !$tour.steps?.some((s: string) => s.startsWith(marker.id)))
+			) {
 				micrio.state.tour.set(undefined)
 			}
 
@@ -315,9 +327,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined })
 				} else if (marker.videoTour && !$tour) {
 					micrio.state.tour.set(marker.videoTour)
-					const unsub = micrio.state.tour.subscribe((t) => {
+					// The store notifies synchronously on subscribe, and marking it can
+					// re-enter this path — so the unsubscriber must exist before the
+					// subscription does (a `const` would be in its temporal dead zone)
+					let unsub: (() => void) | undefined
+					unsub = micrio.state.tour.subscribe((t) => {
 						if (!t) {
-							unsub()
+							unsub?.()
 							image.state.marker.set(undefined)
 						}
 					})
@@ -345,7 +361,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 							if (parsed.markerId) {
 								const m = existing.$data?.markers?.find((mm) => mm.id === parsed.markerId)
 								if (m?.view) {
-									void existing.camera.flyToView(m.view, { isJump: true })
+									existing.camera.flyToView(m.view, { isJump: true }).catch(() => {})
 								}
 							}
 						} else {
@@ -359,11 +375,21 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 		}
 
-		const close = () => {
+		/**
+		 * Resolves the marker a state value points at. The image state accepts a marker id
+		 * string as well as an object, so the close paths have to look the object up — a
+		 * string is not "no marker".
+		 */
+		const markerFromState = (m: Models.ImageData.Marker | string | undefined): Models.ImageData.Marker | undefined =>
+			typeof m === 'string' ? image.$data?.markers?.find((mm) => mm.id === m) : m
+
+		const close = (keepPopup = false) => {
 			this.classList.remove('opened')
 			events._dispatch('marker-closed', marker)
 			micrio.state.popover.set(undefined)
-			micrio.state.popup.set(undefined)
+			if (!keepPopup) {
+				micrio.state.popup.set(undefined)
+			}
 		}
 
 		this._addCleanup(
@@ -376,7 +402,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					if (this.#opened) {
 						// Only manage split lifecycle if this marker itself has a split link
 						if (data.micrioSplitLink) {
-							const newMarker = m !== undefined && typeof m !== 'string' ? m : null
+							const newMarker = markerFromState(m)
 							if (!newMarker || !newMarker.data?.micrioSplitLink) {
 								closeSplit(micrio, image)
 							} else {
@@ -387,7 +413,16 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 								}
 							}
 						}
-						close()
+						// A marker tour clears its previous step before opening the next one,
+						// so the popup is kept across that pair when the image asks for it.
+						// The next step is named by the incoming value, or — for the tour's
+						// own clear — by the step the tour has already moved on to.
+						const tourNow = get(micrio.state.tour)
+						const markerTour = tourNow && 'steps' in tourNow ? tourNow : undefined
+						const nextMarker = markerFromState(m)
+						const stepId = nextMarker ? nextMarker.id : markerTour?.steps?.[markerTour.currentStep ?? 0]
+						const isNextStep = Boolean(stepId && markerTour?.steps?.some((s) => s.startsWith(stepId)))
+						close(Boolean(markerSettings.keepPopupsDuringTourTransitions) && isNextStep)
 					} else if (m === undefined || m === '') {
 						this.classList.remove('opened')
 					}
@@ -458,6 +493,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					setProps: { name: icon },
 					parent: btn,
 				})
+			} else if (cluster) {
+				// A cluster has no label (its CSS hides one), so the group size is the
+				// button's text.
+				btn.textContent = clusterCount !== undefined ? String(clusterCount) : ''
 			}
 
 			/**

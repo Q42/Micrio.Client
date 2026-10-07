@@ -9,7 +9,7 @@ micrio-dial {
 	height: calc(var(--micrio-button-size)*0.6);
 	touch-action: none;
 	background-color: transparent;
-	cursor: w-resize;
+	cursor: ew-resize;
 	overflow: hidden;
 }
 micrio-dial::before,
@@ -28,4 +28,18 @@ micrio-dial::before {
 micrio-dial::after {
 	height: 100%;
 	background-image: repeating-linear-gradient(to right, #fff8 0%, #fff8 0.5%, transparent 1%, transparent 20%);
+}
+micrio-dial > span {
+	position: absolute;
+	display: block;
+	bottom: 0;
+	line-height: calc(var(--micrio-button-size)*0.6);
+	left: 50%;
+	transform: translateX(calc(-50% + 5px));
+	color: var(--micrio-color);
+	opacity: 0.85;
+	pointer-events: none;
+	text-shadow:
+		1px 1px 3px #000,
+		-1px -1px 3px #000;
 }

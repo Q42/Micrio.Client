@@ -10,6 +10,7 @@ import { archive } from '$utils/archive'
 import { createElement } from '$utils/dom'
 import { BASEPATH, BASEPATH_V5 } from '$core/globals'
 import { Grid } from '$grid/grid'
+import { computePageLayout } from '$book/core/layout'
 
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).
  *  The slot is defined in normalized coordinates [x, y, width, height] within a virtual container
@@ -83,7 +84,15 @@ interface IIIFCanvasBody {
 	format?: string
 }
 
-/** Narrow one IIIF canvas `body` value, mirroring the old `service[0].id` filter. */
+/**
+ * Narrow one IIIF canvas `body` value to a usable source.
+ *
+ * Only an Image API `service` counts: Micrio renders tiled IIIF, so the body's own
+ * representation URI is ignored and a body without a service is not a canvas at all.
+ * Dimensions must be numbers for the same reason — they size the tile grid. This is
+ * why the cookbook's minimal single-image manifest (a plain PNG body, no service)
+ * cannot be opened; see the boundaries on {@link Gallery._fromIIIF}.
+ */
 function toIIIFCanvasBody(value: unknown): IIIFCanvasBody | undefined {
 	if (!isRecord(value)) {
 		return undefined
@@ -204,8 +213,26 @@ export class Gallery {
 
 	// --- Factory Methods ---
 
-	/** Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image manifests and raw Image API responses. */
-	/** @internal */
+	/**
+	 * Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image
+	 * manifests and raw Image API responses.
+	 *
+	 * The boundaries, pinned by `tests/browser/gallery/gallery-iiif.test.ts`:
+	 *
+	 * - Only a canvas body carrying an Image API `service` (with a string `id`, and numeric
+	 *   `width`/`height`) is usable. The body's own URI is never read, so a manifest of plain
+	 *   image URIs — the cookbook's minimal `recipe/0001-mvm-image` — has no canvases at all.
+	 * - A manifest with zero usable canvases throws `NO_CANVASES` **before** the single-canvas
+	 *   fallback in the element, so it renders `micrio-error` rather than one of its images.
+	 * - Presentation 2 (`@type: 'sc:Manifest'`, or anything with `sequences`) throws
+	 *   `IIIF_V2_UNSUPPORTED`. A raw Presentation 2 `info.json` is *not* that: it is an Image
+	 *   API response and still opens (see `#handleIIIF` in `$core/element`).
+	 * - A response that is neither a usable manifest nor an `info.json` with numeric dimensions
+	 *   is rejected as `UNSUPPORTED_IIIF` instead of becoming a blank image.
+	 * - Presentation 4's manifest-level `services` expansion is unread: the v4 spec still
+	 *   requires `service` on the body.
+	 * @internal
+	 */
 	static _fromIIIF(resp: unknown, engine: Engine): Gallery | null {
 		if (!isRecord(resp)) {
 			return null
@@ -336,6 +363,13 @@ export class Gallery {
 		const index = aInfo.archive ? await Gallery.#getArchiveIndex(aInfo.archive.split('.')[0], path) : undefined
 		if (index) {
 			config.archiveLayerOffset = index.delta
+			// The caller's startId (the element's own id) only wins when the album
+			// actually contains that image; otherwise the album's own setting is the
+			// author's intent. `#renderGallery` clamps an unknown id to page 0.
+			const known = new Set(index.images.map((image) => image.id))
+			if (!opts?.startId || !known.has(opts.startId)) {
+				config.startId = aInfo.startId ?? opts?.startId
+			}
 		}
 		const { sort } = config
 		if (sort && index?.images) {
@@ -392,13 +426,18 @@ export class Gallery {
 
 	/** @internal Compute which image indices belong to each logical page.
 	 *  For spread albums, cover pages are single-image pages and remaining images
-	 *  are paired into spreads. For regular albums each image is its own page. */
+	 *  are paired into spreads. For regular albums each image is its own page.
+	 *  A book3d album uses the book's own layout, so the album and the viewer
+	 *  agree on the page count (otherwise the gallery's extra page can never be
+	 *  displayed: `BookViewer.goto` clamps it away). */
 	_getPageLayout(): { pages: number[][]; numPages: number } {
 		const isSpread = Boolean(this._config.isSpreads)
 		const coverPages = this._config.coverPages ?? 0
 		const pages: number[][] = []
 
-		if (isSpread) {
+		if (this._config.type === 'book3d') {
+			pages.push(...computePageLayout(this._images.map((image) => image.$info)).pageIdxes)
+		} else if (isSpread) {
 			let i = 0
 			for (; i < Math.min(coverPages, this._images.length); i++) {
 				pages.push([i])

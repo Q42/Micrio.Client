@@ -233,24 +233,33 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			this.#closeBtnEl._setProps({ title: $i18n._close })
 		}
 
-		if (p.duration && !Number.isNaN(p.duration)) {
-			const progress = ((p.currentTime ?? 0) / p.duration) * 100
+		// A known duration: draw the progress and the readout. The readout is written even
+		// when a custom formatter is supplied and the duration is still 0, so the element is
+		// never left empty -- an empty span collapses, and its space is then taken by the bar.
+		const duration = p.duration ?? 0
+		if (duration > 0 && !Number.isNaN(duration)) {
+			const progress = ((p.currentTime ?? 0) / duration) * 100
 			if (Math.abs(progress - this.#prevProgress) > 0.5 || progress === 0) {
 				this.#prevProgress = progress
 				this.#barEl.style.width = `${progress}%`
 			}
+		} else if (this.#prevProgress !== 0) {
+			this.#prevProgress = 0
+			this.#barEl.style.width = '0%'
+		}
+		if (p.getTimeDisplay !== undefined || duration > 0) {
+			// The default stays the original countdown formatter, unchanged
+			const remaining = duration - (p.currentTime ?? 0)
 			const t = p.getTimeDisplay
-				? p.getTimeDisplay(p.currentTime ?? 0, p.duration)
-				: (p.duration - (p.currentTime ?? 0) >= 0 ? '-' : '') + fmt(Math.abs(p.duration - (p.currentTime ?? 0)))
+				? p.getTimeDisplay(p.currentTime ?? 0, duration)
+				: (remaining >= 0 ? '' : '-') + fmt(Math.abs(remaining))
 			if (t !== this.#prevTime) {
 				this.#prevTime = t
 				this.#timeEl.textContent = t
 			}
-		} else if (this.#prevTime !== '0:00' || this.#prevProgress !== 0) {
+		} else if (this.#prevTime !== '0:00') {
 			this.#prevTime = '0:00'
-			this.#prevProgress = 0
 			this.#timeEl.textContent = '0:00'
-			this.#barEl.style.width = '0%'
 		}
 	}
 }

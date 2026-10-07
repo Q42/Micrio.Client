@@ -24,7 +24,11 @@ export class CoverMesh extends PaperMesh {
 		coverScale: number = COVER_SCALE_X,
 		coverScaleY: number = COVER_SCALE_Y,
 	) {
-		super(yOffset, paperWidth, aspectRatio)
+		// `false` skips PaperMesh's own grid/constraint build: this override uses
+		// private members, and the private brand is only installed once `super`
+		// has returned (see PaperMesh's constructor). The base grids would be
+		// replaced by the right-sized ones just below anyway.
+		super(yOffset, paperWidth, aspectRatio, false)
 		this._coverThickness = coverThickness
 		this._coverScale = coverScale
 		this._coverScaleY = coverScaleY

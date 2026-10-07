@@ -10,13 +10,17 @@ function switchToGrid(grid: Grid): void {
 		return
 	}
 	const v = focus.camera.getView()
-	void grid.reset(0, true).then(() => {
-		if (focus.opts.area) {
-			grid.image.camera.setView(focus.opts.area, { noLimit: true })
-		}
-		focus.camera.setView(v, { noLimit: true })
-		grid.micrio.current.set(grid.image)
-	})
+	grid
+		.reset(0, true)
+		.then(() => {
+			if (focus.opts.area) {
+				grid.image.camera.setView(focus.opts.area, { noLimit: true })
+			}
+			focus.camera.setView(v, { noLimit: true })
+			grid.micrio.current.set(grid.image)
+		})
+		// An aborted layout animation rejects; that is expected and must stay handled
+		.catch(() => {})
 }
 
 /** True for non-null objects; the starting point for narrowing event data. */
@@ -55,13 +59,16 @@ export function createTourEventHandler(grid: Grid): (e: Event) => void {
 	}
 }
 
-const handlerMaps = new WeakMap<Grid, Record<number, (data?: string, duration?: number) => void>>()
+/** One grid action handler: the action's data, its duration and the open marker's focus transition. */
+type ActionHandler = (data?: string, duration?: number, transition?: Models.Grid.MarkerFocusTransition) => void
 
-function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: number) => void> {
+const handlerMaps = new WeakMap<Grid, Record<number, ActionHandler>>()
+
+function getHandlerMap(grid: Grid): Record<number, ActionHandler> {
 	let map = handlerMaps.get(grid)
 	if (!map) {
 		map = {
-			[GridActionType.focus]: (data, duration) => {
+			[GridActionType.focus]: (data, duration, transition) => {
 				const spl = data?.split('|').map((s) => s.trim())
 				const name = spl?.[0] ?? ''
 				const imgs = name
@@ -69,25 +76,31 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 					.map((i) => grid._imageMap.get(i.trim()))
 					.filter((i): i is MicrioImage => i !== undefined)
 				if (imgs.length === 1) {
-					void grid.gridFocus(imgs[0], { duration })
+					grid.gridFocus(imgs[0], { duration, transition }).catch(() => {})
 				} else if (imgs.length > 0) {
-					void grid.set(
-						imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
-						{
-							duration,
-							horizontal: spl?.[1] === 'h',
-						},
-					)
+					grid
+						.set(
+							imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
+							{
+								duration,
+								horizontal: spl?.[1] === 'h',
+							},
+						)
+						.catch(() => {})
 				}
 			},
 
 			[GridActionType.flyTo]: (data, duration) => {
-				const images = data?.split(',').map((s) => grid._current.find((i) => i.id === s?.trim()))
-				if (images?.length) {
-					const xs = images.map((i) => i?.opts.area?.[0] ?? 0)
-					const ys = images.map((i) => i?.opts.area?.[1] ?? 0)
-					const right = Math.max(...images.map((i) => (i?.opts.area?.[0] ?? 0) + (i?.opts.area?.[2] ?? 1)))
-					const bottom = Math.max(...images.map((i) => (i?.opts.area?.[1] ?? 0) + (i?.opts.area?.[3] ?? 1)))
+				// Ids that are not part of the current layout are dropped: naming none of them has
+				// to warn, and a mixed list must not pad the box out with unresolved defaults.
+				const images = (data?.split(',') ?? [])
+					.map((s) => grid._current.find((i) => i.id === s.trim()))
+					.filter((i): i is MicrioImage => i !== undefined)
+				if (images.length > 0) {
+					const xs = images.map((i) => i.opts.area?.[0] ?? 0)
+					const ys = images.map((i) => i.opts.area?.[1] ?? 0)
+					const right = Math.max(...images.map((i) => (i.opts.area?.[0] ?? 0) + (i.opts.area?.[2] ?? 1)))
+					const bottom = Math.max(...images.map((i) => (i.opts.area?.[1] ?? 0) + (i.opts.area?.[3] ?? 1)))
 					const minX = Math.min(...xs)
 					const minY = Math.min(...ys)
 					grid.image.camera
@@ -99,19 +112,19 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 			},
 
 			[GridActionType.focusTagged]: (data, duration) => {
-				void grid._flyToMarkers(data, duration)
+				grid._flyToMarkers(data, duration).catch(() => {})
 			},
 
 			[GridActionType.focusWithTagged]: (data, duration) => {
-				void grid._flyToMarkers(data, duration, true)
+				grid._flyToMarkers(data, duration, true).catch(() => {})
 			},
 
 			[GridActionType.reset]: (_data, duration) => {
-				void grid.reset(duration)
+				grid.reset(duration).catch(() => {})
 			},
 
 			[GridActionType.back]: (_data, duration) => {
-				void grid.back(duration)
+				grid.back(duration).catch(() => {})
 			},
 
 			[GridActionType.switchToGrid]: () => {
@@ -133,13 +146,15 @@ function getHandlerMap(grid: Grid): Record<number, (data?: string, duration?: nu
 					.map((i) => grid._imageMap.get(i))
 					.filter((i): i is MicrioImage => Boolean(i))
 				if (imgs.length > 0) {
-					void grid.set(
-						imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
-						{
-							duration,
-							horizontal: data === 'h',
-						},
-					)
+					grid
+						.set(
+							imgs.map((i) => ({ id: i.id, size: [1] as [number, number?] })),
+							{
+								duration,
+								horizontal: data === 'h',
+							},
+						)
+						.catch(() => {})
 				}
 			},
 		}
@@ -158,7 +173,13 @@ function isGridActionName(action: string): action is keyof typeof GridActionType
  * Deduplicates repeated identical actions by tracking the last action key.
  * @internal
  */
-export function handleAction(grid: Grid, action: GridActionType | string, data?: string, duration?: number): void {
+export function handleAction(
+	grid: Grid,
+	action: GridActionType | string,
+	data?: string,
+	duration?: number,
+	transition?: Models.Grid.MarkerFocusTransition,
+): void {
 	const type = typeof action === 'string' && isGridActionName(action) ? GridActionType[action] : action
 	const key = type + (data ?? '')
 	if (grid._lastAction === key) {
@@ -166,7 +187,7 @@ export function handleAction(grid: Grid, action: GridActionType | string, data?:
 	}
 	const handler = typeof type === 'number' ? getHandlerMap(grid)[type] : undefined
 	if (handler) {
-		handler(data, duration)
+		handler(data, duration, transition)
 	} else {
 		console.warn('Warning: unknown grid tour event', action)
 	}

@@ -37,6 +37,19 @@ Key source directories under `./src/`:
 | `media/`   | Video tour and embedded video controllers                            |
 | `types/`   | TypeScript type definitions and models                               |
 
+## Project layout
+
+| Path                                                   | What it is                                                                                                                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/`                                                 | The client source (see [Architecture](#architecture))                                                                                                                                                                          |
+| `tests/`                                               | The Vitest suites, fixtures and helpers (see [TESTING.md](TESTING.md))                                                                                                                                                         |
+| `bin/`                                                 | This repo's own Node tools, run from the repo root: `bundle.js` (finalizes the production bundle after `vite build`) and `publish.js` (pushes a release)                                                                       |
+| `build/stubs/`                                         | TypeScript stubs that `vite.config.js` aliases for the **minimal** build, standing in for the modules it excludes. Not build output                                                                                            |
+| `templates/`                                           | The grid story demo and its API docs                                                                                                                                                                                           |
+| `public/build/`                                        | Intermediate build output (`vite build`), consumed by `bin/bundle.js`; gitignored                                                                                                                                              |
+| `public/dist/`                                         | Where `bin/bundle.js` writes the published bundle (`micrio.min.js`, `micrio.core.min.js`, `micrio.min.d.ts` — all generated and gitignored). Only the tracked `package.json` + `README.md` that wrap the npm package live here |
+| `vite.config.js`, `vitest.config.ts`, `tsconfig*.json` | Tool configuration, at the root because the tools resolve them from there                                                                                                                                                      |
+
 ## Grid template
 
 An interactive demo of the grid storytelling API lives in
@@ -70,7 +83,27 @@ This starts Vite on `http://localhost:2000/`. Changes to `./src/` are picked up 
 $ pnpm run typecheck
 ```
 
-This runs `tsc` with the project's `tsconfig.json`.
+This runs `tsc` with the project's `tsconfig.json`. The repo runs on **TypeScript 7**
+(the native compiler; `typescript` is pinned to `^7.0.2`). See
+[TypeScript 7 in VS Code](#typescript-7-in-vs-code) for the editor side.
+
+## Unit tests
+
+```sh
+$ pnpm test              # both projects
+$ pnpm run test:core     # bare Node, no DOM, no network
+$ pnpm run test:browser  # headless Chromium via Playwright
+$ pnpm run test:coverage # both, with the v8 coverage floors
+$ pnpm run test:watch    # watch the core project
+```
+
+Two independent Vitest projects: `core` covers pure logic (math, parsing, state, data
+loading, matrix math) and `browser` covers everything that needs a real DOM, layout, WebGL
+or the `<micr-io>` element — 1700+ tests across ~120 files, with coverage floors enforced
+by `test:coverage`. [TESTING.md](TESTING.md) is the document of record: how to run them, the
+offline-fixture strategy, per-subsystem suite notes, hints for adding suites, the coverage
+baseline, and the one thing the suite deliberately cannot see (stylesheets — check layout
+changes in a browser).
 
 ## Linting
 
@@ -121,6 +154,31 @@ The typing cleanup also made a few public types honest (runtime unchanged):
 `HTMLMicrioElement.open()` now returns `Promise<MicrioImage | undefined>`,
 `GalleryConfig.type` is optional, and `MicrioEventDetails['print']` is
 `Partial<ImageInfo.ImageInfo>`. Worth mentioning in release notes.
+
+## TypeScript 7 in VS Code
+
+TypeScript 7 is the native (Go) compiler, and it ships **no `lib/tsserver.js`** — `lib/` holds
+only `tsc.js`, `getExePath.js` and a version stub. VS Code's built-in TypeScript extension
+loads its language server from that JS path, so it cannot drive a TypeScript 7 workspace. Until VS Code
+picks the native server up itself, the editor needs the preview extension, and that
+integration is **still experimental** (October 2026):
+
+- install the **TypeScript Native Preview** extension — recommended via
+  [`.vscode/extensions.json`](.vscode/extensions.json);
+- it only takes over the language server with `js/ts.experimental.useTsgo: true`;
+- it does **not** yet auto-detect a workspace `typescript` 7 package — it looks only for
+  `@typescript/native-preview`, which was last published 2026-07-07 and is superseded by
+  `typescript@7`. Without
+  `"js/ts.tsdk.path": "node_modules/typescript/lib"` (`tsc`'s JS entry point), the editor
+  silently runs the extension's own bundled compiler instead of the workspace's, so the
+  editor and `pnpm run typecheck`/CI can disagree.
+
+All three settings live in [`.vscode/settings.json`](.vscode/settings.json) and
+[`.vscode/extensions.json`](.vscode/extensions.json), so a checkout gets them for free.
+Tracked upstream as
+[microsoft/TypeScript#64565](https://github.com/microsoft/TypeScript/issues/64565) — once the
+extension detects the workspace package, the `tsdk.path` line can go, and once VS Code ships
+it natively, the `useTsgo` flag and the extension recommendation can go too.
 
 ## Production build
 

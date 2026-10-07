@@ -8,7 +8,7 @@ import type { OmniUI } from '$gallery/omni'
 import { BASEPATH, BASEPATH_V5, BASEPATH_V5_EU, DEFAULT_TILE_SIZE, VIEWER_BASE } from './globals'
 import { Camera } from './camera'
 import { writable, get } from '$core/store'
-import { getIdVal, idIsV5, randomUUID } from '$utils/id'
+import { decodeV5Id, randomUUID } from '$utils/id'
 import { DataLoader } from '$utils/dataLoader'
 import { State } from './state'
 import { createElement, loadScript } from '$utils/dom'
@@ -258,16 +258,7 @@ export class MicrioImage {
 
 		// V5 ID detection & derived info flags
 		if (!i.isIIIF && this.id.length === 7) {
-			const b = getIdVal(this.id[1 + (getIdVal(this.id) % 6)])
-			i.is360 = Boolean((b >> 4) & 1) || Boolean(i.is360)
-			i.isWebP = !(b & 3)
-			i.isPng = (b & 3) === 2
-			if ((b >> 3) & 1 && idIsV5(i.tilesId ?? this.id)) {
-				i.format = 'dz'
-			}
-			if (!i.path) {
-				i.path = `https://${!((b >> 2) & 1) ? 'r2' : 'eu'}.micr.io/`
-			}
+			decodeV5Id(this.id, i)
 		}
 
 		// Determine tile base path
@@ -572,6 +563,56 @@ export class MicrioImage {
 		void this.#engine._addEmbed(img, this, opts)
 		this.#engine.render() // Trigger render
 		return img // Return the new embed instance
+	}
+
+	/**
+	 * Sub-images whose owning embed was destroyed. They stay on {@link _embeds} so a rebuild
+	 * or a re-connect that mounts the same embed again can re-adopt them; everything still
+	 * unclaimed when {@link _releaseOrphans} runs is released.
+	 * @internal
+	 */
+	readonly #orphanedEmbeds = new Set<MicrioImage>()
+
+	/**
+	 * Marks an embedded sub-image as no longer claimed by a live embed. It is faded out now
+	 * and released the next time {@link _releaseOrphans} runs.
+	 * @internal
+	 */
+	_orphanEmbed(img: MicrioImage): void {
+		if (!this._embeds.includes(img)) {
+			return
+		}
+		this.#orphanedEmbeds.add(img)
+		img.visible.set(false)
+		this.#engine._fadeImage(img, 0)
+	}
+
+	/**
+	 * Re-claims an orphaned sub-image, so the next sweep keeps it. Called when a
+	 * `<micrio-embed>` matches it on mount (a rebuild with the same data, or a re-connect).
+	 * @internal
+	 */
+	_adoptEmbed(img: MicrioImage): void {
+		this.#orphanedEmbeds.delete(img)
+	}
+
+	/**
+	 * Releases every sub-image whose owning embed is gone: drops it from {@link _embeds} and
+	 * tears its engine image, tiles and lookups down.
+	 * @internal
+	 */
+	_releaseOrphans(): void {
+		if (this.#orphanedEmbeds.size === 0) {
+			return
+		}
+		for (const img of this.#orphanedEmbeds) {
+			const idx = this._embeds.indexOf(img)
+			if (idx >= 0) {
+				this._embeds.splice(idx, 1)
+			}
+			this.#engine._removeEmbed(img)
+		}
+		this.#orphanedEmbeds.clear()
 	}
 
 	/** Map storing references to HTMLMediaElements associated with video embeds. @internal */

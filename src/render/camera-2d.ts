@@ -391,8 +391,9 @@ export default class Camera2D extends EngineCamera {
 		const limit = !noLimit && !c._freeMove && c._ani._limit && duration === 0
 		const r = c._hasParent ? c.parent.el.ratio : el.ratio
 
-		xPx -= el.left
-		yPx -= el.top
+		// `xPx`/`yPx` are element-relative CSS pixels (the space `getCoo`/`getXY` and every
+		// input handler speak). `el.left`/`el.top` are device pixels, so subtracting them here
+		// used to shift the anchor on any retina display or offset host.
 		const uZ = this._isUnderZoom()
 		const pX: number = xPx > 0 && !uZ ? (xPx / el.width) * r : 0.5
 		const pY: number = yPx > 0 && !uZ ? (yPx / el.height) * r : 0.5

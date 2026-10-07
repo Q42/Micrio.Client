@@ -185,17 +185,37 @@ export const loadScript = (src: string, cbFunc?: string, targetObj?: unknown) =>
 			return
 		}
 		const script = document.createElement('script')
-		const onload = () => {
+		// Only the first signal counts: a script that errors after its callback already
+		// ran is not an error, and vice versa.
+		let settled = false
+		const settle = (failed: boolean) => {
+			if (settled) {
+				return
+			}
+			settled = true
+			if (cbFunc) {
+				Reflect.deleteProperty(globalThis, cbFunc)
+			}
+			if (failed) {
+				err(new Error(`Failed to load ${src}`))
+				return
+			}
 			loaded.add(src)
 			ok()
+		}
+		const onload = () => {
+			settle(false)
 		}
 		if (cbFunc) {
 			Object.assign(globalThis, { [cbFunc]: onload })
 		} else {
 			script.addEventListener('load', onload)
 		}
+		// Wired even when a callback name is used: that callback is only ever reached
+		// through the script's own load notification, so without this listener a script
+		// that fails to load rejects nothing and every caller awaiting this hangs.
 		script.addEventListener('error', () => {
-			err?.()
+			settle(true)
 		})
 		script.async = true
 		script.defer = true

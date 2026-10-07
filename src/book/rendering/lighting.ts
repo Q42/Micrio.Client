@@ -233,7 +233,9 @@ export function computeLighting(presetName: string, params: Record<string, numbe
 				intArr[i] = intensity
 			}
 
-			return makeState([0, 1, 0], [0, 0, 0], [0.06, 0.04, 0.04], count, 0.5)
+			// Only MAX_POINT_LIGHTS slots exist in the shader, so a larger preset
+			// must not report lights that were never written
+			return makeState([0, 1, 0], [0, 0, 0], [0.06, 0.04, 0.04], Math.min(count, MAX_POINT_LIGHTS), 0.5)
 		}
 
 		// ── 🌧️ rainy day ──

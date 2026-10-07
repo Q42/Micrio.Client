@@ -36,7 +36,14 @@ export class PaperMesh {
 	readonly _paperWidth: number
 	readonly _paperHeight: number
 
-	constructor(yOffset = 0, paperWidth = 1, aspectRatio: number = DEFAULT_ASPECT) {
+	/**
+	 * `generate` exists so a subclass can opt out of the grid/constraint build:
+	 * this constructor calls the virtual `_generate*` methods, and a subclass
+	 * override that uses private members cannot run before its own constructor
+	 * body (the private brand is only installed after `super` returns). Such a
+	 * subclass passes `false` and builds its geometry itself afterwards.
+	 */
+	constructor(yOffset = 0, paperWidth = 1, aspectRatio: number = DEFAULT_ASPECT, generate = true) {
 		this._yOffset = yOffset
 		this._paperWidth = paperWidth
 		this._paperHeight = paperWidth * aspectRatio
@@ -51,6 +58,9 @@ export class PaperMesh {
 		this._bendingConstraints = []
 		this._boundLeft = []
 
+		if (!generate) {
+			return
+		}
 		this._generateGrid(this._paperHeight)
 		this._generateTexCoords()
 		this._generateTriangles()

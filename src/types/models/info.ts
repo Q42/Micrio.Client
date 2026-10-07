@@ -360,7 +360,12 @@ export namespace ImageInfo {
 		offsetX: number
 		/** Put the labels on the side of the object */
 		sideLabels?: boolean
-		/** Which frame is 0deg rotation */
+		/**
+		 * Which frame is 0deg rotation.
+		 * @deprecated Read nowhere in this client, and exposed by no dashboard page — a legacy
+		 * field the server still sends. Wiring it up has to change
+		 * `omni-viewer.test.ts`'s "legacy-only omni settings" test.
+		 */
 		frontIndex?: number
 		/** Layers */
 		layers?: { i18n: { [key: string]: string | undefined } }[]
@@ -370,9 +375,14 @@ export namespace ImageInfo {
 		noDial?: boolean
 		/** Show degrees on dial */
 		showDegrees?: boolean
-		/** Gallery is omni object photography over 2 axes */
+		/**
+		 * Gallery is omni object photography over 2 axes.
+		 * @deprecated Read nowhere in this client, and exposed by no dashboard page — a legacy
+		 * field the server still sends. Wiring it up has to change
+		 * `omni-viewer.test.ts`'s "legacy-only omni settings" test.
+		 */
 		twoAxes?: boolean
-		/** Don't add key bindings for rotating */
+		/** Don't add key bindings for rotating; an omni with this set never hooks the keyboard */
 		noKeys?: boolean
 	}
 
@@ -380,10 +390,6 @@ export namespace ImageInfo {
 	export interface MarkerSettings {
 		/** An image-wise custom marker icon */
 		markerIcon?: Assets.Image
-		/** The default marker color */
-		markerColor?: string
-		/** The default marker size in px */
-		markerSize?: string
 		/** Zoom out when closing a marker */
 		zoomOutAfterClose?: boolean
 		/** Relative speed factor when zooming out after close */
@@ -392,8 +398,6 @@ export namespace ImageInfo {
 		showTitles?: boolean
 		/** Don't print any marker titles at all */
 		noTitles?: boolean
-		/** All markers are sized to their viewports */
-		viewportIsMarker?: boolean
 		/** All marker embeds are printed in HTML, not WebGL */
 		embedsInHtml?: boolean
 		/** Auto-start a marker tour when just opening marker */

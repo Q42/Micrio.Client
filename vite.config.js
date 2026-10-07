@@ -4,7 +4,8 @@ import { resolve } from 'path'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
-const defaultAliases = {
+/** Source alias map, shared with `vitest.config.ts` so tests resolve imports exactly like the app. */
+export const aliases = {
 	$types: resolve('src/types'),
 	$media: resolve('src/media'),
 	$core: resolve('src/core'),
@@ -74,8 +75,8 @@ export default defineConfig(({ mode }) => {
 		plugins: [glslMinifyPlugin()],
 		resolve: {
 			alias: core
-				? [...coreStubAliases, ...Object.entries(defaultAliases).map(([find, replacement]) => ({ find, replacement }))]
-				: defaultAliases,
+				? [...coreStubAliases, ...Object.entries(aliases).map(([find, replacement]) => ({ find, replacement }))]
+				: aliases,
 		},
 		define: {
 			__VERSION__: JSON.stringify(pkg.version),
@@ -236,7 +237,8 @@ function glslMinify(src) {
 	return out.trim()
 }
 
-function glslMinifyPlugin() {
+/** Minifies GLSL sources in `.glsl` / `.glsl?raw` imports. Shared with `vitest.config.ts`. */
+export function glslMinifyPlugin() {
 	return {
 		name: 'glsl-minify',
 		enforce: 'pre',

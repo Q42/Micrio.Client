@@ -4,6 +4,7 @@ import type { HTMLMicrioElement } from '$core/element'
 import { writable, get } from '$core/store'
 import { Browser } from '$utils/browser'
 import { normalize3 } from '$utils/math'
+import { imageHasAudio, volumeFor } from '$utils/media-settings'
 import { MicrioAudioLocation } from './audio-location'
 
 // ── Module-level AudioContext state ──
@@ -79,6 +80,9 @@ class AudioPlaylist {
 	#list: Models.Assets.Audio[]
 	#loop: boolean
 	#idx = -1
+	#onEnded = () => {
+		this.#next()
+	}
 
 	constructor(list: Models.Assets.Audio[], loop: boolean, volume: number) {
 		this.#list = list
@@ -86,9 +90,7 @@ class AudioPlaylist {
 		this.#audio.preload = 'none'
 		this.#audio.loop = false
 		this.#audio.volume = volume
-		this.#audio.addEventListener('ended', () => {
-			this.#next()
-		})
+		this.#audio.addEventListener('ended', this.#onEnded)
 		this.#next()
 	}
 
@@ -103,6 +105,7 @@ class AudioPlaylist {
 
 	/** Stops playback and releases the audio element. */
 	destroy() {
+		this.#audio.removeEventListener('ended', this.#onEnded)
 		this.#audio.pause()
 	}
 }
@@ -190,18 +193,22 @@ export class MicrioAudioController {
 			}
 		}
 
-		const audio = new Audio('data:audio/mpeg;base64,...')
-		audio.volume = Browser.iOS ? 0 : 0.0001
-		document.body.append(audio)
+		// The autoplay probe only makes sense when there is audio to be blocked
+		// (`main.ts` builds no controller without it, so this is a guard, not a case).
+		const audio = imageHasAudio(image) ? new Audio('data:audio/mpeg;base64,...') : undefined
+		if (audio) {
+			audio.volume = Browser.iOS ? 0 : 0.0001
+			document.body.append(audio)
+		}
 
 		this.#cleanups.push(
 			interacted.subscribe((b) => {
 				if (!b) {
 					return
 				}
-				const vol = get(micrio._isMuted) ? 0 : 1
+				const vol = volumeFor(image, get(micrio._isMuted))
 				if (!_ctx) {
-					init(typeof vol === 'number' ? vol : 1)
+					init(vol)
 				}
 				if (_ctx) {
 					const data = image.$data
@@ -230,40 +237,39 @@ export class MicrioAudioController {
 			}),
 		)
 
-		if (!_ctx) {
-			audio
-				.play()
-				.then(input)
-				.catch(() => {
-					events._dispatch('autoplay-blocked')
+		if (audio) {
+			this.#cleanups.push(() => {
+				audio.pause()
+				audio.remove()
+			})
+			if (!_ctx) {
+				audio
+					.play()
+					.then(input)
+					.catch(() => {
+						events._dispatch('autoplay-blocked')
+					})
+				addEventListener('pointerup', onUserGesture, { once: true })
+				this.#cleanups.push(() => {
+					removeEventListener('pointerup', onUserGesture)
 				})
-			addEventListener('pointerup', onUserGesture, { once: true })
+			}
 		}
 
 		// Render playlist if music data exists
 		const data = image.$data
 		if (data?.music?.items.length) {
-			const vol = get(micrio._isMuted) ? 0 : 1
-			this.#playlist = new AudioPlaylist(
-				data.music.items,
-				data.music.loop ?? true,
-				(vol as number) * (data.music.volume ?? 1),
-			)
+			const vol = volumeFor(image, get(micrio._isMuted))
+			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, vol * (data.music.volume ?? 1))
 		}
 
 		this.#cleanups.push(
 			micrio._isMuted.subscribe((muted) => {
 				if (mainGain) {
-					mainGain.gain.value = muted ? 0 : 1
+					mainGain.gain.value = volumeFor(image, muted)
 				}
 			}),
 		)
-
-		// Store cleanup for renderless operation
-		this.#cleanups.push(() => {
-			audio.remove()
-			removeEventListener('pointerup', onUserGesture)
-		})
 	}
 
 	destroy() {

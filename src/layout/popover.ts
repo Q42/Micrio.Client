@@ -3,6 +3,7 @@ import type { Models } from '$types/models'
 import { get } from '$core/store'
 import { createElement } from '$utils/dom'
 import { i18n } from '$core/i18n/strings'
+import { languageNames } from '$core/i18n/locale'
 import '$ui/button'
 import './article'
 import '$media/media'
@@ -73,9 +74,56 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 		const $_lang = get(micrio._lang)
 		const $i18n = get(i18n)
 
+		/**
+		 * The languages the active image publishes, current one first — the same source
+		 * the controls' language menu reads. Empty when the image has no revision data.
+		 */
+		const cultures = (() => {
+			const revision = micrio.$current?.$info?.revision
+			const langs = revision ? Object.keys(revision) : []
+			const current = langs.indexOf($_lang)
+			if (current > 0) {
+				// Keep the active language first, so the switcher opens on the current one
+				const [lang] = langs.splice(current, 1)
+				if (lang !== undefined) {
+					langs.unshift(lang)
+				}
+			}
+			return langs
+		})()
+
+		/** The language switcher of a welcome page, or nothing when there is no choice. */
+		const renderLanguageMenu = () => {
+			if (cultures.length < 2 || !('showLangSelect' in p) || p.showLangSelect !== true) {
+				return
+			}
+			const menu = createElement('menu', {
+				className: 'languages',
+				attrs: { 'aria-label': $i18n._switchLanguage },
+				parent: this.#dialog,
+			})
+			for (const l of cultures) {
+				const button = createElement('micrio-button', {
+					children: [l.toUpperCase()],
+					setProps: {
+						title: languageNames?.of(l) ?? l,
+						onclick: () => {
+							micrio.lang = l
+						},
+					},
+					parent: menu,
+				})
+				button.querySelector('button, a')?.classList.toggle('active', l.toLowerCase() === $_lang.toLowerCase())
+			}
+		}
+
 		const pageId = 'contentPage' in p ? p.contentPage?.id : ''
 		const markerId = 'marker' in p ? p.marker?.id : ''
-		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${$_lang}`
+		// The gallery is part of the content too: without it, swapping one gallery for
+		// another (a marker's images) kept the first one on screen
+		const gallery = 'gallery' in p ? p.gallery : undefined
+		const galleryKey = gallery ? `${gallery.length}:${p.galleryStart ?? ''}:${gallery[0]?.src ?? ''}` : ''
+		const key = `${p?.constructor?.name ?? typeof p}::${pageId}::${markerId}::${galleryKey}::${$_lang}`
 		if (!this._checkRenderKey(key)) {
 			return
 		}
@@ -170,6 +218,11 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			if (hasMedia) {
 				this.#dialog.classList.add('has-media')
 			}
+
+			// A welcome page offers the languages the image is published in, above its
+			// content, so a visitor can pick one before reading (the controls' switcher
+			// is not reachable from a modal)
+			renderLanguageMenu()
 
 			if (isVideoPage) {
 				if (cd.embed !== undefined) {

@@ -139,10 +139,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		return `${imgs[0] + 1}-${imgs[imgs.length - 1] + 1}`
 	}
 
-	/** Returns the page index containing the given image index (for spread-aware navigation). */
+	/**
+	 * Returns the page index containing the given image index (for spread-aware
+	 * navigation), or `-1` when the image is not part of the gallery.
+	 */
 	#imageIdxToPage(n: number): number {
-		const page = this.#pageToImages.findIndex((p) => p.includes(n))
-		return page >= 0 ? page : 0
+		return this.#pageToImages.findIndex((p) => p.includes(n))
 	}
 
 	/**
@@ -275,6 +277,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 		this.#dragging = false
 		delete this.dataset.dragging
+		// Re-render before the trailing goto: releasing on the page the drag already
+		// reached does not run `#frameChanged`, so without this the handle would keep
+		// its `dragging` class (and its mid-drag position) until the next update.
+		this.#updateScrubber()
 		const micrio = this._getMicrio()
 		if (!micrio) {
 			return
@@ -451,7 +457,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// Set up album object for external API access
 		const currentIndex = () => this.#currentPage
 		const goToPage = (n: number) => this.#goto(n)
-		parent.album = {
+		const album: Models.Album = {
 			numPages: layout.numPages,
 			get currentIndex() {
 				return currentIndex()
@@ -464,17 +470,25 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				void goToPage(currentIndex() + 1)
 			},
 			// Navigate to the page containing image `n`, but resolve with the exact
-			// image at that index (spread pages contain more than one image).
-			goto: (n: number) => goToPage(this.#imageIdxToPage(n)).then(() => this.#images[n]),
+			// image at that index (spread pages contain more than one image). An index
+			// that is not part of the album resolves `undefined` and does not move:
+			// jumping to page 0 would be a surprising place to land.
+			goto: (n: number) => {
+				const page = this.#imageIdxToPage(n)
+				// A miss means `n` is not an image of this album either, so the
+				// requested index resolves to `undefined` without moving
+				return page < 0 ? Promise.resolve(this.#images[n]) : goToPage(page).then(() => this.#images[n])
+			},
 			...(this.#swipeGallery ? { currentImage: writable(images[startImageIdx]) } : {}),
 		}
+		parent.album = album
 
 		if (this.#swipeGallery) {
 			this.#swipeGallery.setup(startImageIdx, parent, engine)
 			this.#currentImageIdx = startImageIdx
 			this.#currentPage = pageIdx
 			this.#frameChanged()
-			parent.album.hooked = true
+			album.hooked = true
 		} else if (isBook3D) {
 			this.#loadBook3d(parent, controller._items, startImageIdx, controller._config)
 		} else {
@@ -491,7 +505,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			parent.camera.setView([0, 0, 1, 1])
 			this.#currentPage = pageIdx
 			this.#frameChanged()
-			parent.album.hooked = true
+			album.hooked = true
 		}
 
 		// Strip-swipe pointer events on the canvas element
@@ -519,6 +533,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 		const { micrio } = parent.engine
 		const individualAspects = Boolean(config.settings?.individualAspects)
+		// A book requested while another is still animating would leave the first
+		// one's frame queued forever, and every later frame would keep running it
+		this.#book3d?._stop()
 		const book3d = (this.#book3d = new BookViewer({
 			_canvas: micrio.canvas.element,
 			_images: items,

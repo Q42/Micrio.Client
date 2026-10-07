@@ -11,6 +11,9 @@ import type { MediaPlayerAdapter, PlayerEventCallbacks } from '$types/media'
  * @internal
  */
 export class HTML5PlayerAdapter implements MediaPlayerAdapter {
+	/** Every listener this adapter attached, with its event, so `destroy()` can detach all of them. */
+	readonly #listeners: [string, EventListener][] = []
+
 	constructor(
 		protected element: HTMLMediaElement,
 		protected callbacks: PlayerEventCallbacks = {},
@@ -18,36 +21,48 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 		this.#attachEventListeners()
 	}
 
+	/** Attaches one listener and remembers it for teardown. */
+	#on(type: string, listener: EventListener): void {
+		this.element.addEventListener(type, listener)
+		this.#listeners.push([type, listener])
+	}
+
 	#attachEventListeners(): void {
 		const el = this.element
 		const cb = this.callbacks
 
 		if (cb.onPlay) {
-			el.addEventListener('play', cb.onPlay)
+			this.#on('play', cb.onPlay)
 		}
 		if (cb.onPause) {
-			el.addEventListener('pause', cb.onPause)
+			this.#on('pause', cb.onPause)
 		}
 		if (cb.onEnded) {
-			el.addEventListener('ended', cb.onEnded)
+			this.#on('ended', cb.onEnded)
 		}
 		if (cb.onSeeking) {
-			el.addEventListener('seeking', cb.onSeeking)
+			this.#on('seeking', cb.onSeeking)
 		}
 		if (cb.onSeeked) {
-			el.addEventListener('seeked', cb.onSeeked)
+			this.#on('seeked', cb.onSeeked)
 		}
 		if (cb.onTimeUpdate) {
-			el.addEventListener('timeupdate', () => cb.onTimeUpdate?.(el.currentTime))
+			this.#on('timeupdate', () => {
+				cb.onTimeUpdate?.(el.currentTime)
+			})
 		}
 		if (cb.onDurationChange) {
-			el.addEventListener('durationchange', () => cb.onDurationChange?.(el.duration))
+			this.#on('durationchange', () => {
+				cb.onDurationChange?.(el.duration)
+			})
 		}
 		if (cb.onError) {
-			el.addEventListener('error', () => cb.onError?.(new Error('Media playback error')))
+			this.#on('error', () => {
+				cb.onError?.(new Error('Media playback error'))
+			})
 		}
 		if (cb.onReady) {
-			el.addEventListener('canplay', cb.onReady)
+			this.#on('canplay', cb.onReady)
 		}
 	}
 
@@ -92,24 +107,11 @@ export class HTML5PlayerAdapter implements MediaPlayerAdapter {
 	}
 
 	destroy(): void {
-		const el = this.element
-		const cb = this.callbacks
-
-		// Remove all event listeners
-		if (cb.onPlay) {
-			el.removeEventListener('play', cb.onPlay)
+		// Remove every listener, including the four value listeners that used to be
+		// attached as closures and therefore kept firing after teardown
+		for (const [type, listener] of this.#listeners) {
+			this.element.removeEventListener(type, listener)
 		}
-		if (cb.onPause) {
-			el.removeEventListener('pause', cb.onPause)
-		}
-		if (cb.onEnded) {
-			el.removeEventListener('ended', cb.onEnded)
-		}
-		if (cb.onSeeking) {
-			el.removeEventListener('seeking', cb.onSeeking)
-		}
-		if (cb.onSeeked) {
-			el.removeEventListener('seeked', cb.onSeeked)
-		}
+		this.#listeners.length = 0
 	}
 }

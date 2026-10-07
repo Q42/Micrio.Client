@@ -78,9 +78,16 @@ export class GestureHandler {
 		e.preventDefault()
 
 		if (e.type === 'gesturechange') {
+			// `zoom` anchors in element-relative CSS pixels; the gesture event carries client ones.
+			const box = this.#ctx._el.getBoundingClientRect()
 			void this.#ctx
 				._getImage({ x: gesture.clientX, y: gesture.clientY })
-				?.camera.zoom(diff * this.#ctx._micrio.canvas.viewport.height, 0, gesture.clientX, gesture.clientY)
+				?.camera.zoom(
+					diff * this.#ctx._micrio.canvas.viewport.height,
+					0,
+					gesture.clientX - box.left,
+					gesture.clientY - box.top,
+				)
 		}
 	}
 }

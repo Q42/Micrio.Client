@@ -35,7 +35,7 @@ interface TileEntry {
 	/** @internal */
 	_deleteAt?: number
 	/** @internal */
-	_timeoutId?: number
+	_timeoutId?: ReturnType<typeof globalThis.setTimeout>
 }
 
 interface CanvasEntry {
@@ -133,7 +133,7 @@ export class Engine {
 	_frameTime: number = 1 / 60
 
 	/** Array storing references to all MicrioImage instances managed by the engine. @internal */
-	#images: (MicrioImage | Models.Omni.Frame)[] = []
+	#images: (MicrioImage | Models.Omni.Frame | undefined)[] = []
 	/** Flag indicating if barebone mode is active. @internal */
 	#bareBoneSetting = false
 	/** Set of base tile indices (loaded, never evicted). @internal */
@@ -259,12 +259,16 @@ export class Engine {
 		animating: boolean,
 		targetLayer: boolean,
 	): boolean => {
+		// The slot of a released embed is cleared; nothing should be drawing it any more.
+		const c = this.#images[imgIdx]
+		if (c === undefined) {
+			return false
+		}
 		this.#drawnSet.add(i)
 		const tile = this.#getTileEntry(i)
 		tile._deleteAt = undefined
 
 		const numLoading = runningThreads()
-		const c = this.#images[imgIdx]
 		const hasCamera = 'camera' in c
 		const isVideo = hasCamera && c._isVideo
 		const is360 = hasCamera && c._is360
@@ -607,6 +611,13 @@ export class Engine {
 		}
 		entry.canvas._remove()
 		this.#entryByImage.delete(c)
+		// The image is unplaced again, so a later `#setCanvas` rebuilds its canvas. Leaving it
+		// "placed" — with no entry and no canvas — would make `#setCanvas` return early forever
+		// and the image could never be shown again.
+		c._placed = false
+		if (this.#activeCanvasEntry === entry) {
+			this.#activeCanvasEntry = null
+		}
 		this.render()
 	}
 
@@ -1004,6 +1015,44 @@ export class Engine {
 	/** Add a child independent canvas to the current canvas. @internal */
 	_addChild = (image: MicrioImage, parent: MicrioImage) => {
 		this.#addImage(image, parent)
+	}
+
+	/**
+	 * Releases an embedded image: detaches its engine Image from the parent canvas, drops
+	 * every lookup and frees its tiles. Called from `MicrioImage._releaseOrphans`.
+	 * @internal
+	 */
+	_removeEmbed(image: MicrioImage): void {
+		const entry = this.#entryByImage.get(image)
+		const engImage = this.#micrioToEngImage.get(image)
+		this.#entryByImage.delete(image)
+		this.#micrioToEngImage.delete(image)
+		image._placed = false
+		if (engImage !== undefined) {
+			this.#engImageToMicrio.delete(engImage)
+			entry?.canvas._removeImage(engImage)
+			// A placement that returned early before creating its engine Image leaves the
+			// array's slot out of step with `_numImages`, so only clear the slot that really
+			// belongs to this image.
+			if (this.#images[engImage._index] === image) {
+				this.#images[engImage._index] = undefined
+			}
+			this.#releaseTiles(engImage)
+		}
+		this.render()
+	}
+
+	/** Frees every tile entry of a released image, aborting its in-flight loads. @internal */
+	#releaseTiles(image: Image): void {
+		for (let i = image._startOffset; i < image._endOffset; i++) {
+			const request = this.#requests.get(i)
+			if (request !== undefined) {
+				abortDownload(request)
+			}
+			this.#baseTiles.delete(i)
+			this.#deleteRequest(i)
+			this.#deleteTile(i)
+		}
 	}
 
 	/** Fades an image (main or embed) to a target opacity. @internal */

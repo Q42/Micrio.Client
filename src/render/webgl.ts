@@ -75,6 +75,15 @@ export class WebGL {
 	/** Watermark URL. @internal */
 	#wmUrl: string | null = null
 
+	/** The loaded watermark image, kept until there is a context to upload it to. @internal */
+	#wmImage: HTMLImageElement | null = null
+
+	/** Opacity asked for with the last watermark request, applied on upload. @internal */
+	#wmRequestedOpacity: number | undefined = undefined
+
+	/** True once the watermark image has loaded and only the upload is missing. @internal */
+	#wmReady = false
+
 	/** Watermark vertices (static full screen quad). @internal */
 	#wmVerts: Float32Array = new Float32Array([-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0])
 
@@ -145,6 +154,9 @@ export class WebGL {
 		}
 
 		this.gl = gl // Store the context
+
+		// A watermark requested before this point has been fetched but not uploaded yet
+		this.#uploadWatermark()
 
 		// Initialize post-processor if a fragment shader is provided in settings
 		const postprocessing = this.#micrio.$current?.$settings.postProcessingFragmentShader
@@ -282,9 +294,12 @@ export class WebGL {
 		gl.deleteProgram(this.#program)
 		// Delete framebuffer/texture from postprocessor if it exists
 		this._postprocessor?._dispose()
-		// Delete watermark texture
+		// Delete watermark texture. Its request is kept, so re-initialising the context
+		// re-uploads the already-loaded image (the `#wmUrl` guard would otherwise skip it).
 		if (this.#wmTexture) {
 			gl.deleteTexture(this.#wmTexture)
+			// The loaded image stays `#wmReady`, so a re-initialised context re-uploads it
+			this.#wmTexture = null
 		}
 
 		// Attempt to lose context if requested
@@ -455,53 +470,70 @@ export class WebGL {
 	 * @param url The watermark image URL.
 	 */
 	_loadWatermark(url: string, wmOpacity?: number): void {
-		if (!this.gl) {
-			return
-		} // WebGL not initialized (e.g. book3d album)
 		if (url === this.#wmUrl) {
 			return
-		} // Already loaded/loading
-
+		} // Already requested
 		this.#wmUrl = url
+		this.#wmRequestedOpacity = wmOpacity ?? this.#wmRequestedOpacity
+		this.#wmReady = false
+
+		// The image is fetched whether or not the context exists yet: the element builds its
+		// images *before* it initialises the canvas and its WebGL context, so the request that
+		// arrives here is normally the only one there will be.
 		const img = new Image()
-		if (wmOpacity) {
-			this.#wmOpacity = wmOpacity
-		}
 		img.crossOrigin = 'anonymous'
-		img.src = url
 		img.addEventListener('load', () => {
-			const c = createElement('canvas', {
-				props: { width: watermarkTileSize, height: watermarkTileSize },
-			})
-			const ctx = c.getContext('2d')
-			if (!ctx) {
-				return
-			}
-
-			// Calculate dimensions to fit within bounds while maintaining aspect ratio
-			const ratio = Math.min(watermarkMaxSizeW / img.width, watermarkMaxSizeH / img.height)
-			const w = img.width * ratio
-			const h = img.height * ratio
-
-			// Draw centered
-			ctx.drawImage(img, (watermarkTileSize - w) / 2, (watermarkTileSize - h) / 2, w, h)
-
-			// Create texture from canvas
-			if (this.#wmTexture) {
-				this.gl?.deleteTexture(this.#wmTexture)
-			}
-			this.#wmTexture = this._getTexture(c) // getTexture supports HTMLCanvasElement
-
-			// Configure repeating texture
-			const gl = this.#ctx
-			gl.bindTexture(gl.TEXTURE_2D, this.#wmTexture)
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-			// Restore to null binding
-			gl.bindTexture(gl.TEXTURE_2D, null)
-
-			this.#micrio._engine.render()
+			this.#wmImage = img
+			this.#wmReady = true
+			this.#uploadWatermark()
 		})
+		img.src = url
+	}
+
+	/**
+	 * Uploads the loaded watermark as a repeating texture, once there is a context to upload
+	 * it to. Reached from the image's `load` handler and from `_init`, because either can come
+	 * first.
+	 */
+	#uploadWatermark(): void {
+		const { gl } = this
+		const img = this.#wmImage
+		if (!gl || !this.#wmReady || !img || this.#wmTexture) {
+			return
+		}
+
+		const c = createElement('canvas', {
+			props: { width: watermarkTileSize, height: watermarkTileSize },
+		})
+		const ctx = c.getContext('2d')
+		if (!ctx) {
+			return
+		}
+
+		if (this.#wmRequestedOpacity) {
+			this.#wmOpacity = this.#wmRequestedOpacity
+		}
+
+		// Calculate dimensions to fit within bounds while maintaining aspect ratio
+		const ratio = Math.min(watermarkMaxSizeW / img.width, watermarkMaxSizeH / img.height)
+		const w = img.width * ratio
+		const h = img.height * ratio
+
+		// Draw centered
+		ctx.drawImage(img, (watermarkTileSize - w) / 2, (watermarkTileSize - h) / 2, w, h)
+
+		// Create texture from canvas. The guard at the top returns while a texture exists, so
+		// there is never an old one to delete here.
+		this.#wmTexture = this._getTexture(c) // getTexture supports HTMLCanvasElement
+
+		// Configure repeating texture
+		gl.bindTexture(gl.TEXTURE_2D, this.#wmTexture)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+		// Restore to null binding
+		gl.bindTexture(gl.TEXTURE_2D, null)
+
+		this.#micrio._engine.render()
 	}
 
 	/**

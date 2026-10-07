@@ -35,8 +35,9 @@ declare const __CORE__: boolean
 interface IIIFResponse {
 	'@id'?: string
 	id?: string
-	width: number
-	height: number
+	/** Absent on anything that is not an Image API `info.json`. */
+	width?: number
+	height?: number
 	type?: string
 	tiles?: Models.ImageInfo.ImageInfo['tiles']
 	preferredFormats?: string[]
@@ -51,6 +52,11 @@ interface IIIFItem {
 		height: number
 		service?: { id?: string; preferredFormats?: string[] }[]
 	}
+}
+
+/** True for a dimension an Image API response can actually be rendered from. */
+function isImageSize(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
 /** An attribute definition map from {@link AO}. @internal */
@@ -117,6 +123,11 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 */
 	#printed = false
+
+	/** The in-flight (or settled) initial setup, so a concurrent `open()` waits for it.
+	 * @internal
+	 */
+	#printing: Promise<void> | undefined
 
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
 	 * @internal
@@ -370,11 +381,16 @@ export class HTMLMicrioElement extends MicrioElement {
 		})
 
 		let shown = false
-		const unsub = this._loading.subscribe((v) => {
-			if (v) {
+		// `_watch` emits the current value synchronously on subscribe, so the "first load
+		// finished" work must be guarded by a flag rather than by unsubscribing from inside
+		// the callback (the unsubscriber is not assigned yet on that first, synchronous call
+		// — which also made reconnecting a loaded element throw).
+		let loaded = false
+		this._watch(this._loading, (v) => {
+			if (v || loaded) {
 				return
 			}
-			unsub()
+			loaded = true
 			this.dataset.loaded = ''
 
 			this._watch(this._switching, (s) => {
@@ -503,10 +519,12 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.#onActivity = undefined
 		}
 		this.#printed = false
+		this.#printing = undefined
 	}
 
 	/**
-	 * Fetches an IIIF manifest, attempts gallery creation, and falls back to a single-image BundleImage.
+	 * Fetches an IIIF document, attempts gallery creation, and falls back to a single-image BundleImage.
+	 * A response that is neither a usable manifest nor an Image API `info.json` is reported as unsupported.
 	 * @returns The resolved BundleImage, or `undefined` if a gallery was opened or an error occurred.
 	 * @internal
 	 */
@@ -532,9 +550,9 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		// Determine id, width, height from canvas body (single-image manifest) or top-level info.json fields
-		let id = resp['@id'] || resp.id || url.replace(/info.json$/, '')
-		let { width } = resp
-		let { height } = resp
+		let id: unknown = resp['@id'] || resp.id || url.replace(/\/info\.json$/, '')
+		let width: unknown = resp.width
+		let height: unknown = resp.height
 
 		if (resp.type === 'Manifest') {
 			const body = resp.items?.[0]?.items?.[0]?.items?.[0]?.body
@@ -544,6 +562,18 @@ export class HTMLMicrioElement extends MicrioElement {
 				;({ width, height } = body)
 				resp.preferredFormats = service.preferredFormats
 			}
+		}
+
+		// Every response that is neither a usable manifest nor an Image API info.json lands
+		// here — a IIIF Collection, or JSON from the wrong URL. Without this guard it would
+		// become an image with NaN bounds and a silently blank viewer.
+		if (typeof id !== 'string' || id === '' || !isImageSize(width) || !isImageSize(height)) {
+			this.#printError(
+				new MicrioError('UNSUPPORTED_IIIF', {
+					displayMessage: 'Not a valid IIIF manifest or Image API info.json',
+				}),
+			)
+			return undefined
 		}
 
 		return {
@@ -563,16 +593,31 @@ export class HTMLMicrioElement extends MicrioElement {
 	}
 
 	/**
+	 * Runs the element's initial setup once.
+	 *
+	 * The in-flight run is published as a promise so that `open()` (which a page can
+	 * call while this is still resolving, e.g. right after mounting an album by id)
+	 * waits for it instead of racing it.
+	 * @internal
+	 */
+	#print(): Promise<void> {
+		this.#printing ??= this.#doPrint()
+		return this.#printing
+	}
+
+	/**
 	 * Performs initial setup based on element attributes.
 	 * Loads necessary data like galleries, grids, or archives before opening the first image.
 	 * Handles lazy loading logic.
 	 * @internal
 	 */
-	async #print(): Promise<void> {
+	async #doPrint(): Promise<void> {
 		if (this.#printed) {
 			return
 		}
 		this.#printed = true
+		// Keep this the first await: the synchronous part must not re-enter `#print`
+		// before `#printing` has been assigned.
 		await tick()
 		const opts = this.#getOptions()
 		if (!opts.settings) {
@@ -587,12 +632,19 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		if (opts.id && idIsV5(opts.id) && !this.hasAttribute('width') && !this.hasAttribute('height')) {
-			const bundle = await DataLoader._getBundleImage(opts.id).catch(() => {})
+			const bundle = await DataLoader._getBundleImage(opts.id).catch((error: unknown) => {
+				console.error('[Micrio] Could not load the bundle for', opts.id, error)
+			})
 			if (bundle && bundle.info?.albumId) {
+				// A failure here silently degrades the album to a single image, so it has to
+				// be visible: without this the viewer just shows one picture and no reason.
 				const galleryCtrl = await Gallery._fromAlbum(bundle.info.albumId, this._engine, {
 					startId: opts.id,
 					onProgress: (p: number) => this._ui?._setProps?.({ loadingProgress: p }),
-				}).catch(() => null)
+				}).catch((error: unknown) => {
+					console.error('[Micrio] Could not open the album for', opts.id, error)
+					return null
+				})
 				if (galleryCtrl) {
 					void galleryCtrl._openOn(this)
 					return
@@ -679,13 +731,22 @@ export class HTMLMicrioElement extends MicrioElement {
 			gridView?: boolean
 			/** An optional starting view to apply immediately. */
 			startView?: Models.Camera.View
+			/** For a grid focus, the transition animation to use (a marker's `gridTourTransition`). */
+			transition?: Models.Grid.MarkerFocusTransition
 			/** For 360 transitions, provides the direction vector from the previous image. */
 			vector?: Models.Camera.Vector
 			/** Optional Gallery controller, used for gallery/grid views. */
 			gallery?: Gallery
 		} = {},
 	): Promise<MicrioImage | undefined> {
-		if (!this.#printed) {
+		// Wait for any setup run that is still in flight: an album is only built at
+		// the end of `#print`, and opening the image before that would race it into
+		// a second canvas while the gallery is being attached.
+		//
+		// The gallery's own `_openOn` re-enters here from inside that run, so it must
+		// not wait on it (that would deadlock). It attaches the gallery before it
+		// yields, so the run can then finish and every other caller sees it.
+		if (opts.gallery === undefined || this.#printing === undefined) {
 			await this.#print()
 		}
 
@@ -741,7 +802,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── Deduplicate ───────────────────────────────────────────────────────
 
-		if (this.$current && bundle.id === this.$current?.id) {
+		// An *unplaced* current image falls through instead: its canvas was closed (or never
+		// placed), and returning early here would leave the viewer with nothing to draw.
+		if (this.$current && this.$current._placed && bundle.id === this.$current.id) {
 			return this.$current
 		}
 
@@ -837,9 +900,13 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Set current / grid ────────────────────────────────────────────────
 
 		if (isInGrid && (!opts.gridView || !grid?._current.find((img) => img.id === bundle.id))) {
-			void grid?.gridFocus(c, { view: bundle.settings?.view }).then(() => {
-				this.current.set(c)
-			})
+			grid
+				?.gridFocus(c, { view: bundle.settings?.view, transition: opts.transition })
+				.then(() => {
+					this.current.set(c)
+				})
+				// A grid focus whose transition is superseded or torn down rejects; swallow it
+				.catch(() => {})
 		} else {
 			this.current.set(c)
 		}
@@ -871,9 +938,15 @@ export class HTMLMicrioElement extends MicrioElement {
 
 	/**
 	 * Closes an opened MicrioImage and removes its canvas from the engine.
+	 *
+	 * The image stays in the element's list of loaded images, so opening it again (or making it
+	 * `current` again) rebuilds its canvas. Closing an image that is not placed is a no-op.
 	 * @param img The {@link MicrioImage} instance to close.
 	 */
 	close(img: MicrioImage): void {
+		if (!img._placed) {
+			return
+		}
 		this._engine._removeCanvas(img)
 	}
 
