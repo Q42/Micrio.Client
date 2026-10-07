@@ -160,9 +160,15 @@ export class DragHandler {
 		this.#ctx._micrio.removeEventListener('pointermove', this.#move, eventPassive)
 		this.#ctx._micrio.removeEventListener('pointerup', this.stop, eventPassive)
 
-		// Release pointer capture if active
-		if (this.#ctx._capturedPointerId) {
-			this.#ctx._micrio.releasePointerCapture(this.#ctx._capturedPointerId)
+		// Release pointer capture if active. A cancelled pointer (or one that was never captured)
+		// has no capture left, and `releasePointerCapture` throws `NotFoundError` then, which
+		// would abort the rest of this stop: the captured id would stay set (no later drag could
+		// capture), `data-panning` would keep the grab cursor and no kinetic pan would start.
+		const capturedId = this.#ctx._capturedPointerId
+		if (capturedId !== undefined) {
+			try {
+				this.#ctx._micrio.releasePointerCapture(capturedId)
+			} catch {}
 		}
 		this.#ctx._capturedPointerId = undefined
 
