@@ -84,6 +84,18 @@ function createGridKeyHandler(grid: Grid): (e: KeyboardEvent) => void {
 			return
 		}
 
+		// The handler is on `document`, so it also sees keys typed on the host page: arrows in
+		// a text field are not grid navigation. Only the target is checked here - the grid's own
+		// hidden state is deliberately left to the caller, which keeps keyboard navigation
+		// working while the tiles are faded out.
+		const { target } = e
+		if (
+			target instanceof HTMLElement &&
+			(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+		) {
+			return
+		}
+
 		if (e.key === 'Escape') {
 			for (const btn of grid._buttons.values()) {
 				btn.classList.remove('focussed')
