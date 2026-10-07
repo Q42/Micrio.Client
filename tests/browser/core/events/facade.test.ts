@@ -6,6 +6,7 @@ import type { Models } from '$types/models'
 import {
 	makeEventScene,
 	makeImage,
+	pointer,
 	stubBrowser,
 	touch,
 	touchEvent,
@@ -305,6 +306,29 @@ describe('Events — pinch layer selection', () => {
 		e._activePointers.set(1, { x: 0, y: 0 })
 		e.unhook()
 		expect(e._activePointers.size).toBe(0)
+	})
+
+	it('ends a drag in flight when unhooking', () => {
+		const { scene: s, events: e } = facade({ hookDrag: true })
+		e.hook()
+		if (!s.image) {
+			throw new Error('no fake image')
+		}
+		// The facade hit-tests through the visible store, not the fixture's fixed image
+		s.visible.set([asImage(s.image)])
+		s.el.dispatchEvent(pointer('pointerdown', { button: 0, pointerId: 31, clientX: 100, clientY: 100 }))
+		expect(e._panning).toBe(true)
+
+		// A drag's move/up listeners are only removed by `stop()`, so unhooking has to end the
+		// drag: a flag left set blocks every later drag and keeps `isNavigating` true, which
+		// makes the engine render every frame.
+		e.unhook()
+		expect(e._panning).toBe(false)
+		expect(s.micrio.dataset.panning).toBeUndefined()
+
+		s.image?.camera.pan.mockClear()
+		globalThis.dispatchEvent(pointer('pointermove', { pointerId: 31, clientX: 140, clientY: 100 }))
+		expect(s.image?.camera.pan).not.toHaveBeenCalled()
 	})
 
 	it('keeps the context-menu hooks on the element', () => {

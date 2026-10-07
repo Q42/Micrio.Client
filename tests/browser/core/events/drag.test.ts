@@ -281,6 +281,64 @@ describe('DragHandler — stop', () => {
 	})
 })
 
+describe('DragHandler — window listeners', () => {
+	it('keeps panning when the move is delivered on the window', () => {
+		const { scene: s, handler: h } = setup()
+		h.hook()
+		s.el.dispatchEvent(pointer('pointerdown', { button: 0, pointerId: 20, clientX: 100, clientY: 100 }))
+
+		// The pointer left the element, so the browser delivers its moves to the window.
+		// Listening on `_micrio` only would drop them: the drag would freeze, and unless the
+		// pointer came back inside the element no `pointerup` would ever end it.
+		globalThis.dispatchEvent(pointer('pointermove', { pointerId: 20, clientX: 140, clientY: 100 }))
+		expect(s.capture).toHaveBeenCalledWith(20)
+		expect(s.ctx._capturedPointerId).toBe(20)
+
+		globalThis.dispatchEvent(pointer('pointermove', { pointerId: 20, clientX: 150, clientY: 100 }))
+		expect(s.image?.camera.pan).toHaveBeenLastCalledWith(-10, 0)
+	})
+
+	it('releases panning when the pointer is lifted outside the element', () => {
+		const { scene: s, handler: h } = setup()
+		h.hook()
+		s.el.dispatchEvent(pointer('pointerdown', { button: 0, pointerId: 21, clientX: 100, clientY: 100 }))
+
+		// Below the 10px capture threshold, so the pointer was never captured
+		globalThis.dispatchEvent(pointer('pointermove', { pointerId: 21, clientX: 103, clientY: 100 }))
+		expect(s.capture).not.toHaveBeenCalled()
+
+		globalThis.dispatchEvent(pointer('pointerup', { pointerId: 21, clientX: 103, clientY: 100 }))
+		expect(s.ctx._panning).toBe(false)
+		expect(s.micrio.dataset.panning).toBeUndefined()
+
+		// A later press starts a fresh drag instead of being ignored forever
+		s.el.dispatchEvent(pointer('pointerdown', { button: 0, pointerId: 22, clientX: 100, clientY: 100 }))
+		expect(s.ctx._panning).toBe(true)
+		expect(s.ctx._vars._drag._image).toBe(s.image)
+	})
+
+	it('survives a pointer capture the browser refuses', () => {
+		const { scene: s, handler: h } = setup()
+		h.hook()
+		// An inactive pointer (a synthetic event, one the browser already cancelled) has no
+		// capture to take and `setPointerCapture` throws; it must not escape the listener
+		s.capture.mockImplementation(() => {
+			throw new DOMException('no active pointer', 'NotFoundError')
+		})
+		s.el.dispatchEvent(pointer('pointerdown', { button: 0, pointerId: 23, clientX: 100, clientY: 100 }))
+
+		expect(() => {
+			s.el.dispatchEvent(pointer('pointermove', { pointerId: 23, clientX: 140, clientY: 100 }))
+		}).not.toThrow()
+		expect(s.ctx._capturedPointerId).toBe(23)
+
+		// One-shot: the next move does not call the throwing capture again, and still pans
+		s.el.dispatchEvent(pointer('pointermove', { pointerId: 23, clientX: 150, clientY: 100 }))
+		expect(s.capture).toHaveBeenCalledTimes(1)
+		expect(s.image?.camera.pan).toHaveBeenLastCalledWith(-10, 0)
+	})
+})
+
 describe('DragHandler — pointercancel', () => {
 	it('stops without kinetic or panend', () => {
 		const { scene: s, handler: h } = setup()

@@ -76,6 +76,12 @@ describe('PinchHandler — hooking', () => {
 			expect(s.ctx._pinching).toBe(true)
 
 			h.unhook()
+			// Nothing can end the pinch once its listeners are gone, so the flag is cleared
+			// here — otherwise it blocks every later drag and pinch for good.
+			expect(s.ctx._pinching).toBe(false)
+			expect(s.micrio.dataset.pinching).toBeUndefined()
+			expect(s.image?.camera._pinchStop).toHaveBeenCalled()
+
 			s.image?.camera._pinch.mockClear()
 			globalThis.dispatchEvent(touchEvent('touchmove', [touch(1, 0, 0, s.el), touch(2, 80, 0, s.el)]))
 			expect(s.image?.camera._pinch).not.toHaveBeenCalled()

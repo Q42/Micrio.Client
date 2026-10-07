@@ -62,6 +62,21 @@ describe('PointerPinchHandler — hooking', () => {
 		s.el.dispatchEvent(touchPointer('pointerdown', 2, 0, 0, s.el))
 		expect(s.ctx._activePointers.size).toBe(0)
 	})
+
+	it('ends a pinch in flight when unhooked', () => {
+		const { scene: s, handler: h } = setup()
+		h.hook()
+		s.el.dispatchEvent(touchPointer('pointerdown', 1, 100, 100, s.el))
+		s.el.dispatchEvent(touchPointer('pointerdown', 2, 140, 100, s.el))
+		expect(s.ctx._pinching).toBe(true)
+
+		// The move/up listeners are gone with the hook, so nothing can ever end the pinch:
+		// the flag has to be cleared here or every later drag and pinch is ignored.
+		h.unhook()
+		expect(s.ctx._pinching).toBe(false)
+		expect(s.micrio.dataset.pinching).toBeUndefined()
+		expect(s.image?.camera._pinchStop).toHaveBeenCalled()
+	})
 })
 
 describe('PointerPinchHandler — start', () => {
