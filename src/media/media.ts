@@ -454,9 +454,14 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			this.#tourInstance = new VideoTourInstance(p.image, p.tour)
 
 			if (this.#mediaEl) {
+				// Captured, not read back from `#mediaEl` at teardown time: `#createAudioElement`'s
+				// own cleanup clears that field, which left this listener attached.
+				const el = this.#mediaEl
 				const onPlay = () => this.#tourInstance?.play()
-				this.#mediaEl.addEventListener('play', onPlay)
-				this._addCleanup(() => this.#mediaEl?.removeEventListener('play', onPlay))
+				el.addEventListener('play', onPlay)
+				this._addCleanup(() => {
+					el.removeEventListener('play', onPlay)
+				})
 			}
 
 			if (isStandaloneVideoTour) {
@@ -492,10 +497,14 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					this.#tourInstance.play()
 				}
 			} else {
+				// Captured for the same reason as the `play` listener above
+				const el = this.#mediaEl
 				const onEnded = () => this.#tourInstance?.pause()
-				this.#mediaEl?.addEventListener('ended', onEnded)
-				this._addCleanup(() => this.#mediaEl?.removeEventListener('ended', onEnded))
-				if (!this.#mediaEl?.paused) {
+				el?.addEventListener('ended', onEnded)
+				this._addCleanup(() => {
+					el?.removeEventListener('ended', onEnded)
+				})
+				if (!el?.paused) {
 					this.#tourInstance?.play()
 				}
 			}
@@ -811,7 +820,12 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 	/** @internal */
 	_onDestroy() {
+		// A media element keeps playing after it is detached from the DOM, and the figure holding it
+		// goes away with this element: closing an audio or Cloudflare tour would leave the sound
+		// running. Pausing here (while `#mediaEl` is still set) is the one place that covers every
+		// element kind; the tour is torn down first so it cannot restart playback.
 		this.#tourInstance?.destroy()
+		this.#mediaEl?.pause()
 		this.#adapter?.destroy()
 		this.#stopAdapterTick()
 		this.#subEl?.remove()
