@@ -37,6 +37,19 @@ Key source directories under `./src/`:
 | `media/`   | Video tour and embedded video controllers                            |
 | `types/`   | TypeScript type definitions and models                               |
 
+## Project layout
+
+| Path                                                   | What it is                                                                                                                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/`                                                 | The client source (see [Architecture](#architecture))                                                                                                                                                                          |
+| `tests/`                                               | The Vitest suites, fixtures and helpers (see [TESTING.md](TESTING.md))                                                                                                                                                         |
+| `bin/`                                                 | This repo's own Node tools, run from the repo root: `bundle.js` (finalizes the production bundle after `vite build`) and `publish.js` (pushes a release)                                                                       |
+| `build/stubs/`                                         | TypeScript stubs that `vite.config.js` aliases for the **minimal** build, standing in for the modules it excludes. Not build output                                                                                            |
+| `templates/`                                           | The grid story demo and its API docs                                                                                                                                                                                           |
+| `public/build/`                                        | Intermediate build output (`vite build`), consumed by `bin/bundle.js`; gitignored                                                                                                                                              |
+| `public/dist/`                                         | Where `bin/bundle.js` writes the published bundle (`micrio.min.js`, `micrio.core.min.js`, `micrio.min.d.ts` — all generated and gitignored). Only the tracked `package.json` + `README.md` that wrap the npm package live here |
+| `vite.config.js`, `vitest.config.ts`, `tsconfig*.json` | Tool configuration, at the root because the tools resolve them from there                                                                                                                                                      |
+
 ## Grid template
 
 An interactive demo of the grid storytelling API lives in

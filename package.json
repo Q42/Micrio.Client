@@ -5,10 +5,10 @@
 	"main": "micrio.js",
 	"type": "module",
 	"scripts": {
-		"build": "npm run lint && npm run format:check && vite build && vite build --mode minimal && tsc --project tsconfig.docs.json && node bundle.js",
+		"build": "npm run lint && npm run format:check && vite build && vite build --mode minimal && tsc --project tsconfig.docs.json && node bin/bundle.js",
 		"build:grid": "node templates/grid/build-grid.js",
 		"dev": "vite --port 2000",
-		"publish": "node publish.js",
+		"publish": "node bin/publish.js",
 		"docs": "npm run create:client --prefix ../Micrio.Server/doc.micr.io",
 		"format": "oxfmt",
 		"format:check": "oxfmt --check",
