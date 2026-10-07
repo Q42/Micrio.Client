@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { restoreArchiveXhr } from '../../fixtures/grid'
 import {
 	albumOf,
@@ -25,6 +25,7 @@ import type { OpenAlbum } from '../../fixtures/albums'
 afterEach(() => {
 	destroyAlbums()
 	restoreArchiveXhr()
+	vi.restoreAllMocks()
 })
 
 /** Opens a swipe album and gives the gallery a real box (the stylesheet is stubbed). */
@@ -194,6 +195,78 @@ describe('scrubber — pointer drag', () => {
 		)
 		expect(galleryEl(mounted.viewer.el)?.dataset.dragging).toBeUndefined()
 		expect(albumOf(mounted.viewer.el)?.currentIndex).toBe(0)
+	})
+})
+
+describe('scrubber — dense tick mapping', () => {
+	it('marks only the ticks that exist, for the page that owns them', async () => {
+		const mounted = await openScrubber(26)
+		const { viewer } = mounted
+		const album = albumOf(viewer.el)
+		if (!album) {
+			throw new Error('no album')
+		}
+		const activeTicks = () => scrubberTicks(viewer.el).filter((t) => t.dataset.active !== undefined)
+
+		// Step 2, so the ticks are pages 0, 2, 4 … 24, 25. Page index 5 has no tick, and the
+		// list the update matches against has to stay 1:1 with them: an extra entry for the
+		// current page shifted every later tick by one, marking the tick for page 6 instead.
+		await album.goto(5)
+		expect(activeTicks()).toHaveLength(0)
+
+		// A page that does have a tick still gets exactly that one (6 is the 4th tick)
+		await album.goto(6)
+		expect(activeTicks()).toHaveLength(1)
+		expect(scrubberTicks(viewer.el)[3]?.dataset.active).toBe('')
+	})
+})
+
+describe('scrubber — teardown', () => {
+	it('ends a drag when the gallery is destroyed', async () => {
+		const mounted = await openScrubber(4)
+		const { viewer } = mounted
+		const track = scrubberTrack(viewer.el)
+		const gallery = galleryEl(viewer.el)
+		if (!track || !gallery) {
+			throw new Error('no scrubber')
+		}
+
+		// Capture the exact move listener this drag registers on the window: the swipe gallery
+		// removes listeners of the same names on teardown, so the assertion has to name it.
+		const add = vi.spyOn(globalThis, 'addEventListener')
+		const before = add.mock.calls.length
+		track.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				pointerId: 12,
+				clientX: xForPage(track, 2, 4),
+				clientY: 10,
+				button: 0,
+				bubbles: true,
+			}),
+		)
+		expect(viewer.el._keepRendering).toBe(true)
+		const scrubMove = add.mock.calls.slice(before).find((c) => c[0] === 'pointermove')?.[1]
+		expect(scrubMove).toBeTypeOf('function')
+
+		const remove = vi.spyOn(globalThis, 'removeEventListener')
+		gallery.remove()
+
+		// The move/up listeners only ever come off in `#scrubStop`, so a gallery removed
+		// mid-drag kept scrubbing from a detached element — and left the viewer rendering
+		expect(remove.mock.calls.some((c) => c[1] === scrubMove)).toBe(true)
+		expect(viewer.el._keepRendering).toBe(false)
+		expect(gallery.dataset.dragging).toBeUndefined()
+
+		// ...and a later move no longer drives the detached scrubber
+		globalThis.dispatchEvent(
+			new PointerEvent('pointermove', {
+				pointerId: 12,
+				clientX: xForPage(track, 0, 4),
+				clientY: 10,
+				bubbles: true,
+			}),
+		)
+		expect(albumOf(viewer.el)?.currentIndex).toBe(2)
 	})
 })
 
