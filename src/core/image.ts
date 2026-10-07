@@ -388,6 +388,9 @@ export class MicrioImage {
 
 		// Bundle data
 		if ((!this._noImage || this._isOmni) && !s?.skipMeta && bundle.data) {
+			// Fired before the data is read, mirroring `pre-info`: the detail is the same object
+			// the store is about to hold, so a host handler can still alter its contents.
+			micrio.events._dispatch('pre-data', { [this.id]: bundle.data })
 			this.data.set(bundle.data)
 		}
 
