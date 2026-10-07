@@ -270,6 +270,12 @@ export class OmniUI {
 	/** Tear down the omni UI, remove listeners, and clean up resources. */
 	destroy(): void {
 		this.#destroyed = true
+		// A frame still queued would keep re-queueing itself and calling `#goto` on the torn-down
+		// canvas — the failure `Frame` has no way to notice on its own.
+		if (this.#raf) {
+			Frame.cancel(this.#raf)
+			this.#raf = undefined
+		}
 		this.#cleanSwiper()
 		for (const cleanup of this.#cleanups) {
 			cleanup()
