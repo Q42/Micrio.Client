@@ -23,6 +23,8 @@
   meaningful per-checklist item commits, keeping the description under 255
   characters. Do NOT create git commits by default outside of that flow —
   leave the working tree to the user.
+- **Do NOT use `/tmp` for anything.** This is a virtual sandbox directory
+  which is reset every turn.
 
 ## Testing
 
@@ -45,3 +47,6 @@
   it): that alone turned a 6s browser run into 30s of 100% CPU and made unrelated
   suites flake. `BookViewer._stop()` cancels the pending frame; the gallery calls
   it before replacing a book.
+- **Minimize full test runs.** A full test run costs about ~30s. When aiming for
+  specific tests, run only those. When collecting reusable test output data,
+  output the test to a temporary in-workspace file.
