@@ -154,6 +154,9 @@ export class Engine {
 	/** Array storing store unsubscriber functions. @internal */
 	#unsubscribe: Unsubscriber[] = []
 
+	/** Per-canvas unsubscribers, released when that canvas is removed. @internal */
+	#canvasUnsubs = new Map<MicrioImage, Unsubscriber>()
+
 	/** Maps engine-level Image instances to their MicrioImage for embedded images. @internal */
 	#engImageToMicrio = new Map<Image, MicrioImage | Models.Omni.Frame>()
 	/** Reverse map: MicrioImage → engine Image for O(1) lookup in video callbacks. @internal */
@@ -181,6 +184,9 @@ export class Engine {
 	#onVideoPlay = () => {
 		this.render()
 	}
+
+	/** The video element that currently has {@link #onVideoPlay} attached. @internal */
+	#currentVideo: HTMLVideoElement | undefined
 
 	/** Returns the engine TileCanvas for a MicrioImage, or undefined. @internal */
 	_getCanvas(img: MicrioImage | Models.Omni.Frame): TileCanvas | undefined {
@@ -356,6 +362,16 @@ export class Engine {
 		while (this.#unsubscribe.length > 0) {
 			this.#unsubscribe.pop()?.()
 		}
+		for (const unsub of this.#canvasUnsubs.values()) {
+			unsub()
+		}
+		this.#canvasUnsubs.clear()
+		// The last `video` emission added a listener to a real video element; unsubscribing does
+		// not run the callback that would remove it, so the element would keep the engine alive.
+		if (this.#currentVideo) {
+			this.#currentVideo.removeEventListener('play', this.#onVideoPlay)
+			this.#currentVideo = undefined
+		}
 		for (const src of this.#requests.values()) {
 			abortDownload(src)
 		}
@@ -396,9 +412,10 @@ export class Engine {
 			this._hasArchive = true
 			this._archiveLayerOffset = settings.gallery.archiveLayerOffset ?? 0
 		}
-		if (i.version && Number.parseFloat(i.version) <= 3.1) {
-			this._underzoomLevels = 8
-		}
+		// Both of these are engine-level, so they are set for *every* canvas rather than only
+		// when a bundle opts in: otherwise one v3.x (or `skipBaseLevels`) image downgrades the
+		// level of detail of every image opened afterwards in the same element.
+		this._underzoomLevels = i.version && Number.parseFloat(i.version) <= 3.1 ? 8 : 4
 
 		if (i.is360) {
 			settings.limitToCoverScale = false
@@ -482,9 +499,7 @@ export class Engine {
 		if (settings?.dragElasticity !== undefined) {
 			this._dragElasticity = settings.dragElasticity
 		}
-		if (settings?.skipBaseLevels) {
-			this._skipBaseLevels = settings.skipBaseLevels
-		}
+		this._skipBaseLevels = settings?.skipBaseLevels ?? 0
 
 		if (settings?.omni) {
 			canvas._omniDistance = -(settings.omni.distance ?? 0)
@@ -511,13 +526,17 @@ export class Engine {
 			settings.focus = undefined
 		}
 
+		// Scoped to this canvas rather than to the engine: `_removeCanvas` has to be able to
+		// release it, or a closed image keeps its video element subscribed forever.
 		let currentVideo: HTMLVideoElement | undefined
-		this.#unsubscribe.push(
+		this.#canvasUnsubs.set(
+			c,
 			c.video.subscribe((video) => {
 				if (currentVideo) {
 					currentVideo.removeEventListener('play', this.#onVideoPlay)
 				}
 				currentVideo = video ?? undefined
+				this.#currentVideo = currentVideo
 				if (currentVideo) {
 					currentVideo.addEventListener('play', this.#onVideoPlay)
 				}
@@ -611,6 +630,22 @@ export class Engine {
 		}
 		entry.canvas._remove()
 		this.#entryByImage.delete(c)
+		// `close()` + `open()` is a supported cycle, so everything this canvas held has to go:
+		// its tiles (a base tile is never evicted by `#cleanup`), its slot in `#images`, and the
+		// video subscription it registered. Otherwise each cycle keeps a WebGL texture and a
+		// reference to the image alive for the life of the element.
+		for (const img of entry.canvas.images) {
+			this.#releaseTiles(img)
+		}
+		const idx = this.#images.indexOf(c)
+		if (idx >= 0) {
+			this.#images[idx] = undefined
+		}
+		const unsub = this.#canvasUnsubs.get(c)
+		if (unsub) {
+			unsub()
+			this.#canvasUnsubs.delete(c)
+		}
 		// The image is unplaced again, so a later `#setCanvas` rebuilds its canvas. Leaving it
 		// "placed" — with no entry and no canvas — would make `#setCanvas` return early forever
 		// and the image could never be shown again.
@@ -729,6 +764,12 @@ export class Engine {
 		this.#requests.set(i, src)
 		;(inArchive ? archive._getImage(src) : loadTexture(src))
 			.then((img) => {
+				// The tile can be released while its download is in flight (`#releaseTiles` aborts
+				// what it can, but an already-completed fetch still resolves). Uploading then
+				// re-creates the entry and a GPU texture that nothing will ever free.
+				if (this.#requests.get(i) !== src) {
+					return
+				}
 				this.#gotTexture(i, img, ani, opts.noSmoothing)
 			})
 			.catch(() => {
