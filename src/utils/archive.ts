@@ -146,7 +146,6 @@ class Archive {
 	 */
 	get = <T>(u: string): Promise<T> =>
 		new Promise((ok, err) => {
-			// Added err callback
 			const i = this.db.get(u) // Look up file index [archiveId, offset, size]
 			const data = i && this.#data.get(i[0])
 			if (!i || !data) {
@@ -156,13 +155,23 @@ class Archive {
 			const fr = new FileReader()
 			fr.addEventListener('load', () => {
 				const { result } = fr
-				if (typeof result === 'string') {
+				if (typeof result !== 'string') {
+					err(new Error(`Could not read blob: ${u}`))
+					return
+				}
+				// A throwing `JSON.parse` inside this listener is an uncaught window error, and the
+				// promise would stay pending forever — the caller awaiting it (the gallery index)
+				// would simply never run.
+				try {
 					// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- archived JSON has no runtime schema; the caller declares `T`
 					ok(JSON.parse(result) as T)
-				} // Parse JSON and resolve
-				else {
-					err(new Error(`Could not read blob: ${u}`))
+				} catch (e) {
+					err(e instanceof Error ? e : new Error(`Could not parse blob: ${u}`))
 				}
+			})
+			// A read failure (blob detached, OOM) must settle too, or the promise hangs as well
+			fr.addEventListener('error', () => {
+				err(new Error(`Could not read blob: ${u}`))
 			})
 			// Create a Blob from the specific byte range in the archive ArrayBuffer
 			fr.readAsText(new Blob([new Uint8Array(data, i[1], i[2])])) // Read Blob as text
