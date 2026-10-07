@@ -127,6 +127,9 @@ export class BookViewer {
 
 	#images: Models.ImageInfo.ImageInfo[] = []
 
+	/** True once the input/window listeners are attached, so `_stop` only detaches what exists. */
+	#listenersReady = false
+
 	#meshes: PaperMesh[] = []
 	#renderer!: PaperRenderer
 	#inputHandler!: InputHandler
@@ -792,6 +795,19 @@ export class BookViewer {
 	_stop(): void {
 		this.#stopped = true
 		Frame.cancel(this.#frame)
+		// A viewer that never got past WebGL setup has no listeners or handlers to detach.
+		if (!this.#listenersReady) {
+			return
+		}
+		// A discarded viewer must not keep handling input or window events: its pointers would
+		// fight the viewer that replaced it on the same canvas, and the global listeners keep
+		// the whole viewer (renderer, textures, meshes) reachable for the life of the page.
+		this.#inputHandler._destroy()
+		window.removeEventListener('resize', this.#onWindowResize)
+		document.removeEventListener('visibilitychange', this.#onVisibilityChange)
+		const canvas = this.#renderer._getCanvas()
+		canvas.removeEventListener('webglcontextlost', this.#onContextLost)
+		canvas.removeEventListener('webglcontextrestored', this.#onContextRestored)
 	}
 
 	_nextPage(grabRow?: number): void {
@@ -1005,11 +1021,8 @@ export class BookViewer {
 		this.#setupInputCallbacks()
 		this.#setupResizeAndContextHandlers(canvas)
 
-		document.addEventListener('visibilitychange', () => {
-			if (document.hidden) {
-				this.#lastTime = 0
-			}
-		})
+		document.addEventListener('visibilitychange', this.#onVisibilityChange)
+		this.#listenersReady = true
 
 		return true
 	}
@@ -1183,30 +1196,46 @@ export class BookViewer {
 	}
 
 	#setupResizeAndContextHandlers(canvas: HTMLCanvasElement): void {
-		window.addEventListener('resize', () => {
-			this.#renderer._resize()
-			this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight)
-			this.#requestFrame()
-		})
+		window.addEventListener('resize', this.#onWindowResize)
+		canvas.addEventListener('webglcontextlost', this.#onContextLost)
+		canvas.addEventListener('webglcontextrestored', this.#onContextRestored)
+	}
 
-		canvas.addEventListener('webglcontextlost', (e) => {
-			console.warn('WebGL context lost.')
-			e.preventDefault()
-		})
+	/** Bound so `_stop` can detach it from `window`. @internal */
+	#onWindowResize = (): void => {
+		const canvas = this.#renderer._getCanvas()
+		this.#renderer._resize()
+		this.#camera._setCanvasSize(canvas.clientWidth, canvas.clientHeight)
+		this.#requestFrame()
+	}
 
-		canvas.addEventListener('webglcontextrestored', () => {
-			console.log('WebGL context restored.')
-			const gl = canvas.getContext('webgl2', {
-				alpha: true,
-				premultipliedAlpha: true,
-				antialias: true,
-			})
-			if (gl && this.#renderer !== undefined) {
-				this.#renderer = new PaperRenderer(gl)
-				this.#renderer._seeThroughMargins = this.#seeThroughMargins
-				this.#renderer._initialize(this.#meshes)
-			}
+	/** @internal */
+	#onContextLost = (e: Event): void => {
+		console.warn('WebGL context lost.')
+		e.preventDefault()
+	}
+
+	/** @internal */
+	#onContextRestored = (): void => {
+		console.log('WebGL context restored.')
+		const canvas = this.#renderer._getCanvas()
+		const gl = canvas.getContext('webgl2', {
+			alpha: true,
+			premultipliedAlpha: true,
+			antialias: true,
 		})
+		if (gl && this.#renderer !== undefined) {
+			this.#renderer = new PaperRenderer(gl)
+			this.#renderer._seeThroughMargins = this.#seeThroughMargins
+			this.#renderer._initialize(this.#meshes)
+		}
+	}
+
+	/** Bound so `_stop` can detach it from `document`. @internal */
+	#onVisibilityChange = (): void => {
+		if (document.hidden) {
+			this.#lastTime = 0
+		}
 	}
 
 	#raycastForDrag(screenX: number, screenY: number): PageDragResult | null {

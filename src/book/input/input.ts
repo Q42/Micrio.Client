@@ -39,6 +39,26 @@ export class InputHandler {
 	#isDragging = false
 	#dragStartFired = false
 
+	/** Bound listeners, kept so `_destroy` can detach exactly what was attached. @internal */
+	#onCanvasPointerDown = (e: PointerEvent) => {
+		this.#onPointerDown(e)
+	}
+	#onCanvasWheel = (e: WheelEvent) => {
+		this.#onWheel(e)
+	}
+	#onCanvasContextMenu = (e: Event) => {
+		e.preventDefault()
+	}
+	#onGlobalPointerMove = (e: PointerEvent) => {
+		this.#onPointerMove(e)
+	}
+	#onGlobalPointerUp = (e: PointerEvent) => {
+		this.#onPointerUp(e)
+	}
+	#onGlobalPointerCancel = (e: PointerEvent) => {
+		this.#onPointerCancel(e)
+	}
+
 	constructor(canvas: HTMLCanvasElement, camera: OrbitCamera, onActivity: () => void) {
 		this.#canvas = canvas
 		this.#camera = camera
@@ -49,29 +69,31 @@ export class InputHandler {
 
 	#setupListeners(): void {
 		const c = this.#canvas
-		c.addEventListener('pointerdown', (e) => {
-			this.#onPointerDown(e)
-		})
-		globalThis.addEventListener('pointermove', (e) => {
-			this.#onPointerMove(e)
-		})
-		globalThis.addEventListener('pointerup', (e) => {
-			this.#onPointerUp(e)
-		})
-		globalThis.addEventListener('pointercancel', (e) => {
-			this.#onPointerCancel(e)
-		})
+		c.addEventListener('pointerdown', this.#onCanvasPointerDown)
+		globalThis.addEventListener('pointermove', this.#onGlobalPointerMove)
+		globalThis.addEventListener('pointerup', this.#onGlobalPointerUp)
+		globalThis.addEventListener('pointercancel', this.#onGlobalPointerCancel)
+		c.addEventListener('wheel', this.#onCanvasWheel, { passive: false })
+		c.addEventListener('contextmenu', this.#onCanvasContextMenu)
+	}
 
-		c.addEventListener(
-			'wheel',
-			(e) => {
-				this.#onWheel(e)
-			},
-			{ passive: false },
-		)
-		c.addEventListener('contextmenu', (e) => {
-			e.preventDefault()
-		})
+	/**
+	 * Detaches every listener this handler added.
+	 *
+	 * Required teardown: the pointer listeners live on `globalThis`, so without this a discarded
+	 * viewer keeps receiving pointer events (and stays reachable) for the life of the page, and
+	 * a viewer that replaced it on the same canvas handles every event twice.
+	 * @internal
+	 */
+	_destroy(): void {
+		const c = this.#canvas
+		c.removeEventListener('pointerdown', this.#onCanvasPointerDown)
+		globalThis.removeEventListener('pointermove', this.#onGlobalPointerMove)
+		globalThis.removeEventListener('pointerup', this.#onGlobalPointerUp)
+		globalThis.removeEventListener('pointercancel', this.#onGlobalPointerCancel)
+		// `passive` is not part of listener identity, so the removal takes no options
+		c.removeEventListener('wheel', this.#onCanvasWheel)
+		c.removeEventListener('contextmenu', this.#onCanvasContextMenu)
 	}
 
 	// ═══ Pointer events ═══════════════════════════════════════════
