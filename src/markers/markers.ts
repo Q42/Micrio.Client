@@ -136,6 +136,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					el.remove()
 				}
 			}
+			const isOmni = image._isOmni
 			for (const g of clusters) {
 				const id = g.join(',')
 				if (this.querySelector(`:scope > micrio-marker.cluster[data-marker-id="${CSS.escape(id)}"]`)) {
@@ -143,17 +144,34 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				}
 				const cx = g.reduce((s, i) => s + markers[i].x, 0) / g.length
 				const cy = g.reduce((s, i) => s + markers[i].y, 0) / g.length
-				const minX = Math.min(...g.map((i) => (markers[i].view ? markers[i].view[0] : markers[i].x)))
-				const maxX = Math.max(
-					...g.map((i) => (markers[i].view ? markers[i].view[0] + markers[i].view[2] : markers[i].x)),
-				)
-				const minY = Math.min(...g.map((i) => (markers[i].view ? markers[i].view[1] : markers[i].y)))
-				const maxY = Math.max(
-					...g.map((i) => (markers[i].view ? markers[i].view[1] + markers[i].view[3] : markers[i].y)),
-				)
-				const viewW = Math.max(0.1, maxX - minX)
-				const viewH = Math.max(0.1, maxY - minY)
-				const view = [minX + (maxX - minX) / 2 - viewW / 2, minY + (maxY - minY) / 2 - viewH / 2, viewW, viewH]
+				// An Omni member is projected in 3D from its rotation and radius, so the cluster
+				// has to carry those too (`_getXYDirect` only takes the Omni branch when a
+				// rotation is given) — and it zooms to a fixed box, not to the members' views.
+				let view: Models.Camera.View
+				let avgRotation: number | undefined
+				let avgRadius: number | undefined
+				if (isOmni) {
+					const viewSize = 0.3
+					const minX = Math.max(0, cx - viewSize / 2)
+					const minY = Math.max(0, cy - viewSize / 2)
+					const maxX = Math.min(1, cx + viewSize / 2)
+					const maxY = Math.min(1, cy + viewSize / 2)
+					view = [minX, minY, Math.max(0.1, maxX - minX), Math.max(0.1, maxY - minY)]
+					avgRotation = g.reduce((s, i) => s + (markers[i].rotation ?? 0), 0) / g.length
+					avgRadius = g.reduce((s, i) => s + (markers[i].radius ?? 1), 0) / g.length
+				} else {
+					const minX = Math.min(...g.map((i) => (markers[i].view ? markers[i].view[0] : markers[i].x)))
+					const maxX = Math.max(
+						...g.map((i) => (markers[i].view ? markers[i].view[0] + markers[i].view[2] : markers[i].x)),
+					)
+					const minY = Math.min(...g.map((i) => (markers[i].view ? markers[i].view[1] : markers[i].y)))
+					const maxY = Math.max(
+						...g.map((i) => (markers[i].view ? markers[i].view[1] + markers[i].view[3] : markers[i].y)),
+					)
+					const viewW = Math.max(0.1, maxX - minX)
+					const viewH = Math.max(0.1, maxY - minY)
+					view = [minX + (maxX - minX) / 2 - viewW / 2, minY + (maxY - minY) / 2 - viewH / 2, viewW, viewH]
+				}
 				createElement('micrio-marker', {
 					attrs: { 'data-marker-id': id },
 					setProps: {
@@ -163,6 +181,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 							y: cy,
 							type: 'cluster',
 							view,
+							rotation: avgRotation,
+							radius: avgRadius,
 							data: {},
 							popupType: 'none',
 							tags: [],
