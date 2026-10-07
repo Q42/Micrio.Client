@@ -75,6 +75,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#settings: Writable<Models.ImageInfo.Settings> | undefined
 	#settingsUnsub: (() => void) | undefined
 	#firstInited = false
+	/** The tour the currently shown tour element was built for. @internal */
+	#tourShown: Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined
 	#logoOrg: Models.ImageInfo.Organisation | undefined
 	#activePopupMarkerId: string | undefined
 	#markerElements = new Map<string, HTMLElement>()
@@ -489,6 +491,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			// Don't remove — let the popup animate out via its destroying class
 			this.#elements.set('popup', null)
 			this.#activePopupMarkerId = undefined
+		}
+
+		// `micrio-tour`/`micrio-serial-tour` wire their tour in `_onMount` and have no update path,
+		// so a different tour object needs its own element: reusing the connected one would keep
+		// the previous tour's media, controls and `next`/`prev` callbacks, and its tag can differ
+		// too (a marker tour replacing the running video tour, e.g. from a content-page button).
+		if ($tour !== this.#tourShown) {
+			this.#elements.get('tour')?.remove()
+			this.#elements.set('tour', null)
+			this.#tourShown = $tour
 		}
 
 		this.#show('tour', Boolean($tour), () => {
