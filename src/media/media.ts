@@ -587,14 +587,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			}
 
 			const update = (): void => {
-				const el = this.#mediaEl
-				if (el) {
-					this.#currentTime = el.currentTime
-					this.#duration = el.duration || 0
-					this.#paused = el.paused
-					this.#ended = el.ended || false
-					this.#seeking = el.seeking
-					this.#muted = el.muted
+				if (this.#mediaEl) {
+					this.#readElState()
 				} else if (this.#tourInstance) {
 					return // tour-only uses its own interval
 				} else if (this.#adapter) {
@@ -670,10 +664,15 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					this._getMicrio()?.events._dispatch(paused ? 'media-pause' : 'media-play')
 				}
 				const onUpdate = (): void => {
+					// Read the element state here too: with `controls: false` there is no `update`
+					// helper to do it, and the tour clock, subtitles and `timeupdate` all read
+					// `#currentTime` — which would otherwise stay at 0 for the whole tour.
+					this.#readElState()
 					updateControls?.()
 					reportPlayback()
 				}
 				const onTimeUpdate = () => {
+					this.#readElState()
 					updateControls?.()
 					this.#subEl?._setProps?.({ time: this.#currentTime })
 					this.#tourInstance?.updateEvents(this.#currentTime)
@@ -773,6 +772,27 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			clearInterval(this.#adapterTick)
 			this.#adapterTick = undefined
 		}
+	}
+
+	/**
+	 * Reads the live state of the current media element into the component's fields.
+	 *
+	 * The clock lives here rather than inside the controls-guarded `update`, because a
+	 * `controls: false` tour still needs `#currentTime` (for its tour events, subtitles and
+	 * `timeupdate`) even though it has no control bar to write it into.
+	 * @internal
+	 */
+	#readElState(): void {
+		const el = this.#mediaEl
+		if (!el) {
+			return
+		}
+		this.#currentTime = el.currentTime
+		this.#duration = el.duration || 0
+		this.#paused = el.paused
+		this.#ended = el.ended || false
+		this.#seeking = el.seeking
+		this.#muted = el.muted
 	}
 
 	#updateControls() {
