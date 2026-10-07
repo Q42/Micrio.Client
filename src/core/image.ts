@@ -376,8 +376,12 @@ export class MicrioImage {
 			}
 		}
 
-		// Zoom levels
-		for (let f = i.tileSize ?? DEFAULT_TILE_SIZE; f < Math.max(i.width, i.height); f *= 2, this._levels++) {}
+		// Zoom levels. `??` keeps a `0` (or negative) tile size, which `f *= 2` can never grow out
+		// of, so the loop — and with it this constructor on the main thread — would never end.
+		// Unvalidated bundle/host data reaches here, so only a real positive size counts.
+		const rawTileSize = i.tileSize
+		const tileSize = typeof rawTileSize === 'number' && rawTileSize > 0 ? rawTileSize : DEFAULT_TILE_SIZE
+		for (let f = tileSize; f < Math.max(i.width, i.height); f *= 2, this._levels++) {}
 		let max = Math.max(i.width, i.height)
 		do {
 			this.#dzLevels++
