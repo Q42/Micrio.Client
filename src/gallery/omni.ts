@@ -42,6 +42,8 @@ export class OmniUI {
 	#firstTouchId: number | undefined
 	#goto: (i: number) => void = () => {}
 	#preloadRangeFn: PreloadRangeFn
+	/** Set by `destroy`, so an in-flight `setup` does not keep going. */
+	#destroyed = false
 	#cleanups: (() => void)[] = []
 
 	/** Navigate to a specific frame index. */
@@ -113,6 +115,14 @@ export class OmniUI {
 					micrio._ui?._setProps?.({ loadingProgress: p }),
 				)
 				.catch(() => {})
+		}
+
+		// The archive fetch can take seconds, and the gallery may have been removed in the
+		// meantime: continuing would build the dial into a detached parent, add a `pointerdown`
+		// listener to the shared canvas and leave `_noPinchPan`/`_isSwipe` set on the engine
+		// (which `#cleanSwiper` has already cleared), so the next image inherits them.
+		if (this.#destroyed) {
+			return
 		}
 
 		image.canvas?._setActiveImage(startIdx, 0)
@@ -259,6 +269,7 @@ export class OmniUI {
 
 	/** Tear down the omni UI, remove listeners, and clean up resources. */
 	destroy(): void {
+		this.#destroyed = true
 		this.#cleanSwiper()
 		for (const cleanup of this.#cleanups) {
 			cleanup()
