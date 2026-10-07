@@ -23,6 +23,9 @@ class MicrioZoomButtons extends MicrioElement {
 			return imgs.length === 1 ? imgs[0] : micrio.$current
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of appending a second pair of buttons
+		this.replaceChildren()
+
 		this.#btnIn = createElement('micrio-button', { parent: this })
 		if (this.#btnIn instanceof MicrioElement) {
 			this.#btnIn._setProps({ type: 'zoomIn', onclick: () => resolveTarget()?.camera.zoomIn() })

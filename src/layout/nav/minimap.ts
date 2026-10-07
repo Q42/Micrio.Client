@@ -51,6 +51,9 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			return
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of appending a second canvas
+		this.replaceChildren()
+
 		const info = image.$info
 		const { camera } = image
 		const settings = image.$settings

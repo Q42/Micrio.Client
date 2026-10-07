@@ -50,6 +50,9 @@ class MicrioDetails extends MicrioElement<DetailsProps> {
 			return
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of appending a second block
+		this.replaceChildren()
+
 		this.#detailsEl = createElement('details', {
 			parent: this,
 		})

@@ -42,6 +42,9 @@ class MicrioProgressCircle extends MicrioElement<ProgressCircleProps> {
 			parent: svg,
 		})
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of appending a second circle
+		this.replaceChildren()
+
 		this.append(svg)
 		this.#progressCircle = pc
 		this.#update()

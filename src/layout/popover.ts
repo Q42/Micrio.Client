@@ -31,6 +31,9 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			return
 		}
 
+		// A reconnect re-runs `_onMount`, so rebuild instead of stacking a second dialog
+		this.replaceChildren()
+
 		this.#dialog = createElement('dialog', {
 			events: {
 				close: () => {
