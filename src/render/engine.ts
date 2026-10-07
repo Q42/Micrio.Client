@@ -668,6 +668,20 @@ export class Engine {
 		if (!entry) {
 			return
 		}
+		// Embeds share their parent's canvas, so they have to be detached with it. Leaving their
+		// entries pointing at a canvas that is no longer in `_canvases`, with `_placed` still
+		// true, makes the re-add loop in `#setCanvas` skip them (`_addEmbed` returns early), so
+		// they would never be drawn again after `close()` + `open()`.
+		const embeds: (MicrioImage | Models.Omni.Frame)[] = []
+		for (const img of entry.canvas.images) {
+			const owner = this.#engImageToMicrio.get(img)
+			if (owner !== undefined && owner !== c) {
+				embeds.push(owner)
+			}
+		}
+		for (const embed of embeds) {
+			this._removeEmbed(embed)
+		}
 		entry.canvas._remove()
 		this.#entryByImage.delete(c)
 		// `close()` + `open()` is a supported cycle, so everything this canvas held has to go:
@@ -1103,7 +1117,7 @@ export class Engine {
 	 * every lookup and frees its tiles. Called from `MicrioImage._releaseOrphans`.
 	 * @internal
 	 */
-	_removeEmbed(image: MicrioImage): void {
+	_removeEmbed(image: MicrioImage | Models.Omni.Frame): void {
 		const entry = this.#entryByImage.get(image)
 		const engImage = this.#micrioToEngImage.get(image)
 		this.#entryByImage.delete(image)
