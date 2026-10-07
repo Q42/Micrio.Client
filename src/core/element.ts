@@ -426,8 +426,11 @@ export class HTMLMicrioElement extends MicrioElement {
 		// ── Idle detection (data-idle after inactivity) ────────────────
 		// Skipped in the core build — the move listener it attaches costs CPU,
 		// and the CSS that consumes `data-idle` is stubbed out there anyway.
+		// `_onMount` runs again on every reconnect, so the listeners are attached once: a second
+		// set would never be removed (only `destroy` removes the current closure) and the global
+		// keydown would pin the detached element, its images and its engine for the page lifetime.
 
-		if (!__CORE__) {
+		if (!__CORE__ && !this.#onActivity) {
 			this.#idle = new IdleState(this, {
 				shouldIdle: () => {
 					if (document.activeElement && this.contains(document.activeElement)) {
