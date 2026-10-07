@@ -166,7 +166,19 @@ export class Grid extends MicrioElement<GridProps> {
 		this.#clearTimeouts()
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
+		if (this.#_tourEventHandler) {
+			this.micrio.removeEventListener('tour-event', this.#_tourEventHandler)
+		}
+		if (this.#onSerialPause) {
+			this.micrio.removeEventListener('serialtour-pause', this.#onSerialPause)
+		}
+		if (this.#onSerialPlay) {
+			this.micrio.removeEventListener('serialtour-play', this.#onSerialPlay)
+		}
 	}
+
+	#onSerialPause?: () => void
+	#onSerialPlay?: () => void
 
 	#hook() {
 		this.micrio.state.marker.subscribe((m) => {
@@ -224,16 +236,18 @@ export class Grid extends MicrioElement<GridProps> {
 
 		this.#_tourEventHandler = createTourEventHandler(this)
 		this.micrio.addEventListener('tour-event', this.#_tourEventHandler)
-		this.micrio.addEventListener('serialtour-pause', () => {
+		this.#onSerialPause = () => {
 			for (const i of this._images) {
 				i.camera.pause()
 			}
-		})
-		this.micrio.addEventListener('serialtour-play', () => {
+		}
+		this.#onSerialPlay = () => {
 			for (const i of this._images) {
 				i.camera.resume()
 			}
-		})
+		}
+		this.micrio.addEventListener('serialtour-pause', this.#onSerialPause)
+		this.micrio.addEventListener('serialtour-play', this.#onSerialPlay)
 	}
 
 	/** @internal */
@@ -494,6 +508,9 @@ export class Grid extends MicrioElement<GridProps> {
 			}
 			tile.dataset.id = i.id
 			tile.dataset.scrollThrough = ''
+			// The tiles are keyboard focus targets (`keyboard.ts` moves focus between them),
+			// so they need a name: without one every cell reads as just "button".
+			tile.setAttribute('aria-label', this._imageMap.get(i.id)?.$info?.title ?? i.id)
 			this.append(tile)
 		}
 
@@ -537,13 +554,15 @@ export class Grid extends MicrioElement<GridProps> {
 			return
 		}
 		this.classList.remove('grid-cells-hidden')
+		// `done()` and `placeOrRemove` both reach here in one `set()` when a focussed image is
+		// blurred, so the previous subscription has to go or every focus/blur cycle adds one.
+		this.#viewUnsub?.()
 		this.#viewUnsub = this.image.state.view.subscribe(this.#updateGrid)
 	}
 
 	#removeGrid(): void {
-		if (this.#viewUnsub) {
-			this.#viewUnsub()
-		}
+		this.#viewUnsub?.()
+		this.#viewUnsub = undefined
 		this.classList.add('grid-cells-hidden')
 	}
 
