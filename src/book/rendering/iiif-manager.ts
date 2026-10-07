@@ -63,6 +63,32 @@ export class IIIFTextureManager {
 		}
 	}
 
+	/**
+	 * Re-points the manager at a renderer built for a restored WebGL context and forgets every
+	 * downloaded level: their GPU handles died with the old context, and the level numbers would
+	 * otherwise keep `#upgradeZoomedPages` from ever fetching them again. The reset mirrors the
+	 * per-side state `#evictDistant` clears.
+	 * @internal
+	 */
+	_rebind(renderer: PaperRenderer): void {
+		this.#renderer = renderer
+		for (const page of this.#states) {
+			for (const s of page) {
+				if (s._downloadState === 'downloading' && s._controller) {
+					s._controller.abort()
+				}
+				s._downloadState = 'idle'
+				s._currentLevel = 0
+				s._targetLevel = 0
+				s._controller = null
+				s._visibleSince = 0
+				s._fadeProgress = 0
+				s._fadeType = 'in'
+				s._activeSlot = 0
+			}
+		}
+	}
+
 	#newSideState(imageId: string, originalWidth: number): PageSideState {
 		return {
 			_downloadState: 'idle',

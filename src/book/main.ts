@@ -113,6 +113,10 @@ export class BookViewer {
 
 	#hardCover: boolean
 	#seeThroughMargins: boolean
+	/** The resolved tilt-shift flag, re-applied to a renderer built for a restored WebGL context. */
+	#tiltShift!: boolean
+	/** The resolved lighting preset name, re-applied to a renderer built for a restored context. */
+	#lightingPreset!: string
 	/** When false, the 90° rotate-view feature is disabled and its UI is hidden. */
 	#allowRotation: boolean
 
@@ -1007,7 +1011,9 @@ export class BookViewer {
 		this.#camera._panBoundsMax = new Vec3(absX, maxY, maxZ)
 
 		this.#renderer = new PaperRenderer(gl)
-		this.#renderer._tiltShiftEnabled = options._tiltShift ?? TILT_SHIFT_ENABLED
+		this.#tiltShift = options._tiltShift ?? TILT_SHIFT_ENABLED
+		this.#lightingPreset = options._lightingPreset ?? LIGHTING_PRESET
+		this.#renderer._tiltShiftEnabled = this.#tiltShift
 		this.#renderer._seeThroughMargins = this.#seeThroughMargins
 		this.#renderer._initialize(this.#meshes)
 		this.#renderer._setBoundingBox(
@@ -1030,7 +1036,7 @@ export class BookViewer {
 		this.#inputHandler = new InputHandler(canvas, this.#camera, this.#requestFrame)
 		this.#inputHandler._isZoomedInFn = () => this.isZoomedIn()
 
-		const preset = options._lightingPreset ?? LIGHTING_PRESET
+		const preset = this.#lightingPreset
 		this.setLightingPreset(preset)
 
 		this.#applyBinding()
@@ -1241,10 +1247,38 @@ export class BookViewer {
 			antialias: true,
 		})
 		if (gl && this.#renderer !== undefined) {
-			this.#renderer = new PaperRenderer(gl)
-			this.#renderer._seeThroughMargins = this.#seeThroughMargins
-			this.#renderer._initialize(this.#meshes)
+			this.#restoreRenderer(gl)
 		}
+	}
+
+	/**
+	 * Rebuilds the renderer for a restored WebGL context.
+	 *
+	 * The restored context gives a brand-new `PaperRenderer` whose programs, buffers and textures
+	 * all have to be created again, and none of the state `#initGeometry` installed on the old one
+	 * survives a new instance: without re-applying it the pages fall back to the flat texture
+	 * (permanently, since `#loadPageTextures` only runs from the load path), the bounding box stops
+	 * clamping and the lighting/tilt-shift preset is gone. The page textures are re-uploaded and the
+	 * IIIF manager is re-pointed at the new renderer with its downloaded levels dropped, because
+	 * their GPU handles died with the old context.
+	 * @internal
+	 */
+	#restoreRenderer(gl: WebGL2RenderingContext): void {
+		this.#renderer = new PaperRenderer(gl)
+		this.#renderer._tiltShiftEnabled = this.#tiltShift
+		this.#renderer._seeThroughMargins = this.#seeThroughMargins
+		this.#renderer._initialize(this.#meshes)
+		const min = this.#camera._panBoundsMin
+		const max = this.#camera._panBoundsMax
+		if (min && max) {
+			this.#renderer._setBoundingBox({ x: min._x, y: min._y, z: min._z }, { x: max._x, y: max._y, z: max._z })
+		}
+		if (this.#frontRegions.length > 0) {
+			this.#renderer._setAspectRegions(this.#frontRegions, this.#backRegions)
+		}
+		this.setLightingPreset(this.#lightingPreset)
+		void this.#loadPageTextures(this.#images)
+		this.#iiifManager?._rebind(this.#renderer)
 	}
 
 	/** Bound so `_stop` can detach it from `document`. @internal */
