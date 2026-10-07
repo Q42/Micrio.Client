@@ -795,6 +795,22 @@ export class BookViewer {
 	_stop(): void {
 		this.#stopped = true
 		Frame.cancel(this.#frame)
+		// A `goto()` cascade has to stop with the viewer: every pending step calls
+		// `_nextPage`/`_prevPage`, whose `#onPageChange` drives the gallery and therefore the
+		// *replacement* viewer, dragging it to this one's page indices.
+		if (this.#gotoStep) {
+			Frame.cancel(this.#gotoStep)
+			this.#gotoStep = undefined
+		}
+		this.#gotoStepping = false
+		// Resolve whoever is waiting on that cascade instead of leaving them on the 3 s fallback.
+		if (this.#gotoDone.length > 0) {
+			const cbs = this.#gotoDone
+			this.#gotoDone = []
+			for (const cb of cbs) {
+				cb()
+			}
+		}
 		// A viewer that never got past WebGL setup has no listeners or handlers to detach.
 		if (!this.#listenersReady) {
 			return
