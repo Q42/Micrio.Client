@@ -189,11 +189,8 @@ export default class Camera2D extends EngineCamera {
 		const c = this.canvas
 		this._minScale = c._coverLimit ? this._coverScale : this.#fullScale
 
-		if (
-			!noLimit &&
-			!c.main._isSwipe &&
-			((c._activeImageIdx === 0 && !c._coverLimit) || (c._activeImageIdx > 0 && !c._coverLimit))
-		) {
+		// Both disjuncts required `!c._coverLimit`, so the whole condition reduced to it.
+		if (!noLimit && !c.main._isSwipe && !c._coverLimit) {
 			const aH = c.focus.height * c.height,
 				aW = c.focus.width * c.width
 			const cH = c.el.height,
