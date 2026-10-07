@@ -80,9 +80,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#markerElements = new Map<string, HTMLElement>()
 	#embedElements = new Map<string, HTMLElement>()
 	#audioController: MicrioAudioController | undefined
+	/** The image the audio controller was built for: it captures that image's playlist and 360
+	 *  geometry, so moving to another audio image needs a fresh one. */
+	#audioImage: MicrioImage | undefined
 	#destroyAudio(): void {
 		this.#audioController?.destroy()
 		this.#audioController = undefined
+		this.#audioImage = undefined
 	}
 
 	#layers = [
@@ -363,7 +367,13 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			!($markerPopup && isMobile)
 
 		if (hasAudio && Boolean($data) && Boolean($info) && micrio.$current) {
+			// Rebuilt when the viewer moves to a different audio image: otherwise the first image's
+			// music keeps playing and the second image's never starts.
+			if (this.#audioController && this.#audioImage !== micrio.$current) {
+				this.#destroyAudio()
+			}
 			if (!this.#audioController) {
+				this.#audioImage = micrio.$current
 				this.#audioController = new MicrioAudioController(micrio, micrio.$current)
 				this._addCleanup(() => {
 					this.#destroyAudio()
@@ -379,8 +389,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 
 		this.#show('logo', showLogo, () => createElement('micrio-logo'))
 
-		this.#show('details', showDetails && Boolean($data), () =>
-			createElement('micrio-details', { setProps: { info: $info, data: $data } }),
+		this.#show(
+			'details',
+			showDetails && Boolean($data),
+			() => createElement('micrio-details', { setProps: { info: $info, data: $data } }),
+			// `#show` reuses a connected element, so a new image's info/data has to reach it.
+			(el) => {
+				if (el instanceof MicrioElement) {
+					el._setProps?.({ info: $info, data: $data })
+				}
+			},
 		)
 
 		this.#show('toolbar', showToolbar, () => createElement('micrio-toolbar'))
@@ -404,10 +422,16 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			(i) => Boolean(i.$data?.embeds?.length),
 		)
 
-		this.#show('controls', showControls, () =>
-			createElement('micrio-controls', {
-				setProps: { hasAudio: hasAudio || (videoSrc !== undefined && video !== undefined && !video.muted) },
-			}),
+		const controlsHasAudio = hasAudio || (videoSrc !== undefined && video !== undefined && !video.muted)
+		this.#show(
+			'controls',
+			showControls,
+			() => createElement('micrio-controls', { setProps: { hasAudio: controlsHasAudio } }),
+			(el) => {
+				if (el instanceof MicrioElement) {
+					el._setProps?.({ hasAudio: controlsHasAudio })
+				}
+			},
 		)
 
 		this.#show('orgLogo', showOrgLogo && Boolean(this.#logoOrg), () =>
@@ -455,7 +479,10 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			if (!this.#elements.get('popup')?.isConnected) {
 				this.#elements.set(
 					'popup',
-					createElement('micrio-marker-popup', { setProps: { marker: $popupMarker }, parent: this }),
+					createElement('micrio-marker-popup', {
+						setProps: { marker: $popupMarker, image: micrio.$current },
+						parent: this,
+					}),
 				)
 			}
 		} else if (!existing?.isConnected) {
