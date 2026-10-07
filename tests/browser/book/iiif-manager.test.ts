@@ -283,4 +283,37 @@ describe('IIIFTextureManager', () => {
 		manager._onFrame(1000, 0, 2.2)
 		expect(manager._hasPendingWork()).toBe(true)
 	})
+
+	it('re-points at a restored renderer and starts its levels over', async () => {
+		const one = fakeRenderer(400, 400)
+		const single = new IIIFTextureManager(one.renderer, 'https://iiif.test')
+		const { images } = book(2)
+		single._init(images, 1, [[0, 1]])
+		// Load both sides onto the first renderer
+		const start = performance.now()
+		single._onFrame(start, 0, 2.2)
+		single._onFrame(start + 500, 0, 2.2)
+		await vi.waitFor(() => {
+			expect(one.textures).toHaveLength(2)
+		})
+		const requestsBefore = requested.length
+
+		// A restored WebGL context is a brand-new renderer: every texture handle died with
+		// the old one, and a manager still pointing at it (with its levels recorded as
+		// downloaded) would never upload again — a blank book.
+		const restored = fakeRenderer(400, 400)
+		single._rebind(restored.renderer)
+
+		single._onFrame(start + 1000, 0, 2.2)
+		single._onFrame(start + 1500, 0, 2.2)
+		await vi.waitFor(() => {
+			expect(restored.textures).toHaveLength(2)
+		})
+		// The dead renderer is left alone, and both sides are fetched again from level 0
+		// (`!512` is the width the manager picks at level 0)
+		expect(one.textures).toHaveLength(2)
+		const refetched = requested.slice(requestsBefore)
+		expect(refetched).toHaveLength(2)
+		expect(refetched.every((u) => u.endsWith('/full/!512,/0/default.webp'))).toBe(true)
+	})
 })
