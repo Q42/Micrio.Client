@@ -243,10 +243,19 @@ query. **`page.elementLocator(…).hover()` is the one interaction to use**: Pla
 actionability check on a `pointer-events: none` (or disabled) element hangs until the timeout,
 so those get a dispatched event instead.
 
-**Visual proof.** `render-proof.test.ts` writes one PNG per viewport to
-`.vitest/render-proof/` (`pnpm test:css`, then open it; `pnpm proof` on Linux). Nothing
-compares them — they exist so a human can see the stylesheets were really in the page. Every
-other command leaves them alone; only `test:css` rebuilds them.
+**Visual proof.** `render-proof.test.ts` writes PNGs to `.vitest/render-proof/` (`pnpm
+test:css`, then open it; `pnpm proof` on Linux): the app at each viewport, plus the 3D book
+mid-page-turn at each viewport, chrome included. Nothing compares them — they exist so a human
+can see the stylesheets and the WebGL scene really rendered. Every other command leaves them
+alone; only `test:css` rebuilds them.
+
+Capturing the book needs two things a plain screenshot call does not give: the book renderer
+draws into a context without `preserveDrawingBuffer`, which the compositor clears before an
+out-of-task capture, and it takes its drawing buffer size from the canvas box **when it is
+constructed**, so the host must be at the target size before the album opens
+(`book-helpers.ts`'s `_preserveDrawingBuffer`, `fixtures/book.ts`'s `style`). The turn itself
+is sampled until the spread's shadow is big enough, because the page is only in the air for
+part of the animation.
 
 **Live gap:** the `figure:is(:fullscreen, …)` rules in `media.css` cannot be _executed_ in a
 headless iframe (a real fullscreen transition needs a user gesture), so `media-fullscreen`
@@ -589,7 +598,7 @@ under it.
 ## Status
 
 Last full check: **1767 tests in 120 files pass** (`pnpm test`, the `core` + `browser`
-projects), **plus 56 in 9 files in the separate `css` run** (`pnpm test:css`), coverage
+projects), **plus 57 in 9 files in the separate `css` run** (`pnpm test:css`), coverage
 `90.5 / 81.6 / 89.1 / 90.4` (statements / branches / functions / lines, floors
 `89 / 81 / 89 / 89`), and `tsc` (source and tests), `oxlint --type-aware` and
 `oxfmt --check` are clean.

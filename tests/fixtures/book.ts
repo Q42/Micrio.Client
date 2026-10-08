@@ -71,6 +71,14 @@ export interface BookOptions {
 	settings?: Record<string, unknown>
 	/** How long to wait for the album to take over before giving up (ms). */
 	albumTimeout?: number
+	/** Page thumbnail bytes to pack instead of the default flat one (the render proof draws a page). */
+	pageBytes?: Uint8Array
+	/**
+	 * The `<micr-io>` mount style. The book renderer sizes its drawing buffer once, from the
+	 * canvas's client box at construction — a host sized *after* the album opened keeps the
+	 * old buffer — so a suite that needs another size passes it here.
+	 */
+	style?: string
 }
 
 export interface BookFixture {
@@ -90,7 +98,7 @@ export async function bookFixture(opts: BookOptions = {}): Promise<BookFixture> 
 	const albumId = `bookalbum${tag}`
 	const archiveId = `book${tag}`
 	const ids = Array.from({ length: count }, (_, i) => bookImageId(i, tag))
-	const bytes = await thumbBytes()
+	const bytes = opts.pageBytes ?? (await thumbBytes())
 
 	const images: Models.ImageBundle.BundleImage[] = ids.map((id, i) => ({
 		id,
@@ -142,7 +150,7 @@ export async function openBook(opts: BookOptions = {}): Promise<OpenBook> {
 	stubArchiveXhr(fixture.mdp)
 
 	const first = fixture.ids[0] ?? ''
-	const viewer = mountViewer({ id: first }, 'width: 800px; height: 600px; display: block;')
+	const viewer = mountViewer({ id: first }, opts.style ?? 'width: 800px; height: 600px; display: block;')
 	await viewer.open(first)
 	try {
 		// `_openOn` is fire-and-forget, so the gallery appears before its images and

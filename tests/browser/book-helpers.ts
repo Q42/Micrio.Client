@@ -67,6 +67,9 @@ export function restoreFrameStub(): void {
 /** One shared WebGL2 context for every mounted book. */
 let sharedGl: WebGL2RenderingContext | undefined
 
+/** The `preserveDrawingBuffer` contexts, one per canvas, reusing a canvas's own context. */
+const preservedGl = new WeakMap<HTMLCanvasElement, WebGL2RenderingContext>()
+
 /**
  * Chromium keeps only a small number of live WebGL contexts (16 by default) and
  * silently evicts the oldest, after which `getContext` falls back — and a suite
@@ -74,14 +77,37 @@ let sharedGl: WebGL2RenderingContext | undefined
  * lost/software context, where the frame loop crawls and cascades never finish.
  * Every book here draws the same synthetic page, so they share one context by
  * pointing the renderer at a wrapper whose `canvas` is the caller's element.
+ *
+ * With `preserveDrawingBuffer` that wrapper is not enough. The pixels would stay in the
+ * *host* canvas's drawing buffer, and the element in the document — the one a screenshot
+ * sees — would never have been drawn to. So a preserving book gets a context created on
+ * its own canvas (cached per canvas, so re-mounting the same element does not add one).
  */
-function sharedContext(canvas: HTMLCanvasElement): WebGL2RenderingContext {
+function sharedContext(
+	canvas: HTMLCanvasElement,
+	/** The canvas's own `getContext`, captured before it was patched (this runs from the patch). */
+	getContext: HTMLCanvasElement['getContext'],
+	preserveDrawingBuffer = false,
+): WebGL2RenderingContext {
+	if (preserveDrawingBuffer) {
+		const existing = preservedGl.get(canvas)
+		if (existing !== undefined) {
+			return existing
+		}
+		// The overload that takes a context id as a `string` widens to `RenderingContext`.
+		const gl = getContext.call(canvas, 'webgl2', { preserveDrawingBuffer: true }) as WebGL2RenderingContext | null
+		if (gl === null) {
+			throw new Error('no WebGL2 context available for the book suite')
+		}
+		preservedGl.set(canvas, gl)
+		return gl
+	}
 	if (sharedGl === undefined) {
 		const host = document.createElement('canvas')
 		host.width = 800
 		host.height = 600
-		const gl = host.getContext('webgl2')
-		if (gl === null) {
+		const gl = host.getContext('webgl2') ?? undefined
+		if (gl === undefined) {
 			throw new Error('no WebGL2 context available for the book suite')
 		}
 		sharedGl = gl
@@ -141,10 +167,10 @@ let archiveRun = 0
  * strand that id on a db entry that no longer exists. The archive id is unique per
  * call because `Archive.load` early-returns for an id whose bytes it already holds.
  */
-async function loadPageArchive(ids: string[]): Promise<void> {
-	const bytes = await thumbBytes()
+async function loadPageArchive(ids: string[], bytes?: Uint8Array): Promise<void> {
+	const data = bytes ?? (await thumbBytes())
 	archive.db.clear()
-	stubArchiveXhr(makeMdp(ids.map((id) => ({ name: `${id}/1/0_0.webp`, data: bytes }))))
+	stubArchiveXhr(makeMdp(ids.map((id) => ({ name: `${id}/1/0_0.webp`, data }))))
 	try {
 		await archive.load('https://r2.micr.io/', `bookviewer${(++archiveRun).toString(36)}`)
 	} finally {
@@ -172,11 +198,22 @@ export async function mountBook(
 		canvas?: HTMLCanvasElement
 		/** Skip the harness archive, to exercise the missing-texture path. */
 		_noArchive?: boolean
+		/** Override the page thumbnail every id is packed with (the render proof uses a drawn page). */
+		_pageBytes?: Uint8Array
+		/**
+		 * Ask for a context created with `preserveDrawingBuffer`, so the drawn frame survives
+		 * compositing and can be read back (a screenshot outside the render task, vitest's
+		 * element locator, needs it). Costs a context of its own and a slower present.
+		 */
+		_preserveDrawingBuffer?: boolean
 	} = {},
 ): Promise<ViewerHarness> {
 	const images = options.images ?? [bookImage('p0'), bookImage('p1'), bookImage('p2'), bookImage('p3')]
 	if (options._noArchive !== true) {
-		await loadPageArchive(images.map((image) => image.id))
+		await loadPageArchive(
+			images.map((image) => image.id),
+			options._pageBytes,
+		)
 	}
 	const canvas =
 		options.canvas ??
@@ -202,7 +239,9 @@ export async function mountBook(
 
 	const realGetContext = canvas.getContext.bind(canvas)
 	canvas.getContext = ((id: string, ...rest: unknown[]) =>
-		id === 'webgl2' ? sharedContext(canvas) : realGetContext(id, ...rest)) as HTMLCanvasElement['getContext']
+		id === 'webgl2'
+			? sharedContext(canvas, realGetContext, options._preserveDrawingBuffer === true)
+			: realGetContext(id, ...rest)) as HTMLCanvasElement['getContext']
 
 	const viewer = new BookViewer({
 		_canvas: canvas,

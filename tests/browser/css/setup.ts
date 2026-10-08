@@ -43,6 +43,12 @@ export const MOBILE: Viewport = { width: 400, height: 800 }
  */
 export const TABLET: Viewport = { width: 820, height: 1180 }
 
+/**
+ * A window much wider than it is tall, for the `min-aspect-ratio` branches. Not as short as
+ * a real 16:9 window: the book's fit is extreme at that ratio and crops the spread.
+ */
+export const WIDE: Viewport = { width: 1280, height: 800 }
+
 let size: Viewport = DESKTOP
 
 /**
