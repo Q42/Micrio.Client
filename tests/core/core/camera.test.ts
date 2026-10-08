@@ -86,6 +86,8 @@ function canvas(overrides: Loose = {}): TileCanvas {
 		},
 		_setView: fn(),
 		_setArea: fn(),
+		_coverLimit: false,
+		_correctMinMax: fn(),
 		_setMinScale: fn(),
 		_setDirection: fn(),
 		_isZoomedIn: fnOf(() => false),
@@ -213,6 +215,19 @@ interface CameraSpies {
 }
 type SubSpies = Record<string, Spy>
 
+/** The writable knobs the facade reads off the stub engine camera. */
+interface CameraStub {
+	_minSize: number
+	_minScale: number
+	_coverScale: number
+	_coverLimit: boolean
+}
+
+/** The writable knobs the facade reads off the stub canvas itself. */
+interface CanvasStub {
+	_coverLimit: boolean
+}
+
 describe('Camera view and coordinate conversion', () => {
 	it('turns a centre/size view into an origin/size one', () => {
 		const { camera } = bound({ view: { arr: new Float64Array([0.5, 0.4, 0.5, 0.25]) } })
@@ -334,5 +349,104 @@ describe('Camera trueNorth offset and branch selection', () => {
 		threeXY.camera.getXY(0.6, 0.7)
 		// +rotationY / 2π = +0.5, and the 360 branch takes the shifted point.
 		expect((threeXY.c._camera360 as unknown as SubSpies)._getXYZ).toHaveBeenCalledWith(1.1, 0.7)
+	})
+})
+
+describe('Camera properties, limits and zoom predicates', () => {
+	it('sets image coordinates through the camera, defaulting the scale to the current one', () => {
+		const { camera, c } = bound({ camera: { _getCoo: fnOf(() => coordinates(0.1, 0.2, 2.5, 0.4)) } })
+		camera.setCoo(0.4, 0.6)
+		// No scale given: the facade reads the current scale through `getCoo(0, 0)[2]`.
+		expect((c.camera as unknown as CameraSpies).setCoo).toHaveBeenCalledWith(0.4, 0.6, 2.5)
+	})
+
+	it('falls back to a scale of 1 when the engine reports zero', () => {
+		const { camera } = bound({ camera: { _getCoo: fnOf(() => coordinates(0, 0, 0, 0)) } })
+		expect(camera.getScale()).toBe(1)
+	})
+
+	it('reads the cover and minimum scale straight off the engine camera', () => {
+		const { camera } = bound({ camera: { _coverScale: 0.75, _minScale: 0.2 } })
+		expect(camera.getCoverScale()).toBe(0.75)
+		expect(camera.getMinScale()).toBe(0.2)
+	})
+
+	it('delegates setMinScale to the canvas', () => {
+		const { camera, c } = bound()
+		camera.setMinScale(0.33)
+		expect((c as unknown as SubSpies)._setMinScale).toHaveBeenCalledWith(0.33)
+	})
+
+	it('clamps the minimum screen size into [0, 1] when there is no album', () => {
+		const { camera, c } = bound()
+		camera.setMinScreenSize(2)
+		expect((c.camera as unknown as CameraStub)._minSize).toBe(1)
+		camera.setMinScreenSize(-1)
+		expect((c.camera as unknown as CameraStub)._minSize).toBe(0)
+		camera.setMinScreenSize(0.4)
+		expect((c.camera as unknown as CameraStub)._minSize).toBe(0.4)
+	})
+
+	it('never touches the minimum screen size for an album image', () => {
+		// An album member's zoom-out limit is the gallery's to set.
+		const { camera, c } = bound({}, { album: { id: 'a' } })
+		camera.setMinScreenSize(0.5)
+		expect((c.camera as unknown as CameraStub)._minSize).toBe(0.5)
+	})
+
+	it('converts the zoom predicate into its override, and out of it', () => {
+		const { camera, c } = bound()
+		expect(camera.isZoomedIn()).toBe(false)
+		expect((c as unknown as SubSpies)._isZoomedIn).toHaveBeenCalled()
+		expect(camera.isZoomedOut()).toBe(true)
+		// `full` reaches the canvas predicate on the non-override path.
+		camera.isZoomedOut(true)
+		expect((c as unknown as SubSpies)._isZoomedOut).toHaveBeenCalledWith(true)
+
+		// Book3D installs both: `isZoomedOut` is then the exact negation of the override.
+		const overridden = bound()
+		overridden.camera._isZoomedInOverride = () => true
+		expect(overridden.camera.isZoomedIn()).toBe(true)
+		expect(overridden.camera.isZoomedOut()).toBe(false)
+	})
+
+	it('reports and sets the 360 direction, defaulting pitch to the live one', () => {
+		const { camera, c } = bound({ _camera360: { _yaw: 1, _pitch: 2 } })
+		expect(camera.getDirection()).toBe(1)
+		expect(camera.getPitch()).toBe(2)
+		camera.setDirection(3)
+		expect((c as unknown as SubSpies)._setDirection).toHaveBeenCalledWith(3, 2)
+		camera.setDirection(3, 4)
+		expect((c as unknown as SubSpies)._setDirection).toHaveBeenLastCalledWith(3, 4)
+	})
+
+	it('writes a view limit in centre/size form', () => {
+		const { camera, c } = bound()
+		camera.setLimit([0.25, 0.25, 0.5, 0.5])
+		expect((c.view as unknown as SubSpies)._setLimit).toHaveBeenCalledWith(0.5, 0.5, 0.5, 0.5)
+	})
+
+	it('flips the cover limit and re-corrects the min/max scale', () => {
+		const { camera, c } = bound()
+		expect(camera.getCoverLimit()).toBe(false)
+		camera.setCoverLimit(true)
+		expect((c as unknown as CanvasStub)._coverLimit).toBe(true)
+		expect(camera.getCoverLimit()).toBe(true)
+		expect((c as unknown as SubSpies)._correctMinMax).toHaveBeenCalled()
+	})
+
+	it('forwards the 360 range limits, defaulting both to zero', () => {
+		const { camera, c } = bound()
+		camera.set360RangeLimit()
+		expect((c._camera360 as unknown as SubSpies)._setLimits).toHaveBeenCalledWith(0, 0)
+		camera.set360RangeLimit(30, 45)
+		expect((c._camera360 as unknown as SubSpies)._setLimits).toHaveBeenLastCalledWith(30, 45)
+	})
+
+	it('keeps the current centre when the scale is set directly', () => {
+		const { camera, c } = bound({ view: { arr: new Float64Array([0.4, 0.6, 0.5, 0.25]) } })
+		camera.setScale(3)
+		// `setScale` reuses the raw centre (arr[0], arr[1]) and the given scale.
+		expect((c.camera as unknown as CameraSpies).setCoo).toHaveBeenCalledWith(0.4, 0.6, 3)
 	})
 })
