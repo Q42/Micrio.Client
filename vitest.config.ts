@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig, type UserWorkspaceConfig } from 'vitest/config'
 import { playwright } from '@vitest/browser-playwright'
 import { readFileSync, rmSync } from 'node:fs'
 import { aliases, glslMinifyPlugin } from './vite.config.js'
@@ -14,29 +14,70 @@ rmSync(new URL('.vitest', import.meta.url), { recursive: true, force: true })
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string }
 
 /**
- * Stubs stylesheet imports. Tests never assert on styles, and the source imports
- * `.css` files (including from component modules a test may pull in transitively).
+ * Stubs stylesheet imports. Every suite but `css` asserts on state and DOM, never on
+ * styles, and the source imports `.css` files (including from component modules a test
+ * may pull in transitively) — so the `css` project, which does assert on them, turns the
+ * stub off with `MICRIO_TEST_CSS=1` and lets Vite inject the real stylesheets. Browser
+ * mode always renders real CSS (`resolved.css = true` in Vitest's own config resolution);
+ * this stub is the only thing that was hiding it.
  */
 const cssStub = {
 	name: 'micrio-css-stub',
 	enforce: 'pre' as const,
 	transform(_src: string, id: string) {
-		if (id.endsWith('.css')) {
+		if (id.endsWith('.css') && process.env.MICRIO_TEST_CSS !== '1') {
 			return { code: 'export default {}', map: null }
 		}
 		return null
 	},
 }
 
+/** A browser project's viewport, in the test iframe's CSS pixels. */
+interface Viewport {
+	width: number
+	height: number
+}
+
+/**
+ * The Playwright/Chromium setup every browser project shares: one headless Chromium
+ * instance, the element registered through the production entry (`tests/browser/setup.ts`),
+ * headless and 20s timeouts. `setupFiles` is a parameter so the `css` project can add its
+ * own viewport helpers after the shared setup rather than forking it.
+ */
+const browserProject = (
+	name: string,
+	viewport: Viewport,
+	include: string[],
+	setupFiles: string[] = ['./tests/browser/setup.ts'],
+): UserWorkspaceConfig & { extends: true } => ({
+	extends: true,
+	test: {
+		name,
+		include,
+		testTimeout: 20000,
+		hookTimeout: 20000,
+		setupFiles,
+		browser: {
+			enabled: true,
+			headless: true,
+			viewport,
+			provider: playwright(),
+			instances: [{ browser: 'chromium' }],
+		},
+	},
+})
+
 /**
  * The Micrio client test configuration.
  *
- * Two independent projects, run separately via `npm run test:core` /
- * `npm run test:browser` (see TESTING.md):
+ * Three projects, run separately via `npm run test:core` / `test:browser` / `test:css`
+ * (see TESTING.md):
  *
  * - `core`: bare Node, no DOM, no browser, no network. Pure logic only.
  * - `browser`: headless Chromium through Playwright. Everything that needs a real
  *   DOM, layout, WebGL or the `<micr-io>` element itself.
+ * - `css`: the same browser with the real stylesheets, for placement, visibility,
+ *   layering and interactivity. Needs `MICRIO_TEST_CSS=1`, which `test:css` sets.
  */
 export default defineConfig({
 	plugins: [cssStub, glslMinifyPlugin()],
@@ -78,23 +119,11 @@ export default defineConfig({
 					hookTimeout: 5000,
 				},
 			},
-			{
-				extends: true,
-				test: {
-					name: 'browser',
-					include: ['tests/browser/**/*.test.ts'],
-					testTimeout: 20000,
-					hookTimeout: 20000,
-					setupFiles: ['./tests/browser/setup.ts'],
-					browser: {
-						enabled: true,
-						headless: true,
-						viewport: { width: 1024, height: 768 },
-						provider: playwright(),
-						instances: [{ browser: 'chromium' }],
-					},
-				},
-			},
+			browserProject('browser', { width: 1024, height: 768 }, ['tests/browser/**/*.test.ts']),
+			// The stylesheet suite: same browser, real CSS, its own viewport helpers.
+			// Run it with `npm run test:css`; the flag it needs lives in the script, so the
+			// other projects keep the stub whatever command is used.
+			browserProject('css', { width: 1024, height: 768 }, ['tests/browser/css/**/*.test.ts']),
 		],
 	},
 })
