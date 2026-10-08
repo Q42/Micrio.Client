@@ -271,3 +271,68 @@ describe('Camera view and coordinate conversion', () => {
 		expect((c._camera2d as unknown as SubSpies)._getXY).not.toHaveBeenCalled()
 	})
 })
+
+/**
+ * A 360 image with a trueNorth sphere rotation. `trueNorth` is stored on the camera as
+ * `rotationY` (`(trueNorth - 0.5) * 2π`, set by `MicrioImage`), and the facade *adds*
+ * the rotation fraction of a full turn to X before asking the engine — the engine
+ * projects the unrotated sphere, so the correction lands in image space.
+ */
+function north(rotationY: number, canvasOverrides: Loose = {}) {
+	const boundCamera = bound(canvasOverrides, { _is360: true })
+	boundCamera.camera.rotationY = rotationY
+	return boundCamera
+}
+
+describe('Camera trueNorth offset and branch selection', () => {
+	it('is a no-op for a 2D image even with a rotation set', () => {
+		const spun = bound()
+		spun.camera.rotationY = Math.PI / 2
+		spun.camera.getXY(0.5, 0.5)
+		// `_is360` gates the correction, so the rotation is ignored.
+		expect((spun.c._camera2d as unknown as SubSpies)._getXY).toHaveBeenCalledWith(0.5, 0.5, false)
+	})
+
+	it('adds the rotation fraction of a full turn to X', () => {
+		const { camera, c } = north(Math.PI / 2)
+		camera.getXY(0.5, 0.5)
+		// +rotationY / 2π = +0.25 → X moves right by a quarter of the image.
+		expect((c._camera2d as unknown as SubSpies)._getXY).toHaveBeenCalledWith(0.75, 0.5, false)
+	})
+
+	it('skips the correction when the caller asks for noTrueNorth', () => {
+		const { camera, c } = north(Math.PI / 2)
+		camera.getXY(0.5, 0.5, false, undefined, undefined, true)
+		expect((c._camera2d as unknown as SubSpies)._getXY).toHaveBeenCalledWith(0.5, 0.5, false)
+	})
+
+	it('takes the omni branch only for a real rotation, never for NaN', () => {
+		const { camera, c } = north(Math.PI / 2)
+		camera.getXY(0.5, 0.5, true, 12, Math.PI)
+		// The trueNorth shift applies to the omni branch too.
+		expect((c._camera2d as unknown as SubSpies)._getXYOmni).toHaveBeenCalledWith(0.75, 0.5, 12, Math.PI, true)
+		const nan = bound({}, { rotationY: 0 })
+		nan.camera.getXY(0.5, 0.5, false, 12, Number.NaN)
+		// `Number.isNaN` is why a NaN rotation falls through to the plain path.
+		expect((nan.c._camera2d as unknown as SubSpies)._getXY).toHaveBeenCalledWith(0.5, 0.5, false)
+		expect((nan.c._camera2d as unknown as SubSpies)._getXYOmni).not.toHaveBeenCalled()
+	})
+
+	it('defaults the omni radius to zero', () => {
+		const { camera, c } = north(0)
+		camera.getXY(0.1, 0.2, false, undefined, 1)
+		expect((c._camera2d as unknown as SubSpies)._getXYOmni).toHaveBeenCalledWith(0.1, 0.2, 0, 1, false)
+	})
+
+	it('reads screen coordinates through the 360 camera instead of the 2D one', () => {
+		const three = north(0, { is360: true })
+		three.camera.getCoo(5, 6)
+		expect((three.c._camera360 as unknown as SubSpies)._getCoo).toHaveBeenCalledWith(5, 6)
+		expect((three.c.camera as unknown as CameraSpies)._getCoo).not.toHaveBeenCalled()
+
+		const threeXY = north(Math.PI, { is360: true })
+		threeXY.camera.getXY(0.6, 0.7)
+		// +rotationY / 2π = +0.5, and the 360 branch takes the shifted point.
+		expect((threeXY.c._camera360 as unknown as SubSpies)._getXYZ).toHaveBeenCalledWith(1.1, 0.7)
+	})
+})
