@@ -203,8 +203,10 @@ describe('micrio-dial', () => {
 	})
 
 	it('reports nothing while it has no measurable width', async () => {
-		// An unstyled dial measures zero; the drag must not divide by it and hand the
-		// caller a non-finite frame
+		// The dial must not divide by a zero width and hand the caller a non-finite frame. The
+		// width is pinned to zero *in the test* rather than left to the stylesheet being stubbed
+		// (which is how it used to hold): that made the test state its own precondition, so a
+		// measurement that landed differently under load reported a turn and failed.
 		const ui = uiBundle()
 		const { viewer } = await openUi(ui)
 		viewer.el.setPointerCapture = () => {}
@@ -214,10 +216,37 @@ describe('micrio-dial', () => {
 			setProps: { currentRotation: 0, frames: 36, onturn },
 			parent: viewer.el,
 		}) as MicrioElement
+		el.style.cssText = 'display: block; width: 0; height: 40px;'
 		await settle(2)
+		expect(el.offsetWidth).toBe(0)
 
 		el.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 3, clientX: 100, button: 0, bubbles: true }))
 		viewer.el.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientX: 0, bubbles: true }))
+		// Settle before asserting nothing, so a deferred report cannot slip past the assertion
+		await settle(2)
+		expect(onturn).not.toHaveBeenCalled()
+		viewer.destroy()
+	})
+
+	it('reports nothing when the viewer itself has no measurable width', async () => {
+		// The guard's other operand: the frame maths divides by the dial's width *and* scales by
+		// the viewer's, so an unsized host has to be refused for the same reason.
+		const ui = uiBundle()
+		const { viewer } = await openUi(ui)
+		viewer.el.setPointerCapture = () => {}
+		viewer.el.releasePointerCapture = () => {}
+		const onturn = vi.fn()
+		const el = createElement(DIAL_TAG, {
+			setProps: { currentRotation: 0, frames: 36, onturn },
+			parent: viewer.el,
+		}) as MicrioElement
+		el.style.cssText = 'display: block; width: 200px; height: 40px;'
+		await settle(2)
+		vi.spyOn(viewer.el, 'offsetWidth', 'get').mockReturnValue(0)
+
+		el.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 5, clientX: 100, button: 0, bubbles: true }))
+		viewer.el.dispatchEvent(new PointerEvent('pointermove', { pointerId: 5, clientX: 0, bubbles: true }))
+		await settle(2)
 		expect(onturn).not.toHaveBeenCalled()
 		viewer.destroy()
 	})
