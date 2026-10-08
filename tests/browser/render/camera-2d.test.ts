@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
+import { pollUntil } from '../../helpers/async'
 import { bundleWithFreshId } from '../../fixtures/bundles'
 import type { MicrioImage } from '$core/image'
 import type Camera2D from '$render/camera-2d'
-import type { Viewport } from '$render/shared'
+import type { TileCanvas } from '$render/tile-canvas'
 import { easeInOut } from '$render/easing'
 
 /**
@@ -25,7 +26,8 @@ async function open2d(settings: Record<string, unknown> = {}): Promise<{
 	viewer: Viewer
 	image: MicrioImage
 	camera: Camera2D
-	canvasEl: Viewport
+	/** The placed `TileCanvas`. Its `el` is the live viewport — read it at the assertion, not once. */
+	canvas: TileCanvas
 }> {
 	const bundle = bundleWithFreshId(settings)
 	const viewer = mountViewer()
@@ -40,15 +42,17 @@ async function open2d(settings: Record<string, unknown> = {}): Promise<{
 	await waitFor(() => image.camera.getScale() > 0, 6000, 'camera layout')
 	// The 2D `camera` union resolves to `Camera2D` once the image is not 360, so this cast is
 	// the seam the test needs: `Camera` only exposes the public half.
-	// `Canvas.el` is the engine `Viewport` (Int32-ish screen box), not the DOM element
-	return { viewer, image, camera: canvas.camera as Camera2D, canvasEl: canvas.el }
+	// `TileCanvas.el` is the engine `Viewport` (Int32-ish screen box), not the DOM element,
+	// and the engine reuses that object: a test must read it where it asserts, because a
+	// re-measure between the read and the assertion is what made these tests load-sensitive.
+	return { viewer, image, camera: canvas.camera as Camera2D, canvas }
 }
 
 describe('Camera2D coordinate conversion', () => {
 	it('round-trips screen pixels through image coordinates', async () => {
-		const { viewer, camera, canvasEl } = await open2d()
+		const { viewer, camera, canvas } = await open2d()
 		// `_getXY` is image -> screen, `_getCoo` is screen -> image. Both need a laid-out canvas.
-		const [px, py] = [canvasEl.width * 0.3, canvasEl.height * 0.7]
+		const [px, py] = [canvas.el.width * 0.3, canvas.el.height * 0.7]
 		const coo = camera._getCoo(px, py, true, true)
 		const xy = camera._getXY(coo.x, coo.y, true)
 		expect(xy.x).toBeCloseTo(px, 3)
@@ -57,10 +61,10 @@ describe('Camera2D coordinate conversion', () => {
 	})
 
 	it('_getXY reports the same scale the camera is at', async () => {
-		const { viewer, camera, canvasEl } = await open2d()
+		const { viewer, camera, canvas } = await open2d()
 		const xy = camera._getXY(0.5, 0.5, true)
 		// The scale on the coordinate is the camera scale divided by the pixel ratio
-		expect(xy.scale).toBeCloseTo(camera._scale / canvasEl.ratio, 6)
+		expect(xy.scale).toBeCloseTo(camera._scale / canvas.el.ratio, 6)
 		viewer.destroy()
 	})
 
@@ -118,14 +122,24 @@ describe('Camera2D scale limits', () => {
 
 	it('_isZoomedOut and _isZoomedIn bracket the scale range', async () => {
 		const { viewer, camera } = await open2d()
-		camera._scale = camera._minScale
+		// `_minScale`/`_maxScale` are recomputed from the canvas box each time the view is
+		// laid out, so a re-measure between writing `_scale` and asserting the predicate left
+		// the two out of step (the load-only failure: `_isZoomedOut()` false at the minimum).
+		// A predicate must be asked about one consistent pair, so the test verifies the limits
+		// it is about to compare against instead of assuming they hold still.
+		await pollUntil(() => camera._minScale > 0 && camera._maxScale >= camera._minScale, 6000, 'the scale limits')
+		const minScale = camera._minScale
+		const maxScale = camera._maxScale
+		camera._scale = minScale
 		expect(camera._isZoomedOut()).toBe(true)
 		expect(camera._isZoomedOut(true)).toBe(true)
-		camera._scale = camera._maxScale
+		camera._scale = maxScale
 		expect(camera._isZoomedIn()).toBe(true)
-		camera._scale = camera._minScale * 2
+		camera._scale = minScale * 2
 		expect(camera._isZoomedIn()).toBe(false)
 		expect(camera._isZoomedOut()).toBe(false)
+		// The limits did not move under the assertions above.
+		expect(camera._minScale).toBe(minScale)
 		viewer.destroy()
 	})
 
@@ -146,11 +160,11 @@ describe('Camera2D scale limits', () => {
 
 describe('Camera2D panning', () => {
 	it('moves the view centre by the pixel delta', async () => {
-		const { viewer, image, camera, canvasEl } = await open2d()
+		const { viewer, image, camera, canvas } = await open2d()
 		image.camera.setView([0.25, 0.25, 0.5, 0.5], { noLimit: true })
 		const before = image.camera.getView().slice()
 		// `_pan` converts pixels to image units and shifts the centre
-		camera._pan(canvasEl.width * 0.05, 0, 0, true, true)
+		camera._pan(canvas.el.width * 0.05, 0, 0, true, true)
 		const after = image.camera.getView()
 		expect(after[0]).not.toBeCloseTo(before[0], 6)
 		viewer.destroy()
@@ -195,34 +209,37 @@ describe('Camera2D panning', () => {
 
 describe('Camera2D zooming', () => {
 	it('zooms in and out with the delta and returns a duration', async () => {
-		const { viewer, image, camera, canvasEl } = await open2d()
+		const { viewer, image, camera, canvas } = await open2d()
 		image.camera.setView([0.25, 0.25, 0.5, 0.5], { noLimit: true })
 		const before = image.camera.getScale()
-		const dur = camera._zoom(20, canvasEl.width / 2, canvasEl.height / 2, 0, true)
+		const dur = camera._zoom(20, canvas.el.width / 2, canvas.el.height / 2, 0, true)
 		expect(dur).toBe(0)
 		expect(image.camera.getScale()).not.toBeCloseTo(before, 9)
 		viewer.destroy()
 	})
 
 	it('refuses to zoom past either end', async () => {
-		const { viewer, camera, canvasEl } = await open2d()
+		const { viewer, camera, canvas } = await open2d()
+		// Both ends are compared against recomputed limits, so wait for them to exist before
+		// driving the camera at them.
+		await pollUntil(() => camera._minScale > 0 && camera._maxScale >= camera._minScale, 6000, 'the scale limits')
 		// Fully zoomed in: a further zoom-in returns 0 without touching the camera
 		camera._scale = camera._maxScale
-		expect(camera._zoom(-20, canvasEl.width / 2, canvasEl.height / 2, 0, false)).toBe(0)
+		expect(camera._zoom(-20, canvas.el.width / 2, canvas.el.height / 2, 0, false)).toBe(0)
 
 		// Fully zoomed out with no pinch margin: a zoom-out returns 0 too
 		camera._scale = camera._minScale
 		camera._minSize = 1
-		expect(camera._zoom(20, canvasEl.width / 2, canvasEl.height / 2, 0, false)).toBe(0)
+		expect(camera._zoom(20, canvas.el.width / 2, canvas.el.height / 2, 0, false)).toBe(0)
 		viewer.destroy()
 	})
 
 	it('clamps the zoom factor so a huge delta cannot invert the view', async () => {
-		const { viewer, image, camera, canvasEl } = await open2d()
+		const { viewer, image, camera, canvas } = await open2d()
 		image.camera.setView([0.25, 0.25, 0.5, 0.5], { noLimit: true })
 		// A delta larger than the viewport would make `fact` below -1; the clamps are what
 		// keep the target width from going negative.
-		camera._zoom(-1e6, canvasEl.width / 2, canvasEl.height / 2, 0, true)
+		camera._zoom(-1e6, canvas.el.width / 2, canvas.el.height / 2, 0, true)
 		const view = image.camera.getView()
 		expect(view[2]).toBeGreaterThan(0)
 		expect(view[3]).toBeGreaterThan(0)
@@ -230,19 +247,24 @@ describe('Camera2D zooming', () => {
 	})
 
 	it('uses the zoom anchor and the current scale', async () => {
-		const { viewer, image, camera, canvasEl } = await open2d()
+		const { viewer, image, camera, canvas } = await open2d()
 
 		// A negative delta zooms in (a narrower view) and a positive one zooms out. Driving
 		// `_zoom` directly is what reaches the anchor maths (`pX`/`pY` from the pixel), which
 		// the public `Camera.zoom()` only reaches after its own arg juggling.
 		image.camera.setView([0, 0, 1, 1], { noLimit: true })
+		// `_zoom` refuses a zoom-in when it reads the camera as already at its maximum, and
+		// that maximum is derived from the canvas box. Waiting for the applied view to settle
+		// keeps the refusal from depending on a re-measure racing this call - the failure was
+		// `narrow` coming back equal to `wide`.
+		await pollUntil(() => camera._scale > 0 && camera._minScale > 0, 6000, 'the applied view')
 		const wide = image.camera.getView()[2] ?? 1
-		camera._zoom(-80, 1, canvasEl.height / 2, 0, true)
+		camera._zoom(-80, 1, canvas.el.height / 2, 0, true)
 		const narrow = image.camera.getView()[2] ?? 1
 		expect(narrow).toBeLessThan(wide)
 
 		image.camera.setView([0, 0, 1, 1], { noLimit: true })
-		camera._zoom(80, canvasEl.width - 1, canvasEl.height / 2, 0, true)
+		camera._zoom(80, canvas.el.width - 1, canvas.el.height / 2, 0, true)
 		const wideAgain = image.camera.getView()[2] ?? 1
 		expect(wideAgain).toBeGreaterThan(narrow)
 
@@ -358,7 +380,7 @@ describe('EngineCamera setCoo and flyTo', () => {
 
 describe('Camera2D retina anchoring', () => {
 	it('keeps the cursor point fixed when zooming at a device pixel ratio of 2', async () => {
-		const { viewer, image, camera, canvasEl } = await open2d()
+		const { viewer, image, camera, canvas } = await open2d()
 		image.camera.setView([0.25, 0.25, 0.5, 0.5], { noLimit: true })
 		const before = image.camera.getView().slice()
 		const centerX = (before[0] ?? 0) + (before[2] ?? 1) / 2
@@ -367,7 +389,7 @@ describe('Camera2D retina anchoring', () => {
 		const restore = setDpr(viewer, 2)
 		try {
 			// The visual centre in element-relative CSS pixels (`Viewport.width` is device pixels)
-			camera._zoom(-40, canvasEl.width / 4, canvasEl.height / 4, 0, true)
+			camera._zoom(-40, canvas.el.width / 4, canvas.el.height / 4, 0, true)
 			const view = image.camera.getView()
 			// An anchor on the centre must leave the centre where it was
 			expect((view[0] ?? 0) + (view[2] ?? 1) / 2).toBeCloseTo(centerX, 6)
