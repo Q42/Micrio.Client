@@ -232,12 +232,20 @@ the predicate, a cell's `focussed` mark read in the same tick as the key that tr
 - Anything that reads a **reused** structure (`Viewport`, `Coordinates`, `View.arr`) must read
   it at the assertion, not capture it at mount: the engine mutates those objects when it
   re-measures, and a captured copy silently goes stale under load.
-- A component that **rebuilds its DOM from state** (the media controls do, on every metadata
-  and time update) invalidates any reference captured at mount, and a synthetic event
-  dispatched into a subtree mid-rebuild is lost: the listener it was meant for is the one
-  being replaced. Re-query the element at the dispatch, and retry the interaction rather than
-  the assertion — a real click repeated is still a real click, and a broken handler still
-  fails on the last attempt.
+- A component that **re-renders a child from state** invalidates a reference captured at mount:
+  the media controls rebuild their play button on every paused/seeking change, so a captured
+  `<micrio-button>`'s inner `<button>` is replaced. Re-query at the dispatch. Do **not** retry the
+  interaction instead: a retry hides a dropped one (see the next bullet), and a broken handler
+  still fails on the last attempt anyway.
+- A **media element's `readyState`/`duration` is not the component's state**, and polling it is
+  not evidence that the component has caught up. The loader sets both in its own task; the
+  `loadedmetadata`/`timeupdate` event that tells the component is a _later_, separately queued
+  task, and under load the two interleave. The media controls used to map a bar click through
+  their own `duration` prop — a copy refreshed only by those events — so a click landing in the
+  window sought to `0` and looked like a lost click (it retried green for two commits before the
+  cause was found). Deriving an interaction's result from a render-time prop copy is the bug:
+  read the live value at the interaction (`media.ts`'s `#barDuration`), and if a test needs the
+  component's state, wait on that state's own observable effect.
 - A test that pins a **derived value over real elapsed time** should freeze the clock it reads
   (`vi.useFakeTimers({ toFake: ['Date'] })` for a `Date.now()`-based animation) instead of
   widening a tolerance: the elapsed time is what makes the assertion load-dependent at all.
