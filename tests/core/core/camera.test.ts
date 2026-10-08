@@ -3,7 +3,8 @@ import type { MicrioImage } from '$core/image'
 import type { TileCanvas } from '$render/tile-canvas'
 import { Camera } from '$core/camera'
 import { Coordinates } from '$render/shared'
-import { writable } from '$core/store'
+import { linear } from '$render/easing'
+import { get, writable } from '$core/store'
 
 /**
  * The `Camera` facade (`src/core/camera.ts`) in isolation: a hand-built engine canvas
@@ -448,5 +449,181 @@ describe('Camera properties, limits and zoom predicates', () => {
 		camera.setScale(3)
 		// `setScale` reuses the raw centre (arr[0], arr[1]) and the given scale.
 		expect((c.camera as unknown as CameraSpies).setCoo).toHaveBeenCalledWith(0.4, 0.6, 3)
+	})
+})
+
+describe('Camera animation lifecycle', () => {
+	it('resolves a zero-duration flyToView without storing promise hooks', async () => {
+		const { camera, c } = bound({ camera: { _flyTo: fnOf(() => 0) } })
+		await expect(camera.flyToView([0.25, 0.25, 0.5, 0.5])).resolves.toBeUndefined()
+		// A duration of 0 means the view already landed, so nothing is left pending.
+		expect(camera._aniDone).toBeUndefined()
+		expect(camera._aniAbort).toBeUndefined()
+		const flyTo = (c.camera as unknown as CameraSpies)._flyTo
+		const [, , width, height] = flyTo.mock.calls[0] as number[]
+		expect(width).toBe(0.5)
+		expect(height).toBe(0.5)
+	})
+
+	it('expands the view by the margin before asking the engine', async () => {
+		const { camera, c } = bound({ camera: { _flyTo: fnOf(() => 0) } })
+		await camera.flyToView([0, 0, 1, 1], { duration: 0, margin: [0.1, 0.2] })
+		const call = (c.camera as unknown as CameraSpies)._flyTo.mock.calls[0] as number[]
+		// The centre moves with the margin; the size shrinks by twice it.
+		expect(call[0]).toBeCloseTo(0.6, 10)
+		expect(call[1]).toBeCloseTo(0.7, 10)
+		expect(call[2]).toBeCloseTo(0.8, 10)
+		expect(call[3]).toBeCloseTo(0.6, 10)
+	})
+
+	it('stores the promise hooks for a real animation and settles on them', async () => {
+		const { camera } = bound({ camera: { _flyTo: fnOf(() => 250) } })
+		const fly = camera.flyToView([0, 0, 1, 1], { duration: 250 })
+		expect(camera._aniDone).toBeTypeOf('function')
+		expect(camera._aniAbort).toBeTypeOf('function')
+		camera._aniDone?.()
+		await expect(fly).resolves.toBeUndefined()
+	})
+
+	it('rejects the animation when the engine aborts it', async () => {
+		const { camera } = bound({ camera: { _flyTo: fnOf(() => 250) } })
+		const fly = camera.flyToView([0, 0, 1, 1], { duration: 250 })
+		camera._aniAbort?.()
+		await expect(fly).rejects.toBeUndefined()
+	})
+
+	it('remaps through the parent camera area when the image is an embed', async () => {
+		const { camera, c } = bound(
+			{ camera: { _flyTo: fnOf(() => 0) } },
+			{ opts: { useParentCamera: true, area: [0.1, 0.2, 0.5, 0.4] } },
+		)
+		await camera.flyToView([0, 0, 1, 1], { duration: 0 })
+		const call = (c.camera as unknown as CameraSpies)._flyTo.mock.calls[0] as number[]
+		// The sub-image's [0,1] space maps onto its area within the parent canvas.
+		expect(call[0]).toBeCloseTo(0.35, 10)
+		expect(call[1]).toBeCloseTo(0.4, 10)
+		expect(call[2]).toBeCloseTo(0.5, 10)
+		expect(call[3]).toBeCloseTo(0.4, 10)
+	})
+
+	it('seeds the animation from an explicit previous view', async () => {
+		const { camera, c } = bound({ camera: { _flyTo: fnOf(() => 0) } })
+		await camera.flyToView([0, 0, 1, 1], { duration: 0, prevView: [0.5, 0.5, 0.25, 0.25] })
+		expect((c._ani as unknown as SubSpies)._setStartView).toHaveBeenCalledWith(0.625, 0.625, 0.25, 0.25)
+	})
+
+	it('derives the omni frame from the view rotation and wraps it', async () => {
+		const { camera, c } = bound(
+			{ camera: { _flyTo: fnOf(() => 0) } },
+			{ $settings: { omni: { frames: 36, layers: [{}, {}] } } },
+		)
+		// view[4] is a rotation in radians; 36 frames over 2 layers is 18 per turn.
+		const view = [0, 0, 1, 1, Math.PI] as unknown as Models.Camera.View
+		await camera.flyToView(view, { duration: 0 })
+		const omniIdx = (c.camera as unknown as CameraSpies)._flyTo.mock.calls[0]?.[10]
+		// A half turn is 9 frames after the mod.
+		expect(omniIdx).toBe(9)
+	})
+
+	it('resolves a zero-duration flyToCoo and forwards the easing and flags', async () => {
+		const { camera, c } = bound({ camera: { setCoo: fnOf(() => 0) } })
+		await expect(
+			camera.flyToCoo([0.25, 0.75, 2], { duration: 0, limit: true, timingFunction: 'linear' }),
+		).resolves.toBeUndefined()
+		const call = (c.camera as unknown as CameraSpies).setCoo.mock.calls[0] as unknown[]
+		expect(call.slice(0, 4)).toEqual([0.25, 0.75, 2, 0])
+		// The last argument is the timing function, resolved by name.
+		expect(call.at(-1)).toBe(linear)
+	})
+
+	it('builds the full-view and cover-view targets from the image settings', async () => {
+		const full = bound({ camera: { setCoo: fnOf(() => 0), _minScale: 0.25 } })
+		await full.camera.flyToFullView({ duration: 0 })
+		expect((full.c.camera as unknown as CameraSpies).setCoo.mock.calls[0]?.slice(0, 3)).toEqual([0.5, 0.5, 0.25])
+
+		const cover = bound(
+			{ camera: { setCoo: fnOf(() => 0), _coverScale: 0.75 } },
+			{ $settings: { focus: [0.25, 0.25] } },
+		)
+		await cover.camera.flyToCoverView({ duration: 0 })
+		expect((cover.c.camera as unknown as CameraSpies).setCoo.mock.calls[0]?.slice(0, 3)).toEqual([0.25, 0.25, 0.75])
+	})
+
+	it('routes zoom through the book3d override when one is installed', async () => {
+		const overrides: number[] = []
+		const { camera, c } = bound({ camera: { _zoom: fnOf(() => 0) } })
+		camera._zoomOverride = (n) => overrides.push(n)
+		await camera.zoom(42, 0)
+		expect(overrides).toEqual([42])
+		// The engine camera is not consulted while an override is live.
+		expect((c.camera as unknown as CameraSpies)._zoom).not.toHaveBeenCalled()
+	})
+
+	it('resolves an instant zoom for an album that is not hooked yet', async () => {
+		const { camera, c } = bound({ camera: { _zoom: fnOf(() => 500) } }, { album: {} })
+		await expect(camera.zoom(10, 0)).resolves.toBeUndefined()
+		// A swipe/switch album owns the transition until it is hooked.
+		expect((c.camera as unknown as CameraSpies)._zoom).not.toHaveBeenCalled()
+		expect(camera._aniDone).toBeUndefined()
+	})
+
+	it('defaults the zoom focal point to the view centre in image space', async () => {
+		const { camera, c } = bound({ view: { arr: new Float64Array([0.4, 0.6, 0.2, 0.2]) } })
+		await camera.zoom(-20, 0)
+		// `getXY` of the raw centre (0.4, 0.6) is the stub's [1, 2, 3, 4, 0].
+		expect((c.camera as unknown as CameraSpies)._zoom).toHaveBeenCalledWith(-20, 1, 2, 0, false)
+	})
+
+	it('passes an explicit focal point and noLimit straight through', async () => {
+		const { camera, c } = bound({ camera: { _zoom: fnOf(() => 0) } })
+		await camera.zoom(5, 0, 10, 20, 1, true)
+		expect((c.camera as unknown as CameraSpies)._zoom).toHaveBeenCalledWith(5, 10, 20, 0, true)
+	})
+
+	it('drives zoomIn and zoomOut through the same delta maths', async () => {
+		const { camera, c } = bound({ camera: { _zoom: fnOf(() => 0), _getCoo: fnOf(() => coordinates(0, 0, 1, 0)) } })
+		await camera.zoomIn(2, 0)
+		expect((c.camera as unknown as CameraSpies)._zoom).toHaveBeenLastCalledWith(-400, 1, 2, 0, false)
+
+		// The viewport is 800x600 (ratio 4/3) and the stub image is 1000x500 (ratio 2), so
+		// the aspect term is max(1, (4/3) / 2 / 2) = 1 and the delta stays at the 400 base.
+		const out = bound({ camera: { _zoom: fnOf(() => 0) } })
+		await out.camera.zoomOut(1, 0)
+		expect((out.c.camera as unknown as CameraSpies)._zoom).toHaveBeenLastCalledWith(400, 1, 2, 0, false)
+	})
+
+	it('renders a pan only when it animates or is asked to', () => {
+		const { camera, c, i } = bound()
+		const { render } = i.engine as unknown as { render: Spy }
+		camera.pan(10, 10)
+		expect((c.camera as unknown as CameraSpies)._pan).toHaveBeenCalledWith(10, 10, 0, false)
+		expect(render).not.toHaveBeenCalled()
+		camera.pan(10, 10, 0, { render: true })
+		expect(render).toHaveBeenCalledTimes(1)
+		camera.pan(10, 10, 250)
+		expect(render).toHaveBeenCalledTimes(2)
+		camera.pan(10, 10, 250, { noLimit: true })
+		expect((c.camera as unknown as CameraSpies)._pan).toHaveBeenLastCalledWith(10, 10, 250, true)
+	})
+
+	it('forwards pause, stop and resume, and renders on resume', () => {
+		const { camera, c, i } = bound()
+		const { render } = i.engine as unknown as { render: Spy }
+		camera.pause()
+		camera.stop()
+		camera.resume()
+		expect((c as unknown as SubSpies)._aniPause).toHaveBeenCalled()
+		expect((c as unknown as SubSpies)._aniStop).toHaveBeenCalled()
+		expect((c as unknown as SubSpies)._aniResume).toHaveBeenCalled()
+		expect(render).toHaveBeenCalledTimes(1)
+	})
+
+	it('pushes the origin-form view into the image state and signals a touch', () => {
+		const { camera, i } = bound({ view: { arr: new Float64Array([0.5, 0.5, 0.5, 0.25]) } })
+		camera._viewChanged()
+		// The public view is [x0, y0, w, h], not the engine's centre form.
+		expect(get(i.state.view as never)).toEqual([0.25, 0.375, 0.5, 0.25])
+		const { micrio } = i.engine as unknown as { micrio: { state: { _touch: Spy } } }
+		expect(micrio.state._touch).toHaveBeenCalledWith('view')
 	})
 })
