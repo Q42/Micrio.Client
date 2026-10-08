@@ -569,49 +569,56 @@ timing paths):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
-| Statements | 90.5     | 89    |
-| Branches   | 81.6     | 81    |
-| Functions  | 89.1     | 89    |
-| Lines      | 90.4     | 89    |
+| Statements | 91.6     | 90    |
+| Branches   | 83.2     | 82    |
+| Functions  | 90.4     | 89    |
+| Lines      | 91.5     | 90    |
 
 The floors sit a point or two under the baseline, so a real loss fails the run and ordinary
 refactoring does not — but branches sit closest to theirs, and a new conditional in a large
 file can trip the threshold **without any test failing**. Read the number as "this code ran",
 not "this code is pinned": every browser suite loads `src/main`, so a component that merely
 mounts scores high with no assertion about it (63 of 124 files do). Per-area statements,
-`vitest`'s own rows:
+`vitest`'s own rows, sorted by that number. These are directory rollups, as `vitest` prints
+them, plus the two files this section's thin-spot note is about — listed on their own, because
+that is the number the note quotes:
 
-| Area              | Stmts | Covered   |
-| ----------------- | ----- | --------- |
-| src/core/events   | 100.0 | 483/483   |
-| src/book/input    | 100.0 | 143/143   |
-| src/book/geometry | 99.2  | 254/256   |
-| src/book/core     | 97.6  | 123/126   |
-| src/book/physics  | 96.8  | 149/154   |
-| src/utils         | 95.6  | 360/374   |
-| src/core/i18n     | 95.5  | 21/22     |
-| src/ui            | 93.8  | 142/152   |
-| src/embed         | 93.5  | 346/370   |
-| src/markers       | 91.5  | 619/677   |
-| src/grid          | 90.5  | 618/683   |
-| src/gallery       | 90.0  | 899/998   |
-| src/render        | 92.1  | 2884/3131 |
-| src/audio         | 87.2  | 214/246   |
-| src/tour          | 86.4  | 241/279   |
-| src/layout        | 86.2  | 588/682   |
-| src/media         | 85.2  | 862/1009  |
-| src/core          | 83.5  | 804/963   |
-| src/book          | 83.3  | 637/765   |
-| src/layout/nav    | 82.8  | 265/320   |
+| Area               | Stmts | Covered   |
+| ------------------ | ----- | --------- |
+| src/core/events    | 100.0 | 498/498   |
+| src/core/camera.ts | 100.0 | 205/205   |
+| src/book/input     | 100.0 | 156/156   |
+| src/book/geometry  | 99.2  | 514/518   |
+| src/core/image.ts  | 98.6  | 214/217   |
+| src/book/core      | 97.6  | 329/337   |
+| src/book/physics   | 96.8  | 149/154   |
+| src/utils          | 95.6  | 371/388   |
+| src/core/i18n      | 95.5  | 21/22     |
+| src/ui             | 93.8  | 150/160   |
+| src/embed          | 93.5  | 346/370   |
+| src/render         | 92.0  | 2952/3207 |
+| src/markers        | 91.5  | 755/825   |
+| src/grid           | 90.5  | 630/696   |
+| src/gallery        | 90.0  | 914/1015  |
+| src/book           | 90.0  | 1688/1876 |
+| src/layout         | 89.3  | 623/698   |
+| src/audio          | 87.2  | 231/265   |
+| src/tour           | 86.4  | 324/375   |
+| src/media          | 85.0  | 933/1098  |
+| src/layout/nav     | 82.8  | 265/320   |
 
-**The live thin spots.** `src/layout/nav` (82.8%) and `src/core` (83.5%) are the lowest
-areas, and they are thin for a reason worth naming: `src/core/camera.ts` is at 63.9% and
-`src/core/image.ts` at 77.4% — the two largest files of the element itself, whose uncovered
-halves are the WebGL/state paths the browser suites reach only through a full viewer.
-`src/media` (85.2%) is next, with `media.ts` at 75.3% because the YouTube/Vimeo/HLS paths need
-stubbed third-party APIs, and the serial tour's own file sits at 82.9%. The `src/markers` row
-reads lower than it did because the marker suites moved to fresh per-call fixtures, not
-because anything regressed.
+**The live thin spots.** `src/layout/nav` (82.8%) and `src/media` (85.0%) are the lowest
+areas, and `src/core` is no longer one of them: it left the list when the two files that made
+it thin got their own suites, both now listed separately in the table above. `camera.ts` is at
+100% and `image.ts` at 98.6%, driven by
+`tests/core/core/camera.test.ts` (a stub canvas and stub image, so most of the facade's
+delegation is pinned without a viewer) and `tests/browser/core/image.test.ts` (one mounted
+viewer per test, opening crafted bundles). The three uncovered statements left in `image.ts`
+are the custom-script URL substitution's first two lines, which need a bundle whose settings
+carry a `js.href` and a `$lang`-free URL to reach. `src/media`'s `media.ts` at 75.3% is the
+next target, because the YouTube/Vimeo/HLS paths need stubbed third-party APIs. The
+`src/markers` row reads lower than it did because the marker suites moved to fresh per-call
+fixtures, not because anything regressed.
 
 These are thin spots, not a backlog list (that holds only the CI item). To raise the floor, run
 `pnpm test:coverage`, move the baseline to the new number and keep the floors a point or two
@@ -635,10 +642,10 @@ under it.
 
 ## Status
 
-Last full check: **1768 tests in 120 files pass** (`pnpm test`, the `core` + `browser`
+Last full check: **1877 tests in 122 files pass** (`pnpm test`, the `core` + `browser`
 projects), **plus 57 in 9 files in the separate `css` run** (`pnpm test:css`), coverage
-`90.5 / 81.6 / 89.1 / 90.4` (statements / branches / functions / lines, floors
-`89 / 81 / 89 / 89`), and `tsc` (source and tests), `oxlint --type-aware` and
+`91.6 / 83.2 / 90.4 / 91.5` (statements / branches / functions / lines, floors
+`90 / 82 / 89 / 90`), and `tsc` (source and tests), `oxlint --type-aware` and
 `oxfmt --check` are clean.
 
 | Area                                                                 | Suite                                                                            | Status |
@@ -668,6 +675,8 @@ projects), **plus 57 in 9 files in the separate `css` run** (`pnpm test:css`), c
 | 360 space resolution and navigation                                  | `tests/browser/space/tours-360`                                                  | done   |
 | 360 camera (yaw/pitch, transforms, matrix)                           | `tests/browser/space/camera-360`                                                 | done   |
 | `trueNorth` and image orientation                                    | `tests/browser/space/space-truenorth`                                            | done   |
+| Camera facade (delegation, limits, animations)                       | `tests/core/core/camera`                                                         | done   |
+| `MicrioImage` construction, tile source and embed lifecycle          | `tests/browser/core/image`                                                       | done   |
 | 360 waypoints (`<micrio-waypoint>`)                                  | `tests/browser/markers/waypoints`                                                | done   |
 | 360 space transitions                                                | `tests/browser/space/space-transition`                                           | done   |
 | 360 minimap                                                          | `tests/browser/space/minimap-360`                                                | done   |
