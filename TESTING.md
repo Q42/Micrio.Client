@@ -212,6 +212,27 @@ The only cross-suite hazards; each harness documents its own use of them.
    running it, so a `BookViewer` left mid-animation re-runs its physics on every later frame.
    `BookViewer._stop()` cancels the pending frame; the harness calls it in `destroy()`.
 
+### Waiting on the real clock
+
+`rAF` is the first thing Chromium throttles when several suites run at once, so a **bounded**
+wait that polls on `requestAnimationFrame` can miss its deadline while the work is still
+landing. A handful of suites failed only under load that way (each passed in isolation, and an
+idle machine ran the whole project green three times in a row): a `zoom` event published a
+frame after the `move` it was asserted behind, a camera limit recomputed between the write and
+the predicate, a cell's `focussed` mark read in the same tick as the key that triggers it.
+
+- **`pollUntil` (`tests/helpers/async.ts`) is the bounded wait**: it wakes on a timer, so a
+  frame-starved browser cannot stretch it, and it throws on deadline.
+- **`waitFor` (`tests/helpers/viewer.ts`) stays the frame-loop wait**, and is still the only
+  correct choice under `vi.useFakeTimers()` — a faked clock deliberately never advances an
+  `rAF` poll, while `pollUntil` would advance it.
+- Asserting that **nothing** happened needs the same care: let deferred work run first (a
+  bounded poll for the change, which is expected to time out) and then assert the absence,
+  rather than reading a value in the tick after the dispatch.
+- Anything that reads a **reused** structure (`Viewport`, `Coordinates`, `View.arr`) must read
+  it at the assertion, not capture it at mount: the engine mutates those objects when it
+  re-measures, and a captured copy silently goes stale under load.
+
 ## What the CSS suite pins
 
 `tests/browser/css/` runs the same production entry point with the stylesheet stub switched
