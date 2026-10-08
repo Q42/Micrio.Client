@@ -16,13 +16,20 @@ files answer "why is this fixture shaped that way".
 ## Running the tests
 
 ```sh
-pnpm test           # both projects
+pnpm test           # core + browser (every fast suite)
 pnpm test:core      # bare Node, no DOM, no browser, no network
 pnpm test:browser   # headless Chromium (Playwright)
+pnpm test:css       # the same Chromium, with the *real* stylesheets
 pnpm test:browser:live   # opt-in: the only suite that touches the network
-pnpm test:coverage  # both projects under v8 coverage, one merged report
+pnpm test:coverage  # core + browser under v8 coverage, one merged report
 pnpm test:watch     # watch the core project while working on pure logic
 ```
+
+`test:css` is its own run, not part of `test`, because the stylesheets it needs are a
+process-wide switch: `MICRIO_TEST_CSS=1` (which the script sets) makes Vitest inject every
+`.css` import for _all_ browser tests, and five of them assert on sizes the stubbed layout
+gives them. They fail with the switch on — that is the measurement behind keeping this a
+separate project rather than a mode of `browser`.
 
 Requirements: Node `^20.19.0 || >=22.12.0`, and the Playwright Chromium build that the
 installed `playwright` version expects. `playwright` is declared as `^1.59.0`, so a
@@ -81,10 +88,11 @@ an unexpected warning.
 `vitest.config.ts` defines two independent projects. They are separate processes with
 separate configs, so a core test can never accidentally depend on a browser.
 
-| Project   | Environment       | Include glob                 | Purpose                                                          |
-| --------- | ----------------- | ---------------------------- | ---------------------------------------------------------------- |
-| `core`    | Node (no DOM)     | `tests/core/**/*.test.ts`    | Pure logic: math, parsing, state, data loading, matrix math      |
-| `browser` | Chromium headless | `tests/browser/**/*.test.ts` | Anything needing a DOM, layout, WebGL or the `<micr-io>` element |
+| Project   | Environment       | Include glob                     | Purpose                                                                             |
+| --------- | ----------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| `core`    | Node (no DOM)     | `tests/core/**/*.test.ts`        | Pure logic: math, parsing, state, data loading, matrix math                         |
+| `browser` | Chromium headless | `tests/browser/**/*.test.ts`     | Anything needing a DOM, layout, WebGL or the `<micr-io>` element                    |
+| `css`     | Chromium headless | `tests/browser/css/**/*.test.ts` | The same, with the real stylesheets: placement, visibility, layering, interactivity |
 
 Both projects share the alias map and the GLSL plugin with the production build:
 `vite.config.js` exports `aliases` and `glslMinifyPlugin()`, and `vitest.config.ts`
@@ -94,6 +102,13 @@ they do in the app, `templates/grid/**` included.
 The browser suite is registered through the production entry point (`src/main.ts`), so
 `customElements.define('micr-io', ...)` and the version banner behave exactly like a
 real page.
+
+`css` is the same browser and the same entry point, with one switch: `vitest.config.ts`
+stubs every `.css` import to `{}` unless `MICRIO_TEST_CSS=1`, and `test:css` is the only
+script that sets it. The project is listed only when that flag is on, which is what keeps
+`pnpm test` (and a bare `npx vitest run`) green — with the flag off, its files are also
+excluded from the `browser` project, because they only pass with the stylesheets in.
+See [What the CSS suite pins](#what-the-css-suite-pins).
 
 ### Test layout
 
@@ -124,12 +139,19 @@ tests/
     ├── render/              # the engine: canvas, camera-2d, engine-360, tile-image, postprocess
     ├── space/               # the 360 suites: camera, minimap, spaces, transitions
     ├── tour/  ui/  utils/
+    ├── css/                 # project "css" — the same browser, real stylesheets
+    │   ├── setup.ts         # viewport constants and `useViewport` (page.viewport + a restore)
+    │   ├── helpers.ts       # the assertion vocabulary: computed style, boxes, hit tests, transitions
+    │   └── smoke.test.ts    # that the stylesheets are really in the page
     └── live/                # opt-in network suite
 ```
 
 `browser/space/` is the one feature directory without a 1:1 `src/` counterpart: the 360
 suites span `render/camera-360`, `layout/nav/minimap`, `utils/space`, `core/state` and
 `markers/waypoint`, so one home beats splitting them across four directories.
+`browser/css/` is a _project_ boundary rather than a feature one — it is the only directory
+whose files run with the stylesheet stub switched off — so the shared `setup.ts` still runs
+first and it keeps the browser-suite fixtures it needs.
 
 **Import convention.** Tests import production code through the `$` aliases — `$core/store`,
 `$utils/dom`, `$types/models`, `await import('$book/main')` — so a test reads like the
@@ -138,9 +160,11 @@ source file it covers. Test support (fixtures, helpers, a sibling fake such as
 `tests/browser/setup.ts`, which keeps `../../src/main`: the aliases map directories, and
 `src/main.ts` sits at the source root.
 
-Both projects' include globs (`tests/core/**/*.test.ts`, `tests/browser/**/*.test.ts`) are
-recursive, and `.oxlintrc.json`'s `tests/**/*.ts` override matches nested paths, so neither
-`vitest.config.ts` nor the lint and type-check config needed a change for the layout.
+Every project's include glob (`tests/core/**/*.test.ts`, `tests/browser/**/*.test.ts`,
+`tests/browser/css/**/*.test.ts`) is recursive, and `.oxlintrc.json`'s `tests/**/*.ts`
+override matches nested paths, so neither `vitest.config.ts` nor the lint and type-check
+config needed a change for the layout. The `css` glob is listed before the `browser` one on
+purpose: a file under `css/` must not also be collected, with the stub on, by `browser`.
 
 ## Writing tests that have an edge
 
@@ -263,14 +287,13 @@ These are the only cross-suite hazards; each harness documents its own use of th
    cancels the pending frame; the gallery calls it before replacing a book, and the test
    harness calls it in `destroy()`.
 
-## What the suite cannot see: stylesheets
+## What the CSS suite pins
 
-`vitest.config.ts` stubs every `.css` import to `{}`, so **no assertion in this suite observes
-a stylesheet**. A purely visual regression — a layout rule lost in a refactor, a
-`display: none` that out-specifies another, a selector that is one element too wide — passes
-the whole suite green.
-
-That is not hypothetical. Every one of these shipped and passed every test:
+Until the `css` project existed, `vitest.config.ts` stubbed every `.css` import to `{}`, so
+**no assertion in the suite observed a stylesheet** and a purely visual regression — a layout
+rule lost in a refactor, a `display: none` that out-specifies another, a selector that is one
+element too wide — passed everything green. That was not hypothetical. Every one of these
+shipped and passed every test:
 
 - the serial tour's readout vanished because three `display: contents` rules were dropped
   when the component's inline styles moved into a file (see [The serial tour](#the-serial-tour));
@@ -283,10 +306,68 @@ That is not hypothetical. Every one of these shipped and passed every test:
 - the zoom buttons were visible but dead under a marker tour: one rule set
   `pointer-events: none` while a companion rule re-showed them.
 
-So: a CSS-only change **cannot be verified here**. Check it in a browser, and when a layout
-bug is reported, read the stylesheet rather than looking for a missing test. If you do need
-to assert a layout fact, injecting stylesheet text into a test is possible but was
-explicitly rejected as too invasive a change to the suite — ask before doing it.
+`tests/browser/css/` now covers that ground, run through the same production entry point
+with the stub off. It stays a **separate project** rather than a mode of the `browser` one
+because real CSS changes the measured layout of every component: `micr-io` becomes
+`position: relative; overflow: hidden`, 15 wrappers become `display: contents`, empty layers
+become `display: none`, the canvas is pinned to the host with `!important`, and the 98
+existing browser files lean on the stubbed geometry: with the switch on,
+`camera-2d`'s scale brackets, `ui-primitives`'s "dial with no measurable width",
+`input-integration`'s wheel zoom, `event-contract` and `grid-transitions` all fail — measured,
+not assumed. Enabling it suite-wide would be a 98-file refactor for no test value; opt-in
+keeps the old suites bit-for-bit the same.
+
+**Viewports are runtime values, not projects.** `setup.ts` exports `DESKTOP` (1024×768, the
+project default and the size every test file starts at), `MOBILE` (400×800 — below every
+`max-width` branch that reshapes the layout) and `TABLET` (820×1180 — the band between the
+640px branches and the desktop, which 1024 alone never separates from a rule that failed to
+apply). `useViewport` calls the provider's `page.viewport()`, which resizes the real test
+iframe, and an `afterEach` restores the default, because the viewport lives for a whole test
+file. Every suite starts at `DESKTOP`, so a test that forgets to restore it would be visible
+in the next one. A future tablet rule needs no new project — and if one ever needs a _pinned_
+environment, `browserProject('css-tablet', TABLET, ['tests/browser/css/**/*.test.ts'])` plus
+one script is the whole change.
+
+**The assertion vocabulary** is deliberately four questions, in `helpers.ts`:
+
+- _visibility_ — `rendered()` (does the element generate a box at all) and
+  `intersectsViewport()` (is any of it on screen, which is how the mobile sheet's
+  off-canvas position is asserted);
+- _placement_ — `box()`, compared as numbers, never as CSSOM strings (`translateY(0)`
+  reserializes to a matrix);
+- _layering and interactivity_ — `topAt()`/`hitsAt()` over `document.elementFromPoint`.
+  This is the only honest test of `z-index` and `pointer-events` together, and it is what
+  pins "faded out _and_ out of the click path" rather than "faded out";
+- _transitions_ — `waitForStyle()`, polling on `setTimeout` rather than `rAF` (Chromium
+  throttles frames hard in the headless iframe, which made a 0.25s fade take many seconds
+  of frames).
+
+Two traps are specific to this suite. **Mount at `100vw`/`100vh`**: `micr-io` is
+`container-type: size`, so an 800px element inside a 400px viewport reports 800px to any
+container query. And **`page.elementLocator(…).hover()` is the one interaction to use** —
+real pointer movement is what `:hover` needs, and Playwright's actionability check on an
+element with `pointer-events: none` (or a disabled button) hangs until the test times out;
+drive those with a dispatched event instead.
+
+Not covered, on purpose: **pixel/screenshot regression** (`toMatchScreenshot` exists and
+needs no new dependency, but its baselines are font- and platform-rendered and the repo has
+no CI yet — add one only for a regression no property assertion can express), and
+**`prefers-color-scheme`** (the provider exposes no `emulateMedia`, so a `data-auto-scheme`
+test would assert the host machine's setting; `data-light-mode`, the attribute path, is
+covered).
+
+The five incidents above are now the suites' outline: `element-ui.test.ts` pins the
+`display: contents` list and the hide block, `toolbar-responsive.test.ts` the 500/501
+layout and the sheet's backdrop, `marker-layering.test.ts` the layer's click-through and a
+covered marker, `panel-theming.test.ts` the palette and the popover breakpoints,
+`smoke.test.ts` the plumbing itself (that the stylesheets are really in the page, so a
+regression in the switch cannot silently turn every other file into a test of Chromium's
+default styles).
+
+A file's own stylesheet still belongs with its own tests where possible: a claim about
+_state_ (a class, a store, an event) goes in the feature suite, which is why
+`toolbar-mobile.test.ts` keeps asserting what the toolbar offers while this project asserts
+where it lands.
 
 ## The embed subsystem
 
@@ -593,8 +674,12 @@ assertion observes a stylesheet.
 
 ## Coverage
 
-`pnpm test:coverage` runs both projects under `@vitest/coverage-v8` and merges them
-into one report. It measures all of `src/**/*.ts` — a file no test ever imports still
+`pnpm test:coverage` runs the `core` and `browser` projects under `@vitest/coverage-v8`
+and merges them into one report. The `css` project is left out: enabling its stylesheets
+for a whole run breaks five existing `browser` assertions (see
+[What the CSS suite pins](#what-the-css-suite-pins)), so a stylesheet suite that also
+carried the coverage gate would make the gate unusable. Its files exercise the same
+modules the `browser` suites already cover, so nothing measurable is lost. It measures all of `src/**/*.ts` — a file no test ever imports still
 shows up as 0%, rather than dropping out of the report.
 
 Coverage is a **whole-tree** number: the floors are checked against the merged report.
@@ -687,9 +772,11 @@ pays nothing for it.
 
 ## Status
 
-Last full check: **1767 tests in 120 files pass**, coverage `90.5 / 81.6 / 89.1 / 90.4`
-(statements / branches / functions / lines, floors `89 / 81 / 89 / 89`), and
-`tsc` (both projects), `oxlint --type-aware` and `oxfmt --check` are clean.
+Last full check: **1767 tests in 120 files pass** (`pnpm test`, the `core` + `browser`
+projects), **plus 35 in 5 files in the separate `css` run** (`pnpm test:css`), coverage
+`90.5 / 81.6 / 89.1 / 90.4` (statements / branches / functions / lines, floors
+`89 / 81 / 89 / 89`), and `tsc` (both projects), `oxlint --type-aware` and
+`oxfmt --check` are clean.
 
 | Area                                                | Suite                                                                            | Status |
 | --------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
@@ -765,9 +852,13 @@ Last full check: **1767 tests in 120 files pass**, coverage `90.5 / 81.6 / 89.1 
 | book3d embed placement and the print delay          | `tests/browser/embed/embed-book3d`                                               | done   |
 | `<micrio-image-embeds>` container and layout wiring | `tests/browser/embed/image-embeds`                                               | done   |
 | GL embed video (HLS, loop, visibility, teardown)    | `tests/browser/media/embedvideo`                                                 | done   |
-| Stylesheet/layout regressions                       | [not assertable](#what-the-suite-cannot-see-stylesheets) — check in a browser    | gap    |
+| Stylesheet plumbing, the real-CSS switch            | `tests/browser/css/smoke`                                                        | done   |
+| Toolbar layout and the mobile sheet (500/501)       | `tests/browser/css/toolbar-responsive`                                           | done   |
+| `display:contents`, the idle hide block, canvas pin | `tests/browser/css/element-ui`                                                   | done   |
+| Marker layering, click-through and hidden markers   | `tests/browser/css/marker-layering`                                              | done   |
+| Light palette and the popover breakpoints (tablet)  | `tests/browser/css/panel-theming`                                                | done   |
 
 ## Session backlog
 
 1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
-   `test:core` + `test:browser`.
+   `test:core` + `test:browser` + `test:css`.
