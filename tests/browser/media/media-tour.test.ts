@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { get, writable } from '$core/store'
 import { createElement } from '$utils/dom'
 import type { MicrioElement } from '$core/component'
 import { mountTour, recordEvents, settle } from '../../helpers/tour'
 import { STEP_TONE_SECONDS, STEP_TONE_URI, tourBundle, videoTour } from '../../fixtures/tours'
 import { waitFor } from '../../helpers/viewer'
+import { pollUntil } from '../../helpers/async'
 
 /**
  * `<micrio-media>` is what actually runs a tour: it picks the media element for a
@@ -12,6 +13,11 @@ import { waitFor } from '../../helpers/viewer'
  * clock. Headless Chromium blocks audio and autoplay, so these tests assert the
  * element's state and attributes rather than sound.
  */
+
+afterEach(() => {
+	// A frozen clock must never leak into the next test (the seek test is the one that uses it)
+	vi.useRealTimers()
+})
 
 /** Mounts a `micrio-media` into the viewer so `_inject('micrio')` resolves. */
 async function mountMedia(props: Record<string, unknown>, viewer: Awaited<ReturnType<typeof mountTour>>) {
@@ -243,22 +249,50 @@ describe('media element with a video tour', () => {
 		const { instance } = tour
 		expect(instance).toBeDefined()
 
+		// The seek writes `currentTime` on the real media element, and a browser ignores that
+		// write until the media is seekable. Waiting for the figure is not enough: on a loaded
+		// machine the seek below could land while the element was still loading metadata and
+		// the write was dropped.
+		const media = anyMedia(el)
+		await pollUntil(() => media instanceof HTMLMediaElement && media.readyState >= 1, 8000, 'the media metadata')
+		// Freeze the clock, because `VideoTourInstance.currentTime` is derived from it
+		// (`(pausedAt ?? Date.now() - startedAt) / 1000`, `videotour.ts`). The seek *resumes*
+		// playback, so on a loaded machine the elapsed wall time between the seek and the read
+		// pushed the tour past the tolerance and the assertion failed for a reason that has
+		// nothing to do with the bug it pins: with the clock frozen, a resumed tour reports
+		// exactly the time it was seeked to.
+		vi.useFakeTimers({ toFake: ['Date'] })
+		// The bar has to be read *live*: `micrio-media-controls` re-renders when the media's
+		// state arrives, which replaces the whole subtree, so a reference captured at mount
+		// goes stale and the mousedown lands on a detached node — the seek then never runs and
+		// `currentTime` stays 0 (which is exactly how this test failed under load: the bar was
+		// queried early, the controls re-rendered, and the click went nowhere).
+		//
+		// The geometry stand-in is on the prototype, because the element that receives the
+		// event is whichever instance is current at that moment. The element is not laid out
+		// here, so it has no rects of its own.
+		vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([
+			{ left: 0, width: 100, top: 0, height: 10, right: 100, bottom: 10, x: 0, y: 0, toJSON: () => ({}) },
+		] as unknown as DOMRectList)
 		const bars = el.querySelector<HTMLElement>('micrio-media-controls [data-part="bars"]')
 		if (!bars) {
 			throw new Error('no progress bar')
 		}
-		// The element is not laid out here, so stand in for the bar's geometry
-		vi.spyOn(bars, 'getClientRects').mockReturnValue([
-			{ left: 0, width: 100, top: 0, height: 10, right: 100, bottom: 10, x: 0, y: 0, toJSON: () => ({}) },
-		] as unknown as DOMRectList)
 		// Half way along the bar
 		bars.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, button: 0, bubbles: true }))
 		globalThis.dispatchEvent(new MouseEvent('mouseup'))
 
 		// The tour moved with the media, not only the media
 		expect(instance?.currentTime).toBeCloseTo(STEP_TONE_SECONDS / 2, 0)
-		const media = anyMedia(el)
+		// The media element kept up with it, not just the tour. A real element applies the
+		// seek on its own schedule, so this one is polled (and the clock is already frozen).
+		await pollUntil(
+			() => media instanceof HTMLMediaElement && Math.abs(media.currentTime - STEP_TONE_SECONDS / 2) < 1,
+			4000,
+			'the media to seek',
+		)
 		expect(media instanceof HTMLMediaElement ? media.currentTime : undefined).toBeCloseTo(STEP_TONE_SECONDS / 2, 0)
+		vi.useRealTimers()
 		viewer.destroy()
 	})
 })
