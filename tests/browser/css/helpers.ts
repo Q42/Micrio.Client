@@ -23,11 +23,80 @@ import { openUi, type UiBundle } from '../../fixtures/ui'
 import { settle } from '../../helpers/tour'
 import { currentViewport } from './setup'
 
+/** One timer turn, for polling a property the browser is still animating. */
+const sleep = (ms: number): Promise<void> =>
+	new Promise((resolve) => {
+		setTimeout(resolve, ms)
+	})
+
+/**
+ * Polls `read` on a timer until it returns something truthy.
+ *
+ * The polling is on `setTimeout`, not animation frames: Chromium throttles `rAF` hard in
+ * this headless iframe under load (a 0.25s fade took far longer in frames than in time), so
+ * a frame-based wait makes every transition test slow and flaky. A timer wakes even when
+ * frames do not, and the caller's own timeout bounds the wait.
+ */
+function poll<T>(read: () => T | undefined, timeout: number): Promise<T | undefined> {
+	const start = performance.now()
+	const next = async (): Promise<T | undefined> => {
+		const value = read()
+		if (value !== undefined && value !== false && value !== 0) {
+			return value
+		}
+		if (performance.now() - start > timeout) {
+			return value
+		}
+		await sleep(16)
+		return next()
+	}
+	return next()
+}
+
 /** The computed value of a property, as the browser resolved it (custom properties included). */
 export const style = (el: Element, property: string): string => getComputedStyle(el).getPropertyValue(property).trim()
 
 /** A numeric computed property, with the unit dropped. */
 export const styleNumber = (el: Element, property: string): number => Number.parseFloat(style(el, property))
+
+/**
+ * Waits until a computed property reaches `target`.
+ *
+ * Most of the rules this suite pins are *transitions* (`opacity` for the idle fades,
+ * `transform` for the mobile sheet), and a transitioned property read one frame after the
+ * attribute or class was set is mid-animation: the mobile sheet test would see
+ * `matrix(1, 0, 0, 1, 0, 12.4)` and the logo test `opacity: 0.85`.
+ */
+export async function waitForStyle(el: Element, property: string, target: string, timeout = 4000): Promise<void> {
+	const reached = await poll(() => (style(el, property) === target ? true : undefined), timeout)
+	if (reached !== true) {
+		throw new Error(`Timed out waiting for ${property} to become "${target}" (it is "${style(el, property)}")`)
+	}
+}
+
+/**
+ * Waits until a transitioned `transform` has a computed matrix.
+ *
+ * The closed state of the mobile sheet is `translateY(100%)` (a matrix) and its base state
+ * on the desktop bar is `none`, so a matrix is what "the slide has started" means here.
+ */
+export async function waitForTransform(el: Element, timeout = 4000): Promise<void> {
+	await poll(() => (style(el, 'transform').startsWith('matrix') ? true : undefined), timeout)
+}
+
+/**
+ * Puts the viewer into the state element-ui.css's hide block keys on.
+ *
+ * The first grouped branch of that rule needs a tour flag *and* `data-idle`; `data-idle`
+ * alone only hides the tour UI (the media figure, the serial-tour readout, the gallery
+ * strip). `IdleState` sets `data-idle` itself after 4s of no input, which is far too slow
+ * for a layout test, so the attribute is set directly — it is the same attribute the
+ * client sets, and the CSS cannot tell the difference.
+ */
+export function setTourIdle(el: HTMLElement): void {
+	el.dataset.markerTourActive = ''
+	el.dataset.idle = ''
+}
 
 /** The element's border box in viewport coordinates. */
 export const box = (el: Element): DOMRect => el.getBoundingClientRect()
