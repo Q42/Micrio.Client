@@ -46,7 +46,12 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	/* @internal */
 	static tag = 'micrio-media-controls'
 
-	#props: MediaControlsProps = { paused: true, ended: false }
+	/**
+	 * The props the component reads, inherited so a diagnostic can read the same object: a private
+	 * copy here meant `element._props` said nothing about what the handlers saw.
+	 * @internal
+	 */
+	protected _props: Partial<MediaControlsProps> = { paused: true, ended: false }
 	#wrapperEl!: HTMLElement
 	#playBtn!: MicrioElement
 	#muteBtnEl!: MicrioElement
@@ -82,7 +87,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 
 	/** @internal */
 	_setProps(props: Partial<MediaControlsProps>) {
-		Object.assign(this.#props, props)
+		Object.assign(this._props, props)
 		if (this.isConnected) {
 			this.#build()
 			if (this.#built) {
@@ -92,7 +97,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	}
 
 	#build() {
-		const p = this.#props
+		const p = this._props
 		if (!this.#built) {
 			this.#built = true
 
@@ -145,7 +150,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 					return
 				}
 				const perc = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
-				this.#props.onseek?.(perc * (this.#props.duration ?? 0))
+				this._props.onseek?.(perc * (this._props.duration ?? 0))
 			}
 			const dStop = () => {
 				globalThis.removeEventListener('mousemove', dMove)
@@ -183,7 +188,7 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 	}
 
 	#sync() {
-		const p = this.#props
+		const p = this._props
 		const $i18n = get(i18n)
 		const $captionsEnabled = get(captionsEnabled)
 		// The previous state caches would skip the translated titles, so bypass them
