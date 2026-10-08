@@ -3,7 +3,9 @@ import type { MicrioImage } from '$core/image'
 import type { Models } from '$types/models'
 import { get } from '$core/store'
 import { DataLoader } from '$utils/dataLoader'
+import { decodeV5Id } from '$utils/id'
 import { mountViewer, waitFor } from '../../helpers/viewer'
+import { videoAsset } from '../../fixtures/embeds'
 
 /**
  * `MicrioImage` (`src/core/image.ts`) driven through a mounted `<micr-io>`.
@@ -205,6 +207,155 @@ describe('MicrioImage id, tile base and data path', () => {
 			expect(opened._dataPath).toBe('https://org.test/thing/')
 		} finally {
 			spy.mockRestore()
+			h.destroy()
+		}
+	})
+})
+
+describe('MicrioImage V5 id decoding and derived flags', () => {
+	it('reads the 360/webp/deepzoom flags out of a 7-character id', async () => {
+		const h = harness()
+		const raw = info({ id: 'abcdefg' })
+		// The decoder is the spec: whatever it writes onto a copy is what the constructor
+		// must have written onto the info object the image now reports.
+		const expected = { ...raw }
+		decodeV5Id('abcdefg', expected)
+		const opened = await h.open({ id: 'abcdefg', info: raw, settings: {}, data: {} })
+		expect(opened._is360).toBe(Boolean(expected.is360))
+		expect(opened.$info.isWebP).toBe(expected.isWebP)
+		expect(opened.$info.isPng).toBe(expected.isPng)
+		expect(opened.$info.format).toBe(expected.format)
+		expect(opened.$info.path).toBe(expected.path)
+		h.destroy()
+	})
+
+	it('keeps an explicitly supplied path instead of deriving one from the id', async () => {
+		const h = harness()
+		const raw = info({ id: 'abcdxyz', path: 'https://explicit.test/', isWebP: false })
+		const expected = { ...raw }
+		decodeV5Id('abcdxyz', expected)
+		const opened = await h.open({ id: 'abcdxyz', info: raw, settings: {}, data: {} })
+		// `decodeV5Id` only fills `path` when the info has none.
+		expect(opened.$info.path).toBe('https://explicit.test/')
+		expect(opened.$info.isWebP).toBe(expected.isWebP)
+		h.destroy()
+	})
+
+	it('marks an image with no id and no tilesId as imageless, without a thumbnail', async () => {
+		const h = harness()
+		const opened = await h.openInfo({ id: '', tilesId: undefined })
+		expect(opened._noImage).toBe(true)
+		expect(opened.thumbSrc).toBeUndefined()
+		h.destroy()
+	})
+
+	it('derives the tile extension from the info flags', async () => {
+		const h = harness()
+		const png = await h.openInfo({ isPng: true, isWebP: false })
+		expect(png._getTileSrc(0, 0, 0)).toContain('.png')
+		const webp = await h.openInfo({ isPng: false, isWebP: true })
+		expect(webp._getTileSrc(0, 0, 0)).toContain('.webp')
+		const jpg = await h.openInfo({ isPng: false, isWebP: false, tileExtension: undefined })
+		expect(jpg._getTileSrc(0, 0, 0)).toContain('.jpg')
+		const custom = await h.openInfo({ tileExtension: 'avif' })
+		expect(custom._getTileSrc(0, 0, 0)).toContain('.avif')
+		h.destroy()
+	})
+})
+
+describe('MicrioImage zoom levels and tile source', () => {
+	it('counts one level per doubling of the tile size', async () => {
+		const h = harness()
+		// 256px tiles up to 512px: one doubling, so two levels.
+		const small = await h.openInfo({ width: 512, height: 512, tileSize: 256 })
+		expect(small._levels).toBe(2)
+		// 1024 is the default tile size, and it covers 512 without a doubling.
+		const dflt = await h.openInfo({ width: 512, height: 512, tileSize: undefined })
+		expect(dflt._levels).toBe(1)
+		// A 4096px image at 1024px tiles needs two doublings.
+		const wide = await h.openInfo({ width: 4096, height: 4096, tileSize: 1024 })
+		expect(wide._levels).toBe(3)
+		h.destroy()
+	})
+
+	// A regression here is an infinite loop, not a failed assertion: `f *= 2` can never grow
+	// out of 0, so the constructor would never return and this test would time out. Kept
+	// single-case for exactly that reason: one hang to diagnose, not two.
+	it('falls back to the default tile size for a zero size instead of looping forever', async () => {
+		const h = harness()
+		const zero = await h.openInfo({ width: 512, height: 512, tileSize: 0 })
+		// 512 at the 1024 default is a single level, the same as an absent tile size.
+		expect(zero._levels).toBe(1)
+		h.destroy()
+	})
+
+	it('shifts the level count down for an archive-backed gallery', async () => {
+		const h = harness()
+		const plain = await h.openInfo({ width: 512, height: 512, tileSize: 256 })
+		expect(plain._levels).toBe(2)
+		const archived = await h.openInfo(
+			{ width: 512, height: 512, tileSize: 256 },
+			{ settings: { gallery: { archive: 'https://a.test/album.mdp', archiveLayerOffset: 1 } } },
+		)
+		// `_levels -= 1 - archiveLayerOffset` with an offset of 1 is a no-op.
+		expect(archived._levels).toBe(2)
+		const shifted = await h.openInfo(
+			{ width: 512, height: 512, tileSize: 256 },
+			{ settings: { gallery: { archive: 'https://a.test/album.mdp' } } },
+		)
+		expect(shifted._levels).toBe(1)
+		h.destroy()
+	})
+
+	it('names the thumbnail after the deepest level', async () => {
+		const h = harness()
+		const opened = await h.openInfo({ width: 512, height: 512, tileSize: 256, isWebP: false })
+		expect(opened._levels).toBe(2)
+		expect(opened.thumbSrc).toContain('/2/0-0.jpg')
+		h.destroy()
+	})
+
+	it('builds a standard tile URL, with a frame folder for Omni frames', async () => {
+		const h = harness()
+		const opened = await h.openInfo({ width: 512, height: 512, tileSize: 256, isWebP: false })
+		const id = opened.$info.tilesId ?? opened.$info.id
+		expect(opened._getTileSrc(1, 2, 3)).toBe(`https://r2.micr.io/${id}/1/2-3.jpg`)
+		// Omni frames live one directory deeper.
+		expect(opened._getTileSrc(1, 2, 3, 7)).toBe(`https://r2.micr.io/${id}/7/1/2-3.jpg`)
+		h.destroy()
+	})
+
+	it('inverts the layer index and joins tiles with an underscore for DeepZoom', async () => {
+		const h = harness()
+		// `format: 'dz'` forces `isDeepZoom`. The pyramid runs to the *DeepZoom* level count
+		// (halving until the longest side is 1, so 10 levels for 512px), not to `_levels`,
+		// and the base level is the deepest — layer 0 is level 9, not level 2.
+		const opened = await h.openInfo({ width: 512, height: 512, tileSize: 256, format: 'dz', isWebP: false })
+		expect(opened.$info.isDeepZoom).toBe(true)
+		expect(opened._levels).toBe(2)
+		const id = opened.$info.tilesId ?? opened.$info.id
+		expect(opened._getTileSrc(0, 1, 2)).toBe(`https://r2.micr.io/${id}/9/1_2.jpg`)
+		expect(opened._getTileSrc(1, 1, 2)).toBe(`https://r2.micr.io/${id}/8/1_2.jpg`)
+		h.destroy()
+	})
+
+	it('refuses to build a tile URL for a 360 video thumbnail', async () => {
+		const h = harness()
+		// Open a harmless image first, so the assertion happens on a live image rather than
+		// through the engine's own tile requests — a 360-video bundle would make the frame
+		// loop throw "Video thumb" on every frame instead.
+		const opened = await h.openInfo({ width: 512, height: 512 })
+		opened._settings.set({ _360: { video: videoAsset({ src: 'https://v.test/v.mp4' }) } })
+		// The engine's frame loop logs and swallows the same throw; keep the expected noise
+		// out of stderr so an unrelated regression is still visible.
+		const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+		try {
+			// The thumbnail is read before the settings store is populated, so the constructor
+			// itself does not hit this; a later call has no image to fall back to.
+			expect(() => opened._getTileSrc(0, 0, 0)).toThrow('Video thumb')
+		} finally {
+			opened._settings.set({})
+			quiet.mockRestore()
 			h.destroy()
 		}
 	})
