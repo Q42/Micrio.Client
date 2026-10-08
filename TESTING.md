@@ -1,92 +1,68 @@
 # Unit testing the Micrio Client
 
-This document is the plan of record for the unit test suites: what exists, how to run
-it, how to add to it, and what is deliberately still missing. It is meant to be read
-and extended across sessions (see [Session backlog](#session-backlog)).
-
-The repo went ten years without unit tests, so the target is **catching up**: start
-with the logic that has real edges, and grow per subsystem rather than chasing a
-coverage number.
-
-Per-fixture and per-suite implementation notes deliberately live **next to the code
-they describe** — in the fixture/helper file's header, or in the suite that pins the
-behaviour — not here. This document answers "how do I run and extend the suite"; the
-files answer "why is this fixture shaped that way".
+The plan of record for the unit test suites: what exists, how to run and extend it, and
+what is deliberately still missing. Per-fixture and per-suite implementation notes live
+**next to the code they describe** (a fixture header, the suite that pins the behaviour),
+not here.
 
 ## Running the tests
 
 ```sh
-pnpm test           # both projects
+pnpm test           # core + browser (every fast suite)
 pnpm test:core      # bare Node, no DOM, no browser, no network
 pnpm test:browser   # headless Chromium (Playwright)
+pnpm test:css       # the same Chromium, with the *real* stylesheets
 pnpm test:browser:live   # opt-in: the only suite that touches the network
-pnpm test:coverage  # both projects under v8 coverage, one merged report
+pnpm test:coverage  # core + browser under v8 coverage, one merged report
 pnpm test:watch     # watch the core project while working on pure logic
 ```
 
-Requirements: Node `^20.19.0 || >=22.12.0`, and the Playwright Chromium build that the
-installed `playwright` version expects. `playwright` is declared as `^1.59.0`, so a
-`pnpm install` can resolve a newer minor whose browser revision is **not** in
-`~/.cache/ms-playwright` — if `test:browser` fails with
-`Executable doesn't exist at …/chrome-headless-shell`, run:
+Requirements: Node `^20.19.0 || >=22.12.0`, and the Chromium build the installed `playwright`
+expects. `^1.59.0` can resolve a newer minor whose revision is **not** in
+`~/.cache/ms-playwright`; if a browser run fails with `Executable doesn't exist at
+…/chrome-headless-shell`, run `pnpm exec playwright install chromium`.
 
-```sh
-pnpm exec playwright install chromium
-```
-
-Failure screenshots and `context.annotate` attachments land in `.vitest/` (gitignored).
-Vitest never removes them, so `vitest.config.ts` clears the directory at config load:
-every test run starts clean, and whatever is in there afterwards belongs to the run you
-just did — delete it by hand if you want it gone sooner.
+Failure screenshots and `context.annotate` attachments land in `.vitest/` (gitignored);
+`vitest.config.ts` clears that directory per run, so what is there belongs to the run you
+just did. The stylesheet suite's `render-proof/` images are deliberately kept between runs.
 
 ### What a clean run still prints on stderr
 
 A green `pnpm test` is not silent: the suites that pin a **failure** path drive the client
-into it, and the browser forwards whatever it logs. Every remaining line is expected and
-belongs to a test that asserts the state that failure leaves behind (the rendered error
-message, the fallback image, the warning call — sometimes the same text, sometimes not):
+into it and the browser forwards its log. Each remaining line belongs to a test that asserts
+the state that failure leaves behind:
 
-- `Warning: unknown grid tour event …` — the dispatcher's unknown-action branch; the
-  `grid-transitions` case asserts the text, the `grid-tour-events` one only the unchanged
-  layout.
-- `[Micrio] Could not open the album for …` — the album degradation cases (`brokenArchive`,
-  `missingIndex`). The trailing value is the rejection from the **stubbed** archive request,
-  never a download; see [Offline by default](#offline-by-default).
+- `Warning: unknown grid tour event …` — the dispatcher's unknown-action branch
+  (`grid-transitions` asserts the text, `grid-tour-events` only the unchanged layout).
+- `[Micrio] Could not open the album for …` — album degradation (`brokenArchive`,
+  `missingIndex`); the trailing value is the **stubbed** archive request's rejection, never a
+  download (see [Offline by default](#offline-by-default)).
 - `Error: Only IIIF Presentation API 3 …`, `No valid IIIF canvases …`, `Not a valid IIIF
 manifest …` — the IIIF "unsupported input" cases, each asserting its exact message.
 - `Error: Image with id "…" not found …`, the WebGL-unsupported message — `element-errors`,
   asserting the `micrio-error` text and that `open()` never rejects.
-- `[Micrio] Media failed (E303): …` followed by `[Micrio] Serial tour stopped: step 1/2 …` —
-  `serial-tour`'s failure case, which drives the media element's own `error` event and asserts
-  the tour stops, stays on the failing step and reports through `media-error`. One pair per
-  run: `#break()` is single-shot, so a step that reports twice still stops once.
+- `[Micrio] Media failed (E303): …` then `[Micrio] Serial tour stopped: step 1/2 …` —
+  `serial-tour`'s failure case (it drives the media's own `error` event). One pair per run:
+  `#break()` is single-shot.
 
-Two categories used to appear and are now absent, so their return means a regression:
+Anything else is a real finding. An unhandled **`PromiseRejectionEvent { isTrusted: true }`**
+(a fire-and-forget camera/grid animation) has been a regression before, and Chromium's
+**`ResizeObserver loop completed with undelivered notifications`** is stubbed-geometry only
+and filtered by `tests/browser/setup.ts`.
 
-- **`PromiseRejectionEvent { isTrusted: true }`** — an unhandled rejection from an aborted
-  camera or grid animation: `flyToView`/`zoom` reject when interrupted (`Ani.stop()`), and
-  `Grid.set()` propagates that as its own rejection. Every fire-and-forget caller has to
-  handle it with `.catch(() => {})`.
-- **`ResizeObserver loop completed with undelivered notifications.`** — Chromium's loop
-  protection. `Canvas.onresize` already returns early when nothing changed, so this can only
-  happen in the browser project, where `.css` imports are stubbed and the production
-  `canvas.micrio` box is therefore missing; `tests/browser/setup.ts` filters exactly that
-  message.
+## The projects
 
-Any _other_ stderr line is a real finding: no suite is expected to log an unhandled error or
-an unexpected warning.
+`vitest.config.ts` defines the test projects below. The `core` and `browser` ones are
+separate processes with separate configs, so a core test can never accidentally depend on a
+browser; `css` is a separate _run_ of the browser project (see its row).
 
-## The two projects
+| Project   | Environment       | Include glob                     | Purpose                                                                             |
+| --------- | ----------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| `core`    | Node (no DOM)     | `tests/core/**/*.test.ts`        | Pure logic: math, parsing, state, data loading, matrix math                         |
+| `browser` | Chromium headless | `tests/browser/**/*.test.ts`     | Anything needing a DOM, layout, WebGL or the `<micr-io>` element                    |
+| `css`     | Chromium headless | `tests/browser/css/**/*.test.ts` | The same, with the real stylesheets: placement, visibility, layering, interactivity |
 
-`vitest.config.ts` defines two independent projects. They are separate processes with
-separate configs, so a core test can never accidentally depend on a browser.
-
-| Project   | Environment       | Include glob                 | Purpose                                                          |
-| --------- | ----------------- | ---------------------------- | ---------------------------------------------------------------- |
-| `core`    | Node (no DOM)     | `tests/core/**/*.test.ts`    | Pure logic: math, parsing, state, data loading, matrix math      |
-| `browser` | Chromium headless | `tests/browser/**/*.test.ts` | Anything needing a DOM, layout, WebGL or the `<micr-io>` element |
-
-Both projects share the alias map and the GLSL plugin with the production build:
+Every project shares the alias map and the GLSL plugin with the production build:
 `vite.config.js` exports `aliases` and `glslMinifyPlugin()`, and `vitest.config.ts`
 imports them. So `$core/...`, `$utils/...`, `$render/...` resolve in tests exactly like
 they do in the app, `templates/grid/**` included.
@@ -95,17 +71,19 @@ The browser suite is registered through the production entry point (`src/main.ts
 `customElements.define('micr-io', ...)` and the version banner behave exactly like a
 real page.
 
+`css` is the same browser and entry point with `vitest.config.ts`'s stub off
+(`MICRIO_TEST_CSS=1`, set only by `test:css`); it is listed as a project only when that flag
+is on, and `browser` excludes its directory. See
+[What the CSS suite pins](#what-the-css-suite-pins).
+
 ### Test layout
 
 Tests are grouped in the directory of the module they pin, mirroring `src/`. The shared
-harness stays at `tests/`: `tests/fixtures/` (bundle, space, tour, grid, album, book,
-omni and UI data builders), `tests/helpers/` (mount, wait, network, tour and grid
-helpers) plus the ambient `tests/tests.d.ts`.
-
-Some fixtures have to be **real resources**, not stubs: a serial tour's step clock is
-driven by its own media, so `tests/fixtures/tours.ts` carries `STEP_TONE_URI` — an 8s tone
-as a small `data:` WAV — because a fake `.mp3` URL is a genuine load error, and a real
-error (correctly) breaks the tour.
+harness stays at `tests/`: `fixtures/` (bundle, space, tour, grid, album, book, omni and UI
+data builders), `helpers/` (mount, wait, network, tour, grid) and the ambient
+`tests/tests.d.ts`. One fixture is deliberately a **real resource**: `tours.ts`'s
+`STEP_TONE_URI` is an 8s `data:` WAV, because a fake `.mp3` URL is a genuine load error and a
+real error (correctly) breaks the tour.
 
 ```
 tests/
@@ -124,84 +102,61 @@ tests/
     ├── render/              # the engine: canvas, camera-2d, engine-360, tile-image, postprocess
     ├── space/               # the 360 suites: camera, minimap, spaces, transitions
     ├── tour/  ui/  utils/
+    ├── css/                 # project "css" — the same browser, real stylesheets
+    │   ├── setup.ts         # viewport constants and `useViewport` (page.viewport + a restore)
+    │   ├── helpers.ts       # the assertion vocabulary: computed style, boxes, hit tests, transitions
+    │   └── smoke.test.ts    # that the stylesheets are really in the page
     └── live/                # opt-in network suite
 ```
 
-`browser/space/` is the one feature directory without a 1:1 `src/` counterpart: the 360
-suites span `render/camera-360`, `layout/nav/minimap`, `utils/space`, `core/state` and
-`markers/waypoint`, so one home beats splitting them across four directories.
+`browser/space/` is the one feature directory without a 1:1 `src/` counterpart (the 360
+suites span `render/camera-360`, `layout/nav/minimap`, `utils/space`, `core/state`,
+`markers/waypoint`); `browser/css/` is a _project_ boundary, not a feature one — it runs
+`setup.ts` first and keeps the browser fixtures.
 
-**Import convention.** Tests import production code through the `$` aliases — `$core/store`,
-`$utils/dom`, `$types/models`, `await import('$book/main')` — so a test reads like the
-source file it covers. Test support (fixtures, helpers, a sibling fake such as
-`browser/audio-context.ts`, another test's helpers) stays relative. The one exception is
-`tests/browser/setup.ts`, which keeps `../../src/main`: the aliases map directories, and
-`src/main.ts` sits at the source root.
-
-Both projects' include globs (`tests/core/**/*.test.ts`, `tests/browser/**/*.test.ts`) are
-recursive, and `.oxlintrc.json`'s `tests/**/*.ts` override matches nested paths, so neither
-`vitest.config.ts` nor the lint and type-check config needed a change for the layout.
+**Import convention.** Production code is imported through the `$` aliases (`$core/store`,
+`$utils/dom`, `$types/models`, `await import('$book/main')`), so a test reads like the file it
+covers; test support stays relative. The one exception is `tests/browser/setup.ts`, which
+keeps `../../src/main` — the aliases map directories and `src/main.ts` sits at the root.
 
 ## Writing tests that have an edge
 
-Every test should pin down something an implementer could plausibly get wrong. The
-current suites are a good guide:
+Every test should pin something an implementer could plausibly get wrong: **boundaries**
+(`mod(-1, 3) === 2`, `epsEq` at exactly its epsilon, `parseTime(NaN)`, `fmt`'s rollover),
+**surprising conventions** (`directionY` is the _inverted_ Y delta; `Mat4._multiply(o)`
+applies `o` **first**; `data-ui="false"` sets `noUI: true` — write the _why_), **the failure
+path** (a missing bundle renders `micrio-error` and never rejects `open()`; a failed fetch is
+not cached and is retried), **re-entrancy and ordering** (subscribe while being notified,
+unsubscribe from inside a callback, `Frame`'s next-frame deferral), **round-trips and
+invariants** (`getXY`/`getCoo`, `Mat4` invert, `normalize3` length), and **prototype pollution
+and cycles** (`deepCopy` rejects `__proto__`, mirrors circular references).
 
-- **Boundaries, not the middle.** `mod(-1, 3) === 2`, `epsEq` exactly at its epsilon,
-  `parseTime(NaN)`, the hour/day rollover in `fmt`.
-- **Inverted or surprising conventions, asserted explicitly.** `directionY` in
-  `getSpaceVector` is the _inverted_ Y delta; `Mat4._multiply(o)` applies `o` **first**;
-  `data-ui="false"` sets `noUI: true`. Write the comment that explains _why_.
-- **The failure path.** A missing bundle renders `micrio-error` and never rejects
-  `open()`; a null WebGL context surfaces the unsupported-browser message; a failed
-  fetch is not cached and is retried.
-- **Re-entrancy and ordering.** Subscribing while being notified, unsubscribing from
-  inside a callback, coalescing, next-frame deferral in `Frame`.
-- **Round-trips and invariants.** `getXY`/`getCoo`, `Mat4` invert, `normalize3` length,
-  view aspect ratio.
-- **Prototype pollution and cycles.** `deepCopy` rejects `__proto__` and mirrors
-  circular references instead of overflowing the stack.
-
-Avoid writing a test that only restates the implementation, and avoid asserting on
-large snapshots of internally-generated structures — they make refactors expensive and
-catch little.
-
-A test that pins a _known gap_ (a setting that is read nowhere, a path that degrades on
-purpose) is fine, but say so in the test: when the gap closes, that test is the one that
-has to change. The suite is meant to fail loudly rather than let the gap go unnoticed.
+Avoid a test that only restates the implementation, and large snapshots of internally
+generated structures — they make refactors expensive and catch little. A test that pins a
+_known gap_ is fine, but say so in the test: when the gap closes, that test is the one that has
+to change.
 
 ## Offline by default
 
-The default run is fully hermetic:
+The default run is hermetic:
 
-- `tests/helpers/network.ts` patches `globalThis.fetch`, so every main-thread request
-  (`bundle.json`, IIIF manifests, styles, scripts) is served from a fixture or a 404.
-  `requested` lists the URLs a test actually asked for, which is how "no network at all"
-  is asserted. `tests/browser/setup.ts` installs the patch with no routes in every
-  `beforeEach` (unless `__MICRIO_LIVE__`), so a suite that forgets to mock still cannot
-  reach the real network; `browser/smoke` pins that default.
-- A 404 is the default for anything unmatched, which keeps leaks loud instead of silent.
-- Anything that does **not** go through `fetch` needs its own fake: binary archives and
-  album indexes (`src/utils/archive.ts` uses `XMLHttpRequest` — `stubArchiveXhr()`), and
-  texture tiles (decoded in a dedicated Web Worker — `tests/browser/textures.ts`). The
-  header of `helpers/network.ts` is the index of those bypasses.
-- `fetchJson` caches parsed responses by URI in a module-level map, and the texture/archive
-  fakes key their own state by id. **Every fixture that goes through the network needs a
-  fresh id or URL**: a reused one serves the earlier test's data.
+- `helpers/network.ts` patches `globalThis.fetch`, so every main-thread request
+  (`bundle.json`, IIIF manifests, styles, scripts) comes from a fixture or a 404; `requested`
+  lists what a test actually asked for. `setup.ts` re-installs the patch (no routes) in every
+  `beforeEach` unless `__MICRIO_LIVE__`, so a suite that forgets to mock still cannot reach
+  the network — `browser/smoke` pins that.
+- Anything that does **not** go through `fetch` needs its own fake: archives and album indexes
+  (`XMLHttpRequest` — `stubArchiveXhr()`) and texture tiles (a Web Worker —
+  `browser/textures.ts`). `helpers/network.ts`'s header indexes those bypasses.
+- `fetchJson` caches by URI and the fakes key their state by id, so **every fixture that goes
+  through the network needs a fresh id or URL**: a reused one serves the earlier test's data.
 
 ### The live suite
 
-`tests/browser/live/**` is the only place real network and real pixel decoding are
-exercised. It is skipped unless `MICRIO_LIVE=1` is set, which `vitest.config.ts` turns
-into an injected `__MICRIO_LIVE__` flag:
-
-```sh
-MICRIO_LIVE=1 pnpm run test:browser:live
-```
-
-It covers one modern image (`rqFkjZz`) and one legacy v3.2 image (`dzzLm`, arguably the
-best real fixture available: 41472×30219 with 25 markers, 6 video tours and 9 marker
-tours).
+`tests/browser/live/**` is the only place with real network and real pixel decoding, skipped
+unless `MICRIO_LIVE=1` (`pnpm test:browser:live`, which `vitest.config.ts` turns into the
+injected `__MICRIO_LIVE__` flag). It covers one modern image (`rqFkjZz`) and one legacy v3.2
+image (`dzzLm`: 41472×30219, 25 markers, 6 video tours, 9 marker tours).
 
 ## Test data: fixtures and ids
 
@@ -245,48 +200,75 @@ Three rules apply to all of them:
 
 ## Three traps that make the browser suite flake
 
-These are the only cross-suite hazards; each harness documents its own use of them.
+The only cross-suite hazards; each harness documents its own use of them.
 
-1. **Keep the number of live WebGL contexts tiny.** Chromium keeps only a small number
-   and silently evicts the oldest, after which `getContext` falls back to software
-   rendering: later frames crawl, animations never finish, and it looks like a logic bug.
-   The book suites share one context for every mounted viewer
-   (`browser/book-helpers.ts`); a suite that mounts one context per fixture ends up with
-   its later tests stalled.
-2. **`Frame` is a module singleton with no reset API.** A callback left pending keeps
-   `rafId` set, and every later `Frame.request` waits on a frame that never comes. Anything
-   that drives frames by hand must point it at a capture host (`Frame._setDisplay`) and run
-   one tick per step, as `browser/book-helpers.ts` does.
-3. **Stop a frame-driven object when you discard it.** `Frame` removes a callback only by
-   running it, so a `BookViewer` left mid-animation stays queued for the rest of the file
-   and every later frame re-runs its physics (and re-queues it). `BookViewer._stop()`
-   cancels the pending frame; the gallery calls it before replacing a book, and the test
-   harness calls it in `destroy()`.
+1. **Keep the number of live WebGL contexts tiny.** Chromium evicts the oldest and then falls
+   back to software rendering: frames crawl, animations never finish, and it looks like a
+   logic bug. The book suites share one context (`browser/book-helpers.ts`).
+2. **`Frame` is a module singleton with no reset API.** A pending callback keeps `rafId` set,
+   and every later `Frame.request` waits for a frame that never comes. Point it at a capture
+   host (`Frame._setDisplay`) and run one tick per step, as `book-helpers.ts` does.
+3. **Stop a frame-driven object when you discard it.** `Frame` only removes a callback by
+   running it, so a `BookViewer` left mid-animation re-runs its physics on every later frame.
+   `BookViewer._stop()` cancels the pending frame; the harness calls it in `destroy()`.
 
-## What the suite cannot see: stylesheets
+## What the CSS suite pins
 
-`vitest.config.ts` stubs every `.css` import to `{}`, so **no assertion in this suite observes
-a stylesheet**. A purely visual regression — a layout rule lost in a refactor, a
-`display: none` that out-specifies another, a selector that is one element too wide — passes
-the whole suite green.
+`tests/browser/css/` runs the same production entry point with the stylesheet stub switched
+off, so a purely visual regression — a rule lost in a refactor, a `display: none` that
+out-specifies another, a selector one element too wide — fails a test. Several such bugs had
+shipped unseen (they are why these assertions exist); each is now guarded.
 
-That is not hypothetical. Every one of these shipped and passed every test:
+It is a **separate run**, not a mode of `browser`, because real CSS changes every component's
+measured layout (`micr-io` becomes `position: relative; overflow: hidden`, wrappers become
+`display: contents`, empty layers `display: none`, the canvas is pinned with `!important`).
+With the stylesheets on, five `browser` tests fail on the sizes the stubbed layout gives them
+(`camera-2d`, `ui-primitives`, `input-integration`, `event-contract`, `grid-transitions`), so
+the two never share a run and `browser` excludes this directory. See the config for the
+switch and the `exclude`.
 
-- the serial tour's readout vanished because three `display: contents` rules were dropped
-  when the component's inline styles moved into a file (see [The serial tour](#the-serial-tour));
-- the media controls' readout collapsed on each step change, because the rule that hid the
-  media's own span out-specified the rule that replaced it;
-- a marker popup's clickable image showed the browser's `buttonface` background: a bare
-  `<button>` is not a `<micrio-button>`, so the nested-context strip never reached it;
-- the fullscreen media bar sat below the viewport, because the media is stretched to
-  `height: 100%` and the controls follow it in normal flow;
-- the zoom buttons were visible but dead under a marker tour: one rule set
-  `pointer-events: none` while a companion rule re-showed them.
+**Viewports are runtime values.** `setup.ts` exports `DESKTOP` (1024×768, the default),
+`MOBILE` (400×800) and `TABLET` (820×1180, between the 640px branches and the desktop). `useViewport` drives `page.viewport()` on the real iframe and an
+`afterEach` restores the default. A pinned tablet project, if ever needed, is one
+`browserProject(...)` call plus a script.
 
-So: a CSS-only change **cannot be verified here**. Check it in a browser, and when a layout
-bug is reported, read the stylesheet rather than looking for a missing test. If you do need
-to assert a layout fact, injecting stylesheet text into a test is possible but was
-explicitly rejected as too invasive a change to the suite — ask before doing it.
+**The assertion vocabulary**, in `helpers.ts`: `rendered()` / `intersectsViewport()` for
+visibility, `box()` for placement (numbers, never CSSOM strings), `topAt()` / `hitsAt()` over
+`elementFromPoint` for layering and interactivity — the only way to pin "faded out _and_ out
+of the click path" rather than just "faded out" — and `waitForStyle()` for transitions.
+
+Two traps. **Mount at `100vw`/`100vh` where the rules are responsive**: `micr-io` is
+`container-type: size`, so an 800px element in a 400px viewport reports 800px to a container
+query. **`page.elementLocator(…).hover()` is the one interaction to use**: Playwright's
+actionability check on a `pointer-events: none` (or disabled) element hangs until the timeout,
+so those get a dispatched event instead.
+
+**Visual proof.** `render-proof.test.ts` writes PNGs to `.vitest/render-proof/` (`pnpm
+test:css`, then open it; `pnpm proof` on Linux): the app at each viewport, plus the 3D book
+mid-page-turn at each viewport, chrome included. Nothing compares them — they exist so a human
+can see the stylesheets and the WebGL scene really rendered. Every other command leaves them
+alone; only `test:css` rebuilds them.
+
+Capturing the book needs two things a plain screenshot call does not give: the book renderer
+draws into a context without `preserveDrawingBuffer`, which the compositor clears before an
+out-of-task capture, and it takes its drawing buffer size from the canvas box **when it is
+constructed**, so the host must be at the target size before the album opens
+(`book-helpers.ts`'s `_preserveDrawingBuffer`, `fixtures/book.ts`'s `style`). The turn itself
+is sampled until the spread's shadow is big enough, because the page is only in the air for
+part of the animation.
+
+**Live gap:** the `figure:is(:fullscreen, …)` rules in `media.css` cannot be _executed_ in a
+headless iframe (a real fullscreen transition needs a user gesture), so `media-fullscreen`
+pins their declarations and the DOM shape they need. A change that keeps the text but breaks
+the rule would still get through; closing it needs a headed pass.
+
+**Not covered, on purpose:** pixel/screenshot regression (`toMatchScreenshot` needs no new
+dependency, but baselines are font- and platform-rendered and the repo has no CI), and
+`prefers-color-scheme` (the provider exposes no `emulateMedia`, so it would assert the host's
+setting; the `data-light-mode` attribute path is covered).
+
+A style claim about _state_ still belongs in the feature suite: `toolbar-mobile.test.ts`
+asserts what the toolbar offers, this project asserts where it lands.
 
 ## The embed subsystem
 
@@ -314,18 +296,14 @@ Harness notes that are easy to get wrong:
 - **Never dispatch a real `click` on an `href` embed** — the overlay is an `<a>` and a
   synthetic click would navigate the test page. Drive the shared handler with `keydown`.
 
-**Sub-image lifetime.** A WebGL sub-image is **claimed** by the `<micrio-embed>` using it.
-Destroying the element orphans it — it stays on `image._embeds` (and fades out) so a rebuild or
-a re-connect that mounts the same embed object can re-adopt it — and the next claim sweep
-releases whatever is still unclaimed: `MicrioImage._releaseOrphans()` drops it from `_embeds`,
-and `Engine._removeEmbed()` detaches its engine image, deletes its tile textures (base tile
-included) and drops every lookup. The sweeps run from `MicrioEmbed._onMount` and from the
-`micrio-image-embeds` rebuild, which is what stops a rebuild with fresh embed data from growing
-`_embeds`. The harness `fakeImage` mirrors that claim API (orphan/adopt/release plus
-`engine._removeEmbed`).
+**Sub-image lifetime.** A WebGL sub-image is **claimed** by the `<micrio-embed>` using it;
+destroying the element orphans it (it stays on `image._embeds` and fades) so a rebuild can
+re-adopt it, and the next sweep releases what is still unclaimed
+(`MicrioImage._releaseOrphans` + `Engine._removeEmbed`). The sweeps run from
+`MicrioEmbed._onMount` and the `micrio-image-embeds` rebuild; `fakeImage` mirrors the API.
 
-Also note: `getMatrix` hands back a **reused** `Float32Array`, and the CSSOM reserializes
-`matrix3d(...)` to ~6 significant digits with spaces — compare numbers, never strings.
+`getMatrix` hands back a **reused** `Float32Array` and the CSSOM reserializes `matrix3d(...)`
+to ~6 significant digits — compare numbers, never strings.
 
 ## The render engine
 
@@ -344,52 +322,27 @@ placed image, the `Image` tile pyramid, a 2D and a 360 camera, an animation/kine
 
 Harness notes:
 
-- **One GL context per file is the rule; `canvas` and `camera-2d` are the two exceptions.**
-  Both mount a viewer _per test_ because each assertion needs a clean camera (scale, limits and
-  any armed animation all leak between calls), and resetting a live engine by hand is more
-  fragile than one more context. Those two files together are still only a handful of contexts.
-  `engine-360` and `tile-image` follow the rule with one viewer each per describe block.
-- **`postprocess` needs no viewer at all.** `PostProcessor` takes a WebGL context as an
-  argument, and the element it is handed is only used for its pure `_getShader` compiler — so
-  the suite calls `micrio._webgl._init()` on an id-less `<micr-io>` and then keeps _that one_
-  context for the whole file, asserting with `gl.isTexture`/`isFramebuffer`/`isProgram` rather
-  than pixels.
-- **Two different `_canvases` arrays exist.** `viewer.el._canvases` is the element's list of
-  loaded `MicrioImage`s; `viewer.el._engine._canvases` is the engine's list of `TileCanvas`
-  instances, and the canvas is what knows which image it was built for (`canvas._micrioImage`).
-  Most render tests want the engine's list.
-- **The placed image is not always `micrio.$current`.** A grid/gallery parent owns its own
-  `MicrioImage` per id, so anything that walks the engine's per-image maps (fades, removal,
-  embedding) has to use `canvas._micrioImage` — see `placedImage()` in `canvas.test.ts`.
-- **`_getCoo` hands back one reused `Coordinates` and `View.arr` one reused `Float64Array`.**
-  Capture the scalars you need before the next call, exactly as with `getMatrix`.
-- **Some engine state is written by the frame loop, not by the call under test.** `TileCanvas`
-  resets the current image's opacity/target during its first frame, so `tile-image.test.ts`
-  waits one turn of the event loop after opening before poking an `Image` — otherwise the next
-  frame overwrites the value.
+- **One GL context per file; `canvas` and `camera-2d` mount a viewer per test** because a
+  clean camera matters (scale, limits and armed animations leak between calls). `engine-360`
+  and `tile-image` use one viewer per describe block.
+- **`postprocess` needs no viewer**: it takes a WebGL context and only uses the element for
+  `_getShader`, so it keeps one context from an id-less `<micr-io>` and asserts with
+  `gl.isTexture`/`isFramebuffer`/`isProgram`, not pixels.
+- **Two `_canvases` arrays exist**: `el._canvases` is the loaded `MicrioImage`s,
+  `el._engine._canvases` the `TileCanvas` instances. Most render tests want the engine's.
+- **The placed image is not always `micrio.$current`** — a grid/gallery parent owns one
+  `MicrioImage` per id, so per-image maps (fades, removal, embedding) go through
+  `canvas._micrioImage` (`placedImage()` in `canvas.test.ts`).
+- **`_getCoo` reuses one `Coordinates` and `View.arr` one `Float64Array`** — copy the scalars
+  out before the next call.
+- **The frame loop writes some state**: `TileCanvas` resets the current image's opacity/target
+  on its first frame, so `tile-image.test.ts` waits one turn of the event loop after opening.
 
-Three state machines are pinned directly:
-
-1. **The tile load state** (`TileEntry._loadState`, 0 → 1 → 2 → 3) and the cleanup that
-   evicts a tile once it has been off-screen for `_deleteAfterSeconds`.
-2. **The camera limit/scale state** — `coverLimit` vs `freeMove`, `_minScale`/`_maxScale`,
-   `_minSize` and the over-zoom correction in `View._limit`.
-3. **`Ani`'s `_flying`/`_limit`/`_correcting` flags**, which decide whether a view write is
-   clamped while an animation is running.
-
-**`tile-image.ts` (94.2%)**. Its 360-embed culling — `#getTilesViewport`, `#getEmbeddedScale`
-and `_setDrawRect` — is pinned by a hand-built frustum in `tile-image.test.ts`
-(`browser/render/tile-image.test.ts`, "360 embeds on a placed canvas"): one shared 360 viewer
-carrying one embed placed through `image.addEmbed()`, with `_cameraForward*`/`_fieldOfView` set
-directly to put it in or out of view. The `#getEmbeddedScale` non-360 half and
-`#getTilesViewport`'s `!c.is360` half were deleted rather than tested: both are unreachable,
-because `#is360Embed` is written once in the constructor and is the only gate on either call.
-The archive/`fromScale` layer-count variants are covered through the engine's `_hasArchive`
-flag and an explicit `fromScale`. What remains is defensive: `#get360Tiles`' `m < 2` and
-zero-max-gap guards, which only a degenerate projection could reach.
-**`ani.ts` (77.5%)**: the uncovered half is the jump-transition edge flags (`#fL/#fR/#fT/#fB`)
-and the omni index wrap, both of which need a crafted from/to view pair rather than a real
-navigation, and that one is noted in the backlog rather than faked.
+**Thin spots, and why.** `tile-image.ts`'s 360-embed culling is pinned by a hand-built frustum
+("360 embeds on a placed canvas"); what is left uncovered is defensive (`#get360Tiles`' `m < 2`
+and zero-gap guards, reachable only by a degenerate projection). `ani.ts` (77.5%) leaves the
+jump-transition edge flags and the omni index wrap, which need a crafted from/to view pair
+rather than a real navigation.
 
 ## The grid transitions and input layer
 
@@ -437,8 +390,8 @@ and the real-viewer `input-integration`.
   gesture handlers listen on `_micrio` but reject an event whose `target` is not `_el` (or a
   `[data-scroll-through]` descendant), so a test that dispatches on the wrapper silently
   tests the rejection path. The fixture nests the canvas for exactly this reason.
-- **`Browser` is a plain object of data properties**, so `stubBrowser({ iOS, OSX, firefox,
-hasTouch })` assigns and restores; no device is emulated. The iOS touch pinch and the macOS
+- **`Browser` is a plain object of data properties**, so
+  `stubBrowser({ iOS, OSX, firefox, hasTouch })` assigns and restores; no device is emulated. The iOS touch pinch and the macOS
   gesture handlers are only attached under those flags, but their public `start`/`stop` are
   also driven directly for the guard branches.
 - **Coordinates handed to the camera are element-relative CSS pixels, independent of the
@@ -479,46 +432,33 @@ page drag vs page click, two-pointer pinch and the wheel hit point. The suite is
 marker-cluster, marker-autotour, marker-split}` (plus `markers-grid` for the layer's grid
 `inactive` path and `waypoints` for the 360 links).
 
-- `markers.ts` (`<micrio-markers>`) is mounted by the layout once per **visible** image
-  that has markers or a 360 space. It filters markers by the active language, injects each
-  marker's `clickableArea` as a `<micrio-embed>` _before_ the marker elements, syncs the 360
-  waypoints, and runs the clustering pass.
-- `marker.ts` (`<micrio-marker>`) is the dot: icons, labels and tooltips from the marker's
-  `i18n`, its own click/focus handling, and the whole open/close state machine (camera view,
-  popup, popover, video tour, `micrioLink`, `micrioSplitLink`, auto-starting a marker tour).
-- `marker-popup.ts` (`<micrio-marker-popup>`) is created by the layout from
-  `micrio.state.popup`; a marker **popover** is a `state.popover` mode rendered by
-  `layout/popover.ts` instead.
-- `marker-content.ts` (`<micrio-marker-content>`) renders the culture data (title, bodies,
-  media, embed, images); both the popup and the popover mount it.
+- `markers.ts` (the layer) is mounted by the layout per **visible** image that has markers or
+  a 360 space; it filters by language, injects each `clickableArea` as a `<micrio-embed>`
+  before the marker elements, syncs waypoints and runs the clustering pass.
+- `marker.ts` is the dot (icons, labels, tooltips, click/focus) plus the open/close state
+  machine; `marker-popup.ts` is created from `state.popup`, while a marker **popover** is a
+  `state.popover` mode rendered by `layout/popover.ts`; `marker-content.ts` renders the culture
+  data and is mounted by both.
 
 Harness notes:
 
-- **`MicrioElement._markerImages` is a module-level map keyed by marker id and never
-  cleared.** `marker-content` and `marker-popup` resolve their image through it, so a
-  reused marker id hands a later test the image of a viewer that was destroyed earlier.
-  `fixtures/markers.ts` prefixes every marker id per call and remaps the marker tours'
-  `steps` and `stepInfo` (including `micrioId`, so a single-image tour does not try to open
-  the tours fixture's placeholder image).
-- **Wait for the layer, not for marker elements.** A fixture whose markers are all filtered
-  out by the active language still mounts `<micrio-markers>` and has no marker elements;
-  `openMarkers` waits for the layer for exactly that reason.
-- **A marker element is mounted against a real viewer** (the layer only exists inside
-  `<micr-io>`), while the popup and content elements are mounted by the layout and by their
-  parent — so the suites drive _state_ (`state.marker`, `state.popup`) rather than creating
-  the elements by hand.
-- **The popup animates out on its own.** Clearing `state.popup` does not remove the element:
-  its own subscription adds `destroying` and a `transitionend` on itself is what removes it.
+- **`MicrioElement._markerImages` is keyed by marker id and never cleared** — `marker-content`
+  and `marker-popup` resolve their image through it, so a reused id hands a later test an
+  earlier viewer's image. `fixtures/markers.ts` prefixes every id per call and remaps the
+  tours' `steps`/`stepInfo` (including `micrioId`).
+- **Wait for the layer, not for marker elements**: a fixture whose markers are all filtered out
+  by language still mounts the layer and has none.
+- **Drive _state_, not elements**: a marker only exists inside a real `<micr-io>`, and the popup
+  and content are mounted by the layout/parent.
+- **The popup animates out on its own**: clearing `state.popup` does not remove it; its own
+  subscription adds `destroying` and its `transitionend` removes it.
 
-The layer's grid `inactive` path — a cell that is not focused drops its markers, waypoints and
-clickable-area embeds — is pinned by `browser/markers/markers-grid.test.ts`. Reaching it offline
-needs a _hand-built visible cell_: the layout only mounts a layer for an image in
-`micrio._visible`, and a cell never gets there on its own because its canvas keeps a zero-size
-visible rect (`helpers/grid.ts` documents why). The suite therefore calls
-`cell.visible.set(true)` and then focuses the cell, which proves the `inactive` term is what
-suppressed the markers rather than missing data. Note that `Grid._markersShown` is written
-nowhere in `src` today, so the `indexOf` term of `inactive` is currently constant and `$focussed`
-is the real discriminator.
+The grid `inactive` path — an unfocused cell drops its markers, waypoints and clickable-area
+embeds — is `browser/markers/markers-grid.test.ts`. Reaching it offline needs a _hand-built
+visible cell_ (the layout only mounts a layer for an image in `micrio._visible`, and a cell
+never gets there because its canvas keeps a zero-size visible rect), so the suite calls
+`cell.visible.set(true)` and focuses it. `Grid._markersShown` is written nowhere today, so the
+`indexOf` term of `inactive` is constant and `$focussed` is the real discriminator.
 
 ### Markers, settings and clustering
 
@@ -553,57 +493,41 @@ come from CSS only — the dashboard-era `_markers.markerSize`, `markerColor` an
 
 ## The serial tour
 
-`<micrio-serial-tour>` is the multi-image marker tour (`isSerialTour`). Its step clock and
-its control bar are the two places that are easy to get wrong, and the suite pins both
-(`tests/browser/tour/serial-tour.test.ts`).
+`<micrio-serial-tour>` is the multi-image marker tour (`isSerialTour`); its step clock and
+its control bar are pinned by `tests/browser/tour/serial-tour.test.ts`.
 
 **Who owns what**
 
-- The **clock** is the tour's (a 250ms `#tick`). Advancement is never a timeout:
-  - a step **with media** is released by that media's own `ended` (`micrio-media`
-    dispatches `ended`/`timeupdate`/`blocked`/`error` on _itself_, so the tour subscribes by
-    event and never queries for a `video`/`audio` tag — a YouTube/Vimeo/HLS tour has none);
-  - a step whose media **never started** (still loading, or autoplay blocked) holds the clock
-    at 0 and waits. There is deliberately no grace period: a step is not skipped over
-    unheard;
-  - a step with **no media at all** is timed by its authored `stepInfo` duration.
-- The **control bar** is the media element's (`figure` is the bar, fixed to the bottom).
-  The tour injects one `[data-part="bar"]` per step into its `aside > div`.
-- The **time readout** is that bar's own `<span>` — `micrio-media-controls aside > div > span`
-  — fed by the tour's `getTimeDisplay`. It is not a span of the tour's own: the host is
-  `display: contents` (so the media figure _is_ the bar), which leaves it with no box to
-  position a child in. `media.ts` primes the controls the moment it creates them, so the
-  readout is filled on the first frame rather than at the first `loadedmetadata`/`timeupdate`
-  — an empty readout collapses, and the bar then takes its space.
+- The **clock** is the tour's (250ms `#tick`); advancement is never a timeout. A step with
+  media is released by that media's own `ended` (the media dispatches its events on _itself_,
+  so the tour never queries for a `video`/`audio` tag — a YouTube/Vimeo/HLS tour has none); a
+  step whose media never started holds the clock at 0 and waits (deliberately no grace
+  period); a step with no media is timed by its authored `stepInfo` duration.
+- The **control bar** is the media element's (`figure`, fixed to the bottom), with one
+  `[data-part="bar"]` per step injected into its `aside > div`.
+- The **time readout** is that bar's own `<span>`, fed by `getTimeDisplay`. Not a span of the
+  tour's own: the host is `display: contents`, leaving it no box to position a child in.
+  `media.ts` primes the controls on creation so the readout is filled on the first frame; an
+  empty readout collapses and the bar takes its space.
 
-**Failures are not papered over**
-
-- A media **error** (404, timeout, decode failure, unplayable source) breaks the tour:
-  `#break()` stops it, clears `state.tour`, leaves the viewer on the failing step, and
-  reports through `media-error` naming the step (`step 1/2 (markerId) could not be played: …`).
-- **Blocked autoplay** is not an error: the step latches paused and waits for the user to
-  press play (`media-blocked`).
-- `media.ts` reports what happened — `describeMediaError()` turns `MediaError` into a
-  sentence, adapter `onError` is forwarded on the YouTube/Vimeo/HLS paths, and initialisation
-  rejections and a rejected user-initiated `play()` are reported instead of swallowed.
-
-The readout is also the example that matters most from [What the suite cannot
-see](#what-the-suite-cannot-see-stylesheets): nothing here could have caught it, because no
-assertion observes a stylesheet.
+**Failures are not papered over.** A media error breaks the tour: `#break()` stops it, clears
+`state.tour`, leaves the viewer on the failing step and reports `media-error` naming the step.
+Blocked autoplay is not an error (the step latches paused, `media-blocked`). `media.ts` reports
+what happened: `describeMediaError()` turns a `MediaError` into a sentence, adapter `onError`
+is forwarded on the YouTube/Vimeo/HLS paths, and init/play rejections are reported, not
+swallowed. The bar's fullscreen overlay and its fixed-width `tabular-nums` readout are guarded
+in `browser/css/media-fullscreen.test.ts`.
 
 ## Coverage
 
-`pnpm test:coverage` runs both projects under `@vitest/coverage-v8` and merges them
-into one report. It measures all of `src/**/*.ts` — a file no test ever imports still
-shows up as 0%, rather than dropping out of the report.
-
-Coverage is a **whole-tree** number: the floors are checked against the merged report.
-The core project only reaches ~7% on its own (bare Node never imports render, gallery,
-book or the element), so `vitest run --project core --coverage` trips every threshold by
-design — use it to inspect one project, not to gate.
-
-Baseline (steady to a couple of tenths across runs — a few render branches only run on
-some timing paths):
+`pnpm test:coverage` merges `core` + `browser` under `@vitest/coverage-v8`, over all of
+`src/**/*.ts` — a file no test imports still shows as 0%. The `css` project is left out
+(its stylesheets break five `browser` assertions, see
+[What the CSS suite pins](#what-the-css-suite-pins)); it exercises the same modules, so
+nothing measurable is lost. The floors are checked against the merged report, so
+`--project core --coverage` alone (~7%) trips every threshold by design — use it to inspect,
+not to gate. Baseline, steady to a couple of tenths (some render branches only run on certain
+timing paths):
 
 | Metric     | Baseline | Floor |
 | ---------- | -------- | ----- |
@@ -612,27 +536,12 @@ some timing paths):
 | Functions  | 89.1     | 89    |
 | Lines      | 90.4     | 89    |
 
-The floors live in `vitest.config.ts` (`89/81/89/89`) and sit a point or two under the
-baseline, so a real coverage loss fails the run while ordinary refactoring does not. Branch
-coverage sits closest to its floor (81.58 against 81), and functions are a tenth away
-(89.14 against 89) after the code-hardening pass: a branch-heavy change — a new conditional
-in a large file — can trip these **without any test failing**, so run `pnpm test:coverage`
-before assuming a green `pnpm test` is the whole story. They are deliberately
-coarse and global: per-file thresholds would fail outright on the large parts of the
-tree that are intentionally at 0%.
-
-Read the number as "this code ran", not "this code is pinned". v8 counts a module as
-covered the moment it executes, and every browser suite loads the production entry
-(`setup.ts` imports `src/main`), so a component that merely mounts with the element — the
-toolbar, a swipe gallery, a media control — scores high with no assertion about it at all:
-63 of the 124 files in the report score above zero without a test ever naming the module.
-The suites above remain the source of truth for what is actually asserted.
-
-Statement coverage per area. These are the rows `vitest` itself prints: a row covers the
-files that sit **directly** in that directory, so `src/core` and `src/core/events` (and
-`src/layout` / `src/layout/nav`) are separate rows. A _subtree_ figure has to be read off the
-child rows — `src/core` is 81.9% for its own files, and 87.6% once `src/core/events` (100%)
-and `src/core/i18n` are folded in.
+The floors sit a point or two under the baseline, so a real loss fails the run and ordinary
+refactoring does not — but branches sit closest to theirs, and a new conditional in a large
+file can trip the threshold **without any test failing**. Read the number as "this code ran",
+not "this code is pinned": every browser suite loads `src/main`, so a component that merely
+mounts scores high with no assertion about it (63 of 124 files do). Per-area statements,
+`vitest`'s own rows:
 
 | Area              | Stmts | Covered   |
 | ----------------- | ----- | --------- |
@@ -641,33 +550,34 @@ and `src/core/i18n` are folded in.
 | src/book/geometry | 99.2  | 254/256   |
 | src/book/core     | 97.6  | 123/126   |
 | src/book/physics  | 96.8  | 149/154   |
-| src/utils         | 96.5  | 361/374   |
+| src/utils         | 95.6  | 360/374   |
 | src/core/i18n     | 95.5  | 21/22     |
+| src/ui            | 93.8  | 142/152   |
 | src/embed         | 93.5  | 346/370   |
-| src/ui            | 93.4  | 142/152   |
-| src/markers       | 93.3  | 738/791   |
-| src/render        | 92.7  | 2898/3124 |
+| src/markers       | 91.5  | 619/677   |
 | src/grid          | 90.5  | 618/683   |
-| src/gallery       | 90.2  | 899/997   |
-| src/audio         | 88.2  | 217/246   |
-| src/tour          | 86.2  | 241/279   |
-| src/layout        | 86.3  | 588/681   |
-| src/media         | 87.1  | 873/1003  |
-| src/book          | 84.8  | 673/794   |
-| src/layout/nav    | 82.9  | 261/315   |
-| src/core          | 82.0  | 888/1083  |
+| src/gallery       | 90.0  | 899/998   |
+| src/render        | 92.1  | 2884/3131 |
+| src/audio         | 87.2  | 214/246   |
+| src/tour          | 86.4  | 241/279   |
+| src/layout        | 86.2  | 588/682   |
+| src/media         | 85.2  | 862/1009  |
+| src/core          | 83.5  | 804/963   |
+| src/book          | 83.3  | 637/765   |
+| src/layout/nav    | 82.8  | 265/320   |
 
-The thin spots now start at **`src/core` (82.0%, mostly `camera.ts` and `image.ts`)**,
-`src/layout/nav` (82.9%) and `src/book` (84.8%), with `src/media` (87.1%) just behind: its
-adapters run under their own suites, and `media.ts` is at 79.9% because the YouTube/Vimeo/HLS
-paths need stubbed third-party APIs. The serial tour's own file is at 82.8% after the
-clock/readout/failure work. These are remaining thin spots rather than the floor, and they
-are deliberately _not_ a backlog list — the backlog below holds only the CI item. To raise the
-floor, run `pnpm test:coverage`, move the baseline to the new number, and keep the floors a
-point or two under it.
+**The live thin spots.** `src/layout/nav` (82.8%) and `src/core` (83.5%) are the lowest
+areas, and they are thin for a reason worth naming: `src/core/camera.ts` is at 63.9% and
+`src/core/image.ts` at 77.4% — the two largest files of the element itself, whose uncovered
+halves are the WebGL/state paths the browser suites reach only through a full viewer.
+`src/media` (85.2%) is next, with `media.ts` at 75.3% because the YouTube/Vimeo/HLS paths need
+stubbed third-party APIs, and the serial tour's own file sits at 82.9%. The `src/markers` row
+reads lower than it did because the marker suites moved to fresh per-call fixtures, not
+because anything regressed.
 
-`pnpm test`, `test:core` and `test:browser` collect no coverage, so the normal loop
-pays nothing for it.
+These are thin spots, not a backlog list (that holds only the CI item). To raise the floor, run
+`pnpm test:coverage`, move the baseline to the new number and keep the floors a point or two
+under it.
 
 ## Type checking and linting
 
@@ -687,87 +597,89 @@ pays nothing for it.
 
 ## Status
 
-Last full check: **1767 tests in 120 files pass**, coverage `90.5 / 81.6 / 89.1 / 90.4`
-(statements / branches / functions / lines, floors `89 / 81 / 89 / 89`), and
-`tsc` (both projects), `oxlint --type-aware` and `oxfmt --check` are clean.
+Last full check: **1767 tests in 120 files pass** (`pnpm test`, the `core` + `browser`
+projects), **plus 57 in 9 files in the separate `css` run** (`pnpm test:css`), coverage
+`90.5 / 81.6 / 89.1 / 90.4` (statements / branches / functions / lines, floors
+`89 / 81 / 89 / 89`), and `tsc` (source and tests), `oxlint --type-aware` and
+`oxfmt --check` are clean.
 
-| Area                                                | Suite                                                                            | Status |
-| --------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
-| Math, ids, time, locale, easing                     | `tests/core/**/*.test.ts`                                                        | done   |
-| Store API, state controllers                        | `tests/core/core/store`, `state`                                                 | done   |
-| bundle.json loading and caching                     | `tests/core/utils/dataLoader`                                                    | done   |
-| MDP archive parsing                                 | `tests/core/utils/archive`                                                       | done   |
-| Matrix/vector math                                  | `tests/core/render/mat`                                                          | done   |
-| View / Coordinates / Viewport geometry              | `tests/core/render/shared`                                                       | done   |
-| `Canvas` controller and `Engine` lifecycle          | `tests/browser/render/canvas`                                                    | done   |
-| 2D camera (`_pan`/`_zoom`/pinch/`setCoo`)           | `tests/browser/render/camera-2d`                                                 | done   |
-| 360 camera, 360 canvas facades, kinetic drag        | `tests/browser/render/engine-360`                                                | done   |
-| Tile pyramid, layer selection, tile culling         | `tests/browser/render/tile-image`                                                | done   |
-| Postprocessor and WebGL watermark                   | `tests/browser/render/postprocess`                                               | done   |
-| Legacy (pre-v5) vs v5+ bundles                      | `tests/browser/core/element-legacy`                                              | done   |
-| `<micr-io>` open / events / attributes / reconnect  | `tests/browser/core/element-*`                                                   | done   |
-| Marker layer, filter, settings, clickable areas     | `tests/browser/markers/markers`                                                  | done   |
-| Grid cell markers (inactive, then focused)          | `tests/browser/markers/markers-grid`                                             | done   |
-| Marker icons, labels, scaling, viewport sizing      | `tests/browser/markers/marker-render`                                            | done   |
-| Marker clicks, events, links, tour interaction      | `tests/browser/markers/marker-actions`                                           | done   |
-| Marker popup, minimize, tour controls               | `tests/browser/markers/marker-popup`                                             | done   |
-| Marker content, media, embeds, image gallery        | `tests/browser/markers/marker-content`                                           | done   |
-| Marker clustering                                   | `tests/browser/markers/marker-cluster`                                           | done   |
-| Auto-starting a marker tour                         | `tests/browser/markers/marker-autotour`                                          | done   |
-| Marker split-screen links                           | `tests/browser/markers/marker-split`                                             | done   |
-| 360 space resolution and navigation                 | `tests/browser/space/tours-360`                                                  | done   |
-| 360 camera (yaw/pitch, transforms, matrix)          | `tests/browser/space/camera-360`                                                 | done   |
-| `trueNorth` and image orientation                   | `tests/browser/space/space-truenorth`                                            | done   |
-| 360 waypoints (`<micrio-waypoint>`)                 | `tests/browser/markers/waypoints`                                                | done   |
-| 360 space transitions                               | `tests/browser/space/space-transition`                                           | done   |
-| 360 minimap                                         | `tests/browser/space/minimap-360`                                                | done   |
-| Album resolution, config, sorting and degradation   | `tests/browser/gallery/gallery-album`                                            | done   |
-| Swipe album and strip navigation                    | `tests/browser/gallery/gallery-swipe`                                            | done   |
-| Gallery scrubber (pointer, touch, ticks, teardown)  | `tests/browser/gallery/gallery-scrubber`                                         | done   |
-| Switch album layout and navigation                  | `tests/browser/gallery/gallery-switch`                                           | done   |
-| IIIF (Presentation 2/3/4) and Image API info.json   | `tests/browser/gallery/gallery-iiif`                                             | done   |
-| Live IIIF manifests and their Image API tiles       | `tests/browser/live/iiif`                                                        | opt-in |
-| Asset galleries (`micrio-swipe-gallery`)            | `tests/browser/gallery/gallery-assets`                                           | done   |
-| Album bundle without a gallery controller           | `tests/browser/gallery/gallery`                                                  | done   |
-| Omni rotation, layers, dial and swipe               | `tests/browser/gallery/omni-viewer`                                              | done   |
-| Omni markers and marker tours                       | `tests/browser/gallery/omni-markers`                                             | done   |
-| Omni camera angle maths                             | `tests/core/core/camera-omni`                                                    | done   |
-| Video tour timeline and playback                    | `tests/browser/media/video-tour`                                                 | done   |
-| Marker tour UI and navigation                       | `tests/browser/tour/marker-tour`                                                 | done   |
-| Serial (multi-image) tours                          | `tests/browser/tour/serial-tour`                                                 | done   |
-| Media element, controls, subtitles                  | `tests/browser/media/media-*`, `subtitles`                                       | done   |
-| Tour toolbar and autostart wiring                   | `tests/browser/tour/tour-integration`                                            | done   |
-| Audio controller (Web Audio, positional)            | `tests/browser/audio/audio-controller`                                           | done   |
-| Audio level settings (`startVolume`/`mutedVolume`)  | `tests/core/utils/media-settings`                                                | done   |
-| Spatial audio routing                               | `tests/browser/audio/audio-location`                                             | done   |
-| Media adapters (HTML5/YouTube/Vimeo/HLS)            | `tests/browser/media/*-adapter`, `hls-player`                                    | done   |
-| Adapter selection and wiring in `<micrio-media>`    | `tests/browser/media/media-adapters`                                             | done   |
-| Grid column maths and transition areas              | `tests/browser/grid/grid-format`                                                 | done   |
-| Grid storytelling                                   | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done   |
-| Grid transitions, keyboard and tap input            | `tests/browser/grid/grid-transitions`                                            | done   |
-| Book maths (vec3, page layout, spine sync)          | `tests/core/book/{vec3,layout,spine-sync}`                                       | done   |
-| XPBD physics solver                                 | `tests/core/book/native-solver`                                                  | done   |
-| Book meshes, uv projection, raycasting              | `tests/browser/book/{meshes,uv-project,raycast}`                                 | done   |
-| Book camera, page flip, lighting presets            | `tests/browser/book/{orbit-camera,page-flip,lighting}`                           | done   |
-| Book renderer and IIIF texture manager              | `tests/browser/book/{renderer,iiif-manager}`                                     | done   |
-| `BookViewer` (flips, drags, zoom, draw bounds)      | `tests/browser/book/viewer`                                                      | done   |
-| book3d album path and the book fixture              | `tests/browser/gallery/book3d-album`                                             | done   |
-| Wheel, drag, pinch, gesture, keyboard, context menu | `tests/browser/core/events/*`                                                    | done   |
-| Real-viewer input end to end, and retina DPR        | `tests/browser/core/events/input-integration`                                    | done   |
-| Book input (pan/orbit/pinch/click/wheel, retina)    | `tests/browser/book/input`                                                       | done   |
-| UI translation tables                               | `tests/core/core/i18n/i18n-strings`                                              | done   |
-| Buttons, icons, progress circle, dial               | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done   |
-| Menu tree and its actions                           | `tests/browser/ui/ui-menu`                                                       | done   |
-| Toolbar (desktop + mobile sheet) and controls       | `tests/browser/layout/{toolbar-*,controls}`                                      | done   |
-| Content-page popover and welcome screen             | `tests/browser/layout/popover`                                                   | done   |
-| Image/video/iframe embeds, 2D HTML + WebGL          | `tests/browser/embed/embed`                                                      | done   |
-| 360 embed placement (`matrix3d`, π/2 scale)         | `tests/browser/embed/embed-360`                                                  | done   |
-| book3d embed placement and the print delay          | `tests/browser/embed/embed-book3d`                                               | done   |
-| `<micrio-image-embeds>` container and layout wiring | `tests/browser/embed/image-embeds`                                               | done   |
-| GL embed video (HLS, loop, visibility, teardown)    | `tests/browser/media/embedvideo`                                                 | done   |
-| Stylesheet/layout regressions                       | [not assertable](#what-the-suite-cannot-see-stylesheets) — check in a browser    | gap    |
+| Area                                                                 | Suite                                                                            | Status |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
+| Math, ids, time, locale, easing                                      | `tests/core/**/*.test.ts`                                                        | done   |
+| Store API, state controllers                                         | `tests/core/core/store`, `state`                                                 | done   |
+| bundle.json loading and caching                                      | `tests/core/utils/dataLoader`                                                    | done   |
+| MDP archive parsing                                                  | `tests/core/utils/archive`                                                       | done   |
+| Matrix/vector math                                                   | `tests/core/render/mat`                                                          | done   |
+| View / Coordinates / Viewport geometry                               | `tests/core/render/shared`                                                       | done   |
+| `Canvas` controller and `Engine` lifecycle                           | `tests/browser/render/canvas`                                                    | done   |
+| 2D camera (`_pan`/`_zoom`/pinch/`setCoo`)                            | `tests/browser/render/camera-2d`                                                 | done   |
+| 360 camera, 360 canvas facades, kinetic drag                         | `tests/browser/render/engine-360`                                                | done   |
+| Tile pyramid, layer selection, tile culling                          | `tests/browser/render/tile-image`                                                | done   |
+| Postprocessor and WebGL watermark                                    | `tests/browser/render/postprocess`                                               | done   |
+| Legacy (pre-v5) vs v5+ bundles                                       | `tests/browser/core/element-legacy`                                              | done   |
+| `<micr-io>` open / events / attributes / reconnect                   | `tests/browser/core/element-*`                                                   | done   |
+| Marker layer, filter, settings, clickable areas                      | `tests/browser/markers/markers`                                                  | done   |
+| Grid cell markers (inactive, then focused)                           | `tests/browser/markers/markers-grid`                                             | done   |
+| Marker icons, labels, scaling, viewport sizing                       | `tests/browser/markers/marker-render`                                            | done   |
+| Marker clicks, events, links, tour interaction                       | `tests/browser/markers/marker-actions`                                           | done   |
+| Marker popup, minimize, tour controls                                | `tests/browser/markers/marker-popup`                                             | done   |
+| Marker content, media, embeds, image gallery                         | `tests/browser/markers/marker-content`                                           | done   |
+| Marker clustering                                                    | `tests/browser/markers/marker-cluster`                                           | done   |
+| Auto-starting a marker tour                                          | `tests/browser/markers/marker-autotour`                                          | done   |
+| Marker split-screen links                                            | `tests/browser/markers/marker-split`                                             | done   |
+| 360 space resolution and navigation                                  | `tests/browser/space/tours-360`                                                  | done   |
+| 360 camera (yaw/pitch, transforms, matrix)                           | `tests/browser/space/camera-360`                                                 | done   |
+| `trueNorth` and image orientation                                    | `tests/browser/space/space-truenorth`                                            | done   |
+| 360 waypoints (`<micrio-waypoint>`)                                  | `tests/browser/markers/waypoints`                                                | done   |
+| 360 space transitions                                                | `tests/browser/space/space-transition`                                           | done   |
+| 360 minimap                                                          | `tests/browser/space/minimap-360`                                                | done   |
+| Album resolution, config, sorting and degradation                    | `tests/browser/gallery/gallery-album`                                            | done   |
+| Swipe album and strip navigation                                     | `tests/browser/gallery/gallery-swipe`                                            | done   |
+| Gallery scrubber (pointer, touch, ticks, teardown)                   | `tests/browser/gallery/gallery-scrubber`                                         | done   |
+| Switch album layout and navigation                                   | `tests/browser/gallery/gallery-switch`                                           | done   |
+| IIIF (Presentation 2/3/4) and Image API info.json                    | `tests/browser/gallery/gallery-iiif`                                             | done   |
+| Live IIIF manifests and their Image API tiles                        | `tests/browser/live/iiif`                                                        | opt-in |
+| Asset galleries (`micrio-swipe-gallery`)                             | `tests/browser/gallery/gallery-assets`                                           | done   |
+| Album bundle without a gallery controller                            | `tests/browser/gallery/gallery`                                                  | done   |
+| Omni rotation, layers, dial and swipe                                | `tests/browser/gallery/omni-viewer`                                              | done   |
+| Omni markers and marker tours                                        | `tests/browser/gallery/omni-markers`                                             | done   |
+| Omni camera angle maths                                              | `tests/core/core/camera-omni`                                                    | done   |
+| Video tour timeline and playback                                     | `tests/browser/media/video-tour`                                                 | done   |
+| Marker tour UI and navigation                                        | `tests/browser/tour/marker-tour`                                                 | done   |
+| Serial (multi-image) tours                                           | `tests/browser/tour/serial-tour`                                                 | done   |
+| Media element, controls, subtitles                                   | `tests/browser/media/media-*`, `subtitles`                                       | done   |
+| Tour toolbar and autostart wiring                                    | `tests/browser/tour/tour-integration`                                            | done   |
+| Audio controller (Web Audio, positional)                             | `tests/browser/audio/audio-controller`                                           | done   |
+| Audio level settings (`startVolume`/`mutedVolume`)                   | `tests/core/utils/media-settings`                                                | done   |
+| Spatial audio routing                                                | `tests/browser/audio/audio-location`                                             | done   |
+| Media adapters (HTML5/YouTube/Vimeo/HLS)                             | `tests/browser/media/*-adapter`, `hls-player`                                    | done   |
+| Adapter selection and wiring in `<micrio-media>`                     | `tests/browser/media/media-adapters`                                             | done   |
+| Grid column maths and transition areas                               | `tests/browser/grid/grid-format`                                                 | done   |
+| Grid storytelling                                                    | `tests/browser/grid/grid-{layout,focus,history,tour-events,actions,integration}` | done   |
+| Grid transitions, keyboard and tap input                             | `tests/browser/grid/grid-transitions`                                            | done   |
+| Book maths (vec3, page layout, spine sync)                           | `tests/core/book/{vec3,layout,spine-sync}`                                       | done   |
+| XPBD physics solver                                                  | `tests/core/book/native-solver`                                                  | done   |
+| Book meshes, uv projection, raycasting                               | `tests/browser/book/{meshes,uv-project,raycast}`                                 | done   |
+| Book camera, page flip, lighting presets                             | `tests/browser/book/{orbit-camera,page-flip,lighting}`                           | done   |
+| Book renderer and IIIF texture manager                               | `tests/browser/book/{renderer,iiif-manager}`                                     | done   |
+| `BookViewer` (flips, drags, zoom, draw bounds)                       | `tests/browser/book/viewer`                                                      | done   |
+| book3d album path and the book fixture                               | `tests/browser/gallery/book3d-album`                                             | done   |
+| Wheel, drag, pinch, gesture, keyboard, context menu                  | `tests/browser/core/events/*`                                                    | done   |
+| Real-viewer input end to end, and retina DPR                         | `tests/browser/core/events/input-integration`                                    | done   |
+| Book input (pan/orbit/pinch/click/wheel, retina)                     | `tests/browser/book/input`                                                       | done   |
+| UI translation tables                                                | `tests/core/core/i18n/i18n-strings`                                              | done   |
+| Buttons, icons, progress circle, dial                                | `tests/browser/ui/ui-button`, `ui-primitives`                                    | done   |
+| Menu tree and its actions                                            | `tests/browser/ui/ui-menu`                                                       | done   |
+| Toolbar (desktop + mobile sheet) and controls                        | `tests/browser/layout/{toolbar-*,controls}`                                      | done   |
+| Content-page popover and welcome screen                              | `tests/browser/layout/popover`                                                   | done   |
+| Image/video/iframe embeds, 2D HTML + WebGL                           | `tests/browser/embed/embed`                                                      | done   |
+| 360 embed placement (`matrix3d`, π/2 scale)                          | `tests/browser/embed/embed-360`                                                  | done   |
+| book3d embed placement and the print delay                           | `tests/browser/embed/embed-book3d`                                               | done   |
+| `<micrio-image-embeds>` container and layout wiring                  | `tests/browser/embed/image-embeds`                                               | done   |
+| GL embed video (HLS, loop, visibility, teardown)                     | `tests/browser/media/embedvideo`                                                 | done   |
+| Stylesheets: placement, visibility, layering (desktop/mobile/tablet) | `tests/browser/css/*` — see [What the CSS suite pins](#what-the-css-suite-pins)  | done   |
 
 ## Session backlog
 
 1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
-   `test:core` + `test:browser`.
+   `test:core` + `test:browser` + `test:css`.
