@@ -49,6 +49,10 @@ export function mountViewer(
  * The polling is on `requestAnimationFrame`, so a faked clock never advances it: mount and
  * open with real timers, then switch to `vi.useFakeTimers()` (the pattern
  * `tests/browser/media/video-tour.test.ts` documents under `mountWithFakeTime`).
+ *
+ * `rAF` is also what Chromium throttles hardest under load, so a *bounded* wait can miss its
+ * deadline while the work is still landing. Use `pollUntil` from `./async` for a real-clock
+ * deadline and keep this one for waiting on the frame loop (and for faked clocks).
  */
 export function waitFor(predicate: () => boolean, timeout = 5000, label = 'condition'): Promise<void> {
 	return new Promise<void>((resolve, reject) => {

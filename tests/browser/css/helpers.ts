@@ -18,16 +18,11 @@
  * those strings breaks on a formatting change rather than a layout change.
  */
 import { expect } from 'vitest'
+import { sleep } from '../../helpers/async'
 import type { Viewer } from '../../helpers/viewer'
 import { openUi, type UiBundle } from '../../fixtures/ui'
 import { settle } from '../../helpers/tour'
 import { currentViewport } from './setup'
-
-/** One timer turn, for polling a property the browser is still animating. */
-const sleep = (ms: number): Promise<void> =>
-	new Promise((resolve) => {
-		setTimeout(resolve, ms)
-	})
 
 /**
  * Polls `read` on a timer until it returns something truthy.
