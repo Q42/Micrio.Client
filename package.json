@@ -21,6 +21,7 @@
 		"test:css": "MICRIO_TEST_CSS=1 vitest run --project css",
 		"test:browser:live": "MICRIO_LIVE=1 vitest run --project browser tests/browser/live",
 		"test:watch": "vitest --project core",
+		"proof": "xdg-open .vitest/render-proof",
 		"typecheck": "tsc"
 	},
 	"keywords": [
