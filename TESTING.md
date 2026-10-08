@@ -232,6 +232,15 @@ the predicate, a cell's `focussed` mark read in the same tick as the key that tr
 - Anything that reads a **reused** structure (`Viewport`, `Coordinates`, `View.arr`) must read
   it at the assertion, not capture it at mount: the engine mutates those objects when it
   re-measures, and a captured copy silently goes stale under load.
+- A component that **rebuilds its DOM from state** (the media controls do, on every metadata
+  and time update) invalidates any reference captured at mount, and a synthetic event
+  dispatched into a subtree mid-rebuild is lost: the listener it was meant for is the one
+  being replaced. Re-query the element at the dispatch, and retry the interaction rather than
+  the assertion — a real click repeated is still a real click, and a broken handler still
+  fails on the last attempt.
+- A test that pins a **derived value over real elapsed time** should freeze the clock it reads
+  (`vi.useFakeTimers({ toFake: ['Date'] })` for a `Date.now()`-based animation) instead of
+  widening a tolerance: the elapsed time is what makes the assertion load-dependent at all.
 
 ## What the CSS suite pins
 
@@ -618,7 +627,7 @@ under it.
 
 ## Status
 
-Last full check: **1767 tests in 120 files pass** (`pnpm test`, the `core` + `browser`
+Last full check: **1768 tests in 120 files pass** (`pnpm test`, the `core` + `browser`
 projects), **plus 57 in 9 files in the separate `css` run** (`pnpm test:css`), coverage
 `90.5 / 81.6 / 89.1 / 90.4` (statements / branches / functions / lines, floors
 `89 / 81 / 89 / 89`), and `tsc` (source and tests), `oxlint --type-aware` and
