@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MicrioImage } from '$core/image'
+import type { Models } from '$types/models'
 import type { TileCanvas } from '$render/tile-canvas'
 import { Camera } from '$core/camera'
 import { Coordinates } from '$render/shared'
@@ -87,6 +88,7 @@ function canvas(overrides: Loose = {}): TileCanvas {
 		},
 		_setView: fn(),
 		_setArea: fn(),
+		_getMatrix: fnOf(() => new Float32Array(16)),
 		_coverLimit: false,
 		_correctMinMax: fn(),
 		_setMinScale: fn(),
@@ -152,6 +154,12 @@ describe('Camera without a bound engine canvas', () => {
 		expect(camera.isZoomedOut()).toBe(false)
 		expect(camera.getMatrix(0, 0).every((n) => n === 0)).toBe(true)
 		expect(camera.getOmniXY(0, 0, 0).every((n) => n === 0)).toBe(true)
+	})
+
+	it('exposes its parent image (the property embed code reaches)', () => {
+		const i = image()
+		// `Camera.image` is public API surface: `src/embed` uses it to reach the stores.
+		expect(new Camera(i).image).toBe(i)
 	})
 
 	it('hands back a fresh zero buffer from getViewRaw, not a live one', () => {
@@ -625,5 +633,124 @@ describe('Camera animation lifecycle', () => {
 		expect(get(i.state.view as never)).toEqual([0.25, 0.375, 0.5, 0.25])
 		const { micrio } = i.engine as unknown as { micrio: { state: { _touch: Spy } } }
 		expect(micrio.state._touch).toHaveBeenCalledWith('view')
+	})
+})
+
+describe('Camera area, rotation and matrix seams', () => {
+	it('records the area on the image and animates the canvas by default', () => {
+		const { camera, c, i } = bound()
+		camera.setArea([0.1, 0.2, 0.3, 0.4])
+		// The area lives on the image, not the canvas, so other code can read it back.
+		expect(i.opts.area).toEqual([0.1, 0.2, 0.3, 0.4])
+		// The origin+size area becomes the corner pair the canvas takes. Read the call back
+		// as numbers: 0.2 + 0.4 is not an exact decimal in binary.
+		const [x0, y0, x1, y1] = (c as unknown as SubSpies)._setArea.mock.calls[0] as number[]
+		for (const [n, expected] of [0.1, 0.2, 0.4, 0.6].entries()) {
+			expect([x0, y0, x1, y1][n]).toBeCloseTo(expected, 12)
+		}
+	})
+
+	it('passes direct and noDispatch straight through, and skips the render', () => {
+		const { camera, c, i } = bound()
+		const { render } = i.engine as unknown as { render: Spy }
+		camera.setArea([0, 0, 1, 1], { direct: true, noDispatch: true, noRender: true })
+		expect((c as unknown as SubSpies)._setArea).toHaveBeenCalledWith(0, 0, 1, 1, true, true)
+		expect(render).not.toHaveBeenCalled()
+	})
+
+	it('targets the engine image of a placed embed instead of the parent canvas', () => {
+		const setArea = fn()
+		const engImage = { _setArea: setArea }
+		const { camera, c, i } = bound({}, { _placed: true, opts: { isEmbed: true } })
+		;(i.engine as unknown as { _getEngImage: (x: unknown) => unknown })._getEngImage = () => engImage
+		camera.setArea([0.25, 0.25, 0.5, 0.5], { direct: true })
+		// The parent canvas would move the whole scene; only this image's area is meant to move.
+		expect(setArea).toHaveBeenCalledWith(0.25, 0.25, 0.75, 0.75)
+		expect((c as unknown as SubSpies)._setArea).not.toHaveBeenCalled()
+	})
+
+	it('sets the 3D rotation only for a placed embed on a ready engine', () => {
+		const engImage = { _rotX: 0, _rotY: 0, _rotZ: 0 }
+		const { camera, i } = bound({}, { _placed: true, opts: { isEmbed: true } })
+		;(i.engine as unknown as { _getEngImage: (x: unknown) => unknown })._getEngImage = () => engImage
+		camera.setRotation(1, 2, 3)
+		expect(engImage).toEqual({ _rotX: 1, _rotY: 2, _rotZ: 3 })
+
+		// A plain (non-embed) image has no engine image to rotate.
+		const plain = bound({}, { _placed: true, opts: {} })
+		plain.camera.setRotation(1, 2, 3)
+		expect((plain.i.engine as unknown as { render: Spy }).render).not.toHaveBeenCalled()
+	})
+
+	it('builds the matrix with the engine defaults filled in', () => {
+		const { camera, c } = bound({ _getMatrix: fnOf(() => new Float32Array(16)) })
+		camera.getMatrix(0.25, 0.75)
+		// x, y, scale 1, radius 10, no rotations, no translation, scale 1, no north correction.
+		expect((c as unknown as SubSpies)._getMatrix).toHaveBeenCalledWith(0.25, 0.75, 1, 10, 0, 0, 0, 0, 1, 1, false)
+		camera.getMatrix(0.25, 0.75, 2, 4, 1, 2, 3, 5, 6, 7, true)
+		expect((c as unknown as SubSpies)._getMatrix).toHaveBeenLastCalledWith(0.25, 0.75, 2, 4, 1, 2, 3, 5, 6, 7, true)
+	})
+
+	it('returns the override matrix with the book3d argument order', () => {
+		// `radius` is the override's `width` (the element's content width), and a falsy scale
+		// is normalised to 1 before it is handed over.
+		const override = fn()
+		const { camera, c } = bound()
+		camera._getMatrixOverride = override
+		camera.getMatrix(0.1, 0.2, 0, 3, 4, 5, 6, 0, 7, 8)
+		expect(override).toHaveBeenCalledWith(0.1, 0.2, 1, 4, 5, 6, 7, 8, 3)
+		expect((c as unknown as SubSpies)._getMatrix).not.toHaveBeenCalled()
+	})
+
+	it('reads omni screen coordinates through the omni projection', () => {
+		const { camera, c } = bound()
+		expect([...camera.getOmniXY(0.1, 0.2, 0.3)]).toEqual([9, 10, 11, 12, 0])
+		expect((c._camera2d as unknown as SubSpies)._getXYOmniCoo).toHaveBeenCalledWith(0.1, 0.2, 0.3)
+	})
+})
+
+describe('Camera setView delegation', () => {
+	it('converts origin/size to centre/size and renders by default', () => {
+		const { camera, c, i } = bound()
+		camera.setView([0.25, 0.5, 0.5, 0.25])
+		// x0 + w/2 = 0.5, y0 + h/2 = 0.625, and no north correction unless asked.
+		expect((c as unknown as SubSpies)._setView).toHaveBeenCalledWith(0.5, 0.625, 0.5, 0.25, false, false, undefined)
+		expect((i.engine as unknown as { render: Spy }).render).toHaveBeenCalledTimes(1)
+	})
+
+	it('forwards noLimit and correctNorth, and skips the render', () => {
+		const { camera, c, i } = bound()
+		camera.setView([0, 0, 1, 1], { noLimit: true, correctNorth: true, noRender: true })
+		expect((c as unknown as SubSpies)._setView).toHaveBeenCalledWith(0.5, 0.5, 1, 1, true, false, true)
+		expect((i.engine as unknown as { render: Spy }).render).not.toHaveBeenCalled()
+	})
+
+	it('remaps a parent-camera embed view into the parent area', () => {
+		const { camera, c } = bound({}, { opts: { useParentCamera: true, area: [0.2, 0.4, 0.5, 0.4] } })
+		camera.setView([0, 0, 1, 1], { noRender: true })
+		// centre (0.5,0.5) maps to a[0]+0.5*a[2]; size 1 becomes a[2]/a[3].
+		const call = (c as unknown as SubSpies)._setView.mock.calls[0] as number[]
+		expect(call[0]).toBeCloseTo(0.45, 12)
+		expect(call[1]).toBeCloseTo(0.6, 12)
+		expect(call[2]).toBeCloseTo(0.5, 12)
+		expect(call[3]).toBeCloseTo(0.4, 12)
+	})
+})
+
+describe('Camera animation tails that only a running animation reaches', () => {
+	it('registers promise hooks for an animated flyToCoo too', async () => {
+		const { camera } = bound({ camera: { setCoo: fnOf(() => 300) } })
+		const fly = camera.flyToCoo([0.5, 0.5, 1], { duration: 300 })
+		expect(camera._aniDone).toBeTypeOf('function')
+		camera._aniDone?.()
+		await expect(fly).resolves.toBeUndefined()
+	})
+
+	it('registers promise hooks for an animated zoom', async () => {
+		const { camera } = bound({ camera: { _zoom: fnOf(() => 250) } })
+		const z = camera.zoom(-10, 250)
+		expect(camera._aniDone).toBeTypeOf('function')
+		camera._aniAbort?.()
+		await expect(z).rejects.toBeUndefined()
 	})
 })

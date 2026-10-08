@@ -113,4 +113,36 @@ describe('camera', () => {
 		expect(current[2] ?? 1).toBeLessThan(0.5)
 		viewer.destroy()
 	})
+
+	it('builds a 16-element matrix against the placed canvas', async () => {
+		// The argument plumbing is pinned in `tests/core/core/camera.test.ts`; this is the one
+		// claim only a real engine can make — that the facade's defaults reach a live canvas.
+		const viewer = mountViewer()
+		await viewer.open(modernBundle())
+		await waitForLoaded(viewer, 'rqFkjZz')
+		await waitForCamera(viewer)
+
+		const matrix = viewer.el.$current?.camera.getMatrix(0.5, 0.5)
+		expect(matrix).toBeInstanceOf(Float32Array)
+		expect(matrix).toHaveLength(16)
+		expect([...(matrix ?? [])].every(Number.isFinite)).toBe(true)
+		viewer.destroy()
+	})
+
+	it('records the area without painting through the noRender flag', async () => {
+		const viewer = mountViewer()
+		await viewer.open(modernBundle())
+		await waitForLoaded(viewer, 'rqFkjZz')
+		await waitForCamera(viewer)
+
+		const image = viewer.el.$current
+		if (!image) {
+			throw new Error('no current image')
+		}
+		// `setArea` is how the layout places a cell/embed; the noRender flag is what keeps a
+		// batch of placements from scheduling one frame each.
+		image.camera.setArea([0, 0, 0.5, 1], { noRender: true })
+		expect(image.opts.area).toEqual([0, 0, 0.5, 1])
+		viewer.destroy()
+	})
 })
