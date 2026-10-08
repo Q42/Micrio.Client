@@ -612,7 +612,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				}
 				ctrlEl._setProps({
 					currentTime: this.#currentTime,
-					duration: this.#duration,
+					duration: this.#barDuration(),
 					paused: this.#paused,
 					ended: this.#ended,
 					seeking: this.#seeking,
@@ -808,12 +808,30 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		this.#muted = el.muted
 	}
 
+	/**
+	 * The duration the controls are given: the media element's own, read live, else the tour's
+	 * authored duration before the element reports one.
+	 *
+	 * Deliberately not `#duration`, which is only refreshed when a media event runs: the loader
+	 * sets the element's `duration`/`readyState` in its own task, *before* the queued event that
+	 * tells this component. A bar click landing in that window was mapped through the stale copy,
+	 * became a seek to 0, and looked like a lost click.
+	 * @internal
+	 */
+	#barDuration(): number {
+		const live = this.#mediaEl?.duration
+		if (live !== undefined && Number.isFinite(live) && live > 0) {
+			return live
+		}
+		return this.#tourInstance?.duration ?? this.#duration
+	}
+
 	#updateControls() {
 		const controlsEl = this.querySelector('micrio-media-controls')
 		if (controlsEl instanceof MicrioElement) {
 			controlsEl._setProps({
 				currentTime: this.#currentTime,
-				duration: this.#duration,
+				duration: this.#barDuration(),
 				paused: this.#paused,
 				ended: this.#ended,
 				seeking: this.#seeking,

@@ -5,7 +5,7 @@ import type { MicrioElement } from '$core/component'
 import { mountTour, recordEvents, settle } from '../../helpers/tour'
 import { STEP_TONE_SECONDS, STEP_TONE_URI, tourBundle, videoTour } from '../../fixtures/tours'
 import { waitFor } from '../../helpers/viewer'
-import { pollUntil, sleep } from '../../helpers/async'
+import { pollUntil } from '../../helpers/async'
 
 /**
  * `<micrio-media>` is what actually runs a tour: it picks the media element for a
@@ -36,35 +36,26 @@ async function waitForRender(el: Element) {
 	await waitFor(() => el.querySelector('figure') !== null, 4000, 'media figure')
 }
 
+/** The bar geometry the seek handlers measure against; there is no layout in the browser project. */
+const barRects = () =>
+	[
+		{ left: 0, width: 100, top: 0, height: 10, right: 100, bottom: 10, x: 0, y: 0, toJSON: () => ({}) },
+	] as unknown as DOMRectList
+
 /**
- * Clicks halfway along the progress bar, retrying if the click is lost.
+ * Clicks halfway along the progress bar, once.
  *
- * Measured under load: the click reaches the live, connected bar with correct geometry and its
- * own listener fires, yet the seek callback demonstrably never runs (`currentTime` stays 0) —
- * the same run passes on other attempts. The cause is not known; the controls build their
- * listeners exactly once (`#build`, guarded by `#built`), so "the subtree was rebuilt" is ruled
- * out, and nothing observed explains a dropped click.
- *
- * Until that is understood this retries the *interaction* rather than relaxing the assertion: a
- * genuinely broken seek still fails on the last attempt. Remove the retry once the cause is
- * known — if a real click can be dropped, that is a product bug, not a harness one.
+ * One click, and no retry: the seek target is the live media duration (or the tour's authored
+ * duration before the element reports one), so a `duration` prop that has not caught up with the
+ * media element cannot turn this into a seek to 0 any more. That is what the retry used to hide.
  */
-function seekThroughBar(viewer: Element, readTime: () => number, duration: number): Promise<void> {
-	const attempt = async (n: number): Promise<void> => {
-		const bars = viewer.querySelector<HTMLElement>('micrio-media-controls [data-part="bars"]')
-		if (!bars) {
-			throw new Error('no progress bar')
-		}
-		bars.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, button: 0, bubbles: true }))
-		globalThis.dispatchEvent(new MouseEvent('mouseup'))
-		// The clock is frozen in this test, so the wait has to be a real timer
-		await sleep(150)
-		if (Math.abs(readTime() - duration / 2) < 1 || n >= 3) {
-			return
-		}
-		return attempt(n + 1)
+function clickBar(viewer: Element): void {
+	const bars = viewer.querySelector<HTMLElement>('micrio-media-controls [data-part="bars"]')
+	if (!bars) {
+		throw new Error('no progress bar')
 	}
-	return attempt(1)
+	bars.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, button: 0, bubbles: true }))
+	globalThis.dispatchEvent(new MouseEvent('mouseup'))
 }
 
 /** The media element for a mounted `micrio-media`, wherever it lives. */
@@ -293,13 +284,11 @@ describe('media element with a video tour', () => {
 		// nothing to do with the bug it pins: with the clock frozen, a resumed tour reports
 		// exactly the time it was seeked to.
 		vi.useFakeTimers({ toFake: ['Date'] })
-		// The geometry stand-in is on the prototype, because the bar is re-read on every
-		// attempt and the element is not laid out here, so it has no rects of its own.
-		vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([
-			{ left: 0, width: 100, top: 0, height: 10, right: 100, bottom: 10, x: 0, y: 0, toJSON: () => ({}) },
-		] as unknown as DOMRectList)
-		// Half way along the bar.
-		await seekThroughBar(el, () => instance?.currentTime ?? 0, STEP_TONE_SECONDS)
+		// The geometry stand-in is on the prototype, because the element is not laid out here, so
+		// the bar has no rects of its own.
+		vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue(barRects())
+		// Half way along the bar, in one click.
+		clickBar(el)
 
 		// The tour moved with the media, not only the media
 		expect(instance?.currentTime).toBeCloseTo(STEP_TONE_SECONDS / 2, 0)
@@ -312,6 +301,30 @@ describe('media element with a video tour', () => {
 		)
 		expect(media instanceof HTMLMediaElement ? media.currentTime : undefined).toBeCloseTo(STEP_TONE_SECONDS / 2, 0)
 		vi.useRealTimers()
+		viewer.destroy()
+	})
+
+	it('seeks the tour from a bar click before the media has reported a duration', async () => {
+		// The controls used to map the click through their own `duration` prop, which only updates
+		// when a media event runs: the media element sets its duration in the loader task, and the
+		// event that tells the component is a *later* task, so a click landing in between became a
+		// seek to 0 and looked like a lost click. Nothing is awaited between mounting and clicking,
+		// so the media has provably not reported anything yet.
+		const tour = videoTour({ id: 'vt-early', duration: STEP_TONE_SECONDS })
+		const viewer = await mountTour(tourBundle({ tours: [tour] }))
+		const image = viewer.el.$current
+		if (!image) {
+			throw new Error('no current image')
+		}
+		vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue(barRects())
+		const el = createElement('micrio-media', {
+			setProps: { tour, image, controls: true, autoplay: false, src: STEP_TONE_URI },
+			parent: viewer.el,
+		})
+
+		clickBar(el)
+
+		expect(tour.instance?.currentTime).toBeCloseTo(STEP_TONE_SECONDS / 2, 0)
 		viewer.destroy()
 	})
 })
