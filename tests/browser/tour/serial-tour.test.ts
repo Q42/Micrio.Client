@@ -258,9 +258,20 @@ describe('serial tour steps that carry their own media', () => {
 		const errors: CustomEvent[] = []
 		const onError = (e: Event) => errors.push(e as CustomEvent)
 		viewer.el.addEventListener('media-error', onError)
-		const audio = await waitFor(() => anyMedia(viewer.el) !== null, 4000, 'the step media').then(() =>
-			anyMedia(viewer.el),
+		// The media element has to be *connected* when the error is reported, not merely
+		// present: `#fail()` drops a failure from a disconnected element on purpose (tearing a
+		// player down mid-load is cancellation, not failure). An existence check lets the test
+		// grab the audio during the gap between steps, and the report is then suppressed —
+		// which is how this failed under load while passing in isolation.
+		await waitFor(
+			() => {
+				const media = anyMedia(viewer.el)
+				return media != null && media.isConnected
+			},
+			4000,
+			'the connected step media',
 		)
+		const audio = anyMedia(viewer.el)
 		audio?.dispatchEvent(new Event('error'))
 		// The tour is gone: stopped on the failing step, not advanced past it
 		await waitFor(() => viewer.el.querySelector('micrio-serial-tour') === null, 4000, 'the tour to break')
