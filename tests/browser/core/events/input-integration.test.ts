@@ -4,6 +4,7 @@ import { Grid } from '$grid/grid'
 import type { MicrioImage } from '$core/image'
 import { bundleWithFreshId } from '../../../fixtures/bundles'
 import { collectEvents, mountViewer, waitFor, type Viewer } from '../../../helpers/viewer'
+import { pollUntil } from '../../../helpers/async'
 
 /**
  * The interaction layer end to end, on a real `<micr-io>`.
@@ -71,10 +72,33 @@ function nextFrame(): Promise<void> {
 	})
 }
 
-/** Waits until the camera scale has changed. */
+/**
+ * Waits until the camera scale has changed.
+ *
+ * Polls on a timer, not on `requestAnimationFrame`: the wheel's zoom is frame-driven, and a
+ * frame-starved browser stretches an rAF-based deadline past a 2s budget even though the zoom
+ * lands. That was the load-only failure ("expected false to be true").
+ */
 async function scaleChanged(before: number): Promise<boolean> {
 	try {
-		await waitFor(() => image.camera.getScale() !== before, 2000, 'camera scale')
+		await pollUntil(() => image.camera.getScale() !== before, 6000, 'camera scale')
+		return true
+	} catch {
+		return false
+	}
+}
+
+/**
+ * Whether the scale moves within a short window of its own.
+ *
+ * The negative half of the wheel tests asserts that nothing zooms. Reading the scale once
+ * right after the dispatch cannot tell "refused" from "not applied yet", and a 9-decimal
+ * comparison made that worse — a deferred update on a loaded machine moved it by more than
+ * the tolerance. This waits for a real move before reporting that there was none.
+ */
+async function scaleMoved(before: number, window = 600): Promise<boolean> {
+	try {
+		await pollUntil(() => Math.abs(image.camera.getScale() - before) > 1e-6, window, 'camera scale to move')
 		return true
 	} catch {
 		return false
@@ -192,8 +216,8 @@ describe('interaction — wheel', () => {
 		canvas().dispatchEvent(
 			new WheelEvent('wheel', { deltaY: -400, clientX: 400, clientY: 300, bubbles: true, cancelable: true }),
 		)
-		// Nothing moves without Ctrl
-		expect(image.camera.getScale()).toBeCloseTo(before, 9)
+		// Nothing moves without Ctrl: give a deferred update a window to prove otherwise
+		expect(await scaleMoved(before)).toBe(false)
 
 		canvas().dispatchEvent(
 			new WheelEvent('wheel', {
