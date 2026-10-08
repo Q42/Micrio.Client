@@ -5,11 +5,19 @@ import { aliases, glslMinifyPlugin } from './vite.config.js'
 
 // Vitest writes failure screenshots and `context.annotate` attachments into
 // `.vitest/` (gitignored) and never removes them, so the directory grows run over
-// run. Clear it once per run — here, at config load, so `npm test`, `pnpm
+// run. Clear those once per run — here, at config load, so `npm test`, `pnpm
 // test:browser`, `npx vitest` and an IDE run all behave the same. What is on disk
 // afterwards therefore always belongs to the latest run, which is exactly when a
 // failure's screenshot is worth looking at.
-rmSync(new URL('.vitest', import.meta.url), { recursive: true, force: true })
+//
+// `render-proof/` is deliberately left alone: those images are the stylesheet suite's
+// visual proof (see `tests/browser/css/render-proof.test.ts`) and exist to be opened by a
+// human, so wiping them on every `npm test` would defeat the point. `test:css` clears the
+// whole directory first and rebuilds them.
+rmSync(new URL('.vitest/attachments', import.meta.url), { recursive: true, force: true })
+if (process.env.MICRIO_TEST_CSS === '1') {
+	rmSync(new URL('.vitest/render-proof', import.meta.url), { recursive: true, force: true })
+}
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string }
 
