@@ -7,6 +7,7 @@
 
 import type { DrawRect } from './shared'
 import { twoNth, mod1 } from '$utils/math'
+import { DEFAULT_TILE_SIZE } from '$core/globals'
 import { Vec4, Mat4 } from './mat'
 import type { TileCanvas } from './tile-canvas'
 
@@ -182,6 +183,11 @@ export default class Image {
 		this._localIdx = localIdx
 		this.width = width
 		this.height = height
+		// The pyramid starts at `tileSize` and doubles, so a non-positive size is a step that
+		// can never reach the bound and would spin on the main thread forever. `MicrioImage`
+		// guards the same input for its zoom-level count, but the original bundle data still
+		// carries it here, and an imported/unvalidated bundle is exactly where a 0 comes from.
+		tileSize = typeof tileSize === 'number' && tileSize > 0 ? tileSize : DEFAULT_TILE_SIZE
 		this.#tileSize = tileSize
 		this.#isSingle = isSingle
 		this._isVideo = isVideo
