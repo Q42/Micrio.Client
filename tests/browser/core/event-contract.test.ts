@@ -8,6 +8,7 @@ import { markerBundle, waitForMarker } from '../../fixtures/markers'
 import { markerTour } from '../../fixtures/tours'
 import { openGrid, restoreArchiveXhr } from '../../fixtures/grid'
 import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
+import { pollUntil } from '../../helpers/async'
 import { settle } from '../../helpers/tour'
 import { cellButton, focusCell, settleFrames } from '../../helpers/grid'
 import { mountTour } from '../../helpers/tour'
@@ -338,7 +339,10 @@ describe('camera events', () => {
 		expect(same(moved.image, v.el.$current)).toBe(true)
 		expect(Array.isArray(moved.view) || ArrayBuffer.isView(moved.view)).toBe(true)
 
-		// `zoom` is gated on the view dimensions changing, which the zoom above does.
+		// `zoom` is gated on the view dimensions changing, which the zoom above does. It is a
+		// separate publish, so waiting only for `move` and then asserting `zoom` raced the
+		// frame that carries it (the flake was: no `zoom` at all on a loaded machine).
+		await pollUntil(() => r.details('zoom').length > 0, 6000, 'the zoom event')
 		expectFired(r, 'zoom')
 	})
 
