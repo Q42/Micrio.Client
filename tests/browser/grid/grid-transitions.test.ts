@@ -3,6 +3,7 @@ import { openGrid, restoreArchiveXhr } from '../../fixtures/grid'
 import { cellButton, layoutIds, settleFrames, waitForLayout } from '../../helpers/grid'
 import { marker } from '../../fixtures/bundles'
 import { videoTour } from '../../fixtures/tours'
+import { pollUntil } from '../../helpers/async'
 import { setupBehindTransition } from '$grid/transitions'
 import { GridActionType } from '$grid/actions'
 import type { Models } from '$types/models'
@@ -232,13 +233,35 @@ describe('keyboard navigation', () => {
 		)
 	}
 
+	/**
+	 * Waits for the `focussed` mark to reach `expected`.
+	 *
+	 * The handler finds the active cell through the DOM's own focus (`:focus`) and the grid
+	 * writes the class in response, so neither is guaranteed to have landed by the next line.
+	 * Asserting `marked()` immediately is what made the vertical-fallback test fail under load:
+	 * the key was handled against a cell whose mark (or focus) had not settled.
+	 */
+	function awaitMarked(grid: Grid, expected: string[]): Promise<void> {
+		return pollUntil(
+			() => marked(grid).join(',') === expected.join(','),
+			6000,
+			`the cells ${expected.join(',') || '(none)'} to be marked`,
+		)
+	}
+
+	/** Lets one turn of the event loop pass, so deferred focus/mark work has run. */
+	async function settleMark(grid: Grid): Promise<string[]> {
+		await settleFrames(2)
+		return marked(grid)
+	}
+
 	it('moves focus across the row with the right arrow', async () => {
 		const { viewer, grid, ids } = await openFullGrid()
 		focusButton(grid, ids[0] ?? '')
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
 		// The neighbour, not the first cell: `gridAdjacent` picks the nearest centre to the right
-		expect(marked(grid)).toEqual([ids[1]])
+		await awaitMarked(grid, [ids[1] ?? ''])
 		viewer.destroy()
 	})
 
@@ -248,7 +271,7 @@ describe('keyboard navigation', () => {
 		focusButton(grid, ids[3] ?? '')
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-		expect(marked(grid)).toEqual([ids[0]])
+		await awaitMarked(grid, [ids[0] ?? ''])
 		viewer.destroy()
 	})
 
@@ -258,7 +281,7 @@ describe('keyboard navigation', () => {
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }))
 		// The fallback for a leftward move is the *last* cell
-		expect(marked(grid)).toEqual([ids[3]])
+		await awaitMarked(grid, [ids[3] ?? ''])
 		viewer.destroy()
 	})
 
@@ -269,10 +292,10 @@ describe('keyboard navigation', () => {
 		// Every cell shares a row here, so a vertical move has no candidate at all and takes
 		// the wrap-around branch: down resolves to the first cell, up to the last.
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
-		expect(marked(grid)).toEqual([ids[0]])
+		await awaitMarked(grid, [ids[0] ?? ''])
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }))
-		expect(marked(grid)).toEqual([ids[3]])
+		await awaitMarked(grid, [ids[3] ?? ''])
 		viewer.destroy()
 	})
 
@@ -280,7 +303,7 @@ describe('keyboard navigation', () => {
 		const { viewer, grid, ids } = await openFullGrid()
 		// No button has focus, so `curIdx` falls back to 0 and the move is computed from there
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-		expect(marked(grid)).toEqual([ids[1]])
+		await awaitMarked(grid, [ids[1] ?? ''])
 		viewer.destroy()
 	})
 
@@ -296,8 +319,9 @@ describe('keyboard navigation', () => {
 
 		const before = marked(grid)
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-		// `if (!dir || grid.$focussed) return` — a focused cell keeps the arrow keys
-		expect(marked(grid)).toEqual(before)
+		// `if (!dir || grid.$focussed) return` — a focused cell keeps the arrow keys. Settle
+		// first, so this still fails if the handler does move the mark a turn later.
+		expect(await settleMark(grid)).toEqual(before)
 		viewer.destroy()
 	})
 
@@ -305,7 +329,7 @@ describe('keyboard navigation', () => {
 		const { viewer, grid, ids } = await openFullGrid()
 		focusButton(grid, ids[0] ?? '')
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }))
-		expect(marked(grid)).toEqual([])
+		expect(await settleMark(grid)).toEqual([])
 		viewer.destroy()
 	})
 
@@ -314,7 +338,7 @@ describe('keyboard navigation', () => {
 		focusButton(grid, ids[0] ?? '')
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
 		// The handler bails out before touching `_current` or the buttons
-		expect(marked(grid)).toEqual([])
+		expect(await settleMark(grid)).toEqual([])
 		viewer.destroy()
 	})
 })
