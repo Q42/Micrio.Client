@@ -261,16 +261,19 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 */
 	attributeChangedCallback(attr: keyof Models.Attributes.MicrioCustomAttributes, _oldVal: string, newVal: string) {
+		// Removing a watched attribute calls this with `null` (the DOM API, not the declared
+		// `string`). Only `lang` reads it directly, so it is normalised once, here.
+		const value = newVal ?? ''
 		switch (attr) {
 			case 'id': {
 				{
-					if (!this.isConnected || !newVal) {
+					if (!this.isConnected || !value) {
 						return
 					}
 					if (!this.#printed) {
 						void this.#print()
 					} else {
-						void this.open(newVal)
+						void this.open(value)
 					}
 				}
 				break
@@ -283,28 +286,28 @@ export class HTMLMicrioElement extends MicrioElement {
 			}
 			case 'data-limited': {
 				if (this.$current?.canvas) {
-					this.$current.canvas._limited = Boolean(newVal)
+					this.$current.canvas._limited = Boolean(value)
 				}
 				break
 			}
 			case 'lang': {
 				let prevLang = get(this._lang)
-				if (prevLang !== newVal) {
+				if (prevLang !== value) {
 					// Set the translations *before* `_lang`: everything that re-renders on
 					// the language change (toolbar, controls, ...) reads `get(i18n)` while
 					// doing so, and would otherwise render the previous language
-					const baseLang = newVal.split('-')[0]
-					i18n.set(langs[newVal] ?? langs[baseLang] ?? langs.en)
-					this._lang.set(newVal)
-					if (newVal) {
-						if (isRTL(newVal)) {
+					const baseLang = value.split('-')[0]
+					i18n.set(langs[value] ?? langs[baseLang] ?? langs.en)
+					this._lang.set(value)
+					if (value) {
+						if (isRTL(value)) {
 							this.setAttribute('dir', 'rtl')
 						} else {
 							this.removeAttribute('dir')
 						}
 					}
 					if (prevLang) {
-						this.events._dispatch('lang-switch', newVal)
+						this.events._dispatch('lang-switch', value)
 					}
 					this.state._touch('lang')
 				}
