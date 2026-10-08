@@ -1,14 +1,18 @@
 /**
- * Setup for the `css` project (see `vitest.config.ts`): the same browser, the same
- * fakes and the same offline default as the `browser` project — `tests/browser/setup.ts`
- * still runs first — with one difference: `MICRIO_TEST_CSS=1` stops the stylesheet stub,
- * so every `.css` a component imports is injected into the test page.
+ * Setup for the `css` project (see `vitest.config.ts`): the same browser, the same fakes and
+ * the same offline default as the `browser` project — `tests/browser/setup.ts` still runs
+ * first — plus the viewport contract the stylesheet suites share.
  *
- * That is exactly why this project is separate. When a stylesheet applies, the measured
+ * The difference that makes this project possible is in the config, not here: with
+ * `MICRIO_TEST_CSS=1` (which only `npm run test:css` sets) the shared stub stops rewriting
+ * every `.css` import to `{}`, so Vite injects the real stylesheets into the test page.
+ *
+ * That is exactly why this is a separate run. When a stylesheet applies, the measured
  * geometry of every component changes (`micr-io` is `position: relative; overflow: hidden`
  * with a pinned canvas `100%`, 15 containers are `display: contents`, empty ones are
- * `display: none`), so enabling it suite-wide would rewrite the assumptions of the 98
- * existing browser files. Here it is opt-in and the existing suites keep the stub.
+ * `display: none`), and five existing browser assertions depend on the stubbed sizes — so
+ * enabling it suite-wide rewrites their assumptions. Here it is opt-in, and the existing
+ * suites keep the stub.
  */
 import { afterEach } from 'vitest'
 import { afterFrame } from '$utils/dom'
