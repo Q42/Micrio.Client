@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { page } from 'vitest/browser'
 import { uiBundle } from '../../fixtures/ui'
 import { waitFor } from '../../helpers/viewer'
 import {
@@ -10,6 +11,7 @@ import {
 	rendered,
 	style,
 	toolbarMenu,
+	waitForStyle,
 	waitForTransform,
 } from './helpers'
 import { MOBILE, useViewport } from './setup'
@@ -68,6 +70,24 @@ describe('toolbar on the desktop viewport', () => {
 		// mobile branch below moves to the bottom edge.
 		expect(intersectsViewport(menu)).toBe(true)
 		expect(box(menu).top).toBeLessThan(window.innerHeight / 2)
+		viewer.destroy()
+	})
+
+	it('raises a menu entry to the panel treatment on hover', async () => {
+		const viewer = await mountUi(uiBundle())
+		await waitFor(() => toolbarMenu(viewer) !== null, 4000, 'the toolbar menu')
+		const entry = toolbarMenu(viewer)?.querySelector<HTMLElement>(':scope > micrio-menu') as HTMLElement
+
+		// menu.css `min-width: 501px`: `micrio-menu:is(:hover, :focus-within)` gets the glass
+		// background and the button shadow, and each entry carries the border radius. This is
+		// the one place a real `:hover` can be driven (Playwright's own hover, through the
+		// provider), so it is also the suite's check that hover is reachable at all.
+		expect(style(entry, 'background-color')).toBe('rgba(0, 0, 0, 0)')
+		expect(style(entry, 'border-radius')).toBe('4px')
+
+		await page.elementLocator(entry).hover()
+		await waitForStyle(entry, 'background-color', 'rgba(41, 41, 41, 0.75)')
+		expect(style(entry, 'box-shadow')).not.toBe('none')
 		viewer.destroy()
 	})
 })
