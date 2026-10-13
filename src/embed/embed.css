@@ -12,6 +12,17 @@ micrio-embed > :is(a, div).embed3d {
 	top: 50%;
 	left: 50%;
 }
+/*
+ * 360 placement: the overlay itself is the content box and carries the matrix, so its
+ * origin stays at the anchor (its top-left) and the content is a plain, untransformed
+ * child that fills it — the centring is composed into the matrix (`#syncMatrixBox`).
+ */
+micrio-embed > :is(a, div).matrix360 {
+	transform-origin: 0 0;
+}
+micrio-embed > :is(a, div).matrix360 > * {
+	transform: none;
+}
 micrio-embed > :is(a, div).behind {
 	pointer-events: none;
 	opacity: 0 !important;

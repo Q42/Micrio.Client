@@ -90,6 +90,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	/** Last applied video-paused UI state. */
 	#pausedUI = false
 	#buttonStyle = ''
+	/** Half of the content box, baked into the 360 matrix as the child's centring. */
+	#halfW = 0
+	#halfH = 0
 
 	/** @internal */
 	_onMount() {
@@ -308,6 +311,21 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			styles.push(`width:${embed.width / htmlButtonEmbedScale}px`)
 		}
 
+		// 360: put the content's own scale in the matrix instead of on the content,
+		// and let the overlay carry the content's box (see `#syncMatrixBox`).
+		// Chromium's flattened hit test is only reliable when the element it
+		// transforms also carries the box: with a transformed child (or with a huge
+		// local box against a tiny matrix scale) far-away screen points map into the
+		// element and it becomes clickable in an invisible wedge elsewhere in the
+		// viewport. Only the built content that actually scales itself can be folded:
+		// an iframe is sized by its attributes and needs nothing.
+		if (this.#is360 && !embed.frameSrc && !(embed.video && !this.#printGL)) {
+			this.#matrixScale *= scale
+			scale = 1
+		} else if (this.#is360 && embed.video && !this.#printGL && this.#widthCapped) {
+			this.#matrixScale *= (this.#w * this.#info.width) / this.#widthCapped
+		}
+
 		styles.push(`--ratio:${((this.#w / this.#h) * this.#info.width) / this.#info.height};--scale:${scale}`)
 
 		if (this.#isSVG && embed.height) {
@@ -325,7 +343,8 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			className:
 				(this.#noEvents ? 'no-events' : '') +
 					(this.#hideWhenPaused && !this.#printGL && Boolean(embed.video) ? ' hide-when-paused' : '') +
-					(this.#is360 || this.#isBook3d ? ' embed3d' : '') || undefined,
+					(this.#is360 || this.#isBook3d ? ' embed3d' : '') +
+					(this.#is360 ? ' matrix360' : '') || undefined,
 			id: embed.id ? `e-${embed.id}` : undefined,
 			props: this.#href ? { href: this.#href } : { role: 'figure' },
 			attrs: this.#href && this.#hrefBlankTarget ? { target: '_blank' } : undefined,
@@ -343,6 +362,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.#contentEl = createElement('img', {
 				props: { src: embed.src, alt: 'Embed' },
 				attrs: { 'data-scroll-through': '' },
+				// A natural-size image has no box until it decodes, so the 360 overlay
+				// box (and the baked centring) follow its load as well.
+				events: { load: this.#onContentLoad },
 				parent: this.#container,
 			})
 			this.#applyContentSize()
@@ -356,6 +378,38 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			})
 			this.#applyContentSize()
 		}
+
+		this.#syncMatrixBox()
+	}
+
+	#onContentLoad = () => {
+		this.#syncMatrixBox()
+		this.#applyPosition()
+	}
+
+	/**
+	 * Sizes the 360 overlay to its content and records the content's centre.
+	 *
+	 * The `matrix3d` is applied to the overlay, and Chromium's flattened hit test only
+	 * maps that transform back to the drawn quad when the transformed element is also
+	 * the one carrying the box: with the box on the child, screen points far outside
+	 * the overlay map into it and it swallows clicks in an invisible wedge elsewhere in
+	 * the viewport. So the overlay takes the content's box, and the child's centring
+	 * translation is composed into the matrix (`#applyPosition`) instead of living in
+	 * the child's `transform`.
+	 */
+	#syncMatrixBox() {
+		const container = this.#container
+		const child = container?.firstElementChild
+		if (!container || !(child instanceof HTMLElement) || !this.#is360) {
+			return
+		}
+		const w = child.offsetWidth
+		const h = child.offsetHeight
+		this.#halfW = w / 2
+		this.#halfH = h / 2
+		container.style.width = `${w}px`
+		container.style.height = `${h}px`
 	}
 
 	/**
@@ -380,7 +434,9 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			el.width = Math.round(this.#widthCapped)
 			el.height = Math.round(this.#widthCapped / aspect)
 			const relScale = (this.#w * this.#info.width) / this.#widthCapped
-			el.style.transform = relScale === 1 ? '' : `scale(${relScale})`
+			// 360 folds this scale into the matrix (`#readPlacement`), so the video
+			// itself stays untransformed like the rest of the overlay's content.
+			el.style.transform = this.#is360 || relScale === 1 ? '' : `scale(${relScale})`
 			return
 		}
 		if (el instanceof HTMLIFrameElement) {
@@ -556,20 +612,27 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 				// 360/book3d: recompute the matrix and write it straight to the
 				// `transform` property (never `style.cssText`), skipping both the
 				// write and the property recalculation when nothing changed.
-				const matrix = image.camera
-					.getMatrix(
-						this.#cX,
-						this.#cY,
-						this.#matrixScale,
-						this.#contentWidth,
-						this.#rotX,
-						this.#rotY,
-						this.#rotZ,
-						undefined,
-						this.#scaleX,
-						this.#scaleY,
-					)
-					.join(',')
+				const m = image.camera.getMatrix(
+					this.#cX,
+					this.#cY,
+					this.#matrixScale,
+					this.#contentWidth,
+					this.#rotX,
+					this.#rotY,
+					this.#rotZ,
+					undefined,
+					this.#scaleX,
+					this.#scaleY,
+				)
+				// The 360 overlay *is* the content box (`#syncMatrixBox`), so the child's
+				// centring translation — `translate(-50%, -50%)` in the untransformed
+				// layout — is composed into the placement matrix instead.
+				if (this.#is360) {
+					for (let i = 0; i < 4; i++) {
+						m[12 + i] = (m[12 + i] ?? 0) - this.#halfW * (m[i] ?? 0) - this.#halfH * (m[4 + i] ?? 0)
+					}
+				}
+				const matrix = m.join(',')
 				const hidden = !matrix
 				if (hidden !== this.#hidden) {
 					this.#hidden = hidden
@@ -709,6 +772,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		}
 		this.#readPlacement()
 		this.#applyContentSize()
+		this.#syncMatrixBox()
 		// A WebGL embed is placed through its camera, not an overlay.
 		const gl = this.#glImage
 		if (gl !== undefined && embed !== undefined) {
