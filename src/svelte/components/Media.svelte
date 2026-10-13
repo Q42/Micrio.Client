@@ -446,7 +446,11 @@
 
 	/** Dispatches timeupdate event. */
 	function sendTimeupdate(): void {
-		if (!secondary) events.dispatch('timeupdate', currentTime);
+		// Publish the element's own clock: the 250ms ticker only runs for video tours and
+		// iframe players, so hosts would otherwise receive a stale `currentTime`. Read-only on
+		// purpose -- `currentTime` is bound to the element, so assigning it here would seek the
+		// media, and every event would trigger another seek.
+		if (!secondary) events.dispatch('timeupdate', _media ? _media.currentTime : currentTime);
 	}
 
 	// ============================================================================

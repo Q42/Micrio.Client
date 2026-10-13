@@ -77,6 +77,11 @@
 	/** Unique ID for the currently playing media (used for state persistence). */
 	let currentMediaUUID:string = $state('');
 
+	/** The current step's elapsed time, taken from the media's own clock (see the `timeupdate`
+	 *  handler). Kept apart from `stepInfo[].currentTime`, which is bound to the media element
+	 *  and would seek it whenever it is written to. */
+	let stepTime:number = 0;
+
 	// --- Playback Control Functions ---
 
 	/** Toggles the play/pause state of the current media/tour step. */
@@ -115,7 +120,7 @@
 
 		// Set current time for the target step
 		const step = stepInfo[i];
-		step.currentTime = perc * step.duration;
+		step.currentTime = stepTime = perc * step.duration;
 
 		// If seeking within the same step, update the media instance directly
 		if(sameStep && current?.instance) current.instance.currentTime = step.currentTime;
@@ -165,7 +170,7 @@
 	function ontimeupdate(stepIdx:number = tour.currentStep ?? 0){
 		// Calculate percentage for each step
 		const _times = stepInfo.map((step, i) => (i < stepIdx || step.ended || ended) ? 100 // Completed steps are 100%
-			: i == stepIdx ? Math.round(((step.currentTime || 0) / step.duration) * 10000)/100 // Current step percentage
+			: i == stepIdx ? Math.round(((stepTime || 0) / step.duration) * 10000)/100 // Current step percentage
 			: 0); // Future steps are 0%
 		// Calculate overall current time by summing weighted step durations
 		currentTime = _times.reduce((v, s, i) => v+(s/100)*stepInfo[i].duration, 0);
@@ -189,6 +194,7 @@
 				step.ended = false; // Mark step as not ended
 				currentStepInfo = step; // Store current step info
 				current = m.videoTour; // Set the active video tour data
+				stepTime = 0; // A new step starts its own clock
 				ontimeupdate(); // Update progress bar immediately
 			},10);
 		}
@@ -202,8 +208,14 @@
 	// --- Lifecycle (onMount / onDestroy) ---
 
 	onMount(() => {
-		// Handler to call ontimeupdate without arguments
-		const tu = () => ontimeupdate();
+		// Take the time the media reports along with the event. `currentStepInfo.currentTime` is
+		// bound to the media element, so the bar reads its own copy instead of writing into that
+		// binding (which would seek the media on every event).
+		const tu = (e:Event) => {
+			const t = (e as CustomEvent<number>).detail;
+			if(typeof t == 'number') stepTime = t;
+			ontimeupdate();
+		};
 		// Listen for global timeupdate events (dispatched by Media component)
 		micrio.addEventListener('timeupdate', tu);
 		// Subscribe to active marker changes
@@ -219,8 +231,15 @@
 
 	// --- Reactive Declarations (`$:`) ---
 
-	/** Reactive audio source based on the current video tour step. */
-	const audio = $derived(current ? 'audio' in current ? current.audio as Models.Assets.Audio : current.i18n?.[$lang]?.audio : undefined);
+	/** Reactive audio source for the current step: the video tour's own audio, or the step marker's.
+	 *  V4 data keeps the narration on the marker and leaves `videoTour.audio` null, so without the
+	 *  marker fallbacks the step is played as a silent timeline tour (subtitles, no sound). */
+	const audio = $derived(
+		(current && 'audio' in current ? current.audio as Models.Assets.Audio : undefined)
+		?? current?.i18n?.[$lang]?.audio
+		?? (currentStepInfo?.marker?.i18n?.[$lang] as Models.ImageData.MarkerCultureData|undefined)?.audio
+		?? (currentStepInfo?.marker as unknown as Models.ImageData.MarkerCultureData|undefined)?.audio
+	);
 	/** Reactive audio source URL. */
 	const audioSrc = $derived(getAudioSrc(audio));
 	/** Reactive boolean indicating if the current step has a subtitle. */
