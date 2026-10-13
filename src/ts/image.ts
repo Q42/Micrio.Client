@@ -492,19 +492,28 @@ export class MicrioImage {
 		// Dispatch pre-info event for external manipulation
 		micrio.events.dispatch('pre-info', i);
 
+		// Language this image's data was loaded with. A Svelte store emits to every new subscriber,
+		// so this distinguishes a real language change from this image's own initial subscribe:
+		// only the former may close tours/popups (the old data model has no live translations).
+		// Without it, loading any new legacy image -- e.g. the next step of a multi-image tour --
+		// cancels the running tour.
+		let loadedLang:string|undefined;
+
 		// Load V5 data immediately if revision info is present and not an embed
 		if(this.isV5 && i.revision != undefined && !this.opts.isEmbed)
 			await this.loadData();
 
 		// Subscribe to language changes for V4 data loading
 		else if(!i.settings?.skipMeta && !this.opts.isEmbed && !this.isV5) micrio._lang.subscribe((lang?:string) => {
+			const langChanged = loadedLang !== undefined && loadedLang !== lang;
+			loadedLang = lang;
 			// Validate language against available cultures
 			if(lang && this.id && (!('cultures' in this.__info) || !(this.__info.cultures as string || '').split(',').includes(lang))) lang = undefined;
 			this.data.set(undefined); // Clear existing data
 			if(!lang && this.preset?.[2]) lang = 'preset'; // Use preset if no valid lang
 			if((lang) && this.id) {
-				// For old data model, close any open tours/popups (no live translations)
-				if(!this.isV5) {
+				// For old data model, close any open tours/popups on a language change (no live translations)
+				if(!this.isV5 && langChanged) {
 					micrio.state.tour.set(undefined);
 					this.state.marker.set(undefined);
 				}

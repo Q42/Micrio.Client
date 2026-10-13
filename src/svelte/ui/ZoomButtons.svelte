@@ -67,10 +67,18 @@
 
 	/** Updates the `isZoomedIn` and `isZoomedOut` state based on the target image's camera. */
 	function update() {
-		isZoomedIn = image?.camera.isZoomedIn() ?? true; // Default to true if no image/camera
-		isZoomedOut = image?.camera.isZoomedOut(true) ?? true; // Check against full size, default true
-		const minScale = image?.camera.getMinScale() ?? 0;
-		isUpscaled = minScale > 1 && minScale > (image?.$settings.zoomLimit ?? 1);
+		// An image that has not been placed in Wasm yet has `ptr < 0`, and every camera call
+		// forwards that pointer straight to Wasm ("memory access out of bounds"). While a tour step
+		// switches images this runs before the new image is placed -- treat it like no image.
+		if(!image || image.ptr < 0) {
+			isZoomedIn = isZoomedOut = true; // Default to true: nothing to zoom
+			isUpscaled = false;
+			return;
+		}
+		isZoomedIn = image.camera.isZoomedIn();
+		isZoomedOut = image.camera.isZoomedOut(true); // Check against full size
+		const minScale = image.camera.getMinScale();
+		isUpscaled = minScale > 1 && minScale > (image.$settings.zoomLimit ?? 1);
 	}
 
 	// --- Lifecycle (onMount) ---
