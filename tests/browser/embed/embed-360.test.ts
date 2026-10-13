@@ -18,7 +18,9 @@ import { containerOf, contentOf, dispatchChange, mountEmbed } from '../../helper
  * `#readPlacement`'s 360 pass adds the `Math.PI / 2` projection factor to
  * `--scale`; the container is `<div>/<a class="embed3d">` positioned entirely by
  * `transform: matrix3d(...)`, and `display` stays `''` because `getMatrix` never
- * returns an empty array without the book3d override.
+ * returns an empty array without the book3d override. A centre behind the camera
+ * is taken out of the pointer path with the `behind` class instead, since the
+ * matrix still transforms (and hit-tests) the mirrored overlay.
  */
 async function open360(
 	embedData: Models.ImageData.Embed,
@@ -71,6 +73,20 @@ describe('360 embeds', () => {
 		expect(button?.tagName).toBe('BUTTON')
 		expect(Number(button?.style.getPropertyValue('--scale'))).toBeCloseTo(0.25 * (512 / 100) * (Math.PI / 2), 10)
 		expect(button?.style.getPropertyValue('--ratio')).toBe('1')
+		viewer.destroy()
+	})
+
+	it('flags an overlay that is behind the camera, so it stops taking clicks', async () => {
+		const { viewer, el } = await open360(frameEmbed({ area: [0.4, 0.4, 0.2, 0.2] }))
+		const c = containerOf(el) as HTMLElement
+		// The camera looks at the view centre, so an embed there is in front of it.
+		expect(c.classList.contains('behind')).toBe(false)
+
+		// The opposite side of the sphere is behind the camera. The matrix still
+		// transforms the overlay (mirrored through the eye), so the class is what
+		// keeps it from covering and swallowing the clicks of what is in front.
+		dispatchChange(el, { area: [0, 0.4, 0.2, 0.2] })
+		expect(c.classList.contains('behind')).toBe(true)
 		viewer.destroy()
 	})
 

@@ -579,6 +579,14 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 					this.#lastMatrix = matrix
 					s.transform = `matrix3d(${matrix})`
 				}
+				// 360: a point on the sphere behind the camera still projects, mirrored
+				// through the eye, so the overlay would sit invisibly over the visible
+				// scene and swallow its clicks. `_getXYDirect` reports that as a
+				// non-negative depth `w` — the same test `<micrio-marker>` uses for its
+				// own `behind` class.
+				if (this.#is360) {
+					c.classList.toggle('behind', image.camera._getXYDirect(this.#cX, this.#cY)[3] >= 0)
+				}
 			} else {
 				if (this.#hidden) {
 					this.#hidden = false

@@ -12,6 +12,10 @@ micrio-embed > :is(a, div).embed3d {
 	top: 50%;
 	left: 50%;
 }
+micrio-embed > :is(a, div).behind {
+	pointer-events: none;
+	opacity: 0 !important;
+}
 micrio-embed > :is(a, div).no-events {
 	pointer-events: none;
 }
