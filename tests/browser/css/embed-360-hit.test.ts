@@ -9,7 +9,7 @@ import { mockJson } from '../../helpers/network'
 import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
 
 /**
- * The hit geometry of a 360 `<micrio-embed>` overlay.
+ * The geometry of a 360 `<micrio-embed>` overlay: where it is hit, and how big it is.
  *
  * The overlay is placed by a `matrix3d` under the viewport-level `perspective`. When
  * the transformed element is not the one carrying the content's box, Chromium's
@@ -21,8 +21,8 @@ import { mountViewer, waitFor, type Viewer } from '../../helpers/viewer'
  *
  * This belongs to the stylesheet suite: the `browser` project stubs every `.css`
  * import, so its embeds have no box at all and no hit region to be wrong. The
- * regression is asserted on the geometry rather than on a rule, because the bug only
- * exists where layout and hit testing meet.
+ * regressions are asserted on the rendered geometry rather than on a rule, because
+ * these are bugs that only exist where layout and hit testing meet.
  */
 
 /** The view and the artwork embed from the reported case. */
@@ -36,54 +36,51 @@ let run = 0
 const embedImageId = (): string => `hitimg${(++run).toString(36).padStart(3, '0')}`
 
 /**
- * A 360 image carrying one embed, built like the reported Kindred Spirits one: a
- * tiled sub-image whose HTML layer is a transparent click area, 1129x1400 at `AREA`,
- * with an `href` click action.
+ * One embed like the reported Kindred Spirits one: a tiled sub-image whose HTML layer
+ * is a transparent click area, 1129x1400 at `AREA`, with an `href` click action.
  */
-const imageBundle = (id: string, embed: Partial<Models.ImageData.Embed> = {}): Models.ImageBundle.BundleImage => ({
+const embedData = (index: number, extra: Partial<Models.ImageData.Embed> = {}): Models.ImageData.Embed => ({
+	id: `e${index}`,
+	uuid: `u${index}`,
+	src: 'about:blank',
+	title: `Kindred Spirits ${index}`,
+	micrioId: `sub${index}`,
+	width: 1129,
+	height: 1400,
+	isWebP: true,
+	isDeepZoom: true,
+	area: AREA,
+	rotX: 0,
+	rotY: 0,
+	rotZ: 0,
+	scaleX: 1,
+	scaleY: 1,
+	clickAction: 'href',
+	clickTarget: '/artwork/kindred',
+	...extra,
+})
+
+const imageBundle = (id: string, embeds: Partial<Models.ImageData.Embed>[]): Models.ImageBundle.BundleImage => ({
 	id,
 	info: baseInfo(id, { is360: true, width: 12000, height: 6000, isWebP: true, isDeepZoom: true }),
 	settings: {},
-	data: {
-		embeds: [
-			{
-				id: 'e1',
-				uuid: 'u1',
-				src: 'about:blank',
-				title: 'Kindred Spirits',
-				micrioId: `${id}/micrios/sub`,
-				width: 1129,
-				height: 1400,
-				isWebP: true,
-				isDeepZoom: true,
-				area: AREA,
-				rotX: 0,
-				rotY: 0,
-				rotZ: 0,
-				scaleX: 1,
-				scaleY: 1,
-				clickAction: 'href',
-				clickTarget: '/artwork/kindred',
-				...embed,
-			},
-		],
-	},
+	data: { embeds: embeds.map((embed, index) => embedData(index, embed)) },
 })
 
-interface OpenEmbed {
+interface OpenEmbeds {
 	viewer: Viewer
 	image: MicrioImage
-	/** The `<a>`/`<div>` overlay the embed element transforms. */
-	container: HTMLElement
+	/** One `<a>`/`<div>` overlay per embed, in bundle order. */
+	containers: HTMLElement[]
 }
 
-/** Opens a 2:1 360 viewer on the embed bundle, ready to be positioned. */
-async function openEmbed(
-	embed?: Partial<Models.ImageData.Embed>,
+/** Opens a 2:1 360 viewer on an image carrying the given embeds, ready to be positioned. */
+async function openEmbeds(
+	embeds: Partial<Models.ImageData.Embed>[],
 	attrs: Record<string, string> = {},
-): Promise<OpenEmbed> {
+): Promise<OpenEmbeds> {
 	const id = embedImageId()
-	mockJson(/bundle\.json/, { images: [imageBundle(id, embed)], spaces: [] })
+	mockJson(/bundle\.json/, { images: [imageBundle(id, embeds)], spaces: [] })
 	const viewer = mountViewer(attrs, 'width: 1024px; height: 532px; display: block;')
 	await viewer.open(id)
 	await waitFor(() => viewer.el.$current?.id === id, 4000, 'current image')
@@ -93,14 +90,35 @@ async function openEmbed(
 		throw new Error('the 360 image never became current')
 	}
 	const selector = 'micrio-image-embeds micrio-embed > a, micrio-image-embeds micrio-embed > div'
-	await waitFor(() => viewer.el.querySelector(selector) !== null, 4000, 'the embed overlay')
-	const container = viewer.el.querySelector<HTMLElement>(selector)
+	await waitFor(() => viewer.el.querySelectorAll(selector).length === embeds.length, 4000, 'the embed overlays')
+	const containers = [...viewer.el.querySelectorAll<HTMLElement>(selector)]
+	// A natural-size image has no box until it decodes.
+	await waitFor(() => containers.every((c) => c.offsetWidth > 0 && c.offsetHeight > 0), 4000, 'the overlay boxes')
+	return { viewer, image, containers }
+}
+
+/** Opens a viewer on a single embed, for the tests that only need one. */
+async function openEmbed(
+	embed?: Partial<Models.ImageData.Embed>,
+	attrs: Record<string, string> = {},
+): Promise<Omit<OpenEmbeds, 'containers'> & { container: HTMLElement }> {
+	const opened = await openEmbeds([embed ?? {}], attrs)
+	const container = opened.containers[0]
 	if (!container) {
 		throw new Error('the embed overlay was never built')
 	}
-	// A natural-size image has no box until it decodes.
-	await waitFor(() => container.offsetWidth > 0 && container.offsetHeight > 0, 4000, 'the overlay box')
-	return { viewer, image, container }
+	return { viewer: opened.viewer, image: opened.image, container }
+}
+
+/** The rendered box of an overlay's content (`<button>`, `<img>`, `<iframe>` or `<video>`). */
+const contentOf = (container: HTMLElement): HTMLElement =>
+	container.querySelector<HTMLElement>('video, iframe, img, button') ?? container
+
+/** Positions the camera and waits for the placement to land in the render. */
+async function showAt(image: MicrioImage, view: Models.Camera.View): Promise<void> {
+	image.camera.setView(view)
+	await afterFrame()
+	await afterFrame()
 }
 
 /**
@@ -111,8 +129,7 @@ async function openEmbed(
  */
 function hitSpread(viewer: Viewer, container: HTMLElement, step = 8): { inside: number; outside: number } {
 	const viewerRect = viewer.el.getBoundingClientRect()
-	const content = container.querySelector<HTMLElement>('video, iframe, img, button') ?? container
-	const box = content.getBoundingClientRect()
+	const box = contentOf(container).getBoundingClientRect()
 	let inside = 0
 	let outside = 0
 	for (let y = 0; y < viewerRect.height; y += step) {
@@ -137,14 +154,13 @@ function hitSpread(viewer: Viewer, container: HTMLElement, step = 8): { inside: 
 }
 
 /** Positions the embed at each view and checks that it is hit only where it is drawn. */
-async function expectHitOnlyOnTheEmbed(opened: OpenEmbed): Promise<void> {
+async function expectHitOnlyOnTheEmbed(
+	opened: Omit<OpenEmbeds, 'containers'> & { container: HTMLElement },
+): Promise<void> {
 	for (const view of VIEWS) {
-		opened.image.camera.setView(view)
 		// Sequential by design: each view is measured from the previous one's settled camera.
 		// oxlint-disable-next-line eslint/no-await-in-loop -- see above
-		await afterFrame()
-		// oxlint-disable-next-line eslint/no-await-in-loop -- see above
-		await afterFrame()
+		await showAt(opened.image, view)
 		const spread = hitSpread(opened.viewer, opened.container)
 		// The overlay is there and clickable at its own position...
 		expect(spread.inside, `hits inside the drawn box for view ${view.join(',')}`).toBeGreaterThan(0)
@@ -176,5 +192,53 @@ describe('360 embed hit geometry', () => {
 		await expectHitOnlyOnTheEmbed(
 			await openEmbed({ src: undefined, micrioId: undefined, video: videoAsset({ controls: true }) }),
 		)
+	})
+})
+
+describe('360 embed size', () => {
+	it('draws a tiled overlay at the size of the area it covers', async () => {
+		const { viewer, image, container } = await openEmbed()
+		await showAt(image, VIEW)
+		// Pinned against the fixture's own projection (1024x532 canvas, 12000x6000
+		// image, `AREA` at `VIEW`): the overlay covers the area, not the sub-image.
+		expect(contentOf(container).getBoundingClientRect().width).toBeCloseTo(115.87, 1)
+		viewer.destroy()
+	})
+
+	it('sizes a button overlay from the area, not from the sub-image resolution', async () => {
+		// The same area at two sub-image resolutions: the matrix carries the content's
+		// scale, so the extra pixels must not change how big the overlay is drawn.
+		const opened = await openEmbeds([
+			{ width: 1129, height: 1400 },
+			{ width: 4000, height: 4960 },
+		])
+		await showAt(opened.image, VIEW)
+		const [small, large] = opened.containers
+		expect(small).toBeDefined()
+		expect(large).toBeDefined()
+		if (!small || !large) {
+			return
+		}
+		const smallWidth = contentOf(small).getBoundingClientRect().width
+		const largeWidth = contentOf(large).getBoundingClientRect().width
+		expect(smallWidth).toBeGreaterThan(0)
+		expect(Math.abs(smallWidth - largeWidth) / smallWidth).toBeLessThan(0.01)
+		opened.viewer.destroy()
+	})
+
+	it('scales a button overlay with the area it covers', async () => {
+		// Twice the area width around the same centre: twice the overlay.
+		const opened = await openEmbeds([{}, { area: [AREA[0] - AREA[2] / 2, AREA[1], AREA[2] * 2, AREA[3]] }])
+		await showAt(opened.image, VIEW)
+		const [single, double] = opened.containers
+		expect(single).toBeDefined()
+		expect(double).toBeDefined()
+		if (!single || !double) {
+			return
+		}
+		const ratio = contentOf(double).getBoundingClientRect().width / contentOf(single).getBoundingClientRect().width
+		expect(ratio).toBeGreaterThan(1.8)
+		expect(ratio).toBeLessThan(2.2)
+		opened.viewer.destroy()
 	})
 })

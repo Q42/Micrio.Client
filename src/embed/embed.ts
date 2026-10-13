@@ -289,44 +289,47 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.#contentWidth = 100
 		}
 
-		const isGLEmbeddedMicrio = this.#printGL && Boolean(embed.micrioId) && Boolean(embed.width)
-		const htmlButtonEmbedScale = isGLEmbeddedMicrio ? 10 : 1
-
 		if (this.#isBook3d) {
 			return
 		}
 
-		let scaleDiv = 1
-		if (!this.#printGL) {
-			scaleDiv = this.#s
-		} else if (embed.width) {
-			scaleDiv = this.#w
+		// 360 placement projects around the sphere (the `π / 2` factor of the 360
+		// projection); 2D placement does not.
+		const fov = this.#is360 ? Math.PI / 2 : 1
+		// `--scale` is only consumed by the 2D content transform: in 360 the content is
+		// untransformed and the same scale is folded into the placement matrix below.
+		// An `<img>` brings its own natural size, so it scales relative to the metadata
+		// width. Everything else that honours `--scale` is a button — a fixed 100px
+		// reference box (the stylesheet default) shaped by `--ratio` — whose scale is
+		// therefore the area's width in image pixels over that box, independent of the
+		// sub-image's own resolution.
+		const isImage = !this.#printGL && !embed.frameSrc && !embed.video && Boolean(embed.src)
+		const scale = isImage
+			? this.#w * ((this.#info.width / (embed.width ?? 100) / this.#s) * fov)
+			: (this.#w * this.#info.width * fov) / 100 / this.#s
+
+		// 360: let the overlay carry the content's box and the matrix carry its scale, so
+		// the content itself stays untransformed (`.matrix360 > *`). Chromium's flattened
+		// hit test only maps a perspective `matrix3d` back to the drawn quad when the
+		// transformed element also carries the box; with a transformed child — or a huge
+		// local box against a tiny matrix scale — far-away screen points map into the
+		// element and it becomes clickable in an invisible wedge elsewhere in the viewport.
+		if (this.#is360) {
+			if (embed.video && !this.#printGL) {
+				// A capped video scales itself; fold that scale like the others.
+				if (this.#widthCapped) {
+					this.#matrixScale *= (this.#w * this.#info.width) / this.#widthCapped
+				}
+			} else if (!embed.frameSrc) {
+				// A button or an `<img>`; an iframe is sized by its attributes.
+				this.#matrixScale *= scale
+			}
 		}
-		let scale = this.#w * ((this.#info.width / (embed.width ?? 100) / scaleDiv) * (this.#is360 ? Math.PI / 2 : 1))
 
-		const styles: string[] = []
-
-		if (isGLEmbeddedMicrio && embed.width !== undefined) {
-			scale = (this.#w / (embed.width / this.#info.width)) * htmlButtonEmbedScale * (this.#is360 ? Math.PI / 2 : 1)
-			styles.push(`width:${embed.width / htmlButtonEmbedScale}px`)
+		const styles = [`--ratio:${((this.#w / this.#h) * this.#info.width) / this.#info.height}`]
+		if (!this.#is360) {
+			styles.push(`--scale:${scale}`)
 		}
-
-		// 360: put the content's own scale in the matrix instead of on the content,
-		// and let the overlay carry the content's box (see `#syncMatrixBox`).
-		// Chromium's flattened hit test is only reliable when the element it
-		// transforms also carries the box: with a transformed child (or with a huge
-		// local box against a tiny matrix scale) far-away screen points map into the
-		// element and it becomes clickable in an invisible wedge elsewhere in the
-		// viewport. Only the built content that actually scales itself can be folded:
-		// an iframe is sized by its attributes and needs nothing.
-		if (this.#is360 && !embed.frameSrc && !(embed.video && !this.#printGL)) {
-			this.#matrixScale *= scale
-			scale = 1
-		} else if (this.#is360 && embed.video && !this.#printGL && this.#widthCapped) {
-			this.#matrixScale *= (this.#w * this.#info.width) / this.#widthCapped
-		}
-
-		styles.push(`--ratio:${((this.#w / this.#h) * this.#info.width) / this.#info.height};--scale:${scale}`)
 
 		if (this.#isSVG && embed.height) {
 			styles.push(`height:${embed.height}px`)

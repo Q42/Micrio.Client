@@ -87,10 +87,12 @@ describe('360 embeds', () => {
 		const c = containerOf(el) as HTMLElement
 		const button = contentOf(el) as HTMLElement
 		expect(button.tagName).toBe('BUTTON')
-		// The content is no longer scaled (or centred) by its own transform: the
-		// overlay is the content's box and the matrix does the placing, which is what
-		// keeps Chromium's flattened hit test inside the drawn quad.
-		expect(button.style.getPropertyValue('--scale')).toBe('1')
+		// The content is no longer scaled (or centred) by its own transform: in 360 the
+		// overlay is the content's box and the matrix does the placing, so no `--scale`
+		// is written at all (the stylesheet's `1` default applies) — which is what keeps
+		// Chromium's flattened hit test inside the drawn quad.
+		expect(button.style.getPropertyValue('--scale')).toBe('')
+		expect(button.style.getPropertyValue('--ratio')).not.toBe('')
 		expect(c.style.width).toBe(`${button.offsetWidth}px`)
 		expect(c.style.height).toBe(`${button.offsetHeight}px`)
 
