@@ -1,0 +1,57 @@
+# The fast checks: lint, format, types and a real build. No browser, so no Chromium download
+# and no SwiftShader — this workflow stays around a minute even on a cold cache.
+#
+# Runs when a pull request targets `main`, and on pushes to `main` itself. That pairing means
+# a branch is validated once (on the PR) instead of twice (push + PR sync), while `main` is
+# always checked. Doc-only and editor-config-only commits skip the whole workflow: the
+# `paths-ignore` list is the answer to "should a version bump in a README pay for a test run?"
+name: checks
+
+on:
+  # Manual runs: the badge/workflow-only commits below are skipped by `paths-ignore`, so this
+  # is the way to exercise the workflow on a branch before a code change exists.
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.vscode/**'
+      - '.gitignore'
+      - '.npmrc'
+      - '.github/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.vscode/**'
+      - '.gitignore'
+      - '.npmrc'
+      - '.github/**'
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: lint, format, types, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # Split rather than leaning on `build`'s own chaining, so a red run says which of the
+      # three failed instead of just "build".
+      - name: Lint
+        run: pnpm run lint
+      - name: Format check
+        run: pnpm run format:check
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Build
+        run: pnpm run build

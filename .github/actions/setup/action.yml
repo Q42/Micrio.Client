@@ -1,0 +1,30 @@
+# Shared CI setup: the Node version from `.nvmrc`, the pnpm version the lockfile-free install
+# needs, and one install. Both workflows call this so the toolchain cannot drift between them.
+#
+# `--no-frozen-lockfile` is deliberate: `pnpm-lock.yaml` is gitignored (`.gitignore`), so CI
+# resolves the dependency graph from `package.json` exactly as a fresh local checkout does.
+name: Setup
+description: Install Node, pnpm and the project dependencies
+
+runs:
+  using: composite
+  steps:
+    - name: Install pnpm
+      # No `packageManager` field in package.json, so the version is pinned here. Keep it in
+      # step with the version the repo is developed against; `engines` (and `engine-strict`)
+      # still gate the Node side.
+      uses: pnpm/action-setup@v4
+      with:
+        version: 12.9.1
+        run_install: false
+
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        # 24.4.0, and satisfies `engines: ^20.19.0 || >=22.12.0`.
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --no-frozen-lockfile

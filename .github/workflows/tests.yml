@@ -1,0 +1,127 @@
+# The bench: the three Vitest projects and the coverage ratchet, on the commits that can
+# change behaviour. Same trigger and skip rules as `checks.yml` — see that file for why
+# PR-plus-main rather than every branch push, and why docs commit nothing to the runner.
+#
+# There is no GPU on a GitHub-hosted runner, so headless Chromium renders WebGL with
+# SwiftShader (software). That is expected, not a misconfiguration: `vitest.config.ts` pins
+# the renderer when `CI` is set, so the flags are explicit rather than "whatever the image
+# picks this month". The suites already keep the live-context count tiny for exactly this
+# reason (AGENTS.md, TESTING.md "Three traps that make the browser suite flake").
+name: tests
+
+on:
+  # Manual runs: the badge/workflow-only commits below are skipped by `paths-ignore`, so this
+  # is the way to exercise the workflow on a branch before a code change exists. It runs every
+  # matrix entry — four runners — so it is not the cheap way to reproduce one failing suite.
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.vscode/**'
+      - '.gitignore'
+      - '.npmrc'
+      - '.github/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.vscode/**'
+      - '.gitignore'
+      - '.npmrc'
+      - '.github/**'
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      # One project's failure should not cancel the others: a red run is most useful when it
+      # says whether `core`, `browser` and `css` agree.
+      fail-fast: false
+      matrix:
+        include:
+          - project: core
+            command: pnpm run test:core
+            timeout: 10
+          - project: browser
+            command: pnpm run test:browser
+            timeout: 25
+          - project: css
+            command: pnpm run test:css
+            timeout: 25
+          - project: coverage
+            command: pnpm run test:coverage
+            timeout: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # `core` is bare Node: no Chromium, no flags, no browser cache to miss.
+      - name: Resolve the Playwright revision
+        if: matrix.project != 'core'
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Keyed on the Playwright revision, not the lockfile (which is gitignored here), so the
+      # ~170MB browser download is paid once per Playwright upgrade instead of per run.
+      - name: Cache the Playwright browser
+        if: matrix.project != 'core'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install the Chromium build
+        if: matrix.project != 'core'
+        env:
+          # Set `MICRIO_BROWSER_CHANNEL=chrome` as a repository variable to drive the
+          # runner's preinstalled Chrome instead of the Playwright build. Empty by default:
+          # see the note in vitest.config.ts for why the pinned build is the default.
+          MICRIO_BROWSER_CHANNEL: ${{ vars.MICRIO_BROWSER_CHANNEL }}
+        run: |
+          if [ -n "$MICRIO_BROWSER_CHANNEL" ]; then
+            # The channel in vitest.config.ts points Playwright at an already installed
+            # browser, so there is nothing to download — only a check that it really
+            # resolves, which turns a confusing mid-suite failure into a clear one here.
+            google-chrome --version
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+
+      - name: ${{ matrix.command }}
+        run: ${{ matrix.command }}
+
+      # `.vitest/` holds failure screenshots and `context.annotate` attachments; the config
+      # clears it per run, so an upload always belongs to the run that just failed.
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-${{ matrix.project }}
+          path: |
+            .vitest/**
+            !.vitest/render-proof/**
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # The stylesheet suite's PNGs are visual proof, not baselines: on a PR touching styles
+      # they are the only thing a reviewer can look at, so they get their own artifact.
+      - name: Upload the render proofs
+        if: always() && matrix.project == 'css'
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-proof
+          path: .vitest/render-proof/**
+          retention-days: 7
+          if-no-files-found: ignore
