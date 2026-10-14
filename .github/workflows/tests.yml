@@ -73,8 +73,9 @@ jobs:
         id: pw
         run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
 
-      # Keyed on the Playwright revision, not the lockfile (which is gitignored here), so the
-      # ~170MB browser download is paid once per Playwright upgrade instead of per run.
+      # Keyed on the Playwright revision rather than the pnpm lockfile, so a dependency bump
+      # that does not move Playwright still hits this cache: the ~170MB browser download is
+      # then paid once per Playwright upgrade instead of per run.
       - name: Cache the Playwright browser
         if: matrix.project != 'core'
         uses: actions/cache@v4

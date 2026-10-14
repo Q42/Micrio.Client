@@ -748,6 +748,11 @@ only one with no offline fixtures to stand on), and the render-proof PNGs as a _
 are uploaded as an artifact for a reviewer to open, but nothing compares them (see
 [What the CSS suite pins](#what-the-css-suite-pins)).
 
+`pnpm-lock.yaml` is committed (it was removed from git once and restored for CI): on a runner
+`CI` is set, so `pnpm install` freezes against it by default and fails loudly if the lock has
+drifted from `package.json`. The workflow's pnpm and browser caches are keyed on it, so a
+dependency bump invalidates them, while a source-only change does not.
+
 ### WebGL on a GitHub runner
 
 A GitHub-hosted runner has **no GPU**, and headless Chromium there renders WebGL with
