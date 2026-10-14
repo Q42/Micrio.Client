@@ -626,17 +626,28 @@ under it.
 
 ## Type checking and linting
 
-- `pnpm typecheck` type-checks `src`, `build`, `templates` with `tsconfig.json`.
+- `pnpm typecheck` runs `tsc`, which type-checks `src`, `build`, `templates` **and** the
+  test suites from `tsconfig.json` (its `include` ends with `tests/**/*`). So the aliases,
+  the DOM lib and the test code are all in that one program — the same program oxlint's
+  type-aware pass builds, which is why the two agree.
+- `skipLibCheck: true` is set there and is load-bearing: Vitest's `dist/browser.d.ts`
+  declares `writeFile(..., options?: BufferEncoding | FsOptions)` and never imports
+  `BufferEncoding` from Node, so checking the suites pulls three `TS2304`s straight out of
+  `node_modules` (they only appear once a file imports `vitest/browser`, which the CSS
+  suites do). The alternatives were worse — adding `types: ["node"]` to that config hands
+  Node globals to the source tree _and_ breaks `templates/grid/grid.ts:412`
+  (`setTimeout` resolves to `NodeJS.Timeout`, not `number`). Test-owned code is still
+  checked in full; only `.d.ts` files are skipped.
 - `tsconfig.tests.json` covers `tests/**`, `vitest.config.ts` and the shared
-  `vite.config.js` (hence `allowJs`), adding `types: ["node"]` and the DOM lib. Run it
-  directly with `pnpm exec tsc -p tsconfig.tests.json --noEmit`.
+  `vite.config.js` (hence `allowJs`) with `types: ["node"]` and the DOM lib, for the cases
+  that genuinely need Node types. Nothing runs it automatically; invoke it with
+  `pnpm exec tsc -p tsconfig.tests.json --noEmit`.
 - `pnpm lint` (oxlint, type-aware) lints the tests too. `.oxlintrc.json` disables the
-  type-aware rules **for `tests/**` and `vitest.config.ts` only**: oxlint's TS program
-  does not resolve types across `$`-aliased imports for out-of-program test files, so
-  every access degrades to an `error` type and the `no-unsafe-*` family reports
-  noise. All non-type-aware rules (correctness, suspicious, perf, the unicorn/style
-  picks) still apply to tests. Type safety for tests comes from `tsc`, which does resolve
-  the aliases.
+  `no-unsafe-*` family and `strict-boolean-expressions` for `tests/**` and
+  `vitest.config.ts` only; everything else still applies. Type safety for tests comes from
+  the same `tsc` program, and its `no-redundant-type-constituents` /
+  `restrict-template-expressions` findings on tests are real — they appeared the moment
+  `tests/**/*` left that program, because every aliased type then resolved to `error`.
 - `pnpm format:check` must stay clean; run `pnpm format` after adding tests.
 - `pnpm build` does not run the test suites: it stays a fast release gate.
 
