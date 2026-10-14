@@ -535,7 +535,24 @@ describe('marker links to another image', () => {
 		await clickConnectedPopupClose(opened.viewer.el)
 		// Timer-based for the same reason as the tour test above: the click starts an
 		// asynchronous `micrio.open()`, and a frame-polled deadline can expire before it lands.
-		await pollUntil(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
+		//
+		// The catch is for CI, where this returns in 16ms on an idle machine but has timed out
+		// on a starved 4-vCPU runner. Rather than guess at the state there, the failure carries
+		// what the close handler actually saw: which marker the state holds (`undefined` sends
+		// `marker-popup.ts` down its plain-close branch, so no navigation is ever attempted),
+		// what is on screen, and whether a live close button is still there to click.
+		const back = pollUntil(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
+		await back.catch((cause: unknown) => {
+			const buttons = [...opened.viewer.el.querySelectorAll('micrio-marker-popup micrio-button')].map(
+				(b) => `${b.className || '(no class)'}${b.isConnected ? '' : ' DISCONNECTED'}`,
+			)
+			throw new Error(
+				`${cause instanceof Error ? cause.message : String(cause)} — state.$marker=` +
+					`${opened.viewer.el.state.$marker?.id ?? 'undefined'} (expected ${main.mid('m1')}), ` +
+					`$current=${opened.viewer.el.$current?.id ?? 'undefined'} (expected ${main.id}), ` +
+					`popups=${buttons.join(', ') || 'none'}`,
+			)
+		})
 		expect(opened.image().state.$marker).toBeUndefined()
 		opened.viewer.destroy()
 	})
