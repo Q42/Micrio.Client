@@ -301,7 +301,8 @@ pins their declarations and the DOM shape they need. A change that keeps the tex
 the rule would still get through; closing it needs a headed pass.
 
 **Not covered, on purpose:** pixel/screenshot regression (`toMatchScreenshot` needs no new
-dependency, but baselines are font- and platform-rendered and the repo has no CI), and
+dependency, but baselines are font- and platform-rendered, and the `css` job already uploads the
+render proofs as artifacts rather than comparing them), and
 `prefers-color-scheme` (the provider exposes no `emulateMedia`, so it would assert the host's
 setting; the `data-light-mode` attribute path is covered).
 
@@ -620,9 +621,9 @@ next target, because the YouTube/Vimeo/HLS paths need stubbed third-party APIs. 
 `src/markers` row reads lower than it did because the marker suites moved to fresh per-call
 fixtures, not because anything regressed.
 
-These are thin spots, not a backlog list (that holds only the CI item). To raise the floor, run
-`pnpm test:coverage`, move the baseline to the new number and keep the floors a point or two
-under it.
+These are thin spots, not a backlog list (the CI item that used to live there is done). To raise
+the floor, run `pnpm test:coverage`, move the baseline to the new number and keep the floors a
+point or two under it.
 
 ## Type checking and linting
 
@@ -791,6 +792,25 @@ more parallelism is worth having. Individual waits are a separate matter: see
 [Waiting on the real clock](#waiting-on-the-real-clock) for why state assertions should use
 `pollUntil` rather than `waitFor`.
 
+### What a run costs
+
+Measured on `ubuntu-latest` (4 vCPU), all green. The jobs are serialised, so the whole run is
+close to the sum of them:
+
+| Job      | Duration    | Note                                                           |
+| -------- | ----------- | -------------------------------------------------------------- |
+| core     | 20s         | bare Node, the cheapest gate                                   |
+| browser  | 5m 4s       | 1549 tests, one Chromium rendering WebGL in software           |
+| css      | 1m 18s      | 64 tests, including the render proofs                          |
+| coverage | 5m 3s       | the whole `browser` project again, plus `core`, for one report |
+| checks   | ~1m         | lint, format, typecheck and a real build (separate workflow)   |
+| **run**  | **11m 55s** | 20s + 5m04 + 1m18 + 5m03, plus ~10s of queueing                |
+
+`browser` and `coverage` together are ~85% of the wall-clock, and `coverage` is nearly all
+duplicate work — it re-runs the entire suite that `browser` has just run. If the bench ever needs
+to get faster, that duplication is the first thing to attack (e.g. dropping the separate `browser`
+job on PRs and letting `coverage` stand in for it, since it runs the identical set).
+
 ### One test held back on CI
 
 `marker links to another image > keeps a link marker's popup in the linked image, and returns to
@@ -831,23 +851,14 @@ depends on which one it gets, which is what the measurement above showed. GitHub
 not change this by themselves — Chromium still ignores the GPU unless it is run headed under
 `xvfb` with the NVIDIA kernel modules loaded — so the bench stays on stock runners.
 
-Wall-clock on `ubuntu-latest` (4 vCPU, one job per runner):
-
-| Job      | Run          |
-| -------- | ------------ |
-| checks   | _unmeasured_ |
-| core     | _unmeasured_ |
-| browser  | _unmeasured_ |
-| css      | _unmeasured_ |
-| coverage | _unmeasured_ |
-
-Filled in from the first real run. A SwiftShader run that trips the suite's 20s `testTimeout`
-shows up as that test timing out, not as a hung job (each job also has its own `timeout-minutes`
-as a backstop).
+A SwiftShader run that trips the suite's 20s `testTimeout` shows up as that test timing out, not as
+a hung job — each job also carries its own `timeout-minutes` as a backstop. Job durations are in
+[What a run costs](#what-a-run-costs).
 
 ## Session backlog
 
-1. **CI** — done; see [Continuous integration](#continuous-integration). Left open here only for
-   the `ubuntu-latest` timings above, which need one real run.
+1. **CI** — done. Two workflows on PRs and `main`, all five jobs green in 11m 55s on
+   `ubuntu-latest`; see [Continuous integration](#continuous-integration). The one caveat is the
+   test held back there, tracked in [`ISSUE-marker-link-navigation.md`](ISSUE-marker-link-navigation.md).
 2. **Pixel/screenshot regression** — still out of scope; the render proofs are artifacts, not
    baselines (font and platform rendering make them a poor comparison even with CI).
