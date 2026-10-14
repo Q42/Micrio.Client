@@ -293,7 +293,11 @@ describe('marker hiding during tours', () => {
 		expect(layerHidden(opened)).toBe(false)
 
 		opened.viewer.el.state.tour.set(withSetting.markerTours[0])
-		await waitFor(() => layerHidden(opened) === true, 4000, 'the hidden layer')
+		// `pollUntil`, not `waitFor`: this asserts pure state (a class the image's own settings
+		// decide), and a `waitFor` deadline is checked inside its `requestAnimationFrame`
+		// callback. On a loaded CI runner that callback can be starved past the deadline while
+		// the class has long since landed, which failed this test on `main` only in CI.
+		await pollUntil(() => layerHidden(opened) === true, 4000, 'the hidden layer')
 		opened.viewer.destroy()
 
 		// A marker tour is its steps, so without the setting the markers stay
@@ -500,7 +504,9 @@ describe('marker links to another image', () => {
 		expect(opened.viewer.el.state.$marker?.id).toBe(main.mid('m1'))
 
 		opened.viewer.el.querySelector<HTMLButtonElement>('micrio-marker-popup micrio-button.close button')?.click()
-		await waitFor(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
+		// Timer-based for the same reason as the tour test above: the click starts an
+		// asynchronous `micrio.open()`, and a frame-polled deadline can expire before it lands.
+		await pollUntil(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
 		expect(opened.image().state.$marker).toBeUndefined()
 		opened.viewer.destroy()
 	})
