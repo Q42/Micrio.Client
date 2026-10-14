@@ -1,5 +1,8 @@
 [![Micrio](https://b.micr.io/_statics/img/micrio-logo.png)](https://micr.io/)
 
+[![checks](https://github.com/Q42/Micrio.Client/actions/workflows/checks.yml/badge.svg)](https://github.com/Q42/Micrio.Client/actions/workflows/checks.yml)
+[![tests](https://github.com/Q42/Micrio.Client/actions/workflows/tests.yml/badge.svg)](https://github.com/Q42/Micrio.Client/actions/workflows/tests.yml)
+
 # Micrio Client
 
 If you are looking for HOWTOs, tutorials, or general Micrio help, please check out our

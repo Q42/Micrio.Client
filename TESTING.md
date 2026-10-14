@@ -726,7 +726,68 @@ projects), **plus 57 in 9 files in the separate `css` run** (`pnpm test:css`), c
 | GL embed video (HLS, loop, visibility, teardown)                     | `tests/browser/media/embedvideo`                                                 | done   |
 | Stylesheets: placement, visibility, layering (desktop/mobile/tablet) | `tests/browser/css/*` — see [What the CSS suite pins](#what-the-css-suite-pins)  | done   |
 
+## Continuous integration
+
+Two GitHub Actions workflows, both triggered by a pull request targeting `main` and by a push to
+`main` itself (`.github/workflows/checks.yml`, `.github/workflows/tests.yml`). A branch is
+therefore validated once, when its PR syncs, instead of on every push _and_ on the PR; a commit
+that changes only prose cannot change behaviour, so `paths-ignore` skips `**/*.md`, `LICENSE`,
+`.vscode/**`, `.gitignore`, `.npmrc` and `.github/**` in both. A skipped workflow reports as
+successful, so branch protection needs no special case for it.
+
+| Job      | Command                                      | What it protects                                                                                                       |
+| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| checks   | `lint`, `format:check`, `typecheck`, `build` | The strict rule set, formatting, types, and both build modes                                                           |
+| core     | `test:core`                                  | Pure logic — no browser, so it runs in about a second                                                                  |
+| browser  | `test:browser`                               | DOM, layout, input, WebGL                                                                                              |
+| css      | `test:css`                                   | The real stylesheets, including the render proofs                                                                      |
+| coverage | `test:coverage`                              | The ratchet (see [Coverage](#coverage)) — one merged report over `core` + `browser`, so it cannot be split per project |
+
+Not run in CI, on purpose: `test:browser:live` (the only suite that touches the network, and the
+only one with no offline fixtures to stand on), and the render-proof PNGs as a _baseline_ — they
+are uploaded as an artifact for a reviewer to open, but nothing compares them (see
+[What the CSS suite pins](#what-the-css-suite-pins)).
+
+### WebGL on a GitHub runner
+
+A GitHub-hosted runner has **no GPU**, and headless Chromium there renders WebGL with
+**SwiftShader** — a CPU rasteriser. That is not a misconfiguration, and it is why the suite's
+"keep the live-context count tiny" rule matters more in CI than locally: every extra live context
+is rasterised on the same four cores.
+
+Measured rather than assumed: `WEBGL_debug_renderer_info` in the `browser` project reports
+`ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)` — **on a
+development machine with a GPU, and with or without the CI flags below**. Playwright's bundled
+headless Chromium already uses SwiftShader, so these suites have always run green on a software
+renderer; that is why a GPU-less CI runner is a scheduling question, not a correctness one.
+`vitest.config.ts` nevertheless names the renderer when `CI` is set
+(`--use-angle=swiftshader --enable-unsafe-swiftshader --disable-dev-shm-usage`) so it does not
+depend on a Chromium build's current default, and `--enable-unsafe-swiftshader` keeps software
+WebGL from being refused with a warning by a future build. `--disable-gpu` is deliberately _not_
+passed: it closes the GL path rather than selecting a renderer.
+
+Those flags are CI-only, so a local run can pass its own renderer flags; the suite itself never
+depends on which one it gets, which is what the measurement above showed. GitHub's GPU runners do
+not change this by themselves — Chromium still ignores the GPU unless it is run headed under
+`xvfb` with the NVIDIA kernel modules loaded — so the bench stays on stock runners.
+
+Wall-clock on `ubuntu-latest` (4 vCPU, one job per runner):
+
+| Job      | Run          |
+| -------- | ------------ |
+| checks   | _unmeasured_ |
+| core     | _unmeasured_ |
+| browser  | _unmeasured_ |
+| css      | _unmeasured_ |
+| coverage | _unmeasured_ |
+
+Filled in from the first real run. A SwiftShader run that trips the suite's 20s `testTimeout`
+shows up as that test timing out, not as a hung job (each job also has its own `timeout-minutes`
+as a backstop).
+
 ## Session backlog
 
-1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
-   `test:core` + `test:browser` + `test:css`.
+1. **CI** — done; see [Continuous integration](#continuous-integration). Left open here only for
+   the `ubuntu-latest` timings above, which need one real run.
+2. **Pixel/screenshot regression** — still out of scope; the render proofs are artifacts, not
+   baselines (font and platform rendering make them a poor comparison even with CI).
