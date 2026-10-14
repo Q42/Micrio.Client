@@ -210,7 +210,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}, 150)
 		}
 
-		const activated = async () => {
+		/**
+		 * @param restored True when a marker that was already open is being restored (the
+		 * image was shown again) rather than opened, so its one-shot actions are skipped.
+		 */
+		const activated = async (restored = false) => {
 			if (this.#opened) {
 				if (!get(micrio.state.popup)) {
 					image.state.marker.set(undefined)
@@ -262,7 +266,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 						omniIndex: image._isOmni ? this.#omniIndex : undefined,
 						isJump: true,
 					})
-					.then(openContent)
+					.then(() => openContent(restored))
 					.catch(() => {
 						if (image.state.$marker === marker) {
 							image._openedView = undefined
@@ -270,11 +274,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 						}
 					})
 			} else {
-				void openContent()
+				void openContent(restored)
 			}
 		}
 
-		const openContent = async () => {
+		const openContent = async (restored = false) => {
 			if (cluster) {
 				return
 			}
@@ -321,7 +325,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			// Resolve content for the *current* language — the language may have changed
 			// since this element was mounted
 			const content = marker.i18n?.[get(micrio._lang)]
-			if (
+			const noPopup =
 				marker.popupType !== 'popup' ||
 				(!content?.title &&
 					!content?.body &&
@@ -329,7 +333,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					!content?.embedUrl &&
 					!marker.images?.length &&
 					!marker.videoTour)
-			) {
+			if (noPopup) {
 				// no popup - handle popover or video tour
 				if (marker.popupType === 'popover') {
 					micrio.state.popover.set({ marker, image, markerTour: $tour && 'steps' in $tour ? $tour : undefined })
@@ -364,8 +368,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 
 			const linkId = data.micrioLink?.id
-			if (linkId) {
+			if (linkId && !restored) {
 				void tick().then(() => {
+					// A marker with nothing of its own on screen has no reason to stay open
+					// behind the link: leaving it set would follow the same link again the
+					// next time this image is shown, bouncing between two linked images.
+					if (noPopup && marker.popupType !== 'popover') {
+						image.state.marker.set(undefined)
+					}
 					void micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector })
 				})
 			}
@@ -411,12 +421,41 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 		}
 
+		/**
+		 * Whether this marker was already open when the element mounted — its marker state
+		 * outlives the element, so this image being shown again restores the marker instead
+		 * of opening it.
+		 */
+		const restoredAtMount = image.state.$marker === marker
+
+		// A marker with content of its own is only restored while that popup/popover is still
+		// the open one: opening another marker (or closing it) while this image was away must
+		// not bring the old marker back on the next visit, so it is dropped instead.
+		if (
+			restoredAtMount &&
+			(marker.popupType === 'popup' || marker.popupType === 'popover') &&
+			!data.alwaysOpen &&
+			get(micrio.state.popup) !== marker &&
+			get(micrio.state.popover)?.marker !== marker
+		) {
+			image.state.marker.set(undefined)
+		}
+
+		/**
+		 * Cleared by the subscription's first emission. A restored marker must not run its
+		 * one-shot actions again — above all its `micrioLink`, which would otherwise follow
+		 * that link on every visit and bounce between two linked images forever.
+		 */
+		let restoring = true
+
 		this._addCleanup(
 			image.state.marker.subscribe((m) => {
+				const restored = restoring && m === marker
+				restoring = false
 				if (typeof m === 'string' && m === marker.id) {
 					image.state.marker.set(marker)
 				} else if (m === marker) {
-					void activated()
+					void activated(restored)
 				} else if (!data.alwaysOpen && m !== marker) {
 					if (this.#opened) {
 						// Only manage split lifecycle if this marker itself has a split link
@@ -468,7 +507,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				if (this.#opened && !marker.noMarker && $popup && $popup !== marker && !$tour) {
 					image.state.marker.set(undefined)
 				} else if (data.alwaysOpen) {
-					void openContent()
+					void openContent(restoredAtMount)
 				}
 			})
 		}
