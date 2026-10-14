@@ -2,11 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Models } from '$types/models'
 import { get } from '$core/store'
 import { marker } from '../../fixtures/bundles'
-import { markerBundle, openMarkers, waitForPopup } from '../../fixtures/markers'
+import { markerBundle, openMarkers, waitForPopup, type MarkerFixture } from '../../fixtures/markers'
 import { markerTour, videoTour } from '../../fixtures/tours'
+import { pollUntil } from '../../helpers/async'
 import { mockJson } from '../../helpers/network'
 import { settle } from '../../helpers/tour'
-import { waitFor } from '../../helpers/viewer'
+import { waitFor, type Viewer } from '../../helpers/viewer'
 
 /**
  * What happens when a marker is opened: the state it writes, the events it fires, the
@@ -370,6 +371,76 @@ describe('always-open markers', () => {
 	})
 })
 
+/** The `<micrio-markers>` layer that currently holds a marker element, if one exists. */
+const layerFor = (el: HTMLElement, markerId: string): Element | null =>
+	[...el.querySelectorAll('micrio-markers')].find(
+		(layer) => layer.querySelector(`micrio-marker[data-marker-id="${CSS.escape(markerId)}"]`) !== null,
+	) ?? null
+
+/** Opens a marker on a loaded image the way its clickable area does: through the state, by id. */
+async function openMarkerOn(viewer: Viewer, imageId: string, markerId: string): Promise<void> {
+	const image = viewer.el._canvases.find((c) => c.id === imageId)
+	if (!image) {
+		throw new Error(`image ${imageId} is not loaded`)
+	}
+	await waitFor(() => layerFor(viewer.el, markerId) !== null, 8000, `the layer of marker ${markerId}`)
+	image.state.marker.set(markerId)
+	await waitFor(() => image.state.$marker?.id === markerId, 6000, `marker ${markerId} open`)
+}
+
+/**
+ * Opens a link-only marker and waits for the image it links to.
+ *
+ * The marker object it sets is transient — the link clears it in microtasks — so waiting for
+ * the state would miss it. The layer may also not have mounted yet, in which case the id is
+ * only resolved (and the link followed) when it does.
+ */
+async function followLink(viewer: Viewer, imageId: string, markerId: string, targetId: string): Promise<void> {
+	const image = viewer.el._canvases.find((c) => c.id === imageId)
+	if (!image) {
+		throw new Error(`image ${imageId} is not loaded`)
+	}
+	image.state.marker.set(markerId)
+	await waitFor(() => viewer.el.$current?.id === targetId, 8000, `the linked image ${targetId}`)
+}
+
+/** Points a fixture's marker at another image, the way the editor's marker link does. */
+function linkMarker(fixture: MarkerFixture, short: string, id: string): void {
+	const m = fixture.bundle.data?.markers?.find((mk) => mk.id === fixture.mid(short))
+	if (!m) {
+		throw new Error(`no marker ${short} in the fixture`)
+	}
+	m.data = { ...m.data, micrioLink: { id } }
+}
+
+/**
+ * Two images whose markers link to each other, both served from one mocked `bundle.json`: the
+ * main image is opened as an object, so a link back to it has to resolve its id through
+ * `DataLoader` to reach the canvas that is already there.
+ *
+ * `popup` gives the main marker its own popup content (`marker()` defaults to
+ * `popupType: 'popup'`); without it the marker is the editor's link-only `micrioLink` type.
+ * Both link markers are `noMarker`, like the clickable areas that carry this data in practice.
+ */
+function linkedPair({
+	popup = false,
+	extraTargetMarkers = [],
+}: {
+	popup?: boolean
+	extraTargetMarkers?: Models.ImageData.Marker[]
+} = {}): { main: MarkerFixture; target: MarkerFixture } {
+	const main = markerBundle({
+		markers: [marker('m1', { noMarker: true, ...(popup ? {} : { popupType: 'micrioLink' }) })],
+	})
+	const target = markerBundle({
+		markers: [marker('t1', { noMarker: true, popupType: 'micrioLink' }), ...extraTargetMarkers],
+	})
+	linkMarker(main, 'm1', target.id)
+	linkMarker(target, 't1', main.id)
+	mockJson(/bundle\.json/, { images: [main.bundle, target.bundle] })
+	return { main, target }
+}
+
 describe('marker links to another image', () => {
 	it('opens the linked image', async () => {
 		const target = markerBundle({ markers: [marker('t1')] })
@@ -381,6 +452,79 @@ describe('marker links to another image', () => {
 		const opened = await openMarkers(main)
 		await opened.openMarker('m1')
 		await waitFor(() => opened.viewer.el.$current?.id === target.id, 8000, 'the linked image')
+		opened.viewer.destroy()
+	})
+
+	it('does not bounce between two images whose markers link to each other', async () => {
+		const { main, target } = linkedPair()
+		const opened = await openMarkers(main)
+
+		const seen: (string | undefined)[] = []
+		const unsub = opened.viewer.el.current.subscribe((c) => seen.push(c?.id))
+
+		await followLink(opened.viewer, main.id, main.mid('m1'), target.id)
+		await followLink(opened.viewer, target.id, target.mid('t1'), main.id)
+
+		// The link-only marker is closed by the navigation, so showing the image again has
+		// nothing left to follow the link with.
+		expect(opened.image().state.$marker).toBeUndefined()
+		// Let the deferred work run before asserting that no further navigation came: the wait
+		// is expected to time out.
+		await pollUntil(() => seen.length !== 3, 500, 'a second navigation').catch(() => {})
+		unsub()
+		expect(seen).toEqual([main.id, target.id, main.id])
+		opened.viewer.destroy()
+	})
+
+	it('follows its link again after the original image is shown a second time', async () => {
+		const { main, target } = linkedPair()
+		const opened = await openMarkers(main)
+
+		await followLink(opened.viewer, main.id, main.mid('m1'), target.id)
+		await followLink(opened.viewer, target.id, target.mid('t1'), main.id)
+
+		// Coming back leaves no marker set, so the area opens the link straight away
+		await followLink(opened.viewer, main.id, main.mid('m1'), target.id)
+		opened.viewer.destroy()
+	})
+
+	it('keeps a link marker’s popup in the linked image, and returns to the original when it is closed', async () => {
+		const { main, target } = linkedPair({ popup: true })
+		const opened = await openMarkers(main)
+
+		await opened.openMarker('m1')
+		await waitFor(() => opened.viewer.el.$current?.id === target.id, 8000, 'the linked image')
+		await waitForPopup(opened.viewer.el, 8000)
+
+		// The marker stays open, with its popup visible, in the image the link opened
+		expect(opened.viewer.el.state.$marker?.id).toBe(main.mid('m1'))
+
+		opened.viewer.el.querySelector<HTMLButtonElement>('micrio-marker-popup micrio-button.close button')?.click()
+		await waitFor(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
+		expect(opened.image().state.$marker).toBeUndefined()
+		opened.viewer.destroy()
+	})
+
+	it('drops a link marker whose popup was replaced while its image was away', async () => {
+		const { main, target } = linkedPair({ popup: true, extraTargetMarkers: [marker('t2')] })
+		const opened = await openMarkers(main)
+
+		await opened.openMarker('m1')
+		await waitFor(() => opened.viewer.el.$current?.id === target.id, 8000, 'the linked image')
+
+		// Another marker takes the popup while the main image is off screen ...
+		await openMarkerOn(opened.viewer, target.id, target.mid('t2'))
+		await waitFor(() => opened.viewer.el.state.$marker?.id === target.mid('t2'), 6000, 'the second marker')
+		// ... and the main image's layer is gone, so showing it again re-mounts its markers
+		await pollUntil(() => layerFor(opened.viewer.el, main.mid('m1')) === null, 4000, 'the main layer to go')
+
+		await opened.viewer.open(main.id)
+		await waitFor(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
+		await waitFor(() => layerFor(opened.viewer.el, main.mid('m1')) !== null, 8000, 'the main layer back')
+		await settle(2)
+
+		// The stale marker is not restored, so nothing follows its link again
+		expect(opened.image().state.$marker).toBeUndefined()
 		opened.viewer.destroy()
 	})
 })
