@@ -1,5 +1,6 @@
 import { defaultExclude, defineConfig, type UserWorkspaceConfig } from 'vitest/config'
 import { playwright } from '@vitest/browser-playwright'
+import { availableParallelism } from 'node:os'
 import { readFileSync, rmSync } from 'node:fs'
 import { aliases, glslMinifyPlugin } from './vite.config.js'
 
@@ -77,6 +78,36 @@ const chromiumArgs =
 const chromiumChannel = process.env.MICRIO_BROWSER_CHANNEL
 
 /**
+ * Worker count for the browser projects on CI, where the machine is the whole problem.
+ *
+ * Vitest defaults to one worker per CPU, and every worker is a Playwright worker driving its
+ * own Chromium, rendering WebGL in software, while `browser`, `css` and `coverage` are three
+ * concurrent jobs. On a 4-vCPU runner that starves the suites: a starved page is exactly what
+ * the deadline waits in `waitFor` (`tests/helpers/viewer.ts`) cannot survive, because they
+ * poll on `requestAnimationFrame`, the first thing Chromium throttles under load. That is
+ * what the first instrumented CI run showed — 144s for `browser` with **96% worker, 3%
+ * tests** — and it is why the previous default (four workers on four vCPUs, each a Chromium)
+ * produced one timeout in a different suite per job.
+ *
+ * Half the CPUs, floors at 2 so a small runner still uses both cores, and caps at 4 because
+ * past that the contention is worth more than the parallelism. The runner's real vCPU count
+ * is visible in the `Install Node` log on the first run; set `MICRIO_TEST_WORKERS` to pin a
+ * number instead. Local runs are deliberately untouched — a developer's machine is not the
+ * constraint — and `--maxWorkers` still overrides this on the command line.
+ */
+const ciMaxWorkers = (() => {
+	if (process.env.CI === undefined) {
+		// Not CI: leave the option unset so Vitest keeps its own default.
+		return 0
+	}
+	const override = Number(process.env.MICRIO_TEST_WORKERS)
+	if (Number.isInteger(override) && override > 0) {
+		return override
+	}
+	return Math.max(2, Math.min(4, Math.floor(availableParallelism() / 2)))
+})()
+
+/**
  * The Playwright/Chromium setup every browser project shares: one headless Chromium
  * instance, the element registered through the production entry (`tests/browser/setup.ts`),
  * headless and 20s timeouts. `setupFiles` is a parameter so the `css` project can add its
@@ -96,6 +127,9 @@ const browserProject = (
 		exclude: [...defaultExclude, ...exclude],
 		testTimeout: 20000,
 		hookTimeout: 20000,
+		// Only set when CI actually chose a number (see `ciMaxWorkers`); leaving the key out
+		// keeps Vitest's own default rather than relying on a falsy `0`.
+		...(ciMaxWorkers > 0 ? { maxWorkers: ciMaxWorkers } : {}),
 		setupFiles,
 		browser: {
 			enabled: true,

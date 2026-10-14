@@ -764,6 +764,25 @@ are uploaded as an artifact for a reviewer to open, but nothing compares them (s
 drifted from `package.json`. The workflow's pnpm and browser caches are keyed on it, so a
 dependency bump invalidates them, while a source-only change does not.
 
+### Worker count on CI
+
+On CI the browser projects run with **`maxWorkers` set from the runner's parallelism** —
+`floor(availableParallelism() / 2)`, floored at 2 and capped at 4 (so 2 on a 4-vCPU runner, 4
+on an 8-vCPU one). Locally the option is left unset and Vitest keeps its own default. Those
+browser workers are not threads: each one drives its own Chromium and renders WebGL in
+software, and `browser`, `css` and `coverage` are three concurrent jobs. At Vitest's default of
+one worker per CPU the suites starve each other badly enough that the `waitFor` deadlines
+(`tests/helpers/viewer.ts`, which polls on the throttled `requestAnimationFrame`) expire while
+the work they wait for is still landing. That is what the first instrumented CI run showed:
+`browser` at 145s with **96% worker, 3% tests**, and one timeout in a different suite per job.
+
+Halving the worker count addresses the cause rather than the symptom, and it does not cost
+wall-clock: the time was spent contending for the transform/setup work, not running assertions.
+`--maxWorkers` still overrides it on the command line, and `MICRIO_TEST_WORKERS=<n>` pins it
+for a single run — that is the knob to reach for if a larger runner still shows timeouts, or if
+`availableParallelism()` reports the host's cores rather than the job's cgroup quota (check the
+vCPU count in the `Install Node` log of a real run before tuning).
+
 ### WebGL on a GitHub runner
 
 A GitHub-hosted runner has **no GPU**, and headless Chromium there renders WebGL with
