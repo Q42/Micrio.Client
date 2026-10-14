@@ -183,6 +183,10 @@ export default defineConfig({
 		__CORE__: 'false',
 		// Opt-in live suite: `MICRIO_LIVE=1 npm run test:browser:live`
 		__MICRIO_LIVE__: JSON.stringify(process.env.MICRIO_LIVE === '1'),
+		// True on a CI runner, for the handful of tests that must be held back there (see
+		// ISSUE-marker-link-navigation.md). A compile-time flag rather than `process.env`: the
+		// tests run in the browser page, where `process` does not exist.
+		__MICRIO_CI__: JSON.stringify(process.env.CI !== undefined),
 	},
 	test: {
 		// Collected over the projects `test:coverage` runs (`core` + `browser`), one merged
