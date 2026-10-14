@@ -1,5 +1,6 @@
 {
 	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"ignorePatterns": ["dev.html"],
 	"useTabs": true,
 	"singleQuote": true,
 	"semi": false,
