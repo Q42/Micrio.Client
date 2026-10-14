@@ -472,10 +472,19 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#activePopupMarkerId = $popupMarker.id
 
 			if (!this.#elements.get('popup')?.isConnected) {
+				// The popup's marker may belong to an image that is no longer on screen: a
+				// marker link opens the popup and then navigates away, and the popup's close
+				// button compares against this image to bring the original one back. Resolve
+				// the owner from the marker object itself, not from whatever is shown now.
+				const popupImage =
+					micrio._canvases.find((c) => c.$data?.markers?.includes($popupMarker)) ??
+					micrio.gallery?._images.find((i) => i.$data?.markers?.includes($popupMarker)) ??
+					MicrioElement._markerImages.get($popupMarker.id) ??
+					micrio.$current
 				this.#elements.set(
 					'popup',
 					createElement('micrio-marker-popup', {
-						setProps: { marker: $popupMarker, image: micrio.$current },
+						setProps: { marker: $popupMarker, image: popupImage },
 						parent: this,
 					}),
 				)
