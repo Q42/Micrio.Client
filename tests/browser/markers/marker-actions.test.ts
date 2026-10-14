@@ -445,6 +445,35 @@ function linkedPair({
 	return { main, target }
 }
 
+/**
+ * Clicks the close button of the *connected* popup.
+ *
+ * `waitForPopup` only proves the element exists, which is not enough here: the layout builds a
+ * popup per marker and, on teardown, deliberately leaves the old one to animate out rather than
+ * removing it (`src/layout/main.ts`). Navigating a marker link is exactly when a replaced popup
+ * is briefly in the document, so `querySelector` can hand back a detached element whose click
+ * listener is already gone — a silent no-op that makes the caller's next wait look like a
+ * client bug. This waits for a connected button and then re-checks it, so that case fails with
+ * what actually happened instead of as an unexplained navigation timeout.
+ */
+async function clickConnectedPopupClose(el: Element, timeout = 8000): Promise<void> {
+	const sel = 'micrio-marker-popup micrio-button.close button'
+	await pollUntil(
+		() => {
+			const found = el.querySelector<HTMLButtonElement>(sel)
+			return found !== null && found.isConnected
+		},
+		timeout,
+		'the connected link popup close button',
+	)
+
+	const button = el.querySelector<HTMLButtonElement>(sel)
+	if (button === null || !button.isConnected) {
+		throw new Error('the link popup close button went away between finding it and clicking it')
+	}
+	button.click()
+}
+
 describe('marker links to another image', () => {
 	it('opens the linked image', async () => {
 		const target = markerBundle({ markers: [marker('t1')] })
@@ -503,7 +532,7 @@ describe('marker links to another image', () => {
 		// The marker stays open, with its popup visible, in the image the link opened
 		expect(opened.viewer.el.state.$marker?.id).toBe(main.mid('m1'))
 
-		opened.viewer.el.querySelector<HTMLButtonElement>('micrio-marker-popup micrio-button.close button')?.click()
+		await clickConnectedPopupClose(opened.viewer.el)
 		// Timer-based for the same reason as the tour test above: the click starts an
 		// asynchronous `micrio.open()`, and a frame-polled deadline can expire before it lands.
 		await pollUntil(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
