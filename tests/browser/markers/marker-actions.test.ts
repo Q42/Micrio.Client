@@ -529,7 +529,13 @@ describe('marker links to another image', () => {
 		await waitFor(() => opened.viewer.el.$current?.id === target.id, 8000, 'the linked image')
 		await waitForPopup(opened.viewer.el, 8000)
 
-		// The marker stays open, with its popup visible, in the image the link opened
+		// The marker stays open, with its popup visible, in the image the link opened.
+		//
+		// The popup is what keeps it alive: the link clears the *owner's* local marker so the
+		// image does not follow the same link again on the way back, and the global store has to
+		// survive that clear for as long as the popup is on screen. If it does not, the close
+		// below takes `marker-popup.ts`'s plain-close branch and the return never happens — the
+		// assertion is the earliest place that failure can be seen.
 		expect(opened.viewer.el.state.$marker?.id).toBe(main.mid('m1'))
 
 		await clickConnectedPopupClose(opened.viewer.el)

@@ -55,6 +55,14 @@ export namespace State {
 		/** Writable store holding the marker object whose popup is currently displayed. */
 		readonly popup: Writable<Models.ImageData.Marker | undefined> = writable<Models.ImageData.Marker | undefined>()
 
+		/** Internal reference to the marker whose popup is displayed. @internal */
+		#_popup: Models.ImageData.Marker | undefined
+
+		/** Getter for the current value of the {@link popup} store. */
+		get $popup(): Models.ImageData.Marker | undefined {
+			return this.#_popup
+		}
+
 		/** Writable store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
 		readonly popover: Writable<Models.State.PopoverType | undefined> = writable()
 
@@ -92,7 +100,8 @@ export namespace State {
 				this.#_marker = m
 				this._touch('marker')
 			})
-			this.popup.subscribe(() => {
+			this.popup.subscribe((p) => {
+				this.#_popup = p
 				this._touch('popup')
 			})
 			this.popover.subscribe(() => {
@@ -234,8 +243,20 @@ export namespace State {
 					m.state.marker.set(this.#_marker)
 				}
 				// If the marker was cleared locally AND it was the globally active marker,
-				// clear the global marker state too.
-				else if ((marker == null || marker === '') && m.state.$marker === curr) {
+				// clear the global marker state too — but only while this image is still the
+				// one on screen.
+				//
+				// Following a `micrioLink` clears this image's marker on purpose, so that
+				// returning to the image does not follow the same link again
+				// (`src/markers/marker.ts`). The popup of the image being left is still on
+				// screen at that moment, though, and it reads the *global* store to decide
+				// what its close button does (`src/markers/marker-popup.ts`). Clearing it
+				// here left the popup displayed while `state.$marker` said there was none, so
+				// closing it took the plain close path and never followed its link back —
+				// which is exactly what `marker links to another image > keeps a link
+				// marker's popup...` pins. Navigation is the only case where the owner is no
+				// longer current, and the popup clears the global itself when it does close.
+				else if ((marker == null || marker === '') && m.state.$marker === curr && m.$current === image) {
 					m.state.marker.set(undefined)
 				}
 			})
