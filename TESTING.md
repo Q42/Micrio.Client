@@ -766,22 +766,32 @@ dependency bump invalidates them, while a source-only change does not.
 
 ### Worker count on CI
 
-On CI the browser projects run with **`maxWorkers` set from the runner's parallelism** —
-`floor(availableParallelism() / 2)`, floored at 2 and capped at 4 (so 2 on a 4-vCPU runner, 4
-on an 8-vCPU one). Locally the option is left unset and Vitest keeps its own default. Those
-browser workers are not threads: each one drives its own Chromium and renders WebGL in
-software, and `browser`, `css` and `coverage` are three concurrent jobs. At Vitest's default of
-one worker per CPU the suites starve each other badly enough that the `waitFor` deadlines
-(`tests/helpers/viewer.ts`, which polls on the throttled `requestAnimationFrame`) expire while
-the work they wait for is still landing. That is what the first instrumented CI run showed:
-`browser` at 145s with **96% worker, 3% tests**, and one timeout in a different suite per job.
+On CI the browser projects run with **`maxWorkers: 1`**, and `tests.yml` chains its four jobs
+(`core` → `browser` → `css` → `coverage`) so only one runs at a time. Locally the option is
+left unset and Vitest keeps its own default.
 
-Halving the worker count addresses the cause rather than the symptom, and it does not cost
-wall-clock: the time was spent contending for the transform/setup work, not running assertions.
-`--maxWorkers` still overrides it on the command line, and `MICRIO_TEST_WORKERS=<n>` pins it
-for a single run — that is the knob to reach for if a larger runner still shows timeouts, or if
-`availableParallelism()` reports the host's cores rather than the job's cgroup quota (check the
-vCPU count in the `Install Node` log of a real run before tuning).
+Both halves of that exist because a browser worker is not a thread: each one drives **its own
+Chromium**, rendering WebGL in software, and `coverage` re-runs the entire browser suite for
+the merged report. On a 4-vCPU runner the original configuration — one worker per CPU, three
+concurrent jobs — put roughly six Chromiums on four cores, and the result was not merely slow:
+
+- `browser` took **182s with 98% worker / 2% tests** — nearly all of it transform and setup;
+- the failures **reshuffled between runs** across unrelated suites: one run
+  `markers/marker-actions`, the next that file _plus_ a pinch test in `book/viewer` that only
+  mounts a book and dispatches three pointer events, so it cannot legitimately need 20s.
+
+Failures that move like that are describing the host, not the code. Serialising the jobs and
+dropping to one worker gives a run one Chromium to itself; the cost is wall-clock, and the
+`browser` job reports `nproc`/memory on every run so the cap can be tuned from evidence rather
+than from the usual "4 for `ubuntu-latest`" assumption.
+
+`MICRIO_TEST_WORKERS=<n>` pins a different count for one run, and `--maxWorkers` overrides it
+on the command line — that is the knob to reach for on a larger or self-hosted runner, where
+more parallelism is worth having. Individual waits are a separate matter: see
+[Waiting on the real clock](#waiting-on-the-real-clock) for why state assertions should use
+`pollUntil` rather than `waitFor`.
+
+### WebGL on a GitHub runner
 
 ### WebGL on a GitHub runner
 

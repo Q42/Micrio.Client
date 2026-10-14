@@ -7,12 +7,18 @@
 # the renderer when `CI` is set, so the flags are explicit rather than "whatever the image
 # picks this month". The suites already keep the live-context count tiny for exactly this
 # reason (AGENTS.md, TESTING.md "Three traps that make the browser suite flake").
+#
+# The heavy jobs run ONE AT A TIME (`needs` chains them). Three concurrent browser suites on
+# four vCPUs — each worker a Chromium rendering WebGL in software — starved the runner badly
+# enough that unrelated suites timed out in turn (182s for `browser` at 98% worker / 2% tests,
+# with the failures reshuffling between runs). `vitest.config.ts` caps CI at one worker as
+# well; between them, a run now has one Chromium to itself instead of roughly six.
 name: tests
 
 on:
   # Manual runs: the badge/workflow-only commits below are skipped by `paths-ignore`, so this
   # is the way to exercise the workflow on a branch before a code change exists. It runs every
-  # matrix entry — four runners — so it is not the cheap way to reproduce one failing suite.
+  # job — four runners, one after another — so it is not the cheap way to reproduce one suite.
   workflow_dispatch:
   push:
     branches: [main]
@@ -41,35 +47,34 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: ${{ matrix.project }}
+  # Bare Node: no Chromium, no flags, no browser cache to miss. Runs first because it is the
+  # cheapest gate and the other three need the browser download it does not.
+  core:
+    name: core
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ matrix.timeout }}
-    strategy:
-      # One project's failure should not cancel the others: a red run is most useful when it
-      # says whether `core`, `browser` and `css` agree.
-      fail-fast: false
-      matrix:
-        include:
-          - project: core
-            command: pnpm run test:core
-            timeout: 10
-          - project: browser
-            command: pnpm run test:browser
-            timeout: 25
-          - project: css
-            command: pnpm run test:css
-            timeout: 25
-          - project: coverage
-            command: pnpm run test:coverage
-            timeout: 30
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Run the core suite
+        run: pnpm run test:core
+
+  browser:
+    name: browser
+    needs: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
 
+      # The runner's real vCPU count, so the worker cap in `vitest.config.ts` can be tuned
+      # from evidence rather than from the usual "4 for ubuntu-latest" assumption.
+      - name: Report the runner shape
+        run: echo "vCPU=$(nproc) memory=$(free -g | awk '/^Mem:/{print $2}')GB"
+
       # `core` is bare Node: no Chromium, no flags, no browser cache to miss.
       - name: Resolve the Playwright revision
-        if: matrix.project != 'core'
         id: pw
         run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
 
@@ -77,14 +82,12 @@ jobs:
       # that does not move Playwright still hits this cache: the ~170MB browser download is
       # then paid once per Playwright upgrade instead of per run.
       - name: Cache the Playwright browser
-        if: matrix.project != 'core'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
 
       - name: Install the Chromium build
-        if: matrix.project != 'core'
         env:
           # Set `MICRIO_BROWSER_CHANNEL=chrome` as a repository variable to drive the
           # runner's preinstalled Chrome instead of the Playwright build. Empty by default:
@@ -100,8 +103,8 @@ jobs:
             pnpm exec playwright install --with-deps chromium
           fi
 
-      - name: ${{ matrix.command }}
-        run: ${{ matrix.command }}
+      - name: Run the browser suite
+        run: pnpm run test:browser
 
       # `.vitest/` holds failure screenshots and `context.annotate` attachments; the config
       # clears it per run, so an upload always belongs to the run that just failed.
@@ -113,7 +116,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: vitest-${{ matrix.project }}
+          name: vitest-browser
           path: |
             .vitest/**
             !.vitest/render-proof/**
@@ -121,10 +124,48 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+  css:
+    name: css
+    needs: browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Resolve the Playwright revision
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Install the Chromium build
+        env:
+          MICRIO_BROWSER_CHANNEL: ${{ vars.MICRIO_BROWSER_CHANNEL }}
+        run: |
+          if [ -n "$MICRIO_BROWSER_CHANNEL" ]; then
+            google-chrome --version
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+      - name: Run the stylesheet suite
+        run: pnpm run test:css
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-css
+          path: |
+            .vitest/**
+            !.vitest/render-proof/**
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn
       # The stylesheet suite's PNGs are visual proof, not baselines: on a PR touching styles
       # they are the only thing a reviewer can look at, so they get their own artifact.
       - name: Upload the render proofs
-        if: always() && matrix.project == 'css'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: render-proof
@@ -132,3 +173,45 @@ jobs:
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: ignore
+
+  # Last and heaviest: `test:coverage` re-runs the whole browser project plus `core` for one
+  # merged report, so it subsumes the `browser` job. Running it concurrently with that job
+  # meant two full copies of the suite competing for the same cores.
+  coverage:
+    name: coverage
+    needs: css
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Resolve the Playwright revision
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Install the Chromium build
+        env:
+          MICRIO_BROWSER_CHANNEL: ${{ vars.MICRIO_BROWSER_CHANNEL }}
+        run: |
+          if [ -n "$MICRIO_BROWSER_CHANNEL" ]; then
+            google-chrome --version
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+      - name: Run the coverage gate
+        run: pnpm run test:coverage
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-coverage
+          path: |
+            .vitest/**
+            !.vitest/render-proof/**
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn
