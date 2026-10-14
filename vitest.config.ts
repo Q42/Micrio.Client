@@ -47,6 +47,36 @@ interface Viewport {
 }
 
 /**
+ * Chromium flags for the browser projects, or nothing when `CI` is unset.
+ *
+ * A GitHub-hosted runner has no GPU, so WebGL there is SwiftShader (software) whatever we
+ * do. Naming that renderer makes CI deterministic instead of dependent on what the runner
+ * image picks, and `--enable-unsafe-swiftshader` is required by recent Chromium for
+ * software WebGL at all (without it the context is refused and the renderer warns).
+ * `--disable-gpu` is deliberately *not* here: it closes the GL path rather than selecting a
+ * renderer, which is the one thing these suites cannot afford. `--disable-dev-shm-usage`
+ * matters to them specifically: Chromium's `/dev/shm` is small in a container and they
+ * allocate textures heavily.
+ *
+ * CI-only on purpose — a local run on a machine with a GPU keeps hardware GL, so this never
+ * hides a driver-specific difference from the developer who has to fix it.
+ */
+const chromiumArgs =
+	process.env.CI === undefined
+		? []
+		: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage']
+
+/**
+ * Optional override for the browser binary, unset by default.
+ *
+ * Playwright's own pinned Chromium is what a local `pnpm test:browser` uses, so CI failing on
+ * the same build is reproducible by hand. Setting `MICRIO_BROWSER_CHANNEL=chrome` (the
+ * `tests` workflow passes the repository variable of that name through) switches to the
+ * runner's preinstalled Chrome, which skips the browser download but drifts from local.
+ */
+const chromiumChannel = process.env.MICRIO_BROWSER_CHANNEL
+
+/**
  * The Playwright/Chromium setup every browser project shares: one headless Chromium
  * instance, the element registered through the production entry (`tests/browser/setup.ts`),
  * headless and 20s timeouts. `setupFiles` is a parameter so the `css` project can add its
@@ -71,7 +101,7 @@ const browserProject = (
 			enabled: true,
 			headless: true,
 			viewport,
-			provider: playwright(),
+			provider: playwright({ launchOptions: { args: chromiumArgs, channel: chromiumChannel } }),
 			instances: [{ browser: 'chromium' }],
 		},
 	},
