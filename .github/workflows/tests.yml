@@ -105,6 +105,10 @@ jobs:
 
       # `.vitest/` holds failure screenshots and `context.annotate` attachments; the config
       # clears it per run, so an upload always belongs to the run that just failed.
+      #
+      # `include-hidden-files` is required, not optional: upload-artifact@v4.4+ skips hidden
+      # files by default and `.vitest` starts with a dot, so without it this step matched
+      # nothing and — with `if-no-files-found: ignore` — failed completely silently.
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -113,8 +117,9 @@ jobs:
           path: |
             .vitest/**
             !.vitest/render-proof/**
+          include-hidden-files: true
           retention-days: 7
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       # The stylesheet suite's PNGs are visual proof, not baselines: on a PR touching styles
       # they are the only thing a reviewer can look at, so they get their own artifact.
@@ -124,5 +129,6 @@ jobs:
         with:
           name: render-proof
           path: .vitest/render-proof/**
+          include-hidden-files: true
           retention-days: 7
           if-no-files-found: ignore
