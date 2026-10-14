@@ -54,8 +54,10 @@ export namespace Grid {
 
 	/* @internal */
 	export interface GridHistory {
-		layout: { id: string; view?: Camera.View; size?: [number, number?] }[]
+		layout: { id?: string; empty?: boolean; view?: Camera.View; size?: [number, number?] }[]
 		horizontal: boolean
+		/** Explicit column count the layout was set with, if any */
+		columns?: number
 		view?: Camera.View
 	}
 

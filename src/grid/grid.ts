@@ -48,6 +48,9 @@ export class Grid extends MicrioElement<GridProps> {
 	/** @internal */
 	_current: MicrioImage[] = []
 
+	/** The full current layout as passed to `set()`, including empty placeholder cells */
+	#currentLayout: Models.Grid.GridEntry[] = []
+
 	/** @internal */
 	_buttons = new Map<string, HTMLButtonElement>()
 
@@ -79,6 +82,8 @@ export class Grid extends MicrioElement<GridProps> {
 	/** @internal */
 	_nextCrossFadeDuration: number | undefined
 	#isHorizontal = false
+	/** The explicit `columns` option of the current layout, if any */
+	#currentColumns: number | undefined
 	readonly #cellSizes = new Map<string, [number, number?]>()
 
 	/** @internal */
@@ -276,14 +281,20 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#savePreviousLayout(): void {
+		const byId = new Map(this._current.map((i) => [i.id, i] as const))
 		this.#depth.set(
 			this.#history.push({
-				layout: this._current.map((i) => ({
-					id: i.id,
-					view: i.state.$view,
-					size: this.#cellSizes.get(i.id),
-				})),
+				layout: this.#currentLayout.map((e) =>
+					!e.id || e.empty
+						? { empty: true, size: e.size }
+						: {
+								id: e.id,
+								view: byId.get(e.id)?.state.$view,
+								size: this.#cellSizes.get(e.id) ?? e.size,
+							},
+				),
 				horizontal: this.#isHorizontal,
+				columns: this.#currentColumns,
 				view: this.image.camera.getView(),
 			}),
 		)
@@ -359,9 +370,11 @@ export class Grid extends MicrioElement<GridProps> {
 				this.blur()
 			}
 
-			if (!opts.noHistory && this._current.length > 0) {
+			if (!opts.noHistory && this.#currentLayout.length > 0) {
 				this.#savePreviousLayout()
 			}
+			this.#currentLayout = images
+			this.#currentColumns = opts.columns
 			this.#isHorizontal = Boolean(opts.horizontal)
 
 			this.#removeImages(this._images.filter((i) => !imageEntries.find((n) => n.id === i.id)))
@@ -848,6 +861,7 @@ export class Grid extends MicrioElement<GridProps> {
 			noCamAni,
 			forceAni,
 			horizontal: state !== undefined ? state.horizontal : false,
+			columns: state?.columns,
 		}).then((i) => {
 			this.#depth.set((this.#history.length = 0))
 			this.micrio.current.set(this.image)
@@ -891,22 +905,26 @@ export class Grid extends MicrioElement<GridProps> {
 			duration,
 			noHistory: true,
 			horizontal: state.horizontal,
+			columns: state.columns,
 			view: state.view,
 		})
 	}
 
-	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): Models.Grid.GridImage[] | undefined {
+	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): Models.Grid.GridEntry[] | undefined {
 		if (!state?.layout?.length) {
 			return undefined
 		}
 		return state.layout
-			.map((entry): Models.Grid.GridImage | null => {
+			.map((entry): Models.Grid.GridEntry | null => {
+				if (!entry.id || entry.empty) {
+					return { empty: true, size: entry.size }
+				}
 				if (!this._imageMap.has(entry.id)) {
 					return null
 				}
 				return { id: entry.id, size: entry.size ?? [1], view: entry.view }
 			})
-			.filter((entry): entry is Models.Grid.GridImage => entry !== null)
+			.filter((entry): entry is Models.Grid.GridEntry => entry !== null)
 	}
 
 	#setTimingFunction(fn: Models.Camera.TimingFunction): void {
@@ -1037,11 +1055,10 @@ export class Grid extends MicrioElement<GridProps> {
 				{ noHistory: true, keepGrid: true, duration: 0.5, cover },
 			)
 		}
-		const entries = layout as { id: string; size?: [number, number?] }[]
-		const input: Models.Grid.GridImage[] = entries.map((e, i) => ({
-			id: e.id,
-			size: i === idx ? ([width, height] as [number, number]) : (e.size ?? [1]),
-		}))
+		const input: Models.Grid.GridEntry[] = layout.map((e, i) => {
+			const size = i === idx ? ([width, height] as [number, number]) : (e.size ?? [1])
+			return !e.id || e.empty ? { empty: true, size } : { id: e.id, size }
+		})
 		return this.set(input, { noHistory: true, keepGrid: true, duration: 0.5, cover })
 	}
 
