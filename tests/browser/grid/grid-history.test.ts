@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { openGrid, restoreArchiveXhr } from '../../fixtures/grid'
 import type { gridFixture } from '../../fixtures/grid'
-import { cellButton, cellButtons, focusCell, layoutIds, settleFrames } from '../../helpers/grid'
+import { cellButton, cellButtons, emptyCells, focusCell, layoutIds, settleFrames } from '../../helpers/grid'
+import type { Models } from '$types/models'
 
 /**
  * Layout history: what `back()` undoes, what `reset()` forgets and what `enlarge()` reads.
@@ -118,6 +119,30 @@ describe('grid history', () => {
 
 		await grid.back(0.1)
 		expect(layoutIds(grid)).toEqual(all)
+		viewer.destroy()
+	})
+
+	it('restores placeholders and explicit columns from history', async () => {
+		const { viewer, grid, ids: all, gridEl } = await openGrid(fast())
+		const withGap: Models.Grid.GridEntry[] = [
+			{ id: all[0] ?? '', size: [1] },
+			{ empty: true, size: [1, 2] },
+			{ id: all[1] ?? '', size: [1] },
+		]
+		await grid.set(withGap, { duration: 0, columns: 3 })
+		expect(emptyCells(grid)).toHaveLength(1)
+		expect(gridEl.style.gridTemplateColumns).toBe('repeat(3, auto)')
+
+		await grid.set([{ id: all[2] ?? '', size: [1] }], { duration: 0 })
+		expect(emptyCells(grid)).toHaveLength(0)
+
+		// back() rebuilds the placeholder (with its span) and the explicit column count
+		await grid.back(0.1)
+		expect(layoutIds(grid)).toEqual([all[0], all[1]])
+		const empties = emptyCells(grid)
+		expect(empties).toHaveLength(1)
+		expect(empties[0]?.style.gridArea).toBe('auto / auto / span 2 / span 1')
+		expect(gridEl.style.gridTemplateColumns).toBe('repeat(3, auto)')
 		viewer.destroy()
 	})
 })

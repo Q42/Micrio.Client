@@ -21,7 +21,7 @@ export namespace Grid {
 		| 'behind-left'
 		| 'behind-right'
 
-	export type GridSetTransition = 'crossfade' | 'behind' | 'behind-delayed' | 'appear-delayed'
+	export type GridSetTransition = 'crossfade' | 'behind' | 'behind-delayed' | 'appear-delayed' | 'in-from-id'
 
 	/** Virtual ImageInfo extension to support grid logic */
 	export interface GridImage {
@@ -29,12 +29,35 @@ export namespace Grid {
 		size: [number, number?]
 		area?: Camera.View
 		view?: Camera.View
+		/** Force this entry to render as an empty placeholder cell, even though it has an `id` */
+		empty?: true | false;
+		/**
+		 * Optional source image id to animate this entry in from.
+		 * Only applied for `grid.set(..., { transition: 'in-from-id' })` and only when this image is newly added.
+		 */
+		from?: string
+		/** Optional stacking order override (higher values render on top). */
+		z?: number
 	}
+
+	/** An empty placeholder cell in a grid layout, occupying grid space without an image */
+	export interface GridEmptyCell {
+		/** Explicit marker for an empty placeholder cell */
+		empty?: true | false;
+		id?: undefined;
+		/** Cell span as [columns, rows?], defaults to a 1x1 cell */
+		size?: [number, number?];
+	}
+
+	/** A single grid layout entry: an image, or an empty placeholder cell */
+	export type GridEntry = GridImage | GridEmptyCell;
 
 	/* @internal */
 	export interface GridHistory {
-		layout: { id: string; view?: Camera.View; size?: [number, number?] }[]
+		layout: { id?: string; empty?: boolean; view?: Camera.View; size?: [number, number?] }[]
 		horizontal: boolean
+		/** Explicit column count the layout was set with, if any */
+		columns?: number
 		view?: Camera.View
 	}
 

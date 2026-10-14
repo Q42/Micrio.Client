@@ -48,8 +48,14 @@ export class Grid extends MicrioElement<GridProps> {
 	/** @internal */
 	_current: MicrioImage[] = []
 
+	/** The full current layout as passed to `set()`, including empty placeholder cells */
+	#currentLayout: Models.Grid.GridEntry[] = []
+
 	/** @internal */
 	_buttons = new Map<string, HTMLButtonElement>()
+
+	/** Placeholder tiles for empty grid entries. @internal */
+	#emptyTiles: HTMLButtonElement[] = []
 
 	/** @internal */
 	_clickable: 'focus' | 'zoom' | false = false
@@ -76,6 +82,8 @@ export class Grid extends MicrioElement<GridProps> {
 	/** @internal */
 	_nextCrossFadeDuration: number | undefined
 	#isHorizontal = false
+	/** The explicit `columns` option of the current layout, if any */
+	#currentColumns: number | undefined
 	readonly #cellSizes = new Map<string, [number, number?]>()
 
 	/** @internal */
@@ -273,22 +281,31 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#savePreviousLayout(): void {
+		const byId = new Map(this._current.map((i) => [i.id, i] as const))
 		this.#depth.set(
 			this.#history.push({
-				layout: this._current.map((i) => ({
-					id: i.id,
-					view: i.state.$view,
-					size: this.#cellSizes.get(i.id),
-				})),
+				layout: this.#currentLayout.map((e) =>
+					!e.id || e.empty
+						? { empty: true, size: e.size }
+						: {
+								id: e.id,
+								view: byId.get(e.id)?.state.$view,
+								size: this.#cellSizes.get(e.id) ?? e.size,
+							},
+				),
 				horizontal: this.#isHorizontal,
+				columns: this.#currentColumns,
 				view: this.image.camera.getView(),
 			}),
 		)
 	}
 
-	/** Set the grid to display the given images, arranging them into a CSS grid. */
+	/** Set the grid to display the given images, arranging them into a CSS grid.
+	 * Use `{ empty: true }` for explicit empty cells; this always renders an empty
+	 * placeholder cell, even when the entry also has an `id`.
+	 * Entries without an `id` are also treated as empty cells for backwards compatibility. */
 	set(
-		images: Models.Grid.GridImage[] = [],
+		images: Models.Grid.GridEntry[] = [],
 		opts: {
 			noHistory?: boolean
 			keepGrid?: boolean
@@ -330,10 +347,12 @@ export class Grid extends MicrioElement<GridProps> {
 			const isBehindDelay = opts.transition === 'behind-delayed'
 			const { _engine: engine } = this.micrio
 
+			const imageEntries = images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty)
+			const prevById = new Map(this._current.map((img) => [img.id, img] as const))
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
-				setupBehindTransition(this, images, opts, focussed)
+				setupBehindTransition(this, imageEntries, opts, focussed)
 			}
 
 			const ready = this.image._placed
@@ -351,12 +370,14 @@ export class Grid extends MicrioElement<GridProps> {
 				this.blur()
 			}
 
-			if (!opts.noHistory && this._current.length > 0) {
+			if (!opts.noHistory && this.#currentLayout.length > 0) {
 				this.#savePreviousLayout()
 			}
+			this.#currentLayout = images
+			this.#currentColumns = opts.columns
 			this.#isHorizontal = Boolean(opts.horizontal)
 
-			this.#removeImages(this._images.filter((i) => !images.find((n) => n.id === i.id)))
+			this.#removeImages(this._images.filter((i) => !imageEntries.find((n) => n.id === i.id)))
 			this.#printGrid(images, {
 				horizontal: opts.horizontal,
 				keepGrid: opts.keepGrid,
@@ -377,11 +398,33 @@ export class Grid extends MicrioElement<GridProps> {
 				}
 			}
 
+			// For the 'in-from-id' transition, hold the entire transition (viewport
+			// camera, per-item area animations and fades) until all newly added images
+			// have loaded their base tiles, so they don't pop in mid-animation.
+			const isInFromId = opts.transition === 'in-from-id'
+			let openGate: (() => void) | undefined
+			const readyGate: Promise<void> | undefined = isInFromId
+				? new Promise<void>((r) => (openGate = r))
+				: undefined
+			const whenReady = (fn: () => void): void => {
+				if (readyGate) {
+					void readyGate.then(() => {
+						if (setId === this.#setId) {
+							fn()
+						}
+					})
+				} else {
+					fn()
+				}
+			}
+
 			if (ready && !opts.noCamAni) {
-				const p = opts.view
-					? this.image.camera.flyToView(opts.view, { duration: dur * 1000 })
-					: this.image.camera.flyToFullView({ duration: dur * 1000 })
-				p.catch(error)
+				whenReady(() => {
+					const p = opts.view
+						? this.image.camera.flyToView(opts.view, { duration: dur * 1000 })
+						: this.image.camera.flyToFullView({ duration: dur * 1000 })
+					p.catch(error)
+				})
 			}
 
 			if (opts.coverLimit === undefined) {
@@ -390,7 +433,7 @@ export class Grid extends MicrioElement<GridProps> {
 			const forcedCoverLimit = opts.cover && !opts.coverLimit
 			if (forcedCoverLimit) {
 				opts.coverLimit = true
-				for (const i of images) {
+				for (const i of imageEntries) {
 					this._imageMap.get(i.id)?.camera.setCoverLimit(true)
 				}
 			}
@@ -398,22 +441,87 @@ export class Grid extends MicrioElement<GridProps> {
 			const isAppear = opts.transition === 'appear-delayed'
 			const getDelay = (i: number): number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0)
 
-			this._current = images.map((img, i) =>
+			const fromAreas = new Map<string, Models.Camera.View>()
+			if (isInFromId) {
+				for (const entry of imageEntries) {
+					const sourceId = entry.from
+					if (!sourceId || prevById.has(entry.id)) {
+						continue
+					}
+					const sourceArea = prevById.get(sourceId)?.opts.area
+					if (sourceArea) {
+						fromAreas.set(entry.id, sourceArea)
+					}
+				}
+			}
+
+			// Newly added 'in-from-id' entries without a (valid) `from` source have
+			// nothing to animate in from, so they simply fade in at their target area.
+			const fadeInPlaceIds = isInFromId
+				? new Set(imageEntries.filter((e) => !prevById.has(e.id) && !fromAreas.has(e.id)).map((e) => e.id))
+				: undefined
+
+			this._current = imageEntries.map((img, i) =>
 				this.#placeImage(img, {
 					duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : dur,
 					delay: isDelayed ? getDelay(i) : 0,
 					noCamAni: isAppear && i > 0 ? true : Boolean(opts.noCamAni),
-					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni,
+					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni || fromAreas.has(img.id),
 					cover: opts.cover,
+					fromArea: fromAreas.get(img.id),
+					fadeInPlace: Boolean(fadeInPlaceIds?.has(img.id)),
+					ready: readyGate,
 				}),
 			)
 
+			if (isInFromId) {
+				const sourceIds = new Set(imageEntries.map((e) => e.from).filter((v): v is string => Boolean(v)))
+				const incomingIds = new Set(
+					imageEntries.filter((e) => !prevById.has(e.id) && fromAreas.has(e.id)).map((e) => e.id),
+				)
+
+				imageEntries.forEach((entry, i) => {
+					const c = this._imageMap.get(entry.id)?.canvas
+					if (!c) {
+						return
+					}
+					// Keep animated (source/incoming) items fully visible so they don't
+					// fade during their area animation. Fade-in-place items keep their
+					// default 0 opacity so they fade in at their target position.
+					if (!fadeInPlaceIds?.has(entry.id)) {
+						c._setOpacityDirect(0.9999)
+					}
+					let z = entry.z
+					if (z === undefined) {
+						if (sourceIds.has(entry.id)) {
+							z = 3000 + i
+						} else if (incomingIds.has(entry.id)) {
+							z = 2000 + i
+						} else {
+							z = 1000 + i
+						}
+					}
+					c.zIndex = z
+				})
+
+				// Wait until the images that animate in from a source have rendered their
+				// base tiles before opening the gate that starts the transition, so they
+				// don't pop in mid-animation. Fade-in-place items are excluded: they are
+				// placed at their (often off-screen) end position and only become visible
+				// once the camera zooms out after the gate opens, so waiting for them
+				// would needlessly stall the whole transition until the timeout.
+				const incoming = this._current.filter((img) => !prevById.has(img.id) && fromAreas.has(img.id))
+				const timeout = (Math.max(dur, crossfadeDur) || 1) * 1000 + 3000
+				void this.#whenImagesReady(incoming, timeout).then(() => {
+					if (setId === this.#setId) {
+						openGate?.()
+					}
+				})
+			}
+
 			if (isAppear) {
 				for (const i of this._current.slice(1)) {
-					const c = i.canvas
-					if (c) {
-						c._targetOpacity = c._opacity = 0.9999
-					}
+					i.canvas?._setOpacityDirect(0.9999)
 				}
 			}
 
@@ -431,7 +539,7 @@ export class Grid extends MicrioElement<GridProps> {
 				}
 				this.#clearTimeouts()
 				Frame.request(() => (engine._crossfadeDuration = defaultDur))
-				if (isDelayed) {
+				if (isDelayed || isInFromId) {
 					for (const i of this._images) {
 						if (i.canvas) {
 							i.canvas.zIndex = 0
@@ -439,11 +547,11 @@ export class Grid extends MicrioElement<GridProps> {
 					}
 				}
 				if (forcedCoverLimit) {
-					for (const i of images) {
+					for (const i of imageEntries) {
 						this._imageMap.get(i.id)?.camera.setCoverLimit(false)
 					}
 				} else if (opts.coverLimit) {
-					for (const i of images) {
+					for (const i of imageEntries) {
 						this._imageMap.get(i.id)?.camera.setCoverLimit(true)
 					}
 				}
@@ -455,20 +563,22 @@ export class Grid extends MicrioElement<GridProps> {
 				ok(this._current)
 			}
 
-			if (!dur && !crossfadeDur) {
-				if (!opts.noFade) {
-					fadeIn()
+			whenReady(() => {
+				if (!dur && !crossfadeDur) {
+					if (!opts.noFade) {
+						fadeIn()
+					}
+					done()
+				} else {
+					if (!opts.noFade) {
+						this.#_fadeTo = setTimeout(fadeIn, Math.max(0, (dur / 2) * 1000))
+					}
+					this.#_to = setTimeout(
+						done,
+						(Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length - 1) * this.#transitionDelay : 0)) * 1000,
+					)
 				}
-				done()
-			} else {
-				if (!opts.noFade) {
-					this.#_fadeTo = setTimeout(fadeIn, Math.max(0, (dur / 2) * 1000))
-				}
-				this.#_to = setTimeout(
-					done,
-					(Math.max(crossfadeDur, dur) + (isDelayed ? (images.length - 1) * this.#transitionDelay : 0)) * 1000,
-				)
-			}
+			})
 		})
 	}
 
@@ -480,7 +590,7 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#printGrid(
-		images: Models.Grid.GridImage[],
+		images: Models.Grid.GridEntry[],
 		opts: {
 			horizontal?: boolean
 			keepGrid?: boolean
@@ -488,34 +598,52 @@ export class Grid extends MicrioElement<GridProps> {
 			columns?: number
 		},
 	): void {
-		const numTiles = images.reduce((n, i) => n + i.size[0] * (i.size[1] ?? 1), 0)
+		const numTiles = images.reduce((n, i) => n + (i.size?.[0] ?? 1) * (i.size?.[1] ?? 1), 0)
 		const cols = opts.columns ?? (opts.horizontal ? images.length : getCols(images.length, numTiles))
 		this.style.gridTemplateColumns = `repeat(${cols}, auto)`
 		for (const btn of this._buttons.values()) {
 			btn.remove()
 		}
 		this._buttons.clear()
+		for (const t of this.#emptyTiles) {
+			t.remove()
+		}
+		this.#emptyTiles.length = 0
 		this.style.removeProperty('--translate')
 		this.style.removeProperty('--scale')
 
 		for (const i of images) {
-			let tile = this._buttons.get(i.id)
-			if (!tile) {
+			let tile: HTMLButtonElement
+			if (!i.id || i.empty) {
 				tile = createElement('button')
-				this._buttons.set(i.id, tile)
+				tile.disabled = true
+				tile.classList.add('grid-empty')
+				this.#emptyTiles.push(tile)
+			} else {
+				let btn = this._buttons.get(i.id)
+				if (!btn) {
+					btn = createElement('button')
+					this._buttons.set(i.id, btn)
+				}
+				tile = btn
+				tile.dataset.id = i.id
+				// The tiles are keyboard focus targets (`keyboard.ts` moves focus between them),
+				// so they need a name: without one every cell reads as just "button".
+				tile.setAttribute('aria-label', this._imageMap.get(i.id)?.$info?.title ?? i.id)
 			}
-			if (i.size[0] !== 1 || i.size[1] !== undefined) {
-				tile.style.gridArea = `auto / auto / span ${i.size[1]} / span ${i.size[0] || i.size[1]}`
-				this.#cellSizes.set(i.id, i.size)
+			const size = i.size ?? [1]
+			if (size[0] !== 1 || size[1] !== undefined) {
+				tile.style.gridArea = `auto / auto / span ${size[1]} / span ${size[0] || size[1]}`
+				if (i.id && !i.empty) {
+					this.#cellSizes.set(i.id, size)
+				}
 			} else {
 				tile.style.removeProperty('grid-area')
-				this.#cellSizes.delete(i.id)
+				if (i.id && !i.empty) {
+					this.#cellSizes.delete(i.id)
+				}
 			}
-			tile.dataset.id = i.id
 			tile.dataset.scrollThrough = ''
-			// The tiles are keyboard focus targets (`keyboard.ts` moves focus between them),
-			// so they need a name: without one every cell reads as just "button".
-			tile.setAttribute('aria-label', this._imageMap.get(i.id)?.$info?.title ?? i.id)
 			this.append(tile)
 		}
 
@@ -531,7 +659,9 @@ export class Grid extends MicrioElement<GridProps> {
 		const w = this.micrio.offsetWidth
 		const h = this.micrio.offsetHeight
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale ?? 1)))
-		const imageById = new Map(images.map((i) => [i.id, i]))
+		const imageById = new Map(
+			images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty).map((i) => [i.id, i]),
+		)
 		this.style.transform = ''
 		for (const n of this.childNodes) {
 			if (!(n instanceof HTMLElement)) {
@@ -586,6 +716,9 @@ export class Grid extends MicrioElement<GridProps> {
 			noCamAni?: boolean
 			forceAreaAni?: boolean
 			cover?: boolean
+			fromArea?: Models.Camera.View
+			fadeInPlace?: boolean
+			ready?: Promise<void>
 		},
 	): MicrioImage {
 		const { _engine: engine } = this.micrio
@@ -597,38 +730,92 @@ export class Grid extends MicrioElement<GridProps> {
 		if (!img._placed) {
 			engine._addChild(img, this.image)
 		}
-		if (entry.area) {
-			const { area } = entry
-			const set = () => {
-				img.camera.setArea(area, {
-					direct: opts.duration === 0 || (!opts.forceAreaAni && !get(img.visible)),
-				})
-			}
-			if (opts.delay) {
-				void sleep(opts.delay * 1000)
-					.then(set)
-					.then(() => {
-						engine.render()
+
+		// Place at the source area immediately so its tiles start loading before
+		// the transition begins. When there is no source to animate from
+		// (`fadeInPlace`), place directly at the final area instead so the item
+		// simply fades in at its defined end position.
+		if (entry.area && (opts.fromArea || opts.fadeInPlace)) {
+			img.camera.setArea(opts.fromArea ?? entry.area, { noDispatch: true, direct: true })
+			engine.render()
+		}
+
+		// The actual transition: animate to the target area and optionally fly the
+		// image's camera. When a `ready` promise is supplied (in-from-id), this is
+		// deferred until all images have loaded so they don't pop in.
+		const start = () => {
+			if (entry.area) {
+				const { area } = entry
+				const set = () => {
+					img.camera.setArea(area, {
+						direct: opts.duration === 0 || (!opts.forceAreaAni && !get(img.visible)),
 					})
-			} else {
-				set()
+				}
+				if (opts.delay) {
+					void sleep(opts.delay * 1000)
+						.then(set)
+						.then(() => {
+							engine.render()
+						})
+				} else {
+					set()
+				}
+			}
+
+			const aniOpts = { duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false }
+			if (!opts.noCamAni && !img.camera._aniDone && img._placed) {
+				let p: Promise<void>
+				if (entry.view) {
+					p = img.camera.flyToView(entry.view, aniOpts)
+				} else if (opts.cover) {
+					p = img.camera.flyToCoverView({ ...aniOpts, duration: 0 })
+				} else {
+					p = img.camera.flyToView([0, 0, 1, 1], aniOpts)
+				}
+				p.catch(() => {})
 			}
 		}
 
-		const aniOpts = { duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false }
-		if (!opts.noCamAni && !img.camera._aniDone && img._placed) {
-			let p: Promise<void>
-			if (entry.view) {
-				p = img.camera.flyToView(entry.view, aniOpts)
-			} else if (opts.cover) {
-				p = img.camera.flyToCoverView({ ...aniOpts, duration: 0 })
-			} else {
-				p = img.camera.flyToView([0, 0, 1, 1], aniOpts)
-			}
-			p.catch(() => {})
+		if (opts.ready) {
+			void opts.ready.then(start)
+		} else {
+			start()
 		}
 
 		return img
+	}
+
+	/** Resolves once all given images have loaded (rendered) their base tile, or
+	 * after `timeout` ms as a safety fallback. Used to hold a transition until
+	 * newly added images are actually rendered so they don't pop in. @internal */
+	#whenImagesReady(images: MicrioImage[], timeout: number): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const { _engine: engine } = this.micrio
+			const start = performance.now()
+			// `_gotBase` is the timestamp of the last frame the base tile was
+			// actually drawn. A stale value from an earlier appearance doesn't
+			// guarantee the texture still exists (tiles of removed images get
+			// cleaned up), so require a draw after this check started.
+			const isReady = (img: MicrioImage): boolean => {
+				const c = img.canvas
+				if (!c) {
+					return false
+				}
+				if (c.images.length === 0) {
+					return true
+				}
+				return c.images[0]._gotBase >= start
+			}
+			const check = (): void => {
+				if (images.every(isReady) || performance.now() - start > timeout) {
+					resolve()
+				} else {
+					engine.render()
+					Frame.request(check)
+				}
+			}
+			check()
+		})
 	}
 
 	#removeImages(images: MicrioImage[]): void {
@@ -674,6 +861,7 @@ export class Grid extends MicrioElement<GridProps> {
 			noCamAni,
 			forceAni,
 			horizontal: state !== undefined ? state.horizontal : false,
+			columns: state?.columns,
 		}).then((i) => {
 			this.#depth.set((this.#history.length = 0))
 			this.micrio.current.set(this.image)
@@ -717,22 +905,26 @@ export class Grid extends MicrioElement<GridProps> {
 			duration,
 			noHistory: true,
 			horizontal: state.horizontal,
+			columns: state.columns,
 			view: state.view,
 		})
 	}
 
-	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): Models.Grid.GridImage[] | undefined {
+	#layoutFromHistoryEntry(state: Models.Grid.GridHistory | undefined): Models.Grid.GridEntry[] | undefined {
 		if (!state?.layout?.length) {
 			return undefined
 		}
 		return state.layout
-			.map((entry): Models.Grid.GridImage | null => {
+			.map((entry): Models.Grid.GridEntry | null => {
+				if (!entry.id || entry.empty) {
+					return { empty: true, size: entry.size }
+				}
 				if (!this._imageMap.has(entry.id)) {
 					return null
 				}
 				return { id: entry.id, size: entry.size ?? [1], view: entry.view }
 			})
-			.filter((entry): entry is Models.Grid.GridImage => entry !== null)
+			.filter((entry): entry is Models.Grid.GridEntry => entry !== null)
 	}
 
 	#setTimingFunction(fn: Models.Camera.TimingFunction): void {
@@ -863,11 +1055,10 @@ export class Grid extends MicrioElement<GridProps> {
 				{ noHistory: true, keepGrid: true, duration: 0.5, cover },
 			)
 		}
-		const entries = layout as { id: string; size?: [number, number?] }[]
-		const input: Models.Grid.GridImage[] = entries.map((e, i) => ({
-			id: e.id,
-			size: i === idx ? ([width, height] as [number, number]) : (e.size ?? [1]),
-		}))
+		const input: Models.Grid.GridEntry[] = layout.map((e, i) => {
+			const size = i === idx ? ([width, height] as [number, number]) : (e.size ?? [1])
+			return !e.id || e.empty ? { empty: true, size } : { id: e.id, size }
+		})
 		return this.set(input, { noHistory: true, keepGrid: true, duration: 0.5, cover })
 	}
 
