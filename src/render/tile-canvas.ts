@@ -380,8 +380,7 @@ export class TileCanvas {
 		this.#isVisible = b
 	}
 
-	/** Initiates a fade-out animation. @internal */
-	/** Initiates a fade-out animation (fades to opacity 0). @internal */
+/** Initiates a fade-out animation (fades to opacity 0). @internal */
 	_fadeOut(): void {
 		this._targetOpacity = 0
 		this.zIndex = 0
