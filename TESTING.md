@@ -301,7 +301,8 @@ pins their declarations and the DOM shape they need. A change that keeps the tex
 the rule would still get through; closing it needs a headed pass.
 
 **Not covered, on purpose:** pixel/screenshot regression (`toMatchScreenshot` needs no new
-dependency, but baselines are font- and platform-rendered and the repo has no CI), and
+dependency, but baselines are font- and platform-rendered, and the `css` job already uploads the
+render proofs as artifacts rather than comparing them), and
 `prefers-color-scheme` (the provider exposes no `emulateMedia`, so it would assert the host's
 setting; the `data-light-mode` attribute path is covered).
 
@@ -620,23 +621,34 @@ next target, because the YouTube/Vimeo/HLS paths need stubbed third-party APIs. 
 `src/markers` row reads lower than it did because the marker suites moved to fresh per-call
 fixtures, not because anything regressed.
 
-These are thin spots, not a backlog list (that holds only the CI item). To raise the floor, run
-`pnpm test:coverage`, move the baseline to the new number and keep the floors a point or two
-under it.
+These are thin spots, not a backlog list (the CI item that used to live there is done). To raise
+the floor, run `pnpm test:coverage`, move the baseline to the new number and keep the floors a
+point or two under it.
 
 ## Type checking and linting
 
-- `pnpm typecheck` type-checks `src`, `build`, `templates` with `tsconfig.json`.
+- `pnpm typecheck` runs `tsc`, which type-checks `src`, `build`, `templates` **and** the
+  test suites from `tsconfig.json` (its `include` ends with `tests/**/*`). So the aliases,
+  the DOM lib and the test code are all in that one program — the same program oxlint's
+  type-aware pass builds, which is why the two agree.
+- `skipLibCheck: true` is set there and is load-bearing: Vitest's `dist/browser.d.ts`
+  declares `writeFile(..., options?: BufferEncoding | FsOptions)` and never imports
+  `BufferEncoding` from Node, so checking the suites pulls three `TS2304`s straight out of
+  `node_modules` (they only appear once a file imports `vitest/browser`, which the CSS
+  suites do). The alternatives were worse — adding `types: ["node"]` to that config hands
+  Node globals to the source tree _and_ breaks `templates/grid/grid.ts:412`
+  (`setTimeout` resolves to `NodeJS.Timeout`, not `number`). Test-owned code is still
+  checked in full; only `.d.ts` files are skipped.
 - `tsconfig.tests.json` covers `tests/**`, `vitest.config.ts` and the shared
-  `vite.config.js` (hence `allowJs`), adding `types: ["node"]` and the DOM lib. Run it
-  directly with `pnpm exec tsc -p tsconfig.tests.json --noEmit`.
+  `vite.config.js` (hence `allowJs`) with `types: ["node"]` and the DOM lib, for the cases
+  that genuinely need Node types. Nothing runs it automatically; invoke it with
+  `pnpm exec tsc -p tsconfig.tests.json --noEmit`.
 - `pnpm lint` (oxlint, type-aware) lints the tests too. `.oxlintrc.json` disables the
-  type-aware rules **for `tests/**` and `vitest.config.ts` only**: oxlint's TS program
-  does not resolve types across `$`-aliased imports for out-of-program test files, so
-  every access degrades to an `error` type and the `no-unsafe-*` family reports
-  noise. All non-type-aware rules (correctness, suspicious, perf, the unicorn/style
-  picks) still apply to tests. Type safety for tests comes from `tsc`, which does resolve
-  the aliases.
+  `no-unsafe-*` family and `strict-boolean-expressions` for `tests/**` and
+  `vitest.config.ts` only; everything else still applies. Type safety for tests comes from
+  the same `tsc` program, and its `no-redundant-type-constituents` /
+  `restrict-template-expressions` findings on tests are real — they appeared the moment
+  `tests/**/*` left that program, because every aliased type then resolved to `error`.
 - `pnpm format:check` must stay clean; run `pnpm format` after adding tests.
 - `pnpm build` does not run the test suites: it stays a fast release gate.
 
@@ -726,7 +738,110 @@ projects), **plus 57 in 9 files in the separate `css` run** (`pnpm test:css`), c
 | GL embed video (HLS, loop, visibility, teardown)                     | `tests/browser/media/embedvideo`                                                 | done   |
 | Stylesheets: placement, visibility, layering (desktop/mobile/tablet) | `tests/browser/css/*` — see [What the CSS suite pins](#what-the-css-suite-pins)  | done   |
 
+## Continuous integration
+
+Two GitHub Actions workflows, both triggered by a pull request targeting `main` and by a push to
+`main` itself (`.github/workflows/checks.yml`, `.github/workflows/tests.yml`). A branch is
+therefore validated once, when its PR syncs, instead of on every push _and_ on the PR; a commit
+that changes only prose cannot change behaviour, so `paths-ignore` skips `**/*.md`, `LICENSE`,
+`.vscode/**`, `.gitignore`, `.npmrc` and `.github/**` in both. A skipped workflow reports as
+successful, so branch protection needs no special case for it.
+
+| Job      | Command                                      | What it protects                                                                                                       |
+| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| checks   | `lint`, `format:check`, `typecheck`, `build` | The strict rule set, formatting, types, and both build modes                                                           |
+| core     | `test:core`                                  | Pure logic — no browser, so it runs in about a second                                                                  |
+| browser  | `test:browser`                               | DOM, layout, input, WebGL                                                                                              |
+| css      | `test:css`                                   | The real stylesheets, including the render proofs                                                                      |
+| coverage | `test:coverage`                              | The ratchet (see [Coverage](#coverage)) — one merged report over `core` + `browser`, so it cannot be split per project |
+
+Not run in CI, on purpose: `test:browser:live` (the only suite that touches the network, and the
+only one with no offline fixtures to stand on), and the render-proof PNGs as a _baseline_ — they
+are uploaded as an artifact for a reviewer to open, but nothing compares them (see
+[What the CSS suite pins](#what-the-css-suite-pins)).
+
+`pnpm-lock.yaml` is committed (it was removed from git once and restored for CI): on a runner
+`CI` is set, so `pnpm install` freezes against it by default and fails loudly if the lock has
+drifted from `package.json`. The workflow's pnpm and browser caches are keyed on it, so a
+dependency bump invalidates them, while a source-only change does not.
+
+### Worker count on CI
+
+On CI the browser projects run with **`maxWorkers: 1`**, and `tests.yml` chains its four jobs
+(`core` → `browser` → `css` → `coverage`) so only one runs at a time. Locally the option is
+left unset and Vitest keeps its own default.
+
+Both halves of that exist because a browser worker is not a thread: each one drives **its own
+Chromium**, rendering WebGL in software, and `coverage` re-runs the entire browser suite for
+the merged report. On a 4-vCPU runner the original configuration — one worker per CPU, three
+concurrent jobs — put roughly six Chromiums on four cores, and the result was not merely slow:
+
+- `browser` took **182s with 98% worker / 2% tests** — nearly all of it transform and setup;
+- the failures **reshuffled between runs** across unrelated suites: one run
+  `markers/marker-actions`, the next that file _plus_ a pinch test in `book/viewer` that only
+  mounts a book and dispatches three pointer events, so it cannot legitimately need 20s.
+
+Failures that move like that are describing the host, not the code. Serialising the jobs and
+dropping to one worker gives a run one Chromium to itself; the cost is wall-clock, and the
+`browser` job reports `nproc`/memory on every run so the cap can be tuned from evidence rather
+than from the usual "4 for `ubuntu-latest`" assumption.
+
+`MICRIO_TEST_WORKERS=<n>` pins a different count for one run, and `--maxWorkers` overrides it
+on the command line — that is the knob to reach for on a larger or self-hosted runner, where
+more parallelism is worth having. Individual waits are a separate matter: see
+[Waiting on the real clock](#waiting-on-the-real-clock) for why state assertions should use
+`pollUntil` rather than `waitFor`.
+
+### What a run costs
+
+Measured on `ubuntu-latest` (4 vCPU), all green. The jobs are serialised, so the whole run is
+close to the sum of them:
+
+| Job      | Duration    | Note                                                           |
+| -------- | ----------- | -------------------------------------------------------------- |
+| core     | 20s         | bare Node, the cheapest gate                                   |
+| browser  | 5m 4s       | 1549 tests, one Chromium rendering WebGL in software           |
+| css      | 1m 18s      | 64 tests, including the render proofs                          |
+| coverage | 5m 3s       | the whole `browser` project again, plus `core`, for one report |
+| checks   | ~1m         | lint, format, typecheck and a real build (separate workflow)   |
+| **run**  | **11m 55s** | 20s + 5m04 + 1m18 + 5m03, plus ~10s of queueing                |
+
+`browser` and `coverage` together are ~85% of the wall-clock, and `coverage` is nearly all
+duplicate work — it re-runs the entire suite that `browser` has just run. If the bench ever needs
+to get faster, that duplication is the first thing to attack (e.g. dropping the separate `browser`
+job on PRs and letting `coverage` stand in for it, since it runs the identical set).
+
+### WebGL on a GitHub runner
+
+A GitHub-hosted runner has **no GPU**, and headless Chromium there renders WebGL with
+**SwiftShader** — a CPU rasteriser. That is not a misconfiguration, and it is why the suite's
+"keep the live-context count tiny" rule matters more in CI than locally: every extra live context
+is rasterised on the same four cores.
+
+Measured rather than assumed: `WEBGL_debug_renderer_info` in the `browser` project reports
+`ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)` — **on a
+development machine with a GPU, and with or without the CI flags below**. Playwright's bundled
+headless Chromium already uses SwiftShader, so these suites have always run green on a software
+renderer; that is why a GPU-less CI runner is a scheduling question, not a correctness one.
+`vitest.config.ts` nevertheless names the renderer when `CI` is set
+(`--use-angle=swiftshader --enable-unsafe-swiftshader --disable-dev-shm-usage`) so it does not
+depend on a Chromium build's current default, and `--enable-unsafe-swiftshader` keeps software
+WebGL from being refused with a warning by a future build. `--disable-gpu` is deliberately _not_
+passed: it closes the GL path rather than selecting a renderer.
+
+Those flags are CI-only, so a local run can pass its own renderer flags; the suite itself never
+depends on which one it gets, which is what the measurement above showed. GitHub's GPU runners do
+not change this by themselves — Chromium still ignores the GPU unless it is run headed under
+`xvfb` with the NVIDIA kernel modules loaded — so the bench stays on stock runners.
+
+A SwiftShader run that trips the suite's 20s `testTimeout` shows up as that test timing out, not as
+a hung job — each job also carries its own `timeout-minutes` as a backstop. Job durations are in
+[What a run costs](#what-a-run-costs).
+
 ## Session backlog
 
-1. **CI** — a GitHub Actions workflow that installs the Playwright browser and runs
-   `test:core` + `test:browser` + `test:css`.
+1. **CI** — done. Two workflows on PRs and `main`, all five jobs green in 11m 55s on
+   `ubuntu-latest`; see [Continuous integration](#continuous-integration). No test is held back
+   there any more: the marker-link navigation one runs everywhere.
+2. **Pixel/screenshot regression** — still out of scope; the render proofs are artifacts, not
+   baselines (font and platform rendering make them a poor comparison even with CI).

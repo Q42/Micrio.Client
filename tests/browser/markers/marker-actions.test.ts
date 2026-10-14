@@ -293,7 +293,11 @@ describe('marker hiding during tours', () => {
 		expect(layerHidden(opened)).toBe(false)
 
 		opened.viewer.el.state.tour.set(withSetting.markerTours[0])
-		await waitFor(() => layerHidden(opened) === true, 4000, 'the hidden layer')
+		// `pollUntil`, not `waitFor`: this asserts pure state (a class the image's own settings
+		// decide), and a `waitFor` deadline is checked inside its `requestAnimationFrame`
+		// callback. On a loaded CI runner that callback can be starved past the deadline while
+		// the class has long since landed, which failed this test on `main` only in CI.
+		await pollUntil(() => layerHidden(opened) === true, 4000, 'the hidden layer')
 		opened.viewer.destroy()
 
 		// A marker tour is its steps, so without the setting the markers stay
@@ -441,6 +445,35 @@ function linkedPair({
 	return { main, target }
 }
 
+/**
+ * Clicks the close button of the *connected* popup.
+ *
+ * `waitForPopup` only proves the element exists, which is not enough here: the layout builds a
+ * popup per marker and, on teardown, deliberately leaves the old one to animate out rather than
+ * removing it (`src/layout/main.ts`). Navigating a marker link is exactly when a replaced popup
+ * is briefly in the document, so `querySelector` can hand back a detached element whose click
+ * listener is already gone — a silent no-op that makes the caller's next wait look like a
+ * client bug. This waits for a connected button and then re-checks it, so that case fails with
+ * what actually happened instead of as an unexplained navigation timeout.
+ */
+async function clickConnectedPopupClose(el: Element, timeout = 8000): Promise<void> {
+	const sel = 'micrio-marker-popup micrio-button.close button'
+	await pollUntil(
+		() => {
+			const found = el.querySelector<HTMLButtonElement>(sel)
+			return found !== null && found.isConnected
+		},
+		timeout,
+		'the connected link popup close button',
+	)
+
+	const button = el.querySelector<HTMLButtonElement>(sel)
+	if (button === null || !button.isConnected) {
+		throw new Error('the link popup close button went away between finding it and clicking it')
+	}
+	button.click()
+}
+
 describe('marker links to another image', () => {
 	it('opens the linked image', async () => {
 		const target = markerBundle({ markers: [marker('t1')] })
@@ -496,11 +529,36 @@ describe('marker links to another image', () => {
 		await waitFor(() => opened.viewer.el.$current?.id === target.id, 8000, 'the linked image')
 		await waitForPopup(opened.viewer.el, 8000)
 
-		// The marker stays open, with its popup visible, in the image the link opened
-		expect(opened.viewer.el.state.$marker?.id).toBe(main.mid('m1'))
+		// The popup is what carries the return trip, and it belongs to the image the link left:
+		// the link clears the *owner's* marker (in the local store and, through the state rule,
+		// in the global one) so that image does not follow the same link again on the way back.
+		// While the popup is on screen that clear must not matter: if the close button reads the
+		// global marker to decide what it does, it takes `marker-popup.ts`'s plain-close branch
+		// and the return never happens. This assertion is the earliest place both halves fail —
+		// in the other direction, a global marker surviving here means every global consumer
+		// (logo, details, minimap, toolbar, grid, the next image's auto-start) sees a marker
+		// that is not open on the image the user is looking at.
+		expect(opened.viewer.el.state.$marker).toBeUndefined()
 
-		opened.viewer.el.querySelector<HTMLButtonElement>('micrio-marker-popup micrio-button.close button')?.click()
-		await waitFor(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
+		await clickConnectedPopupClose(opened.viewer.el)
+		// Timer-based for the same reason as the tour test above: the click starts an
+		// asynchronous `micrio.open()`, and a frame-polled deadline can expire before it lands.
+		//
+		// The catch carries the state the close handler left behind, so a failure names what
+		// actually happened instead of only reporting the deadline: which marker the state
+		// holds, which image is on screen, and whether a live close button was still there.
+		const back = pollUntil(() => opened.viewer.el.$current?.id === main.id, 8000, 'the original image')
+		await back.catch((cause: unknown) => {
+			const buttons = [...opened.viewer.el.querySelectorAll('micrio-marker-popup micrio-button')].map(
+				(b) => `${b.className || '(no class)'}${b.isConnected ? '' : ' DISCONNECTED'}`,
+			)
+			throw new Error(
+				`${cause instanceof Error ? cause.message : String(cause)} — state.$marker=` +
+					`${opened.viewer.el.state.$marker?.id ?? 'undefined'}, ` +
+					`$current=${opened.viewer.el.$current?.id ?? 'undefined'} (expected ${main.id}), ` +
+					`popups=${buttons.join(', ') || 'none'}`,
+			)
+		})
 		expect(opened.image().state.$marker).toBeUndefined()
 		opened.viewer.destroy()
 	})

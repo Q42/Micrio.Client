@@ -47,6 +47,67 @@ interface Viewport {
 }
 
 /**
+ * Chromium flags for the browser projects, or nothing when `CI` is unset.
+ *
+ * A GitHub-hosted runner has no GPU, so WebGL there is SwiftShader (software) whatever we
+ * do. Naming that renderer makes CI deterministic instead of dependent on what the runner
+ * image picks, and `--enable-unsafe-swiftshader` is required by recent Chromium for
+ * software WebGL at all (without it the context is refused and the renderer warns).
+ * `--disable-gpu` is deliberately *not* here: it closes the GL path rather than selecting a
+ * renderer, which is the one thing these suites cannot afford. `--disable-dev-shm-usage`
+ * matters to them specifically: Chromium's `/dev/shm` is small in a container and they
+ * allocate textures heavily.
+ *
+ * CI-only on purpose — a local run on a machine with a GPU keeps hardware GL, so this never
+ * hides a driver-specific difference from the developer who has to fix it.
+ */
+const chromiumArgs =
+	process.env.CI === undefined
+		? []
+		: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage']
+
+/**
+ * Optional override for the browser binary, unset by default.
+ *
+ * Playwright's own pinned Chromium is what a local `pnpm test:browser` uses, so CI failing on
+ * the same build is reproducible by hand. Setting `MICRIO_BROWSER_CHANNEL=chrome` (the
+ * `tests` workflow passes the repository variable of that name through) switches to the
+ * runner's preinstalled Chrome, which skips the browser download but drifts from local.
+ */
+const chromiumChannel = process.env.MICRIO_BROWSER_CHANNEL
+
+/**
+ * Worker count for the browser projects on CI, where the machine is the whole problem.
+ *
+ * Vitest defaults to one worker per CPU, and every worker is a Playwright worker driving its
+ * own Chromium, rendering WebGL in software. That is fine on a developer's machine and fatal
+ * on a 4-vCPU runner: `browser`, `css` and `coverage` alone are three concurrent jobs, and
+ * `coverage` re-runs the entire browser suite for the merged report, so the page under test
+ * barely gets scheduled. Measured on the runner: **182s for `browser` at 98% worker / 2%
+ * tests**, with unrelated suites timing out in turn — one run `marker-actions`, the next
+ * `marker-actions` *and* a pinch test in `book/viewer` that only mounts a book and dispatches
+ * three pointer events. A suite whose failures reshuffle like that is describing its host,
+ * not its code.
+ *
+ * So CI gets **one** worker: one Chromium per runner, which gets the machine to itself. The
+ * workflow also serialises the three heavy jobs for the same reason. Set
+ * `MICRIO_TEST_WORKERS` to pin a different number, or pass `--maxWorkers` on the command
+ * line; local runs are deliberately untouched, because a developer's machine is not the
+ * constraint.
+ */
+const ciMaxWorkers = (() => {
+	if (process.env.CI === undefined) {
+		// Not CI: leave the option unset so Vitest keeps its own default.
+		return 0
+	}
+	const override = Number(process.env.MICRIO_TEST_WORKERS)
+	if (Number.isInteger(override) && override > 0) {
+		return override
+	}
+	return 1
+})()
+
+/**
  * The Playwright/Chromium setup every browser project shares: one headless Chromium
  * instance, the element registered through the production entry (`tests/browser/setup.ts`),
  * headless and 20s timeouts. `setupFiles` is a parameter so the `css` project can add its
@@ -66,12 +127,15 @@ const browserProject = (
 		exclude: [...defaultExclude, ...exclude],
 		testTimeout: 20000,
 		hookTimeout: 20000,
+		// Only set when CI actually chose a number (see `ciMaxWorkers`); leaving the key out
+		// keeps Vitest's own default rather than relying on a falsy `0`.
+		...(ciMaxWorkers > 0 ? { maxWorkers: ciMaxWorkers } : {}),
 		setupFiles,
 		browser: {
 			enabled: true,
 			headless: true,
 			viewport,
-			provider: playwright(),
+			provider: playwright({ launchOptions: { args: chromiumArgs, channel: chromiumChannel } }),
 			instances: [{ browser: 'chromium' }],
 		},
 	},

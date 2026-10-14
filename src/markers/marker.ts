@@ -370,11 +370,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			const linkId = data.micrioLink?.id
 			if (linkId && !restored) {
 				void tick().then(() => {
-					// A marker with nothing of its own on screen has no reason to stay open
-					// behind the link: leaving it set would follow the same link again the
-					// next time this image is shown, bouncing between two linked images.
-					if (noPopup && marker.popupType !== 'popover') {
-						image.state.marker.set(undefined)
+					// The owner's marker is cleared as the link is followed, so returning to this
+					// image does not follow the same link again (bouncing between two linked
+					// images), and so the global marker store does not keep naming a marker on an
+					// image the user has left. The popup is not part of this: it is the only thing
+					// left describing the marker, so it is kept (the layout mounts it from
+					// `state.popup` and its close button reads the popup's owner, not the store).
+					if (!data.alwaysOpen && marker.popupType !== 'popover') {
+						clearForLink()
 					}
 					void micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector })
 				})
@@ -419,6 +422,26 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (!keepPopup) {
 				micrio.state.popup.set(undefined)
 			}
+		}
+
+		/**
+		 * Clears this image's marker as its `micrioLink` is followed, without tearing down the
+		 * popup that now describes it.
+		 *
+		 * The element's own subscription cannot do this: it reacts to the local clear with
+		 * `close()`, which dismisses the popup, and the popup is what the linked image shows and
+		 * what its close button brings the original image back with. Everything else the
+		 * subscription would do for a clear still happens, so no other marker state is left
+		 * pointing at this marker element.
+		 */
+		const clearForLink = () => {
+			this.classList.remove('opened')
+			events._dispatch('marker-closed', marker)
+			this.#opened = false
+			if (!get(micrio.state.tour)) {
+				image.camera.stop()
+			}
+			image.state.marker.set(undefined)
 		}
 
 		/**

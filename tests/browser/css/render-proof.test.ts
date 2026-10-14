@@ -124,6 +124,10 @@ describe('render proof', () => {
 async function writeProof(name: string, base64: string): Promise<void> {
 	await commands.writeFile(`${PROOF_DIR}/${name}.png`, base64, 'base64')
 }
+
+/** The single canvas every score is read through: allocating one per sample churns a canvas a frame. */
+const canvas = document.createElement('canvas')
+
 /**
  * How much of the spread's region is in shadow.
  *
@@ -134,7 +138,6 @@ async function writeProof(name: string, base64: string): Promise<void> {
 async function curlScore(base64: string): Promise<number> {
 	const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
 	const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
-	const canvas = document.createElement('canvas')
 	canvas.width = bitmap.width
 	canvas.height = bitmap.height
 	const ctx = canvas.getContext('2d')
@@ -158,14 +161,31 @@ async function curlScore(base64: string): Promise<number> {
 	return dark
 }
 
-/** One screenshot every turn, until the fold has developed (or the deadline passes). */
-async function sampleUntilFolded(deadline: number, best = '', bestScore = 0): Promise<string> {
-	if (bestScore >= FOLD_TRIGGER || performance.now() > deadline) {
-		return best
+/** A capture and the darkness it scored. */
+interface Sample {
+	shot: string
+	score: number
+}
+
+/**
+ * One screenshot every turn, until the fold has developed (or the deadline passes).
+ *
+ * Returns the darkest frame seen and its score, so the caller does not score it again: one
+ * sample costs a full compositor readback plus a PNG decode, and paying for either twice buys
+ * nothing.
+ *
+ * In practice this takes **one** sample: a screenshot is not instantaneous, so by the time the
+ * first one lands the page is already well into a flip that `BASE_FLIP_DURATION / FLIP_SPEED`
+ * puts at about a second. The loop is a deadline-guarded fallback for a slower host, not a
+ * tight sampling loop — there is no sample count to tune here.
+ */
+async function sampleUntilFolded(deadline: number, best?: Sample): Promise<Sample> {
+	if ((best?.score ?? 0) >= FOLD_TRIGGER || performance.now() > deadline) {
+		return best ?? { shot: '', score: 0 }
 	}
 	const shot = (await page.screenshot({ save: false })) as string
 	const score = await curlScore(shot)
-	return sampleUntilFolded(deadline, score > bestScore ? shot : best, Math.max(bestScore, score))
+	return sampleUntilFolded(deadline, best === undefined || score > best.score ? { shot, score } : best)
 }
 
 /**
@@ -178,8 +198,7 @@ async function sampleUntilFolded(deadline: number, best = '', bestScore = 0): Pr
  */
 async function captureTurn(book: Awaited<ReturnType<typeof openBook>>): Promise<string> {
 	book.viewer.el.$current?.album?.next()
-	const shot = await sampleUntilFolded(performance.now() + TURN_DEADLINE)
-	const score = await curlScore(shot)
+	const { shot, score } = await sampleUntilFolded(performance.now() + TURN_DEADLINE)
 	expect(score).toBeGreaterThan(FOLD_TRIGGER)
 	return shot
 }

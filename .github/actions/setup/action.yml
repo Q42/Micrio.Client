@@ -1,0 +1,33 @@
+# Shared CI setup: the Node version from `.nvmrc`, the pnpm version the install needs, and one
+# install. Both workflows call this so the toolchain cannot drift between them.
+#
+# `pnpm-lock.yaml` is committed, so this is also what keeps CI reproducible: on a runner `CI` is
+# set, and pnpm therefore installs with `--frozen-lockfile` by default and fails loudly if the
+# lock no longer matches `package.json` (instead of quietly resolving something else).
+name: Setup
+description: Install Node, pnpm and the project dependencies
+
+runs:
+  using: composite
+  steps:
+    - name: Install pnpm
+      # No `packageManager` field in package.json, so the version is pinned here. Keep it in
+      # step with the version the repo is developed against; `engines` (and `engine-strict`)
+      # still gate the Node side.
+      uses: pnpm/action-setup@v4
+      with:
+        version: 12.9.1
+        run_install: false
+
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        # 24.4.0, and satisfies `engines: ^20.19.0 || >=22.12.0`.
+        node-version-file: .nvmrc
+        # Hashes `pnpm-lock.yaml` into the cache key, which is why the lockfile has to be
+        # committed for this to work at all.
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install

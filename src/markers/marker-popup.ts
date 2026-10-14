@@ -166,7 +166,6 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		}
 
 		const $tour = get(micrio.state.tour)
-		const $current = get(micrio.current)
 		const $i18n = get(i18n)
 		const settings = image.$settings._markers ?? {}
 		const data = marker.data || {}
@@ -190,6 +189,9 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			if (this.#stepping) {
 				return
 			}
+			// Read the image shown *now*, not the one captured when this popup rendered: the
+			// click is what decides whether the popup's owner has to be brought back.
+			const { $current } = micrio
 			if ($tour && isPartOfTour && 'steps' in $tour) {
 				if (e instanceof Event && closeButtonStopsTour) {
 					micrio.state.tour.set(undefined)
@@ -198,9 +200,17 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					$tour.next?.()
 				}
 			} else if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
+				// Return to the image this popup belongs to. The decision comes from the popup's
+				// own owner image and the image shown *now*, never from the global marker store:
+				// following the link clears that store on purpose so the owner does not re-follow
+				// its link on the way back (`marker.ts`), and reading it here sent the click down
+				// the plain-close branch, so the return never happened. Dismiss the popup before
+				// clearing the marker it names, so no moment exists where the marker state is
+				// already gone but the popup describing it is still on screen. `open()` is async,
+				// so it is started first but not awaited.
 				void micrio.open(image.id)
-				image.state.marker.set(undefined)
 				micrio.state.popup.set(undefined)
+				image.state.marker.set(undefined)
 			} else {
 				image.state.marker.set(undefined)
 			}

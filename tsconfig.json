@@ -5,6 +5,12 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"noEmit": true,
+		// Vitest's `dist/browser.d.ts` uses Node's `BufferEncoding` without importing it, so
+		// type-checking the test suites pulls in three `TS2304`s from inside `node_modules`.
+		// The alternatives were worse: `types: ["node"]` here would hand Node globals to the
+		// source tree, and it breaks `templates/grid/grid.ts` (`setTimeout` becomes
+		// `NodeJS.Timeout`, not `number`). Test-owned code is still fully checked.
+		"skipLibCheck": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"paths": {
