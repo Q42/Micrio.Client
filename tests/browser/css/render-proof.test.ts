@@ -5,7 +5,7 @@ import { openBook } from '../../fixtures/book'
 import { uiBundle } from '../../fixtures/ui'
 import { waitFor } from '../../helpers/viewer'
 import { expectFillsViewport, mountUi, style, toolbarMenu } from './helpers'
-import { DESKTOP, MOBILE, TABLET, WIDE, currentViewport, useViewport } from './setup'
+import { DESKTOP, MOBILE, TABLET, WIDE, useViewport } from './setup'
 import type { Viewer } from '../../helpers/viewer'
 
 /**
@@ -134,9 +134,6 @@ const canvas = document.createElement('canvas')
  * A flat page is one flat colour and scores almost nothing; a lifted page is lit from an
  * angle, and its fold and the gap under it are the darkest thing on screen. That makes "has
  * the fold developed yet" a property of the frame rather than a stopwatch guess.
- *
- * The image is already the middle band ({@link sampleClip}), so the whole thing is read: no
- * second crop, and no second `getImageData` over pixels the band excludes.
  */
 async function curlScore(base64: string): Promise<number> {
 	const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
@@ -148,7 +145,13 @@ async function curlScore(base64: string): Promise<number> {
 		return 0
 	}
 	ctx.drawImage(bitmap, 0, 0)
-	const { data } = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
+	// The middle band, where the spread sits: the logo and the control bar are outside it.
+	const { data } = ctx.getImageData(
+		Math.round(bitmap.width * 0.1),
+		Math.round(bitmap.height * 0.3),
+		Math.round(bitmap.width * 0.8),
+		Math.round(bitmap.height * 0.6),
+	)
 	let dark = 0
 	for (let i = 0; i < data.length; i += 4) {
 		if (data[i + 3] > 10 && (data[i] + data[i + 1] + data[i + 2]) / 3 < 200) {
@@ -158,22 +161,6 @@ async function curlScore(base64: string): Promise<number> {
 	return dark
 }
 
-/**
- * The region a sample is taken from, in CSS pixels of the current viewport: the middle band the
- * spread sits in, which is the only thing the score looks at. Sampling just that band keeps each
- * capture as small as the screenshot allows — a sample is the single most expensive step in this
- * test, so it is taken no larger than the answer needs.
- */
-function sampleClip(): { x: number; y: number; width: number; height: number } {
-	const { width, height } = currentViewport()
-	return {
-		x: Math.round(width * 0.1),
-		y: Math.round(height * 0.3),
-		width: Math.round(width * 0.8),
-		height: Math.round(height * 0.6),
-	}
-}
-
 /** A capture and the darkness it scored. */
 interface Sample {
 	shot: string
@@ -181,7 +168,7 @@ interface Sample {
 }
 
 /**
- * Samples the turn until the fold has developed, or the deadline passes.
+ * One screenshot every turn, until the fold has developed (or the deadline passes).
  *
  * Returns the darkest frame seen and its score, so the caller does not score it again: one
  * sample costs a full compositor readback plus a PNG decode, and paying for either twice buys
@@ -196,7 +183,7 @@ async function sampleUntilFolded(deadline: number, best?: Sample): Promise<Sampl
 	if ((best?.score ?? 0) >= FOLD_TRIGGER || performance.now() > deadline) {
 		return best ?? { shot: '', score: 0 }
 	}
-	const shot = (await page.screenshot({ save: false, clip: sampleClip() })) as string
+	const shot = (await page.screenshot({ save: false })) as string
 	const score = await curlScore(shot)
 	return sampleUntilFolded(deadline, best === undefined || score > best.score ? { shot, score } : best)
 }
