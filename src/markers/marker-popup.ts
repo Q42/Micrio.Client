@@ -198,9 +198,15 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					$tour.next?.()
 				}
 			} else if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
+				// Return to the image this popup belongs to. Dismiss the popup before clearing
+				// the marker it names, so no moment exists where the marker state is already
+				// gone but the popup describing it is still on screen — that window is what
+				// made this navigation look like it never started (`marker links to another
+				// image > keeps a link marker's popup...`). `open()` is async, so it is started
+				// first but not awaited.
 				void micrio.open(image.id)
-				image.state.marker.set(undefined)
 				micrio.state.popup.set(undefined)
+				image.state.marker.set(undefined)
 			} else {
 				image.state.marker.set(undefined)
 			}
