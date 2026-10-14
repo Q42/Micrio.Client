@@ -811,23 +811,6 @@ duplicate work — it re-runs the entire suite that `browser` has just run. If t
 to get faster, that duplication is the first thing to attack (e.g. dropping the separate `browser`
 job on PRs and letting `coverage` stand in for it, since it runs the identical set).
 
-### One test held back on CI
-
-`marker links to another image > keeps a link marker's popup in the linked image, and returns to
-the original when it is closed` is skipped **on CI only** (`it.skipIf(__MICRIO_CI__)`), and runs
-normally everywhere else. It passes locally — ~16 ms per step, and still passing under deliberate
-CPU starvation — but fails on a starved `ubuntu-latest` runner: after the popup's close button is
-clicked, the view stays on the linked image and the return navigation never lands. The cause is
-not known. Several fixes were attempted and each was wrong, including one that broke
-`tests/core/core/state.test.ts`.
-
-Everything measured so far, what has been ruled out with evidence, and the next experiment to run
-are in [`ISSUE-marker-link-navigation.md`](ISSUE-marker-link-navigation.md). Delete that file and
-this section once the `skipIf` comes off.
-
-The flag exists because the tests run in the browser page, where `process.env` does not exist:
-`vitest.config.ts` defines `__MICRIO_CI__` alongside the existing `__MICRIO_LIVE__`.
-
 ### WebGL on a GitHub runner
 
 A GitHub-hosted runner has **no GPU**, and headless Chromium there renders WebGL with
@@ -858,7 +841,7 @@ a hung job — each job also carries its own `timeout-minutes` as a backstop. Jo
 ## Session backlog
 
 1. **CI** — done. Two workflows on PRs and `main`, all five jobs green in 11m 55s on
-   `ubuntu-latest`; see [Continuous integration](#continuous-integration). The one caveat is the
-   test held back there, tracked in [`ISSUE-marker-link-navigation.md`](ISSUE-marker-link-navigation.md).
+   `ubuntu-latest`; see [Continuous integration](#continuous-integration). No test is held back
+   there any more: the marker-link navigation one runs everywhere.
 2. **Pixel/screenshot regression** — still out of scope; the render proofs are artifacts, not
    baselines (font and platform rendering make them a poor comparison even with CI).
