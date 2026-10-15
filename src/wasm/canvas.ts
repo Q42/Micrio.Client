@@ -172,6 +172,10 @@ export default class Canvas {
 		// Initial view adjustment for 360 (often only shows middle vertically)
 		if(is360) { this.view.set(0.5, 0.5, 1, 0.5); }
 
+		// Top-level canvases have no parent; point `parent` at self so the
+		// non-nullable field is never null (grid children overwrite it via setParent()).
+		this.parent = this;
+
 		// If top-level canvas, initialize viewport and calculate initial camera state
 		if(!hasParent) {
 			this.el.copy(main.el); // Copy main element viewport
