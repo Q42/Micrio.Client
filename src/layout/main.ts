@@ -4,6 +4,7 @@ import type { Writable } from '$core/store'
 import type { MicrioImage } from '$core/image'
 import { get, tick, writable } from '$core/store'
 import { Frame } from '$core/frame'
+import { isSplitSecondary } from '$core/split'
 import { DataLoader } from '$utils/dataLoader'
 import { createElement } from '$utils/dom'
 import { volumeFor } from '$utils/media-settings'
@@ -405,7 +406,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			'markers',
 			$visible,
 			showMarkers,
-			(i) => !i.opts?.isEmbed && (Boolean(i.$data?.markers?.length) || Boolean(micrio.spaceData)),
+			(i) =>
+				!i.opts?.isEmbed && !isSplitSecondary(i) && (Boolean(i.$data?.markers?.length) || Boolean(micrio.spaceData)),
 		)
 
 		this.#syncImageLayer(
