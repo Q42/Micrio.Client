@@ -126,6 +126,11 @@ class AudioPlaylist {
 		void this.play()
 	}
 
+	/** Sets the element's own level. The playlist plays through this element, not the master gain. */
+	setVolume(volume: number): void {
+		this.#audio.volume = volume
+	}
+
 	/** Stops playback and releases the audio element. */
 	destroy() {
 		this.#audio.removeEventListener('ended', this.#onEnded)
@@ -300,15 +305,26 @@ export class MicrioAudioController {
 
 		// Render playlist if music data exists
 		const data = image.$data
+		const musicVolume = data?.music?.volume ?? 1
 		if (data?.music?.items.length) {
 			const vol = volumeFor(image, get(micrio._isMuted))
-			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, vol * (data.music.volume ?? 1))
+			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, vol * musicVolume)
 		}
 
 		this.#cleanups.push(
 			micrio._isMuted.subscribe((muted) => {
+				const vol = volumeFor(image, muted)
 				if (mainGain) {
-					mainGain.gain.value = volumeFor(image, muted)
+					mainGain.gain.value = vol
+				}
+				// The playlist plays through its own element instead of the master gain, so its
+				// level has to follow the mute state here too — the gain alone left it audible
+				// when muted and silent when unmuted.
+				this.#playlist?.setVolume(vol * musicVolume)
+				// A playlist that was never heard (opened muted, or refused by autoplay policy)
+				// starts now that the listener has asked for sound.
+				if (!muted) {
+					this.#playlist?.resume()
 				}
 			}),
 		)
