@@ -2,6 +2,7 @@ import type { HTMLMicrioElement } from '$core/element'
 import type { Unsubscriber } from '$core/store'
 import { MicrioImage } from '$core/image'
 import { DataLoader } from '$utils/dataLoader'
+import { deepCopy } from '$utils/object'
 
 export interface MicrioSplitLink {
 	micrioId: string
@@ -70,16 +71,23 @@ export async function openSplit(
 		return
 	}
 
+	// The element's own default settings apply to the split image too, as they do to the
+	// image the element opened itself.
+	const settings = { ...bundle.settings }
+	if (micrio.defaultSettings) {
+		deepCopy(micrio.defaultSettings, settings)
+	}
+
 	// A passive split mirrors the primary camera and has no viewport of its own to seed.
 	const isPassive = opts?.isPassive !== false
 	// The marker data rides along in the bundle, so the viewport this split would fly to is
 	// known before the canvas exists: seeding it opens the split there directly, instead of
 	// on the full image and then jumping to the marker.
 	const linked = !isPassive && link.markerId ? bundle.data?.markers?.find((m) => m.id === link.markerId) : undefined
-	const secondary = new MicrioImage(
-		micrio._engine,
-		linked?.view ? { ...bundle, settings: { ...bundle.settings, view: linked.view } } : bundle,
-	)
+	if (linked?.view) {
+		settings.view = linked.view
+	}
+	const secondary = new MicrioImage(micrio._engine, { ...bundle, settings })
 	micrio._canvases.push(secondary)
 	micrio._engine._addCanvasDirect(secondary)
 
