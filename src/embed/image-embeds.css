@@ -1,3 +1,21 @@
 micrio-image-embeds > * {
 	pointer-events: all;
 }
+/*
+ * The overlay fades in as it is (re)created and out while the viewer switches images, so its
+ * embeds do not jump between repainted positions. The default matches `embedFadeDuration`,
+ * the duration the WebGL embeds fade with.
+ */
+micrio-image-embeds {
+	animation: micrio-embeds-fade-in var(--micrio-embed-fade-duration, 0.5s) ease;
+	transition: opacity var(--micrio-embed-fade-duration, 0.5s) ease;
+}
+micrio-image-embeds.inactive {
+	opacity: 0;
+	animation: none;
+}
+@keyframes micrio-embeds-fade-in {
+	from {
+		opacity: 0;
+	}
+}

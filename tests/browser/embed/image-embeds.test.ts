@@ -77,6 +77,20 @@ describe('micrio-image-embeds (unit)', () => {
 		image.data.set(undefined)
 		expect(embedChildren(el)).toHaveLength(0)
 	})
+
+	it('fades the layer out while the viewer switches images', () => {
+		const image = fakeImage()
+		image.data.set({ embeds: [imageEmbed({ id: 'a' })] })
+		const el = mountContainer(image)
+		expect(el.classList.contains('inactive')).toBe(false)
+
+		// `image-embeds.css` takes the layer to opacity 0 on this class, so the embeds of
+		// the outgoing image are out of the way while the new image's layer fades in.
+		host.el._switching.set(true)
+		expect(el.classList.contains('inactive')).toBe(true)
+		host.el._switching.set(false)
+		expect(el.classList.contains('inactive')).toBe(false)
+	})
 })
 
 describe('micrio-image-embeds (layout integration)', () => {

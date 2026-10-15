@@ -1059,6 +1059,12 @@ export class Engine {
 				_360.scale ?? 1,
 				fromScale ?? 0,
 			)
+			// `_addImage` starts an embed at its target opacity. Starting it transparent
+			// instead makes `_opacityTick` fade it in over `_embedFadeDuration`, the same
+			// duration `_orphanEmbed` fades it out with.
+			if (opacity > 0) {
+				engImage.opacity = 0
+			}
 			this.#engImageToMicrio.set(engImage, image)
 			this.#micrioToEngImage.set(image, engImage)
 			image._placed = true
