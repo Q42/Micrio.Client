@@ -67,7 +67,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const markerSettings = image.$settings._markers ?? {}
 		const data = marker.data ?? {}
 		const noTitles =
-			marker.data?.showTitle === false || Boolean(markerSettings.noTitles) || Boolean(image.$settings.omni?.sideLabels)
+			Boolean(markerSettings.noTitles) ||
+			(!markerSettings.showTitles && marker.data?.showTitle === false) ||
+			Boolean(image.$settings.omni?.sideLabels)
 		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || Boolean(image.$settings.omni?.sideLabels)
 
 		// --- Auto-start tour integration (_markers.autoStartTour) ---
