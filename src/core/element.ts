@@ -973,11 +973,14 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── 360 vector ────────────────────────────────────────────────────────
 
+		// The vector is the walk between the two images: the engine turns it into the parallax
+		// offset of the transition. The arriving heading is the viewer's own, which the engine
+		// carries over — unless the caller pinned an explicit view (`startView`).
 		const e = this._engine
 		e._direction = opts.vector?.direction ?? 0
 		e._distanceX = opts.vector?.distanceX ?? 0
 		e._distanceY = opts.vector?.distanceY ?? 0
-		e._preventDirectionSet = !opts.vector
+		e._preventDirectionSet = opts.startView !== undefined
 
 		// ── Set current / grid ────────────────────────────────────────────────
 

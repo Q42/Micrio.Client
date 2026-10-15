@@ -630,12 +630,20 @@ export class Engine {
 				return
 			}
 
-			const pitch = canvas._is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas._camera360._pitch : 0
+			const previous = this.#activeCanvasEntry
+			// Only a 360 canvas has a heading worth carrying: a 2D camera's 360 state is unused.
+			const previousCamera = previous?.canvas.is360 ? previous.canvas._camera360 : undefined
+			const pitch = previousCamera?._pitch ?? 0
 			this.#activeCanvasEntry = entry
 
-			if (canvas._is360 && !this._preventDirectionSet) {
-				const reversedYaw = ((this._direction + 0.5) % 1) * Math.PI * 2
-				entry.canvas._setDirection(reversedYaw - canvas.camera.rotationY, pitch, true)
+			if (canvas._is360 && previousCamera && !this._preventDirectionSet) {
+				// The viewer keeps the heading it had. `_yaw` is the space-frame yaw — each
+				// image's `rotationY` is only what places its own content under that direction —
+				// and `_setDirection` stores the yaw of that rotated frame, hence its `_baseYaw`.
+				// The waypoint vector's `_direction`/`_distance*` still drive the parallax walk
+				// offset (`_moveTo`).
+				const camera = entry.canvas._camera360
+				entry.canvas._setDirection(previousCamera._yaw + camera._baseYaw, pitch, true)
 			}
 
 			if (entry.canvas._targetOpacity === 0) {
