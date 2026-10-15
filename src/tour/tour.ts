@@ -250,6 +250,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 							img.state.marker.set(undefined)
 						}
 					}
+					// A stopped tour forgets its step, so starting it again — from the toolbar,
+					// for instance — begins at its first step instead of resuming the old one.
+					mt.currentStep = undefined
 				}
 			}),
 		)
