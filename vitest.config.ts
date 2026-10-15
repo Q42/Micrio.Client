@@ -112,6 +112,10 @@ const ciMaxWorkers = (() => {
  * instance, the element registered through the production entry (`tests/browser/setup.ts`),
  * headless and 20s timeouts. `setupFiles` is a parameter so the `css` project can add its
  * own viewport helpers after the shared setup rather than forking it.
+ *
+ * A test whose work is genuinely heavier than 20s carries its own timeout at the test
+ * (`render-proof.test.ts` does), so a per-project ceiling here would only loosen the suite
+ * that is supposed to fail loudly on a test that hangs.
  */
 const browserProject = (
 	name: string,

@@ -834,9 +834,22 @@ depends on which one it gets, which is what the measurement above showed. GitHub
 not change this by themselves — Chromium still ignores the GPU unless it is run headed under
 `xvfb` with the NVIDIA kernel modules loaded — so the bench stays on stock runners.
 
-A SwiftShader run that trips the suite's 20s `testTimeout` shows up as that test timing out, not as
+A SwiftShader run that trips a project's `testTimeout` shows up as that test timing out, not as
 a hung job — each job also carries its own `timeout-minutes` as a backstop. Job durations are in
 [What a run costs](#what-a-run-costs).
+
+### Per-test timeouts
+
+Every browser project keeps the 20s `testTimeout` from `browserProject` in `vitest.config.ts`.
+A test whose work is legitimately heavier carries its own timeout at the test instead, so the
+suite default stays tight enough that a test which _hangs_ still fails loudly.
+
+Only `render-proof.test.ts` does. Its 3D book case opens a real book, waits out a ~1s page-flip
+physics animation (`BASE_FLIP_DURATION / FLIP_SPEED`) and takes a full compositor readback — and
+SwiftShader makes that readback the dominant cost. It is ~1.3s per viewport on a development
+machine and **~6.9s** on a starved 4-vCPU `ubuntu-latest` runner, so each viewport is its own test
+with a 30s budget: one capture per test, rather than one test looping over all four, so a viewport
+that is merely slow cannot spend the budget the other three share.
 
 ## Session backlog
 

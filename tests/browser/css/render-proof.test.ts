@@ -211,13 +211,26 @@ const BOOK_VIEWPORTS = [
 	['wide', WIDE],
 ] as const
 
-/** Captures one book turn per viewport. */
-async function captureBooks(pages: Uint8Array, index = 0): Promise<void> {
-	const entry = BOOK_VIEWPORTS[index]
-	if (entry === undefined) {
-		return
-	}
-	const [name, size] = entry
+/**
+ * How long one viewport's book capture may take.
+ *
+ * Sized for the case that actually bit CI: the whole sequence used to share one 20s budget,
+ * and on a starved 4-vCPU runner with SwiftShader the four captures together took 27.5s —
+ * about 6.9s each, with each one costing a book open, a `~1s` page flip and a full compositor
+ * readback, all of it slow under a software renderer. One capture per test gives each its own
+ * budget, so a slow viewport no longer spends the others' time, and 30s is ~4x the measured
+ * per-viewport cost. These are real work, not a hang: see TESTING.md, "Per-test timeouts".
+ */
+const CAPTURE_TIMEOUT = 30_000
+
+/**
+ * Captures one book turn at one viewport and writes it to the proof directory.
+ *
+ * One test per viewport, rather than one test looping over all four, so that a viewport which
+ * is merely slow on the runner cannot exhaust the budget the other three share.
+ */
+async function captureBookTurn(name: string, size: { width: number; height: number }): Promise<void> {
+	const pages = await pageBytes()
 	await useViewport(size)
 	// Sized at mount: the book renderer takes its drawing buffer from the canvas box when it
 	// is constructed, so styling the host afterwards would leave it at the fixture's 800×600.
@@ -225,11 +238,16 @@ async function captureBooks(pages: Uint8Array, index = 0): Promise<void> {
 	await afterFrame()
 	await writeProof(`book-page-turn-${name}`, await captureTurn(book))
 	book.viewer.destroy()
-	return captureBooks(pages, index + 1)
 }
 
 describe('render proof: the 3D book', () => {
-	it('captures a turning page for every viewport, with the chrome around it', async () => {
-		await captureBooks(await pageBytes())
-	})
+	for (const [name, size] of BOOK_VIEWPORTS) {
+		it(
+			`captures a turning page at the ${name} viewport, with the chrome around it`,
+			async () => {
+				await captureBookTurn(name, size)
+			},
+			CAPTURE_TIMEOUT,
+		)
+	}
 })
