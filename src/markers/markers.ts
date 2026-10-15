@@ -273,7 +273,12 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			)
 
 			const $switching = get(switching)
-			if (!$switching && micrio.spaceData) {
+			// Waypoints belong to the image the viewer is on. Gating on `$switching` alone is
+			// not enough: the outgoing image's layer stays mounted until its own `_visible`
+			// entry goes, which the layout sync then acts on a frame later — and the
+			// `switching` watcher below would repaint its waypoints in that frame.
+			const current = micrio.$current?.id === image.id
+			if (!$switching && current && micrio.spaceData) {
 				const links = micrio.spaceData.links.filter((l) => l[0] === image.id || l[1] === image.id)
 				const linkIds = new Set(links.map((l) => (l[0] === image.id ? l[1] : l[0])))
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-waypoint')) {
