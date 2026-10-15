@@ -38,13 +38,6 @@ export const MICRIO_TLD: string = getMicrioTLD()
 /** Base URL for the viewer data API (info.json, album JSON, spaces JSON). @internal */
 export const VIEWER_BASE = `https://viewer.${MICRIO_TLD}/`
 
-/** Keys used for storing Micrio settings in localStorage.
- * @internal
- */
-export const localStorageKeys = {
-	globalMuted: 'micrio-muted', // Key for storing the global muted state
-}
-
 /** Default tile size used throughout the application when none is specified by the bundle. @internal */
 export const DEFAULT_TILE_SIZE = 1024
 

@@ -9,7 +9,7 @@ import { idIsV5 } from '$utils/id'
 import { MicrioError, getErrorMessage } from '$core/error'
 import { DataLoader } from '$utils/dataLoader'
 import { VERSION } from './version'
-import { ATTRIBUTE_OPTIONS as AO, DEFAULT_SETTINGS, localStorageKeys } from './globals'
+import { ATTRIBUTE_OPTIONS as AO, DEFAULT_SETTINGS } from './globals'
 import { writable, get, tick } from '$core/store'
 import { Frame } from './frame'
 import { Engine } from '$render/engine'
@@ -218,10 +218,12 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	readonly _switching: Writable<boolean> = writable(false)
 
-	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute and localStorage.
+	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute.
+	 * Not persisted: a previous image's mute choice must not silence a new image's voice-over
+	 * while its mute button is hidden (because that image has no background audio).
 	 * @internal
 	 */
-	readonly _isMuted: Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) === '1')
+	readonly _isMuted: Writable<boolean> = writable(false)
 
 	/** Writable store holding the currently active language code (e.g., 'en', 'nl').
 	 * @internal
@@ -348,10 +350,8 @@ export class HTMLMicrioElement extends MicrioElement {
 				// @ts-expect-error -- `muted` is defined dynamically below
 				this['muted'] = b
 				if (b) {
-					localStorage.setItem(localStorageKeys.globalMuted, '1')
 					this.events._dispatch('audio-mute')
 				} else {
-					localStorage.removeItem(localStorageKeys.globalMuted)
 					this.events._dispatch('audio-unmute')
 				}
 			})
