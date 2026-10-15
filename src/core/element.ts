@@ -206,7 +206,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	_ui?: MicrioMain
 
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
-	defaultSettings?: Partial<Models.ImageInfo.Settings>
+	declare defaultSettings?: Partial<Models.ImageInfo.Settings>
 
 	/** Writable store indicating the overall loading state of the viewer.
 	 * @internal
