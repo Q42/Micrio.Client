@@ -45,6 +45,13 @@ interface CanvasEntry {
 	camera?: Camera
 }
 
+/** Frees a decoded bitmap that will not be uploaded to a texture. @internal */
+function closeTextureBitmap(img: TextureBitmap): void {
+	if (globalThis.ImageBitmap !== undefined && img instanceof ImageBitmap && typeof img.close === 'function') {
+		img.close()
+	}
+}
+
 /**
  * The main Micrio compute controller class. Handles the engine lifecycle,
  * render loop, tile management, and WebGL integration.
@@ -832,12 +839,26 @@ export class Engine {
 				// what it can, but an already-completed fetch still resolves). Uploading then
 				// re-creates the entry and a GPU texture that nothing will ever free.
 				if (this.#requests.get(i) !== src) {
+					closeTextureBitmap(img)
 					return
 				}
 				this.#gotTexture(i, img, ani, opts.noSmoothing)
 			})
 			.catch(() => {
+				// Only the request this call created may be settled: `#cleanup` and `#releaseTiles`
+				// delete requests, and a later frame can start a new one for the same index.
+				if (this.#requests.get(i) !== src) {
+					return
+				}
 				this.#deleteRequest(i)
+				const failed = this.#tiles.get(i)
+				if (failed?._loadState === 1) {
+					// The tile failed (or its request was aborted) without a texture. Leave it
+					// terminal and counted so `_progress` can reach 1 and the render loop stops;
+					// normal eviction retries it once it has been out of view.
+					failed._loadState = 3
+					failed._loadedAt = performance.now()
+				}
 			})
 	}
 
@@ -845,9 +866,7 @@ export class Engine {
 	#gotTexture(i: number, img: TextureBitmap, ani: boolean, noSmoothing?: boolean): void {
 		const tile = this.#getTileEntry(i)
 		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing)
-		if (globalThis.ImageBitmap !== undefined && img instanceof ImageBitmap && typeof img.close === 'function') {
-			img.close()
-		}
+		closeTextureBitmap(img)
 		tile._loadState = 2
 
 		tile._timeoutId = setTimeout(
@@ -927,6 +946,9 @@ export class Engine {
 					const request = this.#requests.get(idx)
 					if (request) {
 						abortDownload(request)
+						// The abort rejection is ignored by the `src` guard in `_getTexture`, and a
+						// surviving request entry would make the next request early-return forever.
+						this.#deleteRequest(idx)
 					}
 					tile._loadState = 0
 					break
