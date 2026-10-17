@@ -89,6 +89,15 @@ describe('DataLoader bundles', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2)
 	})
 
+	it('resolves undefined for every concurrent caller when the bundle fetch fails', async () => {
+		respond({}, 404)
+		const { DataLoader } = await freshLoader()
+		const [a, b] = await Promise.all([DataLoader._getBundleImage('rqFkjZz'), DataLoader._getBundleImage('rqFkjZz')])
+		expect(a).toBeUndefined()
+		expect(b).toBeUndefined()
+		expect(fetchMock).toHaveBeenCalledTimes(1)
+	})
+
 	it('short-circuits empty and absolute-URL ids without fetching', async () => {
 		const { DataLoader } = await freshLoader()
 		expect(await DataLoader._getBundleImage('')).toBeUndefined()

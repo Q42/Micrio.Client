@@ -839,7 +839,14 @@ export class HTMLMicrioElement extends MicrioElement {
 				this.#printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`)
 				return this.$current
 			}
-			bundle = loaded
+			// `DataLoader` caches bundle entries module-wide, and the settings/info merges below
+			// write into them. Copy the two mutable branches so one viewer's attributes cannot
+			// become another viewer's baseline. `data` is shared read-only (markers, tours).
+			bundle = {
+				...loaded,
+				info: { ...loaded.info },
+				settings: structuredClone(loaded.settings ?? {}),
+			}
 		}
 		// Already a BundleImage
 		else {
