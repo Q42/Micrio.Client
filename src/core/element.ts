@@ -346,16 +346,18 @@ export class HTMLMicrioElement extends MicrioElement {
 					}
 				},
 			})
-			this._watch(this._isMuted, (b) => {
-				// @ts-expect-error -- `muted` is defined dynamically below
-				this['muted'] = b
-				if (b) {
-					this.events._dispatch('audio-mute')
-				} else {
-					this.events._dispatch('audio-unmute')
-				}
-			})
 		}
+		// Own property definitions survive a disconnect, but the store subscription is torn
+		// down with every other cleanup, so it has to be re-registered on each mount.
+		this._watch(this._isMuted, (b) => {
+			// @ts-expect-error -- `muted` is defined dynamically above
+			this['muted'] = b
+			if (b) {
+				this.events._dispatch('audio-mute')
+			} else {
+				this.events._dispatch('audio-unmute')
+			}
+		})
 
 		const updateZoomed = () => {
 			const imgs = get(this._visible).filter((i) => i.id)

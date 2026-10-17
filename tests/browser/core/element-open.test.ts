@@ -208,6 +208,24 @@ describe('<micr-io> reconnect', () => {
 		viewer.destroy()
 	})
 
+	it('keeps the muted store in sync after a reconnect', async () => {
+		const viewer = mountViewer()
+		await viewer.open(modernBundle())
+		await waitForLoaded(viewer, 'rqFkjZz')
+
+		viewer.el.remove()
+		document.body.append(viewer.el)
+		await settle(2)
+
+		const events = collectEvents(viewer.el, ['audio-mute'])
+		viewer.el._isMuted.set(true)
+		expect(viewer.el.hasAttribute('muted')).toBe(true)
+		expect(events.types).toContain('audio-mute')
+		events.stop()
+		viewer.el._isMuted.set(false)
+		viewer.destroy()
+	})
+
 	it("does not replay the image's start action", async () => {
 		// A video tour is the cleanest start action to observe: clearing the `tour` store unmounts
 		// the element without leaving a dialog (whose deferred `close` would clear a re-opened

@@ -773,8 +773,10 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			if (!this.#adapter) {
 				return
 			}
-			this.#currentTime = await this.#adapter.getCurrentTime()
-			this.#duration = await this.#adapter.getDuration()
+			// Vimeo/YouTube adapters answer over postMessage; the two reads are independent.
+			const [currentTime, duration] = await Promise.all([this.#adapter.getCurrentTime(), this.#adapter.getDuration()])
+			this.#currentTime = currentTime
+			this.#duration = duration
 			this.#tourInstance?.updateEvents(this.#currentTime)
 			this.#updateControls()
 		}, 250)

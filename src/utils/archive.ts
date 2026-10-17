@@ -1,6 +1,9 @@
 import type { TextureBitmap } from '$render/textures'
 import { idIsV5 } from '$utils/id'
 
+/** One decoder for every 32-byte header in every archive. @internal */
+const headerDecoder = new TextDecoder()
+
 /**
  * Subset of the Posix USTAR header format relevant for MDP files.
  * @internal
@@ -95,18 +98,18 @@ class Archive {
 			const h = this.#parseHeader(new Uint8Array(data, i, hSize)) // Parse header
 			// If header is valid (name and size > 0), add entry to the database
 			if (h.name && h.size > 0) {
-				this.db.set(path + imgPath + h.name.replace('./', ''), [id, i + hSize, h.size]) // Key: full path, Value: [archiveId, offset, size]
+				const cleanName = h.name.replace('./', '')
+				const key = path + imgPath + cleanName
+				this.db.set(key, [id, i + hSize, h.size]) // Key: full path, Value: [archiveId, offset, size]
 
 				// Index image thumbnails by their image ID (first path segment after basePath)
 				// e.g., "mXApNjq/8/0_0.webp" → image ID "mXApNjq"
-				const cleanName = h.name.replace('./', '')
-				const fullPath = path + imgPath + cleanName
 				const slashIdx = cleanName.indexOf('/')
 				if (slashIdx > 0) {
 					const imageId = cleanName.substring(0, slashIdx)
 					// Only set if not already present (first match wins)
 					if (!this.imageKeys.has(imageId)) {
-						this.imageKeys.set(imageId, fullPath)
+						this.imageKeys.set(imageId, key)
 					}
 				}
 			} else if (h.size === 0 && !h.name) {
@@ -126,7 +129,7 @@ class Archive {
 	 * @returns Parsed header object {name, size}.
 	 */
 	#parseHeader(d: Uint8Array): MDPHeader {
-		const s = new TextDecoder().decode(d) // Decode bytes to string
+		const s = headerDecoder.decode(d) // Decode bytes to string
 		// Helper to slice and trim null characters
 		const g = (l: number) =>
 			s
