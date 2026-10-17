@@ -37,6 +37,12 @@ export default class Camera360 extends EngineCamera {
 	#limitX = 0
 	#limitY = 0
 
+	/** Scratch boundary tables for {@link _setTile360}; one entry per grid line. @internal */
+	readonly #lonCos = new Float64Array(segsX + 1)
+	readonly #lonSin = new Float64Array(segsX + 1)
+	readonly #latCos = new Float64Array(segsY + 1)
+	readonly #latSin = new Float64Array(segsY + 1)
+
 	/** @internal */
 	_baseYaw = 0
 	/** @internal */
@@ -496,21 +502,35 @@ export default class Camera360 extends EngineCamera {
 		const sH = h / segsY
 		const pi2 = Math.PI * 2
 
+		// Longitude depends only on the column, latitude only on the row, and the right edge
+		// of one segment is the left edge of the next. Precompute the 34 boundaries once per
+		// tile instead of taking 8 sin/cos per segment.
+		const lonCos = this.#lonCos
+		const lonSin = this.#lonSin
+		const latCos = this.#latCos
+		const latSin = this.#latSin
+		for (let pX = 0; pX <= segsX; pX++) {
+			const lon = -(mod1(x + sW * pX + this._offX) * pi2)
+			lonCos[pX] = Math.cos(lon) * a || 0
+			lonSin[pX] = Math.sin(lon) * a || 0
+		}
+		for (let pY = 0; pY <= segsY; pY++) {
+			const lat = -(y + sH * pY) * pi2
+			latCos[pY] = Math.cos(lat)
+			latSin[pY] = Math.sin(lat) * a
+		}
+
 		for (let pY = 0; pY < segsY; pY++) {
 			for (let pX = 0; pX < segsX; pX++) {
 				const i = (pY * segsX + pX) * 6 * 3
-				const l = -(mod1(x + sW * pX + this._offX) * pi2)
-				const t = -(y + sH * pY) * pi2
-				const r = -(mod1(x + sW * (pX + 1) + this._offX) * pi2)
-				const b = -(y + sH * (pY + 1)) * pi2
-				const cL = Math.cos(l) * a || 0
-				const sL = Math.sin(l) * a || 0
-				const cR = Math.cos(r) * a || 0
-				const sR = Math.sin(r) * a || 0
-				const cB = Math.cos(b),
-					cT = Math.cos(t)
-				const sB = Math.sin(b) * a,
-					sT = Math.sin(t) * a
+				const cL = lonCos[pX]
+				const sL = lonSin[pX]
+				const cR = lonCos[pX + 1]
+				const sR = lonSin[pX + 1]
+				const cB = latCos[pY + 1]
+				const cT = latCos[pY]
+				const sB = latSin[pY + 1]
+				const sT = latSin[pY]
 
 				v[i + 0] = cT * sL
 				v[i + 1] = sT

@@ -299,7 +299,6 @@ export class Engine {
 		const is360 = hasCamera && c._is360
 		const img = hasCamera ? c : c.image
 		const frame = '_frame' in c ? c._frame : undefined
-		const noSmoothing = hasCamera && c.$settings.noSmoothing
 
 		if (tile._loadState === 0 && numLoading < numThreads) {
 			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) {
@@ -313,7 +312,9 @@ export class Engine {
 				tile._loadState = 1
 				const src = img._getTileSrc(layer, x, y, frame)
 				if (src) {
-					this._getTexture(i, src, animating, { noSmoothing })
+					// Read the setting only when a load actually starts; this used to be a store
+					// read for every drawn tile on every frame.
+					this._getTexture(i, src, animating, { noSmoothing: hasCamera && c.$settings.noSmoothing })
 				} else {
 					tile._loadState = 0
 					return false
