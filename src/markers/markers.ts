@@ -52,9 +52,22 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}),
 		)
 
-		const updateOverlapped = () => {
+		/** Width of the view the cluster layout was last solved for (2D images only). */
+		let lastClusterViewWidth: number | undefined
+
+		const updateOverlapped = (nextView?: Models.Camera.View) => {
 			if (!image.$settings.clusterMarkers) {
 				return
+			}
+			// On a 2D image markers only move relative to each other when the scale changes;
+			// panning does not change the overlap graph. 360/omni projections depend on camera
+			// rotation, so those keep recomputing. A rebuild calls without a view to force it.
+			if (!image._is360 && !image._isOmni && image.canvas?.is360 !== true) {
+				const width = nextView?.[2]
+				if (width !== undefined && width === lastClusterViewWidth) {
+					return
+				}
+				lastClusterViewWidth = width
 			}
 			const markers = image.$data?.markers?.filter((m) => !m.i18n || m.i18n[get(micrio._lang)] !== undefined)
 			if (!markers) {
