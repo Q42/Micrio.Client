@@ -1,6 +1,12 @@
 import { PaperMesh, GRID_COLS, GRID_ROWS, VERTEX_COUNT } from './paper-mesh'
-import type { EdgeConstraint, TriangleData } from './paper-mesh'
-import { buildIndexBuffer, computeVertexNormals, addEdgeConstraint, addGridConstraints } from './mesh-utils'
+import {
+	buildIndexBuffer,
+	computeVertexNormals,
+	addEdgeConstraint,
+	addGridConstraints,
+	type EdgeConstraint,
+	type TriangleData,
+} from './mesh-utils'
 import { DEFAULT_ASPECT, COVER_SCALE_X, COVER_SCALE_Y } from '../core/settings'
 
 const FACE_VERTEX_COUNT = VERTEX_COUNT

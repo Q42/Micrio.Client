@@ -11,28 +11,6 @@ if (hasBook3d) {
 	console.log(`Including optional module: ${book3dFile}`)
 }
 
-/** Deduplicate repeated classname hash selectors in CSS */
-function dedupeCssSelectors(cssContent) {
-	const matches = cssContent.match(/\.([^\d.{ ):>,]+)/gim)
-	if (matches) {
-		for (const sel of new Set(matches)) {
-			const reg = new RegExp(`(${sel.replace('.', '\\.')}){2,}`, 'mig')
-			cssContent = cssContent.replace(reg, sel)
-		}
-	}
-	return cssContent
-}
-
-/** Minify CSS */
-function minifyCss(cssContent) {
-	return cssContent
-		.replace(/\/\*[\s\S]*?\*\//g, '')
-		.replace(/\s*([{};,])\s*/g, '$1')
-		.replace(/:\s+/g, ':')
-		.replace(/;}/g, '}')
-		.replace(/\s+/g, ' ')
-}
-
 function licenseHeader() {
 	return [
 		`/* Micrio Client ${version}`,
@@ -47,7 +25,7 @@ function licenseHeader() {
 }
 
 /**
- * Process a single build: strip static styles, prepend minified CSS, write the final dist file.
+ * Process a single build: inject the Vite-minified CSS, write the final dist file.
  *
  * Micrio is a client-only library: the bundle injects its stylesheet and
  * registers all custom elements as soon as it is evaluated. In a non-DOM
@@ -59,14 +37,11 @@ function processBuild({ jsName, cssName, outFile, withBook3d }) {
 	const jsPath = buildDir + jsName
 	const cssPath = buildDir + cssName
 
-	// Deduplicate repeated classname hash selectors in CSS
-	let cssContent = dedupeCssSelectors(fs.readFileSync(cssPath, 'utf-8'))
-	cssContent = minifyCss(cssContent)
-
-	// Strip `static styles="..."` / `static styles='...'` / `static styles=\`...\`` from compiled JS & prepend CSS
-	let jsRaw = fs.readFileSync(jsPath).toString()
-	jsRaw = jsRaw.replace(/static\s+styles\s*=\s*(['"`])(?:(?!\1)[\s\S])*?\1\s*;?/g, '')
-	const escapedCss = cssContent.replace(/[$`]/g, '\\$&')
+	// Vite has already minified this with lightningcss; do not post-process it.
+	const cssContent = fs.readFileSync(cssPath, 'utf-8').trim()
+	const jsRaw = fs.readFileSync(jsPath).toString()
+	// Escape the template literal delimiters (and backslashes) used below.
+	const escapedCss = cssContent.replace(/[$`\\]/g, '\\$&')
 
 	const bundle = `const _style=document.createElement('style');_style.className='micrio-interface';_style.textContent=\`${escapedCss}\`;document.head.insertBefore(_style,document.head.firstChild);
 ${jsRaw}${withBook3d ? `\n${fs.readFileSync(book3dFile, 'utf-8')}` : ''}`
@@ -102,8 +77,8 @@ const parsedModules = readDeclarationModules(dtsDir)
 const internalModuleNames = new Set(parsedModules.keys())
 const dtsBundled = bundleDts(parsedModules, internalModuleNames)
 fs.writeFileSync(dFile, dtsBundled)
-fs.rmSync(dtsDir, { recursive: true })
-fs.rmdirSync(buildDir)
+fs.rmSync(dtsDir, { recursive: true, force: true })
+fs.rmSync(buildDir, { recursive: true, force: true })
 
 const formatSize = (bytes) => {
 	const k = 1024
@@ -245,6 +220,17 @@ function bundleDts(modules, internalNames) {
 					if (childContent) {
 						result.push(childContent)
 					}
+					continue
+				}
+				result.push(line)
+				continue
+			}
+
+			// A named re-export from an internal module is already flattened into this file;
+			// keeping it would point at a module name that no longer exists in the bundle.
+			const namedExport = trimmed.match(/^export\s+(?:type\s+)?\{[^}]*\}\s+from\s+"([^"]+)"\s*;?$/)
+			if (namedExport) {
+				if (internalNames.has(namedExport[1])) {
 					continue
 				}
 				result.push(line)

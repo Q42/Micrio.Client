@@ -55,3 +55,7 @@ jobs:
         run: pnpm run typecheck
       - name: Build
         run: pnpm run build
+      # `build` publishes this file to npm and the CDN; a broken declaration bundle must
+      # fail here rather than in a consumer's editor.
+      - name: Typecheck the published declarations
+        run: pnpm run typecheck:dts
