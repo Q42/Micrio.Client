@@ -120,6 +120,39 @@ describe('scrubber — the printed bar', () => {
 })
 
 describe('scrubber — pointer drag', () => {
+	it('does not rewrite the label while only the hover moves within one page', async () => {
+		const { viewer } = await openScrubber(4)
+		const track = scrubberTrack(viewer.el)
+		const label = viewer.el.querySelector<HTMLElement>('micrio-gallery ul > button + span')
+		if (!track || !label) {
+			throw new Error('no scrubber')
+		}
+
+		// The bar is re-rendered on every move over it, but the page it shows does not change
+		// until the pointer reaches another page, so the label must not be touched.
+		const text = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent')
+		const written: string[] = []
+		Object.defineProperty(label, 'textContent', {
+			configurable: true,
+			set(value: string) {
+				written.push(value)
+			},
+			get() {
+				return text?.get?.call(this) as string | null
+			},
+		})
+
+		for (let i = 0; i < 5; i++) {
+			track.dispatchEvent(
+				new PointerEvent('pointermove', { clientX: xForPage(track, 2, 4), clientY: 10, bubbles: true }),
+			)
+		}
+
+		expect(written).toEqual([])
+		delete (label as Partial<HTMLElement>).textContent
+		expect(label.textContent).toBe('1')
+	})
+
 	it('scrubs to the dragged page and clears the dragging state on release', async () => {
 		const mounted = await openScrubber(4)
 		const { viewer } = mounted

@@ -708,7 +708,12 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 		const trackFill = this.querySelector<HTMLElement>('ul > :first-child > span')
 		if (trackFill) {
-			trackFill.style.width = `${fillPct}%`
+			// This runs on every pointer move over the scrubber; an unchanged width is a layout
+			// invalidation and a style write for nothing.
+			const width = `${fillPct}%`
+			if (trackFill.style.width !== width) {
+				trackFill.style.width = width
+			}
 		}
 
 		const allTicks = this.querySelectorAll('ul > :nth-child(2) > span')
@@ -742,8 +747,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (hl) {
 			hl.style.left = `${left}px`
 			hl.classList.toggle('dragging', this.#dragging)
-			const pageTotal = this.#pageToImages.reduce((n, p) => n + p.length, 0)
-			hl.textContent = this.#pageLabel(curr) + (dense ? ` / ${pageTotal}` : '')
+			// Both the label and the page count only change with the current page, so they are
+			// computed once here instead of summing every page on each pointer move.
+			const label = this.#pageLabel(curr)
+			if (hl.dataset.page !== label) {
+				hl.dataset.page = label
+				hl.textContent = label + (dense ? ` / ${total}` : '')
+			}
 		}
 
 		let hoverLabel = this.querySelector<HTMLElement>('[data-part="hover-label"]')
