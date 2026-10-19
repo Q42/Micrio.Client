@@ -146,10 +146,24 @@ describe('Archive.load', () => {
 		expect(XhrSpy).not.toHaveBeenCalled()
 	})
 
+	it('keeps one archive out of another archive index', async () => {
+		stubXhr(makeArchive([{ name: 'a/0_0.webp', data: new Uint8Array(1) }]))
+		const idA = archiveId()
+		const idB = archiveId()
+		const baseA = idA.replace('/base', '')
+		await archive.load('https://r2.micr.io/', idA)
+		await archive.load('https://r2.micr.io/', idB)
+		// Loading B must not re-parse A's entries; both stay exactly once, under their own ids.
+		expect(archive.db.size).toBe(2)
+		expect(archive.db.get(`https://r2.micr.io/${baseA}/a/0_0.webp`)?.[0]).toBe(idA)
+		expect(archive.db.get(`https://r2.micr.io/${idB.replace('/base', '')}/a/0_0.webp`)?.[0]).toBe(idB)
+	})
+
 	it('surfaces a failed request as a rejection and indexes nothing', async () => {
 		const id = archiveId()
 		stubXhr(makeArchive([{ name: 'a/0_0.webp', data: new Uint8Array(1) }]), 404)
-		await expect(archive.load('https://r2.micr.io/', id)).rejects.toBeUndefined()
+		// The rejection carries the URL, so a caller that logs it has something actionable.
+		await expect(archive.load('https://r2.micr.io/', id)).rejects.toThrow('HTTP 404')
 		expect(archive.db.size).toBe(0)
 	})
 })

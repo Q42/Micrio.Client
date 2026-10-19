@@ -29,6 +29,8 @@ class Archive {
 	db = new Map<string, [string, number, number]>()
 	/** Map storing image ID → full db key for quick lookup by `getImageById`. */
 	private imageKeys = new Map<string, string>()
+	/** Archive ids whose entries are already in `db`, so a re-load does not re-parse them. */
+	#indexed = new Set<string>()
 
 	/**
 	 * Loads an archive file (.bin or .mdp) via XMLHttpRequest.
@@ -48,8 +50,8 @@ class Archive {
 		const isBin = isOmni || idIsV5(baseId) // Determine file extension (.bin for V5/Omni, .mdp for V4)
 
 		const xhr = new XMLHttpRequest()
-		// TODO: Improve error handling, maybe reject promise?
-		const data = await new Promise<ArrayBuffer | undefined>((ok, err) => {
+		const url = path + id + (isBin ? '.bin' : '.mdp') // Construct URL
+		const data = await new Promise<ArrayBuffer>((ok, err) => {
 			let size = 0 // Total size for progress calculation
 			xhr.responseType = 'arraybuffer' // Expect binary data
 			// Progress handler
@@ -61,28 +63,35 @@ class Archive {
 			})
 			// Load handler
 			xhr.addEventListener('load', () => {
-				if (xhr.readyState === 4 && xhr.status === 200) {
+				if (xhr.readyState === 4 && xhr.status === 200 && xhr.response instanceof ArrayBuffer) {
 					p?.(1)
-					ok(xhr.response instanceof ArrayBuffer ? xhr.response : undefined)
-				} // Success
-				else {
-					err()
-				} // Error
+					ok(xhr.response)
+				} else {
+					err(new Error(`Could not load archive: ${url} (HTTP ${xhr.status})`))
+				}
 			})
-			// Rejecting with no value here is the established shape for this path (`load` returns
-			// early on a falsy result and callers log it); the network failure below carries a real
-			// Error so the two are distinguishable.
-			xhr.addEventListener('error', err) // Network error
-			xhr.open('GET', path + id + (isBin ? '.bin' : '.mdp')) // Construct URL
+			// A network failure used to reject with no value at all, so callers that only logged
+			// the error had nothing to show. Carries the URL like the HTTP failure above.
+			xhr.addEventListener('error', () => {
+				err(new Error(`Could not load archive: ${url}`))
+			})
+			xhr.open('GET', url)
 			xhr.send()
 		})
 
-		if (!data) {
-			return
-		} // Exit if load failed
-
 		this.#data.set(id, data) // Store loaded ArrayBuffer
 
+		// The index is built for this archive alone and committed at the end: a re-load of an
+		// archive that is already indexed must not append its entries a second time, while an
+		// abandoned parse leaves `db` exactly as it was.
+		if (!this.#indexed.has(id)) {
+			this.#index(id, data, path, isOmni)
+			this.#indexed.add(id)
+		}
+	}
+
+	/** Indexes every file in one archive into {@link db} and {@link imageKeys}. @internal */
+	#index(id: string, data: ArrayBuffer, path: string, isOmni: boolean): void {
 		// Determine image path prefix for Omni objects
 		const imgPath = isOmni ? `${id.split('/')[0]}/` : ''
 
