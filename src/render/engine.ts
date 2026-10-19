@@ -233,6 +233,21 @@ export class Engine {
 
 	/**
 	 * Generates a Float32Array containing texture coordinates for a quad.
+	 *
+	 * Each cell holds two triangles (12 floats: 6 vertices of `u, v`), laid out contiguously as
+	 * `(u0,v0) (u0,v1) (u1,v0)` then `(u0,v1) (u1,v1) (u1,v0)`, where `u0 = x/segX`,
+	 * `u1 = (x+1)/segX` and likewise for `v`. The vertex indices for one cell are the same six
+	 * in both runs:
+	 *
+	 * ```
+	 * u indices:  0 2 6   4 8 10
+	 * v indices:  1 5 11  3 7 9
+	 * ```
+	 *
+	 * so the two assignments below write all twelve floats by chaining equalities: the inner
+	 * parenthesized assignment sets each vertex's base coordinate (`x/segX` or `y/segY`), and
+	 * the `+ dX` / `+ dY` applied to it yields the second edge. Kept compact because it runs
+	 * once per quad type, not per frame.
 	 * @internal
 	 */
 	static #getTextureBuffer(segX: number, segY: number): Float32Array {
