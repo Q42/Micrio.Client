@@ -55,8 +55,6 @@ export interface MicrioEventDetails {
 	'tour-start': ImageData.Tour
 	/** A tour has been successfully stopped */
 	'tour-stop': ImageData.Tour
-	/** A tour's UI interface has automatically minimized */
-	'tour-minimize': boolean
 
 	// Marker Tours
 	/** Fires for each marker step in a marker tour */

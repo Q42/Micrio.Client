@@ -289,12 +289,6 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		// except the title, and `interpolate-size` animates `height: auto` to `0` and back.
 		this.classList.toggle('minimized', this.#isMinimized)
 		this.#minimizeBtn?._setProps?.({ type: this.#isMinimized ? 'down' : 'up' })
-		// This button is what collapses a running tour's UI, which is the condition
-		// `tour-minimize` documents.
-		const micrio = this._getMicrio()
-		if (micrio && get(micrio.state.tour)) {
-			micrio.events._dispatch('tour-minimize', this.#isMinimized)
-		}
 	}
 
 	/** Set while a `#placeTourAside` retry chain is pending, so only one can be queued. */
