@@ -293,23 +293,29 @@ export class HTMLMicrioElement extends MicrioElement {
 				break
 			}
 			case 'lang': {
-				let prevLang = get(this._lang)
-				if (prevLang !== value) {
+				// The element is built with `lang` set to `en`, so removing the attribute (what every
+				// framework binding does for `undefined`) keeps that language: storing the empty string
+				// instead left `_lang` at `''`, and the attribute's return to `en` fired a second
+				// `lang-switch` for a language the host had already been told about.
+				const prevLang = get(this._lang)
+				const nextLang = value || prevLang
+				if (prevLang !== nextLang) {
 					// Set the translations *before* `_lang`: everything that re-renders on
 					// the language change (toolbar, controls, ...) reads `get(i18n)` while
 					// doing so, and would otherwise render the previous language
-					const baseLang = value.split('-')[0]
-					i18n.set(langs[value] ?? langs[baseLang] ?? langs.en)
-					this._lang.set(value)
+					const baseLang = nextLang.split('-')[0]
+					i18n.set(langs[nextLang] ?? langs[baseLang] ?? langs.en)
+					this._lang.set(nextLang)
 					if (value) {
-						if (isRTL(value)) {
+						if (isRTL(nextLang)) {
 							this.setAttribute('dir', 'rtl')
 						} else {
 							this.removeAttribute('dir')
 						}
 					}
+					// Only once there is a language to switch *from*: the first pass runs it below
 					if (prevLang) {
-						this.events._dispatch('lang-switch', value)
+						this.events._dispatch('lang-switch', nextLang)
 					}
 					this.state._touch('lang')
 				}
@@ -573,7 +579,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
 		const resp = await fetchJson<IIIFResponse>(url).catch((e) => {
-			this.#printError(e)
+			this._printError(e)
 			return
 		})
 		if (!resp) {
@@ -584,7 +590,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		try {
 			gallery = Gallery._fromIIIF(resp, this._engine)
 		} catch (e) {
-			this.#printError(e)
+			this._printError(e)
 			return undefined
 		}
 		if (gallery) {
@@ -611,7 +617,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		// here — a IIIF Collection, or JSON from the wrong URL. Without this guard it would
 		// become an image with NaN bounds and a silently blank viewer.
 		if (typeof id !== 'string' || id === '' || !isImageSize(width) || !isImageSize(height)) {
-			this.#printError(
+			this._printError(
 				new MicrioError('UNSUPPORTED_IIIF', {
 					displayMessage: 'Not a valid IIIF manifest or Image API info.json',
 				}),
@@ -773,7 +779,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 * @param error The error (MicrioError, Error, or string) to display.
 	 */
-	#printError(error?: unknown): void {
+	_printError(error?: unknown): void {
 		const message = getErrorMessage(error ?? 'An unknown error has occurred')
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})` : ''))
 		if (!this._ui) {
@@ -838,7 +844,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			}
 			const loaded = await DataLoader._getBundleImage(idOrInfo)
 			if (!loaded) {
-				this.#printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`)
+				this._printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`)
 				return this.$current
 			}
 			// `DataLoader` caches bundle entries module-wide, and the settings/info merges below
@@ -952,8 +958,14 @@ export class HTMLMicrioElement extends MicrioElement {
 			if (!this._webgl.gl) {
 				try {
 					this._webgl._init()
+					// A program that does not link draws nothing: report it like a compile failure
+					// instead of leaving a blank viewer that never finishes loading.
+					const linkError = this._webgl._programLinkError()
+					if (linkError) {
+						throw linkError
+					}
 				} catch (e) {
-					this.#printError(e)
+					this._printError(e)
 					return c
 				}
 			}
