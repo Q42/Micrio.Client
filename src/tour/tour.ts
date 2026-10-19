@@ -56,6 +56,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 						image,
 						tour: vt,
 						controls: true,
+						hasAudio: Boolean(audio?.src),
 						autoplay: true,
 						fullscreenEl: micrio,
 						onended: () => {
