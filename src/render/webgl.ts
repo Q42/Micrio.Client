@@ -117,6 +117,9 @@ export class WebGL {
 	/** Optional PostProcessor instance for applying fullscreen effects. @internal */
 	_postprocessor?: PostProcessor
 
+	/** Whether the main shader program linked on this context. */
+	#mainProgramReady = false
+
 	/**
 	 * Creates the WebGL instance.
 	 * @param micrio The main HTMLMicrioElement instance.
@@ -156,9 +159,26 @@ export class WebGL {
 			console.error('Micrio: could not restore the WebGL context', e)
 			return
 		}
+		// Reported like a failed initial load: nothing is drawn, so staying silent would leave a
+		// blank viewer that never finishes loading.
+		const linkError = this._programLinkError()
+		if (linkError) {
+			this.#micrio._printError(linkError)
+			return
+		}
 		// Every tile texture died with the context, so the engine re-uploads them into the new one
 		this.#micrio._engine._resetTiles()
 		this.#micrio._engine.render()
+	}
+
+	/** The error describing a failed main shader link, or `undefined` when it linked. @internal */
+	_programLinkError(): MicrioError | undefined {
+		if (this.#mainProgramReady) {
+			return undefined
+		}
+		return new MicrioError(`Shader link error: ${this.#ctx.getProgramInfoLog(this.#program)}`, {
+			code: ErrorCodes.WEBGL_SHADER_COMPILE,
+		})
 	}
 
 	/** Initializes the WebGL context, compiles shaders, and sets up buffers/attributes. @internal */
@@ -212,13 +232,6 @@ export class WebGL {
 		// A watermark requested before this point has been fetched but not uploaded yet
 		this.#uploadWatermark()
 
-		// Initialize post-processor if a fragment shader is provided in settings
-		const postprocessing = this.#micrio.$current?.$settings.postProcessingFragmentShader
-		if (postprocessing) {
-			this._postprocessor = new PostProcessor(gl, this.#micrio, postprocessing)
-			this.#micrio._keepRendering = true // Force continuous rendering if postprocessing
-		}
-
 		// --- Shader Program Setup ---
 		const program = gl.createProgram()
 		if (!(program instanceof WebGLProgram)) {
@@ -231,12 +244,10 @@ export class WebGL {
 		// Compile and attach shaders
 		this._getShader(this.#program, gl.VERTEX_SHADER, vertexShader)
 		this._getShader(this.#program, gl.FRAGMENT_SHADER, fragmentShader)
-		// Link program
+		// Link; attributions go to the caller, which reports them as a failed initialisation
 		gl.linkProgram(this.#program)
-		if (gl.getProgramParameter(this.#program, gl.LINK_STATUS) !== true) {
-			throw new MicrioError(`Shader link error: ${gl.getProgramInfoLog(this.#program)}`, {
-				code: ErrorCodes.WEBGL_SHADER_COMPILE,
-			})
+		if (gl.getProgramParameter(this.#program, gl.LINK_STATUS) === true) {
+			this.#mainProgramReady = true
 		}
 		gl.useProgram(this.#program) // Use the program
 
@@ -306,6 +317,17 @@ export class WebGL {
 
 		// Set initial viewport
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
+
+		// Initialize post-processor if a fragment shader is provided in settings. Last, because its
+		// constructor binds its own quad buffer: created before `#linkBuffers()` it left `pos` and
+		// `aTextureCoord` pointing at that 4-vertex buffer, and every tile draw read out of range.
+		const postprocessing = this.#micrio.$current?.$settings.postProcessingFragmentShader
+		if (postprocessing) {
+			// A restored context replaces the old GL objects; the instance itself is dead with them
+			this._postprocessor?._dispose()
+			this._postprocessor = new PostProcessor(gl, this.#micrio, postprocessing)
+			this.#micrio._keepRendering = true // Force continuous rendering if postprocessing
+		}
 	}
 
 	/** Links the vertex and texture coordinate buffers to the shader attributes. @internal */
@@ -333,6 +355,21 @@ export class WebGL {
 	 */
 	_dispose(loseContext = false): void {
 		const { gl } = this
+
+		// Before the early return below: after a context loss `gl` is null, and `destroy()` would
+		// then leave `webglcontextlost`/`webglcontextrestored` attached to the canvas — a restore
+		// on a disposed (or re-attached) element would re-initialise it.
+		if (loseContext && this.#contextListenersAdded) {
+			const canvas = this.#micrio.canvas.element
+			if (this.#onLost) {
+				canvas.removeEventListener('webglcontextlost', this.#onLost)
+			}
+			if (this.#onRestored) {
+				canvas.removeEventListener('webglcontextrestored', this.#onRestored)
+			}
+			this.#contextListenersAdded = false
+		}
+
 		if (!gl) {
 			return
 		} // Exit if context doesn't exist
@@ -348,23 +385,13 @@ export class WebGL {
 		gl.deleteProgram(this.#program)
 		// Delete framebuffer/texture from postprocessor if it exists
 		this._postprocessor?._dispose()
+		this._postprocessor = undefined
 		// Delete watermark texture. Its request is kept, so re-initialising the context
 		// re-uploads the already-loaded image (the `#wmUrl` guard would otherwise skip it).
 		if (this.#wmTexture) {
 			gl.deleteTexture(this.#wmTexture)
 			// The loaded image stays `#wmReady`, so a re-initialised context re-uploads it
 			this.#wmTexture = null
-		}
-
-		if (loseContext && this.#contextListenersAdded) {
-			const canvas = this.#micrio.canvas.element
-			if (this.#onLost) {
-				canvas.removeEventListener('webglcontextlost', this.#onLost)
-			}
-			if (this.#onRestored) {
-				canvas.removeEventListener('webglcontextrestored', this.#onRestored)
-			}
-			this.#contextListenersAdded = false
 		}
 
 		// Attempt to lose context if requested

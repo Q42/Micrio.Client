@@ -146,6 +146,21 @@ export class PostProcessor {
 		this.#quad = quad
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad)
 		gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW) // Upload quad vertex data
+		// Both quads share one buffer and no stride: the pointers are set once here, and
+		// `_render` only has to back the attributes with this buffer to make them current.
+		gl.enableVertexAttribArray(this.#ppPositionLoc)
+		gl.enableVertexAttribArray(this.#ppTexCoordLoc)
+		gl.vertexAttribPointer(this.#ppPositionLoc, 2, gl.FLOAT, false, 4 * Float32Array.BYTES_PER_ELEMENT, 0)
+		gl.vertexAttribPointer(
+			this.#ppTexCoordLoc,
+			2,
+			gl.FLOAT,
+			false,
+			4 * Float32Array.BYTES_PER_ELEMENT,
+			2 * Float32Array.BYTES_PER_ELEMENT,
+		)
+		gl.disableVertexAttribArray(this.#ppPositionLoc)
+		gl.disableVertexAttribArray(this.#ppTexCoordLoc)
 	}
 
 	/**
@@ -168,26 +183,10 @@ export class PostProcessor {
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.#quad)
 
 		// --- Set Vertex Attributes ---
-		// Position attribute
+		// Enabled here for the duration of the pass only (the pointers were set in the constructor):
+		// leaving them enabled would let the main program's later draws read the quad's vertices.
 		gl.enableVertexAttribArray(this.#ppPositionLoc)
-		gl.vertexAttribPointer(
-			this.#ppPositionLoc, // location
-			2, // size (num components per iteration)
-			gl.FLOAT, // type
-			false, // normalize
-			4 * Float32Array.BYTES_PER_ELEMENT, // stride (bytes per vertex)
-			0, // offset (bytes from start of buffer)
-		)
-		// Texture Coordinate attribute
 		gl.enableVertexAttribArray(this.#ppTexCoordLoc)
-		gl.vertexAttribPointer(
-			this.#ppTexCoordLoc, // location
-			2, // size
-			gl.FLOAT, // type
-			false, // normalize
-			4 * Float32Array.BYTES_PER_ELEMENT, // stride
-			2 * Float32Array.BYTES_PER_ELEMENT, // offset (after position data)
-		)
 
 		// --- Set Uniforms & Texture ---
 		// Bind the texture containing the rendered main scene
@@ -199,6 +198,12 @@ export class PostProcessor {
 
 		// --- Draw the Quad ---
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4) // Draw the quad (4 vertices)
+
+		// Leave the attributes as the pass found them: `_drawEnd` switches back to the main program
+		// without re-pointing its attributes, and the quad's own pointers stay valid for the next pass.
+		gl.disableVertexAttribArray(this.#ppPositionLoc)
+		gl.disableVertexAttribArray(this.#ppTexCoordLoc)
+		gl.bindBuffer(gl.ARRAY_BUFFER, null)
 	}
 
 	/**
