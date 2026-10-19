@@ -138,19 +138,56 @@ describe('marker popup minimize', () => {
 		await opened.openMarker('m1')
 		await waitForPopup(opened.viewer.el)
 		const popup = popupOf(opened)
-		expect(popup?.querySelector('micrio-button.down')).not.toBeNull()
-		expect(control(opened, 'micrio-button.down')?.getAttribute('title')).toBe('Minimize')
+		expect(popup?.querySelector('micrio-button.up')).not.toBeNull()
+		// The toggle is overlaid on the popup itself, not parked in the close aside
+		expect(popup?.querySelector(':scope > micrio-button.popup-minimize')).not.toBeNull()
+		expect(control(opened, 'micrio-button.up')?.getAttribute('title')).toBe('Minimize')
 
-		vi.useFakeTimers()
-		control(opened, 'micrio-button.down')?.click()
-		vi.advanceTimersByTime(150)
+		control(opened, 'micrio-button.up')?.click()
 
 		expect(popup?.classList.contains('minimized')).toBe(true)
-		expect(popup?.querySelector<HTMLElement>('micrio-marker-content h1')?.style.height).toBe('0px')
+		// The fold is CSS-only, so nothing is written on the content or its children
+		expect(popup?.querySelector<HTMLElement>('micrio-marker-content')?.getAttribute('style')).toBeNull()
+		// The toggle's icon flips to the expand arrow
+		expect(popup?.querySelector('micrio-button.down')).not.toBeNull()
+		expect(popup?.querySelector('micrio-button.up')).toBeNull()
 
 		// Clicking again expands the popup
 		control(opened, 'micrio-button.down')?.click()
 		expect(popup?.classList.contains('minimized')).toBe(false)
+		expect(popup?.querySelector('micrio-button.up')).not.toBeNull()
+		opened.viewer.destroy()
+	})
+
+	it('overlays the minimize toggle when the tour controls move into the popup', async () => {
+		const fixture = markerBundle({
+			markerTours: [markerTour({ steps: ['m1', 'm2'] })],
+			settings: { _markers: { canMinimizePopup: true, tourControlsInPopup: true } },
+		})
+		const tour = fixture.markerTours[0]
+		if (!tour) {
+			throw new Error('no tour')
+		}
+		const opened = await openMarkers(fixture)
+		opened.viewer.el.state.tour.set(tour)
+		await waitFor(
+			() => Boolean(popupOf(opened)?.querySelector('aside.marker-tour')),
+			6000,
+			'the tour aside inside the popup',
+		)
+
+		const popup = popupOf(opened)
+		const minimize = popup?.querySelector<HTMLElement>(':scope > micrio-button.popup-minimize')
+		// A direct child of the popup, not part of the tour's aside
+		expect(minimize).not.toBeNull()
+		expect(minimize?.parentElement).toBe(popup)
+		expect(control(opened, 'micrio-button.popup-minimize')?.getAttribute('title')).toBe('Minimize')
+
+		expect(minimize?.classList.contains('up')).toBe(true)
+		control(opened, 'micrio-button.popup-minimize')?.click()
+		expect(popup?.classList.contains('minimized')).toBe(true)
+		// The overlaid toggle updates its icon too
+		expect(minimize?.classList.contains('down')).toBe(true)
 		opened.viewer.destroy()
 	})
 
@@ -158,7 +195,7 @@ describe('marker popup minimize', () => {
 		const opened = await openMarkers(markerBundle())
 		await opened.openMarker('m1')
 		await waitForPopup(opened.viewer.el)
-		expect(popupOf(opened)?.querySelector('micrio-button.down')).toBeNull()
+		expect(popupOf(opened)?.querySelector('micrio-button.up')).toBeNull()
 		opened.viewer.destroy()
 	})
 })
@@ -181,7 +218,7 @@ describe('marker popup translation', () => {
 			6000,
 			'the translated close button',
 		)
-		expect(control(opened, 'micrio-button.down')?.getAttribute('title')).toBe('Minimaliseer')
+		expect(control(opened, 'micrio-button.up')?.getAttribute('title')).toBe('Minimaliseer')
 		opened.viewer.destroy()
 	})
 })

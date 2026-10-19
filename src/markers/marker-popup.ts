@@ -24,13 +24,11 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	static tag = 'micrio-marker-popup'
 
 	#props: Partial<MarkerPopupProps> = {}
-	#content!: HTMLElement
 	#isMinimized = false
 	#destroying = false
 	/** True once a tour step has been requested from this popup. */
 	#stepping = false
 	#placedTourControls = false
-	#originalHeights = new WeakMap<HTMLElement, number>()
 
 	/** @internal */
 	_onMount() {
@@ -216,39 +214,14 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			}
 		}
 
-		const toggleMinimize = () => {
-			this.#isMinimized = !this.#isMinimized
-			this.classList.toggle('minimized', this.#isMinimized)
-			// This button is what collapses a running tour's UI, which is the condition
-			// `tour-minimize` documents.
-			if (get(micrio.state.tour)) {
-				micrio.events._dispatch('tour-minimize', this.#isMinimized)
-			}
-			if (this.#content !== undefined) {
-				for (const child of this.#content.children) {
-					if (child instanceof HTMLElement) {
-						const n = child
-						if (!this.#originalHeights.has(n)) {
-							this.#originalHeights.set(n, n.offsetHeight)
-							n.style.height = `${n.offsetHeight}px`
-						}
-						const height = this.#originalHeights.get(n)
-						if (height === undefined) {
-							continue
-						}
-						setTimeout(() => {
-							n.style.height = this.#isMinimized ? '0px' : `${height}px`
-						}, 100)
-					}
-				}
-			}
-		}
-
 		this.replaceChildren()
+		this.#minimizeBtn = undefined
 
-		if (!showTourControls) {
-			const aside = createElement('aside')
-
+		// Without tour controls in the popup, the popup builds its own control aside; with
+		// them, the tour's aside takes that place.
+		const aside = showTourControls ? undefined : createElement('aside')
+		if (aside) {
+			this.append(aside)
 			if (!data.alwaysOpen) {
 				createElement('micrio-button', {
 					setProps: {
@@ -259,18 +232,9 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					parent: aside,
 				})
 			}
+		}
 
-			if (canMinimize) {
-				createElement('micrio-button', {
-					setProps: {
-						type: this.#isMinimized ? 'up' : 'down',
-						title: $i18n._minimize,
-						onclick: toggleMinimize,
-					},
-					parent: aside,
-				})
-			}
-
+		if (aside) {
 			// The tour's own aside (tourControlsInPopup mode) already carries a counter
 			if (showCounter && markerTour) {
 				createElement('span', {
@@ -279,14 +243,31 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 					parent: aside,
 				})
 			}
-
-			this.append(aside)
 		}
 
-		this.#content = createElement('micrio-marker-content', {
+		createElement('micrio-marker-content', {
 			setProps: { marker, image: this.#props.image, onclose: close },
 			parent: this,
 		})
+
+		// The minimize toggle always sits at the popup's own top-right, whichever aside
+		// carries the other controls. It is the last control, so it keeps the popup's focus.
+		if (canMinimize) {
+			const minimize = createElement('micrio-button', {
+				className: 'popup-minimize',
+				setProps: {
+					type: this.#isMinimized ? 'down' : 'up',
+					title: $i18n._minimize,
+					onclick: () => {
+						this.#toggleMinimize()
+					},
+				},
+				parent: this,
+			})
+			if (minimize instanceof MicrioElement) {
+				this.#minimizeBtn = minimize
+			}
+		}
 
 		if (showTourControls) {
 			// The aside lives in `<micrio-tour>`, which the layout may mount in a later
@@ -295,6 +276,24 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				this.#placingAside = true
 				Frame.request(this.#placeTourAside)
 			}
+		}
+	}
+
+	/** The rendered minimize toggle, so its icon follows {@link #isMinimized}. */
+	#minimizeBtn: MicrioElement | undefined = undefined
+
+	/** Collapses or expands the popup, keeping the toggle's icon in step. */
+	#toggleMinimize(): void {
+		this.#isMinimized = !this.#isMinimized
+		// The fold itself is pure CSS: the `minimized` class collapses every content child
+		// except the title, and `interpolate-size` animates `height: auto` to `0` and back.
+		this.classList.toggle('minimized', this.#isMinimized)
+		this.#minimizeBtn?._setProps?.({ type: this.#isMinimized ? 'down' : 'up' })
+		// This button is what collapses a running tour's UI, which is the condition
+		// `tour-minimize` documents.
+		const micrio = this._getMicrio()
+		if (micrio && get(micrio.state.tour)) {
+			micrio.events._dispatch('tour-minimize', this.#isMinimized)
 		}
 	}
 

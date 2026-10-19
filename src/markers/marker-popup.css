@@ -4,10 +4,46 @@ micrio-marker-popup {
 	position: absolute;
 	top: var(--micrio-border-margin);
 	left: var(--micrio-border-margin);
+	/* Lets the minimized fold animate `height: auto` <-> `0` without measuring it */
+	interpolate-size: allow-keywords;
 }
 micrio-marker-popup > aside {
 	padding: 0;
 	position: absolute;
+}
+/*
+ * The popup folds to its title with CSS only: every content child except the title
+ * collapses to `height: 0` while minimized, and `interpolate-size` animates that against
+ * its natural height. The children clip themselves, so the body never shows mid-fold and
+ * the content's own scrollbar never appears during the transition.
+ */
+micrio-marker-popup micrio-marker-content > :not(h1) {
+	overflow: hidden;
+	transition: height 0.25s ease;
+}
+micrio-marker-popup.minimized micrio-marker-content > :not(h1) {
+	height: 0;
+}
+/* The title's own bottom margin folds away with it, so only the title band is left */
+micrio-marker-popup micrio-marker-content > h1 {
+	transition: margin-bottom 0.25s ease;
+}
+micrio-marker-popup.minimized micrio-marker-content > h1 {
+	margin-bottom: var(--micrio-popup-padding);
+}
+/*
+ * The minimize toggle is a direct child of the popup, at its top-right, whichever aside
+ * carries the other controls. `<micrio-button>` is `display: contents`, so the inner
+ * button carries the position. It sits on the popup itself, so it needs no chrome.
+ */
+micrio-marker-popup > micrio-button.popup-minimize > button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	z-index: 2;
+	--micrio-button-background: none;
+	--micrio-button-shadow: none;
+	--micrio-background-filter: none;
 }
 micrio-marker-popup > aside > span.tour-counter {
 	display: block;
@@ -57,6 +93,10 @@ micrio-marker-popup > aside > span.tour-counter {
 		--micrio-button-shadow: none;
 		--micrio-background: none;
 		--micrio-background-filter: none;
+	}
+	/* The overlay minimize toggle owns the corner; the other controls stack below it */
+	micrio-marker-popup:has(> micrio-button.popup-minimize) > aside {
+		top: var(--micrio-button-size);
 	}
 	micrio-marker-popup :is(h1, micrio-media:only-child) {
 		margin-right: calc(var(--micrio-button-size) - 2 * var(--micrio-border-margin, 0));
