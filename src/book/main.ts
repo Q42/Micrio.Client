@@ -51,6 +51,14 @@ import { computePageLayout, computeTexRegion } from './core/layout'
 import { getPreset, getPresets } from './rendering/lighting'
 import { archive } from '$utils/archive'
 import type { MicrioImage } from '$core/image'
+import type { TextureBitmap } from '$render/textures'
+
+/** Frees a decoded page bitmap once it has been uploaded to a texture. @internal */
+function closePageBitmap(img: TextureBitmap | undefined): void {
+	if (img !== undefined && globalThis.ImageBitmap !== undefined && img instanceof ImageBitmap) {
+		img.close()
+	}
+}
 
 interface TextureContext {
 	pageIndex: number
@@ -133,6 +141,10 @@ export class BookViewer {
 
 	/** True once the input/window listeners are attached, so `_stop` only detaches what exists. */
 	#listenersReady = false
+
+	/** The canvas the listeners were attached to. Kept because a restored context rebuilds the
+	 *  renderer, and detaching from "the renderer's canvas" would then name a different one. */
+	#listenerCanvas?: HTMLCanvasElement
 
 	#meshes: PaperMesh[] = []
 	#renderer!: PaperRenderer
@@ -825,9 +837,8 @@ export class BookViewer {
 		this.#inputHandler._destroy()
 		window.removeEventListener('resize', this.#onWindowResize)
 		document.removeEventListener('visibilitychange', this.#onVisibilityChange)
-		const canvas = this.#renderer._getCanvas()
-		canvas.removeEventListener('webglcontextlost', this.#onContextLost)
-		canvas.removeEventListener('webglcontextrestored', this.#onContextRestored)
+		this.#listenerCanvas?.removeEventListener('webglcontextlost', this.#onContextLost)
+		this.#listenerCanvas?.removeEventListener('webglcontextrestored', this.#onContextRestored)
 	}
 
 	_nextPage(grabRow?: number): void {
@@ -1218,6 +1229,7 @@ export class BookViewer {
 	}
 
 	#setupResizeAndContextHandlers(canvas: HTMLCanvasElement): void {
+		this.#listenerCanvas = canvas
 		window.addEventListener('resize', this.#onWindowResize)
 		canvas.addEventListener('webglcontextlost', this.#onContextLost)
 		canvas.addEventListener('webglcontextrestored', this.#onContextRestored)
@@ -1730,12 +1742,22 @@ export class BookViewer {
 
 			pagePromises.push(
 				(async () => {
+					let frontBitmap: TextureBitmap | undefined
+					let backBitmap: TextureBitmap | undefined
 					try {
-						const frontBitmap = await archive._getImageById(frontImg.id)
-						const backBitmap = backImg !== undefined ? await archive._getImageById(backImg.id) : frontBitmap
+						frontBitmap = await archive._getImageById(frontImg.id)
+						backBitmap = backImg !== undefined ? await archive._getImageById(backImg.id) : frontBitmap
 						this.#renderer._setPageTextures(p, frontBitmap, backBitmap)
 					} catch (err) {
 						console.warn(`Failed to load textures for page ${p}:`, err)
+					} finally {
+						// `_setPageTextures` uploads and drops the bitmap, so the decode has to be
+						// released here or every page (and every context restore, which re-runs this)
+						// leaks one. A missing back page shares the front bitmap: close it once.
+						closePageBitmap(frontBitmap)
+						if (backBitmap !== frontBitmap) {
+							closePageBitmap(backBitmap)
+						}
 					}
 				})(),
 			)
