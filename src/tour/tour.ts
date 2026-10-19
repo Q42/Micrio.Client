@@ -169,7 +169,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				})
 
 				createElement('span', {
-					textContent: `${this.#currentStep + 1}/${mt.steps.length}`,
+					textContent: `${this.#currentStep + 1} / ${mt.steps.length}`,
 					parent: this.aside,
 				})
 
