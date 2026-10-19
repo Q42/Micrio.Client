@@ -267,7 +267,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					},
 					hasAudio: this.#stepInfo.some((s) => s.duration > 0),
 					fullscreenEl: micrio,
-					getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`,
+					getTimeDisplay: () => this.#timeDisplay(),
 				},
 			})
 			this.#mediaEl = media
@@ -348,7 +348,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				currentTime: 0,
 				hasAudio: true,
 				fullscreenEl: micrio,
-				getTimeDisplay: () => `${parseTime(this.#calcTime())} / ${parseTime(this.#duration)}`,
+				getTimeDisplay: () => this.#timeDisplay(),
 			},
 		})
 		this.#ownControls = controls instanceof MicrioElement ? controls : undefined
@@ -357,10 +357,9 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	/**
 	 * One tick of the step clock.
 	 *
-	 * - a step with media runs the clock only while that media is actually playing, and is
-	 *   released by the media's own `ended` — never by a timeout;
-	 * - a step with media that never started (still loading, or autoplay blocked) holds the
-	 *   clock at 0, so nothing is skipped over and nothing is cut short;
+	 * - a step with media is timed by that media's own `timeupdate`, never by this clock:
+	 *   its bar and readout always show the real playback position, so a paused step
+	 *   (which stops reporting time) cannot keep moving;
 	 * - a step with no media is timed by its authored duration.
 	 */
 	#tick() {
@@ -372,14 +371,6 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			return
 		}
 		if (this.#hasMedia) {
-			if (!this.#mediaPlaying || this.#mediaPaused) {
-				// Loading, or blocked: the step waits for the user (or the network), rather
-				// than advancing over media that has not been heard
-				return
-			}
-			this.#elapsed = Math.min(this.#elapsed + 0.25, si.duration > 0 ? si.duration : this.#elapsed + 0.25)
-			si.currentTime = this.#elapsed
-			this.#updateBars()
 			return
 		}
 		this.#elapsed += 0.25
@@ -486,6 +477,11 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		void this.#openStep(i)
 	}
 
+	/** The control bar readout: the tour's remaining time, printed as `-0:50`. */
+	#timeDisplay(): string {
+		return `-${parseTime(Math.max(0, this.#duration - this.#calcTime()))}`
+	}
+
 	#calcTime() {
 		let total = 0
 		for (let i = 0; i < this.#stepInfo.length; i++) {
@@ -524,6 +520,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		for (const li of chapters) {
 			li.classList.toggle('active', Number(li.dataset.idx) === this.#currentStep)
 		}
+
+		// The tour's cumulative current time, for CSS (`--time: '1:45'`). Written to the
+		// step media too: its own controls live under it, and they must inherit the tour's
+		// timeline, not just this segment's.
+		const time = `'${parseTime(this.#calcTime())}'`
+		this.style.setProperty('--time', time)
+		this.#mediaEl?.style.setProperty('--time', time)
 
 		// The tour's own control bar has no media element behind it, so it is driven from
 		// here; a media element's controls are updated by the media itself.

@@ -258,11 +258,9 @@ class MicrioMediaControls extends MicrioElement<MediaControlsProps> {
 			this.#barEl.style.width = '0%'
 		}
 		if (p.getTimeDisplay !== undefined || duration > 0) {
-			// The default stays the original countdown formatter, unchanged
-			const remaining = duration - (p.currentTime ?? 0)
-			const t = p.getTimeDisplay
-				? p.getTimeDisplay(p.currentTime ?? 0, duration)
-				: (remaining >= 0 ? '' : '-') + fmt(Math.abs(remaining))
+			// The default is a countdown: the media's remaining time, printed as `-0:50`
+			const remaining = Math.max(0, duration - (p.currentTime ?? 0))
+			const t = p.getTimeDisplay ? p.getTimeDisplay(p.currentTime ?? 0, duration) : `-${fmt(remaining)}`
 			if (t !== this.#prevTime) {
 				this.#prevTime = t
 				this.#timeEl.textContent = t
