@@ -358,6 +358,9 @@ transition. That wait defaults to the transition duration plus 3 seconds; pass
 `readinessTimeout` to cap it explicitly. Source, incoming and unchanged images
 are stacked above each other for the duration; explicit `z` values win.
 
+The runnable demo at `templates/grid/grid.html` has an **Empty cells** button
+(reserve placeholder cells) and a **Grow from cell** button (`in-from-id`).
+
 Notable `set` options:
 
 | Option              | Type                | Description                                                                        |

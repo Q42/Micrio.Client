@@ -5,6 +5,8 @@
  * then builds a small control panel that exercises the public Grid API:
  *
  *   - `grid.set()`            — re-layout + transitions between configurations
+ *   - `grid.set(..., { transition: 'in-from-id' })` — grow new cells out of a source cell
+ *   - `{ empty: true }` entries — reserve layout holes without an image
  *   - `grid.gridFocus()`      — focus / zoom into a single image
  *   - `grid.blur()` / `back()`— leave the focused image
  *   - `grid.reset()`          — back to the initial layout
@@ -29,6 +31,7 @@ import type { MicrioImage } from '$core/image'
 import type { Models } from '$types/models'
 
 type GridImage = Models.Grid.GridImage
+type GridEntry = Models.Grid.GridEntry
 type View = Models.Camera.View
 type Marker = Models.ImageData.Marker
 type FocusTransition = Models.Grid.MarkerFocusTransition
@@ -526,6 +529,8 @@ function buildShell(): HTMLElement {
 					<button data-act="col">Column</button>
 					<button data-act="mosaic">Hero mosaic</button>
 					<button data-act="pairs">2×2</button>
+					<button data-act="gaps" title="Reserve empty placeholder cells between the images">Empty cells</button>
+					<button data-act="grow" title="Collapse to the first image, then grow four cells out of it">Grow from cell</button>
 					<button data-act="enlarge">Enlarge cell #0</button>
 				</div>
 			</section>
@@ -796,6 +801,35 @@ function wireButtons(
 			{ id: CATALOG_IDS[10], size: [1] },
 		]
 		void grid.set(layout, { duration: 1, transition: 'behind' })
+	})
+	on('gaps', () => {
+		const layout: GridEntry[] = [
+			{ id: CATALOG_IDS[0], size: [2, 2] },
+			{ empty: true, size: [1] },
+			{ id: CATALOG_IDS[1], size: [1] },
+			{ id: CATALOG_IDS[2], size: [1] },
+			{ empty: true, size: [1, 2] },
+			{ id: CATALOG_IDS[3], size: [1] },
+			{ id: CATALOG_IDS[4], size: [1] },
+			{ id: CATALOG_IDS[5], size: [1] },
+			{ empty: true, size: [1] },
+			{ id: CATALOG_IDS[6], size: [1] },
+		]
+		void grid.set(layout, { duration: 1, columns: 4 })
+	})
+	on('grow', () => {
+		const source = CATALOG_IDS[0]
+		const incoming = (id: string): GridImage => ({ id, size: [1], from: source })
+		const layout: GridEntry[] = [
+			{ id: source, size: [2, 2] },
+			...CATALOG_IDS.slice(1, 4).map(incoming),
+			{ empty: true, size: [1] },
+			incoming(CATALOG_IDS[4]),
+		]
+		// Collapse to the source first, so the next layout has genuinely new cells to grow
+		void grid
+			.set([{ id: source, size: [1] }], { duration: 0.4, noHistory: true, columns: 3 })
+			.then(() => grid.set(layout, { transition: 'in-from-id', duration: 1.2, columns: 3 }))
 	})
 	on('enlarge', () => void grid.enlarge(0, 2, 2))
 
