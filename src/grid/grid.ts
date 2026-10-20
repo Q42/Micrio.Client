@@ -14,9 +14,16 @@ import { pointInArea } from '$utils/math'
 import { getCols } from './format'
 import { hookGridKeys } from './keyboard'
 import '$ui/button'
-import { setupBehindTransition, transition } from './transitions'
+import { setupBehindTransition, transition, whenImagesReady } from './transitions'
 import { handleAction, createTourEventHandler } from './action-handlers'
 import './grid.css'
+
+/** Opacity that keeps an image fully visible without starting a fade. */
+const OPACITY_VISIBLE = 0.9999
+/** Transition-only stacking tiers for `in-from-id`: sources over incoming over the rest. */
+const Z_TIER_SOURCE = 3000
+const Z_TIER_INCOMING = 2000
+const Z_TIER_REST = 1000
 
 /** Props injected into a `<micrio-grid>` element by the gallery controller. */
 interface GridProps {
@@ -171,6 +178,9 @@ export class Grid extends MicrioElement<GridProps> {
 
 	/** @internal */
 	_onDestroy() {
+		// Bump the set id so an in-flight `in-from-id` readiness gate stops polling
+		// and never starts its deferred camera animations on the torn-down grid.
+		this.#setId++
 		this.#clearTimeouts()
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
@@ -349,6 +359,9 @@ export class Grid extends MicrioElement<GridProps> {
 
 			const imageEntries = images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty)
 			const prevById = new Map(this._current.map((img) => [img.id, img] as const))
+			// Entries with an explicit `z` keep their override after the transition;
+			// the tiered defaults `in-from-id` assigns are reset in `done()`.
+			const zOverrides = new Set(imageEntries.filter((e) => e.z !== undefined).map((e) => e.id))
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
@@ -404,7 +417,9 @@ export class Grid extends MicrioElement<GridProps> {
 			const isInFromId = opts.transition === 'in-from-id'
 			let openGate: (() => void) | undefined
 			const readyGate: Promise<void> | undefined = isInFromId
-				? new Promise<void>((r) => (openGate = r))
+				? new Promise<void>((r) => {
+						openGate = r
+					})
 				: undefined
 			const whenReady = (fn: () => void): void => {
 				if (readyGate) {
@@ -480,29 +495,29 @@ export class Grid extends MicrioElement<GridProps> {
 					imageEntries.filter((e) => !prevById.has(e.id) && fromAreas.has(e.id)).map((e) => e.id),
 				)
 
-				imageEntries.forEach((entry, i) => {
+				for (const [i, entry] of imageEntries.entries()) {
 					const c = this._imageMap.get(entry.id)?.canvas
 					if (!c) {
-						return
+						continue
 					}
 					// Keep animated (source/incoming) items fully visible so they don't
 					// fade during their area animation. Fade-in-place items keep their
 					// default 0 opacity so they fade in at their target position.
 					if (!fadeInPlaceIds?.has(entry.id)) {
-						c._setOpacityDirect(0.9999)
+						c._setOpacityDirect(OPACITY_VISIBLE)
 					}
-					let z = entry.z
+					let { z } = entry
 					if (z === undefined) {
 						if (sourceIds.has(entry.id)) {
-							z = 3000 + i
+							z = Z_TIER_SOURCE + i
 						} else if (incomingIds.has(entry.id)) {
-							z = 2000 + i
+							z = Z_TIER_INCOMING + i
 						} else {
-							z = 1000 + i
+							z = Z_TIER_REST + i
 						}
 					}
 					c.zIndex = z
-				})
+				}
 
 				// Wait until the images that animate in from a source have rendered their
 				// base tiles before opening the gate that starts the transition, so they
@@ -512,16 +527,30 @@ export class Grid extends MicrioElement<GridProps> {
 				// would needlessly stall the whole transition until the timeout.
 				const incoming = this._current.filter((img) => !prevById.has(img.id) && fromAreas.has(img.id))
 				const timeout = (Math.max(dur, crossfadeDur) || 1) * 1000 + 3000
-				void this.#whenImagesReady(incoming, timeout).then(() => {
+				void whenImagesReady(engine, incoming, timeout, () => setId !== this.#setId).then(() => {
 					if (setId === this.#setId) {
 						openGate?.()
 					}
 				})
+			} else {
+				// A layout entry may pin its own stacking order. This is applied on
+				// every set that carries a `z`, and persists until a later entry
+				// overrides it (or the image leaves the layout).
+				for (const entry of imageEntries) {
+					if (entry.z !== undefined) {
+						const c = this._imageMap.get(entry.id)?.canvas
+						if (c) {
+							c.zIndex = entry.z
+						}
+					}
+				}
 			}
 
 			if (isAppear) {
 				for (const i of this._current.slice(1)) {
-					i.canvas?._setOpacityDirect(0.9999)
+					// Preset the target but keep the eased value untouched: a newly
+					// added image has to stay hidden until its staggered fade-in.
+					i.canvas?._setOpacityDirect(OPACITY_VISIBLE, false)
 				}
 			}
 
@@ -541,7 +570,7 @@ export class Grid extends MicrioElement<GridProps> {
 				Frame.request(() => (engine._crossfadeDuration = defaultDur))
 				if (isDelayed || isInFromId) {
 					for (const i of this._images) {
-						if (i.canvas) {
+						if (i.canvas && !zOverrides.has(i.id)) {
 							i.canvas.zIndex = 0
 						}
 					}
@@ -785,39 +814,6 @@ export class Grid extends MicrioElement<GridProps> {
 		return img
 	}
 
-	/** Resolves once all given images have loaded (rendered) their base tile, or
-	 * after `timeout` ms as a safety fallback. Used to hold a transition until
-	 * newly added images are actually rendered so they don't pop in. @internal */
-	#whenImagesReady(images: MicrioImage[], timeout: number): Promise<void> {
-		return new Promise<void>((resolve) => {
-			const { _engine: engine } = this.micrio
-			const start = performance.now()
-			// `_gotBase` is the timestamp of the last frame the base tile was
-			// actually drawn. A stale value from an earlier appearance doesn't
-			// guarantee the texture still exists (tiles of removed images get
-			// cleaned up), so require a draw after this check started.
-			const isReady = (img: MicrioImage): boolean => {
-				const c = img.canvas
-				if (!c) {
-					return false
-				}
-				if (c.images.length === 0) {
-					return true
-				}
-				return c.images[0]._gotBase >= start
-			}
-			const check = (): void => {
-				if (images.every(isReady) || performance.now() - start > timeout) {
-					resolve()
-				} else {
-					engine.render()
-					Frame.request(check)
-				}
-			}
-			check()
-		})
-	}
-
 	#removeImages(images: MicrioImage[]): void {
 		const { _engine } = this.micrio
 		for (const i of images) {
@@ -1040,7 +1036,8 @@ export class Grid extends MicrioElement<GridProps> {
 
 	/** Enlarge a specific grid cell to span the given number of columns/rows, re-laying out without history. */
 	enlarge(idx: number, width: number, height: number = width): Promise<MicrioImage[]> {
-		const layout = this.#history[this.#history.length - 1]?.layout
+		const state = this.#history[this.#history.length - 1]
+		const layout = state?.layout
 		const cover = this.image.$settings?.initType === 'cover'
 		if (!layout?.length) {
 			const galleryImages = this.#gallery._images
@@ -1052,14 +1049,34 @@ export class Grid extends MicrioElement<GridProps> {
 					id: img.id,
 					size: i === idx ? ([width, height] as [number, number]) : [1],
 				})),
-				{ noHistory: true, keepGrid: true, duration: 0.5, cover },
+				{
+					noHistory: true,
+					keepGrid: true,
+					duration: 0.5,
+					cover,
+					columns: this.#currentColumns,
+					horizontal: this.#isHorizontal,
+				},
 			)
 		}
-		const input: Models.Grid.GridEntry[] = layout.map((e, i) => {
-			const size = i === idx ? ([width, height] as [number, number]) : (e.size ?? [1])
-			return !e.id || e.empty ? { empty: true, size } : { id: e.id, size }
+		// `idx` indexes the image layout (`_current`), so placeholders in the
+		// history layout have to be skipped when matching it.
+		let imageIndex = 0
+		const input: Models.Grid.GridEntry[] = layout.map((e) => {
+			if (!e.id || e.empty) {
+				return { empty: true, size: e.size ?? [1] }
+			}
+			const size = imageIndex++ === idx ? ([width, height] as [number, number]) : (e.size ?? [1])
+			return { id: e.id, size }
 		})
-		return this.set(input, { noHistory: true, keepGrid: true, duration: 0.5, cover })
+		return this.set(input, {
+			noHistory: true,
+			keepGrid: true,
+			duration: 0.5,
+			cover,
+			columns: state.columns,
+			horizontal: state.horizontal,
+		})
 	}
 
 	/* @internal */

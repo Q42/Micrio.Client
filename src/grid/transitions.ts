@@ -1,8 +1,51 @@
 import type { Grid } from './grid'
 import type { Models } from '$types/models'
 import type { MicrioImage } from '$core/image'
+import type { Engine } from '$render/engine'
+import { Frame } from '$core/frame'
 import { slideAreas, swipeAreas, swipeExitAreas } from './format'
 import { sleep } from '$utils/dom'
+
+/**
+ * Resolves once every given image has drawn its base tile after this call, or
+ * after `timeout` ms. Used to hold an `in-from-id` transition until its
+ * newcomers have pixels, so they do not pop in mid-animation. `isCancelled`
+ * stops the polling (and the rendering it forces) when the transition that
+ * requested it was superseded or the grid was destroyed. @internal
+ */
+export function whenImagesReady(
+	engine: Engine,
+	images: MicrioImage[],
+	timeout: number,
+	isCancelled: () => boolean,
+): Promise<void> {
+	return new Promise<void>((resolve) => {
+		const start = performance.now()
+		// `_gotBase` is the timestamp of the last frame the base tile was
+		// actually drawn. A stale value from an earlier appearance doesn't
+		// guarantee the texture still exists (tiles of removed images get
+		// cleaned up), so require a draw after this check started.
+		const isReady = (img: MicrioImage): boolean => {
+			const c = img.canvas
+			if (!c) {
+				return false
+			}
+			if (c.images.length === 0) {
+				return true
+			}
+			return c.images[0]._gotBase >= start
+		}
+		const check = (): void => {
+			if (isCancelled() || images.every(isReady) || performance.now() - start > timeout) {
+				resolve()
+			} else {
+				engine.render()
+				Frame.request(check)
+			}
+		}
+		check()
+	})
+}
 
 /** Configure the grid images for a "behind" or "behind-delayed" transition layout. @internal */
 export function setupBehindTransition(

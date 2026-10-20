@@ -261,4 +261,33 @@ describe('grid enlarge', () => {
 		expect(cellButton(grid, all[0] ?? '')?.style.gridArea).toBe('auto / auto / span 2 / span 2')
 		viewer.destroy()
 	})
+
+	it('enlarges the intended image when the history layout contains placeholders', async () => {
+		const { viewer, grid, ids: all, gridEl } = await openGrid(fast())
+		const withGap: Models.Grid.GridEntry[] = [
+			{ id: all[0] ?? '', size: [1] },
+			{ empty: true, size: [1] },
+			{ id: all[1] ?? '', size: [1] },
+			{ empty: true, size: [1] },
+			{ id: all[2] ?? '', size: [1] },
+		]
+		await grid.set(withGap, { duration: 0, columns: 5 })
+		// The next set makes `withGap` the last history entry
+		await grid.set([{ id: all[3] ?? '', size: [1] }], { duration: 0 })
+
+		// `enlarge` indexes images, so placeholder entries must not shift the target
+		await grid.enlarge(1, 2, 2)
+		await settleFrames(2)
+
+		expect(layoutIds(grid)).toEqual([all[0], all[1], all[2]])
+		expect(emptyCells(grid)).toHaveLength(2)
+		expect(cellButton(grid, all[1] ?? '')?.style.gridArea).toBe('auto / auto / span 2 / span 2')
+		expect(cellButton(grid, all[0] ?? '')?.style.gridArea).toBe('')
+		// The placeholders and the explicit column count survive the re-layout
+		for (const empty of emptyCells(grid)) {
+			expect(empty.style.gridArea).toBe('')
+		}
+		expect(gridEl.style.gridTemplateColumns).toBe('repeat(5, auto)')
+		viewer.destroy()
+	})
 })

@@ -204,6 +204,46 @@ describe('empty placeholder cells', () => {
 		expect(gridEl.style.gridTemplateColumns).toBe(`repeat(${getCols(3, 6)}, auto)`)
 		viewer.destroy()
 	})
+
+	it('treats an entry with an id and empty: true as a placeholder', async () => {
+		const { viewer, grid, ids, gridEl } = await openGrid(fast())
+		const hidden = ids[1] ?? ''
+		const layout: Models.Grid.GridEntry[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: hidden, empty: true, size: [1, 2] },
+			{ id: ids[2] ?? '', size: [1] },
+		]
+		const placed = await grid.set(layout, { duration: 0 })
+
+		// The id forces a placeholder even though the image exists in the album
+		const empties = emptyCells(grid)
+		expect(empties).toHaveLength(1)
+		expect(empties[0]?.dataset.id).toBeUndefined()
+		expect(empties[0]?.style.gridArea).toBe('auto / auto / span 2 / span 1')
+		expect(layoutIds(grid)).toEqual([ids[0], ids[2]])
+		expect(placed.map((i) => i.id)).toEqual([ids[0], ids[2]])
+
+		const order = [...gridEl.querySelectorAll('button')].map((b) => b.dataset.id)
+		expect(order).toEqual([ids[0], undefined, ids[2]])
+		viewer.destroy()
+	})
+
+	it('accepts an implicit placeholder without an id and a normal empty: false entry', async () => {
+		const { viewer, grid, ids } = await openGrid(fast())
+		const layout: Models.Grid.GridEntry[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ size: [2, 1] }, // no id and no explicit `empty`: an implicit placeholder
+			{ id: ids[1] ?? '', empty: false, size: [1] },
+		]
+		const placed = await grid.set(layout, { duration: 0 })
+
+		const empties = emptyCells(grid)
+		expect(empties).toHaveLength(1)
+		expect(empties[0]?.style.gridArea).toBe('auto / auto / span 1 / span 2')
+		expect(layoutIds(grid)).toEqual([ids[0], ids[1]])
+		expect(placed.map((i) => i.id)).toEqual([ids[0], ids[1]])
+		viewer.destroy()
+	})
 })
 
 describe('grid settings', () => {

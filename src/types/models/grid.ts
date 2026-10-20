@@ -30,7 +30,7 @@ export namespace Grid {
 		area?: Camera.View
 		view?: Camera.View
 		/** Force this entry to render as an empty placeholder cell, even though it has an `id` */
-		empty?: true | false;
+		empty?: boolean
 		/**
 		 * Optional source image id to animate this entry in from.
 		 * Only applied for `grid.set(..., { transition: 'in-from-id' })` and only when this image is newly added.
@@ -43,14 +43,14 @@ export namespace Grid {
 	/** An empty placeholder cell in a grid layout, occupying grid space without an image */
 	export interface GridEmptyCell {
 		/** Explicit marker for an empty placeholder cell */
-		empty?: true | false;
-		id?: undefined;
+		empty?: boolean
+		id?: undefined
 		/** Cell span as [columns, rows?], defaults to a 1x1 cell */
-		size?: [number, number?];
+		size?: [number, number?]
 	}
 
 	/** A single grid layout entry: an image, or an empty placeholder cell */
-	export type GridEntry = GridImage | GridEmptyCell;
+	export type GridEntry = GridImage | GridEmptyCell
 
 	/* @internal */
 	export interface GridHistory {

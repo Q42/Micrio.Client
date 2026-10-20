@@ -60,6 +60,35 @@ async function openFullGrid(opts: Parameters<typeof openGrid>[0] = {}) {
 	return opened
 }
 
+/**
+ * The readiness gate waits for a *drawn base tile*: `set()` holds the whole transition until
+ * every source-animated newcomer has `_gotBase` stamped by a real `TileCanvas._draw`. These
+ * fixtures serve no tile bitmaps (see `tests/helpers/grid.ts`), so that draw never happens and
+ * the gate would only ever open through its timeout — `(max(duration, crossfade) || 1) * 1000
+ * + 3000` ms, so at least 4s per `set`. To keep the suite fast, this stamps `_gotBase` exactly
+ * the way `_draw` would after a real draw; it is the one place the grid suites reach past the
+ * public surface.
+ */
+function drawBaseTile(grid: Grid, id: string): void {
+	const image = grid.getImage(id)?.canvas?.images[0]
+	if (!image) {
+		throw new Error(`no engine image for ${id}`)
+	}
+	image._gotBase = performance.now()
+}
+
+/** A two-cell starting layout, so the `set` under test can add a genuinely *new* entry. */
+async function openPairGrid() {
+	const opened = await openGrid(fast())
+	const pair = opened.ids.slice(0, 2)
+	await opened.grid.set(
+		pair.map((id) => ({ id, size: [1] as [number, number?] })),
+		{ duration: 0, noHistory: true },
+	)
+	await waitForLayout(opened.grid, pair, 'pair layout')
+	return opened
+}
+
 /** The inline styles the blur transition writes and clears. */
 function blurStyles(grid: Grid): { transition: string; filter: string } {
 	const { style } = grid.micrio.canvas.element
@@ -142,35 +171,6 @@ describe('behind transitions', () => {
 })
 
 describe('in-from-id transition', () => {
-	/**
-	 * The readiness gate these tests exercise waits for a *drawn base tile*: `set()` holds the
-	 * whole transition until every source-animated newcomer has `_gotBase` stamped by a real
-	 * `TileCanvas._draw`. These fixtures serve no tile bitmaps (see `tests/helpers/grid.ts`),
-	 * so that draw never happens and the gate would only ever open through its timeout —
-	 * `(max(duration, crossfade) || 1) * 1000 + 3000` ms, so at least 4s per `set`. To keep the
-	 * suite fast, this stamps `_gotBase` exactly the way `_draw` would after a real draw; it is
-	 * the one place the grid suites reach past the public surface.
-	 */
-	function drawBaseTile(grid: Grid, id: string): void {
-		const image = grid.getImage(id)?.canvas?.images[0]
-		if (!image) {
-			throw new Error(`no engine image for ${id}`)
-		}
-		image._gotBase = performance.now()
-	}
-
-	/** A two-cell starting layout, so the `set` under test can add a genuinely *new* entry. */
-	async function openPairGrid() {
-		const opened = await openGrid(fast())
-		const pair = opened.ids.slice(0, 2)
-		await opened.grid.set(
-			pair.map((id) => ({ id, size: [1] as [number, number?] })),
-			{ duration: 0, noHistory: true },
-		)
-		await waitForLayout(opened.grid, pair, 'pair layout')
-		return opened
-	}
-
 	it('parks a new entry at its `from` source and settles it at its target', async () => {
 		const { viewer, grid, ids } = await openPairGrid()
 		const sourceArea = grid.getImage(ids[0] ?? '')?.opts.area
@@ -296,6 +296,100 @@ describe('in-from-id transition', () => {
 			settleFrames(2).then(() => 'pending'),
 		])
 		expect(raced).toBe('pending')
+		viewer.destroy()
+	})
+
+	it('applies an explicit z override to a plain layout', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		await grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1], z: 7 },
+				{ id: ids[1] ?? '', size: [1] },
+			],
+			{ duration: 0 },
+		)
+		await settleFrames(2)
+
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+		expect(grid.getImage(ids[1] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('keeps an explicit z through in-from-id and resets only the default tiers', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '', z: 9 },
+		]
+		const settled = grid.set(entries, { transition: 'in-from-id', duration: 0.1 })
+
+		// The explicit override wins over the transition tier while the gate is shut...
+		expect(grid.getImage(ids[2] ?? '')?.canvas?.zIndex).toBe(9)
+		drawBaseTile(grid, ids[2] ?? '')
+		await settled
+
+		// ...and survives `done()`, which only resets entries without a `z`
+		expect(grid.getImage(ids[2] ?? '')?.canvas?.zIndex).toBe(9)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(0)
+		expect(grid.getImage(ids[1] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('ignores a base-tile stamp from before the transition started', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const id = ids[2] ?? ''
+
+		// Place the image once so it has a canvas, then age its stamp
+		await grid.set(
+			[...ids.slice(0, 2), id].map((n) => ({ id: n, size: [1] as [number, number?] })),
+			{ duration: 0, noHistory: true },
+		)
+		const engineImage = grid.getImage(id)?.canvas?.images[0]
+		expect(engineImage).toBeDefined()
+		if (!engineImage) {
+			throw new Error('missing engine image')
+		}
+		engineImage._gotBase = performance.now() - 1000
+
+		// Removing it from the layout makes the next set treat it as newly added again
+		await grid.set(
+			ids.slice(0, 2).map((n) => ({ id: n, size: [1] as [number, number?] })),
+			{ duration: 0, noHistory: true },
+		)
+		const settled = grid.set(
+			[...ids.slice(0, 2), id].map((n) => ({
+				id: n,
+				size: [1] as [number, number?],
+				from: n === id ? (ids[0] ?? '') : undefined,
+			})),
+			{ transition: 'in-from-id', duration: 0 },
+		)
+
+		// The stale timestamp is older than the wait, so it cannot open the gate
+		const raced = await Promise.race([settled.then(() => 'settled'), settleFrames(4).then(() => 'pending')])
+		expect(raced).toBe('pending')
+
+		drawBaseTile(grid, id)
+		await settled
+		expect(layoutIds(grid)).toEqual([...ids.slice(0, 2), id])
+		viewer.destroy()
+	})
+
+	it('keeps a newly added appear-delayed image hidden until its fade-in', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const settled = grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1] },
+				{ id: ids[2] ?? '', size: [1] },
+			],
+			{ transition: 'appear-delayed', duration: 0.1 },
+		)
+
+		// The preset target keeps the image visible during its area animation, but the
+		// eased value must stay at 0 so a newly added image still appears staggered.
+		expect(grid.getImage(ids[2] ?? '')?.canvas?._easedOpacity).toBe(0)
+		await settled
 		viewer.destroy()
 	})
 })
