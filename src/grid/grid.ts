@@ -982,10 +982,8 @@ export class Grid extends MicrioElement<GridProps> {
 
 	/** Enlarge a specific grid cell to span the given number of columns/rows, re-laying out without history. */
 	enlarge(idx: number, width: number, height: number = width): Promise<MicrioImage[]> {
-		const state = this.#history[this.#history.length - 1]
-		const layout = state?.layout
 		const cover = this.image.$settings?.initType === 'cover'
-		if (!layout?.length) {
+		if (this.#currentLayout.length === 0) {
 			const galleryImages = this.#gallery._images
 			if (galleryImages.length === 0) {
 				return Promise.resolve(this._current)
@@ -1005,10 +1003,11 @@ export class Grid extends MicrioElement<GridProps> {
 				},
 			)
 		}
-		// `idx` indexes the image layout (`_current`), so placeholders in the
-		// history layout have to be skipped when matching it.
+		// `idx` indexes the image layout, so placeholders have to be skipped when
+		// matching it. The current layout is the one the caller is looking at —
+		// rebuilding a history entry here would resize a cell from an older layout.
 		let imageIndex = 0
-		const input: Models.Grid.GridEntry[] = layout.map((e) => {
+		const input: Models.Grid.GridEntry[] = this.#currentLayout.map((e) => {
 			if (!e.id || e.empty) {
 				return { empty: true, size: e.size ?? [1] }
 			}
@@ -1020,8 +1019,8 @@ export class Grid extends MicrioElement<GridProps> {
 			keepGrid: true,
 			duration: 0.5,
 			cover,
-			columns: state.columns,
-			horizontal: state.horizontal,
+			columns: this.#currentColumns,
+			horizontal: this.#isHorizontal,
 		})
 	}
 

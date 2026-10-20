@@ -429,7 +429,8 @@ await grid.reset(1)
 ### `grid.enlarge(idx, width, height = width)` → `Promise<MicrioImage[]>`
 
 Enlarge a specific cell to span `width`×`height` cells, re-laying out without
-recording history. `idx` is the index in the **current** layout.
+recording history. `idx` is the index in the **current** layout, counting image
+entries only (placeholders are preserved but skipped when indexing).
 
 ```js
 // Make the first cell 2 columns × 2 rows
