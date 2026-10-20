@@ -123,7 +123,10 @@ export function getInFromIdSources(
 }
 
 /** Milliseconds an `in-from-id` readiness gate may wait. @internal */
-export function inFromIdTimeout(duration: number, crossfadeDuration: number): number {
+export function inFromIdTimeout(duration: number, crossfadeDuration: number, override?: number): number {
+	if (override !== undefined) {
+		return override * 1000
+	}
 	return (Math.max(duration, crossfadeDuration) || 1) * 1000 + 3000
 }
 

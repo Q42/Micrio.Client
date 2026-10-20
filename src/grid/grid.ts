@@ -327,6 +327,8 @@ export class Grid extends MicrioElement<GridProps> {
 			noBlur?: boolean
 			noFade?: boolean
 			transition?: Models.Grid.GridSetTransition
+			/** Seconds the `in-from-id` readiness gate may wait for base tiles. */
+			readinessTimeout?: number
 			forceAni?: boolean
 			coverLimit?: boolean
 			cover?: boolean
@@ -472,7 +474,7 @@ export class Grid extends MicrioElement<GridProps> {
 
 			if (inFromId) {
 				setupInFromIdTransition(this, imageEntries, this._current, prevById, inFromId, {
-					timeout: inFromIdTimeout(dur, crossfadeDur),
+					timeout: inFromIdTimeout(dur, crossfadeDur, opts.readinessTimeout),
 					canOpen: () => setId === this.#setId,
 					open: () => openGate?.(),
 				})

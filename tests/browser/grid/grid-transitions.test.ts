@@ -392,6 +392,24 @@ describe('in-from-id transition', () => {
 		await settled
 		viewer.destroy()
 	})
+
+	it('opens the gate after the explicit readinessTimeout without a drawn tile', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+		]
+		const started = performance.now()
+		// No `drawBaseTile`: only the explicit cap can open the gate
+		await grid.set(entries, { transition: 'in-from-id', duration: 0, readinessTimeout: 0.05 })
+		expect(performance.now() - started).toBeLessThan(1000)
+
+		expect(layoutIds(grid)).toEqual(ids.slice(0, 3))
+		expect(grid.getImage(ids[2] ?? '')?.opts.area).toEqual(entries[2]?.area)
+		viewer.destroy()
+	})
+
 })
 
 describe('blur transitions', () => {

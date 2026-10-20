@@ -354,8 +354,9 @@ await grid.set(
 
 `in-from-id` parks every newly added `from` entry at the source image's area
 and waits until those images have drawn their base tile before starting the
-transition (with a timeout as a safety net). Source, incoming and unchanged
-images are stacked above each other for the duration; explicit `z` values win.
+transition. That wait defaults to the transition duration plus 3 seconds; pass
+`readinessTimeout` to cap it explicitly. Source, incoming and unchanged images
+are stacked above each other for the duration; explicit `z` values win.
 
 Notable `set` options:
 
@@ -366,6 +367,7 @@ Notable `set` options:
 | `duration`          | `number`            | Transition duration in seconds.                                                    |
 | `view`              | `Camera.View`       | Target view for the _viewport_ image.                                              |
 | `transition`        | `GridSetTransition` | `'crossfade'`, `'behind'`, `'behind-delayed'`, `'appear-delayed'`, `'in-from-id'`. |
+| `readinessTimeout`  | `number`            | Seconds the `in-from-id` gate may wait for base tiles (default: duration + 3).     |
 | `noHistory`         | `boolean`           | Do not push the current layout onto the history stack.                             |
 | `keepGrid`          | `boolean`           | Keep existing layout while re-arranging.                                           |
 | `cover`             | `boolean`           | Place images as cover view.                                                        |
