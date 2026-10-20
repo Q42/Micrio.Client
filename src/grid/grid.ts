@@ -18,7 +18,7 @@ import { setupBehindTransition, transition } from './transitions'
 import { handleAction, createTourEventHandler } from './action-handlers'
 import './grid.css'
 
-/** Props injected into a `<micrio-grid>` element by the gallery controller. @internal */
+/** Props injected into a `<micrio-grid>` element by the gallery controller. */
 interface GridProps {
 	micrio: HTMLMicrioElement
 	image: MicrioImage

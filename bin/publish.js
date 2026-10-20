@@ -15,26 +15,22 @@ const run = (cmd) =>
 	})
 const error = (err) => {
 	console.error(`\nAn error has occurred: ${err}`)
-	process.exit()
+	process.exit(1)
 }
 
 const version = process.env.npm_package_version
 
+// Always build: a previous build for this same version number is
+// indistinguishable from a stale one, so never trust what is in public/dist.
+process.stdout.write('\nBuilding... ')
+await run('npm run build').catch(error)
+console.log('done.\n')
+
+// Verify the build actually produced this version before publishing anything.
 const jsFile = './public/dist/micrio.min.js'
-const exists = fs.existsSync(jsFile)
-if (!exists) {
-	console.warn('Compiled Micrio JS not found.')
-}
-
-const isCurrentVersion = exists && fs.readFileSync(jsFile, 'utf8').split('\n')[0].indexOf(version) > 0
-if (exists && !isCurrentVersion) {
-	console.warn('Compiled version is not the latest version.')
-}
-
-if (!isCurrentVersion) {
-	process.stdout.write('\nBuilding... ')
-	await run('npm run build').catch(error)
-	console.log('done.\n')
+const built = fs.existsSync(jsFile) && fs.readFileSync(jsFile, 'utf8').split('\n')[0].indexOf(version) > 0
+if (!built) {
+	error(`Build did not produce version ${version} in ${jsFile}`)
 }
 
 const args = process.argv.slice(2)
@@ -44,7 +40,7 @@ if (npmPublish) {
 	const otp = args[args?.findIndex((a) => a.startsWith('--otp')) + 1]
 	if (!otp) {
 		console.log('\nError: enter your one-time-password using --otp to publish to NPM')
-		process.exit()
+		process.exit(1)
 	}
 	// Publish to NPM registry
 	process.stdout.write('\nPublishing to NPM registry... ')
@@ -70,7 +66,7 @@ if (!awsSecret) {
 }
 if (!accountId || !awsKey || !awsSecret) {
 	console.error('\nError: CLOUDFLARE_ACCOUNT_ID, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY must all be set')
-	process.exit()
+	process.exit(1)
 }
 
 const r2Endpoint = `https://${accountId}.r2.cloudflarestorage.com`

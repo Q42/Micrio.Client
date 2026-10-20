@@ -6,14 +6,28 @@ import { settle } from '../../helpers/tour'
 import { waitFor } from '../../helpers/viewer'
 
 /**
- * Navigating between two waypoints hands a `Camera.Vector` to `micrio.open`, which the
- * engine stores and the arriving 360 canvas turns into a viewing direction. The
- * transition itself is an animation, so these tests assert the state it settles into.
+ * Navigating between two waypoints hands a `Camera.Vector` to `micrio.open`. The vector is
+ * the *walk*: the engine turns its direction into the parallax offset of the transition.
+ *
+ * The arriving heading is the viewer's own. The engine carries the source camera's yaw and
+ * pitch over, so the direction the viewer was facing in the space is preserved; each image's
+ * `rotationY` is what places its own content under that direction. Only an explicit
+ * `startView` — which is what `_preventDirectionSet` marks — wins over the carried heading.
  */
-async function openSecond(opts: { vector?: boolean; rotationY?: number } = {}) {
-	const { rotationY } = opts
+
+/** Opens the pair on the first image and moves to the second, reporting both headings. */
+async function openSecond(opts: { vector?: boolean; rotationY?: number; heading?: number; pitch?: number } = {}) {
+	const { rotationY, heading, pitch } = opts
 	const { viewer, ids } = await openSpace(0, rotationY !== undefined ? { rotationY: () => rotationY } : {})
 	const target = ids[1] ?? ''
+	const source = viewer.el.$current
+	if (!source) {
+		throw new Error('no source image')
+	}
+	if (heading !== undefined) {
+		source.camera.setDirection(heading, pitch ?? 0)
+	}
+	const from = { yaw: source.camera.getDirection(), pitch: source.camera.getPitch() }
 	const derived = getSpaceVector(viewer.el, target)?.vector
 
 	if (opts.vector === false) {
@@ -23,33 +37,18 @@ async function openSecond(opts: { vector?: boolean; rotationY?: number } = {}) {
 	}
 	await waitFor(() => viewer.el.$current?.id === target, 8000, 'switched to the target')
 	await settle(2)
-	return { viewer, target, derived }
+
+	const camera = viewer.el.$current?.camera
+	return { viewer, target, derived, from, to: { yaw: camera?.getDirection() ?? 0, pitch: camera?.getPitch() ?? 0 } }
 }
 
-/**
- * Opens the second waypoint with a forced direction and asserts the arriving camera
- * turned by `expectedTurns` of a full circle.
- *
- * The direction is forced so the expectation does not depend on the fixture geometry,
- * and the source image is re-opened between the two moves to reset the camera.
- */
-async function expectTurnFor(direction: number, expectedTurns: number) {
-	const { viewer, target } = await openSecond()
-	const forced: Models.Camera.Vector = { direction, distanceX: 0.4, distanceY: 0 }
-	const back = viewer.el._canvases[0]?.id ?? ''
+/** The difference between two wrapped angles, in radians. */
+const angleDiff = (a: number, b: number): number => Math.abs(((a - b + Math.PI * 3) % (Math.PI * 2)) - Math.PI)
 
-	await viewer.open(back, { vector: { direction: 0, distanceX: 0, distanceY: 0 } })
-	await waitFor(() => viewer.el.$current?.id === back, 8000, 'back to the first image')
-	await viewer.open(target, { vector: forced })
-	await waitFor(() => viewer.el.$current?.id === target, 8000, 'to the target again')
-	await settle(2)
-
-	// The camera yaw is `2π · (1 - direction)`, wrapped into [0, 2π)
-	const yaw = viewer.el.$current?.camera.getDirection() ?? 0
-	const expected = (expectedTurns * Math.PI * 2) % (Math.PI * 2)
-	const diff = Math.abs(((yaw - expected + Math.PI * 3) % (Math.PI * 2)) - Math.PI)
-	expect(diff, `direction ${direction}`).toBeLessThan(1e-3)
-	expect(viewer.el._engine._direction).toBeCloseTo(direction, 8)
+/** Opens the pair with both images rotated by `rotationY` and asserts the heading travelled. */
+async function expectCarryOver(rotationY: number): Promise<void> {
+	const { viewer, from, to } = await openSecond({ rotationY, heading: 0.9 })
+	expect(angleDiff(to.yaw, from.yaw), `rotationY ${rotationY}`).toBeLessThan(1e-3)
 	viewer.destroy()
 }
 
@@ -63,59 +62,47 @@ describe('space transitions', () => {
 		viewer.destroy()
 	})
 
-	it('turns a quarter turn for direction 0.25', async () => {
-		await expectTurnFor(0.25, 0.75)
+	it('carries the source heading and pitch over to the arriving image', async () => {
+		const { viewer, from, to } = await openSecond({ heading: 1.1, pitch: 0.4 })
+		// The walk vector no longer decides where the viewer ends up looking: their own
+		// heading travels with them, which is the direction the arrival is derived from.
+		expect(angleDiff(to.yaw, from.yaw)).toBeLessThan(1e-3)
+		expect(to.pitch).toBeCloseTo(from.pitch, 2)
+		viewer.destroy()
 	})
 
-	it('turns half a turn for direction 0', async () => {
-		await expectTurnFor(0, 0.5)
+	it('carries the heading over whatever the target rotation is', async () => {
+		// Same heading set on differently rotated images: what is carried is the space-frame
+		// yaw (`getDirection`), which both images express through their own `rotationY`.
+		await expectCarryOver(0)
+		await expectCarryOver(Math.PI / 2)
+		await expectCarryOver(Math.PI)
 	})
 
-	it('does not turn for direction 0.5', async () => {
-		await expectTurnFor(0.5, 0)
-	})
+	it('carries the heading over when there is no vector', async () => {
+		const { viewer, from, to } = await openSecond({ vector: false, heading: 0.8, pitch: 0.2 })
 
-	it('turns three quarter turns for direction 0.75', async () => {
-		await expectTurnFor(0.75, 0.25)
-	})
-
-	it('leaves the engine direction untouched without a vector', async () => {
-		const { viewer } = await openSecond({ vector: false })
+		// Without a vector there is no walk, but the arrival still keeps the viewer's heading
+		// instead of snapping to the target image's own view
 		expect(viewer.el._engine._direction).toBe(0)
 		expect(viewer.el._engine._distanceX).toBe(0)
 		expect(viewer.el._engine._distanceY).toBe(0)
-		// Keeping the orientation is the point of `_preventDirectionSet`
-		expect(viewer.el.$current?.camera.getDirection()).toBe(0)
+		expect(angleDiff(to.yaw, from.yaw)).toBeLessThan(1e-3)
 		viewer.destroy()
 	})
 
-	it('carries the pitch over to the arriving image', async () => {
+	it('lets an explicit startView win over the carried heading', async () => {
 		const { viewer, ids } = await openSpace()
 		const target = ids[1] ?? ''
-		viewer.el.$current?.camera.setDirection(0, 0.4)
-		const pitch = viewer.el.$current?.camera.getPitch() ?? 0
-		expect(pitch).toBeCloseTo(0.4, 6)
+		viewer.el.$current?.camera.setDirection(1.2, 0.3)
 
-		const derived = getSpaceVector(viewer.el, target)?.vector
-		await viewer.open(target, { vector: derived })
-		await waitFor(() => viewer.el.$current?.id === target, 8000, 'switched')
+		const startView: Models.Camera.View = [0.2, 0.45, 0.1, 0.1]
+		await viewer.open(target, { startView })
+		await waitFor(() => viewer.el.$current?.id === target, 8000, 'switched to the target')
 		await settle(2)
-		// The transition keeps the vertical angle rather than snapping back to level
-		expect(viewer.el.$current?.camera.getPitch()).toBeCloseTo(pitch, 2)
+
+		expect(viewer.el.$current?.camera.getView()[0]).toBeCloseTo(startView[0], 2)
 		viewer.destroy()
-	})
-
-	it('keeps the vector turn independent of the target rotation', async () => {
-		const flat = await openSecond({ rotationY: 0 })
-		const flatYaw = flat.viewer.el.$current?.camera.getDirection() ?? 0
-		flat.viewer.destroy()
-
-		const rotated = await openSecond({ rotationY: Math.PI / 2 })
-		const rotatedYaw = rotated.viewer.el.$current?.camera.getDirection() ?? 0
-		rotated.viewer.destroy()
-
-		// Same waypoint, different image rotation: the arriving yaw is unchanged
-		expect(rotatedYaw).toBeCloseTo(flatYaw, 3)
 	})
 
 	it('reports the target image once the transition settles', async () => {

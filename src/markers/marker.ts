@@ -3,6 +3,7 @@ import type { Models } from '$types/models'
 import type { MicrioImage } from '$core/image'
 import { get, tick } from '$core/store'
 import { getSpaceVector } from '$utils/space'
+import { DataLoader } from '$utils/dataLoader'
 import { createElement } from '$utils/dom'
 import { openSplit, closeSplit, parseSplitLink, getSplitSecondary, isSplitSecondary } from '$core/split'
 
@@ -67,7 +68,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const markerSettings = image.$settings._markers ?? {}
 		const data = marker.data ?? {}
 		const noTitles =
-			marker.data?.showTitle === false || Boolean(markerSettings.noTitles) || Boolean(image.$settings.omni?.sideLabels)
+			Boolean(markerSettings.noTitles) ||
+			(!markerSettings.showTitles && marker.data?.showTitle === false) ||
+			Boolean(image.$settings.omni?.sideLabels)
 		const noToolTips = /[?&]micrioNoTooltips/.test(location.search) || Boolean(image.$settings.omni?.sideLabels)
 
 		// --- Auto-start tour integration (_markers.autoStartTour) ---
@@ -211,6 +214,27 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		}
 
 		/**
+		 * Aims an already-open split screen at the marker this marker's split link names.
+		 * Returns true when that animation was started, so a caller can leave it alone.
+		 */
+		const flySplitToLink = (): boolean => {
+			if (cluster || isSplitSecondary(image)) {
+				return false
+			}
+			const parsed = parseSplitLink(data.micrioSplitLink)
+			const existing = parsed ? getSplitSecondary(image) : undefined
+			if (!parsed?.markerId || !existing || existing.id !== parsed.micrioId) {
+				return false
+			}
+			const m = existing.$data?.markers?.find((mm) => mm.id === parsed.markerId)
+			if (!m?.view) {
+				return false
+			}
+			existing.camera.flyToView(m.view, { isJump: true }).catch(() => {})
+			return true
+		}
+
+		/**
 		 * @param restored True when a marker that was already open is being restored (the
 		 * image was shown again) rather than opened, so its one-shot actions are skipped.
 		 */
@@ -260,13 +284,15 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 
 			await tick()
+			// Started before the primary camera moves, so both panes of a split animate at once
+			const splitFlown = !immediatelyStartMyTourAtBeginning && flySplitToLink()
 			if (!immediatelyStartMyTourAtBeginning && view && !data.noAnimate && !marker.videoTour) {
 				image.camera
 					.flyToView(view, {
 						omniIndex: image._isOmni ? this.#omniIndex : undefined,
 						isJump: true,
 					})
-					.then(() => openContent(restored))
+					.then(() => openContent(restored, splitFlown))
 					.catch(() => {
 						if (image.state.$marker === marker) {
 							image._openedView = undefined
@@ -274,11 +300,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 						}
 					})
 			} else {
-				void openContent(restored)
+				void openContent(restored, splitFlown)
 			}
 		}
 
-		const openContent = async (restored = false) => {
+		const openContent = async (restored = false, splitFlown = false) => {
 			if (cluster) {
 				return
 			}
@@ -370,11 +396,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			const linkId = data.micrioLink?.id
 			if (linkId && !restored) {
 				void tick().then(() => {
-					// A marker with nothing of its own on screen has no reason to stay open
-					// behind the link: leaving it set would follow the same link again the
-					// next time this image is shown, bouncing between two linked images.
-					if (noPopup && marker.popupType !== 'popover') {
-						image.state.marker.set(undefined)
+					// The owner's marker is cleared as the link is followed, so returning to this
+					// image does not follow the same link again (bouncing between two linked
+					// images), and so the global marker store does not keep naming a marker on an
+					// image the user has left. The popup is not part of this: it is the only thing
+					// left describing the marker, so it is kept (the layout mounts it from
+					// `state.popup` and its close button reads the popup's owner, not the store).
+					if (!data.alwaysOpen && marker.popupType !== 'popover') {
+						clearForLink()
 					}
 					void micrio.open(linkId, { vector: getSpaceVector(micrio, linkId)?.vector })
 				})
@@ -385,20 +414,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				const parsed = parseSplitLink(splitRaw)
 				if (parsed) {
 					const existing = getSplitSecondary(image)
-					if (existing) {
-						if (existing.id === parsed.micrioId) {
-							if (parsed.markerId) {
-								const m = existing.$data?.markers?.find((mm) => mm.id === parsed.markerId)
-								if (m?.view) {
-									existing.camera.flyToView(m.view, { isJump: true }).catch(() => {})
-								}
-							}
-						} else {
-							closeSplit(micrio, image)
-							void tick().then(() => openSplit(micrio, image, parsed, { isPassive: parsed.follows }))
-						}
-					} else {
+					if (existing && existing.id !== parsed.micrioId) {
+						closeSplit(micrio, image)
+						void tick().then(() => openSplit(micrio, image, parsed, { isPassive: parsed.follows }))
+					} else if (!existing) {
 						void openSplit(micrio, image, parsed, { isPassive: parsed.follows })
+					} else if (!splitFlown) {
+						flySplitToLink()
 					}
 				}
 			}
@@ -419,6 +441,26 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (!keepPopup) {
 				micrio.state.popup.set(undefined)
 			}
+		}
+
+		/**
+		 * Clears this image's marker as its `micrioLink` is followed, without tearing down the
+		 * popup that now describes it.
+		 *
+		 * The element's own subscription cannot do this: it reacts to the local clear with
+		 * `close()`, which dismisses the popup, and the popup is what the linked image shows and
+		 * what its close button brings the original image back with. Everything else the
+		 * subscription would do for a clear still happens, so no other marker state is left
+		 * pointing at this marker element.
+		 */
+		const clearForLink = () => {
+			this.classList.remove('opened')
+			events._dispatch('marker-closed', marker)
+			this.#opened = false
+			if (!get(micrio.state.tour)) {
+				image.camera.stop()
+			}
+			image.state.marker.set(undefined)
 		}
 
 		/**
@@ -458,26 +500,26 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					void activated(restored)
 				} else if (!data.alwaysOpen && m !== marker) {
 					if (this.#opened) {
-						// Only manage split lifecycle if this marker itself has a split link
-						if (data.micrioSplitLink) {
-							const newMarker = markerFromState(m)
-							if (!newMarker || !newMarker.data?.micrioSplitLink) {
-								closeSplit(micrio, image)
-							} else {
-								const newParsed = parseSplitLink(newMarker.data.micrioSplitLink)
-								const existing = getSplitSecondary(image)
-								if (!newParsed || !existing || newParsed.micrioId !== existing.id) {
-									closeSplit(micrio, image)
-								}
-							}
-						}
-						// A marker tour clears its previous step before opening the next one,
-						// so the popup is kept across that pair when the image asks for it.
-						// The next step is named by the incoming value, or — for the tour's
-						// own clear — by the step the tour has already moved on to.
+						// A marker tour clears its previous step before opening the next one, so
+						// the incoming value is empty during that clear — the step the tour has
+						// already moved on to names the next marker.
 						const tourNow = get(micrio.state.tour)
 						const markerTour = tourNow && 'steps' in tourNow ? tourNow : undefined
-						const nextMarker = markerFromState(m)
+						const nextStep = markerTour?.stepInfo?.[markerTour.currentStep ?? 0]
+						const nextMarker =
+							markerFromState(m) ??
+							(nextStep && nextStep.markerId !== marker.id ? DataLoader._getStepMarker(nextStep) : undefined)
+
+						// Only manage split lifecycle if this marker itself has a split link
+						if (data.micrioSplitLink) {
+							const nextParsed = parseSplitLink(nextMarker?.data?.micrioSplitLink)
+							const existing = getSplitSecondary(image)
+							if (!nextParsed || !existing || nextParsed.micrioId !== existing.id) {
+								closeSplit(micrio, image)
+							}
+						}
+
+						// The popup is kept across a tour step pair when the image asks for it
 						const stepId = nextMarker ? nextMarker.id : markerTour?.steps?.[markerTour.currentStep ?? 0]
 						const isNextStep = Boolean(stepId && markerTour?.steps?.some((s) => s.startsWith(stepId)))
 						close(Boolean(markerSettings.keepPopupsDuringTourTransitions) && isNextStep)

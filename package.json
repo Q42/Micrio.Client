@@ -1,6 +1,6 @@
 {
 	"name": "@micrio/client-src",
-	"version": "7.3.4",
+	"version": "7.3.12",
 	"description": "Micrio client image viewer source repository",
 	"main": "micrio.js",
 	"type": "module",
@@ -22,7 +22,8 @@
 		"test:browser:live": "MICRIO_LIVE=1 vitest run --project browser tests/browser/live",
 		"test:watch": "vitest --project core",
 		"proof": "xdg-open .vitest/render-proof",
-		"typecheck": "tsc"
+		"typecheck": "tsc",
+		"typecheck:dts": "tsc --ignoreConfig --noEmit --skipLibCheck false --module esnext --moduleResolution bundler --target es2022 public/dist/micrio.min.d.ts"
 	},
 	"keywords": [
 		"micrio"

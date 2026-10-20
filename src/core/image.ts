@@ -18,6 +18,9 @@ import { createElement, loadScript } from '$utils/dom'
  */
 const jsCss: string[] = []
 
+/** Org branding is global CSS/font work; run it once per organisation, not once per image. @internal */
+const brandedOrgs = new Set<string>()
+
 /**
  * Represents and controls a single Micrio image instance within the viewer.
  * This class manages the image's metadata (info), cultural data (data),
@@ -289,23 +292,29 @@ export class MicrioImage {
 			this._isOmni = true
 		}
 
-		// Org branding CSS (fire & forget)
+		// Org branding CSS (fire & forget). Album/grid construction creates one image per
+		// item; the stylesheet and font probe are global, so an N-image album must not pay
+		// for N style recalcs.
 		if (org?.branding && !s?.noUI) {
 			const r2Base = `https://${(org.logo?.src?.indexOf('/eu.') ?? -1) >= 0 ? 'eu' : 'r2'}.micr.io/`
-			void this.#loadStyle(`${r2Base}style/${org.slug}.css`).then(() => {
-				const fontFamily = getComputedStyle(this.#engine.micrio)
-					.getPropertyValue('--micrio-font-family')
-					?.replace(/^'([^']+)'.*$/, '$1')
-				if (fontFamily) {
-					void document.fonts.ready.then(() => {
-						if (!document.fonts.check(`16px ${fontFamily}`)) {
-							void this.#loadStyle(
-								`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`,
-							)
-						}
-					})
-				}
-			})
+			const brandingKey = `${r2Base}${org.slug ?? ''}`
+			if (!brandedOrgs.has(brandingKey)) {
+				brandedOrgs.add(brandingKey)
+				void this.#loadStyle(`${r2Base}style/${org.slug}.css`).then(() => {
+					const fontFamily = getComputedStyle(this.#engine.micrio)
+						.getPropertyValue('--micrio-font-family')
+						?.replace(/^'([^']+)'.*$/, '$1')
+					if (fontFamily) {
+						void document.fonts.ready.then(() => {
+							if (!document.fonts.check(`16px ${fontFamily}`)) {
+								void this.#loadStyle(
+									`https://fonts.googleapis.com/css2?family=${fontFamily}:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,400;1,500;1,600;1,800&display=swap`,
+								)
+							}
+						})
+					}
+				})
+			}
 		}
 
 		// IIIF: extract short identifier from full URL

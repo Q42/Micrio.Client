@@ -44,7 +44,6 @@ export const EVENT_NAMES = [
 	// Marker and video tours
 	'tour-start',
 	'tour-stop',
-	'tour-minimize',
 	// Marker tours
 	'tour-step',
 	'serialtour-play',
@@ -147,11 +146,6 @@ export const EVENT_CATALOG: { [K in EventName]: EventSpec } = {
 
 	'tour-start': { family: 'tours', detail: 'object', trigger: 'set a tour on the state' },
 	'tour-stop': { family: 'tours', detail: 'object', trigger: 'clear the tour state' },
-	'tour-minimize': {
-		family: 'tours',
-		detail: 'object',
-		trigger: 'minimize a marker popup while a tour is running',
-	},
 
 	'tour-step': { family: 'marker-tours', detail: 'object', trigger: 'advance a serial tour step' },
 	'serialtour-play': { family: 'marker-tours', detail: 'object', trigger: "play a serial tour step's media" },

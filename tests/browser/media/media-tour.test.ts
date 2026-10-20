@@ -75,6 +75,14 @@ describe('media element selection', () => {
 		viewer.destroy()
 	})
 
+	it('publishes its playback position as a quoted CSS variable', async () => {
+		const viewer = await mountTour(tourBundle({}))
+		const el = await mountMedia({ src: 'https://r2.micr.io/audio/tour.mp3' }, viewer)
+		await waitForRender(el)
+		expect(el.style.getPropertyValue('--time')).toMatch(/^'\d+:\d\d'$/)
+		viewer.destroy()
+	})
+
 	it('pauses the media element when it is torn down', async () => {
 		const viewer = await mountTour(tourBundle({}))
 		const el = await mountMedia({ src: 'https://r2.micr.io/audio/tour.mp3' }, viewer)

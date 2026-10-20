@@ -73,6 +73,27 @@ function stubImageLoad(): () => void {
 	}
 }
 
+/**
+ * The buffer every enabled vertex attribute of `program` currently reads from, keyed by the
+ * attribute name. This is the state a draw depends on, and the one the postprocessor pass used
+ * to leave pointing at its own quad.
+ */
+function attributeBuffers(gl: WebGL2RenderingContext, program: WebGLProgram): Record<string, WebGLBuffer | null> {
+	const out: Record<string, WebGLBuffer | null> = {}
+	const count = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES) as number
+	for (let i = 0; i < count; i++) {
+		const info = gl.getActiveAttrib(program, i)
+		if (!info) {
+			continue
+		}
+		const loc = gl.getAttribLocation(program, info.name)
+		if (gl.getVertexAttrib(loc, gl.VERTEX_ATTRIB_ARRAY_ENABLED) === true) {
+			out[info.name] = gl.getVertexAttrib(loc, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING) as WebGLBuffer | null
+		}
+	}
+	return out
+}
+
 /** Runs `fn` and returns the `MicrioError` code it threw, or fails loudly if it did not throw. */
 function errorCodeOf(fn: () => unknown): string | undefined {
 	try {
@@ -139,6 +160,68 @@ describe('PostProcessor', () => {
 		expect(gl.getError()).toBe(gl.NO_ERROR)
 
 		texImage2D.mockRestore()
+		post._dispose()
+		release(micrio)
+	})
+
+	it('does not leave its quad attributes enabled, which would corrupt the main program', () => {
+		const { gl, micrio } = makeGl()
+		const post = new PostProcessor(gl, micrio, SHADER)
+		const enable = vi.spyOn(gl, 'enableVertexAttribArray')
+		const disable = vi.spyOn(gl, 'disableVertexAttribArray')
+
+		post._render()
+
+		// The pass has to leave every attribute it enabled disabled again, in the same order, or
+		// the main program's later draws can read the four-vertex quad buffer. (The two programs
+		// name their attributes differently, `pos`/`aTextureCoord` vs `a_position`/`a_texCoord`,
+		// so this is the invariant that holds without depending on compiler-chosen locations.)
+		const enabledLocs = enable.mock.calls.map((c) => c[0])
+		const disabledLocs = disable.mock.calls.map((c) => c[0])
+		expect(enabledLocs.length).toBeGreaterThan(0)
+		expect(disabledLocs).toEqual(enabledLocs)
+		expect(gl.getError()).toBe(gl.NO_ERROR)
+
+		enable.mockRestore()
+		disable.mockRestore()
+		post._dispose()
+		release(micrio)
+	})
+
+	it('restores the main program attributes after postprocessing on a real viewer', () => {
+		// In this file's headless GL no program ever links (every program reports no attributes),
+		// so the pass and the main program share no indices and the attribute state cannot be
+		// told apart. A viewer whose context really links keeps the case observable: `_init`
+		// leaves both main attributes enabled and pointed at the engine's buffers, and `_drawEnd`
+		// runs the pass — the state that used to survive it, pointing at the quad, is what this
+		// asserts is gone.
+		const micrio = document.createElement('micr-io') as HTMLMicrioElement
+		micrio.setAttribute('style', 'width: 64px; height: 64px; display: block;')
+		document.body.append(micrio)
+		micrio._webgl._init()
+		const { gl } = micrio._webgl
+		if (!(gl instanceof WebGL2RenderingContext)) {
+			throw new Error('headless Chromium did not hand out a webgl2 context')
+		}
+		const program = gl.getParameter(gl.CURRENT_PROGRAM) as WebGLProgram
+		if (gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES) !== 2) {
+			// Properties are read without invoking this accessor, so `0` is the only state it sees
+			release(micrio)
+			return
+		}
+
+		const mainBound = attributeBuffers(gl, program)
+		const post = new PostProcessor(gl, micrio, SHADER)
+		const ctx = micrio._webgl
+		ctx._postprocessor = post
+
+		ctx._drawEnd()
+
+		// After the pass and the main program's rebind, its attributes still read the engine's
+		// own buffers — not the postprocessor's four-vertex quad.
+		expect(attributeBuffers(gl, program)).toEqual(mainBound)
+
+		ctx._postprocessor = undefined
 		post._dispose()
 		release(micrio)
 	})

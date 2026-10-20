@@ -143,9 +143,11 @@ export class Camera {
 	 * @returns A Float64Array containing the relative image coordinates [x, y, scale, depth, yaw?, pitch?].
 	 */
 	getCoo(x: number, y: number, absolute = false, noLimit = false): Float64Array {
-		return this.#getCooDirect(x, y, absolute, noLimit)
-			.slice(0)
-			.map((d) => Math.round(d * 1000000) / 1000000)
+		const coo = this.#getCooDirect(x, y, absolute, noLimit).slice(0)
+		for (let i = 0; i < coo.length; i++) {
+			coo[i] = Math.round(coo[i] * 1000000) / 1000000
+		}
+		return coo
 	}
 
 	/**
@@ -227,7 +229,7 @@ export class Camera {
 	// ─── Camera properties ─────────────────────────────────────────
 
 	/** Gets the current camera zoom scale. */
-	getScale = (): number => this.getCoo(0, 0)[2] || 1
+	getScale = (): number => this.#canvas?.camera._scale || this.getCoo(0, 0)[2] || 1
 
 	/** Gets the scale at which the image fully covers the viewport. */
 	getCoverScale = (): number => this.#canvas?.camera._coverScale ?? 1

@@ -25,6 +25,15 @@ class MicrioImageEmbeds extends MicrioElement<ImageEmbedsProps> {
 			return
 		}
 
+		const micrio = this._getMicrio()
+		if (micrio) {
+			// The overlay fades out while the viewer switches images and back in when the
+			// new image is up, so its embeds do not jump between repainted positions.
+			this._watch(micrio._switching, (s) => {
+				this.classList.toggle('inactive', s)
+			})
+		}
+
 		this._watch(image.data, (d) => {
 			this.replaceChildren()
 			if (d?.embeds) {

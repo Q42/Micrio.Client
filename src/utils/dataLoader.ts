@@ -40,12 +40,12 @@ async function fetchBundleOnce(id: string): Promise<void> {
 		return inflight
 	}
 
-	const promise = doFetchBundle(id)
+	// Store the *settled* promise: every concurrent caller gets the same undefined result
+	// on failure instead of inheriting the rejection the first caller catches.
+	const promise = doFetchBundle(id).catch(() => {})
 	inflightFetches.set(id, promise)
 	try {
 		await promise
-	} catch {
-		// Bundle fetch failed — getBundleImage will return undefined
 	} finally {
 		inflightFetches.delete(id)
 	}

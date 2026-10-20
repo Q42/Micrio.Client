@@ -11,6 +11,7 @@ import { HLSPlayerAdapter, cloudflareStreamUrl, mediaSourceSupported } from './h
 import type { MediaPlayerAdapter } from '$types/media'
 import '$ui/button'
 import { ErrorCodes } from '$core/error'
+import { parseTime } from '$utils/time'
 import './media-controls'
 
 const YOUTUBE_RE =
@@ -773,8 +774,10 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			if (!this.#adapter) {
 				return
 			}
-			this.#currentTime = await this.#adapter.getCurrentTime()
-			this.#duration = await this.#adapter.getDuration()
+			// Vimeo/YouTube adapters answer over postMessage; the two reads are independent.
+			const [currentTime, duration] = await Promise.all([this.#adapter.getCurrentTime(), this.#adapter.getDuration()])
+			this.#currentTime = currentTime
+			this.#duration = duration
 			this.#tourInstance?.updateEvents(this.#currentTime)
 			this.#updateControls()
 		}, 250)
@@ -806,6 +809,17 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		this.#ended = el.ended || false
 		this.#seeking = el.seeking
 		this.#muted = el.muted
+		this.#setTimeVar()
+	}
+
+	/** Exposes the playback position to CSS as a quoted string (`--time: '1:45'`). */
+	#setTimeVar(): void {
+		// A serial tour owns the timeline: its step media is given the cumulative tour
+		// time, and this step-local value would shadow it on the shared control bar.
+		if (this.closest('micrio-serial-tour')) {
+			return
+		}
+		this.style.setProperty('--time', `'${parseTime(this.#currentTime)}'`)
 	}
 
 	/**
@@ -827,6 +841,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	}
 
 	#updateControls() {
+		this.#setTimeVar()
 		const controlsEl = this.querySelector('micrio-media-controls')
 		if (controlsEl instanceof MicrioElement) {
 			controlsEl._setProps({

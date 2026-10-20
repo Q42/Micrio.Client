@@ -212,8 +212,36 @@ describe('waypoint navigation', () => {
 		expect(before).toBe(ids[0])
 
 		waypoints(viewer.el)[0]?.querySelector<HTMLButtonElement>('button')?.click()
+		console.log('DEBUG after click switching=', get(viewer.el._switching))
 		await waitFor(() => viewer.el.$current?.id !== before, 8000, 'opened the target')
 		expect(viewer.el.$current?.id).toBe(ids[1])
+		viewer.destroy()
+	})
+
+	it('leaves the outgoing layer without waypoints while the new image arrives', async () => {
+		const { viewer } = await openLinked()
+		expect(waypoints(viewer.el)).toHaveLength(1)
+
+		// The layer's own `switching` watcher is registered first, so it has already run its
+		// synchronous rebuild by the time this subscriber sees the store go false.
+		const paintedOnArrival: number[] = []
+		let armed = false
+		viewer.el._switching.subscribe((s) => {
+			if (!s && armed) {
+				paintedOnArrival.push(waypoints(viewer.el).length)
+			}
+			armed = true
+		})
+
+		waypoints(viewer.el)[0]?.querySelector<HTMLButtonElement>('button')?.click()
+		// The click's `open()` is deferred, so wait for the store to finish its cycle
+		await waitFor(() => paintedOnArrival.length > 0, 8000, 'the switch to finish')
+		await settle(2)
+
+		// The outgoing layer is still mounted at that instant (the layout drops it a frame
+		// later) but must not have repainted its waypoint; only the new image's layer may.
+		expect(paintedOnArrival).toEqual([0])
+		expect(waypoints(viewer.el)).toHaveLength(1)
 		viewer.destroy()
 	})
 
@@ -225,6 +253,7 @@ describe('waypoint navigation', () => {
 		}
 		image.state.marker.set(undefined)
 		waypoints(viewer.el)[0]?.querySelector<HTMLButtonElement>('button')?.click()
+		console.log('DEBUG after click switching=', get(viewer.el._switching))
 		await waitFor(() => viewer.el.$current?.id === ids[1], 8000, 'opened the target')
 		// The new image has no open marker, and the source image's marker was cleared
 		expect(viewer.el.$current?.state.$marker).toBeUndefined()
@@ -242,6 +271,7 @@ describe('waypoint navigation', () => {
 		await settle(2)
 
 		waypoints(viewer.el)[0]?.querySelector<HTMLButtonElement>('button')?.click()
+		console.log('DEBUG after click switching=', get(viewer.el._switching))
 		await settle(4)
 		expect(viewer.el.$current?.id).toBe(ids[0])
 		viewer.destroy()

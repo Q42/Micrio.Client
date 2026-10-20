@@ -56,6 +56,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 						image,
 						tour: vt,
 						controls: true,
+						hasAudio: Boolean(audio?.src),
 						autoplay: true,
 						fullscreenEl: micrio,
 						onended: () => {
@@ -169,7 +170,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				})
 
 				createElement('span', {
-					textContent: `${this.#currentStep + 1}/${mt.steps.length}`,
+					textContent: `${this.#currentStep + 1} / ${mt.steps.length}`,
 					parent: this.aside,
 				})
 
@@ -250,6 +251,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 							img.state.marker.set(undefined)
 						}
 					}
+					// A stopped tour forgets its step, so starting it again — from the toolbar,
+					// for instance — begins at its first step instead of resuming the old one.
+					mt.currentStep = undefined
 				}
 			}),
 		)

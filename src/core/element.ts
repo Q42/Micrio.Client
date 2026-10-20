@@ -9,7 +9,7 @@ import { idIsV5 } from '$utils/id'
 import { MicrioError, getErrorMessage } from '$core/error'
 import { DataLoader } from '$utils/dataLoader'
 import { VERSION } from './version'
-import { ATTRIBUTE_OPTIONS as AO, DEFAULT_SETTINGS, localStorageKeys } from './globals'
+import { ATTRIBUTE_OPTIONS as AO, DEFAULT_SETTINGS } from './globals'
 import { writable, get, tick } from '$core/store'
 import { Frame } from './frame'
 import { Engine } from '$render/engine'
@@ -206,7 +206,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	_ui?: MicrioMain
 
 	/** Custom settings object provided programmatically, overriding server-fetched settings. */
-	defaultSettings?: Partial<Models.ImageInfo.Settings>
+	declare defaultSettings?: Partial<Models.ImageInfo.Settings>
 
 	/** Writable store indicating the overall loading state of the viewer.
 	 * @internal
@@ -218,10 +218,12 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	readonly _switching: Writable<boolean> = writable(false)
 
-	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute and localStorage.
+	/** Writable store indicating the global muted state for audio. Synced with the `muted` attribute.
+	 * Not persisted: a previous image's mute choice must not silence a new image's voice-over
+	 * while its mute button is hidden (because that image has no background audio).
 	 * @internal
 	 */
-	readonly _isMuted: Writable<boolean> = writable(localStorage.getItem(localStorageKeys.globalMuted) === '1')
+	readonly _isMuted: Writable<boolean> = writable(false)
 
 	/** Writable store holding the currently active language code (e.g., 'en', 'nl').
 	 * @internal
@@ -291,23 +293,29 @@ export class HTMLMicrioElement extends MicrioElement {
 				break
 			}
 			case 'lang': {
-				let prevLang = get(this._lang)
-				if (prevLang !== value) {
+				// The element is built with `lang` set to `en`, so removing the attribute (what every
+				// framework binding does for `undefined`) keeps that language: storing the empty string
+				// instead left `_lang` at `''`, and the attribute's return to `en` fired a second
+				// `lang-switch` for a language the host had already been told about.
+				const prevLang = get(this._lang)
+				const nextLang = value || prevLang
+				if (prevLang !== nextLang) {
 					// Set the translations *before* `_lang`: everything that re-renders on
 					// the language change (toolbar, controls, ...) reads `get(i18n)` while
 					// doing so, and would otherwise render the previous language
-					const baseLang = value.split('-')[0]
-					i18n.set(langs[value] ?? langs[baseLang] ?? langs.en)
-					this._lang.set(value)
+					const baseLang = nextLang.split('-')[0]
+					i18n.set(langs[nextLang] ?? langs[baseLang] ?? langs.en)
+					this._lang.set(nextLang)
 					if (value) {
-						if (isRTL(value)) {
+						if (isRTL(nextLang)) {
 							this.setAttribute('dir', 'rtl')
 						} else {
 							this.removeAttribute('dir')
 						}
 					}
+					// Only once there is a language to switch *from*: the first pass runs it below
 					if (prevLang) {
-						this.events._dispatch('lang-switch', value)
+						this.events._dispatch('lang-switch', nextLang)
 					}
 					this.state._touch('lang')
 				}
@@ -344,18 +352,18 @@ export class HTMLMicrioElement extends MicrioElement {
 					}
 				},
 			})
-			this._watch(this._isMuted, (b) => {
-				// @ts-expect-error -- `muted` is defined dynamically below
-				this['muted'] = b
-				if (b) {
-					localStorage.setItem(localStorageKeys.globalMuted, '1')
-					this.events._dispatch('audio-mute')
-				} else {
-					localStorage.removeItem(localStorageKeys.globalMuted)
-					this.events._dispatch('audio-unmute')
-				}
-			})
 		}
+		// Own property definitions survive a disconnect, but the store subscription is torn
+		// down with every other cleanup, so it has to be re-registered on each mount.
+		this._watch(this._isMuted, (b) => {
+			// @ts-expect-error -- `muted` is defined dynamically above
+			this['muted'] = b
+			if (b) {
+				this.events._dispatch('audio-mute')
+			} else {
+				this.events._dispatch('audio-unmute')
+			}
+		})
 
 		const updateZoomed = () => {
 			const imgs = get(this._visible).filter((i) => i.id)
@@ -571,7 +579,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	async #handleIIIF(url: string): Promise<Models.ImageBundle.BundleImage | undefined> {
 		const resp = await fetchJson<IIIFResponse>(url).catch((e) => {
-			this.#printError(e)
+			this._printError(e)
 			return
 		})
 		if (!resp) {
@@ -582,7 +590,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		try {
 			gallery = Gallery._fromIIIF(resp, this._engine)
 		} catch (e) {
-			this.#printError(e)
+			this._printError(e)
 			return undefined
 		}
 		if (gallery) {
@@ -609,7 +617,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		// here — a IIIF Collection, or JSON from the wrong URL. Without this guard it would
 		// become an image with NaN bounds and a silently blank viewer.
 		if (typeof id !== 'string' || id === '' || !isImageSize(width) || !isImageSize(height)) {
-			this.#printError(
+			this._printError(
 				new MicrioError('UNSUPPORTED_IIIF', {
 					displayMessage: 'Not a valid IIIF manifest or Image API info.json',
 				}),
@@ -771,7 +779,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 * @param error The error (MicrioError, Error, or string) to display.
 	 */
-	#printError(error?: unknown): void {
+	_printError(error?: unknown): void {
 		const message = getErrorMessage(error ?? 'An unknown error has occurred')
 		console.error('Error:', message + (error instanceof MicrioError ? ` (${error.code}: ${error.message})` : ''))
 		if (!this._ui) {
@@ -836,10 +844,17 @@ export class HTMLMicrioElement extends MicrioElement {
 			}
 			const loaded = await DataLoader._getBundleImage(idOrInfo)
 			if (!loaded) {
-				this.#printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`)
+				this._printError(`Image with id "${idOrInfo}" not found, published, or embeddable.`)
 				return this.$current
 			}
-			bundle = loaded
+			// `DataLoader` caches bundle entries module-wide, and the settings/info merges below
+			// write into them. Copy the two mutable branches so one viewer's attributes cannot
+			// become another viewer's baseline. `data` is shared read-only (markers, tours).
+			bundle = {
+				...loaded,
+				info: { ...loaded.info },
+				settings: structuredClone(loaded.settings ?? {}),
+			}
 		}
 		// Already a BundleImage
 		else {
@@ -943,8 +958,14 @@ export class HTMLMicrioElement extends MicrioElement {
 			if (!this._webgl.gl) {
 				try {
 					this._webgl._init()
+					// A program that does not link draws nothing: report it like a compile failure
+					// instead of leaving a blank viewer that never finishes loading.
+					const linkError = this._webgl._programLinkError()
+					if (linkError) {
+						throw linkError
+					}
 				} catch (e) {
-					this.#printError(e)
+					this._printError(e)
 					return c
 				}
 			}
@@ -973,11 +994,14 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// ── 360 vector ────────────────────────────────────────────────────────
 
+		// The vector is the walk between the two images: the engine turns it into the parallax
+		// offset of the transition. The arriving heading is the viewer's own, which the engine
+		// carries over — unless the caller pinned an explicit view (`startView`).
 		const e = this._engine
 		e._direction = opts.vector?.direction ?? 0
 		e._distanceX = opts.vector?.distanceX ?? 0
 		e._distanceY = opts.vector?.distanceY ?? 0
-		e._preventDirectionSet = !opts.vector
+		e._preventDirectionSet = opts.startView !== undefined
 
 		// ── Set current / grid ────────────────────────────────────────────────
 

@@ -26,8 +26,14 @@ describe('media controls rendering', () => {
 	it('renders the play button and time display by default', async () => {
 		const { viewer, el } = await mountControls({ paused: true, duration: 10, currentTime: 3 })
 		expect(el.querySelector<HTMLButtonElement>('micrio-button.play > button')).not.toBeNull()
-		// Without getTimeDisplay the control falls back to its own mm:ss formatting
+		// Without getTimeDisplay the control falls back to its own remaining-time countdown
 		expect(timeText(el)).toBeTruthy()
+		viewer.destroy()
+	})
+
+	it('shows the remaining time as a countdown by default', async () => {
+		const { viewer, el } = await mountControls({ paused: true, duration: 70, currentTime: 10 })
+		expect(timeText(el)).toBe('-01:00')
 		viewer.destroy()
 	})
 

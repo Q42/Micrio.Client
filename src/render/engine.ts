@@ -45,6 +45,13 @@ interface CanvasEntry {
 	camera?: Camera
 }
 
+/** Frees a decoded bitmap that will not be uploaded to a texture. @internal */
+function closeTextureBitmap(img: TextureBitmap): void {
+	if (globalThis.ImageBitmap !== undefined && img instanceof ImageBitmap && typeof img.close === 'function') {
+		img.close()
+	}
+}
+
 /**
  * The main Micrio compute controller class. Handles the engine lifecycle,
  * render loop, tile management, and WebGL integration.
@@ -226,6 +233,21 @@ export class Engine {
 
 	/**
 	 * Generates a Float32Array containing texture coordinates for a quad.
+	 *
+	 * Each cell holds two triangles (12 floats: 6 vertices of `u, v`), laid out contiguously as
+	 * `(u0,v0) (u0,v1) (u1,v0)` then `(u0,v1) (u1,v1) (u1,v0)`, where `u0 = x/segX`,
+	 * `u1 = (x+1)/segX` and likewise for `v`. The vertex indices for one cell are the same six
+	 * in both runs:
+	 *
+	 * ```
+	 * u indices:  0 2 6   4 8 10
+	 * v indices:  1 5 11  3 7 9
+	 * ```
+	 *
+	 * so the two assignments below write all twelve floats by chaining equalities: the inner
+	 * parenthesized assignment sets each vertex's base coordinate (`x/segX` or `y/segY`), and
+	 * the `+ dX` / `+ dY` applied to it yields the second edge. Kept compact because it runs
+	 * once per quad type, not per frame.
 	 * @internal
 	 */
 	static #getTextureBuffer(segX: number, segY: number): Float32Array {
@@ -292,7 +314,6 @@ export class Engine {
 		const is360 = hasCamera && c._is360
 		const img = hasCamera ? c : c.image
 		const frame = '_frame' in c ? c._frame : undefined
-		const noSmoothing = hasCamera && c.$settings.noSmoothing
 
 		if (tile._loadState === 0 && numLoading < numThreads) {
 			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) {
@@ -306,7 +327,9 @@ export class Engine {
 				tile._loadState = 1
 				const src = img._getTileSrc(layer, x, y, frame)
 				if (src) {
-					this._getTexture(i, src, animating, { noSmoothing })
+					// Read the setting only when a load actually starts; this used to be a store
+					// read for every drawn tile on every frame.
+					this._getTexture(i, src, animating, { noSmoothing: hasCamera && c.$settings.noSmoothing })
 				} else {
 					tile._loadState = 0
 					return false
@@ -630,12 +653,20 @@ export class Engine {
 				return
 			}
 
-			const pitch = canvas._is360 && this.#activeCanvasEntry ? this.#activeCanvasEntry.canvas._camera360._pitch : 0
+			const previous = this.#activeCanvasEntry
+			// Only a 360 canvas has a heading worth carrying: a 2D camera's 360 state is unused.
+			const previousCamera = previous?.canvas.is360 ? previous.canvas._camera360 : undefined
+			const pitch = previousCamera?._pitch ?? 0
 			this.#activeCanvasEntry = entry
 
-			if (canvas._is360 && !this._preventDirectionSet) {
-				const reversedYaw = ((this._direction + 0.5) % 1) * Math.PI * 2
-				entry.canvas._setDirection(reversedYaw - canvas.camera.rotationY, pitch, true)
+			if (canvas._is360 && previousCamera && !this._preventDirectionSet) {
+				// The viewer keeps the heading it had. `_yaw` is the space-frame yaw — each
+				// image's `rotationY` is only what places its own content under that direction —
+				// and `_setDirection` stores the yaw of that rotated frame, hence its `_baseYaw`.
+				// The waypoint vector's `_direction`/`_distance*` still drive the parallax walk
+				// offset (`_moveTo`).
+				const camera = entry.canvas._camera360
+				entry.canvas._setDirection(previousCamera._yaw + camera._baseYaw, pitch, true)
 			}
 
 			if (entry.canvas._targetOpacity === 0) {
@@ -824,12 +855,26 @@ export class Engine {
 				// what it can, but an already-completed fetch still resolves). Uploading then
 				// re-creates the entry and a GPU texture that nothing will ever free.
 				if (this.#requests.get(i) !== src) {
+					closeTextureBitmap(img)
 					return
 				}
 				this.#gotTexture(i, img, ani, opts.noSmoothing)
 			})
 			.catch(() => {
+				// Only the request this call created may be settled: `#cleanup` and `#releaseTiles`
+				// delete requests, and a later frame can start a new one for the same index.
+				if (this.#requests.get(i) !== src) {
+					return
+				}
 				this.#deleteRequest(i)
+				const failed = this.#tiles.get(i)
+				if (failed?._loadState === 1) {
+					// The tile failed (or its request was aborted) without a texture. Leave it
+					// terminal and counted so `_progress` can reach 1 and the render loop stops;
+					// normal eviction retries it once it has been out of view.
+					failed._loadState = 3
+					failed._loadedAt = performance.now()
+				}
 			})
 	}
 
@@ -837,9 +882,7 @@ export class Engine {
 	#gotTexture(i: number, img: TextureBitmap, ani: boolean, noSmoothing?: boolean): void {
 		const tile = this.#getTileEntry(i)
 		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing)
-		if (globalThis.ImageBitmap !== undefined && img instanceof ImageBitmap && typeof img.close === 'function') {
-			img.close()
-		}
+		closeTextureBitmap(img)
 		tile._loadState = 2
 
 		tile._timeoutId = setTimeout(
@@ -919,6 +962,9 @@ export class Engine {
 					const request = this.#requests.get(idx)
 					if (request) {
 						abortDownload(request)
+						// The abort rejection is ignored by the `src` guard in `_getTexture`, and a
+						// surviving request entry would make the next request early-return forever.
+						this.#deleteRequest(idx)
 					}
 					tile._loadState = 0
 					break
@@ -1059,6 +1105,12 @@ export class Engine {
 				_360.scale ?? 1,
 				fromScale ?? 0,
 			)
+			// `_addImage` starts an embed at its target opacity. Starting it transparent
+			// instead makes `_opacityTick` fade it in over `_embedFadeDuration`, the same
+			// duration `_orphanEmbed` fades it out with.
+			if (opacity > 0) {
+				engImage.opacity = 0
+			}
 			this.#engImageToMicrio.set(engImage, image)
 			this.#micrioToEngImage.set(image, engImage)
 			image._placed = true

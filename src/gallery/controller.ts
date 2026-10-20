@@ -3,7 +3,6 @@ import type { Engine } from '$render/engine'
 import type { HTMLMicrioElement } from '$core/element'
 
 import { MicrioImage } from '$core/image'
-import { jsonCache } from '$utils/fetch'
 import { MicrioError } from '$core/error'
 import { DataLoader } from '$utils/dataLoader'
 import { archive } from '$utils/archive'
@@ -394,12 +393,7 @@ export class Gallery {
 		id: string,
 		path: string,
 	): Promise<{ delta?: number; images: Models.ImageInfo.ImageInfo[] }> =>
-		archive.get<{ images: Models.ImageInfo.ImageInfo[] }>(`${path}${id}.json`).then((r) => {
-			for (const i of r.images) {
-				jsonCache.set(`${path}${i.id}/info.json`, i)
-			}
-			return r
-		})
+		archive.get<{ images: Models.ImageInfo.ImageInfo[] }>(`${path}${id}.json`)
 
 	static #sortArchiveImages(
 		sort: string | undefined,

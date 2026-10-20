@@ -52,9 +52,22 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}),
 		)
 
-		const updateOverlapped = () => {
+		/** Width of the view the cluster layout was last solved for (2D images only). */
+		let lastClusterViewWidth: number | undefined
+
+		const updateOverlapped = (nextView?: Models.Camera.View) => {
 			if (!image.$settings.clusterMarkers) {
 				return
+			}
+			// On a 2D image markers only move relative to each other when the scale changes;
+			// panning does not change the overlap graph. 360/omni projections depend on camera
+			// rotation, so those keep recomputing. A rebuild calls without a view to force it.
+			if (!image._is360 && !image._isOmni && image.canvas?.is360 !== true) {
+				const width = nextView?.[2]
+				if (width !== undefined && width === lastClusterViewWidth) {
+					return
+				}
+				lastClusterViewWidth = width
 			}
 			const markers = image.$data?.markers?.filter((m) => !m.i18n || m.i18n[get(micrio._lang)] !== undefined)
 			if (!markers) {
@@ -273,7 +286,12 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			)
 
 			const $switching = get(switching)
-			if (!$switching && micrio.spaceData) {
+			// Waypoints belong to the image the viewer is on. Gating on `$switching` alone is
+			// not enough: the outgoing image's layer stays mounted until its own `_visible`
+			// entry goes, which the layout sync then acts on a frame later — and the
+			// `switching` watcher below would repaint its waypoints in that frame.
+			const current = micrio.$current?.id === image.id
+			if (!$switching && current && micrio.spaceData) {
 				const links = micrio.spaceData.links.filter((l) => l[0] === image.id || l[1] === image.id)
 				const linkIds = new Set(links.map((l) => (l[0] === image.id ? l[1] : l[0])))
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-waypoint')) {

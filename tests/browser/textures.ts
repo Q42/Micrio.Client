@@ -45,6 +45,12 @@ interface TextureRequest {
 class FakeTextureWorker extends EventTarget {
 	static readonly instances: FakeTextureWorker[] = []
 
+	/** Number of tile requests received since the last reset (used by failure tests). */
+	static requestCount = 0
+
+	/** Fail the tile request with this zero-based index; `-1` disables the failure mode. */
+	static failRequestAt = -1
+
 	#listeners: ((event: MessageEvent) => void)[] = []
 
 	constructor() {
@@ -65,6 +71,15 @@ class FakeTextureWorker extends EventTarget {
 			return
 		}
 		const request = message as TextureRequest
+		if (FakeTextureWorker.requestCount++ === FakeTextureWorker.failRequestAt) {
+			queueMicrotask(() => {
+				const error = { error: `${request.src}: test failure`, type: 'Error' }
+				for (const listener of this.#listeners) {
+					listener({ data: error } as MessageEvent)
+				}
+			})
+			return
+		}
 		void textureBlob().then(async (blob) => {
 			const bitmap = await createImageBitmap(blob)
 			for (const listener of this.#listeners) {

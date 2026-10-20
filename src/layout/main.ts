@@ -4,6 +4,7 @@ import type { Writable } from '$core/store'
 import type { MicrioImage } from '$core/image'
 import { get, tick, writable } from '$core/store'
 import { Frame } from '$core/frame'
+import { isSplitSecondary } from '$core/split'
 import { DataLoader } from '$utils/dataLoader'
 import { createElement } from '$utils/dom'
 import { volumeFor } from '$utils/media-settings'
@@ -405,7 +406,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			'markers',
 			$visible,
 			showMarkers,
-			(i) => !i.opts?.isEmbed && (Boolean(i.$data?.markers?.length) || Boolean(micrio.spaceData)),
+			(i) =>
+				!i.opts?.isEmbed && !isSplitSecondary(i) && (Boolean(i.$data?.markers?.length) || Boolean(micrio.spaceData)),
 		)
 
 		this.#syncImageLayer(
@@ -564,12 +566,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				}
 				const el = createElement(tag, { setProps: { image: img } })
 				map.set(img.id, el)
-				const before = this.#getBefore(layerKey)
-				if (before) {
-					this.insertBefore(el, before)
-				} else {
-					this.append(el)
-				}
+				this.#placeAt(el, layerKey)
 			}
 		} else {
 			for (const el of map.values()) {
@@ -578,7 +575,19 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			map.clear()
 		}
 
-		this.#elements.set(layerKey, map.values().next().value ?? null)
+		// The whole layer is the anchor, not just its first element: its elements are siblings,
+		// so a later layer placed before any of them still lands after the ones before it.
+		this.#elements.set(layerKey, [...map.values()].find((el) => el.isConnected) ?? null)
+	}
+
+	/** Inserts `el` into the `key` layer's slot, ahead of the next layer that is on screen. */
+	#placeAt(el: HTMLElement, key: string) {
+		const before = this.#getBefore(key)
+		if (before) {
+			this.insertBefore(el, before)
+		} else {
+			this.append(el)
+		}
 	}
 }
 

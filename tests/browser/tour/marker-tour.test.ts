@@ -33,7 +33,7 @@ describe('marker tour UI', () => {
 		await settle()
 
 		const aside = tourEl(viewer)?.querySelector('aside.marker-tour')
-		expect(aside?.querySelector('span')?.textContent).toBe('1/3')
+		expect(aside?.querySelector('span')?.textContent).toBe('1 / 3')
 
 		const prev = button(aside, 'micrio-button.prev button')
 		const next = button(aside, 'micrio-button.next button')
@@ -55,13 +55,13 @@ describe('marker tour UI', () => {
 		}
 
 		await click('micrio-button.next button')
-		expect(counter()).toBe('2/3')
+		expect(counter()).toBe('2 / 3')
 		expect(tour.currentStep).toBe(1)
 		// The step's marker is the active one
 		await waitFor(() => viewer.el.$current?.state.$marker?.id === 'm2', 4000, 'step 2 marker')
 
 		await click('micrio-button.prev button')
-		expect(counter()).toBe('1/3')
+		expect(counter()).toBe('1 / 3')
 		expect(tour.currentStep).toBe(0)
 		await waitFor(() => viewer.el.$current?.state.$marker?.id === 'm1', 4000, 'step 1 marker')
 		viewer.destroy()
@@ -104,7 +104,7 @@ describe('marker tour UI', () => {
 		await settle()
 
 		expect(tour.currentStep).toBe(2)
-		expect(tourEl(viewer)?.querySelector('aside.marker-tour span')?.textContent).toBe('3/3')
+		expect(tourEl(viewer)?.querySelector('aside.marker-tour span')?.textContent).toBe('3 / 3')
 		viewer.destroy()
 	})
 })
@@ -119,7 +119,7 @@ describe('marker tour navigation from the markers', () => {
 		// Opening the third step's marker from outside the UI must move the tour to it
 		viewer.el.$current?.state.marker.set('m3')
 		await waitFor(() => tour.currentStep === 2, 4000, 'tour follows the marker')
-		expect(tourEl(viewer)?.querySelector('aside.marker-tour span')?.textContent).toBe('3/3')
+		expect(tourEl(viewer)?.querySelector('aside.marker-tour span')?.textContent).toBe('3 / 3')
 		viewer.destroy()
 	})
 })
@@ -165,7 +165,7 @@ describe('marker tour controls in the popup', () => {
 		await waitFor(() => viewer.el.$current?.state.$marker?.id === 'm2', 4000, 'step 2 marker')
 		const asides = viewer.el.querySelectorAll('micrio-marker-popup aside.marker-tour')
 		expect(asides).toHaveLength(1)
-		expect(asides[0]?.querySelector('span')?.textContent).toBe('2/2')
+		expect(asides[0]?.querySelector('span')?.textContent).toBe('2 / 2')
 		viewer.destroy()
 	})
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { imageAsset } from '../../fixtures/ui'
 import { marker } from '../../fixtures/bundles'
 import { markerBundle, openMarkers, waitForMarker, waitForPopup, type OpenMarkers } from '../../fixtures/markers'
+import { markerTour } from '../../fixtures/tours'
 import { waitFor } from '../../helpers/viewer'
 import { box, intersectsViewport, rendered, style, styleNumber, waitForStyle } from './helpers'
 import { MOBILE, useViewport } from './setup'
@@ -140,6 +141,123 @@ describe('the marker popup panel', () => {
 		await waitForStyle(popup, 'opacity', '0')
 		expect(style(popup, 'pointer-events')).toBe('none')
 		expect(style(popup, 'animation-name')).toBe('none')
+		opened.viewer.destroy()
+	})
+
+	it('overlays the minimize toggle on the popup top-right in tourControlsInPopup mode', async () => {
+		const opened = await openMarkers(
+			markerBundle({
+				markerTours: [markerTour({ steps: ['m1', 'm2'] })],
+				settings: { _markers: { canMinimizePopup: true, tourControlsInPopup: true } },
+			}),
+			{ style: 'width: 100vw; height: 100vh; display: block;' },
+		)
+		const tour = opened.markerTours[0]
+		if (!tour) {
+			throw new Error('no tour')
+		}
+		opened.viewer.el.state.tour.set(tour)
+		await waitForPopup(opened.viewer.el)
+		await waitFor(
+			() => Boolean(opened.viewer.el.querySelector('micrio-marker-popup aside.marker-tour')),
+			6000,
+			'the tour aside inside the popup',
+		)
+
+		const popup = opened.viewer.el.querySelector<HTMLElement>('micrio-marker-popup')
+		const minimize = popup?.querySelector<HTMLElement>(':scope > micrio-button.popup-minimize > button')
+		expect(minimize).not.toBeNull()
+
+		// marker-popup.css: the inner button is absolutely positioned at the popup's top-right,
+		// over the content, because the popup's own aside is not rendered in this mode. It
+		// sits on the popup, so it drops the usual button chrome.
+		const button = minimize as HTMLElement
+		expect(style(button, 'position')).toBe('absolute')
+		expect(styleNumber(button, 'top')).toBe(0)
+		expect(styleNumber(button, 'right')).toBe(0)
+		expect(style(button, 'z-index')).toBe('2')
+		expect(style(button, '--micrio-button-background')).toBe('none')
+		expect(style(button, 'box-shadow')).toBe('none')
+		expect(style(button, 'backdrop-filter')).toBe('none')
+		expect(Math.round(box(button).top)).toBe(Math.round(box(popup as HTMLElement).top))
+		expect(Math.round(box(button).right)).toBe(Math.round(box(popup as HTMLElement).right))
+		opened.viewer.destroy()
+	})
+
+	it('keeps the phone controls clear of the overlaid minimize toggle', async () => {
+		await useViewport(MOBILE)
+		const opened = await openMarkers(markerBundle({ settings: { _markers: { canMinimizePopup: true } } }), {
+			style: 'width: 100vw; height: 100vh; display: block;',
+		})
+		await opened.openMarker('m1')
+		await waitForPopup(opened.viewer.el)
+		const popup = opened.viewer.el.querySelector<HTMLElement>('micrio-marker-popup')
+		const minimize = popup?.querySelector<HTMLElement>(':scope > micrio-button.popup-minimize > button')
+		const aside = popup?.querySelector<HTMLElement>(':scope > aside')
+		expect(minimize).not.toBeNull()
+		expect(aside).not.toBeNull()
+
+		// marker-popup.css phone branch: the minimize overlay owns the corner, so the
+		// close/step aside starts one button height below it rather than underneath it.
+		expect(Math.round(box(minimize as HTMLElement).bottom)).toBeLessThanOrEqual(
+			Math.round(box(aside as HTMLElement).top),
+		)
+		opened.viewer.destroy()
+	})
+
+	it('folds the popup down to the title with CSS only', async () => {
+		const { opened, popup } = await openPopup({ settings: { _markers: { canMinimizePopup: true } } })
+		const toggle = () => popup.querySelector<HTMLButtonElement>(':scope > micrio-button.popup-minimize > button')
+		const content = popup.querySelector<HTMLElement>(':scope > micrio-marker-content')
+		const title = content?.querySelector<HTMLElement>('h1')
+		const body = content?.querySelector<HTMLElement>('micrio-article')
+		expect(content).not.toBeNull()
+		expect(title).not.toBeNull()
+		expect(body).not.toBeNull()
+
+		// The new CSS feature that animates `height: auto` <-> `0`, so no height is measured
+		expect(style(content as HTMLElement, 'interpolate-size')).toBe('allow-keywords')
+		expect((content as HTMLElement).getAttribute('style')).toBeNull()
+
+		// The body starts right after the title's own margin: its first paragraph's margin
+		// must not push it further down
+		expect(box(body as HTMLElement).top - box(title as HTMLElement).bottom).toBeCloseTo(
+			styleNumber(title as HTMLElement, 'margin-bottom'),
+			0,
+		)
+
+		const expanded = box(content as HTMLElement).height
+		const fullBody = box(body as HTMLElement).height
+		toggle()?.click()
+		// The height interpolates rather than snapping: catch the body part-way through
+		await waitFor(
+			() => box(body as HTMLElement).height < fullBody && box(body as HTMLElement).height > 0,
+			4000,
+			'the body to animate shut',
+		)
+		await waitFor(() => box(body as HTMLElement).height < 1, 4000, 'the body to fold away')
+		await waitFor(() => box(content as HTMLElement).height < expanded - 10, 4000, 'the popup to fold')
+		await waitFor(
+			() =>
+				styleNumber(title as HTMLElement, 'margin-bottom') ===
+				styleNumber(title as HTMLElement, '--micrio-popup-padding'),
+			4000,
+			'the title margin to fold',
+		)
+
+		// Only the title remains; every other direct child clipped itself to zero height
+		expect(box(title as HTMLElement).height).toBeGreaterThan(0)
+		expect(box(title as HTMLElement).bottom).toBeLessThanOrEqual(box(content as HTMLElement).bottom + 1)
+		expect(styleNumber(title as HTMLElement, 'margin-bottom')).toBe(
+			styleNumber(title as HTMLElement, '--micrio-popup-padding'),
+		)
+		expect(style(body as HTMLElement, 'overflow-y')).toBe('hidden')
+
+		// Unfolding restores the full content, body included
+		toggle()?.click()
+		await waitFor(() => box(body as HTMLElement).height > 1, 4000, 'the body to unfold')
+		await waitFor(() => Math.abs(box(content as HTMLElement).height - expanded) < 2, 4000, 'the popup to unfold')
+		expect(box(body as HTMLElement).top).toBeLessThan(box(content as HTMLElement).bottom)
 		opened.viewer.destroy()
 	})
 })

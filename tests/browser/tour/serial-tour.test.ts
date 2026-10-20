@@ -293,7 +293,7 @@ describe('serial tour steps that carry their own media', () => {
 		const readout = () =>
 			viewer.el.querySelector<HTMLElement>('micrio-serial-tour micrio-media-controls aside > div > span')
 		expect(readout()).not.toBeNull()
-		expect(readout()?.textContent ?? '').toMatch(/^\d+:\d\d \/ \d+:\d\d$/)
+		expect(readout()?.textContent ?? '').toMatch(/^-\d+:\d\d$/)
 		// No playback event yet, so the text cannot have come from one
 		const media = viewer.el.querySelector('micrio-serial-tour micrio-media')
 		let timeUpdates = 0
@@ -303,7 +303,7 @@ describe('serial tour steps that carry their own media', () => {
 		media?.addEventListener('timeupdate', onTime)
 		await settle(2)
 		expect(timeUpdates).toBe(0)
-		expect(readout()?.textContent ?? '').toMatch(/^\d+:\d\d \/ \d+:\d\d$/)
+		expect(readout()?.textContent ?? '').toMatch(/^-\d+:\d\d$/)
 		media?.removeEventListener('timeupdate', onTime)
 		viewer.destroy()
 	})
@@ -317,7 +317,59 @@ describe('serial tour steps that carry their own media', () => {
 		await waitFor(() => (readout()?.textContent ?? '') !== '', 4000, 'the readout text')
 		viewer.el.querySelector('micrio-serial-tour micrio-media')?.dispatchEvent(new CustomEvent('ended'))
 		await waitFor(() => viewer.el.$current?.id === ids[1], 8000, 'the second step')
-		expect(readout()?.textContent ?? '').toMatch(/^\d+:\d\d \/ \d+:\d\d$/)
+		expect(readout()?.textContent ?? '').toMatch(/^-\d+:\d\d$/)
+		viewer.destroy()
+	})
+
+	it('publishes the cumulative tour time as a quoted CSS variable', async () => {
+		const { viewer, ids } = await startStorySerial({ steps: 2, stepDuration: 4 })
+		await waitFor(() => viewer.el.querySelector('micrio-serial-tour micrio-media') !== null, 4000, 'the step media')
+		const serialEl = viewer.el.querySelector<HTMLElement>('micrio-serial-tour')
+		const stepMedia = () => viewer.el.querySelector<HTMLElement>('micrio-serial-tour micrio-media')
+		const pause = () => {
+			const audio = anyMedia(viewer.el)
+			if (audio instanceof HTMLMediaElement) {
+				audio.autoplay = false
+				audio.pause()
+			}
+		}
+		pause()
+
+		// Move to the second step: its `--time` has to include the first step's 4s,
+		// not just this segment's 2s.
+		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(() => viewer.el.$current?.id === ids[1], 8000, 'the second step')
+		await waitFor(() => stepMedia() !== null, 4000, 'the second step media')
+		await settle(2)
+		pause()
+		stepMedia()?.dispatchEvent(new CustomEvent('timeupdate', { detail: 2 }))
+		await settle(2)
+
+		expect(serialEl?.style.getPropertyValue('--time')).toBe("'00:06'")
+		expect(stepMedia()?.style.getPropertyValue('--time')).toBe("'00:06'")
+		viewer.destroy()
+	})
+
+	it('does not move the current bar while the step media is paused', async () => {
+		// A paused step stops emitting `timeupdate`; the bar follows only that real
+		// playback time, so its progress cannot creep forward by itself.
+		const { viewer } = await startStorySerial({ steps: 2 })
+		await waitFor(() => viewer.el.querySelector('micrio-serial-tour micrio-media') !== null, 4000, 'the step media')
+		const audio = anyMedia(viewer.el)
+		if (audio instanceof HTMLMediaElement) {
+			audio.autoplay = false
+			audio.pause()
+		}
+		const mediaEl = viewer.el.querySelector('micrio-serial-tour micrio-media')
+		mediaEl?.dispatchEvent(new CustomEvent('timeupdate', { detail: 1 }))
+		await settle(2)
+		const bar = () => viewer.el.querySelector<HTMLElement>('micrio-serial-tour [data-part="bar"][data-idx="0"]')
+		expect(bar()?.style.getPropertyValue('--progress')).toBe('16.67%')
+		// Well past the tour's 250ms clock interval: with no new timeupdate, nothing moves
+		await new Promise((resolve) => {
+			setTimeout(resolve, 700)
+		})
+		expect(bar()?.style.getPropertyValue('--progress')).toBe('16.67%')
 		viewer.destroy()
 	})
 

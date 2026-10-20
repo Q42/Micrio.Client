@@ -147,6 +147,27 @@ describe('<micr-io> open()', () => {
 		b.destroy()
 	})
 
+	it('does not share cached bundle settings between viewers of the same id', async () => {
+		// `DataLoader` caches the bundle module-wide, so this only passes when `open()` copies
+		// the mutable settings/info before merging this viewer's attributes into them.
+		const bundle = freshBundle()
+		mockJson(/bundle\.json/, { images: [bundle] })
+		const a = mountViewer({ id: bundle.id, 'data-zoomlimit': '2.5' })
+		const b = mountViewer()
+		try {
+			await a.open(bundle.id)
+			await waitForLoaded(a, bundle.id)
+			await b.open(bundle.id)
+			await waitForLoaded(b, bundle.id)
+
+			expect(a.el.$current?.$settings.zoomLimit).toBe(2.5)
+			expect(b.el.$current?.$settings.zoomLimit).toBe(1)
+		} finally {
+			a.destroy()
+			b.destroy()
+		}
+	})
+
 	it('destroy() tears the viewer down without leaving frames scheduled', async () => {
 		const viewer = mountViewer()
 		await viewer.open(modernBundle())
@@ -184,6 +205,24 @@ describe('<micr-io> reconnect', () => {
 		await settle(2)
 
 		expect(counts()).toEqual(before)
+		viewer.destroy()
+	})
+
+	it('keeps the muted store in sync after a reconnect', async () => {
+		const viewer = mountViewer()
+		await viewer.open(modernBundle())
+		await waitForLoaded(viewer, 'rqFkjZz')
+
+		viewer.el.remove()
+		document.body.append(viewer.el)
+		await settle(2)
+
+		const events = collectEvents(viewer.el, ['audio-mute'])
+		viewer.el._isMuted.set(true)
+		expect(viewer.el.hasAttribute('muted')).toBe(true)
+		expect(events.types).toContain('audio-mute')
+		events.stop()
+		viewer.el._isMuted.set(false)
 		viewer.destroy()
 	})
 

@@ -1,3 +1,10 @@
+micrio-article {
+	display: block;
+}
+/* The body HTML's own first top margin would otherwise push it away from the title */
+micrio-article > :first-child {
+	margin-top: 0;
+}
 micrio-article a {
 	color: var(--micrio-color);
 }

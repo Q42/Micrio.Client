@@ -11,7 +11,6 @@ import {
 
 import { DEFAULT_ASPECT } from '../core/settings'
 export { GRID_COLS, GRID_ROWS, VERTEX_COUNT } from '../core/settings'
-export type { EdgeConstraint, BendingConstraint, TriangleData }
 
 /** Canonical dedupe key for an undirected edge between vertices `a` and `b`. */
 const key = (a: number, b: number): string => (a < b ? `${a}-${b}` : `${b}-${a}`)

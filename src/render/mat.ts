@@ -5,7 +5,6 @@
  * Re-ported to TypeScript for the Micrio engine.
  *
  * @license MIT
- * @internal
  */
 
 /**
@@ -19,7 +18,6 @@
  * arr[2] arr[6] arr[10] arr[14]
  * arr[3] arr[7] arr[11] arr[15]
  * ```
- * @internal
  */
 export class Mat4 {
 	/** Float32Array holding the matrix, for direct use with WebGL uniformMatrix4fv. */

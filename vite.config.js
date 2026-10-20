@@ -90,7 +90,8 @@ export default defineConfig(({ mode }) => {
 			terserOptions: {
 				compress: {
 					pure_funcs: ['console.log', ...(core ? ['console.info'] : [])],
-					booleans_as_integers: true,
+					// Keep booleans as booleans: stores are typed `Writable<boolean>` and are part
+					// of the public API, so encoding `false` as `0` would break strict comparisons.
 					passes: 6,
 					unsafe_arrows: true,
 					unsafe_comps: true,
@@ -99,13 +100,9 @@ export default defineConfig(({ mode }) => {
 					unsafe_proto: true,
 					unsafe_regexp: true,
 					unsafe_undefined: true,
-					drop_debugger: true,
 					ecma: 2022,
 				},
 				mangle: {
-					toplevel: false,
-					keep_classnames: false,
-					keep_fnames: false,
 					properties: {
 						// Mangle properties that start with an underscore, EXCEPT the
 						// underscore-prefixed keys that come from external data (server
@@ -123,7 +120,7 @@ export default defineConfig(({ mode }) => {
 				fileName: core ? `micrio.prod.core` : `micrio.prod`,
 				formats: ['iife'],
 			},
-			rollupOptions: {
+			rolldownOptions: {
 				output: {
 					assetFileNames: () => `micrio.prod${core ? '.core' : ''}[extname]`,
 				},

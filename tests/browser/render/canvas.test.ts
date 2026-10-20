@@ -579,4 +579,23 @@ describe('Engine embed placement', () => {
 		engine._setImageVideoPlaying(embed, true)
 		viewer.destroy()
 	})
+
+	it('starts a newly placed embed transparent, so it fades in', async () => {
+		const { viewer } = await opened(bundleWith({}))
+		const parent = placedImage(viewer)
+		const engine = viewer.el._engine
+
+		const sub = parent.addEmbed(
+			{ id: 'subimg1', title: 'fade', width: 2048, height: 1536, path: parent.$info.path, isSingle: true },
+			undefined,
+			[0.25, 0.25, 0.5, 0.5],
+			{ opacity: 1, asImage: false },
+		)
+		const engImage = engine._getEngImage(sub)
+		// Transparent start, the embed's own opacity as the target: `Image._opacityTick`
+		// then walks it up over `embedFadeDuration`, the fade `_orphanEmbed` reverses.
+		expect(engImage?.opacity).toBe(0)
+		expect(engImage?._tOpacity).toBe(1)
+		viewer.destroy()
+	})
 })

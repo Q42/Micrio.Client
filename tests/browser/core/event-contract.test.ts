@@ -173,6 +173,19 @@ describe('general events', () => {
 		expect(expectFired(r, 'lang-switch')).toBe('nl')
 	})
 
+	it('does not fire lang-switch for a round trip that ends on the language it started in', async () => {
+		const { viewer: v, rec: r } = await open(modernBundle())
+		// The element starts in `en`, so clearing the language falls back to it rather than to an
+		// empty one: the host never saw the language change, and must not be told it did.
+		v.el.lang = ''
+		await settle()
+		v.el.lang = 'en'
+		await settle()
+
+		expect(r.details('lang-switch')).toEqual([])
+		expect(get(v.el._lang)).toBe('en')
+	})
+
 	it('fires the coalesced update event once for a burst of view changes', async () => {
 		const { viewer: v, rec: r } = await open(modernBundle())
 		const before = r.details('update').length
