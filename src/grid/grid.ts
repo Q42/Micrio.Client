@@ -14,16 +14,16 @@ import { pointInArea } from '$utils/math'
 import { getCols } from './format'
 import { hookGridKeys } from './keyboard'
 import '$ui/button'
-import { setupBehindTransition, transition, whenImagesReady } from './transitions'
+import {
+	getInFromIdSources,
+	inFromIdTimeout,
+	OPACITY_VISIBLE,
+	setupBehindTransition,
+	setupInFromIdTransition,
+	transition,
+} from './transitions'
 import { handleAction, createTourEventHandler } from './action-handlers'
 import './grid.css'
-
-/** Opacity that keeps an image fully visible without starting a fade. */
-const OPACITY_VISIBLE = 0.9999
-/** Transition-only stacking tiers for `in-from-id`: sources over incoming over the rest. */
-const Z_TIER_SOURCE = 3000
-const Z_TIER_INCOMING = 2000
-const Z_TIER_REST = 1000
 
 /** Props injected into a `<micrio-grid>` element by the gallery controller. */
 interface GridProps {
@@ -415,6 +415,7 @@ export class Grid extends MicrioElement<GridProps> {
 			// camera, per-item area animations and fades) until all newly added images
 			// have loaded their base tiles, so they don't pop in mid-animation.
 			const isInFromId = opts.transition === 'in-from-id'
+			const inFromId = isInFromId ? getInFromIdSources(imageEntries, prevById) : undefined
 			let openGate: (() => void) | undefined
 			const readyGate: Promise<void> | undefined = isInFromId
 				? new Promise<void>((r) => {
@@ -456,81 +457,24 @@ export class Grid extends MicrioElement<GridProps> {
 			const isAppear = opts.transition === 'appear-delayed'
 			const getDelay = (i: number): number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0)
 
-			const fromAreas = new Map<string, Models.Camera.View>()
-			if (isInFromId) {
-				for (const entry of imageEntries) {
-					const sourceId = entry.from
-					if (!sourceId || prevById.has(entry.id)) {
-						continue
-					}
-					const sourceArea = prevById.get(sourceId)?.opts.area
-					if (sourceArea) {
-						fromAreas.set(entry.id, sourceArea)
-					}
-				}
-			}
-
-			// Newly added 'in-from-id' entries without a (valid) `from` source have
-			// nothing to animate in from, so they simply fade in at their target area.
-			const fadeInPlaceIds = isInFromId
-				? new Set(imageEntries.filter((e) => !prevById.has(e.id) && !fromAreas.has(e.id)).map((e) => e.id))
-				: undefined
-
 			this._current = imageEntries.map((img, i) =>
 				this.#placeImage(img, {
 					duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : dur,
 					delay: isDelayed ? getDelay(i) : 0,
 					noCamAni: isAppear && i > 0 ? true : Boolean(opts.noCamAni),
-					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni || fromAreas.has(img.id),
+					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni || Boolean(inFromId?.fromAreas.has(img.id)),
 					cover: opts.cover,
-					fromArea: fromAreas.get(img.id),
-					fadeInPlace: Boolean(fadeInPlaceIds?.has(img.id)),
+					fromArea: inFromId?.fromAreas.get(img.id),
+					fadeInPlace: Boolean(inFromId?.fadeInPlaceIds.has(img.id)),
 					ready: readyGate,
 				}),
 			)
 
-			if (isInFromId) {
-				const sourceIds = new Set(imageEntries.map((e) => e.from).filter((v): v is string => Boolean(v)))
-				const incomingIds = new Set(
-					imageEntries.filter((e) => !prevById.has(e.id) && fromAreas.has(e.id)).map((e) => e.id),
-				)
-
-				for (const [i, entry] of imageEntries.entries()) {
-					const c = this._imageMap.get(entry.id)?.canvas
-					if (!c) {
-						continue
-					}
-					// Keep animated (source/incoming) items fully visible so they don't
-					// fade during their area animation. Fade-in-place items keep their
-					// default 0 opacity so they fade in at their target position.
-					if (!fadeInPlaceIds?.has(entry.id)) {
-						c._setOpacityDirect(OPACITY_VISIBLE)
-					}
-					let { z } = entry
-					if (z === undefined) {
-						if (sourceIds.has(entry.id)) {
-							z = Z_TIER_SOURCE + i
-						} else if (incomingIds.has(entry.id)) {
-							z = Z_TIER_INCOMING + i
-						} else {
-							z = Z_TIER_REST + i
-						}
-					}
-					c.zIndex = z
-				}
-
-				// Wait until the images that animate in from a source have rendered their
-				// base tiles before opening the gate that starts the transition, so they
-				// don't pop in mid-animation. Fade-in-place items are excluded: they are
-				// placed at their (often off-screen) end position and only become visible
-				// once the camera zooms out after the gate opens, so waiting for them
-				// would needlessly stall the whole transition until the timeout.
-				const incoming = this._current.filter((img) => !prevById.has(img.id) && fromAreas.has(img.id))
-				const timeout = (Math.max(dur, crossfadeDur) || 1) * 1000 + 3000
-				void whenImagesReady(engine, incoming, timeout, () => setId !== this.#setId).then(() => {
-					if (setId === this.#setId) {
-						openGate?.()
-					}
+			if (inFromId) {
+				setupInFromIdTransition(this, imageEntries, this._current, prevById, inFromId, {
+					timeout: inFromIdTimeout(dur, crossfadeDur),
+					canOpen: () => setId === this.#setId,
+					open: () => openGate?.(),
 				})
 			} else {
 				// A layout entry may pin its own stacking order. This is applied on
