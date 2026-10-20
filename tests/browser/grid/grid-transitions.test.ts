@@ -410,6 +410,28 @@ describe('in-from-id transition', () => {
 		viewer.destroy()
 	})
 
+	it('does not start a gated transition after the grid is destroyed', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+		]
+		const gated = grid.set(entries, { transition: 'in-from-id', duration: 0 })
+		const incoming = grid.getImage(ids[2] ?? '')
+		const sourceArea = incoming?.opts.area
+
+		viewer.destroy()
+		// The canvas outlives the element here, so a draw would open a gate that no
+		// longer belongs to a live grid; the cancelled gate must ignore it.
+		drawBaseTile(grid, ids[2] ?? '')
+		await settleFrames(4)
+
+		expect(incoming?.opts.area).toEqual(sourceArea)
+		expect(incoming?.opts.area).not.toEqual(entries[2]?.area)
+		const raced = await Promise.race([gated.then(() => 'settled'), settleFrames(2).then(() => 'pending')])
+		expect(raced).toBe('pending')
+	})
 })
 
 describe('blur transitions', () => {
