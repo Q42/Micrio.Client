@@ -224,10 +224,10 @@ type GridEntry = GridImage | GridEmptyCell
 - `from` names the image this entry should animate out of during
   `transition: 'in-from-id'`. The source must be present in the **previous**
   layout, otherwise the entry simply fades in at its own position.
-- `z` overrides the image's stacking order when the entry is set. It persists
-  until a later entry sets another `z` (or the image leaves the layout);
-  `in-from-id` uses explicit `z` values as-is and only resets its own
-  transition-only tiers.
+- `z` overrides the image's stacking order when the entry is set. It is
+  remembered per image: it survives later sets, transitions and focus/blur until
+  a later entry sets another `z` (or the image leaves the layout). `in-from-id`
+  uses explicit `z` values as-is and only resets its own transition-only tiers.
 
 ### `Grid.FocusOptions`
 
@@ -354,30 +354,32 @@ await grid.set(
 
 `in-from-id` parks every newly added `from` entry at the source image's area
 and waits until those images have drawn their base tile before starting the
-transition. That wait defaults to the transition duration plus 3 seconds; pass
-`readinessTimeout` to cap it explicitly. Source, incoming and unchanged images
-are stacked above each other for the duration; explicit `z` values win.
+transition. That wait defaults to the longer of the transition and crossfade
+durations plus 3 seconds (at least 4 seconds); pass `readinessTimeout` (seconds)
+to cap it explicitly — a non-finite value is ignored. Source, incoming and
+unchanged images are stacked above each other for the duration; explicit `z`
+values win.
 
 The runnable demo at `templates/grid/grid.html` has an **Empty cells** button
 (reserve placeholder cells) and a **Grow from cell** button (`in-from-id`).
 
 Notable `set` options:
 
-| Option              | Type                | Description                                                                        |
-| ------------------- | ------------------- | ---------------------------------------------------------------------------------- |
-| `horizontal`        | `boolean`           | Force a single row (one column per image).                                         |
-| `columns`           | `number`            | Force an explicit column count.                                                    |
-| `duration`          | `number`            | Transition duration in seconds.                                                    |
-| `view`              | `Camera.View`       | Target view for the _viewport_ image.                                              |
-| `transition`        | `GridSetTransition` | `'crossfade'`, `'behind'`, `'behind-delayed'`, `'appear-delayed'`, `'in-from-id'`. |
-| `readinessTimeout`  | `number`            | Seconds the `in-from-id` gate may wait for base tiles (default: duration + 3).     |
-| `noHistory`         | `boolean`           | Do not push the current layout onto the history stack.                             |
-| `keepGrid`          | `boolean`           | Keep existing layout while re-arranging.                                           |
-| `cover`             | `boolean`           | Place images as cover view.                                                        |
-| `coverLimit`        | `boolean`           | Limit zoom to cover scale.                                                         |
-| `scale`             | `number`            | Shrink cells (0…1), effectively adds spacing.                                      |
-| `noBlur` / `noFade` | `boolean`           | Skip the automatic un-focus / fade handling.                                       |
-| `noCamAni`          | `boolean`           | Skip camera animation on the placed images.                                        |
+| Option              | Type                | Description                                                                                                  |
+| ------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `horizontal`        | `boolean`           | Force a single row (one column per image).                                                                   |
+| `columns`           | `number`            | Force an explicit column count.                                                                              |
+| `duration`          | `number`            | Transition duration in seconds.                                                                              |
+| `view`              | `Camera.View`       | Target view for the _viewport_ image.                                                                        |
+| `transition`        | `GridSetTransition` | `'crossfade'`, `'behind'`, `'behind-delayed'`, `'appear-delayed'`, `'in-from-id'`.                           |
+| `readinessTimeout`  | `number`            | Seconds the `in-from-id` gate may wait for base tiles (default: `max(duration, crossfade)` + 3, at least 4). |
+| `noHistory`         | `boolean`           | Do not push the current layout onto the history stack.                                                       |
+| `keepGrid`          | `boolean`           | Keep existing layout while re-arranging.                                                                     |
+| `cover`             | `boolean`           | Place images as cover view.                                                                                  |
+| `coverLimit`        | `boolean`           | Limit zoom to cover scale.                                                                                   |
+| `scale`             | `number`            | Shrink cells (0…1), effectively adds spacing.                                                                |
+| `noBlur` / `noFade` | `boolean`           | Skip the automatic un-focus / fade handling.                                                                 |
+| `noCamAni`          | `boolean`           | Skip camera animation on the placed images.                                                                  |
 
 `set()` returns a promise that resolves with the placed `MicrioImage[]` once
 the transition is done.
