@@ -4,7 +4,7 @@ import { cellButton, layoutIds, settleFrames, waitForLayout } from '../../helper
 import { marker } from '../../fixtures/bundles'
 import { videoTour } from '../../fixtures/tours'
 import { pollUntil } from '../../helpers/async'
-import { setupBehindTransition } from '$grid/transitions'
+import { inFromIdTimeout, setupBehindTransition } from '$grid/transitions'
 import { GridActionType } from '$grid/actions'
 import type { Models } from '$types/models'
 import type { Grid } from '$grid/grid'
@@ -171,6 +171,18 @@ describe('behind transitions', () => {
 })
 
 describe('in-from-id transition', () => {
+	it('ignores a non-finite readinessTimeout instead of never opening its gate', () => {
+		// The default is the longer transition duration plus 3s, with a 4s floor
+		expect(inFromIdTimeout(1, 0.5)).toBe(4000)
+		expect(inFromIdTimeout(0, 0)).toBe(4000)
+		// An explicit cap is used as-is, and a negative one cannot wait at all
+		expect(inFromIdTimeout(1, 0.5, 0.05)).toBe(50)
+		expect(inFromIdTimeout(1, 0.5, -2)).toBe(0)
+		// `performance.now() - start > NaN` is never true, so this would hang `set()`
+		expect(inFromIdTimeout(1, 0.5, Number.NaN)).toBe(4000)
+		expect(inFromIdTimeout(1, 0.5, Number.POSITIVE_INFINITY)).toBe(4000)
+	})
+
 	it('parks a new entry at its `from` source and settles it at its target', async () => {
 		const { viewer, grid, ids } = await openPairGrid()
 		const sourceArea = grid.getImage(ids[0] ?? '')?.opts.area
@@ -333,6 +345,75 @@ describe('in-from-id transition', () => {
 		expect(grid.getImage(ids[2] ?? '')?.canvas?.zIndex).toBe(9)
 		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(0)
 		expect(grid.getImage(ids[1] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('keeps an explicit z across later sets and forgets it when the image leaves', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const pair = ids.slice(0, 2)
+		await grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1], z: 7 },
+				{ id: ids[1] ?? '', size: [1] },
+			],
+			{ duration: 0 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+
+		// A later delayed transition that does not repeat the `z` must not drop it
+		await grid.set(
+			pair.map((id) => ({ id, size: [1] as [number, number?] })),
+			{ transition: 'appear-delayed', duration: 0.05 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+		expect(grid.getImage(ids[1] ?? '')?.canvas?.zIndex).toBe(0)
+
+		// Focus and blur do not lose it either: the focused cell only has to be on top
+		await grid.gridFocus(grid.getImage(ids[0] ?? ''), { duration: 0 })
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+		grid.blur()
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+
+		// Leaving the layout forgets the override, so re-adding the image starts at 0
+		await grid.set([{ id: ids[1] ?? '', size: [1] }], { duration: 0 })
+		await settleFrames(2)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(0)
+		await grid.set(
+			pair.map((id) => ({ id, size: [1] as [number, number?] })),
+			{ duration: 0 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('undoes its stacking tiers when a newer set() supersedes it', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		// The gate stays shut (nothing stamps the newcomer's base tile), so the
+		// transition-only tiers are in place when the next set arrives.
+		void grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1] },
+				{ id: ids[1] ?? '', size: [1] },
+				{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+			],
+			{ transition: 'in-from-id', duration: 0 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBeGreaterThanOrEqual(3000)
+
+		// A superseded transition never reaches its `done()`, so the superseding set
+		// has to undo the tiers itself, or they keep outranking every later stacking
+		await grid.set(
+			ids.slice(0, 2).map((id) => ({ id, size: [1] as [number, number?] })),
+			{ duration: 0 },
+		)
+		await settleFrames(2)
+		for (const id of ids.slice(0, 3)) {
+			expect(grid.getImage(id)?.canvas?.zIndex ?? 0).toBe(0)
+		}
+
+		// In particular a focused cell is back on top of the layout it focuses
+		await grid.gridFocus(grid.getImage(ids[0] ?? ''), { duration: 0 })
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(3)
 		viewer.destroy()
 	})
 
