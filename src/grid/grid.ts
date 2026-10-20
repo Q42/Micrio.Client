@@ -58,6 +58,12 @@ export class Grid extends MicrioElement<GridProps> {
 	/** The full current layout as passed to `set()`, including empty placeholder cells */
 	#currentLayout: Models.Grid.GridEntry[] = []
 
+	/** Explicit `z` overrides per image id, kept until another entry sets one or the image leaves the layout */
+	#zOverrides = new Map<string, number>()
+
+	/** Transition-only tiers applied by `in-from-id`, as image id -> the `zIndex` it was given */
+	#transitionZ = new Map<string, number>()
+
 	/** @internal */
 	_buttons = new Map<string, HTMLButtonElement>()
 
@@ -281,6 +287,33 @@ export class Grid extends MicrioElement<GridProps> {
 		clearTimeout(this.#_fadeTo)
 	}
 
+	/** Undo the stacking an `in-from-id` transition applied.
+	 *
+	 * A superseded transition never reaches its `done()`, so this also has to run
+	 * when the next `set()` starts; otherwise its tiers keep outranking every
+	 * later stacking (including a focused cell's `zIndex` of 3). Only the canvases
+	 * still carrying the tier it assigned are touched, so a `z` or focus applied
+	 * afterwards wins. */
+	#clearTransitionZ(): void {
+		for (const [id, z] of this.#transitionZ) {
+			const c = this._imageMap.get(id)?.canvas
+			if (c && c.zIndex === z) {
+				c.zIndex = this.#zOverrides.get(id) ?? 0
+			}
+		}
+		this.#transitionZ.clear()
+	}
+
+	/** Restore every image's stacking order after a delayed or `in-from-id` transition. */
+	#resetZ(): void {
+		for (const i of this._images) {
+			if (i.canvas) {
+				i.canvas.zIndex = this.#zOverrides.get(i.id) ?? 0
+			}
+		}
+		this.#transitionZ.clear()
+	}
+
 	#trackImage(img: MicrioImage): void {
 		this._images.push(img)
 		this._imageMap.set(img.id, img)
@@ -337,6 +370,7 @@ export class Grid extends MicrioElement<GridProps> {
 		} = {},
 	): Promise<MicrioImage[]> {
 		const setId = ++this.#setId
+		this.#clearTransitionZ()
 		if (this._images.length > 0) {
 			for (const i of this._images) {
 				i.camera.stop()
@@ -361,9 +395,6 @@ export class Grid extends MicrioElement<GridProps> {
 
 			const imageEntries = images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty)
 			const prevById = new Map(this._current.map((img) => [img.id, img] as const))
-			// Entries with an explicit `z` keep their override after the transition;
-			// the tiered defaults `in-from-id` assigns are reset in `done()`.
-			const zOverrides = new Set(imageEntries.filter((e) => e.z !== undefined).map((e) => e.id))
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
@@ -388,7 +419,7 @@ export class Grid extends MicrioElement<GridProps> {
 			if (!opts.noHistory && this.#currentLayout.length > 0) {
 				this.#savePreviousLayout()
 			}
-			this.#currentLayout = images
+			this.#currentLayout = images.map((e) => ({ ...e }))
 			this.#currentColumns = opts.columns
 			this.#isHorizontal = Boolean(opts.horizontal)
 
@@ -472,24 +503,29 @@ export class Grid extends MicrioElement<GridProps> {
 				}),
 			)
 
+			// A layout entry may pin its own stacking order. Overrides are remembered
+			// per image, so they survive later sets and transitions until another
+			// entry sets a different `z` (or the image leaves the layout).
+			for (const entry of imageEntries) {
+				if (entry.z === undefined) {
+					continue
+				}
+				this.#zOverrides.set(entry.id, entry.z)
+				if (!inFromId) {
+					const c = this._imageMap.get(entry.id)?.canvas
+					if (c) {
+						c.zIndex = entry.z
+					}
+				}
+			}
+
 			if (inFromId) {
-				setupInFromIdTransition(this, imageEntries, this._current, prevById, inFromId, {
+				const tiers = setupInFromIdTransition(this, imageEntries, this._current, prevById, inFromId, {
 					timeout: inFromIdTimeout(dur, crossfadeDur, opts.readinessTimeout),
 					canOpen: () => setId === this.#setId,
 					open: () => openGate?.(),
 				})
-			} else {
-				// A layout entry may pin its own stacking order. This is applied on
-				// every set that carries a `z`, and persists until a later entry
-				// overrides it (or the image leaves the layout).
-				for (const entry of imageEntries) {
-					if (entry.z !== undefined) {
-						const c = this._imageMap.get(entry.id)?.canvas
-						if (c) {
-							c.zIndex = entry.z
-						}
-					}
-				}
+				this.#transitionZ = new Map(tiers.map((t) => [t.id, t.z] as const))
 			}
 
 			if (isAppear) {
@@ -515,11 +551,7 @@ export class Grid extends MicrioElement<GridProps> {
 				this.#clearTimeouts()
 				Frame.request(() => (engine._crossfadeDuration = defaultDur))
 				if (isDelayed || isInFromId) {
-					for (const i of this._images) {
-						if (i.canvas && !zOverrides.has(i.id)) {
-							i.canvas.zIndex = 0
-						}
-					}
+					this.#resetZ()
 				}
 				if (forcedCoverLimit) {
 					for (const i of imageEntries) {
@@ -768,6 +800,7 @@ export class Grid extends MicrioElement<GridProps> {
 			}
 			this._buttons.get(i.id)?.remove()
 			this._buttons.delete(i.id)
+			this.#zOverrides.delete(i.id)
 		}
 		_engine.render()
 	}
@@ -930,7 +963,8 @@ export class Grid extends MicrioElement<GridProps> {
 		const target = await transition(this, img, focussed, opts)
 
 		if (img.canvas) {
-			img.canvas.zIndex = 3
+			// A focused cell is always on top; an explicit layout `z` above that still wins
+			img.canvas.zIndex = Math.max(this.#zOverrides.get(img.id) ?? 3, 3)
 		}
 		this._focussed.set(img)
 
@@ -962,7 +996,8 @@ export class Grid extends MicrioElement<GridProps> {
 			b.classList.remove('focussed')
 		}
 		if (focussed.canvas) {
-			focussed.canvas.zIndex = 2
+			// Back into the grid, above it but below a newly focused cell
+			focussed.canvas.zIndex = Math.max(this.#zOverrides.get(focussed.id) ?? 2, 2)
 		}
 		this.micrio.events._dispatch('grid-blur')
 		this._focussed.set(undefined)

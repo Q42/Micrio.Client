@@ -122,10 +122,11 @@ export function getInFromIdSources(
 	}
 }
 
-/** Milliseconds an `in-from-id` readiness gate may wait. @internal */
+/** Milliseconds an `in-from-id` readiness gate may wait. A non-finite `override`
+ * would otherwise stop the gate from ever timing out and leave `set()` pending. @internal */
 export function inFromIdTimeout(duration: number, crossfadeDuration: number, override?: number): number {
-	if (override !== undefined) {
-		return override * 1000
+	if (override !== undefined && Number.isFinite(override)) {
+		return Math.max(0, override) * 1000
 	}
 	return (Math.max(duration, crossfadeDuration) || 1) * 1000 + 3000
 }
@@ -133,7 +134,8 @@ export function inFromIdTimeout(duration: number, crossfadeDuration: number, ove
 /**
  * Stack and reveal the entries of an `in-from-id` set, and hold the transition
  * until the images that animate in from a source have drawn their base tile.
- * @internal
+ * Returns the transition-only tiers it applied, for the caller to undo after (or
+ * when a newer `set()` supersedes) this transition. @internal
  */
 export function setupInFromIdTransition(
 	grid: Grid,
@@ -149,10 +151,11 @@ export function setupInFromIdTransition(
 		/** Resolves the set's readiness gate. */
 		open: () => void
 	},
-): void {
+): { id: string; z: number }[] {
 	const { _engine: engine } = grid.micrio
 	const sourceIds = new Set(imageEntries.map((e) => e.from).filter((v): v is string => Boolean(v)))
 	const incomingIds = new Set(imageEntries.filter((e) => !prevById.has(e.id) && fromAreas.has(e.id)).map((e) => e.id))
+	const tiers: { id: string; z: number }[] = []
 
 	for (const [i, entry] of imageEntries.entries()) {
 		const c = grid.getImage(entry.id)?.canvas
@@ -174,6 +177,7 @@ export function setupInFromIdTransition(
 			} else {
 				z = Z_TIER_REST + i
 			}
+			tiers.push({ id: entry.id, z })
 		}
 		c.zIndex = z
 	}
@@ -190,6 +194,7 @@ export function setupInFromIdTransition(
 			opts.open()
 		}
 	})
+	return tiers
 }
 
 /** Perform a transition animation (crossfade, slide, swipe, or behind) between two images. @internal */
