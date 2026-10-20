@@ -32,6 +32,11 @@ export function cellButton(grid: Grid, id: string): HTMLButtonElement | undefine
 	return cellButtons(grid).find((b) => b.dataset.id === id)
 }
 
+/** The disabled placeholder `<button>`s for empty cells, in layout order. */
+export function emptyCells(grid: Grid): HTMLButtonElement[] {
+	return [...(grid as unknown as HTMLElement).querySelectorAll<HTMLButtonElement>('button.grid-empty')]
+}
+
 /** The ids of the current layout, in order. */
 export function layoutIds(grid: Grid): (string | undefined)[] {
 	return cellButtons(grid).map((b) => b.dataset.id)

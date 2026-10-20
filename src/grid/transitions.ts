@@ -1,8 +1,58 @@
 import type { Grid } from './grid'
 import type { Models } from '$types/models'
 import type { MicrioImage } from '$core/image'
+import type { Engine } from '$render/engine'
+import { Frame } from '$core/frame'
 import { slideAreas, swipeAreas, swipeExitAreas } from './format'
 import { sleep } from '$utils/dom'
+
+/** Opacity that keeps an image fully visible without starting a fade. */
+export const OPACITY_VISIBLE = 0.9999
+/** Transition-only stacking tiers for `in-from-id`: sources over incoming over the rest. */
+const Z_TIER_SOURCE = 3000
+const Z_TIER_INCOMING = 2000
+const Z_TIER_REST = 1000
+
+/**
+ * Resolves once every given image has drawn its base tile after this call, or
+ * after `timeout` ms. Used to hold an `in-from-id` transition until its
+ * newcomers have pixels, so they do not pop in mid-animation. `isCancelled`
+ * stops the polling (and the rendering it forces) when the transition that
+ * requested it was superseded or the grid was destroyed. @internal
+ */
+export function whenImagesReady(
+	engine: Engine,
+	images: MicrioImage[],
+	timeout: number,
+	isCancelled: () => boolean,
+): Promise<void> {
+	return new Promise<void>((resolve) => {
+		const start = performance.now()
+		// `_gotBase` is the timestamp of the last frame the base tile was
+		// actually drawn. A stale value from an earlier appearance doesn't
+		// guarantee the texture still exists (tiles of removed images get
+		// cleaned up), so require a draw after this check started.
+		const isReady = (img: MicrioImage): boolean => {
+			const c = img.canvas
+			if (!c) {
+				return false
+			}
+			if (c.images.length === 0) {
+				return true
+			}
+			return c.images[0]._gotBase >= start
+		}
+		const check = (): void => {
+			if (isCancelled() || images.every(isReady) || performance.now() - start > timeout) {
+				resolve()
+			} else {
+				engine.render()
+				Frame.request(check)
+			}
+		}
+		check()
+	})
+}
 
 /** Configure the grid images for a "behind" or "behind-delayed" transition layout. @internal */
 export function setupBehindTransition(
@@ -38,6 +88,113 @@ export function setupBehindTransition(
 	for (const e of images) {
 		e.view = [0, 0, 1, 1]
 	}
+}
+
+/** The source data an `in-from-id` set needs before it places its entries. @internal */
+export interface InFromIdSources {
+	/** The previous area of the source image for each new `from` entry. */
+	fromAreas: Map<string, Models.Camera.View>
+	/** New entries that have no valid source and fade in at their own area. */
+	fadeInPlaceIds: Set<string>
+}
+
+/** Resolve every newly added `from` entry to its source image's previous area. @internal */
+export function getInFromIdSources(
+	imageEntries: Models.Grid.GridImage[],
+	prevById: Map<string, MicrioImage>,
+): InFromIdSources {
+	const fromAreas = new Map<string, Models.Camera.View>()
+	for (const entry of imageEntries) {
+		const sourceId = entry.from
+		if (!sourceId || prevById.has(entry.id)) {
+			continue
+		}
+		const sourceArea = prevById.get(sourceId)?.opts.area
+		if (sourceArea) {
+			fromAreas.set(entry.id, sourceArea)
+		}
+	}
+	return {
+		fromAreas,
+		// Newly added entries without a (valid) `from` source have nothing to
+		// animate in from, so they simply fade in at their target area.
+		fadeInPlaceIds: new Set(imageEntries.filter((e) => !prevById.has(e.id) && !fromAreas.has(e.id)).map((e) => e.id)),
+	}
+}
+
+/** Milliseconds an `in-from-id` readiness gate may wait. A non-finite `override`
+ * would otherwise stop the gate from ever timing out and leave `set()` pending. @internal */
+export function inFromIdTimeout(duration: number, crossfadeDuration: number, override?: number): number {
+	if (override !== undefined && Number.isFinite(override)) {
+		return Math.max(0, override) * 1000
+	}
+	return (Math.max(duration, crossfadeDuration) || 1) * 1000 + 3000
+}
+
+/**
+ * Stack and reveal the entries of an `in-from-id` set, and hold the transition
+ * until the images that animate in from a source have drawn their base tile.
+ * Returns the transition-only tiers it applied, for the caller to undo after (or
+ * when a newer `set()` supersedes) this transition. @internal
+ */
+export function setupInFromIdTransition(
+	grid: Grid,
+	imageEntries: Models.Grid.GridImage[],
+	current: MicrioImage[],
+	prevById: Map<string, MicrioImage>,
+	{ fromAreas, fadeInPlaceIds }: InFromIdSources,
+	opts: {
+		/** Millisecond cap for the readiness gate. */
+		timeout: number
+		/** Whether this set is still the grid's current one. */
+		canOpen: () => boolean
+		/** Resolves the set's readiness gate. */
+		open: () => void
+	},
+): { id: string; z: number }[] {
+	const { _engine: engine } = grid.micrio
+	const sourceIds = new Set(imageEntries.map((e) => e.from).filter((v): v is string => Boolean(v)))
+	const incomingIds = new Set(imageEntries.filter((e) => !prevById.has(e.id) && fromAreas.has(e.id)).map((e) => e.id))
+	const tiers: { id: string; z: number }[] = []
+
+	for (const [i, entry] of imageEntries.entries()) {
+		const c = grid.getImage(entry.id)?.canvas
+		if (!c) {
+			continue
+		}
+		// Keep animated (source/incoming) items fully visible so they don't fade
+		// during their area animation. Fade-in-place items keep their default 0
+		// opacity so they fade in at their target position.
+		if (!fadeInPlaceIds.has(entry.id)) {
+			c._setOpacityDirect(OPACITY_VISIBLE)
+		}
+		let { z } = entry
+		if (z === undefined) {
+			if (sourceIds.has(entry.id)) {
+				z = Z_TIER_SOURCE + i
+			} else if (incomingIds.has(entry.id)) {
+				z = Z_TIER_INCOMING + i
+			} else {
+				z = Z_TIER_REST + i
+			}
+			tiers.push({ id: entry.id, z })
+		}
+		c.zIndex = z
+	}
+
+	// Wait until the images that animate in from a source have rendered their
+	// base tiles before opening the gate that starts the transition, so they
+	// don't pop in mid-animation. Fade-in-place items are excluded: they are
+	// placed at their (often off-screen) end position and only become visible
+	// once the camera zooms out after the gate opens, so waiting for them would
+	// needlessly stall the whole transition until the timeout.
+	const incoming = current.filter((img) => !prevById.has(img.id) && fromAreas.has(img.id))
+	void whenImagesReady(engine, incoming, opts.timeout, () => !opts.canOpen()).then(() => {
+		if (opts.canOpen()) {
+			opts.open()
+		}
+	})
+	return tiers
 }
 
 /** Perform a transition animation (crossfade, slide, swipe, or behind) between two images. @internal */
@@ -78,11 +235,7 @@ export async function transition(
 	}
 
 	if (isSlwipe || isBehind) {
-		const c = target.canvas
-		if (c) {
-			c._targetOpacity = 0.9999
-			c._opacity = 0.9999
-		}
+		target.canvas?._setOpacityDirect(OPACITY_VISIBLE)
 	}
 
 	if (trans.startsWith('slide')) {

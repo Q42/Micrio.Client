@@ -380,10 +380,30 @@ export class TileCanvas {
 		this.#isVisible = b
 	}
 
-	/** Initiates a fade-out animation. @internal */
+	/** Initiates a fade-out animation (fades to opacity 0). @internal */
 	_fadeOut(): void {
 		this._targetOpacity = 0
 		this.zIndex = 0
+	}
+
+	/** Directly sets the canvas opacity, without animating.
+	 *
+	 * With `syncEased` (the default), also updates the internal eased opacity
+	 * actually used for rendering, which is otherwise only recomputed while a
+	 * fade animation is stepping. The staggered `appear-delayed` transition
+	 * passes `false`: it presets the target to keep items visible during their
+	 * area animation, but the eased value has to stay at 0 so a newly added
+	 * image still appears at its delayed fade-in. @internal */
+	_setOpacityDirect(o: number, syncEased = true): void {
+		this._opacity = this._targetOpacity = o
+		if (syncEased) {
+			this.#bOpacity = easeInOut.get(o)
+		}
+	}
+
+	/** The eased opacity actually used for drawing. @internal */
+	get _easedOpacity(): number {
+		return this.#bOpacity
 	}
 
 	/** Initiates a fade-in animation. @internal */

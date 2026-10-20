@@ -4,7 +4,7 @@ import { cellButton, layoutIds, settleFrames, waitForLayout } from '../../helper
 import { marker } from '../../fixtures/bundles'
 import { videoTour } from '../../fixtures/tours'
 import { pollUntil } from '../../helpers/async'
-import { setupBehindTransition } from '$grid/transitions'
+import { inFromIdTimeout, setupBehindTransition } from '$grid/transitions'
 import { GridActionType } from '$grid/actions'
 import type { Models } from '$types/models'
 import type { Grid } from '$grid/grid'
@@ -57,6 +57,35 @@ async function openFullGrid(opts: Parameters<typeof openGrid>[0] = {}) {
 		{ duration: 0, noHistory: true },
 	)
 	await waitForLayout(opened.grid, opened.ids, 'full grid layout')
+	return opened
+}
+
+/**
+ * The readiness gate waits for a *drawn base tile*: `set()` holds the whole transition until
+ * every source-animated newcomer has `_gotBase` stamped by a real `TileCanvas._draw`. These
+ * fixtures serve no tile bitmaps (see `tests/helpers/grid.ts`), so that draw never happens and
+ * the gate would only ever open through its timeout — `(max(duration, crossfade) || 1) * 1000
+ * + 3000` ms, so at least 4s per `set`. To keep the suite fast, this stamps `_gotBase` exactly
+ * the way `_draw` would after a real draw; it is the one place the grid suites reach past the
+ * public surface.
+ */
+function drawBaseTile(grid: Grid, id: string): void {
+	const image = grid.getImage(id)?.canvas?.images[0]
+	if (!image) {
+		throw new Error(`no engine image for ${id}`)
+	}
+	image._gotBase = performance.now()
+}
+
+/** A two-cell starting layout, so the `set` under test can add a genuinely *new* entry. */
+async function openPairGrid() {
+	const opened = await openGrid(fast())
+	const pair = opened.ids.slice(0, 2)
+	await opened.grid.set(
+		pair.map((id) => ({ id, size: [1] as [number, number?] })),
+		{ duration: 0, noHistory: true },
+	)
+	await waitForLayout(opened.grid, pair, 'pair layout')
 	return opened
 }
 
@@ -138,6 +167,351 @@ describe('behind transitions', () => {
 		})
 		expect(layoutIds(grid)).toEqual([ids[0]])
 		viewer.destroy()
+	})
+})
+
+describe('in-from-id transition', () => {
+	it('ignores a non-finite readinessTimeout instead of never opening its gate', () => {
+		// The default is the longer transition duration plus 3s, with a 4s floor
+		expect(inFromIdTimeout(1, 0.5)).toBe(4000)
+		expect(inFromIdTimeout(0, 0)).toBe(4000)
+		// An explicit cap is used as-is, and a negative one cannot wait at all
+		expect(inFromIdTimeout(1, 0.5, 0.05)).toBe(50)
+		expect(inFromIdTimeout(1, 0.5, -2)).toBe(0)
+		// `performance.now() - start > NaN` is never true, so this would hang `set()`
+		expect(inFromIdTimeout(1, 0.5, Number.NaN)).toBe(4000)
+		expect(inFromIdTimeout(1, 0.5, Number.POSITIVE_INFINITY)).toBe(4000)
+	})
+
+	it('parks a new entry at its `from` source and settles it at its target', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const sourceArea = grid.getImage(ids[0] ?? '')?.opts.area
+		expect(sourceArea).toBeDefined()
+
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+		]
+		const settled = grid.set(entries, { transition: 'in-from-id', duration: 0 })
+
+		// Before the gate opens: the newcomer sits at its source's area so its tiles load there,
+		// it is kept fully visible (no fade during the area animation), and the z-tiers stack
+		// sources (3000+) over incoming (2000+) over the rest (1000+)
+		const incoming = grid.getImage(ids[2] ?? '')
+		expect(incoming?.opts.area).toEqual(sourceArea)
+		expect(incoming?.canvas?._opacity).toBeCloseTo(1)
+		expect(incoming?.canvas?.zIndex).toBeGreaterThanOrEqual(2000)
+		expect(incoming?.canvas?.zIndex).toBeLessThan(3000)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBeGreaterThanOrEqual(3000)
+
+		drawBaseTile(grid, ids[2] ?? '')
+		await settled
+
+		// `#printGrid` measured the entry's real target into `entries[2].area`; the image must
+		// end there, and `done()` resets the stacking
+		expect(entries[2]?.area).toBeDefined()
+		expect(entries[2]?.area).not.toEqual(sourceArea)
+		expect(incoming?.opts.area).toEqual(entries[2]?.area)
+		for (const id of ids.slice(0, 3)) {
+			expect(grid.getImage(id)?.canvas?.zIndex ?? 0).toBe(0)
+		}
+		expect(layoutIds(grid)).toEqual(ids.slice(0, 3))
+		viewer.destroy()
+	})
+
+	it('fades a new entry without a valid source in at its own area', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			// `from` names an id that is not in the previous layout, so there is no source area
+			{ id: ids[2] ?? '', size: [1], from: 'nosuchid' },
+		]
+		const settled = grid.set(entries, { transition: 'in-from-id', duration: 0 })
+
+		// Fade-in-place: parked directly at its target, default 0 opacity, lowest z-tier
+		const image = grid.getImage(ids[2] ?? '')
+		expect(image?.opts.area).toEqual(entries[2]?.area)
+		expect(image?.canvas?._opacity).toBe(0)
+		expect(image?.canvas?.zIndex).toBeGreaterThanOrEqual(1000)
+		expect(image?.canvas?.zIndex).toBeLessThan(2000)
+
+		// With no source-animated newcomers the gate has nothing to wait for and opens
+		// immediately — no base tile ever needs to be drawn
+		await settled
+		await pollUntil(() => image?.canvas?._targetOpacity === 1, 4000, 'the fade-in')
+		expect(image?.canvas?.zIndex).toBe(0)
+		expect(layoutIds(grid)).toEqual(ids.slice(0, 3))
+		viewer.destroy()
+	})
+
+	it('falls back to the readiness timeout when the base tile never arrives', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+		]
+		const settled = grid.set(entries, { transition: 'in-from-id', duration: 0 })
+
+		// Nothing here ever draws the newcomer's base tile (see `drawBaseTile`), so the gate's
+		// only way out is its timeout. Jump the clock past it instead of really waiting: the
+		// gate's elapsed check reads `performance.now()`, while the frame loop runs on rAF
+		// timestamps and clamps its per-frame delta, so the jump only trips the timeout
+		const realNow = performance.now.bind(performance)
+		const jump = vi.spyOn(performance, 'now').mockImplementation(() => realNow() + 10_000)
+		try {
+			await settled
+		} finally {
+			jump.mockRestore()
+		}
+
+		expect(layoutIds(grid)).toEqual(ids.slice(0, 3))
+		expect(grid.getImage(ids[2] ?? '')?.opts.area).toEqual(entries[2]?.area)
+		expect(grid.getImage(ids[2] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('a newer set() supersedes a gated transition without the stale callbacks firing', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+
+		// Set A: gated on the newcomer's base tile, which is deliberately not drawn yet
+		const gatedEntries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+		]
+		const gated = grid.set(gatedEntries, { transition: 'in-from-id', duration: 0 })
+
+		// Set B supersedes it before the gate opens, reusing the gated newcomer in a layout of
+		// its own so a stale callback would visibly corrupt it
+		const next: Models.Grid.GridImage[] = [{ id: ids[2] ?? '', size: [1] }]
+		await grid.set(next, { duration: 0 })
+		expect(layoutIds(grid)).toEqual([ids[2]])
+		expect(next[0]?.area).toBeDefined()
+		expect(grid.getImage(ids[2] ?? '')?.opts.area).toEqual(next[0]?.area)
+
+		// Now satisfy A's readiness. Its gate must stay shut (the `setId` guard): A's deferred
+		// per-item moves would otherwise drag the image back to A's measured area
+		drawBaseTile(grid, ids[2] ?? '')
+		await settleFrames(4)
+		expect(gatedEntries[2]?.area).not.toEqual(next[0]?.area)
+		expect(grid.getImage(ids[2] ?? '')?.opts.area).toEqual(next[0]?.area)
+
+		// A superseded `set()` never settles, like the timer-based transitions before it
+		const raced = await Promise.race([
+			gated.then(
+				() => 'settled',
+				() => 'settled',
+			),
+			settleFrames(2).then(() => 'pending'),
+		])
+		expect(raced).toBe('pending')
+		viewer.destroy()
+	})
+
+	it('applies an explicit z override to a plain layout', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		await grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1], z: 7 },
+				{ id: ids[1] ?? '', size: [1] },
+			],
+			{ duration: 0 },
+		)
+		await settleFrames(2)
+
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+		expect(grid.getImage(ids[1] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('keeps an explicit z through in-from-id and resets only the default tiers', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '', z: 9 },
+		]
+		const settled = grid.set(entries, { transition: 'in-from-id', duration: 0.1 })
+
+		// The explicit override wins over the transition tier while the gate is shut...
+		expect(grid.getImage(ids[2] ?? '')?.canvas?.zIndex).toBe(9)
+		drawBaseTile(grid, ids[2] ?? '')
+		await settled
+
+		// ...and survives `done()`, which only resets entries without a `z`
+		expect(grid.getImage(ids[2] ?? '')?.canvas?.zIndex).toBe(9)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(0)
+		expect(grid.getImage(ids[1] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('keeps an explicit z across later sets and forgets it when the image leaves', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const pair = ids.slice(0, 2)
+		await grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1], z: 7 },
+				{ id: ids[1] ?? '', size: [1] },
+			],
+			{ duration: 0 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+
+		// A later delayed transition that does not repeat the `z` must not drop it
+		await grid.set(
+			pair.map((id) => ({ id, size: [1] as [number, number?] })),
+			{ transition: 'appear-delayed', duration: 0.05 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+		expect(grid.getImage(ids[1] ?? '')?.canvas?.zIndex).toBe(0)
+
+		// Focus and blur do not lose it either: the focused cell only has to be on top
+		await grid.gridFocus(grid.getImage(ids[0] ?? ''), { duration: 0 })
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+		grid.blur()
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(7)
+
+		// Leaving the layout forgets the override, so re-adding the image starts at 0
+		await grid.set([{ id: ids[1] ?? '', size: [1] }], { duration: 0 })
+		await settleFrames(2)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(0)
+		await grid.set(
+			pair.map((id) => ({ id, size: [1] as [number, number?] })),
+			{ duration: 0 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(0)
+		viewer.destroy()
+	})
+
+	it('undoes its stacking tiers when a newer set() supersedes it', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		// The gate stays shut (nothing stamps the newcomer's base tile), so the
+		// transition-only tiers are in place when the next set arrives.
+		void grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1] },
+				{ id: ids[1] ?? '', size: [1] },
+				{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+			],
+			{ transition: 'in-from-id', duration: 0 },
+		)
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBeGreaterThanOrEqual(3000)
+
+		// A superseded transition never reaches its `done()`, so the superseding set
+		// has to undo the tiers itself, or they keep outranking every later stacking
+		await grid.set(
+			ids.slice(0, 2).map((id) => ({ id, size: [1] as [number, number?] })),
+			{ duration: 0 },
+		)
+		await settleFrames(2)
+		for (const id of ids.slice(0, 3)) {
+			expect(grid.getImage(id)?.canvas?.zIndex ?? 0).toBe(0)
+		}
+
+		// In particular a focused cell is back on top of the layout it focuses
+		await grid.gridFocus(grid.getImage(ids[0] ?? ''), { duration: 0 })
+		expect(grid.getImage(ids[0] ?? '')?.canvas?.zIndex).toBe(3)
+		viewer.destroy()
+	})
+
+	it('ignores a base-tile stamp from before the transition started', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const id = ids[2] ?? ''
+
+		// Place the image once so it has a canvas, then age its stamp
+		await grid.set(
+			[...ids.slice(0, 2), id].map((n) => ({ id: n, size: [1] as [number, number?] })),
+			{ duration: 0, noHistory: true },
+		)
+		const engineImage = grid.getImage(id)?.canvas?.images[0]
+		expect(engineImage).toBeDefined()
+		if (!engineImage) {
+			throw new Error('missing engine image')
+		}
+		engineImage._gotBase = performance.now() - 1000
+
+		// Removing it from the layout makes the next set treat it as newly added again
+		await grid.set(
+			ids.slice(0, 2).map((n) => ({ id: n, size: [1] as [number, number?] })),
+			{ duration: 0, noHistory: true },
+		)
+		const settled = grid.set(
+			[...ids.slice(0, 2), id].map((n) => ({
+				id: n,
+				size: [1] as [number, number?],
+				from: n === id ? (ids[0] ?? '') : undefined,
+			})),
+			{ transition: 'in-from-id', duration: 0 },
+		)
+
+		// The stale timestamp is older than the wait, so it cannot open the gate
+		const raced = await Promise.race([settled.then(() => 'settled'), settleFrames(4).then(() => 'pending')])
+		expect(raced).toBe('pending')
+
+		drawBaseTile(grid, id)
+		await settled
+		expect(layoutIds(grid)).toEqual([...ids.slice(0, 2), id])
+		viewer.destroy()
+	})
+
+	it('keeps a newly added appear-delayed image hidden until its fade-in', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const settled = grid.set(
+			[
+				{ id: ids[0] ?? '', size: [1] },
+				{ id: ids[2] ?? '', size: [1] },
+			],
+			{ transition: 'appear-delayed', duration: 0.1 },
+		)
+
+		// The preset target keeps the image visible during its area animation, but the
+		// eased value must stay at 0 so a newly added image still appears staggered.
+		expect(grid.getImage(ids[2] ?? '')?.canvas?._easedOpacity).toBe(0)
+		await settled
+		viewer.destroy()
+	})
+
+	it('opens the gate after the explicit readinessTimeout without a drawn tile', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+		]
+		const started = performance.now()
+		// No `drawBaseTile`: only the explicit cap can open the gate
+		await grid.set(entries, { transition: 'in-from-id', duration: 0, readinessTimeout: 0.05 })
+		expect(performance.now() - started).toBeLessThan(1000)
+
+		expect(layoutIds(grid)).toEqual(ids.slice(0, 3))
+		expect(grid.getImage(ids[2] ?? '')?.opts.area).toEqual(entries[2]?.area)
+		viewer.destroy()
+	})
+
+	it('does not start a gated transition after the grid is destroyed', async () => {
+		const { viewer, grid, ids } = await openPairGrid()
+		const entries: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [1] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1], from: ids[0] ?? '' },
+		]
+		const gated = grid.set(entries, { transition: 'in-from-id', duration: 0 })
+		const incoming = grid.getImage(ids[2] ?? '')
+		const sourceArea = incoming?.opts.area
+
+		viewer.destroy()
+		// The canvas outlives the element here, so a draw would open a gate that no
+		// longer belongs to a live grid; the cancelled gate must ignore it.
+		drawBaseTile(grid, ids[2] ?? '')
+		await settleFrames(4)
+
+		expect(incoming?.opts.area).toEqual(sourceArea)
+		expect(incoming?.opts.area).not.toEqual(entries[2]?.area)
+		const raced = await Promise.race([gated.then(() => 'settled'), settleFrames(2).then(() => 'pending')])
+		expect(raced).toBe('pending')
 	})
 })
 
