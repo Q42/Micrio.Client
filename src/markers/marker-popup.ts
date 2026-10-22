@@ -116,7 +116,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	/**
 	 * Whether the marker popup shows the tour's prev/counter/next controls instead
 	 * of its own close/minimize aside: a non-serial marker tour with the
-	 * `_markers.tourControlsInPopup` setting on, on a non-mobile canvas.
+	 * `_markers.tourControlsInPopup` setting on.
 	 */
 	get #showTourControls(): boolean {
 		const micrio = this._getMicrio()
@@ -132,12 +132,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const isPartOfTour =
 			(markerTour.steps?.findIndex((s: string) => s.startsWith(this.#props.marker?.id ?? '')) ?? -1) >= 0
 
-		return (
-			!micrio.canvas.$isMobile &&
-			isPartOfTour &&
-			!markerTour.isSerialTour &&
-			this.#tourMarkerSetting('tourControlsInPopup') === true
-		)
+		return isPartOfTour && !markerTour.isSerialTour && this.#tourMarkerSetting('tourControlsInPopup') === true
 	}
 
 	/** The image this popup's marker belongs to. */
