@@ -339,6 +339,9 @@ export namespace ImageInfo {
 
 		/** Split-screen: open a secondary image alongside this one (Micrio ID). */
 		micrioSplitLink?: string
+		/** Split-screen: stack the two images (one above the other) on a portrait viewport
+		 * instead of placing them side by side (default: false). */
+		splitScreenHorizontal?: boolean
 		/** Split-screen: if true, the secondary camera does not follow the primary. */
 		noFollow?: boolean
 		/** Split-screen: if false, the secondary image is display-only (no user interaction). */

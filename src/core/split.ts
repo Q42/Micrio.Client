@@ -53,6 +53,14 @@ export function isSplitSecondary(image: MicrioImage): boolean {
 	return false
 }
 
+/**
+ * Whether a split stacks its two images (one above the other) rather than placing them
+ * side by side: only with `splitScreenHorizontal` on a portrait viewport.
+ */
+function isHorizontalSplit(micrio: HTMLMicrioElement, primary: MicrioImage): boolean {
+	return micrio.canvas.viewport.portrait && primary.$settings.splitScreenHorizontal === true
+}
+
 export async function openSplit(
 	micrio: HTMLMicrioElement,
 	primary: MicrioImage,
@@ -97,10 +105,10 @@ export async function openSplit(
 		secondary._isPassiveSecondary = true
 	}
 
-	const { portrait } = micrio.canvas.viewport
-	primary.camera.setArea(portrait ? [0, 0, 1, 0.5] : [0, 0, 0.5, 1])
-	secondary.camera.setArea(portrait ? [0, 1, 1, 0] : [1, 0, 0, 1], { direct: true })
-	secondary.camera.setArea(portrait ? [0, 0.5, 1, 0.5] : [0.5, 0, 0.5, 1])
+	const horizontal = isHorizontalSplit(micrio, primary)
+	primary.camera.setArea(horizontal ? [0, 0, 1, 0.5] : [0, 0, 0.5, 1])
+	secondary.camera.setArea(horizontal ? [0, 1, 1, 0] : [1, 0, 0, 1], { direct: true })
+	secondary.camera.setArea(horizontal ? [0, 0.5, 1, 0.5] : [0.5, 0, 0.5, 1])
 
 	let unsub: Unsubscriber | null = null
 	if (isPassive) {
@@ -143,8 +151,8 @@ export function closeSplit(
 	state.unsub?.()
 	state.unsubData?.()
 
-	const { portrait } = micrio.canvas.viewport
-	state.secondary.camera.setArea(portrait ? [0, 1, 1, 0] : [1, 0, 0, 1], { direct: true })
+	const horizontal = isHorizontalSplit(micrio, primary)
+	state.secondary.camera.setArea(horizontal ? [0, 1, 1, 0] : [1, 0, 0, 1], { direct: true })
 	primary.camera.setArea([0, 0, 1, 1])
 
 	if (!opts?.keepSecondaryCanvas) {
