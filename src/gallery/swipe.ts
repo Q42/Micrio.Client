@@ -1,19 +1,27 @@
 import type { HTMLMicrioElement } from '$core/element'
 import type { MicrioImage } from '$core/image'
+import type { Models } from '$types/models'
 import type { Engine } from '$render/engine'
+import { Camera } from '$core/camera'
 import { getEasing } from '$render/easing'
 import { Frame } from '$core/frame'
 
-/** Manages horizontal strip-swipe navigation between gallery images on a shared canvas. @internal */
+/**
+ * Manages horizontal strip-swipe navigation between gallery pages on a shared canvas.
+ *
+ * The strip's unit is a *page*, not an image: a spread page is rendered by one child canvas
+ * whose camera it is, so its two halves zoom and pan as a single entity. The page's first
+ * image owns that canvas and the rest are embeds of it, placed in the leader's image space.
+ * @internal
+ */
 export class SwipeGallery {
 	#micrio: HTMLMicrioElement
 	#images: MicrioImage[]
 	#pageToImages: number[][]
-	#imageSlotPos: number[]
-	#imageSlotWidth: number[]
+	/** Rest view of each page, in the page canvas's image space. */
+	#pageBoxes: Models.Camera.View[] = []
 	#navigate: (page: number) => void
 	#getCurrentPage: () => number
-	#currentImageIdx = -1
 
 	#stripDragId: number | undefined
 	#stripDragStartX = 0
@@ -28,55 +36,112 @@ export class SwipeGallery {
 		micrio: HTMLMicrioElement,
 		images: MicrioImage[],
 		pageToImages: number[][],
-		imageSlotPos: number[],
-		imageSlotWidth: number[],
 		navigate: (page: number) => void,
 		getCurrentPage: () => number,
 	) {
 		this.#micrio = micrio
 		this.#images = images
 		this.#pageToImages = pageToImages
-		this.#imageSlotPos = imageSlotPos
-		this.#imageSlotWidth = imageSlotWidth
 		this.#navigate = navigate
 		this.#getCurrentPage = getCurrentPage
 	}
 
-	/** Initialize child images as camera layers and set up initial view areas. */
-	setup(startImageIdx: number, parent: MicrioImage, engine: Engine): void {
-		this.#currentImageIdx = startImageIdx
+	/** The image owning page `page`'s canvas: a spread's left-hand page. */
+	#pageLeader(page: number): MicrioImage | undefined {
+		return this.#images[this.#pageToImages[page]?.[0] ?? -1]
+	}
 
-		engine._itemTransitionTimingFunction = getEasing('ease-out')
-		for (const d of this.#images) {
-			engine._addChild(d, parent)
-		}
+	/** The camera of page `page`'s canvas. @internal */
+	_pageCamera(page: number): Camera | undefined {
+		return this.#pageLeader(page)?.camera
+	}
 
-		const baseSlot = this.#imageSlotPos[startImageIdx] ?? 0
-		for (let i = 0; i < this.#images.length; i++) {
-			const child = this.#images[i]
-			if (child.camera === undefined) {
+	/** The union of a page's images in the page canvas's image space. `[0,0,1,1]` for one image. */
+	#pageBox(page: number): Models.Camera.View {
+		let x0 = 0
+		let y0 = 0
+		let x1 = 1
+		let y1 = 1
+		for (const idx of this.#pageToImages[page]?.slice(1) ?? []) {
+			const area = this.#images[idx]?.opts.area
+			if (area === undefined) {
 				continue
 			}
-			child.camera.setCoverLimit(false)
-			const area = [this.#imageSlotPos[i] - baseSlot, 0, this.#imageSlotWidth[i], 1] as [number, number, number, number]
-			child.camera.setArea(area, { direct: true, noDispatch: true })
-			child.camera.setView([0, 0, 1, 1])
+			x0 = Math.min(x0, area[0])
+			y0 = Math.min(y0, area[1])
+			x1 = Math.max(x1, area[0] + area[2])
+			y1 = Math.max(y1, area[1] + area[3])
 		}
-		this.#images[startImageIdx]?.visible.set(true)
+		return [x0, y0, x1 - x0, y1 - y0]
 	}
 
+	/** Applies a page's rest view, pan limit and fit scale. Returns the page box. */
+	#applyPageBox(page: number): Models.Camera.View {
+		const leader = this.#pageLeader(page)
+		const box = this.#pageBox(page)
+		if (leader === undefined) {
+			return box
+		}
+		const { camera } = leader
+		if (box[0] !== 0 || box[1] !== 0 || box[2] !== 1 || box[3] !== 1) {
+			// A spread page rests at the contain-fit of BOTH halves, and pans across both: the
+			// focus view is what `_correctMinMax` derives that fit (and `isZoomedOut`) from.
+			leader.canvas?.focus.set(box[0] + box[2] / 2, box[1] + box[3] / 2, box[2], box[3])
+			camera.setLimit(box)
+		}
+		camera.setCoverLimit(false)
+		camera.setView(box)
+		return box
+	}
+
+	/** Initialize the page canvases, their hosted page images and the strip layout. */
+	setup(startPage: number, parent: MicrioImage, engine: Engine): void {
+		engine._itemTransitionTimingFunction = getEasing('ease-out')
+
+		for (const [page, indexes] of this.#pageToImages.entries()) {
+			const leader = this.#images[indexes[0]]
+			if (leader === undefined) {
+				continue
+			}
+			engine._addChild(leader, parent)
+
+			for (const idx of indexes.slice(1)) {
+				const follower = this.#images[idx]
+				if (follower === undefined) {
+					continue
+				}
+				// Its own camera, bound to the page canvas: zoom and pan land on the page, while
+				// the follower's own coordinates can still be mapped through its sub-rectangle.
+				follower.camera ??= new Camera(follower)
+				if (leader.canvas !== undefined) {
+					follower.camera._bindEngineCanvas(leader.canvas)
+				}
+				// Input on a spread's right half belongs to the page canvas, never to this image.
+				follower._isPassiveSecondary = true
+				void engine._addEmbed(follower, leader, { asImage: true, opacity: 1 })
+			}
+
+			leader.camera.setArea([page - startPage, 0, 1, 1], { direct: true, noDispatch: true })
+			this.#pageBoxes[page] = this.#applyPageBox(page)
+		}
+
+		for (const idx of this.#pageToImages[startPage] ?? []) {
+			this.#images[idx]?.visible.set(true)
+		}
+	}
+
+	/** Whether the strip may take the gesture: the current page camera is at its fit view. */
 	#canSwipe(): boolean {
-		const active = this.#images[this.#currentImageIdx] as MicrioImage | undefined
-		return Boolean(active?.camera?.isZoomedOut())
+		const camera = this.#pageLeader(this.#getCurrentPage())?.camera
+		return camera !== undefined && camera.isZoomedOut()
 	}
 
-	/** Animate the strip to show the image at the given index. Resolves once the slide (and any zoom-out flight) has completed. */
-	animateTo(nextIdx: number, fast: boolean, duration: number, currentImageIdx: number): Promise<void> {
+	/** Animate the strip to the given page. Resolves once the slide (and any zoom-out flight) has completed. */
+	animateTo(nextPage: number, fast: boolean, duration: number, currentPage: number): Promise<void> {
 		return new Promise<void>((resolve) => {
-			this.#currentImageIdx = currentImageIdx
-
-			const images = this.#images
-			if (images[nextIdx] === undefined) {
+			const leader = this.#pageLeader(nextPage)
+			const engine = this.#images[0]?.engine
+			if (leader === undefined || engine === undefined) {
 				resolve()
 				return
 			}
@@ -84,42 +149,33 @@ export class SwipeGallery {
 			if (duration !== 0) {
 				snapDur = fast ? 0.125 : 0.2
 			}
-			const leaving = images[currentImageIdx > -1 && currentImageIdx !== nextIdx ? currentImageIdx : -1] as
-				| MicrioImage
-				| undefined
-			const needsZoomOut = snapDur > 0 && leaving?.camera && !leaving.camera.isZoomedOut()
-			const engine = images[0]?.engine
-			if (engine === undefined) {
-				resolve()
-				return
-			}
-			const baseSlot = this.#imageSlotPos[nextIdx]
+			// A page rests at its fit view, so a zoomed page is flown back before the strip
+			// slides; the page being arrived at starts at its own box.
+			const leaving = currentPage > -1 && currentPage !== nextPage ? this.#pageLeader(currentPage) : undefined
+			const needsZoomOut = snapDur > 0 && leaving !== undefined && !leaving.camera.isZoomedOut()
 			const startSlide = () => {
 				engine._itemTransitionDuration = snapDur
 				engine._crossfadeDuration = 0
-				for (let i = 0; i < images.length; i++) {
-					const child = images[i] as MicrioImage | undefined
-					if (!child?.camera) {
+				for (let page = 0; page < this.#pageToImages.length; page++) {
+					const child = this.#pageLeader(page)
+					if (child === undefined) {
 						continue
 					}
 					const cur = child.opts.area ?? [0, 0, 1, 1]
-					const prevSlotLeft = cur[0]
-					const prevSlotRight = cur[0] + cur[2]
-					const wasNearVisible = prevSlotRight > -1 && prevSlotLeft < 2
-					const targetSlot = this.#imageSlotPos[i] - baseSlot
-					const width = this.#imageSlotWidth[i]
-					const willBeVisible = targetSlot + width > -1 && targetSlot < 1
-					const needsMove = Math.abs(cur[0] - targetSlot) > 1e-4 || Math.abs(cur[2] - width) > 1e-4
+					const wasNearVisible = cur[0] + cur[2] > -1 && cur[0] < 2
+					const targetSlot = page - nextPage
+					const willBeVisible = targetSlot + 1 > -1 && targetSlot < 1
+					const needsMove = Math.abs(cur[0] - targetSlot) > 1e-4 || Math.abs(cur[2] - 1) > 1e-4
 					const animate = snapDur > 0 && needsMove && (wasNearVisible || willBeVisible)
-					child.camera.setArea([targetSlot, 0, width, 1], { direct: !animate, noDispatch: true })
+					child.camera.setArea([targetSlot, 0, 1, 1], { direct: !animate, noDispatch: true })
 				}
-				images[nextIdx]?.camera?.setView([0, 0, 1, 1])
+				leader.camera.setView(this.#pageBoxes[nextPage] ?? [0, 0, 1, 1])
 				engine.render()
 				this.#awaitSlide(resolve)
 			}
 			if (needsZoomOut) {
 				leaving.camera
-					.flyToCoverView({ duration: snapDur * 1000 * 0.6, speed: 2 })
+					.flyToFullView({ duration: snapDur * 1000 * 0.6, speed: 2 })
 					.then(startSlide)
 					.catch(startSlide)
 			} else {
@@ -128,14 +184,15 @@ export class SwipeGallery {
 		})
 	}
 
-	/** Resolves once none of the child canvases are mid area-transition (the strip slide finished). @internal */
+	/** Resolves once none of the page canvases are mid area-transition (the strip slide finished). @internal */
 	#awaitSlide = (resolve: () => void): void => {
 		// A superseded slide can leave an area animation that never settles; without a ceiling
 		// this waiter would keep a frame callback queued (and `_keepRendering` on) forever.
 		const deadLine = performance.now() + 5000
 		const tick = (): void => {
-			for (const img of this.#images) {
-				if (img?.canvas?._areaAnimating() && performance.now() < deadLine) {
+			for (let page = 0; page < this.#pageToImages.length; page++) {
+				const canvas = this.#pageLeader(page)?.canvas
+				if (canvas?._areaAnimating() && performance.now() < deadLine) {
 					Frame.request(tick)
 					return
 				}
@@ -193,10 +250,15 @@ export class SwipeGallery {
 				return
 			}
 			this.#stripDragHorizontal = Math.abs(dx) > Math.abs(dy)
-			if (!this.#stripDragHorizontal) {
-				this.#stripPointerUp(e)
-				return
-			}
+		}
+		// The page can be zoomed while the pointer is down (a wheel tick), which hands the
+		// gesture to the pan. Ask again at the direction decision and on every later move, and
+		// put the strip back instead of turning the release into a page change.
+		if (!this.#stripDragHorizontal || !this.#canSwipe()) {
+			this.#stripPointerUp(e)
+			return
+		}
+		if (!this.#stripDragActive) {
 			this.#stripDragActive = true
 			this.#micrio.dataset.panning = ''
 			this.#micrio._keepRendering = true
@@ -223,6 +285,12 @@ export class SwipeGallery {
 		try {
 			this.#micrio.canvas.element.releasePointerCapture(e.pointerId)
 		} catch {}
+		// The page may have been zoomed between the last move and the release, which makes this
+		// a pan: keep the page as it is and put the strip back where it belongs.
+		if (!this.#canSwipe()) {
+			this.#restorePages()
+			return
+		}
 		const w = this.#micrio.offsetWidth || 1
 		const progress = (e.clientX - this.#stripDragStartX) / w
 		let target = this.#getCurrentPage()
@@ -240,30 +308,39 @@ export class SwipeGallery {
 		globalThis.removeEventListener('pointercancel', this.#stripPointerUp)
 	}
 
+	/** Puts every page back at its at-rest slot (used when a gesture is abandoned). */
+	#restorePages(): void {
+		const curr = this.#getCurrentPage()
+		const engine = this.#images[0]?.engine
+		if (engine === undefined) {
+			return
+		}
+		for (let page = 0; page < this.#pageToImages.length; page++) {
+			this.#pageLeader(page)?.camera.setArea([page - curr, 0, 1, 1], { direct: true, noDispatch: true })
+		}
+		engine.render()
+	}
+
 	#applyDragProgress(progress: number): void {
-		const images = this.#images
 		const curr = this.#getCurrentPage()
 		const totalPages = this.#pageToImages.length
 		const atLeftEdge = curr === 0 && progress > 0
 		const atRightEdge = curr === totalPages - 1 && progress < 0
 		const eased = atLeftEdge || atRightEdge ? Math.sign(progress) * Math.sqrt(Math.abs(progress)) * 0.3 : progress
-		const imgIdx = this.#pageToImages[curr]?.[0] ?? 0
-		const baseSlot = this.#imageSlotPos[imgIdx]
-		const engine = images[0]?.engine
-		if (engine === undefined || baseSlot === undefined) {
+		const engine = this.#images[0]?.engine
+		if (engine === undefined) {
 			return
 		}
-		for (let i = 0; i < images.length; i++) {
-			const child = images[i] as MicrioImage | undefined
-			if (!child?.camera) {
+		for (let page = 0; page < totalPages; page++) {
+			const leader = this.#pageLeader(page)
+			if (leader === undefined) {
 				continue
 			}
-			const slotPos = this.#imageSlotPos[i] - baseSlot + eased
-			const width = this.#imageSlotWidth[i]
-			if (slotPos + width <= -1 || slotPos >= 1) {
+			const slotPos = page - curr + eased
+			if (slotPos + 1 <= -1 || slotPos >= 1) {
 				continue
 			}
-			child.camera.setArea([slotPos, 0, width, 1], { direct: true, noDispatch: true })
+			leader.camera.setArea([slotPos, 0, 1, 1], { direct: true, noDispatch: true })
 		}
 		engine.render()
 	}

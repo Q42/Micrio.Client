@@ -164,7 +164,26 @@ export class Camera {
 			x -= box.left
 			y -= box.top
 		}
-		return (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, abs, noLimit)).arr
+		const coo = (c.is360 ? c._camera360._getCoo(x, y) : c.camera._getCoo(x, y, abs, noLimit)).arr
+		const area = this.#embedArea()
+		if (area === undefined) {
+			return coo
+		}
+		// An embed that shares its host's camera speaks in its own image coordinates, so map the
+		// host-canvas coordinates the camera returned back through its area.
+		const out = coo.slice(0)
+		out[0] = (coo[0] - area[0]) / area[2]
+		out[1] = (coo[1] - area[1]) / area[3]
+		return out
+	}
+
+	/** The rectangle this image occupies in its host canvas's image space, when it shares that
+	 *  canvas's camera (a gallery page embed). `undefined` for a top-level image, whose
+	 *  coordinates already are the canvas's.
+	 */
+	#embedArea(): Models.Camera.View | undefined {
+		const { opts } = this.#image
+		return opts.useParentCamera && opts.area !== undefined ? opts.area : undefined
 	}
 
 	/**
@@ -195,6 +214,12 @@ export class Camera {
 			noTrueNorth?: boolean
 		} = {},
 	) {
+		const area = this.#embedArea()
+		if (area !== undefined) {
+			// This image's coordinates live inside its area in the host canvas's image space.
+			x = area[0] + x * area[2]
+			y = area[1] + y * area[3]
+		}
 		if (this._getXYDirectOverride) {
 			return this._getXYDirectOverride(x, y)
 		}

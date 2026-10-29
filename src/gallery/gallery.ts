@@ -41,10 +41,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	#images: MicrioImage[] = []
 	/** Logical page layout: array of image index arrays per page (for spreads). */
 	#pageToImages: number[][] = []
-	/** Pre-computed X position per image slot for strip-layout. */
-	#imageSlotPos: number[] = []
-	/** Pre-computed width per image slot for strip-layout. */
-	#imageSlotWidth: number[] = []
 	/** The parent MicrioImage hosting this gallery (switch/omni). */
 	#parentImage!: MicrioImage
 	/** @internal */
@@ -164,16 +160,17 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const page = Math.round(Math.max(0, Math.min(this.#pageToImages.length - 1, i)))
 		const imgIdx = this.#pageToImages[page]?.[0] ?? 0
 		const changed = force || page !== this.#currentPage
-		const prevIdx = this.#currentImageIdx
+		const prevPage = this.#currentPage
 		this.#currentPage = page
 		this.#currentImageIdx = imgIdx
+		this.#syncPageCamera()
 		if (changed) {
 			this.#frameChanged()
 		}
 		if (this.#book3d) {
 			await this.#book3d.goto(page)
 		} else if (this.#swipeGallery) {
-			await this.#swipeGallery.animateTo(imgIdx, fast, duration, prevIdx)
+			await this.#swipeGallery.animateTo(page, fast, duration, prevPage)
 		} else if (changed) {
 			const pageImages = this.#pageToImages[page]
 			const num = (pageImages?.length ?? 1) - 1
@@ -197,6 +194,23 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#parentImage.album?.currentImage?.set(this.#images[this.#currentImageIdx])
 		}
 		this.#updateScrubber()
+	}
+
+	/**
+	 * A spread page is one camera on its own canvas, but the album parent is `$current` (a
+	 * spread has two images visible at once). Route the zoom API and UI that target the parent
+	 * to the current page's camera, the way the 3D book album does.
+	 */
+	#syncPageCamera(): void {
+		// Only a strip has page cameras; the other album types own the parent camera (book3d
+		// installs its own overrides there) and must not have them cleared here.
+		if (this.#swipeGallery === undefined) {
+			return
+		}
+		const { camera } = this.#parentImage
+		const page = this.#swipeGallery._pageCamera(this.#currentPage)
+		camera._zoomOverride = page === undefined ? undefined : (n) => void page.zoom(n)
+		camera._isZoomedInOverride = page === undefined ? undefined : () => !page.isZoomedOut()
 	}
 
 	// ─── Scrubber (clickable timeline bar) ─────────────────────────
@@ -427,16 +441,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		const layout = controller._getPageLayout()
 		this.#pageToImages = layout.pages
 
-		// Precompute per-image slot positions and widths for spread-aware strip layout
-		this.#imageSlotPos = []
-		this.#imageSlotWidth = []
-		for (const [pageIdx, imgs] of layout.pages.entries()) {
-			const n = imgs.length
-			for (let j = 0; j < n; j++) {
-				this.#imageSlotPos[imgs[j]] = pageIdx + j / n
-				this.#imageSlotWidth[imgs[j]] = 1 / n
-			}
-		}
 		const startImageIdx = controller._config.startId
 			? Math.max(
 					0,
@@ -459,8 +463,6 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				micrio,
 				images,
 				this.#pageToImages,
-				this.#imageSlotPos,
-				this.#imageSlotWidth,
 				(page) => {
 					void this.#goto(page)
 				},
@@ -503,9 +505,14 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		parent.album = album
 
 		if (this.#swipeGallery) {
-			this.#swipeGallery.setup(startImageIdx, parent, engine)
+			this.#swipeGallery.setup(pageIdx, parent, engine)
 			this.#currentImageIdx = startImageIdx
 			this.#currentPage = pageIdx
+			this.#syncPageCamera()
+			this._addCleanup(() => {
+				parent.camera._zoomOverride = undefined
+				parent.camera._isZoomedInOverride = undefined
+			})
 			this.#frameChanged()
 			album.hooked = true
 		} else if (isBook3D) {

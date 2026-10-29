@@ -11,6 +11,25 @@ import { BASEPATH, BASEPATH_V5 } from '$core/globals'
 import { Grid } from '$grid/grid'
 import { computePageLayout } from '$book/core/layout'
 
+/** The image indices of each logical page: cover pages alone, then pairs. Shared by the
+ *  constructor (to mark spread followers) and `_getPageLayout`, so the two cannot disagree.
+ */
+function spreadPageIdxes(count: number, coverPages: number): number[][] {
+	const pages: number[][] = []
+	let i = 0
+	for (; i < Math.min(coverPages, count); i++) {
+		pages.push([i])
+	}
+	for (; i < count; i += 2) {
+		const page = [i]
+		if (i + 1 < count) {
+			page.push(i + 1)
+		}
+		pages.push(page)
+	}
+	return pages
+}
+
 /** Fits an image within its slot area while maintaining aspect ratio (like `object-fit: contain`).
  *  The slot is defined in normalized coordinates [x, y, width, height] within a virtual container
  *  of `containerWidth`×`containerHeight` pixels. Returns a centered sub-area `[x, y, width, height]`
@@ -32,6 +51,19 @@ function fitArea(
 	const cx = x + w / 2
 	const cy = y + h / 2
 	return [cx - renderW / 2, cy - renderH / 2, renderW, renderH]
+}
+
+/** The rectangle a spread's right-hand page occupies inside the left-hand page's image space.
+ *  Both pages then share one pixel scale and meet flush at the spine, centred vertically. A
+ *  swipe spread page renders both this way inside a single canvas, so it zooms as one entity.
+ */
+function spreadFollowerArea(
+	leader: Models.ImageInfo.ImageInfo,
+	follower: Models.ImageInfo.ImageInfo,
+): Models.Camera.View {
+	const rW = leader.width > 0 && follower.width > 0 ? follower.width / leader.width : 1
+	const rH = leader.height > 0 && follower.height > 0 ? follower.height / leader.height : 1
+	return [1, (1 - rH) / 2, rW, rH]
 }
 
 /** Compare two optional archive metadata strings, inverting for descending sorts. */
@@ -141,6 +173,19 @@ export class Gallery {
 		const { isSpreads } = this._config
 		const coverPages = isSpreads ? (this._config.coverPages ?? 0) : 0
 
+		// A swipe album's strip draws a spread page as ONE page canvas: the page's first image
+		// owns that canvas and the rest are embeds of it, sharing its camera. Each follower gets
+		// its rectangle in the leader's image space here, while the image list is still at hand.
+		const spreadFollowers = new Map<number, number>()
+		if (isSpreads && config.type === 'swipe') {
+			for (const page of spreadPageIdxes(items.length, coverPages)) {
+				const [leader, ...followers] = page
+				for (const follower of followers) {
+					spreadFollowers.set(follower, leader)
+				}
+			}
+		}
+
 		if (isSwitch) {
 			this.#containerHeight = Math.max(...items.map((p) => p.height))
 			this.#containerWidth = Math.max(...items.map((p) => p.width * (isSpreads ? 2 : 1)))
@@ -194,6 +239,18 @@ export class Gallery {
 				}
 
 				opts.area = area
+			} else if (spreadFollowers.has(i)) {
+				// A swipe spread page: this image renders inside the page canvas its leader owns,
+				// positioned in the leader's image space (flush at the spine, one shared scale).
+				const leaderIndex = spreadFollowers.get(i)
+				const leader = leaderIndex === undefined ? undefined : items[leaderIndex]
+				if (leader !== undefined) {
+					opts.isEmbed = true
+					opts.useParentCamera = true
+					opts.area = spreadFollowerArea(leader, info)
+				} else {
+					opts.area = [i, 0, 1, 1]
+				}
 			} else {
 				opts.area = [i, 0, 1, 1]
 			}
@@ -426,28 +483,14 @@ export class Gallery {
 	 *  agree on the page count (otherwise the gallery's extra page can never be
 	 *  displayed: `BookViewer.goto` clamps it away). */
 	_getPageLayout(): { pages: number[][]; numPages: number } {
-		const isSpread = Boolean(this._config.isSpreads)
-		const coverPages = this._config.coverPages ?? 0
-		const pages: number[][] = []
+		let pages: number[][]
 
 		if (this._config.type === 'book3d') {
-			pages.push(...computePageLayout(this._images.map((image) => image.$info)).pageIdxes)
-		} else if (isSpread) {
-			let i = 0
-			for (; i < Math.min(coverPages, this._images.length); i++) {
-				pages.push([i])
-			}
-			for (; i < this._images.length; i += 2) {
-				const page = [i]
-				if (i + 1 < this._images.length) {
-					page.push(i + 1)
-				}
-				pages.push(page)
-			}
+			pages = computePageLayout(this._images.map((image) => image.$info)).pageIdxes
+		} else if (this._config.isSpreads) {
+			pages = spreadPageIdxes(this._images.length, this._config.coverPages ?? 0)
 		} else {
-			for (let i = 0; i < this._images.length; i++) {
-				pages.push([i])
-			}
+			pages = this._images.map((_, i) => [i])
 		}
 
 		return { pages, numPages: pages.length }
