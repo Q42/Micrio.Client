@@ -150,6 +150,10 @@ export default class Ani {
 		const t = this.#vTo
 		const f = this.#vFrom
 
+		// The target has to carry the canvas's live limit box: a page whose box spans more than
+		// the image (a gallery spread) would otherwise be clamped by the View's default [0,1].
+		t._setLimit(v._lCenterX, v._lCenterY, v._lWidth, v._lHeight)
+
 		this.#isJump = isJump
 
 		this.#fn = fn
@@ -306,6 +310,8 @@ export default class Ani {
 
 	/** Updates the target view of a running animation. Used for corrections. @internal */
 	_updateTarget(toCenterX: number, toCenterY: number, toWidth: number, toHeight: number, limiting = false): void {
+		const v = this.#canvas.view
+		this.#vTo._setLimit(v._lCenterX, v._lCenterY, v._lWidth, v._lHeight)
 		this.#vTo.set(toCenterX, toCenterY, toWidth, toHeight)
 		if (limiting) {
 			this.#vTo._limit(true)

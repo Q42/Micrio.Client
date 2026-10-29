@@ -226,7 +226,11 @@ export class View {
 			return
 		}
 
-		const halfW = Math.min(1, this.width) / 2
+		// The slack for panning is the limit box minus the view, half per side: a view that fills
+		// (or exceeds) its box stays centred. Capping the view at `1` instead assumed every limit
+		// box is the image box; a gallery spread page's box spans both of its images, so a
+		// fit view could be dragged sideways.
+		const halfW = Math.min(this._lWidth, this.width) / 2
 		const lHalfW = this._lWidth / 2
 
 		if (this.#canvas.is360) {
@@ -238,7 +242,7 @@ export class View {
 			)
 		}
 
-		const halfH = Math.min(1, this.height) / 2
+		const halfH = Math.min(this._lHeight, this.height) / 2
 		const lHalfH = this._lHeight / 2
 		if (!freeMove) {
 			this._centerY = Math.max(
