@@ -11,7 +11,7 @@ import {
 	scrubberTicks,
 	scrubberTrack,
 } from '../../fixtures/albums'
-import type { OpenAlbum } from '../../fixtures/albums'
+import type { AlbumOptions, OpenAlbum } from '../../fixtures/albums'
 
 /**
  * The scrubber bar: the DOM it prints, the pointer/touch drag that scrubs it,
@@ -29,8 +29,8 @@ afterEach(() => {
 })
 
 /** Opens a swipe album and gives the gallery a real box (the stylesheet is stubbed). */
-async function openScrubber(count: number): Promise<OpenAlbum> {
-	const mounted = mountAlbum({ count })
+async function openScrubber(count: number, opts: AlbumOptions = {}): Promise<OpenAlbum> {
+	const mounted = mountAlbum({ count, ...opts })
 	const album = await awaitAlbum(mounted)
 	const gallery = galleryEl(mounted.viewer.el)
 	if (gallery) {
@@ -103,6 +103,21 @@ describe('scrubber — the printed bar', () => {
 			setTimeout(resolve, 50)
 		})
 		expect(fill?.style.width).toBe('100%')
+	})
+
+	it('counts actual pages, not spreads, in the total', async () => {
+		// 50 images as a cover, spreads and a final single page: the handle still
+		// moves per spread, but the label numbers the pages themselves, so the
+		// total (and the last page's label) has to match the page numbers.
+		const { viewer } = await openScrubber(50, { isSpreads: true, coverPages: 1 })
+		const label = viewer.el.querySelector<HTMLElement>('micrio-gallery ul > button + span')
+		expect(label?.textContent).toBe('1 / 50')
+
+		press('End')
+		await new Promise((resolve) => {
+			setTimeout(resolve, 50)
+		})
+		expect(label?.textContent).toBe('50 / 50')
 	})
 
 	it('thins the ticks out and labels the total on a dense album', async () => {

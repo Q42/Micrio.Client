@@ -129,8 +129,13 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** Returns a human-readable page label (e.g. "3" or "5-6" for spreads). */
 	#pageLabel(idx: number): string {
 		const imgs = this.#pageToImages[idx]
-		if (imgs === undefined || imgs.length <= 1) {
+		if (imgs === undefined) {
 			return String(idx + 1)
+		}
+		// Page numbers are image numbers, so a single-image page uses its image
+		// index too: on a spread album the last page is not page `idx + 1`.
+		if (imgs.length === 1) {
+			return String(imgs[0] + 1)
 		}
 		return `${imgs[0] + 1}-${imgs[imgs.length - 1] + 1}`
 	}
@@ -759,7 +764,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			const label = this.#pageLabel(curr)
 			if (hl.dataset.page !== label) {
 				hl.dataset.page = label
-				hl.textContent = label + (dense ? ` / ${total}` : '')
+				// The label is 1-based image numbers, so the total has to be the number of
+				// images (actual pages), not the number of pages/spreads the bar navigates.
+				hl.textContent = label + (dense ? ` / ${this.#images.length}` : '')
 			}
 		}
 
