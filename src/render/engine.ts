@@ -1072,9 +1072,13 @@ export class Engine {
 				return
 			}
 			const isGallery = Boolean(image.$settings.gallery?.archive || image.$settings.gallery?.type)
-			let childOpts: { coverLimit?: boolean; coverStart?: boolean } = {}
+			// A swipe album's spread page hosts both page images in one canvas, so that canvas
+			// has to draw each hosted image's base level (the album parent carries the config).
+			const pagesHaveBackground =
+				parent.$settings.gallery?.isSpreads === true && parent.$settings.gallery.type === 'swipe'
+			let childOpts: { coverLimit?: boolean; coverStart?: boolean; pagesHaveBackground?: boolean } = {}
 			if (isGallery) {
-				childOpts = { coverLimit: false, coverStart: false }
+				childOpts = { coverLimit: false, coverStart: false, pagesHaveBackground }
 			} else {
 				childOpts = {
 					coverLimit: Boolean(image.$settings?.limitToCoverScale) || Boolean(parent.$settings?.limitToCoverScale),
@@ -1082,6 +1086,7 @@ export class Engine {
 						image.$settings?.limitToCoverScale ||
 						image.$settings?.initType === 'cover' ||
 						parent.$settings?.initType === 'cover',
+					pagesHaveBackground,
 				}
 			}
 			canvas = parentEntry.canvas._addChild(a[0], a[1], a[0] + a[2], a[1] + a[3], i.width, i.height, childOpts)

@@ -316,7 +316,7 @@ export class TileCanvas {
 		y1: number,
 		width: number,
 		height: number,
-		opts: { coverLimit?: boolean; coverStart?: boolean } = {},
+		opts: { coverLimit?: boolean; coverStart?: boolean; pagesHaveBackground?: boolean } = {},
 	): TileCanvas {
 		const coverLimit = opts.coverLimit ?? true
 		const coverStart = opts.coverStart ?? true
@@ -337,7 +337,7 @@ export class TileCanvas {
 			this._camSpeed,
 			0, // rotationY
 			false, // isGallerySwitch
-			false, // pagesHaveBackground
+			opts.pagesHaveBackground ?? false, // pagesHaveBackground
 			false, // isOmni
 			this._pinchZoomOutLimit,
 			1, // omniNumLayers
@@ -619,16 +619,22 @@ export class TileCanvas {
 			this.view._changed = true
 		}
 
+		// A page canvas hosts a whole spread page, whose content extends past the leader image's
+		// [0,1] box. Clamping the visible region to that box would report the page as hidden (and
+		// queue no tiles) whenever the view sits over the other half of the page.
+		const imageBox = !this.is360 && !this.#pagesHaveBackground
 		let visX0 = Math.max(v.x0, v.x0 + ((pV.x0 - a.x0) / a.width) * v.width)
 		let visX1 = Math.min(v.x1, v.x0 + (1 - (a.x1 - Math.min(a.x1, pV.x1)) / a.width) * v.width)
-		if (!this.is360) {
+		if (imageBox) {
 			visX0 = Math.max(0, visX0)
 			visX1 = Math.min(1, visX1)
 		}
-		let visY0 = Math.max(Math.max(0, v.y0), v.y0 + ((pV.y0 - a.y0) / a.height) * v.height)
-		let visY1 = Math.min(Math.min(1, v.y1), v.y0 + (1 - (a.y1 - Math.min(a.y1, pV.y1)) / a.height) * v.height)
-		visY0 = Math.max(visY0, 0)
-		visY1 = Math.min(visY1, 1)
+		let visY0 = Math.max(imageBox ? 0 : v.y0, v.y0 + ((pV.y0 - a.y0) / a.height) * v.height)
+		let visY1 = Math.min(imageBox ? 1 : v.y1, v.y0 + (1 - (a.y1 - Math.min(a.y1, pV.y1)) / a.height) * v.height)
+		if (imageBox) {
+			visY0 = Math.max(visY0, 0)
+			visY1 = Math.min(visY1, 1)
+		}
 
 		const visCenterX = (visX0 + visX1) / 2
 		const visCenterY = (visY0 + visY1) / 2
