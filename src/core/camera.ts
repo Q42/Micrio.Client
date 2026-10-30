@@ -574,7 +574,7 @@ export class Camera {
 				Boolean(opts.isJump),
 				Boolean(opts.limit),
 				Boolean(opts.limitZoom),
-				opts.omniIndex ?? 0,
+				opts.omniIndex ?? -1,
 				getEasing(opts.timingFunction),
 			)
 			this.#image.engine.render()

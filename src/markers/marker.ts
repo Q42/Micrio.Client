@@ -134,6 +134,34 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 		}
 
+		/** Frames per turn of the object, for the angle deltas below. */
+		const omniFrames = omni ? omni.frames / (omni.layers?.length ?? 1) : 0
+
+		/** The shortest frame distance from the shown frame to this marker's frame. */
+		const omniDelta = (): number => {
+			let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex
+			if (delta > omniFrames / 2) {
+				delta -= omniFrames
+			}
+			if (delta < -omniFrames / 2) {
+				delta += omniFrames
+			}
+			return delta
+		}
+
+		/**
+		 * Whether this marker's angle is currently inside the viewed angle of the object:
+		 * its own visibility arc, or the default front half of the object (±90°).
+		 */
+		const inOmniView = (): boolean => {
+			if (!omniFrames) {
+				return true
+			}
+			const [a0, a1] = this.#omniArc ?? [-omniFrames / 4, omniFrames / 4]
+			const delta = omniDelta()
+			return delta > a0 && delta < a1
+		}
+
 		const scales = Boolean(marker.data?.scales) || Boolean(image.$settings.markersScale)
 		const moved = () => {
 			if (image._is360 && scales) {
@@ -150,14 +178,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				this.#behindCam = obscured
 				if (image._isOmni && omni) {
 					if (this.#omniArc && marker.rotation != null) {
-						const numFrames = omni.frames / (omni.layers?.length ?? 1)
-						let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex
-						if (delta > numFrames / 2) {
-							delta -= numFrames
-						}
-						if (delta < -numFrames / 2) {
-							delta += numFrames
-						}
+						const delta = omniDelta()
 						this.#behindCam = delta <= this.#omniArc[0] || delta >= this.#omniArc[1]
 					} else if (omni.distance) {
 						this.#behindCam = this.#w < 0
@@ -296,6 +317,26 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					.catch(() => {
 						if (image.state.$marker === marker) {
 							image._openedView = undefined
+							image.state.marker.set(undefined)
+						}
+					})
+			} else if (
+				!view &&
+				marker.rotation != null &&
+				!immediatelyStartMyTourAtBeginning &&
+				!data.noAnimate &&
+				image._isOmni &&
+				image.omni &&
+				!inOmniView()
+			) {
+				// A marker without its own viewport leaves the camera where it is, so on an
+				// omni object its content would open next to a marker that is turned out of
+				// view. Turn the object to the marker's angle first, then open it.
+				image.camera
+					.flyToView(image.camera.getView(), { omniIndex: this.#omniIndex })
+					.then(() => openContent(restored, splitFlown))
+					.catch(() => {
+						if (image.state.$marker === marker) {
 							image.state.marker.set(undefined)
 						}
 					})

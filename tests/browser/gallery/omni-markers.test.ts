@@ -111,6 +111,39 @@ describe('omni — marker content', () => {
 		await waitFor(() => get(omni.viewer.el.state.popover)?.marker?.id === 'over', 4000, 'the popover')
 		expect(get(omni.viewer.el.state.popover)?.image).toBe(omni.image)
 	})
+
+	it('turns a marker without a viewport into view before opening it', async () => {
+		// Frame 18 is half a turn from the start, outside the viewed ±90°
+		const omni = await openOmni({ frames: FRAMES, markers: [omniMarker('turn', 18, { view: undefined })] })
+		await waitForOmniMarkers(omni.viewer.el)
+
+		omni.image.state.marker.set('turn')
+		await settle(2)
+		// The content waits for the object to finish turning
+		expect(get(omni.viewer.el.state.popup)).toBeUndefined()
+		await waitFor(() => omni.omni.currentIndex === 18, 8000, 'the marker frame')
+		await waitFor(() => get(omni.viewer.el.state.popup)?.id === 'turn', 4000, 'the popup')
+	})
+
+	it('opens a marker inside the viewed angle without turning', async () => {
+		const omni = await openOmni({ frames: FRAMES, markers: [omniMarker('near', 1, { view: undefined })] })
+		await waitForOmniMarkers(omni.viewer.el)
+
+		omni.image.state.marker.set('near')
+		await waitFor(() => get(omni.viewer.el.state.popup)?.id === 'near', 4000, 'the popup')
+		expect(omni.omni.currentIndex).toBe(0)
+	})
+
+	it('turns back to a marker at the first frame', async () => {
+		// Frame 0 is the default target the animation used to skip
+		const omni = await openOmni({ frames: FRAMES, markers: [omniMarker('first', 0, { view: undefined })] })
+		await waitForOmniMarkers(omni.viewer.el)
+		omni.omni.goto(18)
+
+		omni.image.state.marker.set('first')
+		await waitFor(() => omni.omni.currentIndex === 0, 8000, 'the marker frame')
+		await waitFor(() => get(omni.viewer.el.state.popup)?.id === 'first', 4000, 'the popup')
+	})
 })
 
 describe('omni — marker tour', () => {
