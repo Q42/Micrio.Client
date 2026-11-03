@@ -289,6 +289,7 @@ export const serialStoryBundle = (
 		printChapters?: boolean
 		stepVideoTours?: boolean
 		stepDuration?: number
+		cannotClose?: boolean
 		/** Set `videoTour` with no timeline, so `micrio-media` renders controls without a playing media tag. */
 		stepMedia?: boolean
 		/** Put the audio asset on the marker instead of the video tour, so the media builds from an audio source. */
@@ -354,6 +355,7 @@ export const serialStoryBundle = (
 		isSerialTour: true,
 		duration: count * stepDuration,
 		...(opts.printChapters ? { printChapters: true } : {}),
+		...(opts.cannotClose ? { cannotClose: true } : {}),
 		i18n: { en: { title: 'Serial story', description: '' } },
 		stepInfo: stepIds.map((markerId, i) => ({ markerId, micrioId: ids[i] ?? '', duration: stepDuration })),
 	})

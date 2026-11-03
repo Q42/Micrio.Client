@@ -22,8 +22,8 @@ const serialTour = (opts: Parameters<typeof markerTour>[0] = {}) =>
 /**
  * The layout picks `<micrio-serial-tour>` for a serial tour and `<micrio-tour>` otherwise.
  */
-async function startSerial(tour: Models.ImageData.MarkerTour, markersWithVideo = tour.steps) {
-	const viewer = await mountTour(tourBundle({ markerTours: [tour], markersWithVideo }))
+async function startSerial(tour: Models.ImageData.MarkerTour) {
+	const viewer = await mountTour(tourBundle({ markerTours: [tour], markersWithVideo: tour.steps }))
 	viewer.el.state.tour.set(tour)
 	await waitFor(() => viewer.el.querySelector('micrio-serial-tour') !== null, 4000, 'serial tour element')
 	await settle(4)
@@ -41,6 +41,7 @@ async function startStorySerial(
 		printChapters?: boolean
 		stepVideoTours?: boolean
 		stepDuration?: number
+		cannotClose?: boolean
 		is360?: boolean
 		stepMedia?: boolean
 		markerAudio?: boolean
@@ -96,8 +97,13 @@ describe('serial tour element', () => {
 
 describe('serial tour closing', () => {
 	it('keeps a tour that cannot close open, then replays it from the first step', async () => {
-		const tour = serialTour({ cannotClose: true })
-		const viewer = await startSerial(tour)
+		// The fetch path is required: the serial tour resolves every step marker through it
+		const { viewer, tour } = await startStorySerial({
+			steps: 2,
+			stepMedia: true,
+			stepDuration: 4,
+			cannotClose: true,
+		})
 		const rec = recordEvents(viewer.el, ['tour-ended'])
 		const serialEl = () => viewer.el.querySelector('micrio-serial-tour')
 		const stepMedia = () => serialEl()?.querySelector('micrio-media')
@@ -134,22 +140,24 @@ describe('serial tour closing', () => {
 	})
 
 	it('keeps the media frame on a step without a video tour', async () => {
-		const tour = serialTour({ cannotClose: true })
-		// Only the first step has a video, so the tour ends on a controls-only step
-		const viewer = await startSerial(tour, ['m1'])
+		const { viewer } = await startStorySerial({
+			steps: 2,
+			stepVideoTours: false,
+			stepDuration: 1,
+			cannotClose: true,
+		})
 		const serialEl = () => viewer.el.querySelector('micrio-serial-tour')
-		const stepMedia = () => serialEl()?.querySelector('micrio-media')
+		const frame = () => serialEl()?.querySelector('micrio-media > figure > micrio-media-controls')
 
-		await waitFor(() => stepMedia() !== null, 4000, 'the first step media')
-		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(() => frame() !== null, 4000, 'the first controls frame')
 		await waitFor(
 			() => serialEl()?.querySelector('[data-part="bar"].active[data-idx="1"]') !== null,
 			4000,
 			'the last step',
 		)
 
-		// The controls keep the media figure the tour's CSS positions
-		expect(stepMedia()?.querySelector('figure > micrio-media-controls')).not.toBeNull()
+		// The ending controls keep the media figure the tour's CSS positions
+		expect(frame()).not.toBeNull()
 		viewer.destroy()
 	})
 })
