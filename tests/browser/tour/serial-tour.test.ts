@@ -146,7 +146,7 @@ describe('serial tour closing', () => {
 			stepDuration: 1,
 			cannotClose: true,
 		})
-		const serialEl = () => viewer.el.querySelector('micrio-serial-tour')
+		const serialEl = () => viewer.el.querySelector<HTMLElement>('micrio-serial-tour')
 		const frame = () => serialEl()?.querySelector('micrio-media > figure > micrio-media-controls')
 
 		await waitFor(() => frame() !== null, 4000, 'the first controls frame')
@@ -158,6 +158,9 @@ describe('serial tour closing', () => {
 
 		// The ending controls keep the media figure the tour's CSS positions
 		expect(frame()).not.toBeNull()
+		const lastBar = () => serialEl()?.querySelector<HTMLElement>('[data-part="bar"][data-idx="1"]')
+		expect(lastBar()?.style.getPropertyValue('--progress')).toBe('100%')
+		expect(serialEl()?.style.getPropertyValue('--time')).toBe("'00:02'")
 		viewer.destroy()
 	})
 })

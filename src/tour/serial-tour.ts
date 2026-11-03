@@ -462,6 +462,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			// the moment it finishes. Its next play starts the whole tour over.
 			if (this.#cannotClose) {
 				this.#finished = true
+				this.#updateBars()
 				return
 			}
 			this._getMicrio()?.state.tour.set(undefined)
