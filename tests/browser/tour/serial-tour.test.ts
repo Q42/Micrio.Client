@@ -10,7 +10,7 @@ import {
 	tourBundle,
 	tourSeriesBundle,
 } from '../../fixtures/tours'
-import { mountTour, settle } from '../../helpers/tour'
+import { mountTour, recordEvents, settle } from '../../helpers/tour'
 import { mockFetch } from '../../helpers/network'
 import { mountViewer, waitFor } from '../../helpers/viewer'
 import { anyMedia } from '../../helpers/media'
@@ -90,6 +90,36 @@ describe('serial tour element', () => {
 		viewer.el.state.tour.set(undefined)
 		await settle(3)
 		expect(viewer.el.dataset.markerTourActive).toBeUndefined()
+		viewer.destroy()
+	})
+})
+
+describe('serial tour closing', () => {
+	it('keeps a tour that cannot close open after its last step', async () => {
+		const tour = serialTour({ cannotClose: true })
+		const viewer = await startSerial(tour)
+		const rec = recordEvents(viewer.el, ['tour-ended'])
+		const serialEl = () => viewer.el.querySelector('micrio-serial-tour')
+		const stepMedia = () => serialEl()?.querySelector('micrio-media')
+
+		await waitFor(() => stepMedia() !== null, 4000, 'the first step media')
+		// The step media's close control is the serial tour's close control
+		expect(stepMedia()?.querySelector('micrio-media-controls micrio-button.close')).toBeNull()
+
+		// Finish the first step, then the last one
+		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(
+			() => serialEl()?.querySelector('[data-part="bar"].active[data-idx="1"]') !== null,
+			4000,
+			'the second step',
+		)
+		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(() => rec.events.length > 0, 4000, 'tour-ended')
+
+		expect(get(viewer.el.state.tour)).toBe(tour)
+		expect(serialEl()).not.toBeNull()
+		expect(rec.events).toHaveLength(1)
+		rec.stop()
 		viewer.destroy()
 	})
 })

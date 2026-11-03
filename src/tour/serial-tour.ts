@@ -39,9 +39,23 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#broken = false
 	/** True once `tour-ended` has been reported, so it pairs with the tour exactly once. */
 	#endedReported = false
+	/** The tour may not be closed, by its own control or when its last step finishes. */
+	#cannotClose = false
 	/** The viewer, captured at mount: `_getMicrio()` walks the parent chain, which the layout
 	 *  has already removed by the time the teardown cleanup runs. */
 	#micrio: HTMLMicrioElement | undefined
+
+	/** Reports the tour's end once, whether it closes or a `cannotClose` tour stays open. @internal */
+	#reportEnded() {
+		if (this.#endedReported) {
+			return
+		}
+		this.#endedReported = true
+		const { tour } = this.#props
+		if (tour) {
+			this.#micrio?.events._dispatch('tour-ended', tour)
+		}
+	}
 
 	/**
 	 * Sets the playback flags together and reports the transition, so `serialtour-play` and
@@ -76,6 +90,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		this.#micrio = micrio
 		this.#stepInfo = tour.stepInfo || []
+		this.#cannotClose = Boolean(tour.cannotClose)
 		this.#duration = this.#stepInfo.reduce((c, s) => c + (s.duration || 0), 0)
 		this.#noTimeScrub = Boolean(micrio.$current?.$settings?.ui?.controls?.serialTourNoTimeScrub)
 
@@ -85,16 +100,9 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		})
 
 		this._addCleanup(() => {
-			// Both stop paths — the natural `close()` and a failed step's `#break` — remove this
-			// element, so the end is reported here once rather than at each of them.
-			if (this.#endedReported) {
-				return
-			}
-			this.#endedReported = true
-			const t = this.#props.tour
-			if (t) {
-				this.#micrio?.events._dispatch('tour-ended', t)
-			}
+			// Every stop path that removes this element reports here, unless the natural end
+			// already did in `#nextStep`, so the tour's end is reported exactly once.
+			this.#reportEnded()
 		})
 
 		const mt = tour
@@ -258,7 +266,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					autoplay: !prevPaused,
 					// Advancement is the tour's (`#tick`), which holds a step until this media
 					// has actually finished — so `onended` is only reported for the tour to see.
-					onclose: close,
+					onclose: this.#cannotClose ? undefined : close,
 					onerror: (error: Error) => {
 						this.#break(error)
 					},
@@ -416,6 +424,12 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			void this.#openStep(this.#currentStep + 1)
 		} else {
 			this.#props.onended?.()
+			this.#reportEnded()
+			// A tour that cannot close stays on its last step, where its media can be
+			// replayed, instead of being torn down the moment it finishes.
+			if (this.#cannotClose) {
+				return
+			}
 			this._getMicrio()?.state.tour.set(undefined)
 			this.remove()
 		}
