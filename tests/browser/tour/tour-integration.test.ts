@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { get } from '$core/store'
 import { markerTour, tourBundle, videoTour } from '../../fixtures/tours'
 import { mountTour, settle, startTour } from '../../helpers/tour'
@@ -36,6 +36,31 @@ describe('tour integration', () => {
 		expect(viewer.el.querySelector('micrio-tour')).not.toBeNull()
 		await waitFor(() => viewer.el.querySelector('micrio-media') !== null, 4000, 'media element')
 		expect(tour.instance).toBeDefined()
+		viewer.destroy()
+	})
+
+	it('keeps a video tour open when it cannot close', async () => {
+		const tour = videoTour({ id: 'vt-cannot-close', duration: 6, cannotClose: true })
+		const viewer = await mountTour(tourBundle({ tours: [tour] }))
+		await startTour(viewer, tour)
+		await waitFor(() => viewer.el.querySelector('micrio-media') !== null, 4000, 'media element')
+
+		// The media controls' close button is the video tour's close control
+		const media = viewer.el.querySelector('micrio-media')
+		expect(media?.querySelector('micrio-media-controls micrio-button.close')).toBeNull()
+
+		// Reaching the end must not close it either (the media reports that from its 250ms tick)
+		const { instance } = tour
+		if (!instance) {
+			throw new Error('the video tour has no instance')
+		}
+		const ended = vi.spyOn(instance, 'ended', 'get').mockReturnValue(true)
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 400)
+		})
+		expect(get(viewer.el.state.tour)).toBe(tour)
+
+		ended.mockRestore()
 		viewer.destroy()
 	})
 

@@ -57,6 +57,7 @@ export const videoTour = (
 		title?: string
 		keepInteraction?: boolean
 		keepMarkers?: boolean
+		cannotClose?: boolean
 		/** Add an `nl` language entry whose timeline differs, for language-switch tests. */
 		extraLangWithTimeline?: boolean
 	} = {},
@@ -75,6 +76,7 @@ export const videoTour = (
 		title = 'Video tour',
 		keepInteraction,
 		keepMarkers,
+		cannotClose,
 		extraLangWithTimeline = false,
 	} = opts
 
@@ -112,6 +114,7 @@ export const videoTour = (
 		i18n,
 		...(keepInteraction !== undefined ? { keepInteraction } : {}),
 		...(keepMarkers !== undefined ? { keepMarkers } : {}),
+		...(cannotClose !== undefined ? { cannotClose } : {}),
 	}
 }
 

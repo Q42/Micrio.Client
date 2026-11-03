@@ -48,6 +48,13 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			const vt = tour
 			const image = micrio.$current
 			if (image) {
+				// `cannotClose` also applies to the media's own close control and the
+				// auto-close when playback ends, since that media *is* the tour UI.
+				const close = vt.cannotClose
+					? undefined
+					: () => {
+							micrio.state.tour.set(undefined)
+						}
 				const audio = vt.i18n?.[get(micrio._lang)]?.audio
 				createElement('micrio-media', {
 					parent: this,
@@ -59,12 +66,8 @@ export class MicrioTour extends MicrioElement<TourProps> {
 						hasAudio: Boolean(audio?.src),
 						autoplay: true,
 						fullscreenEl: micrio,
-						onended: () => {
-							micrio.state.tour.set(undefined)
-						},
-						onclose: () => {
-							micrio.state.tour.set(undefined)
-						},
+						onended: close,
+						onclose: close,
 					},
 				})
 			}
