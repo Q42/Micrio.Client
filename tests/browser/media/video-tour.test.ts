@@ -260,6 +260,38 @@ describe('VideoTourInstance playback state', () => {
 		viewer.destroy()
 	})
 
+	it('runs its camera again when replayed after the end', async () => {
+		const tour = videoTour({ duration: 3 })
+		const { viewer, image } = await mountWithFakeTime(tour)
+		const inst = instance(image, tour)
+		// Hold the camera so only the replay start is measured
+		const fly = vi.spyOn(image.camera, 'flyToView').mockReturnValue(new Promise<void>(() => {}))
+
+		inst.play()
+		tickClock(4000)
+		// A completed tour resets when it is paused, and must be back at its start
+		inst.pause()
+		expect(inst.ended).toBe(false)
+		expect(inst.currentTime).toBe(0)
+
+		fly.mockClear()
+		inst.play()
+		expect(fly).toHaveBeenCalledTimes(1)
+		expect(inst.currentTime).toBe(0)
+
+		// The tour clock can also reach the end without pause/reset ever being called
+		// (a camera-only tour's last step schedules no pause). Playing must still rewind.
+		tickClock(4000)
+		expect(inst.ended).toBe(true)
+		fly.mockClear()
+		inst.play()
+		expect(fly).toHaveBeenCalledTimes(1)
+		expect(inst.currentTime).toBe(0)
+
+		inst.destroy()
+		viewer.destroy()
+	})
+
 	it('disables user input while playing and restores it on destroy', async () => {
 		const tour = videoTour()
 		const { viewer, image } = await mountWithBundle(tour)

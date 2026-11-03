@@ -202,6 +202,13 @@ export class VideoTourInstance {
 
 	/** Starts or resumes tour playback. */
 	play(): void {
+		// A finished tour always starts over. Its clock can be left at the end either paused
+		// (the media ended) or still running (a camera-only tour whose last step schedules
+		// no pause), so rewind before deciding how to start.
+		if (this.ended) {
+			this.#rewind()
+		}
+
 		this.#startedPlaying()
 		this.#wasPaused = false
 
@@ -242,11 +249,19 @@ export class VideoTourInstance {
 		}
 	}
 
+	/** Forgets the playback clock so the next play starts from the beginning. @internal */
+	#rewind(): void {
+		this.#pausedAt = undefined
+		this.#startedAt = undefined
+		this.#playing = false
+	}
+
 	/** Resets the tour state after ending or stopping. @internal */
 	#reset(): void {
 		this.#stoppedPlaying()
-		this.#pausedAt = undefined
-		this.#playing = false
+		// The clock has to be cleared before `read()`, which otherwise restores the ended
+		// position while `#startedAt` survives and skips the replay's camera.
+		this.#rewind()
 		this.read()
 	}
 
