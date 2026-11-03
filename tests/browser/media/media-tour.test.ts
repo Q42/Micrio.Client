@@ -206,12 +206,18 @@ describe('media element with a video tour', () => {
 		await waitForRender(el)
 		const rec = recordEvents(viewer.el, ['videotour-play', 'videotour-pause'])
 		const play = el.querySelector<HTMLButtonElement>('micrio-media-controls micrio-button.play button')
+		let plays = 0
+		el.addEventListener('play', () => {
+			plays++
+		})
 
 		expect(tour.instance?.paused).toBe(true)
 		play?.click()
 		await settle(3)
 		expect(tour.instance?.paused).toBe(false)
 		expect(rec.events.map((e) => e.type)).toContain('videotour-play')
+		// The host gets a public start signal, which a serial tour uses to restart
+		expect(plays).toBe(1)
 
 		play?.click()
 		await settle(3)

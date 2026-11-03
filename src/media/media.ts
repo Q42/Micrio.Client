@@ -81,6 +81,10 @@ export interface MediaProps {
 	tour?: Models.ImageData.VideoTour | null
 	autoplay?: boolean
 	controls?: boolean
+	/** Render only a media frame and its controls, for a serial step with no video tour. @internal */
+	controlsOnly?: boolean
+	/** Play/pause handler for a controls-only frame. @internal */
+	onplaypause?: () => void
 	is360?: boolean
 	width?: number
 	height?: number
@@ -276,6 +280,31 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	protected _render() {
 		const p = this._props
 		const { src } = p
+		// A serial step without a video tour still needs the same media frame around its
+		// control bar, or the bar loses the figure the tour's CSS positions.
+		if (p.controlsOnly) {
+			this.replaceChildren()
+			const figure = createElement('figure', {
+				attrs: { title: p.title ?? '' },
+				className: p.className,
+			})
+			if (p.is360) {
+				figure.style.setProperty('--micrio-background', 'transparent')
+			}
+			this.append(figure)
+			createComponent('micrio-media-controls', {
+				setProps: {
+					paused: true,
+					ended: false,
+					hasAudio: p.hasAudio ?? true,
+					fullscreenEl: p.fullscreenEl,
+					getTimeDisplay: p.getTimeDisplay,
+					onplaypause: p.onplaypause,
+				},
+				parent: figure,
+			})
+			return
+		}
 		if (!src && !p.tour) {
 			this.replaceChildren()
 			return
@@ -462,7 +491,12 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				// Captured, not read back from `#mediaEl` at teardown time: `#createAudioElement`'s
 				// own cleanup clears that field, which left this listener attached.
 				const el = this.#mediaEl
-				const onPlay = () => this.#tourInstance?.play()
+				const onPlay = () => {
+					this.#tourInstance?.play()
+					// Public start signal for the tour host (a serial tour restarts from
+					// step 1 when its finished last step is played again)
+					this.dispatchEvent(new CustomEvent('play'))
+				}
 				el.addEventListener('play', onPlay)
 				this._addCleanup(() => {
 					el.removeEventListener('play', onPlay)
@@ -557,6 +591,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				} else if (this.#tourInstance) {
 					if (this.#tourInstance.paused) {
 						this.#tourInstance.play()
+						// The camera-only tour has no media element to emit `play`
+						this.dispatchEvent(new CustomEvent('play'))
 					} else {
 						this.#tourInstance.pause()
 					}

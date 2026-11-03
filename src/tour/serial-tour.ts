@@ -37,10 +37,12 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	#mediaCleanup: (() => void) | undefined = undefined
 	/** Set by `#break`: a failed step can report its error more than once, and the tour must stop once. */
 	#broken = false
-	/** True once `tour-ended` has been reported, so it pairs with the tour exactly once. */
+	/** True once `tour-ended` has been reported, so it pairs with the current run exactly once. */
 	#endedReported = false
 	/** The tour may not be closed, by its own control or when its last step finishes. */
 	#cannotClose = false
+	/** The tour finished and stayed open, so the next play restarts it from its first step. */
+	#finished = false
 	/** The viewer, captured at mount: `_getMicrio()` walks the parent chain, which the layout
 	 *  has already removed by the time the teardown cleanup runs. */
 	#micrio: HTMLMicrioElement | undefined
@@ -55,6 +57,18 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (tour) {
 			this.#micrio?.events._dispatch('tour-ended', tour)
 		}
+	}
+
+	/** Restarts a finished tour from its first step. @internal */
+	#replay() {
+		this.#finished = false
+		// The next end is a new run, so it reports its own `tour-ended`
+		this.#endedReported = false
+		for (const si of this.#stepInfo) {
+			si.ended = false
+			si.currentTime = 0
+		}
+		void this.#openStep(0)
 	}
 
 	/**
@@ -225,6 +239,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			}
 		}
 
+		// A committed step is a live run again (a replay or a chapter/prev/next jump), so
+		// its autoplay cannot be mistaken for a replay's play press.
+		this.#finished = false
+
 		// Opening the step image can take as long as a whole step, so the clock only starts
 		// once the step is really up: this is also the point the step becomes current.
 		if (this.#mediaEl) {
@@ -323,6 +341,12 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		const onEnded = () => {
 			this.#nextStep()
 		}
+		// After a `cannotClose` tour finishes, the next play starts it over from step 1
+		const onPlay = () => {
+			if (this.#finished) {
+				this.#replay()
+			}
+		}
 		// Blocked by the browser: the step is playable by hand, so it waits paused
 		const onBlocked = () => {
 			this.#setPlaying(this.#mediaPlaying, true)
@@ -335,11 +359,13 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		}
 		media.addEventListener('timeupdate', onTime)
 		media.addEventListener('ended', onEnded)
+		media.addEventListener('play', onPlay)
 		media.addEventListener('blocked', onBlocked)
 		media.addEventListener('error', onError)
 		this.#mediaCleanup = () => {
 			media.removeEventListener('timeupdate', onTime)
 			media.removeEventListener('ended', onEnded)
+			media.removeEventListener('play', onPlay)
 			media.removeEventListener('blocked', onBlocked)
 			media.removeEventListener('error', onError)
 		}
@@ -347,18 +373,24 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	/** Builds the standalone control bar of a step whose marker carries no video tour. */
 	#buildOwnControls(micrio: MicrioElement) {
-		const controls = createElement('micrio-media-controls', {
+		// Keep the media frame the tour's CSS positions, even though this step has no video:
+		// otherwise the ended tour's controls move out of the player frame.
+		const media = createElement('micrio-media', {
 			parent: this,
 			setProps: {
-				paused: true,
-				ended: false,
-				duration: this.#stepInfo[this.#currentStep]?.duration ?? 0,
-				currentTime: 0,
+				controlsOnly: true,
 				hasAudio: true,
 				fullscreenEl: micrio,
 				getTimeDisplay: () => this.#timeDisplay(),
+				onplaypause: () => {
+					if (this.#finished) {
+						this.#replay()
+					}
+				},
 			},
 		})
+		this.#mediaEl = media
+		const controls = media.querySelector('micrio-media-controls')
 		this.#ownControls = controls instanceof MicrioElement ? controls : undefined
 	}
 
@@ -371,7 +403,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	 * - a step with no media is timed by its authored duration.
 	 */
 	#tick() {
-		if (!this.isConnected || this.#stepInfo.length === 0) {
+		// A finished `cannotClose` tour stays put; its clock must not keep counting.
+		if (!this.isConnected || this.#finished || this.#stepInfo.length === 0) {
 			return
 		}
 		const si = this.#stepInfo[this.#currentStep]
@@ -425,9 +458,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		} else {
 			this.#props.onended?.()
 			this.#reportEnded()
-			// A tour that cannot close stays on its last step, where its media can be
-			// replayed, instead of being torn down the moment it finishes.
+			// A tour that cannot close stays on its last step instead of being torn down
+			// the moment it finishes. Its next play starts the whole tour over.
 			if (this.#cannotClose) {
+				this.#finished = true
 				return
 			}
 			this._getMicrio()?.state.tour.set(undefined)
