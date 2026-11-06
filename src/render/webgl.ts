@@ -23,6 +23,7 @@ const watermarkTileSize = 256;
 /** Watermark maximum size. @internal */
 const watermarkMaxSizeW = 96;
 const watermarkMaxSizeH = 64;
+const isPowerOfTwo = (value: number): boolean => value > 0 && (value & (value - 1)) === 0;
 
 /**
  * The WebGL controller class. Manages the WebGL context, shaders, buffers,
@@ -299,10 +300,11 @@ export class WebGL {
 	 * @param img Optional source image/bitmap/video for the texture. If omitted, creates an empty texture.
 	 * @param texture Optional existing WebGLTexture to update. If omitted, creates a new one.
 	 * @param noSmoothing If true, uses NEAREST filtering for magnification (pixelated look).
+	 * @param useMipmaps If true, uses mipmaps for minification.
 	 * @returns The created or updated WebGLTexture.
 	 * @throws If texture creation fails.
 	*/
-	_getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean) : WebGLTexture {
+	_getTexture(img?: TextureBitmap, texture?: WebGLTexture, noSmoothing?: boolean, useMipmaps?: boolean) : WebGLTexture {
 		const gl = this.gl;
 		const t = texture ?? gl.createTexture(); // Use existing or create new
 		if(!t) throw new Error('Could not create WebGL texture');
@@ -312,14 +314,22 @@ export class WebGL {
 		// Upload image data if provided
 		if(img) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
 
+		const mipmaps = !!img && !!useMipmaps && this.#supportsMipmaps(img.width, img.height);
+		if (mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
+
 		// Set texture parameters
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); // Prevent wrapping
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); // Linear filtering for minification
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
 		// Use NEAREST for magnification if noSmoothing is true, otherwise LINEAR
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, noSmoothing ? gl.NEAREST : gl.LINEAR);
 
 		return t;
+	}
+
+	#supportsMipmaps(width: number, height: number): boolean {
+		return width > 0 && height > 0
+			&& ('texStorage2D' in this.gl || (isPowerOfTwo(width) && isPowerOfTwo(height)));
 	}
 
 	/**
@@ -328,15 +338,22 @@ export class WebGL {
 	 * @internal
 	 * @param texture The WebGLTexture to update.
 	 * @param img The source image/bitmap/video.
+	 * @param useMipmaps If true, uses mipmaps for minification.
 	 */
 	_updateTexture(
 		texture:WebGLTexture,
 		img:TextureBitmap,
+		useMipmaps: boolean = false,
 	) : void {
 		const gl = this.gl;
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 		// Update texture data
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+		const width = 'videoWidth' in img ? img.videoWidth : img.width;
+		const height = 'videoHeight' in img ? img.videoHeight : img.height;
+		const mipmaps = useMipmaps && this.#supportsMipmaps(width, height);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+		if (mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
 		// Unbind texture (good practice)
 		gl.bindTexture(gl.TEXTURE_2D, null);
 	}

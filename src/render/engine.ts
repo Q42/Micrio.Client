@@ -251,6 +251,7 @@ export class Engine {
 		const img = hasCamera ? c : c.image;
 		const frame = '_frame' in c ? c._frame : undefined;
 		const noSmoothing = hasCamera && c.$settings.noSmoothing;
+		const useMipmaps = hasCamera && (!!c.$info.isSingle || isVideo);
 
 		if (tile._loadState === 0 && numLoading < numThreads) {
 			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) return false;
@@ -262,7 +263,7 @@ export class Engine {
 			else {
 				tile._loadState = 1;
 				const src = img._getTileSrc(layer, x, y, frame);
-				if (src) this._getTexture(i, src, animating, { noSmoothing });
+				if (src) this._getTexture(i, src, animating, { noSmoothing, useMipmaps });
 				else {
 					tile._loadState = 0;
 					return false;
@@ -275,7 +276,7 @@ export class Engine {
 			if (tile._texture) {
 				if (isVideo) {
 					if (!img._video || !img._video.dataset.playing) return false;
-					this.micrio._webgl._updateTexture(tile._texture, img._video);
+					this.micrio._webgl._updateTexture(tile._texture, img._video, useMipmaps);
 				}
 				this.micrio._webgl._drawTile(tile._texture, opacity, is360);
 			}
@@ -579,7 +580,8 @@ export class Engine {
 	 */
 	_getTexture(i: number, src: string, ani: boolean, opts: {
 		force?: boolean;
-		noSmoothing?: boolean
+		noSmoothing?: boolean;
+		useMipmaps?: boolean;
 	} = {}): void {
 		const tile = this.#tiles.get(i);
 		if (tile?._texture || this.#requests.has(i) || (!opts.force && runningThreads() >= numThreads)) return;
@@ -587,7 +589,7 @@ export class Engine {
 		if (!inArchive) this.micrio._loading.set(true);
 		this.#requests.set(i, src);
 		(inArchive ? archive._getImage(src) : loadTexture(src))
-			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing))
+			.then((img) => this.#gotTexture(i, img, ani, opts.noSmoothing, opts.useMipmaps))
 			.catch(() => this.#deleteRequest(i));
 	}
 
@@ -596,10 +598,11 @@ export class Engine {
 		i: number,
 		img: TextureBitmap,
 		ani: boolean,
-		noSmoothing?: boolean
+		noSmoothing?: boolean,
+		useMipmaps?: boolean
 	): void {
 		const tile = this.#getTileEntry(i);
-		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing);
+		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing, useMipmaps);
 		if (self.ImageBitmap !== undefined && img instanceof ImageBitmap && img.close instanceof Function) img.close();
 		tile._loadState = 2;
 

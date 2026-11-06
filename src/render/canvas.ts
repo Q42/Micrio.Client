@@ -2,7 +2,6 @@ import type { Writable } from '$core/store';
 import type { Models } from '$types/models';
 import type { HTMLMicrioElement } from '$core/element';
 
-import { Browser } from '$utils/browser';
 import { get, writable } from '$core/store';
 import { createElement } from '$utils/dom';
 
@@ -154,11 +153,11 @@ export class Canvas {
 
 	/**
 	 * Gets the appropriate device pixel ratio for rendering.
-	 * Clamped between 1 and 2, disabled on iOS and if `noRetina` setting is true.
+	 * Clamped between 1 and 2, and disabled if `noRetina` setting is true.
 	 * @param s Optional image settings object to check for `noRetina`.
 	 * @returns The calculated device pixel ratio.
 	 */
-	getRatio = (s:Partial<Models.ImageInfo.Settings> = this.#micrio.$current?.$settings ?? {}) : number => !Browser.iOS && !s?.noRetina // Check conditions
+	getRatio = (s:Partial<Models.ImageInfo.Settings> = this.#micrio.$current?.$settings ?? {}) : number => !s?.noRetina // Check conditions
 		&& self.devicePixelRatio && Math.max(1, Math.min(2, self.devicePixelRatio)) // Get ratio and clamp
 		|| 1; // Default to 1
 
