@@ -2,6 +2,7 @@ import { createElement } from '$utils/dom'
 import { MicrioElement } from '$core/component'
 import type { Models } from '$types/models'
 import type { MicrioImage } from '$core/image'
+import type { HTMLMicrioElement } from '$core/element'
 import { get } from '$core/store'
 import { i18n } from '$core/i18n/strings'
 import { DataLoader } from '$utils/dataLoader'
@@ -23,8 +24,27 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 	#props: Partial<TourProps> = {}
 	#currentStep = 0
+	/** The viewer, captured at mount: `_getMicrio()` is unavailable once the layout removes this element. */
+	#micrio: HTMLMicrioElement | undefined
 	/** The aside element containing step navigation controls. */
 	aside: HTMLElement | undefined
+
+	/** Reports the active tour stopped, once, and revokes the callbacks it left on the tour data. */
+	#stopTour(): void {
+		if (this.#stopped) {
+			return
+		}
+		this.#stopped = true
+		const { tour } = this.#props
+		if (!tour) {
+			return
+		}
+		this.#micrio?.events._dispatch('tour-stop', tour)
+		if ('steps' in tour) {
+			tour.next = undefined
+			tour.prev = undefined
+		}
+	}
 
 	/** @internal */
 	_onMount() {
@@ -34,6 +54,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			return
 		}
 
+		this.#micrio = micrio
 		const isVideoTour = !('steps' in tour)
 		const isMarkerTour = 'steps' in tour
 
@@ -240,11 +261,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					return
 				}
 				// The end is reported here rather than from `_onDestroy`: `_getMicrio()` walks the
-				// parent chain, which the layout has already removed by then.
-				if (!this.#stopped) {
-					this.#stopped = true
-					micrio.events._dispatch('tour-stop', tour)
-				}
+				// parent chain, which the layout has already removed by then, so `#stopTour`
+				// uses the viewer captured at mount.
+				this.#stopTour()
 				if (isMarkerTour) {
 					const mt = tour
 					const si = mt.stepInfo?.[this.#currentStep]
@@ -260,6 +279,12 @@ export class MicrioTour extends MicrioElement<TourProps> {
 				}
 			}),
 		)
+
+		// Replacing tour A with tour B removes A's element without ever clearing the store;
+		// the cleanup is the only stop signal A gets.
+		this._addCleanup(() => {
+			this.#stopTour()
+		})
 
 		// The tour is up and running: the element only exists while a tour is active.
 		micrio.events._dispatch('tour-start', tour)

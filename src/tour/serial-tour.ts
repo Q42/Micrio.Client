@@ -209,6 +209,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		const token = ++this.#stepToken
 
 		const close = () => {
+			// A load already suspended on `micrio.open` must not commit after this close.
+			this.#stepToken++
 			micrio.state.tour.set(undefined)
 			this.#props.onended?.()
 			this.remove()
@@ -241,7 +243,17 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		// A committed step is a live run again (a replay or a chapter/prev/next jump), so
 		// its autoplay cannot be mistaken for a replay's play press.
+		const wasFinished = this.#finished
 		this.#finished = false
+		if (wasFinished) {
+			// A jump out of a finished `cannotClose` tour starts a new run too, so its next
+			// end has to be reportable even though `#replay()` was not used.
+			this.#endedReported = false
+			for (const s of this.#stepInfo) {
+				s.ended = false
+				s.currentTime = 0
+			}
+		}
 
 		// Opening the step image can take as long as a whole step, so the clock only starts
 		// once the step is really up: this is also the point the step becomes current.
@@ -298,6 +310,14 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			})
 			this.#mediaEl = media
 			await afterFrame()
+			// Another open (or a close) can supersede this one while the frame is pending.
+			if (token !== this.#stepToken || !this.isConnected) {
+				media.remove()
+				if (this.#mediaEl === media) {
+					this.#mediaEl = undefined
+				}
+				return
+			}
 			this.#watchStepMedia(media)
 		} else {
 			// A step without a video tour has no media element to carry the control bar, so
@@ -345,6 +365,15 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		const onPlay = () => {
 			if (this.#finished) {
 				this.#replay()
+			} else {
+				this.#setPlaying(true, false)
+			}
+		}
+		// A user pause is a real playback phase: without this, hosts kept seeing the tour
+		// as playing until the step changed.
+		const onPause = () => {
+			if (!this.#mediaPaused) {
+				this.#setPlaying(false, false)
 			}
 		}
 		// Blocked by the browser: the step is playable by hand, so it waits paused
@@ -360,12 +389,14 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		media.addEventListener('timeupdate', onTime)
 		media.addEventListener('ended', onEnded)
 		media.addEventListener('play', onPlay)
+		media.addEventListener('pause', onPause)
 		media.addEventListener('blocked', onBlocked)
 		media.addEventListener('error', onError)
 		this.#mediaCleanup = () => {
 			media.removeEventListener('timeupdate', onTime)
 			media.removeEventListener('ended', onEnded)
 			media.removeEventListener('play', onPlay)
+			media.removeEventListener('pause', onPause)
 			media.removeEventListener('blocked', onBlocked)
 			media.removeEventListener('error', onError)
 		}
@@ -435,6 +466,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			return
 		}
 		this.#broken = true
+		// Stop a suspended step open from committing after the tour is gone.
+		this.#stepToken++
 		const si = this.#stepInfo[this.#currentStep]
 		const micrio = this._getMicrio()
 		const step = `${this.#currentStep + 1}/${this.#stepInfo.length}`
