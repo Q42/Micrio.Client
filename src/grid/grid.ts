@@ -9,6 +9,12 @@ import { MicrioElement } from '$core/component'
 import type { GridActionType } from './actions'
 import { createMachine, type Machine } from '$core/machine'
 import {
+	gridModeInitial,
+	reduceGridMode,
+	type GridModeEvent,
+	type GridModeState,
+} from './mode-state'
+import {
 	gridTransitionInitial,
 	reduceGridTransition,
 	type GridTransitionEvent,
@@ -69,6 +75,12 @@ export class Grid extends MicrioElement<GridProps> {
 	#zOverrides = new Map<string, number>()
 
 	/** Transition-only tiers applied by `in-from-id`, owned by the phase machine. */
+	#mode: Machine<GridModeState, GridModeEvent> = createMachine({
+		initial: gridModeInitial,
+		context: undefined,
+		reduce: reduceGridMode,
+		historyLimit: 0,
+	})
 	#transition: Machine<GridTransitionState, GridTransitionEvent> = createMachine({
 		initial: gridTransitionInitial,
 		context: undefined,
@@ -151,6 +163,9 @@ export class Grid extends MicrioElement<GridProps> {
 
 		const g = this.image.$settings?.grid
 		this._clickable = g?.clickable && ['focus', 'zoom'].includes(g.clickable) ? g.clickable : false
+		if (this._clickable === false) {
+			this.#mode.send({ type: 'non-clickable' })
+		}
 		this._panZoom = g?.panZoom === 'cells' ? 'cells' : 'grid'
 		if (this._clickable !== false && this.image.$settings.hookKeys) {
 			this._addCleanup(hookGridKeys(this))
@@ -199,6 +214,7 @@ export class Grid extends MicrioElement<GridProps> {
 	_onDestroy() {
 		// Bump the set id so an in-flight `in-from-id` readiness gate stops polling
 		// and never starts its deferred camera animations on the torn-down grid.
+		this.#mode.send({ type: 'serial-idle' })
 		this.#transition.send({ type: 'invalidate' })
 		this.#clearTimeouts()
 		// A serial tour pauses every grid camera; leaving the grid must not leave them paused.
@@ -283,11 +299,13 @@ export class Grid extends MicrioElement<GridProps> {
 		this.#_tourEventHandler = createTourEventHandler(this)
 		this.micrio.addEventListener('tour-event', this.#_tourEventHandler)
 		this.#onSerialPause = () => {
+			this.#mode.send({ type: 'serial-pause' })
 			for (const i of this._images) {
 				i.camera.pause()
 			}
 		}
 		this.#onSerialPlay = () => {
+			this.#mode.send({ type: 'serial-play' })
 			for (const i of this._images) {
 				i.camera.resume()
 			}
@@ -725,6 +743,7 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#placeGrid(): void {
+		this.#mode.send({ type: 'show-overview' })
 		if (this._clickable === false || this.micrio.state.$tour || this.micrio.state.$marker) {
 			return
 		}
@@ -736,6 +755,7 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#removeGrid(): void {
+		this.#mode.send({ type: 'hide' })
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
 		this.classList.add('grid-cells-hidden')
