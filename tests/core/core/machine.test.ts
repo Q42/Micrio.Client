@@ -33,10 +33,8 @@ const reduce = (state: Readonly<State>, event: Event): State | null => {
 
 const create = (
 	opts: {
-		historyLimit?: number
 		effect?: Parameters<typeof createMachine<State, Event, undefined>>[0]['effect']
 		enter?: Parameters<typeof createMachine<State, Event, undefined>>[0]['enter']
-		onError?: (error: unknown, event: Event) => void
 	} = {},
 ) =>
 	createMachine<State, Event, undefined>({
@@ -68,7 +66,9 @@ describe('createMachine', () => {
 
 	it('queues reentrant events in order', () => {
 		const machine = create()
+		const seen: number[] = []
 		machine.subscribe((state) => {
+			seen.push(state.n)
 			if (state.n === 1) {
 				machine.send({ type: 'tick' })
 			}
@@ -77,7 +77,7 @@ describe('createMachine', () => {
 		machine.send({ type: 'go' })
 
 		expect(machine.$state).toEqual({ phase: 'running', n: 2 })
-		expect(machine.history.map((t) => t.event.type)).toEqual(['go', 'tick'])
+		expect(seen).toEqual([0, 1, 2])
 		machine.dispose()
 	})
 
@@ -155,36 +155,24 @@ describe('createMachine', () => {
 		expect(transitionSignal?.aborted).toBe(true)
 		expect(phaseSignal?.aborted).toBe(true)
 		expect(machine.$state).toEqual({ phase: 'running', n: 1 })
-		expect(machine.history).toHaveLength(0)
 		machine.dispose()
 	})
 
-	it('routes async effect failures to onError', async () => {
-		const onError = vi.fn()
+	it('logs async effect failures', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 		const machine = create({
 			effect: async () => {
 				await Promise.resolve()
 				throw new Error('effect failed')
 			},
-			onError,
 		})
 
 		machine.send({ type: 'go' })
 		await Promise.resolve()
 		await Promise.resolve()
 
-		expect(onError).toHaveBeenCalledWith(expect.any(Error), { type: 'go' })
-		machine.dispose()
-	})
-
-	it('keeps a bounded history', () => {
-		const machine = create({ historyLimit: 2 })
-		machine.send({ type: 'go' })
-		machine.send({ type: 'tick' })
-		machine.send({ type: 'tick' })
-
-		expect(machine.history).toHaveLength(2)
-		expect(machine.history.map((t) => t.state.n)).toEqual([2, 3])
+		expect(error).toHaveBeenCalledWith('[Micrio] Machine effect failed:', expect.any(Error))
+		error.mockRestore()
 		machine.dispose()
 	})
 })

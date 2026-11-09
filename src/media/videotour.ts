@@ -111,7 +111,6 @@ export class VideoTourInstance {
 			initial: videoTourInitial,
 			context: this.#ctx,
 			reduce: reduceVideoTour,
-			historyLimit: 0,
 		})
 		this.#unhookEvents = !data.keepInteraction && this.#micrio.events.$enabled
 		data.instance = this

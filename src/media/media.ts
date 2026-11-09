@@ -421,8 +421,6 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			initial: mediaInitial(backend, Boolean(p.muted)),
 			context: undefined,
 			reduce: reduceMedia,
-			// Time events every 250 ms would fill the history with clock updates.
-			historyLimit: 0,
 			enter: {
 				playing: ({ state, signal }) => {
 					// A YouTube/Vimeo iframe has no media element to emit a clock.

@@ -35,7 +35,6 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		initial: markerPopupInitial,
 		context: undefined,
 		reduce: reduceMarkerPopup,
-		historyLimit: 0,
 	})
 
 	get #isMinimized(): boolean {

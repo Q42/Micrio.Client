@@ -90,8 +90,6 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				durations: this.#stepInfo.map((s) => s.duration || 0),
 				cannotClose: this.#cannotClose,
 			},
-			// The clock ticks every 250 ms; recording it would bury the phase transitions.
-			historyLimit: 0,
 			reduce: reduceSerial,
 			enter: {
 				opening: ({ state, signal }) => {

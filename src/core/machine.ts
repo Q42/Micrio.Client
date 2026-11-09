@@ -48,22 +48,11 @@ export interface MachineOptions<S extends MachineState, E, C> {
 	effect?: (args: MachineArgs<S, E, C>) => void | Promise<void>
 	/** Runs when entering a phase; signal aborts on leaving the phase or disposal. */
 	enter?: Partial<Record<S['phase'], (args: MachineArgs<S, E, C>) => void | Promise<void>>>
-	onError?: (error: unknown, event: E) => void
-	/** Bounded transition history. `0` disables it. Defaults to 25. */
-	historyLimit?: number
-}
-
-/** One accepted transition, as kept in {@link Machine.history}. */
-export interface MachineTransition<S extends MachineState, E> {
-	readonly previous: S
-	readonly state: S
-	readonly event: E
 }
 
 /** The read-only machine surface. */
 export interface Machine<S extends MachineState, E> extends Readable<S> {
 	readonly $state: S
-	readonly history: readonly MachineTransition<S, E>[]
 	send: (event: E) => void
 	dispose: () => void
 }
@@ -75,6 +64,11 @@ export interface Machine<S extends MachineState, E> extends Readable<S> {
  */
 export function assertNever(value: never): never {
 	throw new Error(`Unhandled machine variant: ${JSON.stringify(value)}`)
+}
+
+/** Reports an effect failure that the machine does not otherwise surface. @internal */
+const report = (error: unknown): void => {
+	console.error('[Micrio] Machine effect failed:', error)
 }
 
 /**
@@ -90,16 +84,6 @@ export function createMachine<S extends MachineState, E, C>(options: MachineOpti
 
 	const subscribers = new Set<Subscriber<S>>()
 	const queue: E[] = []
-	const history: MachineTransition<S, E>[] = []
-	const historyLimit = Math.max(0, options.historyLimit ?? 25)
-
-	const report = (error: unknown, event: E): void => {
-		if (options.onError) {
-			options.onError(error, event)
-		} else {
-			console.error('[Micrio] Machine effect failed:', error)
-		}
-	}
 
 	const run = (
 		effect: ((args: MachineArgs<S, E, C>) => void | Promise<void>) | undefined,
@@ -113,13 +97,13 @@ export function createMachine<S extends MachineState, E, C>(options: MachineOpti
 			if (result instanceof Promise) {
 				void result.catch((error: unknown) => {
 					if (!disposed) {
-						report(error, args.event)
+						report(error)
 					}
 				})
 			}
 		} catch (error) {
 			if (!disposed) {
-				report(error, args.event)
+				report(error)
 			}
 		}
 	}
@@ -140,12 +124,6 @@ export function createMachine<S extends MachineState, E, C>(options: MachineOpti
 		}
 
 		state = next
-		if (historyLimit > 0) {
-			history.push({ previous, state: next, event })
-			if (history.length > historyLimit) {
-				history.shift()
-			}
-		}
 
 		// Snapshot: a subscriber may add/remove another subscriber while being notified.
 		for (const subscriber of Array.from(subscribers)) {
@@ -174,9 +152,6 @@ export function createMachine<S extends MachineState, E, C>(options: MachineOpti
 	return {
 		get $state(): S {
 			return state
-		},
-		get history(): readonly MachineTransition<S, E>[] {
-			return history
 		},
 		subscribe(runSubscriber: Subscriber<S>): () => void {
 			if (disposed) {
@@ -215,7 +190,6 @@ export function createMachine<S extends MachineState, E, C>(options: MachineOpti
 			disposed = true
 			queue.length = 0
 			subscribers.clear()
-			history.length = 0
 			transitionAbort?.abort()
 			transitionAbort = undefined
 			phaseAbort?.abort()

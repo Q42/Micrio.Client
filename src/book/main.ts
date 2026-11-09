@@ -174,7 +174,6 @@ export class BookViewer {
 		initial: gotoInitial,
 		context: undefined,
 		reduce: reduceGoto,
-		historyLimit: 0,
 		effect: ({ state, previous }) => {
 			if (state.runId !== previous.runId || (state.phase === 'idle' && previous.phase !== 'idle')) {
 				this.#flushGotoWaiters()
