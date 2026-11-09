@@ -8,11 +8,22 @@ import type { Bicubic } from './easing'
 import { easeInOut, longitudeDistance } from './easing'
 import { View } from './shared'
 import type { TileCanvas } from './tile-canvas'
+import { createMachine, type Machine } from '$core/machine'
+import { aniInitial, reduceAni, type AniEvent, type AniState } from './ani-state'
 
 /** Manages camera and view animations (fly-to, zoom). @internal */
 export default class Ani {
+	/** The animation channel/phase; the only writer is the reducer. */
+	#machine: Machine<AniState, AniEvent> = createMachine({
+		initial: aniInitial,
+		context: undefined,
+		reduce: reduceAni,
+		historyLimit: 0,
+	})
 	/** Flag indicating if a view animation (fly-to) is active. */
-	#isView = false
+	get #isView(): boolean {
+		return this.#machine.$state.phase === 'view'
+	}
 	/** Starting view state for the animation. */
 	readonly #vFrom: View
 	/** Target view state for the animation. */
@@ -21,7 +32,9 @@ export default class Ani {
 	readonly _lastView: View
 
 	/** Flag indicating if a zoom animation (perspective change in 360) is active. */
-	#isZoom = false
+	get #isZoom(): boolean {
+		return this.#machine.$state.phase === 'zoom'
+	}
 	/** Flag indicating if the animation is a "jump" (zooms out then in). */
 	#isJump = false
 	/** Starting perspective value for zoom animation. */
@@ -39,7 +52,9 @@ export default class Ani {
 	#duration = 0
 
 	/** Flag indicating if the animation is currently running (not paused). */
-	#isRunning = false
+	get #isRunning(): boolean {
+		return this.#machine.$state.phase === 'view' || this.#machine.$state.phase === 'zoom'
+	}
 
 	/** Flag indicating if the view should be limited during animation (usually false during animation). @internal */
 	_limit = true
@@ -80,7 +95,7 @@ export default class Ani {
 		if (this.#pausedAt > 0) {
 			return
 		}
-		this.#isRunning = false
+		this.#machine.send({ type: 'pause' })
 		this.#pausedAt = performance.now()
 	}
 
@@ -91,7 +106,7 @@ export default class Ani {
 		}
 		this.#started += performance.now() - this.#pausedAt
 		this.#pausedAt = 0
-		this.#isRunning = true
+		this.#machine.send({ type: 'resume' })
 	}
 
 	/** Stops the current animation completely and resets state. */
@@ -104,9 +119,7 @@ export default class Ani {
 		this.#started = 0
 		this._limit = true
 		this._flying = false
-		this.#isRunning = false
-		this.#isView = false
-		this.#isZoom = false
+		this.#machine.send({ type: 'stop' })
 		this._correcting = false
 		this.#pausedAt = 0
 	}
@@ -296,16 +309,14 @@ export default class Ani {
 			return this.#duration
 		}
 
-		this.#isView = true
+		this.#machine.send({ type: 'start-view' })
 		this._limit = false
 		this._flying = true
-		this.#isZoom = false
 		if (correct) {
 			this._correcting = true
 		}
 
 		this.#started = performance.now() - perc * this.#duration
-		this.#isRunning = true
 
 		return this.#duration * (1 - perc)
 	}
@@ -326,9 +337,8 @@ export default class Ani {
 	 */
 	zoom(to: number, dur: number, speed: number, noLimit: boolean): number {
 		this.stop()
-		this.#isView = false
+		this.#machine.send({ type: 'start-zoom' })
 		this._flying = false
-		this.#isZoom = true
 		this.#zNoLimit = noLimit
 
 		const c = this.#canvas
@@ -341,7 +351,6 @@ export default class Ani {
 		}
 
 		this.#started = performance.now()
-		this.#isRunning = true
 
 		this.#duration = dur >= 0 ? dur : (Math.abs(this.#zFrom - this.#zTo) * 1000) / speed
 		return dur
