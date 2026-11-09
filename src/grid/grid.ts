@@ -8,12 +8,7 @@ import type { Gallery } from '$gallery/controller'
 import { MicrioElement } from '$core/component'
 import type { GridActionType } from './actions'
 import { createMachine, type Machine } from '$core/machine'
-import {
-	gridModeInitial,
-	reduceGridMode,
-	type GridModeEvent,
-	type GridModeState,
-} from './mode-state'
+import { gridModeInitial, reduceGridMode, type GridModeEvent, type GridModeState } from './mode-state'
 import {
 	gridTransitionInitial,
 	reduceGridTransition,
