@@ -4,6 +4,13 @@ import type { MicrioImage } from '$core/image'
 import { get } from '$core/store'
 import { Frame } from '$core/frame'
 import { i18n } from '$core/i18n/strings'
+import { createMachine, type Machine } from '$core/machine'
+import {
+	markerPopupInitial,
+	reduceMarkerPopup,
+	type MarkerPopupEvent,
+	type MarkerPopupState,
+} from './marker-popup-state'
 import { afterFrame, createElement } from '$utils/dom'
 import '$ui/button'
 import '$ui/button-group'
@@ -24,11 +31,29 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	static tag = 'micrio-marker-popup'
 
 	#props: Partial<MarkerPopupProps> = {}
-	#isMinimized = false
-	#destroying = false
+	#machine: Machine<MarkerPopupState, MarkerPopupEvent> = createMachine({
+		initial: markerPopupInitial,
+		context: undefined,
+		reduce: reduceMarkerPopup,
+		historyLimit: 0,
+	})
+
+	get #isMinimized(): boolean {
+		return this.#machine.$state.minimized
+	}
+
+	get #destroying(): boolean {
+		return this.#machine.$state.phase !== 'live'
+	}
+
 	/** True once a tour step has been requested from this popup. */
-	#stepping = false
-	#placedTourControls = false
+	get #stepping(): boolean {
+		return this.#machine.$state.stepping
+	}
+
+	get #placedTourControls(): boolean {
+		return this.#machine.$state.controls === 'tour' || this.#machine.$state.controls === 'placed'
+	}
 
 	/** @internal */
 	_onMount() {
@@ -50,18 +75,14 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 		this._addCleanup(
 			micrio.state.popup.subscribe((m) => {
-				this.#destroying = !m || m !== marker
-				if (!this.#destroying) {
-					// Re-setting the same marker reuses this element; an advance latch left
-					// from its previous click would otherwise disable the next button forever.
-					this.#stepping = false
-				}
+				this.#machine.send({ type: 'popup', open: Boolean(m) && m === marker })
 				this.classList.toggle('destroying', this.#destroying)
 			}),
 		)
 
 		this.addEventListener('transitionend', (e) => {
 			if (e.target === this && this.#destroying) {
+				this.#machine.send({ type: 'removed' })
 				this.remove()
 			}
 		})
@@ -172,7 +193,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const markerTour = $tour && 'steps' in $tour ? $tour : undefined
 		const isPartOfTour = markerTour && markerTour.steps?.findIndex((s: string) => s.startsWith(marker.id)) >= 0
 		const showTourControls = this.#showTourControls
-		this.#placedTourControls = showTourControls
+		this.#machine.send({ type: 'controls', controls: showTourControls ? 'tour' : 'own' })
 		const closeButtonStopsTour =
 			showTourControls || (markerTour ? markerTour.currentStep === markerTour.steps.length - 1 : undefined)
 		// The counter is only for the popup's own aside; the tour's aside has one already
@@ -184,7 +205,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const close = (e?: Event) => {
 			// The layout only swaps this popup out for the next step on the following
 			// tick, so a second click on the same button must not advance again.
-			if (this.#stepping) {
+			if (this.#stepping || this.#destroying) {
 				return
 			}
 			// Read the image shown *now*, not the one captured when this popup rendered: the
@@ -194,7 +215,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 				if (e instanceof Event && closeButtonStopsTour) {
 					micrio.state.tour.set(undefined)
 				} else {
-					this.#stepping = true
+					this.#machine.send({ type: 'advance' })
 					$tour.next?.()
 				}
 			} else if ($current && $current.id !== image.id && data.micrioLink?.id === $current.id) {
@@ -273,7 +294,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			// The aside lives in `<micrio-tour>`, which the layout may mount in a later
 			// frame than this popup, so keep asking for it until it exists.
 			if (!this.#placingAside) {
-				this.#placingAside = true
+				this.#machine.send({ type: 'controls', controls: 'pending' })
 				Frame.request(this.#placeTourAside)
 			}
 		}
@@ -284,7 +305,8 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 	/** Collapses or expands the popup, keeping the toggle's icon in step. */
 	#toggleMinimize(): void {
-		this.#isMinimized = !this.#isMinimized
+		const minimized = !this.#isMinimized
+		this.#machine.send({ type: 'minimize', minimized })
 		// The fold itself is pure CSS: the `minimized` class collapses every content child
 		// except the title, and `interpolate-size` animates `height: auto` to `0` and back.
 		this.classList.toggle('minimized', this.#isMinimized)
@@ -292,7 +314,9 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	}
 
 	/** Set while a `#placeTourAside` retry chain is pending, so only one can be queued. */
-	#placingAside = false
+	get #placingAside(): boolean {
+		return this.#machine.$state.controls === 'pending'
+	}
 
 	/**
 	 * Moves the tour element's control aside into this popup, once it exists.
@@ -304,7 +328,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	 */
 	#placeTourAside = (): void => {
 		if (!this.isConnected) {
-			this.#placingAside = false
+			this.#machine.send({ type: 'controls', controls: 'own' })
 			return
 		}
 		// Scoped to this viewer: a global lookup could hand another viewer's aside to this popup.
@@ -314,7 +338,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			Frame.request(this.#placeTourAside)
 			return
 		}
-		this.#placingAside = false
+		this.#machine.send({ type: 'controls', controls: 'placed' })
 		if (!this.contains(tourAside)) {
 			this.append(tourAside)
 		}
@@ -324,7 +348,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 	_onDestroy() {
 		if (this.#placingAside) {
 			Frame.cancel(this.#placeTourAside)
-			this.#placingAside = false
+			this.#machine.send({ type: 'controls', controls: 'own' })
 		}
 	}
 }
