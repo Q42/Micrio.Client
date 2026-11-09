@@ -213,12 +213,39 @@ export class BookViewer {
 	// Public API
 	// ═══════════════════════════════════════════════════════════════
 
+	/** Settles every waiter from a superseded `goto()` cascade. */
+	#flushGotoDone(): void {
+		if (this.#gotoDone.length === 0) {
+			return
+		}
+		const cbs = this.#gotoDone
+		this.#gotoDone = []
+		for (const cb of cbs) {
+			cb()
+		}
+	}
+
+	/** Releases a page the pointer is still dragging, before another navigation takes over. */
+	#cancelDrag(): void {
+		const idx = this.#dragPageIndex
+		this.#dragPageIndex = -1
+		if (idx < 0 || idx >= this.#pageCount) {
+			return
+		}
+		this.#flipAnimator._cancelDrag(idx, this.#meshes[idx])
+		this.#selectedPage = this.#currentPage
+	}
+
 	goto(pageIdx: number): Promise<void> {
+		this.#cancelDrag()
 		const idx = Math.max(0, Math.min(this.#pageCount - 1, pageIdx))
 		if (idx === this.#currentPage) {
 			return Promise.resolve()
 		}
 
+		// A new target supersedes the old cascade: do not leave its callers waiting for the
+		// new page to settle and then telling them their old target is ready.
+		this.#flushGotoDone()
 		if (this.#gotoStep) {
 			Frame.cancel(this.#gotoStep)
 			this.#gotoStep = undefined
@@ -820,13 +847,7 @@ export class BookViewer {
 		}
 		this.#gotoStepping = false
 		// Resolve whoever is waiting on that cascade instead of leaving them on the 3 s fallback.
-		if (this.#gotoDone.length > 0) {
-			const cbs = this.#gotoDone
-			this.#gotoDone = []
-			for (const cb of cbs) {
-				cb()
-			}
-		}
+		this.#flushGotoDone()
 		// A viewer that never got past WebGL setup has no listeners or handlers to detach.
 		if (!this.#listenersReady) {
 			return
@@ -842,6 +863,7 @@ export class BookViewer {
 	}
 
 	_nextPage(grabRow?: number): void {
+		this.#cancelDrag()
 		if (this.#flipAnimator !== undefined && this.#currentPage < this.#pageCount - 1) {
 			this.#inputHandler._operation = 'none'
 			this.#selectedPage = this.#currentPage
@@ -855,6 +877,7 @@ export class BookViewer {
 	}
 
 	_prevPage(grabRow?: number): void {
+		this.#cancelDrag()
 		if (this.#flipAnimator !== undefined && this.#currentPage > 0) {
 			this.#inputHandler._operation = 'none'
 			this.#currentPage--
@@ -1565,6 +1588,15 @@ export class BookViewer {
 	}
 	#syncSolverResults(): void {
 		if (!isSolverReady()) {
+			// Nothing can simulate these pages (a cover-only book has no paper mesh). Keep
+			// them while a drag/flip still needs buffers, then release the frame loop.
+			if (
+				this.#dragPageIndex < 0 &&
+				!this.#flipAnimator._animating &&
+				(this.#inputHandler?._operation ?? 'none') === 'none'
+			) {
+				this.#activePageSet.clear()
+			}
 			return
 		}
 

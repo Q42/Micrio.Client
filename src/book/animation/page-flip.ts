@@ -156,6 +156,20 @@ export class PageFlipAnimator {
 		return slot !== undefined ? slot._isDragging : false
 	}
 
+	/** Releases a drag without settling it, returning the page to rest for another navigation. */
+	_cancelDrag(pageIndex: number, mesh: PaperMesh): void {
+		const slot = this.#slots[pageIndex]
+		if (slot === undefined) {
+			return
+		}
+		slot._isDragging = false
+		slot._direction = 0
+		slot._progress = 0
+		slot._startProgress = 0
+		slot._elapsed = 0
+		this.#releaseDriven(mesh, slot)
+	}
+
 	#startAnim(slot: AnimSlot, dir: number, grabRow?: number): void {
 		slot._direction = dir
 		slot._startProgress = slot._progress
