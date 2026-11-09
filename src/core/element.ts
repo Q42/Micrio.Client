@@ -25,6 +25,7 @@ import { i18n, langs } from '$core/i18n/strings'
 import { MicrioElement } from '$core/component'
 import { createMachine, type Machine } from './machine'
 import { printInitial, reducePrint, type PrintEvent, type PrintState } from './print-state'
+import { reduceView, viewInitial, type ViewEvent, type ViewState } from './view-state'
 import { openSplit, closeAllSplits } from '$core/split'
 import './element.css'
 import { createElement } from '$utils/dom'
@@ -220,6 +221,13 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Writable store indicating the overall loading state of the viewer.
 	 * @internal
 	 */
+	#viewMachine: Machine<ViewState, ViewEvent> = createMachine({
+		initial: viewInitial,
+		context: undefined,
+		reduce: reduceView,
+		historyLimit: 0,
+	})
+
 	readonly _loading: Writable<boolean> = writable(true)
 
 	/** Writable store indicating if the viewer is currently transitioning between images.
@@ -409,6 +417,11 @@ export class HTMLMicrioElement extends MicrioElement {
 			if (i >= 0) {
 				this._onZoom.splice(i, 1)
 			}
+		})
+
+		this._watch(this.#viewMachine, (state) => {
+			// `_loading` is the engine's tile progress; the machine owns the switch phase.
+			this._switching.set(state.phase === 'switching')
 		})
 
 		let shown = false
@@ -798,10 +811,10 @@ export class HTMLMicrioElement extends MicrioElement {
 			this.#printUI(false, false)
 		}
 		this._ui?._setProps?.({ error: message })
+		this.#viewMachine.send({ type: 'error' })
 		this._loading.set(false)
 		// A failed switch has no visible edge to clear it, and the viewer would keep
 		// `data-switching` (and the overlay's inactive class) forever.
-		this._switching.set(false)
 		if (this.$current) {
 			this.$current.error = message
 		}
@@ -845,6 +858,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (!this.isConnected) {
 			return this.$current
 		}
+
+		this.#viewMachine.send({ type: 'open' })
 
 		// ── Resolve input to a BundleImage ────────────────────────────────────
 
@@ -934,7 +949,7 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		if (!opts.gridView && this.$current) {
-			this._switching.set(true)
+			this.#viewMachine.send({ type: 'switch' })
 		}
 		this.#printUI(Boolean(bundle.settings.noUI), Boolean(bundle.settings.noLogo))
 
@@ -1040,7 +1055,7 @@ export class HTMLMicrioElement extends MicrioElement {
 				// A grid focus whose transition is superseded or torn down rejects; swallow it,
 				// but do not leave the viewer switching forever.
 				.catch(() => {
-					this._switching.set(false)
+					this.#viewMachine.send({ type: 'shown' })
 				})
 		} else {
 			this.current.set(c)
@@ -1069,6 +1084,11 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		return c
+	}
+
+	/** Called by an image when it becomes visible: the switch is complete. @internal */
+	_viewShown(): void {
+		this.#viewMachine.send({ type: 'shown' })
 	}
 
 	/**

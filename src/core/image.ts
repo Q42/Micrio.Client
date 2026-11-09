@@ -453,7 +453,7 @@ export class MicrioImage {
 				return l
 			})
 			if (v && micrioRef.$current === this) {
-				micrioRef._switching.set(false)
+				micrioRef._viewShown()
 			}
 		})
 
