@@ -129,6 +129,79 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	#reportedPaused = -1
 	#muted = false
 	#subEl: MicrioElement | undefined
+	/** Whether one render has completed, so a re-render must tear the previous player down. */
+	#rendered = false
+
+	/**
+	 * Tears down every player binding from a previous render.
+	 *
+	 * A source change re-renders this element: without this, the old adapter, media element,
+	 * tour and report latches survive and the new render branches on state that belongs to
+	 * the previous source. Called before a re-render and from teardown.
+	 */
+	#resetPlayer(): void {
+		this.#tourInstance?.destroy()
+		this.#tourInstance = undefined
+		this.#adapter?.destroy()
+		this.#adapter = undefined
+		this.#stopAdapterTick()
+		// An audio element is appended to <body>, not to this element, so `replaceChildren`
+		// would leave it playing.
+		if (this.#mediaEl instanceof HTMLAudioElement) {
+			this.#mediaEl.remove()
+		}
+		this.#mediaEl = undefined
+		this.#frame = undefined
+		this.#hlsSrc = undefined
+		this.#subEl?.remove()
+		this.#subEl = undefined
+
+		this.#paused = true
+		this.#ended = false
+		this.#duration = 0
+		this.#currentTime = 0
+		this.#seeking = false
+		this.#endedReported = false
+		this.#reportedPaused = -1
+		this.#muted = false
+	}
+
+	/** Reports the current playback transition on the viewer and to a local (serial) host. */
+	#reportPlayback(): void {
+		// Playing starts a new run, so a later end has to be reported again.
+		if (!this.#paused) {
+			this.#endedReported = false
+		}
+		const paused = this.#paused ? 1 : 0
+		if (paused === this.#reportedPaused) {
+			return
+		}
+		this.#reportedPaused = paused
+		if (this._props.secondary) {
+			return
+		}
+		this._getMicrio()?.events._dispatch(paused ? 'media-pause' : 'media-play')
+		this.dispatchEvent(new CustomEvent(paused ? 'pause' : 'play'))
+	}
+
+	/**
+	 * Reports the end of this playback run once, whichever backend produced it.
+	 *
+	 * Native elements and the HLS adapter can both report the same end; the latch also makes
+	 * the report survive until a real play resets the run.
+	 */
+	#reportEnded(): void {
+		if (this.#endedReported) {
+			return
+		}
+		this.#endedReported = true
+		const hasMedia = Boolean(this.#mediaEl || this.#adapter || this.#frame)
+		if (hasMedia && !this._props.secondary) {
+			this._getMicrio()?.events._dispatch('media-ended')
+		}
+		this.dispatchEvent(new CustomEvent('ended'))
+		this._props.onended?.()
+	}
 
 	#createYoutubeIframe(src: string, p: MediaProps, figure: HTMLElement) {
 		const match = src.match(YOUTUBE_RE)
@@ -233,7 +306,9 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 	/** Reports that autoplay was blocked: playable, but only after a user gesture. */
 	#blocked() {
 		this.#paused = true
+		this.#seeking = false
 		this.#updateControls()
+		this.#reportPlayback()
 		this.dispatchEvent(new CustomEvent('blocked'))
 		this._props.onblocked?.()
 		// The documented signal for "playable, but the browser refused to start it"
@@ -278,6 +353,11 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 
 	/** @internal */
 	protected _render() {
+		if (this.#rendered) {
+			this.#resetPlayer()
+		}
+		this.#rendered = true
+
 		const p = this._props
 		const { src } = p
 		// A serial step without a video tour still needs the same media frame around its
@@ -361,21 +441,30 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					{
 						onPlay: () => {
 							this.#paused = false
-							this.#endedReported = false
+							this.#ended = false
+							this.#seeking = false
+							this.#tourInstance?.play()
 							this.#startAdapterTick()
 							this.#updateControls()
+							this.#reportPlayback()
 						},
 						onPause: () => {
 							this.#paused = true
+							this.#seeking = false
 							this.#stopAdapterTick()
+							this.#tourInstance?.pause()
 							this.#updateControls()
+							this.#reportPlayback()
 						},
 						onEnded: () => {
 							this.#ended = true
 							this.#paused = true
+							this.#seeking = false
 							this.#stopAdapterTick()
+							this.#tourInstance?.pause()
 							this.#updateControls()
-							p.onended?.()
+							this.#reportPlayback()
+							this.#reportEnded()
 						},
 						onSeeking: () => {
 							this.#seeking = true
@@ -414,18 +503,27 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					{
 						onPlay: () => {
 							this.#paused = false
-							this.#endedReported = false
+							this.#ended = false
+							this.#seeking = false
+							this.#tourInstance?.play()
 							this.#updateControls()
+							this.#reportPlayback()
 						},
 						onPause: () => {
 							this.#paused = true
+							this.#seeking = false
+							this.#tourInstance?.pause()
 							this.#updateControls()
+							this.#reportPlayback()
 						},
 						onEnded: () => {
 							this.#ended = true
 							this.#paused = true
+							this.#seeking = false
+							this.#tourInstance?.pause()
 							this.#updateControls()
-							p.onended?.()
+							this.#reportPlayback()
+							this.#reportEnded()
 						},
 						onTimeUpdate: (t) => {
 							this.#currentTime = t
@@ -473,8 +571,10 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				onEnded: () => {
 					this.#ended = true
 					this.#paused = true
+					this.#seeking = false
 					this.#updateControls()
-					p.onended?.()
+					this.#reportPlayback()
+					this.#reportEnded()
 				},
 			})
 			this.#adapter = adapter
@@ -484,7 +584,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		}
 
 		// Tour instance
-		if (p.tour && p.image && (this.#mediaEl || isStandaloneVideoTour)) {
+		if (p.tour && p.image && (this.#mediaEl || this.#frame || isStandaloneVideoTour)) {
 			this.#tourInstance = new VideoTourInstance(p.image, p.tour)
 
 			if (this.#mediaEl) {
@@ -493,9 +593,6 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				const el = this.#mediaEl
 				const onPlay = () => {
 					this.#tourInstance?.play()
-					// Public start signal for the tour host (a serial tour restarts from
-					// step 1 when its finished last step is played again)
-					this.dispatchEvent(new CustomEvent('play'))
 				}
 				el.addEventListener('play', onPlay)
 				this._addCleanup(() => {
@@ -522,11 +619,15 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					// A camera-only tour has no media element for the subtitles to observe, so its
 					// clock is pushed from the same tick.
 					this.#subEl?._setProps?.({ time: this.#currentTime })
+					// The clock leaves the ended phase when the tour is replayed; that starts a
+					// new run, so its next end must be reported again.
+					if (!this.#ended) {
+						this.#endedReported = false
+					}
 					// Without a media element the `ended` flag stays true after the tour finishes,
 					// so this tick would call the host back every 250 ms.
-					if (this.#ended && !this.#endedReported && (!this.#mediaEl || this.#mediaEl.ended)) {
-						this.#endedReported = true
-						p.onended?.()
+					if (this.#ended && (!this.#mediaEl || this.#mediaEl.ended)) {
+						this.#reportEnded()
 					}
 				}, 250)
 				this._addCleanup(() => {
@@ -543,7 +644,7 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				this._addCleanup(() => {
 					el?.removeEventListener('ended', onEnded)
 				})
-				if (!el?.paused) {
+				if (el && !el.paused) {
 					this.#tourInstance?.play()
 				}
 			}
@@ -588,14 +689,6 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 						el.pause()
 						this.#tourInstance?.pause()
 					}
-				} else if (this.#tourInstance) {
-					if (this.#tourInstance.paused) {
-						this.#tourInstance.play()
-						// The camera-only tour has no media element to emit `play`
-						this.dispatchEvent(new CustomEvent('play'))
-					} else {
-						this.#tourInstance.pause()
-					}
 				} else if (this.#adapter) {
 					const adapter = this.#adapter
 					void adapter.isPaused().then((paused) => {
@@ -605,6 +698,15 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 							adapter.pause()
 						}
 					})
+				} else if (this.#tourInstance) {
+					if (this.#tourInstance.paused) {
+						this.#tourInstance.play()
+						// The camera-only tour has no media element to emit `play`
+						this.dispatchEvent(new CustomEvent('play'))
+					} else {
+						this.#tourInstance.pause()
+						this.dispatchEvent(new CustomEvent('pause'))
+					}
 				}
 			}
 
@@ -633,6 +735,10 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					el.currentTime = n
 				} else if (this.#adapter) {
 					this.#adapter.setCurrentTime(n)
+					// A paused iframe player never emits the seeked state that would clear this,
+					// which left the play and mute buttons disabled after a paused seek.
+					this.#seeking = false
+					this.#updateControls()
 				}
 			}
 
@@ -697,29 +803,13 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 			!isStandaloneVideoTour
 		) {
 			{
-				// A new element starts unreported, so the first `update` still resolves a state.
-				this.#reportedPaused = -1
-				// `media-play`/`media-pause` are reported on the transition, so a repeated `play`
-				// event from the element cannot double-fire them. `-1` means "nothing reported yet".
-				const reportPlayback = (): void => {
-					const el = this.#mediaEl
-					if (!el || p.secondary) {
-						return
-					}
-					const paused = el.paused ? 1 : 0
-					if (paused === this.#reportedPaused) {
-						return
-					}
-					this.#reportedPaused = paused
-					this._getMicrio()?.events._dispatch(paused ? 'media-pause' : 'media-play')
-				}
 				const onUpdate = (): void => {
 					// Read the element state here too: with `controls: false` there is no `update`
 					// helper to do it, and the tour clock, subtitles and `timeupdate` all read
 					// `#currentTime` — which would otherwise stay at 0 for the whole tour.
 					this.#readElState()
 					updateControls?.()
-					reportPlayback()
+					this.#reportPlayback()
 				}
 				const onTimeUpdate = () => {
 					this.#readElState()
@@ -735,22 +825,21 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 					}
 				}
 				const onEnded = () => {
+					this.#ended = true
+					this.#paused = true
+					this.#seeking = false
 					updateControls?.()
-					if (!p.secondary) {
-						this._getMicrio()?.events._dispatch('media-ended')
-					}
+					this.#reportPlayback()
 					// The step's media finished: a serial tour waits for this before moving on,
 					// so a step is never cut off while its audio is still playing.
-					this.dispatchEvent(new CustomEvent('ended'))
-					if (!isStandaloneVideoTour) {
-						p.onended?.()
-					}
+					this.#reportEnded()
 				}
 				const onSeeking = () => {
 					this.#seeking = true
 					updateControls?.()
 				}
 				const onSeeked = () => {
+					this.#readElState()
 					this.#seeking = false
 					updateControls?.()
 				}
@@ -811,11 +900,23 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 				return
 			}
 			// Vimeo/YouTube adapters answer over postMessage; the two reads are independent.
-			const [currentTime, duration] = await Promise.all([this.#adapter.getCurrentTime(), this.#adapter.getDuration()])
+			const adapter = this.#adapter
+			const [currentTime, duration] = await Promise.all([adapter.getCurrentTime(), adapter.getDuration()])
+			// The player can be torn down or replaced while those postMessage reads are in flight.
+			if (this.#adapter !== adapter || !this.isConnected) {
+				return
+			}
 			this.#currentTime = currentTime
 			this.#duration = duration
 			this.#tourInstance?.updateEvents(this.#currentTime)
 			this.#updateControls()
+			// An iframe player has no media element to observe, so the tour host, subtitles
+			// and the public clock are fed from here instead.
+			this.#subEl?._setProps?.({ time: this.#currentTime })
+			this.dispatchEvent(new CustomEvent('timeupdate', { detail: this.#currentTime }))
+			if (!this._props.secondary) {
+				this._getMicrio()?.events._dispatch('timeupdate', this.#currentTime)
+			}
 		}, 250)
 	}
 
@@ -897,11 +998,8 @@ class MicrioMedia extends MicrioElement<MediaProps> {
 		// goes away with this element: closing an audio or Cloudflare tour would leave the sound
 		// running. Pausing here (while `#mediaEl` is still set) is the one place that covers every
 		// element kind; the tour is torn down first so it cannot restart playback.
-		this.#tourInstance?.destroy()
 		this.#mediaEl?.pause()
-		this.#adapter?.destroy()
-		this.#stopAdapterTick()
-		this.#subEl?.remove()
+		this.#resetPlayer()
 	}
 }
 
