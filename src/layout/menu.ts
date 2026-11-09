@@ -7,16 +7,13 @@ import '$ui/icon'
 
 /** Currently opened menu sub-tree */
 const opened = writable<Models.ImageData.Menu | undefined>()
-let hooked = false
 opened.subscribe((c) => {
+	// Both calls are idempotent for the same function, so no parallel "hooked" flag is needed.
 	if (c) {
-		if (!hooked) {
-			globalThis.addEventListener('click', close)
-		}
-	} else if (hooked) {
+		globalThis.addEventListener('click', close)
+	} else {
 		globalThis.removeEventListener('click', close)
 	}
-	hooked = Boolean(c)
 })
 /** Close the currently opened menu */
 function close() {

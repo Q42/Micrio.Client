@@ -51,6 +51,11 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		this._addCleanup(
 			micrio.state.popup.subscribe((m) => {
 				this.#destroying = !m || m !== marker
+				if (!this.#destroying) {
+					// Re-setting the same marker reuses this element; an advance latch left
+					// from its previous click would otherwise disable the next button forever.
+					this.#stepping = false
+				}
 				this.classList.toggle('destroying', this.#destroying)
 			}),
 		)

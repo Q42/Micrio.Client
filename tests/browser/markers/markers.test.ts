@@ -244,6 +244,40 @@ describe('markers — zoom out after close', () => {
 		opened.viewer.destroy()
 	})
 
+	it('cancels the previous return when another marker opens during the delay', async () => {
+		const opened = await openMarkers(
+			markerBundle({
+				markers: [
+					marker('m1', { view: [0.2, 0.2, 0.5, 0.5] }),
+					marker('m2', { view: [0.3, 0.3, 0.4, 0.4] }),
+				],
+			}),
+		)
+		await opened.openMarker('m1')
+		await settle(2)
+		const image = opened.image()
+		const second = image.$data?.markers?.[1]
+		if (!second) {
+			throw new Error('second marker missing')
+		}
+
+		vi.useFakeTimers()
+		const spy = vi.spyOn(image.camera, 'flyToView').mockImplementation(() => Promise.resolve())
+
+		// The first close schedules a return; opening m2 must replace it, not race it.
+		image.state.marker.set(undefined)
+		image.state.marker.set(second)
+		vi.advanceTimersByTime(300)
+		expect(spy).not.toHaveBeenCalled()
+
+		image.state.marker.set(undefined)
+		vi.advanceTimersByTime(300)
+		expect(spy).toHaveBeenCalledTimes(1)
+
+		spy.mockRestore()
+		opened.viewer.destroy()
+	})
+
 	it('does nothing when the setting is off', async () => {
 		const opened = await openMarkers(
 			markerBundle({
