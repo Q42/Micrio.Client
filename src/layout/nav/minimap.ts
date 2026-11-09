@@ -25,6 +25,8 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 	#unsubView: (() => void) | undefined
 	#to: ReturnType<typeof setTimeout> | undefined
 	#thumbUrl: string | undefined
+	/** Stops the drag installed by the current setup, so a replacement can remove it. */
+	#stopDrag?: () => void
 
 	/** @internal */
 	_onMount() {
@@ -37,6 +39,11 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			this.#props.image = props.image
 			if (this.isConnected) {
 				this.#unsubView?.()
+				// The old setup's dStop is otherwise only reachable on disconnect, so a swap
+				// mid-drag kept driving the previous camera from the previous rect.
+				this.#stopDrag?.()
+				this.#stopDrag = undefined
+				this.#mapRect = undefined
 				this.replaceChildren()
 				this.#_ctx = null
 				this.#setup()
@@ -167,10 +174,13 @@ class MicrioMinimap extends MicrioElement<MinimapProps> {
 			globalThis.removeEventListener('mouseup', dStop)
 			this.#dragViewDims = undefined
 		}
+		this.#stopDrag = dStop
 		// A drag in progress when the minimap is replaced keeps driving `camera.setView` from
 		// stale rects otherwise, because only `mouseup` removed these two.
 		this._addCleanup(() => {
 			dStop()
+			this.#stopDrag = undefined
+			this.#mapRect = undefined
 		})
 
 		const canvas = createElement('canvas', {

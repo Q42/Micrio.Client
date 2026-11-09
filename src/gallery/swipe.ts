@@ -203,11 +203,17 @@ export class SwipeGallery {
 	}
 
 	#resetDrag = (): void => {
+		// A strip gesture that actually started owns the shared panning flags; a no-op reset
+		// (destroy with no drag) must leave another gesture's state alone.
+		const engaged = this.#stripDragId !== undefined
 		this.#unlisten()
 		this.#stripDragId = undefined
 		this.#stripDragActive = false
-		delete this.#micrio.dataset.panning
-		this.#micrio._keepRendering = false
+		this.#stripDragHorizontal = false
+		if (engaged) {
+			delete this.#micrio.dataset.panning
+			this.#micrio._keepRendering = false
+		}
 	}
 
 	/** Start handling a pointer drag for strip-swipe navigation. */
@@ -347,8 +353,6 @@ export class SwipeGallery {
 
 	/** Clean up swipe state, remove listeners, and reset the micrio element. */
 	destroy(): void {
-		delete this.#micrio.dataset.panning
-		this.#micrio._keepRendering = false
-		this.#unlisten()
+		this.#resetDrag()
 	}
 }

@@ -338,8 +338,11 @@ export class OmniUI {
 		if (e.button !== 0) {
 			return
 		}
-		this.#startedWithShift = e.shiftKey
 		const newDrag = !this.#isDragging()
+		// A secondary pointer must not rewrite the origin's shift decision mid-gesture.
+		if (newDrag) {
+			this.#startedWithShift = e.shiftKey
+		}
 		this.#pointers.set(e.pointerId, true)
 		if (this.#pointers.size > 2) {
 			this.#pointers.clear()
@@ -426,6 +429,13 @@ export class OmniUI {
 		if (e.pointerId === this.#firstTouchId) {
 			this.#micrio.releasePointerCapture(this.#firstTouchId)
 			this.#firstTouchId = undefined
+			// The remaining pointers no longer have the origin this gesture measures from.
+			// End it rather than leave listeners attached to moves that are all dropped.
+			if (this.#pointers.size > 0) {
+				this.#pointers.clear()
+				this.#swipeEnd()
+				return
+			}
 		}
 		if (this.#pointers.size === 0) {
 			this.#swipeEnd()

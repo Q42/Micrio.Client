@@ -298,6 +298,8 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			this.#dragPointerId = -1
 		}
 		this.#dragging = false
+		// The cached rect is only stable while a drag is active; hover must measure fresh.
+		this.#box = null
 		delete this.dataset.dragging
 		// Also reached from `_onDestroy`, where the viewer may already be gone: clear the render
 		// flag when it is still there, but the handle and the trailing navigation only need the
@@ -598,6 +600,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		}
 		parent.camera._isZoomedInOverride = () => book3d.isZoomedIn()
 		void this.#book3d._ready.then(() => {
+			// A late resolve after the gallery was removed must not touch a torn-down parent.
+			if (!this.isConnected) {
+				return
+			}
 			parent._placed = true
 			this.#frameChanged()
 		})
@@ -798,6 +804,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		// removes them, so a gallery removed mid-drag would otherwise keep scrubbing (and keep
 		// driving `#goto` and camera animations) from a detached element.
 		if (this.#dragging) {
+			// `_getMicrio()` walks a parent chain that is already gone here, so release the
+			// shared render flag through the image this gallery was built for.
+			this.#parentImage.engine.micrio._keepRendering = false
 			this.#scrubStop()
 		}
 		// `Frame` only removes a callback by running it, so a book left mid-flip keeps queuing its
@@ -806,7 +815,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		this.#book3d?._stop()
 		this.#book3d = undefined
 		this.#omni?.destroy()
+		this.#omni = undefined
 		this.#swipeGallery?.destroy()
+		this.#swipeGallery = undefined
 	}
 }
 
