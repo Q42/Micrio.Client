@@ -62,9 +62,7 @@ export default class Kinetic {
 
 	/** Starts the kinetic movement phase (called when user stops dragging). */
 	start(): void {
-		// A click without movement never stamped `#startTime`; setting `started` then left
-		// the flag true until some unrelated stop().
-		if (this.#startTime === 0 || this.#canvas.camera._isUnderZoom()) {
+		if (this.#canvas.camera._isUnderZoom()) {
 			this.stop()
 			return
 		}
