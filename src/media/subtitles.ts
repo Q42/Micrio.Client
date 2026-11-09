@@ -98,6 +98,9 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 		}
 
 		this.#cues = []
+		// The old cue element and `#currentCue` outlive the cue list otherwise, so a new
+		// source keeps showing the previous language until its VTT resolves.
+		this.#renderCue()
 		const requestId = ++this.#requestId
 		const { src } = this.#props
 		fetch(src)
@@ -142,6 +145,10 @@ class MicrioSubtitles extends MicrioElement<SubtitlesProps> {
 			})
 			.catch((err) => {
 				console.error('micrio-subtitles: fetch error:', err)
+				if (requestId === this.#requestId) {
+					this.#cues = []
+					this.#renderCue()
+				}
 			})
 	}
 

@@ -209,6 +209,11 @@ export class MicrioAudioController {
 		}
 
 		const input = () => {
+			// The probe and the pointer fallback can both fire; `set` notifies unconditionally,
+			// so a second emission would duplicate the subscriptions installed below.
+			if (get(interacted)) {
+				return
+			}
 			interacted.set(true)
 		}
 
@@ -221,6 +226,9 @@ export class MicrioAudioController {
 			} else if (!_ctx) {
 				input()
 			}
+			// A playlist built before any gesture had its `play()` refused; this is the
+			// first moment the browser will allow it.
+			this.#playlist?.resume()
 		}
 
 		// The autoplay probe only makes sense when there is audio to be blocked
@@ -242,6 +250,10 @@ export class MicrioAudioController {
 				const vol = volumeFor(image, get(micrio._isMuted))
 				if (!_ctx) {
 					init(vol)
+				} else if (mainGain) {
+					// The context is module-global; without this, the first image's volume
+					// becomes the master volume for every controller after it.
+					mainGain.gain.value = vol
 				}
 				// Reported once per controller, and only now: the context exists and the master
 				// gain is wired, so audio can actually play. `init` returns early on a later image,
