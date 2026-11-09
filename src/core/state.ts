@@ -4,6 +4,13 @@ import type { MicrioImage } from './image'
 import type { HTMLMicrioElement } from './element'
 
 import { writable } from '$core/store'
+import { createMachine, type Machine } from './machine'
+import {
+	markerSessionInitial,
+	reduceMarkerSession,
+	type MarkerSessionEvent,
+	type MarkerSessionState,
+} from './marker-session'
 
 /**
  * # Micrio State management
@@ -58,6 +65,14 @@ export namespace State {
 		/** Writable store holding the data for the currently displayed popover (custom page or gallery). See {@link Models.State.PopoverType}. */
 		readonly popover: Writable<Models.State.PopoverType | undefined> = writable()
 
+		/** The one marker selection session; the stores below are its public projection. @internal */
+		readonly markerSession: Machine<MarkerSessionState, MarkerSessionEvent> = createMachine({
+			initial: markerSessionInitial,
+			context: undefined,
+			reduce: reduceMarkerSession,
+			historyLimit: 0,
+		})
+
 		/**
 		 * Map storing the playback state (currentTime, paused) of media elements associated with
 		 * markers, keyed by a unique media ID.
@@ -95,8 +110,19 @@ export namespace State {
 			this.popup.subscribe(() => {
 				this._touch('popup')
 			})
-			this.popover.subscribe(() => {
+			this.popover.subscribe((p) => {
+				this.markerSession.send({ type: 'popover', open: p !== undefined })
 				this._touch('popover')
+			})
+			this.marker.subscribe((m) => {
+				if (m === undefined) {
+					this.markerSession.send({ type: 'close' })
+				} else if (typeof m !== 'string' && this.markerSession.$state.markerId !== m.id) {
+					this.markerSession.send({ type: 'select', markerId: m.id })
+				}
+			})
+			this.popup.subscribe((m) => {
+				this.markerSession.send({ type: 'popup', open: m !== undefined })
 			})
 		}
 

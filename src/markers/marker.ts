@@ -267,6 +267,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				return
 			}
 			this.#opened = true
+			this._getMicrio()?.state.markerSession.send({ type: 'opened' })
 			this.classList.add('opened')
 			clearTimeout(this.#fto)
 			if (markerSettings.noMarkerActions) {
@@ -483,6 +484,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			this.classList.remove('opened')
 			events._dispatch('marker-closed', marker)
 			this.#opened = false
+			this._getMicrio()?.state.markerSession.send({ type: 'close' })
 			micrio.state.popover.set(undefined)
 			if (!keepPopup) {
 				micrio.state.popup.set(undefined)
@@ -573,6 +575,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 						this.classList.remove('opened')
 					}
 					this.#opened = false
+					this._getMicrio()?.state.markerSession.send({ type: 'close' })
 					if (!cluster && !get(micrio.state.tour)) {
 						image.camera.stop()
 					}
