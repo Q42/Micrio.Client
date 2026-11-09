@@ -800,6 +800,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		// registry entry is dropped further down.
 		this.#videoEl?.pause()
 		this.#glVideo?._unmount()
+		this.#glVideo = undefined
 
 		const { embed, image } = this.#props
 		if (this.#glImage !== undefined && image !== undefined) {

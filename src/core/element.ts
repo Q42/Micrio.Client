@@ -650,7 +650,15 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 */
 	#print(): Promise<void> {
-		this.#printing ??= this.#doPrint()
+		if (!this.#printing) {
+			// A rejected setup must be retryable: caching the rejected promise left `#printed`
+			// true with no work in flight, so every later open awaited the same failure.
+			this.#printing = this.#doPrint().catch((error: unknown) => {
+				this.#printed = false
+				this.#printing = undefined
+				throw error
+			})
+		}
 		return this.#printing
 	}
 
@@ -673,7 +681,10 @@ export class HTMLMicrioElement extends MicrioElement {
 			if (gen === this.#printGen) {
 				return false
 			}
-			this.#printed = false
+			// A newer run may already own `#printed`; only a run with none in flight clears it.
+			if (!this.#printing) {
+				this.#printed = false
+			}
 			return true
 		}
 		// Keep this the first await: the synchronous part must not re-enter `#print`
@@ -787,6 +798,12 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 		this._ui?._setProps?.({ error: message })
 		this._loading.set(false)
+		// A failed switch has no visible edge to clear it, and the viewer would keep
+		// `data-switching` (and the overlay's inactive class) forever.
+		this._switching.set(false)
+		if (this.$current) {
+			this.$current.error = message
+		}
 	}
 
 	/**
@@ -821,6 +838,11 @@ export class HTMLMicrioElement extends MicrioElement {
 		// yields, so the run can then finish and every other caller sees it.
 		if (opts.gallery === undefined || this.#printing === undefined) {
 			await this.#print()
+		}
+		// A print that was aborted by `destroy()` resolves; do not start a switch on the
+		// torn-down element because of it.
+		if (!this.isConnected) {
+			return this.$current
 		}
 
 		// ── Resolve input to a BundleImage ────────────────────────────────────
@@ -936,6 +958,9 @@ export class HTMLMicrioElement extends MicrioElement {
 			}
 			this._canvases.push((c = new MicrioImage(this._engine, bundle)))
 		}
+		// A new attempt clears the previous failure, so the engine's error gate does not
+		// keep skipping an image that can now be placed.
+		c.error = undefined
 
 		if (opts.gallery) {
 			opts.gallery._attach(c)
@@ -1011,8 +1036,11 @@ export class HTMLMicrioElement extends MicrioElement {
 				.then(() => {
 					this.current.set(c)
 				})
-				// A grid focus whose transition is superseded or torn down rejects; swallow it
-				.catch(() => {})
+				// A grid focus whose transition is superseded or torn down rejects; swallow it,
+				// but do not leave the viewer switching forever.
+				.catch(() => {
+					this._switching.set(false)
+				})
 		} else {
 			this.current.set(c)
 		}
