@@ -37,8 +37,6 @@ export class VideoTourInstance {
 	#timeline: VideoTourSegment[] = []
 	/** Index of the currently active or upcoming timeline segment. @internal */
 	#currentIndex: number | undefined
-	/** Progress percentage (0-1) to start the tour at (used by `setProgress`). @internal */
-	#startAt: number | undefined
 	/** Timeout ID for scheduling the next step or pause. @internal */
 	#_to: ReturnType<typeof setTimeout> | undefined
 	/** Internal flag indicating if the tour is currently paused by the user. @internal */
@@ -96,9 +94,11 @@ export class VideoTourInstance {
 			this.#playing = false
 		}
 		this.#micrio.events._dispatch('videotour-stop', this.#data)
-		this.#startedAt = undefined
+		this.#rewind()
+		this.#_paused = true
+		this.#wasPaused = false
+		this.#currentIndex = undefined
 		this.#data.instance = undefined
-		this.#startAt = undefined
 	}
 
 	/** Parses the raw timeline data from the tour content into the internal `timeline` array. */
@@ -219,12 +219,7 @@ export class VideoTourInstance {
 			this.#pausedAt = undefined
 		} else if (!this.#playing) {
 			this.#startedAt = Date.now()
-			if (this.#startAt === undefined) {
-				this.#gotoStep(0, 0)
-			} else {
-				this.#gotoTime(this.duration * this.#startAt * 1000)
-			}
-			this.#startAt = undefined
+			this.#gotoStep(0, 0)
 		}
 
 		this.#_paused = false
@@ -233,13 +228,16 @@ export class VideoTourInstance {
 
 	/** Pauses the tour playback. */
 	pause(): void {
-		if (this.#_paused || this.#currentIndex === undefined || this.#startedAt === undefined) {
+		// `#currentIndex` is not a precondition: a timeline whose first segment never
+		// arrives leaves it undefined, and that tour still has to be pauseable (and its
+		// interaction lock released).
+		if (this.#_paused || this.#startedAt === undefined) {
 			return
 		}
 		this.#_paused = true
 		this.#stoppedPlaying()
 		clearTimeout(this.#_to)
-		if (this.#currentIndex >= 0) {
+		if (this.#currentIndex !== undefined && this.#currentIndex >= 0) {
 			this.#image.camera.stop()
 		}
 		if (this.ended) {
