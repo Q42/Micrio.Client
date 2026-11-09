@@ -10,6 +10,7 @@ import { get, writable } from '$core/store'
 import { Frame } from '$core/frame'
 import { OmniUI } from '$gallery/omni'
 import { SwipeGallery } from '$gallery/swipe'
+import { reduceDrag, type DragPhase } from './drag-state'
 import { createElement } from '$utils/dom'
 import { BookViewer } from '$book/main'
 import '$ui/button'
@@ -50,7 +51,10 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 	/** @internal */
 	#_left = 0
 	#hoverIdx = -1
-	#dragging = false
+	#dragPhase: DragPhase = 'idle'
+	get #dragging(): boolean {
+		return this.#dragPhase === 'dragging'
+	}
 	#dragIsPointer = false
 	/** Pointer id captured during a scrub drag, for `setPointerCapture`. */
 	#dragPointerId = -1
@@ -232,7 +236,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		if (!micrio) {
 			return
 		}
-		micrio._keepRendering = this.#dragging = true
+		this.#dragPhase = reduceDrag(this.#dragPhase, { type: 'down' })
+		this.#dragPhase = reduceDrag(this.#dragPhase, { type: 'activate' })
+		micrio._keepRendering = true
 		this.dataset.dragging = ''
 		this.#hoverIdx = -1
 		// Capture the pointer so pointermove/pointerup keep targeting the scrubber
@@ -297,7 +303,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			} catch {}
 			this.#dragPointerId = -1
 		}
-		this.#dragging = false
+		this.#dragPhase = reduceDrag(this.#dragPhase, { type: 'up' })
 		// The cached rect is only stable while a drag is active; hover must measure fresh.
 		this.#box = null
 		delete this.dataset.dragging
