@@ -4,6 +4,14 @@ import type { Models } from '$types/models'
 import { DataLoader } from '$utils/dataLoader'
 import { parseTime } from '$utils/time'
 import { afterFrame, createElement } from '$utils/dom'
+import { createMachine, type Machine } from '$core/machine'
+import {
+	reduceSerial,
+	serialInitial,
+	type SerialContext,
+	type SerialEvent,
+	type SerialState,
+} from './serial-tour-state'
 import '$media/media'
 
 /** Properties for the serial tour component. @internal */
@@ -20,39 +28,28 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	#props: Partial<SerialTourProps> = {}
 	#stepInfo: Models.ImageData.MarkerTourStepInfo[] = []
-	#currentStep = 0
 	#built = false
 	#mediaEl: HTMLElement | undefined = undefined
-	/** Step clock, in seconds since the current step opened (see `#tick`). */
-	#elapsed = 0
 	/** Control bar built for a step whose marker carries no video tour, so there is no media element to hold one. */
 	#ownControls: MicrioElement | undefined = undefined
-	/** The current step has media, so its own `ended` is what releases the step. */
-	#hasMedia = false
-	/** That media has been observed playing at least once (first `timeupdate`). */
-	#mediaPlaying = false
-	/** Autoplay was blocked: the step waits, paused, for the user to play it (never skipped). */
-	#mediaPaused = false
 	/** Detaches the current step's media listeners. */
 	#mediaCleanup: (() => void) | undefined = undefined
-	/** Set by `#break`: a failed step can report its error more than once, and the tour must stop once. */
-	#broken = false
-	/** True once `tour-ended` has been reported, so it pairs with the current run exactly once. */
-	#endedReported = false
 	/** The tour may not be closed, by its own control or when its last step finishes. */
 	#cannotClose = false
-	/** The tour finished and stayed open, so the next play restarts it from its first step. */
-	#finished = false
 	/** The viewer, captured at mount: `_getMicrio()` walks the parent chain, which the layout
 	 *  has already removed by the time the teardown cleanup runs. */
 	#micrio: HTMLMicrioElement | undefined
+	#machine: Machine<SerialState, SerialEvent> | undefined
+	#duration = 0
+	#noTimeScrub = false
 
-	/** Reports the tour's end once, whether it closes or a `cannotClose` tour stays open. @internal */
+	/** The committed step, owned by the machine. */
+	get #currentStep(): number {
+		return this.#machine?.$state.step ?? 0
+	}
+
+	/** Reports the tour's end once per story, whether it closes or a `cannotClose` tour stays open. @internal */
 	#reportEnded() {
-		if (this.#endedReported) {
-			return
-		}
-		this.#endedReported = true
 		const { tour } = this.#props
 		if (tour) {
 			this.#micrio?.events._dispatch('tour-ended', tour)
@@ -61,38 +58,12 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 	/** Restarts a finished tour from its first step. @internal */
 	#replay() {
-		this.#finished = false
-		// The next end is a new run, so it reports its own `tour-ended`
-		this.#endedReported = false
 		for (const si of this.#stepInfo) {
 			si.ended = false
 			si.currentTime = 0
 		}
-		void this.#openStep(0)
+		this.#machine?.send({ type: 'replay' })
 	}
-
-	/**
-	 * Sets the playback flags together and reports the transition, so `serialtour-play` and
-	 * `serialtour-pause` can never drift from the state they describe.
-	 * @internal
-	 */
-	#setPlaying(playing: boolean, paused: boolean): void {
-		const wasPlaying = this.#mediaPlaying && !this.#mediaPaused
-		this.#mediaPlaying = playing
-		this.#mediaPaused = paused
-		const isPlaying = playing && !paused
-		if (isPlaying === wasPlaying) {
-			return
-		}
-		const { tour } = this.#props
-		if (tour) {
-			this._getMicrio()?.events._dispatch(isPlaying ? 'serialtour-play' : 'serialtour-pause', tour)
-		}
-	}
-	#duration = 0
-	#noTimeScrub = false
-	/** Incremented by every `#openStep`, so a superseded call stops after its await. */
-	#stepToken = 0
 
 	/** @internal */
 	_onMount() {
@@ -113,10 +84,51 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			delete micrio.dataset.markerTourActive
 		})
 
+		this.#machine = createMachine<SerialState, SerialEvent, SerialContext>({
+			initial: serialInitial,
+			context: {
+				durations: this.#stepInfo.map((s) => s.duration || 0),
+				cannotClose: this.#cannotClose,
+			},
+			// The clock ticks every 250 ms; recording it would bury the phase transitions.
+			historyLimit: 0,
+			reduce: reduceSerial,
+			enter: {
+				opening: ({ state, signal }) => {
+					void this.#loadStep(state.step, state.runId, signal)
+				},
+				finished: () => {
+					this.#markCompletedStep()
+					this.#reportEnded()
+					this.#updateBars()
+				},
+				closed: () => {
+					this.#markCompletedStep()
+					this.#reportEnded()
+					this.#props.onended?.()
+					// The layout owns removal; clearing the store lets this step's bars paint
+					// (including the last bar at 100%) before the element goes away.
+					micrio.state.tour.set(undefined)
+				},
+				broken: ({ state }) => {
+					this.#reportBroken(state)
+				},
+			},
+			effect: ({ state, previous }) => {
+				this.#onSerialTransition(state, previous)
+			},
+		})
+		this._watch(this.#machine, () => {
+			this.#updateBars()
+		})
 		this._addCleanup(() => {
-			// Every stop path that removes this element reports here, unless the natural end
-			// already did in `#nextStep`, so the tour's end is reported exactly once.
-			this.#reportEnded()
+			const phase = this.#machine?.$state.phase
+			// A finished/closed entry already reported; every other removal is a stop.
+			if (phase !== 'finished' && phase !== 'closed') {
+				this.#reportEnded()
+			}
+			this.#machine?.dispose()
+			this.#machine = undefined
 		})
 
 		const mt = tour
@@ -125,7 +137,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		}
 		mt.prev = () => {
 			if (this.#currentStep > 0) {
-				void this.#openStep(this.#currentStep - 1)
+				this.#resetSteps()
+				this.#openStep(this.#currentStep - 1)
 			}
 		}
 
@@ -137,10 +150,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				const id = typeof m === 'string' ? m : m.id
 				const idx = this.#stepInfo.findIndex((s) => s.markerId === id)
 				if (idx >= 0 && idx !== this.#currentStep) {
-					for (const s of this.#stepInfo) {
-						s.ended = false
-					}
-					void this.#openStep(idx)
+					this.#resetSteps()
+					this.#openStep(idx)
 				}
 			}),
 		)
@@ -158,7 +169,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			clearInterval(interval)
 		})
 
-		void this.#openStep(0)
+		this.#openStep(0)
 	}
 
 	#build() {
@@ -197,35 +208,40 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		}
 	}
 
-	async #openStep(idx: number) {
-		const micrio = this._getMicrio()
-		if (!micrio) {
-			return
-		}
-		// Opening a cross-image step can take a whole step's worth of time, during which the
-		// interval keeps calling `#openStep` for the same target (the step is not committed yet).
-		// This token makes every call after the newest a no-op, so the step's media is not torn
-		// down and rebuilt over and over while the image loads.
-		const token = ++this.#stepToken
+	#openStep(idx: number) {
+		this.#machine?.send({ type: 'open', step: idx })
+	}
 
-		const close = () => {
-			// A load already suspended on `micrio.open` must not commit after this close.
-			this.#stepToken++
-			micrio.state.tour.set(undefined)
-			this.#props.onended?.()
-			this.remove()
+	/** Clears the bar state when the tour jumps to a different run of steps. */
+	#resetSteps() {
+		for (const s of this.#stepInfo) {
+			s.ended = false
+			s.currentTime = 0
 		}
+	}
 
+	/** Removes the previous step's media and control frame. */
+	#teardownStep() {
+		this.#mediaEl?.remove()
+		this.#mediaEl = undefined
+		this.#ownControls?.remove()
+		this.#ownControls = undefined
+		this.#mediaCleanup?.()
+		this.#mediaCleanup = undefined
+	}
+
+	/**
+	 * Loads one machine-owned step. The phase signal is the run token: every await checks
+	 * it before committing DOM or media, so a superseded open cannot land on the new step.
+	 */
+	async #loadStep(idx: number, runId: number, signal: AbortSignal) {
+		const micrio = this.#micrio
 		const si = this.#stepInfo[idx]
-		if (si === undefined) {
+		if (!micrio || si === undefined || signal.aborted) {
 			return
 		}
-
-		si.ended = false
-		si.currentTime = 0
 
 		const marker = DataLoader._getStepMarker(si)
-
 		let startView: Models.Camera.View | undefined
 		if (marker?.videoTour) {
 			const timeline = marker.videoTour.i18n?.[micrio.lang]?.timeline
@@ -236,46 +252,16 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		if (si.micrioId && micrio.$current?.id !== si.micrioId) {
 			await micrio.open(si.micrioId, { startView })
-			if (token !== this.#stepToken || !this.isConnected) {
+			if (signal.aborted || !this.isConnected || this.#machine?.$state.runId !== runId) {
 				return
 			}
 		}
 
-		// A committed step is a live run again (a replay or a chapter/prev/next jump), so
-		// its autoplay cannot be mistaken for a replay's play press.
-		const wasFinished = this.#finished
-		this.#finished = false
-		if (wasFinished) {
-			// A jump out of a finished `cannotClose` tour starts a new run too, so its next
-			// end has to be reportable even though `#replay()` was not used.
-			this.#endedReported = false
-			for (const s of this.#stepInfo) {
-				s.ended = false
-				s.currentTime = 0
-			}
-		}
+		// The image is up: the previous step's media can go.
+		this.#teardownStep()
+		si.ended = false
+		si.currentTime = 0
 
-		// Opening the step image can take as long as a whole step, so the clock only starts
-		// once the step is really up: this is also the point the step becomes current.
-		if (this.#mediaEl) {
-			this.#mediaEl.remove()
-			this.#mediaEl = undefined
-		}
-		if (this.#ownControls) {
-			this.#ownControls.remove()
-			this.#ownControls = undefined
-		}
-		this.#mediaCleanup?.()
-		this.#mediaCleanup = undefined
-		this.#elapsed = 0
-		this.#hasMedia = false
-		this.#mediaPlaying = false
-		this.#mediaPaused = false
-		this.#currentStep = idx
-
-		// One event per step, after the token check so a superseded call cannot report a step it
-		// never opened. The detail is the most specific tour object for this step: its own video
-		// tour when it has one, else the marker tour being stepped through.
 		const stepTour = marker?.videoTour ?? this.#props.tour
 		if (stepTour) {
 			this._getMicrio()?.events._dispatch('tour-step', stepTour)
@@ -284,8 +270,6 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (marker?.videoTour) {
 			const { lang } = micrio
 			const audio = marker.videoTour.i18n?.[lang]?.audio ?? marker.i18n?.[lang]?.audio
-
-			const prevPaused = false
 			const media = createElement('micrio-media', {
 				parent: this,
 				setProps: {
@@ -293,15 +277,17 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 					src: audio?.src,
 					image: micrio.$current,
 					controls: true,
-					autoplay: !prevPaused,
-					// Advancement is the tour's (`#tick`), which holds a step until this media
-					// has actually finished — so `onended` is only reported for the tour to see.
-					onclose: this.#cannotClose ? undefined : close,
+					autoplay: true,
+					onclose: this.#cannotClose
+						? undefined
+						: () => {
+								this.#close()
+							},
 					onerror: (error: Error) => {
 						this.#break(error)
 					},
 					onblocked: () => {
-						this.#setPlaying(this.#mediaPlaying, true)
+						this.#machine?.send({ type: 'blocked' })
 					},
 					hasAudio: this.#stepInfo.some((s) => s.duration > 0),
 					fullscreenEl: micrio,
@@ -310,30 +296,27 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			})
 			this.#mediaEl = media
 			await afterFrame()
-			// Another open (or a close) can supersede this one while the frame is pending.
-			if (token !== this.#stepToken || !this.isConnected) {
+			if (signal.aborted || !this.isConnected || this.#machine?.$state.runId !== runId) {
 				media.remove()
 				if (this.#mediaEl === media) {
 					this.#mediaEl = undefined
 				}
 				return
 			}
-			this.#watchStepMedia(media)
+			this.#watchStepMedia(media, runId)
+			this.#machine?.send({ type: 'media', runId, hasMedia: true })
 		} else {
-			// A step without a video tour has no media element to carry the control bar, so
-			// the tour builds one; without it such a step has no time bar at all.
 			this.#buildOwnControls(micrio)
+			this.#machine?.send({ type: 'media', runId, hasMedia: false })
 		}
 
 		this.#injectBars()
+		this.#machine?.send({ type: 'opened', runId, hasMedia: Boolean(marker?.videoTour) })
+	}
 
-		this.#updateBars()
-
-		// A last step that carries no video has nothing to play out, so it ends at once —
-		// with a video, the step clock waits out its duration.
-		if (!marker?.videoTour && idx === this.#stepInfo.length - 1) {
-			this.#nextStep()
-		}
+	/** Sends the single close signal; `enter.closed` owns the teardown. */
+	#close() {
+		this.#machine?.send({ type: 'close' })
 	}
 
 	/**
@@ -341,47 +324,43 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	 * step clock, and its `ended` is what lets the step go once its duration has passed.
 	 * Events rather than DOM lookups, because a YouTube/Vimeo/HLS tour has no media tag.
 	 */
-	#watchStepMedia(media: HTMLElement) {
-		// There is media for this step, so the clock holds it for at least its own duration
-		this.#hasMedia = true
+	#watchStepMedia(media: HTMLElement, runId: number) {
+		const current = (): boolean => this.#machine?.$state.runId === runId
 		const onTime = (e: Event) => {
 			const t = e instanceof CustomEvent && typeof e.detail === 'number' ? e.detail : undefined
-			if (t === undefined) {
+			if (t === undefined || !current()) {
 				return
 			}
-			// Real playback is the step's position, so the readout cannot drift from the audio
-			this.#elapsed = t
-			this.#setPlaying(true, false)
-			const si = this.#stepInfo[this.#currentStep]
-			if (si !== undefined) {
-				si.currentTime = t
-			}
-			this.#updateBars()
+			// Real playback is the step's position and also starts its transport.
+			this.#machine?.send({ type: 'play' })
+			this.#machine?.send({ type: 'time', elapsed: t })
 		}
 		const onEnded = () => {
-			this.#nextStep()
+			if (current()) {
+				this.#machine?.send({ type: 'ended' })
+			}
 		}
 		// After a `cannotClose` tour finishes, the next play starts it over from step 1
 		const onPlay = () => {
-			if (this.#finished) {
+			if (!current()) {
+				return
+			}
+			if (this.#machine?.$state.phase === 'finished') {
 				this.#replay()
 			} else {
-				this.#setPlaying(true, false)
+				this.#machine?.send({ type: 'play' })
 			}
 		}
-		// A user pause is a real playback phase: without this, hosts kept seeing the tour
-		// as playing until the step changed.
 		const onPause = () => {
-			if (!this.#mediaPaused) {
-				this.#setPlaying(false, false)
+			if (current()) {
+				this.#machine?.send({ type: 'pause' })
 			}
 		}
-		// Blocked by the browser: the step is playable by hand, so it waits paused
 		const onBlocked = () => {
-			this.#setPlaying(this.#mediaPlaying, true)
-			this.#updateBars()
+			if (current()) {
+				this.#machine?.send({ type: 'blocked' })
+			}
 		}
-		// A source that cannot play is a real failure: the tour stops and says why
 		const onError = (e: Event) => {
 			const error = e instanceof CustomEvent && e.detail instanceof Error ? e.detail : new Error('media failure')
 			this.#break(error)
@@ -414,8 +393,10 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				fullscreenEl: micrio,
 				getTimeDisplay: () => this.#timeDisplay(),
 				onplaypause: () => {
-					if (this.#finished) {
+					if (this.#machine?.$state.phase === 'finished') {
 						this.#replay()
+					} else {
+						this.#machine?.send({ type: this.#machine.$state.transport === 'playing' ? 'pause' : 'play' })
 					}
 				},
 			},
@@ -434,50 +415,62 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	 * - a step with no media is timed by its authored duration.
 	 */
 	#tick() {
-		// A finished `cannotClose` tour stays put; its clock must not keep counting.
-		if (!this.isConnected || this.#finished || this.#stepInfo.length === 0) {
+		if (!this.isConnected) {
 			return
 		}
+		this.#machine?.send({ type: 'tick' })
+	}
+
+	/** Marks the final step complete so its bar reads 100% before the run finishes. */
+	#markCompletedStep() {
 		const si = this.#stepInfo[this.#currentStep]
-		if (si === undefined) {
-			return
+		if (si !== undefined) {
+			si.ended = true
+			si.currentTime = si.duration
 		}
-		if (this.#hasMedia) {
-			return
+	}
+
+	/** Applies a serial transition: bar state, step bookkeeping and the public transport pair. */
+	#onSerialTransition(state: SerialState, previous: SerialState): void {
+		const wasPlaying = previous.transport === 'playing'
+		const isPlaying = state.transport === 'playing'
+		if (wasPlaying !== isPlaying) {
+			const { tour } = this.#props
+			if (tour) {
+				this.#micrio?.events._dispatch(isPlaying ? 'serialtour-play' : 'serialtour-pause', tour)
+			}
 		}
-		this.#elapsed += 0.25
-		si.currentTime = this.#elapsed
+		if (previous.step !== state.step) {
+			const previousStep = this.#stepInfo[previous.step]
+			if (previousStep !== undefined) {
+				previousStep.ended = true
+			}
+		}
+		const si = this.#stepInfo[state.step]
+		if (si !== undefined) {
+			si.currentTime = state.elapsed
+		}
 		this.#updateBars()
-		// `#nextStep` marks the step ended before the next one is committed, because opening a
-		// cross-image step awaits the image. Without the `ended` check this tick would re-enter
-		// the same step (and issue another `micrio.open`) on every interval beat while it loads.
-		if (si.duration > 0 && !si.ended && this.#elapsed >= si.duration) {
-			this.#nextStep()
-		}
 	}
 
 	/**
 	 * Stops the tour and reports why. A step whose media cannot play has to fail visibly and
-	 * loudly rather than be skipped over or waited on: the tour is stopped, and the reason is
-	 * logged and dispatched as `media-error` on the viewer for the host page.
+	 * loudly rather than be skipped over or waited on.
 	 */
 	#break(error: Error) {
-		if (this.#broken) {
-			return
-		}
-		this.#broken = true
-		// Stop a suspended step open from committing after the tour is gone.
-		this.#stepToken++
-		const si = this.#stepInfo[this.#currentStep]
+		this.#machine?.send({ type: 'error', error: error.message })
+	}
+
+	/** One report for the broken phase, with the step that failed. */
+	#reportBroken(state: SerialState): void {
+		const si = this.#stepInfo[state.step]
 		const micrio = this._getMicrio()
-		const step = `${this.#currentStep + 1}/${this.#stepInfo.length}`
-		const reason = `step ${step} (${si?.markerId ?? 'unknown marker'}) could not be played: ${error.message}`
+		const step = `${state.step + 1}/${this.#stepInfo.length}`
+		const reason = `step ${step} (${si?.markerId ?? 'unknown marker'}) could not be played: ${state.error ?? 'unknown error'}`
 		console.error(`[Micrio] Serial tour stopped: ${reason}`)
-		// Reported with the step it happened on, so a host page can react to it
-		micrio?.events._dispatch('media-error', { error, reason })
+		micrio?.events._dispatch('media-error', { error: new Error(reason), reason })
 		this.#props.onended?.()
 		micrio?.state.tour.set(undefined)
-		this.remove()
 	}
 
 	#nextStep() {
@@ -485,22 +478,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (si !== undefined) {
 			si.ended = true
 		}
-
-		if (this.#currentStep < this.#stepInfo.length - 1) {
-			void this.#openStep(this.#currentStep + 1)
-		} else {
-			this.#props.onended?.()
-			this.#reportEnded()
-			// A tour that cannot close stays on its last step instead of being torn down
-			// the moment it finishes. Its next play starts the whole tour over.
-			if (this.#cannotClose) {
-				this.#finished = true
-				this.#updateBars()
-				return
-			}
-			this._getMicrio()?.state.tour.set(undefined)
-			this.remove()
-		}
+		this.#machine?.send({ type: 'next' })
 	}
 
 	#getTitle(m: Models.ImageData.Marker | undefined): string | undefined {
@@ -553,10 +531,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (i === this.#currentStep) {
 			return
 		}
-		for (const s of this.#stepInfo) {
-			s.ended = false
-		}
-		void this.#openStep(i)
+		this.#resetSteps()
+		this.#openStep(i)
 	}
 
 	/** The control bar readout: the tour's remaining time, printed as `-0:50`. */
@@ -581,7 +557,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 	}
 
 	#updateBars() {
-		if (!this.#built) {
+		if (!this.#built || this.#machine?.$state.phase === 'opening') {
 			return
 		}
 		const bars = this.#controlsAside()?.querySelectorAll<HTMLElement>('[data-part="bars"] > [data-part="bar"]') ?? []
@@ -616,8 +592,8 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#ownControls?._setProps?.({
 			currentTime: si?.currentTime ?? 0,
 			duration: si?.duration ?? 0,
-			paused: true,
-			ended: false,
+			paused: this.#machine?.$state.transport !== 'playing',
+			ended: this.#machine?.$state.phase === 'finished',
 		})
 	}
 
