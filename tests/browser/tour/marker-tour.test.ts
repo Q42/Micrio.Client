@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { get } from '$core/store'
+import { marker } from '../../fixtures/bundles'
+import { markerBundle, openMarkers, waitForPopup } from '../../fixtures/markers'
 import { markerTour, tourBundle } from '../../fixtures/tours'
+import { mockJson } from '../../helpers/network'
 import { mountTour, settle } from '../../helpers/tour'
 import { waitFor } from '../../helpers/viewer'
 
@@ -105,6 +108,57 @@ describe('marker tour UI', () => {
 
 		expect(tour.currentStep).toBe(2)
 		expect(tourEl(viewer)?.querySelector('aside.marker-tour span')?.textContent).toBe('3 / 3')
+		viewer.destroy()
+	})
+})
+
+describe('marker tour step transitions', () => {
+	it('dismisses a linked step popup before moving to the next step', async () => {
+		const target = markerBundle({ markers: [marker('t1')] })
+		const main = markerBundle({
+			markers: [marker('m1', { data: { micrioLink: { id: target.id } } }), marker('m2')],
+			markerTours: [markerTour({ steps: ['m1', 'm2'] })],
+		})
+		mockJson(/bundle\.json/, { images: [main.bundle, target.bundle] })
+
+		const opened = await openMarkers(main, { byId: true })
+		const tour = main.markerTours[0]
+		if (!tour) {
+			throw new Error('missing marker tour')
+		}
+		opened.viewer.el.state.tour.set(tour)
+
+		// The step's marker follows its link and leaves its popup on the linked image
+		await waitFor(() => opened.viewer.el.$current?.id === target.id, 8000, 'the linked image')
+		await waitForPopup(opened.viewer.el, 8000)
+
+		tour.next?.()
+		// The linked image has not been left yet, but the previous step's popup must be gone
+		expect(get(opened.viewer.el.state.popup)).toBeUndefined()
+
+		await waitFor(() => opened.viewer.el.$current?.id === main.id, 8000, 'the tour image')
+		await waitFor(() => opened.viewer.el.$current?.state.$marker?.id === main.mid('m2'), 8000, 'step 2 marker')
+		await waitForPopup(opened.viewer.el, 8000)
+		opened.viewer.destroy()
+	})
+
+	it('opens the next popup when advancing from a popover step', async () => {
+		const tour = markerTour({ steps: ['m1', 'm2'] })
+		const bundle = tourBundle({
+			markers: [marker('m1', { popupType: 'popover' }), marker('m2')],
+			markerTours: [tour],
+		})
+		const viewer = await mountTour(bundle)
+		viewer.el.state.tour.set(tour)
+		await waitFor(
+			() => viewer.el.querySelector<HTMLDialogElement>('micrio-popover dialog')?.open === true,
+			4000,
+			'step 1 popover',
+		)
+
+		viewer.el.querySelector<HTMLButtonElement>('micrio-popover dialog aside micrio-button.next button')?.click()
+		await waitFor(() => get(viewer.el.state.popup)?.id === 'm2', 6000, 'step 2 popup')
+		expect(viewer.el.$current?.state.$marker?.id).toBe('m2')
 		viewer.destroy()
 	})
 })

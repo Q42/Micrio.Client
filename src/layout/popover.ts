@@ -38,8 +38,14 @@ class MicrioPopover extends MicrioElement<PopoverProps> {
 			events: {
 				close: () => {
 					const p = this.#props.popover
-					if (p && 'marker' in p && p.marker && p.image?.state?.marker) {
-						p.image.state.marker.set(undefined)
+					const marker = p && 'marker' in p ? p.marker : undefined
+					const image = p && 'marker' in p ? p.image : undefined
+					const current = image ? get(image.state.marker) : undefined
+					const currentId = typeof current === 'string' ? current : current?.id
+					// A tour step can advance before this close event runs: only the marker this
+					// popover still describes may be cleared, or the step just opened is closed.
+					if (marker && image && currentId === marker.id) {
+						image.state.marker.set(undefined)
 					}
 					// Reported before the state is cleared, and only for a content page: a marker
 					// popover closing is not a page close.

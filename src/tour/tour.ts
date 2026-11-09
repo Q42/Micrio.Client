@@ -109,6 +109,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			// and the two components would disagree about whether the controls move into the popup.
 			const authored = micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === mt.id))
 			const tourControlsInPopup = Boolean((authored ?? micrio.$current)?.$settings?._markers?.tourControlsInPopup)
+			const keepPopupsDuringTour = Boolean(
+				(authored ?? micrio.$current)?.$settings?._markers?.keepPopupsDuringTourTransitions,
+			)
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
 				const si = stepInfo?.[newIdx]
@@ -124,6 +127,17 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					if (prevImg && prevMarker !== undefined && prevMarker !== '') {
 						prevImg.state.marker.set(undefined)
 					}
+				}
+
+				// A step's marker can follow a `micrioLink` and hand its popup to the linked
+				// image (`marker.ts` keeps it there for the return trip). The tour owns the
+				// content of its steps, so a step change has to dismiss it before the camera
+				// moves — otherwise the previous marker stays on screen until the next one.
+				// Images asking to keep popups across steps opt out, as they do for the
+				// marker's own close on a step change.
+				if (prevIdx >= 0 && !keepPopupsDuringTour) {
+					micrio.state.popup.set(undefined)
+					micrio.state.popover.set(undefined)
 				}
 
 				// If the new step has a video tour, use its first timeline viewport as the start view
