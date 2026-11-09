@@ -6,6 +6,8 @@ import { OrbitCamera } from './core/orbit-camera'
 import { Vec3 } from './core/vec3'
 import { Mat4 } from '$render/mat'
 import { Frame } from '$core/frame'
+import { createMachine, type Machine } from '$core/machine'
+import { gotoInitial, reduceGoto, type GotoEvent, type GotoState } from './goto-state'
 import { PageFlipAnimator } from './animation/page-flip'
 import type { SolverSettings } from './physics/solver-sync'
 import { isSolverReady, initSolver, dispatchSolve } from './physics/solver-sync'
@@ -163,11 +165,19 @@ export class BookViewer {
 
 	/** The pending `goto()` stepper callback, if a cascade is running. */
 	#gotoStep: (() => void) | undefined
-	/** True while a `goto()` cascade still has steps to schedule. */
-	#gotoStepping = false
-	#gotoDamping = false
-	/** Pending resolvers for in-flight `goto()` animations, fired once the page-flip cascade has settled. */
-	#gotoDone: (() => void)[] = []
+	/** Waiters for the in-flight goto run; resolved when the machine leaves it. */
+	#gotoWaiters: { runId: number; resolve: () => void; timeout: ReturnType<typeof setTimeout> }[] = []
+	#gotoMachine: Machine<GotoState, GotoEvent> = createMachine({
+		initial: gotoInitial,
+		context: undefined,
+		reduce: reduceGoto,
+		historyLimit: 0,
+		effect: ({ state, previous }) => {
+			if (state.runId !== previous.runId || (state.phase === 'idle' && previous.phase !== 'idle')) {
+				this.#flushGotoWaiters()
+			}
+		},
+	})
 	#selectedPage = 0
 	#currentPage = 0
 	#dragPageIndex = -1
@@ -213,15 +223,16 @@ export class BookViewer {
 	// Public API
 	// ═══════════════════════════════════════════════════════════════
 
-	/** Settles every waiter from a superseded `goto()` cascade. */
-	#flushGotoDone(): void {
-		if (this.#gotoDone.length === 0) {
+	/** Settles every waiter from a superseded or settled `goto()` run. */
+	#flushGotoWaiters(): void {
+		if (this.#gotoWaiters.length === 0) {
 			return
 		}
-		const cbs = this.#gotoDone
-		this.#gotoDone = []
-		for (const cb of cbs) {
-			cb()
+		const waiters = this.#gotoWaiters
+		this.#gotoWaiters = []
+		for (const waiter of waiters) {
+			clearTimeout(waiter.timeout)
+			waiter.resolve()
 		}
 	}
 
@@ -243,32 +254,31 @@ export class BookViewer {
 			return Promise.resolve()
 		}
 
-		// A new target supersedes the old cascade: do not leave its callers waiting for the
-		// new page to settle and then telling them their old target is ready.
-		this.#flushGotoDone()
+		// A new target supersedes the old cascade: settle its callers now instead of
+		// resolving them against the new target.
+		this.#flushGotoWaiters()
 		if (this.#gotoStep) {
 			Frame.cancel(this.#gotoStep)
 			this.#gotoStep = undefined
 		}
-		this.#gotoStepping = false
-		this.#gotoDamping = true
+		this.#gotoMachine.send({ type: 'goto', target: idx, current: this.#currentPage, pageCount: this.#pageCount })
+		const { runId } = this.#gotoMachine.$state
 
 		const done = new Promise<void>((resolve) => {
-			let doneCb: () => void
-			// Fallback so a pending goto never hangs (e.g. page-flip requested
-			// before the viewer is ready, or the tab is backgrounded).
-			const fallback = setTimeout(() => {
-				const i = this.#gotoDone.indexOf(doneCb)
-				if (i >= 0) {
-					this.#gotoDone.splice(i, 1)
-				}
-				resolve()
-			}, 3000)
-			doneCb = (): void => {
-				clearTimeout(fallback)
-				resolve()
+			const waiter = {
+				runId,
+				resolve,
+				timeout: setTimeout(() => {
+					const index = this.#gotoWaiters.indexOf(waiter)
+					if (index >= 0) {
+						this.#gotoWaiters.splice(index, 1)
+					}
+					resolve()
+				}, 3000),
 			}
-			this.#gotoDone.push(doneCb)
+			// Fallback so a pending goto never hangs (e.g. before the viewer is ready, or a
+			// backgrounded tab).
+			this.#gotoWaiters.push(waiter)
 		})
 
 		const direction = idx > this.#currentPage ? 1 : -1
@@ -279,7 +289,9 @@ export class BookViewer {
 		const step = (): void => {
 			if (remaining <= 0) {
 				this.#gotoStep = undefined
-				this.#gotoStepping = false
+				this.#gotoMachine.send({ type: 'settling', runId })
+				// The settle check runs in the frame loop; keep one pending.
+				this.#requestFrame()
 				return
 			}
 			const maxOff = first && fresh ? GRAB_ROW_MAX_OFFSET : GOTO_GRAB_ROW_MAX_OFFSET
@@ -295,7 +307,6 @@ export class BookViewer {
 			Frame.request(step)
 		}
 		this.#gotoStep = step
-		this.#gotoStepping = true
 		step()
 
 		return done
@@ -788,7 +799,8 @@ export class BookViewer {
 
 		this.#renderer._setFlipProgress(progress)
 
-		this.#gotoDamping = false
+		this.#gotoMachine.send({ type: 'cancel' })
+		this.#flushGotoWaiters()
 		this.#onPageChange?.(this.#currentPage)
 	}
 
@@ -845,9 +857,9 @@ export class BookViewer {
 			Frame.cancel(this.#gotoStep)
 			this.#gotoStep = undefined
 		}
-		this.#gotoStepping = false
+		this.#gotoMachine.send({ type: 'cancel' })
 		// Resolve whoever is waiting on that cascade instead of leaving them on the 3 s fallback.
-		this.#flushGotoDone()
+		this.#flushGotoWaiters()
 		// A viewer that never got past WebGL setup has no listeners or handlers to detach.
 		if (!this.#listenersReady) {
 			return
@@ -1539,29 +1551,15 @@ export class BookViewer {
 			}
 		}
 
-		if (this.#gotoDamping && !this.#gotoStepping && !this.#flipAnimator._animating) {
-			this.#gotoDamping = false
+		const gotoState = this.#gotoMachine.$state
+		if (gotoState.phase === 'settling' && !this.#flipAnimator._animating && this.#activePageSet.size === 0) {
+			this.#gotoMachine.send({ type: 'settled', runId: gotoState.runId })
 		}
 
 		this.#dispatchPhysics(dt, progress)
 		this.#syncSolverResults()
 		this.#updateRenderBuffersForActivePages()
 
-		// A pending goto() has fully settled once the flip cascade has finished
-		// and no pages are still being animated/damped.
-		if (
-			this.#gotoDone.length > 0 &&
-			!this.#gotoDamping &&
-			!this.#gotoStepping &&
-			!this.#flipAnimator._animating &&
-			this.#activePageSet.size === 0
-		) {
-			const cbs = this.#gotoDone
-			this.#gotoDone = []
-			for (const cb of cbs) {
-				cb()
-			}
-		}
 		if (this.#iiifManager) {
 			this.#iiifManager._onFrame(time, this.#currentPage, this.#camera._radius)
 		}
@@ -1579,6 +1577,7 @@ export class BookViewer {
 
 		const shouldContinue =
 			this.#activePageSet.size > 0 ||
+			this.#gotoMachine.$state.phase !== 'idle' ||
 			this.#flipAnimator._animating ||
 			(this.#inputHandler !== undefined && this.#inputHandler._operation !== 'none') ||
 			this.#renderer._isLightingAnimated() ||
@@ -1724,7 +1723,7 @@ export class BookViewer {
 		}
 
 		const subDt = dt / this.#solverSettings._substeps
-		this.#solverSettings._damping = this.#gotoDamping ? GOTO_DAMPING : DAMPING
+		this.#solverSettings._damping = this.#gotoMachine.$state.phase !== 'idle' ? GOTO_DAMPING : DAMPING
 		dispatchSolve(
 			subDt,
 			activeIndices,
