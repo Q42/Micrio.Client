@@ -120,6 +120,26 @@ describe('behind transitions', () => {
 		viewer.destroy()
 	})
 
+	it('undoes behind-delayed tiers when a newer set supersedes it', async () => {
+		const { viewer, grid, ids } = await openFullGrid()
+		void grid.set(
+			ids.slice(0, 3).map((id) => ({ id, size: [1] as [number, number?] })),
+			{ transition: 'behind-delayed', duration: 1 },
+		)
+		expect(ids.some((id) => (grid.getImage(id)?.canvas?.zIndex ?? 0) > 1)).toBe(true)
+
+		// The superseded transition never reaches done(); the next set has to restore the tiers.
+		await grid.set(
+			ids.slice(0, 2).map((id) => ({ id, size: [1] as [number, number?] })),
+			{ duration: 0 },
+		)
+		await settleFrames(2)
+		for (const id of ids) {
+			expect(grid.getImage(id)?.canvas?.zIndex ?? 0).toBe(0)
+		}
+		viewer.destroy()
+	})
+
 	it('leaves the z-indexes alone for a plain behind transition', async () => {
 		const { viewer, grid, ids } = await openFullGrid()
 		await grid.set([{ id: ids[0] ?? '', size: [1] }], { duration: 0 })

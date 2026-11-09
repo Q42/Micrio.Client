@@ -77,7 +77,8 @@ class MicrioDial extends MicrioElement<DialProps> {
 			delete micrio.dataset.panning
 			micrio.removeEventListener('pointermove', dMove)
 			micrio.removeEventListener('pointerup', dStop)
-			micrio.removeEventListener('pointercancel', dStop)
+			// The global `pointercancel` listener is installed once and removed by teardown:
+			// removing it here made every drag after the first immune to cancellation.
 		}
 		this.addEventListener('pointerdown', dStart)
 		// Without `pointercancel` and the teardown below, an interrupted drag left the capture,

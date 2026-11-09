@@ -7,6 +7,19 @@ import { Frame } from '$core/frame'
 import type { Gallery } from '$gallery/controller'
 import { MicrioElement } from '$core/component'
 import type { GridActionType } from './actions'
+import { createMachine, type Machine } from '$core/machine'
+import {
+	gridModeInitial,
+	reduceGridMode,
+	type GridModeEvent,
+	type GridModeState,
+} from './mode-state'
+import {
+	gridTransitionInitial,
+	reduceGridTransition,
+	type GridTransitionEvent,
+	type GridTransitionState,
+} from './transition-state'
 import { getEasing } from '$render/easing'
 import { createElement, sleep } from '$utils/dom'
 import { pointInArea } from '$utils/math'
@@ -61,8 +74,19 @@ export class Grid extends MicrioElement<GridProps> {
 	/** Explicit `z` overrides per image id, kept until another entry sets one or the image leaves the layout */
 	#zOverrides = new Map<string, number>()
 
-	/** Transition-only tiers applied by `in-from-id`, as image id -> the `zIndex` it was given */
-	#transitionZ = new Map<string, number>()
+	/** Transition-only tiers applied by `in-from-id`, owned by the phase machine. */
+	#mode: Machine<GridModeState, GridModeEvent> = createMachine({
+		initial: gridModeInitial,
+		context: undefined,
+		reduce: reduceGridMode,
+		historyLimit: 0,
+	})
+	#transition: Machine<GridTransitionState, GridTransitionEvent> = createMachine({
+		initial: gridTransitionInitial,
+		context: undefined,
+		reduce: reduceGridTransition,
+		historyLimit: 0,
+	})
 
 	/** @internal */
 	_buttons = new Map<string, HTMLButtonElement>()
@@ -106,7 +130,6 @@ export class Grid extends MicrioElement<GridProps> {
 	#_to: ReturnType<typeof setTimeout> | undefined
 	/** @internal */
 	#_fadeTo: ReturnType<typeof setTimeout> | undefined
-	#setId = 0
 	#timingFunction: Models.Camera.TimingFunction = 'ease'
 	#closeBtn!: HTMLElement
 
@@ -140,6 +163,9 @@ export class Grid extends MicrioElement<GridProps> {
 
 		const g = this.image.$settings?.grid
 		this._clickable = g?.clickable && ['focus', 'zoom'].includes(g.clickable) ? g.clickable : false
+		if (this._clickable === false) {
+			this.#mode.send({ type: 'non-clickable' })
+		}
 		this._panZoom = g?.panZoom === 'cells' ? 'cells' : 'grid'
 		if (this._clickable !== false && this.image.$settings.hookKeys) {
 			this._addCleanup(hookGridKeys(this))
@@ -151,12 +177,14 @@ export class Grid extends MicrioElement<GridProps> {
 			this.#aniDurationOut = g.transitionDurationOut
 		}
 
+		// Hook before the first layout: a serial tour can pause while `set()` is still
+		// awaiting its transition, and an event listener installed afterwards drops it.
+		this.#hook()
 		this.set(this.#galleryGridImages, {
 			cover: this.image.$settings?.initType === 'cover',
 			duration: 0,
 		})
 			.then(() => {
-				this.#hook()
 				this.micrio.events._dispatch('grid-load')
 			})
 			// A layout animation started during load is aborted by the next `set()`/teardown;
@@ -186,8 +214,13 @@ export class Grid extends MicrioElement<GridProps> {
 	_onDestroy() {
 		// Bump the set id so an in-flight `in-from-id` readiness gate stops polling
 		// and never starts its deferred camera animations on the torn-down grid.
-		this.#setId++
+		this.#mode.send({ type: 'serial-idle' })
+		this.#transition.send({ type: 'invalidate' })
 		this.#clearTimeouts()
+		// A serial tour pauses every grid camera; leaving the grid must not leave them paused.
+		for (const i of this._images) {
+			i.camera.resume()
+		}
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
 		if (this.#_tourEventHandler) {
@@ -266,11 +299,13 @@ export class Grid extends MicrioElement<GridProps> {
 		this.#_tourEventHandler = createTourEventHandler(this)
 		this.micrio.addEventListener('tour-event', this.#_tourEventHandler)
 		this.#onSerialPause = () => {
+			this.#mode.send({ type: 'serial-pause' })
 			for (const i of this._images) {
 				i.camera.pause()
 			}
 		}
 		this.#onSerialPlay = () => {
+			this.#mode.send({ type: 'serial-play' })
 			for (const i of this._images) {
 				i.camera.resume()
 			}
@@ -295,13 +330,13 @@ export class Grid extends MicrioElement<GridProps> {
 	 * still carrying the tier it assigned are touched, so a `z` or focus applied
 	 * afterwards wins. */
 	#clearTransitionZ(): void {
-		for (const [id, z] of this.#transitionZ) {
+		for (const { id, z } of this.#transition.$state.tiers) {
 			const c = this._imageMap.get(id)?.canvas
 			if (c && c.zIndex === z) {
 				c.zIndex = this.#zOverrides.get(id) ?? 0
 			}
 		}
-		this.#transitionZ.clear()
+		this.#transition.send({ type: 'cancel' })
 	}
 
 	/** Restore every image's stacking order after a delayed or `in-from-id` transition. */
@@ -311,7 +346,7 @@ export class Grid extends MicrioElement<GridProps> {
 				i.canvas.zIndex = this.#zOverrides.get(i.id) ?? 0
 			}
 		}
-		this.#transitionZ.clear()
+		this.#transition.send({ type: 'cancel' })
 	}
 
 	#trackImage(img: MicrioImage): void {
@@ -369,8 +404,9 @@ export class Grid extends MicrioElement<GridProps> {
 			columns?: number
 		} = {},
 	): Promise<MicrioImage[]> {
-		const setId = ++this.#setId
 		this.#clearTransitionZ()
+		this.#transition.send({ type: 'begin' })
+		const { setId } = this.#transition.$state
 		if (this._images.length > 0) {
 			for (const i of this._images) {
 				i.camera.stop()
@@ -398,7 +434,12 @@ export class Grid extends MicrioElement<GridProps> {
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
-				setupBehindTransition(this, imageEntries, opts, focussed)
+				const tiers = setupBehindTransition(this, imageEntries, opts, focussed)
+				// Record the transient tiers so a superseded set (which never reaches `done()`)
+				// can undo them; they are not part of `#zOverrides`.
+				if (tiers.length > 0) {
+					this.#transition.send({ type: 'tiers', tiers })
+				}
 			}
 
 			const ready = this.image._placed
@@ -435,7 +476,7 @@ export class Grid extends MicrioElement<GridProps> {
 
 			let resolved = false
 			const error = () => {
-				if (setId !== this.#setId) {
+				if (setId !== this.#transition.$state.setId) {
 					return
 				}
 				this.#clearTimeouts()
@@ -458,7 +499,7 @@ export class Grid extends MicrioElement<GridProps> {
 			const whenReady = (fn: () => void): void => {
 				if (readyGate) {
 					void readyGate.then(() => {
-						if (setId === this.#setId) {
+						if (setId === this.#transition.$state.setId) {
 							fn()
 						}
 					})
@@ -522,10 +563,10 @@ export class Grid extends MicrioElement<GridProps> {
 			if (inFromId) {
 				const tiers = setupInFromIdTransition(this, imageEntries, this._current, prevById, inFromId, {
 					timeout: inFromIdTimeout(dur, crossfadeDur, opts.readinessTimeout),
-					canOpen: () => setId === this.#setId,
+					canOpen: () => setId === this.#transition.$state.setId,
 					open: () => openGate?.(),
 				})
-				this.#transitionZ = new Map(tiers.map((t) => [t.id, t.z] as const))
+				this.#transition.send({ type: 'tiers', tiers })
 			}
 
 			if (isAppear) {
@@ -538,17 +579,22 @@ export class Grid extends MicrioElement<GridProps> {
 
 			const fadeIn = () => {
 				for (const [i, img] of this._current.entries()) {
-					void sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur / 2 : 0)) * 1000 : 0).then(() =>
-						img.canvas?._fadeIn(),
-					)
+					void sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur / 2 : 0)) * 1000 : 0).then(() => {
+						// The sleep is outside the two cancellable timers; a superseded set must
+						// not fade the layout that replaced it.
+						if (setId === this.#transition.$state.setId) {
+							img.canvas?._fadeIn()
+						}
+					})
 				}
 			}
 
 			const done = () => {
-				if (setId !== this.#setId) {
+				if (setId !== this.#transition.$state.setId) {
 					return
 				}
 				this.#clearTimeouts()
+				this.#transition.send({ type: 'done' })
 				Frame.request(() => (engine._crossfadeDuration = defaultDur))
 				if (isDelayed || isInFromId) {
 					this.#resetZ()
@@ -563,7 +609,11 @@ export class Grid extends MicrioElement<GridProps> {
 					}
 				}
 				if (this._clickable !== false) {
-					this.#placeGrid()
+					if (this.micrio.state.$tour || this.micrio.state.$marker || this.$focussed) {
+						this.#removeGrid()
+					} else {
+						this.#placeGrid()
+					}
 				}
 				this._lastAction = undefined
 				resolved = true
@@ -577,6 +627,7 @@ export class Grid extends MicrioElement<GridProps> {
 					}
 					done()
 				} else {
+					this.#transition.send({ type: 'timing' })
 					if (!opts.noFade) {
 						this.#_fadeTo = setTimeout(fadeIn, Math.max(0, (dur / 2) * 1000))
 					}
@@ -692,6 +743,7 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#placeGrid(): void {
+		this.#mode.send({ type: 'show-overview' })
 		if (this._clickable === false || this.micrio.state.$tour || this.micrio.state.$marker) {
 			return
 		}
@@ -703,6 +755,7 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#removeGrid(): void {
+		this.#mode.send({ type: 'hide' })
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
 		this.classList.add('grid-cells-hidden')

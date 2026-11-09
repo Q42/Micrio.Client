@@ -139,6 +139,9 @@ class MicrioToolbar extends MicrioElement {
 		}
 
 		if (empty || hidden) {
+			// The open sheet has no DOM in this phase; keeping `#shown` would make it reappear
+			// the moment a tour/popover closes.
+			this.#shown = false
 			this.replaceChildren()
 			return
 		}

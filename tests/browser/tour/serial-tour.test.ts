@@ -139,6 +139,47 @@ describe('serial tour closing', () => {
 		viewer.destroy()
 	})
 
+	it('reports a new end after jumping back from a finished tour', async () => {
+		const { viewer, tour } = await startStorySerial({
+			steps: 2,
+			stepMedia: true,
+			stepDuration: 4,
+			cannotClose: true,
+		})
+		const rec = recordEvents(viewer.el, ['tour-ended'])
+		const serialEl = () => viewer.el.querySelector('micrio-serial-tour')
+		const stepMedia = () => serialEl()?.querySelector('micrio-media')
+
+		await waitFor(() => stepMedia() !== null, 4000, 'the first step media')
+		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(
+			() => serialEl()?.querySelector('[data-part="bar"].active[data-idx="1"]') !== null,
+			4000,
+			'the second step',
+		)
+		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(() => rec.events.length === 1, 4000, 'the first tour end')
+
+		// Jump back out of the finished state: this is a new run, so its end must be reported.
+		tour.prev?.()
+		await waitFor(
+			() => serialEl()?.querySelector('[data-part="bar"].active[data-idx="0"]') !== null,
+			4000,
+			'the first step again',
+		)
+		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(
+			() => serialEl()?.querySelector('[data-part="bar"].active[data-idx="1"]') !== null,
+			4000,
+			'the second step again',
+		)
+		stepMedia()?.dispatchEvent(new CustomEvent('ended'))
+		await waitFor(() => rec.events.length === 2, 4000, 'the second tour end')
+		expect(rec.events).toHaveLength(2)
+		rec.stop()
+		viewer.destroy()
+	})
+
 	it('keeps the media frame on a step without a video tour', async () => {
 		const { viewer } = await startStorySerial({
 			steps: 2,
@@ -418,6 +459,23 @@ describe('serial tour steps that carry their own media', () => {
 
 		expect(serialEl?.style.getPropertyValue('--time')).toBe("'00:06'")
 		expect(stepMedia()?.style.getPropertyValue('--time')).toBe("'00:06'")
+		viewer.destroy()
+	})
+
+	it('reports serialtour-play and serialtour-pause from the step media', async () => {
+		const { viewer } = await startStorySerial({ steps: 2 })
+		await waitFor(() => viewer.el.querySelector('micrio-serial-tour micrio-media') !== null, 4000, 'the step media')
+		const rec = recordEvents(viewer.el, ['serialtour-play', 'serialtour-pause'])
+		const stepMedia = () => viewer.el.querySelector('micrio-serial-tour micrio-media')
+
+		stepMedia()?.dispatchEvent(new CustomEvent('timeupdate', { detail: 1 }))
+		await settle(2)
+		expect(rec.events.map((e) => e.type)).toEqual(['serialtour-play'])
+
+		stepMedia()?.dispatchEvent(new CustomEvent('pause'))
+		await settle(2)
+		expect(rec.events.map((e) => e.type)).toEqual(['serialtour-play', 'serialtour-pause'])
+		rec.stop()
 		viewer.destroy()
 	})
 

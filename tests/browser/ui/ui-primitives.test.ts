@@ -186,6 +186,38 @@ describe('micrio-dial', () => {
 		viewer.destroy()
 	})
 
+	it('still cancels a drag after an earlier drag completed', async () => {
+		const ui = uiBundle()
+		const { viewer } = await openUi(ui)
+		viewer.el.setPointerCapture = () => {}
+		viewer.el.releasePointerCapture = () => {}
+		const turns: number[] = []
+		const el = createElement(DIAL_TAG, {
+			style: { display: 'block', width: '200px', height: '40px' },
+			setProps: { currentRotation: 0, frames: 36, onturn: (frame: number) => turns.push(frame) },
+			parent: viewer.el,
+		}) as MicrioElement
+		await settle(2)
+
+		// First drag completes normally; its dStop must not remove the shared cancel guard.
+		el.dispatchEvent(
+			new PointerEvent('pointerdown', { pointerId: 1, clientX: 100, clientY: 0, button: 0, bubbles: true }),
+		)
+		viewer.el.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, bubbles: true }))
+		expect(viewer.el.dataset.panning).toBeUndefined()
+
+		el.dispatchEvent(
+			new PointerEvent('pointerdown', { pointerId: 2, clientX: 100, clientY: 0, button: 0, bubbles: true }),
+		)
+		viewer.el.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 2, bubbles: true }))
+		expect(viewer.el.dataset.panning).toBeUndefined()
+
+		const before = turns.length
+		viewer.el.dispatchEvent(new PointerEvent('pointermove', { pointerId: 2, clientX: 0, clientY: 0, bubbles: true }))
+		expect(turns).toHaveLength(before)
+		viewer.destroy()
+	})
+
 	it('ignores a non-primary button', async () => {
 		const ui = uiBundle()
 		const { viewer } = await openUi(ui)

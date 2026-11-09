@@ -10,29 +10,28 @@ import {
 	GRAB_ROW_MAX_OFFSET,
 } from '../core/settings'
 import { Vec3 } from '../core/vec3'
+import { isSlotAnimating, slotDirection, type SlotPhase } from './page-flip-state'
 import { computeWeightFactor, computePageSpineY, applySpineDelta } from './spine-sync'
 
 interface AnimSlot {
 	_progress: number
-	_direction: number
+	_phase: SlotPhase
 	_startProgress: number
 	_elapsed: number
 	_drivenVertex: number
 	_savedInvMass: number
 	_savedInvMasses?: Float32Array
 	_grabRowOffset: number
-	_isDragging: boolean
 }
 
 const IDLE_SLOT: AnimSlot = {
 	_progress: 0,
-	_direction: 0,
+	_phase: 'idle',
 	_startProgress: 0,
 	_elapsed: 0,
 	_drivenVertex: -1,
 	_savedInvMass: 1,
 	_grabRowOffset: 0,
-	_isDragging: false,
 }
 
 export class PageFlipAnimator {
@@ -44,7 +43,7 @@ export class PageFlipAnimator {
 
 	get _animating(): boolean {
 		for (const s of this.#slots) {
-			if (s._direction !== 0) {
+			if (isSlotAnimating(s._phase)) {
 				return true
 			}
 		}
@@ -53,13 +52,13 @@ export class PageFlipAnimator {
 
 	_isPageAnimating(pageIndex: number): boolean {
 		const slot = this.#slots[pageIndex]
-		return slot !== undefined && slot._direction !== 0
+		return slot !== undefined && isSlotAnimating(slot._phase)
 	}
 
 	/** -1 = flipping back (left→right), +1 = flipping forward (right→left), 0 = idle/dragging. */
 	_getPageDirection(pageIndex: number): number {
 		const slot = this.#slots[pageIndex]
-		return slot !== undefined ? slot._direction : 0
+		return slot !== undefined ? slotDirection(slot._phase) : 0
 	}
 
 	#slots: AnimSlot[] = []
@@ -76,7 +75,7 @@ export class PageFlipAnimator {
 			return
 		}
 		slot._progress = value
-		slot._direction = 0
+		slot._phase = 'idle'
 		slot._startProgress = value
 		slot._elapsed = 0
 	}
@@ -87,7 +86,7 @@ export class PageFlipAnimator {
 			return
 		}
 		slot._progress = 1
-		slot._direction = 0
+		slot._phase = 'idle'
 		slot._startProgress = 1
 		slot._elapsed = 0
 		this.#releaseDriven(mesh, slot)
@@ -125,16 +124,15 @@ export class PageFlipAnimator {
 		if (slot === undefined) {
 			return
 		}
-		slot._direction = 0
+		slot._phase = 'dragging'
 		slot._elapsed = 0
 		slot._startProgress = slot._progress
 		slot._grabRowOffset = grabRow - GRAB_ROW
-		slot._isDragging = true
 	}
 
 	_setDragProgress(pageIndex: number, progress: number): void {
 		const slot = this.#slots[pageIndex]
-		if (slot === undefined || !slot._isDragging) {
+		if (slot === undefined || slot._phase !== 'dragging') {
 			return
 		}
 		slot._progress = Math.max(0, Math.min(1, progress))
@@ -145,19 +143,37 @@ export class PageFlipAnimator {
 		if (slot === undefined) {
 			return
 		}
-		slot._isDragging = false
-		slot._direction = direction
+		if (direction > 0) {
+			slot._phase = 'left'
+		} else if (direction < 0) {
+			slot._phase = 'right'
+		} else {
+			slot._phase = 'idle'
+		}
 		slot._startProgress = slot._progress
 		slot._elapsed = 0
 	}
 
 	_isPageDragging(pageIndex: number): boolean {
 		const slot = this.#slots[pageIndex]
-		return slot !== undefined ? slot._isDragging : false
+		return slot !== undefined ? slot._phase === 'dragging' : false
+	}
+
+	/** Releases a drag without settling it, returning the page to rest for another navigation. */
+	_cancelDrag(pageIndex: number, mesh: PaperMesh): void {
+		const slot = this.#slots[pageIndex]
+		if (slot === undefined) {
+			return
+		}
+		slot._phase = 'idle'
+		slot._progress = 0
+		slot._startProgress = 0
+		slot._elapsed = 0
+		this.#releaseDriven(mesh, slot)
 	}
 
 	#startAnim(slot: AnimSlot, dir: number, grabRow?: number): void {
-		slot._direction = dir
+		slot._phase = dir > 0 ? 'left' : 'right'
 		slot._startProgress = slot._progress
 		slot._elapsed = 0
 		if (grabRow !== undefined) {
@@ -171,13 +187,12 @@ export class PageFlipAnimator {
 		this.#releaseAllDriven(meshes)
 		for (const slot of this.#slots) {
 			slot._progress = 0
-			slot._direction = 0
+			slot._phase = 'idle'
 			slot._startProgress = 0
 			slot._elapsed = 0
 			slot._drivenVertex = -1
 			slot._savedInvMass = 1
 			slot._grabRowOffset = 0
-			slot._isDragging = false
 		}
 	}
 
@@ -295,19 +310,19 @@ export class PageFlipAnimator {
 	}
 
 	#advanceAnim(dt: number, slot: AnimSlot, mesh: PaperMesh, outArcPos: Vec3): boolean {
-		if (slot._direction === 0) {
+		if (!isSlotAnimating(slot._phase)) {
 			return false
 		}
 
 		slot._elapsed += dt
-		const target = slot._direction > 0 ? 1 : 0
+		const target = slot._phase === 'left' ? 1 : 0
 		const fraction = Math.min(slot._elapsed / this.#flipDuration, 1)
 		const eased = fraction * fraction * (3 - 2 * fraction)
 		slot._progress = slot._startProgress + (target - slot._startProgress) * eased
 
 		if (fraction >= 1) {
 			slot._progress = target
-			slot._direction = 0
+			slot._phase = 'idle'
 			return true
 		}
 
@@ -338,7 +353,7 @@ export class PageFlipAnimator {
 		// Pass 1: advance animations (skip dragged pages — they are manually controlled)
 		for (let pi = 0; pi < meshes.length; pi++) {
 			const slot = this.#slots[pi]
-			if (slot === undefined || slot._direction === 0 || slot._isDragging) {
+			if (slot === undefined || !isSlotAnimating(slot._phase)) {
 				continue
 			}
 
@@ -356,7 +371,7 @@ export class PageFlipAnimator {
 		// Pass 2: snap spine Y to correct floor, then drive corners
 		for (let pi = 0; pi < meshes.length; pi++) {
 			const slot = this.#slots[pi]
-			if (slot === undefined || (slot._direction === 0 && !slot._isDragging)) {
+			if (slot === undefined || (!isSlotAnimating(slot._phase) && slot._phase !== 'dragging')) {
 				continue
 			}
 

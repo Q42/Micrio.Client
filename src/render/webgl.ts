@@ -576,10 +576,22 @@ export class WebGL {
 	 */
 	_loadWatermark(url: string, wmOpacity?: number): void {
 		if (url === this.#wmUrl) {
+			// The URL is the identity, but its opacity may still have changed.
+			if (wmOpacity !== undefined) {
+				this.#wmRequestedOpacity = wmOpacity
+				this.#wmOpacity = wmOpacity
+			}
 			return
-		} // Already requested
+		}
+		// A different watermark owns the screen now: the old texture would make the upload
+		// guard below skip the new image forever.
+		if (this.#wmTexture) {
+			this.gl?.deleteTexture(this.#wmTexture)
+			this.#wmTexture = null
+		}
 		this.#wmUrl = url
 		this.#wmRequestedOpacity = wmOpacity ?? this.#wmRequestedOpacity
+		this.#wmImage = null
 		this.#wmReady = false
 
 		// The image is fetched whether or not the context exists yet: the element builds its
@@ -588,6 +600,10 @@ export class WebGL {
 		const img = new Image()
 		img.crossOrigin = 'anonymous'
 		img.addEventListener('load', () => {
+			// A newer URL won the race; this image belongs to a watermark that is no longer current.
+			if (url !== this.#wmUrl) {
+				return
+			}
 			this.#wmImage = img
 			this.#wmReady = true
 			this.#uploadWatermark()

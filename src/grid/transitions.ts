@@ -65,13 +65,14 @@ export function setupBehindTransition(
 		transition?: Models.Grid.GridSetTransition
 	},
 	focussed: MicrioImage | undefined,
-): void {
+): { id: string; z: number }[] {
 	const isDelayed = opts.transition === 'behind-delayed'
 	const isLim = opts.coverLimit === true
 	opts.forceAni = true
 	opts.coverLimit = isLim
 	opts.forceAreaAni = true
 	const vW = isDelayed ? 1 / images.length : 1
+	const tiers: { id: string; z: number }[] = []
 	let c = 0
 	for (const i of grid._images) {
 		i.camera.setCoverLimit(isLim)
@@ -81,13 +82,16 @@ export function setupBehindTransition(
 				i.camera.setView([0, 0, 1, 1])
 			}
 			if (isDelayed && i.canvas) {
-				i.canvas.zIndex = images.length - c++
+				i.canvas.zIndex = images.length - c
+				tiers.push({ id: i.id, z: images.length - c })
+				c++
 			}
 		}
 	}
 	for (const e of images) {
 		e.view = [0, 0, 1, 1]
 	}
+	return tiers
 }
 
 /** The source data an `in-from-id` set needs before it places its entries. @internal */

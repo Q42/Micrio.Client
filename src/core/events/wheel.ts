@@ -85,6 +85,12 @@ export class WheelHandler {
 		if (!image) {
 			return
 		}
+		// A drag/pinch owns the camera; a wheel tick in the middle of it would fight the
+		// gesture and could leave its end state stale.
+		if (this.#ctx._panning || this.#ctx._pinching) {
+			return
+		}
+		this.#ctx._wheeling = true
 
 		if (isZoom) {
 			const c = this.#ctx._micrio.canvas.viewport
@@ -98,8 +104,6 @@ export class WheelHandler {
 		} else {
 			image.camera.pan(e.deltaX, e.deltaY)
 		}
-
-		this.#ctx._wheeling = true
 
 		clearTimeout(this.#wheelEndTo)
 		this.#wheelEndTo = setTimeout(this.#end, 50)

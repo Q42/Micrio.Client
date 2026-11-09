@@ -16,6 +16,10 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	#props: Partial<FullscreenProps> = {}
 	#isActive = false
 	#inited = false
+	/** The element the listener was installed for, so a replaced target can re-init. */
+	#boundEl: HTMLElement | undefined
+	/** Whether this instance installed the shared scroll hook (and must remove it). */
+	#ownsScroll = false
 	#toggle = () => {
 		const { el } = this.#props
 		if (!el) {
@@ -39,11 +43,41 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 	/** @internal */
 	_setProps(props: Partial<FullscreenProps>) {
 		if (props.el !== undefined) {
+			// A replaced target keeps every closure below pointing at the old element; reset
+			// the one-shot init so the new element gets its own active state and listener.
+			if (this.#inited && props.el !== this.#boundEl) {
+				document.removeEventListener('fullscreenchange', this.#onFullscreenChange)
+				if (this.#ownsScroll) {
+					this._getMicrio()?.events.unhookScroll()
+					this.#ownsScroll = false
+				}
+				this.#inited = false
+				this.#isActive = false
+				this.#boundEl = undefined
+				this.replaceChildren()
+			}
 			this.#props.el = props.el
 			if (this.isConnected && !this.#inited) {
 				this.#init()
 			}
 		}
+	}
+
+	#onFullscreenChange = (): void => {
+		// Read the current target, not a captured one: `_setProps` can replace it.
+		const { el } = this.#props
+		const micrio = this._getMicrio()
+		this.#isActive = el !== undefined && document.fullscreenElement === el
+		if (this.#isActive) {
+			if (micrio && el === micrio && !micrio.events.scrollHooked) {
+				micrio.events.hookScroll()
+				this.#ownsScroll = true
+			}
+		} else if (this.#ownsScroll) {
+			micrio?.events.unhookScroll()
+			this.#ownsScroll = false
+		}
+		this.#renderButton()
 	}
 
 	#init() {
@@ -54,34 +88,26 @@ class MicrioFullscreen extends MicrioElement<FullscreenProps> {
 		if (!el) {
 			return
 		}
-		this.#inited = true
+		// Capability is checked before the latch: an unsupported target must not look
+		// "initialized" forever if a later render passes a usable one.
 		if (!('requestFullscreen' in el)) {
 			return
 		}
-
+		this.#inited = true
+		this.#boundEl = el
 		this.#isActive = document.fullscreenElement === el
 
-		const micrio = this._getMicrio()
-		const addScrollZoom = micrio && el === micrio && !micrio.events.scrollHooked
-
-		const onchange = () => {
-			this.#isActive = document.fullscreenElement === el
-			if (addScrollZoom) {
-				if (this.#isActive) {
-					micrio.events.hookScroll()
-				} else {
-					micrio.events.unhookScroll()
-				}
-			}
-			this.#renderButton()
-		}
-
-		document.addEventListener('fullscreenchange', onchange)
+		document.addEventListener('fullscreenchange', this.#onFullscreenChange)
 		this._addCleanup(() => {
-			document.removeEventListener('fullscreenchange', onchange)
+			document.removeEventListener('fullscreenchange', this.#onFullscreenChange)
+			if (this.#ownsScroll) {
+				this._getMicrio()?.events.unhookScroll()
+				this.#ownsScroll = false
+			}
 		})
 
 		// The button title is translated, so refresh it on a UI language change
+		const micrio = this._getMicrio()
 		if (micrio) {
 			this._watchLater(micrio._lang, () => {
 				this.#renderButton()

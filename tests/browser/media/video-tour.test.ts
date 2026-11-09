@@ -292,6 +292,27 @@ describe('VideoTourInstance playback state', () => {
 		viewer.destroy()
 	})
 
+	it('can pause a tour whose timeline has no first segment', async () => {
+		const tour = videoTour({ duration: 10, timeline: [] })
+		const { viewer, image } = await mountWithBundle(tour)
+		const inst = instance(image, tour)
+		viewer.el.events.enabled.set(true)
+		const rec = recordEvents(viewer.el, ['videotour-play', 'videotour-pause'])
+
+		inst.play()
+		expect(inst.paused).toBe(false)
+		expect(get(viewer.el.events.enabled)).toBe(false)
+
+		inst.pause()
+		expect(inst.paused).toBe(true)
+		expect(get(viewer.el.events.enabled)).toBe(true)
+		expect(rec.events.map((e) => e.type)).toEqual(['videotour-play', 'videotour-pause'])
+
+		rec.stop()
+		inst.destroy()
+		viewer.destroy()
+	})
+
 	it('disables user input while playing and restores it on destroy', async () => {
 		const tour = videoTour()
 		const { viewer, image } = await mountWithBundle(tour)

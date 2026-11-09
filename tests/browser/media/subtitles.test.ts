@@ -152,6 +152,24 @@ describe('subtitles', () => {
 		viewer.destroy()
 	})
 
+	it('drops the previous cue when the source changes', async () => {
+		mockText(SUB_MATCH, vtt())
+		const { viewer, mediaEl, el } = await mountSubtitles(SUB_URL)
+
+		mediaEl.currentTime = 2
+		mediaEl.dispatchEvent(new Event('timeupdate'))
+		await waitFor(() => el.textContent !== '', 4000, 'first cue')
+
+		;(el as unknown as { _setProps: (p: unknown) => void })._setProps({
+			src: 'https://r2.micr.io/other-subs.vtt',
+			mediaEl,
+		})
+		// The new fetch 404s; the old language must not stay on screen meanwhile or after.
+		await settle(4)
+		expect(el.textContent).toBe('')
+		viewer.destroy()
+	})
+
 	it('does not refetch when the same src is re-applied', async () => {
 		mockText(SUB_MATCH, vtt())
 		const { viewer, el } = await mountSubtitles(SUB_URL)

@@ -247,6 +247,64 @@ describe('media adapter callbacks', () => {
 		viewer.destroy()
 	})
 
+	it('reports YouTube play, pause and each end through the element contract', async () => {
+		const yt = installYouTube()
+		const viewer = await mountTour(tourBundle({}))
+		let ended = 0
+		const el = await mountMedia({ src: YT_URL, onended: () => ended++ }, viewer)
+		const seen: string[] = []
+		for (const type of ['media-play', 'media-pause', 'media-ended']) {
+			viewer.el.addEventListener(type, () => seen.push(type))
+		}
+		let localEnds = 0
+		el.addEventListener('ended', () => localEnds++)
+		await waitForRender(el)
+		await waitFor(() => yt.events !== undefined, 4000, 'the adapter')
+		const stateChange = await stateChangeOf(yt)
+
+		stateChange({ data: 1 })
+		await settle(2)
+		expect(seen).toContain('media-play')
+
+		stateChange({ data: 2 })
+		await settle(2)
+		expect(seen).toContain('media-pause')
+
+		stateChange({ data: 0 })
+		await settle(2)
+		expect(ended).toBe(1)
+		expect(localEnds).toBe(1)
+		expect(seen.filter((t) => t === 'media-ended')).toHaveLength(1)
+
+		// A replay starts a new run: the next end is reported again, not swallowed by the latch.
+		stateChange({ data: 1 })
+		await settle(2)
+		stateChange({ data: 0 })
+		await settle(2)
+		expect(ended).toBe(2)
+		expect(localEnds).toBe(2)
+		expect(seen.filter((t) => t === 'media-ended')).toHaveLength(2)
+		viewer.destroy()
+	})
+
+	it('does not leave the controls seeking after a paused YouTube seek', async () => {
+		const yt = installYouTube()
+		const viewer = await mountTour(tourBundle({}))
+		const el = await mountMedia({ src: YT_URL }, viewer)
+		await waitForRender(el)
+		await waitFor(() => yt.events !== undefined, 4000, 'the adapter')
+		const stateChange = await stateChangeOf(yt)
+		const playBtn = () => el.querySelector<HTMLButtonElement>('micrio-button.play > button')
+
+		// BUFFERING sets the seeking guard, then the player is paused without ever reaching
+		// PLAYING (the state that used to be the only path clearing it).
+		stateChange({ data: 3 })
+		stateChange({ data: 2 })
+		await settle(2)
+		expect(playBtn()?.disabled).toBe(false)
+		viewer.destroy()
+	})
+
 	it('updates the progress from Vimeo timeupdate events', async () => {
 		const vimeo = installVimeo()
 		const viewer = await mountTour(tourBundle({}))

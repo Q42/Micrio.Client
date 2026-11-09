@@ -1,7 +1,9 @@
 import type { Models } from '$types/models'
 import type { MicrioImage } from '$core/image'
 import type { HTMLMicrioElement } from '$core/element'
-import { writable, get } from '$core/store'
+import { get } from '$core/store'
+import { createMachine } from '$core/machine'
+import { audioInitial, reduceAudio, type AudioEvent, type AudioState } from './audio-state'
 import { Browser } from '$utils/browser'
 import { normalize3 } from '$utils/math'
 import { imageHasAudio, volumeFor } from '$utils/media-settings'
@@ -20,7 +22,12 @@ export let mainGain: GainNode | undefined
 /** @internal */
 let _ctx: AudioContext | null = null
 let l: AudioListener | undefined
-const interacted = writable<boolean>(false)
+const session = createMachine<AudioState, AudioEvent, undefined>({
+	initial: audioInitial,
+	context: undefined,
+	reduce: reduceAudio,
+	historyLimit: 0,
+})
 
 function init(volume: number) {
 	if (mainGain) {
@@ -209,7 +216,7 @@ export class MicrioAudioController {
 		}
 
 		const input = () => {
-			interacted.set(true)
+			session.send({ type: 'gesture' })
 		}
 
 		const onUserGesture = () => {
@@ -221,6 +228,9 @@ export class MicrioAudioController {
 			} else if (!_ctx) {
 				input()
 			}
+			// A playlist built before any gesture had its `play()` refused; this is the
+			// first moment the browser will allow it.
+			this.#playlist?.resume()
 		}
 
 		// The autoplay probe only makes sense when there is audio to be blocked
@@ -235,13 +245,17 @@ export class MicrioAudioController {
 		}
 
 		this.#cleanups.push(
-			interacted.subscribe((b) => {
-				if (!b) {
+			session.subscribe((state) => {
+				if (state.phase !== 'unlocked') {
 					return
 				}
 				const vol = volumeFor(image, get(micrio._isMuted))
 				if (!_ctx) {
 					init(vol)
+				} else if (mainGain) {
+					// The context is module-global; without this, the first image's volume
+					// becomes the master volume for every controller after it.
+					mainGain.gain.value = vol
 				}
 				// Reported once per controller, and only now: the context exists and the master
 				// gain is wired, so audio can actually play. `init` returns early on a later image,
@@ -286,12 +300,16 @@ export class MicrioAudioController {
 				audio.remove()
 			})
 			if (!_ctx) {
+				session.send({ type: 'probe' })
 				audio
 					.play()
-					.then(input)
+					.then(() => {
+						session.send({ type: 'probe-ok' })
+					})
 					.catch((err: unknown) => {
 						// Only a policy block is an autoplay block; a codec/source failure is not.
 						if (err instanceof DOMException && err.name === 'NotAllowedError') {
+							session.send({ type: 'probe-blocked' })
 							events._dispatch('autoplay-blocked')
 						}
 						// The pointer fallback below still starts the audio on the next interaction.

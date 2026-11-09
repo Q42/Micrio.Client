@@ -18,6 +18,7 @@ import { Browser } from '$utils/browser'
 import { loadTexture, runningThreads, numThreads, abortDownload } from './textures'
 
 import { TileCanvas } from './tile-canvas'
+import { reduceTilePhase, type TilePhase } from './tile-state'
 import type Image from './tile-image'
 import { segsX, segsY } from './constants'
 import { type Bicubic, easeInOut } from './easing'
@@ -27,7 +28,7 @@ interface TileEntry {
 	/** @internal */
 	_texture?: WebGLTexture
 	/** @internal */
-	_loadState: number
+	phase: TilePhase
 	/** @internal */
 	_opacity: number
 	/** @internal */
@@ -315,27 +316,28 @@ export class Engine {
 		const img = hasCamera ? c : c.image
 		const frame = '_frame' in c ? c._frame : undefined
 
-		if (tile._loadState === 0 && numLoading < numThreads) {
+		if (tile.phase === 'empty' && numLoading < numThreads) {
 			if (this.#bareBoneSetting ? numLoading > 2 && animating : targetLayer && animating && numLoading > 0) {
 				return false
 			}
 
 			if (isVideo && !is360) {
-				tile._loadState = 2
+				tile.phase = reduceTilePhase(tile.phase, { type: 'request' })
+				tile.phase = reduceTilePhase(tile.phase, { type: 'loaded' })
 				tile._texture = this.micrio._webgl._getTexture()
 			} else {
-				tile._loadState = 1
+				tile.phase = reduceTilePhase(tile.phase, { type: 'request' })
 				const src = img._getTileSrc(layer, x, y, frame)
 				if (src) {
 					// Read the setting only when a load actually starts; this used to be a store
 					// read for every drawn tile on every frame.
 					this._getTexture(i, src, animating, { noSmoothing: hasCamera && c.$settings.noSmoothing })
 				} else {
-					tile._loadState = 0
+					tile.phase = reduceTilePhase(tile.phase, { type: 'evict' })
 					return false
 				}
 			}
-		} else if (tile._loadState >= 2) {
+		} else if (tile.phase !== 'empty' && tile.phase !== 'requesting') {
 			if (!this.#drawing) {
 				this.#drawStart()
 			}
@@ -350,8 +352,8 @@ export class Engine {
 				this.micrio._webgl._drawTile(tile._texture, opacity, is360)
 			}
 
-			if (tile._loadState === 2) {
-				tile._loadState = 3
+			if (tile.phase === 'ready') {
+				tile.phase = reduceTilePhase(tile.phase, { type: 'drawn' })
 				tile._loadedAt = this.now
 			}
 
@@ -425,7 +427,7 @@ export class Engine {
 	 * Drops every tile's GPU handle so a restored WebGL context uploads its textures again.
 	 *
 	 * A lost context invalidates all of its objects, but the tile entries keep the handles and
-	 * `_loadState >= 2`, so `#drawTile` would keep drawing the dead handle. `#cleanup` only
+	 * `phase !== 'empty' && phase !== 'requesting'`, so `#drawTile` would keep drawing the dead handle. `#cleanup` only
 	 * evicts an out-of-view tile after `#deleteAfterSeconds`, so an in-view tile would never
 	 * be reloaded and the viewer would stay blank. In-flight requests belong to the old context
 	 * too, and `_getTexture` refuses an index that is still requested.
@@ -434,7 +436,7 @@ export class Engine {
 	_resetTiles(): void {
 		for (const tile of this.#tiles.values()) {
 			tile._texture = undefined
-			tile._loadState = 0
+			tile.phase = reduceTilePhase(tile.phase, { type: 'evict' })
 			tile._deleteAt = undefined
 			if (tile._timeoutId) {
 				clearTimeout(tile._timeoutId)
@@ -592,19 +594,26 @@ export class Engine {
 		// Scoped to this canvas rather than to the engine: `_removeCanvas` has to be able to
 		// release it, or a closed image keeps its video element subscribed forever.
 		let currentVideo: HTMLVideoElement | undefined
-		this.#canvasUnsubs.set(
-			c,
-			c.video.subscribe((video) => {
-				if (currentVideo) {
-					currentVideo.removeEventListener('play', this.#onVideoPlay)
-				}
-				currentVideo = video ?? undefined
-				this.#currentVideo = currentVideo
-				if (currentVideo) {
-					currentVideo.addEventListener('play', this.#onVideoPlay)
-				}
-			}),
-		)
+		const unsubVideo = c.video.subscribe((video) => {
+			if (currentVideo) {
+				currentVideo.removeEventListener('play', this.#onVideoPlay)
+			}
+			currentVideo = video ?? undefined
+			this.#currentVideo = currentVideo
+			if (currentVideo) {
+				currentVideo.addEventListener('play', this.#onVideoPlay)
+			}
+		})
+		this.#canvasUnsubs.set(c, () => {
+			unsubVideo()
+			// Unsubscribing does not run the callback that would release the listener; a
+			// removed canvas's detached video would otherwise keep requesting frames.
+			currentVideo?.removeEventListener('play', this.#onVideoPlay)
+			if (this.#currentVideo === currentVideo) {
+				this.#currentVideo = undefined
+			}
+			currentVideo = undefined
+		})
 
 		if (c._noImage) {
 			c.visible.set(true)
@@ -806,7 +815,7 @@ export class Engine {
 	#getTileEntry(i: number): TileEntry {
 		let tile = this.#tiles.get(i)
 		if (!tile) {
-			tile = { _loadState: 0, _opacity: 0 }
+			tile = { phase: 'empty', _opacity: 0 }
 			this.#tiles.set(i, tile)
 		}
 		return tile
@@ -868,11 +877,11 @@ export class Engine {
 				}
 				this.#deleteRequest(i)
 				const failed = this.#tiles.get(i)
-				if (failed?._loadState === 1) {
+				if (failed?.phase === 'requesting') {
 					// The tile failed (or its request was aborted) without a texture. Leave it
 					// terminal and counted so `_progress` can reach 1 and the render loop stops;
 					// normal eviction retries it once it has been out of view.
-					failed._loadState = 3
+					failed.phase = reduceTilePhase(failed.phase, { type: 'failed' })
 					failed._loadedAt = performance.now()
 				}
 			})
@@ -883,7 +892,7 @@ export class Engine {
 		const tile = this.#getTileEntry(i)
 		tile._texture = this.micrio._webgl._getTexture(img, tile._texture, noSmoothing)
 		closeTextureBitmap(img)
-		tile._loadState = 2
+		tile.phase = reduceTilePhase(tile.phase, { type: 'loaded' })
 
 		tile._timeoutId = setTimeout(
 			() => {
@@ -951,14 +960,14 @@ export class Engine {
 			}
 
 			const tile = this.#tiles.get(idx)
-			if (!tile || tile._loadState === 0) {
+			if (!tile || tile.phase === 'empty') {
 				continue
 			}
 
 			tile._opacity = 0
 
-			switch (tile._loadState) {
-				case 1: {
+			switch (tile.phase) {
+				case 'requesting': {
 					const request = this.#requests.get(idx)
 					if (request) {
 						abortDownload(request)
@@ -966,11 +975,11 @@ export class Engine {
 						// surviving request entry would make the next request early-return forever.
 						this.#deleteRequest(idx)
 					}
-					tile._loadState = 0
+					tile.phase = reduceTilePhase(tile.phase, { type: 'evict' })
 					break
 				}
 
-				case 2: {
+				case 'ready': {
 					if (this.#requests.has(idx)) {
 						this.#deleteRequest(idx)
 					}
@@ -978,7 +987,8 @@ export class Engine {
 					break
 				}
 
-				case 3: {
+				case 'drawn':
+				case 'failed': {
 					if (!tile._deleteAt) {
 						tile._deleteAt = now
 					}

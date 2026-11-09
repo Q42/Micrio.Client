@@ -267,6 +267,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				return
 			}
 			this.#opened = true
+			this._getMicrio()?.state.markerSession.send({ type: 'opened' })
 			this.classList.add('opened')
 			clearTimeout(this.#fto)
 			if (markerSettings.noMarkerActions) {
@@ -475,12 +476,21 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const markerFromState = (m: Models.ImageData.Marker | string | undefined): Models.ImageData.Marker | undefined =>
 			typeof m === 'string' ? image.$data?.markers?.find((mm) => mm.id === m) : m
 
-		const close = (keepPopup = false) => {
+		/**
+		 * The one close path. `keepPopup` leaves the popup describing a marker whose image
+		 * was left (the link hand-off); `keepCamera` leaves a tour's camera alone.
+		 */
+		const close = (keepPopup = false, keepCamera = false) => {
 			this.classList.remove('opened')
 			events._dispatch('marker-closed', marker)
+			this.#opened = false
+			this._getMicrio()?.state.markerSession.send({ type: 'close' })
 			micrio.state.popover.set(undefined)
 			if (!keepPopup) {
 				micrio.state.popup.set(undefined)
+			}
+			if (!keepCamera && !get(micrio.state.tour)) {
+				image.camera.stop()
 			}
 		}
 
@@ -495,12 +505,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		 * pointing at this marker element.
 		 */
 		const clearForLink = () => {
-			this.classList.remove('opened')
-			events._dispatch('marker-closed', marker)
-			this.#opened = false
-			if (!get(micrio.state.tour)) {
-				image.camera.stop()
-			}
+			// Keep the popup and the camera: the popup is what the linked image shows, and the
+			// tour/camera hand-off continues on the image being opened.
+			close(true, true)
 			image.state.marker.set(undefined)
 		}
 
@@ -568,6 +575,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 						this.classList.remove('opened')
 					}
 					this.#opened = false
+					this._getMicrio()?.state.markerSession.send({ type: 'close' })
 					if (!cluster && !get(micrio.state.tour)) {
 						image.camera.stop()
 					}

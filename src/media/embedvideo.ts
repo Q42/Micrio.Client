@@ -6,7 +6,7 @@ import type { Engine } from '$render/engine'
 
 import { Browser } from '$utils/browser'
 import { createElement, loadExternalAPI } from '$utils/dom'
-import { tick } from '$core/store'
+import { get, tick } from '$core/store'
 import {
 	HLS_SCRIPT_URL,
 	HLS_PLAYER_CONFIG,
@@ -56,6 +56,8 @@ export class GLEmbedVideo {
 	#image: MicrioImage
 	#embed: Models.ImageData.Embed
 	#paused: boolean
+	/** The last pause was caused by the image leaving view, so becoming visible may resume it. */
+	#resumeOnVisible = false
 	#moved: () => void
 
 	constructor(
@@ -95,7 +97,9 @@ export class GLEmbedVideo {
 						else {
 							// If already loaded
 							this.#hook() // Ensure event listeners are attached
-							if (this.#autoplay && !this.#paused) {
+							const resume = this.#resumeOnVisible
+							this.#resumeOnVisible = false
+							if (this.#autoplay && (resume || !this.#paused)) {
 								this._vid.play().catch((e) => {
 									console.warn('WebGL Embed video play() failed', e)
 								})
@@ -105,7 +109,9 @@ export class GLEmbedVideo {
 					first ? 0 : 100,
 				) // No delay on first visibility
 			} else {
-				// If image becomes hidden
+				// If image becomes hidden: remember that this pause was ours, so showing the
+				// image again can resume playback. A user pause leaves the flag false.
+				this.#resumeOnVisible = Boolean(this._vid && !this._vid.paused)
 				// Pause video immediately
 				this.#placeTo = setTimeout(() => this._vid?.pause(), 0)
 			}
@@ -129,6 +135,11 @@ export class GLEmbedVideo {
 		this.#hlsPlayer?.destroy()
 		this.#hlsPlayer = undefined
 		this.#removeTmpDom()
+		// Do not leave a detached element published on the image: a rebuilt embed must load
+		// its own source instead of adopting this one.
+		this.#image.video.set(undefined)
+		this._vid = undefined
+		this.#resumeOnVisible = false
 	}
 
 	/**
@@ -141,6 +152,9 @@ export class GLEmbedVideo {
 			return
 		}
 		this.#paused = !playing // Update internal state
+		if (playing) {
+			this.#resumeOnVisible = false
+		}
 		// Set data attribute for potential external use/styling
 		if (playing) {
 			this._vid.dataset.playing = '1'
@@ -224,13 +238,15 @@ export class GLEmbedVideo {
 			const v = this._vid
 			const loopAfter = this.#embed.video?.loopAfter ?? 0
 			// Schedule restart after delay
-			this.#vidRepeatTo = setTimeout(
-				() =>
-					v?.play().catch((e) => {
-						console.warn('WebGL Embed video loop play() failed:', e)
-					}),
-				loopAfter * 1000,
-			)
+			this.#vidRepeatTo = setTimeout(() => {
+				// The image can be hidden during the delay; do not start playing behind it.
+				if (!this.#isMounted || !get(this.#image.visible)) {
+					return
+				}
+				v?.play().catch((e) => {
+					console.warn('WebGL Embed video loop play() failed:', e)
+				})
+			}, loopAfter * 1000)
 		},
 		loopPlay: () => {
 			this.#setPlaying(true)

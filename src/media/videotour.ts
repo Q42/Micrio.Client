@@ -11,6 +11,14 @@ import type { MicrioImage } from '$core/image'
 import { get } from '$core/store'
 import { toCenterJSON } from '$utils/math'
 import { easeInOut } from '$render/easing'
+import { createMachine, type Machine } from '$core/machine'
+import {
+	reduceVideoTour,
+	videoTourInitial,
+	type VideoTourContext,
+	type VideoTourEvent,
+	type VideoTourState,
+} from './videotour-state'
 
 /**
  * Internal representation of a segment in a video tour timeline.
@@ -35,22 +43,8 @@ interface VideoTourSegment {
 export class VideoTourInstance {
 	/** The parsed timeline segments derived from the tour data. @internal */
 	#timeline: VideoTourSegment[] = []
-	/** Index of the currently active or upcoming timeline segment. @internal */
-	#currentIndex: number | undefined
-	/** Progress percentage (0-1) to start the tour at (used by `setProgress`). @internal */
-	#startAt: number | undefined
 	/** Timeout ID for scheduling the next step or pause. @internal */
 	#_to: ReturnType<typeof setTimeout> | undefined
-	/** Internal flag indicating if the tour is currently paused by the user. @internal */
-	#_paused = true
-	/** Flag indicating if the tour is actively playing (not paused or ended). @internal */
-	#playing = false
-	/** Timestamp (ms since epoch) when the tour was last paused. @internal */
-	#pausedAt: number | undefined
-	/** Flag indicating if the tour was paused before seeking. @internal */
-	#wasPaused = false
-	/** Timestamp (ms since epoch) when the tour playback started or resumed. @internal */
-	#startedAt: number | undefined
 	/** Flag indicating if user interaction events should be disabled during playback. @internal */
 	#unhookEvents = false
 	/** The language-specific content data for the tour. @internal */
@@ -61,6 +55,42 @@ export class VideoTourInstance {
 	#image: MicrioImage
 	/** The tour data object. @internal */
 	#data: Models.ImageData.VideoTour
+	/** The clock/segment state is owned by one reducer. @internal */
+	#ctx: VideoTourContext
+	#machine: Machine<VideoTourState, VideoTourEvent>
+
+	/** Index of the currently active or upcoming segment. @internal */
+	get #currentIndex(): number | undefined {
+		const { segment } = this.#machine.$state
+		return segment >= 0 ? segment : undefined
+	}
+
+	/** Clock origin while playing; undefined when no clock is running. @internal */
+	get #startedAt(): number | undefined {
+		const { startedAt } = this.#machine.$state
+		return startedAt > 0 ? startedAt : undefined
+	}
+
+	/** Frozen clock offset while paused. @internal */
+	get #pausedAt(): number | undefined {
+		const { pausedAt } = this.#machine.$state
+		return pausedAt > 0 ? pausedAt : undefined
+	}
+
+	/** Whether the tour is actively playing. @internal */
+	get #playing(): boolean {
+		return this.#machine.$state.phase === 'playing'
+	}
+
+	/** Whether the tour is paused (or idle/ended). @internal */
+	get #_paused(): boolean {
+		return this.#machine.$state.phase !== 'playing'
+	}
+
+	/** Whether the last seek started from a paused state. @internal */
+	get #wasPaused(): boolean {
+		return this.#machine.$state.phase === 'paused'
+	}
 
 	/**
 	 * Creates a VideoTourInstance.
@@ -76,6 +106,13 @@ export class VideoTourInstance {
 			throw new Error('No valid content for video tour!')
 		}
 		this.#content = content
+		this.#ctx = { duration: content.duration }
+		this.#machine = createMachine({
+			initial: videoTourInitial,
+			context: this.#ctx,
+			reduce: reduceVideoTour,
+			historyLimit: 0,
+		})
 		this.#unhookEvents = !data.keepInteraction && this.#micrio.events.$enabled
 		data.instance = this
 		this.read()
@@ -93,12 +130,10 @@ export class VideoTourInstance {
 		clearTimeout(this.#_to)
 		if (this.#playing) {
 			this.#image.camera.stop()
-			this.#playing = false
 		}
 		this.#micrio.events._dispatch('videotour-stop', this.#data)
-		this.#startedAt = undefined
+		this.#machine.send({ type: 'destroy' })
 		this.#data.instance = undefined
-		this.#startAt = undefined
 	}
 
 	/** Parses the raw timeline data from the tour content into the internal `timeline` array. */
@@ -185,6 +220,9 @@ export class VideoTourInstance {
 	}
 	/** Getter for the current playback time in seconds. */
 	get currentTime(): number {
+		if (this.#machine.$state.phase === 'ended') {
+			return this.duration
+		}
 		return (this.#pausedAt ?? (this.#startedAt ? Date.now() - this.#startedAt : 0)) / 1000
 	}
 	/** Setter for the current playback time (seeks to the corresponding progress). */
@@ -202,58 +240,47 @@ export class VideoTourInstance {
 
 	/** Starts or resumes tour playback. */
 	play(): void {
-		// A finished tour always starts over. Its clock can be left at the end either paused
-		// (the media ended) or still running (a camera-only tour whose last step schedules
-		// no pause), so rewind before deciding how to start.
+		// A finished tour always starts over, paused or still running.
 		if (this.ended) {
 			this.#rewind()
 		}
+		// Re-read after the rewind: the previous phase may have been `playing` at the end.
+		const state = this.#machine.$state
 
 		this.#startedPlaying()
-		this.#wasPaused = false
 
-		if (this.#pausedAt) {
-			this.#startedAt = Date.now() - this.#pausedAt
-			this.#_paused = false
-			this.#gotoTime(this.#pausedAt)
-			this.#pausedAt = undefined
-		} else if (!this.#playing) {
-			this.#startedAt = Date.now()
-			if (this.#startAt === undefined) {
-				this.#gotoStep(0, 0)
-			} else {
-				this.#gotoTime(this.duration * this.#startAt * 1000)
-			}
-			this.#startAt = undefined
+		if (state.phase === 'paused') {
+			this.#machine.send({ type: 'play', now: Date.now() })
+			this.#gotoTime(state.pausedAt)
+		} else if (state.phase !== 'playing') {
+			this.#machine.send({ type: 'play', now: Date.now() })
+			this.#gotoStep(0, 0)
 		}
-
-		this.#_paused = false
-		this.#playing = true
 	}
 
 	/** Pauses the tour playback. */
 	pause(): void {
-		if (this.#_paused || this.#currentIndex === undefined || this.#startedAt === undefined) {
+		// `#currentIndex` is not a precondition: a timeline whose first segment never
+		// arrives leaves it undefined, and that tour still has to be pauseable (and its
+		// interaction lock released).
+		if (this.#_paused || this.#startedAt === undefined) {
 			return
 		}
-		this.#_paused = true
+		const wasEnded = this.ended
+		this.#machine.send({ type: 'pause', now: Date.now() })
 		this.#stoppedPlaying()
 		clearTimeout(this.#_to)
-		if (this.#currentIndex >= 0) {
+		if (this.#currentIndex !== undefined && this.#currentIndex >= 0) {
 			this.#image.camera.stop()
 		}
-		if (this.ended) {
+		if (wasEnded) {
 			this.#reset()
-		} else {
-			this.#pausedAt = Date.now() - this.#startedAt
 		}
 	}
 
 	/** Forgets the playback clock so the next play starts from the beginning. @internal */
 	#rewind(): void {
-		this.#pausedAt = undefined
-		this.#startedAt = undefined
-		this.#playing = false
+		this.#machine.send({ type: 'rewind' })
 	}
 
 	/** Resets the tour state after ending or stopping. @internal */
@@ -292,7 +319,7 @@ export class VideoTourInstance {
 
 		const step = this.#timeline[index]
 		const diff = Math.round(step.start - (Date.now() - this.#startedAt))
-		this.#currentIndex = index
+		this.#machine.send({ type: 'segment', index })
 		this.#image.camera.stop()
 
 		if (diff > 0) {
@@ -383,24 +410,16 @@ export class VideoTourInstance {
 	 */
 	#setProgress(perc: number): void {
 		perc = Math.max(0, Math.min(1, perc))
-		this.#wasPaused = this.paused || !this.#playing
+		const wasPaused = this.paused || !this.#playing
 		this.pause()
 
-		if (!this.#wasPaused) {
-			this.#_paused = false
+		if (!wasPaused) {
 			this.#startedPlaying()
 		}
 
 		const newTime = this.duration * perc * 1000
-		this.#pausedAt = newTime
+		this.#machine.send({ type: 'seek', ms: newTime, now: Date.now(), resume: !wasPaused })
 		this.#gotoTime(newTime)
-
-		if (!this.#wasPaused) {
-			this.#pausedAt = undefined
-			this.#_paused = false
-		} else {
-			this.pause()
-		}
 	}
 
 	/**
@@ -429,7 +448,6 @@ export class VideoTourInstance {
 
 		this.#image.camera.stop()
 		const perc = seg.duration > 0 ? (ms - seg.start) / seg.duration : 0
-		this.#startedAt = Date.now() - seg.start - seg.duration * perc
 
 		if (perc > 1) {
 			this.#gotoStep(i)

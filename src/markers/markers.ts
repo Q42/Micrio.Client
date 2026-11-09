@@ -24,6 +24,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 	#markerObjects = new Map<string, Models.ImageData.Marker>()
 	/** The marker object each clickable-area embed was built from. */
 	#areaObjects = new Map<string, Models.ImageData.Marker>()
+	/** Pending camera return after a marker closes; cleared when another marker opens. */
+	#zoomReturnTo: ReturnType<typeof setTimeout> | undefined
 
 	/** @internal */
 	_onMount() {
@@ -393,36 +395,50 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			let wasVideoTour = false
 			this._addCleanup(
 				image.state.marker.subscribe((m) => {
-					if (m !== undefined && m !== '' && typeof m !== 'string' && !image._openedView && !m.noMarker && m.view) {
+					if (m !== undefined && m !== '' && typeof m !== 'string') {
+						// A new marker owns the next return point; a pending return for the
+						// previous one must not fire over it.
+						clearTimeout(this.#zoomReturnTo)
+						this.#zoomReturnTo = undefined
 						const $tour = get(micrio.state.tour)
-						image._openedView =
-							$tour && !('steps' in $tour) ? undefined : structuredClone(image.state.$view ?? image.camera?.getView())
-						wasVideoTour = Boolean(m.videoTour)
+						if (!m.noMarker && m.view && !($tour && !('steps' in $tour))) {
+							image._openedView = structuredClone(image.state.$view ?? image.camera?.getView())
+							wasVideoTour = Boolean(m.videoTour)
+						} else {
+							image._openedView = undefined
+							wasVideoTour = false
+						}
 					} else if ((m === undefined || m === '') && image._openedView && !get(micrio.state.tour)) {
-						setTimeout(
-							() => {
-								if (image._openedView) {
-									const v = image._openedView
-									const w = Math.min(1, v[2])
-									const h = Math.min(1, v[3])
-									const hh = h / 2,
-										hw = w / 2
-									const cx = Math.max(hw, Math.min(1 - hw, v[0] + hw))
-									const cy = Math.max(hh, Math.min(1 - hh, v[1] + hh))
-									image.camera
-										.flyToView([cx - hw, cy - hh, w, h] as Models.Camera.View, {
-											speed: image.$settings._markers?.zoomOutAfterCloseSpeed,
-										})
-										.catch(() => {})
-								}
-								image._openedView = undefined
-								wasVideoTour = false
-							},
-							wasVideoTour ? 250 : 10,
-						)
+						clearTimeout(this.#zoomReturnTo)
+						const view = image._openedView
+						const delay = wasVideoTour ? 250 : 10
+						this.#zoomReturnTo = setTimeout(() => {
+							this.#zoomReturnTo = undefined
+							// A newer marker replaced the return point during the delay.
+							if (image._openedView !== view) {
+								return
+							}
+							const w = Math.min(1, view[2])
+							const h = Math.min(1, view[3])
+							const hh = h / 2,
+								hw = w / 2
+							const cx = Math.max(hw, Math.min(1 - hw, view[0] + hw))
+							const cy = Math.max(hh, Math.min(1 - hh, view[1] + hh))
+							image.camera
+								.flyToView([cx - hw, cy - hh, w, h] as Models.Camera.View, {
+									speed: image.$settings._markers?.zoomOutAfterCloseSpeed,
+								})
+								.catch(() => {})
+							image._openedView = undefined
+							wasVideoTour = false
+						}, delay)
 					}
 				}),
 			)
+			this._addCleanup(() => {
+				clearTimeout(this.#zoomReturnTo)
+				this.#zoomReturnTo = undefined
+			})
 		}
 
 		rebuild()
