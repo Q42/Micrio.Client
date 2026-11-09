@@ -1,6 +1,7 @@
 import type { HTMLMicrioElement } from '$core/element'
 import type { MicrioImage } from '$core/image'
 import type { Models } from '$types/models'
+import { reduceDrag, type DragPhase } from './drag-state'
 import type { Engine } from '$render/engine'
 import { Camera } from '$core/camera'
 import { getEasing } from '$render/easing'
@@ -28,7 +29,10 @@ export class SwipeGallery {
 	#stripDragLastX = 0
 	#stripDragLastT = 0
 	#stripDragVelocity = 0
-	#stripDragActive = false
+	#dragPhase: DragPhase = 'idle'
+	get #stripDragActive(): boolean {
+		return this.#dragPhase === 'dragging'
+	}
 	#stripDragHorizontal = false
 	#stripDragStartY = 0
 
@@ -208,7 +212,7 @@ export class SwipeGallery {
 		const engaged = this.#stripDragId !== undefined
 		this.#unlisten()
 		this.#stripDragId = undefined
-		this.#stripDragActive = false
+		this.#dragPhase = reduceDrag(this.#dragPhase, { type: 'up' })
 		this.#stripDragHorizontal = false
 		if (engaged) {
 			delete this.#micrio.dataset.panning
@@ -233,12 +237,12 @@ export class SwipeGallery {
 		if (!this.#canSwipe()) {
 			return
 		}
+		this.#dragPhase = reduceDrag(this.#dragPhase, { type: 'down' })
 		this.#stripDragId = e.pointerId
 		this.#stripDragStartX = this.#stripDragLastX = e.clientX
 		this.#stripDragStartY = e.clientY
 		this.#stripDragLastT = e.timeStamp
 		this.#stripDragVelocity = 0
-		this.#stripDragActive = false
 		this.#stripDragHorizontal = false
 		globalThis.addEventListener('pointermove', this.#stripPointerMove)
 		globalThis.addEventListener('pointerup', this.#stripPointerUp)
@@ -265,7 +269,7 @@ export class SwipeGallery {
 			return
 		}
 		if (!this.#stripDragActive) {
-			this.#stripDragActive = true
+			this.#dragPhase = reduceDrag(this.#dragPhase, { type: 'activate' })
 			this.#micrio.dataset.panning = ''
 			this.#micrio._keepRendering = true
 			this.#micrio.canvas.element.setPointerCapture(e.pointerId)
