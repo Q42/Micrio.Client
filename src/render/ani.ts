@@ -96,7 +96,9 @@ export default class Ani {
 
 	/** Stops the current animation completely and resets state. */
 	stop(): void {
-		if (this.#isRunning) {
+		// A paused animation still owns a pending promise in the camera; stopping without
+		// aborting it left that flight orphaned and cleared the state `resume()` needs.
+		if (this.#isRunning || this.#pausedAt > 0) {
 			this.#canvas._aniAbort()
 		}
 		this.#started = 0

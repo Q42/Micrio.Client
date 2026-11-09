@@ -187,6 +187,9 @@ export default class Camera360 extends EngineCamera {
 		if (dur !== 0) {
 			dur = c._ani.zoom(factor, dur, speed, noLimit)
 		} else {
+			// A direct zoom owns the perspective now; a running zoom animation would write
+			// its next frame over it and snap the FoV back.
+			c._ani.stop()
 			factor /= (this._scale * c._diagonal) / 20
 
 			const hasCursor: boolean = pxX > 0 && pxY > 0
