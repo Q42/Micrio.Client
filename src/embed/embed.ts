@@ -6,6 +6,7 @@ import type { MicrioImage } from '$core/image'
 import { get } from '$core/store'
 import { Browser } from '$utils/browser'
 import { GLEmbedVideo } from '$media/embedvideo'
+import { embedPresentation, type EmbedPresentation } from './presentation'
 
 /** Properties for configuring an embed element (image, video, iframe, or GL content). @internal */
 export interface EmbedProps {
@@ -53,12 +54,21 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 	#screenIsHDR = false
 	#isBook3d = false
 	#embedImageAsHtml = false
-	#printGL = false
-	#noEvents = false
+	#presentation: EmbedPresentation = { mode: 'html', rawVideo: false, noEvents: false }
+	get #printGL(): boolean {
+		return this.#presentation.mode !== 'html'
+	}
+	get #hasHtml(): boolean {
+		return this.#presentation.mode !== 'gl'
+	}
+	get #isRawVideo(): boolean {
+		return this.#presentation.rawVideo
+	}
+	get #noEvents(): boolean {
+		return this.#presentation.noEvents
+	}
 	#href: string | undefined
 	#hrefBlankTarget = false
-	#isRawVideo = false
-	#hasHtml = false
 	#paused = false
 	#widthCapped = 0
 	#hideWhenPaused = false
@@ -163,22 +173,22 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		this.#isBook3d = this.#micrio.$current?.album?.info?.type === 'book3d'
 		this.#isMat = this.#is360 || this.#isBook3d
 
-		this.#printGL =
-			!this.#isBook3d &&
-			!this.#embedImageAsHtml &&
-			Boolean(
-				(embed.micrioId && (forceGL || !this.#isSmall || !embed.src)) ||
-				(embed.video && !embed.video.controls && !embed.video.transparent),
-			)
-
-		// A video with native controls is interactive content: it must not be
-		// swallowed by the overlay's `no-events` (inherited pointer-events: none).
-		this.#noEvents = !embed.clickAction && !embed.frameSrc && !marker && !embed.video?.controls
+		this.#presentation = embedPresentation({
+			isBook3d: this.#isBook3d,
+			imageAsHtml: this.#embedImageAsHtml,
+			forceGL,
+			isSmall: this.#isSmall,
+			hasSrc: Boolean(embed.src),
+			hasSubImage: Boolean(embed.micrioId),
+			hasVideo: Boolean(embed.video),
+			videoControls: Boolean(embed.video?.controls),
+			videoTransparent: Boolean(embed.video?.transparent),
+			clickAction: Boolean(embed.clickAction),
+			frameSrc: Boolean(embed.frameSrc),
+			hasMarker: Boolean(marker),
+		})
 		this.#href = embed.clickAction === 'href' ? embed.clickTarget : undefined
 		this.#hrefBlankTarget = Boolean(this.#href && embed.clickTargetBlank)
-
-		this.#isRawVideo = this.#printGL && Boolean(embed.video)
-		this.#hasHtml = !this.#printGL || Boolean(embed.clickAction)
 		this.#hideWhenPaused = Boolean(embed.hideWhenPaused)
 
 		if (embed.video && !embed.video.controls) {
