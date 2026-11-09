@@ -247,10 +247,7 @@ describe('markers — zoom out after close', () => {
 	it('cancels the previous return when another marker opens during the delay', async () => {
 		const opened = await openMarkers(
 			markerBundle({
-				markers: [
-					marker('m1', { view: [0.2, 0.2, 0.5, 0.5] }),
-					marker('m2', { view: [0.3, 0.3, 0.4, 0.4] }),
-				],
+				markers: [marker('m1', { view: [0.2, 0.2, 0.5, 0.5] }), marker('m2', { view: [0.3, 0.3, 0.4, 0.4] })],
 			}),
 		)
 		await opened.openMarker('m1')
