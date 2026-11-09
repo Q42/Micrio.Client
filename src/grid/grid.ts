@@ -151,12 +151,14 @@ export class Grid extends MicrioElement<GridProps> {
 			this.#aniDurationOut = g.transitionDurationOut
 		}
 
+		// Hook before the first layout: a serial tour can pause while `set()` is still
+		// awaiting its transition, and an event listener installed afterwards drops it.
+		this.#hook()
 		this.set(this.#galleryGridImages, {
 			cover: this.image.$settings?.initType === 'cover',
 			duration: 0,
 		})
 			.then(() => {
-				this.#hook()
 				this.micrio.events._dispatch('grid-load')
 			})
 			// A layout animation started during load is aborted by the next `set()`/teardown;
@@ -188,6 +190,10 @@ export class Grid extends MicrioElement<GridProps> {
 		// and never starts its deferred camera animations on the torn-down grid.
 		this.#setId++
 		this.#clearTimeouts()
+		// A serial tour pauses every grid camera; leaving the grid must not leave them paused.
+		for (const i of this._images) {
+			i.camera.resume()
+		}
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
 		if (this.#_tourEventHandler) {
@@ -398,7 +404,12 @@ export class Grid extends MicrioElement<GridProps> {
 			if (opts.transition === 'crossfade') {
 				opts.duration = 0
 			} else if (opts.transition === 'behind' || opts.transition === 'behind-delayed') {
-				setupBehindTransition(this, imageEntries, opts, focussed)
+				const tiers = setupBehindTransition(this, imageEntries, opts, focussed)
+				// Record the transient tiers so a superseded set (which never reaches `done()`)
+				// can undo them; they are not part of `#zOverrides`.
+				if (tiers.length > 0) {
+					this.#transitionZ = new Map(tiers.map((t) => [t.id, t.z] as const))
+				}
 			}
 
 			const ready = this.image._placed
@@ -538,9 +549,13 @@ export class Grid extends MicrioElement<GridProps> {
 
 			const fadeIn = () => {
 				for (const [i, img] of this._current.entries()) {
-					void sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur / 2 : 0)) * 1000 : 0).then(() =>
-						img.canvas?._fadeIn(),
-					)
+					void sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur / 2 : 0)) * 1000 : 0).then(() => {
+						// The sleep is outside the two cancellable timers; a superseded set must
+						// not fade the layout that replaced it.
+						if (setId === this.#setId) {
+							img.canvas?._fadeIn()
+						}
+					})
 				}
 			}
 
@@ -563,7 +578,11 @@ export class Grid extends MicrioElement<GridProps> {
 					}
 				}
 				if (this._clickable !== false) {
-					this.#placeGrid()
+					if (this.micrio.state.$tour || this.micrio.state.$marker || this.$focussed) {
+						this.#removeGrid()
+					} else {
+						this.#placeGrid()
+					}
 				}
 				this._lastAction = undefined
 				resolved = true
