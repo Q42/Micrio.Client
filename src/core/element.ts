@@ -23,6 +23,8 @@ import { Gallery } from '$gallery/controller'
 import { isRTL } from '$core/i18n/locale'
 import { i18n, langs } from '$core/i18n/strings'
 import { MicrioElement } from '$core/component'
+import { createMachine, type Machine } from './machine'
+import { printInitial, reducePrint, type PrintEvent, type PrintState } from './print-state'
 import { openSplit, closeAllSplits } from '$core/split'
 import './element.css'
 import { createElement } from '$utils/dom'
@@ -122,7 +124,15 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Flag indicating if the initial print/setup has occurred.
 	 * @internal
 	 */
-	#printed = false
+	#printMachine: Machine<PrintState, PrintEvent> = createMachine({
+		initial: printInitial,
+		context: undefined,
+		reduce: reducePrint,
+		historyLimit: 0,
+	})
+	get #printed(): boolean {
+		return this.#printMachine.$state.phase !== 'unprinted'
+	}
 
 	/** The in-flight (or settled) initial setup, so a concurrent `open()` waits for it.
 	 * @internal
@@ -130,7 +140,6 @@ export class HTMLMicrioElement extends MicrioElement {
 	#printing: Promise<void> | undefined
 
 	/** Bumped by `destroy()`, so an initial setup that is still awaiting an async step stops. @internal */
-	#printGen = 0
 
 	/** Array holding all instantiated {@link MicrioImage} objects managed by this element.
 	 * @internal
@@ -561,14 +570,13 @@ export class HTMLMicrioElement extends MicrioElement {
 		this._pageButtonTimers.length = 0
 		this.#lazyObserver?.disconnect()
 		this.#lazyObserver = undefined
-		this.#printed = false
+		this.#printMachine.send({ type: 'abort' })
 		this.#printing = undefined
 		// `canvas.unhook()` above detached the resize hooking, so the next print has to run the
 		// one-time init again (it also re-applies the theme dataset); leaving this set meant a
 		// re-printed viewer never tracked its size again.
 		this.#initedFirst = false
 		// Stop a setup that is still suspended on an async step; see `#doPrint`
-		this.#printGen++
 	}
 
 	/**
@@ -654,7 +662,7 @@ export class HTMLMicrioElement extends MicrioElement {
 			// A rejected setup must be retryable: caching the rejected promise left `#printed`
 			// true with no work in flight, so every later open awaited the same failure.
 			this.#printing = this.#doPrint().catch((error: unknown) => {
-				this.#printed = false
+				this.#printMachine.send({ type: 'abort' })
 				this.#printing = undefined
 				throw error
 			})
@@ -672,20 +680,13 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (this.#printed) {
 			return
 		}
-		this.#printed = true
-		// `destroy()` bumps this; a run that is suspended on an await then stops where it is.
+		this.#printMachine.send({ type: 'print' })
+		// `destroy()` aborts this; a run that is suspended on an await then stops where it is.
 		// Otherwise it would re-print the UI and re-init the engine after teardown, and the next
 		// `#print()` would start a second, concurrent run next to it.
-		const gen = this.#printGen
+		const gen = this.#printMachine.$state.generation
 		const aborted = (): boolean => {
-			if (gen === this.#printGen) {
-				return false
-			}
-			// A newer run may already own `#printed`; only a run with none in flight clears it.
-			if (!this.#printing) {
-				this.#printed = false
-			}
-			return true
+			return gen !== this.#printMachine.$state.generation
 		}
 		// Keep this the first await: the synchronous part must not re-enter `#print`
 		// before `#printing` has been assigned.
