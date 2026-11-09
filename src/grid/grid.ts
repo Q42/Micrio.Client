@@ -7,6 +7,13 @@ import { Frame } from '$core/frame'
 import type { Gallery } from '$gallery/controller'
 import { MicrioElement } from '$core/component'
 import type { GridActionType } from './actions'
+import { createMachine, type Machine } from '$core/machine'
+import {
+	gridTransitionInitial,
+	reduceGridTransition,
+	type GridTransitionEvent,
+	type GridTransitionState,
+} from './transition-state'
 import { getEasing } from '$render/easing'
 import { createElement, sleep } from '$utils/dom'
 import { pointInArea } from '$utils/math'
@@ -61,8 +68,13 @@ export class Grid extends MicrioElement<GridProps> {
 	/** Explicit `z` overrides per image id, kept until another entry sets one or the image leaves the layout */
 	#zOverrides = new Map<string, number>()
 
-	/** Transition-only tiers applied by `in-from-id`, as image id -> the `zIndex` it was given */
-	#transitionZ = new Map<string, number>()
+	/** Transition-only tiers applied by `in-from-id`, owned by the phase machine. */
+	#transition: Machine<GridTransitionState, GridTransitionEvent> = createMachine({
+		initial: gridTransitionInitial,
+		context: undefined,
+		reduce: reduceGridTransition,
+		historyLimit: 0,
+	})
 
 	/** @internal */
 	_buttons = new Map<string, HTMLButtonElement>()
@@ -106,7 +118,6 @@ export class Grid extends MicrioElement<GridProps> {
 	#_to: ReturnType<typeof setTimeout> | undefined
 	/** @internal */
 	#_fadeTo: ReturnType<typeof setTimeout> | undefined
-	#setId = 0
 	#timingFunction: Models.Camera.TimingFunction = 'ease'
 	#closeBtn!: HTMLElement
 
@@ -188,7 +199,7 @@ export class Grid extends MicrioElement<GridProps> {
 	_onDestroy() {
 		// Bump the set id so an in-flight `in-from-id` readiness gate stops polling
 		// and never starts its deferred camera animations on the torn-down grid.
-		this.#setId++
+		this.#transition.send({ type: 'invalidate' })
 		this.#clearTimeouts()
 		// A serial tour pauses every grid camera; leaving the grid must not leave them paused.
 		for (const i of this._images) {
@@ -301,13 +312,13 @@ export class Grid extends MicrioElement<GridProps> {
 	 * still carrying the tier it assigned are touched, so a `z` or focus applied
 	 * afterwards wins. */
 	#clearTransitionZ(): void {
-		for (const [id, z] of this.#transitionZ) {
+		for (const { id, z } of this.#transition.$state.tiers) {
 			const c = this._imageMap.get(id)?.canvas
 			if (c && c.zIndex === z) {
 				c.zIndex = this.#zOverrides.get(id) ?? 0
 			}
 		}
-		this.#transitionZ.clear()
+		this.#transition.send({ type: 'cancel' })
 	}
 
 	/** Restore every image's stacking order after a delayed or `in-from-id` transition. */
@@ -317,7 +328,7 @@ export class Grid extends MicrioElement<GridProps> {
 				i.canvas.zIndex = this.#zOverrides.get(i.id) ?? 0
 			}
 		}
-		this.#transitionZ.clear()
+		this.#transition.send({ type: 'cancel' })
 	}
 
 	#trackImage(img: MicrioImage): void {
@@ -375,8 +386,9 @@ export class Grid extends MicrioElement<GridProps> {
 			columns?: number
 		} = {},
 	): Promise<MicrioImage[]> {
-		const setId = ++this.#setId
 		this.#clearTransitionZ()
+		this.#transition.send({ type: 'begin' })
+		const { setId } = this.#transition.$state
 		if (this._images.length > 0) {
 			for (const i of this._images) {
 				i.camera.stop()
@@ -408,7 +420,7 @@ export class Grid extends MicrioElement<GridProps> {
 				// Record the transient tiers so a superseded set (which never reaches `done()`)
 				// can undo them; they are not part of `#zOverrides`.
 				if (tiers.length > 0) {
-					this.#transitionZ = new Map(tiers.map((t) => [t.id, t.z] as const))
+					this.#transition.send({ type: 'tiers', tiers })
 				}
 			}
 
@@ -446,7 +458,7 @@ export class Grid extends MicrioElement<GridProps> {
 
 			let resolved = false
 			const error = () => {
-				if (setId !== this.#setId) {
+				if (setId !== this.#transition.$state.setId) {
 					return
 				}
 				this.#clearTimeouts()
@@ -469,7 +481,7 @@ export class Grid extends MicrioElement<GridProps> {
 			const whenReady = (fn: () => void): void => {
 				if (readyGate) {
 					void readyGate.then(() => {
-						if (setId === this.#setId) {
+						if (setId === this.#transition.$state.setId) {
 							fn()
 						}
 					})
@@ -533,10 +545,10 @@ export class Grid extends MicrioElement<GridProps> {
 			if (inFromId) {
 				const tiers = setupInFromIdTransition(this, imageEntries, this._current, prevById, inFromId, {
 					timeout: inFromIdTimeout(dur, crossfadeDur, opts.readinessTimeout),
-					canOpen: () => setId === this.#setId,
+					canOpen: () => setId === this.#transition.$state.setId,
 					open: () => openGate?.(),
 				})
-				this.#transitionZ = new Map(tiers.map((t) => [t.id, t.z] as const))
+				this.#transition.send({ type: 'tiers', tiers })
 			}
 
 			if (isAppear) {
@@ -552,7 +564,7 @@ export class Grid extends MicrioElement<GridProps> {
 					void sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur / 2 : 0)) * 1000 : 0).then(() => {
 						// The sleep is outside the two cancellable timers; a superseded set must
 						// not fade the layout that replaced it.
-						if (setId === this.#setId) {
+						if (setId === this.#transition.$state.setId) {
 							img.canvas?._fadeIn()
 						}
 					})
@@ -560,10 +572,11 @@ export class Grid extends MicrioElement<GridProps> {
 			}
 
 			const done = () => {
-				if (setId !== this.#setId) {
+				if (setId !== this.#transition.$state.setId) {
 					return
 				}
 				this.#clearTimeouts()
+				this.#transition.send({ type: 'done' })
 				Frame.request(() => (engine._crossfadeDuration = defaultDur))
 				if (isDelayed || isInFromId) {
 					this.#resetZ()
@@ -596,6 +609,7 @@ export class Grid extends MicrioElement<GridProps> {
 					}
 					done()
 				} else {
+					this.#transition.send({ type: 'timing' })
 					if (!opts.noFade) {
 						this.#_fadeTo = setTimeout(fadeIn, Math.max(0, (dur / 2) * 1000))
 					}
