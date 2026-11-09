@@ -36,6 +36,9 @@ import {
 	GRAB_ROW,
 	GRAB_ROW_MAX_OFFSET,
 	GOTO_GRAB_ROW_MAX_OFFSET,
+	GOTO_STACK_MIN_DISTANCE,
+	GOTO_STACK_PAGES_PER_STEP,
+	GOTO_STACK_TAIL_PAGES,
 } from './core/settings'
 import { IIIFTextureManager } from './rendering/iiif-manager'
 import type { PageClickResult, PageDragResult } from './core/types'
@@ -283,7 +286,13 @@ export class BookViewer {
 
 		const direction = idx > this.#currentPage ? 1 : -1
 		const fresh = !this.#flipAnimator._animating
-		let remaining = Math.abs(idx - this.#currentPage)
+		const distance = Math.abs(idx - this.#currentPage)
+		// A long jump starts each page closer than one per frame, so the whole stack
+		// is in flight sooner and the cascade ends sooner. Every page keeps its own
+		// full flip, grab row and physics.
+		const stack = distance >= GOTO_STACK_MIN_DISTANCE
+		const pagesPerStep = stack ? GOTO_STACK_PAGES_PER_STEP : 1
+		let remaining = distance
 		let first = true
 
 		const step = (): void => {
@@ -295,14 +304,21 @@ export class BookViewer {
 				return
 			}
 			const maxOff = first && fresh ? GRAB_ROW_MAX_OFFSET : GOTO_GRAB_ROW_MAX_OFFSET
-			const grabRow = GRAB_ROW + (Math.random() * 2 - 1) * maxOff
-			if (direction > 0) {
-				this._nextPage(grabRow)
-			} else {
-				this._prevPage(grabRow)
+			// Never add a stack's worth of flips on the immediate step of a superseding
+			// call: a scrub drag keeps its one-page-per-event responsiveness. The last
+			// few pages also start one per frame, so the top page lands on a settled stack.
+			const count = (first && !fresh) || remaining <= GOTO_STACK_TAIL_PAGES ? 1 : Math.min(remaining, pagesPerStep)
+			for (let i = 0; i < count; i++) {
+				// Each page draws its own grab row, so the group never turns as one rigid sheet.
+				const grabRow = GRAB_ROW + (Math.random() * 2 - 1) * maxOff
+				if (direction > 0) {
+					this._nextPage(grabRow)
+				} else {
+					this._prevPage(grabRow)
+				}
 			}
 			first = false
-			remaining--
+			remaining -= count
 			this.#gotoStep = step
 			Frame.request(step)
 		}
@@ -1396,9 +1412,11 @@ export class BookViewer {
 
 	#getDrawnImages(): { id: string; pageIndex: number; side: 0 | 1 }[] {
 		const drawn: { id: string; pageIndex: number; side: 0 | 1 }[] = []
+		const seen = new Set<string>()
 		const push = (pageIndex: number, side: 0 | 1): void => {
 			const img = this.#images[pageIndex * 2 + side]
-			if (img !== undefined && !drawn.some((d) => d.id === img.id)) {
+			if (img !== undefined && !seen.has(img.id)) {
+				seen.add(img.id)
 				drawn.push({ id: img.id, pageIndex, side })
 			}
 		}
@@ -1438,7 +1456,10 @@ export class BookViewer {
 
 		const out: DrawnImage[] = []
 		for (const d of this.#getDrawnImages()) {
-			const bounds = this.#computeImageVisibleUv(d.pageIndex, d.side, vp)
+			const progress = this.#flipAnimator._getPageProgress(d.pageIndex)
+			// Mid-flip pages only need rough bounds; the dense grid is for the settled spread.
+			const steps = progress > 0 && progress < 1 ? 8 : 32
+			const bounds = this.#computeImageVisibleUv(d.pageIndex, d.side, vp, steps)
 			if (bounds) {
 				out.push({ id: d.id, bounds })
 			}
@@ -1453,10 +1474,10 @@ export class BookViewer {
 		pageIndex: number,
 		side: 0 | 1,
 		vp: { viewProj: Mat4; clientWidth: number; clientHeight: number },
+		steps: number,
 	): [number, number, number, number] | null {
 		const mesh = this.#meshes[pageIndex]
 		const region = this.#textureRegion(pageIndex, side)
-		const steps = 32
 		let maxU = -Infinity,
 			maxV = -Infinity,
 			minU = Infinity,
@@ -1722,19 +1743,67 @@ export class BookViewer {
 			return
 		}
 
-		const subDt = dt / this.#solverSettings._substeps
-		this.#solverSettings._damping = this.#gotoMachine.$state.phase !== 'idle' ? GOTO_DAMPING : DAMPING
+		// A riffle has many pages in flight at once; two substeps keep the bend stable
+		// while cutting the solver cost by a third.
+		const substeps = activeIndices.length > 24 ? 2 : this.#solverSettings._substeps
+		const subDt = dt / substeps
+		const gotoActive = this.#gotoMachine.$state.phase !== 'idle'
+		this.#solverSettings._damping = DAMPING
+
+		const turningPages: number[] = []
+		const settledPages: number[] = []
+		for (const pi of activeIndices) {
+			if (this.#flipAnimator._isPageAnimating(pi) || this.#flipAnimator._isPageDragging(pi)) {
+				turningPages.push(pi)
+			} else {
+				settledPages.push(pi)
+			}
+		}
+
+		// During a goto, pages that are still turning stay lively. A page that has already
+		// landed settles on the normal damping instead of bouncing for the rest of the riffle.
+		if (!gotoActive || turningPages.length === 0) {
+			dispatchSolve(
+				subDt,
+				activeIndices,
+				substeps,
+				this.#solverSettings,
+				this.#meshes,
+				progress,
+				this.#totalStackHeight,
+				this.#pageCount,
+				PAGE_THICKNESS,
+				activeIndices.length,
+			)
+			return
+		}
+
 		dispatchSolve(
 			subDt,
-			activeIndices,
-			this.#solverSettings._substeps,
-			this.#solverSettings,
+			turningPages,
+			substeps,
+			{ ...this.#solverSettings, _damping: GOTO_DAMPING },
 			this.#meshes,
 			progress,
 			this.#totalStackHeight,
 			this.#pageCount,
 			PAGE_THICKNESS,
+			activeIndices.length,
 		)
+		if (settledPages.length > 0) {
+			dispatchSolve(
+				subDt,
+				settledPages,
+				substeps,
+				this.#solverSettings,
+				this.#meshes,
+				progress,
+				this.#totalStackHeight,
+				this.#pageCount,
+				PAGE_THICKNESS,
+				activeIndices.length,
+			)
+		}
 	}
 
 	#updateRenderBuffersForActivePages(): void {

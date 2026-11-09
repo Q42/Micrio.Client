@@ -52,8 +52,20 @@ export const GRAB_ROW_MAX_OFFSET = 0.12
 /** Tighter max random offset used during rapid .goto() flips for a more uniform look */
 export const GOTO_GRAB_ROW_MAX_OFFSET = 0.02
 
+/** Page distance from which a .goto() starts new flips closer together than one per frame */
+export const GOTO_STACK_MIN_DISTANCE = 4
+
+/** Pages whose flips may start in the same frame during a long .goto(); each keeps its own full flip */
+export const GOTO_STACK_PAGES_PER_STEP = 3
+
+/** Final pages of a long .goto() that still start one per frame, so each lands on a settled stack */
+export const GOTO_STACK_TAIL_PAGES = 4
+
 /** Peak arc height of the flipped corner above the rest position */
 export const ARC_PEAK = 0.7
+
+/** Velocity retained when a flip lands (lower = less bounce after the page hits the stack) */
+export const LANDING_VELOCITY_SCALE = 0.2
 
 /** Base duration (seconds) for a full page flip at speed 1.0 */
 export const BASE_FLIP_DURATION = 0.6
@@ -75,7 +87,7 @@ export const BENDING_COMPLIANCE = 0.000041
 /** Velocity damping per substep (0.92 = 8% velocity loss per substep) */
 export const DAMPING = 0.975
 
-/** Damping used during rapid .goto() page-flip cascades (higher = faster settling) */
+/** Damping used while a rapid .goto() still has pages turning (higher = livelier, slower to settle) */
 export const GOTO_DAMPING = 0.995
 
 /** Gravitational acceleration in world-space units */
@@ -85,7 +97,11 @@ export const GRAVITY = 9.81
 export const GRAVITY_ENABLED = true
 
 /** Minimum vertex position delta to consider a page still "active" — below this it goes idle */
-export const DELTA_IDLE_THRESHOLD = 1e-6
+export const DELTA_IDLE_THRESHOLD = 1e-3
+
+/** Depth-buffer units of polygon offset per animating page, so later pages win ties without
+ *  reordering the whole stack. One page thickness is roughly 400 units at the default view. */
+export const ANIM_PAGE_DEPTH_OFFSET = 500
 
 // ── Visual / rendering ──
 

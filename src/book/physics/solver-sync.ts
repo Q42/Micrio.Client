@@ -85,6 +85,8 @@ export function dispatchSolve(
 	totalStackHeight: number,
 	pageCount: number,
 	pageThickness: number,
+	/** Total active pages when the solve is split by damping; keeps the iteration policy global. */
+	iterationBasis = activeIndices.length,
 ): void {
 	if (!ready) {
 		return
@@ -95,7 +97,7 @@ export function dispatchSolve(
 	const weightFactor = computeWeightFactor(progress, pageCount)
 	const pageFloors = computeAllPageFloors(progress, weightFactor, totalStackHeight, pageCount, pageThickness)
 
-	const animCount = activeIndices.length
+	const animCount = iterationBasis
 	const dynIters =
 		animCount <= 5
 			? solverSettings._solverIterations

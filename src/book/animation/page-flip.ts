@@ -8,6 +8,7 @@ import {
 	FLIP_SPEED,
 	GRAB_ROW,
 	GRAB_ROW_MAX_OFFSET,
+	LANDING_VELOCITY_SCALE,
 } from '../core/settings'
 import { Vec3 } from '../core/vec3'
 import { isSlotAnimating, slotDirection, type SlotPhase } from './page-flip-state'
@@ -362,6 +363,11 @@ export class PageFlipAnimator {
 			const finished = this.#advanceAnim(dtClamped, slot, mesh, tempArc)
 			if (finished) {
 				this.#releaseDriven(mesh, slot)
+				// The page has just landed; drop most of the velocity it built up while
+				// turning so the stack settles instead of springing back for half a second.
+				for (let i = 0; i < mesh._velocities.length; i++) {
+					mesh._velocities[i] *= LANDING_VELOCITY_SCALE
+				}
 			}
 		}
 

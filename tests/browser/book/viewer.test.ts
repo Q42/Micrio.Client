@@ -184,6 +184,27 @@ describe('BookViewer — goto', () => {
 		await pending
 		book.destroy()
 	})
+
+	it('starts a long jump closer together instead of one page per frame', async () => {
+		const images = Array.from({ length: 24 }, (_, i) => bookImage(`p${i}`))
+		const book = await mountBook({ images })
+		expect(book.viewer._getPageCount()).toBe(12)
+
+		let resolved = false
+		const pending = book.viewer.goto(11).then(() => {
+			resolved = true
+		})
+		// Three pages on the immediate step, three per frame, then one per frame for
+		// the final four: a one-page-per-frame cascade is still on page 6 after this.
+		book.steps(5)
+		expect(book.viewer._getCurrentPage()).toBe(11)
+
+		const { frames, settled } = await book.settle(() => resolved)
+		expect(settled).toBe(true)
+		expect(frames).toBeLessThan(200)
+		await pending
+		book.destroy()
+	})
 })
 
 describe('BookViewer — per-frame callbacks', () => {

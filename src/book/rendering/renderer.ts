@@ -10,6 +10,7 @@ import {
 	TILT_SHIFT_BLUR_RADIUS,
 	TILT_SHIFT_BLUR_FALLOFF,
 	PAGE_THICKNESS,
+	ANIM_PAGE_DEPTH_OFFSET,
 	LIGHTING_PRESET,
 } from '../core/settings'
 import { computeLighting, getPresets } from './lighting'
@@ -792,7 +793,7 @@ export class PaperRenderer {
 			gl.enable(gl.POLYGON_OFFSET_FILL)
 
 			for (let i = 0; i < animPages.length; i++) {
-				gl.polygonOffset(0, -i * 12000)
+				gl.polygonOffset(0, -i * ANIM_PAGE_DEPTH_OFFSET)
 				this.#drawPage(animPages[i])
 			}
 
