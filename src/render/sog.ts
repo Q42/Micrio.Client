@@ -7,13 +7,14 @@ import { VIEWER_BASE } from '$core/globals'
 /** Micrio ids that have a local SOG capture in the 360Splats dev server. */
 const SOG_IDS = new Set(['iPrQFH'])
 
-/** The 360Splats dev server, which serves the PlayCanvas bundle and `generated/`. */
+/** The 360Splats dev server, which serves the generated `.sog` captures. */
 const SOG_HOST = 'http://localhost:3000'
 const SOG_QUALITY = 'l'
 
-/** Version of the Micrio.360Splats bundle; keep in sync with its package.json. */
+/** Released Micrio SOG viewer bundle; keep in sync with Micrio.360Splats/package.json. */
+const SOG_VIEWER_BASE = 'https://r2.micr.io/'
 const SOG_VIEWER_VERSION = '0.1.0'
-const SOG_VIEWER_URL = `${SOG_HOST}/micrio-pc-sog-${SOG_VIEWER_VERSION}.min.js`
+const SOG_VIEWER_URL = `${SOG_VIEWER_BASE}micrio-pc-sog-${SOG_VIEWER_VERSION}.min.js`
 
 /** The subset of the SOG viewer handle this integration calls. */
 interface MicrioSogViewer {
