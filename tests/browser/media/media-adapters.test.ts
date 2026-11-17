@@ -22,6 +22,7 @@ const CFVID_URL = 'cfvid://abcdef123456'
 let restore: (() => void)[] = []
 
 afterEach(() => {
+	vi.useRealTimers()
 	for (const fn of restore) {
 		fn()
 	}
@@ -215,8 +216,13 @@ describe('media adapter callbacks', () => {
 
 		const stateChange = await stateChangeOf(yt)
 		const before = progress(el)
-		// The 250ms tick only runs while playing; the stub reports 10s of 90s
-		vi.useFakeTimers()
+		// The 250ms tick only runs while playing; the stub reports 10s of 90s.
+		//
+		// Fake the interval only: faking `requestAnimationFrame` lets this clock capture a
+		// `Frame` callback that is still in flight from the mount (an engine draw on a
+		// late tile), and `useRealTimers()` then drops it — `Frame`'s `rafId` stays set, so
+		// every later `settle()` in this file waits on a frame that never comes.
+		vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
 		try {
 			stateChange({ data: 1 })
 			await vi.advanceTimersByTimeAsync(300)
