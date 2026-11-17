@@ -348,6 +348,17 @@ export namespace ImageInfo {
 		secondaryInteractive?: boolean
 	}
 
+	export interface SogInfo {
+		/** SOG quality/name (for example `l`, `m`, `s`, `xs`) */
+		name: string
+		/** Number of gaussian splats in the file */
+		numSplats: number
+		/** Build timestamp of the file, in ms */
+		timestamp: number
+		/** File size in bytes */
+		fileSize: number
+	}
+
 	export interface OmniSettings {
 		/** Number of frames */
 		frames: number
@@ -372,6 +383,8 @@ export namespace ImageInfo {
 		frontIndex?: number
 		/** Layers */
 		layers?: { i18n: { [key: string]: string | undefined } }[]
+		/** Available Gaussian splat captures for this object */
+		sog?: SogInfo[]
 		/** Optional starting layer idx */
 		layerStartIndex?: number
 		/** Hide the rotation dial */

@@ -15,6 +15,7 @@ import { Frame } from './frame'
 import { Engine } from '$render/engine'
 import { WebGL } from '$render/webgl'
 import { Canvas } from '$render/canvas'
+import { SogRenderer, isSogBundle } from '$render/sog'
 import { Events } from '$core/events/facade'
 import { MicrioImage } from './image'
 import { State } from './state'
@@ -199,6 +200,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	 * @internal
 	 */
 	readonly _engine: Engine = new Engine(this)
+
+	/** The Gaussian splat renderer used for `data-prefer-splats` images. @internal */
+	readonly _sogRenderer: SogRenderer = new SogRenderer(this)
 
 	/** The root MicrioMain UI component instance.
 	 * @internal
@@ -537,6 +541,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		closeAllSplits(this, true)
 		this.current.set(undefined)
 		this.events.enabled.set(false)
+		this._sogRenderer.dispose()
+		this._engine._sog = false
 		this.state._cancelTouch()
 		this.canvas.unhook()
 		this._engine._unbind()
@@ -919,6 +925,16 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 		deepCopy(DEFAULT_SETTINGS, bundle.settings, { noOverwrite: true }) // Fill in any missing defaults
 
+		// ── Gaussian splat rendering ──────────────────────────────────────────
+
+		// A SOG image keeps Micrio's camera, events and omni UI, and swaps only
+		// the renderer: the tile canvas provides the view, the SOG viewer draws it.
+		const sog = isSogBundle(this, bundle)
+		this._engine._sog = sog
+		if (!sog) {
+			this._sogRenderer.dispose()
+		}
+
 		// ── Deduplicate ───────────────────────────────────────────────────────
 
 		// An *unplaced* current image falls through instead: its canvas was closed (or never
@@ -980,7 +996,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		if (!this._engine._book3d) {
 			this._engine._load()
-			if (!this._webgl.gl) {
+			// The SOG viewer brings its own graphics device, so Micrio must not
+			// claim the canvas with a WebGL context.
+			if (!this._engine._sog && !this._webgl.gl) {
 				try {
 					this._webgl._init()
 					// A program that does not link draws nothing: report it like a compile failure
@@ -1049,6 +1067,10 @@ export class HTMLMicrioElement extends MicrioElement {
 			this._loading.set(false)
 		}
 
+		if (sog) {
+			void this._sogRenderer.start(c)
+		}
+
 		// Settings-level split screen (auto-open on load)
 		if (c.$settings.micrioSplitLink && !c._noImage && !c.grid) {
 			void tick().then(() => {
@@ -1080,6 +1102,10 @@ export class HTMLMicrioElement extends MicrioElement {
 	close(img: MicrioImage): void {
 		if (!img._placed) {
 			return
+		}
+		if (this._engine._sog) {
+			this._sogRenderer.dispose()
+			this._engine._sog = false
 		}
 		this._engine._removeCanvas(img)
 	}

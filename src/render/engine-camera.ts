@@ -114,6 +114,7 @@ export default abstract class EngineCamera {
 		limitZoom: boolean,
 		toOmniIdx: number,
 		fn: Bicubic,
+		toOmniDeg = Number.NaN,
 	): number {
 		const c = this.canvas
 		const a = c._ani
@@ -126,6 +127,7 @@ export default abstract class EngineCamera {
 			isJump,
 			limitViewport: limit,
 			omniIdx: toOmniIdx,
+			omniDeg: toOmniDeg,
 			correct: limitZoom,
 		})
 		a._limit = false

@@ -180,6 +180,18 @@ export namespace State {
 		/** Writable store holding the currently displayed layer index (for Omni objects). */
 		readonly layer: Writable<number> = writable(0)
 
+		/**
+		 * Continuous omni rotation in degrees, 0 at the first frame.
+		 * Seamless (SOG) mode uses the full value; legacy tile mode snaps it to a frame.
+		 */
+		readonly omniRotation: Writable<number> = writable(0)
+		/** Internal reference to the current omni rotation. @internal */
+		#_omniRotation = 0
+		/** Getter for the current omni rotation in degrees. */
+		get $omniRotation(): number {
+			return this.#_omniRotation
+		}
+
 		/** Creates an Image state controller and subscribes to view/marker changes to synchronise with the main element state. @param image The parent MicrioImage instance. */
 		constructor(image: MicrioImage) {
 			const m = image.engine.micrio // Reference to main element
@@ -187,6 +199,10 @@ export namespace State {
 			// zoom dimensions for the width/height change threshold.
 			let pH: number | undefined, pW: number | undefined, pX: number | undefined, pY: number | undefined
 			let zH: number | undefined, zW: number | undefined
+
+			this.omniRotation.subscribe((rotation) => {
+				this.#_omniRotation = rotation
+			})
 
 			// Subscribe to view store changes
 			this.view.subscribe((view) => {

@@ -118,6 +118,12 @@ export class Engine {
 	 */
 	_book3d = false
 
+	/** Flag indicating a SOG Gaussian splat viewer owns the shared `<canvas>`. Like
+	 *  `_book3d`, the engine stays inert so no tiles are loaded or drawn.
+	 *  @internal
+	 */
+	_sog = false
+
 	/** Flag indicating if a binary archive is being used. @internal */
 	_hasArchive = false
 	/** Layer offset when using an archive. @internal */
@@ -774,8 +780,29 @@ export class Engine {
 
 		this.#drawing = false
 
+		const more = this._shouldDraw(now)
+
+		if (this._sog) {
+			// The SOG viewer does the drawing, but it mirrors Micrio's camera: run
+			// the same camera/animation step, then publish the view that came out
+			// of it. The tile canvas neither draws nor loads textures.
+			for (const c of this._canvases) {
+				c._notifyView()
+			}
+			this.micrio.events._dispatch('draw')
+			if (
+				this._animating ||
+				this.micrio._keepRendering ||
+				this.micrio.events.isNavigating ||
+				this.micrio.$current?._video?.paused === false
+			) {
+				this.render()
+			}
+			return
+		}
+
 		if (
-			this._shouldDraw(now) ||
+			more ||
 			this.micrio._keepRendering ||
 			this.micrio.events.isNavigating ||
 			this.micrio.$current?._video?.paused === false

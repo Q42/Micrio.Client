@@ -211,6 +211,44 @@ describe('omni — rotation', () => {
 		expect(omni.viewer.el.dataset.panning).toBeUndefined()
 	})
 
+	it('turns while panning vertically when only the full width is visible', async () => {
+		// The fixture's default zoom limit clamps any zoomed view at its own scale,
+		// so raise it: the point here is a normally zoomed camera.
+		const omni = await openOmni({ frames: 36, settings: { zoomLimit: 4 } })
+		stubCapture(omni.viewer)
+		const canvas = omni.viewer.el.canvas.element
+		canvas.dispatchEvent(
+			new WheelEvent('wheel', { deltaY: -120, clientX: 400, clientY: 200, bubbles: true, cancelable: true }),
+		)
+		await settle(4)
+		// The full width is visible while the height overflows: a horizontal drag has
+		// nothing to pan, so it turns the object, while the vertical part of the same
+		// drag pans the cropped view.
+		expect(omni.image.state.$view?.[2] ?? 0).toBeGreaterThanOrEqual(1)
+		expect(omni.image.state.$view?.[3] ?? 1).toBeLessThan(1)
+
+		const startIndex = omni.omni.currentIndex
+		const startY = omni.image.camera.getView()[1]
+
+		canvas.dispatchEvent(
+			new PointerEvent('pointerdown', { pointerId: 6, clientX: 400, clientY: 300, button: 0, bubbles: true }),
+		)
+		// The first move starts the pan's delta bookkeeping; the second turns and pans
+		omni.viewer.el.dispatchEvent(
+			new PointerEvent('pointermove', { pointerId: 6, clientX: 390, clientY: 310, bubbles: true }),
+		)
+		omni.viewer.el.dispatchEvent(
+			new PointerEvent('pointermove', { pointerId: 6, clientX: 300, clientY: 400, bubbles: true }),
+		)
+
+		expect(omni.omni.currentIndex).not.toBe(startIndex)
+		expect(omni.image.camera.getView()[1]).not.toBeCloseTo(startY, 4)
+
+		omni.viewer.el.dispatchEvent(
+			new PointerEvent('pointerup', { pointerId: 6, clientX: 300, clientY: 400, bubbles: true }),
+		)
+	})
+
 	it('ignores a three-pointer gesture', async () => {
 		const omni = await openOmni({ frames: 36 })
 		stubCapture(omni.viewer)

@@ -32,6 +32,12 @@ export class OmniUI {
 	#swiperOpts: { sensitivity?: number; continuous?: boolean; coverLimit?: boolean } = {}
 
 	#startIndex: number | undefined
+	/** Rotation at the start of a drag, in degrees (seamless mode). */
+	#startRotation = 0
+	/** Frames per rotation; the conversion base between frames and degrees. */
+	#frames = 0
+	/** True when the renderer is the SOG viewer: rotation is continuous degrees. */
+	#seamless = false
 	#startX: number | undefined
 	#hitTresh = false
 	#snapTo: number[] = []
@@ -46,14 +52,49 @@ export class OmniUI {
 	#destroyed = false
 	#cleanups: (() => void)[] = []
 
-	/** Navigate to a specific frame index. */
+	/** Navigate to a specific frame index. Seamless mode converts it to degrees. */
 	goto(i: number): void {
-		this.#goto(i)
+		if (this.#seamless) {
+			this.#setRotation((i / Math.max(1, this.#frames)) * 360)
+		} else {
+			this.#goto(i)
+		}
 	}
 
-	/** Active frame index currently displayed. */
+	/** Set the object rotation in degrees. Legacy mode snaps it to the nearest frame. */
+	setRotation(deg: number): void {
+		this.#setRotation(deg)
+	}
+
+	/** Continuous rotation in degrees, 0 at the first frame. */
+	get rotation(): number {
+		return this.#image.state.$omniRotation
+	}
+
+	/** Active frame index currently displayed (derived from the rotation when seamless). */
 	get currentIndex(): number {
+		if (this.#seamless) {
+			const frames = this.#frames || 1
+			return ((Math.round((this.rotation / 360) * frames) % frames) + frames) % frames
+		}
 		return this.#image.canvas?._activeImageIdx ?? -1
+	}
+
+	/** Applies a rotation in degrees, snapping to a frame in the legacy renderer. */
+	#setRotation = (deg: number): void => {
+		const normalized = ((deg % 360) + 360) % 360
+		if (!this.#seamless) {
+			this.#goto(Math.round((normalized / 360) * this.#frames))
+			return
+		}
+		const image = this.#image
+		image.state.omniRotation.set(normalized)
+		// Keep the legacy frame bookkeeping in sync without snapping the renderer.
+		const frames = this.#frames || 1
+		const idx = Math.round((normalized / 360) * frames) % frames
+		if (image.canvas && image.canvas._activeImageIdx !== idx) {
+			image.canvas._setActiveImage(idx, 0)
+		}
 	}
 
 	/* @internal */
@@ -82,6 +123,8 @@ export class OmniUI {
 		const totalFrames = omni.frames
 		const numLayers = omni.layers?.length ?? 1
 		const pagesPerLayer = totalFrames / numLayers
+		this.#frames = pagesPerLayer
+		this.#seamless = micrio._engine._sog
 		// `startIndex` is an absolute frame; wrap it into the layer the way `#goto` does
 		let startIdx = omni.startIndex ?? 0
 		while (startIdx < 0) {
@@ -109,7 +152,8 @@ export class OmniUI {
 			frames.push(frame)
 		}
 
-		if (Number.parseFloat(info.version) >= 5) {
+		// The SOG viewer has its own asset; Micrio's tile archive is never read.
+		if (!micrio._engine._sog && Number.parseFloat(info.version) >= 5) {
 			await archive
 				.load(info.tileBasePath || info.path, `${info.tilesId ?? info.id}/base`, (p: number) =>
 					micrio._ui?._setProps?.({ loadingProgress: p }),
@@ -126,12 +170,17 @@ export class OmniUI {
 		}
 
 		image.canvas?._setActiveImage(startIdx, 0)
+		image.state.omniRotation.set((startIdx / pagesPerLayer) * 360)
 		engine.render()
 
 		const hasArchive = Boolean(image.$settings.gallery?.archive)
 		const preloadD = 'requestIdleCallback' in globalThis ? Math.max(36, Math.floor(totalFrames / 8) * 2) : 50
 
 		const preload = (c: number) => {
+			// Every frame is rendered from the single SOG; tile thumbnails are dead weight.
+			if (micrio._engine._sog) {
+				return
+			}
 			this.#preloadRangeFn(
 				c,
 				totalFrames,
@@ -156,7 +205,11 @@ export class OmniUI {
 					frames: pagesPerLayer,
 					degrees: Boolean(omni.showDegrees),
 					onturn: (frame: number) => {
-						this.goto(Math.round(frame) % pagesPerLayer)
+						if (this.#seamless) {
+							this.#setRotation((frame / pagesPerLayer) * 360)
+						} else {
+							this.goto(Math.round(frame) % pagesPerLayer)
+						}
 					},
 				},
 			})
@@ -175,10 +228,16 @@ export class OmniUI {
 			}
 			idx %= pagesPerLayer
 			image.canvas?._setActiveImage(idx, 0)
-			dial?._setProps?.({ currentRotation: (idx / pagesPerLayer) * 360 })
+			image.state.omniRotation.set((idx / pagesPerLayer) * 360)
 			preload(idx)
 			engine.render()
 		}
+
+		this.#cleanups.push(
+			image.state.omniRotation.subscribe((rotation) => {
+				dial?._setProps?.({ currentRotation: rotation })
+			}),
+		)
 
 		this.#initSwiper()
 		image.omni = this
@@ -186,9 +245,9 @@ export class OmniUI {
 
 		this.#cleanups.push(
 			image.state.layer.subscribe(() => {
-				// The dial shows the *frame* within the layer, so a layer change must
-				// re-sync it from the active frame — not from the layer index
-				dial?._setProps?.({ currentRotation: (this.currentIndex / pagesPerLayer) * 360 })
+				// A layer change does not rotate the object, so keep the continuous
+				// rotation (legacy mode keeps it snapped to the active frame).
+				dial?._setProps?.({ currentRotation: this.rotation })
 			}),
 		)
 
@@ -306,7 +365,10 @@ export class OmniUI {
 			if (this.#swiperOpts.coverLimit) {
 				this.#isFullWidth = this.#image.camera.isZoomedOut()
 			} else {
-				this.#isFullWidth = v ? Math.round(v[3] * 1000) / 1000 >= 1 : true
+				// Rotate while the image's full width is visible: a horizontal drag then
+				// has nothing to pan, so it turns the object, while the same drag can
+				// still pan the vertically cropped view.
+				this.#isFullWidth = v ? Math.round(v[2] * 1000) / 1000 >= 1 : true
 			}
 		}
 		syncFullWidth(this.#image.state.$view)
@@ -354,6 +416,7 @@ export class OmniUI {
 			this.#hitTresh = false
 			this.#micrio.dataset.panning = ''
 			this.#startIndex = this.currentIndex
+			this.#startRotation = this.rotation
 			this.#startX = e.clientX
 			this.#firstTouchId = e.pointerId
 			this.#micrio.addEventListener('pointermove', this.#dMove)
@@ -387,6 +450,7 @@ export class OmniUI {
 				// A pinch that turns into a swipe is measured from where it crossed
 				this.#hitTresh = true
 				this.#startX = origin = e.clientX
+				this.#startRotation = this.rotation
 			}
 		}
 		if (!this.#hitTresh) {
@@ -401,6 +465,14 @@ export class OmniUI {
 		const scale = !this.#swiperOpts.continuous
 			? 1
 			: Math.max(0.1, (camera.getXY(1, 0.5)[0] - camera.getXY(0, 0.5)[0]) / this.#micrio.offsetWidth)
+		if (this.#seamless) {
+			// Seamless: the drag moves through degrees, not frame steps.
+			const deltaDeg =
+				((e.clientX - origin) / (this.#micrio.offsetWidth * scale)) * 360 * (this.#swiperOpts.sensitivity ?? 1)
+			this.#setRotation(this.#startRotation - deltaDeg)
+			return
+		}
+
 		const delta = Math.round(
 			((e.clientX - origin) / (this.#micrio.offsetWidth * scale)) *
 				this.#swiperLength *
@@ -464,10 +536,35 @@ export class OmniUI {
 			Frame.cancel(this.#raf)
 		}
 		const duration = 250,
-			startIdx = this.currentIndex,
 			started = performance.now()
-		const delta = startIdx - idx
 
+		if (this.#seamless) {
+			const target = (idx / Math.max(1, this.#frames)) * 360
+			const start = this.rotation
+			let delta = target - start
+			while (delta > 180) {
+				delta -= 360
+			}
+			while (delta < -180) {
+				delta += 360
+			}
+			const frame = (time: number): void => {
+				const p = Math.min(1, (time - started) / duration)
+				if (p < 1) {
+					this.#raf = frame
+					Frame.request(frame)
+				} else {
+					this.#raf = undefined
+				}
+				this.#setRotation(start + delta * easeInOut.get(p))
+			}
+			this.#raf = frame
+			Frame.request(frame)
+			return
+		}
+
+		const startIdx = this.currentIndex
+		const delta = startIdx - idx
 		const frame = (time: number): void => {
 			const p = Math.min(1, (time - started) / duration)
 			if (p < 1) {
