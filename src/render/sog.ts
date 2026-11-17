@@ -2,15 +2,6 @@ import type { HTMLMicrioElement } from '$core/element'
 import type { MicrioImage } from '$core/image'
 import type { Models } from '$types/models'
 
-import { VIEWER_BASE } from '$core/globals'
-
-/** Micrio ids that have a local SOG capture in the 360Splats dev server. */
-const SOG_IDS = new Set(['iPrQFH'])
-
-/** The 360Splats dev server, which serves the generated `.sog` captures. */
-const SOG_HOST = 'http://localhost:3000'
-const SOG_QUALITY = 'l'
-
 /** Released Micrio SOG viewer bundle; keep in sync with Micrio.360Splats/package.json. */
 const SOG_VIEWER_BASE = 'https://r2.micr.io/'
 const SOG_VIEWER_VERSION = '0.1.0'
@@ -47,13 +38,37 @@ declare global {
 const prefersSog = (micrio: HTMLMicrioElement): boolean =>
 	micrio.hasAttribute('prefer-sog') || Object.hasOwn(micrio.dataset, 'preferSog')
 
+/** The largest SOG capture, used when a bundle offers multiple qualities. */
+const biggestSog = (sog: Models.ImageInfo.SogInfo[] | undefined): Models.ImageInfo.SogInfo | undefined => {
+	let best: Models.ImageInfo.SogInfo | undefined
+	for (const entry of sog ?? []) {
+		if (!best || entry.fileSize > best.fileSize) {
+			best = entry
+		}
+	}
+	return best
+}
+
+/** The image's data host; SOG files live beside the image data, not the tile host. */
+const imageBaseHost = (image: MicrioImage): string => {
+	const base = image._dataPath || image.$info.path
+	try {
+		return new URL(base, location.href).origin
+	} catch {
+		return base.replace(/\/+$/, '')
+	}
+}
+
+/** The release URI of a SOG capture: <image base host>/<id>/sog/<name>-<timestamp>.sog.bin. */
+const sogUrl = (image: MicrioImage, sog: Models.ImageInfo.SogInfo): string =>
+	`${imageBaseHost(image)}/${encodeURIComponent(image.id)}/sog/${encodeURIComponent(sog.name)}-${sog.timestamp}.sog.bin`
+
 /** True when this bundle should be rendered by the SOG viewer instead of the tile engine. */
 export const isSogBundle = (micrio: HTMLMicrioElement, bundle: Models.ImageBundle.BundleImage): boolean => {
 	if (!prefersSog(micrio)) {
 		return false
 	}
-	const id = (bundle.info?.id || bundle.id).replace(VIEWER_BASE, '')
-	return SOG_IDS.has(id)
+	return Boolean(bundle.settings?.omni?.sog?.length)
 }
 
 /**
@@ -133,7 +148,8 @@ export class SogRenderer {
 		this.#image = image
 
 		const { omni } = image.$settings
-		if (!omni) {
+		const sog = biggestSog(omni?.sog)
+		if (!omni || !sog) {
 			this.#setProgress(1)
 			return
 		}
@@ -156,8 +172,8 @@ export class SogRenderer {
 		}
 
 		const canvas = this.#micrio.canvas.element
-		const remoteUrl = `${SOG_HOST}/generated/${encodeURIComponent(image.id)}/${SOG_QUALITY}.sog`
-		const filename = `${image.id}/${SOG_QUALITY}.sog`
+		const remoteUrl = sogUrl(image, sog)
+		const filename = `${image.id}/${sog.name}-${sog.timestamp}.sog`
 		this.#setProgress(0.05)
 
 		let objectUrl: string | undefined
