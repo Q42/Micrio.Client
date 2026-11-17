@@ -31,7 +31,7 @@ export interface ImageCrop {
  */
 export class Canvas {
 	/** The main WebGL rendering `<canvas>` element. */
-	readonly element: HTMLCanvasElement = createElement('canvas')
+	element: HTMLCanvasElement = createElement('canvas')
 
 	/** ResizeObserver instance for detecting element resize events.
 	 * @internal
@@ -99,6 +99,20 @@ export class Canvas {
 		// Insert after the preview image if it exists, otherwise as the first child
 		const img = this.#micrio.querySelector('img.preview')
 		this.#micrio.insertBefore(this.element, img ? img.nextSibling : this.#micrio.firstChild)
+	}
+
+	/**
+	 * Adopts a replacement canvas, used when the SOG viewer has to swap the
+	 * canvas after WebGPU falls back to WebGL2.
+	 * @internal
+	 */
+	_adoptElement(element: HTMLCanvasElement): void {
+		if (element === this.element) {
+			return
+		}
+		this.#resizeObserver?.unobserve(this.element)
+		this.element = element
+		this.#resizeObserver?.observe(element)
 	}
 
 	/**
@@ -194,8 +208,11 @@ export class Canvas {
 			this.#micrio._webgl.gl.viewport(0, 0, c.width * c.ratio, c.height * c.ratio)
 			// Resize postprocessing framebuffer if active
 			this.#micrio._webgl._postprocessor?._resize()
+		}
 
-			// Notify engine of resize
+		// The SOG viewer has no WebGL context of Micrio's, but its camera still
+		// needs the engine's viewport/view math after a resize.
+		if (this.#micrio._webgl.gl || this.#micrio._engine._sog) {
 			this.#micrio._engine._resize(c)
 		}
 

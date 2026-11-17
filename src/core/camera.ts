@@ -35,8 +35,10 @@ export class Camera {
 	/** Possible override for Book3D */
 	_isZoomedInOverride: (() => boolean) | undefined
 
-	/** Possible override for `_getXYDirect` for Book3D */
-	_getXYDirectOverride: ((x: number, y: number) => Float64Array) | undefined
+	/** Possible override for `_getXYDirect` for Book3D and the SOG viewer */
+	_getXYDirectOverride:
+		| ((x: number, y: number, opts?: { radius?: number; rotation?: number }) => Float64Array)
+		| undefined
 
 	/** getMatrix book3d override */
 	_getMatrixOverride:
@@ -221,7 +223,7 @@ export class Camera {
 			y = area[1] + y * area[3]
 		}
 		if (this._getXYDirectOverride) {
-			return this._getXYDirectOverride(x, y)
+			return this._getXYDirectOverride(x, y, opts)
 		}
 		const c = this.#canvas
 		if (!c) {

@@ -475,30 +475,34 @@ export class TileCanvas {
 
 		const m = this.main
 
-		for (let i = 0; i < this.images.length; i++) {
-			const image = this.images[i]
-			if (!image._shouldRender()) {
-				if (image._doRender) {
-					m._setImageVisible(image, (image._doRender = false))
-				}
-			} else {
-				if (i > 0 && !image._doRender) {
-					m._setImageVisible(image, (image._doRender = true))
-				}
-				if (image._isVideo && image._isVideoPlaying) {
-					animating = true
-				}
-				if (image._opacityTick(this.#isGallerySwitch || this._opacity < 1)) {
-					animating = true
-				}
-				if (image.opacity > 0) {
-					m._doneTotal += image._getTiles(scale)
+		// A SOG renderer draws every frame from one splat; planning tiles for the
+		// 64 omni photographs would be pure waste.
+		if (!m.micrio._engine._sog) {
+			for (let i = 0; i < this.images.length; i++) {
+				const image = this.images[i]
+				if (!image._shouldRender()) {
+					if (image._doRender) {
+						m._setImageVisible(image, (image._doRender = false))
+					}
+				} else {
+					if (i > 0 && !image._doRender) {
+						m._setImageVisible(image, (image._doRender = true))
+					}
+					if (image._isVideo && image._isVideoPlaying) {
+						animating = true
+					}
+					if (image._opacityTick(this.#isGallerySwitch || this._opacity < 1)) {
+						animating = true
+					}
+					if (image.opacity > 0) {
+						m._doneTotal += image._getTiles(scale)
+					}
 				}
 			}
-		}
 
-		m._toDrawTotal += this._toDraw.length
-		m._progress = m._toDrawTotal === 0 ? 1 : m._doneTotal / m._toDrawTotal
+			m._toDrawTotal += this._toDraw.length
+			m._progress = m._toDrawTotal === 0 ? 1 : m._doneTotal / m._toDrawTotal
+		}
 
 		for (const child of this.#children) {
 			child._shouldDraw()
@@ -506,6 +510,21 @@ export class TileCanvas {
 
 		if (animating) {
 			m._animating = true
+		}
+	}
+
+	/**
+	 * Publishes a view change to the image's camera without drawing. Used when an
+	 * external renderer (the SOG viewer) owns the canvas.
+	 * @internal
+	 */
+	_notifyView(): void {
+		if (this.view._changed) {
+			this._micrioImage?.camera?._viewChanged()
+			this.view._changed = false
+		}
+		for (const child of this.#children) {
+			child._notifyView()
 		}
 	}
 

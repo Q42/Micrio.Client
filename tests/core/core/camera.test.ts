@@ -285,12 +285,17 @@ describe('Camera view and coordinate conversion', () => {
 		expect((c.camera as unknown as CameraSpies)._getCoo).toHaveBeenCalledWith(100, 200, true, false)
 	})
 
-	it('short-circuits on the book3d coordinate override', () => {
+	it('short-circuits on the coordinate override (Book3D and SOG)', () => {
 		const override = fnOf(() => new Float64Array([7, 8, 9, 10]))
 		const { camera, c } = bound()
 		camera._getXYDirectOverride = override
 		expect([...camera.getXY(0.1, 0.2)]).toEqual([7, 8, 9, 10])
-		expect(override).toHaveBeenCalledWith(0.1, 0.2)
+		expect(override).toHaveBeenCalledWith(0.1, 0.2, {
+			abs: false,
+			radius: undefined,
+			rotation: undefined,
+			noTrueNorth: undefined,
+		})
 		// The engine's own path is not touched.
 		expect((c._camera2d as unknown as SubSpies)._getXY).not.toHaveBeenCalled()
 	})

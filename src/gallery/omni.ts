@@ -109,7 +109,8 @@ export class OmniUI {
 			frames.push(frame)
 		}
 
-		if (Number.parseFloat(info.version) >= 5) {
+		// The SOG viewer has its own asset; Micrio's tile archive is never read.
+		if (!micrio._engine._sog && Number.parseFloat(info.version) >= 5) {
 			await archive
 				.load(info.tileBasePath || info.path, `${info.tilesId ?? info.id}/base`, (p: number) =>
 					micrio._ui?._setProps?.({ loadingProgress: p }),
@@ -132,6 +133,10 @@ export class OmniUI {
 		const preloadD = 'requestIdleCallback' in globalThis ? Math.max(36, Math.floor(totalFrames / 8) * 2) : 50
 
 		const preload = (c: number) => {
+			// Every frame is rendered from the single SOG; tile thumbnails are dead weight.
+			if (micrio._engine._sog) {
+				return
+			}
 			this.#preloadRangeFn(
 				c,
 				totalFrames,
