@@ -34,9 +34,8 @@ declare global {
 	var createMicrioSogViewer: CreateMicrioSogViewer | undefined
 }
 
-/** True when the element opted into SOG rendering. Both spellings are accepted. */
-const prefersSog = (micrio: HTMLMicrioElement): boolean =>
-	micrio.hasAttribute('prefer-sog') || Object.hasOwn(micrio.dataset, 'preferSog')
+/** True when the element opted into SOG rendering via `data-prefer-splats`. */
+const prefersSog = (micrio: HTMLMicrioElement): boolean => Object.hasOwn(micrio.dataset, 'preferSplats')
 
 /** The largest SOG capture, used when a bundle offers multiple qualities. */
 const biggestSog = (sog: Models.ImageInfo.SogInfo[] | undefined): Models.ImageInfo.SogInfo | undefined => {
@@ -114,7 +113,7 @@ const getCreateMicrioSogViewer = (): Promise<CreateMicrioSogViewer | null> => {
 }
 
 /**
- * Runs the PlayCanvas SOG viewer on the Micrio `<canvas>` for `prefer-sog` omni
+ * Runs the PlayCanvas SOG viewer on the Micrio `<canvas>` for `data-prefer-splats` omni
  * images. Micrio's tile canvas and camera stay alive: they own gestures, zoom
  * limits, animations and the omni dial exactly as in the tile viewer, while the
  * tile renderer itself never initializes WebGL or loads textures. Every view the
