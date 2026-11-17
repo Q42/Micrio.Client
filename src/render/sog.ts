@@ -11,8 +11,12 @@ const SOG_IDS = new Set(['iPrQFH'])
 const SOG_HOST = 'http://localhost:3000'
 const SOG_QUALITY = 'l'
 
+/** Version of the Micrio.360Splats bundle; keep in sync with its package.json. */
+const SOG_VIEWER_VERSION = '0.1.0'
+const SOG_VIEWER_URL = `${SOG_HOST}/micrio-pc-sog-${SOG_VIEWER_VERSION}.min.js`
+
 /** The subset of the SOG viewer handle this integration calls. */
-interface SogViewer {
+interface MicrioSogViewer {
 	canvas: HTMLCanvasElement
 	setView: (view: {
 		degrees?: number
@@ -26,16 +30,16 @@ interface SogViewer {
 	dispose: () => void
 }
 
-type CreateSogViewer = (options: {
+type CreateMicrioSogViewer = (options: {
 	canvas: HTMLCanvasElement
 	url: string
 	filename?: string
 	startFrameFraction?: number
-}) => Promise<SogViewer>
+}) => Promise<MicrioSogViewer>
 
 declare global {
 	/** Set by the page (or loaded below) from the PlayCanvas SOG bundle. */
-	var createSogViewer: CreateSogViewer | undefined
+	var createMicrioSogViewer: CreateMicrioSogViewer | undefined
 }
 
 /** True when the element opted into SOG rendering. Both spellings are accepted. */
@@ -53,17 +57,16 @@ export const isSogBundle = (micrio: HTMLMicrioElement, bundle: Models.ImageBundl
 
 /**
  * Resolves the PlayCanvas viewer factory. A page that already included the
- * classic bundle (`<script src="…/playcanvas-sog.min.js">`, which registers
- * `globalThis.createSogViewer`) is used as-is; only otherwise is the bundle
- * fetched, and only when a SOG image is actually opened.
+ * classic bundle (`<script src="…/micrio-pc-sog-<version>.min.js">`, which
+ * registers `globalThis.createMicrioSogViewer`) is used as-is; only otherwise is
+ * the bundle fetched, and only when a SOG image is actually opened.
  */
-const SOG_VIEWER_URL = `${SOG_HOST}/playcanvas-sog.min.js`
-let viewerLoader: Promise<CreateSogViewer | null> | undefined
-const getCreateSogViewer = (): Promise<CreateSogViewer | null> => {
-	if (globalThis.createSogViewer) {
-		return Promise.resolve(globalThis.createSogViewer)
+let viewerLoader: Promise<CreateMicrioSogViewer | null> | undefined
+const getCreateMicrioSogViewer = (): Promise<CreateMicrioSogViewer | null> => {
+	if (globalThis.createMicrioSogViewer) {
+		return Promise.resolve(globalThis.createMicrioSogViewer)
 	}
-	viewerLoader ??= new Promise<CreateSogViewer | null>((resolve) => {
+	viewerLoader ??= new Promise<CreateMicrioSogViewer | null>((resolve) => {
 		const script = document.createElement('script')
 		script.src = SOG_VIEWER_URL
 		script.async = true
@@ -71,9 +74,9 @@ const getCreateSogViewer = (): Promise<CreateSogViewer | null> => {
 			'load',
 			() => {
 				script.remove()
-				const factory = globalThis.createSogViewer
+				const factory = globalThis.createMicrioSogViewer
 				if (!factory) {
-					console.error('[Micrio] The SOG viewer loaded without registering createSogViewer.')
+					console.error('[Micrio] The SOG viewer loaded without registering createMicrioSogViewer.')
 				}
 				resolve(factory ?? null)
 			},
@@ -105,7 +108,7 @@ const getCreateSogViewer = (): Promise<CreateSogViewer | null> => {
 export class SogRenderer {
 	#micrio: HTMLMicrioElement
 	#image: MicrioImage | undefined
-	#viewer: SogViewer | undefined
+	#viewer: MicrioSogViewer | undefined
 	#unsubscribers: (() => void)[] = []
 	#controller: AbortController | undefined
 	#gen = 0
@@ -141,12 +144,12 @@ export class SogRenderer {
 		startIndex %= frames
 
 		this.#setProgress(0.02)
-		const createSogViewer = await getCreateSogViewer()
+		const createMicrioSogViewer = await getCreateMicrioSogViewer()
 		if (gen !== this.#gen) {
 			return
 		}
-		if (!createSogViewer) {
-			console.warn('[Micrio] The SOG viewer is not available; add playcanvas-sog.min.js or let Micrio load it.')
+		if (!createMicrioSogViewer) {
+			console.warn('[Micrio] The SOG viewer is not available; add the Micrio SOG viewer script or let Micrio load it.')
 			this.#setProgress(1)
 			return
 		}
@@ -157,7 +160,7 @@ export class SogRenderer {
 		this.#setProgress(0.05)
 
 		let objectUrl: string | undefined
-		let viewer: SogViewer
+		let viewer: MicrioSogViewer
 		try {
 			// Pre-fetch so the standard progress circle shows real byte progress,
 			// like the omni archive's `.bin` download, then hand the viewer a blob.
@@ -166,7 +169,7 @@ export class SogRenderer {
 				return
 			}
 			objectUrl = URL.createObjectURL(blob)
-			viewer = await createSogViewer({
+			viewer = await createMicrioSogViewer({
 				canvas,
 				url: objectUrl,
 				filename,
