@@ -51,19 +51,47 @@ export const isSogBundle = (micrio: HTMLMicrioElement, bundle: Models.ImageBundl
 	return SOG_IDS.has(id)
 }
 
-/** Resolves the PlayCanvas viewer factory from the page or the 360Splats dev server. */
-let viewerFactory: Promise<CreateSogViewer | null> | undefined
+/**
+ * Resolves the PlayCanvas viewer factory. A page that already included the
+ * classic bundle (`<script src="…/playcanvas-sog.min.js">`, which registers
+ * `globalThis.createSogViewer`) is used as-is; only otherwise is the bundle
+ * fetched, and only when a SOG image is actually opened.
+ */
+const SOG_VIEWER_URL = `${SOG_HOST}/playcanvas-sog.min.js`
+let viewerLoader: Promise<CreateSogViewer | null> | undefined
 const getCreateSogViewer = (): Promise<CreateSogViewer | null> => {
 	if (globalThis.createSogViewer) {
 		return Promise.resolve(globalThis.createSogViewer)
 	}
-	viewerFactory ??= import(/* @vite-ignore */ `${SOG_HOST}/playcanvas-sog.min.js`)
-		.then((module: { createSogViewer?: CreateSogViewer }) => module.createSogViewer ?? null)
-		.catch((error: unknown) => {
-			console.error('[Micrio] Could not load the SOG viewer:', error)
-			return null
-		})
-	return viewerFactory
+	viewerLoader ??= new Promise<CreateSogViewer | null>((resolve) => {
+		const script = document.createElement('script')
+		script.src = SOG_VIEWER_URL
+		script.async = true
+		script.addEventListener(
+			'load',
+			() => {
+				script.remove()
+				const factory = globalThis.createSogViewer
+				if (!factory) {
+					console.error('[Micrio] The SOG viewer loaded without registering createSogViewer.')
+				}
+				resolve(factory ?? null)
+			},
+			{ once: true },
+		)
+		script.addEventListener(
+			'error',
+			() => {
+				script.remove()
+				viewerLoader = undefined
+				console.error('[Micrio] Could not load the SOG viewer:', SOG_VIEWER_URL)
+				resolve(null)
+			},
+			{ once: true },
+		)
+		document.head.append(script)
+	})
+	return viewerLoader
 }
 
 /**
@@ -79,6 +107,7 @@ export class SogRenderer {
 	#image: MicrioImage | undefined
 	#viewer: SogViewer | undefined
 	#unsubscribers: (() => void)[] = []
+	#controller: AbortController | undefined
 	#gen = 0
 
 	/** Bound resize handler, so the same reference can be removed. */
@@ -95,10 +124,13 @@ export class SogRenderer {
 	async start(image: MicrioImage): Promise<void> {
 		this.dispose()
 		const gen = ++this.#gen
+		const controller = new AbortController()
+		this.#controller = controller
 		this.#image = image
 
 		const { omni } = image.$settings
 		if (!omni) {
+			this.#setProgress(1)
 			return
 		}
 		const frames = Math.max(1, omni.frames / Math.max(1, omni.layers?.length ?? 1))
@@ -108,32 +140,54 @@ export class SogRenderer {
 		}
 		startIndex %= frames
 
+		this.#setProgress(0.02)
 		const createSogViewer = await getCreateSogViewer()
 		if (gen !== this.#gen) {
 			return
 		}
 		if (!createSogViewer) {
-			console.warn('[Micrio] The SOG viewer is not loaded; include playcanvas-sog.min.js in the page.')
+			console.warn('[Micrio] The SOG viewer is not available; add playcanvas-sog.min.js or let Micrio load it.')
+			this.#setProgress(1)
 			return
 		}
 
 		const canvas = this.#micrio.canvas.element
+		const remoteUrl = `${SOG_HOST}/generated/${encodeURIComponent(image.id)}/${SOG_QUALITY}.sog`
+		const filename = `${image.id}/${SOG_QUALITY}.sog`
+		this.#setProgress(0.05)
+
+		let objectUrl: string | undefined
 		let viewer: SogViewer
 		try {
+			// Pre-fetch so the standard progress circle shows real byte progress,
+			// like the omni archive's `.bin` download, then hand the viewer a blob.
+			const blob = await this.#download(remoteUrl, controller.signal, gen)
+			if (gen !== this.#gen) {
+				return
+			}
+			objectUrl = URL.createObjectURL(blob)
 			viewer = await createSogViewer({
 				canvas,
-				url: `${SOG_HOST}/generated/${encodeURIComponent(image.id)}/${SOG_QUALITY}.sog`,
-				filename: `${image.id}/${SOG_QUALITY}.sog`,
+				url: objectUrl,
+				filename,
 				startFrameFraction: startIndex / frames,
 			})
 		} catch (error) {
-			console.error('[Micrio] Could not load the SOG:', error)
+			if (gen === this.#gen) {
+				console.error('[Micrio] Could not load the SOG:', error)
+				this.#setProgress(1)
+			}
 			return
+		} finally {
+			if (objectUrl) {
+				URL.revokeObjectURL(objectUrl)
+			}
 		}
 		if (gen !== this.#gen) {
 			viewer.dispose()
 			return
 		}
+		this.#setProgress(1)
 
 		this.#viewer = viewer
 		// The viewer replaces the canvas when WebGPU claims it and then falls back
@@ -162,6 +216,42 @@ export class SogRenderer {
 		this.#apply()
 	}
 
+	/** Drives the same progress circle the omni `.bin` download uses. */
+	#setProgress(progress: number): void {
+		this.#micrio._ui?._setProps?.({
+			loadingProgress: Math.max(0, Math.min(1, progress)),
+		})
+	}
+
+	/** Downloads the SOG with byte progress, aborting with the renderer. */
+	async #download(url: string, signal: AbortSignal, gen: number): Promise<Blob> {
+		const response = await fetch(url, { signal })
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}`)
+		}
+		const total = Number(response.headers.get('content-length')) || 0
+		const reader = response.body?.getReader()
+		if (!reader) {
+			const buffer = await response.arrayBuffer()
+			return new Blob([buffer], { type: 'application/octet-stream' })
+		}
+		const chunks: BlobPart[] = []
+		let loaded = 0
+		for (;;) {
+			// oxlint-disable-next-line eslint/no-await-in-loop -- stream chunks must be read in order
+			const { done, value } = await reader.read()
+			if (done) {
+				break
+			}
+			chunks.push(value)
+			loaded += value.byteLength
+			if (total > 0 && this.#gen === gen) {
+				this.#setProgress(0.05 + (loaded / total) * 0.9)
+			}
+		}
+		return new Blob(chunks, { type: 'application/octet-stream' })
+	}
+
 	/** Pushes Micrio's current rotation and view to the viewer. */
 	#apply(): void {
 		const viewer = this.#viewer
@@ -182,6 +272,9 @@ export class SogRenderer {
 	/** Stops the viewer and releases the camera mirror. */
 	dispose(): void {
 		this.#gen++
+		this.#controller?.abort()
+		this.#controller = undefined
+		this.#setProgress(1)
 		for (const unsubscribe of this.#unsubscribers) {
 			unsubscribe()
 		}
