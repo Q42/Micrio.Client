@@ -365,7 +365,10 @@ export class OmniUI {
 			if (this.#swiperOpts.coverLimit) {
 				this.#isFullWidth = this.#image.camera.isZoomedOut()
 			} else {
-				this.#isFullWidth = v ? Math.round(v[3] * 1000) / 1000 >= 1 : true
+				// Rotate while the image's full width is visible: a horizontal drag then
+				// has nothing to pan, so it turns the object, while the same drag can
+				// still pan the vertically cropped view.
+				this.#isFullWidth = v ? Math.round(v[2] * 1000) / 1000 >= 1 : true
 			}
 		}
 		syncFullWidth(this.#image.state.$view)
