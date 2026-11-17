@@ -15,7 +15,7 @@ const SOG_QUALITY = 'l'
 interface SogViewer {
 	canvas: HTMLCanvasElement
 	setView: (view: {
-		frame?: number
+		degrees?: number
 		view?: Models.Camera.View
 		yaw?: number
 		pitch?: number
@@ -71,18 +71,15 @@ const getCreateSogViewer = (): Promise<CreateSogViewer | null> => {
  * images. Micrio's tile canvas and camera stay alive: they own gestures, zoom
  * limits, animations and the omni dial exactly as in the tile viewer, while the
  * tile renderer itself never initializes WebGL or loads textures. Every view the
- * camera publishes is mirrored into the SOG viewer's absolute frame + view API.
+ * camera publishes is mirrored into the SOG viewer's absolute degrees + view API.
  * @internal
  */
 export class SogRenderer {
 	#micrio: HTMLMicrioElement
 	#image: MicrioImage | undefined
 	#viewer: SogViewer | undefined
-	#unsubscribe: (() => void) | undefined
+	#unsubscribers: (() => void)[] = []
 	#gen = 0
-
-	/** The frame the bundle asks for, used until the tile canvas reports one. */
-	#startFrame = 0
 
 	/** Bound resize handler, so the same reference can be removed. */
 	#onResize = () => {
@@ -110,7 +107,6 @@ export class SogRenderer {
 			startIndex += frames
 		}
 		startIndex %= frames
-		this.#startFrame = startIndex
 
 		const createSogViewer = await getCreateSogViewer()
 		if (gen !== this.#gen) {
@@ -154,14 +150,19 @@ export class SogRenderer {
 		}
 
 		viewer.resize()
-		this.#unsubscribe = image.state.view.subscribe(() => {
-			this.#apply()
-		})
+		this.#unsubscribers.push(
+			image.state.view.subscribe(() => {
+				this.#apply()
+			}),
+			image.state.omniRotation.subscribe(() => {
+				this.#apply()
+			}),
+		)
 		this.#micrio.addEventListener('resize', this.#onResize)
 		this.#apply()
 	}
 
-	/** Pushes Micrio's current frame and view to the viewer. */
+	/** Pushes Micrio's current rotation and view to the viewer. */
 	#apply(): void {
 		const viewer = this.#viewer
 		const image = this.#image
@@ -172,9 +173,8 @@ export class SogRenderer {
 		if (!view) {
 			return
 		}
-		const active = image.canvas?._activeImageIdx
 		viewer.setView({
-			frame: active !== undefined && active >= 0 ? active : this.#startFrame,
+			degrees: image.state.$omniRotation,
 			view,
 		})
 	}
@@ -182,8 +182,10 @@ export class SogRenderer {
 	/** Stops the viewer and releases the camera mirror. */
 	dispose(): void {
 		this.#gen++
-		this.#unsubscribe?.()
-		this.#unsubscribe = undefined
+		for (const unsubscribe of this.#unsubscribers) {
+			unsubscribe()
+		}
+		this.#unsubscribers = []
 		this.#micrio.removeEventListener('resize', this.#onResize)
 		this.#viewer?.dispose()
 		this.#viewer = undefined

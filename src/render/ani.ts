@@ -65,6 +65,10 @@ export default class Ani {
 	#omniStartIdx = -1
 	/** Delta (number of frames) to rotate during omni animation. */
 	#omniDelta = 0
+	/** Starting rotation in degrees for seamless (SOG) animation. */
+	#omniStartDeg = 0
+	/** Delta in degrees for seamless (SOG) animation. */
+	#omniDeltaDeg = 0
 
 	#canvas: TileCanvas
 
@@ -134,10 +138,19 @@ export default class Ani {
 			isJump?: boolean
 			limitViewport?: boolean
 			omniIdx?: number
+			omniDeg?: number
 			correct?: boolean
 		} = {},
 	): number {
-		const { speed = 0, perc = 0, isJump = false, limitViewport = false, omniIdx = -1, correct = false } = opts
+		const {
+			speed = 0,
+			perc = 0,
+			isJump = false,
+			limitViewport = false,
+			omniIdx = -1,
+			omniDeg = Number.NaN,
+			correct = false,
+		} = opts
 
 		if (correct && this._correcting) {
 			this._updateTarget(toCenterX, toCenterY, toWidth, toHeight, true)
@@ -277,7 +290,24 @@ export default class Ani {
 		const numPerLayer = c.images.length / c._omniNumLayers
 		this.#omniStartIdx = c._activeImageIdx
 		this.#omniDelta = 0
-		if (!Number.isNaN(omniIdx) && omniIdx >= 0 && omniIdx !== this.#omniStartIdx) {
+		this.#omniStartDeg = c._micrioImage?.state.$omniRotation ?? 0
+		this.#omniDeltaDeg = 0
+		if (c.main.micrio._engine._sog) {
+			// Seamless mode animates the continuous rotation, not frame steps.
+			if (Number.isFinite(omniDeg)) {
+				let deltaDeg = omniDeg - this.#omniStartDeg
+				while (deltaDeg > 180) {
+					deltaDeg -= 360
+				}
+				while (deltaDeg < -180) {
+					deltaDeg += 360
+				}
+				this.#omniDeltaDeg = deltaDeg
+				if (Math.abs(deltaDeg) > 1e-6) {
+					this.#duration += (Math.abs(deltaDeg) / 360) * 6000
+				}
+			}
+		} else if (!Number.isNaN(omniIdx) && omniIdx >= 0 && omniIdx !== this.#omniStartIdx) {
 			this.#omniDelta = omniIdx - this.#omniStartIdx
 			if (this.#omniDelta < -numPerLayer / 2) {
 				this.#omniDelta += numPerLayer
@@ -399,7 +429,17 @@ export default class Ani {
 
 				this.#canvas._setView(interpCenterX, interpCenterY, interpWidth, interpHeight, false, true)
 
-				if (this.#omniDelta) {
+				if (this.#canvas.main.micrio._engine._sog) {
+					if (this.#omniDeltaDeg) {
+						const image = this.#canvas._micrioImage
+						const deg = this.#omniStartDeg + this.#omniDeltaDeg * this.#fn.get(Math.min(1, p * 1.5))
+						if (image?.omni) {
+							image.omni.setRotation(deg)
+						} else {
+							image?.state.omniRotation.set(((deg % 360) + 360) % 360)
+						}
+					}
+				} else if (this.#omniDelta) {
 					let idx = this.#omniStartIdx + Math.trunc(this.#omniDelta * this.#fn.get(Math.min(1, p * 1.5)))
 					const numPerLayer = this.#canvas.images.length / this.#canvas._omniNumLayers
 					if (idx < 0) {

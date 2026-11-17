@@ -125,7 +125,12 @@ export default class Camera2D extends EngineCamera {
 
 		const numPerLayer = c.images.length / c._omniNumLayers
 		const offset = c.layer * numPerLayer
-		const currRot = c.images.length > 0 ? (-(c._activeImageIdx + 1 - offset) / numPerLayer) * 2 * Math.PI : 0
+		// Seamless (SOG) mode projects through the continuous rotation instead of
+		// the discrete active frame, so markers move with the splat.
+		const image = c._micrioImage
+		const active =
+			image && c.main.micrio._engine._sog ? ((image.state.$omniRotation ?? 0) / 360) * numPerLayer : c._activeImageIdx
+		const currRot = c.images.length > 0 ? (-(active + 1 - offset) / numPerLayer) * 2 * Math.PI : 0
 		mat._rotateY(rotation + currRot)
 
 		vec4._transformMat4(mat)

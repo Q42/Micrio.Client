@@ -40,6 +40,8 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 	#fto: ReturnType<typeof setTimeout> | undefined
 	// Omni arc visibility: target frame index and [start, end] frame range
 	#omniIndex = 0
+	/** Marker rotation in degrees (seamless mode). */
+	#omniRotation = 0
 	#omniArc: [number, number] | undefined
 
 	/** @internal */
@@ -124,6 +126,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const { omni } = image.$settings
 		if (image._isOmni && omni) {
 			const rot = (marker.rotation ?? 0) + (marker.backside ? Math.PI : 0)
+			this.#omniRotation = ((((rot * 180) / Math.PI) % 360) + 360) % 360
 			this.#omniIndex = image.camera._getOmniFrame(rot) ?? 0
 			if (marker.visibleArc) {
 				const a0 = image.camera._getOmniFrame(marker.visibleArc[0])
@@ -139,7 +142,11 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		/** The shortest frame distance from the shown frame to this marker's frame. */
 		const omniDelta = (): number => {
-			let delta = (image.omni?.currentIndex ?? 0) - this.#omniIndex
+			// Seamless mode shows a continuous angle; legacy mode a discrete frame.
+			const current = micrio._engine._sog
+				? (image.state.$omniRotation / 360) * omniFrames
+				: (image.omni?.currentIndex ?? 0)
+			let delta = current - this.#omniIndex
 			if (delta > omniFrames / 2) {
 				delta -= omniFrames
 			}
@@ -311,6 +318,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				image.camera
 					.flyToView(view, {
 						omniIndex: image._isOmni ? this.#omniIndex : undefined,
+						omniRotation: micrio._engine._sog && image._isOmni ? this.#omniRotation : undefined,
 						isJump: true,
 					})
 					.then(() => openContent(restored, splitFlown))
@@ -333,7 +341,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				// omni object its content would open next to a marker that is turned out of
 				// view. Turn the object to the marker's angle first, then open it.
 				image.camera
-					.flyToView(image.camera.getView(), { omniIndex: this.#omniIndex })
+					.flyToView(image.camera.getView(), {
+						omniIndex: this.#omniIndex,
+						omniRotation: micrio._engine._sog ? this.#omniRotation : undefined,
+					})
 					.then(() => openContent(restored, splitFlown))
 					.catch(() => {
 						if (image.state.$marker === marker) {
@@ -586,6 +597,13 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 					moved()
 				}),
 			)
+			if (micrio._engine._sog) {
+				this._addCleanup(
+					image.state.omniRotation.subscribe(() => {
+						moved()
+					}),
+				)
+			}
 		}
 
 		if (!forceHidden) {

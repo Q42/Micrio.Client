@@ -456,6 +456,9 @@ export class Camera {
 		if (!omni || !this.#canvas) {
 			return 0
 		}
+		if (this.#image.engine?.micrio?._engine?._sog) {
+			return ((this.#image.state.$omniRotation ?? 0) * Math.PI) / 180
+		}
 		return ((this.#image.omni?.currentIndex ?? 0) / ((omni.frames ?? 1) / (omni.layers?.length ?? 1))) * Math.PI * 2
 	}
 
@@ -518,6 +521,8 @@ export class Camera {
 			isJump?: boolean
 			/** For Omni objects: the target image frame index to animate to. */
 			omniIndex?: number
+			/** For Omni objects: the target rotation in degrees (continuous renderers). */
+			omniRotation?: number
 			/** If true, respects the image's maximum zoom limit during animation. */
 			limitZoom?: boolean
 			/** If provided, adds a margin to the view. */
@@ -552,14 +557,22 @@ export class Camera {
 				this.#canvas._ani._setStartView(pCV.centerX, pCV.centerY, pCV.width, pCV.height)
 			}
 			const { omni } = this.#image.$settings
+			let { omniRotation } = opts
 			if (omni?.frames) {
 				const numLayers = omni.layers?.length ?? 1
 				const npl = omni.frames / numLayers
-				if (opts.omniIndex === undefined) {
-					const idx = view[4] || (Array.isArray(view) && view[5] !== undefined ? view[5] : undefined)
-					if (idx !== undefined) {
-						opts.omniIndex = Math.round(mod(idx / (Math.PI * 2)) * npl)
+				if (omniRotation === undefined) {
+					if (opts.omniIndex !== undefined) {
+						omniRotation = (opts.omniIndex / npl) * 360
+					} else {
+						const idx = view[4] || (Array.isArray(view) && view[5] !== undefined ? view[5] : undefined)
+						if (idx !== undefined) {
+							omniRotation = mod(idx / (Math.PI * 2)) * 360
+						}
 					}
+				}
+				if (opts.omniIndex === undefined && omniRotation !== undefined) {
+					opts.omniIndex = Math.round((mod(omniRotation, 360) / 360) * npl)
 				}
 				if (opts.omniIndex !== undefined) {
 					opts.omniIndex = mod(opts.omniIndex, npl)
@@ -578,6 +591,7 @@ export class Camera {
 				Boolean(opts.limitZoom),
 				opts.omniIndex ?? -1,
 				getEasing(opts.timingFunction),
+				omniRotation,
 			)
 			this.#image.engine.render()
 			if (duration === 0) {
