@@ -105,6 +105,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			}
 		}
 
+		// A viewport captured on an omni object stores the object rotation it was
+		// framed at; that angle belongs to the shot, not to the marker's placement.
+		const viewRotation = view?.[5]
+		const savedViewRotation =
+			typeof viewRotation === 'number' && Number.isFinite(viewRotation) ? viewRotation : undefined
+		const savedViewRotationDeg =
+			savedViewRotation === undefined ? undefined : ((((savedViewRotation * 180) / Math.PI) % 360) + 360) % 360
+
 		const cluster = marker.type === 'cluster'
 		let icon: string | undefined
 		if (!cluster && marker.type === 'link') {
@@ -317,8 +325,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			if (!immediatelyStartMyTourAtBeginning && view && !data.noAnimate && !marker.videoTour) {
 				image.camera
 					.flyToView(view, {
-						omniIndex: image._isOmni ? this.#omniIndex : undefined,
-						omniRotation: micrio._engine._sog && image._isOmni ? this.#omniRotation : undefined,
+						omniIndex: image._isOmni && savedViewRotation === undefined ? this.#omniIndex : undefined,
+						omniRotation:
+							micrio._engine._sog && image._isOmni ? (savedViewRotationDeg ?? this.#omniRotation) : undefined,
 						isJump: true,
 					})
 					.then(() => openContent(restored, splitFlown))

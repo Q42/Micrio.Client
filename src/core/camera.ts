@@ -565,7 +565,14 @@ export class Camera {
 					if (opts.omniIndex !== undefined) {
 						omniRotation = (opts.omniIndex / npl) * 360
 					} else {
-						const idx = view[4] || (Array.isArray(view) && view[5] !== undefined ? view[5] : undefined)
+						// A viewport captured on an omni object carries the object rotation
+						// after its rect; the fifth slot is the older fallback.
+						let idx: number | undefined
+						if (typeof view[5] === 'number') {
+							idx = view[5]
+						} else if (typeof view[4] === 'number') {
+							idx = view[4]
+						}
 						if (idx !== undefined) {
 							omniRotation = mod(idx / (Math.PI * 2)) * 360
 						}
