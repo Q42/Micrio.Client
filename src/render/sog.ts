@@ -37,7 +37,13 @@ declare global {
 /** True when the element opted into SOG rendering via `data-prefer-splats`. */
 const prefersSog = (micrio: HTMLMicrioElement): boolean => Object.hasOwn(micrio.dataset, 'preferSplats')
 
-/** The largest SOG capture, used when a bundle offers multiple qualities. */
+/** The `.sog` name preferred by `data-prefer-splats`, or `''` when no name was given. */
+const preferredSogName = (micrio: HTMLMicrioElement): string => micrio.dataset.preferSplats?.trim() ?? ''
+
+/** Fallback capture size limit: without a usable name, the first capture under this wins. */
+const MAX_FALLBACK_SOG_BYTES = 20 * 1024 * 1024
+
+/** The largest SOG capture, used only when no capture is under the fallback limit. */
 const biggestSog = (sog: Models.ImageInfo.SogInfo[] | undefined): Models.ImageInfo.SogInfo | undefined => {
 	let best: Models.ImageInfo.SogInfo | undefined
 	for (const entry of sog ?? []) {
@@ -46,6 +52,24 @@ const biggestSog = (sog: Models.ImageInfo.SogInfo[] | undefined): Models.ImageIn
 		}
 	}
 	return best
+}
+
+/**
+ * The SOG capture to load. `data-prefer-splats="<name>"` selects the entry with
+ * that name; otherwise the first entry smaller than 20 MB is used, and only when
+ * every capture is larger does the largest win.
+ */
+const pickSog = (
+	micrio: HTMLMicrioElement,
+	sog: Models.ImageInfo.SogInfo[] | undefined,
+): Models.ImageInfo.SogInfo | undefined => {
+	const entries = sog ?? []
+	const name = preferredSogName(micrio)
+	return (
+		(name ? entries.find((entry) => entry.name === name) : undefined) ??
+		entries.find((entry) => entry.fileSize < MAX_FALLBACK_SOG_BYTES) ??
+		biggestSog(entries)
+	)
 }
 
 /** The image's data host; SOG files live beside the image data, not the tile host. */
@@ -113,11 +137,12 @@ const getCreateMicrioSogViewer = (): Promise<CreateMicrioSogViewer | null> => {
 }
 
 /**
- * Runs the PlayCanvas SOG viewer on the Micrio `<canvas>` for `data-prefer-splats` omni
- * images. Micrio's tile canvas and camera stay alive: they own gestures, zoom
- * limits, animations and the omni dial exactly as in the tile viewer, while the
- * tile renderer itself never initializes WebGL or loads textures. Every view the
- * camera publishes is mirrored into the SOG viewer's absolute degrees + view API.
+ * Runs the PlayCanvas SOG viewer on the Micrio `<canvas>` for `data-prefer-splats`
+ * images (`="<name>"` picks that `.sog` entry). Micrio's tile canvas and camera
+ * stay alive: they own gestures, zoom limits, animations and the omni dial exactly
+ * as in the tile viewer, while the tile renderer itself never initializes WebGL
+ * or loads textures. Every view the camera publishes is mirrored into the SOG
+ * viewer's absolute degrees + view API.
  * @internal
  */
 export class SogRenderer {
@@ -147,7 +172,7 @@ export class SogRenderer {
 		this.#image = image
 
 		const { omni } = image.$settings
-		const sog = biggestSog(omni?.sog)
+		const sog = pickSog(this.#micrio, omni?.sog)
 		if (!omni || !sog) {
 			this.#setProgress(1)
 			return
