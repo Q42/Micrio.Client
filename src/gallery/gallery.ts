@@ -322,6 +322,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 
 	/**
 	 * Preloads thumbnail textures within a range around a center index.
+	 * `dir` narrows the range to the side a rotation is heading towards.
 	 * Uses requestIdleCallback for low-priority texture loading.
 	 */
 	#preloadRange(
@@ -331,6 +332,7 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 		getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined,
 		engine: Engine,
 		hasArchive: boolean,
+		dir?: 1 | -1,
 	) {
 		if (!total || !engine?.ready) {
 			return
@@ -345,7 +347,9 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 				: (cb) => {
 						Frame.request(cb)
 					}
-		for (let x = -d; x <= d; x++) {
+		const from = dir === 1 ? 1 : -d
+		const to = dir === -1 ? -1 : d
+		for (let x = from; x <= to; x++) {
 			if (!x) {
 				continue
 			}
@@ -360,10 +364,18 @@ class MicrioGallery extends MicrioElement<GalleryProps> {
 			if (tile?.thumbSrc) {
 				const { thumbSrc } = tile
 				if (!this.#preloading.has(thumbSrc)) {
+					// Claim the frame before scheduling it: with animation look-ahead the
+					// same range is requested on every frame change, and idle callbacks can
+					// queue for longer than one animation frame.
 					this.#preloading.add(thumbSrc)
 					request(() => {
-						engine._getTexture(tile.baseTileIdx, thumbSrc, false, { force: hasArchive })
-						this.#preloading.delete(thumbSrc)
+						try {
+							if (engine.ready) {
+								engine._getTexture(tile.baseTileIdx, thumbSrc, false, { force: hasArchive })
+							}
+						} finally {
+							this.#preloading.delete(thumbSrc)
+						}
 					})
 				}
 			}

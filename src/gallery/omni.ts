@@ -20,6 +20,7 @@ type PreloadRangeFn = (
 	getTile: (idx: number) => { baseTileIdx: number; thumbSrc?: string } | undefined,
 	engine: Engine,
 	hasArchive: boolean,
+	dir?: 1 | -1,
 ) => void
 
 /** Manages omni 3D object rotation UI: dial, swipe gestures, frame navigation, and layer menu. */
@@ -48,6 +49,8 @@ export class OmniUI {
 	#firstTouchId: number | undefined
 	#goto: (i: number) => void = () => {}
 	#preloadRangeFn: PreloadRangeFn
+	/** Preloads frames around an index; set while `setup` has frames to preload. */
+	#preloadAt: ((center: number, dir?: 1 | -1) => void) | undefined
 	/** Set by `destroy`, so an in-flight `setup` does not keep going. */
 	#destroyed = false
 	#cleanups: (() => void)[] = []
@@ -64,6 +67,11 @@ export class OmniUI {
 	/** Set the object rotation in degrees. Legacy mode snaps it to the nearest frame. */
 	setRotation(deg: number): void {
 		this.#setRotation(deg)
+	}
+
+	/** Preloads the base textures an animated rotation is heading towards. @internal */
+	preloadDirection(center: number, dir: 1 | -1): void {
+		this.#preloadAt?.(center, dir)
 	}
 
 	/** Continuous rotation in degrees, 0 at the first frame. */
@@ -176,7 +184,7 @@ export class OmniUI {
 		const hasArchive = Boolean(image.$settings.gallery?.archive)
 		const preloadD = 'requestIdleCallback' in globalThis ? Math.max(36, Math.floor(totalFrames / 8) * 2) : 50
 
-		const preload = (c: number) => {
+		const preload = (c: number, dir?: 1 | -1) => {
 			// Every frame is rendered from the single SOG; tile thumbnails are dead weight.
 			if (micrio._engine._sog) {
 				return
@@ -191,8 +199,10 @@ export class OmniUI {
 						: undefined,
 				engine,
 				hasArchive,
+				dir,
 			)
 		}
+		this.#preloadAt = preload
 
 		// `noDial` hides the only rotation control, so everything else (the swipe
 		// gesture, the frame strip and the layer menu) has to work without it
@@ -340,6 +350,7 @@ export class OmniUI {
 			cleanup()
 		}
 		this.#cleanups = []
+		this.#preloadAt = undefined
 	}
 
 	// ─── Swipe gesture handlers (was GallerySwiper) ──────────────

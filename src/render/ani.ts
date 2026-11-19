@@ -69,6 +69,8 @@ export default class Ani {
 	#omniStartDeg = 0
 	/** Delta in degrees for seamless (SOG) animation. */
 	#omniDeltaDeg = 0
+	/** Last frame pushed through the rotation look-ahead preloader. */
+	#omniPreloadIdx = -1
 
 	#canvas: TileCanvas
 
@@ -290,6 +292,7 @@ export default class Ani {
 		const numPerLayer = c.images.length / c._omniNumLayers
 		this.#omniStartIdx = c._activeImageIdx
 		this.#omniDelta = 0
+		this.#omniPreloadIdx = -1
 		this.#omniStartDeg = c._micrioImage?.state.$omniRotation ?? 0
 		this.#omniDeltaDeg = 0
 		if (c.main.micrio._engine._sog) {
@@ -316,6 +319,13 @@ export default class Ani {
 				this.#omniDelta -= numPerLayer
 			}
 			this.#duration += (Math.abs(this.#omniDelta) / this.#canvas.images.length) * 6000
+		}
+
+		// Start loading the arc as soon as the rotation is known; `_step` keeps the
+		// look-ahead window moving with the active frame from there.
+		if (this.#omniDelta) {
+			this.#omniPreloadIdx = this.#omniStartIdx
+			this.#canvas._micrioImage?.omni?.preloadDirection(this.#omniStartIdx, this.#omniDelta > 0 ? 1 : -1)
 		}
 
 		this.stop()
@@ -447,6 +457,10 @@ export default class Ani {
 					}
 					if (idx >= numPerLayer) {
 						idx -= numPerLayer
+					}
+					if (idx !== this.#omniPreloadIdx) {
+						this.#omniPreloadIdx = idx
+						this.#canvas._micrioImage?.omni?.preloadDirection(idx, this.#omniDelta > 0 ? 1 : -1)
 					}
 					this.#canvas._setActiveImage(idx, 0)
 				}
