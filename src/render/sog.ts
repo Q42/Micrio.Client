@@ -4,7 +4,7 @@ import type { Models } from '$types/models'
 
 /** Released Micrio SOG viewer bundle; keep in sync with Micrio.360Splats/package.json. */
 const SOG_VIEWER_BASE = 'https://r2.micr.io/'
-const SOG_VIEWER_VERSION = '0.1.0'
+const SOG_VIEWER_VERSION = '0.1.1'
 const SOG_VIEWER_URL = `${SOG_VIEWER_BASE}micrio-pc-sog-${SOG_VIEWER_VERSION}.min.js`
 
 /** The subset of the SOG viewer handle this integration calls. */
