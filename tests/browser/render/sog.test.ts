@@ -630,6 +630,36 @@ describe('SogRenderer — hybrid overlay', () => {
 		renderer.dispose()
 	})
 
+	it('snaps at the end of a manual gesture without the idle delay', async () => {
+		const scene = makeHybrid()
+		stubFetch(() => binaryResponse())
+		const { calls } = sizedFactory()
+		const renderer = new SogRenderer(scene.micrio)
+
+		await renderer.start(scene.image)
+		const overlay = calls[0]?.canvas
+		if (!overlay) {
+			throw new Error('no overlay canvas')
+		}
+		paint(overlay)
+		scene.view.set([0, 0, 1, 1])
+		await sleep(140)
+		await nextFrame()
+		scene.rotation.set(10)
+		expect(scene.engine._sogSettled).toBe(false)
+
+		// Pointerup on the photo is the signal: settle now, do not wait 220 ms.
+		scene.photo.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, button: 0, bubbles: true }))
+		globalThis.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, bubbles: true }))
+		expect(scene.engine._sogSettled).toBe(true)
+		expect(scene.setRotation).toHaveBeenLastCalledWith(10)
+
+		await nextFrame()
+		await nextFrame()
+		expect(overlay.style.opacity).toBe('0')
+		renderer.dispose()
+	})
+
 	it('keeps the photograph when the settled view only pans', async () => {
 		const scene = makeHybrid()
 		stubFetch(() => binaryResponse())

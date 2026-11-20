@@ -186,6 +186,8 @@ const getCreateMicrioSogViewer = (): Promise<CreateMicrioSogViewer | null> => {
 const HYBRID_IDLE_MS = 220
 /** Duration of the auto-rotation to the nearest photographed frame. */
 const HYBRID_SNAP_MS = 260
+/** Faster snap at the end of a manual gesture, so printing starts right away. */
+const HYBRID_GESTURE_SNAP_MS = 140
 /** Fade of the SOG backdrop once the target layer is fully drawn. */
 const HYBRID_FADE_MS = 320
 /** Mask resolution relative to the SOG canvas. */
@@ -237,6 +239,8 @@ export class SogRenderer {
 	#backdropVisible = false
 	/** The photo buffer was cleared because its frame no longer matches the SOG. */
 	#photoCleared = false
+	/** Pointers currently down on the photo or the dial, i.e. a manual gesture. */
+	#gesturePointers = new Set<number>()
 	/** The camera is snapping to the nearest frame or fading out. */
 	#settling = false
 	#settleGen = 0
@@ -261,6 +265,44 @@ export class SogRenderer {
 	/** The tile engine drew a frame: hide the backdrop once the layer is done. */
 	#onDraw = (): void => {
 		this.#maybeHideBackdrop()
+	}
+
+	/** A pointer went down on the photo or the omni dial: a manual gesture. */
+	#onGesturePointerDown = (event: PointerEvent): void => {
+		if (!this.#hybrid || event.button !== 0) {
+			return
+		}
+		const { target } = event
+		if (!(target instanceof Element)) {
+			return
+		}
+		if (target !== this.#micrio.canvas.element && !target.closest('micrio-dial')) {
+			return
+		}
+		this.#gesturePointers.add(event.pointerId)
+	}
+
+	/** The last finger/button of a manual gesture came up. */
+	#onGesturePointerUp = (event: PointerEvent): void => {
+		if (!this.#gesturePointers.delete(event.pointerId)) {
+			return
+		}
+		if (this.#gesturePointers.size === 0) {
+			this.#settleFromGesture()
+		}
+	}
+
+	/**
+	 * A gesture ended: rotate to the nearest frame now instead of waiting for the
+	 * idle timer, so the photo can start printing while the camera settles.
+	 */
+	#settleFromGesture(): void {
+		if (!this.#hybrid || !this.#maskReady || this.#settled || this.#settling) {
+			return
+		}
+		clearTimeout(this.#idleTimer)
+		this.#idleTimer = 0
+		this.#settle(HYBRID_GESTURE_SNAP_MS)
 	}
 
 	constructor(micrio: HTMLMicrioElement) {
@@ -386,6 +428,14 @@ export class SogRenderer {
 		if (this.#hybrid) {
 			this.#micrio.addEventListener('pointerdown', this.#onInput, true)
 			this.#micrio.addEventListener('wheel', this.#onInput, { capture: true, passive: true })
+			// A gesture that started on the photo or the dial: snap as soon as the
+			// last pointer of it is released, without waiting for the idle timer.
+			this.#micrio.addEventListener('pointerdown', this.#onGesturePointerDown, {
+				capture: true,
+				passive: true,
+			})
+			globalThis.addEventListener('pointerup', this.#onGesturePointerUp, true)
+			globalThis.addEventListener('pointercancel', this.#onGesturePointerUp, true)
 			// The tile engine reports every frame it draws; that is the moment to
 			// check whether the backdrop is still covering unloaded target tiles.
 			this.#micrio.addEventListener('draw', this.#onDraw)
@@ -564,7 +614,7 @@ export class SogRenderer {
 	}
 
 	/** Snaps the rotation to the nearest photographed frame, then reveals the photo. */
-	#settle = (): void => {
+	#settle = (duration = HYBRID_SNAP_MS): void => {
 		this.#idleTimer = 0
 		const image = this.#image
 		const omni = image?.$settings.omni
@@ -594,7 +644,7 @@ export class SogRenderer {
 			if (gen !== this.#settleGen) {
 				return
 			}
-			const p = Math.min(1, Math.max(0, (time - started) / HYBRID_SNAP_MS))
+			const p = Math.min(1, Math.max(0, (time - started) / duration))
 			image.omni?.setRotation(current + delta * easeInOut.get(p))
 			if (p < 1) {
 				this.#snapRaf = step
@@ -831,6 +881,9 @@ export class SogRenderer {
 		this.#micrio.removeEventListener('resize', this.#onResize)
 		this.#micrio.removeEventListener('pointerdown', this.#onInput, true)
 		this.#micrio.removeEventListener('wheel', this.#onInput, true)
+		this.#micrio.removeEventListener('pointerdown', this.#onGesturePointerDown, true)
+		globalThis.removeEventListener('pointerup', this.#onGesturePointerUp, true)
+		globalThis.removeEventListener('pointercancel', this.#onGesturePointerUp, true)
 		this.#micrio.removeEventListener('draw', this.#onDraw)
 		this.#viewer?.dispose()
 		this.#viewer = undefined
@@ -848,6 +901,7 @@ export class SogRenderer {
 		this.#overlayBehind = false
 		this.#backdropVisible = false
 		this.#photoCleared = false
+		this.#gesturePointers.clear()
 		this.#settling = false
 		this.#captureRetries = 0
 	}
