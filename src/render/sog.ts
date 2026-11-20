@@ -401,9 +401,10 @@ export class SogRenderer {
 		}
 		const descriptor = Object.getOwnPropertyDescriptor(navigator, 'gpu')
 		Object.defineProperty(navigator, 'gpu', { value: undefined, configurable: true })
-		let pending: Promise<MicrioSogViewer> | undefined
 		try {
-			pending = create(options)
+			// The call itself runs the viewer's backend preflight synchronously;
+			// restoring the property right away is enough.
+			return create(options)
 		} finally {
 			if (descriptor) {
 				Object.defineProperty(navigator, 'gpu', descriptor)
@@ -411,10 +412,6 @@ export class SogRenderer {
 				Reflect.deleteProperty(navigator, 'gpu')
 			}
 		}
-		if (!pending) {
-			throw new Error('The SOG viewer did not start.')
-		}
-		return pending
 	}
 
 	/** Creates the transparent canvas above the photograph. */
@@ -593,8 +590,8 @@ export class SogRenderer {
 				if (image && canvas) {
 					const layers = Math.max(1, image.$settings.omni?.layers?.length ?? 1)
 					const per = Math.max(1, Math.round(canvas.images.length / layers))
-					const active = canvas.images[canvas.layer * per + canvas._activeImageIdx]
-					if (active && active._gotBase > 0) {
+					const index = canvas.layer * per + canvas._activeImageIdx
+					if (index >= 0 && index < canvas.images.length && canvas.images[index]._gotBase > 0) {
 						resolve(true)
 						return
 					}
