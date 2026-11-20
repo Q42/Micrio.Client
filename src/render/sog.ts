@@ -132,10 +132,11 @@ export const isSogBundle = (micrio: HTMLMicrioElement, bundle: Models.ImageBundl
 
 /**
  * True when `data-sog` asks for the overlay: the SOG is drawn on a transparent
- * canvas above the normal photo renderer, whose background is cut away with the
+ * canvas over the normal photo renderer, whose background is cut away with the
  * SOG's alpha. Navigation runs on the SOG; when it stops, the rotation snaps to
- * the nearest photographed frame and the SOG fades out. `data-prefer-sog` keeps
- * forcing the SOG-only renderer, so it wins when both are set.
+ * the nearest photographed frame and the SOG drops behind the photo, filling
+ * the target tiles that are still loading. `data-prefer-sog` keeps forcing the
+ * SOG-only renderer, so it wins when both are set.
  */
 export const isSogHybrid = (micrio: HTMLMicrioElement): boolean => !prefersSog(micrio) && wantsSogHybrid(micrio)
 
@@ -185,10 +186,8 @@ const getCreateMicrioSogViewer = (): Promise<CreateMicrioSogViewer | null> => {
 const HYBRID_IDLE_MS = 220
 /** Duration of the auto-rotation to the nearest photographed frame. */
 const HYBRID_SNAP_MS = 260
-/** Crossfade from the SOG to the photograph. */
+/** Fade of the SOG backdrop once the target layer is fully drawn. */
 const HYBRID_FADE_MS = 320
-/** Longest wait for the photograph's base tile before retrying. */
-const HYBRID_PHOTO_WAIT_MS = 2500
 /** Mask resolution relative to the SOG canvas. */
 const MASK_SCALE = 0.5
 
@@ -200,11 +199,11 @@ const MASK_SCALE = 0.5
  * or loads textures. Every view the camera publishes is mirrored into the SOG
  * viewer's absolute degrees + view API.
  *
- * With `data-sog`, the viewer runs on a transparent overlay canvas above
- * the normal tile renderer instead. The SOG's alpha is copied into the photo
- * shader as a mask, so the photograph loses its background, and the two layers
- * crossfade: SOG while moving, photograph once the rotation has snapped to a
- * photographed frame.
+ * With `data-sog`, the viewer runs on a transparent overlay canvas over the
+ * normal tile renderer instead. The SOG's alpha is copied into the photo shader
+ * as a mask, so the photograph loses its background. While the camera moves the
+ * SOG is in front; once it settles, the photo moves in front and the SOG stays
+ * behind it until every target-layer tile has been drawn, then fades away.
  * @internal
  */
 export class SogRenderer {
@@ -228,8 +227,14 @@ export class SogRenderer {
 	#captureTimer = 0
 	/** Set once the first non-empty mask has been uploaded. */
 	#maskReady = false
-	/** The SOG is faded out and the photograph shows. */
+	/** The photograph is settled at the current view. */
 	#settled = false
+	/** The view size (width, height) the photograph was settled at. */
+	#settledView: [number, number] | undefined
+	/** The overlay canvas is stacked behind the photograph. */
+	#overlayBehind = false
+	/** The SOG is showing behind the photo while its target tiles load. */
+	#backdropVisible = false
 	/** The photo buffer was cleared because its frame no longer matches the SOG. */
 	#photoCleared = false
 	/** The camera is snapping to the nearest frame or fading out. */
@@ -251,6 +256,11 @@ export class SogRenderer {
 		}
 		this.#cancelSettle()
 		this.#touch()
+	}
+
+	/** The tile engine drew a frame: hide the backdrop once the layer is done. */
+	#onDraw = (): void => {
+		this.#maybeHideBackdrop()
 	}
 
 	constructor(micrio: HTMLMicrioElement) {
@@ -369,21 +379,48 @@ export class SogRenderer {
 		this.#viewer = viewer
 		viewer.resize()
 		this.#unsubscribers.push(
-			image.state.view.subscribe(this.#onCameraChange),
-			image.state.omniRotation.subscribe(this.#onCameraChange),
+			image.state.view.subscribe(this.#onViewChange),
+			image.state.omniRotation.subscribe(this.#onRotationChange),
 		)
 		this.#micrio.addEventListener('resize', this.#onResize)
 		if (this.#hybrid) {
 			this.#micrio.addEventListener('pointerdown', this.#onInput, true)
 			this.#micrio.addEventListener('wheel', this.#onInput, { capture: true, passive: true })
+			// The tile engine reports every frame it draws; that is the moment to
+			// check whether the backdrop is still covering unloaded target tiles.
+			this.#micrio.addEventListener('draw', this.#onDraw)
 		}
 		this.#apply()
 	}
 
-	/** The camera changed: wake the SOG, then mirror the view into it. */
-	#onCameraChange = (): void => {
+	/** A pure pan keeps the photograph; the SOG only supplies the mask. */
+	#onViewChange = (): void => {
+		if (this.#hybrid && this.#settled && !this.#settling && this.#isPanOnly()) {
+			// The photograph is already the right frame at this zoom; panning it
+			// is sharper than switching back to the SOG. The SOG stays behind the
+			// tiles as a backdrop while the newly exposed target tiles load.
+			this.#apply()
+			this.#showBackdrop()
+			return
+		}
 		this.#touch()
 		this.#apply()
+	}
+
+	/** A rotation always needs the SOG for the angles between photographs. */
+	#onRotationChange = (): void => {
+		this.#touch()
+		this.#apply()
+	}
+
+	/** True when the current view only moved, without changing its zoom. */
+	#isPanOnly(): boolean {
+		const view = this.#image?.state.$view
+		const settled = this.#settledView
+		if (!view || !settled) {
+			return false
+		}
+		return Math.abs(view[2] - settled[0]) <= 1e-4 && Math.abs(view[3] - settled[1]) <= 1e-4
 	}
 
 	/**
@@ -433,24 +470,66 @@ export class SogRenderer {
 		this.#overlay = undefined
 	}
 
-	/** Fades the SOG back in instantly; navigation always runs on the splat. */
+	/** Puts the SOG in front, instantly; navigation always runs on the splat. */
 	#show(): void {
 		const overlay = this.#overlay
 		if (!overlay) {
 			return
 		}
+		this.#setOverlayBehind(false)
 		overlay.style.transitionDuration = '0s'
 		overlay.style.opacity = '1'
+		this.#backdropVisible = false
 	}
 
-	/** Crossfades to the photograph. */
-	#hide(): void {
+	/**
+	 * Puts the SOG behind the photograph and shows it while the target layer
+	 * loads. Missing tiles then reveal the SOG instead of the page background;
+	 * loaded tiles sit on top of it.
+	 */
+	#showBackdrop(): void {
 		const overlay = this.#overlay
 		if (!overlay) {
 			return
 		}
+		this.#setOverlayBehind(true)
+		overlay.style.transitionDuration = '0s'
+		overlay.style.opacity = '1'
+		this.#backdropVisible = true
+	}
+
+	/** Fades the fully covered backdrop out. */
+	#hideBackdrop(): void {
+		const overlay = this.#overlay
+		if (!overlay) {
+			return
+		}
+		this.#backdropVisible = false
 		overlay.style.transitionDuration = `${HYBRID_FADE_MS}ms`
 		overlay.style.opacity = '0'
+	}
+
+	/** Hides the backdrop once the current target layer is completely drawn. */
+	#maybeHideBackdrop(): void {
+		if (!this.#backdropVisible) {
+			return
+		}
+		const engine = this.#micrio._engine
+		if (engine._toDrawTotal > 0 && engine._progress >= 1) {
+			this.#hideBackdrop()
+		}
+	}
+
+	/** Stacks the overlay behind or in front of the photo canvas. */
+	#setOverlayBehind(behind: boolean): void {
+		const overlay = this.#overlay
+		const photo = this.#micrio.canvas.element
+		if (!overlay || !photo.parentNode || behind === this.#overlayBehind) {
+			return
+		}
+		photo.parentNode.insertBefore(overlay, behind ? photo : photo.nextSibling)
+		this.#overlayBehind = behind
+		this.#viewer?.requestRender?.()
 	}
 
 	/** Any camera change hands control back to the SOG and restarts the idle timer. */
@@ -485,7 +564,7 @@ export class SogRenderer {
 		this.#settling = false
 	}
 
-	/** Snaps the rotation to the nearest photographed frame, then fades the SOG out. */
+	/** Snaps the rotation to the nearest photographed frame, then reveals the photo. */
 	#settle = (): void => {
 		this.#idleTimer = 0
 		const image = this.#image
@@ -529,7 +608,11 @@ export class SogRenderer {
 		Frame.request(step)
 	}
 
-	/** Waits for the photographed frame, then crossfades to it. */
+	/**
+	 * Snaps to the photographed frame, then puts the photo in front of the SOG.
+	 * The SOG stays visible behind it, filling the tiles that are still loading,
+	 * and is only faded out once the whole target layer has been drawn.
+	 */
 	async #settleFinish(gen: number): Promise<void> {
 		const image = this.#image
 		if (gen !== this.#settleGen || !image) {
@@ -554,18 +637,8 @@ export class SogRenderer {
 		engine._progress = 0
 		engine._toDrawTotal = 0
 		engine.render()
-		const ready = await this.#photoReady(gen)
-		if (gen !== this.#settleGen) {
-			return
-		}
-		if (!ready) {
-			// Keep the SOG visible and retry; a missing base tile would otherwise
-			// leave a blank photograph behind the fade.
-			this.#settling = false
-			this.#scheduleIdle()
-			return
-		}
-		// Let the mask of the final pose (scheduled by the last setRotation) land.
+		// Let the mask of the final pose (scheduled by the last setRotation) land
+		// before the photo is stacked above the SOG.
 		await new Promise<void>((resolve) => {
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
@@ -576,46 +649,14 @@ export class SogRenderer {
 		if (gen !== this.#settleGen) {
 			return
 		}
+		const view = image.state.$view
+		this.#settledView = view ? [view[2], view[3]] : undefined
 		this.#settling = false
 		this.#settled = true
-		this.#hide()
-	}
-
-	/** Resolves once every target-layer tile of the settled photograph is ready. */
-	#photoReady(gen: number): Promise<boolean> {
-		return new Promise<boolean>((resolve) => {
-			const started = performance.now()
-			const check = (): void => {
-				if (gen !== this.#settleGen) {
-					resolve(false)
-					return
-				}
-				const image = this.#image
-				const canvas = image?.canvas
-				if (image && canvas) {
-					const layers = Math.max(1, image.$settings.omni?.layers?.length ?? 1)
-					const per = Math.max(1, Math.round(canvas.images.length / layers))
-					const index = canvas.layer * per + canvas._activeImageIdx
-					const photo = index >= 0 && index < canvas.images.length ? canvas.images[index] : undefined
-					const engine = this.#micrio._engine
-					// `_gotBase` is set on the first target-layer tile in hybrid mode;
-					// progress reaching 1 means the whole planned target layer is
-					// loaded, not just the overview.
-					if (photo && photo._gotBase > 0 && engine._toDrawTotal > 0 && engine._progress >= 1) {
-						resolve(true)
-						return
-					}
-				}
-				if (performance.now() - started > HYBRID_PHOTO_WAIT_MS) {
-					resolve(false)
-					return
-				}
-				setTimeout(check, 60)
-			}
-			// `#settleFinish` cleared the previous progress, so the first check waits
-			// for the engine's next tile plan instead of reading a stale one.
-			check()
-		})
+		this.#showBackdrop()
+		// The last engine frame already planned this view; hide the backdrop at
+		// once when it has nothing left to cover.
+		this.#maybeHideBackdrop()
 	}
 
 	/** Schedules one mask copy in the frame the SOG viewer renders. */
@@ -788,6 +829,7 @@ export class SogRenderer {
 		this.#micrio.removeEventListener('resize', this.#onResize)
 		this.#micrio.removeEventListener('pointerdown', this.#onInput, true)
 		this.#micrio.removeEventListener('wheel', this.#onInput, true)
+		this.#micrio.removeEventListener('draw', this.#onDraw)
 		this.#viewer?.dispose()
 		this.#viewer = undefined
 		this.#image = undefined
@@ -800,6 +842,9 @@ export class SogRenderer {
 		this.#hybrid = false
 		this.#maskReady = false
 		this.#settled = false
+		this.#settledView = undefined
+		this.#overlayBehind = false
+		this.#backdropVisible = false
 		this.#photoCleared = false
 		this.#settling = false
 		this.#captureRetries = 0

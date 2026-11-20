@@ -630,6 +630,54 @@ describe('SogRenderer — hybrid overlay', () => {
 		renderer.dispose()
 	})
 
+	it('keeps the photograph when the settled view only pans', async () => {
+		const scene = makeHybrid()
+		stubFetch(() => binaryResponse())
+		const { calls } = sizedFactory()
+		const renderer = new SogRenderer(scene.micrio)
+
+		await renderer.start(scene.image)
+		const overlay = calls[0]?.canvas
+		if (!overlay) {
+			throw new Error('no overlay canvas')
+		}
+		paint(overlay)
+		scene.view.set([0, 0, 1, 1])
+		await nextFrame()
+		await sleep(260)
+		await nextFrame()
+		await nextFrame()
+		expect(overlay.style.opacity).toBe('0')
+
+		const cleared = scene.webgl._clear.mock.calls.length
+		// The pan exposes tiles that still have to load: the SOG becomes a
+		// backdrop behind the photo instead of the photo disappearing.
+		scene.engine.render.mockImplementation(() => {
+			scene.engine._progress = 0.5
+			scene.engine._toDrawTotal = 2
+		})
+		scene.view.set([0.1, 0.2, 1, 1])
+		await nextFrame()
+		expect(scene.webgl._clear).toHaveBeenCalledTimes(cleared)
+		expect(scene.engine._sogSettled).toBe(true)
+		expect(overlay.style.opacity).toBe('1')
+		const children = [...scene.host.children]
+		expect(children.indexOf(overlay)).toBeLessThan(children.indexOf(scene.photo))
+
+		// Once the target layer is complete, the backdrop fades away.
+		scene.engine._progress = 1
+		scene.engine._toDrawTotal = 2
+		scene.host.dispatchEvent(new Event('draw'))
+		expect(overlay.style.opacity).toBe('0')
+
+		// Changing the zoom still hands the view back to the SOG.
+		scene.view.set([0.1, 0.1, 0.5, 0.5])
+		await nextFrame()
+		expect(scene.engine._sogSettled).toBe(false)
+		expect(overlay.style.opacity).toBe('1')
+		renderer.dispose()
+	})
+
 	it('cancels a running snap when the user grabs the SOG again', async () => {
 		const scene = makeHybrid()
 		stubFetch(() => binaryResponse())
