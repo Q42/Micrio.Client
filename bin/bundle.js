@@ -144,11 +144,14 @@ function subDirectories(root) {
  *
  * `--outFile` resolved import/export specifiers to rootDir-relative module names, wrote them
  * with double quotes, dropped the `declare` keyword (redundant inside an ambient module, and
- * a TS1038 error where we re-emit it) and indented each module body by one level.
+ * a TS1038 error where we re-emit it) and indented each module body by one level. The same
+ * applies to a source-level `declare global` block: nested in the bundled ambient module it
+ * has to be written as `global`, which is a valid global augmentation there.
  */
 function alignWithOutFile(content, dirName) {
 	return content
 		.replace(/^(\s*)export declare /gm, '$1export ')
+		.replace(/^(\s*)declare global\b/gm, '$1global')
 		.replace(/(from\s+|import\s+)['"]([^'"]+)['"]/g, (match, prefix, spec) => {
 			let resolved = null
 			if (spec.startsWith('$')) {
