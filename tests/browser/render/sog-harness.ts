@@ -66,7 +66,7 @@ export interface SogScene {
 	photo: HTMLCanvasElement
 	view: Writable<SogView | undefined>
 	rotation: Writable<number | undefined>
-	canvas: { images: { _gotBase: number }[]; layer: number; _activeImageIdx: number }
+	canvas: { images: { _gotBase: number }[]; layer: number; _activeImageIdx: number; _targetComplete: boolean }
 	webgl: { _clear: Mock; _setMask: Mock; _setMaskEnabled: Mock }
 	engine: { _sogHybrid: boolean; _sogSettled: boolean; _progress: number; _toDrawTotal: number; render: Mock }
 	ui: { _setProps: Mock }
@@ -119,6 +119,7 @@ export function makeSogScene(options: SogSceneOptions = {}): SogScene {
 		images: Array.from({ length: frames }, () => ({ _gotBase: 1 })),
 		layer: 0,
 		_activeImageIdx: 0,
+		_targetComplete: true,
 	}
 
 	const clear = vi.fn()
@@ -144,6 +145,7 @@ export function makeSogScene(options: SogSceneOptions = {}): SogScene {
 	render.mockImplementation(() => {
 		engine._progress = 1
 		engine._toDrawTotal = 1
+		canvas._targetComplete = true
 	})
 	const webgl = { _clear: clear, _setMask: setMask, _setMaskEnabled: setMaskEnabled }
 

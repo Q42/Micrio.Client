@@ -655,6 +655,7 @@ describe('SogRenderer — hybrid overlay', () => {
 		scene.engine.render.mockImplementation(() => {
 			scene.engine._progress = 0.5
 			scene.engine._toDrawTotal = 2
+			scene.canvas._targetComplete = false
 		})
 		scene.view.set([0.1, 0.2, 1, 1])
 		await nextFrame()
@@ -667,6 +668,7 @@ describe('SogRenderer — hybrid overlay', () => {
 		// Once the target layer is complete, the backdrop fades away.
 		scene.engine._progress = 1
 		scene.engine._toDrawTotal = 2
+		scene.canvas._targetComplete = true
 		scene.host.dispatchEvent(new Event('draw'))
 		expect(overlay.style.opacity).toBe('0')
 

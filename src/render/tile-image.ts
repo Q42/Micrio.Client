@@ -540,12 +540,18 @@ export default class Image {
 		}
 		Image.#toDraw.push(i)
 
-		if (this.#canvas.main._setTileOpacity(i, i === this._endOffset - 1, this.#canvas._opacity) >= 1) {
+		// The coarsest tile is normally marked opaque immediately so the image has a
+		// backdrop. In hybrid mode the SOG is that backdrop, and forcing the tile
+		// opaque would report the target layer complete before it is even drawn —
+		// which would hide the SOG and leave a blank frame.
+		const hybrid = this.#canvas.main.micrio._engine._sogHybrid
+		const direct = i === this._endOffset - 1 && !hybrid
+		if (this.#canvas.main._setTileOpacity(i, direct, this.#canvas._opacity) >= 1) {
 			this.#doneTotal++
 		} else if (
 			// The hybrid overlay waits for the SOG to cover the switch, so it must
 			// not fall back to coarser tiles: only the target layer is requested.
-			!this.#canvas.main.micrio._engine._sogHybrid &&
+			!hybrid &&
 			!this.#isSingle &&
 			!this.#canvas._limited &&
 			l._index < this.#numLayers - 1

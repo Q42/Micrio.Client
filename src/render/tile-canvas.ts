@@ -87,6 +87,9 @@ export class TileCanvas {
 	/** @internal */
 	_activeImageIdx = -1
 
+	/** True when every planned tile was drawn fully opaque in the last frame. @internal */
+	_targetComplete = false
+
 	/** @internal */
 	_omniFieldOfView = 0
 	/** @internal */
@@ -532,6 +535,7 @@ export class TileCanvas {
 
 	/** Executes the drawing commands for the current frame for this canvas. @internal */
 	_draw(): void {
+		this._targetComplete = false
 		if (this._targetOpacity === 0 && this._opacity === 0) {
 			return
 		}
@@ -562,6 +566,8 @@ export class TileCanvas {
 
 		const r = this.#rect
 		const hybrid = m.micrio._engine._sogHybrid
+		let drawn = 0
+		let opaque = 0
 		for (const i of this._toDraw) {
 			this.#setTile(i)
 
@@ -569,7 +575,7 @@ export class TileCanvas {
 			const isBaseTile = i === r.image._endOffset - 1
 			const opa = m._getTileOpacity(i)
 
-			if (
+			const didDraw =
 				(isTargetLayer || opa === 1 || isBaseTile) &&
 				m._drawTile(
 					r.image._index,
@@ -580,17 +586,27 @@ export class TileCanvas {
 					opa * this.#bOpacity * r.image.opacity,
 					animating,
 					r.layer === r.image._targetLayer - 1,
-				) &&
-				// Without a base tile in hybrid mode, the first target-layer tile is
-				// what marks the photo ready.
-				(isBaseTile || (hybrid && r.layer === r.image._targetLayer))
-			) {
+				)
+
+			if (!didDraw) {
+				continue
+			}
+			drawn++
+			if (opa >= 1) {
+				opaque++
+			}
+			// Without a base tile in hybrid mode, the first target-layer tile is
+			// what marks the photo ready.
+			if (isBaseTile || (hybrid && r.layer === r.image._targetLayer)) {
 				r.image._gotBase = m.now
 				if (!this.#isReady) {
 					this._fadeIn()
 				}
 			}
 		}
+		// The SOG backdrop may only disappear once every planned tile is actually
+		// on screen: a loaded-but-still-fading tile or a failed one still needs it.
+		this._targetComplete = this._toDraw.length > 0 && drawn === this._toDraw.length && opaque === this._toDraw.length
 
 		if (this.#childrenDirty) {
 			this.#children.sort((a, b) => {

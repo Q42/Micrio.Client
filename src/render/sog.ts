@@ -514,8 +514,7 @@ export class SogRenderer {
 		if (!this.#backdropVisible) {
 			return
 		}
-		const engine = this.#micrio._engine
-		if (engine._toDrawTotal > 0 && engine._progress >= 1) {
+		if (this.#image?.canvas?._targetComplete) {
 			this.#hideBackdrop()
 		}
 	}
@@ -636,6 +635,9 @@ export class SogRenderer {
 		// draw recomputes both fields.
 		engine._progress = 0
 		engine._toDrawTotal = 0
+		if (image.canvas) {
+			image.canvas._targetComplete = false
+		}
 		engine.render()
 		// Let the mask of the final pose (scheduled by the last setRotation) land
 		// before the photo is stacked above the SOG.

@@ -379,7 +379,10 @@ export class Engine {
 				tile._loadedAt = this.now
 			}
 
-			return true
+			// `TILE_FAILED` shares the terminal `TILE_DRAWN` value but has no texture:
+			// reporting it as drawn let the hybrid overlay hide its SOG backdrop in
+			// front of an empty tile.
+			return Boolean(tile._texture)
 		}
 		return false
 	}
@@ -868,7 +871,13 @@ export class Engine {
 
 	/** Registers a base tile index (mark loaded, cache in set). @internal */
 	#registerBaseTile(idx: number): void {
-		this.#getTileEntry(idx)._opacity = 1
+		// In hybrid mode the SOG is the backdrop, so a base tile may not be assumed
+		// opaque: that would report the target layer complete and stop the render
+		// loop before the tile has actually loaded and drawn.
+		const tile = this.#getTileEntry(idx)
+		if (!this._sogHybrid) {
+			tile._opacity = 1
+		}
 		this.#baseTiles.add(idx)
 	}
 
