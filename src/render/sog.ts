@@ -546,9 +546,14 @@ export class SogRenderer {
 			image.omni?.setRotation(((Math.round((rotation / 360) * frames) % frames) / frames) * 360)
 		}
 		// The photo may plan and load its tiles now that the frame is final.
-		this.#micrio._engine._sogSettled = true
+		const engine = this.#micrio._engine
+		engine._sogSettled = true
 		this.#photoCleared = false
-		this.#micrio._engine.render()
+		// Progress from an earlier frame/zoom is not this frame's plan; the next
+		// draw recomputes both fields.
+		engine._progress = 0
+		engine._toDrawTotal = 0
+		engine.render()
 		const ready = await this.#photoReady(gen)
 		if (gen !== this.#settleGen) {
 			return
@@ -576,7 +581,7 @@ export class SogRenderer {
 		this.#hide()
 	}
 
-	/** Resolves once the active photograph's base tile has been drawn. */
+	/** Resolves once every target-layer tile of the settled photograph is ready. */
 	#photoReady(gen: number): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
 			const started = performance.now()
@@ -591,7 +596,12 @@ export class SogRenderer {
 					const layers = Math.max(1, image.$settings.omni?.layers?.length ?? 1)
 					const per = Math.max(1, Math.round(canvas.images.length / layers))
 					const index = canvas.layer * per + canvas._activeImageIdx
-					if (index >= 0 && index < canvas.images.length && canvas.images[index]._gotBase > 0) {
+					const photo = index >= 0 && index < canvas.images.length ? canvas.images[index] : undefined
+					const engine = this.#micrio._engine
+					// `_gotBase` is set on the first target-layer tile in hybrid mode;
+					// progress reaching 1 means the whole planned target layer is
+					// loaded, not just the overview.
+					if (photo && photo._gotBase > 0 && engine._toDrawTotal > 0 && engine._progress >= 1) {
 						resolve(true)
 						return
 					}
@@ -602,6 +612,8 @@ export class SogRenderer {
 				}
 				setTimeout(check, 60)
 			}
+			// `#settleFinish` cleared the previous progress, so the first check waits
+			// for the engine's next tile plan instead of reading a stale one.
 			check()
 		})
 	}

@@ -330,6 +330,12 @@ export default class Image {
 	 * @returns The number of tiles from this image that are already loaded/drawn.
 	 */
 	_getTiles(scale: number): number {
+		const hybrid = this.#canvas.main.micrio._engine._sogHybrid
+		// The hybrid overlay only needs the settled frame; planning the fading
+		// previous frame would download its target layer again for nothing.
+		if (hybrid && this._tOpacity <= 0) {
+			return 0
+		}
 		if (this.opacity <= 0) {
 			return 0
 		}
@@ -354,9 +360,13 @@ export default class Image {
 		}
 		Image.#toDrawSeenBase = this._startOffset
 
+		// The hybrid overlay only ever shows the photograph for one settled frame at
+		// the current zoom: the SOG covers everything while the camera moves, so an
+		// overview/base tile would just be a low-resolution flash in front of the
+		// sharp target layer.
 		const last = this._endOffset - 1
 		const lastIdx = last - this._startOffset
-		if (this._gotBase === 0) {
+		if (this._gotBase === 0 && !hybrid) {
 			d.push(last)
 			s[lastIdx] = 1
 			this.#canvas.main._setTileOpacity(last, true, 1)
@@ -532,7 +542,14 @@ export default class Image {
 
 		if (this.#canvas.main._setTileOpacity(i, i === this._endOffset - 1, this.#canvas._opacity) >= 1) {
 			this.#doneTotal++
-		} else if (!this.#isSingle && !this.#canvas._limited && l._index < this.#numLayers - 1) {
+		} else if (
+			// The hybrid overlay waits for the SOG to cover the switch, so it must
+			// not fall back to coarser tiles: only the target layer is requested.
+			!this.#canvas.main.micrio._engine._sogHybrid &&
+			!this.#isSingle &&
+			!this.#canvas._limited &&
+			l._index < this.#numLayers - 1
+		) {
 			this.#setToDraw(this._layers[l._index + 1], x >> 1, y >> 1)
 		}
 	}

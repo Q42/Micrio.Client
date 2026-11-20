@@ -561,6 +561,7 @@ export class TileCanvas {
 		}
 
 		const r = this.#rect
+		const hybrid = m.micrio._engine._sogHybrid
 		for (const i of this._toDraw) {
 			this.#setTile(i)
 
@@ -580,7 +581,9 @@ export class TileCanvas {
 					animating,
 					r.layer === r.image._targetLayer - 1,
 				) &&
-				isBaseTile
+				// Without a base tile in hybrid mode, the first target-layer tile is
+				// what marks the photo ready.
+				(isBaseTile || (hybrid && r.layer === r.image._targetLayer))
 			) {
 				r.image._gotBase = m.now
 				if (!this.#isReady) {

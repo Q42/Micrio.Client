@@ -68,7 +68,7 @@ export interface SogScene {
 	rotation: Writable<number | undefined>
 	canvas: { images: { _gotBase: number }[]; layer: number; _activeImageIdx: number }
 	webgl: { _clear: Mock; _setMask: Mock; _setMaskEnabled: Mock }
-	engine: { _sogHybrid: boolean; _sogSettled: boolean; render: Mock }
+	engine: { _sogHybrid: boolean; _sogSettled: boolean; _progress: number; _toDrawTotal: number; render: Mock }
 	ui: { _setProps: Mock }
 	events: { $enabled: boolean; unhook: Mock; hook: Mock; _el: HTMLCanvasElement }
 	adopt: Mock
@@ -131,7 +131,20 @@ export function makeSogScene(options: SogSceneOptions = {}): SogScene {
 	const adopt = vi.fn()
 
 	const events = { $enabled: true, unhook, hook, _el: photo }
-	const engine = { _sogHybrid: Boolean(options.hybrid), _sogSettled: true, render }
+	const engine: SogScene['engine'] = {
+		_sogHybrid: Boolean(options.hybrid),
+		_sogSettled: true,
+		_progress: 1,
+		_toDrawTotal: 1,
+		render,
+	}
+	// A real draw plans the target layer and then loads its tiles. The fake has no
+	// tile engine, so it reports the plan as immediately ready; hybrid settle checks
+	// these fields before crossfading.
+	render.mockImplementation(() => {
+		engine._progress = 1
+		engine._toDrawTotal = 1
+	})
 	const webgl = { _clear: clear, _setMask: setMask, _setMaskEnabled: setMaskEnabled }
 
 	// Mirrors `OmniUI`'s seamless `setRotation`: normalize, publish, sync the frame index.
