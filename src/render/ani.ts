@@ -298,7 +298,18 @@ export default class Ani {
 		if (c.main.micrio._engine._sog) {
 			// Seamless mode animates the continuous rotation, not frame steps.
 			if (Number.isFinite(omniDeg)) {
-				let deltaDeg = omniDeg - this.#omniStartDeg
+				// The hybrid overlay settles on the nearest photographed frame.
+				// End the flight there too, so it does not visibly correct itself
+				// once the camera stops.
+				let targetDeg = omniDeg
+				const omni = c._micrioImage?.$settings.omni
+				if (c.main.micrio._engine._sogHybrid && omni) {
+					const layers = Math.max(1, omni.layers?.length ?? 1)
+					const frames = Math.max(1, omni.frames / layers)
+					const normalized = ((targetDeg % 360) + 360) % 360
+					targetDeg = ((Math.round((normalized / 360) * frames) % frames) / frames) * 360
+				}
+				let deltaDeg = targetDeg - this.#omniStartDeg
 				while (deltaDeg > 180) {
 					deltaDeg -= 360
 				}
