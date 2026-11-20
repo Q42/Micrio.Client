@@ -160,8 +160,9 @@ export class OmniUI {
 			frames.push(frame)
 		}
 
-		// The SOG viewer has its own asset; Micrio's tile archive is never read.
-		if (!micrio._engine._sog && Number.parseFloat(info.version) >= 5) {
+		// The SOG viewer has its own asset; Micrio's tile archive is never read —
+		// unless the hybrid overlay keeps the photograph alive underneath.
+		if ((!micrio._engine._sog || micrio._engine._sogHybrid) && Number.parseFloat(info.version) >= 5) {
 			await archive
 				.load(info.tileBasePath || info.path, `${info.tilesId ?? info.id}/base`, (p: number) =>
 					micrio._ui?._setProps?.({ loadingProgress: p }),
@@ -185,8 +186,10 @@ export class OmniUI {
 		const preloadD = 'requestIdleCallback' in globalThis ? Math.max(36, Math.floor(totalFrames / 8) * 2) : 50
 
 		const preload = (c: number, dir?: 1 | -1) => {
-			// Every frame is rendered from the single SOG; tile thumbnails are dead weight.
-			if (micrio._engine._sog) {
+			// Every frame is rendered from the single SOG; tile thumbnails are dead
+			// weight. The hybrid overlay does render photographs, but only the one
+			// frame the rotation settles on, which the engine requests itself.
+			if (micrio._engine._sog && !micrio._engine._sogHybrid) {
 				return
 			}
 			this.#preloadRangeFn(

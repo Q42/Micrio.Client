@@ -15,7 +15,7 @@ import { Frame } from './frame'
 import { Engine } from '$render/engine'
 import { WebGL } from '$render/webgl'
 import { Canvas } from '$render/canvas'
-import { SogRenderer, isSogBundle } from '$render/sog'
+import { SogRenderer, isSogBundle, isSogHybrid } from '$render/sog'
 import { Events } from '$core/events/facade'
 import { MicrioImage } from './image'
 import { State } from './state'
@@ -201,7 +201,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	readonly _engine: Engine = new Engine(this)
 
-	/** The Gaussian splat renderer used for `data-prefer-splats` images. @internal */
+	/** The Gaussian splat renderer used for `data-prefer-sog`/`data-sog` images. @internal */
 	readonly _sogRenderer: SogRenderer = new SogRenderer(this)
 
 	/** The root MicrioMain UI component instance.
@@ -543,6 +543,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		this.events.enabled.set(false)
 		this._sogRenderer.dispose()
 		this._engine._sog = false
+		this._engine._sogHybrid = false
+		this._engine._sogSettled = true
 		this.state._cancelTouch()
 		this.canvas.unhook()
 		this._engine._unbind()
@@ -929,9 +931,14 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// A SOG image keeps Micrio's camera, events and omni UI, and swaps only
 		// the renderer: the tile canvas provides the view, the SOG viewer draws it.
+		// The hybrid experiment keeps the tile renderer alive underneath a
+		// transparent SOG overlay, masked by the SOG's alpha.
 		const sog = isSogBundle(this, bundle)
+		const sogHybrid = sog && isSogHybrid(this)
 		this._engine._sog = sog
-		if (!sog) {
+		this._engine._sogHybrid = sogHybrid
+		this._engine._sogSettled = true
+		if (!sogHybrid) {
 			this._sogRenderer.dispose()
 		}
 
@@ -997,8 +1004,9 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (!this._engine._book3d) {
 			this._engine._load()
 			// The SOG viewer brings its own graphics device, so Micrio must not
-			// claim the canvas with a WebGL context.
-			if (!this._engine._sog && !this._webgl.gl) {
+			// claim the canvas with a WebGL context — unless the hybrid overlay
+			// needs it to draw and mask the photograph underneath.
+			if ((!this._engine._sog || this._engine._sogHybrid) && !this._webgl.gl) {
 				try {
 					this._webgl._init()
 					// A program that does not link draws nothing: report it like a compile failure
@@ -1106,6 +1114,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (this._engine._sog) {
 			this._sogRenderer.dispose()
 			this._engine._sog = false
+			this._engine._sogHybrid = false
+			this._engine._sogSettled = true
 		}
 		this._engine._removeCanvas(img)
 	}

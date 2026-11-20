@@ -93,6 +93,12 @@ canvas.micrio {
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 }
+/* The transparent SOG layer sits directly above the photo canvas, below the UI. */
+canvas.micrio-sog {
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.32s ease;
+}
 micr-io:not([static]) {
 	overscroll-behavior: none;
 }

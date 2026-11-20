@@ -124,6 +124,16 @@ export class Engine {
 	 */
 	_sog = false
 
+	/** True when the SOG draws on its own transparent canvas above the photo
+	 *  renderer, which keeps drawing tiles for the settled frame. @internal
+	 */
+	_sogHybrid = false
+
+	/** In hybrid mode: false while the SOG is moving, so tile loading waits for
+	 *  the frame the rotation settles on. @internal
+	 */
+	_sogSettled = true
+
 	/** Flag indicating if a binary archive is being used. @internal */
 	_hasArchive = false
 	/** Layer offset when using an archive. @internal */
@@ -782,10 +792,12 @@ export class Engine {
 
 		const more = this._shouldDraw(now)
 
-		if (this._sog) {
+		if (this._sog && (!this._sogHybrid || !this._sogSettled)) {
 			// The SOG viewer does the drawing, but it mirrors Micrio's camera: run
 			// the same camera/animation step, then publish the view that came out
-			// of it. The tile canvas neither draws nor loads textures.
+			// of it. The tile canvas neither draws nor loads textures. In hybrid
+			// mode this only runs while the SOG moves: the photo is untouched,
+			// so no per-frame tiles are requested.
 			for (const c of this._canvases) {
 				c._notifyView()
 			}

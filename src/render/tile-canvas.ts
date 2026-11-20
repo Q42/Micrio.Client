@@ -476,8 +476,10 @@ export class TileCanvas {
 		const m = this.main
 
 		// A SOG renderer draws every frame from one splat; planning tiles for the
-		// 64 omni photographs would be pure waste.
-		if (!m.micrio._engine._sog) {
+		// 64 omni photographs would be pure waste. The hybrid overlay only touches
+		// the photograph once the rotation settled on a frame.
+		const sogEngine = m.micrio._engine
+		if (!sogEngine._sog || (sogEngine._sogHybrid && sogEngine._sogSettled)) {
 			for (let i = 0; i < this.images.length; i++) {
 				const image = this.images[i]
 				if (!image._shouldRender()) {
