@@ -201,7 +201,7 @@ export class HTMLMicrioElement extends MicrioElement {
 	 */
 	readonly _engine: Engine = new Engine(this)
 
-	/** The Gaussian splat renderer used for `data-prefer-splats` images. @internal */
+	/** The Gaussian splat renderer used for `data-prefer-sog`/`data-sog` images. @internal */
 	readonly _sogRenderer: SogRenderer = new SogRenderer(this)
 
 	/** The root MicrioMain UI component instance.

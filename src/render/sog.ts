@@ -52,11 +52,29 @@ declare global {
 	var createMicrioSogViewer: CreateMicrioSogViewer | undefined
 }
 
-/** True when the element opted into SOG rendering via `data-prefer-splats`. */
-const prefersSog = (micrio: HTMLMicrioElement): boolean => Object.hasOwn(micrio.dataset, 'preferSplats')
+/**
+ * True when the element forces the SOG-only renderer via `data-prefer-sog`
+ * (`data-prefer-splats` is the older spelling and keeps working).
+ */
+const prefersSog = (micrio: HTMLMicrioElement): boolean =>
+	Object.hasOwn(micrio.dataset, 'preferSog') || Object.hasOwn(micrio.dataset, 'preferSplats')
 
-/** The `.sog` name preferred by `data-prefer-splats`, or `''` when no name was given. */
-const preferredSogName = (micrio: HTMLMicrioElement): string => micrio.dataset.preferSplats?.trim() ?? ''
+/** True when `data-sog` asks for the hybrid overlay. */
+const wantsSogHybrid = (micrio: HTMLMicrioElement): boolean => Object.hasOwn(micrio.dataset, 'sog')
+
+/**
+ * The `.sog` name requested by the active attribute, or `''` when no name was
+ * given. Both the SOG-only and the hybrid attributes use the same value.
+ */
+const preferredSogName = (micrio: HTMLMicrioElement): string => {
+	let value = micrio.dataset.sog
+	if (Object.hasOwn(micrio.dataset, 'preferSog')) {
+		value = micrio.dataset.preferSog
+	} else if (Object.hasOwn(micrio.dataset, 'preferSplats')) {
+		value = micrio.dataset.preferSplats
+	}
+	return value?.trim() ?? ''
+}
 
 /** Fallback capture size limit: without a usable name, the first capture under this wins. */
 const MAX_FALLBACK_SOG_BYTES = 20 * 1024 * 1024
@@ -73,9 +91,9 @@ const biggestSog = (sog: Models.ImageInfo.SogInfo[] | undefined): Models.ImageIn
 }
 
 /**
- * The SOG capture to load. `data-prefer-splats="<name>"` selects the entry with
- * that name; otherwise the first entry smaller than 20 MB is used, and only when
- * every capture is larger does the largest win.
+ * The SOG capture to load. `data-prefer-sog="<name>"` or `data-sog="<name>"`
+ * selects the entry with that name; otherwise the first entry smaller than
+ * 20 MB is used, and only when every capture is larger does the largest win.
  */
 const pickSog = (
 	micrio: HTMLMicrioElement,
@@ -104,21 +122,22 @@ const imageBaseHost = (image: MicrioImage): string => {
 const sogUrl = (image: MicrioImage, sog: Models.ImageInfo.SogInfo): string =>
 	`${imageBaseHost(image)}/${encodeURIComponent(image.id)}/sog/${encodeURIComponent(sog.name)}-${sog.timestamp}.sog.bin`
 
-/** True when this bundle should be rendered by the SOG viewer instead of the tile engine. */
+/** True when this bundle should use the SOG viewer, alone or as the hybrid overlay. */
 export const isSogBundle = (micrio: HTMLMicrioElement, bundle: Models.ImageBundle.BundleImage): boolean => {
-	if (!prefersSog(micrio)) {
+	if (!prefersSog(micrio) && !wantsSogHybrid(micrio)) {
 		return false
 	}
 	return Boolean(bundle.settings?.omni?.sog?.length)
 }
 
 /**
- * True when `data-sog-hybrid` asks for the overlay experiment: the SOG is drawn on
- * a transparent canvas above the normal photo renderer, whose background is cut
- * away with the SOG's alpha. Navigation runs on the SOG; when it stops, the
- * rotation snaps to the nearest photographed frame and the SOG fades out.
+ * True when `data-sog` asks for the overlay: the SOG is drawn on a transparent
+ * canvas above the normal photo renderer, whose background is cut away with the
+ * SOG's alpha. Navigation runs on the SOG; when it stops, the rotation snaps to
+ * the nearest photographed frame and the SOG fades out. `data-prefer-sog` keeps
+ * forcing the SOG-only renderer, so it wins when both are set.
  */
-export const isSogHybrid = (micrio: HTMLMicrioElement): boolean => Object.hasOwn(micrio.dataset, 'sogHybrid')
+export const isSogHybrid = (micrio: HTMLMicrioElement): boolean => !prefersSog(micrio) && wantsSogHybrid(micrio)
 
 /**
  * Resolves the PlayCanvas viewer factory. A page that already included the
@@ -174,14 +193,14 @@ const HYBRID_PHOTO_WAIT_MS = 2500
 const MASK_SCALE = 0.5
 
 /**
- * Runs the PlayCanvas SOG viewer on the Micrio `<canvas>` for `data-prefer-splats`
+ * Runs the PlayCanvas SOG viewer on the Micrio `<canvas>` for `data-prefer-sog`
  * images (`="<name>"` picks that `.sog` entry). Micrio's tile canvas and camera
  * stay alive: they own gestures, zoom limits, animations and the omni dial exactly
  * as in the tile viewer, while the tile renderer itself never initializes WebGL
  * or loads textures. Every view the camera publishes is mirrored into the SOG
  * viewer's absolute degrees + view API.
  *
- * With `data-sog-hybrid`, the viewer runs on a transparent overlay canvas above
+ * With `data-sog`, the viewer runs on a transparent overlay canvas above
  * the normal tile renderer instead. The SOG's alpha is copied into the photo
  * shader as a mask, so the photograph loses its background, and the two layers
  * crossfade: SOG while moving, photograph once the rotation has snapped to a
