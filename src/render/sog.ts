@@ -241,6 +241,8 @@ export class SogRenderer {
 	#photoCleared = false
 	/** Pointers currently down on the photo or the dial, i.e. a manual gesture. */
 	#gesturePointers = new Set<number>()
+	/** The photo canvas is hidden until its alpha mask (and first frame) are ready. */
+	#photoHidden = false
 	/** The camera is snapping to the nearest frame or fading out. */
 	#settling = false
 	#settleGen = 0
@@ -317,11 +319,21 @@ export class SogRenderer {
 		this.#controller = controller
 		this.#image = image
 		this.#hybrid = this.#micrio._engine._sogHybrid
+		if (this.#hybrid) {
+			// The tile layer (with its photograph background) must not show while
+			// the SOG is still loading; it is revealed once the mask is applied.
+			this.#micrio._engine._sogSettled = false
+			this.#setPhotoHidden(true)
+			// A previous image may still be in the shared canvas; the new alpha
+			// mask would otherwise clip its pixels into the new silhouette.
+			this.#micrio._webgl._clear()
+		}
 
 		const { omni } = image.$settings
 		const sog = pickSog(this.#micrio, omni?.sog)
 		if (!omni || !sog) {
 			this.#setProgress(1)
+			this.#fallbackToPhoto()
 			return
 		}
 		const frames = Math.max(1, omni.frames / Math.max(1, omni.layers?.length ?? 1))
@@ -339,6 +351,7 @@ export class SogRenderer {
 		if (!createMicrioSogViewer) {
 			console.warn('[Micrio] The SOG viewer is not available; add the Micrio SOG viewer script or let Micrio load it.')
 			this.#setProgress(1)
+			this.#fallbackToPhoto()
 			return
 		}
 
@@ -368,6 +381,7 @@ export class SogRenderer {
 				console.error('[Micrio] Could not load the SOG:', error)
 				this.#setProgress(1)
 				this.#dropOverlay()
+				this.#fallbackToPhoto()
 			}
 			return
 		} finally {
@@ -389,6 +403,7 @@ export class SogRenderer {
 				console.warn('[Micrio] The SOG overlay needs the WebGL viewer; this display uses WebGPU.')
 				viewer.dispose()
 				this.#dropOverlay()
+				this.#fallbackToPhoto()
 				return
 			}
 			const clear = viewer.camera?.clearColor
@@ -565,8 +580,30 @@ export class SogRenderer {
 			return
 		}
 		if (this.#image?.canvas?._targetComplete) {
+			// A switch can settle before the new photo has any active frame; keep
+			// the tile layer hidden until there is actually something to reveal.
+			if (this.#photoHidden) {
+				this.#setPhotoHidden(false)
+			}
 			this.#hideBackdrop()
 		}
+	}
+
+	/** Hides the tile layer until the SOG and its alpha mask are ready. */
+	#setPhotoHidden(hidden: boolean): void {
+		this.#photoHidden = hidden
+		this.#micrio.canvas.element.style.opacity = hidden ? '0' : ''
+	}
+
+	/** Gives up on the SOG and shows the normal tile layer again. */
+	#fallbackToPhoto(): void {
+		this.#setPhotoHidden(false)
+		const engine = this.#micrio._engine
+		engine._sogSettled = true
+		engine._progress = 0
+		engine._toDrawTotal = 0
+		this.#micrio._webgl._setMaskEnabled(false)
+		engine.render()
 	}
 
 	/** Stacks the overlay behind or in front of the photo canvas. */
@@ -705,6 +742,11 @@ export class SogRenderer {
 		this.#settledView = view ? [view[2], view[3]] : undefined
 		this.#settling = false
 		this.#settled = true
+		const { canvas } = image
+		const photo = canvas && canvas._activeImageIdx >= 0 ? canvas.images[canvas._activeImageIdx] : undefined
+		if (photo) {
+			this.#setPhotoHidden(false)
+		}
 		this.#showBackdrop()
 		// The last engine frame already planned this view; hide the backdrop at
 		// once when it has nothing left to cover.
@@ -759,6 +801,9 @@ export class SogRenderer {
 					this.#viewer?.requestRender?.()
 					this.#scheduleCapture()
 				}, 120)
+			} else if (!this.#maskReady) {
+				console.warn('[Micrio] The SOG did not render a usable alpha mask; falling back to tiles.')
+				this.#fallbackToPhoto()
 			}
 			return
 		}
@@ -894,6 +939,7 @@ export class SogRenderer {
 			this.#micrio._engine._sogSettled = true
 		}
 		this.#dropOverlay()
+		this.#setPhotoHidden(false)
 		this.#hybrid = false
 		this.#maskReady = false
 		this.#settled = false
@@ -901,6 +947,7 @@ export class SogRenderer {
 		this.#overlayBehind = false
 		this.#backdropVisible = false
 		this.#photoCleared = false
+		this.#photoHidden = false
 		this.#gesturePointers.clear()
 		this.#settling = false
 		this.#captureRetries = 0

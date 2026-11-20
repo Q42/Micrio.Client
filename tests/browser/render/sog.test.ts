@@ -569,6 +569,33 @@ describe('SogRenderer — hybrid overlay', () => {
 		renderer.dispose()
 	})
 
+	it('keeps the tile layer hidden until the SOG mask is ready', async () => {
+		const scene = makeHybrid()
+		stubFetch(() => binaryResponse())
+		const { calls } = sizedFactory()
+		const renderer = new SogRenderer(scene.micrio)
+
+		const started = renderer.start(scene.image)
+		expect(scene.photo.style.opacity).toBe('0')
+		await started
+		const overlay = calls[0]?.canvas
+		if (!overlay) {
+			throw new Error('no overlay canvas')
+		}
+		expect(scene.photo.style.opacity).toBe('0')
+		scene.view.set([0, 0, 1, 1])
+
+		paint(overlay)
+		await sleep(140)
+		await nextFrame()
+		// The SOG is ready, but the photo only reappears over its backdrop at settle.
+		expect(scene.photo.style.opacity).toBe('0')
+
+		await pollUntil(() => scene.photo.style.opacity === '', 2000, 'photo reveal')
+		expect(scene.photo.style.opacity).toBe('')
+		renderer.dispose()
+	})
+
 	it('snaps to the nearest frame and crossfades to the photograph when idle', async () => {
 		const scene = makeHybrid()
 		stubFetch(() => binaryResponse())
@@ -585,9 +612,11 @@ describe('SogRenderer — hybrid overlay', () => {
 		await nextFrame()
 
 		// The first look away clears the stale frame; a second one must not clear twice.
+		// (`start` already cleared the canvas before anything was shown.)
+		const cleared = scene.webgl._clear.mock.calls.length
 		scene.rotation.set(100)
 		scene.rotation.set(355)
-		expect(scene.webgl._clear).toHaveBeenCalledTimes(1)
+		expect(scene.webgl._clear).toHaveBeenCalledTimes(cleared + 1)
 
 		await sleep(240) // idle -> snap starts
 		await sleep(360) // snap -> settle finish
