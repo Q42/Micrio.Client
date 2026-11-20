@@ -2,10 +2,22 @@ import type { HTMLMicrioElement } from '$core/element'
 import type { MicrioImage } from '$core/image'
 import type { Models } from '$types/models'
 
+import { Frame } from '$core/frame'
+import { easeInOut } from '$render/easing'
+import { createElement } from '$utils/dom'
+
 /** Released Micrio SOG viewer bundle; keep in sync with Micrio.360Splats/package.json. */
 const SOG_VIEWER_BASE = 'https://r2.micr.io/'
 const SOG_VIEWER_VERSION = '0.1.1'
 const SOG_VIEWER_URL = `${SOG_VIEWER_BASE}micrio-pc-sog-${SOG_VIEWER_VERSION}.min.js`
+
+/** A PlayCanvas colour, only used to make the viewer's clear transparent. */
+interface ViewerColour {
+	r: number
+	g: number
+	b: number
+	a: number
+}
 
 /** The subset of the SOG viewer handle this integration calls. */
 interface MicrioSogViewer {
@@ -19,7 +31,13 @@ interface MicrioSogViewer {
 		target?: { x: number; y: number; z: number }
 	}) => void
 	resize: () => void
+	requestRender?: () => void
 	dispose: () => void
+	/** Set by the viewer; the hybrid layer needs it transparent. */
+	camera?: { clearColor?: ViewerColour }
+	/** `"webgpu"` or `"webgl2"`. The WebGPU path renders an opaque canvas. */
+	backend?: string
+	hdr?: boolean
 }
 
 type CreateMicrioSogViewer = (options: {
@@ -95,6 +113,14 @@ export const isSogBundle = (micrio: HTMLMicrioElement, bundle: Models.ImageBundl
 }
 
 /**
+ * True when `data-sog-hybrid` asks for the overlay experiment: the SOG is drawn on
+ * a transparent canvas above the normal photo renderer, whose background is cut
+ * away with the SOG's alpha. Navigation runs on the SOG; when it stops, the
+ * rotation snaps to the nearest photographed frame and the SOG fades out.
+ */
+export const isSogHybrid = (micrio: HTMLMicrioElement): boolean => Object.hasOwn(micrio.dataset, 'sogHybrid')
+
+/**
  * Resolves the PlayCanvas viewer factory. A page that already included the
  * classic bundle (`<script src="…/micrio-pc-sog-<version>.min.js">`, which
  * registers `globalThis.createMicrioSogViewer`) is used as-is; only otherwise is
@@ -136,6 +162,17 @@ const getCreateMicrioSogViewer = (): Promise<CreateMicrioSogViewer | null> => {
 	return viewerLoader
 }
 
+/** How long the view must be still before the overlay snaps to a photograph. */
+const HYBRID_IDLE_MS = 220
+/** Duration of the auto-rotation to the nearest photographed frame. */
+const HYBRID_SNAP_MS = 260
+/** Crossfade from the SOG to the photograph. */
+const HYBRID_FADE_MS = 320
+/** Longest wait for the photograph's base tile before retrying. */
+const HYBRID_PHOTO_WAIT_MS = 2500
+/** Mask resolution relative to the SOG canvas. */
+const MASK_SCALE = 0.5
+
 /**
  * Runs the PlayCanvas SOG viewer on the Micrio `<canvas>` for `data-prefer-splats`
  * images (`="<name>"` picks that `.sog` entry). Micrio's tile canvas and camera
@@ -143,6 +180,12 @@ const getCreateMicrioSogViewer = (): Promise<CreateMicrioSogViewer | null> => {
  * as in the tile viewer, while the tile renderer itself never initializes WebGL
  * or loads textures. Every view the camera publishes is mirrored into the SOG
  * viewer's absolute degrees + view API.
+ *
+ * With `data-sog-hybrid`, the viewer runs on a transparent overlay canvas above
+ * the normal tile renderer instead. The SOG's alpha is copied into the photo
+ * shader as a mask, so the photograph loses its background, and the two layers
+ * crossfade: SOG while moving, photograph once the rotation has snapped to a
+ * photographed frame.
  * @internal
  */
 export class SogRenderer {
@@ -153,10 +196,42 @@ export class SogRenderer {
 	#controller: AbortController | undefined
 	#gen = 0
 
+	/** True when the SOG is a transparent overlay above the photograph. */
+	#hybrid = false
+	/** The overlay canvas; also the mask source. */
+	#overlay: HTMLCanvasElement | undefined
+	/** Downscaled copy of the overlay, uploaded as the photo mask. */
+	#scratch: HTMLCanvasElement | undefined
+	/** Tiny copy used to detect a blank (not yet drawn) SOG canvas. */
+	#probe: HTMLCanvasElement | undefined
+	#captureRaf = 0
+	#captureRetries = 0
+	#captureTimer = 0
+	/** Set once the first non-empty mask has been uploaded. */
+	#maskReady = false
+	/** The SOG is faded out and the photograph shows. */
+	#settled = false
+	/** The photo buffer was cleared because its frame no longer matches the SOG. */
+	#photoCleared = false
+	/** The camera is snapping to the nearest frame or fading out. */
+	#settling = false
+	#settleGen = 0
+	#idleTimer = 0
+	#snapRaf: ((time: number) => void) | undefined
+
 	/** Bound resize handler, so the same reference can be removed. */
 	#onResize = () => {
 		this.#viewer?.resize()
 		this.#apply()
+	}
+
+	/** Pointer/wheel input cancels a settle in progress and hands back to the SOG. */
+	#onInput = () => {
+		if (!this.#hybrid || !this.#settling) {
+			return
+		}
+		this.#cancelSettle()
+		this.#touch()
 	}
 
 	constructor(micrio: HTMLMicrioElement) {
@@ -170,6 +245,7 @@ export class SogRenderer {
 		const controller = new AbortController()
 		this.#controller = controller
 		this.#image = image
+		this.#hybrid = this.#micrio._engine._sogHybrid
 
 		const { omni } = image.$settings
 		const sog = pickSog(this.#micrio, omni?.sog)
@@ -195,7 +271,7 @@ export class SogRenderer {
 			return
 		}
 
-		const canvas = this.#micrio.canvas.element
+		const canvas = this.#hybrid ? this.#createOverlay() : this.#micrio.canvas.element
 		const remoteUrl = sogUrl(image, sog)
 		const filename = `${image.id}/${sog.name}-${sog.timestamp}.sog`
 		this.#setProgress(0.05)
@@ -210,7 +286,7 @@ export class SogRenderer {
 				return
 			}
 			objectUrl = URL.createObjectURL(blob)
-			viewer = await createMicrioSogViewer({
+			viewer = await this.#createViewer(createMicrioSogViewer, {
 				canvas,
 				url: objectUrl,
 				filename,
@@ -220,6 +296,7 @@ export class SogRenderer {
 			if (gen === this.#gen) {
 				console.error('[Micrio] Could not load the SOG:', error)
 				this.#setProgress(1)
+				this.#dropOverlay()
 			}
 			return
 		} finally {
@@ -233,10 +310,33 @@ export class SogRenderer {
 		}
 		this.#setProgress(1)
 
-		this.#viewer = viewer
-		// The viewer replaces the canvas when WebGPU claims it and then falls back
-		// to WebGL2. The page and Micrio's input hooks have to follow that.
-		if (viewer.canvas !== canvas) {
+		if (this.#hybrid) {
+			// The alpha channel is what cuts the photograph out, so a backend
+			// without one cannot be the overlay. The viewer also replaces the
+			// canvas when WebGPU falls back, which is handled below.
+			if (viewer.hdr || viewer.backend === 'webgpu') {
+				console.warn('[Micrio] The SOG overlay needs the WebGL viewer; this display uses WebGPU.')
+				viewer.dispose()
+				this.#dropOverlay()
+				return
+			}
+			const clear = viewer.camera?.clearColor
+			if (clear) {
+				clear.r = 0
+				clear.g = 0
+				clear.b = 0
+				clear.a = 0
+			}
+			if (viewer.canvas !== canvas) {
+				this.#overlay = viewer.canvas
+				if (!viewer.canvas.parentNode) {
+					const photo = this.#micrio.canvas.element
+					photo.parentNode?.insertBefore(viewer.canvas, photo.nextSibling)
+				}
+			}
+		} else if (viewer.canvas !== canvas) {
+			// The viewer replaces the canvas when WebGPU claims it and then falls back
+			// to WebGL2. The page and Micrio's input hooks have to follow that.
 			const { events } = this.#micrio
 			const wasEnabled = events.$enabled
 			events.unhook()
@@ -247,17 +347,335 @@ export class SogRenderer {
 			}
 		}
 
+		this.#viewer = viewer
 		viewer.resize()
 		this.#unsubscribers.push(
-			image.state.view.subscribe(() => {
-				this.#apply()
-			}),
-			image.state.omniRotation.subscribe(() => {
-				this.#apply()
-			}),
+			image.state.view.subscribe(this.#onCameraChange),
+			image.state.omniRotation.subscribe(this.#onCameraChange),
 		)
 		this.#micrio.addEventListener('resize', this.#onResize)
+		if (this.#hybrid) {
+			this.#micrio.addEventListener('pointerdown', this.#onInput, true)
+			this.#micrio.addEventListener('wheel', this.#onInput, { capture: true, passive: true })
+		}
 		this.#apply()
+	}
+
+	/** The camera changed: wake the SOG, then mirror the view into it. */
+	#onCameraChange = (): void => {
+		this.#touch()
+		this.#apply()
+	}
+
+	/**
+	 * Creates the SOG viewer. The HDR path uses WebGPU, whose canvas has no alpha
+	 * channel, so the overlay forces the WebGL2 viewer instead. The published
+	 * viewer checks `navigator.gpu` synchronously before anything else, so hiding
+	 * it for the call itself is enough (and is restored right after).
+	 */
+	#createViewer(
+		create: CreateMicrioSogViewer,
+		options: Parameters<CreateMicrioSogViewer>[0],
+	): Promise<MicrioSogViewer> {
+		if (!this.#hybrid) {
+			return create(options)
+		}
+		const descriptor = Object.getOwnPropertyDescriptor(navigator, 'gpu')
+		Object.defineProperty(navigator, 'gpu', { value: undefined, configurable: true })
+		let pending: Promise<MicrioSogViewer> | undefined
+		try {
+			pending = create(options)
+		} finally {
+			if (descriptor) {
+				Object.defineProperty(navigator, 'gpu', descriptor)
+			} else {
+				Reflect.deleteProperty(navigator, 'gpu')
+			}
+		}
+		if (!pending) {
+			throw new Error('The SOG viewer did not start.')
+		}
+		return pending
+	}
+
+	/** Creates the transparent canvas above the photograph. */
+	#createOverlay(): HTMLCanvasElement {
+		const overlay = createElement('canvas', { className: 'micrio micrio-sog' })
+		const photo = this.#micrio.canvas.element
+		if (photo.parentNode) {
+			photo.parentNode.insertBefore(overlay, photo.nextSibling)
+		} else {
+			this.#micrio.append(overlay)
+		}
+		this.#overlay = overlay
+		return overlay
+	}
+
+	/** Removes the overlay and its mask. */
+	#dropOverlay(): void {
+		this.#overlay?.remove()
+		this.#overlay = undefined
+	}
+
+	/** Fades the SOG back in instantly; navigation always runs on the splat. */
+	#show(): void {
+		const overlay = this.#overlay
+		if (!overlay) {
+			return
+		}
+		overlay.style.transitionDuration = '0s'
+		overlay.style.opacity = '1'
+	}
+
+	/** Crossfades to the photograph. */
+	#hide(): void {
+		const overlay = this.#overlay
+		if (!overlay) {
+			return
+		}
+		overlay.style.transitionDuration = `${HYBRID_FADE_MS}ms`
+		overlay.style.opacity = '0'
+	}
+
+	/** Any camera change hands control back to the SOG and restarts the idle timer. */
+	#touch(): void {
+		if (!this.#hybrid || !this.#maskReady || this.#settling) {
+			return
+		}
+		this.#settled = false
+		this.#micrio._engine._sogSettled = false
+		if (!this.#photoCleared) {
+			// The photo buffer still shows the settled frame; the SOG is now at
+			// another angle (or the stale frame is about to be displayed under
+			// soft splat edges). Empty it so only the SOG is visible.
+			this.#photoCleared = true
+			this.#micrio._webgl._clear()
+		}
+		this.#show()
+		this.#scheduleIdle()
+	}
+
+	#scheduleIdle(): void {
+		clearTimeout(this.#idleTimer)
+		this.#idleTimer = globalThis.setTimeout(this.#settle, HYBRID_IDLE_MS)
+	}
+
+	#cancelSettle(): void {
+		this.#settleGen++
+		if (this.#snapRaf) {
+			Frame.cancel(this.#snapRaf)
+			this.#snapRaf = undefined
+		}
+		this.#settling = false
+	}
+
+	/** Snaps the rotation to the nearest photographed frame, then fades the SOG out. */
+	#settle = (): void => {
+		this.#idleTimer = 0
+		const image = this.#image
+		const omni = image?.$settings.omni
+		if (!this.#hybrid || !this.#maskReady || !image || !omni || this.#settled || this.#settling) {
+			return
+		}
+		this.#settling = true
+		const gen = ++this.#settleGen
+		const frames = Math.max(1, omni.frames / Math.max(1, omni.layers?.length ?? 1))
+		const current = (((image.state.$omniRotation ?? 0) % 360) + 360) % 360
+		const index = Math.round((current / 360) * frames) % frames
+		const target = (index / frames) * 360
+		let delta = target - current
+		if (delta > 180) {
+			delta -= 360
+		}
+		if (delta < -180) {
+			delta += 360
+		}
+		if (Math.abs(delta) < 0.01) {
+			void this.#settleFinish(gen)
+			return
+		}
+		const started = performance.now()
+		const step = (time: number): void => {
+			this.#snapRaf = undefined
+			if (gen !== this.#settleGen) {
+				return
+			}
+			const p = Math.min(1, Math.max(0, (time - started) / HYBRID_SNAP_MS))
+			image.omni?.setRotation(current + delta * easeInOut.get(p))
+			if (p < 1) {
+				this.#snapRaf = step
+				Frame.request(step)
+			} else {
+				void this.#settleFinish(gen)
+			}
+		}
+		this.#snapRaf = step
+		Frame.request(step)
+	}
+
+	/** Waits for the photographed frame, then crossfades to it. */
+	async #settleFinish(gen: number): Promise<void> {
+		const image = this.#image
+		if (gen !== this.#settleGen || !image) {
+			return
+		}
+		// The rotation usually lands on the frame already, but the active photo can
+		// still be a stale one (a caller may set the rotation store directly, and
+		// floating point never quite reaches the exact frame angle). This is
+		// idempotent and also updates the active frame index.
+		const { omni } = image.$settings
+		if (omni) {
+			const frames = Math.max(1, omni.frames / Math.max(1, omni.layers?.length ?? 1))
+			const rotation = (((image.state.$omniRotation ?? 0) % 360) + 360) % 360
+			image.omni?.setRotation(((Math.round((rotation / 360) * frames) % frames) / frames) * 360)
+		}
+		// The photo may plan and load its tiles now that the frame is final.
+		this.#micrio._engine._sogSettled = true
+		this.#photoCleared = false
+		this.#micrio._engine.render()
+		const ready = await this.#photoReady(gen)
+		if (gen !== this.#settleGen) {
+			return
+		}
+		if (!ready) {
+			// Keep the SOG visible and retry; a missing base tile would otherwise
+			// leave a blank photograph behind the fade.
+			this.#settling = false
+			this.#scheduleIdle()
+			return
+		}
+		// Let the mask of the final pose (scheduled by the last setRotation) land.
+		await new Promise<void>((resolve) => {
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					resolve()
+				})
+			})
+		})
+		if (gen !== this.#settleGen) {
+			return
+		}
+		this.#settling = false
+		this.#settled = true
+		this.#hide()
+	}
+
+	/** Resolves once the active photograph's base tile has been drawn. */
+	#photoReady(gen: number): Promise<boolean> {
+		return new Promise<boolean>((resolve) => {
+			const started = performance.now()
+			const check = (): void => {
+				if (gen !== this.#settleGen) {
+					resolve(false)
+					return
+				}
+				const image = this.#image
+				const canvas = image?.canvas
+				if (image && canvas) {
+					const layers = Math.max(1, image.$settings.omni?.layers?.length ?? 1)
+					const per = Math.max(1, Math.round(canvas.images.length / layers))
+					const active = canvas.images[canvas.layer * per + canvas._activeImageIdx]
+					if (active && active._gotBase > 0) {
+						resolve(true)
+						return
+					}
+				}
+				if (performance.now() - started > HYBRID_PHOTO_WAIT_MS) {
+					resolve(false)
+					return
+				}
+				setTimeout(check, 60)
+			}
+			check()
+		})
+	}
+
+	/** Schedules one mask copy in the frame the SOG viewer renders. */
+	#scheduleCapture(): void {
+		if (!this.#hybrid || this.#captureRaf) {
+			return
+		}
+		this.#captureRaf = requestAnimationFrame(() => {
+			this.#captureRaf = 0
+			this.#capture()
+		})
+	}
+
+	/** Copies the SOG's alpha into the tile renderer's mask texture. */
+	#capture(): void {
+		const overlay = this.#overlay
+		if (!overlay) {
+			return
+		}
+		const { width, height } = overlay
+		if (!width || !height) {
+			return
+		}
+		const maskWidth = Math.max(1, Math.round(width * MASK_SCALE))
+		const maskHeight = Math.max(1, Math.round(height * MASK_SCALE))
+		let scratch = this.#scratch
+		if (!scratch) {
+			scratch = this.#scratch = createElement('canvas')
+		}
+		if (scratch.width !== maskWidth || scratch.height !== maskHeight) {
+			scratch.width = maskWidth
+			scratch.height = maskHeight
+		}
+		const ctx = scratch.getContext('2d')
+		if (!ctx) {
+			return
+		}
+		ctx.clearRect(0, 0, maskWidth, maskHeight)
+		ctx.drawImage(overlay, 0, 0, maskWidth, maskHeight)
+		if (!this.#hasContent(scratch)) {
+			// The viewer had not drawn yet (its first depth sort runs in a worker,
+			// and the canvas is cleared whenever the browser composites). Keep the
+			// previous mask and ask for another frame until the splat appears.
+			if (this.#captureRetries < 48) {
+				this.#captureRetries++
+				this.#captureTimer = globalThis.setTimeout(() => {
+					this.#captureTimer = 0
+					this.#viewer?.requestRender?.()
+					this.#scheduleCapture()
+				}, 120)
+			}
+			return
+		}
+		this.#captureRetries = 0
+		this.#micrio._webgl._setMask(scratch)
+		if (!this.#maskReady) {
+			this.#maskReady = true
+			this.#micrio._webgl._setMaskEnabled(true)
+			this.#show()
+			this.#scheduleIdle()
+		} else if (this.#micrio._engine._sogSettled) {
+			// The capture can land after the frame that drew the photo; redraw it
+			// once with the fresh mask so a settled view is never left stale.
+			this.#micrio._engine.render()
+		}
+	}
+
+	/** True when the copy has any alpha at all. */
+	#hasContent(source: HTMLCanvasElement): boolean {
+		let probe = this.#probe
+		if (!probe) {
+			probe = this.#probe = createElement('canvas')
+			probe.width = 16
+			probe.height = 16
+		}
+		const ctx = probe.getContext('2d', { willReadFrequently: true })
+		if (!ctx) {
+			return true
+		}
+		ctx.clearRect(0, 0, 16, 16)
+		ctx.drawImage(source, 0, 0, 16, 16)
+		const { data } = ctx.getImageData(0, 0, 16, 16)
+		for (let i = 3; i < data.length; i += 4) {
+			if (data[i] > 2) {
+				return true
+			}
+		}
+		return false
 	}
 
 	/** Drives the same progress circle the omni `.bin` download uses. */
@@ -311,21 +729,51 @@ export class SogRenderer {
 			degrees: image.state.$omniRotation,
 			view,
 		})
+		if (this.#hybrid) {
+			this.#scheduleCapture()
+		}
 	}
 
 	/** Stops the viewer and releases the camera mirror. */
 	dispose(): void {
 		this.#gen++
+		this.#settleGen++
 		this.#controller?.abort()
 		this.#controller = undefined
+		clearTimeout(this.#idleTimer)
+		this.#idleTimer = 0
+		if (this.#snapRaf) {
+			Frame.cancel(this.#snapRaf)
+			this.#snapRaf = undefined
+		}
+		if (this.#captureRaf) {
+			cancelAnimationFrame(this.#captureRaf)
+			this.#captureRaf = 0
+		}
+		clearTimeout(this.#captureTimer)
+		this.#captureTimer = 0
 		this.#setProgress(1)
 		for (const unsubscribe of this.#unsubscribers) {
 			unsubscribe()
 		}
 		this.#unsubscribers = []
 		this.#micrio.removeEventListener('resize', this.#onResize)
+		this.#micrio.removeEventListener('pointerdown', this.#onInput, true)
+		this.#micrio.removeEventListener('wheel', this.#onInput, true)
 		this.#viewer?.dispose()
 		this.#viewer = undefined
 		this.#image = undefined
+		if (this.#hybrid) {
+			this.#micrio._webgl._setMaskEnabled(false)
+			this.#micrio._webgl._setMask()
+			this.#micrio._engine._sogSettled = true
+		}
+		this.#dropOverlay()
+		this.#hybrid = false
+		this.#maskReady = false
+		this.#settled = false
+		this.#photoCleared = false
+		this.#settling = false
+		this.#captureRetries = 0
 	}
 }

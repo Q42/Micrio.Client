@@ -54,6 +54,18 @@ export class WebGL {
 	/** Uniform location for the 'noTexture' flag. @internal */
 	#noTxtLoc!: WebGLUniformLocation
 
+	/** Uniform locations for the screen-space alpha mask. @internal */
+	#maskSizeLoc!: WebGLUniformLocation
+	#maskEnabledLoc!: WebGLUniformLocation
+
+	/** The mask texture, and the canvas it is uploaded from. @internal */
+	#maskTexture: WebGLTexture | null = null
+	#maskSource: TextureBitmap | undefined
+	#maskDirty = false
+	#maskEnabled = false
+	/** Tracks the last-set mask flag, like the other uniform caches. */
+	#lastMaskEnabled = -1
+
 	/** Uniform location for the combined ModelViewProjection matrix (GLMatrix). @internal */
 	_pmLoc!: WebGLUniformLocation
 
@@ -146,6 +158,8 @@ export class WebGL {
 		// restore's `_init` upload the watermark image it still has loaded (the `_dispose` path
 		// keeps the same invariant) — otherwise every later frame would bind a dead texture.
 		this.#wmTexture = null
+		this.#maskTexture = null
+		this.#maskDirty = true
 	}
 
 	/** Rebuilds the context-internal state once the browser restores the context. @internal */
@@ -280,6 +294,18 @@ export class WebGL {
 			throw new MicrioError('Failed to bind WebGL texture uniform', { code: ErrorCodes.WEBGL_SHADER_COMPILE })
 		}
 
+		const maskLoc = gl.getUniformLocation(this.#program, 'uMask')
+		const maskSizeLoc = gl.getUniformLocation(this.#program, 'uMaskSize')
+		const maskEnabledLoc = gl.getUniformLocation(this.#program, 'maskEnabled')
+		if (maskLoc && maskSizeLoc && maskEnabledLoc) {
+			this.#maskSizeLoc = maskSizeLoc
+			this.#maskEnabledLoc = maskEnabledLoc
+			// The mask owns texture unit 1; tiles stay on unit 0.
+			gl.uniform1i(maskLoc, 1)
+		} else {
+			throw new MicrioError('Failed to bind WebGL mask uniforms', { code: ErrorCodes.WEBGL_SHADER_COMPILE })
+		}
+
 		// --- Buffer Setup ---
 		// Texture Coordinates Buffer (Static)
 		this.#txtAttr = gl.getAttribLocation(this.#program, 'aTextureCoord')
@@ -393,6 +419,13 @@ export class WebGL {
 			// The loaded image stays `#wmReady`, so a re-initialised context re-uploads it
 			this.#wmTexture = null
 		}
+		// The mask texture died with the context; its source is kept so a restored
+		// context re-uploads the last silhouette.
+		if (this.#maskTexture) {
+			gl.deleteTexture(this.#maskTexture)
+			this.#maskTexture = null
+		}
+		this.#maskDirty = true
 
 		// Attempt to lose context if requested
 		if (loseContext) {
@@ -408,6 +441,7 @@ export class WebGL {
 		this.#was360 = false
 		this.#lastNoTexture = -1
 		this.#lastOpacity = -1
+		this.#lastMaskEnabled = -1
 		// Allow setting gl to null (instance is no longer usable after dispose)
 		this.gl = null
 	}
@@ -488,6 +522,91 @@ export class WebGL {
 		gl.bindTexture(gl.TEXTURE_2D, null)
 	}
 
+	/**
+	 * Sets the canvas the screen-space alpha mask is copied from, or clears it.
+	 * The upload happens on the next draw, so the caller does not need a context.
+	 * @internal
+	 */
+	_setMask(source?: TextureBitmap): void {
+		this.#maskSource = source
+		this.#maskDirty = true
+	}
+
+	/**
+	 * Enables or disables the alpha mask. Enabled with no source uses a fully
+	 * transparent mask, so the photo is hidden until the SOG's first frame.
+	 * @internal
+	 */
+	_setMaskEnabled(enabled: boolean): void {
+		this.#maskEnabled = enabled
+		if (enabled && !this.#maskSource) {
+			this.#maskSource = createElement('canvas', { props: { width: 1, height: 1 } })
+		}
+		this.#lastMaskEnabled = -1
+		this.#micrio._engine.render()
+	}
+
+	/** Uploads the mask if it changed and sets its uniform. @internal */
+	#applyMask(): void {
+		const { gl } = this
+		if (!gl) {
+			return
+		}
+		gl.useProgram(this.#program)
+		if (this.#maskEnabled) {
+			if (this.#maskSource && (this.#maskDirty || !this.#maskTexture)) {
+				this.#uploadMask()
+			}
+			// The mask covers the canvas, not the tile: normalize the fragment
+			// coordinate by the drawing buffer, so the mask texture spans the
+			// whole screen whatever size its own canvas had.
+			gl.uniform2f(this.#maskSizeLoc, gl.drawingBufferWidth, gl.drawingBufferHeight)
+			if (this.#lastMaskEnabled !== 1) {
+				gl.uniform1i(this.#maskEnabledLoc, 1)
+				this.#lastMaskEnabled = 1
+			}
+		} else if (this.#lastMaskEnabled !== 0) {
+			gl.uniform1i(this.#maskEnabledLoc, 0)
+			this.#lastMaskEnabled = 0
+		}
+	}
+
+	/** Uploads the current mask source into texture unit 1. @internal */
+	#uploadMask(): void {
+		const { gl } = this
+		const source = this.#maskSource
+		if (!gl || !source) {
+			return
+		}
+		if (!this.#maskTexture) {
+			this.#maskTexture = gl.createTexture()
+		}
+		gl.activeTexture(gl.TEXTURE1)
+		gl.bindTexture(gl.TEXTURE_2D, this.#maskTexture)
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+		gl.activeTexture(gl.TEXTURE0)
+		this.#maskDirty = false
+	}
+
+	/**
+	 * Clears the visible buffer. The hybrid overlay uses this when it takes over:
+	 * the photographic frame underneath is from another angle, and its soft
+	 * splat edges would otherwise show through as a ghost.
+	 * @internal
+	 */
+	_clear(): void {
+		const { gl } = this
+		if (!gl) {
+			return
+		}
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+		gl.clear(gl.COLOR_BUFFER_BIT)
+	}
+
 	/** Prepares for drawing a frame (binds framebuffer if postprocessing, clears canvas). @internal */
 	_drawStart(): void {
 		const gl = this.#ctx
@@ -495,6 +614,8 @@ export class WebGL {
 		if (this._postprocessor) {
 			gl.bindFramebuffer(gl.FRAMEBUFFER, this._postprocessor._frameBuffer)
 		}
+		// The mask is a draw-wide uniform, so it is applied before clearing
+		this.#applyMask()
 		// Clear the drawing buffer
 		gl.clear(gl.COLOR_BUFFER_BIT)
 	}
@@ -670,6 +791,14 @@ export class WebGL {
 		// Use program
 		gl.useProgram(this.#program)
 
+		// The watermark is chrome, not part of the object, so the photo mask must
+		// not clip it.
+		const masked = this.#maskEnabled
+		if (masked) {
+			gl.uniform1i(this.#maskEnabledLoc, 0)
+			this.#lastMaskEnabled = 0
+		}
+
 		// Set blending function for watermark
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -712,6 +841,10 @@ export class WebGL {
 
 		// Restore state
 		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA) // Restore default blending
+		if (masked) {
+			gl.uniform1i(this.#maskEnabledLoc, 1)
+			this.#lastMaskEnabled = 1
+		}
 		this.#linkBuffers() // Restores Engine buffer bindings (standard quad)
 		this.#was360 = false // Mark state as standard so next 360 draw triggers rebind
 	}
