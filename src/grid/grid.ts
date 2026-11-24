@@ -554,6 +554,9 @@ export class Grid extends MicrioElement<GridProps> {
 						// not fade the layout that replaced it.
 						if (setId === this.#setId) {
 							img.canvas?._fadeIn()
+							// A zero-duration set leaves the engine idle, so nothing else would
+							// draw the frames that step the opacity back up from 0.
+							engine.render()
 						}
 					})
 				}

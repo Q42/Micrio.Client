@@ -535,6 +535,46 @@ describe('in-from-id transition', () => {
 	})
 })
 
+describe('fade-in', () => {
+	it('requests a render for every cell it fades back in after a zero-duration set', async () => {
+		const { viewer, grid, ids } = await openGrid(fast())
+		const order: string[] = []
+		// No draw loop: the only `render()` calls recorded are the ones the grid asks for.
+		vi.spyOn(viewer.el._engine, 'render').mockImplementation(() => {
+			order.push('render')
+		})
+		for (const img of grid.images) {
+			const { canvas } = img
+			if (!canvas) {
+				throw new Error(`no canvas for ${img.id}`)
+			}
+			const fadeIn = canvas._fadeIn.bind(canvas)
+			canvas._fadeIn = () => {
+				order.push(`fadeIn:${img.id}`)
+				fadeIn()
+			}
+		}
+
+		// The state a focus (or a tour) leaves behind: every cell has already faded out, so this
+		// layout is the only thing that can bring them back — and the engine is idle by now.
+		for (const img of grid.images) {
+			img.canvas?._setOpacityDirect(0)
+		}
+
+		await grid.set(
+			ids.map((id) => ({ id, size: [1] as [number, number?] })),
+			{ duration: 0 },
+		)
+		await pollUntil(() => order.filter((e) => e.startsWith('fadeIn:')).length === ids.length, 2000, 'the fade-ins')
+
+		// Each fade-in has to schedule the frame that steps the opacity back up; otherwise an
+		// idle engine leaves every cell invisible until some unrelated render comes along.
+		const firstFadeIn = order.findIndex((e) => e.startsWith('fadeIn:'))
+		expect(order.slice(firstFadeIn)).toEqual(ids.flatMap((id) => [`fadeIn:${id}`, 'render']))
+		viewer.destroy()
+	})
+})
+
 describe('blur transitions', () => {
 	/** Focuses one cell, so a second focus has an outgoing image to transition from. */
 	// oxlint-disable-next-line unicorn/consistent-function-scoping -- declared next to the two tests that use it, where its purpose reads
