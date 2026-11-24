@@ -947,13 +947,18 @@ async function runGuidedTour(micrio: HTMLMicrioElement, grid: Grid, note: HTMLEl
 	}
 
 	// The video tour runs on its own; watch for it to finish.
-	const unsub = micrio.state.tour.subscribe((t) => {
+	// The store emits synchronously on subscribe, and the tour may already have been
+	// stopped (or replaced) during the awaits above, so the unsubscriber has to exist
+	// before the subscription does — a `const` would still be in its dead zone and the
+	// thrown error would abort `stopTours` mid-way.
+	let unsub: (() => void) | undefined
+	unsub = micrio.state.tour.subscribe((t) => {
 		if (token !== tourToken) {
-			unsub()
+			unsub?.()
 			return
 		}
 		if (!t) {
-			unsub()
+			unsub?.()
 			note.textContent = 'Guided tour finished.'
 			void grid.reset(1)
 		}
