@@ -109,6 +109,25 @@ describe('marker clustering', () => {
 		taggedSecond.viewer.destroy()
 	})
 
+	it('excludes noMarker markers from clustering', async () => {
+		const opened = await openMarkers(
+			markerBundle({
+				markers: [
+					marker('visible', { x: 0.5, y: 0.5 }),
+					marker('hidden1', { x: 0.5, y: 0.5, noMarker: true }),
+					marker('hidden2', { x: 0.2, y: 0.2, noMarker: true }),
+					marker('hidden3', { x: 0.2, y: 0.2, noMarker: true }),
+				],
+				settings: { clusterMarkers: true },
+			}),
+		)
+		await settle(2)
+		expect(clustersOf(opened)).toHaveLength(0)
+		expect(opened.markerEl('visible')?.classList.contains('overlapped')).toBe(false)
+		expect(opened.markerEl('hidden1')?.classList.contains('overlapped')).toBe(false)
+		opened.viewer.destroy()
+	})
+
 	it('merges two groups that a bridging pair connects', async () => {
 		// x = .10 (0), .13 (1), .11 (2), .12 (3) on one line. The radius is set from the
 		// measured screen delta of 0.01 so that (0,2), (1,3) and (2,3) overlap while

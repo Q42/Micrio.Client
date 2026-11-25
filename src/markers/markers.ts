@@ -58,7 +58,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		let lastClusterViewWidth: number | undefined
 
 		const updateOverlapped = (nextView?: Models.Camera.View) => {
-			if (!image.$settings.clusterMarkers) {
+			if (!image.$settings.clusterMarkers || this.classList.contains('inactive')) {
 				return
 			}
 			// On a 2D image markers only move relative to each other when the scale changes;
@@ -71,15 +71,22 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				}
 				lastClusterViewWidth = width
 			}
-			const markers = image.$data?.markers?.filter((m) => !m.i18n || m.i18n[get(micrio._lang)] !== undefined)
+			const markers = image.$data?.markers?.filter(
+				(m) => !m.noMarker && (!m.i18n || m.i18n[get(micrio._lang)] !== undefined),
+			)
 			if (!markers) {
 				return
 			}
 
 			const r = image.$settings.clusterMarkerRadius ?? 24
+			const omni = image._isOmni ? image.$settings.omni : undefined
 			const coords = markers.map((m) => {
 				const xy = image.camera._getXYDirect(m.x, m.y, { radius: m.radius, rotation: m.rotation })
-				return [xy[0], xy[1]] as [number, number]
+				const obscured =
+					(image._is360 && xy[3] >= 0) ||
+					(xy[0] === -1 && xy[1] === -1) ||
+					Boolean(omni?.distance && !m.visibleArc && xy[3] < 0)
+				return obscured ? undefined : ([xy[0], xy[1]] as [number, number])
 			})
 
 			// Build groups of overlapping markers. `groupOf` keeps the merge below from
@@ -87,12 +94,17 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			const groups: number[][] = []
 			const groupOf = new Map<number, number[]>()
 			for (let i = 0; i < markers.length; i++) {
+				const ci = coords[i]
+				// Either end can opt a marker out of clustering
+				if (!ci || markers[i].tags?.includes('no-cluster')) {
+					continue
+				}
 				for (let j = i + 1; j < markers.length; j++) {
-					// Either end can opt a marker out of clustering
-					if (markers[i].tags?.includes('no-cluster') || markers[j].tags?.includes('no-cluster')) {
+					const cj = coords[j]
+					if (!cj || markers[j].tags?.includes('no-cluster')) {
 						continue
 					}
-					if (Math.abs(coords[j][0] - coords[i][0]) >= r || Math.abs(coords[j][1] - coords[i][1]) >= r) {
+					if (Math.abs(cj[0] - ci[0]) >= r || Math.abs(cj[1] - ci[1]) >= r) {
 						continue
 					}
 					// A pair can bridge two groups that already exist, so merge every
@@ -368,7 +380,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			updateClickableAreas($visible, Boolean(inactive), $_lang)
 
-			if (image.$settings.clusterMarkers) {
+			if (image.$settings.clusterMarkers && !inactive) {
 				updateOverlapped()
 			} else {
 				clearClusters()
