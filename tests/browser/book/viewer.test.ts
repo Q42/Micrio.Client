@@ -363,6 +363,57 @@ describe('BookViewer — input', () => {
 		expect(book.until(() => book.viewer.isZoomedIn())).toBe(true)
 		book.destroy()
 	})
+
+	it('keeps newly turned pages above the first page after swiping when _onPageChange calls goto', async () => {
+		let viewerRef: BookViewer | undefined
+		const book = await mountBook({
+			images: [bookImage('a'), bookImage('b'), bookImage('c'), bookImage('d'), bookImage('e'), bookImage('f')],
+			_onPageChange: (p) => {
+				void viewerRef?.goto(p)
+			},
+		})
+		viewerRef = book.viewer
+		book.steps(3)
+
+		const rect = book.canvas.getBoundingClientRect()
+		const drag = (fromX: number, toX: number, pointerId: number): void => {
+			const at = (x: number): PointerEventInit => ({
+				clientX: rect.left + x,
+				clientY: rect.top + rect.height * 0.5,
+				pointerId,
+				button: 0,
+				bubbles: true,
+			})
+			book.canvas.dispatchEvent(new PointerEvent('pointerdown', at(fromX)))
+			for (let i = 1; i <= 10; i++) {
+				globalThis.dispatchEvent(new PointerEvent('pointermove', at(fromX + ((toX - fromX) * i) / 10)))
+				book.step()
+			}
+			globalThis.dispatchEvent(new PointerEvent('pointerup', at(toX)))
+		}
+
+		// Swipe page 0 across to the left, then swipe page 1 on top of it
+		drag(rect.width * 0.65, rect.width * 0.2, 51)
+		book.steps(90)
+		expect(book.viewer._getCurrentPage()).toBe(1)
+
+		drag(rect.width * 0.65, rect.width * 0.2, 52)
+		book.steps(90)
+		expect(book.viewer._getCurrentPage()).toBe(2)
+
+		// Image 'd' (back of page 1) must be visible on top on the left side, not
+		// obscured under page 0, and image 'b' (back of page 0) must be underneath it.
+		const camB: Record<string, unknown> = {}
+		const camD: Record<string, unknown> = {}
+		book.viewer._hookImageBook3d({ id: 'b', camera: camB } as never)
+		book.viewer._hookImageBook3d({ id: 'd', camera: camD } as never)
+		const xyB = (camB._getXYDirectOverride as (x: number, y: number) => Float64Array)(0.5, 0.5)
+		const xyD = (camD._getXYDirectOverride as (x: number, y: number) => Float64Array)(0.5, 0.5)
+		expect(xyD[0]).toBeGreaterThan(-1)
+		expect(xyD[1]).toBeGreaterThan(-1)
+		expect(xyB[0]).toBe(-1)
+		book.destroy()
+	})
 })
 
 describe('BookViewer — zoom and rotation', () => {

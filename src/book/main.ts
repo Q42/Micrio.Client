@@ -1247,11 +1247,16 @@ export class BookViewer {
 		}
 
 		this.#inputHandler._onPageDragEnd = () => {
-			if (this.#dragPageIndex < 0 || this.#dragPageIndex >= this.#pageCount) {
-				this.#dragPageIndex = -1
+			// Clear `#dragPageIndex` before notifying `#onPageChange`: a host like
+			// `MicrioGallery` responds synchronously by calling `goto(currentPage)`,
+			// whose `#cancelDrag()` would otherwise abort the settle animation that
+			// `_endDrag` just started and reset the page's progress to the wrong side.
+			const dragPageIndex = this.#dragPageIndex
+			this.#dragPageIndex = -1
+			if (dragPageIndex < 0 || dragPageIndex >= this.#pageCount) {
 				return
 			}
-			const progress = this.#flipAnimator._getPageProgress(this.#dragPageIndex)
+			const progress = this.#flipAnimator._getPageProgress(dragPageIndex)
 
 			const startedOnRight = this.#dragStartProgress <= 0.5
 			const startedOnLeft = this.#dragStartProgress >= 0.5
@@ -1259,21 +1264,20 @@ export class BookViewer {
 			const crossedToRight = startedOnLeft && progress < 0.5
 
 			if (crossedToLeft) {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, 1)
-				if (this.#dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount - 1) {
+				this.#flipAnimator._endDrag(dragPageIndex, 1)
+				if (dragPageIndex === this.#currentPage && this.#currentPage < this.#pageCount - 1) {
 					this.#currentPage++
 					this.#onPageChange?.(this.#currentPage)
 				}
 			} else if (crossedToRight) {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, -1)
-				if (this.#dragPageIndex === this.#currentPage - 1 && this.#currentPage > 0) {
+				this.#flipAnimator._endDrag(dragPageIndex, -1)
+				if (dragPageIndex === this.#currentPage - 1 && this.#currentPage > 0) {
 					this.#currentPage--
 					this.#onPageChange?.(this.#currentPage)
 				}
 			} else {
-				this.#flipAnimator._endDrag(this.#dragPageIndex, startedOnRight ? -1 : 1)
+				this.#flipAnimator._endDrag(dragPageIndex, startedOnRight ? -1 : 1)
 			}
-			this.#dragPageIndex = -1
 			this.#requestFrame()
 		}
 	}

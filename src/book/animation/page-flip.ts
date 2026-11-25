@@ -166,9 +166,10 @@ export class PageFlipAnimator {
 		if (slot === undefined) {
 			return
 		}
+		const rest = slot._startProgress >= 0.5 ? 1 : 0
 		slot._phase = 'idle'
-		slot._progress = 0
-		slot._startProgress = 0
+		slot._progress = rest
+		slot._startProgress = rest
 		slot._elapsed = 0
 		this.#releaseDriven(mesh, slot)
 	}

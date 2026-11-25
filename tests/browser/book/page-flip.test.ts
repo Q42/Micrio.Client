@@ -282,6 +282,24 @@ describe('PageFlipAnimator — dragging', () => {
 		// The drag pins the corner at the arc position for progress 0.5
 		expect(mesh._positions[cornerIndex * 3]).toBeCloseTo(0, 3)
 	})
+
+	it('_cancelDrag restores a page to the side the drag started on', () => {
+		const { animator, meshes } = setup(2)
+		// Right-side page returns to 0
+		animator._beginDrag(0, 0.5)
+		animator._setDragProgress(0, 0.6)
+		animator._cancelDrag(0, meshes[0])
+		expect(animator._getPageProgress(0)).toBe(0)
+		expect(animator._isPageDragging(0)).toBe(false)
+
+		// Left-side page returns to 1
+		animator._setPageProgress(1, 1)
+		animator._beginDrag(1, 0.5)
+		animator._setDragProgress(1, 0.4)
+		animator._cancelDrag(1, meshes[1])
+		expect(animator._getPageProgress(1)).toBe(1)
+		expect(animator._isPageDragging(1)).toBe(false)
+	})
 })
 
 describe('PageFlipAnimator — hard covers', () => {

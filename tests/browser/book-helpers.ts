@@ -193,6 +193,7 @@ export async function mountBook(
 		| '_lightingPreset'
 		| '_useIndividualAspects'
 		| '_iiifBaseUrl'
+		| '_onPageChange'
 	> & {
 		images?: Models.ImageInfo.ImageInfo[]
 		canvas?: HTMLCanvasElement
@@ -255,6 +256,7 @@ export async function mountBook(
 		_iiifBaseUrl: options._iiifBaseUrl,
 		_onPageChange: (p) => {
 			pages.push(p)
+			options._onPageChange?.(p)
 		},
 		_onDraw: (d) => {
 			draws.push(d)
