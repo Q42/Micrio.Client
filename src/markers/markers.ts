@@ -24,6 +24,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 	#markerObjects = new Map<string, Models.ImageData.Marker>()
 	/** The marker object each clickable-area embed was built from. */
 	#areaObjects = new Map<string, Models.ImageData.Marker>()
+	/** Cached `[width, height]` of rendered marker labels, kept while a marker is hidden by `.overlapped`. */
+	#labelSizes = new Map<string, [number, number]>()
 	/** Pending camera return after a marker closes; cleared when another marker opens. */
 	#zoomReturnTo: ReturnType<typeof setTimeout> | undefined
 
@@ -51,6 +53,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				this.style.top = !v[1] ? '' : `${v[1]}px`
 				this.style.width = v[2] === size.width ? '' : `${v[2]}px`
 				this.style.height = v[3] === size.height ? '' : `${v[3]}px`
+				this.#labelSizes.clear()
 			}),
 		)
 
@@ -79,14 +82,69 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}
 
 			const r = image.$settings.clusterMarkerRadius ?? 24
+			const halfR = r / 2
+			const ms = image.$settings._markers
+			const showTitles = Boolean(ms?.showTitles) && !ms?.noTitles && !image.$settings.omni?.sideLabels
 			const omni = image._isOmni ? image.$settings.omni : undefined
-			const coords = markers.map((m) => {
+
+			const markerEls = markers.map((m) =>
+				this.querySelector<HTMLElement>(`:scope > micrio-marker[data-marker-id="${CSS.escape(m.id)}"]`),
+			)
+
+			// When labels are shown by default, include their rendered box in overlap checks.
+			// Cache dimensions because `.overlapped` sets `display: none` (making offsetWidth/Height 0).
+			const labelSizes: ([number, number] | null)[] = showTitles
+				? markers.map((m, i) => {
+						const lbl = markerEls[i]?.querySelector<HTMLElement>('label')
+						if (!lbl) {
+							return null
+						}
+						if (lbl.offsetWidth > 0 || lbl.offsetHeight > 0) {
+							const size: [number, number] = [lbl.offsetWidth, lbl.offsetHeight]
+							this.#labelSizes.set(m.id, size)
+							return size
+						}
+						return this.#labelSizes.get(m.id) ?? null
+					})
+				: []
+
+			// If `showTitles` turned on while markers were already `.overlapped`, reveal unmeasured
+			// ones in one batch so their labels can be measured once without layout thrashing.
+			if (showTitles) {
+				const unmeasured: number[] = []
+				for (let i = 0; i < markers.length; i++) {
+					const el = markerEls[i]
+					if (!labelSizes[i] && el?.classList.contains('overlapped') && el.querySelector('label')) {
+						el.classList.remove('overlapped')
+						unmeasured.push(i)
+					}
+				}
+				if (unmeasured.length > 0) {
+					for (const i of unmeasured) {
+						const lbl = markerEls[i]?.querySelector<HTMLElement>('label')
+						if (lbl && (lbl.offsetWidth > 0 || lbl.offsetHeight > 0)) {
+							const size: [number, number] = [lbl.offsetWidth, lbl.offsetHeight]
+							this.#labelSizes.set(markers[i].id, size)
+							labelSizes[i] = size
+						}
+					}
+					for (const i of unmeasured) {
+						markerEls[i]?.classList.add('overlapped')
+					}
+				}
+			}
+
+			const coords = markers.map((m, i) => {
 				const xy = image.camera._getXYDirect(m.x, m.y, { radius: m.radius, rotation: m.rotation })
 				const obscured =
 					(image._is360 && xy[3] >= 0) ||
 					(xy[0] === -1 && xy[1] === -1) ||
 					Boolean(omni?.distance && !m.visibleArc && xy[3] < 0)
-				return obscured ? undefined : ([xy[0], xy[1]] as [number, number])
+				if (obscured) {
+					return null
+				}
+				const size = labelSizes[i]
+				return [xy[0], xy[1], size?.[0] ?? 0, Math.max(halfR, (size?.[1] ?? 0) / 2)] as [number, number, number, number]
 			})
 
 			// Build groups of overlapping markers. `groupOf` keeps the merge below from
@@ -104,7 +162,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					if (!cj || markers[j].tags?.includes('no-cluster')) {
 						continue
 					}
-					if (Math.abs(cj[0] - ci[0]) >= r || Math.abs(cj[1] - ci[1]) >= r) {
+					if (ci[0] + ci[2] + r <= cj[0] || cj[0] + cj[2] + r <= ci[0] || Math.abs(cj[1] - ci[1]) >= ci[3] + cj[3]) {
 						continue
 					}
 					// A pair can bridge two groups that already exist, so merge every
@@ -151,8 +209,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 
 			// Toggle overlapped class on individual markers
 			for (let i = 0; i < markers.length; i++) {
-				const el = this.querySelector(`[data-marker-id="${CSS.escape(markers[i].id)}"]`)
-				el?.classList.toggle('overlapped', overlapped.has(i))
+				markerEls[i]?.classList.toggle('overlapped', overlapped.has(i))
 			}
 
 			// Sync cluster marker elements
@@ -343,6 +400,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					if (!expected.has(id)) {
 						el.remove()
 						this.#markerObjects.delete(id)
+						this.#labelSizes.delete(id)
 					}
 				}
 
@@ -353,6 +411,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					if (el && this.#markerObjects.get(m.id) !== m) {
 						el.remove()
 						this.#markerObjects.delete(m.id)
+						this.#labelSizes.delete(m.id)
 						el = null
 					}
 					if (!el) {
@@ -369,6 +428,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					el.remove()
 				}
 				this.#markerObjects.clear()
+				this.#labelSizes.clear()
 			}
 
 			if (inactive) {
@@ -376,6 +436,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 					el.remove()
 				}
 				this.#markerObjects.clear()
+				this.#labelSizes.clear()
 			}
 
 			updateClickableAreas($visible, Boolean(inactive), $_lang)
@@ -397,7 +458,11 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		if (gridMarkersShown) {
 			this._watchLater(gridMarkersShown, rebuild)
 		}
-		this._watchLazy(micrio._lang, rebuild)
+		this._watchLazy(micrio._lang, () => {
+			this.#labelSizes.clear()
+			clearClusters()
+			rebuild()
+		})
 
 		if (image.$settings.clusterMarkers) {
 			this._addCleanup(image.state.view.subscribe(updateOverlapped))

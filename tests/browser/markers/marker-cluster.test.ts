@@ -208,4 +208,40 @@ describe('marker clustering', () => {
 		expect(opened.markerEl('m1')?.classList.contains('overlapped')).toBe(false)
 		opened.viewer.destroy()
 	})
+
+	it('includes labels in overlap checks only when showTitles is enabled', async () => {
+		// Place two markers farther apart than the default 24 px dot radius, but close enough
+		// that the left marker's rendered label reaches the right marker.
+		const pair = [
+			marker('left', { x: 0.2, y: 0.5, i18n: { en: { title: 'A fairly long marker label' } } }),
+			marker('right', { x: 0.35, y: 0.5, i18n: { en: { title: 'Right marker' } } }),
+		]
+
+		const hoverOnly = await openMarkers(
+			markerBundle({
+				markers: pair,
+				settings: { clusterMarkers: true, _markers: { showTitles: false } },
+			}),
+		)
+		await settle(2)
+		expect(clustersOf(hoverOnly)).toHaveLength(0)
+		hoverOnly.viewer.destroy()
+
+		const alwaysShown = await openMarkers(
+			markerBundle({
+				markers: pair,
+				settings: { clusterMarkers: true, _markers: { showTitles: true } },
+			}),
+		)
+		await waitFor(() => clustersOf(alwaysShown).length === 1, 6000, 'the label-overlap cluster')
+		expect(alwaysShown.markerEl('left')?.classList.contains('overlapped')).toBe(true)
+		expect(alwaysShown.markerEl('right')?.classList.contains('overlapped')).toBe(true)
+
+		// Re-running on a view update while `.overlapped` hides the DOM labels keeps the cluster
+		// stable via cached label dimensions.
+		alwaysShown.image().state.view.set([0, 0, 0.99, 0.99])
+		await settle(2)
+		expect(clustersOf(alwaysShown)).toHaveLength(1)
+		alwaysShown.viewer.destroy()
+	})
 })
