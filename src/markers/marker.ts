@@ -6,6 +6,7 @@ import { getSpaceVector } from '$utils/space'
 import { DataLoader } from '$utils/dataLoader'
 import { createElement } from '$utils/dom'
 import { openSplit, closeSplit, parseSplitLink, getSplitSecondary, isSplitSecondary } from '$core/split'
+import { attachMarkerEditorBridge, interceptEditorSelect } from '$editor/bridge'
 
 /** Props for the individual marker custom element. @internal */
 export interface MarkerProps {
@@ -210,8 +211,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		}
 
 		const click = () => {
-			if (get(micrio.editMode)) {
-				micrio.dispatchEvent(new CustomEvent('editor-marker-select', { detail: marker, bubbles: true }))
+			if (interceptEditorSelect(micrio, 'marker', marker)) {
 				return
 			}
 			if (marker.onclick) {
@@ -714,6 +714,8 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		if (!marker.noMarker) {
 			moved()
 		}
+
+		this._addCleanup(attachMarkerEditorBridge(this, marker, micrio, moved))
 
 		// Marker tags as classes
 		if (marker.tags) {

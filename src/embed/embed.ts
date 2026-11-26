@@ -7,6 +7,7 @@ import { get } from '$core/store'
 import { Browser } from '$utils/browser'
 import { GLEmbedVideo } from '$media/embedvideo'
 import { embedPresentation, type EmbedPresentation } from './presentation'
+import { applyEmbedEditorChange, interceptEditorSelect } from '$editor/bridge'
 
 /** Properties for configuring an embed element (image, video, iframe, or GL content). @internal */
 export interface EmbedProps {
@@ -777,7 +778,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			}
 			e.preventDefault()
 			e.stopPropagation()
-			this.#micrio.dispatchEvent(new CustomEvent('editor-embed-select', { detail: embed, bubbles: true }))
+			interceptEditorSelect(this.#micrio, 'embed', embed)
 			return
 		}
 		const markerId = embed.clickAction === 'markerId' ? embed.clickTarget : marker?.id
@@ -792,9 +793,7 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 
 	#onChange = (e: Event) => {
 		const { embed } = this.#props
-		if (embed !== undefined && hasObjectDetail(e)) {
-			Object.assign(embed, e.detail)
-		}
+		applyEmbedEditorChange(this, embed, this.#container, e)
 		this.#readPlacement()
 		this.#applyContentSize()
 		this.#syncMatrixBox()
@@ -842,15 +841,6 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 			this.#container.removeEventListener('keydown', this.#click)
 		}
 	}
-}
-
-/**
- * True when `e` carries a usable object `detail` payload (e.g. an editor-driven
- * property update dispatched as a CustomEvent). The check is runtime-driven
- * because the event is also dispatched by external code.
- */
-function hasObjectDetail(e: Event): e is Event & { detail: object } {
-	return 'detail' in e && e.detail !== undefined && e.detail !== null && typeof e.detail === 'object'
 }
 
 customElements.define(MicrioEmbed.tag, MicrioEmbed)

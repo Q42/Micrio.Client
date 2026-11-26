@@ -6,6 +6,7 @@ import { DataLoader } from '$utils/dataLoader'
 import { getSpaceVector } from '$utils/space'
 import { i18n } from '$core/i18n/strings'
 import { createElement } from '$utils/dom'
+import { applyWaypointEditorChange, interceptEditorSelect } from '$editor/bridge'
 
 /** Props for the waypoint (spatial link indicator) custom element. @internal */
 export interface WaypointProps {
@@ -111,13 +112,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		this.classList.toggle('direction-down', v[1] > 0)
 
 		const click = () => {
-			if (get(micrio.editMode)) {
-				micrio.dispatchEvent(
-					new CustomEvent('editor-waypoint-select', {
-						detail: { targetId, settings: this.#props.settings },
-						bubbles: true,
-					}),
-				)
+			if (interceptEditorSelect(micrio, 'waypoint', { targetId, settings: this.#props.settings })) {
 				return
 			}
 			if (image.$settings._markers?.noMarkerActions) {
@@ -216,20 +211,8 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	}
 
 	#onChange = (e: Event) => {
-		let needsRender = true
-		if ('detail' in e && isWayPointPatch(e.detail)) {
-			const patch = e.detail
-			const current: Models.Spaces.WayPointSettings = this.#props.settings ?? { i18n: {} }
-			Object.assign(current, patch)
-			this.#props.settings = current
-			if (this.#iface !== undefined) {
-				this.#iface.settings = current
-				if (patch.coords) {
-					this.#iface.coords = patch.coords
-				}
-			}
-			needsRender = 'i18n' in patch || 'customIconIdx' in patch
-		}
+		const { settings, needsRender } = applyWaypointEditorChange(e, this.#props.settings, this.#iface)
+		this.#props.settings = settings
 		if (this.isConnected) {
 			this.#applyCoords()
 			if (needsRender) {
@@ -275,10 +258,6 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		this.#viewUnsub?.()
 		this.#viewUnsub = undefined
 	}
-}
-
-function isWayPointPatch(detail: unknown): detail is Partial<Models.Spaces.WayPointSettings> {
-	return detail !== undefined && detail !== null && typeof detail === 'object'
 }
 
 customElements.define(MicrioWaypoint.tag, MicrioWaypoint)

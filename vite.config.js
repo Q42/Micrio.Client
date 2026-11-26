@@ -20,6 +20,7 @@ export const aliases = {
 	$grid: resolve('src/grid'),
 	$book: resolve('src/book'),
 	$utils: resolve('src/utils'),
+	$editor: resolve('src/editor'),
 }
 
 const stub = (file) => resolve(`build/stubs/${file}`)
