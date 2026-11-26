@@ -116,10 +116,12 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		const cluster = marker.type === 'cluster'
 		let icon: string | undefined
-		if (!cluster && marker.type === 'link') {
-			icon = 'link'
-		} else if (marker.type === 'media') {
-			icon = 'play'
+		if (!cluster) {
+			if (marker.type === 'link' || marker.type === 'video' || marker.type === 'audio' || marker.type === 'image') {
+				icon = marker.type
+			} else if (marker.type === 'media') {
+				icon = 'play'
+			}
 		}
 		// A `customIconIdx` that no longer resolves (the icon was removed from the image)
 		// falls back to the marker's own icon and then the image-wide one
