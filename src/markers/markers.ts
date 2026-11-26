@@ -333,6 +333,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			}
 		}
 
+		let lastSpaceRev = get(micrio._spaceRevision)
+
 		const rebuild = () => {
 			const $visible = image.$data?.markers
 			const $focussed = focussed ? get(focussed) : undefined
@@ -357,6 +359,9 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 			)
 
 			const $switching = get(switching)
+			const spaceRev = get(micrio._spaceRevision)
+			const forceWaypoints = spaceRev !== lastSpaceRev
+			lastSpaceRev = spaceRev
 			// Waypoints belong to the image the viewer is on. Gating on `$switching` alone is
 			// not enough: the outgoing image's layer stays mounted until its own `_visible`
 			// entry goes, which the layout sync then acts on a frame later — and the
@@ -367,7 +372,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 				const linkIds = new Set(links.map((l) => (l[0] === image.id ? l[1] : l[0])))
 				for (const el of this.querySelectorAll<HTMLElement>(':scope > micrio-waypoint')) {
 					const { targetId } = el.dataset
-					if (!targetId || !linkIds.has(targetId)) {
+					if (!targetId || !linkIds.has(targetId) || forceWaypoints) {
 						el.remove()
 					}
 				}
@@ -452,6 +457,7 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		this._watchLater(image._settings, rebuild)
 		this._watchLater(switching, rebuild)
 		this._watchLater(micrioState.tour, rebuild)
+		this._watchLater(micrio._spaceRevision, rebuild)
 		if (focussed) {
 			this._watchLater(focussed, rebuild)
 		}

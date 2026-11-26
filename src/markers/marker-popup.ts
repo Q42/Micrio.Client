@@ -74,7 +74,7 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 
 		this._addCleanup(
 			micrio.state.popup.subscribe((m) => {
-				this.#machine.send({ type: 'popup', open: Boolean(m) && m === marker })
+				this.#machine.send({ type: 'popup', open: m !== undefined && m.id === this.#props.marker?.id })
 				this.classList.toggle('destroying', this.#destroying)
 			}),
 		)
@@ -102,12 +102,27 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 			}
 		})
 
+		// Re-resolve the active marker by id when the owning image's data changes live
+		const image = this.#getImage()
+		if (image) {
+			this._watchLater(image.data, (d) => {
+				if (this.#destroying || !this.#props.marker) {
+					return
+				}
+				const updated = d?.markers?.find((m) => m.id === this.#props.marker?.id)
+				if (updated && updated !== this.#props.marker) {
+					this.#props.marker = updated
+					this.#render()
+				}
+			})
+		}
+
 		this.#render()
 	}
 
 	/** @internal */
 	_setProps(props: Partial<MarkerPopupProps>) {
-		const markerChanged = props.marker !== undefined && props.marker.id !== this.#props.marker?.id
+		const markerChanged = props.marker !== undefined && props.marker !== this.#props.marker
 		// `image` has to be merged too, not just `marker`: this override replaces the base
 		// implementation, so anything it does not assign is dropped.
 		Object.assign(this.#props, props)

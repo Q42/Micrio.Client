@@ -14,7 +14,7 @@ export interface VideoTourState extends MachineState {
 
 /** @internal */
 export interface VideoTourContext {
-	readonly duration: number
+	duration: number
 }
 
 /** @internal */

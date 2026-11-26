@@ -1,5 +1,5 @@
 import type { Models } from '$types/models'
-import type { Writable } from '$core/store'
+import type { Readable, Writable } from '$core/store'
 import type { Grid } from '$grid/grid'
 import type { Engine } from '$render/engine'
 import type { TileCanvas } from '$render/tile-canvas'
@@ -52,6 +52,11 @@ export class MicrioImage {
 	 * @internal
 	 */
 	readonly _settings: Writable<Models.ImageInfo.Settings> = writable({})
+
+	/** Reactive writable store holding the image's settings. See {@link Models.ImageInfo.Settings}. */
+	get settings(): Writable<Models.ImageInfo.Settings> {
+		return this._settings
+	}
 
 	/** Getter for the current value of the {@link settings} store. */
 	get $settings(): Models.ImageInfo.Settings {
@@ -181,6 +186,11 @@ export class MicrioImage {
 	 * @internal
 	 */
 	readonly _viewport: Writable<Models.Camera.View> = writable<Models.Camera.View>()
+
+	/** Reactive readable store holding the calculated pixel viewport `[left, top, width, height]` of this image within the main canvas. */
+	get viewport(): Readable<Models.Camera.View> {
+		return this._viewport
+	}
 
 	/** Array of child {@link MicrioImage} instances embedded within this image.
 	 * @internal

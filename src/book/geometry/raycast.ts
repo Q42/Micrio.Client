@@ -5,12 +5,16 @@ export interface RayHit {
 	_t: number
 	_point: Vec3
 	_meshIndex: number
+	_u: number
+	_v: number
 }
 
 export function rayIntersectMeshes(meshes: readonly PaperMesh[], origin: Vec3, direction: Vec3): RayHit | null {
 	let closestT = Infinity
 	let bestPoint = new Vec3()
 	let bestMeshIndex = -1
+	let bestU = 0
+	let bestV = 0
 
 	for (let pi = 0; pi < meshes.length; pi++) {
 		const mesh = meshes[pi]
@@ -18,6 +22,7 @@ export function rayIntersectMeshes(meshes: readonly PaperMesh[], origin: Vec3, d
 			continue
 		}
 		const pos = mesh._positions
+		const uvs = mesh._texCoords
 		const tris = mesh._triangles
 
 		for (const tri of tris) {
@@ -75,11 +80,14 @@ export function rayIntersectMeshes(meshes: readonly PaperMesh[], origin: Vec3, d
 			closestT = t
 			bestPoint = new Vec3(origin._x + direction._x * t, origin._y + direction._y * t, origin._z + direction._z * t)
 			bestMeshIndex = pi
+			const w0 = 1 - u - v
+			bestU = w0 * uvs[i0 * 2] + u * uvs[i1 * 2] + v * uvs[i2 * 2]
+			bestV = w0 * uvs[i0 * 2 + 1] + u * uvs[i1 * 2 + 1] + v * uvs[i2 * 2 + 1]
 		}
 	}
 
 	if (closestT === Infinity || bestMeshIndex < 0) {
 		return null
 	}
-	return { _t: closestT, _point: bestPoint, _meshIndex: bestMeshIndex }
+	return { _t: closestT, _point: bestPoint, _meshIndex: bestMeshIndex, _u: bestU, _v: bestV }
 }

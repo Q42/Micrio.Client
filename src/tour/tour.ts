@@ -43,6 +43,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 		if ('steps' in tour) {
 			tour.next = undefined
 			tour.prev = undefined
+			tour.goto = undefined
 		}
 	}
 
@@ -64,6 +65,9 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			id
 				? (micrio._canvases.find((c: MicrioImage) => c.id === id) ?? micrio.gallery?._images.find((i) => i.id === id))
 				: undefined
+
+		const resolveStepMarker = (si: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined =>
+			findImage(si.micrioId)?.$data?.markers?.find((m) => m.id === si.markerId) ?? DataLoader._getStepMarker(si)
 
 		if (isVideoTour) {
 			const vt = tour
@@ -142,7 +146,7 @@ export class MicrioTour extends MicrioElement<TourProps> {
 
 				// If the new step has a video tour, use its first timeline viewport as the start view
 				let startView: Models.Camera.View | undefined
-				const marker = DataLoader._getStepMarker(si)
+				const marker = resolveStepMarker(si)
 				if (marker?.videoTour) {
 					const { lang } = micrio
 					const vt = marker.videoTour
@@ -180,6 +184,20 @@ export class MicrioTour extends MicrioElement<TourProps> {
 					this.#currentStep--
 					mt.currentStep = this.#currentStep
 					void openStep(prev, this.#currentStep)
+					renderControls()
+				}
+			}
+
+			mt.goto = (step: number) => {
+				if (mt.steps.length === 0) {
+					return
+				}
+				const target = Math.max(0, Math.min(mt.steps.length - 1, Math.floor(step)))
+				if (target !== this.#currentStep) {
+					const prev = this.#currentStep
+					this.#currentStep = target
+					mt.currentStep = target
+					void openStep(prev, target)
 					renderControls()
 				}
 			}

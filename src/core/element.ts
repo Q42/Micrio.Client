@@ -191,6 +191,9 @@ export class HTMLMicrioElement extends MicrioElement {
 	/** Writable store indicating if barebone texture downloading is enabled (lower quality, less bandwidth). */
 	readonly barebone: Writable<boolean> = writable(false)
 
+	/** Writable store indicating if the viewer is in editor mode (intercepts marker, waypoint, and embed clicks). */
+	readonly editMode: Writable<boolean> = writable(false)
+
 	/** The WebGL rendering controller.
 	 * @internal
 	 */
@@ -236,6 +239,9 @@ export class HTMLMicrioElement extends MicrioElement {
 
 	/** Holds data for the current 360 space, if applicable (loaded via `data-space` attribute or API). */
 	spaceData: Models.Spaces.Space | undefined
+
+	/** Revision counter bumped by {@link setSpaceData} and {@link refreshWaypoints} to notify UI layers. @internal */
+	readonly _spaceRevision: Writable<number> = writable(0)
 
 	/** Holds bundle-level marker tours, available regardless of which image is shown. */
 	bundleTours: Models.ImageData.MarkerTour[] | undefined
@@ -946,7 +952,7 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		// An *unplaced* current image falls through instead: its canvas was closed (or never
 		// placed), and returning early here would leave the viewer with nothing to draw.
-		if (this.$current && this.$current._placed && bundle.id === this.$current.id) {
+		if (this.$current && this.$current._placed && bundle.id !== '' && bundle.id === this.$current.id) {
 			return this.$current
 		}
 
@@ -1098,6 +1104,63 @@ export class HTMLMicrioElement extends MicrioElement {
 		}
 
 		return c
+	}
+
+	/**
+	 * Opens a multi-image gallery/album (`swipe`, `switch`, `book3d`, `grid`) directly from
+	 * in-memory {@link Models.ImageBundle.BundleImage} items and a {@link Models.GalleryConfig},
+	 * without requiring a published `bundle.json`.
+	 * @param items The bundle images to display in the gallery.
+	 * @param config Gallery layout and behavior configuration.
+	 * @returns The created {@link Gallery} controller, or `undefined` if disconnected or `items` is empty.
+	 */
+	async openGallery(
+		items: Models.ImageBundle.BundleImage[],
+		config: Models.GalleryConfig,
+	): Promise<Gallery | undefined> {
+		await this.#print()
+		if (!this.isConnected || items.length === 0) {
+			return undefined
+		}
+		if (this.gallery) {
+			this.$current?.grid?.remove()
+			if (this.$current) {
+				this.close(this.$current)
+			}
+			this.gallery = undefined
+			this._engine._book3d = false
+		}
+		const gallery = Gallery._fromBundles(items, this._engine, config)
+		if (gallery === null) {
+			return undefined
+		}
+		await gallery._openOn(this)
+		return gallery
+	}
+
+	/**
+	 * Sets or updates the 360° space data dynamically, syncing the current image's
+	 * `rotationY` if applicable and rebuilding all waypoints.
+	 * @param space The updated space data, or `undefined` to clear.
+	 */
+	setSpaceData(space: Models.Spaces.Space | undefined): void {
+		this.spaceData = space
+		const cur = this.$current
+		if (cur?._is360 && cur.camera !== undefined) {
+			const spaceImg = space?.images.find((img) => img.id === cur.id)
+			if (spaceImg?.rotationY != null && spaceImg.rotationY !== cur.camera.rotationY) {
+				cur.camera.setRotationY(spaceImg.rotationY)
+			}
+		}
+		this.refreshWaypoints()
+	}
+
+	/**
+	 * Forces `<micrio-markers>` to rebuild/update all `<micrio-waypoint>` elements from
+	 * the current {@link spaceData}, even when `targetId` is unchanged.
+	 */
+	refreshWaypoints(): void {
+		this._spaceRevision.update((n) => n + 1)
 	}
 
 	/**

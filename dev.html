@@ -39,6 +39,7 @@
 		</style>
 
 		<!-- Use this for local development -->
+		 <!-- <script src="http://localhost:3000/micrio-pc-sog-0.1.1.min.js"></script> -->
 		<script type="module" src="./src/main.ts"></script>
 
 		<!-- Use this to test the compiled version -->
@@ -65,15 +66,26 @@
 	</head>
 
 	<body>
-		<micr-io id="dzzLm"></micr-io>
+		<!-- PxvvQX. The page state: startingRoom likely still fovfhE  -->
+		<micr-io id="iauSEB" dxata-sog="m"></micr-io>
 
 		<script>
 			window.micrio = document.querySelector('micr-io');
 
 			// Override the default settings by setting the `.defaultSettings` property
 			// on a <micr-io> HTML element
-			micrio.defaultSettings = {
-			};
+    micrio.defaultxSettings = {
+      camspeed: 3,
+      crossfadeDuration: 0.75,
+      _markers: {
+        showTitles: true,
+        autoStartTour: true,
+        tourControlsInPopup: true,
+        tourStepCounterInPopup: true,
+        zoomOutAfterCloseSpeed: 0.3,
+        canMinimizePopup: true,
+      },
+    }
 
 			// Listen to opened marker hooks
 			micrio.addEventListener('show', e => {
@@ -93,6 +105,7 @@
 			micrio.addEventListener('pre-data', e => {
 				// Same as `pre-info` hook, but this is for the image data / content.
 			});
+
 		</script>
 	</body>
 </html>

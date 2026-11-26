@@ -1,7 +1,7 @@
 import type { Models } from '$types/models'
 import type { MicrioImage } from '$core/image'
 import type { HTMLMicrioElement } from '$core/element'
-import { writable, get } from '$core/store'
+import { writable, get, skipFirst } from '$core/store'
 import { Browser } from '$utils/browser'
 import { normalize3 } from '$utils/math'
 import { imageHasAudio, volumeFor } from '$utils/media-settings'
@@ -145,6 +145,9 @@ export class MicrioAudioController {
 	#micrio: HTMLMicrioElement
 	#image: MicrioImage
 	#playlist: AudioPlaylist | undefined
+	#musicKey = ''
+	#musicVolume = 1
+	#viewUnsub: (() => void) | undefined
 	#cleanups: (() => void)[] = []
 	/** True once `audio-init` has been reported for this controller. */
 	#inited = false
@@ -242,6 +245,41 @@ export class MicrioAudioController {
 			document.body.append(audio)
 		}
 
+		const syncViewListener = () => {
+			const hasPositional = Boolean(image.$data?.markers?.some((m) => Boolean(m.positionalAudio)))
+			if (_ctx && hasPositional) {
+				if (!this.#viewUnsub) {
+					this.#viewUnsub = image.state.view.subscribe((v) => {
+						if (!v) {
+							return
+						}
+						const d = Math.max(0, 1.05 - image.camera.getScale())
+						moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5))
+					})
+				}
+			} else if (this.#viewUnsub) {
+				this.#viewUnsub()
+				this.#viewUnsub = undefined
+			}
+		}
+
+		const syncPlaylist = () => {
+			const music = image.$data?.music
+			this.#musicVolume = music?.volume ?? 1
+			const key = music?.items.length ? `${music.loop ?? true}|${music.items.map((i) => i.src ?? '').join('\0')}` : ''
+			const vol = volumeFor(image, get(micrio._isMuted))
+			if (key !== this.#musicKey) {
+				this.#playlist?.destroy()
+				this.#playlist = undefined
+				this.#musicKey = key
+				if (music?.items.length) {
+					this.#playlist = new AudioPlaylist(music.items, music.loop ?? true, vol * this.#musicVolume)
+				}
+			} else if (this.#playlist) {
+				this.#playlist.setVolume(vol * this.#musicVolume)
+			}
+		}
+
 		this.#cleanups.push(
 			interacted.subscribe((b) => {
 				if (!b) {
@@ -266,18 +304,7 @@ export class MicrioAudioController {
 				// first moment the browser will allow it.
 				this.#playlist?.resume()
 				if (_ctx) {
-					const data = image.$data
-					if (data?.markers?.filter((m) => Boolean(m.positionalAudio)).length) {
-						this.#cleanups.push(
-							image.state.view.subscribe((v) => {
-								if (!v) {
-									return
-								}
-								const d = Math.max(0, 1.05 - image.camera.getScale())
-								moved(v[0] + v[2] / 2, v[1] + v[3] / 2, d * (is360 ? 1 : 1.5))
-							}),
-						)
-					}
+					syncViewListener()
 					this.#rebuildAudioLocations(micrio.$current)
 				}
 			}),
@@ -290,6 +317,18 @@ export class MicrioAudioController {
 				}
 				this.#rebuildAudioLocations(currentImage)
 			}),
+		)
+
+		this.#cleanups.push(
+			image.data.subscribe(
+				skipFirst(() => {
+					syncPlaylist()
+					if (_ctx) {
+						syncViewListener()
+						this.#rebuildAudioLocations(micrio.$current)
+					}
+				}),
+			),
 		)
 
 		if (audio) {
@@ -316,12 +355,7 @@ export class MicrioAudioController {
 		}
 
 		// Render playlist if music data exists
-		const data = image.$data
-		const musicVolume = data?.music?.volume ?? 1
-		if (data?.music?.items.length) {
-			const vol = volumeFor(image, get(micrio._isMuted))
-			this.#playlist = new AudioPlaylist(data.music.items, data.music.loop ?? true, vol * musicVolume)
-		}
+		syncPlaylist()
 
 		this.#cleanups.push(
 			micrio._isMuted.subscribe((muted) => {
@@ -332,7 +366,7 @@ export class MicrioAudioController {
 				// The playlist plays through its own element instead of the master gain, so its
 				// level has to follow the mute state here too — the gain alone left it audible
 				// when muted and silent when unmuted.
-				this.#playlist?.setVolume(vol * musicVolume)
+				this.#playlist?.setVolume(vol * this.#musicVolume)
 				// A playlist that was never heard (opened muted, or refused by autoplay policy)
 				// starts now that the listener has asked for sound.
 				if (!muted) {
@@ -343,6 +377,8 @@ export class MicrioAudioController {
 	}
 
 	destroy() {
+		this.#viewUnsub?.()
+		this.#viewUnsub = undefined
 		for (const loc of this.#audioLocations) {
 			loc.destroy()
 		}

@@ -123,7 +123,7 @@ export class TileCanvas {
 	/** @internal */
 	readonly _camSpeed: number
 	/** @internal */
-	readonly _rotationY: number
+	_rotationY: number
 	readonly #isGallerySwitch: boolean
 	readonly #pagesHaveBackground: boolean
 	readonly isOmni: boolean

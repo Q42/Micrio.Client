@@ -115,7 +115,6 @@ export class VideoTourInstance {
 		this.#unhookEvents = !data.keepInteraction && this.#micrio.events.$enabled
 		data.instance = this
 		this.read()
-		this.#initEvents()
 		this.#micrio.events._dispatch('videotour-start', this.#data)
 	}
 
@@ -150,6 +149,7 @@ export class VideoTourInstance {
 				pauseDuration: (s.end - s.start) * 1000,
 			})
 		}
+		this.#initEvents()
 		if (this.#startedAt && !this.#playing) {
 			this.progress = this.currentTime
 		}
@@ -205,9 +205,10 @@ export class VideoTourInstance {
 	get duration(): number {
 		return this.#content.duration
 	}
-	/** Setter for the total duration (updates internal content). */
+	/** Setter for the total duration (updates internal content and state machine context). */
 	set duration(v: number) {
 		this.#content.duration = v
+		this.#ctx.duration = v
 	}
 	/** Getter for the current paused state. */
 	get paused(): boolean {

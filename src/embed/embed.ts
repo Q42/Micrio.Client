@@ -766,13 +766,25 @@ class MicrioEmbed extends MicrioElement<EmbedProps> {
 		)
 	}
 
-	#click = () => {
+	#click = (e: Event) => {
 		const { embed, image, marker } = this.#props
 		if (!embed) {
 			return
 		}
+		if (get(this.#micrio.editMode)) {
+			if (e.type === 'keydown' && e instanceof KeyboardEvent && e.key !== 'Enter' && e.key !== ' ') {
+				return
+			}
+			e.preventDefault()
+			e.stopPropagation()
+			this.#micrio.dispatchEvent(new CustomEvent('editor-embed-select', { detail: embed, bubbles: true }))
+			return
+		}
 		const markerId = embed.clickAction === 'markerId' ? embed.clickTarget : marker?.id
 		if (!markerId || !image || this.#href) {
+			return
+		}
+		if (image.$settings._markers?.noMarkerActions) {
 			return
 		}
 		image.state.marker.set(markerId)

@@ -1151,6 +1151,31 @@ export class BookViewer {
 		this.#flipAnimator._reset(this.#meshes)
 	}
 
+	#screenToTexture(imageId: string, sx: number, sy: number): { x: number; y: number } | null {
+		if (this.#images.length === 0 || this.#meshes.length === 0) {
+			return null
+		}
+		const imageIndex = this.#images.findIndex((img) => img.id === imageId)
+		if (imageIndex < 0) {
+			return null
+		}
+		const pageIndex = Math.floor(imageIndex / 2)
+		const side: 0 | 1 = imageIndex % 2 === 0 ? 0 : 1
+		if (pageIndex >= this.#meshes.length) {
+			return null
+		}
+		const { origin, direction } = this.#camera._getPickRay(sx, sy)
+		const hit = rayIntersectMeshes(this.#meshes, origin, direction)
+		if (!hit || hit._meshIndex !== pageIndex) {
+			return null
+		}
+		const uMapped = side === 0 ? hit._u : 1 - hit._u
+		const r = this.#textureRegion(pageIndex, side)
+		const x = r && r.fU > 0 ? (uMapped - r.uMin) / r.fU : uMapped
+		const y = r && r.fV > 0 ? (hit._v - r.vMin) / r.fV : hit._v
+		return { x, y }
+	}
+
 	_hookImageBook3d(img: MicrioImage) {
 		if (img.camera._getMatrixOverride) {
 			return
@@ -1162,6 +1187,21 @@ export class BookViewer {
 				const visible = out?.facing && !out.obscured
 				cooArr[0] = visible ? out.x : -1
 				cooArr[1] = visible ? out.y : -1
+				return cooArr
+			}
+		}
+		if (!img.camera._getCooDirectOverride) {
+			const cooArr = new Float64Array(5)
+			img.camera._getCooDirectOverride = (x: number, y: number, noLimit?: boolean) => {
+				const out = this.#screenToTexture(img.id, x, y)
+				if (!out) {
+					cooArr[0] = -1
+					cooArr[1] = -1
+					return cooArr
+				}
+				cooArr[0] = noLimit ? out.x : Math.max(0, Math.min(1, out.x))
+				cooArr[1] = noLimit ? out.y : Math.max(0, Math.min(1, out.y))
+				cooArr[2] = 1
 				return cooArr
 			}
 		}

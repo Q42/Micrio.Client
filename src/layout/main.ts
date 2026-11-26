@@ -2,7 +2,9 @@ import { MicrioElement } from '$core/component'
 import type { Models } from '$types/models'
 import type { Writable } from '$core/store'
 import type { MicrioImage } from '$core/image'
-import { get, tick, writable } from '$core/store'
+import type { HTMLMicrioElement } from '$core/element'
+import type { Gallery } from '$gallery/controller'
+import { get, skipFirst, tick, writable } from '$core/store'
 import { Frame } from '$core/frame'
 import { isSplitSecondary } from '$core/split'
 import { DataLoader } from '$utils/dataLoader'
@@ -75,6 +77,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 	#info: Models.ImageInfo.ImageInfo | undefined
 	#settings: Writable<Models.ImageInfo.Settings> | undefined
 	#settingsUnsub: (() => void) | undefined
+	#dataUnsubs = new Map<MicrioImage, () => void>()
+	#galleryShown: Gallery | undefined
 	#firstInited = false
 	/** The tour the currently shown tour element was built for. @internal */
 	#tourShown: Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined
@@ -200,6 +204,12 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}),
 		)
 		this._addCleanup(() => this.#settingsUnsub?.())
+		this._addCleanup(() => {
+			for (const unsub of this.#dataUnsubs.values()) {
+				unsub()
+			}
+			this.#dataUnsubs.clear()
+		})
 
 		this._provide('mediaPaused', writable<boolean>(false))
 
@@ -222,6 +232,7 @@ export class MicrioMain extends MicrioElement<MainProps> {
 				this.#settingsUnsub = this.#settings?.subscribe(() => {
 					this.#queueSync()
 				})
+				this.#syncDataSubscriptions(micrio)
 				if (!this.#logoOrg && DataLoader._getOrganisation()?.logo) {
 					this.#logoOrg = DataLoader._getOrganisation()
 				}
@@ -276,12 +287,18 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			}),
 		)
 
+		this._addCleanup(
+			micrio._visible.subscribe(() => {
+				this.#syncDataSubscriptions(micrio)
+				this.#queueSync()
+			}),
+		)
 		for (const store of [
-			micrio._visible,
 			micrio.state.popup,
 			micrio.state.popover,
 			micrio.state.tour,
 			micrio.state.marker,
+			micrio._spaceRevision,
 		]) {
 			this._addCleanup(
 				store.subscribe(() => {
@@ -303,6 +320,31 @@ export class MicrioMain extends MicrioElement<MainProps> {
 		Object.assign(this.#props, props)
 		if (this.isConnected) {
 			this.#queueSync()
+		}
+	}
+
+	#syncDataSubscriptions(micrio: HTMLMicrioElement): void {
+		const active = new Set<MicrioImage>(get(micrio._visible))
+		if (micrio.$current) {
+			active.add(micrio.$current)
+		}
+		for (const [img, unsub] of this.#dataUnsubs) {
+			if (!active.has(img)) {
+				unsub()
+				this.#dataUnsubs.delete(img)
+			}
+		}
+		for (const img of active) {
+			if (!this.#dataUnsubs.has(img)) {
+				this.#dataUnsubs.set(
+					img,
+					img.data.subscribe(
+						skipFirst(() => {
+							this.#queueSync()
+						}),
+					),
+				)
+			}
 		}
 	}
 
@@ -440,6 +482,12 @@ export class MicrioMain extends MicrioElement<MainProps> {
 			this.#place('grid', grid)
 		}
 
+		if (micrio.gallery !== this.#galleryShown) {
+			this.#elements.get('gallery')?.remove()
+			this.#elements.set('gallery', null)
+			this.#galleryShown = micrio.gallery
+		}
+
 		this.#show(
 			'gallery',
 			Boolean($settings?.omni) || Boolean(micrio.gallery?._config?.type !== 'grid' && micrio.gallery),
@@ -490,6 +538,8 @@ export class MicrioMain extends MicrioElement<MainProps> {
 						parent: this,
 					}),
 				)
+			} else if (existing instanceof MicrioElement) {
+				existing._setProps?.({ marker: $popupMarker })
 			}
 		} else if (!existing?.isConnected) {
 			// Don't remove — let the popup animate out via its destroying class

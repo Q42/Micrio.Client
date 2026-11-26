@@ -160,8 +160,23 @@ export class Gallery {
 	/** Max height for the virtual container canvas (switch/omni galleries). */
 	#containerHeight = 0
 
+	/** Read-only list of all {@link MicrioImage} instances in this gallery. */
+	get images(): readonly MicrioImage[] {
+		return this._images
+	}
+
+	/** Finds a {@link MicrioImage} in this gallery by its Micrio ID. */
+	getImage(id: string): MicrioImage | undefined {
+		return this._images.find((img) => img.id === id)
+	}
+
 	/* @internal */
-	constructor(items: Models.ImageInfo.ImageInfo[], engine: Engine, config: Models.GalleryConfig) {
+	constructor(
+		items: Models.ImageInfo.ImageInfo[],
+		engine: Engine,
+		config: Models.GalleryConfig,
+		bundles?: Models.ImageBundle.BundleImage[],
+	) {
 		this._items = items
 
 		// Book3D albums are always laid out as a book: a single cover page
@@ -192,7 +207,11 @@ export class Gallery {
 		}
 
 		this._images = items.map((info, i) => {
+			const bundle = bundles?.[i]
 			const imageSettings = { ...config.settings }
+			if (bundle?.settings) {
+				Object.assign(imageSettings, bundle.settings)
+			}
 
 			// Propagate archive layer offset so child images adjust their level count
 			// and generate thumbSrc URLs that match what the archive stores.
@@ -206,7 +225,7 @@ export class Gallery {
 			}
 
 			const opts: Partial<MicrioImage['opts']> = {}
-			const data = DataLoader._getBundleImageSync(info.id)?.data
+			const data = bundle?.data ?? DataLoader._getBundleImageSync(info.id)?.data
 
 			if (isSwitch) {
 				opts.isEmbed = true
@@ -269,6 +288,23 @@ export class Gallery {
 	}
 
 	// --- Factory Methods ---
+
+	/**
+	 * Creates a gallery directly from in-memory {@link Models.ImageBundle.BundleImage} items
+	 * without requiring a published `bundle.json`.
+	 * @internal
+	 */
+	static _fromBundles(
+		items: Models.ImageBundle.BundleImage[],
+		engine: Engine,
+		config: Models.GalleryConfig,
+	): Gallery | null {
+		if (items.length === 0) {
+			return null
+		}
+		const infos = items.map((item) => ({ ...item.info, id: item.id || item.info.id }))
+		return new Gallery(infos, engine, config, items)
+	}
 
 	/**
 	 * Create a gallery from a IIIF Presentation API 3 manifest. Returns null for single-image

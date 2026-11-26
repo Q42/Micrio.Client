@@ -29,6 +29,8 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 	/** @internal */
 	_title: HTMLElement | undefined
 
+	#lastMarker: Models.ImageData.Marker | undefined
+
 	/** @internal */
 	protected _render() {
 		const { marker, noEmbed = false, noImages = false, noGallery = false, onclose } = this._props
@@ -44,8 +46,10 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 		}
 
 		const $_lang = get(micrio._lang)
+		const sameMarker = marker === this.#lastMarker
+		this.#lastMarker = marker
 		const key = `${marker.id}::${$_lang}::${noEmbed}::${noImages}::${noGallery}`
-		if (!this._checkRenderKey(key)) {
+		if (!this._checkRenderKey(key) && sameMarker) {
 			return
 		}
 
@@ -210,6 +214,11 @@ class MicrioMarkerContent extends MicrioElement<MarkerContentProps> {
 				parent: this,
 			})
 		}
+	}
+
+	/** @internal */
+	_onDestroy() {
+		this.#lastMarker = undefined
 	}
 }
 

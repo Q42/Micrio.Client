@@ -28,17 +28,21 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	#clicked = false
 	#hidden = false
 	#targetImage: Models.ImageData.ImageData | undefined
+	#autoCoords!: Models.Spaces.WaypointCoords
 	#coords!: Models.Spaces.WaypointCoords
-	#iface!: Models.Spaces.WaypointInterface
+	#iface?: Models.Spaces.WaypointInterface
 	#fto: ReturnType<typeof setTimeout> | undefined
 	#vector!: Models.Camera.Vector
 	#click: (() => void) | undefined
 	#focus: (() => void) | undefined
+	#onmove: (() => void) | undefined
+	#viewUnsub: (() => void) | undefined
 
 	/** @internal */
 	_onMount() {
 		this.#setup()
 		this.#render()
+		this.addEventListener('change', this.#onChange)
 		// The button title is translated, so refresh it on a UI language change
 		const micrio = this._getMicrio()
 		if (micrio) {
@@ -100,12 +104,22 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 
 		const customCoords = settings?.coords ?? structuredClone(autoCoords)
 		const isCustom = customCoords.custom
+		this.#autoCoords = autoCoords
 		this.#coords = isCustom ? customCoords : autoCoords
 
 		this.classList.toggle('direction-up', v[1] < 0)
 		this.classList.toggle('direction-down', v[1] > 0)
 
 		const click = () => {
+			if (get(micrio.editMode)) {
+				micrio.dispatchEvent(
+					new CustomEvent('editor-waypoint-select', {
+						detail: { targetId, settings: this.#props.settings },
+						bubbles: true,
+					}),
+				)
+				return
+			}
 			if (image.$settings._markers?.noMarkerActions) {
 				return
 			}
@@ -116,7 +130,7 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		}
 
 		const focus = () => {
-			if (image.$settings._markers?.noMarkerActions) {
+			if (get(micrio.editMode) || image.$settings._markers?.noMarkerActions) {
 				return
 			}
 			if (this.parentNode instanceof HTMLElement) {
@@ -178,7 +192,9 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 
 		onmove()
 
-		this._addCleanup(image.state.view.subscribe(onmove))
+		this.#viewUnsub?.()
+		this.#viewUnsub = image.state.view.subscribe(onmove)
+		this.#onmove = onmove
 		void DataLoader._getData(targetId).then((d) => {
 			if (d) {
 				this.#targetImage = d
@@ -191,6 +207,35 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 		// Store handlers
 		this.#click = click
 		this.#focus = focus
+	}
+
+	#applyCoords() {
+		const customCoords = this.#props.settings?.coords
+		this.#coords = customCoords?.custom ? customCoords : this.#autoCoords
+		this.#onmove?.()
+	}
+
+	#onChange = (e: Event) => {
+		let needsRender = true
+		if ('detail' in e && isWayPointPatch(e.detail)) {
+			const patch = e.detail
+			const current: Models.Spaces.WayPointSettings = this.#props.settings ?? { i18n: {} }
+			Object.assign(current, patch)
+			this.#props.settings = current
+			if (this.#iface !== undefined) {
+				this.#iface.settings = current
+				if (patch.coords) {
+					this.#iface.coords = patch.coords
+				}
+			}
+			needsRender = 'i18n' in patch || 'customIconIdx' in patch
+		}
+		if (this.isConnected) {
+			this.#applyCoords()
+			if (needsRender) {
+				this.#render()
+			}
+		}
 	}
 
 	#render() {
@@ -226,7 +271,14 @@ class MicrioWaypoint extends MicrioElement<WaypointProps> {
 	/** @internal */
 	_onDestroy() {
 		clearTimeout(this.#fto)
+		this.removeEventListener('change', this.#onChange)
+		this.#viewUnsub?.()
+		this.#viewUnsub = undefined
 	}
+}
+
+function isWayPointPatch(detail: unknown): detail is Partial<Models.Spaces.WayPointSettings> {
+	return detail !== undefined && detail !== null && typeof detail === 'object'
 }
 
 customElements.define(MicrioWaypoint.tag, MicrioWaypoint)

@@ -278,6 +278,16 @@ export default class Camera360 extends EngineCamera {
 		this.#syncLogicalView()
 	}
 
+	/** Updates the Y-axis sphere rotation in radians for live 360° north/compass alignment. */
+	setRotationY(rad: number): void {
+		this.canvas._rotationY = rad
+		this._baseYaw = -rad
+		this._offX = this._baseYaw / (Math.PI * 2)
+		this._update()
+		this._calculate3DFrustum()
+		this.#syncLogicalView()
+	}
+
 	/** Sets the camera orientation using viewport format (center + dimensions). @internal */
 	_setView(
 		centerX?: number,

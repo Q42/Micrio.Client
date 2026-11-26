@@ -40,6 +40,9 @@ export class Camera {
 		| ((x: number, y: number, opts?: { radius?: number; rotation?: number }) => Float64Array)
 		| undefined
 
+	/** Possible override for `#getCooDirect` for Book3D @internal */
+	_getCooDirectOverride: ((x: number, y: number, noLimit?: boolean) => Float64Array) | undefined
+
 	/** getMatrix book3d override */
 	_getMatrixOverride:
 		| ((
@@ -157,6 +160,14 @@ export class Camera {
 	 * @internal
 	 */
 	#getCooDirect(x: number, y: number, abs = false, noLimit = false) {
+		if (this._getCooDirectOverride) {
+			if (abs) {
+				const box = this.#image.engine.micrio.getBoundingClientRect()
+				x -= box.left
+				y -= box.top
+			}
+			return this._getCooDirectOverride(x, y, noLimit)
+		}
 		const c = this.#canvas
 		if (!c) {
 			return new Float64Array(5)
@@ -240,6 +251,71 @@ export class Camera {
 	}
 
 	/**
+	 * Projects a normalized image-space area `[x, y, width, height]` to screen-space CSS pixels,
+	 * returning its axis-aligned bounding rectangle and 4 projected corner coordinates
+	 * (top-left, top-right, bottom-right, bottom-left).
+	 * Returns `undefined` when the camera is not ready or the area is obscured / behind the camera.
+	 * @param area The normalized image area `[x0, y0, width, height]`.
+	 */
+	getAreaScreenRect(
+		area: Models.Camera.View,
+	): { x: number; y: number; width: number; height: number; corners: [number, number][] } | undefined {
+		if (area.length < 4 || (!this.#canvas && !this._getXYDirectOverride)) {
+			return undefined
+		}
+		const [x0, y0, w, h] = area
+		const pts: [number, number][] = [
+			[x0, y0],
+			[x0 + w, y0],
+			[x0 + w, y0 + h],
+			[x0, y0 + h],
+		]
+		const is360 = Boolean(this.#image._is360 || this.#canvas?.is360)
+		const hasOverride = this._getXYDirectOverride !== undefined
+		const corners: [number, number][] = []
+		let minX = Infinity
+		let minY = Infinity
+		let maxX = -Infinity
+		let maxY = -Infinity
+
+		for (const [px, py] of pts) {
+			const xy = this._getXYDirect(px, py)
+			const sx = xy[0]
+			const sy = xy[1]
+			if (!Number.isFinite(sx) || !Number.isFinite(sy)) {
+				return undefined
+			}
+			if (is360 && xy[3] >= 0) {
+				return undefined
+			}
+			if (hasOverride && sx === -1 && sy === -1) {
+				return undefined
+			}
+			corners.push([sx, sy])
+			if (sx < minX) {
+				minX = sx
+			}
+			if (sy < minY) {
+				minY = sy
+			}
+			if (sx > maxX) {
+				maxX = sx
+			}
+			if (sy > maxY) {
+				maxY = sy
+			}
+		}
+
+		return {
+			x: minX,
+			y: minY,
+			width: maxX - minX,
+			height: maxY - minY,
+			corners,
+		}
+	}
+
+	/**
 	 * Sets the center of the screen to the specified image coordinates and scale instantly.
 	 * @param x The target image X coordinate (0-1).
 	 * @param y The target image Y coordinate (0-1).
@@ -300,6 +376,23 @@ export class Camera {
 			return
 		}
 		this.#canvas._setDirection(yaw, pitch ?? this.#canvas._camera360._pitch)
+		this.#image.engine.render()
+	}
+
+	/**
+	 * Updates the Y-axis sphere rotation (in radians) for 360° images,
+	 * syncing compass / true-north alignment immediately and triggering a re-render.
+	 * @param rad The target Y-axis rotation in radians.
+	 */
+	setRotationY(rad: number): void {
+		this.rotationY = rad
+		if (this.#canvas) {
+			this.#canvas._rotationY = rad
+			if (this.#canvas.is360) {
+				this.#canvas._camera360.setRotationY(rad)
+			}
+			this.#canvas.view._changed = true
+		}
 		this.#image.engine.render()
 	}
 

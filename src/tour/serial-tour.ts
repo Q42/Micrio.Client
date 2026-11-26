@@ -139,6 +139,21 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 				this.#openStep(this.#currentStep - 1)
 			}
 		}
+		mt.goto = (step: number) => {
+			if (this.#stepInfo.length === 0) {
+				return
+			}
+			const target = Math.max(0, Math.min(this.#stepInfo.length - 1, Math.floor(step)))
+			if (target !== this.#currentStep) {
+				this.#resetSteps()
+				this.#openStep(target)
+			}
+		}
+		this._addCleanup(() => {
+			mt.next = undefined
+			mt.prev = undefined
+			mt.goto = undefined
+		})
 
 		this._addCleanup(
 			micrio.state.marker.subscribe((m) => {
@@ -170,6 +185,19 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		this.#openStep(0)
 	}
 
+	#resolveStepMarker(si: Models.ImageData.MarkerTourStepInfo): Models.ImageData.Marker | undefined {
+		const micrio = this.#micrio
+		if (micrio && si.micrioId) {
+			const img =
+				micrio._canvases.find((c) => c.id === si.micrioId) ?? micrio.gallery?._images.find((i) => i.id === si.micrioId)
+			const live = img?.$data?.markers?.find((m) => m.id === si.markerId)
+			if (live) {
+				return live
+			}
+		}
+		return DataLoader._getStepMarker(si)
+	}
+
 	#build() {
 		if (this.#built) {
 			return
@@ -181,7 +209,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 		if (this.#props.tour?.printChapters === true) {
 			const ol = createElement('ol', { className: 'chapters' })
 			for (const [i, si] of this.#stepInfo.entries()) {
-				const marker = DataLoader._getStepMarker(si)
+				const marker = this.#resolveStepMarker(si)
 				const title = this.#getTitle(marker)
 				if (title) {
 					createElement('li', {
@@ -239,7 +267,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 			return
 		}
 
-		const marker = DataLoader._getStepMarker(si)
+		const marker = this.#resolveStepMarker(si)
 		let startView: Models.Camera.View | undefined
 		if (marker?.videoTour) {
 			const timeline = marker.videoTour.i18n?.[micrio.lang]?.timeline
@@ -499,7 +527,7 @@ class MicrioSerialTour extends MicrioElement<SerialTourProps> {
 
 		const barsDiv = createElement('div', { attrs: { 'data-part': 'bars' } })
 		for (const [i, si] of this.#stepInfo.entries()) {
-			const marker = DataLoader._getStepMarker(si)
+			const marker = this.#resolveStepMarker(si)
 			const title = this.#getTitle(marker) ?? ''
 			// A real button rather than a focusable `role="progressbar"`: the bar *does* navigate
 			// on click, so it has to be activatable by keyboard and carry a name.

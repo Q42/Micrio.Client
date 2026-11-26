@@ -210,11 +210,15 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		}
 
 		const click = () => {
+			if (get(micrio.editMode)) {
+				micrio.dispatchEvent(new CustomEvent('editor-marker-select', { detail: marker, bubbles: true }))
+				return
+			}
 			if (marker.onclick) {
 				marker.onclick(marker)
 				return
 			}
-			if (markerSettings.noMarkerActions) {
+			if (image.$settings._markers?.noMarkerActions) {
 				return
 			}
 			if (marker.type === 'cluster') {
@@ -227,7 +231,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		}
 
 		const focus = () => {
-			if (markerSettings.noMarkerActions) {
+			if (get(micrio.editMode) || image.$settings._markers?.noMarkerActions) {
 				return
 			}
 			if (this.parentNode instanceof HTMLElement) {
@@ -275,6 +279,9 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		 * image was shown again) rather than opened, so its one-shot actions are skipped.
 		 */
 		const activated = async (restored = false) => {
+			if (get(micrio.editMode)) {
+				return
+			}
 			if (this.#opened) {
 				if (!get(micrio.state.popup)) {
 					image.state.marker.set(undefined)
@@ -284,7 +291,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			this.#opened = true
 			this.classList.add('opened')
 			clearTimeout(this.#fto)
-			if (markerSettings.noMarkerActions) {
+			if (image.$settings._markers?.noMarkerActions) {
 				return
 			}
 			events._dispatch('marker-open', marker)
@@ -376,7 +383,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				image.state.marker.set(marker)
 				return
 			}
-			if (markerSettings.noMarkerActions) {
+			if (get(micrio.editMode) || image.$settings._markers?.noMarkerActions) {
 				return
 			}
 
