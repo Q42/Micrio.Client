@@ -38,7 +38,8 @@ class MicrioMarkers extends MicrioElement<MarkersProps> {
 		}
 
 		const { _switching: switching, state: micrioState } = micrio
-		const grid = micrio._canvases[0]?.grid
+		this.dataset.imageId = image.id
+		const grid = micrio._canvases.find((c) => c.grid)?.grid
 		const focussed = grid?._focussed
 		const gridMarkersShown = grid?._markersShown
 

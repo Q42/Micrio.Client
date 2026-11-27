@@ -198,11 +198,22 @@ export namespace ImageData {
 		/** Positional audio asset */
 		positionalAudio?: Assets.AudioLocation
 
+		/** Marker tours that include this marker (used to auto-start cross-image tours and auto-bundle tour owners) */
+		tours?: MarkerTourRef[]
+
 		/** Optional function that overrides all behavior */
 		onclick?: (m: ImageData.Marker) => void
 
 		/** Additional options */
 		data?: MarkerData
+	}
+
+	/** Reference from a marker to a marker tour that includes it */
+	export interface MarkerTourRef {
+		/** The Micrio ID of the image that owns the marker tour */
+		micrioId: string
+		/** The ID of the marker tour */
+		tourId: string
 	}
 
 	/** Optional individual marker settings */

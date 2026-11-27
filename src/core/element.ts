@@ -970,13 +970,13 @@ export class HTMLMicrioElement extends MicrioElement {
 
 		let c: MicrioImage | undefined = this._canvases.find((canvas) => bundle.id !== '' && canvas.id === bundle.id)
 		let isInGrid = false
-		const grid = this._canvases[0]?.grid
+		const grid = this._canvases.find((canvas) => canvas.grid)?.grid
 		if (!c && grid) {
 			const gridImage = bundle.id ? grid._images.find((img) => img.id === bundle.id) : undefined
 			isInGrid = Boolean(gridImage)
-			c = bundle.id ? gridImage : this._canvases[0]
+			c = bundle.id ? gridImage : grid.image
 			if (isInGrid && !grid._insideGrid()) {
-				this.current.set(this._canvases[0])
+				this.current.set(grid.image)
 			}
 		}
 		if (!c) {
@@ -1107,6 +1107,30 @@ export class HTMLMicrioElement extends MicrioElement {
 	}
 
 	/**
+	 * Tears down any active gallery/grid and closes its canvases so the element
+	 * can cleanly transition back to standalone single-image viewing or a new gallery.
+	 */
+	closeGallery(): void {
+		for (const c of this._canvases) {
+			c.grid?.remove()
+			if (c._placed) {
+				this.close(c)
+			}
+		}
+		if (this.gallery) {
+			for (const img of this.gallery._images) {
+				if (img._placed) {
+					this.close(img)
+				}
+			}
+		}
+		this._canvases.length = 0
+		this.gallery = undefined
+		this._engine._book3d = false
+		this.current.set(undefined)
+	}
+
+	/**
 	 * Opens a multi-image gallery/album (`swipe`, `switch`, `book3d`, `grid`) directly from
 	 * in-memory {@link Models.ImageBundle.BundleImage} items and a {@link Models.GalleryConfig},
 	 * without requiring a published `bundle.json`.
@@ -1122,13 +1146,8 @@ export class HTMLMicrioElement extends MicrioElement {
 		if (!this.isConnected || items.length === 0) {
 			return undefined
 		}
-		if (this.gallery) {
-			this.$current?.grid?.remove()
-			if (this.$current) {
-				this.close(this.$current)
-			}
-			this.gallery = undefined
-			this._engine._book3d = false
+		if (this.gallery || this._canvases.length > 0) {
+			this.closeGallery()
 		}
 		const gallery = Gallery._fromBundles(items, this._engine, config)
 		if (gallery === null) {

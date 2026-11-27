@@ -316,6 +316,77 @@ export class Camera {
 	}
 
 	/**
+	 * Returns this image's rendered viewport `[left, top, width, height]` in CSS pixels
+	 * relative to the host `<micr-io>` element (matching the tile rect inside a grid,
+	 * or `[0, 0, offsetWidth, offsetHeight]` for a standalone canvas).
+	 */
+	getViewportRect(): [number, number, number, number] {
+		const c = this.#canvas
+		if (c) {
+			const ratio = c.main.el.ratio || 1
+			return [c.el.left / ratio, c.el.top / ratio, c.el.width / ratio, c.el.height / ratio]
+		}
+		const el = this.#image.engine.micrio
+		return [0, 0, el.offsetWidth, el.offsetHeight]
+	}
+
+	/**
+	 * Converts normalized image coordinates `[0..1]` into CSS pixel coordinates `[x, y]`
+	 * relative to the host `<micr-io>` element (adding the tile viewport offset when inside a grid).
+	 * Returns `undefined` when the camera is not ready or the point is obscured.
+	 */
+	getElementXY(x: number, y: number): [number, number] | undefined {
+		if (!this.#canvas && !this._getXYDirectOverride) {
+			return undefined
+		}
+		const xy = this._getXYDirect(x, y)
+		const sx = xy[0]
+		const sy = xy[1]
+		if (!Number.isFinite(sx) || !Number.isFinite(sy)) {
+			return undefined
+		}
+		const is360 = Boolean(this.#image._is360 || this.#canvas?.is360)
+		if (is360 && xy[3] >= 0) {
+			return undefined
+		}
+		if (this._getXYDirectOverride !== undefined && sx === -1 && sy === -1) {
+			return undefined
+		}
+		const [vx, vy] = this.getViewportRect()
+		return [vx + sx, vy + sy]
+	}
+
+	/**
+	 * Projects a normalized image-space area `[x, y, width, height]` into CSS pixels
+	 * relative to the host `<micr-io>` element (adding the tile viewport offset when inside a grid).
+	 */
+	getElementAreaRect(
+		area: Models.Camera.View,
+	): { x: number; y: number; width: number; height: number; corners: [number, number][] } | undefined {
+		const box = this.getAreaScreenRect(area)
+		if (!box) {
+			return undefined
+		}
+		const [vx, vy] = this.getViewportRect()
+		return {
+			x: vx + box.x,
+			y: vy + box.y,
+			width: box.width,
+			height: box.height,
+			corners: box.corners.map(([cx, cy]) => [vx + cx, vy + cy]),
+		}
+	}
+
+	/**
+	 * Converts CSS pixel coordinates relative to the host `<micr-io>` element into
+	 * normalized image coordinates `[x, y, scale, ...]`, accounting for grid tile offsets.
+	 */
+	getCooFromElement(elX: number, elY: number, noLimit = false): Float64Array {
+		const [vx, vy] = this.getViewportRect()
+		return this.getCoo(elX - vx, elY - vy, false, noLimit)
+	}
+
+	/**
 	 * Sets the center of the screen to the specified image coordinates and scale instantly.
 	 * @param x The target image X coordinate (0-1).
 	 * @param y The target image Y coordinate (0-1).

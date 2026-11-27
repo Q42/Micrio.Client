@@ -12,6 +12,7 @@ import {
 	type MarkerPopupState,
 } from './marker-popup-state'
 import { afterFrame, createElement } from '$utils/dom'
+import { DataLoader } from '$utils/dataLoader'
 import '$ui/button'
 import '$ui/button-group'
 import './marker-content'
@@ -146,9 +147,16 @@ class MicrioMarkerPopup extends MicrioElement<MarkerPopupProps> {
 		const $tour = get(micrio.state.tour)
 		const markerTour = $tour && 'steps' in $tour ? $tour : undefined
 		const source = markerTour
-			? micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === markerTour.id))
+			? (micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === markerTour.id)) ??
+				micrio.gallery?._images.find((i) => i.$data?.markerTours?.find((t) => t.id === markerTour.id)))
 			: undefined
-		const tsSettings = source?.$settings._markers
+		const cachedSourceSettings =
+			markerTour && !source
+				? markerTour.stepInfo
+						?.map((si) => DataLoader._getBundleImageSync(si.micrioId))
+						.find((b) => b?.data?.markerTours?.some((t) => t.id === markerTour.id))?.settings?._markers
+				: undefined
+		const tsSettings = source?.$settings._markers ?? cachedSourceSettings
 		const settings = image.$settings._markers ?? {}
 		return tsSettings?.[key] ?? settings[key]
 	}

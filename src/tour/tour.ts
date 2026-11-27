@@ -107,24 +107,37 @@ export class MicrioTour extends MicrioElement<TourProps> {
 			const mt = tour
 			mt.currentStep ??= mt.initialStep ?? 0
 			this.#currentStep = mt.currentStep
-			const { stepInfo } = mt
+			const fallbackImageId = micrio.$current?.id || micrio.gallery?._images[0]?.id || ''
+			const stepInfo: Models.ImageData.MarkerTourStepInfo[] =
+				mt.stepInfo ??
+				(mt.steps ?? []).map((s) => {
+					const [markerId, micrioId] = s.split(',')
+					return { markerId, micrioId: micrioId || fallbackImageId, duration: 0 }
+				})
 			// Resolved from the image the tour is *authored* on, like `micrio-marker-popup` does:
 			// a tour that crosses images would otherwise read it from whichever image is shown,
 			// and the two components would disagree about whether the controls move into the popup.
-			const authored = micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === mt.id))
-			const tourControlsInPopup = Boolean((authored ?? micrio.$current)?.$settings?._markers?.tourControlsInPopup)
-			const keepPopupsDuringTour = Boolean(
-				(authored ?? micrio.$current)?.$settings?._markers?.keepPopupsDuringTourTransitions,
-			)
+			const authored =
+				micrio._canvases.find((c) => c.$data?.markerTours?.find((t) => t.id === mt.id)) ??
+				micrio.gallery?._images.find((i) => i.$data?.markerTours?.find((t) => t.id === mt.id))
+			const cachedAuthoredSettings = !authored
+				? stepInfo
+						.map((si) => DataLoader._getBundleImageSync(si.micrioId))
+						.find((b) => b?.data?.markerTours?.some((t) => t.id === mt.id))?.settings?._markers
+				: undefined
+			const authoredMarkerSettings =
+				authored?.$settings?._markers ?? cachedAuthoredSettings ?? micrio.$current?.$settings?._markers
+			const tourControlsInPopup = Boolean(authoredMarkerSettings?.tourControlsInPopup)
+			const keepPopupsDuringTour = Boolean(authoredMarkerSettings?.keepPopupsDuringTourTransitions)
 
 			const openStep = async (prevIdx: number, newIdx: number) => {
-				const si = stepInfo?.[newIdx]
+				const si = newIdx >= 0 ? stepInfo.at(newIdx) : undefined
 				if (!si) {
 					return
 				}
 
 				// Clear previous step's marker before navigating
-				const prevSi = stepInfo?.[prevIdx]
+				const prevSi = prevIdx >= 0 ? stepInfo.at(prevIdx) : undefined
 				if (prevSi?.micrioId) {
 					const prevImg = findImage(prevSi.micrioId)
 					const prevMarker = prevImg ? get(prevImg.state.marker) : undefined

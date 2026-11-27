@@ -78,16 +78,43 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 		// --- Auto-start tour integration (_markers.autoStartTour) ---
 
+		/** Whether a step string refers to this marker on this image. */
+		const matchesStep = (s: string): boolean =>
+			s === marker.id || s === `${marker.id},${image.id}` || s.startsWith(`${marker.id},`)
 		/** Whether a marker tour has this marker as one of its steps. */
-		const inTour = (t: Models.ImageData.MarkerTour): boolean => t.steps?.some((s) => s.startsWith(marker.id))
-		/** The marker tour to auto-start when this marker is opened, if it contains this marker. */
-		const autoStartMyTour: Models.ImageData.MarkerTour | undefined = markerSettings.autoStartTour
-			? (micrio._canvases.map((c) => c.$data?.markerTours?.find(inTour)).find((t) => Boolean(t)) ??
+		const inTour = (t: Models.ImageData.MarkerTour): boolean => t.steps?.some(matchesStep) ?? false
+		const findTourByRef = (ref: Models.ImageData.MarkerTourRef): Models.ImageData.MarkerTour | undefined =>
+			(micrio.bundleTours ?? []).find((t) => t.id === ref.tourId) ??
+			micrio._canvases.map((c) => c.$data?.markerTours?.find((t) => t.id === ref.tourId)).find((t) => Boolean(t)) ??
+			micrio.gallery?._images
+				.map((i) => i.$data?.markerTours?.find((t) => t.id === ref.tourId))
+				.find((t) => Boolean(t)) ??
+			DataLoader._getBundleImageSync(ref.micrioId)?.data?.markerTours?.find((t) => t.id === ref.tourId)
+
+		/** Resolves the marker tour to auto-start when this marker is opened (checking `marker.tours` first). */
+		const resolveAutoStartTour = (): Models.ImageData.MarkerTour | undefined => {
+			if (!markerSettings.autoStartTour) {
+				return undefined
+			}
+			for (const ref of marker.tours ?? []) {
+				const found = findTourByRef(ref)
+				if (found && inTour(found)) {
+					return found
+				}
+			}
+			return (
+				micrio._canvases.map((c) => c.$data?.markerTours?.find(inTour)).find((t) => Boolean(t)) ??
 				(micrio.bundleTours ?? []).find(inTour) ??
-				micrio.gallery?._images.map((i) => i.$data?.markerTours?.find(inTour)).find((t) => Boolean(t)))
-			: undefined
-		/** This marker's step index within its auto-start tour. */
-		const myTourStep = autoStartMyTour?.steps.findIndex((s) => s.startsWith(marker.id))
+				micrio.gallery?._images.map((i) => i.$data?.markerTours?.find(inTour)).find((t) => Boolean(t))
+			)
+		}
+		const getTourStepIndex = (t: Models.ImageData.MarkerTour | undefined): number | undefined => {
+			if (!t) {
+				return undefined
+			}
+			const exact = t.steps.findIndex((s) => s === marker.id || s === `${marker.id},${image.id}`)
+			return exact >= 0 ? exact : t.steps.findIndex(matchesStep)
+		}
 		/** Always start the auto-start tour from step 0 instead of from this marker's step. */
 		const startTourAtBeginning = Boolean(markerSettings.autoStartTourAtBeginning)
 		/** This marker's custom grid action, temporarily suppressed when the tour restarts at step 0. */
@@ -311,12 +338,14 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 
 			// When the auto-start tour has to restart from its first step, don't fly to this
 			// marker's own view first and suppress its grid action: the tour takes over.
+			const autoStartTourNow = resolveAutoStartTour()
+			const myTourStepNow = getTourStepIndex(autoStartTourNow)
 			const immediatelyStartMyTourAtBeginning =
-				autoStartMyTour !== undefined &&
+				autoStartTourNow !== undefined &&
 				startTourAtBeginning &&
-				myTourStep !== undefined &&
-				myTourStep > 0 &&
-				autoStartMyTour.id !== $tour?.id
+				myTourStepNow !== undefined &&
+				myTourStepNow > 0 &&
+				autoStartTourNow.id !== $tour?.id
 			if (immediatelyStartMyTourAtBeginning) {
 				if (data._meta) {
 					delete data._meta.gridAction
@@ -393,8 +422,24 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			events._dispatch('marker-opened', marker)
 
 			// Auto-start this marker's tour, at this marker's step (or from the beginning)
+			let autoStartMyTour = resolveAutoStartTour()
+			if (!autoStartMyTour && !$tour && markerSettings.autoStartTour && marker.tours?.length) {
+				await Promise.all(marker.tours.map((ref) => DataLoader._getBundleImage(ref.micrioId)))
+				for (const ref of marker.tours) {
+					const ownerTours = DataLoader._getBundleTours(ref.micrioId)
+					if (ownerTours?.length && !micrio.bundleTours) {
+						micrio.bundleTours = ownerTours
+					}
+					const found = findTourByRef(ref) ?? ownerTours?.find((t) => t.id === ref.tourId)
+					if (found && inTour(found)) {
+						autoStartMyTour = found
+						break
+					}
+				}
+			}
+			const myTourStep = getTourStepIndex(autoStartMyTour)
 			if (autoStartMyTour && !$tour) {
-				const startStep = startTourAtBeginning ? 0 : (myTourStep ?? 0)
+				const startStep = startTourAtBeginning ? 0 : Math.max(0, myTourStep ?? 0)
 				autoStartMyTour.initialStep = startStep
 				// `currentStep` is sticky between runs, so set it too, or the tour would resume elsewhere
 				autoStartMyTour.currentStep = startStep

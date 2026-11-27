@@ -1081,6 +1081,45 @@ export class Grid extends MicrioElement<GridProps> {
 		})
 	}
 
+	/**
+	 * Controls which grid tiles display their interactive marker layers while in overview mode.
+	 * Pass `'all'` to show markers on every image, `'none'` to clear, or an explicit list of images.
+	 */
+	showMarkers(target: MicrioImage[] | 'all' | 'none'): void {
+		if (target === 'all') {
+			this._markersShown.set([...this._images])
+		} else if (target === 'none') {
+			this._markersShown.set([])
+		} else {
+			this._markersShown.set(target)
+		}
+	}
+
+	/**
+	 * Hit-tests `<micr-io>`-relative CSS pixel coordinates `(elX, elY)` against the visible grid tiles
+	 * (in descending `zIndex` order), returning the hit image and normalized `[0..1]` coordinates when
+	 * the point lands inside the rendered image bounds (excluding grid gutters / letterbox margins).
+	 */
+	getImageAtPoint(elX: number, elY: number): { image: MicrioImage; x: number; y: number } | undefined {
+		const candidates = [...this._current].sort((a, b) => (b.canvas?.zIndex ?? 0) - (a.canvas?.zIndex ?? 0))
+		for (const img of candidates) {
+			if (!img._placed) {
+				continue
+			}
+			const [vx, vy, vw, vh] = img.camera.getViewportRect()
+			if (vw <= 0 || vh <= 0 || elX < vx || elX > vx + vw || elY < vy || elY > vy + vh) {
+				continue
+			}
+			const coo = img.camera.getCooFromElement(elX, elY, true)
+			const x = coo[0]
+			const y = coo[1]
+			if (Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+				return { image: img, x, y }
+			}
+		}
+		return undefined
+	}
+
 	/* @internal */
 	_getImageAt(clientX: number, clientY: number): MicrioImage | undefined {
 		const current = this.micrio.$current
