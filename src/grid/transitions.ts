@@ -59,6 +59,7 @@ export function setupBehindTransition(
 	grid: Grid,
 	images: Models.Grid.GridImage[],
 	opts: {
+		cover?: boolean
 		coverLimit?: boolean
 		forceAni?: boolean
 		forceAreaAni?: boolean
@@ -89,7 +90,9 @@ export function setupBehindTransition(
 		}
 	}
 	for (const e of images) {
-		e.view = [0, 0, 1, 1]
+		if (!e.view && !(e.cover ?? opts.cover)) {
+			e.view = [0, 0, 1, 1]
+		}
 	}
 	return tiers
 }

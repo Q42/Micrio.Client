@@ -162,6 +162,25 @@ describe('behind transitions', () => {
 		viewer.destroy()
 	})
 
+	it('completes the entire behind-delayed stagger within the specified total duration', async () => {
+		const { viewer, grid, ids } = await openFullGrid()
+		const totalDuration = 0.25
+		const start = performance.now()
+		await grid.set(
+			ids.map((id) => ({ id, size: [1] as [number, number?] })),
+			{ transition: 'behind-delayed', duration: totalDuration },
+		)
+		const elapsedMs = performance.now() - start
+
+		// Per-tile animation duration is scaled down so the whole wave fits inside `totalDuration`
+		expect(viewer.el._engine._itemTransitionDuration).toBeGreaterThan(0)
+		expect(viewer.el._engine._itemTransitionDuration).toBeLessThan(totalDuration)
+		// Previously 4 tiles with 0.5s fixed stagger took 0.25 + 1.5 = 1.75s; now it finishes ~0.25s
+		expect(elapsedMs).toBeLessThan(700)
+		expect(layoutIds(grid)).toEqual(ids)
+		viewer.destroy()
+	})
+
 	it('reverses the between-pair for behind-left', async () => {
 		const { viewer, grid, ids } = await openFullGrid()
 		await grid.set([{ id: ids[0] ?? '', size: [1] }], { duration: 0 })

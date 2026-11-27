@@ -38,6 +38,8 @@ export namespace Grid {
 		from?: string
 		/** Optional stacking order override (higher values render on top). */
 		z?: number
+		/** Optional per-tile cover-fill override (`true` = cover cell, `false` = full image with margins). */
+		cover?: boolean
 	}
 
 	/** An empty placeholder cell in a grid layout, occupying grid space without an image */
@@ -108,6 +110,8 @@ export namespace Grid {
 		include?: boolean
 		/** Exclude this image from the matched set. */
 		exclude?: boolean
+		/** Optional per-tile cover-fill override (`true` = cover cell, `false` = full image with margins). */
+		cover?: boolean
 	}
 
 	/** Explicit cell entry for direct visual mosaic authoring (supports exact order and empty spacers). */
@@ -120,6 +124,8 @@ export namespace Grid {
 		z?: number
 		view?: Camera.View
 		markerId?: string
+		/** Optional per-tile cover-fill override (`true` = cover cell, `false` = full image with margins). */
+		cover?: boolean
 	}
 
 	/** One executable step inside a {@link GridEffect}. */

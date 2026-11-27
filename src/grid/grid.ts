@@ -538,10 +538,18 @@ export class Grid extends MicrioElement<GridProps> {
 			const ready = this.image._placed
 			const dur = opts.duration ?? (opts.noHistory ? this.#aniDurationOut : this._aniDurationIn)
 			const defaultDur = this._nextCrossFadeDuration ?? this.image.$settings.crossfadeDuration ?? 1
-			const crossfadeDur = (dur || this._aniDurationIn) / (isBehindDelay ? 2 : 1)
+			// For `behind-delayed`, fit the entire staggered wave (all launch delays + each tile's
+			// flight) inside `dur` so the whole animation completes within the requested duration.
+			const behindCount = imageEntries.length
+			const behindStaggerFrac =
+				isBehindDelay && behindCount > 1 && dur > 0 ? Math.min(0.6, (behindCount - 1) / (behindCount + 1)) : 0
+			const behindStepDelay =
+				isBehindDelay && behindCount > 1 && dur > 0 ? (dur * behindStaggerFrac) / (behindCount - 1) : 0
+			const itemDur = isBehindDelay ? dur * (1 - behindStaggerFrac) : dur
+			const crossfadeDur = isBehindDelay ? itemDur / 2 : dur || this._aniDurationIn
 			this._nextCrossFadeDuration = undefined
 			if (ready) {
-				engine._itemTransitionDuration = dur
+				engine._itemTransitionDuration = itemDur
 				engine._crossfadeDuration = crossfadeDur
 			}
 
@@ -613,24 +621,31 @@ export class Grid extends MicrioElement<GridProps> {
 			if (opts.coverLimit === undefined) {
 				opts.coverLimit = Boolean(this.image.$settings.limitToCoverScale)
 			}
-			const forcedCoverLimit = opts.cover && !opts.coverLimit
-			if (forcedCoverLimit) {
-				opts.coverLimit = true
+			const forcedCoverIds: string[] = []
+			if (!opts.coverLimit) {
 				for (const i of imageEntries) {
-					this._imageMap.get(i.id)?.camera.setCoverLimit(true)
+					if (i.cover ?? opts.cover) {
+						forcedCoverIds.push(i.id)
+						this._imageMap.get(i.id)?.camera.setCoverLimit(true)
+					}
 				}
 			}
 
 			const isAppear = opts.transition === 'appear-delayed'
-			const getDelay = (i: number): number => i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0)
+			const getDelay = (i: number): number => {
+				if (isBehindDelay) {
+					return i * behindStepDelay
+				}
+				return i * this.#transitionDelay + (i > 0 && isAppear ? dur : 0)
+			}
 
 			this._current = imageEntries.map((img, i) =>
 				this.#placeImage(img, {
-					duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : dur,
+					duration: !opts.forceAni && doUnfocus && img.id !== focussed?.id ? 0 : itemDur,
 					delay: isDelayed ? getDelay(i) : 0,
 					noCamAni: isAppear && i > 0 ? true : Boolean(opts.noCamAni),
 					forceAreaAni: isAppear && i > 0 ? false : opts.forceAreaAni || Boolean(inFromId?.fromAreas.has(img.id)),
-					cover: opts.cover,
+					cover: img.cover ?? opts.cover,
 					fromArea: inFromId?.fromAreas.get(img.id),
 					fadeInPlace: Boolean(inFromId?.fadeInPlaceIds.has(img.id)),
 					ready: readyGate,
@@ -672,7 +687,8 @@ export class Grid extends MicrioElement<GridProps> {
 
 			const fadeIn = () => {
 				for (const [i, img] of this._current.entries()) {
-					void sleep(isDelayed ? (getDelay(i) + (isBehindDelay ? dur / 2 : 0)) * 1000 : 0).then(() => {
+					const fadeDelayMs = isDelayed ? getDelay(i) * 1000 : 0
+					void sleep(fadeDelayMs).then(() => {
 						// The sleep is outside the two cancellable timers; a superseded set must
 						// not fade the layout that replaced it.
 						if (setId === this.#setId) {
@@ -694,9 +710,9 @@ export class Grid extends MicrioElement<GridProps> {
 				if (isDelayed || isInFromId) {
 					this.#resetZ()
 				}
-				if (forcedCoverLimit) {
-					for (const i of imageEntries) {
-						this._imageMap.get(i.id)?.camera.setCoverLimit(false)
+				if (forcedCoverIds.length > 0) {
+					for (const id of forcedCoverIds) {
+						this._imageMap.get(id)?.camera.setCoverLimit(false)
 					}
 				} else if (opts.coverLimit) {
 					for (const i of imageEntries) {
@@ -723,12 +739,13 @@ export class Grid extends MicrioElement<GridProps> {
 					done()
 				} else {
 					if (!opts.noFade) {
-						this.#_fadeTo = setTimeout(fadeIn, Math.max(0, (dur / 2) * 1000))
+						const fadeStartMs = isBehindDelay ? 0 : Math.max(0, (dur / 2) * 1000)
+						this.#_fadeTo = setTimeout(fadeIn, fadeStartMs)
 					}
-					this.#_to = setTimeout(
-						done,
-						(Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length - 1) * this.#transitionDelay : 0)) * 1000,
-					)
+					const totalSec = isBehindDelay
+						? dur
+						: Math.max(crossfadeDur, dur) + (isDelayed ? (imageEntries.length - 1) * this.#transitionDelay : 0)
+					this.#_to = setTimeout(done, totalSec * 1000)
 				}
 			})
 		})
@@ -1001,6 +1018,7 @@ export class Grid extends MicrioElement<GridProps> {
 			duration,
 			noCamAni,
 			forceAni,
+			cover: this.image.$settings?.initType === 'cover',
 			horizontal: state !== undefined ? state.horizontal : false,
 			columns: state?.columns,
 		}).then((i) => {

@@ -150,6 +150,9 @@ export function resolveLayoutEntries(
 			if (typeof cell.z === 'number' && Number.isFinite(cell.z)) {
 				entry.z = cell.z
 			}
+			if (cell.cover !== undefined) {
+				entry.cover = cell.cover
+			}
 			const view = cell.view ?? resolveMarkerView(img, cell.markerId)
 			if (view) {
 				entry.view = view
@@ -286,6 +289,9 @@ export function resolveLayoutEntries(
 		if (typeof rule.z === 'number' && Number.isFinite(rule.z)) {
 			targetEntry.z = rule.z
 		}
+		if (rule.cover !== undefined) {
+			targetEntry.cover = rule.cover
+		}
 		const view = rule.view ?? resolveMarkerView(grid._imageMap.get(targetId), rule.markerId)
 		if (view) {
 			targetEntry.view = view
@@ -328,7 +334,7 @@ export async function executeGridEffect(
 						scale: step.scale,
 						transition: step.transition,
 						view: step.view,
-						cover: step.cover,
+						cover: step.cover ?? grid.image.$settings?.initType === 'cover',
 						noHistory: step.noHistory,
 					})
 					.catch(() => {})
