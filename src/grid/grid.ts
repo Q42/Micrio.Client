@@ -751,7 +751,8 @@ export class Grid extends MicrioElement<GridProps> {
 		},
 	): void {
 		const numTiles = images.reduce((n, i) => n + (i.size?.[0] ?? 1) * (i.size?.[1] ?? 1), 0)
-		const cols = opts.columns ?? (opts.horizontal ? images.length : getCols(images.length, numTiles))
+		const rowCols = images.reduce((n, i) => n + (i.size?.[0] ?? 1), 0)
+		const cols = opts.columns ?? (opts.horizontal ? rowCols : getCols(images.length, numTiles))
 		this.style.gridTemplateColumns = `repeat(${cols}, auto)`
 		for (const btn of this._buttons.values()) {
 			btn.remove()
