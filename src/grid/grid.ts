@@ -782,8 +782,10 @@ export class Grid extends MicrioElement<GridProps> {
 		this.style.removeProperty('--translate')
 		this.style.removeProperty('--scale')
 
+		const tileMeta: { el: HTMLButtonElement; img?: Models.Grid.GridImage; spanX: number; spanY: number }[] = []
 		for (const i of images) {
 			let tile: HTMLButtonElement
+			let gridImg: Models.Grid.GridImage | undefined
 			if (!i.id || i.empty) {
 				tile = createElement('button')
 				tile.disabled = true
@@ -800,8 +802,11 @@ export class Grid extends MicrioElement<GridProps> {
 				// The tiles are keyboard focus targets (`keyboard.ts` moves focus between them),
 				// so they need a name: without one every cell reads as just "button".
 				tile.setAttribute('aria-label', this._imageMap.get(i.id)?.$info?.title ?? i.id)
+				gridImg = i
 			}
 			const size = i.size ?? [1]
+			const spanX = Math.max(1, size[0] || size[1] || 1)
+			const spanY = Math.max(1, size[1] ?? 1)
 			if (size[0] !== 1 || size[1] !== undefined) {
 				tile.style.gridArea = `auto / auto / span ${size[1]} / span ${size[0] || size[1]}`
 				if (i.id && !i.empty) {
@@ -815,6 +820,7 @@ export class Grid extends MicrioElement<GridProps> {
 			}
 			tile.dataset.scrollThrough = ''
 			this.append(tile)
+			tileMeta.push({ el: tile, img: gridImg, spanX, spanY })
 		}
 
 		this.classList.toggle('grid-pan-zoom', this._panZoom === 'grid')
@@ -833,24 +839,38 @@ export class Grid extends MicrioElement<GridProps> {
 		const w = this.micrio.offsetWidth || hostRect.width
 		const h = this.micrio.offsetHeight || hostRect.height
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale ?? 1)))
-		const imageById = new Map(
-			images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty).map((i) => [i.id, i]),
-		)
 		this.style.transform = ''
-		for (const n of this.childNodes) {
-			if (!(n instanceof HTMLElement)) {
-				continue
+
+		// Measure every cell first so spacing uses a single uniform pixel inset derived from
+		// one 1×1 grid unit — keeping gutters and edges identical across 1×1, 2×1, and 2×2 cells.
+		const measured = tileMeta.map((m) => ({
+			img: m.img,
+			spanX: m.spanX,
+			spanY: m.spanY,
+			r: m.el.getBoundingClientRect(),
+		}))
+		let unitW = Number.POSITIVE_INFINITY
+		let unitH = Number.POSITIVE_INFINITY
+		for (const m of measured) {
+			if (m.r.width > 0) {
+				unitW = Math.min(unitW, m.r.width / m.spanX)
 			}
-			const { id } = n.dataset
-			const r = n.getBoundingClientRect()
-			const img = id ? imageById.get(id) : undefined
-			const o = [(s / 2) * r.width, (s / 2) * r.height]
+			if (m.r.height > 0) {
+				unitH = Math.min(unitH, m.r.height / m.spanY)
+			}
+		}
+		const minUnit = Number.isFinite(unitW) && Number.isFinite(unitH) ? Math.min(unitW, unitH) : 0
+		const pad = (s / 2) * minUnit
+
+		for (const { img, r } of measured) {
 			if (img && !img.area) {
+				const padX = Math.min(pad, r.width * 0.49)
+				const padY = Math.min(pad, r.height * 0.49)
 				img.area = [
-					(r.x - hostRect.x + o[0]) / w,
-					(r.y - hostRect.y + o[1]) / h,
-					(r.width - o[0] * 2) / w,
-					(r.height - o[1] * 2) / h,
+					(r.x - hostRect.x + padX) / w,
+					(r.y - hostRect.y + padY) / h,
+					(r.width - padX * 2) / w,
+					(r.height - padY * 2) / h,
 				]
 			}
 		}

@@ -139,6 +139,45 @@ describe('grid configuration', () => {
 		viewer.destroy()
 	})
 
+	it('applies uniform pixel spacing across mixed 2×2 and 1×1 cells', async () => {
+		const { viewer, grid, ids } = await openGrid(fast())
+		// Browser unit tests stub CSS imports, so apply the real grid.css box layout for geometry measurement
+		viewer.el.style.position = 'relative'
+		grid.style.position = 'absolute'
+		grid.style.inset = '0'
+		grid.style.width = '100%'
+		grid.style.height = '100%'
+		grid.style.display = 'grid'
+
+		const layout: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [2, 2] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1] },
+		]
+		await grid.set(layout, { duration: 0, noHistory: true, columns: 3, scale: 0.9 })
+		await settleFrames(2)
+
+		const hostW = viewer.el.offsetWidth
+		const hostH = viewer.el.offsetHeight
+		const toPx = (a: Models.Camera.View | undefined) =>
+			a ? [a[0] * hostW, a[1] * hostH, a[2] * hostW, a[3] * hostH] : undefined
+		const hero = toPx(layout[0]?.area)
+		const topRight = toPx(layout[1]?.area)
+		const bottomRight = toPx(layout[2]?.area)
+		expect(hero && topRight && bottomRight).toBeTruthy()
+		if (hero && topRight && bottomRight) {
+			// Hero top & bottom edges align with the adjacent 1×1 column
+			expect(Math.abs(hero[1] - topRight[1])).toBeLessThan(1.5)
+			expect(Math.abs(hero[1] + hero[3] - (bottomRight[1] + bottomRight[3]))).toBeLessThan(1.5)
+			// Horizontal gutter (hero -> topRight) matches vertical gutter (topRight -> bottomRight)
+			const hGap = topRight[0] - (hero[0] + hero[2])
+			const vGap = bottomRight[1] - (topRight[1] + topRight[3])
+			expect(hGap).toBeGreaterThan(10)
+			expect(Math.abs(hGap - vGap)).toBeLessThan(1.5)
+		}
+		viewer.destroy()
+	})
+
 	it('drops cells that are no longer part of the layout', async () => {
 		const { viewer, grid, ids } = await openGrid(fast())
 		const keep = [ids[0] ?? '', ids[2] ?? '']
