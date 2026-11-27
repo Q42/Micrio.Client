@@ -247,6 +247,10 @@ export namespace ImageData {
 		micrioSplitLink?: string
 		/** Grid tour transition animation */
 		gridTourTransition?: Grid.MarkerFocusTransition
+		/** Named album GridEffect ID or inline GridEffect executed when this marker opens inside a grid */
+		gridEffect?: string | Grid.GridEffect
+		/** Optional grid behavior when this marker closes (`'keep'` default, `'back'`, or `'reset'`) */
+		gridEffectOnClose?: 'keep' | 'back' | 'reset'
 		/** Optional custom settings. This is the "Custom JSON" field in the marker editor */
 		_meta?: {
 			/** For in grid multi-image tour, this step is in grid view */

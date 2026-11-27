@@ -21,4 +21,6 @@ export enum GridActionType {
 	filterTourImages,
 	/** Set a one-time crossfade duration for the *next* grid transition. Data: duration in seconds. */
 	nextFadeDuration,
+	/** Execute a named or inline GridEffect. Data: effect ID or JSON-serialized GridEffect. */
+	effect,
 }

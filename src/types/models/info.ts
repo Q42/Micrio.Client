@@ -1,5 +1,6 @@
 import type { Camera } from './camera'
 import type { Assets } from './assets'
+import type { Grid } from './grid'
 import type { RevisionType } from './common'
 import type { Writable } from '$core/store'
 import type { MicrioImage } from '$core/image'
@@ -328,6 +329,8 @@ export namespace ImageInfo {
 			initialFocusId?: string
 			/** When true, omits the built-in floating close button while an image is focussed */
 			noCloseButton?: boolean
+			/** Named reusable Grid Effects authored for this grid album */
+			effects?: Grid.GridEffect[]
 		}
 
 		/** ADVANCED: A fragment shader for WebGL postprocessing
@@ -500,5 +503,6 @@ export interface GalleryConfig {
 		panZoom?: 'cells' | 'grid'
 		initialFocusId?: string
 		noCloseButton?: boolean
+		effects?: Grid.GridEffect[]
 	}
 }

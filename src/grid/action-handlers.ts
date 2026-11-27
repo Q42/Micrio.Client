@@ -3,8 +3,10 @@ import type { Models } from '$types/models'
 import type { MicrioImage } from '$core/image'
 import { GridActionType } from './actions'
 import { get } from '$core/store'
+import { parseGridEffectPayload } from './effects'
 
-function switchToGrid(grid: Grid): void {
+/** @internal */
+export function switchToGrid(grid: Grid): void {
 	const focus = grid.$focussed
 	if (!focus) {
 		return
@@ -133,6 +135,16 @@ function getHandlerMap(grid: Grid): Record<number, ActionHandler> {
 
 			[GridActionType.nextFadeDuration]: (data) => {
 				grid._nextCrossFadeDuration = Number(data)
+			},
+
+			[GridActionType.effect]: (data, duration, transition) => {
+				const parsed = parseGridEffectPayload(data)
+				if (parsed === undefined) {
+					console.warn('[Micrio Grid] Empty or invalid grid:effect payload:', data)
+					return
+				}
+				const sourceImageId = grid.$focussed?.id ?? grid.micrio.$current?.id
+				grid.runEffect(parsed, { duration, sourceImageId, focusTransition: transition }).catch(() => {})
 			},
 
 			[GridActionType.filterTourImages]: (data, duration) => {

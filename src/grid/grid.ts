@@ -23,6 +23,7 @@ import {
 	transition,
 } from './transitions'
 import { handleAction, createTourEventHandler } from './action-handlers'
+import { executeGridEffect, isGridEffect } from './effects'
 import './grid.css'
 
 /** Props injected into a `<micrio-grid>` element by the gallery controller. */
@@ -91,6 +92,30 @@ export class Grid extends MicrioElement<GridProps> {
 
 	/** The full current layout as passed to `set()`, including empty placeholder cells */
 	#currentLayout: Models.Grid.GridEntry[] = []
+
+	/** Live override for named album Grid Effects (updated at runtime by the editor via `setEffects`). */
+	#customEffects: Models.Grid.GridEffect[] | undefined
+
+	/** Monotonic run token used to cancel an in-flight multi-step `runEffect()` when superseded. */
+	#effectRunId = 0
+
+	/** Tracks the currently open marker if it declared a `gridEffectOnClose` action. */
+	#markerWithCloseEffect: Models.ImageData.Marker | undefined
+
+	/** All named {@link Models.Grid.GridEffect} definitions available on this grid. */
+	get effects(): readonly Models.Grid.GridEffect[] {
+		return this.#customEffects ?? this.image?.$settings?.grid?.effects ?? this.#gallery?._config.grid?.effects ?? []
+	}
+
+	/** Replace the live list of named {@link Models.Grid.GridEffect} definitions without rebuilding WebGL. */
+	setEffects(effects: Models.Grid.GridEffect[]): void {
+		this.#customEffects = effects
+	}
+
+	/** Returns the current grid layout entries (including empty placeholders). */
+	getLayout(): readonly Models.Grid.GridEntry[] {
+		return this.#currentLayout
+	}
 
 	/** Explicit `z` overrides per image id, kept until another entry sets one or the image leaves the layout */
 	#zOverrides = new Map<string, number>()
@@ -227,15 +252,15 @@ export class Grid extends MicrioElement<GridProps> {
 			this.#closeBtn.remove()
 		})
 		if (!g?.noCloseButton) {
-			this._addCleanup(
-				this._focussed.subscribe((v) => {
-					if (v) {
-						this.append(this.#closeBtn)
-					} else {
-						this.#closeBtn.remove()
-					}
-				}),
-			)
+			const syncCloseBtn = () => {
+				if (this.$focussed && !get(this.micrio.editMode)) {
+					this.append(this.#closeBtn)
+				} else {
+					this.#closeBtn.remove()
+				}
+			}
+			this._addCleanup(this._focussed.subscribe(syncCloseBtn))
+			this._addCleanup(this.micrio.editMode.subscribe(syncCloseBtn))
 		}
 
 		this.micrio.events._dispatch('grid-init', this)
@@ -246,6 +271,8 @@ export class Grid extends MicrioElement<GridProps> {
 		// Bump the set id so an in-flight `in-from-id` readiness gate stops polling
 		// and never starts its deferred camera animations on the torn-down grid.
 		this.#setId++
+		this.#effectRunId++
+		this.#markerWithCloseEffect = undefined
 		this.#clearTimeouts()
 		// A serial tour pauses every grid camera; leaving the grid must not leave them paused.
 		for (const i of this._images) {
@@ -273,8 +300,32 @@ export class Grid extends MicrioElement<GridProps> {
 		// tiles, starting camera animations and scheduling timeouts on torn-down images.
 		this._addCleanup(
 			this.micrio.state.marker.subscribe((m) => {
+				if (get(this.micrio.editMode)) {
+					return
+				}
 				if (m && typeof m !== 'string') {
 					const d = m.data?._meta
+					const gridEffect = m.data?.gridEffect
+					const onClose = m.data?.gridEffectOnClose
+					this.#markerWithCloseEffect = onClose === 'back' || onClose === 'reset' ? m : undefined
+
+					if (gridEffect !== undefined) {
+						const sourceImageId =
+							this._images.find((i) => i.$data?.markers?.some((n) => n === m || n.id === m.id))?.id ??
+							this.$focussed?.id
+						void tick().then(() => {
+							if (get(this.micrio.editMode)) {
+								return
+							}
+							this.runEffect(gridEffect, {
+								sourceImageId,
+								sourceMarkerId: m.id,
+								focusTransition: m.data?.gridTourTransition,
+							}).catch(() => {})
+						})
+						return
+					}
+
 					const gs = d?.gridSize
 					if (gs !== undefined && gs !== '' && gs !== 0) {
 						// Resize the tile of the image carrying the marker. `enlarge` takes an
@@ -302,28 +353,43 @@ export class Grid extends MicrioElement<GridProps> {
 							this.action(name, a.join('|'), undefined, m.data?.gridTourTransition)
 						}
 					})
+				} else if (m === undefined && this.#markerWithCloseEffect !== undefined) {
+					const onClose = this.#markerWithCloseEffect.data?.gridEffectOnClose
+					this.#markerWithCloseEffect = undefined
+					if (onClose === 'back') {
+						this.back().catch(() => {})
+					} else if (onClose === 'reset') {
+						this.reset().catch(() => {})
+					}
 				}
 			}),
 		)
 
 		if (this._clickable !== false) {
 			this.addEventListener('click', (e) => {
+				if (get(this.micrio.editMode)) {
+					return
+				}
 				const { target } = e
 				this._clickCell(target instanceof HTMLElement ? target.dataset.id : undefined)
 			})
 
-			const placeOrRemove = (
-				t: MicrioImage | Models.ImageData.Marker | Models.ImageData.VideoTour | Models.ImageData.MarkerTour | undefined,
-			) => {
-				if (t !== undefined) {
+			const syncGridOverlay = () => {
+				if (
+					get(this.micrio.editMode) ||
+					this.micrio.state.$tour !== undefined ||
+					this.micrio.state.$marker !== undefined ||
+					this.$focussed !== undefined
+				) {
 					this.#removeGrid()
 				} else {
 					this.#placeGrid()
 				}
 			}
-			this._addCleanup(this.micrio.state.tour.subscribe(placeOrRemove))
-			this._addCleanup(this.micrio.state.marker.subscribe(placeOrRemove))
-			this._addCleanup(this._focussed.subscribe(placeOrRemove))
+			this._addCleanup(this.micrio.state.tour.subscribe(syncGridOverlay))
+			this._addCleanup(this.micrio.state.marker.subscribe(syncGridOverlay))
+			this._addCleanup(this._focussed.subscribe(syncGridOverlay))
+			this._addCleanup(this.micrio.editMode.subscribe(syncGridOverlay))
 		}
 
 		this.#_tourEventHandler = createTourEventHandler(this)
@@ -780,7 +846,12 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	#placeGrid(): void {
-		if (this._clickable === false || this.micrio.state.$tour || this.micrio.state.$marker) {
+		if (
+			this._clickable === false ||
+			get(this.micrio.editMode) ||
+			this.micrio.state.$tour ||
+			this.micrio.state.$marker
+		) {
 			return
 		}
 		this.classList.remove('grid-cells-hidden')
@@ -900,7 +971,13 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	/** Reset the grid to its initial layout (all gallery images), clearing all history. */
-	async reset(duration?: number, noCamAni?: boolean, forceAni?: boolean): Promise<MicrioImage[]> {
+	reset(duration?: number, noCamAni?: boolean, forceAni?: boolean): Promise<MicrioImage[]> {
+		this.#effectRunId++
+		return this._resetInternal(duration, noCamAni, forceAni)
+	}
+
+	/** Internal reset invoked inside an active effect run without cancelling the effect itself. @internal */
+	async _resetInternal(duration?: number, noCamAni?: boolean, forceAni?: boolean): Promise<MicrioImage[]> {
 		const state = this.#history[0]
 		for (const i of this._images) {
 			i.camera.stop()
@@ -949,7 +1026,13 @@ export class Grid extends MicrioElement<GridProps> {
 	}
 
 	/** Navigate to the previous layout state from the history stack. */
-	async back(duration?: number): Promise<void> {
+	back(duration?: number): Promise<void> {
+		this.#effectRunId++
+		return this._backInternal(duration)
+	}
+
+	/** Internal back invoked inside an active effect run without cancelling the effect itself. @internal */
+	async _backInternal(duration?: number): Promise<void> {
 		const state = this.#history.pop()
 		if (!state) {
 			return
@@ -1093,7 +1176,7 @@ export class Grid extends MicrioElement<GridProps> {
 		this.micrio.current.set(this.image)
 	}
 
-	/** Execute a grid action by type (e.g. `focus`, `reset`, `back`) with optional data and duration. */
+	/** Execute a grid action by type (e.g. `focus`, `reset`, `back`, `effect`) with optional data and duration. */
 	action(
 		action: GridActionType | string,
 		data?: string,
@@ -1101,6 +1184,27 @@ export class Grid extends MicrioElement<GridProps> {
 		focusTransition?: Models.Grid.MarkerFocusTransition,
 	): void {
 		handleAction(this, action, data, duration, focusTransition)
+	}
+
+	/**
+	 * Execute a named album {@link Models.Grid.GridEffect} (by ID) or an inline {@link Models.Grid.GridEffect} object.
+	 * Supersedes any currently running multi-step effect.
+	 */
+	async runEffect(effectOrId: string | Models.Grid.GridEffect, opts: Models.Grid.RunEffectOptions = {}): Promise<void> {
+		let effect: Models.Grid.GridEffect | undefined
+		if (typeof effectOrId === 'string') {
+			effect = this.effects.find((e) => e.id === effectOrId)
+		} else if (isGridEffect(effectOrId)) {
+			effect = effectOrId
+		}
+		if (!effect) {
+			if (typeof effectOrId === 'string') {
+				console.warn(`[Micrio Grid] Unknown grid effect ID: "${effectOrId}"`)
+			}
+			return
+		}
+		const runId = ++this.#effectRunId
+		await executeGridEffect(this, effect, opts, () => runId !== this.#effectRunId)
 	}
 
 	/** Enlarge a specific grid cell to span the given number of columns/rows, re-laying out without history. */

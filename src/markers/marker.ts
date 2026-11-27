@@ -119,6 +119,7 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 		const startTourAtBeginning = Boolean(markerSettings.autoStartTourAtBeginning)
 		/** This marker's custom grid action, temporarily suppressed when the tour restarts at step 0. */
 		const gridAction = data._meta?.gridAction
+		const { gridEffect } = data
 
 		// For 3d books, no camera animations
 		const isBook3d = micrio.$current?.album?.info?.type === 'book3d'
@@ -350,9 +351,15 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 				if (data._meta) {
 					delete data._meta.gridAction
 				}
+				if (data.gridEffect !== undefined) {
+					delete data.gridEffect
+				}
 				setTimeout(() => {
 					if (data._meta) {
 						data._meta.gridAction = gridAction
+					}
+					if (gridEffect !== undefined) {
+						data.gridEffect = gridEffect
 					}
 				}, 100)
 			}

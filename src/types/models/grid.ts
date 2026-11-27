@@ -79,4 +79,135 @@ export namespace Grid {
 		/** Blur the image during transition, in pixels */
 		blur?: number
 	}
+
+	/** How a `layout` step selects which images participate. */
+	export type GridImageSource =
+		| { mode: 'all' }
+		| { mode: 'current' }
+		| { mode: 'select'; ids: string[] }
+		| { mode: 'tags'; tags: string[]; match?: 'any' | 'all'; zoomToMarker?: boolean }
+		| { mode: 'tour' }
+
+	/** Per-image modifier rule layered on top of a `layout` step's matched images. */
+	export interface GridLayoutRule {
+		/** Target image ID, `'$current'` (owning image of the trigger), or `'$first'` (first matched image). */
+		target: string
+		/** Override cell span `[columns, rows?]`. */
+		size?: [number, number?]
+		/** Source image ID (or `'$current'` / `'$first'`) to grow from when `transition === 'in-from-id'`. */
+		from?: string
+		/** Stacking order override. */
+		z?: number
+		/** Optional camera view inside this image. */
+		view?: Camera.View
+		/** Optional marker ID on this image to zoom into. */
+		markerId?: string
+		/** Pin to start (`'prepend'`), end (`'append'`), or keep natural position (`'keep'`). */
+		position?: 'keep' | 'prepend' | 'append'
+		/** Include this image even if it was not matched by `source`. */
+		include?: boolean
+		/** Exclude this image from the matched set. */
+		exclude?: boolean
+	}
+
+	/** Explicit cell entry for direct visual mosaic authoring (supports exact order and empty spacers). */
+	export interface GridEffectCell {
+		/** Image ID (or `'$current'`); omitted when `empty: true`. */
+		id?: string
+		empty?: boolean
+		size?: [number, number?]
+		from?: string
+		z?: number
+		view?: Camera.View
+		markerId?: string
+	}
+
+	/** One executable step inside a {@link GridEffect}. */
+	export type GridEffectStep =
+		| {
+				type: 'layout'
+				source?: GridImageSource
+				rules?: GridLayoutRule[]
+				/** Explicit ordered cells (including empty spacers); overrides `source` when provided. */
+				cells?: GridEffectCell[]
+				arrangement?: 'auto' | 'row' | 'columns'
+				columns?: number
+				scale?: number
+				transition?: GridSetTransition
+				duration?: number
+				view?: Camera.View
+				cover?: boolean
+				noHistory?: boolean
+		  }
+		| {
+				type: 'focus'
+				/** Target image ID or `'$current'`. */
+				imageId: string
+				transition?: MarkerFocusTransition
+				duration?: number
+				view?: Camera.View
+				markerId?: string
+				blur?: number
+				cover?: boolean
+				coverLimit?: boolean
+		  }
+		| {
+				type: 'flyTo'
+				imageIds?: string[]
+				tags?: string[]
+				match?: 'any' | 'all'
+				duration?: number
+		  }
+		| {
+				type: 'resize'
+				/** Target image ID or `'$current'`. */
+				imageId: string
+				size: [number, number]
+				duration?: number
+		  }
+		| {
+				type: 'reset'
+				duration?: number
+		  }
+		| {
+				type: 'back'
+				duration?: number
+		  }
+		| {
+				type: 'switchToGrid'
+		  }
+		| {
+				type: 'delay'
+				seconds: number
+		  }
+		| {
+				type: 'fadeDuration'
+				seconds: number
+		  }
+
+	/** A named, reusable Grid Action / Effect executed by `grid.runEffect()`. */
+	export interface GridEffect {
+		/** Stable unique identifier referenced by Video Tour events and Markers. */
+		id: string
+		/** Human-readable name displayed in pickers and timelines. */
+		name: string
+		/** Optional description of what this effect does. */
+		description?: string
+		/** Optional accent color token for editor badges. */
+		color?: string
+		/** Ordered sequence of steps executed by this effect. */
+		steps: GridEffectStep[]
+	}
+
+	/** Context options passed to `grid.runEffect()`. */
+	export interface RunEffectOptions {
+		/** Default transition duration in seconds when a step omits `duration`. */
+		duration?: number
+		/** Owning image ID used to resolve `'$current'` targets. */
+		sourceImageId?: string
+		/** Triggering marker ID, if triggered by a marker. */
+		sourceMarkerId?: string
+		/** Fallback focus transition (e.g. a marker's `gridTourTransition`). */
+		focusTransition?: MarkerFocusTransition
+	}
 }
