@@ -165,6 +165,16 @@ export class Gallery {
 		return this._images
 	}
 
+	/** The synthetic parent {@link MicrioImage} hosting this gallery/grid canvas, if attached. */
+	get hostImage(): MicrioImage | undefined {
+		return this.#parent ?? undefined
+	}
+
+	/** The {@link Grid} controller for this gallery, when `type === 'grid'` and attached. */
+	get grid(): Grid | undefined {
+		return this.#parent?.grid
+	}
+
 	/** Finds a {@link MicrioImage} in this gallery by its Micrio ID. */
 	getImage(id: string): MicrioImage | undefined {
 		return this._images.find((img) => img.id === id)

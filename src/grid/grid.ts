@@ -1,7 +1,7 @@
 import type { Models } from '$types/models'
 import type { HTMLMicrioElement } from '$core/element'
 
-import type { MicrioImage } from '$core/image'
+import { MicrioImage } from '$core/image'
 import { get, writable, type Unsubscriber, type Writable, tick } from '$core/store'
 import { Frame } from '$core/frame'
 import type { Gallery } from '$gallery/controller'
@@ -47,9 +47,43 @@ export class Grid extends MicrioElement<GridProps> {
 		return this._images
 	}
 
+	/** Currently displayed {@link MicrioImage} tiles in the active grid layout. */
+	get currentImages(): readonly MicrioImage[] {
+		return this._current
+	}
+
 	/** Get a grid {@link MicrioImage} instance by its image ID, if it is part of this grid. */
 	getImage(id: string): MicrioImage | undefined {
 		return this._imageMap.get(id)
+	}
+
+	/**
+	 * Dynamically registers a new image bundle into this live grid without tearing down WebGL.
+	 * Idempotent: returns the existing {@link MicrioImage} if `bundle.id` is already tracked.
+	 */
+	addImage(bundle: Models.ImageBundle.BundleImage): MicrioImage {
+		const id = bundle.id || bundle.info.id
+		const existing = this._imageMap.get(id)
+		if (existing) {
+			return existing
+		}
+		const imageSettings: Partial<Models.ImageInfo.Settings> = {
+			...(this.#gallery._config.settings as Partial<Models.ImageInfo.Settings> | undefined),
+			...bundle.settings,
+		}
+		const img = new MicrioImage(
+			this.micrio._engine,
+			{
+				id,
+				info: { ...bundle.info, id },
+				settings: imageSettings,
+				data: bundle.data,
+			},
+			{ area: [this._images.length, 0, 1, 1] },
+		)
+		this.#gallery._images.push(img)
+		this.#trackImage(img)
+		return img
 	}
 
 	/** @internal */
@@ -139,7 +173,7 @@ export class Grid extends MicrioElement<GridProps> {
 		}
 
 		const g = this.image.$settings?.grid
-		this._clickable = g?.clickable && ['focus', 'zoom'].includes(g.clickable) ? g.clickable : false
+		this._clickable = g?.clickable === 'focus' || g?.clickable === 'zoom' ? g.clickable : false
 		this._panZoom = g?.panZoom === 'cells' ? 'cells' : 'grid'
 		if (this._clickable !== false && this.image.$settings.hookKeys) {
 			this._addCleanup(hookGridKeys(this))
@@ -154,16 +188,37 @@ export class Grid extends MicrioElement<GridProps> {
 		// Hook before the first layout: a serial tour can pause while `set()` is still
 		// awaiting its transition, and an event listener installed afterwards drops it.
 		this.#hook()
-		this.set(this.#galleryGridImages, {
-			cover: this.image.$settings?.initType === 'cover',
-			duration: 0,
-		})
-			.then(() => {
-				this.micrio.events._dispatch('grid-load')
+		const initialFocus = g?.initialFocusId ? this._imageMap.get(g.initialFocusId) : undefined
+		if (initialFocus) {
+			this._focussed.set(initialFocus)
+			this._markersShown.set([initialFocus])
+			this.set([{ id: initialFocus.id, size: [1], area: [0, 0, 1, 1] }], {
+				noBlur: true,
+				noHistory: true,
+				cover: this.image.$settings?.initType === 'cover',
+				duration: 0,
 			})
-			// A layout animation started during load is aborted by the next `set()`/teardown;
-			// that rejection is expected, so it must not surface as an unhandled one.
-			.catch(() => {})
+				.then(() => {
+					if (initialFocus.canvas) {
+						initialFocus.canvas.zIndex = Math.max(this.#zOverrides.get(initialFocus.id) ?? 3, 3)
+					}
+					this.#removeGrid()
+					this.micrio.current.set(initialFocus)
+					this.micrio.events._dispatch('grid-load')
+				})
+				.catch(() => {})
+		} else {
+			this.set(this.#galleryGridImages, {
+				cover: this.image.$settings?.initType === 'cover',
+				duration: 0,
+			})
+				.then(() => {
+					this.micrio.events._dispatch('grid-load')
+				})
+				// A layout animation started during load is aborted by the next `set()`/teardown;
+				// that rejection is expected, so it must not surface as an unhandled one.
+				.catch(() => {})
+		}
 
 		this.#closeBtn = createElement('micrio-button', {
 			setProps: { type: 'close', onclick: () => this.back(), title: 'Close' },
@@ -171,15 +226,17 @@ export class Grid extends MicrioElement<GridProps> {
 		this._addCleanup(() => {
 			this.#closeBtn.remove()
 		})
-		this._addCleanup(
-			this._focussed.subscribe((v) => {
-				if (v) {
-					this.append(this.#closeBtn)
-				} else {
-					this.#closeBtn.remove()
-				}
-			}),
-		)
+		if (!g?.noCloseButton) {
+			this._addCleanup(
+				this._focussed.subscribe((v) => {
+					if (v) {
+						this.append(this.#closeBtn)
+					} else {
+						this.#closeBtn.remove()
+					}
+				}),
+			)
+		}
 
 		this.micrio.events._dispatch('grid-init', this)
 	}

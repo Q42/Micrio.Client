@@ -316,14 +316,18 @@ export namespace ImageInfo {
 
 		/** Grid display and interaction settings */
 		grid?: {
-			/** Click behavior for grid images: `'focus'` expands to full view, `'zoom'` zooms to the image's viewport */
-			clickable?: 'focus' | 'zoom'
+			/** Click behavior for grid images: `'focus'` expands to full view, `'zoom'` zooms to the image's viewport, `false` disables tile clicks */
+			clickable?: 'focus' | 'zoom' | false
 			/** Pan/zoom behavior: `'cells'` operates on the individual cell under the cursor, `'grid'` operates on the main grid container */
 			panZoom?: 'cells' | 'grid'
 			/** Transition duration for grid animations, in seconds */
 			transitionDuration?: number
 			/** Transition duration when going back, in seconds */
 			transitionDurationOut?: number
+			/** Optional image ID to start the grid immediately focussed on (single-image full view, zero flash) */
+			initialFocusId?: string
+			/** When true, omits the built-in floating close button while an image is focussed */
+			noCloseButton?: boolean
 		}
 
 		/** ADVANCED: A fragment shader for WebGL postprocessing
@@ -494,5 +498,7 @@ export interface GalleryConfig {
 	grid?: {
 		clickable?: 'focus' | 'zoom' | false
 		panZoom?: 'cells' | 'grid'
+		initialFocusId?: string
+		noCloseButton?: boolean
 	}
 }
