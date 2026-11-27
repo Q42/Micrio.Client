@@ -682,11 +682,15 @@ export class Grid extends MicrioElement<GridProps> {
 		if (wasHiddenClass) {
 			this.classList.remove('grid-cells-hidden')
 		}
+		if (this._clickable === false) {
+			this.style.display = ''
+		}
 
 		this.micrio.events._dispatch('grid-layout-set', this)
 
-		const w = this.micrio.offsetWidth
-		const h = this.micrio.offsetHeight
+		const hostRect = this.micrio.getBoundingClientRect()
+		const w = this.micrio.offsetWidth || hostRect.width
+		const h = this.micrio.offsetHeight || hostRect.height
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale ?? 1)))
 		const imageById = new Map(
 			images.filter((i): i is Models.Grid.GridImage => Boolean(i.id) && !i.empty).map((i) => [i.id, i]),
@@ -701,7 +705,12 @@ export class Grid extends MicrioElement<GridProps> {
 			const img = id ? imageById.get(id) : undefined
 			const o = [(s / 2) * r.width, (s / 2) * r.height]
 			if (img && !img.area) {
-				img.area = [(r.x + o[0]) / w, (r.y + o[1]) / h, (r.width - o[0] * 2) / w, (r.height - o[1] * 2) / h]
+				img.area = [
+					(r.x - hostRect.x + o[0]) / w,
+					(r.y - hostRect.y + o[1]) / h,
+					(r.width - o[0] * 2) / w,
+					(r.height - o[1] * 2) / h,
+				]
 			}
 		}
 
