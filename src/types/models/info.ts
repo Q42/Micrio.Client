@@ -331,6 +331,8 @@ export namespace ImageInfo {
 			noCloseButton?: boolean
 			/** Named reusable Grid Effects authored for this grid album */
 			effects?: Grid.GridEffect[]
+			/** Optional ID of a GridEffect in `effects` to open the grid on immediately (without animating) */
+			startEffectId?: string
 		}
 
 		/** ADVANCED: A fragment shader for WebGL postprocessing
@@ -504,5 +506,6 @@ export interface GalleryConfig {
 		initialFocusId?: string
 		noCloseButton?: boolean
 		effects?: Grid.GridEffect[]
+		startEffectId?: string
 	}
 }

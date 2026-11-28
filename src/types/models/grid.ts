@@ -209,6 +209,8 @@ export namespace Grid {
 	export interface RunEffectOptions {
 		/** Default transition duration in seconds when a step omits `duration`. */
 		duration?: number
+		/** When true, applies the effect's final configuration immediately with zero animation/delays (used for opening/starting effects). */
+		instant?: boolean
 		/** Owning image ID used to resolve `'$current'` targets. */
 		sourceImageId?: string
 		/** Triggering marker ID, if triggered by a marker. */

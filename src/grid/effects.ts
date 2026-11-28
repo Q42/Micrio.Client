@@ -308,11 +308,19 @@ export async function executeGridEffect(
 	opts: RunEffectOptions,
 	isCancelled: () => boolean,
 ): Promise<void> {
+	const instant = Boolean(opts.instant)
 	for (const step of effect.steps) {
 		if (isCancelled()) {
 			return
 		}
-		const stepDur = 'duration' in step && step.duration !== undefined ? step.duration : opts.duration
+		let stepDur: number | undefined
+		if (instant) {
+			stepDur = 0
+		} else if ('duration' in step && step.duration !== undefined) {
+			stepDur = step.duration
+		} else {
+			stepDur = opts.duration
+		}
 
 		switch (step.type) {
 			case 'layout': {
@@ -322,7 +330,7 @@ export async function executeGridEffect(
 					console.warn(`[Micrio Grid] Effect "${effect.name}" layout step matched 0 images; skipping.`)
 					break
 				}
-				if (step.transition === 'crossfade' && stepDur !== undefined && stepDur > 0) {
+				if (!instant && step.transition === 'crossfade' && stepDur !== undefined && stepDur > 0) {
 					grid._nextCrossFadeDuration = stepDur
 				}
 				// oxlint-disable-next-line eslint/no-await-in-loop -- effect choreography steps must execute strictly in sequence
@@ -332,10 +340,10 @@ export async function executeGridEffect(
 						horizontal: step.arrangement === 'row',
 						columns: step.arrangement === 'columns' && step.columns && step.columns > 0 ? step.columns : undefined,
 						scale: step.scale,
-						transition: step.transition,
+						transition: instant ? undefined : step.transition,
 						view: step.view,
 						cover: step.cover ?? grid.image.$settings?.initType === 'cover',
-						noHistory: step.noHistory,
+						noHistory: instant ? true : step.noHistory,
 					})
 					.catch(() => {})
 				break
@@ -352,10 +360,11 @@ export async function executeGridEffect(
 				// oxlint-disable-next-line eslint/no-await-in-loop -- effect choreography steps must execute strictly in sequence
 				await grid
 					.gridFocus(img, {
-						transition: step.transition ?? opts.focusTransition,
+						transition: instant ? undefined : (step.transition ?? opts.focusTransition),
 						duration: stepDur,
 						view,
-						blur: step.blur,
+						noViewAni: instant,
+						blur: instant ? undefined : step.blur,
 						cover: step.cover,
 						coverLimit: step.coverLimit,
 					})
@@ -389,12 +398,17 @@ export async function executeGridEffect(
 					const bottom = Math.max(...images.map((i) => (i.opts.area?.[1] ?? 0) + (i.opts.area?.[3] ?? 1)))
 					const minX = Math.min(...xs)
 					const minY = Math.min(...ys)
-					// oxlint-disable-next-line eslint/no-await-in-loop -- effect choreography steps must execute strictly in sequence
-					await grid.image.camera
-						.flyToView([minX, minY, right - minX, bottom - minY], {
-							duration: stepDur !== undefined ? stepDur * 1000 : undefined,
-						})
-						.catch(() => {})
+					const box: Models.Camera.View = [minX, minY, right - minX, bottom - minY]
+					if (instant) {
+						grid.image.camera.setView(box, { noLimit: true })
+					} else {
+						// oxlint-disable-next-line eslint/no-await-in-loop -- effect choreography steps must execute strictly in sequence
+						await grid.image.camera
+							.flyToView(box, {
+								duration: stepDur !== undefined ? stepDur * 1000 : undefined,
+							})
+							.catch(() => {})
+					}
 				} else {
 					console.warn(`[Micrio Grid] Effect "${effect.name}" flyTo matched no visible images.`)
 				}
@@ -437,9 +451,10 @@ export async function executeGridEffect(
 				// oxlint-disable-next-line eslint/no-await-in-loop -- effect choreography steps must execute strictly in sequence
 				await grid
 					.set(nextEntries, {
-						duration: stepDur ?? 0.5,
+						duration: instant ? 0 : (stepDur ?? 0.5),
 						cover,
 						keepGrid: true,
+						noHistory: instant,
 					})
 					.catch(() => {})
 				break
@@ -463,7 +478,7 @@ export async function executeGridEffect(
 			}
 
 			case 'delay': {
-				if (step.seconds > 0) {
+				if (!instant && step.seconds > 0) {
 					// oxlint-disable-next-line eslint/no-await-in-loop -- sequential choreography delay
 					await sleep(step.seconds * 1000)
 				}
@@ -471,7 +486,7 @@ export async function executeGridEffect(
 			}
 
 			case 'fadeDuration': {
-				if (Number.isFinite(step.seconds) && step.seconds >= 0) {
+				if (!instant && Number.isFinite(step.seconds) && step.seconds >= 0) {
 					grid._nextCrossFadeDuration = step.seconds
 				}
 				break

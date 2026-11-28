@@ -248,4 +248,40 @@ describe('grid effects', () => {
 		expect(layoutIds(grid)).toEqual(opening)
 		viewer.destroy()
 	})
+
+	it('opens immediately on startEffectId without animating or delaying', async () => {
+		const startEffect: Models.Grid.GridEffect = {
+			id: 'eff-start',
+			name: 'Hero Start',
+			steps: [
+				{ type: 'delay', seconds: 5 },
+				{
+					type: 'layout',
+					source: { mode: 'all' },
+					rules: [{ target: '$first', size: [2, 2] }],
+					transition: 'behind-delayed',
+					duration: 4,
+				},
+			],
+		}
+		const t0 = performance.now()
+		const { viewer, grid, ids } = await openGrid({
+			grid: { clickable: 'focus' },
+			settings: {
+				grid: {
+					transitionDuration: 2,
+					effects: [startEffect],
+					startEffectId: 'eff-start',
+				},
+			},
+		})
+		await waitFor(() => layoutIds(grid).length === ids.length, 3000, 'startEffectId layout')
+		const elapsed = performance.now() - t0
+
+		// Must open immediately without waiting for the 5s delay or 4s transition!
+		expect(elapsed).toBeLessThan(2000)
+		expect(cellButton(grid, ids[0] ?? '')?.style.gridArea).toContain('span 2 / span 2')
+		viewer.destroy()
+	})
+
 })

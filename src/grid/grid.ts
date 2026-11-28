@@ -214,6 +214,8 @@ export class Grid extends MicrioElement<GridProps> {
 		// awaiting its transition, and an event listener installed afterwards drops it.
 		this.#hook()
 		const initialFocus = g?.initialFocusId ? this._imageMap.get(g.initialFocusId) : undefined
+		const startEffectId = g?.startEffectId ?? this.#gallery._config.grid?.startEffectId
+		const startEffect = startEffectId ? this.effects.find((e) => e.id === startEffectId) : undefined
 		if (initialFocus) {
 			this._focussed.set(initialFocus)
 			this._markersShown.set([initialFocus])
@@ -232,6 +234,21 @@ export class Grid extends MicrioElement<GridProps> {
 					this.micrio.events._dispatch('grid-load')
 				})
 				.catch(() => {})
+		} else if (startEffect) {
+			const firstType = startEffect.steps[0]?.type
+			const needsSeed = firstType === 'flyTo' || firstType === 'resize' || firstType === 'back'
+			const runStart = async () => {
+				if (needsSeed) {
+					await this.set(this.#galleryGridImages, {
+						cover: this.image.$settings?.initType === 'cover',
+						duration: 0,
+						noHistory: true,
+					})
+				}
+				await this.runEffect(startEffect, { instant: true })
+				this.micrio.events._dispatch('grid-load')
+			}
+			runStart().catch(() => {})
 		} else {
 			this.set(this.#galleryGridImages, {
 				cover: this.image.$settings?.initType === 'cover',
