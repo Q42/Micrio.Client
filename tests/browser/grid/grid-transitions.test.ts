@@ -181,6 +181,45 @@ describe('behind transitions', () => {
 		viewer.destroy()
 	})
 
+	it('animates gradually from full-image to cover-fill over the requested duration', async () => {
+		const { viewer, grid, ids } = await openFullGrid()
+		viewer.el.style.position = 'relative'
+		grid.style.position = 'absolute'
+		grid.style.inset = '0'
+		grid.style.width = '100%'
+		grid.style.height = '100%'
+		grid.style.display = 'grid'
+
+		const layout: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [2, 2] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1] },
+		]
+		// Start in full-image (contain) framing
+		await grid.set(layout, { duration: 0, noHistory: true, columns: 3, cover: false })
+		await settleFrames(2)
+		const img = grid.getImage(ids[1] ?? '')
+		if (!img) {
+			throw new Error('missing grid cell')
+		}
+		const startScale = img.camera.getScale()
+		const coverScale = img.camera.getCoverScale()
+		expect(coverScale).toBeGreaterThan(startScale * 1.05)
+
+		// Transition to cover-fill over 0.4s: must NOT snap immediately to coverScale on frame 1
+		const nextLayout: Models.Grid.GridImage[] = layout.map((e) => ({ id: e.id, size: e.size }))
+		const pending = grid.set(nextLayout, { duration: 0.4, noHistory: true, columns: 3, cover: true })
+		await settleFrames(1)
+		const earlyScale = img.camera.getScale()
+		expect(earlyScale).toBeLessThan(coverScale * 0.98)
+
+		await pending
+		await settleFrames(2)
+		const finalScale = img.camera.getScale()
+		expect(finalScale).toBeGreaterThan(coverScale * 0.95)
+		viewer.destroy()
+	})
+
 	it('reverses the between-pair for behind-left', async () => {
 		const { viewer, grid, ids } = await openFullGrid()
 		await grid.set([{ id: ids[0] ?? '', size: [1] }], { duration: 0 })

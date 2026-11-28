@@ -621,14 +621,11 @@ export class Grid extends MicrioElement<GridProps> {
 			if (opts.coverLimit === undefined) {
 				opts.coverLimit = Boolean(this.image.$settings.limitToCoverScale)
 			}
-			const forcedCoverIds: string[] = []
-			if (!opts.coverLimit) {
-				for (const i of imageEntries) {
-					if (i.cover ?? opts.cover) {
-						forcedCoverIds.push(i.id)
-						this._imageMap.get(i.id)?.camera.setCoverLimit(true)
-					}
-				}
+			// Release any prior coverLimit during the transition so tiles can smoothly animate
+			// between full-image (contain) and cover-fill without snapping on frame 1.
+			// Requested `coverLimit` is re-applied in `done()` once the camera arrives.
+			for (const i of imageEntries) {
+				this._imageMap.get(i.id)?.camera.setCoverLimit(false)
 			}
 
 			const isAppear = opts.transition === 'appear-delayed'
@@ -649,6 +646,7 @@ export class Grid extends MicrioElement<GridProps> {
 					fromArea: inFromId?.fromAreas.get(img.id),
 					fadeInPlace: Boolean(inFromId?.fadeInPlaceIds.has(img.id)),
 					ready: readyGate,
+					isCurrent: () => setId === this.#setId,
 				}),
 			)
 
@@ -710,13 +708,11 @@ export class Grid extends MicrioElement<GridProps> {
 				if (isDelayed || isInFromId) {
 					this.#resetZ()
 				}
-				if (forcedCoverIds.length > 0) {
-					for (const id of forcedCoverIds) {
-						this._imageMap.get(id)?.camera.setCoverLimit(false)
-					}
-				} else if (opts.coverLimit) {
+				if (opts.coverLimit) {
 					for (const i of imageEntries) {
-						this._imageMap.get(i.id)?.camera.setCoverLimit(true)
+						if (i.cover ?? opts.cover) {
+							this._imageMap.get(i.id)?.camera.setCoverLimit(true)
+						}
 					}
 				}
 				if (this._clickable !== false) {
@@ -912,6 +908,36 @@ export class Grid extends MicrioElement<GridProps> {
 		this.dispatchEvent(new CustomEvent('update'))
 	}
 
+	/** Compute the exact normalized cover-fill camera view `[x, y, w, h]` for `img` inside `area`. */
+	#getCoverView(img: MicrioImage, area: Models.Camera.View | undefined): Models.Camera.View | undefined {
+		const info = img.$info
+		if (!area || !info?.width || !info?.height) {
+			return undefined
+		}
+		const hostRect = this.micrio.getBoundingClientRect()
+		const parentW = this.image.canvas?.width || this.micrio.offsetWidth || hostRect.width
+		const parentH = this.image.canvas?.height || this.micrio.offsetHeight || hostRect.height
+		const cellW = area[2] * parentW
+		const cellH = area[3] * parentH
+		if (cellW <= 0 || cellH <= 0) {
+			return undefined
+		}
+		const imgAspect = info.width / info.height
+		const cellAspect = cellW / cellH
+		const [fx, fy] = img.$settings.focus ?? [0.5, 0.5]
+		if (imgAspect > cellAspect) {
+			const vw = cellAspect / imgAspect
+			const vx = Math.max(0, Math.min(1 - vw, fx - vw / 2))
+			return [vx, 0, vw, 1]
+		}
+		if (imgAspect < cellAspect) {
+			const vh = imgAspect / cellAspect
+			const vy = Math.max(0, Math.min(1 - vh, fy - vh / 2))
+			return [0, vy, 1, vh]
+		}
+		return [0, 0, 1, 1]
+	}
+
 	#placeImage(
 		entry: Models.Grid.GridImage,
 		opts: {
@@ -923,6 +949,7 @@ export class Grid extends MicrioElement<GridProps> {
 			fromArea?: Models.Camera.View
 			fadeInPlace?: boolean
 			ready?: Promise<void>
+			isCurrent?: () => boolean
 		},
 	): MicrioImage {
 		const { _engine: engine } = this.micrio
@@ -948,35 +975,38 @@ export class Grid extends MicrioElement<GridProps> {
 		// image's camera. When a `ready` promise is supplied (in-from-id), this is
 		// deferred until all images have loaded so they don't pop in.
 		const start = () => {
-			if (entry.area) {
-				const { area } = entry
-				const set = () => {
-					img.camera.setArea(area, {
+			const apply = () => {
+				if (opts.isCurrent && !opts.isCurrent()) {
+					return
+				}
+				if (entry.area) {
+					img.camera.setArea(entry.area, {
 						direct: opts.duration === 0 || (!opts.forceAreaAni && !get(img.visible)),
 					})
 				}
-				if (opts.delay) {
-					void sleep(opts.delay * 1000)
-						.then(set)
-						.then(() => {
-							engine.render()
-						})
-				} else {
-					set()
+				const aniOpts = { duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false }
+				if (!opts.noCamAni && !img.camera._aniDone && img._placed) {
+					let p: Promise<void>
+					if (entry.view) {
+						p = img.camera.flyToView(entry.view, aniOpts)
+					} else if (opts.cover) {
+						const coverView = this.#getCoverView(img, entry.area)
+						p = coverView ? img.camera.flyToView(coverView, aniOpts) : img.camera.flyToCoverView(aniOpts)
+					} else {
+						p = img.camera.flyToView([0, 0, 1, 1], aniOpts)
+					}
+					p.catch(() => {})
 				}
 			}
 
-			const aniOpts = { duration: opts.duration * 1000, timingFunction: this.#timingFunction, limit: false }
-			if (!opts.noCamAni && !img.camera._aniDone && img._placed) {
-				let p: Promise<void>
-				if (entry.view) {
-					p = img.camera.flyToView(entry.view, aniOpts)
-				} else if (opts.cover) {
-					p = img.camera.flyToCoverView({ ...aniOpts, duration: 0 })
-				} else {
-					p = img.camera.flyToView([0, 0, 1, 1], aniOpts)
-				}
-				p.catch(() => {})
+			if (opts.delay) {
+				void sleep(opts.delay * 1000)
+					.then(apply)
+					.then(() => {
+						engine.render()
+					})
+			} else {
+				apply()
 			}
 		}
 
