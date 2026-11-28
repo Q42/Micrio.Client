@@ -256,7 +256,8 @@ export default class Camera2D extends EngineCamera {
 		}
 
 		if ((!c._ani._correcting && !this.#pinching) || c._coverLimit) {
-			this._scale = Math.max(this._minScale * this._minSize, this._scale)
+			const minBound = c._coverLimit ? this._minScale : this._minScale * this._minSize
+			this._scale = Math.max(minBound, this._scale)
 		}
 
 		if (!this.#inited && c._coverStart) {

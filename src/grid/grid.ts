@@ -156,6 +156,12 @@ export class Grid extends MicrioElement<GridProps> {
 	#isHorizontal = false
 	/** The explicit `columns` option of the current layout, if any */
 	#currentColumns: number | undefined
+	/** The `cover` option of the current layout, if any */
+	#currentCover: boolean | undefined
+	/** The `scale` option of the current layout, if any */
+	#currentScale: number | undefined
+	/** Last measured `<micr-io>` host dimensions `[w, h]` for resize detection */
+	#lastHostSize: [number, number] | undefined
 	readonly #cellSizes = new Map<string, [number, number?]>()
 
 	/** @internal */
@@ -423,6 +429,61 @@ export class Grid extends MicrioElement<GridProps> {
 		}
 		this.micrio.addEventListener('serialtour-pause', this.#onSerialPause)
 		this.micrio.addEventListener('serialtour-play', this.#onSerialPlay)
+
+		const onResize = () => {
+			this.#handleResize()
+		}
+		this.micrio.addEventListener('resize', onResize)
+		this._addCleanup(() => {
+			this.micrio.removeEventListener('resize', onResize)
+		})
+	}
+
+	/** Re-apply uniform spacing areas and cover-fill framing when `<micr-io>` changes dimensions. */
+	#handleResize(): void {
+		if (this.$focussed || this.#currentLayout.length === 0 || this.#_to !== undefined) {
+			return
+		}
+		const hostRect = this.micrio.getBoundingClientRect()
+		const w = this.micrio.offsetWidth || hostRect.width
+		const h = this.micrio.offsetHeight || hostRect.height
+		if (w <= 0 || h <= 0) {
+			return
+		}
+		if (this.#lastHostSize && this.#lastHostSize[0] === w && this.#lastHostSize[1] === h) {
+			return
+		}
+		this.#lastHostSize = [w, h]
+
+		// Re-measure cell areas at the new host aspect so uniform pixel gutters stay square
+		const freshEntries: Models.Grid.GridEntry[] = this.#currentLayout.map((e) =>
+			!e.id || e.empty
+				? { empty: true, size: e.size }
+				: { id: e.id, size: e.size, view: e.view, cover: e.cover, z: e.z },
+		)
+		this.#printGrid(freshEntries, {
+			horizontal: this.#isHorizontal,
+			scale: this.#currentScale,
+			columns: this.#currentColumns,
+		})
+		for (const entry of freshEntries) {
+			if (!entry.id || entry.empty || !entry.area) {
+				continue
+			}
+			const img = this._imageMap.get(entry.id)
+			if (!img || !img._placed) {
+				continue
+			}
+			img.camera.setArea(entry.area, { direct: true, noDispatch: true })
+			const wantsCover = entry.cover ?? this.#currentCover
+			if (wantsCover && !entry.view) {
+				const coverView = this.#getCoverView(img, entry.area)
+				if (coverView) {
+					img.camera.setView(coverView, { noRender: true })
+				}
+			}
+		}
+		this.micrio._engine.render()
 	}
 
 	/** @internal */
@@ -431,6 +492,8 @@ export class Grid extends MicrioElement<GridProps> {
 	#clearTimeouts(): void {
 		clearTimeout(this.#_to)
 		clearTimeout(this.#_fadeTo)
+		this.#_to = undefined
+		this.#_fadeTo = undefined
 	}
 
 	/** Undo the stacking an `in-from-id` transition applied.
@@ -581,6 +644,8 @@ export class Grid extends MicrioElement<GridProps> {
 			this.#currentLayout = images.map((e) => ({ ...e }))
 			this.#currentColumns = opts.columns
 			this.#isHorizontal = Boolean(opts.horizontal)
+			this.#currentCover = opts.cover
+			this.#currentScale = opts.scale
 
 			this.#removeImages(this._images.filter((i) => !imageEntries.find((n) => n.id === i.id)))
 			this.#printGrid(images, {
@@ -635,12 +700,12 @@ export class Grid extends MicrioElement<GridProps> {
 				})
 			}
 
-			if (opts.coverLimit === undefined) {
-				opts.coverLimit = Boolean(this.image.$settings.limitToCoverScale)
+			if (opts.coverLimit === undefined && this.image.$settings.limitToCoverScale) {
+				opts.coverLimit = true
 			}
 			// Release any prior coverLimit during the transition so tiles can smoothly animate
 			// between full-image (contain) and cover-fill without snapping on frame 1.
-			// Requested `coverLimit` is re-applied in `done()` once the camera arrives.
+			// Requested `coverLimit` (and overview cover-fill lock) is re-applied in `done()`.
 			for (const i of imageEntries) {
 				this._imageMap.get(i.id)?.camera.setCoverLimit(false)
 			}
@@ -725,9 +790,10 @@ export class Grid extends MicrioElement<GridProps> {
 				if (isDelayed || isInFromId) {
 					this.#resetZ()
 				}
-				if (opts.coverLimit) {
+				const lockCoverTiles = opts.coverLimit === true || (opts.coverLimit !== false && !this.$focussed)
+				if (lockCoverTiles) {
 					for (const i of imageEntries) {
-						if (i.cover ?? opts.cover) {
+						if ((i.cover ?? opts.cover) && !i.view) {
 							this._imageMap.get(i.id)?.camera.setCoverLimit(true)
 						}
 					}
@@ -851,6 +917,9 @@ export class Grid extends MicrioElement<GridProps> {
 		const hostRect = this.micrio.getBoundingClientRect()
 		const w = this.micrio.offsetWidth || hostRect.width
 		const h = this.micrio.offsetHeight || hostRect.height
+		if (w > 0 && h > 0) {
+			this.#lastHostSize = [w, h]
+		}
 		const s = Math.max(0, Math.min(1, 1 - (opts.scale ?? 1)))
 		this.style.transform = ''
 

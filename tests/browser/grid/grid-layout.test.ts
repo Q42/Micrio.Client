@@ -178,6 +178,39 @@ describe('grid configuration', () => {
 		viewer.destroy()
 	})
 
+	it('keeps cover-filled tiles covered and gutters even after resizing the container', async () => {
+		const { viewer, grid, ids } = await openGrid(fast())
+		viewer.el.style.position = 'relative'
+		grid.style.position = 'absolute'
+		grid.style.inset = '0'
+		grid.style.width = '100%'
+		grid.style.height = '100%'
+		grid.style.display = 'grid'
+
+		const layout: Models.Grid.GridImage[] = [
+			{ id: ids[0] ?? '', size: [2, 2] },
+			{ id: ids[1] ?? '', size: [1] },
+			{ id: ids[2] ?? '', size: [1] },
+		]
+		await grid.set(layout, { duration: 0, noHistory: true, columns: 3, scale: 0.88, cover: true })
+		await settleFrames(2)
+
+		// Dramatically change host aspect ratio (landscape 800x600 -> tall portrait 500x900)
+		viewer.el.style.width = '500px'
+		viewer.el.style.height = '900px'
+		await settleFrames(6)
+
+		for (const id of ids.slice(0, 3)) {
+			const img = grid.getImage(id)
+			expect(img).toBeDefined()
+			if (img) {
+				expect(img.camera.getCoverLimit()).toBe(true)
+				expect(img.camera.getScale()).toBeGreaterThanOrEqual(img.camera.getCoverScale() * 0.98)
+			}
+		}
+		viewer.destroy()
+	})
+
 	it('drops cells that are no longer part of the layout', async () => {
 		const { viewer, grid, ids } = await openGrid(fast())
 		const keep = [ids[0] ?? '', ids[2] ?? '']
