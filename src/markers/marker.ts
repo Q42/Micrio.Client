@@ -367,7 +367,10 @@ class MicrioMarker extends MicrioElement<MarkerProps> {
 			await tick()
 			// Started before the primary camera moves, so both panes of a split animate at once
 			const splitFlown = !immediatelyStartMyTourAtBeginning && flySplitToLink()
-			if (!immediatelyStartMyTourAtBeginning && view && !data.noAnimate && !marker.videoTour) {
+			// When a marker inside a Grid carries a `gridEffect`, let the Grid controller drive
+			// framing so `marker.view` can remain set for tag-zoom presets without fighting the grid.
+			const handledByGridEffect = data.gridEffect !== undefined && micrio.gallery?.grid !== undefined
+			if (!immediatelyStartMyTourAtBeginning && !handledByGridEffect && view && !data.noAnimate && !marker.videoTour) {
 				image.camera
 					.flyToView(view, {
 						omniIndex: image._isOmni && savedViewRotation === undefined ? this.#omniIndex : undefined,

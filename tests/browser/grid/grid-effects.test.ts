@@ -284,4 +284,49 @@ describe('grid effects', () => {
 		viewer.destroy()
 	})
 
+	it('lets a tagged marker keep its own view AND trigger a tag-zoom gridEffect targeting that tag', async () => {
+		const boatView1: Models.Camera.View = [0.05, 0.05, 0.2, 0.2]
+		const boatView2: Models.Camera.View = [0.6, 0.6, 0.25, 0.25]
+		const boatViewOther: Models.Camera.View = [0.2, 0.3, 0.3, 0.3]
+
+		const { viewer, grid, ids } = await openGrid(
+			fast({
+				markers: {
+					0: [
+						marker('boat-1', { tags: ['boats'], view: boatView1, popupType: 'none' }),
+						marker('boat-2', {
+							tags: ['boats'],
+							view: boatView2,
+							popupType: 'none',
+							data: { gridEffect: 'eff-boats-zoom' },
+						}),
+					],
+					2: [marker('boat-other', { tags: ['boats'], view: boatViewOther, popupType: 'none' })],
+				},
+			}),
+		)
+
+		grid.setEffects([
+			{
+				id: 'eff-boats-zoom',
+				name: 'Boats Spotlight',
+				steps: [
+					{
+						type: 'layout',
+						source: { mode: 'tags', tags: ['boats'], match: 'any', zoomToMarker: true },
+						duration: 0,
+					},
+				],
+			},
+		])
+
+		await openMarker(viewer, ids[0] ?? '', 'boat-2')
+		await waitFor(() => layoutIds(grid).length === 2, 4000, 'boats tag-zoom effect')
+		expect(layoutIds(grid)).toEqual([ids[0], ids[2]])
+
+		// The layout entry on image 0 must prefer the clicked marker's view (`boatView2`) over `boatView1`
+		const entry0 = grid.getLayout().find((e) => e.id === ids[0])
+		expect(entry0 && 'view' in entry0 ? entry0.view : undefined).toEqual(boatView2)
+		viewer.destroy()
+	})
 })

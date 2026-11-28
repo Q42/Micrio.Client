@@ -101,8 +101,18 @@ function matchesImageTags(img: MicrioImage, tags: string[], match: 'any' | 'all'
 	return markers.some((m) => m.tags?.some((t) => tags.includes(t)))
 }
 
-function firstMatchingTagMarker(img: MicrioImage, tags: string[]): Models.ImageData.Marker | undefined {
+function firstMatchingTagMarker(
+	img: MicrioImage,
+	tags: string[],
+	preferMarkerId?: string,
+): Models.ImageData.Marker | undefined {
 	const markers = img.$data?.markers ?? []
+	if (preferMarkerId) {
+		const preferred = markers.find((m) => m.id === preferMarkerId && m.tags?.some((t) => tags.includes(t)))
+		if (preferred) {
+			return preferred
+		}
+	}
 	return markers.find((m) => m.tags?.some((t) => tags.includes(t)))
 }
 
@@ -202,7 +212,7 @@ export function resolveLayoutEntries(
 				}
 				const entry: GridImage = { id: img.id, size: [1] }
 				if (source.zoomToMarker && cleanTags.length > 0) {
-					const m = firstMatchingTagMarker(img, cleanTags)
+					const m = firstMatchingTagMarker(img, cleanTags, opts.sourceMarkerId)
 					const v = markerToView(m)
 					if (v) {
 						entry.view = v
@@ -356,7 +366,12 @@ export async function executeGridEffect(
 					console.warn(`[Micrio Grid] Effect "${effect.name}" focus target not found: ${step.imageId}`)
 					break
 				}
-				const view = step.view ?? resolveMarkerView(img, step.markerId)
+				const markerView =
+					resolveMarkerView(img, step.markerId) ??
+					(step.imageId === '$current' && opts.sourceMarkerId
+						? img.$data?.markers?.find((m) => m.id === opts.sourceMarkerId)?.view
+						: undefined)
+				const view = step.view ?? markerView
 				// oxlint-disable-next-line eslint/no-await-in-loop -- effect choreography steps must execute strictly in sequence
 				await grid
 					.gridFocus(img, {
